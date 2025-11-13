@@ -1,295 +1,135 @@
 using HtmlAgilityPack;
 using RFFM.Api.Infrastructure.Helpers;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using System.Linq;
+using System.Collections.Generic;
 
 namespace RFFM.Api.Features.Competitions.Services
 {
- public interface ICompetitionService
- {
- Task<ResponseCompetition[]> GetCompetitionsAsync(CancellationToken cancellationToken = default);
- Task<ResponseGroup[]> GetGroupsAsync(string competitionId, CancellationToken cancellationToken = default);
- }
+    public interface ICompetitionService
+    {
+        Task<ResponseCompetition[]> GetCompetitionsAsync(CancellationToken cancellationToken = default);
+        Task<ResponseGroup[]> GetGroupsAsync(string competitionId, CancellationToken cancellationToken = default);
+    }
 
- public record ResponseCompetition(string Id, string Name);
- public record ResponseGroup(string Id, string Name);
+    public record ResponseCompetition(string Id, string Name);
+    public record ResponseGroup(string Id, string Name);
 
- public class CompetitionService : ICompetitionService
- {
- private readonly HttpClient _http;
- private readonly HtmlFetcher _fetcher;
- private const string BaseUrl = "https://www.rffm.es/competicion/clasificaciones";
+    public class CompetitionService : ICompetitionService
+    {
+        private readonly HttpClient _http;
+        private readonly HtmlFetcher _fetcher;
+        private const string BaseUrl = "https://www.rffm.es/competicion/clasificaciones";
 
- public CompetitionService(HttpClient http)
- {
- _http = http;
- _http.DefaultRequestHeaders.UserAgent.ParseAdd("RFFM.Extractor/1.0");
- _fetcher = new HtmlFetcher(http);
- }
+        public CompetitionService(HttpClient http)
+        {
+            _http = http;
+            _http.DefaultRequestHeaders.UserAgent.ParseAdd("RFFM.Extractor/1.0");
+            _fetcher = new HtmlFetcher(http);
+        }
 
- public async Task<ResponseCompetition[]> GetCompetitionsAsync(CancellationToken cancellationToken = default)
- {
- var content = await _fetcher.FetchAsync(BaseUrl, cancellationToken).ConfigureAwait(false);
- var list = new List<ResponseCompetition>();
+        // DTO matching API/embedded JSON response for competitions
+        private class CompetitionDto
+        {
+            [JsonPropertyName("codigo")]
+            public string Codigo { get; set; }
 
- // Try to parse selector UL for competitions (same logic used previously)
- try
- {
- var doc = new HtmlDocument();
- doc.LoadHtml(content);
- var selectorUl = doc.DocumentNode.SelectSingleNode("//ul[contains(@aria-labelledby,'competicion') and @role='listbox']")
- ?? doc.DocumentNode.SelectSingleNode("//div[contains(@class,'MuiMenu-paper')]//ul")
- ?? doc.DocumentNode.SelectSingleNode("//ul[contains(@class,'MuiList-root') and @role='listbox']");
+            [JsonPropertyName("nombre")]
+            public string Nombre { get; set; }
 
- var seen = new HashSet<string>();
+            // other fields ignored
+        }
 
- if (selectorUl != null)
- {
- var lis = selectorUl.SelectNodes(".//li[@data-value]") ?? Enumerable.Empty<HtmlNode>();
- foreach (var li in lis)
- {
- var ariaDisabled = li.GetAttributeValue("aria-disabled", string.Empty);
- var cls = li.GetAttributeValue("class", string.Empty);
- if (!string.IsNullOrWhiteSpace(ariaDisabled) && ariaDisabled.Equals("true", StringComparison.OrdinalIgnoreCase))
- continue;
- if (!string.IsNullOrWhiteSpace(cls) && cls.IndexOf("Mui-disabled", StringComparison.OrdinalIgnoreCase) >=0)
- continue;
+        public async Task<ResponseCompetition[]> GetCompetitionsAsync(CancellationToken cancellationToken = default)
+        {
+            var content = await _fetcher.FetchAsync(BaseUrl, cancellationToken).ConfigureAwait(false);
+            if (string.IsNullOrWhiteSpace(content))
+                return Array.Empty<ResponseCompetition>();
 
- var id = li.GetAttributeValue("data-value", string.Empty).Trim();
- if (string.IsNullOrWhiteSpace(id)) continue;
+            try
+            {
+                // extract the JSON array assigned to "competitions" inside the page
+                var regex = new Regex("\"competitions\"\\s*:\\s*(\\[.*?\\])", RegexOptions.Singleline | RegexOptions.IgnoreCase);
+                var match = regex.Match(content);
+                if (!match.Success)
+                    return Array.Empty<ResponseCompetition>();
 
- var textParts = li.ChildNodes
- .Where(n => n.NodeType == HtmlNodeType.Text)
- .Select(n => n.InnerText)
- .Where(t => !string.IsNullOrWhiteSpace(t))
- .ToArray();
+                var competitionsJson = match.Groups[1].Value;
+                if (string.IsNullOrWhiteSpace(competitionsJson))
+                    return Array.Empty<ResponseCompetition>();
 
- var name = textParts.Length >0
- ? string.Join(" ", textParts).Trim()
- : HtmlEntity.DeEntitize(li.InnerText).Trim();
+                var options = new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                };
 
- name = Regex.Replace(name, "\\s+", " ").Trim();
- if (string.IsNullOrWhiteSpace(name)) continue;
- if (Regex.IsMatch(name, "^\\d{4}(/|-)?\\d{0,4}$")) continue;
+                var dtos = JsonSerializer.Deserialize<List<CompetitionDto>>(competitionsJson, options);
+                if (dtos == null || dtos.Count == 0)
+                    return Array.Empty<ResponseCompetition>();
 
- if (seen.Add(id)) list.Add(new ResponseCompetition(id, name));
- }
+                var result = dtos
+                    .Where(d => !string.IsNullOrWhiteSpace(d.Codigo) && !string.IsNullOrWhiteSpace(d.Nombre))
+                    .Select(d => new ResponseCompetition(d.Codigo.Trim(), d.Nombre.Trim()))
+                    .ToArray();
 
- if (list.Count >0) return list.OrderBy(x => x.Name).ToArray();
- }
- }
- catch
- {
- // ignore
- }
+                return result;
+            }
+            catch
+            {
+                return Array.Empty<ResponseCompetition>();
+            }
+        }
 
- // JSON fallback
- try
- {
- var scriptMatch = Regex.Match(content, "<script[^>]*id=\\\"__NEXT_DATA__\\\"[^>]*>(.*?)</script>", RegexOptions.Singleline | RegexOptions.IgnoreCase);
- if (scriptMatch.Success)
- {
- var json = scriptMatch.Groups[1].Value.Trim();
- using var doc = JsonDocument.Parse(json);
- if (doc.RootElement.TryGetProperty("props", out var props) && props.TryGetProperty("pageProps", out var pageProps))
- {
- if (pageProps.TryGetProperty("competitions", out var comps) && comps.ValueKind == JsonValueKind.Array)
- {
- foreach (var c in comps.EnumerateArray())
- {
- string? id = null;
- string? name = null;
- if (c.TryGetProperty("codigo", out var codigo)) id = codigo.GetRawText().Trim('"');
- if (c.TryGetProperty("nombre", out var nombre)) name = nombre.GetString();
- if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(name)) continue;
- if (!list.Any(x => x.Id == id)) list.Add(new ResponseCompetition(id, name));
- }
- if (list.Count >0) return list.OrderBy(x => x.Name).ToArray();
- }
+        // DTO matching API response for groups
+        private class GroupDto
+        {
+            [JsonPropertyName("codigo")]
+            public string Codigo { get; set; }
 
- var found = new List<(string id, string name)>();
- FindCompetitionsInJson(doc.RootElement, found);
- foreach (var f in found)
- {
- if (string.IsNullOrWhiteSpace(f.id) || string.IsNullOrWhiteSpace(f.name)) continue;
- if (!list.Any(x => x.Id == f.id)) list.Add(new ResponseCompetition(f.id, f.name));
- }
- if (list.Count >0) return list.OrderBy(x => x.Name).ToArray();
- }
- }
- }
- catch
- {
- // ignore
- }
+            [JsonPropertyName("nombre")]
+            public string Nombre { get; set; }
 
- // anchors fallback
- try
- {
- var doc = new HtmlDocument();
- doc.LoadHtml(content);
- var anchors = doc.DocumentNode.SelectNodes("//a[@href]") ?? Enumerable.Empty<HtmlNode>();
- var seen = new HashSet<string>();
- foreach (var a in anchors)
- {
- var href = a.GetAttributeValue("href", string.Empty);
- if (string.IsNullOrWhiteSpace(href)) continue;
- if (!href.Contains("/competicion/", StringComparison.OrdinalIgnoreCase) && !href.Contains("/competicion", StringComparison.OrdinalIgnoreCase)) continue;
+            // other fields are ignored
+        }
 
- var m = Regex.Match(href, "(\\d+)");
- var id = m.Success ? m.Value : href;
- if (string.IsNullOrWhiteSpace(id)) continue;
+        public async Task<ResponseGroup[]> GetGroupsAsync(string competitionId, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(competitionId))
+                return Array.Empty<ResponseGroup>();
 
- var name = HtmlEntity.DeEntitize(a.InnerText).Trim();
- if (string.IsNullOrWhiteSpace(name)) name = a.GetAttributeValue("title", string.Empty).Trim();
- if (string.IsNullOrWhiteSpace(name)) continue;
+            try
+            {
+                var apiUrl = $"https://www.rffm.es/api/groups?competicion={Uri.EscapeDataString(competitionId)}";
+                using var resp = await _http.GetAsync(apiUrl, cancellationToken).ConfigureAwait(false);
+                if (!resp.IsSuccessStatusCode)
+                    return Array.Empty<ResponseGroup>();
 
- if (seen.Add(id)) list.Add(new ResponseCompetition(id, name));
- }
- }
- catch
- {
- // ignore
- }
+                var json = await resp.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+                if (string.IsNullOrWhiteSpace(json))
+                    return Array.Empty<ResponseGroup>();
 
- return list.OrderBy(x => x.Name).ToArray();
- }
+                var options = new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                };
 
- public async Task<ResponseGroup[]> GetGroupsAsync(string competitionId, CancellationToken cancellationToken = default)
- {
- // fixed params as requested
- var url = $"{BaseUrl}?temporada=21&competicion={competitionId}&jornada=1&tipojuego=1";
- var content = await _fetcher.FetchAsync(url, cancellationToken).ConfigureAwait(false);
- var list = new List<ResponseGroup>();
+                var dtos = JsonSerializer.Deserialize<List<GroupDto>>(json, options);
+                if (dtos == null || dtos.Count == 0)
+                    return Array.Empty<ResponseGroup>();
 
- try
- {
- var doc = new HtmlDocument();
- doc.LoadHtml(content);
+                var result = dtos
+                    .Where(d => !string.IsNullOrWhiteSpace(d.Codigo) && !string.IsNullOrWhiteSpace(d.Nombre))
+                    .Select(d => new ResponseGroup(d.Codigo.Trim(), d.Nombre.Trim()))
+                    .ToArray();
 
- // find selector UL for groups - try aria-labelledby containing 'grupo' or select with id/label
- var selectorUl = doc.DocumentNode.SelectSingleNode("//ul[contains(@aria-labelledby,'grupo') and @role='listbox']")
- ?? doc.DocumentNode.SelectSingleNode("//ul[contains(@id,'grupo')]")
- ?? doc.DocumentNode.SelectSingleNode("//div[contains(@class,'MuiMenu-paper')]//ul")
- ?? doc.DocumentNode.SelectSingleNode("//ul[contains(@class,'MuiList-root') and @role='listbox']");
-
- var seen = new HashSet<string>();
- if (selectorUl != null)
- {
- var lis = selectorUl.SelectNodes(".//li[@data-value]") ?? Enumerable.Empty<HtmlNode>();
- foreach (var li in lis)
- {
- var ariaDisabled = li.GetAttributeValue("aria-disabled", string.Empty);
- var cls = li.GetAttributeValue("class", string.Empty);
- if (!string.IsNullOrWhiteSpace(ariaDisabled) && ariaDisabled.Equals("true", StringComparison.OrdinalIgnoreCase))
- continue;
- if (!string.IsNullOrWhiteSpace(cls) && cls.IndexOf("Mui-disabled", StringComparison.OrdinalIgnoreCase) >=0)
- continue;
-
- var id = li.GetAttributeValue("data-value", string.Empty).Trim();
- if (string.IsNullOrWhiteSpace(id)) continue;
-
- var textParts = li.ChildNodes
- .Where(n => n.NodeType == HtmlNodeType.Text)
- .Select(n => n.InnerText)
- .Where(t => !string.IsNullOrWhiteSpace(t))
- .ToArray();
-
- var name = textParts.Length >0
- ? string.Join(" ", textParts).Trim()
- : HtmlEntity.DeEntitize(li.InnerText).Trim();
-
- name = Regex.Replace(name, "\\s+", " ").Trim();
- if (string.IsNullOrWhiteSpace(name)) continue;
-
- if (seen.Add(id)) list.Add(new ResponseGroup(id, name));
- }
-
- if (list.Count >0) return list.OrderBy(x => x.Name).ToArray();
- }
- }
- catch
- {
- // ignore
- }
-
- // try JSON __NEXT_DATA__ for groups
- try
- {
- var scriptMatch = Regex.Match(content, "<script[^>]*id=\\\"__NEXT_DATA__\\\"[^>]*>(.*?)</script>", RegexOptions.Singleline | RegexOptions.IgnoreCase);
- if (scriptMatch.Success)
- {
- var json = scriptMatch.Groups[1].Value.Trim();
- using var doc = JsonDocument.Parse(json);
- // try to find pageProps.competitions or pageProps.groups
- if (doc.RootElement.TryGetProperty("props", out var props) && props.TryGetProperty("pageProps", out var pageProps))
- {
- if (pageProps.TryGetProperty("groups", out var groups) && groups.ValueKind == JsonValueKind.Array)
- {
- foreach (var g in groups.EnumerateArray())
- {
- string? id = null;
- string? name = null;
- if (g.TryGetProperty("codigo", out var codigo)) id = codigo.GetRawText().Trim('"');
- if (g.TryGetProperty("nombre", out var nombre)) name = nombre.GetString();
- if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(name)) continue;
- if (!list.Any(x => x.Id == id)) list.Add(new ResponseGroup(id, name));
- }
- if (list.Count >0) return list.OrderBy(x => x.Name).ToArray();
- }
-
- // generic scan for group-like objects
- var found = new List<(string id, string name)>();
- FindCompetitionsInJson(doc.RootElement, found);
- foreach (var f in found)
- {
- if (string.IsNullOrWhiteSpace(f.id) || string.IsNullOrWhiteSpace(f.name)) continue;
- // some ids may represent groups
- if (!list.Any(x => x.Id == f.id)) list.Add(new ResponseGroup(f.id, f.name));
- }
- if (list.Count >0) return list.OrderBy(x => x.Name).ToArray();
- }
- }
- }
- catch
- {
- // ignore
- }
-
- return list.OrderBy(x => x.Name).ToArray();
- }
-
- private static void FindCompetitionsInJson(JsonElement el, List<(string id, string name)> found)
- {
- if (el.ValueKind == JsonValueKind.Object)
- {
- string? id = null;
- string? name = null;
- foreach (var prop in el.EnumerateObject())
- {
- var pname = prop.Name;
- if (id == null && (string.Equals(pname, "id", StringComparison.OrdinalIgnoreCase) || pname.IndexOf("cod", StringComparison.OrdinalIgnoreCase) >=0 || pname.IndexOf("codigo", StringComparison.OrdinalIgnoreCase) >=0))
- {
- if (prop.Value.ValueKind == JsonValueKind.String) id = prop.Value.GetString();
- else if (prop.Value.ValueKind == JsonValueKind.Number) id = prop.Value.GetRawText();
- }
- if (name == null && (pname.IndexOf("nombre", StringComparison.OrdinalIgnoreCase) >=0 || pname.IndexOf("name", StringComparison.OrdinalIgnoreCase) >=0 || pname.IndexOf("grupo", StringComparison.OrdinalIgnoreCase) >=0))
- {
- if (prop.Value.ValueKind == JsonValueKind.String) name = prop.Value.GetString();
- }
- }
-
- if (!string.IsNullOrWhiteSpace(id) && !string.IsNullOrWhiteSpace(name))
- {
- found.Add((id!, name!));
- }
-
- foreach (var prop in el.EnumerateObject()) FindCompetitionsInJson(prop.Value, found);
- }
- else if (el.ValueKind == JsonValueKind.Array)
- {
- foreach (var item in el.EnumerateArray()) FindCompetitionsInJson(item, found);
- }
- }
- }
+                return result;
+            }
+            catch
+            {
+                return Array.Empty<ResponseGroup>();
+            }
+        }
+    }
 }
