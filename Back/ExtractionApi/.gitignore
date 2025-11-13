@@ -1,0 +1,87 @@
+# Build artifacts
+**/bin/
+**/obj/
+
+# Visual Studio / JetBrains
+.vs/
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.sln.ide
+*.sln.iml
+
+# Rider
+*.sln.iml
+
+# NuGet
+*.nupkg
+**/packages/
+.nuget/
+project.lock.json
+project.fragment.lock.json
+
+# Publish output
+publish/
+artifacts/
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# User secrets and env
+secrets.json
+appsettings.Development.json
+appsettings.*.Local.json
+.env
+.env.*
+
+# Test results and coverage
+TestResults/
+coverage/
+*.coverage
+*.coveragexml
+
+# Temporary files
+*.tmp
+*.temp
+~$*
+
+# dotnet tool files
+.tools/
+
+# Avoid committing large local test HTML used for debugging
+jugador.html
+
+# Ignore Rider caches
+.idea/
+
+# Ignore generated web assets
+wwwroot/dist/
+node_modules/
+
+# Ignore Visual Studio Code workspace storage
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+
+# Misc
+*.bak
+*.swp
+
+# Keep JetBrains caches
+/.idea/
+
+# GitHub Actions artifacts
+.github/workflows/*.local
+
+# Ignore compiled python/cache if any
+__pycache__/
+*.pyc

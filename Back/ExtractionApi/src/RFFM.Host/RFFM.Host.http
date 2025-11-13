@@ -1,0 +1,6 @@
+@RFFM.Host_HostAddress = http://localhost:5170
+
+GET {{RFFM.Host_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
