@@ -12,9 +12,11 @@ type GroupEntry = {
 export default function GroupSummaryBox({
   groups,
   title,
+  totalPlayers,
 }: {
   groups: GroupEntry[];
   title?: string;
+  totalPlayers?: number;
 }): JSX.Element {
   return (
     <div className={styles.wrap}>
@@ -42,9 +44,11 @@ export default function GroupSummaryBox({
                   alignItems: "baseline",
                 }}
               >
-                <Typography variant="caption">Número de jugadores:</Typography>
-                <Typography variant="h6">{g.count}</Typography>
+                <Typography variant="h6">
+                  Convocados {g.count} de {totalPlayers ?? "?"} jugadores
+                </Typography>
               </div>
+
               <Typography variant="caption">Puntos: {g.teamPoints}</Typography>
             </div>
           </div>

@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using RFFM.Api.Common.Behaviors;
 using RFFM.Api.Features.Players.Services;
+using RFFM.Api.Features.Competitions.Services;
 
 namespace RFFM.Api.DependencyInjection
 {
@@ -26,6 +27,7 @@ namespace RFFM.Api.DependencyInjection
             //services.AddIntegrationEvents();
             services.AddHttpClient();
             services.AddScoped<IPlayerService, PlayerService>();
+            services.AddScoped<ICompetitionService, CompetitionService>();
             return services;
         }
 

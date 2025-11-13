@@ -52,6 +52,7 @@ type Player = {
 export default function GetPlayers(): JSX.Element {
   const [selectedTeam, setSelectedTeam] = useState<Team | undefined>(undefined);
   const [players, setPlayers] = useState<Player[]>([]);
+  const [displayCount, setDisplayCount] = useState<number>(0);
   const [ageCounts, setAgeCounts] = useState<Record<number, number>>({});
   const [groupCounts, setGroupCounts] = useState<
     Array<{
@@ -74,9 +75,13 @@ export default function GetPlayers(): JSX.Element {
     async function load() {
       try {
         setError(null);
-        // If no team selected, clear players
+        // If no team selected, clear players and summaries
         if (!selectedTeam) {
-          if (mounted) setPlayers([]);
+          if (mounted) {
+            setPlayers([]);
+            setAgeCounts({});
+            setGroupCounts([]);
+          }
           return;
         }
 
@@ -118,6 +123,7 @@ export default function GetPlayers(): JSX.Element {
         console.log("mapped players:", mapped);
         if (mounted) {
           setPlayers(mapped);
+          setDisplayCount(mapped.length);
           // compute counts now that players are loaded
           const counts = mapped.reduce<Record<number, number>>((acc, p) => {
             const a = p.age ?? null;
@@ -178,7 +184,9 @@ export default function GetPlayers(): JSX.Element {
           // hide current data immediately while new team loads
           setSelectedTeam(t);
           setPlayers([]);
+          setDisplayCount(0);
           setAgeCounts({});
+          setGroupCounts([]);
           setExpandedPlayerId(null);
           setExpandedDetails(null);
           setError(null);
@@ -197,12 +205,15 @@ export default function GetPlayers(): JSX.Element {
         <GroupSummaryBox
           groups={groupCounts}
           title="Agrupación por competición"
+          totalPlayers={players.length}
         />
       )}
 
-      <Typography variant="h5" gutterBottom>
-        Número de jugadores: {selectedTeam ? `${players.length}` : "0"}
-      </Typography>
+      {selectedTeam && !loading && (
+        <Typography variant="h5" gutterBottom>
+          Número de jugadores: {selectedTeam ? `${players.length}` : "0"}
+        </Typography>
+      )}
 
       {loading ? (
         <div className={styles.center}>
