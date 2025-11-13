@@ -1,0 +1,25 @@
+.card {
+  padding: 12px;
+  margin: 8px 0;
+  border-radius: 6px;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.6);
+  background: var(--panel);
+}
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.field {
+  font-size: 0.9rem;
+}
+.detailRoot {
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.12);
+}

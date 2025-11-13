@@ -1,0 +1,15 @@
+.wrap {
+  margin: 8px 0 12px 0;
+}
+.box {
+  display: flex;
+  gap: 12px;
+  padding: 8px;
+  background: var(--panel);
+  border-radius: 6px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+}
+.item {
+  flex: 1;
+  text-align: center;
+}

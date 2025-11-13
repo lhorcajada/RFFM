@@ -1,0 +1,26 @@
+.wrap {
+  margin: 8px 0 12px 0;
+}
+.box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  background: var(--panel);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+}
+.item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.left {
+  font-weight: 700;
+  color: var(--muted);
+}
+.right {
+  text-align: right;
+}

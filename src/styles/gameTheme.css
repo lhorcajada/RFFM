@@ -1,0 +1,30 @@
+:root {
+  /* Football game theme */
+  --bg: #071214; /* deep pitch night */
+  --panel: #0f2a1f; /* dark green panel */
+  --card: linear-gradient(180deg, #0f3b28, #0b2b1f); /* card gradient */
+  --accent: #00ff9f; /* neon green accent */
+  --accent-2: #ffd34d; /* gold accent */
+  --muted: #9db4a3; /* muted light green */
+  --border: rgba(255, 255, 255, 0.06);
+}
+
+body {
+  background: var(--bg);
+  color: #e6f7ef;
+}
+
+.game-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: #e6f7ef;
+}
+
+.game-title {
+  color: var(--accent-2);
+  font-weight: 700;
+}
+
+.game-accent {
+  color: var(--accent);
+}

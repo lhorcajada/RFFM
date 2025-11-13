@@ -1,0 +1,16 @@
+.paper {
+  padding: 16px;
+}
+.center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 0;
+}
+
+.detailRoot {
+  padding: 12px;
+  background: #fafafa;
+  border-left: 3px solid rgba(0, 0, 0, 0.06);
+  margin: 8px 0 12px 0;
+}
