@@ -1,0 +1,49 @@
+name: Build and push image to Azure Container Registry
+
+on:
+  push:
+    branches: [ main ]
+
+env:
+  ACR_REPOSITORY: rffm-api
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set image tag
+        run: echo "IMAGE_TAG=${GITHUB_SHA::8}" >> $GITHUB_ENV
+
+      - name: Log in to ACR (Docker)
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ secrets.ACR_LOGIN_SERVER }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.ACR_LOGIN_SERVER }}/${{ env.ACR_REPOSITORY }}:${{ env.IMAGE_TAG }}
+            ${{ secrets.ACR_LOGIN_SERVER }}/${{ env.ACR_REPOSITORY }}:latest
+
+      - name: Output image
+        run: echo "Pushed image: ${{ secrets.ACR_LOGIN_SERVER }}/${{ env.ACR_REPOSITORY }}:${{ env.IMAGE_TAG }}"
+
+# NOTE:
+# - Add the following repository secrets in GitHub: ACR_LOGIN_SERVER, ACR_USERNAME, ACR_PASSWORD
+#   Example values for your registry (do NOT commit credentials directly):
+#     ACR_LOGIN_SERVER = rffmregistry-beg6cuaaa6ase9fk.azurecr.io
+#     ACR_USERNAME = rffmregistry
+#     ACR_PASSWORD = <your-acr-admin-password>
+# - Configure your Azure Web App for Containers to pull the image from the ACR repo
+#   (Portal -> Web App -> Container settings) or add a deployment step using the publish profile.
