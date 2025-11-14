@@ -16,8 +16,12 @@ const RFFM_URL =
 
 export default function TeamsSelector({
   onChange,
+  competitionId,
+  groupId,
 }: {
   onChange?: (team?: Team) => void;
+  competitionId?: string;
+  groupId?: string;
 }) {
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -33,8 +37,8 @@ export default function TeamsSelector({
       try {
         const payload = await getTeamsForClassification({
           season: "21",
-          competition: "25255269",
-          group: "25255283",
+          competition: competitionId,
+          group: groupId,
           playType: "1",
         });
         const teamsData: Team[] = (payload && payload.teams) || payload || [];
@@ -52,11 +56,14 @@ export default function TeamsSelector({
       }
     }
 
+    // reset selection when filters change
+    setTeams([]);
+    setSelected("");
     load();
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [competitionId, groupId]);
 
   function handleChange(event: any) {
     const id = event.target.value;

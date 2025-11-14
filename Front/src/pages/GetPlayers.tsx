@@ -11,6 +11,8 @@ import {
   Button,
 } from "@mui/material";
 import TeamsSelector from "../components/ui/TeamsSelector";
+import CompetitionSelector from "../components/ui/CompetitionSelector";
+import GroupSelector from "../components/ui/GroupSelector";
 import { getPlayersByTeam, getPlayer } from "../services/api";
 import type { PlayersByTeamResponse } from "../types/player";
 import PlayerStatsCard from "../components/players/PlayerStatsCard";
@@ -68,6 +70,12 @@ export default function GetPlayers(): JSX.Element {
   const [loadingDetail, setLoadingDetail] = useState<number | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedCompetition, setSelectedCompetition] = useState<
+    string | undefined
+  >(undefined);
+  const [selectedGroup, setSelectedGroup] = useState<string | undefined>(
+    undefined
+  );
 
   useEffect(() => {
     let mounted = true;
@@ -179,7 +187,23 @@ export default function GetPlayers(): JSX.Element {
 
   return (
     <Paper className={styles.paper}>
+      <CompetitionSelector
+        onChange={(c) => {
+          setSelectedCompetition(c?.id);
+          setSelectedGroup(undefined);
+          setSelectedTeam(undefined);
+        }}
+      />
+      <GroupSelector
+        competitionId={selectedCompetition}
+        onChange={(g) => {
+          setSelectedGroup(g?.id);
+          setSelectedTeam(undefined);
+        }}
+      />
       <TeamsSelector
+        competitionId={selectedCompetition}
+        groupId={selectedGroup}
         onChange={(t) => {
           // hide current data immediately while new team loads
           setSelectedTeam(t);
