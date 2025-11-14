@@ -9,16 +9,21 @@ export default defineConfig(async ({ command, mode }) => {
   const env = loadEnv(mode, (process as any).cwd(), "");
   const appEnv = env.VITE_APP_ENV || mode || "development";
 
-  // Default API base urls for environments — override with env vars when needed
+  // Read proxy target URLs from env vars with fallback defaults
+  const apiTargetDev =
+    env.VITE_API_PROXY_TARGET_DEV || "https://localhost:7287";
+  const apiTargetProd =
+    env.VITE_API_PROXY_TARGET_PROD ||
+    "https://rffmapi-hgfbczfxe5d6b7d2.westeurope-01.azurewebsites.net";
+
   const apiTargets: Record<string, string> = {
-    development: "https://localhost:7287",
-    local: "https://localhost:7287",
-    production:
-      "https://rffmapi-hgfbczfxe5d6b7d2.westeurope-01.azurewebsites.net",
+    development: apiTargetDev,
+    local: apiTargetDev,
+    production: apiTargetProd,
   };
 
   const apiTarget =
-    env.VITE_API_PROXY_TARGET || apiTargets[appEnv] || apiTargets.development;
+    env.VITE_API_PROXY_TARGET || apiTargets[appEnv] || apiTargetDev;
 
   return {
     plugins: [pluginReact()],

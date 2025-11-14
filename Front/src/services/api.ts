@@ -52,4 +52,17 @@ export async function getTeamsForClassification(params: {
   return res.data;
 }
 
+export async function getCompetitions() {
+  const res = await client.get("competitions");
+  return res.data;
+}
+
+export async function getGroups(competitionId?: string) {
+  const q = competitionId
+    ? `?competitionId=${encodeURIComponent(competitionId)}`
+    : "";
+  const res = await client.get(`groups${q}`);
+  return res.data;
+}
+
 export default client;

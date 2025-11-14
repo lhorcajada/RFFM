@@ -7,6 +7,7 @@ import {
   CircularProgress,
   Typography,
 } from "@mui/material";
+import { getGroups } from "../../services/api";
 
 type Group = { id: string; name: string };
 
@@ -33,26 +34,7 @@ export default function GroupSelector({
       setLoading(true);
       setError(null);
       try {
-        const base = import.meta.env.VITE_API_BASE_URL || "";
-        const url = base
-          ? `${base.replace(
-              /\/$/,
-              ""
-            )}/groups?competitionId=${encodeURIComponent(competitionId)}`
-          : `/api/groups?competitionId=${encodeURIComponent(competitionId)}`;
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const contentType = (
-          res.headers.get("content-type") || ""
-        ).toLowerCase();
-        if (!contentType.includes("application/json")) {
-          const text = await res.text();
-          const preview = text ? text.slice(0, 200) : "<empty>";
-          throw new Error(
-            `Expected JSON from ${url} but got '${contentType}'. Response preview: ${preview}`
-          );
-        }
-        const payload = await res.json();
+        const payload = await getGroups(competitionId);
         let data: any[] = [];
         if (Array.isArray(payload)) data = payload;
         else if (Array.isArray(payload.items)) data = payload.items;
