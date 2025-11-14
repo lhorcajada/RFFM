@@ -1,0 +1,12 @@
+[build]
+  publish = "dist"
+  command = "npm run build"
+
+[build.environment]
+  # Set Vite base URL for API in Netlify site settings instead of committing secrets
+  # VITE_API_BASE_URL = "https://rffm-hdbqfmexd3b7f6au.westeurope-01.azurewebsites.net/"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
