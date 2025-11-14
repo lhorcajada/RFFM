@@ -11,9 +11,6 @@ import { getTeamsForClassification } from "../../services/api";
 
 type Team = { id: string; name: string; url?: string };
 
-const RFFM_URL =
-  "https://www.rffm.es/competicion/clasificaciones?temporada=21&competicion=25255269&grupo=25255283&jornada=6&tipojuego=1";
-
 export default function TeamsSelector({
   onChange,
   competitionId,
@@ -24,12 +21,24 @@ export default function TeamsSelector({
   groupId?: string;
 }) {
   const [teams, setTeams] = useState<Team[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<string>("");
 
   useEffect(() => {
     let mounted = true;
+    // reset selection when filters change
+    setTeams([]);
+    setSelected("");
+    setError(null);
+    if (onChange) onChange(undefined);
+    // only load teams when both competition and group are provided
+    if (!competitionId || !groupId) {
+      setLoading(false);
+      return () => {
+        mounted = false;
+      };
+    }
 
     async function load() {
       setLoading(true);
@@ -56,9 +65,6 @@ export default function TeamsSelector({
       }
     }
 
-    // reset selection when filters change
-    setTeams([]);
-    setSelected("");
     load();
     return () => {
       mounted = false;
@@ -73,7 +79,7 @@ export default function TeamsSelector({
   }
 
   return (
-    <div>
+    <div style={{ marginBottom: 8 }}>
       {loading ? (
         <CircularProgress size={20} />
       ) : (

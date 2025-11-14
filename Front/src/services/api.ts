@@ -4,7 +4,9 @@ const BASE = (import.meta.env.VITE_API_BASE_URL || "")
   .toString()
   .replace(/\/?$/, "/");
 
-const client = axios.create({ baseURL: BASE, timeout: 30000 });
+const DEFAULT_TIMEOUT = Number(import.meta.env.VITE_API_TIMEOUT ?? 60000);
+const DEFAULT_RETRIES = Number(import.meta.env.VITE_API_RETRIES ?? 3);
+const client = axios.create({ baseURL: BASE, timeout: DEFAULT_TIMEOUT });
 
 export async function getPlayer(playerId: string) {
   const res = await client.get(`players/${encodeURIComponent(playerId)}`);
@@ -16,7 +18,7 @@ import type { PlayersByTeamResponse } from "../types/player";
 export async function getPlayersByTeam(
   teamId: string
 ): Promise<PlayersByTeamResponse> {
-  const maxAttempts = 3;
+  const maxAttempts = DEFAULT_RETRIES;
   let attempt = 0;
   let lastErr: any = null;
   while (attempt < maxAttempts) {
