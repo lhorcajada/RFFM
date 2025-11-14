@@ -1,4 +1,4 @@
-﻿using System.Data.Common;
+using System.Data.Common;
 using Hellang.Middleware.ProblemDetails;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using RFFM.Api.DependencyInjection;
@@ -32,6 +32,18 @@ namespace RFFM.Host
             
             //services.AddDbContext<ReadOnlyTodoDbContext>();
 
+            // Configure CORS to allow requests from Netlify app
+            services.AddCors(options =>
+            {
+                options.AddPolicy("AllowNetlifyApp", policy =>
+                {
+                    policy.WithOrigins("https://rffm.netlify.app")
+                          .AllowAnyHeader()
+                          .AllowAnyMethod()
+                          .AllowCredentials();
+                });
+            });
+
             services.AddOpenApi();
 
             services.AddHttpClient();
@@ -50,7 +62,8 @@ namespace RFFM.Host
 
             app.UseProblemDetails()
                 .UseHttpsRedirection()
-                .UseRouting();
+                .UseRouting()
+                .UseCors("AllowNetlifyApp");
 
             app.UseEndpoints(endpoints =>
             {
