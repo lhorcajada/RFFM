@@ -3,8 +3,9 @@
   command = "npm run build"
 
 [build.environment]
-  # Set Vite base URL for API in Netlify site settings instead of committing secrets
-  # VITE_API_BASE_URL = "https://rffm-hdbqfmexd3b7f6au.westeurope-01.azurewebsites.net/"
+  # IMPORTANT: Set these in Netlify UI (Site settings → Environment variables)
+  # For production, use the full Azure API URL:
+  # VITE_API_BASE_URL = "https://rffmapi-hgfbczfxe5d6b7d2.westeurope-01.azurewebsites.net/"
 
 [[redirects]]
   from = "/*"
