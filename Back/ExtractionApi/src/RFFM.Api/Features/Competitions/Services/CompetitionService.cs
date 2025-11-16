@@ -21,7 +21,7 @@ namespace RFFM.Api.Features.Competitions.Services
     {
         private readonly HttpClient _http;
         private readonly HtmlFetcher _fetcher;
-        private const string BaseUrl = "https://www.rffm.es/competicion/clasificaciones";
+        private const string BaseUrl = "https://www.rffm.es/api/competitions";
 
         public CompetitionService(HttpClient http)
         {
@@ -44,28 +44,19 @@ namespace RFFM.Api.Features.Competitions.Services
 
         public async Task<ResponseCompetition[]> GetCompetitionsAsync(CancellationToken cancellationToken = default)
         {
-            var content = await _fetcher.FetchAsync(BaseUrl, cancellationToken).ConfigureAwait(false);
+            var competitionsUrl = $"{BaseUrl}?temporada=21&tipojuego=1";
+            var content = await _fetcher.FetchAsync(competitionsUrl, cancellationToken).ConfigureAwait(false);
             if (string.IsNullOrWhiteSpace(content))
                 return Array.Empty<ResponseCompetition>();
 
             try
             {
-                // extract the JSON array assigned to "competitions" inside the page
-                var regex = new Regex("\"competitions\"\\s*:\\s*(\\[.*?\\])", RegexOptions.Singleline | RegexOptions.IgnoreCase);
-                var match = regex.Match(content);
-                if (!match.Success)
-                    return Array.Empty<ResponseCompetition>();
-
-                var competitionsJson = match.Groups[1].Value;
-                if (string.IsNullOrWhiteSpace(competitionsJson))
-                    return Array.Empty<ResponseCompetition>();
-
                 var options = new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
                 };
 
-                var dtos = JsonSerializer.Deserialize<List<CompetitionDto>>(competitionsJson, options);
+                var dtos = JsonSerializer.Deserialize<List<CompetitionDto>>(content, options);
                 if (dtos == null || dtos.Count == 0)
                     return Array.Empty<ResponseCompetition>();
 
