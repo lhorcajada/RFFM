@@ -13,7 +13,7 @@
 }
 .grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 8px;
 }
 .field {
@@ -48,7 +48,7 @@
 
 @media (max-width: 800px) {
   .grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
     gap: 6px;
   }
   .field {
@@ -58,8 +58,8 @@
 
 @media (max-width: 480px) {
   .grid {
-    grid-template-columns: 1fr;
-    gap: 8px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
   }
   .card {
     padding: 6px;
@@ -74,5 +74,21 @@
     height: 20px !important;
     min-width: 20px !important;
     min-height: 20px !important;
+  }
+}
+
+@media (max-width: 360px) {
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  .field {
+    font-size: 0.82rem;
+  }
+  .icon,
+  .cardIcon,
+  .forcedIcon {
+    width: 18px !important;
+    height: 18px !important;
   }
 }
