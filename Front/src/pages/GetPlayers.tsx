@@ -16,7 +16,11 @@ import {
 import TeamsSelector from "../components/ui/TeamsSelector";
 import CompetitionSelector from "../components/ui/CompetitionSelector";
 import GroupSelector from "../components/ui/GroupSelector";
-import { getPlayersByTeam, getPlayer, getTeamAgeSummary } from "../services/api";
+import {
+  getPlayersByTeam,
+  getPlayer,
+  getTeamAgeSummary,
+} from "../services/api";
 import AgeSummaryBox from "../components/players/AgeSummaryBox";
 import PlayerStatsCard from "../components/players/PlayerStatsCard";
 
@@ -398,7 +402,9 @@ export default function GetPlayers(): JSX.Element {
                 // fetch age summary
                 try {
                   setLoadingAge(true);
-                  const id = String((selectedTeam as any).id || selectedTeam?.id);
+                  const id = String(
+                    (selectedTeam as any).id || selectedTeam?.id
+                  );
                   const data = await getTeamAgeSummary(id, "21");
                   const map: Record<number, number> = {};
                   (data || []).forEach((d: any) => {
@@ -420,7 +426,10 @@ export default function GetPlayers(): JSX.Element {
                 {loadingAge ? (
                   <CircularProgress size={20} />
                 ) : (
-                  <AgeSummaryBox playersCountByAge={ageSummary} title="Resumen de edades" />
+                  <AgeSummaryBox
+                    playersCountByAge={ageSummary}
+                    title="Resumen de edades"
+                  />
                 )}
               </div>
             )}
