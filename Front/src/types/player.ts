@@ -85,6 +85,43 @@ export interface TeamResponse {
   players: Array<{ playerId?: string | number; name?: string }>;
 }
 
+export interface MatchStreak {
+  type?: string; // G/E/P
+  color?: string;
+}
+
+export interface Classification {
+  color?: string;
+  position?: string;
+  imageUrl?: string;
+  teamId?: string;
+  teamName?: string;
+  played?: string;
+  won?: string;
+  lost?: string;
+  drawn?: string;
+  penalties?: string;
+  goalsFor?: string;
+  goalsAgainst?: string;
+  homePlayed?: string;
+  homeWon?: string;
+  homeDrawn?: string;
+  homePenaltyWins?: string;
+  homeLost?: string;
+  awayPlayed?: string;
+  awayWon?: string;
+  awayDrawn?: string;
+  awayPenaltyWins?: string;
+  awayLost?: string;
+  points?: string;
+  sanctionPoints?: string;
+  homePoints?: string;
+  awayPoints?: string;
+  showCoefficient?: string;
+  coefficient?: string;
+  matchStreaks?: MatchStreak[];
+}
+
 export type PlayersByTeamResponse = TeamPlayer[] | { players: TeamPlayer[] };
 
 export default PlayerDetailsResponse;

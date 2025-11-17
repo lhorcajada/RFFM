@@ -8,8 +8,9 @@ import {
   Typography,
 } from "@mui/material";
 import { getTeamsForClassification } from "../../services/api";
+import type { Classification } from "../../types/player";
 
-type Team = { id: string; name: string; url?: string };
+type Team = { id: string; name: string; url?: string; raw?: Classification };
 
 export default function TeamsSelector({
   onChange,
@@ -50,7 +51,13 @@ export default function TeamsSelector({
           group: groupId,
           playType: "1",
         });
-        const teamsData: Team[] = (payload && payload.teams) || payload || [];
+        // payload is Classification[]
+        const teamsData: Team[] = (payload || []).map((c: Classification) => ({
+          id: c.teamId ?? String(c.teamName ?? ""),
+          name: c.teamName ?? "",
+          url: c.imageUrl,
+          raw: c,
+        }));
         if (mounted) setTeams(teamsData as Team[]);
       } catch (err: unknown) {
         if (mounted) {

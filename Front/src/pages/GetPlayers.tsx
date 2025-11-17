@@ -104,9 +104,16 @@ export default function GetPlayers(): JSX.Element {
         else if (payload && Array.isArray((payload as any).players))
           list = (payload as any).players;
 
-        if (payload && (payload as any).team)
-          setTeamDetails((payload as any).team);
-        else setTeamDetails(null);
+        if (payload && (payload as any).team) {
+          const baseTeam = (payload as any).team;
+          if (selectedTeam && (selectedTeam as any).raw) {
+            baseTeam.classification = (selectedTeam as any).raw;
+          }
+          setTeamDetails(baseTeam);
+        } else {
+          // If API didn't return team details, at least use classification info from selector
+          setTeamDetails((selectedTeam as any)?.raw ?? null);
+        }
 
         const mapped: Player[] = list.map((p: any, idx: number) => {
           const raw = p.ace ?? p.age ?? null;
@@ -232,7 +239,95 @@ export default function GetPlayers(): JSX.Element {
                 {teamDetails.postalCode ? `· ${teamDetails.postalCode}` : ""}
               </Typography>
             </div>
+            {teamDetails.classification && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div>
+                  <Typography variant="subtitle2">
+                    Posición {teamDetails.classification.position}
+                  </Typography>
+                  <Typography className={teamStyles.muted}>
+                    Puntos: {teamDetails.classification.points}
+                  </Typography>
+                </div>
+              </div>
+            )}
           </div>
+          {teamDetails.classification && (
+            <div className={teamStyles.classificationSummary}>
+              <div className={teamStyles.stat}>
+                <div className={teamStyles.label}>Posición</div>
+                <div className={teamStyles.value}>
+                  {teamDetails.classification.position || "-"}
+                </div>
+              </div>
+              <div className={teamStyles.stat}>
+                <div className={teamStyles.label}>Puntos</div>
+                <div className={teamStyles.value}>
+                  {teamDetails.classification.points || "-"}
+                </div>
+              </div>
+              <div className={teamStyles.stat}>
+                <div className={teamStyles.label}>Jugados</div>
+                <div className={teamStyles.value}>
+                  {teamDetails.classification.played || "-"}
+                </div>
+              </div>
+              <div className={teamStyles.stat}>
+                <div className={teamStyles.label}>G</div>
+                <div className={teamStyles.value}>
+                  {teamDetails.classification.won || "-"}
+                </div>
+              </div>
+              <div className={teamStyles.stat}>
+                <div className={teamStyles.label}>E</div>
+                <div className={teamStyles.value}>
+                  {teamDetails.classification.drawn || "-"}
+                </div>
+              </div>
+              <div className={teamStyles.stat}>
+                <div className={teamStyles.label}>P</div>
+                <div className={teamStyles.value}>
+                  {teamDetails.classification.lost || "-"}
+                </div>
+              </div>
+              <div className={teamStyles.stat}>
+                <div className={teamStyles.label}>GF</div>
+                <div className={teamStyles.value}>
+                  {teamDetails.classification.goalsFor || "-"}
+                </div>
+              </div>
+              <div className={teamStyles.stat}>
+                <div className={teamStyles.label}>GC</div>
+                <div className={teamStyles.value}>
+                  {teamDetails.classification.goalsAgainst || "-"}
+                </div>
+              </div>
+              <div className={teamStyles.stat}>
+                <div className={teamStyles.label}>Racha últimos 5 partidos</div>
+                <div className={teamStyles.value}>
+                  <div className={teamStyles.streak}>
+                    {(
+                      ((teamDetails.classification.matchStreaks || []) as any[])
+                        .slice(-5)
+                        .map((s: any) => (s.type || "").toUpperCase()) || []
+                    ).map((t: string, i: number) => {
+                      const key = `streak-${i}`;
+                      const cls = `${teamStyles.dot} ${
+                        t === "G"
+                          ? teamStyles.g
+                          : t === "E"
+                          ? teamStyles.e
+                          : t === "P"
+                          ? teamStyles.p
+                          : teamStyles.e
+                      }`;
+                      return <span key={key} className={cls} />;
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className={teamStyles.chips}>
             <div className={teamStyles.section}>

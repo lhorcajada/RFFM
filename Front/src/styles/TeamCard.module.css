@@ -63,3 +63,80 @@
   color: rgba(255, 255, 255, 0.6);
   font-size: 0.82rem;
 }
+
+.classificationSummary {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 8px;
+  border-radius: 8px;
+}
+.classificationSummary .stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 80px;
+}
+.classificationSummary .stat .label {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.65);
+}
+.classificationSummary .stat .value {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+/* Exported module classes used by JSX */
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 80px;
+}
+.label {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.65);
+}
+.value {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+.streak {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+.g { background: #39ff14; border: 1px solid rgba(0,0,0,0.15); }
+.e { background: #ffd700; border: 1px solid rgba(0,0,0,0.15); }
+.p { background: #ff3b30; border: 1px solid rgba(0,0,0,0.15); }
+
+.streak {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.streak .dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+.streak .dot.g {
+  background: #39ff14;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+}
+.streak .dot.e {
+  background: #ffd700;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+}
+.streak .dot.p {
+  background: #ff3b30;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+}

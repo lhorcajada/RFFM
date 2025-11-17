@@ -122,7 +122,46 @@ export async function getTeamsForClassification(params: {
   if (params.group) q.append("group", params.group);
   if (params.playType) q.append("playType", params.playType);
   const res = await client.get(`teams?${q.toString()}`);
-  return res.data;
+  const raw = res.data;
+  // expected raw to be an array of classifications or wrapped
+  const list = Array.isArray(raw)
+    ? raw
+    : raw?.teams ?? raw?.classifications ?? [];
+  return (list || []).map((r: any) => ({
+    color: r?.color ?? r?.color_equipo ?? "",
+    position: r?.posicion ?? r?.position ?? "",
+    imageUrl: r?.url_img ?? r?.imageUrl ?? r?.escudo_equipo ?? "",
+    teamId: r?.codequipo ?? r?.teamId ?? r?.codigo_equipo ?? "",
+    teamName: r?.nombre ?? r?.teamName ?? r?.nombre_equipo ?? "",
+    played: r?.jugados ?? "",
+    won: r?.ganados ?? "",
+    lost: r?.perdidos ?? "",
+    drawn: r?.empatados ?? "",
+    penalties: r?.penaltis ?? "",
+    goalsFor: r?.goles_a_favor ?? "",
+    goalsAgainst: r?.goles_en_contra ?? "",
+    homePlayed: r?.jugados_casa ?? "",
+    homeWon: r?.ganados_casa ?? "",
+    homeDrawn: r?.empatados_casa ?? "",
+    homePenaltyWins: r?.ganados_penalti_casa ?? "",
+    homeLost: r?.perdidos_casa ?? "",
+    awayPlayed: r?.jugados_fuera ?? "",
+    awayWon: r?.ganados_fuera ?? "",
+    awayDrawn: r?.empatados_fuera ?? "",
+    awayPenaltyWins: r?.ganados_penalti_fuera ?? "",
+    awayLost: r?.perdidos_fuera ?? "",
+    points: r?.puntos ?? "",
+    sanctionPoints: r?.puntos_sancion ?? "",
+    homePoints: r?.puntos_local ?? "",
+    awayPoints: r?.puntos_visitante ?? "",
+    showCoefficient: r?.mostrar_coeficiente ?? "",
+    coefficient: r?.coeficiente ?? "",
+    matchStreaks:
+      (r?.racha_partidos ?? r?.matchStreaks ?? []).map((s: any) => ({
+        type: s?.tipo ?? s?.type ?? "",
+        color: s?.color ?? s?.color ?? "",
+      })) || [],
+  }));
 }
 
 export async function getCompetitions() {
