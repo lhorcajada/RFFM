@@ -64,15 +64,6 @@
   font-size: 0.82rem;
 }
 
-.fieldLine {
-  display: inline-block;
-  margin-right: 8px;
-}
-.city {
-  display: inline-block;
-  margin-left: 8px;
-}
-
 .classificationSummary {
   display: flex;
   gap: 12px;
@@ -80,6 +71,22 @@
   background: rgba(255, 255, 255, 0.02);
   padding: 8px;
   border-radius: 8px;
+}
+
+@media (max-width: 640px) {
+  .classificationSummary {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .classificationSummary .stat {
+    min-width: 40%;
+  }
+}
+
+@media (max-width: 420px) {
+  .classificationSummary .stat {
+    min-width: 100%;
+  }
 }
 .classificationSummary .stat {
   display: flex;
@@ -157,4 +164,40 @@
 .streak .dot.p {
   background: #ff3b30;
   border: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+/* Field and city spacing in team header */
+.fieldLine {
+  display: inline-block;
+  margin-right: 8px;
+  max-width: 60%;
+  vertical-align: middle;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.city {
+  display: inline-block;
+  color: rgba(255, 255, 255, 0.6);
+  vertical-align: middle;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sep {
+  display: inline-block;
+  width: 8px;
+}
+
+@media (max-width: 520px) {
+  .titleWrap .muted {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .fieldLine,
+  .city {
+    max-width: 100%;
+    white-space: normal;
+  }
 }

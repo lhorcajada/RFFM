@@ -45,3 +45,34 @@
   padding: 12px;
   background: rgba(0, 0, 0, 0.12);
 }
+
+@media (max-width: 800px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+  }
+  .field {
+    font-size: 0.88rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .card {
+    padding: 6px;
+  }
+  .field {
+    font-size: 0.84rem;
+  }
+  .icon,
+  .cardIcon,
+  .forcedIcon {
+    width: 20px !important;
+    height: 20px !important;
+    min-width: 20px !important;
+    min-height: 20px !important;
+  }
+}

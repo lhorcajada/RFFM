@@ -234,27 +234,23 @@ export default function GetPlayers(): JSX.Element {
               {/* clubName title removed to avoid repetition */}
               <Typography variant="subtitle2">Dirección del campo</Typography>
               <Typography className={teamStyles.muted}>
-                <span className={teamStyles.fieldLine}>
-                  {teamDetails.field}
-                </span>
+                {teamDetails.field ? (
+                  <span className={teamStyles.fieldLine}>
+                    {teamDetails.field}
+                  </span>
+                ) : null}
+                {teamDetails.field && teamDetails.locality ? (
+                  <span className={teamStyles.sep} aria-hidden="true">
+                    &nbsp;
+                  </span>
+                ) : null}
                 <span className={teamStyles.city}>
-                  {teamDetails.locality}{" "}
-                  {teamDetails.postalCode ? `· ${teamDetails.postalCode}` : ""}
+                  {teamDetails.locality}
+                  {teamDetails.postalCode ? ` · ${teamDetails.postalCode}` : ""}
                 </span>
               </Typography>
             </div>
-            {teamDetails.classification && (
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <div>
-                  <Typography variant="subtitle2">
-                    Posición {teamDetails.classification.position}
-                  </Typography>
-                  <Typography className={teamStyles.muted}>
-                    Puntos: {teamDetails.classification.points}
-                  </Typography>
-                </div>
-              </div>
-            )}
+            {/* classification header removed to avoid duplication with summary */}
           </div>
           {teamDetails.classification && (
             <div className={teamStyles.classificationSummary}>
