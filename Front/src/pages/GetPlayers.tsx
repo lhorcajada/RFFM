@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import "../styles/gameTheme.css";
 import styles from "./GetPlayers.module.css";
+import teamStyles from "../styles/TeamCard.module.css";
+import type { PlayerDetailsResponse } from "../types/player";
 import {
   List,
   ListItem,
@@ -8,17 +10,14 @@ import {
   CircularProgress,
   Paper,
   Typography,
+  Tooltip,
   Button,
 } from "@mui/material";
 import TeamsSelector from "../components/ui/TeamsSelector";
 import CompetitionSelector from "../components/ui/CompetitionSelector";
 import GroupSelector from "../components/ui/GroupSelector";
 import { getPlayersByTeam, getPlayer } from "../services/api";
-import type { PlayersByTeamResponse } from "../types/player";
 import PlayerStatsCard from "../components/players/PlayerStatsCard";
-import AgeSummaryBox from "../components/players/AgeSummaryBox";
-import GroupSummaryBox from "../components/players/GroupSummaryBox";
-import type { PlayerDetailsResponse } from "../types/player";
 
 function extractPlayerIdFromUrl(u?: string): string | null {
   if (!u) return null;
@@ -26,7 +25,8 @@ function extractPlayerIdFromUrl(u?: string): string | null {
     const m = u.match(/(players|fichajugador|jugador)\/(\d+)/i);
     if (m && m[2]) return m[2];
     const m2 = u.match(/(\d{5,})/);
-    return m2 ? m2[0] : null;
+    if (m2) return m2[0];
+    return null;
   } catch (e) {
     return null;
   }
@@ -37,9 +37,9 @@ type Team = { id: string | number; name: string; url?: string };
 type Player = {
   id: number;
   name: string;
-  url?: string; // original url from API
+  url?: string;
   email?: string;
-  playerId?: string | number; // real player id from API
+  playerId?: string | number;
   age?: number | null;
   teamParticipations?: Array<{
     competitionName: string;
@@ -76,6 +76,7 @@ export default function GetPlayers(): JSX.Element {
   const [selectedGroup, setSelectedGroup] = useState<string | undefined>(
     undefined
   );
+  const [teamDetails, setTeamDetails] = useState<any | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -83,36 +84,37 @@ export default function GetPlayers(): JSX.Element {
     async function load() {
       try {
         setError(null);
-        // If no team selected, clear players and summaries
         if (!selectedTeam) {
           if (mounted) {
             setPlayers([]);
             setAgeCounts({});
             setGroupCounts([]);
+            setTeamDetails(null);
           }
           return;
         }
 
         if (mounted) setLoading(true);
 
-        // Prefer using the external .NET API via the frontend service
         const teamId = String(selectedTeam.id);
         const payload = await getPlayersByTeam(teamId);
         console.log("raw payload:", payload);
         let list: any[] = [];
-        if (Array.isArray(payload)) list = payload;
+        if (Array.isArray(payload)) list = payload as any[];
         else if (payload && Array.isArray((payload as any).players))
           list = (payload as any).players;
+
+        if (payload && (payload as any).team)
+          setTeamDetails((payload as any).team);
+        else setTeamDetails(null);
+
         const mapped: Player[] = list.map((p: any, idx: number) => {
           const raw = p.ace ?? p.age ?? null;
           let age: number | null = null;
           if (raw !== null && raw !== undefined && raw !== "") {
-            // try direct number
             const n = Number(raw);
-            if (!Number.isNaN(n)) {
-              age = n;
-            } else {
-              // try to extract digits from strings like "11 años" or URLs
+            if (!Number.isNaN(n)) age = n;
+            else {
               const m = String(raw).match(/(\d{1,2})/);
               if (m && m[1]) age = Number(m[1]);
             }
@@ -124,15 +126,13 @@ export default function GetPlayers(): JSX.Element {
             email: p.url || "",
             playerId: p.playerId ?? p.id ?? null,
             age,
-            teamParticipations:
-              p.teamParticipations || p.teamParticipations || [],
+            teamParticipations: p.teamParticipations || [],
           };
         });
-        console.log("mapped players:", mapped);
+
         if (mounted) {
           setPlayers(mapped);
           setDisplayCount(mapped.length);
-          // compute counts now that players are loaded
           const counts = mapped.reduce<Record<number, number>>((acc, p) => {
             const a = p.age ?? null;
             if (a === null) return acc;
@@ -140,7 +140,7 @@ export default function GetPlayers(): JSX.Element {
             return acc;
           }, {});
           setAgeCounts(counts);
-          // compute group counts from teamParticipations
+
           const groupsMap = new Map<
             string,
             {
@@ -187,56 +187,105 @@ export default function GetPlayers(): JSX.Element {
 
   return (
     <Paper className={styles.paper}>
-      <CompetitionSelector
-        onChange={(c) => {
-          setSelectedCompetition(c?.id);
-          setSelectedGroup(undefined);
-          setSelectedTeam(undefined);
-        }}
-      />
-      <GroupSelector
-        competitionId={selectedCompetition}
-        onChange={(g) => {
-          setSelectedGroup(g?.id);
-          setSelectedTeam(undefined);
-        }}
-      />
-      <TeamsSelector
-        competitionId={selectedCompetition}
-        groupId={selectedGroup}
-        onChange={(t) => {
-          // hide current data immediately while new team loads
-          setSelectedTeam(t);
-          setPlayers([]);
-          setDisplayCount(0);
-          setAgeCounts({});
-          setGroupCounts([]);
-          setExpandedPlayerId(null);
-          setExpandedDetails(null);
-          setError(null);
-        }}
-      />
-
-      {selectedTeam &&
-        (players.length > 0 || Object.keys(ageCounts).length > 0) && (
-          <AgeSummaryBox
-            playersCountByAge={ageCounts}
-            title="Distribución por edades"
-          />
-        )}
-
-      {selectedTeam && groupCounts && groupCounts.length > 0 && (
-        <GroupSummaryBox
-          groups={groupCounts}
-          title="Agrupación por competición"
-          totalPlayers={players.length}
+      <div className={styles.filters}>
+        <CompetitionSelector
+          onChange={(c) => {
+            setSelectedCompetition(c?.id);
+            setSelectedGroup(undefined);
+            setSelectedTeam(undefined);
+          }}
         />
+        <GroupSelector
+          competitionId={selectedCompetition}
+          onChange={(g) => {
+            setSelectedGroup(g?.id);
+            setSelectedTeam(undefined);
+          }}
+        />
+        <TeamsSelector
+          competitionId={selectedCompetition}
+          groupId={selectedGroup}
+          onChange={(t) => {
+            setSelectedTeam(t);
+            setPlayers([]);
+            setDisplayCount(0);
+            setAgeCounts({});
+            setGroupCounts([]);
+            setExpandedPlayerId(null);
+            setExpandedDetails(null);
+            setError(null);
+          }}
+        />
+      </div>
+
+      {/* Summary boxes are disabled for now. */}
+
+      {teamDetails && (
+        <Paper className={teamStyles.root}>
+          <div className={teamStyles.header}>
+            <div className={teamStyles.titleWrap}>
+              {/* clubName title removed to avoid repetition */}
+              <Typography variant="subtitle2">Dirección del campo</Typography>
+              <Typography className={teamStyles.muted}>
+                {teamDetails.field}
+                {teamDetails.locality}{" "}
+                {teamDetails.postalCode ? `· ${teamDetails.postalCode}` : ""}
+              </Typography>
+            </div>
+          </div>
+
+          <div className={teamStyles.chips}>
+            <div className={teamStyles.section}>
+              <Typography variant="subtitle2">Delegados</Typography>
+              {teamDetails.delegates && teamDetails.delegates.length > 0 ? (
+                teamDetails.delegates.map((d: any) => (
+                  <Typography key={d.id} className={teamStyles.muted}>
+                    {d.name}
+                  </Typography>
+                ))
+              ) : (
+                <Typography className={teamStyles.muted}>-</Typography>
+              )}
+            </div>
+
+            <div className={teamStyles.section}>
+              <Typography variant="subtitle2">Técnicos</Typography>
+              {teamDetails.technicians && teamDetails.technicians.length > 0 ? (
+                teamDetails.technicians.map((t: any) => (
+                  <Typography key={t.id} className={teamStyles.muted}>
+                    {t.name}
+                  </Typography>
+                ))
+              ) : (
+                <Typography className={teamStyles.muted}>-</Typography>
+              )}
+            </div>
+
+            <div className={teamStyles.section}>
+              <Typography variant="subtitle2">Auxiliares</Typography>
+              {teamDetails.assistants && teamDetails.assistants.length > 0 ? (
+                teamDetails.assistants.map((a: any) => (
+                  <Typography key={a.id} className={teamStyles.muted}>
+                    {a.name}
+                  </Typography>
+                ))
+              ) : (
+                <Typography className={teamStyles.muted}>-</Typography>
+              )}
+            </div>
+          </div>
+        </Paper>
       )}
 
       {selectedTeam && !loading && (
-        <Typography variant="h5" gutterBottom>
-          Número de jugadores: {selectedTeam ? `${players.length}` : "0"}
-        </Typography>
+        <div className={styles.playersTitle}>
+          <h2>
+            Plantilla&nbsp;
+            <span className={styles.playersCountChip}>
+              ({selectedTeam ? `${players.length}` : "0"})
+            </span>
+          </h2>
+        </div>
       )}
 
       {loading ? (
@@ -248,7 +297,7 @@ export default function GetPlayers(): JSX.Element {
           <Typography color="error">Error: {error}</Typography>
         </Paper>
       ) : (
-        <List>
+        <List className={styles.playersBox}>
           {players.map((p) => (
             <div key={p.id}>
               <ListItem
@@ -258,7 +307,6 @@ export default function GetPlayers(): JSX.Element {
                     size="small"
                     disabled={loadingDetail !== null}
                     onClick={async () => {
-                      // toggle expansion
                       if (expandedPlayerId === p.id) {
                         setExpandedPlayerId(null);
                         setExpandedDetails(null);
@@ -271,7 +319,62 @@ export default function GetPlayers(): JSX.Element {
                           ? String(p.playerId)
                           : extractPlayerIdFromUrl(p.url || "") || String(p.id);
                         const data = await getPlayer(idToFetch);
-                        setExpandedDetails(data as PlayerDetailsResponse);
+                        // Adapt new API shape to PlayerDetailsResponse expected by the UI
+                        if (data && (data as any).competitions) {
+                          const d = data as any;
+                          const comps: any[] = Array.isArray(d.competitions)
+                            ? d.competitions
+                            : [];
+
+                          const playerAge = d.age ?? d.ace ?? null;
+
+                          const stats = (
+                            comps.length > 0
+                              ? comps
+                              : [
+                                  {
+                                    competitionName: d.teamCategory ?? "",
+                                    groupName: "",
+                                    teamName: d.team ?? "",
+                                    teamPoints: d.teamPoints ?? 0,
+                                  },
+                                ]
+                          ).map((c) => ({
+                            seasonId: d.seasonId ? Number(d.seasonId) : 0,
+                            seasonName: d.seasonId ? String(d.seasonId) : "",
+                            dorsalNumber: d.jerseyNumber ?? "",
+                            position: d.position ?? "",
+                            categoryName: d.teamCategory ?? "",
+                            competitionName: c.competitionName ?? "",
+                            groupName: c.groupName ?? "",
+                            teamName: c.teamName ?? d.team ?? "",
+                            teamPoints: c.teamPoints ?? 0,
+                            age: playerAge,
+                            matchesPlayed:
+                              d.matches?.played ?? d.matches?.called ?? 0,
+                            goals: d.matches?.totalGoals ?? 0,
+                            headLine: d.matches?.starter ?? 0,
+                            substitute: d.matches?.substitute ?? 0,
+                            yellowCards: d.cards?.yellow ?? 0,
+                            redCards: d.cards?.red ?? 0,
+                            doubleYellowCards: d.cards?.doubleYellow ?? 0,
+                            teamParticipations: comps.map((cp) => ({
+                              competitionName: cp.competitionName,
+                              groupName: cp.groupName,
+                              teamName: cp.teamName,
+                              teamPoints: cp.teamPoints ?? 0,
+                            })),
+                          }));
+
+                          setExpandedDetails({
+                            statisticsBySeason: stats,
+                            playerId: d.playerId ? Number(d.playerId) : 0,
+                            playerName: d.name ?? "",
+                            ace: d.age ?? null,
+                          } as PlayerDetailsResponse);
+                        } else {
+                          setExpandedDetails(data as PlayerDetailsResponse);
+                        }
                       } catch (err) {
                         setExpandedDetails(null);
                       } finally {
@@ -299,11 +402,6 @@ export default function GetPlayers(): JSX.Element {
 
               {expandedPlayerId === p.id && expandedDetails && (
                 <div className={styles.detailRoot}>
-                  <Typography variant="caption">
-                    Identificador: {expandedDetails.playerId} —{" "}
-                    {expandedDetails.playerName} — Edad: {expandedDetails.ace}
-                  </Typography>
-
                   {expandedDetails.statisticsBySeason.map((s) => (
                     <PlayerStatsCard key={s.seasonId} stat={s} />
                   ))}

@@ -26,7 +26,7 @@ namespace RFFM.Api.Features.Teams.Queries
                         return response != null ? Results.Ok(response) : Results.NotFound();
                     })
                 .WithName(nameof(GetTeams))
-                .WithTags(PlayerConstants.PlayerFeature)
+                .WithTags(TeamsConstants.TeamsFeature)
                 .Produces<ResponseTeam[]>()
                 .Produces<ProblemDetails>(StatusCodes.Status400BadRequest)
                 .Produces(StatusCodes.Status404NotFound);

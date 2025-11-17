@@ -13,20 +13,93 @@ export async function getPlayer(playerId: string) {
   return res.data;
 }
 
-import type { PlayersByTeamResponse } from "../types/player";
+import type { PlayersByTeamResponse, TeamResponse } from "../types/player";
 
 export async function getPlayersByTeam(
   teamId: string
-): Promise<PlayersByTeamResponse> {
+): Promise<TeamResponse | PlayersByTeamResponse> {
   const maxAttempts = DEFAULT_RETRIES;
   let attempt = 0;
   let lastErr: any = null;
   while (attempt < maxAttempts) {
     try {
-      const res = await client.get(
-        `players/team/${encodeURIComponent(teamId)}`
-      );
-      return res.data;
+      // New API endpoint returning full team info including players
+      const res = await client.get(`teams/${encodeURIComponent(teamId)}`);
+      const raw = res.data;
+
+      // If API already returns an array or { players: [...] } keep backward compatibility
+      if (Array.isArray(raw)) return raw;
+      if (raw && Array.isArray(raw.players))
+        return { players: raw.players } as PlayersByTeamResponse;
+
+      // Map Spanish fields to english-named object
+      const team = {
+        teamCode: raw?.codigo_equipo ?? raw?.teamCode,
+        clubCode: raw?.codigo_club ?? raw?.clubCode,
+        accessKey: raw?.clave_acceso ?? raw?.accessKey,
+        name: raw?.nombre_equipo ?? raw?.nombre ?? raw?.teamName,
+        clubShield: raw?.escudo_club ?? raw?.clubShield,
+        clubName: raw?.nombre_club ?? raw?.clubName,
+        category: raw?.categoria ?? raw?.category,
+        categoryCode: raw?.codigo_categoria ?? raw?.categoryCode,
+        website: raw?.portal_web ?? raw?.website,
+        fieldCode: raw?.codigo_campo ?? raw?.fieldCode,
+        field: raw?.campo ?? raw?.field,
+        trainingField: raw?.campo_entrenamiento ?? raw?.trainingField,
+        correspondenceName:
+          raw?.titular_correspondencia ?? raw?.correspondenceName,
+        correspondenceTreatment:
+          raw?.tratamiento_correspondencia ?? raw?.correspondenceTreatment,
+        address: raw?.domicilio_correspondencia ?? raw?.address,
+        locality: raw?.localidad_correspondencia ?? raw?.locality,
+        province: raw?.provincia_correspondencia ?? raw?.province,
+        postalCode: raw?.codigo_postal_correspondencia ?? raw?.postalCode,
+        contactEmail: raw?.email_correspondencia ?? raw?.contactEmail,
+        phones: raw?.telefonos ?? raw?.phones,
+        playDay: raw?.jugar_dia ?? raw?.playDay,
+        playSchedule: raw?.jugar_horario ?? raw?.playSchedule,
+        fax: raw?.fax ?? raw?.faxNumber,
+        delegates: (
+          raw?.delegados_equipo ||
+          raw?.delegados ||
+          raw?.delegates ||
+          []
+        ).map((d: any) => ({
+          id: d?.cod_delegado ?? d?.id,
+          name: d?.nombre ?? d?.name,
+        })),
+        assistants: (
+          raw?.auxiliares_equipo ||
+          raw?.auxiliares ||
+          raw?.assistants ||
+          []
+        ).map((a: any) => ({
+          id: a?.cod_auxiliar ?? a?.id,
+          name: a?.nombre ?? a?.name,
+        })),
+        technicians: (
+          raw?.tecnicos_equipo ||
+          raw?.tecnicos ||
+          raw?.technicians ||
+          []
+        ).map((t: any) => ({
+          id: t?.cod_tecnico ?? t?.cod_tecnico ?? t?.id,
+          name: t?.nombre ?? t?.name,
+        })),
+      };
+
+      const players = (
+        raw?.jugadores_equipo ||
+        raw?.jugadores ||
+        raw?.players ||
+        []
+      ).map((j: any) => ({
+        playerId: j?.cod_jugador ?? j?.playerId ?? j?.id,
+        name: j?.nombre ?? j?.name,
+      }));
+
+      const mapped: TeamResponse = { team, players };
+      return mapped;
     } catch (err) {
       lastErr = err;
       attempt++;

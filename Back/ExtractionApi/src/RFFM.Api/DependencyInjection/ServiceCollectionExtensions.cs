@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using RFFM.Api.Common.Behaviors;
 using RFFM.Api.Features.Players.Services;
 using RFFM.Api.Features.Competitions.Services;
+using RFFM.Api.Features.Teams.Services;
 
 namespace RFFM.Api.DependencyInjection
 {
@@ -28,6 +29,7 @@ namespace RFFM.Api.DependencyInjection
             services.AddHttpClient();
             services.AddScoped<IPlayerService, PlayerService>();
             services.AddScoped<ICompetitionService, CompetitionService>();
+            services.AddScoped<ITeamService, TeamService>();    
             return services;
         }
 

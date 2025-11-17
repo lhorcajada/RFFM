@@ -1,5 +1,10 @@
 .paper {
-  padding: 16px;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  margin: 2px; /* minimal gutter on small devices */
+  padding: 12px;
+  padding-bottom: 96px; /* ensure content above fixed footer */
 }
 .center {
   display: flex;
@@ -9,8 +14,153 @@
 }
 
 .detailRoot {
-  padding: 12px;
+  padding: 6px;
   background: #fafafa;
   border-left: 3px solid rgba(0, 0, 0, 0.06);
-  margin: 8px 0 12px 0;
+  margin: 4px 0 8px 0;
+}
+
+@media (min-width: 800px) {
+  .paper {
+    margin: 8px auto; /* small vertical gutter on large screens */
+    max-width: 1100px;
+    padding: 16px;
+  }
+}
+
+/* For very large screens use full available width */
+@media (min-width: 1200px) {
+  .paper {
+    margin: 8px 12px;
+    max-width: 100%;
+    width: auto;
+    padding: 20px 28px;
+  }
+}
+
+.playersBox {
+  margin-top: 12px;
+  padding: 12px;
+  background: linear-gradient(180deg, #08323a 0%, #06282f 100%);
+  border: 1px solid rgba(0, 200, 255, 0.08);
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(3, 10, 15, 0.7);
+}
+
+/* Filters container: don't stretch full width on large screens */
+.filters {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+@media (min-width: 1000px) {
+  .filters {
+    max-width: 900px;
+    margin-left: 0; /* keep aligned to container start */
+  }
+  .filters > * {
+    flex: 1 1 auto;
+    min-width: 220px;
+    max-width: 320px;
+    .playersTitle {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .playersTitle h2 {
+      margin: 0;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text-color, #222);
+      letter-spacing: 0.2px;
+    }
+
+    .playersCountChip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 44px;
+      height: 28px;
+      padding: 0 10px;
+      border-radius: 999px;
+      background: linear-gradient(
+        90deg,
+        rgba(255, 209, 102, 0.12),
+        rgba(255, 209, 102, 0.08)
+      );
+      color: #ffd166;
+      font-weight: 700;
+      box-shadow: 0 1px 4px rgba(16, 24, 40, 0.06);
+      border: 1px solid rgba(255, 209, 102, 0.18);
+      font-size: 0.95rem;
+    }
+  }
+}
+
+/* Ensure list items have space for the secondary action button */
+.playersBox .MuiListItem-root {
+  padding-right: 120px !important; /* room for the action button */
+  position: relative;
+  display: flex !important;
+  align-items: center !important;
+}
+
+/* Ensure the secondary action sits above content and is positioned correctly */
+.playersBox .MuiListItemSecondaryAction-root,
+.playersBox .MuiListItem-secondaryAction {
+  right: 8px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  z-index: 30 !important;
+}
+
+/* Make the ListItemText flex so truncation works reliably */
+.playersBox .MuiListItemText-root {
+  flex: 1 1 auto !important;
+  min-width: 0 !important; /* allows flex children to shrink */
+}
+
+/* Truncate player name so it doesn't wrap under the button */
+.playersBox .MuiListItemText-root .MuiTypography-root,
+.playersBox .MuiListItemText-root .MuiTypography-body2,
+.playersBox .MuiListItemText-root .MuiTypography-subtitle2 {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  display: block !important;
+  max-width: calc(100% - 160px) !important;
+}
+
+/* Style the small action button so it contrasts against the dark background */
+.playersBox .MuiButton-root,
+.playersBox .MuiButton-contained,
+.playersBox .MuiButton-containedSizeSmall {
+  background: linear-gradient(180deg, #00cfe6, #00a3d1) !important;
+  color: #021923 !important;
+  border-radius: 8px !important;
+  padding: 6px 10px !important;
+  min-width: 64px !important;
+  box-shadow: 0 4px 12px rgba(0, 160, 200, 0.25) !important;
+  z-index: 40 !important;
+}
+
+@media (max-width: 480px) {
+  .playersBox .MuiListItem-root {
+    padding-right: 88px;
+  }
+  .playersBox .MuiButton-root {
+    padding: 5px 6px !important;
+    min-width: 48px !important;
+    font-size: 0.75rem !important;
+  }
+}
+
+/* Ensure enough room for the action button on larger screens */
+@media (min-width: 800px) {
+  .playersBox .MuiListItem-root {
+    padding-right: 160px !important;
+  }
 }

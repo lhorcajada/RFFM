@@ -8,6 +8,7 @@ export interface StatisticsBySeason {
   groupName: string;
   teamName: string;
   teamPoints: number;
+  age?: number;
   matchesPlayed: number;
   goals: number;
   headLine: number;
@@ -48,6 +49,40 @@ export interface TeamPlayer {
     seasonName?: string;
   }>;
   [key: string]: any;
+}
+
+export interface TeamBasicInfo {
+  teamCode?: string;
+  clubCode?: string;
+  accessKey?: string;
+  name?: string;
+  clubShield?: string;
+  clubName?: string;
+  category?: string;
+  categoryCode?: string | number;
+  website?: string;
+  fieldCode?: string | number;
+  field?: string;
+  trainingField?: string;
+  correspondenceName?: string;
+  correspondenceTreatment?: string;
+  address?: string;
+  locality?: string;
+  province?: string;
+  postalCode?: string | number;
+  contactEmail?: string;
+  phones?: string;
+  playDay?: string | number;
+  playSchedule?: string;
+  fax?: string;
+  delegates?: Array<{ id?: string | number; name?: string }>;
+  assistants?: Array<{ id?: string | number; name?: string }>;
+  technicians?: Array<{ id?: string | number; name?: string }>;
+}
+
+export interface TeamResponse {
+  team: TeamBasicInfo;
+  players: Array<{ playerId?: string | number; name?: string }>;
 }
 
 export type PlayersByTeamResponse = TeamPlayer[] | { players: TeamPlayer[] };

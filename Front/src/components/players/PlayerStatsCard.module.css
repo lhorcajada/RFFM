@@ -1,6 +1,6 @@
 .card {
-  padding: 12px;
-  margin: 8px 0;
+  padding: 8px;
+  margin: 4px 0;
   border-radius: 6px;
   box-shadow: 0 6px 14px rgba(0, 0, 0, 0.6);
   background: var(--panel);

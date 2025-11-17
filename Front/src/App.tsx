@@ -5,22 +5,21 @@ import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 import { Routes, Route, Link } from "react-router-dom";
 import styles from "./App.module.css";
-import GetPlayers from "./pages";
+import GetTeam from "./pages";
+import Footer from "./components/ui/Footer";
 
 export default function App(): JSX.Element {
   return (
     <div className={styles.app}>
-      <AppBar position="static">
+      <AppBar
+        position="static"
+        sx={{ background: "linear-gradient(180deg, #082033 0%, #05313b 100%)" }}
+      >
         <Toolbar>
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             RFFM App
           </Typography>
-          <Button color="inherit" component={Link} to="/">
-            Inicio
-          </Button>
-          <Button color="inherit" component={Link} to="/get-players">
-            Jugadores
-          </Button>
+          {/* header buttons moved to footer */}
         </Toolbar>
       </AppBar>
 
@@ -32,18 +31,18 @@ export default function App(): JSX.Element {
               <div>
                 <h1>Bienvenido a RFFM</h1>
                 <p>
-                  Este es un proyecto Vite + React + Material UI con CSS
-                  Modules.
+                  Aquí podrás consultar información sobre jugadores y equipos.
+                  También podrás ver estadísticas detalladas y datos relevantes.
+                  Podrás ver sectorialmente cuando los equipos han recibido o
+                  han marcado goles en función del minuto del partido.
                 </p>
-                <Button variant="contained" color="primary">
-                  Haz clic
-                </Button>
               </div>
             }
           />
-          <Route path="/get-players" element={<GetPlayers />} />
+          <Route path="/get-players" element={<GetTeam />} />
         </Routes>
       </main>
+      <Footer />
     </div>
   );
 }

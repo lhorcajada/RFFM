@@ -1,0 +1,70 @@
+.root {
+  position: fixed;
+  right: 0;
+  left: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  padding: 8px 12px;
+  background: linear-gradient(180deg, #082033 0%, #05313b 100%);
+  border-top: 1px solid rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(6px);
+  z-index: 1400;
+}
+.bar {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+.iconBtn {
+  color: #ffd166;
+}
+
+.iconBtn.active {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 209, 102, 0.12),
+    rgba(255, 209, 102, 0.06)
+  );
+  border-radius: 10px;
+  padding: 6px !important;
+  color: #fff !important;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+}
+
+.iconBtn svg {
+  fill: currentColor;
+}
+
+/* Desktop: align icons to left and make them larger */
+@media (min-width: 768px) {
+  .root {
+    justify-content: flex-start;
+    padding: 12px 20px;
+  }
+  .bar {
+    gap: 18px;
+    margin-left: 12px;
+  }
+  .iconBtn {
+    padding: 10px !important;
+  }
+  .iconBtn svg {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+/* Mobile: slightly smaller icons */
+@media (max-width: 599px) {
+  .root {
+    padding: 6px 8px;
+  }
+  .bar {
+    gap: 10px;
+  }
+  .iconBtn svg {
+    width: 20px;
+    height: 20px;
+  }
+}

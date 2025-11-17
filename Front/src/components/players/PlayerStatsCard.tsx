@@ -11,10 +11,8 @@ export default function PlayerStatsCard({
   return (
     <Paper className={styles.card} elevation={0}>
       <div className={styles.header}>
-        <Typography variant="subtitle2">{stat.seasonName}</Typography>
-        <Typography variant="caption">
-          {stat.competitionName} — {stat.groupName}
-        </Typography>
+        <Typography variant="subtitle2">{stat.competitionName}</Typography>
+        <Typography variant="caption">{stat.groupName}</Typography>
       </div>
 
       <div className={styles.grid}>
@@ -37,6 +35,12 @@ export default function PlayerStatsCard({
           <strong>Posición</strong>
           <br />
           {stat.position || "-"}
+        </div>
+
+        <div className={styles.field}>
+          <strong>Edad</strong>
+          <br />
+          {stat.age ?? "-"}
         </div>
 
         <div className={styles.field}>

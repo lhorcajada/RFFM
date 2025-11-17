@@ -1,8 +1,7 @@
 ﻿namespace RFFM.Api.Features.Teams
 {
-    public class PTeamsConstants
+    public class TeamsConstants
     {
-        public const string TeamsFeature = "PlayerFeature";
-
+        public const string TeamsFeature = "TeamsFeature";
     }
 }
