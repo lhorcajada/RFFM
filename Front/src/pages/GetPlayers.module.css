@@ -55,6 +55,39 @@
   margin-bottom: 8px;
 }
 
+/* Force white borders and arrow for selects inside filters */
+.filters
+  .MuiFormControl-root
+  .MuiOutlinedInput-root
+  .MuiOutlinedInput-notchedOutline {
+  border-color: #ffffff !important;
+}
+.filters
+  .MuiFormControl-root
+  .MuiOutlinedInput-root:hover
+  .MuiOutlinedInput-notchedOutline {
+  border-color: #ffffff !important;
+}
+.filters
+  .MuiFormControl-root
+  .MuiOutlinedInput-root.Mui-focused
+  .MuiOutlinedInput-notchedOutline {
+  border-color: #ffffff !important;
+}
+.filters .MuiFormControl-root .MuiSelect-icon,
+.filters .MuiFormControl-root .MuiSelect-iconOutlined,
+.filters .MuiFormControl-root .MuiSvgIcon-root {
+  color: #ffffff !important;
+}
+/* also force svg fill if used */
+.filters .MuiFormControl-root .MuiSelect-icon svg,
+.filters .MuiFormControl-root .MuiSelect-iconOutlined svg {
+  fill: #ffffff !important;
+}
+.filters .MuiFormControl-root .MuiInputLabel-root {
+  color: #ffffff !important;
+}
+
 @media (min-width: 1000px) {
   .filters {
     max-width: 900px;
@@ -64,39 +97,64 @@
     flex: 1 1 auto;
     min-width: 220px;
     max-width: 320px;
-    .playersTitle {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
+  }
+}
 
-    .playersTitle h2 {
-      margin: 0;
-      font-size: 1.1rem;
-      font-weight: 600;
-      color: var(--text-color, #222);
-      letter-spacing: 0.2px;
-    }
+/* Title chip styles (top-level) */
+.playersTitle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0; /* vertical space above and below the title */
+}
 
-    .playersCountChip {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-width: 44px;
-      height: 28px;
-      padding: 0 10px;
-      border-radius: 999px;
-      background: linear-gradient(
-        90deg,
-        rgba(255, 209, 102, 0.12),
-        rgba(255, 209, 102, 0.08)
-      );
-      color: #ffd166;
-      font-weight: 700;
-      box-shadow: 0 1px 4px rgba(16, 24, 40, 0.06);
-      border: 1px solid rgba(255, 209, 102, 0.18);
-      font-size: 0.95rem;
-    }
+.playersTitle h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-color, #fff);
+  letter-spacing: 0.2px;
+}
+
+.playersCountChip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 209, 102, 0.12),
+    rgba(255, 209, 102, 0.08)
+  );
+  color: #ffd166;
+  font-weight: 700;
+  box-shadow: 0 1px 4px rgba(16, 24, 40, 0.06);
+  border: 1px solid rgba(255, 209, 102, 0.18);
+  font-size: 0.95rem;
+}
+
+/* Mobile: stack filters and increase touch targets */
+@media (max-width: 599px) {
+  .filters {
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .filters > * {
+    min-width: 100% !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+  /* Make selector controls easier to tap */
+  .filters select,
+  .filters .MuiSelect-root,
+  .filters .MuiInputBase-root {
+    height: 44px !important;
+    padding: 8px 12px !important;
+    font-size: 0.95rem !important;
   }
 }
 
@@ -145,6 +203,45 @@
   min-width: 64px !important;
   box-shadow: 0 4px 12px rgba(0, 160, 200, 0.25) !important;
   z-index: 40 !important;
+}
+
+/* Aggressive overrides to ensure white visuals for select borders and icons */
+.filters
+  .MuiFormControl-root
+  .MuiOutlinedInput-root
+  .MuiOutlinedInput-notchedOutline,
+.filters .MuiFormControl-root .MuiOutlinedInput-notchedOutline {
+  border-color: #ffffff !important;
+  border-width: 1px !important;
+}
+.filters
+  .MuiFormControl-root
+  .MuiOutlinedInput-root:hover
+  .MuiOutlinedInput-notchedOutline,
+.filters
+  .MuiFormControl-root
+  .MuiOutlinedInput-root.Mui-focused
+  .MuiOutlinedInput-notchedOutline {
+  border-color: #ffffff !important;
+}
+.filters .MuiFormControl-root .MuiSelect-icon,
+.filters .MuiFormControl-root .MuiSvgIcon-root,
+.filters .MuiSelect-icon,
+.filters svg {
+  color: #ffffff !important;
+  fill: #ffffff !important;
+  stroke: #ffffff !important;
+}
+.filters .MuiSelect-icon *,
+.filters svg * {
+  fill: #ffffff !important;
+  stroke: #ffffff !important;
+}
+.filters select {
+  color: #ffffff !important;
+}
+.filters .MuiInputLabel-root {
+  color: #ffffff !important;
 }
 
 @media (max-width: 480px) {
