@@ -114,7 +114,8 @@
   align-items: center;
   margin: 10px 0 4px 0;
 }
-.ageOverlay, .actionBar > div {
+.ageOverlay,
+.actionBar > div {
   position: relative;
 }
 
@@ -285,7 +286,7 @@
   background: var(--panel);
   color: var(--text-color, #fff);
   border-radius: 8px;
-  box-shadow: 0 12px 30px rgba(0,0,0,0.6);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
   padding: 12px 14px; /* slightly more horizontal padding */
   min-width: 220px;
   max-width: 90vw;
@@ -301,7 +302,7 @@
   background: var(--panel);
   color: var(--text-color, #fff);
   border-radius: 8px;
-  box-shadow: 0 12px 30px rgba(0,0,0,0.6);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
   padding: 12px;
   min-width: 320px;
   max-width: 95vw;
@@ -318,7 +319,7 @@
   background: var(--panel);
   color: var(--text-color, #fff);
   border-radius: 8px;
-  box-shadow: 0 12px 30px rgba(0,0,0,0.6);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
   padding: 18px;
   min-width: 260px;
   max-width: 90vw;

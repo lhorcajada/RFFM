@@ -88,9 +88,11 @@ export default function GetPlayers(): JSX.Element {
   const [showAgePopup, setShowAgePopup] = useState<boolean>(false);
   const [ageSummary, setAgeSummary] = useState<Record<number, number>>({});
   const [loadingAge, setLoadingAge] = useState<boolean>(false);
-  const [showParticipationPopup, setShowParticipationPopup] = useState<boolean>(false);
+  const [showParticipationPopup, setShowParticipationPopup] =
+    useState<boolean>(false);
   const [participationData, setParticipationData] = useState<any[]>([]);
-  const [loadingParticipation, setLoadingParticipation] = useState<boolean>(false);
+  const [loadingParticipation, setLoadingParticipation] =
+    useState<boolean>(false);
 
   useEffect(() => {
     let mounted = true;
@@ -428,11 +430,20 @@ export default function GetPlayers(): JSX.Element {
               >
                 <Box className={styles.modalContent}>
                   {loadingAge ? (
-                    <div style={{ display: "flex", justifyContent: "center", padding: 18 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "center",
+                        padding: 18,
+                      }}
+                    >
                       <CircularProgress size={28} color="inherit" />
                     </div>
                   ) : (
-                    <AgeSummaryBox playersCountByAge={ageSummary} title="Resumen de edades" />
+                    <AgeSummaryBox
+                      playersCountByAge={ageSummary}
+                      title="Resumen de edades"
+                    />
                   )}
                 </Box>
               </Modal>
@@ -449,7 +460,9 @@ export default function GetPlayers(): JSX.Element {
                   setShowParticipationPopup(true);
                   try {
                     setLoadingParticipation(true);
-                    const id = String((selectedTeam as any).id || selectedTeam?.id);
+                    const id = String(
+                      (selectedTeam as any).id || selectedTeam?.id
+                    );
                     const data = await getTeamParticipationSummary(id, "21");
                     setParticipationData(data || []);
                   } catch (err) {
@@ -469,7 +482,13 @@ export default function GetPlayers(): JSX.Element {
               >
                 <Box className={styles.modalContent}>
                   {loadingParticipation ? (
-                    <div style={{ display: "flex", justifyContent: "center", padding: 18 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "center",
+                        padding: 18,
+                      }}
+                    >
                       <CircularProgress size={28} color="inherit" />
                     </div>
                   ) : (
@@ -480,11 +499,15 @@ export default function GetPlayers(): JSX.Element {
                             {p.competitionName} — {p.groupName}
                           </strong>
                           <div>
-                            {p.teamName} ({p.teamCode}) — Puntos: {p.teamPoints} — Jugadores: {p.count}
+                            {p.teamName} ({p.teamCode}) — Puntos: {p.teamPoints}{" "}
+                            — Jugadores: {p.count}
                           </div>
                           <ul style={{ margin: "6px 0 0 12px" }}>
                             {p.players.map((pl: any) => (
-                              <li key={pl.playerId}>{pl.name} {pl.playerId ? `(${pl.playerId})` : ""}</li>
+                              <li key={pl.playerId}>
+                                {pl.name}{" "}
+                                {pl.playerId ? `(${pl.playerId})` : ""}
+                              </li>
                             ))}
                           </ul>
                         </div>

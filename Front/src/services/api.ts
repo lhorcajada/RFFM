@@ -185,7 +185,10 @@ export async function getTeamAgeSummary(teamId: string, seasonId?: string) {
   return res.data as Array<{ age: number; total: number }>;
 }
 
-export async function getTeamParticipationSummary(teamId: string, season?: string) {
+export async function getTeamParticipationSummary(
+  teamId: string,
+  season?: string
+) {
   const q = season ? `?season=${encodeURIComponent(season)}` : "";
   const res = await client.get(
     `teams/${encodeURIComponent(teamId)}/participation-summary${q}`
