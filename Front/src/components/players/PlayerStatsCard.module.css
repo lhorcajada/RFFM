@@ -19,6 +19,28 @@
 .field {
   font-size: 0.9rem;
 }
+.icon {
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 6px;
+  width: 18px;
+  height: 18px;
+  opacity: 0.95;
+}
+.cardIcon {
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 6px;
+  width: 18px;
+  height: 18px;
+}
+.forcedIcon {
+  display: inline-block !important;
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  min-height: 20px !important;
+}
 .detailRoot {
   padding: 12px;
   background: rgba(0, 0, 0, 0.12);
