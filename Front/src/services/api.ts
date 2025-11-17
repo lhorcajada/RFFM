@@ -177,4 +177,10 @@ export async function getGroups(competitionId?: string) {
   return res.data;
 }
 
+export async function getTeamAgeSummary(teamId: string, seasonId?: string) {
+  const q = seasonId ? `?seasonId=${encodeURIComponent(seasonId)}` : "";
+  const res = await client.get(`teams/${encodeURIComponent(teamId)}/age-summary${q}`);
+  return res.data as Array<{ age: number; total: number }>;
+}
+
 export default client;

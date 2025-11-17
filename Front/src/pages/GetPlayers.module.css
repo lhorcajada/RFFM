@@ -261,3 +261,20 @@
     padding-right: 160px !important;
   }
 }
+
+/* Age summary overlay */
+.ageOverlay {
+  position: relative;
+}
+.agePopup {
+  position: absolute;
+  right: 0;
+  top: 36px;
+  z-index: 1200;
+  background: var(--panel);
+  border-radius: 8px;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.6);
+  padding: 12px;
+  min-width: 220px;
+}
+

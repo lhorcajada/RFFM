@@ -16,7 +16,8 @@ import {
 import TeamsSelector from "../components/ui/TeamsSelector";
 import CompetitionSelector from "../components/ui/CompetitionSelector";
 import GroupSelector from "../components/ui/GroupSelector";
-import { getPlayersByTeam, getPlayer } from "../services/api";
+import { getPlayersByTeam, getPlayer, getTeamAgeSummary } from "../services/api";
+import AgeSummaryBox from "../components/players/AgeSummaryBox";
 import PlayerStatsCard from "../components/players/PlayerStatsCard";
 
 function extractPlayerIdFromUrl(u?: string): string | null {
@@ -77,6 +78,9 @@ export default function GetPlayers(): JSX.Element {
     undefined
   );
   const [teamDetails, setTeamDetails] = useState<any | null>(null);
+  const [showAgePopup, setShowAgePopup] = useState<boolean>(false);
+  const [ageSummary, setAgeSummary] = useState<Record<number, number>>({});
+  const [loadingAge, setLoadingAge] = useState<boolean>(false);
 
   useEffect(() => {
     let mounted = true;
@@ -380,6 +384,47 @@ export default function GetPlayers(): JSX.Element {
               ({selectedTeam ? `${players.length}` : "0"})
             </span>
           </h2>
+          <div className={styles.ageOverlay}>
+            <Button
+              size="small"
+              variant="contained"
+              onClick={async () => {
+                // toggle popup
+                if (showAgePopup) {
+                  setShowAgePopup(false);
+                  return;
+                }
+                setShowAgePopup(true);
+                // fetch age summary
+                try {
+                  setLoadingAge(true);
+                  const id = String((selectedTeam as any).id || selectedTeam?.id);
+                  const data = await getTeamAgeSummary(id, "21");
+                  const map: Record<number, number> = {};
+                  (data || []).forEach((d: any) => {
+                    const a = Number(d.age ?? d.ace ?? 0);
+                    map[a] = Number(d.total ?? d.count ?? 0);
+                  });
+                  setAgeSummary(map);
+                } catch (err) {
+                  setAgeSummary({});
+                } finally {
+                  setLoadingAge(false);
+                }
+              }}
+            >
+              Resumen de edades
+            </Button>
+            {showAgePopup && (
+              <div className={styles.agePopup}>
+                {loadingAge ? (
+                  <CircularProgress size={20} />
+                ) : (
+                  <AgeSummaryBox playersCountByAge={ageSummary} title="Resumen de edades" />
+                )}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
