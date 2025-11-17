@@ -52,12 +52,31 @@ export default function TeamsSelector({
           playType: "1",
         });
         // payload is Classification[]
-        const teamsData: Team[] = (payload || []).map((c: Classification) => ({
-          id: c.teamId ?? String(c.teamName ?? ""),
-          name: c.teamName ?? "",
-          url: c.imageUrl,
-          raw: c,
-        }));
+        const teamsData: Team[] = (payload || []).map(
+          (c: Classification, idx: number) => {
+            const rawName = (c.teamName || (c as any).nombre || "").toString();
+            const rawId = (
+              c.teamId ??
+              (c as any).codequipo ??
+              (c as any).codigo_equipo ??
+              ""
+            ).toString();
+            // fallback id when server returns empty id
+            const id =
+              rawId && rawId !== ""
+                ? rawId
+                : `team-${idx}-${Math.abs(
+                    hashCode(rawName || JSON.stringify(c))
+                  )}`;
+            const name = rawName || `Equipo ${idx + 1}`;
+            return {
+              id: String(id),
+              name,
+              url: c.imageUrl,
+              raw: c,
+            } as Team;
+          }
+        );
         if (mounted) setTeams(teamsData as Team[]);
       } catch (err: unknown) {
         if (mounted) {
@@ -79,9 +98,9 @@ export default function TeamsSelector({
   }, [competitionId, groupId]);
 
   function handleChange(event: any) {
-    const id = event.target.value;
+    const id = String(event.target.value ?? "");
     setSelected(id);
-    const team = teams.find((t) => t.id === id);
+    const team = teams.find((t) => String(t.id) === id);
     if (onChange) onChange(team);
   }
 
