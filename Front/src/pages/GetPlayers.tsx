@@ -234,9 +234,13 @@ export default function GetPlayers(): JSX.Element {
               {/* clubName title removed to avoid repetition */}
               <Typography variant="subtitle2">Dirección del campo</Typography>
               <Typography className={teamStyles.muted}>
-                {teamDetails.field}
-                {teamDetails.locality}{" "}
-                {teamDetails.postalCode ? `· ${teamDetails.postalCode}` : ""}
+                <span className={teamStyles.fieldLine}>
+                  {teamDetails.field}
+                </span>
+                <span className={teamStyles.city}>
+                  {teamDetails.locality}{" "}
+                  {teamDetails.postalCode ? `· ${teamDetails.postalCode}` : ""}
+                </span>
               </Typography>
             </div>
             {teamDetails.classification && (
