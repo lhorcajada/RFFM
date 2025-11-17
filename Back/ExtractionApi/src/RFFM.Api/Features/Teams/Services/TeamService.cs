@@ -101,7 +101,58 @@ namespace RFFM.Api.Features.Teams.Services
             }).ToArray();
 
             var resolved = await Task.WhenAll(playerTasks);
-            return (resolved, Array.Empty<AgeCount>());
+
+            // compute age counts here
+            var ages = new List<int>();
+            foreach (var item in resolved)
+            {
+                var p = item.teamPlayer;
+                var pd = item.playerDetails;
+                int? age = null;
+
+                if (pd != null)
+                {
+                    if (pd.Age > 0) age = pd.Age;
+                    else if (pd.BirthYear > 0) age = DateTime.Now.Year - pd.BirthYear;
+                }
+
+                if (!age.HasValue)
+                {
+                    if (p.GetType().GetProperty("Age") != null)
+                    {
+                        var val = p.GetType().GetProperty("Age")!.GetValue(p);
+                        if (val is int vi && vi > 0) age = vi;
+                    }
+
+                    if (!age.HasValue && p.GetType().GetProperty("Ace") != null)
+                    {
+                        var val = p.GetType().GetProperty("Ace")!.GetValue(p);
+                        if (val is int vi && vi > 0) age = vi;
+                    }
+
+                    if (!age.HasValue && p.GetType().GetProperty("Edad") != null)
+                    {
+                        var val = p.GetType().GetProperty("Edad")!.GetValue(p);
+                        if (val is int vi && vi > 0) age = vi;
+                    }
+
+                    if (!age.HasValue && !string.IsNullOrWhiteSpace(p.Name))
+                    {
+                        var m = System.Text.RegularExpressions.Regex.Match(p.Name, "(\\d{1,2})");
+                        if (m.Success && int.TryParse(m.Value, out var parsed)) age = parsed;
+                    }
+                }
+
+                if (age.HasValue)
+                    ages.Add(age.Value);
+            }
+
+            var grouped = ages.GroupBy(a => a)
+                .Select(g => new AgeCount { Age = g.Key, Total = g.Count() })
+                .OrderBy(a => a.Age)
+                .ToArray();
+
+            return (resolved, grouped);
         }
     }
 

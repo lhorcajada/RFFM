@@ -12,6 +12,8 @@ import {
   Typography,
   Tooltip,
   Button,
+  Modal,
+  Box,
 } from "@mui/material";
 import TeamsSelector from "../components/ui/TeamsSelector";
 import CompetitionSelector from "../components/ui/CompetitionSelector";
@@ -20,6 +22,7 @@ import {
   getPlayersByTeam,
   getPlayer,
   getTeamAgeSummary,
+  getTeamParticipationSummary,
 } from "../services/api";
 import AgeSummaryBox from "../components/players/AgeSummaryBox";
 import PlayerStatsCard from "../components/players/PlayerStatsCard";
@@ -85,6 +88,9 @@ export default function GetPlayers(): JSX.Element {
   const [showAgePopup, setShowAgePopup] = useState<boolean>(false);
   const [ageSummary, setAgeSummary] = useState<Record<number, number>>({});
   const [loadingAge, setLoadingAge] = useState<boolean>(false);
+  const [showParticipationPopup, setShowParticipationPopup] = useState<boolean>(false);
+  const [participationData, setParticipationData] = useState<any[]>([]);
+  const [loadingParticipation, setLoadingParticipation] = useState<boolean>(false);
 
   useEffect(() => {
     let mounted = true;
@@ -381,60 +387,123 @@ export default function GetPlayers(): JSX.Element {
       )}
 
       {selectedTeam && !loading && (
-        <div className={styles.playersTitle}>
-          <h2>
-            Plantilla&nbsp;
-            <span className={styles.playersCountChip}>
-              ({selectedTeam ? `${players.length}` : "0"})
-            </span>
-          </h2>
-          <div className={styles.ageOverlay}>
-            <Button
-              size="small"
-              variant="contained"
-              onClick={async () => {
-                // toggle popup
-                if (showAgePopup) {
-                  setShowAgePopup(false);
-                  return;
-                }
-                setShowAgePopup(true);
-                // fetch age summary
-                try {
-                  setLoadingAge(true);
-                  const id = String(
-                    (selectedTeam as any).id || selectedTeam?.id
-                  );
-                  const data = await getTeamAgeSummary(id, "21");
-                  const map: Record<number, number> = {};
-                  (data || []).forEach((d: any) => {
-                    const a = Number(d.age ?? d.ace ?? 0);
-                    map[a] = Number(d.total ?? d.count ?? 0);
-                  });
-                  setAgeSummary(map);
-                } catch (err) {
-                  setAgeSummary({});
-                } finally {
-                  setLoadingAge(false);
-                }
-              }}
-            >
-              Resumen de edades
-            </Button>
-            {showAgePopup && (
-              <div className={styles.agePopup}>
-                {loadingAge ? (
-                  <CircularProgress size={20} />
-                ) : (
-                  <AgeSummaryBox
-                    playersCountByAge={ageSummary}
-                    title="Resumen de edades"
-                  />
-                )}
-              </div>
-            )}
+        <>
+          <div className={styles.actionBar}>
+            <div className={styles.ageOverlay}>
+              <Button
+                size="small"
+                variant="contained"
+                onClick={async () => {
+                  if (showAgePopup) {
+                    setShowAgePopup(false);
+                    return;
+                  }
+                  setShowAgePopup(true);
+                  try {
+                    setLoadingAge(true);
+                    const id = String(
+                      (selectedTeam as any).id || selectedTeam?.id
+                    );
+                    const data = await getTeamAgeSummary(id, "21");
+                    const map: Record<number, number> = {};
+                    (data || []).forEach((d: any) => {
+                      const a = Number(d.age ?? d.ace ?? 0);
+                      map[a] = Number(d.total ?? d.count ?? 0);
+                    });
+                    setAgeSummary(map);
+                  } catch (err) {
+                    setAgeSummary({});
+                  } finally {
+                    setLoadingAge(false);
+                  }
+                }}
+              >
+                Resumen de edades
+              </Button>
+              <Modal
+                open={showAgePopup}
+                onClose={() => setShowAgePopup(false)}
+                aria-labelledby="age-summary-title"
+                closeAfterTransition
+              >
+                <Box className={styles.modalContent}>
+                  {loadingAge ? (
+                    <div style={{ display: "flex", justifyContent: "center", padding: 18 }}>
+                      <CircularProgress size={28} color="inherit" />
+                    </div>
+                  ) : (
+                    <AgeSummaryBox playersCountByAge={ageSummary} title="Resumen de edades" />
+                  )}
+                </Box>
+              </Modal>
+            </div>
+            <div style={{ display: "inline-block", marginLeft: 8 }}>
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={async () => {
+                  if (showParticipationPopup) {
+                    setShowParticipationPopup(false);
+                    return;
+                  }
+                  setShowParticipationPopup(true);
+                  try {
+                    setLoadingParticipation(true);
+                    const id = String((selectedTeam as any).id || selectedTeam?.id);
+                    const data = await getTeamParticipationSummary(id, "21");
+                    setParticipationData(data || []);
+                  } catch (err) {
+                    setParticipationData([]);
+                  } finally {
+                    setLoadingParticipation(false);
+                  }
+                }}
+              >
+                Participaciones
+              </Button>
+              <Modal
+                open={showParticipationPopup}
+                onClose={() => setShowParticipationPopup(false)}
+                aria-labelledby="participation-summary-title"
+                closeAfterTransition
+              >
+                <Box className={styles.modalContent}>
+                  {loadingParticipation ? (
+                    <div style={{ display: "flex", justifyContent: "center", padding: 18 }}>
+                      <CircularProgress size={28} color="inherit" />
+                    </div>
+                  ) : (
+                    <div>
+                      {participationData.map((p, idx) => (
+                        <div key={idx} style={{ marginBottom: 8 }}>
+                          <strong>
+                            {p.competitionName} — {p.groupName}
+                          </strong>
+                          <div>
+                            {p.teamName} ({p.teamCode}) — Puntos: {p.teamPoints} — Jugadores: {p.count}
+                          </div>
+                          <ul style={{ margin: "6px 0 0 12px" }}>
+                            {p.players.map((pl: any) => (
+                              <li key={pl.playerId}>{pl.name} {pl.playerId ? `(${pl.playerId})` : ""}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </Box>
+              </Modal>
+            </div>
           </div>
-        </div>
+          <div className={styles.playersTitle}>
+            <h2>
+              Plantilla&nbsp;
+              <span className={styles.playersCountChip}>
+                ({selectedTeam ? `${players.length}` : "0"})
+              </span>
+            </h2>
+          </div>
+        </>
       )}
 
       {loading ? (

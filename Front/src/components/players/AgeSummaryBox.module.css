@@ -4,12 +4,25 @@
 .box {
   display: flex;
   gap: 12px;
-  padding: 8px;
+  padding: 8px 12px; /* add horizontal padding so content doesn't touch popup edge */
   background: var(--panel);
   border-radius: 6px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
 }
 .item {
-  flex: 1;
+  flex: 1 0 56px; /* allow items to shrink but keep a sensible minimum width */
   text-align: center;
+  min-width: 56px;
+}
+
+@media (max-width: 420px) {
+  .box {
+    flex-wrap: wrap; /* allow items to wrap on narrow screens */
+    justify-content: center;
+    gap: 8px;
+  }
+  .item {
+    flex: 0 0 40%; /* two items per row approximately */
+    min-width: 80px;
+  }
 }

@@ -108,6 +108,16 @@
   margin: 12px 0; /* vertical space above and below the title */
 }
 
+.actionBar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 10px 0 4px 0;
+}
+.ageOverlay, .actionBar > div {
+  position: relative;
+}
+
 .playersTitle h2 {
   margin: 0;
   font-size: 1.1rem;
@@ -268,12 +278,58 @@
 }
 .agePopup {
   position: absolute;
-  right: 0;
-  top: 36px;
-  z-index: 1200;
+  left: 50%;
+  transform: translateX(-50%);
+  top: calc(100% + 8px);
+  z-index: 1400;
   background: var(--panel);
+  color: var(--text-color, #fff);
   border-radius: 8px;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
-  padding: 12px;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.6);
+  padding: 12px 14px; /* slightly more horizontal padding */
   min-width: 220px;
+  max-width: 90vw;
+  overflow: visible; /* allow shadows and wrapped items to be visible */
+}
+
+.participationPopup {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: calc(100% + 8px);
+  z-index: 1400;
+  background: var(--panel);
+  color: var(--text-color, #fff);
+  border-radius: 8px;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.6);
+  padding: 12px;
+  min-width: 320px;
+  max-width: 95vw;
+  max-height: 60vh;
+  overflow: auto;
+}
+
+/* Centered modal content used by MUI Modal */
+.modalContent {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--panel);
+  color: var(--text-color, #fff);
+  border-radius: 8px;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.6);
+  padding: 18px;
+  min-width: 260px;
+  max-width: 90vw;
+  max-height: 80vh;
+  overflow: auto;
+}
+
+@media (max-width: 420px) {
+  .modalContent {
+    width: 92vw;
+    padding: 12px;
+    max-height: 70vh;
+  }
 }

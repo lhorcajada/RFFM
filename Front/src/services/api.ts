@@ -185,4 +185,24 @@ export async function getTeamAgeSummary(teamId: string, seasonId?: string) {
   return res.data as Array<{ age: number; total: number }>;
 }
 
+export async function getTeamParticipationSummary(teamId: string, season?: string) {
+  const q = season ? `?season=${encodeURIComponent(season)}` : "";
+  const res = await client.get(
+    `teams/${encodeURIComponent(teamId)}/participation-summary${q}`
+  );
+  const raw = res.data;
+  return (raw || []).map((r: any) => ({
+    competitionName: r?.competitionName ?? r?.competition_name ?? "",
+    groupName: r?.groupName ?? r?.group_name ?? "",
+    teamName: r?.teamName ?? r?.team_name ?? "",
+    teamCode: r?.teamCode ?? r?.team_code ?? "",
+    teamPoints: r?.teamPoints ?? r?.team_points ?? 0,
+    count: r?.count ?? (r?.players || []).length ?? 0,
+    players: (r?.players || []).map((p: any) => ({
+      playerId: p?.playerId ?? p?.player_id ?? p?.id ?? "",
+      name: p?.name ?? p?.nombre ?? "",
+    })),
+  }));
+}
+
 export default client;
