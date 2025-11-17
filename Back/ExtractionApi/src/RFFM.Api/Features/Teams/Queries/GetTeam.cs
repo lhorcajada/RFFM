@@ -47,6 +47,6 @@ namespace RFFM.Api.Features.Teams.Queries
             {
                 return await _teamService.GetTeamDetailsAsync(request.TeamId.ToString(), cancellationToken);
             }
-        };
+        }
     }
 }

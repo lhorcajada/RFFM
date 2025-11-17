@@ -1,16 +1,29 @@
-﻿using RFFM.Api.Features.Teams.Models;
+﻿using RFFM.Api.Features.Players.Models;
+using RFFM.Api.Features.Teams.Models;
 using RFFM.Api.Infrastructure.Helpers;
 using System.Text.Json;
+using RFFM.Api.Features.Players.Services;
+using static RFFM.Api.Features.Teams.Queries.GetAgeSummary;
 
 namespace RFFM.Api.Features.Teams.Services
 {
     public interface ITeamService
     {
         Task<Team> GetTeamDetailsAsync(string teamCode, CancellationToken cancellationToken = default);
+
+        Task<((TeamPlayer teamPlayer, Player? playerDetails)[] resolved, AgeCount[] handle)> GetStaticsTeamPlayers(
+            AgesQuery request, CancellationToken cancellationToken);
     }
 
     public class TeamService : ITeamService
     {
+        private readonly IPlayerService _playerService;
+
+        public TeamService(IPlayerService playerService)
+        {
+            _playerService = playerService;
+        }
+
         public async Task<Team> GetTeamDetailsAsync(string teamCode, CancellationToken cancellationToken)
         {
             var url = $"https://www.rffm.es/fichaequipo/{teamCode}";
@@ -59,7 +72,37 @@ namespace RFFM.Api.Features.Teams.Services
                 return new Team();
             }
         }
-        
+
+        public async Task<((TeamPlayer teamPlayer, Player? playerDetails)[] resolved, AgeCount[] handle)> GetStaticsTeamPlayers(AgesQuery request, CancellationToken cancellationToken)
+        {
+            var team = await GetTeamDetailsAsync(request.TeamId.ToString(), cancellationToken);
+            if (team == null || team.Players == null || !team.Players.Any())
+                return (Array.Empty<(TeamPlayer teamPlayer, Player? playerDetails)>(), Array.Empty<AgeCount>());
+
+            // For each player in the team, try to fetch full player details to get accurate age/stats.
+            var playerTasks = team.Players.Select(async p =>
+            {
+
+                // If we have an id, try to fetch player details
+                if (!string.IsNullOrWhiteSpace(p.PlayerCode))
+                {
+                    try
+                    {
+                        var pl = await _playerService.GetPlayerAsync(p.PlayerCode!, request.SeasonId, cancellationToken);
+                        return (teamPlayer: p, playerDetails: pl);
+                    }
+                    catch
+                    {
+                        // Ignore per-player errors and fallback to team payload
+                    }
+                }
+
+                return (teamPlayer: p, playerDetails: (RFFM.Api.Features.Players.Models.Player?)null);
+            }).ToArray();
+
+            var resolved = await Task.WhenAll(playerTasks);
+            return (resolved, Array.Empty<AgeCount>());
+        }
     }
 
 }

@@ -18,7 +18,7 @@ namespace RFFM.Api.Features.Players.Queries
                     {
                         // Si no se proporciona temporada, usar la actual (21 para 2025-2026)
                         var season = seasonId ?? "21";
-                        var request = new PlayerQuery(id, season);
+                        var request = new PlayerQuery(id, int.Parse(season));
 
                         var response = await mediator.Send(request, cancellationToken);
 
@@ -31,7 +31,7 @@ namespace RFFM.Api.Features.Players.Queries
                 .Produces(StatusCodes.Status404NotFound);
         }
 
-        public record PlayerQuery(string PlayerId, string SeasonId) : Common.IQuery<Player?>
+        public record PlayerQuery(string PlayerId, int SeasonId) : Common.IQuery<Player?>
         {
         }
 

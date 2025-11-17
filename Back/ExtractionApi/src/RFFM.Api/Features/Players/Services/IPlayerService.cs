@@ -4,5 +4,5 @@ namespace RFFM.Api.Features.Players.Services;
 
 public interface IPlayerService
 {
-    Task<Player?> GetPlayerAsync(string playerId, string seasonId, CancellationToken cancellationToken = default);
+    Task<Player?> GetPlayerAsync(string playerId, int seasonId, CancellationToken cancellationToken = default);
 }

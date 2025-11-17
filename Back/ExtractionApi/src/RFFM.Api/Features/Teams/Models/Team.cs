@@ -64,14 +64,14 @@ namespace RFFM.Api.Features.Teams.Models
 
         [JsonPropertyName("fax")] public string Fax { get; set; } = string.Empty;
 
-        [JsonPropertyName("delegados_equipo")] public List<TeamDelegate> Delegates { get; set; } = [];
+        [JsonPropertyName("delegados_equipo")] public List<TeamDelegate> Delegates { get; set; } = new();
 
         [JsonPropertyName("auxiliares_equipo")]
-        public List<TeamAssistant> Assistants { get; set; } = [];
+        public List<TeamAssistant> Assistants { get; set; } = new();
 
-        [JsonPropertyName("tecnicos_equipo")] public List<TeamCoach> Coaches { get; set; } = [];
+        [JsonPropertyName("tecnicos_equipo")] public List<TeamCoach> Coaches { get; set; } = new();
 
-        [JsonPropertyName("jugadores_equipo")] public List<TeamPlayer> Players { get; set; } = [];
+        [JsonPropertyName("jugadores_equipo")] public List<TeamPlayer> Players { get; set; } = new();
 
     }
 
@@ -101,5 +101,6 @@ namespace RFFM.Api.Features.Teams.Models
         [JsonPropertyName("cod_jugador")] public string PlayerCode { get; set; } = string.Empty;
 
         [JsonPropertyName("nombre")] public string Name { get; set; } = string.Empty;
+
     }
 }

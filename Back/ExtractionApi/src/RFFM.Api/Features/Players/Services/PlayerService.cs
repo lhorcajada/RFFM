@@ -16,7 +16,7 @@ public class PlayerService : IPlayerService
         _logger = logger;
     }
 
-    public async Task<Player?> GetPlayerAsync(string playerId, string seasonId, CancellationToken cancellationToken = default)
+    public async Task<Player?> GetPlayerAsync(string playerId, int seasonId, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -32,7 +32,7 @@ public class PlayerService : IPlayerService
         }
     }
 
-    private Player? ParsePlayerData(string html, string playerId, string seasonId)
+    private Player? ParsePlayerData(string html, string playerId, int seasonId)
     {
         try
         {
@@ -62,7 +62,7 @@ public class PlayerService : IPlayerService
             var player = new Player
             {
                 PlayerId = playerId,
-                SeasonId = seasonId,
+                SeasonId = seasonId.ToString(),
                 Name = GetStringValue(playerData, "nombre_jugador"),
                 Age = GetIntValue(playerData, "edad"),
                 BirthYear = GetIntValue(playerData, "anio_nacimiento"),
