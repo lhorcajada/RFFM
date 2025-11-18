@@ -153,7 +153,8 @@ namespace RFFM.Api.Features.Teams.Queries
         public class Round
         {
             [JsonPropertyName("codjornada")]
-            public int JourneyId { get; set; }
+            // Some endpoints return codjornada as number, others as string. Keep as string and parse when needed.
+            public string JourneyId { get; set; } = string.Empty;
             [JsonPropertyName("nombre")]
             public string Name { get; set; } = string.Empty;
             [JsonPropertyName("fecha_jornada")]
@@ -292,12 +293,17 @@ namespace RFFM.Api.Features.Teams.Queries
                     if (pastOrToday.Any())
                     {
                         var latest = pastOrToday.OrderByDescending(t => t.date).First();
-                        return latest.round.JourneyId;
+                        // Try to parse journey id to int; return 0 on failure
+                        if (int.TryParse(latest.round.JourneyId, out var parsedId))
+                            return parsedId;
+                        return 0;
                     }
 
                     // If there is no past round, return the next upcoming round (earliest future)
                     var next = parsedRounds.OrderBy(t => t.date).First();
-                    return next.round.JourneyId;
+                    if (int.TryParse(next.round.JourneyId, out var nextId))
+                        return nextId;
+                    return 0;
                 }
                 catch
                 {

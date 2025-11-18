@@ -208,4 +208,34 @@ export async function getTeamParticipationSummary(
   }));
 }
 
+export async function getTeamGoalSectors(
+  teamId: string,
+  params?: {
+    temporada?: string;
+    competicion?: string;
+    grupo?: string;
+    tipojuego?: string;
+  }
+) {
+  const q = new URLSearchParams();
+  if (params?.temporada) q.append("temporada", params.temporada);
+  if (params?.competicion) q.append("competicion", params.competicion);
+  if (params?.grupo) q.append("grupo", params.grupo);
+  if (params?.tipojuego) q.append("tipojuego", params.tipojuego);
+  const qs = q.toString() ? `?${q.toString()}` : "";
+  const res = await client.get(
+    `teams/${encodeURIComponent(teamId)}/goal-sectors${qs}`
+  );
+  return res.data as {
+    teamCode: string;
+    matchesProcessed: number;
+    sectors: Array<{
+      startMinute: number;
+      endMinute: number;
+      goalsFor: number;
+      goalsAgainst: number;
+    }>;
+  };
+}
+
 export default client;

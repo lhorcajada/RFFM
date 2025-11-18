@@ -112,11 +112,67 @@
   display: flex;
   gap: 8px;
   align-items: center;
+  justify-content: flex-start;
   margin: 10px 0 4px 0;
+  /* Highlight action area */
+  background: linear-gradient(
+    180deg,
+    rgba(19, 54, 45, 0.02),
+    rgba(26, 96, 49, 0.01)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  box-shadow: 0 6px 18px rgba(2, 6, 8, 0.12);
+  padding: 6px 8px; /* reduce horizontal padding to move buttons left */
+  border-radius: 12px;
 }
 .ageOverlay,
 .actionBar > div {
   position: relative;
+}
+
+/* Button group styling: give consistent margin and stack on small screens */
+.actionBar > div {
+  display: inline-flex;
+  align-items: center;
+}
+.actionBar .MuiButton-root {
+  margin-right: 6px;
+}
+
+.actionBar .MuiButton-root {
+  min-height: 40px;
+  padding: 8px 12px !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 599px) {
+  .actionBar {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding: 6px 4px; /* slightly smaller on mobile */
+    -webkit-overflow-scrolling: touch;
+  }
+  .actionBar > div {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+  }
+  .actionBar .MuiButton-root {
+    min-width: 110px;
+    white-space: nowrap;
+    margin-right: 0;
+  }
+  /* ensure nice spacing at edges */
+  .actionBar::before,
+  .actionBar::after {
+    content: "";
+    flex: 0 0 6px;
+  }
 }
 
 .playersTitle h2 {
@@ -333,4 +389,40 @@
     padding: 12px;
     max-height: 70vh;
   }
+}
+
+.goalSectorsHeader {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  color: var(--text-color, #fff);
+}
+
+.goalSectorsTable {
+  width: 100%;
+  border-collapse: collapse;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.goalSectorsTable th,
+.goalSectorsTable td {
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  text-align: left;
+  font-size: 0.95rem;
+  color: var(--text-color, #fff);
+}
+.goalSectorsTable td {
+  text-align: center; /* center values */
+}
+.goalSectorsTable thead th {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #ffd166;
+}
+.goalSectorsTable tbody tr:hover {
+  background: rgba(255, 255, 255, 0.02);
 }

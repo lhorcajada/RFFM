@@ -22,6 +22,7 @@ import {
   getPlayersByTeam,
   getPlayer,
   getTeamAgeSummary,
+  getTeamGoalSectors,
   getTeamParticipationSummary,
 } from "../services/api";
 import AgeSummaryBox from "../components/players/AgeSummaryBox";
@@ -93,6 +94,9 @@ export default function GetPlayers(): JSX.Element {
   const [participationData, setParticipationData] = useState<any[]>([]);
   const [loadingParticipation, setLoadingParticipation] =
     useState<boolean>(false);
+  const [showGoalSectors, setShowGoalSectors] = useState<boolean>(false);
+  const [goalSectorsData, setGoalSectorsData] = useState<any | null>(null);
+  const [loadingGoalSectors, setLoadingGoalSectors] = useState<boolean>(false);
 
   useEffect(() => {
     let mounted = true;
@@ -420,7 +424,7 @@ export default function GetPlayers(): JSX.Element {
                   }
                 }}
               >
-                Resumen de edades
+                Edades
               </Button>
               <Modal
                 open={showAgePopup}
@@ -448,10 +452,93 @@ export default function GetPlayers(): JSX.Element {
                 </Box>
               </Modal>
             </div>
-            <div style={{ display: "inline-block", marginLeft: 8 }}>
+            <div>
               <Button
                 size="small"
-                variant="outlined"
+                variant="contained"
+                onClick={async () => {
+                  if (showGoalSectors) {
+                    setShowGoalSectors(false);
+                    return;
+                  }
+                  setShowGoalSectors(true);
+                  try {
+                    setLoadingGoalSectors(true);
+                    const id = String(
+                      (selectedTeam as any).id || selectedTeam?.id
+                    );
+                    const data = await getTeamGoalSectors(id, {
+                      temporada: "21",
+                      competicion: selectedCompetition ?? undefined,
+                      grupo: selectedGroup ?? undefined,
+                      tipojuego: "1",
+                    });
+                    setGoalSectorsData(data || null);
+                  } catch (err) {
+                    setGoalSectorsData(null);
+                  } finally {
+                    setLoadingGoalSectors(false);
+                  }
+                }}
+              >
+                Goles
+              </Button>
+              <Modal
+                open={showGoalSectors}
+                onClose={() => setShowGoalSectors(false)}
+              >
+                <Box className={styles.modalContent}>
+                  {loadingGoalSectors ? (
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "center",
+                        padding: 18,
+                      }}
+                    >
+                      <CircularProgress size={28} color="inherit" />
+                    </div>
+                  ) : goalSectorsData ? (
+                    <div>
+                      <div className={styles.goalSectorsHeader}>
+                        <div>
+                          <strong>Partidos procesados:</strong>&nbsp;
+                          {goalSectorsData.matchesProcessed ?? 0}
+                        </div>
+                      </div>
+                      <table className={styles.goalSectorsTable}>
+                        <thead>
+                          <tr>
+                            <th>Desde (min)</th>
+                            <th>Hasta (min)</th>
+                            <th>Goles a favor</th>
+                            <th>Goles en contra</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(goalSectorsData.sectors || []).map(
+                            (s: any, i: number) => (
+                              <tr key={i}>
+                                <td>{s.startMinute ?? "-"}</td>
+                                <td>{s.endMinute ?? "-"}</td>
+                                <td>{s.goalsFor ?? 0}</td>
+                                <td>{s.goalsAgainst ?? 0}</td>
+                              </tr>
+                            )
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div>No data</div>
+                  )}
+                </Box>
+              </Modal>
+            </div>
+            <div>
+              <Button
+                size="small"
+                variant="contained"
                 onClick={async () => {
                   if (showParticipationPopup) {
                     setShowParticipationPopup(false);

@@ -1,10 +1,7 @@
-using HtmlAgilityPack;
+using RFFM.Api.Features.Competitions.Models;
 using RFFM.Api.Infrastructure.Helpers;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Text.RegularExpressions;
-using System.Linq;
-using System.Collections.Generic;
 
 namespace RFFM.Api.Features.Competitions.Services
 {
@@ -122,5 +119,6 @@ namespace RFFM.Api.Features.Competitions.Services
                 return Array.Empty<ResponseGroup>();
             }
         }
+
     }
 }

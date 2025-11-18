@@ -29,7 +29,8 @@ namespace RFFM.Api.DependencyInjection
             services.AddHttpClient();
             services.AddScoped<IPlayerService, PlayerService>();
             services.AddScoped<ICompetitionService, CompetitionService>();
-            services.AddScoped<ITeamService, TeamService>();    
+            services.AddScoped<ITeamService, TeamService>();
+            services.AddScoped<ICalendarService, CalendarService>();
             return services;
         }
 
