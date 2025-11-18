@@ -86,6 +86,8 @@ export default function GetPlayers(): JSX.Element {
     undefined
   );
   const [teamDetails, setTeamDetails] = useState<any | null>(null);
+
+  const [noConfig, setNoConfig] = useState<boolean>(false);
   const [showAgePopup, setShowAgePopup] = useState<boolean>(false);
   const [ageSummary, setAgeSummary] = useState<Record<number, number>>({});
   const [loadingAge, setLoadingAge] = useState<boolean>(false);
@@ -98,6 +100,38 @@ export default function GetPlayers(): JSX.Element {
   const [goalSectorsData, setGoalSectorsData] = useState<any | null>(null);
   const [loadingGoalSectors, setLoadingGoalSectors] = useState<boolean>(false);
 
+  // Load initial configuration from localStorage (runs once on mount)
+  useEffect(() => {
+    try {
+      const rawList = localStorage.getItem("rffm.saved_combinations_v1");
+      const list = rawList ? JSON.parse(rawList) : [];
+      let combo: any = null;
+      if (Array.isArray(list) && list.length > 0) {
+        const primaryId = localStorage.getItem("rffm.primary_combination_id");
+        if (primaryId) {
+          combo = list.find((c: any) => String(c.id) === String(primaryId));
+        }
+        if (!combo) {
+          combo = list.find((c: any) => c.isPrimary) || list[0];
+        }
+      }
+      if (!combo || !combo.team) {
+        setNoConfig(true);
+      } else {
+        setSelectedCompetition(combo.competition?.id ?? undefined);
+        setSelectedGroup(combo.group?.id ?? undefined);
+        setSelectedTeam({
+          id: combo.team.id,
+          name: combo.team.name,
+          url: combo.team.url,
+        });
+      }
+    } catch (e) {
+      setNoConfig(true);
+    }
+  }, []); // Empty dependency array - only runs once on mount
+
+  // Load players when selectedTeam changes
   useEffect(() => {
     let mounted = true;
 
@@ -215,35 +249,54 @@ export default function GetPlayers(): JSX.Element {
   return (
     <Paper className={styles.paper}>
       <div className={styles.filters}>
-        <CompetitionSelector
-          onChange={(c) => {
-            setSelectedCompetition(c?.id);
-            setSelectedGroup(undefined);
-            setSelectedTeam(undefined);
-          }}
-        />
-        <GroupSelector
-          competitionId={selectedCompetition}
-          onChange={(g) => {
-            setSelectedGroup(g?.id);
-            setSelectedTeam(undefined);
-          }}
-        />
-        <TeamsSelector
-          competitionId={selectedCompetition}
-          groupId={selectedGroup}
-          onChange={(t) => {
-            setSelectedTeam(t);
-            setPlayers([]);
-            setDisplayCount(0);
-            setAgeCounts({});
-            setGroupCounts([]);
-            setExpandedPlayerId(null);
-            setExpandedDetails(null);
-            setError(null);
-          }}
-        />
+        {noConfig ? (
+          <Typography variant="body2">
+            No hay configuración principal guardada.
+          </Typography>
+        ) : null}
       </div>
+
+      {selectedTeam && (
+        <Box
+          sx={{
+            textAlign: "center",
+            py: 3,
+            px: 2,
+            mb: 3,
+            background:
+              "linear-gradient(135deg, rgba(0,160,200,0.1) 0%, rgba(0,120,180,0.05) 100%)",
+            borderRadius: "12px",
+            border: "1px solid rgba(0,160,200,0.2)",
+          }}
+        >
+          <Typography
+            variant="h3"
+            sx={{
+              fontWeight: 700,
+              background: "linear-gradient(135deg, #00a0c8 0%, #0078b4 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+              mb: 0.5,
+              letterSpacing: "-0.5px",
+            }}
+          >
+            {selectedTeam.name}
+          </Typography>
+          <Typography
+            variant="body2"
+            sx={{
+              color: "text.secondary",
+              fontWeight: 500,
+              textTransform: "uppercase",
+              letterSpacing: "1px",
+              fontSize: "0.75rem",
+            }}
+          >
+            Plantilla del Equipo
+          </Typography>
+        </Box>
+      )}
 
       {/* Summary boxes are disabled for now. */}
 

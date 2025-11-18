@@ -177,6 +177,22 @@ export async function getGroups(competitionId?: string) {
   return res.data;
 }
 
+export async function getCalendar(params?: {
+  season?: string;
+  competition?: string;
+  group?: string;
+  playType?: string;
+}) {
+  const q = new URLSearchParams();
+  if (params?.season) q.append("season", params.season);
+  if (params?.competition) q.append("competition", params.competition);
+  if (params?.group) q.append("group", params.group);
+  if (params?.playType) q.append("playType", params.playType);
+  const qs = q.toString() ? `?${q.toString()}` : "";
+  const res = await client.get(`calendar${qs}`);
+  return res.data;
+}
+
 export async function getTeamAgeSummary(teamId: string, seasonId?: string) {
   const q = seasonId ? `?seasonId=${encodeURIComponent(seasonId)}` : "";
   const res = await client.get(

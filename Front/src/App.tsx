@@ -6,6 +6,9 @@ import Typography from "@mui/material/Typography";
 import { Routes, Route, Link } from "react-router-dom";
 import styles from "./App.module.css";
 import GetTeam from "./pages";
+import GetCalendar from "./pages/GetCalendar";
+import Dashboard from "./pages/Dashboard";
+import Settings from "./pages/Settings";
 import Footer from "./components/ui/Footer";
 
 export default function App(): JSX.Element {
@@ -25,21 +28,10 @@ export default function App(): JSX.Element {
 
       <main className={styles.main}>
         <Routes>
-          <Route
-            path="/"
-            element={
-              <div>
-                <h1>Bienvenido a RFFM</h1>
-                <p>
-                  Aquí podrás consultar información sobre jugadores y equipos.
-                  También podrás ver estadísticas detalladas y datos relevantes.
-                  Podrás ver sectorialmente cuando los equipos han recibido o
-                  han marcado goles en función del minuto del partido.
-                </p>
-              </div>
-            }
-          />
+          <Route path="/" element={<Dashboard />} />
           <Route path="/get-players" element={<GetTeam />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/calendar" element={<GetCalendar />} />
         </Routes>
       </main>
       <Footer />

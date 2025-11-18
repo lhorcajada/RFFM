@@ -13,8 +13,10 @@ type Competition = { id: string; name: string };
 
 export default function CompetitionSelector({
   onChange,
+  value,
 }: {
   onChange?: (c?: Competition) => void;
+  value?: string;
 }) {
   const [items, setItems] = useState<Competition[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -66,6 +68,11 @@ export default function CompetitionSelector({
     const c = items.find((it) => it.id === id);
     if (onChange) onChange(c);
   }
+
+  // sync controlled value
+  React.useEffect(() => {
+    if (value !== undefined) setSelected(value);
+  }, [value]);
 
   return (
     <div style={{ marginBottom: 8 }}>

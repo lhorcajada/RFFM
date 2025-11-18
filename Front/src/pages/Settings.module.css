@@ -1,0 +1,111 @@
+:root {
+  --gap: 8px;
+}
+
+.paper {
+  padding: 16px;
+  width: 100%;
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.topBox {
+  margin-top: 12px;
+}
+
+.selectorsWrap {
+  margin-top: 8px;
+}
+
+.divider {
+  margin: 16px 0;
+}
+
+.headerTitleWrap {
+  flex: 1 1 auto;
+}
+
+.headerButtons {
+  margin-left: auto;
+  display: flex;
+  gap: var(--gap);
+  align-items: center;
+}
+
+.listItemText {
+  min-width: 0;
+  margin-right: 0;
+}
+
+.chipsRow {
+  display: flex;
+  gap: var(--gap);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.chipBox {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  font-size: 1rem;
+}
+
+.actionsInlineBox {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.actionsRow {
+  display: flex;
+  gap: var(--gap);
+  flex-wrap: wrap;
+}
+
+/* Desktop: reserve space on the right for action buttons */
+@media (min-width: 600px) {
+  .listItemText {
+    margin-right: 0; /* no reserved space on the right */
+  }
+}
+
+/* ensure ListItemSecondaryAction aligns to the far right */
+
+/* Mobile adjustments */
+@media (max-width: 600px) {
+  .headerButtons {
+    width: 100%;
+    margin-left: 0;
+    margin-top: 8px;
+  }
+  .headerButtons > .MuiButton-root {
+    flex: 1 1 auto;
+  }
+  .avatar {
+    width: 36px;
+    height: 36px;
+    font-size: 0.9rem;
+  }
+  /* Make chips stack and use full width on mobile */
+  .chipsRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .chipBox {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+  /* Ensure list text has no right margin on mobile so it can use full width */
+  .listItemText {
+    margin-right: 0;
+  }
+  /* Actions inline should wrap nicely */
+  .actionsRow {
+    justify-content: flex-start;
+  }
+}

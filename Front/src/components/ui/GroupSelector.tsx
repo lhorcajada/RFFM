@@ -14,9 +14,11 @@ type Group = { id: string; name: string };
 export default function GroupSelector({
   competitionId,
   onChange,
+  value,
 }: {
   competitionId?: string;
   onChange?: (g?: Group) => void;
+  value?: string;
 }) {
   const [items, setItems] = useState<Group[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -55,12 +57,43 @@ export default function GroupSelector({
     };
   }, [competitionId]);
 
+  // when parent provides a value, sync internal selected
+  useEffect(() => {
+    if (value !== undefined) {
+      setSelected(value ?? "");
+    }
+  }, [value]);
+
+  // when competition changes, if no external value provided, reset selection
+  useEffect(() => {
+    if (!competitionId && value === undefined) {
+      setSelected("");
+      if (onChange) onChange(undefined);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [competitionId]);
+  // sync controlled value and notify parent when items are available
+  React.useEffect(() => {
+    if (value !== undefined) {
+      setSelected(value ?? "");
+      const g = items.find((it) => it.id === value);
+      if (onChange) onChange(g);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value, items]);
+
   function handleChange(e: any) {
     const id = e.target.value;
     setSelected(id);
     const g = items.find((it) => it.id === id);
     if (onChange) onChange(g);
   }
+
+  React.useEffect(() => {
+    if ((arguments as any)[0]?.value !== undefined) {
+      // no-op: value passed via props list is handled by caller
+    }
+  }, []);
 
   return (
     <div style={{ marginBottom: 8 }}>

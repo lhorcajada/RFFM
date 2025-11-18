@@ -16,10 +16,12 @@ export default function TeamsSelector({
   onChange,
   competitionId,
   groupId,
+  value,
 }: {
   onChange?: (team?: Team) => void;
   competitionId?: string;
   groupId?: string;
+  value?: string;
 }) {
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -28,14 +30,14 @@ export default function TeamsSelector({
 
   useEffect(() => {
     let mounted = true;
-    // reset selection when filters change
+    // reset state when filters change (but don't notify parent if a controlled `value` exists)
     setTeams([]);
     setSelected("");
     setError(null);
-    if (onChange) onChange(undefined);
-    // only load teams when both competition and group are provided
     if (!competitionId || !groupId) {
       setLoading(false);
+      // if uncontrolled, notify parent that selection cleared
+      if (!value && onChange) onChange(undefined);
       return () => {
         mounted = false;
       };
@@ -103,6 +105,19 @@ export default function TeamsSelector({
     const team = teams.find((t) => String(t.id) === id);
     if (onChange) onChange(team);
   }
+
+  React.useEffect(() => {
+    // When a controlled `value` is provided, wait until teams list is available
+    // so we can find the matching team object. Only then notify parent via onChange.
+    if (value !== undefined) {
+      setSelected(value ?? "");
+      const t = teams.find((tt) => String(tt.id) === value);
+      if (t && onChange) onChange(t);
+      // if teams are loaded but no match found, still notify with undefined so parent knows
+      if (teams.length > 0 && !t && onChange) onChange(undefined);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value, teams]);
 
   return (
     <div style={{ marginBottom: 8 }}>
