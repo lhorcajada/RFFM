@@ -5,6 +5,7 @@ import CardActions from "@mui/material/CardActions";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import { Link } from "react-router-dom";
+import styles from "./DashboardCard.module.css";
 
 export default function DashboardCard({
   title,
@@ -18,34 +19,20 @@ export default function DashboardCard({
   to: string;
 }) {
   return (
-    <Card style={{ width: 260 }}>
+    <Card className={styles.card}>
       <CardContent>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div
-            style={{
-              width: 56,
-              height: 56,
-              borderRadius: 28,
-              background: "#f3f4f6",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            {icon}
-          </div>
-        </div>
-        <Typography gutterBottom variant="h6" component="div">
+        <div className={styles.iconWrap}>{icon}</div>
+        <Typography
+          gutterBottom
+          variant="h6"
+          component="div"
+          className={styles.title}
+        >
           {title}
         </Typography>
-        {description && (
-          <Typography variant="body2" color="text.secondary">
-            {description}
-          </Typography>
-        )}
       </CardContent>
       <CardActions>
-        <Button size="small" component={Link} to={to}>
+        <Button size="small" component={Link} to={to} className={styles.button}>
           Abrir
         </Button>
       </CardActions>
