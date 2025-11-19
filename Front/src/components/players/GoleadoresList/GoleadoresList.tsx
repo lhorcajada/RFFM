@@ -52,7 +52,10 @@ const GoleadoresList: React.FC<GoleadoresListProps> = ({
               </span>
             </span>
             ·
-            <span className={styles.iconWrap} title="Media de goles por partido">
+            <span
+              className={styles.iconWrap}
+              title="Media de goles por partido"
+            >
               <span className={styles.iconCircle} aria-hidden>
                 <SportsSoccerIcon
                   className={styles.iconInner}

@@ -40,7 +40,7 @@
     grid-template-columns: repeat(3, 1fr);
     gap: 14px;
   }
-  
+
   .content {
     max-width: 1400px;
     margin: 0 auto;
