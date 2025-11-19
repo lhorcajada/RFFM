@@ -9,18 +9,7 @@
   gap: 12px;
   margin-bottom: 12px;
 }
-.controls {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-.search {
-  padding: 8px 12px;
-  border-radius: 10px;
-  border: 1px solid #e6eef8;
-  background: #ffffff;
-  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03);
-}
+/* .controls and .search removed: search and sort UI disabled */
 .grid {
   display: grid;
   grid-template-columns: 1fr;

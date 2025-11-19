@@ -23,8 +23,7 @@ interface Team {
 
 export default function Classification() {
   const [teams, setTeams] = useState<Team[]>([]);
-  const [query, setQuery] = useState("");
-  const [sortDesc, setSortDesc] = useState(true);
+
   useEffect(() => {
     try {
       const raw = localStorage.getItem("rffm.current_selection");
@@ -59,13 +58,7 @@ export default function Classification() {
     }
   }, []);
 
-  const filtered = (teams as any)
-    .filter((t: any) =>
-      (t.teamName || "").toLowerCase().includes(query.toLowerCase())
-    )
-    .sort((a: any, b: any) =>
-      sortDesc ? b.points - a.points : a.points - b.points
-    );
+  const filtered = (teams as any).sort((a: any, b: any) => b.points - a.points);
 
   return (
     <BaseLayout>
@@ -75,25 +68,7 @@ export default function Classification() {
       />
       <div className={styles.container}>
         <div className={styles.content}>
-          <div className={styles.headerBar}>
-            <div className={styles.controls}>
-              <input
-                className={styles.search}
-                placeholder="Buscar equipo..."
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-              />
-            </div>
-            <div className={styles.controls}>
-              <button
-                onClick={() => setSortDesc(!sortDesc)}
-                className={styles.search}
-                title="Ordenar por puntos"
-              >
-                Ordenar: {sortDesc ? "Desc" : "Asc"}
-              </button>
-            </div>
-          </div>
+          <div className={styles.headerBar} />
 
           <div className={styles.grid}>
             {filtered.length === 0 ? (
