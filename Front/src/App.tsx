@@ -7,6 +7,7 @@ import { GetPlayers as GetTeam } from "./pages/Squad";
 import GetCalendar from "./pages/Calendar/GetCalendar";
 import Dashboard from "./pages/Dashboard/Dashboard";
 import Settings from "./pages/Settings/Settings";
+import Classification from "./pages/Classification";
 import Footer from "./components/ui/Footer/Footer";
 
 export default function App(): JSX.Element {
@@ -18,6 +19,7 @@ export default function App(): JSX.Element {
           <Route path="/get-players" element={<GetTeam />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/calendar" element={<GetCalendar />} />
+          <Route path="/classification" element={<Classification />} />
         </Routes>
       </main>
     </div>

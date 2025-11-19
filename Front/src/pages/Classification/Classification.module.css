@@ -1,0 +1,44 @@
+.container {
+  padding: 18px 12px 28px;
+}
+.headerBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.search {
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid #e6eef8;
+  background: #ffffff;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03);
+}
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+}
+
+.content {
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+@media (min-width: 720px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.empty {
+  padding: 20px;
+  text-align: center;
+  color: #6b7280;
+}

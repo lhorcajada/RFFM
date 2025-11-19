@@ -1,0 +1,128 @@
+import React, { useEffect, useState } from "react";
+import PageHeader from "../../components/ui/PageHeader/PageHeader";
+import BaseLayout from "../../components/ui/BaseLayout/BaseLayout";
+import ClassificationItem, {
+  MatchResult,
+} from "../../components/ui/ClassificationItem/ClassificationItem";
+import { getTeamsForClassification } from "../../services/api";
+import styles from "./Classification.module.css";
+
+interface Team {
+  id: string;
+  name: string;
+  position: number;
+  points: number;
+  played: number;
+  won: number;
+  drawn: number;
+  lost: number;
+  goalsFor: number;
+  goalsAgainst: number;
+  last5: MatchResult[];
+}
+
+export default function Classification() {
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [query, setQuery] = useState("");
+  const [sortDesc, setSortDesc] = useState(true);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("rffm.current_selection");
+      let competitionId = "25255269";
+      let groupId = "25255283";
+      if (raw) {
+        try {
+          const combo = JSON.parse(raw);
+          if (combo && combo.competition && combo.competition.id)
+            competitionId = String(combo.competition.id);
+          if (combo && combo.group && combo.group.id)
+            groupId = String(combo.group.id);
+        } catch (e) {
+          // ignore parse errors and fallback to defaults
+        }
+      }
+
+      getTeamsForClassification({
+        season: "21",
+        competition: competitionId,
+        group: groupId,
+        playType: "1",
+      }).then((data) => setTeams(data));
+    } catch (e) {
+      // fallback: try default call
+      getTeamsForClassification({
+        season: "21",
+        competition: "25255269",
+        group: "25255283",
+        playType: "1",
+      }).then((data) => setTeams(data));
+    }
+  }, []);
+
+  const filtered = (teams as any)
+    .filter((t: any) =>
+      (t.teamName || "").toLowerCase().includes(query.toLowerCase())
+    )
+    .sort((a: any, b: any) =>
+      sortDesc ? b.points - a.points : a.points - b.points
+    );
+
+  return (
+    <BaseLayout>
+      <PageHeader
+        title="Clasificación"
+        subtitle="Tabla de equipos y estadísticas"
+      />
+      <div className={styles.container}>
+        <div className={styles.content}>
+          <div className={styles.headerBar}>
+            <div className={styles.controls}>
+              <input
+                className={styles.search}
+                placeholder="Buscar equipo..."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+            </div>
+            <div className={styles.controls}>
+              <button
+                onClick={() => setSortDesc(!sortDesc)}
+                className={styles.search}
+                title="Ordenar por puntos"
+              >
+                Ordenar: {sortDesc ? "Desc" : "Asc"}
+              </button>
+            </div>
+          </div>
+
+          <div className={styles.grid}>
+            {filtered.length === 0 ? (
+              <div className={styles.empty}>No hay equipos que coincidan.</div>
+            ) : (
+              filtered.map((team: any) => (
+                <ClassificationItem
+                  key={team.teamId}
+                  position={team.position}
+                  teamName={team.teamName}
+                  points={team.points}
+                  played={team.played}
+                  won={team.won}
+                  drawn={team.drawn}
+                  lost={team.lost}
+                  goalsFor={team.goalsFor}
+                  goalsAgainst={team.goalsAgainst}
+                  last5={(team.matchStreaks || []).map((s: any) => {
+                    const raw = s.type || s.result || "";
+                    if (raw === "W" || raw === "G") return { result: "G" };
+                    if (raw === "D" || raw === "E") return { result: "E" };
+                    return { result: "P" };
+                  })}
+                />
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    </BaseLayout>
+  );
+}
