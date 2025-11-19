@@ -4,6 +4,7 @@ import Paper from "@mui/material/Paper";
 import Button from "@mui/material/Button";
 import { Link } from "react-router-dom";
 import CompetitionSelector from "../../components/ui/CompetitionSelector/CompetitionSelector";
+import BaseLayout from "../../components/ui/BaseLayout/BaseLayout";
 import GroupSelector from "../../components/ui/GroupSelector/GroupSelector";
 import TeamsSelector from "../../components/ui/TeamsSelector/TeamsSelector";
 import List from "@mui/material/List";
@@ -221,137 +222,106 @@ export default function Settings(): JSX.Element {
   }
 
   return (
-    <>
-      <Paper className={styles.paper}>
-        <HeaderContainer
-          saveCombination={saveCombination}
-          selectedTeam={selectedTeam}
-          teamAlreadySaved={teamAlreadySaved}
-        />
+    <BaseLayout>
+      <HeaderContainer
+        saveCombination={saveCombination}
+        selectedTeam={selectedTeam}
+        teamAlreadySaved={teamAlreadySaved}
+      />
 
-        <Box className={styles.topBox}>
-          <Typography variant="subtitle1">
-            Guardar combinación por defecto
-          </Typography>
-          <div className={styles.selectorsWrap}>
-            <Grid container spacing={1}>
-              <Grid item xs={12} sm={4}>
-                <CompetitionSelector
-                  onChange={(c) => setSelectedCompetition(c)}
-                  value={selectedCompetition?.id}
-                />
-              </Grid>
-              <Grid item xs={12} sm={4}>
-                <GroupSelector
-                  competitionId={selectedCompetition?.id}
-                  onChange={(g) => setSelectedGroup(g)}
-                  value={selectedGroup?.id}
-                />
-              </Grid>
-              <Grid item xs={12} sm={4}>
-                <TeamsSelector
-                  competitionId={selectedCompetition?.id}
-                  groupId={selectedGroup?.id}
-                  onChange={(t) => setSelectedTeam(t)}
-                  value={selectedTeam?.id}
-                />
-              </Grid>
+      <Box className={styles.topBox}>
+        <Typography variant="subtitle1">
+          Guardar combinación por defecto
+        </Typography>
+        <div className={styles.selectorsWrap}>
+          <Grid container spacing={1}>
+            <Grid item xs={12} sm={4}>
+              <CompetitionSelector
+                onChange={(c) => setSelectedCompetition(c)}
+                value={selectedCompetition?.id}
+              />
             </Grid>
-          </div>
-        </Box>
+            <Grid item xs={12} sm={4}>
+              <GroupSelector
+                competitionId={selectedCompetition?.id}
+                onChange={(g) => setSelectedGroup(g)}
+                value={selectedGroup?.id}
+              />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <TeamsSelector
+                competitionId={selectedCompetition?.id}
+                groupId={selectedGroup?.id}
+                onChange={(t) => setSelectedTeam(t)}
+                value={selectedTeam?.id}
+              />
+            </Grid>
+          </Grid>
+        </div>
+      </Box>
 
-        <Divider className={styles.divider} />
+      <Divider className={styles.divider} />
 
-        <Typography variant="subtitle1">Combinaciones guardadas</Typography>
-        {saved.length === 0 ? (
-          <Typography variant="body2" style={{ marginTop: 8 }}>
-            No hay combinaciones guardadas.
-          </Typography>
-        ) : (
-          <List>
-            {saved.map((s) => (
-              <ListItem key={s.id} divider alignItems="flex-start">
-                <ListItemAvatar>
-                  <Avatar
-                    className={styles.avatar}
-                    sx={{ bgcolor: s.isPrimary ? "primary.main" : undefined }}
-                    alt={s.team?.name ?? "Equipo"}
-                  >
-                    {s.team?.name ? s.team.name.charAt(0).toUpperCase() : "-"}
-                  </Avatar>
-                </ListItemAvatar>
+      <Typography variant="subtitle1">Combinaciones guardadas</Typography>
+      {saved.length === 0 ? (
+        <Typography variant="body2" style={{ marginTop: 8 }}>
+          No hay combinaciones guardadas.
+        </Typography>
+      ) : (
+        <List>
+          {saved.map((s) => (
+            <ListItem key={s.id} divider alignItems="flex-start">
+              <ListItemAvatar>
+                <Avatar
+                  className={styles.avatar}
+                  sx={{ bgcolor: s.isPrimary ? "primary.main" : undefined }}
+                  alt={s.team?.name ?? "Equipo"}
+                >
+                  {s.team?.name ? s.team.name.charAt(0).toUpperCase() : "-"}
+                </Avatar>
+              </ListItemAvatar>
 
-                <ListItemText
-                  className={styles.listItemText}
-                  primary={
-                    <Stack spacing={0.25}>
-                      <Typography variant="subtitle2">
-                        {s.team?.name ?? "-"}
-                      </Typography>
-                      <Stack
-                        direction="row"
-                        spacing={0.5}
-                        className={styles.chipsRow}
-                      >
-                        <Chip
-                          size="small"
-                          label={s.competition?.name ?? "-"}
-                          variant="outlined"
-                        />
-                        <Chip
-                          size="small"
-                          label={s.group?.name ?? "-"}
-                          variant="outlined"
-                        />
-                      </Stack>
-                    </Stack>
-                  }
-                  secondary={
-                    <Typography variant="caption" color="text.secondary">
-                      {new Date(s.createdAt).toLocaleString()}
-                      {s.isPrimary ? " • Principal" : ""}
+              <ListItemText
+                className={styles.listItemText}
+                primary={
+                  <Stack spacing={0.25}>
+                    <Typography variant="subtitle2">
+                      {s.team?.name ?? "-"}
                     </Typography>
-                  }
-                />
-
-                {isSm ? (
-                  <Box className={styles.actionsInlineBox}>
                     <Stack
                       direction="row"
                       spacing={0.5}
-                      className={styles.actionsRow}
+                      className={styles.chipsRow}
                     >
-                      <IconButton
-                        aria-label="primary"
-                        title={
-                          primaryId === s.id
-                            ? "Aplicar y principal"
-                            : "Marcar como principal y aplicar"
-                        }
-                        onClick={() => {
-                          setAsPrimary(s.id);
-                          applyCombo(s.id);
-                        }}
-                        color={primaryId === s.id ? "primary" : "default"}
+                      <Chip
                         size="small"
-                      >
-                        {primaryId === s.id ? <StarIcon /> : <StarBorderIcon />}
-                      </IconButton>
-
-                      <IconButton
-                        aria-label="delete"
-                        title="Eliminar"
-                        onClick={() => removeCombo(s.id)}
+                        label={s.competition?.name ?? "-"}
+                        variant="outlined"
+                      />
+                      <Chip
                         size="small"
-                      >
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
+                        label={s.group?.name ?? "-"}
+                        variant="outlined"
+                      />
                     </Stack>
-                  </Box>
-                ) : (
-                  <ListItemSecondaryAction>
+                  </Stack>
+                }
+                secondary={
+                  <Typography variant="caption" color="text.secondary">
+                    {new Date(s.createdAt).toLocaleString()}
+                    {s.isPrimary ? " • Principal" : ""}
+                  </Typography>
+                }
+              />
+
+              {isSm ? (
+                <Box className={styles.actionsInlineBox}>
+                  <Stack
+                    direction="row"
+                    spacing={0.5}
+                    className={styles.actionsRow}
+                  >
                     <IconButton
-                      edge="end"
                       aria-label="primary"
                       title={
                         primaryId === s.id
@@ -363,24 +333,53 @@ export default function Settings(): JSX.Element {
                         applyCombo(s.id);
                       }}
                       color={primaryId === s.id ? "primary" : "default"}
+                      size="small"
                     >
                       {primaryId === s.id ? <StarIcon /> : <StarBorderIcon />}
                     </IconButton>
+
                     <IconButton
-                      edge="end"
                       aria-label="delete"
                       title="Eliminar"
                       onClick={() => removeCombo(s.id)}
+                      size="small"
                     >
-                      <DeleteIcon />
+                      <DeleteIcon fontSize="small" />
                     </IconButton>
-                  </ListItemSecondaryAction>
-                )}
-              </ListItem>
-            ))}
-          </List>
-        )}
-      </Paper>
+                  </Stack>
+                </Box>
+              ) : (
+                <ListItemSecondaryAction>
+                  <IconButton
+                    edge="end"
+                    aria-label="primary"
+                    title={
+                      primaryId === s.id
+                        ? "Aplicar y principal"
+                        : "Marcar como principal y aplicar"
+                    }
+                    onClick={() => {
+                      setAsPrimary(s.id);
+                      applyCombo(s.id);
+                    }}
+                    color={primaryId === s.id ? "primary" : "default"}
+                  >
+                    {primaryId === s.id ? <StarIcon /> : <StarBorderIcon />}
+                  </IconButton>
+                  <IconButton
+                    edge="end"
+                    aria-label="delete"
+                    title="Eliminar"
+                    onClick={() => removeCombo(s.id)}
+                  >
+                    <DeleteIcon />
+                  </IconButton>
+                </ListItemSecondaryAction>
+              )}
+            </ListItem>
+          ))}
+        </List>
+      )}
       <Snackbar
         open={snackOpen}
         autoHideDuration={4000}
@@ -391,7 +390,7 @@ export default function Settings(): JSX.Element {
           {snackMsg}
         </Alert>
       </Snackbar>
-    </>
+    </BaseLayout>
   );
 }
 

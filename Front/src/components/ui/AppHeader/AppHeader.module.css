@@ -1,0 +1,124 @@
+@media (min-width: 481px) {
+  .titleWrap {
+    display: flex;
+    align-items: center;
+    width: 100%;
+  }
+  .configWrap {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: none;
+    padding: 0;
+    border-radius: 0;
+  }
+}
+.appBar {
+  background: linear-gradient(180deg, #082033 0%, #05313b 100%) !important;
+  border-radius: 0 !important;
+  width: 100%;
+  min-width: 0;
+  left: 0;
+  right: 0;
+  top: 0;
+  position: fixed !important;
+  box-shadow: none !important;
+  margin: 0;
+  padding: 0;
+  z-index: 1100;
+  overflow-x: hidden;
+  .header {
+    width: 100%;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    overflow-x: hidden;
+    border-radius: 0;
+    min-height: 44px;
+    padding: 10px 20px 8px 20px;
+  }
+
+  .configWrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 4px 12px;
+    flex-wrap: wrap;
+  }
+
+  @media (max-width: 480px) {
+    .titleWrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      width: 100%;
+    }
+    .appName {
+      font-size: 1rem;
+      margin-right: 6px;
+      white-space: nowrap;
+    }
+    .configWrap {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.7rem;
+      background: none;
+      padding: 0;
+      border-radius: 0;
+      margin-left: auto;
+    }
+    .competition,
+    .group {
+      font-size: 0.7rem;
+      white-space: nowrap;
+      margin: 0;
+    }
+    .separator {
+      font-size: 1.1rem;
+      margin: 0 2px;
+    }
+  }
+}
+
+.competition {
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.8rem;
+  letter-spacing: 0.5px;
+  background: rgba(0, 229, 255, 0.18);
+  border-radius: 16px;
+  padding: 2px 10px;
+  margin: 0 2px;
+  display: inline-block;
+  border: 1px solid rgba(0, 229, 255, 0.25);
+  box-shadow: 0 1px 4px rgba(0, 229, 255, 0.08);
+}
+
+.separator {
+  color: #fff;
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin: 0 4px;
+}
+
+.group {
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 400;
+  opacity: 0.85;
+  background: rgba(255, 209, 102, 0.18);
+  border-radius: 16px;
+  padding: 2px 10px;
+  margin: 0 2px;
+  display: inline-block;
+  border: 1px solid rgba(255, 209, 102, 0.25);
+  box-shadow: 0 1px 4px rgba(255, 209, 102, 0.08);
+}

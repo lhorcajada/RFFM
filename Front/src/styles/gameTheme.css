@@ -12,6 +12,8 @@
 body {
   background: var(--bg);
   color: #e6f7ef;
+  margin: 0;
+  padding: 0;
 }
 
 .game-card {

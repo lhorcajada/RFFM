@@ -1,4 +1,6 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
+import PageHeader from "../../components/ui/PageHeader/PageHeader";
+import BaseLayout from "../../components/ui/BaseLayout/BaseLayout";
 import "../../styles/gameTheme.css";
 import styles from "./GetPlayers.module.css";
 import teamStyles from "../../styles/TeamCard.module.css";
@@ -10,10 +12,12 @@ import {
   CircularProgress,
   Paper,
   Typography,
+  Tooltip,
   Button,
   Modal,
   Box,
 } from "@mui/material";
+
 import {
   getPlayersByTeam,
   getPlayer,
@@ -243,7 +247,7 @@ export default function GetPlayers(): JSX.Element {
   }, [selectedTeam]);
 
   return (
-    <Paper className={styles.paper}>
+    <BaseLayout>
       <div className={styles.filters}>
         {noConfig ? (
           <Typography variant="body2">
@@ -253,45 +257,7 @@ export default function GetPlayers(): JSX.Element {
       </div>
 
       {selectedTeam && (
-        <Box
-          sx={{
-            textAlign: "center",
-            py: 3,
-            px: 2,
-            mb: 3,
-            background:
-              "linear-gradient(135deg, rgba(0,160,200,0.1) 0%, rgba(0,120,180,0.05) 100%)",
-            borderRadius: "12px",
-            border: "1px solid rgba(0,160,200,0.2)",
-          }}
-        >
-          <Typography
-            variant="h3"
-            sx={{
-              fontWeight: 700,
-              background: "linear-gradient(135deg, #00a0c8 0%, #0078b4 100%)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              backgroundClip: "text",
-              mb: 0.5,
-              letterSpacing: "-0.5px",
-            }}
-          >
-            {selectedTeam.name}
-          </Typography>
-          <Typography
-            variant="body2"
-            sx={{
-              color: "text.secondary",
-              fontWeight: 500,
-              textTransform: "uppercase",
-              letterSpacing: "1px",
-              fontSize: "0.75rem",
-            }}
-          >
-            Plantilla del Equipo
-          </Typography>
-        </Box>
+        <PageHeader title={selectedTeam.name} subtitle="Plantilla del Equipo" />
       )}
 
       {/* Summary boxes are disabled for now. */}
@@ -788,6 +754,6 @@ export default function GetPlayers(): JSX.Element {
           ))}
         </List>
       )}
-    </Paper>
+    </BaseLayout>
   );
 }
