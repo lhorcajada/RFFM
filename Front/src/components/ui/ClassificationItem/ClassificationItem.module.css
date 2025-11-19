@@ -1,10 +1,11 @@
 .item {
   display: grid;
-  grid-template-columns: 48px 1fr 120px;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
   gap: 12px;
   align-items: start;
-  padding: 14px 20px 18px 18px; /* more right padding */
-  margin: 12px 12px;
+  padding: 14px 20px 18px 18px;
+  width: 100%;
+  box-sizing: border-box;
   background: linear-gradient(180deg, #ffffff 0%, #fbfbff 100%);
   border-radius: 12px;
   box-shadow: 0 6px 18px rgba(22, 27, 40, 0.06);
@@ -15,6 +16,9 @@
 .item:hover {
   transform: translateY(-4px);
   box-shadow: 0 12px 30px rgba(22, 27, 40, 0.12);
+}
+.item {
+  margin: 6px 0;
 }
 
 .position {
@@ -31,223 +35,297 @@
   font-size: 0.95rem;
 }
 
-.team {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-    min-width: 0;
-  }
-  .teamInfo {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-    justify-content: center;
-    gap: 8px;
-  }
-  .teamName {
-    font-weight: 600;
-    color: #0f172a;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .teamMeta {
-    font-size: 0.85rem;
-    color: #6b7280;
-  }
+.positionNeutral {
+  color: #111827;
+  background: linear-gradient(135deg, #f3f4f6, #e6eef8);
+}
+.positionBlue {
+  color: #fff;
+  background: linear-gradient(135deg, #3b82f6, #1e40af);
+}
+.positionOrange {
+  color: #fff;
+  background: linear-gradient(135deg, #fb923c, #f97316);
+}
+.positionGreen {
+  color: #fff;
+  background: linear-gradient(135deg, #34d399, #059669);
+}
+.positionRed {
+  color: #fff;
+  background: linear-gradient(135deg, #fca5a5, #ef4444);
+}
 
-  .goalIconWrap {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    margin: 0 6px;
+.team {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  min-width: 0;
+  width: 100%;
+}
+.teamInfo {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  justify-content: center;
+  gap: 8px;
+  flex: 1 1 auto;
+  width: 100%;
+}
+.teamName {
+  font-weight: 600;
+  color: #0f172a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.teamMeta {
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.goalIconWrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 6px;
+}
+.goalText {
+  font-weight: 700;
+  color: #0f172a;
+  font-size: 0.9rem;
+}
+.iconCircleWhite {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  border-radius: 50%;
+  border: 1px solid #cbd5e1;
+}
+.iconCircleRed {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #fecaca;
+  border-radius: 50%;
+  border: 1px solid #f87171;
+}
+.iconInner {
+  color: #111827;
+  font-size: 14px !important;
+}
+.points {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  align-self: start;
+}
+.pointsValue {
+  font-weight: 800;
+  color: #111827;
+  font-size: 1.05rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pointsBadge {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 1rem;
+  box-shadow: 0 6px 14px rgba(5, 150, 105, 0.18);
+}
+
+.pointsBadgeNeutral {
+  border: 2px solid #111827; /* black border */
+  background: transparent;
+  color: #111827;
+  box-shadow: none;
+}
+
+.pointsBadgeBlue {
+  background: linear-gradient(135deg, #3b82f6, #1e40af);
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(30, 64, 175, 0.18);
+}
+
+.pointsBadgeOrange {
+  background: linear-gradient(135deg, #fb923c, #f97316);
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(249, 115, 22, 0.18);
+}
+
+.pointsBadgeGreen {
+  background: linear-gradient(135deg, #34d399, #059669);
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(5, 150, 105, 0.18);
+}
+
+.pointsBadgeRed {
+  background: linear-gradient(135deg, #fca5a5, #ef4444);
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(239, 68, 68, 0.18);
+}
+.statNumber {
+  display: inline-block;
+  margin-left: 6px;
+}
+.statDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  vertical-align: middle;
+}
+.statWin {
+  color: #059669;
+}
+.statDraw {
+  color: #f59e0b;
+}
+.statLoss {
+  color: #ef4444;
+}
+.statDot.win {
+  width: 44px;
+  height: 44px;
+}
+.statDot.draw {
+  font-size: 1.05rem;
+}
+.statDot.loss {
+  background: #ef4444;
+}
+
+.statCircle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+.statCircle.win {
+  background: #059669;
+}
+.statCircle.draw {
+  background: #f59e0b;
+  color: #111827;
+}
+.statCircle.loss {
+  background: #ef4444;
+}
+.statsRow {
+  display: flex;
+  gap: 10px;
+  font-size: 0.85rem;
+  color: #374151;
+}
+.statItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  padding-top: 6px;
+  gap: 6px;
+}
+.statIcon {
+  font-size: 24px;
+  line-height: 1;
+}
+.statValue {
+  font-weight: 700;
+  line-height: 1;
+  font-size: 0.95rem;
+  color: #059669;
+}
+
+.statsAndLast5 {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-right: 0;
+  justify-content: space-between;
+  width: 100%;
+}
+.statsRowInline {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.last5RowInline {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.goalsRow {
+  display: flex;
+  gap: 10px;
+  font-size: 0.85rem;
+  color: #374151;
+}
+.last5Row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.last5Label {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+.last5 {
+  display: flex;
+  gap: 6px;
+}
+.pill {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+.win {
+  background: linear-gradient(135deg, #34d399, #059669);
+}
+.draw {
+  background: linear-gradient(135deg, #fde68a, #f59e0b);
+  color: #111827;
+}
+.loss {
+  background: linear-gradient(135deg, #fca5a5, #ef4444);
+}
+
+@media (max-width: 720px) {
+  .item {
+    grid-template-columns: 40px 1fr 80px;
+    padding: 10px;
+    gap: 8px;
+    min-height: 80px;
   }
-  .goalText {
-    font-weight: 700;
-    color: #0f172a;
+  .position {
+    width: 40px;
+    height: 40px;
     font-size: 0.9rem;
   }
-  .iconCircleWhite {
-    width: 18px;
-    height: 18px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: #ffffff;
-    border-radius: 50%;
-    border: 1px solid #cbd5e1;
-  }
-  .iconCircleRed {
-    width: 18px;
-    height: 18px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: #fecaca;
-    border-radius: 50%;
-    border: 1px solid #f87171;
-  }
-  .iconInner {
-    color: #111827;
-    font-size: 14px !important;
-  }
-  .points {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 6px;
-    align-self: start;
-  }
-  .pointsValue {
-    font-weight: 800;
-    color: #111827;
-    font-size: 1.05rem;
-  }
-  .statNumber {
-    display: inline-block;
-    margin-left: 6px;
-  }
-  .statDot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    display: inline-block;
-    vertical-align: middle;
-  }
-  .statWin {
-    color: #059669;
-  }
-  .statDraw {
-    color: #f59e0b;
-  }
-  .statLoss {
-    color: #ef4444;
-  }
-  .statDot.win {
-    width: 44px;
-    height: 44px;
-  }
-  .statDot.draw {
-    font-size: 1.05rem;
-  }
-  .statDot.loss {
-    background: #ef4444;
-  }
-
-  .statCircle {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-weight: 700;
-    font-size: 0.95rem;
-  }
-  .statCircle.win {
-    background: #059669;
-  }
-  .statCircle.draw {
-    background: #f59e0b;
-    color: #111827;
-  }
-  .statCircle.loss {
-    background: #ef4444;
-  }
-  .statsRow {
-    display: flex;
-    gap: 10px;
-    font-size: 0.85rem;
-    color: #374151;
-  }
-  .statItem {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-width: 34px;
-    padding-top: 6px;
-    gap: 6px;
-  }
-  .statIcon {
-    font-size: 24px;
-    line-height: 1;
-  }
-  .statValue {
-    font-weight: 700;
-    line-height: 1;
-    font-size: 0.95rem;
-    color: #059669;
-  }
-
-  .statsAndLast5 {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-    margin-right: 8px;
-  }
-  .statsRowInline {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-  }
-  .last5RowInline {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-  }
-  .goalsRow {
-    display: flex;
-    gap: 10px;
-    font-size: 0.85rem;
-    color: #374151;
-  }
-  .last5Row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .last5Label {
-    font-size: 0.8rem;
-    color: #6b7280;
-  }
-  .last5 {
-    display: flex;
-    gap: 6px;
-  }
-  .pill {
-    width: 20px;
-    height: 20px;
-    border-radius: 6px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 0.7rem;
-    font-weight: 700;
-  }
-  .win {
-    background: linear-gradient(135deg, #34d399, #059669);
-  }
-  .draw {
-    background: linear-gradient(135deg, #fde68a, #f59e0b);
-    color: #111827;
-  }
-  .loss {
-    background: linear-gradient(135deg, #fca5a5, #ef4444);
-  }
-
-  @media (max-width: 720px) {
-    .item {
-      grid-template-columns: 40px 1fr 80px;
-      padding: 10px;
-      gap: 8px;
-      min-height: 80px;
-    }
-    .position {
-      width: 40px;
-      height: 40px;
-      font-size: 0.9rem;
-    }
-  }
+}

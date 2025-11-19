@@ -103,6 +103,7 @@ export default function Classification() {
                 <ClassificationItem
                   key={team.teamId}
                   position={team.position}
+                  totalTeams={filtered.length}
                   teamName={team.teamName}
                   points={team.points}
                   played={team.played}
@@ -120,6 +121,7 @@ export default function Classification() {
                 />
               ))
             )}
+            <div className={styles.gridEndSpacer} aria-hidden />
           </div>
         </div>
       </div>

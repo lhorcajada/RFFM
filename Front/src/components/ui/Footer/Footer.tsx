@@ -1,4 +1,5 @@
 import React from "react";
+import { createPortal } from "react-dom";
 import { Link, useLocation } from "react-router-dom";
 import styles from "./Footer.module.css";
 import IconButton from "@mui/material/IconButton";
@@ -35,7 +36,7 @@ export default function Footer(): JSX.Element {
       window.removeEventListener("storage", handle);
     };
   }, []);
-  return (
+  const footer = (
     <div className={styles.root} role="contentinfo">
       <div className={styles.bar}>
         <IconButton
@@ -87,9 +88,30 @@ export default function Footer(): JSX.Element {
                 <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11zM7 11h5v5H7z" />
               </SvgIcon>
             </IconButton>
+            <IconButton
+              component={Link}
+              to="/classification"
+              className={
+                loc.pathname.startsWith("/classification")
+                  ? `${styles.iconBtn} ${styles.active}`
+                  : `${styles.iconBtn} ${styles.classificationBtn}`
+              }
+              aria-label="Clasificación"
+              size="large"
+            >
+              <SvgIcon>
+                <path d="M12 2L2 7v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7l-10-5zM7 18H5v-6h2v6zm6 0h-2v-8h2v8zm6 0h-2v-4h2v4z" />
+              </SvgIcon>
+            </IconButton>
           </>
         )}
       </div>
     </div>
   );
+
+  if (typeof document !== "undefined" && document.body) {
+    return createPortal(footer, document.body);
+  }
+
+  return footer;
 }

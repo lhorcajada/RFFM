@@ -17,6 +17,14 @@
   min-height: 0;
   width: 100%;
   padding: 12px 12px 0 12px !important;
+  padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+}
+
+/* Ensure extra bottom space on small screens so fixed footer doesn't overlap content */
+@media (max-width: 599px) {
+  .content {
+    padding-bottom: calc(110px + env(safe-area-inset-bottom, 0px));
+  }
 }
 .paper {
   width: 100%;

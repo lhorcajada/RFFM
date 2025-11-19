@@ -20,6 +20,7 @@ export interface ClassificationItemProps {
   goalsFor: number;
   goalsAgainst: number;
   last5: MatchResult[];
+  totalTeams?: number;
 }
 
 export default function ClassificationItem({
@@ -33,8 +34,24 @@ export default function ClassificationItem({
   goalsFor,
   goalsAgainst,
   last5,
+  totalTeams,
 }: ClassificationItemProps) {
   const goalAverage = goalsFor - goalsAgainst;
+  const pos = Number(position) || 0;
+  const total =
+    typeof totalTeams !== "undefined" ? Number(totalTeams) || 0 : undefined;
+  let badgeClass = styles.pointsBadgeNeutral;
+  if (pos >= 1 && pos <= 4) badgeClass = styles.pointsBadgeBlue;
+  else if (pos === 5) badgeClass = styles.pointsBadgeOrange;
+  else if (pos === 6) badgeClass = styles.pointsBadgeGreen;
+  else if (typeof total === "number" && total > 0 && pos > total - 3)
+    badgeClass = styles.pointsBadgeRed;
+  let posClass = styles.positionNeutral as string;
+  if (pos >= 1 && pos <= 4) posClass = styles.positionBlue as string;
+  else if (pos === 5) posClass = styles.positionOrange as string;
+  else if (pos === 6) posClass = styles.positionGreen as string;
+  else if (typeof total === "number" && total > 0 && pos > total - 3)
+    posClass = styles.positionRed as string;
   useEffect(() => {
     try {
       if (typeof window !== "undefined") {
@@ -55,7 +72,7 @@ export default function ClassificationItem({
   }, [teamName, won, drawn, lost, goalsFor, goalsAgainst, last5]);
   return (
     <div className={styles.item}>
-      <div className={styles.position}>{position}</div>
+      <div className={`${styles.position} ${posClass}`}>{position}</div>
       <div className={styles.team}>
         <div className={styles.teamInfo}>
           <div className={styles.teamName}>{teamName}</div>
@@ -157,7 +174,26 @@ export default function ClassificationItem({
         </div>
       </div>
       <div className={styles.points}>
-        <div className={styles.pointsValue}>{points}</div>
+        <div className={styles.pointsValue}>
+          {(() => {
+            const pos = Number(position) || 0;
+            const total =
+              typeof totalTeams !== "undefined"
+                ? Number(totalTeams) || 0
+                : undefined;
+            let badgeClass = styles.pointsBadgeNeutral;
+            if (pos >= 1 && pos <= 4) badgeClass = styles.pointsBadgeBlue;
+            else if (pos === 5) badgeClass = styles.pointsBadgeOrange;
+            else if (pos === 6) badgeClass = styles.pointsBadgeGreen;
+            else if (typeof total === "number" && total > 0 && pos > total - 3)
+              badgeClass = styles.pointsBadgeRed;
+            return (
+              <div className={`${styles.pointsBadge} ${badgeClass}`}>
+                {points}
+              </div>
+            );
+          })()}
+        </div>
       </div>
     </div>
   );
