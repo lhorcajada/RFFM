@@ -1,13 +1,12 @@
 .cards {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
-  flex-wrap: wrap;
   margin-top: 16px;
 }
 
 @media (max-width: 600px) {
   .cards {
-    display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
     margin-top: 8px;

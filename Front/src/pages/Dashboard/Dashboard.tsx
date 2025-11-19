@@ -2,6 +2,7 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import GroupIcon from "@mui/icons-material/Group";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import LeaderboardIcon from "@mui/icons-material/Leaderboard";
+import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
 import PageHeader from "../../components/ui/PageHeader/PageHeader";
 import BaseLayout from "../../components/ui/BaseLayout/BaseLayout";
 import DashboardCard from "../../components/ui/DashboardCard/DashboardCard";
@@ -34,6 +35,12 @@ export default function Dashboard(): JSX.Element {
           description="Ver la clasificación actual."
           icon={<LeaderboardIcon style={{ fontSize: 40, color: "#05313b" }} />}
           to="/classification"
+        />
+        <DashboardCard
+          title="Goleadores"
+          description="Listado de máximos goleadores."
+          icon={<EmojiEventsIcon style={{ fontSize: 40, color: "#05313b" }} />}
+          to="/goleadores"
         />
         <DashboardCard
           title="Configuración"
