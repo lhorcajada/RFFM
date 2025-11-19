@@ -31,7 +31,7 @@
   );
   border-radius: 10px;
   padding: 6px !important;
-  color: #fff !important;
+  /* keep default icon color (yellow) when not active */
 }
 
 .iconBtn.active {
