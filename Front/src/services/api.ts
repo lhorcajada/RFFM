@@ -1,4 +1,25 @@
 import axios from "axios";
+export interface Goleador {
+  playerId: string;
+  playerName: string;
+  teamId: string;
+  matchesPlayed: number;
+  scores: number;
+  penaltyScores: number;
+  averageScores: number;
+}
+
+export async function getGoleadores(
+  competitionId: string,
+  gropuId: string
+): Promise<Goleador[]> {
+  const res = await client.get(
+    `scores?competitionId=${encodeURIComponent(
+      competitionId
+    )}&gropuId=${encodeURIComponent(gropuId)}`
+  );
+  return res.data as Goleador[];
+}
 
 const BASE = (import.meta.env.VITE_API_BASE_URL || "")
   .toString()

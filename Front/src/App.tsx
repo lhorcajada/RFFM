@@ -9,6 +9,7 @@ import Dashboard from "./pages/Dashboard/Dashboard";
 import Settings from "./pages/Settings/Settings";
 import Classification from "./pages/Classification";
 import Footer from "./components/ui/Footer/Footer";
+import Goleadores from "./pages/Goleadores/Goleadores";
 
 export default function App(): JSX.Element {
   return (
@@ -20,6 +21,7 @@ export default function App(): JSX.Element {
           <Route path="/settings" element={<Settings />} />
           <Route path="/calendar" element={<GetCalendar />} />
           <Route path="/classification" element={<Classification />} />
+          <Route path="/goleadores" element={<Goleadores />} />
         </Routes>
       </main>
     </div>

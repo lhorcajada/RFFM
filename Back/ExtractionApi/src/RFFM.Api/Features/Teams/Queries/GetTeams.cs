@@ -242,7 +242,7 @@ namespace RFFM.Api.Features.Teams.Queries
             private async Task<int> CalculateActiveRound(int groupId, CancellationToken cancellationToken)
             {
                 var url =
-                    $"https://www.rffm.es/api/group-rounds?idGroup={groupId}&fetchBy=standings";
+                    $"https://www.rffm.es/api/GroupId-rounds?idGroup={groupId}&fetchBy=standings";
 
                 using var http = new HttpClient();
                 // add a simple User-Agent to avoid some servers rejecting the request

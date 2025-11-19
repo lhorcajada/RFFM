@@ -744,23 +744,20 @@ export default function GetPlayers(): JSX.Element {
                   secondary={
                     <div
                       style={{
-                        display: "flex",
-                        justifyContent: "space-between",
+                        display: "inline-flex",
                         alignItems: "center",
+                        gap: 8,
                       }}
                     >
-                      <div>
-                        {p.email || ""}
-                        {p.age ? ` — Edad: ${p.age}` : ""}
-                      </div>
                       <div
                         style={{
-                          display: "flex",
+                          display: "inline-flex",
                           alignItems: "center",
-                          gap: 8,
+                          gap: 6,
                         }}
                       >
-                        <SportsSoccerIcon fontSize="small" />
+                        {p.email || ""}
+                        {p.age ? ` — Edad: ${p.age}` : ""}
                         {(() => {
                           const goals =
                             (p as any).matches?.totalGoals ??
@@ -772,16 +769,25 @@ export default function GetPlayers(): JSX.Element {
                               style={{
                                 display: "inline-flex",
                                 alignItems: "center",
-                                justifyContent: "center",
-                                color: "#ffffff",
-                                fontWeight: 900,
-                                fontSize: 16,
-                                lineHeight: "1",
-                                padding: "0 6px",
-                                background: "transparent",
+                                gap: 6,
+                                marginLeft: 6,
                               }}
                             >
-                              {goals}
+                              <SportsSoccerIcon
+                                fontSize="small"
+                                style={{ color: "#ffffff" }}
+                              />
+                              <span
+                                style={{
+                                  color: "#ffffff",
+                                  fontWeight: 900,
+                                  fontSize: 16,
+                                  lineHeight: "1",
+                                  textShadow: "0 1px 2px rgba(0,0,0,0.6)",
+                                }}
+                              >
+                                {goals}
+                              </span>
                             </span>
                           );
                         })()}

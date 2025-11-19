@@ -103,6 +103,22 @@ export default function Footer(): JSX.Element {
                 <path d="M12 2L2 7v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7l-10-5zM7 18H5v-6h2v6zm6 0h-2v-8h2v8zm6 0h-2v-4h2v4z" />
               </SvgIcon>
             </IconButton>
+            <IconButton
+              component={Link}
+              to="/goleadores"
+              className={
+                loc.pathname.startsWith("/goleadores")
+                  ? `${styles.iconBtn} ${styles.active}`
+                  : styles.iconBtn
+              }
+              aria-label="Goleadores"
+              size="large"
+            >
+              <SvgIcon>
+                {/* Trophy icon */}
+                <path d="M17 4V2H7v2H2v2c0 3.53 2.61 6.43 6 6.92V17H8v2h8v-2h-1v-4.08c3.39-.49 6-3.39 6-6.92V4h-5zm-7 0h6v2H10V4zm9 2c0 2.97-2.16 5.43-5 5.92V6h5zm-7 5.92C6.16 11.43 4 8.97 4 6h5v5.92z" />
+              </SvgIcon>
+            </IconButton>
           </>
         )}
       </div>

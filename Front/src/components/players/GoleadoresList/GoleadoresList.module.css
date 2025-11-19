@@ -1,0 +1,247 @@
+.item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+  padding: 14px 20px 18px 66px;
+  width: 100%;
+  box-sizing: border-box;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfbff 100%);
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(22, 27, 40, 0.06);
+  transition: transform 120ms ease, box-shadow 120ms ease;
+  min-height: 74px;
+  position: relative;
+}
+
+.item:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(22, 27, 40, 0.12);
+}
+
+.item {
+  margin: 6px 0;
+}
+
+.position {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: #111827;
+  background: linear-gradient(135deg, #f3f4f6, #e6eef8);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  position: absolute;
+  top: -12px;
+  left: -12px;
+  z-index: 4;
+  box-shadow: 0 6px 14px rgba(16, 24, 40, 0.08);
+}
+
+.positionNeutral {
+  color: #111827;
+  background: linear-gradient(135deg, #f3f4f6, #e6eef8);
+}
+
+.positionGold {
+  color: #fff;
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+}
+
+.positionSilver {
+  color: #111827;
+  background: linear-gradient(135deg, #e5e7eb, #9ca3af);
+}
+
+.positionBronze {
+  color: #fff;
+  background: linear-gradient(135deg, #d97706, #92400e);
+}
+
+.positionBlue {
+  color: #fff;
+  background: linear-gradient(135deg, #3b82f6, #1e40af);
+}
+
+.player {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  min-width: 0;
+  width: 100%;
+}
+
+.playerInfo {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  justify-content: center;
+  gap: 8px;
+  flex: 1 1 auto;
+  width: 100%;
+}
+
+.playerName {
+  font-weight: 600;
+  color: #0f172a;
+  overflow: visible;
+  text-overflow: initial;
+  white-space: normal;
+  word-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
+}
+
+.playerMeta {
+  font-size: 0.85rem;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.iconWrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 6px;
+}
+
+.metaText {
+  font-weight: 700;
+  color: #0f172a;
+  font-size: 0.9rem;
+}
+
+.iconCircle {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  border-radius: 50%;
+  border: 1px solid #cbd5e1;
+}
+
+.iconCirclePenalty {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #fef3c7;
+  border-radius: 50%;
+  border: 1px solid #fbbf24;
+}
+
+.iconInner {
+  color: #111827;
+  font-size: 14px !important;
+}
+
+.goals {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  align-self: start;
+}
+
+.goalsValue {
+  font-weight: 800;
+  color: #111827;
+  font-size: 1.05rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.goalsBadge {
+  min-width: 56px;
+  height: 40px;
+  padding: 0 10px;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: transparent;
+  color: #111827;
+  font-weight: 700;
+  font-size: 0.95rem;
+  box-shadow: none;
+  border: 2px solid rgba(17, 24, 39, 0.08);
+}
+
+.trophyIcon {
+  font-size: 18px !important;
+}
+
+.pointsBadgeNeutral {
+  border: 2px solid #111827;
+  background: transparent;
+  color: #111827;
+  box-shadow: none;
+}
+
+.pointsBadgeGold {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  color: #fff;
+  border: none;
+  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4);
+}
+
+.pointsBadgeSilver {
+  background: linear-gradient(135deg, #e5e7eb, #9ca3af);
+  color: #111827;
+  border: none;
+  box-shadow: 0 4px 12px rgba(156, 163, 175, 0.3);
+}
+
+.pointsBadgeBronze {
+  background: linear-gradient(135deg, #d97706, #92400e);
+  color: #fff;
+  border: none;
+  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.4);
+}
+
+.pointsBadgeBlue {
+  background: transparent;
+  color: #1e40af;
+  border-color: #1e40af;
+  box-shadow: none;
+}
+
+.goalsLabel {
+  font-size: 0.65rem;
+  color: #6b7280;
+  margin-top: 6px;
+  font-weight: 700;
+}
+
+@media (max-width: 720px) {
+  .item {
+    grid-template-columns: 1fr 90px;
+    padding: 10px 10px 10px 50px;
+    gap: 8px;
+    min-height: 80px;
+  }
+  .position {
+    width: 40px;
+    height: 40px;
+    font-size: 0.9rem;
+    top: -10px;
+    left: -10px;
+  }
+}
+
+@media (max-width: 599px) {
+  .playerMeta {
+    flex-wrap: wrap;
+  }
+}
