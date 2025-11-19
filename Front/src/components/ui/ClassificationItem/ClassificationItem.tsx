@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import styles from "./ClassificationItem.module.css";
 import SportsSoccerIcon from "@mui/icons-material/SportsSoccer";
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
 import HandshakeOutlinedIcon from "@mui/icons-material/HandshakeOutlined";
 import ThumbDownOffAltIcon from "@mui/icons-material/ThumbDownOffAlt";
@@ -77,7 +78,18 @@ export default function ClassificationItem({
         <div className={styles.teamInfo}>
           <div className={styles.teamName}>{teamName}</div>
           <div className={styles.teamMeta}>
-            Jugados {played} ·
+            <span className={styles.goalIconWrap} title="Partidos jugados">
+              <span className={styles.iconCircleWhite} aria-hidden>
+                <CalendarTodayIcon
+                  className={styles.iconInner}
+                  fontSize="small"
+                />
+              </span>
+              <span className={styles.goalText}>
+                <strong>{played}</strong>
+              </span>
+            </span>
+            ·
             <span className={styles.goalIconWrap} title="Goles a favor">
               <span className={styles.iconCircleWhite} aria-hidden>
                 <SportsSoccerIcon
@@ -188,8 +200,17 @@ export default function ClassificationItem({
             else if (typeof total === "number" && total > 0 && pos > total - 3)
               badgeClass = styles.pointsBadgeRed;
             return (
-              <div className={`${styles.pointsBadge} ${badgeClass}`}>
-                {points}
+              <div style={{ textAlign: "center" }}>
+                <div
+                  className={`${styles.pointsBadge} ${badgeClass}`}
+                  title={`Puntos: ${points}`}
+                  aria-label={`Puntos: ${points}`}
+                >
+                  {points}
+                </div>
+                <div className={styles.pointsLabel} aria-hidden>
+                  PTS
+                </div>
               </div>
             );
           })()}

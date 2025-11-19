@@ -1,9 +1,9 @@
 .item {
   display: grid;
-  grid-template-columns: 48px minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 12px;
   align-items: start;
-  padding: 14px 20px 18px 18px;
+  padding: 14px 20px 18px 66px; /* reserve space for the absolute position badge */
   width: 100%;
   box-sizing: border-box;
   background: linear-gradient(180deg, #ffffff 0%, #fbfbff 100%);
@@ -11,6 +11,7 @@
   box-shadow: 0 6px 18px rgba(22, 27, 40, 0.06);
   transition: transform 120ms ease, box-shadow 120ms ease;
   min-height: 74px;
+  position: relative; /* allow absolute children to overlap outside */
 }
 
 .item:hover {
@@ -22,17 +23,21 @@
 }
 
 .position {
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  align-self: center;
   font-weight: 700;
   color: #111827;
   background: linear-gradient(135deg, #f3f4f6, #e6eef8);
-  border-radius: 10px;
+  border-radius: 8px;
   font-size: 0.95rem;
+  position: absolute;
+  top: -12px;
+  left: -12px;
+  z-index: 4;
+  box-shadow: 0 6px 14px rgba(16, 24, 40, 0.08);
 }
 
 .positionNeutral {
@@ -75,9 +80,12 @@
 .teamName {
   font-weight: 600;
   color: #0f172a;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow: visible;
+  text-overflow: initial;
+  white-space: normal;
+  word-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
 }
 .teamMeta {
   font-size: 0.85rem;
@@ -136,48 +144,73 @@
 }
 
 .pointsBadge {
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   background: transparent;
-  color: #ffffff;
-  font-weight: 800;
-  font-size: 1rem;
-  box-shadow: 0 6px 14px rgba(5, 150, 105, 0.18);
+  color: #111827;
+  font-weight: 700;
+  font-size: 0.95rem;
+  box-shadow: none;
+  border: 2px solid rgba(17, 24, 39, 0.08);
 }
 
 .pointsBadgeNeutral {
-  border: 2px solid #111827; /* black border */
+  border: 2px solid #111827;
   background: transparent;
   color: #111827;
   box-shadow: none;
 }
 
 .pointsBadgeBlue {
-  background: linear-gradient(135deg, #3b82f6, #1e40af);
-  color: #fff;
-  box-shadow: 0 6px 18px rgba(30, 64, 175, 0.18);
+  background: transparent;
+  color: #1e40af;
+  border-color: #1e40af;
+  box-shadow: none;
 }
 
 .pointsBadgeOrange {
-  background: linear-gradient(135deg, #fb923c, #f97316);
-  color: #fff;
-  box-shadow: 0 6px 18px rgba(249, 115, 22, 0.18);
+  background: transparent;
+  color: #f97316;
+  border-color: #f97316;
+  box-shadow: none;
 }
 
 .pointsBadgeGreen {
-  background: linear-gradient(135deg, #34d399, #059669);
-  color: #fff;
-  box-shadow: 0 6px 18px rgba(5, 150, 105, 0.18);
+  background: transparent;
+  color: #059669;
+  border-color: #059669;
+  box-shadow: none;
 }
 
 .pointsBadgeRed {
-  background: linear-gradient(135deg, #fca5a5, #ef4444);
-  color: #fff;
-  box-shadow: 0 6px 18px rgba(239, 68, 68, 0.18);
+  background: transparent;
+  color: #ef4444;
+  border-color: #ef4444;
+  box-shadow: none;
+}
+
+.pointsLabel {
+  font-size: 0.65rem;
+  color: #6b7280;
+  margin-top: 6px;
+  font-weight: 700;
+}
+
+/* Accessible helper if needed elsewhere */
+.srOnly {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
 }
 .statNumber {
   display: inline-block;
@@ -290,6 +323,11 @@
   font-size: 0.8rem;
   color: #6b7280;
 }
+
+/* Make the "Racha" label bold */
+.last5Label {
+  font-weight: 700;
+}
 .last5 {
   display: flex;
   gap: 6px;
@@ -318,8 +356,8 @@
 
 @media (max-width: 720px) {
   .item {
-    grid-template-columns: 40px 1fr 80px;
-    padding: 10px;
+    grid-template-columns: 1fr 80px;
+    padding: 10px 10px 10px 50px; /* reserve mobile badge space */
     gap: 8px;
     min-height: 80px;
   }
@@ -327,5 +365,43 @@
     width: 40px;
     height: 40px;
     font-size: 0.9rem;
+    top: -10px;
+    left: -10px;
+  }
+}
+
+/* Narrow mobile: stack stats + racha to avoid horizontal overflow */
+@media (max-width: 599px) {
+  .statsAndLast5 {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    width: 100%;
+  }
+
+  .statsRowInline {
+    width: 100%;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .last5RowInline {
+    width: 100%;
+    display: block;
+    margin: 0;
+  }
+
+  .last5 {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .pill {
+    width: 18px;
+    height: 18px;
+    border-radius: 6px;
+    font-size: 0.65rem;
   }
 }
