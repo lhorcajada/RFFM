@@ -14,9 +14,11 @@ import {
   Typography,
   Tooltip,
   Button,
+  IconButton,
   Modal,
   Box,
 } from "@mui/material";
+// Using inline SVG for jersey icon (shows a small shirt) instead of Checkroom hanger icon
 
 import {
   getPlayersByTeam,
@@ -27,6 +29,13 @@ import {
 } from "../../services/api";
 import AgeSummaryBox from "../../components/players/AgeSummaryBox/AgeSummaryBox";
 import PlayerStatsCard from "../../components/players/PlayerStatsCard/PlayerStatsCard";
+import StaffCard from "../../components/teams/StaffCard/StaffCard";
+import Address from "../../components/teams/Address/Address";
+import PlayersContainer from "../../components/players/PlayersContainer/PlayersContainer";
+import playersStyles from "../../components/players/PlayersContainer/PlayersContainer.module.css";
+import Jersey from "../../components/players/Jersey/Jersey";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 
 function extractPlayerIdFromUrl(u?: string): string | null {
   if (!u) return null;
@@ -49,6 +58,7 @@ type Player = {
   url?: string;
   email?: string;
   playerId?: string | number;
+  jerseyNumber?: string | number | null;
   age?: number | null;
   teamParticipations?: Array<{
     competitionName: string;
@@ -154,9 +164,12 @@ export default function GetPlayers(): JSX.Element {
         const payload = await getPlayersByTeam(teamId);
         console.log("raw payload:", payload);
         let list: any[] = [];
+        // Support different API shapes: array, { players: [...] }, or { jugadores_equipo: [...] }
         if (Array.isArray(payload)) list = payload as any[];
         else if (payload && Array.isArray((payload as any).players))
           list = (payload as any).players;
+        else if (payload && Array.isArray((payload as any).jugadores_equipo))
+          list = (payload as any).jugadores_equipo;
 
         if (payload && (payload as any).team) {
           const baseTeam = (payload as any).team;
@@ -165,7 +178,6 @@ export default function GetPlayers(): JSX.Element {
           }
           setTeamDetails(baseTeam);
         } else {
-          // If API didn't return team details, at least use classification info from selector
           setTeamDetails((selectedTeam as any)?.raw ?? null);
         }
 
@@ -180,14 +192,21 @@ export default function GetPlayers(): JSX.Element {
               if (m && m[1]) age = Number(m[1]);
             }
           }
+          // Map common and Spanish API fields into our Player shape
+          const name = p.name ?? p.nombre ?? "";
+          const playerId = p.playerId ?? p.id ?? p.cod_jugador ?? null;
+          const jersey =
+            p.jerseyNumber ?? p.dorsalNumber ?? p.dorsal ?? p.number ?? null;
           return {
             id: idx + 1,
-            name: p.name,
+            name,
             url: p.url || p.link || "",
             email: p.url || "",
-            playerId: p.playerId ?? p.id ?? null,
+            playerId,
+            jersey,
+            jerseyNumber: jersey,
             age,
-            teamParticipations: p.teamParticipations || [],
+            teamParticipations: p.teamParticipations || p.participaciones || [],
           };
         });
 
@@ -266,24 +285,14 @@ export default function GetPlayers(): JSX.Element {
         <Paper className={teamStyles.root}>
           <div className={teamStyles.header}>
             <div className={teamStyles.titleWrap}>
-              {/* clubName title removed to avoid repetition */}
-              <Typography variant="subtitle2">Dirección del campo</Typography>
-              <Typography className={teamStyles.muted}>
-                {teamDetails.field ? (
-                  <span className={teamStyles.fieldLine}>
-                    {teamDetails.field}
-                  </span>
-                ) : null}
-                {teamDetails.field && teamDetails.locality ? (
-                  <span className={teamStyles.sep} aria-hidden="true">
-                    &nbsp;
-                  </span>
-                ) : null}
-                <span className={teamStyles.city}>
-                  {teamDetails.locality}
-                  {teamDetails.postalCode ? ` · ${teamDetails.postalCode}` : ""}
-                </span>
+              <Typography className={teamStyles.subtitle}>
+                Dirección del campo
               </Typography>
+              <Address
+                street={teamDetails.field}
+                city={teamDetails.locality}
+                postalCode={teamDetails.postalCode}
+              />
             </div>
             {/* classification header removed to avoid duplication with summary */}
           </div>
@@ -363,47 +372,6 @@ export default function GetPlayers(): JSX.Element {
               </div>
             </div>
           )}
-
-          <div className={teamStyles.chips}>
-            <div className={teamStyles.section}>
-              <Typography variant="subtitle2">Delegados</Typography>
-              {teamDetails.delegates && teamDetails.delegates.length > 0 ? (
-                teamDetails.delegates.map((d: any) => (
-                  <Typography key={d.id} className={teamStyles.muted}>
-                    {d.name}
-                  </Typography>
-                ))
-              ) : (
-                <Typography className={teamStyles.muted}>-</Typography>
-              )}
-            </div>
-
-            <div className={teamStyles.section}>
-              <Typography variant="subtitle2">Técnicos</Typography>
-              {teamDetails.technicians && teamDetails.technicians.length > 0 ? (
-                teamDetails.technicians.map((t: any) => (
-                  <Typography key={t.id} className={teamStyles.muted}>
-                    {t.name}
-                  </Typography>
-                ))
-              ) : (
-                <Typography className={teamStyles.muted}>-</Typography>
-              )}
-            </div>
-
-            <div className={teamStyles.section}>
-              <Typography variant="subtitle2">Auxiliares</Typography>
-              {teamDetails.assistants && teamDetails.assistants.length > 0 ? (
-                teamDetails.assistants.map((a: any) => (
-                  <Typography key={a.id} className={teamStyles.muted}>
-                    {a.name}
-                  </Typography>
-                ))
-              ) : (
-                <Typography className={teamStyles.muted}>-</Typography>
-              )}
-            </div>
-          </div>
         </Paper>
       )}
 
@@ -620,14 +588,7 @@ export default function GetPlayers(): JSX.Element {
               </Modal>
             </div>
           </div>
-          <div className={styles.playersTitle}>
-            <h2>
-              Plantilla&nbsp;
-              <span className={styles.playersCountChip}>
-                ({selectedTeam ? `${players.length}` : "0"})
-              </span>
-            </h2>
-          </div>
+          {/* Title moved to PlayersContainer component */}
         </>
       )}
 
@@ -640,13 +601,16 @@ export default function GetPlayers(): JSX.Element {
           <Typography color="error">Error: {error}</Typography>
         </Paper>
       ) : (
-        <List className={styles.playersBox}>
+        <PlayersContainer
+          title="Plantilla"
+          count={selectedTeam ? players.length : 0}
+        >
           {players.map((p) => (
             <div key={p.id}>
               <ListItem
                 divider
                 secondaryAction={
-                  <Button
+                  <IconButton
                     size="small"
                     disabled={loadingDetail !== null}
                     onClick={async () => {
@@ -682,10 +646,10 @@ export default function GetPlayers(): JSX.Element {
                                     teamPoints: d.teamPoints ?? 0,
                                   },
                                 ]
-                          ).map((c) => ({
+                          ).map((c: any) => ({
                             seasonId: d.seasonId ? Number(d.seasonId) : 0,
                             seasonName: d.seasonId ? String(d.seasonId) : "",
-                            dorsalNumber: d.jerseyNumber ?? "",
+                            dorsalNumber: d.jerseyNumber ?? d.jersey ?? "",
                             position: d.position ?? "",
                             categoryName: d.teamCategory ?? "",
                             competitionName: c.competitionName ?? "",
@@ -728,15 +692,31 @@ export default function GetPlayers(): JSX.Element {
                     {loadingDetail === p.id ? (
                       <CircularProgress size={16} />
                     ) : expandedPlayerId === p.id ? (
-                      "Ocultar"
+                      <VisibilityOffIcon fontSize="small" />
                     ) : (
-                      "Ver"
+                      <VisibilityIcon fontSize="small" />
                     )}
-                  </Button>
+                  </IconButton>
                 }
               >
+                <div
+                  className={playersStyles.jerseyBadge}
+                  style={{ marginRight: 12 }}
+                >
+                  <Jersey
+                    number={p.jerseyNumber}
+                    primary="#0b63d6"
+                    tertiary="rgba(4,48,112,0.18)"
+                    size={44}
+                  />
+                  {p.age != null ? (
+                    <div className={playersStyles.ageChip}>{p.age}</div>
+                  ) : null}
+                </div>
                 <ListItemText
-                  primary={p.name}
+                  primary={
+                    <span className={playersStyles.playerName}>{p.name}</span>
+                  }
                   secondary={`${p.email || ""}${
                     p.age ? ` — Edad: ${p.age}` : ""
                   }`}
@@ -752,7 +732,50 @@ export default function GetPlayers(): JSX.Element {
               )}
             </div>
           ))}
-        </List>
+        </PlayersContainer>
+      )}
+      {teamDetails && (
+        <Paper className={`${teamStyles.root} ${styles.staffPaper}`}>
+          <div className={`${teamStyles.header} ${styles.staffHeader}`}>
+            <div>
+              <Typography className={teamStyles.subtitle}>
+                Staff técnico
+              </Typography>
+            </div>
+          </div>
+          <div className={teamStyles.chips}>
+            <div className={`${teamStyles.section} ${styles.equalSection}`}>
+              <StaffCard
+                title="Delegados"
+                titleClassName={styles.staffTitle}
+                staff={(teamDetails.delegates || []).map((d: any) => ({
+                  name: d.name,
+                  role: d.role,
+                }))}
+              />
+            </div>
+            <div className={`${teamStyles.section} ${styles.equalSection}`}>
+              <StaffCard
+                title="Técnicos"
+                titleClassName={styles.staffTitle}
+                staff={(teamDetails.technicians || []).map((t: any) => ({
+                  name: t.name,
+                  role: t.role,
+                }))}
+              />
+            </div>
+            <div className={`${teamStyles.section} ${styles.equalSection}`}>
+              <StaffCard
+                title="Auxiliares"
+                titleClassName={styles.staffTitle}
+                staff={(teamDetails.assistants || []).map((a: any) => ({
+                  name: a.name,
+                  role: a.role,
+                }))}
+              />
+            </div>
+          </div>
+        </Paper>
       )}
     </BaseLayout>
   );

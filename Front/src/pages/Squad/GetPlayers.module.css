@@ -20,31 +20,19 @@
   margin: 4px 0 8px 0;
 }
 
-@media (min-width: 800px) {
-  .paper {
-    margin: 8px auto; /* small vertical gutter on large screens */
-    max-width: 1100px;
-    padding: 16px;
-  }
+/* Make each staff section share equal width and be responsive */
+.equalSection {
+  flex: 1 1 0;
+  min-width: 160px;
+  box-sizing: border-box;
 }
 
-/* For very large screens use full available width */
-@media (min-width: 1200px) {
-  .paper {
-    margin: 8px 12px;
-    max-width: 100%;
-    width: auto;
-    padding: 20px 28px;
+/* Stack staff sections vertically on small screens (mobile) */
+@media (max-width: 599px) {
+  .equalSection {
+    flex-basis: 100%;
+    min-width: 100%;
   }
-}
-
-.playersBox {
-  margin-top: 12px;
-  padding: 12px;
-  background: linear-gradient(180deg, #08323a 0%, #06282f 100%);
-  border: 1px solid rgba(0, 200, 255, 0.08);
-  border-radius: 10px;
-  box-shadow: 0 10px 30px rgba(3, 10, 15, 0.7);
 }
 
 /* Filters container: don't stretch full width on large screens */
@@ -100,13 +88,7 @@
   }
 }
 
-/* Title chip styles (top-level) */
-.playersTitle {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 12px 0; /* vertical space above and below the title */
-}
+/* Title chip styles (top-level) - moved to PlayersContainer.module.css */
 
 .actionBar {
   display: flex;
@@ -175,33 +157,9 @@
   }
 }
 
-.playersTitle h2 {
-  margin: 0;
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--text-color, #fff);
-  letter-spacing: 0.2px;
-}
+/* playersTitle h2 moved to PlayersContainer.module.css */
 
-.playersCountChip {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 44px;
-  height: 28px;
-  padding: 0 10px;
-  border-radius: 999px;
-  background: linear-gradient(
-    90deg,
-    rgba(255, 209, 102, 0.12),
-    rgba(255, 209, 102, 0.08)
-  );
-  color: #ffd166;
-  font-weight: 700;
-  box-shadow: 0 1px 4px rgba(16, 24, 40, 0.06);
-  border: 1px solid rgba(255, 209, 102, 0.18);
-  font-size: 0.95rem;
-}
+/* playersCountChip moved to PlayersContainer.module.css */
 
 /* Mobile: stack filters and increase touch targets */
 @media (max-width: 599px) {
@@ -225,52 +183,7 @@
   }
 }
 
-/* Ensure list items have space for the secondary action button */
-.playersBox .MuiListItem-root {
-  padding-right: 120px !important; /* room for the action button */
-  position: relative;
-  display: flex !important;
-  align-items: center !important;
-}
-
-/* Ensure the secondary action sits above content and is positioned correctly */
-.playersBox .MuiListItemSecondaryAction-root,
-.playersBox .MuiListItem-secondaryAction {
-  right: 8px !important;
-  top: 50% !important;
-  transform: translateY(-50%) !important;
-  z-index: 30 !important;
-}
-
-/* Make the ListItemText flex so truncation works reliably */
-.playersBox .MuiListItemText-root {
-  flex: 1 1 auto !important;
-  min-width: 0 !important; /* allows flex children to shrink */
-}
-
-/* Truncate player name so it doesn't wrap under the button */
-.playersBox .MuiListItemText-root .MuiTypography-root,
-.playersBox .MuiListItemText-root .MuiTypography-body2,
-.playersBox .MuiListItemText-root .MuiTypography-subtitle2 {
-  white-space: nowrap !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  display: block !important;
-  max-width: calc(100% - 160px) !important;
-}
-
-/* Style the small action button so it contrasts against the dark background */
-.playersBox .MuiButton-root,
-.playersBox .MuiButton-contained,
-.playersBox .MuiButton-containedSizeSmall {
-  background: linear-gradient(180deg, #00cfe6, #00a3d1) !important;
-  color: #021923 !important;
-  border-radius: 8px !important;
-  padding: 6px 10px !important;
-  min-width: 64px !important;
-  box-shadow: 0 4px 12px rgba(0, 160, 200, 0.25) !important;
-  z-index: 40 !important;
-}
+/* playersBox styles moved to PlayersContainer.module.css */
 
 /* Aggressive overrides to ensure white visuals for select borders and icons */
 .filters
@@ -311,23 +224,7 @@
   color: #ffffff !important;
 }
 
-@media (max-width: 480px) {
-  .playersBox .MuiListItem-root {
-    padding-right: 88px;
-  }
-  .playersBox .MuiButton-root {
-    padding: 5px 6px !important;
-    min-width: 48px !important;
-    font-size: 0.75rem !important;
-  }
-}
-
-/* Ensure enough room for the action button on larger screens */
-@media (min-width: 800px) {
-  .playersBox .MuiListItem-root {
-    padding-right: 160px !important;
-  }
-}
+/* Responsive playersBox rules moved to PlayersContainer.module.css */
 
 /* Age summary overlay */
 .ageOverlay {

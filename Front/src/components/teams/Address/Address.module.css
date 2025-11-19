@@ -1,0 +1,19 @@
+.address {
+  font-style: normal;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 6px 0;
+}
+.street {
+  font-weight: 600;
+  color: inherit;
+}
+.meta {
+  font-size: 0.88rem;
+  color: rgba(255, 255, 255, 0.75);
+}
+.city {
+  margin-right: 8px;
+}
+.postal {
+  color: rgba(255, 255, 255, 0.65);
+}

@@ -2,7 +2,7 @@
 
 namespace RFFM.Api.Features.Teams.Models
 {
-    public class Team
+    public class TeamRffm
     {
         [JsonPropertyName("estado")] public string Status { get; set; } = string.Empty;
 
@@ -64,43 +64,45 @@ namespace RFFM.Api.Features.Teams.Models
 
         [JsonPropertyName("fax")] public string Fax { get; set; } = string.Empty;
 
-        [JsonPropertyName("delegados_equipo")] public List<TeamDelegate> Delegates { get; set; } = new();
+        [JsonPropertyName("delegados_equipo")] public List<TeamDelegateRffm> Delegates { get; set; } = new();
 
         [JsonPropertyName("auxiliares_equipo")]
-        public List<TeamAssistant> Assistants { get; set; } = new();
+        public List<TeamAssistantRffm> Assistants { get; set; } = new();
 
-        [JsonPropertyName("tecnicos_equipo")] public List<TeamCoach> Coaches { get; set; } = new();
+        [JsonPropertyName("tecnicos_equipo")] public List<TeamCoachRffm> Coaches { get; set; } = new();
 
-        [JsonPropertyName("jugadores_equipo")] public List<TeamPlayer> Players { get; set; } = new();
+        [JsonPropertyName("jugadores_equipo")] public List<TeamPlayerRffm> Players { get; set; } = new();
 
     }
 
-    public class TeamDelegate
+    public class TeamDelegateRffm
     {
         [JsonPropertyName("cod_delegado")] public string DelegateCode { get; set; } = string.Empty;
 
         [JsonPropertyName("nombre")] public string Name { get; set; } = string.Empty;
     }
 
-    public class TeamAssistant
+    public class TeamAssistantRffm
     {
         [JsonPropertyName("cod_auxiliar")] public string AssistantCode { get; set; } = string.Empty;
 
         [JsonPropertyName("nombre")] public string Name { get; set; } = string.Empty;
     }
 
-    public class TeamCoach
+    public class TeamCoachRffm
     {
         [JsonPropertyName("cod_tecnico")] public string CoachCode { get; set; } = string.Empty;
 
         [JsonPropertyName("nombre")] public string Name { get; set; } = string.Empty;
     }
 
-    public class TeamPlayer
+    public class TeamPlayerRffm
     {
         [JsonPropertyName("cod_jugador")] public string PlayerCode { get; set; } = string.Empty;
 
         [JsonPropertyName("nombre")] public string Name { get; set; } = string.Empty;
+        
+        public string JerseyNumber { get; set; } = string.Empty;
 
     }
 }

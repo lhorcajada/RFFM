@@ -4,7 +4,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using RFFM.Api.FeatureModules;
+using RFFM.Api.Features.Players.Models;
 using RFFM.Api.Features.Teams.Models;
+using RFFM.Api.Features.Teams.Queries.Responses;
 using RFFM.Api.Features.Teams.Services;
 
 namespace RFFM.Api.Features.Teams.Queries
@@ -24,7 +26,7 @@ namespace RFFM.Api.Features.Teams.Queries
                     })
                 .WithName(nameof(GetTeam))
                 .WithTags(TeamsConstants.TeamsFeature)
-                .Produces<Team>()
+                .Produces<TeamRffm>()
                 .Produces<ProblemDetails>(StatusCodes.Status400BadRequest)
                 .Produces(StatusCodes.Status404NotFound);
         }
@@ -45,7 +47,74 @@ namespace RFFM.Api.Features.Teams.Queries
 
             public async ValueTask<Team> Handle(Query request, CancellationToken cancellationToken)
             {
-                return await _teamService.GetTeamDetailsAsync(request.TeamId.ToString(), cancellationToken);
+                var team = await _teamService.GetTeamDetailsAsync(request.TeamId.ToString(), cancellationToken);
+                var statistics = await _teamService.GetStaticsTeamPlayers(new GetAgeSummary.AgesQuery(request.TeamId, 21), cancellationToken);
+                var playerDetails = statistics.resolved.Select(x => x.playerDetails);
+                return new Team
+                {
+                    TeamCode = team.TeamCode,
+                    TeamName = team.TeamName,
+                    Assistants = team.Assistants.Select(a => new TeamAssistant
+                    {
+                        AssistantCode = a.AssistantCode,
+                        Name = a.Name
+                    }).ToList(),
+                    Coaches = team.Coaches.Select(c => new TeamCoach
+                    {
+                        CoachCode = c.CoachCode,
+                        Name = c.Name
+                    }).ToList(),
+                    Players = playerDetails.Select(p=> new Player
+                    {
+                        Team = team.TeamName,
+                        TeamCode = team.TeamCode,
+                        Name = p.Name,
+                        Position = p.Position,
+                        Age = p.Age,
+                        JerseyNumber = p.JerseyNumber,
+                        SeasonId = p.SeasonId,
+                        PlayerId = p.PlayerId,
+                        PhotoUrl = p.PhotoUrl,
+                        BirthYear = p.BirthYear,
+                        Cards = p.Cards,
+                        Matches = p.Matches,
+                        IsGoalkeeper = p.IsGoalkeeper,
+                        TeamShieldUrl = p.TeamShieldUrl,
+                        Competitions = p.Competitions,
+                        TeamCategory = team.Category
+
+                    }).ToList(),
+
+                    Category = team.Category,
+                    ClubCode = team.ClubCode,
+                    ClubName = team.ClubName,
+                    Delegates = team.Delegates.Select(d => new TeamDelegate
+                    {
+                        DelegateCode = d.DelegateCode,
+                        Name = d.Name
+                    }).ToList(),
+                    AccessKey = team.AccessKey,
+                    CategoryCode = team.CategoryCode,
+                    ClubShield = team.ClubShield,
+                    CorrespondenceAddress = team.CorrespondenceAddress,
+                    CorrespondenceCity = team.CorrespondenceCity,
+                    CorrespondenceEmail = team.CorrespondenceEmail,
+                    CorrespondenceHolder = team.CorrespondenceHolder,
+                    CorrespondencePostalCode = team.CorrespondencePostalCode,
+                    CorrespondenceProvince = team.CorrespondenceProvince,
+                    CorrespondenceTitle = team.CorrespondenceTitle,
+                    Fax = team.Fax,
+                    Field = team.Field,
+                    FieldCode = team.FieldCode,
+                    FieldPhoto = team.FieldPhoto,
+                    Phones = team.Phones,
+                    PlayDay = team.PlayDay,
+                    PlaySchedule = team.PlaySchedule,
+                    SessionOk = team.SessionOk,
+                    Status = team.Status,
+                    TrainingField = team.TrainingField,
+                    Website = team.Website
+                };
             }
         }
     }

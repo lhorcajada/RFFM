@@ -9,9 +9,9 @@ namespace RFFM.Api.Features.Teams.Services
 {
     public interface ITeamService
     {
-        Task<Team> GetTeamDetailsAsync(string teamCode, CancellationToken cancellationToken = default);
+        Task<TeamRffm> GetTeamDetailsAsync(string teamCode, CancellationToken cancellationToken = default);
 
-        Task<((TeamPlayer teamPlayer, Player? playerDetails)[] resolved, AgeCount[] handle)> GetStaticsTeamPlayers(
+        Task<((TeamPlayerRffm teamPlayer, Player? playerDetails)[] resolved, AgeCount[] handle)> GetStaticsTeamPlayers(
             AgesQuery request, CancellationToken cancellationToken);
     }
 
@@ -24,7 +24,7 @@ namespace RFFM.Api.Features.Teams.Services
             _playerService = playerService;
         }
 
-        public async Task<Team> GetTeamDetailsAsync(string teamCode, CancellationToken cancellationToken)
+        public async Task<TeamRffm> GetTeamDetailsAsync(string teamCode, CancellationToken cancellationToken)
         {
             var url = $"https://www.rffm.es/fichaequipo/{teamCode}";
 
@@ -36,7 +36,7 @@ namespace RFFM.Api.Features.Teams.Services
             var content = await htmlFetcher.FetchAsync(url, cancellationToken);
 
             if (string.IsNullOrWhiteSpace(content))
-                return new Team();
+                return new TeamRffm();
 
             try
             {
@@ -46,38 +46,38 @@ namespace RFFM.Api.Features.Teams.Services
                     System.Text.RegularExpressions.RegexOptions.Singleline |
                     System.Text.RegularExpressions.RegexOptions.IgnoreCase);
                 if (!match.Success)
-                    return new Team();
+                    return new TeamRffm();
 
                 var json = match.Groups[1].Value.Trim();
                 if (string.IsNullOrEmpty(json))
-                    return new Team();
+                    return new TeamRffm();
 
                 using var doc = JsonDocument.Parse(json);
                 var root = doc.RootElement;
                 if (!root.TryGetProperty("props", out var props) ||
                     !props.TryGetProperty("pageProps", out var pageProps))
-                    return new Team();
+                    return new TeamRffm();
                 if (!pageProps.TryGetProperty("team", out var teamEl))
-                    return new Team();
+                    return new TeamRffm();
 
                 var options = new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
                 };
-                var team = teamEl.Deserialize<Team>(options);
-                return team ?? new Team();
+                var team = teamEl.Deserialize<TeamRffm>(options);
+                return team ?? new TeamRffm();
             }
             catch
             {
-                return new Team();
+                return new TeamRffm();
             }
         }
 
-        public async Task<((TeamPlayer teamPlayer, Player? playerDetails)[] resolved, AgeCount[] handle)> GetStaticsTeamPlayers(AgesQuery request, CancellationToken cancellationToken)
+        public async Task<((TeamPlayerRffm teamPlayer, Player? playerDetails)[] resolved, AgeCount[] handle)> GetStaticsTeamPlayers(AgesQuery request, CancellationToken cancellationToken)
         {
             var team = await GetTeamDetailsAsync(request.TeamId.ToString(), cancellationToken);
             if (team == null || team.Players == null || !team.Players.Any())
-                return (Array.Empty<(TeamPlayer teamPlayer, Player? playerDetails)>(), Array.Empty<AgeCount>());
+                return (Array.Empty<(TeamPlayerRffm teamPlayer, Player? playerDetails)>(), Array.Empty<AgeCount>());
 
             // For each player in the team, try to fetch full player details to get accurate age/stats.
             var playerTasks = team.Players.Select(async p =>

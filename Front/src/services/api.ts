@@ -95,7 +95,14 @@ export async function getPlayersByTeam(
         []
       ).map((j: any) => ({
         playerId: j?.cod_jugador ?? j?.playerId ?? j?.id,
-        name: j?.nombre ?? j?.name,
+        name: j?.nombre ?? j?.name ?? "",
+        jerseyNumber:
+          j?.jerseyNumber ?? j?.dorsal ?? j?.numero ?? j?.number ?? null,
+        url: j?.url ?? j?.link ?? null,
+        age: j?.age ?? j?.ace ?? null,
+        teamParticipations: j?.teamParticipations || j?.participaciones || [],
+        // keep original raw object for future needs
+        raw: j,
       }));
 
       const mapped: TeamResponse = { team, players };

@@ -1,0 +1,45 @@
+.root {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background: transparent;
+  border-radius: 6px;
+  /* CSS variables expected to be provided by component */
+  width: var(--jersey-size, 44px);
+  height: var(--jersey-size, 44px);
+  color: var(--jersey-primary, #0b63d6);
+}
+
+.svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  fill: currentColor;
+  filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.35));
+}
+
+.number {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-weight: 800;
+  color: var(--jersey-number-color, #ffffff);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+  line-height: 1;
+}
+
+.placeholderDot {
+  position: absolute;
+  bottom: 4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.withBorder {
+  border: 1px solid var(--jersey-tertiary, transparent);
+}
