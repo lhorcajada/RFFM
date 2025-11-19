@@ -7,7 +7,7 @@ import {
   CircularProgress,
   Typography,
 } from "@mui/material";
-import { getCompetitions } from "../../services/api";
+import { getCompetitions } from "../../../services/api";
 
 type Competition = { id: string; name: string };
 

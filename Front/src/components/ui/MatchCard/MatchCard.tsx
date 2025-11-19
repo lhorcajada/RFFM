@@ -5,7 +5,7 @@ import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import Typography from "@mui/material/Typography";
-import styles from "../../pages/GetCalendar.module.css";
+import styles from "../../../pages/Calendar/GetCalendar.module.css";
 
 type MatchItem = {
   rawDate?: string | null;

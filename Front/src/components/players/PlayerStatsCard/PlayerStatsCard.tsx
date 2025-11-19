@@ -14,9 +14,9 @@ import {
   DoubleYellowIcon,
   SubstituteIcon,
   JerseyIcon,
-} from "../ui/CardIcons";
+} from "../../ui/CardIcons/CardIcons";
 import styles from "./PlayerStatsCard.module.css";
-import type { StatisticsBySeason } from "../../types/player";
+import type { StatisticsBySeason } from "../../../types/player";
 
 export default function PlayerStatsCard({
   stat,

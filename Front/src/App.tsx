@@ -5,11 +5,11 @@ import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 import { Routes, Route, Link } from "react-router-dom";
 import styles from "./App.module.css";
-import GetTeam from "./pages";
-import GetCalendar from "./pages/GetCalendar";
-import Dashboard from "./pages/Dashboard";
-import Settings from "./pages/Settings";
-import Footer from "./components/ui/Footer";
+import { GetPlayers as GetTeam } from "./pages/Squad";
+import GetCalendar from "./pages/Calendar/GetCalendar";
+import Dashboard from "./pages/Dashboard/Dashboard";
+import Settings from "./pages/Settings/Settings";
+import Footer from "./components/ui/Footer/Footer";
 
 export default function App(): JSX.Element {
   return (

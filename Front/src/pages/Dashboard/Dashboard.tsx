@@ -1,7 +1,5 @@
-import React from "react";
-import { Link } from "react-router-dom";
 import SettingsIcon from "@mui/icons-material/Settings";
-import DashboardCard from "../components/ui/DashboardCard";
+import DashboardCard from "../../components/ui/DashboardCard/DashboardCard";
 
 export default function Dashboard(): JSX.Element {
   return (

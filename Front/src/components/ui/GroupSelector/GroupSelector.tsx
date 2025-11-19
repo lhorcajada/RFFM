@@ -7,7 +7,7 @@ import {
   CircularProgress,
   Typography,
 } from "@mui/material";
-import { getGroups } from "../../services/api";
+import { getGroups } from "../../../services/api";
 
 type Group = { id: string; name: string };
 

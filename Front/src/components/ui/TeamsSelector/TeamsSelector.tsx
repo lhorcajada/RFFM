@@ -7,8 +7,8 @@ import {
   CircularProgress,
   Typography,
 } from "@mui/material";
-import { getTeamsForClassification } from "../../services/api";
-import type { Classification } from "../../types/player";
+import { getTeamsForClassification } from "../../../services/api";
+import type { Classification } from "../../../types/player";
 
 type Team = { id: string; name: string; url?: string; raw?: Classification };
 

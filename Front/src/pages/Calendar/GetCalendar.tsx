@@ -8,11 +8,11 @@ import {
   Button,
   Box,
 } from "@mui/material";
-import CompetitionSelector from "../components/ui/CompetitionSelector";
-import GroupSelector from "../components/ui/GroupSelector";
+import CompetitionSelector from "../../components/ui/CompetitionSelector/CompetitionSelector";
+import GroupSelector from "../../components/ui/GroupSelector/GroupSelector";
 import styles from "./GetCalendar.module.css";
-import MatchCard from "../components/ui/MatchCard";
-import { getCalendar } from "../services/api";
+import MatchCard from "../../components/ui/MatchCard/MatchCard";
+import { getCalendar } from "../../services/api";
 
 const STORAGE_PRIMARY = "rffm.primary_combination_id";
 const STORAGE_KEY = "rffm.saved_combinations_v1";

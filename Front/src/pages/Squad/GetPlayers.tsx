@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from "react";
-import "../styles/gameTheme.css";
+import { useEffect, useState } from "react";
+import "../../styles/gameTheme.css";
 import styles from "./GetPlayers.module.css";
-import teamStyles from "../styles/TeamCard.module.css";
-import type { PlayerDetailsResponse } from "../types/player";
+import teamStyles from "../../styles/TeamCard.module.css";
+import type { PlayerDetailsResponse } from "../../types/player";
 import {
   List,
   ListItem,
@@ -10,23 +10,19 @@ import {
   CircularProgress,
   Paper,
   Typography,
-  Tooltip,
   Button,
   Modal,
   Box,
 } from "@mui/material";
-import TeamsSelector from "../components/ui/TeamsSelector/TeamsSelector";
-import CompetitionSelector from "../components/ui/CompetitionSelector/CompetitionSelector";
-import GroupSelector from "../components/ui/GroupSelector/GroupSelector";
 import {
   getPlayersByTeam,
   getPlayer,
   getTeamAgeSummary,
   getTeamGoalSectors,
   getTeamParticipationSummary,
-} from "../services/api";
-import AgeSummaryBox from "../components/players/AgeSummaryBox/AgeSummaryBox";
-import PlayerStatsCard from "../components/players/PlayerStatsCard/PlayerStatsCard";
+} from "../../services/api";
+import AgeSummaryBox from "../../components/players/AgeSummaryBox/AgeSummaryBox";
+import PlayerStatsCard from "../../components/players/PlayerStatsCard/PlayerStatsCard";
 
 function extractPlayerIdFromUrl(u?: string): string | null {
   if (!u) return null;
