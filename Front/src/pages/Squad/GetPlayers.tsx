@@ -36,6 +36,7 @@ import playersStyles from "../../components/players/PlayersContainer/PlayersCont
 import Jersey from "../../components/players/Jersey/Jersey";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
+import SportsSoccerIcon from "@mui/icons-material/SportsSoccer";
 
 function extractPlayerIdFromUrl(u?: string): string | null {
   if (!u) return null;
@@ -68,6 +69,10 @@ type Player = {
     seasonId?: number;
     seasonName?: string;
   }>;
+  raw?: any;
+  matches?: any;
+  cards?: any;
+  competitions?: any[];
 };
 
 export default function GetPlayers(): JSX.Element {
@@ -207,6 +212,11 @@ export default function GetPlayers(): JSX.Element {
             jerseyNumber: jersey,
             age,
             teamParticipations: p.teamParticipations || p.participaciones || [],
+            // keep mapped/raw payload so we can reuse it when opening details
+            raw: p,
+            matches: p.matches || p.partidos || null,
+            cards: p.cards || p.tarjetas || null,
+            competitions: p.competitions || p.competiciones || [],
           };
         });
 
@@ -622,15 +632,13 @@ export default function GetPlayers(): JSX.Element {
                       try {
                         setLoadingDetail(p.id);
                         setExpandedPlayerId(p.id);
-                        const idToFetch = p.playerId
-                          ? String(p.playerId)
-                          : extractPlayerIdFromUrl(p.url || "") || String(p.id);
-                        const data = await getPlayer(idToFetch);
-                        // Adapt new API shape to PlayerDetailsResponse expected by the UI
-                        if (data && (data as any).competitions) {
-                          const d = data as any;
+                        // If we already have the player's full data in `raw`, use it
+                        const cached = (p as any).raw;
+                        const buildFrom = (d: any) => {
                           const comps: any[] = Array.isArray(d.competitions)
                             ? d.competitions
+                            : d.competiciones && Array.isArray(d.competiciones)
+                            ? d.competiciones
                             : [];
 
                           const playerAge = d.age ?? d.ace ?? null;
@@ -642,7 +650,7 @@ export default function GetPlayers(): JSX.Element {
                                   {
                                     competitionName: d.teamCategory ?? "",
                                     groupName: "",
-                                    teamName: d.team ?? "",
+                                    teamName: d.team ?? d.teamName ?? "",
                                     teamPoints: d.teamPoints ?? 0,
                                   },
                                 ]
@@ -673,14 +681,33 @@ export default function GetPlayers(): JSX.Element {
                             })),
                           }));
 
-                          setExpandedDetails({
+                          return {
                             statisticsBySeason: stats,
                             playerId: d.playerId ? Number(d.playerId) : 0,
-                            playerName: d.name ?? "",
+                            playerName: d.name ?? d.nombre ?? "",
                             ace: d.age ?? null,
-                          } as PlayerDetailsResponse);
+                          } as PlayerDetailsResponse;
+                        };
+
+                        if (
+                          cached &&
+                          (cached.competitions ||
+                            cached.matches ||
+                            cached.cards)
+                        ) {
+                          const details = buildFrom(cached);
+                          setExpandedDetails(details);
                         } else {
-                          setExpandedDetails(data as PlayerDetailsResponse);
+                          const idToFetch = p.playerId
+                            ? String(p.playerId)
+                            : extractPlayerIdFromUrl(p.url || "") ||
+                              String(p.id);
+                          const data = await getPlayer(idToFetch);
+                          if (data && (data as any).competitions) {
+                            setExpandedDetails(buildFrom(data));
+                          } else {
+                            setExpandedDetails(data as PlayerDetailsResponse);
+                          }
                         }
                       } catch (err) {
                         setExpandedDetails(null);
@@ -709,17 +736,58 @@ export default function GetPlayers(): JSX.Element {
                     tertiary="rgba(4,48,112,0.18)"
                     size={44}
                   />
-                  {p.age != null ? (
-                    <div className={playersStyles.ageChip}>{p.age}</div>
-                  ) : null}
                 </div>
                 <ListItemText
                   primary={
                     <span className={playersStyles.playerName}>{p.name}</span>
                   }
-                  secondary={`${p.email || ""}${
-                    p.age ? ` — Edad: ${p.age}` : ""
-                  }`}
+                  secondary={
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <div>
+                        {p.email || ""}
+                        {p.age ? ` — Edad: ${p.age}` : ""}
+                      </div>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                        }}
+                      >
+                        <SportsSoccerIcon fontSize="small" />
+                        {(() => {
+                          const goals =
+                            (p as any).matches?.totalGoals ??
+                            (p as any).matches?.goles ??
+                            (p as any).matches?.goals ??
+                            0;
+                          return (
+                            <span
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                color: "#ffffff",
+                                fontWeight: 900,
+                                fontSize: 16,
+                                lineHeight: "1",
+                                padding: "0 6px",
+                                background: "transparent",
+                              }}
+                            >
+                              {goals}
+                            </span>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  }
                 />
               </ListItem>
 

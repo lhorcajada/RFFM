@@ -95,11 +95,52 @@ export async function getPlayersByTeam(
         []
       ).map((j: any) => ({
         playerId: j?.cod_jugador ?? j?.playerId ?? j?.id,
+        seasonId: j?.temporada ?? j?.seasonId ?? j?.season ?? null,
         name: j?.nombre ?? j?.name ?? "",
+        age: j?.age ?? j?.ace ?? j?.edad ?? null,
+        birthYear: j?.birthYear ?? j?.anio_nacimiento ?? j?.anio_nac ?? null,
+        team: j?.equipo ?? j?.team ?? null,
+        teamCode: j?.codigo_equipo ?? j?.teamCode ?? null,
+        teamCategory:
+          j?.categoria_equipo ?? j?.teamCategory ?? j?.categoria ?? null,
         jerseyNumber:
           j?.jerseyNumber ?? j?.dorsal ?? j?.numero ?? j?.number ?? null,
-        url: j?.url ?? j?.link ?? null,
-        age: j?.age ?? j?.ace ?? null,
+        position:
+          j?.posicion ??
+          j?.position ??
+          j?.puesto ??
+          j?.descripcion_posicion ??
+          null,
+        isGoalkeeper: j?.portero ?? j?.isGoalkeeper ?? j?.es_portero ?? false,
+        photoUrl: j?.photoUrl ?? j?.foto ?? j?.url_foto ?? "",
+        teamShieldUrl:
+          j?.teamShieldUrl ??
+          j?.escudo_equipo ??
+          j?.team_shield ??
+          j?.teamShield ??
+          "",
+        matches: j?.matches ??
+          j?.partidos ??
+          j?.estadisticas_partidos ?? {
+            called: j?.llamados ?? 0,
+            starter: j?.titular ?? 0,
+            substitute: j?.suplente ?? 0,
+            played: j?.jugados ?? 0,
+            totalGoals: j?.goles_total ?? j?.goles ?? 0,
+            goalsPerMatch: j?.goles_por_partido ?? 0,
+          },
+        cards: j?.cards ??
+          j?.amarillas_rojas ??
+          j?.tarjetas ?? {
+            yellow: j?.amarilla ?? j?.yellow ?? 0,
+            red: j?.roja ?? j?.red ?? 0,
+            doubleYellow: j?.doble_amarilla ?? j?.doubleYellow ?? 0,
+          },
+        competitions:
+          j?.competitions ??
+          j?.competiciones ??
+          j?.participaciones_competiciones ??
+          [],
         teamParticipations: j?.teamParticipations || j?.participaciones || [],
         // keep original raw object for future needs
         raw: j,

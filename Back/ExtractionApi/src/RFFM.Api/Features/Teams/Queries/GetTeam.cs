@@ -8,6 +8,8 @@ using RFFM.Api.Features.Players.Models;
 using RFFM.Api.Features.Teams.Models;
 using RFFM.Api.Features.Teams.Queries.Responses;
 using RFFM.Api.Features.Teams.Services;
+using Microsoft.Extensions.Caching.Memory;
+using System;
 
 namespace RFFM.Api.Features.Teams.Queries
 {
@@ -39,82 +41,95 @@ namespace RFFM.Api.Features.Teams.Queries
         public class RequestHandler : IRequestHandler<Query, Team>
         {
             private readonly ITeamService _teamService;
+            private readonly IMemoryCache _cache;
 
-            public RequestHandler(ITeamService teamService)
+            public RequestHandler(ITeamService teamService, IMemoryCache cache)
             {
                 _teamService = teamService;
+                _cache = cache;
             }
 
             public async ValueTask<Team> Handle(Query request, CancellationToken cancellationToken)
             {
-                var team = await _teamService.GetTeamDetailsAsync(request.TeamId.ToString(), cancellationToken);
-                var statistics = await _teamService.GetStaticsTeamPlayers(new GetAgeSummary.AgesQuery(request.TeamId, 21), cancellationToken);
-                var playerDetails = statistics.resolved.Select(x => x.playerDetails);
-                return new Team
+                var cacheKey = $"team_{request.TeamId}";
+
+                return await _cache.GetOrCreateAsync(cacheKey, async entry =>
                 {
-                    TeamCode = team.TeamCode,
-                    TeamName = team.TeamName,
-                    Assistants = team.Assistants.Select(a => new TeamAssistant
+                    // Cache validity: keep for 5 minutes by default. Adjust if needed.
+                    entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
+
+                    var team = await _teamService.GetTeamDetailsAsync(request.TeamId.ToString(), cancellationToken);
+                    var statistics = await _teamService.GetStaticsTeamPlayers(new GetAgeSummary.AgesQuery(request.TeamId, 21), cancellationToken);
+                    var playerDetails = statistics.resolved.Select(x => x.playerDetails);
+
+                    var result = new Team
                     {
-                        AssistantCode = a.AssistantCode,
-                        Name = a.Name
-                    }).ToList(),
-                    Coaches = team.Coaches.Select(c => new TeamCoach
-                    {
-                        CoachCode = c.CoachCode,
-                        Name = c.Name
-                    }).ToList(),
-                    Players = playerDetails.Select(p=> new Player
-                    {
-                        Team = team.TeamName,
                         TeamCode = team.TeamCode,
-                        Name = p.Name,
-                        Position = p.Position,
-                        Age = p.Age,
-                        JerseyNumber = p.JerseyNumber,
-                        SeasonId = p.SeasonId,
-                        PlayerId = p.PlayerId,
-                        PhotoUrl = p.PhotoUrl,
-                        BirthYear = p.BirthYear,
-                        Cards = p.Cards,
-                        Matches = p.Matches,
-                        IsGoalkeeper = p.IsGoalkeeper,
-                        TeamShieldUrl = p.TeamShieldUrl,
-                        Competitions = p.Competitions,
-                        TeamCategory = team.Category
+                        TeamName = team.TeamName,
+                        Assistants = team.Assistants.Select(a => new TeamAssistant
+                        {
+                            AssistantCode = a.AssistantCode,
+                            Name = a.Name
+                        }).ToList(),
+                        Coaches = team.Coaches.Select(c => new TeamCoach
+                        {
+                            CoachCode = c.CoachCode,
+                            Name = c.Name
+                        }).ToList(),
+                        Players = playerDetails.Select(p=> new Player
+                        {
+                            Team = team.TeamName,
+                            TeamCode = team.TeamCode,
+                            Name = p.Name,
+                            Position = p.Position,
+                            Age = p.Age,
+                            JerseyNumber = p.JerseyNumber,
+                            SeasonId = p.SeasonId,
+                            PlayerId = p.PlayerId,
+                            PhotoUrl = p.PhotoUrl,
+                            BirthYear = p.BirthYear,
+                            Cards = p.Cards,
+                            Matches = p.Matches,
+                            IsGoalkeeper = p.IsGoalkeeper,
+                            TeamShieldUrl = p.TeamShieldUrl,
+                            Competitions = p.Competitions,
+                            TeamCategory = team.Category
 
-                    }).ToList(),
+                        }).ToList(),
 
-                    Category = team.Category,
-                    ClubCode = team.ClubCode,
-                    ClubName = team.ClubName,
-                    Delegates = team.Delegates.Select(d => new TeamDelegate
-                    {
-                        DelegateCode = d.DelegateCode,
-                        Name = d.Name
-                    }).ToList(),
-                    AccessKey = team.AccessKey,
-                    CategoryCode = team.CategoryCode,
-                    ClubShield = team.ClubShield,
-                    CorrespondenceAddress = team.CorrespondenceAddress,
-                    CorrespondenceCity = team.CorrespondenceCity,
-                    CorrespondenceEmail = team.CorrespondenceEmail,
-                    CorrespondenceHolder = team.CorrespondenceHolder,
-                    CorrespondencePostalCode = team.CorrespondencePostalCode,
-                    CorrespondenceProvince = team.CorrespondenceProvince,
-                    CorrespondenceTitle = team.CorrespondenceTitle,
-                    Fax = team.Fax,
-                    Field = team.Field,
-                    FieldCode = team.FieldCode,
-                    FieldPhoto = team.FieldPhoto,
-                    Phones = team.Phones,
-                    PlayDay = team.PlayDay,
-                    PlaySchedule = team.PlaySchedule,
-                    SessionOk = team.SessionOk,
-                    Status = team.Status,
-                    TrainingField = team.TrainingField,
-                    Website = team.Website
-                };
+                        Category = team.Category,
+                        ClubCode = team.ClubCode,
+                        ClubName = team.ClubName,
+                        Delegates = team.Delegates.Select(d => new TeamDelegate
+                        {
+                            DelegateCode = d.DelegateCode,
+                            Name = d.Name
+                        }).ToList(),
+                        AccessKey = team.AccessKey,
+                        CategoryCode = team.CategoryCode,
+                        ClubShield = team.ClubShield,
+                        CorrespondenceAddress = team.CorrespondenceAddress,
+                        CorrespondenceCity = team.CorrespondenceCity,
+                        CorrespondenceEmail = team.CorrespondenceEmail,
+                        CorrespondenceHolder = team.CorrespondenceHolder,
+                        CorrespondencePostalCode = team.CorrespondencePostalCode,
+                        CorrespondenceProvince = team.CorrespondenceProvince,
+                        CorrespondenceTitle = team.CorrespondenceTitle,
+                        Fax = team.Fax,
+                        Field = team.Field,
+                        FieldCode = team.FieldCode,
+                        FieldPhoto = team.FieldPhoto,
+                        Phones = team.Phones,
+                        PlayDay = team.PlayDay,
+                        PlaySchedule = team.PlaySchedule,
+                        SessionOk = team.SessionOk,
+                        Status = team.Status,
+                        TrainingField = team.TrainingField,
+                        Website = team.Website
+                    };
+
+                    return result;
+                });
             }
         }
     }

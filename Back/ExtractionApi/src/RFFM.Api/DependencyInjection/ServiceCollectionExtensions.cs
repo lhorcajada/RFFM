@@ -2,6 +2,7 @@
 using Hellang.Middleware.ProblemDetails;
 using Mediator;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using RFFM.Api.Common.Behaviors;
@@ -31,6 +32,7 @@ namespace RFFM.Api.DependencyInjection
             services.AddScoped<ICompetitionService, CompetitionService>();
             services.AddScoped<ITeamService, TeamService>();
             services.AddScoped<ICalendarService, CalendarService>();
+            services.AddMemoryCache();
             return services;
         }
 

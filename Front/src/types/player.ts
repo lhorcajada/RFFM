@@ -51,6 +51,35 @@ export interface TeamPlayer {
   [key: string]: any;
 }
 
+export interface PlayerMatches {
+  called?: number;
+  starter?: number;
+  substitute?: number;
+  played?: number;
+  totalGoals?: number;
+  goalsPerMatch?: number;
+}
+
+export interface PlayerCards {
+  yellow?: number;
+  red?: number;
+  doubleYellow?: number;
+}
+
+export interface PlayerCompetition {
+  competitionName?: string;
+  competitionCode?: string;
+  groupCode?: string;
+  groupName?: string;
+  teamCode?: string;
+  teamName?: string;
+  clubName?: string;
+  teamPosition?: number;
+  teamPoints?: number;
+  teamShieldUrl?: string;
+  showStatistics?: boolean;
+}
+
 export interface TeamBasicInfo {
   teamCode?: string;
   clubCode?: string;
@@ -82,7 +111,33 @@ export interface TeamBasicInfo {
 
 export interface TeamResponse {
   team: TeamBasicInfo;
-  players: Array<{ playerId?: string | number; name?: string }>;
+  players: Array<{
+    playerId?: string | number;
+    seasonId?: string | number | null;
+    name?: string;
+    age?: number | string | null;
+    birthYear?: number | null;
+    team?: string | null;
+    teamCode?: string | null;
+    teamCategory?: string | null;
+    jerseyNumber?: string | number | null;
+    position?: string | null;
+    isGoalkeeper?: boolean;
+    photoUrl?: string;
+    teamShieldUrl?: string;
+    matches?: PlayerMatches;
+    cards?: PlayerCards;
+    competitions?: PlayerCompetition[];
+    teamParticipations?: Array<{
+      competitionName: string;
+      groupName: string;
+      teamName: string;
+      teamPoints: number;
+      seasonId?: number;
+      seasonName?: string;
+    }>;
+    [key: string]: any;
+  }>;
 }
 
 export interface MatchStreak {
