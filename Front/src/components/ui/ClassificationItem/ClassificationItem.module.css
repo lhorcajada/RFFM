@@ -6,9 +6,9 @@
   padding: 14px 20px 18px 66px; /* reserve space for the absolute position badge */
   width: 100%;
   box-sizing: border-box;
-  background: linear-gradient(180deg, #ffffff 0%, #fbfbff 100%);
+  background: transparent; /* transparent card to match calendar style */
   border-radius: 12px;
-  box-shadow: 0 6px 18px rgba(22, 27, 40, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08); /* visible on dark backgrounds */
   transition: transform 120ms ease, box-shadow 120ms ease;
   min-height: 74px;
   position: relative; /* allow absolute children to overlap outside */
@@ -79,7 +79,7 @@
 }
 .teamName {
   font-weight: 600;
-  color: #0f172a;
+  color: #ffffff;
   overflow: visible;
   text-overflow: initial;
   white-space: normal;
@@ -100,7 +100,7 @@
 }
 .goalText {
   font-weight: 700;
-  color: #0f172a;
+  color: #ffffff;
   font-size: 0.9rem;
 }
 .iconCircleWhite {
@@ -109,9 +109,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
   border-radius: 50%;
-  border: 1px solid #cbd5e1;
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 .iconCircleRed {
   width: 18px;
@@ -124,7 +124,7 @@
   border: 1px solid #f87171;
 }
 .iconInner {
-  color: #111827;
+  color: #ffffff;
   font-size: 14px !important;
 }
 .points {
@@ -136,7 +136,7 @@
 }
 .pointsValue {
   font-weight: 800;
-  color: #111827;
+  color: #ffffff;
   font-size: 1.05rem;
   display: flex;
   align-items: center;
@@ -151,17 +151,17 @@
   align-items: center;
   justify-content: center;
   background: transparent;
-  color: #111827;
+  color: #ffffff;
   font-weight: 700;
   font-size: 0.95rem;
   box-shadow: none;
-  border: 2px solid rgba(17, 24, 39, 0.08);
+  border: 2px solid rgba(255, 255, 255, 0.12);
 }
 
 .pointsBadgeNeutral {
-  border: 2px solid #111827;
+  border: 2px solid #ffffff;
   background: transparent;
-  color: #111827;
+  color: #ffffff;
   box-shadow: none;
 }
 
