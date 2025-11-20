@@ -36,6 +36,7 @@ export async function getPlayer(playerId: string) {
 }
 
 import type { PlayersByTeamResponse, TeamResponse } from "../types/player";
+import type { Acta } from "../types/acta";
 
 export async function getPlayersByTeam(
   teamId: string
@@ -322,6 +323,19 @@ export async function getTeamGoalSectors(
       goalsAgainst: number;
     }>;
   };
+}
+
+export async function getActa(
+  codacta: string,
+  params?: { temporada?: string; competicion?: string; grupo?: string }
+) {
+  const q = new URLSearchParams();
+  if (params?.temporada) q.append("temporada", params.temporada);
+  if (params?.competicion) q.append("competicion", params.competicion);
+  if (params?.grupo) q.append("grupo", params.grupo);
+  const qs = q.toString() ? `?${q.toString()}` : "";
+  const res = await client.get(`acta/${encodeURIComponent(codacta)}${qs}`);
+  return res.data as Acta;
 }
 
 export default client;

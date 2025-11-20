@@ -33,10 +33,13 @@ import StaffCard from "../../components/teams/StaffCard/StaffCard";
 import Address from "../../components/teams/Address/Address";
 import PlayersContainer from "../../components/players/PlayersContainer/PlayersContainer";
 import playersStyles from "../../components/players/PlayersContainer/PlayersContainer.module.css";
-import Jersey from "../../components/players/Jersey/Jersey";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import SportsSoccerIcon from "@mui/icons-material/SportsSoccer";
+import {
+  YellowCardIcon,
+  RedCardIcon,
+} from "../../components/ui/CardIcons/CardIcons";
 
 function extractPlayerIdFromUrl(u?: string): string | null {
   if (!u) return null;
@@ -167,7 +170,7 @@ export default function GetPlayers(): JSX.Element {
 
         const teamId = String(selectedTeam.id);
         const payload = await getPlayersByTeam(teamId);
-        console.log("raw payload:", payload);
+
         let list: any[] = [];
         // Support different API shapes: array, { players: [...] }, or { jugadores_equipo: [...] }
         if (Array.isArray(payload)) list = payload as any[];
@@ -730,26 +733,103 @@ export default function GetPlayers(): JSX.Element {
                   className={playersStyles.jerseyBadge}
                   style={{ marginRight: 12 }}
                 >
-                  <Jersey
-                    number={p.jerseyNumber}
-                    primary="#0b63d6"
-                    tertiary="rgba(4,48,112,0.18)"
-                    size={44}
-                  />
+                  <div className={playersStyles.jerseyShirt}>
+                    <svg
+                      viewBox="0 0 64 64"
+                      width={44}
+                      height={44}
+                      aria-hidden="true"
+                      role="img"
+                    >
+                      <g fill="none" fillRule="evenodd">
+                        <path
+                          d="M8 14c0 0 6-4 12-4s6 2 12 2 6-2 12-2 12 4 12 4v28c0 4-4 8-8 8H16c-4 0-8-4-8-8V14z"
+                          fill="#2C7BE5"
+                          stroke="#08306B"
+                          strokeWidth="1.2"
+                        />
+                        <path
+                          d="M8 14c4 0 6-4 12-4"
+                          stroke="#08306B"
+                          strokeWidth="1.4"
+                          strokeLinecap="round"
+                          fill="none"
+                        />
+                        <path
+                          d="M56 14c-4 0-6-4-12-4"
+                          stroke="#08306B"
+                          strokeWidth="1.4"
+                          strokeLinecap="round"
+                          fill="none"
+                        />
+                        <path
+                          d="M26 12 L32 18 L38 12"
+                          stroke="#04173A"
+                          strokeWidth="1.6"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          fill="none"
+                        />
+                        <path
+                          d="M14 18c4 0 10-2 18-2"
+                          stroke="#ffffff"
+                          strokeOpacity="0.08"
+                          strokeWidth="2"
+                          fill="none"
+                          strokeLinecap="round"
+                        />
+                        <path
+                          d="M50 18c-4 0-10-2-18-2"
+                          stroke="#ffffff"
+                          strokeOpacity="0.06"
+                          strokeWidth="2"
+                          fill="none"
+                          strokeLinecap="round"
+                        />
+                        <rect
+                          x="20"
+                          y="22"
+                          width="24"
+                          height="18"
+                          rx="3"
+                          fill="#FFF"
+                          opacity="0.08"
+                        />
+                      </g>
+                    </svg>
+                    <div
+                      className="jerseyNumber"
+                      style={{
+                        position: "absolute",
+                        top: "50%",
+                        left: "50%",
+                        transform: "translate(-50%, -50%)",
+                        fontWeight: 800,
+                        color: "#000",
+                      }}
+                    >
+                      {p.jerseyNumber ?? ""}
+                    </div>
+                  </div>
+                  {p.age ? (
+                    <div className={playersStyles.ageChip}>Edad: {p.age}</div>
+                  ) : (
+                    <div className={playersStyles.ageChip} />
+                  )}
                 </div>
                 <ListItemText
                   primary={
                     <span className={playersStyles.playerName}>{p.name}</span>
                   }
                   secondary={
-                    <div
+                    <span
                       style={{
                         display: "inline-flex",
                         alignItems: "center",
                         gap: 8,
                       }}
                     >
-                      <div
+                      <span
                         style={{
                           display: "inline-flex",
                           alignItems: "center",
@@ -757,7 +837,6 @@ export default function GetPlayers(): JSX.Element {
                         }}
                       >
                         {p.email || ""}
-                        {p.age ? ` — Edad: ${p.age}` : ""}
                         {(() => {
                           const goals =
                             (p as any).matches?.totalGoals ??
@@ -788,11 +867,70 @@ export default function GetPlayers(): JSX.Element {
                               >
                                 {goals}
                               </span>
+                              {/* Cards: yellow and red */}
+                              <span
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 6,
+                                  marginLeft: 8,
+                                }}
+                                title={`Tarjetas: amarillas ${
+                                  ((p as any).cards?.yellow ??
+                                    (p as any).cards?.amarillas) ||
+                                  0
+                                } — rojas ${
+                                  ((p as any).cards?.red ??
+                                    (p as any).cards?.rojas) ||
+                                  0
+                                }`}
+                              >
+                                <span
+                                  style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: 6,
+                                  }}
+                                >
+                                  <YellowCardIcon />
+                                  <span
+                                    style={{
+                                      color: "#ffffff",
+                                      fontWeight: 700,
+                                      fontSize: 13,
+                                    }}
+                                  >
+                                    {(p as any).cards?.yellow ??
+                                      (p as any).cards?.amarillas ??
+                                      0}
+                                  </span>
+                                </span>
+                                <span
+                                  style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: 6,
+                                  }}
+                                >
+                                  <RedCardIcon />
+                                  <span
+                                    style={{
+                                      color: "#ffffff",
+                                      fontWeight: 700,
+                                      fontSize: 13,
+                                    }}
+                                  >
+                                    {(p as any).cards?.red ??
+                                      (p as any).cards?.rojas ??
+                                      0}
+                                  </span>
+                                </span>
+                              </span>
                             </span>
                           );
                         })()}
-                      </div>
-                    </div>
+                      </span>
+                    </span>
                   }
                 />
               </ListItem>

@@ -1,0 +1,152 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px;
+}
+
+.teamsRow {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.teamsColumn {
+  display: flex;
+  flex-direction: column;
+}
+
+.sectionGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+/* Ensure grid children can shrink and don't cause horizontal overflow */
+.sectionGrid > div {
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.fullWidth {
+  grid-column: 1 / -1;
+}
+
+.goalsNarrow {
+  max-width: 340px;
+  margin: 0 auto;
+}
+
+.rightStack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.noActa {
+  padding: 16px;
+}
+.actionBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.headerLayout {
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.leftCol {
+  flex: 0 0 320px;
+  display: flex;
+  flex-direction: column;
+}
+.rightCol {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 800px) {
+  .headerLayout {
+    flex-direction: column;
+  }
+  .leftCol {
+    flex: 0 0 auto;
+  }
+}
+
+/* Mobile-first adjustments for acta page */
+@media (max-width: 700px) {
+  .container {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .teamsRow {
+    flex-direction: column;
+    gap: 8px;
+    align-items: stretch;
+  }
+
+  .teamsRow > * {
+    width: 100%;
+  }
+
+  .sectionGrid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .fullWidth {
+    grid-column: 1 / -1;
+  }
+
+  .leftCol {
+    flex: 0 0 auto;
+    width: 100%;
+  }
+
+  .rightCol {
+    width: 100%;
+  }
+
+  .rightStack {
+    gap: 10px;
+  }
+
+  .actionBar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .goalsNarrow {
+    max-width: 100%;
+    margin: 0;
+  }
+}
+
+@media (max-width: 420px) {
+  .container {
+    padding: 8px;
+    gap: 8px;
+  }
+
+  .minute,
+  .minuteBall {
+    width: 30px;
+    height: 30px;
+    font-size: 12px;
+  }
+
+  .player,
+  .meta {
+    word-break: break-word;
+  }
+}

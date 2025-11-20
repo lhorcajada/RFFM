@@ -1,0 +1,11 @@
+.root {
+  padding: 8px 0 16px 0;
+}
+.text {
+  color: #333;
+}
+
+.small {
+  color: #666;
+  font-size: 0.9rem;
+}

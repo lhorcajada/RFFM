@@ -24,7 +24,7 @@
 }
 
 h1 {
-  margin-top: 1rem;
+  margin-top: 0.25rem; /* reduced so headings sit closer to header */
   color: #222;
 }
 

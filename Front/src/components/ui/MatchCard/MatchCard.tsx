@@ -6,6 +6,7 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import Typography from "@mui/material/Typography";
 import styles from "./MatchCard.module.css";
+import { Link } from "react-router-dom";
 
 type MatchItem = {
   rawDate?: string | null;
@@ -31,7 +32,15 @@ function parseTimeToHM(time?: string | null): { h: number; m: number } | null {
   return null;
 }
 
-export default function MatchCard({ item }: { item: MatchItem }) {
+export default function MatchCard({
+  item,
+  hideActaButton,
+  compact,
+}: {
+  item: MatchItem;
+  hideActaButton?: boolean;
+  compact?: boolean;
+}) {
   const m = item.match;
   const STORAGE_PRIMARY = "rffm.primary_combination_id";
   const STORAGE_KEY = "rffm.saved_combinations_v1";
@@ -62,6 +71,30 @@ export default function MatchCard({ item }: { item: MatchItem }) {
     return Math.trunc(n);
   }
   const [openActa, setOpenActa] = useState(false);
+  function extractCodacta(matchObj: any) {
+    if (!matchObj) return null;
+    const candidates = [
+      matchObj.codacta,
+      matchObj.cod_acta,
+      matchObj.id_acta,
+      matchObj.idacta,
+      matchObj.actaId,
+      matchObj.acta_id,
+      matchObj.acta,
+    ];
+    for (const c of candidates) {
+      if (c !== null && c !== undefined && String(c).trim() !== "")
+        return String(c);
+    }
+    // try to parse from url fields
+    const url = matchObj.url ?? matchObj.url_acta ?? matchObj.urlActa ?? null;
+    if (url && typeof url === "string") {
+      const m = url.match(/(\d{5,})/);
+      if (m) return m[1];
+    }
+    return null;
+  }
+  const codactaVal = extractCodacta(m);
   const time = m.hora ?? m.time ?? m.hour ?? "";
   const localName =
     m.equipo_local ?? m.localTeamName ?? m.LocalTeamName ?? m.local ?? "-";
@@ -198,9 +231,12 @@ export default function MatchCard({ item }: { item: MatchItem }) {
   } ${isPrimaryLocal ? styles.highlightLeft : ""} ${
     isPrimaryAway ? styles.highlightRight : ""
   }`;
+  const finalClass = compact
+    ? `${rootClass} ${styles.compact} ${styles.height100}`
+    : rootClass;
 
   return (
-    <div className={rootClass}>
+    <div className={finalClass}>
       <div className={styles.teamBox}>
         <div className={styles.shieldWrap}>
           {localShield ? (
@@ -233,28 +269,41 @@ export default function MatchCard({ item }: { item: MatchItem }) {
             <span className={styles.timeChip}>{time || "-"}</span>
           </div>
           {finished ? (
-            <>
+            codactaVal && !hideActaButton ? (
               <Button
+                component={Link}
+                to={`/acta/${encodeURIComponent(codactaVal)}`}
+                state={{ item }}
                 variant="contained"
                 size="small"
                 className={`${styles.actaBtn} ${styles.actaOutline}`}
-                onClick={() => setOpenActa(true)}
               >
                 Ver acta
               </Button>
-              <Dialog open={openActa} onClose={() => setOpenActa(false)}>
-                <DialogTitle>Acta no disponible</DialogTitle>
-                <DialogContent>
-                  <Typography>
-                    La vista del acta aún no está implementada. Pronto estará
-                    disponible en esta aplicación.
-                  </Typography>
-                </DialogContent>
-                <DialogActions>
-                  <Button onClick={() => setOpenActa(false)}>Cerrar</Button>
-                </DialogActions>
-              </Dialog>
-            </>
+            ) : (
+              <>
+                <Button
+                  variant="contained"
+                  size="small"
+                  className={`${styles.actaBtn} ${styles.actaOutline}`}
+                  onClick={() => setOpenActa(true)}
+                >
+                  Ver acta
+                </Button>
+                <Dialog open={openActa} onClose={() => setOpenActa(false)}>
+                  <DialogTitle>Acta no disponible</DialogTitle>
+                  <DialogContent>
+                    <Typography>
+                      La vista del acta aún no está implementada. Pronto estará
+                      disponible en esta aplicación.
+                    </Typography>
+                  </DialogContent>
+                  <DialogActions>
+                    <Button onClick={() => setOpenActa(false)}>Cerrar</Button>
+                  </DialogActions>
+                </Dialog>
+              </>
+            )
           ) : (
             <div style={{ height: 32 }} />
           )}

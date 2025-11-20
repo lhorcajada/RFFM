@@ -10,6 +10,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using RFFM.Api.Features.Competitions.Models;
 using System.Globalization;
+using RFFM.Api.Features.Teams.Services;
 
 namespace RFFM.Api.Features.Teams.Queries
 {
@@ -57,12 +58,12 @@ namespace RFFM.Api.Features.Teams.Queries
         public class RequestHandler : IRequestHandler<Query, GoalSectorsResponse>
         {
             private readonly ICalendarService _calendarService;
-            private readonly IHttpClientFactory _httpClientFactory;
+            private readonly IActaService _actaService;
 
-            public RequestHandler(ICalendarService calendarService, IHttpClientFactory httpClientFactory)
+            public RequestHandler(ICalendarService calendarService, IActaService actaService)
             {
                 _calendarService = calendarService;
-                _httpClientFactory = httpClientFactory;
+                _actaService = actaService;
             }
 
             public async ValueTask<GoalSectorsResponse> Handle(Query request, CancellationToken cancellationToken)
@@ -158,8 +159,7 @@ namespace RFFM.Api.Features.Teams.Queries
                 if (matches == null || matches.Count == 0)
                     return new GoalSectorsResponse { TeamCode = request.TeamCode, MatchesProcessed = 0 };
 
-                var http = _httpClientFactory.CreateClient();
-                http.DefaultRequestHeaders.UserAgent.ParseAdd("RFFM.Extractor/1.0");
+                // acta service will handle fetching and parsing
 
                 int matchesProcessed = 0;
 
@@ -178,126 +178,14 @@ namespace RFFM.Api.Features.Teams.Queries
                     if (string.IsNullOrWhiteSpace(cod))
                         continue;
 
-                    var plainActaUrl = $"https://www.rffm.es/acta-partido/{cod}?temporada={request.Temporada}&competicion={request.Competicion}&grupo={request.Grupo}";
-
-                    var actaResponse = await http.GetAsync(plainActaUrl, cancellationToken);
-                    if (!actaResponse.IsSuccessStatusCode) continue;
-
-                    var actaHtml = await actaResponse.Content.ReadAsStringAsync(cancellationToken);
-                    if (string.IsNullOrWhiteSpace(actaHtml)) continue;
-
-                    // Extract JSON from <script id="__NEXT_DATA__" type="application/json"> ... </script>
-                    JsonElement? actaJsonElement = null;
+                    // Use acta service to fetch and parse the game payload
                     try
                     {
-                        // Try to find the __NEXT_DATA__ script content with a robust regex
-                        var nextRegex = new Regex("<script[^>]*\\bid\\s*=\\s*['\"']__NEXT_DATA__['\"'][^>]*>(.*?)</script>", RegexOptions.Singleline | RegexOptions.IgnoreCase);
-
-                        var nm = nextRegex.Match(actaHtml);
-
-                        string? jsonText = null;
-                        if (nm.Success)
-                        {
-                            jsonText = nm.Groups[1].Value.Trim();
-                        }
-                        else
-                        {
-                            // Fallback: locate the marker and extract between the enclosing <script> ... </script>
-                            var marker = "__NEXT_DATA__";
-                            var pos = actaHtml.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
-                            if (pos >= 0)
-                            {
-                                // find the nearest opening <script before pos
-                                var scriptOpen = actaHtml.LastIndexOf("<script", pos, StringComparison.OrdinalIgnoreCase);
-                                if (scriptOpen >= 0)
-                                {
-                                    var startTagEnd = actaHtml.IndexOf('>', scriptOpen);
-                                    if (startTagEnd >= 0)
-                                    {
-                                        var scriptClose = actaHtml.IndexOf("</script>", startTagEnd, StringComparison.OrdinalIgnoreCase);
-                                        if (scriptClose > startTagEnd)
-                                        {
-                                            jsonText = actaHtml.Substring(startTagEnd + 1, scriptClose - startTagEnd - 1).Trim();
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        if (!string.IsNullOrWhiteSpace(jsonText) && (jsonText.TrimStart().StartsWith("{") || jsonText.TrimStart().StartsWith("[")))
-                        {
-                            using var doc = JsonDocument.Parse(jsonText);
-                            var root = doc.RootElement;
-                            if (root.TryGetProperty("props", out var propsElem) &&
-                                propsElem.TryGetProperty("pageProps", out var pagePropsElem))
-                            {
-                                // The acta payload can be under different property names depending on the page implementation.
-                                // Common names observed: "acta", "acta_json", and (site uses) "game".
-                                if (pagePropsElem.TryGetProperty("acta", out var actaElem))
-                                {
-                                    actaJsonElement = actaElem.Clone();
-                                }
-                                else if (pagePropsElem.TryGetProperty("acta_json", out var actaElem2))
-                                {
-                                    actaJsonElement = actaElem2.Clone();
-                                }
-                                else if (pagePropsElem.TryGetProperty("game", out var gameElem))
-                                {
-                                    // some pages embed the acta payload under "game"
-                                    actaJsonElement = gameElem.Clone();
-                                }
-                            }
-                        }
-                    }
-                    catch
-                    {
-                        // ignore per-acta extraction errors
-                    }
-
-                    if (!actaJsonElement.HasValue)
-                    {
-                        // Try to parse the full HTML as JSON (some endpoints return JSON directly)
-                        try
-                        {
-                            if (!string.IsNullOrWhiteSpace(actaHtml) && (actaHtml.TrimStart().StartsWith("{") || actaHtml.TrimStart().StartsWith("[")))
-                            {
-                                using var doc2 = JsonDocument.Parse(actaHtml);
-                                var root2 = doc2.RootElement;
-                                if (root2.ValueKind == JsonValueKind.Object)
-                                {
-                                    if (root2.TryGetProperty("acta", out var ae2))
-                                        actaJsonElement = ae2.Clone();
-                                    else if (root2.TryGetProperty("acta_json", out var ae3))
-                                        actaJsonElement = ae3.Clone();
-                                    else if (root2.TryGetProperty("game", out var ge))
-                                        actaJsonElement = ge.Clone();
-                                    else
-                                        actaJsonElement = root2.Clone();
-                                }
-                                else
-                                {
-                                    actaJsonElement = root2.Clone();
-                                }
-                            }
-                        }
-                        catch
-                        {
-                            // can't parse as JSON, skip
-                        }
-                    }
-
-                    if (!actaJsonElement.HasValue) continue;
-
-                    try
-                    {
-                        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                        var game = JsonSerializer.Deserialize<Game>(actaJsonElement.Value.GetRawText(), options);
+                        var game = await _actaService.GetGameFromActaAsync(cod.Trim(), request.Temporada, request.Competicion, request.Grupo, cancellationToken);
                         if (game != null)
                         {
-                            // we successfully deserialized the acta JSON; increment counter
                             matchesProcessed++;
 
-                            // Determine if the requested team is local or away in this game
                             bool isLocalTeam = string.Equals(game.LocalTeamCode?.Trim(), request.TeamCode?.Trim(), StringComparison.OrdinalIgnoreCase);
                             bool isAwayTeam = string.Equals(game.AwayTeamCode?.Trim(), request.TeamCode?.Trim(), StringComparison.OrdinalIgnoreCase);
 
@@ -307,7 +195,6 @@ namespace RFFM.Api.Features.Teams.Queries
                             else if (compDesc.Contains("infantil")) duration = 70;
                             else if (compDesc.Contains("cadete")) duration = 80;
 
-                            // Count total goals from this game for the requested team (for verification)
                             if (isLocalTeam)
                             {
                                 totalGoalsFor += int.TryParse(game.LocalGoals, out var localGoals) ? localGoals : 0;
@@ -319,10 +206,6 @@ namespace RFFM.Api.Features.Teams.Queries
                                 totalGoalsAgainst += int.TryParse(game.LocalGoals, out var localGoals) ? localGoals : 0;
                             }
 
-                            // Parse minutes for goals. Add to allGoals list with direction (for or against)
-                            // If team code matches local, local goals are for the team
-                            // If team code matches away, away goals are for the team
-                            // If neither matches, skip goal accumulation for this match
                             if (isLocalTeam)
                             {
                                 AddGoalsToList(game.LocalGoalsList, true, duration, allGoals);
@@ -333,15 +216,11 @@ namespace RFFM.Api.Features.Teams.Queries
                                 AddGoalsToList(game.AwayGoalsList, true, duration, allGoals);
                                 AddGoalsToList(game.LocalGoalsList, false, duration, allGoals);
                             }
-                            else
-                            {
-                                // team not involved, skip
-                            }
                         }
                     }
                     catch
                     {
-                        // ignore deserialization failures per acta
+                        // ignore per-acta failures
                     }
                 }
 

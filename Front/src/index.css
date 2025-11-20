@@ -10,6 +10,19 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Height of the fixed application header. Use this to offset page content. */
+:root {
+  --app-header-height: 64px; /* default desktop header height */
+}
+
+@media (max-width: 600px) {
+  :root {
+    /* mobile header is typically shorter; keep it small to avoid large gaps
+       include a fallback - we'll also add safe-area inset at usage site */
+    --app-header-height: 48px;
+  }
+}
+
 /* Import display font for player names */
 @import url("https://fonts.googleapis.com/css2?family=Oswald:wght@600;700;800&display=swap");
 

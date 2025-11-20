@@ -1,0 +1,11 @@
+.root {
+  padding: 14px;
+  margin-bottom: 12px;
+}
+.colRow {
+  display: flex;
+  gap: 14px;
+}
+.colRow > * {
+  min-width: 0;
+}

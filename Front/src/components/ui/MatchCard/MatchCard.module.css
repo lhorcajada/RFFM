@@ -14,6 +14,17 @@
   box-sizing: border-box;
 }
 
+.compact {
+  padding: 6px 8px;
+  margin-bottom: 20px;
+  min-height: 120px;
+  height: 100%;
+}
+
+.height100 {
+  height: 100%;
+}
+
 /* Highlight the whole card when it contains the primary team */
 .highlightPrimary {
   border-color: rgba(11, 95, 255, 0.95);

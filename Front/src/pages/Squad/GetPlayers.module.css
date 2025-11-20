@@ -2,9 +2,13 @@
   box-sizing: border-box;
   width: 100%;
   max-width: 100%;
-  margin: 2px; /* minimal gutter on small devices */
+  margin: 8px 2px; /* add vertical spacing to avoid touching other containers */
   padding: 12px;
   padding-bottom: 96px; /* ensure content above fixed footer */
+}
+/* space above staff paper to keep it separate from players container */
+.staffPaper {
+  margin-top: 8px;
 }
 .center {
   display: flex;

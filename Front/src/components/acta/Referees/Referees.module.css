@@ -1,0 +1,39 @@
+.root {
+  padding: 14px;
+  margin-bottom: 12px;
+}
+
+/* Ensure the referees panel isn't overlapped by the fixed footer on small screens */
+@media (max-width: 599px) {
+  .root {
+    /* reserve extra space equal to the footer area */
+    margin-bottom: 96px;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.item > * {
+  min-width: 0;
+}
+.avatarWrap {
+  flex: 0 0 auto;
+}
+.refInfo {
+  display: flex;
+  flex-direction: column;
+}
+.refInfo {
+  min-width: 0;
+}
+.name {
+  font-weight: 600;
+}
+.role {
+  font-size: 12px;
+  color: #666;
+}

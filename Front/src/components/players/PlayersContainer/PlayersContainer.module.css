@@ -1,5 +1,6 @@
 .playersBox {
   margin-top: 12px;
+  margin-bottom: 20px;
   padding: 12px;
   background: linear-gradient(180deg, #08323a 0%, #06282f 100%);
   border: 1px solid rgba(0, 200, 255, 0.08);
@@ -8,6 +9,12 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+@media (max-width: 599px) {
+  .playersBox {
+    padding-bottom: 84px; /* leave room for fixed footer */
+  }
 }
 
 .playersTitle {

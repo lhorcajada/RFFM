@@ -1,0 +1,177 @@
+.root {
+  padding: 14px;
+}
+.item {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.item > * {
+  min-width: 0;
+}
+.info {
+  margin-left: 8px;
+  display: flex;
+  flex-direction: column;
+}
+.info {
+  min-width: 0;
+}
+.meta {
+  color: #dad70d;
+  font-size: 12px;
+  font-weight: 800;
+}
+.section {
+  margin-top: 8px;
+}
+.section :global(.MuiTypography-root) {
+  margin-bottom: 6px;
+}
+.jersey {
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(180deg, #fafafa, #f0f0f0);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: #111;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
+  flex: 0 0 auto;
+  min-width: 44px;
+}
+.nameRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.captainBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 6px;
+  width: 20px;
+  height: 16px;
+}
+.goalsList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-left: 8px;
+  align-items: center;
+}
+.goalItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  padding: 2px 4px;
+  border-radius: 6px;
+}
+/* Icon classes style the MUI svg icon applied directly to the icon */
+.goalBall,
+.goalBallRed,
+.goalBallWhite {
+  display: inline-flex;
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+}
+.goalBall {
+  color: #f59e0b;
+}
+.goalBallRed {
+  color: #c62828;
+}
+.goalBallWhite {
+  /* wrapper: white circle background used when goal type is '100' */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  background: #fff;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+.goalIconInside {
+  color: #0f1724;
+  width: 14px;
+  height: 14px;
+}
+.goalMinute {
+  font-size: 12px;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.85);
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-block;
+}
+.goalPenalty {
+  background: #2b2b2b;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  color: #fff;
+}
+
+@media (max-width: 700px) {
+  .root {
+    padding: 10px;
+  }
+  .item {
+    gap: 8px;
+    align-items: flex-start;
+  }
+  .info {
+    margin-left: 6px;
+  }
+  .jersey {
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
+    flex: 0 0 auto;
+    min-width: 36px;
+  }
+  .nameRow {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .goalRow {
+    margin-left: 0;
+  }
+  .goalBall,
+  .goalBallRed,
+  .goalBallWhite {
+    width: 14px;
+    height: 14px;
+  }
+  .goalMinute {
+    font-size: 11px;
+  }
+  .goalsList {
+    width: 100%;
+  }
+  .goalItem {
+    flex: 0 0 auto;
+  }
+}
+
+@media (max-width: 480px) {
+  /* On very small screens, let goal items flow horizontally and shrink spacing */
+  .goalsList {
+    gap: 4px;
+    margin-left: 6px;
+  }
+  .goalItem {
+    gap: 4px;
+    padding: 1px 3px;
+  }
+  .goalMinute {
+    padding: 2px 4px;
+    font-size: 11px;
+  }
+}

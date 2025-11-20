@@ -53,24 +53,7 @@ export default function ClassificationItem({
   else if (pos === 6) posClass = styles.positionGreen as string;
   else if (typeof total === "number" && total > 0 && pos > total - 3)
     posClass = styles.positionRed as string;
-  useEffect(() => {
-    try {
-      if (typeof window !== "undefined") {
-        // eslint-disable-next-line no-console
-        console.log("ClassificationItem props:", {
-          teamName,
-          won,
-          drawn,
-          lost,
-          goalsFor,
-          goalsAgainst,
-          last5,
-        });
-      }
-    } catch (e) {
-      // ignore
-    }
-  }, [teamName, won, drawn, lost, goalsFor, goalsAgainst, last5]);
+
   return (
     <div className={styles.item}>
       <div className={`${styles.position} ${posClass}`}>{position}</div>

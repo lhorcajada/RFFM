@@ -17,12 +17,14 @@
 .appBar {
   background: linear-gradient(180deg, #082033 0%, #05313b 100%) !important;
   border-radius: 0 !important;
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 0 !important;
   width: 100%;
   min-width: 0;
   left: 0;
   right: 0;
   top: 0;
-  position: fixed !important;
+  position: sticky !important; /* occupy layout flow so pages sit below automatically */
   box-shadow: none !important;
   margin: 0;
   padding: 0;
@@ -37,7 +39,9 @@
     justify-content: center;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     overflow-x: hidden;
-    border-radius: 0;
+    border-radius: 0 !important;
+    border-top-left-radius: 0 !important;
+    border-top-right-radius: 0 !important;
     min-height: 44px;
     padding: 10px 20px 8px 20px;
   }

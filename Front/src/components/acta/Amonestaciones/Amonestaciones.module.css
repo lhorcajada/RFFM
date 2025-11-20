@@ -1,0 +1,90 @@
+.root {
+  padding: 14px;
+  margin-bottom: 12px;
+  background: transparent;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .root {
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+}
+.rowGroup {
+  display: flex;
+  gap: 14px;
+}
+.rowGroup > * {
+  min-width: 0;
+}
+.col {
+  flex: 1 1 0;
+}
+.item {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 6px 4px;
+}
+.item > * {
+  min-width: 0;
+}
+.minute {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #fff;
+  color: #111;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+.info {
+  display: flex;
+  flex-direction: column;
+}
+.playerRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.playerName {
+  font-weight: 600;
+}
+.dorsal {
+  background: #111;
+  color: #fff;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+.playerName,
+.cardMeta {
+  word-break: break-word;
+}
+.cardMeta {
+  color: #666;
+  font-size: 12px;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+@media (min-width: 700px) {
+  .cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1200px) {
+  .cards {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

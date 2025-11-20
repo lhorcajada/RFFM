@@ -17,15 +17,13 @@
   min-height: 0;
   width: 100%;
   padding: 12px 12px 0 12px !important;
-  padding-top: calc(64px + env(safe-area-inset-top, 0px)) !important;
-  padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
 }
 
 /* Ensure extra bottom space on small screens so fixed footer doesn't overlap content */
 @media (max-width: 599px) {
   .content {
-    padding-bottom: calc(110px + env(safe-area-inset-bottom, 0px));
-    padding-top: calc(56px + env(safe-area-inset-top, 0px)) !important;
+    padding-bottom: calc(140px + env(safe-area-inset-bottom, 0px));
   }
 }
 .paper {
@@ -34,7 +32,7 @@
   margin: 0;
   padding: 0;
   background: transparent;
-  border-radius: 0;
+  border-radius: 0 !important;
   box-shadow: none;
   box-sizing: border-box;
   overflow-x: hidden;

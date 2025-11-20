@@ -10,6 +10,7 @@ import Settings from "./pages/Settings/Settings";
 import Classification from "./pages/Classification";
 import Footer from "./components/ui/Footer/Footer";
 import Goleadores from "./pages/Goleadores/Goleadores";
+import Acta from "./pages/Acta/Acta";
 
 export default function App(): JSX.Element {
   return (
@@ -22,6 +23,7 @@ export default function App(): JSX.Element {
           <Route path="/calendar" element={<GetCalendar />} />
           <Route path="/classification" element={<Classification />} />
           <Route path="/goleadores" element={<Goleadores />} />
+          <Route path="/acta/:codacta" element={<Acta />} />
         </Routes>
       </main>
     </div>
