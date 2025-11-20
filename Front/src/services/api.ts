@@ -354,7 +354,8 @@ export async function getActa(
       const arr = raw ? JSON.parse(raw) : [];
       const primaryId = localStorage.getItem("rffm.primary_combination_id");
       if (Array.isArray(arr) && arr.length > 0) {
-        if (primaryId) combo = arr.find((c: any) => String(c.id) === String(primaryId));
+        if (primaryId)
+          combo = arr.find((c: any) => String(c.id) === String(primaryId));
         if (!combo) combo = arr.find((c: any) => c.isPrimary) || arr[0];
       }
     }
@@ -362,7 +363,8 @@ export async function getActa(
     if (combo) {
       if (!competicion && combo.competition && combo.competition.id)
         competicion = String(combo.competition.id);
-      if (!grupo && combo.group && combo.group.id) grupo = String(combo.group.id);
+      if (!grupo && combo.group && combo.group.id)
+        grupo = String(combo.group.id);
       if (combo.team && combo.team.id) equipo = String(combo.team.id);
     }
   } catch (e) {
