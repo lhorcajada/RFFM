@@ -163,15 +163,25 @@ export default function Settings(): JSX.Element {
       return;
     }
     const id = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    const isFirst = saved.length === 0;
     const combo: SavedCombo = {
       id,
       competition: selectedCompetition ?? null,
       group: selectedGroup ?? null,
       team: selectedTeam ?? null,
       createdAt: Date.now(),
-      isPrimary: false,
+      isPrimary: isFirst,
     };
     const next = [combo, ...saved];
+    // if this is the first saved combo, also persist it as primary
+    if (isFirst) {
+      try {
+        localStorage.setItem(STORAGE_PRIMARY, id);
+        setPrimaryId(id);
+      } catch (e) {
+        // ignore
+      }
+    }
     persist(next);
   }
 
