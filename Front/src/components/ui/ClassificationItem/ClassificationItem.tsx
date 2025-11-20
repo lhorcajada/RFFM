@@ -72,7 +72,7 @@ export default function ClassificationItem({
                 <strong>{played}</strong>
               </span>
             </span>
-            ·
+
             <span className={styles.goalIconWrap} title="Goles a favor">
               <span className={styles.iconCircleWhite} aria-hidden>
                 <SportsSoccerIcon
@@ -82,7 +82,7 @@ export default function ClassificationItem({
               </span>
               <span className={styles.goalText}>{goalsFor}</span>
             </span>
-            ·
+
             <span className={styles.goalIconWrap} title="Goles en contra">
               <span className={styles.iconCircleRed} aria-hidden>
                 <SportsSoccerIcon

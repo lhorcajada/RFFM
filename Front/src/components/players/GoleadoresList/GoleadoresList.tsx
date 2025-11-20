@@ -79,7 +79,6 @@ const GoleadoresList: React.FC<GoleadoresListProps> = ({
                 <strong>{goleador.matchesPlayed}</strong>
               </span>
             </span>
-            ·
             <span
               className={styles.iconWrap}
               title="Media de goles por partido"
@@ -94,7 +93,6 @@ const GoleadoresList: React.FC<GoleadoresListProps> = ({
             </span>
             {goleador.penaltyScores > 0 && (
               <>
-                ·
                 <span className={styles.iconWrap} title="Goles de penalti">
                   <span className={styles.iconCirclePenalty} aria-hidden>
                     <SportsSoccerIcon
@@ -103,7 +101,7 @@ const GoleadoresList: React.FC<GoleadoresListProps> = ({
                     />
                   </span>
                   <span className={styles.metaText}>
-                    ({goleador.penaltyScores})
+                    ({goleador.penaltyScores} de penalti)
                   </span>
                 </span>
               </>
