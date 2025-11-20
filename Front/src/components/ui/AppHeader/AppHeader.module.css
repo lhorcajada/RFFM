@@ -3,6 +3,7 @@
     display: flex;
     align-items: center;
     width: 100%;
+    position: relative;
   }
   .configWrap {
     margin-left: auto;
@@ -50,10 +51,25 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    padding: 4px 12px;
+    background: none;
+    border-radius: 0;
+    padding: 0;
     flex-wrap: wrap;
+  }
+
+  .titleColumn {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .cornerWrap {
+    position: absolute;
+    right: 12px;
+    bottom: 6px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
   }
 
   @media (max-width: 480px) {
@@ -72,18 +88,35 @@
       display: flex;
       flex-direction: row;
       align-items: center;
-      gap: 4px;
-      font-size: 0.7rem;
+      gap: 6px;
+      font-size: 0.72rem;
+      background: rgba(255, 255, 255, 0.06);
+      padding: 4px 8px;
+      border-radius: 10px;
+      margin-left: auto;
+      flex-wrap: wrap;
+      max-width: 60%;
+      justify-content: flex-end;
+    }
+    .cornerWrap {
+      position: static;
+      margin-left: auto;
       background: none;
       padding: 0;
-      border-radius: 0;
-      margin-left: auto;
+      gap: 6px;
+    }
+    .teamUnderTitle {
+      font-size: 0.85rem;
+      opacity: 0.9;
+      margin-top: 2px;
     }
     .competition,
-    .group {
-      font-size: 0.7rem;
+    .group,
+    .team {
+      font-size: 0.72rem;
       white-space: nowrap;
       margin: 0;
+      padding: 2px 8px;
     }
     .separator {
       font-size: 1.1rem;
@@ -95,7 +128,7 @@
 .competition {
   color: #fff;
   font-weight: 600;
-  font-size: 0.8rem;
+  font-size: 0.95rem;
   letter-spacing: 0.5px;
   background: rgba(0, 229, 255, 0.18);
   border-radius: 16px;
@@ -104,6 +137,19 @@
   display: inline-block;
   border: 1px solid rgba(0, 229, 255, 0.25);
   box-shadow: 0 1px 4px rgba(0, 229, 255, 0.08);
+}
+
+.team {
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 500;
+  background: rgba(144, 238, 144, 0.14);
+  border-radius: 16px;
+  padding: 2px 10px;
+  margin: 0 2px;
+  display: inline-block;
+  border: 1px solid rgba(144, 238, 144, 0.2);
+  box-shadow: 0 1px 4px rgba(144, 238, 144, 0.06);
 }
 
 .separator {

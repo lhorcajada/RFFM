@@ -9,3 +9,254 @@
 .colRow > * {
   min-width: 0;
 }
+
+.root {
+  background: transparent;
+  border-radius: 8px;
+  border: 1px solid rgba(16, 24, 40, 0.08);
+  padding: 12px;
+}
+
+.item {
+  --arrow-col-width: 56px;
+  display: grid;
+  grid-template-columns: 44px 1fr var(--arrow-col-width) 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 8px 6px;
+}
+
+.tableWrap {
+  width: 100%;
+  overflow: auto;
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.row {
+  border-bottom: 1px solid rgba(16, 24, 40, 0.04);
+}
+.row:last-child {
+  border-bottom: none;
+}
+.minuteCell {
+  width: 44px;
+  padding: 8px 6px;
+}
+.enteringCell,
+.exitingCell {
+  padding: 8px 6px;
+}
+.arrowCell {
+  width: var(--arrow-col-width);
+  text-align: center;
+}
+.enteringCellInner,
+.exitingCellInner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Desktop: horizontal row with vertical centering (Option B) */
+@media (min-width: 900px) {
+  .row {
+    border-bottom: 1px solid rgba(16, 24, 40, 0.06);
+  }
+  .table {
+    font-size: 15px;
+  }
+  .minuteCell {
+    width: 72px;
+  }
+  .arrowCell {
+    width: 56px;
+  }
+  .enteringCellInner,
+  .exitingCellInner {
+    align-items: center;
+  }
+}
+
+.minuteWrap {
+  width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.minute {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #fff;
+  color: #0b1220;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  border: 1px solid rgba(16, 24, 40, 0.06);
+}
+
+.content {
+  flex: 1 1 auto;
+}
+.rowTop {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.entering,
+.exiting {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.dorsal {
+  background: #16a34a; /* green */
+  color: #fff;
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-weight: 700;
+}
+.dorsalExit {
+  background: #dc2626; /* red */
+  color: #fff;
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-weight: 700;
+}
+.playerName {
+  color: #fff;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.playerNameExit {
+  color: #fff;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.arrow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 28px;
+}
+.arrowIn {
+  color: #16a34a;
+  font-size: 18px;
+  font-weight: 800;
+}
+.arrowOut {
+  color: #dc2626;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.arrowContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+  width: var(--arrow-col-width);
+  justify-self: center;
+}
+.arrowCircleIn,
+.arrowCircleOut {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+}
+.arrowCircleIn {
+  background: #16a34a22; /* subtle green */
+  color: #16a34a;
+  border: 2px solid #16a34a;
+}
+.arrowCircleOut {
+  background: #dc262622; /* subtle red */
+  color: #dc2626;
+  border: 2px solid #dc2626;
+}
+
+@media (max-width: 700px) {
+  .colRow {
+    flex-direction: column;
+  }
+  .minuteWrap {
+    width: 40px;
+  }
+  .minute {
+    width: 32px;
+    height: 32px;
+    font-size: 13px;
+  }
+  .item {
+    grid-template-columns: 40px 1fr var(--arrow-col-width) 1fr;
+    align-items: start;
+    gap: 8px;
+  }
+  .rowTop {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
+  .arrowContainer {
+    flex-direction: column;
+    gap: 4px;
+  }
+  .entering,
+  .exiting {
+    gap: 6px;
+  }
+}
+
+@media (max-width: 420px) {
+  .item {
+    grid-template-columns: 40px 1fr var(--arrow-col-width) 1fr;
+    align-items: start;
+    gap: 8px;
+  }
+  .rowTop {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  .arrowContainer {
+    justify-content: center;
+  }
+  .minuteWrap {
+    margin-bottom: 6px;
+  }
+  .content {
+    width: 100%;
+  }
+  .entering,
+  .exiting {
+    width: 100%;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  .dorsal,
+  .dorsalExit {
+    padding: 4px 6px;
+    font-size: 13px;
+  }
+  .playerName,
+  .playerNameExit {
+    font-size: 12px;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+  }
+}

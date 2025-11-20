@@ -270,7 +270,26 @@ namespace RFFM.Api.Features.Teams.Models
 
     public class Substitution
     {
-        // Not provided in the JSON sample, but included for completeness.
+        [JsonPropertyName("minuto")]
+        public string Minute { get; set; } = string.Empty;
+
+        [JsonPropertyName("entradorsal")]
+        public string EnteringNumber { get; set; } = string.Empty;
+
+        [JsonPropertyName("codjugador_entra")]
+        public string EnteringPlayerCode { get; set; } = string.Empty;
+
+        [JsonPropertyName("nombre_jugador_entra")]
+        public string EnteringPlayerName { get; set; } = string.Empty;
+
+        [JsonPropertyName("saledorsal")]
+        public string ExitingNumber { get; set; } = string.Empty;
+
+        [JsonPropertyName("codjugador_sale")]
+        public string ExitingPlayerCode { get; set; } = string.Empty;
+
+        [JsonPropertyName("nombre_jugador_sale")]
+        public string ExitingPlayerName { get; set; } = string.Empty;
     }
 
     public class Card

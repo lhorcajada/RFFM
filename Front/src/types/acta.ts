@@ -22,6 +22,25 @@ export interface PlayerActa {
   [key: string]: any;
 }
 
+export interface Substitution {
+  minuto?: string;
+  entradorsal?: string;
+  codjugador_entra?: string;
+  nombre_jugador_entra?: string;
+  saledorsal?: string;
+  codjugador_sale?: string;
+  nombre_jugador_sale?: string;
+  // also accept server-side PascalCase or English fields
+  Minute?: string;
+  EnteringNumber?: string;
+  EnteringPlayerCode?: string;
+  EnteringPlayerName?: string;
+  ExitingNumber?: string;
+  ExitingPlayerCode?: string;
+  ExitingPlayerName?: string;
+  [key: string]: any;
+}
+
 export interface Technician {
   foto?: string;
   tipo?: string;
@@ -99,8 +118,8 @@ export interface Acta {
   entrenador2_visitante?: string;
   otros_tecnicos_visitante?: Technician[];
   jugadores_equipo_visitante?: PlayerActa[];
-  sustituciones_equipo_local?: any[];
-  sustituciones_equipo_visitante?: any[];
+  sustituciones_equipo_local?: Substitution[];
+  sustituciones_equipo_visitante?: Substitution[];
   tarjetas_equipo_local?: CardEvent[];
   tarjetas_equipo_visitante?: CardEvent[];
   otras_tarjetas?: CardEvent[];
