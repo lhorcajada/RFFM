@@ -3,11 +3,11 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: transparent; /* transparent cards */
+  border: 1px solid rgba(255, 255, 255, 0.12); /* stronger contrast on dark backgrounds */
   border-radius: 8px;
   padding: 8px 6px;
-  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.03);
+  box-shadow: none;
   height: 100%;
   max-width: 100%;
   overflow: hidden;
@@ -81,7 +81,7 @@
   margin-top: 6px;
   font-size: 0.9rem;
   text-align: center;
-  color: #111827;
+  color: #ffffff;
   min-height: 2.4rem;
   display: block;
   overflow: visible;
@@ -109,13 +109,13 @@
 
 .timeChip {
   display: inline-block;
-  background: #eef2ff;
-  color: #0f172a;
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffffff;
   padding: 6px 10px;
   border-radius: 16px;
   font-weight: 700;
   font-size: 1rem;
-  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+  box-shadow: none;
 }
 
 /* Result chip around goal numbers */
@@ -127,9 +127,8 @@
   font-weight: 800;
   font-size: 1rem;
   text-align: center;
-  background: #fff;
+  background: rgba(255, 255, 255, 0.06);
   border: 2px solid transparent;
-  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
 }
 
 /* Winner: green border */
@@ -159,7 +158,7 @@
   font-size: 1.4rem;
   width: 46px;
   text-align: center;
-  color: #111827;
+  color: #ffffff;
 }
 
 .centerStack {
@@ -170,10 +169,10 @@
 
 .actaBtn {
   margin-top: 8px;
-  background: #f3f4f6 !important;
-  color: #111827 !important;
-  border: 1px solid rgba(0, 0, 0, 0.06) !important;
-  box-shadow: 0 2px 6px rgba(16, 24, 40, 0.06) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: none !important;
   text-transform: none !important;
   padding: 6px 10px !important;
   font-size: 0.85rem !important;
@@ -182,8 +181,8 @@
 
 .actaOutline {
   background: transparent !important;
-  color: #0f172a !important;
-  border: 1px solid rgba(15, 23, 42, 0.12) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
   box-shadow: none !important;
   margin-left: 8px;
 }

@@ -59,6 +59,6 @@
 .teamName,
 .timeText,
 .scoreBox {
-  color: #111827; /* dark text for readability on light group header/cards */
+  color: #ffffff; /* use white text on transparent/colored backgrounds */
 }
 /* MatchCard-specific styles moved to component CSS module */
