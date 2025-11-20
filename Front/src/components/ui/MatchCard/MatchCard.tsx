@@ -5,7 +5,7 @@ import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import Typography from "@mui/material/Typography";
-import styles from "../../../pages/Calendar/GetCalendar.module.css";
+import styles from "./MatchCard.module.css";
 
 type MatchItem = {
   rawDate?: string | null;
@@ -33,6 +33,34 @@ function parseTimeToHM(time?: string | null): { h: number; m: number } | null {
 
 export default function MatchCard({ item }: { item: MatchItem }) {
   const m = item.match;
+  const STORAGE_PRIMARY = "rffm.primary_combination_id";
+  const STORAGE_KEY = "rffm.saved_combinations_v1";
+
+  function getPrimaryTeamId(): string | null {
+    try {
+      const primaryId = localStorage.getItem(STORAGE_PRIMARY);
+      if (!primaryId) return null;
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (!stored) return null;
+      const combos = JSON.parse(stored || "[]");
+      const primary = (combos || []).find(
+        (c: any) => String(c.id) === String(primaryId)
+      );
+      return primary?.team?.id ? String(primary.team.id) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  const primaryTeamId = getPrimaryTeamId();
+  function parseGoalValue(v: any): number | null {
+    if (v === null || v === undefined) return null;
+    const s = String(v).trim();
+    if (s === "" || s === "-") return null;
+    const n = Number(s);
+    if (!Number.isFinite(n)) return null;
+    return Math.trunc(n);
+  }
   const [openActa, setOpenActa] = useState(false);
   const time = m.hora ?? m.time ?? m.hour ?? "";
   const localName =
@@ -43,6 +71,54 @@ export default function MatchCard({ item }: { item: MatchItem }) {
     m.AwayTeamName ??
     m.visitante ??
     "-";
+
+  // try to extract possible team ids from match object
+  function extractTeamId(obj: any, prefixes: string[] = []) {
+    if (!obj) return null;
+    // common fields
+    const candidates = [
+      obj.teamId,
+      obj.codequipo,
+      obj.codigo_equipo,
+      obj.team_code,
+      obj.codigo,
+      obj.id,
+      obj.cod_equipo,
+    ];
+    for (const p of prefixes) {
+      candidates.push(obj[`${p}TeamId`]);
+      candidates.push(obj[`${p}teamId`]);
+      candidates.push(obj[`${p}TeamCode`]);
+      candidates.push(obj[`${p}teamCode`]);
+      candidates.push(obj[`${p}codigo_equipo`]);
+      candidates.push(obj[`${p}codequipo`]);
+    }
+    for (const c of candidates) {
+      if (c !== null && c !== undefined && String(c).trim() !== "")
+        return String(c);
+    }
+    return null;
+  }
+
+  // match objects may include ids on different fields; try several heuristics
+  const localTeamId =
+    m.codigo_equipo_local ??
+    m.codigo_local ??
+    m.cod_equipo_local ??
+    m.localTeamId ??
+    m.local_team_id ??
+    m.localTeamCode ??
+    m.localCode ??
+    extractTeamId(m.local ?? m.equipo_local ?? m);
+  const awayTeamId =
+    m.codigo_equipo_visitante ??
+    m.codigo_visitante ??
+    m.cod_equipo_visitante ??
+    m.awayTeamId ??
+    m.away_team_id ??
+    m.awayTeamCode ??
+    m.awayCode ??
+    extractTeamId(m.visitante ?? m.equipo_visitante ?? m);
 
   let localShield =
     m.escudo_equipo_local_url ??
@@ -86,8 +162,45 @@ export default function MatchCard({ item }: { item: MatchItem }) {
   const finished =
     hasActa || actaCerrada || estadoFinished || scheduledFinished;
 
+  const localGoalsNum = parseGoalValue(
+    m.goles_casa ?? m.LocalGoals ?? m.LocalGoals ?? null
+  );
+  const awayGoalsNum = parseGoalValue(
+    m.goles_visitante ?? m.AwayGoals ?? m.AwayGoals ?? null
+  );
+
+  let localResultClass = "";
+  let awayResultClass = "";
+  if (localGoalsNum !== null && awayGoalsNum !== null) {
+    if (localGoalsNum > awayGoalsNum) {
+      localResultClass = styles.winner;
+      awayResultClass = styles.loser;
+    } else if (localGoalsNum < awayGoalsNum) {
+      localResultClass = styles.loser;
+      awayResultClass = styles.winner;
+    } else {
+      localResultClass = styles.draw;
+      awayResultClass = styles.draw;
+    }
+  }
+
+  const isPrimaryLocal = Boolean(
+    primaryTeamId &&
+      localTeamId &&
+      String(primaryTeamId) === String(localTeamId)
+  );
+  const isPrimaryAway = Boolean(
+    primaryTeamId && awayTeamId && String(primaryTeamId) === String(awayTeamId)
+  );
+
+  const rootClass = `${styles.matchCard} ${
+    isPrimaryLocal || isPrimaryAway ? styles.highlightPrimary : ""
+  } ${isPrimaryLocal ? styles.highlightLeft : ""} ${
+    isPrimaryAway ? styles.highlightRight : ""
+  }`;
+
   return (
-    <div className={styles.matchCard}>
+    <div className={rootClass}>
       <div className={styles.teamBox}>
         <div className={styles.shieldWrap}>
           {localShield ? (
@@ -107,37 +220,53 @@ export default function MatchCard({ item }: { item: MatchItem }) {
       </div>
 
       <div className={styles.centerArea}>
-        <div className={styles.timeText}>{time || "-"}</div>
-        <div className={styles.scoreBox}>
-          {m.goles_casa ?? m.LocalGoals ?? "-"} —{" "}
-          {m.goles_visitante ?? m.AwayGoals ?? "-"}
+        <div className={styles.scoreSide}>
+          <span className={`${styles.resultChip} ${localResultClass}`}>
+            {localGoalsNum !== null
+              ? localGoalsNum
+              : m.goles_casa ?? m.LocalGoals ?? "-"}
+          </span>
         </div>
-        {finished ? (
-          <>
-            <Button
-              variant="contained"
-              size="small"
-              className={styles.actaBtn}
-              onClick={() => setOpenActa(true)}
-            >
-              Ver acta
-            </Button>
-            <Dialog open={openActa} onClose={() => setOpenActa(false)}>
-              <DialogTitle>Acta no disponible</DialogTitle>
-              <DialogContent>
-                <Typography>
-                  La vista del acta aún no está implementada. Pronto estará
-                  disponible en esta aplicación.
-                </Typography>
-              </DialogContent>
-              <DialogActions>
-                <Button onClick={() => setOpenActa(false)}>Cerrar</Button>
-              </DialogActions>
-            </Dialog>
-          </>
-        ) : (
-          <div style={{ height: 32 }} />
-        )}
+
+        <div className={styles.centerStack}>
+          <div className={styles.timeText}>
+            <span className={styles.timeChip}>{time || "-"}</span>
+          </div>
+          {finished ? (
+            <>
+              <Button
+                variant="contained"
+                size="small"
+                className={`${styles.actaBtn} ${styles.actaOutline}`}
+                onClick={() => setOpenActa(true)}
+              >
+                Ver acta
+              </Button>
+              <Dialog open={openActa} onClose={() => setOpenActa(false)}>
+                <DialogTitle>Acta no disponible</DialogTitle>
+                <DialogContent>
+                  <Typography>
+                    La vista del acta aún no está implementada. Pronto estará
+                    disponible en esta aplicación.
+                  </Typography>
+                </DialogContent>
+                <DialogActions>
+                  <Button onClick={() => setOpenActa(false)}>Cerrar</Button>
+                </DialogActions>
+              </Dialog>
+            </>
+          ) : (
+            <div style={{ height: 32 }} />
+          )}
+        </div>
+
+        <div className={styles.scoreSide}>
+          <span className={`${styles.resultChip} ${awayResultClass}`}>
+            {awayGoalsNum !== null
+              ? awayGoalsNum
+              : m.goles_visitante ?? m.AwayGoals ?? "-"}
+          </span>
+        </div>
       </div>
 
       <div className={styles.teamBox}>
