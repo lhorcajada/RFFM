@@ -8,7 +8,7 @@
   box-sizing: border-box;
   background: transparent;
   border-radius: 12px;
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   transition: transform 120ms ease, box-shadow 120ms ease;
   min-height: 74px;
   position: relative;
@@ -97,7 +97,7 @@
   hyphens: auto;
   /* thicker, jersey-number like stroke */
   -webkit-text-stroke: 0.35px rgba(0, 0, 0, 0.6);
-  text-shadow: 0.4px 0 rgba(0,0,0,0.45), -0.4px 0 rgba(0,0,0,0.45);
+  text-shadow: 0.4px 0 rgba(0, 0, 0, 0.45), -0.4px 0 rgba(0, 0, 0, 0.45);
   letter-spacing: 0.9px;
 }
 
@@ -105,8 +105,8 @@
   font-style: italic;
   font-size: 0.82rem;
   color: #ffffff !important;
-  background: rgba(255,255,255,0.04) !important;
-  border: 1px solid rgba(255,255,255,0.06) !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
   height: 24px;
   padding: 0 10px !important;
   line-height: 22px;
@@ -156,9 +156,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255,255,255,0.08);
+  background: rgba(255, 255, 255, 0.08);
   border-radius: 50%;
-  border: 1px solid rgba(255,255,255,0.12);
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .iconCirclePenalty {
@@ -209,7 +209,7 @@
   font-weight: 700;
   font-size: 0.95rem;
   box-shadow: none;
-  border: 2px solid rgba(255,255,255,0.12);
+  border: 2px solid rgba(255, 255, 255, 0.12);
 }
 
 .trophyIcon {
