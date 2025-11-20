@@ -1,6 +1,7 @@
 import React from "react";
 import { Goleador } from "../../../services/api";
 import styles from "./GoleadoresList.module.css";
+import Chip from "@mui/material/Chip";
 import SportsSoccerIcon from "@mui/icons-material/SportsSoccer";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
@@ -16,6 +17,19 @@ const GoleadoresList: React.FC<GoleadoresListProps> = ({
   position,
   totalPlayers,
 }) => {
+  const isPrimaryTeam = React.useMemo(() => {
+    try {
+      const raw = localStorage.getItem("rffm.current_selection");
+      if (!raw) return false;
+      const combo = JSON.parse(raw as string);
+      const savedTeamId =
+        combo?.team?.id ?? combo?.teamId ?? combo?.teamId ?? null;
+      return String(savedTeamId) === String(goleador.teamId);
+    } catch (e) {
+      return false;
+    }
+  }, [goleador.teamId]);
+
   const average = (goleador.scores / goleador.matchesPlayed).toFixed(2);
   const pos = Number(position) || 0;
   const total =
@@ -39,6 +53,20 @@ const GoleadoresList: React.FC<GoleadoresListProps> = ({
       <div className={styles.player}>
         <div className={styles.playerInfo}>
           <div className={styles.playerName}>{goleador.playerName}</div>
+          {/* team name (optional) */}
+          {goleador.teamName &&
+            (isPrimaryTeam ? (
+              <Chip
+                label={goleador.teamName}
+                size="small"
+                className={`${styles.teamChip} ${styles.teamChipPrimary}`}
+                aria-hidden
+              />
+            ) : (
+              <span className={styles.teamText} aria-hidden>
+                {goleador.teamName}
+              </span>
+            ))}
           <div className={styles.playerMeta}>
             <span className={styles.iconWrap} title="Partidos jugados">
               <span className={styles.iconCircle} aria-hidden>

@@ -204,6 +204,7 @@ namespace RFFM.Api.Features.Competitions.Services
                     .Select(g => new ResponseScores
                     {
                         TeamId = g.TeamCode,
+                        TeamName = g.TeamName,
                         AverageScores = string.IsNullOrEmpty(g.GoalsPerMatch) ? 0 : Convert.ToDecimal(g.GoalsPerMatch),
                         MatchesPlayed = string.IsNullOrEmpty(g.MatchesPlayed) ? 0 : Convert.ToInt32(g.MatchesPlayed),
                         PenaltyScores = string.IsNullOrEmpty(g.PenaltyGoals) ? 0 : Convert.ToInt32(g.PenaltyGoals),
