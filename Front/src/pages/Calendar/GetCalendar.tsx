@@ -329,7 +329,7 @@ export default function GetCalendar(): JSX.Element {
 
                     {grouped.other.length > 0 && (
                       <div className={styles.dateGroup}>
-                        <div className={styles.dateHeader}>Otros días</div>
+                        <div className={styles.dateHeader}>Descanso</div>
                         <div className={styles.matchesGrid}>
                           {grouped.other.map((it: any, idx: number) => (
                             <MatchCard key={idx} item={it} />
