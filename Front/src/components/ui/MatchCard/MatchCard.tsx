@@ -7,6 +7,8 @@ import DialogActions from "@mui/material/DialogActions";
 import Typography from "@mui/material/Typography";
 import styles from "./MatchCard.module.css";
 import { Link } from "react-router-dom";
+import { getMapsUrlByNameCity } from "../../../services/maps";
+import MapPin from "../MapPin/MapPin";
 
 type MatchItem = {
   rawDate?: string | null;
@@ -71,6 +73,7 @@ export default function MatchCard({
     return Math.trunc(n);
   }
   const [openActa, setOpenActa] = useState(false);
+
   function extractCodacta(matchObj: any) {
     if (!matchObj) return null;
     const candidates = [
@@ -96,6 +99,28 @@ export default function MatchCard({
   }
   const codactaVal = extractCodacta(m);
   const time = m.hora ?? m.time ?? m.hour ?? "";
+  const rawCampo = m.campo ?? "";
+  let fieldName = rawCampo;
+  let cityName: string | null = null;
+
+  // If `campo` contains a hyphen, assume format "City - Field Name" and
+  // extract the city part and the rest as the field name. Handle cases with
+  // multiple hyphens by taking the first part as city and the rest as name.
+  if (rawCampo && rawCampo.indexOf("-") !== -1) {
+    const parts = rawCampo
+      .split("-")
+      .map((p: string) => p.trim())
+      .filter(Boolean);
+    if (parts.length >= 2) {
+      cityName = parts[0];
+      fieldName = parts.slice(1).join(" - ");
+    }
+  }
+  const mapsUrl = getMapsUrlByNameCity(
+    fieldName || null,
+    cityName || m.ciudad || m.city || null
+  );
+
   const localName =
     m.equipo_local ?? m.localTeamName ?? m.LocalTeamName ?? m.local ?? "-";
   const awayName =
@@ -268,8 +293,23 @@ export default function MatchCard({
           <div className={styles.timeText}>
             <span className={styles.timeChip}>{time || "-"}</span>
           </div>
-          {finished ? (
-            codactaVal && !hideActaButton ? (
+          {fieldName ? (
+            <div className={styles.fieldText}>
+              <span className={`${styles.fieldChip} ${styles.fieldName}`}>
+                {fieldName}
+                {mapsUrl ? <MapPin href={mapsUrl} /> : null}
+              </span>
+              {cityName ? (
+                <div>
+                  <span className={`${styles.fieldChip} ${styles.cityChip}`}>
+                    {cityName}
+                  </span>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+          {!hideActaButton ? (
+            codactaVal ? (
               <Button
                 component={Link}
                 to={`/acta/${encodeURIComponent(codactaVal)}`}

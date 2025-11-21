@@ -1,7 +1,7 @@
 import React from "react";
 import Button from "@mui/material/Button";
 import AppHeader from "./components/ui/AppHeader/AppHeader";
-import { Routes, Route, Link } from "react-router-dom";
+import { Routes, Route, Link, useNavigate } from "react-router-dom";
 import styles from "./App.module.css";
 import { GetPlayers as GetTeam } from "./pages/Squad";
 import GetCalendar from "./pages/Calendar/GetCalendar";
@@ -11,8 +11,14 @@ import Classification from "./pages/Classification";
 import Footer from "./components/ui/Footer/Footer";
 import Goleadores from "./pages/Goleadores/Goleadores";
 import Acta from "./pages/Acta/Acta";
+import Error500 from "./pages/Error500/Error500";
+import { registerNavigate } from "./services/api";
 
 export default function App(): JSX.Element {
+  const navigate = useNavigate();
+  React.useEffect(() => {
+    registerNavigate((p) => navigate(p));
+  }, [navigate]);
   return (
     <div className={styles.app}>
       <main className={styles.main}>
@@ -24,6 +30,7 @@ export default function App(): JSX.Element {
           <Route path="/classification" element={<Classification />} />
           <Route path="/goleadores" element={<Goleadores />} />
           <Route path="/acta/:codacta" element={<Acta />} />
+          <Route path="/error-500" element={<Error500 />} />
         </Routes>
       </main>
     </div>

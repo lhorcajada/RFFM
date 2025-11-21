@@ -118,6 +118,70 @@
   box-shadow: none;
 }
 
+.fieldText {
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  /* default: stack chips vertically to avoid horizontal push on small viewports */
+  flex-direction: column;
+}
+
+.fieldChip {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.03);
+  color: #dbeafe;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  max-width: 220px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  /* allow wrapping by default so chips can be multi-line on small screens */
+  white-space: normal;
+  text-align: center;
+}
+
+/* Smaller, muted chip for the city name shown under the field name */
+.cityChip {
+  background: rgba(255, 255, 255, 0.02);
+  color: rgba(255, 255, 255, 0.72);
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 0.72rem;
+  max-width: 180px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.fieldCity {
+  max-width: 180px;
+}
+
+.fieldName {
+  max-width: 220px;
+}
+
+/* Link wrapper for the map icon: fixed layout and no focus/active color changes */
+.mapIconLink {
+  margin-left: 6px;
+  display: inline-flex;
+  vertical-align: middle;
+  text-decoration: none;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.mapIconLink:focus,
+.mapIconLink:active {
+  outline: none;
+}
+
+.mapIconSvg {
+  display: block;
+}
+
 /* Result chip around goal numbers */
 .resultChip {
   display: inline-block;
@@ -167,10 +231,11 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 8px;
 }
 
 .actaBtn {
-  margin-top: 8px;
+  margin-top: 0;
   background: rgba(255, 255, 255, 0.06) !important;
   color: #ffffff !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
@@ -222,41 +287,55 @@
     height: 42px;
   }
   .teamBox {
-    width: 70px;
+    width: 62px;
     min-width: 0;
   }
   .centerArea {
     min-width: 0;
     padding: 0 4px;
     flex-direction: row;
-    gap: 6px;
+    gap: 8px;
     align-items: center;
     justify-content: center;
+    /* allow center area to shrink to avoid pushing score chips */
+    flex: 0 1 auto;
+    max-width: 180px;
   }
   .scoreBox {
     font-size: 1.05rem;
     font-weight: 800;
   }
   .timeChip {
-    font-size: 1.1rem;
-    padding: 6px 10px;
+    font-size: 1rem;
+    padding: 4px 8px;
   }
   .scoreSide {
-    font-size: 1.05rem;
+    font-size: 1rem;
   }
   .timeText {
     font-size: 0.7rem;
   }
   .actaBtn {
-    font-size: 0.7rem !important;
-    padding: 3px 6px !important;
+    font-size: 0.72rem !important;
+    padding: 4px 6px !important;
   }
   .actaOutline {
     margin-left: 0;
-    margin-top: 6px;
+    margin-top: 0;
   }
   .matchCard {
-    padding: 6px 4px;
+    padding: 8px 6px;
+  }
+  /* make field chips smaller on mobile */
+  .fieldChip {
+    font-size: 0.72rem;
+    padding: 3px 6px;
+    border-radius: 10px;
+    max-width: 160px;
+  }
+  .fieldText {
+    gap: 4px;
+    align-items: center;
   }
 }
 
@@ -281,6 +360,16 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
     word-break: break-word;
+  }
+  /* Keep field chips stacked vertically on tablet and desktop as on mobile */
+  .fieldText {
+    flex-direction: column;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .fieldChip {
+    white-space: normal;
+    text-align: center;
   }
   .centerArea {
     min-width: 100px;

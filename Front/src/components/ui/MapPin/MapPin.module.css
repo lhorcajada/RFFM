@@ -1,0 +1,16 @@
+/* Styles for the MapPin component */
+.mapIconLink {
+  margin-left: 6px;
+  display: inline-flex;
+  vertical-align: middle;
+  text-decoration: none;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.mapIconLink:focus,
+.mapIconLink:active {
+  outline: none;
+}
+.mapIconSvg {
+  display: block;
+}

@@ -10,6 +10,8 @@ import {
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import type { Acta } from "../../../types/acta";
 import Pitch from "../../../assets/football-pitch.svg";
+import MapPin from "../../ui/MapPin/MapPin";
+import { getMapsUrlByNameCity } from "../../../services/maps";
 
 export default function FieldInfo({ acta }: { acta: Acta }) {
   return (
@@ -25,7 +27,16 @@ export default function FieldInfo({ acta }: { acta: Acta }) {
           </div>
           <div className={styles.infoCol}>
             <Typography variant="body1">
-              <strong>{acta?.campo}</strong>
+              <strong>
+                {acta?.campo}
+                {(() => {
+                  const mapsUrl = getMapsUrlByNameCity(
+                    acta?.campo || null,
+                    (acta as any)?.ciudad || (acta as any)?.localidad || null
+                  );
+                  return mapsUrl ? <MapPin href={mapsUrl} /> : null;
+                })()}
+              </strong>
             </Typography>
           </div>
         </div>
@@ -43,7 +54,18 @@ export default function FieldInfo({ acta }: { acta: Acta }) {
               </div>
               <div className={styles.infoColMobile}>
                 <Typography variant="body1">
-                  <strong>{acta?.campo}</strong>
+                  <strong>
+                    {acta?.campo}
+                    {(() => {
+                      const mapsUrl = getMapsUrlByNameCity(
+                        acta?.campo || null,
+                        (acta as any)?.ciudad ||
+                          (acta as any)?.localidad ||
+                          null
+                      );
+                      return mapsUrl ? <MapPin href={mapsUrl} /> : null;
+                    })()}
+                  </strong>
                 </Typography>
               </div>
             </div>
