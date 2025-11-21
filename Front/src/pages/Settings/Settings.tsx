@@ -173,14 +173,12 @@ export default function Settings(): JSX.Element {
       isPrimary: isFirst,
     };
     const next = [combo, ...saved];
-    // if this is the first saved combo, also persist it as primary
+    // if this is the first saved combo, reuse the same logic as clicking the
+    // star: set as primary and apply (which shows the notification)
     if (isFirst) {
-      try {
-        localStorage.setItem(STORAGE_PRIMARY, id);
-        setPrimaryId(id);
-      } catch (e) {
-        // ignore
-      }
+      setAsPrimary(id, next);
+      applyCombo(id, next);
+      return;
     }
     persist(next);
   }
@@ -191,13 +189,10 @@ export default function Settings(): JSX.Element {
     if (primaryId === id) {
       if (next.length > 0) {
         const newPrimary = next[0].id;
-        localStorage.setItem(STORAGE_PRIMARY, newPrimary);
-        setPrimaryId(newPrimary);
-        const promoted = next.map((s) => ({
-          ...s,
-          isPrimary: s.id === newPrimary,
-        }));
-        persist(promoted);
+        // reuse the same logic as clicking the star so notifications and
+        // current selection are updated consistently
+        setAsPrimary(newPrimary, next);
+        applyCombo(newPrimary, next);
         return;
       } else {
         // no combos left
@@ -210,21 +205,28 @@ export default function Settings(): JSX.Element {
     persist(next);
   }
 
-  function setAsPrimary(id: string) {
-    localStorage.setItem(STORAGE_PRIMARY, id);
+  function setAsPrimary(id: string, list?: SavedCombo[]) {
+    const current = list ?? saved;
+    try {
+      localStorage.setItem(STORAGE_PRIMARY, id);
+    } catch (e) {
+      // ignore
+    }
     setPrimaryId(id);
-    // update saved array flags
-    const next = saved.map((s) => ({ ...s, isPrimary: s.id === id }));
+    // update saved array flags using the provided list (if any)
+    const next = current.map((s) => ({ ...s, isPrimary: s.id === id }));
     persist(next);
   }
 
-  function applyCombo(id: string) {
-    const combo = saved.find((s) => s.id === id);
+  function applyCombo(id: string, list?: SavedCombo[]) {
+    const arr = list ?? saved;
+    const combo = arr.find((s) => s.id === id);
     if (!combo) return;
-    // Save current selection (not changing primary)
-    localStorage.setItem(STORAGE_CURRENT, JSON.stringify(combo));
-    // Optionally, you might want to notify other parts of the app
-    // For now we just persist it to localStorage
+    try {
+      localStorage.setItem(STORAGE_CURRENT, JSON.stringify(combo));
+    } catch (e) {
+      // ignore
+    }
     setSnackMsg(
       "Selección aplicada: ahora la aplicación usará esta combinación hasta que la cambies."
     );
