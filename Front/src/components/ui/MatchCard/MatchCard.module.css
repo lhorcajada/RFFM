@@ -17,7 +17,7 @@
 /* Card title showing field name and optional city above the match row */
 .cardTitleWrap {
   width: 100%;
-  padding: 6px 0 0 0;
+  padding: 6px 0 6px 0;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -42,6 +42,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  min-height: 1.1em; /* reserve vertical space even if city is empty */
 }
 
 /* Wrapper so title sits above the matchCard row without affecting its internal layout */
@@ -88,8 +89,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 75px;
-  flex: 0 0 75px;
+  width: 140px; /* give slightly more room for the name */
+  flex: 0 0 140px; /* fixed column but slightly wider */
   min-width: 0;
 }
 
@@ -126,7 +127,7 @@
 
 .teamName {
   margin-top: 6px;
-  font-size: 0.9rem;
+  font-size: 0.55rem; /* slightly larger by default */
   text-align: center;
   color: #ffffff;
   min-height: 2.4rem;
@@ -141,9 +142,14 @@
 /* Prevent team name from overflowing its column; truncate when necessary */
 .teamBox .teamName {
   max-width: 100%;
+  /* allow wrapping up to 2 lines to keep font larger without pushing center area */
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  white-space: normal;
 }
 
 .centerArea {
@@ -328,7 +334,7 @@
 /* Mobile adjustments */
 @media (max-width: 599px) {
   .teamName {
-    font-size: 0.62rem;
+    font-size: 0.72rem; /* increase mobile font a bit while keeping single line */
     font-weight: 600;
     min-height: 1.4rem;
     display: block;
@@ -346,7 +352,7 @@
     height: 42px;
   }
   .teamBox {
-    flex: 0 0 62px;
+    flex: 0 0 70px; /* keep a bit more room on mobile */
     min-width: 0;
   }
   .centerArea {
@@ -410,7 +416,7 @@
 /* Tablet and up: optimized for grid layout */
 @media (min-width: 600px) {
   .teamBox {
-    width: 110px;
+    width: 120px;
   }
   .shield {
     width: 54px;
@@ -421,8 +427,8 @@
     height: 54px;
   }
   .teamName {
-    font-size: 0.8rem;
-    min-height: 1.2rem;
+    font-size: 0.65rem; /* larger name on tablet/desktop */
+    min-height: 1.4rem;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     line-clamp: 2;
@@ -465,7 +471,7 @@
 /* Large desktop: slightly larger */
 @media (min-width: 1400px) {
   .teamBox {
-    width: 120px;
+    width: 140px;
   }
   .shield {
     width: 60px;
@@ -476,6 +482,6 @@
     height: 60px;
   }
   .teamName {
-    font-size: 0.85rem;
+    font-size: 1rem;
   }
 }

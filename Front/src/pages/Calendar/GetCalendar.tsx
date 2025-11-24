@@ -13,6 +13,7 @@ import {
 import CompetitionSelector from "../../components/ui/CompetitionSelector/CompetitionSelector";
 import GroupSelector from "../../components/ui/GroupSelector/GroupSelector";
 import styles from "./GetCalendar.module.css";
+import useMatch, { computeMatchData } from "../../hooks/useMatch";
 import MatchCard from "../../components/ui/MatchCard/MatchCard";
 import { getCalendar } from "../../services/api";
 import { parseTimeToHM } from "../../utils/match";

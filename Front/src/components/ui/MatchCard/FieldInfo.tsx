@@ -18,11 +18,9 @@ export default function FieldInfo({
         {fieldName}
         {mapsUrl ? <MapPin href={mapsUrl} /> : null}
       </div>
-      {cityName ? (
-        <div className={styles.cardSubtitle} title={cityName}>
-          {cityName}
-        </div>
-      ) : null}
+      <div className={styles.cardSubtitle} title={cityName ?? ""}>
+        {cityName ?? "\u00A0"}
+      </div>
     </div>
   );
 }

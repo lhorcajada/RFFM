@@ -59,7 +59,9 @@ export default function Acta(): JSX.Element {
       {location.state?.item ? (
         <div className={styles.headerLayout}>
           <div className={styles.leftCol}>
-            <MatchCard item={location.state.item} hideActaButton compact />
+            {location.state?.item && (
+              <MatchCard item={location.state.item} compact />
+            )}
           </div>
           <div className={styles.rightCol}>
             {/* Show field/group info in header next to the compact match card */}

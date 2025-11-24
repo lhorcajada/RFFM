@@ -12,7 +12,6 @@ import FieldInfo from "./FieldInfo";
 import ScoreChip from "./ScoreChip";
 import MatchTime from "./MatchTime";
 import { MatchEntry } from "../../../types/match";
-import usePrimaryTeam from "../../../hooks/usePrimaryTeam";
 import useMatch from "../../../hooks/useMatch";
 
 type MatchItem = {
@@ -21,36 +20,37 @@ type MatchItem = {
   match: MatchEntry;
 };
 
-// The API layer normalizes match entries to a consistent shape (see types/match).
-// Components can rely on those fields directly (m.codacta, m.hora, m.equipo_local, ...)
-
 export default function MatchCard({
   item,
-  hideActaButton,
   compact,
 }: {
   item: MatchItem;
-  hideActaButton?: boolean;
   compact?: boolean;
 }) {
-  const { isPrimary } = usePrimaryTeam();
   const matchVals = useMatch({ item });
-  const m = matchVals.match as MatchEntry;
+  const m = matchVals.match as any;
   const [openActa, setOpenActa] = useState(false);
 
-  const codactaVal = matchVals.codactaVal;
-  const time = matchVals.timeRaw;
-  const fieldName = matchVals.fieldName;
-  const cityName = matchVals.cityName;
-  const mapsUrl = matchVals.mapsUrl;
-  const localName = matchVals.localName;
-  const awayName = matchVals.awayName;
-  const localTeamId = matchVals.localTeamId;
-  const awayTeamId = matchVals.awayTeamId;
-  const localShield = matchVals.localShield;
-  const awayShield = matchVals.awayShield;
-  const localGoalsNum = matchVals.localGoalsNum;
-  const awayGoalsNum = matchVals.awayGoalsNum;
+  const data = {
+    item,
+    codactaVal: matchVals.codactaVal ?? null,
+    timeRaw: matchVals.timeRaw,
+    fieldName: matchVals.fieldName,
+    cityName: matchVals.cityName,
+    mapsUrl: matchVals.mapsUrl,
+    localName: matchVals.localName,
+    awayName: matchVals.awayName,
+    localTeamId: matchVals.localTeamId,
+    awayTeamId: matchVals.awayTeamId,
+    localShield: matchVals.localShield,
+    awayShield: matchVals.awayShield,
+    localGoalsNum: matchVals.localGoalsNum,
+    awayGoalsNum: matchVals.awayGoalsNum,
+    match: matchVals.match,
+  } as const;
+
+  const localGoalsNum = data.localGoalsNum;
+  const awayGoalsNum = data.awayGoalsNum;
 
   let localResultClass = "";
   let awayResultClass = "";
@@ -67,23 +67,24 @@ export default function MatchCard({
     }
   }
 
-  const isPrimaryLocal = isPrimary(localTeamId);
-  const isPrimaryAway = isPrimary(awayTeamId);
-
-  const rootClass = `${styles.matchCard} ${
-    isPrimaryLocal || isPrimaryAway ? styles.highlightPrimary : ""
-  } ${isPrimaryLocal ? styles.highlightLeft : ""} ${
-    isPrimaryAway ? styles.highlightRight : ""
-  }`;
+  const rootClass = `${styles.matchCard}`;
   const finalClass = compact
     ? `${rootClass} ${styles.compact} ${styles.height100}`
     : rootClass;
 
   return (
     <div className={finalClass}>
-      <FieldInfo fieldName={fieldName} cityName={cityName} mapsUrl={mapsUrl} />
+      <FieldInfo
+        fieldName={data.fieldName}
+        cityName={data.cityName}
+        mapsUrl={data.mapsUrl}
+      />
       <div className={styles.cardRow}>
-        <TeamInfo name={localName} shieldSrc={localShield} alt={localName} />
+        <TeamInfo
+          name={data.localName}
+          shieldSrc={data.localShield}
+          alt={data.localName}
+        />
 
         <div className={styles.centerArea}>
           <div className={styles.scoreSide}>
@@ -98,45 +99,41 @@ export default function MatchCard({
           </div>
 
           <div className={styles.centerStack}>
-            <MatchTime time={time} />
-            {!hideActaButton ? (
-              codactaVal ? (
+            <MatchTime time={data.timeRaw} />
+            {data.codactaVal ? (
+              <Button
+                component={Link}
+                to={`/acta/${encodeURIComponent(String(data.codactaVal))}`}
+                state={{ item }}
+                variant="contained"
+                size="small"
+                className={`${styles.actaBtn} ${styles.actaOutline}`}
+              >
+                Ver acta
+              </Button>
+            ) : (
+              <>
                 <Button
-                  component={Link}
-                  to={`/acta/${encodeURIComponent(codactaVal)}`}
-                  state={{ item }}
                   variant="contained"
                   size="small"
                   className={`${styles.actaBtn} ${styles.actaOutline}`}
+                  onClick={() => setOpenActa(true)}
                 >
                   Ver acta
                 </Button>
-              ) : (
-                <>
-                  <Button
-                    variant="contained"
-                    size="small"
-                    className={`${styles.actaBtn} ${styles.actaOutline}`}
-                    onClick={() => setOpenActa(true)}
-                  >
-                    Ver acta
-                  </Button>
-                  <Dialog open={openActa} onClose={() => setOpenActa(false)}>
-                    <DialogTitle>Acta no disponible</DialogTitle>
-                    <DialogContent>
-                      <Typography>
-                        La vista del acta aún no está implementada. Pronto
-                        estará disponible en esta aplicación.
-                      </Typography>
-                    </DialogContent>
-                    <DialogActions>
-                      <Button onClick={() => setOpenActa(false)}>Cerrar</Button>
-                    </DialogActions>
-                  </Dialog>
-                </>
-              )
-            ) : (
-              <div style={{ height: 32 }} />
+                <Dialog open={openActa} onClose={() => setOpenActa(false)}>
+                  <DialogTitle>Acta no disponible</DialogTitle>
+                  <DialogContent>
+                    <Typography>
+                      La vista del acta aún no está implementada. Pronto estará
+                      disponible en esta aplicación.
+                    </Typography>
+                  </DialogContent>
+                  <DialogActions>
+                    <Button onClick={() => setOpenActa(false)}>Cerrar</Button>
+                  </DialogActions>
+                </Dialog>
+              </>
             )}
           </div>
 
@@ -152,7 +149,11 @@ export default function MatchCard({
           </div>
         </div>
 
-        <TeamInfo name={awayName} shieldSrc={awayShield} alt={awayName} />
+        <TeamInfo
+          name={data.awayName}
+          shieldSrc={data.awayShield}
+          alt={data.awayName}
+        />
       </div>
     </div>
   );
