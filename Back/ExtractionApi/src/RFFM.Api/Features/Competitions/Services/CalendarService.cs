@@ -60,7 +60,7 @@ namespace RFFM.Api.Features.Competitions.Services
                         RecordClosed = m.RecordClosed,
                         GameSituation = m.GameSituation,
                         Observations = m.Observations,
-                        Date = Convert.ToDateTime(m.Date),
+                        Date = DateTimeParser.ParseOrMinValue(m.Date),
                         Time = m.Time,
                         Field = m.Field,
                         FieldCode = m.FieldCode,
