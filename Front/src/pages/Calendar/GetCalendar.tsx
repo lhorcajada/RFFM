@@ -15,6 +15,7 @@ import GroupSelector from "../../components/ui/GroupSelector/GroupSelector";
 import styles from "./GetCalendar.module.css";
 import MatchCard from "../../components/ui/MatchCard/MatchCard";
 import { getCalendar } from "../../services/api";
+import { parseTimeToHM } from "../../utils/match";
 
 const STORAGE_PRIMARY = "rffm.primary_combination_id";
 const STORAGE_KEY = "rffm.saved_combinations_v1";
@@ -204,20 +205,7 @@ export default function GetCalendar(): JSX.Element {
     return null;
   }
 
-  // Helper: parse time like "17:30" or "17:30h" or "5:30" -> {h,m} or null
-  function parseTimeToHM(
-    time?: string | null
-  ): { h: number; m: number } | null {
-    if (!time) return null;
-    let s = String(time).trim();
-    // remove trailing letters like 'h' or 'hs'
-    s = s.replace(/[a-zA-Z]+$/g, "").trim();
-    const m = s.match(/(\d{1,2}):(\d{2})/);
-    if (m) return { h: parseInt(m[1], 10), m: parseInt(m[2], 10) };
-    const m2 = s.match(/^(\d{1,2})$/);
-    if (m2) return { h: parseInt(m2[1], 10), m: 0 };
-    return null;
-  }
+  // parseTimeToHM imported from utils/match
 
   // Compute current week Monday..Sunday range (local)
   function weekRangeFor(date: Date) {

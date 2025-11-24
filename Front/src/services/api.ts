@@ -88,6 +88,7 @@ export async function getPlayer(playerId: string) {
 
 import type { PlayersByTeamResponse, TeamResponse } from "../types/player";
 import type { Acta } from "../types/acta";
+import type { CalendarResponse, MatchEntry, Round } from "../types/match";
 
 export async function getPlayersByTeam(
   teamId: string
@@ -312,7 +313,88 @@ export async function getCalendar(params?: {
   if (params?.playType) q.append("playType", params.playType);
   const qs = q.toString() ? `?${q.toString()}` : "";
   const res = await client.get(`calendar${qs}`);
-  return res.data;
+  const raw = res.data as any;
+
+  // Normalize rounds and match entries to our typed model so UI components
+  // can rely on consistent field names.
+  function normalizeMatch(r: any): MatchEntry {
+    if (!r) return {} as MatchEntry;
+    return {
+      codacta:
+        r.codacta ??
+        r.cod_acta ??
+        r.id_acta ??
+        r.idacta ??
+        r.actaId ??
+        r.acta_id ??
+        r.acta,
+      codigo_equipo_local:
+        r.codigo_equipo_local ??
+        r.codigo_local ??
+        r.cod_equipo_local ??
+        r.localTeamId ??
+        r.localCode,
+      escudo_equipo_local:
+        r.escudo_equipo_local ?? r.escudo_local ?? r.localImage ?? "",
+      escudo_equipo_local_url:
+        r.escudo_equipo_local_url ??
+        r.escudo_equipo_local ??
+        r.localImage ??
+        "",
+      equipo_local:
+        r.equipo_local ?? r.localTeamName ?? r.local ?? r.nombre ?? "",
+      goles_casa: r.goles_casa ?? r.LocalGoals ?? r.goles ?? null,
+
+      codigo_equipo_visitante:
+        r.codigo_equipo_visitante ??
+        r.codigo_visitante ??
+        r.cod_equipo_visitante ??
+        r.awayTeamId ??
+        r.awayCode,
+      escudo_equipo_visitante:
+        r.escudo_equipo_visitante ?? r.escudo_visitante ?? r.awayImage ?? "",
+      escudo_equipo_visitante_url:
+        r.escudo_equipo_visitante_url ??
+        r.escudo_equipo_visitante ??
+        r.awayImage ??
+        "",
+      equipo_visitante:
+        r.equipo_visitante ??
+        r.awayTeamName ??
+        r.visitante ??
+        r.nombre_visitante ??
+        "",
+      goles_visitante: r.goles_visitante ?? r.AwayGoals ?? r.goles_v ?? null,
+
+      codigo_campo: r.codigo_campo ?? r.codigo_campo ?? r.codigoCampo ?? null,
+      campo: r.campo ?? r.field ?? "",
+      fecha: r.fecha ?? r.date ?? "",
+      hora: r.hora ?? r.time ?? r.hour ?? "",
+
+      // keep the original raw object for any other use
+      raw: r,
+    } as MatchEntry;
+  }
+
+  const normalized: CalendarResponse = {
+    estado: raw?.estado ?? raw?.status,
+    sesion_ok: raw?.sesion_ok,
+    competicion: raw?.competicion,
+    tipo_competicion: raw?.tipo_competicion,
+    grupo: raw?.grupo,
+    temporada: raw?.temporada,
+    rounds: (raw?.rounds ?? raw?.jornadas ?? []).map((rr: any) => {
+      const equipos = (rr.equipos ?? rr.partidos ?? rr.matches ?? []) as any[];
+      return {
+        codjornada: rr.codjornada ?? rr.cod_jornada ?? rr.id ?? undefined,
+        jornada: rr.jornada ?? rr.jornada ?? undefined,
+        equipos: (equipos || []).map(normalizeMatch),
+        raw: rr,
+      } as Round;
+    }),
+  };
+
+  return normalized;
 }
 
 export async function getTeamAgeSummary(teamId: string, seasonId?: string) {
