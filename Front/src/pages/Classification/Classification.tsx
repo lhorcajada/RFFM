@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { CircularProgress } from "@mui/material";
 import PageHeader from "../../components/ui/PageHeader/PageHeader";
 import BaseLayout from "../../components/ui/BaseLayout/BaseLayout";
 import ClassificationItem, {
@@ -23,6 +24,7 @@ interface Team {
 
 export default function Classification() {
   const [teams, setTeams] = useState<Team[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
 
   useEffect(() => {
     try {
@@ -41,20 +43,28 @@ export default function Classification() {
         }
       }
 
+      setLoading(true);
       getTeamsForClassification({
         season: "21",
         competition: competitionId,
         group: groupId,
         playType: "1",
-      }).then((data) => setTeams(data));
+      })
+        .then((data) => setTeams(data))
+        .catch(() => {})
+        .finally(() => setLoading(false));
     } catch (e) {
       // fallback: try default call
+      setLoading(true);
       getTeamsForClassification({
         season: "21",
         competition: "25255269",
         group: "25255283",
         playType: "1",
-      }).then((data) => setTeams(data));
+      })
+        .then((data) => setTeams(data))
+        .catch(() => {})
+        .finally(() => setLoading(false));
     }
   }, []);
 
@@ -71,7 +81,11 @@ export default function Classification() {
           <div className={styles.headerBar} />
 
           <div className={styles.grid}>
-            {filtered.length === 0 ? (
+            {loading ? (
+              <div style={{ padding: 24, textAlign: "center" }}>
+                <CircularProgress />
+              </div>
+            ) : filtered.length === 0 ? (
               <div className={styles.empty}>No hay equipos que coincidan.</div>
             ) : (
               filtered.map((team: any) => (

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { CircularProgress } from "@mui/material";
 import PageHeader from "../../components/ui/PageHeader/PageHeader";
 import BaseLayout from "../../components/ui/BaseLayout/BaseLayout";
 import GoleadoresList from "../../components/players/GoleadoresList/GoleadoresList";
@@ -59,7 +60,11 @@ const Goleadores: React.FC = () => {
       <div className={styles.container}>
         <div className={styles.content}>
           <div className={styles.headerBar} />
-          {loading && <p className={styles.loading}>Cargando...</p>}
+          {loading && (
+            <div style={{ padding: 24, textAlign: "center" }}>
+              <CircularProgress />
+            </div>
+          )}
           {error && <p className={styles.error}>{error}</p>}
           {!loading && !error && (
             <div className={styles.grid}>

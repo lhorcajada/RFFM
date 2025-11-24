@@ -405,3 +405,77 @@
     font-size: 0.65rem;
   }
 }
+
+/* Desktop: aprovechar espacio horizontal en pantallas grandes (PC) */
+@media (min-width: 1024px) {
+  .item {
+    grid-template-columns: 1fr 1fr auto; /* left, center, points */
+    padding: 16px 20px 18px 80px; /* más espacio para la posición y separación */
+    align-items: center;
+  }
+
+  /* Make the team block span the two flexible columns so we have a true center area */
+  .team {
+    grid-column: 1 / 3;
+    display: block;
+    min-width: 0;
+  }
+
+  /* On desktop split teamInfo into 4 logical blocks: name | goals/meta | W/D/L | last5 */
+  .teamInfo {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    align-items: center;
+    gap: 12px 24px;
+    min-width: 0;
+  }
+
+  .teamName {
+    white-space: nowrap; /* mostrar en una sola línea en PC */
+    overflow: hidden;
+    text-overflow: ellipsis; /* si es demasiado largo, cortar visualmente */
+    grid-column: 1 / 2;
+    min-width: 0;
+  }
+
+  .teamMeta {
+    grid-column: 2 / 3;
+    color: #9ca3af;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: flex-start;
+  }
+
+  .statsAndLast5 {
+    grid-column: 2;
+    justify-self: center; /* center column horizontally */
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+    min-width: 0;
+  }
+
+  .statsRowInline {
+    grid-column: 3 / 4;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    justify-content: flex-start;
+  }
+
+  .last5 {
+    grid-column: 4 / 5;
+    gap: 8px;
+    justify-content: flex-start;
+  }
+
+  .pill {
+    width: 20px;
+    height: 20px;
+    font-size: 0.75rem;
+  }
+}
