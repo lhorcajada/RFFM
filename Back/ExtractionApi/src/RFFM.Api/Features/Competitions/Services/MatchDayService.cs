@@ -3,6 +3,7 @@ using RFFM.Api.Features.Competitions.Models.ApiRffm;
 using RFFM.Api.Features.Teams.Models;
 using RFFM.Api.Infrastructure.Helpers;
 using System.Text.Json;
+using System.Globalization;
 
 namespace RFFM.Api.Features.Competitions.Services
 {
@@ -38,7 +39,7 @@ namespace RFFM.Api.Features.Competitions.Services
             var dtos = JsonSerializer.Deserialize<GroupRoundRffm>(content, options);
             return dtos.MatchDays.Select(m => new MatchDayResponse
             {
-                MatchDayDate = Convert.ToDateTime(m.MatchDayDate),
+                MatchDayDate = DateTimeParser.ParseOrMinValue(m.MatchDayDate),
                 MatchDayNumber = Convert.ToInt32(m.MatchDayCode)
             }).ToList();
 
