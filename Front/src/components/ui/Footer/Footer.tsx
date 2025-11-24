@@ -122,6 +122,21 @@ export default function Footer(): JSX.Element {
             </IconButton>
             <IconButton
               component={Link}
+              to="/statistics"
+              className={
+                loc.pathname.startsWith("/statistics")
+                  ? `${styles.iconBtn} ${styles.active}`
+                  : styles.iconBtn
+              }
+              aria-label="Estadísticas"
+              size="large"
+            >
+              <SvgIcon>
+                <path d="M3 13h2v6H3v-6zm4-8h2v14H7V5zm4 6h2v8h-2v-8zm4-4h2v12h-2V7zm4-6h2v18h-2V1z" />
+              </SvgIcon>
+            </IconButton>
+            <IconButton
+              component={Link}
               to="/settings"
               className={
                 loc.pathname.startsWith("/settings")

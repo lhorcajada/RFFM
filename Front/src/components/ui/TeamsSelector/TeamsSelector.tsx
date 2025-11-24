@@ -8,9 +8,14 @@ import {
   Typography,
 } from "@mui/material";
 import { getTeamsForClassification } from "../../../services/api";
-import type { Classification } from "../../../types/player";
+import type { ClassificationTeam } from "../../../types/classification";
 
-type Team = { id: string; name: string; url?: string; raw?: Classification };
+type Team = {
+  id: string;
+  name: string;
+  url?: string;
+  raw?: ClassificationTeam;
+};
 
 export default function TeamsSelector({
   onChange,
@@ -54,31 +59,29 @@ export default function TeamsSelector({
           playType: "1",
         });
         // payload is Classification[]
-        const teamsData: Team[] = (payload || []).map(
-          (c: Classification, idx: number) => {
-            const rawName = (c.teamName || (c as any).nombre || "").toString();
-            const rawId = (
-              c.teamId ??
-              (c as any).codequipo ??
-              (c as any).codigo_equipo ??
-              ""
-            ).toString();
-            // fallback id when server returns empty id
-            const id =
-              rawId && rawId !== ""
-                ? rawId
-                : `team-${idx}-${Math.abs(
-                    hashCode(rawName || JSON.stringify(c))
-                  )}`;
-            const name = rawName || `Equipo ${idx + 1}`;
-            return {
-              id: String(id),
-              name,
-              url: c.imageUrl,
-              raw: c,
-            } as Team;
-          }
-        );
+        const teamsData: Team[] = (payload || []).map((c: any, idx: number) => {
+          const rawName = (c.teamName || (c as any).nombre || "").toString();
+          const rawId = (
+            c.teamId ??
+            (c as any).codequipo ??
+            (c as any).codigo_equipo ??
+            ""
+          ).toString();
+          // fallback id when server returns empty id
+          const id =
+            rawId && rawId !== ""
+              ? rawId
+              : `team-${idx}-${Math.abs(
+                  hashCode(rawName || JSON.stringify(c))
+                )}`;
+          const name = rawName || `Equipo ${idx + 1}`;
+          return {
+            id: String(id),
+            name,
+            url: c.imageUrl,
+            raw: c,
+          } as Team;
+        });
         if (mounted) setTeams(teamsData as Team[]);
       } catch (err: unknown) {
         if (mounted) {

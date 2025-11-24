@@ -13,6 +13,8 @@ import Footer from "./components/ui/Footer/Footer";
 import Goleadores from "./pages/Goleadores/Goleadores";
 import Acta from "./pages/Acta/Acta";
 import Error500 from "./pages/Error500/Error500";
+import Statistics from "./pages/Statistics/Statistics";
+import GoalSectorsComparison from "./pages/Statistics/GoalSectorsComparison";
 import { registerNavigate } from "./services/api";
 
 export default function App(): JSX.Element {
@@ -31,6 +33,11 @@ export default function App(): JSX.Element {
           <Route path="/calendar" element={<GetCalendar />} />
           <Route path="/classification" element={<Classification />} />
           <Route path="/goleadores" element={<Goleadores />} />
+          <Route path="/statistics" element={<Statistics />} />
+          <Route
+            path="/statistics/goal-sectors-comparison"
+            element={<GoalSectorsComparison />}
+          />
           <Route path="/acta/:codacta" element={<Acta />} />
           <Route path="/error-500" element={<Error500 />} />
         </Routes>

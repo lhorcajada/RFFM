@@ -1,0 +1,51 @@
+.root {
+  padding: 16px;
+  padding-bottom: 96px;
+}
+
+.title {
+  margin: 0 0 12px 0;
+}
+
+.info {
+  color: #666;
+}
+
+.error {
+  color: #b00020;
+}
+
+.list {
+  display: flex;
+  gap: 12px;
+  flex-direction: column;
+}
+
+.teamBox {
+  border: 1px solid #eee;
+  padding: 12px;
+  border-radius: 6px;
+}
+
+.teamHeader {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  border: 1px solid #f1f1f1;
+  padding: 6px 8px;
+  text-align: left;
+}
+
+.totals {
+  margin-top: 8px;
+  font-weight: 600;
+}

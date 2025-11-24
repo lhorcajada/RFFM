@@ -1,0 +1,15 @@
+.root {
+  padding: 16px;
+  padding-bottom: 96px; /* leave room for fixed footer */
+}
+
+.title {
+  margin: 0 0 12px 0;
+  font-size: 20px;
+}
+
+.container {
+  display: flex;
+  gap: 12px;
+  flex-direction: column;
+}

@@ -100,6 +100,11 @@ import type {
   MatchDay,
   MatchApiMatch,
 } from "../types/match";
+import type {
+  TeamsGoalSectorsComparison,
+  TeamGoalSectors,
+  GoalSector,
+} from "../types/goalSectors";
 
 // Local raw shapes (incoming API may use Spanish or English fields)
 interface RawPlayer {
@@ -593,6 +598,28 @@ export async function getTeamGoalSectors(
       goalsAgainst: number;
     }>;
   };
+}
+
+export async function getTeamsGoalSectorsComparison(params: {
+  teamCode: string; // base path param (first team in path)
+  competitionId?: string;
+  groupId?: string;
+  teamCode1?: string;
+  teamCode2?: string;
+}) {
+  const { teamCode, competitionId, groupId, teamCode1, teamCode2 } = params;
+  const q = new URLSearchParams();
+  if (competitionId) q.append("competitionId", competitionId);
+  if (groupId) q.append("groupId", groupId);
+  if (teamCode1) q.append("teamCode1", teamCode1);
+  if (teamCode2) q.append("teamCode2", teamCode2);
+  const qs = q.toString() ? `?${q.toString()}` : "";
+
+  const res = await client.get(
+    `teams/${encodeURIComponent(teamCode)}/goal-sectors${qs}`
+  );
+
+  return res.data as TeamsGoalSectorsComparison;
 }
 
 export async function getActa(
