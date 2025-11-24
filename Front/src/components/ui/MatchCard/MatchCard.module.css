@@ -1,18 +1,51 @@
 /* Styles for MatchCard component (extracted from GetCalendar.module.css) */
 .matchCard {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: stretch;
   background: transparent; /* transparent cards */
   border: 1px solid rgba(255, 255, 255, 0.12); /* stronger contrast on dark backgrounds */
   border-radius: 8px;
-  padding: 8px 6px;
+  padding: 8px 12px; /* more horizontal padding to avoid clipping on mobile */
   box-shadow: none;
   height: 100%;
   max-width: 100%;
   overflow: hidden;
   box-sizing: border-box;
 }
+
+/* Card title showing field name and optional city above the match row */
+.cardTitleWrap {
+  width: 100%;
+  padding: 6px 0 0 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.cardTitle {
+  font-weight: 700;
+  color: #e6f7ff;
+  font-size: 0.95rem;
+  text-align: center;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cardSubtitle {
+  margin-top: 4px;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.72);
+  text-align: center;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Wrapper so title sits above the matchCard row without affecting its internal layout */
+/* (removed .matchCardContainer — title is now inside .matchCard) */
 
 .compact {
   padding: 6px 8px;
@@ -56,8 +89,18 @@
   flex-direction: column;
   align-items: center;
   width: 75px;
-  flex-shrink: 1;
+  flex: 0 0 75px;
   min-width: 0;
+}
+
+/* Row that contains the two team boxes and the center area */
+.cardRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .shield {
@@ -86,6 +129,7 @@
   display: block;
   overflow: visible;
   -webkit-line-clamp: unset;
+  line-clamp: unset;
   -webkit-box-orient: unset;
   word-break: normal;
 }
@@ -97,7 +141,7 @@
   justify-content: center;
   gap: 12px;
   min-width: 120px;
-  flex-shrink: 0;
+  flex: 1 1 auto; /* allow center area to shrink/grow and take remaining space */
   padding: 0 8px;
 }
 
@@ -126,6 +170,9 @@
   gap: 6px;
   /* default: stack chips vertically to avoid horizontal push on small viewports */
   flex-direction: column;
+  flex: 1 1 auto;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .fieldChip {
@@ -274,6 +321,7 @@
     min-height: 1.4rem;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
     word-break: break-word;
@@ -287,7 +335,7 @@
     height: 42px;
   }
   .teamBox {
-    width: 62px;
+    flex: 0 0 62px;
     min-width: 0;
   }
   .centerArea {
@@ -298,7 +346,7 @@
     align-items: center;
     justify-content: center;
     /* allow center area to shrink to avoid pushing score chips */
-    flex: 0 1 auto;
+    flex: 1 1 auto;
     max-width: 180px;
   }
   .scoreBox {
@@ -324,7 +372,7 @@
     margin-top: 0;
   }
   .matchCard {
-    padding: 8px 6px;
+    padding: 8px 10px; /* keep extra horizontal space on mobile */
   }
   /* make field chips smaller on mobile */
   .fieldChip {
@@ -332,10 +380,19 @@
     padding: 3px 6px;
     border-radius: 10px;
     max-width: 160px;
+    white-space: nowrap; /* prevent multi-line chips on small screens */
+    text-overflow: ellipsis;
+    overflow: hidden;
   }
   .fieldText {
     gap: 4px;
     align-items: center;
+  }
+  .cityChip {
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    max-width: 120px;
   }
 }
 
@@ -357,6 +414,7 @@
     min-height: 1.2rem;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
     word-break: break-word;

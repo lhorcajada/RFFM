@@ -262,118 +262,123 @@ export default function MatchCard({
 
   return (
     <div className={finalClass}>
-      <div className={styles.teamBox}>
-        <div className={styles.shieldWrap}>
-          {localShield ? (
-            <img src={localShield} alt={localName} className={styles.shield} />
-          ) : (
-            <div
-              style={{
-                width: 66,
-                height: 66,
-                background: "#f3f4f6",
-                borderRadius: 6,
-              }}
-            />
-          )}
-        </div>
-        <div className={styles.teamName}>{localName}</div>
-      </div>
-
-      <div className={styles.centerArea}>
-        <div className={styles.scoreSide}>
-          <span className={`${styles.resultChip} ${localResultClass}`}>
-            {localGoalsNum !== null
-              ? localGoalsNum
-              : m.goles_casa ?? m.LocalGoals ?? "-"}
-          </span>
-        </div>
-
-        <div className={styles.centerStack}>
-          <div className={styles.timeText}>
-            <span className={styles.timeChip}>{time || "-"}</span>
+      {fieldName ? (
+        <div className={styles.cardTitleWrap}>
+          <div className={styles.cardTitle} title={fieldName}>
+            {fieldName}
+            {mapsUrl ? <MapPin href={mapsUrl} /> : null}
           </div>
-          {fieldName ? (
-            <div className={styles.fieldText}>
-              <span className={`${styles.fieldChip} ${styles.fieldName}`}>
-                {fieldName}
-                {mapsUrl ? <MapPin href={mapsUrl} /> : null}
-              </span>
-              {cityName ? (
-                <div>
-                  <span className={`${styles.fieldChip} ${styles.cityChip}`}>
-                    {cityName}
-                  </span>
-                </div>
-              ) : null}
+          {cityName ? (
+            <div className={styles.cardSubtitle} title={cityName}>
+              {cityName}
             </div>
           ) : null}
-          {!hideActaButton ? (
-            codactaVal ? (
-              <Button
-                component={Link}
-                to={`/acta/${encodeURIComponent(codactaVal)}`}
-                state={{ item }}
-                variant="contained"
-                size="small"
-                className={`${styles.actaBtn} ${styles.actaOutline}`}
-              >
-                Ver acta
-              </Button>
+        </div>
+      ) : null}
+      <div className={styles.cardRow}>
+        <div className={styles.teamBox}>
+          <div className={styles.shieldWrap}>
+            {localShield ? (
+              <img
+                src={localShield}
+                alt={localName}
+                className={styles.shield}
+              />
             ) : (
-              <>
+              <div
+                style={{
+                  width: 66,
+                  height: 66,
+                  background: "#f3f4f6",
+                  borderRadius: 6,
+                }}
+              />
+            )}
+          </div>
+          <div className={styles.teamName}>{localName}</div>
+        </div>
+
+        <div className={styles.centerArea}>
+          <div className={styles.scoreSide}>
+            <span className={`${styles.resultChip} ${localResultClass}`}>
+              {localGoalsNum !== null
+                ? localGoalsNum
+                : m.goles_casa ?? m.LocalGoals ?? "-"}
+            </span>
+          </div>
+
+          <div className={styles.centerStack}>
+            <div className={styles.timeText}>
+              <span className={styles.timeChip}>{time || "-"}</span>
+            </div>
+            {/* fieldName moved to card title */}
+            {!hideActaButton ? (
+              codactaVal ? (
                 <Button
+                  component={Link}
+                  to={`/acta/${encodeURIComponent(codactaVal)}`}
+                  state={{ item }}
                   variant="contained"
                   size="small"
                   className={`${styles.actaBtn} ${styles.actaOutline}`}
-                  onClick={() => setOpenActa(true)}
                 >
                   Ver acta
                 </Button>
-                <Dialog open={openActa} onClose={() => setOpenActa(false)}>
-                  <DialogTitle>Acta no disponible</DialogTitle>
-                  <DialogContent>
-                    <Typography>
-                      La vista del acta aún no está implementada. Pronto estará
-                      disponible en esta aplicación.
-                    </Typography>
-                  </DialogContent>
-                  <DialogActions>
-                    <Button onClick={() => setOpenActa(false)}>Cerrar</Button>
-                  </DialogActions>
-                </Dialog>
-              </>
-            )
-          ) : (
-            <div style={{ height: 32 }} />
-          )}
+              ) : (
+                <>
+                  <Button
+                    variant="contained"
+                    size="small"
+                    className={`${styles.actaBtn} ${styles.actaOutline}`}
+                    onClick={() => setOpenActa(true)}
+                  >
+                    Ver acta
+                  </Button>
+                  <Dialog open={openActa} onClose={() => setOpenActa(false)}>
+                    <DialogTitle>Acta no disponible</DialogTitle>
+                    <DialogContent>
+                      <Typography>
+                        La vista del acta aún no está implementada. Pronto
+                        estará disponible en esta aplicación.
+                      </Typography>
+                    </DialogContent>
+                    <DialogActions>
+                      <Button onClick={() => setOpenActa(false)}>Cerrar</Button>
+                    </DialogActions>
+                  </Dialog>
+                </>
+              )
+            ) : (
+              <div style={{ height: 32 }} />
+            )}
+          </div>
+
+          <div className={styles.scoreSide}>
+            <span className={`${styles.resultChip} ${awayResultClass}`}>
+              {awayGoalsNum !== null
+                ? awayGoalsNum
+                : m.goles_visitante ?? m.AwayGoals ?? "-"}
+            </span>
+          </div>
         </div>
 
-        <div className={styles.scoreSide}>
-          <span className={`${styles.resultChip} ${awayResultClass}`}>
-            {awayGoalsNum !== null
-              ? awayGoalsNum
-              : m.goles_visitante ?? m.AwayGoals ?? "-"}
-          </span>
+        <div className={styles.teamBox}>
+          <div className={styles.shieldWrap}>
+            {awayShield ? (
+              <img src={awayShield} alt={awayName} className={styles.shield} />
+            ) : (
+              <div
+                style={{
+                  width: 66,
+                  height: 66,
+                  background: "#f3f4f6",
+                  borderRadius: 6,
+                }}
+              />
+            )}
+          </div>
+          <div className={styles.teamName}>{awayName}</div>
         </div>
-      </div>
-
-      <div className={styles.teamBox}>
-        <div className={styles.shieldWrap}>
-          {awayShield ? (
-            <img src={awayShield} alt={awayName} className={styles.shield} />
-          ) : (
-            <div
-              style={{
-                width: 66,
-                height: 66,
-                background: "#f3f4f6",
-                borderRadius: 6,
-              }}
-            />
-          )}
-        </div>
-        <div className={styles.teamName}>{awayName}</div>
       </div>
     </div>
   );
