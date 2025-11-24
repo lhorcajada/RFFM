@@ -38,3 +38,50 @@ export interface CalendarResponse {
   rounds?: Round[];
   [key: string]: any;
 }
+
+// New API models: matchDays payload (as provided)
+export interface MatchApiMatch {
+  matchRecordCode?: string;
+  hasRecords?: string;
+  recordClosed?: string;
+  gameSituation?: string;
+  observations?: string;
+  date?: string; // ISO string
+  time?: string;
+  field?: string;
+  fieldCode?: string;
+  status?: string;
+  statusReason?: string;
+  matchInProgress?: string;
+  provisionalResult?: string;
+  referee?: string;
+  penalties?: string;
+  extraTimeWin?: string;
+  extraTimeWinnerTeam?: string;
+  localTeamCode?: string;
+  localTeamName?: string;
+  localTeamImageUrl?: string;
+  localTeamWithdrawn?: string;
+  localGoals?: string;
+  localPenalties?: string;
+  visitorTeamCode?: string;
+  visitorTeamName?: string;
+  visitorTeamImageUrl?: string;
+  visitorTeamWithdrawn?: string;
+  visitorGoals?: string;
+  visitorPenalties?: string;
+  originRecordCode?: string;
+  [key: string]: any;
+}
+
+export interface MatchDay {
+  date?: string; // ISO date
+  matchDayNumber?: number;
+  matches?: MatchApiMatch[];
+  [key: string]: any;
+}
+
+export interface MatchApiResponse {
+  matchDays?: MatchDay[];
+  [key: string]: any;
+}

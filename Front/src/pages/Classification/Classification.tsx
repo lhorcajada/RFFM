@@ -9,8 +9,8 @@ import { getTeamsForClassification } from "../../services/api";
 import styles from "./Classification.module.css";
 
 interface Team {
-  id: string;
-  name: string;
+  teamId: string;
+  teamName: string;
   position: number;
   points: number;
   played: number;
@@ -19,7 +19,7 @@ interface Team {
   lost: number;
   goalsFor: number;
   goalsAgainst: number;
-  last5: MatchResult[];
+  matchStreaks?: { type?: string }[];
 }
 
 export default function Classification() {
@@ -102,7 +102,7 @@ export default function Classification() {
                   goalsFor={team.goalsFor}
                   goalsAgainst={team.goalsAgainst}
                   last5={(team.matchStreaks || []).map((s: any) => {
-                    const raw = s.type || s.result || "";
+                    const raw = (s?.type || "").toUpperCase();
                     if (raw === "W" || raw === "G") return { result: "G" };
                     if (raw === "D" || raw === "E") return { result: "E" };
                     return { result: "P" };

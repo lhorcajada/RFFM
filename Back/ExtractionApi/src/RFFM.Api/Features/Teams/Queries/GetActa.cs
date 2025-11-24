@@ -15,12 +15,12 @@ namespace RFFM.Api.Features.Teams.Queries
             app.MapGet("/acta/{codActa}", async (IActaService actaService, CancellationToken cancellationToken,
                     string codActa= "5440937", int temporada = 21, int competicion = 25255269, int grupo = 25255283) =>
                 {
-                    var game = await actaService.GetGameFromActaAsync(codActa, temporada, competicion, grupo, cancellationToken);
+                    var game = await actaService.GetMatchFromActaAsync(codActa, temporada, competicion, grupo, cancellationToken);
                     return game != null ? Results.Ok(game) : Results.NotFound();
                 })
                 .WithName(nameof(GetActa))
                 .WithTags("Teams")
-                .Produces<Game>()
+                .Produces<MatchRffm>()
                 .Produces<ProblemDetails>(StatusCodes.Status400BadRequest);
         }
     }

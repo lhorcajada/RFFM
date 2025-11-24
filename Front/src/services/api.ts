@@ -86,143 +86,260 @@ export async function getPlayer(playerId: string) {
   return res.data;
 }
 
-import type { PlayersByTeamResponse, TeamResponse } from "../types/player";
+import type { Team } from "../types/team";
+import type {
+  ClassificationResponse,
+  ClassificationTeam,
+} from "../types/classification";
 import type { Acta } from "../types/acta";
-import type { CalendarResponse, MatchEntry, Round } from "../types/match";
+import type {
+  CalendarResponse,
+  MatchEntry,
+  Round,
+  MatchApiResponse,
+  MatchDay,
+  MatchApiMatch,
+} from "../types/match";
 
-export async function getPlayersByTeam(
-  teamId: string
-): Promise<TeamResponse | PlayersByTeamResponse> {
+// Local raw shapes (incoming API may use Spanish or English fields)
+interface RawPlayer {
+  playerId?: string | number;
+  cod_jugador?: string | number;
+  id?: string | number;
+  seasonId?: string | number;
+  temporada?: string | number;
+  season?: string | number;
+  name?: string;
+  nombre?: string;
+  age?: number | string;
+  ace?: number | string;
+  birthYear?: number | string;
+  anio_nacimiento?: number | string;
+  anio_nac?: number | string;
+  team?: string;
+  equipo?: string;
+  teamCode?: string | number;
+  codigo_equipo?: string | number;
+  teamCategory?: string;
+  categoria?: string;
+  jerseyNumber?: string | number;
+  dorsal?: string | number;
+  numero?: string | number;
+  position?: string;
+  posicion?: string;
+  isGoalkeeper?: boolean;
+  portero?: boolean;
+  es_portero?: boolean;
+  photoUrl?: string;
+  foto?: string;
+  url_foto?: string;
+  teamShieldUrl?: string;
+  escudo_equipo?: string;
+  team_shield?: string;
+  matches?: any;
+  partidos?: any;
+  cards?: any;
+  tarjetas?: any;
+  competitions?: any[];
+  competiciones?: any[];
+  participaciones_competiciones?: any[];
+  [key: string]: unknown;
+}
+
+interface RawTeam {
+  // english or spanish variants
+  players?: RawPlayer[];
+  jugadores_equipo?: RawPlayer[];
+  jugadores?: RawPlayer[];
+  delegates?: any[];
+  delegados_equipo?: any[];
+  delegados?: any[];
+  assistants?: any[];
+  auxiliares_equipo?: any[];
+  auxiliares?: any[];
+  coaches?: any[];
+  tecnicos_equipo?: any[];
+  tecnicos?: any[];
+  [key: string]: unknown;
+}
+
+export async function getPlayersByTeam(teamId: string): Promise<Team> {
   const maxAttempts = DEFAULT_RETRIES;
   let attempt = 0;
   let lastErr: any = null;
+
+  const toNumber = (v: unknown) => {
+    const n = Number(v as any);
+    return Number.isNaN(n) ? 0 : n;
+  };
+
   while (attempt < maxAttempts) {
     try {
-      // New API endpoint returning full team info including players
       const res = await client.get(`teams/${encodeURIComponent(teamId)}`);
-      const raw = res.data;
+      const raw = res.data as RawTeam;
 
-      // If API already returns an array or { players: [...] } keep backward compatibility
-      if (Array.isArray(raw)) return raw;
-      if (raw && Array.isArray(raw.players))
-        return { players: raw.players } as PlayersByTeamResponse;
+      // players array under various keys
+      const playersArr =
+        raw?.players ?? raw?.jugadores_equipo ?? raw?.jugadores ?? [];
 
-      // Map Spanish fields to english-named object
-      const team = {
-        teamCode: raw?.codigo_equipo ?? raw?.teamCode,
-        clubCode: raw?.codigo_club ?? raw?.clubCode,
-        accessKey: raw?.clave_acceso ?? raw?.accessKey,
-        name: raw?.nombre_equipo ?? raw?.nombre ?? raw?.teamName,
-        clubShield: raw?.escudo_club ?? raw?.clubShield,
-        clubName: raw?.nombre_club ?? raw?.clubName,
-        category: raw?.categoria ?? raw?.category,
-        categoryCode: raw?.codigo_categoria ?? raw?.categoryCode,
-        website: raw?.portal_web ?? raw?.website,
-        fieldCode: raw?.codigo_campo ?? raw?.fieldCode,
-        field: raw?.campo ?? raw?.field,
-        trainingField: raw?.campo_entrenamiento ?? raw?.trainingField,
-        correspondenceName:
-          raw?.titular_correspondencia ?? raw?.correspondenceName,
-        correspondenceTreatment:
-          raw?.tratamiento_correspondencia ?? raw?.correspondenceTreatment,
-        address: raw?.domicilio_correspondencia ?? raw?.address,
-        locality: raw?.localidad_correspondencia ?? raw?.locality,
-        province: raw?.provincia_correspondencia ?? raw?.province,
-        postalCode: raw?.codigo_postal_correspondencia ?? raw?.postalCode,
-        contactEmail: raw?.email_correspondencia ?? raw?.contactEmail,
-        phones: raw?.telefonos ?? raw?.phones,
-        playDay: raw?.jugar_dia ?? raw?.playDay,
-        playSchedule: raw?.jugar_horario ?? raw?.playSchedule,
-        fax: raw?.fax ?? raw?.faxNumber,
-        delegates: (
-          raw?.delegados_equipo ||
-          raw?.delegados ||
-          raw?.delegates ||
-          []
-        ).map((d: any) => ({
-          id: d?.cod_delegado ?? d?.id,
-          name: d?.nombre ?? d?.name,
-        })),
-        assistants: (
-          raw?.auxiliares_equipo ||
-          raw?.auxiliares ||
-          raw?.assistants ||
-          []
-        ).map((a: any) => ({
-          id: a?.cod_auxiliar ?? a?.id,
-          name: a?.nombre ?? a?.name,
-        })),
-        technicians: (
-          raw?.tecnicos_equipo ||
-          raw?.tecnicos ||
-          raw?.technicians ||
-          []
-        ).map((t: any) => ({
-          id: t?.cod_tecnico ?? t?.cod_tecnico ?? t?.id,
-          name: t?.nombre ?? t?.name,
-        })),
-      };
-
-      const players = (
-        raw?.jugadores_equipo ||
-        raw?.jugadores ||
-        raw?.players ||
-        []
-      ).map((j: any) => ({
-        playerId: j?.cod_jugador ?? j?.playerId ?? j?.id,
-        seasonId: j?.temporada ?? j?.seasonId ?? j?.season ?? null,
-        name: j?.nombre ?? j?.name ?? "",
-        age: j?.age ?? j?.ace ?? j?.edad ?? null,
-        birthYear: j?.birthYear ?? j?.anio_nacimiento ?? j?.anio_nac ?? null,
-        team: j?.equipo ?? j?.team ?? null,
-        teamCode: j?.codigo_equipo ?? j?.teamCode ?? null,
-        teamCategory:
-          j?.categoria_equipo ?? j?.teamCategory ?? j?.categoria ?? null,
-        jerseyNumber:
-          j?.jerseyNumber ?? j?.dorsal ?? j?.numero ?? j?.number ?? null,
-        position:
-          j?.posicion ??
-          j?.position ??
-          j?.puesto ??
-          j?.descripcion_posicion ??
-          null,
-        isGoalkeeper: j?.portero ?? j?.isGoalkeeper ?? j?.es_portero ?? false,
-        photoUrl: j?.photoUrl ?? j?.foto ?? j?.url_foto ?? "",
-        teamShieldUrl:
-          j?.teamShieldUrl ??
-          j?.escudo_equipo ??
-          j?.team_shield ??
-          j?.teamShield ??
-          "",
-        matches: j?.matches ??
-          j?.partidos ??
-          j?.estadisticas_partidos ?? {
-            called: j?.llamados ?? 0,
-            starter: j?.titular ?? 0,
-            substitute: j?.suplente ?? 0,
-            played: j?.jugados ?? 0,
-            totalGoals: j?.goles_total ?? j?.goles ?? 0,
-            goalsPerMatch: j?.goles_por_partido ?? 0,
-          },
-        cards: j?.cards ??
-          j?.amarillas_rojas ??
-          j?.tarjetas ?? {
-            yellow: j?.amarilla ?? j?.yellow ?? 0,
-            red: j?.roja ?? j?.red ?? 0,
-            doubleYellow: j?.doble_amarilla ?? j?.doubleYellow ?? 0,
-          },
-        competitions:
-          j?.competitions ??
-          j?.competiciones ??
-          j?.participaciones_competiciones ??
-          [],
-        teamParticipations: j?.teamParticipations || j?.participaciones || [],
-        // keep original raw object for future needs
-        raw: j,
+      const players = (playersArr || []).map((p: RawPlayer) => ({
+        playerId: String(p.playerId ?? p.cod_jugador ?? p.id ?? ""),
+        seasonId: String(p.seasonId ?? p.temporada ?? p.season ?? ""),
+        name: (p.name ?? p.nombre ?? "") as string,
+        age: p.age ? toNumber(p.age) : p.ace ? toNumber(p.ace) : 0,
+        birthYear: toNumber(
+          p.birthYear ?? p.anio_nacimiento ?? p.anio_nac ?? 0
+        ),
+        team: (p.team ?? p.equipo ?? "") as string,
+        teamCode: String(p.teamCode ?? p.codigo_equipo ?? ""),
+        teamCategory: (p.teamCategory ?? p.categoria ?? "") as string,
+        jerseyNumber: String(p.jerseyNumber ?? p.dorsal ?? p.numero ?? ""),
+        position: (p.position ?? p.posicion ?? "") as string,
+        isGoalkeeper: Boolean(
+          p.isGoalkeeper ?? p.portero ?? p.es_portero ?? false
+        ),
+        photoUrl: String(p.photoUrl ?? p.foto ?? p.url_foto ?? ""),
+        teamShieldUrl: String(
+          p.teamShieldUrl ?? p.escudo_equipo ?? p.team_shield ?? ""
+        ),
+        matches: {
+          called: toNumber(
+            (p as any).matches?.called ??
+              (p as any).llamados ??
+              (p as any).partidos?.llamados ??
+              0
+          ),
+          starter: toNumber(
+            (p as any).matches?.starter ??
+              (p as any).titular ??
+              (p as any).partidos?.titular ??
+              0
+          ),
+          substitute: toNumber(
+            (p as any).matches?.substitute ??
+              (p as any).suplente ??
+              (p as any).partidos?.suplente ??
+              0
+          ),
+          played: toNumber(
+            (p as any).matches?.played ??
+              (p as any).jugados ??
+              (p as any).partidos?.jugados ??
+              0
+          ),
+          totalGoals: toNumber(
+            (p as any).matches?.totalGoals ??
+              (p as any).goles ??
+              (p as any).partidos?.goles_total ??
+              0
+          ),
+          goalsPerMatch: Number(
+            (p as any).matches?.goalsPerMatch ??
+              (p as any).goles_por_partido ??
+              0
+          ),
+        },
+        cards: {
+          yellow: toNumber(
+            (p as any).cards?.yellow ??
+              (p as any).amarilla ??
+              (p as any).amarillas ??
+              0
+          ),
+          red: toNumber((p as any).cards?.red ?? (p as any).roja ?? 0),
+          doubleYellow: toNumber(
+            (p as any).cards?.doubleYellow ?? (p as any).doble_amarilla ?? 0
+          ),
+        },
+        competitions: ((p as any).competitions ??
+          (p as any).competiciones ??
+          (p as any).participaciones_competiciones) as any[],
       }));
 
-      const mapped: TeamResponse = { team, players };
-      return mapped;
+      const team: Team = {
+        status: String(raw?.status ?? raw?.estado ?? ""),
+        sessionOk: String(raw?.sessionOk ?? raw?.sesion_ok ?? ""),
+        teamCode: String(raw?.teamCode ?? raw?.codigo_equipo ?? teamId),
+        clubCode: String(raw?.clubCode ?? raw?.codigo_club ?? ""),
+        accessKey: String(raw?.accessKey ?? raw?.clave_acceso ?? ""),
+        teamName: String(
+          raw?.teamName ?? raw?.nombre_equipo ?? raw?.nombre ?? ""
+        ),
+        clubShield: String(raw?.clubShield ?? raw?.escudo_club ?? ""),
+        clubName: String(raw?.clubName ?? raw?.nombre_club ?? ""),
+        category: String(raw?.category ?? raw?.categoria ?? ""),
+        categoryCode: String(raw?.categoryCode ?? raw?.codigo_categoria ?? ""),
+        website: String(raw?.website ?? raw?.portal_web ?? ""),
+        fieldCode: String(raw?.fieldCode ?? raw?.codigo_campo ?? ""),
+        field: String(raw?.field ?? raw?.campo ?? ""),
+        fieldPhoto: String(
+          raw?.fieldPhoto ?? raw?.foto_campo ?? raw?.fieldPhoto ?? ""
+        ),
+        trainingField: String(
+          raw?.trainingField ?? raw?.campo_entrenamiento ?? ""
+        ),
+        correspondenceHolder: String(
+          raw?.correspondenceHolder ?? raw?.titular_correspondencia ?? ""
+        ),
+        correspondenceTitle: String(
+          raw?.correspondenceTitle ?? raw?.tratamiento_correspondencia ?? ""
+        ),
+        correspondenceAddress: String(
+          raw?.correspondenceAddress ?? raw?.domicilio_correspondencia ?? ""
+        ),
+        correspondenceCity: String(
+          raw?.correspondenceCity ?? raw?.localidad_correspondencia ?? ""
+        ),
+        correspondenceProvince: String(
+          raw?.correspondenceProvince ?? raw?.provincia_correspondencia ?? ""
+        ),
+        correspondencePostalCode: String(
+          raw?.correspondencePostalCode ??
+            raw?.codigo_postal_correspondencia ??
+            ""
+        ),
+        correspondenceEmail: String(
+          raw?.correspondenceEmail ?? raw?.email_correspondencia ?? ""
+        ),
+        phones: String(raw?.phones ?? raw?.telefonos ?? ""),
+        playDay: String(raw?.playDay ?? raw?.jugar_dia ?? ""),
+        playSchedule: String(raw?.playSchedule ?? raw?.jugar_horario ?? ""),
+        fax: String(raw?.fax ?? raw?.fax ?? ""),
+        delegates: (
+          raw?.delegates ??
+          raw?.delegados_equipo ??
+          raw?.delegados ??
+          []
+        ).map((d: any) => ({
+          delegateCode: String(
+            d?.delegateCode ?? d?.cod_delegado ?? d?.id ?? ""
+          ),
+          name: d?.name ?? d?.nombre ?? "",
+        })),
+        assistants: (
+          raw?.assistants ??
+          raw?.auxiliares_equipo ??
+          raw?.auxiliares ??
+          []
+        ).map((a: any) => ({
+          assistantCode: String(
+            a?.assistantCode ?? a?.cod_auxiliar ?? a?.id ?? ""
+          ),
+          name: a?.name ?? a?.nombre ?? "",
+        })),
+        coaches: (
+          raw?.coaches ??
+          raw?.tecnicos_equipo ??
+          raw?.tecnicos ??
+          []
+        ).map((t: any) => ({
+          coachCode: String(t?.coachCode ?? t?.cod_tecnico ?? t?.id ?? ""),
+          name: t?.name ?? t?.nombre ?? "",
+        })),
+        players: players,
+      };
+
+      return team;
     } catch (err) {
       lastErr = err;
       attempt++;
@@ -230,6 +347,7 @@ export async function getPlayersByTeam(
       await new Promise((r) => setTimeout(r, delay));
     }
   }
+
   throw lastErr;
 }
 
@@ -244,47 +362,61 @@ export async function getTeamsForClassification(params: {
   if (params.competition) q.append("competition", params.competition);
   if (params.group) q.append("group", params.group);
   if (params.playType) q.append("playType", params.playType);
-  const res = await client.get(`teams?${q.toString()}`);
-  const raw = res.data;
-  // expected raw to be an array of classifications or wrapped
-  const list = Array.isArray(raw)
+  const res = await client.get(`classification?${q.toString()}`);
+  const raw = res.data as ClassificationResponse | any;
+  const list: ClassificationTeam[] = Array.isArray(raw)
     ? raw
     : raw?.teams ?? raw?.classifications ?? [];
-  return (list || []).map((r: any) => ({
-    color: r?.color ?? r?.color_equipo ?? "",
-    position: r?.posicion ?? r?.position ?? "",
-    imageUrl: r?.url_img ?? r?.imageUrl ?? r?.escudo_equipo ?? "",
-    teamId: r?.codequipo ?? r?.teamId ?? r?.codigo_equipo ?? "",
-    teamName: r?.nombre ?? r?.teamName ?? r?.nombre_equipo ?? "",
-    played: r?.jugados ?? "",
-    won: r?.ganados ?? "",
-    lost: r?.perdidos ?? "",
-    drawn: r?.empatados ?? "",
-    penalties: r?.penaltis ?? "",
-    goalsFor: r?.goles_a_favor ?? "",
-    goalsAgainst: r?.goles_en_contra ?? "",
-    homePlayed: r?.jugados_casa ?? "",
-    homeWon: r?.ganados_casa ?? "",
-    homeDrawn: r?.empatados_casa ?? "",
-    homePenaltyWins: r?.ganados_penalti_casa ?? "",
-    homeLost: r?.perdidos_casa ?? "",
-    awayPlayed: r?.jugados_fuera ?? "",
-    awayWon: r?.ganados_fuera ?? "",
-    awayDrawn: r?.empatados_fuera ?? "",
-    awayPenaltyWins: r?.ganados_penalti_fuera ?? "",
-    awayLost: r?.perdidos_fuera ?? "",
-    points: r?.puntos ?? "",
-    sanctionPoints: r?.puntos_sancion ?? "",
-    homePoints: r?.puntos_local ?? "",
-    awayPoints: r?.puntos_visitante ?? "",
-    showCoefficient: r?.mostrar_coeficiente ?? "",
-    coefficient: r?.coeficiente ?? "",
-    matchStreaks:
-      (r?.racha_partidos ?? r?.matchStreaks ?? []).map((s: any) => ({
-        type: s?.tipo ?? s?.type ?? "",
-        color: s?.color ?? s?.color ?? "",
-      })) || [],
-  }));
+
+  return (list || []).map((r: ClassificationTeam) => {
+    const parseNum = (v: any) => {
+      const n = Number(v);
+      return Number.isNaN(n) ? 0 : n;
+    };
+
+    return {
+      color: r?.color ?? "",
+      position: parseNum(r?.position ?? r?.posicion ?? 0),
+      imageUrl: r?.imageUrl ?? r?.url_img ?? r?.escudo_equipo ?? "",
+      teamId: r?.teamId ?? r?.codequipo ?? r?.codigo_equipo ?? "",
+      teamName: r?.teamName ?? r?.nombre ?? r?.nombre_equipo ?? "",
+      played: parseNum(r?.played ?? r?.jugados ?? 0),
+      won: parseNum(r?.won ?? r?.ganados ?? 0),
+      lost: parseNum(r?.lost ?? r?.perdidos ?? 0),
+      drawn: parseNum(r?.drawn ?? r?.empatados ?? 0),
+      penalties: parseNum(r?.penalties ?? r?.penaltis ?? 0),
+      goalsFor: parseNum(r?.goalsFor ?? r?.goles_a_favor ?? 0),
+      goalsAgainst: parseNum(r?.goalsAgainst ?? r?.goles_en_contra ?? 0),
+      homePlayed: parseNum(r?.homePlayed ?? r?.jugados_casa ?? 0),
+      homeWon: parseNum(r?.homeWon ?? r?.ganados_casa ?? 0),
+      homeDrawn: parseNum(r?.homeDrawn ?? r?.empatados_casa ?? 0),
+      homePenaltyWins: parseNum(
+        r?.homePenaltyWins ?? r?.ganados_penalti_casa ?? 0
+      ),
+      homeLost: parseNum(r?.homeLost ?? r?.perdidos_casa ?? 0),
+      awayPlayed: parseNum(r?.awayPlayed ?? r?.jugados_fuera ?? 0),
+      awayWon: parseNum(r?.awayWon ?? r?.ganados_fuera ?? 0),
+      awayDrawn: parseNum(r?.awayDrawn ?? r?.empatados_fuera ?? 0),
+      awayPenaltyWins: parseNum(
+        r?.awayPenaltyWins ?? r?.ganados_penalti_fuera ?? 0
+      ),
+      awayLost: parseNum(r?.awayLost ?? r?.perdidos_fuera ?? 0),
+      points: parseNum(r?.points ?? r?.puntos ?? 0),
+      sanctionPoints: parseNum(r?.sanctionPoints ?? r?.puntos_sancion ?? 0),
+      homePoints: parseNum(r?.homePoints ?? r?.puntos_local ?? 0),
+      awayPoints: parseNum(r?.awayPoints ?? r?.puntos_visitante ?? 0),
+      showCoefficient: Boolean(
+        r?.showCoefficient ?? r?.mostrar_coeficiente ?? false
+      ),
+      coefficient: parseNum(r?.coefficient ?? r?.coeficiente ?? 0),
+      matchStreaks:
+        (r?.matchStreaks ?? r?.racha_partidos ?? []).map((s: any) => ({
+          type: s?.type ?? s?.tipo ?? "",
+          color: s?.color ?? s?.color ?? "",
+        })) || [],
+      raw: r,
+    };
+  });
 }
 
 export async function getCompetitions() {
@@ -305,7 +437,7 @@ export async function getCalendar(params?: {
   competition?: string;
   group?: string;
   playType?: string;
-}) {
+}): Promise<CalendarResponse | MatchApiResponse> {
   const q = new URLSearchParams();
   if (params?.season) q.append("season", params.season);
   if (params?.competition) q.append("competition", params.competition);
@@ -315,8 +447,13 @@ export async function getCalendar(params?: {
   const res = await client.get(`calendar${qs}`);
   const raw = res.data as any;
 
-  // Normalize rounds and match entries to our typed model so UI components
-  // can rely on consistent field names.
+  // If the API returns the new `matchDays` payload we can return it directly
+  if (raw && (raw.matchDays || raw.matchDays === null)) {
+    // ensure it's typed as MatchApiResponse
+    return raw as MatchApiResponse;
+  }
+
+  // Otherwise fall back to previous `rounds`/`jornadas` normalization
   function normalizeMatch(r: any): MatchEntry {
     if (!r) return {} as MatchEntry;
     return {

@@ -3,25 +3,25 @@ using System.Text.Json.Serialization;
 namespace RFFM.Api.Features.Teams.Models
 {
     // Represents the Next.js page JSON structure that contains the acta
-    public class ActaPage
+    public class ActaPageRffm
     {
         [JsonPropertyName("props")]
-        public ActaProps? Props { get; set; }
+        public ActaPropsRffm? Props { get; set; }
     }
 
-    public class ActaProps
+    public class ActaPropsRffm
     {
         [JsonPropertyName("pageProps")]
-        public ActaPageProps? PageProps { get; set; }
+        public ActaPagePropsRffm? PageProps { get; set; }
     }
 
-    public class ActaPageProps
+    public class ActaPagePropsRffm
     {
         [JsonPropertyName("acta")]
-        public Game? Acta { get; set; }
+        public MatchRffm? Acta { get; set; }
 
         // In some variants the acta might be nested under a different property name
         [JsonPropertyName("acta_json")] // fallback name (example)
-        public Game? ActaJson { get; set; }
+        public MatchRffm? ActaJson { get; set; }
     }
 }

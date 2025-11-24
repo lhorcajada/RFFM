@@ -6,73 +6,15 @@ export default function Substitutions({
   local,
   away,
 }: {
-  local: Array<{
-    minuto?: string;
-    entradorsal?: string;
-    nombre_jugador_entra?: string;
-    saledorsal?: string;
-    nombre_jugador_sale?: string;
-  }>;
-  away: Array<{
-    minuto?: string;
-    entradorsal?: string;
-    nombre_jugador_entra?: string;
-    saledorsal?: string;
-    nombre_jugador_sale?: string;
-  }>;
+  local?: any[];
+  away?: any[];
 }) {
   const localList = Array.isArray(local) ? local : [];
   const awayList = Array.isArray(away) ? away : [];
 
   if (localList.length === 0 && awayList.length === 0) return null;
 
-  const renderItem = (s: any, idx: number) => {
-    const minute = s.minuto || s.Minute || "";
-    const enteringNumber = s.entradorsal || s.EnteringNumber || "";
-    const enteringName = s.nombre_jugador_entra || s.EnteringPlayerName || "";
-    const exitingNumber = s.saledorsal || s.ExitingNumber || "";
-    const exitingName = s.nombre_jugador_sale || s.ExitingPlayerName || "";
-
-    const leftNumber = enteringNumber ? (
-      <span className={styles.dorsal}>{enteringNumber}</span>
-    ) : null;
-    const leftName = enteringName ? (
-      <span className={styles.playerName}>{enteringName}</span>
-    ) : null;
-    const rightNumber = exitingNumber ? (
-      <span className={styles.dorsalExit}>{exitingNumber}</span>
-    ) : null;
-    const rightName = exitingName ? (
-      <span className={styles.playerNameExit}>{exitingName}</span>
-    ) : null;
-
-    return (
-      <ListItem key={idx} className={styles.item}>
-        <div className={styles.minuteWrap}>
-          <div className={styles.minute}>{minute ? `${minute}'` : ""}</div>
-        </div>
-
-        <div className={styles.content}>
-          <div className={styles.rowTop}>
-            <div className={styles.entering}>
-              {leftNumber}
-              {leftName}
-            </div>
-
-            <div className={styles.arrowContainer} aria-hidden>
-              <span className={styles.arrowCircleIn}>→</span>
-              <span className={styles.arrowCircleOut}>←</span>
-            </div>
-
-            <div className={styles.exiting}>
-              {rightNumber}
-              {rightName}
-            </div>
-          </div>
-        </div>
-      </ListItem>
-    );
-  };
+  // rendering helpers removed — table output below handles both Spanish/English fields
 
   return (
     <Paper className={styles.root} elevation={0}>

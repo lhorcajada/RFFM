@@ -4,7 +4,7 @@
 namespace RFFM.Api.Features.Teams.Models
 {
 
-    public class Game
+    public class MatchRffm
     {
         [JsonPropertyName("estado")]
         public string Status { get; set; } = string.Empty;

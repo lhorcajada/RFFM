@@ -17,7 +17,7 @@ import useMatch from "../../../hooks/useMatch";
 type MatchItem = {
   rawDate?: string | null;
   parsedDate?: Date | null;
-  match: MatchEntry;
+  match: MatchEntry | any;
 };
 
 export default function MatchCard({

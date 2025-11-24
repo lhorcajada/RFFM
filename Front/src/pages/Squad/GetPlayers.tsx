@@ -5,6 +5,7 @@ import "../../styles/gameTheme.css";
 import styles from "./GetPlayers.module.css";
 import teamStyles from "../../styles/TeamCard.module.css";
 import type { PlayerDetailsResponse } from "../../types/player";
+import type { Team } from "../../types/team";
 import {
   List,
   ListItem,
@@ -24,7 +25,6 @@ import {
   getPlayersByTeam,
   getPlayer,
   getTeamAgeSummary,
-  getTeamGoalSectors,
   getTeamParticipationSummary,
 } from "../../services/api";
 import AgeSummaryBox from "../../components/players/AgeSummaryBox/AgeSummaryBox";
@@ -54,7 +54,7 @@ function extractPlayerIdFromUrl(u?: string): string | null {
   }
 }
 
-type Team = { id: string | number; name: string; url?: string };
+type SelectedTeam = { id: string | number; name: string; url?: string };
 
 type Player = {
   id: number;
@@ -79,7 +79,9 @@ type Player = {
 };
 
 export default function GetPlayers(): JSX.Element {
-  const [selectedTeam, setSelectedTeam] = useState<Team | undefined>(undefined);
+  const [selectedTeam, setSelectedTeam] = useState<SelectedTeam | undefined>(
+    undefined
+  );
   const [players, setPlayers] = useState<Player[]>([]);
   const [displayCount, setDisplayCount] = useState<number>(0);
   const [ageCounts, setAgeCounts] = useState<Record<number, number>>({});
@@ -103,7 +105,7 @@ export default function GetPlayers(): JSX.Element {
   const [selectedGroup, setSelectedGroup] = useState<string | undefined>(
     undefined
   );
-  const [teamDetails, setTeamDetails] = useState<any | null>(null);
+  const [teamDetails, setTeamDetails] = useState<Team | null>(null);
 
   const [noConfig, setNoConfig] = useState<boolean>(false);
   const [showAgePopup, setShowAgePopup] = useState<boolean>(false);
@@ -114,9 +116,6 @@ export default function GetPlayers(): JSX.Element {
   const [participationData, setParticipationData] = useState<any[]>([]);
   const [loadingParticipation, setLoadingParticipation] =
     useState<boolean>(false);
-  const [showGoalSectors, setShowGoalSectors] = useState<boolean>(false);
-  const [goalSectorsData, setGoalSectorsData] = useState<any | null>(null);
-  const [loadingGoalSectors, setLoadingGoalSectors] = useState<boolean>(false);
 
   // Load initial configuration from localStorage (runs once on mount)
   useEffect(() => {
@@ -171,22 +170,27 @@ export default function GetPlayers(): JSX.Element {
         const teamId = String(selectedTeam.id);
         const payload = await getPlayersByTeam(teamId);
 
+        // payload is expected to be our `Team` type. Extract players and set teamDetails
         let list: any[] = [];
-        // Support different API shapes: array, { players: [...] }, or { jugadores_equipo: [...] }
-        if (Array.isArray(payload)) list = payload as any[];
-        else if (payload && Array.isArray((payload as any).players))
-          list = (payload as any).players;
-        else if (payload && Array.isArray((payload as any).jugadores_equipo))
-          list = (payload as any).jugadores_equipo;
+        if (payload) {
+          if (Array.isArray((payload as any).players))
+            list = (payload as any).players;
+          else if (Array.isArray((payload as any).jugadores_equipo))
+            list = (payload as any).jugadores_equipo;
+          else if (Array.isArray(payload)) list = payload as any[];
 
-        if (payload && (payload as any).team) {
-          const baseTeam = (payload as any).team;
-          if (selectedTeam && (selectedTeam as any).raw) {
-            baseTeam.classification = (selectedTeam as any).raw;
+          // Ensure we set teamDetails from the payload. If there's a saved classification
+          // in the selected configuration, attach it for display (classification isn't
+          // part of the `Team` type, so keep it optional).
+          const teamFromApi = (payload as Team) || null;
+          if (teamFromApi) {
+            const teamToSet: any = { ...teamFromApi };
+            if ((selectedTeam as any)?.raw)
+              teamToSet.classification = (selectedTeam as any).raw;
+            setTeamDetails(teamToSet as Team);
+          } else {
+            setTeamDetails((selectedTeam as any)?.raw ?? null);
           }
-          setTeamDetails(baseTeam);
-        } else {
-          setTeamDetails((selectedTeam as any)?.raw ?? null);
         }
 
         const mapped: Player[] = list.map((p: any, idx: number) => {
@@ -303,88 +307,112 @@ export default function GetPlayers(): JSX.Element {
               </Typography>
               <Address
                 street={teamDetails.field}
-                city={teamDetails.locality}
-                postalCode={teamDetails.postalCode}
+                city={teamDetails.correspondenceCity}
+                postalCode={String(teamDetails.correspondencePostalCode ?? "")}
               />
             </div>
             {/* classification header removed to avoid duplication with summary */}
           </div>
-          {teamDetails.classification && (
-            <div className={teamStyles.classificationSummary}>
-              <div className={teamStyles.stat}>
-                <div className={teamStyles.label}>Posición</div>
-                <div className={teamStyles.value}>
-                  {teamDetails.classification.position || "-"}
+          {
+            // classification is an optional runtime-only field attached to teamDetails
+            (teamDetails as any).classification && (
+              <div className={teamStyles.classificationSummary}>
+                <div className={teamStyles.stat}>
+                  <div className={teamStyles.label}>Posición</div>
+                  <div className={teamStyles.value}>
+                    {(teamDetails as any).classification.position ??
+                      (teamDetails as any).classification.posicion ??
+                      "-"}
+                  </div>
                 </div>
-              </div>
-              <div className={teamStyles.stat}>
-                <div className={teamStyles.label}>Puntos</div>
-                <div className={teamStyles.value}>
-                  {teamDetails.classification.points || "-"}
+                <div className={teamStyles.stat}>
+                  <div className={teamStyles.label}>Puntos</div>
+                  <div className={teamStyles.value}>
+                    {(teamDetails as any).classification.points ??
+                      (teamDetails as any).classification.puntos ??
+                      "-"}
+                  </div>
                 </div>
-              </div>
-              <div className={teamStyles.stat}>
-                <div className={teamStyles.label}>Jugados</div>
-                <div className={teamStyles.value}>
-                  {teamDetails.classification.played || "-"}
+                <div className={teamStyles.stat}>
+                  <div className={teamStyles.label}>Jugados</div>
+                  <div className={teamStyles.value}>
+                    {(teamDetails as any).classification.played ??
+                      (teamDetails as any).classification.jugados ??
+                      "-"}
+                  </div>
                 </div>
-              </div>
-              <div className={teamStyles.stat}>
-                <div className={teamStyles.label}>G</div>
-                <div className={teamStyles.value}>
-                  {teamDetails.classification.won || "-"}
+                <div className={teamStyles.stat}>
+                  <div className={teamStyles.label}>G</div>
+                  <div className={teamStyles.value}>
+                    {(teamDetails as any).classification.won ??
+                      (teamDetails as any).classification.ganados ??
+                      "-"}
+                  </div>
                 </div>
-              </div>
-              <div className={teamStyles.stat}>
-                <div className={teamStyles.label}>E</div>
-                <div className={teamStyles.value}>
-                  {teamDetails.classification.drawn || "-"}
+                <div className={teamStyles.stat}>
+                  <div className={teamStyles.label}>E</div>
+                  <div className={teamStyles.value}>
+                    {(teamDetails as any).classification.drawn ??
+                      (teamDetails as any).classification.empatados ??
+                      "-"}
+                  </div>
                 </div>
-              </div>
-              <div className={teamStyles.stat}>
-                <div className={teamStyles.label}>P</div>
-                <div className={teamStyles.value}>
-                  {teamDetails.classification.lost || "-"}
+                <div className={teamStyles.stat}>
+                  <div className={teamStyles.label}>P</div>
+                  <div className={teamStyles.value}>
+                    {(teamDetails as any).classification.lost ??
+                      (teamDetails as any).classification.perdidos ??
+                      "-"}
+                  </div>
                 </div>
-              </div>
-              <div className={teamStyles.stat}>
-                <div className={teamStyles.label}>GF</div>
-                <div className={teamStyles.value}>
-                  {teamDetails.classification.goalsFor || "-"}
+                <div className={teamStyles.stat}>
+                  <div className={teamStyles.label}>GF</div>
+                  <div className={teamStyles.value}>
+                    {(teamDetails as any).classification.goalsFor ??
+                      (teamDetails as any).classification.goles_a_favor ??
+                      "-"}
+                  </div>
                 </div>
-              </div>
-              <div className={teamStyles.stat}>
-                <div className={teamStyles.label}>GC</div>
-                <div className={teamStyles.value}>
-                  {teamDetails.classification.goalsAgainst || "-"}
+                <div className={teamStyles.stat}>
+                  <div className={teamStyles.label}>GC</div>
+                  <div className={teamStyles.value}>
+                    {(teamDetails as any).classification.goalsAgainst ??
+                      (teamDetails as any).classification.goles_en_contra ??
+                      "-"}
+                  </div>
                 </div>
-              </div>
-              <div className={teamStyles.stat}>
-                <div className={teamStyles.label}>Racha últimos 5 partidos</div>
-                <div className={teamStyles.value}>
-                  <div className={teamStyles.streak}>
-                    {(
-                      ((teamDetails.classification.matchStreaks || []) as any[])
+                <div className={teamStyles.stat}>
+                  <div className={teamStyles.label}>
+                    Racha últimos 5 partidos
+                  </div>
+                  <div className={teamStyles.value}>
+                    <div className={teamStyles.streak}>
+                      {(
+                        ((teamDetails as any).classification?.matchStreaks ??
+                          (teamDetails as any).classification?.racha_partidos ??
+                          []) as any[]
+                      )
                         .slice(-5)
-                        .map((s: any) => (s.type || "").toUpperCase()) || []
-                    ).map((t: string, i: number) => {
-                      const key = `streak-${i}`;
-                      const cls = `${teamStyles.dot} ${
-                        t === "G"
-                          ? teamStyles.g
-                          : t === "E"
-                          ? teamStyles.e
-                          : t === "P"
-                          ? teamStyles.p
-                          : teamStyles.e
-                      }`;
-                      return <span key={key} className={cls} />;
-                    })}
+                        .map((s: any, i: number) => {
+                          const t = (s.type || s.tipo || "").toUpperCase();
+                          const key = `streak-${i}`;
+                          const cls = `${teamStyles.dot} ${
+                            t === "G"
+                              ? teamStyles.g
+                              : t === "E"
+                              ? teamStyles.e
+                              : t === "P"
+                              ? teamStyles.p
+                              : teamStyles.e
+                          }`;
+                          return <span key={key} className={cls} />;
+                        })}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
+            )
+          }
         </Paper>
       )}
 
@@ -448,89 +476,7 @@ export default function GetPlayers(): JSX.Element {
                 </Box>
               </Modal>
             </div>
-            <div>
-              <Button
-                size="small"
-                variant="contained"
-                onClick={async () => {
-                  if (showGoalSectors) {
-                    setShowGoalSectors(false);
-                    return;
-                  }
-                  setShowGoalSectors(true);
-                  try {
-                    setLoadingGoalSectors(true);
-                    const id = String(
-                      (selectedTeam as any).id || selectedTeam?.id
-                    );
-                    const data = await getTeamGoalSectors(id, {
-                      temporada: "21",
-                      competicion: selectedCompetition ?? undefined,
-                      grupo: selectedGroup ?? undefined,
-                      tipojuego: "1",
-                    });
-                    setGoalSectorsData(data || null);
-                  } catch (err) {
-                    setGoalSectorsData(null);
-                  } finally {
-                    setLoadingGoalSectors(false);
-                  }
-                }}
-              >
-                Goles
-              </Button>
-              <Modal
-                open={showGoalSectors}
-                onClose={() => setShowGoalSectors(false)}
-              >
-                <Box className={styles.modalContent}>
-                  {loadingGoalSectors ? (
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "center",
-                        padding: 18,
-                      }}
-                    >
-                      <CircularProgress size={28} color="inherit" />
-                    </div>
-                  ) : goalSectorsData ? (
-                    <div>
-                      <div className={styles.goalSectorsHeader}>
-                        <div>
-                          <strong>Partidos procesados:</strong>&nbsp;
-                          {goalSectorsData.matchesProcessed ?? 0}
-                        </div>
-                      </div>
-                      <table className={styles.goalSectorsTable}>
-                        <thead>
-                          <tr>
-                            <th>Desde (min)</th>
-                            <th>Hasta (min)</th>
-                            <th>Goles a favor</th>
-                            <th>Goles en contra</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {(goalSectorsData.sectors || []).map(
-                            (s: any, i: number) => (
-                              <tr key={i}>
-                                <td>{s.startMinute ?? "-"}</td>
-                                <td>{s.endMinute ?? "-"}</td>
-                                <td>{s.goalsFor ?? 0}</td>
-                                <td>{s.goalsAgainst ?? 0}</td>
-                              </tr>
-                            )
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : (
-                    <div>No data</div>
-                  )}
-                </Box>
-              </Modal>
-            </div>
+
             <div>
               <Button
                 size="small"
@@ -970,7 +916,7 @@ export default function GetPlayers(): JSX.Element {
               <StaffCard
                 title="Técnicos"
                 titleClassName={styles.staffTitle}
-                staff={(teamDetails.technicians || []).map((t: any) => ({
+                staff={(teamDetails.coaches || []).map((t: any) => ({
                   name: t.name,
                   role: t.role,
                 }))}

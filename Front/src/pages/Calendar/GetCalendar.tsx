@@ -16,6 +16,11 @@ import styles from "./GetCalendar.module.css";
 import useMatch, { computeMatchData } from "../../hooks/useMatch";
 import MatchCard from "../../components/ui/MatchCard/MatchCard";
 import { getCalendar } from "../../services/api";
+import type {
+  MatchApiResponse,
+  MatchDay,
+  MatchApiMatch,
+} from "../../types/match";
 import { parseTimeToHM } from "../../utils/match";
 
 const STORAGE_PRIMARY = "rffm.primary_combination_id";
@@ -80,8 +85,23 @@ export default function GetCalendar(): JSX.Element {
           group: selectedGroup,
           playType: "1",
         });
-        // API returns object with rounds/jornadas
-        setCalendar(data ?? null);
+        // API may return either the old `rounds/jornadas` shape or the new
+        // `matchDays` payload. Normalize `matchDays` into a rounds-like
+        // structure expected by the UI while keeping the original when
+        // necessary.
+        if (data && (data as MatchApiResponse).matchDays) {
+          const md = (data as MatchApiResponse).matchDays as MatchDay[];
+          // Convert each matchDay into a Round-like object with `equipos` array
+          const roundsFromDays = (md || []).map((d: MatchDay) => ({
+            codjornada: d.matchDayNumber ?? undefined,
+            jornada: d.matchDayNumber ?? undefined,
+            equipos: (d.matches ?? []) as MatchApiMatch[],
+            raw: d,
+          }));
+          setCalendar({ rounds: roundsFromDays } as any);
+        } else {
+          setCalendar(data ?? null);
+        }
 
         // after setting calendar, compute the round that contains matches in the current week
         const rounds = (data?.rounds ?? data?.jornadas ?? []) as any[];

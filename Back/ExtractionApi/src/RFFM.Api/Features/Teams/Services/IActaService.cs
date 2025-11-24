@@ -6,6 +6,6 @@ namespace RFFM.Api.Features.Teams.Services
 {
     public interface IActaService
     {
-        Task<Game?> GetGameFromActaAsync(string codActa, int temporada, int competicion, int grupo, CancellationToken cancellationToken = default);
+        Task<MatchRffm?> GetMatchFromActaAsync(string codActa, int temporada, int competicion, int grupo, CancellationToken cancellationToken = default);
     }
 }

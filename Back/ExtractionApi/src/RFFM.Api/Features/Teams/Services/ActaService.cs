@@ -15,7 +15,7 @@ namespace RFFM.Api.Features.Teams.Services
             _httpClientFactory = httpClientFactory;
         }
 
-        public async Task<Game?> GetGameFromActaAsync(string codActa, int temporada, int competicion, int grupo, CancellationToken cancellationToken = default)
+        public async Task<MatchRffm?> GetMatchFromActaAsync(string codActa, int temporada, int competicion, int grupo, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(codActa)) return null;
             var http = _httpClientFactory.CreateClient();
@@ -123,7 +123,7 @@ namespace RFFM.Api.Features.Teams.Services
             try
             {
                 var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                var game = JsonSerializer.Deserialize<Game>(actaJsonElement.Value.GetRawText(), options);
+                var game = JsonSerializer.Deserialize<MatchRffm>(actaJsonElement.Value.GetRawText(), options);
                 return game;
             }
             catch

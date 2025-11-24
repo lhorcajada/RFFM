@@ -64,7 +64,7 @@ namespace RFFM.Api.Features.Teams.Queries.Responses
 
         public List<TeamCoach> Coaches { get; set; } = new();
 
-        public List<Player> Players { get; set; } = new();
+        public List<Player?> Players { get; set; } = new();
     }
 
     public class TeamDelegate

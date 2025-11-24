@@ -122,16 +122,18 @@ export default function Footer(): JSX.Element {
             </IconButton>
             <IconButton
               component={Link}
-              to="/saved-configs"
+              to="/settings"
               className={
-                loc.pathname.startsWith("/saved-configs")
+                loc.pathname.startsWith("/settings")
                   ? `${styles.iconBtn} ${styles.active}`
                   : styles.iconBtn
               }
-              aria-label="Combinaciones"
+              aria-label="Configuración"
               size="large"
             >
-              <SettingsIcon />
+              <SvgIcon>
+                <path d="M19.14 12.94c.04-.31.06-.63.06-.94s-.02-.63-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.63l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.007 7.007 0 0 0-1.6-.94l-.36-2.54A.5.5 0 0 0 14 2h-4a.5.5 0 0 0-.49.42l-.36 2.54c-.58.22-1.12.52-1.6.94l-2.39-.96a.5.5 0 0 0-.6.22L2.71 8.9a.5.5 0 0 0 .12.63l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94L2.83 15.6a.5.5 0 0 0-.12.63l1.92 3.32c.14.24.43.34.68.24l2.39-.96c.48.42 1.02.72 1.6.94l.36 2.54c.05.27.28.46.54.46h4c.26 0 .49-.19.54-.46l.36-2.54c.58-.22 1.12-.52 1.6-.94l2.39.96c.25.1.54 0 .68-.24l1.92-3.32a.5.5 0 0 0-.12-.63l-2.03-1.58zM12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7z" />
+              </SvgIcon>
             </IconButton>
           </>
         )}

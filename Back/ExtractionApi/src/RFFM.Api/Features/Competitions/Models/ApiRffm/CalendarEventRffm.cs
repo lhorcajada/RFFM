@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace RFFM.Api.Features.Competitions.Models
+namespace RFFM.Api.Features.Competitions.Models.ApiRffm
 {
     // Represents the root `calendar` object embedded in the site JSON
     public class Calendar

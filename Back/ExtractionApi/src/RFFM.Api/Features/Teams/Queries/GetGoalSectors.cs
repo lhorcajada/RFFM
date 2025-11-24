@@ -1,16 +1,14 @@
 using Mediator;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Features.Competitions.Services;
 using RFFM.Api.Features.Teams.Models;
-using Microsoft.AspNetCore.Mvc;
-using System.Text.Json;
-using System.Text.RegularExpressions;
-using RFFM.Api.Features.Competitions.Models;
-using System.Globalization;
+using RFFM.Api.Features.Teams.Queries.Responses;
 using RFFM.Api.Features.Teams.Services;
+using System.Globalization;
 
 namespace RFFM.Api.Features.Teams.Queries
 {
@@ -19,331 +17,200 @@ namespace RFFM.Api.Features.Teams.Queries
         public void AddRoutes(IEndpointRouteBuilder app)
         {
             app.MapGet("/teams/{teamCode}/goal-sectors", async (IMediator mediator, CancellationToken cancellationToken,
-                    string teamCode = "13553720", int temporada = 21, int competicion = 25255269, int grupo = 25255283,
-                    int tipojuego = 1) =>
+                    int competitionId = 25255269, int groupId = 25255283, int teamCode1 = 13553720, int teamCode2 = 2280600) =>
                 {
-                    var request = new Query(teamCode, temporada, competicion, grupo, tipojuego);
+                    var teamCodesToCompare = new List<int> { teamCode1, teamCode2 };
+                    var request = new Query(competitionId, groupId, teamCodesToCompare);
                     var response = await mediator.Send(request, cancellationToken);
-                    return response != null ? Results.Ok(response) : Results.NotFound();
+                    return Results.Ok(response);
                 })
                 .WithName(nameof(GetGoalSectors))
                 .WithTags("Teams")
-                .Produces<GoalSectorsResponse>()
+                .Produces<List<GoalSectorsResponse>>()
                 .Produces<ProblemDetails>(StatusCodes.Status400BadRequest);
         }
 
-        public record Query(string TeamCode, int Temporada, int Competicion, int Grupo, int TipoJuego)
-            : Common.IQuery<GoalSectorsResponse>;
+        public record Query(int CompetitionId, int GroupId, List<int> TeamCodesToCompare)
+            : Common.IQuery<List<GoalSectorsResponse>>;
 
-        public class Sector
-        {
-            public int StartMinute { get; set; }
-            public int EndMinute { get; set; }
-            public int GoalsFor { get; set; }
-            public int GoalsAgainst { get; set; }
-        }
 
-        public class GoalSectorsResponse
-        {
-            public string TeamCode { get; set; } = string.Empty;
-            public int MatchesProcessed { get; set; }
-            public List<Sector> Sectors { get; set; } = new();
-            // Additional counts for verification
-            public int TotalGoalsFor { get; set; }
-            public int TotalGoalsAgainst { get; set; }
-            public int SectorGoalsFor { get; set; }
-            public int SectorGoalsAgainst { get; set; }
-        }
 
-        public class RequestHandler : IRequestHandler<Query, GoalSectorsResponse>
+        public class RequestHandler : IRequestHandler<Query, List<GoalSectorsResponse>>
         {
             private readonly ICalendarService _calendarService;
+            private readonly ICompetitionService _competitionService;
             private readonly IActaService _actaService;
+            private readonly ISectorFactory _sectorFactory;
 
-            public RequestHandler(ICalendarService calendarService, IActaService actaService)
+            public RequestHandler(ICalendarService calendarService,
+                ICompetitionService competitionService,
+                IActaService actaService, ISectorFactory sectorFactory)
             {
                 _calendarService = calendarService;
+                _competitionService = competitionService;
                 _actaService = actaService;
+                _sectorFactory = sectorFactory;
             }
 
-            public async ValueTask<GoalSectorsResponse> Handle(Query request, CancellationToken cancellationToken)
+            public async ValueTask<List<GoalSectorsResponse>> Handle(Query request, CancellationToken cancellationToken)
             {
-                // Adapted to new Calendar model
-                var calendar = await _calendarService.GetCalendarAsync(request.Temporada, request.Competicion,
-                    request.Grupo, null, request.TipoJuego, cancellationToken);
-                if (calendar == null)
-                    return new GoalSectorsResponse { TeamCode = request.TeamCode, MatchesProcessed = 0 };
+                if (request.TeamCodesToCompare == null || request.TeamCodesToCompare.Count < 2)
+                    throw new Exception("No hay equipos que comparar");
 
-                var rounds = calendar.EffectiveRounds;
-                if (rounds == null || !rounds.Any())
-                    return new GoalSectorsResponse { TeamCode = request.TeamCode, MatchesProcessed = 0 };
+                var teamCode1 = request.TeamCodesToCompare[0].ToString(CultureInfo.InvariantCulture);
+                var teamCode2 = request.TeamCodesToCompare[1].ToString(CultureInfo.InvariantCulture);
 
-                // Determine current round (latest round whose matches' max date <= today)
-                var formats = new[]
+                // Obtain match duration (MatchTime property)
+                var competitions = await _competitionService.GetCompetitionsAsync(cancellationToken);
+                var matchTime = competitions
+                    .FirstOrDefault(c => c.CompetitionId == request.CompetitionId)?.MatchTime ?? 90;
+
+                // Configure sectors: 3 sectors per half (configurable here)
+                const int sectorsPerHalf = 3;
+
+                var calendar = await _calendarService.GetCalendarAsync(request.CompetitionId, request.GroupId, cancellationToken);
+                var team1Matches = calendar.MatchDays.Where(m => m.Date <= DateTime.Now.Date)
+                    .SelectMany(cmd => cmd.Matches.Where(m => m.LocalTeamCode == teamCode1 || m.VisitorTeamCode == teamCode1)).ToList();
+                var team2Matches = calendar.MatchDays.Where(m => m.Date <= DateTime.Now.Date)
+                    .SelectMany(cmd => cmd.Matches.Where(m => m.LocalTeamCode == teamCode2 || m.VisitorTeamCode == teamCode2)).ToList();
+                var codesActasTeam1 = team1Matches.Select(m => m.MatchRecordCode).ToList();
+                var codesActasTeam2 = team2Matches.Select(m => m.MatchRecordCode).ToList();
+                var sectorsTeam1 = _sectorFactory.BuildSectors(matchTime, sectorsPerHalf);
+                var sectorsTeam2 = _sectorFactory.BuildSectors(matchTime, sectorsPerHalf);
+                var team1GoalResponse = new GoalSectorsResponse();
+                var team2GoalResponse = new GoalSectorsResponse();
+                foreach (var codeActa in codesActasTeam1)
                 {
-                    "dd/MM/yyyy", "dd/MM/yyyy HH:mm", "yyyy-MM-ddTHH:mm:ss", "yyyy-MM-dd", "dd-MM-yyyy",
-                    "dd-MM-yyyy HH:mm"
-                };
-                var culture = CultureInfo.GetCultureInfo("es-ES");
-                var today = DateTime.Now.Date;
-
-                int cutoffRoundIndex = -1;
-                int lastRoundWithCodActa = -1;
-                for (int i = 0; i < rounds.Count; i++)
+                    var acta = await _actaService.GetMatchFromActaAsync(codeActa, 21, request.CompetitionId,
+                        request.GroupId, cancellationToken);
+                    if (acta == null) throw new Exception($"El acta {codeActa} no se ha encontrado");
+                    AgroupGoalsBySector(acta, teamCode1, sectorsTeam1, team1GoalResponse);
+                }
+                foreach (var codeActa in codesActasTeam2)
                 {
-                    var round = rounds[i];
-                    var matchesInRound = round?.EffectiveMatches ?? new List<CalendarMatch>();
-                    if (round == null || matchesInRound == null || !matchesInRound.Any())
-                        continue;
+                    var acta = await _actaService.GetMatchFromActaAsync(codeActa, 21, request.CompetitionId,
+                        request.GroupId, cancellationToken);
+                    if (acta == null) throw new Exception($"El acta {codeActa} no se ha encontrado");
+                    AgroupGoalsBySector(acta, teamCode2, sectorsTeam2, team2GoalResponse);
+                }
+                team1GoalResponse.TeamCode = teamCode1;
+                team2GoalResponse.TeamCode = teamCode2;
+                team1GoalResponse.Sectors = sectorsTeam1;
+                team2GoalResponse.Sectors = sectorsTeam2;
+                return [team1GoalResponse, team2GoalResponse];
+            }
 
-                    // track last round that contains at least one codacta (useful as fallback)
-                    if (matchesInRound.Any(mm => !string.IsNullOrWhiteSpace(mm.CodActa)))
-                        lastRoundWithCodActa = i;
-
-                    DateTime? maxDate = null;
-                    foreach (var m in matchesInRound)
+            private static void AgroupGoalsBySector(MatchRffm acta, string teamCode, List<Sector> sectorsTeam,
+                GoalSectorsResponse teamGoalResponse)
+            {
+                if (acta.LocalTeamCode == teamCode)
+                {
+                    foreach (var localGoal in acta.LocalGoalsList)
                     {
-                        if (string.IsNullOrWhiteSpace(m.Fecha)) continue;
-                        if (DateTime.TryParseExact(m.Fecha.Trim(), formats, culture, DateTimeStyles.AssumeLocal,
-                                out var dt) ||
-                            DateTime.TryParse(m.Fecha.Trim(), culture, DateTimeStyles.AssumeLocal, out dt) ||
-                            DateTime.TryParse(m.Fecha.Trim(), CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal,
-                                out dt))
+                        var sector = sectorsTeam.FirstOrDefault(s =>
+                            Convert.ToInt16(localGoal.Minute) >= s.StartMinute &&
+                            Convert.ToInt16(localGoal.Minute) <= s.EndMinute);
+                        if (localGoal.GoalType == "102")
                         {
-                            var d = dt.Date;
-                            if (!maxDate.HasValue || d > maxDate.Value) maxDate = d;
+                            if (sector != null)
+                                sector.GoalsAgainst++;
+                            teamGoalResponse.TotalGoalsAgainst++;
+                        }
+                        else
+                        {
+                            if (sector != null)
+                                sector.GoalsFor++;
+                            teamGoalResponse.TotalGoalsFor++;
+                        }
+                        teamGoalResponse.TeamName = acta.LocalTeam;
+                    }
+
+                    foreach (var awayGoal in acta.AwayGoalsList)
+                    {
+                        var sector = sectorsTeam.FirstOrDefault(s =>
+                            Convert.ToInt16(awayGoal.Minute) >= s.StartMinute &&
+                            Convert.ToInt16(awayGoal.Minute) <= s.EndMinute);
+                        if (awayGoal.GoalType == "102")
+                        {
+                            if (sector != null)
+                                sector.GoalsFor++;
+                            teamGoalResponse.TotalGoalsFor++;
+                        }
+                        else
+                        {
+                            if (sector != null)
+                                sector.GoalsAgainst++;
+                            teamGoalResponse.TotalGoalsAgainst++;
+                        }
+                    }
+                    teamGoalResponse.MatchesProcessed++;
+                }
+
+                if (acta.AwayTeamCode != teamCode) return;
+                {
+                    foreach (var awayGoal in acta.AwayGoalsList)
+                    {
+                        var sector = sectorsTeam.FirstOrDefault(s =>
+                            Convert.ToInt16(awayGoal.Minute) >= s.StartMinute &&
+                            Convert.ToInt16(awayGoal.Minute) <= s.EndMinute);
+                        if (awayGoal.GoalType == "102")
+                        {
+                            if (sector != null)
+                                sector.GoalsAgainst++;
+                            teamGoalResponse.TotalGoalsAgainst++;
+                        }
+                        else
+                        {
+                            if (sector != null)
+                                sector.GoalsFor++;
+                            teamGoalResponse.TotalGoalsFor++;
                         }
                     }
 
-                    if (maxDate.HasValue && maxDate.Value <= today)
+                    foreach (var localGoal in acta.LocalGoalsList)
                     {
-                        cutoffRoundIndex = i; // this round is at or before today
-                    }
-                }
-
-                if (cutoffRoundIndex < 0)
-                {
-                    // fallback: if no rounds had parseable dates, use last round that contains codacta entries
-                    if (lastRoundWithCodActa >= 0)
-                    {
-                        cutoffRoundIndex = lastRoundWithCodActa;
-                    }
-                }
-
-                if (cutoffRoundIndex < 0)
-                {
-                    // still no rounds to process -> nothing to do
-                    return new GoalSectorsResponse { TeamCode = request.TeamCode, MatchesProcessed = 0 };
-                }
-
-                // Select only the matches up to the cutoff round, that belong to the requested team
-                // and take at most one match per round (the match where the team participates).
-                var matches = rounds
-                    .Select((r, idx) => new { Round = r, Index = idx })
-                    .Where(x => x.Round != null && (x.Round.EffectiveMatches?.Any() ?? false) && x.Index <= cutoffRoundIndex)
-                    .SelectMany(x => x.Round!.EffectiveMatches!.Select(m => new { Match = m, RoundIndex = x.Index }))
-                    // Only consider matches that have a codacta (we can't parse acta without it)
-                    .Where(x => x.Match != null && !string.IsNullOrWhiteSpace(x.Match.CodActa))
-                    // Only matches where the requested team participates
-                    .Where(x =>
-                        string.Equals(x.Match.LocalTeamCode?.Trim(), request.TeamCode?.Trim(), StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(x.Match.AwayTeamCode?.Trim(), request.TeamCode?.Trim(), StringComparison.OrdinalIgnoreCase))
-                    // Group by round index and pick the first match per round (one match per jornada)
-                    .GroupBy(x => x.RoundIndex)
-                    .Select(g => g.First().Match!)
-                    // Deduplicate by codacta in case the same acta appears multiple times
-                    .GroupBy(m => (m.CodActa ?? string.Empty).Trim(), StringComparer.OrdinalIgnoreCase)
-                    .Select(g => g.First())
-                    .ToList();
-
-                if (matches == null || matches.Count == 0)
-                    return new GoalSectorsResponse { TeamCode = request.TeamCode, MatchesProcessed = 0 };
-
-                // acta service will handle fetching and parsing
-
-                int matchesProcessed = 0;
-
-                int totalGoalsFor = 0;
-                int totalGoalsAgainst = 0;
-
-                // We'll collect all parsed goals minutes across processed games to determine sectors dynamically
-                var allGoals = new List<(bool IsForTeam, int Minute)>();
-
-                // For now we only deserialize acta JSON for each match and count processed actas.
-                foreach (var match in matches)
-                {
-                    if (match == null) continue;
-
-                    string? cod = match.CodActa;
-                    if (string.IsNullOrWhiteSpace(cod))
-                        continue;
-
-                    // Use acta service to fetch and parse the game payload
-                    try
-                    {
-                        var game = await _actaService.GetGameFromActaAsync(cod.Trim(), request.Temporada, request.Competicion, request.Grupo, cancellationToken);
-                        if (game != null)
+                        var sector = sectorsTeam.FirstOrDefault(s =>
+                            Convert.ToInt16(localGoal.Minute) >= s.StartMinute &&
+                            Convert.ToInt16(localGoal.Minute) <= s.EndMinute);
+                        if (localGoal.GoalType == "102")
                         {
-                            matchesProcessed++;
-
-                            bool isLocalTeam = string.Equals(game.LocalTeamCode?.Trim(), request.TeamCode?.Trim(), StringComparison.OrdinalIgnoreCase);
-                            bool isAwayTeam = string.Equals(game.AwayTeamCode?.Trim(), request.TeamCode?.Trim(), StringComparison.OrdinalIgnoreCase);
-
-                            var compDesc = (game.CompetitionName ?? string.Empty).ToLowerInvariant();
-                            int duration = 90;
-                            if (compDesc.Contains("alevin") || compDesc.Contains("alevín")) duration = 60;
-                            else if (compDesc.Contains("infantil")) duration = 70;
-                            else if (compDesc.Contains("cadete")) duration = 80;
-
-                            if (isLocalTeam)
-                            {
-                                totalGoalsFor += int.TryParse(game.LocalGoals, out var localGoals) ? localGoals : 0;
-                                totalGoalsAgainst += int.TryParse(game.AwayGoals, out var awayGoals) ? awayGoals : 0;
-                            }
-                            else if (isAwayTeam)
-                            {
-                                totalGoalsFor += int.TryParse(game.AwayGoals, out var awayGoals) ? awayGoals : 0;
-                                totalGoalsAgainst += int.TryParse(game.LocalGoals, out var localGoals) ? localGoals : 0;
-                            }
-
-                            if (isLocalTeam)
-                            {
-                                AddGoalsToList(game.LocalGoalsList, true, duration, allGoals);
-                                AddGoalsToList(game.AwayGoalsList, false, duration, allGoals);
-                            }
-                            else if (isAwayTeam)
-                            {
-                                AddGoalsToList(game.AwayGoalsList, true, duration, allGoals);
-                                AddGoalsToList(game.LocalGoalsList, false, duration, allGoals);
-                            }
+                            if (sector != null)
+                                sector.GoalsFor++;
+                            teamGoalResponse.TotalGoalsFor++;
                         }
-                    }
-                    catch
-                    {
-                        // ignore per-acta failures
-                    }
-                }
-
-                // Build sectors based on max minute observed or default 90
-                int maxMinute = 0;
-                if (allGoals.Any())
-                    maxMinute = allGoals.Max(g => g.Minute);
-                else
-                    maxMinute = 90; // default to 90 if no goals found
-
-                if (maxMinute < 1) maxMinute = 90; // safety
-
-                int sectorsCount = (int)Math.Ceiling(maxMinute / 10.0);
-
-                // initialize sectors
-                var sectorMap = new Dictionary<int, Sector>();
-                for (int i = 0; i < sectorsCount; i++)
-                {
-                    var start = i == 0 ? 0 : i * 10 + 1;
-                    var end = (i + 1) * 10;
-                    sectorMap[i] = new Sector { StartMinute = start, EndMinute = end, GoalsFor = 0, GoalsAgainst = 0 };
-                }
-
-                // accumulate goals into sectors
-                foreach (var g in allGoals)
-                {
-                    var minute = g.Minute;
-                    int idx = minute <= 0 ? 0 : (minute - 1) / 10;
-                    if (idx < 0) idx = 0;
-                    if (idx >= sectorsCount)
-                    {
-                        // expand sectors if necessary
-                        for (int i = sectorsCount; i <= idx; i++)
+                        else
                         {
-                            var start = i == 0 ? 0 : i * 10 + 1;
-                            var end = (i + 1) * 10;
-                            sectorMap[i] = new Sector { StartMinute = start, EndMinute = end, GoalsFor = 0, GoalsAgainst = 0 };
+                            if (sector != null)
+                                sector.GoalsAgainst++;
+                            teamGoalResponse.TotalGoalsAgainst++;
                         }
-                        sectorsCount = idx + 1;
-                    }
 
-                    var sector = sectorMap[idx];
-                    if (g.IsForTeam)
-                        sector.GoalsFor++;
-                    else
-                        sector.GoalsAgainst++;
+                    }
+                    teamGoalResponse.MatchesProcessed++;
+
+
                 }
 
-                // prepare response sectors ordered
-                var responseSectors = sectorMap.OrderBy(kv => kv.Key).Select(kv => kv.Value).ToList();
-
-                // compute sector sums for verification
-                var sectorSumFor = responseSectors.Sum(s => s.GoalsFor);
-                var sectorSumAgainst = responseSectors.Sum(s => s.GoalsAgainst);
-
-                var response = new GoalSectorsResponse
-                {
-                    TeamCode = request.TeamCode,
-                    MatchesProcessed = matchesProcessed,
-                    Sectors = responseSectors
-                    ,
-                    TotalGoalsFor = totalGoalsFor
-                    ,
-                    TotalGoalsAgainst = totalGoalsAgainst
-                    ,
-                    SectorGoalsFor = sectorSumFor
-                    ,
-                    SectorGoalsAgainst = sectorSumAgainst
-                };
-
-                return response;
             }
+        }
 
-            // Helper methods moved out of Handle for clarity
-            private static bool IsFor(bool goalsAreForTeamFlag)
-            {
-                return goalsAreForTeamFlag;
-            }
+    }
 
-            private static int? ParseGoalMinute(string minuteText)
-            {
-                if (string.IsNullOrWhiteSpace(minuteText)) return null;
-                var txt = minuteText.Trim();
-                var m = Regex.Match(txt, "(?<base>\\d+)(?:\\s*\\+\\s*(?<extra>\\d+))?");
-                if (!m.Success) return null;
-                if (!int.TryParse(m.Groups["base"].Value, out var baseMin)) return null;
-                var extra = 0;
-                if (m.Groups["extra"].Success)
-                    int.TryParse(m.Groups["extra"].Value, out extra);
-                var minute = baseMin + extra;
-                if (minute < 0) return null;
-                return minute == 0 ? 0 : minute;
-            }
 
-            private static void AddGoalsToList(IEnumerable<Goal>? goals, bool goalsAreForTeam, int duration, List<(bool IsForTeam, int Minute)> allGoals)
-            {
-                if (goals == null) return;
-                foreach (var g in goals)
-                {
-                    if (g == null) continue;
-                    var minute = ParseGoalMinute(g.Minute);
-                    int m;
-                    if (minute.HasValue)
-                    {
-                        m = minute.Value;
-                        if (m < 0) m = 0;
-                        if (m > duration) m = duration;
-                    }
-                    else
-                    {
-                        m = duration;
-                    }
-                    // Handle own goals: tipo_gol == "102" indicates an own-goal, which should be counted
-                    // against the team that the goal record belongs to.
-                    var isOwnGoal = string.Equals(g.GoalType?.Trim(), "102", StringComparison.OrdinalIgnoreCase);
-                    var isFor = IsFor(goalsAreForTeam);
-                    if (isOwnGoal)
-                    {
-                        isFor = !isFor;
-                    }
-                    allGoals.Add((isFor, m));
-                }
-            }
-         }
-     }
- }
+
+    public class GoalData
+    {
+        public string TeamCode { get; set; } = string.Empty;
+        public string TeamName { get; set; } = string.Empty;
+        public string PlayerCode { get; set; } = string.Empty;
+
+        public string PlayerName { get; set; } = string.Empty;
+
+        public string Minute { get; set; } = string.Empty;
+
+        public string GoalType { get; set; } = string.Empty;
+
+        public bool IsGoalFor { get; set; }
+    }
+
+}

@@ -31,7 +31,7 @@ namespace RFFM.Api.Features.Players.Queries
                 .Produces(StatusCodes.Status404NotFound);
         }
 
-        public record PlayerQuery(string PlayerId, int SeasonId) : Common.IQuery<Player?>
+        public record PlayerQuery(string PlayerId, int SeasonId) : Common.IQuery<Player>
         {
         }
 

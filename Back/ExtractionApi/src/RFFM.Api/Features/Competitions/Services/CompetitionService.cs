@@ -1,6 +1,7 @@
+using RFFM.Api.Features.Competitions.Models;
+using RFFM.Api.Features.Competitions.Models.ApiRffm;
 using RFFM.Api.Infrastructure.Helpers;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using static RFFM.Api.Features.Competitions.Queries.GetScores;
 
 namespace RFFM.Api.Features.Competitions.Services
@@ -12,39 +13,35 @@ namespace RFFM.Api.Features.Competitions.Services
 
         Task<ResponseScores[]> GetScoresAsync(string competitionId, string groupId,
             CancellationToken cancellationToken = default);
+
+        Task<ClassificationResponse> GetClassification(int groupId,
+            CancellationToken cancellationToken);
     }
 
-    public record ResponseCompetition(string Id, string Name);
-    public record ResponseGroup(string Id, string Name);
+    public record ResponseCompetition(int CompetitionId, string Name, int MatchTime);
+    public record ResponseGroup(int Id, string Name, int WorkingDays);
 
     public class CompetitionService : ICompetitionService
     {
         private readonly HttpClient _http;
         private readonly HtmlFetcher _fetcher;
-        private const string BaseUrl = "https://www.rffm.es/api/competitions";
+        private readonly IMatchDayService _matchDayService;
+        private const string CompetitionsUrl = "https://www.rffm.es/api/competitions";
+        private const string GroupsUrl = "https://www.rffm.es/api/groups";
+        private const string ScoresUrl = "https://www.rffm.es/api/scorers";
+        private const string StandingsUrl = "https://www.rffm.es/api/standings";
 
-        public CompetitionService(HttpClient http)
+        public CompetitionService(HttpClient http, IMatchDayService matchDayService)
         {
             _http = http;
+            _matchDayService = matchDayService;
             _http.DefaultRequestHeaders.UserAgent.ParseAdd("RFFM.Extractor/1.0");
             _fetcher = new HtmlFetcher(http);
         }
 
-        // DTO matching API/embedded JSON response for competitions
-        private class CompetitionDto
-        {
-            [JsonPropertyName("codigo")]
-            public string Codigo { get; set; }
-
-            [JsonPropertyName("nombre")]
-            public string Nombre { get; set; }
-
-            // other fields ignored
-        }
-
         public async Task<ResponseCompetition[]> GetCompetitionsAsync(CancellationToken cancellationToken = default)
         {
-            var competitionsUrl = $"{BaseUrl}?temporada=21&tipojuego=1";
+            var competitionsUrl = $"{CompetitionsUrl}?temporada=21&tipojuego=1";
             var content = await _fetcher.FetchAsync(competitionsUrl, cancellationToken).ConfigureAwait(false);
             if (string.IsNullOrWhiteSpace(content))
                 return Array.Empty<ResponseCompetition>();
@@ -56,13 +53,13 @@ namespace RFFM.Api.Features.Competitions.Services
                     PropertyNameCaseInsensitive = true
                 };
 
-                var dtos = JsonSerializer.Deserialize<List<CompetitionDto>>(content, options);
+                var dtos = JsonSerializer.Deserialize<List<CompetitionRffm>>(content, options);
                 if (dtos == null || dtos.Count == 0)
                     return Array.Empty<ResponseCompetition>();
 
                 var result = dtos
-                    .Where(d => !string.IsNullOrWhiteSpace(d.Codigo) && !string.IsNullOrWhiteSpace(d.Nombre))
-                    .Select(d => new ResponseCompetition(d.Codigo.Trim(), d.Nombre.Trim()))
+                    .Where(d => !string.IsNullOrWhiteSpace(d.CompetitionId) && !string.IsNullOrWhiteSpace(d.Name))
+                    .Select(d => new ResponseCompetition(Convert.ToInt32(d.CompetitionId), d.Name.Trim(), Convert.ToInt32(d.MatchTime)))
                     .ToArray();
 
                 return result;
@@ -80,7 +77,7 @@ namespace RFFM.Api.Features.Competitions.Services
 
             try
             {
-                var apiUrl = $"https://www.rffm.es/api/groups?competicion={Uri.EscapeDataString(competitionId)}";
+                var apiUrl = $"{GroupsUrl}?competicion={Uri.EscapeDataString(competitionId)}";
                 using var resp = await _http.GetAsync(apiUrl, cancellationToken).ConfigureAwait(false);
                 if (!resp.IsSuccessStatusCode)
                     return Array.Empty<ResponseGroup>();
@@ -94,13 +91,13 @@ namespace RFFM.Api.Features.Competitions.Services
                     PropertyNameCaseInsensitive = true
                 };
 
-                var dtos = JsonSerializer.Deserialize<List<GroupDto>>(json, options);
+                var dtos = JsonSerializer.Deserialize<List<GroupRffm>>(json, options);
                 if (dtos == null || dtos.Count == 0)
                     return Array.Empty<ResponseGroup>();
 
                 var result = dtos
                     .Where(d => !string.IsNullOrWhiteSpace(d.Codigo) && !string.IsNullOrWhiteSpace(d.Nombre))
-                    .Select(d => new ResponseGroup(d.Codigo.Trim(), d.Nombre.Trim()))
+                    .Select(d => new ResponseGroup(Convert.ToInt32(d.Codigo), d.Nombre.Trim(), Convert.ToInt32(d.Jornadas)))
                     .ToArray();
 
                 return result;
@@ -111,70 +108,6 @@ namespace RFFM.Api.Features.Competitions.Services
             }
         }
 
-        // DTO matching API response for groups
-        private class GroupDto
-        {
-            [JsonPropertyName("codigo")]
-            public string Codigo { get; set; }
-
-            [JsonPropertyName("nombre")]
-            public string Nombre { get; set; }
-
-            // other fields are ignored
-        }
-
-        public class GoalsRffm
-        {
-            [JsonPropertyName("estado")]
-            public string Status { get; set; } = string.Empty;
-
-            [JsonPropertyName("sesion_ok")]
-            public string SessionOk { get; set; } = string.Empty;
-
-            [JsonPropertyName("competicion")]
-            public string Competition { get; set; } = string.Empty;
-
-            [JsonPropertyName("grupo")]
-            public string Group { get; set; } = string.Empty;
-
-            [JsonPropertyName("goles")]
-            public List<GoalStat> Goals { get; set; } = new();
-        }
-
-        public class GoalStat
-        {
-            [JsonPropertyName("codigo_jugador")]
-            public string PlayerCode { get; set; } = string.Empty;
-
-            [JsonPropertyName("foto")]
-            public string Photo { get; set; } = string.Empty;
-
-            [JsonPropertyName("jugador")]
-            public string PlayerName { get; set; } = string.Empty;
-
-            [JsonPropertyName("escudo_equipo")]
-            public string TeamShield { get; set; } = string.Empty;
-
-            [JsonPropertyName("nombre_equipo")]
-            public string TeamName { get; set; } = string.Empty;
-
-            [JsonPropertyName("codigo_equipo")]
-            public string TeamCode { get; set; } = string.Empty;
-
-            [JsonPropertyName("partidos_jugados")]
-            public string MatchesPlayed { get; set; } = string.Empty;
-
-            [JsonPropertyName("goles")]
-            public string Goals { get; set; } = string.Empty;
-
-            [JsonPropertyName("goles_penalti")]
-            public string PenaltyGoals { get; set; } = string.Empty;
-
-            [JsonPropertyName("goles_por_partidos")]
-            public string GoalsPerMatch { get; set; } = string.Empty;
-        }
-
-
         public async Task<ResponseScores[]> GetScoresAsync(string competitionId, string groupId, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(competitionId) || string.IsNullOrEmpty(groupId))
@@ -182,7 +115,7 @@ namespace RFFM.Api.Features.Competitions.Services
 
             try
             {
-                var apiUrl = $"https://www.rffm.es/api/scorers?idGroup={Uri.EscapeDataString(groupId)}&idCompetition={Uri.EscapeDataString(competitionId)}";
+                var apiUrl = $"{ScoresUrl}?idGroup={Uri.EscapeDataString(groupId)}&idCompetition={Uri.EscapeDataString(competitionId)}";
                 using var resp = await _http.GetAsync(apiUrl, cancellationToken).ConfigureAwait(false);
                 if (!resp.IsSuccessStatusCode)
                     return Array.Empty<ResponseScores>();
@@ -222,6 +155,75 @@ namespace RFFM.Api.Features.Competitions.Services
             }
         }
 
+        public async Task<ClassificationResponse> GetClassification(int groupId, CancellationToken cancellationToken)
+        {
+            var activeMatchDay = await _matchDayService.GetActiveMatchDay(groupId, cancellationToken);
+            var url =
+                $"{StandingsUrl}?idGroup={groupId}&round={activeMatchDay.MatchDayNumber}";
+
+            using var resp = await _http.GetAsync(url, cancellationToken).ConfigureAwait(false);
+            if (!resp.IsSuccessStatusCode)
+                return new ClassificationResponse();
+
+            var json = await resp.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+            if (string.IsNullOrWhiteSpace(json))
+                return new ClassificationResponse();
+
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            };
+
+            var dtos = JsonSerializer.Deserialize<StandingRffm>(json, options);
+            if (dtos == null)
+                return new ClassificationResponse();
+
+            var teams = dtos.Classification
+                .Select(d => new TeamResponse
+                {
+                    Color = d.Color?.Trim() ?? string.Empty,
+                    Position = d.Position?.Trim() ?? string.Empty,
+                    ImageUrl = d.ImageUrl?.Trim() ?? string.Empty,
+                    TeamId = d.TeamId?.Trim() ?? string.Empty,
+                    TeamName = d.TeamName?.Trim() ?? string.Empty,
+                    Played = d.Played?.Trim() ?? string.Empty,
+                    Won = d.Won?.Trim() ?? string.Empty,
+                    Lost = d.Lost?.Trim() ?? string.Empty,
+                    Drawn = d.Drawn?.Trim() ?? string.Empty,
+                    Penalties = d.Penalties?.Trim() ?? string.Empty,
+                    GoalsFor = d.GoalsFor?.Trim() ?? string.Empty,
+                    GoalsAgainst = d.GoalsAgainst?.Trim() ?? string.Empty,
+                    HomePlayed = d.HomePlayed?.Trim() ?? string.Empty,
+                    HomeWon = d.HomeWon?.Trim() ?? string.Empty,
+                    HomeDrawn = d.HomeDrawn?.Trim() ?? string.Empty,
+                    HomePenaltyWins = d.HomePenaltyWins?.Trim() ?? string.Empty,
+                    HomeLost = d.HomeLost?.Trim() ?? string.Empty,
+                    AwayPlayed = d.AwayPlayed?.Trim() ?? string.Empty,
+                    AwayWon = d.AwayWon?.Trim() ?? string.Empty,
+                    AwayDrawn = d.AwayDrawn?.Trim() ?? string.Empty,
+                    AwayPenaltyWins = d.AwayPenaltyWins?.Trim() ?? string.Empty,
+                    AwayLost = d.AwayLost?.Trim() ?? string.Empty,
+                    Points = d.Points?.Trim() ?? string.Empty,
+                    SanctionPoints = d.SanctionPoints?.Trim() ?? string.Empty,
+                    HomePoints = d.HomePoints?.Trim() ?? string.Empty,
+                    AwayPoints = d.AwayPoints?.Trim() ?? string.Empty,
+                    ShowCoefficient = d.ShowCoefficient?.Trim() ?? string.Empty,
+                    Coefficient = d.Coefficient?.Trim() ?? string.Empty,
+                    MatchStreaks = d.MatchStreaks?.Select(ms => new MatchStreakResponse
+                    {
+                        Type = ms.Type?.Trim() ?? string.Empty
+                    }).ToList() ?? new List<MatchStreakResponse>()
+
+                })
+                .ToList();
+
+            return new ClassificationResponse
+            {
+                Teams = teams
+            };
+
+
+        }
 
 
     }

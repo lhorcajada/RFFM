@@ -3,13 +3,12 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Caching.Memory;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Features.Players.Models;
 using RFFM.Api.Features.Teams.Models;
 using RFFM.Api.Features.Teams.Queries.Responses;
 using RFFM.Api.Features.Teams.Services;
-using Microsoft.Extensions.Caching.Memory;
-using System;
 
 namespace RFFM.Api.Features.Teams.Queries
 {
@@ -24,11 +23,11 @@ namespace RFFM.Api.Features.Teams.Queries
 
                         var response = await mediator.Send(request, cancellationToken);
 
-                        return response != null ? Results.Ok(response) : Results.NotFound();
+                        return Results.Ok(response);
                     })
                 .WithName(nameof(GetTeam))
                 .WithTags(TeamsConstants.TeamsFeature)
-                .Produces<TeamRffm>()
+                .Produces<Team>()
                 .Produces<ProblemDetails>(StatusCodes.Status400BadRequest)
                 .Produces(StatusCodes.Status404NotFound);
         }
@@ -38,28 +37,19 @@ namespace RFFM.Api.Features.Teams.Queries
 
         }
 
-        public class RequestHandler : IRequestHandler<Query, Team>
+        public class RequestHandler(ITeamService teamService, IMemoryCache cache) : IRequestHandler<Query, Team>
         {
-            private readonly ITeamService _teamService;
-            private readonly IMemoryCache _cache;
-
-            public RequestHandler(ITeamService teamService, IMemoryCache cache)
-            {
-                _teamService = teamService;
-                _cache = cache;
-            }
-
             public async ValueTask<Team> Handle(Query request, CancellationToken cancellationToken)
             {
                 var cacheKey = $"team_{request.TeamId}";
 
-                return await _cache.GetOrCreateAsync(cacheKey, async entry =>
+                return await cache.GetOrCreateAsync(cacheKey, async entry =>
                 {
                     // Cache validity: keep for 5 minutes by default. Adjust if needed.
                     entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
 
-                    var team = await _teamService.GetTeamDetailsAsync(request.TeamId.ToString(), cancellationToken);
-                    var statistics = await _teamService.GetStaticsTeamPlayers(new GetAgeSummary.AgesQuery(request.TeamId, 21), cancellationToken);
+                    var team = await teamService.GetTeamDetailsAsync(request.TeamId.ToString(), cancellationToken);
+                    var statistics = await teamService.GetStaticsTeamPlayers(new GetAgeSummary.AgesQuery(request.TeamId), cancellationToken);
                     var playerDetails = statistics.resolved.Select(x => x.playerDetails);
 
                     var result = new Team
@@ -76,25 +66,29 @@ namespace RFFM.Api.Features.Teams.Queries
                             CoachCode = c.CoachCode,
                             Name = c.Name
                         }).ToList(),
-                        Players = playerDetails.Select(p=> new Player
+                        Players = playerDetails.Select(p=>
                         {
-                            Team = team.TeamName,
-                            TeamCode = team.TeamCode,
-                            Name = p.Name,
-                            Position = p.Position,
-                            Age = p.Age,
-                            JerseyNumber = p.JerseyNumber,
-                            SeasonId = p.SeasonId,
-                            PlayerId = p.PlayerId,
-                            PhotoUrl = p.PhotoUrl,
-                            BirthYear = p.BirthYear,
-                            Cards = p.Cards,
-                            Matches = p.Matches,
-                            IsGoalkeeper = p.IsGoalkeeper,
-                            TeamShieldUrl = p.TeamShieldUrl,
-                            Competitions = p.Competitions,
-                            TeamCategory = team.Category
-
+                            if (p != null)
+                                return new Player
+                                {
+                                    Team = team.TeamName,
+                                    TeamCode = team.TeamCode,
+                                    Name = p.Name,
+                                    Position = p.Position,
+                                    Age = p.Age,
+                                    JerseyNumber = p.JerseyNumber,
+                                    SeasonId = p.SeasonId,
+                                    PlayerId = p.PlayerId,
+                                    PhotoUrl = p.PhotoUrl,
+                                    BirthYear = p.BirthYear,
+                                    Cards = p.Cards,
+                                    Matches = p.Matches,
+                                    IsGoalkeeper = p.IsGoalkeeper,
+                                    TeamShieldUrl = p.TeamShieldUrl,
+                                    Competitions = p.Competitions,
+                                    TeamCategory = team.Category
+                                };
+                            return null;
                         }).ToList(),
 
                         Category = team.Category,
@@ -129,7 +123,7 @@ namespace RFFM.Api.Features.Teams.Queries
                     };
 
                     return result;
-                });
+                }) ?? throw new InvalidOperationException();
             }
         }
     }

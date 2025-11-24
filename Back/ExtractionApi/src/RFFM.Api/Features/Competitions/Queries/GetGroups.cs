@@ -26,7 +26,7 @@ namespace RFFM.Api.Features.Competitions.Queries
 
         public record Query(string CompetitionId) : Common.IQuery<ResponseGroup[]>;
 
-        public record ResponseGroup(string Id, string Name);
+        public record ResponseGroup(int Id, string Name);
 
         public class RequestHandler : IRequestHandler<Query, ResponseGroup[]>
         {

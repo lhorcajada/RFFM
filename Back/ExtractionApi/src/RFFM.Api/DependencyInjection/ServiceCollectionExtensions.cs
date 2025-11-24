@@ -33,6 +33,10 @@ namespace RFFM.Api.DependencyInjection
             services.AddScoped<ICompetitionService, CompetitionService>();
             services.AddScoped<ITeamService, TeamService>();
             services.AddScoped<ICalendarService, CalendarService>();
+            services.AddScoped<IMatchDayService, MatchDayService>();
+            services.AddScoped<IGoalMinuteParser, GoalMinuteParser>();
+            services.AddScoped<ISectorFactory, SectorFactory>();
+            services.AddScoped<IGoalSectorsAggregator, GoalSectorsAggregator>();
             services.AddMemoryCache();
             return services;
         }
