@@ -10,12 +10,33 @@
 }
 .actionsInlineBox {
   display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
 }
 .chipsRow {
   display: flex;
   gap: 6px;
+  flex-wrap: wrap;
 }
 .avatar {
   width: 40px;
   height: 40px;
+}
+
+/* Mobile adjustments */
+@media (max-width: 600px) {
+  .avatar {
+    width: 36px;
+    height: 36px;
+  }
+  .chipsRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  .actionsInlineBox {
+    margin-left: 0;
+    margin-top: 8px;
+  }
 }

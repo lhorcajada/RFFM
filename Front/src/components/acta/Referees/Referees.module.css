@@ -7,7 +7,7 @@
 @media (max-width: 599px) {
   .root {
     /* reserve extra space equal to the footer area */
-    margin-bottom: 96px;
+    margin-bottom: 120px;
     padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
   }
 }

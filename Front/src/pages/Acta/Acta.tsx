@@ -41,8 +41,8 @@ export default function Acta(): JSX.Element {
       </BaseLayout>
     );
 
-  return (
-    <BaseLayout className={styles.container}>
+  const content = (
+    <>
       <div className={styles.actionBar}>
         <div />
         <div>
@@ -59,15 +59,14 @@ export default function Acta(): JSX.Element {
       {location.state?.item ? (
         <div className={styles.headerLayout}>
           <div className={styles.leftCol}>
-            {location.state?.item && (
-              <MatchCard item={location.state.item} compact />
-            )}
+            <div className={styles.matchWrapper}>
+              {location.state?.item && (
+                <MatchCard item={location.state.item} compact />
+              )}
+            </div>
           </div>
           <div className={styles.rightCol}>
-            {/* Show field/group info in header next to the compact match card */}
-            <FieldInfo
-              acta={(acta ?? (location.state?.item.match || {})) as any}
-            />
+            {acta ? <FieldInfo acta={acta as any} /> : null}
           </div>
         </div>
       ) : null}
@@ -137,10 +136,8 @@ export default function Acta(): JSX.Element {
                 away={acta.otros_tecnicos_visitante || []}
                 entrenador_local={acta.entrenador_local}
                 entrenador_visitante={acta.entrenador_visitante}
-                delegadolocal={acta.delegadolocal || acta.delegadolocal}
-                delegado_visitante={
-                  acta.delegado_visitante || acta.delegado_visitante
-                }
+                delegadolocal={acta.delegadolocal}
+                delegado_visitante={acta.delegado_visitante}
               />
             </div>
 
@@ -156,6 +153,16 @@ export default function Acta(): JSX.Element {
           </div>
         </>
       )}
-    </BaseLayout>
+    </>
   );
+
+  // Add a bottom spacer so the fixed footer never overlaps the final content
+  const withSpacer = (
+    <>
+      {content}
+      <div className={styles.bottomSpacer} aria-hidden="true" />
+    </>
+  );
+
+  return <BaseLayout className={styles.container}>{withSpacer}</BaseLayout>;
 }

@@ -179,6 +179,11 @@ export default function GetPlayers(): JSX.Element {
             list = (payload as any).jugadores_equipo;
           else if (Array.isArray(payload)) list = payload as any[];
 
+          // remove any null/undefined entries which can come from inconsistent APIs
+          if (Array.isArray(list)) {
+            list = list.filter((it) => it != null && typeof it === "object");
+          }
+
           // Ensure we set teamDetails from the payload. If there's a saved classification
           // in the selected configuration, attach it for display (classification isn't
           // part of the `Team` type, so keep it optional).
@@ -520,6 +525,12 @@ export default function GetPlayers(): JSX.Element {
                     >
                       <CircularProgress size={28} color="inherit" />
                     </div>
+                  ) : participationData.length === 0 ? (
+                    <div style={{ padding: 24, textAlign: "center" }}>
+                      <Typography variant="body1" color="textSecondary">
+                        No hay participaciones registradas para este equipo
+                      </Typography>
+                    </div>
                   ) : (
                     <div>
                       {participationData.map((p, idx) => (
@@ -532,12 +543,14 @@ export default function GetPlayers(): JSX.Element {
                             — Jugadores: {p.count}
                           </div>
                           <ul style={{ margin: "6px 0 0 12px" }}>
-                            {p.players.map((pl: any) => (
-                              <li key={pl.playerId}>
-                                {pl.name}{" "}
-                                {pl.playerId ? `(${pl.playerId})` : ""}
-                              </li>
-                            ))}
+                            {(p.players || [])
+                              .filter((pl: any) => pl != null)
+                              .map((pl: any, plIdx: number) => (
+                                <li key={pl?.playerId ?? pl?.id ?? plIdx}>
+                                  {pl?.name ?? ""}{" "}
+                                  {pl?.playerId ? `(${pl.playerId})` : ""}
+                                </li>
+                              ))}
                           </ul>
                         </div>
                       ))}
@@ -647,10 +660,19 @@ export default function GetPlayers(): JSX.Element {
                           const details = buildFrom(cached);
                           setExpandedDetails(details);
                         } else {
-                          const idToFetch = p.playerId
-                            ? String(p.playerId)
-                            : extractPlayerIdFromUrl(p.url || "") ||
-                              String(p.id);
+                          let idToFetch: string | null = null;
+                          if (p.playerId) idToFetch = String(p.playerId);
+                          if (!idToFetch)
+                            idToFetch = extractPlayerIdFromUrl(p.url || "");
+                          if (!idToFetch && p.id !== undefined && p.id !== null)
+                            idToFetch = String(p.id);
+
+                          if (!idToFetch) {
+                            throw new Error(
+                              "No player id available to fetch details"
+                            );
+                          }
+
                           const data = await getPlayer(idToFetch);
                           if (data && (data as any).competitions) {
                             setExpandedDetails(buildFrom(data));

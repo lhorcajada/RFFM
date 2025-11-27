@@ -1,5 +1,4 @@
 import React from "react";
-import { createPortal } from "react-dom";
 import { Link, useLocation } from "react-router-dom";
 import styles from "./Footer.module.css";
 import IconButton from "@mui/material/IconButton";
@@ -76,7 +75,7 @@ export default function Footer(): JSX.Element {
 
             <IconButton
               component={Link}
-              to="/calendar"
+              to={{ pathname: "/calendar", state: { resetToCurrent: true } }}
               className={
                 loc.pathname.startsWith("/calendar")
                   ? `${styles.iconBtn} ${styles.active}`
@@ -155,10 +154,6 @@ export default function Footer(): JSX.Element {
       </div>
     </div>
   );
-
-  if (typeof document !== "undefined" && document.body) {
-    return createPortal(footer, document.body);
-  }
 
   return footer;
 }

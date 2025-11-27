@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
+import { useLocation } from "react-router-dom";
 import PageHeader from "../../components/ui/PageHeader/PageHeader";
 import BaseLayout from "../../components/ui/BaseLayout/BaseLayout";
 import Paper from "@mui/material/Paper";
@@ -37,25 +38,56 @@ export default function GetCalendar(): JSX.Element {
   const [loading, setLoading] = useState<boolean>(false);
   const [calendar, setCalendar] = useState<any | null>(null);
   const [selectedTab, setSelectedTab] = useState<number>(0);
+  const autoSelectRef = useRef<boolean>(false);
+  const location = useLocation();
   const [noConfig, setNoConfig] = useState<boolean>(false);
   const [competitionName, setCompetitionName] = useState<string>("");
   const [groupName, setGroupName] = useState<string>("");
 
   // Load primary configuration on mount
   useEffect(() => {
-    const primaryId = localStorage.getItem(STORAGE_PRIMARY);
-    if (!primaryId) {
-      setNoConfig(true);
-      return;
-    }
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) {
-      setNoConfig(true);
-      return;
-    }
+    // Prefer explicit current selection (applied from Settings) if present
     try {
-      const combos = JSON.parse(stored);
-      const primary = combos.find((c: any) => c.id === primaryId);
+      const cur = localStorage.getItem("rffm.current_selection");
+      if (cur) {
+        try {
+          const combo = JSON.parse(cur);
+          if (combo) {
+            setSelectedCompetition(combo.competition?.id);
+            setSelectedGroup(combo.group?.id);
+            setCompetitionName(combo.competition?.name || "");
+            setGroupName(combo.group?.name || "");
+            setNoConfig(false);
+            return;
+          }
+        } catch (e) {
+          // fall through to saved combos
+        }
+      }
+
+      const primaryId = localStorage.getItem(STORAGE_PRIMARY);
+      if (!primaryId) {
+        setNoConfig(true);
+        return;
+      }
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (!stored) {
+        setNoConfig(true);
+        return;
+      }
+      const combos = JSON.parse(stored) as any[];
+      let primary: any = null;
+      if (Array.isArray(combos) && combos.length > 0) {
+        // Try to find by stored primary id (compare as strings)
+        const foundById = combos.find(
+          (c: any) => String(c.id) === String(primaryId)
+        );
+        if (foundById) primary = foundById;
+        // Fallback to explicit isPrimary flag
+        if (!primary)
+          primary = combos.find((c: any) => c.isPrimary) || combos[0];
+      }
+
       if (primary) {
         setSelectedCompetition(primary.competition?.id);
         setSelectedGroup(primary.group?.id);
@@ -72,6 +104,16 @@ export default function GetCalendar(): JSX.Element {
 
   // Load calendar when competition/group changes
   useEffect(() => {
+    // Use persistent ref so we auto-select only once (first load)
+    // However, if navigation passed `state.resetToCurrent`, allow re-auto-select.
+    try {
+      const navState = (location && (location as any).state) || null;
+      if (navState && navState.resetToCurrent) {
+        autoSelectRef.current = false;
+      }
+    } catch (e) {
+      // ignore
+    }
     async function load() {
       if (!selectedCompetition || !selectedGroup) {
         setCalendar(null);
@@ -103,8 +145,21 @@ export default function GetCalendar(): JSX.Element {
           setCalendar(data ?? null);
         }
 
-        // after setting calendar, compute the round that contains matches in the current week
-        const rounds = (data?.rounds ?? data?.jornadas ?? []) as any[];
+        // Normalize rounds from the freshly loaded `data` so we can compute
+        // selectedTab deterministically before updating React state.
+        let rounds: any[] = [];
+        if (data && (data as MatchApiResponse).matchDays) {
+          const md = (data as MatchApiResponse).matchDays as MatchDay[];
+          rounds = (md || []).map((d: MatchDay) => ({
+            codjornada: d.matchDayNumber ?? undefined,
+            jornada: d.matchDayNumber ?? undefined,
+            equipos: (d.matches ?? []) as MatchApiMatch[],
+            raw: d,
+          }));
+        } else {
+          rounds = (data?.rounds ?? data?.jornadas ?? []) as any[];
+        }
+
         if (Array.isArray(rounds) && rounds.length > 0) {
           const now = new Date();
           const { monday, sunday } = weekRangeFor(now);
@@ -124,10 +179,70 @@ export default function GetCalendar(): JSX.Element {
             }
             if (foundIndex !== null) break;
           }
-          if (foundIndex !== null) setSelectedTab(foundIndex);
-          else setSelectedTab(0);
+
+          const visibleForAuto = rounds.filter((rr: any) => {
+            const m = rr.equipos ?? rr.partidos ?? rr.matches ?? [];
+            return Array.isArray(m) && m.length > 0;
+          });
+
+          // Search for current week inside visible rounds (visible index)
+          let foundVisibleIndex: number | null = null;
+          for (let vi = 0; vi < visibleForAuto.length; vi++) {
+            const round = visibleForAuto[vi];
+            const matches =
+              round.equipos ?? round.partidos ?? round.matches ?? [];
+            for (const m of matches) {
+              const raw = m.fecha ?? m.date ?? m.fecha_partido ?? null;
+              const dt = parseMatchDate(raw);
+              if (!dt) continue;
+              if (dt >= monday && dt <= sunday) {
+                foundVisibleIndex = vi;
+                break;
+              }
+            }
+            if (foundVisibleIndex !== null) break;
+          }
+
+          try {
+            if (
+              (import.meta as any).env &&
+              (import.meta as any).env.MODE !== "production"
+            ) {
+              console.debug("GetCalendar auto-select debug", {
+                roundsLength: rounds.length,
+                monday: monday.toISOString(),
+                sunday: sunday.toISOString(),
+                foundIndex,
+                foundVisibleIndex,
+              });
+            }
+          } catch (e) {
+            // ignore
+          }
+
+          if (!autoSelectRef.current) {
+            if (foundVisibleIndex !== null) {
+              setSelectedTab(foundVisibleIndex);
+            } else if (foundIndex !== null) {
+              const mapIdx = visibleForAuto.findIndex(
+                (vr: any) => vr === rounds[foundIndex!]
+              );
+              setSelectedTab(mapIdx >= 0 ? mapIdx : 0);
+            } else {
+              const fallback = getClosestRoundIndex(visibleForAuto, new Date());
+              setSelectedTab(fallback !== null ? fallback : 0);
+            }
+            autoSelectRef.current = true;
+          }
+
+          // Update calendar state with normalized rounds
+          setCalendar({ rounds } as any);
         } else {
-          setSelectedTab(0);
+          if (!autoSelectRef.current) {
+            setSelectedTab(0);
+            autoSelectRef.current = true;
+          }
+          setCalendar({ rounds: [] } as any);
         }
       } catch (err) {
         setCalendar(null);
@@ -136,7 +251,7 @@ export default function GetCalendar(): JSX.Element {
       }
     }
     load();
-  }, [selectedCompetition, selectedGroup, season]);
+  }, [selectedCompetition, selectedGroup, season, location.key]);
 
   function roundsList(): any[] {
     if (!calendar) return [];
@@ -224,6 +339,27 @@ export default function GetCalendar(): JSX.Element {
     const d = new Date(s);
     if (!isNaN(d.getTime())) return d;
     return null;
+  }
+
+  // Helper: choose the round index with a match date closest to reference date
+  function getClosestRoundIndex(rounds: any[], reference: Date): number | null {
+    let bestIdx: number | null = null;
+    let bestDiff = Number.POSITIVE_INFINITY;
+    for (let ri = 0; ri < rounds.length; ri++) {
+      const round = rounds[ri];
+      const matches = round.equipos ?? round.partidos ?? round.matches ?? [];
+      for (const m of matches) {
+        const raw = m.fecha ?? m.date ?? m.fecha_partido ?? null;
+        const dt = parseMatchDate(raw);
+        if (!dt) continue;
+        const diff = Math.abs(dt.getTime() - reference.getTime());
+        if (diff < bestDiff) {
+          bestDiff = diff;
+          bestIdx = ri;
+        }
+      }
+    }
+    return bestIdx;
   }
 
   // parseTimeToHM imported from utils/match

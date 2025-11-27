@@ -1,42 +1,45 @@
 .layoutWrap {
   width: 100%;
-  height: 100%;
+  height: 100vh;
   display: flex;
   flex-direction: column;
 }
 .header {
   width: 100%;
   flex-shrink: 0;
+  margin: 0;
+  padding: 0;
 }
 .footer {
   width: 100%;
   flex-shrink: 0;
+  margin: 0;
+  padding: 0;
 }
 .content {
   flex: 1 1 auto;
   min-height: 0;
   width: 100%;
-  padding: 12px 12px 0 12px !important;
-  padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  padding: 12px !important;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
-/* Ensure extra bottom space on small screens so fixed footer doesn't overlap content */
-@media (max-width: 599px) {
-  .content {
-    padding-bottom: calc(140px + env(safe-area-inset-bottom, 0px));
-  }
-}
 .paper {
   width: 100%;
-  min-height: 100vh;
-  margin: 0;
-  padding: 0;
+  height: 100vh;
+  margin: 0 !important;
+  padding: 0 !important;
   background: transparent;
   border-radius: 0 !important;
   box-shadow: none;
   box-sizing: border-box;
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
 }

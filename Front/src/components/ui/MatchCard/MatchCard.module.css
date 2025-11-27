@@ -55,6 +55,30 @@
   height: 100%;
 }
 
+/* Compact mode adjustments to avoid clipping in narrow containers (e.g. Acta left column) */
+.compact {
+  overflow: visible; /* allow content to be visible when parent is tight */
+}
+
+.compact .teamBox {
+  width: 100px; /* reduce fixed column width in compact view */
+  flex: 0 0 100px;
+}
+
+.compact .shield {
+  width: 48px;
+  height: 48px;
+}
+
+.compact .shieldWrap {
+  width: 48px;
+  height: 48px;
+}
+
+.compact .teamName {
+  font-size: 0.8rem;
+}
+
 .height100 {
   height: 100%;
 }
@@ -85,7 +109,7 @@
   }
 }
 
-.teamBox {
+teamBox {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -99,6 +123,16 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* In compact mode (Acta left column) use grid to guarantee separation */
+.compact .cardRow {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
   gap: 12px;
   width: 100%;
   box-sizing: border-box;
@@ -159,7 +193,9 @@
   justify-content: center;
   gap: 12px;
   min-width: 120px;
-  flex: 1 1 auto; /* allow center area to shrink/grow and take remaining space */
+  justify-self: center;
+  width: 100%;
+  box-sizing: border-box;
   padding: 0 8px;
 }
 

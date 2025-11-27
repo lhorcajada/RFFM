@@ -1,8 +1,4 @@
 .root {
-  position: fixed;
-  right: 0;
-  left: 0;
-  bottom: 0;
   display: flex;
   justify-content: center;
   padding: 8px 12px;
@@ -10,7 +6,7 @@
   background: linear-gradient(180deg, #082033 0%, #05313b 100%);
   border-top: 1px solid rgba(255, 255, 255, 0.03);
   backdrop-filter: blur(6px);
-  z-index: 1600;
+  width: 100%;
 }
 .bar {
   display: flex;

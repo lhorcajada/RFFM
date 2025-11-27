@@ -3,6 +3,7 @@
   flex-direction: column;
   gap: 20px;
   padding: 24px;
+  /* Bottom spacing handled by bottomSpacer element */
 }
 
 .teamsRow {
@@ -27,6 +28,18 @@
   min-width: 0;
   width: 100%;
   box-sizing: border-box;
+  /* Ensure children have some breathing room at the bottom */
+  padding-bottom: 8px;
+}
+
+@media (max-width: 640px) {
+  .sectionGrid > div {
+    padding-bottom: 20px;
+  }
+  .sectionGrid > div.fullWidth:last-child {
+    padding-bottom: 60px;
+    margin-bottom: 60px;
+  }
 }
 
 .fullWidth {
@@ -65,7 +78,40 @@
   flex: 0 0 320px;
   display: flex;
   flex-direction: column;
+  /* Prevent excessively tall left column from pushing footer; allow internal scroll */
+  max-height: calc(100vh - 220px);
+  overflow: auto;
 }
+
+/* Wrapper to prevent MatchCard from stretching inside left column */
+.matchWrapper {
+  width: 100%;
+  display: block;
+  align-self: flex-start; /* do not stretch vertically */
+}
+
+/* Target MatchCard internals from Acta: hide small field title inside the card (duplicate of FieldInfo) */
+.matchWrapper :global(.cardTitleWrap) {
+  display: none;
+}
+
+/* Prevent shields from overlapping the score in compact Acta view by constraining sizes */
+.matchWrapper :global(.teamBox) {
+  width: 110px;
+  flex: 0 0 110px;
+}
+.matchWrapper :global(.shieldWrap) {
+  width: 48px;
+  height: 48px;
+}
+.matchWrapper :global(.shield) {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
+
+/* If FieldInfo is rendered in header already, avoid duplicate container on right */
+
 .rightCol {
   flex: 1 1 auto;
   display: flex;
@@ -78,6 +124,16 @@
   }
   .leftCol {
     flex: 0 0 auto;
+  }
+}
+
+/* On larger desktop screens, give the left column more width so the MatchCard shows fully */
+@media (min-width: 1024px) {
+  .leftCol {
+    flex: 0 0 420px;
+    max-height: calc(100vh - 180px);
+    /* keep internal scroll if content exceeds viewport */
+    overflow: auto;
   }
 }
 
@@ -110,6 +166,9 @@
   .leftCol {
     flex: 0 0 auto;
     width: 100%;
+    /* On small screens allow left column to take available space but avoid huge height */
+    max-height: calc(50vh);
+    overflow: auto;
   }
 
   .rightCol {
@@ -148,5 +207,27 @@
   .player,
   .meta {
     word-break: break-word;
+  }
+}
+
+/* Spacer element to avoid fixed footer overlap */
+.bottomSpacer {
+  display: block;
+  width: 100%;
+  height: 160px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 700px) {
+  .bottomSpacer {
+    height: 400px;
+    /* Temporary: add visible background to verify spacer is working */
+    background: linear-gradient(to top, rgba(255, 0, 0, 0.05), transparent);
+  }
+}
+
+@media (max-width: 420px) {
+  .bottomSpacer {
+    height: 450px;
   }
 }

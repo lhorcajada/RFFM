@@ -13,6 +13,9 @@ import Snackbar from "@mui/material/Snackbar";
 import MuiAlert, { AlertProps } from "@mui/material/Alert";
 import Stack from "@mui/material/Stack";
 import Chip from "@mui/material/Chip";
+import Box from "@mui/material/Box";
+import useMediaQuery from "@mui/material/useMediaQuery";
+import { useTheme } from "@mui/material/styles";
 import styles from "./SavedConfigs.module.css";
 
 type SavedCombo = {
@@ -29,6 +32,8 @@ const STORAGE_PRIMARY = "rffm.primary_combination_id";
 const STORAGE_CURRENT = "rffm.current_selection";
 
 export default function SavedConfigs({ compact }: { compact?: boolean }) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [saved, setSaved] = React.useState<SavedCombo[]>([]);
   const [primaryId, setPrimaryId] = React.useState<string | null>(null);
   const [snackOpen, setSnackOpen] = React.useState(false);
@@ -149,61 +154,112 @@ export default function SavedConfigs({ compact }: { compact?: boolean }) {
             </Typography>
             <List className={styles.list}>
               {saved.map((s) => (
-                <ListItem key={s.id} divider>
-                  <ListItemAvatar>
-                    <Avatar
-                      className={styles.avatar}
-                      alt={s.team?.name ?? "Equipo"}
-                    >
-                      {s.team?.name ? s.team.name.charAt(0).toUpperCase() : "-"}
-                    </Avatar>
-                  </ListItemAvatar>
-                  <ListItemText
-                    primary={
-                      <Stack spacing={0.25}>
-                        <Typography variant="subtitle2">
-                          {s.team?.name ?? "-"}
-                        </Typography>
-                        <Stack
-                          direction="row"
-                          spacing={0.5}
-                          className={styles.chipsRow}
-                        >
-                          <Chip
-                            size="small"
-                            label={s.competition?.name ?? "-"}
-                            variant="outlined"
-                          />
-                          <Chip
-                            size="small"
-                            label={s.group?.name ?? "-"}
-                            variant="outlined"
-                          />
+                <ListItem
+                  key={s.id}
+                  divider
+                  sx={
+                    isMobile
+                      ? {
+                          flexDirection: "column",
+                          alignItems: "flex-start",
+                          paddingRight: "16px",
+                        }
+                      : undefined
+                  }
+                >
+                  <Box
+                    sx={{
+                      display: "flex",
+                      width: "100%",
+                      alignItems: "flex-start",
+                    }}
+                  >
+                    <ListItemAvatar>
+                      <Avatar
+                        className={styles.avatar}
+                        alt={s.team?.name ?? "Equipo"}
+                      >
+                        {s.team?.name
+                          ? s.team.name.charAt(0).toUpperCase()
+                          : "-"}
+                      </Avatar>
+                    </ListItemAvatar>
+                    <ListItemText
+                      primary={
+                        <Stack spacing={0.25}>
+                          <Typography variant="subtitle2">
+                            {s.team?.name ?? "-"}
+                          </Typography>
+                          <Stack
+                            direction="row"
+                            spacing={0.5}
+                            className={styles.chipsRow}
+                          >
+                            <Chip
+                              size="small"
+                              label={s.competition?.name ?? "-"}
+                              variant="outlined"
+                            />
+                            <Chip
+                              size="small"
+                              label={s.group?.name ?? "-"}
+                              variant="outlined"
+                            />
+                          </Stack>
                         </Stack>
-                      </Stack>
-                    }
-                    secondary={new Date(s.createdAt).toLocaleString()}
-                  />
-                  <div className={styles.actionsInlineBox}>
-                    <IconButton
-                      aria-label="primary"
-                      onClick={() => {
-                        setAsPrimary(s.id);
-                        applyCombo(s.id);
-                      }}
-                      color={primaryId === s.id ? "primary" : "default"}
-                      size="small"
-                    >
-                      {primaryId === s.id ? <StarIcon /> : <StarBorderIcon />}
-                    </IconButton>
-                    <IconButton
-                      aria-label="delete"
-                      onClick={() => removeCombo(s.id)}
-                      size="small"
-                    >
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
-                  </div>
+                      }
+                      secondary={new Date(s.createdAt).toLocaleString()}
+                      sx={isMobile ? { marginRight: 0 } : undefined}
+                    />
+                    {!isMobile && (
+                      <div className={styles.actionsInlineBox}>
+                        <IconButton
+                          aria-label="primary"
+                          onClick={() => {
+                            setAsPrimary(s.id);
+                            applyCombo(s.id);
+                          }}
+                          color={primaryId === s.id ? "primary" : "default"}
+                          size="small"
+                        >
+                          {primaryId === s.id ? (
+                            <StarIcon />
+                          ) : (
+                            <StarBorderIcon />
+                          )}
+                        </IconButton>
+                        <IconButton
+                          aria-label="delete"
+                          onClick={() => removeCombo(s.id)}
+                          size="small"
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </div>
+                    )}
+                  </Box>
+                  {isMobile && (
+                    <div className={styles.actionsInlineBox}>
+                      <IconButton
+                        aria-label="primary"
+                        onClick={() => {
+                          setAsPrimary(s.id);
+                          applyCombo(s.id);
+                        }}
+                        color={primaryId === s.id ? "primary" : "default"}
+                        size="small"
+                      >
+                        {primaryId === s.id ? <StarIcon /> : <StarBorderIcon />}
+                      </IconButton>
+                      <IconButton
+                        aria-label="delete"
+                        onClick={() => removeCombo(s.id)}
+                        size="small"
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </div>
+                  )}
                 </ListItem>
               ))}
             </List>

@@ -13,7 +13,7 @@ namespace RFFM.Api.Features.Competitions.Queries.GetCalendar
     {
         public void AddRoutes(IEndpointRouteBuilder app)
         {
-            app.MapGet("/calendar", async (IMediator mediator, CancellationToken cancellationToken, int competitionId = 25255269, int groupId = 25255283) =>
+            app.MapGet("/calendar", async (IMediator mediator, CancellationToken cancellationToken, int season = 21, int competitionId = 25255269, int groupId = 25255283, int playType = 1) =>
             {
                 var request = new QueryCalendar(competitionId, groupId);
                 var response = await mediator.Send(request, cancellationToken);

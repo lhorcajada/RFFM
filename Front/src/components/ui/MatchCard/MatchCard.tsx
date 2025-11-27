@@ -68,9 +68,7 @@ export default function MatchCard({
   }
 
   const rootClass = `${styles.matchCard}`;
-  const finalClass = compact
-    ? `${rootClass} ${styles.compact} ${styles.height100}`
-    : rootClass;
+  const finalClass = compact ? `${rootClass} ${styles.compact}` : rootClass;
 
   return (
     <div className={finalClass}>

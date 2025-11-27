@@ -187,79 +187,88 @@ export async function getPlayersByTeam(teamId: string): Promise<Team> {
       const playersArr =
         raw?.players ?? raw?.jugadores_equipo ?? raw?.jugadores ?? [];
 
-      const players = (playersArr || []).map((p: RawPlayer) => ({
-        playerId: String(p.playerId ?? p.cod_jugador ?? p.id ?? ""),
-        seasonId: String(p.seasonId ?? p.temporada ?? p.season ?? ""),
-        name: (p.name ?? p.nombre ?? "") as string,
-        age: p.age ? toNumber(p.age) : p.ace ? toNumber(p.ace) : 0,
-        birthYear: toNumber(
-          p.birthYear ?? p.anio_nacimiento ?? p.anio_nac ?? 0
-        ),
-        team: (p.team ?? p.equipo ?? "") as string,
-        teamCode: String(p.teamCode ?? p.codigo_equipo ?? ""),
-        teamCategory: (p.teamCategory ?? p.categoria ?? "") as string,
-        jerseyNumber: String(p.jerseyNumber ?? p.dorsal ?? p.numero ?? ""),
-        position: (p.position ?? p.posicion ?? "") as string,
-        isGoalkeeper: Boolean(
-          p.isGoalkeeper ?? p.portero ?? p.es_portero ?? false
-        ),
-        photoUrl: String(p.photoUrl ?? p.foto ?? p.url_foto ?? ""),
-        teamShieldUrl: String(
-          p.teamShieldUrl ?? p.escudo_equipo ?? p.team_shield ?? ""
-        ),
-        matches: {
-          called: toNumber(
-            (p as any).matches?.called ??
-              (p as any).llamados ??
-              (p as any).partidos?.llamados ??
-              0
+      const players = (playersArr || [])
+        .filter((p: any) => p != null && typeof p === "object")
+        .map((p: RawPlayer) => ({
+          playerId: String(p.playerId ?? p.cod_jugador ?? p.id ?? ""),
+          seasonId: String(p.seasonId ?? p.temporada ?? p.season ?? ""),
+          name: (p.name ?? p.nombre ?? "") as string,
+          age: p.age ? toNumber(p.age) : p.ace ? toNumber(p.ace) : 0,
+          birthYear: toNumber(
+            p.birthYear ?? p.anio_nacimiento ?? p.anio_nac ?? 0
           ),
-          starter: toNumber(
-            (p as any).matches?.starter ??
-              (p as any).titular ??
-              (p as any).partidos?.titular ??
-              0
+          team: (p.team ?? p.equipo ?? "") as string,
+          teamCode: String(p.teamCode ?? p.codigo_equipo ?? ""),
+          teamCategory: (p.teamCategory ?? p.categoria ?? "") as string,
+          jerseyNumber: String(p.jerseyNumber ?? p.dorsal ?? p.numero ?? ""),
+          position: (p.position ?? p.posicion ?? "") as string,
+          isGoalkeeper: Boolean(
+            p.isGoalkeeper ?? p.portero ?? p.es_portero ?? false
           ),
-          substitute: toNumber(
-            (p as any).matches?.substitute ??
-              (p as any).suplente ??
-              (p as any).partidos?.suplente ??
-              0
+          photoUrl: String(p.photoUrl ?? p.foto ?? p.url_foto ?? ""),
+          teamShieldUrl: String(
+            p.teamShieldUrl ?? p.escudo_equipo ?? p.team_shield ?? ""
           ),
-          played: toNumber(
-            (p as any).matches?.played ??
-              (p as any).jugados ??
-              (p as any).partidos?.jugados ??
-              0
-          ),
-          totalGoals: toNumber(
-            (p as any).matches?.totalGoals ??
-              (p as any).goles ??
-              (p as any).partidos?.goles_total ??
-              0
-          ),
-          goalsPerMatch: Number(
-            (p as any).matches?.goalsPerMatch ??
-              (p as any).goles_por_partido ??
-              0
-          ),
-        },
-        cards: {
-          yellow: toNumber(
-            (p as any).cards?.yellow ??
-              (p as any).amarilla ??
-              (p as any).amarillas ??
-              0
-          ),
-          red: toNumber((p as any).cards?.red ?? (p as any).roja ?? 0),
-          doubleYellow: toNumber(
-            (p as any).cards?.doubleYellow ?? (p as any).doble_amarilla ?? 0
-          ),
-        },
-        competitions: ((p as any).competitions ??
-          (p as any).competiciones ??
-          (p as any).participaciones_competiciones) as any[],
-      }));
+          matches: {
+            called: toNumber(
+              (p as any).matches?.called ??
+                (p as any).llamados ??
+                (p as any).partidos?.llamados ??
+                0
+            ),
+            starter: toNumber(
+              (p as any).matches?.starter ??
+                (p as any).titular ??
+                (p as any).partidos?.titular ??
+                0
+            ),
+            substitute: toNumber(
+              (p as any).matches?.substitute ??
+                (p as any).suplente ??
+                (p as any).partidos?.suplente ??
+                0
+            ),
+            played: toNumber(
+              (p as any).matches?.played ??
+                (p as any).jugados ??
+                (p as any).partidos?.jugados ??
+                0
+            ),
+            totalGoals: toNumber(
+              (p as any).matches?.totalGoals ??
+                (p as any).goles ??
+                (p as any).partidos?.goles_total ??
+                0
+            ),
+            goalsPerMatch: Number(
+              (p as any).matches?.goalsPerMatch ??
+                (p as any).goles_por_partido ??
+                0
+            ),
+          },
+          cards: {
+            yellow: toNumber(
+              (p as any).cards?.yellow ??
+                (p as any).amarilla ??
+                (p as any).amarillas ??
+                0
+            ),
+            red: toNumber((p as any).cards?.red ?? (p as any).roja ?? 0),
+            doubleYellow: toNumber(
+              (p as any).cards?.doubleYellow ?? (p as any).doble_amarilla ?? 0
+            ),
+          },
+          competitions: ((p as any).competitions ??
+            (p as any).competiciones ??
+            (p as any).participaciones_competiciones) as any[],
+        }));
+
+      // remove players that ended up with empty playerId and name
+      const cleanPlayers = players.filter(
+        (pl) =>
+          (pl.playerId && String(pl.playerId).trim() !== "") ||
+          (pl.name && String(pl.name).trim() !== "")
+      );
 
       const team: Team = {
         status: String(raw?.status ?? raw?.estado ?? ""),
@@ -341,7 +350,7 @@ export async function getPlayersByTeam(teamId: string): Promise<Team> {
           coachCode: String(t?.coachCode ?? t?.cod_tecnico ?? t?.id ?? ""),
           name: t?.name ?? t?.nombre ?? "",
         })),
-        players: players,
+        players: cleanPlayers,
       };
 
       return team;
@@ -445,8 +454,8 @@ export async function getCalendar(params?: {
 }): Promise<CalendarResponse | MatchApiResponse> {
   const q = new URLSearchParams();
   if (params?.season) q.append("season", params.season);
-  if (params?.competition) q.append("competition", params.competition);
-  if (params?.group) q.append("group", params.group);
+  if (params?.competition) q.append("competitionId", params.competition);
+  if (params?.group) q.append("groupId", params.group);
   if (params?.playType) q.append("playType", params.playType);
   const qs = q.toString() ? `?${q.toString()}` : "";
   const res = await client.get(`calendar${qs}`);

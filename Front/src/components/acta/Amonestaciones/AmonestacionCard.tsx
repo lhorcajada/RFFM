@@ -26,14 +26,19 @@ export default function AmonestacionCard({
   const isSecond =
     String(event.segunda_amarilla) === "1" ||
     String(event.segunda_amarilla) === "true";
-  const label = isSecond
+
+  // 100 = Amarilla, 101 = Roja, 102 = Doble amarilla
+  const isRed = tipo === "101";
+  const isDoubleYellow = tipo === "102" || isSecond;
+
+  const label = isDoubleYellow
     ? "Segunda amarilla"
-    : tipo === "2"
+    : isRed
     ? "Roja"
     : "Amarilla";
-  const icon = isSecond ? (
+  const icon = isDoubleYellow ? (
     <DoubleYellowIcon className={styles.cardIconDouble} />
-  ) : tipo === "2" ? (
+  ) : isRed ? (
     <RedCardIcon className={styles.cardIconRed} />
   ) : (
     <YellowCardIcon className={styles.cardIconYellow} />

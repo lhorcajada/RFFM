@@ -21,10 +21,14 @@ export default function TechnicalStaff({
   delegado_visitante,
 }: Props) {
   const hasLocal = Boolean(
-    entrenador_local || delegadolocal || (local && local.length > 0)
+    (entrenador_local && entrenador_local !== "No presenta") ||
+      delegadolocal ||
+      (local && local.length > 0)
   );
   const hasAway = Boolean(
-    entrenador_visitante || delegado_visitante || (away && away.length > 0)
+    (entrenador_visitante && entrenador_visitante !== "No presenta") ||
+      delegado_visitante ||
+      (away && away.length > 0)
   );
 
   return (
@@ -36,13 +40,15 @@ export default function TechnicalStaff({
           <List>
             {hasLocal ? (
               <>
-                {entrenador_local ? (
+                {entrenador_local && entrenador_local !== "No presenta" ? (
                   <ListItem className={styles.item}>
                     <div className={styles.avatarWrap}>
                       <Avatar />
                     </div>
                     <div className={styles.techInfo}>
-                      <div className={styles.name}>{entrenador_local}</div>
+                      <div className={styles.name}>
+                        {entrenador_local.trim()}
+                      </div>
                       <div className={styles.role}>ENTRENADOR</div>
                     </div>
                   </ListItem>
@@ -54,7 +60,7 @@ export default function TechnicalStaff({
                       <Avatar />
                     </div>
                     <div className={styles.techInfo}>
-                      <div className={styles.name}>{delegadolocal}</div>
+                      <div className={styles.name}>{delegadolocal.trim()}</div>
                       <div className={styles.role}>DELEGADO</div>
                     </div>
                   </ListItem>
@@ -67,8 +73,8 @@ export default function TechnicalStaff({
                           <Avatar src={t.foto} />
                         </div>
                         <div className={styles.techInfo}>
-                          <div className={styles.name}>{t.nombre}</div>
-                          <div className={styles.role}>{t.tipo}</div>
+                          <div className={styles.name}>{t.nombre?.trim()}</div>
+                          <div className={styles.role}>{t.tipo?.trim()}</div>
                         </div>
                       </ListItem>
                     ))
@@ -89,13 +95,16 @@ export default function TechnicalStaff({
           <List>
             {hasAway ? (
               <>
-                {entrenador_visitante ? (
+                {entrenador_visitante &&
+                entrenador_visitante !== "No presenta" ? (
                   <ListItem className={styles.item}>
                     <div className={styles.avatarWrap}>
                       <Avatar />
                     </div>
                     <div className={styles.techInfo}>
-                      <div className={styles.name}>{entrenador_visitante}</div>
+                      <div className={styles.name}>
+                        {entrenador_visitante.trim()}
+                      </div>
                       <div className={styles.role}>ENTRENADOR</div>
                     </div>
                   </ListItem>
@@ -107,7 +116,9 @@ export default function TechnicalStaff({
                       <Avatar />
                     </div>
                     <div className={styles.techInfo}>
-                      <div className={styles.name}>{delegado_visitante}</div>
+                      <div className={styles.name}>
+                        {delegado_visitante.trim()}
+                      </div>
                       <div className={styles.role}>DELEGADO</div>
                     </div>
                   </ListItem>
@@ -120,8 +131,8 @@ export default function TechnicalStaff({
                           <Avatar src={t.foto} />
                         </div>
                         <div className={styles.techInfo}>
-                          <div className={styles.name}>{t.nombre}</div>
-                          <div className={styles.role}>{t.tipo}</div>
+                          <div className={styles.name}>{t.nombre?.trim()}</div>
+                          <div className={styles.role}>{t.tipo?.trim()}</div>
                         </div>
                       </ListItem>
                     ))
