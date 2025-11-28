@@ -15,6 +15,7 @@ import Acta from "./pages/Acta/Acta";
 import Error500 from "./pages/Error500/Error500";
 import Statistics from "./pages/Statistics/Statistics";
 import GoalSectorsComparison from "./pages/Statistics/GoalSectorsComparison";
+import CallupsPage from "./pages/Callups/Callups";
 import { registerNavigate } from "./services/api";
 
 export default function App(): JSX.Element {
@@ -39,6 +40,7 @@ export default function App(): JSX.Element {
             element={<GoalSectorsComparison />}
           />
           <Route path="/acta/:codacta" element={<Acta />} />
+          <Route path="/callups" element={<CallupsPage />} />
           <Route path="/error-500" element={<Error500 />} />
         </Routes>
       </main>

@@ -87,6 +87,7 @@ export async function getPlayer(playerId: string) {
 }
 
 import type { Team } from "../types/team";
+import type { TeamCallupsResponse } from "../types/callups";
 import type {
   ClassificationResponse,
   ClassificationTeam,
@@ -607,6 +608,21 @@ export async function getTeamGoalSectors(
       goalsAgainst: number;
     }>;
   };
+}
+
+export async function getTeamCallups(
+  teamId: string,
+  params?: { seasonId?: string; competitionId?: string; groupId?: string }
+): Promise<TeamCallupsResponse> {
+  const q = new URLSearchParams();
+  if (params?.seasonId) q.append("seasonId", params?.seasonId);
+  if (params?.competitionId) q.append("competitionId", params?.competitionId);
+  if (params?.groupId) q.append("groupId", params?.groupId);
+  const qs = q.toString() ? `?${q.toString()}` : "";
+  const res = await client.get(
+    `teams/${encodeURIComponent(teamId)}/callups${qs}`
+  );
+  return res.data as TeamCallupsResponse;
 }
 
 export async function getTeamsGoalSectorsComparison(params: {

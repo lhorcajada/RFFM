@@ -4,6 +4,7 @@ import styles from "./Footer.module.css";
 import IconButton from "@mui/material/IconButton";
 import SvgIcon from "@mui/material/SvgIcon";
 import SettingsIcon from "@mui/icons-material/Settings";
+import HowToRegIcon from "@mui/icons-material/HowToReg";
 
 export default function Footer(): JSX.Element {
   const loc = useLocation();
@@ -117,6 +118,21 @@ export default function Footer(): JSX.Element {
               <SvgIcon>
                 {/* Trophy icon */}
                 <path d="M17 4V2H7v2H2v2c0 3.53 2.61 6.43 6 6.92V17H8v2h8v-2h-1v-4.08c3.39-.49 6-3.39 6-6.92V4h-5zm-7 0h6v2H10V4zm9 2c0 2.97-2.16 5.43-5 5.92V6h5zm-7 5.92C6.16 11.43 4 8.97 4 6h5v5.92z" />
+              </SvgIcon>
+            </IconButton>
+            <IconButton
+              component={Link}
+              to="/callups"
+              className={
+                loc.pathname.startsWith("/callups")
+                  ? `${styles.iconBtn} ${styles.active}`
+                  : styles.iconBtn
+              }
+              aria-label="Convocatorias"
+              size="large"
+            >
+              <SvgIcon>
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z" />
               </SvgIcon>
             </IconButton>
             <IconButton

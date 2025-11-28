@@ -1,0 +1,36 @@
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.center {
+  display: flex;
+  justify-content: center;
+  padding: 24px;
+}
+
+.paper {
+  padding: 16px;
+}
+
+.playerWrap {
+  padding: 8px;
+}
+
+@media (max-width: 599px) {
+  .playerWrap {
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
+
+/* Desktop: grid two columns if enough width */
+@media (min-width: 900px) {
+  .list {
+    display: grid;
+    grid-template-columns: 1fr; /* one player per row on desktop */
+    gap: 16px;
+  }
+}

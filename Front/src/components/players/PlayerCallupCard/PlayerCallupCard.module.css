@@ -1,0 +1,159 @@
+.playerRow {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 0;
+}
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.name {
+  font-weight: 700;
+  color: #fff;
+  font-size: 1rem;
+}
+.totals {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.bad {
+  background: rgba(255, 255, 255, 0.06);
+  padding: 4px 8px;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 12px;
+}
+.badGreen {
+  background: rgba(64, 196, 93, 0.12);
+  padding: 4px 8px;
+  border-radius: 6px;
+  color: #a8f3b0;
+  font-size: 12px;
+}
+.badRed {
+  background: rgba(255, 80, 80, 0.12);
+  padding: 4px 8px;
+  border-radius: 6px;
+  color: #ffb3b3;
+  font-size: 12px;
+}
+.cards {
+  display: flex;
+  gap: 8px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+.card {
+  min-width: 140px;
+  max-width: 220px;
+  flex: 0 0 auto;
+}
+.cardContent {
+  padding: 8px !important;
+}
+.rowTop {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+.jornada {
+  font-weight: 800;
+  color: #000;
+  background: #fff;
+  padding: 4px 6px;
+  border-radius: 4px;
+}
+.opponent {
+  font-weight: 600;
+  color: #fff;
+  margin-left: 6px;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rowBottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.date {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
+}
+.icons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.icon {
+  color: #1b5e20;
+}
+.iconStar {
+  color: #ffd54f;
+}
+.called {
+  background: rgba(76, 175, 80, 0.12);
+}
+.notCalled {
+  background: rgba(244, 67, 54, 0.12);
+}
+
+/* Desktop layout: show name column and cards column side-by-side */
+@media (min-width: 900px) {
+  .playerRow {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    gap: 12px;
+    align-items: start;
+  }
+  .header {
+    grid-column: 1 / 2;
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .name {
+    font-size: 1.05rem;
+  }
+  .cards {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+  .card {
+    min-width: 140px;
+  }
+}
+
+/* Small screens: cards stack vertically and use full width */
+@media (max-width: 599px) {
+  .cards {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow: visible;
+    align-items: stretch;
+  }
+  .card {
+    /* make card span full viewport width and center it */
+    position: relative;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100vw - 16px);
+    max-width: calc(100vw - 16px);
+    min-width: auto;
+    box-sizing: border-box;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  .opponent {
+    max-width: none;
+    white-space: normal;
+  }
+}

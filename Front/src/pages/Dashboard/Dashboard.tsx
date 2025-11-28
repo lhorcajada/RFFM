@@ -3,6 +3,7 @@ import GroupIcon from "@mui/icons-material/Group";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import LeaderboardIcon from "@mui/icons-material/Leaderboard";
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
+import HowToRegIcon from "@mui/icons-material/HowToReg";
 import PageHeader from "../../components/ui/PageHeader/PageHeader";
 import BaseLayout from "../../components/ui/BaseLayout/BaseLayout";
 import DashboardCard from "../../components/ui/DashboardCard/DashboardCard";
@@ -47,6 +48,12 @@ export default function Dashboard(): JSX.Element {
           description="Ajustes y preferencias de la aplicación."
           icon={<SettingsIcon style={{ fontSize: 40, color: "#05313b" }} />}
           to="/settings"
+        />
+        <DashboardCard
+          title="Convocatorias"
+          description="Ver convocatorias por jugador."
+          icon={<HowToRegIcon style={{ fontSize: 40, color: "#05313b" }} />}
+          to="/callups"
         />
       </div>
     </BaseLayout>
