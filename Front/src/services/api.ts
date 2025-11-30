@@ -549,6 +549,112 @@ export async function getCalendar(params?: {
   return normalized;
 }
 
+export async function getTeamMatches(
+  teamId: string,
+  params?: {
+    season?: string;
+    competition?: string;
+    group?: string;
+    playType?: string;
+  }
+) {
+  // Reuse getCalendar and filter matches where team appears (by id or name)
+  // If params are not provided, try to load the saved calendar selection from localStorage
+  let finalParams: Record<string, any> = params ? { ...params } : {};
+  try {
+    const raw = localStorage.getItem("rffm.current_selection");
+    if (raw) {
+      const sel = JSON.parse(raw) as any;
+      const saved = {
+        season:
+          sel.seasonId ?? sel.season ?? (sel.seasonId && String(sel.seasonId)),
+        competition:
+          sel.competitionId ??
+          (sel.competition &&
+            (sel.competition.id ?? sel.competitionId ?? sel.competition)) ??
+          sel.competition,
+        group:
+          sel.groupId ??
+          (sel.group && (sel.group.id ?? sel.groupId ?? sel.group)) ??
+          sel.group,
+        playType: sel.playType ?? sel.play_type,
+      };
+      // Merge saved selection into finalParams only where missing
+      finalParams = Object.assign({}, saved, finalParams || {});
+    }
+  } catch (err) {
+    // ignore parse errors
+  }
+  // Ensure we pass primitive IDs/strings to getCalendar (avoid objects like { id: '123' })
+  const coerce = (v: any) => {
+    if (v == null) return undefined;
+    if (typeof v === "object")
+      return String(v.id ?? v.value ?? v.code ?? "").trim() || undefined;
+    const s = String(v ?? "").trim();
+    return s === "" ? undefined : s;
+  };
+
+  const safeParams: Record<string, any> = {
+    season: coerce(finalParams.season),
+    competition: coerce(finalParams.competition),
+    group: coerce(finalParams.group),
+    playType: coerce(finalParams.playType),
+  };
+
+  const cal = await getCalendar(safeParams);
+  const rounds: any[] = [];
+  if (!cal) return [];
+  // support both MatchApiResponse and CalendarResponse
+  if ((cal as any).matchDays) {
+    const md = (cal as any).matchDays as any[];
+    for (const day of md || []) {
+      for (const m of day.matches || []) {
+        const localId = String(m.localTeamCode ?? m.localTeamId ?? "").trim();
+        const visitorId = String(
+          m.visitorTeamCode ?? m.visitorTeamId ?? ""
+        ).trim();
+        const localName = String(m.localTeamName ?? "").trim();
+        const visitorName = String(m.visitorTeamName ?? "").trim();
+        if (
+          localId === String(teamId) ||
+          visitorId === String(teamId) ||
+          localName === String(teamId) ||
+          visitorName === String(teamId)
+        ) {
+          rounds.push({ date: day.date, match: m });
+        }
+      }
+    }
+  } else if ((cal as any).rounds) {
+    for (const r of (cal as any).rounds || []) {
+      const matches = r.equipos ?? r.partidos ?? r.matches ?? [];
+      for (const m of matches) {
+        const localId = String(
+          m.codigo_equipo_local ?? m.codigo_local ?? m.localTeamId ?? ""
+        ).trim();
+        const visitorId = String(
+          m.codigo_equipo_visitante ?? m.codigo_visitante ?? m.awayTeamId ?? ""
+        ).trim();
+        const localName = String(
+          m.equipo_local ?? m.localTeamName ?? m.local ?? ""
+        ).trim();
+        const visitorName = String(
+          m.equipo_visitante ?? m.awayTeamName ?? m.visitante ?? ""
+        ).trim();
+        if (
+          localId === String(teamId) ||
+          visitorId === String(teamId) ||
+          localName === String(teamId) ||
+          visitorName === String(teamId)
+        ) {
+          rounds.push({ date: m.fecha ?? m.date ?? null, match: m });
+        }
+      }
+    }
+  }
+  return rounds;
+}
+
 export async function getTeamAgeSummary(teamId: string, seasonId?: string) {
   const q = seasonId ? `?seasonId=${encodeURIComponent(seasonId)}` : "";
   const res = await client.get(

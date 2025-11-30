@@ -1,9 +1,8 @@
 .item {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  display: block;
   gap: 12px;
   align-items: start;
-  padding: 14px 20px 18px 66px; /* reserve space for the absolute position badge */
+  padding: 14px 20px 64px 66px; /* extra bottom padding so bottom-right controls don't overlap */
   width: 100%;
   box-sizing: border-box;
   background: transparent; /* transparent card to match calendar style */
@@ -134,6 +133,16 @@
   gap: 6px;
   align-self: start;
 }
+
+.pointsWrap {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  pointer-events: auto;
+}
 .pointsValue {
   font-weight: 800;
   color: #ffffff;
@@ -143,9 +152,14 @@
   justify-content: center;
 }
 
+.pointsWrap .points {
+  width: auto !important;
+  max-width: 120px;
+}
+
 .pointsBadge {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   display: inline-flex;
   align-items: center;
@@ -332,6 +346,204 @@
   display: flex;
   gap: 6px;
 }
+
+.controls {
+  /* keep points badge in the normal flow */
+  position: static;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+@media (max-width: 640px) {
+  .controls {
+    justify-content: flex-end;
+    margin-top: 10px;
+  }
+}
+
+/* always keep points in the top-right corner of the card */
+
+.resultsToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  /* position the small button at the card bottom-right */
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 6;
+}
+
+.resultsPanel {
+  /* when rendered into body via portal we use fixed positioning inline */
+  max-height: 60vh;
+  overflow: auto;
+  background: var(--rffm-card-bg, #0b1220); /* opaque background */
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 8px;
+  box-shadow: 0 12px 30px rgba(2, 6, 23, 0.6);
+  z-index: 9999;
+  pointer-events: auto;
+}
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(2, 6, 23, 0.45);
+  z-index: 9998;
+}
+
+.resultsPanel {
+  max-height: 70vh;
+  width: 720px;
+  max-width: calc(100vw - 24px);
+  overflow: auto;
+  padding: 16px;
+}
+
+.resultsList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.resultItem {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 0.9rem;
+  color: #e5e7eb;
+}
+
+/* reverted: keep original flow for results and team name per UX request */
+
+.resultDate {
+  color: #9ca3af;
+  font-size: 0.8rem;
+  min-width: 70px;
+  flex: 0 0 auto;
+}
+
+.resultText {
+  flex: 1 1 auto;
+  overflow: hidden;
+  white-space: nowrap;
+  position: relative;
+  text-overflow: ellipsis;
+}
+
+.resultsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+  padding-top: 8px;
+}
+.resultsTeamName {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #e5e7eb;
+}
+.resultsTitle {
+  font-size: 0.85rem;
+  color: #f59e0b; /* amber/yellow for the Results label */
+  font-weight: 700;
+}
+
+.resultsClose {
+  position: static !important; /* use header flexbox to place the button inside popup */
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  color: #fff !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  box-shadow: 0 6px 14px rgba(2, 6, 23, 0.4) !important;
+  min-width: 0 !important;
+  margin-left: 12px;
+}
+
+.resultOpponent {
+  display: inline-block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+  max-width: calc(100% - 110px); /* reserve space for score + chip */
+}
+
+.resultScore {
+  display: inline-block;
+  flex: 0 0 auto;
+  margin-left: 6px;
+  color: #e5e7eb;
+  font-weight: 700;
+}
+
+.resultChip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  color: white;
+  margin-left: 8px;
+  box-shadow: 0 4px 8px rgba(2, 6, 23, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.resultG {
+  background: #10b981;
+} /* green */
+.resultE {
+  background: #f59e0b;
+} /* yellow */
+.resultP {
+  background: #ef4444;
+} /* red */
+
+@media (max-width: 640px) {
+  .resultItem {
+    /* keep each result to a single visual line on mobile */
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+  }
+  .resultDate {
+    min-width: 56px;
+    font-size: 0.75rem;
+  }
+  .resultText {
+    font-size: 0.92rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .resultChip {
+    min-width: 34px;
+    height: 22px;
+    font-size: 0.72rem;
+    margin-left: 6px;
+  }
+}
+
+.resultsLoading,
+.resultsEmpty {
+  padding: 12px;
+  color: #9ca3af;
+}
 .pill {
   width: 20px;
   height: 20px;
@@ -361,12 +573,30 @@
     gap: 8px;
     min-height: 80px;
   }
+  /* ensure the absolute button doesn't overlap critical content on very small widths */
   .position {
     width: 40px;
     height: 40px;
     font-size: 0.9rem;
     top: -10px;
     left: -10px;
+  }
+}
+
+/* Ensure cards have horizontal breathing room on small screens and reserve space for points */
+@media (max-width: 640px) {
+  .item {
+    margin-left: 8px;
+    margin-right: 8px;
+    padding-right: 64px; /* room for points badge */
+    box-sizing: border-box;
+  }
+}
+
+@media (max-width: 420px) {
+  .resultsToggle {
+    right: 8px;
+    bottom: 8px;
   }
 }
 
@@ -410,8 +640,9 @@
 @media (min-width: 1024px) {
   .item {
     grid-template-columns: 1fr 1fr auto; /* left, center, points */
-    padding: 16px 20px 18px 80px; /* más espacio para la posición y separación */
+    padding: 20px 24px 28px 80px; /* más espacio para la posición y separación */
     align-items: center;
+    min-height: 96px; /* increase desktop card height to avoid overlap */
   }
 
   /* Make the team block span the two flexible columns so we have a true center area */
