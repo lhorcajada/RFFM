@@ -27,6 +27,16 @@ export default defineConfig(async ({ command, mode }) => {
 
   return {
     plugins: [pluginReact()],
+    optimizeDeps: {
+      include: [
+        "react",
+        "react-dom",
+        "@mui/material",
+        "@mui/icons-material",
+        "@emotion/react",
+        "@emotion/styled",
+      ],
+    },
     define: {
       // Expose a default API base URL to the client bundles (can be overridden by env)
       __VITE_API_BASE_URL__: JSON.stringify(env.VITE_API_BASE_URL || ""),
