@@ -416,11 +416,13 @@
 }
 
 .resultItem {
-  display: flex;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: 1fr 64px 48px; /* opponent | score | chip */
+  gap: 12px;
   align-items: center;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   color: #e5e7eb;
+  padding: 8px 0;
 }
 
 /* reverted: keep original flow for results and team name per UX request */
@@ -474,12 +476,12 @@
 }
 
 .resultOpponent {
-  display: inline-block;
+  display: block;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  vertical-align: middle;
-  max-width: calc(100% - 110px); /* reserve space for score + chip */
+  min-width: 0; /* allow grid fractional column to shrink/grow */
+  max-width: none;
 }
 
 .resultScore {
@@ -516,27 +518,46 @@
 
 @media (max-width: 640px) {
   .resultItem {
-    /* keep each result to a single visual line on mobile */
-    align-items: center;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 56px 44px; /* allow opponent to take available space */
     gap: 8px;
+    align-items: center;
     padding: 6px 8px;
   }
-  .resultDate {
-    min-width: 56px;
-    font-size: 0.75rem;
+  .resultOpponent {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
-  .resultText {
-    font-size: 0.92rem;
-    display: flex;
-    align-items: center;
-    gap: 8px;
+  .resultScore {
+    text-align: right;
+    white-space: nowrap;
   }
   .resultChip {
+    justify-self: end; /* align chip to the right cell */
     min-width: 34px;
     height: 22px;
     font-size: 0.72rem;
-    margin-left: 6px;
+    margin-left: 0;
   }
+}
+
+/* score row inside the score cell */
+.scoreRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+}
+.teamScore {
+  color: #e5e7eb; /* emphasize team's own score */
+}
+.opponentScore {
+  color: #9ca3af; /* de-emphasize opponent score */
+}
+.scoreSeparator {
+  color: #9ca3af;
+  font-weight: 600;
 }
 
 .resultsLoading,
@@ -588,7 +609,7 @@
   .item {
     margin-left: 8px;
     margin-right: 8px;
-    padding-right: 64px; /* room for points badge */
+    padding-right: 32px; /* slightly less reserved room so name has more space */
     box-sizing: border-box;
   }
 }

@@ -185,28 +185,47 @@ function ResultsToggle({
           <ul className={styles.resultsList}>
             {list.map((it: any, idx: number) => (
               <li key={idx} className={styles.resultItem}>
-                <div className={styles.resultText}>
-                  <span className={styles.resultOpponent}>
-                    {it.opponent ||
-                      (it.match?.localTeamName ??
-                        it.match?.equipo_local ??
-                        it.match?.local) ||
-                      "Rival"}
-                  </span>
-                  <span className={styles.resultScore}>
-                    {it.score ? ` — ${it.score}` : ""}
-                  </span>
-                  <span
-                    className={`${styles.resultChip} ${
-                      it.result === "G"
-                        ? styles.resultG
-                        : it.result === "E"
-                        ? styles.resultE
-                        : styles.resultP
-                    }`}
-                  >
-                    {it.result}
-                  </span>
+                <div className={styles.resultOpponent}>
+                  {it.opponent ||
+                    (it.match?.localTeamName ??
+                      it.match?.equipo_local ??
+                      it.match?.local) ||
+                    "Rival"}
+                </div>
+                <div className={styles.resultScore}>
+                  {typeof it.localGoals !== "undefined" ||
+                  typeof it.visitorGoals !== "undefined" ? (
+                    <div className={styles.scoreRow}>
+                      <span
+                        className={
+                          it.isLocal ? styles.teamScore : styles.opponentScore
+                        }
+                      >
+                        {it.localGoals == null ? "" : String(it.localGoals)}
+                      </span>
+                      <span className={styles.scoreSeparator}>-</span>
+                      <span
+                        className={
+                          it.isLocal ? styles.opponentScore : styles.teamScore
+                        }
+                      >
+                        {it.visitorGoals == null ? "" : String(it.visitorGoals)}
+                      </span>
+                    </div>
+                  ) : (
+                    it.score || ""
+                  )}
+                </div>
+                <div
+                  className={`${styles.resultChip} ${
+                    it.result === "G"
+                      ? styles.resultG
+                      : it.result === "E"
+                      ? styles.resultE
+                      : styles.resultP
+                  }`}
+                >
+                  {it.result}
                 </div>
               </li>
             ))}

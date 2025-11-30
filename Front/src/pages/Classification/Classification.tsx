@@ -106,9 +106,26 @@ export default function Classification() {
                       date: day.date,
                       opponent: opp,
                       result,
-                      score: isLocal
-                        ? `${localGoals}-${visitorGoals}`
-                        : `${visitorGoals}-${localGoals}`,
+                      localGoals: Number.isNaN(localGoals) ? null : localGoals,
+                      visitorGoals: Number.isNaN(visitorGoals)
+                        ? null
+                        : visitorGoals,
+                      isLocal: !!isLocal,
+                      // precompute left/right score strings so rendering is simpler
+                      scoreLeft: isLocal
+                        ? Number.isNaN(localGoals)
+                          ? ""
+                          : String(localGoals)
+                        : Number.isNaN(visitorGoals)
+                        ? ""
+                        : String(visitorGoals),
+                      scoreRight: isLocal
+                        ? Number.isNaN(visitorGoals)
+                          ? ""
+                          : String(visitorGoals)
+                        : Number.isNaN(localGoals)
+                        ? ""
+                        : String(localGoals),
                     });
                   };
                   push(localId || localName, visitorName || visitorId, true);
@@ -163,9 +180,25 @@ export default function Classification() {
                       date: m.fecha ?? m.date ?? null,
                       opponent: opp,
                       result,
-                      score: isLocal
-                        ? `${localGoals}-${visitorGoals}`
-                        : `${visitorGoals}-${localGoals}`,
+                      localGoals: Number.isNaN(localGoals) ? null : localGoals,
+                      visitorGoals: Number.isNaN(visitorGoals)
+                        ? null
+                        : visitorGoals,
+                      isLocal: !!isLocal,
+                      scoreLeft: isLocal
+                        ? Number.isNaN(localGoals)
+                          ? ""
+                          : String(localGoals)
+                        : Number.isNaN(visitorGoals)
+                        ? ""
+                        : String(visitorGoals),
+                      scoreRight: isLocal
+                        ? Number.isNaN(visitorGoals)
+                          ? ""
+                          : String(visitorGoals)
+                        : Number.isNaN(localGoals)
+                        ? ""
+                        : String(localGoals),
                     });
                   };
                   push(localId || localName, visitorName || visitorId, true);
