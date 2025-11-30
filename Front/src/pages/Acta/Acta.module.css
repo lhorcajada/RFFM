@@ -214,20 +214,18 @@
 .bottomSpacer {
   display: block;
   width: 100%;
-  height: 160px;
+  height: 96px; /* match footer reserve */
   flex-shrink: 0;
 }
 
 @media (max-width: 700px) {
   .bottomSpacer {
-    height: 400px;
-    /* Temporary: add visible background to verify spacer is working */
-    background: linear-gradient(to top, rgba(255, 0, 0, 0.05), transparent);
+    height: 116px;
   }
 }
 
 @media (max-width: 420px) {
   .bottomSpacer {
-    height: 450px;
+    height: 140px;
   }
 }

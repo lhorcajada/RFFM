@@ -2,7 +2,7 @@
 .paper {
   padding: 12px;
   background: transparent; /* avoid default white Paper */
-  padding-bottom: 96px; /* leave space for fixed footer */
+  padding-bottom: 12px;
   box-sizing: border-box;
   overflow-x: hidden;
 }
@@ -10,7 +10,7 @@
 @media (max-width: 599px) {
   .paper {
     padding: 8px;
-    padding-bottom: 120px;
+    padding-bottom: 16px;
   }
 }
 .filters {

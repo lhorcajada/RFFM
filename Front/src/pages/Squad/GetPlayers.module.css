@@ -4,7 +4,7 @@
   max-width: 100%;
   margin: 8px 2px; /* add vertical spacing to avoid touching other containers */
   padding: 12px;
-  padding-bottom: 96px; /* ensure content above fixed footer */
+  padding-bottom: 12px;
 }
 /* space above staff paper to keep it separate from players container */
 .staffPaper {
