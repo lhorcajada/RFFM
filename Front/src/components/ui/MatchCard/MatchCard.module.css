@@ -109,10 +109,11 @@
   }
 }
 
-teamBox {
+.teamBox {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   width: 140px; /* give slightly more room for the name */
   flex: 0 0 140px; /* fixed column but slightly wider */
   min-width: 0;
@@ -387,24 +388,41 @@ teamBox {
     width: 42px;
     height: 42px;
   }
+  .shieldWrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
   .teamBox {
     flex: 0 0 70px; /* keep a bit more room on mobile */
     min-width: 0;
+  }
+  .teamName {
+    text-align: center;
+    margin-top: 4px;
   }
   .centerArea {
     min-width: 0;
     padding: 0 4px;
     flex-direction: row;
     gap: 8px;
-    align-items: center;
+    /* align items to the top so score chips sit at the same height as the time */
+    align-items: flex-start;
     justify-content: center;
     /* allow center area to shrink to avoid pushing score chips */
     flex: 1 1 auto;
-    max-width: 180px;
+    max-width: 140px; /* reduce max width so it doesn't overlap team info on narrow screens */
   }
   .scoreBox {
     font-size: 1.05rem;
     font-weight: 800;
+    margin: 0 6px; /* safe margin to avoid overlap */
+  }
+  .scoreSide {
+    /* ensure the score chips align with the top of the center area (the time) */
+    align-self: flex-start;
+    display: flex;
+    align-items: flex-start;
   }
   .timeChip {
     font-size: 1rem;

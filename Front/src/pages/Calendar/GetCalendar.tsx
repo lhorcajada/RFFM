@@ -444,6 +444,43 @@ export default function GetCalendar(): JSX.Element {
                     })
                   : "";
 
+                // sort helper: compare two match items by time then date
+                function sortByTime(a: any, b: any) {
+                  const ta =
+                    parseTimeToHM(
+                      a.rawDate?.includes(" ")
+                        ? a.rawDate.split(" ").pop()
+                        : a.match?.hora ?? a.match?.time ?? ""
+                    ) ||
+                    parseTimeToHM(a.match?.hora) ||
+                    parseTimeToHM(a.match?.time) ||
+                    null;
+                  const tb =
+                    parseTimeToHM(
+                      b.rawDate?.includes(" ")
+                        ? b.rawDate.split(" ").pop()
+                        : b.match?.hora ?? b.match?.time ?? ""
+                    ) ||
+                    parseTimeToHM(b.match?.hora) ||
+                    parseTimeToHM(b.match?.time) ||
+                    null;
+
+                  if (ta && tb) {
+                    if (ta.h !== tb.h) return ta.h - tb.h;
+                    return ta.m - tb.m;
+                  }
+                  // fallback to parsedDate comparison
+                  const da = a.parsedDate ? a.parsedDate.getTime() : null;
+                  const db = b.parsedDate ? b.parsedDate.getTime() : null;
+                  if (da !== null && db !== null) return da - db;
+                  if (da !== null) return -1;
+                  if (db !== null) return 1;
+                  // final fallback: raw string compare
+                  const ra = String(a.rawDate ?? a.match?.fecha ?? "");
+                  const rb = String(b.rawDate ?? b.match?.fecha ?? "");
+                  return ra.localeCompare(rb);
+                }
+
                 return (
                   <div key={i} hidden={selectedTab !== i}>
                     {grouped.saturday.length > 0 && (
@@ -452,9 +489,12 @@ export default function GetCalendar(): JSX.Element {
                           Sábado {saturdayDate}
                         </div>
                         <div className={styles.matchesGrid}>
-                          {grouped.saturday.map((it: any, idx: number) => (
-                            <MatchCard key={idx} item={it} />
-                          ))}
+                          {grouped.saturday
+                            .slice()
+                            .sort(sortByTime)
+                            .map((it: any, idx: number) => (
+                              <MatchCard key={idx} item={it} />
+                            ))}
                         </div>
                       </div>
                     )}
@@ -465,9 +505,12 @@ export default function GetCalendar(): JSX.Element {
                           Domingo {sundayDate}
                         </div>
                         <div className={styles.matchesGrid}>
-                          {grouped.sunday.map((it: any, idx: number) => (
-                            <MatchCard key={idx} item={it} />
-                          ))}
+                          {grouped.sunday
+                            .slice()
+                            .sort(sortByTime)
+                            .map((it: any, idx: number) => (
+                              <MatchCard key={idx} item={it} />
+                            ))}
                         </div>
                       </div>
                     )}
@@ -476,9 +519,12 @@ export default function GetCalendar(): JSX.Element {
                       <div className={styles.dateGroup}>
                         <div className={styles.dateHeader}>Descanso</div>
                         <div className={styles.matchesGrid}>
-                          {grouped.other.map((it: any, idx: number) => (
-                            <MatchCard key={idx} item={it} />
-                          ))}
+                          {grouped.other
+                            .slice()
+                            .sort(sortByTime)
+                            .map((it: any, idx: number) => (
+                              <MatchCard key={idx} item={it} />
+                            ))}
                         </div>
                       </div>
                     )}

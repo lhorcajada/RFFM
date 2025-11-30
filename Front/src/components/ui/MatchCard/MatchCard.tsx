@@ -13,6 +13,7 @@ import ScoreChip from "./ScoreChip";
 import MatchTime from "./MatchTime";
 import { MatchEntry } from "../../../types/match";
 import useMatch from "../../../hooks/useMatch";
+import usePrimaryTeam from "../../../hooks/usePrimaryTeam";
 
 type MatchItem = {
   rawDate?: string | null;
@@ -23,9 +24,11 @@ type MatchItem = {
 export default function MatchCard({
   item,
   compact,
+  hideActaButton,
 }: {
   item: MatchItem;
   compact?: boolean;
+  hideActaButton?: boolean;
 }) {
   const matchVals = useMatch({ item });
   const m = matchVals.match as any;
@@ -70,8 +73,26 @@ export default function MatchCard({
   const rootClass = `${styles.matchCard}`;
   const finalClass = compact ? `${rootClass} ${styles.compact}` : rootClass;
 
+  const { isPrimary } = usePrimaryTeam();
+  const localIsPrimary = isPrimary(data.localTeamId);
+  const awayIsPrimary = isPrimary(data.awayTeamId);
+
+  // compute highlight classes for root
+  const highlightClasses = [] as string[];
+  if (localIsPrimary || awayIsPrimary) {
+    highlightClasses.push(styles.highlightPrimary);
+    if (localIsPrimary && !awayIsPrimary)
+      highlightClasses.push(styles.highlightLeft);
+    if (awayIsPrimary && !localIsPrimary)
+      highlightClasses.push(styles.highlightRight);
+  }
+
+  const rootWithHighlights = `${finalClass} ${highlightClasses.join(
+    " "
+  )}`.trim();
+
   return (
-    <div className={finalClass}>
+    <div className={rootWithHighlights}>
       <FieldInfo
         fieldName={data.fieldName}
         cityName={data.cityName}
@@ -82,6 +103,8 @@ export default function MatchCard({
           name={data.localName}
           shieldSrc={data.localShield}
           alt={data.localName}
+          // highlight prop for potential per-team styling
+          data-primary={localIsPrimary}
         />
 
         <div className={styles.centerArea}>
@@ -99,16 +122,42 @@ export default function MatchCard({
           <div className={styles.centerStack}>
             <MatchTime time={data.timeRaw} />
             {data.codactaVal ? (
-              <Button
-                component={Link}
-                to={`/acta/${encodeURIComponent(String(data.codactaVal))}`}
-                state={{ item }}
-                variant="contained"
-                size="small"
+              hideActaButton ? (
+                <span
+                  className={`${styles.actaBtn} ${styles.actaOutline}`}
+                  style={{
+                    visibility: "hidden",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  Ver acta
+                </span>
+              ) : (
+                <Button
+                  component={Link}
+                  to={`/acta/${encodeURIComponent(String(data.codactaVal))}`}
+                  state={{ item }}
+                  variant="contained"
+                  size="small"
+                  className={`${styles.actaBtn} ${styles.actaOutline}`}
+                >
+                  Ver acta
+                </Button>
+              )
+            ) : hideActaButton ? (
+              <span
                 className={`${styles.actaBtn} ${styles.actaOutline}`}
+                style={{
+                  visibility: "hidden",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
               >
                 Ver acta
-              </Button>
+              </span>
             ) : (
               <>
                 <Button
@@ -151,6 +200,7 @@ export default function MatchCard({
           name={data.awayName}
           shieldSrc={data.awayShield}
           alt={data.awayName}
+          data-primary={awayIsPrimary}
         />
       </div>
     </div>

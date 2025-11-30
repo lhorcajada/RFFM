@@ -61,7 +61,7 @@ export default function Acta(): JSX.Element {
           <div className={styles.leftCol}>
             <div className={styles.matchWrapper}>
               {location.state?.item && (
-                <MatchCard item={location.state.item} compact />
+                <MatchCard item={location.state.item} compact hideActaButton />
               )}
             </div>
           </div>
