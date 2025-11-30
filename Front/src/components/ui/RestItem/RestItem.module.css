@@ -1,0 +1,22 @@
+.restItem {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 0;
+}
+
+.restItem :global(.teamInfo) {
+  /* Ensure TeamInfo sizes appropriately when used standalone */
+}
+
+.placeholder {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--rffm-accent, #ddd);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+}

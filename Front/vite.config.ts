@@ -43,5 +43,22 @@ export default defineConfig(async ({ command, mode }) => {
       },
     },
     // Expose env to Vite via envPrefix or runtime replacement if needed
+    build: {
+      chunkSizeWarningLimit: 600,
+      rollupOptions: {
+        output: {
+          manualChunks(id: string) {
+            if (id.includes("node_modules")) {
+              if (id.includes("react") || id.includes("react-dom"))
+                return "vendor-react";
+              if (id.includes("@mui") || id.includes("@emotion"))
+                return "vendor-mui";
+              if (id.includes("lodash")) return "vendor-lodash";
+              return "vendor";
+            }
+          },
+        },
+      },
+    },
   };
 });

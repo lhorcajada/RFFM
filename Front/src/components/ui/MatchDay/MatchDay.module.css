@@ -1,0 +1,33 @@
+.dayGroup {
+  margin-top: 12px;
+}
+
+.dateHeader {
+  padding: 10px 14px;
+  font-weight: 700;
+  font-size: 1rem;
+  background: linear-gradient(135deg, #00a0c8 0%, #0078b4 100%);
+  border: 1px solid rgba(0, 160, 200, 0.3);
+  border-radius: 8px;
+  margin: 8px 0;
+  color: #ffffff;
+  text-align: center;
+}
+
+.matchesGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+@media (min-width: 900px) {
+  .matchesGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1400px) {
+  .matchesGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

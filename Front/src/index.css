@@ -24,10 +24,8 @@ body {
     --app-header-height: 48px;
   }
 }
-
 /* Import display font for player names */
-@import url("https://fonts.googleapis.com/css2?family=Oswald:wght@600;700;800&display=swap");
-
+/* font import moved to the top of the file to satisfy PostCSS @import ordering */
 /* Make specific MUI Paper instance transparent */
 .css-1e8onee-MuiPaper-root {
   background-color: transparent !important;

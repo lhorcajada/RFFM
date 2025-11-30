@@ -1,0 +1,17 @@
+.matchesGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+@media (min-width: 900px) {
+  .matchesGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1400px) {
+  .matchesGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
