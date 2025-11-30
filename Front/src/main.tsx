@@ -2,7 +2,8 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
-import { ThemeProvider, CssBaseline } from "@mui/material";
+import { ThemeProvider } from "@mui/material/styles";
+import CssBaseline from "@mui/material/CssBaseline";
 import gameTheme from "./styles/muiGameTheme";
 import { BrowserRouter } from "react-router-dom";
 
