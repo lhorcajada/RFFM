@@ -11,8 +11,8 @@
     gap: 14px; /* slightly larger gap for mobile */
     margin-top: 8px;
     padding-bottom: calc(
-      140px + env(safe-area-inset-bottom, 0px)
-    ); /* reserve space for fixed footer */
+      var(--rffm-footer-h, 64px) + env(safe-area-inset-bottom, 0px)
+    );
     padding-inline-end: 12px; /* add right/end padding so last card doesn't touch the screen edge */
   }
 }

@@ -14,24 +14,25 @@
     padding: 0;
     border-radius: 0;
   }
-}
-.appBar {
-  background: linear-gradient(180deg, #082033 0%, #05313b 100%) !important;
-  border-radius: 0 !important;
-  border-top-left-radius: 0 !important;
-  border-top-right-radius: 0 !important;
-  width: 100%;
-  min-width: 0;
-  left: 0;
-  right: 0;
-  top: 0;
-  position: sticky !important; /* occupy layout flow so pages sit below automatically */
-  box-shadow: none !important;
-  margin: 0;
-  padding: 0;
-  z-index: 1100;
-  overflow-x: hidden;
-  .header {
+
+  .appBar {
+    background: var(--rffm-gradient-bg) !important;
+    border-radius: 0 !important;
+    border-top-left-radius: 0 !important;
+    border-top-right-radius: 0 !important;
+    width: 100%;
+    min-width: 0;
+    left: 0;
+    right: 0;
+    top: 0;
+    position: relative;
+    box-shadow: none !important;
+    margin: 0;
+    padding: 0;
+    z-index: 1400;
+  }
+
+  .appBar .header {
     width: 100%;
     color: white;
     display: flex;
@@ -41,9 +42,8 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     overflow-x: hidden;
     border-radius: 0 !important;
-    border-top-left-radius: 0 !important;
-    border-top-right-radius: 0 !important;
-    min-height: 44px;
+    box-sizing: border-box; /* include padding in declared height */
+    height: var(--rffm-header-h, 64px);
     padding: 10px 20px 8px 20px;
   }
 
@@ -71,57 +71,107 @@
     gap: 8px;
     align-items: center;
   }
+}
 
-  @media (max-width: 480px) {
-    .titleWrap {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      width: 100%;
-    }
-    .appName {
-      font-size: 1rem;
-      margin-right: 6px;
-      white-space: nowrap;
-    }
-    .configWrap {
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      gap: 6px;
-      font-size: 0.72rem;
-      background: rgba(255, 255, 255, 0.06);
-      padding: 4px 8px;
-      border-radius: 10px;
-      margin-left: auto;
-      flex-wrap: wrap;
-      max-width: 60%;
-      justify-content: flex-end;
-    }
-    .cornerWrap {
-      position: static;
-      margin-left: auto;
-      background: none;
-      padding: 0;
-      gap: 6px;
-    }
+@media (max-width: 480px) {
+  .titleWrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    justify-content: space-between;
+    /* ensure header content doesn't go beneath absolute cornerWrap */
+    padding-right: 64px;
+  }
+  .titleColumn {
+    flex: 1 1 auto;
+    min-width: 0; /* allow truncation inside */
+  }
+  .appName {
+    font-size: 1rem;
+    margin-right: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 46%;
+  }
+  .configWrap {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.72rem;
+    background: rgba(255, 255, 255, 0.06);
+    padding: 3px 6px;
+    border-radius: 10px;
+    margin-left: 6px;
+    flex-wrap: nowrap; /* prevent controls from wrapping and increasing header height */
+    max-width: 30%;
+    justify-content: flex-end;
+    overflow-x: auto; /* allow horizontal scroll if controls overflow */
+    -webkit-overflow-scrolling: touch;
+  }
+  .cornerWrap {
+    /* keep corner content visually pinned to the right at app-name level */
+    position: absolute;
+    right: 12px;
+    top: 10px;
+    transform: none;
+    background: none;
+    padding: 0;
+    gap: 6px;
+    display: flex;
+    align-items: center;
+    z-index: 1700;
+  }
+  .teamUnderTitle {
+    font-size: 0.85rem;
+    opacity: 0.9;
+    margin-top: 2px;
+  }
+  .competition,
+  .group,
+  .team {
+    font-size: 0.48rem; /* much smaller on mobile */
+    white-space: nowrap;
+    margin: 0;
+    padding: 0 4px; /* reduce padding */
+  }
+  /* MUI Typography Injects a root class that can override module rules; increase specificity */
+  .competition.MuiTypography-root,
+  .group.MuiTypography-root,
+  .team.MuiTypography-root {
+    font-size: 0.48rem !important;
+    padding: 0 4px !important;
+    line-height: 1 !important;
+  }
+  .cornerWrap .competition.MuiTypography-root,
+  .cornerWrap .group.MuiTypography-root {
+    font-size: 0.48rem !important;
+    padding: 0 4px !important;
+  }
+  /* target generated MUI classname variants like css-xxxxx-MuiTypography-root */
+  .competition[class*="MuiTypography-root"],
+  .group[class*="MuiTypography-root"],
+  .team[class*="MuiTypography-root"] {
+    font-size: 0.44rem !important;
+    padding: 0 3px !important;
+    line-height: 1 !important;
+  }
+  .cornerWrap .competition[class*="MuiTypography-root"],
+  .cornerWrap .group[class*="MuiTypography-root"] {
+    font-size: 0.44rem !important;
+    padding: 0 3px !important;
+  }
+  /* hide secondary under-title on very small screens to keep header compact */
+  @media (max-width: 360px) {
     .teamUnderTitle {
-      font-size: 0.85rem;
-      opacity: 0.9;
-      margin-top: 2px;
+      display: none;
     }
-    .competition,
-    .group,
-    .team {
-      font-size: 0.72rem;
-      white-space: nowrap;
-      margin: 0;
-      padding: 2px 8px;
-    }
-    .separator {
-      font-size: 1.1rem;
-      margin: 0 2px;
-    }
+  }
+  .separator {
+    font-size: 1.1rem;
+    margin: 0 2px;
   }
 }
 

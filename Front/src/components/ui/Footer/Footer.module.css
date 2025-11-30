@@ -1,20 +1,24 @@
 .root {
   display: flex;
   justify-content: center;
-  padding: 8px 12px;
-  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
-  background: linear-gradient(180deg, #082033 0%, #05313b 100%);
+  padding: 6px 10px; /* reduced side padding */
+  padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px));
+  background: var(--rffm-gradient-bg);
   border-top: 1px solid rgba(255, 255, 255, 0.03);
   backdrop-filter: blur(6px);
   width: 100%;
   box-sizing: border-box;
+  min-height: var(--rffm-footer-h, 64px);
 }
 .bar {
   display: flex;
-  gap: 14px;
+  gap: 6px; /* reduced gap between icons */
   align-items: center;
-  max-width: 100%;
-  overflow: auto;
+  width: 100%;
+  justify-content: center;
+  flex-wrap: nowrap; /* prefer single row */
+  overflow-x: auto; /* allow horizontal scroll if needed */
+  -webkit-overflow-scrolling: touch;
 }
 .iconBtn {
   color: #ffd166;
@@ -51,33 +55,36 @@
 @media (min-width: 768px) {
   .root {
     justify-content: flex-start;
-    padding: 12px 20px;
+    padding: 8px 16px;
   }
   .bar {
-    gap: 18px;
+    gap: 8px;
     margin-left: 12px;
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    overflow-x: auto;
   }
   .iconBtn {
-    padding: 10px !important;
+    padding: 6px !important;
   }
   .iconBtn svg {
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
   }
 }
 
 /* Mobile: slightly smaller icons */
 @media (max-width: 599px) {
   .root {
-    padding: 10px 12px;
-    min-height: 64px;
+    padding: 4px 8px;
+    min-height: 56px; /* mobile footer height reduced */
     align-items: center;
   }
   .bar {
-    gap: 10px;
+    gap: 6px;
   }
   .iconBtn svg {
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
   }
 }

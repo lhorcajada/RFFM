@@ -1,6 +1,8 @@
 .container {
   padding: 18px 0 28px;
-  padding-bottom: calc(140px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(
+    var(--rffm-footer-h, 64px) + env(safe-area-inset-bottom, 0px)
+  );
 }
 .headerBar {
   display: flex;
@@ -17,7 +19,7 @@
 }
 
 .gridEndSpacer {
-  height: 140px;
+  height: calc(var(--rffm-footer-h, 64px));
   width: 100%;
 }
 

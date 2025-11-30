@@ -28,7 +28,7 @@ export default function AppHeader() {
   }, []);
 
   return (
-    <AppBar position="static" className={styles.appBar}>
+    <AppBar position="static" className={styles.appBar} color="transparent">
       <Toolbar className={styles.toolbar}>
         <div className={styles.titleWrap}>
           <div className={styles.titleColumn}>
@@ -43,11 +43,25 @@ export default function AppHeader() {
           </div>
           {(competition || group) && (
             <div className={styles.cornerWrap}>
-              <Typography variant="body1" className={styles.competition}>
+              <Typography
+                variant="body1"
+                className={styles.competition}
+                sx={{
+                  fontSize: { xs: "0.5rem", sm: "0.95rem" },
+                  lineHeight: 1,
+                }}
+              >
                 {competition}
               </Typography>
               {group && (
-                <Typography variant="body2" className={styles.group}>
+                <Typography
+                  variant="body2"
+                  className={styles.group}
+                  sx={{
+                    fontSize: { xs: "0.45rem", sm: "0.82rem" },
+                    lineHeight: 1,
+                  }}
+                >
                   {group}
                 </Typography>
               )}

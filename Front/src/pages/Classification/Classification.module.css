@@ -1,6 +1,8 @@
 .container {
   padding: 18px 0 18px;
-  padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(
+    var(--rffm-footer-h, 64px) + env(safe-area-inset-bottom, 0px)
+  );
 }
 .headerBar {
   display: flex;
@@ -18,7 +20,9 @@
 }
 
 .gridEndSpacer {
-  height: 96px; /* matches bottom padding to ensure final card scrolls above footer */
+  height: calc(
+    var(--rffm-footer-h, 64px)
+  ); /* matches bottom padding to ensure final card scrolls above footer */
   width: 100%;
 }
 
