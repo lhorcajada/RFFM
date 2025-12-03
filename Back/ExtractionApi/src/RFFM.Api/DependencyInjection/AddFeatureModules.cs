@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Routing;
 using RFFM.Api.FeatureModules;
-using System.Reflection;
 
 namespace RFFM.Api.DependencyInjection;
 

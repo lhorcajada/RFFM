@@ -1,8 +1,6 @@
-﻿using ColoredConsole;
-using EasyCaching.Core;
+﻿using EasyCaching.Core;
 using Mediator;
 using Microsoft.Extensions.Logging;
-using IBaseQuery = RFFM.Api.Common.IBaseQuery;
 
 namespace RFFM.Api.Common.Behaviors;
 
@@ -17,20 +15,16 @@ public interface ICacheRequest
     DateTime? AbsoluteExpirationRelativeToNow { get; } 
 }
 
-public class CachingBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
+public class CachingBehavior<TRequest, TResponse>(
+    IEasyCachingProviderFactory cachingFactory,
+    ILogger<CachingBehavior<TRequest, TResponse>> logger)
+    : IPipelineBehavior<TRequest, TResponse>
     where TRequest : IRequest<TResponse>
     where TResponse : notnull
 {
-    private readonly ILogger<CachingBehavior<TRequest, TResponse>> _logger;
-    private readonly IEasyCachingProvider _cachingProvider;
+    private readonly ILogger<CachingBehavior<TRequest, TResponse>> _logger = logger;
+    private readonly IEasyCachingProvider _cachingProvider = cachingFactory.GetCachingProvider(Cache.CacheDefaultName);
     private readonly int defaultCacheExpirationInHours = 1;
-
-    public CachingBehavior(IEasyCachingProviderFactory cachingFactory,
-        ILogger<CachingBehavior<TRequest, TResponse>> logger)
-    {
-        _logger = logger;
-        _cachingProvider = cachingFactory.GetCachingProvider(Cache.CacheDefaultName);
-    }
 
     public async ValueTask<TResponse> Handle(TRequest message, MessageHandlerDelegate<TRequest, TResponse> next, CancellationToken cancellationToken)
     {
@@ -45,11 +39,10 @@ public class CachingBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, 
         }
 
         var cacheKey = cacheRequest.CacheKey;
-        var cachedResponse = await _cachingProvider.GetAsync<TResponse>(cacheKey);
+        var cachedResponse = await _cachingProvider.GetAsync<TResponse>(cacheKey, cancellationToken);
         if (cachedResponse.Value != null)
         {
-            ColorConsole
-                .WriteLine($"Fetch data from cache with cacheKey: {cacheKey}".Yellow());
+            Console.WriteLine($"Fetch data from cache with cacheKey: {cacheKey}");
             return cachedResponse.Value;
         }
 
@@ -58,9 +51,9 @@ public class CachingBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, 
         var expirationTime = cacheRequest.AbsoluteExpirationRelativeToNow ??
                              DateTime.Now.AddHours(defaultCacheExpirationInHours);
 
-        await _cachingProvider.SetAsync(cacheKey, response, expirationTime.TimeOfDay);
+        await _cachingProvider.SetAsync(cacheKey, response, expirationTime.TimeOfDay, cancellationToken);
 
-        ColorConsole.WriteLine($"Set data to cache with  cacheKey: {cacheKey}".Green());
+        Console.WriteLine($"Set data to cache with  cacheKey: {cacheKey}");
 
         return response;
     }

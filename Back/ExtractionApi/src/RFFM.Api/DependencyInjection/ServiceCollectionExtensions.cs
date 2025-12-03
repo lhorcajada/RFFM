@@ -2,13 +2,12 @@
 using Hellang.Middleware.ProblemDetails;
 using Mediator;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using RFFM.Api.Common.Behaviors;
-using RFFM.Api.Features.Players.Services;
-using RFFM.Api.Features.Competitions.Services;
-using RFFM.Api.Features.Teams.Services;
+using RFFM.Api.Features.Federation.Competitions.Services;
+using RFFM.Api.Features.Federation.Players.Services;
+using RFFM.Api.Features.Federation.Teams.Services;
 
 namespace RFFM.Api.DependencyInjection
 {

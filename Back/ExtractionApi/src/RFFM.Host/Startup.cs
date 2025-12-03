@@ -1,4 +1,3 @@
-using System.Data.Common;
 using Hellang.Middleware.ProblemDetails;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using RFFM.Api.DependencyInjection;

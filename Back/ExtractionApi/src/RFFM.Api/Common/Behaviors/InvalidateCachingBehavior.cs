@@ -1,8 +1,6 @@
-﻿using ColoredConsole;
-using EasyCaching.Core;
+﻿using EasyCaching.Core;
 using Mediator;
 using Microsoft.Extensions.Logging;
-using IBaseCommand = RFFM.Api.Common.IBaseCommand;
 
 namespace RFFM.Api.Common.Behaviors;
 
@@ -11,19 +9,15 @@ internal interface IInvalidateCacheRequest
    public string PrefixCacheKey { get; }
 }
 
-public class InvalidateCachingBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
+public class InvalidateCachingBehavior<TRequest, TResponse>(
+    IEasyCachingProviderFactory cachingFactory,
+    ILogger<InvalidateCachingBehavior<TRequest, TResponse>> logger)
+    : IPipelineBehavior<TRequest, TResponse>
     where TRequest : notnull, IRequest<TResponse>
     where TResponse : notnull
 {
-    private readonly ILogger<InvalidateCachingBehavior<TRequest, TResponse>> _logger;
-    private readonly IEasyCachingProvider _cachingProvider;
-
-    public InvalidateCachingBehavior(IEasyCachingProviderFactory cachingFactory,
-        ILogger<InvalidateCachingBehavior<TRequest, TResponse>> logger)
-    {
-        _logger = logger;
-        _cachingProvider = cachingFactory.GetCachingProvider(Cache.CacheDefaultName);
-    }
+    private readonly ILogger<InvalidateCachingBehavior<TRequest, TResponse>> _logger = logger;
+    private readonly IEasyCachingProvider _cachingProvider = cachingFactory.GetCachingProvider(Cache.CacheDefaultName);
 
     public async ValueTask<TResponse> Handle(TRequest message, MessageHandlerDelegate<TRequest, TResponse> next, CancellationToken cancellationToken)
     {
@@ -40,9 +34,9 @@ public class InvalidateCachingBehavior<TRequest, TResponse> : IPipelineBehavior<
         var cacheKey = cacheRequest.PrefixCacheKey;
         var response = await next(message, cancellationToken);
 
-        await _cachingProvider.RemoveByPrefixAsync(cacheKey);
+        await _cachingProvider.RemoveByPrefixAsync(cacheKey, cancellationToken);
 
-        ColorConsole.WriteLine($"Cache data with cacheKey: {cacheKey} removed.".DarkRed());
+        Console.WriteLine($"Cache data with cacheKey: {cacheKey} removed.");
 
         return response;
     }
