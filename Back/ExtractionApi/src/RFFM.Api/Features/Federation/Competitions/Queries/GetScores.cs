@@ -14,17 +14,17 @@ namespace RFFM.Api.Features.Federation.Competitions.Queries
         {
             app.MapGet("/scores", async (IMediator mediator, CancellationToken cancellationToken, int competitionId = 25255269, int gropuId= 25255283) =>
                 {
-                    var request = new QueryScores(competitionId.ToString(), gropuId.ToString());
+                    var request = new QueryAppScores(competitionId.ToString(), gropuId.ToString());
                     var response = await mediator.Send(request, cancellationToken);
                     return response != null ? Results.Ok(response) : Results.NotFound();
                 })
                 .WithName(nameof(GetScores))
-                .WithTags("GoalScores")
+                .WithTags(CompetitionsConstants.CompetitionsFeature)
                 .Produces<ResponseScores[]>()
                 .Produces<ProblemDetails>(StatusCodes.Status400BadRequest);
         }
 
-        public record QueryScores(string CompetitionId, string GroupId) : Common.IQuery<ResponseScores[]>;
+        public record QueryAppScores(string CompetitionId, string GroupId) : Common.IQueryApp<ResponseScores[]>;
 
         public record ResponseScores
         {
@@ -38,7 +38,7 @@ namespace RFFM.Api.Features.Federation.Competitions.Queries
             public decimal AverageScores { get; set; }
         }
 
-        public class RequestHandler : IRequestHandler<QueryScores, ResponseScores[]>
+        public class RequestHandler : IRequestHandler<QueryAppScores, ResponseScores[]>
         {
             private readonly ICompetitionService _competitionService;
 
@@ -47,7 +47,7 @@ namespace RFFM.Api.Features.Federation.Competitions.Queries
                 _competitionService = competitionService;
             }
 
-            public async ValueTask<ResponseScores[]> Handle(QueryScores request, CancellationToken cancellationToken)
+            public async ValueTask<ResponseScores[]> Handle(QueryAppScores request, CancellationToken cancellationToken)
             {
                 if (string.IsNullOrWhiteSpace(request.CompetitionId))
                     return Array.Empty<ResponseScores>();

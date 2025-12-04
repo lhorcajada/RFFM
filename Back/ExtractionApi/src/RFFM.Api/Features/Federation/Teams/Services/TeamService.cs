@@ -12,7 +12,7 @@ namespace RFFM.Api.Features.Federation.Teams.Services
         Task<TeamRffm> GetTeamDetailsAsync(string teamCode, CancellationToken cancellationToken = default);
 
         Task<((TeamPlayerRffm teamPlayer, Player? playerDetails)[] resolved, AgeCount[] handle)> GetStaticsTeamPlayers(
-            AgesQuery request, CancellationToken cancellationToken);
+            AgesQueryApp request, CancellationToken cancellationToken);
     }
 
     public class TeamService : ITeamService
@@ -73,7 +73,7 @@ namespace RFFM.Api.Features.Federation.Teams.Services
             }
         }
 
-        public async Task<((TeamPlayerRffm teamPlayer, Player? playerDetails)[] resolved, AgeCount[] handle)> GetStaticsTeamPlayers(AgesQuery request, CancellationToken cancellationToken)
+        public async Task<((TeamPlayerRffm teamPlayer, Player? playerDetails)[] resolved, AgeCount[] handle)> GetStaticsTeamPlayers(AgesQueryApp request, CancellationToken cancellationToken)
         {
             var team = await GetTeamDetailsAsync(request.TeamId.ToString(), cancellationToken);
             if (team == null || team.Players == null || !team.Players.Any())

@@ -21,17 +21,17 @@ namespace RFFM.Api.Features.Federation.Teams.Queries
                 // seasonId, competitionId and groupId are required as per request
                 if (string.IsNullOrWhiteSpace(seasonId)) return Results.BadRequest("seasonId is required");
 
-                var request = new Query(teamId, seasonId, competitionId, groupId);
+                var request = new QueryApp(teamId, seasonId, competitionId, groupId);
                 var response = await mediator.Send(request, cancellationToken);
                 return Results.Ok(response);
             })
             .WithName(nameof(GetTeamCallups))
-            .WithTags("Teams")
+            .WithTags(TeamsConstants.TeamsFeature)
             .Produces<List<PlayerCallupsResponse>>()
             .Produces<ProblemDetails>(StatusCodes.Status400BadRequest);
         }
 
-        public record Query(int TeamId, string SeasonId, int CompetitionId, int GroupId) : Common.IQuery<List<PlayerCallupsResponse>>;
+        public record QueryApp(int TeamId, string SeasonId, int CompetitionId, int GroupId) : Common.IQueryApp<List<PlayerCallupsResponse>>;
 
         public class RequestHandler(
             ICalendarService calendarService,
@@ -39,9 +39,9 @@ namespace RFFM.Api.Features.Federation.Teams.Queries
             ITeamService teamService,
             IMatchDayService matchDayService,
             IMemoryCache cache)
-            : IRequestHandler<Query, List<PlayerCallupsResponse>>
+            : IRequestHandler<QueryApp, List<PlayerCallupsResponse>>
         {
-            public async ValueTask<List<PlayerCallupsResponse>> Handle(Query request, CancellationToken cancellationToken)
+            public async ValueTask<List<PlayerCallupsResponse>> Handle(QueryApp request, CancellationToken cancellationToken)
             {
                 // Load calendar for competition/group
                 var calendar = await calendarService.GetCalendarAsync(request.CompetitionId, request.GroupId, cancellationToken);

@@ -11,34 +11,34 @@ using RFFM.Api.Features.Federation.Teams.Services;
 
 namespace RFFM.Api.Features.Federation.Teams.Queries
 {
-    public class GetTeam : IFeatureModule
+    public class FederationGetTeam : IFeatureModule
     {
         public void AddRoutes(IEndpointRouteBuilder app)
         {
             app.MapGet("/teams/{teamId}",
                     async (IMediator mediator, CancellationToken cancellationToken, int teamId) =>
                     {
-                        var request = new Query(teamId);
+                        var request = new QueryApp(teamId);
 
                         var response = await mediator.Send(request, cancellationToken);
 
                         return Results.Ok(response);
                     })
-                .WithName(nameof(GetTeam))
+                .WithName(nameof(FederationGetTeam))
                 .WithTags(TeamsConstants.TeamsFeature)
                 .Produces<Team>()
                 .Produces<ProblemDetails>(StatusCodes.Status400BadRequest)
                 .Produces(StatusCodes.Status404NotFound);
         }
 
-        public record Query(int TeamId) : Common.IQuery<Team>
+        public record QueryApp(int TeamId) : Common.IQueryApp<Team>
         {
 
         }
 
-        public class RequestHandler(ITeamService teamService, IMemoryCache cache) : IRequestHandler<Query, Team>
+        public class RequestHandler(ITeamService teamService, IMemoryCache cache) : IRequestHandler<QueryApp, Team>
         {
-            public async ValueTask<Team> Handle(Query request, CancellationToken cancellationToken)
+            public async ValueTask<Team> Handle(QueryApp request, CancellationToken cancellationToken)
             {
                 var cacheKey = $"team_{request.TeamId}";
 
@@ -48,7 +48,7 @@ namespace RFFM.Api.Features.Federation.Teams.Queries
                     entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
 
                     var team = await teamService.GetTeamDetailsAsync(request.TeamId.ToString(), cancellationToken);
-                    var statistics = await teamService.GetStaticsTeamPlayers(new GetAgeSummary.AgesQuery(request.TeamId), cancellationToken);
+                    var statistics = await teamService.GetStaticsTeamPlayers(new GetAgeSummary.AgesQueryApp(request.TeamId), cancellationToken);
                     var playerDetails = statistics.resolved.Select(x => x.playerDetails);
 
                     var result = new Team

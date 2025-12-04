@@ -18,7 +18,7 @@ namespace RFFM.Api.Features.Federation.Teams.Queries
             app.MapGet("/teams/{teamId}/participation-summary",
                     async (IMediator mediator, CancellationToken cancellationToken, int teamId, int season = 21) =>
                     {
-                        var request = new ParticipationQuery(teamId, season);
+                        var request = new ParticipationQueryApp(teamId, season);
                         var response = await mediator.Send(request, cancellationToken);
                         return response != null ? Results.Ok(response) : Results.NotFound();
                     })
@@ -29,7 +29,7 @@ namespace RFFM.Api.Features.Federation.Teams.Queries
                 .Produces(StatusCodes.Status404NotFound);
         }
 
-        public record ParticipationQuery(int TeamId, int SeasonId = 21) : Common.IQuery<ParticipationCount[]>;
+        public record ParticipationQueryApp(int TeamId, int SeasonId = 21) : Common.IQueryApp<ParticipationCount[]>;
 
         public class PlayerSummary
         {
@@ -50,9 +50,9 @@ namespace RFFM.Api.Features.Federation.Teams.Queries
         }
 
         public class ParticipationRequestHandler(ITeamService teamService, IPlayerService playerService)
-            : IRequestHandler<ParticipationQuery, ParticipationCount[]>
+            : IRequestHandler<ParticipationQueryApp, ParticipationCount[]>
         {
-            public async ValueTask<ParticipationCount[]> Handle(ParticipationQuery request, CancellationToken cancellationToken)
+            public async ValueTask<ParticipationCount[]> Handle(ParticipationQueryApp request, CancellationToken cancellationToken)
             {
                 var team = await teamService.GetTeamDetailsAsync(request.TeamId.ToString(), cancellationToken);
                 if (team == null || !team.Players.Any())

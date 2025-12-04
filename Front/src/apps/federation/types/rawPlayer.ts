@@ -1,0 +1,44 @@
+// Local raw shapes (incoming API may use Spanish or English fields)
+export interface RawPlayer {
+  playerId?: string | number;
+  cod_jugador?: string | number;
+  id?: string | number;
+  seasonId?: string | number;
+  temporada?: string | number;
+  season?: string | number;
+  name?: string;
+  nombre?: string;
+  age?: number | string;
+  ace?: number | string;
+  birthYear?: number | string;
+  anio_nacimiento?: number | string;
+  anio_nac?: number | string;
+  team?: string;
+  equipo?: string;
+  teamCode?: string | number;
+  codigo_equipo?: string | number;
+  teamCategory?: string;
+  categoria?: string;
+  jerseyNumber?: string | number;
+  dorsal?: string | number;
+  numero?: string | number;
+  position?: string;
+  posicion?: string;
+  isGoalkeeper?: boolean;
+  portero?: boolean;
+  es_portero?: boolean;
+  photoUrl?: string;
+  foto?: string;
+  url_foto?: string;
+  teamShieldUrl?: string;
+  escudo_equipo?: string;
+  team_shield?: string;
+  matches?: any;
+  partidos?: any;
+  cards?: any;
+  tarjetas?: any;
+  competitions?: any[];
+  competiciones?: any[];
+  participaciones_competiciones?: any[];
+  [key: string]: unknown;
+}

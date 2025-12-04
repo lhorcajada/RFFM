@@ -1,0 +1,53 @@
+.paper {
+  padding: 28px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 500px;
+}
+
+.title {
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.submitButton {
+  padding: 10px 0;
+  font-size: 16px;
+  font-weight: 600;
+  text-transform: none;
+  margin-top: 12px;
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+  font-size: 14px;
+  text-align: center;
+  margin-top: 16px;
+}
+
+@media (min-width: 600px) {
+  .options {
+    flex-direction: row;
+    gap: 16px;
+  }
+}
+
+.link {
+  color: #1976d2;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.link:hover {
+  text-decoration: underline;
+}

@@ -2,6 +2,6 @@
 {
     public class TeamsConstants
     {
-        public const string TeamsFeature = "TeamsFeature";
+        public const string TeamsFeature = "Federation_Teams";
     }
 }

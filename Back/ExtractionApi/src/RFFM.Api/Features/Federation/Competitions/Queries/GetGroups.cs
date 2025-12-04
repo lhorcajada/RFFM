@@ -14,21 +14,21 @@ namespace RFFM.Api.Features.Federation.Competitions.Queries
         {
             app.MapGet("/groups", async (IMediator mediator, CancellationToken cancellationToken, string competitionId) =>
             {
-                var request = new Query(competitionId);
+                var request = new QueryApp(competitionId);
                 var response = await mediator.Send(request, cancellationToken);
                 return response != null ? Results.Ok(response) : Results.NotFound();
             })
             .WithName(nameof(GetGroups))
-            .WithTags("Competitions")
+            .WithTags(CompetitionsConstants.CompetitionsFeature)
             .Produces<ResponseGroup[]>()
             .Produces<ProblemDetails>(StatusCodes.Status400BadRequest);
         }
 
-        public record Query(string CompetitionId) : Common.IQuery<ResponseGroup[]>;
+        public record QueryApp(string CompetitionId) : Common.IQueryApp<ResponseGroup[]>;
 
         public record ResponseGroup(int Id, string Name);
 
-        public class RequestHandler : IRequestHandler<Query, ResponseGroup[]>
+        public class RequestHandler : IRequestHandler<QueryApp, ResponseGroup[]>
         {
             private readonly ICompetitionService _competitionService;
 
@@ -37,7 +37,7 @@ namespace RFFM.Api.Features.Federation.Competitions.Queries
                 _competitionService = competitionService;
             }
 
-            public async ValueTask<ResponseGroup[]> Handle(Query request, CancellationToken cancellationToken)
+            public async ValueTask<ResponseGroup[]> Handle(QueryApp request, CancellationToken cancellationToken)
             {
                 if (string.IsNullOrWhiteSpace(request.CompetitionId))
                     return Array.Empty<ResponseGroup>();

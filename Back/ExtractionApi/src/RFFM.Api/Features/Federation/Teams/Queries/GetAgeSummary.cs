@@ -15,7 +15,7 @@ namespace RFFM.Api.Features.Federation.Teams.Queries
             app.MapGet("/teams/{teamId}/age-summary",
                     async (IMediator mediator, CancellationToken cancellationToken, int teamId, int season = 21) =>
                     {
-                        var request = new AgesQuery(teamId, season);
+                        var request = new AgesQueryApp(teamId, season);
                         var response = await mediator.Send(request, cancellationToken);
                         return response != null ? Results.Ok(response) : Results.NotFound();
                     })
@@ -26,8 +26,8 @@ namespace RFFM.Api.Features.Federation.Teams.Queries
                 .Produces(StatusCodes.Status404NotFound);
         }
 
-        // Query to get age distribution (allow season to be provided)
-        public record AgesQuery(int TeamId, int SeasonId = 21) : Common.IQuery<AgeCount[]>;
+        // QueryApp to get age distribution (allow season to be provided)
+        public record AgesQueryApp(int TeamId, int SeasonId = 21) : Common.IQueryApp<AgeCount[]>;
 
         public class AgeCount
         {
@@ -36,9 +36,9 @@ namespace RFFM.Api.Features.Federation.Teams.Queries
         }
 
         // Handler for ages query - now delegates to ITeamService
-        public class AgesRequestHandler(ITeamService teamService) : IRequestHandler<AgesQuery, AgeCount[]>
+        public class AgesRequestHandler(ITeamService teamService) : IRequestHandler<AgesQueryApp, AgeCount[]>
         {
-            public async ValueTask<AgeCount[]> Handle(AgesQuery request, CancellationToken cancellationToken)
+            public async ValueTask<AgeCount[]> Handle(AgesQueryApp request, CancellationToken cancellationToken)
             {
                 var (resolved, handle) = await teamService.GetStaticsTeamPlayers(request, cancellationToken);
 

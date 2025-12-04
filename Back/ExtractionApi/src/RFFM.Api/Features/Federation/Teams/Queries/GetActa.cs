@@ -8,7 +8,7 @@ using RFFM.Api.Features.Federation.Teams.Services;
 
 namespace RFFM.Api.Features.Federation.Teams.Queries
 {
-    public class GetActa : IFeatureModule
+    public class FederationGetActa : IFeatureModule
     {
         public void AddRoutes(IEndpointRouteBuilder app)
         {
@@ -18,8 +18,8 @@ namespace RFFM.Api.Features.Federation.Teams.Queries
                     var game = await actaService.GetMatchFromActaAsync(codActa, temporada, competicion, grupo, cancellationToken);
                     return game != null ? Results.Ok(game) : Results.NotFound();
                 })
-                .WithName(nameof(GetActa))
-                .WithTags("Teams")
+                .WithName(nameof(FederationGetActa))
+                .WithTags(TeamsConstants.TeamsFeature)
                 .Produces<MatchRffm>()
                 .Produces<ProblemDetails>(StatusCodes.Status400BadRequest);
         }

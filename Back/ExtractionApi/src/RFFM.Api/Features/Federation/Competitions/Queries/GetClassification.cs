@@ -10,34 +10,34 @@ using RFFM.Api.Features.Federation.Teams;
 
 namespace RFFM.Api.Features.Federation.Competitions.Queries
 {
-    public class GetClassification : IFeatureModule
+    public class FederationGetClassification : IFeatureModule
     {
         public void AddRoutes(IEndpointRouteBuilder app)
         {
             app.MapGet("/classification",
                     async (IMediator mediator, CancellationToken cancellationToken, int season = 21, int competition = 25255269, int group = 25255283, int playType = 1) =>
                     {
-                        var request = new Query(season, competition, group, playType);
+                        var request = new QueryApp(season, competition, group, playType);
 
                         var response = await mediator.Send(request, cancellationToken);
 
                         return Results.Ok(response);
                     })
-                .WithName(nameof(GetClassification))
-                .WithTags(TeamsConstants.TeamsFeature)
+                .WithName(nameof(FederationGetClassification))
+                .WithTags(CompetitionsConstants.CompetitionsFeature)
                 .Produces<ClassificationResponse>()
                 .Produces<ProblemDetails>(StatusCodes.Status400BadRequest)
                 .Produces(StatusCodes.Status404NotFound);
         }
 
-        public record Query(int Season, int Competition, int Group, int PlayType)
-            : Common.IQuery<ClassificationResponse>;
+        public record QueryApp(int Season, int Competition, int Group, int PlayType)
+            : Common.IQueryApp<ClassificationResponse>;
  
 
         public record ResponseTeam(string Id, string Name, string Link);
  
 
-        public class RequestHandler : IRequestHandler<Query, ClassificationResponse>
+        public class RequestHandler : IRequestHandler<QueryApp, ClassificationResponse>
         {
             private readonly ICompetitionService _competitionService;
 
@@ -46,7 +46,7 @@ namespace RFFM.Api.Features.Federation.Competitions.Queries
                 _competitionService = competitionService;
             }
 
-            public async ValueTask<ClassificationResponse> Handle(Query request, CancellationToken cancellationToken)
+            public async ValueTask<ClassificationResponse> Handle(QueryApp request, CancellationToken cancellationToken)
             {
                 return await _competitionService.GetClassification(request.Group,
                     cancellationToken);

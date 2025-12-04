@@ -20,22 +20,22 @@ namespace RFFM.Api.Features.Federation.Teams.Queries
                     int competitionId = 25255269, int groupId = 25255283, int teamCode1 = 13553720, int teamCode2 = 2280600) =>
                 {
                     var teamCodesToCompare = new List<int> { teamCode1, teamCode2 };
-                    var request = new Query(competitionId, groupId, teamCodesToCompare);
+                    var request = new QueryApp(competitionId, groupId, teamCodesToCompare);
                     var response = await mediator.Send(request, cancellationToken);
                     return Results.Ok(response);
                 })
                 .WithName(nameof(GetGoalSectors))
-                .WithTags("Teams")
+                .WithTags(TeamsConstants.TeamsFeature)
                 .Produces<List<GoalSectorsResponse>>()
                 .Produces<ProblemDetails>(StatusCodes.Status400BadRequest);
         }
 
-        public record Query(int CompetitionId, int GroupId, List<int> TeamCodesToCompare)
-            : Common.IQuery<List<GoalSectorsResponse>>;
+        public record QueryApp(int CompetitionId, int GroupId, List<int> TeamCodesToCompare)
+            : Common.IQueryApp<List<GoalSectorsResponse>>;
 
 
 
-        public class RequestHandler : IRequestHandler<Query, List<GoalSectorsResponse>>
+        public class RequestHandler : IRequestHandler<QueryApp, List<GoalSectorsResponse>>
         {
             private readonly ICalendarService _calendarService;
             private readonly ICompetitionService _competitionService;
@@ -52,7 +52,7 @@ namespace RFFM.Api.Features.Federation.Teams.Queries
                 _sectorFactory = sectorFactory;
             }
 
-            public async ValueTask<List<GoalSectorsResponse>> Handle(Query request, CancellationToken cancellationToken)
+            public async ValueTask<List<GoalSectorsResponse>> Handle(QueryApp request, CancellationToken cancellationToken)
             {
                 if (request.TeamCodesToCompare == null || request.TeamCodesToCompare.Count < 2)
                     throw new Exception("No hay equipos que comparar");
@@ -97,7 +97,7 @@ namespace RFFM.Api.Features.Federation.Teams.Queries
                 team2GoalResponse.TeamCode = teamCode2;
                 team1GoalResponse.Sectors = sectorsTeam1;
                 team2GoalResponse.Sectors = sectorsTeam2;
-                return [team1GoalResponse, team2GoalResponse];
+                return new List<GoalSectorsResponse> { team1GoalResponse, team2GoalResponse };
             }
 
             private static void AgroupGoalsBySector(MatchRffm acta, string teamCode, List<Sector> sectorsTeam,
