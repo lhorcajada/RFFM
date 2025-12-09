@@ -10,7 +10,7 @@ API para la gestión de competiciones, equipos y jugadores de la RFFM.
 # Restaurar dependencias
 dotnet restore
 
-# Ejecutar la aplicación
+# Ejecutar la aplicación (migraciones se aplican automáticamente)
 dotnet run --project src/RFFM.Host
 
 # Acceder a Swagger
@@ -26,6 +26,49 @@ https://localhost:7287/swagger
 
 # O directamente con docker-compose
 docker-compose up -d
+```
+
+## ??? Database Migrations
+
+### Migraciones Automáticas
+
+Las migraciones de Entity Framework Core se aplican **automáticamente** al iniciar la aplicación.
+
+### Gestión Manual de Migraciones
+
+Usa el script de PowerShell incluido:
+
+```powershell
+# Crear nueva migración
+.\manage-migrations.ps1 -Action create -MigrationName "AddNewTable"
+
+# Aplicar migraciones
+.\manage-migrations.ps1 -Action apply
+
+# Listar migraciones
+.\manage-migrations.ps1 -Action list
+
+# Generar script SQL
+.\manage-migrations.ps1 -Action script
+
+# Eliminar última migración
+.\manage-migrations.ps1 -Action remove
+
+# Reset completo de base de datos (PELIGRO)
+.\manage-migrations.ps1 -Action reset
+```
+
+### Comandos EF Core directos
+
+```bash
+# Crear migración
+dotnet ef migrations add MigrationName --project src/RFFM.Api --startup-project src/RFFM.Host
+
+# Aplicar migraciones
+dotnet ef database update --project src/RFFM.Api --startup-project src/RFFM.Host
+
+# Ver migraciones pendientes
+dotnet ef migrations list --project src/RFFM.Api --startup-project src/RFFM.Host
 ```
 
 ## ?? Documentación

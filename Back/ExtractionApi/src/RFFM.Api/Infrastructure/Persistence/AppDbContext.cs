@@ -1,5 +1,6 @@
 ﻿using System.Data.Common;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using RFFM.Api.Domain.Aggregates.Assistances;
 using RFFM.Api.Domain.Aggregates.Technicals;
 using RFFM.Api.Domain.Aggregates.Training;
@@ -49,15 +50,19 @@ namespace RFFM.Api.Infrastructure.Persistence
         public DbSet<TechnicalGoalsEnum> TechnicalGoals { get; set; }
         public DbSet<Rival> Rivals { get; set; }
         public DbSet<ExcuseTypes> ExcuseTypes { get; set; }
+        
         public AppDbContext(DbConnection connection)
         {
             _connection = connection;
-         
         }
       
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             optionsBuilder.UseSqlServer(_connection);
+            
+            // Suprimir warning de pending model changes para permitir migraciones iniciales
+            optionsBuilder.ConfigureWarnings(warnings =>
+                warnings.Ignore(RelationalEventId.PendingModelChangesWarning));
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

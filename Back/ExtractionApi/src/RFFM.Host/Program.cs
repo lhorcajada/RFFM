@@ -1,5 +1,6 @@
 using RFFM.Host;
 using RFFM.Host.DependencyInjection;
+using RFFM.Api.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,8 +14,9 @@ var app = builder.Build();
 
 startup.Configure(app, app.Environment);
 
-//await app.MigrateDbContext<TodoDbContext>();
-//await app.MigrateDbContext<IntegrationEventContext>();
+// Apply database migrations automatically
+await app.MigrateDbContext<AppDbContext>();
+await app.MigrateDbContext<IdentityDbContext>();
 
 app.Run();
 
