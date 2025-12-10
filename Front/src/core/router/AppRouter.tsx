@@ -3,6 +3,7 @@ import { Routes, Route, useNavigate } from "react-router-dom";
 import { coachAuthService } from "../../apps/coach/services/authService";
 import { CircularProgress, Box } from "@mui/material";
 import { CoachAuthProvider } from "../../apps/coach/context/CoachAuthContext";
+import RequireAuth from "./RequireAuth";
 
 const FederationApp = lazy(() => import("../../apps/federation/routes"));
 const CoachApp = lazy(() => import("../../apps/coach/routes"));
@@ -71,8 +72,22 @@ export default function AppRouter() {
         <Route path="/login" element={<LoginWithProvider />} />
         {/* Backwards-compatible redirect for old statistics path */}
         <Route path="/statistics/*" element={<NavigateToFederation />} />
-        <Route path="/federation/*" element={<FederationApp />} />
-        <Route path="/coach/*" element={<CoachApp />} />
+        <Route
+          path="/federation/*"
+          element={
+            <RequireAuth>
+              <FederationApp />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/coach/*"
+          element={
+            <RequireAuth>
+              <CoachApp />
+            </RequireAuth>
+          }
+        />
         <Route path="/error-500" element={<Error500 />} />
       </Routes>
     </Suspense>
