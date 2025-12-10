@@ -3,6 +3,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using RFFM.Api.DependencyInjection;
 using RFFM.Host.DependencyInjection;
 using System.Data.Common;
+using System.Security.Claims;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -11,6 +12,7 @@ using Microsoft.Extensions.Localization;
 using Microsoft.AspNetCore.Identity;
 using RFFM.Api.Domain.Resources;
 using RFFM.Api.Infrastructure.Persistence;
+using Microsoft.Extensions.Logging;
 
 namespace RFFM.Host
 {
@@ -91,6 +93,15 @@ namespace RFFM.Host
                         {
                             var endpoint = context.HttpContext.GetEndpoint();
 
+                            // Log token received for diagnostics
+                            var logger = context.HttpContext.RequestServices.GetService<ILogger<Startup>>();
+                            if (logger != null)
+                            {
+                                var incoming = context.Request.Headers["Authorization"].FirstOrDefault();
+                                logger.LogDebug("OnMessageReceived - Authorization header: {Header}", incoming);
+                                logger.LogDebug("Endpoint metadata: {Endpoint}", endpoint?.Metadata?.GetType().FullName);
+                            }
+
                             if (endpoint?.Metadata?.GetMetadata<Microsoft.AspNetCore.Authorization.AuthorizeAttribute>() == null)
                             {
                                 context.Token = null;
@@ -98,22 +109,43 @@ namespace RFFM.Host
 
                             return Task.CompletedTask;
                         },
-                        OnAuthenticationFailed = context =>
+                        OnTokenValidated = context =>
                         {
+                            var logger = context.HttpContext.RequestServices.GetService<ILogger<Startup>>();
+                            if (logger != null)
+                            {
+                                var sub = context.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                                logger.LogInformation("JWT validated for subject: {Sub}", sub);
+                                logger.LogDebug("Claims: {Claims}", string.Join(",", context.Principal?.Claims.Select(c => c.Type + ":" + c.Value) ?? Array.Empty<string>()));
+                            }
+
+                            return Task.CompletedTask;
+                        },
+                        OnAuthenticationFailed = async context =>
+                        {
+                            var logger = context.HttpContext.RequestServices.GetService<ILogger<Startup>>();
+                            logger?.LogWarning(context.Exception, "JWT authentication failed");
+
                             if (!context.Response.HasStarted)
                             {
                                 if (context.Exception is SecurityTokenExpiredException)
                                 {
                                     context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                                     context.Response.ContentType = "application/json";
-                                    return context.Response.WriteAsync("Unauthorized: Token expired.");
+                                    await context.Response.WriteAsync("Unauthorized: Token expired.");
+                                    return;
                                 }
 
                                 context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                                 context.Response.ContentType = "application/json";
-                                return context.Response.WriteAsync("Unauthorized: Invalid token.");
+                                await context.Response.WriteAsync("Unauthorized: Invalid token.");
+                                return;
                             }
-
+                        },
+                        OnChallenge = context =>
+                        {
+                            var logger = context.HttpContext.RequestServices.GetService<ILogger<Startup>>();
+                            logger?.LogWarning("OnChallenge invoked: {Error}, {ErrorDescription}", context.Error, context.ErrorDescription);
                             return Task.CompletedTask;
                         }
                     };

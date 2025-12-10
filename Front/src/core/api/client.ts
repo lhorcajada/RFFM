@@ -1,4 +1,5 @@
 import axios from "axios";
+import { coachAuthService } from "../../apps/coach/services/authService";
 
 const BASE = (import.meta.env.VITE_API_BASE_URL || "/")
   .toString()
@@ -37,6 +38,17 @@ client.interceptors.response.use(
   (error) => {
     try {
       const status = error?.response?.status;
+      // If unauthorized, notify app so it can ask user to re-authenticate
+      if (status === 401) {
+        try {
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("rffm.auth_expired"));
+          }
+        } catch (e) {
+          // ignore
+        }
+        return Promise.reject(error);
+      }
       // network error (no response)
       if (!error?.response) {
         console.error("API network error:", error);
@@ -62,3 +74,30 @@ client.interceptors.response.use(
 );
 
 export default client;
+
+// Attach Authorization header from localStorage token for all requests
+client.interceptors.request.use(
+  (config) => {
+    try {
+      if (typeof window !== "undefined") {
+        const token = localStorage.getItem("coachAuthToken");
+        if (token) {
+          // If the token exists but is already expired according to coachAuthService,
+          // emit auth_expired so app can log out and prompt for credentials.
+          if (!coachAuthService.isAuthenticated()) {
+            try {
+              window.dispatchEvent(new CustomEvent("rffm.auth_expired"));
+            } catch (e) {}
+          } else {
+            if (!config.headers) config.headers = {} as any;
+            config.headers.Authorization = `Bearer ${token}`;
+          }
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);

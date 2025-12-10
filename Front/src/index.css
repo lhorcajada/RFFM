@@ -31,3 +31,18 @@ body {
   background-color: transparent !important;
   box-shadow: none !important;
 }
+
+/* Snackbar positioning */
+.MuiSnackbar-root {
+  top: 100px !important;
+  right: 20px !important;
+  left: auto !important;
+  z-index: 1400 !important;
+}
+
+.MuiSnackbar-anchorTopRight {
+  top: 100px !important;
+  right: 20px !important;
+  left: auto !important;
+  z-index: 1400 !important;
+}

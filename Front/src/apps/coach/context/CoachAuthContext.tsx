@@ -31,6 +31,33 @@ export const CoachAuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const { generateTempToken } = useTempToken();
   const { setUser } = useUser();
 
+  useEffect(() => {
+    function handleAuthExpired() {
+      // perform logout and force redirect to login
+      coachAuthService.logout();
+      setIsAuthenticated(false);
+      setUser(null as any);
+      try {
+        // try navigate if available
+        if (typeof window !== "undefined") {
+          window.location.href = "/login";
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    window.addEventListener(
+      "rffm.auth_expired",
+      handleAuthExpired as EventListener
+    );
+    return () =>
+      window.removeEventListener(
+        "rffm.auth_expired",
+        handleAuthExpired as EventListener
+      );
+  }, [setUser]);
+
   const login = async (
     username: string,
     password: string
@@ -121,6 +148,7 @@ export const CoachAuthGuard: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     const publicRoutes = [
       "/coach/login",
+      "/login",
       "/coach/register",
       "/coach/forgot-password",
       "/coach/reset-password",
@@ -130,7 +158,7 @@ export const CoachAuthGuard: React.FC<{ children: React.ReactNode }> = ({
     );
 
     if (!isAuthenticated && !isPublicRoute) {
-      navigate("/coach/login", { replace: true });
+      navigate("/login", { replace: true });
     }
   }, [location.pathname, navigate, isAuthenticated]);
 

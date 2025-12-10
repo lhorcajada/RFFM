@@ -1,65 +1,26 @@
 .root {
-  padding: 12px;
+  padding: 0px;
 }
-.list {
-  margin-top: 8px;
-}
+
 .explain {
   margin-top: 8px;
+  margin-bottom: 16px;
   color: #ffffff;
   opacity: 0.9;
   padding: 8px 12px;
   border-radius: 4px;
 }
-.actionsInlineBox {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-left: 8px;
-}
-.chipsRow {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-.avatar {
-  width: 40px;
-  height: 40px;
+
+.cardsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px;
+  margin-top: 8px;
 }
 
-.listItem {
-  /* default styles */
-}
-
-.listItemMobile {
-  flex-direction: column !important;
-  align-items: flex-start !important;
-  padding-right: 16px !important;
-}
-
-.itemBox {
-  display: flex;
-  width: 100%;
-  align-items: flex-start;
-}
-
-.listItemTextMobile {
-  margin-right: 0 !important;
-}
-
-/* Mobile adjustments */
 @media (max-width: 600px) {
-  .avatar {
-    width: 36px;
-    height: 36px;
-  }
-  .chipsRow {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
-  }
-  .actionsInlineBox {
-    margin-left: 0;
-    margin-top: 8px;
+  .cardsGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
   }
 }

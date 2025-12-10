@@ -7,12 +7,14 @@ namespace RFFM.Api.Features.Federation.Settings.Services
     public interface IFederationSettingService
     {
         Task<FederationSetting?> GetByIdAsync(string id, CancellationToken cancellationToken);
+        Task<List<FederationSetting>> GetUserSettingsAsync(string userId, CancellationToken cancellationToken);
         Task<List<FederationSetting>> GetAllSettingsAsync(CancellationToken cancellationToken);
+        Task<FederationSetting?> GetPrimarySettingAsync(string userId, CancellationToken cancellationToken);
         Task<FederationSetting?> GetPrimarySettingAsync(CancellationToken cancellationToken);
         Task<FederationSetting> CreateAsync(FederationSetting setting, CancellationToken cancellationToken);
         Task<FederationSetting> UpdateAsync(string id, FederationSetting updatedSetting, CancellationToken cancellationToken);
         Task DeleteAsync(string id, CancellationToken cancellationToken);
-        Task SetPrimaryAsync(string id, CancellationToken cancellationToken);
+        Task SetPrimaryAsync(string id, string userId, CancellationToken cancellationToken);
     }
 
     public class FederationSettingService : IFederationSettingService
@@ -30,12 +32,28 @@ namespace RFFM.Api.Features.Federation.Settings.Services
                 .FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
         }
 
+        public async Task<List<FederationSetting>> GetUserSettingsAsync(string userId, CancellationToken cancellationToken)
+        {
+            return await _context.FederationSettings
+                .Where(s => s.UserId == userId)
+                .OrderByDescending(s => s.IsPrimary)
+                .ThenByDescending(s => s.CreatedAt)
+                .ToListAsync(cancellationToken);
+        }
+
         public async Task<List<FederationSetting>> GetAllSettingsAsync(CancellationToken cancellationToken)
         {
             return await _context.FederationSettings
                 .OrderByDescending(s => s.IsPrimary)
                 .ThenByDescending(s => s.CreatedAt)
                 .ToListAsync(cancellationToken);
+        }
+
+        public async Task<FederationSetting?> GetPrimarySettingAsync(string userId, CancellationToken cancellationToken)
+        {
+            return await _context.FederationSettings
+                .Where(s => s.UserId == userId && s.IsPrimary)
+                .FirstOrDefaultAsync(cancellationToken);
         }
 
         public async Task<FederationSetting?> GetPrimarySettingAsync(CancellationToken cancellationToken)
@@ -51,7 +69,7 @@ namespace RFFM.Api.Features.Federation.Settings.Services
             if (setting.IsPrimary)
             {
                 var existingPrimary = await _context.FederationSettings
-                    .Where(s => s.IsPrimary)
+                    .Where(s => s.UserId == setting.UserId && s.IsPrimary)
                     .ToListAsync(cancellationToken);
 
                 foreach (var primary in existingPrimary)
@@ -84,7 +102,7 @@ namespace RFFM.Api.Features.Federation.Settings.Services
             if (updatedSetting.IsPrimary)
             {
                 var otherPrimaries = await _context.FederationSettings
-                    .Where(s => s.Id != id && s.IsPrimary)
+                    .Where(s => s.Id != id && s.UserId == existing.UserId && s.IsPrimary)
                     .ToListAsync(cancellationToken);
 
                 foreach (var primary in otherPrimaries)
@@ -108,15 +126,15 @@ namespace RFFM.Api.Features.Federation.Settings.Services
             await _context.SaveChangesAsync(cancellationToken);
         }
 
-        public async Task SetPrimaryAsync(string id, CancellationToken cancellationToken)
+        public async Task SetPrimaryAsync(string id, string userId, CancellationToken cancellationToken)
         {
-            var setting = await GetByIdAsync(id, cancellationToken);
+            var setting = await _context.FederationSettings.FirstOrDefaultAsync(s => s.Id == id && s.UserId == userId, cancellationToken);
             if (setting == null)
-                throw new InvalidOperationException($"FederationSetting con id {id} no encontrado");
+                throw new InvalidOperationException($"FederationSetting con id {id} no encontrado o no pertenece al usuario");
 
             // Desmarcar otras como primarias
             var otherPrimaries = await _context.FederationSettings
-                .Where(s => s.Id != id && s.IsPrimary)
+                .Where(s => s.Id != id && s.UserId == userId && s.IsPrimary)
                 .ToListAsync(cancellationToken);
 
             foreach (var primary in otherPrimaries)

@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Mediator;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -15,10 +16,12 @@ namespace RFFM.Api.Features.Federation.Settings.Commands
         public void AddRoutes(IEndpointRouteBuilder app)
         {
             app.MapPut("/federation/settings/{id}",
-                    async (string id, string? userId, SaveFederationSettingRequest request, 
-                           IMediator mediator, CancellationToken cancellationToken) =>
+                    async (string id, SaveFederationSettingRequest request, IMediator mediator, HttpContext httpContext, CancellationToken cancellationToken) =>
                     {
-                        var cmd = new UpdateFederationSettingCommand(id, request);
+                        var userId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                                     ?? throw new UnauthorizedAccessException("Usuario no autenticado");
+
+                        var cmd = new UpdateFederationSettingCommand(id, userId, request);
                         var result = await mediator.Send(cmd, cancellationToken);
                         
                         return Results.Ok(result);
@@ -27,11 +30,12 @@ namespace RFFM.Api.Features.Federation.Settings.Commands
                 .WithTags(FederationSettingsConstants.FederationSettingsFeature)
                 .Produces<FederationSettingResponse>(StatusCodes.Status200OK)
                 .Produces<ProblemDetails>(StatusCodes.Status400BadRequest)
-                .Produces(StatusCodes.Status404NotFound);
+                .Produces(StatusCodes.Status404NotFound)
+                .RequireAuthorization();
         }
     }
 
-    public record UpdateFederationSettingCommand(string Id, SaveFederationSettingRequest Request) 
+    public record UpdateFederationSettingCommand(string Id, string UserId, SaveFederationSettingRequest Request) 
         : IRequest<FederationSettingResponse>;
 
     public class UpdateFederationSettingHandler : IRequestHandler<UpdateFederationSettingCommand, FederationSettingResponse>
@@ -49,7 +53,11 @@ namespace RFFM.Api.Features.Federation.Settings.Commands
             if (existing == null)
                 throw new InvalidOperationException($"Setting con id {request.Id} no encontrado");
 
+            if (existing.UserId != request.UserId)
+                throw new InvalidOperationException("No tiene permiso para actualizar esta configuración");
+
             var updatedSetting = new FederationSetting(
+                request.UserId,
                 request.Request.CompetitionId,
                 request.Request.CompetitionName,
                 request.Request.GroupId,

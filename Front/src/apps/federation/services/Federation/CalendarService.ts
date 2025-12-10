@@ -1,4 +1,6 @@
 import { client } from "../../../../core/api/client";
+import { coachAuthService } from "../../../../apps/coach/services/authService";
+import { settingsService } from "../Federation";
 import type {
   CalendarResponse,
   MatchEntry,
@@ -125,30 +127,30 @@ export class CalendarService {
     // If params are not provided, try to load the saved calendar selection from localStorage
     let finalParams: Record<string, any> = params ? { ...params } : {};
     try {
-      const raw = localStorage.getItem("rffm.current_selection");
-      if (raw) {
-        const sel = JSON.parse(raw) as any;
-        const saved = {
-          season:
-            sel.seasonId ??
-            sel.season ??
-            (sel.seasonId && String(sel.seasonId)),
-          competition:
-            sel.competitionId ??
-            (sel.competition &&
-              (sel.competition.id ?? sel.competitionId ?? sel.competition)) ??
-            sel.competition,
-          group:
-            sel.groupId ??
-            (sel.group && (sel.group.id ?? sel.groupId ?? sel.group)) ??
-            sel.group,
-          playType: sel.playType ?? sel.play_type,
-        };
-        // Merge saved selection into finalParams only where missing
-        finalParams = Object.assign({}, saved, finalParams || {});
+      // Prefer loading saved selection from API for the authenticated user
+      const userId = coachAuthService.getUserId();
+      if (userId && !params) {
+        const combos = await settingsService.getSettingsForUser(userId);
+        if (Array.isArray(combos) && combos.length > 0) {
+          const primary = combos.find((c: any) => c.isPrimary) || combos[0];
+          if (primary) {
+            finalParams = Object.assign(
+              {},
+              {
+                season: primary.seasonId ?? primary.season,
+                competition: primary.competitionId ?? primary.competition?.id,
+                group: primary.groupId ?? primary.group?.id,
+                playType: primary.playType ?? primary.play_type,
+              },
+              finalParams || {}
+            );
+          }
+        }
+      } else {
+        // No authenticated user or params supplied: keep previous behavior (do not read localStorage)
       }
     } catch (err) {
-      // ignore parse errors
+      // ignore and proceed
     }
     // Ensure we pass primitive IDs/strings to getCalendar (avoid objects like { id: '123' })
     const coerce = (v: any) => {

@@ -4,6 +4,8 @@ import PageHeader from "../../../../shared/components/ui/PageHeader/PageHeader";
 import styles from "./Callups.module.css";
 import playersContainerStyles from "../../components/players/PlayersContainer/PlayersContainer.module.css";
 import { getTeamCallups } from "../../services/api";
+import { getSettingsForUser } from "../../services/federationApi";
+import { useUser } from "../../../../shared/context/UserContext";
 import type {
   TeamCallupsResponse,
   PlayerCallupsResponse,
@@ -13,6 +15,7 @@ import PlayerCallupCard from "../../components/players/PlayerCallupCard/PlayerCa
 import { CircularProgress, Paper, Typography } from "@mui/material";
 
 export default function CallupsPage(): JSX.Element {
+  const { user } = useUser();
   const [teamId, setTeamId] = useState<string | null>(null);
   const [seasonId, setSeasonId] = useState<string | null>(null);
   const [competitionId, setCompetitionId] = useState<string | null>(null);
@@ -27,70 +30,44 @@ export default function CallupsPage(): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [noConfig, setNoConfig] = useState<boolean>(false);
 
-  // Load selection from localStorage
+  // Load selection from API
   useEffect(() => {
     function readSelection() {
-      try {
-        const rawList = localStorage.getItem("rffm.saved_combinations_v1");
-        const list = rawList ? JSON.parse(rawList) : [];
-        let combo: any = null;
-        if (Array.isArray(list) && list.length > 0) {
-          const primaryId = localStorage.getItem("rffm.primary_combination_id");
-          if (primaryId)
-            combo = list.find((c: any) => String(c.id) === String(primaryId));
-          if (!combo) combo = list.find((c: any) => c.isPrimary) || list[0];
-        }
-        if (!combo || !combo.team) {
+      (async () => {
+        try {
+          const savedSettings = await getSettingsForUser(user?.id);
+          let combo: any = null;
+          if (Array.isArray(savedSettings) && savedSettings.length > 0) {
+            const primary = savedSettings.find((c: any) => c.isPrimary);
+            combo = primary || savedSettings[0];
+          }
+          if (!combo || !combo.teamId) {
+            setNoConfig(true);
+            setTeamId(null);
+            setSeasonId(null);
+            setCompetitionId(null);
+            setGroupId(null);
+            setTeamName(null);
+            setSeasonName(null);
+            setCompetitionName(null);
+            setGroupName(null);
+          } else {
+            setNoConfig(false);
+            setTeamId(String(combo.teamId));
+            setTeamName(combo.teamName ?? null);
+            setSeasonId(combo.seasonId ? String(combo.seasonId) : null);
+            setSeasonName(combo.seasonName ?? null);
+            setCompetitionId(
+              combo.competitionId ? String(combo.competitionId) : null
+            );
+            setCompetitionName(combo.competitionName ?? null);
+            setGroupId(combo.groupId ? String(combo.groupId) : null);
+            setGroupName(combo.groupName ?? null);
+          }
+        } catch (e) {
           setNoConfig(true);
-          setTeamId(null);
-          setSeasonId(null);
-          setCompetitionId(null);
-          setGroupId(null);
-          setTeamName(null);
-          setSeasonName(null);
-          setCompetitionName(null);
-          setGroupName(null);
-        } else {
-          setNoConfig(false);
-          setTeamId(String(combo.team.id));
-          setTeamName(combo.team.name ?? combo.teamName ?? null);
-          setSeasonId(
-            combo.season?.id
-              ? String(combo.season.id)
-              : combo.seasonId
-              ? String(combo.seasonId)
-              : null
-          );
-          setSeasonName(
-            combo.season?.name ?? combo.seasonName ?? combo.season ?? null
-          );
-          setCompetitionId(
-            combo.competition?.id
-              ? String(combo.competition.id)
-              : combo.competitionId
-              ? String(combo.competitionId)
-              : null
-          );
-          setCompetitionName(
-            combo.competition?.name ??
-              combo.competitionName ??
-              combo.competition ??
-              null
-          );
-          setGroupId(
-            combo.group?.id
-              ? String(combo.group.id)
-              : combo.groupId
-              ? String(combo.groupId)
-              : null
-          );
-          setGroupName(
-            combo.group?.name ?? combo.groupName ?? combo.group ?? null
-          );
         }
-      } catch (e) {
-        setNoConfig(true);
-      }
+      })();
     }
 
     readSelection();
@@ -100,12 +77,10 @@ export default function CallupsPage(): JSX.Element {
     }
 
     window.addEventListener("rffm.saved_combinations_changed", handle);
-    window.addEventListener("storage", handle);
     return () => {
       window.removeEventListener("rffm.saved_combinations_changed", handle);
-      window.removeEventListener("storage", handle);
     };
-  }, []);
+  }, [user]);
 
   // Fetch callups when selection is available
   useEffect(() => {

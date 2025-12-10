@@ -32,7 +32,7 @@ export default function StatsCard(): JSX.Element {
         <Button
           size="small"
           className={styles.button}
-          onClick={() => navigate("/statistics/goal-sectors-comparison")}
+          onClick={() => navigate("/federation/goal-sectors-comparison")}
         >
           Abrir
         </Button>

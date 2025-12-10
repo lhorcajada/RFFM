@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Mediator;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -13,9 +14,12 @@ namespace RFFM.Api.Features.Federation.Settings.Commands
         public void AddRoutes(IEndpointRouteBuilder app)
         {
             app.MapDelete("/federation/settings/{id}",
-                    async (string id, string? userId, IMediator mediator, CancellationToken cancellationToken) =>
+                    async (string id, IMediator mediator, HttpContext httpContext, CancellationToken cancellationToken) =>
                     {
-                        var cmd = new DeleteFederationSettingCommand(id);
+                        var userId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                                     ?? throw new UnauthorizedAccessException("Usuario no autenticado");
+
+                        var cmd = new DeleteFederationSettingCommand(id, userId);
                         await mediator.Send(cmd, cancellationToken);
                         
                         return Results.NoContent();
@@ -24,11 +28,12 @@ namespace RFFM.Api.Features.Federation.Settings.Commands
                 .WithTags(FederationSettingsConstants.FederationSettingsFeature)
                 .Produces(StatusCodes.Status204NoContent)
                 .Produces<ProblemDetails>(StatusCodes.Status400BadRequest)
-                .Produces(StatusCodes.Status404NotFound);
+                .Produces(StatusCodes.Status404NotFound)
+                .RequireAuthorization();
         }
     }
 
-    public record DeleteFederationSettingCommand(string Id) 
+    public record DeleteFederationSettingCommand(string Id, string UserId) 
         : IRequest;
 
     public class DeleteFederationSettingHandler : IRequestHandler<DeleteFederationSettingCommand>
@@ -45,6 +50,9 @@ namespace RFFM.Api.Features.Federation.Settings.Commands
             var existing = await _service.GetByIdAsync(request.Id, cancellationToken);
             if (existing == null)
                 throw new InvalidOperationException($"Setting con id {request.Id} no encontrado");
+
+            if (existing.UserId != request.UserId)
+                throw new InvalidOperationException("No tiene permiso para eliminar esta configuración");
 
             await _service.DeleteAsync(request.Id, cancellationToken);
             return Unit.Value;

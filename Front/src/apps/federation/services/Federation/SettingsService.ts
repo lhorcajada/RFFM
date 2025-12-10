@@ -30,20 +30,37 @@ export class SettingsService {
     return response.data;
   }
 
-  async saveSettings(data: SavedComboRequest): Promise<SavedComboResponse> {
+  async getSettingsForUser(userId?: string): Promise<SavedComboResponse[]> {
+    const url = userId
+      ? `federation/settings?userId=${encodeURIComponent(userId)}`
+      : `federation/settings`;
+    const response = await client.get<SavedComboResponse[]>(url);
+    return response.data;
+  }
+
+  async saveSettings(
+    data: SavedComboRequest & { userId?: string }
+  ): Promise<SavedComboResponse> {
+    const body = { ...data };
     const response = await client.post<SavedComboResponse>(
       "federation/settings",
-      data
+      body
     );
     return response.data;
   }
 
-  async deleteSettings(id: string): Promise<void> {
-    await client.delete(`federation/settings/${id}`);
+  async deleteSettings(id: string, userId?: string): Promise<void> {
+    const url = userId
+      ? `federation/settings/${id}?userId=${encodeURIComponent(userId)}`
+      : `federation/settings/${id}`;
+    await client.delete(url);
   }
 
-  async setPrimarySettings(id: string): Promise<void> {
-    await client.put(`federation/settings/${id}/primary`);
+  async setPrimarySettings(id: string, userId?: string): Promise<void> {
+    const url = userId
+      ? `federation/settings/${id}/primary?userId=${encodeURIComponent(userId)}`
+      : `federation/settings/${id}/primary`;
+    await client.put(url);
   }
 }
 

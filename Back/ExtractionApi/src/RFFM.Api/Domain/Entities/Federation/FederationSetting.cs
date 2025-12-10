@@ -2,6 +2,7 @@ namespace RFFM.Api.Domain.Entities.Federation
 {
     public class FederationSetting : BaseEntity
     {
+        public string UserId { get; private set; }
         public string? CompetitionId { get; private set; }
         public string? CompetitionName { get; private set; }
         public string? GroupId { get; private set; }
@@ -14,6 +15,7 @@ namespace RFFM.Api.Domain.Entities.Federation
         private FederationSetting() { }
 
         public FederationSetting(
+            string userId,
             string? competitionId = null,
             string? competitionName = null,
             string? groupId = null,
@@ -22,6 +24,8 @@ namespace RFFM.Api.Domain.Entities.Federation
             string? teamName = null,
             bool isPrimary = false)
         {
+            ValidateUserId(userId);
+            UserId = userId;
             CompetitionId = competitionId;
             CompetitionName = competitionName;
             GroupId = groupId;
@@ -61,6 +65,12 @@ namespace RFFM.Api.Domain.Entities.Federation
         public void SetAsSecondary()
         {
             IsPrimary = false;
+        }
+
+        private static void ValidateUserId(string userId)
+        {
+            if (string.IsNullOrWhiteSpace(userId))
+                throw new ArgumentException("UserId no puede estar vacío");
         }
     }
 }

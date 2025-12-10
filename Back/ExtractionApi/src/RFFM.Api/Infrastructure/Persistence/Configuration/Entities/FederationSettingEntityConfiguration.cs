@@ -12,6 +12,10 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Entities
 
             builder.HasKey(c => c.Id);
 
+            builder.Property(c => c.UserId)
+                .IsRequired()
+                .HasMaxLength(450);
+
             builder.Property(c => c.CompetitionId)
                 .HasMaxLength(100);
 
@@ -36,6 +40,9 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Entities
             builder.Property(c => c.IsPrimary)
                 .IsRequired()
                 .HasDefaultValue(false);
+
+            builder.HasIndex(c => c.UserId);
+            builder.HasIndex(c => new { c.UserId, c.IsPrimary });
         }
     }
 }

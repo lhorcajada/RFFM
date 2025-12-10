@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Mediator;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -14,9 +15,12 @@ namespace RFFM.Api.Features.Federation.Settings.Commands
         public void AddRoutes(IEndpointRouteBuilder app)
         {
             app.MapPut("/federation/settings/{id}/primary",
-                    async (string id, string? userId, IMediator mediator, CancellationToken cancellationToken) =>
+                    async (string id, IMediator mediator, HttpContext httpContext, CancellationToken cancellationToken) =>
                     {
-                        var cmd = new SetPrimaryFederationSettingCommand(id);
+                        var userId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                                     ?? throw new UnauthorizedAccessException("Usuario no autenticado");
+
+                        var cmd = new SetPrimaryFederationSettingCommand(id, userId);
                         var result = await mediator.Send(cmd, cancellationToken);
                         
                         return Results.Ok(result);
@@ -25,11 +29,12 @@ namespace RFFM.Api.Features.Federation.Settings.Commands
                 .WithTags(FederationSettingsConstants.FederationSettingsFeature)
                 .Produces<FederationSettingResponse>(StatusCodes.Status200OK)
                 .Produces<ProblemDetails>(StatusCodes.Status400BadRequest)
-                .Produces(StatusCodes.Status404NotFound);
+                .Produces(StatusCodes.Status404NotFound)
+                .RequireAuthorization();
         }
     }
 
-    public record SetPrimaryFederationSettingCommand(string Id) 
+    public record SetPrimaryFederationSettingCommand(string Id, string UserId) 
         : IRequest<FederationSettingResponse>;
 
     public class SetPrimaryFederationSettingHandler : IRequestHandler<SetPrimaryFederationSettingCommand, FederationSettingResponse>
@@ -43,7 +48,7 @@ namespace RFFM.Api.Features.Federation.Settings.Commands
 
         public async ValueTask<FederationSettingResponse> Handle(SetPrimaryFederationSettingCommand request, CancellationToken cancellationToken)
         {
-            await _service.SetPrimaryAsync(request.Id, cancellationToken);
+            await _service.SetPrimaryAsync(request.Id, request.UserId, cancellationToken);
             var setting = await _service.GetByIdAsync(request.Id, cancellationToken);
             return FederationSettingMapping.ToResponse(setting!);
         }

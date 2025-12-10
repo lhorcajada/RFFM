@@ -4,7 +4,10 @@ import { useEffect, useState } from "react";
 import { CircularProgress } from "@mui/material";
 import PageHeader from "../../../../shared/components/ui/PageHeader/PageHeader";
 import { useUser } from "../../../../shared/context/UserContext";
-import { getTeamMatches, settingsService } from "../../services/federationApi";
+import {
+  getTeamMatches,
+  getSettingsForUser,
+} from "../../services/federationApi";
 import MatchCard from "../../../../shared/components/ui/MatchCard/MatchCard";
 
 export default function Matchday() {
@@ -18,7 +21,14 @@ export default function Matchday() {
       setLoading(true);
       try {
         // Cargar los settings desde la API
-        const savedSettings = await settingsService.getSettings();
+        console.debug("Matchday.fetchMatches: userId=", user?.id);
+        const savedSettings = await getSettingsForUser(user?.id);
+        console.debug(
+          "Matchday.fetchMatches: savedSettings count=",
+          Array.isArray(savedSettings)
+            ? savedSettings.length
+            : typeof savedSettings
+        );
         if (!savedSettings || savedSettings.length === 0) {
           setHasData(false);
           setLoading(false);
@@ -97,7 +107,7 @@ export default function Matchday() {
         fetchMatches
       );
     };
-  }, []);
+  }, [user]);
 
   return (
     <BaseLayout>

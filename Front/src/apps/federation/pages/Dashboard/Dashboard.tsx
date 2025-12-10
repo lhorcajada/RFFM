@@ -14,9 +14,17 @@ import DashboardCard from "../../../../shared/components/ui/DashboardCard/Dashbo
 import { Button } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import styles from "./Dashboard.module.css";
+import { coachAuthService } from "../../../coach/services/authService";
+import { useEffect } from "react";
 
 export default function Dashboard(): JSX.Element {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!coachAuthService.isAuthenticated()) {
+      navigate("/login", { replace: true });
+    }
+  }, [navigate]);
 
   return (
     <BaseLayout>

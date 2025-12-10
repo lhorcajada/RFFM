@@ -2,122 +2,123 @@
   --gap: 8px;
 }
 
-.paper {
-  padding: 16px;
-  width: 100%;
-  max-width: 100%;
-  margin-left: auto;
-  margin-right: auto;
-}
-
 .topBox {
-  margin-top: 12px;
+  margin-top: 0;
+  margin-bottom: 0;
 }
 
 .selectorsWrap {
-  margin-top: 8px;
+  margin-top: 12px;
 }
 
-.divider {
-  margin: 16px 0;
+.selectorsWrap :global(.MuiOutlinedInput-root) {
+  font-size: 0.7rem;
+  height: 28px;
+  min-height: 28px;
 }
 
-.headerTitleWrap {
-  flex: 1 1 auto;
+.selectorsWrap :global(.MuiOutlinedInput-input) {
+  padding: 2px 6px !important;
+  font-size: 0.7rem;
 }
 
-.headerButtons {
-  margin-left: auto;
-  display: flex;
-  gap: var(--gap);
-  align-items: center;
+.selectorsWrap :global(.MuiInputLabel-root) {
+  font-size: 0.7rem;
 }
 
-.listItemText {
-  min-width: 0;
-  margin-right: 0;
-}
-
-.chipsRow {
-  display: flex;
-  gap: var(--gap);
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.chipBox {
-  flex: 1 1 auto;
-  min-width: 0;
+.selectorsWrap :global(.MuiInputLabel-shrink) {
+  transform: translate(14px, -9px) scale(0.75) !important;
 }
 
 .saveButton {
-  min-width: 140px !important;
+  min-width: 100px !important;
+  font-size: 0.85rem !important;
 }
 
 .saveButton:disabled {
   opacity: 1 !important;
-  background-color: rgba(255, 255, 255, 0.15) !important;
-  color: rgba(255, 255, 255, 0.5) !important;
-  box-shadow: none !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  background-color: rgba(255, 255, 255, 0.25) !important;
+  color: rgba(255, 255, 255, 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
 }
 
-.avatar {
-  width: 40px;
-  height: 40px;
-  font-size: 1rem;
+.divider {
+  margin: 24px 0;
+  height: 1px;
+  background-color: rgba(255, 255, 255, 0.08);
+  border: none;
 }
 
-.actionsInlineBox {
-  width: 100%;
-  margin-top: 8px;
+.headerContainer {
+  text-align: center;
+  padding: 0 32px;
+  margin: 16px 24px 16px 24px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
 }
 
-.actionsRow {
+.pageContainer {
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.headerButtonsBox {
   display: flex;
-  gap: var(--gap);
-  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px 0;
 }
 
-/* Desktop: reserve space on the right for action buttons */
-@media (min-width: 600px) {
-  .listItemText {
-    margin-right: 0; /* no reserved space on the right */
+@media (max-width: 480px) {
+  .headerContainer {
+    padding: 0 20px;
+    margin: 16px 0 16px 0;
   }
 }
 
-/* ensure ListItemSecondaryAction aligns to the far right */
+.snackbarRoot {
+  /* Styles are handled in global index.css */
+}
 
-/* Mobile adjustments */
 @media (max-width: 600px) {
-  .headerButtons {
-    width: 100%;
-    margin-left: 0;
-    margin-top: 8px;
+  .selectorsWrap :global(.MuiOutlinedInput-root) {
+    height: 24px;
   }
-  .headerButtons > .MuiButton-root {
-    flex: 1 1 auto;
+}
+
+/* Mobile adjustments: make buttons smaller and make selectors stack */
+@media (max-width: 600px) {
+  .headerButtonsBox {
+    gap: 6px;
+    padding: 8px 0;
   }
-  .avatar {
-    width: 36px;
-    height: 36px;
-    font-size: 0.9rem;
+
+  .headerButtonsBox :global(.MuiButton-root) {
+    min-width: 64px !important;
+    padding: 4px 8px !important;
+    font-size: 0.7rem !important;
   }
-  /* Make chips stack and use full width on mobile */
-  .chipsRow {
-    flex-direction: column;
-    align-items: stretch;
+
+  /* Force selectors to take full width and reduce gaps */
+  .selectorsWrap :global(.MuiGrid-root) {
+    padding-left: 4px;
+    padding-right: 4px;
   }
-  .chipBox {
-    flex: 1 1 100%;
-    width: 100%;
+
+  .selectorsWrap :global(.MuiGrid-item) {
+    flex-basis: 100% !important;
+    max-width: 100% !important;
   }
-  /* Ensure list text has no right margin on mobile so it can use full width */
-  .listItemText {
-    margin-right: 0;
+
+  /* Reduce vertical spacing between selectors and the saved configs section */
+  .topBox {
+    margin-bottom: 8px;
   }
-  /* Actions inline should wrap nicely */
-  .actionsRow {
-    justify-content: flex-start;
+
+  .divider {
+    margin: 12px 0;
   }
 }

@@ -26,7 +26,10 @@ import {
   getPlayer,
   getTeamAgeSummary,
   getTeamParticipationSummary,
+  getTeamsForClassification,
 } from "../../services/api";
+import { getSettingsForUser } from "../../services/federationApi";
+import { useUser } from "../../../../shared/context/UserContext";
 import AgeSummaryBox from "../../components/players/AgeSummaryBox/AgeSummaryBox";
 import PlayerStatsCard from "../../components/players/PlayerStatsCard/PlayerStatsCard";
 import StaffCard from "../../components/teams/StaffCard/StaffCard";
@@ -54,7 +57,12 @@ function extractPlayerIdFromUrl(u?: string): string | null {
   }
 }
 
-type SelectedTeam = { id: string | number; name: string; url?: string };
+type SelectedTeam = {
+  id: string | number;
+  name: string;
+  url?: string;
+  raw?: any;
+};
 
 type Player = {
   id: number;
@@ -79,6 +87,7 @@ type Player = {
 };
 
 export default function GetPlayers(): JSX.Element {
+  const { user } = useUser();
   const [selectedTeam, setSelectedTeam] = useState<SelectedTeam | undefined>(
     undefined
   );
@@ -117,36 +126,39 @@ export default function GetPlayers(): JSX.Element {
   const [loadingParticipation, setLoadingParticipation] =
     useState<boolean>(false);
 
-  // Load initial configuration from localStorage (runs once on mount)
+  // Load initial configuration from API (runs once on mount)
   useEffect(() => {
-    try {
-      const rawList = localStorage.getItem("rffm.saved_combinations_v1");
-      const list = rawList ? JSON.parse(rawList) : [];
-      let combo: any = null;
-      if (Array.isArray(list) && list.length > 0) {
-        const primaryId = localStorage.getItem("rffm.primary_combination_id");
-        if (primaryId) {
-          combo = list.find((c: any) => String(c.id) === String(primaryId));
+    const handle = async () => {
+      try {
+        const savedSettings = await getSettingsForUser(user?.id);
+        let combo: any = null;
+        if (Array.isArray(savedSettings) && savedSettings.length > 0) {
+          const primary = savedSettings.find((c: any) => c.isPrimary);
+          combo = primary || savedSettings[0];
         }
-        if (!combo) {
-          combo = list.find((c: any) => c.isPrimary) || list[0];
+        if (!combo || !combo.teamId) {
+          setNoConfig(true);
+        } else {
+          setSelectedCompetition(combo.competitionId ?? undefined);
+          setSelectedGroup(combo.groupId ?? undefined);
+          setSelectedTeam({
+            id: combo.teamId,
+            name: combo.teamName,
+            url: combo.teamUrl,
+            raw: combo,
+          });
         }
-      }
-      if (!combo || !combo.team) {
+      } catch (e) {
         setNoConfig(true);
-      } else {
-        setSelectedCompetition(combo.competition?.id ?? undefined);
-        setSelectedGroup(combo.group?.id ?? undefined);
-        setSelectedTeam({
-          id: combo.team.id,
-          name: combo.team.name,
-          url: combo.team.url,
-        });
       }
-    } catch (e) {
-      setNoConfig(true);
-    }
-  }, []); // Empty dependency array - only runs once on mount
+    };
+
+    handle();
+    window.addEventListener("rffm.saved_combinations_changed", handle);
+    return () => {
+      window.removeEventListener("rffm.saved_combinations_changed", handle);
+    };
+  }, [user]);
 
   // Load players when selectedTeam changes
   useEffect(() => {
@@ -193,6 +205,39 @@ export default function GetPlayers(): JSX.Element {
             if ((selectedTeam as any)?.raw)
               teamToSet.classification = (selectedTeam as any).raw;
             setTeamDetails(teamToSet as Team);
+            // Try to fetch classification for the selected competition/group
+            try {
+              if (selectedCompetition && selectedGroup) {
+                const clsPayload = await getTeamsForClassification({
+                  season: "21",
+                  competition: selectedCompetition,
+                  group: selectedGroup,
+                  playType: "1",
+                });
+                if (Array.isArray(clsPayload) && clsPayload.length > 0) {
+                  const match = (clsPayload as any[]).find((c: any) => {
+                    const cid = String(
+                      c.teamId ??
+                        c.codequipo ??
+                        c.codigo_equipo ??
+                        c.teamCode ??
+                        ""
+                    );
+                    return (
+                      cid === String((selectedTeam as any)?.id) ||
+                      cid === String(teamFromApi.teamCode ?? "")
+                    );
+                  });
+                  if (match) {
+                    const t = { ...(teamToSet as any) };
+                    t.classification = match;
+                    setTeamDetails(t as Team);
+                  }
+                }
+              }
+            } catch (e) {
+              // ignore classification fetch errors
+            }
           } else {
             setTeamDetails((selectedTeam as any)?.raw ?? null);
           }

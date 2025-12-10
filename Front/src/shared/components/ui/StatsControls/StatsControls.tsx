@@ -12,7 +12,9 @@ import {
   getCompetitions,
   getGroups,
   getTeamsForClassification,
+  getSettingsForUser,
 } from "../../../../apps/federation/services/api";
+import { useUser } from "../../../context/UserContext";
 
 type Option = { id: string; name: string };
 
@@ -35,6 +37,7 @@ export default function StatsControls({
   const [groupId, setGroupId] = React.useState("");
   const [team1, setTeam1] = React.useState("");
   const [team2, setTeam2] = React.useState("");
+  const { user } = useUser();
 
   React.useEffect(() => {
     let mounted = true;
@@ -46,39 +49,41 @@ export default function StatsControls({
       }));
       setCompetitions(opts);
     });
-    // try to load saved selection from localStorage
-    try {
-      const cur = localStorage.getItem("rffm.current_selection");
-      if (cur) {
-        const parsed = JSON.parse(cur);
-        if (parsed?.competition?.id)
-          setCompetitionId(String(parsed.competition.id));
-        if (parsed?.group?.id) setGroupId(String(parsed.group.id));
-      } else {
-        const raw = localStorage.getItem("rffm.saved_combinations_v1");
-        const list = raw ? JSON.parse(raw) : [];
-        if (Array.isArray(list) && list.length > 0) {
-          const primaryId = localStorage.getItem("rffm.primary_combination_id");
-          let combo: any = null;
-          if (primaryId)
-            combo = list.find((c: any) => String(c.id) === String(primaryId));
-          if (!combo) combo = list.find((c: any) => c.isPrimary) || list[0];
-          if (combo) {
-            if (combo.competition && combo.competition.id)
-              setCompetitionId(String(combo.competition.id));
-            if (combo.group && combo.group.id)
-              setGroupId(String(combo.group.id));
-          }
-        }
-      }
-    } catch (e) {
-      // ignore storage parse errors
-    }
-
     return () => {
       mounted = false;
     };
   }, []);
+
+  React.useEffect(() => {
+    async function loadFromApi() {
+      if (!user?.id) return;
+      try {
+        const settings = await getSettingsForUser(user.id);
+        if (Array.isArray(settings) && settings.length > 0) {
+          const primaryId =
+            settings.find((s: any) => s.isPrimary) || settings[0];
+          if (primaryId) {
+            if (primaryId.competitionId || primaryId.competition?.id)
+              setCompetitionId(
+                String(primaryId.competitionId || primaryId.competition?.id)
+              );
+            if (primaryId.groupId || primaryId.group?.id)
+              setGroupId(String(primaryId.groupId || primaryId.group?.id));
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    loadFromApi();
+    function onSaved() {
+      loadFromApi();
+    }
+    window.addEventListener("rffm.saved_combinations_changed", onSaved);
+    return () =>
+      window.removeEventListener("rffm.saved_combinations_changed", onSaved);
+  }, [user]);
 
   React.useEffect(() => {
     if (!competitionId) return;

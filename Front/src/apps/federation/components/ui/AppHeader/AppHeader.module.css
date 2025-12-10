@@ -75,6 +75,23 @@
   box-shadow: 0 1px 4px rgba(255, 209, 102, 0.08);
 }
 
+.userSection {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+}
+
+.username {
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
 @media (max-width: 600px) {
   .toolbar {
     gap: 12px;

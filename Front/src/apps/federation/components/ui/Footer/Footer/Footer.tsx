@@ -8,36 +8,33 @@ import HowToRegIcon from "@mui/icons-material/HowToReg";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import SportsSoccerIcon from "@mui/icons-material/SportsSoccer";
 import EventAvailableIcon from "@mui/icons-material/EventAvailable";
+import { getSettingsForUser } from "../../../../services/federationApi";
+import { useUser } from "../../../../../../shared/context/UserContext";
 
 export default function Footer(): JSX.Element {
   const loc = useLocation();
-  // reactive showActions state so Footer updates when localStorage changes
-  const [showActions, setShowActions] = React.useState<boolean>(() => {
-    try {
-      const raw = localStorage.getItem("rffm.saved_combinations_v1");
-      const arr = raw ? JSON.parse(raw) : [];
-      return Array.isArray(arr) && arr.length > 0;
-    } catch (e) {
-      return false;
-    }
-  });
+  const { user } = useUser();
+  // reactive showActions state so Footer updates when API settings change
+  const [showActions, setShowActions] = React.useState<boolean>(false);
 
   React.useEffect(() => {
-    function handle() {
+    async function checkSettings() {
       try {
-        const raw = localStorage.getItem("rffm.saved_combinations_v1");
-        const arr = raw ? JSON.parse(raw) : [];
-        setShowActions(Array.isArray(arr) && arr.length > 0);
+        const settings = await getSettingsForUser(user?.id);
+        setShowActions(Array.isArray(settings) && settings.length > 0);
       } catch (e) {
         setShowActions(false);
       }
     }
+
+    checkSettings();
+
+    function handle() {
+      checkSettings();
+    }
     window.addEventListener("rffm.saved_combinations_changed", handle);
-    // also listen to storage events in case other tabs modify storage
-    window.addEventListener("storage", handle);
     return () => {
       window.removeEventListener("rffm.saved_combinations_changed", handle);
-      window.removeEventListener("storage", handle);
     };
   }, []);
   const footer = (

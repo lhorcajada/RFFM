@@ -3,7 +3,8 @@ import { CircularProgress } from "@mui/material";
 import PageHeader from "../../../../shared/components/ui/PageHeader/PageHeader";
 import BaseLayout from "../../components/ui/BaseLayout/BaseLayout";
 import GoleadoresList from "../../components/players/GoleadoresList/GoleadoresList";
-import { getGoleadores } from "../../services/api";
+import { getGoleadores, getSettingsForUser } from "../../services/api";
+import { useUser } from "../../../../shared/context/UserContext";
 import { Goleador } from "../../types/goleador";
 import styles from "./Goleadores.module.css";
 
@@ -12,45 +13,39 @@ const Goleadores: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const { user } = useUser();
+
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem("rffm.current_selection");
+    async function load() {
       let competitionId = "25255269";
       let groupId = "25255283";
-      if (raw) {
+      if (user?.id) {
         try {
-          const combo = JSON.parse(raw);
-          if (combo && combo.competition && combo.competition.id)
-            competitionId = String(combo.competition.id);
-          if (combo && combo.group && combo.group.id)
-            groupId = String(combo.group.id);
+          const settings = await getSettingsForUser(user.id);
+          if (Array.isArray(settings) && settings.length > 0) {
+            const primary =
+              settings.find((s: any) => s.isPrimary) || settings[0];
+            competitionId =
+              primary.competitionId || primary.competition?.id || competitionId;
+            groupId = primary.groupId || primary.group?.id || groupId;
+          }
         } catch (e) {
-          // ignore parse errors and fallback to defaults
+          // ignore and use defaults
         }
       }
 
-      getGoleadores(competitionId, groupId)
-        .then((data) => {
-          setGoleadores(data);
-          setLoading(false);
-        })
-        .catch((err) => {
-          setError("Error al cargar los goleadores");
-          setLoading(false);
-        });
-    } catch (e) {
-      // fallback: try default call
-      getGoleadores("25255269", "25255283")
-        .then((data) => {
-          setGoleadores(data);
-          setLoading(false);
-        })
-        .catch((err) => {
-          setError("Error al cargar los goleadores");
-          setLoading(false);
-        });
+      try {
+        const data = await getGoleadores(competitionId, groupId);
+        setGoleadores(data);
+      } catch (err) {
+        setError("Error al cargar los goleadores");
+      } finally {
+        setLoading(false);
+      }
     }
-  }, []);
+
+    load();
+  }, [user]);
 
   return (
     <BaseLayout>

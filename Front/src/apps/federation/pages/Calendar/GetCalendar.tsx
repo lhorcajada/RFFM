@@ -8,6 +8,8 @@ import useMatch, { computeMatchData } from "../../../../shared/hooks/useMatch";
 // calendar filters removed; page title is rendered below
 import RoundPanel from "../../../../shared/components/ui/RoundPanel/RoundPanel";
 import useCalendar from "../../../../shared/hooks/useCalendar";
+import { useUser } from "../../../../shared/context/UserContext";
+import { getSettingsForUser } from "../../services/federationApi";
 
 const STORAGE_PRIMARY = "rffm.primary_combination_id";
 const STORAGE_KEY = "rffm.saved_combinations_v1";
@@ -16,6 +18,7 @@ export default function GetCalendar(): JSX.Element {
   const [selectedCompetition, setSelectedCompetition] = useState<
     string | undefined
   >(undefined);
+  const { user } = useUser();
   const [selectedGroup, setSelectedGroup] = useState<string | undefined>(
     undefined
   );
@@ -25,59 +28,42 @@ export default function GetCalendar(): JSX.Element {
   const location = useLocation();
   const [noConfig, setNoConfig] = useState<boolean>(false);
 
-  // Load primary configuration on mount
+  // Load primary configuration from API when user is available
   useEffect(() => {
-    // Prefer explicit current selection (applied from Settings) if present
-    try {
-      const cur = localStorage.getItem("rffm.current_selection");
-      if (cur) {
-        try {
-          const combo = JSON.parse(cur);
-          if (combo) {
-            setSelectedCompetition(combo.competition?.id);
-            setSelectedGroup(combo.group?.id);
-            setNoConfig(false);
-            return;
-          }
-        } catch (e) {
-          // fall through to saved combos
+    async function loadPrimary() {
+      if (!user?.id) {
+        setNoConfig(true);
+        return;
+      }
+      try {
+        const settings = await getSettingsForUser(user.id);
+        if (!settings || settings.length === 0) {
+          setNoConfig(true);
+          return;
         }
-      }
-
-      const primaryId = localStorage.getItem(STORAGE_PRIMARY);
-      if (!primaryId) {
-        setNoConfig(true);
-        return;
-      }
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (!stored) {
-        setNoConfig(true);
-        return;
-      }
-      const combos = JSON.parse(stored) as any[];
-      let primary: any = null;
-      if (Array.isArray(combos) && combos.length > 0) {
-        // Try to find by stored primary id (compare as strings)
-        const foundById = combos.find(
-          (c: any) => String(c.id) === String(primaryId)
-        );
-        if (foundById) primary = foundById;
-        // Fallback to explicit isPrimary flag
-        if (!primary)
-          primary = combos.find((c: any) => c.isPrimary) || combos[0];
-      }
-
-      if (primary) {
-        setSelectedCompetition(primary.competition?.id);
-        setSelectedGroup(primary.group?.id);
-        setNoConfig(false);
-      } else {
+        const primary = settings.find((s: any) => s.isPrimary) || settings[0];
+        if (primary) {
+          setSelectedCompetition(
+            primary.competitionId || primary.competition?.id
+          );
+          setSelectedGroup(primary.groupId || primary.group?.id);
+          setNoConfig(false);
+        } else {
+          setNoConfig(true);
+        }
+      } catch (e) {
         setNoConfig(true);
       }
-    } catch (e) {
-      setNoConfig(true);
     }
-  }, []);
+
+    loadPrimary();
+    window.addEventListener("rffm.saved_combinations_changed", loadPrimary);
+    return () =>
+      window.removeEventListener(
+        "rffm.saved_combinations_changed",
+        loadPrimary
+      );
+  }, [user]);
 
   // Load calendar when competition/group changes
   // Use the useCalendar hook to load/normalize calendar data and handle auto-select

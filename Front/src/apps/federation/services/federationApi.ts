@@ -8,6 +8,7 @@ import {
   calendarService,
   actaService,
   scoreService,
+  settingsService,
 } from "./Federation";
 
 // Re-export client and utilities
@@ -89,10 +90,47 @@ export const getActa = (
 ) => actaService.getActa(codacta, params);
 
 // Score methods
-export const getGoleadores = (competitionId: string, gropuId: string) =>
-  scoreService.getGoleadores(competitionId, gropuId);
+export const getGoleadores = (competitionId: string, groupId: string) =>
+  scoreService.getGoleadores(competitionId, groupId);
 
 // Settings methods
-export { settingsService } from "./Federation";
+export { settingsService };
+
+// In-memory cache + in-flight dedupe for getSettingsForUser
+const _settingsCache = new Map<string, any>();
+const _settingsInFlight = new Map<string, Promise<any>>();
+
+export const getSettingsForUser = (userId?: string) => {
+  const key = userId || "__anonymous__";
+
+  if (_settingsCache.has(key)) {
+    return Promise.resolve(_settingsCache.get(key));
+  }
+
+  if (_settingsInFlight.has(key)) {
+    return _settingsInFlight.get(key)!;
+  }
+
+  const p = settingsService
+    .getSettingsForUser(userId)
+    .then((res: any) => {
+      _settingsCache.set(key, res);
+      _settingsInFlight.delete(key);
+      return res;
+    })
+    .catch((err: any) => {
+      _settingsInFlight.delete(key);
+      throw err;
+    });
+
+  _settingsInFlight.set(key, p);
+  return p;
+};
+
+if (typeof window !== "undefined") {
+  window.addEventListener("rffm.saved_combinations_changed", () => {
+    _settingsCache.clear();
+  });
+}
 
 export default client;

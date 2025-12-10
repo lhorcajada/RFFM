@@ -23,6 +23,7 @@ import Box from "@mui/material/Box";
 import Divider from "@mui/material/Divider";
 import Snackbar from "@mui/material/Snackbar";
 import MuiAlert, { AlertProps } from "@mui/material/Alert";
+import Slide from "@mui/material/Slide";
 import { useEffect, useState } from "react";
 import Stack from "@mui/material/Stack";
 import Grid from "@mui/material/Grid";
@@ -31,7 +32,11 @@ import useMediaQuery from "@mui/material/useMediaQuery";
 import styles from "./Settings.module.css";
 import SavedConfigs from "../../../../shared/components/ui/SavedConfigs/SavedConfigs";
 import PageHeader from "../../../../shared/components/ui/PageHeader/PageHeader";
-import { settingsService } from "../../services/federationApi";
+import {
+  settingsService,
+  getSettingsForUser,
+} from "../../services/federationApi";
+import { useUser } from "../../../../shared/context/UserContext";
 
 type SavedCombo = {
   id: string;
@@ -48,6 +53,7 @@ type SavedCombo = {
 export default function Settings(): JSX.Element {
   const theme = useTheme();
   const isSm = useMediaQuery(theme.breakpoints.down("sm"));
+  const { user } = useUser();
   const [selectedCompetition, setSelectedCompetition] = useState<
     { id: string; name: string } | undefined
   >(undefined);
@@ -72,13 +78,36 @@ export default function Settings(): JSX.Element {
 
   useEffect(() => {
     loadSettings();
+  }, [user]);
+
+  useEffect(() => {
+    function handleSettingsChanged() {
+      setSnackMsg("Configuración actualizada correctamente.");
+      setSnackOpen(true);
+    }
+    window.addEventListener(
+      "rffm.saved_combinations_changed",
+      handleSettingsChanged
+    );
+    return () => {
+      window.removeEventListener(
+        "rffm.saved_combinations_changed",
+        handleSettingsChanged
+      );
+    };
   }, []);
 
   async function loadSettings() {
     try {
-      const arr = await settingsService.getSettings();
+      console.debug("Settings.loadSettings: starting, userId=", user?.id);
+      const arr = await getSettingsForUser(user?.id);
+      console.debug(
+        "Settings.loadSettings: got settings count=",
+        Array.isArray(arr) ? arr.length : typeof arr,
+        arr
+      );
       setSaved(arr || []);
-      const primary = arr.find((c) => c.isPrimary);
+      const primary = arr.find((c: any) => c.isPrimary);
       const p = primary?.id || null;
       setPrimaryId(p);
 
@@ -160,6 +189,7 @@ export default function Settings(): JSX.Element {
         teamId: selectedTeam?.id,
         teamName: selectedTeam?.name,
         isPrimary: isFirst,
+        userId: user?.id,
       });
       await loadSettings();
       window.dispatchEvent(new Event("rffm.saved_combinations_changed"));
@@ -173,7 +203,7 @@ export default function Settings(): JSX.Element {
 
   async function removeCombo(id: string) {
     try {
-      await settingsService.deleteSettings(id);
+      await settingsService.deleteSettings(id, user?.id);
       await loadSettings();
       window.dispatchEvent(new Event("rffm.saved_combinations_changed"));
       setSnackMsg("Combinación eliminada correctamente.");
@@ -186,7 +216,7 @@ export default function Settings(): JSX.Element {
 
   async function setAsPrimary(id: string) {
     try {
-      await settingsService.setPrimarySettings(id);
+      await settingsService.setPrimarySettings(id, user?.id);
       await loadSettings();
       window.dispatchEvent(new Event("rffm.saved_combinations_changed"));
       setPrimaryId(id);
@@ -210,52 +240,60 @@ export default function Settings(): JSX.Element {
   return (
     <BaseLayout>
       <PageHeader title="Configuración" />
+
       <HeaderContainer
         saveCombination={saveCombination}
         selectedTeam={selectedTeam}
         teamAlreadySaved={teamAlreadySaved}
       />
 
-      <Box className={styles.topBox}>
-        <Typography variant="subtitle1">
-          Guardar combinación por defecto
-        </Typography>
-        <div className={styles.selectorsWrap}>
-          <Grid container spacing={1}>
-            <Grid item xs={12} sm={4}>
-              <CompetitionSelector
-                onChange={(c) => setSelectedCompetition(c)}
-                value={selectedCompetition?.id}
-              />
+      <Box className={styles.pageContainer}>
+        <Box className={styles.topBox}>
+          <Typography variant="subtitle1">
+            Elige el equipo que quieres añadir a tu lista
+          </Typography>
+          <div className={styles.selectorsWrap}>
+            <Grid container spacing={1}>
+              <Grid item xs={12} sm={6} md={3}>
+                <CompetitionSelector
+                  onChange={(c) => setSelectedCompetition(c)}
+                  value={selectedCompetition?.id}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <GroupSelector
+                  competitionId={selectedCompetition?.id}
+                  onChange={(g) => setSelectedGroup(g)}
+                  value={selectedGroup?.id}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <TeamsSelector
+                  competitionId={selectedCompetition?.id}
+                  groupId={selectedGroup?.id}
+                  onChange={(t) => setSelectedTeam(t)}
+                  value={selectedTeam?.id}
+                />
+              </Grid>
             </Grid>
-            <Grid item xs={12} sm={4}>
-              <GroupSelector
-                competitionId={selectedCompetition?.id}
-                onChange={(g) => setSelectedGroup(g)}
-                value={selectedGroup?.id}
-              />
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <TeamsSelector
-                competitionId={selectedCompetition?.id}
-                groupId={selectedGroup?.id}
-                onChange={(t) => setSelectedTeam(t)}
-                value={selectedTeam?.id}
-              />
-            </Grid>
-          </Grid>
-        </div>
+          </div>
+        </Box>
+
+        <Divider className={styles.divider} />
+
+        <Box className={styles.topBox}>
+          <Typography variant="subtitle1">Mis equipos</Typography>
+          <SavedConfigs />
+        </Box>
       </Box>
-
-      <Divider className={styles.divider} />
-
-      <Typography variant="subtitle1">Combinaciones guardadas</Typography>
-      <SavedConfigs />
       <Snackbar
         open={snackOpen}
         autoHideDuration={4000}
         onClose={() => setSnackOpen(false)}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+        TransitionComponent={(props) => <Slide {...props} direction="left" />}
+        TransitionProps={{ timeout: 500 }}
+        classes={{ root: styles.snackbarRoot }}
       >
         <Alert onClose={() => setSnackOpen(false)} severity="success">
           {snackMsg}
@@ -278,30 +316,21 @@ function HeaderContainer({
   const isSm = useMediaQuery(theme.breakpoints.down("sm"));
 
   return (
-    <Box>
-      <Stack
-        direction={isSm ? "column" : "row"}
-        spacing={1}
-        alignItems={isSm ? "stretch" : "center"}
-      >
-        <Box
-          className={styles.headerButtons}
-          sx={{ mt: isSm ? 1 : 0, ml: "auto" }}
+    <Box className={styles.headerContainer}>
+      <Box className={styles.headerButtonsBox}>
+        <Button
+          variant="contained"
+          onClick={saveCombination}
+          disabled={!selectedTeam || teamAlreadySaved(selectedTeam?.id)}
+          size="small"
+          className={styles.saveButton}
         >
-          <Button
-            variant="contained"
-            onClick={saveCombination}
-            disabled={!selectedTeam || teamAlreadySaved(selectedTeam?.id)}
-            fullWidth={isSm}
-            className={styles.saveButton}
-          >
-            Guardar
-          </Button>
-          <Button fullWidth={isSm} component={Link} to="/" variant="outlined">
-            Volver al dashboard
-          </Button>
-        </Box>
-      </Stack>
+          Guardar
+        </Button>
+        <Button component={Link} to="/" variant="outlined" size="small">
+          Volver
+        </Button>
+      </Box>
     </Box>
   );
 }
