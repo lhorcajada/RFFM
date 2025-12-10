@@ -5,6 +5,9 @@ import IconButton from "@mui/material/IconButton";
 import SvgIcon from "@mui/material/SvgIcon";
 import SettingsIcon from "@mui/icons-material/Settings";
 import HowToRegIcon from "@mui/icons-material/HowToReg";
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
+import SportsSoccerIcon from "@mui/icons-material/SportsSoccer";
+import EventAvailableIcon from "@mui/icons-material/EventAvailable";
 
 export default function Footer(): JSX.Element {
   const loc = useLocation();
@@ -86,9 +89,20 @@ export default function Footer(): JSX.Element {
               aria-label="Calendario"
               size="large"
             >
-              <SvgIcon>
-                <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11zM7 11h5v5H7z" />
-              </SvgIcon>
+              <CalendarMonthIcon fontSize="medium" />
+            </IconButton>
+            <IconButton
+              component={Link}
+              to="/federation/matchday"
+              className={
+                loc.pathname.startsWith("/federation/matchday")
+                  ? `${styles.iconBtn} ${styles.active}`
+                  : styles.iconBtn
+              }
+              aria-label="Jornada"
+              size="large"
+            >
+              <EventAvailableIcon fontSize="medium" />
             </IconButton>
             <IconButton
               component={Link}

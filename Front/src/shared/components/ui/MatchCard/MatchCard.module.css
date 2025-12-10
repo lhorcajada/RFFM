@@ -6,7 +6,7 @@
   background: transparent; /* transparent cards */
   border: 1px solid rgba(255, 255, 255, 0.12); /* stronger contrast on dark backgrounds */
   border-radius: 8px;
-  padding: 8px 12px; /* more horizontal padding to avoid clipping on mobile */
+  padding: 8px 16px; /* increased horizontal padding to prevent text clipping */
   box-shadow: none;
   height: 100%;
   max-width: 100%;
@@ -114,9 +114,11 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 140px; /* give slightly more room for the name */
-  flex: 0 0 140px; /* fixed column but slightly wider */
+  width: 130px;
+  flex: 0 0 130px;
   min-width: 0;
+  padding: 0 6px;
+  box-sizing: border-box;
 }
 
 /* Row that contains the two team boxes and the center area */
@@ -484,8 +486,8 @@
     font-size: 0.65rem; /* larger name on tablet/desktop */
     min-height: 1.4rem;
     display: -webkit-box;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
     white-space: normal;
@@ -525,7 +527,7 @@
 /* Large desktop: slightly larger */
 @media (min-width: 1400px) {
   .teamBox {
-    width: 140px;
+    width: 130px;
   }
   .shield {
     width: 60px;
@@ -536,6 +538,8 @@
     height: 60px;
   }
   .teamName {
-    font-size: 1rem;
+    font-size: 0.75rem;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
   }
 }

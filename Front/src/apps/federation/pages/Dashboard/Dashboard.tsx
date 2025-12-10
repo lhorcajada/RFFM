@@ -1,6 +1,9 @@
 import SettingsIcon from "@mui/icons-material/Settings";
 import GroupIcon from "@mui/icons-material/Group";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
+import SportsSoccerIcon from "@mui/icons-material/SportsSoccer";
+import EventAvailableIcon from "@mui/icons-material/EventAvailable";
+// import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
 import LeaderboardIcon from "@mui/icons-material/Leaderboard";
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
 import HowToRegIcon from "@mui/icons-material/HowToReg";
@@ -62,6 +65,14 @@ export default function Dashboard(): JSX.Element {
             to="/federation/calendar"
           />
           <DashboardCard
+            title="Jornada"
+            description="Partidos de la jornada de tus equipos."
+            icon={
+              <EventAvailableIcon style={{ fontSize: 40, color: "#05313b" }} />
+            }
+            to="/federation/matchday"
+          />
+          <DashboardCard
             title="Clasificación"
             description="Ver la clasificación actual."
             icon={
@@ -73,7 +84,7 @@ export default function Dashboard(): JSX.Element {
             title="Goleadores"
             description="Listado de máximos goleadores."
             icon={
-              <EmojiEventsIcon style={{ fontSize: 40, color: "#05313b" }} />
+              <SportsSoccerIcon style={{ fontSize: 40, color: "#05313b" }} />
             }
             to="/federation/goleadores"
           />

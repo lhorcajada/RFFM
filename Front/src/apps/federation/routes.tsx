@@ -11,6 +11,7 @@ const Classification = lazy(
 const Squad = lazy(() => import("./pages/Squad/GetPlayers"));
 const Acta = lazy(() => import("./pages/Acta/Acta"));
 const Goleadores = lazy(() => import("./pages/Goleadores/Goleadores"));
+const Matchday = lazy(() => import("./pages/Matchday/Matchday"));
 const Callups = lazy(() => import("./pages/Callups/Callups"));
 const Settings = lazy(() => import("./pages/Settings/Settings"));
 const SavedConfigs = lazy(() => import("./pages/SavedConfigs/SavedConfigs"));
@@ -49,6 +50,7 @@ export default function FederationRoutes() {
         <Route path="acta/:codacta" element={<Acta />} />
         <Route path="goleadores" element={<Goleadores />} />
         <Route path="callups" element={<Callups />} />
+        <Route path="matchday" element={<Matchday />} />
         <Route path="settings" element={<Settings />} />
         <Route path="saved-configs" element={<SavedConfigs />} />
         <Route path="statistics" element={<Statistics />} />

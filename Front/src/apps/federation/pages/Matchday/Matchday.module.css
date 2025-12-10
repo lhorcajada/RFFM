@@ -1,0 +1,94 @@
+/* Chips de competición y grupo */
+.chipsContainer {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 12px;
+  margin-top: 0;
+  flex-shrink: 0;
+}
+
+.competitionChip {
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: 0.5px;
+  background: rgba(0, 229, 255, 0.18);
+  border-radius: 16px;
+  padding: 4px 12px;
+  display: inline-block;
+  border: 1px solid rgba(0, 229, 255, 0.25);
+  box-shadow: 0 1px 4px rgba(0, 229, 255, 0.08);
+}
+
+.groupChip {
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 400;
+  background: rgba(255, 209, 102, 0.18);
+  border-radius: 16px;
+  padding: 4px 12px;
+  display: inline-block;
+  border: 1px solid rgba(255, 209, 102, 0.25);
+  box-shadow: 0 1px 4px rgba(255, 209, 102, 0.08);
+}
+
+@media (max-width: 600px) {
+  .chipsContainer {
+    margin-top: 0;
+    margin-bottom: 8px;
+    gap: 6px;
+  }
+
+  .competitionChip,
+  .groupChip {
+    font-size: 0.82rem;
+    padding: 3px 8px;
+  }
+
+  .matchCardWrapper {
+    margin-bottom: 1.5rem;
+  }
+}
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding: 2rem;
+}
+.cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  justify-content: center;
+  box-sizing: border-box;
+}
+.title {
+  font-size: 2rem;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.matchCardWrapper {
+  width: 100%;
+  max-width: 400px;
+  flex: 1 1 auto;
+  min-width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+@media (max-width: 600px) {
+  .container {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+  .cards {
+    margin-left: -4px;
+    margin-right: -4px;
+    gap: 1rem;
+  }
+}
