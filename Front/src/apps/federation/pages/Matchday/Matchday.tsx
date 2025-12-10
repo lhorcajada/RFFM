@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { CircularProgress } from "@mui/material";
 import PageHeader from "../../../../shared/components/ui/PageHeader/PageHeader";
 import { useUser } from "../../../../shared/context/UserContext";
-import { getTeamMatches } from "../../services/federationApi";
+import { getTeamMatches, settingsService } from "../../services/federationApi";
 import MatchCard from "../../../../shared/components/ui/MatchCard/MatchCard";
 
 export default function Matchday() {
@@ -16,63 +16,87 @@ export default function Matchday() {
   useEffect(() => {
     async function fetchMatches() {
       setLoading(true);
-      let teams: { id: string; name: string }[] = [];
       try {
-        const raw = localStorage.getItem("rffm.saved_combinations_v1");
-        const arr = raw ? JSON.parse(raw) : [];
-        teams = arr.map((c: any) => c.team).filter(Boolean);
-      } catch {}
-      if (!teams.length) return;
-      const season = "21";
-      const raw = localStorage.getItem("rffm.saved_combinations_v1");
-      const combos = raw ? JSON.parse(raw) : [];
-      const allMatches = await Promise.all(
-        combos.map(async (combo: any) => {
-          if (!combo.team) return [];
-          const params: any = { season };
-          if (combo.competition?.id) params.competition = combo.competition.id;
-          if (combo.group?.id) params.group = combo.group.id;
-          const matches = await getTeamMatches(combo.team.id, params);
-          return Array.isArray(matches)
-            ? matches.map((m: any) => ({
-                ...m,
-                team: combo.team,
-                competition: combo.competition,
-                group: combo.group,
-              }))
-            : [];
-        })
-      );
-      const flatMatches = allMatches.flat();
-      setHasData(flatMatches.length > 0);
-      const today = new Date();
-      // Agrupar por equipo y seleccionar el partido más próximo a hoy (próxima jornada pendiente)
-      const matchesByTeam: Record<string, any[]> = {};
-      // Agrupar por el id de equipo configurado, no por el id que pueda venir en el partido
-      teams.forEach((team) => {
-        matchesByTeam[team.id] = flatMatches.filter(
-          (m: any) => m.team?.id === team.id
+        // Cargar los settings desde la API
+        const savedSettings = await settingsService.getSettings();
+        if (!savedSettings || savedSettings.length === 0) {
+          setHasData(false);
+          setLoading(false);
+          return;
+        }
+
+        // Convertir settings a formato de combos para getTeamMatches
+        const combos = savedSettings.map((setting: any) => ({
+          team: { id: setting.teamId, name: setting.teamName },
+          competition: {
+            id: setting.competitionId,
+            name: setting.competitionName,
+          },
+          group: { id: setting.groupId, name: setting.groupName },
+        }));
+
+        const season = "21";
+        const allMatches = await Promise.all(
+          combos.map(async (combo: any) => {
+            if (!combo.team?.id) return [];
+            const params: any = { season };
+            if (combo.competition?.id)
+              params.competition = combo.competition.id;
+            if (combo.group?.id) params.group = combo.group.id;
+            const matches = await getTeamMatches(combo.team.id, params);
+            return Array.isArray(matches)
+              ? matches.map((m: any) => ({
+                  ...m,
+                  team: combo.team,
+                  competition: combo.competition,
+                  group: combo.group,
+                }))
+              : [];
+          })
         );
-      });
-      const matchdayMatches: any[] = [];
-      teams.forEach((team) => {
-        const matches = matchesByTeam[team.id] || [];
-        const sorted = matches.slice().sort((a, b) => {
-          const dateA = new Date(a.match?.fecha || a.match?.date || a.date);
-          const dateB = new Date(b.match?.fecha || b.match?.date || b.date);
-          return dateA.getTime() - dateB.getTime();
+        const flatMatches = allMatches.flat();
+        setHasData(flatMatches.length > 0);
+        const today = new Date();
+        // Agrupar por equipo y seleccionar el partido más próximo a hoy
+        const matchesByTeam: Record<string, any[]> = {};
+        combos.forEach((combo: any) => {
+          matchesByTeam[combo.team.id] = flatMatches.filter(
+            (m: any) => m.team?.id === combo.team.id
+          );
         });
-        const nextMatch =
-          sorted.find((m) => {
-            const date = new Date(m.match?.fecha || m.match?.date || m.date);
-            return date >= today;
-          }) || sorted[sorted.length - 1];
-        if (nextMatch) matchdayMatches.push(nextMatch);
-      });
-      setMatches(matchdayMatches);
-      setLoading(false);
+        const matchdayMatches: any[] = [];
+        combos.forEach((combo: any) => {
+          const matches = matchesByTeam[combo.team.id] || [];
+          const sorted = matches.slice().sort((a, b) => {
+            const dateA = new Date(a.match?.fecha || a.match?.date || a.date);
+            const dateB = new Date(b.match?.fecha || b.match?.date || b.date);
+            return dateA.getTime() - dateB.getTime();
+          });
+          const nextMatch =
+            sorted.find((m) => {
+              const date = new Date(m.match?.fecha || m.match?.date || m.date);
+              return date >= today;
+            }) || sorted[sorted.length - 1];
+          if (nextMatch) matchdayMatches.push(nextMatch);
+        });
+        setMatches(matchdayMatches);
+      } catch (error) {
+        console.error("Error fetching matches:", error);
+        setHasData(false);
+      } finally {
+        setLoading(false);
+      }
     }
     fetchMatches();
+
+    // Escuchar cambios en los settings
+    window.addEventListener("rffm.saved_combinations_changed", fetchMatches);
+    return () => {
+      window.removeEventListener(
+        "rffm.saved_combinations_changed",
+        fetchMatches
+      );
+    };
   }, []);
 
   return (
