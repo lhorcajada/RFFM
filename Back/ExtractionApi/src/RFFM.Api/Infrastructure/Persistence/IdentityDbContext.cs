@@ -8,6 +8,4 @@ public class IdentityDbContext : Microsoft.AspNetCore.Identity.EntityFrameworkCo
         : base(options)
     {
     }
-
-  
 }

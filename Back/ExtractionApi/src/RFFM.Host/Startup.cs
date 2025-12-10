@@ -37,9 +37,18 @@ namespace RFFM.Host
                 services.AddDbContext<AppDbContext>();
                 services.AddDbContext<ReadOnlyCatalogDbContext>();
 
-                // Register IdentityDbContext using the same connection
+                // Register IdentityDbContext using the same connection with retry policy
                 services.AddDbContext<IdentityDbContext>(options =>
-                    options.UseSqlServer(catalogConn));
+                    options.UseSqlServer(catalogConn, sqlServerOptions =>
+                    {
+                        // Habilitar retry automático en caso de fallos transitorios
+                        sqlServerOptions.EnableRetryOnFailure(
+                            maxRetryCount: 5,
+                            maxRetryDelay: TimeSpan.FromSeconds(30),
+                            errorNumbersToAdd: null
+                        );
+                        sqlServerOptions.CommandTimeout(60);
+                    }));
 
                 // Identity
                 services.AddIdentity<IdentityUser, IdentityRole>()

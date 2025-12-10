@@ -1,12 +1,14 @@
 ﻿using Azure.Storage.Blobs;
 using FluentValidation;
 using Hellang.Middleware.ProblemDetails;
+using Jose;
 using Mediator;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing.Template;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.IdentityModel.Tokens;
 using RFFM.Api.Common.Behaviors;
 using RFFM.Api.Domain.Services;
 using RFFM.Api.Features.Federation.Competitions.Services;
@@ -93,6 +95,7 @@ namespace RFFM.Api.DependencyInjection
         {
             return services.AddProblemDetails(setup =>
             {
+                // Errores de dominio (negocio)
                 setup.Map<RFFM.Api.Domain.DomainException>(exception =>
                     new StatusCodeProblemDetails(StatusCodes.Status400BadRequest)
                     {
@@ -100,23 +103,72 @@ namespace RFFM.Api.DependencyInjection
                         Detail = exception.Description,
                         Extensions = { ["code"] = exception.Code }
                     });
-                setup.Map<InvalidOperationException>(exception =>
-                    new StatusCodeProblemDetails(StatusCodes.Status409Conflict)
-                    {
-                        Detail = exception.Message
-                    });
-                setup.Map<ValidationException>(exception =>
-                    new StatusCodeProblemDetails(StatusCodes.Status409Conflict)
-                    {
-                        Detail = exception.Message
-                    });
-                setup.Map<Microsoft.IdentityModel.Tokens.SecurityTokenException>(exception =>
+                
+                // Errores de autenticación/autorización
+                setup.Map<UnauthorizedAccessException>(exception =>
                     new StatusCodeProblemDetails(StatusCodes.Status401Unauthorized)
                     {
-                        Detail = "Invalid or expired token"
+                        Title = "No autorizado",
+                        Detail = exception.Message
                     });
+                
+                setup.Map<SecurityTokenException>(exception =>
+                    new StatusCodeProblemDetails(StatusCodes.Status401Unauthorized)
+                    {
+                        Title = "Token inválido",
+                        Detail = exception.Message
+                    });
+                
+                setup.Map<SecurityTokenInvalidSignatureException>(exception =>
+                    new StatusCodeProblemDetails(StatusCodes.Status401Unauthorized)
+                    {
+                        Title = "Firma de token inválida",
+                        Detail = "La firma del token no es válida"
+                    });
+                
+                // Errores de Jose-JWT
+                setup.Map<IntegrityException>(exception =>
+                    new StatusCodeProblemDetails(StatusCodes.Status401Unauthorized)
+                    {
+                        Title = "Firma de token inválida",
+                        Detail = "La firma del token JWT no es válida"
+                    });
+                
+                setup.Map<InvalidAlgorithmException>(exception =>
+                    new StatusCodeProblemDetails(StatusCodes.Status401Unauthorized)
+                    {
+                        Title = "Algoritmo de token inválido",
+                        Detail = "El algoritmo del token JWT no es el esperado (HS256)"
+                    });
+                
+                // Errores de configuración
+                setup.Map<InvalidOperationException>(exception =>
+                    new StatusCodeProblemDetails(StatusCodes.Status500InternalServerError)
+                    {
+                        Title = "Error de configuración",
+                        Detail = exception.Message
+                    });
+                
+                // Errores de validación
+                setup.Map<ValidationException>(exception =>
+                    new StatusCodeProblemDetails(StatusCodes.Status400BadRequest)
+                    {
+                        Title = "Error de validación",
+                        Detail = exception.Message
+                    });
+                
+                setup.Map<ArgumentNullException>(exception =>
+                    new StatusCodeProblemDetails(StatusCodes.Status400BadRequest)
+                    {
+                        Title = "Argumento requerido",
+                        Detail = exception.Message
+                    });
+                
+                // Errores HTTP
                 setup.MapToStatusCode<NotImplementedException>(StatusCodes.Status501NotImplemented);
                 setup.MapToStatusCode<HttpRequestException>(StatusCodes.Status503ServiceUnavailable);
+                
+                // Error genérico (último recurso)
                 setup.MapToStatusCode<Exception>(StatusCodes.Status500InternalServerError);
             });
         }

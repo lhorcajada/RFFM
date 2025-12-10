@@ -37,6 +37,7 @@
     </PackageReference>
     <PackageReference Include="Azure.Storage.Blobs" Version="12.25.0" />
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
+    <PackageReference Include="jose-jwt" Version="5.1.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.6" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.6" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="9.0.6" />

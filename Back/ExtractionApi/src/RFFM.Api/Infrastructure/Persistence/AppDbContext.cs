@@ -58,7 +58,18 @@ namespace RFFM.Api.Infrastructure.Persistence
       
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlServer(_connection);
+            optionsBuilder.UseSqlServer(_connection, sqlServerOptions =>
+            {
+                // Habilitar retry automático en caso de fallos transitorios
+                sqlServerOptions.EnableRetryOnFailure(
+                    maxRetryCount: 5,                    // Máximo 5 reintentos
+                    maxRetryDelay: TimeSpan.FromSeconds(30),  // Máximo 30 segundos entre reintentos
+                    errorNumbersToAdd: null              // Usar los errores transitorios por defecto
+                );
+                
+                // Configuración adicional para Azure SQL
+                sqlServerOptions.CommandTimeout(60);     // Timeout de 60 segundos
+            });
             
             // Suprimir warning de pending model changes para permitir migraciones iniciales
             optionsBuilder.ConfigureWarnings(warnings =>
