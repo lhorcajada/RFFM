@@ -76,9 +76,14 @@ namespace RFFM.Api.Domain.Services
             }
             catch (IntegrityException ex)
             {
-                _logger.LogError(ex, "❌ Invalid token signature. FrontendSecret mismatch");
+                _logger.LogError(
+                    ex,
+                    "❌ Invalid token signature. FrontendSecret mismatch. FrontendSecret used: '{FrontendSecret}', Token received: '{Token}'",
+                    tempSecret,
+                    tempToken
+                );
                 throw new UnauthorizedAccessException(
-                    "La firma del token no es válida. El FrontendSecret no coincide entre frontend y backend.", 
+                    "La firma del token no es válida. El FrontendSecret no coincide entre frontend y backend.",
                     ex);
             }
             catch (InvalidAlgorithmException ex)
