@@ -9,6 +9,7 @@ export { competitionService, CompetitionService } from "./CompetitionService";
 export { calendarService, CalendarService } from "./CalendarService";
 export { actaService, ActaService } from "./ActaService";
 export { scoreService, ScoreService } from "./ScoreService";
+export { settingsService, SettingsService } from "./SettingsService";
 export {
   client,
   registerNavigate,

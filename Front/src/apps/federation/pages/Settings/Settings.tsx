@@ -30,19 +30,20 @@ import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import styles from "./Settings.module.css";
 import SavedConfigs from "../../../../shared/components/ui/SavedConfigs/SavedConfigs";
+import PageHeader from "../../../../shared/components/ui/PageHeader/PageHeader";
+import { settingsService } from "../../services/federationApi";
 
 type SavedCombo = {
   id: string;
-  competition?: { id: string; name: string } | null;
-  group?: { id: string; name: string } | null;
-  team?: { id: string; name: string } | null;
+  competitionId?: string;
+  competitionName?: string;
+  groupId?: string;
+  groupName?: string;
+  teamId?: string;
+  teamName?: string;
   createdAt: number;
   isPrimary?: boolean;
 };
-
-const STORAGE_KEY = "rffm.saved_combinations_v1";
-const STORAGE_PRIMARY = "rffm.primary_combination_id";
-const STORAGE_CURRENT = "rffm.current_selection";
 
 export default function Settings(): JSX.Element {
   const theme = useTheme();
@@ -70,11 +71,15 @@ export default function Settings(): JSX.Element {
   });
 
   useEffect(() => {
+    loadSettings();
+  }, []);
+
+  async function loadSettings() {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      const arr: SavedCombo[] = raw ? JSON.parse(raw) : [];
+      const arr = await settingsService.getSettings();
       setSaved(arr || []);
-      const p = localStorage.getItem(STORAGE_PRIMARY);
+      const primary = arr.find((c) => c.isPrimary);
+      const p = primary?.id || null;
       setPrimaryId(p);
 
       // Preload selection so selectors show the team when entering Settings
@@ -83,20 +88,20 @@ export default function Settings(): JSX.Element {
         if (p) combo = arr.find((c) => String(c.id) === String(p));
         if (!combo) combo = arr.find((c) => c.isPrimary) || arr[0];
       }
-      if (combo && combo.team) {
+      if (combo && combo.teamId) {
         setSelectedCompetition(
-          combo.competition
-            ? { id: String(combo.competition.id), name: combo.competition.name }
+          combo.competitionId && combo.competitionName
+            ? { id: combo.competitionId, name: combo.competitionName }
             : undefined
         );
         setSelectedGroup(
-          combo.group
-            ? { id: String(combo.group.id), name: combo.group.name }
+          combo.groupId && combo.groupName
+            ? { id: combo.groupId, name: combo.groupName }
             : undefined
         );
         setSelectedTeam(
-          combo.team
-            ? { id: String(combo.team.id), name: combo.team.name }
+          combo.teamId && combo.teamName
+            ? { id: combo.teamId, name: combo.teamName }
             : undefined
         );
       }
@@ -104,55 +109,37 @@ export default function Settings(): JSX.Element {
       setSaved([]);
       setPrimaryId(null);
     }
-  }, []);
+  }
 
   // when primaryId is known, preload the corresponding combo into selectors
   useEffect(() => {
     if (!primaryId) return;
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      const arr: SavedCombo[] = raw ? JSON.parse(raw) : [];
-      const combo = arr.find((c) => c.id === primaryId);
-      if (combo) {
-        setSelectedCompetition(
-          combo.competition
-            ? { id: String(combo.competition.id), name: combo.competition.name }
-            : undefined
-        );
-        setSelectedGroup(
-          combo.group
-            ? { id: String(combo.group.id), name: combo.group.name }
-            : undefined
-        );
-        setSelectedTeam(
-          combo.team
-            ? { id: String(combo.team.id), name: combo.team.name }
-            : undefined
-        );
-      }
-    } catch (e) {
-      // ignore
+    const combo = saved.find((c) => c.id === primaryId);
+    if (combo) {
+      setSelectedCompetition(
+        combo.competitionId && combo.competitionName
+          ? { id: combo.competitionId, name: combo.competitionName }
+          : undefined
+      );
+      setSelectedGroup(
+        combo.groupId && combo.groupName
+          ? { id: combo.groupId, name: combo.groupName }
+          : undefined
+      );
+      setSelectedTeam(
+        combo.teamId && combo.teamName
+          ? { id: combo.teamId, name: combo.teamName }
+          : undefined
+      );
     }
-  }, [primaryId]);
-
-  function persist(list: SavedCombo[]) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-    setSaved(list);
-    try {
-      // notify other components (e.g. Footer) that saved combinations changed
-      window.dispatchEvent(new Event("rffm.saved_combinations_changed"));
-    } catch (e) {
-      // ignore (e.g., SSR environments)
-    }
-  }
+  }, [primaryId, saved]);
 
   function teamAlreadySaved(teamId: string | undefined) {
     if (!teamId) return false;
-    return saved.some((s) => String(s.team?.id ?? "") === String(teamId));
+    return saved.some((s) => String(s.teamId ?? "") === String(teamId));
   }
 
-  function saveCombination() {
-    // require a selected team and avoid duplicates
+  async function saveCombination() {
     if (!selectedTeam) {
       setSnackMsg("Selecciona un equipo antes de guardar la combinación.");
       setSnackOpen(true);
@@ -163,71 +150,57 @@ export default function Settings(): JSX.Element {
       setSnackOpen(true);
       return;
     }
-    const id = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-    const isFirst = saved.length === 0;
-    const combo: SavedCombo = {
-      id,
-      competition: selectedCompetition ?? null,
-      group: selectedGroup ?? null,
-      team: selectedTeam ?? null,
-      createdAt: Date.now(),
-      isPrimary: isFirst,
-    };
-    const next = [combo, ...saved];
-    // if this is the first saved combo, reuse the same logic as clicking the
-    // star: set as primary and apply (which shows the notification)
-    if (isFirst) {
-      setAsPrimary(id, next);
-      applyCombo(id, next);
-      return;
-    }
-    persist(next);
-  }
-
-  function removeCombo(id: string) {
-    const next = saved.filter((s) => s.id !== id);
-    // if we removed the primary, promote the first remaining combo (if any)
-    if (primaryId === id) {
-      if (next.length > 0) {
-        const newPrimary = next[0].id;
-        // reuse the same logic as clicking the star so notifications and
-        // current selection are updated consistently
-        setAsPrimary(newPrimary, next);
-        applyCombo(newPrimary, next);
-        return;
-      } else {
-        // no combos left
-        localStorage.removeItem(STORAGE_PRIMARY);
-        setPrimaryId(null);
-        persist(next);
-        return;
-      }
-    }
-    persist(next);
-  }
-
-  function setAsPrimary(id: string, list?: SavedCombo[]) {
-    const current = list ?? saved;
     try {
-      localStorage.setItem(STORAGE_PRIMARY, id);
+      const isFirst = saved.length === 0;
+      const result = await settingsService.saveSettings({
+        competitionId: selectedCompetition?.id,
+        competitionName: selectedCompetition?.name,
+        groupId: selectedGroup?.id,
+        groupName: selectedGroup?.name,
+        teamId: selectedTeam?.id,
+        teamName: selectedTeam?.name,
+        isPrimary: isFirst,
+      });
+      await loadSettings();
+      window.dispatchEvent(new Event("rffm.saved_combinations_changed"));
+      setSnackMsg("Combinación guardada correctamente.");
+      setSnackOpen(true);
     } catch (e) {
-      // ignore
+      setSnackMsg("Error al guardar la combinación.");
+      setSnackOpen(true);
     }
-    setPrimaryId(id);
-    // update saved array flags using the provided list (if any)
-    const next = current.map((s) => ({ ...s, isPrimary: s.id === id }));
-    persist(next);
   }
 
-  function applyCombo(id: string, list?: SavedCombo[]) {
-    const arr = list ?? saved;
-    const combo = arr.find((s) => s.id === id);
+  async function removeCombo(id: string) {
+    try {
+      await settingsService.deleteSettings(id);
+      await loadSettings();
+      window.dispatchEvent(new Event("rffm.saved_combinations_changed"));
+      setSnackMsg("Combinación eliminada correctamente.");
+      setSnackOpen(true);
+    } catch (e) {
+      setSnackMsg("Error al eliminar la combinación.");
+      setSnackOpen(true);
+    }
+  }
+
+  async function setAsPrimary(id: string) {
+    try {
+      await settingsService.setPrimarySettings(id);
+      await loadSettings();
+      window.dispatchEvent(new Event("rffm.saved_combinations_changed"));
+      setPrimaryId(id);
+      setSnackMsg("Combinación marcada como principal.");
+      setSnackOpen(true);
+    } catch (e) {
+      setSnackMsg("Error al marcar como principal.");
+      setSnackOpen(true);
+    }
+  }
+
+  function applyCombo(id: string) {
+    const combo = saved.find((s) => s.id === id);
     if (!combo) return;
-    try {
-      localStorage.setItem(STORAGE_CURRENT, JSON.stringify(combo));
-    } catch (e) {
-      // ignore
-    }
     setSnackMsg(
       "Selección aplicada: ahora la aplicación usará esta combinación hasta que la cambies."
     );
@@ -236,6 +209,7 @@ export default function Settings(): JSX.Element {
 
   return (
     <BaseLayout>
+      <PageHeader title="Configuración" />
       <HeaderContainer
         saveCombination={saveCombination}
         selectedTeam={selectedTeam}
@@ -310,30 +284,18 @@ function HeaderContainer({
         spacing={1}
         alignItems={isSm ? "stretch" : "center"}
       >
-        <div style={{ flex: 1 }}>
-          <Typography variant="h5">Configuración</Typography>
-          <Typography variant="body2" style={{ marginTop: 8 }}>
-            Aquí podrás añadir opciones de configuración de la aplicación.
-          </Typography>
-        </div>
-        <Box className={styles.headerButtons} sx={{ mt: isSm ? 1 : 0 }}>
+        <Box
+          className={styles.headerButtons}
+          sx={{ mt: isSm ? 1 : 0, ml: "auto" }}
+        >
           <Button
             variant="contained"
             onClick={saveCombination}
             disabled={!selectedTeam || teamAlreadySaved(selectedTeam?.id)}
             fullWidth={isSm}
-            sx={{
-              minWidth: 140,
-              "&.Mui-disabled": {
-                opacity: 0.85,
-                backgroundColor: (theme) =>
-                  theme.palette.action.disabledBackground,
-                color: (theme) => theme.palette.action.disabled,
-                boxShadow: "none",
-              },
-            }}
+            className={styles.saveButton}
           >
-            Guardar combinación
+            Guardar
           </Button>
           <Button fullWidth={isSm} component={Link} to="/" variant="outlined">
             Volver al dashboard

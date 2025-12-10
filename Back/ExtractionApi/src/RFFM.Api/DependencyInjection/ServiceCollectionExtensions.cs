@@ -13,6 +13,7 @@ using RFFM.Api.Common.Behaviors;
 using RFFM.Api.Domain.Services;
 using RFFM.Api.Features.Federation.Competitions.Services;
 using RFFM.Api.Features.Federation.Players.Services;
+using RFFM.Api.Features.Federation.Settings.Services;
 using RFFM.Api.Features.Federation.Teams.Services;
 using RFFM.Api.Infrastructure.Persistence;
 using RFFM.Api.Infrastructure.Services.Email;
@@ -76,6 +77,7 @@ namespace RFFM.Api.DependencyInjection
             services.AddScoped<IGoalMinuteParser, GoalMinuteParser>();
             services.AddScoped<ISectorFactory, SectorFactory>();
             services.AddScoped<IGoalSectorsAggregator, GoalSectorsAggregator>();
+            services.AddScoped<IFederationSettingService, FederationSettingService>();
             services.AddMemoryCache();
             return services;
         }

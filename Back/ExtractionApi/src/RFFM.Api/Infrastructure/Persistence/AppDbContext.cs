@@ -9,6 +9,7 @@ using RFFM.Api.Domain.Aggregates.UserClubs;
 using RFFM.Api.Domain.Entities;
 using RFFM.Api.Domain.Entities.Competitions;
 using RFFM.Api.Domain.Entities.Demarcations;
+using RFFM.Api.Domain.Entities.Federation;
 using RFFM.Api.Domain.Entities.Players;
 using RFFM.Api.Domain.Entities.Seasons;
 using RFFM.Api.Domain.Entities.TeamPlayers;
@@ -50,6 +51,7 @@ namespace RFFM.Api.Infrastructure.Persistence
         public DbSet<TechnicalGoalsEnum> TechnicalGoals { get; set; }
         public DbSet<Rival> Rivals { get; set; }
         public DbSet<ExcuseTypes> ExcuseTypes { get; set; }
+        public DbSet<FederationSetting> FederationSettings { get; set; }
         
         public AppDbContext(DbConnection connection)
         {

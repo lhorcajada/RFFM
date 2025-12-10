@@ -92,4 +92,7 @@ export const getActa = (
 export const getGoleadores = (competitionId: string, gropuId: string) =>
   scoreService.getGoleadores(competitionId, gropuId);
 
+// Settings methods
+export { settingsService } from "./Federation";
+
 export default client;

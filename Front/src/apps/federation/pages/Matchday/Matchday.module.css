@@ -9,6 +9,15 @@
   flex-shrink: 0;
 }
 
+.matchDate {
+  text-align: center;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 12px;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
 .competitionChip {
   color: #fff;
   font-weight: 600;

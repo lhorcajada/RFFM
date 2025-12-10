@@ -17,19 +17,19 @@ import Box from "@mui/material/Box";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { useTheme } from "@mui/material/styles";
 import styles from "./SavedConfigs.module.css";
+import { settingsService } from "../../../../apps/federation/services/federationApi";
 
 type SavedCombo = {
   id: string;
-  competition?: { id: string; name: string } | null;
-  group?: { id: string; name: string } | null;
-  team?: { id: string; name: string } | null;
+  competitionId?: string;
+  competitionName?: string;
+  groupId?: string;
+  groupName?: string;
+  teamId?: string;
+  teamName?: string;
   createdAt: number;
   isPrimary?: boolean;
 };
-
-const STORAGE_KEY = "rffm.saved_combinations_v1";
-const STORAGE_PRIMARY = "rffm.primary_combination_id";
-const STORAGE_CURRENT = "rffm.current_selection";
 
 export default function SavedConfigs({ compact }: { compact?: boolean }) {
   const theme = useTheme();
@@ -47,9 +47,9 @@ export default function SavedConfigs({ compact }: { compact?: boolean }) {
   });
 
   React.useEffect(() => {
-    load();
+    loadSettings();
     function onChange() {
-      load();
+      loadSettings();
     }
     window.addEventListener("rffm.saved_combinations_changed", onChange);
     window.addEventListener("storage", onChange);
@@ -59,49 +59,44 @@ export default function SavedConfigs({ compact }: { compact?: boolean }) {
     };
   }, []);
 
-  function load() {
+  async function loadSettings() {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      const arr: SavedCombo[] = raw ? JSON.parse(raw) : [];
+      const arr = await settingsService.getSettings();
       setSaved(arr || []);
-      const p = localStorage.getItem(STORAGE_PRIMARY);
-      setPrimaryId(p);
+      const primary = arr.find((c) => c.isPrimary);
+      setPrimaryId(primary?.id || null);
     } catch (e) {
       setSaved([]);
       setPrimaryId(null);
     }
   }
 
-  function persist(list: SavedCombo[]) {
+  async function persist() {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+      await loadSettings();
       window.dispatchEvent(new Event("rffm.saved_combinations_changed"));
-      setSaved(list);
     } catch (e) {
       // ignore
     }
   }
 
-  function setAsPrimary(id: string) {
+  async function setAsPrimary(id: string) {
     try {
-      localStorage.setItem(STORAGE_PRIMARY, id);
+      await settingsService.setPrimarySettings(id);
+      await loadSettings();
+      window.dispatchEvent(new Event("rffm.saved_combinations_changed"));
+      const msg = "Combinación marcada como principal.";
+      setSnackMsg(msg);
+      setSnackOpen(true);
     } catch (e) {
-      // ignore
+      setSnackMsg("Error al marcar como principal.");
+      setSnackOpen(true);
     }
-    setPrimaryId(id);
-    const next = saved.map((s) => ({ ...s, isPrimary: s.id === id }));
-    persist(next);
   }
 
   function applyCombo(id: string) {
     const combo = saved.find((s) => s.id === id);
     if (!combo) return;
-    try {
-      localStorage.setItem(STORAGE_CURRENT, JSON.stringify(combo));
-    } catch (e) {
-      // ignore
-    }
-    // notify other parts if needed
     try {
       window.dispatchEvent(new Event("rffm.current_selection_changed"));
       const msg =
@@ -122,21 +117,16 @@ export default function SavedConfigs({ compact }: { compact?: boolean }) {
     }
   }
 
-  function removeCombo(id: string) {
-    const next = saved.filter((s) => s.id !== id);
-    if (primaryId === id) {
-      if (next.length > 0) {
-        const newPrimary = next[0].id;
-        setAsPrimary(newPrimary);
-        applyCombo(newPrimary);
-        return;
-      } else {
-        try {
-          localStorage.removeItem(STORAGE_PRIMARY);
-        } catch (e) {}
-      }
+  async function removeCombo(id: string) {
+    try {
+      await settingsService.deleteSettings(id);
+      await persist();
+      setSnackMsg("Combinación eliminada correctamente.");
+      setSnackOpen(true);
+    } catch (e) {
+      setSnackMsg("Error al eliminar la combinación.");
+      setSnackOpen(true);
     }
-    persist(next);
   }
 
   return (
@@ -157,38 +147,22 @@ export default function SavedConfigs({ compact }: { compact?: boolean }) {
                 <ListItem
                   key={s.id}
                   divider
-                  sx={
-                    isMobile
-                      ? {
-                          flexDirection: "column",
-                          alignItems: "flex-start",
-                          paddingRight: "16px",
-                        }
-                      : undefined
-                  }
+                  className={isMobile ? styles.listItemMobile : styles.listItem}
                 >
-                  <Box
-                    sx={{
-                      display: "flex",
-                      width: "100%",
-                      alignItems: "flex-start",
-                    }}
-                  >
+                  <Box className={styles.itemBox}>
                     <ListItemAvatar>
                       <Avatar
                         className={styles.avatar}
-                        alt={s.team?.name ?? "Equipo"}
+                        alt={s.teamName ?? "Equipo"}
                       >
-                        {s.team?.name
-                          ? s.team.name.charAt(0).toUpperCase()
-                          : "-"}
+                        {s.teamName ? s.teamName.charAt(0).toUpperCase() : "-"}
                       </Avatar>
                     </ListItemAvatar>
                     <ListItemText
                       primary={
                         <Stack spacing={0.25}>
                           <Typography variant="subtitle2">
-                            {s.team?.name ?? "-"}
+                            {s.teamName ?? "-"}
                           </Typography>
                           <Stack
                             direction="row"
@@ -197,19 +171,19 @@ export default function SavedConfigs({ compact }: { compact?: boolean }) {
                           >
                             <Chip
                               size="small"
-                              label={s.competition?.name ?? "-"}
+                              label={s.competitionName ?? "-"}
                               variant="outlined"
                             />
                             <Chip
                               size="small"
-                              label={s.group?.name ?? "-"}
+                              label={s.groupName ?? "-"}
                               variant="outlined"
                             />
                           </Stack>
                         </Stack>
                       }
                       secondary={new Date(s.createdAt).toLocaleString()}
-                      sx={isMobile ? { marginRight: 0 } : undefined}
+                      className={isMobile ? styles.listItemTextMobile : ""}
                     />
                     {!isMobile && (
                       <div className={styles.actionsInlineBox}>

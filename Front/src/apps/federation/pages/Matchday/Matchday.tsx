@@ -129,12 +129,29 @@ export default function Matchday() {
                 match.group.id
               )
                 group = `Grupo ${match.group.id}`;
+              // Extraer y formatear la fecha
+              const matchDate =
+                match.match?.fecha || match.match?.date || match.date;
+              let dateStr = "";
+              if (matchDate) {
+                try {
+                  const date = new Date(matchDate);
+                  dateStr = date.toLocaleDateString("es-ES", {
+                    weekday: "long",
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  });
+                } catch {}
+              }
+
               return (
                 <div key={idx} className={styles.matchCardWrapper}>
                   <div className={styles.chipsContainer}>
                     <span className={styles.competitionChip}>{comp}</span>
                     {group && <span className={styles.groupChip}>{group}</span>}
                   </div>
+                  {dateStr && <div className={styles.matchDate}>{dateStr}</div>}
                   <MatchCard item={match} />
                 </div>
               );
