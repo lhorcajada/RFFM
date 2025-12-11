@@ -6,6 +6,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using RFFM.Api.Common.Behaviors;
 using RFFM.Api.FeatureModules;
+using RFFM.Api.Infrastructure.Services.Email;
+using Microsoft.Extensions.Configuration;
+using RFFM.Api.Domain.Entities;
 
 namespace RFFM.Api.Features.Coaches.Users.Commands
 {
@@ -34,9 +37,16 @@ namespace RFFM.Api.Features.Coaches.Users.Commands
         public class Handler : IRequestHandler<Command, IResult>
         {
             private readonly UserManager<IdentityUser> _userManager;
-            public Handler(UserManager<IdentityUser> userManager)
+            private readonly RoleManager<IdentityRole> _roleManager;
+            private readonly EmailService _emailService;
+            private readonly IConfiguration _configuration;
+
+            public Handler(UserManager<IdentityUser> userManager, RoleManager<IdentityRole> roleManager, EmailService emailService, IConfiguration configuration)
             {
                 _userManager = userManager;
+                _roleManager = roleManager;
+                _emailService = emailService;
+                _configuration = configuration;
             }
             public async ValueTask<IResult> Handle(Command request, CancellationToken cancellationToken)
             {
@@ -50,8 +60,71 @@ namespace RFFM.Api.Features.Coaches.Users.Commands
                 {
                     return Results.BadRequest($"Ya existe un usuario que este alias: {request.Alias}");
                 }
+
                 var result = await _userManager.CreateAsync(user, request.Password);
-                return !result.Succeeded ? Results.BadRequest(result.Errors) : Results.Ok("Usuario registrado exitosamente");
+                if (!result.Succeeded)
+                {
+                    return Results.BadRequest(result.Errors);
+                }
+
+                // Ensure default role exists and assign to user (best-effort)
+                try
+                {
+                    var defaultRole = AppRoles.Federation.Name;
+                    if (!await _roleManager.RoleExistsAsync(defaultRole))
+                    {
+                        await _roleManager.CreateAsync(new IdentityRole(defaultRole));
+                    }
+                    await _userManager.AddToRoleAsync(user, defaultRole);
+                }
+                catch
+                {
+                    // ignore role assignment failures for now
+                }
+
+                // Generate email confirmation token
+                var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+
+                // Build confirmation URL for admin to click
+                // Prefer ApiBase for direct API confirmation links (option 1). Fallback to FrontUrlBase or relative path.
+                var apiBase = _configuration["ApiBase"]?.TrimEnd('/') ?? _configuration["FrontUrlBase"]?.TrimEnd('/') ?? string.Empty;
+                var confirmUrl = string.Empty;
+                if (!string.IsNullOrEmpty(apiBase))
+                {
+                    confirmUrl = $"{apiBase}/api/users/confirm?userId={user.Id}&token={Uri.EscapeDataString(token)}";
+                }
+                else
+                {
+                    confirmUrl = $"/api/users/confirm?userId={user.Id}&token={Uri.EscapeDataString(token)}";
+                }
+
+                var placeholders = new Dictionary<string, string>
+                {
+                    ["UserName"] = user.UserName ?? string.Empty,
+                    ["ConfirmUrl"] = confirmUrl,
+                    ["UserEmail"] = user.Email ?? string.Empty
+                };
+
+                var subject = "Aprobación de nuevo usuario - Futbol Base";
+
+                // Send email to the configured admin address (Smtp:FromEmail) so admin can approve
+                var adminEmail = _configuration["Smtp:FromEmail"] ?? _configuration["Seed:AdminEmail"] ?? string.Empty;
+                if (string.IsNullOrWhiteSpace(adminEmail))
+                {
+                    return Results.Ok("Usuario registrado exitosamente, pero no se encontró un email de administrador para notificar.");
+                }
+
+                try
+                {
+                    await _emailService.SendEmailAsync(adminEmail, subject, "ConfirmUserTemplate", placeholders);
+                }
+                catch
+                {
+                    // If sending fails, do not block creation but return created with warning.
+                    return Results.Ok("Usuario registrado, pero no se pudo enviar el correo de notificación al administrador.");
+                }
+
+                return Results.Ok("Usuario registrado exitosamente. Se ha notificado al administrador para su aprobación.");
             }
         }
     }

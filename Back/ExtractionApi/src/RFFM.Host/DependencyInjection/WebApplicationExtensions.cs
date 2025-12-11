@@ -2,6 +2,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using RFFM.Api.Infrastructure.Persistence;
+using Microsoft.AspNetCore.Identity;
+using System.Security.Claims;
 
 namespace RFFM.Host.DependencyInjection
 {
@@ -146,6 +148,108 @@ namespace RFFM.Host.DependencyInjection
             };
 
             return transientErrorNumbers.Contains(exception.Number);
+        }
+
+        public static void SeedIdentityRoles(this WebApplication app)
+        {
+            // Fire-and-forget seeding to avoid blocking startup. Exceptions are logged.
+            _ = Task.Run(async () =>
+            {
+                using var scope = app.Services.CreateScope();
+                var logger = scope.ServiceProvider.GetService<ILogger<WebApplication>>();
+
+                try
+                {
+                    var roleManager = scope.ServiceProvider.GetService<RoleManager<IdentityRole>>();
+                    var userManager = scope.ServiceProvider.GetService<UserManager<IdentityUser>>();
+
+                    if (roleManager == null)
+                    {
+                        logger?.LogWarning("RoleManager not registered; skipping role seeding.");
+                        return;
+                    }
+
+                    string[] roles = new[] { "Federation", "Coach", "Administrator" };
+
+                    foreach (var roleName in roles)
+                    {
+                        if (!await roleManager.RoleExistsAsync(roleName))
+                        {
+                            var role = new IdentityRole(roleName);
+                            var res = await roleManager.CreateAsync(role);
+                            if (res.Succeeded)
+                                logger?.LogInformation("Created role {Role}", roleName);
+                            else
+                                logger?.LogWarning("Failed to create role {Role}: {Errors}", roleName, string.Join(',', res.Errors.Select(e => e.Description)));
+                        }
+                        else
+                        {
+                            logger?.LogDebug("Role {Role} already exists", roleName);
+                        }
+                    }
+
+                    // Seed default role claims (permissions) - adjust as needed
+                    var admin = await roleManager.FindByNameAsync("Administrator");
+                    if (admin != null)
+                    {
+                        var claims = await roleManager.GetClaimsAsync(admin);
+                        if (!claims.Any(c => c.Type == "permission" && c.Value == "admin:*"))
+                        {
+                            await roleManager.AddClaimAsync(admin, new Claim("permission", "admin:*"));
+                            logger?.LogInformation("Added admin:* claim to Administrator role");
+                        }
+                    }
+
+                    var federation = await roleManager.FindByNameAsync("Federation");
+                    if (federation != null)
+                    {
+                        var claims = await roleManager.GetClaimsAsync(federation);
+                        if (!claims.Any(c => c.Type == "permission" && c.Value == "settings.manage"))
+                        {
+                            await roleManager.AddClaimAsync(federation, new Claim("permission", "settings.manage"));
+                            logger?.LogInformation("Added settings.manage claim to Federation role");
+                        }
+                    }
+
+                    var coach = await roleManager.FindByNameAsync("Coach");
+                    if (coach != null)
+                    {
+                        var claims = await roleManager.GetClaimsAsync(coach);
+                        if (!claims.Any(c => c.Type == "permission" && c.Value == "coach:manage"))
+                        {
+                            await roleManager.AddClaimAsync(coach, new Claim("permission", "coach:manage"));
+                            logger?.LogInformation("Added coach:manage claim to Coach role");
+                        }
+                    }
+
+                    // Optionally assign an admin user from configuration
+                    var config = app.Configuration;
+                    var adminEmail = config["Seed:AdminEmail"]; // set in appsettings or user-secrets
+                    if (!string.IsNullOrEmpty(adminEmail) && userManager != null)
+                    {
+                        var user = await userManager.FindByEmailAsync(adminEmail);
+                        if (user != null)
+                        {
+                            var inRole = await userManager.IsInRoleAsync(user, "Administrator");
+                            if (!inRole)
+                            {
+                                await userManager.AddToRoleAsync(user, "Administrator");
+                                logger?.LogInformation("Assigned Administrator role to user {Email}", adminEmail);
+                            }
+                        }
+                        else
+                        {
+                            logger?.LogWarning("Admin user with email {Email} not found; cannot assign Administrator role.", adminEmail);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    using var scope2 = app.Services.CreateScope();
+                    var logger2 = scope2.ServiceProvider.GetService<ILogger<WebApplication>>();
+                    logger2?.LogError(ex, "Error while seeding identity roles");
+                }
+            });
         }
     }
 }

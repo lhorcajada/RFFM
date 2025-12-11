@@ -1,5 +1,4 @@
-﻿using FutbolBase.Api.App.Modules.Domain.Resources;
-using Microsoft.Extensions.Localization;
+﻿using Microsoft.Extensions.Localization;
 
 namespace RFFM.Api.Domain.Resources
 {
@@ -31,6 +30,24 @@ namespace RFFM.Api.Domain.Resources
             Code = $"{nameof(LoginErrorUserOrPassword)}",
             Message = _localizer[nameof(LoginErrorUserOrPassword)]
         };
+
+        public static ValidationMessageData LoginEmailNotConfirmed
+        {
+            get
+            {
+                var name = nameof(LoginEmailNotConfirmed);
+                var localized = _localizer?[name];
+                var message = localized is not null && !localized.ResourceNotFound
+                    ? localized.Value
+                    : "La cuenta está creada, pero todavía no ha sido confirmada por el administrador del sistema.";
+
+                return new ValidationMessageData
+                {
+                    Code = name,
+                    Message = message
+                };
+            }
+        }
 
         public static ValidationMessageData RegisterEmailExistsAlready => new()
         {
@@ -118,19 +135,16 @@ namespace RFFM.Api.Domain.Resources
             Code = $"{nameof(RoleClubMember)}",
             Message = _localizer[nameof(RoleClubMember)]
         };
-
         public static ValidationMessageData RolePlayer => new()
         {
             Code = $"{nameof(RolePlayer)}",
             Message = _localizer[nameof(RolePlayer)]
         };
-
         public static ValidationMessageData RoleFamilyPlayer => new()
         {
             Code = $"{nameof(RoleFamilyPlayer)}",
             Message = _localizer[nameof(RoleFamilyPlayer)]
         };
-
         public static ValidationMessageData RoleFollower => new()
         {
             Code = $"{nameof(RoleFollower)}",

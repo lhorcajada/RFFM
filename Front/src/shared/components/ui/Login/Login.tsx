@@ -12,6 +12,7 @@ import HomeIcon from "@mui/icons-material/Home";
 import { useNavigate } from "react-router-dom";
 import styles from "./Login.module.css";
 import { useCoachAuthContext } from "../../../../apps/coach/context/CoachAuthContext";
+import { coachAuthService } from "../../../../apps/coach/services/authService";
 import BaseLayout from "../../../../apps/coach/components/ui/BaseLayout/BaseLayout";
 
 const SharedLogin: React.FC<{ redirectTo?: string }> = ({ redirectTo }) => {
@@ -49,7 +50,12 @@ const SharedLogin: React.FC<{ redirectTo?: string }> = ({ redirectTo }) => {
       setUsername("");
       setPassword("");
       setTimeout(() => {
-        navigate(redirectTo || "/");
+        if (redirectTo) {
+          navigate(redirectTo);
+          return;
+        }
+        // Default landing: App selector (root)
+        navigate("/");
       }, 500);
     } else {
       setFormError(success.error ?? "Ha ocurrido un error al iniciar sesión.");

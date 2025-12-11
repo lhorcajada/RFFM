@@ -50,6 +50,7 @@ namespace RFFM.Api.DependencyInjection
 
 
             services.AddScoped<EmailService>();
+            services.AddScoped<IUserRegistrationEmailService, UserRegistrationEmailService>();
 
             // Register IdentityDbContext if a connection string is present
             var identityConn = configuration.GetConnectionString("IdentityConnection") ?? configuration.GetConnectionString("DefaultConnection");

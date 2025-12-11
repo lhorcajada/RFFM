@@ -46,3 +46,20 @@ body {
   left: auto !important;
   z-index: 1400 !important;
 }
+
+/* Conservative fix: ensure app root fills viewport and main is the scroller */
+.app-root,
+.app,
+#root,
+html,
+body {
+  height: 100vh;
+  box-sizing: border-box;
+}
+
+main,
+.main,
+.content {
+  min-height: 0;
+  overflow: auto;
+}

@@ -131,6 +131,16 @@ namespace RFFM.Api.Domain.Services
                     CodeMessages.LoginUserNotRegistered.Code);
             }
 
+            // Verificar que el email del usuario ha sido confirmado por el administrador
+            if (!user.EmailConfirmed)
+            {
+                _logger.LogWarning("User email not confirmed: {Username}", username);
+                throw new DomainException(
+                    "Generando token",
+                    CodeMessages.LoginEmailNotConfirmed.Message,
+                    CodeMessages.LoginEmailNotConfirmed.Code);
+            }
+
             // Verificar contraseña
             if (!VerifyPassword(password, user.PasswordHash ?? throw new InvalidOperationException()))
             {
@@ -164,6 +174,41 @@ namespace RFFM.Api.Domain.Services
                 {
                     claims[claim.Type] = claim.Value;
                 }
+            }
+
+            // Incluir roles y permisos asociados a cada role en el token
+            try
+            {
+                // Obtener roleIds del usuario
+                var roleIds = await _applicationDbContext.Set<IdentityUserRole<string>>()
+                    .Where(ur => ur.UserId == user.Id)
+                    .Select(ur => ur.RoleId)
+                    .ToListAsync(cancellationToken);
+
+                // Obtener nombres de roles
+                var roles = await _applicationDbContext.Roles
+                    .Where(r => roleIds.Contains(r.Id))
+                    .Select(r => new { r.Id, r.Name })
+                    .ToListAsync(cancellationToken);
+
+                var roleNames = roles.Select(r => r.Name ?? string.Empty).ToArray();
+                claims["roles"] = roleNames;
+
+                // Obtener permisos (claims de tipo 'permission') por role
+                var roleClaims = await _applicationDbContext.Set<IdentityRoleClaim<string>>()
+                    .Where(rc => roleIds.Contains(rc.RoleId) && rc.ClaimType == "permission")
+                    .ToListAsync(cancellationToken);
+
+                var permissionsByRole = roles.ToDictionary(
+                    r => r.Name ?? string.Empty,
+                    r => roleClaims.Where(rc => rc.RoleId == r.Id).Select(rc => rc.ClaimValue).ToArray() as object
+                );
+
+                claims["role_permissions"] = permissionsByRole;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "No se pudieron incluir roles/permisos en el token");
             }
 
             // Generar token con Jose

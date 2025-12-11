@@ -10,9 +10,11 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using RFFM.Api.Domain;
 using RFFM.Api.Domain.Resources;
-using RFFM.Api.Domain.Services;
+using RFFM.Api.Infrastructure.Services.Email;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
+using RFFM.Api.Domain.Services;
+using RFFM.Api.Domain.Entities;
 
 namespace RFFM.Api.Features.Coaches.Auth.Commands
 {
@@ -39,17 +41,23 @@ namespace RFFM.Api.Features.Coaches.Auth.Commands
     public class RegisterHandler : IRequestHandler<RegisterCommand, IResult>
     {
         private readonly UserManager<IdentityUser> _userManager;
+        private readonly RoleManager<IdentityRole> _roleManager;
         private readonly IdentityDbContext _applicationDbContext;
         private readonly IConfiguration _configuration;
+        private readonly IUserRegistrationEmailService _registrationEmailService;
 
-        public RegisterHandler(UserManager<IdentityUser> userManager, 
-            ITokenService tokenService, 
-            IdentityDbContext applicationDbContext, 
-            IConfiguration configuration)
+        public RegisterHandler(UserManager<IdentityUser> userManager,
+            ITokenService tokenService,
+            IdentityDbContext applicationDbContext,
+            IConfiguration configuration,
+            IUserRegistrationEmailService registrationEmailService,
+            RoleManager<IdentityRole> roleManager)
         {
             _userManager = userManager;
+            _roleManager = roleManager;
             _applicationDbContext = applicationDbContext;
             _configuration = configuration;
+            _registrationEmailService = registrationEmailService;
         }
 
         public async ValueTask<IResult> Handle(RegisterCommand request, CancellationToken cancellationToken)
@@ -118,7 +126,39 @@ namespace RFFM.Api.Features.Coaches.Auth.Commands
                             }
                         }
 
+                        // Assign default role 'Federacion' (best-effort) before committing
+                        try
+                        {
+                            var defaultRole = AppRoles.Federation.Name;
+                            if (_roleManager != null && !await _roleManager.RoleExistsAsync(defaultRole))
+                            {
+                                await _roleManager.CreateAsync(new IdentityRole(defaultRole));
+                            }
+                            if (_roleManager != null)
+                            {
+                                await _userManager.AddToRoleAsync(user, defaultRole);
+                            }
+                        }
+                        catch
+                        {
+                            // ignore role assignment failures
+                        }
+
                         await transaction.CommitAsync(ct);
+
+                        // Notify admin for approval (best-effort)
+                        try
+                        {
+                            var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+                            if (_registrationEmailService != null)
+                            {
+                                await _registrationEmailService.NotifyAdminForApprovalAsync(user, token, ct);
+                            }
+                        }
+                        catch
+                        {
+                            // swallow notification errors for now
+                        }
 
                         return Results.Ok();
                     }

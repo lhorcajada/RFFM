@@ -1,4 +1,7 @@
-﻿namespace RFFM.Api.Infrastructure.Services.Email
+﻿using System.Text.RegularExpressions;
+using System.Text;
+
+namespace RFFM.Api.Infrastructure.Services.Email
 {
     public class EmailTemplateService
     {
@@ -18,12 +21,16 @@
                 throw new FileNotFoundException($"La plantilla '{templateName}' no se encontró en la ruta '{_templatePath}'.");
             }
 
-            var templateContent = await File.ReadAllTextAsync(templateFilePath);
+            var templateContent = await File.ReadAllTextAsync(templateFilePath, Encoding.UTF8);
 
-            // Reemplazar los marcadores con valores
-            foreach (var placeholder in placeholders)
+            if (placeholders != null && placeholders.Any())
             {
-                templateContent = templateContent.Replace($"{{{{ {placeholder.Key} }}}}", placeholder.Value);
+                // Replace placeholders allowing formats like {{Key}} or {{ Key }} (case-sensitive for keys)
+                foreach (var placeholder in placeholders)
+                {
+                    var pattern = "{{\\s*" + Regex.Escape(placeholder.Key) + "\\s*}}";
+                    templateContent = Regex.Replace(templateContent, pattern, placeholder.Value ?? string.Empty);
+                }
             }
 
             return templateContent;

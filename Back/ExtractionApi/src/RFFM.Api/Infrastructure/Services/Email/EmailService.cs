@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
 using RFFM.Api.Domain.Resources;
-using SendGrid;
-using SendGrid.Helpers.Mail;
+using MimeKit;
+using MailKit.Net.Smtp;
 
 namespace RFFM.Api.Infrastructure.Services.Email
 {
@@ -18,24 +18,39 @@ namespace RFFM.Api.Infrastructure.Services.Email
 
         public async Task SendEmailAsync(string toEmail, string subject, string templateName, Dictionary<string, string> placeholders)
         {
-            var apiKey = _configuration["SendGrid:ApiKey"];
-            var fromEmail = _configuration["SendGrid:FromEmail"];
-            var fromName = _configuration["SendGrid:FromName"];
+            var host = _configuration["Smtp:Host"] ?? "smtp.gmail.com";
+            var port = int.TryParse(_configuration["Smtp:Port"], out var p) ? p : 587;
+            var user = _configuration["Smtp:User"];
+            var pass = _configuration["Smtp:Password"];
+            var fromEmail = _configuration["Smtp:FromEmail"] ?? _configuration["Smtp:User"];
+            var fromName = _configuration["Smtp:FromName"] ?? "Futbol Base";
 
-            var client = new SendGridClient(apiKey);
-            var from = new EmailAddress(fromEmail, fromName);
-            var to = new EmailAddress(toEmail);
+            if (string.IsNullOrEmpty(user) || string.IsNullOrEmpty(pass))
+            {
+                throw new InvalidOperationException("SMTP configuration is missing (Smtp:User/Smtp:Password)");
+            }
 
             // Obtener el contenido de la plantilla
             var htmlContent = await _emailTemplateService.GetTemplateAsync(templateName, placeholders);
 
-            var msg = MailHelper.CreateSingleEmail(from, to, subject, null, htmlContent);
-            var response = await client.SendEmailAsync(msg);
+            var message = new MimeMessage();
+            message.From.Add(new MailboxAddress(fromName, fromEmail));
+            message.To.Add(MailboxAddress.Parse(toEmail));
+            message.Subject = subject;
 
-            if (!response.IsSuccessStatusCode)
+            var builder = new BodyBuilder { HtmlBody = htmlContent };
+            message.Body = builder.ToMessageBody();
+
+            using var smtp = new SmtpClient();
+            try
             {
-                // Manejar errores de SendGrid
-                throw new Exception($"{CodeMessages.EmailErrorSending.Message}: {response.StatusCode}");
+                await smtp.ConnectAsync(host, port, MailKit.Security.SecureSocketOptions.StartTls);
+                await smtp.AuthenticateAsync(user, pass);
+                await smtp.SendAsync(message);
+            }
+            finally
+            {
+                await smtp.DisconnectAsync(true);
             }
         }
     }

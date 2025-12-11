@@ -18,5 +18,8 @@ startup.Configure(app, app.Environment);
 await app.MigrateDbContext<AppDbContext>();
 await app.MigrateDbContext<IdentityDbContext>();
 
+// Seed roles/claims asynchronously (non-blocking)
+app.SeedIdentityRoles();
+
 app.Run();
 

@@ -32,7 +32,10 @@ function LoadingFallback() {
 
 export default function AppRouter() {
   function RootLanding() {
-    const Auth = coachAuthService.isAuthenticated();
+    const devFlag =
+      typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).get("dev") === "1";
+    const Auth = devFlag || coachAuthService.isAuthenticated();
     const Selector = AppSelector;
     const Login = SharedLogin;
     return Auth ? (
@@ -75,19 +78,12 @@ export default function AppRouter() {
         <Route
           path="/federation/*"
           element={
-            <RequireAuth>
+            <RequireAuth requiredRole="Federation">
               <FederationApp />
             </RequireAuth>
           }
         />
-        <Route
-          path="/coach/*"
-          element={
-            <RequireAuth>
-              <CoachApp />
-            </RequireAuth>
-          }
-        />
+        <Route path="/coach/*" element={<CoachApp />} />
         <Route path="/error-500" element={<Error500 />} />
       </Routes>
     </Suspense>

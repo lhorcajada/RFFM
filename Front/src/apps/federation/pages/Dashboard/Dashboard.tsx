@@ -34,7 +34,7 @@ export default function Dashboard(): JSX.Element {
       />
       <div
         style={{
-          padding: "24px 24px 16px",
+          padding: "20px",
           display: "flex",
           justifyContent: "flex-end",
           boxSizing: "border-box",
@@ -52,7 +52,7 @@ export default function Dashboard(): JSX.Element {
       </div>
       <div
         style={{
-          padding: "0 24px 24px",
+          padding: "20px",
           boxSizing: "border-box",
           width: "100%",
         }}

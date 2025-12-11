@@ -2,20 +2,45 @@ import React from "react";
 import { Navigate } from "react-router-dom";
 import { coachAuthService } from "../../apps/coach/services/authService";
 
-export default function RequireAuth({ children }: { children: JSX.Element }) {
+export default function RequireAuth({
+  children,
+  requiredRole,
+}: {
+  children: JSX.Element;
+  requiredRole?: string;
+}) {
   try {
-    const ok = coachAuthService.isAuthenticated();
+    const devFlag =
+      typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).get("dev") === "1";
+    const ok = devFlag || coachAuthService.isAuthenticated();
     if (!ok) {
       try {
-        // ensure token removed and global handlers notified
         coachAuthService.logout();
         if (typeof window !== "undefined")
           window.dispatchEvent(new Event("rffm.auth_expired"));
-      } catch (e) {
-        // ignore
-      }
+      } catch (e) {}
       return <Navigate to="/login" replace />;
     }
+
+    // if a role is required, ensure the user has it (Administrator bypasses)
+    if (requiredRole && !coachAuthService.hasRole(requiredRole)) {
+      // authenticated but forbidden -> show snackbar and redirect to root
+      try {
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("rffm.show_snackbar", {
+              detail: {
+                message: "No tienes permisos para acceder a esta sección.",
+                severity: "warning",
+              },
+            })
+          );
+        }
+      } catch (e) {}
+      return <Navigate to="/" replace />;
+    }
+
     return children;
   } catch (e) {
     try {

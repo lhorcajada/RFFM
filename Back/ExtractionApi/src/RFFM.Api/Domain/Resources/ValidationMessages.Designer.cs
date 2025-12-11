@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace FutbolBase.Api.App.Modules.Domain.Resources {
+namespace RFFM.Api.Domain.Resources {
     using System;
     
     
@@ -19,10 +19,10 @@ namespace FutbolBase.Api.App.Modules.Domain.Resources {
     // class via a tool like ResGen or Visual Studio.
     // To add or remove a member, edit your .ResX file then rerun ResGen
     // with the /str option, or rebuild your VS project.
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "17.0.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "18.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    internal class ValidationMessages {
+    public class ValidationMessages {
         
         private static global::System.Resources.ResourceManager resourceMan;
         
@@ -36,10 +36,10 @@ namespace FutbolBase.Api.App.Modules.Domain.Resources {
         ///   Returns the cached ResourceManager instance used by this class.
         /// </summary>
         [global::System.ComponentModel.EditorBrowsableAttribute(global::System.ComponentModel.EditorBrowsableState.Advanced)]
-        internal static global::System.Resources.ResourceManager ResourceManager {
+        public static global::System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.ReferenceEquals(resourceMan, null)) {
-                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("FutbolBase.Api.App.Modules.Domain.Resources.ValidationMessages", typeof(ValidationMessages).Assembly);
+                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("RFFM.Api.Domain.Resources.ValidationMessages", typeof(ValidationMessages).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
@@ -51,7 +51,7 @@ namespace FutbolBase.Api.App.Modules.Domain.Resources {
         ///   resource lookups using this strongly typed resource class.
         /// </summary>
         [global::System.ComponentModel.EditorBrowsableAttribute(global::System.ComponentModel.EditorBrowsableState.Advanced)]
-        internal static global::System.Globalization.CultureInfo Culture {
+        public static global::System.Globalization.CultureInfo Culture {
             get {
                 return resourceCulture;
             }
@@ -63,7 +63,7 @@ namespace FutbolBase.Api.App.Modules.Domain.Resources {
         /// <summary>
         ///   Looks up a localized string similar to Error al enviar correo.
         /// </summary>
-        internal static string EmailPasswordErrorSending {
+        public static string EmailPasswordErrorSending {
             get {
                 return ResourceManager.GetString("EmailPasswordErrorSending", resourceCulture);
             }
@@ -72,7 +72,7 @@ namespace FutbolBase.Api.App.Modules.Domain.Resources {
         /// <summary>
         ///   Looks up a localized string similar to Haz clic en el siguiente enlace para continuar:.
         /// </summary>
-        internal static string ForgotPasswordActionInstructions {
+        public static string ForgotPasswordActionInstructions {
             get {
                 return ResourceManager.GetString("ForgotPasswordActionInstructions", resourceCulture);
             }
@@ -81,7 +81,7 @@ namespace FutbolBase.Api.App.Modules.Domain.Resources {
         /// <summary>
         ///   Looks up a localized string similar to Restablecer Contraseña.
         /// </summary>
-        internal static string ForgotPasswordActionText {
+        public static string ForgotPasswordActionText {
             get {
                 return ResourceManager.GetString("ForgotPasswordActionText", resourceCulture);
             }
@@ -90,7 +90,7 @@ namespace FutbolBase.Api.App.Modules.Domain.Resources {
         /// <summary>
         ///   Looks up a localized string similar to El enlace expirará en 1 hora..
         /// </summary>
-        internal static string ForgotPasswordExpirationMessage {
+        public static string ForgotPasswordExpirationMessage {
             get {
                 return ResourceManager.GetString("ForgotPasswordExpirationMessage", resourceCulture);
             }
@@ -99,7 +99,7 @@ namespace FutbolBase.Api.App.Modules.Domain.Resources {
         /// <summary>
         ///   Looks up a localized string similar to Recibimos una solicitud para restablecer tu contraseña..
         /// </summary>
-        internal static string ForgotPasswordGreetingMessage {
+        public static string ForgotPasswordGreetingMessage {
             get {
                 return ResourceManager.GetString("ForgotPasswordGreetingMessage", resourceCulture);
             }
@@ -108,7 +108,7 @@ namespace FutbolBase.Api.App.Modules.Domain.Resources {
         /// <summary>
         ///   Looks up a localized string similar to Restablecer Contraseña.
         /// </summary>
-        internal static string ForgotPasswordIgnoreMessage {
+        public static string ForgotPasswordIgnoreMessage {
             get {
                 return ResourceManager.GetString("ForgotPasswordIgnoreMessage", resourceCulture);
             }
@@ -117,7 +117,7 @@ namespace FutbolBase.Api.App.Modules.Domain.Resources {
         /// <summary>
         ///   Looks up a localized string similar to Resetea tu contraseña para Futbol Base.
         /// </summary>
-        internal static string ForgotPasswordResetSubject {
+        public static string ForgotPasswordResetSubject {
             get {
                 return ResourceManager.GetString("ForgotPasswordResetSubject", resourceCulture);
             }
@@ -126,7 +126,7 @@ namespace FutbolBase.Api.App.Modules.Domain.Resources {
         /// <summary>
         ///   Looks up a localized string similar to No se han proporcionado el usuario o la contraseña.
         /// </summary>
-        internal static string LoginEmptyUserOrPass {
+        public static string LoginEmptyUserOrPass {
             get {
                 return ResourceManager.GetString("LoginEmptyUserOrPass", resourceCulture);
             }
@@ -135,7 +135,7 @@ namespace FutbolBase.Api.App.Modules.Domain.Resources {
         /// <summary>
         ///   Looks up a localized string similar to El usuario o la password son erróneos.
         /// </summary>
-        internal static string LoginErrorUserOrPassword {
+        public static string LoginErrorUserOrPassword {
             get {
                 return ResourceManager.GetString("LoginErrorUserOrPassword", resourceCulture);
             }
@@ -144,7 +144,7 @@ namespace FutbolBase.Api.App.Modules.Domain.Resources {
         /// <summary>
         ///   Looks up a localized string similar to Todavía no te has registrado.
         /// </summary>
-        internal static string LoginUserNotRegistered {
+        public static string LoginUserNotRegistered {
             get {
                 return ResourceManager.GetString("LoginUserNotRegistered", resourceCulture);
             }
@@ -153,7 +153,7 @@ namespace FutbolBase.Api.App.Modules.Domain.Resources {
         /// <summary>
         ///   Looks up a localized string similar to Email ya existe.
         /// </summary>
-        internal static string RegisterEmailExistsAlready {
+        public static string RegisterEmailExistsAlready {
             get {
                 return ResourceManager.GetString("RegisterEmailExistsAlready", resourceCulture);
             }
@@ -162,7 +162,7 @@ namespace FutbolBase.Api.App.Modules.Domain.Resources {
         /// <summary>
         ///   Looks up a localized string similar to Error al asignar el role del usuario.
         /// </summary>
-        internal static string RegisterFailedAssigningRole {
+        public static string RegisterFailedAssigningRole {
             get {
                 return ResourceManager.GetString("RegisterFailedAssigningRole", resourceCulture);
             }
@@ -171,7 +171,7 @@ namespace FutbolBase.Api.App.Modules.Domain.Resources {
         /// <summary>
         ///   Looks up a localized string similar to Ha ocurrido un error inesperado durante el registro.
         /// </summary>
-        internal static string RegisterGeneralError {
+        public static string RegisterGeneralError {
             get {
                 return ResourceManager.GetString("RegisterGeneralError", resourceCulture);
             }
@@ -180,7 +180,7 @@ namespace FutbolBase.Api.App.Modules.Domain.Resources {
         /// <summary>
         ///   Looks up a localized string similar to No se ha proporcionado la contraseña.
         /// </summary>
-        internal static string RegisterPasswordNotClaim {
+        public static string RegisterPasswordNotClaim {
             get {
                 return ResourceManager.GetString("RegisterPasswordNotClaim", resourceCulture);
             }
@@ -189,7 +189,7 @@ namespace FutbolBase.Api.App.Modules.Domain.Resources {
         /// <summary>
         ///   Looks up a localized string similar to La contraseña no cumple los requerimientos.
         /// </summary>
-        internal static string RegisterPassworNotMeetRequirements {
+        public static string RegisterPassworNotMeetRequirements {
             get {
                 return ResourceManager.GetString("RegisterPassworNotMeetRequirements", resourceCulture);
             }
@@ -198,7 +198,7 @@ namespace FutbolBase.Api.App.Modules.Domain.Resources {
         /// <summary>
         ///   Looks up a localized string similar to La contraseña del token no ha sido encontrada.
         /// </summary>
-        internal static string RegisterSecretNotFound {
+        public static string RegisterSecretNotFound {
             get {
                 return ResourceManager.GetString("RegisterSecretNotFound", resourceCulture);
             }
@@ -207,7 +207,7 @@ namespace FutbolBase.Api.App.Modules.Domain.Resources {
         /// <summary>
         ///   Looks up a localized string similar to Miembro del club.
         /// </summary>
-        internal static string RoleClubMember {
+        public static string RoleClubMember {
             get {
                 return ResourceManager.GetString("RoleClubMember", resourceCulture);
             }
@@ -216,7 +216,7 @@ namespace FutbolBase.Api.App.Modules.Domain.Resources {
         /// <summary>
         ///   Looks up a localized string similar to Entrenador.
         /// </summary>
-        internal static string RoleCoach {
+        public static string RoleCoach {
             get {
                 return ResourceManager.GetString("RoleCoach", resourceCulture);
             }
@@ -225,7 +225,7 @@ namespace FutbolBase.Api.App.Modules.Domain.Resources {
         /// <summary>
         ///   Looks up a localized string similar to Directiva.
         /// </summary>
-        internal static string RoleDirective {
+        public static string RoleDirective {
             get {
                 return ResourceManager.GetString("RoleDirective", resourceCulture);
             }
@@ -234,7 +234,7 @@ namespace FutbolBase.Api.App.Modules.Domain.Resources {
         /// <summary>
         ///   Looks up a localized string similar to Familiar del jugador.
         /// </summary>
-        internal static string RoleFamilyPlayer {
+        public static string RoleFamilyPlayer {
             get {
                 return ResourceManager.GetString("RoleFamilyPlayer", resourceCulture);
             }
@@ -243,7 +243,7 @@ namespace FutbolBase.Api.App.Modules.Domain.Resources {
         /// <summary>
         ///   Looks up a localized string similar to Seguidor.
         /// </summary>
-        internal static string RoleFollower {
+        public static string RoleFollower {
             get {
                 return ResourceManager.GetString("RoleFollower", resourceCulture);
             }
@@ -252,7 +252,7 @@ namespace FutbolBase.Api.App.Modules.Domain.Resources {
         /// <summary>
         ///   Looks up a localized string similar to Jugador.
         /// </summary>
-        internal static string RolePlayer {
+        public static string RolePlayer {
             get {
                 return ResourceManager.GetString("RolePlayer", resourceCulture);
             }
@@ -261,7 +261,7 @@ namespace FutbolBase.Api.App.Modules.Domain.Resources {
         /// <summary>
         ///   Looks up a localized string similar to No se puede crear un club si el role del usuario no es Directivo o Entrenador.
         /// </summary>
-        internal static string UserClubNotRolePermissive {
+        public static string UserClubNotRolePermissive {
             get {
                 return ResourceManager.GetString("UserClubNotRolePermissive", resourceCulture);
             }
@@ -270,7 +270,7 @@ namespace FutbolBase.Api.App.Modules.Domain.Resources {
         /// <summary>
         ///   Looks up a localized string similar to El identificador del club no puede ser nulo.
         /// </summary>
-        internal static string UserClubNotValidClubId {
+        public static string UserClubNotValidClubId {
             get {
                 return ResourceManager.GetString("UserClubNotValidClubId", resourceCulture);
             }
@@ -279,7 +279,7 @@ namespace FutbolBase.Api.App.Modules.Domain.Resources {
         /// <summary>
         ///   Looks up a localized string similar to El identificador del usario es nulo.
         /// </summary>
-        internal static string UserClubNotValidUserId {
+        public static string UserClubNotValidUserId {
             get {
                 return ResourceManager.GetString("UserClubNotValidUserId", resourceCulture);
             }

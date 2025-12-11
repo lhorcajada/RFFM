@@ -4,13 +4,24 @@ import { Typography, Card, CardActionArea, CardContent } from "@mui/material";
 import SportsIcon from "@mui/icons-material/Sports";
 import GroupsIcon from "@mui/icons-material/Groups";
 import styles from "./AppSelector.module.css";
+import { coachAuthService } from "../../apps/coach/services/authService";
+
+function dispatchSnackbar(message: string) {
+  try {
+    window.dispatchEvent(
+      new CustomEvent("rffm.show_snackbar", {
+        detail: { message, severity: "warning" },
+      })
+    );
+  } catch (e) {}
+}
 
 export default function AppSelector() {
   const navigate = useNavigate();
 
   return (
     <div className={styles.wrapper}>
-      <div style={{ maxWidth: "1000px", width: "100%" }}>
+      <div className={styles.container}>
         <div className={styles.header}>
           <Typography variant="h3" component="h1" className={styles.title}>
             RFFM Platform
@@ -23,7 +34,23 @@ export default function AppSelector() {
         <div className={styles.gridContainer}>
           <Card className={styles.card}>
             <CardActionArea
-              onClick={() => navigate("/federation/dashboard")}
+              onClick={() => {
+                // Federation requires Federation role (Administrator bypasses)
+                if (!coachAuthService.isAuthenticated()) {
+                  navigate("/login");
+                  return;
+                }
+                if (
+                  coachAuthService.hasRole("Administrator") ||
+                  coachAuthService.hasRole("Federation")
+                ) {
+                  navigate("/federation/dashboard");
+                } else {
+                  dispatchSnackbar(
+                    "No tienes permisos para acceder a Federación."
+                  );
+                }
+              }}
               sx={{ height: "100%" }}
             >
               <CardContent className={styles.cardContent}>
@@ -45,7 +72,23 @@ export default function AppSelector() {
 
           <Card className={styles.card}>
             <CardActionArea
-              onClick={() => navigate("/coach/dashboard")}
+              onClick={() => {
+                // Coach requires Coach role (Administrator bypasses)
+                if (!coachAuthService.isAuthenticated()) {
+                  navigate("/login");
+                  return;
+                }
+                if (
+                  coachAuthService.hasRole("Administrator") ||
+                  coachAuthService.hasRole("Coach")
+                ) {
+                  navigate("/coach/dashboard");
+                } else {
+                  dispatchSnackbar(
+                    "No tienes permisos para acceder a la sección de Entrenadores."
+                  );
+                }
+              }}
               sx={{ height: "100%" }}
             >
               <CardContent className={styles.cardContent}>

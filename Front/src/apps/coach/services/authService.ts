@@ -73,4 +73,35 @@ export const coachAuthService = {
   getUserId: () => {
     return localStorage.getItem("coachUserId");
   },
+
+  // Roles & permissions helpers
+  getRoles: (): string[] => {
+    const token = localStorage.getItem("coachAuthToken");
+    if (!token) return [];
+    const decoded = decodeJwtPayload(token);
+    if (!decoded) return [];
+    return Array.isArray(decoded.roles) ? decoded.roles : [];
+  },
+
+  hasRole: (role: string) => {
+    const roles = coachAuthService.getRoles();
+    if (!roles || roles.length === 0) return false;
+    if (roles.includes("Administrator")) return true; // admin bypass
+    return roles.includes(role);
+  },
+
+  getPermissionsForRole: (role: string): string[] => {
+    const token = localStorage.getItem("coachAuthToken");
+    if (!token) return [];
+    const decoded = decodeJwtPayload(token);
+    if (!decoded) return [];
+    const rp = decoded.role_permissions ?? decoded.rolePermissions ?? {};
+    return Array.isArray(rp?.[role]) ? rp[role] : [];
+  },
+
+  hasPermission: (role: string, permission: string) => {
+    if (coachAuthService.getRoles().includes("Administrator")) return true;
+    const perms = coachAuthService.getPermissionsForRole(role);
+    return perms.includes(permission);
+  },
 };

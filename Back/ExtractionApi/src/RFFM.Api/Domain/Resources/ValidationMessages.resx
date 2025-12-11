@@ -192,4 +192,7 @@
   <data name="UserClubNotValidClubId" xml:space="preserve">
     <value>El identificador del club no puede ser nulo</value>
   </data>
+  <data name="LoginEmailNotConfirmed" xml:space="preserve">
+    <value>La cuenta está creada, pero todavía no ha sido confirmada por el administrador del sistema.</value>
+  </data>
 </root>

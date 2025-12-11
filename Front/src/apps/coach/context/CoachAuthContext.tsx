@@ -159,6 +159,28 @@ export const CoachAuthGuard: React.FC<{ children: React.ReactNode }> = ({
 
     if (!isAuthenticated && !isPublicRoute) {
       navigate("/login", { replace: true });
+      return;
+    }
+
+    // If authenticated, ensure user has Coach role to access coach area
+    if (
+      isAuthenticated &&
+      !coachAuthService.hasRole("Coach") &&
+      !location.pathname.startsWith("/coach/login") &&
+      !location.pathname.startsWith("/coach/register")
+    ) {
+      try {
+        window.dispatchEvent(
+          new CustomEvent("rffm.show_snackbar", {
+            detail: {
+              message:
+                "No tienes permisos para acceder a la sección de Entrenadores.",
+              severity: "warning",
+            },
+          })
+        );
+      } catch (e) {}
+      navigate("/", { replace: true });
     }
   }, [location.pathname, navigate, isAuthenticated]);
 
