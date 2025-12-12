@@ -25,22 +25,6 @@
   margin-top: 12px;
 }
 
-/* Ensure button text and spinner are visible when button is disabled */
-.submitButton.MuiButton-root,
-.submitButton {
-  color: #001f2d; /* dark text on light background by default */
-}
-
-.submitButton[aria-busy="true"],
-.submitButton:disabled {
-  background-color: #00e5ff !important; /* keep primary background visible */
-  color: #001f2d !important;
-}
-
-.submitButton .MuiCircularProgress-root {
-  color: inherit !important; /* spinner inherits visible color */
-}
-
 .options {
   display: flex;
   flex-direction: column;

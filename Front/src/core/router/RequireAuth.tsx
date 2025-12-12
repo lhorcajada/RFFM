@@ -38,7 +38,7 @@ export default function RequireAuth({
           );
         }
       } catch (e) {}
-      return <Navigate to="/" replace />;
+      return <Navigate to="/appSelector" replace />;
     }
 
     return children;

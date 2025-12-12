@@ -16,3 +16,61 @@
   font-weight: 600;
   flex-shrink: 0;
 }
+
+.toolbar > div {
+  display: flex;
+  align-items: center;
+}
+
+.MuiAvatar-root {
+  width: 40px;
+  height: 40px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brandLogo {
+  width: 48px;
+  height: auto;
+}
+
+.userBox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  color: white;
+}
+
+.userName {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.95);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+  text-align: center;
+}
+
+.MuiAvatar-root {
+  width: 38px;
+  height: 38px;
+}
+
+/* Responsive: reduce max width on small screens, hide name if extremely small */
+@media (max-width: 420px) {
+  .userName {
+    max-width: 80px;
+    font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 340px) {
+  .userName {
+    display: none;
+  }
+}

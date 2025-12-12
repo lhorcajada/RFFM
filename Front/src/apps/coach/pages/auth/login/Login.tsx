@@ -1,5 +1,6 @@
-import SharedLogin from "../../../../../shared/components/ui/Login/Login";
+import { Navigate, useLocation } from "react-router-dom";
 
 export default function CoachLoginWrapper() {
-  return <SharedLogin redirectTo="/coach/dashboard" />;
+  const location = useLocation();
+  return <Navigate to={`/login${location.search}`} replace />;
 }

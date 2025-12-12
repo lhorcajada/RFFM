@@ -327,7 +327,12 @@ function HeaderContainer({
         >
           Guardar
         </Button>
-        <Button component={Link} to="/" variant="outlined" size="small">
+        <Button
+          component={Link}
+          to="/appSelector"
+          variant="outlined"
+          size="small"
+        >
           Volver
         </Button>
       </Box>

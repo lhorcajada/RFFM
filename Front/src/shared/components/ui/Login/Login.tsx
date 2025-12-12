@@ -7,9 +7,10 @@ import {
   Paper,
   Alert,
   Link,
+  CircularProgress,
 } from "@mui/material";
 import HomeIcon from "@mui/icons-material/Home";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link as RouterLink } from "react-router-dom";
 import styles from "./Login.module.css";
 import { useCoachAuthContext } from "../../../../apps/coach/context/CoachAuthContext";
 import { coachAuthService } from "../../../../apps/coach/services/authService";
@@ -50,12 +51,21 @@ const SharedLogin: React.FC<{ redirectTo?: string }> = ({ redirectTo }) => {
       setUsername("");
       setPassword("");
       setTimeout(() => {
-        if (redirectTo) {
-          navigate(redirectTo);
-          return;
-        }
-        // Default landing: App selector (root)
-        navigate("/");
+        // Try SPA navigation first
+        navigate("/appSelector", { replace: true });
+
+        // Fallback: if for some reason the router doesn't navigate (race or outside router),
+        // force a full page redirect after a short timeout.
+        setTimeout(() => {
+          try {
+            if (
+              typeof window !== "undefined" &&
+              window.location.pathname !== "/appSelector"
+            ) {
+              window.location.href = "/appSelector";
+            }
+          } catch (e) {}
+        }, 800);
       }, 500);
     } else {
       setFormError(success.error ?? "Ha ocurrido un error al iniciar sesión.");
@@ -126,28 +136,39 @@ const SharedLogin: React.FC<{ redirectTo?: string }> = ({ redirectTo }) => {
               fullWidth
               className={styles.submitButton}
               disabled={isSubmitting}
+              aria-busy={isSubmitting}
+              sx={{
+                bgcolor: isSubmitting ? "#00e5ff" : undefined,
+                color: isSubmitting ? "#001f2d" : undefined,
+                "&.Mui-disabled": {
+                  bgcolor: "#00e5ff",
+                  color: "#001f2d",
+                },
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+              startIcon={
+                isSubmitting ? (
+                  <CircularProgress size={18} sx={{ color: "inherit" }} />
+                ) : undefined
+              }
             >
               {isSubmitting ? "Iniciando..." : "Iniciar Sesión"}
             </Button>
           </Box>
 
           <div className={styles.options}>
-            <Link href="/coach/register" underline="hover">
+            <Link component={RouterLink} to="/register" underline="hover">
               Registrarse
             </Link>
-            <Link href="/coach/forgot-password" underline="hover">
+            <Link
+              component={RouterLink}
+              to="/forgot-password"
+              underline="hover"
+            >
               ¿Olvidaste tu contraseña?
             </Link>
-          </div>
-
-          <div style={{ marginTop: "24px", textAlign: "center" }}>
-            <Button
-              variant="outlined"
-              startIcon={<HomeIcon />}
-              onClick={() => navigate("/")}
-            >
-              Volver al inicio
-            </Button>
           </div>
         </Paper>
       </Box>

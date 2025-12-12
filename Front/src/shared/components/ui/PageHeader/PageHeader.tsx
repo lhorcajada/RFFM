@@ -6,14 +6,16 @@ interface PageHeaderProps {
   title: string;
   subtitle?: string;
   children?: React.ReactNode;
+  className?: string;
 }
 
 const PageHeader: React.FC<PageHeaderProps> = ({
   title,
   subtitle,
   children,
+  className,
 }) => (
-  <div className={styles.header}>
+  <div className={`${styles.header} ${className ?? ""}`.trim()}>
     <Typography className={styles.title}>{title}</Typography>
     {subtitle && (
       <Typography variant="body2" className={styles.subtitle}>

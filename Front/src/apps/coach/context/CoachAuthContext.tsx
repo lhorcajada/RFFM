@@ -96,6 +96,19 @@ export const CoachAuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setUser(userData);
       localStorage.setItem("rffm_user", JSON.stringify(userData));
 
+      // Emit a global event and as a robust fallback force a full-page redirect
+      try {
+        window.dispatchEvent(
+          new CustomEvent("rffm.login_success", { detail: { user: userData } })
+        );
+      } catch (e) {}
+
+      try {
+        if (typeof window !== "undefined") {
+          window.location.href = "/appSelector";
+        }
+      } catch (e) {}
+
       return { success: true };
     } catch (error: any) {
       console.error(error);
@@ -147,11 +160,10 @@ export const CoachAuthGuard: React.FC<{ children: React.ReactNode }> = ({
 
   useEffect(() => {
     const publicRoutes = [
-      "/coach/login",
       "/login",
-      "/coach/register",
-      "/coach/forgot-password",
-      "/coach/reset-password",
+      "/register",
+      "/forgot-password",
+      "/reset-password",
     ];
     const isPublicRoute = publicRoutes.some((route) =>
       location.pathname.startsWith(route)
@@ -163,11 +175,11 @@ export const CoachAuthGuard: React.FC<{ children: React.ReactNode }> = ({
     }
 
     // If authenticated, ensure user has Coach role to access coach area
+    // Do not redirect away from public routes (login/register/forgot/reset)
     if (
       isAuthenticated &&
       !coachAuthService.hasRole("Coach") &&
-      !location.pathname.startsWith("/coach/login") &&
-      !location.pathname.startsWith("/coach/register")
+      !isPublicRoute
     ) {
       try {
         window.dispatchEvent(

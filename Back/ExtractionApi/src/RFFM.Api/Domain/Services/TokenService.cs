@@ -162,7 +162,7 @@ namespace RFFM.Api.Domain.Services
                 { "email", user.Email ?? string.Empty },
                 { "iss", issuer ?? string.Empty },
                 { "aud", audience ?? string.Empty },
-                { "exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds() },
+                { "exp", DateTimeOffset.UtcNow.AddDays(8).ToUnixTimeSeconds() },
                 { "iat", DateTimeOffset.UtcNow.ToUnixTimeSeconds() }
             };
 

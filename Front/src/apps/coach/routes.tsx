@@ -5,14 +5,7 @@ import { CoachAuthProvider, CoachAuthGuard } from "./context/CoachAuthContext";
 
 // Placeholder pages for Coach app
 const Dashboard = lazy(() => import("./pages/Dashboard"));
-const CoachLogin = lazy(() => import("./pages/auth/login/Login"));
-const CoachRegister = lazy(() => import("./pages/auth/register/Register"));
-const CoachForgotPassword = lazy(
-  () => import("./pages/auth/forgot-password/ForgotPassword")
-);
-const CoachResetPassword = lazy(
-  () => import("./pages/auth/reset-password/ResetPassword")
-);
+// Auth pages are provided at top-level shared/pages/auth; coach redirects to those routes
 
 // Feature pages for Coach app
 const Settings = lazy(() => import("./pages/settings/Settings"));
@@ -48,10 +41,19 @@ function CoachRoutesContent() {
       <Suspense fallback={<LoadingFallback />}>
         <Routes>
           <Route path="/" element={<Navigate to="login" replace />} />
-          <Route path="login" element={<CoachLogin />} />
-          <Route path="register" element={<CoachRegister />} />
-          <Route path="forgot-password" element={<CoachForgotPassword />} />
-          <Route path="reset-password" element={<CoachResetPassword />} />
+          <Route path="login" element={<Navigate to="/login" replace />} />
+          <Route
+            path="register"
+            element={<Navigate to="/register" replace />}
+          />
+          <Route
+            path="forgot-password"
+            element={<Navigate to="/forgot-password" replace />}
+          />
+          <Route
+            path="reset-password"
+            element={<Navigate to="/reset-password" replace />}
+          />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="settings" element={<Settings />} />
           <Route path="news" element={<News />} />

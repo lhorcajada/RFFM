@@ -11,7 +11,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { isAuthenticated } = useCoachAuthContext();
 
   if (!isAuthenticated) {
-    return <Navigate to="/coach/login" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   return <>{children}</>;

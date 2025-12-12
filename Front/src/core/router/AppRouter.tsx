@@ -1,5 +1,5 @@
 import React, { Suspense, lazy, useEffect } from "react";
-import { Routes, Route, useNavigate } from "react-router-dom";
+import { Routes, Route, useNavigate, Navigate } from "react-router-dom";
 import { coachAuthService } from "../../apps/coach/services/authService";
 import { CircularProgress, Box } from "@mui/material";
 import { CoachAuthProvider } from "../../apps/coach/context/CoachAuthContext";
@@ -10,6 +10,15 @@ const CoachApp = lazy(() => import("../../apps/coach/routes"));
 const AppSelector = lazy(() => import("./AppSelector"));
 const SharedLogin = lazy(
   () => import("../../shared/components/ui/Login/Login")
+);
+const SharedRegister = lazy(
+  () => import("../../shared/pages/auth/register/Register")
+);
+const SharedForgot = lazy(
+  () => import("../../shared/pages/auth/forgot-password/ForgotPassword")
+);
+const SharedReset = lazy(
+  () => import("../../shared/pages/auth/reset-password/ResetPassword")
 );
 const Error500 = lazy(
   () => import("../../shared/components/ui/Error500/Error500")
@@ -62,7 +71,7 @@ export default function AppRouter() {
     const navigate = useNavigate();
     // If already authenticated, redirect to root
     if (coachAuthService.isAuthenticated()) {
-      navigate("/", { replace: true });
+      navigate("/appSelector", { replace: true });
       return null;
     }
     return <>{children}</>;
@@ -71,8 +80,34 @@ export default function AppRouter() {
   return (
     <Suspense fallback={<LoadingFallback />}>
       <Routes>
-        <Route path="/" element={<RootLanding />} />
+        {/* Backwards-compatible root -> appSelector redirect */}
+        <Route path="/" element={<Navigate to="/appSelector" replace />} />
+        <Route path="/appSelector" element={<RootLanding />} />
         <Route path="/login" element={<LoginWithProvider />} />
+        <Route
+          path="/register"
+          element={
+            <CoachAuthProvider>
+              <SharedRegister />
+            </CoachAuthProvider>
+          }
+        />
+        <Route
+          path="/forgot-password"
+          element={
+            <CoachAuthProvider>
+              <SharedForgot />
+            </CoachAuthProvider>
+          }
+        />
+        <Route
+          path="/reset-password"
+          element={
+            <CoachAuthProvider>
+              <SharedReset />
+            </CoachAuthProvider>
+          }
+        />
         {/* Backwards-compatible redirect for old statistics path */}
         <Route path="/statistics/*" element={<NavigateToFederation />} />
         <Route
