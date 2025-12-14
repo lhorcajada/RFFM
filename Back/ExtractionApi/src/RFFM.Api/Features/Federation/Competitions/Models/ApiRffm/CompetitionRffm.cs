@@ -13,6 +13,9 @@ namespace RFFM.Api.Features.Federation.Competitions.Models.ApiRffm
         [JsonPropertyName("minutos_juego")]
         public string MatchTime { get; set; } = string.Empty;
 
+        [JsonPropertyName("nombre_grupo_categoria")]
+        public string CategoryGroup { get; set; } = string.Empty;
+
 
     }
 }

@@ -18,7 +18,7 @@ namespace RFFM.Api.Features.Federation.Competitions.Services
             CancellationToken cancellationToken);
     }
 
-    public record ResponseCompetition(int CompetitionId, string Name, int MatchTime);
+    public record ResponseCompetition(int CompetitionId, string Name, int MatchTime, string CategoryGroup);
     public record ResponseGroup(int Id, string Name, int WorkingDays);
 
     public class CompetitionService : ICompetitionService
@@ -59,7 +59,7 @@ namespace RFFM.Api.Features.Federation.Competitions.Services
 
                 var result = dtos
                     .Where(d => !string.IsNullOrWhiteSpace(d.CompetitionId) && !string.IsNullOrWhiteSpace(d.Name))
-                    .Select(d => new ResponseCompetition(Convert.ToInt32(d.CompetitionId), d.Name.Trim(), Convert.ToInt32(d.MatchTime)))
+                    .Select(d => new ResponseCompetition(Convert.ToInt32(d.CompetitionId), d.Name.Trim(), Convert.ToInt32(d.MatchTime), d.CategoryGroup.Trim()))
                     .ToArray();
 
                 return result;

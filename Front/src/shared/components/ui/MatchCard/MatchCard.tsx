@@ -14,6 +14,7 @@ import MatchTime from "./MatchTime";
 import { MatchEntry } from "../../../types/match";
 import useMatch from "../../../hooks/useMatch";
 import usePrimaryTeam from "../../../hooks/usePrimaryTeam";
+import { useUser } from "../../../context/UserContext";
 
 type MatchItem = {
   rawDate?: string | null;
@@ -73,7 +74,8 @@ export default function MatchCard({
   const rootClass = `${styles.matchCard}`;
   const finalClass = compact ? `${rootClass} ${styles.compact}` : rootClass;
 
-  const { isPrimary } = usePrimaryTeam();
+  const { user } = useUser();
+  const { isPrimary } = usePrimaryTeam(user?.id);
   const localIsPrimary = isPrimary(data.localTeamId);
   const awayIsPrimary = isPrimary(data.awayTeamId);
 

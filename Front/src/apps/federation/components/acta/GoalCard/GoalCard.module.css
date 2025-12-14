@@ -7,6 +7,7 @@
   background: transparent;
   box-shadow: 0 2px 8px rgba(16, 24, 40, 0.08);
   border: 1px solid rgba(16, 24, 40, 0.12);
+  position: relative;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -24,6 +25,54 @@
   gap: 8px;
   min-width: 64px;
 }
+
+.minuteRow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.scoreAtMoment {
+  font-size: 12px;
+  color: #cbd5e1;
+  background: transparent;
+  padding: 2px 4px;
+  border-radius: 6px;
+}
+
+.minuteAndScore {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.scorePill {
+  font-size: 13px;
+  color: #ffffff;
+  background: linear-gradient(180deg, #1f2937 0%, #111827 100%);
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 10px rgba(17, 24, 39, 0.45);
+  min-width: 48px;
+  text-align: center;
+  font-weight: 800;
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  z-index: 3;
+}
+
+@media (max-width: 600px) {
+  .scorePill {
+    font-size: 11px;
+    padding: 3px 6px;
+    min-width: 38px;
+    top: -8px;
+    right: -8px;
+  }
+}
 .minute {
   width: 36px;
   height: 36px;
@@ -33,7 +82,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 700;
+  font-weight: 900;
 }
 .ballWrap {
   width: 18px;
@@ -86,7 +135,50 @@
 .player {
   font-weight: 700;
   color: #fff;
-  word-break: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.playerRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  /* keep items on single line and prevent wrapping */
+  white-space: nowrap;
+}
+
+.chipInlineWrap {
+  display: inline-flex;
+  align-items: center;
+}
+
+.chipInlinePenal {
+  background-color: #fef3c7; /* amber-100 */
+  color: #92400e; /* amber-800 */
+  font-weight: 700;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 12px;
+  font-size: 12px;
+  text-transform: none;
+}
+
+.chipInlinePenal,
+.chipInlineOwn {
+  flex-shrink: 0;
+}
+
+.chipInlineOwn {
+  background-color: #fee2e2; /* red-100 */
+  color: #991b1b; /* red-800 */
+  font-weight: 700;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 12px;
+  font-size: 12px;
+  text-transform: none;
 }
 .chipDorsal {
   display: inline-flex;
@@ -111,11 +203,13 @@
   flex-direction: column;
   align-items: flex-end;
   gap: 6px;
+  min-width: 120px;
 }
 .rightInner {
   display: flex;
   gap: 8px;
   align-items: center;
+  justify-content: flex-end;
 }
 .dorsal {
   background: #0b1220;
@@ -171,11 +265,11 @@
     font-size: 11px;
   }
   .right {
-    align-items: flex-start;
+    align-items: center;
     flex-direction: row;
     gap: 8px;
     margin-top: 8px;
-    justify-content: flex-start;
+    justify-content: space-between;
   }
   .dorsal {
     padding: 4px 8px;
@@ -235,6 +329,20 @@
   color: #04233a !important;
 }
 
+.chipPenal {
+  background-color: #fef3c7; /* amber-100 */
+  color: #92400e; /* amber-800 */
+  font-weight: 700;
+  height: 28px;
+}
+
+@media (max-width: 700px) {
+  .chipPenal {
+    height: 22px;
+    font-size: 12px;
+  }
+}
+
 @media (max-width: 700px) {
   .chipDorsalRoot {
     height: 24px;
@@ -247,8 +355,31 @@
 @media (min-width: 900px) {
   .card {
     padding: 12px;
+    /* make desktop match mobile: stacked layout */
+    flex-direction: column;
+    align-items: stretch;
   }
   .left {
     min-width: 72px;
+  }
+  /* Desktop: place right area under center and keep it horizontal (like mobile) */
+  .right {
+    min-width: auto;
+    width: 100%;
+    align-items: center;
+    flex-direction: row;
+    gap: 8px;
+    margin-top: 8px;
+    justify-content: space-between;
+  }
+  .rightInner {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    justify-content: space-between;
+    width: 100%;
+  }
+  .center {
+    padding-right: 0;
   }
 }

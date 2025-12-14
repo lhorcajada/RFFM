@@ -9,8 +9,7 @@ import {
 } from "@mui/material";
 import { getCompetitions } from "../../../../apps/federation/services/api";
 
-type Competition = { id: string; name: string };
-
+type Competition = { id: string; name: string; categoryGroup: string };
 export default function CompetitionSelector({
   onChange,
   value,
@@ -48,6 +47,13 @@ export default function CompetitionSelector({
             d.nombre_competicion ??
             d.descripcion ??
             String(d.id),
+          categoryGroup:
+            d.categoryGroup ??
+            d.category_group ??
+            d.grupo_categoria ??
+            d.groupName ??
+            d.group ??
+            "Otros",
         }));
         if (mounted) setItems(mapped as Competition[]);
       } catch (err: unknown) {
@@ -88,11 +94,56 @@ export default function CompetitionSelector({
             onChange={handleChange}
           >
             <MenuItem value="">-- Seleccionar competición --</MenuItem>
-            {items.map((c) => (
-              <MenuItem key={c.id} value={c.id}>
-                {c.name}
-              </MenuItem>
-            ))}
+            {/* group by categoryGroup and render group title as disabled item */}
+            {(() => {
+              const groups: { [k: string]: Competition[] } = {};
+              items.forEach((it) => {
+                const g = it.categoryGroup || "Otros";
+                if (!groups[g]) groups[g] = [];
+                groups[g].push(it);
+              });
+              const flattened: any[] = [];
+              const groupNames = Object.keys(groups).sort();
+              groupNames.forEach((group, idx) => {
+                // add a subtle divider between groups (except first)
+                if (idx > 0) {
+                  flattened.push(
+                    <MenuItem
+                      key={`divider-${group}`}
+                      disabled
+                      style={{ height: 8 }}
+                    />
+                  );
+                }
+
+                flattened.push(
+                  <MenuItem
+                    key={`title-${group}`}
+                    disabled
+                    style={{
+                      opacity: 1,
+                      fontWeight: 700,
+                      fontSize: "0.85rem",
+                      color: "#fff",
+                      background: "#1976d2",
+                      marginBottom: 4,
+                      pointerEvents: "none",
+                    }}
+                  >
+                    {group}
+                  </MenuItem>
+                );
+
+                groups[group].forEach((c) =>
+                  flattened.push(
+                    <MenuItem key={c.id} value={c.id}>
+                      {c.name}
+                    </MenuItem>
+                  )
+                );
+              });
+              return flattened;
+            })()}
           </Select>
         </FormControl>
       )}

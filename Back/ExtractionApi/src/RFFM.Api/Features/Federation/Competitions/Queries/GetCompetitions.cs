@@ -26,7 +26,7 @@ namespace RFFM.Api.Features.Federation.Competitions.Queries
 
         public record QueryApp() : Common.IQueryApp<ResponseCompetition[]>;
 
-        public record ResponseCompetition(int Id, string Name);
+        public record ResponseCompetition(int Id, string Name, string CategoryGroup);
 
         public class RequestHandler : IRequestHandler<QueryApp, ResponseCompetition[]>
         {
@@ -43,7 +43,7 @@ namespace RFFM.Api.Features.Federation.Competitions.Queries
                 if (comps == null || comps.Length ==0)
                     return Array.Empty<ResponseCompetition>();
 
-                return comps.Select(c => new ResponseCompetition(c.CompetitionId, c.Name)).ToArray();
+                return comps.Select(c => new ResponseCompetition(c.CompetitionId, c.Name, c.CategoryGroup)).ToArray();
             }
         }
     }

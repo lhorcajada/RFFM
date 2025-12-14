@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import styles from "./Acta.module.css";
-import { getActa } from "../../services/api";
+import { getActa, getSettingsForUser } from "../../services/api";
 import type { Acta as ActaType } from "../../types/acta";
 import { Paper, Typography, CircularProgress } from "@mui/material";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
+import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import ActaHeaderDate from "../../components/acta/ActaHeaderDate/ActaHeaderDate";
 import Lineup from "../../components/acta/Lineup/Lineup";
 import Goals from "../../components/acta/Goals/Goals";
@@ -13,23 +14,60 @@ import Referees from "../../components/acta/Referees/Referees";
 import TechnicalStaff from "../../components/acta/TechnicalStaff/TechnicalStaff";
 import Amonestaciones from "../../components/acta/Amonestaciones/Amonestaciones";
 import FieldInfo from "../../components/acta/FieldInfo/FieldInfo";
-import MatchCard from "../../../../shared/components/ui/MatchCard/MatchCard";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import Button from "@mui/material/Button";
 
 export default function Acta(): JSX.Element {
   const { codacta } = useParams();
-  const location = useLocation();
   const navigate = useNavigate();
   const [acta, setActa] = useState<ActaType | null>(null);
   const [loading, setLoading] = useState(false);
+  // Use the SavedCombo shape from settings (single canonical fields)
+  type SavedCombo = {
+    id: string;
+    competitionId?: string;
+    competitionName?: string;
+    groupId?: string;
+    groupName?: string;
+    teamId?: string;
+    teamName?: string;
+    createdAt?: number;
+    isPrimary?: boolean;
+  };
   useEffect(() => {
     if (!codacta) return;
     setLoading(true);
-    getActa(codacta, { temporada: "21" })
-      .then((r) => setActa(r))
-      .catch(() => setActa(null))
-      .finally(() => setLoading(false));
+
+    (async () => {
+      try {
+        // Obtain competition/group only from saved settings (primary combo)
+        let competicion: string | undefined = undefined;
+        let grupo: string | undefined = undefined;
+        try {
+          const userId = undefined; // keep wrapper caching behavior
+          const saved = await getSettingsForUser(userId);
+          if (Array.isArray(saved) && saved.length > 0) {
+            const primary: SavedCombo = (saved.find((s: any) => s.isPrimary) ||
+              saved[0]) as SavedCombo;
+            competicion = primary.competitionId;
+            grupo = primary.groupId;
+          }
+        } catch (e) {
+          // ignore and let values be undefined
+        }
+
+        const r = await getActa(codacta, {
+          temporada: "21",
+          competicion,
+          grupo,
+        });
+        setActa(r);
+      } catch (e) {
+        setActa(null);
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, [codacta]);
 
   if (loading)
@@ -42,31 +80,27 @@ export default function Acta(): JSX.Element {
     );
 
   const content = (
-    <>
-      <div className={styles.actionBar}>
-        <div />
-        <div>
-          <Button variant="outlined" onClick={() => navigate(-1)}>
-            Volver al calendario
-          </Button>
-        </div>
-      </div>
-
-      <ActaHeaderDate
-        source={acta ?? location.state?.item?.match ?? location.state?.item}
-      />
-
-      {location.state?.item ? (
-        <div className={styles.headerLayout}>
-          <div className={styles.leftCol}>
-            <div className={styles.matchWrapper}>
-              {location.state?.item && (
-                <MatchCard item={location.state.item} compact hideActaButton />
-              )}
-            </div>
+    <ContentLayout
+      title="Acta"
+      subtitle={acta ? `${acta.equipo_local} vs ${acta.equipo_visitante}` : ""}
+      actionBar={
+        <div className={styles.actionBar}>
+          <div />
+          <div>
+            <Button variant="outlined" onClick={() => navigate(-1)}>
+              Volver al calendario
+            </Button>
           </div>
+        </div>
+      }
+    >
+      <ActaHeaderDate source={acta ?? undefined} />
+
+      {acta ? (
+        <div className={styles.headerLayout}>
+          <div className={styles.leftCol} />
           <div className={styles.rightCol}>
-            {acta ? <FieldInfo acta={acta as any} /> : null}
+            <FieldInfo acta={acta as any} />
           </div>
         </div>
       ) : null}
@@ -145,15 +179,13 @@ export default function Acta(): JSX.Element {
               <Referees refs={acta.arbitros_partido || []} />
             </div>
 
-            {!location.state?.item && (
-              <div className={styles.fullWidth}>
-                <FieldInfo acta={acta} />
-              </div>
-            )}
+            <div className={styles.fullWidth}>
+              <FieldInfo acta={acta} />
+            </div>
           </div>
         </>
       )}
-    </>
+    </ContentLayout>
   );
 
   // Add a bottom spacer so the fixed footer never overlaps the final content

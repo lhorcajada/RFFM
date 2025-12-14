@@ -5,7 +5,7 @@
 
 @media (max-width: 900px) {
   .root {
-    margin-bottom: 80px;
+    margin-bottom: 20px;
   }
 }
 .colRow {
@@ -26,8 +26,10 @@
 }
 /* When there are many staff entries, limit height so footer doesn't cover them */
 .col {
-  max-height: calc(60vh);
-  overflow: auto;
+  /* allow the column to size naturally by default; desktop will still be constrained by container
+     if needed. Avoid internal scroll causing content to be clipped on small viewports. */
+  max-height: none;
+  overflow: visible;
 }
 
 /* On small and tablet screens stack columns vertically with Local first */
@@ -36,9 +38,10 @@
     flex-direction: column;
     gap: 8px;
   }
+  /* On small screens allow full height so content isn't hidden inside an inner scroll container */
   .col {
-    max-height: calc(50vh);
-    overflow: auto;
+    max-height: none;
+    overflow: visible;
   }
 }
 
@@ -67,7 +70,7 @@
   font-weight: 600;
   word-wrap: break-word;
   overflow-wrap: break-word;
-  color: #e6f7ff !important;
+  color: inherit;
   white-space: normal;
   text-indent: 0;
   font-size: 14px;

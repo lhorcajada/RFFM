@@ -49,11 +49,24 @@ export default function Goals({
       };
   });
 
+  // Compute score at each goal moment while preserving order
+  let localCount = 0;
+  let awayCount = 0;
+
+  const withScore = combined.map((g) => {
+    if (g.teamType === "local") {
+      localCount += 1;
+    } else {
+      awayCount += 1;
+    }
+    return { ...g, scoreAtMoment: `${localCount} - ${awayCount}` };
+  });
+
   return (
     <Paper className={`${styles.root} ${className || ""}`} elevation={0}>
       <Typography variant="subtitle1">Goles</Typography>
       <div className={styles.list}>
-        {combined.map((g, idx) => {
+        {withScore.map((g, idx) => {
           const cod = String(g.codjugador ?? "");
           const dorsal =
             (g as any).dorsal ?? playerMap[cod]?.dorsal ?? (g as any).numero;
@@ -72,6 +85,7 @@ export default function Goals({
               team={teamLabel}
               dorsal={dorsal}
               teamType={g.teamType}
+              scoreAtMoment={(g as any).scoreAtMoment}
             />
           );
         })}

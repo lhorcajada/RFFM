@@ -34,11 +34,11 @@
 
 @media (max-width: 640px) {
   .sectionGrid > div {
-    padding-bottom: 20px;
+    padding-bottom: 12px;
   }
   .sectionGrid > div.fullWidth:last-child {
-    padding-bottom: 60px;
-    margin-bottom: 60px;
+    padding-bottom: 40px;
+    margin-bottom: 40px;
   }
 }
 
@@ -156,7 +156,7 @@
 
   .sectionGrid {
     grid-template-columns: 1fr;
-    gap: 12px;
+    gap: 8px;
   }
 
   .fullWidth {
@@ -214,18 +214,18 @@
 .bottomSpacer {
   display: block;
   width: 100%;
-  height: 96px; /* match footer reserve */
+  height: calc(var(--rffm-footer-h, 64px) + 16px);
   flex-shrink: 0;
 }
 
 @media (max-width: 700px) {
   .bottomSpacer {
-    height: 116px;
+    height: calc(var(--rffm-footer-h, 56px) + 12px);
   }
 }
 
 @media (max-width: 420px) {
   .bottomSpacer {
-    height: 140px;
+    height: calc(var(--rffm-footer-h, 56px) + 8px);
   }
 }
