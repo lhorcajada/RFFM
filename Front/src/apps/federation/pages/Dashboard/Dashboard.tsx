@@ -8,8 +8,8 @@ import LeaderboardIcon from "@mui/icons-material/Leaderboard";
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
 import HowToRegIcon from "@mui/icons-material/HowToReg";
 import HomeIcon from "@mui/icons-material/Home";
-import PageHeader from "../../../../shared/components/ui/PageHeader/PageHeader";
-import BaseLayout from "../../components/ui/BaseLayout/BaseLayout";
+import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
+import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import DashboardCard from "../../../../shared/components/ui/DashboardCard/DashboardCard";
 import { Button } from "@mui/material";
 import { useNavigate } from "react-router-dom";
@@ -27,89 +27,68 @@ export default function Dashboard(): JSX.Element {
   }, [navigate]);
 
   return (
-    <BaseLayout>
-      <PageHeader
+    <BaseLayout appTitle="Futbol Base - Federación de Fútbol de Madrid ">
+      <ContentLayout
         title="Panel de Control"
         subtitle="Resumen y accesos rápidos"
-      />
-      <div
-        style={{
-          padding: "20px",
-          display: "flex",
-          justifyContent: "flex-end",
-          boxSizing: "border-box",
-          width: "100%",
-        }}
+        actionBar={
+          <Button
+            variant="outlined"
+            startIcon={<HomeIcon />}
+            onClick={() => navigate("/")}
+            className={styles.homeButton}
+          >
+            Volver al inicio
+          </Button>
+        }
       >
-        <Button
-          variant="outlined"
-          startIcon={<HomeIcon />}
-          onClick={() => navigate("/")}
-          sx={{ textTransform: "none" }}
-        >
-          Volver al inicio
-        </Button>
-      </div>
-      <div
-        style={{
-          padding: "20px",
-          boxSizing: "border-box",
-          width: "100%",
-        }}
-      >
-        <div className={styles.cards}>
-          <DashboardCard
-            title="Plantilla"
-            description="Accede a la plantilla de jugadores."
-            icon={<GroupIcon style={{ fontSize: 40, color: "#05313b" }} />}
-            to="/federation/get-players"
-          />
-          <DashboardCard
-            title="Calendario"
-            description="Consulta el calendario de partidos."
-            icon={
-              <CalendarMonthIcon style={{ fontSize: 40, color: "#05313b" }} />
-            }
-            to="/federation/calendar"
-          />
-          <DashboardCard
-            title="Jornada"
-            description="Partidos de la jornada de tus equipos."
-            icon={
-              <EventAvailableIcon style={{ fontSize: 40, color: "#05313b" }} />
-            }
-            to="/federation/matchday"
-          />
-          <DashboardCard
-            title="Clasificación"
-            description="Ver la clasificación actual."
-            icon={
-              <LeaderboardIcon style={{ fontSize: 40, color: "#05313b" }} />
-            }
-            to="/federation/classification"
-          />
-          <DashboardCard
-            title="Goleadores"
-            description="Listado de máximos goleadores."
-            icon={
-              <SportsSoccerIcon style={{ fontSize: 40, color: "#05313b" }} />
-            }
-            to="/federation/goleadores"
-          />
-          <DashboardCard
-            title="Configuración"
-            description="Ajustes y preferencias de la aplicación."
-            icon={<SettingsIcon style={{ fontSize: 40, color: "#05313b" }} />}
-            to="/federation/settings"
-          />
-          <DashboardCard
-            title="Convocatorias"
-            description="Ver convocatorias por jugador."
-            icon={<HowToRegIcon style={{ fontSize: 40, color: "#05313b" }} />}
-            to="/federation/callups"
-          />
+        <div className={styles.contentWrap}>
+          <div className={styles.cards}>
+            <DashboardCard
+              title="Plantilla"
+              description="Accede a la plantilla de jugadores."
+              icon={<GroupIcon className={styles.iconLarge} />}
+              to="/federation/get-players"
+            />
+            <DashboardCard
+              title="Calendario"
+              description="Consulta el calendario de partidos."
+              icon={<CalendarMonthIcon className={styles.iconLarge} />}
+              to="/federation/calendar"
+            />
+            <DashboardCard
+              title="Jornada"
+              description="Partidos de la jornada de tus equipos."
+              icon={<EventAvailableIcon className={styles.iconLarge} />}
+              to="/federation/matchday"
+            />
+            <DashboardCard
+              title="Clasificación"
+              description="Ver la clasificación actual."
+              icon={<LeaderboardIcon className={styles.iconLarge} />}
+              to="/federation/classification"
+            />
+            <DashboardCard
+              title="Goleadores"
+              description="Listado de máximos goleadores."
+              icon={<SportsSoccerIcon className={styles.iconLarge} />}
+              to="/federation/goleadores"
+            />
+            <DashboardCard
+              title="Configuración"
+              description="Ajustes y preferencias de la aplicación."
+              icon={<SettingsIcon className={styles.iconLarge} />}
+              to="/federation/settings"
+            />
+            <DashboardCard
+              title="Convocatorias"
+              description="Ver convocatorias por jugador."
+              icon={<HowToRegIcon className={styles.iconLarge} />}
+              to="/federation/callups"
+            />
+          </div>
         </div>
-      </div>
+      </ContentLayout>
     </BaseLayout>
   );
 }

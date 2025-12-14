@@ -1,3 +1,9 @@
+.container {
+  padding: 24px var(--rffm-page-h-padding, 24px);
+}
+.panel {
+  padding: 16px var(--rffm-page-h-padding, 16px);
+}
 .list {
   display: flex;
   flex-direction: column;

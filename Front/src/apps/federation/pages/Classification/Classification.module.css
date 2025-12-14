@@ -1,5 +1,5 @@
 .container {
-  padding: 18px 0 18px;
+  padding: 18px var(--rffm-page-h-padding, 0) 18px;
   padding-bottom: calc(
     var(--rffm-footer-h, 64px) + env(safe-area-inset-bottom, 0px)
   );
@@ -28,8 +28,8 @@
 
 .content {
   max-width: none;
-  width: calc(100% - 12px);
-  margin: 0 12px;
+  width: calc(100% - (2 * var(--rffm-page-h-padding, 12px)));
+  margin: 0 var(--rffm-page-h-padding, 12px);
   box-sizing: border-box;
 }
 

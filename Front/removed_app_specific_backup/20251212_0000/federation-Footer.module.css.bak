@@ -1,0 +1,7 @@
+/* backup of federation Footer.module.css */
+.root {
+  display: flex;
+  justify-content: center;
+  padding: 6px 10px;
+}
+/* truncated backup */

@@ -2,7 +2,7 @@ import React from "react";
 import styles from "./GoalSectorsComparison.module.css";
 import { getTeamsGoalSectorsComparison } from "../../services/api";
 import type { TeamsGoalSectorsComparison } from "../../types/goalSectors";
-import BaseLayout from "../../components/ui/BaseLayout/BaseLayout";
+import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";

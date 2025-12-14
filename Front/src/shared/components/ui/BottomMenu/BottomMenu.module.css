@@ -1,0 +1,105 @@
+.bar {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  white-space: nowrap; /* prevent wrapping */
+  overflow: hidden;
+}
+
+.iconBtn {
+  color: rgba(255, 255, 255, 0.8);
+  flex: 0 0 auto; /* keep intrinsic size */
+}
+
+.active {
+  color: #00e5ff;
+}
+
+.wrapper {
+  position: relative;
+}
+
+.bar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  overflow-x: auto;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+  padding: 6px 48px; /* leave space for arrows */
+}
+
+.iconBtn {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.active {
+  color: #00e5ff;
+}
+
+.classificationBtn {
+  padding-right: 6px;
+}
+
+.arrowBtn {
+  display: none;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.12);
+  border-radius: 20px;
+  color: rgba(0, 0, 0, 0.72);
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+
+.arrowBtn:hover {
+  transform: translateY(-50%) scale(1.04);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
+}
+
+@media (max-width: 480px) {
+  .bar {
+    justify-content: flex-start;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 0 8px;
+    gap: 6px;
+  }
+
+  .iconBtn {
+    padding: 6px;
+  }
+
+  /* Hide scrollbar but keep scrolling usable */
+  .bar::-webkit-scrollbar {
+    height: 6px;
+  }
+  .bar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 3px;
+  }
+
+  .leftArrow {
+    left: 6px;
+  }
+
+  .rightArrow {
+    right: 6px;
+  }
+
+  .arrowBtn {
+    display: flex;
+  }
+
+  .bar {
+    padding: 6px 44px; /* slightly smaller to fit arrows */
+  }
+
+  .iconBtn {
+    padding: 6px;
+  }
+}

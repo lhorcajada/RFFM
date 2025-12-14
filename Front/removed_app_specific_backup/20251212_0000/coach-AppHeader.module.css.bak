@@ -1,3 +1,5 @@
+/* backup of coach AppHeader.module.css */
+
 .appBar {
   background: var(--rffm-gradient-bg) !important;
   box-shadow: none !important;
@@ -9,6 +11,19 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brandLogo {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  display: block;
 }
 
 .appName {

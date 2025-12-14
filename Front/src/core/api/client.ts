@@ -83,12 +83,22 @@ client.interceptors.request.use(
         const token = localStorage.getItem("coachAuthToken");
         if (token) {
           // If the token exists but is already expired according to coachAuthService,
-          // emit auth_expired so app can log out and prompt for credentials.
+          // proactively remove it and emit auth_expired so app can log out and prompt for credentials.
           if (!coachAuthService.isAuthenticated()) {
+            console.debug(
+              "rffm:auth client interceptor detected expired token; clearing and dispatching auth_expired"
+            );
+            try {
+              coachAuthService.logout();
+            } catch (e) {}
             try {
               window.dispatchEvent(new CustomEvent("rffm.auth_expired"));
             } catch (e) {}
           } else {
+            // token ok
+            console.debug(
+              "rffm:auth client interceptor token valid, attaching Authorization header"
+            );
             if (!config.headers) config.headers = {} as any;
             config.headers.Authorization = `Bearer ${token}`;
           }

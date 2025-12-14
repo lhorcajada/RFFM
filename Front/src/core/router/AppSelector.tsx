@@ -7,7 +7,7 @@ import styles from "./AppSelector.module.css";
 // Avatar is provided by AppHeader inside BaseLayout; no local import needed
 import BaseLayout from "../../shared/components/ui/BaseLayout/BaseLayout";
 import { coachAuthService } from "../../apps/coach/services/authService";
-import PageHeader from "../../shared/components/ui/PageHeader/PageHeader";
+import ContentLayout from "../../shared/components/ui/ContentLayout/ContentLayout";
 
 function dispatchSnackbar(message: string) {
   try {
@@ -23,91 +23,91 @@ export default function AppSelector() {
   const navigate = useNavigate();
   // user avatar handled by AppHeader in BaseLayout
   return (
-    <BaseLayout>
+    <BaseLayout appTitle="Futbol Base" hideFooterMenu>
       <div className={styles.wrapper}>
         <div className={styles.container}>
-          <PageHeader
+          <ContentLayout
             title="Selecciona tu aplicación"
-            className={styles.headerEdgeToEdge}
-          />
+            headerClassName={styles.headerEdgeToEdge}
+          >
+            <div className={styles.gridContainer}>
+              <Card className={styles.card}>
+                <CardActionArea
+                  onClick={() => {
+                    // Federation requires Federation role (Administrator bypasses)
+                    if (!coachAuthService.isAuthenticated()) {
+                      navigate("/login");
+                      return;
+                    }
+                    if (
+                      coachAuthService.hasRole("Administrator") ||
+                      coachAuthService.hasRole("Federation")
+                    ) {
+                      navigate("/federation/dashboard");
+                    } else {
+                      dispatchSnackbar(
+                        "No tienes permisos para acceder a Federación."
+                      );
+                    }
+                  }}
+                  sx={{ height: "100%" }}
+                >
+                  <CardContent className={styles.cardContent}>
+                    <GroupsIcon className={styles.icon} />
+                    <Typography
+                      variant="h4"
+                      component="h2"
+                      className={styles.cardTitle}
+                    >
+                      Federación
+                    </Typography>
+                    <Typography className={styles.cardDescription}>
+                      Gestión de competiciones, equipos, clasificaciones y
+                      estadísticas de la Federación de Fútbol de Madrid
+                    </Typography>
+                  </CardContent>
+                </CardActionArea>
+              </Card>
 
-          <div className={styles.gridContainer}>
-            <Card className={styles.card}>
-              <CardActionArea
-                onClick={() => {
-                  // Federation requires Federation role (Administrator bypasses)
-                  if (!coachAuthService.isAuthenticated()) {
-                    navigate("/login");
-                    return;
-                  }
-                  if (
-                    coachAuthService.hasRole("Administrator") ||
-                    coachAuthService.hasRole("Federation")
-                  ) {
-                    navigate("/federation/dashboard");
-                  } else {
-                    dispatchSnackbar(
-                      "No tienes permisos para acceder a Federación."
-                    );
-                  }
-                }}
-                sx={{ height: "100%" }}
-              >
-                <CardContent className={styles.cardContent}>
-                  <GroupsIcon className={styles.icon} />
-                  <Typography
-                    variant="h4"
-                    component="h2"
-                    className={styles.cardTitle}
-                  >
-                    Federación
-                  </Typography>
-                  <Typography className={styles.cardDescription}>
-                    Gestión de competiciones, equipos, clasificaciones y
-                    estadísticas de la Federación de Fútbol de Madrid
-                  </Typography>
-                </CardContent>
-              </CardActionArea>
-            </Card>
-
-            <Card className={styles.card}>
-              <CardActionArea
-                onClick={() => {
-                  // Coach requires Coach role (Administrator bypasses)
-                  if (!coachAuthService.isAuthenticated()) {
-                    navigate("/login");
-                    return;
-                  }
-                  if (
-                    coachAuthService.hasRole("Administrator") ||
-                    coachAuthService.hasRole("Coach")
-                  ) {
-                    navigate("/coach/dashboard");
-                  } else {
-                    dispatchSnackbar(
-                      "No tienes permisos para acceder a la sección de Entrenadores."
-                    );
-                  }
-                }}
-                sx={{ height: "100%" }}
-              >
-                <CardContent className={styles.cardContent}>
-                  <SportsIcon className={styles.icon} />
-                  <Typography
-                    variant="h4"
-                    component="h2"
-                    className={styles.cardTitle}
-                  >
-                    Entrenadores
-                  </Typography>
-                  <Typography className={styles.cardDescription}>
-                    Herramientas para entrenadores: gestión de plantillas,
-                    entrenamientos, planificación y análisis de rendimiento
-                  </Typography>
-                </CardContent>
-              </CardActionArea>
-            </Card>
-          </div>
+              <Card className={styles.card}>
+                <CardActionArea
+                  onClick={() => {
+                    // Coach requires Coach role (Administrator bypasses)
+                    if (!coachAuthService.isAuthenticated()) {
+                      navigate("/login");
+                      return;
+                    }
+                    if (
+                      coachAuthService.hasRole("Administrator") ||
+                      coachAuthService.hasRole("Coach")
+                    ) {
+                      navigate("/coach/dashboard");
+                    } else {
+                      dispatchSnackbar(
+                        "No tienes permisos para acceder a la sección de Entrenadores."
+                      );
+                    }
+                  }}
+                  sx={{ height: "100%" }}
+                >
+                  <CardContent className={styles.cardContent}>
+                    <SportsIcon className={styles.icon} />
+                    <Typography
+                      variant="h4"
+                      component="h2"
+                      className={styles.cardTitle}
+                    >
+                      Entrenadores
+                    </Typography>
+                    <Typography className={styles.cardDescription}>
+                      Herramientas para entrenadores: gestión de plantillas,
+                      entrenamientos, planificación y análisis de rendimiento
+                    </Typography>
+                  </CardContent>
+                </CardActionArea>
+              </Card>
+            </div>
+          </ContentLayout>
         </div>
       </div>
     </BaseLayout>

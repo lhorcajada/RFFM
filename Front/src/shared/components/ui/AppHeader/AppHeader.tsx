@@ -80,7 +80,11 @@ export default function AppHeader({ title }: AppHeaderProps) {
       <Toolbar className={styles.toolbar}>
         <div className={styles.brand}>
           <img src={logo} alt={displayTitle} className={styles.brandLogo} />
-          <Typography variant="h6" component="div" className={styles.appName}>
+          <Typography
+            variant="h6"
+            component="div"
+            className={`${styles.appName} ${title ? styles.hasAppTitle : ""}`}
+          >
             {displayTitle}
           </Typography>
         </div>
@@ -97,11 +101,7 @@ export default function AppHeader({ title }: AppHeaderProps) {
           </IconButton>
           {user?.username && (
             <Tooltip title={user.username} arrow disableInteractive>
-              <div
-                className={styles.userName}
-                aria-hidden
-                title={user.username}
-              >
+              <div className={styles.userName} aria-hidden>
                 {user.username}
               </div>
             </Tooltip>

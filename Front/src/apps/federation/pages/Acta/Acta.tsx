@@ -4,7 +4,7 @@ import styles from "./Acta.module.css";
 import { getActa } from "../../services/api";
 import type { Acta as ActaType } from "../../types/acta";
 import { Paper, Typography, CircularProgress } from "@mui/material";
-import BaseLayout from "../../components/ui/BaseLayout/BaseLayout";
+import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ActaHeaderDate from "../../components/acta/ActaHeaderDate/ActaHeaderDate";
 import Lineup from "../../components/acta/Lineup/Lineup";
 import Goals from "../../components/acta/Goals/Goals";

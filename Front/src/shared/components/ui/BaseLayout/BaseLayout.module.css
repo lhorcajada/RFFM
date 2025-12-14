@@ -2,6 +2,7 @@
   /* default sizes; pages can override via .layoutWrap if needed */
   --rffm-header-h: 64px;
   --rffm-footer-h: 64px;
+  --rffm-page-h-padding: 12px; /* horizontal padding for page content */
   --rffm-gradient-bg: linear-gradient(180deg, #082033 0%, #05313b 100%);
 }
 

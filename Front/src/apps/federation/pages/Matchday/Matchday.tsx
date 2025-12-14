@@ -1,8 +1,8 @@
-import BaseLayout from "../../components/ui/BaseLayout/BaseLayout";
+import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
+import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import styles from "./Matchday.module.css";
 import { useEffect, useState } from "react";
 import { CircularProgress } from "@mui/material";
-import PageHeader from "../../../../shared/components/ui/PageHeader/PageHeader";
 import { useUser } from "../../../../shared/context/UserContext";
 import {
   getTeamMatches,
@@ -112,86 +112,91 @@ export default function Matchday() {
   return (
     <BaseLayout>
       <div className={styles.container}>
-        <PageHeader title="Partidos de la Jornada" />
-        <div className={styles.cards}>
-          {loading ? (
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "center",
-                width: "100%",
-                padding: "2rem 0",
-              }}
-            >
-              <CircularProgress />
-            </div>
-          ) : matches.length === 0 && hasData ? (
-            "No hay partidos para mostrar."
-          ) : (
-            matches.map((match, idx) => {
-              // Mejorar robustez: buscar nombre en más variantes
-              let comp =
-                match.team?.competition?.name ||
-                match.competition?.name ||
-                match.competitionName ||
-                (typeof match.competition === "object" &&
-                  match.competition?.nombre) ||
-                (typeof match.competition === "object" &&
-                  match.competition?.name) ||
-                match.competitionId ||
-                "";
-              let group =
-                match.team?.group?.name ||
-                match.group?.name ||
-                match.groupName ||
-                (typeof match.group === "object" && match.group?.nombre) ||
-                (typeof match.group === "object" && match.group?.name) ||
-                match.groupId ||
-                "";
-              // Si sigue vacío, mostrar id si existe
-              if (
-                !comp &&
-                match.competition &&
-                typeof match.competition === "object" &&
-                match.competition.id
-              )
-                comp = `Comp. ${match.competition.id}`;
-              if (
-                !group &&
-                match.group &&
-                typeof match.group === "object" &&
-                match.group.id
-              )
-                group = `Grupo ${match.group.id}`;
-              // Extraer y formatear la fecha
-              const matchDate =
-                match.match?.fecha || match.match?.date || match.date;
-              let dateStr = "";
-              if (matchDate) {
-                try {
-                  const date = new Date(matchDate);
-                  dateStr = date.toLocaleDateString("es-ES", {
-                    weekday: "long",
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                  });
-                } catch {}
-              }
+        <ContentLayout title="Partidos de la Jornada">
+          <div className={styles.cards}>
+            {loading ? (
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  width: "100%",
+                  padding: "2rem 0",
+                }}
+              >
+                <CircularProgress />
+              </div>
+            ) : matches.length === 0 && hasData ? (
+              "No hay partidos para mostrar."
+            ) : (
+              matches.map((match, idx) => {
+                // Mejorar robustez: buscar nombre en más variantes
+                let comp =
+                  match.team?.competition?.name ||
+                  match.competition?.name ||
+                  match.competitionName ||
+                  (typeof match.competition === "object" &&
+                    match.competition?.nombre) ||
+                  (typeof match.competition === "object" &&
+                    match.competition?.name) ||
+                  match.competitionId ||
+                  "";
+                let group =
+                  match.team?.group?.name ||
+                  match.group?.name ||
+                  match.groupName ||
+                  (typeof match.group === "object" && match.group?.nombre) ||
+                  (typeof match.group === "object" && match.group?.name) ||
+                  match.groupId ||
+                  "";
+                // Si sigue vacío, mostrar id si existe
+                if (
+                  !comp &&
+                  match.competition &&
+                  typeof match.competition === "object" &&
+                  match.competition.id
+                )
+                  comp = `Comp. ${match.competition.id}`;
+                if (
+                  !group &&
+                  match.group &&
+                  typeof match.group === "object" &&
+                  match.group.id
+                )
+                  group = `Grupo ${match.group.id}`;
+                // Extraer y formatear la fecha
+                const matchDate =
+                  match.match?.fecha || match.match?.date || match.date;
+                let dateStr = "";
+                if (matchDate) {
+                  try {
+                    const date = new Date(matchDate);
+                    dateStr = date.toLocaleDateString("es-ES", {
+                      weekday: "long",
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    });
+                  } catch {}
+                }
 
-              return (
-                <div key={idx} className={styles.matchCardWrapper}>
-                  <div className={styles.chipsContainer}>
-                    <span className={styles.competitionChip}>{comp}</span>
-                    {group && <span className={styles.groupChip}>{group}</span>}
+                return (
+                  <div key={idx} className={styles.matchCardWrapper}>
+                    <div className={styles.chipsContainer}>
+                      <span className={styles.competitionChip}>{comp}</span>
+                      {group && (
+                        <span className={styles.groupChip}>{group}</span>
+                      )}
+                    </div>
+                    {dateStr && (
+                      <div className={styles.matchDate}>{dateStr}</div>
+                    )}
+                    <MatchCard item={match} />
                   </div>
-                  {dateStr && <div className={styles.matchDate}>{dateStr}</div>}
-                  <MatchCard item={match} />
-                </div>
-              );
-            })
-          )}
-        </div>
+                );
+              })
+            )}
+          </div>
+        </ContentLayout>
       </div>
     </BaseLayout>
   );

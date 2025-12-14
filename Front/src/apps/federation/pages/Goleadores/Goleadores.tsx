@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { CircularProgress } from "@mui/material";
-import PageHeader from "../../../../shared/components/ui/PageHeader/PageHeader";
-import BaseLayout from "../../components/ui/BaseLayout/BaseLayout";
+import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
+import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import GoleadoresList from "../../components/players/GoleadoresList/GoleadoresList";
 import { getGoleadores, getSettingsForUser } from "../../services/api";
 import { useUser } from "../../../../shared/context/UserContext";
@@ -49,40 +49,41 @@ const Goleadores: React.FC = () => {
 
   return (
     <BaseLayout>
-      <PageHeader
+      <ContentLayout
         title="Goleadores"
         subtitle="Máximos goleadores de la competición"
-      />
-      <div className={styles.container}>
-        <div className={styles.content}>
-          <div className={styles.headerBar} />
-          {loading && (
-            <div style={{ padding: 24, textAlign: "center" }}>
-              <CircularProgress />
-            </div>
-          )}
-          {error && <p className={styles.error}>{error}</p>}
-          {!loading && !error && (
-            <div className={styles.grid}>
-              {goleadores.length === 0 ? (
-                <div className={styles.empty}>
-                  No hay goleadores disponibles.
-                </div>
-              ) : (
-                goleadores.map((goleador, idx) => (
-                  <GoleadoresList
-                    key={goleador.playerId}
-                    goleador={goleador}
-                    position={idx + 1}
-                    totalPlayers={goleadores.length}
-                  />
-                ))
-              )}
-              <div className={styles.gridEndSpacer} aria-hidden />
-            </div>
-          )}
+      >
+        <div className={styles.container}>
+          <div className={styles.content}>
+            <div className={styles.headerBar} />
+            {loading && (
+              <div style={{ padding: 24, textAlign: "center" }}>
+                <CircularProgress />
+              </div>
+            )}
+            {error && <p className={styles.error}>{error}</p>}
+            {!loading && !error && (
+              <div className={styles.grid}>
+                {goleadores.length === 0 ? (
+                  <div className={styles.empty}>
+                    No hay goleadores disponibles.
+                  </div>
+                ) : (
+                  goleadores.map((goleador, idx) => (
+                    <GoleadoresList
+                      key={goleador.playerId}
+                      goleador={goleador}
+                      position={idx + 1}
+                      totalPlayers={goleadores.length}
+                    />
+                  ))
+                )}
+                <div className={styles.gridEndSpacer} aria-hidden />
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      </ContentLayout>
     </BaseLayout>
   );
 };

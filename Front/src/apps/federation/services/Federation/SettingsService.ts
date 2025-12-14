@@ -1,4 +1,5 @@
 import { client } from "../../../../core/api/client";
+import { coachAuthService } from "../../../../apps/coach/services/authService";
 
 export type SavedComboRequest = {
   competitionId?: string;
@@ -24,6 +25,10 @@ export type SavedComboResponse = {
 
 export class SettingsService {
   async getSettings(): Promise<SavedComboResponse[]> {
+    try {
+      const token = coachAuthService.getToken();
+      console.debug("rffm:settings getSettings tokenExists=", !!token);
+    } catch (e) {}
     const response = await client.get<SavedComboResponse[]>(
       "federation/settings"
     );
@@ -34,8 +39,16 @@ export class SettingsService {
     const url = userId
       ? `federation/settings?userId=${encodeURIComponent(userId)}`
       : `federation/settings`;
-    const response = await client.get<SavedComboResponse[]>(url);
-    return response.data;
+    try {
+      const response = await client.get<SavedComboResponse[]>(url);
+      return response.data;
+    } catch (e: any) {
+      // Provide clearer logging for 401 Unauthorized to help debugging
+      if (e?.response?.status === 401) {
+        console.warn("rffm:settings GET 401 Unauthorized for url=", url);
+      }
+      throw e;
+    }
   }
 
   async saveSettings(

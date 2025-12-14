@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import BaseLayout from "../../components/ui/BaseLayout/BaseLayout";
+import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import SavedConfigs from "../../../../shared/components/ui/SavedConfigs/SavedConfigs";
 import CompetitionSelector from "../../../../shared/components/ui/CompetitionSelector/CompetitionSelector";
 import GroupSelector from "../../../../shared/components/ui/GroupSelector/GroupSelector";

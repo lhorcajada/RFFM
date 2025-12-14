@@ -1,6 +1,6 @@
 /* Styles for calendar page */
 .paper {
-  padding: 12px;
+  padding: 12px var(--rffm-page-h-padding, 12px);
   background: transparent; /* avoid default white Paper */
   padding-bottom: 12px;
   box-sizing: border-box;

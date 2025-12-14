@@ -40,6 +40,41 @@ function LoadingFallback() {
 }
 
 export default function AppRouter() {
+  function AuthMonitor() {
+    const navigate = useNavigate();
+    React.useEffect(() => {
+      function handleAuthCheck() {
+        try {
+          if (!coachAuthService.isAuthenticated()) {
+            console.debug(
+              "rffm:auth AuthMonitor detected expired token; logging out and redirecting to /login"
+            );
+            try {
+              coachAuthService.logout();
+            } catch (e) {}
+            try {
+              window.dispatchEvent(new CustomEvent("rffm.auth_expired"));
+            } catch (e) {}
+            navigate("/login", { replace: true });
+          }
+        } catch (e) {}
+      }
+
+      function onVisibilityChange() {
+        if (document.visibilityState === "visible") {
+          handleAuthCheck();
+        }
+      }
+
+      window.addEventListener("focus", handleAuthCheck);
+      document.addEventListener("visibilitychange", onVisibilityChange);
+      return () => {
+        window.removeEventListener("focus", handleAuthCheck);
+        document.removeEventListener("visibilitychange", onVisibilityChange);
+      };
+    }, [navigate]);
+    return null;
+  }
   function RootLanding() {
     const devFlag =
       typeof window !== "undefined" &&
@@ -79,6 +114,7 @@ export default function AppRouter() {
 
   return (
     <Suspense fallback={<LoadingFallback />}>
+      <AuthMonitor />
       <Routes>
         {/* Backwards-compatible root -> appSelector redirect */}
         <Route path="/" element={<Navigate to="/appSelector" replace />} />

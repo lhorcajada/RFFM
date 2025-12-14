@@ -33,6 +33,7 @@ export const CoachAuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   useEffect(() => {
     function handleAuthExpired() {
+      console.debug("rffm:auth CoachAuthContext handleAuthExpired invoked");
       // perform logout and force redirect to login
       coachAuthService.logout();
       setIsAuthenticated(false);
@@ -40,6 +41,9 @@ export const CoachAuthProvider: React.FC<{ children: React.ReactNode }> = ({
       try {
         // try navigate if available
         if (typeof window !== "undefined") {
+          console.debug(
+            "rffm:auth CoachAuthContext forcing full-page redirect to /login"
+          );
           window.location.href = "/login";
         }
       } catch (e) {

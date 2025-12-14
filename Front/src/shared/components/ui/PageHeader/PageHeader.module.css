@@ -1,42 +1,46 @@
 .header {
   text-align: center;
-  padding: 20px;
+  /* use margin to control horizontal inset so backgrounds align with ActionBar */
+  margin: var(--rffm-pageheader-v-gap, 8px) var(--rffm-page-h-padding, 12px);
+  padding: 8px 0; /* vertical padding only */
   background: linear-gradient(
     135deg,
-    rgba(0, 160, 200, 0.1) 0%,
-    rgba(0, 120, 180, 0.05) 100%
+    rgba(0, 160, 200, 0.04) 0%,
+    rgba(0, 120, 180, 0.02) 100%
   );
-  border-radius: 12px;
-  border: 1px solid rgba(0, 160, 200, 0.2);
+  border-radius: 8px;
+  border: 1px solid rgba(0, 160, 200, 0.12);
 }
 
 .title {
   font-weight: 700;
-  font-size: 1.5rem;
+  font-size: 1.05rem;
   white-space: nowrap;
   background: linear-gradient(135deg, #00a0c8 0%, #0078b4 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  margin-bottom: 4px;
-  letter-spacing: -0.5px;
+  margin-bottom: 2px;
+  letter-spacing: -0.3px;
 }
 
-@media (max-width: 480px) {
+@media (max-width: 600px) {
   .title {
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     white-space: normal;
   }
   .header {
-    padding: 14px;
-    margin: 0;
+    margin: var(--rffm-pageheader-v-gap-mobile, 6px)
+      var(--rffm-page-h-padding, 10px);
+    padding: 6px 0;
   }
 }
 
 .subtitle {
   color: #666;
-  font-weight: 500;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 1px;
-  font-size: 0.75rem;
+  letter-spacing: 0.6px;
+  font-size: 0.7rem;
+  margin-top: 2px;
 }

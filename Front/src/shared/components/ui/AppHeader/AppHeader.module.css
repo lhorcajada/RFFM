@@ -2,6 +2,9 @@
   background: var(--rffm-gradient-bg) !important;
   box-shadow: none !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  height: var(--rffm-header-h, 64px);
+  display: flex;
+  align-items: center;
 }
 
 .toolbar {
@@ -9,6 +12,10 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+  height: 100%;
+  width: 100%;
+  padding: 0 var(--rffm-page-h-padding, 12px);
+  box-sizing: border-box;
 }
 
 .appName {
@@ -17,14 +24,42 @@
   flex-shrink: 0;
 }
 
+/* When screen is small, hide the app name by default so it doesn't crowd the header.
+   If the component receives an explicit title, it adds `hasAppTitle` to force display. */
+@media (max-width: 420px) {
+  .appName {
+    display: none;
+  }
+  .hasAppTitle {
+    display: block;
+    font-size: 0.95rem;
+    margin-left: 6px;
+    white-space: normal; /* allow wrapping */
+    overflow: visible;
+    text-overflow: clip;
+    max-width: 220px; /* allow more space for wrapped title */
+    line-height: 1.1;
+    word-break: break-word;
+  }
+}
+
 .toolbar > div {
   display: flex;
   align-items: center;
 }
 
+.brand {
+  flex: 0 0 auto;
+}
+
+.userBox {
+  flex: 0 0 auto;
+  text-align: center;
+}
+
 .MuiAvatar-root {
-  width: 40px;
-  height: 40px;
+  width: 30px;
+  height: 30px;
 }
 
 .brand {
@@ -42,12 +77,12 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1px;
-  color: white;
+  gap: 0px;
+  color: rgb(6, 158, 246);
 }
 
 .userName {
-  font-size: 0.78rem;
+  font-size: 0.6rem;
   color: rgba(255, 255, 255, 0.95);
   white-space: nowrap;
   overflow: hidden;

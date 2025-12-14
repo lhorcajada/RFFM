@@ -51,7 +51,7 @@
 
 .headerContainer {
   text-align: center;
-  padding: 0 32px;
+  padding: 0 var(--rffm-page-h-padding, 32px);
   margin: 16px 24px 16px 24px;
   background-color: rgba(255, 255, 255, 0.05);
   border-radius: 12px;
@@ -74,7 +74,7 @@
 
 @media (max-width: 480px) {
   .headerContainer {
-    padding: 0 20px;
+    padding: 0 var(--rffm-page-h-padding, 20px);
     margin: 16px 0 16px 0;
   }
 }

@@ -14,9 +14,10 @@ import { useNavigate, Link as RouterLink } from "react-router-dom";
 import styles from "./Login.module.css";
 import { useCoachAuthContext } from "../../../../apps/coach/context/CoachAuthContext";
 import { coachAuthService } from "../../../../apps/coach/services/authService";
-import BaseLayout from "../../../../apps/coach/components/ui/BaseLayout/BaseLayout";
+import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 
 const SharedLogin: React.FC<{ redirectTo?: string }> = ({ redirectTo }) => {
+  console.debug("rffm:auth Login rendered");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
@@ -47,6 +48,7 @@ const SharedLogin: React.FC<{ redirectTo?: string }> = ({ redirectTo }) => {
     const success = await login(username, password);
 
     if (success.success) {
+      console.debug("rffm:auth Login success, navigating to /appSelector");
       setSuccessMessage("Inicio de sesión exitoso.");
       setUsername("");
       setPassword("");

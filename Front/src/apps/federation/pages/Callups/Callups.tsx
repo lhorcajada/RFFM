@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
-import BaseLayout from "../../components/ui/BaseLayout/BaseLayout";
-import PageHeader from "../../../../shared/components/ui/PageHeader/PageHeader";
+import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
+import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import styles from "./Callups.module.css";
 import playersContainerStyles from "../../components/players/PlayersContainer/PlayersContainer.module.css";
 import { getTeamCallups } from "../../services/api";
@@ -124,45 +124,45 @@ export default function CallupsPage(): JSX.Element {
 
   return (
     <BaseLayout>
-      <PageHeader
+      <ContentLayout
         title="Convocatorias"
         subtitle="Jugadores convocados / desconvocados"
-      />
-
-      {noConfig ? (
-        <Paper className={styles.paper}>
-          <Typography>
-            No hay configuración seleccionada. Guarda o selecciona una
-            combinación para ver las convocatorias.
-          </Typography>
-        </Paper>
-      ) : loading ? (
-        <div className={styles.center}>
-          <CircularProgress />
-        </div>
-      ) : error ? (
-        <Paper className={styles.paper}>
-          <Typography color="error">{error}</Typography>
-        </Paper>
-      ) : (
-        <div>
-          <div className={playersContainerStyles.header}>
-            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-              <div className={playersContainerStyles.count}>
-                Jugadores: {data.length}
+      >
+        {noConfig ? (
+          <Paper className={styles.paper}>
+            <Typography>
+              No hay configuración seleccionada. Guarda o selecciona una
+              combinación para ver las convocatorias.
+            </Typography>
+          </Paper>
+        ) : loading ? (
+          <div className={styles.center}>
+            <CircularProgress />
+          </div>
+        ) : error ? (
+          <Paper className={styles.paper}>
+            <Typography color="error">{error}</Typography>
+          </Paper>
+        ) : (
+          <div>
+            <div className={playersContainerStyles.header}>
+              <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                <div className={playersContainerStyles.count}>
+                  Jugadores: {data.length}
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className={styles.list}>
-            {sortedPlayers.map((p) => (
-              <div key={p.playerId} className={styles.playerWrap}>
-                <PlayerCallupCard player={p} />
-              </div>
-            ))}
+            <div className={styles.list}>
+              {sortedPlayers.map((p) => (
+                <div key={p.playerId} className={styles.playerWrap}>
+                  <PlayerCallupCard player={p} />
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </ContentLayout>
     </BaseLayout>
   );
 }

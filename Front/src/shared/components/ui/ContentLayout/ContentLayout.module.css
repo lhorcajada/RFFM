@@ -1,0 +1,13 @@
+.wrapper {
+  width: 100%;
+}
+
+/* PageHeader + ActionBar spacing */
+.content {
+  padding: 8px var(--rffm-page-h-padding, 12px) 16px; /* top, horizontal, bottom */
+}
+
+/* Keep actionBar spacing consistent with other pages */
+.actionSpacer {
+  margin-top: 8px;
+}

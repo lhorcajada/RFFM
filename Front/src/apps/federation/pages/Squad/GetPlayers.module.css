@@ -1,3 +1,9 @@
+.container {
+  padding: 12px var(--rffm-page-h-padding, 12px);
+}
+.actions {
+  padding: 24px 0;
+}
 .paper {
   box-sizing: border-box;
   width: 100%;
@@ -131,6 +137,10 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+
+.homeButton {
+  text-transform: none !important;
 }
 
 @media (max-width: 599px) {

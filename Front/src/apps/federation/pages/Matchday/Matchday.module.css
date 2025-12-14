@@ -63,8 +63,8 @@
 .container {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
-  padding: 2rem;
+  gap: 1rem;
+  padding: 8px var(--rffm-page-h-padding, 12px); /* reduce top padding so PageHeader sits closer to AppHeader */
 }
 .cards {
   display: flex;

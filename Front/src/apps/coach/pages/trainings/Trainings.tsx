@@ -1,27 +1,30 @@
 import { Box, Button } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import BaseLayout from "../../components/ui/BaseLayout/BaseLayout";
-import PageHeader from "../../../../shared/components/ui/PageHeader/PageHeader";
-import ActionBar from "../../../../shared/components/ui/ActionBar/ActionBar";
+import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
+import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 
 export default function Trainings() {
   const navigate = useNavigate();
 
   return (
-    <BaseLayout>
-      <PageHeader title="Entrenamientos" subtitle="Gestión de entrenamientos" />
-      <ActionBar>
-        <Button
-          startIcon={<ArrowBackIcon />}
-          onClick={() => navigate("/coach/dashboard")}
-          variant="outlined"
-          size="small"
-        >
-          Volver
-        </Button>
-      </ActionBar>
-      <Box sx={{ p: 3 }}>{/* Contenido de entrenamientos */}</Box>
+    <BaseLayout hideFooterMenu>
+      <ContentLayout
+        title="Entrenamientos"
+        subtitle="Gestión de entrenamientos"
+        actionBar={
+          <Button
+            startIcon={<ArrowBackIcon />}
+            onClick={() => navigate("/coach/dashboard")}
+            variant="outlined"
+            size="small"
+          >
+            Volver
+          </Button>
+        }
+      >
+        <Box sx={{ p: 3 }}>{/* Contenido de entrenamientos */}</Box>
+      </ContentLayout>
     </BaseLayout>
   );
 }

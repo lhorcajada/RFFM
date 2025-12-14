@@ -1,7 +1,7 @@
 import React from "react";
 import styles from "./Statistics.module.css";
 import StatsCard from "../../../../shared/components/ui/StatsCard/StatsCard";
-import BaseLayout from "../../components/ui/BaseLayout/BaseLayout";
+import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
 

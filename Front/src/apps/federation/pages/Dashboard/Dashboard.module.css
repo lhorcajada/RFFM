@@ -3,7 +3,30 @@
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 12px;
   margin-top: 8px;
-  padding: 12px 0;
+  padding: 0 var(--rffm-page-h-padding, 12px);
+}
+
+.actionRow {
+  padding: 0 var(--rffm-page-h-padding, 12px);
+  display: flex;
+  justify-content: flex-end;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.contentWrap {
+  padding: 0; /* remove lateral padding so cards can align to edges */
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.iconLarge {
+  font-size: 40px !important;
+  color: #05313b !important;
+}
+
+.homeButton {
+  text-transform: none !important;
 }
 
 @media (max-width: 768px) {
@@ -11,6 +34,7 @@
     grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
     gap: 10px;
     margin-top: 6px;
+    padding: 0 calc(var(--rffm-page-h-padding, 12px) / 1.2);
   }
 }
 
@@ -19,5 +43,6 @@
     grid-template-columns: repeat(2, 1fr);
     gap: 8px;
     margin-top: 6px;
+    padding: 0; /* remove lateral padding on mobile */
   }
 }

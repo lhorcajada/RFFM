@@ -1,0 +1,36 @@
+/* federation AppHeader module.css backup */
+
+.appBar {
+  background: var(--rffm-gradient-bg) !important;
+  box-shadow: none !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brandLogo {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  display: block;
+}
+
+.titleWrap {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  position: relative;
+}
+
+/* ... (truncated for backup) */

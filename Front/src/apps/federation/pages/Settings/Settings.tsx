@@ -4,7 +4,7 @@ import Paper from "@mui/material/Paper";
 import Button from "@mui/material/Button";
 import { Link } from "react-router-dom";
 import CompetitionSelector from "../../../../shared/components/ui/CompetitionSelector/CompetitionSelector";
-import BaseLayout from "../../components/ui/BaseLayout/BaseLayout";
+import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import GroupSelector from "../../../../shared/components/ui/GroupSelector/GroupSelector";
 import TeamsSelector from "../../../../shared/components/ui/TeamsSelector/TeamsSelector";
 import List from "@mui/material/List";
@@ -31,7 +31,7 @@ import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import styles from "./Settings.module.css";
 import SavedConfigs from "../../../../shared/components/ui/SavedConfigs/SavedConfigs";
-import PageHeader from "../../../../shared/components/ui/PageHeader/PageHeader";
+import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import {
   settingsService,
   getSettingsForUser,
@@ -239,53 +239,53 @@ export default function Settings(): JSX.Element {
 
   return (
     <BaseLayout>
-      <PageHeader title="Configuración" />
+      <ContentLayout title="Configuración">
+        <HeaderContainer
+          saveCombination={saveCombination}
+          selectedTeam={selectedTeam}
+          teamAlreadySaved={teamAlreadySaved}
+        />
 
-      <HeaderContainer
-        saveCombination={saveCombination}
-        selectedTeam={selectedTeam}
-        teamAlreadySaved={teamAlreadySaved}
-      />
+        <Box className={styles.pageContainer}>
+          <Box className={styles.topBox}>
+            <Typography variant="subtitle1">
+              Elige el equipo que quieres añadir a tu lista
+            </Typography>
+            <div className={styles.selectorsWrap}>
+              <Grid container spacing={1}>
+                <Grid item xs={12} sm={6} md={3}>
+                  <CompetitionSelector
+                    onChange={(c) => setSelectedCompetition(c)}
+                    value={selectedCompetition?.id}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <GroupSelector
+                    competitionId={selectedCompetition?.id}
+                    onChange={(g) => setSelectedGroup(g)}
+                    value={selectedGroup?.id}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <TeamsSelector
+                    competitionId={selectedCompetition?.id}
+                    groupId={selectedGroup?.id}
+                    onChange={(t) => setSelectedTeam(t)}
+                    value={selectedTeam?.id}
+                  />
+                </Grid>
+              </Grid>
+            </div>
+          </Box>
 
-      <Box className={styles.pageContainer}>
-        <Box className={styles.topBox}>
-          <Typography variant="subtitle1">
-            Elige el equipo que quieres añadir a tu lista
-          </Typography>
-          <div className={styles.selectorsWrap}>
-            <Grid container spacing={1}>
-              <Grid item xs={12} sm={6} md={3}>
-                <CompetitionSelector
-                  onChange={(c) => setSelectedCompetition(c)}
-                  value={selectedCompetition?.id}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <GroupSelector
-                  competitionId={selectedCompetition?.id}
-                  onChange={(g) => setSelectedGroup(g)}
-                  value={selectedGroup?.id}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <TeamsSelector
-                  competitionId={selectedCompetition?.id}
-                  groupId={selectedGroup?.id}
-                  onChange={(t) => setSelectedTeam(t)}
-                  value={selectedTeam?.id}
-                />
-              </Grid>
-            </Grid>
-          </div>
+          <Divider className={styles.divider} />
+
+          <Box className={styles.topBox}>
+            <Typography variant="subtitle1">Mis equipos</Typography>
+            <SavedConfigs />
+          </Box>
         </Box>
-
-        <Divider className={styles.divider} />
-
-        <Box className={styles.topBox}>
-          <Typography variant="subtitle1">Mis equipos</Typography>
-          <SavedConfigs />
-        </Box>
-      </Box>
+      </ContentLayout>
       <Snackbar
         open={snackOpen}
         autoHideDuration={4000}

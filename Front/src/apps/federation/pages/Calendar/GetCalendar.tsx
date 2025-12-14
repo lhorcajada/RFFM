@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useLocation } from "react-router-dom";
-import PageHeader from "../../../../shared/components/ui/PageHeader/PageHeader";
-import BaseLayout from "../../components/ui/BaseLayout/BaseLayout";
+import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
+import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import { CircularProgress, Typography, Tabs, Tab } from "@mui/material";
 import styles from "./GetCalendar.module.css";
 import useMatch, { computeMatchData } from "../../../../shared/hooks/useMatch";
@@ -101,52 +101,48 @@ export default function GetCalendar(): JSX.Element {
 
   return (
     <BaseLayout className={styles.paper}>
-      {noConfig ? (
-        <Typography variant="body2">
-          No hay configuración principal guardada.
-        </Typography>
-      ) : (
-        <PageHeader title="Calendario" />
-      )}
+      <ContentLayout title={noConfig ? undefined : "Calendario"}>
+        {noConfig ? (
+          <Typography variant="body2">
+            No hay configuración principal guardada.
+          </Typography>
+        ) : loading ? (
+          <div className={styles.center}>
+            <CircularProgress />
+          </div>
+        ) : !calendar ? (
+          <Typography variant="body2">
+            Selecciona temporada, competición y grupo para ver el calendario.
+          </Typography>
+        ) : (
+          <div className={styles.tabsRoot}>
+            {visibleRounds.length === 0 ? (
+              <Typography variant="body2">
+                No hay jornadas con partidos para la selección actual.
+              </Typography>
+            ) : (
+              <>
+                <Tabs
+                  value={selectedTab}
+                  onChange={(_, v) => setSelectedTab(v)}
+                  variant="scrollable"
+                  scrollButtons="auto"
+                >
+                  {visibleRounds.map((r: any, i: number) => (
+                    <Tab key={i} label={`Jornada ${i + 1}`} />
+                  ))}
+                </Tabs>
 
-      {/* page header is shown in the global layout */}
-
-      {loading ? (
-        <div className={styles.center}>
-          <CircularProgress />
-        </div>
-      ) : !calendar ? (
-        <Typography variant="body2">
-          Selecciona temporada, competición y grupo para ver el calendario.
-        </Typography>
-      ) : (
-        <div className={styles.tabsRoot}>
-          {visibleRounds.length === 0 ? (
-            <Typography variant="body2">
-              No hay jornadas con partidos para la selección actual.
-            </Typography>
-          ) : (
-            <>
-              <Tabs
-                value={selectedTab}
-                onChange={(_, v) => setSelectedTab(v)}
-                variant="scrollable"
-                scrollButtons="auto"
-              >
                 {visibleRounds.map((r: any, i: number) => (
-                  <Tab key={i} label={`Jornada ${i + 1}`} />
+                  <div key={i} hidden={selectedTab !== i}>
+                    <RoundPanel round={r} />
+                  </div>
                 ))}
-              </Tabs>
-
-              {visibleRounds.map((r: any, i: number) => (
-                <div key={i} hidden={selectedTab !== i}>
-                  <RoundPanel round={r} />
-                </div>
-              ))}
-            </>
-          )}
-        </div>
-      )}
+              </>
+            )}
+          </div>
+        )}
+      </ContentLayout>
     </BaseLayout>
   );
 }
