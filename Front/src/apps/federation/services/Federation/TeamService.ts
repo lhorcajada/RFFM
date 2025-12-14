@@ -1,7 +1,7 @@
 import { client, DEFAULT_RETRIES } from "../../../../core/api/client";
 import type { Team } from "../../types/team";
 import type { TeamCallupsResponse } from "../../types/callups";
-import type { TeamsGoalSectorsComparison } from "../../types/goalSectors";
+import type { TeamsGoalSectorsComparison } from "../../../../shared/utils/goalSectors";
 import type { RawPlayer } from "../../types/rawPlayer";
 import type { RawTeam } from "../../types/rawTeam";
 

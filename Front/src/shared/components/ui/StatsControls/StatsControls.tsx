@@ -15,11 +15,15 @@ import {
   getSettingsForUser,
 } from "../../../../apps/federation/services/api";
 import { useUser } from "../../../context/UserContext";
+import CompetitionSelector from "../CompetitionSelector/CompetitionSelector";
+import GroupSelector from "../GroupSelector/GroupSelector";
 
 type Option = { id: string; name: string };
 
 export default function StatsControls({
   onCompare,
+  hideCompareButton,
+  onSelectionChange,
 }: {
   onCompare: (opts: {
     competitionId: string;
@@ -27,8 +31,15 @@ export default function StatsControls({
     team1: string;
     team2: string;
   }) => void;
+  hideCompareButton?: boolean;
+  onSelectionChange?: (s: {
+    competitionId: string;
+    groupId: string;
+    team1: string;
+    team2: string;
+    loading: boolean;
+  }) => void;
 }) {
-  const [competitions, setCompetitions] = React.useState<Option[]>([]);
   const [groups, setGroups] = React.useState<Option[]>([]);
   const [teams, setTeams] = React.useState<Option[]>([]);
   const [loading, setLoading] = React.useState(false);
@@ -39,20 +50,7 @@ export default function StatsControls({
   const [team2, setTeam2] = React.useState("");
   const { user } = useUser();
 
-  React.useEffect(() => {
-    let mounted = true;
-    getCompetitions().then((res: any) => {
-      if (!mounted) return;
-      const opts = (res || []).map((c: any) => ({
-        id: String(c.id ?? c.competitionId ?? c.code ?? c.value ?? ""),
-        name: c.name ?? c.competitionName ?? c.label ?? String(c),
-      }));
-      setCompetitions(opts);
-    });
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  // Competitions are handled by the shared CompetitionSelector component
 
   React.useEffect(() => {
     async function loadFromApi() {
@@ -85,21 +83,7 @@ export default function StatsControls({
       window.removeEventListener("rffm.saved_combinations_changed", onSaved);
   }, [user]);
 
-  React.useEffect(() => {
-    if (!competitionId) return;
-    let mounted = true;
-    getGroups(competitionId).then((res: any) => {
-      if (!mounted) return;
-      const opts = (res || []).map((g: any) => ({
-        id: String(g.id ?? g.groupId ?? g.code ?? ""),
-        name: g.name ?? g.groupName ?? String(g),
-      }));
-      setGroups(opts);
-    });
-    return () => {
-      mounted = false;
-    };
-  }, [competitionId]);
+  // Groups are handled by the shared GroupSelector component
 
   React.useEffect(() => {
     if (!competitionId || !groupId) return;
@@ -122,6 +106,35 @@ export default function StatsControls({
     };
   }, [competitionId, groupId]);
 
+  // notify parent about selection changes
+  const prevRef = React.useRef<
+    | {
+        competitionId: string;
+        groupId: string;
+        team1: string;
+        team2: string;
+        loading: boolean;
+      }
+    | undefined
+  >(undefined);
+
+  React.useEffect(() => {
+    if (!onSelectionChange) return;
+    const current = { competitionId, groupId, team1, team2, loading };
+    const prev = prevRef.current;
+    const changed =
+      !prev ||
+      prev.competitionId !== current.competitionId ||
+      prev.groupId !== current.groupId ||
+      prev.team1 !== current.team1 ||
+      prev.team2 !== current.team2 ||
+      prev.loading !== current.loading;
+    if (changed) {
+      prevRef.current = current;
+      onSelectionChange(current);
+    }
+  }, [competitionId, groupId, team1, team2, loading, onSelectionChange]);
+
   function compare() {
     if (!competitionId || !groupId || !team1 || !team2) return;
     onCompare({ competitionId, groupId, team1, team2 });
@@ -131,91 +144,78 @@ export default function StatsControls({
     <Box className={styles.root}>
       <Grid container spacing={1} alignItems="center">
         <Grid item xs={12} sm={3}>
-          <FormControl fullWidth size="small">
-            <InputLabel>Competición</InputLabel>
-            <Select
-              value={competitionId}
-              label="Competición"
-              onChange={(e) => {
-                setCompetitionId(String(e.target.value));
-                setGroupId("");
-                setTeam1("");
-                setTeam2("");
-              }}
-            >
-              <MenuItem value="">-- Seleccionar --</MenuItem>
-              {competitions.map((c) => (
-                <MenuItem key={c.id} value={c.id}>
-                  {c.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          <CompetitionSelector
+            value={competitionId}
+            onChange={(c) => {
+              setCompetitionId(c?.id || "");
+              setGroupId("");
+              setTeam1("");
+              setTeam2("");
+            }}
+          />
         </Grid>
         <Grid item xs={12} sm={3}>
-          <FormControl fullWidth size="small">
-            <InputLabel>Grupo</InputLabel>
-            <Select
-              value={groupId}
-              label="Grupo"
-              onChange={(e) => {
-                setGroupId(String(e.target.value));
-                setTeam1("");
-                setTeam2("");
-              }}
-            >
-              <MenuItem value="">-- Seleccionar --</MenuItem>
-              {groups.map((g) => (
-                <MenuItem key={g.id} value={g.id}>
-                  {g.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          <GroupSelector
+            competitionId={competitionId}
+            value={groupId}
+            onChange={(g) => {
+              setGroupId(g?.id || "");
+              setTeam1("");
+              setTeam2("");
+            }}
+          />
         </Grid>
         <Grid item xs={12} sm={3}>
-          <FormControl fullWidth size="small">
-            <InputLabel>Equipo 1</InputLabel>
-            <Select
-              value={team1}
-              label="Equipo 1"
-              onChange={(e) => setTeam1(String(e.target.value))}
-            >
-              <MenuItem value="">-- Seleccionar --</MenuItem>
-              {teams.map((t) => (
-                <MenuItem key={t.id} value={t.id}>
-                  {t.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          <div style={{ marginBottom: 8 }}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Equipo 1</InputLabel>
+              <Select
+                value={team1}
+                label="Equipo 1"
+                onChange={(e) => setTeam1(String(e.target.value))}
+              >
+                <MenuItem value="">-- Seleccionar --</MenuItem>
+                {teams.map((t) => (
+                  <MenuItem key={t.id} value={t.id}>
+                    {t.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </div>
         </Grid>
         <Grid item xs={12} sm={3}>
-          <FormControl fullWidth size="small">
-            <InputLabel>Equipo 2</InputLabel>
-            <Select
-              value={team2}
-              label="Equipo 2"
-              onChange={(e) => setTeam2(String(e.target.value))}
+          <div style={{ marginBottom: 8 }}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Equipo 2</InputLabel>
+              <Select
+                value={team2}
+                label="Equipo 2"
+                onChange={(e) => setTeam2(String(e.target.value))}
+              >
+                <MenuItem value="">-- Seleccionar --</MenuItem>
+                {teams.map((t) => (
+                  <MenuItem key={t.id} value={t.id}>
+                    {t.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </div>
+        </Grid>
+        {!hideCompareButton && (
+          <Grid item xs={12} sm={12} style={{ textAlign: "right" }}>
+            <Button
+              variant="contained"
+              onClick={compare}
+              disabled={
+                loading || !competitionId || !groupId || !team1 || !team2
+              }
             >
-              <MenuItem value="">-- Seleccionar --</MenuItem>
-              {teams.map((t) => (
-                <MenuItem key={t.id} value={t.id}>
-                  {t.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Grid>
-        <Grid item xs={12} sm={12} style={{ textAlign: "right" }}>
-          <Button
-            variant="contained"
-            onClick={compare}
-            disabled={loading || !competitionId || !groupId || !team1 || !team2}
-          >
-            {loading ? <CircularProgress size={18} /> : "Comparar"}
-          </Button>
-        </Grid>
+              {loading ? <CircularProgress size={18} /> : "Comparar"}
+            </Button>
+          </Grid>
+        )}
       </Grid>
     </Box>
   );

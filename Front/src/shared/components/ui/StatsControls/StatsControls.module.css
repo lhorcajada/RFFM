@@ -1,3 +1,33 @@
 .root {
   margin-bottom: 12px;
 }
+
+/* Normalize MUI select appearance to match Settings selectors */
+:global(.StatsControls_root) {
+  /* no-op marker for scoped builds */
+}
+
+:global(.MuiOutlinedInput-root) {
+  font-size: 0.7rem;
+  height: 28px;
+  min-height: 28px;
+}
+
+:global(.MuiOutlinedInput-input) {
+  padding: 2px 6px !important;
+  font-size: 0.7rem;
+}
+
+:global(.MuiInputLabel-root) {
+  font-size: 0.7rem;
+}
+
+:global(.MuiInputLabel-shrink) {
+  transform: translate(14px, -9px) scale(0.75) !important;
+}
+
+@media (max-width: 600px) {
+  :global(.MuiOutlinedInput-root) {
+    height: 24px;
+  }
+}
