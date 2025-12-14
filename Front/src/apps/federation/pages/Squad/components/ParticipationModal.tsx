@@ -1,5 +1,13 @@
 import React from "react";
-import { Modal, Box, CircularProgress, Typography } from "@mui/material";
+import {
+  Modal,
+  Box,
+  CircularProgress,
+  Typography,
+  IconButton,
+} from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
+import styles from "./ParticipationModal.module.css";
 
 type Participation = {
   competitionName: string;
@@ -30,39 +38,45 @@ export default function ParticipationModal({
       onClose={onClose}
       aria-labelledby="participation-summary-title"
       closeAfterTransition
+      slotProps={{
+        backdrop: {
+          sx: {
+            backgroundColor: "rgba(2, 6, 23, 0.45)",
+          },
+        },
+      }}
     >
-      <Box
-        style={{
-          padding: 18,
-          maxWidth: 720,
-          margin: "40px auto",
-          outline: "none",
-        }}
-      >
+      <Box className={styles.modalContent}>
+        <IconButton
+          aria-label="Cerrar"
+          onClick={onClose}
+          size="small"
+          className={styles.closeButton}
+        >
+          <CloseIcon />
+        </IconButton>
         {loading ? (
-          <div
-            style={{ display: "flex", justifyContent: "center", padding: 18 }}
-          >
+          <div className={styles.loadingContainer}>
             <CircularProgress size={28} color="inherit" />
           </div>
         ) : data.length === 0 ? (
-          <div style={{ padding: 24, textAlign: "center" }}>
+          <div className={styles.emptyState}>
             <Typography variant="body1" color="textSecondary">
               No hay participaciones registradas para este equipo
             </Typography>
           </div>
         ) : (
-          <div>
+          <div className={styles.participationList}>
             {data.map((p, idx) => (
-              <div key={idx} style={{ marginBottom: 8 }}>
-                <strong>
+              <div key={idx} className={styles.participationItem}>
+                <div className={styles.participationTitle}>
                   {p.competitionName} — {p.groupName}
-                </strong>
-                <div>
+                </div>
+                <div className={styles.participationDetails}>
                   {p.teamName} ({p.teamCode}) — Puntos: {p.teamPoints} —
                   Jugadores: {p.count}
                 </div>
-                <ul style={{ margin: "6px 0 0 12px" }}>
+                <ul className={styles.playersList}>
                   {(p.players || [])
                     .filter((pl: any) => pl != null)
                     .map((pl: any, plIdx: number) => (

@@ -1,6 +1,14 @@
 import React from "react";
-import { Modal, Box, CircularProgress, Typography } from "@mui/material";
+import {
+  Modal,
+  Box,
+  CircularProgress,
+  Typography,
+  IconButton,
+} from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
 import AgeSummaryBox from "../../../components/players/AgeSummaryBox/AgeSummaryBox";
+import styles from "./AgeModal.module.css";
 
 type Props = {
   open: boolean;
@@ -23,19 +31,26 @@ export default function AgeModal({
       onClose={onClose}
       aria-labelledby="age-summary-title"
       closeAfterTransition
+      slotProps={{
+        backdrop: {
+          sx: {
+            backgroundColor: "rgba(2, 6, 23, 0.45)",
+          },
+        },
+      }}
     >
-      <Box
-        style={{
-          padding: 18,
-          maxWidth: 520,
-          margin: "40px auto",
-          outline: "none",
-        }}
-      >
+      <Box className={styles.modalContent}>
+        <IconButton
+          aria-label="Cerrar"
+          onClick={onClose}
+          size="small"
+          className={styles.closeButton}
+        >
+          <CloseIcon />
+        </IconButton>
+
         {loading ? (
-          <div
-            style={{ display: "flex", justifyContent: "center", padding: 18 }}
-          >
+          <div className={styles.loadingContainer}>
             <CircularProgress size={28} color="inherit" />
           </div>
         ) : (

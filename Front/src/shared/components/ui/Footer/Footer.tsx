@@ -97,11 +97,7 @@ export default function Footer({ hideMenu }: FooterProps): JSX.Element {
     {
       to: "/federation/goleadores",
       ariaLabel: "Goleadores",
-      icon: (
-        <SvgIcon>
-          <path d="M17 4V2H7v2H2v2c0 3.53 2.61 6.43 6 6.92V17H8v2h8v-2h-1v-4.08c3.39-.49 6-3.39 6-6.92V4h-5zm-7 0h6v2H10V4zm9 2c0 2.97-2.16 5.43-5 5.92V6h5zm-7 5.92C6.16 11.43 4 8.97 4 6h5v5.92z" />
-        </SvgIcon>
-      ),
+      icon: <SportsSoccerIcon fontSize="medium" />,
     },
     {
       to: "/federation/callups",

@@ -28,24 +28,6 @@ export default defineConfig(async ({ command, mode }) => {
     env.VITE_API_PROXY_TARGET || apiTargets[appEnv] || apiTargetDev;
 
   return {
-    resolve: {
-      alias: [
-        {
-          find: "@emotion/react",
-          replacement: path.resolve(
-            process.cwd(),
-            "node_modules/@emotion/react"
-          ),
-        },
-        {
-          find: "@emotion/styled",
-          replacement: path.resolve(
-            process.cwd(),
-            "node_modules/@emotion/styled"
-          ),
-        },
-      ],
-    },
     plugins: [
       pluginReact({
         jsxRuntime: "automatic",

@@ -157,6 +157,80 @@
   max-width: 120px;
 }
 
+/* Mobile adjustments: prevent team name from overlapping points */
+@media (max-width: 600px) {
+  .item {
+    padding: 12px 8px 56px 58px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+  }
+
+  .pointsWrap {
+    right: 4px !important;
+    top: 8px !important;
+  }
+
+  /* reserve space for points on small screens without causing layout overflow */
+  .teamInfo {
+    padding-right: 18px !important;
+    min-width: 0 !important;
+    max-width: calc(100% - 18px) !important;
+  }
+
+  .teamName {
+    white-space: normal !important;
+    overflow: hidden !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 3 !important;
+    -webkit-box-orient: vertical !important;
+    max-width: 100% !important;
+    line-height: 1.3 !important;
+  }
+
+  .team {
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .teamMeta {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    gap: 4px !important;
+    font-size: 0.75rem !important;
+    white-space: nowrap !important;
+  }
+
+  .goalIconWrap {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 3px !important;
+    margin: 0 2px !important;
+  }
+
+  .iconCircleWhite,
+  .iconCircleRed {
+    width: 14px !important;
+    height: 14px !important;
+  }
+
+  .iconInner {
+    font-size: 11px !important;
+  }
+
+  .goalText {
+    font-size: 0.75rem !important;
+  }
+}
+
+/* Ensure points and results toggle sit above content on small screens */
+.pointsWrap {
+  z-index: 10;
+}
+.resultsToggle {
+  z-index: 9;
+}
+
 .pointsBadge {
   width: 36px;
   height: 36px;

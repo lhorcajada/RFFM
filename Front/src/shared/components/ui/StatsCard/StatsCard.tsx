@@ -6,6 +6,7 @@ import CardActions from "@mui/material/CardActions";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import BarChartIcon from "@mui/icons-material/BarChart";
+import SportsSoccerIcon from "@mui/icons-material/SportsSoccer";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
@@ -21,7 +22,8 @@ export default function StatsCard(): JSX.Element {
       <CardContent>
         <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
           <div className={styles.iconWrap}>
-            <BarChartIcon />
+            <SportsSoccerIcon fontSize="small" sx={{ color: "#1976d2" }} />
+            <BarChartIcon fontSize="small" sx={{ color: "#1976d2" }} />
           </div>
           <Typography gutterBottom variant="h6" component="div">
             Comparativa: Sectores de goles

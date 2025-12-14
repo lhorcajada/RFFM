@@ -1,0 +1,87 @@
+.modalContent {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--panel);
+  color: var(--text-color, #fff);
+  border-radius: 8px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
+  padding: 24px;
+  min-width: 420px;
+  max-width: 90vw;
+  max-height: 80vh;
+  overflow: auto;
+  outline: none;
+}
+
+.closeButton {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  color: var(--text-color, #fff);
+  opacity: 0.8;
+  transition: opacity 0.2s;
+  z-index: 10;
+  cursor: pointer;
+}
+
+.closeButton:hover {
+  opacity: 1;
+}
+
+.loadingContainer {
+  display: flex;
+  justify-content: center;
+  padding: 32px;
+}
+
+.emptyState {
+  padding: 32px;
+  text-align: center;
+}
+
+.participationList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.participationItem {
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.participationTitle {
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--text-color, #fff);
+}
+
+.participationDetails {
+  font-size: 0.9rem;
+  color: var(--text-color, #fff);
+  opacity: 0.85;
+}
+
+.playersList {
+  margin: 8px 0 0 16px;
+  padding: 0;
+  list-style: circle;
+}
+
+.playersList li {
+  margin: 4px 0;
+  font-size: 0.85rem;
+}
+
+@media (max-width: 600px) {
+  .modalContent {
+    width: 92vw;
+    min-width: unset;
+    padding: 16px;
+    max-height: 85vh;
+  }
+}
