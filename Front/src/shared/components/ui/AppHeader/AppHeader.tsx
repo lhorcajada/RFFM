@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import AppBar from "@mui/material/AppBar";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
@@ -75,8 +75,79 @@ export default function AppHeader({ title }: AppHeaderProps) {
 
   const displayTitle = title ?? "Futbol Base";
 
+  const appBarRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    // try ref first, otherwise find by class name as fallback
+    let el = appBarRef.current as HTMLElement | null;
+    if (!el) {
+      try {
+        const node = document.querySelector(
+          `.${styles.appBar}`
+        ) as HTMLElement | null;
+        el = node;
+      } catch (e) {
+        el = null;
+      }
+    }
+    if (!el) return;
+
+    function applyCoachStyles(enabled: boolean) {
+      if (!el) return;
+      if (enabled) {
+        // debug log to confirm observer activation in browser console
+        try {
+          console.log("rffm: coach theme applied to AppHeader");
+        } catch (e) {}
+        el.style.setProperty(
+          "background",
+          "var(--rffm-gradient-bg)",
+          "important"
+        );
+        el.style.setProperty("box-shadow", "none", "important");
+        el.style.setProperty(
+          "border-bottom",
+          "1px solid rgba(0,0,0,0.12)",
+          "important"
+        );
+      } else {
+        try {
+          console.log("rffm: coach theme removed from AppHeader");
+        } catch (e) {}
+        el.style.removeProperty("background");
+        el.style.removeProperty("box-shadow");
+        el.style.removeProperty("border-bottom");
+      }
+    }
+
+    // initial apply based on current root class
+    applyCoachStyles(
+      document.documentElement.classList.contains("rffm-coach-theme")
+    );
+
+    // observe changes to <html> class attribute so we can react when coach theme toggles
+    const obs = new MutationObserver(() => {
+      applyCoachStyles(
+        document.documentElement.classList.contains("rffm-coach-theme")
+      );
+    });
+    obs.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+
+    return () => {
+      obs.disconnect();
+    };
+  }, []);
+
   return (
-    <AppBar position="static" className={styles.appBar} color="transparent">
+    <AppBar
+      ref={appBarRef}
+      position="static"
+      className={styles.appBar}
+      color="transparent"
+    >
       <Toolbar className={styles.toolbar}>
         <div className={styles.brand}>
           <img src={logo} alt={displayTitle} className={styles.brandLogo} />

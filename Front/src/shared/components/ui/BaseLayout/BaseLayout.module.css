@@ -4,6 +4,7 @@
   --rffm-footer-h: 64px;
   --rffm-page-h-padding: 12px; /* horizontal padding for page content */
   --rffm-gradient-bg: linear-gradient(180deg, #082033 0%, #05313b 100%);
+  --rffm-footer-border: 1px solid rgba(0, 200, 255, 0.1);
 }
 
 .paper {
@@ -42,8 +43,8 @@
   bottom: 0;
   height: var(--rffm-footer-h);
   z-index: 1600;
-  background: linear-gradient(180deg, #082033 0%, #05313b 100%);
-  border-top: 1px solid rgba(0, 200, 255, 0.1);
+  background: var(--rffm-gradient-bg);
+  border-top: var(--rffm-footer-border);
 }
 
 /* content scrolls between header and footer */

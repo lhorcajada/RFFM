@@ -16,7 +16,10 @@
   font-weight: 700;
   font-size: 1.05rem;
   white-space: nowrap;
-  background: linear-gradient(135deg, #00a0c8 0%, #0078b4 100%);
+  background: var(
+    --rffm-title-gradient,
+    linear-gradient(135deg, #00a0c8 0%, #0078b4 100%)
+  );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
