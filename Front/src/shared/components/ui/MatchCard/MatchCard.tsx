@@ -48,6 +48,8 @@ export default function MatchCard({
     awayTeamId: matchVals.awayTeamId,
     localShield: matchVals.localShield,
     awayShield: matchVals.awayShield,
+    localTeamPosition: matchVals.localTeamPosition,
+    awayTeamPosition: matchVals.awayTeamPosition,
     localGoalsNum: matchVals.localGoalsNum,
     awayGoalsNum: matchVals.awayGoalsNum,
     match: matchVals.match,
@@ -107,6 +109,7 @@ export default function MatchCard({
           alt={data.localName}
           // highlight prop for potential per-team styling
           data-primary={localIsPrimary}
+          position={data.localTeamPosition}
         />
 
         <div className={styles.centerArea}>
@@ -205,6 +208,7 @@ export default function MatchCard({
           shieldSrc={data.awayShield}
           alt={data.awayName}
           data-primary={awayIsPrimary}
+          position={data.awayTeamPosition}
         />
       </div>
     </div>

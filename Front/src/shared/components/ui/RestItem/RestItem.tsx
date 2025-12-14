@@ -38,6 +38,22 @@ export default function RestItem({ item }: { item: any }) {
 
   let displayName = localName || awayName || "";
   let displayShield = localShield || awayShield || "";
+  // Extract optional positions (keep compatibility with multiple API shapes)
+  const localTeamPosition =
+    (m as any).LocalTeamPosition ??
+    (m as any).localTeamPosition ??
+    (m as any).local_position ??
+    (m as any).posicion_local ??
+    (m as any).posicion_equipo_local ??
+    null;
+
+  const awayTeamPosition =
+    (m as any).VisitorTeamPosition ??
+    (m as any).visitorTeamPosition ??
+    (m as any).visitor_position ??
+    (m as any).posicion_visitante ??
+    (m as any).posicion_equipo_visitante ??
+    null;
   // If one side explicitly says 'descansa', show the opponent (the team that actually rests)
   const localIsDesc = String(localName).trim().toLowerCase() === "descansa";
   const awayIsDesc = String(awayName).trim().toLowerCase() === "descansa";
@@ -65,6 +81,7 @@ export default function RestItem({ item }: { item: any }) {
           name={displayName}
           shieldSrc={displayShield}
           alt={displayName}
+          position={localIsDesc ? awayTeamPosition : localTeamPosition}
         />
       ) : (
         <div className={styles.placeholder} aria-hidden>

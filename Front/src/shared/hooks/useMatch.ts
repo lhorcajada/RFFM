@@ -169,6 +169,23 @@ export function computeMatchData(item: UseMatchInput["item"]) {
     )
   );
 
+  // Extract optional classification positions provided by calendar API
+  const localTeamPosition =
+    (m as any).LocalTeamPosition ??
+    (m as any).localTeamPosition ??
+    (m as any).local_position ??
+    (m as any).posicion_local ??
+    (m as any).posicion_equipo_local ??
+    null;
+
+  const awayTeamPosition =
+    (m as any).VisitorTeamPosition ??
+    (m as any).visitorTeamPosition ??
+    (m as any).visitor_position ??
+    (m as any).posicion_visitante ??
+    (m as any).posicion_equipo_visitante ??
+    null;
+
   // DEBUG: log incoming shield fields and resolved values (remove in production)
   try {
     // eslint-disable-next-line no-console
@@ -248,6 +265,8 @@ export function computeMatchData(item: UseMatchInput["item"]) {
     awayTeamId,
     localShield,
     awayShield,
+    localTeamPosition,
+    awayTeamPosition,
     finished,
     localGoalsNum,
     awayGoalsNum,

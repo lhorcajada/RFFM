@@ -33,5 +33,7 @@
         public string VisitorGoals { get; set; } = string.Empty;
         public string VisitorPenalties { get; set; } = string.Empty;
         public string OriginRecordCode { get; set; } = string.Empty;
+        public int LocalTeamPosition { get; set; }
+        public int VisitorTeamPosition { get; set; }
     }
 }

@@ -23,17 +23,30 @@ namespace RFFM.Api.Features.Federation.Competitions.Services
         {
             var groups = await competitionService.GetGroupsAsync(competicion.ToString(), cancellationToken);
             var workingDays = groups.First(g => g.Id == groupId).WorkingDays;
+
+            // Load classification once for the group to retrieve team positions
+            var classification = await competitionService.GetClassification(groupId, cancellationToken);
+            var positions = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            foreach (var t in classification.Teams ?? new())
+            {
+                if (string.IsNullOrWhiteSpace(t.TeamId)) continue;
+                if (int.TryParse(t.Position, out var p))
+                    positions[t.TeamId.Trim()] = p;
+                else
+                    positions[t.TeamId.Trim()] = 0;
+            }
+
             var calendarResponse = new CalendarResponse();
             for (var workingDayNumber = 1; workingDayNumber < workingDays; workingDayNumber++)
             {
-                var workingDay = await GetWorkingDayAsync(groupId, workingDayNumber, cancellationToken);
+                var workingDay = await GetWorkingDayAsync(groupId, workingDayNumber, positions, cancellationToken);
                 calendarResponse.MatchDays.Add(workingDay);
 
             }
             return calendarResponse;
         }
 
-        private async Task<CalendarMatchDayResponse> GetWorkingDayAsync(int groupId, int workingDayNumber, CancellationToken cancellationToken = default)
+        private async Task<CalendarMatchDayResponse> GetWorkingDayAsync(int groupId, int workingDayNumber, IReadOnlyDictionary<string,int> positions, CancellationToken cancellationToken = default)
         {
             // Construir URL: omitir jornada cuando es nula o <= 0 para solicitar todas las jornadas
             var url = $"https://www.rffm.es/api/results?idGroup={groupId}&round={workingDayNumber}";
@@ -84,7 +97,11 @@ namespace RFFM.Api.Features.Federation.Competitions.Services
                         VisitorTeamWithdrawn = m.VisitorTeamWithdrawn,
                         VisitorGoals = m.VisitorGoals,
                         VisitorPenalties = m.VisitorPenalties,
-                        OriginRecordCode = m.OriginRecordCode
+                        OriginRecordCode = m.OriginRecordCode,
+
+                        // Fill positions from classification (0 when unknown)
+                        LocalTeamPosition = (m.LocalTeamCode != null && positions.TryGetValue(m.LocalTeamCode.Trim(), out var lp)) ? lp : 0,
+                        VisitorTeamPosition = (m.VisitorTeamCode != null && positions.TryGetValue(m.VisitorTeamCode.Trim(), out var vp)) ? vp : 0
                     }));
                 }
 
