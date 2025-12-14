@@ -56,7 +56,6 @@ export default function PlayerRow({ player }: Props) {
         return;
       }
       const data = await getPlayer(id);
-      console.log("[PlayerRow] raw getPlayer response:", data);
       // Normalize response: some backends return the player directly, others wrap
       const raw = (data && (data.player || data)) as any;
 
@@ -110,7 +109,6 @@ export default function PlayerRow({ player }: Props) {
         ace: raw.ace ?? raw.age ?? raw.edad ?? 0,
       };
 
-      console.log("[PlayerRow] normalized stats:", stats);
       setDetails(stats ?? null);
       setExpanded(true);
     } catch (e) {

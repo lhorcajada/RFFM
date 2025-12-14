@@ -27,7 +27,7 @@ export class SettingsService {
   async getSettings(): Promise<SavedComboResponse[]> {
     try {
       const token = coachAuthService.getToken();
-      console.debug("rffm:settings getSettings tokenExists=", !!token);
+      // token existence check - debug removed
     } catch (e) {}
     const response = await client.get<SavedComboResponse[]>(
       "federation/settings"
@@ -45,7 +45,7 @@ export class SettingsService {
     } catch (e: any) {
       // Provide clearer logging for 401 Unauthorized to help debugging
       if (e?.response?.status === 401) {
-        console.warn("rffm:settings GET 401 Unauthorized for url=", url);
+        // unauthorized warning removed in cleanup
       }
       throw e;
     }

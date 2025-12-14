@@ -46,9 +46,6 @@ export default function AppRouter() {
       function handleAuthCheck() {
         try {
           if (!coachAuthService.isAuthenticated()) {
-            console.debug(
-              "rffm:auth AuthMonitor detected expired token; logging out and redirecting to /login"
-            );
             try {
               coachAuthService.logout();
             } catch (e) {}

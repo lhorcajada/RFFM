@@ -14,16 +14,11 @@ export default function RequireAuth({
       typeof window !== "undefined" &&
       new URLSearchParams(window.location.search).get("dev") === "1";
     const ok = devFlag || coachAuthService.isAuthenticated();
-    console.debug(
-      "rffm:auth RequireAuth checking ok=",
-      ok,
-      "devFlag=",
-      devFlag
-    );
+    // removed debug logging
     if (!ok) {
       // Do not call logout or dispatch the global event here to avoid
       // triggering multiple handlers that may redirect and cause loops.
-      console.debug("rffm:auth RequireAuth redirecting to /login");
+      // removed debug logging
       return <Navigate to="/login" replace />;
     }
 

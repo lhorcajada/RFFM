@@ -99,13 +99,9 @@ export default function Settings(): JSX.Element {
 
   async function loadSettings() {
     try {
-      console.debug("Settings.loadSettings: starting, userId=", user?.id);
+      // logging removed
       const arr = await getSettingsForUser(user?.id);
-      console.debug(
-        "Settings.loadSettings: got settings count=",
-        Array.isArray(arr) ? arr.length : typeof arr,
-        arr
-      );
+      // logging removed
       setSaved(arr || []);
       const primary = arr.find((c: any) => c.isPrimary);
       const p = primary?.id || null;

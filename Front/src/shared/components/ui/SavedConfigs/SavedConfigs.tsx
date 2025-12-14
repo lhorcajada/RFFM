@@ -49,12 +49,7 @@ export default function SavedConfigs({ compact }: { compact?: boolean }) {
 
   async function loadSettings() {
     try {
-      console.debug("SavedConfigs.loadSettings: userId=", user?.id);
       const arr = await getSettingsForUser(user?.id);
-      console.debug(
-        "SavedConfigs.loadSettings: got settings count=",
-        Array.isArray(arr) ? arr.length : typeof arr
-      );
       setSaved(arr || []);
       const primary = arr.find((c: any) => c.isPrimary);
       setPrimaryId(primary?.id || null);
@@ -78,9 +73,7 @@ export default function SavedConfigs({ compact }: { compact?: boolean }) {
       await settingsService.setPrimarySettings(id, user?.id);
       await loadSettings();
       window.dispatchEvent(new Event("rffm.saved_combinations_changed"));
-    } catch (e) {
-      console.error("Error al marcar como principal:", e);
-    }
+    } catch (e) {}
   }
 
   function applyCombo(id: string) {
@@ -109,9 +102,7 @@ export default function SavedConfigs({ compact }: { compact?: boolean }) {
     try {
       await settingsService.deleteSettings(id, user?.id);
       await persist();
-    } catch (e) {
-      console.error("Error al eliminar la combinación:", e);
-    }
+    } catch (e) {}
   }
 
   return (

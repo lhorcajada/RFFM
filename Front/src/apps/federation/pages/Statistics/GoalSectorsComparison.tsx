@@ -36,7 +36,7 @@ export default function GoalSectorsComparison(): JSX.Element {
     setLoading(true);
     setError(null);
     setData(null);
-    console.log("GoalSectors: comparing", opts);
+
     getTeamsGoalSectorsComparison({
       teamCode: opts.team1,
       competitionId: opts.competitionId,
@@ -45,7 +45,6 @@ export default function GoalSectorsComparison(): JSX.Element {
       teamCode2: opts.team2,
     })
       .then((res) => {
-        console.log("GoalSectors: API result", res);
         if (!res || !Array.isArray(res) || res.length === 0) {
           setError("No hay datos de sectores para la selección indicada.");
           return;
@@ -54,7 +53,6 @@ export default function GoalSectorsComparison(): JSX.Element {
         setData(res as TeamsGoalSectorsComparison);
       })
       .catch((e) => {
-        console.error("GoalSectors: API error", e);
         setError(String(e));
       })
       .finally(() => setLoading(false));

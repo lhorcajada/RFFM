@@ -51,7 +51,6 @@ client.interceptors.response.use(
       }
       // network error (no response)
       if (!error?.response) {
-        console.error("API network error:", error);
         // axios uses code 'ECONNABORTED' for timeouts
         if (error?.code === "ECONNABORTED") {
           gotoErrorPage("timeout");
@@ -62,7 +61,6 @@ client.interceptors.response.use(
       }
 
       if (status === 500) {
-        console.error("API 500 error:", error);
         gotoErrorPage();
         return Promise.reject(error);
       }
@@ -85,9 +83,6 @@ client.interceptors.request.use(
           // If the token exists but is already expired according to coachAuthService,
           // proactively remove it and emit auth_expired so app can log out and prompt for credentials.
           if (!coachAuthService.isAuthenticated()) {
-            console.debug(
-              "rffm:auth client interceptor detected expired token; clearing and dispatching auth_expired"
-            );
             try {
               coachAuthService.logout();
             } catch (e) {}
@@ -96,9 +91,6 @@ client.interceptors.request.use(
             } catch (e) {}
           } else {
             // token ok
-            console.debug(
-              "rffm:auth client interceptor token valid, attaching Authorization header"
-            );
             if (!config.headers) config.headers = {} as any;
             config.headers.Authorization = `Bearer ${token}`;
           }

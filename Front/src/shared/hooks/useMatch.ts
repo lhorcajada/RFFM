@@ -85,18 +85,7 @@ export function computeMatchData(item: UseMatchInput["item"]) {
   // Development-time debug log to help diagnose missing codacta values
   try {
     // Vite exposes import.meta.env.MODE; show debug only when not production
-    // eslint-disable-next-line no-console
-    if (
-      (import.meta as any).env &&
-      (import.meta as any).env.MODE !== "production"
-    ) {
-      console.debug("useMatch codacta debug", {
-        potentialFields,
-        urlCandidates,
-        codactaVal,
-        raw: m.raw ?? null,
-      });
-    }
+    // debug info removed in production cleanup
   } catch (e) {
     // ignore logging issues
   }
@@ -186,24 +175,7 @@ export function computeMatchData(item: UseMatchInput["item"]) {
     (m as any).posicion_equipo_visitante ??
     null;
 
-  // DEBUG: log incoming shield fields and resolved values (remove in production)
-  try {
-    // eslint-disable-next-line no-console
-    console.debug("useMatch shields", {
-      escudo_equipo_local_url: m.escudo_equipo_local_url,
-      escudo_equipo_local: m.escudo_equipo_local,
-      localImage: (m as any).localImage,
-      localTeamImageUrl: (m as any).localTeamImageUrl,
-      resolvedLocal: localShield,
-      escudo_equipo_visitante_url: m.escudo_equipo_visitante_url,
-      escudo_equipo_visitante: m.escudo_equipo_visitante,
-      awayImage: (m as any).awayImage,
-      visitorTeamImageUrl: (m as any).visitorTeamImageUrl,
-      resolvedAway: awayShield,
-    });
-  } catch (e) {
-    // ignore
-  }
+  // shield debug removed in production cleanup
 
   const isTrueFlag = (v: any) =>
     v === true || v === "1" || v === 1 || v === "true";

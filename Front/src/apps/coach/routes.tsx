@@ -57,7 +57,6 @@ function CoachRoutesContent() {
     // add coach theme class to root so theme variables are scoped
     try {
       document.documentElement.classList.add("rffm-coach-theme");
-      console.log("rffm: added rffm-coach-theme class to <html>");
 
       // Apply inline CSS variables on <html> so they win over :root rules
       try {
@@ -82,28 +81,10 @@ function CoachRoutesContent() {
       setTimeout(() => {
         try {
           const rootStyles = getComputedStyle(document.documentElement);
-          console.log(
-            "rffm: --rffm-gradient-bg=",
-            rootStyles.getPropertyValue("--rffm-gradient-bg")
-          );
-          console.log(
-            "rffm: --rffm-title-gradient=",
-            rootStyles.getPropertyValue("--rffm-title-gradient")
-          );
           const header = document.querySelector(
             'header[class*="MuiAppBar-root"], .appBar, header'
           );
           const footer = document.querySelector("footer, .root");
-          if (header)
-            console.log(
-              "rffm: header computed background=",
-              getComputedStyle(header as Element).background
-            );
-          if (footer)
-            console.log(
-              "rffm: footer computed background=",
-              getComputedStyle(footer as Element).background
-            );
         } catch (e) {}
       }, 50);
     } catch (e) {}
@@ -118,7 +99,6 @@ function CoachRoutesContent() {
         docElStyle.removeProperty("--rffm-footer-border");
 
         document.documentElement.classList.remove("rffm-coach-theme");
-        console.log("rffm: removed rffm-coach-theme class from <html>");
       } catch (e) {}
     };
   }, []);

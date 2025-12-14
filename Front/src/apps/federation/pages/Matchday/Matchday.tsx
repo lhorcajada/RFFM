@@ -21,14 +21,8 @@ export default function Matchday() {
       setLoading(true);
       try {
         // Cargar los settings desde la API
-        console.debug("Matchday.fetchMatches: userId=", user?.id);
         const savedSettings = await getSettingsForUser(user?.id);
-        console.debug(
-          "Matchday.fetchMatches: savedSettings count=",
-          Array.isArray(savedSettings)
-            ? savedSettings.length
-            : typeof savedSettings
-        );
+        // logging removed
         if (!savedSettings || savedSettings.length === 0) {
           setHasData(false);
           setLoading(false);
@@ -91,7 +85,7 @@ export default function Matchday() {
         });
         setMatches(matchdayMatches);
       } catch (error) {
-        console.error("Error fetching matches:", error);
+        // error logging removed
         setHasData(false);
       } finally {
         setLoading(false);

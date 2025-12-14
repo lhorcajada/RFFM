@@ -96,9 +96,7 @@ export default function AppHeader({ title }: AppHeaderProps) {
       if (!el) return;
       if (enabled) {
         // debug log to confirm observer activation in browser console
-        try {
-          console.log("rffm: coach theme applied to AppHeader");
-        } catch (e) {}
+        // removed debug logging
         el.style.setProperty(
           "background",
           "var(--rffm-gradient-bg)",
@@ -111,9 +109,7 @@ export default function AppHeader({ title }: AppHeaderProps) {
           "important"
         );
       } else {
-        try {
-          console.log("rffm: coach theme removed from AppHeader");
-        } catch (e) {}
+        // removed debug logging
         el.style.removeProperty("background");
         el.style.removeProperty("box-shadow");
         el.style.removeProperty("border-bottom");
