@@ -163,16 +163,15 @@ export default function AppHeader({ title }: AppHeaderProps) {
             aria-controls={open ? "user-menu" : undefined}
             aria-haspopup="true"
             aria-expanded={open ? "true" : undefined}
+            aria-label={
+              user?.username
+                ? `Abrir menú de ${user.username}`
+                : "Abrir menú de usuario"
+            }
           >
             <Avatar src={avatarSrc}>{!avatarSrc && initials}</Avatar>
           </IconButton>
-          {user?.username && (
-            <Tooltip title={user.username} arrow disableInteractive>
-              <div className={styles.userName} aria-hidden>
-                {user.username}
-              </div>
-            </Tooltip>
-          )}
+          {/* Username display removed per design: only avatar shown */}
           <Menu
             id="user-menu"
             anchorEl={anchorEl}

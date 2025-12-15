@@ -90,20 +90,9 @@
 
 .userBox {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 0px;
+  gap: 8px;
   color: rgb(6, 158, 246);
-}
-
-.userName {
-  font-size: 0.6rem;
-  color: rgba(255, 255, 255, 0.95);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 120px;
-  text-align: center;
 }
 
 .MuiAvatar-root {
@@ -111,16 +100,9 @@
   height: 38px;
 }
 
-/* Responsive: reduce max width on small screens, hide name if extremely small */
+/* Responsive tweaks for header spacing */
 @media (max-width: 420px) {
-  .userName {
-    max-width: 80px;
-    font-size: 0.7rem;
-  }
-}
-
-@media (max-width: 340px) {
-  .userName {
-    display: none;
+  .brandLogo {
+    width: 40px;
   }
 }
