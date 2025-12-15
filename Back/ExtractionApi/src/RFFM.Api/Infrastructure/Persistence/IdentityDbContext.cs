@@ -8,4 +8,6 @@ public class IdentityDbContext : Microsoft.AspNetCore.Identity.EntityFrameworkCo
         : base(options)
     {
     }
+
+    // Note: PaymentPlan and Subscription are part of the application domain and are mapped in AppDbContext.
 }

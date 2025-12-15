@@ -52,9 +52,17 @@ export default function AppHeader({ title }: AppHeaderProps) {
       // ensure all auth-related keys are removed
       localStorage.removeItem("coachAuthToken");
       localStorage.removeItem("coachUserId");
+      localStorage.removeItem("coach_roles");
       localStorage.removeItem("rffm_user");
       // inform other parts of the app
-      window.dispatchEvent(new CustomEvent("rffm.logout"));
+      // emit both a logout event and an auth_expired event so all listeners
+      // (including CoachAuthContext which listens for auth_expired) can react
+      try {
+        window.dispatchEvent(new CustomEvent("rffm.logout"));
+      } catch (e) {}
+      try {
+        window.dispatchEvent(new CustomEvent("rffm.auth_expired"));
+      } catch (e) {}
     } catch (e) {}
     // also call context logout to clear state
     try {

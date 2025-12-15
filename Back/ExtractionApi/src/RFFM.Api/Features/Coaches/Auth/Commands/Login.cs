@@ -49,18 +49,13 @@ namespace RFFM.Api.Features.Coaches.Auth.Commands
         {
             // Before generating token, verify that user exists and email is confirmed
             // The TokenService will still validate credentials, but we check emailConfirmed earlier to give specific message
-            try
-            {
-                // Decode temp token to get username (reuse TokenService private logic isn't accessible)
-                // Instead, attempt to validate via TokenService and then additionally check EmailConfirmed in TokenService's user lookup.
-                var token = await _tokenService.GenerateJwtToken(request.Token, cancellationToken);
-                return Results.Ok(token);
-            }
-            catch (Exception ex)
-            {
-                // Bubble up known domain exceptions
-                throw;
-            }
+
+            // Decode temp token to get username (reuse TokenService private logic isn't accessible)
+            // Instead, attempt to validate via TokenService and then additionally check EmailConfirmed in TokenService's user lookup.
+            var token = await _tokenService.GenerateJwtToken(request.Token, cancellationToken);
+            return Results.Ok(token);
+
+
         }
 
     }

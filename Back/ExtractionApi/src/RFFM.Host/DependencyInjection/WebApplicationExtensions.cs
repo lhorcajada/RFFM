@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using RFFM.Api.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
 using System.Security.Claims;
+using RFFM.Api.Infrastructure.Persistence.Seed;
 
 namespace RFFM.Host.DependencyInjection
 {
@@ -250,6 +251,24 @@ namespace RFFM.Host.DependencyInjection
                     logger2?.LogError(ex, "Error while seeding identity roles");
                 }
             });
+        }
+
+        public static async Task SeedPaymentPlansAsync(this WebApplication app)
+        {
+            using var scope = app.Services.CreateScope();
+            var logger = scope.ServiceProvider.GetService<ILogger<WebApplication>>();
+
+            try
+            {
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                logger?.LogInformation("Seeding payment plans if not present...");
+                await PaymentPlansSeeder.SeedAsync(db);
+                logger?.LogInformation("✓ Payment plans seeding finished");
+            }
+            catch (Exception ex)
+            {
+                logger?.LogError(ex, "Error while seeding payment plans");
+            }
         }
     }
 }

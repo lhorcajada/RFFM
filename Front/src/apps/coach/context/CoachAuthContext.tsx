@@ -57,6 +57,52 @@ export const CoachAuthProvider: React.FC<{ children: React.ReactNode }> = ({
         handleAuthExpired as EventListener
       );
   }, [setUser]);
+  useEffect(() => {
+    function handleCoachTokenUpdated(ev: Event) {
+      try {
+        const custom = ev as CustomEvent<any>;
+        const detail = custom?.detail ?? {};
+        console.debug(
+          "CoachAuthContext: received rffm.coach_token_updated",
+          detail
+        );
+
+        // If roles are provided, cache them so coachAuthService can read them
+        if (Array.isArray(detail.roles)) {
+          try {
+            localStorage.setItem("coach_roles", JSON.stringify(detail.roles));
+          } catch (e) {
+            // ignore
+          }
+        }
+
+        // Update auth state from token (coachAuthService reads localStorage)
+        const nowAuth = coachAuthService.isAuthenticated();
+        const nowUserId = coachAuthService.getUserId();
+        setIsAuthenticated(nowAuth);
+        setUserId(nowUserId);
+        console.log(
+          "CoachAuthContext: received rffm.coach_token_updated",
+          detail
+        );
+        console.debug(
+          "CoachAuthContext: received rffm.coach_token_updated",
+          detail
+        );
+      } catch (e) {
+        // ignore
+      }
+    }
+    window.addEventListener(
+      "rffm.coach_token_updated",
+      handleCoachTokenUpdated as EventListener
+    );
+    return () =>
+      window.removeEventListener(
+        "rffm.coach_token_updated",
+        handleCoachTokenUpdated as EventListener
+      );
+  }, []);
 
   const login = async (
     username: string,
@@ -175,23 +221,67 @@ export const CoachAuthGuard: React.FC<{ children: React.ReactNode }> = ({
 
     // If authenticated, ensure user has Coach role to access coach area
     // Do not redirect away from public routes (login/register/forgot/reset)
-    if (
-      isAuthenticated &&
-      !coachAuthService.hasRole("Coach") &&
-      !isPublicRoute
-    ) {
-      try {
-        window.dispatchEvent(
-          new CustomEvent("rffm.show_snackbar", {
-            detail: {
-              message:
-                "No tienes permisos para acceder a la sección de Entrenadores.",
-              severity: "warning",
-            },
-          })
+    if (isAuthenticated && !isPublicRoute) {
+      // Wait for roles to become available. Use either the token-updated event
+      // or polling for a short period to avoid premature redirect due to timing.
+      let cancelled = false;
+      const eventHandler = () => {
+        // noop; presence of event will speed up re-evaluation in the loop below
+      };
+      window.addEventListener(
+        "rffm.coach_token_updated",
+        eventHandler as EventListener
+      );
+
+      const checkRole = async () => {
+        const start = Date.now();
+        const timeout = 3000; // ms
+        while (Date.now() - start < timeout && !cancelled) {
+          try {
+            if (coachAuthService.hasRole("Coach")) {
+              window.removeEventListener(
+                "rffm.coach_token_updated",
+                eventHandler as EventListener
+              );
+              return;
+            }
+          } catch (e) {}
+          // small delay; this allows the event listener to fire and localStorage
+          // to be visible to this execution context
+          await new Promise((r) => setTimeout(r, 100));
+        }
+
+        window.removeEventListener(
+          "rffm.coach_token_updated",
+          eventHandler as EventListener
         );
-      } catch (e) {}
-      navigate("/", { replace: true });
+
+        if (!cancelled && !coachAuthService.hasRole("Coach")) {
+          try {
+            window.dispatchEvent(
+              new CustomEvent("rffm.show_snackbar", {
+                detail: {
+                  message:
+                    "No tienes permisos para acceder a la sección de Entrenadores.",
+                  severity: "warning",
+                },
+              })
+            );
+          } catch (e) {}
+          navigate("/", { replace: true });
+        }
+      };
+
+      checkRole();
+      return () => {
+        cancelled = true;
+        try {
+          window.removeEventListener(
+            "rffm.coach_token_updated",
+            eventHandler as EventListener
+          );
+        } catch (e) {}
+      };
     }
   }, [location.pathname, navigate, isAuthenticated]);
 

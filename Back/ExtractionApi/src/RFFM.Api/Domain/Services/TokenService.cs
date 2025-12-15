@@ -160,6 +160,11 @@ namespace RFFM.Api.Domain.Services
                 { "sub", user.Id },
                 { "username", user.UserName ?? string.Empty },
                 { "email", user.Email ?? string.Empty },
+                // Include standard WS-Federation / WS-Identity claim URIs so clients
+                // that expect those keys (e.g. frontend token parser) can find them.
+                { "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier", user.Id },
+                { "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name", user.UserName ?? string.Empty },
+                { "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress", user.Email ?? string.Empty },
                 { "iss", issuer ?? string.Empty },
                 { "aud", audience ?? string.Empty },
                 { "exp", DateTimeOffset.UtcNow.AddDays(8).ToUnixTimeSeconds() },
@@ -217,6 +222,82 @@ namespace RFFM.Api.Domain.Services
             
             _logger.LogInformation("✓ JWT token generated successfully for user: {Username}", username);
             
+            return token;
+        }
+
+        public async Task<string> GenerateJwtForUser(string userId, CancellationToken cancellationToken)
+        {
+            var backendSecret = _configuration["Jwt:Key"];
+            var issuer = _configuration["Jwt:Issuer"];
+            var audience = _configuration["Jwt:Audience"];
+
+            if (string.IsNullOrWhiteSpace(backendSecret))
+            {
+                _logger.LogError("Jwt:Key is not configured");
+                throw new InvalidOperationException("Jwt:Key not configured");
+            }
+
+            var user = await _applicationDbContext.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+            if (user == null) throw new DomainException("Generando token", "Usuario no encontrado", "user_not_found");
+
+            var claims = new Dictionary<string, object>
+            {
+                { "sub", user.Id },
+                { "username", user.UserName ?? string.Empty },
+                { "email", user.Email ?? string.Empty },
+                // Add WS-Fed / WS-Identity URIs for compatibility with frontend parsers
+                { "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier", user.Id },
+                { "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name", user.UserName ?? string.Empty },
+                { "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress", user.Email ?? string.Empty },
+                { "iss", issuer ?? string.Empty },
+                { "aud", audience ?? string.Empty },
+                { "exp", DateTimeOffset.UtcNow.AddDays(8).ToUnixTimeSeconds() },
+                { "iat", DateTimeOffset.UtcNow.ToUnixTimeSeconds() }
+            };
+
+            var additionalClaims = ClaimService.GetClaims(user);
+            foreach (var claim in additionalClaims)
+            {
+                if (!claims.ContainsKey(claim.Type))
+                {
+                    claims[claim.Type] = claim.Value;
+                }
+            }
+
+            try
+            {
+                var roleIds = await _applicationDbContext.Set<IdentityUserRole<string>>()
+                    .Where(ur => ur.UserId == user.Id)
+                    .Select(ur => ur.RoleId)
+                    .ToListAsync(cancellationToken);
+
+                var roles = await _applicationDbContext.Roles
+                    .Where(r => roleIds.Contains(r.Id))
+                    .Select(r => new { r.Id, r.Name })
+                    .ToListAsync(cancellationToken);
+
+                var roleNames = roles.Select(r => r.Name ?? string.Empty).ToArray();
+                claims["roles"] = roleNames;
+
+                var roleClaims = await _applicationDbContext.Set<IdentityRoleClaim<string>>()
+                    .Where(rc => roleIds.Contains(rc.RoleId) && rc.ClaimType == "permission")
+                    .ToListAsync(cancellationToken);
+
+                var permissionsByRole = roles.ToDictionary(
+                    r => r.Name ?? string.Empty,
+                    r => roleClaims.Where(rc => rc.RoleId == r.Id).Select(rc => rc.ClaimValue).ToArray() as object
+                );
+
+                claims["role_permissions"] = permissionsByRole;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "No se pudieron incluir roles/permisos en el token");
+            }
+
+            var backendSecretBytes = Encoding.UTF8.GetBytes(backendSecret);
+            var token = JWT.Encode(claims, backendSecretBytes, JwsAlgorithm.HS256);
+            _logger.LogInformation("✓ JWT token generated successfully for user id: {UserId}", userId);
             return token;
         }
 

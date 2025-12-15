@@ -21,5 +21,8 @@ await app.MigrateDbContext<IdentityDbContext>();
 // Seed roles/claims asynchronously (non-blocking)
 app.SeedIdentityRoles();
 
+// Seed payment plans
+await app.SeedPaymentPlansAsync();
+
 app.Run();
 

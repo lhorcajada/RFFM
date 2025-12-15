@@ -52,6 +52,10 @@ namespace RFFM.Api.Infrastructure.Persistence
         public DbSet<Rival> Rivals { get; set; }
         public DbSet<ExcuseTypes> ExcuseTypes { get; set; }
         public DbSet<FederationSetting> FederationSettings { get; set; }
+
+        // Payment plans and subscriptions
+        public DbSet<PaymentPlan> PaymentPlans { get; set; }
+        public DbSet<Subscription> Subscriptions { get; set; }
         
         public AppDbContext(DbConnection connection)
         {

@@ -50,6 +50,9 @@ export const coachAuthService = {
   logout: () => {
     localStorage.removeItem("coachAuthToken");
     localStorage.removeItem("coachUserId");
+    try {
+      localStorage.removeItem("coach_roles");
+    } catch (e) {}
   },
 
   isAuthenticated: () => {
@@ -76,11 +79,32 @@ export const coachAuthService = {
 
   // Roles & permissions helpers
   getRoles: (): string[] => {
-    const token = localStorage.getItem("coachAuthToken");
-    if (!token) return [];
-    const decoded = decodeJwtPayload(token);
-    if (!decoded) return [];
-    return Array.isArray(decoded.roles) ? decoded.roles : [];
+    const combined = new Set<string>();
+    try {
+      const token = localStorage.getItem("coachAuthToken");
+      if (token) {
+        const decoded = decodeJwtPayload(token);
+        if (decoded && Array.isArray(decoded.roles)) {
+          decoded.roles.forEach((r: string) => combined.add(r));
+        }
+      }
+    } catch (e) {
+      // ignore token parse errors
+    }
+
+    // Also include roles cached by frontend when API returns roles
+    try {
+      const raw = localStorage.getItem("coach_roles");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed))
+          parsed.forEach((r: string) => combined.add(r));
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    return Array.from(combined.values());
   },
 
   hasRole: (role: string) => {

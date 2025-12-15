@@ -18,25 +18,25 @@ const UserContext = createContext<UserContextType | null>(null);
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [user, setUser] = useState<User | null>(null);
-
-  // Cargar usuario del localStorage al iniciar
-  useEffect(() => {
-    const storedUser = localStorage.getItem("rffm_user");
-    if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch (error) {
-        // ignore parse errors
-      }
+  const [user, setUser] = useState<User | null>(() => {
+    try {
+      const storedUser = localStorage.getItem("rffm_user");
+      if (storedUser) return JSON.parse(storedUser) as User;
+    } catch (e) {
+      // ignore
     }
-  }, []);
+    return null;
+  });
 
   const logout = () => {
     setUser(null);
     localStorage.removeItem("rffm_user");
     localStorage.removeItem("coachAuthToken");
     localStorage.removeItem("coachUserId");
+    localStorage.removeItem("coach_roles");
+    try {
+      window.dispatchEvent(new CustomEvent("rffm.auth_expired"));
+    } catch (e) {}
   };
 
   return (

@@ -37,6 +37,8 @@ namespace RFFM.Api.DependencyInjection
 
             //services.AddIntegrationEvents();
             services.AddHttpClient();
+            // Allow handlers to access HttpContext when needed
+            services.AddHttpContextAccessor();
 
             // Domain / Infrastructure service registrations
             services.AddScoped<ITokenService, TokenService>();

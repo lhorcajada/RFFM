@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Box,
   Button,
@@ -72,6 +72,52 @@ const SharedLogin: React.FC<{ redirectTo?: string }> = ({ redirectTo }) => {
     }
   };
 
+  // Some browsers autofill credentials after React mounts but do not
+  // trigger React's onChange handlers. Read the DOM values shortly after
+  // mount (and after a tiny delay) and populate state so handleSubmit
+  // uses the actual input values when the user accepts the suggestion.
+  useEffect(() => {
+    const syncAutofill = () => {
+      try {
+        const u = (usernameRef.current || document.querySelector('input[name="username"]')) as HTMLInputElement | null;
+        const p = (passwordRef.current || document.querySelector('input[name="password"]')) as HTMLInputElement | null;
+        const uVal = u?.value;
+        const pVal = p?.value;
+        if (uVal && !username) setUsername(uVal);
+        if (pVal && !password) setPassword(pVal);
+      } catch (e) {
+        // ignore
+      }
+    };
+    // run immediately and after several short delays to catch different browsers
+    syncAutofill();
+    const timers: number[] = [];
+    timers.push(window.setTimeout(syncAutofill, 50));
+    timers.push(window.setTimeout(syncAutofill, 150));
+    timers.push(window.setTimeout(syncAutofill, 300));
+    timers.push(window.setTimeout(syncAutofill, 800));
+    return () => timers.forEach((t) => window.clearTimeout(t));
+  }, []);
+
+  // Refs for inputs to read DOM values directly
+  const usernameRef = useRef<HTMLInputElement | null>(null);
+  const passwordRef = useRef<HTMLInputElement | null>(null);
+
+  const handleInputFocus = () => {
+    try {
+      const sync = () => {
+        const uVal = usernameRef.current?.value;
+        const pVal = passwordRef.current?.value;
+        if (uVal && !username) setUsername(uVal);
+        if (pVal && !password) setPassword(pVal);
+      };
+      sync();
+      // also schedule a follow-up in case browser applies autofill slightly after focus
+      setTimeout(sync, 50);
+      setTimeout(sync, 200);
+    } catch (e) {}
+  };
+
   return (
     <BaseLayout appTitle="Futbol Base">
       <Box
@@ -106,9 +152,44 @@ const SharedLogin: React.FC<{ redirectTo?: string }> = ({ redirectTo }) => {
             component="form"
             className={styles.form}
             noValidate
+            autoComplete="on"
             onSubmit={handleSubmit}
           >
+            {/* Hidden native inputs improve browser autofill compatibility
+                for controlled React inputs (some browsers won't autofill
+                Material UI controlled fields reliably). */}
+            <input
+              type="text"
+              name="username"
+              autoComplete="username"
+              tabIndex={-1}
+              style={{
+                position: "absolute",
+                left: -9999,
+                top: -9999,
+                width: 1,
+                height: 1,
+                opacity: 0,
+                pointerEvents: "none",
+              }}
+            />
+            <input
+              type="password"
+              name="password"
+              autoComplete="current-password"
+              tabIndex={-1}
+              style={{
+                position: "absolute",
+                left: -9999,
+                top: -9999,
+                width: 1,
+                height: 1,
+                opacity: 0,
+                pointerEvents: "none",
+              }}
+            />
             <TextField
+              id="login-username"
               label="Usuario"
               type="text"
               variant="outlined"
@@ -116,18 +197,35 @@ const SharedLogin: React.FC<{ redirectTo?: string }> = ({ redirectTo }) => {
               required
               autoFocus
               autoComplete="username"
+              name="username"
+              inputRef={usernameRef}
               value={username}
               onChange={handleUsernameChange}
+              onFocus={handleInputFocus}
+              inputProps={{
+                autoComplete: "username",
+                id: "login-username",
+                'aria-label': 'Usuario',
+              }}
             />
             <TextField
+              id="login-password"
               label="Contraseña"
               type="password"
               variant="outlined"
               fullWidth
               required
               autoComplete="current-password"
+              name="password"
+              inputRef={passwordRef}
               value={password}
               onChange={handlePasswordChange}
+              onFocus={handleInputFocus}
+              inputProps={{
+                autoComplete: "current-password",
+                id: "login-password",
+                'aria-label': 'Contraseña',
+              }}
             />
             <Button
               type="submit"
