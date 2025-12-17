@@ -7,6 +7,8 @@ import coachTheme from "./muiCoachTheme";
 import { useEffect } from "react";
 import { CoachAuthProvider, CoachAuthGuard } from "./context/CoachAuthContext";
 import Clubs from "./pages/clubs/clubs";
+const ClubsDashboard = lazy(() => import("./pages/clubs/dashboard/Dashboard"));
+const ClubTeams = lazy(() => import("./pages/clubTeams/ClubTeams"));
 import React from "react";
 
 // Placeholder pages for Coach app
@@ -137,6 +139,8 @@ function CoachRoutesContent() {
             <Route path="sanctions" element={<Sanctions />} />
             <Route path="lottery" element={<Lottery />} />
             <Route path="clubs" element={<Clubs />} />
+            <Route path="clubs/dashboard/:id" element={<ClubsDashboard />} />
+            <Route path="clubs/:id/teams" element={<ClubTeams />} />
             <Route
               path="clubs/create"
               element={React.createElement(

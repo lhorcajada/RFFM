@@ -1,0 +1,15 @@
+.content {
+  padding: 16px;
+}
+
+.icon {
+  font-size: 40px !important;
+  color: #05313b !important;
+}
+
+.emblem {
+  height: 36px;
+  width: auto;
+  vertical-align: middle;
+  margin-right: 8px;
+}

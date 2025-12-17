@@ -1,0 +1,19 @@
+.empty {
+  padding: 18px;
+  border: 1px dashed rgba(0, 0, 0, 0.06);
+  border-radius: 8px;
+  background: var(--rffm-card-bg);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.title {
+  margin: 0;
+}
+
+.description {
+  margin: 0;
+  color: var(--rffm-muted-text, rgba(255, 255, 255, 0.7));
+}

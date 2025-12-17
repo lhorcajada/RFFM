@@ -4,6 +4,7 @@ import styles from "./Acta.module.css";
 import { getActa, getSettingsForUser } from "../../services/api";
 import type { Acta as ActaType } from "../../types/acta";
 import { Paper, Typography, CircularProgress } from "@mui/material";
+import EmptyState from "../../../../shared/components/ui/EmptyState/EmptyState";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import ActaHeaderDate from "../../components/acta/ActaHeaderDate/ActaHeaderDate";
@@ -106,7 +107,7 @@ export default function Acta(): JSX.Element {
       ) : null}
       {!acta && (
         <Paper elevation={0} className={styles.noActa}>
-          <Typography>No hay acta</Typography>
+          <EmptyState description={"No hay acta"} />
         </Paper>
       )}
       {acta && (

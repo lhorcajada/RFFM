@@ -1,5 +1,6 @@
 import React from "react";
 import Typography from "@mui/material/Typography";
+import EmptyState from "../EmptyState/EmptyState";
 import IconButton from "@mui/material/IconButton";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
@@ -109,9 +110,7 @@ export default function SavedConfigs({ compact }: { compact?: boolean }) {
     <>
       <div className={styles.root}>
         {saved.length === 0 ? (
-          <Typography variant="body2">
-            No hay combinaciones guardadas.
-          </Typography>
+          <EmptyState description={"No hay combinaciones guardadas."} />
         ) : (
           <>
             <Typography variant="body2" className={styles.explain}>

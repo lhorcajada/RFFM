@@ -10,6 +10,7 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import SportsSoccerIcon from "@mui/icons-material/SportsSoccer";
 import PlayerStatsCard from "../../../components/players/PlayerStatsCard/PlayerStatsCard";
+import EmptyState from "../../../../../shared/components/ui/EmptyState/EmptyState";
 import {
   YellowCardIcon,
   RedCardIcon,
@@ -206,13 +207,15 @@ export default function PlayerRow({ player }: Props) {
       {expanded && (
         <div style={{ padding: 8 }}>
           {!details ? (
-            <Typography variant="body2">
-              No hay detalles disponibles para este jugador.
-            </Typography>
+            <EmptyState
+              description={"No hay detalles disponibles para este jugador."}
+            />
           ) : (details.statisticsBySeason || []).length === 0 ? (
-            <Typography variant="body2">
-              No hay estadísticas por temporada para este jugador.
-            </Typography>
+            <EmptyState
+              description={
+                "No hay estadísticas por temporada para este jugador."
+              }
+            />
           ) : (
             (details.statisticsBySeason || []).map((s) => (
               <PlayerStatsCard

@@ -6,6 +6,7 @@ import ContentLayout from "../../../../shared/components/ui/ContentLayout/Conten
 import React, { useEffect, useState } from "react";
 import styles from "./Clubs.module.css";
 import Typography from "@mui/material/Typography";
+import EmptyState from "../../../../shared/components/ui/EmptyState/EmptyState";
 import clubService from "../../services/clubService";
 import type { UserClubsApiResponse } from "../../types/userClubs";
 import ClubCard from "./ClubCard";
@@ -71,7 +72,9 @@ export default function Clubs() {
         {/* If user has no clubs, show inline message with CTA */}
         {!loading && !error && checkedClubs && clubs.length === 0 && (
           <Box className={styles.noClubs}>
-            <Typography>Actualmente no perteneces a ningún club.</Typography>
+            <EmptyState
+              description={"Actualmente no perteneces a ningún club."}
+            />
           </Box>
         )}
         <Box className={styles.wrapper}>

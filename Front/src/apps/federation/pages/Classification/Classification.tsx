@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { CircularProgress } from "@mui/material";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
+import EmptyState from "../../../../shared/components/ui/EmptyState/EmptyState";
 import ClassificationItem, {
   MatchResult,
 } from "../../../../shared/components/ui/ClassificationItem/ClassificationItem";
@@ -253,7 +254,7 @@ export default function Classification() {
                 </div>
               ) : filtered.length === 0 ? (
                 <div className={styles.empty}>
-                  No hay equipos que coincidan.
+                  <EmptyState description={"No hay equipos que coincidan."} />
                 </div>
               ) : (
                 filtered.map((team: any) => (

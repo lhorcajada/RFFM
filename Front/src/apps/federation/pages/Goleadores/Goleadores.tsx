@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { CircularProgress } from "@mui/material";
+import EmptyState from "../../../../shared/components/ui/EmptyState/EmptyState";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import GoleadoresList from "../../components/players/GoleadoresList/GoleadoresList";
@@ -66,7 +67,9 @@ const Goleadores: React.FC = () => {
               <div className={styles.grid}>
                 {goleadores.length === 0 ? (
                   <div className={styles.empty}>
-                    No hay goleadores disponibles.
+                    <EmptyState
+                      description={"No hay goleadores disponibles."}
+                    />
                   </div>
                 ) : (
                   goleadores.map((goleador, idx) => (

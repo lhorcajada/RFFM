@@ -2,12 +2,14 @@ import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardMedia, Typography, Box } from "@mui/material";
 import type { ClubResponse } from "../../types/club";
 import clubService from "../../services/clubService";
+import { useNavigate } from "react-router-dom";
 
 type Props = {
   id: string;
 };
 
 export default function ClubCard({ id }: Props) {
+  const navigate = useNavigate();
   const [club, setClub] = useState<ClubResponse | null>(null);
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -58,7 +60,10 @@ export default function ClubCard({ id }: Props) {
   }, [id]);
 
   return (
-    <Card sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+    <Card
+      sx={{ display: "flex", alignItems: "center", gap: 2, cursor: "pointer" }}
+      onClick={() => navigate(`/coach/clubs/dashboard/${id}`)}
+    >
       {imageSrc ? (
         <CardMedia
           component="img"

@@ -2,6 +2,7 @@ import React from "react";
 import styles from "./SectorChart.module.css";
 import classStyles from "../ClassificationItem/ClassificationItem.module.css";
 import { useTheme } from "@mui/material/styles";
+import EmptyState from "../EmptyState/EmptyState";
 
 type Sector = {
   startMinute: number;
@@ -120,7 +121,11 @@ export default function SectorChart({ data }: { data: TeamData[] }) {
           </div>
         </div>
         <div>
-          No hay datos de goles por sectores para los equipos seleccionados.
+          <EmptyState
+            description={
+              "No hay datos de goles por sectores para los equipos seleccionados."
+            }
+          />
         </div>
       </div>
     );

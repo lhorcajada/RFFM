@@ -1,6 +1,7 @@
 import React from "react";
 import styles from "./TechnicalStaff.module.css";
 import { Paper, Typography, List, ListItem, Avatar } from "@mui/material";
+import EmptyState from "../../../../../shared/components/ui/EmptyState/EmptyState";
 import type { Technician } from "../../../types/acta";
 
 type Props = {
@@ -83,7 +84,7 @@ export default function TechnicalStaff({
             ) : (
               <ListItem className={styles.item}>
                 <div className={styles.techInfo}>
-                  No hay cuerpo técnico local
+                  <EmptyState description={"No hay cuerpo técnico local"} />
                 </div>
               </ListItem>
             )}
@@ -141,7 +142,7 @@ export default function TechnicalStaff({
             ) : (
               <ListItem className={styles.item}>
                 <div className={styles.techInfo}>
-                  No hay cuerpo técnico visitante
+                  <EmptyState description={"No hay cuerpo técnico visitante"} />
                 </div>
               </ListItem>
             )}

@@ -5,7 +5,7 @@ import styles from "./ContentLayout.module.css";
 
 interface ContentLayoutProps {
   title?: string;
-  subtitle?: string;
+  subtitle?: React.ReactNode;
   actionBar?: React.ReactNode;
   children?: React.ReactNode;
   className?: string;

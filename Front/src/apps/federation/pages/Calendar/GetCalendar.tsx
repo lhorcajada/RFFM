@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import { CircularProgress, Typography, Tabs, Tab } from "@mui/material";
+import EmptyState from "../../../../shared/components/ui/EmptyState/EmptyState";
 import styles from "./GetCalendar.module.css";
 import useMatch, { computeMatchData } from "../../../../shared/hooks/useMatch";
 // calendar filters removed; page title is rendered below
@@ -103,9 +104,9 @@ export default function GetCalendar(): JSX.Element {
     <BaseLayout className={styles.paper}>
       <ContentLayout title={noConfig ? undefined : "Calendario"}>
         {noConfig ? (
-          <Typography variant="body2">
-            No hay configuración principal guardada.
-          </Typography>
+          <EmptyState
+            description={"No hay configuración principal guardada."}
+          />
         ) : loading ? (
           <div className={styles.center}>
             <CircularProgress />
@@ -117,9 +118,11 @@ export default function GetCalendar(): JSX.Element {
         ) : (
           <div className={styles.tabsRoot}>
             {visibleRounds.length === 0 ? (
-              <Typography variant="body2">
-                No hay jornadas con partidos para la selección actual.
-              </Typography>
+              <EmptyState
+                description={
+                  "No hay jornadas con partidos para la selección actual."
+                }
+              />
             ) : (
               <>
                 <Tabs

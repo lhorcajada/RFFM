@@ -6,6 +6,7 @@ import WinDrawLoss from "./WinDrawLoss";
 import Last5 from "./Last5";
 import PointsBadge from "./PointsBadge";
 import Button from "@mui/material/Button";
+import EmptyState from "../EmptyState/EmptyState";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import { useState, useRef } from "react";
@@ -180,7 +181,9 @@ function ResultsToggle({
           </Button>
         </div>
         {list.length === 0 ? (
-          <div className={styles.resultsEmpty}>No hay resultados.</div>
+          <div className={styles.resultsEmpty}>
+            <EmptyState description={"No hay resultados."} />
+          </div>
         ) : (
           <ul className={styles.resultsList}>
             {list.map((it: any, idx: number) => (

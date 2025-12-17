@@ -1,0 +1,15 @@
+.page {
+  padding: 20px;
+}
+
+.list {
+  display: grid;
+  gap: 12px;
+}
+
+.teamCard {
+  padding: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 8px;
+  background: var(--rffm-card-bg);
+}

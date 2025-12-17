@@ -4,7 +4,7 @@ import styles from "./PageHeader.module.css";
 
 interface PageHeaderProps {
   title: string;
-  subtitle?: string;
+  subtitle?: React.ReactNode;
   children?: React.ReactNode;
   className?: string;
 }
@@ -17,11 +17,14 @@ const PageHeader: React.FC<PageHeaderProps> = ({
 }) => (
   <div className={`${styles.header} ${className ?? ""}`.trim()}>
     <Typography className={styles.title}>{title}</Typography>
-    {subtitle && (
-      <Typography variant="body2" className={styles.subtitle}>
-        {subtitle}
-      </Typography>
-    )}
+    {subtitle &&
+      (typeof subtitle === "string" ? (
+        <Typography variant="body2" className={styles.subtitle}>
+          {subtitle}
+        </Typography>
+      ) : (
+        <div className={styles.subtitle}>{subtitle}</div>
+      ))}
     {children}
   </div>
 );

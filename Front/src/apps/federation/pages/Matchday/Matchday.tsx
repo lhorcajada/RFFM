@@ -3,6 +3,7 @@ import ContentLayout from "../../../../shared/components/ui/ContentLayout/Conten
 import styles from "./Matchday.module.css";
 import { useEffect, useState } from "react";
 import { CircularProgress } from "@mui/material";
+import EmptyState from "../../../../shared/components/ui/EmptyState/EmptyState";
 import { useUser } from "../../../../shared/context/UserContext";
 import {
   getTeamMatches,
@@ -120,7 +121,7 @@ export default function Matchday() {
                 <CircularProgress />
               </div>
             ) : matches.length === 0 && hasData ? (
-              "No hay partidos para mostrar."
+              <EmptyState description={"No hay partidos para mostrar."} />
             ) : (
               matches.map((match, idx) => {
                 // Mejorar robustez: buscar nombre en más variantes

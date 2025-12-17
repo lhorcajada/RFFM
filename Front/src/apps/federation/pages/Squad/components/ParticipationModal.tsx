@@ -8,6 +8,7 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import styles from "./ParticipationModal.module.css";
+import EmptyState from "../../../../../shared/components/ui/EmptyState/EmptyState";
 
 type Participation = {
   competitionName: string;
@@ -61,9 +62,11 @@ export default function ParticipationModal({
           </div>
         ) : data.length === 0 ? (
           <div className={styles.emptyState}>
-            <Typography variant="body1" color="textSecondary">
-              No hay participaciones registradas para este equipo
-            </Typography>
+            <EmptyState
+              description={
+                "No hay participaciones registradas para este equipo"
+              }
+            />
           </div>
         ) : (
           <div className={styles.participationList}>

@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
+import EmptyState from "../../../../shared/components/ui/EmptyState/EmptyState";
 import styles from "./Callups.module.css";
 import playersContainerStyles from "../../components/players/PlayersContainer/PlayersContainer.module.css";
 import { getTeamCallups } from "../../services/api";
@@ -131,7 +132,11 @@ export default function CallupsPage(): JSX.Element {
         {noConfig ? (
           <Paper className={styles.paper}>
             <Typography>
-              No hay configuración seleccionada. Guarda o selecciona una
+              <EmptyState
+                description={
+                  "No hay configuración seleccionada. Guarda o selecciona una"
+                }
+              />
               combinación para ver las convocatorias.
             </Typography>
           </Paper>
