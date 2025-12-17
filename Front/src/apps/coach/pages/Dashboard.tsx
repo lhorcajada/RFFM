@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import HomeIcon from "@mui/icons-material/Home";
@@ -18,9 +18,29 @@ import BaseLayout from "../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../shared/components/ui/ContentLayout/ContentLayout";
 import DashboardCard from "../../../shared/components/ui/DashboardCard/DashboardCard";
 import styles from "./Dashboard.module.css";
+import { getUserClubs } from "../services/clubService";
 
 export default function CoachDashboard() {
   const navigate = useNavigate();
+  const [hasClubs, setHasClubs] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const clubs = await getUserClubs();
+        if (!mounted) return;
+        const exists = Array.isArray(clubs) ? clubs.length > 0 : false;
+        setHasClubs(exists);
+      } catch (e) {
+        if (!mounted) return;
+        setHasClubs(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   return (
     <BaseLayout appTitle="Futbol Base - Entrenadores" hideFooterMenu>
@@ -40,82 +60,120 @@ export default function CoachDashboard() {
       >
         <div className={styles.container}>
           <div className={styles.cards}>
+            {hasClubs && (
+              <DashboardCard
+                title="Configuración"
+                description="Ajustes y preferencias."
+                icon={
+                  <SettingsIcon style={{ fontSize: 40, color: "#05313b" }} />
+                }
+                to="/coach/settings"
+              />
+            )}
+
             <DashboardCard
-              title="Configuración"
-              description="Ajustes y preferencias."
-              icon={<SettingsIcon style={{ fontSize: 40, color: "#05313b" }} />}
-              to="/coach/settings"
-            />
-            <DashboardCard
-              title="Noticias"
-              description="Últimas noticias y comunicados."
+              title="Clubs"
+              description="Gestión de clubs."
               icon={
-                <NewspaperIcon style={{ fontSize: 40, color: "#05313b" }} />
+                <SportsFootballIcon
+                  style={{ fontSize: 40, color: "#05313b" }}
+                />
               }
-              to="/coach/news"
+              to="/coach/clubs"
             />
-            <DashboardCard
-              title="Plantilla"
-              description="Gestión de jugadores."
-              icon={<GroupIcon style={{ fontSize: 40, color: "#05313b" }} />}
-              to="/coach/squad"
-            />
-            <DashboardCard
-              title="Asistencias"
-              description="Control de asistencias."
-              icon={
-                <AssignmentIcon style={{ fontSize: 40, color: "#05313b" }} />
-              }
-              to="/coach/attendance"
-            />
-            <DashboardCard
-              title="Convocatorias"
-              description="Gestión de convocatorias."
-              icon={<EventIcon style={{ fontSize: 40, color: "#05313b" }} />}
-              to="/coach/convocations"
-            />
-            <DashboardCard
-              title="Partidos"
-              description="Información de partidos."
-              icon={
-                <EmojiEventsIcon style={{ fontSize: 40, color: "#05313b" }} />
-              }
-              to="/coach/matches"
-            />
-            <DashboardCard
-              title="Entrenamientos"
-              description="Planificación de entrenamientos."
-              icon={
-                <FitnessCenterIcon style={{ fontSize: 40, color: "#05313b" }} />
-              }
-              to="/coach/trainings"
-            />
-            <DashboardCard
-              title="Lesionados"
-              description="Control de lesionados."
-              icon={
-                <LocalHospitalIcon style={{ fontSize: 40, color: "#05313b" }} />
-              }
-              to="/coach/injured"
-            />
-            <DashboardCard
-              title="Modelo de Juego"
-              description="Estrategia y tácticas."
-              icon={<TimelineIcon style={{ fontSize: 40, color: "#05313b" }} />}
-              to="/coach/game-model"
-            />
-            <DashboardCard
-              title="Sanciones"
-              description="Registro de sanciones."
-              icon={<GavelIcon style={{ fontSize: 40, color: "#05313b" }} />}
-              to="/coach/sanctions"
-            />
-            <DashboardCard
-              title="Lotería"
-              description="Sistema de lotería."
-              icon={<CasinoIcon style={{ fontSize: 40, color: "#05313b" }} />}
-              to="/coach/lottery"
-            />
+
+            {hasClubs && (
+              <>
+                <DashboardCard
+                  title="Plantilla"
+                  description="Gestión de jugadores."
+                  icon={
+                    <GroupIcon style={{ fontSize: 40, color: "#05313b" }} />
+                  }
+                  to="/coach/squad"
+                />
+                <DashboardCard
+                  title="Asistencias"
+                  description="Control de asistencias."
+                  icon={
+                    <AssignmentIcon
+                      style={{ fontSize: 40, color: "#05313b" }}
+                    />
+                  }
+                  to="/coach/attendance"
+                />
+                <DashboardCard
+                  title="Convocatorias"
+                  description="Gestión de convocatorias."
+                  icon={
+                    <EventIcon style={{ fontSize: 40, color: "#05313b" }} />
+                  }
+                  to="/coach/convocations"
+                />
+                <DashboardCard
+                  title="Partidos"
+                  description="Información de partidos."
+                  icon={
+                    <EmojiEventsIcon
+                      style={{ fontSize: 40, color: "#05313b" }}
+                    />
+                  }
+                  to="/coach/matches"
+                />
+                <DashboardCard
+                  title="Entrenamientos"
+                  description="Planificación de entrenamientos."
+                  icon={
+                    <FitnessCenterIcon
+                      style={{ fontSize: 40, color: "#05313b" }}
+                    />
+                  }
+                  to="/coach/trainings"
+                />
+                <DashboardCard
+                  title="Lesionados"
+                  description="Control de lesionados."
+                  icon={
+                    <LocalHospitalIcon
+                      style={{ fontSize: 40, color: "#05313b" }}
+                    />
+                  }
+                  to="/coach/injured"
+                />
+                <DashboardCard
+                  title="Modelo de Juego"
+                  description="Estrategia y tácticas."
+                  icon={
+                    <TimelineIcon style={{ fontSize: 40, color: "#05313b" }} />
+                  }
+                  to="/coach/game-model"
+                />
+                <DashboardCard
+                  title="Sanciones"
+                  description="Registro de sanciones."
+                  icon={
+                    <GavelIcon style={{ fontSize: 40, color: "#05313b" }} />
+                  }
+                  to="/coach/sanctions"
+                />
+                <DashboardCard
+                  title="Lotería"
+                  description="Sistema de lotería."
+                  icon={
+                    <CasinoIcon style={{ fontSize: 40, color: "#05313b" }} />
+                  }
+                  to="/coach/lottery"
+                />
+                <DashboardCard
+                  title="Noticias"
+                  description="Últimas noticias y comunicados."
+                  icon={
+                    <NewspaperIcon style={{ fontSize: 40, color: "#05313b" }} />
+                  }
+                  to="/coach/news"
+                />
+              </>
+            )}
           </div>
         </div>
       </ContentLayout>

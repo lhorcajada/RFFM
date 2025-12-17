@@ -1,0 +1,37 @@
+.paper {
+  border-radius: 10px;
+  padding: 12px;
+  background: #f1c29a; /* toned-down warm background */
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 8px rgba(12, 18, 20, 0.06);
+}
+
+.title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--rffm-text-primary, #111827);
+}
+
+.content {
+  font-size: 0.95rem;
+  background: transparent;
+}
+
+.actions {
+  padding: 12px;
+}
+
+.actionButton {
+  color: inherit;
+  background: transparent;
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+
+.actionButton:hover {
+  background: rgba(43, 15, 0, 0.22); /* stronger warm hover */
+  color: var(--rffm-text-primary, #fff7ef);
+  text-decoration: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}

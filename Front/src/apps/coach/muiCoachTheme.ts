@@ -80,7 +80,14 @@ const coachTheme = createTheme({
           "--rffm-title-gradient":
             "linear-gradient(135deg, #ff8a4c 0%, #f97316 100%)",
           "--bg": "#140603",
+          // Use a darker text color for dialog content to ensure contrast
+          "--rffm-coach-dialog-text": "#2b0f00",
         },
+        // Ensure dialog typography and buttons use the dialog text variable
+        ".rffm-coach-theme [data-coach-dialog] .MuiTypography-root, .rffm-coach-theme [data-coach-dialog] .MuiButton-root, .rffm-coach-theme [data-coach-dialog] .MuiDialogContent-root, .rffm-coach-theme [data-coach-dialog] .MuiDialogActions-root":
+          {
+            color: "var(--rffm-coach-dialog-text, #2b0f00)",
+          },
       },
     },
     MuiOutlinedInput: {

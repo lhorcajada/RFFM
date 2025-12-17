@@ -6,6 +6,8 @@ import { ThemeProvider } from "@mui/material/styles";
 import coachTheme from "./muiCoachTheme";
 import { useEffect } from "react";
 import { CoachAuthProvider, CoachAuthGuard } from "./context/CoachAuthContext";
+import Clubs from "./pages/clubs/clubs";
+import React from "react";
 
 // Placeholder pages for Coach app
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -134,6 +136,13 @@ function CoachRoutesContent() {
             <Route path="game-model" element={<GameModel />} />
             <Route path="sanctions" element={<Sanctions />} />
             <Route path="lottery" element={<Lottery />} />
+            <Route path="clubs" element={<Clubs />} />
+            <Route
+              path="clubs/create"
+              element={React.createElement(
+                React.lazy(() => import("./pages/clubs/create/CreateClub"))
+              )}
+            />
           </Routes>
         </Suspense>
       </ThemeProvider>
