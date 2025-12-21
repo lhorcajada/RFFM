@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useLocation } from "react-router-dom";
 import BaseLayout from "../../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../../shared/components/ui/ContentLayout/ContentLayout";
 import { Box, Typography, CircularProgress, Button } from "@mui/material";
@@ -15,6 +15,9 @@ import ClubHeader from "../../../components/ClubHeader/ClubHeader";
 
 export default function ClubsDashboard() {
   const { id } = useParams();
+  const { search } = useLocation();
+  const qs = new URLSearchParams(search);
+  const seasonId = qs.get("seasonId") ?? undefined;
   const navigate = useNavigate();
   const [clubName, setClubName] = useState<string | null>(null);
   const [emblemSrc, setEmblemSrc] = useState<string | null>(null);
@@ -85,14 +88,18 @@ export default function ClubsDashboard() {
               title="Plantilla"
               description="Entrenadores, directivos, ayudantes, etc."
               icon={<GroupIcon className={localStyles.icon} />}
-              to={`/coach/clubs/${id}/staff`}
+              to={`/coach/clubs/${id}/staff${
+                seasonId ? `?seasonId=${seasonId}` : ""
+              }`}
             />
 
             <DashboardCard
               title="Equipos"
               description="Gestión de equipos vinculados al club."
               icon={<SportsFootballIcon className={localStyles.icon} />}
-              to={`/coach/clubs/${id}/teams`}
+              to={`/coach/clubs/${id}/teams${
+                seasonId ? `?seasonId=${seasonId}` : ""
+              }`}
             />
           </div>
         </div>

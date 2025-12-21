@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import DashboardCard from "../../../../shared/components/ui/DashboardCard/DashboardCard";
-import { useParams } from "react-router-dom";
+import { useParams, useLocation } from "react-router-dom";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import ClubHeader from "../../components/ClubHeader/ClubHeader";
@@ -11,16 +11,21 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { useNavigate } from "react-router-dom";
 import { Box, Typography, Paper } from "@mui/material";
 import teamService, { TeamResponse } from "../../services/teamService";
+import seasonService, { Season } from "../../services/seasonService";
 
 export default function ClubTeams() {
   const navigate = useNavigate();
   const { id } = useParams();
+  const { search } = useLocation();
+  const qs = new URLSearchParams(search);
+  const seasonId = qs.get("seasonId") ?? undefined;
   const [teams, setTeams] = useState<TeamResponse[]>([]);
   const [teamPhotos, setTeamPhotos] = useState<Record<string, string | null>>(
     {}
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [seasonName, setSeasonName] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -29,9 +34,21 @@ export default function ClubTeams() {
       setLoading(true);
       setError(null);
       try {
-        const data = await teamService.getTeams(id);
+        const data = await teamService.getTeams(id, seasonId);
         if (!mounted) return;
         setTeams(data);
+        if (seasonId) {
+          try {
+            const seasons: Season[] = await seasonService.getSeasons();
+            const s = seasons.find((x) => x.id === seasonId);
+            if (s) setSeasonName(s.name ?? s.id);
+            else setSeasonName(null);
+          } catch (e) {
+            setSeasonName(null);
+          }
+        } else {
+          setSeasonName(null);
+        }
         // load photos for teams
         const photos: Record<string, string | null> = {};
         await Promise.all(
@@ -73,7 +90,20 @@ export default function ClubTeams() {
     <BaseLayout hideFooterMenu>
       <ContentLayout
         title="Equipos"
-        subtitle={id ? <ClubHeader clubId={id} /> : "-"}
+        subtitle={
+          id ? (
+            <>
+              <ClubHeader clubId={id} />
+              {seasonName && (
+                <div style={{ fontSize: 12, color: "#666", marginTop: 4 }}>
+                  Temporada: {seasonName}
+                </div>
+              )}
+            </>
+          ) : (
+            "-"
+          )
+        }
         actionBar={
           <>
             <Button
@@ -118,7 +148,9 @@ export default function ClubTeams() {
                         className={styles.teamIcon}
                       />
                     }
-                    to={`/coach/dashboard?teamId=${t.id}`}
+                    to={`/coach/dashboard?teamId=${t.id}${
+                      seasonId ? `&seasonId=${seasonId}` : ""
+                    }`}
                   />
                 </div>
               ))}

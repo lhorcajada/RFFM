@@ -15,10 +15,15 @@ export type TeamResponse = {
   urlPhoto?: string | null;
 };
 
-export async function getTeams(clubId: string): Promise<TeamResponse[]> {
+export async function getTeams(
+  clubId: string,
+  seasonId?: string
+): Promise<TeamResponse[]> {
   if (!clubId) throw new Error("clubId is required");
+  const params: any = { clubId };
+  if (seasonId) params.seasonId = seasonId;
   const resp = await client.get<TeamResponse[]>(`/api/catalog/teams`, {
-    params: { clubId },
+    params,
   } as any);
   return resp.data ?? [];
 }

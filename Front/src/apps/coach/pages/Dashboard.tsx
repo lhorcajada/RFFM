@@ -18,9 +18,10 @@ import BaseLayout from "../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../shared/components/ui/ContentLayout/ContentLayout";
 import DashboardCard from "../../../shared/components/ui/DashboardCard/DashboardCard";
 import styles from "./Dashboard.module.css";
-import { useLocation } from "react-router-dom";
+
 import useTeamAndClub from "../hooks/useTeamAndClub.tsx";
 import configurationCoachService from "../services/configurationCoachService";
+import SeasonSelector from "../../../shared/components/ui/SeasonSelector/SeasonSelector";
 
 export default function CoachDashboard() {
   const navigate = useNavigate();
@@ -31,8 +32,16 @@ export default function CoachDashboard() {
     message: string;
   }>({ open: false, severity: "info", message: "" });
   const [hasPreferredSelection, setHasPreferredSelection] = useState(false);
+  const [selectedSeason, setSelectedSeason] = useState<string>(() => {
+    try {
+      return sessionStorage.getItem("coach_selected_season") || "";
+    } catch (e) {
+      return "";
+    }
+  });
   const [, /*hasClubs*/ setHasClubs] = useState(false);
   const [, /*loadingClubs*/ setLoadingClubs] = useState(true);
+
   const {
     teamTitleNode,
     clubSubtitleNode,
@@ -43,44 +52,51 @@ export default function CoachDashboard() {
   // si otras partes del código dependieran de esos setters.
 
   // hook handles loading team + club subtitle (including object URL cleanup)
-  useLocation();
+  // useTeamAndClub already subscribes to location changes when needed
 
   useEffect(() => {
     // Al montar, comprobar si hay una selección preferente guardada en sessionStorage
+    let mounted = true;
+    let timer: number | null = null;
     try {
       const raw = sessionStorage.getItem("coach_preferred_selection");
-      if (!raw) return;
-      const parsed = JSON.parse(raw) as {
-        type: "team" | "club";
-        id: string;
-        ts: number;
-      };
-      // validez 24 horas
-      const ttl = 24 * 60 * 60 * 1000;
-      const age = Date.now() - parsed.ts;
-      if (age > ttl) {
-        sessionStorage.removeItem("coach_preferred_selection");
-        setHasPreferredSelection(false);
-        return;
-      }
+      if (raw) {
+        const parsed = JSON.parse(raw) as {
+          type: "team" | "club";
+          id: string;
+          ts: number;
+        };
+        // validez 24 horas
+        const ttl = 24 * 60 * 60 * 1000;
+        const age = Date.now() - parsed.ts;
+        if (age > ttl) {
+          sessionStorage.removeItem("coach_preferred_selection");
+          setHasPreferredSelection(false);
+        } else {
+          setHasPreferredSelection(true);
+          // programar expiración para re-mostrar el botón
+          const remaining = ttl - age;
+          timer = window.setTimeout(() => {
+            sessionStorage.removeItem("coach_preferred_selection");
+            setHasPreferredSelection(false);
+          }, remaining) as unknown as number;
 
-      setHasPreferredSelection(true);
-      // programar expiración para re-mostrar el botón
-      const remaining = ttl - age;
-      const timer = window.setTimeout(() => {
-        sessionStorage.removeItem("coach_preferred_selection");
-        setHasPreferredSelection(false);
-      }, remaining);
-
-      if (parsed.type === "team") {
-        navigate(`/coach/dashboard?teamId=${parsed.id}`);
-      } else if (parsed.type === "club") {
-        navigate(`/coach/squad?clubId=${parsed.id}`);
+          if (parsed.type === "team") {
+            navigate(`/coach/dashboard?teamId=${parsed.id}`);
+          } else if (parsed.type === "club") {
+            navigate(`/coach/squad?clubId=${parsed.id}`);
+          }
+        }
       }
-      return () => clearTimeout(timer);
     } catch (e) {
       // ignore
     }
+    // SeasonSelector component carga las temporadas; no duplicar carga aquí.
+    return () => {
+      mounted = false;
+      if (timer) clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -91,7 +107,20 @@ export default function CoachDashboard() {
           clubSubtitleNode ?? "Gestión y herramientas para entrenadores"
         }
         actionBar={
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <div style={{ minWidth: 180 }}>
+              <SeasonSelector
+                value={selectedSeason}
+                onChange={(v) => {
+                  const vv = v ?? "";
+                  setSelectedSeason(vv);
+                  try {
+                    sessionStorage.setItem("coach_selected_season", vv);
+                  } catch (e) {}
+                }}
+                size="small"
+              />
+            </div>
             <Button
               variant="outlined"
               startIcon={<HomeIcon />}
@@ -133,7 +162,11 @@ export default function CoachDashboard() {
                           })
                         );
                         setHasPreferredSelection(true);
-                        navigate(`/coach/squad?clubId=${cfg.preferredClubId}`);
+                        navigate(
+                          `/coach/squad?clubId=${cfg.preferredClubId}${
+                            selectedSeason ? `&seasonId=${selectedSeason}` : ""
+                          }`
+                        );
                       } else {
                         setSnackbar({
                           open: true,
@@ -192,7 +225,9 @@ export default function CoachDashboard() {
                   style={{ fontSize: 40, color: "#05313b" }}
                 />
               }
-              to="/coach/clubs"
+              to={`/coach/clubs${
+                selectedSeason ? `?seasonId=${selectedSeason}` : ""
+              }`}
             />
 
             {!!teamTitleNode && (
@@ -204,7 +239,13 @@ export default function CoachDashboard() {
                     <GroupIcon style={{ fontSize: 40, color: "#05313b" }} />
                   }
                   to={
-                    team?.id ? `/coach/squad?teamId=${team.id}` : "/coach/squad"
+                    team?.id
+                      ? `/coach/squad?teamId=${team.id}${
+                          selectedSeason ? `&seasonId=${selectedSeason}` : ""
+                        }`
+                      : `/coach/squad${
+                          selectedSeason ? `?seasonId=${selectedSeason}` : ""
+                        }`
                   }
                 />
                 <DashboardCard

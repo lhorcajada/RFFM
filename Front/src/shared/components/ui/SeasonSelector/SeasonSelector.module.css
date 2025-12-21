@@ -1,0 +1,12 @@
+.root {
+  width: 100%;
+}
+.error {
+  color: #c62828;
+  font-size: 12px;
+  margin-top: 6px;
+}
+.spinnerWrap {
+  display: flex;
+  justify-content: center;
+}

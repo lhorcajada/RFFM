@@ -58,11 +58,15 @@ export type TeamPlayerResponse = {
 };
 
 export async function getPlayersByTeam(
-  teamId: string
+  teamId: string,
+  seasonId?: string
 ): Promise<PlayerResponse[]> {
   if (!teamId) throw new Error("teamId is required");
+  const params: any = {};
+  if (seasonId) params.seasonId = seasonId;
   const resp = await client.get<PlayerResponse[]>(
-    `/api/catalog/team/${encodeURIComponent(teamId)}/players`
+    `/api/catalog/team/${encodeURIComponent(teamId)}/players`,
+    { params } as any
   );
   return resp.data ?? [];
 }

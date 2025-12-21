@@ -13,6 +13,7 @@ import playerService from "../../services/playerService";
 import styles from "./Squad.module.css";
 import defaultAvatar from "../../../../assets/avatar.svg";
 import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 
 export default function Squad() {
   const navigate = useNavigate();
@@ -35,7 +36,12 @@ export default function Squad() {
       }
       setLoadingPlayers(true);
       try {
-        const list = await teamplayerService.getPlayersByTeam(team.id);
+        const params = new URLSearchParams(window.location.search);
+        const seasonId = params.get("seasonId") ?? undefined;
+        const list = await teamplayerService.getPlayersByTeam(
+          team.id,
+          seasonId
+        );
         if (!mounted) return;
         setPlayers(list);
 
@@ -98,7 +104,14 @@ export default function Squad() {
             <Button
               onClick={() => {
                 const params = team ? `?teamId=${team.id}` : "";
-                navigate(`/coach/squad/new${params}`);
+                const season = new URLSearchParams(window.location.search).get(
+                  "seasonId"
+                );
+                navigate(
+                  `/coach/squad/new${params}${
+                    season ? `&seasonId=${season}` : ""
+                  }`
+                );
               }}
               variant="contained"
               size="small"
@@ -131,6 +144,14 @@ export default function Squad() {
                       ? {
                           to: `/coach/player/${p.id}${
                             team ? `?teamId=${team.id}` : ""
+                          }${
+                            new URLSearchParams(window.location.search).get(
+                              "seasonId"
+                            )
+                              ? `&seasonId=${new URLSearchParams(
+                                  window.location.search
+                                ).get("seasonId")}`
+                              : ""
                           }`,
                         }
                       : {})}
