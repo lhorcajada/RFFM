@@ -1,0 +1,28 @@
+.list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+.item {
+  min-width: 0;
+}
+
+/* Improve contrast for date inputs and icons */
+.filters {
+  align-items: center;
+}
+
+/* MUI TextField input inside our filters */
+.filters .MuiInputBase-root {
+  color: var(--rffm-card-text, #fff);
+}
+
+/* Date picker specific: darken calendar icon */
+.filters input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: brightness(0) invert(1);
+}
+
+/* For non-webkit browsers, increase contrast on the container */
+.filters .MuiInputAdornment-root {
+  color: var(--rffm-card-text, #fff);
+}

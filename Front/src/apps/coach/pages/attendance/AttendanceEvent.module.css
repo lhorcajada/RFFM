@@ -1,0 +1,166 @@
+.container {
+  padding: 8px;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+}
+.box {
+  padding: 4px 2px;
+}
+.headerRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.title {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+.meta {
+  color: var(--rffm-card-subtext, #607d8b);
+  font-size: 0.95rem;
+}
+.section {
+  margin-top: 16px;
+}
+.label {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.description {
+  white-space: pre-wrap;
+}
+.infoContainer {
+  margin-top: 2px;
+  padding: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+  background: var(--rffm-card-bg, #fff);
+}
+.infoTitle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.infoGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 12px;
+}
+
+@media (max-width: 720px) {
+  .infoGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Compact adjustments for mobile */
+@media (max-width: 420px) {
+  .container {
+    padding: 4px;
+  }
+  .title {
+    font-size: 1rem;
+  }
+  .infoContainer {
+    padding: 6px;
+  }
+  .label {
+    min-width: 76px;
+    font-size: 13px;
+  }
+  .infoTitle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .chip {
+    order: 2;
+  }
+}
+
+.titleWrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.teamNode {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.teamImg {
+  width: 36px;
+  height: 36px;
+  max-width: 36px;
+  max-height: 36px;
+  display: block;
+  object-fit: cover;
+  border-radius: 6px;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+}
+.chipPartidos {
+  background-color: #1976d2;
+  color: #fff;
+}
+.chipEntrenamiento {
+  background-color: #2e7d32;
+  color: #fff;
+}
+.chipTorneoCompeticion {
+  background-color: #d32f2f;
+  color: #fff;
+}
+.chipOtro {
+  background-color: #6a1b9a;
+  color: #fff;
+}
+.chipDefault {
+  background-color: #607d8b;
+  color: #fff;
+}
+.actionBarContainer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+}
+.actionLeft {
+  display: flex;
+  align-items: center;
+}
+.actionRight {
+  display: flex;
+  align-items: center;
+}
+.infoRow {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+.label {
+  color: var(--rffm-card-subtext, #607d8b);
+  font-size: 0.85rem;
+  margin: 0;
+  min-width: 96px;
+}
+.value {
+  font-size: 0.95rem;
+  flex: 1 1 auto;
+}
+.fullWidth {
+  grid-column: 1 / -1;
+}

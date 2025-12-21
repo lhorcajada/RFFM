@@ -256,7 +256,15 @@ export default function CoachDashboard() {
                       style={{ fontSize: 40, color: "#05313b" }}
                     />
                   }
-                  to="/coach/attendance"
+                  to={
+                    team?.id
+                      ? `/coach/attendance?teamId=${team.id}${
+                          selectedSeason ? `&seasonId=${selectedSeason}` : ""
+                        }`
+                      : `/coach/attendance${
+                          selectedSeason ? `?seasonId=${selectedSeason}` : ""
+                        }`
+                  }
                 />
                 <DashboardCard
                   title="Convocatorias"

@@ -1,0 +1,49 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--rffm-card-bg, #fff);
+  color: var(--rffm-card-text, #111);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+.titleRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.title {
+  font-weight: 700;
+  color: var(--rffm-card-text, #d2cfcf);
+  font-size: 1rem;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.meta {
+  font-size: 0.9rem;
+  color: var(--rffm-card-subtext, rgba(255, 255, 255, 0.8));
+}
+.location {
+  margin-top: 6px;
+  font-size: 0.9rem;
+  color: var(--rffm-card-subtext, rgba(255, 255, 255, 0.75));
+}
+.actions {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+/* Light theme fallbacks */
+:root:not(.rffm-coach-theme) .card {
+  color: var(--rffm-card-text, #05313b);
+}
+:root:not(.rffm-coach-theme) .meta,
+:root:not(.rffm-coach-theme) .location {
+  color: rgba(232, 230, 230, 0.65);
+}

@@ -14,9 +14,19 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Queries
         public void AddRoutes(IEndpointRouteBuilder app)
         {
             app.MapGet("/api/sport-events/{teamId}",
-                    async (string teamId, int pageNumber, int pageSize, IMediator mediator, CancellationToken cancellationToken) =>
+                    async (string teamId, int pageNumber, int pageSize, DateTime? startDate, DateTime? endDate, bool descending, IMediator mediator, CancellationToken cancellationToken) =>
                     {
-                        return await mediator.Send(new SportEventsQuery { TeamId = teamId, PageNumber = pageNumber, PageSize = pageSize}, cancellationToken);
+                        var query = new SportEventsQuery
+                        {
+                            TeamId = teamId,
+                            PageNumber = pageNumber,
+                            PageSize = pageSize,
+                            StartDate = startDate,
+                            EndDate = endDate,
+                            Descending = descending
+                        };
+                        var result = await mediator.Send(query, cancellationToken);
+                        return Results.Ok(result);
                     })
                 .WithName(nameof(GetSportEvents))
                 .WithTags(SportEventsConstants.SportEventsFeature)
@@ -28,6 +38,9 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Queries
             public string TeamId { get; set; } = null!;
             public int PageNumber { get; set; } // Página actual
             public int PageSize { get; set; }// Tamaño de la página
+            public DateTime? StartDate { get; set; }
+            public DateTime? EndDate { get; set; }
+            public bool Descending { get; set; } = false;
             public string CacheKey => $"SportEvents_{TeamId}_{PageNumber}_{PageSize}";
             public DateTime? AbsoluteExpirationRelativeToNow { get; }
         }
@@ -52,20 +65,42 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Queries
         public class GetSportEventsRequestHandler : IRequestHandler<SportEventsQuery, SportEventResponse[]>
         {
             private readonly AppDbContext _db;
+            private readonly IHttpContextAccessor _httpContextAccessor;
 
-            public GetSportEventsRequestHandler(AppDbContext db)
+            public GetSportEventsRequestHandler(AppDbContext db, IHttpContextAccessor httpContextAccessor)
             {
                 _db = db;
+                _httpContextAccessor = httpContextAccessor;
             }
 
             public async ValueTask<SportEventResponse[]> Handle(SportEventsQuery request, CancellationToken cancellationToken = default)
             {
-                return await _db.SportEvents
-                    .Include(s=> s.Rival)
-                    .Where(e => e.TeamId == request.TeamId)
-                    .OrderBy(s => s.EveDateTime)
-                    .Skip((request.PageNumber - 1) * request.PageSize) // Salta registros según la página
-                    .Take(request.PageSize) // Toma solo el tamaño especificado
+                var query = _db.SportEvents.Include(s => s.Rival).Where(e => e.TeamId == request.TeamId).AsQueryable();
+
+                if (request.StartDate.HasValue)
+                {
+                    query = query.Where(e => e.EveDateTime >= request.StartDate.Value);
+                }
+                if (request.EndDate.HasValue)
+                {
+                    query = query.Where(e => e.EveDateTime <= request.EndDate.Value);
+                }
+
+                var total = await query.CountAsync(cancellationToken);
+                try
+                {
+                    _httpContextAccessor.HttpContext.Response.Headers["X-Total-Count"] = total.ToString();
+                }
+                catch
+                {
+                    // ignore if no http context available
+                }
+
+                var ordered = request.Descending ? query.OrderByDescending(s => s.EveDateTime) : query.OrderBy(s => s.EveDateTime);
+
+                var items = await ordered
+                    .Skip((request.PageNumber - 1) * request.PageSize)
+                    .Take(request.PageSize)
                     .Select(sportEvent => new SportEventResponse
                     {
                         Id = sportEvent.Id,
@@ -81,7 +116,11 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Queries
                         RivalId = sportEvent.Rival != null ? sportEvent.Rival.Id.Replace("\r", "").Replace("\n", "").Trim() : null
                     })
                     .ToArrayAsync(cancellationToken);
+
+                return items;
             }
         }
+
+        // Note: request handling is implemented directly in the AddRoutes lambda above.
     }
 }
