@@ -22,7 +22,7 @@ namespace RFFM.Api.Infrastructure.Migrations
                     { 2, "Coach", "Coach" },
                     { 3, "ClubMember", "Club member" },
                     { 4, "Player", "Player" },
-                    { 5, "FamilyPlayer", "Family player" },
+                    { 5, "FamilyPlayer", "FamilyMembers player" },
                     { 6, "Follower", "Follower" }
                 });
         }

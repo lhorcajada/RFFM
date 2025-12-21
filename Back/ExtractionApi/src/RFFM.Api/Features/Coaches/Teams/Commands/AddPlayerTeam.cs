@@ -44,12 +44,13 @@ namespace RFFM.Api.Features.Coaches.Teams.Commands
             public string? Dni { get; set; }
             public string ClubId { get; set; } = null!;
             public DemarcationModel? Demarcation { get; set; } = null!;
-            public int? DomainFeetId { get; set; } 
+            public int? DomainFeetId { get; set; }
             public int? Dorsal { get; set; }
             public decimal? Height { get; set; }
             public decimal? Weight { get; set; }
             public ContactModel? Contact { get; set; }
-            public FamilyModel? Family { get; set; }
+            // Accept multiple family members
+            public List<FamilyModel>? FamilyMembers { get; set; }
 
 
             public string PrefixCacheKey => PlayerConstants.CachePrefix;
@@ -81,12 +82,12 @@ namespace RFFM.Api.Features.Coaches.Teams.Commands
                     LeftDate = null,
                     Demarcation = request.Demarcation,
                     ContactInfo = request.Contact,
-                    Dorsal = request.Dorsal,
+                    Dorsal = request.Dorsal != null ? new DorsalModel { Number = request.Dorsal.Value } : null,
                     Height = request.Height,
                     Weight = request.Weight,
-                    Family = request.Family,
+                    FamilyMembers = request.FamilyMembers ?? new List<FamilyModel>(),
                     DominantFootId = request.DomainFeetId
-                    
+
                 });
                 await _catalogDbContext.TeamPlayers.AddAsync(team, cancellationToken);
                 await _catalogDbContext.SaveChangesAsync(cancellationToken);

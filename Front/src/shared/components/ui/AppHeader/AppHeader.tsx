@@ -10,7 +10,9 @@ import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import Tooltip from "@mui/material/Tooltip";
 import { useUser } from "../../../context/UserContext";
+import useAuthToken from "../../../hooks/useAuthToken";
 import { useNavigate } from "react-router-dom";
+import useRootClassObserver from "../../../hooks/useRootClassObserver";
 
 interface AppHeaderProps {
   title?: string;
@@ -81,69 +83,45 @@ export default function AppHeader({ title }: AppHeaderProps) {
   const avatarSrc = user?.avatar || undefined;
   const initials = user ? user.username?.charAt(0).toUpperCase() : "";
 
+  const { isAuthValid } = useAuthToken();
+
   const displayTitle = title ?? "Futbol Base";
 
   const appBarRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
-    // try ref first, otherwise find by class name as fallback
+  function applyRootClassStyles(el: HTMLElement | null, enabled: boolean) {
+    if (!el) return;
+    if (enabled) {
+      el.style.setProperty(
+        "background",
+        "var(--rffm-gradient-bg)",
+        "important"
+      );
+      el.style.setProperty("box-shadow", "none", "important");
+      el.style.setProperty(
+        "border-bottom",
+        "1px solid rgba(0,0,0,0.12)",
+        "important"
+      );
+    } else {
+      el.style.removeProperty("background");
+      el.style.removeProperty("box-shadow");
+      el.style.removeProperty("border-bottom");
+    }
+  }
+
+  // observe root html class changes for coach theme and apply styles
+  useRootClassObserver("rffm-coach-theme", (enabled) => {
     let el = appBarRef.current as HTMLElement | null;
     if (!el) {
       try {
-        const node = document.querySelector(
-          `.${styles.appBar}`
-        ) as HTMLElement | null;
-        el = node;
+        el = document.querySelector(`.${styles.appBar}`) as HTMLElement | null;
       } catch (e) {
         el = null;
       }
     }
-    if (!el) return;
-
-    function applyCoachStyles(enabled: boolean) {
-      if (!el) return;
-      if (enabled) {
-        // debug log to confirm observer activation in browser console
-        // removed debug logging
-        el.style.setProperty(
-          "background",
-          "var(--rffm-gradient-bg)",
-          "important"
-        );
-        el.style.setProperty("box-shadow", "none", "important");
-        el.style.setProperty(
-          "border-bottom",
-          "1px solid rgba(0,0,0,0.12)",
-          "important"
-        );
-      } else {
-        // removed debug logging
-        el.style.removeProperty("background");
-        el.style.removeProperty("box-shadow");
-        el.style.removeProperty("border-bottom");
-      }
-    }
-
-    // initial apply based on current root class
-    applyCoachStyles(
-      document.documentElement.classList.contains("rffm-coach-theme")
-    );
-
-    // observe changes to <html> class attribute so we can react when coach theme toggles
-    const obs = new MutationObserver(() => {
-      applyCoachStyles(
-        document.documentElement.classList.contains("rffm-coach-theme")
-      );
-    });
-    obs.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["class"],
-    });
-
-    return () => {
-      obs.disconnect();
-    };
-  }, []);
+    applyRootClassStyles(el, enabled);
+  });
 
   return (
     <AppBar
@@ -177,7 +155,14 @@ export default function AppHeader({ title }: AppHeaderProps) {
                 : "Abrir menú de usuario"
             }
           >
-            <Avatar src={avatarSrc}>{!avatarSrc && initials}</Avatar>
+            <Avatar
+              src={avatarSrc}
+              className={`${styles.avatar} ${
+                isAuthValid ? styles.avatarValid : styles.avatarInvalid
+              }`}
+            >
+              {!avatarSrc && initials}
+            </Avatar>
           </IconButton>
           {/* Username display removed per design: only avatar shown */}
           <Menu

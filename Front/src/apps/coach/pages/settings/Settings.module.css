@@ -1,0 +1,21 @@
+.root {
+  padding: 16px;
+}
+.formRow {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.label {
+  width: 160px;
+  font-weight: 600;
+}
+.grow {
+  flex: 1 1 auto;
+}
+.actions {
+  margin-top: 16px;
+  display: flex;
+  gap: 8px;
+}

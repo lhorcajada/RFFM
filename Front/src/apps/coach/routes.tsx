@@ -19,6 +19,7 @@ const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Settings = lazy(() => import("./pages/settings/Settings"));
 const News = lazy(() => import("./pages/news/News"));
 const Squad = lazy(() => import("./pages/squad/Squad"));
+const NewPlayer = lazy(() => import("./pages/squad/new/NewPlayer"));
 const Attendance = lazy(() => import("./pages/attendance/Attendance"));
 const Convocations = lazy(() => import("./pages/convocations/Convocations"));
 const Matches = lazy(() => import("./pages/matches/Matches"));
@@ -27,6 +28,7 @@ const Injured = lazy(() => import("./pages/injured/Injured"));
 const GameModel = lazy(() => import("./pages/game-model/GameModel"));
 const Sanctions = lazy(() => import("./pages/sanctions/Sanctions"));
 const Lottery = lazy(() => import("./pages/lottery/Lottery"));
+const PlayerDetail = lazy(() => import("./pages/player/PlayerDetail"));
 
 function LoadingFallback() {
   return (
@@ -130,6 +132,8 @@ function CoachRoutesContent() {
             <Route path="settings" element={<Settings />} />
             <Route path="news" element={<News />} />
             <Route path="squad" element={<Squad />} />
+            <Route path="squad/new" element={<NewPlayer />} />
+            <Route path="player/:id" element={<PlayerDetail />} />
             <Route path="attendance" element={<Attendance />} />
             <Route path="convocations" element={<Convocations />} />
             <Route path="matches" element={<Matches />} />
@@ -142,7 +146,13 @@ function CoachRoutesContent() {
             <Route path="clubs/dashboard/:id" element={<ClubsDashboard />} />
             <Route path="clubs/:id/teams" element={<ClubTeams />} />
             <Route
-              path="clubs/create"
+              path="clubs/:id/teams/new"
+              element={React.createElement(
+                React.lazy(() => import("./pages/clubTeams/create/CreateTeam"))
+              )}
+            />
+            <Route
+              path="clubs/new"
               element={React.createElement(
                 React.lazy(() => import("./pages/clubs/create/CreateClub"))
               )}

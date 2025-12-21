@@ -178,7 +178,7 @@
     <value>Player</value>
   </data>
   <data name="RoleFamilyPlayer" xml:space="preserve">
-    <value>Family player</value>
+    <value>FamilyMembers player</value>
   </data>
   <data name="RoleFollower" xml:space="preserve">
     <value>Follower</value>

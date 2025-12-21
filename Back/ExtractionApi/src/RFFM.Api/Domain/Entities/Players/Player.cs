@@ -5,13 +5,13 @@ namespace RFFM.Api.Domain.Entities.Players
 {
     public class Player : BaseEntity, IAggregateRoot
     {
-        public string Name { get; private set; }
-        public string? LastName { get; private set; }
-        public string? UrlPhoto { get; private set; }
+        public string Name { get; private set; } = null!;
+        public string? LastName { get; private set; } 
+        public string? UrlPhoto { get; private set; } 
         public string Alias { get; private set; } = null!;
         public DateTime? BirthDate { get; private set; }
         public string? Dni { get; private set; }
-        public string ClubId { get; private set; }
+        public string ClubId { get; private set; } = null!;
 
         public Club Club { get; private set; } = null!;
 

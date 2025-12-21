@@ -3,6 +3,7 @@
   margin: 0 var(--rffm-page-h-padding, 12px);
   box-sizing: border-box;
   width: auto;
+  position: relative;
 }
 
 .cards {
@@ -11,6 +12,27 @@
   gap: 12px;
   margin-top: 8px;
   justify-content: start;
+}
+
+.spinnerWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 0;
+}
+
+.spinnerInner {
+  /* empty - CircularProgress provides visual */
+}
+
+.spinnerOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.6);
+  pointer-events: none;
 }
 
 @media (max-width: 768px) {

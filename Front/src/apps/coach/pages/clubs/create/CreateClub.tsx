@@ -17,6 +17,7 @@ import countryService from "../../../services/countryService";
 import BaseLayout from "../../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../../shared/components/ui/ContentLayout/ContentLayout";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import FileImagePicker from "../../../../../shared/components/ui/FileImagePicker/FileImagePicker";
 
 export default function CreateClub() {
   const navigate = useNavigate();
@@ -163,34 +164,17 @@ export default function CreateClub() {
               )}
             </FormControl>
 
-            <div className={styles.emblemRow}>
-              <div>
-                <label htmlFor="emblem" className={styles.fileInputLabel}>
-                  Seleccionar escudo
-                </label>
-                <input
-                  id="emblem"
-                  className={styles.fileInput}
-                  type="file"
-                  accept="image/png, image/jpeg"
-                  onChange={(ev) =>
-                    setEmblemFile(ev.target.files ? ev.target.files[0] : null)
-                  }
-                />
-                {errors.emblem && (
-                  <div className={styles.error}>{errors.emblem}</div>
-                )}
-              </div>
-              <div>
-                {emblemPreview ? (
-                  <div
-                    className={styles.shieldPreview}
-                    style={{ backgroundImage: `url(${emblemPreview})` }}
-                  />
-                ) : (
-                  <div className={styles.shieldPlaceholder} />
-                )}
-              </div>
+            <div>
+              <FileImagePicker
+                id="emblem"
+                label="Seleccionar escudo"
+                accept="image/png, image/jpeg"
+                file={emblemFile}
+                onChange={(f) => setEmblemFile(f)}
+              />
+              {errors.emblem && (
+                <div className={styles.error}>{errors.emblem}</div>
+              )}
             </div>
           </form>
         </div>

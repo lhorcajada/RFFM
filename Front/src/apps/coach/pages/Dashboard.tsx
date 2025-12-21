@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { Button } from "@mui/material";
+import { useEffect, useState } from "react";
+import { Button, CircularProgress, Snackbar, Alert } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import HomeIcon from "@mui/icons-material/Home";
 import SettingsIcon from "@mui/icons-material/Settings";
@@ -18,49 +18,162 @@ import BaseLayout from "../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../shared/components/ui/ContentLayout/ContentLayout";
 import DashboardCard from "../../../shared/components/ui/DashboardCard/DashboardCard";
 import styles from "./Dashboard.module.css";
-import { getUserClubs } from "../services/clubService";
+import { useLocation } from "react-router-dom";
+import useTeamAndClub from "../hooks/useTeamAndClub.tsx";
+import configurationCoachService from "../services/configurationCoachService";
 
 export default function CoachDashboard() {
   const navigate = useNavigate();
-  const [hasClubs, setHasClubs] = useState(true);
+  const [loadingConfig, setLoadingConfig] = useState(false);
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    severity: "success" | "info" | "warning" | "error";
+    message: string;
+  }>({ open: false, severity: "info", message: "" });
+  const [hasPreferredSelection, setHasPreferredSelection] = useState(false);
+  const [, /*hasClubs*/ setHasClubs] = useState(false);
+  const [, /*loadingClubs*/ setLoadingClubs] = useState(true);
+  const {
+    teamTitleNode,
+    clubSubtitleNode,
+    loading: loadingTeam,
+    team,
+  } = useTeamAndClub();
+  // Nota: se mantiene `setHasClubs`/`setLoadingClubs` para compatibilidad
+  // si otras partes del código dependieran de esos setters.
+
+  // hook handles loading team + club subtitle (including object URL cleanup)
+  useLocation();
 
   useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const clubs = await getUserClubs();
-        if (!mounted) return;
-        const exists = Array.isArray(clubs) ? clubs.length > 0 : false;
-        setHasClubs(exists);
-      } catch (e) {
-        if (!mounted) return;
-        setHasClubs(false);
+    // Al montar, comprobar si hay una selección preferente guardada en sessionStorage
+    try {
+      const raw = sessionStorage.getItem("coach_preferred_selection");
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as {
+        type: "team" | "club";
+        id: string;
+        ts: number;
+      };
+      // validez 24 horas
+      const ttl = 24 * 60 * 60 * 1000;
+      const age = Date.now() - parsed.ts;
+      if (age > ttl) {
+        sessionStorage.removeItem("coach_preferred_selection");
+        setHasPreferredSelection(false);
+        return;
       }
-    })();
-    return () => {
-      mounted = false;
-    };
+
+      setHasPreferredSelection(true);
+      // programar expiración para re-mostrar el botón
+      const remaining = ttl - age;
+      const timer = window.setTimeout(() => {
+        sessionStorage.removeItem("coach_preferred_selection");
+        setHasPreferredSelection(false);
+      }, remaining);
+
+      if (parsed.type === "team") {
+        navigate(`/coach/dashboard?teamId=${parsed.id}`);
+      } else if (parsed.type === "club") {
+        navigate(`/coach/squad?clubId=${parsed.id}`);
+      }
+      return () => clearTimeout(timer);
+    } catch (e) {
+      // ignore
+    }
   }, []);
 
   return (
     <BaseLayout appTitle="Futbol Base - Entrenadores" hideFooterMenu>
       <ContentLayout
-        title="Panel de Control"
-        subtitle="Gestión y herramientas para entrenadores"
+        title={teamTitleNode ?? "Panel de Control de entrenador"}
+        subtitle={
+          clubSubtitleNode ?? "Gestión y herramientas para entrenadores"
+        }
         actionBar={
-          <Button
-            variant="outlined"
-            startIcon={<HomeIcon />}
-            onClick={() => navigate("/")}
-            sx={{ textTransform: "none" }}
-          >
-            Volver al inicio
-          </Button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <Button
+              variant="outlined"
+              startIcon={<HomeIcon />}
+              onClick={() => navigate("/")}
+              sx={{ textTransform: "none" }}
+            >
+              Volver al inicio
+            </Button>
+            {!hasPreferredSelection && (
+              <Button
+                variant="outlined"
+                startIcon={<SportsFootballIcon />}
+                onClick={async () => {
+                  setLoadingConfig(true);
+                  try {
+                    const configs = await configurationCoachService.getAll();
+                    if (configs && configs.length > 0) {
+                      const cfg = configs[0];
+                      if (cfg.preferredTeamId) {
+                        sessionStorage.setItem(
+                          "coach_preferred_selection",
+                          JSON.stringify({
+                            type: "team",
+                            id: cfg.preferredTeamId,
+                            ts: Date.now(),
+                          })
+                        );
+                        setHasPreferredSelection(true);
+                        navigate(
+                          `/coach/dashboard?teamId=${cfg.preferredTeamId}`
+                        );
+                      } else if (cfg.preferredClubId) {
+                        sessionStorage.setItem(
+                          "coach_preferred_selection",
+                          JSON.stringify({
+                            type: "club",
+                            id: cfg.preferredClubId,
+                            ts: Date.now(),
+                          })
+                        );
+                        setHasPreferredSelection(true);
+                        navigate(`/coach/squad?clubId=${cfg.preferredClubId}`);
+                      } else {
+                        setSnackbar({
+                          open: true,
+                          severity: "info",
+                          message:
+                            "No hay equipo ni club preferente configurado.",
+                        });
+                      }
+                    } else {
+                      setSnackbar({
+                        open: true,
+                        severity: "info",
+                        message: "No se encontró configuración de entrenador.",
+                      });
+                    }
+                  } catch (e) {
+                    setSnackbar({
+                      open: true,
+                      severity: "error",
+                      message: "Error al cargar la configuración preferente.",
+                    });
+                  } finally {
+                    setLoadingConfig(false);
+                  }
+                }}
+                sx={{ textTransform: "none" }}
+              >
+                {loadingConfig ? (
+                  <CircularProgress size={20} />
+                ) : (
+                  "Cargar equipo preferente"
+                )}
+              </Button>
+            )}
+          </div>
         }
       >
         <div className={styles.container}>
           <div className={styles.cards}>
-            {hasClubs && (
+            {
               <DashboardCard
                 title="Configuración"
                 description="Ajustes y preferencias."
@@ -69,7 +182,7 @@ export default function CoachDashboard() {
                 }
                 to="/coach/settings"
               />
-            )}
+            }
 
             <DashboardCard
               title="Clubs"
@@ -82,7 +195,7 @@ export default function CoachDashboard() {
               to="/coach/clubs"
             />
 
-            {hasClubs && (
+            {!!teamTitleNode && (
               <>
                 <DashboardCard
                   title="Plantilla"
@@ -90,7 +203,9 @@ export default function CoachDashboard() {
                   icon={
                     <GroupIcon style={{ fontSize: 40, color: "#05313b" }} />
                   }
-                  to="/coach/squad"
+                  to={
+                    team?.id ? `/coach/squad?teamId=${team.id}` : "/coach/squad"
+                  }
                 />
                 <DashboardCard
                   title="Asistencias"
@@ -175,8 +290,28 @@ export default function CoachDashboard() {
               </>
             )}
           </div>
+
+          {loadingTeam && (
+            <div className={styles.spinnerOverlay}>
+              <CircularProgress />
+            </div>
+          )}
         </div>
       </ContentLayout>
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
+          severity={snackbar.severity}
+          sx={{ width: "100%" }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </BaseLayout>
   );
 }

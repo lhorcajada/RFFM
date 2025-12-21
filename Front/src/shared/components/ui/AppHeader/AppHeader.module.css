@@ -100,6 +100,23 @@
   height: 38px;
 }
 
+.avatar {
+  width: 38px;
+  height: 38px;
+  box-sizing: border-box;
+  border-radius: 50%;
+}
+
+.avatarValid {
+  outline: 2px solid #1db954; /* green */
+  outline-offset: 0px;
+}
+
+.avatarInvalid {
+  outline: 2px solid #e02424; /* red */
+  outline-offset: 0px;
+}
+
 /* Responsive tweaks for header spacing */
 @media (max-width: 420px) {
   .brandLogo {

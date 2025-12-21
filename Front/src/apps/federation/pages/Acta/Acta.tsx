@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import styles from "./Acta.module.css";
+import pageHeaderStyles from "../../../../shared/components/ui/PageHeader/PageHeader.module.css";
 import { getActa, getSettingsForUser } from "../../services/api";
 import type { Acta as ActaType } from "../../types/acta";
 import { Paper, Typography, CircularProgress } from "@mui/material";
@@ -83,7 +84,20 @@ export default function Acta(): JSX.Element {
   const content = (
     <ContentLayout
       title="Acta"
-      subtitle={acta ? `${acta.equipo_local} vs ${acta.equipo_visitante}` : ""}
+      subtitle={
+        acta ? (
+          <>
+            <span>{`${acta.equipo_local} vs ${acta.equipo_visitante}`}</span>
+            {acta.suspendido === "1" && (
+              <span className={pageHeaderStyles.suspendedBadge}>
+                Suspendido
+              </span>
+            )}
+          </>
+        ) : (
+          ""
+        )
+      }
       actionBar={
         <div className={styles.actionBar}>
           <div />

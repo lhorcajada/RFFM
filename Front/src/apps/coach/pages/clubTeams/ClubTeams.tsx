@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import DashboardCard from "../../../../shared/components/ui/DashboardCard/DashboardCard";
 import { useParams } from "react-router-dom";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
@@ -15,6 +16,9 @@ export default function ClubTeams() {
   const navigate = useNavigate();
   const { id } = useParams();
   const [teams, setTeams] = useState<TeamResponse[]>([]);
+  const [teamPhotos, setTeamPhotos] = useState<Record<string, string | null>>(
+    {}
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,6 +32,25 @@ export default function ClubTeams() {
         const data = await teamService.getTeams(id);
         if (!mounted) return;
         setTeams(data);
+        // load photos for teams
+        const photos: Record<string, string | null> = {};
+        await Promise.all(
+          data.map(async (t) => {
+            try {
+              if (t.urlPhoto) {
+                const obj = await teamService.fetchTeamPhoto(t.urlPhoto);
+                photos[t.id] = obj;
+              } else if (t.club?.shieldUrl) {
+                const obj = await teamService.fetchTeamPhoto(t.club.shieldUrl);
+                photos[t.id] = obj;
+              } else photos[t.id] = null;
+            } catch (e) {
+              photos[t.id] = null;
+            }
+          })
+        );
+        if (!mounted) return;
+        setTeamPhotos(photos);
       } catch (e: any) {
         if (!mounted) return;
         setError(e?.message || "Error cargando equipos");
@@ -39,11 +62,15 @@ export default function ClubTeams() {
     load();
     return () => {
       mounted = false;
+      // revoke object urls
+      Object.values(teamPhotos).forEach((u) => {
+        if (u) URL.revokeObjectURL(u);
+      });
     };
   }, [id]);
 
   return (
-    <BaseLayout>
+    <BaseLayout hideFooterMenu>
       <ContentLayout
         title="Equipos"
         subtitle={id ? <ClubHeader clubId={id} /> : "-"}
@@ -60,7 +87,7 @@ export default function ClubTeams() {
             </Button>
             <Button
               variant="contained"
-              onClick={() => navigate(`/coach/clubs/${id}/teams/create`)}
+              onClick={() => navigate(`/coach/clubs/${id}/teams/new`)}
               size="small"
             >
               Añadir equipo
@@ -80,13 +107,20 @@ export default function ClubTeams() {
             {!loading &&
               !error &&
               teams.map((t) => (
-                <Paper key={t.id} elevation={1} className={styles.teamCard}>
-                  <div className={styles.teamTitle}>{t.name}</div>
-                  <div className={styles.teamMeta}>
-                    <span>{t.category?.name}</span>
-                    {t.league?.name && <span> — {t.league.name}</span>}
-                  </div>
-                </Paper>
+                <div key={t.id} className={styles.cardWrap}>
+                  <DashboardCard
+                    title={t.name}
+                    description={t.category?.name ?? t.league?.name}
+                    icon={
+                      <img
+                        src={teamPhotos[t.id] ?? "/assets/logo.png"}
+                        alt={t.name}
+                        className={styles.teamIcon}
+                      />
+                    }
+                    to={`/coach/dashboard?teamId=${t.id}`}
+                  />
+                </div>
               ))}
           </div>
         </Box>

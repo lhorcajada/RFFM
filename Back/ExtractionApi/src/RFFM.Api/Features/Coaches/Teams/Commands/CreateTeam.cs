@@ -99,6 +99,10 @@ namespace RFFM.Api.Features.Coaches.Teams.Commands
                 .GreaterThan(0)
                 .WithMessage(ValidationConstants.TeamCategoryIdMustBeGreaterThanZero);
 
+            // SeasonId is required because the Teams table enforces a non-nullable SeasonId foreign key.
+            RuleFor(r => r.SeasonId)
+                .NotEmpty()
+                .WithMessage("SeasonId is required.");
         }
     }
 

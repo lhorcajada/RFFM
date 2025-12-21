@@ -1,0 +1,39 @@
+.emblemRow {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.fileInputLabel {
+  display: inline-block;
+  padding: 8px 12px;
+  background: var(--rffm-card-bg);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.fileInput {
+  display: none;
+}
+
+.shieldPreview {
+  background-size: cover;
+  background-position: center;
+  border-radius: 8px 8px 12px 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.shieldPlaceholder {
+  background: linear-gradient(180deg, #eee, #ddd);
+  border-radius: 8px 8px 12px 12px;
+  display: inline-block;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.error {
+  color: var(--rffm-error-color, #b00020);
+  font-size: 0.85rem;
+}

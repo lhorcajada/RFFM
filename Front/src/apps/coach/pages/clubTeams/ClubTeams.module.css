@@ -5,6 +5,11 @@
 .list {
   display: grid;
   gap: 12px;
+  grid-template-columns: 1fr;
+}
+
+.cardWrap {
+  width: 100%;
 }
 
 .teamCard {
@@ -12,4 +17,58 @@
   border: 1px solid rgba(0, 0, 0, 0.06);
   border-radius: 8px;
   background: var(--rffm-card-bg);
+}
+
+.teamHeader {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.teamPhoto {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #f0f0f0, #e8e8e8);
+}
+
+.teamIcon {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.teamInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.teamTitle {
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.teamMeta {
+  font-size: 0.9rem;
+  color: rgba(240, 233, 233, 0.6);
+}
+
+@media (max-width: 520px) {
+  .teamHeader {
+    gap: 8px;
+  }
+  .teamPhoto {
+    width: 48px;
+    height: 48px;
+  }
+}
+
+@media (min-width: 900px) {
+  .list {
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    align-items: start;
+  }
 }

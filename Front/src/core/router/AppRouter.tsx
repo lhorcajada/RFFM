@@ -152,6 +152,10 @@ export default function AppRouter() {
           }
         />
         <Route path="/coach/*" element={<CoachApp />} />
+        <Route
+          path="/player/:id"
+          element={<Navigate to="/coach/player/:id" replace />}
+        />
         <Route path="/error-500" element={<Error500 />} />
       </Routes>
     </Suspense>

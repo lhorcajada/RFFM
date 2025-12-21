@@ -935,7 +935,7 @@ namespace FutbolBase.Api.App.Modules.Catalog.Infrastructure.Migrations
                         {
                             Id = 5,
                             Key = "FamilyPlayer",
-                            Name = "Family player"
+                            Name = "FamilyMembers player"
                         },
                         new
                         {
@@ -1016,6 +1016,34 @@ namespace FutbolBase.Api.App.Modules.Catalog.Infrastructure.Migrations
                     b.HasIndex("RoleId");
 
                     b.ToTable("UserClubs", "app");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Entities.Coaches.ConfigurationCoach", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CoachId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("PreferredClubId")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("PreferredTeamId")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CoachId")
+                        .IsUnique();
+
+                    b.ToTable("ConfigurationCoach", "app");
                 });
 
             modelBuilder.Entity("RFFM.Api.Domain.Entities.Competitions.Category", b =>
@@ -3252,9 +3280,9 @@ namespace FutbolBase.Api.App.Modules.Catalog.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.OwnsOne("RFFM.Api.Domain.ValueObjects.Family", "Family", b1 =>
+                    b.OwnsMany("RFFM.Api.Domain.ValueObjects.Family", "FamilyMembers", b1 =>
                         {
-                            b1.Property<string>("TeamPlayerId")
+                            b1.Property<string>("Id")
                                 .HasColumnType("nvarchar(450)");
 
                             b1.Property<string>("Email")
@@ -3273,7 +3301,13 @@ namespace FutbolBase.Api.App.Modules.Catalog.Infrastructure.Migrations
                                 .HasMaxLength(15)
                                 .HasColumnType("nvarchar(15)");
 
-                            b1.HasKey("TeamPlayerId");
+                            b1.Property<string>("TeamPlayerId")
+                                .IsRequired()
+                                .HasColumnType("nvarchar(450)");
+
+                            b1.HasKey("Id");
+
+                            b1.HasIndex("TeamPlayerId");
 
                             b1.ToTable("TeamPlayerFamilies", "app");
 
@@ -3282,7 +3316,7 @@ namespace FutbolBase.Api.App.Modules.Catalog.Infrastructure.Migrations
 
                             b1.OwnsOne("RFFM.Api.Domain.ValueObjects.Address", "Address", b2 =>
                                 {
-                                    b2.Property<string>("FamilyTeamPlayerId")
+                                    b2.Property<string>("FamilyId")
                                         .HasColumnType("nvarchar(450)");
 
                                     b2.Property<string>("City")
@@ -3292,6 +3326,9 @@ namespace FutbolBase.Api.App.Modules.Catalog.Infrastructure.Migrations
                                     b2.Property<string>("Country")
                                         .HasMaxLength(100)
                                         .HasColumnType("nvarchar(100)");
+
+                                    b2.Property<string>("Id")
+                                        .HasColumnType("nvarchar(450)");
 
                                     b2.Property<string>("PostalCode")
                                         .HasMaxLength(20)
@@ -3305,12 +3342,12 @@ namespace FutbolBase.Api.App.Modules.Catalog.Infrastructure.Migrations
                                         .HasMaxLength(200)
                                         .HasColumnType("nvarchar(200)");
 
-                                    b2.HasKey("FamilyTeamPlayerId");
+                                    b2.HasKey("FamilyId");
 
                                     b2.ToTable("TeamPlayerFamilies", "app");
 
                                     b2.WithOwner()
-                                        .HasForeignKey("FamilyTeamPlayerId");
+                                        .HasForeignKey("FamilyId");
                                 });
 
                             b1.Navigation("Address");
@@ -3435,7 +3472,7 @@ namespace FutbolBase.Api.App.Modules.Catalog.Infrastructure.Migrations
 
                     b.Navigation("Dorsal");
 
-                    b.Navigation("Family");
+                    b.Navigation("FamilyMembers");
 
                     b.Navigation("PhysicalInfo");
 

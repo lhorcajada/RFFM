@@ -12,12 +12,12 @@ namespace RFFM.Api.Domain.Entities.TeamPlayers
         public string PlayerId { get; set; } = null!;
         public DateTime JoinedDate { get; set; }
         public DateTime? LeftDate { get; set; }
-
-        public Demarcation? Demarcation { get; set; } 
         public PlayerContactInfo? ContactInfo { get; set; }
         public Dorsal? Dorsal { get; set; }
         public PhysicalAttributes? PhysicalInfo { get; set; }
-        public Family? Family { get; set; }
+
+        public List<Family> FamilyMembers { get; set; } = new();
+        public Demarcation? Demarcation { get; set; } = null!;
 
         public Team Team { get; set; } = null!;
         public Player Player { get; set; } = null!;
@@ -32,9 +32,9 @@ namespace RFFM.Api.Domain.Entities.TeamPlayers
             SetLeftDate(teamPlayerModel.LeftDate);
             SetDemarcation(teamPlayerModel.Demarcation);
             SetContactInfo(teamPlayerModel.ContactInfo);
-            SetDorsal(teamPlayerModel.Dorsal);
+            SetDorsal(teamPlayerModel.Dorsal?.Number);
             SetPhysicalInfo(teamPlayerModel.Height, teamPlayerModel.Weight, teamPlayerModel.DominantFootId);
-            SetFamily(teamPlayerModel.Family);
+            SetFamily(teamPlayerModel.FamilyMembers);
         }
         
         public static TeamPlayer Create(TeamPlayerModel teamPlayerModel)
@@ -104,23 +104,32 @@ namespace RFFM.Api.Domain.Entities.TeamPlayers
             var dominantFoot = dominantFootId != null ? PlayerFeet.PlayerFeet.GetById(dominantFootId.Value) : null;
             PhysicalInfo = new PhysicalAttributes(height, weight, dominantFoot);
         }
-        public void SetFamily(FamilyModel? family)
+        public void SetFamily(List<FamilyModel>? familyMembers)
         {
-            if (family == null)
+            // if no family members provided, initialize to empty list
+            if (familyMembers == null || familyMembers.Count == 0)
             {
-                Family = null;
+                FamilyMembers = new List<Family>();
                 return;
             }
-            var address = new Address
+
+            var list = new List<Family>();
+            foreach (var fm in familyMembers)
             {
-                Street = family.Address?.Street,
-                City = family.Address?.City,
-                Country = family.Address?.Country,
-                PostalCode = family.Address?.PostalCode,
-                Province = family.Address?.Province
-            };
-            var familyMember = FamilyMember.FromId(family.FamilyMemberId ?? 0);
-            Family = new Family(address, family.Phone, family.Email, family.Name, familyMember?.Name);
+                var address = new Address
+                {
+                    Street = fm.Address?.Street,
+                    City = fm.Address?.City,
+                    Country = fm.Address?.Country,
+                    PostalCode = fm.Address?.PostalCode,
+                    Province = fm.Address?.Province
+                };
+
+                var familyMember = FamilyMember.FromId(fm.FamilyMemberId ?? 0);
+                list.Add(new Family(address, fm.Phone, fm.Email, fm.Name, familyMember?.Name));
+            }
+
+            FamilyMembers = list;
         }
     }
 

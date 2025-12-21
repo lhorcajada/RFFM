@@ -1,0 +1,93 @@
+.page {
+  padding: 12px;
+}
+.card {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  padding: 18px;
+  background: var(--rffm-card-bg, #2a0b06);
+  border-radius: 12px;
+  color: var(--rffm-card-text, #fff7ef);
+}
+.sectionInner {
+  padding: 12px;
+  flex: 1;
+}
+.spacer {
+  height: 16px;
+}
+.memberWrap {
+  margin-bottom: 8px;
+}
+
+.autocompleteWrap {
+  width: 100%;
+}
+.autocomplete {
+  width: 100%;
+}
+.radioList {
+  margin-top: 8px;
+}
+.instruction {
+  font-size: 14px;
+  color: var(--rffm-muted, #a59f9f);
+  margin-top: 6px;
+  margin-bottom: 6px;
+}
+.radioRow {
+  display: flex;
+  align-items: center;
+}
+.left {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+.avatar {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.title {
+  font-weight: 700;
+  font-size: 20px;
+}
+.subtitle {
+  font-size: 14px;
+  color: var(--rffm-muted, #a59f9f);
+}
+.row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.label {
+  font-weight: 600;
+  color: var(--rffm-muted, #a59f9f);
+  width: 120px;
+  white-space: nowrap;
+}
+.value {
+  color: var(--rffm-card-text, #fff7ef);
+  word-break: break-word;
+  min-width: 0;
+}
+
+.selectButton {
+  background: var(--rffm-accent, #ff6b35);
+  color: #fff7ef;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+}

@@ -10,13 +10,14 @@ namespace RFFM.Api.Domain.ValueObjects.Player
 
         private Demarcation(List<int>? possibleDemarcationIds, int activePositionId)
         {
-            if (possibleDemarcationIds == null || possibleDemarcationIds.Count == 0)
-                throw new ArgumentException(ValidationConstants.LeastOneDemarcation);
+            // Allow empty or null possible demarcations (player may have no positions assigned).
+            PossibleDemarcationIds = possibleDemarcationIds ?? new List<int>();
 
-            if (!possibleDemarcationIds.Contains(activePositionId))
+            // If there are possible demarcations, the active position must belong to them.
+            if (PossibleDemarcationIds.Count > 0 && !PossibleDemarcationIds.Contains(activePositionId))
                 throw new ArgumentException(ValidationConstants.MustBeActiveOneDemarcation);
 
-            PossibleDemarcationIds = possibleDemarcationIds;
+            // ActivePositionId == 0 will represent 'no active position'.
             ActivePositionId = activePositionId;
         }
 

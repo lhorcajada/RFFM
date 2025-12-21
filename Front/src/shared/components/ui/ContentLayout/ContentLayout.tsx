@@ -4,7 +4,7 @@ import ActionBar from "../ActionBar/ActionBar";
 import styles from "./ContentLayout.module.css";
 
 interface ContentLayoutProps {
-  title?: string;
+  title?: React.ReactNode;
   subtitle?: React.ReactNode;
   actionBar?: React.ReactNode;
   children?: React.ReactNode;

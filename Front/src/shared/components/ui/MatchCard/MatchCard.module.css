@@ -23,6 +23,20 @@
   flex-direction: column;
   align-items: center;
 }
+.suspendedFlag {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  background: linear-gradient(90deg, #ff6b6b, #ff3b3b);
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 0.75rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  z-index: 5;
+}
+
 .badge {
   position: absolute;
   right: -6px;
@@ -494,6 +508,12 @@
   }
   .matchCard {
     padding: 8px 10px; /* keep extra horizontal space on mobile */
+  }
+  .suspendedFlag {
+    right: 6px;
+    top: 6px;
+    padding: 4px 8px;
+    font-size: 0.65rem;
   }
   /* make field chips smaller on mobile */
   .fieldChip {

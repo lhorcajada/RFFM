@@ -60,7 +60,7 @@ export default function Clubs() {
             {!loading && !error && checkedClubs && clubs.length === 0 && (
               <Button
                 variant="contained"
-                onClick={() => navigate("/coach/clubs/create")}
+                onClick={() => navigate("/coach/clubs/new")}
                 size="small"
               >
                 Añadir club

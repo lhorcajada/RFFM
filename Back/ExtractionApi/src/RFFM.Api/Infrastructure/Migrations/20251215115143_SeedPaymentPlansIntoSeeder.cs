@@ -95,7 +95,7 @@ namespace RFFM.Api.Infrastructure.Migrations
                 keyColumn: "Id",
                 keyValue: 5,
                 column: "Name",
-                value: "Family player");
+                value: "FamilyMembers player");
 
             migrationBuilder.UpdateData(
                 schema: "app",

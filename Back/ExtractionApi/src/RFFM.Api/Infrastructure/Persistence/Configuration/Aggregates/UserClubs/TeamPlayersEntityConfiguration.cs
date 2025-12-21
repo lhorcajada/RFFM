@@ -117,12 +117,18 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.UserClubs
                         v => v!.Id, // Conversión de DominantFoot a su Id
                         v => PlayerFeet.GetById(v)) // Conversión de Id a DominantFoot
                     .IsRequired(false);
-            });
+                });
+            
 
-            // Configuración de Family
-            builder.OwnsOne(tp => tp.Family, family =>
+            // Configuración de FamilyMembers como colección owned
+            builder.OwnsMany(tp => tp.FamilyMembers, family =>
             {
                 family.ToTable("TeamPlayerFamilies");
+
+                // Shadow primary key for the owned entity
+                family.Property<string>("Id").HasColumnType("nvarchar(450)");
+                family.HasKey("Id");
+
                 family.Property(f => f.Phone)
                     .HasMaxLength(15)
                     .IsRequired(false);
@@ -139,9 +145,14 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.UserClubs
                     .HasMaxLength(50)
                     .IsRequired(false);
 
-                // Configuración de Address dentro de Family
+                // FK back to TeamPlayer (owner)
+                family.WithOwner().HasForeignKey("TeamPlayerId");
+
+                // Configuración de Address dentro de FamilyMembers
                 family.OwnsOne(f => f.Address, address =>
                 {
+                    address.Property<string>("Id").HasColumnType("nvarchar(450)");
+
                     address.Property(a => a.Street)
                         .HasMaxLength(200)
                         .IsRequired(false);
@@ -161,6 +172,8 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.UserClubs
                     address.Property(a => a.Country)
                         .HasMaxLength(100)
                         .IsRequired(false);
+
+                    address.WithOwner();
                 });
             });
         }

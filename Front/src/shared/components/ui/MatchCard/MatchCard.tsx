@@ -97,6 +97,11 @@ export default function MatchCard({
 
   return (
     <div className={rootWithHighlights}>
+      {m && (m.status === "3" || m.status === 3) && (
+        <div className={styles.suspendedFlag} aria-hidden>
+          Suspendido
+        </div>
+      )}
       <FieldInfo
         fieldName={data.fieldName}
         cityName={data.cityName}

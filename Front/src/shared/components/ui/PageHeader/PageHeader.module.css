@@ -1,5 +1,6 @@
 .header {
   text-align: center;
+  position: relative;
   /* use margin to control horizontal inset so backgrounds align with ActionBar */
   margin: var(--rffm-pageheader-v-gap, 8px) var(--rffm-page-h-padding, 12px);
   padding: 8px 0; /* vertical padding only */
@@ -10,6 +11,36 @@
   );
   border-radius: 8px;
   border: 1px solid rgba(0, 160, 200, 0.12);
+}
+
+.headerRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.leftBlock {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: absolute;
+  left: 16px;
+}
+
+.rightBlock {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  position: absolute;
+  right: 16px;
+}
+
+.clubShield {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  object-fit: cover;
 }
 
 .title {
@@ -35,7 +66,32 @@
   .header {
     margin: var(--rffm-pageheader-v-gap-mobile, 6px)
       var(--rffm-page-h-padding, 10px);
-    padding: 6px 0;
+    padding: 6px 6px;
+  }
+  .leftBlock {
+    position: static;
+    justify-content: flex-start;
+    margin-bottom: 0;
+    order: 1;
+    display: none;
+  }
+  .rightBlock {
+    display: flex;
+    position: static;
+    order: 3;
+    justify-content: flex-end;
+    margin-left: auto;
+  }
+  .headerRow {
+    justify-content: space-between;
+  }
+  .clubShield {
+    width: 28px;
+    height: 28px;
+  }
+  .title {
+    text-align: left;
+    flex: 1 1 auto;
   }
 }
 
@@ -46,4 +102,16 @@
   letter-spacing: 0.6px;
   font-size: 0.7rem;
   margin-top: 2px;
+}
+
+.suspendedBadge {
+  display: inline-block;
+  margin-left: 10px;
+  padding: 4px 8px;
+  background: linear-gradient(90deg, #ff6b6b, #ff3b3b);
+  color: white;
+  font-weight: 700;
+  font-size: 0.7rem;
+  border-radius: 999px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
 }

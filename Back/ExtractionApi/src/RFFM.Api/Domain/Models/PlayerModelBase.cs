@@ -14,6 +14,5 @@
         public DateTime? BirthDate { get; set; }
         public string? Dni { get; set; }
         public string ClubId { get; set; } = null!;
-
     }
 }

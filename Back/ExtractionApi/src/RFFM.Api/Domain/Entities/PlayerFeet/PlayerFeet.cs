@@ -11,6 +11,7 @@
         {
             Id = id;
             Name = name;
+            PlayerFeetList[id] = this;
         }
 
         public static PlayerFeet GetById(int id)
