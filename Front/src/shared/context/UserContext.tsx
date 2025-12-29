@@ -35,7 +35,18 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
     localStorage.removeItem("coachUserId");
     localStorage.removeItem("coach_roles");
     try {
-      window.dispatchEvent(new CustomEvent("rffm.auth_expired"));
+      if (typeof window !== "undefined") {
+        const path = window.location?.pathname ?? "";
+        const publicPrefixes = [
+          "/login",
+          "/register",
+          "/forgot-password",
+          "/reset-password",
+        ];
+        if (!publicPrefixes.some((p) => path.startsWith(p))) {
+          window.dispatchEvent(new CustomEvent("rffm.auth_expired"));
+        }
+      }
     } catch (e) {}
   };
 

@@ -62,9 +62,6 @@ export default function AppHeader({ title }: AppHeaderProps) {
       try {
         window.dispatchEvent(new CustomEvent("rffm.logout"));
       } catch (e) {}
-      try {
-        window.dispatchEvent(new CustomEvent("rffm.auth_expired"));
-      } catch (e) {}
     } catch (e) {}
     // also call context logout to clear state
     try {

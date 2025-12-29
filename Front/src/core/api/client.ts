@@ -17,6 +17,41 @@ export function registerNavigate(fn: (path: string) => void) {
   navigateTo = fn;
 }
 
+// Prevent spamming auth_expired across many simultaneous requests.
+let authExpiredNotified = false;
+function notifyAuthExpiredOnce() {
+  try {
+    if (typeof window === "undefined") return;
+
+    // If already notified recently, skip.
+    if (authExpiredNotified) return;
+
+    // If user is already on a public auth route, no need to emit event.
+    const publicPrefixes = [
+      "/login",
+      "/register",
+      "/forgot-password",
+      "/reset-password",
+    ];
+    try {
+      const p = window.location?.pathname ?? "";
+      if (publicPrefixes.some((x) => p.startsWith(x))) return;
+    } catch (e) {
+      // ignore
+    }
+
+    authExpiredNotified = true;
+    window.dispatchEvent(new CustomEvent("rffm.auth_expired"));
+
+    // reset flag after short delay so future login/logout cycles still notify
+    setTimeout(() => {
+      authExpiredNotified = false;
+    }, 2000);
+  } catch (e) {
+    // ignore
+  }
+}
+
 function gotoErrorPage(reason?: string) {
   const suffix = reason ? `?reason=${encodeURIComponent(reason)}` : "";
   const path = `/error-500${suffix}`;
@@ -41,9 +76,10 @@ client.interceptors.response.use(
       // If unauthorized, notify app so it can ask user to re-authenticate
       if (status === 401) {
         try {
-          if (typeof window !== "undefined") {
-            window.dispatchEvent(new CustomEvent("rffm.auth_expired"));
-          }
+          try {
+            coachAuthService.logout();
+          } catch (e) {}
+          notifyAuthExpiredOnce();
         } catch (e) {
           // ignore
         }
@@ -81,13 +117,13 @@ client.interceptors.request.use(
         const token = localStorage.getItem("coachAuthToken");
         if (token) {
           // If the token exists but is already expired according to coachAuthService,
-          // proactively remove it and emit auth_expired so app can log out and prompt for credentials.
+          // proactively remove it and notify the app once so it can log out and prompt for credentials.
           if (!coachAuthService.isAuthenticated()) {
             try {
               coachAuthService.logout();
             } catch (e) {}
             try {
-              window.dispatchEvent(new CustomEvent("rffm.auth_expired"));
+              notifyAuthExpiredOnce();
             } catch (e) {}
           } else {
             // token ok

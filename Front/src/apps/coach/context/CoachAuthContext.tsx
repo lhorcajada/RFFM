@@ -40,7 +40,16 @@ export const CoachAuthProvider: React.FC<{ children: React.ReactNode }> = ({
       try {
         // try navigate if available
         if (typeof window !== "undefined") {
-          window.location.href = "/login";
+          const path = window.location?.pathname ?? "";
+          const publicPrefixes = [
+            "/login",
+            "/register",
+            "/forgot-password",
+            "/reset-password",
+          ];
+          if (!publicPrefixes.some((p) => path.startsWith(p))) {
+            window.location.href = "/login";
+          }
         }
       } catch (e) {
         // ignore
