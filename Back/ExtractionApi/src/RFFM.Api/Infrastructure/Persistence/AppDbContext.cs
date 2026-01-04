@@ -1,5 +1,4 @@
-﻿using System.Data.Common;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using RFFM.Api.Domain.Aggregates.Assistances;
 using RFFM.Api.Domain.Aggregates.Technicals;
@@ -19,7 +18,6 @@ namespace RFFM.Api.Infrastructure.Persistence
 {
     public class AppDbContext : DbContext
     {
-        private readonly DbConnection _connection;
         public DbSet<Club> Clubs { get; set; }
         public DbSet<UserClub> UserClubs { get; set; }
         public DbSet<Country> Countries { get; set; }
@@ -56,30 +54,10 @@ namespace RFFM.Api.Infrastructure.Persistence
         // Payment plans and subscriptions
         public DbSet<PaymentPlan> PaymentPlans { get; set; }
         public DbSet<Subscription> Subscriptions { get; set; }
-        
-        public AppDbContext(DbConnection connection)
+
+        public AppDbContext(DbContextOptions<AppDbContext> options)
+            : base(options)
         {
-            _connection = connection;
-        }
-      
-        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        {
-            optionsBuilder.UseSqlServer(_connection, sqlServerOptions =>
-            {
-                // Habilitar retry automático en caso de fallos transitorios
-                sqlServerOptions.EnableRetryOnFailure(
-                    maxRetryCount: 5,                    // Máximo 5 reintentos
-                    maxRetryDelay: TimeSpan.FromSeconds(30),  // Máximo 30 segundos entre reintentos
-                    errorNumbersToAdd: null              // Usar los errores transitorios por defecto
-                );
-                
-                // Configuración adicional para Azure SQL
-                sqlServerOptions.CommandTimeout(60);     // Timeout de 60 segundos
-            });
-            
-            // Suprimir warning de pending model changes para permitir migraciones iniciales
-            optionsBuilder.ConfigureWarnings(warnings =>
-                warnings.Ignore(RelationalEventId.PendingModelChangesWarning));
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -97,7 +75,7 @@ namespace RFFM.Api.Infrastructure.Persistence
             return await base.SaveChangesAsync(cancellationToken);
         }
 
-  
+
         private void ApplyAllEntityConfigurations(ModelBuilder modelBuilder)
         {
             var configurationType = typeof(IEntityTypeConfiguration<>);

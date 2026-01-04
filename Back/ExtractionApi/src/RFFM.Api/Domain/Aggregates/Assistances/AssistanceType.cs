@@ -6,6 +6,8 @@
         public static readonly AssistanceType ExcusedAbsence = new AssistanceType(2, "No asiste con excusa", 0);
         public static readonly AssistanceType UnexcusedAbsence = new AssistanceType(3, "No asiste sin excusa", 0);
         public static readonly AssistanceType LateArrival = new AssistanceType(4, "Llega tarde", 2);
+        public static readonly AssistanceType Available = new AssistanceType(5, "Disponible", 0);
+        public static readonly AssistanceType NotAvailable = new AssistanceType(6, "No disponible", 0);
         public int Id { get; private set; }
         public string Name { get; private set; }
         public int Points { get; private set; }
@@ -16,7 +18,7 @@
             Points = points;
         }
 
-        public static AssistanceType[] List() => new[] { Attendance, ExcusedAbsence, UnexcusedAbsence, LateArrival };
+        public static AssistanceType[] List() => new[] { Attendance, ExcusedAbsence, UnexcusedAbsence, LateArrival, Available, NotAvailable };
 
         public static AssistanceType FromName(string name)
         {

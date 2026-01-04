@@ -1,9 +1,12 @@
-﻿namespace RFFM.Api.Domain.Entities
+﻿
+namespace RFFM.Api.Domain.Entities
 {
     public class UserRoles
     {
-        public static UserRoles Administrator = new UserRoles(1, "Administrador");
-        public static UserRoles User = new UserRoles(2, "Usuario");
+        public static UserRoles Coach = new UserRoles(1, "Coach");
+        public static UserRoles Federation = new UserRoles(2, "Federation");
+        public static UserRoles Administrator = new UserRoles(3, "Administrator");
+        public static UserRoles User = new UserRoles(4, "User");
 
         public int Id { get; private set; }
         public string Name { get; private set; }
@@ -13,7 +16,7 @@
             Name = name;
         }
 
-        public static IEnumerable<UserRoles> List() => new[] { Administrator, User };
+        public static IEnumerable<UserRoles> List() => new[] { Coach, Federation, Administrator, User };
 
         public static UserRoles FromName(string name)
         {

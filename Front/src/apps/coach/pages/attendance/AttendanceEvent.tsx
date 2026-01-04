@@ -13,6 +13,7 @@ import { Box, Button, CircularProgress, Chip } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { getEventTypeColor } from "./attendanceUtils";
 import styles from "./AttendanceEvent.module.css";
+import AttendanceTabs from "./AttendanceTabs";
 
 function parseDate(input?: string | null): Date | null {
   if (!input) return null;
@@ -253,7 +254,20 @@ export default function AttendanceEvent() {
                 </div>
               </div>
 
-              {/* Aquí iría el componente que lista jugadores y permite marcar asistencias */}
+              {/* Aquí se muestra la UI de convocatoria / disponibilidad / asistencia */}
+              {event && (
+                // @ts-ignore - event may have different field names for start
+                <React.Suspense fallback={<div>Cargando...</div>}>
+                  {/* eslint-disable-next-line @typescript-eslint/ban-ts-comment */}
+                  {/* @ts-ignore */}
+                  <AttendanceTabs
+                    eventId={String(event.id ?? id)}
+                    eventStart={
+                      event.startTime ?? event.start ?? event.eveDateTime
+                    }
+                  />
+                </React.Suspense>
+              )}
             </div>
           ) : (
             <div>Evento no encontrado</div>

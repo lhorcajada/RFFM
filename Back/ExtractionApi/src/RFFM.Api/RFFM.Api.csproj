@@ -76,6 +76,7 @@
 
   <ItemGroup>
     <Folder Include="Features\Users\" />
+    <Folder Include="Infrastructure\Persistence\Migrations\Identity\" />
   </ItemGroup>
 
 </Project>

@@ -1,0 +1,111 @@
+.page {
+  display: flex;
+  gap: 16px;
+  padding: 8px 0 0 0;
+  flex-wrap: wrap;
+}
+
+.half {
+  flex: 1 1 50%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.cardWrap {
+  width: 100%;
+  max-width: 320px;
+}
+
+.cardInner {
+  display: flex;
+  flex-direction: column;
+  min-height: 120px;
+  justify-content: space-between;
+}
+
+.cardActions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 480px) {
+  .cardInner {
+    align-items: stretch;
+  }
+  .cardActions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+.controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.convocatedList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.convocationCard {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 8px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.convocationInfo {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+}
+
+.statusChip {
+  font-weight: 500;
+}
+
+.convocarButton {
+  min-width: 0;
+  padding-left: 10px;
+  padding-right: 10px;
+  white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  .convocarButton {
+    padding-left: 8px;
+    padding-right: 8px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 768px) {
+  .cardWrap {
+    width: calc(50% - 12px);
+    max-width: none;
+  }
+  .page {
+    gap: 12px;
+  }
+}
+
+@media (min-width: 769px) {
+  .cardWrap {
+    width: calc(33.333% - 12px);
+  }
+}

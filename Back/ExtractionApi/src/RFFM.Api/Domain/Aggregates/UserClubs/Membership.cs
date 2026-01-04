@@ -10,7 +10,7 @@ namespace RFFM.Api.Domain.Aggregates.UserClubs
         public List<UserClub> UserClubs { get; set; }
         private static readonly Dictionary<int, Membership> Roles = new Dictionary<int, Membership>();
 
-        public Membership(){}
+        public Membership() { }
         private Membership(int id, string name, string key)
         {
             Id = id;
@@ -33,12 +33,12 @@ namespace RFFM.Api.Domain.Aggregates.UserClubs
             return Name;
         }
 
-        public static readonly Membership Directive = new Membership(1, CodeMessages.RoleDirective.Message, "Directive");
-        public static readonly Membership Coach = new Membership(2, CodeMessages.RoleCoach.Message, "Coach");
-        public static readonly Membership ClubMember = new Membership(3, CodeMessages.RoleClubMember.Message, "ClubMember");
-        public static readonly Membership Player = new Membership(4, CodeMessages.RolePlayer.Message, "Player");
-        public static readonly Membership FamilyPlayer = new Membership(5, CodeMessages.RoleFamilyPlayer.Message, "FamilyPlayer");
-        public static readonly Membership Follower = new Membership(6, CodeMessages.RoleFollower.Message, "Follower");
- 
+        // Use fallback literal names here to avoid resolving localized resources at type initialization time
+        public static readonly Membership Directive = new Membership(1, "Directive", "Directive");
+        public static readonly Membership Coach = new Membership(2, "Coach", "Coach");
+        public static readonly Membership ClubMember = new Membership(3, "Club member", "ClubMember");
+        public static readonly Membership Player = new Membership(4, "Player", "Player");
+        public static readonly Membership FamilyPlayer = new Membership(5, "FamilyMembers player", "FamilyPlayer");
+        public static readonly Membership Follower = new Membership(6, "Follower", "Follower");
     }
 }

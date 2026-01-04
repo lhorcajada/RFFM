@@ -3,17 +3,20 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RFFM.Api.Infrastructure.Persistence;
 
 #nullable disable
 
-namespace FutbolBase.Api.App.Modules.Catalog.Infrastructure.Migrations
+namespace RFFM.Api.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251230104839_UpdateAssistanceTypes")]
+    partial class UpdateAssistanceTypes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -199,9 +202,6 @@ namespace FutbolBase.Api.App.Modules.Catalog.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<bool>("Justified")
-                        .HasColumnType("bit");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -215,38 +215,17 @@ namespace FutbolBase.Api.App.Modules.Catalog.Infrastructure.Migrations
                         new
                         {
                             Id = 1,
-                            Justified = true,
                             Name = "Injury"
                         },
                         new
                         {
                             Id = 2,
-                            Justified = true,
                             Name = "Study"
                         },
                         new
                         {
                             Id = 3,
-                            Justified = true,
                             Name = "Ill"
-                        },
-                        new
-                        {
-                            Id = 4,
-                            Justified = true,
-                            Name = "Family Problem"
-                        },
-                        new
-                        {
-                            Id = 5,
-                            Justified = false,
-                            Name = "Family Event"
-                        },
-                        new
-                        {
-                            Id = 6,
-                            Justified = false,
-                            Name = "Birthday Event"
                         });
                 });
 

@@ -62,6 +62,29 @@ namespace RFFM.Api.DependencyInjection
                     options.UseSqlServer(identityConn));
             }
 
+            // Register AppDbContext using CatalogConnection (required)
+            var catalogConn = configuration.GetConnectionString("CatalogConnection");
+            if (string.IsNullOrWhiteSpace(catalogConn))
+            {
+                throw new InvalidOperationException("Connection string 'CatalogConnection' is required.");
+            }
+
+            services.AddDbContext<AppDbContext>(options =>
+            {
+                options.UseSqlServer(catalogConn, sqlServerOptions =>
+                {
+                    sqlServerOptions.EnableRetryOnFailure(
+                        maxRetryCount: 5,
+                        maxRetryDelay: TimeSpan.FromSeconds(30),
+                        errorNumbersToAdd: null);
+
+                    sqlServerOptions.CommandTimeout(60);
+                });
+
+                options.ConfigureWarnings(warnings => warnings.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
+            });
+
+            // Register other domain services
             services.AddScoped<IActaService, ActaService>();
             services.AddScoped<IPlayerService, PlayerService>();
 

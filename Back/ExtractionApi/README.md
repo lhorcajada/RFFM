@@ -1,6 +1,6 @@
-# ?? RFFM - Real Federación de Fútbol de Madrid API
+# ?? RFFM - Real Federaciï¿½n de Fï¿½tbol de Madrid API
 
-API para la gestión de competiciones, equipos y jugadores de la RFFM.
+API para la gestiï¿½n de competiciones, equipos y jugadores de la RFFM.
 
 ## ?? Quick Start
 
@@ -10,7 +10,7 @@ API para la gestión de competiciones, equipos y jugadores de la RFFM.
 # Restaurar dependencias
 dotnet restore
 
-# Ejecutar la aplicación (migraciones se aplican automáticamente)
+# Ejecutar la aplicaciï¿½n (migraciones se aplican automï¿½ticamente)
 dotnet run --project src/RFFM.Host
 
 # Acceder a Swagger
@@ -30,16 +30,16 @@ docker-compose up -d
 
 ## ??? Database Migrations
 
-### Migraciones Automáticas
+### Migraciones Automï¿½ticas
 
-Las migraciones de Entity Framework Core se aplican **automáticamente** al iniciar la aplicación.
+Las migraciones de Entity Framework Core se aplican **automï¿½ticamente** al iniciar la aplicaciï¿½n.
 
-### Gestión Manual de Migraciones
+### Gestiï¿½n Manual de Migraciones
 
 Usa el script de PowerShell incluido:
 
 ```powershell
-# Crear nueva migración
+# Crear nueva migraciï¿½n
 .\manage-migrations.ps1 -Action create -MigrationName "AddNewTable"
 
 # Aplicar migraciones
@@ -51,7 +51,7 @@ Usa el script de PowerShell incluido:
 # Generar script SQL
 .\manage-migrations.ps1 -Action script
 
-# Eliminar última migración
+# Eliminar ï¿½ltima migraciï¿½n
 .\manage-migrations.ps1 -Action remove
 
 # Reset completo de base de datos (PELIGRO)
@@ -61,7 +61,7 @@ Usa el script de PowerShell incluido:
 ### Comandos EF Core directos
 
 ```bash
-# Crear migración
+# Crear migraciï¿½n
 dotnet ef migrations add MigrationName --project src/RFFM.Api --startup-project src/RFFM.Host
 
 # Aplicar migraciones
@@ -71,19 +71,21 @@ dotnet ef database update --project src/RFFM.Api --startup-project src/RFFM.Host
 dotnet ef migrations list --project src/RFFM.Api --startup-project src/RFFM.Host
 ```
 
-## ?? Documentación
+## ?? Documentaciï¿½n
 
 ### Para Desarrollo
-- ?? **[Docker Setup](DOCKER_README.md)** - Guía completa de Docker
-- ?? **[Variables de Entorno](.env.example)** - Configuración requerida
+
+- ?? **[Docker Setup](DOCKER_README.md)** - Guï¿½a completa de Docker
+- ?? **[Variables de Entorno](.env.example)** - Configuraciï¿½n requerida
 
 ### Para Deployment
-- ?? **[GitHub Actions + Azure](GITHUB_ACTIONS_AZURE_GUIDE.md)** - Guía completa de CI/CD
-- ? **[Setup Checklist](SETUP_CHECKLIST.md)** - Lista de verificación paso a paso
-- ?? **Scripts de automatización:**
-  - `setup-azure.ps1` - Configuración automática de Azure
-  - `verify-setup.ps1` - Verificación de configuración
-  - `docker-build-run.ps1` - Build y ejecución de Docker
+
+- ?? **[GitHub Actions + Azure](GITHUB_ACTIONS_AZURE_GUIDE.md)** - Guï¿½a completa de CI/CD
+- ? **[Setup Checklist](SETUP_CHECKLIST.md)** - Lista de verificaciï¿½n paso a paso
+- ?? **Scripts de automatizaciï¿½n:**
+  - `setup-azure.ps1` - Configuraciï¿½n automï¿½tica de Azure
+  - `verify-setup.ps1` - Verificaciï¿½n de configuraciï¿½n
+  - `docker-build-run.ps1` - Build y ejecuciï¿½n de Docker
 
 ## ??? Arquitectura
 
@@ -91,45 +93,47 @@ dotnet ef migrations list --project src/RFFM.Api --startup-project src/RFFM.Host
 RFFM/
 ??? Back/ExtractionApi/
 ?   ??? src/
-?   ?   ??? RFFM.Api/              # Lógica de negocio y features
-?   ?   ??? RFFM.Host/             # Entry point y configuración
-?   ??? docker-compose.yml          # Configuración Docker
+?   ?   ??? RFFM.Api/              # Lï¿½gica de negocio y features
+?   ?   ??? RFFM.Host/             # Entry point y configuraciï¿½n
+?   ??? docker-compose.yml          # Configuraciï¿½n Docker
 ?   ??? Dockerfile                  # Imagen .NET 9
 ?   ??? ...
 ??? .github/
 ?   ??? workflows/
 ?       ??? back-azure-acr-deploy.yml  # CI/CD Pipeline
-??? Front/                          # Aplicación React (separado)
+??? Front/                          # Aplicaciï¿½n React (separado)
 ```
 
-## ??? Tecnologías
+## ??? Tecnologï¿½as
 
 - **.NET 9** - Framework principal
 - **ASP.NET Core** - Web API
 - **Entity Framework Core** - ORM
-- **Azure Container Registry** - Registro de imágenes Docker
+- **Azure Container Registry** - Registro de imï¿½genes Docker
 - **Azure App Service** - Hosting
 - **GitHub Actions** - CI/CD
 - **SQL Server** - Base de datos
 - **Azure Blob Storage** - Almacenamiento de archivos
 
-## ?? Configuración de Seguridad
+## ?? Configuraciï¿½n de Seguridad
 
 ### Secrets en GitHub
+
 Configurar en: `Repository ? Settings ? Secrets and variables ? Actions`
 
 - `ACR_LOGIN_SERVER` - Login server del Container Registry
-- `ACR_USERNAME` - Usuario del Container Registry  
-- `ACR_PASSWORD` - Contraseña del Container Registry
+- `ACR_USERNAME` - Usuario del Container Registry
+- `ACR_PASSWORD` - Contraseï¿½a del Container Registry
 
 ### Variables de Entorno en Azure
+
 Configurar en: `App Service ? Configuration ? Application settings`
 
 Ver lista completa en [SETUP_CHECKLIST.md](SETUP_CHECKLIST.md)
 
 ## ?? CI/CD Pipeline
 
-### Workflow Automático
+### Workflow Automï¿½tico
 
 Cada push a `main` ejecuta:
 
@@ -137,7 +141,7 @@ Cada push a `main` ejecuta:
 2. ? Tests (si existen)
 3. ? Build de imagen Docker
 4. ? Push a Azure Container Registry
-5. ? Deployment automático a Azure Web App
+5. ? Deployment automï¿½tico a Azure Web App
 
 ### Monitoreo
 
@@ -147,14 +151,16 @@ Cada push a `main` ejecuta:
 ## ?? Endpoints Principales
 
 ### API Base
+
 - **Production**: `https://rffmapi.azurewebsites.net`
 - **Swagger**: `https://rffmapi.azurewebsites.net/swagger`
 - **Health**: `https://rffmapi.azurewebsites.net/health`
 
 ### Features
-- `/api/teams` - Gestión de equipos
-- `/api/players` - Gestión de jugadores
-- `/api/competitions` - Gestión de competiciones
+
+- `/api/teams` - Gestiï¿½n de equipos
+- `/api/players` - Gestiï¿½n de jugadores
+- `/api/competitions` - Gestiï¿½n de competiciones
 - `/api/calendar` - Calendario de partidos
 - `/api/acta` - Actas de partidos
 
@@ -168,7 +174,7 @@ dotnet test
 dotnet test --collect:"XPlat Code Coverage"
 ```
 
-## ?? Comandos Útiles
+## ?? Comandos ï¿½tiles
 
 ### Docker Local
 
@@ -198,16 +204,17 @@ az webapp log tail --name rffmapi --resource-group rffm-resources
 # Reiniciar app
 az webapp restart --name rffmapi --resource-group rffm-resources
 
-# Ver imágenes en ACR
+# Ver imï¿½genes en ACR
 az acr repository show-tags --name rffmregistry --repository rffm-api
 
-# Verificar configuración
+# Verificar configuraciï¿½n
 .\verify-setup.ps1
 ```
 
 ## ?? Troubleshooting
 
 ### La API no responde
+
 ```bash
 # Verificar logs
 az webapp log tail --name rffmapi --resource-group rffm-resources
@@ -217,15 +224,17 @@ az webapp restart --name rffmapi --resource-group rffm-resources
 ```
 
 ### Error en GitHub Actions
+
 1. Verificar secretos en GitHub (typos)
 2. Verificar Admin user habilitado en ACR
 3. Ver logs detallados en Actions
 
 ### Error CORS desde frontend
+
 - Verificar `Cors__AllowedOrigins__0` en App Settings
 - Debe ser la URL exacta del frontend
 
-Ver más en [GITHUB_ACTIONS_AZURE_GUIDE.md](GITHUB_ACTIONS_AZURE_GUIDE.md#-troubleshooting)
+Ver mï¿½s en [GITHUB_ACTIONS_AZURE_GUIDE.md](GITHUB_ACTIONS_AZURE_GUIDE.md#-troubleshooting)
 
 ## ?? Estructura de Features
 
@@ -244,7 +253,7 @@ src/RFFM.Api/Features/
 ??? Coaches/
 ```
 
-## ?? Contribución
+## ?? Contribuciï¿½n
 
 1. Fork el repositorio
 2. Crea una rama feature (`git checkout -b feature/AmazingFeature`)
@@ -259,14 +268,24 @@ Este proyecto es privado y confidencial.
 ## ?? Equipo
 
 - **Desarrollador Principal**: Luis Horcajada
-- **Organización**: RFFM (Real Federación de Fútbol de Madrid)
+- **Organizaciï¿½n**: RFFM (Real Federaciï¿½n de Fï¿½tbol de Madrid)
 
 ## ?? Enlaces
 
-- [Documentación de Azure](https://docs.microsoft.com/azure/)
+- [Documentaciï¿½n de Azure](https://docs.microsoft.com/azure/)
 - [.NET Documentation](https://docs.microsoft.com/dotnet/)
 - [GitHub Actions Documentation](https://docs.github.com/actions)
 
 ---
 
-**Última actualización**: Diciembre 2025 - .NET 9 + GitHub Actions CI/CD
+**ï¿½ltima actualizaciï¿½n**: Diciembre 2025 - .NET 9 + GitHub Actions CI/CD
+
+## Migrarions Entity Framework
+
+### Add migration
+
+dotnet ef migrations add NombreDeLaMigracion --project src/RFFM.Api --startup-project src/RFFM.Host --context AppDbContext
+
+### Update database
+
+dotnet ef database update --project src/RFFM.Api --startup-project src/RFFM.Host --context AppDbContext

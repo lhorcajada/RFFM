@@ -1,6 +1,6 @@
-﻿namespace RFFM.Api.Features.Coaches.Memberships
+﻿namespace RFFM.Api.Features.Coaches.Roles
 {
-    public class MembershipConstants
+    public class RolesConstants
     {
         public const string RoleFeature = "RoleFeature";
         public const string CachePrefix = RoleFeature;

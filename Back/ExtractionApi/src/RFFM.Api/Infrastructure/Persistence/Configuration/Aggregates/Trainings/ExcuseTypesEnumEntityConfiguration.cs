@@ -16,7 +16,8 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.Trainings
                 .IsRequired()
                 .HasMaxLength(100);
 
-            builder.HasData(ExcuseTypes.List().Select(pt => new { pt.Id, pt.Name }));
+            // Include Justified in seeded data
+            builder.HasData(ExcuseTypes.List().Select(pt => new { pt.Id, pt.Name, pt.Justified }));
         }
     }
 }

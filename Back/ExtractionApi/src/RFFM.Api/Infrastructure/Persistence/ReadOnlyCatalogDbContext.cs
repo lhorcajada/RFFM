@@ -5,7 +5,7 @@ namespace RFFM.Api.Infrastructure.Persistence
 {
     public sealed class ReadOnlyCatalogDbContext : AppDbContext
     {
-        public ReadOnlyCatalogDbContext(DbConnection connection) : base(connection)
+        public ReadOnlyCatalogDbContext(DbContextOptions<AppDbContext> options) : base(options)
         {
             ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.NoTracking;
         }
