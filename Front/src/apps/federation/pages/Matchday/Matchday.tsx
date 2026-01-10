@@ -10,10 +10,79 @@ import {
   getSettingsForUser,
 } from "../../services/federationApi";
 import MatchCard from "../../../../shared/components/ui/MatchCard/MatchCard";
+import type { SavedComboResponse } from "../../services/Federation/SettingsService";
+import { endOfWeek, startOfWeek, isValid, parse, parseISO } from "date-fns";
+import type { MatchApiMatch, MatchEntry } from "../../types/match";
+
+type MatchdayCombo = {
+  team: { id: string; name?: string };
+  competition?: { id?: string; name?: string };
+  group?: { id?: string; name?: string };
+};
+
+type TeamMatchItem = {
+  date?: string | null;
+  match: MatchApiMatch | MatchEntry;
+  team?: { id: string; name?: string };
+  competition?: { id?: string; name?: string };
+  group?: { id?: string; name?: string };
+} & Record<string, unknown>;
+
+function asTrimmedString(v: unknown): string {
+  return typeof v === "string" ? v.trim() : String(v ?? "").trim();
+}
+
+function parseMatchDateTime(raw?: unknown, rawTime?: unknown): Date | null {
+  const rawDate = asTrimmedString(raw);
+  if (!rawDate) return null;
+
+  const normalized = rawDate.replace(/\//g, "-").trim();
+  const time = asTrimmedString(rawTime);
+  const withTime = time ? `${normalized} ${time}` : normalized;
+
+  const isoCandidate = parseISO(normalized);
+  if (isValid(isoCandidate)) return isoCandidate;
+
+  const dt1 = parse(withTime, "dd-MM-yyyy HH:mm", new Date());
+  if (isValid(dt1)) return dt1;
+  const dt2 = parse(withTime, "dd-MM-yyyy H:mm", new Date());
+  if (isValid(dt2)) return dt2;
+  const dt3 = parse(normalized, "dd-MM-yyyy", new Date());
+  if (isValid(dt3)) return dt3;
+
+  const fallback = new Date(withTime);
+  return isValid(fallback) ? fallback : null;
+}
+
+function buildMatchKey(item: TeamMatchItem, parsedDate: Date | null): string {
+  const m = item.match as MatchApiMatch & MatchEntry;
+
+  const id =
+    asTrimmedString(m.matchRecordCode) ||
+    asTrimmedString(m.codacta) ||
+    asTrimmedString((m as Record<string, unknown>).cod_acta) ||
+    asTrimmedString((m as Record<string, unknown>).id_acta) ||
+    asTrimmedString((m as Record<string, unknown>).idacta) ||
+    asTrimmedString((m as Record<string, unknown>).actaId) ||
+    asTrimmedString((m as Record<string, unknown>).acta_id) ||
+    asTrimmedString((m as Record<string, unknown>).acta);
+  if (id) return `id:${id}`;
+
+  const local =
+    asTrimmedString(m.localTeamCode) || asTrimmedString(m.codigo_equipo_local);
+  const visitor =
+    asTrimmedString(m.visitorTeamCode) ||
+    asTrimmedString(m.codigo_equipo_visitante);
+  const dt = parsedDate ? parsedDate.toISOString() : asTrimmedString(item.date);
+  const t = asTrimmedString(m.time) || asTrimmedString(m.hora);
+  const field = asTrimmedString(m.fieldCode) || asTrimmedString(m.codigo_campo);
+
+  return `cmp:${local}|${visitor}|${dt}|${t}|${field}`;
+}
 
 export default function Matchday() {
   const { user } = useUser();
-  const [matches, setMatches] = useState<any[]>([]);
+  const [matches, setMatches] = useState<TeamMatchItem[]>([]);
   const [hasData, setHasData] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -22,35 +91,61 @@ export default function Matchday() {
       setLoading(true);
       try {
         // Cargar los settings desde la API
-        const savedSettings = await getSettingsForUser(user?.id);
+        const savedSettings = (await getSettingsForUser(
+          user?.id
+        )) as SavedComboResponse[];
         // logging removed
         if (!savedSettings || savedSettings.length === 0) {
           setHasData(false);
+          setMatches([]);
           setLoading(false);
           return;
         }
 
         // Convertir settings a formato de combos para getTeamMatches
-        const combos = savedSettings.map((setting: any) => ({
-          team: { id: setting.teamId, name: setting.teamName },
-          competition: {
-            id: setting.competitionId,
-            name: setting.competitionName,
-          },
-          group: { id: setting.groupId, name: setting.groupName },
-        }));
+        const combosAll: MatchdayCombo[] = (savedSettings || [])
+          .map((setting) => ({
+            team: { id: String(setting.teamId ?? ""), name: setting.teamName },
+            competition: {
+              id: setting.competitionId,
+              name: setting.competitionName,
+            },
+            group: { id: setting.groupId, name: setting.groupName },
+          }))
+          .filter((c) => Boolean(c.team?.id));
+
+        const combosMap = new Map<string, MatchdayCombo>();
+        for (const c of combosAll) {
+          const key = `${c.team.id}|${c.competition?.id ?? ""}|${
+            c.group?.id ?? ""
+          }`;
+          if (!combosMap.has(key)) combosMap.set(key, c);
+        }
+        const combos = Array.from(combosMap.values());
 
         const season = "21";
         const allMatches = await Promise.all(
-          combos.map(async (combo: any) => {
+          combos.map(async (combo) => {
             if (!combo.team?.id) return [];
-            const params: any = { season };
-            if (combo.competition?.id)
-              params.competition = combo.competition.id;
-            if (combo.group?.id) params.group = combo.group.id;
-            const matches = await getTeamMatches(combo.team.id, params);
-            return Array.isArray(matches)
-              ? matches.map((m: any) => ({
+            const params: {
+              season: string;
+              competition?: string;
+              group?: string;
+            } = {
+              season,
+              competition: combo.competition?.id,
+              group: combo.group?.id,
+            };
+            const teamMatches = (await getTeamMatches(
+              combo.team.id,
+              params
+            )) as Array<{
+              date?: string | null;
+              match: MatchApiMatch | MatchEntry;
+            }>;
+
+            return Array.isArray(teamMatches)
+              ? teamMatches.map((m) => ({
                   ...m,
                   team: combo.team,
                   competition: combo.competition,
@@ -59,35 +154,40 @@ export default function Matchday() {
               : [];
           })
         );
-        const flatMatches = allMatches.flat();
+        const flatMatches = allMatches.flat() as TeamMatchItem[];
         setHasData(flatMatches.length > 0);
+
         const today = new Date();
-        // Agrupar por equipo y seleccionar el partido más próximo a hoy
-        const matchesByTeam: Record<string, any[]> = {};
-        combos.forEach((combo: any) => {
-          matchesByTeam[combo.team.id] = flatMatches.filter(
-            (m: any) => m.team?.id === combo.team.id
-          );
-        });
-        const matchdayMatches: any[] = [];
-        combos.forEach((combo: any) => {
-          const matches = matchesByTeam[combo.team.id] || [];
-          const sorted = matches.slice().sort((a, b) => {
-            const dateA = new Date(a.match?.fecha || a.match?.date || a.date);
-            const dateB = new Date(b.match?.fecha || b.match?.date || b.date);
-            return dateA.getTime() - dateB.getTime();
-          });
-          const nextMatch =
-            sorted.find((m) => {
-              const date = new Date(m.match?.fecha || m.match?.date || m.date);
-              return date >= today;
-            }) || sorted[sorted.length - 1];
-          if (nextMatch) matchdayMatches.push(nextMatch);
-        });
+        const weekStart = startOfWeek(today, { weekStartsOn: 1 });
+        const weekEnd = endOfWeek(today, { weekStartsOn: 1 });
+
+        const unique = new Map<string, { item: TeamMatchItem; dt: Date }>();
+
+        for (const item of flatMatches) {
+          const m = item.match as MatchApiMatch & MatchEntry;
+          const rawDate =
+            (m.date as unknown) ??
+            (m.fecha as unknown) ??
+            (item.date as unknown) ??
+            null;
+          const rawTime = (m.time as unknown) ?? (m.hora as unknown) ?? null;
+          const dt = parseMatchDateTime(rawDate, rawTime);
+          if (!dt) continue;
+          if (dt < weekStart || dt > weekEnd) continue;
+
+          const key = buildMatchKey(item, dt);
+          if (!unique.has(key)) unique.set(key, { item, dt });
+        }
+
+        const matchdayMatches = Array.from(unique.values())
+          .sort((a, b) => a.dt.getTime() - b.dt.getTime())
+          .map((x) => x.item);
+
         setMatches(matchdayMatches);
       } catch (error) {
         // error logging removed
         setHasData(false);
+        setMatches([]);
       } finally {
         setLoading(false);
       }
@@ -110,38 +210,46 @@ export default function Matchday() {
         <ContentLayout title="Partidos de la Jornada">
           <div className={styles.cards}>
             {loading ? (
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "center",
-                  width: "100%",
-                  padding: "2rem 0",
-                }}
-              >
+              <div className={styles.loading}>
                 <CircularProgress />
               </div>
-            ) : matches.length === 0 && hasData ? (
+            ) : matches.length === 0 ? (
               <EmptyState description={"No hay partidos para mostrar."} />
             ) : (
-              matches.map((match, idx) => {
+              matches.map((match) => {
+                const m = match.match as MatchApiMatch & MatchEntry;
+                const rec = match as Record<string, unknown>;
+                const rawDate =
+                  (m.date as unknown) ??
+                  (m.fecha as unknown) ??
+                  (match.date as unknown) ??
+                  null;
+                const rawTime =
+                  (m.time as unknown) ?? (m.hora as unknown) ?? null;
+                const parsedDate = parseMatchDateTime(rawDate, rawTime);
+                const matchKey = buildMatchKey(match, parsedDate);
                 // Mejorar robustez: buscar nombre en más variantes
+                const competitionObj = rec["competition"];
+                const groupObj = rec["group"];
                 let comp =
-                  match.team?.competition?.name ||
-                  match.competition?.name ||
-                  match.competitionName ||
-                  (typeof match.competition === "object" &&
-                    match.competition?.nombre) ||
-                  (typeof match.competition === "object" &&
-                    match.competition?.name) ||
-                  match.competitionId ||
+                  asTrimmedString(match.competition?.name) ||
+                  asTrimmedString(rec["competitionName"]) ||
+                  (competitionObj && typeof competitionObj === "object"
+                    ? asTrimmedString(
+                        (competitionObj as Record<string, unknown>)["name"]
+                      )
+                    : "") ||
+                  asTrimmedString(rec["competitionId"]) ||
                   "";
                 let group =
-                  match.team?.group?.name ||
-                  match.group?.name ||
-                  match.groupName ||
-                  (typeof match.group === "object" && match.group?.nombre) ||
-                  (typeof match.group === "object" && match.group?.name) ||
-                  match.groupId ||
+                  asTrimmedString(match.group?.name) ||
+                  asTrimmedString(rec["groupName"]) ||
+                  (groupObj && typeof groupObj === "object"
+                    ? asTrimmedString(
+                        (groupObj as Record<string, unknown>)["name"]
+                      )
+                    : "") ||
+                  asTrimmedString(rec["groupId"]) ||
                   "";
                 // Si sigue vacío, mostrar id si existe
                 if (
@@ -162,7 +270,14 @@ export default function Matchday() {
                 const matchDate =
                   match.match?.fecha || match.match?.date || match.date;
                 let dateStr = "";
-                if (matchDate) {
+                if (parsedDate) {
+                  dateStr = parsedDate.toLocaleDateString("es-ES", {
+                    weekday: "long",
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  });
+                } else if (matchDate) {
                   try {
                     const date = new Date(matchDate);
                     dateStr = date.toLocaleDateString("es-ES", {
@@ -175,7 +290,7 @@ export default function Matchday() {
                 }
 
                 return (
-                  <div key={idx} className={styles.matchCardWrapper}>
+                  <div key={matchKey} className={styles.matchCardWrapper}>
                     <div className={styles.chipsContainer}>
                       <span className={styles.competitionChip}>{comp}</span>
                       {group && (
