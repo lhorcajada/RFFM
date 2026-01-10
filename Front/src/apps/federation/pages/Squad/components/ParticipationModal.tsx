@@ -10,21 +10,13 @@ import CloseIcon from "@mui/icons-material/Close";
 import styles from "./ParticipationModal.module.css";
 import EmptyState from "../../../../../shared/components/ui/EmptyState/EmptyState";
 
-type Participation = {
-  competitionName: string;
-  groupName: string;
-  teamName: string;
-  teamCode?: string;
-  teamPoints?: number;
-  count?: number;
-  players?: any[];
-};
+import type { TeamParticipationSummaryItem } from "../../../types/participation";
 
 type Props = {
   open: boolean;
   onClose: () => void;
   loading: boolean;
-  data: Participation[];
+  data: TeamParticipationSummaryItem[];
 };
 
 export default function ParticipationModal({

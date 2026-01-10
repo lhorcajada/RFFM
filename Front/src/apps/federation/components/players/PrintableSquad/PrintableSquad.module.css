@@ -1,0 +1,66 @@
+.root {
+  font-family: Lato, sans-serif;
+  color: #222;
+}
+
+.page {
+  width: 800px;
+  padding: 16px;
+}
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.teamName {
+  font-size: 20px;
+  font-weight: 700;
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+}
+.table th,
+.table td {
+  border: 1px solid #ddd;
+  padding: 6px 8px;
+  font-size: 12px;
+}
+.sectionTitle {
+  margin-top: 12px;
+  font-weight: 700;
+}
+.ageSummary,
+.participations {
+  margin-top: 8px;
+}
+
+.participationList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.participationItem {
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 10px;
+}
+
+.participationTitle {
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.participationDetails {
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.playersList {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12px;
+}

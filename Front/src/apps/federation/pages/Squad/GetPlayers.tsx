@@ -21,6 +21,10 @@ import PlayersContainer from "../../components/players/PlayersContainer/PlayersC
 import PlayerRow from "./components/PlayerRow";
 import AgeModal from "./components/AgeModal";
 import ParticipationModal from "./components/ParticipationModal";
+import PrintableSquad from "../../components/players/PrintableSquad/PrintableSquad";
+import { exportElementsToPdfPacked } from "../../../../shared/services/pdfService";
+
+import type { TeamParticipationSummaryItem } from "../../types/participation";
 
 export default function GetPlayers(): JSX.Element {
   const { user } = useUser();
@@ -35,9 +39,13 @@ export default function GetPlayers(): JSX.Element {
   const [loadingAge, setLoadingAge] = useState<boolean>(false);
   const [showParticipationPopup, setShowParticipationPopup] =
     useState<boolean>(false);
-  const [participationData, setParticipationData] = useState<any[]>([]);
+  const [participationData, setParticipationData] = useState<
+    TeamParticipationSummaryItem[]
+  >([]);
   const [loadingParticipation, setLoadingParticipation] =
     useState<boolean>(false);
+
+  const [exportingPdf, setExportingPdf] = useState<boolean>(false);
 
   const [selectedCompetition, setSelectedCompetition] = useState<
     string | undefined
@@ -46,11 +54,15 @@ export default function GetPlayers(): JSX.Element {
     undefined
   );
 
+  const printableRef = React.useRef<HTMLDivElement | null>(null);
+
   const {
     players,
     teamDetails: hookTeamDetails,
     loading,
     error,
+    ageCounts,
+    groupCounts,
   } = usePlayers(selectedTeam, selectedCompetition, selectedGroup);
 
   useEffect(
@@ -181,6 +193,78 @@ export default function GetPlayers(): JSX.Element {
                     data={participationData}
                   />
                 </div>
+                <div>
+                  <Button
+                    size="small"
+                    variant="contained"
+                    className={styles.homeButton}
+                    disabled={exportingPdf}
+                    onClick={async () => {
+                      // exportar por secciones para evitar cortes de tabla
+                      const headerEl = document.getElementById(
+                        "rffm-printable-squad-header"
+                      );
+                      const playersEl = document.getElementById(
+                        "rffm-printable-squad-players"
+                      );
+                      const agesEl = document.getElementById(
+                        "rffm-printable-squad-ages"
+                      );
+                      const partsEl = document.getElementById(
+                        "rffm-printable-squad-participations"
+                      );
+                      if (!playersEl || !agesEl || !partsEl) return;
+                      try {
+                        setExportingPdf(true);
+                        const id = String(
+                          (selectedTeam as any).id || selectedTeam?.id
+                        );
+
+                        // Asegurar participaciones cargadas antes de capturar el DOM
+                        if (
+                          !participationData ||
+                          participationData.length === 0
+                        ) {
+                          try {
+                            const data = await getTeamParticipationSummary(
+                              id,
+                              "21"
+                            );
+                            setParticipationData(
+                              (data || []) as TeamParticipationSummaryItem[]
+                            );
+                          } catch (e) {
+                            // si falla, dejamos el estado como esté
+                          }
+                        }
+
+                        // Esperar un frame para que el DOM oculto renderice la tabla
+                        await new Promise<void>((resolve) =>
+                          requestAnimationFrame(() => resolve())
+                        );
+                        await exportElementsToPdfPacked(
+                          [playersEl, agesEl, partsEl],
+                          `${selectedTeam?.name || "plantilla"}.pdf`,
+                          { margin: 28, shrink: 0.95 },
+                          {
+                            // Jugadores siempre primero; el resumen de edades empieza en página nueva;
+                            // participaciones sólo saltan si no caben en el hueco.
+                            breakBefore: [false, true, false],
+                            gap: 12,
+                            headerElement: headerEl ?? undefined,
+                            headerGap: 10,
+                          }
+                        );
+                      } catch (err) {
+                        // no hacemos nada especial
+                      } finally {
+                        setExportingPdf(false);
+                      }
+                    }}
+                  >
+                    Exportar PDF
+                  </Button>
+                </div>
               </>
             ) : undefined
           }
@@ -214,7 +298,7 @@ export default function GetPlayers(): JSX.Element {
             </Paper>
           ) : (
             <PlayersContainer
-              title="Plantilla"
+              title={selectedTeam ? `${selectedTeam.name}` : "Jugadores"}
               count={selectedTeam ? players.length : 0}
             >
               {players.map((p) => (
@@ -224,6 +308,23 @@ export default function GetPlayers(): JSX.Element {
               ))}
             </PlayersContainer>
           )}
+
+          <div className={styles.printableHidden} ref={printableRef}>
+            <PrintableSquad
+              teamName={teamDetails?.teamName}
+              players={players as any}
+              ageSummary={
+                ageSummary && Object.keys(ageSummary).length > 0
+                  ? ageSummary
+                  : (ageCounts as any)
+              }
+              participations={
+                participationData && participationData.length > 0
+                  ? participationData
+                  : (groupCounts as any)
+              }
+            />
+          </div>
 
           {teamDetails && (
             <Paper className={`${teamStyles.root} ${styles.staffPaper}`}>

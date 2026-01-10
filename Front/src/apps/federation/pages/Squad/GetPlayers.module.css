@@ -260,6 +260,12 @@
   overflow: visible; /* allow shadows and wrapped items to be visible */
 }
 
+.printableHidden {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+}
+
 .participationPopup {
   position: absolute;
   left: 50%;
