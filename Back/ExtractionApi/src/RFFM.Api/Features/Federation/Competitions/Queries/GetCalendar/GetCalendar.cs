@@ -22,7 +22,8 @@ namespace RFFM.Api.Features.Federation.Competitions.Queries.GetCalendar
             .WithName(nameof(FederationGetCalendar))
             .WithTags(CompetitionsConstants.CompetitionsFeature)
             .Produces<CalendarResponse>()
-            .Produces<ProblemDetails>(StatusCodes.Status400BadRequest);
+            .Produces<ProblemDetails>(StatusCodes.Status400BadRequest)
+            .RequireAuthorization();
 
         }
 

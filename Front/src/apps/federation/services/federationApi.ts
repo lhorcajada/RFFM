@@ -35,12 +35,12 @@ export const getTeamGoalSectors = (
     competicion?: string;
     grupo?: string;
     tipojuego?: string;
-  }
+  },
 ) => teamService.getTeamGoalSectors(teamId, params);
 
 export const getTeamCallups = (
   teamId: string,
-  params?: { seasonId?: string; competitionId?: string; groupId?: string }
+  params?: { seasonId?: string; competitionId?: string; groupId?: string },
 ) => teamService.getTeamCallups(teamId, params);
 
 export const getTeamsGoalSectorsComparison = (params: {
@@ -73,6 +73,19 @@ export const getCalendar = (params?: {
   playType?: string;
 }) => calendarService.getCalendar(params);
 
+export const getCalendarMatchDay = (params: {
+  season?: string;
+  group: string;
+  round: number;
+  playType?: string;
+}) =>
+  calendarService.getCalendarMatchDay({
+    season: params.season,
+    group: params.group,
+    round: params.round,
+    playType: params.playType,
+  });
+
 export const getTeamMatches = (
   teamId: string,
   params?: {
@@ -80,13 +93,13 @@ export const getTeamMatches = (
     competition?: string;
     group?: string;
     playType?: string;
-  }
+  },
 ) => calendarService.getTeamMatches(teamId, params);
 
 // Acta methods
 export const getActa = (
   codacta: string,
-  params?: { temporada?: string; competicion?: string; grupo?: string }
+  params?: { temporada?: string; competicion?: string; grupo?: string },
 ) => actaService.getActa(codacta, params);
 
 // Score methods

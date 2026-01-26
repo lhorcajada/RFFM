@@ -7,6 +7,7 @@ import type {
   Round,
   MatchApiResponse,
 } from "../../types/match";
+import type { CalendarMatchDayWithRoundsResponse } from "../../types/calendarMatchDay";
 
 export class CalendarService {
   async getCalendar(params?: {
@@ -114,6 +115,21 @@ export class CalendarService {
     return normalized;
   }
 
+  async getCalendarMatchDay(params: {
+    group: string;
+    round: number;
+    season?: string;
+    playType?: string;
+  }): Promise<CalendarMatchDayWithRoundsResponse> {
+    const q = new URLSearchParams();
+    q.append("groupId", params.group);
+    q.append("round", String(params.round));
+    if (params.season) q.append("season", params.season);
+    if (params.playType) q.append("playType", params.playType);
+    const res = await client.get(`calendar/matchday?${q.toString()}`);
+    return res.data as CalendarMatchDayWithRoundsResponse;
+  }
+
   async getTeamMatches(
     teamId: string,
     params?: {
@@ -121,7 +137,7 @@ export class CalendarService {
       competition?: string;
       group?: string;
       playType?: string;
-    }
+    },
   ) {
     // Reuse getCalendar and filter matches where team appears (by id or name)
     // If params are not provided, try to load the saved calendar selection from localStorage
@@ -142,7 +158,7 @@ export class CalendarService {
                 group: primary.groupId ?? primary.group?.id,
                 playType: primary.playType ?? primary.play_type,
               },
-              finalParams || {}
+              finalParams || {},
             );
           }
         }
@@ -178,7 +194,7 @@ export class CalendarService {
         for (const m of day.matches || []) {
           const localId = String(m.localTeamCode ?? m.localTeamId ?? "").trim();
           const visitorId = String(
-            m.visitorTeamCode ?? m.visitorTeamId ?? ""
+            m.visitorTeamCode ?? m.visitorTeamId ?? "",
           ).trim();
           const localName = String(m.localTeamName ?? "").trim();
           const visitorName = String(m.visitorTeamName ?? "").trim();
@@ -197,19 +213,19 @@ export class CalendarService {
         const matches = r.equipos ?? r.partidos ?? r.matches ?? [];
         for (const m of matches) {
           const localId = String(
-            m.codigo_equipo_local ?? m.codigo_local ?? m.localTeamId ?? ""
+            m.codigo_equipo_local ?? m.codigo_local ?? m.localTeamId ?? "",
           ).trim();
           const visitorId = String(
             m.codigo_equipo_visitante ??
               m.codigo_visitante ??
               m.awayTeamId ??
-              ""
+              "",
           ).trim();
           const localName = String(
-            m.equipo_local ?? m.localTeamName ?? m.local ?? ""
+            m.equipo_local ?? m.localTeamName ?? m.local ?? "",
           ).trim();
           const visitorName = String(
-            m.equipo_visitante ?? m.awayTeamName ?? m.visitante ?? ""
+            m.equipo_visitante ?? m.awayTeamName ?? m.visitante ?? "",
           ).trim();
           if (
             localId === String(teamId) ||

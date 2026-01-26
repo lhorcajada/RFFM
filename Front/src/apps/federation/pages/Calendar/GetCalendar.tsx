@@ -1,19 +1,15 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import { CircularProgress, Typography, Tabs, Tab } from "@mui/material";
 import EmptyState from "../../../../shared/components/ui/EmptyState/EmptyState";
 import styles from "./GetCalendar.module.css";
-import useMatch, { computeMatchData } from "../../../../shared/hooks/useMatch";
 // calendar filters removed; page title is rendered below
 import RoundPanel from "../../../../shared/components/ui/RoundPanel/RoundPanel";
 import useCalendar from "../../../../shared/hooks/useCalendar";
 import { useUser } from "../../../../shared/context/UserContext";
 import { getSettingsForUser } from "../../services/federationApi";
-
-const STORAGE_PRIMARY = "rffm.primary_combination_id";
-const STORAGE_KEY = "rffm.saved_combinations_v1";
 
 export default function GetCalendar(): JSX.Element {
   const [selectedCompetition, setSelectedCompetition] = useState<
@@ -21,11 +17,9 @@ export default function GetCalendar(): JSX.Element {
   >(undefined);
   const { user } = useUser();
   const [selectedGroup, setSelectedGroup] = useState<string | undefined>(
-    undefined
+    undefined,
   );
   const [season] = useState<string>("21");
-  // loading/calendar state provided by useCalendar
-  const [selectedTab, setSelectedTab] = useState<number>(0);
   const location = useLocation();
   const [noConfig, setNoConfig] = useState<boolean>(false);
 
@@ -45,7 +39,7 @@ export default function GetCalendar(): JSX.Element {
         const primary = settings.find((s: any) => s.isPrimary) || settings[0];
         if (primary) {
           setSelectedCompetition(
-            primary.competitionId || primary.competition?.id
+            primary.competitionId || primary.competition?.id,
           );
           setSelectedGroup(primary.groupId || primary.group?.id);
           setNoConfig(false);
@@ -62,7 +56,7 @@ export default function GetCalendar(): JSX.Element {
     return () =>
       window.removeEventListener(
         "rffm.saved_combinations_changed",
-        loadPrimary
+        loadPrimary,
       );
   }, [user]);
 
@@ -70,12 +64,11 @@ export default function GetCalendar(): JSX.Element {
   // Use the useCalendar hook to load/normalize calendar data and handle auto-select
   const {
     calendar: hookCalendar,
-    rounds: hookRounds,
-    visibleRounds: hookVisible,
     loading: hookLoading,
-    error: hookError,
-    selectedTab: hookSelectedTab,
-    setSelectedTab: setHookSelectedTab,
+    selectedTab,
+    setSelectedTab,
+    rounds,
+    matchesByRound,
   } = useCalendar({
     season,
     competition: selectedCompetition,
@@ -86,17 +79,20 @@ export default function GetCalendar(): JSX.Element {
         : location.key,
   });
 
-  useEffect(() => {
-    if (typeof hookSelectedTab === "number") setSelectedTab(hookSelectedTab);
-  }, [hookSelectedTab]);
-
-  useEffect(() => {
-    setHookSelectedTab(selectedTab);
-  }, [selectedTab]);
-
   const loading = hookLoading;
   const calendar = hookCalendar;
-  const visibleRounds = hookVisible || [];
+  const selectedRound =
+    rounds && rounds.length > 0 ? rounds[selectedTab] : null;
+  const selectedRoundNumber = selectedRound?.matchDayNumber;
+  const selectedMatches = (() => {
+    if (!selectedRoundNumber || selectedRoundNumber <= 0) return [];
+    const cached = matchesByRound[selectedRoundNumber];
+    if (cached) return cached;
+    if (calendar?.round === selectedRoundNumber) {
+      return calendar.matchDay?.matches || [];
+    }
+    return [];
+  })();
 
   // (data loading, normalization and auto-select handled by `useCalendar`)
 
@@ -117,10 +113,10 @@ export default function GetCalendar(): JSX.Element {
           </Typography>
         ) : (
           <div className={styles.tabsRoot}>
-            {visibleRounds.length === 0 ? (
+            {rounds.length === 0 ? (
               <EmptyState
                 description={
-                  "No hay jornadas con partidos para la selección actual."
+                  "No hay jornadas disponibles para la selección actual."
                 }
               />
             ) : (
@@ -131,16 +127,32 @@ export default function GetCalendar(): JSX.Element {
                   variant="scrollable"
                   scrollButtons="auto"
                 >
-                  {visibleRounds.map((r: any, i: number) => (
-                    <Tab key={i} label={`Jornada ${i + 1}`} />
+                  {rounds.map((r, i) => (
+                    <Tab
+                      key={r.matchDayNumber || i}
+                      label={`Jornada ${r.matchDayNumber}`}
+                    />
                   ))}
                 </Tabs>
 
-                {visibleRounds.map((r: any, i: number) => (
-                  <div key={i} hidden={selectedTab !== i}>
-                    <RoundPanel round={r} />
-                  </div>
-                ))}
+                <div>
+                  {loading ? (
+                    <div className={styles.center}>
+                      <CircularProgress />
+                    </div>
+                  ) : selectedMatches.length === 0 ? (
+                    <EmptyState
+                      description={"No hay partidos para esta jornada."}
+                    />
+                  ) : (
+                    <RoundPanel
+                      round={{
+                        jornada: selectedRoundNumber,
+                        equipos: selectedMatches,
+                      }}
+                    />
+                  )}
+                </div>
               </>
             )}
           </div>

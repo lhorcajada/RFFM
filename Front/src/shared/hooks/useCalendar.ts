@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { getCalendar } from "../../apps/federation/services/api";
+import { getCalendarMatchDay } from "../../apps/federation/services/api";
+import type {
+  CalendarMatch,
+  CalendarMatchDayWithRoundsResponse,
+  CalendarRoundInfo,
+} from "../../apps/federation/types/calendarMatchDay";
 
 type UseCalendarParams = {
   season: string;
@@ -16,50 +21,25 @@ export default function useCalendar({
   navKey,
 }: UseCalendarParams) {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<any>(null);
-  const [calendar, setCalendar] = useState<any | null>(null);
-  const [rounds, setRounds] = useState<any[]>([]);
-  const [visibleRounds, setVisibleRounds] = useState<any[]>([]);
+  const [error, setError] = useState<unknown>(null);
+  const [calendar, setCalendar] =
+    useState<CalendarMatchDayWithRoundsResponse | null>(null);
+  const [rounds, setRounds] = useState<CalendarRoundInfo[]>([]);
+  const [matchesByRound, setMatchesByRound] = useState<
+    Record<number, CalendarMatch[]>
+  >({});
   const [selectedTab, setSelectedTab] = useState<number>(0);
   const autoSelectRef = useRef<boolean>(false);
   const lastNavKey = useRef<string | null | undefined>(null);
+  const currentRoundRef = useRef<number>(0);
 
-  // Helper: parse date strings from match objects (local copy)
-  function parseMatchDate(raw?: string | null): Date | null {
+  function parseRoundDate(raw?: string | null): Date | null {
     if (!raw) return null;
-    let s = String(raw).trim();
+    const s = String(raw).trim();
     if (!s) return null;
-    s = s.replace(/\//g, "-").trim();
-    const parts = s.split("-").map((p: string) => p.trim());
-    if (parts.length >= 3 && parts[0].length === 2 && parts[2].length === 4) {
-      s = `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(
-        2,
-        "0"
-      )}`;
-    }
     const d = new Date(s);
-    if (!isNaN(d.getTime())) return d;
+    if (!Number.isNaN(d.getTime())) return d;
     return null;
-  }
-
-  function getClosestRoundIndex(rs: any[], reference: Date): number | null {
-    let bestIdx: number | null = null;
-    let bestDiff = Number.POSITIVE_INFINITY;
-    for (let ri = 0; ri < rs.length; ri++) {
-      const round = rs[ri];
-      const matches = round.equipos ?? round.partidos ?? round.matches ?? [];
-      for (const m of matches) {
-        const raw = m.fecha ?? m.date ?? m.fecha_partido ?? null;
-        const dt = parseMatchDate(raw);
-        if (!dt) continue;
-        const diff = Math.abs(dt.getTime() - reference.getTime());
-        if (diff < bestDiff) {
-          bestDiff = diff;
-          bestIdx = ri;
-        }
-      }
-    }
-    return bestIdx;
   }
 
   // Compute Monday..Sunday range used for auto-select
@@ -87,82 +67,94 @@ export default function useCalendar({
       if (!competition || !group) {
         setCalendar(null);
         setRounds([]);
-        setVisibleRounds([]);
+        setMatchesByRound({});
+        currentRoundRef.current = 0;
         return;
       }
       try {
         setLoading(true);
         setError(null);
-        const data = await getCalendar({
+
+        // Bootstrap: pedimos una jornada (1) para obtener listado de jornadas y primeros partidos
+        const bootstrapRound = 1;
+        const bootstrap = await getCalendarMatchDay({
           season,
-          competition,
           group,
+          round: bootstrapRound,
           playType: "1",
         });
 
-        let normalizedRounds: any[] = [];
-        if (data && (data as any).matchDays) {
-          const md = (data as any).matchDays as any[];
-          normalizedRounds = (md || []).map((d: any) => ({
-            codjornada: d.matchDayNumber ?? undefined,
-            jornada: d.matchDayNumber ?? undefined,
-            equipos: (d.matches ?? []) as any[],
-            raw: d,
-          }));
-        } else {
-          normalizedRounds = (data?.rounds ?? data?.jornadas ?? []) as any[];
-        }
+        const roundsList = (bootstrap.rounds || [])
+          .slice()
+          .sort((a, b) => a.matchDayNumber - b.matchDayNumber);
 
-        setCalendar(data ?? null);
-        setRounds(normalizedRounds ?? []);
+        setRounds(roundsList);
 
-        const visible = (normalizedRounds || []).filter((rr: any) => {
-          const m = rr.equipos ?? rr.partidos ?? rr.matches ?? [];
-          return Array.isArray(m) && m.length > 0;
-        });
-        setVisibleRounds(visible);
-
-        // Auto-select logic (only once per mount unless navKey reset)
-        if (
-          !autoSelectRef.current &&
-          Array.isArray(visible) &&
-          visible.length > 0
-        ) {
+        if (!autoSelectRef.current && roundsList.length > 0) {
           const now = new Date();
           const { monday, sunday } = weekRangeFor(now);
-          let foundIndex: number | null = null;
-          for (let ri = (normalizedRounds || []).length - 1; ri >= 0; ri--) {
-            const round = normalizedRounds[ri];
-            const matches =
-              round.equipos ?? round.partidos ?? round.matches ?? [];
-            for (const m of matches) {
-              const raw = m.fecha ?? m.date ?? m.fecha_partido ?? null;
-              const dt = parseMatchDate(raw);
-              if (!dt) continue;
-              if (dt >= monday && dt <= sunday) {
-                foundIndex = ri;
-                break;
-              }
+
+          let preferredIdx: number | null = null;
+          for (let i = 0; i < roundsList.length; i++) {
+            const dt = parseRoundDate(roundsList[i].date);
+            if (!dt) continue;
+            if (dt >= monday && dt <= sunday) {
+              preferredIdx = i;
+              break;
             }
-            if (foundIndex !== null) break;
           }
 
-          if (foundIndex !== null) {
-            const mapIdx = visible.findIndex(
-              (vr: any) => vr === normalizedRounds[foundIndex!]
-            );
-            setSelectedTab(mapIdx >= 0 ? mapIdx : 0);
-          } else {
-            const fallback = getClosestRoundIndex(visible, new Date());
-            setSelectedTab(fallback !== null ? fallback : 0);
+          if (preferredIdx === null) {
+            let bestDiff = Number.POSITIVE_INFINITY;
+            for (let i = 0; i < roundsList.length; i++) {
+              const dt = parseRoundDate(roundsList[i].date);
+              if (!dt) continue;
+              const diff = Math.abs(dt.getTime() - now.getTime());
+              if (diff < bestDiff) {
+                bestDiff = diff;
+                preferredIdx = i;
+              }
+            }
           }
+
+          const idx = preferredIdx ?? 0;
+          setSelectedTab(idx);
           autoSelectRef.current = true;
+
+          const preferredRound =
+            roundsList[idx]?.matchDayNumber ?? bootstrapRound;
+          currentRoundRef.current = preferredRound;
+
+          // Cache only past rounds (strictly before the current round)
+          if (bootstrapRound < preferredRound) {
+            setMatchesByRound((prev) => ({
+              ...prev,
+              [bootstrapRound]: bootstrap.matchDay?.matches || [],
+            }));
+          }
+
+          if (preferredRound !== bootstrapRound) {
+            const preferred = await getCalendarMatchDay({
+              season,
+              group,
+              round: preferredRound,
+              playType: "1",
+            });
+            setCalendar(preferred);
+          } else {
+            setCalendar(bootstrap);
+          }
+        } else {
+          // No rounds: keep bootstrap as calendar and treat it as current
+          currentRoundRef.current = bootstrapRound;
+          setCalendar(bootstrap);
         }
       } catch (e) {
         setError(e);
         setCalendar(null);
         setRounds([]);
-        setVisibleRounds([]);
+        setMatchesByRound({});
+        currentRoundRef.current = 0;
       } finally {
         setLoading(false);
       }
@@ -171,10 +163,62 @@ export default function useCalendar({
     load();
   }, [season, competition, group, navKey]);
 
+  useEffect(() => {
+    if (!competition || !group) return;
+    if (!rounds || rounds.length === 0) return;
+    if (selectedTab < 0 || selectedTab >= rounds.length) return;
+
+    const roundNumber = rounds[selectedTab]?.matchDayNumber;
+    if (!roundNumber || roundNumber <= 0) return;
+    if (matchesByRound[roundNumber]) return;
+
+    let cancelled = false;
+    async function loadRound() {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await getCalendarMatchDay({
+          season,
+          group,
+          round: roundNumber,
+          playType: "1",
+        });
+        if (cancelled) return;
+        setCalendar(data);
+
+        // Cache only rounds strictly before the current (auto-selected) round.
+        if (roundNumber < currentRoundRef.current) {
+          setMatchesByRound((prev) => ({
+            ...prev,
+            [roundNumber]: data.matchDay?.matches || [],
+          }));
+        }
+      } catch (e) {
+        if (cancelled) return;
+        setError(e);
+      } finally {
+        if (cancelled) return;
+        setLoading(false);
+      }
+    }
+
+    loadRound();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedTab, rounds, matchesByRound, season, competition, group]);
+
+  useEffect(() => {
+    if (rounds.length > 0 && selectedTab >= rounds.length) {
+      setSelectedTab(0);
+    }
+  }, [rounds, selectedTab]);
+
   return {
     calendar,
     rounds,
-    visibleRounds,
+    roundsMeta: rounds,
+    matchesByRound,
     loading,
     error,
     selectedTab,
