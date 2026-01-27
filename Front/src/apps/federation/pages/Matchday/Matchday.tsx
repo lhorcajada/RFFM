@@ -6,13 +6,17 @@ import { CircularProgress } from "@mui/material";
 import EmptyState from "../../../../shared/components/ui/EmptyState/EmptyState";
 import { useUser } from "../../../../shared/context/UserContext";
 import {
-  getTeamMatches,
+  getCalendarMatchDay,
   getSettingsForUser,
 } from "../../services/federationApi";
 import MatchCard from "../../../../shared/components/ui/MatchCard/MatchCard";
 import type { SavedComboResponse } from "../../services/Federation/SettingsService";
 import { endOfWeek, startOfWeek, isValid, parse, parseISO } from "date-fns";
 import type { MatchApiMatch, MatchEntry } from "../../types/match";
+import type {
+  CalendarMatch,
+  CalendarRoundInfo,
+} from "../../types/calendarMatchDay";
 
 type MatchdayCombo = {
   team: { id: string; name?: string };
@@ -80,6 +84,57 @@ function buildMatchKey(item: TeamMatchItem, parsedDate: Date | null): string {
   return `cmp:${local}|${visitor}|${dt}|${t}|${field}`;
 }
 
+function asMatchEntryFromCalendarMatch(m: CalendarMatch): MatchEntry {
+  return {
+    codacta: (m.matchRecordCode || "") as string,
+
+    codigo_equipo_local: (m.localTeamCode || "") as string,
+    equipo_local: (m.localTeamName || "") as string,
+    escudo_equipo_local: (m.localTeamImageUrl || "") as string,
+    escudo_equipo_local_url: (m.localTeamImageUrl || "") as string,
+    goles_casa: (m.localGoals || "") as unknown as string,
+
+    codigo_equipo_visitante: (m.visitorTeamCode || "") as string,
+    equipo_visitante: (m.visitorTeamName || "") as string,
+    escudo_equipo_visitante: (m.visitorTeamImageUrl || "") as string,
+    escudo_equipo_visitante_url: (m.visitorTeamImageUrl || "") as string,
+    goles_visitante: (m.visitorGoals || "") as unknown as string,
+
+    codigo_campo: (m.fieldCode || "") as unknown as string,
+    campo: (m.field || "") as string,
+    fecha: (m.date || "") as string,
+    hora: (m.time || "") as string,
+
+    raw: m,
+  } as MatchEntry;
+}
+
+function pickRoundForWeek(params: {
+  rounds: CalendarRoundInfo[];
+  weekStart: Date;
+  weekEnd: Date;
+  today: Date;
+}): number {
+  const { rounds, weekStart, weekEnd, today } = params;
+  if (!Array.isArray(rounds) || rounds.length === 0) return 1;
+
+  for (const r of rounds) {
+    const dt = parseMatchDateTime(r.date, null);
+    if (!dt) continue;
+    if (dt >= weekStart && dt <= weekEnd) return r.matchDayNumber;
+  }
+
+  let best: { round: number; diff: number } | null = null;
+  for (const r of rounds) {
+    const dt = parseMatchDateTime(r.date, null);
+    if (!dt) continue;
+    const diff = Math.abs(dt.getTime() - today.getTime());
+    if (!best || diff < best.diff) best = { round: r.matchDayNumber, diff };
+  }
+
+  return best?.round ?? rounds[0].matchDayNumber ?? 1;
+}
+
 export default function Matchday() {
   const { user } = useUser();
   const [matches, setMatches] = useState<TeamMatchItem[]>([]);
@@ -92,7 +147,7 @@ export default function Matchday() {
       try {
         // Cargar los settings desde la API
         const savedSettings = (await getSettingsForUser(
-          user?.id
+          user?.id,
         )) as SavedComboResponse[];
         // logging removed
         if (!savedSettings || savedSettings.length === 0) {
@@ -122,44 +177,74 @@ export default function Matchday() {
           if (!combosMap.has(key)) combosMap.set(key, c);
         }
         const combos = Array.from(combosMap.values());
-
-        const season = "21";
-        const allMatches = await Promise.all(
-          combos.map(async (combo) => {
-            if (!combo.team?.id) return [];
-            const params: {
-              season: string;
-              competition?: string;
-              group?: string;
-            } = {
-              season,
-              competition: combo.competition?.id,
-              group: combo.group?.id,
-            };
-            const teamMatches = (await getTeamMatches(
-              combo.team.id,
-              params
-            )) as Array<{
-              date?: string | null;
-              match: MatchApiMatch | MatchEntry;
-            }>;
-
-            return Array.isArray(teamMatches)
-              ? teamMatches.map((m) => ({
-                  ...m,
-                  team: combo.team,
-                  competition: combo.competition,
-                  group: combo.group,
-                }))
-              : [];
-          })
-        );
-        const flatMatches = allMatches.flat() as TeamMatchItem[];
-        setHasData(flatMatches.length > 0);
-
         const today = new Date();
         const weekStart = startOfWeek(today, { weekStartsOn: 1 });
         const weekEnd = endOfWeek(today, { weekStartsOn: 1 });
+
+        const season = "21";
+        const byGroup = new Map<string, MatchdayCombo[]>();
+        for (const combo of combos) {
+          const groupId = asTrimmedString(combo.group?.id);
+          if (!groupId) continue;
+          const list = byGroup.get(groupId) ?? [];
+          list.push(combo);
+          byGroup.set(groupId, list);
+        }
+
+        const groupMatches = await Promise.all(
+          Array.from(byGroup.entries()).map(async ([groupId, groupCombos]) => {
+            const teamIds = new Set(
+              groupCombos
+                .map((c) => asTrimmedString(c.team?.id))
+                .filter(Boolean),
+            );
+            if (teamIds.size === 0) return [] as TeamMatchItem[];
+
+            const first = await getCalendarMatchDay({
+              group: groupId,
+              round: 1,
+              season,
+            });
+
+            const activeRound = pickRoundForWeek({
+              rounds: first.rounds,
+              weekStart,
+              weekEnd,
+              today,
+            });
+
+            const active =
+              activeRound === 1
+                ? first
+                : await getCalendarMatchDay({
+                    group: groupId,
+                    round: activeRound,
+                    season,
+                  });
+
+            const compName = active.competitionName;
+            const groupName = active.groupName;
+
+            const items: TeamMatchItem[] = [];
+            for (const match of active.matchDay?.matches ?? []) {
+              const localId = asTrimmedString(match.localTeamCode);
+              const visitorId = asTrimmedString(match.visitorTeamCode);
+              if (!teamIds.has(localId) && !teamIds.has(visitorId)) continue;
+
+              items.push({
+                date: match.date ?? active.matchDay?.date ?? null,
+                match: asMatchEntryFromCalendarMatch(match),
+                competition: { name: compName },
+                group: { id: groupId, name: groupName },
+              });
+            }
+
+            return items;
+          }),
+        );
+
+        const flatMatches = groupMatches.flat() as TeamMatchItem[];
+        setHasData(flatMatches.length > 0);
 
         const unique = new Map<string, { item: TeamMatchItem; dt: Date }>();
 
@@ -199,7 +284,7 @@ export default function Matchday() {
     return () => {
       window.removeEventListener(
         "rffm.saved_combinations_changed",
-        fetchMatches
+        fetchMatches,
       );
     };
   }, [user]);
@@ -236,7 +321,7 @@ export default function Matchday() {
                   asTrimmedString(rec["competitionName"]) ||
                   (competitionObj && typeof competitionObj === "object"
                     ? asTrimmedString(
-                        (competitionObj as Record<string, unknown>)["name"]
+                        (competitionObj as Record<string, unknown>)["name"],
                       )
                     : "") ||
                   asTrimmedString(rec["competitionId"]) ||
@@ -246,7 +331,7 @@ export default function Matchday() {
                   asTrimmedString(rec["groupName"]) ||
                   (groupObj && typeof groupObj === "object"
                     ? asTrimmedString(
-                        (groupObj as Record<string, unknown>)["name"]
+                        (groupObj as Record<string, unknown>)["name"],
                       )
                     : "") ||
                   asTrimmedString(rec["groupId"]) ||
