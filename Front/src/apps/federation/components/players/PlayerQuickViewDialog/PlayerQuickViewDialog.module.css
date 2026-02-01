@@ -1,0 +1,127 @@
+.dialogContent {
+  padding-top: 12px;
+}
+
+.center {
+  display: flex;
+  justify-content: center;
+  padding: 16px;
+}
+
+.header {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.avatar {
+  width: 64px !important;
+  height: 64px !important;
+}
+
+.headerInfo {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.nameRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.name {
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.subLine {
+  margin-top: 4px;
+  color: rgba(0, 0, 0, 0.7);
+}
+
+@media (prefers-color-scheme: dark) {
+  .subLine {
+    color: rgba(255, 255, 255, 0.7);
+  }
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 14px;
+  margin-top: 16px;
+}
+
+@media (max-width: 600px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.item {
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .item {
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+}
+
+.label {
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+.value {
+  margin-top: 4px;
+  font-weight: 700;
+  word-break: break-word;
+}
+
+.statsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.comps {
+  margin-top: 16px;
+}
+
+.compItem {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+@media (prefers-color-scheme: dark) {
+  .compItem {
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+  }
+}
+
+.compLeft {
+  min-width: 0;
+}
+
+.compName {
+  font-weight: 700;
+}
+
+.compMeta {
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+.compRight {
+  font-weight: 700;
+  white-space: nowrap;
+}

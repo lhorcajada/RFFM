@@ -1,0 +1,30 @@
+.root {
+  appearance: none;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  display: inline;
+}
+
+.root:hover {
+  text-decoration: underline;
+}
+
+.root:focus-visible {
+  outline: 2px solid rgba(25, 118, 210, 0.6);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.disabled {
+  cursor: default;
+}
+
+.disabled:hover {
+  text-decoration: none;
+}

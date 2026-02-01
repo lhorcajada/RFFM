@@ -108,6 +108,20 @@
   font-weight: 800;
 }
 
+.chipDorsalRoot {
+  background-color: transparent !important;
+  color: #fff !important;
+  font-weight: 700 !important;
+  height: 28px !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: none !important;
+}
+
+.chipDorsalRoot :global(.MuiChip-label) {
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
 /* Team chip styles (similar to GoalCard but neutral colors for cards) */
 .teamChipLabel {
   display: inline-block;

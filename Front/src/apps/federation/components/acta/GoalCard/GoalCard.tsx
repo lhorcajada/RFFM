@@ -2,6 +2,7 @@ import React from "react";
 import styles from "./GoalCard.module.css";
 import type { GoalEvent } from "../../../types/acta";
 import { Chip } from "@mui/material";
+import PlayerNameButton from "../../players/PlayerNameButton/PlayerNameButton";
 
 export default function GoalCard({
   goal,
@@ -9,12 +10,14 @@ export default function GoalCard({
   dorsal,
   teamType,
   scoreAtMoment,
+  onPlayerClick,
 }: {
   goal: GoalEvent;
   team?: string;
   dorsal?: string | number;
   teamType?: "local" | "away" | string;
   scoreAtMoment?: string;
+  onPlayerClick?: (playerCode: string, playerName?: string) => void;
 }) {
   const tipo = String(goal.tipo_gol ?? "").trim();
   // Only accept canonical numeric types 100/101/102
@@ -41,7 +44,13 @@ export default function GoalCard({
 
       <div className={styles.center}>
         <div className={styles.playerRow}>
-          <div className={styles.player}>{goal.nombre_jugador}</div>
+          <div className={styles.player}>
+            <PlayerNameButton
+              playerCode={goal.codjugador}
+              playerName={goal.nombre_jugador}
+              onPlayerClick={onPlayerClick}
+            />
+          </div>
           {isOwnGoal ? (
             <span className={styles.chipInlineWrap}>
               <Chip

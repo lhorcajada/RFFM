@@ -18,12 +18,18 @@ import Amonestaciones from "../../components/acta/Amonestaciones/Amonestaciones"
 import FieldInfo from "../../components/acta/FieldInfo/FieldInfo";
 import { useNavigate } from "react-router-dom";
 import Button from "@mui/material/Button";
+import PlayerQuickViewDialog from "../../components/players/PlayerQuickViewDialog/PlayerQuickViewDialog";
 
 export default function Acta(): JSX.Element {
   const { codacta } = useParams();
   const navigate = useNavigate();
   const [acta, setActa] = useState<ActaType | null>(null);
   const [loading, setLoading] = useState(false);
+  const [playerPopup, setPlayerPopup] = useState<{
+    open: boolean;
+    code: string | null;
+    name?: string | null;
+  }>({ open: false, code: null, name: null });
   // Use the SavedCombo shape from settings (single canonical fields)
   type SavedCombo = {
     id: string;
@@ -49,8 +55,9 @@ export default function Acta(): JSX.Element {
           const userId = undefined; // keep wrapper caching behavior
           const saved = await getSettingsForUser(userId);
           if (Array.isArray(saved) && saved.length > 0) {
-            const primary: SavedCombo = (saved.find((s: any) => s.isPrimary) ||
-              saved[0]) as SavedCombo;
+            const primary = (saved.find((s) =>
+              Boolean((s as SavedCombo).isPrimary),
+            ) || saved[0]) as SavedCombo;
             competicion = primary.competitionId;
             grupo = primary.groupId;
           }
@@ -75,11 +82,17 @@ export default function Acta(): JSX.Element {
   if (loading)
     return (
       <BaseLayout>
-        <div style={{ padding: 24, display: "flex", justifyContent: "center" }}>
+        <div className={styles.loadingCenter}>
           <CircularProgress />
         </div>
       </BaseLayout>
     );
+
+  const handlePlayerClick = (code: string, name?: string) => {
+    const trimmed = String(code ?? "").trim();
+    if (!trimmed) return;
+    setPlayerPopup({ open: true, code: trimmed, name: name ?? null });
+  };
 
   const content = (
     <ContentLayout
@@ -115,7 +128,7 @@ export default function Acta(): JSX.Element {
         <div className={styles.headerLayout}>
           <div className={styles.leftCol} />
           <div className={styles.rightCol}>
-            <FieldInfo acta={acta as any} />
+            <FieldInfo acta={acta} />
           </div>
         </div>
       ) : null}
@@ -133,6 +146,7 @@ export default function Acta(): JSX.Element {
                 players={acta.jugadores_equipo_local || []}
                 goals={acta.goles_equipo_local || []}
                 teamName={acta.equipo_local}
+                onPlayerClick={handlePlayerClick}
               />
             </div>
 
@@ -142,6 +156,7 @@ export default function Acta(): JSX.Element {
                 players={acta.jugadores_equipo_visitante || []}
                 goals={acta.goles_equipo_visitante || []}
                 teamName={acta.equipo_visitante}
+                onPlayerClick={handlePlayerClick}
               />
             </div>
 
@@ -153,6 +168,7 @@ export default function Acta(): JSX.Element {
                 awayPlayers={acta.jugadores_equipo_visitante || []}
                 localTeamName={acta.equipo_local}
                 awayTeamName={acta.equipo_visitante}
+                onPlayerClick={handlePlayerClick}
               />
             </div>
 
@@ -160,6 +176,7 @@ export default function Acta(): JSX.Element {
               <Substitutions
                 local={acta.sustituciones_equipo_local || []}
                 away={acta.sustituciones_equipo_visitante || []}
+                onPlayerClick={handlePlayerClick}
               />
             </div>
 
@@ -176,6 +193,7 @@ export default function Acta(): JSX.Element {
                 awayPlayers={acta.jugadores_equipo_visitante || []}
                 localTeamName={acta.equipo_local}
                 awayTeamName={acta.equipo_visitante}
+                onPlayerClick={handlePlayerClick}
               />
             </div>
 
@@ -200,6 +218,14 @@ export default function Acta(): JSX.Element {
           </div>
         </>
       )}
+
+      <PlayerQuickViewDialog
+        open={playerPopup.open}
+        playerCode={playerPopup.code}
+        playerName={playerPopup.name}
+        seasonId="21"
+        onClose={() => setPlayerPopup({ open: false, code: null, name: null })}
+      />
     </ContentLayout>
   );
 

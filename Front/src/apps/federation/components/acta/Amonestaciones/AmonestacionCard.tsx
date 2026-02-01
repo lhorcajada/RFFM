@@ -8,19 +8,24 @@ import {
   RedCardIcon,
   DoubleYellowIcon,
 } from "../../../../../shared/components/ui/CardIcons/CardIcons";
+import PlayerNameButton from "../../players/PlayerNameButton/PlayerNameButton";
 
 export default function AmonestacionCard({
   event,
+  playerCode,
   playerName,
   dorsal,
   teamName,
   teamType,
+  onPlayerClick,
 }: {
   event: CardEvent;
+  playerCode?: string;
   playerName?: string;
   dorsal?: string | number;
   teamName?: string;
   teamType?: "local" | "away" | string;
+  onPlayerClick?: (playerCode: string, playerName?: string) => void;
 }) {
   const tipo = String(event.codigo_tipo_amonestacion ?? event.codigo ?? "");
   const isSecond =
@@ -34,8 +39,8 @@ export default function AmonestacionCard({
   const label = isDoubleYellow
     ? "Segunda amarilla"
     : isRed
-    ? "Roja"
-    : "Amarilla";
+      ? "Roja"
+      : "Amarilla";
   const icon = isDoubleYellow ? (
     <DoubleYellowIcon className={styles.cardIconDouble} />
   ) : isRed ? (
@@ -50,7 +55,13 @@ export default function AmonestacionCard({
       </div>
       <div className={styles.center}>
         <div className={styles.playerRow}>
-          <div className={styles.player}>{playerName}</div>
+          <div className={styles.player}>
+            <PlayerNameButton
+              playerCode={playerCode}
+              playerName={playerName}
+              onPlayerClick={onPlayerClick}
+            />
+          </div>
           <div
             className={styles.cardIconWrap}
             role="img"
@@ -73,14 +84,7 @@ export default function AmonestacionCard({
                   <span className={styles.chipDorsalNumber}>{dorsal}</span>
                 </span>
               }
-              sx={{
-                backgroundColor: "transparent",
-                color: "#fff",
-                fontWeight: 700,
-                height: 28,
-                border: "1px solid rgba(255,255,255,0.12)",
-                boxShadow: "none",
-              }}
+              className={styles.chipDorsalRoot}
             />
           ) : null}
           {teamName ? (
@@ -90,8 +94,8 @@ export default function AmonestacionCard({
                 teamType === "local"
                   ? styles.teamLocal
                   : teamType === "away"
-                  ? styles.teamAway
-                  : styles.teamNeutral
+                    ? styles.teamAway
+                    : styles.teamNeutral
               }`}
               size="small"
             />

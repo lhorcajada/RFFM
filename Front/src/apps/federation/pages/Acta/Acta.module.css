@@ -6,6 +6,12 @@
   /* Bottom spacing handled by bottomSpacer element */
 }
 
+.loadingCenter {
+  padding: 24px;
+  display: flex;
+  justify-content: center;
+}
+
 .teamsRow {
   display: flex;
   gap: 12px;

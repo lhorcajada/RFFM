@@ -1,83 +1,28 @@
 import { client } from "../../../../core/api/client";
-import type { PlayerDetailsResponse } from "../../types/player";
+
+type PlayerGetParams = { seasonId?: string };
 
 export class PlayerService {
-  private buildFrom(d: any): PlayerDetailsResponse {
-    const comps: any[] = Array.isArray(d.competitions)
-      ? d.competitions
-      : d.competiciones && Array.isArray(d.competiciones)
-      ? d.competiciones
-      : [];
-    const playerAge = d.age ?? d.ace ?? null;
-    const stats = (
-      comps.length > 0
-        ? comps
-        : [
-            {
-              competitionName: d.teamCategory ?? "",
-              groupName: "",
-              teamName: d.team ?? d.teamName ?? "",
-              teamPoints: d.teamPoints ?? 0,
-            },
-          ]
-    ).map((c: any) => ({
-      seasonId: d.seasonId ? Number(d.seasonId) : 0,
-      seasonName: d.seasonId ? String(d.seasonId) : "",
-      dorsalNumber: d.jerseyNumber ?? d.jersey ?? "",
-      position: d.position ?? "",
-      categoryName: d.teamCategory ?? "",
-      competitionName: c.competitionName ?? "",
-      groupName: c.groupName ?? "",
-      teamName: c.teamName ?? d.team ?? "",
-      teamPoints: c.teamPoints ?? 0,
-      age: playerAge,
-      matchesPlayed: d.matches?.played ?? d.matches?.called ?? 0,
-      goals: d.matches?.totalGoals ?? 0,
-      headLine: d.matches?.starter ?? 0,
-      substitute: d.matches?.substitute ?? 0,
-      yellowCards: d.cards?.yellow ?? 0,
-      redCards: d.cards?.red ?? 0,
-      doubleYellowCards: d.cards?.doubleYellow ?? 0,
-      teamParticipations: comps.map((cp) => ({
-        competitionName: cp.competitionName,
-        groupName: cp.groupName,
-        teamName: cp.teamName,
-        teamPoints: cp.teamPoints ?? 0,
-      })),
-    }));
+  async getPlayer(
+    playerId: string,
+    params?: PlayerGetParams,
+  ): Promise<unknown> {
+    const q = new URLSearchParams();
+    if (params?.seasonId) q.append("seasonId", params.seasonId);
+    const qs = q.toString() ? `?${q.toString()}` : "";
 
-    return {
-      statisticsBySeason: stats,
-      playerId: d.playerId ? Number(d.playerId) : 0,
-      playerName: d.name ?? d.nombre ?? "",
-      ace: d.age ?? null,
-    } as PlayerDetailsResponse;
-  }
+    const res = await client.get(
+      `players/${encodeURIComponent(playerId)}${qs}`,
+    );
+    const data: unknown = res.data;
 
-  async getPlayer(playerId: string) {
-    const res = await client.get(`players/${encodeURIComponent(playerId)}`);
-    const data = res.data;
-
-    const raw = (data && (data.player || data)) as any;
-
-    if (
-      raw &&
-      (Array.isArray(raw.statisticsBySeason) || Array.isArray(raw.statistics))
-    ) {
-      return raw;
+    // Some backends wrap payload under { player: ... }.
+    if (data && typeof data === "object") {
+      const rec = data as Record<string, unknown>;
+      if (rec.player != null) return rec.player;
     }
 
-    if (
-      raw &&
-      (Array.isArray(raw.competitions) ||
-        Array.isArray(raw.competiciones) ||
-        raw.matches ||
-        raw.cards)
-    ) {
-      return this.buildFrom(raw);
-    }
-
-    return raw;
+    return data;
   }
 }
 

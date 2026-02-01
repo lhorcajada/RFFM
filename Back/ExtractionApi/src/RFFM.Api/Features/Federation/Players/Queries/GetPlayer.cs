@@ -26,6 +26,7 @@ namespace RFFM.Api.Features.Federation.Players.Queries
                     })
                 .WithName(nameof(FederationGetPlayer))
                 .WithTags(PlayerConstants.PlayerFeature)
+                .RequireAuthorization()
                 .Produces<Player>()
                 .Produces<ProblemDetails>(StatusCodes.Status400BadRequest)
                 .Produces(StatusCodes.Status404NotFound);

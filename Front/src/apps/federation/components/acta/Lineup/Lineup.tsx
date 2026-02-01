@@ -4,17 +4,20 @@ import type { PlayerActa, GoalEvent } from "../../../types/acta";
 import { Paper, Typography, List, ListItem, Avatar } from "@mui/material";
 import MilitaryTechIcon from "@mui/icons-material/MilitaryTech";
 import SportsSoccerIcon from "@mui/icons-material/SportsSoccer";
+import PlayerNameButton from "../../players/PlayerNameButton/PlayerNameButton";
 
 export default function Lineup({
   title,
   players,
   teamName,
   goals,
+  onPlayerClick,
 }: {
   title: string;
   players: PlayerActa[];
   teamName?: string;
   goals?: GoalEvent[];
+  onPlayerClick?: (playerCode: string, playerName?: string) => void;
 }) {
   const titulares = players.filter((p) => p.titular === "1");
   const suplentes = players.filter((p) => !titulares.includes(p));
@@ -39,7 +42,11 @@ export default function Lineup({
               <div className={styles.info}>
                 <div className={styles.nameRow}>
                   <span>
-                    {p.nombre_jugador}
+                    <PlayerNameButton
+                      playerCode={p.codjugador}
+                      playerName={p.nombre_jugador}
+                      onPlayerClick={onPlayerClick}
+                    />
                     {p.capitan === "1" ? (
                       <MilitaryTechIcon
                         className={styles.captainBadge}
@@ -55,7 +62,7 @@ export default function Lineup({
                     <span className={styles.goalsList}>
                       {goals
                         .filter(
-                          (g) => String(g.codjugador) === String(p.codjugador)
+                          (g) => String(g.codjugador) === String(p.codjugador),
                         )
                         .map((g, idx) => {
                           const tipo = String(g.tipo_gol ?? "");
@@ -63,8 +70,8 @@ export default function Lineup({
                             tipo === "102"
                               ? styles.goalBallRed
                               : tipo === "100"
-                              ? styles.goalBallWhite
-                              : styles.goalBall;
+                                ? styles.goalBallWhite
+                                : styles.goalBall;
                           return (
                             <span key={idx} className={styles.goalItem}>
                               {tipo === "100" ? (
@@ -109,7 +116,13 @@ export default function Lineup({
                 )}
                 <div className={styles.info}>
                   <div className={styles.nameRow}>
-                    <span>{p.nombre_jugador}</span>
+                    <span>
+                      <PlayerNameButton
+                        playerCode={p.codjugador}
+                        playerName={p.nombre_jugador}
+                        onPlayerClick={onPlayerClick}
+                      />
+                    </span>
                     <div className={styles.meta}>
                       {p.posicion_jugador_abreviatura}
                     </div>
@@ -117,7 +130,8 @@ export default function Lineup({
                       <span className={styles.goalsList}>
                         {goals
                           .filter(
-                            (g) => String(g.codjugador) === String(p.codjugador)
+                            (g) =>
+                              String(g.codjugador) === String(p.codjugador),
                           )
                           .map((g, idx) => {
                             const tipo = String(g.tipo_gol ?? "");
@@ -125,8 +139,8 @@ export default function Lineup({
                               tipo === "102"
                                 ? styles.goalBallRed
                                 : tipo === "100"
-                                ? styles.goalBallWhite
-                                : styles.goalBall;
+                                  ? styles.goalBallWhite
+                                  : styles.goalBall;
                             return (
                               <span key={idx} className={styles.goalItem}>
                                 {tipo === "100" ? (

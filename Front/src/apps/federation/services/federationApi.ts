@@ -15,8 +15,8 @@ import {
 export { registerNavigate } from "./Federation";
 
 // Player methods
-export const getPlayer = (playerId: string) =>
-  playerService.getPlayer(playerId);
+export const getPlayer = (playerId: string, params?: { seasonId?: string }) =>
+  playerService.getPlayer(playerId, params);
 
 // Team methods
 export const getPlayersByTeam = (teamId: string) =>

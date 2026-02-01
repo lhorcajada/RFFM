@@ -4,6 +4,13 @@ import type { GoalEvent, PlayerActa } from "../../../types/acta";
 import { Paper, Typography } from "@mui/material";
 import GoalCard from "../GoalCard/GoalCard";
 
+type TeamType = "local" | "away";
+
+type GoalWithTeamType = GoalEvent & {
+  teamType: TeamType;
+  scoreAtMoment: string;
+};
+
 export default function Goals({
   localGoals,
   awayGoals,
@@ -12,6 +19,7 @@ export default function Goals({
   className,
   localTeamName,
   awayTeamName,
+  onPlayerClick,
 }: {
   localGoals: GoalEvent[];
   awayGoals: GoalEvent[];
@@ -20,15 +28,16 @@ export default function Goals({
   className?: string;
   localTeamName?: string;
   awayTeamName?: string;
+  onPlayerClick?: (playerCode: string, playerName?: string) => void;
 }) {
-  const combined = [
-    ...(localGoals || []).map((g) => ({ ...g, teamType: "local" })),
-    ...(awayGoals || []).map((g) => ({ ...g, teamType: "away" })),
+  const combined: Array<GoalEvent & { teamType: TeamType }> = [
+    ...(localGoals || []).map((g) => ({ ...g, teamType: "local" as const })),
+    ...(awayGoals || []).map((g) => ({ ...g, teamType: "away" as const })),
   ];
-  // Parse minute as number when possible
-  combined.sort((a: any, b: any) => {
-    const na = parseInt(String(a.minuto || "0"), 10) || 0;
-    const nb = parseInt(String(b.minuto || "0"), 10) || 0;
+
+  combined.sort((a, b) => {
+    const na = parseInt(String(a.minuto ?? "0"), 10) || 0;
+    const nb = parseInt(String(b.minuto ?? "0"), 10) || 0;
     return na - nb;
   });
 
@@ -37,15 +46,21 @@ export default function Goals({
   (localPlayers || []).forEach((p) => {
     if (p.codjugador)
       playerMap[String(p.codjugador)] = {
-        dorsal: p.dorsal ?? p.dorsal,
-        teamName: p.teamName ?? p.equipo ?? undefined,
+        dorsal: p.dorsal,
+        teamName:
+          (p as Record<string, unknown>).teamName?.toString() ??
+          (p as Record<string, unknown>).equipo?.toString() ??
+          undefined,
       };
   });
   (awayPlayers || []).forEach((p) => {
     if (p.codjugador)
       playerMap[String(p.codjugador)] = {
-        dorsal: p.dorsal ?? p.dorsal,
-        teamName: p.teamName ?? p.equipo ?? undefined,
+        dorsal: p.dorsal,
+        teamName:
+          (p as Record<string, unknown>).teamName?.toString() ??
+          (p as Record<string, unknown>).equipo?.toString() ??
+          undefined,
       };
   });
 
@@ -53,7 +68,7 @@ export default function Goals({
   let localCount = 0;
   let awayCount = 0;
 
-  const withScore = combined.map((g) => {
+  const withScore: GoalWithTeamType[] = combined.map((g) => {
     if (g.teamType === "local") {
       localCount += 1;
     } else {
@@ -69,11 +84,13 @@ export default function Goals({
         {withScore.map((g, idx) => {
           const cod = String(g.codjugador ?? "");
           const dorsal =
-            (g as any).dorsal ?? playerMap[cod]?.dorsal ?? (g as any).numero;
+            (g as Record<string, unknown>).dorsal?.toString() ??
+            playerMap[cod]?.dorsal ??
+            (g as Record<string, unknown>).numero?.toString();
           const teamLabel =
-            (g as any).equipo ||
-            (g as any).team ||
-            (g as any).teamName ||
+            (g as Record<string, unknown>).equipo?.toString() ||
+            (g as Record<string, unknown>).team?.toString() ||
+            (g as Record<string, unknown>).teamName?.toString() ||
             playerMap[cod]?.teamName ||
             (g.teamType === "local"
               ? localTeamName || "Local"
@@ -85,7 +102,8 @@ export default function Goals({
               team={teamLabel}
               dorsal={dorsal}
               teamType={g.teamType}
-              scoreAtMoment={(g as any).scoreAtMoment}
+              scoreAtMoment={g.scoreAtMoment}
+              onPlayerClick={onPlayerClick}
             />
           );
         })}

@@ -12,6 +12,7 @@ export default function Amonestaciones({
   awayPlayers,
   localTeamName,
   awayTeamName,
+  onPlayerClick,
 }: {
   local?: CardEvent[];
   away?: CardEvent[];
@@ -20,6 +21,7 @@ export default function Amonestaciones({
   awayPlayers?: PlayerActa[];
   localTeamName?: string;
   awayTeamName?: string;
+  onPlayerClick?: (playerCode: string, playerName?: string) => void;
 }) {
   const playerMap: Record<
     string,
@@ -30,7 +32,10 @@ export default function Amonestaciones({
       playerMap[String(p.codjugador)] = {
         dorsal: p.dorsal,
         name: p.nombre_jugador,
-        teamName: (p as any).teamName ?? (p as any).equipo ?? undefined,
+        teamName:
+          (p as Record<string, unknown>).teamName?.toString() ??
+          (p as Record<string, unknown>).equipo?.toString() ??
+          undefined,
       };
   });
   (awayPlayers || []).forEach((p) => {
@@ -38,14 +43,17 @@ export default function Amonestaciones({
       playerMap[String(p.codjugador)] = {
         dorsal: p.dorsal,
         name: p.nombre_jugador,
-        teamName: (p as any).teamName ?? (p as any).equipo ?? undefined,
+        teamName:
+          (p as Record<string, unknown>).teamName?.toString() ??
+          (p as Record<string, unknown>).equipo?.toString() ??
+          undefined,
       };
   });
 
   function renderCards(
     items?: CardEvent[],
     defaultTeamName?: string,
-    teamType?: string
+    teamType?: string,
   ) {
     if (!items || items.length === 0) return null;
     return (
@@ -56,10 +64,10 @@ export default function Amonestaciones({
             playerMap[String(t.codjugador ?? "") as string]?.name ||
             "";
           const dorsal =
-            (t as any).dorsal ||
+            (t as Record<string, unknown>).dorsal?.toString() ||
             playerMap[String(t.codjugador ?? "") as string]?.dorsal;
           const teamName =
-            (t as any).equipo ||
+            (t as Record<string, unknown>).equipo?.toString() ||
             playerMap[String(t.codjugador ?? "") as string]?.teamName ||
             defaultTeamName ||
             undefined;
@@ -67,10 +75,12 @@ export default function Amonestaciones({
             <AmonestacionCard
               key={idx}
               event={t}
+              playerCode={t.codjugador}
               playerName={playerName}
               dorsal={dorsal}
               teamName={teamName}
               teamType={teamType}
+              onPlayerClick={onPlayerClick}
             />
           );
         })}
