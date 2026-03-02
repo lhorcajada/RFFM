@@ -4,7 +4,7 @@ import { CircularProgress, Box } from "@mui/material";
 import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material/styles";
 import coachTheme from "./muiCoachTheme";
-import { useEffect } from "react";
+import { useLayoutEffect } from "react";
 import { CoachAuthProvider, CoachAuthGuard } from "./context/CoachAuthContext";
 import Clubs from "./pages/clubs/clubs";
 const ClubsDashboard = lazy(() => import("./pages/clubs/dashboard/Dashboard"));
@@ -22,7 +22,7 @@ const Squad = lazy(() => import("./pages/squad/Squad"));
 const NewPlayer = lazy(() => import("./pages/squad/new/NewPlayer"));
 const Attendance = lazy(() => import("./pages/attendance/Attendance"));
 const AttendanceEvent = lazy(
-  () => import("./pages/attendance/AttendanceEvent")
+  () => import("./pages/attendance/AttendanceEvent"),
 );
 const Convocations = lazy(() => import("./pages/convocations/Convocations"));
 const Matches = lazy(() => import("./pages/matches/Matches"));
@@ -49,16 +49,16 @@ function LoadingFallback() {
 }
 
 function CoachRoutesContent() {
-  useEffect(() => {
+  useLayoutEffect(() => {
     const prev = {
       gradient: getComputedStyle(document.documentElement).getPropertyValue(
-        "--rffm-gradient-bg"
+        "--rffm-gradient-bg",
       ),
       footerBorder: getComputedStyle(document.documentElement).getPropertyValue(
-        "--rffm-footer-border"
+        "--rffm-footer-border",
       ),
       cardBg: getComputedStyle(document.documentElement).getPropertyValue(
-        "--rffm-card-bg"
+        "--rffm-card-bg",
       ),
       bg: getComputedStyle(document.documentElement).getPropertyValue("--bg"),
     };
@@ -72,17 +72,17 @@ function CoachRoutesContent() {
         const docElStyle = document.documentElement.style;
         docElStyle.setProperty(
           "--rffm-gradient-bg",
-          "linear-gradient(180deg, #140603 0%, #2a0b06 100%)"
+          "linear-gradient(180deg, #140603 0%, #2a0b06 100%)",
         );
         docElStyle.setProperty("--rffm-card-bg", "#2a0b06");
         docElStyle.setProperty(
           "--rffm-title-gradient",
-          "linear-gradient(135deg, #ff8a4c 0%, #f97316 100%)"
+          "linear-gradient(135deg, #ff8a4c 0%, #f97316 100%)",
         );
         docElStyle.setProperty("--bg", "#140603");
         docElStyle.setProperty(
           "--rffm-footer-border",
-          "1px solid rgba(0,0,0,0.12)"
+          "1px solid rgba(0,0,0,0.12)",
         );
       } catch (e) {}
 
@@ -91,7 +91,7 @@ function CoachRoutesContent() {
         try {
           const rootStyles = getComputedStyle(document.documentElement);
           const header = document.querySelector(
-            'header[class*="MuiAppBar-root"], .appBar, header'
+            'header[class*="MuiAppBar-root"], .appBar, header',
           );
           const footer = document.querySelector("footer, .root");
         } catch (e) {}
@@ -152,13 +152,13 @@ function CoachRoutesContent() {
             <Route
               path="clubs/:id/teams/new"
               element={React.createElement(
-                React.lazy(() => import("./pages/clubTeams/create/CreateTeam"))
+                React.lazy(() => import("./pages/clubTeams/create/CreateTeam")),
               )}
             />
             <Route
               path="clubs/new"
               element={React.createElement(
-                React.lazy(() => import("./pages/clubs/create/CreateClub"))
+                React.lazy(() => import("./pages/clubs/create/CreateClub")),
               )}
             />
           </Routes>

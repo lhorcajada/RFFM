@@ -12,6 +12,7 @@ using Microsoft.IdentityModel.Tokens;
 using RFFM.Api.Common.Behaviors;
 using RFFM.Api.Domain.Services;
 using RFFM.Api.Features.Federation.Competitions.Services;
+using RFFM.Api.Features.Federation.Clubs.Services;
 using RFFM.Api.Features.Federation.Players.Services;
 using RFFM.Api.Features.Federation.Settings.Services;
 using RFFM.Api.Features.Federation.Teams.Services;
@@ -98,6 +99,7 @@ namespace RFFM.Api.DependencyInjection
 
             services.AddScoped<ICompetitionService, CompetitionService>();
             services.AddScoped<ITeamService, TeamService>();
+            services.AddScoped<IClubDirectoryService, ClubDirectoryService>();
             services.AddScoped<ICalendarService, CalendarService>();
             services.AddScoped<IMatchDayService, MatchDayService>();
             services.AddScoped<IGoalMinuteParser, GoalMinuteParser>();
