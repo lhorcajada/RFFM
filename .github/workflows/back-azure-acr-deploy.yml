@@ -146,6 +146,7 @@ jobs:
 # - Jwt__Audience
 # - Authentication__FrontendSecret
 # - ConnectionStrings__CatalogConnection
+# - ConnectionStrings__FederationConnection 
 # - ConnectionStrings__AzureBlobStorage
 # - FrontUrlBase
 # - Cors__AllowedOrigins__0
