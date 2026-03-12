@@ -19,9 +19,9 @@ namespace RFFM.Api.Features.Federation.Settings.Services
 
     public class FederationSettingService : IFederationSettingService
     {
-        private readonly AppDbContext _context;
+        private readonly FederationDbContext _context;
 
-        public FederationSettingService(AppDbContext context)
+        public FederationSettingService(FederationDbContext context)
         {
             _context = context;
         }

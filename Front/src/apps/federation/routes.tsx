@@ -1,12 +1,14 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect, useRef } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { CircularProgress, Box } from "@mui/material";
+import { useUser } from "../../shared/context/UserContext";
+import { getSettingsForUser } from "./services/federationApi";
 
 // Lazy load pages
 const Dashboard = lazy(() => import("./pages/Dashboard/Dashboard"));
 const Calendar = lazy(() => import("./pages/Calendar/GetCalendar"));
 const Classification = lazy(
-  () => import("./pages/Classification/Classification")
+  () => import("./pages/Classification/Classification"),
 );
 const Squad = lazy(() => import("./pages/Squad/GetPlayers"));
 const Acta = lazy(() => import("./pages/Acta/Acta"));
@@ -17,10 +19,10 @@ const Settings = lazy(() => import("./pages/Settings/Settings"));
 const SavedConfigs = lazy(() => import("./pages/SavedConfigs/SavedConfigs"));
 const Statistics = lazy(() => import("./pages/Statistics/Statistics"));
 const GoalSectorsComparison = lazy(
-  () => import("./pages/Statistics/GoalSectorsComparison")
+  () => import("./pages/Statistics/GoalSectorsComparison"),
 );
 const Error500 = lazy(
-  () => import("../../shared/components/ui/Error500/Error500")
+  () => import("../../shared/components/ui/Error500/Error500"),
 );
 
 function LoadingFallback() {
@@ -39,6 +41,18 @@ function LoadingFallback() {
 }
 
 export default function FederationRoutes() {
+  const { user } = useUser();
+  const warmedUpForUserIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const userId = user?.id;
+    if (!userId) return;
+    if (warmedUpForUserIdRef.current === userId) return;
+    warmedUpForUserIdRef.current = userId;
+
+    void getSettingsForUser(userId).catch(() => {});
+  }, [user?.id]);
+
   return (
     <Suspense fallback={<LoadingFallback />}>
       <Routes>

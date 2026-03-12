@@ -10,7 +10,7 @@ param(
     [string]$MigrationName = "",
     
     [Parameter(Mandatory=$false)]
-    [ValidateSet("AppDbContext", "IdentityDbContext")]
+    [ValidateSet("AppDbContext", "IdentityDbContext", "FederationDbContext")]
     [string]$Context = "AppDbContext",
     
     [Parameter(Mandatory=$false)]
@@ -35,12 +35,16 @@ switch ($Action) {
         Write-Host "📝 Creando migración: $MigrationName" -ForegroundColor Yellow
         Write-Host "   Context: $Context" -ForegroundColor Gray
         Write-Host ""
-        
+
+        $outputDir = if ($Context -eq "FederationDbContext") { "Infrastructure/Migrations/Federation" } `
+                     elseif ($Context -eq "IdentityDbContext") { "Infrastructure/Migrations/Identity" } `
+                     else { "Infrastructure/Migrations" }
+
         dotnet ef migrations add $MigrationName `
             --project $apiProject `
             --startup-project $startupProject `
             --context "RFFM.Api.Infrastructure.Persistence.$Context" `
-            --output-dir "Infrastructure/Migrations"
+            --output-dir $outputDir
         
         if ($LASTEXITCODE -eq 0) {
             Write-Host ""

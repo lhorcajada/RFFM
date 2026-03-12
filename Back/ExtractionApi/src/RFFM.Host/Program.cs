@@ -17,6 +17,7 @@ startup.Configure(app, app.Environment);
 // Apply database migrations automatically
 await app.MigrateDbContext<AppDbContext>();
 await app.MigrateDbContext<IdentityDbContext>();
+await app.MigrateDbContext<FederationDbContext>();
 
 // Seed roles/claims asynchronously (non-blocking)
 app.SeedIdentityRoles();

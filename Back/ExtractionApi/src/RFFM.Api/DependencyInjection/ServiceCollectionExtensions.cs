@@ -85,6 +85,14 @@ namespace RFFM.Api.DependencyInjection
                 options.ConfigureWarnings(warnings => warnings.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
             });
 
+            // Register FederationDbContext using FederationConnection (PostgreSQL)
+            var federationConn = configuration.GetConnectionString("FederationConnection");
+            if (!string.IsNullOrWhiteSpace(federationConn))
+            {
+                services.AddDbContext<FederationDbContext>(options =>
+                    options.UseNpgsql(federationConn));
+            }
+
             // Register other domain services
             services.AddScoped<IActaService, ActaService>();
             services.AddScoped<IPlayerService, PlayerService>();

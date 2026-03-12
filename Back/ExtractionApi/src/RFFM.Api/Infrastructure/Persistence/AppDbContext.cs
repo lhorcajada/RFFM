@@ -6,9 +6,9 @@ using RFFM.Api.Domain.Aggregates.Training;
 using RFFM.Api.Domain.Aggregates.Training.TasksTraining;
 using RFFM.Api.Domain.Aggregates.UserClubs;
 using RFFM.Api.Domain.Entities;
+using RFFM.Api.Domain.Entities.Coaches;
 using RFFM.Api.Domain.Entities.Competitions;
 using RFFM.Api.Domain.Entities.Demarcations;
-using RFFM.Api.Domain.Entities.Federation;
 using RFFM.Api.Domain.Entities.Players;
 using RFFM.Api.Domain.Entities.Seasons;
 using RFFM.Api.Domain.Entities.TeamPlayers;
@@ -49,7 +49,7 @@ namespace RFFM.Api.Infrastructure.Persistence
         public DbSet<TechnicalGoalsEnum> TechnicalGoals { get; set; }
         public DbSet<Rival> Rivals { get; set; }
         public DbSet<ExcuseTypes> ExcuseTypes { get; set; }
-        public DbSet<FederationSetting> FederationSettings { get; set; }
+        public DbSet<ConfigurationCoach> ConfigurationCoaches { get; set; }
 
         // Payment plans and subscriptions
         public DbSet<PaymentPlan> PaymentPlans { get; set; }
@@ -78,6 +78,13 @@ namespace RFFM.Api.Infrastructure.Persistence
 
         private void ApplyAllEntityConfigurations(ModelBuilder modelBuilder)
         {
+            var dbSetEntityTypes = GetType()
+                .GetProperties()
+                .Where(p => p.PropertyType.IsGenericType &&
+                            p.PropertyType.GetGenericTypeDefinition() == typeof(DbSet<>))
+                .Select(p => p.PropertyType.GetGenericArguments()[0])
+                .ToHashSet();
+
             var configurationType = typeof(IEntityTypeConfiguration<>);
 
             var configurations = GetType().Assembly
@@ -86,6 +93,7 @@ namespace RFFM.Api.Infrastructure.Persistence
                 .SelectMany(t => t.GetInterfaces()
                     .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == configurationType)
                     .Select(i => (EntityType: i.GenericTypeArguments[0], ConfigurationInstance: Activator.CreateInstance(t))))
+                .Where(x => dbSetEntityTypes.Contains(x.EntityType))
                 .ToList();
 
             foreach (var (entityType, configurationInstance) in configurations)
