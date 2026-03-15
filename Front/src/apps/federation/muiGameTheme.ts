@@ -25,7 +25,7 @@ const gameTheme = createTheme({
   },
   typography: {
     fontFamily: ['"Press Start 2P"', '"Segoe UI"', "Roboto", "sans-serif"].join(
-      ","
+      ",",
     ),
     h6: { fontSize: "1rem", letterSpacing: "0.08em" },
     subtitle2: { fontSize: "0.78rem", opacity: 0.9 },
@@ -51,23 +51,7 @@ const gameTheme = createTheme({
     },
     MuiToolbar: {
       styleOverrides: {
-        root: {
-          color: "#ffd166",
-        },
-      },
-    },
-    MuiIconButton: {
-      styleOverrides: {
-        root: {
-          color: "#ffd166",
-        },
-      },
-    },
-    MuiTypography: {
-      styleOverrides: {
-        root: {
-          color: "#ffd166",
-        },
+        root: {},
       },
     },
     MuiButton: {

@@ -20,10 +20,6 @@
   margin-bottom: 12px;
 }
 
-.title :global(.MuiTypography-root) {
-  color: #ffd166;
-}
-
 .alert {
   margin-bottom: 16px;
 }
