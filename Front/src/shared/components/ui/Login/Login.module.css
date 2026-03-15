@@ -1,3 +1,12 @@
+.centerWrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  flex: 1;
+  padding: 0 16px;
+}
+
 .paper {
   padding: 28px;
   border-radius: 8px;
@@ -11,10 +20,28 @@
   margin-bottom: 12px;
 }
 
+.title :global(.MuiTypography-root) {
+  color: #ffd166;
+}
+
+.alert {
+  margin-bottom: 16px;
+}
+
 .form {
   display: flex;
   flex-direction: column;
   gap: 28px;
+}
+
+.autofillHelper {
+  position: absolute;
+  left: -9999px;
+  top: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .submitButton {
@@ -23,12 +50,15 @@
   font-weight: 600;
   text-transform: none;
   margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Ensure button text and spinner are visible when button is disabled */
 .submitButton.MuiButton-root,
 .submitButton {
-  color: #001f2d; /* dark text on light background by default */
+  color: #001f2d;
 }
 
 .submitButton[aria-busy="true"],
@@ -39,6 +69,10 @@
 
 .submitButton .MuiCircularProgress-root {
   color: inherit !important; /* spinner inherits visible color */
+}
+
+.spinner {
+  color: inherit !important;
 }
 
 .options {

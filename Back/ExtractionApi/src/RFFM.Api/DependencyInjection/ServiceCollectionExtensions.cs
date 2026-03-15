@@ -90,7 +90,14 @@ namespace RFFM.Api.DependencyInjection
             if (!string.IsNullOrWhiteSpace(federationConn))
             {
                 services.AddDbContext<FederationDbContext>(options =>
-                    options.UseNpgsql(federationConn));
+                    options.UseNpgsql(federationConn, npgsqlOptions =>
+                    {
+                        npgsqlOptions.EnableRetryOnFailure(
+                            maxRetryCount: 3,
+                            maxRetryDelay: TimeSpan.FromSeconds(10),
+                            errorCodesToAdd: null);
+                        npgsqlOptions.CommandTimeout(60);
+                    }));
             }
 
             // Register other domain services
