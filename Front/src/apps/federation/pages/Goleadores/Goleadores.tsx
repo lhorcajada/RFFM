@@ -7,6 +7,9 @@ import GoleadoresList from "../../components/players/GoleadoresList/GoleadoresLi
 import { getGoleadores, getSettingsForUser } from "../../services/api";
 import { useUser } from "../../../../shared/context/UserContext";
 import { Goleador } from "../../types/goleador";
+import Grid from "@mui/material/Grid";
+import CompetitionSelector from "../../../../shared/components/ui/CompetitionSelector/CompetitionSelector";
+import GroupSelector from "../../../../shared/components/ui/GroupSelector/GroupSelector";
 import styles from "./Goleadores.module.css";
 
 const Goleadores: React.FC = () => {
@@ -14,29 +17,51 @@ const Goleadores: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [selectedCompetition, setSelectedCompetition] = useState<string | undefined>(undefined);
+  const [selectedGroup, setSelectedGroup] = useState<string | undefined>(undefined);
+
   const { user } = useUser();
 
+  function handleCompetitionChange(c?: { id: string; name: string; categoryGroup: string }) {
+    if (c?.id !== selectedCompetition) {
+      setSelectedGroup(undefined);
+    }
+    setSelectedCompetition(c?.id);
+  }
+
+  function handleGroupChange(g?: { id: string; name: string }) {
+    setSelectedGroup(g?.id);
+  }
+
   useEffect(() => {
-    async function load() {
-      let competitionId = "25255269";
-      let groupId = "25255283";
+    async function loadSettings() {
       if (user?.id) {
         try {
           const settings = await getSettingsForUser(user.id);
           if (Array.isArray(settings) && settings.length > 0) {
-            const primary =
-              settings.find((s: any) => s.isPrimary) || settings[0];
-            competitionId =
-              primary.competitionId || primary.competition?.id || competitionId;
-            groupId = primary.groupId || primary.group?.id || groupId;
+            const primary = settings.find((s: any) => s.isPrimary) || settings[0];
+            setSelectedCompetition(primary.competitionId || primary.competition?.id);
+            setSelectedGroup(primary.groupId || primary.group?.id);
           }
         } catch (e) {
           // ignore and use defaults
         }
       }
+    }
+    loadSettings();
+  }, [user]);
 
+  useEffect(() => {
+    async function load() {
+      if (!selectedCompetition || !selectedGroup) {
+        setGoleadores([]);
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
       try {
-        const data = await getGoleadores(competitionId, groupId);
+        const data = await getGoleadores(selectedCompetition, selectedGroup);
         setGoleadores(data);
       } catch (err) {
         setError("Error al cargar los goleadores");
@@ -46,7 +71,7 @@ const Goleadores: React.FC = () => {
     }
 
     load();
-  }, [user]);
+  }, [selectedCompetition, selectedGroup]);
 
   return (
     <BaseLayout>
@@ -54,6 +79,24 @@ const Goleadores: React.FC = () => {
         title="Goleadores"
         subtitle="Máximos goleadores de la competición"
       >
+        <div className={styles.filters}>
+          <Grid container spacing={1} className={styles.filtersGrid}>
+            <Grid item xs={12} sm={6}>
+              <CompetitionSelector
+                onChange={handleCompetitionChange}
+                value={selectedCompetition}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <GroupSelector
+                competitionId={selectedCompetition}
+                onChange={handleGroupChange}
+                value={selectedGroup}
+              />
+            </Grid>
+          </Grid>
+        </div>
+
         <div className={styles.container}>
           <div className={styles.content}>
             <div className={styles.headerBar} />

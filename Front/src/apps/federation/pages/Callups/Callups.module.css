@@ -1,3 +1,67 @@
+.filters {
+  padding: 12px var(--rffm-page-h-padding, 12px) 0;
+  margin-bottom: 4px;
+}
+
+.filtersGrid {
+  width: 100%;
+  max-width: 900px;
+}
+
+.filtersGrid .MuiFormControl-root .MuiInputBase-root {
+  min-height: 48px;
+}
+
+.filtersGrid .MuiFormControl-root .MuiSelect-select {
+  font-size: 0.95rem;
+  padding-top: 12px;
+  padding-bottom: 12px;
+  color: #ffffff !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.filtersGrid .MuiFormControl-root .MuiInputBase-input {
+  color: #ffffff !important;
+}
+
+.filtersGrid .MuiFormControl-root .MuiInputLabel-root {
+  font-size: 0.95rem;
+  color: #ffffff !important;
+}
+
+/* Force white borders and arrow for selects inside filters */
+.filters
+  .MuiFormControl-root
+  .MuiOutlinedInput-root
+  .MuiOutlinedInput-notchedOutline {
+  border-color: #ffffff !important;
+}
+.filters
+  .MuiFormControl-root
+  .MuiOutlinedInput-root:hover
+  .MuiOutlinedInput-notchedOutline {
+  border-color: #ffffff !important;
+}
+.filters
+  .MuiFormControl-root
+  .MuiOutlinedInput-root.Mui-focused
+  .MuiOutlinedInput-notchedOutline {
+  border-color: #ffffff !important;
+}
+.filters .MuiFormControl-root .MuiSelect-icon,
+.filters .MuiFormControl-root .MuiSelect-iconOutlined,
+.filters .MuiFormControl-root .MuiSvgIcon-root {
+  color: #ffffff !important;
+}
+/* also force svg fill if used */
+.filters .MuiFormControl-root .MuiSelect-icon svg,
+.filters .MuiFormControl-root .MuiSelect-iconOutlined svg {
+  fill: #ffffff !important;
+}
+
 .container {
   padding: 24px var(--rffm-page-h-padding, 24px);
 }

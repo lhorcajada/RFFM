@@ -12,6 +12,9 @@ import {
   getSettingsForUser,
 } from "../../services/api";
 import { useUser } from "../../../../shared/context/UserContext";
+import Grid from "@mui/material/Grid";
+import CompetitionSelector from "../../../../shared/components/ui/CompetitionSelector/CompetitionSelector";
+import GroupSelector from "../../../../shared/components/ui/GroupSelector/GroupSelector";
 import styles from "./Classification.module.css";
 
 interface Team {
@@ -33,25 +36,46 @@ export default function Classification() {
   const [loading, setLoading] = useState<boolean>(false);
   const [teamMatches, setTeamMatches] = useState<Record<string, any[]>>({});
 
+  const [selectedCompetition, setSelectedCompetition] = useState<string | undefined>(undefined);
+  const [selectedGroup, setSelectedGroup] = useState<string | undefined>(undefined);
+
   const { user } = useUser();
 
+  function handleCompetitionChange(c?: { id: string; name: string; categoryGroup: string }) {
+    if (c?.id !== selectedCompetition) {
+      setSelectedGroup(undefined);
+    }
+    setSelectedCompetition(c?.id);
+  }
+
+  function handleGroupChange(g?: { id: string; name: string }) {
+    setSelectedGroup(g?.id);
+  }
+
   useEffect(() => {
-    async function load() {
-      let competitionId = "25255269";
-      let groupId = "25255283";
+    async function loadSettings() {
       if (user?.id) {
         try {
           const settings = await getSettingsForUser(user.id);
           if (Array.isArray(settings) && settings.length > 0) {
-            const primary =
-              settings.find((s: any) => s.isPrimary) || settings[0];
-            competitionId =
-              primary.competitionId || primary.competition?.id || competitionId;
-            groupId = primary.groupId || primary.group?.id || groupId;
+            const primary = settings.find((s: any) => s.isPrimary) || settings[0];
+            setSelectedCompetition(primary.competitionId || primary.competition?.id);
+            setSelectedGroup(primary.groupId || primary.group?.id);
           }
         } catch (e) {
           // fallback to defaults
         }
+      }
+    }
+    loadSettings();
+  }, [user]);
+
+  useEffect(() => {
+    async function load() {
+      if (!selectedCompetition || !selectedGroup) {
+        setTeams([]);
+        setTeamMatches({});
+        return;
       }
 
       setLoading(true);
@@ -59,14 +83,14 @@ export default function Classification() {
         const [teamsData, calData] = await Promise.all([
           getTeamsForClassification({
             season: "21",
-            competition: competitionId,
-            group: groupId,
+            competition: selectedCompetition,
+            group: selectedGroup,
             playType: "1",
           }),
           getCalendar({
             season: "21",
-            competition: competitionId,
-            group: groupId,
+            competition: selectedCompetition,
+            group: selectedGroup,
             playType: "1",
           }),
         ]);
@@ -212,28 +236,15 @@ export default function Classification() {
         }
         setTeamMatches(map);
       } catch (err) {
-        // fallback: try default call
-        try {
-          setLoading(true);
-          const data = await getTeamsForClassification({
-            season: "21",
-            competition: "25255269",
-            group: "25255283",
-            playType: "1",
-          });
-          setTeams(data);
-        } catch (e) {
-          // ignore
-        } finally {
-          setLoading(false);
-        }
+        setTeams([]);
+        setTeamMatches({});
       } finally {
         setLoading(false);
       }
     }
 
     load();
-  }, [user]);
+  }, [selectedCompetition, selectedGroup]);
 
   const filtered = (teams as any).sort((a: any, b: any) => b.points - a.points);
 
@@ -243,6 +254,24 @@ export default function Classification() {
         title="Clasificación"
         subtitle="Tabla de equipos y estadísticas"
       >
+        <div className={styles.filters}>
+          <Grid container spacing={1} className={styles.filtersGrid}>
+            <Grid item xs={12} sm={6}>
+              <CompetitionSelector
+                onChange={handleCompetitionChange}
+                value={selectedCompetition}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <GroupSelector
+                competitionId={selectedCompetition}
+                onChange={handleGroupChange}
+                value={selectedGroup}
+              />
+            </Grid>
+          </Grid>
+        </div>
+
         <div className={styles.container}>
           <div className={styles.content}>
             <div className={styles.headerBar} />
