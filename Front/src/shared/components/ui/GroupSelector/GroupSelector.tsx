@@ -77,7 +77,7 @@ export default function GroupSelector({
     if (value !== undefined) {
       setSelected(value ?? "");
       const g = items.find((it) => it.id === value);
-      if (onChange) onChange(g);
+      if (g && onChange) onChange(g);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, items]);

@@ -138,9 +138,9 @@ export default function PlayerRow({ player }: Props) {
             {loading ? (
               <CircularProgress size={16} />
             ) : expanded ? (
-              <VisibilityOffIcon fontSize="small" />
+              <VisibilityOffIcon fontSize="small" sx={{ color: 'white' }} />
             ) : (
-              <VisibilityIcon fontSize="small" />
+              <VisibilityIcon fontSize="small" sx={{ color: 'white' }} />
             )}
           </IconButton>
         }

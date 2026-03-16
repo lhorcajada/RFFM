@@ -72,7 +72,7 @@ export default function TeamsSelector({
             rawId && rawId !== ""
               ? rawId
               : `team-${idx}-${Math.abs(
-                  hashCode(rawName || JSON.stringify(c))
+                  hashCode(rawName || JSON.stringify(c)),
                 )}`;
           const name = rawName || `Equipo ${idx + 1}`;
           return {
@@ -110,14 +110,10 @@ export default function TeamsSelector({
   }
 
   React.useEffect(() => {
-    // When a controlled `value` is provided, wait until teams list is available
-    // so we can find the matching team object. Only then notify parent via onChange.
     if (value !== undefined) {
       setSelected(value ?? "");
       const t = teams.find((tt) => String(tt.id) === value);
       if (t && onChange) onChange(t);
-      // if teams are loaded but no match found, still notify with undefined so parent knows
-      if (teams.length > 0 && !t && onChange) onChange(undefined);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, teams]);

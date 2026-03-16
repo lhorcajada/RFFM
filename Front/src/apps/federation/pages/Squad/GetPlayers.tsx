@@ -6,6 +6,10 @@ import styles from "./GetPlayers.module.css";
 import teamStyles from "../../TeamCard.module.css";
 import type { Team } from "../../types/team";
 import { CircularProgress, Paper, Typography, Button } from "@mui/material";
+import Grid from "@mui/material/Grid";
+import CompetitionSelector from "../../../../shared/components/ui/CompetitionSelector/CompetitionSelector";
+import GroupSelector from "../../../../shared/components/ui/GroupSelector/GroupSelector";
+import TeamsSelector from "../../../../shared/components/ui/TeamsSelector/TeamsSelector";
 
 import {
   getTeamAgeSummary,
@@ -29,7 +33,7 @@ import type { TeamParticipationSummaryItem } from "../../types/participation";
 export default function GetPlayers(): JSX.Element {
   const { user } = useUser();
   const [selectedTeam, setSelectedTeam] = useState<SelectedTeam | undefined>(
-    undefined
+    undefined,
   );
   const [teamDetails, setTeamDetails] = useState<Team | null>(null);
 
@@ -51,10 +55,43 @@ export default function GetPlayers(): JSX.Element {
     string | undefined
   >(undefined);
   const [selectedGroup, setSelectedGroup] = useState<string | undefined>(
-    undefined
+    undefined,
   );
 
   const printableRef = React.useRef<HTMLDivElement | null>(null);
+
+  function handleCompetitionChange(c?: {
+    id: string;
+    name: string;
+    categoryGroup: string;
+  }) {
+    if (c?.id !== selectedCompetition) {
+      setSelectedGroup(undefined);
+      setSelectedTeam(undefined);
+    }
+    setSelectedCompetition(c?.id);
+    setNoConfig(false);
+  }
+
+  function handleGroupChange(g?: { id: string; name: string }) {
+    if (g?.id !== selectedGroup) {
+      setSelectedTeam(undefined);
+    }
+    setSelectedGroup(g?.id);
+  }
+
+  function handleTeamChange(t?: {
+    id: string;
+    name: string;
+    url?: string;
+    raw?: any;
+  }) {
+    if (!t) {
+      setSelectedTeam(undefined);
+      return;
+    }
+    setSelectedTeam({ id: t.id, name: t.name, url: t.url, raw: t.raw });
+  }
 
   const {
     players,
@@ -67,7 +104,7 @@ export default function GetPlayers(): JSX.Element {
 
   useEffect(
     () => setTeamDetails(hookTeamDetails as Team | null),
-    [hookTeamDetails]
+    [hookTeamDetails],
   );
 
   useEffect(() => {
@@ -103,11 +140,35 @@ export default function GetPlayers(): JSX.Element {
   return (
     <BaseLayout>
       <div className={styles.filters}>
-        {noConfig ? (
-          <Typography variant="body2">
-            No hay configuración principal guardada.
+        <Grid container spacing={1} className={styles.filtersGrid}>
+          <Grid item xs={12} sm={4}>
+            <CompetitionSelector
+              onChange={handleCompetitionChange}
+              value={selectedCompetition}
+            />
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <GroupSelector
+              competitionId={selectedCompetition}
+              onChange={handleGroupChange}
+              value={selectedGroup}
+            />
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <TeamsSelector
+              competitionId={selectedCompetition}
+              groupId={selectedGroup}
+              onChange={handleTeamChange}
+              value={selectedTeam ? String(selectedTeam.id) : undefined}
+            />
+          </Grid>
+        </Grid>
+        {noConfig && !selectedTeam && (
+          <Typography variant="body2" className={styles.noConfigMsg}>
+            No hay configuración principal guardada. Selecciona una competición,
+            grupo y equipo.
           </Typography>
-        ) : null}
+        )}
       </div>
 
       <div className={styles.container}>
@@ -130,7 +191,7 @@ export default function GetPlayers(): JSX.Element {
                       try {
                         setLoadingAge(true);
                         const id = String(
-                          (selectedTeam as any).id || selectedTeam?.id
+                          (selectedTeam as any).id || selectedTeam?.id,
                         );
                         const data = await getTeamAgeSummary(id, "21");
                         const map: Record<number, number> = {};
@@ -170,11 +231,11 @@ export default function GetPlayers(): JSX.Element {
                       try {
                         setLoadingParticipation(true);
                         const id = String(
-                          (selectedTeam as any).id || selectedTeam?.id
+                          (selectedTeam as any).id || selectedTeam?.id,
                         );
                         const data = await getTeamParticipationSummary(
                           id,
-                          "21"
+                          "21",
                         );
                         setParticipationData(data || []);
                       } catch (err) {
@@ -202,22 +263,22 @@ export default function GetPlayers(): JSX.Element {
                     onClick={async () => {
                       // exportar por secciones para evitar cortes de tabla
                       const headerEl = document.getElementById(
-                        "rffm-printable-squad-header"
+                        "rffm-printable-squad-header",
                       );
                       const playersEl = document.getElementById(
-                        "rffm-printable-squad-players"
+                        "rffm-printable-squad-players",
                       );
                       const agesEl = document.getElementById(
-                        "rffm-printable-squad-ages"
+                        "rffm-printable-squad-ages",
                       );
                       const partsEl = document.getElementById(
-                        "rffm-printable-squad-participations"
+                        "rffm-printable-squad-participations",
                       );
                       if (!playersEl || !agesEl || !partsEl) return;
                       try {
                         setExportingPdf(true);
                         const id = String(
-                          (selectedTeam as any).id || selectedTeam?.id
+                          (selectedTeam as any).id || selectedTeam?.id,
                         );
 
                         // Asegurar participaciones cargadas antes de capturar el DOM
@@ -228,10 +289,10 @@ export default function GetPlayers(): JSX.Element {
                           try {
                             const data = await getTeamParticipationSummary(
                               id,
-                              "21"
+                              "21",
                             );
                             setParticipationData(
-                              (data || []) as TeamParticipationSummaryItem[]
+                              (data || []) as TeamParticipationSummaryItem[],
                             );
                           } catch (e) {
                             // si falla, dejamos el estado como esté
@@ -240,7 +301,7 @@ export default function GetPlayers(): JSX.Element {
 
                         // Esperar un frame para que el DOM oculto renderice la tabla
                         await new Promise<void>((resolve) =>
-                          requestAnimationFrame(() => resolve())
+                          requestAnimationFrame(() => resolve()),
                         );
                         await exportElementsToPdfPacked(
                           [playersEl, agesEl, partsEl],
@@ -253,7 +314,7 @@ export default function GetPlayers(): JSX.Element {
                             gap: 12,
                             headerElement: headerEl ?? undefined,
                             headerGap: 10,
-                          }
+                          },
                         );
                       } catch (err) {
                         // no hacemos nada especial
@@ -280,7 +341,7 @@ export default function GetPlayers(): JSX.Element {
                     street={teamDetails.field}
                     city={teamDetails.correspondenceCity}
                     postalCode={String(
-                      teamDetails.correspondencePostalCode ?? ""
+                      teamDetails.correspondencePostalCode ?? "",
                     )}
                   />
                 </div>

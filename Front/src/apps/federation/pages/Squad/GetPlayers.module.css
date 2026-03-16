@@ -47,10 +47,41 @@
 
 /* Filters container: don't stretch full width on large screens */
 .filters {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-bottom: 8px;
+  padding: 12px var(--rffm-page-h-padding, 12px) 0;
+  margin-bottom: 4px;
+}
+
+.filtersGrid {
+  width: 100%;
+}
+
+.filtersGrid .MuiFormControl-root .MuiInputBase-root {
+  min-height: 48px;
+}
+
+.filtersGrid .MuiFormControl-root .MuiSelect-select {
+  font-size: 0.95rem;
+  padding-top: 12px;
+  padding-bottom: 12px;
+  color: #ffffff !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.filtersGrid .MuiFormControl-root .MuiInputBase-input {
+  color: #ffffff !important;
+}
+
+.filtersGrid .MuiFormControl-root .MuiInputLabel-root {
+  font-size: 0.95rem;
+  color: #ffffff !important;
+}
+
+.noConfigMsg {
+  margin-top: 6px;
+  opacity: 0.75;
 }
 
 /* Force white borders and arrow for selects inside filters */
@@ -87,14 +118,8 @@
 }
 
 @media (min-width: 1000px) {
-  .filters {
-    max-width: 900px;
-    margin-left: 0; /* keep aligned to container start */
-  }
   .filters > * {
     flex: 1 1 auto;
-    min-width: 220px;
-    max-width: 320px;
   }
 }
 

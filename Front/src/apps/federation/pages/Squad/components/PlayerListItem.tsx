@@ -47,9 +47,9 @@ export default function PlayerListItem({
             {loadingDetail === p.id ? (
               <CircularProgress size={16} />
             ) : expandedId === p.id ? (
-              <VisibilityOffIcon fontSize="small" />
+              <VisibilityOffIcon fontSize="small" sx={{ color: 'white' }} />
             ) : (
-              <VisibilityIcon fontSize="small" />
+              <VisibilityIcon fontSize="small" sx={{ color: 'white' }} />
             )}
           </IconButton>
         }
