@@ -17,12 +17,20 @@ const Goleadores: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [selectedCompetition, setSelectedCompetition] = useState<string | undefined>(undefined);
-  const [selectedGroup, setSelectedGroup] = useState<string | undefined>(undefined);
+  const [selectedCompetition, setSelectedCompetition] = useState<
+    string | undefined
+  >(undefined);
+  const [selectedGroup, setSelectedGroup] = useState<string | undefined>(
+    undefined,
+  );
 
   const { user } = useUser();
 
-  function handleCompetitionChange(c?: { id: string; name: string; categoryGroup: string }) {
+  function handleCompetitionChange(c?: {
+    id: string;
+    name: string;
+    categoryGroup: string;
+  }) {
     if (c?.id !== selectedCompetition) {
       setSelectedGroup(undefined);
     }
@@ -39,8 +47,11 @@ const Goleadores: React.FC = () => {
         try {
           const settings = await getSettingsForUser(user.id);
           if (Array.isArray(settings) && settings.length > 0) {
-            const primary = settings.find((s: any) => s.isPrimary) || settings[0];
-            setSelectedCompetition(primary.competitionId || primary.competition?.id);
+            const primary =
+              settings.find((s: any) => s.isPrimary) || settings[0];
+            setSelectedCompetition(
+              primary.competitionId || primary.competition?.id,
+            );
             setSelectedGroup(primary.groupId || primary.group?.id);
           }
         } catch (e) {

@@ -36,12 +36,20 @@ export default function Classification() {
   const [loading, setLoading] = useState<boolean>(false);
   const [teamMatches, setTeamMatches] = useState<Record<string, any[]>>({});
 
-  const [selectedCompetition, setSelectedCompetition] = useState<string | undefined>(undefined);
-  const [selectedGroup, setSelectedGroup] = useState<string | undefined>(undefined);
+  const [selectedCompetition, setSelectedCompetition] = useState<
+    string | undefined
+  >(undefined);
+  const [selectedGroup, setSelectedGroup] = useState<string | undefined>(
+    undefined,
+  );
 
   const { user } = useUser();
 
-  function handleCompetitionChange(c?: { id: string; name: string; categoryGroup: string }) {
+  function handleCompetitionChange(c?: {
+    id: string;
+    name: string;
+    categoryGroup: string;
+  }) {
     if (c?.id !== selectedCompetition) {
       setSelectedGroup(undefined);
     }
@@ -58,8 +66,11 @@ export default function Classification() {
         try {
           const settings = await getSettingsForUser(user.id);
           if (Array.isArray(settings) && settings.length > 0) {
-            const primary = settings.find((s: any) => s.isPrimary) || settings[0];
-            setSelectedCompetition(primary.competitionId || primary.competition?.id);
+            const primary =
+              settings.find((s: any) => s.isPrimary) || settings[0];
+            setSelectedCompetition(
+              primary.competitionId || primary.competition?.id,
+            );
             setSelectedGroup(primary.groupId || primary.group?.id);
           }
         } catch (e) {
@@ -102,22 +113,26 @@ export default function Classification() {
             for (const day of (calData as any).matchDays || []) {
               for (const m of day.matches || []) {
                 const localId = String(
-                  m.localTeamCode ?? m.localTeamId ?? ""
+                  m.localTeamCode ?? m.localTeamId ?? "",
                 ).trim();
                 const visitorId = String(
-                  m.visitorTeamCode ?? m.visitorTeamId ?? ""
+                  m.visitorTeamCode ?? m.visitorTeamId ?? "",
                 ).trim();
                 const localName = String(m.localTeamName ?? "").trim();
                 const visitorName = String(m.visitorTeamName ?? "").trim();
                 const localGoals = Number(
-                  m.localGoals ?? m.LocalGoals ?? m.goles_casa ?? m.goles ?? NaN
+                  m.localGoals ??
+                    m.LocalGoals ??
+                    m.goles_casa ??
+                    m.goles ??
+                    NaN,
                 );
                 const visitorGoals = Number(
                   m.visitorGoals ??
                     m.VisitorGoals ??
                     m.goles_visitante ??
                     m.goles_v ??
-                    NaN
+                    NaN,
                 );
                 const push = (key: string, opp: string, isLocal: boolean) => {
                   if (!key) return;
@@ -146,15 +161,15 @@ export default function Classification() {
                         ? ""
                         : String(localGoals)
                       : Number.isNaN(visitorGoals)
-                      ? ""
-                      : String(visitorGoals),
+                        ? ""
+                        : String(visitorGoals),
                     scoreRight: isLocal
                       ? Number.isNaN(visitorGoals)
                         ? ""
                         : String(visitorGoals)
                       : Number.isNaN(localGoals)
-                      ? ""
-                      : String(localGoals),
+                        ? ""
+                        : String(localGoals),
                   });
                 };
                 push(localId || localName, visitorName || visitorId, true);
@@ -168,25 +183,28 @@ export default function Classification() {
                 r.matches ??
                 []) as any[]) {
                 const localId = String(
-                  m.codigo_equipo_local ?? m.codigo_local ?? m.localTeamId ?? ""
+                  m.codigo_equipo_local ??
+                    m.codigo_local ??
+                    m.localTeamId ??
+                    "",
                 ).trim();
                 const visitorId = String(
                   m.codigo_equipo_visitante ??
                     m.codigo_visitante ??
                     m.awayTeamId ??
-                    ""
+                    "",
                 ).trim();
                 const localName = String(
-                  m.equipo_local ?? m.localTeamName ?? m.local ?? ""
+                  m.equipo_local ?? m.localTeamName ?? m.local ?? "",
                 ).trim();
                 const visitorName = String(
-                  m.equipo_visitante ?? m.awayTeamName ?? m.visitante ?? ""
+                  m.equipo_visitante ?? m.awayTeamName ?? m.visitante ?? "",
                 ).trim();
                 const localGoals = Number(
-                  m.goles_casa ?? m.LocalGoals ?? m.goles ?? NaN
+                  m.goles_casa ?? m.LocalGoals ?? m.goles ?? NaN,
                 );
                 const visitorGoals = Number(
-                  m.goles_visitante ?? m.AwayGoals ?? m.goles_v ?? NaN
+                  m.goles_visitante ?? m.AwayGoals ?? m.goles_v ?? NaN,
                 );
                 const push = (key: string, opp: string, isLocal: boolean) => {
                   if (!key) return;
@@ -215,15 +233,15 @@ export default function Classification() {
                         ? ""
                         : String(localGoals)
                       : Number.isNaN(visitorGoals)
-                      ? ""
-                      : String(visitorGoals),
+                        ? ""
+                        : String(visitorGoals),
                     scoreRight: isLocal
                       ? Number.isNaN(visitorGoals)
                         ? ""
                         : String(visitorGoals)
                       : Number.isNaN(localGoals)
-                      ? ""
-                      : String(localGoals),
+                        ? ""
+                        : String(localGoals),
                   });
                 };
                 push(localId || localName, visitorName || visitorId, true);

@@ -30,16 +30,26 @@ export default function CallupsPage(): JSX.Element {
   const [competitionName, setCompetitionName] = useState<string | null>(null);
   const [groupName, setGroupName] = useState<string | null>(null);
 
-  const [selectedCompetition, setSelectedCompetition] = useState<string | undefined>(undefined);
-  const [selectedGroup, setSelectedGroup] = useState<string | undefined>(undefined);
-  const [selectedTeam, setSelectedTeam] = useState<string | undefined>(undefined);
+  const [selectedCompetition, setSelectedCompetition] = useState<
+    string | undefined
+  >(undefined);
+  const [selectedGroup, setSelectedGroup] = useState<string | undefined>(
+    undefined,
+  );
+  const [selectedTeam, setSelectedTeam] = useState<string | undefined>(
+    undefined,
+  );
 
   const [data, setData] = useState<TeamCallupsResponse>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [noConfig, setNoConfig] = useState<boolean>(false);
 
-  function handleCompetitionChange(c?: { id: string; name: string; categoryGroup: string }) {
+  function handleCompetitionChange(c?: {
+    id: string;
+    name: string;
+    categoryGroup: string;
+  }) {
     if (c?.id !== selectedCompetition) {
       setSelectedGroup(undefined);
       setSelectedTeam(undefined);
@@ -55,7 +65,12 @@ export default function CallupsPage(): JSX.Element {
     setSelectedGroup(g?.id);
   }
 
-  function handleTeamChange(t?: { id: string; name: string; url?: string; raw?: any }) {
+  function handleTeamChange(t?: {
+    id: string;
+    name: string;
+    url?: string;
+    raw?: any;
+  }) {
     if (!t) {
       setSelectedTeam(undefined);
       setTeamId(null);
@@ -74,15 +89,20 @@ export default function CallupsPage(): JSX.Element {
         try {
           const settings = await getSettingsForUser(user.id);
           if (Array.isArray(settings) && settings.length > 0) {
-            const primary = settings.find((s: any) => s.isPrimary) || settings[0];
-            setSelectedCompetition(primary.competitionId || primary.competition?.id);
+            const primary =
+              settings.find((s: any) => s.isPrimary) || settings[0];
+            setSelectedCompetition(
+              primary.competitionId || primary.competition?.id,
+            );
             setSelectedGroup(primary.groupId || primary.group?.id);
             setSelectedTeam(primary.teamId || primary.team?.id);
             setTeamId(primary.teamId ? String(primary.teamId) : null);
             setTeamName(primary.teamName ?? null);
             setSeasonId(primary.seasonId ? String(primary.seasonId) : null);
             setSeasonName(primary.seasonName ?? null);
-            setCompetitionId(primary.competitionId ? String(primary.competitionId) : null);
+            setCompetitionId(
+              primary.competitionId ? String(primary.competitionId) : null,
+            );
             setCompetitionName(primary.competitionName ?? null);
             setGroupId(primary.groupId ? String(primary.groupId) : null);
             setGroupName(primary.groupName ?? null);
