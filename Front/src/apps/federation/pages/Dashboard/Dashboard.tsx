@@ -3,10 +3,9 @@ import GroupIcon from "@mui/icons-material/Group";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import SportsSoccerIcon from "@mui/icons-material/SportsSoccer";
 import EventAvailableIcon from "@mui/icons-material/EventAvailable";
-// import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
 import LeaderboardIcon from "@mui/icons-material/Leaderboard";
-import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
 import HowToRegIcon from "@mui/icons-material/HowToReg";
+import EqualizerIcon from "@mui/icons-material/Equalizer";
 import HomeIcon from "@mui/icons-material/Home";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
@@ -75,16 +74,22 @@ export default function Dashboard(): JSX.Element {
               to="/federation/goleadores"
             />
             <DashboardCard
-              title="Configuración"
-              description="Ajustes y preferencias de la aplicación."
-              icon={<SettingsIcon className={styles.iconLarge} />}
-              to="/federation/settings"
-            />
-            <DashboardCard
               title="Convocatorias"
               description="Ver convocatorias por jugador."
               icon={<HowToRegIcon className={styles.iconLarge} />}
               to="/federation/callups"
+            />
+            <DashboardCard
+              title="Estadísticas"
+              description="Consulta las estadísticas de la temporada."
+              icon={<EqualizerIcon className={styles.iconLarge} />}
+              to="/federation/statistics"
+            />
+            <DashboardCard
+              title="Configuración"
+              description="Ajustes y preferencias de la aplicación."
+              icon={<SettingsIcon className={styles.iconLarge} />}
+              to="/federation/settings"
             />
           </div>
         </div>
