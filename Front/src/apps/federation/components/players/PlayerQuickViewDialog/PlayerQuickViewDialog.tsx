@@ -14,6 +14,8 @@ import EmptyState from "../../../../../shared/components/ui/EmptyState/EmptyStat
 import styles from "./PlayerQuickViewDialog.module.css";
 import type { FederationPlayer } from "../../../types/federationPlayer";
 import { getPlayer } from "../../../services/api";
+import { fetchImage } from "../../../../../shared/services/imageService";
+import AvatarWithUrl from "../../../../../shared/components/ui/AvatarWithUrl/AvatarWithUrl";
 
 type Props = {
   open: boolean;
@@ -202,9 +204,9 @@ export default function PlayerQuickViewDialog({
         ) : (
           <>
             <div className={styles.header}>
-              <Avatar
+              <AvatarWithUrl
                 className={styles.avatar}
-                src={player.photoUrl || undefined}
+                url={player.photoUrl}
                 alt={player.name}
               />
               <div className={styles.headerInfo}>

@@ -55,7 +55,8 @@ export default defineConfig(async ({ command, mode }) => {
           target: apiTarget,
           changeOrigin: true,
           secure: false,
-          rewrite: (path: string) => path.replace(/^\/api/, ""),
+          // Keep /api prefix so backend routes like /api/catalog/... resolve correctly.
+          rewrite: (path: string) => path,
         },
       },
     },

@@ -1,5 +1,4 @@
-﻿using Azure.Storage.Blobs;
-using Mediator;
+﻿using Mediator;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -19,13 +18,12 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                     {
                         var query = new GetPlayerPhotoQuery { Url = url };
                         var result = await mediator.Send(query, cancellationToken);
-                        return result != null ? Results.File(result.Stream, result.ContentType) : Results.NotFound();
+                        return result != null ? Results.Redirect(result.Url) : Results.NotFound();
                     })
                 .WithName(nameof(GetPlayerPhoto))
                 .WithTags(PlayerConstants.PlayerFeature)
-                .Produces(StatusCodes.Status200OK)
+                .Produces(StatusCodes.Status302Found)
                 .Produces(StatusCodes.Status404NotFound);
-
         }
     }
 
@@ -36,39 +34,17 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
 
     public class GetPlayerPhotoResult
     {
-        public Stream Stream { get; set; }
-        public string ContentType { get; set; }
+        public string Url { get; set; }
     }
 
     public class GetPlayerPhotoHandler : IRequestHandler<GetPlayerPhotoQuery, GetPlayerPhotoResult>
     {
-        private readonly BlobServiceClient _blobServiceClient;
-
-        public GetPlayerPhotoHandler(BlobServiceClient blobServiceClient)
-        {
-            _blobServiceClient = blobServiceClient;
-        }
-
-        public async ValueTask<GetPlayerPhotoResult> Handle(GetPlayerPhotoQuery request, CancellationToken cancellationToken)
+        public ValueTask<GetPlayerPhotoResult> Handle(GetPlayerPhotoQuery request, CancellationToken cancellationToken)
         {
             if (string.IsNullOrEmpty(request.Url))
                 throw new ArgumentException("URL cannot be null or empty.");
 
-            var blobUri = new Uri(request.Url);
-            var containerClient = _blobServiceClient.GetBlobContainerClient(PlayerConstants.PlayersContainerName);
-            var blobName = string.Join("", blobUri.Segments.Skip(2));
-            var blobClient = containerClient.GetBlobClient(blobName);
-
-            if (!await blobClient.ExistsAsync(cancellationToken))
-                return null!;
-
-            var blobDownloadInfo = await blobClient.DownloadAsync(cancellationToken);
-
-            return new GetPlayerPhotoResult
-            {
-                Stream = blobDownloadInfo.Value.Content,
-                ContentType = blobDownloadInfo.Value.ContentType
-            };
+            return ValueTask.FromResult(new GetPlayerPhotoResult { Url = request.Url });
         }
     }
 }

@@ -24,7 +24,7 @@ import Divider from "@mui/material/Divider";
 import Snackbar from "@mui/material/Snackbar";
 import MuiAlert, { AlertProps } from "@mui/material/Alert";
 import Slide from "@mui/material/Slide";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Stack from "@mui/material/Stack";
 import Grid from "@mui/material/Grid";
 import { useTheme } from "@mui/material/styles";
@@ -54,6 +54,7 @@ export default function Settings(): JSX.Element {
   const theme = useTheme();
   const isSm = useMediaQuery(theme.breakpoints.down("sm"));
   const { user } = useUser();
+  const abortControllerRef = useRef<AbortController | null>(null);
   const [selectedCompetition, setSelectedCompetition] = useState<
     { id: string; name: string } | undefined
   >(undefined);
@@ -69,16 +70,29 @@ export default function Settings(): JSX.Element {
   const [snackOpen, setSnackOpen] = useState(false);
   const [snackMsg, setSnackMsg] = useState("");
 
-  const Alert = React.forwardRef<HTMLDivElement, AlertProps>(function Alert(
-    props,
-    ref
-  ) {
-    return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
-  });
+  const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
+    function Alert(props, ref) {
+      return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
+    },
+  );
 
   useEffect(() => {
-    loadSettings();
+    // Cancel previous request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+    loadSettings(abortControllerRef.current.signal);
   }, [user]);
+
+  useEffect(() => {
+    return () => {
+      // Cleanup on unmount
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     function handleSettingsChanged() {
@@ -87,20 +101,20 @@ export default function Settings(): JSX.Element {
     }
     window.addEventListener(
       "rffm.saved_combinations_changed",
-      handleSettingsChanged
+      handleSettingsChanged,
     );
     return () => {
       window.removeEventListener(
         "rffm.saved_combinations_changed",
-        handleSettingsChanged
+        handleSettingsChanged,
       );
     };
   }, []);
 
-  async function loadSettings() {
+  async function loadSettings(signal?: AbortSignal) {
     try {
       // logging removed
-      const arr = await getSettingsForUser(user?.id);
+      const arr = await getSettingsForUser(user?.id, signal);
       // logging removed
       setSaved(arr || []);
       const primary = arr.find((c: any) => c.isPrimary);
@@ -117,17 +131,17 @@ export default function Settings(): JSX.Element {
         setSelectedCompetition(
           combo.competitionId && combo.competitionName
             ? { id: combo.competitionId, name: combo.competitionName }
-            : undefined
+            : undefined,
         );
         setSelectedGroup(
           combo.groupId && combo.groupName
             ? { id: combo.groupId, name: combo.groupName }
-            : undefined
+            : undefined,
         );
         setSelectedTeam(
           combo.teamId && combo.teamName
             ? { id: combo.teamId, name: combo.teamName }
-            : undefined
+            : undefined,
         );
       }
     } catch (e) {
@@ -144,17 +158,17 @@ export default function Settings(): JSX.Element {
       setSelectedCompetition(
         combo.competitionId && combo.competitionName
           ? { id: combo.competitionId, name: combo.competitionName }
-          : undefined
+          : undefined,
       );
       setSelectedGroup(
         combo.groupId && combo.groupName
           ? { id: combo.groupId, name: combo.groupName }
-          : undefined
+          : undefined,
       );
       setSelectedTeam(
         combo.teamId && combo.teamName
           ? { id: combo.teamId, name: combo.teamName }
-          : undefined
+          : undefined,
       );
     }
   }, [primaryId, saved]);
@@ -228,7 +242,7 @@ export default function Settings(): JSX.Element {
     const combo = saved.find((s) => s.id === id);
     if (!combo) return;
     setSnackMsg(
-      "Selección aplicada: ahora la aplicación usará esta combinación hasta que la cambies."
+      "Selección aplicada: ahora la aplicación usará esta combinación hasta que la cambies.",
     );
     setSnackOpen(true);
   }

@@ -30,17 +30,20 @@ export class SettingsService {
       // token existence check - debug removed
     } catch (e) {}
     const response = await client.get<SavedComboResponse[]>(
-      "federation/settings"
+      "federation/settings",
     );
     return response.data;
   }
 
-  async getSettingsForUser(userId?: string): Promise<SavedComboResponse[]> {
+  async getSettingsForUser(
+    userId?: string,
+    signal?: AbortSignal,
+  ): Promise<SavedComboResponse[]> {
     const url = userId
       ? `federation/settings?userId=${encodeURIComponent(userId)}`
       : `federation/settings`;
     try {
-      const response = await client.get<SavedComboResponse[]>(url);
+      const response = await client.get<SavedComboResponse[]>(url, { signal });
       return response.data;
     } catch (e: any) {
       // Provide clearer logging for 401 Unauthorized to help debugging
@@ -52,12 +55,12 @@ export class SettingsService {
   }
 
   async saveSettings(
-    data: SavedComboRequest & { userId?: string }
+    data: SavedComboRequest & { userId?: string },
   ): Promise<SavedComboResponse> {
     const body = { ...data };
     const response = await client.post<SavedComboResponse>(
       "federation/settings",
-      body
+      body,
     );
     return response.data;
   }

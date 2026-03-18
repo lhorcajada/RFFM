@@ -1,4 +1,4 @@
-﻿using Azure.Storage.Blobs;
+﻿using RFFM.Api.Infrastructure.Storage;
 using FluentValidation;
 using Mediator;
 using Microsoft.AspNetCore.Builder;
@@ -47,12 +47,12 @@ namespace RFFM.Api.Features.Coaches.Teams.Commands
     public class CreateTeamHandler : IRequestHandler<CreateTeamCommand, Unit>
     {
         private readonly AppDbContext _catalogDbContext;
-        private readonly BlobServiceClient _blobServiceClient;
+        private readonly IStorageService _storageService;
 
-        public CreateTeamHandler(AppDbContext catalogDbContext, BlobServiceClient blobServiceClient)
+        public CreateTeamHandler(AppDbContext catalogDbContext, IStorageService storageService)
         {
             _catalogDbContext = catalogDbContext;
-            _blobServiceClient = blobServiceClient;
+            _storageService = storageService;
         }
         public async ValueTask<Unit> Handle(CreateTeamCommand request, CancellationToken cancellationToken)
         {
@@ -60,16 +60,8 @@ namespace RFFM.Api.Features.Coaches.Teams.Commands
 
             if (request.PhotoFile != null && request.PhotoFile.Length > 0)
             {
-                var containerClient = _blobServiceClient.GetBlobContainerClient(TeamConstants.TeamsContainerName);
-                await containerClient.CreateIfNotExistsAsync(cancellationToken: cancellationToken);
-
                 var fileName = Guid.NewGuid() + Path.GetExtension(request.PhotoFile.Name);
-                var blobClient = containerClient.GetBlobClient($"{fileName}");
-
-                await using var stream = request.PhotoFile.OpenReadStream();
-                await blobClient.UploadAsync(stream, cancellationToken);
-
-                urlPhoto = blobClient.Uri.ToString();
+                urlPhoto = await _storageService.UploadAsync(TeamConstants.TeamsContainerName, fileName, request.PhotoFile, cancellationToken);
             }
             var team = new Team(new TeamModel
             {

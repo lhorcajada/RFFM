@@ -126,7 +126,7 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.UserClubs
                 family.ToTable("TeamPlayerFamilies");
 
                 // Shadow primary key for the owned entity
-                family.Property<string>("Id").HasColumnType("nvarchar(450)");
+                family.Property<string>("Id");
                 family.HasKey("Id");
 
                 family.Property(f => f.Phone)
@@ -151,7 +151,7 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.UserClubs
                 // Configuración de Address dentro de FamilyMembers
                 family.OwnsOne(f => f.Address, address =>
                 {
-                    address.Property<string>("Id").HasColumnType("nvarchar(450)");
+                    address.Property<string>("Id");
 
                     address.Property(a => a.Street)
                         .HasMaxLength(200)

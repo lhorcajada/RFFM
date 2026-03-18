@@ -1,5 +1,4 @@
-﻿using Azure.Storage.Blobs;
-using FluentValidation;
+﻿using FluentValidation;
 using Mediator;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -9,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Common.Behaviors;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
+using RFFM.Api.Infrastructure.Storage;
 
 namespace RFFM.Api.Features.Coaches.Clubs.Commands
 {
@@ -42,12 +42,12 @@ namespace RFFM.Api.Features.Coaches.Clubs.Commands
     public class DeleteClubHandler : IRequestHandler<DeleteClubCommand, Unit>
     {
         private readonly AppDbContext _catalogDbContext;
-        private readonly BlobServiceClient _blobServiceClient;
+        private readonly IStorageService _storageService;
 
-        public DeleteClubHandler(AppDbContext catalogDbContext, BlobServiceClient blobServiceClient)
+        public DeleteClubHandler(AppDbContext catalogDbContext, IStorageService storageService)
         {
             _catalogDbContext = catalogDbContext;
-            _blobServiceClient = blobServiceClient;
+            _storageService = storageService;
         }
 
         public async ValueTask<Unit> Handle(DeleteClubCommand request, CancellationToken cancellationToken)
@@ -60,11 +60,8 @@ namespace RFFM.Api.Features.Coaches.Clubs.Commands
             // Eliminar la imagen del club si existe
             if (!string.IsNullOrEmpty(club.ShieldUrl))
             {
-                var containerClient = _blobServiceClient.GetBlobContainerClient(ClubConstants.ClubsContainerName);
-                var blobName = Path.GetFileName(new Uri(club.ShieldUrl).LocalPath);
-                var blobClient = containerClient.GetBlobClient(blobName);
-
-                await blobClient.DeleteIfExistsAsync(cancellationToken: cancellationToken);
+                var filePath = Path.GetFileName(new Uri(club.ShieldUrl).LocalPath);
+                await _storageService.DeleteAsync(ClubConstants.ClubsContainerName, filePath, cancellationToken);
             }
 
             // Eliminar el registro del club

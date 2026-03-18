@@ -1,54 +1,35 @@
-name: Build and push image to Azure Container Registry
+name: CD - ExtractionApi Deploy to ACR
 
 on:
-  push:
+  workflow_run:
+    workflows: [ "CI - ExtractionApi" ]
     branches: [ main ]
-    paths:
-      - 'Back/ExtractionApi/src/**'
-      - 'Back/ExtractionApi/Dockerfile'
-      - '.github/workflows/back-azure-acr-deploy.yml'
-  pull_request:
-    branches: [ main ]
+    types: [ completed ]
   workflow_dispatch:
 
 env:
   ACR_REPOSITORY: rffm-api
-  DOTNET_VERSION: '9.0.x'
   WORKING_DIRECTORY: ./Back/ExtractionApi
 
 jobs:
-  build-and-test:
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup .NET 9
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
-
-      - name: Restore dependencies
-        working-directory: ${{ env.WORKING_DIRECTORY }}
-        run: dotnet restore src/RFFM.Host/RFFM.Host.csproj
-
-      - name: Build
-        working-directory: ${{ env.WORKING_DIRECTORY }}
-        run: dotnet build src/RFFM.Host/RFFM.Host.csproj --configuration Release --no-restore
-
-      - name: Run tests
-        working-directory: ${{ env.WORKING_DIRECTORY }}
-        run: dotnet test --no-build --verbosity normal --configuration Release || echo "No tests found"
-
   build-and-push-acr:
-    needs: build-and-test
     runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Set commit SHA
+        id: commit
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_run" ]; then
+            echo "sha=${{ github.event.workflow_run.head_sha }}" >> $GITHUB_OUTPUT
+          else
+            echo "sha=${{ github.sha }}" >> $GITHUB_OUTPUT
+          fi
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -69,7 +50,7 @@ jobs:
             type=ref,event=branch
             type=sha,prefix={{branch}}-
             type=raw,value=latest,enable={{is_default_branch}}
-            type=raw,value=${{ github.sha }}
+            type=raw,value=${{ steps.commit.outputs.sha }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
@@ -86,19 +67,19 @@ jobs:
 
       - name: Output pushed images
         run: |
-          echo "? Successfully pushed images:"
+          echo "✅ Successfully pushed images:"
           echo "${{ steps.meta.outputs.tags }}"
           echo ""
-          echo "?? Image digest: ${{ steps.meta.outputs.digest }}"
+          echo "🔍 Image digest: ${{ steps.meta.outputs.digest }}"
           echo ""
-          echo "?? Primary image:"
-          echo "${{ secrets.ACR_LOGIN_SERVER }}/${{ env.ACR_REPOSITORY }}:${{ github.sha }}"
+          echo "🚀 Primary image:"
+          echo "${{ secrets.ACR_LOGIN_SERVER }}/${{ env.ACR_REPOSITORY }}:${{ steps.commit.outputs.sha }}"
 
       - name: Create deployment artifact
         run: |
-          echo "Image: ${{ secrets.ACR_LOGIN_SERVER }}/${{ env.ACR_REPOSITORY }}:${{ github.sha }}" > deployment-info.txt
+          echo "Image: ${{ secrets.ACR_LOGIN_SERVER }}/${{ env.ACR_REPOSITORY }}:${{ steps.commit.outputs.sha }}" > deployment-info.txt
           echo "Branch: ${{ github.ref_name }}" >> deployment-info.txt
-          echo "Commit: ${{ github.sha }}" >> deployment-info.txt
+          echo "Commit: ${{ steps.commit.outputs.sha }}" >> deployment-info.txt
           echo "Build Date: $(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> deployment-info.txt
 
       - name: Upload deployment artifact
@@ -112,7 +93,7 @@ jobs:
 # Repository Secrets Required:
 # ============================
 # Add the following secrets in GitHub (Settings -> Secrets and variables -> Actions):
-# 
+#
 # 1. ACR_LOGIN_SERVER
 #    Example: rffmregistry-beg6cuaaa6ase9fk.azurecr.io
 #    Location: Azure Portal -> Container Registry -> Overview -> Login server
@@ -123,7 +104,7 @@ jobs:
 #
 # 3. ACR_PASSWORD
 #    Location: Azure Portal -> Container Registry -> Access keys -> Password
-#    ?? IMPORTANT: Enable "Admin user" in Access keys first
+#    ⚠️ IMPORTANT: Enable "Admin user" in Access keys first
 #
 # Azure Web App Configuration:
 # ===========================
@@ -146,7 +127,7 @@ jobs:
 # - Jwt__Audience
 # - Authentication__FrontendSecret
 # - ConnectionStrings__CatalogConnection
-# - ConnectionStrings__FederationConnection 
+# - ConnectionStrings__FederationConnection
 # - ConnectionStrings__AzureBlobStorage
 # - FrontUrlBase
 # - Cors__AllowedOrigins__0

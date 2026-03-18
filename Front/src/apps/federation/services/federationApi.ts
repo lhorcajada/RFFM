@@ -113,7 +113,7 @@ export { settingsService };
 const _settingsCache = new Map<string, any>();
 const _settingsInFlight = new Map<string, Promise<any>>();
 
-export const getSettingsForUser = (userId?: string) => {
+export const getSettingsForUser = (userId?: string, signal?: AbortSignal) => {
   const key = userId || "__anonymous__";
 
   if (_settingsCache.has(key)) {
@@ -125,7 +125,7 @@ export const getSettingsForUser = (userId?: string) => {
   }
 
   const p = settingsService
-    .getSettingsForUser(userId)
+    .getSettingsForUser(userId, signal)
     .then((res: any) => {
       _settingsCache.set(key, res);
       _settingsInFlight.delete(key);

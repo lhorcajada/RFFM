@@ -5,6 +5,7 @@ import { Paper, Typography, List, ListItem, Avatar } from "@mui/material";
 import MilitaryTechIcon from "@mui/icons-material/MilitaryTech";
 import SportsSoccerIcon from "@mui/icons-material/SportsSoccer";
 import PlayerNameButton from "../../players/PlayerNameButton/PlayerNameButton";
+import AvatarWithUrl from "../../../../../shared/components/ui/AvatarWithUrl/AvatarWithUrl";
 
 export default function Lineup({
   title,
@@ -37,7 +38,7 @@ export default function Lineup({
               {p.dorsal ? (
                 <div className={styles.jersey}>{p.dorsal}</div>
               ) : (
-                <Avatar src={p.foto} />
+                <AvatarWithUrl url={p.foto} />
               )}
               <div className={styles.info}>
                 <div className={styles.nameRow}>
@@ -112,7 +113,7 @@ export default function Lineup({
                 {p.dorsal ? (
                   <div className={styles.jersey}>{p.dorsal}</div>
                 ) : (
-                  <Avatar src={p.foto} />
+                  <AvatarWithUrl url={p.foto} />
                 )}
                 <div className={styles.info}>
                   <div className={styles.nameRow}>

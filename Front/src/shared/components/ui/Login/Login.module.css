@@ -20,6 +20,10 @@
   margin-bottom: 12px;
 }
 
+.title h1 {
+  color: #ffffff !important;
+}
+
 .alert {
   margin-bottom: 16px;
 }

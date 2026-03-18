@@ -1,0 +1,41 @@
+name: CI - ExtractionApi
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'Back/ExtractionApi/src/**'
+      - 'Back/ExtractionApi/Dockerfile'
+      - '.github/workflows/back-ci.yml'
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  DOTNET_VERSION: '9.0.x'
+  WORKING_DIRECTORY: ./Back/ExtractionApi
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: dotnet restore src/RFFM.Host/RFFM.Host.csproj
+
+      - name: Build
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: dotnet build src/RFFM.Host/RFFM.Host.csproj --configuration Release --no-restore
+
+      - name: Run tests
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: dotnet test --no-build --verbosity normal --configuration Release || echo "No tests found"

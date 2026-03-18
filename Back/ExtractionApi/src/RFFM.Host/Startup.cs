@@ -4,7 +4,7 @@ using RFFM.Api.DependencyInjection;
 using RFFM.Host.DependencyInjection;
 using System.Data.Common;
 using System.Security.Claims;
-using Microsoft.Data.SqlClient;
+using Npgsql;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -33,7 +33,7 @@ namespace RFFM.Host
             var catalogConn = _configuration.GetConnectionString("CatalogConnection");
             if (!string.IsNullOrWhiteSpace(catalogConn))
             {
-                services.AddScoped<DbConnection>(_ => new SqlConnection(catalogConn));
+                services.AddScoped<DbConnection>(_ => new NpgsqlConnection(catalogConn));
 
                 // Register EF DbContexts that depend on the DbConnection
                 services.AddDbContext<AppDbContext>();
@@ -41,15 +41,14 @@ namespace RFFM.Host
 
                 // Register IdentityDbContext using the same connection with retry policy
                 services.AddDbContext<IdentityDbContext>(options =>
-                    options.UseSqlServer(catalogConn, sqlServerOptions =>
+                    options.UseNpgsql(catalogConn, npgsqlOptions =>
                     {
-                        // Habilitar retry automático en caso de fallos transitorios
-                        sqlServerOptions.EnableRetryOnFailure(
+                        npgsqlOptions.EnableRetryOnFailure(
                             maxRetryCount: 5,
                             maxRetryDelay: TimeSpan.FromSeconds(30),
-                            errorNumbersToAdd: null
+                            errorCodesToAdd: null
                         );
-                        sqlServerOptions.CommandTimeout(60);
+                        npgsqlOptions.CommandTimeout(60);
                     }));
 
                 // Identity

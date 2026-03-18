@@ -118,9 +118,10 @@ namespace RFFM.Api.Domain.Services
                     CodeMessages.LoginEmptyUserOrPass.Code);
             }
 
-            // Buscar usuario en la base de datos
+            // Buscar usuario en la base de datos (NormalizedUserName para comparación case-insensitive)
+            var normalizedUsername = username.ToUpperInvariant();
             var user = await _applicationDbContext.Users
-                .FirstOrDefaultAsync(uc => uc.UserName == username, cancellationToken);
+                .FirstOrDefaultAsync(uc => uc.NormalizedUserName == normalizedUsername, cancellationToken);
 
             if (user == null)
             {

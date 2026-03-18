@@ -104,7 +104,7 @@ client.interceptors.response.use(
       // ignore interceptor errors
     }
     return Promise.reject(error);
-  }
+  },
 );
 
 export default client;
@@ -113,6 +113,15 @@ export default client;
 client.interceptors.request.use(
   (config) => {
     try {
+      // Avoid double /api prefix when VITE_API_BASE_URL is set to "/api" and
+      // requests already start with "/api".
+      const base = (config.baseURL ?? "").toString();
+      if (base.endsWith("/api") || base.endsWith("/api/")) {
+        if (typeof config.url === "string" && config.url.startsWith("/api/")) {
+          config.url = config.url.replace(/^\/api/, "");
+        }
+      }
+
       if (typeof window !== "undefined") {
         const token = localStorage.getItem("coachAuthToken");
         if (token) {
@@ -137,5 +146,5 @@ client.interceptors.request.use(
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );

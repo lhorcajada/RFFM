@@ -1,4 +1,4 @@
-﻿using Azure.Storage.Blobs;
+﻿using RFFM.Api.Infrastructure.Storage;
 using FluentValidation;
 using Hellang.Middleware.ProblemDetails;
 using Jose;
@@ -60,7 +60,7 @@ namespace RFFM.Api.DependencyInjection
             if (!string.IsNullOrWhiteSpace(identityConn))
             {
                 services.AddDbContext<IdentityDbContext>(options =>
-                    options.UseSqlServer(identityConn));
+                    options.UseNpgsql(identityConn));
             }
 
             // Register AppDbContext using CatalogConnection (required)
@@ -72,14 +72,14 @@ namespace RFFM.Api.DependencyInjection
 
             services.AddDbContext<AppDbContext>(options =>
             {
-                options.UseSqlServer(catalogConn, sqlServerOptions =>
+                options.UseNpgsql(catalogConn, npgsqlOptions =>
                 {
-                    sqlServerOptions.EnableRetryOnFailure(
+                    npgsqlOptions.EnableRetryOnFailure(
                         maxRetryCount: 5,
                         maxRetryDelay: TimeSpan.FromSeconds(30),
-                        errorNumbersToAdd: null);
+                        errorCodesToAdd: null);
 
-                    sqlServerOptions.CommandTimeout(60);
+                    npgsqlOptions.CommandTimeout(60);
                 });
 
                 options.ConfigureWarnings(warnings => warnings.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
@@ -104,13 +104,21 @@ namespace RFFM.Api.DependencyInjection
             services.AddScoped<IActaService, ActaService>();
             services.AddScoped<IPlayerService, PlayerService>();
 
-            // Register Coaches PlayerService implementation and BlobServiceClient used by it
-            var azureBlobConn = configuration.GetConnectionString("AzureBlobStorage") ?? configuration["AzureBlobStorage"];
-            if (!string.IsNullOrWhiteSpace(azureBlobConn))
+            // Register Supabase client and storage service
+            // Set "Storage:UseLocal": true in appsettings.Development.json to force local storage
+            var useLocalStorage = configuration.GetValue<bool>("Storage:UseLocal");
+            var supabaseUrl = configuration["Supabase:Url"];
+            var supabaseKey = configuration["Supabase:ServiceKey"];
+            if (!useLocalStorage && !string.IsNullOrWhiteSpace(supabaseUrl) && !string.IsNullOrWhiteSpace(supabaseKey))
             {
-                services.AddSingleton(sp => new BlobServiceClient(azureBlobConn));
-                services.AddScoped<RFFM.Api.Features.Coaches.Players.Services.IPlayerService, RFFM.Api.Features.Coaches.Players.Services.PlayerService>();
+                services.AddSingleton(new Supabase.Client(supabaseUrl, supabaseKey));
+                services.AddScoped<IStorageService, SupabaseStorageService>();
             }
+            else
+            {
+                services.AddScoped<IStorageService, LocalStorageService>();
+            }
+            services.AddScoped<RFFM.Api.Features.Coaches.Players.Services.IPlayerService, RFFM.Api.Features.Coaches.Players.Services.PlayerService>();
 
             services.AddScoped<ICompetitionService, CompetitionService>();
             services.AddScoped<ITeamService, TeamService>();

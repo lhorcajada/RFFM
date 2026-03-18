@@ -1,11 +1,11 @@
-﻿using Azure.Storage.Blobs;
-using FluentValidation;
+﻿using FluentValidation;
 using Mediator;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using RFFM.Api.FeatureModules;
+using RFFM.Api.Infrastructure.Storage;
 
 namespace RFFM.Api.Features.Coaches.Players.Commands
 {
@@ -40,33 +40,25 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
 
     public class UploadPlayerPhotoHandler : IRequestHandler<UploadPlayerPhotoCommand, UploadPlayerPhotoResult>
     {
-        private readonly BlobServiceClient _blobServiceClient;
+        private readonly IStorageService _storageService;
 
-        public UploadPlayerPhotoHandler(BlobServiceClient blobServiceClient)
+        public UploadPlayerPhotoHandler(IStorageService storageService)
         {
-            _blobServiceClient = blobServiceClient;
+            _storageService = storageService;
         }
 
         public async ValueTask<UploadPlayerPhotoResult> Handle(UploadPlayerPhotoCommand request, CancellationToken cancellationToken)
         {
-            
             if (request.File == null || request.File.Length == 0)
                 throw new ArgumentException("File is invalid.");
 
-            var containerClient = _blobServiceClient.GetBlobContainerClient(PlayerConstants.PlayersContainerName);
-
-            await containerClient.CreateIfNotExistsAsync(cancellationToken: cancellationToken);
-
             var fileName = Guid.NewGuid() + Path.GetExtension(request.File.FileName);
 
-            var blobClient = containerClient.GetBlobClient(fileName);
-
-            await using var stream = request.File.OpenReadStream();
-            await blobClient.UploadAsync(stream, cancellationToken);
+            var url = await _storageService.UploadAsync(PlayerConstants.PlayersContainerName, fileName, request.File, cancellationToken);
 
             return new UploadPlayerPhotoResult
             {
-                Url = blobClient.Uri.ToString()
+                Url = url
             };
         }
     }

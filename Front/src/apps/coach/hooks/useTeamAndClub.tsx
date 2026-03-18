@@ -4,12 +4,13 @@ import teamService, { TeamResponse } from "../services/teamService";
 import clubService from "../services/clubService";
 import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
+import { fetchImage } from "../../../shared/services/imageService";
 
 export default function useTeamAndClub() {
   const location = useLocation();
   const [team, setTeam] = useState<TeamResponse | null>(null);
   const [teamTitleNode, setTeamTitleNode] = useState<React.ReactNode | null>(
-    null
+    null,
   );
   const [clubSubtitleNode, setClubSubtitleNode] =
     useState<React.ReactNode | null>(null);
@@ -65,10 +66,10 @@ export default function useTeamAndClub() {
               imgSrc = url;
               createdObjUrls.push(url);
             } else if (t.club.shieldUrl) {
-              imgSrc = t.club.shieldUrl;
+              imgSrc = await fetchImage(t.club.shieldUrl);
             }
           } catch (e) {
-            if (t.club.shieldUrl) imgSrc = t.club.shieldUrl;
+            if (t.club.shieldUrl) imgSrc = await fetchImage(t.club.shieldUrl);
           }
         }
 
@@ -96,10 +97,11 @@ export default function useTeamAndClub() {
               clubShieldObj = url;
               createdObjUrls.push(url);
             } else if (t.club.shieldUrl) {
-              clubShieldObj = t.club.shieldUrl;
+              clubShieldObj = await fetchImage(t.club.shieldUrl);
             }
           } catch (e) {
-            if (t.club.shieldUrl) clubShieldObj = t.club.shieldUrl;
+            if (t.club.shieldUrl)
+              clubShieldObj = await fetchImage(t.club.shieldUrl);
           }
         }
 

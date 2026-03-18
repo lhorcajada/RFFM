@@ -43,6 +43,7 @@ function LoadingFallback() {
 export default function FederationRoutes() {
   const { user } = useUser();
   const warmedUpForUserIdRef = useRef<string | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     const userId = user?.id;
@@ -50,8 +51,25 @@ export default function FederationRoutes() {
     if (warmedUpForUserIdRef.current === userId) return;
     warmedUpForUserIdRef.current = userId;
 
-    void getSettingsForUser(userId).catch(() => {});
+    // Cancel previous request if any
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+
+    void getSettingsForUser(userId, abortControllerRef.current.signal).catch(
+      () => {},
+    );
   }, [user?.id]);
+
+  useEffect(() => {
+    return () => {
+      // Cleanup: abort any ongoing request when component unmounts
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   return (
     <Suspense fallback={<LoadingFallback />}>

@@ -1,5 +1,6 @@
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
@@ -8,7 +9,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace RFFM.Api.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialMigration : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -21,10 +22,10 @@ namespace RFFM.Api.Infrastructure.Migrations
                 schema: "app",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: false),
-                    Points = table.Column<int>(type: "int", nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Name = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
+                    Points = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -32,17 +33,33 @@ namespace RFFM.Api.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "CategoryGroups",
+                name: "Categories",
                 schema: "app",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Name = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_CategoryGroups", x => x.Id);
+                    table.PrimaryKey("PK_Categories", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ConfigurationCoach",
+                schema: "app",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    CoachId = table.Column<string>(type: "text", nullable: false),
+                    PreferredClubId = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    PreferredTeamId = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ConfigurationCoach", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -50,9 +67,9 @@ namespace RFFM.Api.Infrastructure.Migrations
                 schema: "app",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Name = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -64,10 +81,10 @@ namespace RFFM.Api.Infrastructure.Migrations
                 schema: "app",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    Code = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    Code = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -79,9 +96,9 @@ namespace RFFM.Api.Infrastructure.Migrations
                 schema: "app",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Name = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -89,14 +106,29 @@ namespace RFFM.Api.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "ExcuseTypes",
+                schema: "app",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Justified = table.Column<bool>(type: "boolean", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ExcuseTypes", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Memberships",
                 schema: "app",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Key = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Key = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -104,21 +136,23 @@ namespace RFFM.Api.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Players",
+                name: "PaymentPlans",
                 schema: "app",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
-                    LastName = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: true),
-                    UrlPhoto = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    Alias = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    BirthDate = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    Dni = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    Description = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    PriceCents = table.Column<int>(type: "integer", nullable: false),
+                    BillingPeriod = table.Column<int>(type: "integer", nullable: false),
+                    AllowedClubs = table.Column<int>(type: "integer", nullable: false),
+                    AllowedTeams = table.Column<int>(type: "integer", nullable: false),
+                    AllowedUsers = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Players", x => x.Id);
+                    table.PrimaryKey("PK_PaymentPlans", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -126,9 +160,9 @@ namespace RFFM.Api.Infrastructure.Migrations
                 schema: "app",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(250)", maxLength: 250, nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Name = table.Column<string>(type: "character varying(250)", maxLength: 250, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -140,9 +174,9 @@ namespace RFFM.Api.Infrastructure.Migrations
                 schema: "app",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -150,13 +184,27 @@ namespace RFFM.Api.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Rivals",
+                schema: "app",
+                columns: table => new
+                {
+                    Id = table.Column<string>(type: "text", nullable: false),
+                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    UrlPhoto = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Rivals", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Seasons",
                 schema: "app",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false)
+                    Id = table.Column<string>(type: "text", nullable: false),
+                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -168,9 +216,9 @@ namespace RFFM.Api.Infrastructure.Migrations
                 schema: "app",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Name = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -182,9 +230,9 @@ namespace RFFM.Api.Infrastructure.Migrations
                 schema: "app",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -196,24 +244,24 @@ namespace RFFM.Api.Infrastructure.Migrations
                 schema: "app",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: false),
-                    PlayersNumber = table.Column<int>(type: "int", nullable: false),
-                    GoalPeekersNumber = table.Column<int>(type: "int", nullable: false),
-                    DurationTotal = table.Column<int>(type: "int", nullable: false),
-                    FieldSpace = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Points = table.Column<int>(type: "int", nullable: false),
-                    UrlImage = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    Discriminator = table.Column<string>(type: "nvarchar(13)", maxLength: 13, nullable: false),
-                    Series = table.Column<int>(type: "int", nullable: true),
-                    DurationSeries = table.Column<int>(type: "int", nullable: true),
-                    RestSeries = table.Column<int>(type: "int", nullable: true),
-                    Time = table.Column<TimeSpan>(type: "time", nullable: true),
-                    TouchesNumber = table.Column<int>(type: "int", nullable: true),
-                    WildCards = table.Column<int>(type: "int", nullable: true),
-                    TechnicalTaskTraining_TouchesNumber = table.Column<int>(type: "int", nullable: true),
-                    TechnicalTaskTraining_WildCards = table.Column<int>(type: "int", nullable: true)
+                    Id = table.Column<string>(type: "text", nullable: false),
+                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    Description = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: false),
+                    PlayersNumber = table.Column<int>(type: "integer", nullable: false),
+                    GoalPeekersNumber = table.Column<int>(type: "integer", nullable: false),
+                    DurationTotal = table.Column<int>(type: "integer", nullable: false),
+                    FieldSpace = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Points = table.Column<int>(type: "integer", nullable: false),
+                    UrlImage = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    Discriminator = table.Column<string>(type: "character varying(13)", maxLength: 13, nullable: false),
+                    Series = table.Column<int>(type: "integer", nullable: true),
+                    DurationSeries = table.Column<int>(type: "integer", nullable: true),
+                    RestSeries = table.Column<int>(type: "integer", nullable: true),
+                    Time = table.Column<TimeSpan>(type: "interval", nullable: true),
+                    TouchesNumber = table.Column<int>(type: "integer", nullable: true),
+                    WildCards = table.Column<int>(type: "integer", nullable: true),
+                    TechnicalTaskTraining_TouchesNumber = table.Column<int>(type: "integer", nullable: true),
+                    TechnicalTaskTraining_WildCards = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -225,9 +273,9 @@ namespace RFFM.Api.Infrastructure.Migrations
                 schema: "app",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -239,9 +287,9 @@ namespace RFFM.Api.Infrastructure.Migrations
                 schema: "app",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -249,23 +297,23 @@ namespace RFFM.Api.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Categories",
+                name: "Leagues",
                 schema: "app",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
-                    CategoryGroupId = table.Column<int>(type: "int", nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Name = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    CategoryId = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Categories", x => x.Id);
+                    table.PrimaryKey("PK_Leagues", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Categories_CategoryGroups_CategoryGroupId",
-                        column: x => x.CategoryGroupId,
+                        name: "FK_Leagues_Categories_CategoryId",
+                        column: x => x.CategoryId,
                         principalSchema: "app",
-                        principalTable: "CategoryGroups",
+                        principalTable: "Categories",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -275,11 +323,11 @@ namespace RFFM.Api.Infrastructure.Migrations
                 schema: "app",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    CountryId = table.Column<int>(type: "int", nullable: false),
-                    ShieldUrl = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    InvitationCode = table.Column<string>(type: "nvarchar(8)", maxLength: 8, nullable: true)
+                    Id = table.Column<string>(type: "text", nullable: false),
+                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    CountryId = table.Column<int>(type: "integer", nullable: false),
+                    ShieldUrl = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    InvitationCode = table.Column<string>(type: "character varying(8)", maxLength: 8, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -294,36 +342,27 @@ namespace RFFM.Api.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "TrainingPointsReports",
+                name: "Subscriptions",
                 schema: "app",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    TotalPoints = table.Column<int>(type: "int", nullable: false),
-                    TrainingNumber = table.Column<int>(type: "int", nullable: false),
-                    AssistancePoint = table.Column<int>(type: "int", nullable: false),
-                    TecnicalPoints = table.Column<int>(type: "int", nullable: false),
-                    AttitudePoints = table.Column<int>(type: "int", nullable: false),
-                    TacticalPoints = table.Column<int>(type: "int", nullable: false),
-                    PhysicalPoints = table.Column<int>(type: "int", nullable: false),
-                    PlayerId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    SeasonId = table.Column<string>(type: "nvarchar(450)", nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    UserId = table.Column<string>(type: "character varying(450)", maxLength: 450, nullable: false),
+                    PaymentPlanId = table.Column<int>(type: "integer", nullable: false),
+                    StartDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    EndDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Status = table.Column<int>(type: "integer", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_TrainingPointsReports", x => x.Id);
+                    table.PrimaryKey("PK_Subscriptions", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_TrainingPointsReports_Players_PlayerId",
-                        column: x => x.PlayerId,
+                        name: "FK_Subscriptions_PaymentPlans_PaymentPlanId",
+                        column: x => x.PaymentPlanId,
                         principalSchema: "app",
-                        principalTable: "Players",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_TrainingPointsReports_Seasons_SeasonId",
-                        column: x => x.SeasonId,
-                        principalSchema: "app",
-                        principalTable: "Seasons",
+                        principalTable: "PaymentPlans",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -333,10 +372,10 @@ namespace RFFM.Api.Infrastructure.Migrations
                 schema: "app",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    TaskTrainingBaseId = table.Column<string>(type: "nvarchar(450)", nullable: true)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    TaskTrainingBaseId = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -354,9 +393,9 @@ namespace RFFM.Api.Infrastructure.Migrations
                 schema: "app",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
-                    TechnicalTypeId = table.Column<int>(type: "int", nullable: false)
+                    Id = table.Column<string>(type: "text", nullable: false),
+                    Name = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    TechnicalTypeId = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -371,16 +410,44 @@ namespace RFFM.Api.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Players",
+                schema: "app",
+                columns: table => new
+                {
+                    Id = table.Column<string>(type: "text", nullable: false),
+                    Name = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    LastName = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
+                    UrlPhoto = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    Alias = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    BirthDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    Dni = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
+                    ClubId = table.Column<string>(type: "text", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Players", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Players_Clubs_ClubId",
+                        column: x => x.ClubId,
+                        principalSchema: "app",
+                        principalTable: "Clubs",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Teams",
                 schema: "app",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
-                    CategoryId = table.Column<int>(type: "int", nullable: false),
-                    UrlPhoto = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    ClubId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    SeasonId = table.Column<string>(type: "nvarchar(450)", nullable: false)
+                    Id = table.Column<string>(type: "text", nullable: false),
+                    Name = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    CategoryId = table.Column<int>(type: "integer", nullable: false),
+                    LeagueId = table.Column<int>(type: "integer", nullable: true),
+                    LeagueGroup = table.Column<int>(type: "integer", nullable: true),
+                    UrlPhoto = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    ClubId = table.Column<string>(type: "text", nullable: false),
+                    SeasonId = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -400,6 +467,12 @@ namespace RFFM.Api.Infrastructure.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
+                        name: "FK_Teams_Leagues_LeagueId",
+                        column: x => x.LeagueId,
+                        principalSchema: "app",
+                        principalTable: "Leagues",
+                        principalColumn: "Id");
+                    table.ForeignKey(
                         name: "FK_Teams_Seasons_SeasonId",
                         column: x => x.SeasonId,
                         principalSchema: "app",
@@ -413,11 +486,11 @@ namespace RFFM.Api.Infrastructure.Migrations
                 schema: "app",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    ApplicationUserId = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: false),
-                    ClubId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    RoleId = table.Column<int>(type: "int", nullable: false),
-                    IsCreator = table.Column<bool>(type: "bit", nullable: false)
+                    Id = table.Column<string>(type: "text", nullable: false),
+                    ApplicationUserId = table.Column<string>(type: "character varying(450)", maxLength: 450, nullable: false),
+                    ClubId = table.Column<string>(type: "text", nullable: false),
+                    RoleId = table.Column<int>(type: "integer", nullable: false),
+                    IsCreator = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -439,39 +512,81 @@ namespace RFFM.Api.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "TrainingPointsReports",
+                schema: "app",
+                columns: table => new
+                {
+                    Id = table.Column<string>(type: "text", nullable: false),
+                    TotalPoints = table.Column<int>(type: "integer", nullable: false),
+                    TrainingNumber = table.Column<int>(type: "integer", nullable: false),
+                    AssistancePoint = table.Column<int>(type: "integer", nullable: false),
+                    TecnicalPoints = table.Column<int>(type: "integer", nullable: false),
+                    AttitudePoints = table.Column<int>(type: "integer", nullable: false),
+                    TacticalPoints = table.Column<int>(type: "integer", nullable: false),
+                    PhysicalPoints = table.Column<int>(type: "integer", nullable: false),
+                    PlayerId = table.Column<string>(type: "text", nullable: false),
+                    SeasonId = table.Column<string>(type: "text", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TrainingPointsReports", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_TrainingPointsReports_Players_PlayerId",
+                        column: x => x.PlayerId,
+                        principalSchema: "app",
+                        principalTable: "Players",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_TrainingPointsReports_Seasons_SeasonId",
+                        column: x => x.SeasonId,
+                        principalSchema: "app",
+                        principalTable: "Seasons",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "SportEvents",
                 schema: "app",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: false),
-                    EveDateTime = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    StartTime = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    EndTime = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    ArrivalDate = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    Location = table.Column<string>(type: "nvarchar(512)", maxLength: 512, nullable: true),
-                    Description = table.Column<string>(type: "nvarchar(2048)", maxLength: 2048, nullable: true),
-                    EventTypeId = table.Column<int>(type: "int", nullable: false),
-                    TeamId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    TeamId1 = table.Column<string>(type: "nvarchar(450)", nullable: true)
+                    Id = table.Column<string>(type: "text", nullable: false),
+                    Name = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
+                    EveDateTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    StartTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    EndTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    ArrivalDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    Location = table.Column<string>(type: "character varying(512)", maxLength: 512, nullable: true),
+                    Description = table.Column<string>(type: "character varying(2048)", maxLength: 2048, nullable: true),
+                    EventTypeId = table.Column<int>(type: "integer", nullable: false),
+                    TeamId = table.Column<string>(type: "text", nullable: false),
+                    RivalId = table.Column<string>(type: "text", nullable: true),
+                    TeamId1 = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_SportEvents", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_SportEvents_Rivals_RivalId",
+                        column: x => x.RivalId,
+                        principalSchema: "app",
+                        principalTable: "Rivals",
+                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_SportEvents_SportEventTypes_EventTypeId",
                         column: x => x.EventTypeId,
                         principalSchema: "app",
                         principalTable: "SportEventTypes",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_SportEvents_Teams_TeamId",
                         column: x => x.TeamId,
                         principalSchema: "app",
                         principalTable: "Teams",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_SportEvents_Teams_TeamId1",
                         column: x => x.TeamId1,
@@ -485,11 +600,11 @@ namespace RFFM.Api.Infrastructure.Migrations
                 schema: "app",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    TeamId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    PlayerId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    JoinedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    LeftDate = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    Id = table.Column<string>(type: "text", nullable: false),
+                    TeamId = table.Column<string>(type: "text", nullable: false),
+                    PlayerId = table.Column<string>(type: "text", nullable: false),
+                    JoinedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    LeftDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -515,16 +630,16 @@ namespace RFFM.Api.Infrastructure.Migrations
                 schema: "app",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: false),
-                    Date = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    StartTime = table.Column<TimeSpan>(type: "time", nullable: false),
-                    EndTime = table.Column<TimeSpan>(type: "time", nullable: false),
-                    Location = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
-                    SportEventId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    TeamId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    UrlImage = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false)
+                    Id = table.Column<string>(type: "text", nullable: false),
+                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    Description = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: false),
+                    Date = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    StartTime = table.Column<TimeSpan>(type: "interval", nullable: false),
+                    EndTime = table.Column<TimeSpan>(type: "interval", nullable: true),
+                    Location = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    SportEventId = table.Column<string>(type: "text", nullable: false),
+                    TeamId = table.Column<string>(type: "text", nullable: false),
+                    UrlImage = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -550,13 +665,13 @@ namespace RFFM.Api.Infrastructure.Migrations
                 schema: "app",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    SportEventId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    TeamPlayerId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    AssistanceTypeId = table.Column<int>(type: "int", nullable: false),
-                    ResponseDateTime = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    ConvocationStatusId = table.Column<int>(type: "int", nullable: false),
-                    CreatedBy = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: false)
+                    Id = table.Column<string>(type: "text", nullable: false),
+                    SportEventId = table.Column<string>(type: "text", nullable: false),
+                    TeamPlayerId = table.Column<string>(type: "text", nullable: false),
+                    AssistanceTypeId = table.Column<int>(type: "integer", nullable: false),
+                    ResponseDateTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    ConvocationStatusId = table.Column<int>(type: "integer", nullable: true),
+                    ExcuseTypeId = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -573,8 +688,13 @@ namespace RFFM.Api.Infrastructure.Migrations
                         column: x => x.ConvocationStatusId,
                         principalSchema: "app",
                         principalTable: "ConvocationStatuses",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Convocations_ExcuseTypes_ExcuseTypeId",
+                        column: x => x.ExcuseTypeId,
+                        principalSchema: "app",
+                        principalTable: "ExcuseTypes",
+                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_Convocations_SportEvents_SportEventId",
                         column: x => x.SportEventId,
@@ -592,13 +712,132 @@ namespace RFFM.Api.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "TeamPlayerContactInfos",
+                schema: "app",
+                columns: table => new
+                {
+                    TeamPlayerId = table.Column<string>(type: "text", nullable: false),
+                    Address_Street = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    Address_City = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    Address_Province = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    Address_PostalCode = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
+                    Address_Country = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    Phone = table.Column<string>(type: "character varying(15)", maxLength: 15, nullable: true),
+                    Email = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TeamPlayerContactInfos", x => x.TeamPlayerId);
+                    table.ForeignKey(
+                        name: "FK_TeamPlayerContactInfos_TeamPlayers_TeamPlayerId",
+                        column: x => x.TeamPlayerId,
+                        principalSchema: "app",
+                        principalTable: "TeamPlayers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "TeamPlayerDemarcations",
+                schema: "app",
+                columns: table => new
+                {
+                    TeamPlayerId = table.Column<string>(type: "text", nullable: false),
+                    PossibleDemarcationIds = table.Column<string>(type: "text", nullable: true),
+                    ActivePositionId = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TeamPlayerDemarcations", x => x.TeamPlayerId);
+                    table.ForeignKey(
+                        name: "FK_TeamPlayerDemarcations_TeamPlayers_TeamPlayerId",
+                        column: x => x.TeamPlayerId,
+                        principalSchema: "app",
+                        principalTable: "TeamPlayers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "TeamPlayerDorsals",
+                schema: "app",
+                columns: table => new
+                {
+                    TeamPlayerId = table.Column<string>(type: "text", nullable: false),
+                    Number = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TeamPlayerDorsals", x => x.TeamPlayerId);
+                    table.ForeignKey(
+                        name: "FK_TeamPlayerDorsals_TeamPlayers_TeamPlayerId",
+                        column: x => x.TeamPlayerId,
+                        principalSchema: "app",
+                        principalTable: "TeamPlayers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "TeamPlayerFamilies",
+                schema: "app",
+                columns: table => new
+                {
+                    Id = table.Column<string>(type: "text", nullable: false),
+                    Address_Street = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    Address_City = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    Address_Province = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    Address_PostalCode = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
+                    Address_Country = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    Address_Id = table.Column<string>(type: "text", nullable: true),
+                    Phone = table.Column<string>(type: "character varying(15)", maxLength: 15, nullable: true),
+                    Email = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    FamilyMember = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    TeamPlayerId = table.Column<string>(type: "text", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TeamPlayerFamilies", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_TeamPlayerFamilies_TeamPlayers_TeamPlayerId",
+                        column: x => x.TeamPlayerId,
+                        principalSchema: "app",
+                        principalTable: "TeamPlayers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "TeamPlayerPhysicalAttributes",
+                schema: "app",
+                columns: table => new
+                {
+                    TeamPlayerId = table.Column<string>(type: "text", nullable: false),
+                    Height = table.Column<decimal>(type: "numeric(5,2)", nullable: true),
+                    Weight = table.Column<decimal>(type: "numeric(5,2)", nullable: true),
+                    DominantFoot = table.Column<int>(type: "integer", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TeamPlayerPhysicalAttributes", x => x.TeamPlayerId);
+                    table.ForeignKey(
+                        name: "FK_TeamPlayerPhysicalAttributes_TeamPlayers_TeamPlayerId",
+                        column: x => x.TeamPlayerId,
+                        principalSchema: "app",
+                        principalTable: "TeamPlayers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "TaskTrainings",
                 schema: "app",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    Order = table.Column<int>(type: "int", nullable: false),
-                    SessionTrainingId = table.Column<string>(type: "nvarchar(450)", nullable: false)
+                    Id = table.Column<string>(type: "text", nullable: false),
+                    Order = table.Column<int>(type: "integer", nullable: false),
+                    SessionTrainingId = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -624,12 +863,12 @@ namespace RFFM.Api.Infrastructure.Migrations
                 schema: "app",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    ConvocationId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    UserId = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    ChangeDateTime = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    OldStatusId = table.Column<int>(type: "int", nullable: true),
-                    NewStatusId = table.Column<int>(type: "int", nullable: false)
+                    Id = table.Column<string>(type: "text", nullable: false),
+                    ConvocationId = table.Column<string>(type: "text", nullable: false),
+                    UserId = table.Column<string>(type: "text", nullable: false),
+                    ChangeDateTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    OldStatusId = table.Column<int>(type: "integer", nullable: true),
+                    NewStatusId = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -652,12 +891,14 @@ namespace RFFM.Api.Infrastructure.Migrations
                     { 1, "Asiste", 5 },
                     { 2, "No asiste con excusa", 0 },
                     { 3, "No asiste sin excusa", 0 },
-                    { 4, "Llega tarde", 2 }
+                    { 4, "Llega tarde", 2 },
+                    { 5, "Disponible", 0 },
+                    { 6, "No disponible", 0 }
                 });
 
             migrationBuilder.InsertData(
                 schema: "app",
-                table: "CategoryGroups",
+                table: "Categories",
                 columns: new[] { "Id", "Name" },
                 values: new object[,]
                 {
@@ -904,6 +1145,20 @@ namespace RFFM.Api.Infrastructure.Migrations
 
             migrationBuilder.InsertData(
                 schema: "app",
+                table: "ExcuseTypes",
+                columns: new[] { "Id", "Justified", "Name" },
+                values: new object[,]
+                {
+                    { 1, true, "Injury" },
+                    { 2, true, "Study" },
+                    { 3, true, "Ill" },
+                    { 4, true, "Family Problem" },
+                    { 5, false, "Family Event" },
+                    { 6, false, "Birthday Event" }
+                });
+
+            migrationBuilder.InsertData(
+                schema: "app",
                 table: "Materials",
                 columns: new[] { "Id", "Name", "TaskTrainingBaseId" },
                 values: new object[,]
@@ -916,6 +1171,20 @@ namespace RFFM.Api.Infrastructure.Migrations
                     { 6, "Vallas", null },
                     { 7, "Setas", null },
                     { 8, "Ninguno", null }
+                });
+
+            migrationBuilder.InsertData(
+                schema: "app",
+                table: "Memberships",
+                columns: new[] { "Id", "Key", "Name" },
+                values: new object[,]
+                {
+                    { 1, "Directive", "Directive" },
+                    { 2, "Coach", "Coach" },
+                    { 3, "ClubMember", "Club member" },
+                    { 4, "Player", "Player" },
+                    { 5, "FamilyPlayer", "FamilyMembers player" },
+                    { 6, "Follower", "Follower" }
                 });
 
             migrationBuilder.InsertData(
@@ -949,9 +1218,10 @@ namespace RFFM.Api.Infrastructure.Migrations
                 columns: new[] { "Id", "Name" },
                 values: new object[,]
                 {
-                    { 1, "Match" },
-                    { 2, "Training" },
-                    { 3, "Meeting" }
+                    { 1, "Partido" },
+                    { 2, "Entrenamiento" },
+                    { 3, "Reunión" },
+                    { 4, "Amistoso" }
                 });
 
             migrationBuilder.InsertData(
@@ -1020,8 +1290,8 @@ namespace RFFM.Api.Infrastructure.Migrations
 
             migrationBuilder.InsertData(
                 schema: "app",
-                table: "Categories",
-                columns: new[] { "Id", "CategoryGroupId", "Name" },
+                table: "Leagues",
+                columns: new[] { "Id", "CategoryId", "Name" },
                 values: new object[,]
                 {
                     { 1, 1, "COPA RFEF FASE AUTONÓMICA" },
@@ -1077,16 +1347,17 @@ namespace RFFM.Api.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_Categories_CategoryGroupId",
-                schema: "app",
-                table: "Categories",
-                column: "CategoryGroupId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_Clubs_CountryId",
                 schema: "app",
                 table: "Clubs",
                 column: "CountryId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ConfigurationCoach_CoachId",
+                schema: "app",
+                table: "ConfigurationCoach",
+                column: "CoachId",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_ConvocationHistories_ConvocationId",
@@ -1107,6 +1378,12 @@ namespace RFFM.Api.Infrastructure.Migrations
                 column: "ConvocationStatusId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Convocations_ExcuseTypeId",
+                schema: "app",
+                table: "Convocations",
+                column: "ExcuseTypeId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Convocations_SportEventId",
                 schema: "app",
                 table: "Convocations",
@@ -1119,10 +1396,42 @@ namespace RFFM.Api.Infrastructure.Migrations
                 column: "TeamPlayerId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Leagues_CategoryId",
+                schema: "app",
+                table: "Leagues",
+                column: "CategoryId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Materials_TaskTrainingBaseId",
                 schema: "app",
                 table: "Materials",
                 column: "TaskTrainingBaseId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PaymentPlans_Name",
+                schema: "app",
+                table: "PaymentPlans",
+                column: "Name");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Players_Alias",
+                schema: "app",
+                table: "Players",
+                column: "Alias",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Players_ClubId",
+                schema: "app",
+                table: "Players",
+                column: "ClubId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Players_Id",
+                schema: "app",
+                table: "Players",
+                column: "Id",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_SessionTrainings_SportEventId",
@@ -1143,6 +1452,12 @@ namespace RFFM.Api.Infrastructure.Migrations
                 column: "EventTypeId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_SportEvents_RivalId",
+                schema: "app",
+                table: "SportEvents",
+                column: "RivalId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_SportEvents_TeamId",
                 schema: "app",
                 table: "SportEvents",
@@ -1155,10 +1470,28 @@ namespace RFFM.Api.Infrastructure.Migrations
                 column: "TeamId1");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Subscriptions_PaymentPlanId",
+                schema: "app",
+                table: "Subscriptions",
+                column: "PaymentPlanId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Subscriptions_UserId",
+                schema: "app",
+                table: "Subscriptions",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_TaskTrainings_SessionTrainingId",
                 schema: "app",
                 table: "TaskTrainings",
                 column: "SessionTrainingId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TeamPlayerFamilies_TeamPlayerId",
+                schema: "app",
+                table: "TeamPlayerFamilies",
+                column: "TeamPlayerId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_TeamPlayers_PlayerId",
@@ -1183,6 +1516,12 @@ namespace RFFM.Api.Infrastructure.Migrations
                 schema: "app",
                 table: "Teams",
                 column: "ClubId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Teams_LeagueId",
+                schema: "app",
+                table: "Teams",
+                column: "LeagueId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Teams_SeasonId",
@@ -1225,6 +1564,10 @@ namespace RFFM.Api.Infrastructure.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
+                name: "ConfigurationCoach",
+                schema: "app");
+
+            migrationBuilder.DropTable(
                 name: "ConvocationHistories",
                 schema: "app");
 
@@ -1245,11 +1588,35 @@ namespace RFFM.Api.Infrastructure.Migrations
                 schema: "app");
 
             migrationBuilder.DropTable(
+                name: "Subscriptions",
+                schema: "app");
+
+            migrationBuilder.DropTable(
                 name: "TacticalGoals",
                 schema: "app");
 
             migrationBuilder.DropTable(
                 name: "TaskTrainings",
+                schema: "app");
+
+            migrationBuilder.DropTable(
+                name: "TeamPlayerContactInfos",
+                schema: "app");
+
+            migrationBuilder.DropTable(
+                name: "TeamPlayerDemarcations",
+                schema: "app");
+
+            migrationBuilder.DropTable(
+                name: "TeamPlayerDorsals",
+                schema: "app");
+
+            migrationBuilder.DropTable(
+                name: "TeamPlayerFamilies",
+                schema: "app");
+
+            migrationBuilder.DropTable(
+                name: "TeamPlayerPhysicalAttributes",
                 schema: "app");
 
             migrationBuilder.DropTable(
@@ -1270,6 +1637,10 @@ namespace RFFM.Api.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "Convocations",
+                schema: "app");
+
+            migrationBuilder.DropTable(
+                name: "PaymentPlans",
                 schema: "app");
 
             migrationBuilder.DropTable(
@@ -1297,6 +1668,10 @@ namespace RFFM.Api.Infrastructure.Migrations
                 schema: "app");
 
             migrationBuilder.DropTable(
+                name: "ExcuseTypes",
+                schema: "app");
+
+            migrationBuilder.DropTable(
                 name: "TeamPlayers",
                 schema: "app");
 
@@ -1309,6 +1684,10 @@ namespace RFFM.Api.Infrastructure.Migrations
                 schema: "app");
 
             migrationBuilder.DropTable(
+                name: "Rivals",
+                schema: "app");
+
+            migrationBuilder.DropTable(
                 name: "SportEventTypes",
                 schema: "app");
 
@@ -1317,11 +1696,11 @@ namespace RFFM.Api.Infrastructure.Migrations
                 schema: "app");
 
             migrationBuilder.DropTable(
-                name: "Categories",
+                name: "Clubs",
                 schema: "app");
 
             migrationBuilder.DropTable(
-                name: "Clubs",
+                name: "Leagues",
                 schema: "app");
 
             migrationBuilder.DropTable(
@@ -1329,11 +1708,11 @@ namespace RFFM.Api.Infrastructure.Migrations
                 schema: "app");
 
             migrationBuilder.DropTable(
-                name: "CategoryGroups",
+                name: "Countries",
                 schema: "app");
 
             migrationBuilder.DropTable(
-                name: "Countries",
+                name: "Categories",
                 schema: "app");
         }
     }

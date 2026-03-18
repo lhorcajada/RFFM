@@ -1,11 +1,11 @@
-﻿using Azure.Storage.Blobs;
-using FluentValidation;
+﻿using FluentValidation;
 using Mediator;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using RFFM.Api.FeatureModules;
+using RFFM.Api.Infrastructure.Storage;
 
 namespace RFFM.Api.Features.Coaches.Players.Commands
 {
@@ -40,11 +40,11 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
 
     public class DeletePlayerPhotoHandler : IRequestHandler<DeletePlayerPhotoCommand, DeletePlayerPhotoResult>
     {
-        private readonly BlobServiceClient _blobServiceClient;
+        private readonly IStorageService _storageService;
 
-        public DeletePlayerPhotoHandler(BlobServiceClient blobServiceClient)
+        public DeletePlayerPhotoHandler(IStorageService storageService)
         {
-            _blobServiceClient = blobServiceClient;
+            _storageService = storageService;
         }
 
         public async ValueTask<DeletePlayerPhotoResult> Handle(DeletePlayerPhotoCommand request, CancellationToken cancellationToken)
@@ -52,15 +52,11 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
             if (string.IsNullOrWhiteSpace(request.BlobName))
                 throw new ArgumentException("Blob name is invalid.");
 
-            var containerClient = _blobServiceClient.GetBlobContainerClient(PlayerConstants.PlayersContainerName);
-
-            var blobClient = containerClient.GetBlobClient(request.BlobName);
-
-            var deleteResult = await blobClient.DeleteIfExistsAsync(cancellationToken: cancellationToken);
+            var isDeleted = await _storageService.DeleteAsync(PlayerConstants.PlayersContainerName, request.BlobName, cancellationToken);
 
             return new DeletePlayerPhotoResult
             {
-                IsDeleted = deleteResult
+                IsDeleted = isDeleted
             };
         }
     }

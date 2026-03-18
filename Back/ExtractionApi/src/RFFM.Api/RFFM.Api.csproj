@@ -55,6 +55,7 @@
     <PackageReference Include="Ardalis.SmartEnum.EFCore" Version="8.2.0" />
     <PackageReference Include="MailKit" Version="4.14.1" />
     <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.0.1" />
+    <PackageReference Include="Supabase" Version="1.1.1" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.0.1" />
 
 
@@ -77,6 +78,7 @@
 
   <ItemGroup>
     <Folder Include="Features\Users\" />
+    <Folder Include="Infrastructure\Migrations\Identity\" />
     <Folder Include="Infrastructure\Persistence\Migrations\Identity\" />
   </ItemGroup>
 

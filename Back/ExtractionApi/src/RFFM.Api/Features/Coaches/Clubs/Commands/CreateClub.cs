@@ -1,4 +1,4 @@
-﻿using Azure.Storage.Blobs;
+﻿using RFFM.Api.Infrastructure.Storage;
 using FluentValidation;
 using Mediator;
 using Microsoft.AspNetCore.Builder;
@@ -67,12 +67,12 @@ namespace RFFM.Api.Features.Coaches.Clubs.Commands
     public class CreateClubHandler : IRequestHandler<CreateClubCommand, Unit>
     {
         private readonly AppDbContext _catalogDbContext;
-        private readonly BlobServiceClient _blobServiceClient;
+        private readonly IStorageService _storageService;
 
-        public CreateClubHandler(AppDbContext catalogDbContext, BlobServiceClient blobServiceClient)
+        public CreateClubHandler(AppDbContext catalogDbContext, IStorageService storageService)
         {
             _catalogDbContext = catalogDbContext;
-            _blobServiceClient = blobServiceClient;
+            _storageService = storageService;
         }
 
         public async ValueTask<Unit> Handle(CreateClubCommand request, CancellationToken cancellationToken)
@@ -88,16 +88,8 @@ namespace RFFM.Api.Features.Coaches.Clubs.Commands
 
             if (request.Emblem != null && request.Emblem.Length > 0)
             {
-                var containerClient = _blobServiceClient.GetBlobContainerClient(ClubConstants.ClubsContainerName);
-                await containerClient.CreateIfNotExistsAsync(cancellationToken: cancellationToken);
-
                 var fileName = Guid.NewGuid() + Path.GetExtension(request.Emblem.FileName);
-                var blobClient = containerClient.GetBlobClient(fileName);
-
-                await using var stream = request.Emblem.OpenReadStream();
-                await blobClient.UploadAsync(stream, cancellationToken);
-
-                emblemUrl = blobClient.Uri.ToString();
+                emblemUrl = await _storageService.UploadAsync(ClubConstants.ClubsContainerName, fileName, request.Emblem, cancellationToken);
             }
 
             var club = new Club(request.Name, country.Id);

@@ -1,4 +1,4 @@
-﻿using Microsoft.Data.SqlClient;
+﻿using Npgsql;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using RFFM.Api.Infrastructure.Persistence;
@@ -55,9 +55,9 @@ namespace RFFM.Host.DependencyInjection
                     logger.LogInformation("✓ Migrations applied successfully for {Context}", typeof(TContext).Name);
                     return; // Success, exit retry loop
                 }
-                catch (SqlException sqlEx) when (IsTransientError(sqlEx) && attempt < maxRetries)
+                catch (NpgsqlException npgsqlEx) when (npgsqlEx.IsTransient && attempt < maxRetries)
                 {
-                    logger.LogWarning(sqlEx, 
+                    logger.LogWarning(npgsqlEx, 
                         "Transient SQL error on attempt {Attempt}/{MaxRetries}. Retrying in {Delay} seconds...", 
                         attempt, maxRetries, retryDelay.TotalSeconds);
                     await Task.Delay(retryDelay);
@@ -113,42 +113,6 @@ namespace RFFM.Host.DependencyInjection
                     throw;
                 }
             }
-        }
-
-        private static bool IsTransientError(SqlException exception)
-        {
-            // Códigos de error transitorios comunes en Azure SQL
-            int[] transientErrorNumbers = new[]
-            {
-                4060,  // Cannot open database
-                40197, // Service encountered an error processing your request
-                40501, // The service is currently busy
-                40613, // Database unavailable
-                49918, // Cannot process request
-                49919, // Cannot process create or update request
-                49920, // Cannot process request
-                4221,  // Read-Only Routing
-                -2,    // Timeout
-                -1,    // Connection broken
-                2,     // Network error
-                53,    // Network path not found
-                64,    // SQL Server doesn't exist or access denied
-                233,   // Connection initialization error
-                10053, // Transport-level error
-                10054, // Connection forcibly closed
-                10060, // Network timeout
-                10061, // Connection refused
-                40143, // Connection could not be initialized
-                40540, // Service has encountered an error processing your request
-                40544, // The database has reached its size quota
-                40549, // Session is terminated because of a long-running transaction
-                40550, // Session terminated due to excessive lock acquisition
-                40551, // Session terminated due to excessive TEMPDB usage
-                40552, // Session terminated due to excessive transaction log space usage
-                40553  // Session terminated due to excessive memory usage
-            };
-
-            return transientErrorNumbers.Contains(exception.Number);
         }
 
         public static void SeedIdentityRoles(this WebApplication app)

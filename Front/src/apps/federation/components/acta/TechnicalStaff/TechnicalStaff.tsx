@@ -1,8 +1,10 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import styles from "./TechnicalStaff.module.css";
 import { Paper, Typography, List, ListItem, Avatar } from "@mui/material";
 import EmptyState from "../../../../../shared/components/ui/EmptyState/EmptyState";
 import type { Technician } from "../../../types/acta";
+import { fetchImage } from "../../../../../shared/services/imageService";
+import AvatarWithUrl from "../../../../../shared/components/ui/AvatarWithUrl/AvatarWithUrl";
 
 type Props = {
   local: Technician[];
@@ -23,13 +25,13 @@ export default function TechnicalStaff({
 }: Props) {
   const hasLocal = Boolean(
     (entrenador_local && entrenador_local !== "No presenta") ||
-      delegadolocal ||
-      (local && local.length > 0)
+    delegadolocal ||
+    (local && local.length > 0),
   );
   const hasAway = Boolean(
     (entrenador_visitante && entrenador_visitante !== "No presenta") ||
-      delegado_visitante ||
-      (away && away.length > 0)
+    delegado_visitante ||
+    (away && away.length > 0),
   );
 
   return (
@@ -71,7 +73,7 @@ export default function TechnicalStaff({
                   ? local.map((t) => (
                       <ListItem key={t.cod_tecnico} className={styles.item}>
                         <div className={styles.avatarWrap}>
-                          <Avatar src={t.foto} />
+                          <AvatarWithUrl url={t.foto} />
                         </div>
                         <div className={styles.techInfo}>
                           <div className={styles.name}>{t.nombre?.trim()}</div>
@@ -129,7 +131,7 @@ export default function TechnicalStaff({
                   ? away.map((t) => (
                       <ListItem key={t.cod_tecnico} className={styles.item}>
                         <div className={styles.avatarWrap}>
-                          <Avatar src={t.foto} />
+                          <AvatarWithUrl url={t.foto} />
                         </div>
                         <div className={styles.techInfo}>
                           <div className={styles.name}>{t.nombre?.trim()}</div>

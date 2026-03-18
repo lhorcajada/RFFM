@@ -1,4 +1,4 @@
-﻿using Azure.Storage.Blobs;
+﻿using RFFM.Api.Infrastructure.Storage;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Domain;
 using RFFM.Api.Domain.Entities.Players;
@@ -10,11 +10,12 @@ namespace RFFM.Api.Features.Coaches.Players.Services
     public class PlayerService : IPlayerService
     {
         private readonly AppDbContext _catalogDbContext;
-        private readonly BlobServiceClient _blobServiceClient;
-        public PlayerService(AppDbContext catalogDbContext, BlobServiceClient blobServiceClient)
+        private readonly IStorageService _storageService;
+
+        public PlayerService(AppDbContext catalogDbContext, IStorageService storageService)
         {
             _catalogDbContext = catalogDbContext;
-            _blobServiceClient = blobServiceClient;
+            _storageService = storageService;
         }
 
         public async Task<Player> AddPlayerClub(CreatePlayerModel request, CancellationToken cancellationToken)
@@ -28,16 +29,12 @@ namespace RFFM.Api.Features.Coaches.Players.Services
 
             if (request.PhotoFile != null && request.PhotoFile.Length > 0)
             {
-                var containerClient = _blobServiceClient.GetBlobContainerClient(PlayerConstants.PlayersContainerName);
-                await containerClient.CreateIfNotExistsAsync(cancellationToken: cancellationToken);
-
                 var fileName = Guid.NewGuid() + Path.GetExtension(request.PhotoFile.FileName);
-                var blobClient = containerClient.GetBlobClient($"{club.Id}/{fileName}");
-
-                await using var stream = request.PhotoFile.OpenReadStream();
-                await blobClient.UploadAsync(stream, cancellationToken);
-
-                urlPhoto = blobClient.Uri.ToString();
+                urlPhoto = await _storageService.UploadAsync(
+                    PlayerConstants.PlayersContainerName,
+                    $"{club.Id}/{fileName}",
+                    request.PhotoFile,
+                    cancellationToken);
             }
             var newPlayer = Player.Create(new PlayerModel
             {
