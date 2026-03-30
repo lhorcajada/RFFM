@@ -10,7 +10,7 @@ export type TeamResponse = {
     id: string;
     name: string;
     country: { id: number; name: string; code: string };
-    shieldUrl?: string | null;
+    emblemUrl?: string | null;
   };
   urlPhoto?: string | null;
 };

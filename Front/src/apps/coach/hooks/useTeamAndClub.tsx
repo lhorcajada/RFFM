@@ -65,11 +65,11 @@ export default function useTeamAndClub() {
               const url = URL.createObjectURL(blob);
               imgSrc = url;
               createdObjUrls.push(url);
-            } else if (t.club.shieldUrl) {
-              imgSrc = await fetchImage(t.club.shieldUrl);
+            } else if (t.club.emblemUrl) {
+              imgSrc = await fetchImage(t.club.emblemUrl);
             }
           } catch (e) {
-            if (t.club.shieldUrl) imgSrc = await fetchImage(t.club.shieldUrl);
+            if (t.club.emblemUrl) imgSrc = await fetchImage(t.club.emblemUrl);
           }
         }
 
@@ -96,12 +96,12 @@ export default function useTeamAndClub() {
               const url = URL.createObjectURL(blob);
               clubShieldObj = url;
               createdObjUrls.push(url);
-            } else if (t.club.shieldUrl) {
-              clubShieldObj = await fetchImage(t.club.shieldUrl);
+            } else if (t.club.emblemUrl) {
+              clubShieldObj = await fetchImage(t.club.emblemUrl);
             }
           } catch (e) {
-            if (t.club.shieldUrl)
-              clubShieldObj = await fetchImage(t.club.shieldUrl);
+            if (t.club.emblemUrl)
+              clubShieldObj = await fetchImage(t.club.emblemUrl);
           }
         }
 

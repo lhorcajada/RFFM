@@ -1,6 +1,5 @@
 .container {
   padding: 0 var(--rffm-page-h-padding, 12px) 24px;
-  margin: 0 var(--rffm-page-h-padding, 12px);
   box-sizing: border-box;
   width: auto;
   position: relative;
@@ -8,12 +7,32 @@
 
 .cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 240px));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 220px));
   gap: 12px;
   margin-top: 8px;
-  justify-content: start;
 }
 
+/* ── Action bar inner content ───────────────────────── */
+.actionBarContent {
+  display: flex;
+  width: 100%;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+
+.seasonSelectorWrap {
+  min-width: 160px;
+  flex: 0 0 auto;
+}
+
+/* Override global theme minHeight so the Select matches button height */
+.seasonSelectorWrap :global(.MuiOutlinedInput-root) {
+  min-height: unset;
+}
+
+/* ── Spinner overlay ────────────────────────────────── */
 .spinnerWrap {
   display: flex;
   align-items: center;
@@ -35,28 +54,44 @@
   pointer-events: none;
 }
 
+/* ── Breakpoints ────────────────────────────────────── */
 @media (max-width: 768px) {
   .container {
-    padding: 0 var(--rffm-page-h-padding, 24px) 24px;
-    margin: 0 24px;
+    padding: 0 var(--rffm-page-h-padding, 12px) 24px;
     width: auto;
   }
   .cards {
-    grid-template-columns: repeat(auto-fit, minmax(135px, 200px));
+    grid-template-columns: repeat(auto-fit, minmax(130px, 200px));
     gap: 12px;
     margin-top: 8px;
   }
 }
 
+@media (max-width: 600px) {
+  .actionBarContent {
+    gap: 6px;
+  }
+  .seasonSelectorWrap {
+    min-width: 130px;
+    flex: 1 1 130px;
+  }
+}
+
 @media (max-width: 480px) {
   .container {
-    padding: 0;
-    margin: 0 16px;
+    padding: 0 8px 24px;
     width: auto;
   }
   .cards {
     grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
+    gap: 8px;
     margin-top: 8px;
+  }
+  .actionBarContent {
+    gap: 6px;
+  }
+  .seasonSelectorWrap {
+    min-width: 110px;
+    flex: 1 1 110px;
   }
 }

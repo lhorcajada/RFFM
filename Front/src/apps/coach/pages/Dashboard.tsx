@@ -107,8 +107,8 @@ export default function CoachDashboard() {
           clubSubtitleNode ?? "Gestión y herramientas para entrenadores"
         }
         actionBar={
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <div style={{ minWidth: 180 }}>
+          <div className={styles.actionBarContent}>
+            <div className={styles.seasonSelectorWrap}>
               <SeasonSelector
                 value={selectedSeason}
                 onChange={(v) => {
@@ -119,16 +119,9 @@ export default function CoachDashboard() {
                   } catch (e) {}
                 }}
                 size="small"
+                showLabel={false}
               />
             </div>
-            <Button
-              variant="outlined"
-              startIcon={<HomeIcon />}
-              onClick={() => navigate("/")}
-              sx={{ textTransform: "none" }}
-            >
-              Volver al inicio
-            </Button>
             {!hasPreferredSelection && (
               <Button
                 variant="outlined"
@@ -201,6 +194,14 @@ export default function CoachDashboard() {
                 )}
               </Button>
             )}
+            <Button
+              variant="outlined"
+              startIcon={<HomeIcon />}
+              onClick={() => navigate("/")}
+              sx={{ textTransform: "none", marginLeft: "auto" }}
+            >
+              Volver al inicio
+            </Button>
           </div>
         }
       >

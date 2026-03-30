@@ -1,5 +1,6 @@
 .actionBar {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   padding: 6px var(--rffm-page-h-padding, 24px); /* reduced vertical padding */
   margin: 0 var(--rffm-page-h-padding, 24px) 12px

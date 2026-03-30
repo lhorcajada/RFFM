@@ -9,6 +9,7 @@ import {
 import useTeamAndClub from "../../hooks/useTeamAndClub";
 import sportEventTypeService from "../../services/sportEventTypeService";
 import teamService from "../../services/teamService";
+import clubService from "../../services/clubService";
 import { Box, Button, CircularProgress, Chip } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { getEventTypeColor } from "./attendanceUtils";
@@ -109,7 +110,19 @@ export default function AttendanceEvent() {
           const obj = await teamService.fetchTeamPhoto(t.urlPhoto);
           if (obj) imgSrc = obj;
         }
-        if (!imgSrc && t.club?.shieldUrl) imgSrc = t.club.shieldUrl ?? null;
+        if (!imgSrc && t.club?.id) {
+          try {
+            const emblem = await clubService.getClubEmblem(t.club.id);
+            if (emblem?.data) {
+              const blob = new Blob([emblem.data], {
+                type: emblem.contentType ?? "image/png",
+              });
+              imgSrc = URL.createObjectURL(blob);
+            }
+          } catch (e) {
+            // ignore
+          }
+        }
         const node = (
           <div className={styles.teamNode}>
             <img

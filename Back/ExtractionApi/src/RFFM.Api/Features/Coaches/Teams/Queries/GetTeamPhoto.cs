@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using RFFM.Api.Common;
 using RFFM.Api.FeatureModules;
+using RFFM.Api.Infrastructure.Storage;
 
 namespace RFFM.Api.Features.Coaches.Teams.Queries
 {
@@ -18,33 +19,63 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
                     {
                         var query = new GetTeamPhotoQuery { Url = url };
                         var result = await mediator.Send(query, cancellationToken);
-                        return result != null ? Results.Redirect(result.Url) : Results.NotFound();
+                        return result != null
+                            ? Results.File(result.Content, result.ContentType)
+                            : Results.NotFound();
                     })
                 .WithName(nameof(GetTeamPhoto))
                 .WithTags(TeamConstants.TeamFeature)
-                .Produces(StatusCodes.Status302Found)
+                .RequireAuthorization()
+                .Produces(StatusCodes.Status200OK)
                 .Produces(StatusCodes.Status404NotFound);
         }
     }
 
     public class GetTeamPhotoQuery : IQueryApp<GetTeamPhotoResult>
     {
-        public string Url { get; set; }
+        public string Url { get; set; } = null!;
     }
 
     public class GetTeamPhotoResult
     {
-        public string Url { get; set; }
+        public byte[] Content { get; set; } = Array.Empty<byte>();
+        public string ContentType { get; set; } = "image/png";
     }
 
     public class GetTeamPhotoHandler : IRequestHandler<GetTeamPhotoQuery, GetTeamPhotoResult>
     {
-        public ValueTask<GetTeamPhotoResult> Handle(GetTeamPhotoQuery request, CancellationToken cancellationToken)
+        private static readonly HashSet<string> AllowedExtensions =
+            new(StringComparer.OrdinalIgnoreCase) { ".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg" };
+
+        private readonly IStorageService _storageService;
+
+        public GetTeamPhotoHandler(IStorageService storageService)
+        {
+            _storageService = storageService;
+        }
+
+        public async ValueTask<GetTeamPhotoResult> Handle(GetTeamPhotoQuery request, CancellationToken cancellationToken)
         {
             if (string.IsNullOrEmpty(request.Url))
-                throw new ArgumentException("URL cannot be null or empty.");
+                return null!;
 
-            return ValueTask.FromResult(new GetTeamPhotoResult { Url = request.Url });
+            var pathPart = request.Url.Contains('?')
+                ? request.Url[..request.Url.IndexOf('?')]
+                : request.Url;
+
+            var ext = Path.GetExtension(pathPart);
+            if (!AllowedExtensions.Contains(ext))
+                return null!;
+
+            var file = await _storageService.DownloadAsync(request.Url, cancellationToken);
+            if (file == null)
+                return null!;
+
+            return new GetTeamPhotoResult
+            {
+                Content = file.Value.Content,
+                ContentType = file.Value.ContentType
+            };
         }
     }
 }

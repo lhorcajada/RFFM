@@ -74,6 +74,10 @@ namespace RFFM.Host
                     options.DefaultChallengeScheme = "JwtBearer";
                 }).AddJwtBearer("JwtBearer", options =>
                 {
+                    // Disable the default claim-type remapping so that custom claim names
+                    // (e.g. "roles", "sub") are preserved exactly as they appear in the token.
+                    options.MapInboundClaims = false;
+
                     options.TokenValidationParameters = new()
                     {
                         ValidateIssuer = true,
@@ -83,7 +87,9 @@ namespace RFFM.Host
                         ValidIssuer = _configuration["Jwt:Issuer"],
                         ValidAudience = _configuration["Jwt:Audience"],
                         IssuerSigningKey = new SymmetricSecurityKey(
-                            System.Text.Encoding.UTF8.GetBytes(_configuration["Jwt:Key"] ?? string.Empty))
+                            System.Text.Encoding.UTF8.GetBytes(_configuration["Jwt:Key"] ?? string.Empty)),
+                        // Map the "roles" claim array in the JWT to the role-checking mechanism
+                        RoleClaimType = "roles"
                     };
 
                     options.Events = new JwtBearerEvents
