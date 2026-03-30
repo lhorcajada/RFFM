@@ -1,6 +1,5 @@
 import { defineConfig, loadEnv } from "vite";
 import { loadOrderPlugin } from "./vite-plugin-load-order";
-import path from "path";
 
 // Avoid requiring @types/node in the frontend tooling config: declare minimal `process`
 declare const process: any;
