@@ -12,6 +12,8 @@ export type ConvocationItem = {
   player: PlayerSimple;
   status: number; // convocation status id
   excuseTypeId?: number | null;
+  availabilityTypeId?: number | null;
+  assistanceTypeId?: number | null;
 };
 
 export async function getEventPlayers(
@@ -26,10 +28,23 @@ export async function getEventPlayers(
 export async function getConvocations(
   eventId: string
 ): Promise<ConvocationItem[]> {
-  const resp = await client.get<ConvocationItem[]>(
+  const resp = await client.get<any[]>(
     `/api/events/${eventId}/convocations`
   );
-  return resp.data ?? [];
+  const data = resp.data ?? [];
+  return data.map((c: any) => ({
+    id: c.convocationId ?? c.id,
+    player: {
+      id: c.teamPlayerId,
+      alias: c.alias,
+      urlPhoto: c.urlPhoto,
+      position: c.position,
+    },
+    status: c.statusId ?? c.status ?? 1,
+    excuseTypeId: c.excuseTypeId,
+    availabilityTypeId: c.availabilityTypeId,
+    assistanceTypeId: c.assistanceTypeId,
+  }));
 }
 
 export async function addConvocation(
@@ -56,7 +71,7 @@ export async function updateConvocationStatus(
   await client.put(
     `/api/events/${eventId}/convocations/${convocationId}/status`,
     {
-      statusId,
+      newStatusId: statusId,
       excuseTypeId: excuseTypeId ?? null,
     }
   );

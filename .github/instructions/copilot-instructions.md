@@ -75,7 +75,22 @@ Each app owns:
 - **No global styles** except `src/index.css`.
 - CSS custom properties (`--rffm-gradient-bg`, `--rffm-card-bg`, …) are defined at `:root` and swapped on Coach app mount/unmount via `useLayoutEffect`.
 - MUI theme override is added per app via a nested `<ThemeProvider>`; never flatten themes.
-
+- Use MUI's `sx` prop for one-off styles, but prefer CSS Modules for anything more complex or reusable.
+- Avoid inline styles and emotion's `styled()` API to prevent style duplication and maintain separation of concerns.
+- Use MUI components where possible, but wrap them in custom components in `src/shared/components/` if you need to apply consistent styling or behavior across the app.
+- For truly custom UI, create new components with their own CSS Modules.
+- Follow existing patterns and conventions for file/folder structure, naming, and styling.
+- When in doubt, check the nearest sibling file before creating something new.
+- Always prioritize consistency and maintainability over cleverness or novelty in styling decisions.
+- Avoid introducing new styling approaches or libraries without a compelling reason and team consensus.
+- When modifying existing styles, ensure that you understand the original intent and test across both apps to prevent unintended side effects.
+- For shared styles that are used across both apps, consider defining CSS custom properties at the `:root` level and using them in your CSS Modules to maintain a single source of truth for colors, spacing, and other design tokens.
+- When working on the Coach app, be mindful of the dark/orange theme and ensure that any new styles or components fit cohesively within that aesthetic.
+- When working on the Federation app, ensure that new styles or components align with the light/neon theme and maintain a consistent look and feel.
+- Always test your styles in both apps if they are shared to ensure that they work well in both themes and do not introduce any visual inconsistencies or accessibility issues.
+- Use MUI's theming capabilities to manage colors, typography, and spacing consistently across the app, and avoid hardcoding values in your CSS Modules or inline styles.
+- When creating new components, consider whether they should be shared across both apps or if they are specific to one app, and place them accordingly in `src/shared/components/` or within the respective app's folder structure.
+- The app must be responsive and work well across a range of devices and screen sizes. Use MUI’s responsive design tools and CSS to ensure an optimal user experience across all platforms.
 ### API Communication
 - All requests go through the single Axios instance in `src/core/api/client.ts`.
 - `baseURL` comes from `VITE_API_BASE_URL` env var; Vite dev proxy maps `/api` → `https://localhost:7287`.
@@ -133,6 +148,11 @@ window.dispatchEvent(new CustomEvent('rffm.coach_token_updated', { detail: token
 | Email | `MailKit` |
 | Storage | `Supabase` (togglable) |
 | HTML parsing | `HtmlAgilityPack` |
+| PDF generation | `DinkToPdf` (wkhtmltopdf wrapper) |
+| Logging | `Serilog` (console + Seq) |
+| Testing | xUnit + `Moq` |
+| API documentation | XML comments + Swagger (Swashbuckle) |
+| User secrets | `Microsoft.Extensions.Configuration.UserSecrets` |
 
 ### Architecture — Vertical Slice + Feature Modules
 

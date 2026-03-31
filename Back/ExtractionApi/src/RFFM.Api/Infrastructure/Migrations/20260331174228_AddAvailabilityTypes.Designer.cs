@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using RFFM.Api.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using RFFM.Api.Infrastructure.Persistence;
 namespace RFFM.Api.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260331174228_AddAvailabilityTypes")]
+    partial class AddAvailabilityTypes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -105,7 +108,7 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.Property<string>("Id")
                         .HasColumnType("text");
 
-                    b.Property<int?>("AssistanceTypeId")
+                    b.Property<int>("AssistanceTypeId")
                         .HasColumnType("integer");
 
                     b.Property<int?>("AvailabilityTypeId")
@@ -239,37 +242,37 @@ namespace RFFM.Api.Infrastructure.Migrations
                         {
                             Id = 1,
                             Justified = true,
-                            Name = "Lesión"
+                            Name = "Injury"
                         },
                         new
                         {
                             Id = 2,
                             Justified = true,
-                            Name = "Estudios"
+                            Name = "Study"
                         },
                         new
                         {
                             Id = 3,
                             Justified = true,
-                            Name = "Enfermedad"
+                            Name = "Ill"
                         },
                         new
                         {
                             Id = 4,
                             Justified = true,
-                            Name = "Problema familiar"
+                            Name = "Family Problem"
                         },
                         new
                         {
                             Id = 5,
                             Justified = false,
-                            Name = "Evento familiar"
+                            Name = "Family Event"
                         },
                         new
                         {
                             Id = 6,
                             Justified = false,
-                            Name = "Cumpleaños"
+                            Name = "Birthday Event"
                         });
                 });
 
@@ -3028,7 +3031,9 @@ namespace RFFM.Api.Infrastructure.Migrations
                 {
                     b.HasOne("RFFM.Api.Domain.Aggregates.Assistances.AssistanceType", "Type")
                         .WithMany()
-                        .HasForeignKey("AssistanceTypeId");
+                        .HasForeignKey("AssistanceTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.HasOne("RFFM.Api.Domain.Aggregates.Assistances.AvailabilityType", "AvailabilityType")
                         .WithMany()

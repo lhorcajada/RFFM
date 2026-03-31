@@ -16,7 +16,7 @@ namespace RFFM.Api.Features.Coaches.Convocations
         public void AddRoutes(IEndpointRouteBuilder app)
         {
             app.MapPost("/api/events/{eventId}/convocations",
-                    [Authorize(Roles = "Coach")] async (string eventId, AddConvocationRequest request, IMediator mediator, CancellationToken cancellationToken) =>
+                    [Authorize(Roles = "Coach,Administrator")] async (string eventId, AddConvocationRequest request, IMediator mediator, CancellationToken cancellationToken) =>
                     {
                         request.EventId = eventId;
                         await mediator.Send(request, cancellationToken);
@@ -29,9 +29,9 @@ namespace RFFM.Api.Features.Coaches.Convocations
                 .Produces(StatusCodes.Status403Forbidden);
 
             app.MapPost("/api/events/{eventId}/convocations/bulk",
-                    [Authorize(Roles = "Coach")] async (string eventId, BulkAddConvocationsRequest request, IMediator mediator, CancellationToken cancellationToken) =>
+                    [Authorize(Roles = "Coach,Administrator")] async (string eventId, IMediator mediator, CancellationToken cancellationToken) =>
                     {
-                        request.EventId = eventId;
+                        var request = new BulkAddConvocationsRequest { EventId = eventId };
                         await mediator.Send(request, cancellationToken);
                         return Results.Created($"/api/events/{eventId}/convocations", null);
                     })
@@ -75,7 +75,7 @@ namespace RFFM.Api.Features.Coaches.Convocations
                 {
                     EventId = request.EventId,
                     TeamPlayerId = request.TeamPlayerId,
-                    AssistanceTypeId = request.AssistanceTypeId,
+                    AssistanceTypeId = null,
                     ConvocationStatusId = 1 // Pending
                 };
 
@@ -108,7 +108,7 @@ namespace RFFM.Api.Features.Coaches.Convocations
                     {
                         EventId = request.EventId,
                         TeamPlayerId = tp.Id,
-                        AssistanceTypeId = 1,
+                        AssistanceTypeId = null,
                         ConvocationStatusId = 1
                     };
 

@@ -27,7 +27,7 @@ namespace RFFM.Api.Features.Coaches.Convocations
             public string EventId { get; init; } = null!;
         }
 
-        public record ConvocationResponse(string ConvocationId, string TeamPlayerId, string Alias, string? UrlPhoto, string? Position, string Status, int? ExcuseTypeId);
+        public record ConvocationResponse(string ConvocationId, string TeamPlayerId, string Alias, string? UrlPhoto, string? Position, string Status, int? StatusId, int? ExcuseTypeId, int? AvailabilityTypeId, int? AssistanceTypeId);
 
         public class Handler : IRequestHandler<EventConvocationsQuery, ConvocationResponse[]>
         {
@@ -50,7 +50,10 @@ namespace RFFM.Api.Features.Coaches.Convocations
                         UrlPhoto = c.Player.Player.UrlPhoto,
                         ActivePositionId = c.Player.Demarcation != null ? (int?)c.Player.Demarcation.ActivePositionId : null,
                         StatusName = c.Status != null ? c.Status.Name : null,
-                        ExcuseTypeId = c.ExcuseTypeId
+                        StatusId = c.ConvocationStatusId,
+                        ExcuseTypeId = c.ExcuseTypeId,
+                        AvailabilityTypeId = c.AvailabilityTypeId,
+                        AssistanceTypeId = c.AssistanceTypeId
                     })
                     .ToArrayAsync(cancellationToken);
 
@@ -61,7 +64,10 @@ namespace RFFM.Api.Features.Coaches.Convocations
                     c.UrlPhoto,
                     c.ActivePositionId != null ? RFFM.Api.Domain.Entities.Demarcations.DemarcationMaster.GetById(c.ActivePositionId.Value)?.Name : null,
                     c.StatusName ?? "Pendiente",
-                    c.ExcuseTypeId
+                    c.StatusId,
+                    c.ExcuseTypeId,
+                    c.AvailabilityTypeId,
+                    c.AssistanceTypeId
                 ))
                 .ToArray();
 

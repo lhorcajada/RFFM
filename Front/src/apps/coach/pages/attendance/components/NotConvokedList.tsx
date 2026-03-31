@@ -23,7 +23,7 @@ export default function NotConvokedList({
       <div className={styles.list}>
         {players.length === 0 && (
           <div className={styles.cardWrap}>
-            <div style={{ padding: 8 }}>No hay jugadores no convocados.</div>
+            <div style={{ padding: 8 }}>Todos los jugadores están convocados.</div>
           </div>
         )}
         {players.map((p) => {

@@ -2,12 +2,12 @@
 {
     public class ExcuseTypes
     {
-        private static readonly ExcuseTypes Injury = new ExcuseTypes(1, "Injury", true);
-        private static readonly ExcuseTypes Study = new ExcuseTypes(2, "Study", true);
-        private static readonly ExcuseTypes Ill = new ExcuseTypes(3, "Ill", true);
-        private static readonly ExcuseTypes FamilyProblem = new ExcuseTypes(4, "Family Problem", true);
-        private static readonly ExcuseTypes FamilyEvent = new ExcuseTypes(5, "Family Event", false);
-        private static readonly ExcuseTypes BirthdayEvent = new ExcuseTypes(6, "Birthday Event", false);
+        private static readonly ExcuseTypes Injury = new ExcuseTypes(1, "Lesión", true);
+        private static readonly ExcuseTypes Study = new ExcuseTypes(2, "Estudios", true);
+        private static readonly ExcuseTypes Ill = new ExcuseTypes(3, "Enfermedad", true);
+        private static readonly ExcuseTypes FamilyProblem = new ExcuseTypes(4, "Problema familiar", true);
+        private static readonly ExcuseTypes FamilyEvent = new ExcuseTypes(5, "Evento familiar", false);
+        private static readonly ExcuseTypes BirthdayEvent = new ExcuseTypes(6, "Cumpleaños", false);
 
         public int Id { get; private set; }
         public string Name { get; private set; } = null!;

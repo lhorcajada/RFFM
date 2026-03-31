@@ -15,7 +15,7 @@ namespace RFFM.Api.Features.Coaches.Convocations
         public void AddRoutes(IEndpointRouteBuilder app)
         {
             app.MapPut("/api/events/{eventId}/convocations/{convocationId}/status",
-                    [Authorize(Roles = "Coach")] async (string eventId, string convocationId, UpdateStatusRequest request, IMediator mediator, CancellationToken cancellationToken) =>
+                    [Authorize(Roles = "Coach,Administrator")] async (string eventId, string convocationId, UpdateStatusRequest request, IMediator mediator, CancellationToken cancellationToken) =>
                     {
                         request.EventId = eventId;
                         request.ConvocationId = convocationId;

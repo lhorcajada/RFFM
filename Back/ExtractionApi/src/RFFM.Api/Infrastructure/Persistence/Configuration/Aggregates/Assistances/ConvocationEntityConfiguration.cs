@@ -19,7 +19,7 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.Assistanc
                 .IsRequired();
 
             builder.Property(c => c.AssistanceTypeId)
-                .IsRequired();
+                .IsRequired(false);
 
             builder.Property(c => c.ConvocationStatusId)
                 .IsRequired(false);
@@ -41,6 +41,13 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.Assistanc
             builder.HasOne(c => c.Player)
                 .WithMany()
                 .HasForeignKey(c => c.TeamPlayerId);
+
+            builder.Property(c => c.AvailabilityTypeId)
+                .IsRequired(false);
+
+            builder.HasOne(c => c.AvailabilityType)
+                .WithMany()
+                .HasForeignKey(c => c.AvailabilityTypeId);
         }
     }
 }
