@@ -22,6 +22,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import PrintIcon from "@mui/icons-material/Print";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import EditNoteIcon from "@mui/icons-material/EditNote";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import useTeamAndClub from "../../hooks/useTeamAndClub";
@@ -73,6 +74,8 @@ export default function GameModel() {
   const [showAddSeasonInDialog, setShowAddSeasonInDialog] = useState(false);
   const [newSeasonFormName, setNewSeasonFormName] = useState("");
   const [createSeasonLoading, setCreateSeasonLoading] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // Load available seasons once team is known
   useEffect(() => {
@@ -141,6 +144,20 @@ export default function GameModel() {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleDelete = async () => {
+    if (!gameModel?.id) return;
+    setDeleting(true);
+    try {
+      await gameModelService.delete(gameModel.id);
+      setDeleteDialogOpen(false);
+      setGameModel(null);
+      setAvailableSeasons((prev) => prev.filter((s) => s !== selectedSeason));
+      setSelectedSeason("");
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const handleOpenNewSeasonDialog = async () => {
@@ -219,6 +236,17 @@ export default function GameModel() {
                 color="primary"
               >
                 Nuevo Modelo
+              </Button>
+            )}
+            {gameModel && (
+              <Button
+                startIcon={<DeleteOutlineIcon />}
+                onClick={() => setDeleteDialogOpen(true)}
+                variant="outlined"
+                size="small"
+                color="error"
+              >
+                Eliminar Modelo
               </Button>
             )}
             {gameModel && (
@@ -445,6 +473,36 @@ export default function GameModel() {
             disabled={!selectedDialogSeasonId || selectedSeasonHasModel}
           >
             Crear modelo
+          </Button>
+        </DialogActions>
+      </Dialog>
+      {/* ── Dialog eliminar modelo ── */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => !deleting && setDeleteDialogOpen(false)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { backgroundColor: "#1a0503" } }}
+      >
+        <DialogTitle>Eliminar modelo de juego</DialogTitle>
+        <DialogContent>
+          <Typography>
+            ¿Estás seguro de que quieres eliminar el modelo de juego
+            {gameModel ? ` «${gameModel.name}»` : ""}? Esta acción no se puede deshacer.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)} size="small" disabled={deleting}>
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleDelete}
+            variant="contained"
+            color="error"
+            size="small"
+            disabled={deleting}
+          >
+            {deleting ? <CircularProgress size={16} /> : "Eliminar"}
           </Button>
         </DialogActions>
       </Dialog>

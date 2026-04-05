@@ -239,6 +239,10 @@ const gameModelService = {
     await client.put(`/api/game-models/${draft.id}`, { name: body.name, scenarios: body.scenarios });
     return draft;
   },
+
+  async delete(id: string): Promise<void> {
+    await client.delete(`/api/game-models/${id}`);
+  },
 };
 
 export default gameModelService;
