@@ -1,0 +1,222 @@
+.loadingBox {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 60px 0;
+}
+
+/* ── Editor wrapper ── */
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 4px 0;
+}
+
+/* ── Model header fields ── */
+
+.modelHeader {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.seasonField {
+  flex: 0 0 160px;
+}
+
+.nameField {
+  flex: 1;
+  min-width: 200px;
+}
+
+/* Shared styling for both header fields */
+.seasonField .MuiOutlinedInput-root,
+.nameField .MuiOutlinedInput-root {
+  color: #fff7ef !important;
+  font-size: 0.88rem !important;
+}
+
+.seasonField .MuiOutlinedInput-notchedOutline,
+.nameField .MuiOutlinedInput-notchedOutline {
+  border-color: rgba(255, 138, 76, 0.35) !important;
+}
+
+.seasonField .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline,
+.nameField .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
+  border-color: rgba(255, 138, 76, 0.65) !important;
+}
+
+.seasonField .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline,
+.nameField .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: #ff8a4c !important;
+}
+
+.seasonField .MuiInputLabel-root,
+.nameField .MuiInputLabel-root {
+  color: rgba(255, 200, 150, 0.6) !important;
+  font-size: 0.82rem !important;
+}
+
+.seasonField .MuiInputLabel-root.Mui-focused,
+.nameField .MuiInputLabel-root.Mui-focused {
+  color: #ff8a4c !important;
+}
+
+/* ── Moment tabs ── */
+
+.momentTabsWrap {
+  background-color: #1e0804;
+  border-radius: 10px 10px 0 0;
+  border: 1px solid rgba(255, 138, 76, 0.2);
+  border-bottom: none;
+}
+
+.momentTabs {
+  min-height: 44px !important;
+}
+
+.momentTabs .MuiTabs-scrollButtons {
+  color: #ff8a4c;
+}
+
+.momentTab {
+  color: #ffe8d0 !important;
+  font-size: 0.82rem !important;
+  font-weight: 500 !important;
+  text-transform: none !important;
+  min-height: 44px !important;
+  padding: 0 16px !important;
+}
+
+.momentTab.Mui-selected {
+  color: #ff8a4c !important;
+  font-weight: 700 !important;
+}
+
+.tabIndicator {
+  background-color: #ff8a4c !important;
+  height: 3px !important;
+}
+
+/* ── Moment content ── */
+
+.momentContent {
+  border: 1px solid rgba(255, 138, 76, 0.2);
+  border-top: none;
+  border-radius: 0 0 10px 10px;
+  background-color: #1a0703;
+}
+
+/* ── Zone tabs ── */
+
+.zoneTabsWrap {
+  border-bottom: 1px solid rgba(255, 138, 76, 0.15);
+  background-color: rgba(30, 8, 4, 0.8);
+}
+
+.zoneTabs {
+  min-height: 36px !important;
+}
+
+.zoneTabs .MuiTabs-scrollButtons {
+  color: rgba(255, 138, 76, 0.7);
+}
+
+.zoneTab {
+  color: rgba(255, 232, 208, 0.65) !important;
+  font-size: 0.75rem !important;
+  font-weight: 500 !important;
+  text-transform: none !important;
+  min-height: 36px !important;
+  padding: 0 14px !important;
+}
+
+.zoneTab.Mui-selected {
+  color: #ff8a4c !important;
+  font-weight: 700 !important;
+}
+
+.zoneTabIndicator {
+  background-color: rgba(255, 138, 76, 0.7) !important;
+  height: 2px !important;
+}
+
+.zoneTabLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.zoneChip {
+  background-color: rgba(255, 138, 76, 0.2) !important;
+  color: #ffd19a !important;
+  font-size: 0.65rem !important;
+  height: 16px !important;
+}
+
+/* ── Zone content ── */
+
+.zoneContent {
+  padding: 14px 16px 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.emptyZone {
+  padding: 20px 0 12px;
+  text-align: center;
+}
+
+.emptyZoneText {
+  font-size: 0.85rem !important;
+  color: rgba(255, 180, 140, 0.5) !important;
+  font-style: italic;
+}
+
+/* ── Add scenario button ── */
+
+.addScenarioBtn {
+  color: #ff8a4c !important;
+  font-size: 0.82rem !important;
+  text-transform: none !important;
+  padding: 6px 14px !important;
+  margin-top: 8px !important;
+  border: 1px dashed rgba(255, 138, 76, 0.45) !important;
+  border-radius: 8px !important;
+  align-self: flex-start;
+}
+
+.addScenarioBtn:hover {
+  background-color: rgba(255, 138, 76, 0.08) !important;
+  border-color: #ff8a4c !important;
+}
+
+/* ── Form actions ── */
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.cancelBtn {
+  color: rgba(255, 200, 150, 0.8) !important;
+  border-color: rgba(255, 200, 150, 0.3) !important;
+  font-size: 0.82rem !important;
+  text-transform: none !important;
+}
+
+.cancelBtn:hover {
+  border-color: rgba(255, 200, 150, 0.7) !important;
+  background-color: rgba(255, 200, 150, 0.05) !important;
+}
+
+.saveBtn {
+  text-transform: none !important;
+  font-size: 0.85rem !important;
+  font-weight: 600 !important;
+}

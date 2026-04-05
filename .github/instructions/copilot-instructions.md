@@ -91,6 +91,7 @@ Each app owns:
 - Use MUI's theming capabilities to manage colors, typography, and spacing consistently across the app, and avoid hardcoding values in your CSS Modules or inline styles.
 - When creating new components, consider whether they should be shared across both apps or if they are specific to one app, and place them accordingly in `src/shared/components/` or within the respective app's folder structure.
 - The app must be responsive and work well across a range of devices and screen sizes. Use MUI’s responsive design tools and CSS to ensure an optimal user experience across all platforms.
+- Adhere to the principle of single responsibility in your pages, components and styles. Each component and page should have a single responsibility, and each CSS module should be associated with a single component to facilitate code maintenance and scalability.
 ### API Communication
 - All requests go through the single Axios instance in `src/core/api/client.ts`.
 - `baseURL` comes from `VITE_API_BASE_URL` env var; Vite dev proxy maps `/api` → `https://localhost:7287`.

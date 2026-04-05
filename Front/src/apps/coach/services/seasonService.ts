@@ -26,4 +26,8 @@ export async function getSeasons(): Promise<Season[]> {
   }
 }
 
-export default { getActiveSeason, getSeasons };
+export async function createSeason(name: string, isActive: boolean = false): Promise<void> {
+  await client.post(`/api/catalog/season` as any, { name, isActive });
+}
+
+export default { getActiveSeason, getSeasons, createSeason };

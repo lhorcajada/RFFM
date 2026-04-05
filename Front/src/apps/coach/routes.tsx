@@ -29,6 +29,7 @@ const Matches = lazy(() => import("./pages/matches/Matches"));
 const Trainings = lazy(() => import("./pages/trainings/Trainings"));
 const Injured = lazy(() => import("./pages/injured/Injured"));
 const GameModel = lazy(() => import("./pages/game-model/GameModel"));
+const GameModelCreate = lazy(() => import("./pages/game-model/GameModelCreate"));
 const Sanctions = lazy(() => import("./pages/sanctions/Sanctions"));
 const Lottery = lazy(() => import("./pages/lottery/Lottery"));
 const PlayerDetail = lazy(() => import("./pages/player/PlayerDetail"));
@@ -144,6 +145,8 @@ function CoachRoutesContent() {
             <Route path="trainings" element={<Trainings />} />
             <Route path="injured" element={<Injured />} />
             <Route path="game-model" element={<GameModel />} />
+            <Route path="game-model/create" element={<GameModelCreate />} />
+            <Route path="game-model/edit" element={<GameModelCreate />} />
             <Route path="sanctions" element={<Sanctions />} />
             <Route path="lottery" element={<Lottery />} />
             <Route path="clubs" element={<Clubs />} />

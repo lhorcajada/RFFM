@@ -1,0 +1,110 @@
+.card {
+  background: rgba(255, 138, 76, 0.07);
+  border: 1px solid rgba(255, 138, 76, 0.2);
+  border-radius: 8px;
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.header:hover {
+  background: rgba(255, 138, 76, 0.12);
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.countChip {
+  background-color: rgba(255, 138, 76, 0.15) !important;
+  color: #ff8a4c !important;
+  border: 1px solid rgba(255, 138, 76, 0.35) !important;
+  font-size: 0.68rem !important;
+  height: 20px !important;
+}
+
+.expandBtn {
+  color: #ff8a4c !important;
+  padding: 2px !important;
+}
+
+.body {
+  padding: 0 14px 12px 14px;
+}
+
+.title {
+  font-size: 0.88rem !important;
+  font-weight: 600 !important;
+  color: #ffd19a !important;
+  margin: 0 !important;
+}
+
+.index {
+  color: #ff8a4c;
+  font-weight: 700;
+  margin-right: 4px;
+}
+
+.action {
+  font-size: 0.85rem !important;
+  color: #fff7ef !important;
+  line-height: 1.5 !important;
+  margin-bottom: 10px !important;
+}
+
+.skills {
+  margin-top: 8px;
+}
+
+.skillsLabel {
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #ff8a4c !important;
+  margin-bottom: 6px !important;
+}
+
+.skillList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.skillItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.chip {
+  background-color: rgba(255, 138, 76, 0.2) !important;
+  color: #ff8a4c !important;
+  border: 1px solid rgba(255, 138, 76, 0.4) !important;
+  font-size: 0.72rem !important;
+  height: 22px !important;
+  flex-shrink: 0;
+}
+
+.skillDesc {
+  font-size: 0.82rem !important;
+  color: #ffe8d0 !important;
+  line-height: 1.5 !important;
+  padding-top: 2px;
+}

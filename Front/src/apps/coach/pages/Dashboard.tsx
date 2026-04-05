@@ -311,7 +311,7 @@ export default function CoachDashboard() {
                   icon={
                     <TimelineIcon style={{ fontSize: 40, color: "#05313b" }} />
                   }
-                  to="/coach/game-model"
+                  to={team?.id ? `/coach/game-model?teamId=${team.id}` : "/coach/game-model"}
                 />
                 <DashboardCard
                   title="Sanciones"

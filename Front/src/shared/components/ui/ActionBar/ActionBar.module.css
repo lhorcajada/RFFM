@@ -28,6 +28,12 @@
     padding: 6px 12px;
     margin: 0 12px 10px 12px;
   }
+}
+
+@media print {
+  .actionBar {
+    display: none !important;
+  }
 
   /* Make buttons inside the action bar smaller */
   .actionBar button,

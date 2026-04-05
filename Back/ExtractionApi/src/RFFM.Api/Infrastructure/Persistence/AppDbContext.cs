@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using RFFM.Api.Domain.Aggregates.Assistances;
+using RFFM.Api.Domain.Aggregates.GameModels;
 using RFFM.Api.Domain.Aggregates.Technicals;
 using RFFM.Api.Domain.Aggregates.Training;
 using RFFM.Api.Domain.Aggregates.Training.TasksTraining;
@@ -55,6 +56,17 @@ namespace RFFM.Api.Infrastructure.Persistence
         // Payment plans and subscriptions
         public DbSet<PaymentPlan> PaymentPlans { get; set; }
         public DbSet<Subscription> Subscriptions { get; set; }
+
+        // Game Model
+        public DbSet<GameModel> GameModels { get; set; }
+        public DbSet<GameMoment> GameMoments { get; set; }
+        public DbSet<GameZone> GameZones { get; set; }
+        public DbSet<GameScenario> GameScenarios { get; set; }
+        public DbSet<ScenarioTacticalPrinciple> ScenarioTacticalPrinciples { get; set; }
+        public DbSet<SubPrinciple> SubPrinciples { get; set; }
+        public DbSet<SubPrincipleTacticalPrinciple> SubPrincipleTacticalPrinciples { get; set; }
+        public DbSet<SubSubPrinciple> SubSubPrinciples { get; set; }
+        public DbSet<EssentialSkill> EssentialSkills { get; set; }
 
         public AppDbContext(DbContextOptions<AppDbContext> options)
             : base(options)

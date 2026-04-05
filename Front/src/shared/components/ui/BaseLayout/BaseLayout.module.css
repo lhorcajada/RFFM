@@ -68,3 +68,29 @@
     --rffm-footer-h: 56px; /* match mobile footer height to avoid cutoff on small devices */
   }
 }
+
+/* ── Reset layout fijo para impresión ── */
+@media print {
+  .paper {
+    position: static !important;
+    overflow: visible !important;
+    background: white !important;
+    box-shadow: none !important;
+  }
+  .layoutWrap {
+    height: auto !important;
+    position: static !important;
+  }
+  .header,
+  .footer {
+    display: none !important;
+  }
+  .content {
+    position: static !important;
+    overflow: visible !important;
+    height: auto !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    padding: 0 !important;
+  }
+}
