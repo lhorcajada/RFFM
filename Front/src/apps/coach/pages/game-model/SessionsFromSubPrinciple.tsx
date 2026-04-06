@@ -5,14 +5,18 @@ import {
   Chip,
   CircularProgress,
   Collapse,
+  Dialog,
+  DialogContent,
   IconButton,
   Typography,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import AddIcon from "@mui/icons-material/Add";
+import CloseIcon from "@mui/icons-material/Close";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import FitnessCenterIcon from "@mui/icons-material/FitnessCenter";
+import PrintIcon from "@mui/icons-material/Print";
 import { useNavigate, useLocation } from "react-router-dom";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
@@ -69,10 +73,190 @@ const SECTION_LABELS: Record<string, string> = {
   VueltaALaCalma: "Vuelta a la Calma",
 };
 
+function ExerciseModal({ ex, onClose }: { ex: SessionExerciseItem | null; onClose: () => void }) {
+  return (
+    <Dialog
+      open={ex !== null}
+      onClose={onClose}
+      maxWidth="md"
+      fullWidth
+      classes={{ paper: styles.modalPaper }}
+      TransitionProps={{ timeout: 280 }}
+    >
+      {ex && (
+        <DialogContent className={styles.modalContent}>
+          <IconButton className={styles.modalCloseBtn} onClick={onClose} size="small">
+            <CloseIcon fontSize="small" />
+          </IconButton>
+
+          {/* Media */}
+          {ex.urlImage ? (
+            <Box className={styles.modalMediaWrap}>
+              {isVideo(ex.urlImage) ? (
+                <video src={mediaUrl(ex.urlImage)} controls className={styles.modalMediaEl} />
+              ) : (
+                <img src={mediaUrl(ex.urlImage)} alt={ex.name} className={styles.modalMediaEl} />
+              )}
+            </Box>
+          ) : (
+            <Box className={`${styles.modalPlaceholder} ${styles[`exPlaceholder_${ex.type}`]}`}>
+              <FitnessCenterIcon className={styles.modalPlaceholderIcon} />
+            </Box>
+          )}
+
+          {/* Header */}
+          <Box className={styles.modalHeader}>
+            <Chip
+              label={TYPE_LABELS[ex.type] ?? ex.type}
+              size="small"
+              className={`${styles.exTypeBadge} ${styles[`badge_${ex.type}`]}`}
+              sx={{ position: "static" }}
+            />
+            <Typography className={styles.modalName}>{ex.name}</Typography>
+          </Box>
+
+          {/* Stats */}
+          <Box className={styles.modalStats}>
+            <Box className={styles.modalStatItem}>
+              <Typography className={styles.modalStatLabel}>Duración</Typography>
+              <Typography className={styles.modalStatValue}>⏱ {ex.durationTotal} min</Typography>
+            </Box>
+            <Box className={styles.modalStatItem}>
+              <Typography className={styles.modalStatLabel}>Jugadores</Typography>
+              <Typography className={styles.modalStatValue}>
+                👥 {ex.playersNumber}{ex.goalPeekersNumber > 0 ? ` + ${ex.goalPeekersNumber}P` : ""}
+              </Typography>
+            </Box>
+            {ex.fieldSpace && (
+              <Box className={styles.modalStatItem}>
+                <Typography className={styles.modalStatLabel}>Espacio</Typography>
+                <Typography className={styles.modalStatValue}>📐 {ex.fieldSpace}</Typography>
+              </Box>
+            )}
+          </Box>
+
+          {/* Description */}
+          {ex.description && (
+            <Typography className={styles.modalDescription}>{ex.description}</Typography>
+          )}
+
+          {/* Skills */}
+          {(ex.skills ?? []).length > 0 && (
+            <Box className={styles.exSkillRow} sx={{ mt: 1.5, px: "20px" }}>
+              {(ex.skills ?? []).map((sk) => (
+                <Chip key={sk.essentialSkillId} label={sk.skillName} size="small" className={styles.skillChip} />
+              ))}
+            </Box>
+          )}
+
+          {/* Conditions */}
+          {(ex.conditions ?? []).length > 0 && (
+            <Box className={styles.exConditions} sx={{ mt: 1.5, px: "20px", pb: 2 }}>
+              <Typography className={styles.exConditionsLabel}>Condiciones</Typography>
+              <ul className={styles.exConditionsList}>
+                {(ex.conditions ?? []).map((c) => (
+                  <li key={c.id} className={styles.exConditionItem}>{c.text}</li>
+                ))}
+              </ul>
+            </Box>
+          )}
+        </DialogContent>
+      )}
+    </Dialog>
+  );
+}
+
+function buildPrintHtml(sess: TrainingSession, exercises: SessionExerciseItem[]) {
+  const sections: { key: string; label: string; color: string }[] = [
+    { key: "Calentamiento",   label: "Calentamiento",        color: "#e67e22" },
+    { key: "Principal",       label: "Ejercicios principales", color: "#27ae60" },
+    { key: "VueltaALaCalma",  label: "Vuelta a la Calma",    color: "#2980b9" },
+  ];
+
+  const typeLabel: Record<string, string> = { Physical: "Físico", Technical: "Técnico", Tactical: "Táctico" };
+  const typeColor: Record<string, string> = { Physical: "#c0392b", Technical: "#2980b9", Tactical: "#27ae60" };
+
+  const sectionHtml = sections.map(({ key, label, color }) => {
+    const exs = exercises.filter(e => e.section === key);
+    const exHtml = exs.length === 0
+      ? `<p style="color:#aaa;font-style:italic;margin:6px 0 0">Sin ejercicios en esta sección</p>`
+      : exs.map((ex, idx) => `
+          <div style="border:1px solid #ddd;border-radius:8px;overflow:hidden;width:460px;flex-shrink:0;background:#fff;page-break-inside:avoid;">
+            ${ex.urlImage
+              ? (isVideo(ex.urlImage)
+                  ? `<div style="width:100%;aspect-ratio:4/3;background:#eee;display:flex;align-items:center;justify-content:center;font-size:12px;color:#888">📹 vídeo</div>`
+                  : `<img src="${mediaUrl(ex.urlImage)}" alt="${ex.name}" style="width:100%;aspect-ratio:4/3;object-fit:cover;display:block;" />`)
+              : `<div style="width:100%;aspect-ratio:4/3;background:#f0f0f0;display:flex;align-items:center;justify-content:center;font-size:28px;">⚽</div>`
+            }
+            <div style="padding:8px 10px;">
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+                <span style="background:${typeColor[ex.type] ?? "#555"};color:#fff;font-size:10px;font-weight:700;border-radius:3px;padding:1px 6px;">${typeLabel[ex.type] ?? ex.type}</span>
+                <span style="font-size:10px;color:#888;">#${idx + 1}</span>
+              </div>
+              <div style="font-size:13px;font-weight:700;color:#1a1a1a;margin-bottom:4px;">${ex.name}</div>
+              <div style="font-size:11px;color:#555;display:flex;gap:8px;flex-wrap:wrap;">
+                <span>⏱ ${ex.durationTotal} min</span>
+                <span>👥 ${ex.playersNumber}${ex.goalPeekersNumber > 0 ? ` + ${ex.goalPeekersNumber}P` : ""}</span>
+                ${ex.fieldSpace ? `<span>📐 ${ex.fieldSpace}</span>` : ""}
+              </div>
+              ${ex.description ? `<p style="font-size:11px;color:#666;font-style:italic;margin:5px 0 0">${ex.description}</p>` : ""}
+              ${(ex.conditions ?? []).length > 0
+                ? `<ul style="font-size:11px;color:#555;margin:5px 0 0;padding-left:14px;">${(ex.conditions ?? []).map(c => `<li>${c.text}</li>`).join("")}</ul>`
+                : ""}
+            </div>
+          </div>`).join("");
+
+    return `
+      <div style="margin-bottom:24px;page-break-inside:avoid;">
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:${color};border-bottom:2px solid ${color};padding-bottom:4px;margin-bottom:12px;">${label}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:12px;">${exHtml}</div>
+      </div>`;
+  }).join("");
+
+  const meta = [
+    formatDate(sess.date),
+    sess.startTime ? `${formatTime(sess.startTime)}${sess.endTime ? ` – ${formatTime(sess.endTime)}` : ""}` : null,
+    sess.location ?? null,
+  ].filter(Boolean).join(" · ");
+
+  return `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>${sess.name}</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a1a; background: #fff; margin: 0; padding: 24px 28px; }
+    @media print {
+      body { padding: 0; }
+      @page { size: A4 landscape; margin: 12mm 14mm; }
+    }
+  </style>
+</head>
+<body>
+  <div style="display:flex;align-items:baseline;justify-content:space-between;border-bottom:3px solid #1a1a1a;padding-bottom:8px;margin-bottom:20px;">
+    <h1 style="margin:0;font-size:22px;font-weight:800;">${sess.name}</h1>
+    <span style="font-size:12px;color:#555;">${meta}</span>
+  </div>
+  ${sectionHtml}
+</body>
+</html>`;
+}
+
+function handlePrint(sess: TrainingSession, exercises: SessionExerciseItem[]) {
+  const html = buildPrintHtml(sess, exercises);
+  const win = window.open("", "_blank", "width=1100,height=800");
+  if (!win) return;
+  win.document.write(html);
+  win.document.close();
+  win.onload = () => { win.focus(); win.print(); };
+}
+
 function SessionCard({ sess }: { sess: TrainingSession }) {
   const [expanded, setExpanded] = useState(false);
   const [exercises, setExercises] = useState<SessionExerciseItem[] | null>(null);
   const [loadingEx, setLoadingEx] = useState(false);
+  const [selectedEx, setSelectedEx] = useState<SessionExerciseItem | null>(null);
 
   const handleToggle = useCallback(() => {
     setExpanded((prev) => {
@@ -107,6 +291,30 @@ function SessionCard({ sess }: { sess: TrainingSession }) {
             />
           </Box>
         </Box>
+        <IconButton
+          size="small"
+          className={styles.printBtn}
+          title="Imprimir sesión"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (exercises !== null) {
+              handlePrint(sess, exercises);
+            } else {
+              setLoadingEx(true);
+              trainingService
+                .getSessionById(sess.id)
+                .then((detail) => {
+                  const sorted = detail.exercises.slice().sort((a, b) => a.order - b.order);
+                  setExercises(sorted);
+                  handlePrint(sess, sorted);
+                })
+                .catch(() => setExercises([]))
+                .finally(() => setLoadingEx(false));
+            }
+          }}
+        >
+          <PrintIcon fontSize="small" />
+        </IconButton>
         <IconButton size="small" className={styles.expandBtn}>
           {expanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
         </IconButton>
@@ -123,7 +331,6 @@ function SessionCard({ sess }: { sess: TrainingSession }) {
           ) : exercises ? (
             (["Calentamiento", "Principal", "VueltaALaCalma"] as const).map(secKey => {
               const secExercises = exercises.filter(e => e.section === secKey);
-              if (secExercises.length === 0) return null;
               const secLabel: Record<string, string> = {
                 Calentamiento: "Calentamiento",
                 Principal: "Ejercicios principales",
@@ -135,8 +342,10 @@ function SessionCard({ sess }: { sess: TrainingSession }) {
                     {secLabel as unknown as string}
                   </Typography>
                   <Box className={styles.exGrid}>
-                    {secExercises.map((ex, idx) => (
-                      <Box key={ex.taskTrainingId} className={styles.exCard}>
+                    {secExercises.length === 0 ? (
+                      <Typography className={styles.exEmptySection}>Esta sección no tiene ejercicios</Typography>
+                    ) : secExercises.map((ex, idx) => (
+                      <Box key={ex.taskTrainingId} className={styles.exCard} onClick={() => setSelectedEx(ex)}>
                         {/* ── Media ── */}
                         {ex.urlImage ? (
                           <Box className={styles.exMediaWrap}>
@@ -213,6 +422,8 @@ function SessionCard({ sess }: { sess: TrainingSession }) {
           ) : null}
         </Box>
       </Collapse>
+
+      <ExerciseModal ex={selectedEx} onClose={() => setSelectedEx(null)} />
     </Box>
   );
 }
