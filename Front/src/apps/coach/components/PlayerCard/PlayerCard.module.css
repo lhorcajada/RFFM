@@ -1,4 +1,4 @@
-.root {
+﻿.root {
   width: 100%;
 }
 .card {
@@ -8,11 +8,11 @@
   gap: 8px;
   align-items: stretch;
   padding: 10px 12px;
-  background: var(--rffm-card-bg, #2a0b06);
+  background: var(--rffm-card-bg, #252526);
   border-radius: 12px;
   box-shadow: 0 6px 20px rgba(19, 38, 63, 0.04);
   min-height: 72px;
-  color: var(--rffm-card-text, #fff7ef);
+  color: var(--rffm-card-text, #d4d4d4);
 }
 .avatar {
   width: 56px;
@@ -112,14 +112,14 @@
   justify-content: center;
   font-weight: 700;
   font-size: 12px;
-  color: var(--rffm-card-text, #fff7ef);
+  color: var(--rffm-card-text, #d4d4d4);
   background: rgba(255, 255, 255, 0.12);
 }
 .metaItem {
   background: rgba(255, 255, 255, 0.06);
   padding: 4px 8px;
   border-radius: 999px;
-  color: var(--rffm-card-text, #fff7ef);
+  color: var(--rffm-card-text, #d4d4d4);
   font-size: 12px;
 }
 .link {

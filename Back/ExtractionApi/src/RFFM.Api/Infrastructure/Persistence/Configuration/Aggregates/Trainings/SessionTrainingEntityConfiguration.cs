@@ -41,7 +41,8 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.Trainings
 
             builder.HasOne(st => st.SportEvent)
                 .WithMany()
-                .HasForeignKey(st => st.SportEventId);
+                .HasForeignKey(st => st.SportEventId)
+                .IsRequired(false);
 
             builder.HasMany(st => st.Tasks)
                 .WithOne(tt => tt.TrainingSession)

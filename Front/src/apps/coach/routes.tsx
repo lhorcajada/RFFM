@@ -30,6 +30,8 @@ const Trainings = lazy(() => import("./pages/trainings/Trainings"));
 const Injured = lazy(() => import("./pages/injured/Injured"));
 const GameModel = lazy(() => import("./pages/game-model/GameModel"));
 const GameModelCreate = lazy(() => import("./pages/game-model/GameModelCreate"));
+const CreateSessionFromSubPrinciple = lazy(() => import("./pages/game-model/CreateSessionFromSubPrinciple"));
+const SessionsFromSubPrinciple = lazy(() => import("./pages/game-model/SessionsFromSubPrinciple"));
 const Sanctions = lazy(() => import("./pages/sanctions/Sanctions"));
 const Lottery = lazy(() => import("./pages/lottery/Lottery"));
 const PlayerDetail = lazy(() => import("./pages/player/PlayerDetail"));
@@ -73,17 +75,17 @@ function CoachRoutesContent() {
         const docElStyle = document.documentElement.style;
         docElStyle.setProperty(
           "--rffm-gradient-bg",
-          "linear-gradient(180deg, #140603 0%, #2a0b06 100%)",
+          "linear-gradient(180deg, #1e1e1e 0%, #252526 100%)",
         );
-        docElStyle.setProperty("--rffm-card-bg", "#2a0b06");
+        docElStyle.setProperty("--rffm-card-bg", "#252526");
         docElStyle.setProperty(
           "--rffm-title-gradient",
-          "linear-gradient(135deg, #ff8a4c 0%, #f97316 100%)",
+          "linear-gradient(135deg, #007ACC 0%, #4ec9b0 100%)",
         );
-        docElStyle.setProperty("--bg", "#140603");
+        docElStyle.setProperty("--bg", "#1e1e1e");
         docElStyle.setProperty(
           "--rffm-footer-border",
-          "1px solid rgba(0,0,0,0.12)",
+          "1px solid rgba(255,255,255,0.08)",
         );
       } catch (e) {}
 
@@ -147,6 +149,8 @@ function CoachRoutesContent() {
             <Route path="game-model" element={<GameModel />} />
             <Route path="game-model/create" element={<GameModelCreate />} />
             <Route path="game-model/edit" element={<GameModelCreate />} />
+            <Route path="game-model/create-session" element={<CreateSessionFromSubPrinciple />} />
+            <Route path="game-model/sessions" element={<SessionsFromSubPrinciple />} />
             <Route path="sanctions" element={<Sanctions />} />
             <Route path="lottery" element={<Lottery />} />
             <Route path="clubs" element={<Clubs />} />

@@ -34,5 +34,9 @@ namespace RFFM.Api.Domain.Aggregates.GameModels
         }
 
         public void UpdateAction(string action) => Action = action;
+
+        public void UpdateOrder(int order) => Order = order;
+
+        public void ReparentTo(string subPrincipleId) => SubPrincipleId = subPrincipleId;
     }
 }

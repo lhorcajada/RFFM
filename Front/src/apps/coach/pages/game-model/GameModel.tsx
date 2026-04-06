@@ -33,7 +33,9 @@ import ScenarioAccordion from "./components/ScenarioAccordion";
 import GameModelPrintView from "./components/GameModelPrintView";
 import styles from "./GameModel.module.css";
 
-function ZoneContent({ zone }: { zone: Zone }) {
+function ZoneContent({
+  zone, clubId, teamId, gameMomentName,
+}: { zone: Zone; clubId: string; teamId: string; gameMomentName: string }) {
   if (zone.scenarios.length === 0) {
     return (
       <Box className={styles.emptyZone}>
@@ -50,6 +52,10 @@ function ZoneContent({ zone }: { zone: Zone }) {
           key={scenario.id}
           scenario={scenario}
           defaultExpanded={zone.scenarios.length === 1}
+          clubId={clubId}
+          teamId={teamId}
+          gameMomentName={gameMomentName}
+          zoneName={zone.name}
         />
       ))}
     </Box>
@@ -367,7 +373,7 @@ export default function GameModel() {
                     <Typography className={styles.zoneName}>
                       {currentZone.name}
                     </Typography>
-                    <ZoneContent zone={currentZone} />
+                    <ZoneContent zone={currentZone} clubId={team?.club?.id ?? ""} teamId={team?.id ?? ""} gameMomentName={currentMoment.name} />
                   </Box>
                 )}
               </Box>
@@ -482,7 +488,7 @@ export default function GameModel() {
         onClose={() => !deleting && setDeleteDialogOpen(false)}
         maxWidth="xs"
         fullWidth
-        PaperProps={{ sx: { backgroundColor: "#1a0503" } }}
+        PaperProps={{ sx: { backgroundColor: "#1e1e1e" } }}
       >
         <DialogTitle>Eliminar modelo de juego</DialogTitle>
         <DialogContent>

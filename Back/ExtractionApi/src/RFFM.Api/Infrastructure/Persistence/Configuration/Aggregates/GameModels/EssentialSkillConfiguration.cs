@@ -26,6 +26,9 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.GameModel
 
             builder.Property(x => x.Description)
                 .HasMaxLength(2000);
+
+            builder.Property(x => x.MasteredAt)
+                .IsRequired(false);
         }
     }
 }

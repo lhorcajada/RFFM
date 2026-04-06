@@ -5,12 +5,18 @@ export interface TacticalPrinciple {
 
 export interface EssentialSkill {
   id: number;
+  /** Backend UUID — use for API calls like mastery toggle */
+  apiId?: string;
   name: string;
   description: string;
+  masteredAt?: string | null;
+  exerciseCount?: number;
 }
 
 export interface SubSubPrinciple {
   id: number;
+  /** Backend UUID — use for training navigation */
+  apiId?: string;
   order: number;
   name: string;
   /** Acción: description of the player's action */
@@ -20,6 +26,7 @@ export interface SubSubPrinciple {
 
 export interface SubPrinciple {
   id: number;
+  apiId?: string;
   order: number;
   /** e.g. "A", "B", "1", "2" — identifier/letter used in the label */
   label: string;
@@ -31,6 +38,7 @@ export interface SubPrinciple {
 
 export interface Scenario {
   id: number;
+  apiId?: string;
   order: number;
   name: string;
   context: string;

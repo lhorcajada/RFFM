@@ -1,0 +1,131 @@
+using FluentValidation;
+using Mediator;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.EntityFrameworkCore;
+using RFFM.Api.Domain;
+using RFFM.Api.Domain.Aggregates.Training.TasksTraining;
+using RFFM.Api.FeatureModules;
+using RFFM.Api.Infrastructure.Persistence;
+
+namespace RFFM.Api.Features.Coaches.Trainings.Exercises
+{
+    /// <summary>
+    /// Updates an existing exercise.
+    /// PUT /api/trainings/exercises/{id}
+    /// </summary>
+    public class UpdateExercise : IFeatureModule
+    {
+        public void AddRoutes(IEndpointRouteBuilder app)
+        {
+            app.MapPut("/api/trainings/exercises/{id}",
+                    async (string id, UpdateExerciseCommand command, HttpContext httpContext, IMediator mediator, CancellationToken ct) =>
+                    {
+                        var userId = httpContext.User.Claims
+                            .FirstOrDefault(c => c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value;
+                        if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
+
+                        await mediator.Send(command with { Id = id, UserId = userId }, ct);
+                        return Results.NoContent();
+                    })
+                .WithName(nameof(UpdateExercise))
+                .WithTags(TrainingConstants.ExercisesTag)
+                .RequireAuthorization()
+                .Produces(StatusCodes.Status204NoContent)
+                .Produces(StatusCodes.Status404NotFound)
+                .Produces(StatusCodes.Status401Unauthorized);
+        }
+    }
+
+    public record UpdateExerciseCommand(
+        string Name,
+        string Description,
+        int DurationTotal,
+        int PlayersNumber,
+        int GoalPeekersNumber,
+        string FieldSpace,
+        string? SubSubPrincipleId,
+        string Section,
+        List<string> EssentialSkillIds,
+        int? Series,
+        int? DurationSeries,
+        int? RestSeries,
+        int? TouchesNumber,
+        int? WildCards
+    ) : IRequest
+    {
+        public string Id { get; init; } = string.Empty;
+        public string UserId { get; init; } = string.Empty;
+    }
+
+    public class UpdateExerciseHandler : IRequestHandler<UpdateExerciseCommand, Unit>
+    {
+        private readonly AppDbContext _db;
+        public UpdateExerciseHandler(AppDbContext db) => _db = db;
+
+        public async ValueTask<Unit> Handle(UpdateExerciseCommand request, CancellationToken ct = default)
+        {
+            var exercise = await _db.TaskTrainingBases
+                .Include(tb => tb.Skills)
+                .FirstOrDefaultAsync(tb => tb.Id == request.Id, ct);
+
+            if (exercise is null)
+                throw new DomainException("Ejercicios", "Ejercicio no encontrado.", "");
+
+            var hasAccess = await _db.UserClubs
+                .AnyAsync(uc => uc.ApplicationUserId == request.UserId && uc.ClubId == exercise.ClubId, ct);
+            if (!hasAccess)
+                throw new DomainException("Ejercicios", "No tienes acceso a este ejercicio.", "");
+
+            exercise.Name = request.Name.Trim();
+            exercise.Description = request.Description;
+            exercise.DurationTotal = request.DurationTotal;
+            exercise.PlayersNumber = request.PlayersNumber;
+            exercise.GoalPeekersNumber = request.GoalPeekersNumber;
+            exercise.FieldSpace = request.FieldSpace;
+            // Only overwrite SubSubPrincipleId if explicitly provided — never clear an existing link
+            if (!string.IsNullOrEmpty(request.SubSubPrincipleId))
+                exercise.SubSubPrincipleId = request.SubSubPrincipleId;
+            exercise.Section = request.Section;
+
+            // Replace skills
+            _db.TaskTrainingSkills.RemoveRange(exercise.Skills);
+            exercise.Skills.Clear();
+            foreach (var skillId in request.EssentialSkillIds.Distinct())
+                exercise.Skills.Add(new TaskTrainingSkill { TaskTrainingBaseId = exercise.Id, EssentialSkillId = skillId });
+
+            if (exercise is PhysicalTaskTraining physical)
+            {
+                physical.Series = request.Series ?? physical.Series;
+                physical.DurationSeries = request.DurationSeries ?? physical.DurationSeries;
+                physical.RestSeries = request.RestSeries ?? physical.RestSeries;
+            }
+            else if (exercise is TacticalTaskTraining tactical)
+            {
+                tactical.TouchesNumber = request.TouchesNumber ?? tactical.TouchesNumber;
+                tactical.WildCards = request.WildCards ?? tactical.WildCards;
+            }
+            else if (exercise is TechnicalTaskTraining technical)
+            {
+                technical.TouchesNumber = request.TouchesNumber ?? technical.TouchesNumber;
+                technical.WildCards = request.WildCards ?? technical.WildCards;
+            }
+
+            await _db.SaveChangesAsync(ct);
+            return Unit.Value;
+        }
+    }
+
+    public class UpdateExerciseValidator : AbstractValidator<UpdateExerciseCommand>
+    {
+        public UpdateExerciseValidator()
+        {
+            RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
+            RuleFor(x => x.DurationTotal).GreaterThan(0);
+            RuleFor(x => x.Section).Must(s => s is "Calentamiento" or "Principal" or "VueltaALaCalma")
+                .WithMessage("Section must be Calentamiento, Principal or VueltaALaCalma.");
+        }
+    }
+}

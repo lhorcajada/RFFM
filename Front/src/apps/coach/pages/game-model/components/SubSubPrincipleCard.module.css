@@ -1,6 +1,6 @@
 .card {
-  background: rgba(255, 138, 76, 0.07);
-  border: 1px solid rgba(255, 138, 76, 0.2);
+  background: rgba(0, 122, 204, 0.07);
+  border: 1px solid rgba(0, 122, 204, 0.2);
   border-radius: 8px;
   margin-bottom: 10px;
   overflow: hidden;
@@ -17,7 +17,7 @@
 }
 
 .header:hover {
-  background: rgba(255, 138, 76, 0.12);
+  background: rgba(0, 122, 204, 0.12);
 }
 
 .headerRight {
@@ -28,15 +28,15 @@
 }
 
 .countChip {
-  background-color: rgba(255, 138, 76, 0.15) !important;
-  color: #ff8a4c !important;
-  border: 1px solid rgba(255, 138, 76, 0.35) !important;
-  font-size: 0.68rem !important;
+  background-color: rgba(0, 122, 204, 0.15) !important;
+  color: #007ACC !important;
+  border: 1px solid rgba(0, 122, 204, 0.35) !important;
+  font-size: 1.18rem !important;
   height: 20px !important;
 }
 
 .expandBtn {
-  color: #ff8a4c !important;
+  color: #007ACC !important;
   padding: 2px !important;
 }
 
@@ -45,21 +45,21 @@
 }
 
 .title {
-  font-size: 0.88rem !important;
+  font-size: 1.38rem !important;
   font-weight: 600 !important;
-  color: #ffd19a !important;
+  color: #9cdcfe !important;
   margin: 0 !important;
 }
 
 .index {
-  color: #ff8a4c;
+  color: #007ACC;
   font-weight: 700;
   margin-right: 4px;
 }
 
 .action {
-  font-size: 0.85rem !important;
-  color: #fff7ef !important;
+  font-size: 1.35rem !important;
+  color: #d4d4d4 !important;
   line-height: 1.5 !important;
   margin-bottom: 10px !important;
 }
@@ -69,11 +69,11 @@
 }
 
 .skillsLabel {
-  font-size: 0.75rem !important;
+  font-size: 1.25rem !important;
   font-weight: 700 !important;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #ff8a4c !important;
+  color: #007ACC !important;
   margin-bottom: 6px !important;
 }
 
@@ -88,23 +88,351 @@
 
 .skillItem {
   display: flex;
-  align-items: flex-start;
-  gap: 8px;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.skillRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
 .chip {
-  background-color: rgba(255, 138, 76, 0.2) !important;
-  color: #ff8a4c !important;
-  border: 1px solid rgba(255, 138, 76, 0.4) !important;
-  font-size: 0.72rem !important;
+  background-color: rgba(0, 122, 204, 0.2) !important;
+  color: #007ACC !important;
+  border: 1px solid rgba(0, 122, 204, 0.4) !important;
+  font-size: 1.22rem !important;
   height: 22px !important;
   flex-shrink: 0;
 }
 
+.chipMastered {
+  background-color: rgba(80, 200, 120, 0.2) !important;
+  color: #7deb9a !important;
+  border-color: rgba(80, 200, 120, 0.4) !important;
+}
+
+.masteredLabel {
+  font-size: 1.18rem !important;
+  color: #7deb9a !important;
+  font-weight: 600 !important;
+}
+
 .skillDesc {
-  font-size: 0.82rem !important;
-  color: #ffe8d0 !important;
+  font-size: 1.32rem !important;
+  color: #d4d4d4 !important;
   line-height: 1.5 !important;
   padding-top: 2px;
+}
+
+.exerciseChip {
+  background-color: rgba(100, 180, 255, 0.12) !important;
+  color: #90caf9 !important;
+  border: 1px solid rgba(100, 180, 255, 0.25) !important;
+  font-size: 1.18rem !important;
+  height: 20px !important;
+}
+
+.trainingsBtn {
+  color: rgba(144, 202, 249, 0.7) !important;
+  padding: 2px !important;
+}
+
+.trainingsBtn:hover {
+  color: #90caf9 !important;
+  background: rgba(100, 180, 255, 0.1) !important;
+}
+
+/* ── Exercises section ───────────────────────────────────────── */
+
+.divider {
+  border-color: rgba(0, 122, 204, 0.15) !important;
+  margin: 12px 0 8px !important;
+}
+
+.exercisesSection {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(144, 202, 249, 0.12);
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-top: 2px;
+}
+
+.exercisesHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.exercisesLabel {
+  font-size: 1.25rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #90caf9 !important;
+}
+
+.addExBtn {
+  color: #90caf9 !important;
+  border-color: rgba(144, 202, 249, 0.4) !important;
+  font-size: 1.22rem !important;
+  padding: 3px 10px !important;
+  line-height: 1.5 !important;
+}
+
+.addExBtn:hover {
+  border-color: #90caf9 !important;
+  background: rgba(100, 180, 255, 0.1) !important;
+}
+
+.exLoading {
+  display: flex;
+  justify-content: center;
+  padding: 6px 0;
+}
+
+.exEmpty {
+  font-size: 1.28rem !important;
+  color: rgba(212, 212, 212, 0.4) !important;
+  font-style: italic;
+  padding: 4px 0;
+}
+
+/* ── Exercise grid ───────────────────────────────────────── */
+
+.exGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+@media (max-width: 900px) {
+  .exGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .exGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.exCard {
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(144, 202, 249, 0.14);
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.15s;
+}
+
+.exCard:hover {
+  border-color: rgba(144, 202, 249, 0.3);
+}
+
+/* ── Media area ── */
+
+.exCardMedia {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: #141414;
+}
+
+.exMediaEl {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.exMediaPlaceholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.exPlaceholder_Physical {
+  background: linear-gradient(135deg, rgba(0, 122, 204, 0.18), rgba(0, 122, 204, 0.1));
+}
+
+.exPlaceholder_Technical {
+  background: linear-gradient(135deg, rgba(100, 180, 255, 0.18), rgba(60, 130, 220, 0.1));
+}
+
+.exPlaceholder_Tactical {
+  background: linear-gradient(135deg, rgba(130, 220, 130, 0.15), rgba(60, 170, 90, 0.1));
+}
+
+.exPlaceholderInitials {
+  font-size: 2.1rem !important;
+  font-weight: 800 !important;
+  color: rgba(212, 212, 212, 0.3) !important;
+  letter-spacing: 0.05em;
+  line-height: 1 !important;
+}
+
+.exPlaceholderType {
+  font-size: 1.12rem !important;
+  font-weight: 600 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(212, 212, 212, 0.25) !important;
+}
+
+/* ── Card body ── */
+
+.exCardBody {
+  padding: 8px 10px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+}
+
+.exCardTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.exName {
+  font-size: 1.32rem !important;
+  font-weight: 700 !important;
+  color: #d4d4d4 !important;
+  line-height: 1.35 !important;
+  flex: 1;
+}
+
+.exTypeRow {
+  display: flex;
+}
+
+.exStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.exStatItem {
+  font-size: 1.22rem !important;
+  color: rgba(212, 212, 212, 0.85) !important;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.exStatIcon {
+  font-size: 1.28rem;
+  line-height: 1;
+}
+
+.exDescription {
+  font-size: 1.25rem !important;
+  color: rgba(212, 212, 212, 0.7) !important;
+  line-height: 1.45 !important;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.exSkills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+/* ── Conditions ── */
+.exConditions {
+  background: rgba(0, 122, 204, 0.05);
+  border: 1px solid rgba(0, 122, 204, 0.12);
+  border-radius: 4px;
+  padding: 5px 8px;
+}
+
+.exConditionsLabel {
+  font-size: 1.1rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #007ACC !important;
+  margin-bottom: 3px !important;
+}
+
+.exConditionsList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.exConditionItem {
+  font-size: 1.22rem;
+  color: rgba(212, 212, 212, 0.75);
+  line-height: 1.4;
+  padding-left: 10px;
+  position: relative;
+}
+
+.exConditionItem::before {
+  content: "·";
+  position: absolute;
+  left: 0;
+  color: #007ACC;
+  font-weight: 700;
+}
+
+.typeChip {
+  background-color: rgba(0, 122, 204, 0.12) !important;
+  color: #007ACC !important;
+  font-size: 1.15rem !important;
+  height: 18px !important;
+}
+
+.skillTagChip {
+  background-color: rgba(144, 202, 249, 0.1) !important;
+  color: #90caf9 !important;
+  font-size: 1.15rem !important;
+  height: 18px !important;
+}
+
+.exActions {
+  display: flex;
+  gap: 1px;
+  flex-shrink: 0;
+  align-items: flex-start;
+  padding-top: 2px;
+}
+
+.exEditBtn {
+  color: rgba(212, 212, 212, 0.45) !important;
+  padding: 3px !important;
+}
+
+.exEditBtn:hover {
+  color: #007ACC !important;
+}
+
+.exDeleteBtn {
+  color: rgba(78, 201, 176, 0.4) !important;
+  padding: 3px !important;
+}
+
+.exDeleteBtn:hover {
+  color: #e74c3c !important;
 }

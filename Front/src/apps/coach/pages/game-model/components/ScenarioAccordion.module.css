@@ -1,6 +1,6 @@
 .accordion {
-  background-color: #2a0b06 !important;
-  border: 1px solid rgba(255, 138, 76, 0.25) !important;
+  background-color: #252526 !important;
+  border: 1px solid rgba(0, 122, 204, 0.25) !important;
   border-radius: 8px !important;
   margin-bottom: 10px !important;
 }
@@ -10,18 +10,18 @@
 }
 
 .summary {
-  background-color: rgba(122, 46, 14, 0.4) !important;
+  background-color: rgba(60, 60, 60, 0.4) !important;
   border-radius: 8px !important;
   min-height: 52px !important;
   padding: 0 16px !important;
 }
 
 .summary:hover {
-  background-color: rgba(122, 46, 14, 0.65) !important;
+  background-color: rgba(60, 60, 60, 0.65) !important;
 }
 
 .expandIcon {
-  color: #ff8a4c !important;
+  color: #007ACC !important;
 }
 
 .summaryContent {
@@ -33,37 +33,37 @@
 }
 
 .scenarioNumber {
-  font-size: 0.72rem !important;
+  font-size: 1.22rem !important;
   font-weight: 700 !important;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #ff8a4c !important;
+  color: #007ACC !important;
   white-space: nowrap;
 }
 
 .scenarioName {
-  font-size: 0.92rem !important;
+  font-size: 1.42rem !important;
   font-weight: 600 !important;
-  color: #fff7ef !important;
+  color: #d4d4d4 !important;
   flex: 1;
 }
 
 .countChip {
-  background-color: rgba(255, 138, 76, 0.15) !important;
-  color: #ffd19a !important;
-  font-size: 0.7rem !important;
+  background-color: rgba(0, 122, 204, 0.15) !important;
+  color: #9cdcfe !important;
+  font-size: 1.2rem !important;
   height: 20px !important;
 }
 
 .details {
   padding: 16px 18px 18px !important;
-  background-color: #1e0804 !important;
+  background-color: #1e1e1e !important;
   border-radius: 0 0 8px 8px !important;
 }
 
 .context {
-  font-size: 0.87rem !important;
-  color: #ffe8d0 !important;
+  font-size: 1.37rem !important;
+  color: #d4d4d4 !important;
   font-style: italic;
   line-height: 1.55 !important;
   margin-bottom: 12px !important;
@@ -78,8 +78,8 @@
 }
 
 .principlesLabel {
-  font-size: 0.78rem !important;
-  color: #ffd19a !important;
+  font-size: 1.28rem !important;
+  color: #9cdcfe !important;
   font-weight: 600 !important;
   white-space: nowrap;
 }
@@ -91,10 +91,10 @@
 }
 
 .principleChip {
-  background-color: rgba(255, 209, 154, 0.12) !important;
-  color: #ffd19a !important;
-  border: 1px solid rgba(255, 209, 154, 0.3) !important;
-  font-size: 0.75rem !important;
+  background-color: rgba(156, 220, 254, 0.12) !important;
+  color: #9cdcfe !important;
+  border: 1px solid rgba(156, 220, 254, 0.3) !important;
+  font-size: 1.25rem !important;
   height: 22px !important;
 }
 
@@ -107,9 +107,9 @@
 
 /* Sub-principle accordion */
 .spAccordion {
-  background-color: #1a0603 !important;
-  border: 1px solid rgba(255, 138, 76, 0.18) !important;
-  border-left: 3px solid rgba(255, 138, 76, 0.5) !important;
+  background-color: #1e1e1e !important;
+  border: 1px solid rgba(0, 122, 204, 0.18) !important;
+  border-left: 3px solid rgba(0, 122, 204, 0.5) !important;
   border-radius: 6px !important;
 }
 
@@ -118,19 +118,19 @@
 }
 
 .spSummary {
-  background-color: rgba(90, 30, 8, 0.45) !important;
+  background-color: rgba(45, 45, 45, 0.45) !important;
   border-radius: 6px !important;
   min-height: 44px !important;
   padding: 0 12px !important;
 }
 
 .spSummary:hover {
-  background-color: rgba(90, 30, 8, 0.7) !important;
+  background-color: rgba(45, 45, 45, 0.7) !important;
 }
 
 .spExpandIcon {
-  color: #ffd19a !important;
-  font-size: 1.1rem !important;
+  color: #9cdcfe !important;
+  font-size: 1.6rem !important;
 }
 
 .spSummaryContent {
@@ -139,33 +139,34 @@
   gap: 10px;
   flex-wrap: wrap;
   padding: 4px 0;
+  flex: 1;
 }
 
 .spDetails {
   padding: 12px 14px 14px !important;
-  background-color: #120402 !important;
+  background-color: #141414 !important;
   border-radius: 0 0 6px 6px !important;
 }
 
 .subPrincipleLabel {
-  font-size: 0.7rem !important;
+  font-size: 1.2rem !important;
   font-weight: 700 !important;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #ff8a4c !important;
+  color: #007ACC !important;
   white-space: nowrap;
 }
 
 .subPrincipleName {
-  font-size: 0.88rem !important;
+  font-size: 1.38rem !important;
   font-weight: 700 !important;
-  color: #ffd19a !important;
+  color: #9cdcfe !important;
   letter-spacing: 0.02em;
 }
 
 .subPrincipleContext {
-  font-size: 0.84rem !important;
-  color: #ffe8d0 !important;
+  font-size: 1.34rem !important;
+  color: #d4d4d4 !important;
   font-style: italic;
   line-height: 1.5 !important;
   margin-bottom: 10px !important;
@@ -176,4 +177,31 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+/* ── New session button ─── */
+.newSessionBtn {
+  margin-left: auto !important;
+  color: #4ec9b0 !important;
+  border-color: rgba(78, 201, 176, 0.4) !important;
+  font-size: 1.15rem !important;
+  white-space: nowrap;
+}
+
+.newSessionBtn:hover {
+  background-color: rgba(78, 201, 176, 0.08) !important;
+  border-color: #4ec9b0 !important;
+}
+
+.viewSessionsBtn {
+  margin-left: 4px !important;
+  color: #9cdcfe !important;
+  border-color: rgba(156, 220, 254, 0.35) !important;
+  font-size: 1.15rem !important;
+  white-space: nowrap;
+}
+
+.viewSessionsBtn:hover {
+  background-color: rgba(156, 220, 254, 0.08) !important;
+  border-color: #9cdcfe !important;
 }

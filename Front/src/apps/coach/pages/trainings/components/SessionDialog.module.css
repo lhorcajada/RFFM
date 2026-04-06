@@ -1,0 +1,117 @@
+.paper {
+  background-color: #1e1e1e !important;
+  border: 1px solid rgba(0, 122, 204, 0.25) !important;
+}
+
+.title {
+  color: #007ACC !important;
+  font-size: 1rem !important;
+  font-weight: 700 !important;
+}
+
+.content {
+  padding-top: 8px !important;
+}
+
+.field {
+  margin-bottom: 10px !important;
+}
+
+.field .MuiInputBase-root {
+  color: #d4d4d4 !important;
+}
+
+.field .MuiInputLabel-root {
+  color: rgba(212, 212, 212, 0.6) !important;
+}
+
+.field .MuiOutlinedInput-notchedOutline {
+  border-color: rgba(0, 122, 204, 0.3) !important;
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.dateField {
+  flex: 2;
+}
+
+.dateField .MuiInputBase-root,
+.timeField .MuiInputBase-root {
+  color: #d4d4d4 !important;
+}
+
+.dateField .MuiInputLabel-root,
+.timeField .MuiInputLabel-root {
+  color: rgba(212, 212, 212, 0.6) !important;
+}
+
+.dateField .MuiOutlinedInput-notchedOutline,
+.timeField .MuiOutlinedInput-notchedOutline {
+  border-color: rgba(0, 122, 204, 0.3) !important;
+}
+
+.timeField {
+  flex: 1.2;
+}
+
+.flex1 {
+  flex: 1;
+}
+
+.flex1 .MuiInputBase-root {
+  color: #d4d4d4 !important;
+}
+
+.flex1 .MuiInputLabel-root {
+  color: rgba(212, 212, 212, 0.6) !important;
+}
+
+.flex1 .MuiOutlinedInput-notchedOutline {
+  border-color: rgba(0, 122, 204, 0.3) !important;
+}
+
+.autocomplete .MuiInputBase-root {
+  color: #d4d4d4 !important;
+}
+
+.autocomplete .MuiInputLabel-root {
+  color: rgba(212, 212, 212, 0.6) !important;
+}
+
+.autocomplete .MuiOutlinedInput-notchedOutline {
+  border-color: rgba(0, 122, 204, 0.3) !important;
+}
+
+.exerciseChip {
+  background-color: rgba(0, 122, 204, 0.2) !important;
+  color: #9cdcfe !important;
+  border: 1px solid rgba(0, 122, 204, 0.4) !important;
+  font-size: 0.72rem !important;
+}
+
+.error {
+  font-size: 0.8rem !important;
+  margin-top: 6px !important;
+}
+
+.actions {
+  padding: 10px 16px !important;
+  border-top: 1px solid rgba(0, 122, 204, 0.15);
+}
+
+.cancelBtn {
+  color: rgba(212, 212, 212, 0.6) !important;
+}
+
+.saveBtn {
+  background-color: #c0392b !important;
+  color: #fff !important;
+}
+
+.saveBtn:hover {
+  background-color: #e74c3c !important;
+}

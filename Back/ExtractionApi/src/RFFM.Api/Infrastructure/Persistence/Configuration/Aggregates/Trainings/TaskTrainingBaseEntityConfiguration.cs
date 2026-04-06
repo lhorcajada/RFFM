@@ -8,6 +8,7 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.Trainings
     {
         public void Configure(EntityTypeBuilder<TaskTrainingBase> builder)
         {
+            builder.ToTable("TaskTrainingBases");
             builder.HasKey(tb => tb.Id);
 
             builder.Property(tb => tb.Name)
@@ -21,14 +22,40 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.Trainings
                 .HasMaxLength(ValidationConstants.TaskTrainingBaseFieldSpaceMaxLength);
 
             builder.Property(tb => tb.UrlImage)
+                .IsRequired(false)
                 .HasMaxLength(ValidationConstants.TaskTrainingBaseUrlImageMaxLength);
 
-            builder.Property(tb => tb.Points)
-                .IsRequired();
-            builder.Property(tb => tb.PlayersNumber)
-                .IsRequired();
-            builder.Property(tb => tb.GoalPeekersNumber)
-                .IsRequired();
+            builder.Property(tb => tb.Points).IsRequired();
+            builder.Property(tb => tb.PlayersNumber).IsRequired();
+            builder.Property(tb => tb.GoalPeekersNumber).IsRequired();
+
+            builder.Property(tb => tb.ClubId)
+                .IsRequired()
+                .HasMaxLength(36);
+
+            builder.Property(tb => tb.SubSubPrincipleId)
+                .IsRequired(false)
+                .HasMaxLength(36);
+
+            builder.Property(tb => tb.Section)
+                .IsRequired()
+                .HasMaxLength(50);
+
+            builder.HasOne(tb => tb.Club)
+                .WithMany()
+                .HasForeignKey(tb => tb.ClubId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.HasOne(tb => tb.SubSubPrinciple)
+                .WithMany()
+                .HasForeignKey(tb => tb.SubSubPrincipleId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            builder.HasMany(tb => tb.Skills)
+                .WithOne(s => s.TaskTrainingBase)
+                .HasForeignKey(s => s.TaskTrainingBaseId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             builder.HasDiscriminator<string>("Discriminator")
                 .HasValue<TaskTrainingBase>("Base")
@@ -37,8 +64,4 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.Trainings
                 .HasValue<TacticalTaskTraining>("Tactical");
         }
     }
-
-
-
-
 }

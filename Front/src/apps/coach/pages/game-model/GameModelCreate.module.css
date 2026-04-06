@@ -35,42 +35,42 @@
 /* Shared styling for both header fields */
 .seasonField .MuiOutlinedInput-root,
 .nameField .MuiOutlinedInput-root {
-  color: #fff7ef !important;
-  font-size: 0.88rem !important;
+  color: #d4d4d4 !important;
+  font-size: 1.38rem !important;
 }
 
 .seasonField .MuiOutlinedInput-notchedOutline,
 .nameField .MuiOutlinedInput-notchedOutline {
-  border-color: rgba(255, 138, 76, 0.35) !important;
+  border-color: rgba(0, 122, 204, 0.35) !important;
 }
 
 .seasonField .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline,
 .nameField .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
-  border-color: rgba(255, 138, 76, 0.65) !important;
+  border-color: rgba(0, 122, 204, 0.65) !important;
 }
 
 .seasonField .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline,
 .nameField .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
-  border-color: #ff8a4c !important;
+  border-color: #007ACC !important;
 }
 
 .seasonField .MuiInputLabel-root,
 .nameField .MuiInputLabel-root {
-  color: rgba(255, 200, 150, 0.6) !important;
-  font-size: 0.82rem !important;
+  color: rgba(156, 220, 254, 0.6) !important;
+  font-size: 1.32rem !important;
 }
 
 .seasonField .MuiInputLabel-root.Mui-focused,
 .nameField .MuiInputLabel-root.Mui-focused {
-  color: #ff8a4c !important;
+  color: #007ACC !important;
 }
 
 /* ── Moment tabs ── */
 
 .momentTabsWrap {
-  background-color: #1e0804;
+  background-color: #1e1e1e;
   border-radius: 10px 10px 0 0;
-  border: 1px solid rgba(255, 138, 76, 0.2);
+  border: 1px solid rgba(0, 122, 204, 0.2);
   border-bottom: none;
 }
 
@@ -79,12 +79,12 @@
 }
 
 .momentTabs .MuiTabs-scrollButtons {
-  color: #ff8a4c;
+  color: #007ACC;
 }
 
 .momentTab {
-  color: #ffe8d0 !important;
-  font-size: 0.82rem !important;
+  color: #d4d4d4 !important;
+  font-size: 1.32rem !important;
   font-weight: 500 !important;
   text-transform: none !important;
   min-height: 44px !important;
@@ -92,29 +92,29 @@
 }
 
 .momentTab.Mui-selected {
-  color: #ff8a4c !important;
+  color: #007ACC !important;
   font-weight: 700 !important;
 }
 
 .tabIndicator {
-  background-color: #ff8a4c !important;
+  background-color: #007ACC !important;
   height: 3px !important;
 }
 
 /* ── Moment content ── */
 
 .momentContent {
-  border: 1px solid rgba(255, 138, 76, 0.2);
+  border: 1px solid rgba(0, 122, 204, 0.2);
   border-top: none;
   border-radius: 0 0 10px 10px;
-  background-color: #1a0703;
+  background-color: #1e1e1e;
 }
 
 /* ── Zone tabs ── */
 
 .zoneTabsWrap {
-  border-bottom: 1px solid rgba(255, 138, 76, 0.15);
-  background-color: rgba(30, 8, 4, 0.8);
+  border-bottom: 1px solid rgba(0, 122, 204, 0.15);
+  background-color: rgba(0, 0, 0, 0.5);
 }
 
 .zoneTabs {
@@ -122,12 +122,12 @@
 }
 
 .zoneTabs .MuiTabs-scrollButtons {
-  color: rgba(255, 138, 76, 0.7);
+  color: rgba(0, 122, 204, 0.7);
 }
 
 .zoneTab {
-  color: rgba(255, 232, 208, 0.65) !important;
-  font-size: 0.75rem !important;
+  color: rgba(212, 212, 212, 0.65) !important;
+  font-size: 1.25rem !important;
   font-weight: 500 !important;
   text-transform: none !important;
   min-height: 36px !important;
@@ -135,12 +135,12 @@
 }
 
 .zoneTab.Mui-selected {
-  color: #ff8a4c !important;
+  color: #007ACC !important;
   font-weight: 700 !important;
 }
 
 .zoneTabIndicator {
-  background-color: rgba(255, 138, 76, 0.7) !important;
+  background-color: rgba(0, 122, 204, 0.7) !important;
   height: 2px !important;
 }
 
@@ -151,9 +151,9 @@
 }
 
 .zoneChip {
-  background-color: rgba(255, 138, 76, 0.2) !important;
-  color: #ffd19a !important;
-  font-size: 0.65rem !important;
+  background-color: rgba(0, 122, 204, 0.2) !important;
+  color: #9cdcfe !important;
+  font-size: 1.15rem !important;
   height: 16px !important;
 }
 
@@ -171,27 +171,27 @@
 }
 
 .emptyZoneText {
-  font-size: 0.85rem !important;
-  color: rgba(255, 180, 140, 0.5) !important;
+  font-size: 1.35rem !important;
+  color: rgba(156, 220, 254, 0.5) !important;
   font-style: italic;
 }
 
 /* ── Add scenario button ── */
 
 .addScenarioBtn {
-  color: #ff8a4c !important;
-  font-size: 0.82rem !important;
+  color: #007ACC !important;
+  font-size: 1.32rem !important;
   text-transform: none !important;
   padding: 6px 14px !important;
   margin-top: 8px !important;
-  border: 1px dashed rgba(255, 138, 76, 0.45) !important;
+  border: 1px dashed rgba(0, 122, 204, 0.45) !important;
   border-radius: 8px !important;
   align-self: flex-start;
 }
 
 .addScenarioBtn:hover {
-  background-color: rgba(255, 138, 76, 0.08) !important;
-  border-color: #ff8a4c !important;
+  background-color: rgba(0, 122, 204, 0.08) !important;
+  border-color: #007ACC !important;
 }
 
 /* ── Form actions ── */
@@ -204,19 +204,19 @@
 }
 
 .cancelBtn {
-  color: rgba(255, 200, 150, 0.8) !important;
-  border-color: rgba(255, 200, 150, 0.3) !important;
-  font-size: 0.82rem !important;
+  color: rgba(156, 220, 254, 0.8) !important;
+  border-color: rgba(156, 220, 254, 0.3) !important;
+  font-size: 1.32rem !important;
   text-transform: none !important;
 }
 
 .cancelBtn:hover {
-  border-color: rgba(255, 200, 150, 0.7) !important;
-  background-color: rgba(255, 200, 150, 0.05) !important;
+  border-color: rgba(156, 220, 254, 0.7) !important;
+  background-color: rgba(156, 220, 254, 0.05) !important;
 }
 
 .saveBtn {
   text-transform: none !important;
-  font-size: 0.85rem !important;
+  font-size: 1.35rem !important;
   font-weight: 600 !important;
 }

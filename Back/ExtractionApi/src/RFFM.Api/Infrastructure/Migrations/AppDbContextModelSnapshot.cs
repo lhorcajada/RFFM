@@ -380,6 +380,9 @@ namespace RFFM.Api.Infrastructure.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
 
+                    b.Property<DateTime?>("MasteredAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(300)
@@ -1010,6 +1013,32 @@ namespace RFFM.Api.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Training.TasksTraining.ExerciseCondition", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TaskTrainingBaseId")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TaskTrainingBaseId");
+
+                    b.ToTable("ExerciseConditions", "app");
+                });
+
             modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Training.TasksTraining.TaskTraining", b =>
                 {
                     b.Property<string>("Id")
@@ -1018,13 +1047,26 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.Property<int>("Order")
                         .HasColumnType("integer");
 
+                    b.Property<string>("Section")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<string>("SessionTrainingId")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<string>("TaskTrainingBaseId")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("SessionTrainingId");
+
+                    b.HasIndex("TaskTrainingBaseId");
 
                     b.ToTable("TaskTrainings", "app");
                 });
@@ -1033,6 +1075,11 @@ namespace RFFM.Api.Infrastructure.Migrations
                 {
                     b.Property<string>("Id")
                         .HasColumnType("text");
+
+                    b.Property<string>("ClubId")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -1066,17 +1113,47 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.Property<int>("Points")
                         .HasColumnType("integer");
 
+                    b.Property<string>("Section")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("SubSubPrincipleId")
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
                     b.Property<string>("UrlImage")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ClubId");
+
+                    b.HasIndex("SubSubPrincipleId");
+
                     b.ToTable("TaskTrainingBases", "app");
 
                     b.HasDiscriminator().HasValue("Base");
 
                     b.UseTphMappingStrategy();
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Training.TasksTraining.TaskTrainingSkill", b =>
+                {
+                    b.Property<string>("TaskTrainingBaseId")
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<string>("EssentialSkillId")
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.HasKey("TaskTrainingBaseId", "EssentialSkillId");
+
+                    b.HasIndex("EssentialSkillId");
+
+                    b.ToTable("TaskTrainingSkills", "app");
                 });
 
             modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Training.TechnicalGoalsEnum", b =>
@@ -1208,7 +1285,6 @@ namespace RFFM.Api.Infrastructure.Migrations
                         .HasColumnType("character varying(200)");
 
                     b.Property<string>("SportEventId")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<TimeSpan>("StartTime")
@@ -3523,23 +3599,71 @@ namespace RFFM.Api.Infrastructure.Migrations
                         .HasForeignKey("TaskTrainingBaseId");
                 });
 
-            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Training.TasksTraining.TaskTraining", b =>
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Training.TasksTraining.ExerciseCondition", b =>
                 {
-                    b.HasOne("RFFM.Api.Domain.Aggregates.Training.TasksTraining.TaskTrainingBase", "Task")
-                        .WithMany()
-                        .HasForeignKey("Id")
+                    b.HasOne("RFFM.Api.Domain.Aggregates.Training.TasksTraining.TaskTrainingBase", "TaskTrainingBase")
+                        .WithMany("Conditions")
+                        .HasForeignKey("TaskTrainingBaseId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.Navigation("TaskTrainingBase");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Training.TasksTraining.TaskTraining", b =>
+                {
                     b.HasOne("RFFM.Api.Domain.Aggregates.Training.TrainingSession", "TrainingSession")
                         .WithMany("Tasks")
                         .HasForeignKey("SessionTrainingId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("RFFM.Api.Domain.Aggregates.Training.TasksTraining.TaskTrainingBase", "Task")
+                        .WithMany()
+                        .HasForeignKey("TaskTrainingBaseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("Task");
 
                     b.Navigation("TrainingSession");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Training.TasksTraining.TaskTrainingBase", b =>
+                {
+                    b.HasOne("RFFM.Api.Domain.Aggregates.UserClubs.Club", "Club")
+                        .WithMany()
+                        .HasForeignKey("ClubId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("RFFM.Api.Domain.Aggregates.GameModels.SubSubPrinciple", "SubSubPrinciple")
+                        .WithMany()
+                        .HasForeignKey("SubSubPrincipleId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Club");
+
+                    b.Navigation("SubSubPrinciple");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Training.TasksTraining.TaskTrainingSkill", b =>
+                {
+                    b.HasOne("RFFM.Api.Domain.Aggregates.GameModels.EssentialSkill", "EssentialSkill")
+                        .WithMany()
+                        .HasForeignKey("EssentialSkillId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("RFFM.Api.Domain.Aggregates.Training.TasksTraining.TaskTrainingBase", "TaskTrainingBase")
+                        .WithMany("Skills")
+                        .HasForeignKey("TaskTrainingBaseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("EssentialSkill");
+
+                    b.Navigation("TaskTrainingBase");
                 });
 
             modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Training.TrainingPointsReport", b =>
@@ -3565,9 +3689,7 @@ namespace RFFM.Api.Infrastructure.Migrations
                 {
                     b.HasOne("RFFM.Api.Domain.Aggregates.Assistances.SportEvent", "SportEvent")
                         .WithMany()
-                        .HasForeignKey("SportEventId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("SportEventId");
 
                     b.HasOne("RFFM.Api.Domain.Aggregates.UserClubs.Team", "Team")
                         .WithMany("Trainings")
@@ -3932,7 +4054,11 @@ namespace RFFM.Api.Infrastructure.Migrations
 
             modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Training.TasksTraining.TaskTrainingBase", b =>
                 {
+                    b.Navigation("Conditions");
+
                     b.Navigation("Material");
+
+                    b.Navigation("Skills");
                 });
 
             modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Training.TrainingSession", b =>

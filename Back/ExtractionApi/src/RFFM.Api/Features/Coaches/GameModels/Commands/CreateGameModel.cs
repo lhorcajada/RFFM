@@ -55,6 +55,7 @@ namespace RFFM.Api.Features.Coaches.GameModels.Commands
     }
 
     public record ScenarioRequest(
+        string? Id,
         int GameMomentId,
         int GameZoneId,
         int Order,
@@ -64,6 +65,7 @@ namespace RFFM.Api.Features.Coaches.GameModels.Commands
         List<SubPrincipleRequest> SubPrinciples);
 
     public record SubPrincipleRequest(
+        string? Id,
         string Label,
         int Order,
         string Name,
@@ -72,12 +74,13 @@ namespace RFFM.Api.Features.Coaches.GameModels.Commands
         List<SubSubPrincipleRequest> SubSubPrinciples);
 
     public record SubSubPrincipleRequest(
+        string? Id,
         int Order,
         string Name,
         string Action,
         List<EssentialSkillRequest> EssentialSkills);
 
-    public record EssentialSkillRequest(string Name, string Description);
+    public record EssentialSkillRequest(string? Id, string Name, string Description);
 
     // ── Handler ──────────────────────────────────────────────────────────────────
 

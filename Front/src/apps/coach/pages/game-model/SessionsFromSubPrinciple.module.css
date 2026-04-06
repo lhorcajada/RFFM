@@ -1,0 +1,380 @@
+.page {
+  padding: 12px 4px 32px;
+}
+
+/* ── Context banner ──────────────────────────────────────────────── */
+.contextBanner {
+  background: rgba(0, 122, 204, 0.07);
+  border: 1px solid rgba(0, 122, 204, 0.22);
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-bottom: 20px;
+}
+
+.breadcrumb {
+  font-size: 1.25rem !important;
+  color: rgba(212, 212, 212, 0.55) !important;
+  margin-bottom: 4px !important;
+}
+
+.subPrincipleTitle {
+  font-size: 1.5rem !important;
+  font-weight: 700 !important;
+  color: #9cdcfe !important;
+  letter-spacing: 0.03em;
+  margin-bottom: 6px !important;
+}
+
+.principlesRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.principlesLabel {
+  font-size: 1.25rem !important;
+  color: #9cdcfe !important;
+  font-weight: 600 !important;
+  white-space: nowrap;
+}
+
+.principleChip {
+  background-color: rgba(156, 220, 254, 0.12) !important;
+  color: #9cdcfe !important;
+  border: 1px solid rgba(156, 220, 254, 0.3) !important;
+  font-size: 1.22rem !important;
+  height: 22px !important;
+}
+
+/* ── Toolbar ─────────────────────────────────────────────────────── */
+.toolbarRow {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-bottom: 14px;
+}
+
+.addBtn {
+  background-color: #007ACC !important;
+  color: #fff !important;
+  font-size: 0.8rem !important;
+  font-weight: 600 !important;
+}
+
+.addBtn:hover {
+  background-color: #0e91e5 !important;
+}
+
+/* ── Session card ────────────────────────────────────────────────── */
+.sessionCard {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(0, 122, 204, 0.15);
+  border-radius: 8px;
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+
+.sessionHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 12px 16px;
+  cursor: pointer;
+  gap: 10px;
+}
+
+.sessionHeader:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.sessionInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.sessionName {
+  font-size: 0.93rem !important;
+  font-weight: 600 !important;
+  color: #d4d4d4 !important;
+}
+
+.sessionDate {
+  font-size: 0.8rem !important;
+  color: #9cdcfe !important;
+  margin-top: 2px !important;
+}
+
+.sessionMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+  align-items: center;
+}
+
+.sessionMetaText {
+  font-size: 0.78rem !important;
+  color: rgba(212, 212, 212, 0.55) !important;
+}
+
+.countChip {
+  background-color: rgba(0, 122, 204, 0.15) !important;
+  color: #9cdcfe !important;
+  font-size: 0.72rem !important;
+  height: 20px !important;
+}
+
+.expandBtn {
+  color: rgba(212, 212, 212, 0.5) !important;
+  flex-shrink: 0;
+}
+
+/* ── Exercise list (expanded) ────────────────────────────────────── */
+.exerciseList {
+  border-top: 1px solid rgba(0, 122, 204, 0.12);
+  padding: 14px 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── Section group ───────────────────────────────────────────────── */
+.sectionGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sectionGroupTitle {
+  font-size: 0.82rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 4px 0;
+  border-bottom-width: 1px;
+  border-bottom-style: solid;
+  margin-bottom: 4px !important;
+}
+
+.sectionTitle_Calentamiento  { color: #ffa726 !important; border-bottom-color: rgba(255,167,38,0.3) !important; }
+.sectionTitle_Principal      { color: #4ec9b0 !important; border-bottom-color: rgba(78,201,176,0.3) !important; }
+.sectionTitle_VueltaALaCalma { color: #9cdcfe !important; border-bottom-color: rgba(156,220,254,0.3) !important; }
+
+.exGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 14px;
+}
+
+.exLoadingBox {
+  display: flex;
+  justify-content: center;
+  padding: 10px 0;
+}
+
+.exEmptyText {
+  font-size: 0.8rem !important;
+  color: rgba(212, 212, 212, 0.4) !important;
+}
+
+/* ── Exercise product card ───────────────────────────────────────── */
+.exCard {
+  background: #1a1a1a;
+  border: 1px solid rgba(0, 122, 204, 0.18);
+  border-radius: 10px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.15s;
+}
+
+.exCard:hover {
+  border-color: rgba(0, 122, 204, 0.4);
+}
+
+/* Media */
+.exMediaWrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: #111;
+  flex-shrink: 0;
+}
+
+.exMediaEl {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.exTypeBadge {
+  position: absolute !important;
+  top: 7px;
+  left: 7px;
+  font-size: 0.65rem !important;
+  height: 18px !important;
+  font-weight: 700 !important;
+}
+
+.badge_Physical  { background-color: rgba(195, 0, 0, 0.75) !important; color: #fff !important; }
+.badge_Technical { background-color: rgba(0, 122, 204, 0.8) !important; color: #fff !important; }
+.badge_Tactical  { background-color: rgba(78, 201, 176, 0.8) !important; color: #1a1a1a !important; }
+
+.exOrderBadge {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  background: rgba(0,0,0,0.55);
+  color: rgba(255,255,255,0.8);
+  font-size: 0.65rem;
+  font-weight: 700;
+  border-radius: 4px;
+  padding: 1px 6px;
+  line-height: 1.6;
+}
+
+.exPlaceholder {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  position: relative;
+}
+
+.exPlaceholder_Physical  { background: rgba(195, 0, 0, 0.1); }
+.exPlaceholder_Technical { background: rgba(0, 122, 204, 0.1); }
+.exPlaceholder_Tactical  { background: rgba(78, 201, 176, 0.1); }
+
+.exPlaceholderIcon {
+  font-size: 2rem !important;
+  color: rgba(212, 212, 212, 0.2) !important;
+}
+
+.exPlaceholderType {
+  font-size: 0.65rem !important;
+  color: rgba(212, 212, 212, 0.35) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Body */
+.exBody {
+  padding: 10px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.exName {
+  font-size: 0.85rem !important;
+  font-weight: 700 !important;
+  color: #d4d4d4 !important;
+  line-height: 1.3 !important;
+}
+
+.exStats {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.exStatItem {
+  font-size: 0.72rem !important;
+  color: rgba(212, 212, 212, 0.5) !important;
+}
+
+.exDescription {
+  font-size: 0.75rem !important;
+  color: rgba(212, 212, 212, 0.6) !important;
+  font-style: italic;
+  line-height: 1.45 !important;
+}
+
+.exSkillRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.exConditions {
+  margin-top: 2px;
+}
+
+.exConditionsLabel {
+  font-size: 0.68rem !important;
+  font-weight: 700 !important;
+  color: #9cdcfe !important;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 3px !important;
+}
+
+.exConditionsList {
+  margin: 0;
+  padding-left: 14px;
+}
+
+.exConditionItem {
+  font-size: 0.72rem !important;
+  color: rgba(212, 212, 212, 0.6) !important;
+  line-height: 1.5;
+}
+
+/* Body */
+.exBody {
+  padding: 10px 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.typeChip {
+  background-color: rgba(0, 122, 204, 0.12) !important;
+  color: #9cdcfe !important;
+  font-size: 0.7rem !important;
+  height: 18px !important;
+}
+
+.exConditionItem {
+  font-size: 0.75rem !important;
+  color: rgba(212, 212, 212, 0.6) !important;
+  line-height: 1.5;
+}
+
+.skillChip {
+  background-color: rgba(78, 201, 176, 0.1) !important;
+  color: #4ec9b0 !important;
+  font-size: 0.7rem !important;
+  height: 18px !important;
+}
+
+.sectionChip {
+  align-self: flex-start;
+  font-size: 0.65rem !important;
+  height: 18px !important;
+  font-weight: 600 !important;
+}
+.section_Calentamiento  { background-color: rgba(255, 167, 38, 0.15) !important; color: #ffa726 !important; }
+.section_Principal      { background-color: rgba(78, 201, 176, 0.12) !important; color: #4ec9b0 !important; }
+.section_VueltaALaCalma { background-color: rgba(0, 122, 204, 0.15) !important; color: #9cdcfe !important; }
+
+/* ── States ──────────────────────────────────────────────────────── */
+.loadingBox {
+  display: flex;
+  justify-content: center;
+  padding: 40px 0;
+}
+
+.emptyText {
+  font-size: 0.9rem !important;
+  color: rgba(212, 212, 212, 0.45) !important;
+  text-align: center;
+  padding: 30px 0;
+}

@@ -40,6 +40,7 @@ namespace RFFM.Api.Domain.Aggregates.GameModels
         }
 
         public void UpdateContext(string context) => Context = context;
+
         public void UpdateOrder(int order) => Order = order;
         public void UpdateMomentAndZone(int momentId, int zoneId)
         {

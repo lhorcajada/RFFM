@@ -82,7 +82,12 @@ namespace RFFM.Api.Features.Coaches.GameModels.Queries
             string Action,
             IEnumerable<EssentialSkillResponse> EssentialSkills);
 
-        public record EssentialSkillResponse(string Id, string Name, string Description);
+        public record EssentialSkillResponse(
+            string Id,
+            string Name,
+            string Description,
+            DateTime? MasteredAt,
+            int ExerciseCount);
 
         // ── Handler ──────────────────────────────────────────────────────────────
 
@@ -119,6 +124,22 @@ namespace RFFM.Api.Features.Coaches.GameModels.Queries
 
                 if (model is null)
                     return null;
+
+                // Load exercise counts per essential skill
+                var skillIds = model.Scenarios
+                    .SelectMany(s => s.SubPrinciples)
+                    .SelectMany(sp => sp.SubSubPrinciples)
+                    .SelectMany(ssp => ssp.EssentialSkills)
+                    .Select(sk => sk.Id)
+                    .ToList();
+
+                var exerciseCounts = skillIds.Count > 0
+                    ? await _db.TaskTrainingSkills
+                        .Where(ts => skillIds.Contains(ts.EssentialSkillId))
+                        .GroupBy(ts => ts.EssentialSkillId)
+                        .Select(g => new { SkillId = g.Key, Count = g.Count() })
+                        .ToDictionaryAsync(x => x.SkillId, x => x.Count, cancellationToken)
+                    : new Dictionary<string, int>();
 
                 var tpLookup = TacticalGoalsEnum.List().ToDictionary(tg => tg.Id, tg => tg.Name);
 
@@ -159,7 +180,12 @@ namespace RFFM.Api.Features.Coaches.GameModels.Queries
                                             ssp.Order,
                                             ssp.Name,
                                             ssp.Action,
-                                            ssp.EssentialSkills.Select(sk => new EssentialSkillResponse(sk.Id, sk.Name, sk.Description))
+                                            ssp.EssentialSkills.Select(sk => new EssentialSkillResponse(
+                                                sk.Id,
+                                                sk.Name,
+                                                sk.Description,
+                                                sk.MasteredAt,
+                                                exerciseCounts.GetValueOrDefault(sk.Id, 0)))
                                         ))
                                 ))
                         ))

@@ -1,0 +1,203 @@
+.page {
+  padding: 12px 4px;
+}
+
+.tabs {
+  margin-bottom: 16px;
+}
+
+.tabs .MuiTab-root {
+  color: rgba(212, 212, 212, 0.55) !important;
+  font-size: 0.85rem !important;
+  text-transform: none;
+  min-width: 120px;
+}
+
+.tabs .Mui-selected {
+  color: #007ACC !important;
+}
+
+.tabs .MuiTabs-indicator {
+  background-color: #007ACC !important;
+}
+
+.loadingBox {
+  display: flex;
+  justify-content: center;
+  padding: 40px 0;
+}
+
+.emptyText {
+  font-size: 0.9rem !important;
+  color: rgba(212, 212, 212, 0.5) !important;
+  text-align: center;
+  padding: 30px 0;
+}
+
+.toolbarRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.filterLabel {
+  font-size: 0.78rem !important;
+  color: #9cdcfe !important;
+  background: rgba(156, 220, 254, 0.1);
+  border: 1px solid rgba(156, 220, 254, 0.25);
+  padding: 3px 8px;
+  border-radius: 12px;
+}
+
+.addBtn {
+  background-color: #c0392b !important;
+  color: #fff !important;
+  font-size: 0.8rem !important;
+}
+
+.addBtn:hover {
+  background-color: #e74c3c !important;
+}
+
+/* ── Exercise card ───────────────────────────────────────────────── */
+
+.exerciseCard {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(0, 122, 204, 0.15);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.exerciseInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.exerciseName {
+  font-size: 0.9rem !important;
+  font-weight: 600 !important;
+  color: #d4d4d4 !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.exerciseMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+  align-items: center;
+}
+
+.typeChip {
+  background-color: rgba(0, 122, 204, 0.15) !important;
+  color: #007ACC !important;
+  border: 1px solid rgba(0, 122, 204, 0.3) !important;
+  font-size: 0.7rem !important;
+  height: 20px !important;
+}
+
+.sspChip {
+  background-color: rgba(156, 220, 254, 0.1) !important;
+  color: #9cdcfe !important;
+  border: 1px solid rgba(156, 220, 254, 0.25) !important;
+  font-size: 0.7rem !important;
+  height: 20px !important;
+}
+
+.skillChip {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+  color: rgba(212, 212, 212, 0.7) !important;
+  font-size: 0.67rem !important;
+  height: 18px !important;
+}
+
+.exerciseActions {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.iconBtn {
+  color: rgba(212, 212, 212, 0.5) !important;
+  padding: 4px !important;
+}
+
+.iconBtn:hover {
+  color: #007ACC !important;
+}
+
+.deleteIconBtn {
+  color: rgba(78, 201, 176, 0.5) !important;
+  padding: 4px !important;
+}
+
+.deleteIconBtn:hover {
+  color: #e74c3c !important;
+}
+
+/* ── Session card ────────────────────────────────────────────────── */
+
+.sessionCard {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(0, 122, 204, 0.15);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.sessionInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.sessionName {
+  font-size: 0.9rem !important;
+  font-weight: 600 !important;
+  color: #d4d4d4 !important;
+}
+
+.sessionDate {
+  font-size: 0.75rem !important;
+  color: #9cdcfe !important;
+  margin-top: 2px !important;
+}
+
+.sessionMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+  align-items: center;
+}
+
+.sessionMetaText {
+  font-size: 0.72rem !important;
+  color: rgba(212, 212, 212, 0.55) !important;
+}
+
+.countChip {
+  background-color: rgba(0, 122, 204, 0.15) !important;
+  color: #007ACC !important;
+  font-size: 0.7rem !important;
+  height: 20px !important;
+}
+
+.sessionActions {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}

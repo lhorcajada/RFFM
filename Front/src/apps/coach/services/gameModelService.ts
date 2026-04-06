@@ -20,6 +20,8 @@ interface ApiEssentialSkill {
   id: string;
   name: string;
   description: string;
+  masteredAt?: string | null;
+  exerciseCount?: number;
 }
 
 interface ApiSubSubPrinciple {
@@ -84,12 +86,14 @@ function mapApiToGameModel(
     if (!scenariosByMomentZone.has(key)) scenariosByMomentZone.set(key, []);
     scenariosByMomentZone.get(key)!.push({
       id: nextKey(),
+      apiId: s.id,
       order: s.order,
       name: s.name,
       context: s.context,
       tacticalPrinciples: s.tacticalPrinciples,
       subPrinciples: s.subPrinciples.map((sp) => ({
         id: nextKey(),
+        apiId: sp.id,
         order: sp.order,
         label: sp.label,
         name: sp.name,
@@ -97,13 +101,17 @@ function mapApiToGameModel(
         tacticalPrinciples: sp.tacticalPrinciples,
         subSubPrinciples: sp.subSubPrinciples.map((ssp) => ({
           id: nextKey(),
+          apiId: ssp.id,
           order: ssp.order,
           name: ssp.name,
           action: ssp.action,
           essentialSkills: ssp.essentialSkills.map((sk) => ({
             id: nextKey(),
+            apiId: sk.id,
             name: sk.name,
             description: sk.description,
+            masteredAt: sk.masteredAt ?? null,
+            exerciseCount: sk.exerciseCount ?? 0,
           })),
         })),
       })),
@@ -132,6 +140,7 @@ function mapModelToRequest(model: GameModel) {
     for (const zone of moment.zones) {
       for (const s of zone.scenarios) {
         scenarios.push({
+          id: s.apiId,
           gameMomentId: moment.id,
           gameZoneId: zone.id,
           order: s.order,
@@ -139,16 +148,19 @@ function mapModelToRequest(model: GameModel) {
           context: s.context,
           tacticalPrincipleIds: s.tacticalPrinciples.map((tp) => tp.id),
           subPrinciples: s.subPrinciples.map((sp) => ({
+            id: sp.apiId,
             label: sp.label,
             order: sp.order,
             name: sp.name,
             context: sp.context,
             tacticalPrincipleIds: sp.tacticalPrinciples.map((tp) => tp.id),
             subSubPrinciples: sp.subSubPrinciples.map((ssp) => ({
+              id: ssp.apiId,
               order: ssp.order,
               name: ssp.name,
               action: ssp.action,
               essentialSkills: ssp.essentialSkills.map((sk) => ({
+                id: sk.apiId,
                 name: sk.name,
                 description: sk.description,
               })),
@@ -242,6 +254,21 @@ const gameModelService = {
 
   async delete(id: string): Promise<void> {
     await client.delete(`/api/game-models/${id}`);
+  },
+
+  async toggleSkillMastered(skillId: string): Promise<{ masteredAt: string | null }> {
+    const res = await client.patch<{ masteredAt: string | null }>(
+      `/api/game-models/essential-skills/${skillId}/mastered`
+    );
+    return res.data;
+  },
+
+  async getSubSubPrincipleSkills(sspId: string): Promise<{ id: string; name: string; description: string }[]> {
+    const res = await client.get<{
+      id: string; name: string; action: string;
+      essentialSkills: { id: string; name: string; description: string }[];
+    }>(`/api/game-models/sub-sub-principles/${sspId}`);
+    return res.data.essentialSkills;
   },
 };
 

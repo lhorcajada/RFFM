@@ -12,12 +12,12 @@ namespace RFFM.Api.Domain.Aggregates.Training
         public TimeSpan StartTime { get; set; }
         public TimeSpan? EndTime { get; set; }
         public string Location { get; set; } = string.Empty;
-        public string SportEventId { get; set; } = string.Empty;
+        public string? SportEventId { get; set; }
         public string TeamId { get; set; } = string.Empty;
-        public string UrlImage { get; set; } = string.Empty;
+        public string? UrlImage { get; set; }
 
         public Team Team { get; set; } = null!;
-        public SportEvent SportEvent { get; set; } = null!;
-        public List<TaskTraining> Tasks { get; set; } = null!;
+        public SportEvent? SportEvent { get; set; }
+        public List<TaskTraining> Tasks { get; set; } = new();
     }
 }
