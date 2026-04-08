@@ -1,28 +1,41 @@
 import { useEffect, useState, useCallback } from "react";
 import {
+  Autocomplete,
   Box,
   Button,
   Chip,
   CircularProgress,
   Collapse,
   Dialog,
+  DialogActions,
   DialogContent,
+  DialogTitle,
+  FormControl,
   IconButton,
+  InputLabel,
+  MenuItem,
+  Select,
+  TextField,
+  Tooltip,
   Typography,
+  type SelectChangeEvent,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import FitnessCenterIcon from "@mui/icons-material/FitnessCenter";
 import PrintIcon from "@mui/icons-material/Print";
+import ExerciseDialog from "../trainings/components/ExerciseDialog";
 import { useNavigate, useLocation } from "react-router-dom";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import { client } from "../../../../core/api/client";
 import trainingService from "../../services/trainingService";
-import type { TrainingSession, SessionExerciseItem } from "../../types/training";
+import type { TrainingSession, SessionExerciseItem, Exercise, ExerciseSection } from "../../types/training";
 import type { TacticalPrinciple } from "../../types/gameModel";
 import styles from "./SessionsFromSubPrinciple.module.css";
 
@@ -50,6 +63,7 @@ interface PageState {
   scenario: ScenarioInfo;
   subPrinciple: SubPrincipleInfo;
   teamId: string;
+  clubId: string;
 }
 
 function formatDate(iso: string) {
@@ -72,6 +86,45 @@ const SECTION_LABELS: Record<string, string> = {
   Principal: "Principal",
   VueltaALaCalma: "Vuelta a la Calma",
 };
+
+const SECTION_OPTIONS: { value: ExerciseSection; label: string }[] = [
+  { value: "Calentamiento",  label: "Calentamiento" },
+  { value: "Principal",      label: "Principal" },
+  { value: "VueltaALaCalma", label: "Vuelta a la Calma" },
+];
+
+function sessionItemToExercise(item: SessionExerciseItem): Exercise {
+  return {
+    id: item.exerciseId,
+    name: item.name,
+    description: item.description,
+    type: item.type,
+    section: item.section,
+    durationTotal: item.durationTotal,
+    playersNumber: item.playersNumber,
+    goalPeekersNumber: item.goalPeekersNumber,
+    fieldSpace: item.fieldSpace,
+    urlImage: item.urlImage ?? null,
+    skills: item.skills,
+    conditions: item.conditions,
+    subSubPrincipleId: null,
+    subSubPrincipleName: null,
+  };
+}
+
+function buildUpdateReq(sess: TrainingSession, exList: SessionExerciseItem[]) {
+  return {
+    name: sess.name,
+    description: sess.description,
+    date: sess.date,
+    startTime: sess.startTime,
+    endTime: sess.endTime ?? null,
+    location: sess.location ?? null,
+    sportEventId: sess.sportEventId ?? null,
+    subPrincipleId: sess.subPrincipleId ?? null,
+    exercises: exList.map(e => ({ exerciseId: e.exerciseId, section: e.section })),
+  };
+}
 
 function ExerciseModal({ ex, onClose }: { ex: SessionExerciseItem | null; onClose: () => void }) {
   return (
@@ -166,7 +219,17 @@ function ExerciseModal({ ex, onClose }: { ex: SessionExerciseItem | null; onClos
   );
 }
 
-function buildPrintHtml(sess: TrainingSession, exercises: SessionExerciseItem[]) {
+interface PrintContext {
+  gameMomentName: string;
+  zoneName: string;
+  scenarioName: string;
+  scenarioOrder: number;
+  subPrincipleLabel: string;
+  subPrincipleName: string;
+  tacticalPrinciples: TacticalPrinciple[];
+}
+
+function buildPrintHtml(sess: TrainingSession, exercises: SessionExerciseItem[], ctx: PrintContext) {
   const sections: { key: string; label: string; color: string }[] = [
     { key: "Calentamiento",   label: "Calentamiento",        color: "#e67e22" },
     { key: "Principal",       label: "Ejercicios principales", color: "#27ae60" },
@@ -181,7 +244,7 @@ function buildPrintHtml(sess: TrainingSession, exercises: SessionExerciseItem[])
     const exHtml = exs.length === 0
       ? `<p style="color:#aaa;font-style:italic;margin:6px 0 0">Sin ejercicios en esta sección</p>`
       : exs.map((ex, idx) => `
-          <div style="border:1px solid #ddd;border-radius:8px;overflow:hidden;width:460px;flex-shrink:0;background:#fff;page-break-inside:avoid;">
+          <div style="border:1px solid #ddd;border-radius:8px;overflow:hidden;width:380px;flex-shrink:0;background:#fff;page-break-inside:avoid;">
             ${ex.urlImage
               ? (isVideo(ex.urlImage)
                   ? `<div style="width:100%;aspect-ratio:4/3;background:#eee;display:flex;align-items:center;justify-content:center;font-size:12px;color:#888">📹 vídeo</div>`
@@ -219,6 +282,12 @@ function buildPrintHtml(sess: TrainingSession, exercises: SessionExerciseItem[])
     sess.location ?? null,
   ].filter(Boolean).join(" · ");
 
+  const principlesHtml = ctx.tacticalPrinciples.length > 0
+    ? `<div style="display:flex;flex-direction:column;gap:4px;margin-top:6px;">${ctx.tacticalPrinciples.map(p =>
+        `<span style="background:#eaf4fb;color:#1a6fa3;border:1px solid #b3d9f0;border-radius:4px;font-size:10px;padding:2px 7px;display:inline-block;">${p.name}</span>`
+      ).join("")}</div>`
+    : "";
+
   return `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -226,25 +295,42 @@ function buildPrintHtml(sess: TrainingSession, exercises: SessionExerciseItem[])
   <title>${sess.name}</title>
   <style>
     * { box-sizing: border-box; }
-    body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a1a; background: #fff; margin: 0; padding: 24px 28px; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a1a; background: #fff; margin: 0; padding: 14px 18px; }
     @media print {
       body { padding: 0; }
-      @page { size: A4 landscape; margin: 12mm 14mm; }
+      @page { size: A4 landscape; margin: 10mm 12mm; }
     }
   </style>
 </head>
 <body>
-  <div style="display:flex;align-items:baseline;justify-content:space-between;border-bottom:3px solid #1a1a1a;padding-bottom:8px;margin-bottom:20px;">
-    <h1 style="margin:0;font-size:22px;font-weight:800;">${sess.name}</h1>
-    <span style="font-size:12px;color:#555;">${meta}</span>
+  <div style="display:flex;gap:18px;align-items:flex-start;">
+    <!-- Sidebar -->
+    <div style="width:190px;flex-shrink:0;border-right:2px solid #e0e0e0;padding-right:14px;padding-top:2px;">
+      <h1 style="margin:0 0 4px;font-size:15px;font-weight:800;line-height:1.25;color:#1a1a1a;">${sess.name}</h1>
+      ${meta ? `<div style="font-size:10px;color:#666;margin-bottom:10px;">${meta}</div>` : ""}
+      <div style="border-top:1px solid #e8e8e8;padding-top:10px;">
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#aaa;margin-bottom:5px;">Modelo de Juego</div>
+        <div style="font-size:10px;color:#555;margin-bottom:2px;">${ctx.gameMomentName}</div>
+        <div style="font-size:10px;color:#555;margin-bottom:2px;">${ctx.zoneName}</div>
+        <div style="font-size:10px;color:#555;margin-bottom:8px;">Escenario ${ctx.scenarioOrder} — ${ctx.scenarioName}</div>
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#aaa;margin-bottom:4px;">Subprincipio</div>
+        <div style="font-size:11px;font-weight:700;color:#1a6fa3;line-height:1.3;margin-bottom:8px;">${ctx.subPrincipleLabel}: ${ctx.subPrincipleName}</div>
+        ${ctx.tacticalPrinciples.length > 0 ? `
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#aaa;margin-bottom:4px;">Principios tácticos</div>
+        ${principlesHtml}` : ""}
+      </div>
+    </div>
+    <!-- Exercises -->
+    <div style="flex:1;min-width:0;">
+      ${sectionHtml}
+    </div>
   </div>
-  ${sectionHtml}
 </body>
 </html>`;
 }
 
-function handlePrint(sess: TrainingSession, exercises: SessionExerciseItem[]) {
-  const html = buildPrintHtml(sess, exercises);
+function handlePrint(sess: TrainingSession, exercises: SessionExerciseItem[], ctx: PrintContext) {
+  const html = buildPrintHtml(sess, exercises, ctx);
   const win = window.open("", "_blank", "width=1100,height=800");
   if (!win) return;
   win.document.write(html);
@@ -252,11 +338,34 @@ function handlePrint(sess: TrainingSession, exercises: SessionExerciseItem[]) {
   win.onload = () => { win.focus(); win.print(); };
 }
 
-function SessionCard({ sess }: { sess: TrainingSession }) {
+function SessionCard({ sess, clubId, subSubPrincipleId, printContext }: {
+  sess: TrainingSession;
+  clubId: string;
+  subSubPrincipleId: string | null;
+  printContext: PrintContext;
+}) {
   const [expanded, setExpanded] = useState(false);
   const [exercises, setExercises] = useState<SessionExerciseItem[] | null>(null);
   const [loadingEx, setLoadingEx] = useState(false);
   const [selectedEx, setSelectedEx] = useState<SessionExerciseItem | null>(null);
+
+  // Edit exercise
+  const [editingEx, setEditingEx] = useState<Exercise | null>(null);
+
+  // Add exercise panel
+  const [showAddPanel, setShowAddPanel] = useState(false);
+  const [addSection, setAddSection] = useState<ExerciseSection>("Principal");
+  const [availableExercises, setAvailableExercises] = useState<Exercise[]>([]);
+  const [loadingAvail, setLoadingAvail] = useState(false);
+  const [selectedToAdd, setSelectedToAdd] = useState<Exercise | null>(null);
+  const [savingAdd, setSavingAdd] = useState(false);
+  const [creatingNewEx, setCreatingNewEx] = useState(false);
+  const [prevExIds, setPrevExIds] = useState<Set<string>>(new Set());
+
+  const reloadExercises = async () => {
+    const detail = await trainingService.getSessionById(sess.id);
+    setExercises(detail.exercises.slice().sort((a, b) => a.order - b.order));
+  };
 
   const handleToggle = useCallback(() => {
     setExpanded((prev) => {
@@ -271,6 +380,101 @@ function SessionCard({ sess }: { sess: TrainingSession }) {
       return !prev;
     });
   }, [sess.id, exercises]);
+
+  const handleRemoveFromSession = async (taskTrainingId: string) => {
+    if (!exercises) return;
+    const newExs = exercises.filter(e => e.taskTrainingId !== taskTrainingId);
+    try {
+      await trainingService.updateSession(sess.id, buildUpdateReq(sess, newExs));
+      setExercises(newExs);
+    } catch { /* silent */ }
+  };
+
+  const handleEditSaved = async () => {
+    setEditingEx(null);
+    await reloadExercises();
+  };
+
+  const handleOpenAddPanel = async () => {
+    setShowAddPanel(true);
+    setSelectedToAdd(null);
+    if (availableExercises.length === 0) {
+      setLoadingAvail(true);
+      try {
+        const exs = await trainingService.getExercises(clubId);
+        setAvailableExercises(exs);
+      } catch { /* silent */ } finally {
+        setLoadingAvail(false);
+      }
+    }
+  };
+
+  const handleAddToSession = async () => {
+    if (!selectedToAdd) return;
+    const currentExs = exercises ?? [];
+    const newExs: SessionExerciseItem[] = [...currentExs, {
+      taskTrainingId: `temp_${Date.now()}`,
+      order: currentExs.length,
+      exerciseId: selectedToAdd.id,
+      name: selectedToAdd.name,
+      description: selectedToAdd.description,
+      type: selectedToAdd.type,
+      section: addSection,
+      durationTotal: selectedToAdd.durationTotal,
+      playersNumber: selectedToAdd.playersNumber,
+      goalPeekersNumber: selectedToAdd.goalPeekersNumber,
+      fieldSpace: selectedToAdd.fieldSpace,
+      urlImage: selectedToAdd.urlImage ?? null,
+      skills: selectedToAdd.skills,
+      conditions: selectedToAdd.conditions,
+    }];
+    setSavingAdd(true);
+    try {
+      await trainingService.updateSession(sess.id, buildUpdateReq(sess, newExs));
+      await reloadExercises();
+      setShowAddPanel(false);
+      setSelectedToAdd(null);
+    } catch { /* silent */ } finally {
+      setSavingAdd(false);
+    }
+  };
+
+  const handleOpenCreateEx = async () => {
+    setShowAddPanel(false);
+    const exs = await trainingService.getExercises(clubId);
+    setPrevExIds(new Set(exs.map(e => e.id)));
+    setCreatingNewEx(true);
+  };
+
+  const handleCreatedSaved = async () => {
+    setCreatingNewEx(false);
+    try {
+      const newExList = await trainingService.getExercises(clubId);
+      const newEx = newExList.find(e => !prevExIds.has(e.id));
+      if (newEx) {
+        const currentExs = exercises ?? [];
+        const newExs: SessionExerciseItem[] = [...currentExs, {
+          taskTrainingId: `temp_${Date.now()}`,
+          order: currentExs.length,
+          exerciseId: newEx.id,
+          name: newEx.name,
+          description: newEx.description,
+          type: newEx.type,
+          section: addSection,
+          durationTotal: newEx.durationTotal,
+          playersNumber: newEx.playersNumber,
+          goalPeekersNumber: newEx.goalPeekersNumber,
+          fieldSpace: newEx.fieldSpace,
+          urlImage: newEx.urlImage ?? null,
+          skills: newEx.skills,
+          conditions: newEx.conditions,
+        }];
+        await trainingService.updateSession(sess.id, buildUpdateReq(sess, newExs));
+        await reloadExercises();
+        setShowAddPanel(false);
+      }
+    } catch { /* silent */ }
+  };
 
   return (
     <Box className={styles.sessionCard}>
@@ -293,12 +497,20 @@ function SessionCard({ sess }: { sess: TrainingSession }) {
         </Box>
         <IconButton
           size="small"
+          className={styles.addExHeaderBtn}
+          title="Añadir ejercicio"
+          onClick={(e) => { e.stopPropagation(); handleOpenAddPanel(); }}
+        >
+          <AddIcon fontSize="small" />
+        </IconButton>
+        <IconButton
+          size="small"
           className={styles.printBtn}
           title="Imprimir sesión"
           onClick={(e) => {
             e.stopPropagation();
             if (exercises !== null) {
-              handlePrint(sess, exercises);
+              handlePrint(sess, exercises, printContext);
             } else {
               setLoadingEx(true);
               trainingService
@@ -306,7 +518,7 @@ function SessionCard({ sess }: { sess: TrainingSession }) {
                 .then((detail) => {
                   const sorted = detail.exercises.slice().sort((a, b) => a.order - b.order);
                   setExercises(sorted);
-                  handlePrint(sess, sorted);
+                  handlePrint(sess, sorted, printContext);
                 })
                 .catch(() => setExercises([]))
                 .finally(() => setLoadingEx(false));
@@ -412,6 +624,28 @@ function SessionCard({ sess }: { sess: TrainingSession }) {
                               </ul>
                             </Box>
                           )}
+
+                          {/* ── Card actions ── */}
+                          <Box className={styles.exCardActions}>
+                            <Tooltip title="Editar ejercicio">
+                              <IconButton
+                                size="small"
+                                className={styles.exActionBtn}
+                                onClick={(e) => { e.stopPropagation(); setEditingEx(sessionItemToExercise(ex)); }}
+                              >
+                                <EditOutlinedIcon sx={{ fontSize: 15 }} />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Eliminar de la sesión">
+                              <IconButton
+                                size="small"
+                                className={`${styles.exActionBtn} ${styles.exActionBtnDelete}`}
+                                onClick={(e) => { e.stopPropagation(); handleRemoveFromSession(ex.taskTrainingId); }}
+                              >
+                                <DeleteOutlineIcon sx={{ fontSize: 15 }} />
+                              </IconButton>
+                            </Tooltip>
+                          </Box>
                         </Box>
                       </Box>
                     ))}
@@ -420,10 +654,108 @@ function SessionCard({ sess }: { sess: TrainingSession }) {
               );
             })
           ) : null}
+
+
         </Box>
       </Collapse>
 
+      {/* ── Add exercise modal ────────────── */}
+      <Dialog
+        open={showAddPanel}
+        onClose={() => { setShowAddPanel(false); setSelectedToAdd(null); }}
+        maxWidth="xs"
+        fullWidth
+        classes={{ paper: styles.addExModalPaper }}
+      >
+        <DialogTitle className={styles.addExModalTitle}>
+          Añadir ejercicio a la sesión
+          <IconButton
+            size="small"
+            onClick={() => { setShowAddPanel(false); setSelectedToAdd(null); }}
+            className={styles.addExModalClose}
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent className={styles.addExModalContent}>
+          <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+            <InputLabel>Sección</InputLabel>
+            <Select
+              value={addSection}
+              label="Sección"
+              onChange={(e: SelectChangeEvent) => setAddSection(e.target.value as ExerciseSection)}
+            >
+              {SECTION_OPTIONS.map(o => (
+                <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          {loadingAvail ? (
+            <Box sx={{ display: "flex", justifyContent: "center", py: 2 }}>
+              <CircularProgress size={24} />
+            </Box>
+          ) : (
+            <Autocomplete
+              options={availableExercises}
+              getOptionLabel={(ex) => ex.name}
+              value={selectedToAdd}
+              onChange={(_, v) => setSelectedToAdd(v)}
+              fullWidth
+              size="small"
+              isOptionEqualToValue={(o, v) => o.id === v.id}
+              renderInput={(params) => <TextField {...params} label="Ejercicio existente" />}
+            />
+          )}
+        </DialogContent>
+        <DialogActions className={styles.addExModalActions}>
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<AddIcon />}
+            onClick={handleOpenCreateEx}
+            className={styles.addExNewBtn}
+          >
+            Nuevo ejercicio
+          </Button>
+          <Button
+            size="small"
+            onClick={() => { setShowAddPanel(false); setSelectedToAdd(null); }}
+            className={styles.addExModalCancelBtn}
+          >
+            Cancelar
+          </Button>
+          <Button
+            size="small"
+            variant="contained"
+            disabled={!selectedToAdd || savingAdd}
+            onClick={handleAddToSession}
+            className={styles.addExConfirmBtn}
+          >
+            {savingAdd ? <CircularProgress size={14} /> : "Añadir"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       <ExerciseModal ex={selectedEx} onClose={() => setSelectedEx(null)} />
+
+      {/* Edit existing exercise */}
+      <ExerciseDialog
+        open={editingEx !== null}
+        clubId={clubId}
+        subSubPrincipleId={subSubPrincipleId}
+        exercise={editingEx}
+        onClose={() => setEditingEx(null)}
+        onSaved={handleEditSaved}
+      />
+
+      {/* Create new exercise and add to session */}
+      <ExerciseDialog
+        open={creatingNewEx}
+        clubId={clubId}
+        subSubPrincipleId={subSubPrincipleId}
+        onClose={() => setCreatingNewEx(false)}
+        onSaved={handleCreatedSaved}
+      />
     </Box>
   );
 }
@@ -481,7 +813,7 @@ export default function SessionsFromSubPrinciple() {
           context: "",
           subSubPrincipleApiIds: [],
         },
-        clubId: new URLSearchParams(location.search).get("clubId") ?? "",
+        clubId: state.clubId,
         teamId: state.teamId,
       },
     });
@@ -554,7 +886,23 @@ export default function SessionsFromSubPrinciple() {
               No hay sesiones registradas para este subprincipio.
             </Typography>
           ) : (
-            sessions.map((sess) => <SessionCard key={sess.id} sess={sess} />)
+            sessions.map((sess) => (
+              <SessionCard
+                key={sess.id}
+                sess={sess}
+                clubId={state.clubId}
+                subSubPrincipleId={null}
+                printContext={{
+                  gameMomentName: state.gameMomentName,
+                  zoneName: state.zoneName,
+                  scenarioName: state.scenario.name,
+                  scenarioOrder: state.scenario.order,
+                  subPrincipleLabel: state.subPrinciple.label,
+                  subPrincipleName: state.subPrinciple.name,
+                  tacticalPrinciples: state.subPrinciple.tacticalPrinciples,
+                }}
+              />
+            ))
           )}
         </Box>
       </ContentLayout>

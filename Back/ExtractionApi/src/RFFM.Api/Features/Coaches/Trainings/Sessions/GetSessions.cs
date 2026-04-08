@@ -11,21 +11,21 @@ using RFFM.Api.Infrastructure.Persistence;
 namespace RFFM.Api.Features.Coaches.Trainings.Sessions
 {
     /// <summary>
-    /// Lists training sessions for a team.
-    /// GET /api/trainings/sessions?teamId=
+    /// Lists training sessions for a team, optionally filtered by sub-principle.
+    /// GET /api/trainings/sessions?teamId=&amp;subPrincipleId=
     /// </summary>
     public class GetSessions : IFeatureModule
     {
         public void AddRoutes(IEndpointRouteBuilder app)
         {
             app.MapGet("/api/trainings/sessions",
-                    async (string teamId, HttpContext httpContext, IMediator mediator, CancellationToken ct) =>
+                    async (string teamId, string? subPrincipleId, HttpContext httpContext, IMediator mediator, CancellationToken ct) =>
                     {
                         var userId = httpContext.User.Claims
                             .FirstOrDefault(c => c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value;
                         if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
 
-                        var result = await mediator.Send(new GetSessionsQuery(teamId, userId), ct);
+                        var result = await mediator.Send(new GetSessionsQuery(teamId, subPrincipleId, userId), ct);
                         return Results.Ok(result);
                     })
                 .WithName(nameof(GetSessions))
@@ -35,7 +35,7 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
         }
     }
 
-    public record GetSessionsQuery(string TeamId, string UserId) : IRequest<IEnumerable<SessionListItem>>;
+    public record GetSessionsQuery(string TeamId, string? SubPrincipleId, string UserId) : IRequest<IEnumerable<SessionListItem>>;
 
     public record SessionListItem(
         string Id,
@@ -47,6 +47,8 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
         string? Location,
         string? SportEventId,
         string? SportEventName,
+        string? SubPrincipleId,
+        string? SubPrincipleName,
         int ExerciseCount);
 
     public class GetSessionsHandler : IRequestHandler<GetSessionsQuery, IEnumerable<SessionListItem>>
@@ -63,10 +65,16 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
             if (!hasAccess)
                 throw new DomainException("Sesiones", "No tienes acceso a este equipo.", "");
 
-            var sessions = await _db.TrainingSessions
+            var query = _db.TrainingSessions
                 .Include(s => s.Tasks)
                 .Include(s => s.SportEvent)
-                .Where(s => s.TeamId == request.TeamId)
+                .Include(s => s.SubPrinciple)
+                .Where(s => s.TeamId == request.TeamId);
+
+            if (!string.IsNullOrEmpty(request.SubPrincipleId))
+                query = query.Where(s => s.SubPrincipleId == request.SubPrincipleId);
+
+            var sessions = await query
                 .OrderByDescending(s => s.Date)
                 .Select(s => new SessionListItem(
                     s.Id,
@@ -78,6 +86,8 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
                     s.Location,
                     s.SportEventId,
                     s.SportEvent != null ? s.SportEvent.Name : null,
+                    s.SubPrincipleId,
+                    s.SubPrinciple != null ? s.SubPrinciple.Name : null,
                     s.Tasks.Count))
                 .ToListAsync(ct);
 

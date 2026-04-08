@@ -293,7 +293,11 @@ export default function CoachDashboard() {
                       style={{ fontSize: 40, color: "#05313b" }}
                     />
                   }
-                  to="/coach/trainings"
+                  to={
+                    team?.id
+                      ? `/coach/trainings?teamId=${team.id}`
+                      : "/coach/trainings"
+                  }
                 />
                 <DashboardCard
                   title="Lesionados"

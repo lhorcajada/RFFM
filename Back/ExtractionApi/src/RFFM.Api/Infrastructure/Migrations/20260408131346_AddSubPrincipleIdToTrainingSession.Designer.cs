@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using RFFM.Api.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using RFFM.Api.Infrastructure.Persistence;
 namespace RFFM.Api.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260408131346_AddSubPrincipleIdToTrainingSession")]
+    partial class AddSubPrincipleIdToTrainingSession
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -3367,43 +3370,6 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.ToTable("TeamPlayers", "app");
                 });
 
-            modelBuilder.Entity("RFFM.Api.Domain.Entities.TeamPlayers.TeamPlayerRating", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("text");
-
-                    b.Property<byte>("Competitiveness")
-                        .HasColumnType("smallint");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<byte>("Physical")
-                        .HasColumnType("smallint");
-
-                    b.Property<DateTime>("RatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<byte>("Tactical")
-                        .HasColumnType("smallint");
-
-                    b.Property<string>("TeamPlayerId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<byte>("Technical")
-                        .HasColumnType("smallint");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("RatedAt");
-
-                    b.HasIndex("TeamPlayerId");
-
-                    b.ToTable("TeamPlayerRatings", "app");
-                });
-
             modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Training.TasksTraining.PhysicalTaskTraining", b =>
                 {
                     b.HasBaseType("RFFM.Api.Domain.Aggregates.Training.TasksTraining.TaskTrainingBase");
@@ -4059,17 +4025,6 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.Navigation("Player");
 
                     b.Navigation("Team");
-                });
-
-            modelBuilder.Entity("RFFM.Api.Domain.Entities.TeamPlayers.TeamPlayerRating", b =>
-                {
-                    b.HasOne("RFFM.Api.Domain.Entities.TeamPlayers.TeamPlayer", "TeamPlayer")
-                        .WithMany()
-                        .HasForeignKey("TeamPlayerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("TeamPlayer");
                 });
 
             modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Assistances.SportEvent", b =>

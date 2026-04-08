@@ -134,6 +134,15 @@
   flex-shrink: 0;
 }
 
+.addExHeaderBtn {
+  color: rgba(212, 212, 212, 0.45) !important;
+  flex-shrink: 0;
+}
+
+.addExHeaderBtn:hover {
+  color: #9cdcfe !important;
+}
+
 .printBtn {
   color: rgba(212, 212, 212, 0.45) !important;
   flex-shrink: 0;
@@ -411,6 +420,131 @@
 /* ── Exercise card clickable ─────────────────────────────────────── */
 .exCard {
   cursor: pointer;
+}
+
+/* ── Card action buttons ─────────────────────────────────────────── */
+.exCardActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 2px;
+  padding: 4px 6px 6px;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  margin-top: auto;
+}
+
+.exActionBtn {
+  color: rgba(212, 212, 212, 0.35) !important;
+}
+
+.exActionBtn:hover {
+  color: #9cdcfe !important;
+  background: rgba(156,220,254,0.08) !important;
+}
+
+.exActionBtnDelete:hover {
+  color: #f48771 !important;
+  background: rgba(244,135,113,0.08) !important;
+}
+
+/* ── Add exercise panel ──────────────────────────────────────────── */
+.addExBtnRow {
+  padding: 8px 0 2px;
+  display: flex;
+  justify-content: flex-start;
+}
+
+.addExBtn {
+  font-size: 0.78rem !important;
+  color: rgba(212,212,212,0.5) !important;
+  border-color: rgba(212,212,212,0.15) !important;
+}
+
+.addExBtn:hover {
+  color: #9cdcfe !important;
+  border-color: rgba(156,220,254,0.35) !important;
+}
+
+.addExPanel {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(0,122,204,0.2);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-top: 4px;
+  width: 100%;
+}
+
+.addExPanelTitle {
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: rgba(212,212,212,0.5) !important;
+  margin-bottom: 10px !important;
+}
+
+.addExPanelRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.addExSectionSelect {
+  min-width: 150px;
+}
+
+.addExAutocomplete {
+  min-width: 260px;
+  flex: 1;
+}
+
+.addExConfirmBtn {
+  background-color: #007ACC !important;
+  color: #fff !important;
+  font-size: 0.78rem !important;
+  white-space: nowrap;
+}
+
+.addExNewBtn {
+  font-size: 0.78rem !important;
+  color: #9cdcfe !important;
+  border-color: rgba(156,220,254,0.3) !important;
+  white-space: nowrap;
+}
+
+/* ── Add exercise modal ──────────────────────────────────────────── */
+.addExModalPaper {
+  background: #1e1e1e !important;
+  border: 1px solid rgba(0, 122, 204, 0.3) !important;
+  border-radius: 12px !important;
+}
+
+.addExModalTitle {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  font-size: 0.9rem !important;
+  font-weight: 700 !important;
+  color: #d4d4d4 !important;
+  padding: 16px 20px 12px !important;
+}
+
+.addExModalClose {
+  color: rgba(212, 212, 212, 0.4) !important;
+}
+
+.addExModalContent {
+  padding: 8px 20px 16px !important;
+}
+
+.addExModalActions {
+  padding: 8px 16px 16px !important;
+  gap: 8px;
+}
+
+.addExModalCancelBtn {
+  font-size: 0.78rem !important;
+  color: rgba(212, 212, 212, 0.5) !important;
 }
 
 /* ── Exercise Modal ──────────────────────────────────────────────── */

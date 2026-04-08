@@ -1,0 +1,31 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-top: 8px;
+}
+
+.empty {
+  text-align: center;
+  opacity: 0.5;
+  padding: 40px 0;
+}
+
+.filterRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.filterLabel {
+  font-size: 0.75rem;
+  opacity: 0.6;
+}
+
+.grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+

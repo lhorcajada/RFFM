@@ -76,6 +76,7 @@ function SubPrincipleAccordion({ sp, clubId, teamId, scenario, gameMomentName, z
           tacticalPrinciples: sp.tacticalPrinciples,
         },
         teamId,
+        clubId,
       },
     });
   };

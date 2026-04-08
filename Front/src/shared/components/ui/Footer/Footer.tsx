@@ -30,6 +30,11 @@ export default function Footer({ hideMenu }: FooterProps): JSX.Element {
       }
     }
 
+    // Skip the settings API call when the menu is hidden (e.g. AppSelector screen).
+    if (hideMenu) {
+      return;
+    }
+
     // If there's no authenticated user (e.g. on the login page), skip calling
     // the settings API to avoid 401 responses during anonymous views.
     if (!user?.id) {
@@ -46,7 +51,7 @@ export default function Footer({ hideMenu }: FooterProps): JSX.Element {
     return () => {
       window.removeEventListener("rffm.saved_combinations_changed", handle);
     };
-  }, [user]);
+  }, [user, hideMenu]);
 
   if (hideMenu) {
     return (

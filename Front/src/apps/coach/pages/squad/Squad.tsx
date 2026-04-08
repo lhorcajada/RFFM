@@ -1,4 +1,8 @@
-import { Box, Button, Stack } from "@mui/material";
+import { Box, Button, Chip, Stack, Tab, Tabs, Typography } from "@mui/material";
+import { useMemo, useState as useTabState } from "react";
+import SquadRatings from "./components/SquadRatings";
+import SquadRanking from "./components/SquadRanking";
+import PlayerCromo from "./components/PlayerCromo";
 import { useNavigate } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
@@ -15,6 +19,34 @@ import defaultAvatar from "../../../../assets/avatar.svg";
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 
+const POSITION_ORDER = [
+  "Portero",
+  "Defensa",
+  "Centrocampista",
+  "Delantero",
+];
+
+function groupByPosition(players: any[]) {
+  const groups: Record<string, any[]> = {};
+  for (const p of players) {
+    const key = p.position?.trim() || "Sin posición";
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(p);
+  }
+  return Object.entries(groups).sort(([a], [b]) => {
+    const ia = POSITION_ORDER.findIndex((pos) =>
+      a.toLowerCase().includes(pos.toLowerCase())
+    );
+    const ib = POSITION_ORDER.findIndex((pos) =>
+      b.toLowerCase().includes(pos.toLowerCase())
+    );
+    const ra = ia === -1 ? POSITION_ORDER.length : ia;
+    const rb = ib === -1 ? POSITION_ORDER.length : ib;
+    if (ra !== rb) return ra - rb;
+    return a.localeCompare(b, "es");
+  });
+}
+
 export default function Squad() {
   const navigate = useNavigate();
   const { team, teamTitleNode } = useTeamAndClub();
@@ -23,6 +55,25 @@ export default function Squad() {
     Record<string, string | null>
   >({});
   const [loadingPlayers, setLoadingPlayers] = useState(false);
+  const [activeTab, setActiveTab] = useTabState(0);
+
+  const playersByPosition = useMemo(() => groupByPosition(players), [players]);
+
+  const ratingPlayers = useMemo(
+    () =>
+      players.map((p, idx) => {
+        const key = p.id ?? `${p.name ?? ""}-${p.lastName ?? ""}-${idx}`;
+        return {
+          teamPlayerId: p.id ?? `${p.name ?? ""}-${idx}`,
+          displayName:
+            ((p.name ?? "") + " " + (p.lastName ?? "")).trim() || p.alias || "Jugador",
+          position: p.position ?? null,
+          dorsal: p.dorsal ?? null,
+          photoSrc: playerPhotos[key] ?? null,
+        };
+      }),
+    [players, playerPhotos]
+  );
 
   useEffect(() => {
     let mounted = true;
@@ -122,44 +173,91 @@ export default function Squad() {
         }
       >
         <Box className={styles.page}>
-          <div className={styles.list}>
-            {loadingPlayers && (
+          <Tabs
+            value={activeTab}
+            onChange={(_, v) => setActiveTab(v)}
+            className={styles.tabs}
+            variant="scrollable"
+            scrollButtons="auto"
+          >
+            <Tab label="Plantilla" />
+            <Tab label="Valoraciones" />
+            <Tab label="Ranking" />
+          </Tabs>
+
+          {activeTab === 0 && !loadingPlayers && players.length > 0 && (
+            <div className={styles.totalCount}>
+              <Chip
+                label={`${players.length} jugador${players.length !== 1 ? "es" : ""}`}
+                size="small"
+                color="primary"
+                variant="outlined"
+              />
+            </div>
+          )}
+          {activeTab === 0 && loadingPlayers && (
+            <div className={styles.list}>
               <div className={styles.cardWrap}>Cargando...</div>
-            )}
-            {!loadingPlayers && players.length === 0 && (
+            </div>
+          )}
+          {activeTab === 0 && !loadingPlayers && players.length === 0 && (
+            <div className={styles.list}>
               <div className={styles.cardWrap}>
                 <EmptyState description={"No hay jugadores para mostrar."} />
               </div>
-            )}
-            {players.map((p, idx) => {
-              const displayName =
-                ((p.name ?? "") + " " + (p.lastName ?? "")).trim() || "Jugador";
-              const key = p.id ?? `${p.name ?? ""}-${p.lastName ?? ""}-${idx}`;
-              return (
-                <div key={key} className={styles.cardWrap}>
-                  <PlayerCard
-                    player={p}
-                    photoSrc={playerPhotos[key] ?? defaultAvatar}
-                    {...(p.id
-                      ? {
-                          to: `/coach/player/${p.id}${
-                            team ? `?teamId=${team.id}` : ""
-                          }${
-                            new URLSearchParams(window.location.search).get(
-                              "seasonId"
-                            )
-                              ? `&seasonId=${new URLSearchParams(
-                                  window.location.search
-                                ).get("seasonId")}`
-                              : ""
-                          }`,
-                        }
-                      : {})}
-                  />
+            </div>
+          )}
+          {activeTab === 0 &&
+            !loadingPlayers &&
+            playersByPosition.map(([position, group]) => (
+              <div key={position} className={styles.positionGroup}>
+                <div className={styles.positionHeader}>
+                  <Typography variant="subtitle2" className={styles.positionTitle}>
+                    {position}
+                  </Typography>
+                  <span className={styles.positionCount}>{group.length}</span>
                 </div>
-              );
-            })}
-          </div>
+                <div className={styles.list}>
+                  {group.map((p, idx) => {
+                    const key =
+                      p.id ?? `${p.name ?? ""}-${p.lastName ?? ""}-${idx}`;
+                    const displayName =
+                      ((p.name ?? "") + " " + (p.lastName ?? "")).trim() ||
+                      p.alias ||
+                      "Jugador";
+                    const seasonParam = new URLSearchParams(
+                      window.location.search
+                    ).get("seasonId");
+                    return (
+                      <PlayerCromo
+                        key={key}
+                        displayName={displayName}
+                        photoSrc={playerPhotos[key] ?? null}
+                        dorsal={p.dorsal ?? null}
+                        position={p.position ?? null}
+                        to={
+                          p.id
+                            ? `/coach/player/${p.id}${
+                                team ? `?teamId=${team.id}` : ""
+                              }${
+                                seasonParam ? `&seasonId=${seasonParam}` : ""
+                              }`
+                            : undefined
+                        }
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+
+          {activeTab === 1 && team && (
+            <SquadRatings teamId={team.id} players={ratingPlayers} />
+          )}
+
+          {activeTab === 2 && team && (
+            <SquadRanking teamId={team.id} players={ratingPlayers} />
+          )}
         </Box>
       </ContentLayout>
     </BaseLayout>

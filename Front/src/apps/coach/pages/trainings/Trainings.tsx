@@ -10,6 +10,7 @@ import {
   DialogContentText,
   DialogTitle,
   IconButton,
+  Stack,
   Tab,
   Tabs,
   Tooltip,
@@ -140,14 +141,40 @@ export default function Trainings() {
         title={teamTitleNode ?? "Entrenamientos"}
         subtitle="Gestión de ejercicios y sesiones"
         actionBar={
-          <Button
-            startIcon={<ArrowBackIcon />}
-            onClick={() => navigate(-1)}
-            variant="outlined"
-            size="small"
-          >
-            Volver
-          </Button>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <Button
+              startIcon={<ArrowBackIcon />}
+              onClick={() => navigate(-1)}
+              variant="outlined"
+              size="small"
+            >
+              Volver
+            </Button>
+            {tab === 0 && (
+              <Button
+                size="small"
+                startIcon={<AddIcon />}
+                variant="contained"
+                className={styles.addBtn}
+                onClick={() => { setEditExercise(null); setExDialogOpen(true); }}
+                disabled={!clubId}
+              >
+                Nuevo ejercicio
+              </Button>
+            )}
+            {tab === 1 && (
+              <Button
+                size="small"
+                startIcon={<AddIcon />}
+                variant="contained"
+                className={styles.addBtn}
+                onClick={() => { setEditSession(null); setSessDialogOpen(true); }}
+                disabled={!teamId || !clubId}
+              >
+                Nueva sesión
+              </Button>
+            )}
+          </Stack>
         }
       >
         <Box className={styles.page}>
@@ -163,26 +190,16 @@ export default function Trainings() {
           {/* ── Exercises tab ──────────────────────────────────── */}
           {tab === 0 && (
             <Box>
-              <Box className={styles.toolbarRow}>
-                {initialSspName && (
+              {initialSspName && (
+                <Box className={styles.toolbarRow}>
                   <Chip
                     label={`Filtro: ${initialSspName}`}
                     size="small"
                     className={styles.filterLabel}
                     onDelete={() => navigate(`/coach/trainings?teamId=${teamId}`)}
                   />
-                )}
-                <Button
-                  size="small"
-                  startIcon={<AddIcon />}
-                  variant="contained"
-                  className={styles.addBtn}
-                  onClick={() => { setEditExercise(null); setExDialogOpen(true); }}
-                  disabled={!clubId}
-                >
-                  Nuevo ejercicio
-                </Button>
-              </Box>
+                </Box>
+              )}
 
               {loadingEx ? (
                 <Box className={styles.loadingBox}><CircularProgress size={32} /></Box>
@@ -229,19 +246,6 @@ export default function Trainings() {
           {/* ── Sessions tab ───────────────────────────────────── */}
           {tab === 1 && (
             <Box>
-              <Box className={styles.toolbarRow}>
-                <Box />
-                <Button
-                  size="small"
-                  startIcon={<AddIcon />}
-                  variant="contained"
-                  className={styles.addBtn}
-                  onClick={() => { setEditSession(null); setSessDialogOpen(true); }}
-                  disabled={!teamId || !clubId}
-                >
-                  Nueva sesión
-                </Button>
-              </Box>
 
               {loadingSess ? (
                 <Box className={styles.loadingBox}><CircularProgress size={32} /></Box>
@@ -267,6 +271,9 @@ export default function Trainings() {
                       />
                       {sess.sportEventName && (
                         <Chip label={sess.sportEventName} size="small" className={styles.sspChip} />
+                      )}
+                      {sess.subPrincipleName && (
+                        <Chip label={sess.subPrincipleName} size="small" className={styles.sspChip} />
                       )}
                     </Box>
                   </Box>
