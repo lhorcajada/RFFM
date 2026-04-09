@@ -2,18 +2,21 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using RFFM.Api.Infrastructure.Persistence;
 
 #nullable disable
 
-namespace RFFM.Api.Infrastructure.Migrations
+namespace RFFM.Api.migrationsarchive.AppDbContext
 {
-    [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [DbContext(typeof(Infrastructure.Persistence.AppDbContext))]
+    [Migration("20260409170609_AddFormationsAndIdealLineup")]
+    partial class AddFormationsAndIdealLineup
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

@@ -1,0 +1,135 @@
+.slot {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 68px;
+  height: 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 4px;
+  cursor: default;
+  z-index: 2;
+}
+
+.dropTarget {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 2px dashed rgba(255, 255, 255, 0.4);
+  background: rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s, background 0.15s;
+  position: relative;
+}
+
+.dropTarget.over {
+  border-color: #4d9de0;
+  background: rgba(77, 157, 224, 0.18);
+}
+
+.dropTarget.occupied {
+  border-color: transparent;
+  background: transparent;
+}
+
+.emptyLabel {
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.playerCard {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  overflow: hidden;
+  cursor: grab;
+  background: #1e2a3a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid rgba(77, 157, 224, 0.6);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+  transition: transform 0.1s, border-color 0.15s;
+}
+
+.playerCard:hover {
+  transform: scale(1.08);
+  border-color: #4d9de0;
+}
+
+.playerCard.dragging {
+  opacity: 0.4;
+  cursor: grabbing;
+}
+
+.playerPhoto {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.playerInitials {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.9);
+  user-select: none;
+}
+
+.playerName {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.95);
+  text-align: center;
+  max-width: 72px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.1;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+}
+
+.dorsalBadge {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  background: #0d1b2a;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 900;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #4d9de0;
+  text-shadow: none;
+  letter-spacing: -0.02em;
+}
+
+/* Competitiveness badge — bottom-left of the player circle on the field */
+.competBadge {
+  position: absolute;
+  bottom: -4px;
+  left: -4px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 800;
+  min-width: 28px;
+  height: 18px;
+  border-radius: 9px;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid #0d1b2a;
+  letter-spacing: 0.01em;
+}

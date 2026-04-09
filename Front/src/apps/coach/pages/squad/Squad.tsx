@@ -2,6 +2,7 @@ import { Box, Button, Chip, Stack, Tab, Tabs, Typography } from "@mui/material";
 import { useMemo, useState as useTabState } from "react";
 import SquadRatings from "./components/SquadRatings";
 import SquadRanking from "./components/SquadRanking";
+import IdealLineup from "./components/IdealLineup";
 import PlayerCromo from "./components/PlayerCromo";
 import { useNavigate } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -218,6 +219,7 @@ export default function Squad() {
             <Tab label="Plantilla" />
             <Tab label="Valoraciones" />
             <Tab label="Ranking" />
+            <Tab label="Alineación ideal" />
           </Tabs>
 
           {activeTab === 0 && !loadingPlayers && players.length > 0 && (
@@ -304,6 +306,26 @@ export default function Squad() {
               onRatingCreated={handleRatingCreated}
             />
           )}
+
+          {activeTab === 3 && team && (() => {
+            const seasonId = new URLSearchParams(window.location.search).get("seasonId");
+            const lineupPlayers = players.map((p, idx) => ({
+              id: p.id ?? `${p.name ?? ""}-${idx}`,
+              displayName: ((p.name ?? "") + " " + (p.lastName ?? "")).trim() || p.alias || "Jugador",
+              alias: p.alias ?? null,
+              photoSrc: playerPhotos[p.id ?? `${p.name ?? ""}-${p.lastName ?? ""}-${idx}`] ?? null,
+              dorsal: p.dorsal ?? null,
+              position: p.position ?? null,
+              competitiveness: latestRatings[p.id]?.competitiveness ?? null,
+            }));
+            return (
+              <IdealLineup
+                players={lineupPlayers}
+                teamId={team.id}
+                seasonId={seasonId}
+              />
+            );
+          })()}
         </Box>
       </ContentLayout>
     </BaseLayout>

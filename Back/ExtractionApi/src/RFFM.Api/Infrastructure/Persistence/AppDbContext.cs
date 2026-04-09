@@ -12,6 +12,7 @@ using RFFM.Api.Domain.Entities.Competitions;
 using RFFM.Api.Domain.Entities.Demarcations;
 using RFFM.Api.Domain.Entities.Players;
 using RFFM.Api.Domain.Entities.Seasons;
+using RFFM.Api.Domain.Entities.Formations;
 using RFFM.Api.Domain.Entities.TeamPlayers;
 using SmartEnum.EFCore;
 
@@ -55,6 +56,13 @@ namespace RFFM.Api.Infrastructure.Persistence
         public DbSet<Rival> Rivals { get; set; }
         public DbSet<ExcuseTypes> ExcuseTypes { get; set; }
         public DbSet<ConfigurationCoach> ConfigurationCoaches { get; set; }
+
+        // Formations catalog
+        public DbSet<Formation> Formations { get; set; }
+
+        // Ideal lineup
+        public DbSet<TeamIdealLineup> TeamIdealLineups { get; set; }
+        public DbSet<TeamIdealLineupSlot> TeamIdealLineupSlots { get; set; }
 
         // Payment plans and subscriptions
         public DbSet<PaymentPlan> PaymentPlans { get; set; }

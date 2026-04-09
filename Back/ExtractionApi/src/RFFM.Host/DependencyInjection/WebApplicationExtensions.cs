@@ -217,6 +217,24 @@ namespace RFFM.Host.DependencyInjection
             });
         }
 
+        public static async Task SeedFormationsAsync(this WebApplication app)
+        {
+            using var scope = app.Services.CreateScope();
+            var logger = scope.ServiceProvider.GetService<ILogger<WebApplication>>();
+
+            try
+            {
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                logger?.LogInformation("Seeding formations if not present...");
+                await RFFM.Api.Infrastructure.Persistence.Seed.FormationsSeeder.SeedAsync(db);
+                logger?.LogInformation("\u2713 Formations seeding finished");
+            }
+            catch (Exception ex)
+            {
+                logger?.LogError(ex, "Error while seeding formations");
+            }
+        }
+
         public static async Task SeedPaymentPlansAsync(this WebApplication app)
         {
             using var scope = app.Services.CreateScope();

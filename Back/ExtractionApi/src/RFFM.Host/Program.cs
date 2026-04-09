@@ -38,5 +38,8 @@ app.SeedIdentityRoles();
 // Seed payment plans
 await app.SeedPaymentPlansAsync();
 
+// Seed formations catalog
+await app.SeedFormationsAsync();
+
 app.Run();
 
