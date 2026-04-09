@@ -1,8 +1,8 @@
 /* ── Scenario accordion (same base as ScenarioAccordion but for form editing) ── */
 
 .accordion {
-  background-color: #252526 !important;
-  border: 1px solid rgba(0, 122, 204, 0.35) !important;
+  background-color: #1c1c30 !important;
+  border: 1px solid rgba(77, 157, 224, 0.35) !important;
   border-radius: 8px !important;
   margin-bottom: 10px !important;
 }
@@ -23,7 +23,7 @@
 }
 
 .expandIcon {
-  color: #007ACC !important;
+  color: #4d9de0 !important;
 }
 
 .summaryContent {
@@ -41,7 +41,7 @@
   font-weight: 700 !important;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #007ACC !important;
+  color: #4d9de0 !important;
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -53,15 +53,15 @@
 }
 
 .inlineNameField .MuiInput-root::before {
-  border-bottom-color: rgba(0, 122, 204, 0.3) !important;
+  border-bottom-color: rgba(77, 157, 224, 0.3) !important;
 }
 
 .inlineNameField .MuiInput-root::after {
-  border-bottom-color: #007ACC !important;
+  border-bottom-color: #4d9de0 !important;
 }
 
 .inlineNameInput {
-  color: #d4d4d4 !important;
+  color: #e8e8e8 !important;
   font-size: 1.4rem !important;
   font-weight: 600 !important;
 }
@@ -74,8 +74,8 @@
 }
 
 .countChip {
-  background-color: rgba(0, 122, 204, 0.15) !important;
-  color: #9cdcfe !important;
+  background-color: rgba(77, 157, 224, 0.15) !important;
+  color: #a8d4f5 !important;
   font-size: 1.2rem !important;
   height: 20px !important;
   flex-shrink: 0;
@@ -89,14 +89,14 @@
 
 .deleteIconBtn:hover {
   color: #ff6450 !important;
-  background-color: rgba(0, 122, 204, 0.1) !important;
+  background-color: rgba(77, 157, 224, 0.1) !important;
 }
 
 /* ── Expanded details ── */
 
 .details {
   padding: 14px 16px 16px !important;
-  background-color: #1e1e1e !important;
+  background-color: #07071a !important;
   border-radius: 0 0 8px 8px !important;
   display: flex;
   flex-direction: column;
@@ -108,21 +108,21 @@
 }
 
 .contextField .MuiOutlinedInput-root {
-  color: #d4d4d4 !important;
+  color: #e8e8e8 !important;
   font-size: 1.37rem !important;
   font-style: italic;
 }
 
 .contextField .MuiOutlinedInput-notchedOutline {
-  border-color: rgba(0, 122, 204, 0.3) !important;
+  border-color: rgba(77, 157, 224, 0.3) !important;
 }
 
 .contextField .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
-  border-color: rgba(0, 122, 204, 0.6) !important;
+  border-color: rgba(77, 157, 224, 0.6) !important;
 }
 
 .contextField .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
-  border-color: #007ACC !important;
+  border-color: #4d9de0 !important;
 }
 
 .contextField .MuiInputLabel-root {
@@ -131,19 +131,19 @@
 }
 
 .contextField .MuiInputLabel-root.Mui-focused {
-  color: #007ACC !important;
+  color: #4d9de0 !important;
 }
 
 .principlesField .MuiOutlinedInput-notchedOutline {
-  border-color: rgba(0, 122, 204, 0.3) !important;
+  border-color: rgba(77, 157, 224, 0.3) !important;
 }
 
 .principlesField .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
-  border-color: rgba(0, 122, 204, 0.6) !important;
+  border-color: rgba(77, 157, 224, 0.6) !important;
 }
 
 .principlesField .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
-  border-color: #007ACC !important;
+  border-color: #4d9de0 !important;
 }
 
 .principlesField .MuiInputLabel-root {
@@ -152,24 +152,24 @@
 }
 
 .principlesField .MuiInputLabel-root.Mui-focused {
-  color: #007ACC !important;
+  color: #4d9de0 !important;
 }
 
 .principlesField .MuiInputBase-input {
-  color: #d4d4d4 !important;
+  color: #e8e8e8 !important;
 }
 
 .principlesField .MuiSvgIcon-root {
-  color: #007ACC !important;
+  color: #4d9de0 !important;
 }
 
 .principlesAutocomplete :global(.MuiAutocomplete-option) {
-  color: #d4d4d4 !important;
+  color: #e8e8e8 !important;
 }
 
 .principleChip {
-  background-color: rgba(0, 122, 204, 0.15) !important;
-  color: #9cdcfe !important;
+  background-color: rgba(77, 157, 224, 0.15) !important;
+  color: #a8d4f5 !important;
   font-size: 1.2rem !important;
   height: 22px !important;
 }
@@ -180,13 +180,13 @@
 }
 
 .principleChip :global(.MuiChip-deleteIcon):hover {
-  color: #007ACC !important;
+  color: #4d9de0 !important;
 }
 
 /* ── Nested sections ── */
 
 .nestedSection {
-  border-left: 2px solid rgba(0, 122, 204, 0.2);
+  border-left: 2px solid rgba(77, 157, 224, 0.2);
   padding-left: 12px;
   margin-top: 4px;
 }
@@ -196,31 +196,31 @@
   font-weight: 700 !important;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: rgba(0, 122, 204, 0.7) !important;
+  color: rgba(77, 157, 224, 0.7) !important;
   margin-bottom: 8px !important;
 }
 
 .addBtn {
-  color: #007ACC !important;
+  color: #4d9de0 !important;
   font-size: 1.28rem !important;
   text-transform: none !important;
   padding: 4px 8px !important;
   margin-top: 6px !important;
-  border: 1px dashed rgba(0, 122, 204, 0.4) !important;
+  border: 1px dashed rgba(77, 157, 224, 0.4) !important;
   border-radius: 6px !important;
   width: 100%;
 }
 
 .addBtn:hover {
-  background-color: rgba(0, 122, 204, 0.08) !important;
-  border-color: #007ACC !important;
+  background-color: rgba(77, 157, 224, 0.08) !important;
+  border-color: #4d9de0 !important;
 }
 
 /* ── SubPrinciple accordion ── */
 
 .spAccordion {
-  background-color: #252526 !important;
-  border: 1px solid rgba(0, 122, 204, 0.2) !important;
+  background-color: #1c1c30 !important;
+  border: 1px solid rgba(77, 157, 224, 0.2) !important;
   border-radius: 6px !important;
   margin-bottom: 8px !important;
 }
@@ -241,7 +241,7 @@
 }
 
 .spExpandIcon {
-  color: rgba(0, 122, 204, 0.7) !important;
+  color: rgba(77, 157, 224, 0.7) !important;
 }
 
 .spSummaryContent {
@@ -258,14 +258,14 @@
   font-weight: 700 !important;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: rgba(0, 122, 204, 0.85) !important;
+  color: rgba(77, 157, 224, 0.85) !important;
   white-space: nowrap;
   flex-shrink: 0;
 }
 
 .spDetails {
   padding: 12px 14px 14px !important;
-  background-color: #1e1e1e !important;
+  background-color: #07071a !important;
   border-radius: 0 0 6px 6px !important;
   display: flex;
   flex-direction: column;
@@ -275,8 +275,8 @@
 /* ── SubSubPrinciple accordion ── */
 
 .sspAccordion {
-  background-color: #1e1e1e !important;
-  border: 1px solid rgba(0, 122, 204, 0.15) !important;
+  background-color: #07071a !important;
+  border: 1px solid rgba(77, 157, 224, 0.15) !important;
   border-radius: 5px !important;
   margin-bottom: 6px !important;
 }
@@ -297,7 +297,7 @@
 }
 
 .sspExpandIcon {
-  color: rgba(0, 122, 204, 0.55) !important;
+  color: rgba(77, 157, 224, 0.55) !important;
 }
 
 .sspSummaryContent {
@@ -314,14 +314,14 @@
   font-weight: 700 !important;
   text-transform: uppercase;
   letter-spacing: 0.07em;
-  color: rgba(0, 122, 204, 0.65) !important;
+  color: rgba(77, 157, 224, 0.65) !important;
   white-space: nowrap;
   flex-shrink: 0;
 }
 
 .sspDetails {
   padding: 10px 12px 12px !important;
-  background-color: #161616 !important;
+  background-color: #07071a !important;
   border-radius: 0 0 5px 5px !important;
   display: flex;
   flex-direction: column;
@@ -331,7 +331,7 @@
 /* ── Skill row ── */
 
 .skillsSection {
-  border-left: 2px solid rgba(0, 122, 204, 0.15);
+  border-left: 2px solid rgba(77, 157, 224, 0.15);
   padding-left: 10px;
 }
 
@@ -348,21 +348,21 @@
 }
 
 .skillNameField .MuiOutlinedInput-root {
-  color: #d4d4d4 !important;
+  color: #e8e8e8 !important;
   font-size: 1.32rem !important;
   font-weight: 600 !important;
 }
 
 .skillNameField .MuiOutlinedInput-notchedOutline {
-  border-color: rgba(0, 122, 204, 0.2) !important;
+  border-color: rgba(77, 157, 224, 0.2) !important;
 }
 
 .skillNameField .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
-  border-color: rgba(0, 122, 204, 0.5) !important;
+  border-color: rgba(77, 157, 224, 0.5) !important;
 }
 
 .skillNameField .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
-  border-color: #007ACC !important;
+  border-color: #4d9de0 !important;
 }
 
 .skillNameField input::placeholder {
@@ -376,21 +376,21 @@
 }
 
 .skillDescField .MuiOutlinedInput-root {
-  color: #d4d4d4 !important;
+  color: #e8e8e8 !important;
   font-size: 1.32rem !important;
   font-style: italic;
 }
 
 .skillDescField .MuiOutlinedInput-notchedOutline {
-  border-color: rgba(0, 122, 204, 0.2) !important;
+  border-color: rgba(77, 157, 224, 0.2) !important;
 }
 
 .skillDescField .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
-  border-color: rgba(0, 122, 204, 0.5) !important;
+  border-color: rgba(77, 157, 224, 0.5) !important;
 }
 
 .skillDescField .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
-  border-color: #007ACC !important;
+  border-color: #4d9de0 !important;
 }
 
 .skillDescField textarea::placeholder {
@@ -412,14 +412,14 @@
 }
 
 .dragRow.isDragOver {
-  border-top: 2px solid #007ACC;
+  border-top: 2px solid #4d9de0;
   border-radius: 4px 4px 0 0;
 }
 
 .dragHandle {
   flex-shrink: 0;
   cursor: grab;
-  color: rgba(0, 122, 204, 0.4);
+  color: rgba(77, 157, 224, 0.4);
   padding: 10px 0;
   display: flex;
   align-items: center;
@@ -428,7 +428,7 @@
 
 .dragHandle:active {
   cursor: grabbing;
-  color: rgba(0, 122, 204, 0.8);
+  color: rgba(77, 157, 224, 0.8);
 }
 
 .dragHandle svg {

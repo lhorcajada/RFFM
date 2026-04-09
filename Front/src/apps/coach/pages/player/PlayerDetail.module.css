@@ -6,9 +6,9 @@
   gap: 16px;
   align-items: flex-start;
   padding: 18px;
-  background: var(--rffm-card-bg, #252526);
+  background: var(--rffm-card-bg, #1c1c30);
   border-radius: 12px;
-  color: var(--rffm-card-text, #d4d4d4);
+  color: var(--rffm-card-text, #e8e8e8);
 }
 .sectionInner {
   padding: 12px;
@@ -77,14 +77,14 @@
   white-space: nowrap;
 }
 .value {
-  color: var(--rffm-card-text, #d4d4d4);
+  color: var(--rffm-card-text, #e8e8e8);
   word-break: break-word;
   min-width: 0;
 }
 
 .selectButton {
-  background: var(--rffm-accent, #007ACC);
-  color: #d4d4d4;
+  background: var(--rffm-accent, #4d9de0);
+  color: #e8e8e8;
   border: none;
   padding: 6px 10px;
   border-radius: 6px;

@@ -1,6 +1,6 @@
 .accordion {
-  background-color: #252526 !important;
-  border: 1px solid rgba(0, 122, 204, 0.25) !important;
+  background-color: #1c1c30 !important;
+  border: 1px solid rgba(77, 157, 224, 0.25) !important;
   border-radius: 8px !important;
   margin-bottom: 10px !important;
 }
@@ -21,7 +21,7 @@
 }
 
 .expandIcon {
-  color: #007ACC !important;
+  color: #4d9de0 !important;
 }
 
 .summaryContent {
@@ -37,33 +37,33 @@
   font-weight: 700 !important;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #007ACC !important;
+  color: #4d9de0 !important;
   white-space: nowrap;
 }
 
 .scenarioName {
   font-size: 1.42rem !important;
   font-weight: 600 !important;
-  color: #d4d4d4 !important;
+  color: #e8e8e8 !important;
   flex: 1;
 }
 
 .countChip {
-  background-color: rgba(0, 122, 204, 0.15) !important;
-  color: #9cdcfe !important;
+  background-color: rgba(77, 157, 224, 0.15) !important;
+  color: #a8d4f5 !important;
   font-size: 1.2rem !important;
   height: 20px !important;
 }
 
 .details {
   padding: 16px 18px 18px !important;
-  background-color: #1e1e1e !important;
+  background-color: #07071a !important;
   border-radius: 0 0 8px 8px !important;
 }
 
 .context {
   font-size: 1.37rem !important;
-  color: #d4d4d4 !important;
+  color: #e8e8e8 !important;
   font-style: italic;
   line-height: 1.55 !important;
   margin-bottom: 12px !important;
@@ -79,7 +79,7 @@
 
 .principlesLabel {
   font-size: 1.28rem !important;
-  color: #9cdcfe !important;
+  color: #a8d4f5 !important;
   font-weight: 600 !important;
   white-space: nowrap;
 }
@@ -92,7 +92,7 @@
 
 .principleChip {
   background-color: rgba(156, 220, 254, 0.12) !important;
-  color: #9cdcfe !important;
+  color: #a8d4f5 !important;
   border: 1px solid rgba(156, 220, 254, 0.3) !important;
   font-size: 1.25rem !important;
   height: 22px !important;
@@ -107,9 +107,9 @@
 
 /* Sub-principle accordion */
 .spAccordion {
-  background-color: #1e1e1e !important;
-  border: 1px solid rgba(0, 122, 204, 0.18) !important;
-  border-left: 3px solid rgba(0, 122, 204, 0.5) !important;
+  background-color: #07071a !important;
+  border: 1px solid rgba(77, 157, 224, 0.18) !important;
+  border-left: 3px solid rgba(77, 157, 224, 0.5) !important;
   border-radius: 6px !important;
 }
 
@@ -129,7 +129,7 @@
 }
 
 .spExpandIcon {
-  color: #9cdcfe !important;
+  color: #a8d4f5 !important;
   font-size: 1.6rem !important;
 }
 
@@ -144,7 +144,7 @@
 
 .spDetails {
   padding: 12px 14px 14px !important;
-  background-color: #141414 !important;
+  background-color: #07071a !important;
   border-radius: 0 0 6px 6px !important;
 }
 
@@ -153,20 +153,20 @@
   font-weight: 700 !important;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #007ACC !important;
+  color: #4d9de0 !important;
   white-space: nowrap;
 }
 
 .subPrincipleName {
   font-size: 1.38rem !important;
   font-weight: 700 !important;
-  color: #9cdcfe !important;
+  color: #a8d4f5 !important;
   letter-spacing: 0.02em;
 }
 
 .subPrincipleContext {
   font-size: 1.34rem !important;
-  color: #d4d4d4 !important;
+  color: #e8e8e8 !important;
   font-style: italic;
   line-height: 1.5 !important;
   margin-bottom: 10px !important;
@@ -195,7 +195,7 @@
 
 .viewSessionsBtn {
   margin-left: 4px !important;
-  color: #9cdcfe !important;
+  color: #a8d4f5 !important;
   border-color: rgba(156, 220, 254, 0.35) !important;
   font-size: 1.15rem !important;
   white-space: nowrap;
@@ -203,5 +203,5 @@
 
 .viewSessionsBtn:hover {
   background-color: rgba(156, 220, 254, 0.08) !important;
-  border-color: #9cdcfe !important;
+  border-color: #a8d4f5 !important;
 }

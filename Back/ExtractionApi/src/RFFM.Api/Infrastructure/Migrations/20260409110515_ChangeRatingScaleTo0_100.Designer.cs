@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using RFFM.Api.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using RFFM.Api.Infrastructure.Persistence;
 namespace RFFM.Api.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260409110515_ChangeRatingScaleTo0_100")]
+    partial class ChangeRatingScaleTo0_100
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -3372,105 +3375,7 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.Property<string>("Id")
                         .HasColumnType("text");
 
-                    b.Property<decimal?>("CompetConstantEffort")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("CompetDecisiveActions")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("CompetDuelWinning")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("CompetLooseBalls")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("CompetRecoveries")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("CompetResponsibility")
-                        .HasColumnType("decimal(5,1)");
-
                     b.Property<decimal>("Competitiveness")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<bool>("IsGoalkeeper")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<decimal?>("KeeperAerialPlay")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("KeeperAgility")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("KeeperBackCoverage")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("KeeperBuildupPlay")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("KeeperConcentration")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("KeeperConsistency")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("KeeperDefensiveOrganization")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("KeeperEndurance")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("KeeperErrorManagement")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("KeeperFirstTouch")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("KeeperGameReading")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("KeeperHandDistribution")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("KeeperHandSecurity")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("KeeperJumpPower")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("KeeperKeyMoments")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("KeeperKickDistribution")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("KeeperOneOnOne")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("KeeperPlayUnderPressure")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("KeeperPositioning")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("KeeperReactionSpeed")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("KeeperResponsibility")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("KeeperSallyTiming")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("KeeperSaves")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("KeeperStrength")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("KeeperValor")
                         .HasColumnType("decimal(5,1)");
 
                     b.Property<string>("Notes")
@@ -3480,43 +3385,10 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.Property<decimal>("Physical")
                         .HasColumnType("decimal(5,1)");
 
-                    b.Property<decimal?>("PhysicalEndurance")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("PhysicalSpeed")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("PhysicalStrength")
-                        .HasColumnType("decimal(5,1)");
-
                     b.Property<DateTime>("RatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<decimal>("Tactical")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("TacticalAttackParticipation")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("TacticalBeatsOpponents")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("TacticalDefensiveAwareness")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("TacticalGeneratesAdvantage")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("TacticalMarking")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("TacticalOffMovement")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("TacticalPressing")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("TacticalTrackBack")
                         .HasColumnType("decimal(5,1)");
 
                     b.Property<string>("TeamPlayerId")
@@ -3524,27 +3396,6 @@ namespace RFFM.Api.Infrastructure.Migrations
                         .HasColumnType("text");
 
                     b.Property<decimal>("Technical")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("TechnicalControl")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("TechnicalDribbling")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("TechnicalHeading")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("TechnicalInterceptions")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("TechnicalPassing")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("TechnicalShooting")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("TechnicalTackling")
                         .HasColumnType("decimal(5,1)");
 
                     b.HasKey("Id");

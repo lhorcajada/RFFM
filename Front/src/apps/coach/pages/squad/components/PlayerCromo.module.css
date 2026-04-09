@@ -4,10 +4,10 @@
 
 .card {
   position: relative;
-  width: 160px;
+  width: 100%;
   border-radius: 14px;
   overflow: hidden;
-  background: linear-gradient(170deg, #1c1c30 0%, #111126 100%);
+  background: linear-gradient(170deg, #1c1c30 0%, #07071a 100%);
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
   display: flex;
@@ -15,6 +15,8 @@
   transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s;
   color: #e8e8e8;
   user-select: none;
+  min-width: 0;
+  min-height: 0;
 }
 
 .card:hover {
@@ -26,7 +28,7 @@
 /* ─── Photo ─── */
 .photoArea {
   position: relative;
-  height: 155px;
+  height: 240px;
   flex: 0 0 auto;
   overflow: hidden;
 }
@@ -35,21 +37,21 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: top center;
+  object-position: center 15%;
   display: block;
   background: #1c1c30;
 }
 
-.photoFallback {
+.photoAvatar {
   width: 100%;
   height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 4rem;
-  font-weight: 800;
-  color: rgba(255, 255, 255, 0.1);
+  object-fit: contain;
+  object-position: center 60%;
+  display: block;
   background: linear-gradient(160deg, #252545 0%, #1a1a38 100%);
+  padding: 20px 30px 0;
+  box-sizing: border-box;
+  opacity: 0.55;
 }
 
 .photoGradient {
@@ -58,7 +60,7 @@
   left: 0;
   right: 0;
   height: 72px;
-  background: linear-gradient(to bottom, transparent, #111126);
+  background: linear-gradient(to bottom, transparent, #07071a);
   pointer-events: none;
 }
 
@@ -82,17 +84,30 @@
   z-index: 2;
 }
 
+.avgBadge {
+  position: absolute;
+  top: 7px;
+  left: 8px;
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  font-size: 1.65rem;
+  line-height: 1;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+  z-index: 2;
+}
+
 .rankBadge {
   position: absolute;
   top: 8px;
   right: 8px;
-  width: 30px;
-  height: 30px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
+  font-size: 30px;
   z-index: 2;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
 }
@@ -100,7 +115,7 @@
 .rankOther {
   background: rgba(0, 0, 0, 0.65);
   border: 1.5px solid rgba(255, 255, 255, 0.35);
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 800;
   color: rgba(255, 255, 255, 0.85);
 }
@@ -117,7 +132,7 @@
 .accentLine {
   height: 2px;
   border-radius: 1px;
-  background: var(--rffm-primary, #e87c1e);
+  background: var(--rffm-primary, #4d9de0);
   width: 28px;
   margin-bottom: 3px;
   flex-shrink: 0;
@@ -130,6 +145,16 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   color: #f0f0f0;
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.dorsalInline {
+  font-size: 11px;
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.4);
+  flex-shrink: 0;
 }
 
 .positionTag {
@@ -172,6 +197,30 @@
   text-transform: uppercase;
 }
 
+/* ─── Edit corner button ─── */
+.editCornerBtn {
+  position: absolute !important;
+  top: 6px;
+  right: 6px;
+  z-index: 10;
+  background: rgba(0, 0, 0, 0.55) !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  color: rgba(255, 255, 255, 0.75) !important;
+  padding: 4px !important;
+  border-radius: 8px !important;
+  opacity: 0;
+  transition: opacity 0.15s ease, background 0.15s ease !important;
+}
+
+.card:hover .editCornerBtn {
+  opacity: 1;
+}
+
+.editCornerBtn:hover {
+  background: rgba(255, 255, 255, 0.15) !important;
+  color: #fff !important;
+}
+
 /* ─── Actions ─── */
 .cardActions {
   display: flex;
@@ -197,6 +246,6 @@
 }
 
 .link:hover .card {
-  border-color: rgba(232, 124, 30, 0.5);
+  border-color: rgba(77, 157, 224, 0.5);
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
 }

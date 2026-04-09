@@ -14,17 +14,39 @@ import EmptyState from "../../../../shared/components/ui/EmptyState/EmptyState";
 import teamplayerService from "../../services/teamplayerService";
 import teamService from "../../services/teamService";
 import playerService from "../../services/playerService";
+import playerRatingService from "../../services/playerRatingService";
+import type { PlayerRating } from "../../types/playerRating";
 import styles from "./Squad.module.css";
 import defaultAvatar from "../../../../assets/avatar.svg";
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 
-const POSITION_ORDER = [
-  "Portero",
-  "Defensa",
-  "Centrocampista",
-  "Delantero",
-];
+function positionCategory(position: string): number {
+  const p = position.toLowerCase();
+  if (p.includes("portero") || p.includes("keeper") || p.includes("arquero")) return 0;
+  if (
+    p.includes("defensa") || p.includes("central") || p.includes("lateral") ||
+    p.includes("libero") || p.includes("stopper")
+  ) return 1;
+  if (
+    p.includes("centrocampista") || p.includes("medio") || p.includes("pivote") ||
+    p.includes("interior") || p.includes("volante")
+  ) return 2;
+  if (
+    p.includes("delantero") || p.includes("extremo") || p.includes("punta") ||
+    p.includes("ariete") || p.includes("winger")
+  ) return 3;
+  return 4;
+}
+
+function positionAccent(position: string): string {
+  const cat = positionCategory(position);
+  if (cat === 0) return "#f59e0b";
+  if (cat === 1) return "#3b82f6";
+  if (cat === 2) return "#10b981";
+  if (cat === 3) return "#ef4444";
+  return "#6b7280";
+}
 
 function groupByPosition(players: any[]) {
   const groups: Record<string, any[]> = {};
@@ -34,15 +56,9 @@ function groupByPosition(players: any[]) {
     groups[key].push(p);
   }
   return Object.entries(groups).sort(([a], [b]) => {
-    const ia = POSITION_ORDER.findIndex((pos) =>
-      a.toLowerCase().includes(pos.toLowerCase())
-    );
-    const ib = POSITION_ORDER.findIndex((pos) =>
-      b.toLowerCase().includes(pos.toLowerCase())
-    );
-    const ra = ia === -1 ? POSITION_ORDER.length : ia;
-    const rb = ib === -1 ? POSITION_ORDER.length : ib;
-    if (ra !== rb) return ra - rb;
+    const ca = positionCategory(a);
+    const cb = positionCategory(b);
+    if (ca !== cb) return ca - cb;
     return a.localeCompare(b, "es");
   });
 }
@@ -51,11 +67,15 @@ export default function Squad() {
   const navigate = useNavigate();
   const { team, teamTitleNode } = useTeamAndClub();
   const [players, setPlayers] = useState<any[]>([]);
-  const [playerPhotos, setPlayerPhotos] = useState<
-    Record<string, string | null>
-  >({});
+  const [playerPhotos, setPlayerPhotos] = useState<Record<string, string | null>>({});
+  const [latestRatings, setLatestRatings] = useState<Record<string, PlayerRating>>({});
+  const [loadingRatings, setLoadingRatings] = useState(false);
   const [loadingPlayers, setLoadingPlayers] = useState(false);
   const [activeTab, setActiveTab] = useTabState(0);
+
+  function handleRatingCreated(rating: PlayerRating) {
+    setLatestRatings((prev) => ({ ...prev, [rating.teamPlayerId]: rating }));
+  }
 
   const playersByPosition = useMemo(() => groupByPosition(players), [players]);
 
@@ -121,6 +141,21 @@ export default function Squad() {
       } finally {
         if (!mounted) return;
         setLoadingPlayers(false);
+      }
+
+      // Load latest ratings (best-effort, non-blocking)
+      if (team && mounted) {
+        setLoadingRatings(true);
+        playerRatingService
+          .getTeamLatestRatings(team.id)
+          .then((data) => {
+            if (!mounted) return;
+            const map: Record<string, PlayerRating> = {};
+            data.forEach((r) => { map[r.teamPlayerId] = r; });
+            setLatestRatings(map);
+          })
+          .catch(() => {})
+          .finally(() => { if (mounted) setLoadingRatings(false); });
       }
     }
 
@@ -207,56 +242,67 @@ export default function Squad() {
               </div>
             </div>
           )}
-          {activeTab === 0 &&
-            !loadingPlayers &&
-            playersByPosition.map(([position, group]) => (
-              <div key={position} className={styles.positionGroup}>
-                <div className={styles.positionHeader}>
-                  <Typography variant="subtitle2" className={styles.positionTitle}>
-                    {position}
-                  </Typography>
-                  <span className={styles.positionCount}>{group.length}</span>
-                </div>
-                <div className={styles.list}>
-                  {group.map((p, idx) => {
-                    const key =
-                      p.id ?? `${p.name ?? ""}-${p.lastName ?? ""}-${idx}`;
-                    const displayName =
-                      ((p.name ?? "") + " " + (p.lastName ?? "")).trim() ||
-                      p.alias ||
-                      "Jugador";
-                    const seasonParam = new URLSearchParams(
-                      window.location.search
-                    ).get("seasonId");
-                    return (
-                      <PlayerCromo
-                        key={key}
-                        displayName={displayName}
-                        photoSrc={playerPhotos[key] ?? null}
-                        dorsal={p.dorsal ?? null}
-                        position={p.position ?? null}
-                        to={
-                          p.id
-                            ? `/coach/player/${p.id}${
-                                team ? `?teamId=${team.id}` : ""
-                              }${
-                                seasonParam ? `&seasonId=${seasonParam}` : ""
-                              }`
-                            : undefined
-                        }
-                      />
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
+          {activeTab === 0 && !loadingPlayers && playersByPosition.length > 0 && (
+            <div className={styles.positionsDashboard}>
+              {playersByPosition.map(([position, group]) => {
+                const accent = positionAccent(position);
+                const seasonParam = new URLSearchParams(window.location.search).get("seasonId");
+                return (
+                  <div key={position} className={styles.positionPanel}>
+                    <div className={styles.positionPanelAccent} style={{ background: accent }} />
+                    <div className={styles.positionPanelHeader}>
+                      <span className={styles.positionPanelTitle}>{position}</span>
+                      <span className={styles.positionPanelCount}>{group.length}</span>
+                    </div>
+                    <div className={styles.positionPanelGrid}>
+                      {group.map((p, idx) => {
+                        const key = p.id ?? `${p.name ?? ""}-${p.lastName ?? ""}-${idx}`;
+                        const displayName = ((p.name ?? "") + " " + (p.lastName ?? "")).trim() || p.alias || "Jugador";
+                        return (
+                          <PlayerCromo
+                            key={key}
+                            displayName={displayName}
+                            photoSrc={playerPhotos[key] ?? null}
+                            dorsal={p.dorsal ?? null}
+                            position={p.position ?? null}
+                            rating={(() => {
+                              const r = latestRatings[p.id];
+                              return r
+                                ? { technical: r.technical, tactical: r.tactical, physical: r.physical, competitiveness: r.competitiveness }
+                                : null;
+                            })()}
+                            to={
+                              p.id
+                                ? `/coach/player/${p.id}${team ? `?teamId=${team.id}` : ""}${seasonParam ? `&seasonId=${seasonParam}` : ""}`
+                                : undefined
+                            }
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
           {activeTab === 1 && team && (
-            <SquadRatings teamId={team.id} players={ratingPlayers} />
+            <SquadRatings
+              teamId={team.id}
+              players={ratingPlayers}
+              latestRatings={latestRatings}
+              onRatingCreated={handleRatingCreated}
+            />
           )}
 
           {activeTab === 2 && team && (
-            <SquadRanking teamId={team.id} players={ratingPlayers} />
+            <SquadRanking
+              teamId={team.id}
+              players={ratingPlayers}
+              latestRatings={latestRatings}
+              loading={loadingRatings}
+              onRatingCreated={handleRatingCreated}
+            />
           )}
         </Box>
       </ContentLayout>

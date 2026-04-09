@@ -488,7 +488,7 @@ export default function GameModel() {
         onClose={() => !deleting && setDeleteDialogOpen(false)}
         maxWidth="xs"
         fullWidth
-        PaperProps={{ sx: { backgroundColor: "#1e1e1e" } }}
+        PaperProps={{ sx: { backgroundColor: "#07071a" } }}
       >
         <DialogTitle>Eliminar modelo de juego</DialogTitle>
         <DialogContent>

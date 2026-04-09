@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using RFFM.Api.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using RFFM.Api.Infrastructure.Persistence;
 namespace RFFM.Api.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260409140005_AddRatingSubRatings")]
+    partial class AddRatingSubRatings
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -3393,86 +3396,6 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.Property<decimal>("Competitiveness")
                         .HasColumnType("decimal(5,1)");
 
-                    b.Property<bool>("IsGoalkeeper")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<decimal?>("KeeperAerialPlay")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("KeeperAgility")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("KeeperBackCoverage")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("KeeperBuildupPlay")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("KeeperConcentration")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("KeeperConsistency")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("KeeperDefensiveOrganization")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("KeeperEndurance")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("KeeperErrorManagement")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("KeeperFirstTouch")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("KeeperGameReading")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("KeeperHandDistribution")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("KeeperHandSecurity")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("KeeperJumpPower")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("KeeperKeyMoments")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("KeeperKickDistribution")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("KeeperOneOnOne")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("KeeperPlayUnderPressure")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("KeeperPositioning")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("KeeperReactionSpeed")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("KeeperResponsibility")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("KeeperSallyTiming")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("KeeperSaves")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("KeeperStrength")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("KeeperValor")
-                        .HasColumnType("decimal(5,1)");
-
                     b.Property<string>("Notes")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
@@ -3495,22 +3418,13 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.Property<decimal>("Tactical")
                         .HasColumnType("decimal(5,1)");
 
-                    b.Property<decimal?>("TacticalAttackParticipation")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("TacticalBeatsOpponents")
-                        .HasColumnType("decimal(5,1)");
-
                     b.Property<decimal?>("TacticalDefensiveAwareness")
                         .HasColumnType("decimal(5,1)");
 
-                    b.Property<decimal?>("TacticalGeneratesAdvantage")
+                    b.Property<decimal?>("TacticalLooseBalls")
                         .HasColumnType("decimal(5,1)");
 
                     b.Property<decimal?>("TacticalMarking")
-                        .HasColumnType("decimal(5,1)");
-
-                    b.Property<decimal?>("TacticalOffMovement")
                         .HasColumnType("decimal(5,1)");
 
                     b.Property<decimal?>("TacticalPressing")

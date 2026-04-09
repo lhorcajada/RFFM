@@ -1,7 +1,7 @@
 .paper {
   border-radius: 10px;
   padding: 12px;
-  background: #252526; /* toned-down warm background */
+  background: #1c1c30; /* toned-down warm background */
   border: 1px solid rgba(0, 0, 0, 0.06);
   box-shadow: 0 2px 8px rgba(12, 18, 20, 0.06);
 }
@@ -30,7 +30,7 @@
 
 .actionButton:hover {
   background: rgba(255, 255, 255, 0.06); /* stronger warm hover */
-  color: var(--rffm-text-primary, #d4d4d4);
+  color: var(--rffm-text-primary, #e8e8e8);
   text-decoration: none;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
   border: 1px solid rgba(0, 0, 0, 0.08);

@@ -333,13 +333,13 @@ export default function SubSubPrincipleCard({ index, subSubPrinciple, clubId }: 
       <Dialog
         open={!!deleteExId}
         onClose={() => setDeleteExId(null)}
-        PaperProps={{ sx: { bgcolor: "#1e1e1e", border: "1px solid rgba(0,122,204,.25)" } }}
+        PaperProps={{ sx: { bgcolor: "#07071a", border: "1px solid rgba(77,157,224,.25)" } }}
       >
-        <DialogTitle sx={{ color: "#007ACC", fontSize: "0.95rem" }}>
+        <DialogTitle sx={{ color: "#4d9de0", fontSize: "0.95rem" }}>
           Eliminar ejercicio
         </DialogTitle>
         <DialogContent>
-          <DialogContentText sx={{ color: "#d4d4d4", fontSize: "0.85rem" }}>
+          <DialogContentText sx={{ color: "#e8e8e8", fontSize: "0.85rem" }}>
             ¿Seguro que quieres eliminar este ejercicio?
           </DialogContentText>
         </DialogContent>

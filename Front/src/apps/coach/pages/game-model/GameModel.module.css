@@ -18,7 +18,7 @@
 
 .emptyStateText {
   font-size: 1.45rem !important;
-  color: #d4d4d4 !important;
+  color: #e8e8e8 !important;
 }
 
 .modelName {
@@ -26,7 +26,7 @@
   font-weight: 600 !important;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #007ACC !important;
+  color: #4d9de0 !important;
   margin-bottom: 0 !important;
 }
 
@@ -43,28 +43,28 @@
 }
 
 .seasonSelect .MuiOutlinedInput-root {
-  color: #007ACC;
+  color: #4d9de0;
   font-size: 1.3rem;
   font-weight: 600;
 }
 
 .seasonSelect .MuiOutlinedInput-notchedOutline {
-  border-color: rgba(0, 122, 204, 0.4) !important;
+  border-color: rgba(77, 157, 224, 0.4) !important;
 }
 
 .seasonSelect .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
-  border-color: #007ACC !important;
+  border-color: #4d9de0 !important;
 }
 
 .seasonSelect .MuiSvgIcon-root {
-  color: #007ACC;
+  color: #4d9de0;
 }
 
 /* ── Moment tabs ── */
 .momentTabsWrap {
-  background-color: #1e1e1e;
+  background-color: #07071a;
   border-radius: 10px 10px 0 0;
-  border: 1px solid rgba(0, 122, 204, 0.2);
+  border: 1px solid rgba(77, 157, 224, 0.2);
   border-bottom: none;
 }
 
@@ -73,11 +73,11 @@
 }
 
 .momentTabs .MuiTabs-scrollButtons {
-  color: #007ACC;
+  color: #4d9de0;
 }
 
 .momentTab {
-  color: #d4d4d4 !important;
+  color: #e8e8e8 !important;
   font-size: 1.32rem !important;
   font-weight: 500 !important;
   text-transform: none !important;
@@ -86,37 +86,37 @@
 }
 
 .momentTab.Mui-selected {
-  color: #007ACC !important;
+  color: #4d9de0 !important;
   font-weight: 700 !important;
 }
 
 .tabIndicator {
-  background-color: #007ACC !important;
+  background-color: #4d9de0 !important;
   height: 3px !important;
 }
 
 /* ── Moment content area ── */
 .momentContent {
-  border: 1px solid rgba(0, 122, 204, 0.2);
+  border: 1px solid rgba(77, 157, 224, 0.2);
   border-top: none;
   border-radius: 0 0 10px 10px;
-  background-color: #1e1e1e;
+  background-color: #07071a;
   padding: 0 0 16px;
 }
 
 /* ── Zone tabs ── */
 .zoneTabs {
   min-height: 40px !important;
-  border-bottom: 1px solid rgba(0, 122, 204, 0.15) !important;
+  border-bottom: 1px solid rgba(77, 157, 224, 0.15) !important;
   margin-bottom: 20px;
 }
 
 .zoneTabs .MuiTabs-scrollButtons {
-  color: #9cdcfe;
+  color: #a8d4f5;
 }
 
 .zoneTab {
-  color: #9cdcfe !important;
+  color: #a8d4f5 !important;
   font-size: 1.28rem !important;
   font-weight: 500 !important;
   text-transform: none !important;
@@ -125,12 +125,12 @@
 }
 
 .zoneTab.Mui-selected {
-  color: #007ACC !important;
+  color: #4d9de0 !important;
   font-weight: 700 !important;
 }
 
 .zoneTabIndicator {
-  background-color: rgba(0, 122, 204, 0.6) !important;
+  background-color: rgba(77, 157, 224, 0.6) !important;
   height: 2px !important;
 }
 
@@ -141,8 +141,8 @@
 }
 
 .zoneCount {
-  background-color: rgba(0, 122, 204, 0.25);
-  color: #007ACC;
+  background-color: rgba(77, 157, 224, 0.25);
+  color: #4d9de0;
   font-size: 1.18rem;
   font-weight: 700;
   border-radius: 10px;

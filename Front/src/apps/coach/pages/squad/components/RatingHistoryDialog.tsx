@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { IconButton, Rating, Typography } from "@mui/material";
+import { IconButton, LinearProgress, Typography } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import HistoryIcon from "@mui/icons-material/History";
 import type { PlayerRating } from "../../../types/playerRating";
@@ -12,12 +12,116 @@ type Props = {
   onClose: () => void;
 };
 
-const LABELS = [
-  { key: "technical" as const, label: "Técnico" },
-  { key: "tactical" as const, label: "Táctico" },
-  { key: "physical" as const, label: "Físico" },
-  { key: "competitiveness" as const, label: "Competitividad" },
+type SubItem = { key: keyof PlayerRating; label: string };
+
+const CATEGORY_GROUPS: { key: keyof PlayerRating; label: string; subItems: SubItem[] }[] = [
+  {
+    key: "physical",
+    label: "Físico",
+    subItems: [
+      { key: "physicalSpeed", label: "Velocidad" },
+      { key: "physicalEndurance", label: "Resistencia" },
+      { key: "physicalStrength", label: "Fuerza" },
+    ],
+  },
+  {
+    key: "technical",
+    label: "Técnica",
+    subItems: [
+      { key: "technicalDribbling", label: "Regate" },
+      { key: "technicalPassing", label: "Pase" },
+      { key: "technicalControl", label: "Conducción" },
+      { key: "technicalShooting", label: "Tiro" },
+      { key: "technicalTackling", label: "Entradas" },
+      { key: "technicalInterceptions", label: "Intercepciones" },
+      { key: "technicalHeading", label: "Cabeceo" },
+    ],
+  },
+  {
+    key: "tactical",
+    label: "Táctica",
+    subItems: [
+      { key: "tacticalDefensiveAwareness", label: "Vigilancias defensivas" },
+      { key: "tacticalMarking", label: "Marcaje" },
+      { key: "tacticalTrackBack", label: "Repliegue" },
+      { key: "tacticalPressing", label: "Pressing" },
+      { key: "tacticalGeneratesAdvantage", label: "Genera ventaja en ataque" },
+      { key: "tacticalOffMovement", label: "Desmarque" },
+      { key: "tacticalBeatsOpponents", label: "Supera rivales" },
+      { key: "tacticalAttackParticipation", label: "Participación en ataque" },
+    ],
+  },
+  {
+    key: "competitiveness",
+    label: "Competitividad",
+    subItems: [
+      { key: "competDuelWinning", label: "Ganador de duelos" },
+      { key: "competLooseBalls", label: "Bal. div. disputados" },
+      { key: "competRecoveries", label: "Recuperaciones" },
+      { key: "competDecisiveActions", label: "Acciones decisivas" },
+      { key: "competResponsibility", label: "Asume responsabilidades" },
+      { key: "competConstantEffort", label: "Esfuerzo constante" },
+    ],
+  },
 ];
+
+const KEEPER_CATEGORY_GROUPS: { key: keyof PlayerRating; label: string; subItems: SubItem[] }[] = [
+  {
+    key: "physical",
+    label: "Físico",
+    subItems: [
+      { key: "keeperReactionSpeed", label: "Reflejos / vel. reacción" },
+      { key: "keeperAgility", label: "Agilidad" },
+      { key: "keeperJumpPower", label: "Potencia de salto" },
+      { key: "keeperStrength", label: "Fuerza / cuerpo a cuerpo" },
+      { key: "keeperEndurance", label: "Resistencia / constancia" },
+    ],
+  },
+  {
+    key: "technical",
+    label: "Técnica",
+    subItems: [
+      { key: "keeperHandSecurity", label: "Blocaje / seguridad manos" },
+      { key: "keeperSaves", label: "Paradas" },
+      { key: "keeperAerialPlay", label: "Juego aéreo" },
+      { key: "keeperHandDistribution", label: "Saques con mano" },
+      { key: "keeperKickDistribution", label: "Saques con pie" },
+      { key: "keeperFirstTouch", label: "Control / primer toque" },
+      { key: "keeperPlayUnderPressure", label: "Juego con pies a presión" },
+    ],
+  },
+  {
+    key: "tactical",
+    label: "Táctica",
+    subItems: [
+      { key: "keeperPositioning", label: "Colocación" },
+      { key: "keeperGameReading", label: "Lectura de jugadas" },
+      { key: "keeperOneOnOne", label: "Uno contra uno" },
+      { key: "keeperBackCoverage", label: "Cobertura de espalda" },
+      { key: "keeperSallyTiming", label: "Timing de salidas" },
+      { key: "keeperBuildupPlay", label: "Salida de balón" },
+      { key: "keeperDefensiveOrganization", label: "Orden defensivo" },
+    ],
+  },
+  {
+    key: "competitiveness",
+    label: "Competitividad",
+    subItems: [
+      { key: "keeperValor", label: "Valentía" },
+      { key: "keeperConcentration", label: "Concentración" },
+      { key: "keeperKeyMoments", label: "Momentos clave" },
+      { key: "keeperErrorManagement", label: "Gestión del error" },
+      { key: "keeperResponsibility", label: "Responsabilidad" },
+      { key: "keeperConsistency", label: "Regularidad" },
+    ],
+  },
+];
+
+function hasSubRatings(entry: PlayerRating): boolean {
+  return entry.isGoalkeeper
+    ? entry.keeperReactionSpeed != null
+    : entry.physicalSpeed != null;
+}
 
 export default function RatingHistoryDialog({
   teamPlayerId,
@@ -68,21 +172,51 @@ export default function RatingHistoryDialog({
                   minute: "2-digit",
                 })}
               </div>
-              <div className={styles.ratingGrid}>
-                {LABELS.map(({ key, label }) => (
-                  <div key={key} className={styles.ratingItem}>
-                    <Typography variant="caption" className={styles.ratingLabel}>
-                      {label}
-                    </Typography>
-                    <Rating
-                      value={entry[key]}
-                      readOnly
-                      size="small"
-                      max={5}
-                    />
-                  </div>
-                ))}
-              </div>
+              {hasSubRatings(entry) ? (
+                <div className={styles.ratingGroups}>
+                  {(entry.isGoalkeeper ? KEEPER_CATEGORY_GROUPS : CATEGORY_GROUPS).map((group) => (
+                    <div key={String(group.key)} className={styles.ratingGroup}>
+                      <div className={styles.ratingGroupHeader}>
+                        <Typography variant="caption" className={styles.ratingGroupLabel}>
+                          {group.label}
+                        </Typography>
+                        <Typography variant="caption" className={styles.ratingGroupAvg}>
+                          {Math.round(Number(entry[group.key]))}
+                        </Typography>
+                      </div>
+                      {group.subItems.map(({ key, label }) => (
+                        <div key={String(key)} className={styles.ratingItem}>
+                          <Typography variant="caption" className={styles.ratingLabel}>
+                            {label}
+                            <span style={{ marginLeft: 4, opacity: 0.7 }}>{Math.round(Number(entry[key] ?? 0))}</span>
+                          </Typography>
+                          <LinearProgress
+                            variant="determinate"
+                            value={Number(entry[key] ?? 0)}
+                            sx={{ height: 4, borderRadius: 3 }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className={styles.ratingGrid}>
+                  {CATEGORY_GROUPS.map(({ key, label }) => (
+                    <div key={String(key)} className={styles.ratingItem}>
+                      <Typography variant="caption" className={styles.ratingLabel}>
+                        {label}
+                        <span style={{ marginLeft: 4, opacity: 0.7 }}>{Math.round(Number(entry[key]))}</span>
+                      </Typography>
+                      <LinearProgress
+                        variant="determinate"
+                        value={Number(entry[key])}
+                        sx={{ height: 5, borderRadius: 3 }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
               {entry.notes && (
                 <div className={styles.entryNotes}>{entry.notes}</div>
               )}

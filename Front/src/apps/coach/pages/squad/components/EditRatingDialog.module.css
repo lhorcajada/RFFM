@@ -13,7 +13,8 @@
   background: var(--rffm-card-bg, #1e1e2e);
   border-radius: 12px;
   width: 100%;
-  max-width: 380px;
+  max-width: 480px;
+  max-height: 90vh;
   border: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   flex-direction: column;
@@ -26,6 +27,7 @@
   justify-content: space-between;
   padding: 14px 18px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
 }
 
 .title {
@@ -40,22 +42,56 @@
 }
 
 .body {
-  padding: 18px;
+  padding: 14px 18px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.groupHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.groupLabel {
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.groupAvg {
+  font-size: 1rem;
+  font-weight: 700;
+  min-width: 36px;
+  text-align: right;
 }
 
 .field {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .fieldLabel {
-  font-size: 0.8rem;
-  opacity: 0.7;
-  width: 110px;
+  font-size: 0.75rem;
+  opacity: 0.65;
+  width: 130px;
   flex-shrink: 0;
 }
 
@@ -65,4 +101,5 @@
   gap: 8px;
   padding: 12px 18px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
 }

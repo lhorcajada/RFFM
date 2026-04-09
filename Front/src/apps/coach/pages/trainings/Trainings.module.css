@@ -14,11 +14,11 @@
 }
 
 .tabs .Mui-selected {
-  color: #007ACC !important;
+  color: #4d9de0 !important;
 }
 
 .tabs .MuiTabs-indicator {
-  background-color: #007ACC !important;
+  background-color: #4d9de0 !important;
 }
 
 .loadingBox {
@@ -45,7 +45,7 @@
 
 .filterLabel {
   font-size: 0.78rem !important;
-  color: #9cdcfe !important;
+  color: #a8d4f5 !important;
   background: rgba(156, 220, 254, 0.1);
   border: 1px solid rgba(156, 220, 254, 0.25);
   padding: 3px 8px;
@@ -66,7 +66,7 @@
 
 .exerciseCard {
   background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(0, 122, 204, 0.15);
+  border: 1px solid rgba(77, 157, 224, 0.15);
   border-radius: 8px;
   padding: 10px 14px;
   margin-bottom: 8px;
@@ -84,7 +84,7 @@
 .exerciseName {
   font-size: 0.9rem !important;
   font-weight: 600 !important;
-  color: #d4d4d4 !important;
+  color: #e8e8e8 !important;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -99,16 +99,16 @@
 }
 
 .typeChip {
-  background-color: rgba(0, 122, 204, 0.15) !important;
-  color: #007ACC !important;
-  border: 1px solid rgba(0, 122, 204, 0.3) !important;
+  background-color: rgba(77, 157, 224, 0.15) !important;
+  color: #4d9de0 !important;
+  border: 1px solid rgba(77, 157, 224, 0.3) !important;
   font-size: 0.7rem !important;
   height: 20px !important;
 }
 
 .sspChip {
   background-color: rgba(156, 220, 254, 0.1) !important;
-  color: #9cdcfe !important;
+  color: #a8d4f5 !important;
   border: 1px solid rgba(156, 220, 254, 0.25) !important;
   font-size: 0.7rem !important;
   height: 20px !important;
@@ -133,7 +133,7 @@
 }
 
 .iconBtn:hover {
-  color: #007ACC !important;
+  color: #4d9de0 !important;
 }
 
 .deleteIconBtn {
@@ -149,7 +149,7 @@
 
 .sessionCard {
   background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(0, 122, 204, 0.15);
+  border: 1px solid rgba(77, 157, 224, 0.15);
   border-radius: 8px;
   padding: 10px 14px;
   margin-bottom: 8px;
@@ -167,12 +167,12 @@
 .sessionName {
   font-size: 0.9rem !important;
   font-weight: 600 !important;
-  color: #d4d4d4 !important;
+  color: #e8e8e8 !important;
 }
 
 .sessionDate {
   font-size: 0.75rem !important;
-  color: #9cdcfe !important;
+  color: #a8d4f5 !important;
   margin-top: 2px !important;
 }
 
@@ -190,8 +190,8 @@
 }
 
 .countChip {
-  background-color: rgba(0, 122, 204, 0.15) !important;
-  color: #007ACC !important;
+  background-color: rgba(77, 157, 224, 0.15) !important;
+  color: #4d9de0 !important;
   font-size: 0.7rem !important;
   height: 20px !important;
 }

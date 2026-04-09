@@ -1,7 +1,7 @@
 .container {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
   padding-top: 8px;
 }
 
@@ -23,9 +23,153 @@
   opacity: 0.6;
 }
 
+/* ── Tier (escalón) ── */
+.tier {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  position: relative;
+}
+
+.tierHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tierRank {
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1;
+  min-width: 36px;
+}
+
+.tierScore {
+  font-size: 0.9rem;
+  font-weight: 700;
+  opacity: 0.85;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 2px 10px;
+}
+
+.tierTie {
+  font-size: 0.72rem;
+  opacity: 0.5;
+  font-style: italic;
+}
+
+.tierRankUnrated {
+  font-size: 0.8rem;
+  opacity: 0.4;
+  font-style: italic;
+}
+
 .grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 210px);
+  gap: 12px;
+}
+
+/* ── Real podium ── */
+.podiumStage {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 6px;
+  padding-top: 16px;
+}
+
+.podiumSlot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  max-width: 240px;
+  min-width: 0;
+}
+
+.podiumSlotEmpty {
+  flex: 1;
+  max-width: 240px;
+}
+
+.podiumCards {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  width: 100%;
+}
+
+.podiumPlatform {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  border-radius: 8px 8px 0 0;
+  padding: 10px 8px;
+  gap: 2px;
+}
+
+.platform1 {
+  height: 90px;
+  background: linear-gradient(175deg, #ffd700 0%, #c8960c 100%);
+  color: #3a2800;
+  box-shadow: 0 -4px 20px rgba(255, 215, 0, 0.25);
+}
+
+.platform2 {
+  height: 65px;
+  background: linear-gradient(175deg, #d8d8d8 0%, #909090 100%);
+  color: #1a1a1a;
+  box-shadow: 0 -4px 16px rgba(180, 180, 180, 0.18);
+}
+
+.platform3 {
+  height: 45px;
+  background: linear-gradient(175deg, #e07b3a 0%, #a0501a 100%);
+  color: #fff0e8;
+  box-shadow: 0 -4px 16px rgba(200, 120, 50, 0.2);
+}
+
+.podiumMedal {
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.podiumScore {
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.podiumTie {
+  font-size: 0.62rem;
+  opacity: 0.8;
+  font-style: italic;
+}
+
+/* ── Rest tiers: horizontal flex, wrapping ── */
+.tiersRow {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
+  align-items: flex-start;
+}
+
+.tiersRow > .tier {
+  flex: 1;
+  min-width: 200px;
+}
+
+.tiersRow .grid {
+  grid-template-columns: repeat(auto-fill, minmax(160px, 185px));
 }
 

@@ -75,14 +75,15 @@ function CoachRoutesContent() {
         const docElStyle = document.documentElement.style;
         docElStyle.setProperty(
           "--rffm-gradient-bg",
-          "linear-gradient(180deg, #1e1e1e 0%, #252526 100%)",
+          "linear-gradient(180deg, #07071a 0%, #0e0e26 100%)",
         );
-        docElStyle.setProperty("--rffm-card-bg", "#252526");
+        docElStyle.setProperty("--rffm-card-bg", "#1c1c30");
         docElStyle.setProperty(
           "--rffm-title-gradient",
-          "linear-gradient(135deg, #007ACC 0%, #4ec9b0 100%)",
+          "linear-gradient(135deg, #4d9de0 0%, #4ec9b0 100%)",
         );
-        docElStyle.setProperty("--bg", "#1e1e1e");
+        docElStyle.setProperty("--bg", "#07071a");
+        docElStyle.setProperty("--rffm-primary", "#4d9de0");
         docElStyle.setProperty(
           "--rffm-footer-border",
           "1px solid rgba(255,255,255,0.08)",

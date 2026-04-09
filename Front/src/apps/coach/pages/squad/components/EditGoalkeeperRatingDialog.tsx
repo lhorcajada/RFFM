@@ -2,73 +2,74 @@ import { useState } from "react";
 import { Button, IconButton, Slider, TextField } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import EditIcon from "@mui/icons-material/Edit";
-import type { CreateRatingPayload } from "../../../services/playerRatingService";
+import type { CreateGoalkeeperRatingPayload } from "../../../services/playerRatingService";
 import styles from "./EditRatingDialog.module.css";
 
-type SubRatingKey = keyof Omit<CreateRatingPayload, "notes">;
+type KeeperKey = keyof Omit<CreateGoalkeeperRatingPayload, "notes">;
 
-type SubRatingState = Omit<CreateRatingPayload, "notes"> & { notes: string };
+type KeeperState = Omit<CreateGoalkeeperRatingPayload, "notes"> & { notes: string };
 
 type RatingGroup = {
   categoryKey: "physical" | "technical" | "tactical" | "competitiveness";
   label: string;
-  subRatings: { key: SubRatingKey; label: string }[];
+  subRatings: { key: KeeperKey; label: string }[];
 };
 
-const RATING_GROUPS: RatingGroup[] = [
+const KEEPER_GROUPS: RatingGroup[] = [
   {
     categoryKey: "physical",
     label: "Físico",
     subRatings: [
-      { key: "physicalSpeed", label: "Velocidad" },
-      { key: "physicalEndurance", label: "Resistencia" },
-      { key: "physicalStrength", label: "Fuerza" },
+      { key: "keeperReactionSpeed", label: "Reflejos / velocidad de reacción" },
+      { key: "keeperAgility", label: "Agilidad" },
+      { key: "keeperJumpPower", label: "Potencia de salto" },
+      { key: "keeperStrength", label: "Fuerza / cuerpo a cuerpo" },
+      { key: "keeperEndurance", label: "Resistencia / constancia" },
     ],
   },
   {
     categoryKey: "technical",
     label: "Técnica",
     subRatings: [
-      { key: "technicalDribbling", label: "Regate" },
-      { key: "technicalPassing", label: "Pase" },
-      { key: "technicalControl", label: "Conducción" },
-      { key: "technicalShooting", label: "Tiro" },
-      { key: "technicalTackling", label: "Entradas" },
-      { key: "technicalInterceptions", label: "Intercepciones" },
-      { key: "technicalHeading", label: "Cabeceo" },
+      { key: "keeperHandSecurity", label: "Blocaje / seguridad en manos" },
+      { key: "keeperSaves", label: "Paradas" },
+      { key: "keeperAerialPlay", label: "Juego aéreo" },
+      { key: "keeperHandDistribution", label: "Saques con mano" },
+      { key: "keeperKickDistribution", label: "Saques con pie" },
+      { key: "keeperFirstTouch", label: "Control orientado / primer toque" },
+      { key: "keeperPlayUnderPressure", label: "Juego con pies bajo presión" },
     ],
   },
   {
     categoryKey: "tactical",
     label: "Táctica",
     subRatings: [
-      { key: "tacticalDefensiveAwareness", label: "Vigilancias defensivas" },
-      { key: "tacticalMarking", label: "Marcaje" },
-      { key: "tacticalTrackBack", label: "Repliegue" },
-      { key: "tacticalPressing", label: "Pressing" },
-      { key: "tacticalGeneratesAdvantage", label: "Genera ventaja en ataque" },
-      { key: "tacticalOffMovement", label: "Desmarque" },
-      { key: "tacticalBeatsOpponents", label: "Supera rivales" },
-      { key: "tacticalAttackParticipation", label: "Participación en ataque" },
+      { key: "keeperPositioning", label: "Colocación" },
+      { key: "keeperGameReading", label: "Lectura de jugadas" },
+      { key: "keeperOneOnOne", label: "Uno contra uno" },
+      { key: "keeperBackCoverage", label: "Cobertura de espalda defensiva" },
+      { key: "keeperSallyTiming", label: "Timing de salidas" },
+      { key: "keeperBuildupPlay", label: "Iniciar juego / salida de balón" },
+      { key: "keeperDefensiveOrganization", label: "Comunicación y orden defensivo" },
     ],
   },
   {
     categoryKey: "competitiveness",
     label: "Competitividad",
     subRatings: [
-      { key: "competDuelWinning", label: "Ganador de duelos" },
-      { key: "competLooseBalls", label: "Bal. div. disputados" },
-      { key: "competRecoveries", label: "Recuperaciones" },
-      { key: "competDecisiveActions", label: "Acciones decisivas" },
-      { key: "competResponsibility", label: "Asume responsabilidades" },
-      { key: "competConstantEffort", label: "Esfuerzo constante" },
+      { key: "keeperValor", label: "Valentía" },
+      { key: "keeperConcentration", label: "Concentración" },
+      { key: "keeperKeyMoments", label: "Seguridad en momentos clave" },
+      { key: "keeperErrorManagement", label: "Gestión del error" },
+      { key: "keeperResponsibility", label: "Responsabilidad" },
+      { key: "keeperConsistency", label: "Regularidad" },
     ],
   },
 ];
 
 const DEFAULT_VALUE = 50;
 
-function computeAvg(state: SubRatingState, keys: SubRatingKey[]): number {
+function computeAvg(state: KeeperState, keys: KeeperKey[]): number {
   const sum = keys.reduce((acc, k) => acc + state[k], 0);
   return Math.round((sum / keys.length) * 10) / 10;
 }
@@ -82,61 +83,62 @@ function ratingColor(v: number): string {
 
 type Props = {
   playerDisplayName: string;
-  initial: Partial<Omit<SubRatingState, "notes">>;
+  initial: Partial<Omit<KeeperState, "notes">>;
   saving: boolean;
-  onSave: (state: SubRatingState) => void;
+  onSave: (state: KeeperState) => void;
   onClose: () => void;
 };
 
-export default function EditRatingDialog({
+export default function EditGoalkeeperRatingDialog({
   playerDisplayName,
   initial,
   saving,
   onSave,
   onClose,
 }: Props) {
-  const buildDefault = (): SubRatingState => {
-    const defaults: SubRatingState = {
-      physicalSpeed: DEFAULT_VALUE,
-      physicalEndurance: DEFAULT_VALUE,
-      physicalStrength: DEFAULT_VALUE,
-      technicalDribbling: DEFAULT_VALUE,
-      technicalPassing: DEFAULT_VALUE,
-      technicalControl: DEFAULT_VALUE,
-      technicalShooting: DEFAULT_VALUE,
-      technicalTackling: DEFAULT_VALUE,
-      technicalInterceptions: DEFAULT_VALUE,
-      technicalHeading: DEFAULT_VALUE,
-      tacticalDefensiveAwareness: DEFAULT_VALUE,
-      tacticalMarking: DEFAULT_VALUE,
-      tacticalTrackBack: DEFAULT_VALUE,
-      tacticalPressing: DEFAULT_VALUE,
-      tacticalGeneratesAdvantage: DEFAULT_VALUE,
-      tacticalOffMovement: DEFAULT_VALUE,
-      tacticalBeatsOpponents: DEFAULT_VALUE,
-      tacticalAttackParticipation: DEFAULT_VALUE,
-      competDuelWinning: DEFAULT_VALUE,
-      competLooseBalls: DEFAULT_VALUE,
-      competRecoveries: DEFAULT_VALUE,
-      competDecisiveActions: DEFAULT_VALUE,
-      competResponsibility: DEFAULT_VALUE,
-      competConstantEffort: DEFAULT_VALUE,
+  const buildDefault = (): KeeperState => {
+    const defaults: KeeperState = {
+      keeperReactionSpeed: DEFAULT_VALUE,
+      keeperAgility: DEFAULT_VALUE,
+      keeperJumpPower: DEFAULT_VALUE,
+      keeperStrength: DEFAULT_VALUE,
+      keeperEndurance: DEFAULT_VALUE,
+      keeperHandSecurity: DEFAULT_VALUE,
+      keeperSaves: DEFAULT_VALUE,
+      keeperAerialPlay: DEFAULT_VALUE,
+      keeperHandDistribution: DEFAULT_VALUE,
+      keeperKickDistribution: DEFAULT_VALUE,
+      keeperFirstTouch: DEFAULT_VALUE,
+      keeperPlayUnderPressure: DEFAULT_VALUE,
+      keeperPositioning: DEFAULT_VALUE,
+      keeperGameReading: DEFAULT_VALUE,
+      keeperOneOnOne: DEFAULT_VALUE,
+      keeperBackCoverage: DEFAULT_VALUE,
+      keeperSallyTiming: DEFAULT_VALUE,
+      keeperBuildupPlay: DEFAULT_VALUE,
+      keeperDefensiveOrganization: DEFAULT_VALUE,
+      keeperValor: DEFAULT_VALUE,
+      keeperConcentration: DEFAULT_VALUE,
+      keeperKeyMoments: DEFAULT_VALUE,
+      keeperErrorManagement: DEFAULT_VALUE,
+      keeperResponsibility: DEFAULT_VALUE,
+      keeperConsistency: DEFAULT_VALUE,
       notes: "",
     };
-    for (const key of Object.keys(initial) as SubRatingKey[]) {
+    for (const key of Object.keys(initial) as KeeperKey[]) {
       const v = initial[key];
       if (v != null) (defaults as unknown as Record<string, number>)[key] = v;
     }
     return defaults;
   };
 
-  const [state, setState] = useState<SubRatingState>(buildDefault);
+  const [state, setState] = useState<KeeperState>(buildDefault);
 
-  function handleSlider(key: SubRatingKey, value: number) {
+  function handleSlider(key: KeeperKey, value: number) {
     setState((prev) => ({ ...prev, [key]: Math.min(100, Math.max(0, Math.round(value))) }));
   }
 
-  function handleInput(key: SubRatingKey, raw: string) {
+  function handleInput(key: KeeperKey, raw: string) {
     const n = parseInt(raw, 10);
     if (!Number.isNaN(n)) setState((prev) => ({ ...prev, [key]: Math.min(100, Math.max(0, n)) }));
     else if (raw === "") setState((prev) => ({ ...prev, [key]: 0 }));
@@ -149,7 +151,7 @@ export default function EditRatingDialog({
           <div>
             <div className={styles.title}>
               <EditIcon fontSize="small" sx={{ verticalAlign: "middle", mr: 0.5 }} />
-              Nueva valoración
+              Nueva valoración (Portero)
             </div>
             <div className={styles.playerName}>{playerDisplayName}</div>
           </div>
@@ -159,7 +161,7 @@ export default function EditRatingDialog({
         </div>
 
         <div className={styles.body}>
-          {RATING_GROUPS.map((group) => {
+          {KEEPER_GROUPS.map((group) => {
             const avg = computeAvg(state, group.subRatings.map((s) => s.key));
             return (
               <div key={group.categoryKey} className={styles.group}>
@@ -224,4 +226,3 @@ export default function EditRatingDialog({
     </div>
   );
 }
-

@@ -14,7 +14,7 @@
   border-radius: 12px;
   width: 100%;
   max-width: 560px;
-  max-height: 80vh;
+  max-height: 85vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -27,6 +27,7 @@
   justify-content: space-between;
   padding: 16px 20px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
 }
 
 .title {
@@ -70,23 +71,62 @@
   opacity: 0.55;
 }
 
+/* Legacy layout for old ratings without sub-ratings */
 .ratingGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 6px 16px;
 }
 
-.ratingItem {
+/* New grouped layout for ratings with sub-ratings */
+.ratingGroups {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ratingGroup {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ratingGroupHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.ratingGroupLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.75;
+}
+
+.ratingGroupAvg {
+  font-size: 0.8rem;
+  font-weight: 700;
+  opacity: 0.9;
+}
+
+.ratingItem {
+  display: flex;
+  align-items: center;
   gap: 8px;
 }
 
 .ratingLabel {
-  font-size: 0.75rem;
-  opacity: 0.7;
+  font-size: 0.72rem;
+  opacity: 0.65;
   white-space: nowrap;
+  min-width: 130px;
+  flex-shrink: 0;
 }
 
 .entryNotes {

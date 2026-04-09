@@ -1,10 +1,10 @@
 .paper {
-  background-color: #1e1e1e !important;
-  border: 1px solid rgba(0, 122, 204, 0.25) !important;
+  background-color: #07071a !important;
+  border: 1px solid rgba(77, 157, 224, 0.25) !important;
 }
 
 .title {
-  color: #007ACC !important;
+  color: #4d9de0 !important;
   font-size: 1rem !important;
   font-weight: 700 !important;
 }
@@ -18,7 +18,7 @@
 }
 
 .field .MuiInputBase-root {
-  color: #d4d4d4 !important;
+  color: #e8e8e8 !important;
 }
 
 .field .MuiInputLabel-root {
@@ -26,7 +26,7 @@
 }
 
 .field .MuiOutlinedInput-notchedOutline {
-  border-color: rgba(0, 122, 204, 0.3) !important;
+  border-color: rgba(77, 157, 224, 0.3) !important;
 }
 
 .row {
@@ -41,7 +41,7 @@
 
 .dateField .MuiInputBase-root,
 .timeField .MuiInputBase-root {
-  color: #d4d4d4 !important;
+  color: #e8e8e8 !important;
 }
 
 .dateField .MuiInputLabel-root,
@@ -51,7 +51,7 @@
 
 .dateField .MuiOutlinedInput-notchedOutline,
 .timeField .MuiOutlinedInput-notchedOutline {
-  border-color: rgba(0, 122, 204, 0.3) !important;
+  border-color: rgba(77, 157, 224, 0.3) !important;
 }
 
 .timeField {
@@ -63,7 +63,7 @@
 }
 
 .flex1 .MuiInputBase-root {
-  color: #d4d4d4 !important;
+  color: #e8e8e8 !important;
 }
 
 .flex1 .MuiInputLabel-root {
@@ -71,11 +71,11 @@
 }
 
 .flex1 .MuiOutlinedInput-notchedOutline {
-  border-color: rgba(0, 122, 204, 0.3) !important;
+  border-color: rgba(77, 157, 224, 0.3) !important;
 }
 
 .autocomplete .MuiInputBase-root {
-  color: #d4d4d4 !important;
+  color: #e8e8e8 !important;
 }
 
 .autocomplete .MuiInputLabel-root {
@@ -83,13 +83,13 @@
 }
 
 .autocomplete .MuiOutlinedInput-notchedOutline {
-  border-color: rgba(0, 122, 204, 0.3) !important;
+  border-color: rgba(77, 157, 224, 0.3) !important;
 }
 
 .exerciseChip {
-  background-color: rgba(0, 122, 204, 0.2) !important;
-  color: #9cdcfe !important;
-  border: 1px solid rgba(0, 122, 204, 0.4) !important;
+  background-color: rgba(77, 157, 224, 0.2) !important;
+  color: #a8d4f5 !important;
+  border: 1px solid rgba(77, 157, 224, 0.4) !important;
   font-size: 0.72rem !important;
 }
 
@@ -100,7 +100,7 @@
 
 .actions {
   padding: 10px 16px !important;
-  border-top: 1px solid rgba(0, 122, 204, 0.15);
+  border-top: 1px solid rgba(77, 157, 224, 0.15);
 }
 
 .cancelBtn {

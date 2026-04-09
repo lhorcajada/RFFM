@@ -320,10 +320,10 @@ export default function Trainings() {
 
         {/* ── Delete exercise confirmation ──────────────────────── */}
         <Dialog open={!!deleteExId} onClose={() => setDeleteExId(null)}
-          PaperProps={{ sx: { bgcolor: "#1e1e1e", border: "1px solid rgba(0,122,204,.25)" } }}>
-          <DialogTitle sx={{ color: "#007ACC" }}>Eliminar ejercicio</DialogTitle>
+          PaperProps={{ sx: { bgcolor: "#07071a", border: "1px solid rgba(77,157,224,.25)" } }}>
+          <DialogTitle sx={{ color: "#4d9de0" }}>Eliminar ejercicio</DialogTitle>
           <DialogContent>
-            <DialogContentText sx={{ color: "#d4d4d4" }}>
+            <DialogContentText sx={{ color: "#e8e8e8" }}>
               ¿Seguro que quieres eliminar este ejercicio? Esta acción no se puede deshacer.
             </DialogContentText>
           </DialogContent>
@@ -340,10 +340,10 @@ export default function Trainings() {
 
         {/* ── Delete session confirmation ───────────────────────── */}
         <Dialog open={!!deleteSessId} onClose={() => setDeleteSessId(null)}
-          PaperProps={{ sx: { bgcolor: "#1e1e1e", border: "1px solid rgba(0,122,204,.25)" } }}>
-          <DialogTitle sx={{ color: "#007ACC" }}>Eliminar sesión</DialogTitle>
+          PaperProps={{ sx: { bgcolor: "#07071a", border: "1px solid rgba(77,157,224,.25)" } }}>
+          <DialogTitle sx={{ color: "#4d9de0" }}>Eliminar sesión</DialogTitle>
           <DialogContent>
-            <DialogContentText sx={{ color: "#d4d4d4" }}>
+            <DialogContentText sx={{ color: "#e8e8e8" }}>
               ¿Seguro que quieres eliminar esta sesión?
             </DialogContentText>
           </DialogContent>
