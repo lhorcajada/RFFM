@@ -82,7 +82,7 @@ function groupPlayersByPosition(players: SquadPlayer[]) {
     .map((g) => ({ ...g, players: [...g.players].sort(byCompDesc) }));
 }
 
-interface SquadPlayer {
+export interface SquadPlayer {
   id: string;
   displayName: string;
   alias?: string | null;
