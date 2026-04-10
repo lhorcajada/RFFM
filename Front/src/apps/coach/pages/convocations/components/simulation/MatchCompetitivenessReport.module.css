@@ -1,0 +1,188 @@
+.root {
+  background: linear-gradient(160deg, #0f1827 0%, #0a0a1a 100%);
+  border: 1px solid rgba(77, 157, 224, 0.2);
+  border-radius: 14px;
+  overflow: hidden;
+  animation: slideIn 0.35s ease;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 18px;
+  background: rgba(77, 157, 224, 0.07);
+  border-bottom: 1px solid rgba(77, 157, 224, 0.12);
+}
+
+.headerTitle {
+  font-size: 0.85rem;
+  font-weight: 900;
+  color: #4d9de0;
+  letter-spacing: 0.04em;
+}
+
+.headerSub {
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.35);
+  font-weight: 600;
+}
+
+/* ── Body ───────────────────────────────────────────────────────────────── */
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* ── Period row ─────────────────────────────────────────────────────────── */
+
+.period {
+  padding: 10px 16px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.period:last-child {
+  border-bottom: none;
+}
+
+.period.periodHalftime {
+  background: rgba(167, 139, 250, 0.04);
+  border-left: 3px solid rgba(167, 139, 250, 0.4);
+}
+
+.periodHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.periodLabel {
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.periodLabel.periodLabelHalftime {
+  color: #a78bfa;
+}
+
+.periodTime {
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.3);
+  font-weight: 600;
+}
+
+.periodAvg {
+  font-size: 0.72rem;
+  font-weight: 900;
+  border-radius: 8px;
+  border: 1px solid;
+  padding: 1px 8px;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+/* ── Chips ──────────────────────────────────────────────────────────────── */
+
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 7px 3px 3px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  transition: background 0.12s;
+}
+
+.chip:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.chip.chipNew {
+  border-color: rgba(34, 197, 94, 0.35);
+  background: rgba(34, 197, 94, 0.05);
+}
+
+.chipAvatar {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.chipImg {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid rgba(77, 157, 224, 0.4);
+}
+
+.chipInitials {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #1e2a3a;
+  border: 1.5px solid rgba(77, 157, 224, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.5rem;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.chipDorsal {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  background: #0d1b2a;
+  color: #fff;
+  font-size: 0.48rem;
+  font-weight: 900;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid #4d9de0;
+  z-index: 2;
+}
+
+.chipName {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.82);
+  white-space: nowrap;
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chipComp {
+  font-size: 0.6rem;
+  font-weight: 900;
+  flex-shrink: 0;
+}

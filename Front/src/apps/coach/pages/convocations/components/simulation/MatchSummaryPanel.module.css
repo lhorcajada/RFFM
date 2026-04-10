@@ -1,0 +1,249 @@
+.root {
+  background: linear-gradient(160deg, #0f1a28 0%, #0a0a1a 100%);
+  border: 1px solid rgba(251, 146, 60, 0.25);
+  border-radius: 16px;
+  overflow: hidden;
+  animation: slideIn 0.35s ease;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Header ───────────────────────────────────────────────────────────────── */
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  background: rgba(251, 146, 60, 0.08);
+  border-bottom: 1px solid rgba(251, 146, 60, 0.15);
+}
+
+.headerIcon {
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.headerTitle {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 900;
+  color: #fb923c;
+  letter-spacing: 0.04em;
+}
+
+.headerSub {
+  margin: 2px 0 0;
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.4);
+  font-weight: 600;
+}
+
+/* ── Layout ──────────────────────────────────────────────────────────────── */
+
+.columns {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.columns > .section {
+  flex: 1 1 0;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.columns > .section:last-child {
+  border-right: none;
+}
+
+.section {
+  padding: 14px 16px;
+}
+
+.sectionTitle {
+  margin: 0 0 10px;
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.45);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sectionBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 0.6rem;
+  font-weight: 900;
+}
+
+.sectionBadge.eleven {
+  background: rgba(77, 157, 224, 0.2);
+  color: #4d9de0;
+  border: 1px solid rgba(77, 157, 224, 0.35);
+}
+
+.sectionBadge.sub {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.35);
+}
+
+.sectionBadge.final {
+  background: rgba(251, 146, 60, 0.2);
+  color: #fb923c;
+  border: 1px solid rgba(251, 146, 60, 0.35);
+}
+
+/* ── Player grid ─────────────────────────────────────────────────────────── */
+
+.playerGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.playerGridFinal {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* ── Player card ─────────────────────────────────────────────────────────── */
+
+.playerCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 6px 6px 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 10px;
+  width: 68px;
+  transition: background 0.12s;
+}
+
+.playerCard:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.playerCard.playerCardSub {
+  border-color: rgba(34, 197, 94, 0.2);
+}
+
+.avatar {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.avatarImg {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(77, 157, 224, 0.5);
+}
+
+.avatarInitials {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #1e2a3a;
+  border: 2px solid rgba(77, 157, 224, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.dorsal {
+  position: absolute;
+  bottom: -3px;
+  right: -3px;
+  background: #0d1b2a;
+  color: #fff;
+  font-size: 0.58rem;
+  font-weight: 900;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid #4d9de0;
+  z-index: 2;
+}
+
+.starterBadge {
+  position: absolute;
+  top: -3px;
+  left: -3px;
+  background: #1e3a5a;
+  color: #4d9de0;
+  font-size: 0.5rem;
+  font-weight: 900;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid rgba(77, 157, 224, 0.5);
+  z-index: 2;
+}
+
+.subBadge {
+  position: absolute;
+  top: -3px;
+  left: -3px;
+  background: #0e2e1a;
+  color: #22c55e;
+  font-size: 0.55rem;
+  font-weight: 900;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid rgba(34, 197, 94, 0.5);
+  z-index: 2;
+}
+
+.playerName {
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.88);
+  text-align: center;
+  max-width: 64px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+.playerMinutes {
+  font-size: 0.58rem;
+  font-weight: 800;
+  color: #fb923c;
+  background: rgba(251, 146, 60, 0.1);
+  border: 1px solid rgba(251, 146, 60, 0.25);
+  border-radius: 5px;
+  padding: 0 4px;
+  line-height: 1.5;
+}

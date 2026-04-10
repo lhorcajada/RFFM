@@ -1,0 +1,156 @@
+.root {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 8px 14px;
+}
+
+.halfBadge {
+  font-size: 0.7rem;
+  font-weight: 900;
+  color: #4d9de0;
+  background: rgba(77, 157, 224, 0.12);
+  border: 1px solid rgba(77, 157, 224, 0.3);
+  border-radius: 8px;
+  padding: 3px 8px;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  transition: color 0.3s, background 0.3s, border-color 0.3s;
+}
+
+.halfBadge.secondHalf {
+  color: #fb923c;
+  background: rgba(251, 146, 60, 0.12);
+  border-color: rgba(251, 146, 60, 0.3);
+}
+
+.halfBadge.halftimeBadge {
+  color: #a78bfa;
+  background: rgba(167, 139, 250, 0.12);
+  border-color: rgba(167, 139, 250, 0.3);
+}
+
+.clock {
+  font-size: 1.6rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  min-width: 68px;
+  text-align: center;
+  font-family: monospace;
+}
+
+.control {
+  color: rgba(255, 255, 255, 0.75) !important;
+  transition: color 0.15s !important;
+}
+
+.control:hover {
+  color: #fff !important;
+}
+
+.advanceGroup {
+  display: flex;
+  gap: 4px;
+}
+
+.advanceBtn {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 4px 9px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.advanceBtn:hover {
+  background: rgba(77, 157, 224, 0.15);
+  color: #4d9de0;
+}
+
+.jumpGroup {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.jumpInput {
+  width: 52px;
+  padding: 4px 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 7px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.78rem;
+  font-weight: 600;
+  outline: none;
+  text-align: center;
+}
+
+.jumpInput::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.jumpInput:focus {
+  border-color: rgba(77, 157, 224, 0.5);
+}
+
+/* Chrome — remove number arrows */
+.jumpInput::-webkit-outer-spin-button,
+.jumpInput::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.jumpBtn {
+  background: rgba(77, 157, 224, 0.15);
+  border: 1px solid rgba(77, 157, 224, 0.3);
+  border-radius: 7px;
+  color: #4d9de0;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.halfBtn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.75rem;
+  font-weight: 800;
+  padding: 4px 11px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+  min-width: 76px;
+  text-align: center;
+}
+
+.halfBtn:hover:not(:disabled) {
+  background: rgba(251, 146, 60, 0.15);
+  color: #fb923c;
+}
+
+.halfBtn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.jumpBtn:hover {
+  background: rgba(77, 157, 224, 0.28);
+}

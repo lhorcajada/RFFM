@@ -1,0 +1,211 @@
+.slot {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 72px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  z-index: 2;
+  /* Larger invisible hit-area for drops */
+  padding: 6px 4px;
+}
+
+.slotOver .dropTarget {
+  border-color: #4d9de0;
+  background: rgba(77, 157, 224, 0.18);
+}
+
+/* Minutes tag above the slot */
+.minuteTag {
+  font-size: 0.6rem;
+  font-weight: 900;
+  color: #fb923c;
+  background: rgba(13, 13, 30, 0.82);
+  border: 1px solid rgba(251, 146, 60, 0.5);
+  border-radius: 6px;
+  padding: 1px 5px;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  white-space: nowrap;
+  text-shadow: none;
+}
+
+.dropTarget {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 2px dashed rgba(255, 255, 255, 0.4);
+  background: rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s, background 0.15s;
+  position: relative;
+}
+
+.dropTarget.over {
+  border-color: #4d9de0;
+  background: rgba(77, 157, 224, 0.18);
+}
+
+.dropTarget.occupied {
+  border-color: transparent;
+  background: transparent;
+}
+
+.emptyLabel {
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.playerCard {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  overflow: visible;  /* badges must be able to overflow */
+  cursor: default;
+  background: #1e2a3a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid rgba(77, 157, 224, 0.6);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+  transition: border-color 0.15s, box-shadow 0.15s;
+  position: relative;
+}
+
+/* Clip only the photo/initials, not the absolute badges */
+.playerCardInner {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Prepare-mode cards are grabbable */
+.playerCard[data-draggable] {
+  cursor: grab;
+}
+
+.playerCard.dragging {
+  opacity: 0.4;
+  cursor: grabbing;
+}
+
+/* Player enters the field in prepare mode */
+.playerCard.entering {
+  border-color: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.45), 0 2px 8px rgba(0, 0, 0, 0.45);
+}
+
+/* Player leaves the field in prepare mode */
+.playerCard.leaving {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.45), 0 2px 8px rgba(0, 0, 0, 0.45);
+  opacity: 0.65;
+}
+
+.playerPhoto {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.playerInitials {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.9);
+  user-select: none;
+}
+
+.playerName {
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.95);
+  text-align: center;
+  max-width: 72px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.1;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+}
+
+.dorsalBadge {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  background: #0d1b2a;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 900;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #4d9de0;
+  letter-spacing: -0.02em;
+  z-index: 3;
+}
+
+/* ENTRA / SALE badges */
+.enteringBadge,
+.leavingBadge {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.5rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  border-radius: 4px;
+  padding: 1px 4px;
+  white-space: nowrap;
+  z-index: 4;
+}
+
+.enteringBadge {
+  background: #15803d;
+  color: #fff;
+}
+
+.leavingBadge {
+  background: #b91c1c;
+  color: #fff;
+}
+
+/* Competitiveness badge — top-left of player card, mirroring dorsal at bottom-right */
+.compBadge {
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  background: #0d1b2a;
+  font-size: 0.6rem;
+  font-weight: 900;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  letter-spacing: -0.02em;
+  z-index: 3;
+}
+
+.compTagHigh { color: #4ade80; border-color: rgba(74, 222, 128, 0.55); }
+.compTagMid  { color: #fb923c; border-color: rgba(251, 146, 60, 0.55); }
+.compTagLow  { color: #f87171; border-color: rgba(248, 113, 113, 0.55); }
+
+/* Legacy .compTag kept for safety but no longer rendered */
+.compTag { display: none; }

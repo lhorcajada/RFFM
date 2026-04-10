@@ -18,6 +18,7 @@ import type { IdealLineupHandle } from "../squad/components/IdealLineup";
 import ConvocationTab from "./components/ConvocationTab";
 import DesconvocatoriasTab from "./components/DesconvocatoriasTab";
 import AlineacionTab from "./components/AlineacionTab";
+import SimulacionTab from "./components/SimulacionTab";
 import type { MatchState } from "./components/convocationMatchDetail.types";
 import { useConvocationManagement } from "./hooks/useConvocationManagement";
 import { useDesconvocatoriasGrid } from "./hooks/useDesconvocatoriasGrid";
@@ -130,6 +131,7 @@ export default function ConvocationMatchDetail() {
                 Guardar
               </Button>
             )}
+
           </>
         }
       >
@@ -182,6 +184,7 @@ export default function ConvocationMatchDetail() {
           <Tab label="Convocatoria" />
           <Tab label="Desconvocatorias" />
           <Tab label="Alineación" />
+          <Tab label="Simular Partido" />
         </Tabs>
 
         {/* Tab 0: Convocatoria */}
@@ -255,6 +258,15 @@ export default function ConvocationMatchDetail() {
             lineupRef={lineupRef}
             teamId={teamId}
             onSavingChange={setLineupSaving}
+          />
+        )}
+
+        {/* Tab 3: Simular Partido */}
+        {tab === 3 && (
+          <SimulacionTab
+            teamId={teamId}
+            eventId={convocation.mgmtEventId}
+            lineupPlayers={lineupPlayers}
           />
         )}
       </ContentLayout>

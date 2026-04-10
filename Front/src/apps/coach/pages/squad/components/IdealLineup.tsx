@@ -342,7 +342,7 @@ const IdealLineup = forwardRef<IdealLineupHandle, IdealLineupProps>(function Ide
           <FormControl size="small" sx={{ minWidth: 180 }}>
             <InputLabel>Formación</InputLabel>
             <Select
-              value={formationId}
+              value={formations.length > 0 ? formationId : ""}
               label="Formación"
               onChange={(e) => setFormationId(e.target.value as string)}
               disabled={formations.length === 0}
