@@ -79,11 +79,13 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Queries
 
                 if (request.StartDate.HasValue)
                 {
-                    query = query.Where(e => e.EveDateTime >= request.StartDate.Value);
+                    var startUtc = DateTime.SpecifyKind(request.StartDate.Value, DateTimeKind.Utc);
+                    query = query.Where(e => e.EveDateTime >= startUtc);
                 }
                 if (request.EndDate.HasValue)
                 {
-                    query = query.Where(e => e.EveDateTime <= request.EndDate.Value);
+                    var endUtc = DateTime.SpecifyKind(request.EndDate.Value, DateTimeKind.Utc);
+                    query = query.Where(e => e.EveDateTime <= endUtc);
                 }
 
                 var total = await query.CountAsync(cancellationToken);

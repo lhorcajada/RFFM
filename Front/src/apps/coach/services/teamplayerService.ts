@@ -8,6 +8,7 @@ export type PlayerResponse = {
   urlPhoto?: string | null;
   dorsal?: number | null;
   position?: string | null;
+  isInjured?: boolean;
 };
 
 export type AddressResponse = {
@@ -43,6 +44,17 @@ export type FamilyResponse = {
   familyMember?: string | null;
 };
 
+export type InjuryRecord = {
+  id: string;
+  startDate: string;
+  injuryType: string;
+  description?: string | null;
+  estimatedRecovery?: string | null;
+  endDate?: string | null;
+};
+
+export type InjuryInfoResponse = InjuryRecord;
+
 export type TeamPlayerResponse = {
   id: string;
   playerId: string;
@@ -55,6 +67,7 @@ export type TeamPlayerResponse = {
   contactInfo?: ContactInfoResponse | null;
   physicalInfo?: PhysicalInfoResponse | null;
   familyMembers?: FamilyResponse[];
+  injuryInfo?: InjuryInfoResponse | null;
 };
 
 export async function getPlayersByTeam(
@@ -113,4 +126,71 @@ export async function updateTeamPlayer(
   }
 }
 
-export default { getPlayersByTeam, getTeamPlayerById, updateTeamPlayer };
+export async function getPlayerInjuries(teamPlayerId: string): Promise<InjuryRecord[]> {
+  try {
+    const resp = await client.get<InjuryRecord[]>(
+      `/api/catalog/teamplayer/${encodeURIComponent(teamPlayerId)}/injuries`
+    );
+    return resp.data ?? [];
+  } catch {
+    return [];
+  }
+}
+
+export async function createPlayerInjury(
+  teamPlayerId: string,
+  payload: { startDate: string; injuryType: string; description?: string | null; estimatedRecovery?: string | null }
+): Promise<InjuryRecord | null> {
+  try {
+    const resp = await client.post<InjuryRecord>(
+      `/api/catalog/teamplayer/${encodeURIComponent(teamPlayerId)}/injuries`,
+      payload
+    );
+    return resp.data ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function updatePlayerInjury(
+  teamPlayerId: string,
+  injuryId: string,
+  payload: { startDate: string; injuryType: string; description?: string | null; estimatedRecovery?: string | null; endDate?: string | null }
+): Promise<InjuryRecord | null> {
+  try {
+    const resp = await client.put<InjuryRecord>(
+      `/api/catalog/teamplayer/${encodeURIComponent(teamPlayerId)}/injuries/${encodeURIComponent(injuryId)}`,
+      payload
+    );
+    return resp.data ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function deletePlayerInjury(teamPlayerId: string, injuryId: string): Promise<boolean> {
+  try {
+    await client.delete(
+      `/api/catalog/teamplayer/${encodeURIComponent(teamPlayerId)}/injuries/${encodeURIComponent(injuryId)}`
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function dischargeActiveInjury(teamPlayerId: string): Promise<boolean> {
+  const injuries = await getPlayerInjuries(teamPlayerId);
+  const active = injuries.find((i) => !i.endDate);
+  if (!active) return false;
+  const result = await updatePlayerInjury(teamPlayerId, active.id, {
+    startDate: active.startDate,
+    injuryType: active.injuryType,
+    description: active.description,
+    estimatedRecovery: active.estimatedRecovery,
+    endDate: new Date().toISOString(),
+  });
+  return result != null;
+}
+
+export default { getPlayersByTeam, getTeamPlayerById, updateTeamPlayer, getPlayerInjuries, createPlayerInjury, updatePlayerInjury, deletePlayerInjury, dischargeActiveInjury };

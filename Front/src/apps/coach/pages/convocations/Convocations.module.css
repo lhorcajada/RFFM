@@ -1,0 +1,346 @@
+/* Full-screen monthly calendar for convocations */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  padding: 6px 8px 8px;
+  box-sizing: border-box;
+}
+
+/* ─── Month navigation ─────────────────────────────────── */
+.calendarHeader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 0 0 6px;
+  flex-shrink: 0;
+}
+
+.monthTitle {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #fff;
+  min-width: 200px;
+  text-align: center;
+  text-transform: capitalize;
+  letter-spacing: 0.02em;
+}
+
+/* ─── Calendar grid ───────────────────────────────────── */
+.calendarGrid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  /* grid-template-rows set via inline style: auto repeat(N, 1fr) */
+  gap: 2px;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Day-of-week headers */
+.dayHeader {
+  text-align: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--rffm-primary, #4d9de0);
+  padding: 3px 2px;
+  background: rgba(77, 157, 224, 0.08);
+  border-radius: 4px;
+  letter-spacing: 0.05em;
+}
+
+/* Empty cells (days from adjacent months) */
+.dayCellEmpty {
+  background: rgba(255, 255, 255, 0.015);
+  border-radius: 6px;
+}
+
+/* Normal day cell */
+.dayCell {
+  background: var(--rffm-card-bg, #1c1c30);
+  border-radius: 6px;
+  padding: 3px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  min-height: 0;
+}
+
+/* Highlight today */
+.dayCellToday {
+  border: 1px solid var(--rffm-primary, #4d9de0);
+}
+
+/* Day number */
+.dayNumber {
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.45);
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.dayNumberToday {
+  color: var(--rffm-primary, #4d9de0);
+  font-weight: 700;
+}
+
+/* ─── Match card (FC26 style) ─────────────────────────── */
+.matchCard {
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.02) 100%);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  outline: none;
+}
+
+.matchCard:hover,
+.matchCard:focus-visible {
+  border-color: var(--rffm-primary, #4d9de0);
+  background: linear-gradient(160deg, rgba(77, 157, 224, 0.14) 0%, rgba(77, 157, 224, 0.04) 100%);
+}
+
+/* Top gradient accent line */
+.matchCard::before {
+  content: '';
+  display: block;
+  height: 2px;
+  background: linear-gradient(90deg, var(--rffm-primary, #4d9de0) 0%, #4ec9b0 100%);
+  flex-shrink: 0;
+}
+
+/* 3-column row: local | score | visitor */
+.matchCardInner {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 8px 4px;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Team block — flex column, shield on top, name below */
+.matchTeamBlock {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.matchTeamShield {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #fff;
+  padding: 3px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+@media (min-width: 768px) {
+  .matchTeamShield {
+    width: 48px;
+    height: 48px;
+    padding: 4px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .matchTeamShield {
+    width: 56px;
+    height: 56px;
+    padding: 5px;
+  }
+}
+
+.matchTeamShieldPlaceholder {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  flex-shrink: 0;
+}
+
+.matchTeamName {
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  text-align: center;
+  line-height: 1.2;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Center block: score or time */
+.matchScoreBlock {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-width: 56px;
+}
+
+.matchScoreValue {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1;
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.matchScoreDash {
+  color: rgba(255, 255, 255, 0.3);
+  font-weight: 400;
+  font-size: 1.1rem;
+}
+
+.matchStatus {
+  font-size: 0.5rem;
+  font-weight: 700;
+  color: #4ec9b0;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  line-height: 1;
+}
+
+.matchTimePlanned {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 1px;
+  line-height: 1;
+}
+
+.matchTimeLabel {
+  font-size: 0.5rem;
+  color: rgba(255, 255, 255, 0.35);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  line-height: 1;
+}
+
+/* Field footer */
+.matchField {
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.65);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1;
+  flex-shrink: 0;
+  text-align: center;
+  padding: 0 8px 6px;
+}
+
+/* ─── Mobile: hide FC26 card inside grid, show dot ──────── */
+@media (max-width: 639px) {
+  .matchCard {
+    display: none;
+  }
+  .matchDot {
+    display: block;
+  }
+}
+
+/* Desktop: hide dot (card is shown instead) */
+.matchDot {
+  display: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--rffm-primary, #4d9de0), #4ec9b0);
+  flex-shrink: 0;
+  align-self: center;
+  margin-top: 2px;
+}
+
+/* ─── Mobile agenda list ─────────────────────────────── */
+.agendaSection {
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+  padding: 10px 2px 4px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 639px) {
+  .agendaSection {
+    display: flex;
+  }
+  /* On mobile the calendar grid is compact, don't stretch rows */
+  .calendarGrid {
+    flex: none;
+  }
+  /* Give .page scroll on mobile because agenda adds height */
+  .page {
+    overflow-y: auto;
+  }
+}
+
+.agendaGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.agendaDateLabel {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--rffm-primary, #4d9de0);
+  text-transform: capitalize;
+  letter-spacing: 0.04em;
+  padding-left: 4px;
+}
+
+/* In agenda context (mobile), show the card and give it reasonable height */
+@media (max-width: 639px) {
+  .agendaSection .matchCard {
+    display: flex;
+    min-height: 90px;
+  }
+}
+
+/* ─── State containers ────────────────────────────────── */
+.loadingWrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex: 1;
+}
+
+.stateWrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex: 1;
+  padding: 16px;
+}
+
+.noSettingsText {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.875rem;
+  text-align: center;
+  max-width: 320px;
+}

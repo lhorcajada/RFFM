@@ -40,7 +40,8 @@ export async function getSportEvents(
 ): Promise<PagedSportEvents> {
   const params: Record<string, any> = { pageNumber, pageSize, descending };
   if (startDate) params.startDate = startDate;
-  if (endDate) params.endDate = endDate;
+  // Append T23:59:59 so the backend includes events that fall anywhere on the last day
+  if (endDate) params.endDate = endDate.includes("T") ? endDate : `${endDate}T23:59:59`;
 
   const resp = await client.get(`/api/sport-events/${teamId}`, { params });
   const data = resp.data ?? [];
@@ -93,4 +94,32 @@ export async function deleteSportEvent(id: string): Promise<void> {
   await client.delete(`/api/sport-events/${id}`);
 }
 
-export default { getSportEvents, getSportEventById, deleteSportEvent };
+export interface SportEventPayload {
+  name: string;
+  eveDateTime: string; // ISO
+  startTime?: string | null;
+  endTime?: string | null;
+  arrivalDate?: string | null;
+  location?: string | null;
+  description?: string | null;
+  eventTypeId: number;
+  teamId: string;
+  rivalId?: string | null;
+}
+
+export async function createSportEvent(
+  payload: SportEventPayload
+): Promise<SportEventResponse> {
+  const resp = await client.post<SportEventResponse>("/api/sport-events", payload);
+  return resp.data;
+}
+
+export async function updateSportEvent(
+  id: string,
+  payload: Omit<SportEventPayload, "teamId">
+): Promise<SportEventResponse> {
+  const resp = await client.put<SportEventResponse>(`/api/sport-events/${id}`, payload);
+  return resp.data;
+}
+
+export default { getSportEvents, getSportEventById, deleteSportEvent, createSportEvent, updateSportEvent };

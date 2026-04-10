@@ -133,3 +133,20 @@
   border: 1.5px solid #0d1b2a;
   letter-spacing: 0.01em;
 }
+
+/* Injured ring */
+.injuredCard {
+  border-color: #dc2626 !important;
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.55), 0 2px 8px rgba(0, 0, 0, 0.45);
+}
+
+/* Injured emoji indicator — top-right of the circle */
+.injuredDot {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  font-size: 0.9rem;
+  line-height: 1;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.8));
+  z-index: 3;
+}

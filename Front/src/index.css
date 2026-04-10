@@ -32,19 +32,9 @@ body {
   box-shadow: none !important;
 }
 
-/* Snackbar positioning */
-.MuiSnackbar-root {
-  top: 100px !important;
-  right: 20px !important;
-  left: auto !important;
-  z-index: 1400 !important;
-}
-
-.MuiSnackbar-anchorTopRight {
-  top: 100px !important;
-  right: 20px !important;
-  left: auto !important;
-  z-index: 1400 !important;
+/* Snackbar positioning — below the fixed header (64px) */
+.MuiSnackbar-anchorOriginTopRight {
+  top: 76px !important; /* header height (64px) + 12px gap */
 }
 
 /* Conservative fix: ensure app root fills viewport and main is the scroller */

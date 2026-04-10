@@ -43,6 +43,23 @@
   justify-content: space-between;
 }
 
+.panelHeaderRight {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.panelCompTag {
+  background: rgba(251, 146, 60, 0.18);
+  border: 1px solid rgba(251, 146, 60, 0.35);
+  border-radius: 10px;
+  padding: 2px 8px;
+  color: #fb923c;
+  font-weight: 700;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+}
+
 .panelBadge {
   background: rgba(255, 255, 255, 0.09);
   border-radius: 10px;
@@ -174,6 +191,14 @@
 .playerItemPosition {
   font-size: 0.62rem;
   color: rgba(255, 255, 255, 0.4);
+}
+
+.injuredTag {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: #fca5a5;
+  margin-top: 2px;
+  letter-spacing: 0.02em;
 }
 
 .playerDorsal {

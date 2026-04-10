@@ -1,0 +1,26 @@
+.paper {
+  background: var(--rffm-card-bg, #1c1c30);
+  border-radius: 10px;
+  color: var(--rffm-card-text, #e8e8e8);
+}
+
+.title {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--rffm-card-text, #e8e8e8);
+}
+
+.content {
+  padding-top: 8px !important;
+}
+
+.actions {
+  padding: 12px 16px;
+  gap: 8px;
+}
+
+.error {
+  margin-top: 8px;
+  color: #f44336;
+  font-size: 0.875rem;
+}

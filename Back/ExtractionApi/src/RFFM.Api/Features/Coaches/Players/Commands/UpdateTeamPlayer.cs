@@ -24,6 +24,7 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
                             .Include(tp => tp.ContactInfo)
                             .Include(tp => tp.PhysicalInfo)
                             .Include(tp => tp.FamilyMembers)
+                            .Include(tp => tp.Injuries)
                             .FirstOrDefaultAsync(tp => tp.Id == id, cancellationToken);
 
                         if (item == null)
@@ -126,6 +127,12 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
                             .Select(f => new FamilyResponse(f.Name, f.Phone, f.Email, f.FamilyMember))
                             .ToArray();
 
+                        InjuryInfoResponse? injuryResp = item.Injuries is { } injuries
+                            ? injuries.Where(i => i.EndDate == null)
+                                      .Select(i => new InjuryInfoResponse(i.Id, i.StartDate, i.InjuryType, i.Description, i.EstimatedRecovery, i.EndDate))
+                                      .FirstOrDefault()
+                            : null;
+
                         var resp = new TeamPlayerResponse(
                             item.Id,
                             item.PlayerId,
@@ -137,7 +144,8 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
                             demarcationResp,
                             contact,
                             phys,
-                            fams
+                            fams,
+                            injuryResp
                         );
 
                         return Results.Ok(resp);
@@ -170,6 +178,7 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
         public record PhysicalInfoResponse(decimal? Height, decimal? Weight, string? DominantFoot);
         public record DemarcationResponse(int? ActivePositionId, string? ActivePositionName, string[] PossibleDemarcations);
         public record FamilyResponse(string? Name, string? Phone, string? Email, string? FamilyMember);
+        public record InjuryInfoResponse(string Id, DateTime StartDate, string InjuryType, string? Description, string? EstimatedRecovery, DateTime? EndDate);
 
         public record TeamPlayerResponse(
             string Id,
@@ -182,7 +191,8 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
             DemarcationResponse? Demarcation,
             ContactInfoResponse? ContactInfo,
             PhysicalInfoResponse? PhysicalInfo,
-            FamilyResponse[] FamilyMembers
+            FamilyResponse[] FamilyMembers,
+            InjuryInfoResponse? InjuryInfo
         );
     }
 }

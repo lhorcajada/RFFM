@@ -17,6 +17,24 @@
 .spacer {
   height: 16px;
 }
+
+.tabsWrap {
+  margin-top: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--rffm-card-bg, #1c1c30);
+  border-radius: 10px 10px 0 0;
+}
+
+.tabPanel {
+  background: var(--rffm-card-bg, #1c1c30);
+  border-radius: 0 0 10px 10px;
+  padding: 16px;
+  min-height: 120px;
+}
+
+.injuryActions {
+  margin-bottom: 12px;
+}
 .memberWrap {
   margin-bottom: 8px;
 }

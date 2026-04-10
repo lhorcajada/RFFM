@@ -10,6 +10,7 @@ import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import Snackbar from "@mui/material/Snackbar";
 import MuiAlert, { AlertProps } from "@mui/material/Alert";
+import Slide from "@mui/material/Slide";
 
 const STORAGE_KEY = "rffm.saved_combinations_v1";
 const STORAGE_PRIMARY = "rffm.primary_combination_id";
@@ -150,7 +151,8 @@ export default function SavedConfigsPage(): JSX.Element {
         open={snackOpen}
         autoHideDuration={4000}
         onClose={() => setSnackOpen(false)}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+        TransitionComponent={(props) => <Slide {...props} direction="down" />}
       >
         <Alert onClose={() => setSnackOpen(false)} severity="success">
           {snackMsg}

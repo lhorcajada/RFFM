@@ -10,15 +10,21 @@ import {
   InputAdornment,
   FormControl,
   InputLabel,
+  Slide,
   Snackbar,
   Alert,
+  Tab,
+  Tabs,
+  Badge,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import MedicalServicesIcon from "@mui/icons-material/MedicalServices";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import useTeamAndClub from "../../hooks/useTeamAndClub.tsx";
 import playerService from "../../services/playerService";
 import teamplayerService from "../../services/teamplayerService";
+import { createPlayerInjury } from "../../services/teamplayerService";
 import demarcationService, {
   DemarcationOption,
 } from "../../services/demarcationService";
@@ -28,7 +34,8 @@ import Demarcations from "./components/Demarcations";
 import ContactInfo from "./components/ContactInfo";
 import PhysicalInfo from "./components/PhysicalInfo";
 import FamilyMembers from "./components/FamilyMembers";
-// teamplayerService already imported above
+import InjuryDialog from "./components/InjuryDialog";
+import InjuryHistoryPanel from "./components/InjuryHistoryPanel";
 
 export default function PlayerDetail() {
   const { id } = useParams();
@@ -44,6 +51,10 @@ export default function PlayerDetail() {
   const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error">(
     "success"
   );
+  const [injuryCreateOpen, setInjuryCreateOpen] = useState(false);
+  const [savingInjury, setSavingInjury] = useState(false);
+  const [injuryRefreshKey, setInjuryRefreshKey] = useState(0);
+  const [activeTab, setActiveTab] = useState(0);
   const [demarcationOptions, setDemarcationOptions] = useState<
     DemarcationOption[]
   >([]);
@@ -271,7 +282,7 @@ export default function PlayerDetail() {
         <Box className={styles.page}>
           {!teamPlayer && <div>Cargando...</div>}
           {teamPlayer && (
-            <div>
+            <>
               <PlayerHeader
                 teamPlayer={teamPlayer}
                 photo={photo}
@@ -285,171 +296,229 @@ export default function PlayerDetail() {
                   setSnackbarOpen(true);
                 }}
               />
-              <div className={styles.spacer} />
-              <Demarcations
-                teamPlayer={teamPlayer}
-                editing={editing}
-                value={(form.possibleDemarcations ?? "")
-                  .split(",")
-                  .map((s: string) => s.trim())
-                  .filter((s: string) => s.length > 0)}
-                active={form.activePositionName ?? null}
-                onChange={(ids: number[]) => {
-                  // map ids to names
-                  const idToName = new Map<number, string>();
-                  demarcationOptions.forEach((o) => idToName.set(o.id, o.name));
-                  const names = ids
-                    .map((i) => idToName.get(i))
-                    .filter((n) => n) as string[];
-                  setForm({ ...form, possibleDemarcations: names.join(", ") });
-                }}
-                onActiveChange={(id: number | null) => {
-                  const found = demarcationOptions.find((o) => o.id === id);
-                  setForm({
-                    ...form,
-                    activePositionId: id,
-                    activePositionName: found?.name ?? "",
-                  });
-                }}
-              />
-              <div className={styles.spacer} />
-              {!editing && <ContactInfo teamPlayer={teamPlayer} />}
-              {editing && (
-                <div className={styles.card}>
-                  <div className={styles.sectionInner}>
-                    <h3>Información de contacto (editar)</h3>
-
-                    <TextField
-                      label="Teléfono"
-                      size="small"
-                      fullWidth
-                      value={form.phone ?? ""}
-                      onChange={(e) =>
-                        setForm({ ...form, phone: e.target.value })
-                      }
-                    />
-                    <div style={{ height: 8 }} />
-                    <TextField
-                      label="Email"
-                      size="small"
-                      fullWidth
-                      value={form.email ?? ""}
-                      onChange={(e) =>
-                        setForm({ ...form, email: e.target.value })
-                      }
-                    />
-                  </div>
-                </div>
-              )}
-              <div className={styles.spacer} />
-              {!editing && <PhysicalInfo teamPlayer={teamPlayer} />}
-              {editing && (
-                <div className={styles.card}>
-                  <div className={styles.sectionInner}>
-                    <h3>Datos físicos (editar)</h3>
-
-                    <TextField
-                      label="Altura"
-                      size="small"
-                      fullWidth
-                      type="number"
-                      inputProps={{
-                        min: 50,
-                        max: 250,
-                        step: 1,
-                        inputMode: "numeric",
-                      }}
-                      value={form.height ?? ""}
-                      onChange={(e) =>
-                        setForm({ ...form, height: e.target.value })
-                      }
-                      onKeyDown={(e) => {
-                        const blocked = ["e", "E", "+", "-", ","];
-                        if (blocked.includes(e.key)) e.preventDefault();
-                      }}
-                      InputProps={{
-                        endAdornment: (
-                          <InputAdornment position="end">cm</InputAdornment>
-                        ),
-                      }}
-                    />
-                    <div style={{ height: 8 }} />
-                    <TextField
-                      label="Peso"
-                      size="small"
-                      fullWidth
-                      type="number"
-                      inputProps={{
-                        min: 10,
-                        max: 200,
-                        step: 0.1,
-                        inputMode: "decimal",
-                      }}
-                      value={form.weight ?? ""}
-                      onChange={(e) =>
-                        setForm({ ...form, weight: e.target.value })
-                      }
-                      onKeyDown={(e) => {
-                        const blocked = ["e", "E", "+", "-", ","];
-                        if (blocked.includes(e.key)) e.preventDefault();
-                      }}
-                      InputProps={{
-                        endAdornment: (
-                          <InputAdornment position="end">kg</InputAdornment>
-                        ),
-                      }}
-                    />
-                    <div style={{ height: 8 }} />
-                    <FormControl fullWidth size="small">
-                      <InputLabel id="dominant-foot-label">Pie</InputLabel>
-                      <Select
-                        labelId="dominant-foot-label"
-                        label="Pie"
-                        value={form.dominantFootId ?? ""}
-                        size="small"
-                        onChange={(e) => {
-                          const id = Number(
-                            (e.target as HTMLSelectElement).value
-                          );
-                          setForm({
-                            ...form,
-                            dominantFootId: isNaN(id) ? null : id,
-                            dominantFoot: isNaN(id)
-                              ? ""
-                              : DOMINANT_FOOT_ID_TO_NAME[id],
-                          });
-                        }}
+              <div className={styles.tabsWrap}>
+                <Tabs
+                  value={activeTab}
+                  onChange={(_, v) => setActiveTab(v)}
+                  variant="scrollable"
+                  scrollButtons="auto"
+                  sx={{
+                    "& .MuiTab-root": {
+                      color: "var(--rffm-muted, #a59f9f)",
+                      minWidth: 0,
+                      fontSize: 13,
+                      textTransform: "none",
+                      px: 2,
+                    },
+                    "& .Mui-selected": { color: "var(--rffm-accent, #f97316) !important" },
+                    "& .MuiTabs-indicator": { backgroundColor: "var(--rffm-accent, #f97316)" },
+                  }}
+                >
+                  <Tab label="Demarcación" />
+                  <Tab label="Contacto" />
+                  <Tab label="Físico" />
+                  <Tab label="Familia" />
+                  <Tab
+                    label={
+                      <Badge
+                        variant="dot"
+                        color="error"
+                        invisible={!teamPlayer?.injuryInfo}
+                        sx={{ "& .MuiBadge-dot": { top: 4, right: -6 } }}
                       >
-                        <MenuItem value={1}>Zurdo</MenuItem>
-                        <MenuItem value={2}>Diestro</MenuItem>
-                        <MenuItem value={3}>Ambidiestro</MenuItem>
-                      </Select>
-                    </FormControl>
-                  </div>
-                </div>
-              )}
-              <div className={styles.spacer} />
-              {!editing && <FamilyMembers teamPlayer={teamPlayer} />}
-              {editing && (
-                <div className={styles.card}>
-                  <div className={styles.sectionInner}>
-                    <h3>Familiares (no editable aquí)</h3>
-                    <div>
-                      Edición de familiares no soportada en este formulario.
-                    </div>
-                  </div>
-                </div>
-              )}
+                        Lesiones
+                      </Badge>
+                    }
+                  />
+                </Tabs>
+              </div>
 
-              {editing && <div className={styles.spacer} />}
-            </div>
+              <div className={styles.tabPanel}>
+                {activeTab === 0 && (
+                  <Demarcations
+                    teamPlayer={teamPlayer}
+                    editing={editing}
+                    value={(form.possibleDemarcations ?? "")
+                      .split(",")
+                      .map((s: string) => s.trim())
+                      .filter((s: string) => s.length > 0)}
+                    active={form.activePositionName ?? null}
+                    onChange={(ids: number[]) => {
+                      const idToName = new Map<number, string>();
+                      demarcationOptions.forEach((o) => idToName.set(o.id, o.name));
+                      const names = ids
+                        .map((i) => idToName.get(i))
+                        .filter((n) => n) as string[];
+                      setForm({ ...form, possibleDemarcations: names.join(", ") });
+                    }}
+                    onActiveChange={(id: number | null) => {
+                      const found = demarcationOptions.find((o) => o.id === id);
+                      setForm({
+                        ...form,
+                        activePositionId: id,
+                        activePositionName: found?.name ?? "",
+                      });
+                    }}
+                  />
+                )}
+
+                {activeTab === 1 && (
+                  !editing ? (
+                    <ContactInfo teamPlayer={teamPlayer} />
+                  ) : (
+                    <div className={styles.card}>
+                      <div className={styles.sectionInner}>
+                        <h3>Información de contacto</h3>
+                        <TextField
+                          label="Teléfono"
+                          size="small"
+                          fullWidth
+                          value={form.phone ?? ""}
+                          onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                        />
+                        <div style={{ height: 8 }} />
+                        <TextField
+                          label="Email"
+                          size="small"
+                          fullWidth
+                          value={form.email ?? ""}
+                          onChange={(e) => setForm({ ...form, email: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                  )
+                )}
+
+                {activeTab === 2 && (
+                  !editing ? (
+                    <PhysicalInfo teamPlayer={teamPlayer} />
+                  ) : (
+                    <div className={styles.card}>
+                      <div className={styles.sectionInner}>
+                        <h3>Datos físicos</h3>
+                        <TextField
+                          label="Altura"
+                          size="small"
+                          fullWidth
+                          type="number"
+                          inputProps={{ min: 50, max: 250, step: 1, inputMode: "numeric" }}
+                          value={form.height ?? ""}
+                          onChange={(e) => setForm({ ...form, height: e.target.value })}
+                          onKeyDown={(e) => {
+                            const blocked = ["e", "E", "+", "-", ","];
+                            if (blocked.includes(e.key)) e.preventDefault();
+                          }}
+                          InputProps={{
+                            endAdornment: <InputAdornment position="end">cm</InputAdornment>,
+                          }}
+                        />
+                        <div style={{ height: 8 }} />
+                        <TextField
+                          label="Peso"
+                          size="small"
+                          fullWidth
+                          type="number"
+                          inputProps={{ min: 10, max: 200, step: 0.1, inputMode: "decimal" }}
+                          value={form.weight ?? ""}
+                          onChange={(e) => setForm({ ...form, weight: e.target.value })}
+                          onKeyDown={(e) => {
+                            const blocked = ["e", "E", "+", "-", ","];
+                            if (blocked.includes(e.key)) e.preventDefault();
+                          }}
+                          InputProps={{
+                            endAdornment: <InputAdornment position="end">kg</InputAdornment>,
+                          }}
+                        />
+                        <div style={{ height: 8 }} />
+                        <FormControl fullWidth size="small">
+                          <InputLabel id="dominant-foot-label">Pie</InputLabel>
+                          <Select
+                            labelId="dominant-foot-label"
+                            label="Pie"
+                            value={form.dominantFootId ?? ""}
+                            size="small"
+                            onChange={(e) => {
+                              const id = Number((e.target as HTMLSelectElement).value);
+                              setForm({
+                                ...form,
+                                dominantFootId: isNaN(id) ? null : id,
+                                dominantFoot: isNaN(id) ? "" : DOMINANT_FOOT_ID_TO_NAME[id],
+                              });
+                            }}
+                          >
+                            <MenuItem value={1}>Zurdo</MenuItem>
+                            <MenuItem value={2}>Diestro</MenuItem>
+                            <MenuItem value={3}>Ambidiestro</MenuItem>
+                          </Select>
+                        </FormControl>
+                      </div>
+                    </div>
+                  )
+                )}
+
+                {activeTab === 3 && <FamilyMembers teamPlayer={teamPlayer} />}
+
+                {activeTab === 4 && (
+                  <>
+                    {!teamPlayer?.injuryInfo && (
+                      <div className={styles.injuryActions}>
+                        <Button
+                          startIcon={<MedicalServicesIcon />}
+                          onClick={() => setInjuryCreateOpen(true)}
+                          variant="outlined"
+                          color="inherit"
+                          size="small"
+                        >
+                          Registrar lesión
+                        </Button>
+                      </div>
+                    )}
+                    <InjuryHistoryPanel
+                      teamPlayerId={teamPlayer.id}
+                      refreshKey={injuryRefreshKey}
+                      onActiveInjuryChange={(inj) =>
+                        setTeamPlayer({ ...teamPlayer, injuryInfo: inj })
+                      }
+                    />
+                  </>
+                )}
+              </div>
+            </>
           )}
         </Box>
+        <InjuryDialog
+          open={injuryCreateOpen}
+          current={null}
+          saving={savingInjury}
+          onClose={() => setInjuryCreateOpen(false)}
+          onSave={async (data) => {
+            if (!teamPlayer) return;
+            setSavingInjury(true);
+            const result = await createPlayerInjury(teamPlayer.id, {
+              ...data,
+              startDate: new Date(data.startDate).toISOString(),
+            });
+            setSavingInjury(false);
+            if (result) {
+              setTeamPlayer({ ...teamPlayer, injuryInfo: result });
+              setInjuryCreateOpen(false);
+              setInjuryRefreshKey((k) => k + 1);
+              setSnackbarMessage("Lesión registrada correctamente.");
+              setSnackbarSeverity("success");
+              setSnackbarOpen(true);
+            } else {
+              setSnackbarMessage("No se pudo guardar la lesión.");
+              setSnackbarSeverity("error");
+              setSnackbarOpen(true);
+            }
+          }}
+        />
         <Snackbar
           open={snackbarOpen}
           autoHideDuration={4000}
           onClose={() => setSnackbarOpen(false)}
-          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+          anchorOrigin={{ vertical: "top", horizontal: "right" }}
+          TransitionComponent={(props) => <Slide {...props} direction="down" />}
         >
           <Alert
             onClose={() => setSnackbarOpen(false)}

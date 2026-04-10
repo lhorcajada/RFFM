@@ -18,6 +18,7 @@ namespace RFFM.Api.Domain.Entities.TeamPlayers
 
         public List<Family> FamilyMembers { get; set; } = new();
         public Demarcation? Demarcation { get; set; } = null!;
+        public ICollection<TeamPlayerInjury> Injuries { get; private set; } = new List<TeamPlayerInjury>();
 
         public Team Team { get; set; } = null!;
         public Player Player { get; set; } = null!;
@@ -106,7 +107,6 @@ namespace RFFM.Api.Domain.Entities.TeamPlayers
         }
         public void SetFamily(List<FamilyModel>? familyMembers)
         {
-            // if no family members provided, initialize to empty list
             if (familyMembers == null || familyMembers.Count == 0)
             {
                 FamilyMembers = new List<Family>();

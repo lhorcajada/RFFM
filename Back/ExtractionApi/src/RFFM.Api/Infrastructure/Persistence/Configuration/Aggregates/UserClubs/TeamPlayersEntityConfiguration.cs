@@ -176,6 +176,7 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.UserClubs
                     address.WithOwner();
                 });
             });
+
         }
     }
 }

@@ -9,6 +9,7 @@ interface SlotPlayer {
   photoSrc?: string | null;
   dorsal?: number | null;
   competitiveness?: number | null;
+  isInjured?: boolean;
 }
 
 interface PlayerSlotProps {
@@ -37,7 +38,7 @@ function DraggablePlayerCard({ player }: { player: SlotPlayer }) {
       style={style}
       {...listeners}
       {...attributes}
-      className={`${styles.playerCard} ${isDragging ? styles.dragging : ""}`}
+      className={`${styles.playerCard} ${isDragging ? styles.dragging : ""} ${player.isInjured ? styles.injuredCard : ""}`}
       title={player.displayName}
     >
       {player.photoSrc ? (
@@ -50,6 +51,9 @@ function DraggablePlayerCard({ player }: { player: SlotPlayer }) {
       )}
       {player.competitiveness != null && (
         <span className={styles.competBadge}>C·{Math.round(player.competitiveness)}</span>
+      )}
+      {player.isInjured && (
+        <span className={styles.injuredDot} title="Lesionado">🩹</span>
       )}
     </div>
   );

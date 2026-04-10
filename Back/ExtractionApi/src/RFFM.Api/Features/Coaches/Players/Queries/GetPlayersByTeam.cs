@@ -39,6 +39,7 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
             public string? UrlPhoto { get; set; }
             public int? Dorsal { get; set; }
             public string? Position { get; set; }
+            public bool IsInjured { get; set; }
 
         };
 
@@ -66,7 +67,8 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                         tp.Player.Alias,
                         tp.Player.UrlPhoto,
                         Dorsal = tp.Dorsal != null ? tp.Dorsal.Number : (int?)null,
-                        ActivePositionId = tp.Demarcation != null ? (int?)tp.Demarcation.ActivePositionId : null
+                        ActivePositionId = tp.Demarcation != null ? (int?)tp.Demarcation.ActivePositionId : null,
+                        IsInjured = tp.Injuries.Any(i => i.EndDate == null)
                     })
                     .ToArrayAsync(cancellationToken);
 
@@ -78,7 +80,8 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                     Alias = i.Alias,
                     UrlPhoto = i.UrlPhoto,
                     Dorsal = i.Dorsal,
-                    Position = i.ActivePositionId != null ? DemarcationMaster.GetById(i.ActivePositionId.Value)?.Name : null
+                    Position = i.ActivePositionId != null ? DemarcationMaster.GetById(i.ActivePositionId.Value)?.Name : null,
+                    IsInjured = i.IsInjured
                 }).ToArray();
             }
         }

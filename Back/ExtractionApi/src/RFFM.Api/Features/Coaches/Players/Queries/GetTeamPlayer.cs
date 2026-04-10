@@ -36,6 +36,7 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
         public record PhysicalInfoResponse(decimal? Height, decimal? Weight, string? DominantFoot);
         public record DemarcationResponse(int? ActivePositionId, string? ActivePositionName, string[] PossibleDemarcations);
         public record FamilyResponse(string? Name, string? Phone, string? Email, string? FamilyMember);
+        public record InjuryInfoResponse(string Id, DateTime StartDate, string InjuryType, string? Description, string? EstimatedRecovery, DateTime? EndDate);
 
         public record TeamPlayerResponse(
             string Id,
@@ -48,7 +49,8 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
             DemarcationResponse? Demarcation,
             ContactInfoResponse? ContactInfo,
             PhysicalInfoResponse? PhysicalInfo,
-            FamilyResponse[] FamilyMembers
+            FamilyResponse[] FamilyMembers,
+            InjuryInfoResponse? InjuryInfo
         );
 
         public class RequestHandler : IRequestHandler<TeamPlayerQuery, TeamPlayerResponse>
@@ -65,6 +67,7 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                 var item = await _db.TeamPlayers
                     .AsNoTracking()
                     .Include(tp => tp.Player)
+                    .Include(tp => tp.Injuries)
                     .FirstOrDefaultAsync(tp => tp.Id == request.TeamPlayerId, cancellationToken);
 
                 if (item == null)
@@ -117,6 +120,12 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                     .Select(f => new FamilyResponse(f.Name, f.Phone, f.Email, f.FamilyMember))
                     .ToArray();
 
+                // injury info — active injury (no EndDate)
+                var activeInjury = item.Injuries.FirstOrDefault(i => i.EndDate == null);
+                InjuryInfoResponse? injuryResp = activeInjury != null
+                    ? new InjuryInfoResponse(activeInjury.Id, activeInjury.StartDate, activeInjury.InjuryType, activeInjury.Description, activeInjury.EstimatedRecovery, activeInjury.EndDate)
+                    : null;
+
                 return new TeamPlayerResponse(
                     item.Id,
                     item.PlayerId,
@@ -128,7 +137,8 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                     demarcationResp,
                     contact,
                     phys,
-                    fams
+                    fams,
+                    injuryResp
                 );
             }
         }

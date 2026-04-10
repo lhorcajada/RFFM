@@ -13,6 +13,7 @@ import DashboardCard from "../../../../shared/components/ui/DashboardCard/Dashbo
 import PlayerCard from "../../components/PlayerCard/PlayerCard";
 import EmptyState from "../../../../shared/components/ui/EmptyState/EmptyState";
 import teamplayerService from "../../services/teamplayerService";
+import { dischargeActiveInjury } from "../../services/teamplayerService";
 import teamService from "../../services/teamService";
 import playerService from "../../services/playerService";
 import playerRatingService from "../../services/playerRatingService";
@@ -267,6 +268,17 @@ export default function Squad() {
                             photoSrc={playerPhotos[key] ?? null}
                             dorsal={p.dorsal ?? null}
                             position={p.position ?? null}
+                            injured={p.isInjured === true}
+                            onClearInjury={p.isInjured && p.id ? async () => {
+                              const ok = await dischargeActiveInjury(p.id);
+                              if (ok) {
+                                setPlayers((prev) =>
+                                  prev.map((pl) =>
+                                    pl.id === p.id ? { ...pl, isInjured: false } : pl
+                                  )
+                                );
+                              }
+                            } : undefined}
                             rating={(() => {
                               const r = latestRatings[p.id];
                               return r
@@ -317,6 +329,7 @@ export default function Squad() {
               dorsal: p.dorsal ?? null,
               position: p.position ?? null,
               competitiveness: latestRatings[p.id]?.competitiveness ?? null,
+              isInjured: p.isInjured === true,
             }));
             return (
               <IdealLineup

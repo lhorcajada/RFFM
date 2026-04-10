@@ -59,8 +59,8 @@ export default function GlobalSnackbar() {
       window.removeEventListener("rffm.show_snackbar", onShow as EventListener);
   }, []);
 
-  function TransitionRight(props: SlideProps) {
-    return <Slide {...props} direction="left" />;
+  function TransitionDown(props: SlideProps) {
+    return <Slide {...props} direction="down" />;
   }
 
   return (
@@ -79,7 +79,7 @@ export default function GlobalSnackbar() {
         },
       }}
       anchorOrigin={{ vertical: "top", horizontal: "right" }}
-      TransitionComponent={TransitionRight}
+      TransitionComponent={TransitionDown}
     >
       <Alert
         onClose={() => setOpen(false)}

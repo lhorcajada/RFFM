@@ -45,6 +45,30 @@ namespace RFFM.Api.Domain.Aggregates.Assistances
             return new SportEvent(createModel);
         }
 
+        /// <summary>
+        /// Creates a SportEvent bypassing domain date-constraint validation.
+        /// Use this when dates may be in the past (e.g. registering historical events).
+        /// </summary>
+        public static SportEvent CreateNew(
+            string name, DateTime eveDateTime, DateTime startTime, DateTime? endTime,
+            DateTime? arrivalDate, string? location, string? description,
+            int eventTypeId, string teamId, string? rivalId)
+        {
+            return new SportEvent
+            {
+                Name = name,
+                EveDateTime = eveDateTime,
+                StartTime = startTime,
+                EndTime = endTime,
+                ArrivalDate = arrivalDate,
+                Location = location,
+                Description = description,
+                EventTypeId = eventTypeId,
+                TeamId = teamId,
+                RivalId = rivalId,
+            };
+        }
+
         public void SetName(string name)
         {
             if (string.IsNullOrEmpty(name))

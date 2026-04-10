@@ -1,5 +1,6 @@
 import React from "react";
-import { Avatar, TextField } from "@mui/material";
+import { Avatar, Chip, TextField } from "@mui/material";
+import LocalHospitalIcon from "@mui/icons-material/LocalHospital";
 import styles from "../PlayerDetail.module.css";
 import { TeamPlayerResponse } from "../../../services/teamplayerService";
 import playerService from "../../../services/playerService";
@@ -99,6 +100,17 @@ export default function PlayerHeader({
             />
           )}
         </div>
+        {!editing && teamPlayer.injuryInfo && (
+          <div style={{ marginTop: 6 }}>
+            <Chip
+              icon={<LocalHospitalIcon />}
+              label={`Lesionado · ${teamPlayer.injuryInfo.injuryType}`}
+              color="error"
+              size="small"
+              variant="outlined"
+            />
+          </div>
+        )}
         <div className={styles.row}>
           <div className={styles.label}>Dorsal</div>
           <div className={styles.value}>

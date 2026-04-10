@@ -1,6 +1,8 @@
 import { Box, Button, CircularProgress, Pagination } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import AddIcon from "@mui/icons-material/Add";
+import SportEventDialog from "./components/SportEventDialog";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import useTeamAndClub from "../../hooks/useTeamAndClub";
@@ -13,6 +15,18 @@ import EmptyState from "../../../../shared/components/ui/EmptyState/EmptyState";
 import styles from "./Attendance.module.css";
 import { useEffect, useState } from "react";
 import { TextField, FormControlLabel, Switch } from "@mui/material";
+
+function getWeekBounds(): { start: string; end: string } {
+  const today = new Date();
+  const dow = today.getDay(); // 0=Sunday, 1=Monday, ..., 6=Saturday
+  const diffToMonday = dow === 0 ? -6 : 1 - dow;
+  const monday = new Date(today);
+  monday.setDate(today.getDate() + diffToMonday);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  const fmt = (d: Date) => d.toISOString().split("T")[0];
+  return { start: fmt(monday), end: fmt(sunday) };
+}
 
 export default function Attendance() {
   const navigate = useNavigate();
@@ -28,10 +42,11 @@ export default function Attendance() {
   const [pageSize] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [eventTypeMap, setEventTypeMap] = useState<Record<number, string>>({});
-  const [startDate, setStartDate] = useState<string | null>(null);
-  const [endDate, setEndDate] = useState<string | null>(null);
+  const [startDate, setStartDate] = useState<string | null>(() => getWeekBounds().start);
+  const [endDate, setEndDate] = useState<string | null>(() => getWeekBounds().end);
   const [descending, setDescending] = useState(false);
   const [searchTrigger, setSearchTrigger] = useState(0);
+  const [dialogOpen, setDialogOpen] = useState(false);
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -88,8 +103,9 @@ export default function Attendance() {
   }
 
   function onReset() {
-    setStartDate(null);
-    setEndDate(null);
+    const { start, end } = getWeekBounds();
+    setStartDate(start);
+    setEndDate(end);
     setDescending(false);
     setPage(1);
     setSearchTrigger((s) => s + 1);
@@ -98,17 +114,29 @@ export default function Attendance() {
   return (
     <BaseLayout hideFooterMenu>
       <ContentLayout
-        title="Asistencias"
+        title="Eventos deportivos"
         subtitle={teamTitleNode ?? "Control de asistencias de jugadores"}
         actionBar={
-          <Button
-            startIcon={<ArrowBackIcon />}
-            onClick={() => navigate("/coach/dashboard")}
-            variant="outlined"
-            size="small"
-          >
-            Volver
-          </Button>
+          <Box sx={{ display: "flex", gap: 1 }}>
+            <Button
+              startIcon={<ArrowBackIcon />}
+              onClick={() => navigate("/coach/dashboard")}
+              variant="outlined"
+              size="small"
+            >
+              Volver
+            </Button>
+            {!!team && (
+              <Button
+                startIcon={<AddIcon />}
+                onClick={() => setDialogOpen(true)}
+                variant="contained"
+                size="small"
+              >
+                Nuevo evento
+              </Button>
+            )}
+          </Box>
         }
       >
         <Box sx={{ p: 3 }}>
@@ -170,11 +198,12 @@ export default function Attendance() {
               {events.map((e) => (
                 <div key={e.id} className={styles.item}>
                   <EventCard
-                    event={e}
+                    event={{ ...e, teamId: e.teamId ?? team?.id }}
                     eventTypeName={
                       e.eventType ?? eventTypeMap[e.eventTypeId ?? 0]
                     }
                     onDeleted={() => setSearchTrigger((s) => s + 1)}
+                    onEdited={() => setSearchTrigger((s) => s + 1)}
                   />
                 </div>
               ))}
@@ -190,6 +219,14 @@ export default function Attendance() {
           </Box>
         </Box>
       </ContentLayout>
+      {team && (
+        <SportEventDialog
+          open={dialogOpen}
+          teamId={team.id}
+          onClose={() => setDialogOpen(false)}
+          onSaved={() => setSearchTrigger((s) => s + 1)}
+        />
+      )}
     </BaseLayout>
   );
 }

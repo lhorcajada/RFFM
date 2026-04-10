@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Button, CircularProgress, Snackbar, Alert } from "@mui/material";
+import { Button, CircularProgress, Slide, Snackbar, Alert } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import HomeIcon from "@mui/icons-material/Home";
 import SettingsIcon from "@mui/icons-material/Settings";
@@ -250,8 +250,8 @@ export default function CoachDashboard() {
                   }
                 />
                 <DashboardCard
-                  title="Asistencias"
-                  description="Control de asistencias."
+                  title="Eventos"
+                  description="Eventos deportivos del equipo."
                   icon={
                     <AssignmentIcon
                       style={{ fontSize: 40, color: "#05313b" }}
@@ -273,7 +273,7 @@ export default function CoachDashboard() {
                   icon={
                     <EventIcon style={{ fontSize: 40, color: "#05313b" }} />
                   }
-                  to="/coach/convocations"
+                  to={team?.id ? `/coach/convocations?teamId=${team.id}` : "/coach/convocations"}
                 />
                 <DashboardCard
                   title="Partidos"
@@ -356,7 +356,8 @@ export default function CoachDashboard() {
         open={snackbar.open}
         autoHideDuration={4000}
         onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+        TransitionComponent={(props) => <Slide {...props} direction="down" />}
       >
         <Alert
           onClose={() => setSnackbar((s) => ({ ...s, open: false }))}

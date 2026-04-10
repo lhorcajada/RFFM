@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -73,7 +73,13 @@ function groupPlayersByPosition(players: SquadPlayer[]) {
   }
 
   if (others.length > 0) groups.push({ label: "Sin posición", color: "#6b7280", players: others });
-  return groups.filter((g) => g.players.length > 0);
+
+  const byCompDesc = (a: SquadPlayer, b: SquadPlayer) =>
+    (b.competitiveness ?? -1) - (a.competitiveness ?? -1);
+
+  return groups
+    .filter((g) => g.players.length > 0)
+    .map((g) => ({ ...g, players: [...g.players].sort(byCompDesc) }));
 }
 
 interface SquadPlayer {
@@ -84,12 +90,20 @@ interface SquadPlayer {
   dorsal?: number | null;
   position?: string | null;
   competitiveness?: number | null;
+  isInjured?: boolean;
+}
+
+export interface IdealLineupHandle {
+  save(): Promise<void>;
 }
 
 interface IdealLineupProps {
   players: SquadPlayer[];
   teamId: string;
   seasonId?: string | null;
+  panelTitle?: string;
+  hideInternalSave?: boolean;
+  onSavingChange?: (saving: boolean) => void;
 }
 
 // ─── Draggable list item ───────────────────────────────────────────────
@@ -122,6 +136,9 @@ function DraggableListItem({ player }: { player: SquadPlayer }) {
         <div className={styles.playerItemName}>{player.displayName}</div>
         {player.position && (
           <div className={styles.playerItemPosition}>{player.position}</div>
+        )}
+        {player.isInjured && (
+          <div className={styles.injuredTag}>🩹 Lesionado</div>
         )}
       </div>
       {player.dorsal != null && (
@@ -160,12 +177,17 @@ function OverlayItem({ player }: { player: SquadPlayer }) {
 }
 
 // ─── Main IdealLineup component ────────────────────────────────────────
-export default function IdealLineup({ players, teamId, seasonId }: IdealLineupProps) {
+const IdealLineup = forwardRef<IdealLineupHandle, IdealLineupProps>(function IdealLineup(
+  { players, teamId, seasonId, panelTitle, hideInternalSave, onSavingChange },
+  ref
+) {
   const [formations, setFormations] = useState<Formation[]>([]);
   const [formationId, setFormationId] = useState<string>("");
   const [slots, setSlots] = useState<Record<number, string | null>>({});
   const [activeId, setActiveId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const onSavingChangeRef = useRef(onSavingChange);
+  onSavingChangeRef.current = onSavingChange;
   const [loadingLineup, setLoadingLineup] = useState(true);
 
   // ── Sensors (mouse + touch) ──────────────────────────────────────────
@@ -214,6 +236,12 @@ export default function IdealLineup({ players, teamId, seasonId }: IdealLineupPr
     [availablePlayers]
   );
 
+  const avgBenchComp = useMemo(() => {
+    const rated = availablePlayers.filter((p) => p.competitiveness != null);
+    if (rated.length === 0) return null;
+    return rated.reduce((sum, p) => sum + (p.competitiveness ?? 0), 0) / rated.length;
+  }, [availablePlayers]);
+
   const playersById = useMemo(
     () => Object.fromEntries(players.map((p) => [p.id, {
       teamPlayerId: p.id,
@@ -222,6 +250,7 @@ export default function IdealLineup({ players, teamId, seasonId }: IdealLineupPr
       photoSrc: p.photoSrc,
       dorsal: p.dorsal,
       competitiveness: p.competitiveness,
+      isInjured: p.isInjured,
     }])),
     [players]
   );
@@ -269,6 +298,7 @@ export default function IdealLineup({ players, teamId, seasonId }: IdealLineupPr
   async function handleSave() {
     if (!formationId || !teamId) return;
     setSaving(true);
+    onSavingChangeRef.current?.(true);
     try {
       const slotPayload = Object.entries(slots)
         .filter(([, pid]) => pid !== null && pid !== undefined)
@@ -288,8 +318,11 @@ export default function IdealLineup({ players, teamId, seasonId }: IdealLineupPr
       );
     } finally {
       setSaving(false);
+      onSavingChangeRef.current?.(false);
     }
   }
+
+  useImperativeHandle(ref, () => ({ save: handleSave }));
 
   const activePlayer = activeId ? (playersById[activeId] ?? null) : null;
 
@@ -322,15 +355,17 @@ export default function IdealLineup({ players, teamId, seasonId }: IdealLineupPr
             </Select>
           </FormControl>
 
-          <Button
-            variant="contained"
-            size="small"
-            startIcon={saving ? <CircularProgress size={14} color="inherit" /> : <SaveIcon />}
-            onClick={handleSave}
-            disabled={saving || !formationId}
-          >
-            Guardar
-          </Button>
+          {!hideInternalSave && (
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={saving ? <CircularProgress size={14} color="inherit" /> : <SaveIcon />}
+              onClick={handleSave}
+              disabled={saving || !formationId}
+            >
+              Guardar
+            </Button>
+          )}
         </div>
 
         {/* Field + player list */}
@@ -340,8 +375,15 @@ export default function IdealLineup({ players, teamId, seasonId }: IdealLineupPr
           {/* Available players */}
           <div className={styles.playerListPanel}>
             <div className={styles.panelHeader}>
-              Jugadores disponibles
-              <span className={styles.panelBadge}>{availablePlayers.length}</span>
+              {panelTitle ?? "Jugadores disponibles"}
+              <div className={styles.panelHeaderRight}>
+                {avgBenchComp != null && (
+                  <span className={styles.panelCompTag}>
+                    Com. {avgBenchComp.toFixed(1)}
+                  </span>
+                )}
+                <span className={styles.panelBadge}>{availablePlayers.length}</span>
+              </div>
             </div>
             <div className={styles.playerList}>
               {availablePlayers.length === 0 ? (
@@ -378,4 +420,6 @@ export default function IdealLineup({ players, teamId, seasonId }: IdealLineupPr
       </DragOverlay>
     </DndContext>
   );
-}
+});
+
+export default IdealLineup;

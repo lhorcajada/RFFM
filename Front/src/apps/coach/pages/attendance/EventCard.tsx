@@ -13,16 +13,19 @@ import styles from "./EventCard.module.css";
 import { SportEventResponse } from "../../services/sportEventService";
 import { getEventTypeColor } from "./attendanceUtils";
 import { deleteSportEvent } from "../../services/sportEventService";
+import SportEventDialog from "./components/SportEventDialog";
 
 interface Props {
   event: SportEventResponse;
   eventTypeName?: string | undefined | null;
   onDeleted?: () => void;
+  onEdited?: () => void;
 }
 
-export default function EventCard({ event, eventTypeName, onDeleted }: Props) {
+export default function EventCard({ event, eventTypeName, onDeleted, onEdited }: Props) {
   const navigate = useNavigate();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   function parseDate(input?: string | number | null): Date | null {
     if (input == null) return null;
     try {
@@ -115,6 +118,14 @@ export default function EventCard({ event, eventTypeName, onDeleted }: Props) {
         <Button
           size="small"
           variant="outlined"
+          onClick={() => setEditOpen(true)}
+          sx={{ ml: 1 }}
+        >
+          Editar
+        </Button>
+        <Button
+          size="small"
+          variant="outlined"
           color="error"
           onClick={() => setConfirmOpen(true)}
           sx={{ ml: 1 }}
@@ -148,6 +159,18 @@ export default function EventCard({ event, eventTypeName, onDeleted }: Props) {
           </Button>
         </DialogActions>
       </Dialog>
+      {event.teamId && (
+        <SportEventDialog
+          open={editOpen}
+          teamId={event.teamId}
+          event={event}
+          onClose={() => setEditOpen(false)}
+          onSaved={() => {
+            setEditOpen(false);
+            if (onEdited) onEdited();
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -19,6 +19,8 @@ type Props = {
   position?: string | null;
   rating?: RatingData | null;
   rank?: number | null;
+  injured?: boolean;
+  onClearInjury?: () => void;
   to?: string;
   onEdit?: () => void;
   onHistory?: () => void;
@@ -55,6 +57,8 @@ export default function PlayerCromo({
   position,
   rating,
   rank,
+  injured,
+  onClearInjury,
   to,
   onEdit,
   onHistory,
@@ -95,6 +99,16 @@ export default function PlayerCromo({
             style={{ color: ratingColor(avgRating(rating)) }}
           >
             {formatStat(avgRating(rating))}
+          </div>
+        )}
+
+        {injured && (
+          <div
+            className={`${styles.injuredBadge} ${onClearInjury ? styles.injuredBadgeClickable : ""}`}
+            onClick={onClearInjury ? (e) => { e.preventDefault(); onClearInjury(); } : undefined}
+            title={onClearInjury ? "Dar de alta" : undefined}
+          >
+            🩹 Lesionado{onClearInjury && <span className={styles.injuredAltaHint}>· Alta</span>}
           </div>
         )}
 
