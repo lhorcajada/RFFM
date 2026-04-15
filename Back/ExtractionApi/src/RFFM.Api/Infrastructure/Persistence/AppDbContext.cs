@@ -65,6 +65,9 @@ namespace RFFM.Api.Infrastructure.Persistence
         public DbSet<TeamIdealLineup> TeamIdealLineups { get; set; }
         public DbSet<TeamIdealLineupSlot> TeamIdealLineupSlots { get; set; }
 
+        // Match participation (partido en directo)
+        public DbSet<MatchParticipation> MatchParticipations { get; set; }
+
         // Payment plans and subscriptions
         public DbSet<PaymentPlan> PaymentPlans { get; set; }
         public DbSet<Subscription> Subscriptions { get; set; }
@@ -75,6 +78,10 @@ namespace RFFM.Api.Infrastructure.Persistence
         public DbSet<GameZone> GameZones { get; set; }
         public DbSet<GameScenario> GameScenarios { get; set; }
         public DbSet<ScenarioTacticalPrinciple> ScenarioTacticalPrinciples { get; set; }
+
+        // Season prep session
+        public DbSet<SeasonPrepSession> SeasonPrepSessions { get; set; }
+        public DbSet<SeasonPrepEvaluations> SeasonPrepEvaluations { get; set; }
         public DbSet<SubPrinciple> SubPrinciples { get; set; }
         public DbSet<SubPrincipleTacticalPrinciple> SubPrincipleTacticalPrinciples { get; set; }
         public DbSet<SubSubPrinciple> SubSubPrinciples { get; set; }

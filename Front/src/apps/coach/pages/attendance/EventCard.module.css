@@ -32,6 +32,21 @@
   font-size: 0.9rem;
   color: var(--rffm-card-subtext, rgba(255, 255, 255, 0.75));
 }
+.rival {
+  margin-top: 6px;
+  font-size: 0.9rem;
+  color: var(--rffm-card-subtext, rgba(255, 255, 255, 0.75));
+}
+.rivalLabel {
+  font-weight: 600;
+  opacity: 0.85;
+}
+.eventName {
+  margin-top: 4px;
+  font-size: 0.85rem;
+  color: var(--rffm-card-subtext, rgba(255, 255, 255, 0.65));
+  font-style: italic;
+}
 .actions {
   margin-top: 8px;
   display: flex;

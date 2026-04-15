@@ -102,6 +102,86 @@ export const getActa = (
   params?: { temporada?: string; competicion?: string; grupo?: string },
 ) => actaService.getActa(codacta, params);
 
+/**
+ * Builds a map { [codjugador]: string[] } of positions found across all actas
+ * for the given team. Fetches actas from every match in the calendar jornada by
+ * jornada and collects whatever `posicion` the coaches registered. If a player
+ * has appeared in several positions, all of them are returned.
+ */
+export const getPlayerPositionsFromActas = async (
+  teamId: string,
+  params?: { season?: string; competition?: string; group?: string },
+): Promise<Record<string, string[]>> => {
+  const matches: any[] = await calendarService.getTeamMatches(teamId, params);
+
+  // Collect unique codactas
+  const seen = new Set<string>();
+  const codactas: string[] = [];
+  for (const m of matches) {
+    const match = m?.match ?? m;
+    const cod = String(
+      match?.codacta ??
+        match?.matchRecordCode ??
+        match?.cod_acta ??
+        match?.acta ??
+        "",
+    ).trim();
+    if (cod && !seen.has(cod)) {
+      seen.add(cod);
+      codactas.push(cod);
+    }
+  }
+
+  const positionsMap: Record<string, Set<string>> = {};
+
+  // Fetch in parallel batches to avoid flooding the API
+  const BATCH = 5;
+  for (let i = 0; i < codactas.length; i += BATCH) {
+    const batch = codactas.slice(i, i + BATCH);
+    const results = await Promise.allSettled(
+      batch.map((cod) => actaService.getActa(cod)),
+    );
+    for (const res of results) {
+      if (res.status !== "fulfilled") continue;
+      const acta = res.value as any;
+      if (!acta) continue;
+
+      const localCode = String(acta.codigo_equipo_local ?? "").trim();
+      const visitCode = String(acta.codigo_equipo_visitante ?? "").trim();
+      const tid = String(teamId).trim();
+
+      let players: any[] = [];
+      if (localCode === tid) {
+        players = acta.jugadores_equipo_local ?? [];
+      } else if (visitCode === tid) {
+        players = acta.jugadores_equipo_visitante ?? [];
+      } else {
+        // Fallback: include both sides (team code mismatch can happen with
+        // legacy string ids vs numeric ids)
+        players = [
+          ...(acta.jugadores_equipo_local ?? []),
+          ...(acta.jugadores_equipo_visitante ?? []),
+        ];
+      }
+
+      for (const p of players) {
+        const pid = String(p?.codjugador ?? "").trim();
+        if (!pid) continue;
+        const pos = String(
+          p?.posicion ?? p?.posicion_jugador_abreviatura ?? "",
+        ).trim();
+        if (!pos) continue;
+        if (!positionsMap[pid]) positionsMap[pid] = new Set<string>();
+        positionsMap[pid].add(pos);
+      }
+    }
+  }
+
+  return Object.fromEntries(
+    Object.entries(positionsMap).map(([k, v]) => [k, Array.from(v)]),
+  );
+};
+
 // Score methods
 export const getGoleadores = (competitionId: string, groupId: string) =>
   scoreService.getGoleadores(competitionId, groupId);

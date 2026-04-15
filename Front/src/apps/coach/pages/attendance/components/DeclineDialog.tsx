@@ -5,10 +5,9 @@ import {
   DialogContent,
   DialogActions,
   Button,
-  MenuItem,
-  Select,
 } from "@mui/material";
 import type { ExcuseType } from "../../services/excuseTypeService";
+import styles from "../AttendanceTabs.module.css";
 
 type Props = {
   open: boolean;
@@ -23,32 +22,39 @@ export default function DeclineDialog({
   excuseTypes,
   onAccept,
 }: Props) {
-  const [value, setValue] = React.useState<string | number | "">("");
+  const [value, setValue] = React.useState<number | null>(null);
   React.useEffect(() => {
-    if (!open) setValue("");
+    if (!open) setValue(null);
   }, [open]);
+
   return (
-    <Dialog open={open} onClose={onClose}>
-      <DialogTitle>Seleccionar justificante</DialogTitle>
-      <DialogContent>
-        <Select
-          fullWidth
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-        >
-          <MenuItem value="">Seleccione</MenuItem>
-          {excuseTypes.map((ex) => (
-            <MenuItem key={ex.id} value={ex.id}>
-              {ex.name} {ex.justified ? "(Justificado)" : ""}
-            </MenuItem>
-          ))}
-        </Select>
+    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
+      <DialogTitle sx={{ pb: 1 }}>Seleccionar justificante</DialogTitle>
+      <DialogContent sx={{ pt: 1 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {excuseTypes.map((ex) => {
+            const isActive = value === ex.id;
+            return (
+              <button
+                key={ex.id}
+                onClick={() => setValue(ex.id)}
+                className={`${styles.dialogOptionBtn} ${styles.dialogOptionBtnOrange}${isActive ? " " + styles.dialogOptionBtnActive : ""}`}
+              >
+                <span>{ex.name}</span>
+                {ex.justified && (
+                  <span style={{ fontSize: "0.72rem", opacity: 0.75, fontWeight: 600 }}>Justificado</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancelar</Button>
         <Button
+          disabled={value === null}
           onClick={() => {
-            onAccept(value === "" ? null : Number(value));
+            onAccept(value);
             onClose();
           }}
           variant="contained"

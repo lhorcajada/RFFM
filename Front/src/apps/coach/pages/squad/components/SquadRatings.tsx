@@ -1,6 +1,10 @@
 import { useMemo, useState } from "react";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
+import { Button, ToggleButton, ToggleButtonGroup } from "@mui/material";
+import { exportAllPlayersPdf, exportPlayerPdf } from "../squadPdfExport";
+import type { RatingSortKey } from "../squadPdfExport";
 import type { PlayerRating } from "../../../types/playerRating";
 import type { CreateRatingPayload, CreateGoalkeeperRatingPayload } from "../../../services/playerRatingService";
 import playerRatingService from "../../../services/playerRatingService";
@@ -24,6 +28,7 @@ type Props = {
   players: PlayerEntry[];
   latestRatings: Record<string, PlayerRating>;
   onRatingCreated: (rating: PlayerRating) => void;
+  teamName?: string;
 };
 
 const POSITION_ORDER = ["Portero", "Defensa", "Centrocampista", "Delantero"];
@@ -53,14 +58,29 @@ const RATING_FIELDS: { key: keyof Omit<PlayerRating, "id" | "teamPlayerId" | "ra
   { key: "competitiveness", label: "Competitividad" },
 ];
 
-function groupPlayersByPosition(players: PlayerEntry[]) {
+type SortKey = RatingSortKey | "position";
+
+const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+  { key: "position",       label: "Posición" },
+  { key: "physical",       label: "Físico" },
+  { key: "technical",      label: "Técnica" },
+  { key: "tactical",       label: "Táctica" },
+  { key: "competitiveness", label: "Compet." },
+];
+
+function groupPlayersByPosition(
+  players: PlayerEntry[],
+  latestRatings: Record<string, PlayerRating>,
+  sortKey: SortKey,
+) {
   const groups: Record<string, PlayerEntry[]> = {};
   for (const p of players) {
     const key = p.position?.trim() || "Sin posición";
     if (!groups[key]) groups[key] = [];
     groups[key].push(p);
   }
-  return Object.entries(groups).sort(([a], [b]) => {
+
+  const entries = Object.entries(groups).sort(([a], [b]) => {
     const ia = POSITION_ORDER.findIndex((pos) =>
       a.toLowerCase().includes(pos.toLowerCase())
     );
@@ -71,6 +91,21 @@ function groupPlayersByPosition(players: PlayerEntry[]) {
     const rb = ib === -1 ? POSITION_ORDER.length : ib;
     return ra !== rb ? ra - rb : a.localeCompare(b, "es");
   });
+
+  if (sortKey === "position") return entries;
+
+  // Sort within each group by selected metric (desc), unrated go to bottom
+  return entries.map(([pos, group]) => [
+    pos,
+    [...group].sort((a, b) => {
+      const ra = latestRatings[a.teamPlayerId];
+      const rb = latestRatings[b.teamPlayerId];
+      if (!ra && !rb) return 0;
+      if (!ra) return 1;
+      if (!rb) return -1;
+      return Number(rb[sortKey]) - Number(ra[sortKey]);
+    }),
+  ] as [string, PlayerEntry[]]);
 }
 
 function pickInitialSubRatings(rating: PlayerRating | undefined): Partial<Omit<CreateRatingPayload, "notes">> {
@@ -140,13 +175,17 @@ function isGoalkeeperPosition(position?: string | null): boolean {
   return p.includes("portero") || p.includes("keeper") || p.includes("arquero");
 }
 
-export default function SquadRatings({ teamId: _teamId, players, latestRatings, onRatingCreated }: Props) {
+export default function SquadRatings({ teamId: _teamId, players, latestRatings, onRatingCreated, teamName }: Props) {
   const [editPlayer, setEditPlayer] = useState<PlayerEntry | null>(null);
   const [historyFor, setHistoryFor] = useState<{ teamPlayerId: string; name: string } | null>(null);
   const [saving, setSaving] = useState(false);
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
+  const [sortKey, setSortKey] = useState<SortKey>("position");
 
-  const grouped = useMemo(() => groupPlayersByPosition(players), [players]);
+  const grouped = useMemo(
+    () => groupPlayersByPosition(players, latestRatings, sortKey),
+    [players, latestRatings, sortKey],
+  );
 
   function togglePanel(id: string) {
     setCollapsedIds((prev) => {
@@ -180,8 +219,34 @@ export default function SquadRatings({ teamId: _teamId, players, latestRatings, 
     return <div className={styles.empty}>No hay jugadores para valorar.</div>;
   }
 
+  const pdfSortKey = sortKey === "position" ? undefined : sortKey;
+
   return (
     <div className={styles.container}>
+      <div className={styles.toolbar}>
+        <ToggleButtonGroup
+          value={sortKey}
+          exclusive
+          onChange={(_, v) => { if (v) setSortKey(v as SortKey); }}
+          size="small"
+          className={styles.sortGroup}
+        >
+          {SORT_OPTIONS.map(({ key, label }) => (
+            <ToggleButton key={key} value={key} className={styles.sortBtn}>
+              {label}
+            </ToggleButton>
+          ))}
+        </ToggleButtonGroup>
+
+        <Button
+          size="small"
+          variant="outlined"
+          startIcon={<PictureAsPdfOutlinedIcon />}
+          onClick={() => exportAllPlayersPdf(players, latestRatings, teamName, pdfSortKey)}
+        >
+          PDF plantilla
+        </Button>
+      </div>
       {grouped.map(([position, group]) => {
         const accent = positionAccent(position);
         return (
@@ -222,6 +287,13 @@ export default function SquadRatings({ teamId: _teamId, players, latestRatings, 
                         }
                       />
                     </div>
+                    <button
+                      className={styles.printBtn}
+                      onClick={() => exportPlayerPdf(p, latestRatings[p.teamPlayerId] ?? null, teamName)}
+                      title="Exportar PDF del jugador"
+                    >
+                      <PictureAsPdfOutlinedIcon sx={{ fontSize: 11 }} />
+                    </button>
                     <button
                       className={styles.toggleTab}
                       onClick={() => togglePanel(p.teamPlayerId)}

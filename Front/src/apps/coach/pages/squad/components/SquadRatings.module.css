@@ -13,6 +13,43 @@
   width: 100%;
 }
 
+/* ─── PDF export toolbar ─── */
+
+.toolbar {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0 8px;
+  flex-wrap: wrap;
+}
+
+.sortGroup {
+  display: flex;
+  flex-shrink: 0;
+}
+
+.sortBtn {
+  font-size: 0.68rem !important;
+  padding: 3px 9px !important;
+  text-transform: none !important;
+  line-height: 1.4 !important;
+  color: rgba(255, 255, 255, 0.5) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+.sortBtn:hover {
+  background: rgba(255, 255, 255, 0.07) !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.sortBtn.Mui-selected {
+  background: rgba(200, 75, 0, 0.22) !important;
+  color: #ff9040 !important;
+  border-color: rgba(200, 75, 0, 0.5) !important;
+}
+
 /* ─── Position panel (igual que Plantilla) ─── */
 
 .positionPanel {
@@ -98,6 +135,29 @@
 .toggleTab:hover {
   background: rgba(255, 255, 255, 0.12);
   color: rgba(255, 255, 255, 0.85);
+}
+
+/* ─── Print button (individual player) ─── */
+
+.printBtn {
+  width: 18px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.04);
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.09);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.3);
+  padding: 0;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.printBtn:hover {
+  background: rgba(220, 80, 0, 0.2);
+  color: rgba(255, 160, 60, 0.9);
 }
 
 /* ─── Sliding panel ─── */

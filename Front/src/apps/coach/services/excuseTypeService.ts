@@ -11,8 +11,8 @@ const LOCAL_OVERRIDES: ExcuseType[] = [
   { id: 2, name: "Study", justified: true },
   { id: 3, name: "Ill", justified: true },
   { id: 4, name: "Family Problem", justified: true },
-  { id: 5, name: "Family Event", justified: false },
-  { id: 6, name: "Birthday Event", justified: false },
+  { id: 5, name: "Family Event", justified: true },
+  { id: 6, name: "Birthday Event", justified: true },
 ];
 
 export async function getExcuseTypes(): Promise<ExcuseType[]> {

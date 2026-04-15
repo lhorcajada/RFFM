@@ -27,11 +27,16 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
                         ev.Location = req.Location;
                         ev.Description = req.Description;
                         ev.EventTypeId = req.EventTypeId;
-                        ev.RivalId = req.RivalId;
+                        ev.RivalId = req.RivalId != null
+                            ? (await db.Rivals.Select(r => r.Id).ToListAsync(cancellationToken))
+                                .FirstOrDefault(id => id.Trim() == req.RivalId.Trim()) ?? req.RivalId
+                            : null;
+                        ev.IsHomeMatch = req.IsHomeMatch ?? true;
+                        ev.CodActa = req.CodActa;
 
                         await db.SaveChangesAsync(cancellationToken);
 
-                        return Results.Ok(new SportEventSaveResponse(ev.Id, ev.Name, ev.EveDateTime, ev.StartTime, ev.EndTime, ev.ArrivalDate, ev.Location, ev.Description, ev.EventTypeId, ev.TeamId, ev.RivalId));
+                        return Results.Ok(new SportEventSaveResponse(ev.Id, ev.Name, ev.EveDateTime, ev.StartTime, ev.EndTime, ev.ArrivalDate, ev.Location, ev.Description, ev.EventTypeId, ev.TeamId, ev.RivalId, ev.IsHomeMatch, ev.CodActa));
                     })
                 .WithName(nameof(UpdateSportEvent))
                 .WithTags(SportEventsConstants.SportEventsFeature)
@@ -49,7 +54,9 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
         string? Location,
         string? Description,
         int EventTypeId,
-        string? RivalId
+        string? RivalId,
+        bool? IsHomeMatch,
+        string? CodActa
     );
 
     public class UpdateSportEventValidator : AbstractValidator<UpdateSportEventRequest>

@@ -120,6 +120,28 @@
   flex-shrink: 0;
 }
 
+/* Result variants — override accent line & left border */
+.matchCardWon {
+  border-left: 3px solid #4caf50;
+}
+.matchCardWon::before {
+  background: linear-gradient(90deg, #4caf50 0%, #81c784 100%);
+}
+
+.matchCardDraw {
+  border-left: 3px solid #ff9800;
+}
+.matchCardDraw::before {
+  background: linear-gradient(90deg, #ff9800 0%, #ffb74d 100%);
+}
+
+.matchCardLost {
+  border-left: 3px solid #f44336;
+}
+.matchCardLost::before {
+  background: linear-gradient(90deg, #f44336 0%, #e57373 100%);
+}
+
 /* 3-column row: local | score | visitor */
 .matchCardInner {
   display: flex;
@@ -219,11 +241,15 @@
 .matchStatus {
   font-size: 0.5rem;
   font-weight: 700;
-  color: #4ec9b0;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   line-height: 1;
 }
+
+.matchStatusWon    { color: #81c784; }
+.matchStatusDraw   { color: #ffb74d; }
+.matchStatusLost   { color: #e57373; }
+.matchStatusPlayed { color: #4ec9b0; }
 
 .matchTimePlanned {
   font-size: 0.9rem;

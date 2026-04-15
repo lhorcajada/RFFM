@@ -55,7 +55,9 @@ namespace RFFM.Api.Domain.Entities.Players
         public void UpdateBirthDate(DateTime? birthDate)
         {
             ValidationPlayer.ValidateBirthDate(birthDate);
-            BirthDate = birthDate;
+            BirthDate = birthDate.HasValue
+                ? DateTime.SpecifyKind(birthDate.Value, DateTimeKind.Utc)
+                : null;
         }
         public void UpdateDni(string? dni)
         {

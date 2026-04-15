@@ -16,6 +16,10 @@ namespace RFFM.Api.Domain.Aggregates.Assistances
         public int EventTypeId { get; set; }
         public string TeamId { get; set; } = null!;
         public string? RivalId { get; set; } = null!;
+        public bool IsHomeMatch { get; set; } = true;
+        public string? CodActa { get; set; }
+        public string? LocalGoals { get; set; }
+        public string? VisitorGoals { get; set; }
 
         public Team Team { get; set; } = null!;
         public Rival? Rival { get; set; } = null!;
@@ -52,7 +56,9 @@ namespace RFFM.Api.Domain.Aggregates.Assistances
         public static SportEvent CreateNew(
             string name, DateTime eveDateTime, DateTime startTime, DateTime? endTime,
             DateTime? arrivalDate, string? location, string? description,
-            int eventTypeId, string teamId, string? rivalId)
+            int eventTypeId, string teamId, string? rivalId,
+            bool isHomeMatch = true, string? codActa = null,
+            string? localGoals = null, string? visitorGoals = null)
         {
             return new SportEvent
             {
@@ -66,6 +72,10 @@ namespace RFFM.Api.Domain.Aggregates.Assistances
                 EventTypeId = eventTypeId,
                 TeamId = teamId,
                 RivalId = rivalId,
+                IsHomeMatch = isHomeMatch,
+                CodActa = codActa,
+                LocalGoals = localGoals,
+                VisitorGoals = visitorGoals,
             };
         }
 

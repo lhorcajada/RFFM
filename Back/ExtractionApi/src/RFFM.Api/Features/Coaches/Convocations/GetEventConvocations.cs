@@ -27,7 +27,7 @@ namespace RFFM.Api.Features.Coaches.Convocations
             public string EventId { get; init; } = null!;
         }
 
-        public record ConvocationResponse(string ConvocationId, string TeamPlayerId, string Alias, string? UrlPhoto, string? Position, string Status, int? StatusId, int? ExcuseTypeId, int? AvailabilityTypeId, int? AssistanceTypeId);
+        public record ConvocationResponse(string ConvocationId, string TeamPlayerId, string Alias, string? UrlPhoto, string? Position, string Status, int? StatusId, int? ExcuseTypeId, int? AvailabilityTypeId, int? AssistanceTypeId, bool IsInjured);
 
         public class Handler : IRequestHandler<EventConvocationsQuery, ConvocationResponse[]>
         {
@@ -40,6 +40,8 @@ namespace RFFM.Api.Features.Coaches.Convocations
                     .AsNoTracking()
                     .Include(c => c.Player)
                         .ThenInclude(tp => tp.Player)
+                    .Include(c => c.Player)
+                        .ThenInclude(tp => tp.Injuries)
                     .Include(c => c.Status)
                     .Where(c => c.SportEventId == request.EventId)
                     .Select(c => new
@@ -53,9 +55,14 @@ namespace RFFM.Api.Features.Coaches.Convocations
                         StatusId = c.ConvocationStatusId,
                         ExcuseTypeId = c.ExcuseTypeId,
                         AvailabilityTypeId = c.AvailabilityTypeId,
-                        AssistanceTypeId = c.AssistanceTypeId
+                        AssistanceTypeId = c.AssistanceTypeId,
+                        Injuries = c.Player.Injuries.Select(i => new { i.StartDate, i.EndDate }).ToList()
                     })
                     .ToArrayAsync(cancellationToken);
+
+                var sportEvent = await _db.SportEvents.AsNoTracking()
+                    .FirstOrDefaultAsync(se => se.Id == request.EventId, cancellationToken);
+                var eventDate = sportEvent?.EveDateTime.Date ?? DateTime.UtcNow.Date;
 
                 var result = convocationsRaw.Select(c => new ConvocationResponse(
                     c.Id,
@@ -67,7 +74,10 @@ namespace RFFM.Api.Features.Coaches.Convocations
                     c.StatusId,
                     c.ExcuseTypeId,
                     c.AvailabilityTypeId,
-                    c.AssistanceTypeId
+                    c.AssistanceTypeId,
+                    c.Injuries.Any(i =>
+                        i.StartDate.Date <= eventDate &&
+                        (i.EndDate == null || i.EndDate.Value.Date >= eventDate))
                 ))
                 .ToArray();
 

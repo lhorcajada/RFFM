@@ -41,8 +41,6 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Queries
             public DateTime? StartDate { get; set; }
             public DateTime? EndDate { get; set; }
             public bool Descending { get; set; } = false;
-            public string CacheKey => $"SportEvents_{TeamId}_{PageNumber}_{PageSize}";
-            public DateTime? AbsoluteExpirationRelativeToNow { get; }
         }
 
 
@@ -59,6 +57,14 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Queries
             public int EventTypeId { get; set; }
             public string TeamId { get; set; } = null!;
             public string? RivalId { get; set; }
+            public bool IsHomeMatch { get; set; }
+            public string? CodActa { get; set; }
+            public string? RivalName { get; set; }
+            public string? RivalPhotoUrl { get; set; }
+            public string? TeamName { get; set; }
+            public string? TeamPhotoUrl { get; set; }
+            public string? LocalGoals { get; set; }
+            public string? VisitorGoals { get; set; }
 
         };
 
@@ -75,7 +81,7 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Queries
 
             public async ValueTask<SportEventResponse[]> Handle(SportEventsQuery request, CancellationToken cancellationToken = default)
             {
-                var query = _db.SportEvents.Include(s => s.Rival).Where(e => e.TeamId == request.TeamId).AsQueryable();
+                var query = _db.SportEvents.Include(s => s.Rival).Include(s => s.Team).Where(e => e.TeamId == request.TeamId).AsQueryable();
 
                 if (request.StartDate.HasValue)
                 {
@@ -115,7 +121,15 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Queries
                         Description = sportEvent.Description,
                         EventTypeId = sportEvent.EventTypeId,
                         TeamId = sportEvent.TeamId,
-                        RivalId = sportEvent.Rival != null ? sportEvent.Rival.Id.Replace("\r", "").Replace("\n", "").Trim() : null
+                        RivalId = sportEvent.Rival != null ? sportEvent.Rival.Id.Replace("\r", "").Replace("\n", "").Trim() : null,
+                        IsHomeMatch = sportEvent.IsHomeMatch,
+                        CodActa = sportEvent.CodActa,
+                        RivalName = sportEvent.Rival != null ? sportEvent.Rival.Name : null,
+                        RivalPhotoUrl = sportEvent.Rival != null ? sportEvent.Rival.UrlPhoto : null,
+                        TeamName = sportEvent.Team != null ? sportEvent.Team.Name : null,
+                        TeamPhotoUrl = sportEvent.Team != null ? sportEvent.Team.UrlPhoto : null,
+                        LocalGoals = sportEvent.LocalGoals,
+                        VisitorGoals = sportEvent.VisitorGoals
                     })
                     .ToArrayAsync(cancellationToken);
 

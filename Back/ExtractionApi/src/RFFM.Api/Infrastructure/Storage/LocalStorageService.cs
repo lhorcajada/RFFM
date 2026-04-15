@@ -51,6 +51,18 @@ namespace RFFM.Api.Infrastructure.Storage
             return (bytes, GetContentType(Path.GetExtension(fullPath)));
         }
 
+        public async Task<string> UploadBytesAsync(string bucket, string filePath, byte[] content, string contentType, CancellationToken cancellationToken)
+        {
+            var relativePath = filePath.Replace('/', Path.DirectorySeparatorChar);
+            var fullDirectory = Path.Combine(_basePath, bucket, Path.GetDirectoryName(relativePath) ?? "");
+            Directory.CreateDirectory(fullDirectory);
+
+            var fullPath = Path.Combine(_basePath, bucket, relativePath);
+            await File.WriteAllBytesAsync(fullPath, content, cancellationToken);
+
+            return $"{bucket}/{filePath.Replace('\\', '/')}";
+        }
+
         private static string GetContentType(string extension) => extension.ToLowerInvariant() switch
         {
             ".png" => "image/png",

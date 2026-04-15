@@ -1,6 +1,5 @@
 import React from "react";
 import PlayerCard from "../../../components/PlayerCard/PlayerCard";
-import { Button, Chip } from "@mui/material";
 import styles from "../AttendanceTabs.module.css";
 import defaultAvatar from "../../../../../assets/avatar.svg";
 import type { PlayerSimple } from "../../services/convocationService";
@@ -9,14 +8,18 @@ type Props = {
   players: PlayerSimple[];
   photos: Record<string, string | null>;
   onAdd: (playerId?: string) => void;
+  onDeconvoke?: (playerId: string) => void;
   canEdit: boolean;
+  adding?: boolean;
 };
 
 export default function NotConvokedList({
   players,
   photos,
   onAdd,
+  onDeconvoke,
   canEdit,
+  adding = false,
 }: Props) {
   return (
     <div>
@@ -33,25 +36,38 @@ export default function NotConvokedList({
           const photoSrc = byId ?? byUrl ?? defaultAvatar;
           return (
             <div key={key} className={styles.cardWrap}>
-              <PlayerCard
-                player={{ ...(p as any), position: p.position }}
-                photoSrc={photoSrc}
-                actions={
-                  <>
-                    <Chip label={"Pendiente"} className={styles.statusChip} />
-                    {canEdit ? (
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        className={styles.convocarButton}
-                        onClick={() => onAdd(p.id)}
-                      >
-                        Convocar
-                      </Button>
-                    ) : null}
-                  </>
-                }
-              />
+              <div className={`${styles.cardInner} ${styles.cardStatusPending}`}>
+                <PlayerCard
+                  player={{ ...(p as any), position: p.position }}
+                  photoSrc={photoSrc}
+                  actions={
+                    canEdit ? (
+                      <div className={styles.optionGroup}>
+                        <button
+                          disabled={adding}
+                          className={`${styles.optionBtn} ${styles.optionBtnTeal} ${styles.optionBtnActive}`}
+                          onClick={() => onAdd(p.id)}
+                        >
+                          Convocar
+                        </button>
+                        {onDeconvoke && p.id && (
+                          <button
+                            disabled={adding}
+                            className={`${styles.optionBtn} ${styles.optionBtnRed}`}
+                            onClick={() => onDeconvoke(p.id!)}
+                          >
+                            Desconvocar
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <div className={styles.tagBadgeRow}>
+                        <span className={`${styles.tagBadge} ${styles.tagWaiting}`}>En espera</span>
+                      </div>
+                    )
+                  }
+                />
+              </div>
             </div>
           );
         })}

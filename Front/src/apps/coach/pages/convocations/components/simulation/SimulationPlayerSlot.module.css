@@ -209,3 +209,14 @@
 
 /* Legacy .compTag kept for safety but no longer rendered */
 .compTag { display: none; }
+
+/* Goal badge — appears at top-right when player has scored */
+.goalBadge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  font-size: 0.75rem;
+  line-height: 1;
+  z-index: 5;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.7));
+}

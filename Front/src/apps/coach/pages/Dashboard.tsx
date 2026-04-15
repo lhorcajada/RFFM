@@ -14,6 +14,7 @@ import GavelIcon from "@mui/icons-material/Gavel";
 import CasinoIcon from "@mui/icons-material/Casino";
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
 import TimelineIcon from "@mui/icons-material/Timeline";
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import BaseLayout from "../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../shared/components/ui/ContentLayout/ContentLayout";
 import DashboardCard from "../../../shared/components/ui/DashboardCard/DashboardCard";
@@ -229,6 +230,15 @@ export default function CoachDashboard() {
               to={`/coach/clubs${
                 selectedSeason ? `?seasonId=${selectedSeason}` : ""
               }`}
+            />
+
+            <DashboardCard
+              title="Prep. temporada"
+              description="Importar plantillas de federación y planificar la nueva temporada."
+              icon={
+                <CalendarMonthIcon style={{ fontSize: 40, color: "#05313b" }} />
+              }
+              to="/coach/season-prep"
             />
 
             {!!teamTitleNode && (

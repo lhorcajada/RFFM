@@ -159,7 +159,7 @@ export default function ConvocationTab({
             className={styles.teamAvgValue}
             style={{ color: mgmtRatingColor(teamAvgRating) }}
           >
-            {teamAvgRating.toFixed(1)}
+            {Math.round(teamAvgRating)}
           </span>
         ) : (
           <span className={styles.teamAvgCount}>Sin valoraciones</span>

@@ -24,6 +24,8 @@ interface SimulationPlayerSlotProps {
   /** Prepare-mode: player is going off (still shown in the real slot briefly) */
   leaving?: boolean;
   prepareMode: boolean;
+  /** Show a soccer-ball badge (used in live match to indicate the player has scored) */
+  hasGoals?: boolean;
 }
 
 // ─── Draggable card (used only in prepare mode) ───────────────────────────────
@@ -32,10 +34,12 @@ function DraggablePrepareCard({
   player,
   entering,
   leaving,
+  hasGoals,
 }: {
   player: SimSlotPlayer;
   entering: boolean;
   leaving: boolean;
+  hasGoals?: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `sim-player-${player.teamPlayerId}`,
@@ -82,13 +86,14 @@ function DraggablePrepareCard({
       )}
       {entering && <span className={styles.enteringBadge}>ENTRA</span>}
       {leaving && <span className={styles.leavingBadge}>SALE</span>}
+      {hasGoals && <span className={styles.goalBadge}>⚽</span>}
     </div>
   );
 }
 
 // ─── Static card (normal game mode) ──────────────────────────────────────────
 
-function StaticCard({ player }: { player: SimSlotPlayer }) {
+function StaticCard({ player, hasGoals }: { player: SimSlotPlayer; hasGoals?: boolean }) {
   const initials = player.displayName
     .split(" ")
     .slice(0, 2)
@@ -113,6 +118,7 @@ function StaticCard({ player }: { player: SimSlotPlayer }) {
           : styles.compTagLow
         }`}>{Math.round(player.competitiveness)}</span>
       )}
+      {hasGoals && <span className={styles.goalBadge}>⚽</span>}
     </div>
   );
 }
@@ -129,6 +135,7 @@ export default function SimulationPlayerSlot({
   entering = false,
   leaving = false,
   prepareMode,
+  hasGoals = false,
 }: SimulationPlayerSlotProps) {
   const { setNodeRef: dropRef, isOver } = useDroppable({ id: `sim-slot-${slotIndex}` });
 
@@ -146,9 +153,9 @@ export default function SimulationPlayerSlot({
       <div className={`${styles.dropTarget} ${isOver ? styles.over : ""} ${player ? styles.occupied : ""}`}>
         {player ? (
           prepareMode ? (
-            <DraggablePrepareCard player={player} entering={entering} leaving={leaving} />
+            <DraggablePrepareCard player={player} entering={entering} leaving={leaving} hasGoals={hasGoals} />
           ) : (
-            <StaticCard player={player} />
+            <StaticCard player={player} hasGoals={hasGoals} />
           )
         ) : (
           <span className={styles.emptyLabel}>{label}</span>

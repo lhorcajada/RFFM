@@ -7,6 +7,8 @@ export type MatchState = {
   visitorTeamName: string;
   visitorTeamShield: string;
   isFinished: boolean;
+  /** true if the user's team is playing as the local/home team */
+  isHomeTeam: boolean;
   field: string;
   codacta: string | null;
 };

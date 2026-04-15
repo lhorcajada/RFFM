@@ -64,9 +64,6 @@ namespace RFFM.Api.Features.Coaches.Convocations
                 var sportEvent = await _db.SportEvents.FirstOrDefaultAsync(se => se.Id == request.EventId, cancellationToken);
                 if (sportEvent == null) throw new ArgumentException("Event not found");
 
-                // Check start time
-                if (sportEvent.StartTime <= DateTime.UtcNow) throw new InvalidOperationException("Event already started");
-
                 // Check not already convocated
                 var exists = await _db.Convocations.AnyAsync(c => c.SportEventId == request.EventId && c.TeamPlayerId == request.TeamPlayerId, cancellationToken);
                 if (exists) throw new ArgumentException("Player already convocated");
@@ -95,8 +92,6 @@ namespace RFFM.Api.Features.Coaches.Convocations
             {
                 var sportEvent = await _db.SportEvents.FirstOrDefaultAsync(se => se.Id == request.EventId, cancellationToken);
                 if (sportEvent == null) throw new ArgumentException("Event not found");
-
-                if (sportEvent.StartTime <= DateTime.UtcNow) throw new InvalidOperationException("Event already started");
 
                 var teamPlayers = await _db.TeamPlayers.Where(tp => tp.TeamId == sportEvent.TeamId).ToListAsync(cancellationToken);
 

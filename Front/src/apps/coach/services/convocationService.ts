@@ -5,6 +5,7 @@ export type PlayerSimple = {
   alias?: string;
   urlPhoto?: string | null;
   position?: string;
+  isInjured?: boolean;
 };
 
 export type ConvocationItem = {
@@ -14,15 +15,23 @@ export type ConvocationItem = {
   excuseTypeId?: number | null;
   availabilityTypeId?: number | null;
   assistanceTypeId?: number | null;
+  isInjured?: boolean;
 };
 
 export async function getEventPlayers(
   eventId: string
 ): Promise<PlayerSimple[]> {
-  const resp = await client.get<PlayerSimple[]>(
+  const resp = await client.get<any[]>(
     `/api/events/${eventId}/players`
   );
-  return resp.data ?? [];
+  const data = resp.data ?? [];
+  return data.map((p: any) => ({
+    id: p.teamPlayerId ?? p.id,
+    alias: p.alias,
+    urlPhoto: p.urlPhoto ?? null,
+    position: p.position,
+    isInjured: p.isInjured ?? false,
+  }));
 }
 
 export async function getConvocations(
@@ -44,16 +53,17 @@ export async function getConvocations(
     excuseTypeId: c.excuseTypeId,
     availabilityTypeId: c.availabilityTypeId,
     assistanceTypeId: c.assistanceTypeId,
+    isInjured: c.isInjured ?? false,
   }));
 }
 
 export async function addConvocation(
   eventId: string,
-  playerId: string
+  teamPlayerId: string
 ): Promise<ConvocationItem> {
   const resp = await client.post<ConvocationItem>(
     `/api/events/${eventId}/convocations`,
-    { playerId }
+    { teamPlayerId }
   );
   return resp.data;
 }

@@ -275,6 +275,28 @@
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+/* ─── Season stats row ─── */
+.seasonStatsRow {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  flex-wrap: wrap;
+}
+
+.seasonStatItem {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.55);
+  font-variant-numeric: tabular-nums;
+}
+
+.seasonStatSep {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.2);
+}
+
 /* ─── Link wrapper ─── */
 .link {
   display: block;

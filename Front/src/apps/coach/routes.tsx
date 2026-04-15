@@ -35,6 +35,8 @@ const CreateSessionFromSubPrinciple = lazy(() => import("./pages/game-model/Crea
 const SessionsFromSubPrinciple = lazy(() => import("./pages/game-model/SessionsFromSubPrinciple"));
 const Sanctions = lazy(() => import("./pages/sanctions/Sanctions"));
 const Lottery = lazy(() => import("./pages/lottery/Lottery"));
+const SeasonPrep = lazy(() => import("./pages/season-prep/SeasonPrep"));
+const EvaluationPage = lazy(() => import("./pages/season-prep/evaluation/EvaluationPage"));
 const PlayerDetail = lazy(() => import("./pages/player/PlayerDetail"));
 
 function LoadingFallback() {
@@ -156,6 +158,8 @@ function CoachRoutesContent() {
             <Route path="game-model/sessions" element={<SessionsFromSubPrinciple />} />
             <Route path="sanctions" element={<Sanctions />} />
             <Route path="lottery" element={<Lottery />} />
+            <Route path="season-prep" element={<SeasonPrep />} />
+            <Route path="season-prep/evaluate" element={<EvaluationPage />} />
             <Route path="clubs" element={<Clubs />} />
             <Route path="clubs/dashboard/:id" element={<ClubsDashboard />} />
             <Route path="clubs/:id/teams" element={<ClubTeams />} />

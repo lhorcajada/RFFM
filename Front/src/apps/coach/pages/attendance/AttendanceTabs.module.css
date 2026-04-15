@@ -26,8 +26,6 @@
 .cardInner {
   display: flex;
   flex-direction: column;
-  min-height: 120px;
-  justify-content: space-between;
 }
 
 .cardActions {
@@ -58,6 +56,67 @@
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
+}
+
+/* ─── List group headers (same style as ConvocationTab dropColumnHeader) ─── */
+.listGroupHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 9px 12px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  border-bottom: 2px solid rgba(0, 0, 0, 0.07);
+  border-radius: 6px 6px 0 0;
+  margin-bottom: 8px;
+}
+
+.listGroupHeaderGreen {
+  background: linear-gradient(90deg, rgba(76, 175, 80, 0.15) 0%, transparent 100%);
+  border-bottom-color: rgba(76, 175, 80, 0.3);
+  color: #4caf50;
+}
+
+.listGroupHeaderRed {
+  background: linear-gradient(90deg, rgba(244, 67, 54, 0.15) 0%, transparent 100%);
+  border-bottom-color: rgba(244, 67, 54, 0.3);
+  color: #f44336;
+}
+
+.listGroupHeaderGray {
+  background: linear-gradient(90deg, rgba(158, 158, 158, 0.15) 0%, transparent 100%);
+  border-bottom-color: rgba(158, 158, 158, 0.3);
+  color: #9e9e9e;
+}
+
+.listGroupHeaderBlue {
+  background: linear-gradient(90deg, rgba(77, 157, 224, 0.15) 0%, transparent 100%);
+  border-bottom-color: rgba(77, 157, 224, 0.3);
+  color: #4d9de0;
+}
+
+.listGroupHeaderTeal {
+  background: linear-gradient(90deg, rgba(78, 201, 176, 0.15) 0%, transparent 100%);
+  border-bottom-color: rgba(78, 201, 176, 0.3);
+  color: #4ec9b0;
+}
+
+.listGroupCount {
+  background: rgba(0, 0, 0, 0.07);
+  border-radius: 10px;
+  padding: 2px 7px;
+  font-size: 0.66rem;
+  opacity: 0.7;
+}
+
+.listSectionTitle {
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
 }
 
 .convocationCard {
@@ -135,6 +194,216 @@
   padding-left: 10px;
   padding-right: 10px;
   white-space: nowrap;
+}
+
+/* ─── Toggle pill buttons (replaces MUI Select dropdowns in cards) ─── */
+.optionGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  width: 100%;
+}
+
+.optionGroupSub {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  width: 100%;
+  padding-top: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  margin-top: 4px;
+}
+
+/* Sub-option buttons (excuses): smaller, more pill-like, visually secondary */
+.optionSubBtn {
+  font-size: 0.6rem;
+  padding: 4px 8px;
+  border-radius: 20px;
+  opacity: 0.82;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.optionSubBtn.optionBtnActive {
+  opacity: 1;
+}
+
+.optionBtn {
+  flex: 1 1 auto;
+  min-width: 52px;
+  padding: 5px 7px;
+  font-size: 0.66rem;
+  font-weight: 600;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.38);
+  cursor: pointer;
+  text-align: center;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  line-height: 1.3;
+  font-family: inherit;
+}
+
+.optionBtn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.09);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.optionBtn:disabled {
+  cursor: default;
+  pointer-events: none;
+}
+
+.optionBtnGreen.optionBtnActive {
+  background: rgba(76, 175, 80, 0.2);
+  border-color: #4caf50;
+  color: #4caf50;
+}
+
+.optionBtnRed.optionBtnActive {
+  background: rgba(244, 67, 54, 0.2);
+  border-color: #f44336;
+  color: #f44336;
+}
+
+.optionBtnOrange.optionBtnActive {
+  background: rgba(255, 152, 0, 0.2);
+  border-color: #ff9800;
+  color: #ff9800;
+}
+
+.optionBtnBlue.optionBtnActive {
+  background: rgba(33, 150, 243, 0.2);
+  border-color: #2196f3;
+  color: #2196f3;
+}
+
+.optionBtnGray.optionBtnActive {
+  background: rgba(158, 158, 158, 0.2);
+  border-color: #9e9e9e;
+  color: #9e9e9e;
+}
+
+.optionBtnPurple {
+  color: rgba(179, 136, 255, 0.5);
+  border-color: rgba(179, 136, 255, 0.18);
+}
+
+.optionBtnTeal {
+  color: rgba(78, 201, 176, 0.5);
+  border-color: rgba(78, 201, 176, 0.18);
+}
+
+.optionBtnTeal:hover:not(:disabled) {
+  background: rgba(78, 201, 176, 0.1);
+  color: rgba(78, 201, 176, 0.85);
+  border-color: rgba(78, 201, 176, 0.35);
+}
+
+.optionBtnTeal.optionBtnActive {
+  background: rgba(78, 201, 176, 0.2);
+  border-color: #4ec9b0;
+  color: #4ec9b0;
+}
+
+.optionBtnPurple.optionBtnActive {
+  background: rgba(179, 136, 255, 0.2);
+  border-color: #b388ff;
+  color: #b388ff;
+}
+
+.optionBtnPurple:hover:not(:disabled) {
+  background: rgba(179, 136, 255, 0.1);
+  color: rgba(179, 136, 255, 0.8);
+  border-color: rgba(179, 136, 255, 0.35);
+}
+
+/* ─── Tag badges inside cards ─── */
+.tagBadge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.68rem;
+  font-weight: 600;
+  border-radius: 10px;
+  padding: 3px 9px;
+  border: 1px solid currentColor;
+  margin-right: 6px;
+}
+
+.tagInjured {
+  color: #f44336;
+}
+
+.tagDeconvoked {
+  color: #f44336;
+}
+
+.tagDecision {
+  color: #ffb74d;
+}
+
+.tagWaiting {
+  color: #4ec9b0;
+}
+
+.tagBadgeRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  width: 100%;
+}
+
+/* ─── Dialog option list buttons ─── */
+.dialogOptionBtn {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.88rem;
+  font-weight: 400;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dialogOptionBtn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.9);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.dialogOptionBtnOrange:hover:not(:disabled) {
+  background: rgba(255, 152, 0, 0.1);
+  color: rgba(255, 152, 0, 0.85);
+  border-color: rgba(255, 152, 0, 0.4);
+}
+
+.dialogOptionBtnOrange.dialogOptionBtnActive {
+  border: 1.5px solid #ff9800;
+  background: rgba(255, 152, 0, 0.15);
+  color: #ff9800;
+  font-weight: 700;
+}
+
+.dialogOptionBtnRed:hover:not(:disabled) {
+  background: rgba(244, 67, 54, 0.1);
+  color: rgba(244, 67, 54, 0.85);
+  border-color: rgba(244, 67, 54, 0.4);
+}
+
+.dialogOptionBtnRed.dialogOptionBtnActive {
+  border: 1.5px solid #f44336;
+  background: rgba(244, 67, 54, 0.15);
+  color: #f44336;
+  font-weight: 700;
 }
 
 @media (max-width: 480px) {

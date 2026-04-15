@@ -14,6 +14,7 @@ import TeamsSelector from "../../../../shared/components/ui/TeamsSelector/TeamsS
 import {
   getTeamAgeSummary,
   getTeamParticipationSummary,
+  getPlayerPositionsFromActas,
 } from "../../services/api";
 import { getSettingsForUser } from "../../services/federationApi";
 import { usePlayers } from "./usePlayers";
@@ -27,6 +28,7 @@ import AgeModal from "./components/AgeModal";
 import ParticipationModal from "./components/ParticipationModal";
 import PrintableSquad from "../../components/players/PrintableSquad/PrintableSquad";
 import { exportElementsToPdfPacked } from "../../../../shared/services/pdfService";
+import { exportSquadToExcel } from "../../../../shared/services/excelService";
 
 import type { TeamParticipationSummaryItem } from "../../types/participation";
 
@@ -50,6 +52,7 @@ export default function GetPlayers(): JSX.Element {
     useState<boolean>(false);
 
   const [exportingPdf, setExportingPdf] = useState<boolean>(false);
+  const [exportingExcel, setExportingExcel] = useState<boolean>(false);
 
   const [selectedCompetition, setSelectedCompetition] = useState<
     string | undefined
@@ -253,6 +256,46 @@ export default function GetPlayers(): JSX.Element {
                     loading={loadingParticipation}
                     data={participationData}
                   />
+                </div>
+                <div>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    className={styles.homeButton}
+                    disabled={exportingExcel}
+                    onClick={async () => {
+                      try {
+                        setExportingExcel(true);
+                        const id = String(
+                          (selectedTeam as any).id || selectedTeam?.id,
+                        );
+                        let positions: Record<string, string[]> = {};
+                        try {
+                          positions = await getPlayerPositionsFromActas(id, {
+                            competition: selectedCompetition,
+                            group: selectedGroup,
+                          });
+                        } catch (_e) {
+                          // si falla la carga de actas continuamos sin posiciones
+                        }
+                        exportSquadToExcel(
+                          players,
+                          selectedTeam?.name || "plantilla",
+                          ageSummary && Object.keys(ageSummary).length > 0
+                            ? ageSummary
+                            : (ageCounts as any),
+                          participationData && participationData.length > 0
+                            ? participationData
+                            : (groupCounts as any),
+                          positions,
+                        );
+                      } finally {
+                        setExportingExcel(false);
+                      }
+                    }}
+                  >
+                    {exportingExcel ? "Cargando..." : "Exportar Excel"}
+                  </Button>
                 </div>
                 <div>
                   <Button

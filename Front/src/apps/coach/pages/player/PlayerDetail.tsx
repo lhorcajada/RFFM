@@ -16,6 +16,12 @@ import {
   Tab,
   Tabs,
   Badge,
+  CircularProgress,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import MedicalServicesIcon from "@mui/icons-material/MedicalServices";
@@ -28,6 +34,8 @@ import { createPlayerInjury } from "../../services/teamplayerService";
 import demarcationService, {
   DemarcationOption,
 } from "../../services/demarcationService";
+import { getPlayerMatchHistory } from "../../services/liveMatchService";
+import type { PlayerMatchRecord } from "../convocations/components/simulation/liveMatch.types";
 import styles from "./PlayerDetail.module.css";
 import PlayerHeader from "./components/PlayerHeader";
 import Demarcations from "./components/Demarcations";
@@ -55,6 +63,9 @@ export default function PlayerDetail() {
   const [savingInjury, setSavingInjury] = useState(false);
   const [injuryRefreshKey, setInjuryRefreshKey] = useState(0);
   const [activeTab, setActiveTab] = useState(0);
+  const [matchHistory, setMatchHistory] = useState<PlayerMatchRecord[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
   const [demarcationOptions, setDemarcationOptions] = useState<
     DemarcationOption[]
   >([]);
@@ -330,6 +341,15 @@ export default function PlayerDetail() {
                       </Badge>
                     }
                   />
+                  <Tab label="Estadísticas" onClick={() => {
+                    if (!historyLoaded && id) {
+                      setLoadingHistory(true);
+                      getPlayerMatchHistory(id)
+                        .then((data) => { setMatchHistory(data); setHistoryLoaded(true); })
+                        .catch(() => {})
+                        .finally(() => setLoadingHistory(false));
+                    }
+                  }} />
                 </Tabs>
               </div>
 
@@ -481,6 +501,86 @@ export default function PlayerDetail() {
                       }
                     />
                   </>
+                )}
+
+                {activeTab === 5 && (
+                  <div className={styles.statsTab}>
+                    {loadingHistory && (
+                      <div className={styles.statsLoading}>
+                        <CircularProgress size={24} />
+                      </div>
+                    )}
+                    {!loadingHistory && matchHistory.length === 0 && (
+                      <p className={styles.statsEmpty}>No hay partidos registrados.</p>
+                    )}
+                    {!loadingHistory && matchHistory.length > 0 && (() => {
+                      const totalMinutes = matchHistory.reduce((s, r) => s + r.minutesPlayed, 0);
+                      const totalGoals = matchHistory.reduce((s, r) => s + r.goalsScored, 0);
+                      const totalStarts = matchHistory.filter((r) => r.isStarter).length;
+                      return (
+                        <>
+                          <div className={styles.statsTotals}>
+                            <div className={styles.statsTotalItem}>
+                              <span className={styles.statsTotalValue}>{totalMinutes}</span>
+                              <span className={styles.statsTotalLabel}>minutos</span>
+                            </div>
+                            <div className={styles.statsTotalItem}>
+                              <span className={styles.statsTotalValue}>{totalGoals}</span>
+                              <span className={styles.statsTotalLabel}>goles</span>
+                            </div>
+                            <div className={styles.statsTotalItem}>
+                              <span className={styles.statsTotalValue}>{totalStarts}</span>
+                              <span className={styles.statsTotalLabel}>titularidades</span>
+                            </div>
+                            <div className={styles.statsTotalItem}>
+                              <span className={styles.statsTotalValue}>{matchHistory.length}</span>
+                              <span className={styles.statsTotalLabel}>partidos</span>
+                            </div>
+                          </div>
+                          <div className={styles.statsTableWrapper}>
+                            <Table size="small">
+                              <TableHead>
+                                <TableRow>
+                                  <TableCell sx={{ color: "rgba(255,255,255,0.5)", fontSize: "0.75rem" }}>Fecha guardado</TableCell>
+                                  <TableCell sx={{ color: "rgba(255,255,255,0.5)", fontSize: "0.75rem" }}>Marcador</TableCell>
+                                  <TableCell sx={{ color: "rgba(255,255,255,0.5)", fontSize: "0.75rem" }}>Min</TableCell>
+                                  <TableCell sx={{ color: "rgba(255,255,255,0.5)", fontSize: "0.75rem" }}>Titular</TableCell>
+                                  <TableCell sx={{ color: "rgba(255,255,255,0.5)", fontSize: "0.75rem" }}>Entró</TableCell>
+                                  <TableCell sx={{ color: "rgba(255,255,255,0.5)", fontSize: "0.75rem" }}>Salió</TableCell>
+                                  <TableCell sx={{ color: "rgba(255,255,255,0.5)", fontSize: "0.75rem" }}>Goles</TableCell>
+                                </TableRow>
+                              </TableHead>
+                              <TableBody>
+                                {matchHistory.map((r) => (
+                                  <TableRow key={r.eventId}>
+                                    <TableCell sx={{ color: "rgba(255,255,255,0.75)", fontSize: "0.8rem" }}>
+                                      {new Date(r.savedAt).toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit", year: "2-digit" })}
+                                    </TableCell>
+                                    <TableCell sx={{ color: "rgba(255,255,255,0.75)", fontSize: "0.8rem" }}>
+                                      {r.scoreLocal}:{r.scoreVisitor}
+                                    </TableCell>
+                                    <TableCell sx={{ color: "rgba(255,255,255,0.75)", fontSize: "0.8rem" }}>{r.minutesPlayed}</TableCell>
+                                    <TableCell sx={{ color: r.isStarter ? "#22c55e" : "rgba(255,255,255,0.4)", fontSize: "0.8rem" }}>
+                                      {r.isStarter ? "Sí" : "No"}
+                                    </TableCell>
+                                    <TableCell sx={{ color: "rgba(255,255,255,0.75)", fontSize: "0.8rem" }}>
+                                      {r.enteredAtMinute != null ? `${r.enteredAtMinute}'` : "—"}
+                                    </TableCell>
+                                    <TableCell sx={{ color: "rgba(255,255,255,0.75)", fontSize: "0.8rem" }}>
+                                      {r.exitedAtMinute != null ? `${r.exitedAtMinute}'` : "—"}
+                                    </TableCell>
+                                    <TableCell sx={{ color: r.goalsScored > 0 ? "#fb923c" : "rgba(255,255,255,0.4)", fontSize: "0.8rem", fontWeight: r.goalsScored > 0 ? 700 : 400 }}>
+                                      {r.goalsScored}
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
                 )}
               </div>
             </>

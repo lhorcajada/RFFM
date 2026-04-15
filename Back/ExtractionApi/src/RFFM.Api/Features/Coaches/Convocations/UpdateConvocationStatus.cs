@@ -47,17 +47,22 @@ namespace RFFM.Api.Features.Coaches.Convocations
                 var conv = await _db.Convocations.Include(c => c.SportEvent).FirstOrDefaultAsync(c => c.Id == request.ConvocationId && c.SportEventId == request.EventId, cancellationToken);
                 if (conv == null) throw new ArgumentException("Convocation not found");
 
-                if (conv.SportEvent.StartTime <= DateTime.UtcNow) throw new InvalidOperationException("Event already started");
-
                 // Validate status
                 var status = ConvocationStatus.From(request.NewStatusId);
                 conv.SetConvocationStatusId(request.NewStatusId);
 
                 if (status.Name.Equals("Declined", StringComparison.OrdinalIgnoreCase))
                 {
-                    if (request.ExcuseTypeId == null) throw new ArgumentException("Excuse type required for Declined status");
-                    var excuse = ExcuseTypes.FromId(request.ExcuseTypeId.Value) ?? throw new ArgumentException("Invalid excuse type");
+                    if (request.ExcuseTypeId != null)
+                    {
+                        var excuse = ExcuseTypes.FromId(request.ExcuseTypeId.Value) ?? throw new ArgumentException("Invalid excuse type");
+                    }
                     conv.SetExcuseTypeId(request.ExcuseTypeId);
+                }
+                else if (status.Name.Equals("Deconvoke", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Asociar automáticamente el motivo 'Decisión técnica' (id 7)
+                    conv.SetExcuseTypeId(7);
                 }
                 else
                 {

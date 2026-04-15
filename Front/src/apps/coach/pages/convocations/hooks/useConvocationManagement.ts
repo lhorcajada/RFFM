@@ -211,10 +211,10 @@ export function useConvocationManagement(
           ...availFromConvIds,
         ]);
         const availableIds: string[] = [...availFromConvIds];
-        const injuredNotCalled: string[] = [];
+        const injuredNoDisp: string[] = [];
         for (const p of players) {
           if (convocatedIds.has(p.id)) continue;
-          if (p.isInjured) injuredNotCalled.push(p.id);
+          if (p.isInjured) injuredNoDisp.push(p.id);
           else availableIds.push(p.id);
         }
 
@@ -227,21 +227,22 @@ export function useConvocationManagement(
         if (mounted) {
           setMgmtConvMap(convMap);
           setMgmtCalled(calledIds);
-          setMgmtNotCalled([...notCalledIds, ...injuredNotCalled]);
-          setMgmtNoDisponible(noDispIds);
+          setMgmtNotCalled(notCalledIds);
+          setMgmtNoDisponible([...noDispIds, ...injuredNoDisp]);
           setMgmtAvailable(availableIds);
           setMgmtExcuseMap(excuseInit);
         }
       } catch {
         if (mounted) {
           const avail: string[] = [];
-          const notC: string[] = [];
+          const noDisp: string[] = [];
           for (const p of players) {
-            if (p.isInjured) notC.push(p.id);
+            if (p.isInjured) noDisp.push(p.id);
             else avail.push(p.id);
           }
           setMgmtAvailable(avail);
-          setMgmtNotCalled(notC);
+          setMgmtNotCalled([]);
+          setMgmtNoDisponible(noDisp);
           setMgmtNoDisponible([]);
           setMgmtCalled([]);
           setMgmtConvMap({});

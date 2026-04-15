@@ -28,7 +28,7 @@ namespace RFFM.Api.Features.Coaches.Convocations
         }
 
         // Added Dorsal (nullable int) to response
-        public record EventPlayerResponse(string TeamPlayerId, string Alias, string? UrlPhoto, int? Dorsal, string? Position, string Status);
+        public record EventPlayerResponse(string TeamPlayerId, string Alias, string? UrlPhoto, int? Dorsal, string? Position, string Status, bool IsInjured);
 
         public class Handler : IRequestHandler<EventPlayersQuery, EventPlayerResponse[]>
         {
@@ -44,6 +44,7 @@ namespace RFFM.Api.Features.Coaches.Convocations
                 if (sportEvent == null) return Array.Empty<EventPlayerResponse>();
 
                 var teamId = sportEvent.TeamId;
+                var eventDate = sportEvent.EveDateTime.Date;
 
                 // get team players not yet convocated for this event
                 var convocatedIds = await _db.Convocations
@@ -54,6 +55,7 @@ namespace RFFM.Api.Features.Coaches.Convocations
                 var players = await _db.TeamPlayers
                     .AsNoTracking()
                     .Include(tp => tp.Player)
+                    .Include(tp => tp.Injuries)
                     .Where(tp => tp.TeamId == teamId && !convocatedIds.Contains(tp.Id))
                     .Select(tp => new
                     {
@@ -61,7 +63,10 @@ namespace RFFM.Api.Features.Coaches.Convocations
                         Alias = tp.Player.Alias,
                         UrlPhoto = tp.Player.UrlPhoto,
                         DorsalNumber = tp.Dorsal != null ? (int?)tp.Dorsal.Number : null,
-                        ActivePositionId = tp.Demarcation != null ? tp.Demarcation.ActivePositionId : (int?)null
+                        ActivePositionId = tp.Demarcation != null ? tp.Demarcation.ActivePositionId : (int?)null,
+                        IsInjured = tp.Injuries.Any(i =>
+                            i.StartDate.Date <= eventDate &&
+                            (i.EndDate == null || i.EndDate.Value.Date >= eventDate))
                     })
                     .ToArrayAsync(cancellationToken);
 
@@ -72,7 +77,8 @@ namespace RFFM.Api.Features.Coaches.Convocations
                     tp.UrlPhoto,
                     tp.DorsalNumber,
                     tp.ActivePositionId != null ? RFFM.Api.Domain.Entities.Demarcations.DemarcationMaster.GetById(tp.ActivePositionId.Value)?.Name : null,
-                    "Pendiente"
+                    "Pendiente",
+                    tp.IsInjured
                 ))
                 .ToArray();
 

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import EditIcon from "@mui/icons-material/Edit";
 import HistoryIcon from "@mui/icons-material/History";
 import avatarFallback from "../../../../../assets/avatar.svg";
+import type { SeasonPlayerStats } from "../../convocations/components/simulation/liveMatch.types";
 import styles from "./PlayerCromo.module.css";
 
 type RatingData = {
@@ -24,6 +25,7 @@ type Props = {
   to?: string;
   onEdit?: () => void;
   onHistory?: () => void;
+  seasonStats?: SeasonPlayerStats | null;
 };
 
 const STATS: { key: keyof RatingData; label: string }[] = [
@@ -62,6 +64,7 @@ export default function PlayerCromo({
   to,
   onEdit,
   onHistory,
+  seasonStats,
 }: Props) {
   const initial = displayName.trim().charAt(0).toUpperCase();
   const showActions = onEdit != null || onHistory != null;
@@ -145,6 +148,16 @@ export default function PlayerCromo({
         ) : showActions ? (
           <div className={styles.noRatingTag}>Sin valoración</div>
         ) : null}
+
+        {seasonStats && (seasonStats.totalMatches > 0) && (
+          <div className={styles.seasonStatsRow}>
+            <span className={styles.seasonStatItem}>⏱ {seasonStats.totalMinutes}&apos;</span>
+            <span className={styles.seasonStatSep}>·</span>
+            <span className={styles.seasonStatItem}>⚽ {seasonStats.totalGoals}</span>
+            <span className={styles.seasonStatSep}>·</span>
+            <span className={styles.seasonStatItem}>{seasonStats.totalStarts} tit.</span>
+          </div>
+        )}
 
         {showActions && (
           <div className={styles.cardActions}>

@@ -8,6 +8,7 @@
         private static readonly ExcuseTypes FamilyProblem = new ExcuseTypes(4, "Problema familiar", true);
         private static readonly ExcuseTypes FamilyEvent = new ExcuseTypes(5, "Evento familiar", false);
         private static readonly ExcuseTypes BirthdayEvent = new ExcuseTypes(6, "Cumpleaños", false);
+        private static readonly ExcuseTypes TechnicalDecision = new ExcuseTypes(7, "Decisión técnica", false);
 
         public int Id { get; private set; }
         public string Name { get; private set; } = null!;
@@ -22,7 +23,7 @@
             Justified = justified;
         }
 
-        public static IEnumerable<ExcuseTypes> List() => new[] { Injury, Study, Ill, FamilyProblem, FamilyEvent, BirthdayEvent };
+        public static IEnumerable<ExcuseTypes> List() => new[] { Injury, Study, Ill, FamilyProblem, FamilyEvent, BirthdayEvent, TechnicalDecision };
 
         public static ExcuseTypes? FromId(int id) => List().SingleOrDefault(e => e.Id == id);
     }

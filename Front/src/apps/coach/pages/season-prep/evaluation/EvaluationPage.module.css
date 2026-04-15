@@ -1,0 +1,246 @@
+.container {
+  padding: 0 var(--rffm-page-h-padding, 12px) 100px;
+  box-sizing: border-box;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+/* ── Team group ─────────────────────────────────────── */
+.teamGroup {
+  margin-top: 20px;
+}
+
+.teamGroupHeader {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--rffm-primary, #4d9de0);
+  padding-bottom: 4px;
+  border-bottom: 2px solid var(--rffm-primary, #4d9de0);
+  margin-bottom: 8px;
+}
+
+/* ── Position label ─────────────────────────────────── */
+.posLabel {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.4;
+  padding: 8px 0 3px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  margin-top: 4px;
+}
+
+.posLabel:first-of-type {
+  border-top: none;
+  padding-top: 2px;
+}
+
+/* ── Player row ─────────────────────────────────────── */
+.playerRow {
+  background: rgba(255,255,255,0.04);
+  border-radius: 10px;
+  margin-bottom: 6px;
+  overflow: hidden;
+  transition: background 0.15s;
+}
+
+.playerRow:hover {
+  background: rgba(255,255,255,0.06);
+}
+
+.playerRowExpanded {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(78, 201, 176, 0.25);
+}
+
+.playerRowHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 14px;
+  cursor: pointer;
+  user-select: none;
+  min-height: 54px;
+}
+
+.playerRowLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.dorsal {
+  min-width: 24px;
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--rffm-primary, #4d9de0);
+  flex-shrink: 0;
+}
+
+.playerName {
+  font-size: 0.92rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.playerRowRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.avgBadge {
+  min-width: 36px;
+  height: 26px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.82rem;
+  font-weight: 800;
+  background: rgba(0, 0, 0, 0.35);
+  border: 2px solid currentColor;
+  letter-spacing: 0.01em;
+  flex-shrink: 0;
+  padding: 0 4px;
+}
+
+/* ── Summary dots ───────────────────────────────────── */
+.summaryDots {
+  display: flex;
+  gap: 3px;
+  flex-wrap: wrap;
+  max-width: 160px;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+/* ── Evaluation card ───────────────────────────────── */
+.evalCard {
+  padding: 4px 14px 16px;
+  border-top: 1px solid rgba(255,255,255,0.07);
+}
+
+/* ── Attribute group ────────────────────────────────── */
+.attrGroup {
+  margin-top: 14px;
+}
+
+.attrGroupTitle {
+  font-size: 0.8rem;
+  font-weight: 700;
+  opacity: 0.7;
+  margin-bottom: 8px;
+  letter-spacing: 0.03em;
+}
+
+.attrRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  flex-wrap: wrap;
+}
+
+.attrRow:last-child {
+  border-bottom: none;
+}
+
+.attrLabel {
+  font-size: 0.85rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.scoreBtns {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* ── Score button ───────────────────────────────────── */
+.scoreBtn {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  border: 2px solid transparent;
+  background: rgba(255,255,255,0.06);
+  color: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.scoreBtn:active {
+  transform: scale(0.95);
+}
+
+.scoreBtnActive {
+  color: #fff;
+  font-weight: 700;
+}
+
+@media (max-width: 480px) {
+  .scoreBtn {
+    width: 30px;
+    height: 30px;
+    font-size: 0.75rem;
+  }
+
+  .attrLabel {
+    font-size: 0.78rem;
+  }
+}
+
+/* ── Notes row ──────────────────────────────────────── */
+.notesRow {
+  margin-top: 2px;
+}
+
+/* ── Year buttons (add dialog) ──────────────────────── */
+.yearBtn {
+  flex: 1;
+  min-height: 52px;
+  border-radius: 10px;
+  border: 2px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.05);
+  color: inherit;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.yearBtnActive {
+  background: rgba(77, 157, 224, 0.2);
+  border-color: var(--rffm-primary, #4d9de0);
+  color: var(--rffm-primary, #4d9de0);
+}

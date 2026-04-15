@@ -94,6 +94,15 @@ export default function EventCard({ event, eventTypeName, onDeleted, onEdited }:
       {event.location ? (
         <div className={styles.location}>{event.location}</div>
       ) : null}
+      {event.rivalName ? (
+        <div className={styles.rival}>
+          <span className={styles.rivalLabel}>Rival:</span>{" "}
+          {event.rivalName}
+        </div>
+      ) : null}
+      {event.name && event.name !== event.title ? (
+        <div className={styles.eventName}>{event.name}</div>
+      ) : null}
       {eventTypeName ? (
         <div style={{ marginTop: 6 }}>
           <Chip
@@ -150,8 +159,14 @@ export default function EventCard({ event, eventTypeName, onDeleted, onEdited }:
               try {
                 await deleteSportEvent(String(event.id));
                 if (onDeleted) onDeleted();
-              } catch (err) {
-                // ignore for now
+              } catch (err: any) {
+                const status = err?.response?.status;
+                if (status === 404) {
+                  alert("El evento ya no existe. Se actualizará el listado.");
+                  if (onDeleted) onDeleted();
+                } else {
+                  alert(err?.response?.data?.detail ?? err?.message ?? "Error al eliminar el evento.");
+                }
               }
             }}
           >

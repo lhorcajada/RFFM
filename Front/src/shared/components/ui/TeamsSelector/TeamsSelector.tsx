@@ -22,11 +22,13 @@ export default function TeamsSelector({
   competitionId,
   groupId,
   value,
+  season = "21",
 }: {
   onChange?: (team?: Team) => void;
   competitionId?: string;
   groupId?: string;
   value?: string;
+  season?: string;
 }) {
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -53,7 +55,7 @@ export default function TeamsSelector({
       setError(null);
       try {
         const payload = await getTeamsForClassification({
-          season: "21",
+          season: season || "21",
           competition: competitionId,
           group: groupId,
           playType: "1",
@@ -100,7 +102,7 @@ export default function TeamsSelector({
     return () => {
       mounted = false;
     };
-  }, [competitionId, groupId]);
+  }, [competitionId, groupId, season]);
 
   function handleChange(event: any) {
     const id = String(event.target.value ?? "");

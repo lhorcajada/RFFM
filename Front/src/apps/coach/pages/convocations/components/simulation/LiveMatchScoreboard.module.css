@@ -1,0 +1,73 @@
+.root {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 10px 20px;
+  flex-wrap: wrap;
+}
+
+.team {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 120px;
+}
+
+.teamRight {
+  justify-content: flex-end;
+}
+
+.shield {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.teamName {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.85);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+}
+
+.scoreBlock {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.score {
+  font-size: 2.4rem;
+  font-weight: 900;
+  color: #fff;
+  font-family: monospace;
+  letter-spacing: 0.02em;
+  min-width: 36px;
+  text-align: center;
+}
+
+.scoreSep {
+  font-size: 2rem;
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.35);
+  font-family: monospace;
+}
+
+.goalBtn {
+  flex-shrink: 0 !important;
+  font-size: 0.7rem !important;
+  padding: 2px 8px !important;
+  text-transform: none !important;
+  min-width: 0 !important;
+}

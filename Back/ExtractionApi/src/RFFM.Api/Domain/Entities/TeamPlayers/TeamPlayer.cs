@@ -54,9 +54,10 @@ namespace RFFM.Api.Domain.Entities.TeamPlayers
         {
             if (joinedDate == default)
                 throw new ArgumentException("La fecha de unión no puede estar vacía");
-            if (joinedDate > DateTime.UtcNow)
+            var utc = DateTime.SpecifyKind(joinedDate, DateTimeKind.Utc);
+            if (utc > DateTime.UtcNow)
                 throw new ArgumentException("La fecha de unión no puede ser posterior a la fecha actual");
-            JoinedDate = joinedDate;
+            JoinedDate = utc;
         }
         public void SetLeftDate(DateTime? leftDate)
         {

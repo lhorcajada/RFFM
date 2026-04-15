@@ -20,6 +20,15 @@ export interface SportEventResponse {
   arrival?: string | null;
   endTime?: string | null;
   teamId?: string | null;
+  // Calendar sync fields
+  isHomeMatch?: boolean | null;
+  codActa?: string | null;
+  rivalName?: string | null;
+  rivalPhotoUrl?: string | null;
+  teamName?: string | null;
+  teamPhotoUrl?: string | null;
+  localGoals?: string | null;
+  visitorGoals?: string | null;
 }
 
 export interface PagedSportEvents {
@@ -105,6 +114,8 @@ export interface SportEventPayload {
   eventTypeId: number;
   teamId: string;
   rivalId?: string | null;
+  isHomeMatch?: boolean | null;
+  codActa?: string | null;
 }
 
 export async function createSportEvent(
@@ -122,4 +133,38 @@ export async function updateSportEvent(
   return resp.data;
 }
 
-export default { getSportEvents, getSportEventById, deleteSportEvent, createSportEvent, updateSportEvent };
+// ── Calendar Sync ─────────────────────────────────────────────────────────────
+
+export interface SyncMatchItem {
+  rivalName: string;
+  rivalShieldUrl?: string | null;
+  matchDate: string; // ISO date
+  matchTime?: string | null;
+  field?: string | null;
+  isHomeMatch: boolean;
+  codActa?: string | null;
+  localGoals?: string | null;
+  visitorGoals?: string | null;
+}
+
+export interface SyncCalendarPayload {
+  teamId: string;
+  matches: SyncMatchItem[];
+  myTeamShieldUrl?: string | null;
+}
+
+export interface SyncCalendarResult {
+  created: number;
+  updated: number;
+  failed: number;
+  events: SportEventResponse[];
+}
+
+export async function syncCalendarFromFederation(
+  payload: SyncCalendarPayload
+): Promise<SyncCalendarResult> {
+  const resp = await client.post<SyncCalendarResult>("/api/sport-events/sync-calendar", payload);
+  return resp.data;
+}
+
+export default { getSportEvents, getSportEventById, deleteSportEvent, createSportEvent, updateSportEvent, syncCalendarFromFederation };

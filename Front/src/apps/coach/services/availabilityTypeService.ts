@@ -15,11 +15,12 @@ export async function getAvailabilityTypes(): Promise<AvailabilityType[]> {
 export async function updateConvocationAvailability(
   eventId: string,
   convocationId: string,
-  availabilityTypeId: number | null
+  availabilityTypeId: number | null,
+  excuseTypeId?: number | null
 ): Promise<void> {
   await client.put(
     `/api/events/${eventId}/convocations/${convocationId}/availability`,
-    { availabilityTypeId }
+    { availabilityTypeId, excuseTypeId: excuseTypeId ?? null }
   );
 }
 

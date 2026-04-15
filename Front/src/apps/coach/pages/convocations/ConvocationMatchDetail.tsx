@@ -19,6 +19,7 @@ import ConvocationTab from "./components/ConvocationTab";
 import DesconvocatoriasTab from "./components/DesconvocatoriasTab";
 import AlineacionTab from "./components/AlineacionTab";
 import SimulacionTab from "./components/SimulacionTab";
+import PartidoEnDirectoTab from "./components/PartidoEnDirectoTab";
 import type { MatchState } from "./components/convocationMatchDetail.types";
 import { useConvocationManagement } from "./hooks/useConvocationManagement";
 import { useDesconvocatoriasGrid } from "./hooks/useDesconvocatoriasGrid";
@@ -185,6 +186,7 @@ export default function ConvocationMatchDetail() {
           <Tab label="Desconvocatorias" />
           <Tab label="Alineación" />
           <Tab label="Simular Partido" />
+          <Tab label="Partido en Directo" />
         </Tabs>
 
         {/* Tab 0: Convocatoria */}
@@ -269,7 +271,20 @@ export default function ConvocationMatchDetail() {
             lineupPlayers={lineupPlayers}
           />
         )}
-      </ContentLayout>
+
+        {/* Tab 4: Partido en Directo */}
+        {tab === 4 && (
+          <PartidoEnDirectoTab
+            teamId={teamId}
+            eventId={convocation.mgmtEventId}
+            lineupPlayers={lineupPlayers}
+            localTeamName={match?.localTeamName ?? "Local"}
+            localTeamShield={match?.localTeamShield ?? null}
+            visitorTeamName={match?.visitorTeamName ?? "Visitante"}
+            visitorTeamShield={match?.visitorTeamShield ?? null}
+            isHomeTeam={match?.isHomeTeam ?? true}
+          />
+        )}      </ContentLayout>
     </BaseLayout>
   );
 }

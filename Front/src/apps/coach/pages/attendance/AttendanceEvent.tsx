@@ -250,7 +250,7 @@ export default function AttendanceEvent() {
                       <div className={styles.infoRow}>
                         <div className={styles.label}>Rival</div>
                         <div className={styles.value}>
-                          {event.rivalId ?? event.rival ?? "-"}
+                          {event.rivalName ?? ""}
                         </div>
                       </div>
                     );
@@ -283,7 +283,12 @@ export default function AttendanceEvent() {
               )}
             </div>
           ) : (
-            <div>Evento no encontrado</div>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 12, padding: "24px 0" }}>
+              <div>El evento no existe o fue eliminado.</div>
+              <Button variant="outlined" startIcon={<ArrowBackIcon />} onClick={() => navigate(-1)} size="small">
+                Volver al listado
+              </Button>
+            </div>
           )}
         </Box>
       </ContentLayout>

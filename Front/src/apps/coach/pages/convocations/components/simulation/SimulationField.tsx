@@ -11,6 +11,8 @@ interface SimulationFieldProps {
   playersById: Record<string, SimSlotPlayer>;
   playerMinutes: Record<string, number>;
   prepareMode: boolean;
+  /** Optional set of teamPlayerIds that have scored — shows a goal badge on their avatar */
+  scorerIds?: Set<string>;
 }
 
 export default function SimulationField({
@@ -20,6 +22,7 @@ export default function SimulationField({
   playersById,
   playerMinutes,
   prepareMode,
+  scorerIds,
 }: SimulationFieldProps) {
   // In prepare mode we render from the preview, otherwise from real slots
   const activeSlots = prepareMode && prepareSlotsPreview ? prepareSlotsPreview : slots;
@@ -85,6 +88,7 @@ export default function SimulationField({
               entering={entering}
               leaving={leaving}
               prepareMode={prepareMode}
+              hasGoals={playerId !== null && scorerIds?.has(playerId)}
             />
           );
         })}

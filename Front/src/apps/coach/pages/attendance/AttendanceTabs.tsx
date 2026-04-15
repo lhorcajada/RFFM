@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Box, Button, MenuItem, Select, Tabs, Tab, Typography } from "@mui/material";
+import { Box, Button, Tabs, Tab } from "@mui/material";
 import EmptyState from "../../../../shared/components/ui/EmptyState/EmptyState";
 import convocationService, {
   PlayerSimple,
@@ -19,6 +19,7 @@ import PlayerCard from "../../components/PlayerCard/PlayerCard";
 import NotConvokedList from "./components/NotConvokedList";
 import ConvocationCard from "./components/ConvocationCard";
 import DeclineDialog from "./components/DeclineDialog";
+import DeconvokeDialog from "./components/DeconvokeDialog";
 
 type Props = { eventId: string; eventStart?: string | null };
 
@@ -45,11 +46,16 @@ export default function AttendanceTabs({ eventId, eventStart }: Props) {
   const [excuseTypes, setExcuseTypes] = useState<ExcuseType[]>([]);
   const [availabilityTypes, setAvailabilityTypes] = useState<AvailabilityType[]>([]);
   const [assistanceTypes, setAssistanceTypes] = useState<AssistanceType[]>([]);
+  const [settingAllAvailable, setSettingAllAvailable] = useState(false);
+  const [acceptingAll, setAcceptingAll] = useState(false);
+  const [settingAllAttends, setSettingAllAttends] = useState(false);
 
   const canEdit = useMemo(() => {
     if (!eventStart) return true;
     const d = new Date(eventStart);
-    return Date.now() < d.getTime();
+    if (Date.now() < d.getTime()) return true;
+    // After the event date, admins and coaches can still edit
+    return coachAuthService.hasRole("Coach");
   }, [eventStart]);
 
   useEffect(() => {
@@ -118,6 +124,10 @@ export default function AttendanceTabs({ eventId, eventStart }: Props) {
   const notConvoked = players.filter(
     (p) => !convocations.some((c) => c.player.id === p.id)
   );
+  const waitingList = notConvoked.filter((p) => !p.isInjured);
+  const injuredWaiting = notConvoked.filter((p) => p.isInjured);
+
+  const [adding, setAdding] = useState(false);
 
   const handleAdd = async (playerId?: string) => {
     if (!coachAuthService.hasRole("Coach"))
@@ -126,13 +136,21 @@ export default function AttendanceTabs({ eventId, eventStart }: Props) {
       return alert(
         "No se puede editar: el evento ya ha comenzado o está cerrado."
       );
+    if (adding) return;
+    setAdding(true);
     try {
       if (playerId) await convocationService.addConvocation(eventId, playerId);
       else await convocationService.addConvocationsBulk(eventId);
-      const conv = await convocationService.getConvocations(eventId);
+      const [conv, pl] = await Promise.all([
+        convocationService.getConvocations(eventId),
+        convocationService.getEventPlayers(eventId),
+      ]);
       setConvocations(conv);
+      setPlayers(pl);
     } catch (e: any) {
       alert(e?.message ?? "Error al convocar");
+    } finally {
+      setAdding(false);
     }
   };
 
@@ -152,6 +170,13 @@ export default function AttendanceTabs({ eventId, eventStart }: Props) {
         statusId,
         excuseTypeId
       );
+      // Auto-mark as available when accepting a convocation
+      const acceptedId = statuses.find((s) => s.name === "Accepted")?.id;
+      if (statusId === acceptedId && conv.availabilityTypeId == null) {
+        try {
+          await availabilityTypeService.updateConvocationAvailability(eventId, conv.id, 1);
+        } catch (_) { /* non-blocking */ }
+      }
       const convs = await convocationService.getConvocations(eventId);
       setConvocations(convs);
     } catch (e: any) {
@@ -162,6 +187,12 @@ export default function AttendanceTabs({ eventId, eventStart }: Props) {
   const [declineDialog, setDeclineDialog] = useState<{
     open: boolean;
     conv?: ConvocationItem;
+  }>({ open: false });
+
+  const [deconvokeDialog, setDeconvokeDialog] = useState<{
+    open: boolean;
+    conv?: ConvocationItem;
+    waitingPlayerId?: string;
   }>({ open: false });
 
   return (
@@ -175,47 +206,154 @@ export default function AttendanceTabs({ eventId, eventStart }: Props) {
       {tab === 0 && (
         <Box className={styles.page}>
           <div className={styles.half}>
-            <div className={styles.controls}>
-              <Typography variant="subtitle1">No convocados</Typography>
-              <div style={{ flex: 1 }} />
-              {notConvoked.length > 0 && (
-                <Button
-                  size="small"
-                  variant="outlined"
-                  onClick={() => handleAdd(undefined)}
-                  disabled={!coachAuthService.hasRole("Coach")}
-                >
-                  Convocar todo el equipo
-                </Button>
-              )}
+            <div className={`${styles.listGroupHeader} ${styles.listGroupHeaderBlue}`}>
+              <span>Lista de espera</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span className={styles.listGroupCount}>{notConvoked.length}</span>
+                {waitingList.length > 0 && (
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={async () => {
+                      if (!coachAuthService.hasRole("Coach"))
+                        return alert("Solo un entrenador puede convocar.");
+                      if (!canEdit)
+                        return alert(
+                          "No se puede editar: el evento ya ha comenzado o está cerrado."
+                        );
+                      if (adding) return;
+                      setAdding(true);
+                      try {
+                        await Promise.all(
+                          waitingList
+                            .filter((p) => p.id)
+                            .map((p) =>
+                              convocationService.addConvocation(eventId, p.id!)
+                            )
+                        );
+                        const [conv, pl] = await Promise.all([
+                          convocationService.getConvocations(eventId),
+                          convocationService.getEventPlayers(eventId),
+                        ]);
+                        setConvocations(conv);
+                        setPlayers(pl);
+                      } catch (e: any) {
+                        alert(e?.message ?? "Error al convocar");
+                      } finally {
+                        setAdding(false);
+                      }
+                    }}
+                    disabled={adding || !coachAuthService.hasRole("Coach")}
+                  >
+                    Convocar toda la lista de espera
+                  </Button>
+                )}
+              </div>
             </div>
 
             <NotConvokedList
-              players={notConvoked}
+              players={waitingList}
               photos={playerPhotos}
               onAdd={handleAdd}
+              onDeconvoke={(playerId) =>
+                setDeconvokeDialog({ open: true, waitingPlayerId: playerId })
+              }
               canEdit={coachAuthService.hasRole("Coach")}
+              adding={adding}
             />
           </div>
 
           <div className={styles.half}>
-            <div className={styles.controls}>
-              <Typography variant="subtitle1">Convocados</Typography>
-              <div style={{ flex: 1 }} />
+            <div className={`${styles.listGroupHeader} ${styles.listGroupHeaderTeal}`}>
+              <span>Convocados</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span className={styles.listGroupCount}>{convocations.length}</span>
+                {canEdit && (() => {
+                  const pendingId = statuses.find((s) => s.name === "Pending")?.id;
+                  const notAccepted = convocations.filter(
+                    (c) => c.player && c.status === pendingId
+                  );
+                  if (notAccepted.length === 0) return null;
+                  const acceptedId = statuses.find((s) => s.name === "Accepted")?.id;
+                  if (!acceptedId) return null;
+                  return (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      disabled={acceptingAll}
+                      onClick={async () => {
+                        setAcceptingAll(true);
+                        try {
+                          await Promise.all(
+                            notAccepted.map((c) =>
+                              convocationService.updateConvocationStatus(eventId, c.id, acceptedId, null)
+                            )
+                          );
+                          const conv = await convocationService.getConvocations(eventId);
+                          setConvocations(conv);
+                        } catch (err: any) {
+                          alert(err?.message ?? "Error al aceptar convocados");
+                        } finally {
+                          setAcceptingAll(false);
+                        }
+                      }}
+                    >
+                      Aceptar todos
+                    </Button>
+                  );
+                })()}
+              </div>
             </div>
 
             {(() => {
               if (loading) return <div>Cargando...</div>;
               const filtered = convocations.filter((c) => c.player);
-              if (filtered.length === 0)
-                return <EmptyState description="No hay convocados aún." />;
 
               const acceptedId = statuses.find((s) => s.name === "Accepted")?.id;
               const pendingId = statuses.find((s) => s.name === "Pending")?.id;
               const declinedId = statuses.find((s) => s.name === "Declined")?.id;
-              const accepted = filtered.filter((c) => c.status === acceptedId);
-              const pending = filtered.filter((c) => c.status === pendingId);
-              const declined = filtered.filter((c) => c.status === declinedId);
+              const deconvokeId = statuses.find((s) => s.name === "Deconvoke")?.id;
+              // Exclude injured players from accepted/pending — they always go to Desconvocados
+              const accepted = filtered.filter((c) => c.status === acceptedId && !(c.isInjured || c.player.isInjured));
+              const pending = filtered.filter((c) => c.status === pendingId && !(c.isInjured || c.player.isInjured));
+              // All injured: not-convocated + any convocation where player is injured (regardless of status)
+              const allInjured: PlayerSimple[] = [
+                ...injuredWaiting,
+                ...filtered
+                  .filter((c) => c.isInjured || c.player.isInjured)
+                  .map((c) => ({ ...c.player, isInjured: true })),
+              ];
+              // Desconvocados no lesionados
+              const declinedNonInjured = filtered.filter(
+                (c) =>
+                  ((c.status === declinedId && (!c.excuseTypeId || excuseTypes.find(e => e.id === c.excuseTypeId)?.name !== "Decisión técnica"))
+                  || (c.status === deconvokeId))
+                  && !(c.isInjured || c.player.isInjured)
+              );
+
+              if (filtered.length === 0 && allInjured.length === 0)
+                return <EmptyState description="No hay convocados aún." />;
+
+              const renderInjuredCard = (p: PlayerSimple) => {
+                const byId = p.id != null ? playerPhotos[String(p.id)] : null;
+                const byUrl = p.urlPhoto ? playerPhotos[String(p.urlPhoto)] : null;
+                const photoSrc = byId ?? byUrl ?? defaultAvatar;
+                return (
+                  <div key={p.id} className={styles.cardWrap}>
+                    <div className={`${styles.cardInner} ${styles.cardStatusDeclined}`}>
+                      <PlayerCard
+                        player={{ ...(p as any), position: p.position }}
+                        photoSrc={photoSrc}
+                        actions={
+                          <div className={styles.tagBadgeRow}>
+                            <span className={`${styles.tagBadge} ${styles.tagInjured}`}>Lesionado</span>
+                          </div>
+                        }
+                      />
+                    </div>
+                  </div>
+                );
+              };
 
               const renderCard = (c: ConvocationItem) => (
                 <ConvocationCard
@@ -230,23 +368,12 @@ export default function AttendanceTabs({ eventId, eventStart }: Props) {
                   excuseTypes={excuseTypes}
                   canEdit={canEdit}
                   onChangeStatus={handleChangeStatus}
-                  onDelete={async (cv) => {
+                  onDelete={(cv) => {
                     if (!canEdit)
                       return alert(
                         "No se puede editar: el evento ya ha comenzado."
                       );
-                    try {
-                      await convocationService.deleteConvocation(
-                        eventId,
-                        cv.id
-                      );
-                      const convs = await convocationService.getConvocations(
-                        eventId
-                      );
-                      setConvocations(convs);
-                    } catch (e: any) {
-                      alert(e?.message ?? "Error");
-                    }
+                    setDeconvokeDialog({ open: true, conv: cv });
                   }}
                   onRequestDecline={(cv) =>
                     setDeclineDialog({ open: true, conv: cv })
@@ -258,28 +385,34 @@ export default function AttendanceTabs({ eventId, eventStart }: Props) {
                 <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 24 }}>
                   {accepted.length > 0 && (
                     <div>
-                      <Typography variant="subtitle2" style={{ marginBottom: 8, color: "#4caf50" }}>
-                        Aceptados ({accepted.length})
-                      </Typography>
+                      <div className={`${styles.listGroupHeader} ${styles.listGroupHeaderGreen}`}>
+                        <span>Aceptados</span>
+                        <span className={styles.listGroupCount}>{accepted.length}</span>
+                      </div>
                       <div className={styles.convocatedList}>{accepted.map(renderCard)}</div>
                     </div>
                   )}
                   {pending.length > 0 && (
                     <div>
-                      <Typography variant="subtitle2" style={{ marginBottom: 8, color: "#9e9e9e" }}>
-                        Pendientes ({pending.length})
-                      </Typography>
+                      <div className={`${styles.listGroupHeader} ${styles.listGroupHeaderGray}`}>
+                        <span>Pendientes</span>
+                        <span className={styles.listGroupCount}>{pending.length}</span>
+                      </div>
                       <div className={styles.convocatedList}>{pending.map(renderCard)}</div>
                     </div>
                   )}
-                  {declined.length > 0 && (
+                  {allInjured.length > 0 || declinedNonInjured.length > 0 ? (
                     <div>
-                      <Typography variant="subtitle2" style={{ marginBottom: 8, color: "#f44336" }}>
-                        Declinados ({declined.length})
-                      </Typography>
-                      <div className={styles.convocatedList}>{declined.map(renderCard)}</div>
+                      <div className={`${styles.listGroupHeader} ${styles.listGroupHeaderRed}`}>
+                        <span>Desconvocados</span>
+                        <span className={styles.listGroupCount}>{allInjured.length + declinedNonInjured.length}</span>
+                      </div>
+                      <div className={styles.convocatedList}>
+                        {allInjured.map(renderInjuredCard)}
+                        {declinedNonInjured.map(renderCard)}
+                      </div>
                     </div>
-                  )}
+                  ) : null}
                 </div>
               );
             })()}
@@ -290,8 +423,42 @@ export default function AttendanceTabs({ eventId, eventStart }: Props) {
       {tab === 1 && (
         <Box className={styles.page}>
           <div style={{ width: "100%" }}>
-            <div className={styles.controls} style={{ marginBottom: 8 }}>
-              <Typography variant="subtitle1">Disponibilidad</Typography>
+            <div className={`${styles.listGroupHeader} ${styles.listGroupHeaderBlue}`} style={{ marginBottom: 8 }}>
+              <span>Disponibilidad</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                {canEdit && (() => {
+                  const acceptedStatusId = statuses.find((s) => s.name === "Accepted")?.id;
+                  const notYetAvailable = convocations.filter(
+                    (c) => c.status === acceptedStatusId && c.availabilityTypeId !== 1
+                  );
+                  if (notYetAvailable.length === 0) return null;
+                  return (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      disabled={settingAllAvailable}
+                      onClick={async () => {
+                        setSettingAllAvailable(true);
+                        try {
+                          await Promise.all(
+                            notYetAvailable.map((c) =>
+                              availabilityTypeService.updateConvocationAvailability(eventId, c.id, 1)
+                            )
+                          );
+                          const conv = await convocationService.getConvocations(eventId);
+                          setConvocations(conv);
+                        } catch (err: any) {
+                          alert(err?.message ?? "Error al actualizar disponibilidad");
+                        } finally {
+                          setSettingAllAvailable(false);
+                        }
+                      }}
+                    >
+                      Todos disponibles
+                    </Button>
+                  );
+                })()}
+              </div>
             </div>
             {(() => {
               const acceptedStatusId = statuses.find((s) => s.name === "Accepted")?.id;
@@ -310,51 +477,76 @@ export default function AttendanceTabs({ eventId, eventStart }: Props) {
               const notAvailable = accepted.filter((c) => c.availabilityTypeId === 2);
               const pending = accepted.filter((c) => !c.availabilityTypeId);
 
-              const renderCard = (c: typeof accepted[0]) => (
-                <div key={c.id} className={styles.cardWrap}>
-                  <div className={`${styles.cardInner} ${availClass(c.availabilityTypeId)}`}>
-                    <PlayerCard
-                      player={{ ...(c.player as any), position: c.player?.position }}
-                      photoSrc={
-                        playerPhotos[String(c.player?.id ?? "")] ??
-                        playerPhotos[String(c.player?.urlPhoto ?? "")] ??
-                        defaultAvatar
-                      }
-                    />
-                    <div className={styles.cardActions}>
-                      <Select
-                        size="small"
-                        displayEmpty
-                        value={c.availabilityTypeId ?? ""}
-                        disabled={!canEdit}
-                        onChange={async (e) => {
-                          const val = e.target.value === "" ? null : Number(e.target.value);
-                          try {
-                            await availabilityTypeService.updateConvocationAvailability(eventId, c.id, val);
-                            const conv = await convocationService.getConvocations(eventId);
-                            setConvocations(conv);
-                          } catch (err: any) {
-                            alert(err?.message ?? "Error al actualizar disponibilidad");
-                          }
-                        }}
-                      >
-                        <MenuItem value="">Sin indicar</MenuItem>
-                        {availabilityTypes.map((a) => (
-                          <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>
+              const renderCard = (c: typeof accepted[0]) => {
+                const availColorClass = (id: number | null | undefined) => {
+                  if (id === 1) return styles.optionBtnGreen;
+                  if (id === 2) return styles.optionBtnRed;
+                  return styles.optionBtnGray;
+                };
+                const NOT_AVAILABLE_ID = 2;
+                const availOptions = (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4, width: "100%" }}>
+                    <div className={styles.optionGroup}>
+                      {availabilityTypes.map((a) => (
+                        <button
+                          key={a.id}
+                          disabled={!canEdit}
+                          className={`${styles.optionBtn} ${availColorClass(a.id)}${c.availabilityTypeId === a.id ? " " + styles.optionBtnActive : ""}`}
+                          onClick={async () => {
+                            try {
+                              await availabilityTypeService.updateConvocationAvailability(eventId, c.id, a.id);
+                              const conv = await convocationService.getConvocations(eventId);
+                              setConvocations(conv);
+                            } catch (err: any) { alert(err?.message ?? "Error al actualizar disponibilidad"); }
+                          }}
+                        >{a.name}</button>
+                      ))}
+                    </div>
+                    {c.availabilityTypeId === NOT_AVAILABLE_ID && excuseTypes.length > 0 && (
+                      <div className={styles.optionGroupSub}>
+                        {excuseTypes.map((ex) => (
+                          <button
+                            key={ex.id}
+                            disabled={!canEdit}
+                            className={`${styles.optionBtn} ${styles.optionSubBtn} ${styles.optionBtnPurple}${c.excuseTypeId === ex.id ? " " + styles.optionBtnActive : ""}`}
+                            onClick={async () => {
+                              try {
+                                await availabilityTypeService.updateConvocationAvailability(eventId, c.id, NOT_AVAILABLE_ID, ex.id);
+                                const conv = await convocationService.getConvocations(eventId);
+                                setConvocations(conv);
+                              } catch (err: any) { alert(err?.message ?? "Error al guardar excusa"); }
+                            }}
+                          >{ex.name}</button>
                         ))}
-                      </Select>
+                      </div>
+                    )}
+                  </div>
+                );
+                return (
+                  <div key={c.id} className={styles.cardWrap}>
+                    <div className={`${styles.cardInner} ${availClass(c.availabilityTypeId)}`}>
+                      <PlayerCard
+                        player={{ ...(c.player as any), position: c.player?.position }}
+                        photoSrc={
+                          playerPhotos[String(c.player?.id ?? "")] ??
+                          playerPhotos[String(c.player?.urlPhoto ?? "")] ??
+                          defaultAvatar
+                        }
+                        actions={availOptions}
+                      />
                     </div>
                   </div>
-                </div>
-              );
+                );
+              };
 
               return (
                 <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 24 }}>
                   {available.length > 0 && (
                     <div>
-                      <Typography variant="subtitle2" style={{ marginBottom: 8, color: "#4caf50" }}>
-                        Disponibles ({available.length})
-                      </Typography>
+                      <div className={`${styles.listGroupHeader} ${styles.listGroupHeaderGreen}`}>
+                        <span>Disponibles</span>
+                        <span className={styles.listGroupCount}>{available.length}</span>
+                      </div>
                       <div className={styles.convocatedList}>
                         {available.map(renderCard)}
                       </div>
@@ -362,9 +554,10 @@ export default function AttendanceTabs({ eventId, eventStart }: Props) {
                   )}
                   {notAvailable.length > 0 && (
                     <div>
-                      <Typography variant="subtitle2" style={{ marginBottom: 8, color: "#f44336" }}>
-                        No disponibles ({notAvailable.length})
-                      </Typography>
+                      <div className={`${styles.listGroupHeader} ${styles.listGroupHeaderRed}`}>
+                        <span>No disponibles</span>
+                        <span className={styles.listGroupCount}>{notAvailable.length}</span>
+                      </div>
                       <div className={styles.convocatedList}>
                         {notAvailable.map(renderCard)}
                       </div>
@@ -372,9 +565,10 @@ export default function AttendanceTabs({ eventId, eventStart }: Props) {
                   )}
                   {pending.length > 0 && (
                     <div>
-                      <Typography variant="subtitle2" style={{ marginBottom: 8, color: "#9e9e9e" }}>
-                        Sin indicar ({pending.length})
-                      </Typography>
+                      <div className={`${styles.listGroupHeader} ${styles.listGroupHeaderGray}`}>
+                        <span>Sin indicar</span>
+                        <span className={styles.listGroupCount}>{pending.length}</span>
+                      </div>
                       <div className={styles.convocatedList}>
                         {pending.map(renderCard)}
                       </div>
@@ -390,8 +584,41 @@ export default function AttendanceTabs({ eventId, eventStart }: Props) {
       {tab === 2 && (
         <Box className={styles.page}>
           <div style={{ width: "100%" }}>
-            <div className={styles.controls} style={{ marginBottom: 8 }}>
-              <Typography variant="subtitle1">Asistencia</Typography>
+            <div className={`${styles.listGroupHeader} ${styles.listGroupHeaderBlue}`} style={{ marginBottom: 8 }}>
+              <span>Asistencia</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                {canEdit && (() => {
+                  const notAttending = convocations.filter(
+                    (c) => c.availabilityTypeId != null && c.assistanceTypeId !== 1
+                  );
+                  if (notAttending.length === 0) return null;
+                  return (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      disabled={settingAllAttends}
+                      onClick={async () => {
+                        setSettingAllAttends(true);
+                        try {
+                          await Promise.all(
+                            notAttending.map((c) =>
+                              assistanceTypeService.updateConvocationAssistance(eventId, c.id, 1, null)
+                            )
+                          );
+                          const conv = await convocationService.getConvocations(eventId);
+                          setConvocations(conv);
+                        } catch (err: any) {
+                          alert(err?.message ?? "Error al actualizar asistencia");
+                        } finally {
+                          setSettingAllAttends(false);
+                        }
+                      }}
+                    >
+                      Todos asisten
+                    </Button>
+                  );
+                })()}
+              </div>
             </div>
             {(() => {
               const withAvailability = convocations.filter((c) => c.availabilityTypeId != null);
@@ -413,77 +640,88 @@ export default function AttendanceTabs({ eventId, eventStart }: Props) {
               const absent = withAvailability.filter((c) => c.assistanceTypeId === 2 || c.assistanceTypeId === 3);
               const pending = withAvailability.filter((c) => !c.assistanceTypeId);
 
-              const renderCard = (c: typeof withAvailability[0]) => (
-                <div key={c.id} className={styles.cardWrap}>
-                  <div className={`${styles.cardInner} ${assistanceClass(c.assistanceTypeId)}`}>
-                    <PlayerCard
-                      player={{ ...(c.player as any), position: c.player?.position }}
-                      photoSrc={
-                        playerPhotos[String(c.player?.id ?? "")] ??
-                        playerPhotos[String(c.player?.urlPhoto ?? "")] ??
-                        defaultAvatar
-                      }
-                    />
-                    <div className={styles.cardActions}>
-                      <Select
-                        size="small"
-                        displayEmpty
-                        value={c.assistanceTypeId ?? ""}
+              const renderCard = (c: typeof withAvailability[0]) => {
+                const assistColorClass = (id: number | null | undefined) => {
+                  if (id === 1) return styles.optionBtnGreen;
+                  if (id === 2) return styles.optionBtnOrange;
+                  if (id === 3) return styles.optionBtnRed;
+                  if (id === 4) return styles.optionBtnBlue;
+                  return styles.optionBtnGray;
+                };
+                const assistOptions = (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4, width: "100%" }}>
+                    <div className={styles.optionGroup}>
+                      <button
                         disabled={!canEdit}
-                        onChange={async (e) => {
-                          const val = e.target.value === "" ? null : Number(e.target.value);
+                        className={`${styles.optionBtn} ${styles.optionBtnGray}${!c.assistanceTypeId ? " " + styles.optionBtnActive : ""}`}
+                        onClick={async () => {
                           try {
-                            await assistanceTypeService.updateConvocationAssistance(eventId, c.id, val, null);
+                            await assistanceTypeService.updateConvocationAssistance(eventId, c.id, null, null);
                             const conv = await convocationService.getConvocations(eventId);
                             setConvocations(conv);
-                          } catch (err: any) {
-                            alert(err?.message ?? "Error al actualizar asistencia");
-                          }
+                          } catch (err: any) { alert(err?.message ?? "Error"); }
                         }}
-                      >
-                        <MenuItem value="">Sin indicar</MenuItem>
-                        {assistanceTypes.map((a) => (
-                          <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>
-                        ))}
-                      </Select>
-                      {c.assistanceTypeId === NO_EXCUSA_ID && (
-                        <Select
-                          size="small"
-                          displayEmpty
-                          value={c.excuseTypeId ?? ""}
+                      >Sin indicar</button>
+                      {assistanceTypes.map((a) => (
+                        <button
+                          key={a.id}
                           disabled={!canEdit}
-                          onChange={async (e) => {
-                            if (e.target.value === "") return;
-                            const val = Number(e.target.value);
+                          className={`${styles.optionBtn} ${assistColorClass(a.id)}${c.assistanceTypeId === a.id ? " " + styles.optionBtnActive : ""}`}
+                          onClick={async () => {
                             try {
-                              await assistanceTypeService.updateConvocationAssistance(eventId, c.id, NO_EXCUSA_ID, val);
+                              await assistanceTypeService.updateConvocationAssistance(eventId, c.id, a.id, null);
                               const conv = await convocationService.getConvocations(eventId);
                               setConvocations(conv);
-                            } catch (err: any) {
-                              alert(err?.message ?? "Error al guardar excusa");
-                            }
+                            } catch (err: any) { alert(err?.message ?? "Error al actualizar asistencia"); }
                           }}
-                        >
-                          <MenuItem value="">Seleccione excusa</MenuItem>
-                          {excuseTypes.map((ex) => (
-                            <MenuItem key={ex.id} value={ex.id}>
-                              {ex.name}{ex.justified ? " (Just.)" : ""}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      )}
+                        >{a.name}</button>
+                      ))}
+                    </div>
+                    {c.assistanceTypeId === NO_EXCUSA_ID && excuseTypes.length > 0 && (
+                      <div className={styles.optionGroupSub}>
+                        {excuseTypes.map((ex) => (
+                          <button
+                            key={ex.id}
+                            disabled={!canEdit}
+                            className={`${styles.optionBtn} ${styles.optionSubBtn} ${styles.optionBtnPurple}${c.excuseTypeId === ex.id ? " " + styles.optionBtnActive : ""}`}
+                            onClick={async () => {
+                              try {
+                                await assistanceTypeService.updateConvocationAssistance(eventId, c.id, NO_EXCUSA_ID, ex.id);
+                                const conv = await convocationService.getConvocations(eventId);
+                                setConvocations(conv);
+                              } catch (err: any) { alert(err?.message ?? "Error al guardar excusa"); }
+                            }}
+                          >{ex.name}</button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+                return (
+                  <div key={c.id} className={styles.cardWrap}>
+                    <div className={`${styles.cardInner} ${assistanceClass(c.assistanceTypeId)}`}>
+                      <PlayerCard
+                        player={{ ...(c.player as any), position: c.player?.position }}
+                        photoSrc={
+                          playerPhotos[String(c.player?.id ?? "")] ??
+                          playerPhotos[String(c.player?.urlPhoto ?? "")] ??
+                          defaultAvatar
+                        }
+                        actions={assistOptions}
+                      />
                     </div>
                   </div>
-                </div>
-              );
+                );
+              };
 
               return (
                 <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 24 }}>
                   {attend.length > 0 && (
                     <div>
-                      <Typography variant="subtitle2" style={{ marginBottom: 8, color: "#4caf50" }}>
-                        Asisten ({attend.length})
-                      </Typography>
+                      <div className={`${styles.listGroupHeader} ${styles.listGroupHeaderGreen}`}>
+                        <span>Asisten</span>
+                        <span className={styles.listGroupCount}>{attend.length}</span>
+                      </div>
                       <div className={styles.convocatedList}>
                         {attend.map(renderCard)}
                       </div>
@@ -491,9 +729,10 @@ export default function AttendanceTabs({ eventId, eventStart }: Props) {
                   )}
                   {absent.length > 0 && (
                     <div>
-                      <Typography variant="subtitle2" style={{ marginBottom: 8, color: "#f44336" }}>
-                        No asisten ({absent.length})
-                      </Typography>
+                      <div className={`${styles.listGroupHeader} ${styles.listGroupHeaderRed}`}>
+                        <span>No asisten</span>
+                        <span className={styles.listGroupCount}>{absent.length}</span>
+                      </div>
                       <div className={styles.convocatedList}>
                         {absent.map(renderCard)}
                       </div>
@@ -501,9 +740,10 @@ export default function AttendanceTabs({ eventId, eventStart }: Props) {
                   )}
                   {pending.length > 0 && (
                     <div>
-                      <Typography variant="subtitle2" style={{ marginBottom: 8, color: "#9e9e9e" }}>
-                        Sin indicar ({pending.length})
-                      </Typography>
+                      <div className={`${styles.listGroupHeader} ${styles.listGroupHeaderGray}`}>
+                        <span>Sin indicar</span>
+                        <span className={styles.listGroupCount}>{pending.length}</span>
+                      </div>
                       <div className={styles.convocatedList}>
                         {pending.map(renderCard)}
                       </div>
@@ -530,6 +770,46 @@ export default function AttendanceTabs({ eventId, eventStart }: Props) {
             excuseTypeId ?? null
           );
           setDeclineDialog({ open: false });
+        }}
+      />
+      <DeconvokeDialog
+        open={deconvokeDialog.open}
+        onClose={() => setDeconvokeDialog({ open: false })}
+        excuseTypes={excuseTypes}
+        onConfirm={async (reason) => {
+          const excuseTypeId = reason === "technical" ? null : Number(reason);
+          try {
+            if (deconvokeDialog.waitingPlayerId) {
+              // Player in lista de espera: add convocation then set Declined
+              const playerId = deconvokeDialog.waitingPlayerId;
+              await convocationService.addConvocation(eventId, playerId);
+              const reloaded = await convocationService.getConvocations(eventId);
+              const newConv = reloaded.find((c) => c.player?.id === playerId);
+              const declinedId = statuses.find((s) => s.name === "Declined")?.id;
+              if (newConv && declinedId) {
+                await convocationService.updateConvocationStatus(eventId, newConv.id, declinedId, excuseTypeId);
+              }
+            } else if (deconvokeDialog.conv) {
+              // Already-convoked player: set status to Declined (desconvocado)
+              const declinedId = statuses.find((s) => s.name === "Declined")?.id;
+              if (declinedId) {
+                await convocationService.updateConvocationStatus(
+                  eventId,
+                  deconvokeDialog.conv.id,
+                  declinedId,
+                  excuseTypeId
+                );
+              }
+            }
+            const [conv, pl] = await Promise.all([
+              convocationService.getConvocations(eventId),
+              convocationService.getEventPlayers(eventId),
+            ]);
+            setConvocations(conv);
+            setPlayers(pl);
+          } catch (e: any) {
+            alert(e?.message ?? "Error al desconvocar");
+          }
         }}
       />
     </div>

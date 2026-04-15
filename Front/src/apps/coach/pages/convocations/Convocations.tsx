@@ -1,12 +1,15 @@
-import { Button, CircularProgress, Alert, IconButton } from "@mui/material";
+import { Button, CircularProgress, Alert, IconButton, Snackbar } from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import SyncIcon from "@mui/icons-material/Sync";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import { calendarService } from "../../../federation/services/Federation";
 import { settingsService } from "../../../federation/services/Federation";
+import sportEventService, { type SyncMatchItem } from "../../services/sportEventService";
+import type { SportEventResponse } from "../../services/sportEventService";
 import styles from "./Convocations.module.css";
 import { useEffect, useState, useMemo } from "react";
 
@@ -22,6 +25,8 @@ type NormalizedMatch = {
   visitorTeamShield: string;
   visitorGoals: string | null;
   isFinished: boolean;
+  /** true if the user's team is the local/home team in this match */
+  isHomeTeam: boolean;
   field: string;
   codacta: string | null;
 };
@@ -47,10 +52,74 @@ function normalizeDateStr(raw: string | null | undefined): string {
   return trimmed.substring(0, 10);
 }
 
-function normalizeRawMatch(item: { date: string | null; match: Record<string, unknown> }): NormalizedMatch {
+/** Converts a coach API SportEventResponse to NormalizedMatch for the calendar. */
+function normalizeFromSportEvent(ev: SportEventResponse): NormalizedMatch {
+  const dateStr = normalizeDateStr(ev.eveDateTime ?? ev.start ?? null);
+  const isHomeMatch = ev.isHomeMatch !== false; // default true
+  const rivalName = ev.rivalName ?? ev.rival ?? "";
+  const rivalPhoto = ev.rivalPhotoUrl ?? "";
+  const myTeamName = ev.teamName ?? "";
+  const myTeamPhoto = ev.teamPhotoUrl ?? "";
+
+  const localTeamName = isHomeMatch ? myTeamName : rivalName;
+  const localTeamShield = isHomeMatch ? myTeamPhoto : rivalPhoto;
+  const visitorTeamName = isHomeMatch ? rivalName : myTeamName;
+  const visitorTeamShield = isHomeMatch ? rivalPhoto : myTeamPhoto;
+
+  // Extract time from eveDateTime/startTime
+  const rawTime = ev.startTime ?? ev.eveDateTime ?? null;
+  let time = "";
+  if (rawTime && rawTime.includes("T")) {
+    const timePart = rawTime.split("T")[1]?.substring(0, 5) ?? "";
+    if (timePart !== "00:00") time = timePart;
+  }
+
+  const now = new Date();
+  const evDate = ev.eveDateTime ? new Date(ev.eveDateTime) : null;
+  const isFinished = evDate !== null && evDate < now;
+
+  return {
+    date: dateStr,
+    time,
+    localTeamName,
+    localTeamShield,
+    localGoals: ev.localGoals ?? null,
+    visitorTeamName,
+    visitorTeamShield,
+    visitorGoals: ev.visitorGoals ?? null,
+    isFinished,
+    isHomeTeam: isHomeMatch,
+    field: ev.location ?? "",
+    codacta: ev.codActa ?? null,
+  };
+}
+
+function resolveIsHomeTeam(match: Record<string, unknown>, teamId?: string | null): boolean {
+  if (!teamId) return true;
+  const tid = String(teamId).trim();
+  // new API fields
+  const localCode = String(match.localTeamCode ?? match.localTeamId ?? "").trim();
+  const visitorCode = String(match.visitorTeamCode ?? match.visitorTeamId ?? "").trim();
+  // legacy API fields
+  const localCodeLeg = String(match.codigo_equipo_local ?? match.codigo_local ?? "").trim();
+  const visitorCodeLeg = String(match.codigo_equipo_visitante ?? match.codigo_visitante ?? "").trim();
+  const localName = String(match.localTeamName ?? match.equipo_local ?? "").trim();
+  const visitorName = String(match.visitorTeamName ?? match.equipo_visitante ?? "").trim();
+
+  const isVisitor = [visitorCode, visitorCodeLeg, visitorName].some((v) => v !== "" && v === tid);
+  if (isVisitor) return false;
+  // default to home if local matches or unknown
+  return true;
+}
+
+function normalizeRawMatch(
+  item: { date: string | null; match: Record<string, unknown> },
+  teamId?: string | null,
+): NormalizedMatch {
   const m = item.match;
   const rawDate = (m.date ?? m.fecha ?? item.date ?? "") as string;
   const dateStr = normalizeDateStr(rawDate);
+  const isHomeTeam = resolveIsHomeTeam(m, teamId);
 
   // MatchApiMatch format (new API)
   if (m.localTeamName != null || m.localTeamCode != null) {
@@ -70,6 +139,7 @@ function normalizeRawMatch(item: { date: string | null; match: Record<string, un
       visitorTeamShield: (m.visitorTeamImageUrl ?? "") as string,
       visitorGoals: vg,
       isFinished: hasScore,
+      isHomeTeam,
       field: (m.field ?? "") as string,
       codacta,
     };
@@ -90,6 +160,7 @@ function normalizeRawMatch(item: { date: string | null; match: Record<string, un
     visitorTeamShield: ((m.escudo_equipo_visitante_url ?? m.escudo_equipo_visitante) ?? "") as string,
     visitorGoals: gV,
     isFinished: hasScore,
+    isHomeTeam,
     field: (m.campo ?? "") as string,
     codacta,
   };
@@ -152,10 +223,48 @@ function AgendaList({ matches, onNavigate }: { matches: NormalizedMatch[]; onNav
 
 // ─── Match card sub-component ─────────────────────────────────────────────────
 
+type MatchResult = "won" | "draw" | "lost" | "played" | null;
+
+function getMatchResult(match: NormalizedMatch): MatchResult {
+  if (!match.isFinished) return null;
+  if (match.localGoals === null || match.visitorGoals === null) return "played";
+  const lg = parseInt(match.localGoals, 10);
+  const vg = parseInt(match.visitorGoals, 10);
+  if (isNaN(lg) || isNaN(vg)) return "played";
+  // Determine from the user's team perspective (isHomeTeam = local)
+  const myGoals = match.isHomeTeam ? lg : vg;
+  const theirGoals = match.isHomeTeam ? vg : lg;
+  if (myGoals > theirGoals) return "won";
+  if (myGoals === theirGoals) return "draw";
+  return "lost";
+}
+
 function MatchCard({ match, onNavigate }: { match: NormalizedMatch; onNavigate: (match: NormalizedMatch) => void }) {
+  const result = getMatchResult(match);
+  const cardClass = [
+    styles.matchCard,
+    result === "won"  ? styles.matchCardWon  : "",
+    result === "draw" ? styles.matchCardDraw : "",
+    result === "lost" ? styles.matchCardLost : "",
+  ].filter(Boolean).join(" ");
+
+  const statusClass = [
+    styles.matchStatus,
+    result === "won"    ? styles.matchStatusWon    : "",
+    result === "draw"   ? styles.matchStatusDraw   : "",
+    result === "lost"   ? styles.matchStatusLost   : "",
+    result === "played" ? styles.matchStatusPlayed : "",
+  ].filter(Boolean).join(" ");
+
+  const statusLabel =
+    result === "won"  ? "Victoria" :
+    result === "draw" ? "Empate"   :
+    result === "lost" ? "Derrota"  :
+    "Finalizado";
+
   return (
     <div
-      className={styles.matchCard}
+      className={cardClass}
       onClick={() => onNavigate(match)}
       role="button"
       tabIndex={0}
@@ -181,12 +290,14 @@ function MatchCard({ match, onNavigate }: { match: NormalizedMatch; onNavigate: 
         <div className={styles.matchScoreBlock}>
           {match.isFinished ? (
             <>
-              <span className={styles.matchScoreValue}>
-                {match.localGoals ?? "-"}
-                <span className={styles.matchScoreDash}>-</span>
-                {match.visitorGoals ?? "-"}
-              </span>
-              <span className={styles.matchStatus}>Final</span>
+              {match.localGoals !== null && match.visitorGoals !== null ? (
+                <span className={styles.matchScoreValue}>
+                  {match.localGoals}
+                  <span className={styles.matchScoreDash}>-</span>
+                  {match.visitorGoals}
+                </span>
+              ) : null}
+              <span className={statusClass}>{statusLabel}</span>
             </>
           ) : (
             <>
@@ -237,6 +348,8 @@ export default function Convocations() {
   const [error, setError] = useState<string | null>(null);
   const [federationTeamId, setFederationTeamId] = useState<string | null>(null);
   const [settingsLoading, setSettingsLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+  const [syncSnackbar, setSyncSnackbar] = useState<string | null>(null);
 
   // Load federation settings → get the federation team ID
   useEffect(() => {
@@ -257,27 +370,102 @@ export default function Convocations() {
     return () => { mounted = false; };
   }, []);
 
-  // Fetch team matches from federation calendar once we have the team ID
-  useEffect(() => {
-    if (settingsLoading) return;
-    if (!federationTeamId) return;
-
-    let mounted = true;
+  // Load sport events from coach API (primary calendar source)
+  const loadCoachEvents = (mounted: { current: boolean }) => {
+    if (!teamId) return;
     setLoading(true);
     setError(null);
     (async () => {
       try {
-        const raw = await calendarService.getTeamMatches(federationTeamId) as Array<{ date: string | null; match: Record<string, unknown> }>;
-        if (!mounted) return;
-        setMatches(raw.map(normalizeRawMatch));
+        // Iterate all pages to avoid missing events beyond the first page
+        const pageSize = 200;
+        let pageNumber = 1;
+        const allItems: SportEventResponse[] = [];
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+          const result = await sportEventService.getSportEvents(teamId, pageNumber, pageSize);
+          allItems.push(...result.items);
+          if (pageNumber >= result.totalPages || result.items.length < pageSize) break;
+          pageNumber++;
+        }
+        if (!mounted.current) return;
+        const matchEvents = allItems.filter(
+          (ev) => (ev.eventTypeId ?? 0) === 1 || (ev.eventType ?? "").toLowerCase().includes("partido")
+        );
+        setMatches(matchEvents.map(normalizeFromSportEvent));
       } catch {
-        if (mounted) setError("No se pudo cargar el calendario de partidos.");
+        if (mounted.current) setError("No se pudo cargar el calendario de partidos.");
       } finally {
-        if (mounted) setLoading(false);
+        if (mounted.current) setLoading(false);
       }
     })();
-    return () => { mounted = false; };
-  }, [federationTeamId, settingsLoading]);
+  };
+
+  useEffect(() => {
+    if (settingsLoading) return;
+    const mounted = { current: true };
+    loadCoachEvents(mounted);
+    return () => { mounted.current = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [teamId, settingsLoading]);
+
+  // Sync calendar from federation on demand
+  const handleSyncCalendar = async () => {
+    if (!federationTeamId || !teamId || syncing) return;
+    setSyncing(true);
+    try {
+      const raw = await calendarService.getTeamMatches(federationTeamId) as Array<{ date: string | null; match: Record<string, unknown> }>;
+
+      // Extract own team shield from the first available match
+      let myTeamShieldUrl: string | null = null;
+      for (const item of raw) {
+        const normalized = normalizeRawMatch(item, federationTeamId);
+        const shield = normalized.isHomeTeam ? normalized.localTeamShield : normalized.visitorTeamShield;
+        if (shield) { myTeamShieldUrl = shield; break; }
+      }
+
+      const syncItems: SyncMatchItem[] = raw
+        .reduce<SyncMatchItem[]>((acc, item) => {
+          const normalized = normalizeRawMatch(item, federationTeamId);
+          if (!normalized.date) return acc;
+          const rivalName = normalized.isHomeTeam
+            ? normalized.visitorTeamName
+            : normalized.localTeamName;
+          const rivalShieldUrl = normalized.isHomeTeam
+            ? normalized.visitorTeamShield
+            : normalized.localTeamShield;
+          acc.push({
+            rivalName: rivalName || "Rival desconocido",
+            rivalShieldUrl: rivalShieldUrl || null,
+            matchDate: normalized.date,
+            matchTime: normalized.time || null,
+            field: normalized.field || null,
+            isHomeMatch: normalized.isHomeTeam,
+            codActa: normalized.codacta ?? null,
+            localGoals: normalized.localGoals,
+            visitorGoals: normalized.visitorGoals,
+          });
+          return acc;
+        }, []);
+
+      if (syncItems.length === 0) {
+        setSyncSnackbar("No se encontraron partidos en el calendario de federación.");
+        return;
+      }
+
+      const result = await sportEventService.syncCalendarFromFederation({ teamId, matches: syncItems, myTeamShieldUrl });
+      const failedMsg = result.failed > 0 ? `, ${result.failed} con error` : "";
+      setSyncSnackbar(`Calendario sincronizado: ${result.created} creados, ${result.updated} actualizados${failedMsg}.`);
+
+      // Reload coach events
+      const mounted = { current: true };
+      loadCoachEvents(mounted);
+    } catch {
+      setSyncSnackbar("Error al sincronizar el calendario. Intenta de nuevo.");
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   // Build date → matches map
   const matchByDay = useMemo<Record<string, NormalizedMatch[]>>(() => {
@@ -324,16 +512,28 @@ export default function Convocations() {
     <BaseLayout hideFooterMenu>
       <ContentLayout
         title="Convocatorias"
-        subtitle="Calendario de partidos de liga"
+        subtitle="Calendario de partidos"
         actionBar={
-          <Button
-            startIcon={<ArrowBackIcon />}
-            onClick={() => navigate("/coach/dashboard")}
-            variant="outlined"
-            size="small"
-          >
-            Volver
-          </Button>
+          <>
+            <Button
+              startIcon={syncing ? <CircularProgress size={16} color="inherit" /> : <SyncIcon />}
+              onClick={handleSyncCalendar}
+              variant="contained"
+              size="small"
+              disabled={syncing || !federationTeamId}
+              title={!federationTeamId ? "Configura tu equipo en Federación para poder generar el calendario" : undefined}
+            >
+              Generar calendario
+            </Button>
+            <Button
+              startIcon={<ArrowBackIcon />}
+              onClick={() => navigate("/coach/dashboard")}
+              variant="outlined"
+              size="small"
+            >
+              Volver
+            </Button>
+          </>
         }
       >
         <div className={styles.page}>
@@ -360,10 +560,10 @@ export default function Convocations() {
           <div className={styles.stateWrapper}>
             <Alert severity="warning" sx={{ maxWidth: 400 }}>{error}</Alert>
           </div>
-        ) : !federationTeamId ? (
+        ) : !teamId ? (
           <div className={styles.stateWrapper}>
             <p className={styles.noSettingsText}>
-              No hay configuración de federación. Accede a la sección de Federación y selecciona tu competición y equipo.
+              No se ha especificado el equipo. Accede desde el panel de entrenador.
             </p>
           </div>
         ) : (
@@ -409,7 +609,7 @@ export default function Convocations() {
         )}
 
         {/* Mobile agenda list */}
-        {!isLoadingAny && !error && federationTeamId && (
+        {!isLoadingAny && !error && teamId && (
           <AgendaList
             matches={matches.filter((m) => {
               const [y, mo] = m.date.split("-").map(Number);
@@ -420,6 +620,13 @@ export default function Convocations() {
         )}
         </div>
       </ContentLayout>
+      <Snackbar
+        open={syncSnackbar !== null}
+        autoHideDuration={5000}
+        onClose={() => setSyncSnackbar(null)}
+        message={syncSnackbar}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      />
     </BaseLayout>
   );
 }

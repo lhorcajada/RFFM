@@ -44,6 +44,8 @@ namespace RFFM.Api.Features.Coaches.Teams.Commands
             public string? Dni { get; set; }
             public string ClubId { get; set; } = null!;
             public DemarcationModel? Demarcation { get; set; } = null!;
+            // Flat fallback: used when Demarcation complex binding is not available (e.g. import)
+            public int? DemarcationActivePositionId { get; set; }
             public int? DomainFeetId { get; set; }
             public int? Dorsal { get; set; }
             public decimal? Height { get; set; }
@@ -68,17 +70,38 @@ namespace RFFM.Api.Features.Coaches.Teams.Commands
             }
             public async ValueTask<Unit> Handle(AddPlayerCommand request, CancellationToken cancellationToken)
             {
+                // Normalize: if Demarcation is null but flat id was sent, build the model
+                if (request.Demarcation == null && request.DemarcationActivePositionId.HasValue)
+                {
+                    request.Demarcation = new DemarcationModel
+                    {
+                        ActivePositionId = request.DemarcationActivePositionId.Value,
+                        PossibleDemarcations = new List<int> { request.DemarcationActivePositionId.Value }
+                    };
+                }
                 var player = await CreatePlayerIfNotExist(request, cancellationToken);
 
                 await ValidateExistingTeam(request, cancellationToken);
 
-                await ValidatePlayerAlreadyInTeam(request, cancellationToken);
+                // If player already in team → update demarcation and return
+                var existing = await _catalogDbContext.TeamPlayers
+                    .FirstOrDefaultAsync(
+                        tp => tp.PlayerId == player.Id && tp.TeamId == request.TeamId && tp.LeftDate == null,
+                        cancellationToken);
+
+                if (existing != null)
+                {
+                    if (request.Demarcation != null)
+                        existing.SetDemarcation(request.Demarcation);
+                    await _catalogDbContext.SaveChangesAsync(cancellationToken);
+                    return Unit.Value;
+                }
 
                 var team = TeamPlayer.Create(new TeamPlayerModel
                 {
                     PlayerId = player.Id,
                     TeamId = request.TeamId,
-                    JoinedDate = DateTime.UtcNow.Date,
+                    JoinedDate = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc),
                     LeftDate = null,
                     Demarcation = request.Demarcation,
                     ContactInfo = request.Contact,
@@ -87,38 +110,42 @@ namespace RFFM.Api.Features.Coaches.Teams.Commands
                     Weight = request.Weight,
                     FamilyMembers = request.FamilyMembers ?? new List<FamilyModel>(),
                     DominantFootId = request.DomainFeetId
-
                 });
                 await _catalogDbContext.TeamPlayers.AddAsync(team, cancellationToken);
                 await _catalogDbContext.SaveChangesAsync(cancellationToken);
                 return Unit.Value;
-
             }
 
             private async Task<Player> CreatePlayerIfNotExist(AddPlayerCommand request, CancellationToken cancellationToken)
             {
-                var player = await _catalogDbContext.Players
-                                 .FirstOrDefaultAsync(p => p.Id == request.PlayerId, cancellationToken)
-                             ?? await _playerService.AddPlayerClub(new CreatePlayerModel
-                             {
-                                 Name = request.Name,
-                                 ClubId = request.ClubId,
-                                 Alias = request.Alias,
-                                 BirthDate = request.BirthDate,
-                                 Dni = request.Dni,
-                                 LastName = request.LastName,
-                                 PhotoFile = request.PhotoFile
-                             }, cancellationToken);
-                return player;
-            }
+                // 1. Try lookup by internal Coach DB id (manual flow)
+                if (!string.IsNullOrEmpty(request.PlayerId))
+                {
+                    var byId = await _catalogDbContext.Players
+                        .FirstOrDefaultAsync(p => p.Id == request.PlayerId, cancellationToken);
+                    if (byId != null) return byId;
+                }
 
-            private async Task ValidatePlayerAlreadyInTeam(AddPlayerCommand request, CancellationToken cancellationToken)
-            {
-                var alreadyInTeam = await _catalogDbContext.TeamPlayers
-                    .AnyAsync(tp => tp.PlayerId == request.PlayerId && tp.TeamId == request.TeamId && tp.LeftDate == null, cancellationToken);
+                // 2. Look up by alias + club to prevent duplicate-key on re-import
+                var alias = request.Alias?.Trim();
+                if (!string.IsNullOrEmpty(alias) && !string.IsNullOrEmpty(request.ClubId))
+                {
+                    var byAlias = await _catalogDbContext.Players
+                        .FirstOrDefaultAsync(p => p.Alias == alias && p.ClubId == request.ClubId, cancellationToken);
+                    if (byAlias != null) return byAlias;
+                }
 
-                if (alreadyInTeam)
-                    throw new DomainException("TeamPlayer", $"Player '{request.PlayerId}' is already in Team '{request.TeamId}'", "PlayerAlreadyInTeam");
+                // 3. Create new player
+                return await _playerService.AddPlayerClub(new CreatePlayerModel
+                {
+                    Name = request.Name,
+                    ClubId = request.ClubId,
+                    Alias = request.Alias,
+                    BirthDate = request.BirthDate,
+                    Dni = request.Dni,
+                    LastName = request.LastName,
+                    PhotoFile = request.PhotoFile
+                }, cancellationToken);
             }
 
             private async Task ValidateExistingTeam(AddPlayerCommand request, CancellationToken cancellationToken)

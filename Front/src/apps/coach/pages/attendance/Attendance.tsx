@@ -38,13 +38,38 @@ export default function Attendance() {
   } = useTeamAndClub();
   const [loading, setLoading] = useState(false);
   const [events, setEvents] = useState<SportEventResponse[]>([]);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem("attendance_filter");
+      if (saved) return JSON.parse(saved).page ?? 1;
+    } catch { /* ignore */ }
+    return 1;
+  });
   const [pageSize] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [eventTypeMap, setEventTypeMap] = useState<Record<number, string>>({});
-  const [startDate, setStartDate] = useState<string | null>(() => getWeekBounds().start);
-  const [endDate, setEndDate] = useState<string | null>(() => getWeekBounds().end);
-  const [descending, setDescending] = useState(false);
+  const FILTER_KEY = "attendance_filter";
+  const [startDate, setStartDate] = useState<string | null>(() => {
+    try {
+      const saved = sessionStorage.getItem(FILTER_KEY);
+      if (saved) return JSON.parse(saved).startDate ?? getWeekBounds().start;
+    } catch { /* ignore */ }
+    return getWeekBounds().start;
+  });
+  const [endDate, setEndDate] = useState<string | null>(() => {
+    try {
+      const saved = sessionStorage.getItem(FILTER_KEY);
+      if (saved) return JSON.parse(saved).endDate ?? getWeekBounds().end;
+    } catch { /* ignore */ }
+    return getWeekBounds().end;
+  });
+  const [descending, setDescending] = useState<boolean>(() => {
+    try {
+      const saved = sessionStorage.getItem(FILTER_KEY);
+      if (saved) return JSON.parse(saved).descending ?? false;
+    } catch { /* ignore */ }
+    return false;
+  });
   const [searchTrigger, setSearchTrigger] = useState(0);
   const [dialogOpen, setDialogOpen] = useState(false);
   useEffect(() => {
@@ -97,7 +122,14 @@ export default function Attendance() {
   }, [team, page, pageSize, searchTrigger]);
 
   // Reset page and wait for explicit search
+  function saveFilter(start: string | null, end: string | null, desc: boolean, p = 1) {
+    try {
+      sessionStorage.setItem(FILTER_KEY, JSON.stringify({ startDate: start, endDate: end, descending: desc, page: p }));
+    } catch { /* ignore */ }
+  }
+
   function onSearch() {
+    saveFilter(startDate, endDate, descending, 1);
     setPage(1);
     setSearchTrigger((s) => s + 1);
   }
@@ -107,6 +139,7 @@ export default function Attendance() {
     setStartDate(start);
     setEndDate(end);
     setDescending(false);
+    saveFilter(start, end, false, 1);
     setPage(1);
     setSearchTrigger((s) => s + 1);
   }
@@ -214,7 +247,7 @@ export default function Attendance() {
             <Pagination
               count={totalPages}
               page={page}
-              onChange={(_, v) => setPage(v)}
+              onChange={(_, v) => { setPage(v); saveFilter(startDate, endDate, descending, v); }}
             />
           </Box>
         </Box>

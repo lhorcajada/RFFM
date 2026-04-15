@@ -17,6 +17,8 @@ import { dischargeActiveInjury } from "../../services/teamplayerService";
 import teamService from "../../services/teamService";
 import playerService from "../../services/playerService";
 import playerRatingService from "../../services/playerRatingService";
+import { getSeasonPlayerStats } from "../../services/liveMatchService";
+import type { SeasonPlayerStats } from "../convocations/components/simulation/liveMatch.types";
 import type { PlayerRating } from "../../types/playerRating";
 import styles from "./Squad.module.css";
 import defaultAvatar from "../../../../assets/avatar.svg";
@@ -71,6 +73,7 @@ export default function Squad() {
   const [players, setPlayers] = useState<any[]>([]);
   const [playerPhotos, setPlayerPhotos] = useState<Record<string, string | null>>({});
   const [latestRatings, setLatestRatings] = useState<Record<string, PlayerRating>>({});
+  const [seasonStats, setSeasonStats] = useState<Record<string, SeasonPlayerStats>>({});
   const [loadingRatings, setLoadingRatings] = useState(false);
   const [loadingPlayers, setLoadingPlayers] = useState(false);
   const [activeTab, setActiveTab] = useTabState(0);
@@ -158,6 +161,16 @@ export default function Squad() {
           })
           .catch(() => {})
           .finally(() => { if (mounted) setLoadingRatings(false); });
+
+        // Load season stats (best-effort, non-blocking)
+        getSeasonPlayerStats(team.id)
+          .then((stats) => {
+            if (!mounted) return;
+            const map: Record<string, SeasonPlayerStats> = {};
+            stats.forEach((s) => { map[s.teamPlayerId] = s; });
+            setSeasonStats(map);
+          })
+          .catch(() => {});
       }
     }
 
@@ -285,6 +298,7 @@ export default function Squad() {
                                 ? { technical: r.technical, tactical: r.tactical, physical: r.physical, competitiveness: r.competitiveness }
                                 : null;
                             })()}
+                            seasonStats={seasonStats[p.id] ?? null}
                             to={
                               p.id
                                 ? `/coach/player/${p.id}${team ? `?teamId=${team.id}` : ""}${seasonParam ? `&seasonId=${seasonParam}` : ""}`
@@ -306,6 +320,7 @@ export default function Squad() {
               players={ratingPlayers}
               latestRatings={latestRatings}
               onRatingCreated={handleRatingCreated}
+              teamName={team.name}
             />
           )}
 

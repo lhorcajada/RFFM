@@ -30,6 +30,19 @@ namespace RFFM.Api.Infrastructure.Storage
             return _supabase.Storage.From(bucket).GetPublicUrl(filePath);
         }
 
+        public async Task<string> UploadBytesAsync(string bucket, string filePath, byte[] content, string contentType, CancellationToken cancellationToken)
+        {
+            await _supabase.Storage
+                .From(bucket)
+                .Upload(content, filePath, new Supabase.Storage.FileOptions
+                {
+                    ContentType = contentType,
+                    Upsert = true
+                });
+
+            return _supabase.Storage.From(bucket).GetPublicUrl(filePath);
+        }
+
         public async Task<bool> DeleteAsync(string bucket, string filePath, CancellationToken cancellationToken)
         {
             var result = await _supabase.Storage
