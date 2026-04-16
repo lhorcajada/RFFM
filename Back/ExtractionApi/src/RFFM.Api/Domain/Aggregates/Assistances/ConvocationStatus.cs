@@ -4,7 +4,6 @@
     {
         private static readonly ConvocationStatus Pending = new ConvocationStatus(1, "Pending");
         private static readonly ConvocationStatus Accepted = new ConvocationStatus(2, "Accepted");
-        private static readonly ConvocationStatus Declined = new ConvocationStatus(3, "Declined");
         private static readonly ConvocationStatus Justified = new ConvocationStatus(4, "Justified");
         private static readonly ConvocationStatus Deconvoke = new ConvocationStatus(5, "Deconvoke");
         public int Id { get; private set; }
@@ -14,7 +13,7 @@
             Id = id;
             Name = name;
         }
-        public static IEnumerable<ConvocationStatus> List() => new[] { Pending, Accepted, Declined, Justified, Deconvoke };
+        public static IEnumerable<ConvocationStatus> List() => new[] { Pending, Accepted, Justified, Deconvoke };
         public static ConvocationStatus FromName(string name)
         {
             var status = List()

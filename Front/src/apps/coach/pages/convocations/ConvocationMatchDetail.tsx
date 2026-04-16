@@ -57,6 +57,26 @@ export default function ConvocationMatchDetail() {
   const convocation = useConvocationManagement(teamId, match?.date);
   const grid = useDesconvocatoriasGrid(teamId);
 
+  // Per-player streak: consecutive past matches since the last "Decisión técnica" deconvocation
+  const playerStreaks = useMemo(() => {
+    const result = new Map<string, number>();
+    const NOT_CALLED_NAMES = new Set(["Deconvoke", "No disponible"]);
+    for (const player of convocation.players) {
+      let streak = 0;
+      for (const col of grid.matchColumns) {
+        const cell = grid.enrichedGrid.get(col.eventId)?.get(player.id);
+        if (cell && NOT_CALLED_NAMES.has(cell.statusName)) {
+          const isTechDecision =
+            !cell.excuseTypeId || !!cell.excuseName?.toLowerCase().includes("decisi");
+          if (isTechDecision) break;
+        }
+        streak++;
+      }
+      result.set(player.id, streak);
+    }
+    return result;
+  }, [convocation.players, grid.matchColumns, grid.enrichedGrid]);
+
   // Players for the Alineacion tab (convocados only)
   const lineupPlayers = useMemo(
     () =>
@@ -199,7 +219,6 @@ export default function ConvocationMatchDetail() {
             mgmtCalled={convocation.mgmtCalled}
             mgmtAvailable={convocation.mgmtAvailable}
             mgmtNotCalled={convocation.mgmtNotCalled}
-            mgmtNoDisponible={convocation.mgmtNoDisponible}
             players={convocation.players}
             mgmtRatings={convocation.mgmtRatings}
             mgmtPhotos={convocation.mgmtPhotos}
@@ -217,6 +236,7 @@ export default function ConvocationMatchDetail() {
             onExcuseChange={(pid, excuseId) =>
               convocation.setMgmtExcuseMap((prev) => ({ ...prev, [pid]: excuseId }))
             }
+            playerStreaks={playerStreaks}
           />
         )}
 
@@ -248,6 +268,8 @@ export default function ConvocationMatchDetail() {
             enrichedGrid={grid.enrichedGrid}
             isLoading={grid.isLoading}
             teamId={teamId}
+            onDeconvokePlayer={(playerId) => convocation.moveToNotCalled(playerId)}
+            currentNotCalled={convocation.mgmtNotCalled}
           />
         )}
 

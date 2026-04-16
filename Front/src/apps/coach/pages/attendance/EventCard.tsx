@@ -1,17 +1,21 @@
 import React, { useState } from "react";
 import {
-  Button,
   Chip,
   Dialog,
   DialogActions,
   DialogContent,
   DialogContentText,
   DialogTitle,
+  Button,
+  IconButton,
+  Tooltip,
 } from "@mui/material";
+import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
 import { useNavigate } from "react-router-dom";
 import styles from "./EventCard.module.css";
 import { SportEventResponse } from "../../services/sportEventService";
-import { getEventTypeColor } from "./attendanceUtils";
 import { deleteSportEvent } from "../../services/sportEventService";
 import SportEventDialog from "./components/SportEventDialog";
 
@@ -22,126 +26,288 @@ interface Props {
   onEdited?: () => void;
 }
 
+function getEventAvatar(eventTypeName?: string | null): { emoji: string; gradient: string } {
+  const name = (eventTypeName ?? "").toLowerCase();
+  if (name.includes("entrenamiento")) {
+    return {
+      emoji: "⚽",
+      gradient: "linear-gradient(135deg, #1b5e20 0%, #2e7d32 50%, #145214 100%)",
+    };
+  }
+  if (name.includes("torneo") || name.includes("competici")) {
+    return {
+      emoji: "🏆",
+      gradient: "linear-gradient(135deg, #b71c1c 0%, #c62828 50%, #9c1515 100%)",
+    };
+  }
+  return {
+    emoji: "📅",
+    gradient: "linear-gradient(135deg, #37474f 0%, #455a64 50%, #2c3e50 100%)",
+  };
+}
+
+type MatchResult = "won" | "draw" | "lost" | null;
+function getMatchResult(event: SportEventResponse): MatchResult {
+  const lg = event.localGoals;
+  const vg = event.visitorGoals;
+  if (lg == null || lg === "" || vg == null || vg === "") return null;
+  const lNum = parseInt(lg, 10);
+  const vNum = parseInt(vg, 10);
+  if (isNaN(lNum) || isNaN(vNum)) return null;
+  const isHome = event.isHomeMatch !== false;
+  const myGoals = isHome ? lNum : vNum;
+  const theirGoals = isHome ? vNum : lNum;
+  if (myGoals > theirGoals) return "won";
+  if (myGoals === theirGoals) return "draw";
+  return "lost";
+}
+
+function ShieldImg({ src, alt }: { src: string; alt: string }) {
+  const [hidden, setHidden] = useState(false);
+  if (!src || hidden) return <div className={styles.matchShieldPlaceholder} />;
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className={styles.matchShield}
+      onError={() => setHidden(true)}
+    />
+  );
+}
+
+function parseDate(input?: string | number | null): Date | null {
+  if (input == null) return null;
+  try {
+    if (typeof input === "number") {
+      const d = new Date(input);
+      return isNaN(d.getTime()) ? null : d;
+    }
+    if (typeof input === "string") {
+      const s = input.trim();
+      const msMatch = s.match(/\/Date\((-?\d+)\)\//);
+      if (msMatch) {
+        const d = new Date(Number(msMatch[1]));
+        if (!isNaN(d.getTime())) return d;
+      }
+      if (/^-?\d+$/.test(s)) {
+        const d = new Date(Number(s));
+        if (!isNaN(d.getTime())) return d;
+      }
+      let candidate = s;
+      if (/^\d{4}-\d{2}-\d{2}$/.test(s)) candidate = s + "T00:00:00";
+      let d = new Date(candidate);
+      if (!isNaN(d.getTime())) return d;
+      d = new Date(s.replace(" ", "T"));
+      if (!isNaN(d.getTime())) return d;
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
 export default function EventCard({ event, eventTypeName, onDeleted, onEdited }: Props) {
   const navigate = useNavigate();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
-  function parseDate(input?: string | number | null): Date | null {
-    if (input == null) return null;
-    try {
-      if (typeof input === "number") {
-        const d = new Date(input);
-        return isNaN(d.getTime()) ? null : d;
-      }
-      if (typeof input === "string") {
-        const s = input.trim();
-        // Handle /Date(123456789)/ (dotnet) timestamps
-        const msMatch = s.match(/\/Date\((-?\d+)\)\//);
-        if (msMatch) {
-          const d = new Date(Number(msMatch[1]));
-          if (!isNaN(d.getTime())) return d;
-        }
-        // Numeric string timestamp
-        if (/^-?\d+$/.test(s)) {
-          const d = new Date(Number(s));
-          if (!isNaN(d.getTime())) return d;
-        }
-        // Try ISO and common variants
-        // If string looks like date only (YYYY-MM-DD), try adding T00:00:00
-        let candidate = s;
-        if (/^\d{4}-\d{2}-\d{2}$/.test(s)) candidate = s + "T00:00:00";
-        let d = new Date(candidate);
-        if (!isNaN(d.getTime())) return d;
-        // Try replacing space with T (e.g. '2025-09-09 19:00:00')
-        d = new Date(s.replace(" ", "T"));
-        if (!isNaN(d.getTime())) return d;
-      }
-    } catch (e) {
-      // ignore and return null
-    }
-    return null;
-  }
+
   const rawStart = event.startTime ?? event.start ?? event.eveDateTime ?? null;
   const startDate = parseDate(rawStart ?? undefined);
   const startDateStr = startDate
-    ? startDate.toLocaleDateString(undefined, { dateStyle: "medium" })
+    ? startDate.toLocaleDateString("es-ES", { dateStyle: "medium" })
     : "Fecha no disponible";
   const weekday = startDate
-    ? startDate.toLocaleDateString(undefined, { weekday: "long" })
+    ? startDate.toLocaleDateString("es-ES", { weekday: "long" })
     : null;
   const startTimeStr = startDate
-    ? startDate.toLocaleTimeString(undefined, { timeStyle: "short" })
+    ? startDate.toLocaleTimeString("es-ES", { timeStyle: "short" })
     : "";
-  return (
-    <div className={styles.card}>
-      <div className={styles.titleRow}>
-        <div className={styles.title}>{event.title}</div>
-        <div style={{ textAlign: "right" }}>
-          <div className={styles.meta}>
-            {weekday
-              ? `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)}`
-              : ""}
-            {weekday ? ", " : ""}
-            {startDateStr}
-          </div>
-          {startTimeStr ? (
-            <div className={styles.meta} style={{ fontSize: 12 }}>
-              {startTimeStr}
-            </div>
-          ) : null}
-        </div>
-      </div>
-      {event.location ? (
-        <div className={styles.location}>{event.location}</div>
-      ) : null}
-      {event.rivalName ? (
-        <div className={styles.rival}>
-          <span className={styles.rivalLabel}>Rival:</span>{" "}
-          {event.rivalName}
-        </div>
-      ) : null}
-      {event.name && event.name !== event.title ? (
-        <div className={styles.eventName}>{event.name}</div>
-      ) : null}
-      {eventTypeName ? (
-        <div style={{ marginTop: 6 }}>
-          <Chip
-            label={eventTypeName}
-            size="small"
-            sx={{
-              backgroundColor: getEventTypeColor(eventTypeName),
-              color: "#fff",
-            }}
-          />
-        </div>
-      ) : null}
-      <div className={styles.actions}>
-        <Button
+  const dateLabel = [
+    weekday ? `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)}` : "",
+    startDateStr,
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  const isMatch = (eventTypeName ?? "").toLowerCase().includes("partido");
+
+  // Match-specific derived data
+  // isHomeMatch: true = user's team plays at home; false = away; null/undefined = unknown
+  const isHome = event.isHomeMatch === true;
+  const isAway = event.isHomeMatch === false;
+  const myTeamName = event.teamName ?? "";
+  const myTeamShield = event.teamPhotoUrl ?? "";
+  const rivalName = event.rivalName ?? "";
+  const rivalShield = event.rivalPhotoUrl ?? "";
+  const hasScore =
+    event.localGoals != null && event.localGoals !== "" &&
+    event.visitorGoals != null && event.visitorGoals !== "";
+
+  // When away: rival is the local team (left), user is visitor (right).
+  // Score in DB is always local-visitor, so positions match automatically.
+  const leftTeamName = isAway ? rivalName : myTeamName;
+  const leftShield = isAway ? rivalShield : myTeamShield;
+  const rightTeamName = isAway ? myTeamName : rivalName;
+  const rightShield = isAway ? myTeamShield : rivalShield;
+  // localGoals always belongs to the left team, visitorGoals to the right
+  const leftGoals = event.localGoals;
+  const rightGoals = event.visitorGoals;
+
+  const matchResult = isMatch ? getMatchResult(event) : null;
+  const resultLabel =
+    matchResult === "won" ? "Victoria" :
+    matchResult === "draw" ? "Empate" :
+    matchResult === "lost" ? "Derrota" : null;
+
+  const avatar = getEventAvatar(eventTypeName);
+
+  const actions = (
+    <div className={styles.actions}>
+      <Tooltip title="Asistencias">
+        <IconButton
           size="small"
-          variant="outlined"
           onClick={() => navigate(String(event.id))}
           aria-label={`Ver asistencias del evento ${event.title}`}
+          sx={{ color: "rgba(180,195,240,0.85)" }}
         >
-          Ver asistencias
-        </Button>
-        <Button
+          <PeopleAltIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+      <Tooltip title="Editar">
+        <IconButton
           size="small"
-          variant="outlined"
           onClick={() => setEditOpen(true)}
-          sx={{ ml: 1 }}
+          aria-label="Editar evento"
+          sx={{ color: "rgba(180,195,240,0.85)" }}
         >
-          Editar
-        </Button>
-        <Button
+          <EditIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+      <Tooltip title="Eliminar">
+        <IconButton
           size="small"
-          variant="outlined"
-          color="error"
           onClick={() => setConfirmOpen(true)}
-          sx={{ ml: 1 }}
+          aria-label="Eliminar evento"
+          sx={{ color: "rgba(230,100,100,0.85)" }}
         >
-          Eliminar
-        </Button>
+          <DeleteIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+    </div>
+  );
+
+  return (
+    <div className={`${styles.card} ${isMatch ? styles.cardMatch : ""}`}>
+      {/* ── MATCH HEADER ─────────────────────────────── */}
+      {isMatch ? (
+        <div className={styles.matchHeader}>
+          <div className={styles.matchHeaderShine} />
+          {/* Home/Away badge */}
+          {isHome && <span className={styles.homeBadge}>🏠 Local</span>}
+          {isAway && <span className={`${styles.homeBadge} ${styles.awayBadge}`}>✈️ Visitante</span>}
+          <div className={styles.matchTeamBlock}>
+            <ShieldImg src={leftShield} alt={leftTeamName} />
+            <span className={styles.matchTeamName} title={leftTeamName}>
+              {leftTeamName || (isAway ? "Rival" : "Mi equipo")}
+            </span>
+          </div>
+          <div className={styles.matchCenter}>
+            {hasScore ? (
+              <span className={styles.matchScore}>
+                {leftGoals}
+                <span className={styles.matchScoreDash}>-</span>
+                {rightGoals}
+              </span>
+            ) : (
+              <>
+                <span className={styles.matchVs}>vs</span>
+                {startTimeStr && (
+                  <span className={styles.matchKickoff}>{startTimeStr}</span>
+                )}
+              </>
+            )}
+            {resultLabel && (
+              <span
+                className={`${styles.matchResultBadge} ${
+                  matchResult === "won" ? styles.resultWon :
+                  matchResult === "draw" ? styles.resultDraw :
+                  styles.resultLost
+                }`}
+              >
+                {resultLabel}
+              </span>
+            )}
+          </div>
+          <div className={`${styles.matchTeamBlock} ${styles.matchTeamRight}`}>
+            <ShieldImg src={rightShield} alt={rightTeamName} />
+            <span className={styles.matchTeamName} title={rightTeamName}>
+              {rightTeamName || (isAway ? "Mi equipo" : "Rival")}
+            </span>
+          </div>
+        </div>
+      ) : (
+        /* ── GENERIC HEADER ──────────────────────────── */
+        <div className={styles.header} style={{ background: avatar.gradient }}>
+          <div className={styles.headerShine} />
+          <div className={styles.avatar}>{avatar.emoji}</div>
+          {eventTypeName && (
+            <Chip
+              label={eventTypeName}
+              size="small"
+              sx={{
+                backgroundColor: "rgba(255,255,255,0.18)",
+                color: "#fff",
+                fontWeight: 700,
+                fontSize: "0.7rem",
+                height: 22,
+                backdropFilter: "blur(4px)",
+              }}
+            />
+          )}
+        </div>
+      )}
+
+      {/* ── BODY ─────────────────────────────────────── */}
+      <div className={styles.body}>
+        <div className={styles.title} title={event.title}>{event.title}</div>
+        <div className={styles.metaRow}>
+          <span className={styles.meta}>{dateLabel}</span>
+          {startTimeStr && !hasScore && !isMatch && (
+            <span className={styles.metaTime}>{startTimeStr}</span>
+          )}
+        </div>
+        {event.location && (
+          <div className={styles.location} title={event.location}>
+            📍 {event.location}
+          </div>
+        )}
+        {!isMatch && event.rivalName && (
+          <div className={styles.rival} title={event.rivalName}>
+            <span className={styles.rivalLabel}>Rival:</span> {event.rivalName}
+          </div>
+        )}
+        {event.name && event.name !== event.title && (
+          <div className={styles.eventName} title={event.name}>{event.name}</div>
+        )}
+        {isMatch && (
+          <div style={{ marginTop: 4 }}>
+            <Chip
+              label="Partido"
+              size="small"
+              sx={{
+                backgroundColor: "rgba(13,71,161,0.45)",
+                color: "#90caf9",
+                fontWeight: 700,
+                fontSize: "0.68rem",
+                height: 20,
+              }}
+            />
+          </div>
+        )}
       </div>
+
+      {actions}
+
       <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
         <DialogTitle>Eliminar evento</DialogTitle>
         <DialogContent>

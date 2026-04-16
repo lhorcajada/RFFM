@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { Box, Button, Tabs, Tab } from "@mui/material";
 import EmptyState from "../../../../shared/components/ui/EmptyState/EmptyState";
 import convocationService, {
@@ -15,13 +16,18 @@ import assistanceTypeService, { AssistanceType } from "../../services/assistance
 import { coachAuthService } from "../../services/authService";
 import styles from "./AttendanceTabs.module.css";
 import defaultAvatar from "../../../../assets/avatar.svg";
-import PlayerCard from "../../components/PlayerCard/PlayerCard";
 import NotConvokedList from "./components/NotConvokedList";
 import ConvocationCard from "./components/ConvocationCard";
-import DeclineDialog from "./components/DeclineDialog";
 import DeconvokeDialog from "./components/DeconvokeDialog";
 
 type Props = { eventId: string; eventStart?: string | null };
+
+// A player is injured for a given event only if the injury started BEFORE that day (not same day).
+function isInjuredBeforeDate(injuryStartDate: string | null | undefined, eventDate: string | null | undefined): boolean {
+  if (!injuryStartDate) return true;
+  if (!eventDate) return true;
+  return injuryStartDate.slice(0, 10) < eventDate.slice(0, 10);
+}
 
 function statusNameMap(id: number, statuses: { id: number; name: string }[]) {
   const s = statuses.find((x) => x.id === id);
@@ -29,7 +35,7 @@ function statusNameMap(id: number, statuses: { id: number; name: string }[]) {
   const m: Record<string, string> = {
     Pending: "Pendiente",
     Accepted: "Aceptado",
-    Declined: "Declinado",
+    Deconvoke: "Desconvocado",
   };
   return m[s.name] ?? s.name;
 }
@@ -78,6 +84,52 @@ export default function AttendanceTabs({ eventId, eventStart }: Props) {
         setExcuseTypes(ex);
         setAvailabilityTypes(av);
         setAssistanceTypes(at);
+
+        // ── Auto-register injured players as Deconvoke + Lesión ─────────────
+        const deconvokeId = st.find((s) => s.name === "Deconvoke")?.id;
+        const injuryExcuseId = 1; // ExcuseType id=1 = "Lesión"
+        const today = new Date().toISOString().slice(0, 10);
+        const eventDay = eventStart ? eventStart.slice(0, 10) : today;
+
+        // Players that are injured (at or before the event date) and not yet
+        // registered as Deconvoke+Lesión in this event's convocation list.
+        const injuredToRegister = pl.filter((p) => {
+          if (!p.isInjured) return false;
+          if (!isInjuredBeforeDate(p.injuryStartDate, eventDay)) return false;
+          const existing = conv.find((c) => c.player.id === p.id);
+          // Already registered as Deconvoke + injury excuse → nothing to do
+          if (existing && existing.status === deconvokeId && existing.excuseTypeId === injuryExcuseId) return false;
+          return true;
+        });
+
+        if (deconvokeId && injuredToRegister.length > 0) {
+          for (const p of injuredToRegister.filter((p) => p.id)) {
+            try {
+              const alreadyInConv = conv.some((c) => c.player.id === p.id);
+              if (!alreadyInConv) {
+                await convocationService.addConvocation(eventId, p.id!);
+              }
+              const reloaded = await convocationService.getConvocations(eventId);
+              const target = reloaded.find((c) => c.player?.id === p.id);
+              if (target) {
+                await convocationService.updateConvocationStatus(
+                  eventId,
+                  target.id,
+                  deconvokeId,
+                  injuryExcuseId
+                );
+              }
+            } catch {
+              // non-blocking: skip if conflict
+            }
+          }
+          // Reload convocations after auto-registration
+          const updatedConv = await convocationService.getConvocations(eventId);
+          if (!mounted) return;
+          setConvocations(updatedConv);
+        }
+        // ────────────────────────────────────────────────────────────────────
+
         // fetch photos for players and convocated players
         const photos: Record<string, string | null> = {};
         const all = [
@@ -124,8 +176,8 @@ export default function AttendanceTabs({ eventId, eventStart }: Props) {
   const notConvoked = players.filter(
     (p) => !convocations.some((c) => c.player.id === p.id)
   );
-  const waitingList = notConvoked.filter((p) => !p.isInjured);
-  const injuredWaiting = notConvoked.filter((p) => p.isInjured);
+  const waitingList = notConvoked.filter((p) => !p.isInjured || !isInjuredBeforeDate(p.injuryStartDate, eventStart));
+  const injuredWaiting = notConvoked.filter((p) => p.isInjured && isInjuredBeforeDate(p.injuryStartDate, eventStart));
 
   const [adding, setAdding] = useState(false);
 
@@ -184,10 +236,20 @@ export default function AttendanceTabs({ eventId, eventStart }: Props) {
     }
   };
 
-  const [declineDialog, setDeclineDialog] = useState<{
-    open: boolean;
-    conv?: ConvocationItem;
-  }>({ open: false });
+  const handleMoveToWaiting = async (convocationId: string) => {
+    if (!canEdit) return alert("No se puede editar: el evento ya ha comenzado o está cerrado.");
+    try {
+      await convocationService.deleteConvocation(eventId, convocationId);
+      const [conv, pl] = await Promise.all([
+        convocationService.getConvocations(eventId),
+        convocationService.getEventPlayers(eventId),
+      ]);
+      setConvocations(conv);
+      setPlayers(pl);
+    } catch (e: any) {
+      alert(e?.message ?? "Error al mover a lista de espera");
+    }
+  };
 
   const [deconvokeDialog, setDeconvokeDialog] = useState<{
     open: boolean;
@@ -311,45 +373,86 @@ export default function AttendanceTabs({ eventId, eventStart }: Props) {
 
               const acceptedId = statuses.find((s) => s.name === "Accepted")?.id;
               const pendingId = statuses.find((s) => s.name === "Pending")?.id;
-              const declinedId = statuses.find((s) => s.name === "Declined")?.id;
               const deconvokeId = statuses.find((s) => s.name === "Deconvoke")?.id;
               // Exclude injured players from accepted/pending — they always go to Desconvocados
               const accepted = filtered.filter((c) => c.status === acceptedId && !(c.isInjured || c.player.isInjured));
               const pending = filtered.filter((c) => c.status === pendingId && !(c.isInjured || c.player.isInjured));
-              // All injured: not-convocated + any convocation where player is injured (regardless of status)
-              const allInjured: PlayerSimple[] = [
-                ...injuredWaiting,
-                ...filtered
-                  .filter((c) => c.isInjured || c.player.isInjured)
-                  .map((c) => ({ ...c.player, isInjured: true })),
-              ];
-              // Desconvocados no lesionados
+              // Injured with a convocation record (can be moved back to waiting)
+              const injuredWithConv = filtered.filter((c) => c.isInjured || c.player.isInjured);
+              // Injured without a convocation record (already in the waiting list as injured)
+              const injuredNoConv: PlayerSimple[] = injuredWaiting;
+              // Desconvocados no lesionados (solo Deconvoke)
               const declinedNonInjured = filtered.filter(
                 (c) =>
-                  ((c.status === declinedId && (!c.excuseTypeId || excuseTypes.find(e => e.id === c.excuseTypeId)?.name !== "Decisión técnica"))
-                  || (c.status === deconvokeId))
+                  c.status === deconvokeId
                   && !(c.isInjured || c.player.isInjured)
               );
+              const totalDesconvocados = injuredNoConv.length + injuredWithConv.length + declinedNonInjured.length;
 
-              if (filtered.length === 0 && allInjured.length === 0)
+              if (filtered.length === 0 && injuredNoConv.length === 0)
                 return <EmptyState description="No hay convocados aún." />;
 
-              const renderInjuredCard = (p: PlayerSimple) => {
+              const renderDeconvokedCard = (c: ConvocationItem) => (
+                <ConvocationCard
+                  key={c.id}
+                  conv={c}
+                  photoSrc={
+                    playerPhotos[String(c.player?.id ?? "")] ??
+                    playerPhotos[String(c.player?.urlPhoto ?? "")] ??
+                    defaultAvatar
+                  }
+                  statuses={statuses}
+                  excuseTypes={excuseTypes}
+                  canEdit={canEdit}
+                  onChangeStatus={handleChangeStatus}
+                  onDelete={(cv) => {
+                    if (!canEdit) return alert("No se puede editar: el evento ya ha comenzado.");
+                    setDeconvokeDialog({ open: true, conv: cv });
+                  }}
+                  onMoveToWaiting={(cv) => handleMoveToWaiting(cv.id)}
+                />
+              );
+
+              const renderInjuredCard = (player: PlayerSimple) => {
+                const p = player as any;
                 const byId = p.id != null ? playerPhotos[String(p.id)] : null;
                 const byUrl = p.urlPhoto ? playerPhotos[String(p.urlPhoto)] : null;
-                const photoSrc = byId ?? byUrl ?? defaultAvatar;
+                const rawPhotoSrc = byId ?? byUrl ?? null;
+                const photo = rawPhotoSrc ?? defaultAvatar;
+                const rawName = ((p.name ?? "") + " " + (p.lastName ?? "")).trim();
+                const displayName = rawName || p.alias || "Jugador";
+                const dorsalValue =
+                  typeof p.dorsal === "number" ? p.dorsal : p.dorsal ? Number(p.dorsal) : null;
+                const hasDorsal =
+                  typeof dorsalValue === "number" && Number.isFinite(dorsalValue);
                 return (
-                  <div key={p.id} className={styles.cardWrap}>
-                    <div className={`${styles.cardInner} ${styles.cardStatusDeclined}`}>
-                      <PlayerCard
-                        player={{ ...(p as any), position: p.position }}
-                        photoSrc={photoSrc}
-                        actions={
-                          <div className={styles.tagBadgeRow}>
-                            <span className={`${styles.tagBadge} ${styles.tagInjured}`}>Lesionado</span>
+                  <div key={player.id} className={styles.cardWrap}>
+                    <div className={styles.cromoCard}>
+                      {p.id ? (
+                        <Link to={`/coach/player/${p.id}`} className={styles.cromoPhotoLink}>
+                          <div className={styles.cromoPhotoArea}>
+                            <img src={photo} alt={displayName} className={photo === defaultAvatar ? styles.cromoPhotoAvatar : styles.cromoPhoto} />
+                            <div className={styles.cromoGradient} />
+                            {hasDorsal && <div className={styles.cromoDorsalBadge}>{dorsalValue}</div>}
+                            <div className={`${styles.cromoStatusStripe} ${styles.cromoStatusStripeDeclined}`} />
                           </div>
-                        }
-                      />
+                        </Link>
+                      ) : (
+                        <div className={styles.cromoPhotoArea}>
+                          <img src={photo} alt={displayName} className={photo === defaultAvatar ? styles.cromoPhotoAvatar : styles.cromoPhoto} />
+                          <div className={styles.cromoGradient} />
+                          {hasDorsal && <div className={styles.cromoDorsalBadge}>{dorsalValue}</div>}
+                          <div className={`${styles.cromoStatusStripe} ${styles.cromoStatusStripeDeclined}`} />
+                        </div>
+                      )}
+                      <div className={styles.cromoBody}>
+                        <div className={styles.cromoAccentLine} />
+                        <div className={styles.cromoName}>{displayName}</div>
+                        {p.position && <div className={styles.cromoPosition}>{p.position}</div>}
+                        <div className={styles.cromoActions}>
+                          <div className={styles.cromoInjuredBadge}>🩹 Lesionado</div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 );
@@ -375,23 +478,11 @@ export default function AttendanceTabs({ eventId, eventStart }: Props) {
                       );
                     setDeconvokeDialog({ open: true, conv: cv });
                   }}
-                  onRequestDecline={(cv) =>
-                    setDeclineDialog({ open: true, conv: cv })
-                  }
                 />
               );
 
               return (
                 <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 24 }}>
-                  {accepted.length > 0 && (
-                    <div>
-                      <div className={`${styles.listGroupHeader} ${styles.listGroupHeaderGreen}`}>
-                        <span>Aceptados</span>
-                        <span className={styles.listGroupCount}>{accepted.length}</span>
-                      </div>
-                      <div className={styles.convocatedList}>{accepted.map(renderCard)}</div>
-                    </div>
-                  )}
                   {pending.length > 0 && (
                     <div>
                       <div className={`${styles.listGroupHeader} ${styles.listGroupHeaderGray}`}>
@@ -401,15 +492,16 @@ export default function AttendanceTabs({ eventId, eventStart }: Props) {
                       <div className={styles.convocatedList}>{pending.map(renderCard)}</div>
                     </div>
                   )}
-                  {allInjured.length > 0 || declinedNonInjured.length > 0 ? (
+                  {totalDesconvocados > 0 ? (
                     <div>
                       <div className={`${styles.listGroupHeader} ${styles.listGroupHeaderRed}`}>
                         <span>Desconvocados</span>
-                        <span className={styles.listGroupCount}>{allInjured.length + declinedNonInjured.length}</span>
+                        <span className={styles.listGroupCount}>{totalDesconvocados}</span>
                       </div>
                       <div className={styles.convocatedList}>
-                        {allInjured.map(renderInjuredCard)}
-                        {declinedNonInjured.map(renderCard)}
+                        {injuredNoConv.map(renderInjuredCard)}
+                        {injuredWithConv.map(renderDeconvokedCard)}
+                        {declinedNonInjured.map(renderDeconvokedCard)}
                       </div>
                     </div>
                   ) : null}
@@ -466,13 +558,6 @@ export default function AttendanceTabs({ eventId, eventStart }: Props) {
               if (accepted.length === 0) {
                 return <EmptyState title="Disponibilidad" description="No hay jugadores aceptados todavía." />;
               }
-              const availClass = (availabilityTypeId: number | null | undefined) =>
-                availabilityTypeId === 1
-                  ? styles.cardAvailable
-                  : availabilityTypeId === 2
-                  ? styles.cardNotAvailable
-                  : styles.cardPending;
-
               const available = accepted.filter((c) => c.availabilityTypeId === 1);
               const notAvailable = accepted.filter((c) => c.availabilityTypeId === 2);
               const pending = accepted.filter((c) => !c.availabilityTypeId);
@@ -484,56 +569,98 @@ export default function AttendanceTabs({ eventId, eventStart }: Props) {
                   return styles.optionBtnGray;
                 };
                 const NOT_AVAILABLE_ID = 2;
+                const p = c.player as any;
+                const rawName = ((p?.name ?? "") + " " + (p?.lastName ?? "")).trim();
+                const displayName = rawName || p?.alias || "Jugador";
+                const dorsalValue =
+                  typeof p?.dorsal === "number" ? p.dorsal : p?.dorsal ? Number(p.dorsal) : null;
+                const hasDorsal =
+                  typeof dorsalValue === "number" && Number.isFinite(dorsalValue);
+                const rawPhotoSrc =
+                  playerPhotos[String(c.player?.id ?? "")] ??
+                  playerPhotos[String(c.player?.urlPhoto ?? "")] ??
+                  null;
+                const photo = rawPhotoSrc ?? defaultAvatar;
+                const stripeClass =
+                  c.availabilityTypeId === 1
+                    ? styles.cromoStatusStripeAvailable
+                    : c.availabilityTypeId === 2
+                    ? styles.cromoStatusStripeNotAvailable
+                    : styles.cromoStatusStripePending;
+
                 const availOptions = (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 4, width: "100%" }}>
-                    <div className={styles.optionGroup}>
-                      {availabilityTypes.map((a) => (
-                        <button
-                          key={a.id}
-                          disabled={!canEdit}
-                          className={`${styles.optionBtn} ${availColorClass(a.id)}${c.availabilityTypeId === a.id ? " " + styles.optionBtnActive : ""}`}
-                          onClick={async () => {
-                            try {
-                              await availabilityTypeService.updateConvocationAvailability(eventId, c.id, a.id);
-                              const conv = await convocationService.getConvocations(eventId);
-                              setConvocations(conv);
-                            } catch (err: any) { alert(err?.message ?? "Error al actualizar disponibilidad"); }
-                          }}
-                        >{a.name}</button>
-                      ))}
-                    </div>
-                    {c.availabilityTypeId === NOT_AVAILABLE_ID && excuseTypes.length > 0 && (
-                      <div className={styles.optionGroupSub}>
-                        {excuseTypes.map((ex) => (
-                          <button
-                            key={ex.id}
-                            disabled={!canEdit}
-                            className={`${styles.optionBtn} ${styles.optionSubBtn} ${styles.optionBtnPurple}${c.excuseTypeId === ex.id ? " " + styles.optionBtnActive : ""}`}
-                            onClick={async () => {
-                              try {
-                                await availabilityTypeService.updateConvocationAvailability(eventId, c.id, NOT_AVAILABLE_ID, ex.id);
-                                const conv = await convocationService.getConvocations(eventId);
-                                setConvocations(conv);
-                              } catch (err: any) { alert(err?.message ?? "Error al guardar excusa"); }
-                            }}
-                          >{ex.name}</button>
-                        ))}
-                      </div>
-                    )}
+                  <div className={styles.optionGroup}>
+                    {availabilityTypes.map((a) => (
+                      <button
+                        key={a.id}
+                        disabled={!canEdit}
+                        className={`${styles.optionBtn} ${availColorClass(a.id)}${c.availabilityTypeId === a.id ? " " + styles.optionBtnActive : ""}`}
+                        onClick={async () => {
+                          try {
+                            await availabilityTypeService.updateConvocationAvailability(eventId, c.id, a.id);
+                            const conv = await convocationService.getConvocations(eventId);
+                            setConvocations(conv);
+                          } catch (err: any) { alert(err?.message ?? "Error al actualizar disponibilidad"); }
+                        }}
+                      >{a.name}</button>
+                    ))}
                   </div>
                 );
+
                 return (
                   <div key={c.id} className={styles.cardWrap}>
-                    <div className={`${styles.cardInner} ${availClass(c.availabilityTypeId)}`}>
-                      <PlayerCard
-                        player={{ ...(c.player as any), position: c.player?.position }}
-                        photoSrc={
-                          playerPhotos[String(c.player?.id ?? "")] ??
-                          playerPhotos[String(c.player?.urlPhoto ?? "")] ??
-                          defaultAvatar
-                        }
-                        actions={availOptions}
-                      />
+                    <div className={styles.cromoCard}>
+                      {c.player?.id ? (
+                        <Link to={`/coach/player/${c.player.id}`} className={styles.cromoPhotoLink}>
+                          <div className={styles.cromoPhotoArea}>
+                            <img src={photo} alt={displayName} className={photo === defaultAvatar ? styles.cromoPhotoAvatar : styles.cromoPhoto} />
+                            <div className={styles.cromoGradient} />
+                            {hasDorsal && <div className={styles.cromoDorsalBadge}>{dorsalValue}</div>}
+                            <div className={`${styles.cromoStatusStripe} ${stripeClass}`} />
+                          </div>
+                        </Link>
+                      ) : (
+                        <div className={styles.cromoPhotoArea}>
+                          <img src={photo} alt={displayName} className={photo === defaultAvatar ? styles.cromoPhotoAvatar : styles.cromoPhoto} />
+                          <div className={styles.cromoGradient} />
+                          {hasDorsal && <div className={styles.cromoDorsalBadge}>{dorsalValue}</div>}
+                          <div className={`${styles.cromoStatusStripe} ${stripeClass}`} />
+                        </div>
+                      )}
+                      <div className={styles.cromoBody}>
+                        <div className={styles.cromoAccentLine} />
+                        <div className={styles.cromoName}>{displayName}</div>
+                        {p?.position && <div className={styles.cromoPosition}>{p.position}</div>}
+                        <div className={styles.cromoActions}>
+                          {availOptions}
+                          {c.availabilityTypeId === NOT_AVAILABLE_ID && excuseTypes.length > 0 && (
+                            <div className={styles.optionGroupSub}>
+                              {excuseTypes.map((ex) => (
+                                <button
+                                  key={ex.id}
+                                  disabled={!canEdit}
+                                  className={`${styles.optionBtn} ${styles.optionSubBtn} ${styles.optionBtnPurple}${c.excuseTypeId === ex.id ? " " + styles.optionBtnActive : ""}`}
+                                  onClick={async () => {
+                                    try {
+                                      await availabilityTypeService.updateConvocationAvailability(eventId, c.id, NOT_AVAILABLE_ID, ex.id);
+                                      const conv = await convocationService.getConvocations(eventId);
+                                      setConvocations(conv);
+                                    } catch (err: any) { alert(err?.message ?? "Error al guardar excusa"); }
+                                  }}
+                                >{ex.name}</button>
+                              ))}
+                            </div>
+                          )}
+                          {canEdit && (
+                            <button
+                              className={`${styles.optionBtn} ${styles.optionBtnRed}`}
+                              onClick={() => setDeconvokeDialog({ open: true, conv: c })}
+                            >
+                              Desconvocar
+                            </button>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 );
@@ -625,16 +752,6 @@ export default function AttendanceTabs({ eventId, eventStart }: Props) {
               if (withAvailability.length === 0) {
                 return <EmptyState title="Asistencia" description="No hay jugadores con disponibilidad indicada todavía." />;
               }
-              const assistanceClass = (assistanceTypeId: number | null | undefined) => {
-                switch (assistanceTypeId) {
-                  case 1: return styles.cardAssistanceAttends;
-                  case 2: return styles.cardAssistanceExcused;
-                  case 3: return styles.cardAssistanceUnexcused;
-                  case 4: return styles.cardAssistanceLate;
-                  default: return styles.cardAssistanceNone;
-                }
-              };
-              const NO_EXCUSA_ID = 2;
               // ids 1 (Asiste) y 4 (Llega tarde) = asisten; 2 y 3 = no asisten; null = sin indicar
               const attend = withAvailability.filter((c) => c.assistanceTypeId === 1 || c.assistanceTypeId === 4);
               const absent = withAvailability.filter((c) => c.assistanceTypeId === 2 || c.assistanceTypeId === 3);
@@ -648,67 +765,98 @@ export default function AttendanceTabs({ eventId, eventStart }: Props) {
                   if (id === 4) return styles.optionBtnBlue;
                   return styles.optionBtnGray;
                 };
-                const assistOptions = (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 4, width: "100%" }}>
-                    <div className={styles.optionGroup}>
-                      <button
-                        disabled={!canEdit}
-                        className={`${styles.optionBtn} ${styles.optionBtnGray}${!c.assistanceTypeId ? " " + styles.optionBtnActive : ""}`}
-                        onClick={async () => {
-                          try {
-                            await assistanceTypeService.updateConvocationAssistance(eventId, c.id, null, null);
-                            const conv = await convocationService.getConvocations(eventId);
-                            setConvocations(conv);
-                          } catch (err: any) { alert(err?.message ?? "Error"); }
-                        }}
-                      >Sin indicar</button>
-                      {assistanceTypes.map((a) => (
-                        <button
-                          key={a.id}
-                          disabled={!canEdit}
-                          className={`${styles.optionBtn} ${assistColorClass(a.id)}${c.assistanceTypeId === a.id ? " " + styles.optionBtnActive : ""}`}
-                          onClick={async () => {
-                            try {
-                              await assistanceTypeService.updateConvocationAssistance(eventId, c.id, a.id, null);
-                              const conv = await convocationService.getConvocations(eventId);
-                              setConvocations(conv);
-                            } catch (err: any) { alert(err?.message ?? "Error al actualizar asistencia"); }
-                          }}
-                        >{a.name}</button>
-                      ))}
-                    </div>
-                    {c.assistanceTypeId === NO_EXCUSA_ID && excuseTypes.length > 0 && (
-                      <div className={styles.optionGroupSub}>
-                        {excuseTypes.map((ex) => (
-                          <button
-                            key={ex.id}
-                            disabled={!canEdit}
-                            className={`${styles.optionBtn} ${styles.optionSubBtn} ${styles.optionBtnPurple}${c.excuseTypeId === ex.id ? " " + styles.optionBtnActive : ""}`}
-                            onClick={async () => {
-                              try {
-                                await assistanceTypeService.updateConvocationAssistance(eventId, c.id, NO_EXCUSA_ID, ex.id);
-                                const conv = await convocationService.getConvocations(eventId);
-                                setConvocations(conv);
-                              } catch (err: any) { alert(err?.message ?? "Error al guardar excusa"); }
-                            }}
-                          >{ex.name}</button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
+                const NO_EXCUSA_ID = 2;
+                const p = c.player as any;
+                const rawName = ((p?.name ?? "") + " " + (p?.lastName ?? "")).trim();
+                const displayName = rawName || p?.alias || "Jugador";
+                const dorsalValue =
+                  typeof p?.dorsal === "number" ? p.dorsal : p?.dorsal ? Number(p.dorsal) : null;
+                const hasDorsal =
+                  typeof dorsalValue === "number" && Number.isFinite(dorsalValue);
+                const rawPhotoSrc =
+                  playerPhotos[String(c.player?.id ?? "")] ??
+                  playerPhotos[String(c.player?.urlPhoto ?? "")] ??
+                  null;
+                const photo = rawPhotoSrc ?? defaultAvatar;
+                const stripeClass =
+                  c.assistanceTypeId === 1 || c.assistanceTypeId === 4
+                    ? styles.cromoStatusStripeAttends
+                    : c.assistanceTypeId === 2 || c.assistanceTypeId === 3
+                    ? styles.cromoStatusStripeAbsent
+                    : styles.cromoStatusStripePending;
+
                 return (
                   <div key={c.id} className={styles.cardWrap}>
-                    <div className={`${styles.cardInner} ${assistanceClass(c.assistanceTypeId)}`}>
-                      <PlayerCard
-                        player={{ ...(c.player as any), position: c.player?.position }}
-                        photoSrc={
-                          playerPhotos[String(c.player?.id ?? "")] ??
-                          playerPhotos[String(c.player?.urlPhoto ?? "")] ??
-                          defaultAvatar
-                        }
-                        actions={assistOptions}
-                      />
+                    <div className={styles.cromoCard}>
+                      {c.player?.id ? (
+                        <Link to={`/coach/player/${c.player.id}`} className={styles.cromoPhotoLink}>
+                          <div className={styles.cromoPhotoArea}>
+                            <img src={photo} alt={displayName} className={photo === defaultAvatar ? styles.cromoPhotoAvatar : styles.cromoPhoto} />
+                            <div className={styles.cromoGradient} />
+                            {hasDorsal && <div className={styles.cromoDorsalBadge}>{dorsalValue}</div>}
+                            <div className={`${styles.cromoStatusStripe} ${stripeClass}`} />
+                          </div>
+                        </Link>
+                      ) : (
+                        <div className={styles.cromoPhotoArea}>
+                          <img src={photo} alt={displayName} className={photo === defaultAvatar ? styles.cromoPhotoAvatar : styles.cromoPhoto} />
+                          <div className={styles.cromoGradient} />
+                          {hasDorsal && <div className={styles.cromoDorsalBadge}>{dorsalValue}</div>}
+                          <div className={`${styles.cromoStatusStripe} ${stripeClass}`} />
+                        </div>
+                      )}
+                      <div className={styles.cromoBody}>
+                        <div className={styles.cromoAccentLine} />
+                        <div className={styles.cromoName}>{displayName}</div>
+                        {p?.position && <div className={styles.cromoPosition}>{p.position}</div>}
+                        <div className={styles.cromoActions}>
+                          <div className={styles.optionGroup}>
+                            <button
+                              disabled={!canEdit}
+                              className={`${styles.optionBtn} ${styles.optionBtnGray}${!c.assistanceTypeId ? " " + styles.optionBtnActive : ""}`}
+                              onClick={async () => {
+                                try {
+                                  await assistanceTypeService.updateConvocationAssistance(eventId, c.id, null, null);
+                                  const conv = await convocationService.getConvocations(eventId);
+                                  setConvocations(conv);
+                                } catch (err: any) { alert(err?.message ?? "Error"); }
+                              }}
+                            >Sin indicar</button>
+                            {assistanceTypes.map((a) => (
+                              <button
+                                key={a.id}
+                                disabled={!canEdit}
+                                className={`${styles.optionBtn} ${assistColorClass(a.id)}${c.assistanceTypeId === a.id ? " " + styles.optionBtnActive : ""}`}
+                                onClick={async () => {
+                                  try {
+                                    await assistanceTypeService.updateConvocationAssistance(eventId, c.id, a.id, null);
+                                    const conv = await convocationService.getConvocations(eventId);
+                                    setConvocations(conv);
+                                  } catch (err: any) { alert(err?.message ?? "Error al actualizar asistencia"); }
+                                }}
+                              >{a.name}</button>
+                            ))}
+                          </div>
+                          {c.assistanceTypeId === NO_EXCUSA_ID && excuseTypes.length > 0 && (
+                            <div className={styles.optionGroupSub}>
+                              {excuseTypes.map((ex) => (
+                                <button
+                                  key={ex.id}
+                                  disabled={!canEdit}
+                                  className={`${styles.optionBtn} ${styles.optionSubBtn} ${styles.optionBtnPurple}${c.excuseTypeId === ex.id ? " " + styles.optionBtnActive : ""}`}
+                                  onClick={async () => {
+                                    try {
+                                      await assistanceTypeService.updateConvocationAssistance(eventId, c.id, NO_EXCUSA_ID, ex.id);
+                                      const conv = await convocationService.getConvocations(eventId);
+                                      setConvocations(conv);
+                                    } catch (err: any) { alert(err?.message ?? "Error al guardar excusa"); }
+                                  }}
+                                >{ex.name}</button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 );
@@ -756,22 +904,6 @@ export default function AttendanceTabs({ eventId, eventStart }: Props) {
         </Box>
       )}
 
-      <DeclineDialog
-        open={declineDialog.open}
-        onClose={() => setDeclineDialog({ open: false })}
-        excuseTypes={excuseTypes}
-        onAccept={async (excuseTypeId) => {
-          if (!declineDialog.conv) return;
-          const statusId = statuses.find((s) => s.name === "Declined")?.id;
-          if (!statusId) return;
-          await handleChangeStatus(
-            declineDialog.conv,
-            statusId,
-            excuseTypeId ?? null
-          );
-          setDeclineDialog({ open: false });
-        }}
-      />
       <DeconvokeDialog
         open={deconvokeDialog.open}
         onClose={() => setDeconvokeDialog({ open: false })}
@@ -780,23 +912,23 @@ export default function AttendanceTabs({ eventId, eventStart }: Props) {
           const excuseTypeId = reason === "technical" ? null : Number(reason);
           try {
             if (deconvokeDialog.waitingPlayerId) {
-              // Player in lista de espera: add convocation then set Declined
+              // Player in lista de espera: add convocation then set Deconvoke
               const playerId = deconvokeDialog.waitingPlayerId;
               await convocationService.addConvocation(eventId, playerId);
               const reloaded = await convocationService.getConvocations(eventId);
               const newConv = reloaded.find((c) => c.player?.id === playerId);
-              const declinedId = statuses.find((s) => s.name === "Declined")?.id;
-              if (newConv && declinedId) {
-                await convocationService.updateConvocationStatus(eventId, newConv.id, declinedId, excuseTypeId);
+              const deconvokeId = statuses.find((s) => s.name === "Deconvoke")?.id;
+              if (newConv && deconvokeId) {
+                await convocationService.updateConvocationStatus(eventId, newConv.id, deconvokeId, excuseTypeId);
               }
             } else if (deconvokeDialog.conv) {
-              // Already-convoked player: set status to Declined (desconvocado)
-              const declinedId = statuses.find((s) => s.name === "Declined")?.id;
-              if (declinedId) {
+              // Already-convoked player: set status to Deconvoke
+              const deconvokeId = statuses.find((s) => s.name === "Deconvoke")?.id;
+              if (deconvokeId) {
                 await convocationService.updateConvocationStatus(
                   eventId,
                   deconvokeDialog.conv.id,
-                  declinedId,
+                  deconvokeId,
                   excuseTypeId
                 );
               }

@@ -6,6 +6,7 @@ export type PlayerSimple = {
   urlPhoto?: string | null;
   position?: string;
   isInjured?: boolean;
+  injuryStartDate?: string | null;
 };
 
 export type ConvocationItem = {
@@ -31,6 +32,7 @@ export async function getEventPlayers(
     urlPhoto: p.urlPhoto ?? null,
     position: p.position,
     isInjured: p.isInjured ?? false,
+    injuryStartDate: p.injuryStartDate ?? null,
   }));
 }
 

@@ -96,19 +96,34 @@ function normalizeFromSportEvent(ev: SportEventResponse): NormalizedMatch {
 
 function resolveIsHomeTeam(match: Record<string, unknown>, teamId?: string | null): boolean {
   if (!teamId) return true;
-  const tid = String(teamId).trim();
+  const tid = String(teamId).trim().toLowerCase();
   // new API fields
-  const localCode = String(match.localTeamCode ?? match.localTeamId ?? "").trim();
-  const visitorCode = String(match.visitorTeamCode ?? match.visitorTeamId ?? "").trim();
+  const localCode = String(match.localTeamCode ?? match.localTeamId ?? "").trim().toLowerCase();
+  const visitorCode = String(match.visitorTeamCode ?? match.visitorTeamId ?? "").trim().toLowerCase();
   // legacy API fields
-  const localCodeLeg = String(match.codigo_equipo_local ?? match.codigo_local ?? "").trim();
-  const visitorCodeLeg = String(match.codigo_equipo_visitante ?? match.codigo_visitante ?? "").trim();
-  const localName = String(match.localTeamName ?? match.equipo_local ?? "").trim();
-  const visitorName = String(match.visitorTeamName ?? match.equipo_visitante ?? "").trim();
+  const localCodeLeg = String(match.codigo_equipo_local ?? match.codigo_local ?? "").trim().toLowerCase();
+  const visitorCodeLeg = String(match.codigo_equipo_visitante ?? match.codigo_visitante ?? "").trim().toLowerCase();
+  const localName = String(match.localTeamName ?? match.equipo_local ?? "").trim().toLowerCase();
+  const visitorName = String(match.visitorTeamName ?? match.equipo_visitante ?? "").trim().toLowerCase();
 
-  const isVisitor = [visitorCode, visitorCodeLeg, visitorName].some((v) => v !== "" && v === tid);
-  if (isVisitor) return false;
-  // default to home if local matches or unknown
+  const matchesVisitor = [visitorCode, visitorCodeLeg, visitorName].some((v) => v !== "" && v === tid);
+  if (matchesVisitor) return false;
+
+  // Explicitly confirm the team is local before returning true
+  const matchesLocal = [localCode, localCodeLeg, localName].some((v) => v !== "" && v === tid);
+  if (matchesLocal) return true;
+
+  // Fallback: check if the raw match object has any field whose value matches the teamId
+  // (handles federation APIs that use non-standard field names)
+  const rawValues = Object.values(match).map((v) => String(v ?? "").trim().toLowerCase());
+  const inVisitorHalf = rawValues.some(
+    (v) => v === tid && Object.keys(match).some((k) =>
+      k.toLowerCase().includes("visitor") || k.toLowerCase().includes("visitante")
+    )
+  );
+  if (inVisitorHalf) return false;
+
+  // default to home if truly unknown
   return true;
 }
 

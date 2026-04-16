@@ -65,7 +65,7 @@ namespace RFFM.Api.Features.Coaches.Convocations
                         DorsalNumber = tp.Dorsal != null ? (int?)tp.Dorsal.Number : null,
                         ActivePositionId = tp.Demarcation != null ? tp.Demarcation.ActivePositionId : (int?)null,
                         IsInjured = tp.Injuries.Any(i =>
-                            i.StartDate.Date <= eventDate &&
+                            i.StartDate.Date < eventDate &&
                             (i.EndDate == null || i.EndDate.Value.Date >= eventDate))
                     })
                     .ToArrayAsync(cancellationToken);

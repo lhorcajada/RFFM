@@ -480,19 +480,17 @@ export default function PlayerDetail() {
 
                 {activeTab === 4 && (
                   <>
-                    {!teamPlayer?.injuryInfo && (
-                      <div className={styles.injuryActions}>
-                        <Button
-                          startIcon={<MedicalServicesIcon />}
-                          onClick={() => setInjuryCreateOpen(true)}
-                          variant="outlined"
-                          color="inherit"
-                          size="small"
-                        >
-                          Registrar lesión
-                        </Button>
-                      </div>
-                    )}
+                    <div className={styles.injuryActions}>
+                      <Button
+                        startIcon={<MedicalServicesIcon />}
+                        onClick={() => setInjuryCreateOpen(true)}
+                        variant="outlined"
+                        color="inherit"
+                        size="small"
+                      >
+                        Registrar lesión
+                      </Button>
+                    </div>
                     <InjuryHistoryPanel
                       teamPlayerId={teamPlayer.id}
                       refreshKey={injuryRefreshKey}
@@ -617,8 +615,8 @@ export default function PlayerDetail() {
           open={snackbarOpen}
           autoHideDuration={4000}
           onClose={() => setSnackbarOpen(false)}
-          anchorOrigin={{ vertical: "top", horizontal: "right" }}
-          TransitionComponent={(props) => <Slide {...props} direction="down" />}
+          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+          TransitionComponent={(props) => <Slide {...props} direction="up" />}
         >
           <Alert
             onClose={() => setSnackbarOpen(false)}

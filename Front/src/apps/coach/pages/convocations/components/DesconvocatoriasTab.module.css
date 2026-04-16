@@ -102,6 +102,82 @@
   font-size: 0.78rem;
 }
 
+.playerStats {
+  display: flex;
+  gap: 4px;
+  margin-top: 3px;
+}
+
+.statBadgeTotal,
+.statBadgeStreak {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 9px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.statIcon {
+  font-size: 0.6rem;
+  font-style: normal;
+  opacity: 0.85;
+}
+
+.statBadgeTotal {
+  background: rgba(240, 100, 100, 0.2);
+  color: #f06464;
+  border: 1px solid rgba(240, 100, 100, 0.5);
+}
+
+.statBadgeStreak {
+  background: rgba(78, 201, 176, 0.15);
+  color: #4ec9b0;
+  border: 1px solid rgba(78, 201, 176, 0.4);
+}
+
+/* ─── Legend ─── */
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 4px var(--rffm-page-h-padding, 12px) 6px;
+  flex-shrink: 0;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.legendDotTotal {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(240, 100, 100, 0.5);
+  border: 1px solid #f06464;
+  flex-shrink: 0;
+}
+
+.legendDotStreak {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(78, 201, 176, 0.4);
+  border: 1px solid #4ec9b0;
+  flex-shrink: 0;
+}
+
 .dataCell {
   min-width: 56px;
 }
@@ -114,6 +190,32 @@
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 56px;
+}
+
+/* ─── Cause counters bar ─── */
+
+.counters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px var(--rffm-page-h-padding, 12px) 4px;
+  flex-shrink: 0;
+}
+
+.counterBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 12px;
+  border: 1px solid currentColor;
+  font-size: 0.72rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.counterBadge strong {
+  font-weight: 700;
 }
 
 /* ─── Cell states ─── */
@@ -134,3 +236,52 @@
   color: #f06464;
   font-size: 0.65rem;
 }
+
+/* ─── Deconvoke action per player ─── */
+
+.deconvokeBtn {
+  display: inline-block;
+  margin-top: 3px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  border: 1px solid #e05c5c;
+  background: rgba(224, 92, 92, 0.12);
+  color: #e05c5c;
+  font-size: 0.65rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+}
+
+.deconvokeBtn:hover {
+  background: rgba(224, 92, 92, 0.3);
+  color: #ff8080;
+}
+
+.injuredDeconvokedTag {
+  display: inline-block;
+  margin-top: 3px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  border: 1px solid #e07b2c;
+  background: rgba(224, 123, 44, 0.15);
+  color: #e07b2c;
+  font-size: 0.65rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.alreadyDeconvokedTag {
+  display: inline-block;
+  margin-top: 3px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  border: 1px solid #4ec9b0;
+  background: rgba(78, 201, 176, 0.12);
+  color: #4ec9b0;
+  font-size: 0.65rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+

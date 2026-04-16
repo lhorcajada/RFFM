@@ -20,7 +20,7 @@
 
 .cardWrap {
   width: 100%;
-  max-width: 320px;
+  max-width: 200px;
 }
 
 .cardInner {
@@ -353,6 +353,180 @@
   flex-wrap: wrap;
   gap: 4px;
   width: 100%;
+}
+
+.cromoPhotoLink {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
+.cromoPhotoLink:hover .cromoPhoto,
+.cromoPhotoLink:hover .cromoPhotoAvatar {
+  filter: brightness(1.12);
+}
+
+/* ═══════════════════════════════════════
+   Cromo-style attendance card
+   ═══════════════════════════════════════ */
+
+.cromoCard {
+  position: relative;
+  width: 100%;
+  border-radius: 14px;
+  overflow: hidden;
+  background: linear-gradient(170deg, #1c1c30 0%, #07071a 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s;
+  color: #e8e8e8;
+  user-select: none;
+  min-width: 0;
+}
+
+.cromoCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+/* ─── Photo area ─── */
+.cromoPhotoArea {
+  position: relative;
+  height: 160px;
+  flex: 0 0 auto;
+  overflow: hidden;
+}
+
+.cromoPhoto {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 15%;
+  display: block;
+  background: #1c1c30;
+}
+
+.cromoPhotoAvatar {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center 60%;
+  display: block;
+  background: linear-gradient(160deg, #252545 0%, #1a1a38 100%);
+  padding: 20px 30px 0;
+  box-sizing: border-box;
+  opacity: 0.55;
+}
+
+.cromoGradient {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 72px;
+  background: linear-gradient(to bottom, transparent, #07071a);
+  pointer-events: none;
+}
+
+/* ─── Dorsal badge ─── */
+.cromoDorsalBadge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 5px;
+  border-radius: 13px;
+  background: rgba(0, 0, 0, 0.65);
+  border: 1.5px solid rgba(255, 255, 255, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  color: #fff;
+  z-index: 2;
+}
+
+/* ─── Colour stripe at bottom of photo ─── */
+.cromoStatusStripe {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  pointer-events: none;
+}
+
+.cromoStatusStripeAccepted    { background: #4caf50; }
+.cromoStatusStripeDeclined    { background: #f44336; }
+.cromoStatusStripePending     { background: #9e9e9e; }
+.cromoStatusStripeAvailable   { background: #4caf50; }
+.cromoStatusStripeNotAvailable{ background: #f44336; }
+.cromoStatusStripeAttends     { background: #4caf50; }
+.cromoStatusStripeAbsent      { background: #f44336; }
+.cromoStatusStripeTeal        { background: #4ec9b0; }
+
+/* ─── Body ─── */
+.cromoBody {
+  flex: 1;
+  padding: 8px 10px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cromoAccentLine {
+  height: 2px;
+  border-radius: 1px;
+  background: var(--rffm-primary, #4d9de0);
+  width: 28px;
+  margin-bottom: 3px;
+  flex-shrink: 0;
+}
+
+.cromoName {
+  font-weight: 700;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #f0f0f0;
+}
+
+.cromoPosition {
+  font-size: 10px;
+  opacity: 0.5;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-bottom: 4px;
+}
+
+.cromoActions {
+  margin-top: 6px;
+  padding-top: 7px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.cromoInjuredBadge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: rgba(220, 38, 38, 0.72);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 5px 0;
+  text-transform: uppercase;
+  border-radius: 6px;
 }
 
 /* ─── Dialog option list buttons ─── */

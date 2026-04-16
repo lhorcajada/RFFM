@@ -13,11 +13,19 @@ import sportEventTypeService from "../../../services/sportEventTypeService";
 import type { PlayerRating } from "../../../types/playerRating";
 import type { DropZone } from "../components/convocationMatchDetail.types";
 import {
-  NOT_CALLED_STATUS_IDS,
   CALLED_STATUS_ID,
   NOT_CALLED_STATUS_ID,
-  NO_DISPONIBLE_STATUS_ID,
 } from "../components/convocationMatchDetail.types";
+
+// Returns true only if the injury started strictly before the given event date (day-only comparison).
+// A player injured on the same day as the event is NOT considered injured for that event.
+function isInjuredBeforeDate(injuryStartDate: string | null | undefined, eventDate: string | undefined): boolean {
+  if (!injuryStartDate) return true; // no start date info → treat as injured (safe fallback)
+  if (!eventDate) return true;
+  const injDay = injuryStartDate.slice(0, 10); // "YYYY-MM-DD"
+  const evDay = eventDate.slice(0, 10);
+  return injDay < evDay;
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -36,7 +44,6 @@ export type ConvocationManagementReturn = {
   mgmtAvailable: string[];
   mgmtCalled: string[];
   mgmtNotCalled: string[];
-  mgmtNoDisponible: string[];
   // Supporting maps
   mgmtConvMap: Record<string, string>;
   mgmtRatings: Record<string, PlayerRating>;
@@ -57,6 +64,7 @@ export type ConvocationManagementReturn = {
   handleDragStart: (playerId: string) => void;
   handleDrop: (zone: DropZone) => void;
   handleSave: () => Promise<void>;
+  moveToNotCalled: (playerId: string, excuseId?: number | null) => Promise<void>;
 };
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
@@ -81,7 +89,6 @@ export function useConvocationManagement(
   const [mgmtAvailable, setMgmtAvailable] = useState<string[]>([]);
   const [mgmtCalled, setMgmtCalled] = useState<string[]>([]);
   const [mgmtNotCalled, setMgmtNotCalled] = useState<string[]>([]);
-  const [mgmtNoDisponible, setMgmtNoDisponible] = useState<string[]>([]);
   const [mgmtConvMap, setMgmtConvMap] = useState<Record<string, string>>({});
   const [mgmtRatings, setMgmtRatings] = useState<Record<string, PlayerRating>>({});
   const [mgmtPhotos, setMgmtPhotos] = useState<Record<string, string | null>>({});
@@ -195,9 +202,7 @@ export function useConvocationManagement(
             availFromConvIds.push(pid);
           } else if (conv.availabilityTypeId === 2) {
             noDispIds.push(pid);
-          } else if (conv.status === NO_DISPONIBLE_STATUS_ID) {
-            noDispIds.push(pid);
-          } else if (NOT_CALLED_STATUS_IDS.has(conv.status)) {
+          } else if (conv.status === NOT_CALLED_STATUS_ID) {
             notCalledIds.push(pid);
           } else {
             calledIds.push(pid);
@@ -207,15 +212,12 @@ export function useConvocationManagement(
         const convocatedIds = new Set([
           ...calledIds,
           ...notCalledIds,
-          ...noDispIds,
           ...availFromConvIds,
         ]);
         const availableIds: string[] = [...availFromConvIds];
-        const injuredNoDisp: string[] = [];
         for (const p of players) {
           if (convocatedIds.has(p.id)) continue;
-          if (p.isInjured) injuredNoDisp.push(p.id);
-          else availableIds.push(p.id);
+          availableIds.push(p.id);
         }
 
         const excuseInit: Record<string, number | null> = {};
@@ -228,7 +230,6 @@ export function useConvocationManagement(
           setMgmtConvMap(convMap);
           setMgmtCalled(calledIds);
           setMgmtNotCalled(notCalledIds);
-          setMgmtNoDisponible([...noDispIds, ...injuredNoDisp]);
           setMgmtAvailable(availableIds);
           setMgmtExcuseMap(excuseInit);
         }
@@ -237,13 +238,12 @@ export function useConvocationManagement(
           const avail: string[] = [];
           const noDisp: string[] = [];
           for (const p of players) {
-            if (p.isInjured) noDisp.push(p.id);
+            const injuredForMatch = p.isInjured && isInjuredBeforeDate(p.injuryStartDate, matchDate);
+            if (injuredForMatch) noDisp.push(p.id);
             else avail.push(p.id);
           }
           setMgmtAvailable(avail);
           setMgmtNotCalled([]);
-          setMgmtNoDisponible(noDisp);
-          setMgmtNoDisponible([]);
           setMgmtCalled([]);
           setMgmtConvMap({});
         }
@@ -336,7 +336,6 @@ export function useConvocationManagement(
     let from: DropZone;
     if (mgmtCalled.includes(pid)) from = "called";
     else if (mgmtNotCalled.includes(pid)) from = "notCalled";
-    else if (mgmtNoDisponible.includes(pid)) from = "noDisponible";
     else from = "available";
 
     if (from === zone) return;
@@ -344,7 +343,6 @@ export function useConvocationManagement(
     setMgmtAvailable((prev) => (zone === "available" ? [...prev, pid] : prev.filter((id) => id !== pid)));
     setMgmtCalled((prev) => (zone === "called" ? [...prev, pid] : prev.filter((id) => id !== pid)));
     setMgmtNotCalled((prev) => (zone === "notCalled" ? [...prev, pid] : prev.filter((id) => id !== pid)));
-    setMgmtNoDisponible((prev) => (zone === "noDisponible" ? [...prev, pid] : prev.filter((id) => id !== pid)));
 
     try {
       let convId = mgmtConvMap[pid];
@@ -372,20 +370,11 @@ export function useConvocationManagement(
           await convocationService.updateConvocationStatus(mgmtEventId, convId, NOT_CALLED_STATUS_ID, excuseId);
           await availabilityTypeService.updateConvocationAvailability(mgmtEventId, convId, null);
         }
-      } else {
-        if (convId) {
-          const excuseId = mgmtExcuseMap[pid] ?? excuseTypes[0]?.id ?? null;
-          if (!excuseId) throw new Error("Se requiere un tipo de excusa para marcar como no disponible");
-          setMgmtExcuseMap((prev) => ({ ...prev, [pid]: excuseId }));
-          await convocationService.updateConvocationStatus(mgmtEventId, convId, NO_DISPONIBLE_STATUS_ID, excuseId);
-          await availabilityTypeService.updateConvocationAvailability(mgmtEventId, convId, null);
-        }
       }
     } catch {
       setMgmtAvailable((prev) => (from === "available" ? [...prev, pid] : prev.filter((id) => id !== pid)));
       setMgmtCalled((prev) => (from === "called" ? [...prev, pid] : prev.filter((id) => id !== pid)));
       setMgmtNotCalled((prev) => (from === "notCalled" ? [...prev, pid] : prev.filter((id) => id !== pid)));
-      setMgmtNoDisponible((prev) => (from === "noDisponible" ? [...prev, pid] : prev.filter((id) => id !== pid)));
     }
   }
 
@@ -407,18 +396,12 @@ export function useConvocationManagement(
           availId: null as null,
           excuseId: mgmtExcuseMap[pid] ?? excuseTypes[0]?.id ?? null,
         })),
-        ...mgmtNoDisponible.map((pid) => ({
-          pid,
-          statusId: NO_DISPONIBLE_STATUS_ID,
-          availId: null as null,
-          excuseId: mgmtExcuseMap[pid] ?? excuseTypes[0]?.id ?? null,
-        })),
         ...mgmtAvailable.map((pid) => ({ pid, statusId: CALLED_STATUS_ID, availId: 1 as number })),
       ];
 
       const missingExcuse = tasks.filter(
         (t) =>
-          (t.statusId === NOT_CALLED_STATUS_ID || t.statusId === NO_DISPONIBLE_STATUS_ID) &&
+          t.statusId === NOT_CALLED_STATUS_ID &&
           !t.excuseId
       );
       if (missingExcuse.length > 0) {
@@ -458,6 +441,34 @@ export function useConvocationManagement(
     }
   }
 
+  async function moveToNotCalled(playerId: string, excuseId?: number | null) {
+    if (!mgmtEventId) return;
+    const pid = playerId;
+    const resolvedExcuse = excuseId ?? mgmtExcuseMap[pid] ?? excuseTypes[0]?.id ?? null;
+
+    // Optimistic update
+    setMgmtAvailable((prev) => prev.filter((id) => id !== pid));
+    setMgmtCalled((prev) => prev.filter((id) => id !== pid));
+    setMgmtNotCalled((prev) => (prev.includes(pid) ? prev : [...prev, pid]));
+    if (resolvedExcuse) setMgmtExcuseMap((prev) => ({ ...prev, [pid]: resolvedExcuse }));
+
+    try {
+      let convId = mgmtConvMap[pid];
+      if (!convId) {
+        const c = await convocationService.addConvocation(mgmtEventId, pid);
+        convId = (c as any).id ?? (c as any).convocationId ?? "";
+        if (convId) setMgmtConvMap((prev) => ({ ...prev, [pid]: convId }));
+      }
+      if (convId && resolvedExcuse) {
+        await convocationService.updateConvocationStatus(mgmtEventId, convId, NOT_CALLED_STATUS_ID, resolvedExcuse);
+        await availabilityTypeService.updateConvocationAvailability(mgmtEventId, convId, null);
+      }
+    } catch {
+      // rollback optimistic update
+      setMgmtNotCalled((prev) => prev.filter((id) => id !== pid));
+    }
+  }
+
   return {
     players,
     loadingPlayers,
@@ -468,7 +479,6 @@ export function useConvocationManagement(
     mgmtAvailable,
     mgmtCalled,
     mgmtNotCalled,
-    mgmtNoDisponible,
     mgmtConvMap,
     mgmtRatings,
     mgmtPhotos,
@@ -484,5 +494,6 @@ export function useConvocationManagement(
     handleDragStart,
     handleDrop,
     handleSave,
+    moveToNotCalled,
   };
 }

@@ -1,64 +1,402 @@
+/* ===== Chrome / cromo trading-card style ===== */
 .card {
   display: flex;
   flex-direction: column;
-  padding: 12px;
-  border-radius: 8px;
-  background: var(--rffm-card-bg, #fff);
-  color: var(--rffm-card-text, #111);
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.12);
-  border: 1px solid rgba(0, 0, 0, 0.06);
-}
-.titleRow {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-}
-.title {
-  font-weight: 700;
-  color: var(--rffm-card-text, #d2cfcf);
-  font-size: 1rem;
-  line-height: 1.2;
-  text-overflow: ellipsis;
+  height: 320px;          /* Fixed height — content never changes the card size */
+  border-radius: 14px;
   overflow: hidden;
-  white-space: nowrap;
-}
-.meta {
-  font-size: 0.9rem;
-  color: var(--rffm-card-subtext, rgba(255, 255, 255, 0.8));
-}
-.location {
-  margin-top: 6px;
-  font-size: 0.9rem;
-  color: var(--rffm-card-subtext, rgba(255, 255, 255, 0.75));
-}
-.rival {
-  margin-top: 6px;
-  font-size: 0.9rem;
-  color: var(--rffm-card-subtext, rgba(255, 255, 255, 0.75));
-}
-.rivalLabel {
-  font-weight: 600;
-  opacity: 0.85;
-}
-.eventName {
-  margin-top: 4px;
-  font-size: 0.85rem;
-  color: var(--rffm-card-subtext, rgba(255, 255, 255, 0.65));
-  font-style: italic;
-}
-.actions {
-  margin-top: 8px;
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
+  position: relative;
+  /* Dark chrome metallic background */
+  background: linear-gradient(160deg, #22223a 0%, #14142b 45%, #1c1c34 100%);
+  /* Chrome border via layered box-shadow */
+  box-shadow:
+    0 0 0 1px rgba(120, 155, 230, 0.45),
+    0 0 0 2px rgba(50, 75, 150, 0.22),
+    0 6px 24px rgba(0, 0, 0, 0.65),
+    0 1px 0 rgba(255, 255, 255, 0.09) inset,
+    0 -1px 0 rgba(0, 0, 0, 0.4) inset;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* Light theme fallbacks */
-:root:not(.rffm-coach-theme) .card {
-  color: var(--rffm-card-text, #05313b);
+/* Gloss/shine overlay — gives chrome sheen */
+.card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.09) 0%,
+    rgba(255, 255, 255, 0.04) 30%,
+    transparent 55%
+  );
+  pointer-events: none;
+  z-index: 3;
 }
-:root:not(.rffm-coach-theme) .meta,
-:root:not(.rffm-coach-theme) .location {
-  color: rgba(232, 230, 230, 0.65);
+
+.card:hover {
+  transform: translateY(-4px) scale(1.015);
+  box-shadow:
+    0 0 0 1px rgba(145, 185, 255, 0.65),
+    0 0 0 2px rgba(80, 115, 210, 0.3),
+    0 12px 36px rgba(0, 0, 0, 0.7),
+    0 0 28px rgba(77, 157, 224, 0.28),
+    0 1px 0 rgba(255, 255, 255, 0.12) inset;
 }
+
+/* Match card gets blue chrome border */
+.cardMatch {
+  box-shadow:
+    0 0 0 1px rgba(77, 157, 224, 0.55),
+    0 0 0 2px rgba(13, 71, 161, 0.28),
+    0 6px 24px rgba(0, 0, 0, 0.65),
+    0 1px 0 rgba(255, 255, 255, 0.09) inset,
+    0 -1px 0 rgba(0, 0, 0, 0.4) inset;
+}
+
+.cardMatch:hover {
+  box-shadow:
+    0 0 0 1px rgba(100, 181, 246, 0.8),
+    0 0 0 2px rgba(30, 100, 200, 0.35),
+    0 12px 36px rgba(0, 0, 0, 0.7),
+    0 0 32px rgba(30, 100, 220, 0.4),
+    0 1px 0 rgba(255, 255, 255, 0.12) inset;
+}
+
+/* ===== Generic header band (coloured per event type) ===== */
+.header {
+  position: relative;
+  height: 132px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  overflow: hidden;
+  z-index: 1;
+}
+
+/* Diagonal shine strip inside the coloured header */
+.headerShine {
+  position: absolute;
+  top: 0;
+  left: -30%;
+  width: 65%;
+  height: 100%;
+  background: linear-gradient(
+    108deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.18) 50%,
+    transparent 100%
+  );
+  transform: skewX(-20deg);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.avatar {
+  font-size: 2.8rem;
+  line-height: 1;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.55));
+  z-index: 1;
+}
+
+/* ===== Match header — football pitch style ===== */
+.matchHeader {
+  position: relative;
+  height: 132px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 4px;
+  padding: 0 10px;
+  overflow: hidden;
+  z-index: 1;
+  /* Pitch: deep green gradient with faint centre-circle */
+  background:
+    radial-gradient(ellipse 46px 46px at 50% 58%, rgba(255,255,255,0.08) 0%, transparent 100%),
+    linear-gradient(180deg, #0a3d0a 0%, #155215 45%, #0d3d0d 100%);
+  border-bottom: 2px solid rgba(255,255,255,0.10);
+}
+
+/* Faint pitch lines */
+.matchHeader::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    /* centre line */
+    linear-gradient(90deg, transparent 49.5%, rgba(255,255,255,0.12) 49.5%, rgba(255,255,255,0.12) 50.5%, transparent 50.5%),
+    /* top arc */
+    radial-gradient(ellipse 80px 28px at 50% 0%, rgba(255,255,255,0.08) 0%, transparent 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Diagonal shine */
+.matchHeaderShine {
+  position: absolute;
+  top: 0;
+  left: -20%;
+  width: 55%;
+  height: 100%;
+  background: linear-gradient(
+    108deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.12) 50%,
+    transparent 100%
+  );
+  transform: skewX(-20deg);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* "Local" / "Visitante" badge (bottom-center) */
+.homeBadge {
+  position: absolute;
+  bottom: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.75);
+  background: rgba(0, 0, 0, 0.35);
+  padding: 2px 6px;
+  border-radius: 6px;
+  z-index: 2;
+}
+
+.awayBadge {
+  color: rgba(255, 210, 100, 0.9);
+  background: rgba(0, 0, 0, 0.4);
+}
+
+/* Team block (left or right) */
+.matchTeamBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  flex: 1;
+  min-width: 0;
+  z-index: 1;
+  padding-top: 20px;
+}
+
+.matchTeamRight {
+  align-items: center;
+}
+
+.matchShield {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.9);
+  padding: 3px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.6), 0 0 0 1.5px rgba(255,255,255,0.25);
+}
+
+.matchShieldPlaceholder {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.12);
+  border: 2px solid rgba(255,255,255,0.2);
+}
+
+.matchTeamName {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.88);
+  text-align: center;
+  white-space: normal;
+  word-break: break-word;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  max-width: 88px;
+  line-height: 1.25;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.7);
+}
+
+/* Centre block: score or VS + kickoff */
+.matchCenter {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 68px;
+  z-index: 1;
+  padding-top: 16px;
+}
+
+.matchScore {
+  font-size: 1.7rem;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: 2px;
+  line-height: 1;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+}
+
+.matchScoreDash {
+  margin: 0 3px;
+  opacity: 0.7;
+}
+
+.matchVs {
+  font-size: 1.3rem;
+  font-weight: 900;
+  color: rgba(255,255,255,0.75);
+  letter-spacing: 2px;
+  text-shadow: 0 2px 6px rgba(0,0,0,0.7);
+}
+
+.matchKickoff {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.6);
+  letter-spacing: 0.05em;
+}
+
+.matchResultBadge {
+  font-size: 0.6rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 2px 7px;
+  border-radius: 10px;
+  margin-top: 2px;
+}
+
+.resultWon {
+  background: #1b5e20;
+  color: #a5d6a7;
+  box-shadow: 0 0 6px rgba(27,94,32,0.6);
+}
+
+.resultDraw {
+  background: #e65100;
+  color: #ffcc80;
+  box-shadow: 0 0 6px rgba(230,81,0,0.6);
+}
+
+.resultLost {
+  background: #b71c1c;
+  color: #ef9a9a;
+  box-shadow: 0 0 6px rgba(183,28,28,0.6);
+}
+
+/* ===== Card body ===== */
+.body {
+  flex: 1;
+  padding: 10px 14px 6px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 2;
+}
+
+.title {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--rffm-card-text, #dde4f0);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.3;
+}
+
+.metaRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.meta {
+  font-size: 0.8rem;
+  color: rgba(180, 195, 225, 0.85);
+}
+
+.metaTime {
+  font-size: 0.78rem;
+  color: rgba(160, 180, 215, 0.75);
+  font-variant-numeric: tabular-nums;
+}
+
+.location {
+  font-size: 0.8rem;
+  color: rgba(160, 180, 215, 0.82);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rival {
+  font-size: 0.82rem;
+  color: rgba(170, 185, 220, 0.85);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rivalLabel {
+  font-weight: 700;
+  color: rgba(205, 220, 248, 0.92);
+}
+
+.eventName {
+  font-size: 0.78rem;
+  color: rgba(150, 165, 200, 0.72);
+  font-style: italic;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ===== Actions footer ===== */
+.actions {
+  padding: 7px 10px;
+  display: flex;
+  gap: 5px;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  border-top: 1px solid rgba(100, 125, 195, 0.2);
+  background: rgba(0, 0, 0, 0.2);
+  z-index: 2;
+}
+
+/* ===== Responsive — narrower viewport ===== */
+@media (max-width: 480px) {
+  .card {
+    height: 300px;
+  }
+  .header {
+    height: 105px;
+  }
+  .matchHeader {
+    height: 105px;
+  }
+  .avatar {
+    font-size: 2.2rem;
+  }
+  .matchShield,
+  .matchShieldPlaceholder {
+    width: 36px;
+    height: 36px;
+  }
+  .matchScore {
+    font-size: 1.4rem;
+  }
+}
+

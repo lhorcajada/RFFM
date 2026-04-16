@@ -7,8 +7,11 @@ import {
   DialogContent,
   DialogTitle,
   FormControl,
+  FormControlLabel,
   InputLabel,
   MenuItem,
+  Radio,
+  RadioGroup,
   Select,
   TextField,
 } from "@mui/material";
@@ -62,6 +65,7 @@ export default function SportEventDialog({
   const [description, setDescription] = useState("");
 
   const [rivalId, setRivalId] = useState<string>("");
+  const [isHomeMatch, setIsHomeMatch] = useState<boolean>(true);
 
   const [eventTypes, setEventTypes] = useState<SportEventType[]>([]);
   const [rivals, setRivals] = useState<RivalResponse[]>([]);
@@ -110,6 +114,7 @@ export default function SportEventDialog({
       setLocation(event.location ?? "");
       setDescription(event.description ?? "");
       setRivalId(event.rivalId ?? "");
+      setIsHomeMatch(event.isHomeMatch !== false);
     } else {
       setName("");
       setEventTypeId("");
@@ -123,6 +128,7 @@ export default function SportEventDialog({
       setLocation("");
       setDescription("");
       setRivalId("");
+      setIsHomeMatch(true);
     }
     setError(null);
   }, [open, event]);
@@ -153,6 +159,7 @@ export default function SportEventDialog({
         eventTypeId: Number(eventTypeId),
         teamId,
         rivalId: isMatchType ? (rivalId || null) : null,
+        isHomeMatch: isMatchType ? isHomeMatch : undefined,
       };
 
       if (isEdit && event) {
@@ -257,6 +264,18 @@ export default function SportEventDialog({
                 ))
               )}
             </Select>
+          </FormControl>
+        )}
+        {isMatchType && (
+          <FormControl sx={{ mb: 2 }} fullWidth>
+            <RadioGroup
+              row
+              value={isHomeMatch ? "home" : "away"}
+              onChange={(e) => setIsHomeMatch(e.target.value === "home")}
+            >
+              <FormControlLabel value="home" control={<Radio size="small" />} label="🏠 Local" />
+              <FormControlLabel value="away" control={<Radio size="small" />} label="✈️ Visitante" />
+            </RadioGroup>
           </FormControl>
         )}
         <TextField

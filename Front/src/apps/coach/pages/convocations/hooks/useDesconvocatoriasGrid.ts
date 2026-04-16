@@ -6,6 +6,7 @@ import convocationStatusService, {
 import excuseTypeService, { type ExcuseType } from "../../../services/excuseTypeService";
 import sportEventService from "../../../services/sportEventService";
 import sportEventTypeService from "../../../services/sportEventTypeService";
+import teamplayerService, { type PlayerResponse } from "../../../services/teamplayerService";
 import type { GridCell, MatchColumn } from "../components/convocationMatchDetail.types";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -14,6 +15,13 @@ function shortDate(iso: string): string {
   const d = new Date(iso);
   if (isNaN(d.getTime())) return iso.slice(0, 10);
   return d.toLocaleDateString("es-ES", { day: "numeric", month: "short" });
+}
+
+/** Returns true if the player was injured at (or before) eventDay.
+ *  If no injuryStartDate is recorded, we treat it as a safe fallback (assume injured). */
+function wasInjuredOnDate(injuryStartDate: string | null | undefined, eventDay: string): boolean {
+  if (!injuryStartDate) return true;
+  return injuryStartDate.slice(0, 10) <= eventDay;
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -132,6 +140,64 @@ export function useDesconvocatoriasGrid(teamId: string): DesconvocatoriasGridRet
           }
           newGrid.set(col.eventId, playerMap);
         });
+
+        // ── Auto-register injured players for each past match ──────────────
+        const [allPlayers, allStatuses] = await Promise.all([
+          teamplayerService.getPlayersByTeam(teamId),
+          convocationStatusService.getConvocationStatuses(),
+        ]);
+        const deconvokeId = allStatuses.find((s) => s.name === "Deconvoke")?.id;
+        const injuryExcuseId = 1; // ExcuseType id=1 = "Lesión"
+
+        if (deconvokeId) {
+          for (const col of cols) {
+            const eventDay = col.date ? col.date.slice(0, 10) : "";
+            if (!eventDay) continue;
+            const playerMap = newGrid.get(col.eventId) ?? new Map<string, GridCell>();
+
+            const injuredPlayers = allPlayers.filter(
+              (p) => p.isInjured && p.id && wasInjuredOnDate(p.injuryStartDate, eventDay)
+            );
+
+            for (const p of injuredPlayers) {
+              const existing = playerMap.get(p.id);
+
+              // Already registered as Deconvoke+Lesión → nothing to do
+              if (existing?.statusId === deconvokeId && existing?.excuseTypeId === injuryExcuseId) {
+                continue;
+              }
+
+              try {
+                if (!existing) {
+                  // Player has no convocation record for this event → add it
+                  await convocationService.addConvocation(col.eventId, p.id);
+                }
+
+                // Reload to get the convocationId, then set Deconvoke+Lesión
+                const reloaded = await convocationService.getConvocations(col.eventId);
+                const conv = reloaded.find((c) => c.player?.id === p.id);
+                if (conv) {
+                  await convocationService.updateConvocationStatus(
+                    col.eventId,
+                    conv.id,
+                    deconvokeId,
+                    injuryExcuseId
+                  );
+                  playerMap.set(p.id, {
+                    statusId: deconvokeId,
+                    excuseTypeId: injuryExcuseId,
+                    statusName: "",
+                    excuseName: null,
+                  });
+                }
+              } catch {
+                // non-blocking
+              }
+            }
+            newGrid.set(col.eventId, playerMap);
+          }
+        }
+        // ──────────────────────────────────────────────────────────────────
 
         setGridData(newGrid);
       } catch {

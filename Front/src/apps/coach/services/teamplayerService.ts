@@ -9,6 +9,7 @@ export type PlayerResponse = {
   dorsal?: number | null;
   position?: string | null;
   isInjured?: boolean;
+  injuryStartDate?: string | null;
 };
 
 export type AddressResponse = {

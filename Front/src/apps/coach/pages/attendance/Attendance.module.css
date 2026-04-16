@@ -1,11 +1,25 @@
 .list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-auto-rows: 320px;  /* Cards have a fixed height; grid rows match */
+  gap: 16px;
+  align-items: start;
 }
 .item {
   min-width: 0;
+  height: 320px;
 }
+
+@media (max-width: 480px) {
+  .list {
+    grid-template-columns: 1fr;
+    grid-auto-rows: 300px;
+  }
+  .item {
+    height: 300px;
+  }
+}
+
 
 /* Improve contrast for date inputs and icons */
 .filters {

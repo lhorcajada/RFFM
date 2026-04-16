@@ -26,6 +26,8 @@ type Props = {
   onEdit?: () => void;
   onHistory?: () => void;
   seasonStats?: SeasonPlayerStats | null;
+  /** Consecutive past matches since the last technical deconvocation. Shown as a small badge. */
+  streakCount?: number | null;
 };
 
 const STATS: { key: keyof RatingData; label: string }[] = [
@@ -65,6 +67,7 @@ export default function PlayerCromo({
   onEdit,
   onHistory,
   seasonStats,
+  streakCount,
 }: Props) {
   const initial = displayName.trim().charAt(0).toUpperCase();
   const showActions = onEdit != null || onHistory != null;
@@ -156,6 +159,13 @@ export default function PlayerCromo({
             <span className={styles.seasonStatItem}>⚽ {seasonStats.totalGoals}</span>
             <span className={styles.seasonStatSep}>·</span>
             <span className={styles.seasonStatItem}>{seasonStats.totalStarts} tit.</span>
+          </div>
+        )}
+
+        {streakCount != null && (
+          <div className={styles.streakBadge} title="Jornadas desde la última decisión técnica">
+            <span className={styles.streakIcon}>↑</span>
+            {streakCount}
           </div>
         )}
 

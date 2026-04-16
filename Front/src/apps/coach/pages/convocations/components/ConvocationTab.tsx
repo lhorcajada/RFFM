@@ -62,7 +62,6 @@ type Props = {
   mgmtCalled: string[];
   mgmtAvailable: string[];
   mgmtNotCalled: string[];
-  mgmtNoDisponible: string[];
   players: PlayerResponse[];
   mgmtRatings: Record<string, PlayerRating>;
   mgmtPhotos: Record<string, string | null>;
@@ -76,6 +75,7 @@ type Props = {
   onDragLeave: () => void;
   onDrop: (zone: DropZone) => void;
   onExcuseChange: (playerId: string, excuseId: number) => void;
+  playerStreaks?: Map<string, number>;
 };
 
 const GROUPS = [
@@ -94,7 +94,6 @@ const ZONE_CONFIG: {
   { zone: "available", label: "Disponibles", headerClass: "dropColumnHeaderAvailable" },
   { zone: "called", label: "Convocados", headerClass: "dropColumnHeaderCalled" },
   { zone: "notCalled", label: "Desconvocados", headerClass: "dropColumnHeaderNotCalled" },
-  { zone: "noDisponible", label: "No disponibles", headerClass: "dropColumnHeaderNoDisponible" },
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -107,7 +106,6 @@ export default function ConvocationTab({
   mgmtCalled,
   mgmtAvailable,
   mgmtNotCalled,
-  mgmtNoDisponible,
   players,
   mgmtRatings,
   mgmtPhotos,
@@ -121,6 +119,7 @@ export default function ConvocationTab({
   onDragLeave,
   onDrop,
   onExcuseChange,
+  playerStreaks,
 }: Props) {
   if (mgmtLoadingConv || loadingPlayers) {
     return (
@@ -145,8 +144,7 @@ export default function ConvocationTab({
   function getZoneIds(zone: DropZone): string[] {
     if (zone === "available") return mgmtAvailable;
     if (zone === "called") return mgmtCalled;
-    if (zone === "notCalled") return mgmtNotCalled;
-    return mgmtNoDisponible;
+    return mgmtNotCalled;
   }
 
   return (
@@ -245,8 +243,9 @@ export default function ConvocationTab({
                                   }
                                 : null
                             }
+                            streakCount={playerStreaks?.get(playerId) ?? null}
                           />
-                          {(zone === "notCalled" || zone === "noDisponible") &&
+                          {zone === "notCalled" &&
                             excuseTypes.length > 0 && (
                               <FormControl
                                 size="small"
