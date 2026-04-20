@@ -58,6 +58,9 @@ namespace RFFM.Api.Infrastructure.Persistence
         public DbSet<ExcuseTypes> ExcuseTypes { get; set; }
         public DbSet<ConfigurationCoach> ConfigurationCoaches { get; set; }
 
+        // Club kits
+        public DbSet<ClubKit> ClubKits { get; set; }
+
         // Formations catalog
         public DbSet<Formation> Formations { get; set; }
 

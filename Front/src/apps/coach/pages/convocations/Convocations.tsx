@@ -29,6 +29,7 @@ type NormalizedMatch = {
   isHomeTeam: boolean;
   field: string;
   codacta: string | null;
+  selectedKitNumber: number | null;
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -91,6 +92,7 @@ function normalizeFromSportEvent(ev: SportEventResponse): NormalizedMatch {
     isHomeTeam: isHomeMatch,
     field: ev.location ?? "",
     codacta: ev.codActa ?? null,
+    selectedKitNumber: ev.selectedKitNumber ?? null,
   };
 }
 
@@ -157,6 +159,7 @@ function normalizeRawMatch(
       isHomeTeam,
       field: (m.field ?? "") as string,
       codacta,
+      selectedKitNumber: null,
     };
   }
 
@@ -178,6 +181,7 @@ function normalizeRawMatch(
     isHomeTeam,
     field: (m.campo ?? "") as string,
     codacta,
+    selectedKitNumber: null,
   };
 }
 

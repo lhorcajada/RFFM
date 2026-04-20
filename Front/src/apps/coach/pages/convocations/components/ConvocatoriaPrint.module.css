@@ -1,0 +1,12 @@
+/* ConvocatoriaPrint — off-screen containers captured by html2canvas */
+
+.printWrapper {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+}
+
+.printPage {
+  width: 794px;
+  overflow: visible;
+}

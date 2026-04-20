@@ -57,6 +57,7 @@ import type { DemarcationOption } from "../../services/demarcationService";
 import {
   getSeasonPrepSession,
   upsertSeasonPrepSession,
+  deleteSeasonPrepSession,
 } from "../../services/seasonPrepSessionService";
 
 import styles from "./SeasonPrep.module.css";
@@ -470,6 +471,7 @@ function PlayerCard({
   onEditPosition,
   onAddToEligible,
   showTeam,
+  noDim,
 }: {
   player: PoolPlayer;
   onDragStart: (e: React.DragEvent, uniqueId: string) => void;
@@ -478,6 +480,7 @@ function PlayerCard({
   onEditPosition?: (uniqueId: string) => void;
   onAddToEligible?: (uniqueId: string) => void;
   showTeam?: boolean;
+  noDim?: boolean;
 }) {
   const isOut = player.assignment !== "pool";
   return (
@@ -485,7 +488,7 @@ function PlayerCard({
       className={`${styles.playerCard}${isDragging ? ` ${styles.dragging}` : ""}`}
       draggable={!isOut}
       onDragStart={(e) => !isOut && onDragStart(e, player.uniqueId)}
-      style={isOut ? { opacity: 0.35 } : undefined}
+      style={isOut && !noDim ? { opacity: 0.35 } : undefined}
       title={isOut ? "Ya asignado" : "Arrastra a Elegidos"}
     >
       <span className={styles.playerDorsal}>
@@ -594,6 +597,7 @@ function GroupedPlayers({
   onEditPosition,
   onAddToEligible,
   showTeam,
+  noDim,
 }: {
   players: PoolPlayer[];
   onDragStart: (e: React.DragEvent, uniqueId: string) => void;
@@ -602,6 +606,7 @@ function GroupedPlayers({
   onEditPosition: (uniqueId: string) => void;
   onAddToEligible?: (uniqueId: string) => void;
   showTeam?: boolean;
+  noDim?: boolean;
 }) {
   const groups = groupPlayersByPosition(players);
   return (
@@ -619,6 +624,7 @@ function GroupedPlayers({
               onEditPosition={onEditPosition}
               onAddToEligible={onAddToEligible}
               showTeam={showTeam}
+              noDim={noDim}
             />
           ))}
         </div>
@@ -703,6 +709,7 @@ function DropZone({
           onReturn={onReturn}
           onEditPosition={onEditPosition}
           showTeam
+          noDim
         />
       )}
     </div>
@@ -981,6 +988,17 @@ export default function SeasonPrep() {
     );
   }
 
+  async function handleClearTeam() {
+    const newSlot: TeamSlot = { players: [], loaded: false, loading: false };
+    setSlot(newSlot);
+    setPool([]);
+    try {
+      await deleteSeasonPrepSession();
+    } catch {
+      showSnack("Error al limpiar la sesión guardada", "error");
+    }
+  }
+
   function handleGlobalDragEnd() {
     draggingId.current = null;
     setDraggingIdState(null);
@@ -1023,10 +1041,7 @@ export default function SeasonPrep() {
         `Guardado: ${result.saved} jugadores añadidos, ${result.skipped} ya existían${result.errors > 0 ? `, ${result.errors} errores` : ""}.`,
         result.errors > 0 ? "error" : "success"
       );
-      // Logical clear: keep all player data (evaluation, stats) but move them back to pool
-      setPool((prev) =>
-        prev.map((p) => (p.assignment === "eligible" ? { ...p, assignment: "pool" } : p))
-      );
+
     } catch (err: unknown) {
       showSnack(
         `Error al guardar: ${(err as Error)?.message ?? "Error desconocido"}`,
@@ -1158,7 +1173,7 @@ export default function SeasonPrep() {
           </Accordion>
 
           {/* ── Board ──────────────────────────────────────────────────── */}
-          {(slot.loaded || pool.some((p) => p.assignment === "eligible")) && (
+          {slot.loaded && (
             <div className={styles.boardGrid}>
               {/* Col 1: Team players */}
               {slot.loaded && (
@@ -1188,23 +1203,34 @@ export default function SeasonPrep() {
                         }}
                       />
                     )}
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      sx={{ ml: "auto", fontSize: "0.7rem", py: "1px", px: 1 }}
-                      disabled={poolPlayers.every((p) => p.assignment !== "pool")}
-                      onClick={() =>
-                        setPool((prev) =>
-                          prev.map((p) =>
-                            currentTeamIds.has(p.uniqueId) && p.assignment === "pool"
-                              ? { ...p, assignment: "eligible" }
-                              : p
+                    <Box sx={{ display: "flex", gap: 0.5, ml: "auto" }}>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color="warning"
+                        sx={{ fontSize: "0.7rem", py: "1px", px: 1 }}
+                        onClick={handleClearTeam}
+                      >
+                        Limpiar lista
+                      </Button>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        sx={{ fontSize: "0.7rem", py: "1px", px: 1 }}
+                        disabled={poolPlayers.every((p) => p.assignment !== "pool")}
+                        onClick={() =>
+                          setPool((prev) =>
+                            prev.map((p) =>
+                              currentTeamIds.has(p.uniqueId) && p.assignment === "pool"
+                                ? { ...p, assignment: "eligible" }
+                                : p
+                            )
                           )
-                        )
-                      }
-                    >
-                      Añadir todos
-                    </Button>
+                        }
+                      >
+                        Añadir todos
+                      </Button>
+                    </Box>
                   </div>
                   {slot.players.length === 0 ? (
                     <Typography className={styles.noPlayerMsg}>Sin jugadores cargados</Typography>
@@ -1230,22 +1256,20 @@ export default function SeasonPrep() {
               )}
 
               {/* Col 2: Elegidos */}
-              {pool.some((p) => p.assignment === "eligible") && (
-                <div>
-                  <div className={`${styles.colHeader} ${styles.eligibleTitle}`}>
-                    Elegidos para evaluar
-                  </div>
-                  <DropZone
-                    accept="eligible"
-                    players={pool}
-                    onDrop={handleDrop}
-                    onReturn={handleReturn}
-                    onEditPosition={handleEditPosition}
-                    onClearAll={handleClearEligible}
-                    draggingId={draggingIdState}
-                  />
+              <div>
+                <div className={`${styles.colHeader} ${styles.eligibleTitle}`}>
+                  Elegidos para evaluar
                 </div>
-              )}
+                <DropZone
+                  accept="eligible"
+                  players={pool}
+                  onDrop={handleDrop}
+                  onReturn={handleReturn}
+                  onEditPosition={handleEditPosition}
+                  onClearAll={handleClearEligible}
+                  draggingId={draggingIdState}
+                />
+              </div>
 
             </div>
           )}

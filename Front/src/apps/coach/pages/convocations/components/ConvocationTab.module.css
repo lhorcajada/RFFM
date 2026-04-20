@@ -15,38 +15,6 @@
   padding: 32px 16px;
 }
 
-/* ─── Team average badge ─── */
-.teamAvgBar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: linear-gradient(160deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-  padding: 10px 16px;
-}
-
-.teamAvgLabel {
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: rgba(255, 255, 255, 0.55);
-  flex: 1;
-}
-
-.teamAvgValue {
-  font-family: 'Oswald', sans-serif;
-  font-weight: 700;
-  font-size: 1.4rem;
-  line-height: 1;
-}
-
-.teamAvgCount {
-  font-size: 0.7rem;
-  color: rgba(255, 255, 255, 0.4);
-}
-
 /* ─── Three-column layout ─── */
 .dropColumns {
   display: grid;
@@ -127,6 +95,21 @@
   padding: 2px 7px;
   font-size: 0.66rem;
   color: rgba(255, 255, 255, 0.5);
+}
+
+/* Right-side group in column header: avg rating + count */
+.dropColumnHeaderMeta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Avg rating badge shown in the Convocados header */
+.calledAvg {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  font-size: 1rem;
+  line-height: 1;
 }
 
 /* Card grid inside each column */

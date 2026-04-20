@@ -1,83 +1,118 @@
 /* ConvocationMatchDetail — coach dark/orange theme */
-/* Only contains the shared match banner styles.
-   Tab-specific styles are co-located with their components:
+/* Tab-specific styles are co-located with their components:
    - ConvocationTab.module.css
    - DesconvocatoriasTab.module.css
    - AlineacionTab.module.css
 */
 
-/* ─── Match banner ─────────────────────────────────────── */
-.matchBanner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  background: linear-gradient(160deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.02) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  border-radius: 8px;
-  padding: 12px 16px;
-  margin: 0 var(--rffm-page-h-padding, 12px) 12px;
-}
+/* ─── Match data embedded in the page title ─────────────── */
 
-.matchBanner::before {
-  content: '';
-  display: none; /* accent line handled by border-top gradient below */
-}
-
-.bannerTeam {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  flex: 1;
-  min-width: 0;
-}
-
-.bannerTeamRight {
-  align-items: center;
-}
-
-.bannerShield {
-  width: 48px;
-  height: 48px;
-  object-fit: contain;
-  border-radius: 50%;
-  background: #fff;
-  padding: 4px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
-}
-
-.bannerTeamName {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.9);
-  text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 120px;
-}
-
-.bannerCenter {
-  flex-shrink: 0;
+.titleWrap {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  min-width: 80px;
+  white-space: normal;
+  width: 100%;
 }
 
-.bannerTime {
-  font-size: 1.6rem;
+/* "Convocatoria" label */
+.convocationLabel {
+  display: block;
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: -0.3px;
+  background: var(
+    --rffm-title-gradient,
+    linear-gradient(135deg, #00a0c8 0%, #0078b4 100%)
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Row: [local shield+name]  HH:MM  [visitor name+shield] */
+.matchInfoRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.9);
+}
+
+/* One team block */
+.matchTeamBlock {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+/* Visitor team block flips order so shield is on the right */
+.matchTeamBlockVisitor {
+  justify-content: flex-start;
+}
+
+.matchShield {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  object-fit: contain;
+  border-radius: 50%;
+  background: #fff;
+  padding: 2px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+}
+
+.matchTeamName {
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 90px;
+}
+
+.matchTime {
+  font-size: 1rem;
   font-weight: 800;
-  color: #fff;
-  letter-spacing: 2px;
+  letter-spacing: 1.5px;
   line-height: 1;
+  flex-shrink: 0;
+  color: #fff;
+  -webkit-text-fill-color: #fff;
 }
 
-.bannerKickoff {
-  font-size: 0.58rem;
-  color: rgba(255, 255, 255, 0.4);
+/* Date + field inline row */
+.matchMeta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.45);
+}
+
+.matchDateLabel {
+  font-size: 0.6rem;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+.matchMetaSep {
+  font-size: 0.6rem;
+  opacity: 0.4;
+}
+
+.matchField {
+  font-size: 0.6rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
 }

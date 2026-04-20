@@ -106,6 +106,17 @@ const gameTheme = createTheme({
         },
       },
     },
+    MuiCssBaseline: {
+      styleOverrides: {
+        ":root": {
+          /* FC26 dashboard card CSS vars — federation palette */
+          "--rffm-dash-card-bg": "#081628",
+          "--rffm-dash-accent": "#00e5ff",
+          "--rffm-dash-card-text": "#e6f7ff",
+          "--rffm-dash-desc-text": "rgba(230, 247, 255, 0.48)",
+        },
+      },
+    },
   },
 });
 

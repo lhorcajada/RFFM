@@ -15,6 +15,7 @@ import type { DropZone } from "../components/convocationMatchDetail.types";
 import {
   CALLED_STATUS_ID,
   NOT_CALLED_STATUS_ID,
+  LEGACY_NOT_CALLED_STATUS_ID,
 } from "../components/convocationMatchDetail.types";
 
 // Returns true only if the injury started strictly before the given event date (day-only comparison).
@@ -65,6 +66,7 @@ export type ConvocationManagementReturn = {
   handleDrop: (zone: DropZone) => void;
   handleSave: () => Promise<void>;
   moveToNotCalled: (playerId: string, excuseId?: number | null) => Promise<void>;
+  moveToAvailable: (playerId: string) => Promise<void>;
 };
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
@@ -202,22 +204,38 @@ export function useConvocationManagement(
             availFromConvIds.push(pid);
           } else if (conv.availabilityTypeId === 2) {
             noDispIds.push(pid);
-          } else if (conv.status === NOT_CALLED_STATUS_ID) {
+          } else if (conv.status === NOT_CALLED_STATUS_ID || conv.status === LEGACY_NOT_CALLED_STATUS_ID) {
             notCalledIds.push(pid);
           } else {
             calledIds.push(pid);
           }
         }
 
+        // Move injured players from calledIds to notCalledIds
+        const injuredCalledIds = new Set<string>();
+        for (const p of players) {
+          const injuredForMatch = p.isInjured && isInjuredBeforeDate(p.injuryStartDate, matchDate);
+          if (injuredForMatch) injuredCalledIds.add(p.id);
+        }
+        const finalCalledIds = calledIds.filter((id) => !injuredCalledIds.has(id));
+        for (const id of calledIds) {
+          if (injuredCalledIds.has(id)) notCalledIds.push(id);
+        }
+
         const convocatedIds = new Set([
-          ...calledIds,
+          ...finalCalledIds,
           ...notCalledIds,
           ...availFromConvIds,
         ]);
         const availableIds: string[] = [...availFromConvIds];
         for (const p of players) {
           if (convocatedIds.has(p.id)) continue;
-          availableIds.push(p.id);
+          const injuredForMatch = injuredCalledIds.has(p.id);
+          if (injuredForMatch) {
+            notCalledIds.push(p.id);
+          } else {
+            availableIds.push(p.id);
+          }
         }
 
         const excuseInit: Record<string, number | null> = {};
@@ -226,9 +244,14 @@ export function useConvocationManagement(
           if (pid && conv.excuseTypeId != null) excuseInit[pid] = conv.excuseTypeId;
         }
 
+        // Injured players that have no excuse yet → default to "Injury" (id 1)
+        for (const pid of injuredCalledIds) {
+          if (excuseInit[pid] == null) excuseInit[pid] = 1;
+        }
+
         if (mounted) {
           setMgmtConvMap(convMap);
-          setMgmtCalled(calledIds);
+          setMgmtCalled(finalCalledIds);
           setMgmtNotCalled(notCalledIds);
           setMgmtAvailable(availableIds);
           setMgmtExcuseMap(excuseInit);
@@ -237,15 +260,19 @@ export function useConvocationManagement(
         if (mounted) {
           const avail: string[] = [];
           const noDisp: string[] = [];
+          const excuseFallback: Record<string, number | null> = {};
           for (const p of players) {
             const injuredForMatch = p.isInjured && isInjuredBeforeDate(p.injuryStartDate, matchDate);
-            if (injuredForMatch) noDisp.push(p.id);
-            else avail.push(p.id);
+            if (injuredForMatch) {
+              noDisp.push(p.id);
+              excuseFallback[p.id] = 1;
+            } else avail.push(p.id);
           }
           setMgmtAvailable(avail);
-          setMgmtNotCalled([]);
+          setMgmtNotCalled(noDisp);
           setMgmtCalled([]);
           setMgmtConvMap({});
+          setMgmtExcuseMap(excuseFallback);
         }
       } finally {
         if (mounted) setMgmtLoadingConv(false);
@@ -255,6 +282,25 @@ export function useConvocationManagement(
       mounted = false;
     };
   }, [mgmtEventId, players]);
+
+  // ── Patch missing excuses for injured players ────────────────────────────
+  // Only injured players without a saved excuse get defaulted to "Injury" (id 1).
+  // Non-injured players keep whatever was saved in DB (or stay empty for technical decisions).
+  useEffect(() => {
+    if (mgmtNotCalled.length === 0) return;
+    setMgmtExcuseMap((prev) => {
+      const patch: Record<string, number | null> = {};
+      for (const pid of mgmtNotCalled) {
+        if (prev[pid] != null) continue; // already has a value — don't overwrite
+        const p = players.find((pl) => pl.id === pid);
+        const injuredForMatch = p?.isInjured && isInjuredBeforeDate(p.injuryStartDate, matchDate);
+        if (injuredForMatch) patch[pid] = 1;
+        // non-injured with no DB value → leave empty (technical decision)
+      }
+      if (Object.keys(patch).length === 0) return prev;
+      return { ...prev, ...patch };
+    });
+  }, [mgmtNotCalled, players, matchDate]);
 
   // ── Load ratings ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -469,6 +515,27 @@ export function useConvocationManagement(
     }
   }
 
+  async function moveToAvailable(playerId: string) {
+    if (!mgmtEventId) return;
+    const pid = playerId;
+
+    // Optimistic update: remove from notCalled, add to available
+    setMgmtNotCalled((prev) => prev.filter((id) => id !== pid));
+    setMgmtAvailable((prev) => (prev.includes(pid) ? prev : [...prev, pid]));
+
+    try {
+      const convId = mgmtConvMap[pid];
+      if (convId) {
+        await convocationService.updateConvocationStatus(mgmtEventId, convId, CALLED_STATUS_ID);
+        await availabilityTypeService.updateConvocationAvailability(mgmtEventId, convId, 1);
+      }
+    } catch {
+      // rollback
+      setMgmtAvailable((prev) => prev.filter((id) => id !== pid));
+      setMgmtNotCalled((prev) => (prev.includes(pid) ? prev : [...prev, pid]));
+    }
+  }
+
   return {
     players,
     loadingPlayers,
@@ -495,5 +562,6 @@ export function useConvocationManagement(
     handleDrop,
     handleSave,
     moveToNotCalled,
+    moveToAvailable,
   };
 }

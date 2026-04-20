@@ -89,6 +89,11 @@ const coachTheme = createTheme({
           "--bg": "#07071a",
           "--rffm-primary": "#4d9de0",
           "--rffm-coach-dialog-text": "#e8e8e8",
+          /* FC26 dashboard card vars */
+          "--rffm-dash-card-bg": "#111128",
+          "--rffm-dash-accent": "#4d9de0",
+          "--rffm-dash-card-text": "#e8e8e8",
+          "--rffm-dash-desc-text": "rgba(232, 232, 232, 0.5)",
         },
         ".rffm-coach-theme [data-coach-dialog] .MuiTypography-root, .rffm-coach-theme [data-coach-dialog] .MuiButton-root, .rffm-coach-theme [data-coach-dialog] .MuiDialogContent-root, .rffm-coach-theme [data-coach-dialog] .MuiDialogActions-root":
           {

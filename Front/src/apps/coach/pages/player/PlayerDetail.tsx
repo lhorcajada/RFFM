@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   Box,
   Button,
@@ -48,10 +48,16 @@ import InjuryHistoryPanel from "./components/InjuryHistoryPanel";
 export default function PlayerDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { team, teamTitleNode } = useTeamAndClub();
   const [teamPlayer, setTeamPlayer] = useState<any | null>(null);
   const [photo, setPhoto] = useState<string | null>(null);
-  const [editing, setEditing] = useState(false);
+  const locationState = location.state as { editing?: boolean; from?: string; fromState?: unknown } | null;
+  const [editing, setEditing] = useState(locationState?.editing === true);
+  const handleBack = () => {
+    if (locationState?.from) navigate(locationState.from, { state: locationState.fromState ?? null });
+    else navigate(-1);
+  };
   const [form, setForm] = useState<any>({});
   const [saving, setSaving] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
@@ -258,7 +264,7 @@ export default function PlayerDetail() {
           <Stack direction="row" spacing={1} alignItems="center">
             <Button
               startIcon={<ArrowBackIcon />}
-              onClick={() => navigate(-1)}
+              onClick={() => handleBack()}
               variant="outlined"
               size="small"
             >

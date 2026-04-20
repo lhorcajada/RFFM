@@ -213,7 +213,7 @@ export default function CoachDashboard() {
                 title="Configuración"
                 description="Ajustes y preferencias."
                 icon={
-                  <SettingsIcon style={{ fontSize: 40, color: "#05313b" }} />
+                  <SettingsIcon style={{ fontSize: 40 }} />
                 }
                 to="/coach/settings"
               />
@@ -224,7 +224,7 @@ export default function CoachDashboard() {
               description="Gestión de clubs."
               icon={
                 <SportsFootballIcon
-                  style={{ fontSize: 40, color: "#05313b" }}
+                  style={{ fontSize: 40 }}
                 />
               }
               to={`/coach/clubs${
@@ -236,7 +236,7 @@ export default function CoachDashboard() {
               title="Prep. temporada"
               description="Importar plantillas de federación y planificar la nueva temporada."
               icon={
-                <CalendarMonthIcon style={{ fontSize: 40, color: "#05313b" }} />
+                <CalendarMonthIcon style={{ fontSize: 40 }} />
               }
               to="/coach/season-prep"
             />
@@ -247,7 +247,7 @@ export default function CoachDashboard() {
                   title="Plantilla"
                   description="Gestión de jugadores."
                   icon={
-                    <GroupIcon style={{ fontSize: 40, color: "#05313b" }} />
+                    <GroupIcon style={{ fontSize: 40 }} />
                   }
                   to={
                     team?.id
@@ -264,7 +264,7 @@ export default function CoachDashboard() {
                   description="Eventos deportivos del equipo."
                   icon={
                     <AssignmentIcon
-                      style={{ fontSize: 40, color: "#05313b" }}
+                      style={{ fontSize: 40 }}
                     />
                   }
                   to={
@@ -281,7 +281,7 @@ export default function CoachDashboard() {
                   title="Convocatorias"
                   description="Gestión de convocatorias."
                   icon={
-                    <EventIcon style={{ fontSize: 40, color: "#05313b" }} />
+                    <EventIcon style={{ fontSize: 40 }} />
                   }
                   to={team?.id ? `/coach/convocations?teamId=${team.id}` : "/coach/convocations"}
                 />
@@ -290,7 +290,7 @@ export default function CoachDashboard() {
                   description="Información de partidos."
                   icon={
                     <EmojiEventsIcon
-                      style={{ fontSize: 40, color: "#05313b" }}
+                      style={{ fontSize: 40 }}
                     />
                   }
                   to="/coach/matches"
@@ -300,7 +300,7 @@ export default function CoachDashboard() {
                   description="Planificación de entrenamientos."
                   icon={
                     <FitnessCenterIcon
-                      style={{ fontSize: 40, color: "#05313b" }}
+                      style={{ fontSize: 40 }}
                     />
                   }
                   to={
@@ -314,7 +314,7 @@ export default function CoachDashboard() {
                   description="Control de lesionados."
                   icon={
                     <LocalHospitalIcon
-                      style={{ fontSize: 40, color: "#05313b" }}
+                      style={{ fontSize: 40 }}
                     />
                   }
                   to="/coach/injured"
@@ -323,7 +323,7 @@ export default function CoachDashboard() {
                   title="Modelo de Juego"
                   description="Estrategia y tácticas."
                   icon={
-                    <TimelineIcon style={{ fontSize: 40, color: "#05313b" }} />
+                    <TimelineIcon style={{ fontSize: 40 }} />
                   }
                   to={team?.id ? `/coach/game-model?teamId=${team.id}` : "/coach/game-model"}
                 />
@@ -331,7 +331,7 @@ export default function CoachDashboard() {
                   title="Sanciones"
                   description="Registro de sanciones."
                   icon={
-                    <GavelIcon style={{ fontSize: 40, color: "#05313b" }} />
+                    <GavelIcon style={{ fontSize: 40 }} />
                   }
                   to="/coach/sanctions"
                 />
@@ -339,7 +339,7 @@ export default function CoachDashboard() {
                   title="Lotería"
                   description="Sistema de lotería."
                   icon={
-                    <CasinoIcon style={{ fontSize: 40, color: "#05313b" }} />
+                    <CasinoIcon style={{ fontSize: 40 }} />
                   }
                   to="/coach/lottery"
                 />
@@ -347,7 +347,7 @@ export default function CoachDashboard() {
                   title="Noticias"
                   description="Últimas noticias y comunicados."
                   icon={
-                    <NewspaperIcon style={{ fontSize: 40, color: "#05313b" }} />
+                    <NewspaperIcon style={{ fontSize: 40 }} />
                   }
                   to="/coach/news"
                 />

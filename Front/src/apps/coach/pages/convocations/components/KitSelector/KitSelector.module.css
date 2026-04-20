@@ -1,0 +1,46 @@
+.root {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.kitBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: transparent;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  padding: 4px 6px;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: opacity 0.15s, border-color 0.15s;
+}
+
+.kitBtn:not(:disabled):hover {
+  opacity: 0.8;
+}
+
+.kitBtn.selected {
+  opacity: 1;
+  border-color: var(--rffm-accent, #ff6600);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.kitBtn:disabled {
+  cursor: not-allowed;
+}
+
+.kitLabel {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--rffm-text-secondary, #aaa);
+  line-height: 1;
+}
+
+.kitBtn.selected .kitLabel {
+  color: var(--rffm-accent, #ff6600);
+}

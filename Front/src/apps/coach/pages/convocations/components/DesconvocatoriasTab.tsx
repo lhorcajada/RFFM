@@ -1,6 +1,7 @@
 import { useMemo } from "react";
-import { CircularProgress } from "@mui/material";
+import { Button, CircularProgress } from "@mui/material";
 import { Tooltip } from "@mui/material";
+import PrintIcon from "@mui/icons-material/Print";
 import EmptyState from "../../../../../shared/components/ui/EmptyState/EmptyState";
 import type { PlayerResponse } from "../../../services/teamplayerService";
 import type { GridCell, MatchColumn } from "./convocationMatchDetail.types";
@@ -114,12 +115,16 @@ export default function DesconvocatoriasTab({
 
   // ── Per-player stats: total deconvocations + consecutive-match streak ────
   const playerStats = useMemo(() => {
-    const stats = new Map<string, { total: number; streak: number }>();
+    const stats = new Map<string, { total: number; streak: number; technical: number }>();
     for (const player of deconvocatedPlayers) {
       let total = 0;
+      let technical = 0;
       for (const col of deconvocatingColumns) {
         const cell = enrichedGrid.get(col.eventId)?.get(player.id);
-        if (cell && isCellNotCalled(cell)) total++;
+        if (cell && isCellNotCalled(cell)) {
+          total++;
+          if (isTechnicalDecisionCell(cell)) technical++;
+        }
       }
       // Streak: consecutive matches from most recent (index 0) without a TECHNICAL DECISION.
       // Injuries and player excuses do NOT break the streak.
@@ -133,7 +138,7 @@ export default function DesconvocatoriasTab({
         if (isTechnicalDecision) break;
         streak++;
       }
-      stats.set(player.id, { total, streak });
+      stats.set(player.id, { total, streak, technical });
     }
     return stats;
   }, [deconvocatedPlayers, deconvocatingColumns, matchColumns, enrichedGrid]);
@@ -158,6 +163,85 @@ export default function DesconvocatoriasTab({
     }
     return Array.from(counts.values()).sort((a, b) => b.count - a.count);
   }, [deconvocatingColumns, enrichedGrid]);
+
+  // ── Escape HTML for safe injection into the print window ──────────────
+  function escapeHtml(str: string): string {
+    return str
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  // ── Print summary handler ─────────────────────────────────────────────
+  const handlePrintSummary = () => {
+    const rows = deconvocatedPlayers
+      .map((p) => {
+        const stats = playerStats.get(p.id);
+        return { name: p.alias || p.name, total: stats?.total ?? 0, streak: stats?.streak ?? 0, technical: stats?.technical ?? 0 };
+      })
+      .sort((a, b) => b.total - a.total);
+
+    const rowsHtml = rows
+      .map(
+        (r) =>
+          `<tr>
+            <td>${escapeHtml(r.name)}</td>
+            <td style="text-align:center">${r.total}</td>
+            <td style="text-align:center">${r.technical}</td>
+            <td style="text-align:center">${r.streak}</td>
+          </tr>`
+      )
+      .join("");
+
+    const dateStr = new Date().toLocaleDateString("es-ES", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+
+    const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Resumen de Desconvocatorias</title>
+  <style>
+    body { font-family: Arial, sans-serif; font-size: 13px; color: #222; margin: 32px; }
+    h1 { font-size: 20px; margin: 0 0 4px; }
+    p.subtitle { color: #555; font-size: 12px; margin: 0 0 20px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 8px; }
+    th, td { border: 1px solid #ccc; padding: 7px 12px; }
+    th { background: #f2f2f2; font-weight: 700; text-align: left; }
+    tr:nth-child(even) { background: #fafafa; }
+    @media print { body { margin: 16px; } }
+  </style>
+</head>
+<body>
+  <h1>Resumen de Desconvocatorias</h1>
+  <p class="subtitle">${escapeHtml(dateStr)}</p>
+  <table>
+    <thead>
+      <tr>
+        <th>Jugador</th>
+        <th>Total desconvocatorias</th>
+        <th>Por decisión técnica</th>
+        <th>Jornadas desde la última decisión técnica</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rowsHtml}
+    </tbody>
+  </table>
+</body>
+</html>`;
+
+    const win = window.open("", "_blank", "width=720,height=620");
+    if (!win) return;
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    win.print();
+  };
 
   if (isLoading) {
     return (
@@ -197,6 +281,19 @@ export default function DesconvocatoriasTab({
 
   return (
     <div className={styles.tabContent}>
+      {/* ── Print bar ───────────────────────────────────────────────────── */}
+      <div className={styles.printBar}>
+        <Button
+          size="small"
+          variant="outlined"
+          startIcon={<PrintIcon fontSize="small" />}
+          onClick={handlePrintSummary}
+          className={styles.printBtn}
+        >
+          Imprimir resumen
+        </Button>
+      </div>
+
       {/* ── Cause counters ──────────────────────────────────────────────── */}
       {causeCounts.length > 0 && (
         <div className={styles.counters}>
@@ -216,6 +313,9 @@ export default function DesconvocatoriasTab({
       <div className={styles.legend}>
         <span className={styles.legendItem}>
           <span className={styles.legendDotTotal} /> Total desconvocatorias
+        </span>
+        <span className={styles.legendItem}>
+          <span className={styles.legendDotTechnical} /> Por decisión técnica
         </span>
         <span className={styles.legendItem}>
           <span className={styles.legendDotStreak} /> Jornadas desde la última decisión técnica
@@ -246,6 +346,10 @@ export default function DesconvocatoriasTab({
                     <span className={styles.statBadgeTotal}>
                       <span className={styles.statIcon}>✕</span>
                       {playerStats.get(player.id)?.total ?? 0}
+                    </span>
+                    <span className={styles.statBadgeTechnical}>
+                      <span className={styles.statIcon}>⚑</span>
+                      {playerStats.get(player.id)?.technical ?? 0}
                     </span>
                     <span className={styles.statBadgeStreak}>
                       <span className={styles.statIcon}>↑</span>

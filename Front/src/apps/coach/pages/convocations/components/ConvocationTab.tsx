@@ -149,25 +149,7 @@ export default function ConvocationTab({
 
   return (
     <div className={styles.convocatoriaTab}>
-      {/* Team average bar */}
-      <div className={styles.teamAvgBar}>
-        <span className={styles.teamAvgLabel}>Media del equipo convocado</span>
-        {teamAvgRating != null ? (
-          <span
-            className={styles.teamAvgValue}
-            style={{ color: mgmtRatingColor(teamAvgRating) }}
-          >
-            {Math.round(teamAvgRating)}
-          </span>
-        ) : (
-          <span className={styles.teamAvgCount}>Sin valoraciones</span>
-        )}
-        <span className={styles.teamAvgCount}>
-          {mgmtCalled.length} convocado{mgmtCalled.length !== 1 ? "s" : ""}
-        </span>
-      </div>
-
-      {/* Four drop zones */}
+      {/* Three drop zones */}
       <div className={styles.dropColumns}>
         {ZONE_CONFIG.map(({ zone, label, headerClass }) => {
           const ids = getZoneIds(zone);
@@ -187,14 +169,94 @@ export default function ConvocationTab({
             >
               <div className={`${styles.dropColumnHeader} ${styles[headerClass]}`}>
                 <span>{label}</span>
-                <span className={styles.dropColumnCount}>{ids.length}</span>
+                <div className={styles.dropColumnHeaderMeta}>
+                  {zone === "called" && teamAvgRating != null && (
+                    <span
+                      className={styles.calledAvg}
+                      style={{ color: mgmtRatingColor(teamAvgRating) }}
+                    >
+                      {Math.round(teamAvgRating)}
+                    </span>
+                  )}
+                  <span className={styles.dropColumnCount}>{ids.length}</span>
+                </div>
               </div>
 
               <div className={styles.dropColumnBody}>
                 {ids.length === 0 && (
                   <div className={styles.dropHint}>Arrastra jugadores aquí</div>
                 )}
-                {GROUPS.flatMap(({ order, label: groupLabel }) => {
+                {zone === "notCalled"
+                  ? ids.map((playerId) => {
+                      const p = players.find((pl) => pl.id === playerId);
+                      if (!p) return null;
+                      const displayName =
+                        ((p.name ?? "") + " " + (p.lastName ?? "")).trim() ||
+                        p.alias ||
+                        "Jugador";
+                      const r = mgmtRatings[playerId];
+                      return (
+                        <div
+                          key={playerId}
+                          draggable
+                          className={`${styles.draggableCard} ${
+                            mgmtDragPlayer === playerId ? styles.draggableCardDragging : ""
+                          }`}
+                          onDragStart={() => onDragStart(playerId)}
+                          onDragEnd={onDragEnd}
+                        >
+                          <PlayerCromo
+                            displayName={displayName}
+                            photoSrc={mgmtPhotos[playerId] ?? null}
+                            dorsal={p.dorsal ?? null}
+                            position={p.position ?? null}
+                            injured={p.isInjured === true}
+                            rating={
+                              r
+                                ? {
+                                    technical: r.technical,
+                                    tactical: r.tactical,
+                                    physical: r.physical,
+                                    competitiveness: r.competitiveness,
+                                  }
+                                : null
+                            }
+                            streakCount={playerStreaks?.get(playerId) ?? null}
+                          />
+                          {excuseTypes.length > 0 && (
+                            <FormControl
+                              size="small"
+                              fullWidth
+                              sx={{ mt: 0.5 }}
+                              onClick={(e) => e.stopPropagation()}
+                              onMouseDown={(e) => e.stopPropagation()}
+                              onDragStart={(e) => e.stopPropagation()}
+                            >
+                              <InputLabel sx={{ fontSize: "0.7rem" }}>Motivo</InputLabel>
+                              <Select
+                                label="Motivo"
+                                value={mgmtExcuseMap[playerId] ?? ""}
+                                onChange={(e) => {
+                                  onExcuseChange(playerId, e.target.value as number);
+                                }}
+                                sx={{ fontSize: "0.72rem" }}
+                              >
+                                {excuseTypes.map((et) => (
+                                  <MenuItem
+                                    key={et.id}
+                                    value={et.id}
+                                    sx={{ fontSize: "0.72rem" }}
+                                  >
+                                    {et.name}
+                                  </MenuItem>
+                                ))}
+                              </Select>
+                            </FormControl>
+                          )}
+                        </div>
+                      );
+                    })
+                  : GROUPS.flatMap(({ order, label: groupLabel }) => {
                   const sorted = [...ids].sort((a, b) => {
                     const pa = players.find((pl) => pl.id === a)?.position ?? "";
                     const pb = players.find((pl) => pl.id === b)?.position ?? "";

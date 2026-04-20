@@ -394,7 +394,7 @@ export default function PartidoEnDirectoTab({
   if (!eventId) {
     return (
       <div className={simStyles.center}>
-        <EmptyState description="No se encontró el partido en el sistema interno." />
+        <EmptyState description="No se encontró el partido en el sistema interno. Asegúrate de que el evento esté creado en el área de Partidos del equipo." />
       </div>
     );
   }

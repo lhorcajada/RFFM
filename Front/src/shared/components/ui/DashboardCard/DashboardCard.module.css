@@ -1,89 +1,135 @@
+/* ── FC26-inspired Dashboard Card ─────────────────────── */
 .card {
-  width: 100%;
-  min-width: 140px;
-  height: 100%;
-  box-sizing: border-box;
-  padding: 12px;
+  position: relative;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-}
-
-.fullWidth {
+  align-items: flex-start;
   width: 100%;
+  min-height: 112px;
+  box-sizing: border-box;
+  padding: 16px 14px 14px 18px;
+
+  /* Dark card background — set per-app via MuiCssBaseline CSS vars */
+  background: var(--rffm-dash-card-bg, #081628);
+
+  /* FC26 chamfered top-right corner */
+  clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 0 100%);
+
+  /* Subtle outer border */
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  /* Accent left stripe */
+  border-left: 3px solid var(--rffm-dash-accent, #00e5ff);
+
+  text-decoration: none;
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform 0.15s ease, filter 0.15s ease, border-color 0.15s ease;
 }
 
+/* Diagonal corner fill — matches the clip chamfer shape */
+.card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 20px;
+  height: 20px;
+  background: var(--rffm-dash-accent, #00e5ff);
+  clip-path: polygon(0 0, 100% 100%, 100% 0);
+  opacity: 0.35;
+}
+
+.card:hover,
+.card:focus-visible {
+  transform: translateY(-3px) scale(1.025);
+  filter: brightness(1.18);
+  border-left-color: var(--rffm-dash-accent, #00e5ff);
+  border-color: rgba(255, 255, 255, 0.18);
+  outline: none;
+}
+
+/* ── Icon ───────────────────────────────────────────────── */
 .iconWrap {
-  width: 48px;
-  height: 48px;
-  border-radius: 24px;
-  background: #f3f4f6;
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
-  margin-bottom: 8px;
+  width: 40px;
+  height: 40px;
+  margin-bottom: 10px;
+  /* Icon inherits this color */
+  color: var(--rffm-dash-accent, #00e5ff);
 }
 
+/* ── Title ──────────────────────────────────────────────── */
 .title {
-  font-size: 0.95rem !important;
-  font-weight: 600;
-  line-height: 1.3;
-  margin-bottom: 4px !important;
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.25;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #e6f7ff;
+  color: var(--rffm-dash-card-text, #e6f7ff);
+  margin-bottom: 4px;
 }
 
+/* ── Description ────────────────────────────────────────── */
 .description {
-  color: #666;
-  font-size: 0.8rem;
-  line-height: 1.2;
+  display: block;
+  font-size: 0.68rem;
+  line-height: 1.25;
+  color: rgba(230, 247, 255, 0.5);
+  color: var(--rffm-dash-desc-text, rgba(230, 247, 255, 0.5));
 }
 
-.button {
-  margin-top: 4px;
-  font-size: 0.75rem;
-  padding: 4px 8px !important;
-}
-
+/* ── Responsive ─────────────────────────────────────────── */
 @media (max-width: 768px) {
   .card {
-    min-width: 120px;
-    padding: 10px;
+    min-height: 96px;
+    padding: 13px 12px 12px 15px;
+    clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 0 100%);
+  }
+
+  .card::after {
+    width: 16px;
+    height: 16px;
   }
 
   .iconWrap {
-    width: 40px;
-    height: 40px;
-    border-radius: 20px;
+    width: 34px;
+    height: 34px;
+    margin-bottom: 8px;
   }
 
   .title {
-    font-size: 0.85rem !important;
+    font-size: 0.72rem;
   }
 
   .description {
-    font-size: 0.75rem;
+    font-size: 0.63rem;
   }
 }
 
 @media (max-width: 480px) {
   .card {
-    width: 100%;
-    min-width: 0;
-    box-sizing: border-box;
-    padding: 8px;
+    min-height: 84px;
+    padding: 11px 10px 10px 13px;
+    clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%);
+  }
+
+  .card::after {
+    width: 14px;
+    height: 14px;
   }
 
   .iconWrap {
-    width: 36px;
-    height: 36px;
-    border-radius: 18px;
+    width: 30px;
+    height: 30px;
+    margin-bottom: 6px;
   }
 
   .title {
-    font-size: 0.8rem !important;
-  }
-
-  .description {
-    font-size: 0.7rem;
+    font-size: 0.67rem;
+    letter-spacing: 0.05em;
   }
 }

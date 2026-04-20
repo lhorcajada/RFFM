@@ -65,6 +65,7 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Queries
             public string? TeamPhotoUrl { get; set; }
             public string? LocalGoals { get; set; }
             public string? VisitorGoals { get; set; }
+            public int? SelectedKitNumber { get; set; }
 
         };
 
@@ -129,7 +130,8 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Queries
                         TeamName = sportEvent.Team != null ? sportEvent.Team.Name : null,
                         TeamPhotoUrl = sportEvent.Team != null ? sportEvent.Team.UrlPhoto : null,
                         LocalGoals = sportEvent.LocalGoals,
-                        VisitorGoals = sportEvent.VisitorGoals
+                        VisitorGoals = sportEvent.VisitorGoals,
+                        SelectedKitNumber = sportEvent.SelectedKitNumber
                     })
                     .ToArrayAsync(cancellationToken);
 

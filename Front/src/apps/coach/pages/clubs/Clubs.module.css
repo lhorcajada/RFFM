@@ -1,5 +1,5 @@
 .wrapper {
-  padding: 24px;
+  padding: 0 var(--rffm-page-h-padding, 12px) 24px;
 }
 
 .dialogTitle {
@@ -17,8 +17,11 @@
   margin-right: 8px;
 }
 
-.gridContainer {
-  padding-top: 8px;
+.clubGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+  margin-top: 8px;
 }
 
 .noClubs {

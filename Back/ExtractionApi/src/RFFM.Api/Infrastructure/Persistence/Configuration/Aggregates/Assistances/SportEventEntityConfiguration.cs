@@ -55,6 +55,9 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.Assistanc
             builder.HasOne(se => se.Rival)
                 .WithMany()
                 .HasForeignKey(se => se.RivalId);
+
+            builder.Property(se => se.SelectedKitNumber)
+                .IsRequired(false);
         }
     }
 }

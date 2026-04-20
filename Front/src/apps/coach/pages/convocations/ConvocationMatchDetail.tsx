@@ -1,9 +1,17 @@
-﻿import { useEffect, useRef, useState, useMemo } from "react";
+﻿import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   Alert,
   Button,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
   Slide,
   Snackbar,
   Tab,
@@ -11,6 +19,10 @@ import {
 } from "@mui/material";
 import SaveIcon from "@mui/icons-material/Save";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
+import WhatsAppIcon from "@mui/icons-material/WhatsApp";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import CheckIcon from "@mui/icons-material/Check";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import configurationCoachService from "../../services/configurationCoachService";
@@ -20,9 +32,13 @@ import DesconvocatoriasTab from "./components/DesconvocatoriasTab";
 import AlineacionTab from "./components/AlineacionTab";
 import SimulacionTab from "./components/SimulacionTab";
 import PartidoEnDirectoTab from "./components/PartidoEnDirectoTab";
+import KitSelector from "./components/KitSelector/KitSelector";
+import ConvocatoriaPrint, { type ConvocatoriaPrintHandle } from "./components/ConvocatoriaPrint";
 import type { MatchState } from "./components/convocationMatchDetail.types";
 import { useConvocationManagement } from "./hooks/useConvocationManagement";
 import { useDesconvocatoriasGrid } from "./hooks/useDesconvocatoriasGrid";
+import type { ClubKit } from "../../services/kitService";
+import { getTeamKits, updateEventKit } from "../../services/kitService";
 import styles from "./ConvocationMatchDetail.module.css";
 
 export default function ConvocationMatchDetail() {
@@ -49,13 +65,87 @@ export default function ConvocationMatchDetail() {
     };
   }, [teamId]);
 
-  const [tab, setTab] = useState(0);
+  const [tab, setTab] = useState(1);
   const lineupRef = useRef<IdealLineupHandle>(null);
   const [lineupSaving, setLineupSaving] = useState(false);
+
+  // Deconvoke reason dialog (Alineación tab)
+  const [pendingDeconvokeId, setPendingDeconvokeId] = useState<string | null>(null);
+  const [pendingDeconvokeExcuse, setPendingDeconvokeExcuse] = useState<number | "">("");
+
+  const handleDeconvokeRequest = useCallback((playerId: string) => {
+    setPendingDeconvokeExcuse("");
+    setPendingDeconvokeId(playerId);
+  }, []);
+
+  // PDF print
+  const printRef = useRef<ConvocatoriaPrintHandle>(null);
+  const [printing, setPrinting] = useState(false);
+  const handlePrint = useCallback(async () => {
+    if (printing) return;
+    setPrinting(true);
+    try {
+      await printRef.current?.print();
+    } finally {
+      setPrinting(false);
+    }
+  }, [printing]);
+
+  // WhatsApp copy
+  const [whatsappCopied, setWhatsappCopied] = useState(false);
+  const [whatsappCopying, setWhatsappCopying] = useState(false);
+  const handleWhatsAppCopy = useCallback(async () => {
+    if (whatsappCopying) return;
+    setWhatsappCopying(true);
+    try {
+      const ok = await printRef.current?.copyForWhatsApp();
+      if (ok) {
+        setWhatsappCopied(true);
+        setTimeout(() => setWhatsappCopied(false), 2500);
+      }
+    } finally {
+      setWhatsappCopying(false);
+    }
+  }, [whatsappCopying]);
+
+  // Kit state
+  const [kits, setKits] = useState<ClubKit[]>([]);
+  const [selectedKitNumber, setSelectedKitNumber] = useState<number | null>(match?.selectedKitNumber ?? null);
+  const [kitUpdating, setKitUpdating] = useState(false);
+
+  useEffect(() => {
+    if (!teamId) return;
+    let mounted = true;
+    getTeamKits(teamId).then((data) => {
+      if (mounted) setKits(data);
+    }).catch(() => {});
+    return () => { mounted = false; };
+  }, [teamId]);
 
   // Data hooks
   const convocation = useConvocationManagement(teamId, match?.date);
   const grid = useDesconvocatoriasGrid(teamId);
+
+  const handleDeconvokeConfirm = useCallback(async () => {
+    if (!pendingDeconvokeId || !pendingDeconvokeExcuse) return;
+    const pid = pendingDeconvokeId;
+    const excuseId = pendingDeconvokeExcuse as number;
+    setPendingDeconvokeId(null);
+    await convocation.moveToNotCalled(pid, excuseId);
+  }, [pendingDeconvokeId, pendingDeconvokeExcuse, convocation]);
+
+  const handleKitSelect = useCallback(async (kitNumber: number | null) => {
+    if (!convocation.mgmtEventId || kitUpdating) return;
+    setKitUpdating(true);
+    try {
+      await updateEventKit(convocation.mgmtEventId, kitNumber);
+      setSelectedKitNumber(kitNumber);
+    } catch {
+      // silently ignore — UI stays in previous state
+    } finally {
+      setKitUpdating(false);
+    }
+  }, [convocation.mgmtEventId, kitUpdating]);
 
   // Per-player streak: consecutive past matches since the last "Decisión técnica" deconvocation
   const playerStreaks = useMemo(() => {
@@ -77,52 +167,154 @@ export default function ConvocationMatchDetail() {
     return result;
   }, [convocation.players, grid.matchColumns, grid.enrichedGrid]);
 
-  // Players for the Alineacion tab (convocados only)
-  const lineupPlayers = useMemo(
-    () =>
-      convocation.players
-        .filter((p) => new Set(convocation.mgmtCalled).has(p.id))
-        .map((p) => ({
-          id: p.id,
-          displayName:
-            ((p.name ?? "") + " " + (p.lastName ?? "")).trim() ||
-            p.alias ||
-            "Jugador",
-          alias: p.alias ?? null,
-          photoSrc: convocation.mgmtPhotos[p.id] ?? null,
-          dorsal: p.dorsal ?? null,
-          position: p.position ?? null,
-          competitiveness: convocation.mgmtRatings[p.id]?.competitiveness ?? null,
-          isInjured: p.isInjured === true,
-        })),
-    [
-      convocation.mgmtCalled,
-      convocation.players,
-      convocation.mgmtPhotos,
-      convocation.mgmtRatings,
-    ]
-  );
+  // Per-player total technical-decision deconvocations
+  const playerTechnicalTotals = useMemo(() => {
+    const NOT_CALLED_NAMES = new Set(["Deconvoke", "No disponible"]);
+    const result = new Map<string, number>();
+    for (const player of convocation.players) {
+      let total = 0;
+      for (const col of grid.matchColumns) {
+        const cell = grid.enrichedGrid.get(col.eventId)?.get(player.id);
+        if (cell && NOT_CALLED_NAMES.has(cell.statusName) && cell.statusName !== "No disponible") {
+          const isTech = !cell.excuseTypeId || !!cell.excuseName?.toLowerCase().includes("decisi");
+          if (isTech) total++;
+        }
+      }
+      result.set(player.id, total);
+    }
+    return result;
+  }, [convocation.players, grid.matchColumns, grid.enrichedGrid]);
 
-  const subtitle = match
-    ? `${match.localTeamName} vs ${match.visitorTeamName} · ${match.date}`
-    : "Partido";
+  // Players for the Alineacion tab (all non-injured players)
+  const lineupPlayers = useMemo(() => {
+    const notCalledSet = new Set(convocation.mgmtNotCalled);
+    return convocation.players
+      .filter((p) => p.isInjured !== true && !notCalledSet.has(p.id))
+      .map((p) => ({
+        id: p.id,
+        displayName:
+          ((p.name ?? "") + " " + (p.lastName ?? "")).trim() ||
+          p.alias ||
+          "Jugador",
+        alias: p.alias ?? null,
+        photoSrc: convocation.mgmtPhotos[p.id] ?? null,
+        dorsal: p.dorsal ?? null,
+        position: p.position ?? null,
+        competitiveness: convocation.mgmtRatings[p.id]?.competitiveness ?? null,
+        isInjured: false,
+        streakCount: playerStreaks.get(p.id) ?? null,
+        technicalTotal: playerTechnicalTotals.get(p.id) ?? null,
+      }));
+  }, [
+    convocation.players,
+    convocation.mgmtNotCalled,
+    convocation.mgmtPhotos,
+    convocation.mgmtRatings,
+    playerStreaks,
+    playerTechnicalTotals,
+  ]);
+
+  const notCalledPlayers = useMemo(() => {
+    const notCalledSet = new Set(convocation.mgmtNotCalled);
+    return convocation.players
+      .filter((p) => notCalledSet.has(p.id))
+      .map((p) => ({
+        id: p.id,
+        displayName:
+          ((p.name ?? "") + " " + (p.lastName ?? "")).trim() ||
+          p.alias ||
+          "Jugador",
+        alias: p.alias ?? null,
+        photoSrc: convocation.mgmtPhotos[p.id] ?? null,
+        dorsal: p.dorsal ?? null,
+        position: p.position ?? null,
+        competitiveness: convocation.mgmtRatings[p.id]?.competitiveness ?? null,
+        isInjured: p.isInjured ?? false,
+        streakCount: playerStreaks.get(p.id) ?? null,
+        technicalTotal: playerTechnicalTotals.get(p.id) ?? null,
+      }));
+  }, [
+    convocation.players,
+    convocation.mgmtNotCalled,
+    convocation.mgmtPhotos,
+    convocation.mgmtRatings,
+    playerStreaks,
+    playerTechnicalTotals,
+  ]);
+
+  const matchTitle = match ? (
+    <div className={styles.titleWrap}>
+      <span className={styles.convocationLabel}>Convocatoria</span>
+
+      {/* Teams + time */}
+      <div className={styles.matchInfoRow}>
+        <div className={styles.matchTeamBlock}>
+          {match.localTeamShield && (
+            <img
+              src={match.localTeamShield}
+              alt=""
+              className={styles.matchShield}
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).style.display = "none";
+              }}
+            />
+          )}
+          <span className={styles.matchTeamName}>{match.localTeamName}</span>
+        </div>
+        <span className={styles.matchTime}>{match.time || "--:--"}</span>
+        <div className={`${styles.matchTeamBlock} ${styles.matchTeamBlockVisitor}`}>
+          <span className={styles.matchTeamName}>{match.visitorTeamName}</span>
+          {match.visitorTeamShield && (
+            <img
+              src={match.visitorTeamShield}
+              alt=""
+              className={styles.matchShield}
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).style.display = "none";
+              }}
+            />
+          )}
+        </div>
+      </div>
+
+      {/* Date + field */}
+      <div className={styles.matchMeta}>
+        <span className={styles.matchDateLabel}>{match.date}</span>
+        {match.field && (
+          <>
+            <span className={styles.matchMetaSep}>·</span>
+            <span className={styles.matchField}>{match.field}</span>
+          </>
+        )}
+      </div>
+
+      {/* Kit selector */}
+      {kits.length > 0 && (
+        <KitSelector
+          kits={kits}
+          selectedKitNumber={selectedKitNumber}
+          onSelect={handleKitSelect}
+          disabled={kitUpdating || !convocation.mgmtEventId}
+        />
+      )}
+    </div>
+  ) : "Convocatoria";
 
   return (
     <BaseLayout hideFooterMenu>
       <ContentLayout
-        title="Convocatoria"
-        subtitle={subtitle}
+        title={matchTitle}
         actionBar={
           <>
             <Button
               startIcon={<ArrowBackIcon />}
-              onClick={() => navigate(-1)}
+              onClick={() => navigate(`/coach/convocations${teamId ? `?teamId=${teamId}` : ""}`)}
               variant="outlined"
               size="small"
             >
               Volver
             </Button>
-            {tab === 0 && convocation.mgmtEventId && (
+            {tab === 2 && convocation.mgmtEventId && (
               <Button
                 variant="contained"
                 size="small"
@@ -139,7 +331,7 @@ export default function ConvocationMatchDetail() {
                 Guardar
               </Button>
             )}
-            {tab === 2 && convocation.mgmtEventId && convocation.mgmtCalled.length > 0 && (
+            {tab === 1 && convocation.mgmtEventId && lineupPlayers.length > 0 && (
               <Button
                 variant="contained"
                 size="small"
@@ -152,46 +344,61 @@ export default function ConvocationMatchDetail() {
                 Guardar
               </Button>
             )}
+            {match && (
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={
+                  printing ? (
+                    <CircularProgress size={14} color="inherit" />
+                  ) : (
+                    <PictureAsPdfIcon />
+                  )
+                }
+                disabled={printing}
+                onClick={handlePrint}
+              >
+                PDF
+              </Button>
+            )}
+            {match && (
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={
+                  whatsappCopying ? (
+                    <CircularProgress size={14} color="inherit" />
+                  ) : whatsappCopied ? (
+                    <CheckIcon />
+                  ) : (
+                    <WhatsAppIcon />
+                  )
+                }
+                disabled={whatsappCopying}
+                onClick={handleWhatsAppCopy}
+                sx={{
+                  borderColor: whatsappCopied ? "#4caf50" : "#25D366",
+                  color: whatsappCopied ? "#4caf50" : "#25D366",
+                  "&:hover": {
+                    borderColor: whatsappCopied ? "#4caf50" : "#25D366",
+                    backgroundColor: "rgba(37,211,102,0.08)",
+                  },
+                }}
+              >
+                {whatsappCopied ? (
+                  <>
+                    <ContentCopyIcon sx={{ fontSize: 14, mr: 0.5 }} />
+                    ¡Copiado!
+                  </>
+                ) : (
+                  "WhatsApp"
+                )}
+              </Button>
+            )}
 
           </>
         }
       >
-        {/* Match summary banner */}
-        {match && (
-          <div className={styles.matchBanner}>
-            <div className={styles.bannerTeam}>
-              {match.localTeamShield && (
-                <img
-                  src={match.localTeamShield}
-                  alt=""
-                  className={styles.bannerShield}
-                  onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).style.display = "none";
-                  }}
-                />
-              )}
-              <span className={styles.bannerTeamName}>{match.localTeamName}</span>
-            </div>
-            <div className={styles.bannerCenter}>
-              <span className={styles.bannerTime}>{match.time || "--:--"}</span>
-              <span className={styles.bannerKickoff}>kick-off</span>
-            </div>
-            <div className={`${styles.bannerTeam} ${styles.bannerTeamRight}`}>
-              {match.visitorTeamShield && (
-                <img
-                  src={match.visitorTeamShield}
-                  alt=""
-                  className={styles.bannerShield}
-                  onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).style.display = "none";
-                  }}
-                />
-              )}
-              <span className={styles.bannerTeamName}>{match.visitorTeamName}</span>
-            </div>
-          </div>
-        )}
-
         {/* Tabs */}
         <Tabs
           value={tab}
@@ -202,15 +409,15 @@ export default function ConvocationMatchDetail() {
           scrollButtons="auto"
           sx={{ borderBottom: "1px solid rgba(255,255,255,0.08)", px: 1 }}
         >
-          <Tab label="Convocatoria" />
           <Tab label="Desconvocatorias" />
           <Tab label="Alineación" />
+          <Tab label="Convocatoria" />
           <Tab label="Simular Partido" />
           <Tab label="Partido en Directo" />
         </Tabs>
 
-        {/* Tab 0: Convocatoria */}
-        {tab === 0 && (
+        {/* Tab 2: Convocatoria */}
+        {tab === 2 && (
           <ConvocationTab
             mgmtEventId={convocation.mgmtEventId}
             mgmtLoadingConv={convocation.mgmtLoadingConv}
@@ -260,8 +467,8 @@ export default function ConvocationMatchDetail() {
           </Alert>
         </Snackbar>
 
-        {/* Tab 1: Desconvocatorias */}
-        {tab === 1 && (
+        {/* Tab 0: Desconvocatorias */}
+        {tab === 0 && (
           <DesconvocatoriasTab
             players={convocation.players}
             matchColumns={grid.matchColumns}
@@ -273,15 +480,17 @@ export default function ConvocationMatchDetail() {
           />
         )}
 
-        {/* Tab 2: Alineacion */}
-        {tab === 2 && (
+        {/* Tab 1: Alineacion */}
+        {tab === 1 && (
           <AlineacionTab
             mgmtEventId={convocation.mgmtEventId}
-            mgmtCalled={convocation.mgmtCalled}
             lineupPlayers={lineupPlayers}
+            notCalledPlayers={notCalledPlayers}
             lineupRef={lineupRef}
             teamId={teamId}
             onSavingChange={setLineupSaving}
+            onDeconvoke={handleDeconvokeRequest}
+            onReconvoke={(playerId) => convocation.moveToAvailable(playerId)}
           />
         )}
 
@@ -306,7 +515,59 @@ export default function ConvocationMatchDetail() {
             visitorTeamShield={match?.visitorTeamShield ?? null}
             isHomeTeam={match?.isHomeTeam ?? true}
           />
-        )}      </ContentLayout>
+        )}
+
+        {/* Deconvoke reason dialog */}
+        <Dialog
+          open={pendingDeconvokeId !== null}
+          onClose={() => setPendingDeconvokeId(null)}
+          maxWidth="xs"
+          fullWidth
+        >
+          <DialogTitle>Motivo de desconvocatoria</DialogTitle>
+          <DialogContent>
+            <FormControl fullWidth sx={{ mt: 1 }}>
+              <InputLabel id="deconvoke-reason-label">Motivo</InputLabel>
+              <Select
+                labelId="deconvoke-reason-label"
+                label="Motivo"
+                value={pendingDeconvokeExcuse}
+                onChange={(e) => setPendingDeconvokeExcuse(e.target.value as number)}
+              >
+                {convocation.excuseTypes.map((et) => (
+                  <MenuItem key={et.id} value={et.id}>
+                    {et.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setPendingDeconvokeId(null)}>Cancelar</Button>
+            <Button
+              variant="contained"
+              disabled={!pendingDeconvokeExcuse}
+              onClick={handleDeconvokeConfirm}
+            >
+              Desconvocar
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* PDF print container — off-screen, captured by html2canvas */}
+        <ConvocatoriaPrint
+          ref={printRef}
+          match={match}
+          calledIds={convocation.mgmtCalled}
+          notCalledIds={convocation.mgmtNotCalled}
+          players={convocation.players}
+          photos={convocation.mgmtPhotos}
+          excuseMap={convocation.mgmtExcuseMap}
+          excuseTypes={convocation.excuseTypes}
+          kits={kits}
+          selectedKitNumber={selectedKitNumber}
+        />
+      </ContentLayout>
     </BaseLayout>
   );
 }

@@ -29,6 +29,7 @@ export interface SportEventResponse {
   teamPhotoUrl?: string | null;
   localGoals?: string | null;
   visitorGoals?: string | null;
+  selectedKitNumber?: number | null;
 }
 
 export interface PagedSportEvents {

@@ -20,6 +20,8 @@ namespace RFFM.Api.Domain.Aggregates.Assistances
         public string? CodActa { get; set; }
         public string? LocalGoals { get; set; }
         public string? VisitorGoals { get; set; }
+        /// <summary>Kit number selected for this match (1 = primera, 2 = segunda, null = not selected).</summary>
+        public int? SelectedKitNumber { get; set; }
 
         public Team Team { get; set; } = null!;
         public Rival? Rival { get; set; } = null!;
@@ -154,6 +156,13 @@ namespace RFFM.Api.Domain.Aggregates.Assistances
             if (string.IsNullOrEmpty(rivalId))
                 throw new ArgumentException("El rival no puede estar vacío");
             RivalId = rivalId;
+        }
+
+        public void SetSelectedKit(int? kitNumber)
+        {
+            if (kitNumber is not null and not (1 or 2))
+                throw new ArgumentException("El número de equipación debe ser 1, 2 o null.");
+            SelectedKitNumber = kitNumber;
         }
     }
 }

@@ -41,5 +41,8 @@ await app.SeedPaymentPlansAsync();
 // Seed formations catalog
 await app.SeedFormationsAsync();
 
+// Seed club kits
+await app.SeedClubKitsAsync();
+
 app.Run();
 

@@ -235,6 +235,24 @@ namespace RFFM.Host.DependencyInjection
             }
         }
 
+        public static async Task SeedClubKitsAsync(this WebApplication app)
+        {
+            using var scope = app.Services.CreateScope();
+            var logger = scope.ServiceProvider.GetService<ILogger<WebApplication>>();
+
+            try
+            {
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                logger?.LogInformation("Seeding club kits if not present...");
+                await RFFM.Api.Infrastructure.Persistence.Seed.ClubKitsSeeder.SeedAsync(db, logger);
+                logger?.LogInformation("\u2713 Club kits seeding finished");
+            }
+            catch (Exception ex)
+            {
+                logger?.LogError(ex, "Error while seeding club kits");
+            }
+        }
+
         public static async Task SeedPaymentPlansAsync(this WebApplication app)
         {
             using var scope = app.Services.CreateScope();

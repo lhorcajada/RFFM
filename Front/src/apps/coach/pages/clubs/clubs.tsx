@@ -1,4 +1,4 @@
-import { Box, Button, Grid, CircularProgress, Alert } from "@mui/material";
+import { Box, Button, CircularProgress, Alert } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
@@ -86,13 +86,11 @@ export default function Clubs() {
           {error && <Alert severity="error">{error}</Alert>}
 
           {!loading && !error && (
-            <Grid container spacing={2} className={styles.gridContainer}>
+            <div className={styles.clubGrid}>
               {clubs.map((c) => (
-                <Grid item key={c.clubId} xs={12} sm={6} md={4}>
-                  <ClubCard id={c.clubId} />
-                </Grid>
+                <ClubCard key={c.clubId} id={c.clubId} />
               ))}
-            </Grid>
+            </div>
           )}
         </Box>
       </ContentLayout>

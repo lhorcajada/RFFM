@@ -11,6 +11,8 @@ export type MatchState = {
   isHomeTeam: boolean;
   field: string;
   codacta: string | null;
+  /** Kit number selected for this match (1 = primera, 2 = segunda, null = no selected). */
+  selectedKitNumber: number | null;
 };
 
 /** One cell in the desconvocatorias grid */
@@ -37,5 +39,8 @@ export type DropZone = "available" | "called" | "notCalled";
 /** Status ID used when calling up a player */
 export const CALLED_STATUS_ID = 1;
 
-/** Status ID for officially not called (desconvocado) */
-export const NOT_CALLED_STATUS_ID = 2;
+/** Status ID for officially not called (desconvocado) — maps to "Deconvoke" (5) on the backend */
+export const NOT_CALLED_STATUS_ID = 5;
+
+/** Legacy status ID that was incorrectly used for desconvocados; kept for backward-compat loading */
+export const LEGACY_NOT_CALLED_STATUS_ID = 2;

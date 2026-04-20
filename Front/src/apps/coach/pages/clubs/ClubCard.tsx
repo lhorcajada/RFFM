@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { Card, CardContent, CardMedia, Typography, Box } from "@mui/material";
 import type { ClubResponse } from "../../types/club";
 import clubService from "../../services/clubService";
 import { useNavigate } from "react-router-dom";
+import styles from "./ClubCard.module.css";
 
 type Props = {
   id: string;
@@ -26,7 +26,6 @@ export default function ClubCard({ id }: Props) {
         if (!mounted) return;
         setClub(c);
 
-        // if shieldUrl present, use it; otherwise fetch emblem bytes
         if (c && (c as any).shieldUrl) {
           setImageSrc((c as any).shieldUrl);
         } else if (c) {
@@ -40,12 +39,12 @@ export default function ClubCard({ id }: Props) {
               objectUrl = URL.createObjectURL(blob);
               setImageSrc(objectUrl);
             }
-          } catch (err) {
+          } catch {
             // ignore emblem errors
           }
         }
-      } catch (err) {
-        // ignore load errors; keep club null
+      } catch {
+        // ignore load errors
       } finally {
         if (mounted) setLoading(false);
       }
@@ -60,39 +59,36 @@ export default function ClubCard({ id }: Props) {
   }, [id]);
 
   return (
-    <Card
-      sx={{ display: "flex", alignItems: "center", gap: 2, cursor: "pointer" }}
+    <button
+      type="button"
+      className={styles.card}
       onClick={() => navigate(`/coach/clubs/dashboard/${id}`)}
+      aria-label={club?.name ?? "Club"}
     >
-      {imageSrc ? (
-        <CardMedia
-          component="img"
-          sx={{ width: 96, height: 96 }}
-          image={imageSrc}
-          alt={`${club?.name ?? "club"} escudo`}
-        />
-      ) : (
-        <Box
-          sx={{
-            width: 96,
-            height: 96,
-            backgroundColor: "grey.200",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Typography variant="caption">No emblem</Typography>
-        </Box>
-      )}
-      <CardContent>
-        <Typography variant="h6">
+      <div className={styles.emblemWrap}>
+        {imageSrc ? (
+          <img
+            src={imageSrc}
+            alt={`${club?.name ?? "club"} escudo`}
+            className={styles.emblem}
+          />
+        ) : (
+          <div className={styles.emblemPlaceholder}>
+            <span className={styles.emblemInitial}>
+              {club?.name?.[0]?.toUpperCase() ?? "?"}
+            </span>
+          </div>
+        )}
+      </div>
+
+      <div className={styles.info}>
+        <span className={styles.name}>
           {club ? club.name : loading ? "Cargando..." : "-"}
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          {club?.country?.name ?? "-"}
-        </Typography>
-      </CardContent>
-    </Card>
+        </span>
+        {club?.country?.name && (
+          <span className={styles.country}>{club.country.name}</span>
+        )}
+      </div>
+    </button>
   );
 }

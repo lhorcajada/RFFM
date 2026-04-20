@@ -15,13 +15,12 @@ import {
   Box,
   Button,
   CircularProgress,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Select,
   Typography,
 } from "@mui/material";
 import SaveIcon from "@mui/icons-material/Save";
+import EditIcon from "@mui/icons-material/Edit";
+import PersonRemoveIcon from "@mui/icons-material/PersonRemove";
+import { useNavigate, useLocation } from "react-router-dom";
 import { getFormations } from "../../../services/formationService";
 import { getIdealLineup, saveIdealLineup } from "../../../services/idealLineupService";
 import { FORMATION_POSITIONS } from "../../../types/formation";
@@ -91,6 +90,8 @@ export interface SquadPlayer {
   position?: string | null;
   competitiveness?: number | null;
   isInjured?: boolean;
+  streakCount?: number | null;
+  technicalTotal?: number | null;
 }
 
 export interface IdealLineupHandle {
@@ -104,10 +105,13 @@ interface IdealLineupProps {
   panelTitle?: string;
   hideInternalSave?: boolean;
   onSavingChange?: (saving: boolean) => void;
+  onDeconvoke?: (playerId: string) => void;
 }
 
 // ─── Draggable list item ───────────────────────────────────────────────
-function DraggableListItem({ player }: { player: SquadPlayer }) {
+function DraggableListItem({ player, onDeconvoke }: { player: SquadPlayer; onDeconvoke?: (id: string) => void }) {
+  const navigate = useNavigate();
+  const location = useLocation();
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: player.id,
   });
@@ -127,31 +131,75 @@ function DraggableListItem({ player }: { player: SquadPlayer }) {
       {...attributes}
       className={`${styles.playerListItem} ${isDragging ? styles.dragging : ""}`}
     >
-      {player.photoSrc ? (
-        <img src={player.photoSrc} alt={player.displayName} className={styles.playerAvatar} />
-      ) : (
-        <div className={styles.playerAvatarInitials}>{initials}</div>
-      )}
-      <div className={styles.playerInfo}>
-        <div className={styles.playerItemName}>{player.displayName}</div>
-        {player.position && (
-          <div className={styles.playerItemPosition}>{player.position}</div>
-        )}
-        {player.isInjured && (
-          <div className={styles.injuredTag}>🩹 Lesionado</div>
+      {/* Top row: text info + photo */}
+      <div className={styles.playerTopRow}>
+        <div className={styles.playerInfo}>
+          <div className={styles.playerItemName}>
+            {player.dorsal != null && (
+              <span className={styles.playerDorsalInline}>{player.dorsal}</span>
+            )}
+            {player.displayName}
+            {player.isInjured && <span className={styles.injuredDot} title="Lesionado"> 🩹</span>}
+          </div>
+          {player.position && (
+            <div className={styles.playerItemPosition}>{player.position}</div>
+          )}
+        </div>
+        {player.photoSrc ? (
+          <img src={player.photoSrc} alt={player.displayName} className={styles.playerAvatar} />
+        ) : (
+          <div className={styles.playerAvatarInitials}>{initials}</div>
         )}
       </div>
-      {player.dorsal != null && (
-        <span className={styles.playerDorsal}>{player.dorsal}</span>
-      )}
-      {player.competitiveness != null && (
-        <span
-          className={styles.playerCompetBadge}
-          title="Competitividad"
-        >
-          Com. {Math.round(player.competitiveness)}
-        </span>
-      )}
+
+      {/* Bottom row: badges + action buttons */}
+      <div className={styles.playerBottomRow}>
+        <div className={styles.playerMetaRow}>
+          {player.competitiveness != null && (
+            <span className={styles.playerCompetBadge} title="Competitividad">
+              Comp.&nbsp;{Math.round(player.competitiveness)}
+            </span>
+          )}
+          {player.streakCount != null && (
+            <span className={styles.playerStreakBadge} title="Jornadas sin decisión técnica">
+              ⏱ {player.streakCount}
+            </span>
+          )}
+          {player.technicalTotal != null && (
+            <span className={styles.playerTechnicalBadge} title="Total decisiones técnicas">
+              🚫 {player.technicalTotal}
+            </span>
+          )}
+        </div>
+        <div className={styles.playerActions}>
+          <button
+            type="button"
+            className={styles.playerEditBtn}
+            title="Editar jugador"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/coach/player/${player.id}`, { state: { editing: true, from: location.pathname + location.search, fromState: location.state } });
+            }}
+          >
+            <EditIcon sx={{ fontSize: 13 }} />
+          </button>
+          {onDeconvoke && (
+            <button
+              type="button"
+              className={styles.playerDeconvokeBtn}
+              title="Desconvocar"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDeconvoke(player.id);
+              }}
+            >
+              <PersonRemoveIcon sx={{ fontSize: 13 }} />
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -171,14 +219,14 @@ function OverlayItem({ player }: { player: SquadPlayer }) {
       ) : (
         <div className={styles.playerAvatarInitials}>{initials}</div>
       )}
-      <span className={styles.playerItemName}>{player.displayName}</span>
+      <span className={styles.dragOverlayName}>{player.displayName}</span>
     </div>
   );
 }
 
 // ─── Main IdealLineup component ────────────────────────────────────────
 const IdealLineup = forwardRef<IdealLineupHandle, IdealLineupProps>(function IdealLineup(
-  { players, teamId, seasonId, panelTitle, hideInternalSave, onSavingChange },
+  { players, teamId, seasonId, panelTitle, hideInternalSave, onSavingChange, onDeconvoke },
   ref
 ) {
   const [formations, setFormations] = useState<Formation[]>([]);
@@ -200,7 +248,10 @@ const IdealLineup = forwardRef<IdealLineupHandle, IdealLineupProps>(function Ide
   useEffect(() => {
     getFormations().then((list) => {
       setFormations(list);
-      if (list.length > 0 && !formationId) setFormationId(list[0].id);
+      if (list.length > 0 && !formationId) {
+        const preferred = list.find((f) => f.name === "4-2-3-1") ?? list[0];
+        setFormationId(preferred.id);
+      }
     });
   }, []);
 
@@ -244,6 +295,7 @@ const IdealLineup = forwardRef<IdealLineupHandle, IdealLineupProps>(function Ide
 
   const playersById = useMemo(
     () => Object.fromEntries(players.map((p) => [p.id, {
+      id: p.id,
       teamPlayerId: p.id,
       displayName: p.displayName,
       alias: p.alias,
@@ -339,21 +391,18 @@ const IdealLineup = forwardRef<IdealLineupHandle, IdealLineupProps>(function Ide
       <div className={styles.root}>
         {/* Top bar: formation selector + save button */}
         <div className={styles.topBar}>
-          <FormControl size="small" sx={{ minWidth: 180 }}>
-            <InputLabel>Formación</InputLabel>
-            <Select
-              value={formations.length > 0 ? formationId : ""}
-              label="Formación"
-              onChange={(e) => setFormationId(e.target.value as string)}
-              disabled={formations.length === 0}
-            >
-              {formations.map((f) => (
-                <MenuItem key={f.id} value={f.id}>
-                  {f.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          <div className={styles.formationPicker}>
+            {formations.map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                className={`${styles.formationBtn} ${formationId === f.id ? styles.formationBtnActive : ""}`}
+                onClick={() => setFormationId(f.id)}
+              >
+                {f.name}
+              </button>
+            ))}
+          </div>
 
           {!hideInternalSave && (
             <Button
@@ -379,11 +428,22 @@ const IdealLineup = forwardRef<IdealLineupHandle, IdealLineupProps>(function Ide
               <div className={styles.panelHeaderRight}>
                 {avgBenchComp != null && (
                   <span className={styles.panelCompTag}>
-                    Com. {avgBenchComp.toFixed(1)}
+                    Comp. {Math.round(avgBenchComp)}
                   </span>
                 )}
                 <span className={styles.panelBadge}>{availablePlayers.length}</span>
               </div>
+            </div>
+            <div className={styles.panelLegend}>
+              <span className={styles.legendItem}>
+                <span className={styles.playerCompetBadge} style={{ fontSize: "0.55rem" }}>Comp.</span> Competitividad
+              </span>
+              <span className={styles.legendItem}>
+                <span className={styles.playerStreakBadge} style={{ fontSize: "0.55rem" }}>⏱ j</span> Jornadas sin decisión técnica
+              </span>
+              <span className={styles.legendItem}>
+                <span className={styles.playerTechnicalBadge} style={{ fontSize: "0.55rem" }}>🚫</span> Total decisiones técnicas
+              </span>
             </div>
             <div className={styles.playerList}>
               {availablePlayers.length === 0 ? (
@@ -403,7 +463,7 @@ const IdealLineup = forwardRef<IdealLineupHandle, IdealLineupProps>(function Ide
                     </div>
                     <div className={styles.positionGroupItems}>
                       {group.players.map((p) => (
-                        <DraggableListItem key={p.id} player={p} />
+                        <DraggableListItem key={p.id} player={p} onDeconvoke={onDeconvoke} />
                       ))}
                     </div>
                   </div>
