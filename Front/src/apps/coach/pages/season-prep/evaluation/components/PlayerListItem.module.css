@@ -1,0 +1,85 @@
+.item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 12px 11px 0;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  transition: background 0.12s;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  min-height: 52px;
+}
+
+.item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.itemSelected {
+  background: rgba(78, 201, 176, 0.08);
+  border: 1px solid rgba(78, 201, 176, 0.3);
+}
+
+.itemSelected:hover {
+  background: rgba(78, 201, 176, 0.11);
+}
+
+/* Left colour strip indicating recruitment status */
+.statusBar {
+  width: 4px;
+  min-width: 4px;
+  height: 36px;
+  border-radius: 0 3px 3px 0;
+  flex-shrink: 0;
+}
+
+.info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.dorsal {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--rffm-primary, #4d9de0);
+  line-height: 1;
+}
+
+.name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: rgba(255, 255, 255, 0.92);
+  line-height: 1.2;
+}
+
+.pos {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.4);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1;
+}
+
+.badge {
+  font-size: 0.78rem;
+  font-weight: 800;
+  border: 1.5px solid;
+  border-radius: 6px;
+  padding: 2px 6px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  background: rgba(0, 0, 0, 0.3);
+}

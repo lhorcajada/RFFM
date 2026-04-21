@@ -1,5 +1,5 @@
-import type { PlayerEvaluation, AttributeScore } from "../../SeasonPrep";
-import { GK_ALL_KEYS, FP_ALL_KEYS, SCORE_COLORS } from "../evaluationConstants";
+import type { PlayerEvaluation, ConceptEval } from "../../SeasonPrep";
+import { FP_ALL_KEYS, GK_ALL_KEYS } from "../evaluationConstants";
 import styles from "../EvaluationPage.module.css";
 
 interface SummaryDotsProps {
@@ -12,12 +12,13 @@ export function SummaryDots({ evaluation, isGoalkeeper }: SummaryDotsProps) {
   return (
     <div className={styles.summaryDots}>
       {keys.map((k) => {
-        const v = evaluation[k] as AttributeScore | undefined;
+        const v = evaluation[k] as ConceptEval | undefined;
+        const filled = v?.consistencia !== undefined || v?.tendencia !== undefined;
         return (
           <span
             key={k}
             className={styles.dot}
-            style={{ backgroundColor: v ? SCORE_COLORS[v] : "rgba(255,255,255,0.15)" }}
+            style={{ backgroundColor: filled ? "#4ec9b0" : "rgba(255,255,255,0.15)" }}
           />
         );
       })}

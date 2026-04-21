@@ -17,13 +17,17 @@ interface AddPlayerDialogProps {
   onClose: () => void;
   onConfirm: (p: { name: string; procedencia: string; birthYear: number; position: string }) => void;
   positionOptions: string[];
+  existingNames: string[];
 }
 
-export function AddPlayerDialog({ open, onClose, onConfirm, positionOptions }: AddPlayerDialogProps) {
+export function AddPlayerDialog({ open, onClose, onConfirm, positionOptions, existingNames }: AddPlayerDialogProps) {
   const [name, setName] = useState("");
   const [procedencia, setProcedencia] = useState("");
   const [birthYear, setBirthYear] = useState<number | null>(null);
   const [position, setPosition] = useState("");
+
+  const isDuplicate = name.trim().length > 0 &&
+    existingNames.some((n) => n.trim().toLowerCase() === name.trim().toLowerCase());
 
   function reset() {
     setName(""); setProcedencia(""); setBirthYear(null); setPosition("");
@@ -50,6 +54,8 @@ export function AddPlayerDialog({ open, onClose, onConfirm, positionOptions }: A
             autoFocus
             value={name}
             onChange={(e) => setName(e.target.value)}
+            error={isDuplicate}
+            helperText={isDuplicate ? "Ya existe un jugador con ese nombre" : undefined}
           />
           <TextField
             label="Procedencia"
@@ -90,7 +96,7 @@ export function AddPlayerDialog({ open, onClose, onConfirm, positionOptions }: A
       </DialogContent>
       <DialogActions>
         <Button onClick={handleClose}>Cancelar</Button>
-        <Button variant="contained" disabled={!name.trim() || !birthYear} onClick={handleConfirm}>
+        <Button variant="contained" disabled={!name.trim() || !birthYear || isDuplicate} onClick={handleConfirm}>
           Añadir
         </Button>
       </DialogActions>

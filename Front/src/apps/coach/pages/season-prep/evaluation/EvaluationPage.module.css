@@ -5,6 +5,32 @@
   margin: 0 auto;
 }
 
+/* ── Split layout ───────────────────────────────────── */
+.splitLayout {
+  display: flex;
+  height: calc(100vh - 120px);
+  gap: 0;
+  overflow: hidden;
+}
+
+.leftPanel {
+  width: 260px;
+  min-width: 220px;
+  flex-shrink: 0;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.rightPanel {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
 /* ── Team group ─────────────────────────────────────── */
 .teamGroup {
   margin-top: 20px;
@@ -177,7 +203,102 @@
   flex-shrink: 0;
 }
 
-/* ── Score button ───────────────────────────────────── */
+/* ── Concept row ────────────────────────────────────── */
+.conceptRow {
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.conceptRow:last-child {
+  border-bottom: none;
+}
+
+.conceptHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 12px;
+}
+
+.conceptLabel {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.92);
+}
+
+.conceptDescriptor {
+  font-size: 0.74rem;
+  color: rgba(255,255,255,0.38);
+  font-style: italic;
+}
+
+.pillRow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.pillRowLabel {
+  font-size: 0.63rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  opacity: 0.45;
+}
+
+.pillGroup {
+  display: flex;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+
+.pillGroup > * {
+  flex: 1;
+}
+
+/* Base pill */
+.conceptPill {
+  padding: 0;
+  min-height: 44px;
+  border-radius: 10px;
+  border: 1.5px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.65);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s, box-shadow 0.12s;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.2;
+  word-break: break-word;
+}
+
+.conceptPill:hover {
+  background: rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.85);
+}
+
+/* Consistencia pill active — teal glow */
+.conceptPillConsistencia.conceptPillActive {
+  background: rgba(78, 201, 176, 0.18);
+  border-color: #4ec9b0;
+  color: #4ec9b0;
+  box-shadow: 0 0 8px rgba(78, 201, 176, 0.35);
+}
+
+/* Tendencia pill active — amber/orange glow */
+.conceptPillTendencia.conceptPillActive {
+  background: rgba(245, 158, 11, 0.18);
+  border-color: #f59e0b;
+  color: #f59e0b;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.35);
+}
+
+/* ── Score button (kept for legacy, unused) ─────────── */
 .scoreBtn {
   width: 36px;
   height: 36px;

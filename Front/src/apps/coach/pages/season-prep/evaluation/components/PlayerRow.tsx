@@ -4,9 +4,9 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import EditIcon from "@mui/icons-material/Edit";
 
-import type { PoolPlayer, AttributeScore, RecruitmentStatus } from "../../SeasonPrep";
-import type { AttributeKey } from "../evaluationConstants";
-import { playerIsGk, GK_GROUPS, FP_GROUPS } from "../evaluationConstants";
+import type { PoolPlayer, ConceptEval, RecruitmentStatus } from "../../SeasonPrep";
+import type { ConceptKey } from "../evaluationConstants";
+import { playerIsGk, FP_GROUPS, GK_GROUPS } from "../evaluationConstants";
 import { SummaryDots } from "./SummaryDots";
 import { AttributeGroup } from "./AttributeGroup";
 import { usePlayerAvgScore } from "../hooks/usePlayerAvgScore";
@@ -27,7 +27,8 @@ interface PlayerRowProps {
   player: PoolPlayer;
   expanded: boolean;
   onToggle: () => void;
-  onEvalChange: (key: AttributeKey, val: AttributeScore) => void;
+  onEvalChange: (key: ConceptKey, val: ConceptEval) => void;
+  onNotesChange: (notes: string) => void;
   onPositionChange: (pos: string) => void;
   onStatusChange: (status: RecruitmentStatus) => void;
   positionOptions: string[];
@@ -38,6 +39,7 @@ export function PlayerRow({
   expanded,
   onToggle,
   onEvalChange,
+  onNotesChange,
   onPositionChange,
   onStatusChange,
   positionOptions,
@@ -45,8 +47,9 @@ export function PlayerRow({
   const eval_ = player.evaluation ?? {};
   const [editingPos, setEditingPos] = useState(false);
   const [posValue, setPosValue] = useState(player.position ?? "");
-  const { avg, color } = usePlayerAvgScore(player);
+  const { filled, total } = usePlayerAvgScore(player);
   const status = player.recruitmentStatus ?? "observando";
+  const isGk = playerIsGk(player);
 
   function commitPos() {
     setEditingPos(false);
@@ -108,10 +111,13 @@ export function PlayerRow({
           )}
         </div>
         <div className={styles.playerRowRight}>
-          <SummaryDots evaluation={eval_} isGoalkeeper={playerIsGk(player)} />
-          {avg !== null && color !== null && (
-            <span className={styles.avgBadge} style={{ color }}>
-              {avg.toFixed(1)}
+          <SummaryDots evaluation={eval_} isGoalkeeper={isGk} />
+          {total > 0 && (
+            <span
+              className={styles.avgBadge}
+              style={{ color: filled === total ? "#4ec9b0" : filled > 0 ? "#f59e0b" : "rgba(255,255,255,0.3)" }}
+            >
+              {filled}/{total}
             </span>
           )}
           {/* Recruitment status selector */}
@@ -151,11 +157,11 @@ export function PlayerRow({
       {/* Expanded evaluation card */}
       {expanded && (
         <div className={styles.evalCard}>
-          {(playerIsGk(player) ? GK_GROUPS : FP_GROUPS).map(({ title, attrs }) => (
+          {(isGk ? GK_GROUPS : FP_GROUPS).map(({ title, concepts }) => (
             <AttributeGroup
               key={title}
               title={title}
-              attrs={attrs}
+              concepts={concepts}
               evaluation={eval_}
               onChange={onEvalChange}
             />
@@ -167,9 +173,7 @@ export function PlayerRow({
               label="Nota"
               placeholder="Observación rápida..."
               value={eval_.notes ?? ""}
-              onChange={(e) =>
-                onEvalChange("notes" as AttributeKey, e.target.value as unknown as AttributeScore)
-              }
+              onChange={(e) => onNotesChange(e.target.value)}
               inputProps={{ maxLength: 150 }}
               sx={{ mt: 1 }}
             />

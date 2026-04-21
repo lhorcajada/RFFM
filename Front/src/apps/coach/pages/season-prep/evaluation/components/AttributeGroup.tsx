@@ -1,34 +1,26 @@
-import type { PlayerEvaluation, AttributeScore } from "../../SeasonPrep";
-import type { AttributeKey } from "../evaluationConstants";
-import { ALL_SCORES } from "../evaluationConstants";
-import { ScoreButton } from "./ScoreButton";
+import type { PlayerEvaluation, ConceptEval } from "../../SeasonPrep";
+import type { ConceptDef, ConceptKey } from "../evaluationConstants";
+import { ConceptRow } from "./ConceptRow";
 import styles from "../EvaluationPage.module.css";
 
 interface AttributeGroupProps {
   title: string;
-  attrs: { key: AttributeKey; label: string }[];
+  concepts: ConceptDef[];
   evaluation: PlayerEvaluation;
-  onChange: (key: AttributeKey, val: AttributeScore) => void;
+  onChange: (key: ConceptKey, val: ConceptEval) => void;
 }
 
-export function AttributeGroup({ title, attrs, evaluation, onChange }: AttributeGroupProps) {
+export function AttributeGroup({ title, concepts, evaluation, onChange }: AttributeGroupProps) {
   return (
     <div className={styles.attrGroup}>
       <div className={styles.attrGroupTitle}>{title}</div>
-      {attrs.map(({ key, label }) => (
-        <div key={key} className={styles.attrRow}>
-          <span className={styles.attrLabel}>{label}</span>
-          <div className={styles.scoreBtns}>
-            {ALL_SCORES.map((v) => (
-              <ScoreButton
-                key={v}
-                value={v}
-                active={evaluation[key] === v}
-                onClick={() => onChange(key, v)}
-              />
-            ))}
-          </div>
-        </div>
+      {concepts.map(({ key, ...rest }) => (
+        <ConceptRow
+          key={key}
+          concept={{ key, ...rest }}
+          value={evaluation[key] as ConceptEval | undefined}
+          onChange={(val) => onChange(key, val)}
+        />
       ))}
     </div>
   );

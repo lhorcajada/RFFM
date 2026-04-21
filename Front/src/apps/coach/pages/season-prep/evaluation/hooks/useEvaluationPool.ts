@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { getSeasonPrepSession } from "../../../../services/seasonPrepSessionService";
 import { getSeasonPrepEvaluations } from "../../../../services/seasonPrepEvaluationsService";
 import type { EvalPlayer } from "../../../../services/seasonPrepEvaluationsService";
-import type { PoolPlayer, AttributeScore, RecruitmentStatus } from "../../SeasonPrep";
-import type { AttributeKey } from "../evaluationConstants";
+import type { PoolPlayer, ConceptEval, RecruitmentStatus } from "../../SeasonPrep";
+import type { ConceptKey } from "../evaluationConstants";
 
 /**
  * Loads the eligible player pool from the session and merges saved evaluations.
@@ -88,8 +88,8 @@ export function useEvaluationPool() {
 
   function handleEvalChange(
     uniqueId: string,
-    key: AttributeKey | "notes",
-    val: AttributeScore | string
+    key: ConceptKey | "notes",
+    val: ConceptEval | string
   ) {
     setPool((prev) =>
       prev.map((p) => {
@@ -117,6 +117,11 @@ export function useEvaluationPool() {
     birthYear: number;
     position: string;
   }): PoolPlayer {
+    const existing = pool.find(
+      (p) => p.name.trim().toLowerCase() === data.name.trim().toLowerCase()
+    );
+    if (existing) return existing;
+
     const uid = `manual-${Date.now()}`;
     const newPlayer: PoolPlayer = {
       playerId: uid,

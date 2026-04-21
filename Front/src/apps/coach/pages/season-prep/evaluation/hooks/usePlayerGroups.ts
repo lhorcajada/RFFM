@@ -6,7 +6,12 @@ type PlayerGroup = {
   positions: Array<{ label: string; players: PoolPlayer[] }>;
 };
 
-function positionRank(pos: string): number {
+export type PositionGroup = {
+  position: string;
+  teams: Array<{ label: string; players: PoolPlayer[] }>;
+};
+
+export function positionRank(pos: string): number {
   const p = pos.toLowerCase();
   if (p.includes("portero") || p.includes("keeper") || p.includes("arquero")) return 0;
   if (p.includes("defensa") || p.includes("central") || p.includes("lateral") || p.includes("libero")) return 1;
@@ -48,3 +53,40 @@ export function usePlayerGroups(players: PoolPlayer[]): PlayerGroup[] {
     });
   }, [players]);
 }
+
+/**
+ * Groups players by position first, then by team within each position.
+ * Positions are sorted in tactical order (GK → def → mid → fwd → unknown).
+ */
+export function usePlayerGroupsByPosition(players: PoolPlayer[]): PositionGroup[] {
+  return useMemo(() => {
+    const posMap = new Map<string, PoolPlayer[]>();
+    for (const p of players) {
+      const key = p.position?.trim() || "Sin demarcación";
+      if (!posMap.has(key)) posMap.set(key, []);
+      posMap.get(key)!.push(p);
+    }
+
+    return Array.from(posMap.entries())
+      .sort(([a], [b]) => {
+        const ra = positionRank(a), rb = positionRank(b);
+        if (ra !== rb) return ra - rb;
+        if (a === "Sin demarcación") return 1;
+        if (b === "Sin demarcación") return -1;
+        return a.localeCompare(b, "es");
+      })
+      .map(([position, pplayers]) => {
+        const teamMap = new Map<string, PoolPlayer[]>();
+        for (const p of pplayers) {
+          const key = p.team?.trim() || p.procedencia?.trim() || "Sin equipo";
+          if (!teamMap.has(key)) teamMap.set(key, []);
+          teamMap.get(key)!.push(p);
+        }
+        const teams = Array.from(teamMap.entries())
+          .sort(([a], [b]) => a.localeCompare(b, "es"))
+          .map(([label, players]) => ({ label, players }));
+        return { position, teams };
+      });
+  }, [players]);
+}
+

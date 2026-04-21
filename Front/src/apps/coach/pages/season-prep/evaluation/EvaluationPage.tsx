@@ -17,14 +17,15 @@ import AssessmentIcon from "@mui/icons-material/Assessment";
 
 import BaseLayout from "../../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../../shared/components/ui/ContentLayout/ContentLayout";
-import type { PoolPlayer } from "../SeasonPrep";
+import type { PoolPlayer, ConceptEval, RecruitmentStatus } from "../SeasonPrep";
 import type { ImportResult } from "./evaluationExcel";
+import type { ConceptKey } from "./evaluationConstants";
 import { useEvaluationPool } from "./hooks/useEvaluationPool";
 import { useEvaluationPersistence } from "./hooks/useEvaluationPersistence";
 import { useEvaluationExcel } from "./hooks/useEvaluationExcel";
 import { usePositionOptions } from "./hooks/usePositionOptions";
-import { usePlayerGroups } from "./hooks/usePlayerGroups";
-import { PlayerRow } from "./components/PlayerRow";
+import { PlayerListPanel } from "./components/PlayerListPanel";
+import { EvaluationPanel } from "./components/EvaluationPanel";
 import { AddPlayerDialog } from "./components/AddPlayerDialog";
 import { RecruitmentSummaryDialog } from "./components/RecruitmentSummaryDialog";
 
@@ -42,7 +43,7 @@ export default function EvaluationPage() {
   const positionOptions = usePositionOptions();
 
   // UI-only state
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: "success" | "error" | "info" }>({
@@ -85,7 +86,12 @@ export default function EvaluationPage() {
   }
 
   const eligiblePlayers = pool.filter((p) => p.assignment === "eligible");
-  const groups = usePlayerGroups(eligiblePlayers);
+  const selectedPlayer = eligiblePlayers.find((p) => p.uniqueId === selectedId) ?? null;
+
+  // Auto-select first player once loaded
+  if (!loading && !selectedId && eligiblePlayers.length > 0) {
+    setSelectedId(eligiblePlayers[0].uniqueId);
+  }
 
   if (loading) {
     return (
@@ -100,62 +106,26 @@ export default function EvaluationPage() {
   return (
     <BaseLayout hideFooterMenu>
       <ContentLayout
-        title="Evaluación de jugadores"
+        title="Evaluación"
         actionBar={
           <Box sx={{ ml: "auto", display: "flex", alignItems: "center", gap: 1 }}>
-            <Chip
-              size="small"
-              label={`${eligiblePlayers.length} jugadores`}
-            />
-            <Button
-              size="small"
-              variant="outlined"
-              startIcon={<ArrowBackIcon />}
-              onClick={() => navigate("/coach/season-prep")}
-            >
+            <Chip size="small" label={`${eligiblePlayers.length} jugadores`} />
+            <Button size="small" variant="outlined" startIcon={<ArrowBackIcon />} onClick={() => navigate("/coach/season-prep")}>
               Volver
             </Button>
-            <Button
-              size="small"
-              variant="outlined"
-              color="success"
-              disabled={saving}
-              onClick={handleSave}
-            >
+            <Button size="small" variant="outlined" color="success" disabled={saving} onClick={handleSave}>
               {saving ? "Guardando…" : "Guardar"}
             </Button>
-            <Button
-              size="small"
-              variant="outlined"
-              startIcon={<AssessmentIcon />}
-              onClick={() => setSummaryOpen(true)}
-              disabled={eligiblePlayers.length === 0}
-            >
+            <Button size="small" variant="outlined" startIcon={<AssessmentIcon />} onClick={() => setSummaryOpen(true)} disabled={eligiblePlayers.length === 0}>
               Resumen
             </Button>
-            <Button
-              size="small"
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => setAddDialogOpen(true)}
-            >
-              Añadir jugador
+            <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => setAddDialogOpen(true)}>
+              Añadir
             </Button>
-            <Button
-              size="small"
-              variant="outlined"
-              startIcon={<DownloadIcon />}
-              onClick={handleExport}
-              disabled={eligiblePlayers.length === 0}
-            >
+            <Button size="small" variant="outlined" startIcon={<DownloadIcon />} onClick={handleExport} disabled={eligiblePlayers.length === 0}>
               Excel
             </Button>
-            <Button
-              size="small"
-              variant="outlined"
-              startIcon={<UploadIcon />}
-              onClick={openFilePicker}
-            >
+            <Button size="small" variant="outlined" startIcon={<UploadIcon />} onClick={openFilePicker}>
               Importar
             </Button>
             <input
@@ -168,54 +138,56 @@ export default function EvaluationPage() {
           </Box>
         }
       >
-        <div className={styles.container}>
-          {eligiblePlayers.length === 0 ? (
-            <Typography sx={{ opacity: 0.5, mt: 3, textAlign: "center" }}>
-              No hay jugadores en la lista de Elegidos para evaluar.
-            </Typography>
-          ) : (
-            groups.map(({ team, positions }) => (
-              <div key={team} className={styles.teamGroup}>
-                <div className={styles.teamGroupHeader}>{team}</div>
-                {positions.map(({ label, players }) => (
-                  <div key={label}>
-                    <div className={styles.posLabel}>{label}</div>
-                    {players.map((player) => (
-                      <PlayerRow
-                        key={player.uniqueId}
-                        player={player}
-                        expanded={expandedId === player.uniqueId}
-                        onToggle={() =>
-                          setExpandedId((prev) =>
-                            prev === player.uniqueId ? null : player.uniqueId
-                          )
-                        }
-                        onEvalChange={(key, val) =>
-                          handleEvalChange(player.uniqueId, key, val)
-                        }
-                        onPositionChange={(pos) =>
-                          handlePositionChange(player.uniqueId, pos)
-                        }
-                        onStatusChange={(status) =>
-                          handleStatusChange(player.uniqueId, status)
-                        }
-                        positionOptions={positionOptions}
-                      />
-                    ))}
-                  </div>
-                ))}
-              </div>
-            ))
-          )}
+        {eligiblePlayers.length === 0 ? (
+          <Typography sx={{ opacity: 0.5, mt: 3, textAlign: "center" }}>
+            No hay jugadores en la lista de Elegidos para evaluar.
+          </Typography>
+        ) : (
+          <div className={styles.splitLayout}>
+            {/* ── Left panel: player list ─────────────────── */}
+            <div className={styles.leftPanel}>
+              <PlayerListPanel
+                players={eligiblePlayers}
+                selectedId={selectedId}
+                onSelect={setSelectedId}
+              />
+            </div>
 
-
-        </div>
+            {/* ── Right panel: evaluation form ────────────── */}
+            <div className={styles.rightPanel}>
+              {selectedPlayer ? (
+                <EvaluationPanel
+                  key={selectedPlayer.uniqueId}
+                  player={selectedPlayer}
+                  positionOptions={positionOptions}
+                  onEvalChange={(key: ConceptKey, val: ConceptEval) =>
+                    handleEvalChange(selectedPlayer.uniqueId, key, val)
+                  }
+                  onNotesChange={(notes: string) =>
+                    handleEvalChange(selectedPlayer.uniqueId, "notes", notes)
+                  }
+                  onPositionChange={(pos: string) =>
+                    handlePositionChange(selectedPlayer.uniqueId, pos)
+                  }
+                  onStatusChange={(status: RecruitmentStatus) =>
+                    handleStatusChange(selectedPlayer.uniqueId, status)
+                  }
+                />
+              ) : (
+                <Typography sx={{ opacity: 0.35, textAlign: "center", mt: 8 }}>
+                  Selecciona un jugador para evaluar
+                </Typography>
+              )}
+            </div>
+          </div>
+        )}
 
         <AddPlayerDialog
           open={addDialogOpen}
           onClose={() => setAddDialogOpen(false)}
           onConfirm={handleAddPlayerWithNotify}
           positionOptions={positionOptions}
+          existingNames={eligiblePlayers.map((p) => p.name)}
         />
 
         <RecruitmentSummaryDialog
