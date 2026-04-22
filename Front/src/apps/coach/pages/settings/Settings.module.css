@@ -1,21 +1,176 @@
+/* ── FC26 Settings Page ─────────────────────────────────── */
+
 .root {
-  padding: 16px;
-}
-.formRow {
   display: flex;
-  gap: 12px;
-  align-items: center;
-  margin-bottom: 12px;
+  gap: 0;
+  width: 100%;
+  min-height: 420px;
+  box-sizing: border-box;
 }
-.label {
-  width: 160px;
-  font-weight: 600;
+
+/* ── Left Category Sidebar ──────────────────────────────── */
+.categoryNav {
+  flex: 0 0 200px;
+  display: flex;
+  flex-direction: column;
+  background: #09091f;
+  border-right: 1px solid rgba(77, 157, 224, 0.15);
+  padding: 8px 0;
 }
-.grow {
+
+.categoryItem {
+  position: relative;
+  padding: 14px 20px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(232, 232, 232, 0.45);
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.15s ease, background 0.15s ease;
+  border-left: 3px solid transparent;
+}
+
+.categoryItem:hover {
+  color: rgba(232, 232, 232, 0.8);
+  background: rgba(77, 157, 224, 0.06);
+}
+
+.categoryItemActive {
+  color: #e8e8e8;
+  background: rgba(77, 157, 224, 0.1);
+  border-left-color: var(--rffm-dash-accent, #4d9de0);
+}
+
+/* ── Right Settings Panel ───────────────────────────────── */
+.settingsPanel {
   flex: 1 1 auto;
-}
-.actions {
-  margin-top: 16px;
   display: flex;
-  gap: 8px;
+  flex-direction: column;
+  background: var(--rffm-dash-card-bg, #111128);
+  position: relative;
+  /* FC26 chamfered top-right corner */
+  clip-path: polygon(0 0, calc(100% - 24px) 0, 100% 24px, 100% 100%, 0 100%);
+  overflow: hidden;
+}
+
+/* Chamfer accent triangle */
+.settingsPanel::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 24px;
+  height: 24px;
+  background: var(--rffm-dash-accent, #4d9de0);
+  clip-path: polygon(0 0, 100% 100%, 100% 0);
+  opacity: 0.4;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ── Panel Section Header ───────────────────────────────── */
+.panelHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 24px 12px;
+  border-bottom: 1px solid rgba(77, 157, 224, 0.2);
+}
+
+.panelHeaderTitle {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--rffm-dash-accent, #4d9de0);
+}
+
+.panelHeaderDot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--rffm-dash-accent, #4d9de0);
+  flex-shrink: 0;
+}
+
+/* ── Setting Row ────────────────────────────────────────── */
+.settingRow {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 18px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: background 0.12s ease;
+}
+
+.settingRow:last-of-type {
+  border-bottom: none;
+}
+
+.settingRow:hover {
+  background: rgba(77, 157, 224, 0.04);
+}
+
+.settingLabel {
+  flex: 0 0 200px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(232, 232, 232, 0.65);
+}
+
+.settingControl {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* ── Actions bar ────────────────────────────────────────── */
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 24px;
+  border-top: 1px solid rgba(77, 157, 224, 0.15);
+  margin-top: auto;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* ── Responsive: collapse sidebar on small screens ──────── */
+@media (max-width: 600px) {
+  .root {
+    flex-direction: column;
+  }
+  .categoryNav {
+    flex: none;
+    flex-direction: row;
+    border-right: none;
+    border-bottom: 1px solid rgba(77, 157, 224, 0.15);
+    padding: 0;
+    overflow-x: auto;
+  }
+  .categoryItem {
+    padding: 10px 16px;
+    border-left: none;
+    border-bottom: 3px solid transparent;
+    white-space: nowrap;
+  }
+  .categoryItemActive {
+    border-left-color: transparent;
+    border-bottom-color: var(--rffm-dash-accent, #4d9de0);
+  }
+  .settingsPanel {
+    clip-path: none;
+  }
+  .settingRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .settingLabel {
+    flex: none;
+  }
 }

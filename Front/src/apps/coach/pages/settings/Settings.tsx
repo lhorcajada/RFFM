@@ -139,46 +139,6 @@ const Settings: React.FC = () => {
 
   const navigate = useNavigate();
 
-  const actionBar = (
-    <>
-      <div
-        style={{
-          display: "flex",
-          width: "100%",
-          justifyContent: "flex-end",
-          gap: 8,
-        }}
-      >
-        <Button
-          startIcon={<ArrowBackIcon />}
-          onClick={() => navigate("/coach/dashboard")}
-          variant="outlined"
-          size="small"
-        >
-          Volver
-        </Button>
-        <Button
-          onClick={handleSave}
-          variant="contained"
-          color="primary"
-          disabled={saving}
-        >
-          {saving ? "Guardando..." : "Guardar"}
-        </Button>
-        {config && (
-          <Button
-            variant="outlined"
-            color="error"
-            onClick={() => setConfirmOpen(true)}
-            size="small"
-          >
-            Eliminar
-          </Button>
-        )}
-      </div>
-    </>
-  );
-
   const handleDeleteConfirmed = async () => {
     if (!config) return;
     try {
@@ -209,51 +169,99 @@ const Settings: React.FC = () => {
     <BaseLayout hideFooterMenu>
       <ContentLayout
         title={"Ajustes"}
-        subtitle={<span>Preferencias del entrenador</span>}
-        actionBar={actionBar}
+        subtitle={<span>Configuración del entrenador</span>}
       >
         <div className={styles.root}>
-          <div className={styles.formRow}>
-            <div className={styles.label}>Club preferido</div>
-            <div className={styles.grow}>
-              <FormControl fullWidth>
-                <InputLabel id="club-label">Club</InputLabel>
-                <Select
-                  labelId="club-label"
-                  value={preferredClubId ?? ""}
-                  label="Club"
-                  onChange={(e) => setPreferredClubId(e.target.value as string)}
-                >
-                  <MenuItem value="">-- Ninguno --</MenuItem>
-                  {clubs.map((c) => (
-                    <MenuItem key={c.id} value={c.id}>
-                      {c.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+          {/* ── Left category sidebar ── */}
+          <nav className={styles.categoryNav}>
+            <div className={`${styles.categoryItem} ${styles.categoryItemActive}`}>
+              Preferencias
             </div>
-          </div>
+          </nav>
 
-          <div className={styles.formRow}>
-            <div className={styles.label}>Equipo preferido</div>
-            <div className={styles.grow}>
-              <FormControl fullWidth>
-                <InputLabel id="team-label">Equipo</InputLabel>
-                <Select
-                  labelId="team-label"
-                  value={preferredTeamId ?? ""}
-                  label="Equipo"
-                  onChange={(e) => setPreferredTeamId(e.target.value as string)}
+          {/* ── Right settings panel ── */}
+          <div className={styles.settingsPanel}>
+            {/* Panel header */}
+            <div className={styles.panelHeader}>
+              <span className={styles.panelHeaderDot} />
+              <span className={styles.panelHeaderTitle}>Preferencias del entrenador</span>
+            </div>
+
+            {/* Club preference row */}
+            <div className={styles.settingRow}>
+              <div className={styles.settingLabel}>Club preferido</div>
+              <div className={styles.settingControl}>
+                <FormControl fullWidth size="small">
+                  <InputLabel id="club-label">Club</InputLabel>
+                  <Select
+                    labelId="club-label"
+                    value={preferredClubId ?? ""}
+                    label="Club"
+                    onChange={(e) => setPreferredClubId(e.target.value as string)}
+                  >
+                    <MenuItem value="">-- Ninguno --</MenuItem>
+                    {clubs.map((c) => (
+                      <MenuItem key={c.id} value={c.id}>
+                        {c.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </div>
+            </div>
+
+            {/* Team preference row */}
+            <div className={styles.settingRow}>
+              <div className={styles.settingLabel}>Equipo preferido</div>
+              <div className={styles.settingControl}>
+                <FormControl fullWidth size="small">
+                  <InputLabel id="team-label">Equipo</InputLabel>
+                  <Select
+                    labelId="team-label"
+                    value={preferredTeamId ?? ""}
+                    label="Equipo"
+                    onChange={(e) => setPreferredTeamId(e.target.value as string)}
+                    disabled={!preferredClubId}
+                  >
+                    <MenuItem value="">-- Ninguno --</MenuItem>
+                    {teams.map((t) => (
+                      <MenuItem key={t.id} value={t.id}>
+                        {t.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </div>
+            </div>
+
+            {/* Actions bar */}
+            <div className={styles.actions}>
+              <Button
+                startIcon={<ArrowBackIcon />}
+                onClick={() => navigate("/coach/dashboard")}
+                variant="outlined"
+                size="small"
+              >
+                Volver
+              </Button>
+              {config && (
+                <Button
+                  variant="outlined"
+                  color="error"
+                  onClick={() => setConfirmOpen(true)}
+                  size="small"
                 >
-                  <MenuItem value="">-- Ninguno --</MenuItem>
-                  {teams.map((t) => (
-                    <MenuItem key={t.id} value={t.id}>
-                      {t.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+                  Eliminar
+                </Button>
+              )}
+              <Button
+                onClick={handleSave}
+                variant="contained"
+                color="primary"
+                disabled={saving}
+              >
+                {saving ? "Guardando..." : "Guardar"}
+              </Button>
             </div>
           </div>
         </div>
