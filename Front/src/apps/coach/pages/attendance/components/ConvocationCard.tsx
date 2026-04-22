@@ -10,6 +10,7 @@ type Props = {
   statuses: { id: number; name: string }[];
   excuseTypes: { id: number; name: string; justified?: boolean }[];
   canEdit: boolean;
+  isInjured?: boolean;
   onChangeStatus: (
     conv: ConvocationItem,
     statusId: number,
@@ -39,6 +40,7 @@ export default function ConvocationCard({
   statuses,
   excuseTypes,
   canEdit,
+  isInjured: isInjuredProp,
   onChangeStatus,
   onDelete,
   onMoveToWaiting,
@@ -59,8 +61,8 @@ export default function ConvocationCard({
       ? styles.cromoStatusStripeDeclined
       : styles.cromoStatusStripePending;
 
-  // Lesionado: only injury badge, no controls
-  if (p.isInjured) {
+  // Lesionado: prop override OR player field
+  if (isInjuredProp || p.isInjured) {
     return (
       <div className={styles.cardWrap}>
         <div className={styles.cromoCard}>
@@ -70,6 +72,7 @@ export default function ConvocationCard({
                 <img src={photo} alt={displayName} className={photo === defaultAvatar ? styles.cromoPhotoAvatar : styles.cromoPhoto} />
                 <div className={styles.cromoGradient} />
                 {hasDorsal && <div className={styles.cromoDorsalBadge}>{dorsalValue}</div>}
+                <div className={styles.cromoInjuryCornerBadge}>🩹</div>
                 <div className={`${styles.cromoStatusStripe} ${styles.cromoStatusStripeDeclined}`} />
               </div>
             </Link>
@@ -78,6 +81,7 @@ export default function ConvocationCard({
               <img src={photo} alt={displayName} className={photo === defaultAvatar ? styles.cromoPhotoAvatar : styles.cromoPhoto} />
               <div className={styles.cromoGradient} />
               {hasDorsal && <div className={styles.cromoDorsalBadge}>{dorsalValue}</div>}
+              <div className={styles.cromoInjuryCornerBadge}>🩹</div>
               <div className={`${styles.cromoStatusStripe} ${styles.cromoStatusStripeDeclined}`} />
             </div>
           )}

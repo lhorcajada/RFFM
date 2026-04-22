@@ -278,6 +278,7 @@ export default function AttendanceEvent() {
                     eventStart={
                       event.startTime ?? event.start ?? event.eveDateTime
                     }
+                    isMatch={eventTypeName?.toLowerCase().includes("partido") ?? false}
                   />
                 </React.Suspense>
               )}

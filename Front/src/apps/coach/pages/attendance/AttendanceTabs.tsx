@@ -19,7 +19,7 @@ import NotConvokedList from "./components/NotConvokedList";
 import ConvocationCard from "./components/ConvocationCard";
 import DeconvokeDialog from "./components/DeconvokeDialog";
 
-type Props = { eventId: string; eventStart?: string | null };
+type Props = { eventId: string; eventStart?: string | null; isMatch?: boolean };
 
 // A player is injured for a given event only if the injury started BEFORE that day (not same day).
 function isInjuredBeforeDate(injuryStartDate: string | null | undefined, eventDate: string | null | undefined): boolean {
@@ -39,7 +39,7 @@ function statusNameMap(id: number, statuses: { id: number; name: string }[]) {
   return m[s.name] ?? s.name;
 }
 
-export default function AttendanceTabs({ eventId, eventStart }: Props) {
+export default function AttendanceTabs({ eventId, eventStart, isMatch }: Props) {
   const [tab, setTab] = useState(0);
   const [players, setPlayers] = useState<PlayerSimple[]>([]);
   const [convocations, setConvocations] = useState<ConvocationItem[]>([]);
@@ -324,8 +324,8 @@ export default function AttendanceTabs({ eventId, eventStart }: Props) {
                 {(() => {
                   const acceptedId = statuses.find((s) => s.name === "Accepted")?.id;
                   const pendingId = statuses.find((s) => s.name === "Pending")?.id;
-                  const acceptedCount = convocations.filter((c) => c.player && c.status === acceptedId && !(c.isInjured || (c.player as any).isInjured)).length;
-                  const pendingCount = convocations.filter((c) => c.player && c.status === pendingId && !(c.isInjured || (c.player as any).isInjured)).length;
+                  const acceptedCount = convocations.filter((c) => c.player && c.status === acceptedId && !c.isInjured).length;
+                  const pendingCount = convocations.filter((c) => c.player && c.status === pendingId && !c.isInjured).length;
                   return (
                     <span className={styles.listGroupCount}>
                       {acceptedCount} aceptados{pendingCount > 0 ? ` · ${pendingCount} pendientes` : ""}
@@ -337,9 +337,9 @@ export default function AttendanceTabs({ eventId, eventStart }: Props) {
                   if (!pendingId) return null;
                   const acceptedId = statuses.find((s) => s.name === "Accepted")?.id;
                   if (!acceptedId) return null;
-                  // Same exclusion as the visual "Pendientes" section: exclude injured players
+                  // Same exclusion as the visual sections: exclude injured players
                   const notAccepted = convocations.filter(
-                    (c) => c.player && c.status === pendingId && !(c.isInjured || (c.player as any).isInjured)
+                    (c) => c.player && c.status === pendingId && !c.isInjured
                   );
                   if (notAccepted.length === 0) return null;
                   return (
@@ -379,17 +379,15 @@ export default function AttendanceTabs({ eventId, eventStart }: Props) {
               const pendingId = statuses.find((s) => s.name === "Pending")?.id;
               const deconvokeId = statuses.find((s) => s.name === "Deconvoke")?.id;
               // Exclude injured players from accepted/pending — they always go to Desconvocados
-              const accepted = filtered.filter((c) => c.status === acceptedId && !(c.isInjured || c.player.isInjured));
-              const pending = filtered.filter((c) => c.status === pendingId && !(c.isInjured || c.player.isInjured));
-              // Injured with a convocation record (can be moved back to waiting)
-              const injuredWithConv = filtered.filter((c) => c.isInjured || c.player.isInjured);
+              const accepted = filtered.filter((c) => c.status === acceptedId && !c.isInjured);
+              const pending = filtered.filter((c) => c.status === pendingId && !c.isInjured);
+              // Injured with a convocation record
+              const injuredWithConv = filtered.filter((c) => c.isInjured);
               // Injured without a convocation record (already in the waiting list as injured)
               const injuredNoConv: PlayerSimple[] = injuredWaiting;
               // Desconvocados no lesionados (solo Deconvoke)
               const declinedNonInjured = filtered.filter(
-                (c) =>
-                  c.status === deconvokeId
-                  && !(c.isInjured || c.player.isInjured)
+                (c) => c.status === deconvokeId && !c.isInjured
               );
               const totalDesconvocados = injuredNoConv.length + injuredWithConv.length + declinedNonInjured.length;
 
@@ -400,6 +398,7 @@ export default function AttendanceTabs({ eventId, eventStart }: Props) {
                 <ConvocationCard
                   key={c.id}
                   conv={c}
+                  isInjured={c.isInjured}
                   photoSrc={
                     playerPhotos[String(c.player?.id ?? "")] ??
                     playerPhotos[String(c.player?.urlPhoto ?? "")] ??
@@ -438,6 +437,7 @@ export default function AttendanceTabs({ eventId, eventStart }: Props) {
                             <img src={photo} alt={displayName} className={photo === defaultAvatar ? styles.cromoPhotoAvatar : styles.cromoPhoto} />
                             <div className={styles.cromoGradient} />
                             {hasDorsal && <div className={styles.cromoDorsalBadge}>{dorsalValue}</div>}
+                            <div className={styles.cromoInjuryCornerBadge}>🩹</div>
                             <div className={`${styles.cromoStatusStripe} ${styles.cromoStatusStripeDeclined}`} />
                           </div>
                         </Link>
@@ -446,6 +446,7 @@ export default function AttendanceTabs({ eventId, eventStart }: Props) {
                           <img src={photo} alt={displayName} className={photo === defaultAvatar ? styles.cromoPhotoAvatar : styles.cromoPhoto} />
                           <div className={styles.cromoGradient} />
                           {hasDorsal && <div className={styles.cromoDorsalBadge}>{dorsalValue}</div>}
+                          <div className={styles.cromoInjuryCornerBadge}>🩹</div>
                           <div className={`${styles.cromoStatusStripe} ${styles.cromoStatusStripeDeclined}`} />
                         </div>
                       )}
@@ -722,7 +723,7 @@ export default function AttendanceTabs({ eventId, eventStart }: Props) {
         open={deconvokeDialog.open}
         onClose={() => setDeconvokeDialog({ open: false })}
         excuseTypes={excuseTypes}
-        hideTechnical={!!deconvokeDialog.waitingPlayerId}
+        hideTechnical={!isMatch && !!deconvokeDialog.waitingPlayerId}
         title={deconvokeDialog.waitingPlayerId ? "Motivo del rechazo" : undefined}
         onConfirm={async (reason) => {
           const excuseTypeId = reason === "technical" ? null : Number(reason);
