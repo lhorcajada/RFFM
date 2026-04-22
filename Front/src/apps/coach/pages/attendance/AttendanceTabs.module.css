@@ -387,7 +387,7 @@
 /* ─── Photo area ─── */
 .cromoPhotoArea {
   position: relative;
-  height: 160px;
+  height: 260px;
   flex: 0 0 auto;
   overflow: hidden;
 }
