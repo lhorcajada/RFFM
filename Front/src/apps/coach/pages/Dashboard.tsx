@@ -12,7 +12,6 @@ import LocalHospitalIcon from "@mui/icons-material/LocalHospital";
 import SportsFootballIcon from "@mui/icons-material/SportsFootball";
 import GavelIcon from "@mui/icons-material/Gavel";
 import CasinoIcon from "@mui/icons-material/Casino";
-import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
 import TimelineIcon from "@mui/icons-material/Timeline";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import BaseLayout from "../../../shared/components/ui/BaseLayout/BaseLayout";
@@ -278,22 +277,12 @@ export default function CoachDashboard() {
                   }
                 />
                 <DashboardCard
-                  title="Convocatorias"
+                  title="Partidos"
                   description="Gestión de convocatorias."
                   icon={
                     <EventIcon style={{ fontSize: 40 }} />
                   }
                   to={team?.id ? `/coach/convocations?teamId=${team.id}` : "/coach/convocations"}
-                />
-                <DashboardCard
-                  title="Partidos"
-                  description="Información de partidos."
-                  icon={
-                    <EmojiEventsIcon
-                      style={{ fontSize: 40 }}
-                    />
-                  }
-                  to="/coach/matches"
                 />
                 <DashboardCard
                   title="Entrenamientos"
