@@ -6,8 +6,9 @@ import ContentLayout from "../../../../shared/components/ui/ContentLayout/Conten
 import ClubHeader from "../../components/ClubHeader/ClubHeader";
 import styles from "./ClubTeams.module.css";
 import EmptyState from "../../../../shared/components/ui/EmptyState/EmptyState";
-import { Button } from "@mui/material";
+import { Button, Avatar } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import GroupsIcon from "@mui/icons-material/Groups";
 import { useNavigate } from "react-router-dom";
 import { Box, Typography, Paper } from "@mui/material";
 import teamService, { TeamResponse } from "../../services/teamService";
@@ -142,11 +143,25 @@ export default function ClubTeams() {
                     title={t.name}
                     description={t.category?.name ?? t.league?.name}
                     icon={
-                      <img
-                        src={teamPhotos[t.id] ?? "/assets/logo.png"}
-                        alt={t.name}
-                        className={styles.teamIcon}
-                      />
+                      teamPhotos[t.id] ? (
+                        <img
+                          src={teamPhotos[t.id]!}
+                          alt={t.name}
+                          className={styles.teamIcon}
+                        />
+                      ) : (
+                        <Avatar
+                          className={styles.teamIcon}
+                          sx={{
+                            bgcolor: "var(--rffm-primary, #e65c00)",
+                            width: 48,
+                            height: 48,
+                            borderRadius: "8px",
+                          }}
+                        >
+                          <GroupsIcon sx={{ fontSize: 28, color: "#fff" }} />
+                        </Avatar>
+                      )
                     }
                     to={`/coach/dashboard?teamId=${t.id}${
                       seasonId ? `&seasonId=${seasonId}` : ""
