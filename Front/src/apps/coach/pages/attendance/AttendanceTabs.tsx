@@ -19,6 +19,7 @@ import defaultAvatar from "../../../../assets/avatar.svg";
 import NotConvokedList from "./components/NotConvokedList";
 import ConvocationCard from "./components/ConvocationCard";
 import DeconvokeDialog from "./components/DeconvokeDialog";
+import DeclineDialog from "./components/DeclineDialog";
 
 type Props = { eventId: string; eventStart?: string | null };
 
@@ -255,6 +256,11 @@ export default function AttendanceTabs({ eventId, eventStart }: Props) {
     open: boolean;
     conv?: ConvocationItem;
     waitingPlayerId?: string;
+  }>({ open: false });
+
+  const [notAvailableDialog, setNotAvailableDialog] = useState<{
+    open: boolean;
+    conv?: ConvocationItem;
   }>({ open: false });
 
   return (
@@ -568,7 +574,6 @@ export default function AttendanceTabs({ eventId, eventStart }: Props) {
                   if (id === 2) return styles.optionBtnRed;
                   return styles.optionBtnGray;
                 };
-                const NOT_AVAILABLE_ID = 2;
                 const p = c.player as any;
                 const rawName = ((p?.name ?? "") + " " + (p?.lastName ?? "")).trim();
                 const displayName = rawName || p?.alias || "Jugador";
@@ -588,6 +593,10 @@ export default function AttendanceTabs({ eventId, eventStart }: Props) {
                     ? styles.cromoStatusStripeNotAvailable
                     : styles.cromoStatusStripePending;
 
+                const NOT_AVAILABLE_ID_LOCAL = 2;
+                const excuseLabel = c.availabilityTypeId === NOT_AVAILABLE_ID_LOCAL && c.excuseTypeId
+                  ? (excuseTypes.find((e) => e.id === c.excuseTypeId)?.name ?? null)
+                  : null;
                 const availOptions = (
                   <div className={styles.optionGroup}>
                     {availabilityTypes.map((a) => (
@@ -596,11 +605,15 @@ export default function AttendanceTabs({ eventId, eventStart }: Props) {
                         disabled={!canEdit}
                         className={`${styles.optionBtn} ${availColorClass(a.id)}${c.availabilityTypeId === a.id ? " " + styles.optionBtnActive : ""}`}
                         onClick={async () => {
-                          try {
-                            await availabilityTypeService.updateConvocationAvailability(eventId, c.id, a.id);
-                            const conv = await convocationService.getConvocations(eventId);
-                            setConvocations(conv);
-                          } catch (err: any) { alert(err?.message ?? "Error al actualizar disponibilidad"); }
+                          if (a.id === NOT_AVAILABLE_ID_LOCAL) {
+                            setNotAvailableDialog({ open: true, conv: c });
+                          } else {
+                            try {
+                              await availabilityTypeService.updateConvocationAvailability(eventId, c.id, a.id);
+                              const conv = await convocationService.getConvocations(eventId);
+                              setConvocations(conv);
+                            } catch (err: any) { alert(err?.message ?? "Error al actualizar disponibilidad"); }
+                          }
                         }}
                       >{a.name}</button>
                     ))}
@@ -633,22 +646,9 @@ export default function AttendanceTabs({ eventId, eventStart }: Props) {
                         {p?.position && <div className={styles.cromoPosition}>{p.position}</div>}
                         <div className={styles.cromoActions}>
                           {availOptions}
-                          {c.availabilityTypeId === NOT_AVAILABLE_ID && excuseTypes.length > 0 && (
-                            <div className={styles.optionGroupSub}>
-                              {excuseTypes.map((ex) => (
-                                <button
-                                  key={ex.id}
-                                  disabled={!canEdit}
-                                  className={`${styles.optionBtn} ${styles.optionSubBtn} ${styles.optionBtnPurple}${c.excuseTypeId === ex.id ? " " + styles.optionBtnActive : ""}`}
-                                  onClick={async () => {
-                                    try {
-                                      await availabilityTypeService.updateConvocationAvailability(eventId, c.id, NOT_AVAILABLE_ID, ex.id);
-                                      const conv = await convocationService.getConvocations(eventId);
-                                      setConvocations(conv);
-                                    } catch (err: any) { alert(err?.message ?? "Error al guardar excusa"); }
-                                  }}
-                                >{ex.name}</button>
-                              ))}
+                          {excuseLabel && (
+                            <div className={styles.tagBadgeRow}>
+                              <span className={`${styles.tagBadge} ${styles.tagDeconvoked}`}>{excuseLabel}</span>
                             </div>
                           )}
                           {canEdit && (
@@ -716,7 +716,7 @@ export default function AttendanceTabs({ eventId, eventStart }: Props) {
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 {canEdit && (() => {
                   const notAttending = convocations.filter(
-                    (c) => c.availabilityTypeId != null && c.assistanceTypeId !== 1
+                    (c) => c.availabilityTypeId === 1 && c.assistanceTypeId !== 1
                   );
                   if (notAttending.length === 0) return null;
                   return (
@@ -748,9 +748,9 @@ export default function AttendanceTabs({ eventId, eventStart }: Props) {
               </div>
             </div>
             {(() => {
-              const withAvailability = convocations.filter((c) => c.availabilityTypeId != null);
+              const withAvailability = convocations.filter((c) => c.availabilityTypeId === 1);
               if (withAvailability.length === 0) {
-                return <EmptyState title="Asistencia" description="No hay jugadores con disponibilidad indicada todavía." />;
+                return <EmptyState title="Asistencia" description="No hay jugadores marcados como disponibles todavía." />;
               }
               // ids 1 (Asiste) y 4 (Llega tarde) = asisten; 2 y 3 = no asisten; null = sin indicar
               const attend = withAvailability.filter((c) => c.assistanceTypeId === 1 || c.assistanceTypeId === 4);
@@ -904,6 +904,23 @@ export default function AttendanceTabs({ eventId, eventStart }: Props) {
         </Box>
       )}
 
+      <DeclineDialog
+        open={notAvailableDialog.open}
+        title="Motivo de no disponibilidad"
+        excuseTypes={excuseTypes}
+        onClose={() => setNotAvailableDialog({ open: false })}
+        onAccept={async (excuseTypeId) => {
+          const c = notAvailableDialog.conv;
+          if (!c) return;
+          try {
+            await availabilityTypeService.updateConvocationAvailability(eventId, c.id, 2, excuseTypeId);
+            const convs = await convocationService.getConvocations(eventId);
+            setConvocations(convs);
+          } catch (e: any) {
+            alert(e?.message ?? "Error al actualizar disponibilidad");
+          }
+        }}
+      />
       <DeconvokeDialog
         open={deconvokeDialog.open}
         onClose={() => setDeconvokeDialog({ open: false })}

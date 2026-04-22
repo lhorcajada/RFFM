@@ -34,6 +34,7 @@ namespace RFFM.Api.Features.Coaches.Convocations
             public string EventId { get; set; } = null!;
             public string ConvocationId { get; set; } = null!;
             public int? AvailabilityTypeId { get; set; }
+            public int? ExcuseTypeId { get; set; }
         }
 
         public class Handler : IRequestHandler<UpdateAvailabilityRequest, Unit>
@@ -55,6 +56,13 @@ namespace RFFM.Api.Features.Coaches.Convocations
                 }
 
                 conv.SetAvailabilityTypeId(request.AvailabilityTypeId);
+
+                // Only store excuse when marking as not available (id=2); clear it otherwise
+                if (request.AvailabilityTypeId == 2)
+                    conv.SetExcuseTypeId(request.ExcuseTypeId);
+                else
+                    conv.SetExcuseTypeId(null);
+
                 await _db.SaveChangesAsync(cancellationToken);
                 return Unit.Value;
             }

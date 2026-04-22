@@ -14,6 +14,7 @@ type Props = {
   onClose: () => void;
   excuseTypes: ExcuseType[];
   onAccept: (excuseTypeId?: number | null) => void;
+  title?: string;
 };
 
 export default function DeclineDialog({
@@ -21,6 +22,7 @@ export default function DeclineDialog({
   onClose,
   excuseTypes,
   onAccept,
+  title = "Seleccionar justificante",
 }: Props) {
   const [value, setValue] = React.useState<number | null>(null);
   React.useEffect(() => {
@@ -29,7 +31,7 @@ export default function DeclineDialog({
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
-      <DialogTitle sx={{ pb: 1 }}>Seleccionar justificante</DialogTitle>
+      <DialogTitle sx={{ pb: 1 }}>{title}</DialogTitle>
       <DialogContent sx={{ pt: 1 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {excuseTypes.map((ex) => {
@@ -52,7 +54,6 @@ export default function DeclineDialog({
       <DialogActions>
         <Button onClick={onClose}>Cancelar</Button>
         <Button
-          disabled={value === null}
           onClick={() => {
             onAccept(value);
             onClose();
