@@ -27,14 +27,9 @@ import useTeamAndClub from "../../hooks/useTeamAndClub";
 import trainingService from "../../services/trainingService";
 import type { Exercise, TrainingSession } from "../../types/training";
 import ExerciseDialog from "./components/ExerciseDialog";
+import ExerciseCromo from "./components/ExerciseCromo";
 import SessionDialog from "./components/SessionDialog";
 import styles from "./Trainings.module.css";
-
-const TYPE_LABELS: Record<string, string> = {
-  Physical: "Físico",
-  Technical: "Técnico",
-  Tactical: "Táctico",
-};
 
 function formatDate(iso: string) {
   const d = new Date(iso);
@@ -207,39 +202,18 @@ export default function Trainings() {
                 <Typography className={styles.emptyText}>
                   {clubId ? "No hay ejercicios creados aún." : "Selecciona un equipo para ver ejercicios."}
                 </Typography>
-              ) : exercises.map(ex => (
-                <Box key={ex.id} className={styles.exerciseCard}>
-                  <Box className={styles.exerciseInfo}>
-                    <Typography className={styles.exerciseName}>{ex.name}</Typography>
-                    <Box className={styles.exerciseMeta}>
-                      <Chip label={TYPE_LABELS[ex.type] ?? ex.type} size="small" className={styles.typeChip} />
-                      <Typography className={styles.sessionMetaText}>
-                        {ex.durationTotal} min · {ex.playersNumber} jug.
-                      </Typography>
-                      {ex.subSubPrincipleName && (
-                        <Chip label={ex.subSubPrincipleName} size="small" className={styles.sspChip} />
-                      )}
-                      {ex.skills.map(sk => (
-                        <Chip key={sk.essentialSkillId} label={sk.skillName} size="small" className={styles.skillChip} />
-                      ))}
-                    </Box>
-                  </Box>
-                  <Box className={styles.exerciseActions}>
-                    <Tooltip title="Editar">
-                      <IconButton size="small" className={styles.iconBtn}
-                        onClick={() => { setEditExercise(ex); setExDialogOpen(true); }}>
-                        <EditIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Eliminar">
-                      <IconButton size="small" className={styles.deleteIconBtn}
-                        onClick={() => setDeleteExId(ex.id)}>
-                        <DeleteOutlineIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  </Box>
+              ) : (
+                <Box className={styles.cromoGrid}>
+                  {exercises.map(ex => (
+                    <ExerciseCromo
+                      key={ex.id}
+                      exercise={ex}
+                      onEdit={() => { setEditExercise(ex); setExDialogOpen(true); }}
+                      onDelete={() => setDeleteExId(ex.id)}
+                    />
+                  ))}
                 </Box>
-              ))}
+              )}
             </Box>
           )}
 

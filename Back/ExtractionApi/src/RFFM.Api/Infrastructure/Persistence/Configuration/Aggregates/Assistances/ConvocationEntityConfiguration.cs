@@ -41,13 +41,6 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.Assistanc
             builder.HasOne(c => c.Player)
                 .WithMany()
                 .HasForeignKey(c => c.TeamPlayerId);
-
-            builder.Property(c => c.AvailabilityTypeId)
-                .IsRequired(false);
-
-            builder.HasOne(c => c.AvailabilityType)
-                .WithMany()
-                .HasForeignKey(c => c.AvailabilityTypeId);
         }
     }
 }

@@ -7,7 +7,6 @@ import convocationStatusService, {
 import playerRatingService from "../../../services/playerRatingService";
 import playerService from "../../../services/playerService";
 import teamplayerService, { type PlayerResponse } from "../../../services/teamplayerService";
-import availabilityTypeService from "../../../services/availabilityTypeService";
 import sportEventService from "../../../services/sportEventService";
 import sportEventTypeService from "../../../services/sportEventTypeService";
 import type { PlayerRating } from "../../../types/playerRating";
@@ -193,18 +192,12 @@ export function useConvocationManagement(
         const convMap: Record<string, string> = {};
         const calledIds: string[] = [];
         const notCalledIds: string[] = [];
-        const noDispIds: string[] = [];
-        const availFromConvIds: string[] = [];
 
         for (const conv of convs) {
           const pid = conv.player.id ?? "";
           if (!pid) continue;
           convMap[pid] = conv.id;
-          if (conv.availabilityTypeId === 1) {
-            availFromConvIds.push(pid);
-          } else if (conv.availabilityTypeId === 2) {
-            noDispIds.push(pid);
-          } else if (conv.status === NOT_CALLED_STATUS_ID || conv.status === LEGACY_NOT_CALLED_STATUS_ID) {
+          if (conv.status === NOT_CALLED_STATUS_ID || conv.status === LEGACY_NOT_CALLED_STATUS_ID) {
             notCalledIds.push(pid);
           } else {
             calledIds.push(pid);
@@ -225,9 +218,8 @@ export function useConvocationManagement(
         const convocatedIds = new Set([
           ...finalCalledIds,
           ...notCalledIds,
-          ...availFromConvIds,
         ]);
-        const availableIds: string[] = [...availFromConvIds];
+        const availableIds: string[] = [];
         for (const p of players) {
           if (convocatedIds.has(p.id)) continue;
           const injuredForMatch = injuredCalledIds.has(p.id);
@@ -401,12 +393,10 @@ export function useConvocationManagement(
       if (zone === "available") {
         if (convId) {
           await convocationService.updateConvocationStatus(mgmtEventId, convId, CALLED_STATUS_ID);
-          await availabilityTypeService.updateConvocationAvailability(mgmtEventId, convId, 1);
         }
       } else if (zone === "called") {
         if (convId) {
           await convocationService.updateConvocationStatus(mgmtEventId, convId, CALLED_STATUS_ID);
-          await availabilityTypeService.updateConvocationAvailability(mgmtEventId, convId, null);
         }
       } else if (zone === "notCalled") {
         if (convId) {
@@ -414,7 +404,6 @@ export function useConvocationManagement(
           if (!excuseId) throw new Error("Se requiere un tipo de excusa para desconvocar");
           setMgmtExcuseMap((prev) => ({ ...prev, [pid]: excuseId }));
           await convocationService.updateConvocationStatus(mgmtEventId, convId, NOT_CALLED_STATUS_ID, excuseId);
-          await availabilityTypeService.updateConvocationAvailability(mgmtEventId, convId, null);
         }
       }
     } catch {
@@ -431,18 +420,16 @@ export function useConvocationManagement(
       type Task = {
         pid: string;
         statusId: number;
-        availId: number | null;
         excuseId?: number | null;
       };
       const tasks: Task[] = [
-        ...mgmtCalled.map((pid) => ({ pid, statusId: CALLED_STATUS_ID, availId: null as null })),
+        ...mgmtCalled.map((pid) => ({ pid, statusId: CALLED_STATUS_ID })),
         ...mgmtNotCalled.map((pid) => ({
           pid,
           statusId: NOT_CALLED_STATUS_ID,
-          availId: null as null,
           excuseId: mgmtExcuseMap[pid] ?? excuseTypes[0]?.id ?? null,
         })),
-        ...mgmtAvailable.map((pid) => ({ pid, statusId: CALLED_STATUS_ID, availId: 1 as number })),
+        ...mgmtAvailable.map((pid) => ({ pid, statusId: CALLED_STATUS_ID })),
       ];
 
       const missingExcuse = tasks.filter(
@@ -460,10 +447,9 @@ export function useConvocationManagement(
 
       const updatedConvMap = { ...mgmtConvMap };
       for (const task of tasks) {
-        const { pid, statusId, availId } = task;
+        const { pid, statusId } = task;
         let convId = updatedConvMap[pid];
         if (!convId) {
-          if (statusId === CALLED_STATUS_ID && availId === 1) continue;
           const c = await convocationService.addConvocation(mgmtEventId, pid);
           convId = (c as any).id ?? (c as any).convocationId ?? "";
           if (convId) updatedConvMap[pid] = convId;
@@ -475,7 +461,6 @@ export function useConvocationManagement(
           statusId,
           (task as any).excuseId ?? null
         );
-        await availabilityTypeService.updateConvocationAvailability(mgmtEventId, convId, availId);
       }
 
       setMgmtConvMap(updatedConvMap);
@@ -507,7 +492,6 @@ export function useConvocationManagement(
       }
       if (convId && resolvedExcuse) {
         await convocationService.updateConvocationStatus(mgmtEventId, convId, NOT_CALLED_STATUS_ID, resolvedExcuse);
-        await availabilityTypeService.updateConvocationAvailability(mgmtEventId, convId, null);
       }
     } catch {
       // rollback optimistic update
@@ -527,7 +511,6 @@ export function useConvocationManagement(
       const convId = mgmtConvMap[pid];
       if (convId) {
         await convocationService.updateConvocationStatus(mgmtEventId, convId, CALLED_STATUS_ID);
-        await availabilityTypeService.updateConvocationAvailability(mgmtEventId, convId, 1);
       }
     } catch {
       // rollback

@@ -8,7 +8,6 @@
         public DateTime ResponseDateTime { get; set; }
         public int? ConvocationStatusId { get; set; }
         public int? ExcuseTypeId { get; set; }
-        public int? AvailabilityTypeId { get; set; }
 
     }
 }

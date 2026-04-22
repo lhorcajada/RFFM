@@ -39,7 +39,6 @@ namespace RFFM.Api.Infrastructure.Persistence
         public DbSet<TeamPlayerRatingDetail> TeamPlayerRatingDetails { get; set; }
         public DbSet<TeamPlayerInjury> TeamPlayerInjuries { get; set; }
         public DbSet<AssistanceType> AssistanceTypes { get; set; }
-        public DbSet<AvailabilityType> AvailabilityTypes { get; set; }
         public DbSet<Convocation> Convocations { get; set; }
         public DbSet<ConvocationHistory> ConvocationHistories { get; set; }
         public DbSet<ConvocationStatus> ConvocationStatuses { get; set; }

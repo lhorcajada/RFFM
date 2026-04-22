@@ -1,0 +1,239 @@
+/* ═══════════════════════════════════════
+   ExerciseCromo — FC26 trading card style
+   ═══════════════════════════════════════ */
+
+.card {
+  position: relative;
+  width: 100%;
+  border-radius: 14px;
+  overflow: hidden;
+  background: linear-gradient(170deg, #1c1c30 0%, #07071a 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s;
+  color: #e8e8e8;
+  user-select: none;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.6);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+/* Type-based border accent */
+.type_Physical { border-color: rgba(255, 124, 0, 0.35); }
+.type_Physical:hover { border-color: rgba(255, 124, 0, 0.65); }
+.type_Technical { border-color: rgba(77, 157, 224, 0.35); }
+.type_Technical:hover { border-color: rgba(77, 157, 224, 0.65); }
+.type_Tactical { border-color: rgba(39, 174, 96, 0.35); }
+.type_Tactical:hover { border-color: rgba(39, 174, 96, 0.65); }
+
+/* ─── Photo area — aspect ratio so it scales with card width ─── */
+.photoArea {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  flex: 0 0 auto;
+  overflow: hidden;
+}
+
+.photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+  display: block;
+  background: #1c1c30;
+}
+
+.photoFallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(160deg, #252545 0%, #1a1a38 100%);
+}
+
+.fallbackIconWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.25;
+  color: #e8e8e8;
+}
+
+.fallbackIconWrap svg {
+  font-size: 2.6rem !important;
+  width: 42px !important;
+  height: 42px !important;
+}
+
+.photoGradient {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 48px;
+  background: linear-gradient(to bottom, transparent, #07071a);
+  pointer-events: none;
+}
+
+/* ─── Type badge — anchored to bottom of photo over gradient ─── */
+.typeBadge {
+  position: absolute;
+  bottom: 7px;
+  left: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  z-index: 2;
+}
+
+.typeBadge_Physical {
+  background: rgba(255, 124, 0, 0.9);
+  color: #fff;
+  box-shadow: 0 1px 5px rgba(255, 124, 0, 0.5);
+}
+
+.typeBadge_Technical {
+  background: rgba(77, 157, 224, 0.9);
+  color: #fff;
+  box-shadow: 0 1px 5px rgba(77, 157, 224, 0.5);
+}
+
+.typeBadge_Tactical {
+  background: rgba(39, 174, 96, 0.9);
+  color: #fff;
+  box-shadow: 0 1px 5px rgba(39, 174, 96, 0.5);
+}
+
+/* ─── Body ─── */
+.body {
+  flex: 1;
+  padding: 8px 10px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.exerciseName {
+  font-weight: 700;
+  font-size: 13px;
+  color: #f0f0f0;
+  line-height: 1.35;
+  /* Allow up to 2 lines */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: calc(13px * 1.35 * 2);
+}
+
+/* ─── Meta pills row ─── */
+.metaRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  min-width: 0;
+}
+
+.sectionPill {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 5px;
+  white-space: nowrap;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(212, 212, 212, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sectionPill_Calentamiento  { color: #ffb300; border-color: rgba(255, 179, 0, 0.3);    background: rgba(255, 179, 0, 0.1); }
+.sectionPill_Principal      { color: #4d9de0; border-color: rgba(77, 157, 224, 0.3);   background: rgba(77, 157, 224, 0.1); }
+.sectionPill_VueltaALaCalma { color: #27ae60; border-color: rgba(39, 174, 96, 0.3);    background: rgba(39, 174, 96, 0.1); }
+
+.sspPill {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  background: rgba(156, 220, 254, 0.08);
+  color: rgba(168, 212, 245, 0.6);
+  border: 1px solid rgba(156, 220, 254, 0.15);
+}
+
+/* ─── Stats ─── */
+.statsRow {
+  display: flex;
+  justify-content: space-around;
+  padding-top: 5px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  gap: 2px;
+}
+
+.statItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
+
+.statValue {
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1;
+  color: #f0f0f0;
+}
+
+.statLabel {
+  font-size: 9px;
+  opacity: 0.45;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* ─── Action footer — always visible, subtle ─── */
+.actionFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 2px;
+  padding: 4px 6px 5px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.actionBtn {
+  color: rgba(255, 255, 255, 0.35) !important;
+  padding: 3px !important;
+  border-radius: 6px !important;
+  transition: color 0.15s ease, background 0.15s ease !important;
+}
+
+.actionBtn:hover {
+  color: #4d9de0 !important;
+  background: rgba(77, 157, 224, 0.12) !important;
+}
+
+.deleteBtn:hover {
+  color: #e74c3c !important;
+  background: rgba(231, 76, 60, 0.12) !important;
+}

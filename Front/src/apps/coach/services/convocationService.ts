@@ -14,7 +14,6 @@ export type ConvocationItem = {
   player: PlayerSimple;
   status: number; // convocation status id
   excuseTypeId?: number | null;
-  availabilityTypeId?: number | null;
   assistanceTypeId?: number | null;
   isInjured?: boolean;
 };
@@ -53,7 +52,6 @@ export async function getConvocations(
     },
     status: c.statusId ?? c.status ?? 1,
     excuseTypeId: c.excuseTypeId,
-    availabilityTypeId: c.availabilityTypeId,
     assistanceTypeId: c.assistanceTypeId,
     isInjured: c.isInjured ?? false,
   }));

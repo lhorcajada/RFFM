@@ -8,7 +8,7 @@ type Props = {
   players: PlayerSimple[];
   photos: Record<string, string | null>;
   onAdd: (playerId?: string) => void;
-  onDeconvoke?: (playerId: string) => void;
+  onReject?: (playerId: string) => void;
   canEdit: boolean;
   adding?: boolean;
 };
@@ -17,7 +17,7 @@ export default function NotConvokedList({
   players,
   photos,
   onAdd,
-  onDeconvoke,
+  onReject,
   canEdit,
   adding = false,
 }: Props) {
@@ -80,13 +80,13 @@ export default function NotConvokedList({
                         >
                           Convocar
                         </button>
-                        {onDeconvoke && p.id && (
+                        {onReject && p.id && (
                           <button
                             disabled={adding}
                             className={`${styles.optionBtn} ${styles.optionBtnRed}`}
-                            onClick={() => onDeconvoke(p.id!)}
+                            onClick={() => onReject(p.id!)}
                           >
-                            Desconv.
+                            Rechazado
                           </button>
                         )}
                       </div>

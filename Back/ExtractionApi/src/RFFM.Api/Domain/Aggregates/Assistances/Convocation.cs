@@ -11,14 +11,12 @@ namespace RFFM.Api.Domain.Aggregates.Assistances
         public DateTime? ResponseDateTime { get; private set; }
         public int? ConvocationStatusId { get; private set; }
         public int? ExcuseTypeId { get; private set; }
-        public int? AvailabilityTypeId { get; private set; }
 
         public AssistanceType Type { get; private set; } = null!;
         public ConvocationStatus? Status { get; private set; } = null!;
         public SportEvent SportEvent { get; private set; } = null!;
         public TeamPlayer Player { get; private set; } = null!;
         public ExcuseTypes? ExcuseType { get; private set; } = null!;
-        public AvailabilityType? AvailabilityType { get; private set; }
 
         private Convocation() { }
         public Convocation(ConvocationModel convocationModel)
@@ -29,7 +27,6 @@ namespace RFFM.Api.Domain.Aggregates.Assistances
             SetEventId(convocationModel.EventId);
             SetTeamPlayerId(convocationModel.TeamPlayerId);
             SetExcuseTypeId(convocationModel.ExcuseTypeId);
-            SetAvailabilityTypeId(convocationModel.AvailabilityTypeId);
         }
 
         public static Convocation Create(ConvocationModel convocationModel)
@@ -74,11 +71,6 @@ namespace RFFM.Api.Domain.Aggregates.Assistances
             if (ExcuseTypeId != null && excuseTypeId < 0)
                 throw new ArgumentException("El tipo de excusa no puede ser negativo");
             ExcuseTypeId = excuseTypeId;
-        }
-
-        public void SetAvailabilityTypeId(int? availabilityTypeId)
-        {
-            AvailabilityTypeId = availabilityTypeId;
         }
     }
 }

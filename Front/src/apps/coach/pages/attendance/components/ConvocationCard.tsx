@@ -22,7 +22,7 @@ type Props = {
 const STATUS_LABELS: Record<string, string> = {
   Pending: "Pendiente",
   Accepted: "Aceptado",
-  Deconvoke: "Desconvocado",
+  Deconvoke: "Rechazado",
 };
 
 const SELECTABLE_STATUSES = ["Accepted", "Deconvoke"];
@@ -140,13 +140,23 @@ export default function ConvocationCard({
           <div className={styles.cromoActions}>
             {isAccepted ? (
               canEdit && (
-                <button
-                  className={`${styles.optionBtn} ${styles.optionBtnRed}`}
-                  onClick={() => onDelete(conv)}
-                  title="Desconvocar"
-                >
-                  Desconvocar
-                </button>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <button
+                    className={`${styles.optionBtn} ${styles.optionBtnRed}`}
+                    onClick={() => onDelete(conv)}
+                    title="Desconvocar"
+                  >
+                    Desconvocar
+                  </button>
+                  {onMoveToWaiting && (
+                    <button
+                      className={`${styles.optionBtn} ${styles.optionBtnBlue}`}
+                      onClick={() => onMoveToWaiting(conv)}
+                    >
+                      ↩ Lista de espera
+                    </button>
+                  )}
+                </div>
               )
             ) : isDeconvoked ? (
               // Deconvoked: show excuse label + option to move back to waiting
@@ -168,8 +178,12 @@ export default function ConvocationCard({
                 )}
               </div>
             ) : (
-              // Pending: show toggle buttons
-              <div className={styles.optionGroup}>
+              // Pending: tag + toggle buttons
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <div className={styles.tagBadgeRow}>
+                  <span className={`${styles.tagBadge} ${styles.tagWaiting}`}>Pendiente de aceptar</span>
+                </div>
+                <div className={styles.optionGroup}>
                 {selectableStatuses.map((s) => {
                   const isActive = conv.status === s.id;
                   const colorClass = statusColorClass(s.name);
@@ -190,6 +204,15 @@ export default function ConvocationCard({
                     </button>
                   );
                 })}
+                </div>
+                {canEdit && onMoveToWaiting && (
+                  <button
+                    className={`${styles.optionBtn} ${styles.optionBtnBlue}`}
+                    onClick={() => onMoveToWaiting(conv)}
+                  >
+                    ↩ Lista de espera
+                  </button>
+                )}
               </div>
             )}
           </div>

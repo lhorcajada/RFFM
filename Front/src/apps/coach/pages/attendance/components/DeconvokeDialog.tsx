@@ -16,29 +16,31 @@ type Props = {
   onClose: () => void;
   excuseTypes: ExcuseType[];
   onConfirm: (reason: string) => void;
+  hideTechnical?: boolean;
+  title?: string;
 };
 
 const TECHNICAL_NAMES = ["decisión técnica", "decision tecnica", "technical decision"];
 
-const ALL_OPTIONS = (excuseTypes: ExcuseType[]) => [
-  { value: "technical", label: "Decisión técnica", justified: false },
+const ALL_OPTIONS = (excuseTypes: ExcuseType[], hideTechnical?: boolean) => [
+  ...(hideTechnical ? [] : [{ value: "technical", label: "Decisión técnica", justified: false }]),
   ...excuseTypes
     .filter((ex) => !TECHNICAL_NAMES.includes(ex.name.toLowerCase()))
     .map((ex) => ({ value: String(ex.id), label: ex.name, justified: ex.justified ?? false })),
 ];
 
-export default function DeconvokeDialog({ open, onClose, excuseTypes, onConfirm }: Props) {
+export default function DeconvokeDialog({ open, onClose, excuseTypes, onConfirm, hideTechnical, title }: Props) {
   const [value, setValue] = React.useState<string>("");
 
   React.useEffect(() => {
     if (!open) setValue("");
   }, [open]);
 
-  const options = ALL_OPTIONS(excuseTypes);
+  const options = ALL_OPTIONS(excuseTypes, hideTechnical);
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
-      <DialogTitle sx={{ pb: 1 }}>Motivo de desconvocatoria</DialogTitle>
+      <DialogTitle sx={{ pb: 1 }}>{title ?? "Motivo de desconvocatoria"}</DialogTitle>
       <DialogContent sx={{ pt: 1 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {options.map((opt) => {
@@ -69,7 +71,7 @@ export default function DeconvokeDialog({ open, onClose, excuseTypes, onConfirm 
           variant="contained"
           color="error"
         >
-          Desconvocar
+          {hideTechnical ? "Rechazar" : "Desconvocar"}
         </Button>
       </DialogActions>
     </Dialog>
