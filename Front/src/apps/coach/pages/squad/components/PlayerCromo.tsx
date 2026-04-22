@@ -42,14 +42,18 @@ function avgRating(r: RatingData): number {
 }
 
 function ratingColor(v: number): string {
-  if (v >= 90) return "#29b6f6";
-  if (v >= 70) return "#66bb6a";
-  if (v >= 50) return "#ffb300";
+  if (v >= 8.5) return "#29b6f6";
+  if (v >= 7) return "#66bb6a";
+  if (v >= 5) return "#ffb300";
   return "#ef5350";
 }
 
+function formatAvg(v: number): string {
+  return `Nivel ${Math.ceil(v)}`;
+}
+
 function formatStat(v: number): string {
-  return String(Math.round(v));
+  return String(Math.ceil(v));
 }
 
 const MEDALS = ["🥇", "🥈", "🥉"];
@@ -104,7 +108,7 @@ export default function PlayerCromo({
             className={styles.avgBadge}
             style={{ color: ratingColor(avgRating(rating)) }}
           >
-            {formatStat(avgRating(rating))}
+            {formatAvg(avgRating(rating))}
           </div>
         )}
 
@@ -142,7 +146,7 @@ export default function PlayerCromo({
                   className={styles.statValue}
                   style={{ color: ratingColor(rating[key]) }}
                 >
-                  {formatStat(rating[key])}
+                  {formatStat(rating[key])}{/* Nivel X.X shown per category */}
                 </span>
                 <span className={styles.statLabel}>{label}</span>
               </div>

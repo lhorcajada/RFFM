@@ -5,6 +5,7 @@ import SquadRanking from "./components/SquadRanking";
 import IdealLineup from "./components/IdealLineup";
 import PlayerCromo from "./components/PlayerCromo";
 import { useNavigate } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
@@ -69,6 +70,7 @@ function groupByPosition(players: any[]) {
 
 export default function Squad() {
   const navigate = useNavigate();
+  const [squadSearchParams] = useSearchParams();
   const { team, teamTitleNode } = useTeamAndClub();
   const [players, setPlayers] = useState<any[]>([]);
   const [playerPhotos, setPlayerPhotos] = useState<Record<string, string | null>>({});
@@ -76,7 +78,10 @@ export default function Squad() {
   const [seasonStats, setSeasonStats] = useState<Record<string, SeasonPlayerStats>>({});
   const [loadingRatings, setLoadingRatings] = useState(false);
   const [loadingPlayers, setLoadingPlayers] = useState(false);
-  const [activeTab, setActiveTab] = useTabState(0);
+  const [activeTab, setActiveTab] = useTabState(() => {
+    const t = Number(squadSearchParams.get("tab"));
+    return Number.isFinite(t) && t >= 0 ? t : 0;
+  });
 
   function handleRatingCreated(rating: PlayerRating) {
     setLatestRatings((prev) => ({ ...prev, [rating.teamPlayerId]: rating }));

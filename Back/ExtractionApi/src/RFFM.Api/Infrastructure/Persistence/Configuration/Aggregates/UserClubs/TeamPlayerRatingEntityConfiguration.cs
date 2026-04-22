@@ -97,6 +97,11 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.UserClubs
 
             builder.HasIndex(r => r.TeamPlayerId);
             builder.HasIndex(r => r.RatedAt);
+
+            // Configure the Details collection navigation via the private backing field
+            builder.Navigation(r => r.Details)
+                .UsePropertyAccessMode(PropertyAccessMode.Field)
+                .HasField("_details");
         }
     }
 }

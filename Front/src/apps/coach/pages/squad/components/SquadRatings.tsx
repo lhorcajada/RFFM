@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
@@ -6,13 +7,8 @@ import { Button, ToggleButton, ToggleButtonGroup } from "@mui/material";
 import { exportAllPlayersPdf, exportPlayerPdf } from "../squadPdfExport";
 import type { RatingSortKey } from "../squadPdfExport";
 import type { PlayerRating } from "../../../types/playerRating";
-import type { CreateRatingPayload, CreateGoalkeeperRatingPayload } from "../../../services/playerRatingService";
-import playerRatingService from "../../../services/playerRatingService";
 import PlayerCromo from "./PlayerCromo";
 import SubRatingsPanel from "./SubRatingsPanel";
-import EditRatingDialog from "./EditRatingDialog";
-import EditGoalkeeperRatingDialog from "./EditGoalkeeperRatingDialog";
-import RatingHistoryDialog from "./RatingHistoryDialog";
 import styles from "./SquadRatings.module.css";
 
 type PlayerEntry = {
@@ -27,7 +23,7 @@ type Props = {
   teamId: string;
   players: PlayerEntry[];
   latestRatings: Record<string, PlayerRating>;
-  onRatingCreated: (rating: PlayerRating) => void;
+  onRatingCreated?: (rating: PlayerRating) => void;
   teamName?: string;
 };
 
@@ -51,12 +47,8 @@ function positionAccent(position: string): string {
   return "#6b7280";
 }
 
-const RATING_FIELDS: { key: keyof Omit<PlayerRating, "id" | "teamPlayerId" | "ratedAt" | "notes">; label: string }[] = [
-  { key: "technical", label: "Técnico" },
-  { key: "tactical", label: "Táctico" },
-  { key: "physical", label: "Físico" },
-  { key: "competitiveness", label: "Competitividad" },
-];
+const RATING_FIELDS = [] as const;
+void RATING_FIELDS; // retained for backward compat
 
 type SortKey = RatingSortKey | "position";
 
@@ -108,77 +100,13 @@ function groupPlayersByPosition(
   ] as [string, PlayerEntry[]]);
 }
 
-function pickInitialSubRatings(rating: PlayerRating | undefined): Partial<Omit<CreateRatingPayload, "notes">> {
-  if (!rating) return {};
-  return {
-    physicalSpeed: rating.physicalSpeed ?? undefined,
-    physicalEndurance: rating.physicalEndurance ?? undefined,
-    physicalStrength: rating.physicalStrength ?? undefined,
-    technicalDribbling: rating.technicalDribbling ?? undefined,
-    technicalPassing: rating.technicalPassing ?? undefined,
-    technicalControl: rating.technicalControl ?? undefined,
-    technicalShooting: rating.technicalShooting ?? undefined,
-    technicalTackling: rating.technicalTackling ?? undefined,
-    technicalInterceptions: rating.technicalInterceptions ?? undefined,
-    technicalHeading: rating.technicalHeading ?? undefined,
-    tacticalDefensiveAwareness: rating.tacticalDefensiveAwareness ?? undefined,
-    tacticalMarking: rating.tacticalMarking ?? undefined,
-    tacticalTrackBack: rating.tacticalTrackBack ?? undefined,
-    tacticalPressing: rating.tacticalPressing ?? undefined,
-    tacticalGeneratesAdvantage: rating.tacticalGeneratesAdvantage ?? undefined,
-    tacticalOffMovement: rating.tacticalOffMovement ?? undefined,
-    tacticalBeatsOpponents: rating.tacticalBeatsOpponents ?? undefined,
-    tacticalAttackParticipation: rating.tacticalAttackParticipation ?? undefined,
-    competDuelWinning: rating.competDuelWinning ?? undefined,
-    competLooseBalls: rating.competLooseBalls ?? undefined,
-    competRecoveries: rating.competRecoveries ?? undefined,
-    competDecisiveActions: rating.competDecisiveActions ?? undefined,
-    competResponsibility: rating.competResponsibility ?? undefined,
-    competConstantEffort: rating.competConstantEffort ?? undefined,
-  };
-}
+function pickInitialSubRatings(_rating: PlayerRating | undefined) { return {}; }
+function pickInitialKeeperSubRatings(_rating: PlayerRating | undefined) { return {}; }
+function isGoalkeeperPosition(_position?: string | null): boolean { return false; }
 
-function pickInitialKeeperSubRatings(rating: PlayerRating | undefined): Partial<Omit<CreateGoalkeeperRatingPayload, "notes">> {
-  if (!rating) return {};
-  return {
-    keeperReactionSpeed: rating.keeperReactionSpeed ?? undefined,
-    keeperAgility: rating.keeperAgility ?? undefined,
-    keeperJumpPower: rating.keeperJumpPower ?? undefined,
-    keeperStrength: rating.keeperStrength ?? undefined,
-    keeperEndurance: rating.keeperEndurance ?? undefined,
-    keeperHandSecurity: rating.keeperHandSecurity ?? undefined,
-    keeperSaves: rating.keeperSaves ?? undefined,
-    keeperAerialPlay: rating.keeperAerialPlay ?? undefined,
-    keeperHandDistribution: rating.keeperHandDistribution ?? undefined,
-    keeperKickDistribution: rating.keeperKickDistribution ?? undefined,
-    keeperFirstTouch: rating.keeperFirstTouch ?? undefined,
-    keeperPlayUnderPressure: rating.keeperPlayUnderPressure ?? undefined,
-    keeperPositioning: rating.keeperPositioning ?? undefined,
-    keeperGameReading: rating.keeperGameReading ?? undefined,
-    keeperOneOnOne: rating.keeperOneOnOne ?? undefined,
-    keeperBackCoverage: rating.keeperBackCoverage ?? undefined,
-    keeperSallyTiming: rating.keeperSallyTiming ?? undefined,
-    keeperBuildupPlay: rating.keeperBuildupPlay ?? undefined,
-    keeperDefensiveOrganization: rating.keeperDefensiveOrganization ?? undefined,
-    keeperValor: rating.keeperValor ?? undefined,
-    keeperConcentration: rating.keeperConcentration ?? undefined,
-    keeperKeyMoments: rating.keeperKeyMoments ?? undefined,
-    keeperErrorManagement: rating.keeperErrorManagement ?? undefined,
-    keeperResponsibility: rating.keeperResponsibility ?? undefined,
-    keeperConsistency: rating.keeperConsistency ?? undefined,
-  };
-}
-
-function isGoalkeeperPosition(position?: string | null): boolean {
-  if (!position) return false;
-  const p = position.toLowerCase();
-  return p.includes("portero") || p.includes("keeper") || p.includes("arquero");
-}
-
-export default function SquadRatings({ teamId: _teamId, players, latestRatings, onRatingCreated, teamName }: Props) {
-  const [editPlayer, setEditPlayer] = useState<PlayerEntry | null>(null);
-  const [historyFor, setHistoryFor] = useState<{ teamPlayerId: string; name: string } | null>(null);
-  const [saving, setSaving] = useState(false);
+export default function SquadRatings({ teamId: _teamId, players, latestRatings, teamName }: Props) {
+  const navigate = useNavigate();
+  const squadSearch = window.location.search; // preserve ?teamId=...&seasonId=...
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
   const [sortKey, setSortKey] = useState<SortKey>("position");
 
@@ -196,24 +124,6 @@ export default function SquadRatings({ teamId: _teamId, players, latestRatings, 
     });
   }
 
-  async function handleSave(state: (CreateRatingPayload | CreateGoalkeeperRatingPayload) & { notes: string }) {
-    if (!editPlayer) return;
-    setSaving(true);
-    try {
-      let created: PlayerRating;
-      if (isGoalkeeperPosition(editPlayer.position)) {
-        created = await playerRatingService.createGoalkeeperRating(editPlayer.teamPlayerId, state as CreateGoalkeeperRatingPayload & { notes: string });
-      } else {
-        created = await playerRatingService.createRating(editPlayer.teamPlayerId, state as CreateRatingPayload & { notes: string });
-      }
-      onRatingCreated(created);
-      setEditPlayer(null);
-    } catch {
-      // let user retry
-    } finally {
-      setSaving(false);
-    }
-  }
 
   if (players.length === 0) {
     return <div className={styles.empty}>No hay jugadores para valorar.</div>;
@@ -278,13 +188,8 @@ export default function SquadRatings({ teamId: _teamId, players, latestRatings, 
                               }
                             : null
                         }
-                        onEdit={() => setEditPlayer(p)}
-                        onHistory={() =>
-                          setHistoryFor({
-                            teamPlayerId: p.teamPlayerId,
-                            name: p.displayName,
-                          })
-                        }
+                        onEdit={() => navigate(`/coach/squad/${p.teamPlayerId}/rating/new${squadSearch}`)}
+                        onHistory={() => navigate(`/coach/squad/${p.teamPlayerId}/rating/history${squadSearch}`)}
                       />
                     </div>
                     <button
@@ -317,34 +222,6 @@ export default function SquadRatings({ teamId: _teamId, players, latestRatings, 
           </div>
         );
       })}
-
-      {editPlayer && (
-        isGoalkeeperPosition(editPlayer.position) ? (
-          <EditGoalkeeperRatingDialog
-            playerDisplayName={editPlayer.displayName}
-            initial={pickInitialKeeperSubRatings(latestRatings[editPlayer.teamPlayerId])}
-            saving={saving}
-            onSave={handleSave}
-            onClose={() => setEditPlayer(null)}
-          />
-        ) : (
-          <EditRatingDialog
-            playerDisplayName={editPlayer.displayName}
-            initial={pickInitialSubRatings(latestRatings[editPlayer.teamPlayerId])}
-            saving={saving}
-            onSave={handleSave}
-            onClose={() => setEditPlayer(null)}
-          />
-        )
-      )}
-
-      {historyFor && (
-        <RatingHistoryDialog
-          teamPlayerId={historyFor.teamPlayerId}
-          playerDisplayName={historyFor.name}
-          onClose={() => setHistoryFor(null)}
-        />
-      )}
     </div>
   );
 }

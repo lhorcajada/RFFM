@@ -50,6 +50,15 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
                             req.CompetConstantEffort,
                             req.Notes);
 
+                        var previousRatings = await db.TeamPlayerRatings
+                            .Where(r => r.TeamPlayerId == id)
+                            .ToListAsync(cancellationToken);
+
+                        if (previousRatings.Count > 0)
+                        {
+                            db.TeamPlayerRatings.RemoveRange(previousRatings);
+                        }
+
                         db.TeamPlayerRatings.Add(rating);
                         await db.SaveChangesAsync(cancellationToken);
 

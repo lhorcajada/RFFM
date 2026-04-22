@@ -1,5 +1,6 @@
 import jsPDF from "jspdf";
 import type { PlayerRating } from "../../types/playerRating";
+import { getAnswerLevel } from "../../types/playerRating";
 
 // ─── Public types ─────────────────────────────────────────────────────────────
 
@@ -14,7 +15,7 @@ export type PdfPlayerEntry = {
 
 // ─── Sub-rating group definitions ─────────────────────────────────────────────
 
-type SubItem = { key: keyof PlayerRating; label: string };
+type SubItem = { key: string; label: string };
 
 type RatGroup = {
   catKey: "physical" | "technical" | "tactical" | "competitiveness";
@@ -195,9 +196,9 @@ function fmtAvg(v: number): string {
 }
 
 function scoreRgb(v: number): [number, number, number] {
-  if (v >= 85) return [21, 101, 192];
-  if (v >= 70) return [46, 125, 50];
-  if (v >= 50) return [230, 81, 0];
+  if (v >= 8.5) return [21, 101, 192];
+  if (v >= 7) return [46, 125, 50];
+  if (v >= 5) return [230, 81, 0];
   return [198, 40, 40];
 }
 
@@ -255,11 +256,7 @@ function subColH(groups: RatGroup[], indices: number[]): number {
 function calcCardHeight(rating: PlayerRating | null): number {
   if (!rating) return NAME_BAR_H + AGG_BAR_H + 18 + CARD_PAD_BOTTOM;
 
-  const hasSubRatings = rating.isGoalkeeper
-    ? rating.keeperReactionSpeed != null
-    : rating.physicalSpeed != null;
-
-  if (!hasSubRatings) return NAME_BAR_H + AGG_BAR_H + 18 + CARD_PAD_BOTTOM;
+  if (rating.answers.length === 0) return NAME_BAR_H + AGG_BAR_H + 18 + CARD_PAD_BOTTOM;
 
   const groups = rating.isGoalkeeper ? KEEPER_GROUPS : FIELD_GROUPS;
   const subH = Math.max(subColH(groups, LEFT_INDICES), subColH(groups, RIGHT_INDICES));
@@ -366,11 +363,7 @@ function drawPlayerCard(
   const subY = y + NAME_BAR_H + AGG_BAR_H;
   if (!rating) return;
 
-  const hasSubRatings = rating.isGoalkeeper
-    ? rating.keeperReactionSpeed != null
-    : rating.physicalSpeed != null;
-
-  if (!hasSubRatings) {
+  if (rating.answers.length === 0) {
     doc.setFont("helvetica", "italic");
     doc.setFontSize(6.5);
     doc.setTextColor(170, 170, 170);
@@ -389,7 +382,7 @@ function drawPlayerCard(
     let cy = subY;
     for (const gi of col.indices) {
       const group = groups[gi];
-      const aggVal = Number(rating[group.catKey]);
+      const aggVal = Number(rating[group.catKey as keyof typeof rating]);
 
       // Group header
       doc.setFillColor(228, 228, 228);
@@ -408,8 +401,7 @@ function drawPlayerCard(
       doc.setFontSize(6.5);
       for (let ii = 0; ii < group.items.length; ii++) {
         const { key, label } = group.items[ii];
-        const rawVal = rating[key];
-        const val = rawVal != null ? Number(rawVal) : null;
+        const val = getAnswerLevel(rating, key);
 
         doc.setFillColor(ii % 2 === 0 ? 255 : 247, ii % 2 === 0 ? 255 : 247, ii % 2 === 0 ? 255 : 247);
         doc.rect(col.x, cy, subColWidth, ITEM_H, "F");

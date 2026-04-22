@@ -1,5 +1,5 @@
 import client from "../../../core/api/client";
-import type { PlayerRating } from "../types/playerRating";
+import type { CategoryKey, PlayerRating } from "../types/playerRating";
 
 export async function getRatingHistory(teamPlayerId: string): Promise<PlayerRating[]> {
   const resp = await client.get(`/api/catalog/teamplayer/${teamPlayerId}/ratings`);
@@ -11,71 +11,36 @@ export async function getTeamLatestRatings(teamId: string): Promise<PlayerRating
   return resp.data as PlayerRating[];
 }
 
+export type CharacteristicAnswer = {
+  characteristicKey: string;
+  /** Level 1–10 */
+  level: number;
+  /** Descriptive concept text for this level */
+  concept: string;
+  categoryKey: CategoryKey;
+};
+
 export type CreateRatingPayload = {
-  physicalSpeed: number;
-  physicalEndurance: number;
-  physicalStrength: number;
-  technicalDribbling: number;
-  technicalPassing: number;
-  technicalControl: number;
-  technicalShooting: number;
-  technicalTackling: number;
-  technicalInterceptions: number;
-  technicalHeading: number;
-  tacticalDefensiveAwareness: number;
-  tacticalMarking: number;
-  tacticalTrackBack: number;
-  tacticalPressing: number;
-  tacticalGeneratesAdvantage: number;
-  tacticalOffMovement: number;
-  tacticalBeatsOpponents: number;
-  tacticalAttackParticipation: number;
-  competDuelWinning: number;
-  competLooseBalls: number;
-  competRecoveries: number;
-  competDecisiveActions: number;
-  competResponsibility: number;
-  competConstantEffort: number;
+  isGoalkeeper: boolean;
+  answers: CharacteristicAnswer[];
   notes?: string | null;
 };
 
 export async function createRating(
   teamPlayerId: string,
-  payload: CreateRatingPayload
+  payload: CreateRatingPayload,
 ): Promise<PlayerRating> {
-  const resp = await client.post(`/api/catalog/teamplayer/${teamPlayerId}/ratings`, payload);
+  const resp = await client.post(
+    `/api/catalog/teamplayer/${teamPlayerId}/ratings/conceptual`,
+    payload,
+  );
   return resp.data as PlayerRating;
 }
 
-export type CreateGoalkeeperRatingPayload = {
-  keeperReactionSpeed: number;
-  keeperAgility: number;
-  keeperJumpPower: number;
-  keeperStrength: number;
-  keeperEndurance: number;
-  keeperHandSecurity: number;
-  keeperSaves: number;
-  keeperAerialPlay: number;
-  keeperHandDistribution: number;
-  keeperKickDistribution: number;
-  keeperFirstTouch: number;
-  keeperPlayUnderPressure: number;
-  keeperPositioning: number;
-  keeperGameReading: number;
-  keeperOneOnOne: number;
-  keeperBackCoverage: number;
-  keeperSallyTiming: number;
-  keeperBuildupPlay: number;
-  keeperDefensiveOrganization: number;
-  keeperValor: number;
-  keeperConcentration: number;
-  keeperKeyMoments: number;
-  keeperErrorManagement: number;
-  keeperResponsibility: number;
-  keeperConsistency: number;
-  notes?: string | null;
-};
+/** @deprecated Use createRating with isGoalkeeper:true */
+export type CreateGoalkeeperRatingPayload = CreateRatingPayload;
 
+/** @deprecated Use createRating with isGoalkeeper:true */
 export async function createGoalkeeperRating(
   teamPlayerId: string,
   payload: CreateGoalkeeperRatingPayload

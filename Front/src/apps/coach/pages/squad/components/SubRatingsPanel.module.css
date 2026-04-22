@@ -77,6 +77,16 @@
   min-width: 0;
 }
 
+.itemConcept {
+  font-size: 0.67rem;
+  opacity: 0.72;
+  white-space: normal;
+  word-break: break-word;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.3;
+}
+
 .itemValue {
   font-size: 0.72rem;
   font-weight: 700;

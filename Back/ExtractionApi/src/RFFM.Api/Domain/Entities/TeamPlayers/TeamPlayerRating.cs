@@ -2,6 +2,8 @@ namespace RFFM.Api.Domain.Entities.TeamPlayers
 {
     public class TeamPlayerRating : BaseEntity
     {
+        private static decimal RoundUpToSingleDecimal(decimal value) => Math.Ceiling(value * 10m) / 10m;
+
         public string TeamPlayerId { get; private set; } = null!;
 
         // Computed aggregates (average of sub-ratings)
@@ -83,6 +85,10 @@ namespace RFFM.Api.Domain.Entities.TeamPlayers
 
         public TeamPlayer TeamPlayer { get; private set; } = null!;
 
+        // Conceptual rating details (new model)
+        private readonly List<TeamPlayerRatingDetail> _details = new();
+        public IReadOnlyList<TeamPlayerRatingDetail> Details => _details.AsReadOnly();
+
         private TeamPlayerRating() { }
 
         public static TeamPlayerRating Create(
@@ -162,10 +168,10 @@ namespace RFFM.Api.Domain.Entities.TeamPlayers
                 CompetDecisiveActions = competDecisiveActions,
                 CompetResponsibility = competResponsibility,
                 CompetConstantEffort = competConstantEffort,
-                Physical = Math.Round(physicalSubs.Average(), 1),
-                Technical = Math.Round(technicalSubs.Average(), 1),
-                Tactical = Math.Round(tacticalSubs.Average(), 1),
-                Competitiveness = Math.Round(competSubs.Average(), 1),
+                Physical = RoundUpToSingleDecimal(physicalSubs.Average()),
+                Technical = RoundUpToSingleDecimal(technicalSubs.Average()),
+                Tactical = RoundUpToSingleDecimal(tacticalSubs.Average()),
+                Competitiveness = RoundUpToSingleDecimal(competSubs.Average()),
                 RatedAt = DateTime.UtcNow,
                 Notes = notes
             };
@@ -259,13 +265,71 @@ namespace RFFM.Api.Domain.Entities.TeamPlayers
                 KeeperErrorManagement = keeperErrorManagement,
                 KeeperResponsibility = keeperResponsibility,
                 KeeperConsistency = keeperConsistency,
-                Physical = Math.Round(physicalSubs.Average(), 1),
-                Technical = Math.Round(technicalSubs.Average(), 1),
-                Tactical = Math.Round(tacticalSubs.Average(), 1),
-                Competitiveness = Math.Round(competSubs.Average(), 1),
+                Physical = RoundUpToSingleDecimal(physicalSubs.Average()),
+                Technical = RoundUpToSingleDecimal(technicalSubs.Average()),
+                Tactical = RoundUpToSingleDecimal(tacticalSubs.Average()),
+                Competitiveness = RoundUpToSingleDecimal(competSubs.Average()),
                 RatedAt = DateTime.UtcNow,
                 Notes = notes
             };
+        }
+
+        /// <summary>
+        /// Creates a rating using the conceptual level model (1–10 per characteristic).
+        /// Aggregate scores are the average level per category, rounded to 1 decimal.
+        /// </summary>
+        public static TeamPlayerRating CreateConceptual(
+            string teamPlayerId,
+            bool isGoalkeeper,
+            IReadOnlyList<(string CharacteristicKey, string CategoryKey, int Level, string Concept)> answers,
+            string? notes = null)
+        {
+            if (answers == null || answers.Count == 0)
+                throw new ArgumentException("At least one conceptual answer is required.", nameof(answers));
+
+            foreach (var a in answers)
+            {
+                if (string.IsNullOrWhiteSpace(a.CharacteristicKey))
+                    throw new ArgumentException("CharacteristicKey must not be empty.");
+                if (string.IsNullOrWhiteSpace(a.CategoryKey))
+                    throw new ArgumentException("CategoryKey must not be empty.");
+                if (a.Level < 1 || a.Level > 10)
+                    throw new ArgumentException($"Level must be 1–10 (was {a.Level} for '{a.CharacteristicKey}').");
+                if (string.IsNullOrWhiteSpace(a.Concept))
+                    throw new ArgumentException($"Concept must not be empty for '{a.CharacteristicKey}'.");
+            }
+
+            static decimal AvgForCategory(
+                IReadOnlyList<(string CharacteristicKey, string CategoryKey, int Level, string Concept)> list,
+                string cat)
+            {
+                var levels = list.Where(a => a.CategoryKey == cat).Select(a => (decimal)a.Level).ToList();
+                return levels.Count == 0 ? 0m : RoundUpToSingleDecimal(levels.Average());
+            }
+
+            var rating = new TeamPlayerRating
+            {
+                TeamPlayerId = teamPlayerId,
+                IsGoalkeeper = isGoalkeeper,
+                Physical = AvgForCategory(answers, "physical"),
+                Technical = AvgForCategory(answers, "technical"),
+                Tactical = AvgForCategory(answers, "tactical"),
+                Competitiveness = AvgForCategory(answers, "competitiveness"),
+                RatedAt = DateTime.UtcNow,
+                Notes = notes,
+            };
+
+            foreach (var a in answers)
+            {
+                rating._details.Add(TeamPlayerRatingDetail.Create(
+                    rating.Id,
+                    a.CharacteristicKey,
+                    a.CategoryKey,
+                    a.Level,
+                    a.Concept));
+            }
+
+            return rating;
         }
     }
 }

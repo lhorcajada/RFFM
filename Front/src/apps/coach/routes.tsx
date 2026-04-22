@@ -38,6 +38,8 @@ const Lottery = lazy(() => import("./pages/lottery/Lottery"));
 const SeasonPrep = lazy(() => import("./pages/season-prep/SeasonPrep"));
 const EvaluationPage = lazy(() => import("./pages/season-prep/evaluation/EvaluationPage"));
 const PlayerDetail = lazy(() => import("./pages/player/PlayerDetail"));
+const NewRatingPage = lazy(() => import("./pages/squad/rating/NewRatingPage"));
+const RatingHistoryPage = lazy(() => import("./pages/squad/rating/RatingHistoryPage"));
 
 function LoadingFallback() {
   return (
@@ -143,6 +145,8 @@ function CoachRoutesContent() {
             <Route path="news" element={<News />} />
             <Route path="squad" element={<Squad />} />
             <Route path="squad/new" element={<NewPlayer />} />
+            <Route path="squad/:playerId/rating/new" element={<NewRatingPage />} />
+            <Route path="squad/:playerId/rating/history" element={<RatingHistoryPage />} />
             <Route path="player/:id" element={<PlayerDetail />} />
             <Route path="attendance" element={<Attendance />} />
             <Route path="attendance/:id" element={<AttendanceEvent />} />
