@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   Box,
@@ -28,14 +28,7 @@ import MedicalServicesIcon from "@mui/icons-material/MedicalServices";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import useTeamAndClub from "../../hooks/useTeamAndClub.tsx";
-import playerService from "../../services/playerService";
-import teamplayerService from "../../services/teamplayerService";
 import { createPlayerInjury } from "../../services/teamplayerService";
-import demarcationService, {
-  DemarcationOption,
-} from "../../services/demarcationService";
-import { getPlayerMatchHistory } from "../../services/liveMatchService";
-import type { PlayerMatchRecord } from "../convocations/components/simulation/liveMatch.types";
 import styles from "./PlayerDetail.module.css";
 import PlayerHeader from "./components/PlayerHeader";
 import Demarcations from "./components/Demarcations";
@@ -44,22 +37,33 @@ import PhysicalInfo from "./components/PhysicalInfo";
 import FamilyMembers from "./components/FamilyMembers";
 import InjuryDialog from "./components/InjuryDialog";
 import InjuryHistoryPanel from "./components/InjuryHistoryPanel";
+import { usePlayerDetailData } from "./hooks/usePlayerDetailData";
+import { usePlayerSave } from "./hooks/usePlayerSave";
+import { usePlayerMatchHistory } from "./hooks/usePlayerMatchHistory";
+
+const DOMINANT_FOOT_MAP: Record<string, number> = {
+  Zurdo: 1,
+  Diestro: 2,
+  Ambidiestro: 3,
+};
+
+const DOMINANT_FOOT_ID_TO_NAME: Record<number, string> = {
+  1: "Zurdo",
+  2: "Diestro",
+  3: "Ambidiestro",
+};
 
 export default function PlayerDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { team, teamTitleNode } = useTeamAndClub();
-  const [teamPlayer, setTeamPlayer] = useState<any | null>(null);
-  const [photo, setPhoto] = useState<string | null>(null);
+  const { teamTitleNode } = useTeamAndClub();
   const locationState = location.state as { editing?: boolean; from?: string; fromState?: unknown } | null;
   const [editing, setEditing] = useState(locationState?.editing === true);
   const handleBack = () => {
     if (locationState?.from) navigate(locationState.from, { state: locationState.fromState ?? null });
     else navigate(-1);
   };
-  const [form, setForm] = useState<any>({});
-  const [saving, setSaving] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error">(
@@ -69,191 +73,32 @@ export default function PlayerDetail() {
   const [savingInjury, setSavingInjury] = useState(false);
   const [injuryRefreshKey, setInjuryRefreshKey] = useState(0);
   const [activeTab, setActiveTab] = useState(0);
-  const [matchHistory, setMatchHistory] = useState<PlayerMatchRecord[]>([]);
-  const [loadingHistory, setLoadingHistory] = useState(false);
-  const [historyLoaded, setHistoryLoaded] = useState(false);
-  const [demarcationOptions, setDemarcationOptions] = useState<
-    DemarcationOption[]
-  >([]);
-  const DOMINANT_FOOT_MAP: Record<string, number> = {
-    Zurdo: 1,
-    Diestro: 2,
-    Ambidiestro: 3,
-  };
-  const DOMINANT_FOOT_ID_TO_NAME: Record<number, string> = {
-    1: "Zurdo",
-    2: "Diestro",
-    3: "Ambidiestro",
-  };
+  const {
+    teamPlayer,
+    setTeamPlayer,
+    form,
+    setForm,
+    photo,
+    setPhoto,
+    demarcationOptions,
+  } = usePlayerDetailData(id, DOMINANT_FOOT_MAP);
 
-  const handleSave = async () => {
-    if (!teamPlayer) return;
+  const notify = useCallback((message: string, severity: "success" | "error") => {
+    setSnackbarMessage(message);
+    setSnackbarSeverity(severity);
+    setSnackbarOpen(true);
+  }, []);
 
-    const possibleNames = (form.possibleDemarcations ?? "")
-      .split(",")
-      .map((s: string) => s.trim())
-      .filter((s: string) => s.length > 0);
+  const { saving, handleSave } = usePlayerSave({
+    teamPlayer,
+    form,
+    demarcationOptions,
+    setTeamPlayer,
+    setEditing,
+    notify,
+  });
 
-    const nameToId = new Map<string, number>();
-    demarcationOptions.forEach((o) => nameToId.set(o.name, o.id));
-    const mapped: Array<number | undefined> = possibleNames.map((n: string) =>
-      nameToId.get(n)
-    );
-    const possibleIds: number[] = mapped.filter(
-      (x): x is number => x !== undefined
-    );
-
-    if (possibleIds.length > 0 && !(form.activePositionId ?? null)) {
-      setSnackbarMessage(
-        "Seleccione la demarcación habitual antes de guardar."
-      );
-      setSnackbarSeverity("error");
-      setSnackbarOpen(true);
-      return;
-    }
-
-    setSaving(true);
-    try {
-      const parseNumber = (v: any) => {
-        if (v === null || v === undefined || v === "") return null;
-        const n = Number(v);
-        return isNaN(n) ? null : n;
-      };
-
-      const payload: any = {
-        dorsal: parseNumber(form.dorsal),
-        playerInfo: {
-          name: form.name ?? null,
-          lastName: form.lastName ?? null,
-          alias: form.alias ?? null,
-          urlPhoto: form.urlPhoto ?? null,
-        },
-        demarcation: {
-          activePositionId: form.activePositionId ?? null,
-          activePositionName: form.activePositionName ?? null,
-          possibleDemarcations: possibleIds,
-        },
-        contactInfo: {
-          phone: form.phone ?? null,
-          email: form.email ?? null,
-        },
-        physicalInfo: {
-          height: parseNumber(form.height),
-          weight: parseNumber(form.weight),
-          dominantFoot: form.dominantFoot ?? null,
-          dominantFootId: form.dominantFootId ?? null,
-        },
-      };
-      const updated = await teamplayerService.updateTeamPlayer(
-        teamPlayer.id,
-        payload
-      );
-      if (updated) {
-        setTeamPlayer(updated);
-        setEditing(false);
-        setSnackbarMessage("Jugador guardado correctamente.");
-        setSnackbarSeverity("success");
-        setSnackbarOpen(true);
-      } else {
-        setSnackbarMessage("No se pudo guardar el jugador.");
-        setSnackbarSeverity("error");
-        setSnackbarOpen(true);
-      }
-    } catch (e) {
-      setSnackbarMessage("Error al guardar. Inténtelo de nuevo.");
-      setSnackbarSeverity("error");
-      setSnackbarOpen(true);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  useEffect(() => {
-    let mounted = true;
-    async function load() {
-      // load demarcation options for id<->name mapping
-      try {
-        const opts = await demarcationService.getDemarcations();
-        if (mounted) setDemarcationOptions(opts);
-      } catch (e) {}
-
-      if (!id) return;
-      try {
-        const tp = await teamplayerService.getTeamPlayerById(id);
-        if (!mounted) return;
-        if (tp) {
-          setTeamPlayer(tp);
-          setForm({
-            alias: tp.player?.alias ?? "",
-            name: tp.player?.name ?? "",
-            lastName: tp.player?.lastName ?? "",
-            dorsal: tp.dorsal ?? null,
-            phone: tp.contactInfo?.phone ?? "",
-            email: tp.contactInfo?.email ?? "",
-            height: tp.physicalInfo?.height ?? null,
-            weight: tp.physicalInfo?.weight ?? null,
-            dominantFoot: tp.physicalInfo?.dominantFoot ?? "",
-            dominantFootId: tp.physicalInfo?.dominantFoot
-              ? DOMINANT_FOOT_MAP[tp.physicalInfo?.dominantFoot] ?? null
-              : null,
-            activePositionName: tp.demarcation?.activePositionName ?? "",
-            activePositionId: tp.demarcation?.activePositionId ?? null,
-            possibleDemarcations: (
-              tp.demarcation?.possibleDemarcations ?? []
-            ).join(", "),
-            urlPhoto: tp.player?.urlPhoto ?? tp.player?.photoUrl ?? null,
-          });
-          const photoUrl = tp.player?.urlPhoto ?? tp.player?.photoUrl ?? null;
-          if (photoUrl) {
-            try {
-              const obj = await playerService.fetchPlayerPhoto(photoUrl);
-              if (!mounted) return;
-              setPhoto(obj);
-            } catch (e) {}
-          }
-          return;
-        }
-
-        const p = await playerService.getPlayerById(id as string);
-        if (!mounted) return;
-        if (p) {
-          setTeamPlayer({ player: p });
-          setForm({
-            alias: p?.alias ?? "",
-            name: p?.name ?? "",
-            lastName: p?.lastName ?? "",
-            dorsal: null,
-            phone: "",
-            email: "",
-            height: null,
-            weight: null,
-            dominantFoot: "",
-            dominantFootId: null,
-            activePositionName: "",
-            activePositionId: null,
-            possibleDemarcations: "",
-            urlPhoto: p?.urlPhoto ?? null,
-          });
-          if (p?.urlPhoto) {
-            try {
-              const obj = await playerService.fetchPlayerPhoto(p.urlPhoto);
-              if (!mounted) return;
-              setPhoto(obj);
-            } catch (e) {}
-          }
-        }
-      } catch (e) {}
-    }
-    load();
-    return () => {
-      mounted = false;
-      if (photo) {
-        try {
-          URL.revokeObjectURL(photo);
-        } catch (e) {}
-      }
-    };
-  }, [id]);
+  const { matchHistory, loadingHistory, loadHistory } = usePlayerMatchHistory();
 
   return (
     <BaseLayout hideFooterMenu>
@@ -348,13 +193,7 @@ export default function PlayerDetail() {
                     }
                   />
                   <Tab label="Estadísticas" onClick={() => {
-                    if (!historyLoaded && id) {
-                      setLoadingHistory(true);
-                      getPlayerMatchHistory(id)
-                        .then((data) => { setMatchHistory(data); setHistoryLoaded(true); })
-                        .catch(() => {})
-                        .finally(() => setLoadingHistory(false));
-                    }
+                    loadHistory(id);
                   }} />
                 </Tabs>
               </div>
