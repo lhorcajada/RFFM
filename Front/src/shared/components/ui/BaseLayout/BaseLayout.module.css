@@ -3,8 +3,9 @@
   --rffm-header-h: 64px;
   --rffm-footer-h: 64px;
   --rffm-page-h-padding: 12px; /* horizontal padding for page content */
-  --rffm-gradient-bg: linear-gradient(180deg, #082033 0%, #05313b 100%);
-  --rffm-footer-border: 1px solid rgba(0, 200, 255, 0.1);
+  /* FC26 defaults — overridden at runtime by MUI CssBaseline */
+  --rffm-gradient-bg: linear-gradient(180deg, #040d1a 0%, #071829 100%);
+  --rffm-footer-border: 1px solid rgba(0, 200, 255, 0.15);
 }
 
 .paper {

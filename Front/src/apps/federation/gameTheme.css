@@ -1,17 +1,17 @@
+/* ── EA FC 26 global CSS custom properties ───────────────────────────────── */
 :root {
-  /* Football game theme */
-  --bg: #071214; /* deep pitch night */
-  --panel: #0f2a1f; /* dark green panel */
-  --card: linear-gradient(180deg, #0f3b28, #0b2b1f); /* card gradient */
-  --accent: #00ff9f; /* neon green accent */
-  --accent-2: #ffd34d; /* gold accent */
-  --muted: #9db4a3; /* muted light green */
-  --border: rgba(255, 255, 255, 0.06);
+  --bg: #040d1a;                /* deep navy page background */
+  --panel: #071829;             /* card / panel surface */
+  --card: linear-gradient(160deg, #071829 0%, #040d1a 100%);
+  --accent: #00c8ff;            /* electric blue primary */
+  --accent-2: #f5b800;          /* gold secondary */
+  --muted: rgba(200, 230, 255, 0.55);
+  --border: rgba(0, 200, 255, 0.14);
 }
 
 body {
   background: var(--bg);
-  color: #e6f7ef;
+  color: #f0f8ff;
   margin: 0;
   padding: 0;
 }
@@ -19,12 +19,15 @@ body {
 .game-card {
   background: var(--card);
   border: 1px solid var(--border);
-  color: #e6f7ef;
+  color: #f0f8ff;
 }
 
 .game-title {
   color: var(--accent-2);
   font-weight: 700;
+  font-family: "Oswald", sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .game-accent {

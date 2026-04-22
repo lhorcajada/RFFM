@@ -1,25 +1,10 @@
 .appBar {
   background: var(--rffm-gradient-bg) !important;
   box-shadow: none !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(0, 200, 255, 0.18);
   height: var(--rffm-header-h, 64px);
   display: flex;
   align-items: center;
-}
-
-/* Coach theme specific override */
-.rffm-coach-theme .appBar {
-  background: var(--rffm-gradient-bg) !important;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.12) !important;
-}
-
-/* More specific overrides to catch MUI-generated classes and inline styles */
-.rffm-coach-theme .MuiAppBar-root,
-.rffm-coach-theme .MuiPaper-root,
-.rffm-coach-theme header[class*="MuiAppBar-root"] {
-  background: var(--rffm-gradient-bg) !important;
-  box-shadow: none !important;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.12) !important;
 }
 
 .toolbar {

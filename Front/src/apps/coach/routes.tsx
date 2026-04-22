@@ -1,9 +1,6 @@
 import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { CircularProgress, Box } from "@mui/material";
-import CssBaseline from "@mui/material/CssBaseline";
-import { ThemeProvider } from "@mui/material/styles";
-import coachTheme from "./muiCoachTheme";
 import { useLayoutEffect } from "react";
 import { CoachAuthProvider, CoachAuthGuard } from "./context/CoachAuthContext";
 import Clubs from "./pages/clubs/clubs";
@@ -57,74 +54,14 @@ function LoadingFallback() {
 }
 
 function CoachRoutesContent() {
+  // FC26 unified theme: no CSS var overrides needed — gameTheme CssBaseline
+  // at root level already sets all --rffm-* custom properties correctly.
   useLayoutEffect(() => {
-    const prev = {
-      gradient: getComputedStyle(document.documentElement).getPropertyValue(
-        "--rffm-gradient-bg",
-      ),
-      footerBorder: getComputedStyle(document.documentElement).getPropertyValue(
-        "--rffm-footer-border",
-      ),
-      cardBg: getComputedStyle(document.documentElement).getPropertyValue(
-        "--rffm-card-bg",
-      ),
-      bg: getComputedStyle(document.documentElement).getPropertyValue("--bg"),
-    };
-
-    // add coach theme class to root so theme variables are scoped
-    try {
-      document.documentElement.classList.add("rffm-coach-theme");
-
-      // Apply inline CSS variables on <html> so they win over :root rules
-      try {
-        const docElStyle = document.documentElement.style;
-        docElStyle.setProperty(
-          "--rffm-gradient-bg",
-          "linear-gradient(180deg, #07071a 0%, #0e0e26 100%)",
-        );
-        docElStyle.setProperty("--rffm-card-bg", "#1c1c30");
-        docElStyle.setProperty(
-          "--rffm-title-gradient",
-          "linear-gradient(135deg, #4d9de0 0%, #4ec9b0 100%)",
-        );
-        docElStyle.setProperty("--bg", "#07071a");
-        docElStyle.setProperty("--rffm-primary", "#4d9de0");
-        docElStyle.setProperty(
-          "--rffm-footer-border",
-          "1px solid rgba(255,255,255,0.08)",
-        );
-      } catch (e) {}
-
-      // debug: print CSS variables and computed styles for header/footer
-      setTimeout(() => {
-        try {
-          const rootStyles = getComputedStyle(document.documentElement);
-          const header = document.querySelector(
-            'header[class*="MuiAppBar-root"], .appBar, header',
-          );
-          const footer = document.querySelector("footer, .root");
-        } catch (e) {}
-      }, 50);
-    } catch (e) {}
-    return () => {
-      try {
-        // remove inline variables as well
-        const docElStyle = document.documentElement.style;
-        docElStyle.removeProperty("--rffm-gradient-bg");
-        docElStyle.removeProperty("--rffm-card-bg");
-        docElStyle.removeProperty("--rffm-title-gradient");
-        docElStyle.removeProperty("--bg");
-        docElStyle.removeProperty("--rffm-footer-border");
-
-        document.documentElement.classList.remove("rffm-coach-theme");
-      } catch (e) {}
-    };
+    return () => {};
   }, []);
   return (
     <CoachAuthGuard>
-      <ThemeProvider theme={coachTheme}>
-        <CssBaseline />
-        <Suspense fallback={<LoadingFallback />}>
+      <Suspense fallback={<LoadingFallback />}>
           <Routes>
             <Route path="/" element={<Navigate to="login" replace />} />
             <Route path="login" element={<Navigate to="/login" replace />} />
@@ -181,7 +118,6 @@ function CoachRoutesContent() {
             />
           </Routes>
         </Suspense>
-      </ThemeProvider>
     </CoachAuthGuard>
   );
 }
