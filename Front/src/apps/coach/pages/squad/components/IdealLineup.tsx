@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
+import { Fragment, forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -451,23 +451,22 @@ const IdealLineup = forwardRef<IdealLineupHandle, IdealLineupProps>(function Ide
                   Todos los jugadores están en la alineación
                 </Typography>
               ) : (
-                groupedAvailable.map((group) => (
-                  <div key={group.label} className={styles.positionGroup}>
-                    <div className={styles.positionGroupHeader}>
+                <div className={styles.positionGroupItems}>
+                  {groupedAvailable.map((group) => (
+                    <Fragment key={group.label}>
                       <div
-                        className={styles.positionGroupAccent}
-                        style={{ background: group.color }}
-                      />
-                      <span className={styles.positionGroupLabel}>{group.label}</span>
-                      <span className={styles.positionGroupCount}>{group.players.length}</span>
-                    </div>
-                    <div className={styles.positionGroupItems}>
+                        className={styles.positionGroupSeparator}
+                        style={{ borderLeftColor: group.color }}
+                      >
+                        <span className={styles.positionGroupSeparatorLabel}>{group.label}</span>
+                        <span className={styles.positionGroupSeparatorCount}>{group.players.length}</span>
+                      </div>
                       {group.players.map((p) => (
                         <DraggableListItem key={p.id} player={p} onDeconvoke={onDeconvoke} />
                       ))}
-                    </div>
-                  </div>
-                ))
+                    </Fragment>
+                  ))}
+                </div>
               )}
             </div>
           </div>

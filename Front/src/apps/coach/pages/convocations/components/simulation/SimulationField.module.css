@@ -8,6 +8,7 @@
   min-width: 260px;
   aspect-ratio: 105 / 68;
   align-self: flex-start;
+  z-index: 0;
 }
 
 .field {
