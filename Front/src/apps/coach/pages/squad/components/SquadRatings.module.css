@@ -117,47 +117,32 @@
 }
 
 .toggleTab {
-  width: 18px;
+  width: 22px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 165, 0, 0.08);
   border: none;
-  border-top: 1px solid rgba(255, 255, 255, 0.09);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+  border-top: 1px solid rgba(255, 165, 0, 0.2);
+  border-bottom: 1px solid rgba(255, 165, 0, 0.2);
+  border-left: 2px solid rgba(255, 140, 0, 0.35);
   cursor: pointer;
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(255, 165, 0, 0.6);
   padding: 0;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
 .toggleTab:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 140, 0, 0.2);
+  color: rgba(255, 180, 60, 1);
+  border-left-color: rgba(255, 140, 0, 0.8);
 }
 
-/* ─── Print button (individual player) ─── */
-
-.printBtn {
-  width: 18px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.04);
-  border: none;
-  border-top: 1px solid rgba(255, 255, 255, 0.09);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
-  cursor: pointer;
-  color: rgba(255, 255, 255, 0.3);
-  padding: 0;
-  transition: background 0.15s ease, color 0.15s ease;
-}
-
-.printBtn:hover {
-  background: rgba(220, 80, 0, 0.2);
-  color: rgba(255, 160, 60, 0.9);
+.toggleTabOpen {
+  background: rgba(255, 140, 0, 0.15);
+  color: rgba(255, 180, 60, 0.9);
+  border-left-color: rgba(255, 140, 0, 0.7);
 }
 
 /* ─── Sliding panel ─── */

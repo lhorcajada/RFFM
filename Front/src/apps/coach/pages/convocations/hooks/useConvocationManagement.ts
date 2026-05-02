@@ -13,8 +13,10 @@ import type { PlayerRating } from "../../../types/playerRating";
 import type { DropZone } from "../components/convocationMatchDetail.types";
 import {
   CALLED_STATUS_ID,
+  CALLED_STATUS_IDS,
   NOT_CALLED_STATUS_ID,
-  LEGACY_NOT_CALLED_STATUS_ID,
+  JUSTIFIED_STATUS_ID,
+  PENDING_STATUS_ID,
 } from "../components/convocationMatchDetail.types";
 
 // Returns true only if the injury started strictly before the given event date (day-only comparison).
@@ -44,6 +46,7 @@ export type ConvocationManagementReturn = {
   mgmtAvailable: string[];
   mgmtCalled: string[];
   mgmtNotCalled: string[];
+  mgmtPending: string[];
   // Supporting maps
   mgmtConvMap: Record<string, string>;
   mgmtRatings: Record<string, PlayerRating>;
@@ -66,6 +69,7 @@ export type ConvocationManagementReturn = {
   handleSave: () => Promise<void>;
   moveToNotCalled: (playerId: string, excuseId?: number | null) => Promise<void>;
   moveToAvailable: (playerId: string) => Promise<void>;
+  acceptPending: (playerId: string) => Promise<void>;
 };
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
@@ -90,6 +94,7 @@ export function useConvocationManagement(
   const [mgmtAvailable, setMgmtAvailable] = useState<string[]>([]);
   const [mgmtCalled, setMgmtCalled] = useState<string[]>([]);
   const [mgmtNotCalled, setMgmtNotCalled] = useState<string[]>([]);
+  const [mgmtPending, setMgmtPending] = useState<string[]>([]);
   const [mgmtConvMap, setMgmtConvMap] = useState<Record<string, string>>({});
   const [mgmtRatings, setMgmtRatings] = useState<Record<string, PlayerRating>>({});
   const [mgmtPhotos, setMgmtPhotos] = useState<Record<string, string | null>>({});
@@ -192,15 +197,18 @@ export function useConvocationManagement(
         const convMap: Record<string, string> = {};
         const calledIds: string[] = [];
         const notCalledIds: string[] = [];
+        const pendingIds: string[] = [];
 
         for (const conv of convs) {
           const pid = conv.player.id ?? "";
           if (!pid) continue;
           convMap[pid] = conv.id;
-          if (conv.status === NOT_CALLED_STATUS_ID || conv.status === LEGACY_NOT_CALLED_STATUS_ID) {
+          // Status 5 (Deconvoke) and 4 (Justified) → not called; 1 (Pending) and 2 (Accepted) → called
+          if (conv.status === NOT_CALLED_STATUS_ID || conv.status === JUSTIFIED_STATUS_ID) {
             notCalledIds.push(pid);
           } else {
             calledIds.push(pid);
+            if (conv.status === PENDING_STATUS_ID) pendingIds.push(pid);
           }
         }
 
@@ -245,6 +253,7 @@ export function useConvocationManagement(
           setMgmtConvMap(convMap);
           setMgmtCalled(finalCalledIds);
           setMgmtNotCalled(notCalledIds);
+          setMgmtPending(pendingIds.filter((id) => !injuredCalledIds.has(id)));
           setMgmtAvailable(availableIds);
           setMgmtExcuseMap(excuseInit);
         }
@@ -440,7 +449,7 @@ export function useConvocationManagement(
       if (missingExcuse.length > 0) {
         const names = missingExcuse.map((t) => {
           const p = players.find((pl) => pl.id === t.pid);
-          return p ? ((p.name ?? "") + " " + (p.lastName ?? "")).trim() || p.alias : t.pid;
+          return p ? p.alias || ((p.name ?? "") + " " + (p.lastName ?? "")).trim() || t.pid : t.pid;
         });
         throw new Error(`Falta el motivo de desconvocatoria para: ${names.join(", ")}`);
       }
@@ -519,6 +528,24 @@ export function useConvocationManagement(
     }
   }
 
+  async function acceptPending(playerId: string) {
+    if (!mgmtEventId) return;
+    const pid = playerId;
+
+    // Optimistic update: remove from pending, keep in called
+    setMgmtPending((prev) => prev.filter((id) => id !== pid));
+
+    try {
+      const convId = mgmtConvMap[pid];
+      if (convId) {
+        await convocationService.updateConvocationStatus(mgmtEventId, convId, CALLED_STATUS_ID);
+      }
+    } catch {
+      // rollback
+      setMgmtPending((prev) => (prev.includes(pid) ? prev : [...prev, pid]));
+    }
+  }
+
   return {
     players,
     loadingPlayers,
@@ -529,6 +556,7 @@ export function useConvocationManagement(
     mgmtAvailable,
     mgmtCalled,
     mgmtNotCalled,
+    mgmtPending,
     mgmtConvMap,
     mgmtRatings,
     mgmtPhotos,
@@ -546,5 +574,6 @@ export function useConvocationManagement(
     handleSave,
     moveToNotCalled,
     moveToAvailable,
+    acceptPending,
   };
 }

@@ -89,16 +89,31 @@
 
 .answerRow {
   display: flex;
-  align-items: flex-start;
-  gap: 8px;
+  flex-direction: column;
+  gap: 2px;
   font-size: 11px;
   color: rgba(255, 255, 255, 0.7);
+  padding: 3px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+
+.answerHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .answerLevel {
   font-size: 12px;
   font-weight: 700;
   min-width: 16px;
+}
+
+.answerLabel {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  white-space: nowrap;
+  min-width: 80px;
 }
 
 .answerConcept {

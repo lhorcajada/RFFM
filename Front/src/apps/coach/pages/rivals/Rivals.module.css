@@ -1,0 +1,31 @@
+.container {
+  display: flex;
+  gap: 20px;
+}
+.list {
+  flex: 1 1 400px;
+}
+.search {
+  flex: 1 1 320px;
+}
+.item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.itemLeft {
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+.avatarSmall {
+  width:40px;
+  height:40px;
+  border-radius:50%;
+  object-fit:cover;
+}
+.grid {
+  display:flex;
+  flex-wrap:wrap;
+  gap:12px;
+}

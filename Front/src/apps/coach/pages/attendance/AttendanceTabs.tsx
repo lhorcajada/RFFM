@@ -261,10 +261,11 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch }: Props) 
         <Box className={styles.page}>
           <div className={styles.half}>
             <div className={`${styles.listGroupHeader} ${styles.listGroupHeaderBlue}`}>
-              <span>Lista de espera</span>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div className={styles.listGroupTitle}>
+                <span>Lista de espera</span>
                 <span className={styles.listGroupCount}>{notConvoked.length}</span>
-                {waitingList.length > 0 && (
+              </div>
+              {waitingList.length > 0 && (
                   <Button
                     size="small"
                     variant="outlined"
@@ -302,7 +303,6 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch }: Props) 
                     Convocar toda la lista de espera
                   </Button>
                 )}
-              </div>
             </div>
 
             <NotConvokedList
@@ -319,55 +319,9 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch }: Props) 
 
           <div className={styles.half}>
             <div className={`${styles.listGroupHeader} ${styles.listGroupHeaderTeal}`}>
-              <span>Convocados</span>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                {(() => {
-                  const acceptedId = statuses.find((s) => s.name === "Accepted")?.id;
-                  const pendingId = statuses.find((s) => s.name === "Pending")?.id;
-                  const acceptedCount = convocations.filter((c) => c.player && c.status === acceptedId && !c.isInjured).length;
-                  const pendingCount = convocations.filter((c) => c.player && c.status === pendingId && !c.isInjured).length;
-                  return (
-                    <span className={styles.listGroupCount}>
-                      {acceptedCount} aceptados{pendingCount > 0 ? ` · ${pendingCount} pendientes` : ""}
-                    </span>
-                  );
-                })()}
-                {canEdit && (() => {
-                  const pendingId = statuses.find((s) => s.name === "Pending")?.id;
-                  if (!pendingId) return null;
-                  const acceptedId = statuses.find((s) => s.name === "Accepted")?.id;
-                  if (!acceptedId) return null;
-                  // Same exclusion as the visual sections: exclude injured players
-                  const notAccepted = convocations.filter(
-                    (c) => c.player && c.status === pendingId && !c.isInjured
-                  );
-                  if (notAccepted.length === 0) return null;
-                  return (
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      disabled={acceptingAll}
-                      onClick={async () => {
-                        setAcceptingAll(true);
-                        try {
-                          await Promise.all(
-                            notAccepted.map((c) =>
-                              convocationService.updateConvocationStatus(eventId, c.id, acceptedId, null)
-                            )
-                          );
-                          const conv = await convocationService.getConvocations(eventId);
-                          setConvocations(conv);
-                        } catch (err: any) {
-                          alert(err?.message ?? "Error al aceptar convocados");
-                        } finally {
-                          setAcceptingAll(false);
-                        }
-                      }}
-                    >
-                      Aceptar todos
-                    </Button>
-                  );
-                })()}
+              <div className={styles.listGroupTitle}>
+                <span>Convocados</span>
+                <span className={styles.listGroupCount}>{convocations.filter((c) => c.player).length}</span>
               </div>
             </div>
 
@@ -422,8 +376,7 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch }: Props) 
                 const byUrl = p.urlPhoto ? playerPhotos[String(p.urlPhoto)] : null;
                 const rawPhotoSrc = byId ?? byUrl ?? null;
                 const photo = rawPhotoSrc ?? defaultAvatar;
-                const rawName = ((p.name ?? "") + " " + (p.lastName ?? "")).trim();
-                const displayName = rawName || p.alias || "Jugador";
+                const displayName = p.alias || ((p.name ?? "") + " " + (p.lastName ?? "")).trim() || "Jugador";
                 const dorsalValue =
                   typeof p.dorsal === "number" ? p.dorsal : p.dorsal ? Number(p.dorsal) : null;
                 const hasDorsal =
@@ -489,23 +442,64 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch }: Props) 
 
               return (
                 <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 24 }}>
+                  {pending.length > 0 && (
+                    <div>
+                      <div className={`${styles.listGroupHeader} ${styles.listGroupHeaderOrange}`}>
+                        <div className={styles.listGroupTitle}>
+                          <span>Pendientes de aceptar</span>
+                          <span className={styles.listGroupCount}>{pending.length}</span>
+                        </div>
+                        {canEdit && (() => {
+                            const acceptedId = statuses.find((s) => s.name === "Accepted")?.id;
+                            if (!acceptedId) return null;
+                            return (
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                disabled={acceptingAll}
+                                onClick={async () => {
+                                  setAcceptingAll(true);
+                                  try {
+                                    await Promise.all(
+                                      pending.map((c) =>
+                                        convocationService.updateConvocationStatus(eventId, c.id, acceptedId, null)
+                                      )
+                                    );
+                                    const conv = await convocationService.getConvocations(eventId);
+                                    setConvocations(conv);
+                                  } catch (err: any) {
+                                    alert(err?.message ?? "Error al aceptar convocados");
+                                  } finally {
+                                    setAcceptingAll(false);
+                                  }
+                                }}
+                              >
+                                Aceptar todos
+                              </Button>
+                            );
+                          })()}
+                      </div>
+                      <div className={styles.convocatedList}>{pending.map(renderCard)}</div>
+                    </div>
+                  )}
                   {accepted.length > 0 && (
                     <div>
                       <div className={`${styles.listGroupHeader} ${styles.listGroupHeaderGreen}`}>
-                        <span>Aceptados</span>
-                        <span className={styles.listGroupCount}>{accepted.length}</span>
+                        <div className={styles.listGroupTitle}>
+                          <span>Aceptados</span>
+                          <span className={styles.listGroupCount}>{accepted.length}</span>
+                        </div>
                       </div>
                       <div className={styles.convocatedList}>{accepted.map(renderCard)}</div>
                     </div>
                   )}
-                  {pending.length > 0 && (
-                    <div className={styles.convocatedList}>{pending.map(renderCard)}</div>
-                  )}
                   {totalDesconvocados > 0 ? (
                     <div>
                       <div className={`${styles.listGroupHeader} ${styles.listGroupHeaderRed}`}>
-                        <span>Desconvocados</span>
-                        <span className={styles.listGroupCount}>{totalDesconvocados}</span>
+                        <div className={styles.listGroupTitle}>
+                          <span>Desconvocados</span>
+                          <span className={styles.listGroupCount}>{totalDesconvocados}</span>
+                        </div>
                       </div>
                       <div className={styles.convocatedList}>
                         {injuredNoConv.map(renderInjuredCard)}
@@ -582,8 +576,7 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch }: Props) 
                 };
                 const NO_EXCUSA_ID = 2;
                 const p = c.player as any;
-                const rawName = ((p?.name ?? "") + " " + (p?.lastName ?? "")).trim();
-                const displayName = rawName || p?.alias || "Jugador";
+                const displayName = p?.alias || ((p?.name ?? "") + " " + (p?.lastName ?? "")).trim() || "Jugador";
                 const dorsalValue =
                   typeof p?.dorsal === "number" ? p.dorsal : p?.dorsal ? Number(p.dorsal) : null;
                 const hasDorsal =
@@ -682,8 +675,10 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch }: Props) 
                   {attend.length > 0 && (
                     <div>
                       <div className={`${styles.listGroupHeader} ${styles.listGroupHeaderGreen}`}>
-                        <span>Asisten</span>
-                        <span className={styles.listGroupCount}>{attend.length}</span>
+                        <div className={styles.listGroupTitle}>
+                          <span>Asisten</span>
+                          <span className={styles.listGroupCount}>{attend.length}</span>
+                        </div>
                       </div>
                       <div className={styles.convocatedList}>
                         {attend.map(renderCard)}
@@ -693,8 +688,10 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch }: Props) 
                   {absent.length > 0 && (
                     <div>
                       <div className={`${styles.listGroupHeader} ${styles.listGroupHeaderRed}`}>
-                        <span>No asisten</span>
-                        <span className={styles.listGroupCount}>{absent.length}</span>
+                        <div className={styles.listGroupTitle}>
+                          <span>No asisten</span>
+                          <span className={styles.listGroupCount}>{absent.length}</span>
+                        </div>
                       </div>
                       <div className={styles.convocatedList}>
                         {absent.map(renderCard)}
@@ -704,8 +701,10 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch }: Props) 
                   {pending.length > 0 && (
                     <div>
                       <div className={`${styles.listGroupHeader} ${styles.listGroupHeaderGray}`}>
-                        <span>Sin indicar</span>
-                        <span className={styles.listGroupCount}>{pending.length}</span>
+                        <div className={styles.listGroupTitle}>
+                          <span>Sin indicar</span>
+                          <span className={styles.listGroupCount}>{pending.length}</span>
+                        </div>
                       </div>
                       <div className={styles.convocatedList}>
                         {pending.map(renderCard)}

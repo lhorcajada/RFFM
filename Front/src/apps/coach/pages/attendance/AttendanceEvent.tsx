@@ -12,9 +12,39 @@ import teamService from "../../services/teamService";
 import clubService from "../../services/clubService";
 import { Box, Button, CircularProgress, Chip } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import SportsSoccerIcon from "@mui/icons-material/SportsSoccer";
 import { getEventTypeColor } from "./attendanceUtils";
 import styles from "./AttendanceEvent.module.css";
 import AttendanceTabs from "./AttendanceTabs";
+import type { MatchState } from "../convocations/components/convocationMatchDetail.types";
+
+function toMatchState(ev: SportEventResponse): MatchState {
+  const raw = ev.eveDateTime ?? ev.startTime ?? ev.start ?? null;
+  const date = raw ? raw.trim().substring(0, 10) : "";
+  let time = "";
+  if (raw && raw.includes("T")) {
+    const part = raw.split("T")[1]?.substring(0, 5) ?? "";
+    if (part !== "00:00") time = part;
+  }
+  const isHomeMatch = ev.isHomeMatch !== false;
+  const rivalName = ev.rivalName ?? ev.rival ?? "";
+  const rivalShield = ev.rivalPhotoUrl ?? "";
+  const myTeamName = ev.teamName ?? "";
+  const myTeamShield = ev.teamPhotoUrl ?? "";
+  return {
+    date,
+    time,
+    localTeamName: isHomeMatch ? myTeamName : rivalName,
+    localTeamShield: isHomeMatch ? myTeamShield : rivalShield,
+    visitorTeamName: isHomeMatch ? rivalName : myTeamName,
+    visitorTeamShield: isHomeMatch ? rivalShield : myTeamShield,
+    isFinished: raw ? new Date(raw) < new Date() : false,
+    isHomeTeam: isHomeMatch,
+    field: ev.location ?? "",
+    codacta: ev.codActa ?? null,
+    selectedKitNumber: ev.selectedKitNumber ?? null,
+  };
+}
 
 function parseDate(input?: string | null): Date | null {
   if (!input) return null;
@@ -160,6 +190,19 @@ export default function AttendanceEvent() {
               >
                 Volver
               </Button>
+              {event && /part|amist/i.test(eventTypeName ?? "") && (
+                <Button
+                  startIcon={<SportsSoccerIcon />}
+                  variant="contained"
+                  size="small"
+                  onClick={() => {
+                    const teamIdParam = encodeURIComponent(String(event.teamId ?? ""));
+                    navigate(`/coach/convocations/match?teamId=${teamIdParam}`, { state: { match: toMatchState(event) } });
+                  }}
+                >
+                  Ir al partido
+                </Button>
+              )}
             </div>
           </div>
         }

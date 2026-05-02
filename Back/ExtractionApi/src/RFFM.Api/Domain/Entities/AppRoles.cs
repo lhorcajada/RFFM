@@ -18,8 +18,16 @@ namespace RFFM.Api.Domain.Entities
         public static readonly AppRoles Administrator = new AppRoles(1, "Administrator");
         public static readonly AppRoles Federation = new AppRoles(2, "Federation");
         public static readonly AppRoles Coach = new AppRoles(3, "Coach");
+        public static readonly AppRoles ClubDirector = new AppRoles(4, "ClubDirector");
+        public static readonly AppRoles Player = new AppRoles(5, "Player");
+        public static readonly AppRoles FamilyMember = new AppRoles(6, "FamilyMember");
+        public static readonly AppRoles Fan = new AppRoles(7, "Fan");
+        public static readonly AppRoles ClubMember = new AppRoles(8, "ClubMember");
 
-        public static IEnumerable<AppRoles> List() => new[] { Administrator, Federation, Coach };
+        public static IEnumerable<AppRoles> List() => new[]
+        {
+            Administrator, Federation, Coach, ClubDirector, Player, FamilyMember, Fan, ClubMember
+        };
 
         public static AppRoles FromName(string name)
         {

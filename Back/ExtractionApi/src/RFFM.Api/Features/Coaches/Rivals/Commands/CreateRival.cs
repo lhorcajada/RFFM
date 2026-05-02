@@ -19,14 +19,14 @@ namespace RFFM.Api.Features.Coaches.Rivals.Commands
                         IEasyCachingProviderFactory cachingFactory,
                         CancellationToken cancellationToken) =>
                     {
-                        var rival = new Rival(req.Name, req.UrlPhoto);
+                        var rival = new Rival(req.Name, req.UrlPhoto, req.Category);
                         db.Rivals.Add(rival);
                         await db.SaveChangesAsync(cancellationToken);
 
                         var cache = cachingFactory.GetCachingProvider(Cache.CacheDefaultName);
                         await cache.RemoveAsync("Rivals", cancellationToken);
 
-                        return Results.Ok(new RivalSaveResponse(rival.Id, rival.Name, rival.UrlPhoto));
+                        return Results.Ok(new RivalSaveResponse(rival.Id, rival.Name, rival.UrlPhoto, rival.Category));
                     })
                 .WithName(nameof(CreateRival))
                 .WithTags("Rivals")
@@ -35,7 +35,7 @@ namespace RFFM.Api.Features.Coaches.Rivals.Commands
         }
     }
 
-    public record CreateRivalRequest(string Name, string? UrlPhoto);
+    public record CreateRivalRequest(string Name, string? UrlPhoto, string? Category);
 
     public class CreateRivalValidator : AbstractValidator<CreateRivalRequest>
     {
@@ -45,5 +45,5 @@ namespace RFFM.Api.Features.Coaches.Rivals.Commands
         }
     }
 
-    public record RivalSaveResponse(string Id, string Name, string? UrlPhoto);
+    public record RivalSaveResponse(string Id, string Name, string? UrlPhoto, string? Category);
 }

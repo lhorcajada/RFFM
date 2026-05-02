@@ -270,5 +270,146 @@ namespace RFFM.Host.DependencyInjection
                 logger?.LogError(ex, "Error while seeding payment plans");
             }
         }
+
+        public static async Task SeedPermissionsAsync(this WebApplication app)
+        {
+            using var scope = app.Services.CreateScope();
+            var logger = scope.ServiceProvider.GetService<ILogger<WebApplication>>();
+
+            try
+            {
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                var roleManager = scope.ServiceProvider.GetService<RoleManager<IdentityRole>>();
+
+                logger?.LogInformation("Seeding new identity roles if not present...");
+                string[] newRoles = ["ClubDirector", "Player", "FamilyMember", "Fan", "ClubMember"];
+                if (roleManager != null)
+                {
+                    foreach (var roleName in newRoles)
+                    {
+                        if (!await roleManager.RoleExistsAsync(roleName))
+                        {
+                            var result = await roleManager.CreateAsync(new IdentityRole(roleName));
+                            if (result.Succeeded)
+                                logger?.LogInformation("Created role {Role}", roleName);
+                            else
+                                logger?.LogWarning("Failed to create role {Role}: {Errors}",
+                                    roleName, string.Join(',', result.Errors.Select(e => e.Description)));
+                        }
+                    }
+                }
+
+                logger?.LogInformation("Seeding feature permissions if not present...");
+                await SeedFeaturePermissionsAsync(db, logger);
+
+                logger?.LogInformation("Seeding page permissions if not present...");
+                await SeedPagePermissionsAsync(db, logger);
+
+                logger?.LogInformation("✓ Permissions seeding finished");
+            }
+            catch (Exception ex)
+            {
+                logger?.LogError(ex, "Error while seeding permissions");
+            }
+        }
+
+        private static async Task SeedFeaturePermissionsAsync(AppDbContext db, ILogger? logger)
+        {
+            using var tx = await db.Database.BeginTransactionAsync();
+            try
+            {
+                var entries = new[]
+                {
+                    // Coach
+                    ("SeasonPrep",   "/coach/season-prep",   "Coach",       3, false),
+                    ("Roster",        "/coach/roster",        "Coach",       3, false),
+                    ("Trainings",     "/coach/trainings",     "Coach",       3, false),
+                    ("GameModels",    "/coach/game-models",   "Coach",       3, false),
+                    ("Assistances",   "/coach/assistances",   "Coach",       3, false),
+                    ("Convocations",  "/coach/convocations",  "Coach",       3, false),
+                    ("Dashboard",     "/coach/dashboard",     "Coach",       1, false),
+
+                    // ClubDirector
+                    ("Dashboard",     "/coach/dashboard",     "ClubDirector", 1, true),
+                    ("Roster",        "/coach/roster",        "ClubDirector", 1, true),
+
+                    // Player
+                    ("Dashboard",     "/coach/dashboard",     "Player",      1, false),
+                    ("Roster",        "/coach/roster",        "Player",      1, false),
+
+                    // FamilyMember
+                    ("Dashboard",     "/coach/dashboard",     "FamilyMember", 1, false),
+                    ("Roster",        "/coach/roster",        "FamilyMember", 1, false),
+
+                    // Fan
+                    ("Dashboard",     "/coach/dashboard",     "Fan",         1, false),
+
+                    // ClubMember
+                    ("Dashboard",     "/coach/dashboard",     "ClubMember",  1, false),
+                    ("Roster",        "/coach/roster",        "ClubMember",  1, false),
+                };
+
+                foreach (var (featureName, featureRoute, roleName, permTypeId, isEditable) in entries)
+                {
+                    var exists = db.FeaturePermissions.Any(
+                        fp => fp.RoleName == roleName && fp.FeatureRoute == featureRoute);
+                    if (!exists)
+                    {
+                        db.FeaturePermissions.Add(new RFFM.Api.Domain.Entities.FeaturePermission(
+                            featureName, featureRoute, roleName,
+                            RFFM.Api.Domain.Entities.PermissionType.FromId(permTypeId),
+                            isEditable));
+                        logger?.LogDebug("Seeded FeaturePermission {Role} -> {Route}", roleName, featureRoute);
+                    }
+                }
+
+                await db.SaveChangesAsync();
+                await tx.CommitAsync();
+            }
+            catch
+            {
+                await tx.RollbackAsync();
+                throw;
+            }
+        }
+
+        private static async Task SeedPagePermissionsAsync(AppDbContext db, ILogger? logger)
+        {
+            using var tx = await db.Database.BeginTransactionAsync();
+            try
+            {
+                var entries = new[]
+                {
+                    // Roster page
+                    ("Roster", "view_all_ratings",  "Coach",       1, false),
+                    ("Roster", "edit_ratings",       "Coach",       3, false),
+                    ("Roster", "view_own_rating",    "Player",      1, false),
+                    ("Roster", "view_all_ratings",   "ClubDirector", 1, true),
+                    ("Roster", "view_own_rating",    "FamilyMember", 1, false),
+                };
+
+                foreach (var (pageId, key, roleName, permTypeId, isEditable) in entries)
+                {
+                    var exists = db.PagePermissions.Any(
+                        pp => pp.RoleName == roleName && pp.PageIdentifier == pageId && pp.PermissionKey == key);
+                    if (!exists)
+                    {
+                        db.PagePermissions.Add(new RFFM.Api.Domain.Entities.PagePermission(
+                            pageId, key, roleName,
+                            RFFM.Api.Domain.Entities.PermissionType.FromId(permTypeId),
+                            isEditable));
+                        logger?.LogDebug("Seeded PagePermission {Role} -> {Page}.{Key}", roleName, pageId, key);
+                    }
+                }
+
+                await db.SaveChangesAsync();
+                await tx.CommitAsync();
+            }
+            catch
+            {
+                await tx.RollbackAsync();
+                throw;
+            }
+        }
     }
 }

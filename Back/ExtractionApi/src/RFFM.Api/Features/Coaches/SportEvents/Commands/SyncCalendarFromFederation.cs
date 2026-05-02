@@ -79,7 +79,7 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
                             var normalizedName = rivalNameSafe.ToLowerInvariant();
                             if (!rivalsByName.TryGetValue(normalizedName, out var rival))
                             {
-                                rival = new Rival(rivalNameSafe, null);
+                                rival = new Rival(rivalNameSafe, null, null);
                                 db.Rivals.Add(rival);
                                 rivalsByName[normalizedName] = rival;
                                 allRivals.Add(rival);

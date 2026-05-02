@@ -129,11 +129,12 @@
 }
 
 .playerName {
-  flex: 1;
+  flex: 1 1 auto;
   font-size: 0.82rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  /* Allow long names to wrap onto multiple lines instead of truncating */
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
 }
 
 .playerStats {

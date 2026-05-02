@@ -83,7 +83,11 @@ namespace RFFM.Api.Features.Federation.Competitions.Services
                 .OrderByDescending(m => m.MatchDayDate)
                 .FirstOrDefault();
 
-            return lastPast;
+            if (lastPast != null) return lastPast;
+
+            // Last resort: all dates are unparseable – return the highest matchday number
+            // so GetClassification can still fetch standings for the most advanced round.
+            return matchDays.OrderByDescending(m => m.MatchDayNumber).FirstOrDefault();
         }
 
 

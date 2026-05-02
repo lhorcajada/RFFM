@@ -16,6 +16,7 @@ import BaseLayout from "../../../../../shared/components/ui/BaseLayout/BaseLayou
 import ContentLayout from "../../../../../shared/components/ui/ContentLayout/ContentLayout";
 import avatarFallback from "../../../../../assets/avatar.svg";
 import { getTeamPlayerById } from "../../../services/teamplayerService";
+import { fetchPlayerPhoto } from "../../../services/playerService";
 import {
   createRating,
   getRatingHistory,
@@ -52,6 +53,7 @@ export default function NewRatingPage() {
   const [answers, setAnswers] = useState<Record<string, CharacteristicAnswer>>({});
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
+  const [ratedAt, setRatedAt] = useState<string>(() => new Date().toISOString().slice(0, 10));
   const [saving, setSaving] = useState(false);
   const [latestRating, setLatestRating] = useState<PlayerRating | null>(null);
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: "success" | "error" | "info" }>({ open: false, message: "", severity: "success" });
@@ -62,12 +64,13 @@ export default function NewRatingPage() {
     Promise.all([getTeamPlayerById(playerId), getRatingHistory(playerId)])
       .then(([tp, history]) => {
         if (tp) {
-          const name = tp.player?.name ?? tp.player?.firstName
-            ? `${tp.player?.firstName ?? ""} ${tp.player?.lastName ?? ""}`.trim()
-            : tp.id;
+          const name = `${tp.player?.name ?? ""} ${tp.player?.lastName ?? ""}`.trim() || tp.id;
           setPlayerName(name);
           setPlayerDorsal(tp.dorsal ?? tp.player?.dorsal ?? null);
-          setPlayerPhoto(tp.player?.urlPhoto ?? null);
+          const photoUrl = tp.player?.urlPhoto ?? tp.player?.photoUrl ?? null;
+          if (photoUrl) {
+            fetchPlayerPhoto(photoUrl).then((obj) => { if (obj) setPlayerPhoto(obj); }).catch(() => {});
+          }
 
           const demarcation = tp.demarcation?.activePositionName ?? null;
           const goalkeeper = isGoalkeeperDemarcation(demarcation);
@@ -158,7 +161,8 @@ export default function NewRatingPage() {
     );
 
     return JSON.stringify(currentAnswers) !== JSON.stringify(latestAnswers)
-      || notes.trim() !== (latestRating.notes ?? "").trim();
+      || notes.trim() !== (latestRating.notes ?? "").trim()
+      || ratedAt !== latestRating.ratedAt.slice(0, 10);
   }, [answers, latestRating, notes]);
 
   function selectLevel(level: number) {
@@ -191,6 +195,7 @@ export default function NewRatingPage() {
         isGoalkeeper,
         answers: Object.values(answers),
         notes: notes.trim() || null,
+        ratedAt: ratedAt ? new Date(ratedAt).toISOString() : null,
       });
       navigate(`/coach/squad${squadSearch}`);
     } catch {
@@ -213,7 +218,7 @@ export default function NewRatingPage() {
   return (
     <BaseLayout hideFooterMenu>
       <ContentLayout
-        title={latestRating ? "Editar valoración" : "Nueva valoración"}
+        title="Nueva valoración"
         actionBar={
           <>
             <div className={styles.playerIdentity}>
@@ -306,6 +311,16 @@ export default function NewRatingPage() {
             )}
 
             <div className={styles.notesArea}>
+              <TextField
+                label="Fecha de valoración"
+                type="date"
+                size="small"
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+                value={ratedAt}
+                onChange={(e) => setRatedAt(e.target.value)}
+                sx={{ mb: 1.5 }}
+              />
               <TextField
                 label="Notas (opcional)"
                 multiline

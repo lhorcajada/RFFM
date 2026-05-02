@@ -3257,6 +3257,45 @@ namespace RFFM.Api.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("RFFM.Api.Domain.Entities.FeaturePermission", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<string>("FeatureName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("FeatureRoute")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<bool>("IsEditable")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<int>("PermissionTypeId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("RoleName")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Id")
+                        .IsUnique();
+
+                    b.HasIndex("RoleName", "FeatureRoute")
+                        .IsUnique();
+
+                    b.ToTable("FeaturePermissions", "app");
+                });
+
             modelBuilder.Entity("RFFM.Api.Domain.Entities.Formations.Formation", b =>
                 {
                     b.Property<string>("Id")
@@ -3277,6 +3316,45 @@ namespace RFFM.Api.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("Formations", "app");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Entities.PagePermission", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsEditable")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("PageIdentifier")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("PermissionKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("PermissionTypeId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("RoleName")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Id")
+                        .IsUnique();
+
+                    b.HasIndex("RoleName", "PageIdentifier", "PermissionKey")
+                        .IsUnique();
+
+                    b.ToTable("PagePermissions", "app");
                 });
 
             modelBuilder.Entity("RFFM.Api.Domain.Entities.PaymentPlan", b =>
@@ -3368,6 +3446,9 @@ namespace RFFM.Api.Infrastructure.Migrations
             modelBuilder.Entity("RFFM.Api.Domain.Entities.Rival", b =>
                 {
                     b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Category")
                         .HasColumnType("text");
 
                     b.Property<string>("Name")

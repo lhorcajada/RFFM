@@ -44,5 +44,8 @@ await app.SeedFormationsAsync();
 // Seed club kits
 await app.SeedClubKitsAsync();
 
+// Seed new roles and feature/page permissions
+await app.SeedPermissionsAsync();
+
 app.Run();
 

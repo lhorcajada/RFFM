@@ -47,8 +47,7 @@ export default function ConvocationCard({
 }: Props) {
   const p = conv.player as any;
   const statusName = statuses.find((s) => s.id === conv.status)?.name ?? "";
-  const rawName = ((p.name ?? "") + " " + (p.lastName ?? "")).trim();
-  const displayName = rawName || p.alias || "Jugador";
+  const displayName = p.alias || ((p.name ?? "") + " " + (p.lastName ?? "")).trim() || "Jugador";
   const dorsalValue =
     typeof p.dorsal === "number" ? p.dorsal : p.dorsal ? Number(p.dorsal) : null;
   const hasDorsal = typeof dorsalValue === "number" && Number.isFinite(dorsalValue);

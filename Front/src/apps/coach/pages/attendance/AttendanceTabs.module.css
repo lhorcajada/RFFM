@@ -63,7 +63,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 6px;
+  gap: 10px;
   padding: 9px 12px;
   font-size: 0.7rem;
   font-weight: 800;
@@ -72,6 +72,12 @@
   border-bottom: 2px solid rgba(0, 0, 0, 0.07);
   border-radius: 6px 6px 0 0;
   margin-bottom: 8px;
+}
+
+.listGroupTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .listGroupHeaderGreen {
@@ -104,12 +110,21 @@
   color: #4ec9b0;
 }
 
+.listGroupHeaderOrange {
+  background: linear-gradient(90deg, rgba(255, 167, 38, 0.15) 0%, transparent 100%);
+  border-bottom-color: rgba(255, 167, 38, 0.3);
+  color: #ffa726;
+}
+
 .listGroupCount {
-  background: rgba(0, 0, 0, 0.07);
-  border-radius: 10px;
-  padding: 2px 7px;
-  font-size: 0.66rem;
-  opacity: 0.7;
+  background: rgba(255,255,255,0.12);
+  border-radius: 12px;
+  padding: 2px 9px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  opacity: 1;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .listSectionTitle {

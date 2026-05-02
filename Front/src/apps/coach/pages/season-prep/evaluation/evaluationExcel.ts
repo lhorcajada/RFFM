@@ -38,6 +38,7 @@ const STATIC_COLS = [
   { header: "Dorsal",      key: "dorsal",   width: 9   },
   { header: "Nombre",      key: "name",     width: 26  },
   { header: "Demarcación", key: "position", width: 18  },
+  { header: "Estado",      key: "status",   width: 16  },
 ];
 
 const HEADER_BG = "1F4E79";
@@ -115,6 +116,7 @@ async function buildConceptWorksheet(
       dorsal:   p.jerseyNumber ?? "",
       name:     p.name,
       position: p.position ?? "",
+      status:   p.recruitmentStatus ?? "",
       notes:    ev.notes ?? "",
     };
     for (const c of concepts) {
@@ -135,6 +137,59 @@ async function buildConceptWorksheet(
   });
 
   ws.autoFilter = { from: { row: 1, column: 2 }, to: { row: 1, column: ws.columnCount } };
+
+  // Add data validation (dropdown lists) per concept column using concept definitions
+  for (let i = 0; i < conceptCols.length; i++) {
+    const colIndex = STATIC_COLS.length + 1 + i; // 1-based column index in worksheet
+    const colDef = conceptCols[i];
+    const conceptKey = colDef.conceptKey;
+    const isConsistencia = String(colDef.key).endsWith("_c");
+    const conceptDef = concepts.find((c) => String(c.key) === conceptKey);
+    const options = isConsistencia
+      ? conceptDef?.consistenciaOptions
+      : conceptDef?.tendenciaOptions;
+    if (!options || options.length === 0) continue;
+    const formula = `"${options.join(",")}"`;
+    for (let r = 2; r <= ws.rowCount; r++) {
+      const cell = ws.getRow(r).getCell(colIndex);
+      try {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        cell.dataValidation = {
+          type: 'list',
+          allowBlank: true,
+          showInputMessage: true,
+          showErrorMessage: true,
+          formulae: [formula],
+        } as unknown;
+      } catch {
+        // ignore per-cell validation errors
+      }
+    }
+  }
+
+  // Add data validation for the recruitment status column (Estado)
+  const statusColIndex = STATIC_COLS.findIndex((c) => c.key === "status") + 1;
+  if (statusColIndex > 0) {
+    const statusOptions = ["Observando", "Interesado", "Fichado", "Descartado"];
+    const statusFormula = `"${statusOptions.join(",")}"`;
+    for (let r = 2; r <= ws.rowCount; r++) {
+      const cell = ws.getRow(r).getCell(statusColIndex);
+      try {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        cell.dataValidation = {
+          type: 'list',
+          allowBlank: true,
+          showInputMessage: true,
+          showErrorMessage: true,
+          formulae: [statusFormula],
+        } as unknown;
+      } catch {
+        // ignore
+      }
+    }
+  }
 }
 
 // ── Export ────────────────────────────────────────────────────────────────────
@@ -229,16 +284,25 @@ export function importEvaluationsFromExcel(
             );
           }
           if (!player) {
-            if (name) unknownNames.push(name);
-            continue;
-          }
+              if (name) unknownNames.push(name);
+              continue;
+            }
 
-          const ev: PlayerEvaluation = { ...(player.evaluation ?? {}) };
+            const ev: PlayerEvaluation = { ...(player.evaluation ?? {}) };
+            // determine status column index (if present)
+            const statusCol = [...headerMap.entries()].find(([, v]) => v.toLowerCase() === "estado")?.[0];
           conceptColMap.forEach(({ key, dim }, col) => {
             const raw = String(row.getCell(col).value ?? "").trim();
             const existing = (ev as Record<string, unknown>)[key] as ConceptEval | undefined;
             if (raw) {
-              (ev as Record<string, unknown>)[key] = { ...(existing ?? {}), [dim]: raw };
+              // Normalize imported concept values to the allowed dropdown options
+              const lr = raw.toLowerCase();
+              let mapped = raw;
+              if (lr.includes("nunc")) mapped = "Nunca";
+              else if (lr.includes("rara")) mapped = "Rara vez";
+              else if (lr.includes("inter")) mapped = "Intermitente";
+              else if (lr.includes("habit")) mapped = "Habitual";
+              (ev as Record<string, unknown>)[key] = { ...(existing ?? {}), [dim]: mapped };
             }
           });
           if (notesCol) {
@@ -246,7 +310,18 @@ export function importEvaluationsFromExcel(
             ev.notes = notes || undefined;
           }
 
-          updatedMap.set(player.uniqueId, { ...player, evaluation: ev });
+          // read and map recruitment status (if provided)
+          let mappedStatus: string | undefined = undefined;
+          if (statusCol) {
+            const rawStatus = String(row.getCell(statusCol).value ?? "").trim();
+            const rs = rawStatus.toLowerCase();
+            if (rs.includes("observ")) mappedStatus = "observando";
+            else if (rs.includes("interes")) mappedStatus = "interesado";
+            else if (rs.includes("fich")) mappedStatus = "fichado";
+            else if (rs.includes("descar")) mappedStatus = "descartado";
+          }
+
+          updatedMap.set(player.uniqueId, { ...player, evaluation: ev, recruitmentStatus: mappedStatus ?? player.recruitmentStatus });
           updatedCount++;
         }
       });

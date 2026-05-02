@@ -282,7 +282,8 @@ namespace RFFM.Api.Domain.Entities.TeamPlayers
             string teamPlayerId,
             bool isGoalkeeper,
             IReadOnlyList<(string CharacteristicKey, string CategoryKey, int Level, string Concept)> answers,
-            string? notes = null)
+            string? notes = null,
+            DateTimeOffset? ratedAt = null)
         {
             if (answers == null || answers.Count == 0)
                 throw new ArgumentException("At least one conceptual answer is required.", nameof(answers));
@@ -315,7 +316,7 @@ namespace RFFM.Api.Domain.Entities.TeamPlayers
                 Technical = AvgForCategory(answers, "technical"),
                 Tactical = AvgForCategory(answers, "tactical"),
                 Competitiveness = AvgForCategory(answers, "competitiveness"),
-                RatedAt = DateTime.UtcNow,
+                RatedAt = ratedAt.HasValue ? ratedAt.Value.UtcDateTime : DateTime.UtcNow,
                 Notes = notes,
             };
 

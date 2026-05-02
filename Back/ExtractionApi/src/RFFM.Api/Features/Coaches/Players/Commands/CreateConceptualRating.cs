@@ -32,20 +32,11 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
                         TeamPlayerRating rating;
                         try
                         {
-                            rating = TeamPlayerRating.CreateConceptual(id, req.IsGoalkeeper, answers, req.Notes);
+                            rating = TeamPlayerRating.CreateConceptual(id, req.IsGoalkeeper, answers, req.Notes, req.RatedAt);
                         }
                         catch (ArgumentException ex)
                         {
                             return Results.BadRequest(ex.Message);
-                        }
-
-                        var previousRatings = await db.TeamPlayerRatings
-                            .Where(r => r.TeamPlayerId == id)
-                            .ToListAsync(cancellationToken);
-
-                        if (previousRatings.Count > 0)
-                        {
-                            db.TeamPlayerRatings.RemoveRange(previousRatings);
                         }
 
                         db.TeamPlayerRatings.Add(rating);
@@ -92,7 +83,8 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
         public record CreateConceptualRatingRequest(
             bool IsGoalkeeper,
             IReadOnlyList<CharacteristicAnswerRequest> Answers,
-            string? Notes);
+            string? Notes,
+            DateTimeOffset? RatedAt = null);
 
         public record RatingAnswerResponse(
             string CharacteristicKey,

@@ -2,6 +2,7 @@ import type { PlayerRating, RatingAnswer } from "../../../types/playerRating";
 import {
   getCategoryLabel,
   getCharacteristicDef,
+  getConceptForLevel,
   type CategoryKey,
 } from "../rating/ratingConcepts";
 import styles from "./SubRatingsPanel.module.css";
@@ -61,15 +62,23 @@ export default function SubRatingsPanel({ rating }: Props) {
                   {Math.ceil(avg)}
                 </span>
               </div>
-              {catAnswers.map((answer) => (
-                <div key={answer.characteristicKey} className={styles.item}>
-                  <span className={styles.itemConcept}>
-                    {(getCharacteristicDef(answer.characteristicKey)?.label ?? answer.characteristicKey)
-                    + ": "
-                    + answer.level}
-                  </span>
-                </div>
-              ))}
+              {catAnswers.map((answer) => {
+                const label = getCharacteristicDef(answer.characteristicKey)?.label ?? answer.characteristicKey;
+                const conceptText = answer.concept || getConceptForLevel(answer.characteristicKey, answer.level);
+                return (
+                  <div key={answer.characteristicKey} className={styles.item}>
+                    <div className={styles.itemContent}>
+                      <span className={styles.itemHeader}>
+                        <span className={styles.itemLabel}>{label}</span>
+                        <span className={styles.itemValue} style={{ color: levelColor(answer.level) }}>{answer.level}</span>
+                      </span>
+                      {conceptText && (
+                        <span className={styles.itemConcept}>{conceptText}</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           );
         })}

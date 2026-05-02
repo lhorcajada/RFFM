@@ -106,6 +106,8 @@ interface IdealLineupProps {
   hideInternalSave?: boolean;
   onSavingChange?: (saving: boolean) => void;
   onDeconvoke?: (playerId: string) => void;
+  /** Optional extra panel rendered inside the content row, after the bench panel */
+  extraPanel?: React.ReactNode;
 }
 
 // ─── Draggable list item ───────────────────────────────────────────────
@@ -226,7 +228,7 @@ function OverlayItem({ player }: { player: SquadPlayer }) {
 
 // ─── Main IdealLineup component ────────────────────────────────────────
 const IdealLineup = forwardRef<IdealLineupHandle, IdealLineupProps>(function IdealLineup(
-  { players, teamId, seasonId, panelTitle, hideInternalSave, onSavingChange, onDeconvoke },
+  { players, teamId, seasonId, panelTitle, hideInternalSave, onSavingChange, onDeconvoke, extraPanel },
   ref
 ) {
   const [formations, setFormations] = useState<Formation[]>([]);
@@ -470,6 +472,7 @@ const IdealLineup = forwardRef<IdealLineupHandle, IdealLineupProps>(function Ide
               )}
             </div>
           </div>
+          {extraPanel}
         </div>
       </div>
 

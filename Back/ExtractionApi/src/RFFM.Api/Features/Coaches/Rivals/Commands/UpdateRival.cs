@@ -24,12 +24,13 @@ namespace RFFM.Api.Features.Coaches.Rivals.Commands
 
                         rival.SetName(req.Name);
                         rival.SetUrlPhoto(req.UrlPhoto);
+                        rival.SetCategory(req.Category);
                         await db.SaveChangesAsync(cancellationToken);
 
                         var cache = cachingFactory.GetCachingProvider(Cache.CacheDefaultName);
                         await cache.RemoveAsync("Rivals", cancellationToken);
 
-                        return Results.Ok(new RivalSaveResponse(rival.Id, rival.Name, rival.UrlPhoto));
+                        return Results.Ok(new RivalSaveResponse(rival.Id, rival.Name, rival.UrlPhoto, rival.Category));
                     })
                 .WithName(nameof(UpdateRival))
                 .WithTags("Rivals")
@@ -38,13 +39,15 @@ namespace RFFM.Api.Features.Coaches.Rivals.Commands
         }
     }
 
-    public record UpdateRivalRequest(string Name, string? UrlPhoto);
+    public record UpdateRivalRequest(string Name, string? UrlPhoto, string? Category);
 
     public class UpdateRivalValidator : AbstractValidator<UpdateRivalRequest>
     {
         public UpdateRivalValidator()
         {
             RuleFor(x => x.Name).NotEmpty().MaximumLength(100);
+            RuleFor(x => x.Category).MaximumLength(50).When(x => x.Category != null);
         }
     }
+
 }

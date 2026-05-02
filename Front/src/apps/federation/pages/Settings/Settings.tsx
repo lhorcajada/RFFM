@@ -31,6 +31,7 @@ import useMediaQuery from "@mui/material/useMediaQuery";
 import styles from "./Settings.module.css";
 import SavedConfigs from "../../../../shared/components/ui/SavedConfigs/SavedConfigs";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
+import ClubSearchSection from "./ClubSearchSection";
 import {
   settingsService,
   getSettingsForUser,
@@ -285,6 +286,21 @@ export default function Settings(): JSX.Element {
                 </Grid>
               </Grid>
             </div>
+          </Box>
+
+          <Divider className={styles.divider} />
+
+          <Box className={styles.topBox}>
+            <Typography variant="subtitle1">
+              O busca directamente por club
+            </Typography>
+            <ClubSearchSection
+              onTeamResolved={({ competition, group, team }) => {
+                setSelectedCompetition(competition);
+                setSelectedGroup(group);
+                setSelectedTeam(team);
+              }}
+            />
           </Box>
 
           <Divider className={styles.divider} />

@@ -24,6 +24,7 @@ export type CreateRatingPayload = {
   isGoalkeeper: boolean;
   answers: CharacteristicAnswer[];
   notes?: string | null;
+  ratedAt?: string | null;
 };
 
 export async function createRating(

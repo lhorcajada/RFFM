@@ -28,9 +28,18 @@
 
 /* ─── Desconvocados side panel ──────────────────────────── */
 
-.desconvocadosPanel {
+.sideColumn {
   width: 210px;
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+}
+
+.desconvocadosPanel {
+  flex: 1;
+  min-height: 0;
   background: linear-gradient(160deg, #19192e 0%, #0d0d1e 100%);
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 14px;
@@ -139,4 +148,67 @@
   align-items: center;
   flex: 1;
   padding: 32px 16px;
+}
+
+/* ─── Pendientes panel ──────────────────────────────────── */
+
+.pendingPanel {
+  flex: 1;
+  min-height: 0;
+  background: linear-gradient(160deg, #1e1608 0%, #0e0b02 100%);
+  border: 1px solid rgba(251, 191, 36, 0.15);
+  border-radius: 14px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.pendingHeader {
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(251, 191, 36, 0.12);
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: rgba(251, 191, 36, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pendingBadge {
+  background: rgba(251, 191, 36, 0.12);
+  border-radius: 10px;
+  padding: 2px 8px;
+  color: rgba(251, 191, 36, 0.6);
+  font-weight: 700;
+}
+
+.pendingList {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 0;
+}
+
+.acceptPendingBtn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: rgba(251, 191, 36, 0.5);
+  cursor: pointer;
+  padding: 0;
+  font-size: 0.85rem;
+  line-height: 1;
+  transition: background 0.15s, color 0.15s;
+}
+
+.acceptPendingBtn:hover {
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
 }

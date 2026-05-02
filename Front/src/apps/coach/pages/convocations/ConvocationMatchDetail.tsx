@@ -19,6 +19,7 @@ import {
 } from "@mui/material";
 import SaveIcon from "@mui/icons-material/Save";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
@@ -185,17 +186,15 @@ export default function ConvocationMatchDetail() {
     return result;
   }, [convocation.players, grid.matchColumns, grid.enrichedGrid]);
 
-  // Players for the Alineacion tab (all non-injured players)
+  // Players for the Alineacion tab (accepted non-injured players only)
   const lineupPlayers = useMemo(() => {
     const notCalledSet = new Set(convocation.mgmtNotCalled);
+    const pendingSet = new Set(convocation.mgmtPending);
     return convocation.players
-      .filter((p) => p.isInjured !== true && !notCalledSet.has(p.id))
+      .filter((p) => p.isInjured !== true && !notCalledSet.has(p.id) && !pendingSet.has(p.id))
       .map((p) => ({
         id: p.id,
-        displayName:
-          ((p.name ?? "") + " " + (p.lastName ?? "")).trim() ||
-          p.alias ||
-          "Jugador",
+        displayName: p.alias || ((p.name ?? "") + " " + (p.lastName ?? "")).trim() || "Jugador",
         alias: p.alias ?? null,
         photoSrc: convocation.mgmtPhotos[p.id] ?? null,
         dorsal: p.dorsal ?? null,
@@ -208,6 +207,7 @@ export default function ConvocationMatchDetail() {
   }, [
     convocation.players,
     convocation.mgmtNotCalled,
+    convocation.mgmtPending,
     convocation.mgmtPhotos,
     convocation.mgmtRatings,
     playerStreaks,
@@ -220,10 +220,7 @@ export default function ConvocationMatchDetail() {
       .filter((p) => notCalledSet.has(p.id))
       .map((p) => ({
         id: p.id,
-        displayName:
-          ((p.name ?? "") + " " + (p.lastName ?? "")).trim() ||
-          p.alias ||
-          "Jugador",
+        displayName: p.alias || ((p.name ?? "") + " " + (p.lastName ?? "")).trim() || "Jugador",
         alias: p.alias ?? null,
         photoSrc: convocation.mgmtPhotos[p.id] ?? null,
         dorsal: p.dorsal ?? null,
@@ -236,6 +233,31 @@ export default function ConvocationMatchDetail() {
   }, [
     convocation.players,
     convocation.mgmtNotCalled,
+    convocation.mgmtPhotos,
+    convocation.mgmtRatings,
+    playerStreaks,
+    playerTechnicalTotals,
+  ]);
+
+  const pendingPlayers = useMemo(() => {
+    const pendingSet = new Set(convocation.mgmtPending);
+    return convocation.players
+      .filter((p) => pendingSet.has(p.id))
+      .map((p) => ({
+        id: p.id,
+        displayName: p.alias || ((p.name ?? "") + " " + (p.lastName ?? "")).trim() || "Jugador",
+        alias: p.alias ?? null,
+        photoSrc: convocation.mgmtPhotos[p.id] ?? null,
+        dorsal: p.dorsal ?? null,
+        position: p.position ?? null,
+        competitiveness: convocation.mgmtRatings[p.id]?.competitiveness ?? null,
+        isInjured: false,
+        streakCount: playerStreaks.get(p.id) ?? null,
+        technicalTotal: playerTechnicalTotals.get(p.id) ?? null,
+      }));
+  }, [
+    convocation.players,
+    convocation.mgmtPending,
     convocation.mgmtPhotos,
     convocation.mgmtRatings,
     playerStreaks,
@@ -314,6 +336,16 @@ export default function ConvocationMatchDetail() {
             >
               Volver
             </Button>
+            {convocation.mgmtEventId && (
+              <Button
+                startIcon={<PeopleAltIcon />}
+                variant="outlined"
+                size="small"
+                onClick={() => navigate(`/coach/attendance/${convocation.mgmtEventId}`)}
+              >
+                Ir al evento
+              </Button>
+            )}
             {tab === 2 && convocation.mgmtEventId && (
               <Button
                 variant="contained"
@@ -486,11 +518,13 @@ export default function ConvocationMatchDetail() {
             mgmtEventId={convocation.mgmtEventId}
             lineupPlayers={lineupPlayers}
             notCalledPlayers={notCalledPlayers}
+            pendingPlayers={pendingPlayers}
             lineupRef={lineupRef}
             teamId={teamId}
             onSavingChange={setLineupSaving}
             onDeconvoke={handleDeconvokeRequest}
             onReconvoke={(playerId) => convocation.moveToAvailable(playerId)}
+            onAcceptPending={(playerId) => convocation.acceptPending(playerId)}
           />
         )}
 

@@ -35,8 +35,7 @@ export default function NotConvokedList({
           const byUrl = p.urlPhoto ? photos[String(p.urlPhoto)] : null;
           const rawPhotoSrc = byId ?? byUrl ?? null;
           const photo = rawPhotoSrc ?? defaultAvatar;
-          const rawName = ((p.name ?? "") + " " + (p.lastName ?? "")).trim();
-          const displayName = rawName || p.alias || "Jugador";
+          const displayName = p.alias || ((p.name ?? "") + " " + (p.lastName ?? "")).trim() || "Jugador";
           const dorsalValue =
             typeof p.dorsal === "number"
               ? p.dorsal

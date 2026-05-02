@@ -9,7 +9,7 @@ vi.mock("../../services/clubService", () => ({
 }));
 
 import { getUserClubs } from "../../services/clubService";
-import CoachDashboard from "../Dashboard";
+import CoachDashboard from "../Dashboard/Dashboard";
 
 describe("CoachDashboard", () => {
   beforeEach(() => {

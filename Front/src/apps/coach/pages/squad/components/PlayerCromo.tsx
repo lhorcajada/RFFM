@@ -2,6 +2,7 @@ import { IconButton, Tooltip } from "@mui/material";
 import { Link } from "react-router-dom";
 import EditIcon from "@mui/icons-material/Edit";
 import HistoryIcon from "@mui/icons-material/History";
+import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
 import avatarFallback from "../../../../../assets/avatar.svg";
 import type { SeasonPlayerStats } from "../../convocations/components/simulation/liveMatch.types";
 import styles from "./PlayerCromo.module.css";
@@ -25,6 +26,7 @@ type Props = {
   to?: string;
   onEdit?: () => void;
   onHistory?: () => void;
+  onPrint?: () => void;
   seasonStats?: SeasonPlayerStats | null;
   /** Consecutive past matches since the last technical deconvocation. Shown as a small badge. */
   streakCount?: number | null;
@@ -49,11 +51,11 @@ function ratingColor(v: number): string {
 }
 
 function formatAvg(v: number): string {
-  return `Nivel ${Math.ceil(v)}`;
+  return `Nivel ${Math.round(v)}`;
 }
 
 function formatStat(v: number): string {
-  return String(Math.ceil(v));
+  return String(Math.round(v));
 }
 
 const MEDALS = ["🥇", "🥈", "🥉"];
@@ -70,11 +72,12 @@ export default function PlayerCromo({
   to,
   onEdit,
   onHistory,
+  onPrint,
   seasonStats,
   streakCount,
 }: Props) {
   const initial = displayName.trim().charAt(0).toUpperCase();
-  const showActions = onEdit != null || onHistory != null;
+  const showActions = onEdit != null || onHistory != null || onPrint != null;
 
   const card = (
     <div className={styles.card}>
@@ -185,6 +188,19 @@ export default function PlayerCromo({
                   }}
                 >
                   <HistoryIcon sx={{ fontSize: 16 }} />
+                </IconButton>
+              </Tooltip>
+            )}
+            {onPrint && (
+              <Tooltip title="Exportar PDF">
+                <IconButton
+                  size="small"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onPrint();
+                  }}
+                >
+                  <PictureAsPdfOutlinedIcon sx={{ fontSize: 16 }} />
                 </IconButton>
               </Tooltip>
             )}

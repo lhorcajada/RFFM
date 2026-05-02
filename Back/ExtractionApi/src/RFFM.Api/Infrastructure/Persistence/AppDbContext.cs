@@ -75,6 +75,10 @@ namespace RFFM.Api.Infrastructure.Persistence
         public DbSet<PaymentPlan> PaymentPlans { get; set; }
         public DbSet<Subscription> Subscriptions { get; set; }
 
+        // RBAC — feature and page permissions
+        public DbSet<FeaturePermission> FeaturePermissions { get; set; }
+        public DbSet<PagePermission> PagePermissions { get; set; }
+
         // Game Model
         public DbSet<GameModel> GameModels { get; set; }
         public DbSet<GameMoment> GameMoments { get; set; }

@@ -190,10 +190,7 @@ export default function ConvocationTab({
                   ? ids.map((playerId) => {
                       const p = players.find((pl) => pl.id === playerId);
                       if (!p) return null;
-                      const displayName =
-                        ((p.name ?? "") + " " + (p.lastName ?? "")).trim() ||
-                        p.alias ||
-                        "Jugador";
+                      const displayName = p.alias || ((p.name ?? "") + " " + (p.lastName ?? "")).trim() || "Jugador";
                       const r = mgmtRatings[playerId];
                       return (
                         <div
@@ -274,10 +271,7 @@ export default function ConvocationTab({
                     ...group.map((playerId) => {
                       const p = players.find((pl) => pl.id === playerId);
                       if (!p) return null;
-                      const displayName =
-                        ((p.name ?? "") + " " + (p.lastName ?? "")).trim() ||
-                        p.alias ||
-                        "Jugador";
+                      const displayName = p.alias || ((p.name ?? "") + " " + (p.lastName ?? "")).trim() || "Jugador";
                       const r = mgmtRatings[playerId];
                       return (
                         <div

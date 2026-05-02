@@ -12,6 +12,7 @@ import {
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import AddIcon from "@mui/icons-material/Add";
+import ShowChartIcon from "@mui/icons-material/ShowChart";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import { format } from "date-fns";
@@ -21,7 +22,7 @@ import BaseLayout from "../../../../../shared/components/ui/BaseLayout/BaseLayou
 import ContentLayout from "../../../../../shared/components/ui/ContentLayout/ContentLayout";
 import { getTeamPlayerById } from "../../../services/teamplayerService";
 import { getRatingHistory } from "../../../services/playerRatingService";
-import { getCategoryLabel, type CategoryKey } from "./ratingConcepts";
+import { getCategoryLabel, getCharacteristicDef, getConceptForLevel, type CategoryKey } from "./ratingConcepts";
 import type { PlayerRating, RatingAnswer } from "../../../types/playerRating";
 
 import styles from "./RatingHistoryPage.module.css";
@@ -52,7 +53,7 @@ export default function RatingHistoryPage() {
   const [playerName, setPlayerName] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [ratings, setRatings] = useState<PlayerRating[]>([]);
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!playerId) return;
@@ -62,27 +63,16 @@ export default function RatingHistoryPage() {
       getRatingHistory(playerId),
     ]).then(([tp, history]) => {
       if (tp) {
-        const name = tp.player?.firstName
-          ? `${tp.player?.firstName ?? ""} ${tp.player?.lastName ?? ""}`.trim()
-          : tp.id;
+        const name = `${tp.player?.name ?? ""} ${tp.player?.lastName ?? ""}`.trim() || tp.id;
         setPlayerName(name);
       }
       setRatings(history);
-      // Expand the latest one by default
-      if (history.length > 0) {
-        setExpandedIds(new Set([history[0].id]));
-      }
       setLoading(false);
     });
   }, [playerId]);
 
   function toggleExpand(id: string) {
-    setExpandedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+    setExpandedId((prev) => (prev === id ? null : id));
   }
 
   if (loading) {
@@ -106,6 +96,14 @@ export default function RatingHistoryPage() {
             </Button>
             <Button
               size="small"
+              variant="outlined"
+              startIcon={<ShowChartIcon />}
+              onClick={() => navigate(`/coach/squad/${playerId}/rating/evolution${squadSearch}`)}
+            >
+              Evolución
+            </Button>
+            <Button
+              size="small"
               variant="contained"
               startIcon={<AddIcon />}
               onClick={() => navigate(`/coach/squad/${playerId}/rating/new${squadSearch}`)}
@@ -122,7 +120,7 @@ export default function RatingHistoryPage() {
         ) : (
           <div className={styles.list}>
             {ratings.map((rating, idx) => {
-              const isExpanded = expandedIds.has(rating.id);
+              const isExpanded = expandedId === rating.id;
               const catGroups = groupAnswersByCategory(rating.answers);
               const categoryKeys = Object.keys(catGroups) as CategoryKey[];
               return (
@@ -162,14 +160,22 @@ export default function RatingHistoryPage() {
                           {categoryKeys.map((catKey) => (
                             <div key={catKey} className={styles.categoryCol}>
                               <div className={styles.categoryColHeader}>{getCategoryLabel(catKey)}</div>
-                              {catGroups[catKey].map((answer) => (
-                                <div key={answer.characteristicKey} className={styles.answerRow}>
-                                  <span className={styles.answerLevel} style={{ color: levelColor(answer.level) }}>
-                                    {answer.level}
-                                  </span>
-                                  <span className={styles.answerConcept}>{answer.concept}</span>
-                                </div>
-                              ))}
+                              {catGroups[catKey].map((answer) => {
+                                const def = getCharacteristicDef(answer.characteristicKey);
+                                return (
+                                  <div key={answer.characteristicKey} className={styles.answerRow}>
+                                    <div className={styles.answerHeader}>
+                                      <span className={styles.answerLevel} style={{ color: levelColor(answer.level) }}>
+                                        {answer.level}
+                                      </span>
+                                      <span className={styles.answerLabel}>{def?.label ?? answer.characteristicKey}</span>
+                                    </div>
+                                    <span className={styles.answerConcept}>
+                                      {answer.concept || getConceptForLevel(answer.characteristicKey, answer.level)}
+                                    </span>
+                                  </div>
+                                );
+                              })}
                             </div>
                           ))}
                         </div>

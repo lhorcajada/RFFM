@@ -1,0 +1,120 @@
+.container {
+  margin-top: 16px;
+}
+
+.searchRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.searchRow :global(.MuiOutlinedInput-root) {
+  font-size: 0.7rem;
+  height: 28px;
+  min-height: 28px;
+}
+
+.searchRow :global(.MuiOutlinedInput-input) {
+  padding: 2px 6px !important;
+  font-size: 0.7rem;
+}
+
+.searchRow :global(.MuiInputLabel-root) {
+  font-size: 0.7rem;
+}
+
+.searchRow :global(.MuiInputLabel-shrink) {
+  transform: translate(14px, -9px) scale(0.75) !important;
+}
+
+.clubList {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.clubItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  background-color: rgba(255, 255, 255, 0.04);
+  transition: background-color 0.15s;
+  font-size: 0.78rem;
+}
+
+.clubItem:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.clubItemSelected {
+  background-color: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.clubItemCount {
+  font-size: 0.68rem;
+  opacity: 0.55;
+  margin-left: 8px;
+  white-space: nowrap;
+}
+
+.teamsRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 12px;
+}
+
+.teamsRow :global(.MuiOutlinedInput-root) {
+  font-size: 0.7rem;
+  height: 28px;
+  min-height: 28px;
+}
+
+.teamsRow :global(.MuiOutlinedInput-input) {
+  padding: 2px 6px !important;
+  font-size: 0.7rem;
+}
+
+.teamsRow :global(.MuiInputLabel-root) {
+  font-size: 0.7rem;
+}
+
+.teamsRow :global(.MuiInputLabel-shrink) {
+  transform: translate(14px, -9px) scale(0.75) !important;
+}
+
+.resolving {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 0.72rem;
+  opacity: 0.7;
+}
+
+.resolvedInfo {
+  margin-top: 8px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background-color: rgba(255, 255, 255, 0.06);
+  font-size: 0.72rem;
+  line-height: 1.6;
+}
+
+.resolvedInfoLabel {
+  opacity: 0.6;
+  margin-right: 4px;
+}
+
+.noResults {
+  font-size: 0.72rem;
+  opacity: 0.6;
+  margin-top: 8px;
+}

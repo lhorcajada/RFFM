@@ -11,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using RFFM.Api.Common.Behaviors;
 using RFFM.Api.Domain.Services;
+using RFFM.Api.Infrastructure.Services;
 using RFFM.Api.Features.Federation.Competitions.Services;
 using RFFM.Api.Features.Federation.Clubs.Services;
 using RFFM.Api.Features.Federation.Players.Services;
@@ -44,6 +45,7 @@ namespace RFFM.Api.DependencyInjection
             // Domain / Infrastructure service registrations
             services.AddScoped<ITokenService, TokenService>();
             services.AddScoped<IInvitationService, InvitationService>();
+            services.AddScoped<ICurrentUserService, CurrentUserService>();
 
             // Email template service requires a template path; allow configuration override
             var templatePath = Path.Combine(Directory.GetParent(Directory.GetCurrentDirectory()).FullName,
@@ -141,7 +143,8 @@ namespace RFFM.Api.DependencyInjection
                 .AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>))
                 .AddTransient(typeof(IPipelineBehavior<,>), typeof(TimeLoggingBehavior<,>))
                 .AddTransient(typeof(IPipelineBehavior<,>), typeof(CachingBehavior<,>))
-                .AddTransient(typeof(IPipelineBehavior<,>), typeof(InvalidateCachingBehavior<,>));
+                .AddTransient(typeof(IPipelineBehavior<,>), typeof(InvalidateCachingBehavior<,>))
+                .AddTransient(typeof(IPipelineBehavior<,>), typeof(FeaturePermissionBehavior<,>));
         }
 
         static IServiceCollection AddCustomProblemDetails(this IServiceCollection services)

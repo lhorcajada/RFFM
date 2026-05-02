@@ -43,7 +43,7 @@
 .content {
   display: flex;
   gap: 16px;
-  align-items: flex-start;
+  align-items: stretch;
   /* let the player panel fill all remaining horizontal space */
   min-height: 0;
 }

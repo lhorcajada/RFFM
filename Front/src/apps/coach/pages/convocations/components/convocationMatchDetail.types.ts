@@ -36,11 +36,20 @@ export type MatchColumn = {
 /** Drop zones for drag-and-drop convocation management */
 export type DropZone = "available" | "called" | "notCalled";
 
-/** Status ID used when calling up a player */
-export const CALLED_STATUS_ID = 1;
+/** Status IDs that count as convocado (called up): Pending (1) and Accepted (2) */
+export const CALLED_STATUS_IDS: ReadonlySet<number> = new Set([1, 2]);
 
-/** Status ID for officially not called (desconvocado) — maps to "Deconvoke" (5) on the backend */
+/** Status ID for pending acceptance (player has not yet confirmed) */
+export const PENDING_STATUS_ID = 1;
+
+/** Status ID used when calling up a player (Accepted) */
+export const CALLED_STATUS_ID = 2;
+
+/** Status ID for officially not called by coach (Deconvoke) */
 export const NOT_CALLED_STATUS_ID = 5;
 
-/** Legacy status ID that was incorrectly used for desconvocados; kept for backward-compat loading */
-export const LEGACY_NOT_CALLED_STATUS_ID = 2;
+/** Status ID for justified absence */
+export const JUSTIFIED_STATUS_ID = 4;
+
+/** @deprecated — kept for backward compat; use CALLED_STATUS_IDS instead */
+export const LEGACY_NOT_CALLED_STATUS_ID = -1;

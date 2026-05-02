@@ -84,7 +84,7 @@ const FIELD_TECHNICAL: CharacteristicDef[] = [
       { level: 1,  concept: "Sin habilidad — pierde el balón al primer contacto con presión" },
       { level: 2,  concept: "Muy pobre — apenas puede progresar con el balón ante oposición" },
       { level: 3,  concept: "Básico — solo realiza regates simples en espacios amplios" },
-      { level: 4,  concept: "Limitado — superable fácilmente ante marcaje cercano" },
+      { level: 4,  concept: "Limitado — dificultades para superar rivales en situaciones de presión" },
       { level: 5,  concept: "Correcto — supera rivales en situaciones favorables" },
       { level: 6,  concept: "Hábil — conduce con confianza y supera con frecuencia" },
       { level: 7,  concept: "Buen regateador — soluciona bien el 1vs1 a ritmo alto" },
@@ -135,16 +135,16 @@ const FIELD_TECHNICAL: CharacteristicDef[] = [
     categoryKey: "technical",
     isGoalkeeper: false,
     levels: [
-      { level: 1,  concept: "Sin disparo — muy raramente acierta a portería" },
-      { level: 2,  concept: "Muy pobre — carece de potencia o dirección en el remate" },
-      { level: 3,  concept: "Básico — solo marca en situaciones muy favorables" },
-      { level: 4,  concept: "Limitado — no finaliza bien sin tiempo y espacio" },
-      { level: 5,  concept: "Correcto — remata con criterio cuando la ocasión es clara" },
-      { level: 6,  concept: "Buen finalizador — preciso en el remate dentro del área" },
-      { level: 7,  concept: "Goleador — acumula llegadas y transforma con regularidad" },
-      { level: 8,  concept: "Gran rematador — dispara con potencia y precisión desde cualquier ángulo" },
+      { level: 1,  concept: "Sin disparo — sin potencia ni precisión" },
+      { level: 2,  concept: "Muy pobre — algo de potencia o precisión, pero insuficiente" },
+      { level: 3,  concept: "Básico — poca potencia pero algo de precisión" },
+      { level: 4,  concept: "Limitado — pocos golpeos son potentes y precisos" },
+      { level: 5,  concept: "Correcto — buen golpeo de balón y precisión en situaciones claras" },
+      { level: 6,  concept: "Potente — dispara con potencia desde cualquier posición" },
+      { level: 7,  concept: "Preciso — combina potencia y precisión en sus disparos" },
+      { level: 8,  concept: "Rematador — está cerca de la perfección en el remate" },
       { level: 9,  concept: "Letal — resuelve situaciones difíciles con eficacia" },
-      { level: 10, concept: "Excepcional — referente goleador, convierte casi todo" },
+      { level: 10, concept: "Goleador — dispara con potencia y precisión desde cualquier ángulo" },
     ],
   },
   {
@@ -153,10 +153,10 @@ const FIELD_TECHNICAL: CharacteristicDef[] = [
     categoryKey: "technical",
     isGoalkeeper: false,
     levels: [
-      { level: 1,  concept: "Muy pobre — raramente recupera el balón en la entrada" },
-      { level: 2,  concept: "Deficiente — frecuentes faltas o pérdidas al intentar robar" },
+      { level: 1,  concept: "Muy pobre — evita el contacto con el rival" },
+      { level: 2,  concept: "Deficiente — mete el pie tímidamente" },
       { level: 3,  concept: "Básico — solo intenta entradas muy favorables" },
-      { level: 4,  concept: "Limitado — irregular, mezcla aciertos con errores" },
+      { level: 4,  concept: "Limitado — entradas poco efectivas y arriesgadas" },
       { level: 5,  concept: "Correcto — entrada limpia cuando el momento es adecuado" },
       { level: 6,  concept: "Buen defensor — entra con decisión y buen timing" },
       { level: 7,  concept: "Contundente — recupera habitualmente, limpio en el lanzamiento" },
@@ -230,7 +230,7 @@ const FIELD_TACTICAL: CharacteristicDef[] = [
     levels: [
       { level: 1,  concept: "Sin marcaje — el rival siempre libre para recibir" },
       { level: 2,  concept: "Muy pobre — pierde al rival en el 90% de las situaciones" },
-      { level: 3,  concept: "Básico — marque solo cuando el rival está a su lado" },
+      { level: 3,  concept: "Básico — marca solo cuando el rival está a su lado" },
       { level: 4,  concept: "Limitado — marcaje inconsistente, pierde posición frecuentemente" },
       { level: 5,  concept: "Correcto — mantiene el marcaje en situaciones normales" },
       { level: 6,  concept: "Atento — sigue al rival con criterio, buen seguimiento" },
@@ -337,7 +337,7 @@ const FIELD_TACTICAL: CharacteristicDef[] = [
     isGoalkeeper: false,
     levels: [
       { level: 1,  concept: "Sin participación — ausente del juego ofensivo" },
-      { level: 2,  concept: "Muy pobre — raramente aparece en zonas de ataque" },
+      { level: 2,  concept: "Muy pobre — raramente participa en el ataque" },
       { level: 3,  concept: "Básico — aparece puntualmente en ataque" },
       { level: 4,  concept: "Limitado — participación en ataque baja" },
       { level: 5,  concept: "Correcto — aporta en el juego ofensivo sin destacar" },
@@ -353,7 +353,7 @@ const FIELD_TACTICAL: CharacteristicDef[] = [
 const FIELD_COMPETITIVENESS: CharacteristicDef[] = [
   {
     key: "competDuelWinning",
-    label: "Ganador de duelos",
+    label: "Ganador de duelos con balón",
     categoryKey: "competitiveness",
     isGoalkeeper: false,
     levels: [
@@ -371,7 +371,7 @@ const FIELD_COMPETITIVENESS: CharacteristicDef[] = [
   },
   {
     key: "competLooseBalls",
-    label: "Bal. divididos disp.",
+    label: "Balones divididos ganados",
     categoryKey: "competitiveness",
     isGoalkeeper: false,
     levels: [

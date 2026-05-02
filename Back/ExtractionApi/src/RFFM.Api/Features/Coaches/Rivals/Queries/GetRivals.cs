@@ -35,6 +35,7 @@ namespace RFFM.Api.Features.Coaches.Rivals.Queries
             public string Id { get; set; } = null!;
             public string Name { get; set; } = null!;
             public string? UrlPhoto { get; set; }
+            public string? Category { get; set; }
 
         };
 
@@ -57,7 +58,8 @@ namespace RFFM.Api.Features.Coaches.Rivals.Queries
                             .Replace("\n", "")
                             .Trim(),
                         Name = rival.Name,
-                        UrlPhoto = rival.UrlPhoto
+                        UrlPhoto = rival.UrlPhoto,
+                        Category = rival.Category
                     })
                     .ToArrayAsync(cancellationToken);
                 return rivals;

@@ -1,6 +1,6 @@
 .item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
   width: 100%;
   padding: 11px 12px 11px 0;
@@ -57,9 +57,10 @@
 .name {
   font-size: 0.9rem;
   font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  /* Allow long player names to wrap to multiple lines */
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
   color: rgba(255, 255, 255, 0.92);
   line-height: 1.2;
 }

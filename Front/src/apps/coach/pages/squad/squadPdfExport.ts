@@ -1,6 +1,13 @@
 import jsPDF from "jspdf";
 import type { PlayerRating } from "../../types/playerRating";
 import { getAnswerLevel } from "../../types/playerRating";
+import {
+  getConceptForLevel,
+  FIELD_PLAYER_CHARACTERISTICS,
+  GOALKEEPER_CHARACTERISTICS,
+  getCategoryLabel,
+  type CharacteristicDef,
+} from "./rating/ratingConcepts";
 
 // ─── Public types ─────────────────────────────────────────────────────────────
 
@@ -192,7 +199,9 @@ function fmtNum(v: number | null | undefined): string {
 }
 
 function fmtAvg(v: number): string {
-  return v % 1 === 0 ? String(Math.round(v)) : v.toFixed(1);
+  // Standard rounding to one decimal
+  const rounded = Math.round(v * 10) / 10;
+  return rounded % 1 === 0 ? String(rounded) : rounded.toFixed(1);
 }
 
 function scoreRgb(v: number): [number, number, number] {
@@ -238,11 +247,20 @@ const MV = 25;  // vertical margin (pts)
 
 // Card drawing constants
 const GROUP_HEADER_H = 9;
-const ITEM_H = 8;
+const ITEM_H = 14;
 const NAME_BAR_H = 16;
 const AGG_BAR_H = 13;
 const CARD_PAD_BOTTOM = 6;
 const CARD_GAP = 7;  // gap between 2 side-by-side cards
+
+// Concept-detail page constants (individual player PDF)
+const CD_PAGE_HEADER_H = 18;
+const CD_COL_GAP = 8;
+const CD_GROUP_HEADER_H = 10;
+const CD_CHAR_LABEL_H = 8;
+const CD_LEVEL_ROW_H = 7;
+const CD_BOX_W = 9;
+const CD_BOX_H = 5;
 
 // ─── Card height calculation ──────────────────────────────────────────────────
 
@@ -402,22 +420,31 @@ function drawPlayerCard(
       for (let ii = 0; ii < group.items.length; ii++) {
         const { key, label } = group.items[ii];
         const val = getAnswerLevel(rating, key);
+        const bgEven = ii % 2 === 0;
 
-        doc.setFillColor(ii % 2 === 0 ? 255 : 247, ii % 2 === 0 ? 255 : 247, ii % 2 === 0 ? 255 : 247);
+        doc.setFillColor(bgEven ? 255 : 247, bgEven ? 255 : 247, bgEven ? 255 : 247);
         doc.rect(col.x, cy, subColWidth, ITEM_H, "F");
 
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(6.5);
         doc.setTextColor(60, 60, 60);
-        doc.text(truncate(doc, label, subColWidth - 20), col.x + 3, cy + ITEM_H - 2);
+        doc.text(truncate(doc, label, subColWidth - 20), col.x + 3, cy + 5);
 
         if (val != null) {
           const [vr, vg, vb] = scoreRgb(val);
           doc.setFont("helvetica", "bold");
           doc.setTextColor(vr, vg, vb);
-          doc.text(String(Math.round(val)), col.x + subColWidth - 3, cy + ITEM_H - 2, { align: "right" });
+          doc.text(String(Math.round(val)), col.x + subColWidth - 3, cy + 5, { align: "right" });
           doc.setFont("helvetica", "normal");
+          const concept = getConceptForLevel(key, Math.round(val));
+          if (concept) {
+            doc.setFontSize(5);
+            doc.setTextColor(110, 110, 110);
+            doc.text(truncate(doc, concept, subColWidth - 6), col.x + 3, cy + ITEM_H - 3);
+          }
         } else {
           doc.setTextColor(185, 185, 185);
-          doc.text("—", col.x + subColWidth - 3, cy + ITEM_H - 2, { align: "right" });
+          doc.text("—", col.x + subColWidth - 3, cy + 5, { align: "right" });
         }
 
         cy += ITEM_H;
@@ -431,6 +458,146 @@ function drawPlayerCard(
   const divX = x + 1 + subColWidth + 1.5;
   const divH = Math.max(subColH(groups, LEFT_INDICES), subColH(groups, RIGHT_INDICES));
   doc.line(divX, subY, divX, subY + divH);
+}
+
+// ─── Concept detail pages (individual player PDF) ─────────────────────────────
+
+function drawConceptGroup(
+  doc: jsPDF,
+  group: RatGroup,
+  rating: PlayerRating,
+  x: number,
+  y: number,
+  colW: number,
+): void {
+  let cy = y;
+  const aggVal = Number(rating[group.catKey as keyof typeof rating]);
+  const conceptMaxW = colW - CD_BOX_W - 4;
+
+  // Group header
+  doc.setFillColor(228, 228, 228);
+  doc.rect(x, cy, colW, CD_GROUP_HEADER_H, "F");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(7);
+  doc.setTextColor(55, 55, 55);
+  doc.text(group.catLabel.toUpperCase(), x + 4, cy + CD_GROUP_HEADER_H - 3);
+  const [hr, hg, hb] = scoreRgb(aggVal);
+  doc.setTextColor(hr, hg, hb);
+  doc.text(fmtNum(aggVal), x + colW - 4, cy + CD_GROUP_HEADER_H - 3, { align: "right" });
+  cy += CD_GROUP_HEADER_H;
+
+  for (let ii = 0; ii < group.items.length; ii++) {
+    const { key, label } = group.items[ii];
+    const val = getAnswerLevel(rating, key);
+    const selectedLevel = val != null ? Math.round(val) : null;
+    const evenChar = ii % 2 === 0;
+
+    // Characteristic label row
+    doc.setFillColor(evenChar ? 245 : 240, evenChar ? 245 : 240, evenChar ? 245 : 240);
+    doc.rect(x, cy, colW, CD_CHAR_LABEL_H, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(6.5);
+    doc.setTextColor(40, 40, 40);
+    doc.text(label, x + 4, cy + CD_CHAR_LABEL_H - 2);
+    if (selectedLevel != null) {
+      const [sr, sg, sb] = scoreRgb(selectedLevel);
+      doc.setTextColor(sr, sg, sb);
+      doc.text(`• ${selectedLevel}`, x + colW - 4, cy + CD_CHAR_LABEL_H - 2, { align: "right" });
+    } else {
+      doc.setTextColor(185, 185, 185);
+      doc.text("—", x + colW - 4, cy + CD_CHAR_LABEL_H - 2, { align: "right" });
+    }
+    cy += CD_CHAR_LABEL_H;
+
+    // Level rows (1–10)
+    for (let lvl = 1; lvl <= 10; lvl++) {
+      const isSelected = selectedLevel === lvl;
+      const concept = getConceptForLevel(key, lvl);
+      const rowBg = lvl % 2 === 0 ? 252 : 255;
+      doc.setFillColor(rowBg, rowBg, rowBg);
+      doc.rect(x, cy, colW, CD_LEVEL_ROW_H, "F");
+
+      const bx = x + 2;
+      const boxY = cy + (CD_LEVEL_ROW_H - CD_BOX_H) / 2;
+      const textY = cy + CD_LEVEL_ROW_H - 1.5;
+
+      if (isSelected) {
+        const [r, g, b] = scoreRgb(lvl);
+        doc.setFillColor(r, g, b);
+        doc.setDrawColor(r, g, b);
+        doc.setLineWidth(0.6);
+        doc.rect(bx, boxY, CD_BOX_W, CD_BOX_H, "FD");
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(5.5);
+        doc.setTextColor(255, 255, 255);
+        doc.text(String(lvl), bx + CD_BOX_W / 2, boxY + CD_BOX_H - 0.8, { align: "center" });
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(5.5);
+        doc.setTextColor(r, g, b);
+        doc.text(truncate(doc, concept, conceptMaxW), x + CD_BOX_W + 4, textY);
+      } else {
+        doc.setFillColor(238, 238, 238);
+        doc.setDrawColor(200, 200, 200);
+        doc.setLineWidth(0.3);
+        doc.rect(bx, boxY, CD_BOX_W, CD_BOX_H, "FD");
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(5.5);
+        doc.setTextColor(160, 160, 160);
+        doc.text(String(lvl), bx + CD_BOX_W / 2, boxY + CD_BOX_H - 0.8, { align: "center" });
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(5.5);
+        doc.setTextColor(175, 175, 175);
+        doc.text(truncate(doc, concept, conceptMaxW), x + CD_BOX_W + 4, textY);
+      }
+
+      cy += CD_LEVEL_ROW_H;
+    }
+  }
+}
+
+function conceptGroupH(group: RatGroup): number {
+  return CD_GROUP_HEADER_H + group.items.length * (CD_CHAR_LABEL_H + 10 * CD_LEVEL_ROW_H);
+}
+
+function addPlayerConceptPages(
+  doc: jsPDF,
+  player: PdfPlayerEntry,
+  rating: PlayerRating,
+  teamName?: string,
+  firstPageY?: number,
+): void {
+  const W = doc.internal.pageSize.getWidth();
+  const PAGE_H = doc.internal.pageSize.getHeight();
+  const CW = W - 2 * MH;
+  const colW = (CW - CD_COL_GAP) / 2;
+  const groups = rating.isGoalkeeper ? KEEPER_GROUPS : FIELD_GROUPS;
+
+  const pairs: [RatGroup, RatGroup][] = [
+    [groups[0], groups[1]],
+    [groups[2], groups[3]],
+  ];
+
+  for (let pi = 0; pi < pairs.length; pi++) {
+    const [leftGroup, rightGroup] = pairs[pi];
+    const pairH = Math.max(conceptGroupH(leftGroup), conceptGroupH(rightGroup));
+
+    let y: number;
+    if (pi === 0 && firstPageY != null) {
+      // Check if it fits on the current page
+      if (firstPageY + pairH <= PAGE_H - MV) {
+        y = firstPageY;
+      } else {
+        doc.addPage();
+        y = MV;
+      }
+    } else {
+      doc.addPage();
+      y = MV;
+    }
+
+    drawConceptGroup(doc, leftGroup, rating, MH, y, colW);
+    drawConceptGroup(doc, rightGroup, rating, MH + colW + CD_COL_GAP, y, colW);
+  }
 }
 
 // ─── Summary page ─────────────────────────────────────────────────────────────
@@ -679,6 +846,145 @@ function drawDetailPages(
   }
 }
 
+// ─── Concepts legend pages ───────────────────────────────────────────────────
+
+function drawConceptsLegendPages(doc: jsPDF, teamName?: string): void {
+  const W = doc.internal.pageSize.getWidth();
+  const PAGE_H = doc.internal.pageSize.getHeight();
+  const CW = W - 2 * MH;
+  const COL_GAP = 8;
+  const COL_W = (CW - COL_GAP) / 2;
+  const BOTTOM_LIMIT = PAGE_H - MV - 8;
+
+  const SECTION_H = 16;   // section title bar
+  const CHAR_HDR_H = 11;  // characteristic header
+  const LEVEL_H = 8;      // each level row
+  const CHAR_H = CHAR_HDR_H + 10 * LEVEL_H; // total height per characteristic
+
+  const sections: { title: string; chars: CharacteristicDef[] }[] = [
+    { title: "JUGADORES DE CAMPO", chars: FIELD_PLAYER_CHARACTERISTICS },
+    { title: "PORTEROS", chars: GOALKEEPER_CHARACTERISTICS },
+  ];
+
+  function startPage(): number {
+    doc.addPage();
+    const yy = MV;
+    doc.setFillColor(30, 30, 30);
+    doc.rect(MH, yy, CW, 20, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(255, 255, 255);
+    doc.text("Guía de conceptos de valoración", MH + 6, yy + 13);
+    if (teamName) {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7);
+      doc.setTextColor(170, 170, 170);
+      doc.text(teamName, W - MH - 4, yy + 13, { align: "right" });
+    }
+    return yy + 20 + 6;
+  }
+
+  let y = startPage();
+  // Two-column cursor
+  let colIdx = 0;
+  const colX = [MH, MH + COL_W + COL_GAP];
+  let colY = [y, y];
+
+  function advanceToNextCol(): void {
+    if (colIdx === 0) {
+      colIdx = 1;
+    } else {
+      colIdx = 0;
+      y = startPage();
+      colY = [y, y];
+    }
+  }
+
+  function needsNewColOrPage(neededH: number): void {
+    if (colY[colIdx] + neededH > BOTTOM_LIMIT) {
+      advanceToNextCol();
+    }
+  }
+
+  for (const section of sections) {
+    // Group characteristics by category
+    const byCategory = new Map<string, CharacteristicDef[]>();
+    for (const ch of section.chars) {
+      const k = ch.categoryKey;
+      if (!byCategory.has(k)) byCategory.set(k, []);
+      byCategory.get(k)!.push(ch);
+    }
+
+    for (const [catKey, chars] of byCategory) {
+      // Section header for this category
+      needsNewColOrPage(SECTION_H + CHAR_H);
+      const cx = colX[colIdx];
+      let cy = colY[colIdx];
+
+      doc.setFillColor(45, 45, 45);
+      doc.rect(cx, cy, COL_W, SECTION_H, "F");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(7);
+      doc.setTextColor(255, 255, 255);
+      doc.text(
+        `${section.title} — ${getCategoryLabel(catKey as any).toUpperCase()}`,
+        cx + 5,
+        cy + SECTION_H - 4,
+      );
+      cy += SECTION_H;
+      colY[colIdx] = cy;
+
+      for (const char of chars) {
+        needsNewColOrPage(CHAR_H);
+        const cx2 = colX[colIdx];
+        let cy2 = colY[colIdx];
+
+        // Characteristic header
+        doc.setFillColor(210, 210, 210);
+        doc.rect(cx2, cy2, COL_W, CHAR_HDR_H, "F");
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(6.5);
+        doc.setTextColor(30, 30, 30);
+        doc.text(char.label, cx2 + 4, cy2 + CHAR_HDR_H - 3);
+        cy2 += CHAR_HDR_H;
+
+        // 10 levels
+        for (const lv of char.levels) {
+          const bg = lv.level % 2 === 0 ? 252 : 246;
+          doc.setFillColor(bg, bg, bg);
+          doc.rect(cx2, cy2, COL_W, LEVEL_H, "F");
+
+          // Level badge
+          const [lr, lg, lb] = scoreRgb(lv.level);
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(5.5);
+          doc.setTextColor(lr, lg, lb);
+          doc.text(String(lv.level), cx2 + 4, cy2 + LEVEL_H - 2);
+
+          // Concept text
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(5.5);
+          doc.setTextColor(55, 55, 55);
+          doc.text(
+            truncate(doc, lv.concept, COL_W - 14),
+            cx2 + 12,
+            cy2 + LEVEL_H - 2,
+          );
+
+          cy2 += LEVEL_H;
+        }
+
+        // Border around characteristic
+        doc.setDrawColor(200, 200, 200);
+        doc.setLineWidth(0.3);
+        doc.rect(cx2, colY[colIdx], COL_W, CHAR_H, "S");
+
+        colY[colIdx] = cy2 + 3;
+      }
+    }
+  }
+}
+
 // ─── Page numbers ─────────────────────────────────────────────────────────────
 
 function addPageNumbers(doc: jsPDF): void {
@@ -709,6 +1015,7 @@ export function exportAllPlayersPdf(
   const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
   drawSummaryPage(doc, players, latestRatings, teamName, sortKey);
   drawDetailPages(doc, players, latestRatings, teamName, sortKey);
+  drawConceptsLegendPages(doc, teamName);
   addPageNumbers(doc);
   const datePart = todayStr().replace(/\//g, "-");
   const namePart = teamName ? safeFilename(teamName) : "plantilla";
@@ -754,18 +1061,8 @@ export function exportPlayerPdf(
   doc.text(infoParts.join("    ·    "), MH + 6, y + infoH - 4);
   y += infoH + 8;
 
-  // Player card (full-width)
-  const cardH = calcCardHeight(rating);
-  drawPlayerCard(doc, player, rating, MH, y, CW, cardH);
-  y += cardH;
-
-  // Notes
+  // Notes (on first page, below header)
   if (rating?.notes) {
-    y += 12;
-    doc.setDrawColor(220, 220, 220);
-    doc.setLineWidth(0.4);
-    doc.line(MH, y, MH + CW, y);
-    y += 8;
     doc.setFont("helvetica", "bold");
     doc.setFontSize(7.5);
     doc.setTextColor(60, 60, 60);
@@ -778,6 +1075,10 @@ export function exportPlayerPdf(
     doc.text(noteLines, MH + 4, y);
   }
 
+  // Concept detail pages: all levels + descriptions per characteristic
+  if (rating) {
+    addPlayerConceptPages(doc, player, rating, teamName, y);
+  }
   addPageNumbers(doc);
   const datePart = todayStr().replace(/\//g, "-");
   doc.save(`valoracion_${safeFilename(player.displayName)}_${datePart}.pdf`);

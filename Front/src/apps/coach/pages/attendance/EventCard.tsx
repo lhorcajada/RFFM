@@ -13,11 +13,45 @@ import {
 import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import SportsSoccerIcon from '@mui/icons-material/SportsSoccer';
 import { useNavigate } from "react-router-dom";
 import styles from "./EventCard.module.css";
 import { SportEventResponse } from "../../services/sportEventService";
 import { deleteSportEvent } from "../../services/sportEventService";
 import SportEventDialog from "./components/SportEventDialog";
+import type { MatchState } from "../convocations/components/convocationMatchDetail.types";
+
+/** Build a MatchState (expected by ConvocationMatchDetail) from a SportEventResponse */
+function toMatchState(ev: SportEventResponse): MatchState {
+  const raw = ev.eveDateTime ?? ev.startTime ?? ev.start ?? null;
+  const date = raw ? raw.trim().substring(0, 10) : "";
+
+  let time = "";
+  if (raw && raw.includes("T")) {
+    const part = raw.split("T")[1]?.substring(0, 5) ?? "";
+    if (part !== "00:00") time = part;
+  }
+
+  const isHomeMatch = ev.isHomeMatch !== false;
+  const rivalName = ev.rivalName ?? ev.rival ?? "";
+  const rivalShield = ev.rivalPhotoUrl ?? "";
+  const myTeamName = ev.teamName ?? "";
+  const myTeamShield = ev.teamPhotoUrl ?? "";
+
+  return {
+    date,
+    time,
+    localTeamName: isHomeMatch ? myTeamName : rivalName,
+    localTeamShield: isHomeMatch ? myTeamShield : rivalShield,
+    visitorTeamName: isHomeMatch ? rivalName : myTeamName,
+    visitorTeamShield: isHomeMatch ? rivalShield : myTeamShield,
+    isFinished: raw ? new Date(raw) < new Date() : false,
+    isHomeTeam: isHomeMatch,
+    field: ev.location ?? "",
+    codacta: ev.codActa ?? null,
+    selectedKitNumber: ev.selectedKitNumber ?? null,
+  };
+}
 
 interface Props {
   event: SportEventResponse;
@@ -163,6 +197,21 @@ export default function EventCard({ event, eventTypeName, onDeleted, onEdited }:
 
   const actions = (
     <div className={styles.actions}>
+      {isMatch ? (
+        <Tooltip title="Ir al partido">
+          <IconButton
+            size="small"
+            onClick={() => {
+              const teamIdParam = encodeURIComponent(String(event.teamId ?? ""));
+              navigate(`/coach/convocations/match?teamId=${teamIdParam}`, { state: { match: toMatchState(event) } });
+            }}
+            aria-label={`Ir al partido ${event.title}`}
+            sx={{ color: "rgba(180,195,240,0.85)" }}
+          >
+            <SportsSoccerIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      ) : null}
       <Tooltip title="Asistencias">
         <IconButton
           size="small"

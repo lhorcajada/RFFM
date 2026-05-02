@@ -1,4 +1,6 @@
 // Re-export all services for easy access
+export { clubService, ClubService } from "./ClubService";
+export type { ClubDirectoryItem, ClubTeam, TeamGroupInfo } from "./ClubService";
 export { playerService, PlayerService } from "./PlayerService";
 export { teamService, TeamService } from "./TeamService";
 export {

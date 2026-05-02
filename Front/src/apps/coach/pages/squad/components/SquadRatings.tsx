@@ -107,7 +107,7 @@ function isGoalkeeperPosition(_position?: string | null): boolean { return false
 export default function SquadRatings({ teamId: _teamId, players, latestRatings, teamName }: Props) {
   const navigate = useNavigate();
   const squadSearch = window.location.search; // preserve ?teamId=...&seasonId=...
-  const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>("position");
 
   const grouped = useMemo(
@@ -116,12 +116,7 @@ export default function SquadRatings({ teamId: _teamId, players, latestRatings, 
   );
 
   function togglePanel(id: string) {
-    setCollapsedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+    setExpandedId((prev) => (prev === id ? null : id));
   }
 
 
@@ -148,14 +143,29 @@ export default function SquadRatings({ teamId: _teamId, players, latestRatings, 
           ))}
         </ToggleButtonGroup>
 
-        <Button
-          size="small"
-          variant="outlined"
-          startIcon={<PictureAsPdfOutlinedIcon />}
-          onClick={() => exportAllPlayersPdf(players, latestRatings, teamName, pdfSortKey)}
-        >
-          PDF plantilla
-        </Button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<PictureAsPdfOutlinedIcon />}
+            onClick={() => exportAllPlayersPdf(players, latestRatings, teamName, pdfSortKey)}
+          >
+            PDF plantilla
+          </Button>
+
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<PictureAsPdfOutlinedIcon />}
+            onClick={() => {
+              for (const p of players) {
+                exportPlayerPdf(p, latestRatings[p.teamPlayerId] ?? null, teamName);
+              }
+            }}
+          >
+            PDF individuales
+          </Button>
+        </div>
       </div>
       {grouped.map(([position, group]) => {
         const accent = positionAccent(position);
@@ -169,7 +179,7 @@ export default function SquadRatings({ teamId: _teamId, players, latestRatings, 
             <div className={styles.grid}>
               {group.map((p) => {
                 const rating = latestRatings[p.teamPlayerId];
-                const isCollapsed = collapsedIds.has(p.teamPlayerId);
+                const isCollapsed = expandedId !== p.teamPlayerId;
                 return (
                   <div key={p.teamPlayerId} className={styles.playerRow}>
                     <div className={styles.cromoCell}>
@@ -190,24 +200,18 @@ export default function SquadRatings({ teamId: _teamId, players, latestRatings, 
                         }
                         onEdit={() => navigate(`/coach/squad/${p.teamPlayerId}/rating/new${squadSearch}`)}
                         onHistory={() => navigate(`/coach/squad/${p.teamPlayerId}/rating/history${squadSearch}`)}
+                        onPrint={() => exportPlayerPdf(p, latestRatings[p.teamPlayerId] ?? null, teamName)}
                       />
                     </div>
                     <button
-                      className={styles.printBtn}
-                      onClick={() => exportPlayerPdf(p, latestRatings[p.teamPlayerId] ?? null, teamName)}
-                      title="Exportar PDF del jugador"
-                    >
-                      <PictureAsPdfOutlinedIcon sx={{ fontSize: 11 }} />
-                    </button>
-                    <button
-                      className={styles.toggleTab}
+                      className={`${styles.toggleTab} ${!isCollapsed ? styles.toggleTabOpen : ""}`}
                       onClick={() => togglePanel(p.teamPlayerId)}
                       title={isCollapsed ? "Ver subvaloraciones" : "Ocultar subvaloraciones"}
                     >
                       {isCollapsed ? (
-                        <ChevronRightIcon sx={{ fontSize: 13 }} />
+                        <ChevronRightIcon sx={{ fontSize: 16 }} />
                       ) : (
-                        <ChevronLeftIcon sx={{ fontSize: 13 }} />
+                        <ChevronLeftIcon sx={{ fontSize: 16 }} />
                       )}
                     </button>
                     <div

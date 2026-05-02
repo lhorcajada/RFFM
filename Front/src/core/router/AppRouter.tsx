@@ -7,7 +7,7 @@ import RequireAuth from "./RequireAuth";
 
 const FederationApp = lazy(() => import("../../apps/federation/routes"));
 const CoachApp = lazy(() => import("../../apps/coach/routes"));
-const AppSelector = lazy(() => import("./AppSelector"));
+const AppSelector = lazy(() => import("../../shared/pages/AppSelector/AppSelector"));
 const SharedLogin = lazy(
   () => import("../../shared/components/ui/Login/Login")
 );
