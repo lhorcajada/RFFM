@@ -143,8 +143,12 @@ export function useTeamAppEntry() {
       if (result.token) {
         coachAuthService.storeUpdatedToken(result.token);
       }
+      // Persist the associated teamId so the dashboard can auto-load it
+      if (result.teamId) {
+        try { localStorage.setItem("coach_player_teamId", result.teamId); } catch {}
+      }
       setIdentityDialogOpen(false);
-      navigate("/coach/dashboard");
+      navigate(result.teamId ? `/coach/dashboard?teamId=${result.teamId}` : "/coach/dashboard");
     } catch {
       setIdentityDialogError(
         "No se encontraron tus datos en la plantilla. Comprueba nombre, apellidos y fecha de nacimiento."
@@ -152,6 +156,16 @@ export function useTeamAppEntry() {
     } finally {
       setIdentityDialogLoading(false);
     }
+  }
+
+  function openPlayerRelinkDialog() {
+    setSelectedUserType("Player");
+    setCodeDialogConfig({
+      title: "Código de equipo",
+      description: "Introduce el código de equipo que te ha proporcionado tu club.",
+      label: "Código de equipo",
+    });
+    setCodeDialogOpen(true);
   }
 
   return {
@@ -194,5 +208,6 @@ export function useTeamAppEntry() {
     validatedTeamName: validatedTeam?.teamName,
     closeIdentityDialog,
     handleIdentityAccept,
+    openPlayerRelinkDialog,
   };
 }

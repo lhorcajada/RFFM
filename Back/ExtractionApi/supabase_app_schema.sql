@@ -1712,5 +1712,37 @@ BEGIN
     VALUES ('20260316173356_InitialCreate', '9.0.6');
     END IF;
 END $EF$;
+
+-- Migration: 20260502152751_AddUserProfile
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260502152751_AddUserProfile') THEN
+    CREATE TABLE app."UserProfiles" (
+        "Id" text NOT NULL,
+        "ApplicationUserId" text NOT NULL,
+        "RoleName" text NOT NULL,
+        "PlayerId" text,
+        "TeamId" text,
+        "CreatedAt" timestamp with time zone NOT NULL DEFAULT now(),
+        "UpdatedAt" timestamp with time zone NOT NULL DEFAULT now(),
+        CONSTRAINT "PK_UserProfiles" PRIMARY KEY ("Id")
+    );
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260502152751_AddUserProfile') THEN
+    CREATE UNIQUE INDEX "IX_UserProfiles_ApplicationUserId" ON app."UserProfiles" ("ApplicationUserId");
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260502152751_AddUserProfile') THEN
+    INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
+    VALUES ('20260502152751_AddUserProfile', '9.0.6');
+    END IF;
+END $EF$;
 COMMIT;
 

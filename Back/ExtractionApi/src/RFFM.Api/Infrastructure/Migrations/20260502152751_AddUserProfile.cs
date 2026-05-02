@@ -1,8 +1,8 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace RFFM.Api.migrationsarchive.SqlServer.AppDbContext
+namespace RFFM.Api.Infrastructure.Migrations
 {
     /// <inheritdoc />
     public partial class AddUserProfile : Migration
@@ -15,13 +15,13 @@ namespace RFFM.Api.migrationsarchive.SqlServer.AppDbContext
                 schema: "app",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    ApplicationUserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    RoleName = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    PlayerId = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    TeamId = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()")
+                    Id = table.Column<string>(type: "text", nullable: false),
+                    ApplicationUserId = table.Column<string>(type: "text", nullable: false),
+                    RoleName = table.Column<string>(type: "text", nullable: false),
+                    PlayerId = table.Column<string>(type: "text", nullable: true),
+                    TeamId = table.Column<string>(type: "text", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()"),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()")
                 },
                 constraints: table =>
                 {

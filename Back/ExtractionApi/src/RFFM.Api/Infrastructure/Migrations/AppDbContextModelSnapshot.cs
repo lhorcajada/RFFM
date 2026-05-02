@@ -3491,6 +3491,43 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.ToTable("Seasons", "app");
                 });
 
+            modelBuilder.Entity("RFFM.Api.Domain.Entities.UserProfile", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ApplicationUserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("PlayerId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("RoleName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("TeamId")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("now()");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApplicationUserId")
+                        .IsUnique();
+
+                    b.ToTable("UserProfiles", "app");
+                });
+
             modelBuilder.Entity("RFFM.Api.Domain.Entities.Subscription", b =>
                 {
                     b.Property<int>("Id")

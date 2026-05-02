@@ -52,6 +52,7 @@ export const coachAuthService = {
     localStorage.removeItem("coachUserId");
     try {
       localStorage.removeItem("coach_roles");
+      localStorage.removeItem("coach_player_teamId");
     } catch (e) {}
   },
 

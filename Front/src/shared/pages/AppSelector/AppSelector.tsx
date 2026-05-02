@@ -1,4 +1,5 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useEffect } from "react";
 import SportsIcon from "@mui/icons-material/Sports";
 import GroupsIcon from "@mui/icons-material/Groups";
 import styles from "./AppSelector.module.css";
@@ -26,6 +27,7 @@ function dispatchSnackbar(message: string) {
 
 export default function AppSelector() {
   const navigate = useNavigate();
+  const location = useLocation();
   const {
     changeRoleOpen,
     openChangeRoleDialog,
@@ -55,7 +57,19 @@ export default function AppSelector() {
     validatedTeamName,
     closeIdentityDialog,
     handleIdentityAccept,
+    openPlayerRelinkDialog,
   } = useTeamAppEntry();
+
+  // If the dashboard sent us back because the player has no team linked, open the re-link dialog
+  useEffect(() => {
+    const state = location.state as { needsTeamRelink?: boolean } | null;
+    if (state?.needsTeamRelink && coachAuthService.isAuthenticated()) {
+      openPlayerRelinkDialog();
+      // Clear the state so a refresh doesn't re-trigger the dialog
+      window.history.replaceState({}, "", location.pathname);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <BaseLayout appTitle="Futbol Base" hideFooterMenu>

@@ -34,6 +34,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
     localStorage.removeItem("coachAuthToken");
     localStorage.removeItem("coachUserId");
     localStorage.removeItem("coach_roles");
+    localStorage.removeItem("coach_player_teamId");
     try {
       if (typeof window !== "undefined") {
         const path = window.location?.pathname ?? "";

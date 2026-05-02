@@ -21,6 +21,7 @@ interface DashboardCardsProps {
   teamTitleNode: React.ReactNode | null;
   selectedSeason: string;
   loadingTeam: boolean;
+  isPlayer?: boolean;
 }
 
 export default function DashboardCards({
@@ -28,6 +29,7 @@ export default function DashboardCards({
   teamTitleNode,
   selectedSeason,
   loadingTeam,
+  isPlayer = false,
 }: DashboardCardsProps) {
   const seasonParam = selectedSeason ? `?seasonId=${selectedSeason}` : "";
   const seasonSuffix = selectedSeason ? `&seasonId=${selectedSeason}` : "";
@@ -35,24 +37,30 @@ export default function DashboardCards({
   return (
     <div className={styles.container}>
       <div className={styles.cards}>
-        <DashboardCard
-          title="Configuración"
-          description="Ajustes y preferencias."
-          icon={<SettingsIcon style={{ fontSize: 40 }} />}
-          to="/coach/settings"
-        />
-        <DashboardCard
-          title="Clubs"
-          description="Gestión de clubs."
-          icon={<SportsFootballIcon style={{ fontSize: 40 }} />}
-          to={`/coach/clubs${seasonParam}`}
-        />
-        <DashboardCard
-          title="Prep. temporada"
-          description="Importar plantillas de federación y planificar la nueva temporada."
-          icon={<CalendarMonthIcon style={{ fontSize: 40 }} />}
-          to="/coach/season-prep"
-        />
+        {!isPlayer && (
+          <DashboardCard
+            title="Configuración"
+            description="Ajustes y preferencias."
+            icon={<SettingsIcon style={{ fontSize: 40 }} />}
+            to="/coach/settings"
+          />
+        )}
+        {!isPlayer && (
+          <DashboardCard
+            title="Clubs"
+            description="Gestión de clubs."
+            icon={<SportsFootballIcon style={{ fontSize: 40 }} />}
+            to={`/coach/clubs${seasonParam}`}
+          />
+        )}
+        {!isPlayer && (
+          <DashboardCard
+            title="Prep. temporada"
+            description="Importar plantillas de federación y planificar la nueva temporada."
+            icon={<CalendarMonthIcon style={{ fontSize: 40 }} />}
+            to="/coach/season-prep"
+          />
+        )}
 
         {!!teamTitleNode && (
           <>

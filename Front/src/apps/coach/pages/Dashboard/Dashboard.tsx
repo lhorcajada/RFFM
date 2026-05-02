@@ -4,6 +4,7 @@ import ContentLayout from "../../../../shared/components/ui/ContentLayout/Conten
 import useTeamAndClub from "../../hooks/useTeamAndClub.tsx";
 import { useDashboardSeason } from "./hooks/useDashboardSeason";
 import { usePreferredSelection } from "./hooks/usePreferredSelection";
+import { usePlayerAutoLoad } from "./hooks/usePlayerAutoLoad";
 import DashboardActionBar from "./components/DashboardActionBar";
 import DashboardCards from "./components/DashboardCards";
 
@@ -12,6 +13,7 @@ export default function CoachDashboard() {
   const { selectedSeason, handleSeasonChange } = useDashboardSeason();
   const { hasPreferredSelection, loadingConfig, snackbar, setSnackbar, handleLoadPreferred } =
     usePreferredSelection(selectedSeason);
+  const { isPlayer } = usePlayerAutoLoad();
 
   return (
     <BaseLayout appTitle="Futbol Base - Entrenadores" hideFooterMenu>
@@ -25,6 +27,7 @@ export default function CoachDashboard() {
             hasPreferredSelection={hasPreferredSelection}
             loadingConfig={loadingConfig}
             onLoadPreferred={handleLoadPreferred}
+            isPlayer={isPlayer}
           />
         }
       >
@@ -33,6 +36,7 @@ export default function CoachDashboard() {
           teamTitleNode={teamTitleNode}
           selectedSeason={selectedSeason}
           loadingTeam={loadingTeam}
+          isPlayer={isPlayer}
         />
       </ContentLayout>
       <Snackbar

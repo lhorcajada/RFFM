@@ -55,6 +55,7 @@ export default function AppHeader({ title }: AppHeaderProps) {
       localStorage.removeItem("coachAuthToken");
       localStorage.removeItem("coachUserId");
       localStorage.removeItem("coach_roles");
+      localStorage.removeItem("coach_player_teamId");
       localStorage.removeItem("rffm_user");
       // inform other parts of the app
       // emit both a logout event and an auth_expired event so all listeners

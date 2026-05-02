@@ -11,6 +11,7 @@ interface DashboardActionBarProps {
   hasPreferredSelection: boolean;
   loadingConfig: boolean;
   onLoadPreferred: () => void;
+  isPlayer?: boolean;
 }
 
 export default function DashboardActionBar({
@@ -19,6 +20,7 @@ export default function DashboardActionBar({
   hasPreferredSelection,
   loadingConfig,
   onLoadPreferred,
+  isPlayer = false,
 }: DashboardActionBarProps) {
   const navigate = useNavigate();
 
@@ -32,7 +34,7 @@ export default function DashboardActionBar({
           showLabel={false}
         />
       </div>
-      {!hasPreferredSelection && (
+      {!isPlayer && !hasPreferredSelection && (
         <Button
           variant="outlined"
           startIcon={<SportsFootballIcon />}
