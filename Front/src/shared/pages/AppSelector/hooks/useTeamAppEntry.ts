@@ -2,6 +2,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useCoachTrial } from "./useCoachTrial";
 import type { UserType } from "../components/UserTypeDialog";
+import teamService from "../../../../apps/coach/services/teamService";
 
 export function useTeamAppEntry() {
   const navigate = useNavigate();
@@ -17,6 +18,8 @@ export function useTeamAppEntry() {
     description: string;
     label: string;
   }>({ title: "", description: "", label: "" });
+  const [codeDialogLoading, setCodeDialogLoading] = React.useState(false);
+  const [codeDialogError, setCodeDialogError] = React.useState<string | null>(null);
 
   function openChangeRoleDialog() {
     setChangeRoleOpen(true);
@@ -90,12 +93,26 @@ export function useTeamAppEntry() {
 
   function closeCodeDialog() {
     setCodeDialogOpen(false);
+    setCodeDialogError(null);
   }
 
-  function handleCodeAccept(_code: string) {
-    // TODO: wire up real team/club code validation
-    setCodeDialogOpen(false);
-    navigate("/coach/dashboard");
+  async function handleCodeAccept(code: string) {
+    setCodeDialogLoading(true);
+    setCodeDialogError(null);
+    try {
+      await teamService.validateTeamCode(code);
+      setCodeDialogOpen(false);
+      navigate("/coach/dashboard");
+    } catch {
+      setCodeDialogError("Código no válido. Comprueba el código e inténtalo de nuevo.");
+      window.dispatchEvent(
+        new CustomEvent("rffm.show_snackbar", {
+          detail: { message: "Código de equipo incorrecto", severity: "error" },
+        })
+      );
+    } finally {
+      setCodeDialogLoading(false);
+    }
   }
 
   return {
@@ -126,6 +143,8 @@ export function useTeamAppEntry() {
     // Code input step (Jugador / Familiar / Seguidor / Miembro)
     codeDialogOpen,
     codeDialogConfig,
+    codeDialogLoading,
+    codeDialogError,
     closeCodeDialog,
     handleCodeAccept,
   };

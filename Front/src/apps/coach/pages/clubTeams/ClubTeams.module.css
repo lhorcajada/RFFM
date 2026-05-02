@@ -72,3 +72,15 @@
     align-items: start;
   }
 }
+
+.codeRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px 6px;
+}
+
+.codeText {
+  color: var(--rffm-text-secondary, rgba(0, 0, 0, 0.6));
+  font-size: 0.75rem;
+}

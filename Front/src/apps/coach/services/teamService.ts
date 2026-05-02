@@ -13,6 +13,7 @@ export type TeamResponse = {
     emblemUrl?: string | null;
   };
   urlPhoto?: string | null;
+  joinCode?: string | null;
 };
 
 export async function getTeams(
@@ -93,10 +94,21 @@ export async function getTeamById(
     return null;
   }
 }
+
+export async function validateTeamCode(
+  code: string
+): Promise<{ teamId: string; teamName: string }> {
+  const resp = await client.get<{ teamId: string; teamName: string }>(
+    `/api/catalog/team/by-code/${encodeURIComponent(code.trim().toUpperCase())}`
+  );
+  return resp.data;
+}
+
 export default {
   getTeams,
   createTeam,
   uploadTeamPhoto,
   fetchTeamPhoto,
   getTeamById,
+  validateTeamCode,
 };

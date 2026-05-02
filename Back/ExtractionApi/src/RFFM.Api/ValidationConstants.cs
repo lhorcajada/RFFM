@@ -13,6 +13,7 @@
         public const string SeasonNameCannotBeNullEmpty = "Season name cannot be null or empty.";
         public const string SeasonNameCannotExceedMaxLength = "Season name cannot exceed {0} characters.";
         public const int TeamNameMaxLength = 500;
+        public const int TeamJoinCodeLength = 8;
         public const int TechnicalNameMaxLength = 200;
         public const string TechnicalNameCannotBeNullEmpty = "Technical name cannot be null or empty.";
         public const string TechnicalNameCannotExceedMaxLength = "Technical name cannot exceed {0} characters."; 

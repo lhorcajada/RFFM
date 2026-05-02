@@ -35,7 +35,8 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
             CategoryResponse Category,
             LeagueResponse League,
             GetClubResponse Club,
-            string? UrlPhoto);
+            string? UrlPhoto,
+            string? JoinCode);
         public record CategoryResponse(int Id, string Name);
         public record LeagueResponse(int? Id, string? Name, int? group);
 
@@ -71,7 +72,7 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
                         new LeagueResponse(t.LeagueId, t.League!.Name, t.LeagueGroup),
                         new GetClubResponse(t.ClubId, 
                             t.Club.Name, new GetCountries.CountriesResponse(t.Club.CountryId, t.Club.Country.Name, t.Club.Country.Code),
-                            t.Club.ShieldUrl, null), t.UrlPhoto))
+                            t.Club.ShieldUrl, null), t.UrlPhoto, t.JoinCode))
                     .AsNoTracking()
                     .ToArrayAsync(cancellationToken);
             }

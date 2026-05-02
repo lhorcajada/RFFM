@@ -44,6 +44,8 @@ export default function AppSelector() {
     handleClubLicenseAccept,
     codeDialogOpen,
     codeDialogConfig,
+    codeDialogLoading,
+    codeDialogError,
     closeCodeDialog,
     handleCodeAccept,
   } = useTeamAppEntry();
@@ -123,6 +125,8 @@ export default function AppSelector() {
                 title={codeDialogConfig.title}
                 description={codeDialogConfig.description}
                 label={codeDialogConfig.label}
+                loading={codeDialogLoading}
+                error={codeDialogError}
                 onClose={closeCodeDialog}
                 onAccept={handleCodeAccept}
               />

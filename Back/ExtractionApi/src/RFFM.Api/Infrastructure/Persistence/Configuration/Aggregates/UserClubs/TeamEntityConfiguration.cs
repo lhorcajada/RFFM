@@ -31,6 +31,13 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.UserClubs
             builder.Property(t => t.LeagueGroup)
                 .IsRequired(false);
 
+            builder.Property(t => t.JoinCode)
+                .IsRequired()
+                .HasMaxLength(ValidationConstants.TeamJoinCodeLength);
+
+            builder.HasIndex(t => t.JoinCode)
+                .IsUnique();
+
             builder.HasOne(t => t.Club)
                 .WithMany(c => c.Teams)
                 .HasForeignKey(t => t.ClubId);

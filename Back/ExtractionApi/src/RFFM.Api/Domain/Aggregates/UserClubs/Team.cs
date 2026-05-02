@@ -1,4 +1,5 @@
-﻿using RFFM.Api.Domain.Aggregates.Assistances;
+﻿using RFFM.Api;
+using RFFM.Api.Domain.Aggregates.Assistances;
 using RFFM.Api.Domain.Aggregates.Training;
 using RFFM.Api.Domain.Entities.Competitions;
 using RFFM.Api.Domain.Entities.Seasons;
@@ -16,6 +17,7 @@ namespace RFFM.Api.Domain.Aggregates.UserClubs
         public string? UrlPhoto { get; set; }
         public string ClubId { get; set; }
         public string SeasonId { get; set; }
+        public string JoinCode { get; private set; }
 
         public Club Club { get; set; } = null!;
         public Category Category { get; private set; } = null!;
@@ -34,6 +36,7 @@ namespace RFFM.Api.Domain.Aggregates.UserClubs
             SeasonId = model.SeasonId;
             LeagueId = model.LeagueId;
             LeagueGroup = model.LeagueGroup;
+            JoinCode = Guid.NewGuid().ToString("N")[..ValidationConstants.TeamJoinCodeLength].ToUpper();
         }
         public void UpdateName(string name)
         {

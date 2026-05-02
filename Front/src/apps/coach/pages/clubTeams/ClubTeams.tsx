@@ -6,11 +6,12 @@ import ContentLayout from "../../../../shared/components/ui/ContentLayout/Conten
 import ClubHeader from "../../components/ClubHeader/ClubHeader";
 import styles from "./ClubTeams.module.css";
 import EmptyState from "../../../../shared/components/ui/EmptyState/EmptyState";
-import { Button, Avatar } from "@mui/material";
+import { Button, Avatar, IconButton, Tooltip, Typography } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import GroupsIcon from "@mui/icons-material/Groups";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { useNavigate } from "react-router-dom";
-import { Box, Typography, Paper } from "@mui/material";
+import { Box, Paper } from "@mui/material";
 import teamService, { TeamResponse } from "../../services/teamService";
 import seasonService, { Season } from "../../services/seasonService";
 
@@ -27,6 +28,16 @@ export default function ClubTeams() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [seasonName, setSeasonName] = useState<string | null>(null);
+
+  function handleCopyCode(code: string) {
+    navigator.clipboard.writeText(code).then(() => {
+      window.dispatchEvent(
+        new CustomEvent("rffm.show_snackbar", {
+          detail: { message: "Código copiado al portapapeles", severity: "success" },
+        })
+      );
+    });
+  }
 
   useEffect(() => {
     let mounted = true;
@@ -167,6 +178,22 @@ export default function ClubTeams() {
                       seasonId ? `&seasonId=${seasonId}` : ""
                     }`}
                   />
+                  {t.joinCode && (
+                    <div className={styles.codeRow}>
+                      <Typography variant="caption" className={styles.codeText}>
+                        Código de equipo:&nbsp;<strong>{t.joinCode}</strong>
+                      </Typography>
+                      <Tooltip title="Copiar código">
+                        <IconButton
+                          size="small"
+                          onClick={() => handleCopyCode(t.joinCode!)}
+                          aria-label="Copiar código de equipo"
+                        >
+                          <ContentCopyIcon fontSize="inherit" />
+                        </IconButton>
+                      </Tooltip>
+                    </div>
+                  )}
                 </div>
               ))}
           </div>

@@ -34,7 +34,8 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
             GetTeams.CategoryResponse Category,
             GetTeams.LeagueResponse League,
             GetClubResponse Club,
-            string? UrlPhoto);
+            string? UrlPhoto,
+            string? JoinCode);
 
         public class TeamsRequestHandler : IRequestHandler<TeamQuery, TeamResponse>
         {
@@ -64,7 +65,8 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
                     new GetClubResponse(team.ClubId, team.Club.Name,
                         new GetCountries.CountriesResponse(team.Club.CountryId, team.Club.Country.Name, team.Club.Country.Code),
                         team.Club.ShieldUrl, null),
-                    team.UrlPhoto);
+                    team.UrlPhoto,
+                    team.JoinCode);
             }
         }
     }
