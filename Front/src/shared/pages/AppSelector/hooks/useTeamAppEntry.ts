@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useCoachTrial } from "./useCoachTrial";
 import type { UserType } from "../components/UserTypeDialog";
 import teamService from "../../../../apps/coach/services/teamService";
+import { coachAuthService } from "../../../../apps/coach/services/authService";
 
 export function useTeamAppEntry() {
   const navigate = useNavigate();
@@ -20,6 +21,11 @@ export function useTeamAppEntry() {
   }>({ title: "", description: "", label: "" });
   const [codeDialogLoading, setCodeDialogLoading] = React.useState(false);
   const [codeDialogError, setCodeDialogError] = React.useState<string | null>(null);
+  const [selectedUserType, setSelectedUserType] = React.useState<UserType | null>(null);
+  const [validatedTeam, setValidatedTeam] = React.useState<{ teamId: string; teamName: string } | null>(null);
+  const [identityDialogOpen, setIdentityDialogOpen] = React.useState(false);
+  const [identityDialogLoading, setIdentityDialogLoading] = React.useState(false);
+  const [identityDialogError, setIdentityDialogError] = React.useState<string | null>(null);
 
   function openChangeRoleDialog() {
     setChangeRoleOpen(true);
@@ -58,6 +64,7 @@ export function useTeamAppEntry() {
       case "Player":
       case "FamilyMember":
       case "Fan":
+        setSelectedUserType(type);
         setCodeDialogConfig({
           title: "Código de equipo",
           description: "Introduce el código de equipo que te ha proporcionado tu club.",
@@ -67,6 +74,7 @@ export function useTeamAppEntry() {
         break;
 
       case "ClubMember":
+        setSelectedUserType(type);
         setCodeDialogConfig({
           title: "Código de club",
           description: "Introduce el código de club que te ha proporcionado tu organización.",
@@ -100,9 +108,14 @@ export function useTeamAppEntry() {
     setCodeDialogLoading(true);
     setCodeDialogError(null);
     try {
-      await teamService.validateTeamCode(code);
+      const team = await teamService.validateTeamCode(code);
       setCodeDialogOpen(false);
-      navigate("/coach/dashboard");
+      if (selectedUserType === "Player") {
+        setValidatedTeam(team);
+        setIdentityDialogOpen(true);
+      } else {
+        navigate("/coach/dashboard");
+      }
     } catch {
       setCodeDialogError("Código no válido. Comprueba el código e inténtalo de nuevo.");
       window.dispatchEvent(
@@ -112,6 +125,32 @@ export function useTeamAppEntry() {
       );
     } finally {
       setCodeDialogLoading(false);
+    }
+  }
+
+  function closeIdentityDialog() {
+    setIdentityDialogOpen(false);
+    setIdentityDialogError(null);
+  }
+
+  async function handleIdentityAccept(name: string, lastName: string, birthDate: string) {
+    if (!validatedTeam) return;
+    setIdentityDialogLoading(true);
+    setIdentityDialogError(null);
+    try {
+      const result = await teamService.verifyPlayerIdentity(validatedTeam.teamId, name, lastName, birthDate);
+      // Store the refreshed JWT (now includes "Player" role) so the next session skips onboarding
+      if (result.token) {
+        coachAuthService.storeUpdatedToken(result.token);
+      }
+      setIdentityDialogOpen(false);
+      navigate("/coach/dashboard");
+    } catch {
+      setIdentityDialogError(
+        "No se encontraron tus datos en la plantilla. Comprueba nombre, apellidos y fecha de nacimiento."
+      );
+    } finally {
+      setIdentityDialogLoading(false);
     }
   }
 
@@ -147,5 +186,13 @@ export function useTeamAppEntry() {
     codeDialogError,
     closeCodeDialog,
     handleCodeAccept,
+
+    // Player identity verification step
+    identityDialogOpen,
+    identityDialogLoading,
+    identityDialogError,
+    validatedTeamName: validatedTeam?.teamName,
+    closeIdentityDialog,
+    handleIdentityAccept,
   };
 }

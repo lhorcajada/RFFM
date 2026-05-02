@@ -12,6 +12,7 @@ import UserTypeDialog from "./components/UserTypeDialog";
 import ClubLicenseDialog from "./components/ClubLicenseDialog";
 import CodeInputDialog from "./components/CodeInputDialog";
 import ChangeRoleDialog from "./components/ChangeRoleDialog";
+import PlayerIdentityDialog from "./components/PlayerIdentityDialog";
 
 function dispatchSnackbar(message: string) {
   try {
@@ -48,6 +49,12 @@ export default function AppSelector() {
     codeDialogError,
     closeCodeDialog,
     handleCodeAccept,
+    identityDialogOpen,
+    identityDialogLoading,
+    identityDialogError,
+    validatedTeamName,
+    closeIdentityDialog,
+    handleIdentityAccept,
   } = useTeamAppEntry();
 
   return (
@@ -94,6 +101,15 @@ export default function AppSelector() {
                     openChangeRoleDialog();
                     return;
                   }
+                  if (
+                    coachAuthService.hasRole("Player") ||
+                    coachAuthService.hasRole("FamilyPlayer") ||
+                    coachAuthService.hasRole("ClubMember") ||
+                    coachAuthService.hasRole("Follower")
+                  ) {
+                    navigate("/coach/dashboard");
+                    return;
+                  }
                   openUserTypeDialog();
                 }}
               />
@@ -129,6 +145,14 @@ export default function AppSelector() {
                 error={codeDialogError}
                 onClose={closeCodeDialog}
                 onAccept={handleCodeAccept}
+              />
+              <PlayerIdentityDialog
+                open={identityDialogOpen}
+                teamName={validatedTeamName}
+                loading={identityDialogLoading}
+                error={identityDialogError}
+                onClose={closeIdentityDialog}
+                onAccept={handleIdentityAccept}
               />
             </div>
           </ContentLayout>

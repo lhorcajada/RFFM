@@ -104,6 +104,19 @@ export async function validateTeamCode(
   return resp.data;
 }
 
+export async function verifyPlayerIdentity(
+  teamId: string,
+  name: string,
+  lastName: string,
+  birthDate: string
+): Promise<{ playerId: string; teamId: string; teamName: string; roles?: string[]; token?: string }> {
+  const resp = await client.post<{ playerId: string; teamId: string; teamName: string; roles?: string[]; token?: string }>(
+    `/api/catalog/team/${encodeURIComponent(teamId)}/verify-player`,
+    { name, lastName, birthDate }
+  );
+  return resp.data;
+}
+
 export default {
   getTeams,
   createTeam,
@@ -111,4 +124,5 @@ export default {
   fetchTeamPhoto,
   getTeamById,
   validateTeamCode,
+  verifyPlayerIdentity,
 };

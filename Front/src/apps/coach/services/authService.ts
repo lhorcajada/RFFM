@@ -128,4 +128,12 @@ export const coachAuthService = {
     const perms = coachAuthService.getPermissionsForRole(role);
     return perms.includes(permission);
   },
+
+  /** Replace the stored JWT with a freshly-issued one (e.g. after role assignment). */
+  storeUpdatedToken: (token: string) => {
+    localStorage.setItem("coachAuthToken", token);
+    try {
+      window.dispatchEvent(new CustomEvent("rffm.coach_token_updated"));
+    } catch (e) {}
+  },
 };

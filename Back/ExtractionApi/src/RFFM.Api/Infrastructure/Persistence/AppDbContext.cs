@@ -71,6 +71,9 @@ namespace RFFM.Api.Infrastructure.Persistence
         // Match participation (partido en directo)
         public DbSet<MatchParticipation> MatchParticipations { get; set; }
 
+        // User profile (role + player/team association)
+        public DbSet<UserProfile> UserProfiles { get; set; }
+
         // Payment plans and subscriptions
         public DbSet<PaymentPlan> PaymentPlans { get; set; }
         public DbSet<Subscription> Subscriptions { get; set; }
