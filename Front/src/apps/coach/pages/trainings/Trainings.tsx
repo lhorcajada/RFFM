@@ -106,6 +106,20 @@ export default function Trainings() {
       .finally(() => setLoadingSess(false));
   };
 
+  const goToNewExercisePage = () => {
+    if (!clubId) return;
+
+    const createParams = new URLSearchParams();
+    createParams.set("clubId", clubId);
+    if (teamId) createParams.set("teamId", teamId);
+    if (initialSspId) createParams.set("subSubPrincipleId", initialSspId);
+    if (initialSspName) createParams.set("sspName", initialSspName);
+
+    navigate(`/coach/trainings/new-exercise?${createParams.toString()}`, {
+      state: { returnTo: `/coach/trainings${location.search}` },
+    });
+  };
+
   const handleDeleteExercise = async () => {
     if (!deleteExId) return;
     setDeletingEx(true);
@@ -151,7 +165,7 @@ export default function Trainings() {
                 startIcon={<AddIcon />}
                 variant="contained"
                 className={styles.addBtn}
-                onClick={() => { setEditExercise(null); setExDialogOpen(true); }}
+                onClick={goToNewExercisePage}
                 disabled={!clubId}
               >
                 Nuevo ejercicio
@@ -273,7 +287,7 @@ export default function Trainings() {
 
         {/* ── Exercise dialog ──────────────────────────────────── */}
         <ExerciseDialog
-          open={exDialogOpen}
+          open={exDialogOpen && !!editExercise}
           clubId={clubId}
           subSubPrincipleId={initialSspId}
           subSubPrincipleName={initialSspName}

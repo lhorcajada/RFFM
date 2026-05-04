@@ -6,25 +6,22 @@ import IdealLineup from "./components/IdealLineup";
 import PlayerCromo from "./components/PlayerCromo";
 import { useNavigate } from "react-router-dom";
 import { useSearchParams } from "react-router-dom";
+import { coachAuthService } from "../../services/authService";
+import { getMyProfile } from "../../services/coachApi";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import useTeamAndClub from "../../hooks/useTeamAndClub.tsx";
-import DashboardCard from "../../../../shared/components/ui/DashboardCard/DashboardCard";
-import PlayerCard from "../../components/PlayerCard/PlayerCard";
 import EmptyState from "../../../../shared/components/ui/EmptyState/EmptyState";
 import teamplayerService from "../../services/teamplayerService";
 import { dischargeActiveInjury } from "../../services/teamplayerService";
-import teamService from "../../services/teamService";
 import playerService from "../../services/playerService";
 import playerRatingService from "../../services/playerRatingService";
 import { getSeasonPlayerStats } from "../../services/liveMatchService";
 import type { SeasonPlayerStats } from "../convocations/components/simulation/liveMatch.types";
 import type { PlayerRating } from "../../types/playerRating";
 import styles from "./Squad.module.css";
-import defaultAvatar from "../../../../assets/avatar.svg";
 import { useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
 
 function positionCategory(position: string): number {
   const p = position.toLowerCase();
@@ -78,6 +75,28 @@ export default function Squad() {
   const [seasonStats, setSeasonStats] = useState<Record<string, SeasonPlayerStats>>({});
   const [loadingRatings, setLoadingRatings] = useState(false);
   const [loadingPlayers, setLoadingPlayers] = useState(false);
+  const isFan =
+    coachAuthService.hasRole("Fan") ||
+    coachAuthService.hasRole("Follower");
+  const isPlayerOrFamily =
+    coachAuthService.hasRole("Player") ||
+    coachAuthService.hasRole("FamilyPlayer");
+  const isRestricted = isFan || isPlayerOrFamily;
+
+  const [associatedPlayerId, setAssociatedPlayerId] = useState<string | null>(null);
+  const [loadingProfile, setLoadingProfile] = useState(isPlayerOrFamily);
+
+  // resolves the teamPlayerId that matches the profile's playerId (Player entity ID)
+  const associatedTeamPlayerId = useMemo(() => {
+    if (!associatedPlayerId) return null;
+    const match = players.find(
+      (p) =>
+        p.id === associatedPlayerId ||
+        (p.playerId && p.playerId.toLowerCase() === associatedPlayerId.toLowerCase())
+    );
+    return match?.id ?? null;
+  }, [players, associatedPlayerId]);
+
   const [activeTab, setActiveTab] = useTabState(() => {
     const t = Number(squadSearchParams.get("tab"));
     return Number.isFinite(t) && t >= 0 ? t : 0;
@@ -191,6 +210,13 @@ export default function Squad() {
     };
   }, [team]);
 
+  useEffect(() => {
+    if (!isPlayerOrFamily) return;
+    getMyProfile().then((profile) => {
+      if (profile?.playerId) setAssociatedPlayerId(profile.playerId);
+    }).finally(() => setLoadingProfile(false));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- roles are stable per session
+
   return (
     <BaseLayout hideFooterMenu>
       <ContentLayout
@@ -207,23 +233,25 @@ export default function Squad() {
               Volver
             </Button>
 
-            <Button
-              onClick={() => {
-                const params = team ? `?teamId=${team.id}` : "";
-                const season = new URLSearchParams(window.location.search).get(
-                  "seasonId"
-                );
-                navigate(
-                  `/coach/squad/new${params}${
-                    season ? `&seasonId=${season}` : ""
-                  }`
-                );
-              }}
-              variant="contained"
-              size="small"
-            >
-              Añadir jugador
-            </Button>
+            {!isRestricted && (
+              <Button
+                onClick={() => {
+                  const params = team ? `?teamId=${team.id}` : "";
+                  const season = new URLSearchParams(window.location.search).get(
+                    "seasonId"
+                  );
+                  navigate(
+                    `/coach/squad/new${params}${
+                      season ? `&seasonId=${season}` : ""
+                    }`
+                  );
+                }}
+                variant="contained"
+                size="small"
+              >
+                Añadir jugador
+              </Button>
+            )}
           </Stack>
         }
       >
@@ -236,9 +264,9 @@ export default function Squad() {
             scrollButtons="auto"
           >
             <Tab label="Plantilla" />
-            <Tab label="Valoraciones" />
-            <Tab label="Ranking" />
-            <Tab label="Alineación ideal" />
+            {!isFan && <Tab label="Valoraciones" />}
+            {!isFan && !isPlayerOrFamily && <Tab label="Ranking" />}
+            {!isFan && !isPlayerOrFamily && <Tab label="Alineación ideal" />}
           </Tabs>
 
           {activeTab === 0 && !loadingPlayers && players.length > 0 && (
@@ -287,7 +315,7 @@ export default function Squad() {
                             dorsal={p.dorsal ?? null}
                             position={p.position ?? null}
                             injured={p.isInjured === true}
-                            onClearInjury={p.isInjured && p.id ? async () => {
+                            onClearInjury={!isRestricted && p.isInjured && p.id ? async () => {
                               const ok = await dischargeActiveInjury(p.id);
                               if (ok) {
                                 setPlayers((prev) =>
@@ -298,13 +326,19 @@ export default function Squad() {
                               }
                             } : undefined}
                             rating={(() => {
+                              if (isFan) return null;
+                              // Only restrict once we know the associated player; while loading, show nothing to avoid flicker
+                              if (isPlayerOrFamily && loadingProfile) return null;
+                              if (isPlayerOrFamily && associatedPlayerId && p.id !== associatedTeamPlayerId) return null;
                               const r = latestRatings[p.id];
                               return r
                                 ? { technical: r.technical, tactical: r.tactical, physical: r.physical, competitiveness: r.competitiveness }
                                 : null;
                             })()}
-                            seasonStats={seasonStats[p.id] ?? null}
+                            seasonStats={!isRestricted || (!loadingProfile && p.id === associatedTeamPlayerId) ? (seasonStats[p.id] ?? null) : null}
                             to={
+                              isFan ? undefined :
+                              isPlayerOrFamily && (loadingProfile || (associatedPlayerId && p.id !== associatedTeamPlayerId)) ? undefined :
                               p.id
                                 ? `/coach/player/${p.id}${team ? `?teamId=${team.id}` : ""}${seasonParam ? `&seasonId=${seasonParam}` : ""}`
                                 : undefined
@@ -322,14 +356,28 @@ export default function Squad() {
           {activeTab === 1 && team && (
             <SquadRatings
               teamId={team.id}
-              players={ratingPlayers}
+              players={
+                isPlayerOrFamily && !loadingProfile && associatedTeamPlayerId
+                  ? ratingPlayers
+                      .filter((p) => p.teamPlayerId === associatedTeamPlayerId)
+                      .map((p) => ({
+                        ...p,
+                        to: p.teamPlayerId
+                          ? `/coach/player/${p.teamPlayerId}${team ? `?teamId=${team.id}` : ""}${new URLSearchParams(window.location.search).get("seasonId") ? `&seasonId=${new URLSearchParams(window.location.search).get("seasonId")}` : ""}`
+                          : undefined,
+                      }))
+                  : isPlayerOrFamily && loadingProfile
+                  ? []
+                  : ratingPlayers
+              }
               latestRatings={latestRatings}
-              onRatingCreated={handleRatingCreated}
+              onRatingCreated={!isPlayerOrFamily ? handleRatingCreated : undefined}
               teamName={team.name}
+              readOnly={isPlayerOrFamily}
             />
           )}
 
-          {activeTab === 2 && team && (
+          {activeTab === 2 && !isFan && !isPlayerOrFamily && team && (
             <SquadRanking
               teamId={team.id}
               players={ratingPlayers}
@@ -339,7 +387,7 @@ export default function Squad() {
             />
           )}
 
-          {activeTab === 3 && team && (() => {
+          {activeTab === 3 && !isFan && !isPlayerOrFamily && team && (() => {
             const seasonId = new URLSearchParams(window.location.search).get("seasonId");
             const lineupPlayers = players.map((p, idx) => ({
               id: p.id ?? `${p.name ?? ""}-${idx}`,

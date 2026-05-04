@@ -13,6 +13,7 @@ import excuseTypeService, {
 } from "../../services/excuseTypeService";
 import assistanceTypeService, { AssistanceType } from "../../services/assistanceTypeService";
 import { coachAuthService } from "../../services/authService";
+import { getMyProfile } from "../../services/coachApi";
 import styles from "./AttendanceTabs.module.css";
 import defaultAvatar from "../../../../assets/avatar.svg";
 import NotConvokedList from "./components/NotConvokedList";
@@ -53,6 +54,13 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch }: Props) 
   const [acceptingAll, setAcceptingAll] = useState(false);
   const [settingAllAttends, setSettingAllAttends] = useState(false);
 
+  const _roles = coachAuthService.getRoles();
+  const isPlayerOrFamily =
+    (_roles.includes("Player") || _roles.includes("FamilyPlayer") || _roles.includes("FamilyMember")) &&
+    !_roles.includes("Coach") &&
+    !_roles.includes("Administrator");
+  const [associatedPlayerId, setAssociatedPlayerId] = useState<string | null>(null);
+
   const canEdit = useMemo(() => {
     if (!eventStart) return true;
     const d = new Date(eventStart);
@@ -60,6 +68,18 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch }: Props) 
     // After the event date, admins and coaches can still edit
     return coachAuthService.hasRole("Coach");
   }, [eventStart]);
+
+  useEffect(() => {
+    if (!isPlayerOrFamily) {
+      setAssociatedPlayerId(null);
+      return;
+    }
+    const cached = localStorage.getItem("coach_player_teamId");
+    if (cached) setAssociatedPlayerId(cached);
+    getMyProfile().then((profile) => {
+      if (profile?.playerId) setAssociatedPlayerId(profile.playerId);
+    });
+  }, [isPlayerOrFamily]);
 
   useEffect(() => {
     let mounted = true;
@@ -416,10 +436,22 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch }: Props) 
                 );
               };
 
-              const renderCard = (c: ConvocationItem) => (
+              const isAssociated = (c: ConvocationItem) =>
+                associatedPlayerId != null &&
+                ((c.player as any).playerId === associatedPlayerId ||
+                  String((c.player as any).id) === String(associatedPlayerId));
+
+              const renderCard = (c: ConvocationItem, highlightAssoc = false) => {
+                const canEditThisConvocation =
+                  !isPlayerOrFamily ||
+                  (associatedPlayerId != null &&
+                    (((c.player as any).playerId != null && String((c.player as any).playerId) === String(associatedPlayerId)) ||
+                      ((c.player as any).id != null && String((c.player as any).id) === String(associatedPlayerId))));
+                return (
                 <ConvocationCard
                   key={c.id}
                   conv={c}
+                  highlighted={highlightAssoc && isAssociated(c)}
                   photoSrc={
                     playerPhotos[String(c.player?.id ?? "")] ??
                     playerPhotos[String(c.player?.urlPhoto ?? "")] ??
@@ -428,6 +460,9 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch }: Props) 
                   statuses={statuses}
                   excuseTypes={excuseTypes}
                   canEdit={canEdit}
+                  canEditThisConvocation={canEditThisConvocation}
+                  viewablePlayerId={null}
+                  hideWaitingListButton={isPlayerOrFamily}
                   onChangeStatus={handleChangeStatus}
                   onDelete={(cv) => {
                     if (!canEdit)
@@ -438,6 +473,11 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch }: Props) 
                   }}
                   onMoveToWaiting={(cv) => handleMoveToWaiting(cv.id)}
                 />
+                );
+              };
+
+              const sortedPending = [...pending].sort(
+                (a, b) => (isAssociated(b) ? 1 : 0) - (isAssociated(a) ? 1 : 0)
               );
 
               return (
@@ -449,7 +489,7 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch }: Props) 
                           <span>Pendientes de aceptar</span>
                           <span className={styles.listGroupCount}>{pending.length}</span>
                         </div>
-                        {canEdit && (() => {
+                        {!isPlayerOrFamily && canEdit && (() => {
                             const acceptedId = statuses.find((s) => s.name === "Accepted")?.id;
                             if (!acceptedId) return null;
                             return (
@@ -479,7 +519,7 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch }: Props) 
                             );
                           })()}
                       </div>
-                      <div className={styles.convocatedList}>{pending.map(renderCard)}</div>
+                      <div className={styles.convocatedList}>{sortedPending.map((c) => renderCard(c, true))}</div>
                     </div>
                   )}
                   {accepted.length > 0 && (
@@ -490,7 +530,7 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch }: Props) 
                           <span className={styles.listGroupCount}>{accepted.length}</span>
                         </div>
                       </div>
-                      <div className={styles.convocatedList}>{accepted.map(renderCard)}</div>
+                      <div className={styles.convocatedList}>{accepted.map((c) => renderCard(c))}</div>
                     </div>
                   )}
                   {totalDesconvocados > 0 ? (
@@ -722,7 +762,8 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch }: Props) 
         open={deconvokeDialog.open}
         onClose={() => setDeconvokeDialog({ open: false })}
         excuseTypes={excuseTypes}
-        hideTechnical={!isMatch && !!deconvokeDialog.waitingPlayerId}
+        hideTechnical={(!isMatch && !!deconvokeDialog.waitingPlayerId) || (isPlayerOrFamily && !!deconvokeDialog.conv)}
+        confirmLabel={deconvokeDialog.waitingPlayerId ? "Rechazar" : "Desconvocar"}
         title={deconvokeDialog.waitingPlayerId ? "Motivo del rechazo" : undefined}
         onConfirm={async (reason) => {
           const excuseTypeId = reason === "technical" ? null : Number(reason);

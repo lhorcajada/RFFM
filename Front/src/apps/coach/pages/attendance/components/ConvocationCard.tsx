@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { Link } from "react-router-dom";
 import type { ConvocationItem } from "../../../services/convocationService";
 import styles from "../AttendanceTabs.module.css";
@@ -10,7 +10,11 @@ type Props = {
   statuses: { id: number; name: string }[];
   excuseTypes: { id: number; name: string; justified?: boolean }[];
   canEdit: boolean;
+  canEditThisConvocation?: boolean;
   isInjured?: boolean;
+    highlighted?: boolean;
+  viewablePlayerId?: string | null;
+  hideWaitingListButton?: boolean;
   onChangeStatus: (
     conv: ConvocationItem,
     statusId: number,
@@ -40,7 +44,11 @@ export default function ConvocationCard({
   statuses,
   excuseTypes,
   canEdit,
+  canEditThisConvocation,
   isInjured: isInjuredProp,
+    highlighted,
+  viewablePlayerId,
+  hideWaitingListButton,
   onChangeStatus,
   onDelete,
   onMoveToWaiting,
@@ -53,6 +61,9 @@ export default function ConvocationCard({
   const hasDorsal = typeof dorsalValue === "number" && Number.isFinite(dorsalValue);
   const photo = photoSrc ?? defaultAvatar;
 
+  const canViewDetail =
+    !viewablePlayerId || p.playerId === viewablePlayerId || p.id === viewablePlayerId;
+
   const stripeClass =
     statusName === "Accepted"
       ? styles.cromoStatusStripeAccepted
@@ -60,12 +71,11 @@ export default function ConvocationCard({
       ? styles.cromoStatusStripeDeclined
       : styles.cromoStatusStripePending;
 
-  // Lesionado: prop override OR player field
   if (isInjuredProp || p.isInjured) {
     return (
       <div className={styles.cardWrap}>
         <div className={styles.cromoCard}>
-          {p.id ? (
+          {p.id && canViewDetail ? (
             <Link to={`/coach/player/${p.id}`} className={styles.cromoPhotoLink}>
               <div className={styles.cromoPhotoArea}>
                 <img src={photo} alt={displayName} className={photo === defaultAvatar ? styles.cromoPhotoAvatar : styles.cromoPhoto} />
@@ -90,7 +100,7 @@ export default function ConvocationCard({
             {p.position && <div className={styles.cromoPosition}>{p.position}</div>}
             <div className={styles.cromoActions}>
               <div className={styles.cromoInjuredBadge}>🩹 Lesionado</div>
-              {canEdit && onMoveToWaiting && (
+              {canEdit && onMoveToWaiting && !hideWaitingListButton && (
                 <button
                   className={`${styles.optionBtn} ${styles.optionBtnBlue}`}
                   onClick={() => onMoveToWaiting(conv)}
@@ -105,8 +115,6 @@ export default function ConvocationCard({
     );
   }
 
-  // Normal: toggle buttons to change status
-  // Deconvoked: show excuse label; Accepted: show deconvoke button; Pending: show toggle
   const isDeconvoked = statusName === "Deconvoke";
   const isAccepted = statusName === "Accepted";
   const selectableStatuses = statuses.filter((s) => SELECTABLE_STATUSES.includes(s.name));
@@ -118,8 +126,8 @@ export default function ConvocationCard({
 
   return (
     <div className={styles.cardWrap}>
-      <div className={styles.cromoCard}>
-        {p.id ? (
+      <div className={`${styles.cromoCard}${highlighted ? " " + styles.cromoCardHighlighted : ""}`}>
+        {p.id && canViewDetail ? (
           <Link to={`/coach/player/${p.id}`} className={styles.cromoPhotoLink}>
             <div className={styles.cromoPhotoArea}>
               <img src={photo} alt={displayName} className={photo === defaultAvatar ? styles.cromoPhotoAvatar : styles.cromoPhoto} />
@@ -151,7 +159,7 @@ export default function ConvocationCard({
                   >
                     Desconvocar
                   </button>
-                  {onMoveToWaiting && (
+                  {onMoveToWaiting && !hideWaitingListButton && (
                     <button
                       className={`${styles.optionBtn} ${styles.optionBtnBlue}`}
                       onClick={() => onMoveToWaiting(conv)}
@@ -162,7 +170,6 @@ export default function ConvocationCard({
                 </div>
               )
             ) : isDeconvoked ? (
-              // Deconvoked: show excuse label + option to move back to waiting
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 {excuseLabel && (
                   <div className={styles.tagBadgeRow}>
@@ -171,7 +178,7 @@ export default function ConvocationCard({
                     </span>
                   </div>
                 )}
-                {canEdit && onMoveToWaiting && (
+                {canEdit && onMoveToWaiting && !hideWaitingListButton && (
                   <button
                     className={`${styles.optionBtn} ${styles.optionBtnBlue}`}
                     onClick={() => onMoveToWaiting(conv)}
@@ -181,34 +188,34 @@ export default function ConvocationCard({
                 )}
               </div>
             ) : (
-              // Pending: tag + toggle buttons
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 <div className={styles.tagBadgeRow}>
                   <span className={`${styles.tagBadge} ${styles.tagWaiting}`}>Pendiente de aceptar</span>
                 </div>
                 <div className={styles.optionGroup}>
-                {selectableStatuses.map((s) => {
-                  const isActive = conv.status === s.id;
-                  const colorClass = statusColorClass(s.name);
-                  return (
-                    <button
-                      key={s.id}
-                      disabled={!canEdit}
-                      className={`${styles.optionBtn} ${colorClass}${isActive ? " " + styles.optionBtnActive : ""}`}
-                      onClick={() => {
-                        if (s.name === "Deconvoke") {
-                          onDelete(conv);
-                        } else {
-                          onChangeStatus(conv, s.id, null);
-                        }
-                      }}
-                    >
-                      {STATUS_LABELS[s.name] ?? s.name}
-                    </button>
-                  );
-                })}
+                  {selectableStatuses.map((s) => {
+                    const isActive = conv.status === s.id;
+                    const colorClass = statusColorClass(s.name);
+                    const canDoAction = canEditThisConvocation ?? canEdit;
+                    return (
+                      <button
+                        key={s.id}
+                        disabled={!canDoAction}
+                        className={`${styles.optionBtn} ${colorClass}${isActive ? " " + styles.optionBtnActive : ""}`}
+                        onClick={() => {
+                          if (s.name === "Deconvoke") {
+                            onDelete(conv);
+                          } else {
+                            onChangeStatus(conv, s.id, null);
+                          }
+                        }}
+                      >
+                        {STATUS_LABELS[s.name] ?? s.name}
+                      </button>
+                    );
+                  })}
                 </div>
-                {canEdit && onMoveToWaiting && (
+                {canEdit && onMoveToWaiting && !hideWaitingListButton && (
                   <button
                     className={`${styles.optionBtn} ${styles.optionBtnBlue}`}
                     onClick={() => onMoveToWaiting(conv)}

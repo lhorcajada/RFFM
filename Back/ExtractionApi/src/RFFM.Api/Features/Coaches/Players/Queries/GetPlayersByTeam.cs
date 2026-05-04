@@ -33,6 +33,7 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
         public record PlayersByTeamResponse()
         {
             public string Id { get; set; } = null!;
+            public string PlayerId { get; set; } = null!;
             public string Name { get; set; } = null!;
             public string? LastName { get; set; } = null!;
             public string Alias { get; set; } = null!;
@@ -63,6 +64,7 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                     .Select(tp => new
                     {
                         tp.Id,
+                        tp.PlayerId,
                         tp.Player.Name,
                         tp.Player.LastName,
                         tp.Player.Alias,
@@ -81,6 +83,7 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                 return items.Select(i => new PlayersByTeamResponse
                 {
                     Id = i.Id,
+                    PlayerId = i.PlayerId,
                     Name = i.Name,
                     LastName = i.LastName,
                     Alias = i.Alias,

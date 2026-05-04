@@ -12,6 +12,7 @@ import sportEventService, {
 import EventCard from "./EventCard";
 import sportEventTypeService from "../../services/sportEventTypeService";
 import EmptyState from "../../../../shared/components/ui/EmptyState/EmptyState";
+import { coachAuthService } from "../../services/authService";
 import styles from "./Attendance.module.css";
 import { useEffect, useState } from "react";
 import { TextField, FormControlLabel, Switch } from "@mui/material";
@@ -72,6 +73,11 @@ export default function Attendance() {
   });
   const [searchTrigger, setSearchTrigger] = useState(0);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const canCreateEvent =
+    coachAuthService.hasRole("Administrator") ||
+    coachAuthService.hasRole("Coach") ||
+    coachAuthService.hasRole("ClubDirector") ||
+    coachAuthService.hasRole("ClubMember");
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -159,7 +165,7 @@ export default function Attendance() {
             >
               Volver
             </Button>
-            {!!team && (
+            {!!team && canCreateEvent && (
               <Button
                 startIcon={<AddIcon />}
                 onClick={() => setDialogOpen(true)}
@@ -252,7 +258,7 @@ export default function Attendance() {
           </Box>
         </Box>
       </ContentLayout>
-      {team && (
+      {team && canCreateEvent && (
         <SportEventDialog
           open={dialogOpen}
           teamId={team.id}

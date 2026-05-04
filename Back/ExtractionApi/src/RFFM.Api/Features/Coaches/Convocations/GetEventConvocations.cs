@@ -27,7 +27,7 @@ namespace RFFM.Api.Features.Coaches.Convocations
             public string EventId { get; init; } = null!;
         }
 
-        public record ConvocationResponse(string ConvocationId, string TeamPlayerId, string Alias, string? UrlPhoto, string? Position, string Status, int? StatusId, int? ExcuseTypeId, int? AssistanceTypeId, bool IsInjured);
+        public record ConvocationResponse(string ConvocationId, string TeamPlayerId, string Alias, string? UrlPhoto, string? Position, string Status, int? StatusId, int? ExcuseTypeId, int? AssistanceTypeId, bool IsInjured, string? PlayerId);
 
         public class Handler : IRequestHandler<EventConvocationsQuery, ConvocationResponse[]>
         {
@@ -48,6 +48,7 @@ namespace RFFM.Api.Features.Coaches.Convocations
                     {
                         Id = c.Id,
                         TeamPlayerId = c.TeamPlayerId,
+                        PlayerId = c.Player.Player.Id,
                         Alias = c.Player.Player.Alias,
                         UrlPhoto = c.Player.Player.UrlPhoto,
                         ActivePositionId = c.Player.Demarcation != null ? (int?)c.Player.Demarcation.ActivePositionId : null,
@@ -75,7 +76,8 @@ namespace RFFM.Api.Features.Coaches.Convocations
                     c.AssistanceTypeId,
                     c.Injuries.Any(i =>
                         i.StartDate.Date <= eventDate &&
-                        (i.EndDate == null || i.EndDate.Value.Date >= eventDate))
+                        (i.EndDate == null || i.EndDate.Value.Date >= eventDate)),
+                    c.PlayerId
                 ))
                 .ToArray();
 

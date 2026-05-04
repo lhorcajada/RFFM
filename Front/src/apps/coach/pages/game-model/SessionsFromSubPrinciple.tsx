@@ -341,9 +341,12 @@ function handlePrint(sess: TrainingSession, exercises: SessionExerciseItem[], ct
 function SessionCard({ sess, clubId, subSubPrincipleId, printContext }: {
   sess: TrainingSession;
   clubId: string;
+  teamId: string;
   subSubPrincipleId: string | null;
   printContext: PrintContext;
 }) {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [expanded, setExpanded] = useState(false);
   const [exercises, setExercises] = useState<SessionExerciseItem[] | null>(null);
   const [loadingEx, setLoadingEx] = useState(false);
@@ -359,8 +362,6 @@ function SessionCard({ sess, clubId, subSubPrincipleId, printContext }: {
   const [loadingAvail, setLoadingAvail] = useState(false);
   const [selectedToAdd, setSelectedToAdd] = useState<Exercise | null>(null);
   const [savingAdd, setSavingAdd] = useState(false);
-  const [creatingNewEx, setCreatingNewEx] = useState(false);
-  const [prevExIds, setPrevExIds] = useState<Set<string>>(new Set());
 
   const reloadExercises = async () => {
     const detail = await trainingService.getSessionById(sess.id);
@@ -439,41 +440,16 @@ function SessionCard({ sess, clubId, subSubPrincipleId, printContext }: {
     }
   };
 
-  const handleOpenCreateEx = async () => {
+  const handleOpenCreateEx = () => {
     setShowAddPanel(false);
-    const exs = await trainingService.getExercises(clubId);
-    setPrevExIds(new Set(exs.map(e => e.id)));
-    setCreatingNewEx(true);
-  };
+    const createParams = new URLSearchParams();
+    createParams.set("clubId", clubId);
+    if (teamId) createParams.set("teamId", teamId);
+    if (subSubPrincipleId) createParams.set("subSubPrincipleId", subSubPrincipleId);
 
-  const handleCreatedSaved = async () => {
-    setCreatingNewEx(false);
-    try {
-      const newExList = await trainingService.getExercises(clubId);
-      const newEx = newExList.find(e => !prevExIds.has(e.id));
-      if (newEx) {
-        const currentExs = exercises ?? [];
-        const newExs: SessionExerciseItem[] = [...currentExs, {
-          taskTrainingId: `temp_${Date.now()}`,
-          order: currentExs.length,
-          exerciseId: newEx.id,
-          name: newEx.name,
-          description: newEx.description,
-          type: newEx.type,
-          section: addSection,
-          durationTotal: newEx.durationTotal,
-          playersNumber: newEx.playersNumber,
-          goalPeekersNumber: newEx.goalPeekersNumber,
-          fieldSpace: newEx.fieldSpace,
-          urlImage: newEx.urlImage ?? null,
-          skills: newEx.skills,
-          conditions: newEx.conditions,
-        }];
-        await trainingService.updateSession(sess.id, buildUpdateReq(sess, newExs));
-        await reloadExercises();
-        setShowAddPanel(false);
-      }
-    } catch { /* silent */ }
+    navigate(`/coach/trainings/new-exercise?${createParams.toString()}`, {
+      state: { returnTo: `${location.pathname}${location.search}` },
+    });
   };
 
   return (
@@ -747,15 +723,6 @@ function SessionCard({ sess, clubId, subSubPrincipleId, printContext }: {
         onClose={() => setEditingEx(null)}
         onSaved={handleEditSaved}
       />
-
-      {/* Create new exercise and add to session */}
-      <ExerciseDialog
-        open={creatingNewEx}
-        clubId={clubId}
-        subSubPrincipleId={subSubPrincipleId}
-        onClose={() => setCreatingNewEx(false)}
-        onSaved={handleCreatedSaved}
-      />
     </Box>
   );
 }
@@ -891,6 +858,7 @@ export default function SessionsFromSubPrinciple() {
                 key={sess.id}
                 sess={sess}
                 clubId={state.clubId}
+                teamId={state.teamId}
                 subSubPrincipleId={null}
                 printContext={{
                   gameMomentName: state.gameMomentName,

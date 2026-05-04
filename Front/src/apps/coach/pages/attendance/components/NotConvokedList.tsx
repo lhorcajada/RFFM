@@ -11,6 +11,9 @@ type Props = {
   onReject?: (playerId: string) => void;
   canEdit: boolean;
   adding?: boolean;
+  viewablePlayerId?: string | null;
+  isPlayerOrFamily?: boolean;
+  associatedPlayerId?: string | null;
 };
 
 export default function NotConvokedList({
@@ -20,6 +23,9 @@ export default function NotConvokedList({
   onReject,
   canEdit,
   adding = false,
+  viewablePlayerId,
+  isPlayerOrFamily = false,
+  associatedPlayerId = null,
 }: Props) {
   return (
     <div>
@@ -44,11 +50,13 @@ export default function NotConvokedList({
               : null;
           const hasDorsal =
             typeof dorsalValue === "number" && Number.isFinite(dorsalValue);
+          const canViewDetail = !viewablePlayerId || (p as any).playerId === viewablePlayerId || p.id === viewablePlayerId;
+          const canEditThisPlayer = !isPlayerOrFamily || (p as any).playerId === associatedPlayerId;
 
           return (
             <div key={key} className={styles.cardWrap}>
               <div className={styles.cromoCard}>
-                {p.id ? (
+                {p.id && canViewDetail ? (
                   <Link to={`/coach/player/${p.id}`} className={styles.cromoPhotoLink}>
                     <div className={styles.cromoPhotoArea}>
                       <img src={photo} alt={displayName} className={photo === defaultAvatar ? styles.cromoPhotoAvatar : styles.cromoPhoto} />
@@ -70,10 +78,10 @@ export default function NotConvokedList({
                   <div className={styles.cromoName}>{displayName}</div>
                   {p.position && <div className={styles.cromoPosition}>{p.position}</div>}
                   <div className={styles.cromoActions}>
-                    {canEdit ? (
+                    {canEdit || (isPlayerOrFamily && canEditThisPlayer) ? (
                       <div className={styles.optionGroup}>
                         <button
-                          disabled={adding}
+                          disabled={adding || (isPlayerOrFamily && !canEditThisPlayer)}
                           className={`${styles.optionBtn} ${styles.optionBtnTeal} ${styles.optionBtnActive}`}
                           onClick={() => onAdd(p.id)}
                         >
@@ -81,7 +89,7 @@ export default function NotConvokedList({
                         </button>
                         {onReject && p.id && (
                           <button
-                            disabled={adding}
+                            disabled={adding || (isPlayerOrFamily && !canEditThisPlayer)}
                             className={`${styles.optionBtn} ${styles.optionBtnRed}`}
                             onClick={() => onReject(p.id!)}
                           >

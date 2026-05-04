@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
+using RFFM.Api.Domain.Services;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
 using RFFM.Api.Domain.Aggregates.Assistances;
@@ -15,7 +16,7 @@ namespace RFFM.Api.Features.Coaches.Convocations
         public void AddRoutes(IEndpointRouteBuilder app)
         {
             app.MapPut("/api/events/{eventId}/convocations/{convocationId}/status",
-                    [Authorize(Roles = "Coach,Administrator")] async (string eventId, string convocationId, UpdateStatusRequest request, IMediator mediator, CancellationToken cancellationToken) =>
+                    [Authorize(Roles = "Coach,Administrator,Player,FamilyPlayer,FamilyMember")] async (string eventId, string convocationId, UpdateStatusRequest request, IMediator mediator, CancellationToken cancellationToken) =>
                     {
                         request.EventId = eventId;
                         request.ConvocationId = convocationId;
@@ -40,12 +41,45 @@ namespace RFFM.Api.Features.Coaches.Convocations
         public class Handler : IRequestHandler<UpdateStatusRequest, Unit>
         {
             private readonly AppDbContext _db;
-            public Handler(AppDbContext db) => _db = db;
+            private readonly ICurrentUserService _currentUser;
+
+            public Handler(AppDbContext db, ICurrentUserService currentUser)
+            {
+                _db = db;
+                _currentUser = currentUser;
+            }
 
             public async ValueTask<Unit> Handle(UpdateStatusRequest request, CancellationToken cancellationToken = default)
             {
-                var conv = await _db.Convocations.Include(c => c.SportEvent).FirstOrDefaultAsync(c => c.Id == request.ConvocationId && c.SportEventId == request.EventId, cancellationToken);
+                var conv = await _db.Convocations
+                    .Include(c => c.SportEvent)
+                    .Include(c=> c.Player)
+                    .FirstOrDefaultAsync(c => c.Id == request.ConvocationId && c.SportEventId == request.EventId, cancellationToken);
                 if (conv == null) throw new ArgumentException("Convocation not found");
+
+                var userId = _currentUser.UserId ?? throw new UnauthorizedAccessException("Usuario no autenticado");
+
+                var profile = await _db.UserProfiles
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(p => p.ApplicationUserId == userId, cancellationToken);
+
+                if (profile is not null)
+                {
+                    var roleName = profile.RoleName ?? string.Empty;
+                    var isPlayerOrFamilyRole =
+                        roleName.Equals("Player", StringComparison.OrdinalIgnoreCase) ||
+                        roleName.Equals("FamilyPlayer", StringComparison.OrdinalIgnoreCase) ||
+                        roleName.Equals("FamilyMember", StringComparison.OrdinalIgnoreCase);
+
+                    if (isPlayerOrFamilyRole)
+                    {
+                        if (string.IsNullOrWhiteSpace(profile.PlayerId) ||
+                            !string.Equals(profile.PlayerId, conv.Player.PlayerId, StringComparison.OrdinalIgnoreCase))
+                        {
+                            throw new UnauthorizedAccessException("No autorizado para responder esta convocatoria");
+                        }
+                    }
+                }
 
                 // Validate status
                 var status = ConvocationStatus.From(request.NewStatusId);

@@ -83,7 +83,7 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
                     .Where(tp => tp.TeamId == request.TeamId)
                     .Select(tp => new
                     {
-                        tp.Player.Id,
+                        TeamPlayerId = tp.Id,  // used to match frontend p.id
                         tp.Player.Name,
                         tp.Player.LastName,
                         tp.Player.BirthDate
@@ -110,13 +110,13 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
                     if (user is not null)
                     {
                         await EnsureRoleAssignedAsync(user, AppRoles.Player.Name, cancellationToken);
-                        await SaveUserProfileAsync(request.UserId, AppRoles.Player.Name, match.Id, team.Id, cancellationToken);
+                        await SaveUserProfileAsync(request.UserId, AppRoles.Player.Name, match.TeamPlayerId, team.Id, cancellationToken);
                         roles = (await _userManager.GetRolesAsync(user)).ToArray();
                         jwt = await TryGenerateJwtAsync(request.UserId, cancellationToken);
                     }
                 }
 
-                return new VerifyPlayerResponse(match.Id, team.Id, team.Name, roles, jwt);
+                return new VerifyPlayerResponse(match.TeamPlayerId, team.Id, team.Name, roles, jwt);
             }
 
             private async Task EnsureRoleAssignedAsync(IdentityUser user, string roleName, CancellationToken ct)

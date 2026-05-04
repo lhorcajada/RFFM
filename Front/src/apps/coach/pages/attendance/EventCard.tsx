@@ -19,6 +19,7 @@ import styles from "./EventCard.module.css";
 import { SportEventResponse } from "../../services/sportEventService";
 import { deleteSportEvent } from "../../services/sportEventService";
 import SportEventDialog from "./components/SportEventDialog";
+import { coachAuthService } from "../../services/authService";
 import type { MatchState } from "../convocations/components/convocationMatchDetail.types";
 
 /** Build a MatchState (expected by ConvocationMatchDetail) from a SportEventResponse */
@@ -144,6 +145,11 @@ export default function EventCard({ event, eventTypeName, onDeleted, onEdited }:
   const navigate = useNavigate();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const canEditEvent =
+    coachAuthService.hasRole("Administrator") ||
+    coachAuthService.hasRole("Coach") ||
+    coachAuthService.hasRole("ClubDirector") ||
+    coachAuthService.hasRole("ClubMember");
 
   const rawStart = event.startTime ?? event.start ?? event.eveDateTime ?? null;
   const startDate = parseDate(rawStart ?? undefined);
@@ -222,26 +228,30 @@ export default function EventCard({ event, eventTypeName, onDeleted, onEdited }:
           <PeopleAltIcon fontSize="small" />
         </IconButton>
       </Tooltip>
-      <Tooltip title="Editar">
-        <IconButton
-          size="small"
-          onClick={() => setEditOpen(true)}
-          aria-label="Editar evento"
-          sx={{ color: "rgba(180,195,240,0.85)" }}
-        >
-          <EditIcon fontSize="small" />
-        </IconButton>
-      </Tooltip>
-      <Tooltip title="Eliminar">
-        <IconButton
-          size="small"
-          onClick={() => setConfirmOpen(true)}
-          aria-label="Eliminar evento"
-          sx={{ color: "rgba(230,100,100,0.85)" }}
-        >
-          <DeleteIcon fontSize="small" />
-        </IconButton>
-      </Tooltip>
+      {canEditEvent && (
+        <Tooltip title="Editar">
+          <IconButton
+            size="small"
+            onClick={() => setEditOpen(true)}
+            aria-label="Editar evento"
+            sx={{ color: "rgba(180,195,240,0.85)" }}
+          >
+            <EditIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      )}
+      {canEditEvent && (
+        <Tooltip title="Eliminar">
+          <IconButton
+            size="small"
+            onClick={() => setConfirmOpen(true)}
+            aria-label="Eliminar evento"
+            sx={{ color: "rgba(230,100,100,0.85)" }}
+          >
+            <DeleteIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      )}
     </div>
   );
 
@@ -357,39 +367,41 @@ export default function EventCard({ event, eventTypeName, onDeleted, onEdited }:
 
       {actions}
 
-      <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
-        <DialogTitle>Eliminar evento</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            ¿Desea eliminar el evento "{event.title}"? Esta acción no se puede
-            deshacer.
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setConfirmOpen(false)}>Cancelar</Button>
-          <Button
-            color="error"
-            onClick={async () => {
-              setConfirmOpen(false);
-              try {
-                await deleteSportEvent(String(event.id));
-                if (onDeleted) onDeleted();
-              } catch (err: any) {
-                const status = err?.response?.status;
-                if (status === 404) {
-                  alert("El evento ya no existe. Se actualizará el listado.");
+      {canEditEvent && (
+        <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
+          <DialogTitle>Eliminar evento</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              ¿Desea eliminar el evento "{event.title}"? Esta acción no se puede
+              deshacer.
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setConfirmOpen(false)}>Cancelar</Button>
+            <Button
+              color="error"
+              onClick={async () => {
+                setConfirmOpen(false);
+                try {
+                  await deleteSportEvent(String(event.id));
                   if (onDeleted) onDeleted();
-                } else {
-                  alert(err?.response?.data?.detail ?? err?.message ?? "Error al eliminar el evento.");
+                } catch (err: any) {
+                  const status = err?.response?.status;
+                  if (status === 404) {
+                    alert("El evento ya no existe. Se actualizará el listado.");
+                    if (onDeleted) onDeleted();
+                  } else {
+                    alert(err?.response?.data?.detail ?? err?.message ?? "Error al eliminar el evento.");
+                  }
                 }
-              }
-            }}
-          >
-            Eliminar
-          </Button>
-        </DialogActions>
-      </Dialog>
-      {event.teamId && (
+              }}
+            >
+              Eliminar
+            </Button>
+          </DialogActions>
+        </Dialog>
+      )}
+      {event.teamId && canEditEvent && (
         <SportEventDialog
           open={editOpen}
           teamId={event.teamId}

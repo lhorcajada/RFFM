@@ -28,7 +28,7 @@ namespace RFFM.Api.Features.Coaches.Convocations
         }
 
         // Added Dorsal (nullable int) to response
-        public record EventPlayerResponse(string TeamPlayerId, string Alias, string? UrlPhoto, int? Dorsal, string? Position, string Status, bool IsInjured);
+        public record EventPlayerResponse(string TeamPlayerId, string Alias, string? UrlPhoto, int? Dorsal, string? Position, string Status, bool IsInjured, string? PlayerId);
 
         public class Handler : IRequestHandler<EventPlayersQuery, EventPlayerResponse[]>
         {
@@ -60,6 +60,7 @@ namespace RFFM.Api.Features.Coaches.Convocations
                     .Select(tp => new
                     {
                         Id = tp.Id,
+                        PlayerId = tp.Player.Id,
                         Alias = tp.Player.Alias,
                         UrlPhoto = tp.Player.UrlPhoto,
                         DorsalNumber = tp.Dorsal != null ? (int?)tp.Dorsal.Number : null,
@@ -78,7 +79,8 @@ namespace RFFM.Api.Features.Coaches.Convocations
                     tp.DorsalNumber,
                     tp.ActivePositionId != null ? RFFM.Api.Domain.Entities.Demarcations.DemarcationMaster.GetById(tp.ActivePositionId.Value)?.Name : null,
                     "Pendiente",
-                    tp.IsInjured
+                    tp.IsInjured,
+                    tp.PlayerId
                 ))
                 .ToArray();
 

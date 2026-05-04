@@ -1,7 +1,8 @@
 import client from "../../../core/api/client";
 
 export type PlayerSimple = {
-  id?: string;
+  id?: string;        // teamPlayerId
+  playerId?: string;  // player entity ID
   alias?: string;
   urlPhoto?: string | null;
   position?: string;
@@ -27,6 +28,7 @@ export async function getEventPlayers(
   const data = resp.data ?? [];
   return data.map((p: any) => ({
     id: p.teamPlayerId ?? p.id,
+    playerId: p.playerId ?? null,
     alias: p.alias,
     urlPhoto: p.urlPhoto ?? null,
     position: p.position,
@@ -46,6 +48,7 @@ export async function getConvocations(
     id: c.convocationId ?? c.id,
     player: {
       id: c.teamPlayerId,
+      playerId: c.playerId ?? null,
       alias: c.alias,
       urlPhoto: c.urlPhoto,
       position: c.position,

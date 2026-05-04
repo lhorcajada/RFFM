@@ -17,6 +17,7 @@ type PlayerEntry = {
   position?: string | null;
   dorsal?: number | null;
   photoSrc?: string | null;
+  to?: string;
 };
 
 type Props = {
@@ -25,6 +26,8 @@ type Props = {
   latestRatings: Record<string, PlayerRating>;
   onRatingCreated?: (rating: PlayerRating) => void;
   teamName?: string;
+  /** When true: hides sort toolbar, PDF exports, edit/history actions, and expand panel */
+  readOnly?: boolean;
 };
 
 const POSITION_ORDER = ["Portero", "Defensa", "Centrocampista", "Delantero"];
@@ -104,7 +107,7 @@ function pickInitialSubRatings(_rating: PlayerRating | undefined) { return {}; }
 function pickInitialKeeperSubRatings(_rating: PlayerRating | undefined) { return {}; }
 function isGoalkeeperPosition(_position?: string | null): boolean { return false; }
 
-export default function SquadRatings({ teamId: _teamId, players, latestRatings, teamName }: Props) {
+export default function SquadRatings({ teamId: _teamId, players, latestRatings, teamName, readOnly = false }: Props) {
   const navigate = useNavigate();
   const squadSearch = window.location.search; // preserve ?teamId=...&seasonId=...
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -128,45 +131,47 @@ export default function SquadRatings({ teamId: _teamId, players, latestRatings, 
 
   return (
     <div className={styles.container}>
-      <div className={styles.toolbar}>
-        <ToggleButtonGroup
-          value={sortKey}
-          exclusive
-          onChange={(_, v) => { if (v) setSortKey(v as SortKey); }}
-          size="small"
-          className={styles.sortGroup}
-        >
-          {SORT_OPTIONS.map(({ key, label }) => (
-            <ToggleButton key={key} value={key} className={styles.sortBtn}>
-              {label}
-            </ToggleButton>
-          ))}
-        </ToggleButtonGroup>
-
-        <div style={{ display: "flex", gap: 8 }}>
-          <Button
+      {!readOnly && (
+        <div className={styles.toolbar}>
+          <ToggleButtonGroup
+            value={sortKey}
+            exclusive
+            onChange={(_, v) => { if (v) setSortKey(v as SortKey); }}
             size="small"
-            variant="outlined"
-            startIcon={<PictureAsPdfOutlinedIcon />}
-            onClick={() => exportAllPlayersPdf(players, latestRatings, teamName, pdfSortKey)}
+            className={styles.sortGroup}
           >
-            PDF plantilla
-          </Button>
+            {SORT_OPTIONS.map(({ key, label }) => (
+              <ToggleButton key={key} value={key} className={styles.sortBtn}>
+                {label}
+              </ToggleButton>
+            ))}
+          </ToggleButtonGroup>
 
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<PictureAsPdfOutlinedIcon />}
-            onClick={() => {
-              for (const p of players) {
-                exportPlayerPdf(p, latestRatings[p.teamPlayerId] ?? null, teamName);
-              }
-            }}
-          >
-            PDF individuales
-          </Button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<PictureAsPdfOutlinedIcon />}
+              onClick={() => exportAllPlayersPdf(players, latestRatings, teamName, pdfSortKey)}
+            >
+              PDF plantilla
+            </Button>
+
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<PictureAsPdfOutlinedIcon />}
+              onClick={() => {
+                for (const p of players) {
+                  exportPlayerPdf(p, latestRatings[p.teamPlayerId] ?? null, teamName);
+                }
+              }}
+            >
+              PDF individuales
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
       {grouped.map(([position, group]) => {
         const accent = positionAccent(position);
         return (
@@ -198,8 +203,9 @@ export default function SquadRatings({ teamId: _teamId, players, latestRatings, 
                               }
                             : null
                         }
-                        onEdit={() => navigate(`/coach/squad/${p.teamPlayerId}/rating/new${squadSearch}`)}
-                        onHistory={() => navigate(`/coach/squad/${p.teamPlayerId}/rating/history${squadSearch}`)}
+                        to={p.to}
+                        onEdit={readOnly ? undefined : () => navigate(`/coach/squad/${p.teamPlayerId}/rating/new${squadSearch}`)}
+                        onHistory={readOnly ? undefined : () => navigate(`/coach/squad/${p.teamPlayerId}/rating/history${squadSearch}`)}
                         onPrint={() => exportPlayerPdf(p, latestRatings[p.teamPlayerId] ?? null, teamName)}
                       />
                     </div>

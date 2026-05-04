@@ -2,6 +2,7 @@ import client from "../../../core/api/client";
 
 export type PlayerResponse = {
   id: string;
+  playerId?: string | null;
   name: string;
   lastName?: string | null;
   alias: string;

@@ -1,0 +1,1311 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 100%;
+  background:
+    radial-gradient(circle at 10% 0%, rgba(77, 157, 224, 0.18), transparent 42%),
+    radial-gradient(circle at 90% 100%, rgba(46, 204, 113, 0.12), transparent 38%),
+    linear-gradient(180deg, #030511 0%, #05091a 100%);
+}
+
+.topBar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(77, 157, 224, 0.22);
+  background: rgba(5, 8, 24, 0.9);
+  backdrop-filter: blur(8px);
+  z-index: 5;
+}
+
+.workspace {
+  position: relative;
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.pitchArea {
+  flex: 1;
+  min-width: 0;
+  padding: 12px;
+  padding-bottom: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  --pitch-ppm: 10;
+}
+
+.halfPitch {
+  position: relative;
+  width: min(100%, calc(105px * var(--pitch-ppm)));
+  aspect-ratio: 105 / 68;
+  border-radius: 14px;
+  overflow: hidden;
+  background: linear-gradient(
+    90deg,
+    #1a7a2e 0%,
+    #1d8a32 17%,
+    #1a7a2e 34%,
+    #1d8a32 51%,
+    #1a7a2e 68%,
+    #1d8a32 85%,
+    #1a7a2e 100%
+  );
+  border: 2px solid rgba(255, 255, 255, 0.24);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07), 0 10px 30px rgba(0, 0, 0, 0.45);
+  --touchline-band: 8%;
+  --goal-back-band: 10%;
+}
+
+.halfPitch::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 0 50%, rgba(255, 255, 255, 0.75) 0.6%, transparent 0.8%);
+  pointer-events: none;
+}
+
+.terrainBandTop,
+.terrainBandBottom,
+.terrainGoalBack {
+  position: absolute;
+  background: linear-gradient(180deg, rgba(18, 72, 31, 0.7), rgba(15, 60, 27, 0.9));
+  pointer-events: none;
+}
+
+.terrainBandTop,
+.terrainBandBottom {
+  left: 0;
+  right: var(--goal-back-band);
+  height: var(--touchline-band);
+}
+
+.terrainBandTop {
+  top: 0;
+}
+
+.terrainBandBottom {
+  bottom: 0;
+}
+
+.terrainGoalBack {
+  top: var(--touchline-band);
+  right: 0;
+  bottom: var(--touchline-band);
+  width: var(--goal-back-band);
+}
+
+.touchLineTop,
+.touchLineBottom,
+.midLine,
+.goalLine {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.68);
+  pointer-events: none;
+}
+
+.touchLineTop,
+.touchLineBottom {
+  left: 0;
+  right: var(--goal-back-band);
+  height: 2px;
+}
+
+.touchLineTop {
+  top: var(--touchline-band);
+}
+
+.touchLineBottom {
+  bottom: var(--touchline-band);
+}
+
+.midLine,
+.goalLine {
+  top: var(--touchline-band);
+  bottom: var(--touchline-band);
+  width: 2px;
+}
+
+.midLine {
+  left: 0;
+}
+
+.goalLine {
+  right: var(--goal-back-band);
+}
+
+.centerCircle {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  /* Half-field scale: diameter 18.3m over 68m field width */
+  width: 26.912%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border: 2px solid rgba(255, 255, 255, 0.58);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.penaltyArea,
+.goalArea {
+  position: absolute;
+  top: 50%;
+  right: var(--goal-back-band);
+  transform: translateY(-50%);
+  border: 2px solid rgba(255, 255, 255, 0.56);
+  border-right: none;
+  pointer-events: none;
+}
+
+.penaltyArea {
+  /* Depth = 16.5m over 105m length, Width = 40.32m over 68m width */
+  width: 15.714%;
+  height: 59.294%;
+}
+
+.goalArea {
+  /* Depth = 5.5m over 105m length, Width = 18.32m over 68m width */
+  width: 5.238%;
+  height: 26.941%;
+}
+
+.penaltySpot {
+  position: absolute;
+  top: 50%;
+  /* 11m from goal line on a 105m field => x = 94m from left */
+  left: calc(100% - var(--goal-back-band) - 10.476%);
+  width: 8px;
+  height: 8px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.78);
+  pointer-events: none;
+}
+
+.penaltyArc {
+  position: absolute;
+  top: 50%;
+  left: calc(100% - var(--goal-back-band) - 10.476%);
+  /* Diameter = 18.3m over 105m field length */
+  width: 17.429%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border: 2px solid rgba(255, 255, 255, 0.58);
+  border-radius: 50%;
+  /* Keep only the arc segment outside the 16.5m area line */
+  clip-path: inset(0 80.05% 0 0);
+  pointer-events: none;
+}
+
+.goalMouth {
+  position: absolute;
+  top: 50%;
+  right: var(--goal-back-band);
+  transform: translateY(-50%);
+  /* Goal width = 7.32m over field width 68m */
+  height: 10.765%;
+  border-right: 3px solid rgba(255, 255, 255, 0.86);
+  pointer-events: none;
+}
+
+.goalFrame {
+  position: absolute;
+  top: 50%;
+  right: calc(var(--goal-back-band) - 2.3%);
+  transform: translateY(-50%);
+  width: 2.3%;
+  height: 10.765%;
+  border: 2px solid rgba(255, 255, 255, 0.74);
+  border-left: none;
+  pointer-events: none;
+}
+
+.formPanel {
+  width: min(430px, 38vw);
+  max-width: 100%;
+  height: 100%;
+  background: rgba(7, 7, 26, 0.96);
+  border-left: 1px solid rgba(77, 157, 224, 0.28);
+  transform: translateX(102%);
+  opacity: 0;
+  transition: transform 320ms ease, opacity 320ms ease;
+  display: flex;
+  flex-direction: column;
+  z-index: 4;
+}
+
+.formPanelVisible {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.panelHeader {
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(77, 157, 224, 0.2);
+}
+
+.panelTitle {
+  color: #4d9de0;
+  font-size: 0.95rem !important;
+  font-weight: 700 !important;
+}
+
+.panelSubtitle {
+  margin-top: 2px !important;
+  font-size: 0.75rem !important;
+  color: rgba(212, 212, 212, 0.65);
+}
+
+.panelBody {
+  overflow-y: auto;
+  padding: 12px;
+}
+
+.saveBtn {
+  background: #c0392b !important;
+}
+
+.saveBtn:hover {
+  background: #e74c3c !important;
+}
+
+.field {
+  margin-bottom: 10px !important;
+}
+
+.field .MuiInputBase-root,
+.typeSelect .MuiInputBase-root,
+.numField .MuiInputBase-root {
+  color: #e8e8e8 !important;
+}
+
+.field .MuiInputLabel-root,
+.typeSelect .MuiInputLabel-root,
+.numField .MuiInputLabel-root {
+  color: rgba(212, 212, 212, 0.62) !important;
+}
+
+.field .MuiOutlinedInput-notchedOutline,
+.typeSelect .MuiOutlinedInput-notchedOutline,
+.numField .MuiOutlinedInput-notchedOutline {
+  border-color: rgba(77, 157, 224, 0.3) !important;
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.typeSelect {
+  flex: 1.5;
+}
+
+.numField {
+  flex: 1;
+}
+
+.divider {
+  border-color: rgba(77, 157, 224, 0.22) !important;
+  margin: 12px 0 8px !important;
+}
+
+.skillsTitle {
+  font-size: 0.78rem !important;
+  font-weight: 700 !important;
+  color: #a8d4f5 !important;
+  margin-bottom: 6px !important;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.noSkills {
+  font-size: 0.8rem !important;
+  color: rgba(212, 212, 212, 0.52);
+}
+
+.checkbox {
+  color: rgba(77, 157, 224, 0.55) !important;
+}
+
+.checkbox.Mui-checked {
+  color: #4d9de0 !important;
+}
+
+.skillName {
+  font-size: 0.82rem !important;
+  color: #e8e8e8 !important;
+}
+
+.skillDesc {
+  font-size: 0.72rem !important;
+  color: rgba(212, 212, 212, 0.58) !important;
+}
+
+.conditionsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.conditionRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.conditionText {
+  flex: 1;
+  font-size: 0.8rem !important;
+  color: #e8e8e8 !important;
+}
+
+.conditionBullet {
+  color: #4d9de0;
+  margin-right: 4px;
+}
+
+.conditionActions {
+  display: flex;
+  gap: 2px;
+}
+
+.conditionEditBtn,
+.conditionDeleteBtn,
+.conditionSaveBtn,
+.conditionCancelBtn {
+  font-size: 0.7rem !important;
+  color: rgba(212, 212, 212, 0.65) !important;
+}
+
+.conditionAddRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.mediaSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mediaPreviewWrap {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+}
+
+.mediaPreview {
+  max-width: 100%;
+  max-height: 200px;
+  border-radius: 6px;
+  border: 1px solid rgba(77, 157, 224, 0.35);
+  display: block;
+  object-fit: contain;
+  background: #050514;
+}
+
+.mediaRemoveBtn {
+  position: absolute !important;
+  top: 4px;
+  right: 4px;
+  background: rgba(0, 0, 0, 0.65) !important;
+  color: #e8e8e8 !important;
+}
+
+.uploadBtn {
+  border-color: rgba(77, 157, 224, 0.45) !important;
+  color: #a8d4f5 !important;
+  align-self: flex-start;
+}
+
+.hiddenInput {
+  display: none;
+}
+
+.error {
+  margin-top: 6px !important;
+}
+
+.bottomToolBar {
+  min-height: 58px;
+  border-top: 1px solid rgba(77, 157, 224, 0.26);
+  background: rgba(8, 12, 30, 0.95);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  overflow-x: auto;
+  flex-shrink: 0;
+}
+
+.chapasStrip {
+  min-height: 88px;
+  border-top: 1px solid rgba(77, 157, 224, 0.2);
+  background: rgba(6, 10, 24, 0.95);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  overflow-x: auto;
+  flex-shrink: 0;
+}
+
+.spacesStrip {
+  min-height: 98px;
+  border-top: 1px solid rgba(77, 157, 224, 0.2);
+  background: rgba(6, 10, 24, 0.95);
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  padding: 8px 12px;
+  overflow-x: auto;
+  flex-shrink: 0;
+}
+
+.materialsStrip {
+  min-height: 88px;
+  border-top: 1px solid rgba(77, 157, 224, 0.2);
+  background: rgba(6, 10, 24, 0.95);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  overflow-x: auto;
+  flex-shrink: 0;
+}
+
+.materialCard {
+  width: 66px;
+  height: 66px;
+  border: 1px solid rgba(77, 157, 224, 0.36);
+  border-radius: 10px;
+  background: rgba(12, 22, 42, 0.74);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  cursor: grab;
+}
+
+.materialIcon {
+  font-size: 1.6rem !important;
+  line-height: 1 !important;
+  font-weight: 700 !important;
+  color: #f0f7ff !important;
+}
+
+.materialBallIcon {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 32% 28%, #ffffff 0%, #d5e7ff 35%, #2a3f58 100%);
+  border: 2px solid rgba(255, 255, 255, 0.85);
+}
+
+.materialConeIcon {
+  width: 28px;
+  height: 32px;
+  clip-path: polygon(50% 0%, 95% 100%, 5% 100%);
+  background: linear-gradient(180deg, #ffb347 0%, #e67e22 100%);
+  border: 1px solid rgba(255, 255, 255, 0.78);
+}
+
+.materialAroIcon {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 4px solid #f1c40f;
+  background: transparent;
+}
+
+.materialSetaIcon {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #e67e22;
+  border: 2px solid rgba(255, 255, 255, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.materialSetaHole {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(12, 22, 42, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.materialVallaIcon {
+  position: relative;
+  width: 30px;
+  height: 28px;
+}
+
+.materialPicaIcon {
+  position: relative;
+  width: 20px;
+  height: 30px;
+}
+
+.materialGoalIcon {
+  position: relative;
+  width: 34px;
+  height: 24px;
+}
+
+.materialMiniGoalIcon {
+  position: relative;
+  width: 30px;
+  height: 20px;
+}
+
+.materialVallaLegLeft,
+.materialVallaLegRight {
+  position: absolute;
+  bottom: 0;
+  width: 4px;
+  height: 16px;
+  background: #f0f7ff;
+  border-radius: 2px;
+}
+
+.materialVallaLegLeft {
+  left: 5px;
+}
+
+.materialVallaLegRight {
+  right: 5px;
+}
+
+.materialVallaBar {
+  position: absolute;
+  top: 4px;
+  left: 1px;
+  right: 1px;
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #f1c40f 0%, #e67e22 48%, #f1c40f 100%);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+}
+
+.materialPicaTip {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-bottom: 7px solid #f5f8ff;
+}
+
+.materialPicaStick {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 3px;
+  height: 20px;
+  background: #f5f8ff;
+  border-radius: 2px;
+}
+
+.materialPicaBase {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 14px;
+  height: 4px;
+  border-radius: 999px;
+  background: #e74c3c;
+}
+
+.materialGoalPostLeft,
+.materialGoalPostRight {
+  position: absolute;
+  bottom: 0;
+  width: 3px;
+  height: 18px;
+  background: #f5f8ff;
+  border-radius: 2px;
+}
+
+.materialGoalPostLeft {
+  left: 3px;
+}
+
+.materialGoalPostRight {
+  right: 3px;
+}
+
+.materialGoalCrossbar {
+  position: absolute;
+  top: 0;
+  left: 2px;
+  right: 2px;
+  height: 3px;
+  background: #f5f8ff;
+  border-radius: 2px;
+}
+
+.materialGoalNet {
+  position: absolute;
+  top: 3px;
+  left: 4px;
+  right: 4px;
+  bottom: 1px;
+  border: 1px dashed rgba(173, 220, 255, 0.72);
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+}
+
+.materialOnField {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  z-index: 8;
+  cursor: grab;
+}
+
+.materialDragging {
+  opacity: 0.7;
+}
+
+.materialGlyphOnField {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.materialGlyphbalones {
+  border-radius: 50%;
+  background: radial-gradient(circle at 32% 28%, #ffffff 0%, #d5e7ff 35%, #2a3f58 100%);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+}
+
+.materialGlyphsetas {
+  border-radius: 50%;
+  background: #e67e22;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.materialGlyphconos {
+  clip-path: polygon(50% 0%, 95% 100%, 5% 100%);
+  background: linear-gradient(180deg, #ffb347 0%, #e67e22 100%);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+}
+
+.materialGlyphvallas {
+  position: relative;
+}
+
+.materialGlypharos {
+  border-radius: 50%;
+  background: transparent;
+  border: 3px solid #f1c40f;
+}
+
+.materialGlyphminiporterias,
+.materialGlyphporteriasf11 {
+  position: relative;
+}
+
+.materialGlyphpicas {
+  position: relative;
+}
+
+.materialRotateBtn {
+  position: absolute;
+  right: -9px;
+  top: -9px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid rgba(77, 157, 224, 0.6);
+  background: rgba(7, 18, 34, 0.95);
+  color: #e8f4ff;
+  font-size: 0.55rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+
+.chapasLoading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 56px;
+  width: 100%;
+}
+
+.chapasHint {
+  font-size: 0.8rem !important;
+  color: rgba(212, 212, 212, 0.72) !important;
+  white-space: nowrap;
+}
+
+.spaceTemplateCard {
+  min-width: 116px;
+  border: 1px solid rgba(77, 157, 224, 0.36);
+  border-radius: 10px;
+  padding: 8px;
+  background: rgba(12, 22, 42, 0.74);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: grab;
+  user-select: none;
+}
+
+.spaceTemplateIcon {
+  width: 34px;
+  height: 34px;
+  background: linear-gradient(165deg, rgba(168, 212, 245, 0.68), rgba(49, 114, 166, 0.96));
+  border: 1px solid rgba(221, 241, 255, 0.62);
+}
+
+.spaceIconSquare {
+  clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%);
+}
+
+.spaceIconRectangle {
+  width: 42px;
+  height: 24px;
+  clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%);
+}
+
+.spaceIconTriangle {
+  clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+}
+
+.spaceIconPentagon {
+  clip-path: polygon(50% 0%, 100% 38%, 81% 100%, 19% 100%, 0% 38%);
+}
+
+.spaceIconHexagon {
+  clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+}
+
+.spaceIconHeptagon {
+  clip-path: polygon(50% 0%, 85% 18%, 100% 54%, 77% 88%, 23% 88%, 0% 54%, 15% 18%);
+}
+
+.spaceIconOctagon {
+  clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
+}
+
+.spaceIconCircle {
+  border-radius: 50%;
+}
+
+.spaceTemplateTitle {
+  font-size: 0.7rem !important;
+  font-weight: 700 !important;
+  color: #f0f7ff !important;
+}
+
+.spaceTemplateHint {
+  font-size: 0.62rem !important;
+  color: rgba(212, 212, 212, 0.66) !important;
+}
+
+.spaceShape {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  z-index: 6;
+  cursor: grab;
+  user-select: none;
+}
+
+.spaceRotatedContent {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-origin: center center;
+  pointer-events: none;
+}
+
+.spaceResizeAnchor {
+  position: absolute;
+  border: none;
+  background: transparent;
+  padding: 0;
+  z-index: 7;
+  pointer-events: auto;
+}
+
+.spaceResizeN,
+.spaceResizeS {
+  left: 12%;
+  width: 76%;
+  height: 10px;
+  transform: translateY(-50%);
+  cursor: ns-resize;
+}
+
+.spaceResizeN {
+  top: 0;
+}
+
+.spaceResizeS {
+  top: 100%;
+}
+
+.spaceResizeE,
+.spaceResizeW {
+  top: 12%;
+  height: 76%;
+  width: 10px;
+  transform: translateX(-50%);
+  cursor: ew-resize;
+}
+
+.spaceResizeE {
+  left: 100%;
+}
+
+.spaceResizeW {
+  left: 0;
+}
+
+.spaceResizeNE,
+.spaceResizeNW,
+.spaceResizeSE,
+.spaceResizeSW {
+  width: 14px;
+  height: 14px;
+}
+
+.spaceResizeNE {
+  top: -7px;
+  left: calc(100% - 7px);
+  cursor: nesw-resize;
+}
+
+.spaceResizeNW {
+  top: -7px;
+  left: -7px;
+  cursor: nwse-resize;
+}
+
+.spaceResizeSE {
+  top: calc(100% - 7px);
+  left: calc(100% - 7px);
+  cursor: nwse-resize;
+}
+
+.spaceResizeSW {
+  top: calc(100% - 7px);
+  left: -7px;
+  cursor: nesw-resize;
+}
+
+.spaceSvg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.spaceStroke {
+  fill: rgba(58, 145, 205, 0.2);
+  stroke: rgba(226, 244, 255, 0.88);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.spaceDistance {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-size: clamp(0.46rem, 0.72vw, 0.62rem);
+  line-height: 1;
+  font-weight: 700;
+  color: #eaf6ff;
+  background: rgba(4, 12, 24, 0.72);
+  border: 1px solid rgba(89, 170, 230, 0.42);
+  border-radius: 5px;
+  padding: 1px 4px;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.spaceScaleControls {
+  position: absolute;
+  right: -18px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 7;
+}
+
+.spaceScaleBtn {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 1px solid rgba(77, 157, 224, 0.55);
+  background: rgba(7, 18, 34, 0.9);
+  color: #e9f5ff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+
+.spaceDragging {
+  opacity: 0.7;
+}
+
+.chapa {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  color: #f3f8ff;
+  background:
+    radial-gradient(circle at 34% 28%, rgba(255, 255, 255, 0.42), transparent 34%),
+    linear-gradient(160deg, #4d9de0 0%, #245f94 42%, #173f64 100%);
+  border: 2px solid rgba(220, 236, 255, 0.72);
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 255, 255, 0.26),
+    inset 0 0 0 6px rgba(22, 55, 88, 0.42),
+    0 4px 10px rgba(0, 0, 0, 0.45);
+  cursor: grab;
+  user-select: none;
+}
+
+.chapaDorsal {
+  font-size: 1rem;
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.chapaAlias {
+  max-width: 86%;
+  font-size: 0.56rem;
+  line-height: 1;
+  font-weight: 700;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chapaOnField {
+  position: absolute;
+  width: clamp(24px, 3.1vmin, 34px);
+  aspect-ratio: 1 / 1;
+  height: auto;
+  transform: translate(-50%, -50%);
+  z-index: 20;
+  gap: 0;
+  border-radius: 50%;
+  border-width: 1.5px;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.24),
+    inset 0 0 0 3px rgba(22, 55, 88, 0.38),
+    0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.chapaOnField .chapaDorsal {
+  font-size: clamp(0.58rem, 1.15vw, 0.84rem);
+}
+
+.chapaOnField .chapaAlias {
+  font-size: clamp(0.36rem, 0.75vw, 0.52rem);
+  max-width: 90%;
+}
+
+.chapaAliasOutside {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: clamp(0.42rem, 0.8vw, 0.58rem);
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #f3fbff;
+  background:
+    linear-gradient(180deg, rgba(14, 38, 62, 0.9) 0%, rgba(10, 28, 46, 0.94) 100%);
+  border: 1px solid rgba(130, 198, 245, 0.62);
+  border-radius: 999px;
+  padding: 2px 7px;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.14),
+    0 2px 6px rgba(0, 0, 0, 0.45);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+  pointer-events: none;
+}
+
+.chapaDragging {
+  opacity: 0.65;
+}
+
+.chapaPetoMenu {
+  position: absolute;
+  left: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+  min-width: 124px;
+  background: rgba(7, 18, 34, 0.96);
+  border: 1px solid rgba(77, 157, 224, 0.45);
+  border-radius: 8px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 30;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45);
+}
+
+.chapaPetoMenuTitle {
+  font-size: 0.62rem !important;
+  font-weight: 700 !important;
+  color: #d8ecfb !important;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.chapaPetoGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
+}
+
+.chapaPetoSwatch {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.62);
+  cursor: pointer;
+  padding: 0;
+}
+
+.chapaPetoClearBtn {
+  border: 1px solid rgba(77, 157, 224, 0.45);
+  border-radius: 6px;
+  background: rgba(9, 24, 44, 0.92);
+  color: #d8ecfb;
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 4px 6px;
+  cursor: pointer;
+}
+
+.toolBtn {
+  white-space: nowrap;
+  border-color: rgba(77, 157, 224, 0.45) !important;
+  color: #d5ebfb !important;
+}
+
+@media (max-width: 980px) {
+  .pitchArea {
+    --pitch-ppm: 5;
+  }
+
+  .formPanel {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: min(460px, 86vw);
+    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.45);
+  }
+
+  .pitchArea {
+    padding-right: 8px;
+  }
+}
+
+@media (max-width: 700px) {
+  .pitchArea {
+    --pitch-ppm: 3;
+  }
+
+  .topBar {
+    justify-content: space-between;
+  }
+
+  .row {
+    flex-direction: column;
+  }
+
+  .typeSelect,
+  .numField {
+    width: 100%;
+  }
+
+  .pitchArea {
+    padding: 8px;
+    padding-bottom: 64px;
+  }
+
+  .centerCircle {
+    width: 26.912%;
+  }
+
+  .chapa {
+    width: 50px;
+    height: 50px;
+  }
+
+  .chapaOnField {
+    width: clamp(20px, 3.8vmin, 28px);
+  }
+}
+
+/* ─── Lines SVG overlay ─────────────────────────────────── */
+.linesSvg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 3;
+  overflow: visible;
+}
+
+/* ─── Drawing capture overlay ───────────────────────────── */
+.drawingOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 100;
+  cursor: crosshair;
+  background: transparent;
+}
+
+/* ─── Lines strip ───────────────────────────────────────── */
+.linesStrip {
+  border-top: 1px solid rgba(77, 157, 224, 0.2);
+  background: rgba(6, 10, 24, 0.95);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px 8px;
+  flex-shrink: 0;
+}
+
+.linesStripKinds {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+}
+
+.lineKindCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border: 1px solid rgba(77, 157, 224, 0.3);
+  border-radius: 8px;
+  background: rgba(12, 22, 42, 0.7);
+  cursor: pointer;
+  flex: 0 0 auto;
+  min-width: 72px;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.lineKindCard:hover {
+  border-color: rgba(77, 157, 224, 0.7);
+  background: rgba(20, 38, 68, 0.8);
+}
+
+.lineKindCardActive {
+  border-color: #4d9de0 !important;
+  background: rgba(30, 60, 100, 0.85) !important;
+}
+
+.lineKindPreview {
+  width: 52px;
+  height: 22px;
+  overflow: visible;
+}
+
+.lineKindLabel {
+  font-size: 0.6rem;
+  color: #c5dff5;
+  font-weight: 600;
+  white-space: nowrap;
+  letter-spacing: 0.03em;
+}
+
+.linesStripColors {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.lineColorSwatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  cursor: pointer;
+  padding: 0;
+  flex: 0 0 auto;
+  transition: border-color 0.15s, transform 0.1s;
+}
+
+.lineColorSwatch:hover {
+  transform: scale(1.15);
+  border-color: rgba(255, 255, 255, 0.65);
+}
+
+.lineColorSwatchActive {
+  border-color: #ffffff !important;
+  box-shadow: 0 0 0 2px rgba(77, 157, 224, 0.8);
+  transform: scale(1.1);
+}
+
+.linesDeleteAllBtn {
+  margin-left: 8px;
+  border: 1px solid rgba(255, 80, 80, 0.45);
+  border-radius: 6px;
+  background: rgba(80, 10, 10, 0.6);
+  color: #ffaaaa;
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 4px 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.linesDeleteAllBtn:hover {
+  background: rgba(120, 20, 20, 0.75);
+  border-color: rgba(255, 80, 80, 0.7);
+}
+
+.linesHint {
+  font-size: 0.62rem !important;
+  color: rgba(170, 210, 250, 0.7) !important;
+  font-style: italic;
+}

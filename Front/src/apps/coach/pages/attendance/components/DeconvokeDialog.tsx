@@ -18,6 +18,7 @@ type Props = {
   onConfirm: (reason: string) => void;
   hideTechnical?: boolean;
   title?: string;
+  confirmLabel?: string;
 };
 
 const TECHNICAL_NAMES = ["decisión técnica", "decision tecnica", "technical decision"];
@@ -29,7 +30,7 @@ const ALL_OPTIONS = (excuseTypes: ExcuseType[], hideTechnical?: boolean) => [
     .map((ex) => ({ value: String(ex.id), label: ex.name, justified: ex.justified ?? false })),
 ];
 
-export default function DeconvokeDialog({ open, onClose, excuseTypes, onConfirm, hideTechnical, title }: Props) {
+export default function DeconvokeDialog({ open, onClose, excuseTypes, onConfirm, hideTechnical, title, confirmLabel }: Props) {
   const [value, setValue] = React.useState<string>("");
 
   React.useEffect(() => {
@@ -71,7 +72,7 @@ export default function DeconvokeDialog({ open, onClose, excuseTypes, onConfirm,
           variant="contained"
           color="error"
         >
-          {hideTechnical ? "Rechazar" : "Desconvocar"}
+          {confirmLabel ?? (hideTechnical ? "Rechazar" : "Desconvocar")}
         </Button>
       </DialogActions>
     </Dialog>

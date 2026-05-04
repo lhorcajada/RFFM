@@ -1,5 +1,6 @@
 using FluentValidation;
 using Mediator;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -24,7 +25,8 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
                 .WithName(nameof(DeleteSportEvent))
                 .WithTags("SportEventsFeature")
                 .Produces(StatusCodes.Status200OK)
-                .Produces<ProblemDetails>(StatusCodes.Status409Conflict);
+                .Produces<ProblemDetails>(StatusCodes.Status409Conflict)
+                .RequireAuthorization(new AuthorizeAttribute { Roles = "Administrator,Coach,ClubDirector,ClubMember" });
         }
     }
 

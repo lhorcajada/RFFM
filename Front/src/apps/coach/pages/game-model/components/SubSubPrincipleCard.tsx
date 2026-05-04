@@ -10,7 +10,7 @@ import FitnessCenterIcon from "@mui/icons-material/FitnessCenter";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { client } from "../../../../../core/api/client";
 import type { SubSubPrinciple } from "../../../types/gameModel";
 import type { Exercise } from "../../../types/training";
@@ -42,6 +42,7 @@ interface Props {
 
 export default function SubSubPrincipleCard({ index, subSubPrinciple, clubId }: Props) {
   const [expanded, setExpanded] = useState(false);
+  const navigate = useNavigate();
   const location = useLocation();
   const params = new URLSearchParams(location.search);
   const teamId = params.get("teamId") ?? "";
@@ -85,6 +86,20 @@ export default function SubSubPrincipleCard({ index, subSubPrinciple, clubId }: 
     } finally {
       setDeletingEx(false);
     }
+  };
+
+  const handleNewExercise = () => {
+    if (!clubId || !sspApiId) return;
+
+    const createParams = new URLSearchParams();
+    createParams.set("clubId", clubId);
+    if (teamId) createParams.set("teamId", teamId);
+    createParams.set("subSubPrincipleId", sspApiId);
+    createParams.set("sspName", subSubPrinciple.name);
+
+    navigate(`/coach/trainings/new-exercise?${createParams.toString()}`, {
+      state: { returnTo: `${location.pathname}${location.search}` },
+    });
   };
 
   return (
@@ -168,8 +183,7 @@ export default function SubSubPrincipleCard({ index, subSubPrinciple, clubId }: 
                     className={styles.addExBtn}
                     onClick={(e) => {
                       e.stopPropagation();
-                      setEditExercise(null);
-                      setExDialogOpen(true);
+                      handleNewExercise();
                     }}
                   >
                     Añadir ejercicio

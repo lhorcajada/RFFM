@@ -15,6 +15,7 @@ import FlagIcon from "@mui/icons-material/Flag";
 import DashboardCard from "../../../../../shared/components/ui/DashboardCard/DashboardCard";
 import type { TeamResponse } from "../../../services/teamService";
 import styles from "../Dashboard.module.css";
+import { coachAuthService } from "../../../services/authService";
 
 interface DashboardCardsProps {
   team: TeamResponse | null;
@@ -33,6 +34,12 @@ export default function DashboardCards({
 }: DashboardCardsProps) {
   const seasonParam = selectedSeason ? `?seasonId=${selectedSeason}` : "";
   const seasonSuffix = selectedSeason ? `&seasonId=${selectedSeason}` : "";
+
+  const canSeeGameModel =
+    coachAuthService.hasRole("Administrator") ||
+    coachAuthService.hasRole("Coach") ||
+    coachAuthService.hasRole("ClubDirector") ||
+    coachAuthService.hasRole("ClubMember");
 
   return (
     <div className={styles.container}>
@@ -108,12 +115,14 @@ export default function DashboardCards({
               icon={<LocalHospitalIcon style={{ fontSize: 40 }} />}
               to={team?.id ? `/coach/injured?teamId=${team.id}` : "/coach/injured"}
             />
-            <DashboardCard
-              title="Modelo de Juego"
-              description="Estrategia y tácticas."
-              icon={<TimelineIcon style={{ fontSize: 40 }} />}
-              to={team?.id ? `/coach/game-model?teamId=${team.id}` : "/coach/game-model"}
-            />
+            {canSeeGameModel && (
+              <DashboardCard
+                title="Modelo de Juego"
+                description="Estrategia y tácticas."
+                icon={<TimelineIcon style={{ fontSize: 40 }} />}
+                to={team?.id ? `/coach/game-model?teamId=${team.id}` : "/coach/game-model"}
+              />
+            )}
             <DashboardCard
               title="Sanciones"
               description="Registro de sanciones."
