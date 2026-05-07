@@ -1,16 +1,21 @@
 import {
+  Button,
   CircularProgress,
   FormControl,
   InputLabel,
   MenuItem,
   Select,
 } from "@mui/material";
+import { useState } from "react";
+import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import EmptyState from "../../../../../shared/components/ui/EmptyState/EmptyState";
 import type { ExcuseType } from "../../../services/excuseTypeService";
 import type { PlayerResponse } from "../../../services/teamplayerService";
 import type { PlayerRating } from "../../../types/playerRating";
 import PlayerCromo from "../../squad/components/PlayerCromo";
 import type { DropZone } from "./convocationMatchDetail.types";
+import type { DeconvokeProposal } from "../utils/deconvokeProposal";
 import styles from "./ConvocationTab.module.css";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -76,6 +81,9 @@ type Props = {
   onDrop: (zone: DropZone) => void;
   onExcuseChange: (playerId: string, excuseId: number) => void;
   playerStreaks?: Map<string, number>;
+  proposal: DeconvokeProposal;
+  proposalLoading: boolean;
+  onApplyProposal: (ids: string[]) => Promise<void>;
 };
 
 const GROUPS = [
@@ -120,7 +128,13 @@ export default function ConvocationTab({
   onDrop,
   onExcuseChange,
   playerStreaks,
+  proposal,
+  proposalLoading,
+  onApplyProposal,
 }: Props) {
+  const [showProposal, setShowProposal] = useState(false);
+  const [applyingProposal, setApplyingProposal] = useState(false);
+
   if (mgmtLoadingConv || loadingPlayers) {
     return (
       <div className={styles.convocatoriaTab}>
@@ -147,9 +161,156 @@ export default function ConvocationTab({
     return mgmtNotCalled;
   }
 
+  const selectedProposalPlayers = proposal.players.filter((p) => p.isSelected);
+
+  function renderCard(item: (typeof proposal.players)[0], highlighted: boolean) {
+    return (
+      <article
+        key={item.playerId}
+        className={`${styles.proposalCard} ${highlighted && item.forced ? styles.proposalCardForced : ""} ${!highlighted ? styles.proposalCardDim : ""}`}
+      >
+        {/* ── Header ── */}
+        <div className={styles.proposalCardTop}>
+          <div className={styles.proposalCardName}>
+            {highlighted && item.forced && <span className={styles.proposalForcedBadge}>OBLIGATORIO</span>}
+            <strong>{item.displayName}</strong>
+          </div>
+          <span className={styles.proposalScore}>{item.score.toFixed(0)} pts</span>
+        </div>
+
+        {/* ── Chips de metadatos ── */}
+        <div className={styles.proposalChips}>
+          <span className={styles.proposalChip}>{item.position ?? "Sin posición"}</span>
+          <span className={styles.proposalChip}>📋 {item.calledCount} conv.</span>
+          {item.startsDataAvailable && (
+            <span className={styles.proposalChip}>🏁 {item.startsCount} tit.</span>
+          )}
+          <span className={styles.proposalChip}>Min. conv: {item.minRequiredCalls}</span>
+          {item.weeklyTraining.totalTrainings > 0 && (
+            <span className={`${styles.proposalChip} ${
+              item.weeklyTraining.attendedTrainings === 0 ? styles.proposalChipRed : styles.proposalChipGreen
+            }`}>
+              🏃 {item.weeklyTraining.attendedTrainings}/{item.weeklyTraining.totalTrainings} entrenos
+            </span>
+          )}
+        </div>
+
+        {/* ── Factores ── */}
+        <div className={styles.factorList}>
+          {item.factors.map((factor) => (
+            <div
+              key={`${item.playerId}-${factor.key}`}
+              className={`${styles.factorItem} ${factor.impact > 0 ? styles.factorItemPositive : factor.impact < 0 ? styles.factorItemNegative : styles.factorItemNeutral}`}
+            >
+              <span className={styles.factorLabel}>{factor.label}</span>
+              <span className={styles.factorValue}>{factor.value}</span>
+              <span className={`${styles.factorImpact} ${factor.impact > 0 ? styles.factorPositive : factor.impact < 0 ? styles.factorNegative : styles.factorNeutral}`}>
+                {factor.impact > 0 ? "+" : ""}{factor.impact.toFixed(0)}
+              </span>
+            </div>
+          ))}
+        </div>
+      </article>
+    );
+  }
+
+  async function handleApplyProposalClick() {
+    if (selectedProposalPlayers.length === 0 || applyingProposal) return;
+    setApplyingProposal(true);
+    try {
+      await onApplyProposal(selectedProposalPlayers.map((p) => p.playerId));
+      setShowProposal(false);
+    } finally {
+      setApplyingProposal(false);
+    }
+  }
+
   return (
     <div className={styles.convocatoriaTab}>
-      {/* Three drop zones */}
+      <div className={styles.proposalBar}>
+        <Button
+          variant="outlined"
+          size="small"
+          startIcon={<AutoFixHighIcon />}
+          onClick={() => setShowProposal(true)}
+          disabled={proposalLoading}
+          className={styles.proposalBtn}
+        >
+          Proponer desconvocados
+        </Button>
+      </div>
+
+      {showProposal && (
+        <div className={styles.proposalPage}>
+          <div className={styles.proposalHeader}>
+            <div>
+              <h3 className={styles.proposalTitle}>Propuesta automática de desconvocatoria</h3>
+              <p className={styles.proposalSubtitle}>
+                Objetivo: {proposal.targetCount} desconvocado(s) | Convocados actuales: {proposal.calledCount}
+              </p>
+              {proposal.previousRivalResult && (
+                <p className={styles.proposalSubtitle}>
+                  Rival: {proposal.previousRivalResult.rival} | Resultado previo: {proposal.previousRivalResult.scoreText} ({proposal.previousRivalResult.result})
+                </p>
+              )}
+            </div>
+            <Button
+              variant="text"
+              size="small"
+              startIcon={<ArrowBackIcon />}
+              onClick={() => setShowProposal(false)}
+            >
+              Volver
+            </Button>
+          </div>
+
+          {proposalLoading ? (
+            <div className={styles.center}><CircularProgress size={28} /></div>
+          ) : proposal.players.length === 0 ? (
+            <EmptyState description="No hay convocados para evaluar." />
+          ) : (
+            <>
+              {/* ── Proposed section ── */}
+              {selectedProposalPlayers.length === 0 ? (
+                <p className={styles.proposalSubtitle} style={{ marginBottom: 8 }}>No hace falta desconvocar jugadores con las reglas actuales.</p>
+              ) : (
+                <>
+                  <p className={styles.proposalSectionLabel}>Propuestos para desconvocar</p>
+                  <div className={styles.proposalCards}>
+                    {proposal.players.filter((p) => p.isSelected).map((item) => renderCard(item, true))}
+                  </div>
+                </>
+              )}
+
+              {/* ── Rest section ── */}
+              {proposal.players.some((p) => !p.isSelected) && (
+                <>
+                  <p className={`${styles.proposalSectionLabel} ${styles.proposalSectionLabelDim}`}>Resto de convocados</p>
+                  <div className={styles.proposalCards}>
+                    {proposal.players.filter((p) => !p.isSelected).map((item) => renderCard(item, false))}
+                  </div>
+                </>
+              )}
+
+              {selectedProposalPlayers.length > 0 && (
+                <div className={styles.proposalActions}>
+                  <Button
+                    variant="contained"
+                    size="small"
+                    disabled={applyingProposal}
+                    onClick={handleApplyProposalClick}
+                    startIcon={applyingProposal ? <CircularProgress size={14} color="inherit" /> : <AutoFixHighIcon />}
+                  >
+                    Aplicar propuesta
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {!showProposal && (
       <div className={styles.dropColumns}>
         {ZONE_CONFIG.map(({ zone, label, headerClass }) => {
           const ids = getZoneIds(zone);
@@ -301,37 +462,6 @@ export default function ConvocationTab({
                             }
                             streakCount={playerStreaks?.get(playerId) ?? null}
                           />
-                          {zone === "notCalled" &&
-                            excuseTypes.length > 0 && (
-                              <FormControl
-                                size="small"
-                                fullWidth
-                                sx={{ mt: 0.5 }}
-                                onClick={(e) => e.stopPropagation()}
-                                onMouseDown={(e) => e.stopPropagation()}
-                                onDragStart={(e) => e.stopPropagation()}
-                              >
-                                <InputLabel sx={{ fontSize: "0.7rem" }}>Motivo</InputLabel>
-                                <Select
-                                  label="Motivo"
-                                  value={mgmtExcuseMap[playerId] ?? ""}
-                                  onChange={(e) => {
-                                    onExcuseChange(playerId, e.target.value as number);
-                                  }}
-                                  sx={{ fontSize: "0.72rem" }}
-                                >
-                                  {excuseTypes.map((et) => (
-                                    <MenuItem
-                                      key={et.id}
-                                      value={et.id}
-                                      sx={{ fontSize: "0.72rem" }}
-                                    >
-                                      {et.name}
-                                    </MenuItem>
-                                  ))}
-                                </Select>
-                              </FormControl>
-                            )}
                         </div>
                       );
                     }),
@@ -342,6 +472,7 @@ export default function ConvocationTab({
           );
         })}
       </div>
+      )}
     </div>
   );
 }

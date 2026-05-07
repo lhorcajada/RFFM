@@ -53,7 +53,7 @@
     </PackageReference>
     <PackageReference Include="Ardalis.SmartEnum" Version="8.2.0" />
     <PackageReference Include="Ardalis.SmartEnum.EFCore" Version="8.2.0" />
-    <PackageReference Include="MailKit" Version="4.14.1" />
+    <PackageReference Include="MailKit" Version="4.16.0" />
     <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.0.1" />
     <PackageReference Include="Supabase" Version="1.1.1" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.0.1" />

@@ -1,0 +1,237 @@
+.body {
+  padding: 24px;
+}
+
+.tabs {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  margin-bottom: 16px;
+}
+
+.tabPanel {
+  min-height: 240px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.card {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+  padding: 16px;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.iconWrap {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.cardTitle {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.metricMain {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 12px;
+}
+
+.metricValue {
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.metricLabel {
+  opacity: 0.8;
+  font-size: 0.9rem;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.metricItem {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.2);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.metricItemLabel {
+  opacity: 0.85;
+  font-size: 0.85rem;
+}
+
+.trainingCardsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+.trainingToolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+@media (max-width: 920px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .trainingToolbar {
+    justify-content: stretch;
+  }
+
+  .trainingToolbar :global(.MuiButton-root) {
+    width: 100%;
+  }
+
+  .trainingCardsGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.trainingCard {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.03));
+  overflow: hidden;
+}
+
+.trainingCardSummary {
+  padding: 0 16px;
+}
+
+.trainingCardSummary :global(.MuiAccordionSummary-content) {
+  margin: 12px 0;
+}
+
+.trainingCardSummary :global(.MuiAccordionSummary-expandIconWrapper) {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.trainingCardHeader {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.playerName {
+  font-weight: 700 !important;
+}
+
+.trainingMetrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.metricChip,
+.metricChipSuccess,
+.metricChipWarn,
+.metricChipMuted {
+  font-weight: 600 !important;
+}
+
+.metricChipSuccess {
+  background: rgba(76, 175, 80, 0.18) !important;
+}
+
+.metricChipWarn {
+  background: rgba(255, 152, 0, 0.18) !important;
+}
+
+.metricChipMuted {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.trainingCardDetails {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 16px;
+}
+
+.absencePanel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.absencePanelTitle {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.7;
+}
+
+.noAbsenceText {
+  opacity: 0.75;
+  font-size: 0.92rem;
+}
+
+.absenceList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.absenceItem {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.absenceDate {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.absenceSeparator {
+  opacity: 0.5;
+}
+
+.absenceReason {
+  font-weight: 600;
+}
+
+.absenceEvent {
+  opacity: 0.78;
+}

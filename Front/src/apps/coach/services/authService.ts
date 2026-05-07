@@ -21,6 +21,10 @@ function decodeJwtPayload(token: string): any | null {
   }
 }
 
+function normalizeRole(role: string): string {
+  return (role ?? "").trim().toLowerCase();
+}
+
 export const coachAuthService = {
   login: async (token: string) => {
     const response = await client.post("/api/login", { token });
@@ -111,8 +115,9 @@ export const coachAuthService = {
   hasRole: (role: string) => {
     const roles = coachAuthService.getRoles();
     if (!roles || roles.length === 0) return false;
-    if (roles.includes("Administrator")) return true; // admin bypass
-    return roles.includes(role);
+    const normalizedRoles = roles.map(normalizeRole);
+    if (normalizedRoles.includes("administrator") || normalizedRoles.includes("admin")) return true; // admin bypass
+    return normalizedRoles.includes(normalizeRole(role));
   },
 
   getPermissionsForRole: (role: string): string[] => {
@@ -125,7 +130,8 @@ export const coachAuthService = {
   },
 
   hasPermission: (role: string, permission: string) => {
-    if (coachAuthService.getRoles().includes("Administrator")) return true;
+    const normalizedRoles = coachAuthService.getRoles().map(normalizeRole);
+    if (normalizedRoles.includes("administrator") || normalizedRoles.includes("admin")) return true;
     const perms = coachAuthService.getPermissionsForRole(role);
     return perms.includes(permission);
   },

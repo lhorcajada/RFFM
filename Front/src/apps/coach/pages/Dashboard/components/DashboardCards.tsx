@@ -4,6 +4,7 @@ import NewspaperIcon from "@mui/icons-material/Newspaper";
 import GroupIcon from "@mui/icons-material/Group";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import EventIcon from "@mui/icons-material/Event";
+import SummarizeIcon from "@mui/icons-material/Summarize";
 import FitnessCenterIcon from "@mui/icons-material/FitnessCenter";
 import LocalHospitalIcon from "@mui/icons-material/LocalHospital";
 import SportsFootballIcon from "@mui/icons-material/SportsFootball";
@@ -89,6 +90,16 @@ export default function DashboardCards({
                 team?.id
                   ? `/coach/attendance?teamId=${team.id}${seasonSuffix}`
                   : `/coach/attendance${seasonParam}`
+              }
+            />
+            <DashboardCard
+              title="Resumen de asistencias"
+              description="Resumen global de asistencias a entrenamientos y partidos."
+              icon={<SummarizeIcon style={{ fontSize: 40 }} />}
+              to={
+                team?.id
+                  ? `/coach/attendance/summary?teamId=${team.id}${seasonSuffix}`
+                  : `/coach/attendance/summary${seasonParam}`
               }
             />
             <DashboardCard

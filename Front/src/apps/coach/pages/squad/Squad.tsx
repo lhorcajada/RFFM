@@ -75,12 +75,20 @@ export default function Squad() {
   const [seasonStats, setSeasonStats] = useState<Record<string, SeasonPlayerStats>>({});
   const [loadingRatings, setLoadingRatings] = useState(false);
   const [loadingPlayers, setLoadingPlayers] = useState(false);
+  const roles = useMemo(
+    () => coachAuthService.getRoles().map((role) => role.toLowerCase()),
+    []
+  );
+  const isAdminOrCoach =
+    roles.includes("administrator") ||
+    roles.includes("admin") ||
+    roles.includes("coach");
   const isFan =
-    coachAuthService.hasRole("Fan") ||
-    coachAuthService.hasRole("Follower");
+    (roles.includes("fan") || roles.includes("follower")) &&
+    !isAdminOrCoach;
   const isPlayerOrFamily =
-    coachAuthService.hasRole("Player") ||
-    coachAuthService.hasRole("FamilyPlayer");
+    (roles.includes("player") || roles.includes("familyplayer")) &&
+    !isAdminOrCoach;
   const isRestricted = isFan || isPlayerOrFamily;
 
   const [associatedPlayerId, setAssociatedPlayerId] = useState<string | null>(null);

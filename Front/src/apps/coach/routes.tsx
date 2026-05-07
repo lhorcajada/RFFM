@@ -21,6 +21,7 @@ const Attendance = lazy(() => import("./pages/attendance/Attendance"));
 const AttendanceEvent = lazy(
   () => import("./pages/attendance/AttendanceEvent"),
 );
+const AttendanceSummary = lazy(() => import("./pages/attendance/AttendanceSummary"));
 const Convocations = lazy(() => import("./pages/convocations/Convocations"));
 const ConvocationMatchDetail = lazy(() => import("./pages/convocations/ConvocationMatchDetail"));
 const Trainings = lazy(() => import("./pages/trainings/Trainings"));
@@ -90,6 +91,7 @@ function CoachRoutesContent() {
             <Route path="player/:id" element={<PlayerDetail />} />
             <Route path="attendance" element={<Attendance />} />
             <Route path="attendance/:id" element={<AttendanceEvent />} />
+            <Route path="attendance/summary" element={<AttendanceSummary />} />
             <Route path="convocations" element={<Convocations />} />
             <Route path="convocations/match" element={<ConvocationMatchDetail />} />
             <Route path="trainings" element={<Trainings />} />

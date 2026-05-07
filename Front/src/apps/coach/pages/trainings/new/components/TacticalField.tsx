@@ -1,5 +1,6 @@
 import { Box, Typography } from "@mui/material";
 import type React from "react";
+import { useState } from "react";
 import { LINE_COLORS, petoOptions } from "../constants";
 import { buildLinePath, getArrowMarkerId } from "../helpers/lineHelpers";
 import { getMaterialSizePercent } from "../helpers/materialHelpers";
@@ -14,6 +15,8 @@ interface TacticalFieldProps {
 }
 
 export default function TacticalField({ halfPitchRef, board }: TacticalFieldProps) {
+  const [activeMaterialId, setActiveMaterialId] = useState<string | null>(null);
+
   const {
     placedChapas,
     playersById,
@@ -59,7 +62,7 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
       className={styles.halfPitch}
       onDragOver={handleFieldDragOver}
       onDrop={handleFieldDrop}
-      onClick={() => setActiveChapaMenuId(null)}
+      onClick={() => { setActiveChapaMenuId(null); setActiveMaterialId(null); }}
     >
       <Box className={styles.terrainBandTop} />
       <Box className={styles.terrainBandBottom} />
@@ -219,7 +222,6 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
 
       {placedMaterials.map((material) => {
         const size = getMaterialSizePercent(material.kind);
-        const isValla = material.kind === "vallas";
 
         return (
           <Box
@@ -235,6 +237,7 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
             onDragStart={(e) => handlePlacedMaterialDragStart(e, material.id)}
             onDragEnd={(e) => handlePlacedMaterialDragEnd(e, material.id)}
             title="Arrastra para mover"
+            onClick={(e) => { e.stopPropagation(); setActiveMaterialId(material.id); }}
           >
             <Box
               className={`${styles.materialGlyphOnField} ${styles[`materialGlyph${material.kind.replace("-", "")}` as keyof typeof styles]}`}
@@ -273,7 +276,7 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
               )}
             </Box>
 
-            {isValla && (
+            {activeMaterialId === material.id && (
               <button
                 type="button"
                 className={styles.materialRotateBtn}
@@ -282,8 +285,8 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
                   e.stopPropagation();
                   rotatePlacedMaterial(material.id);
                 }}
-                title="Girar valla"
-                aria-label="Girar valla"
+                title="Girar"
+                aria-label="Girar"
               >
                 ↻
               </button>
