@@ -24,6 +24,12 @@ function wasInjuredOnDate(injuryStartDate: string | null | undefined, eventDay: 
   return injuryStartDate.slice(0, 10) <= eventDay;
 }
 
+function isFriendlyEvent(ev: { eventTypeId?: number | null; eventType?: string | null; title?: string | null; name?: string | null }): boolean {
+  const eventType = (ev.eventType ?? "").toLowerCase();
+  const title = (ev.title ?? ev.name ?? "").toLowerCase();
+  return /amist|friendly/.test(eventType) || /amist|friendly/.test(title);
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type DesconvocatoriasGridReturn = {
@@ -93,7 +99,7 @@ export function useDesconvocatoriasGrid(teamId: string): DesconvocatoriasGridRet
             typeName.includes("match");
           const eventDate = ev.start ?? ev.eveDateTime ?? ev.startTime ?? "";
           const isPast = eventDate && eventDate < today + "T23:59:59";
-          return isMatchType && isPast;
+          return isMatchType && isPast && !isFriendlyEvent(ev);
         });
 
         if (!mounted) return;

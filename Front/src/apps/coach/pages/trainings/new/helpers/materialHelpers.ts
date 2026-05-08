@@ -26,3 +26,8 @@ export const getMaterialSizePercent = (kind: MaterialKind) => {
 
 export const isMaterialKind = (value: string): value is MaterialKind =>
   MATERIAL_OPTIONS.some((material) => material.key === value);
+
+export const getChapaSizePercent = () => {
+  // Base visual size for a player token on the pitch (as percent of pitch width)
+  return { width: 4.4, height: 4.4 };
+};

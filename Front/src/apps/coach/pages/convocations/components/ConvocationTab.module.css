@@ -52,7 +52,7 @@
 
 .proposalCards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
   gap: 12px;
 }
 
@@ -165,16 +165,22 @@
   border-left: 4px solid transparent;
 }
 
+.factorSubItem {
+  padding-left: 28px;
+  font-size: 0.82rem;
+  background: transparent !important;
+}
+
 .factorItem:nth-child(even) {
   background: rgba(255, 255, 255, 0.04);
 }
 
 .factorItemPositive {
-  border-left-color: rgba(240, 100, 100, 0.75);
+  border-left-color: rgba(78, 201, 176, 0.75);
 }
 
 .factorItemNegative {
-  border-left-color: rgba(78, 201, 176, 0.75);
+  border-left-color: rgba(240, 100, 100, 0.75);
 }
 
 .factorItemNeutral {
@@ -192,6 +198,18 @@
   white-space: nowrap;
 }
 
+.factorMeta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.factorValueLabel {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
 .factorImpact {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -201,11 +219,11 @@
 }
 
 .factorPositive {
-  color: #ff7070;
+  color: #5eded8;
 }
 
 .factorNegative {
-  color: #5eded8;
+  color: #ff7070;
 }
 
 .factorNeutral {

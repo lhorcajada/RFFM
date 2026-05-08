@@ -44,7 +44,10 @@ import { getTeamKits, updateEventKit } from "../../services/kitService";
 import sportEventService, { type SportEventResponse } from "../../services/sportEventService";
 import sportEventTypeService from "../../services/sportEventTypeService";
 import { getSeasonPlayerStats } from "../../services/liveMatchService";
-import { getPlayerInjuries } from "../../services/teamplayerService";
+import { getSettingsForUser } from "../../../federation/services/federationApi";
+import federationService from "../../services/federationService";
+import attendanceSummaryService from "../../services/attendanceSummaryService";
+import { getPlayerInjuries, getPlayersByTeam } from "../../services/teamplayerService";
 import convocationService from "../../services/convocationService";
 import assistanceTypeService from "../../services/assistanceTypeService";
 import { buildDeconvokeProposal } from "./utils/deconvokeProposal";
@@ -110,6 +113,7 @@ export default function ConvocationMatchDetail() {
   // Team ID  from URL or fallback to coach configuration
   const params = new URLSearchParams(location.search);
   const [teamId, setTeamId] = useState(params.get("teamId") ?? "");
+  const seasonId = params.get("seasonId");
   useEffect(() => {
     if (teamId) return;
     let mounted = true;
@@ -147,6 +151,16 @@ export default function ConvocationMatchDetail() {
     setPrinting(true);
     try {
       await printRef.current?.print();
+    } finally {
+      setPrinting(false);
+    }
+  }, [printing]);
+
+  const handlePrintProposal = useCallback(async () => {
+    if (printing) return;
+    setPrinting(true);
+    try {
+      await printRef.current?.printProposal();
     } finally {
       setPrinting(false);
     }
@@ -215,11 +229,11 @@ export default function ConvocationMatchDetail() {
     Promise.all([
       getAllSportEventsInRange(teamId, seasonStart, matchIso),
       getSeasonPlayerStats(teamId),
-      assistanceTypeService.getAssistanceTypes().catch(() => []),
+      attendanceSummaryService.getTrainingAttendanceSummary(teamId, seasonId).catch(() => null),
       sportEventService.getSportEvents(teamId, 1, 200, startOfWeekIso(matchIso), endOfWeekIso(matchIso), false),
       sportEventTypeService.getSportEventTypes().catch(() => []),
     ])
-      .then(async ([seasonEventsAll, stats, assistanceTypes, weekEventsResp, eventTypes]) => {
+      .then(async ([seasonEventsAll, stats, trainingSummary, weekEventsResp, eventTypes]) => {
         if (!mounted) return;
         const trainingTypeIds = new Set<number>();
         const matchTypeIds = new Set<number>();
@@ -236,6 +250,7 @@ export default function ConvocationMatchDetail() {
         const filtered = seasonEventsAll.filter((ev) => {
           const eventType = (ev.eventType ?? "").toLowerCase();
           const title = (ev.title ?? ev.name ?? "").toLowerCase();
+          const isFriendly = /amist|friendly/.test(eventType) || /amist|friendly/.test(title);
           return (
             (ev.eventTypeId != null && matchTypeIds.has(ev.eventTypeId)) ||
             eventType.includes("partido") ||
@@ -245,15 +260,171 @@ export default function ConvocationMatchDetail() {
             title.includes("jornada")
           );
         });
-        setSeasonEvents(filtered);
+        const officialMatches = filtered.filter((ev) => {
+          const eventType = (ev.eventType ?? "").toLowerCase();
+          const title = (ev.title ?? ev.name ?? "").toLowerCase();
+          return !(/amist|friendly/.test(eventType) || /amist|friendly/.test(title));
+        });
+        setSeasonEvents(officialMatches);
+
+        // Try to enrich season stats with federation 'goleadores' for our team.
         setSeasonStats(stats);
+        try {
+          const settings = await getSettingsForUser();
+          const primary = Array.isArray(settings) && settings.length > 0 ? (settings.find((s: any) => s.isPrimary) ?? settings[0]) : null;
+          const competitionId = primary?.competitionId;
+          const groupId = primary?.groupId;
+          const fedTeamId = primary?.teamId;
+          if (competitionId && groupId && fedTeamId) {
+            // Fetch full player roster to get name+lastName for players whose alias differs from their real name
+            const fullRoster = await getPlayersByTeam(teamId).catch(() => []);
+            // Build two maps to handle GUID casing mismatches and different ID fields between endpoints
+            const rosterById = new Map(fullRoster.map((p) => [p.id.toLowerCase(), p]));
+            const rosterByPlayerId = new Map(
+              fullRoster.filter((p) => p.playerId).map((p) => [p.playerId!.toLowerCase(), p])
+            );
+            const findInRoster = (id: string, pid?: string | null) =>
+              rosterById.get(id.toLowerCase()) ??
+              (pid ? rosterByPlayerId.get(pid.toLowerCase()) : undefined);
+            const goles = await federationService.getTeamGoleadores(competitionId, groupId, fedTeamId);
+            if (Array.isArray(goles) && goles.length > 0) {
+              const goalsByPid = new Map<string, number>();
+              const goalsByName = new Map<string, number>();
+              const normalize = (s: string | null | undefined) =>
+                (s ?? "")
+                  .toString()
+                  .toLowerCase()
+                  .normalize("NFD")
+                  .replace(/\p{Diacritic}/gu, "")
+                  .replace(/[^a-z0-9]/g, "");
+              // Split into individual word tokens (keeps spaces as separators before stripping)
+              const normalizeWords = (s: string | null | undefined): string[] =>
+                (s ?? "")
+                  .toString()
+                  .toLowerCase()
+                  .normalize("NFD")
+                  .replace(/\p{Diacritic}/gu, "")
+                  .split(/[^a-z0-9]+/)
+                  .filter(Boolean);
+              // Token match: all tokens of candidate must appear in the federation concatenated name
+              const tokenMatch = (cand: string, fedName: string): boolean => {
+                const tokens = normalizeWords(cand);
+                const gn = normalize(fedName);
+                return tokens.length >= 2 && tokens.every((t) => gn.includes(t));
+              };
+              // Reverse token match: federation tokens (len>=3) all appear in local concatenated name.
+              // Handles nicknames like "Josete" → "Jose" ("josetegarcia".includes("jose") = true)
+              const reverseTokenMatch = (cand: string, fedName: string): boolean => {
+                const fedTokens = normalizeWords(fedName).filter((t) => t.length >= 3);
+                const nc = normalize(cand);
+                return fedTokens.length >= 2 && fedTokens.every((t) => nc.includes(t));
+              };
+
+              for (const g of goles) {
+                const pid = String(g.playerId ?? "");
+                const score = Number(g.scores ?? 0) || 0;
+                if (pid) goalsByPid.set(pid, score);
+                const n = normalize(g.playerName ?? "");
+                if (n) goalsByName.set(n, score);
+              }
+
+              let mergedStats: SeasonPlayerStats[] = [];
+              if (!Array.isArray(stats) || stats.length === 0) {
+                // No local season stats available: build a minimal seasonStats from convocation players using federation goles
+                mergedStats = convocation.players.map((p) => {
+                  const fedPid = p.playerId ?? null;
+                  let goals: number | null = null;
+                  if (fedPid && goalsByPid.has(String(fedPid))) goals = goalsByPid.get(String(fedPid)) ?? null;
+                  else {
+                    const full = findInRoster(p.id, p.playerId);
+                    const candidates: string[] = [];
+                    if (p.alias) candidates.push(p.alias);
+                    // Full name from roster (may differ from alias)
+                    const fullName = [full?.name ?? p.name, full?.lastName ?? (p as any).lastName].filter(Boolean).join(" ");
+                    if (fullName && !candidates.some((c) => normalize(c) === normalize(fullName))) candidates.push(fullName);
+                    // Only fall back to name alone if no more specific candidate exists
+                    if (candidates.length === 0 && p.name) candidates.push(p.name);
+                    for (const cand of candidates) {
+                      const nc = normalize(cand);
+                      if (!nc) continue;
+                      if (goalsByName.has(nc)) {
+                        goals = goalsByName.get(nc) ?? 0;
+                        break;
+                      }
+                      const found = goles.find((g) => {
+                        const gn = normalize(g.playerName ?? "");
+                        return gn.includes(nc) || nc.includes(gn) || tokenMatch(cand, g.playerName ?? "") || reverseTokenMatch(cand, g.playerName ?? "");
+                      });
+                      if (found) {
+                        goals = Number(found.scores ?? 0);
+                        break;
+                      }
+                    }
+                  }
+                  return {
+                    teamPlayerId: p.id,
+                    totalGoals: goals ?? 0,
+                    totalMinutes: 0,
+                    totalStarts: 0,
+                    totalMatches: 0,
+                  } as SeasonPlayerStats;
+                });
+              } else {
+                mergedStats = stats.map((s: any) => {
+                  const player = convocation.players.find((p) => p.id === s.teamPlayerId);
+                  const fedPid = player?.playerId ?? null;
+                  if (fedPid && goalsByPid.has(String(fedPid))) {
+                    const g = goalsByPid.get(String(fedPid));
+                    return { ...s, totalGoals: g };
+                  }
+
+                  // Fallback: try matching by normalized name (alias, name + lastName)
+                  if (player) {
+                    const full = findInRoster(player.id, player.playerId);
+                    const candidates: string[] = [];
+                    if (player.alias) candidates.push(player.alias);
+                    // Full name from roster (may differ from alias)
+                    const fullName = [full?.name ?? player.name, full?.lastName ?? (player as any).lastName].filter(Boolean).join(" ");
+                    if (fullName && !candidates.some((c) => normalize(c) === normalize(fullName))) candidates.push(fullName);
+                    // Only fall back to name alone if no more specific candidate exists
+                    if (candidates.length === 0 && player.name) candidates.push(player.name);
+
+                    for (const cand of candidates) {
+                      const nc = normalize(cand);
+                      if (!nc) continue;
+                      if (goalsByName.has(nc)) {
+                        const g = goalsByName.get(nc);
+                        return { ...s, totalGoals: g };
+                      }
+                      // Try loose inclusion or token-based match against goleadores list
+                      const found = goles.find((g) => {
+                        const gn = normalize(g.playerName ?? "");
+                        return gn.includes(nc) || nc.includes(gn) || tokenMatch(cand, g.playerName ?? "") || reverseTokenMatch(cand, g.playerName ?? "");
+                      });
+                      if (found) {
+                        const score = Number(found.scores ?? 0);
+                        return { ...s, totalGoals: score };
+                      }
+                    }
+                  }
+
+                  return s;
+                });
+              }
+
+              setSeasonStats(mergedStats);
+            }
+          }
+        } catch (e) {
+          // ignore federation enrichment errors
+        }
 
         // Load starts count from saved match lineups for each past match event.
         // AlineacionTab saves the lineup using the eventId as the seasonId key,
         // so getIdealLineup(teamId, eventId) returns the starters for that match.
         const startsMap = new Map<string, number>();
         await Promise.all(
-          filtered.map(async (ev) => {
+          officialMatches.map(async (ev) => {
             try {
               const lineup = await getIdealLineup(teamId, ev.id);
               if (!lineup) return;
@@ -268,29 +439,6 @@ export default function ConvocationMatchDetail() {
           }),
         );
         if (mounted) setGridStartsCountMap(startsMap);
-
-        const attendIds = new Set<number>();
-        const unavailableIds = new Set<number>();
-        assistanceTypes.forEach((a) => {
-          const name = a.name.toLowerCase();
-          if (name.includes("asiste") || name.includes("presen") || name.includes("ok")) {
-            attendIds.add(a.id);
-          }
-          if (
-            name.includes("no as") ||
-            name.includes("aus") ||
-            name.includes("falta") ||
-            name.includes("just") ||
-            name.includes("lesi")
-          ) {
-            unavailableIds.add(a.id);
-          }
-        });
-        if (attendIds.size === 0) attendIds.add(1);
-        if (unavailableIds.size === 0) {
-          unavailableIds.add(2);
-          unavailableIds.add(3);
-        }
 
         const weekTrainings = weekEventsResp.items.filter((ev) => {
           const eventType = (ev.eventType ?? "").toLowerCase();
@@ -322,96 +470,45 @@ export default function ConvocationMatchDetail() {
           return !!trainingDay && trainingDay <= todayIso;
         }).length;
 
-        const playerStats = new Map<string, WeeklyTrainingStats>();
-        convocation.players.forEach((p) => {
-          playerStats.set(p.id, {
-            totalTrainings: weekTrainings.length,
-            attendedTrainings: 0,
-            attendedTrainingsSeason: 0,
-            totalTrainingsSeason: pastSeasonTrainingsCount,
-            knownUnavailableTrainings: 0,
-            unresolvedTrainings: weekTrainings.length,
-          });
+        type TrainingSummaryPlayer = {
+          teamPlayerId?: string | null;
+          playerId?: string | null;
+          attendedTrainings?: number;
+          totalTrainings?: number;
+          absences?: Array<{ eventId: string }>;
+        };
+
+        const trainingSummaryById = new Map<string, TrainingSummaryPlayer>();
+        const seasonTrainingSummaryPlayers = (trainingSummary?.players ?? []) as TrainingSummaryPlayer[];
+        seasonTrainingSummaryPlayers.forEach((player) => {
+          const byTeamPlayerId = String(player.teamPlayerId ?? "").toLowerCase();
+          const byPlayerId = String(player.playerId ?? "").toLowerCase();
+          if (byTeamPlayerId) trainingSummaryById.set(byTeamPlayerId, player);
+          if (byPlayerId) trainingSummaryById.set(byPlayerId, player);
         });
 
-        const seasonTrainingConvocations = await Promise.all(
-          seasonTrainings.map(async (training) => {
-            try {
-              const convs = await convocationService.getConvocations(training.id);
-              const trainingDay = toIsoDay(training.start ?? training.startTime ?? training.eveDateTime ?? "");
-              return { eventId: training.id, convs, trainingDay };
-            } catch {
-              const trainingDay = toIsoDay(training.start ?? training.startTime ?? training.eveDateTime ?? "");
-              return { eventId: training.id, convs: [], trainingDay };
-            }
-          }),
-        );
-
-        const weekConvocations = seasonTrainingConvocations.filter((x) => weekTrainingIds.has(x.eventId));
-
-        for (const { convs, trainingDay } of seasonTrainingConvocations) {
-          if (!trainingDay || trainingDay > todayIso) continue;
-          const byPlayer = new Map(convs.map((c) => [c.player.id ?? "", c]));
-          convocation.players.forEach((p) => {
-            const stat = playerStats.get(p.id);
-            if (!stat) return;
-            const conv = byPlayer.get(p.id);
-            if (!conv) return;
-            if (conv.assistanceTypeId != null && attendIds.has(conv.assistanceTypeId)) {
-              stat.attendedTrainingsSeason += 1;
-            }
-          });
-        }
-
-        for (const { eventId, convs, trainingDay } of weekConvocations) {
-          const isPastTraining = !!trainingDay && trainingDay < todayIso;
-          const byPlayer = new Map(convs.map((c) => [c.player.id ?? "", c]));
-          convocation.players.forEach((p) => {
-            const stat = playerStats.get(p.id);
-            if (!stat) return;
-            const conv = byPlayer.get(p.id);
-            if (!conv) {
-              if (isPastTraining) {
-                // Entrenamiento pasado sin registro: contarlo como ausencia implícita
-                stat.unresolvedTrainings = Math.max(0, stat.unresolvedTrainings - 1);
-                stat.knownUnavailableTrainings += 1;
-                if ((p.alias ?? p.name ?? "").toLowerCase().includes("castaño")) {
-                  console.log(`[PROPUESTA] Castaño en entreno ${eventId}: sin registro (pasado) → knownUnavailable`);
-                }
-              } else {
-                // Entrenamiento futuro sin registro → sin resolver
-                if ((p.alias ?? p.name ?? "").toLowerCase().includes("castaño")) {
-                  console.log(`[PROPUESTA] Castaño en entreno ${eventId}: sin registro (futuro) → unresolved`);
-                }
-              }
-              return;
-            }
-            // El registro existe: ya no es "sin resolver"
-            stat.unresolvedTrainings = Math.max(0, stat.unresolvedTrainings - 1);
-            if (conv.assistanceTypeId != null) {
-              if (attendIds.has(conv.assistanceTypeId)) {
-                stat.attendedTrainings += 1;
-              } else {
-                // Cualquier tipo de ausencia marcada (justificada o no)
-                stat.knownUnavailableTrainings += 1;
-              }
-            } else if (conv.excuseTypeId != null) {
-              // Sin asistencia marcada pero con excusa conocida (ej. evento familiar futuro)
-              stat.knownUnavailableTrainings += 1;
-            }
-            // Si assistanceTypeId===null y excuseTypeId===null: registro sin datos, ya restamos unresolved
-            if ((p.alias ?? p.name ?? "").toLowerCase().includes("castaño")) {
-              console.log(`[PROPUESTA] Castaño en entreno ${eventId}: assistanceTypeId=${conv.assistanceTypeId}, excuseTypeId=${conv.excuseTypeId} → stats:`, { ...stat });
-            }
-          });
-        }
-
-        // Debug: print Castaño's final stats
+        const playerStats = new Map<string, WeeklyTrainingStats>();
         convocation.players.forEach((p) => {
-          if ((p.alias ?? p.name ?? "").toLowerCase().includes("castaño")) {
-            const st = playerStats.get(p.id);
-            console.log("[PROPUESTA] Stats finales Castaño (id=" + p.id + "):", st);
-          }
+          const summary =
+            trainingSummaryById.get(p.id.toLowerCase()) ??
+            (p.playerId ? trainingSummaryById.get(p.playerId.toLowerCase()) : undefined);
+
+          const weeklyAbsences =
+            summary?.absences?.filter((absence) => weekTrainingIds.has(absence.eventId)).length ?? 0;
+          const attendedTrainings = Math.max(0, weekTrainings.length - weeklyAbsences);
+          const attendedTrainingsSeason = summary?.attendedTrainings ?? 0;
+          const totalTrainingsSeason = summary?.totalTrainings ?? pastSeasonTrainingsCount;
+          const knownUnavailableTrainings = weeklyAbsences;
+          const unresolvedTrainings = Math.max(0, weekTrainings.length - attendedTrainings - knownUnavailableTrainings);
+
+          playerStats.set(p.id, {
+            totalTrainings: weekTrainings.length,
+            attendedTrainings,
+            attendedTrainingsSeason,
+            totalTrainingsSeason,
+            knownUnavailableTrainings,
+            unresolvedTrainings,
+          });
         });
 
         setWeekTrainingStatsMap(playerStats);
@@ -584,6 +681,8 @@ export default function ConvocationMatchDetail() {
     },
     [convocation],
   );
+
+  
 
   // Players for the Alineacion tab (accepted non-injured players only)
   const lineupPlayers = useMemo(() => {
@@ -827,6 +926,8 @@ export default function ConvocationMatchDetail() {
               </Button>
             )}
 
+            
+
           </>
         }
       >
@@ -878,6 +979,7 @@ export default function ConvocationMatchDetail() {
             proposal={proposal}
             proposalLoading={loadingProposalContext || grid.isLoading || convocation.loadingPlayers}
             onApplyProposal={handleApplyProposal}
+            onPrintProposal={handlePrintProposal}
           />
         )}
 
@@ -996,6 +1098,7 @@ export default function ConvocationMatchDetail() {
           match={match}
           calledIds={convocation.mgmtCalled}
           notCalledIds={convocation.mgmtNotCalled}
+          proposal={proposal}
           players={convocation.players}
           photos={convocation.mgmtPhotos}
           excuseMap={convocation.mgmtExcuseMap}

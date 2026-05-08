@@ -4,6 +4,7 @@ import type { PlayerRating } from "../../../types/playerRating";
 import type { MatchColumn } from "../components/convocationMatchDetail.types";
 import type { GridCell } from "../components/convocationMatchDetail.types";
 import type { SeasonPlayerStats } from "../components/simulation/liveMatch.types";
+import { runRules } from "./rules";
 
 type RivalResult = "win" | "draw" | "loss";
 
@@ -270,6 +271,10 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
     const group = getPositionGroup(playerById.get(pid)?.position);
     positionGroupCounts.set(group, (positionGroupCounts.get(group) ?? 0) + 1);
   }
+  const maxTechnicalTotal = Math.max(
+    0,
+    ...calledIds.map((pid) => technicalTotals.get(pid) ?? 0),
+  );
 
   const proposals = calledIds
     .map((playerId) => {
@@ -319,14 +324,10 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
       // Use the player's available matches as denominator for call/start rates.
       const seasonMatchCount = seasonColumns.length + 1;
       const availableMatches = Math.max(0, seasonMatchCount - nonTechnicalAbsences);
-      const callRate = clamp01(calledCount / Math.max(1, availableMatches));
-      const startRate = startsDataAvailable
-        ? clamp01(startsCount / Math.max(1, calledCount))
-        : 0;
       const competitivenessRate = clamp01(competitiveness / 10);
-      const necessity = startsDataAvailable
-        ? competitivenessRate * 0.75 + startRate * 0.1 + callRate * 0.05
-        : competitivenessRate * 0.8 + callRate * 0.2;
+      // Necesidad para el equipo: usar únicamente la competitividad.
+      // Prioriza el nivel competitivo por encima de titularidades/convocatorias.
+      const necessity = competitivenessRate;
 
       // Effective streak: discount rounds where the player was injured
       // (they couldn't have been technically deconvoked anyway)
@@ -337,148 +338,19 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
       );
       const minRequiredCalls = Math.min(availableMatches, 18, proportionalMin);
 
+      // Prepare week stats early so they can be used in the combined score
+      
+
       const factors: ProposalFactor[] = [];
       let score = 0;
       let forced = false;
 
-      const staleDelta = Math.min(28, effectiveStreak * 1.9);
-      score += staleDelta;
-      factors.push({
-        key: "streak",
-        label: injuryAbsencesInStreak > 0
-          ? `Jornadas sin desconvocatoria técnica (${injuryAbsencesInStreak} de lesión descontadas)`
-          : "Jornadas sin desconvocatoria técnica",
-        value: effectiveStreak,
-        impact: Number(staleDelta.toFixed(2)),
-      });
-
-      const historyDelta = Math.max(-18, -technicalTotal * 2.3);
-      score += historyDelta;
-      factors.push({
-        key: "technicalTotal",
-        label: "Desconvocatorias técnicas acumuladas",
-        value: technicalTotal,
-        impact: Number(historyDelta.toFixed(2)),
-      });
-
-      // Nivel ponderado (escala 1-10): siempre resta puntos al score.
-      // A mayor nivel, más resta (más protegido). Tabla por tramo:
-      //  <1      →  -3  |  [1,2) → -5  |  [2,3) → -8  |  [3,4) → -12
-      //  [4,5)  → -17  |  [5,6) → -23 |  [6,7) → -30 |  [7,8) → -32
-      //  [8,9)  → -34  |  [9,10) → -36 | >=10 → -40
-      const QUALITY_PENALTY = [-3, -5, -8, -12, -17, -23, -30, -32, -34, -36, -40] as const;
-      const qualityFloor = Math.min(10, Math.max(0, Math.floor(weightedRating)));
-      const qualityDelta = QUALITY_PENALTY[qualityFloor];
-      score += qualityDelta;
-      factors.push({
-        key: "rating",
-        label: "Nivel ponderado (Comp > Fis > Tac > Tec)",
-        value: Number(weightedRating.toFixed(2)),
-        impact: Number(qualityDelta.toFixed(2)),
-      });
-
-      const necessityDelta = -necessity * 28;
-      score += necessityDelta;
-      factors.push({
-        key: "necessity",
-        label: "Necesidad para el equipo (nivel competitivo + titularidades + convocatorias)",
-        value: Number((necessity * 100).toFixed(2)),
-        impact: Number(necessityDelta.toFixed(2)),
-      });
-
-      if (calledCount < minRequiredCalls) {
-        const deficit = minRequiredCalls - calledCount;
-        const minDelta = -Math.min(24, deficit * 4.5);
-        score += minDelta;
-        factors.push({
-          key: "minimum",
-          label: "Protección por mínimo de convocatorias",
-          value: deficit,
-          impact: Number(minDelta.toFixed(2)),
-        });
-      } else {
-        factors.push({
-          key: "minimum",
-          label: "Cumple mínimo proporcional de convocatorias",
-          value: calledCount,
-          impact: 0,
-        });
-      }
-
-      // Position coverage: penalise deconvoking a player when their position group
-      // would fall below the formation's starter count or comfortable minimum.
-      const posGroup = getPositionGroup(p.position);
-      if (posGroup !== "unknown") {
-        const calledInGroup = positionGroupCounts.get(posGroup) ?? 0;
-        const remainingIfDeconvoked = calledInGroup - 1;
-        const starters = FORMATION_STARTERS[posGroup];
-        const shortfall = starters - remainingIfDeconvoked; // >0 means team would be short
-        let positionDelta: number;
-        let positionLabel: string;
-        if (shortfall >= 2) {
-          positionDelta = -(shortfall * 20);
-          positionLabel = `Escasez crítica de ${posGroup}s (${remainingIfDeconvoked} quedarían, necesarios ${starters})`;
-        } else if (shortfall === 1) {
-          positionDelta = -20;
-          positionLabel = `Sin suplente en ${posGroup} (quedarían justo ${starters})`;          
-        } else if (shortfall === 0) {
-          positionDelta = -8;
-          positionLabel = `Solo 1 suplente en ${posGroup}`;
-        } else {
-          // surplus available: slight positive if very well covered
-          const surplus = -shortfall;
-          positionDelta = Math.min(6, surplus * 2);
-          positionLabel = `Cobertura holgada en ${posGroup} (${surplus} suplente${surplus !== 1 ? "s" : ""} extra)`;
-        }
-        score += positionDelta;
-        factors.push({
-          key: "positionCoverage",
-          label: positionLabel,
-          value: remainingIfDeconvoked,
-          impact: Number(positionDelta.toFixed(2)),
-        });
-      }
-
-      if (previousRivalResult) {
-        // Base magnitude depends on result type:
-        // loss = higher stakes, draw = medium, win = can afford to rotate more
-        const resultFactor =
-          previousRivalResult.result === "loss"
-            ? 22
-            : previousRivalResult.result === "draw"
-              ? 14
-              : 8;
-        // When the margin was large (≥7), the coach can rest key players →
-        // more necessary players accumulate more deconvoke points.
-        // When the margin was tight (<7), the coach keeps the stars →
-        // less necessary players accumulate more points.
-        const isAbultado = previousRivalResult.goalDiff >= 7;
-        const rivalDelta = isAbultado
-          ? resultFactor * necessity          // big margin: rest key players
-          : resultFactor * (1 - necessity);   // tight: rest fringe players
-        score += rivalDelta;
-        const abultadoLabel = isAbultado
-          ? `Resultado abultado (≥7 goles) — se pueden descansar titulares`
-          : `Resultado ajustado (<7 goles) — se protege a los más necesarios`;
-        factors.push({
-          key: "rivalResult",
-          label: `${abultadoLabel} vs ${previousRivalResult.rival} (${previousRivalResult.scoreText})`,
-          value: Number((necessity * 100).toFixed(0)),
-          impact: Number(rivalDelta.toFixed(2)),
-        });
-      }
-
-      if (p.isInjured) {
-        forced = true;
-        score += 120;
-        factors.push({
-          key: "injured",
-          label: "Lesionado: desconvocatoria automática",
-          value: 1,
-          impact: 120,
-        });
-      }
-
+      // Execute modular rules (streak, technical-total, combined, minimum,
+      // position coverage, rival result, injured, weekly training, recent recovery)
+      // Build a compact per-player context and delegate calculations to the
+      // rule runner. Each rule returns factors and a delta (and an optional
+      // forced flag). This keeps the main flow concise and makes rules
+      // independently testable.
       const weekStats =
         weekTrainingStats.get(playerId) ??
         {
@@ -490,76 +362,47 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
           unresolvedTrainings: weekTrainingCount,
         };
 
-      if (weekTrainingCount > 0) {
-        const noWeeklyAttendance = weekStats.attendedTrainings === 0;
-        const hasKnownUnavailable = weekStats.knownUnavailableTrainings > 0;
-        const allWeeklyTrainingsResolved = weekStats.unresolvedTrainings === 0;
-        const resolvedWeeklyTrainings = Math.max(
-          0,
-          weekStats.totalTrainings - weekStats.knownUnavailableTrainings - weekStats.unresolvedTrainings,
-        );
-        const weeklyAttendanceRate = resolvedWeeklyTrainings > 0
-          ? clamp01(weekStats.attendedTrainings / resolvedWeeklyTrainings)
-          : 0;
+      const ruleCtx = {
+        input,
+        playerId,
+        player: p,
+        displayName,
+        weightedRating,
+        competitiveness,
+        physical,
+        tactical,
+        technical,
+        necessity,
+        weekStats,
+        seasonPlayerStats: calledStats ?? null,
+        effectiveStreak,
+        technicalTotal,
+        injuryAbsencesInStreak,
+        calledCount,
+        startsCount,
+        startsDataAvailable,
+        minRequiredCalls,
+        calledIds,
+        positionGroupCounts,
+        playerById,
+        ratings,
+        previousRivalResult,
+        seasonColumns,
+        enrichedGrid,
+        lastInjuryEndMap,
+        currentIso,
+        weekTrainingCount,
+        maxTechnicalTotal,
+      } as const;
 
-        if (noWeeklyAttendance && (hasKnownUnavailable || allWeeklyTrainingsResolved)) {
-          forced = true;
-          score += 110;
-          factors.push({
-            key: "weeklyTraining",
-            label: "Semana de partido sin asistir a entrenamientos",
-            value: weekStats.attendedTrainings,
-            impact: 110,
-          });
-        } else {
-          const weeklyAttendanceDelta = -weeklyAttendanceRate * 12;
-          score += weeklyAttendanceDelta;
-          factors.push({
-            key: "weeklyTraining",
-            label: "Asistencia semanal a entrenamientos",
-            value: Number((weeklyAttendanceRate * 100).toFixed(2)),
-            impact: Number(weeklyAttendanceDelta.toFixed(2)),
-          });
-
-          const attendedTrainingsSeason = Number.isFinite(weekStats.attendedTrainingsSeason)
-            ? weekStats.attendedTrainingsSeason
-            : 0;
-          const totalTrainingsSeason = Number.isFinite(weekStats.totalTrainingsSeason)
-            ? Math.max(0, weekStats.totalTrainingsSeason)
-            : 0;
-          // Weighted by season attended-trainings count (main driver) plus
-          // season coverage (secondary), and snapped to integer points so
-          // nearby players don't collapse to the same displayed score.
-          const seasonCoverage = totalTrainingsSeason > 0
-            ? clamp01(attendedTrainingsSeason / totalTrainingsSeason)
-            : 0;
-          const byVolume = attendedTrainingsSeason * 0.55;
-          const byCoverage = seasonCoverage * 8;
-          const trainingAccumDelta = -Math.min(50, Math.floor(byVolume + byCoverage));
-          score += trainingAccumDelta;
-          factors.push({
-            key: "weeklyTrainingAccum",
-            label: "Acumulado de entrenamientos asistidos (temporada)",
-            value: attendedTrainingsSeason,
-            impact: Number(trainingAccumDelta.toFixed(2)),
-          });
-        }
+      const ruleResults = runRules(ruleCtx as any);
+      for (const rr of ruleResults) {
+        if (rr.forced) forced = true;
+        score += rr.delta;
+        for (const f of rr.factors) factors.push(f);
       }
 
-      const lastInjuryEnd = lastInjuryEndMap.get(playerId) ?? null;
-      if (!p.isInjured && currentIso && lastInjuryEnd) {
-        const days = diffDays(lastInjuryEnd.slice(0, 10), currentIso);
-        if (days >= 0 && days <= 7) {
-          forced = true;
-          score += 100;
-          factors.push({
-            key: "recentRecovery",
-            label: "Solo una semana desde el alta de lesión",
-            value: days,
-            impact: 100,
-          });
-        }
-      }
+      
 
       const summary = forced
         ? "Regla obligatoria de disponibilidad física aplicada"
@@ -583,13 +426,19 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
     })
     .filter((item): item is PlayerProposal => item !== null)
     .sort((a, b) => {
+      // Forced rules always go first (to be selected as desconvocados)
       if (a.forced !== b.forced) return a.forced ? -1 : 1;
-      return b.score - a.score;
+      // Ahora la puntuación es de 'protección': los más bajos son candidatos a desconvocar
+      return a.score - b.score;
     });
 
   const forcedCount = proposals.filter((p) => p.forced).length;
   const targetCount = Math.max(forcedCount, calledIds.length - maxCalledPlayers, 0);
-  let selectedIds = proposals.slice(0, targetCount).map((p) => p.playerId);
+
+  // Protección por jornadas eliminada: todos los jugadores son elegibles.
+  const candidateProposals = proposals;
+
+  let selectedIds = candidateProposals.slice(0, targetCount).map((p) => p.playerId);
 
   // Ensure at least one goalkeeper remains convoked after deconvocations.
   function isGoalkeeper(proposal: PlayerProposal): boolean {
@@ -625,4 +474,36 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
     previousRivalResult,
     players: playersWithSelection,
   };
+}
+
+// Helper to format factor values for display in the UI
+export function formatProposalFactorValue(factor: ProposalFactor): string {
+  const n = Number(factor.value ?? 0);
+  const nf0 = (v: number) => new Intl.NumberFormat("es-ES", { maximumFractionDigits: 0 }).format(v);
+  const nf1 = (v: number) => new Intl.NumberFormat("es-ES", { maximumFractionDigits: 1 }).format(v);
+  const nf2 = (v: number) => new Intl.NumberFormat("es-ES", { maximumFractionDigits: 2 }).format(v);
+  const label = (factor.label ?? "").toLowerCase();
+  switch (factor.key) {
+    case "necessity":
+      return `Nivel ${nf1(n)}`;
+    case "rivalResult":
+      return `${nf0(n)}%`;
+    case "rating":
+      return nf2(n);
+    case "streak":
+      return `${Math.round(n)} jornadas`;
+    case "technicalTotal":
+    case "minimum":
+    case "positionCoverage":
+      return nf0(n);
+    case "weeklyTraining":
+      if (label.includes("asistencia semanal") || label.includes("asistencia semanal a entrenamientos")) return `${nf0(n)}%`;
+      return `${nf0(n)} entrenos`;
+    case "weeklyTrainingAccum":
+      return new Intl.NumberFormat("es-ES").format(Math.round(n));
+    case "recentRecovery":
+      return `${nf0(n)} días`;
+    default:
+      return Number.isInteger(n) ? new Intl.NumberFormat("es-ES").format(n) : nf2(n);
+  }
 }

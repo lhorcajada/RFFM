@@ -105,7 +105,7 @@ export function useExerciseForm({
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const handleCancel = () => navigate(returnTo);
+  const handleCancel = () => navigate(returnTo, { replace: true });
 
   const handleSave = async () => {
     if (!clubId) {
@@ -129,7 +129,7 @@ export function useExerciseForm({
       }
 
       setSavedExerciseId(exerciseId);
-      navigate(returnTo);
+      navigate(returnTo, { replace: true });
     } catch {
       setError("Error al guardar el ejercicio.");
     } finally {

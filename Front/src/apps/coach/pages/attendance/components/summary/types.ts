@@ -28,3 +28,29 @@ export type PlayerTrainingSummary = {
   pendingTrainings: number;
   absences: PlayerAbsenceDetail[];
 };
+
+export type MatchAttendanceCellState = "starter" | "called" | "notCalled" | "absent";
+
+export type MatchAttendanceCell = {
+  eventId: string;
+  state: MatchAttendanceCellState;
+  wasCalled: boolean;
+  wasStarter: boolean;
+};
+
+export type MatchAttendanceColumn = {
+  eventId: string;
+  label: string;
+  date: string | null;
+  rival: string | null;
+};
+
+export type PlayerMatchSummary = {
+  playerId: string;
+  playerName: string;
+  totalMatches: number;
+  calledMatches: number;
+  startedMatches: number;
+  notCalledMatches: number;
+  cells: MatchAttendanceCell[];
+};

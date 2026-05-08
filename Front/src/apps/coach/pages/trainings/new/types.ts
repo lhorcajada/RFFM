@@ -11,6 +11,10 @@ export interface NavState {
 export interface ChapaPosition {
   x: number;
   y: number;
+  scaleX?: number;
+  scaleY?: number;
+  rotation?: number;
+  locked?: boolean;
 }
 
 export interface PetoOption {
@@ -40,6 +44,9 @@ export interface PlacedMaterial {
   x: number;
   y: number;
   rotation: number;
+  scaleX?: number;
+  scaleY?: number;
+  locked?: boolean;
 }
 
 export type SpaceKind =

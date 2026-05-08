@@ -7,8 +7,9 @@ import {
   Select,
 } from "@mui/material";
 import { useState } from "react";
-import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
+import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import EmptyState from "../../../../../shared/components/ui/EmptyState/EmptyState";
 import type { ExcuseType } from "../../../services/excuseTypeService";
 import type { PlayerResponse } from "../../../services/teamplayerService";
@@ -16,6 +17,7 @@ import type { PlayerRating } from "../../../types/playerRating";
 import PlayerCromo from "../../squad/components/PlayerCromo";
 import type { DropZone } from "./convocationMatchDetail.types";
 import type { DeconvokeProposal } from "../utils/deconvokeProposal";
+import { formatProposalFactorValue } from "../utils/deconvokeProposal";
 import styles from "./ConvocationTab.module.css";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -84,6 +86,7 @@ type Props = {
   proposal: DeconvokeProposal;
   proposalLoading: boolean;
   onApplyProposal: (ids: string[]) => Promise<void>;
+  onPrintProposal: () => Promise<void>;
 };
 
 const GROUPS = [
@@ -131,6 +134,7 @@ export default function ConvocationTab({
   proposal,
   proposalLoading,
   onApplyProposal,
+  onPrintProposal,
 }: Props) {
   const [showProposal, setShowProposal] = useState(false);
   const [applyingProposal, setApplyingProposal] = useState(false);
@@ -197,18 +201,75 @@ export default function ConvocationTab({
 
         {/* ── Factores ── */}
         <div className={styles.factorList}>
-          {item.factors.map((factor) => (
-            <div
-              key={`${item.playerId}-${factor.key}`}
-              className={`${styles.factorItem} ${factor.impact > 0 ? styles.factorItemPositive : factor.impact < 0 ? styles.factorItemNegative : styles.factorItemNeutral}`}
-            >
-              <span className={styles.factorLabel}>{factor.label}</span>
-              <span className={styles.factorValue}>{factor.value}</span>
-              <span className={`${styles.factorImpact} ${factor.impact > 0 ? styles.factorPositive : factor.impact < 0 ? styles.factorNegative : styles.factorNeutral}`}>
-                {factor.impact > 0 ? "+" : ""}{factor.impact.toFixed(0)}
-              </span>
-            </div>
-          ))}
+          {
+            // Group factors by parent key (prefix before first '.') so sub-factors
+            // like 'positionCoverage.baseCoverageBonus' are rendered under the
+            // main 'positionCoverage' factor.
+          }
+          {(() => {
+            const groups = new Map<string, { main: any | null; children: any[] }>();
+            const order: string[] = [];
+            for (const factor of item.factors) {
+              const key: string = factor.key;
+              const parent = key.includes(".") ? key.split(".")[0] : key;
+              if (!groups.has(parent)) {
+                groups.set(parent, { main: null, children: [] });
+                order.push(parent);
+              }
+              if (key === parent) groups.get(parent)!.main = factor;
+              else groups.get(parent)!.children.push(factor);
+            }
+
+            return order.map((parent) => {
+              const g = groups.get(parent)!;
+              const main = g.main;
+              return (
+                <div key={`${item.playerId}-group-${parent}`}>
+                  {main ? (
+                    <div
+                      key={`${item.playerId}-${main.key}`}
+                      className={`${styles.factorItem} ${main.impact > 0 ? styles.factorItemPositive : main.impact < 0 ? styles.factorItemNegative : styles.factorItemNeutral}`}
+                    >
+                      <span className={styles.factorLabel}>{main.label}</span>
+                      <div className={styles.factorMeta}>
+                        <span className={styles.factorValueLabel}>Valor:</span>
+                        <span className={styles.factorValue} title={`Valor bruto: ${main.value}`}>{formatProposalFactorValue(main)}</span>
+                      </div>
+                      <span
+                        className={`${styles.factorImpact} ${main.impact > 0 ? styles.factorPositive : main.impact < 0 ? styles.factorNegative : styles.factorNeutral}`}
+                        title={`Impacto: ${main.impact.toFixed(0)} pts`}
+                      >
+                        {main.impact > 0 ? "+" : ""}{main.impact.toFixed(0)} pts
+                      </span>
+                    </div>
+                  ) : null}
+
+                  {g.children.length > 0 && (
+                    <div>
+                      {g.children.map((child) => (
+                        <div
+                          key={`${item.playerId}-${child.key}`}
+                          className={`${styles.factorItem} ${styles.factorSubItem} ${child.impact > 0 ? styles.factorItemPositive : child.impact < 0 ? styles.factorItemNegative : styles.factorItemNeutral}`}
+                        >
+                          <span className={styles.factorLabel}>{child.label}</span>
+                          <div className={styles.factorMeta}>
+                            <span className={styles.factorValueLabel}>Valor:</span>
+                            <span className={styles.factorValue} title={`Valor bruto: ${child.value}`}>{formatProposalFactorValue(child)}</span>
+                          </div>
+                          <span
+                            className={`${styles.factorImpact} ${child.impact > 0 ? styles.factorPositive : child.impact < 0 ? styles.factorNegative : styles.factorNeutral}`}
+                            title={`Impacto: ${child.impact.toFixed(0)} pts`}
+                          >
+                            {child.impact > 0 ? "+" : ""}{child.impact.toFixed(0)} pts
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            });
+          })()}
         </div>
       </article>
     );
@@ -254,14 +315,40 @@ export default function ConvocationTab({
                 </p>
               )}
             </div>
-            <Button
-              variant="text"
-              size="small"
-              startIcon={<ArrowBackIcon />}
-              onClick={() => setShowProposal(false)}
-            >
-              Volver
-            </Button>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <Button
+                variant="text"
+                size="small"
+                startIcon={<ArrowBackIcon />}
+                onClick={() => setShowProposal(false)}
+              >
+                Volver
+              </Button>
+              <Button
+                variant="contained"
+                size="small"
+                startIcon={
+                  applyingProposal ? (
+                    <CircularProgress size={14} color="inherit" />
+                  ) : (
+                    <AutoFixHighIcon />
+                  )
+                }
+                disabled={applyingProposal || selectedProposalPlayers.length === 0}
+                onClick={handleApplyProposalClick}
+              >
+                Aplicar propuesta
+              </Button>
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<PictureAsPdfIcon />}
+                disabled={proposalLoading || proposal.players.length === 0}
+                onClick={onPrintProposal}
+              >
+                Imprimir propuesta
+              </Button>
+            </div>
           </div>
 
           {proposalLoading ? (
@@ -292,19 +379,7 @@ export default function ConvocationTab({
                 </>
               )}
 
-              {selectedProposalPlayers.length > 0 && (
-                <div className={styles.proposalActions}>
-                  <Button
-                    variant="contained"
-                    size="small"
-                    disabled={applyingProposal}
-                    onClick={handleApplyProposalClick}
-                    startIcon={applyingProposal ? <CircularProgress size={14} color="inherit" /> : <AutoFixHighIcon />}
-                  >
-                    Aplicar propuesta
-                  </Button>
-                </div>
-              )}
+              {/* Acción de propuesta: ahora movida al actionBar superior */}
             </>
           )}
         </div>

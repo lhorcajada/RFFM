@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type React from "react";
 import teamplayerService, { type PlayerResponse } from "../../../../services/teamplayerService";
 import { FIELD_WIDTH_METERS, HALF_FIELD_LENGTH_METERS } from "../constants";
-import { getMaterialSizePercent, isMaterialKind } from "../helpers/materialHelpers";
+import { getMaterialSizePercent, isMaterialKind, getChapaSizePercent } from "../helpers/materialHelpers";
 import {
   clamp,
   formatMeters,
@@ -80,6 +80,8 @@ export function useTacticalBoard(
     y: number,
     touchlineBand = 8,
     goalBackBand = 10,
+    scaleX = 1,
+    scaleY = 1,
   ) => {
     const playableLeft = 0;
     const playableRight = 100 - goalBackBand;
@@ -87,8 +89,31 @@ export function useTacticalBoard(
     const playableBottom = 100 - touchlineBand;
 
     const size = getMaterialSizePercent(kind);
-    const halfWidth = size.width / 2;
-    const halfHeight = size.height / 2;
+    const halfWidth = (size.width * scaleX) / 2;
+    const halfHeight = (size.height * scaleY) / 2;
+
+    return {
+      x: clamp(x, playableLeft + halfWidth, playableRight - halfWidth),
+      y: clamp(y, playableTop + halfHeight, playableBottom - halfHeight),
+    };
+  };
+
+  const clampChapaToPlayableArea = (
+    x: number,
+    y: number,
+    touchlineBand = 8,
+    goalBackBand = 10,
+    scaleX = 1,
+    scaleY = 1,
+  ) => {
+    const playableLeft = 0;
+    const playableRight = 100 - goalBackBand;
+    const playableTop = touchlineBand;
+    const playableBottom = 100 - touchlineBand;
+
+    const size = getChapaSizePercent();
+    const halfWidth = (size.width * scaleX) / 2;
+    const halfHeight = (size.height * scaleY) / 2;
 
     return {
       x: clamp(x, playableLeft + halfWidth, playableRight - halfWidth),
@@ -124,7 +149,6 @@ export function useTacticalBoard(
 
     const centerX = (playableLeft + playableRight) / 2;
     const centerY = (playableTop + playableBottom) / 2;
-
     const snapThreshold = 1.2;
     const snappedX = snapToRangeEdges(x, minX, maxX, snapThreshold);
     const snappedY = snapToRangeEdges(y, minY, maxY, snapThreshold);
@@ -135,43 +159,25 @@ export function useTacticalBoard(
     };
   };
 
-  // ─── Toggle handlers ─────────────────────────────────────────────────────
-
-  const handleToggleChapas = async () => {
-    const nextOpen = !showChapas;
-    setShowChapas(nextOpen);
-    if (nextOpen) {
-      setShowSpaces(false);
-      setShowMaterials(false);
-      setShowLines(false);
-      setActiveLineKind(null);
-      setDrawingState(null);
-    }
-    if (!nextOpen || players.length > 0) return;
-
-    if (!teamId) {
-      setChapasError("No hay equipo seleccionado para mostrar jugadores.");
-      return;
-    }
-
-    setLoadingPlayers(true);
-    setChapasError(null);
-    try {
-      const teamPlayers = await teamplayerService.getPlayersByTeam(teamId);
-      setPlayers(teamPlayers);
-    } catch {
-      setChapasError("No se pudieron cargar los jugadores.");
-      setPlayers([]);
-    } finally {
-      setLoadingPlayers(false);
-    }
-  };
-
   const handleToggleSpaces = () => {
     setShowSpaces((prev) => {
       const next = !prev;
       if (next) {
         setShowChapas(false);
+        setShowMaterials(false);
+        setShowLines(false);
+        setActiveLineKind(null);
+        setDrawingState(null);
+      }
+      return next;
+    });
+  };
+
+  const handleToggleChapas = () => {
+    setShowChapas((prev) => {
+      const next = !prev;
+      if (next) {
+        setShowSpaces(false);
         setShowMaterials(false);
         setShowLines(false);
         setActiveLineKind(null);
@@ -609,7 +615,10 @@ export function useTacticalBoard(
         ? crypto.randomUUID()
         : `material-${Date.now()}-${Math.random()}`;
 
-    setPlacedMaterials((prev) => [...prev, { id, kind, x: clamped.x, y: clamped.y, rotation: 0 }]);
+    setPlacedMaterials((prev) => [
+      ...prev,
+      { id, kind, x: clamped.x, y: clamped.y, rotation: 0, scaleX: 1, scaleY: 1, locked: false },
+    ]);
   };
 
   const movePlacedMaterial = (materialId: string, clientX: number, clientY: number) => {
@@ -646,6 +655,52 @@ export function useTacticalBoard(
     setPlacedMaterials((prev) => prev.filter((m) => m.id !== materialId));
   };
 
+  const duplicatePlacedMaterial = (materialId: string) => {
+    const source = placedMaterials.find((m) => m.id === materialId);
+    if (!source) return;
+    const { touchlineBand, goalBackBand } = getFieldBands();
+    const clampedX = clampMaterialToPlayableArea(
+      source.kind,
+      source.x + 2,
+      source.y + 2,
+      touchlineBand,
+      goalBackBand,
+    );
+    const duplicatedId =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `material-${Date.now()}-${Math.random()}`;
+    setPlacedMaterials((prev) => [...prev, { ...source, id: duplicatedId, x: clampedX.x, y: clampedX.y }]);
+  };
+
+  const toggleLockPlacedMaterial = (materialId: string) => {
+    setPlacedMaterials((prev) => prev.map((m) => (m.id === materialId ? { ...m, locked: !m.locked } : m)));
+  };
+
+  const handleManualResizeMaterial = (materialId: string) => {
+    const material = placedMaterials.find((m) => m.id === materialId);
+    if (!material || material.locked) return;
+    const input = window.prompt("Escala (por ejemplo 1 = 100%, 1.5 = 150%)", String(material.scaleX ?? 1));
+    if (input === null) return;
+    const v = Number(input.replace(",", "."));
+    if (!Number.isFinite(v) || v <= 0) return;
+    const next = Math.max(0.3, Math.min(4, v));
+    setPlacedMaterials((prev) => prev.map((m) => (m.id === materialId ? { ...m, scaleX: next, scaleY: next } : m)));
+  };
+
+  const scalePlacedMaterial = (materialId: string, factor: number) => {
+    setPlacedMaterials((prev) =>
+      prev.map((m) => {
+        if (m.id !== materialId) return m;
+        const curX = m.scaleX ?? 1;
+        const curY = m.scaleY ?? 1;
+        const nextX = Math.max(0.3, Math.min(4, curX * factor));
+        const nextY = Math.max(0.3, Math.min(4, curY * factor));
+        return { ...m, scaleX: nextX, scaleY: nextY };
+      }),
+    );
+  };
+
   // ─── Chapa operations ─────────────────────────────────────────────────────
 
   const placeChapaAtClientPoint = (playerId: string, clientX: number, clientY: number) => {
@@ -663,7 +718,10 @@ export function useTacticalBoard(
     const x = clamp(rawX, 0, 100 - goalBackBand);
     const y = clamp(rawY, touchlineBand, 100 - touchlineBand);
 
-    setPlacedChapas((prev) => ({ ...prev, [playerId]: { x, y } }));
+    setPlacedChapas((prev) => ({
+      ...prev,
+      [playerId]: { x, y, scaleX: 1, scaleY: 1, rotation: 0, locked: false },
+    }));
   };
 
   const handleChapaDragStart = (e: React.DragEvent<HTMLElement>, playerId: string) => {
@@ -691,6 +749,14 @@ export function useTacticalBoard(
     }
   };
 
+  const removePlacedChapa = (playerId: string) => {
+    setPlacedChapas((prev) => {
+      const next = { ...prev };
+      delete next[playerId];
+      return next;
+    });
+  };
+
   const handleToggleChapaMenu = (e: React.MouseEvent<HTMLElement>, playerId: string) => {
     e.stopPropagation();
     setActiveChapaMenuId((prev) => (prev === playerId ? null : playerId));
@@ -714,6 +780,46 @@ export function useTacticalBoard(
       return next;
     });
     setActiveChapaMenuId(null);
+  };
+
+  const duplicatePlacedChapa = (playerId: string) => {
+    const source = placedChapas[playerId];
+    if (!source) return;
+    const { touchlineBand, goalBackBand } = getFieldBands();
+    const clamped = clampChapaToPlayableArea(source.x + 2, source.y + 2, touchlineBand, goalBackBand, source.scaleX ?? 1, source.scaleY ?? 1);
+    const duplicatedId = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `chapa-${Date.now()}-${Math.random()}`;
+    setPlacedChapas((prev) => ({ ...prev, [duplicatedId]: { ...source, x: clamped.x, y: clamped.y } }));
+  };
+
+  const toggleLockPlacedChapa = (playerId: string) => {
+    setPlacedChapas((prev) => {
+      const next = { ...prev };
+      if (next[playerId]) next[playerId] = { ...next[playerId], locked: !next[playerId].locked };
+      return next;
+    });
+  };
+
+  const rotatePlacedChapa = (playerId: string) => {
+    setPlacedChapas((prev) => {
+      const next = { ...prev };
+      if (next[playerId]) next[playerId] = { ...next[playerId], rotation: ((next[playerId].rotation ?? 0) + 15) % 360 };
+      return next;
+    });
+  };
+
+  const handleManualResizeChapa = (playerId: string) => {
+    const chapa = placedChapas[playerId];
+    if (!chapa || chapa.locked) return;
+    const input = window.prompt("Escala (por ejemplo 1 = 100%, 1.5 = 150%)", String(chapa.scaleX ?? 1));
+    if (input === null) return;
+    const v = Number(input.replace(",", "."));
+    if (!Number.isFinite(v) || v <= 0) return;
+    const next = Math.max(0.3, Math.min(4, v));
+    setPlacedChapas((prev) => {
+      const nextMap = { ...prev };
+      if (nextMap[playerId]) nextMap[playerId] = { ...nextMap[playerId], scaleX: next, scaleY: next };
+      return nextMap;
+    });
   };
 
   // ─── Space drag handlers ──────────────────────────────────────────────────
@@ -764,6 +870,236 @@ export function useTacticalBoard(
     e.dataTransfer.effectAllowed = "move";
     setDraggingMaterialId(materialId);
   };
+
+  const [materialResizeSession, setMaterialResizeSession] = useState<
+    | {
+        materialId: string;
+        handle: ResizeHandle;
+        startClientX: number;
+        startClientY: number;
+        startScaleX: number;
+        startScaleY: number;
+        startX: number;
+        startY: number;
+      }
+    | null
+  >(null);
+
+  const handleMaterialResizeStart = (
+    e: React.MouseEvent<HTMLButtonElement> | React.MouseEvent<HTMLElement>,
+    material: PlacedMaterial,
+    handle: ResizeHandle,
+  ) => {
+    if (material.locked) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setMaterialResizeSession({
+      materialId: material.id,
+      handle,
+      startClientX: (e as React.MouseEvent).clientX,
+      startClientY: (e as React.MouseEvent).clientY,
+      startScaleX: material.scaleX ?? 1,
+      startScaleY: material.scaleY ?? 1,
+      startX: material.x,
+      startY: material.y,
+    });
+  };
+
+  useEffect(() => {
+    if (!materialResizeSession) return;
+
+    const handleMouseMove = (ev: MouseEvent) => {
+      const pitch = halfPitchRef.current;
+      if (!pitch) return;
+      const rect = pitch.getBoundingClientRect();
+      const dxPx = ev.clientX - materialResizeSession.startClientX;
+      const dyPx = ev.clientY - materialResizeSession.startClientY;
+      const dxPercent = (dxPx / rect.width) * 100;
+      const dyPercent = (dyPx / rect.height) * 100;
+
+      setPlacedMaterials((prev) =>
+        prev.map((m) => {
+          if (m.id !== materialResizeSession.materialId) return m;
+          const base = getMaterialSizePercent(m.kind);
+          const startWidth = base.width * materialResizeSession.startScaleX;
+          const startHeight = base.height * materialResizeSession.startScaleY;
+
+          let nextWidth = startWidth;
+          let nextHeight = startHeight;
+
+          const isCorner = materialResizeSession.handle.length === 2;
+          const signX = materialResizeSession.handle.includes("e") ? 1 : materialResizeSession.handle.includes("w") ? -1 : 0;
+          const signY = materialResizeSession.handle.includes("s") ? 1 : materialResizeSession.handle.includes("n") ? -1 : 0;
+
+          if (isCorner) {
+            // scale proportionally using the dominant delta
+            const delta = Math.abs(dxPercent) > Math.abs(dyPercent) ? dxPercent * signX : dyPercent * signY;
+            nextWidth = startWidth + delta;
+            nextHeight = startHeight + delta;
+          } else {
+            if (signX !== 0) nextWidth = startWidth + signX * dxPercent;
+            if (signY !== 0) nextHeight = startHeight + signY * dyPercent;
+          }
+
+          const minSize = 0.5; // percent-based min width/height
+          const minScaleX = (minSize) / Math.max(0.01, base.width);
+          const minScaleY = (minSize) / Math.max(0.01, base.height);
+
+          const nextScaleX = Math.max(0.3, Math.min(4, nextWidth / base.width));
+          const nextScaleY = Math.max(0.3, Math.min(4, nextHeight / base.height));
+
+          // adjust center position to account for size change
+          const widthDelta = (nextScaleX - materialResizeSession.startScaleX) * base.width;
+          const heightDelta = (nextScaleY - materialResizeSession.startScaleY) * base.height;
+
+          const shiftX = (widthDelta / 2) * (signX === 0 ? 0 : signX);
+          const shiftY = (heightDelta / 2) * (signY === 0 ? 0 : signY);
+
+          return {
+            ...m,
+            scaleX: nextScaleX,
+            scaleY: nextScaleY,
+            x: materialResizeSession.startX + shiftX,
+            y: materialResizeSession.startY + shiftY,
+          };
+        }),
+      );
+    };
+
+    const handleMouseUp = () => setMaterialResizeSession(null);
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [materialResizeSession]);
+
+  const [chapaResizeSession, setChapaResizeSession] = useState<
+    | {
+        playerId: string;
+        handle: ResizeHandle;
+        startClientX: number;
+        startClientY: number;
+        startScaleX: number;
+        startScaleY: number;
+        startX: number;
+        startY: number;
+        rotationDeg: number;
+      }
+    | null
+  >(null);
+
+  const handleChapaResizeStart = (
+    e: React.MouseEvent<HTMLButtonElement> | React.MouseEvent<HTMLElement>,
+    playerId: string,
+    handle: ResizeHandle,
+  ) => {
+    const chapa = placedChapas[playerId];
+    if (!chapa || chapa.locked) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setChapaResizeSession({
+      playerId,
+      handle,
+      startClientX: (e as React.MouseEvent).clientX,
+      startClientY: (e as React.MouseEvent).clientY,
+      startScaleX: chapa.scaleX ?? 1,
+      startScaleY: chapa.scaleY ?? 1,
+      startX: chapa.x,
+      startY: chapa.y,
+      rotationDeg: chapa.rotation ?? 0,
+    });
+  };
+
+  useEffect(() => {
+    if (!chapaResizeSession) return;
+
+    const handleMouseMove = (ev: MouseEvent) => {
+      const pitch = halfPitchRef.current;
+      if (!pitch) return;
+      const rect = pitch.getBoundingClientRect();
+      const dxPx = ev.clientX - chapaResizeSession.startClientX;
+      const dyPx = ev.clientY - chapaResizeSession.startClientY;
+      const dxPercent = (dxPx / rect.width) * 100;
+      const dyPercent = (dyPx / rect.height) * 100;
+
+      setPlacedChapas((prev) => {
+        const next = { ...prev };
+        const chapa = next[chapaResizeSession.playerId];
+        if (!chapa) return prev;
+
+        const base = getChapaSizePercent();
+        const startWidth = base.width * chapaResizeSession.startScaleX;
+        const startHeight = base.height * chapaResizeSession.startScaleY;
+
+        let nextWidth = startWidth;
+        let nextHeight = startHeight;
+
+        const isCorner = chapaResizeSession.handle.length === 2;
+        const signX = chapaResizeSession.handle.includes("e") ? 1 : chapaResizeSession.handle.includes("w") ? -1 : 0;
+        const signY = chapaResizeSession.handle.includes("s") ? 1 : chapaResizeSession.handle.includes("n") ? -1 : 0;
+
+        const angle = (chapaResizeSession.rotationDeg * Math.PI) / 180;
+        const cos = Math.cos(angle);
+        const sin = Math.sin(angle);
+
+        const localDx = dxPercent * cos + dyPercent * sin;
+        const localDy = -dxPercent * sin + dyPercent * cos;
+
+        if (isCorner) {
+          const deltaW = signX * localDx;
+          const deltaH = signY * localDy;
+          const ratioW = (startWidth + deltaW) / Math.max(0.0001, startWidth);
+          const ratioH = (startHeight + deltaH) / Math.max(0.0001, startHeight);
+          const scaleFactor = Math.max(0.05, Math.min(ratioW, ratioH));
+          nextWidth = startWidth * scaleFactor;
+          nextHeight = startHeight * scaleFactor;
+        } else {
+          if (signX !== 0) nextWidth = startWidth + signX * localDx;
+          if (signY !== 0) nextHeight = startHeight + signY * localDy;
+        }
+
+        const nextScaleX = Math.max(0.3, Math.min(4, nextWidth / base.width));
+        const nextScaleY = Math.max(0.3, Math.min(4, nextHeight / base.height));
+
+        const widthDelta = (nextScaleX - chapaResizeSession.startScaleX) * base.width;
+        const heightDelta = (nextScaleY - chapaResizeSession.startScaleY) * base.height;
+
+        const localShiftX = signX === 0 ? 0 : (widthDelta / 2) * signX;
+        const localShiftY = signY === 0 ? 0 : (heightDelta / 2) * signY;
+
+        const shiftX = localShiftX * cos - localShiftY * sin;
+        const shiftY = localShiftX * sin + localShiftY * cos;
+
+        const movedX = chapaResizeSession.startX + shiftX;
+        const movedY = chapaResizeSession.startY + shiftY;
+
+        const { touchlineBand, goalBackBand } = getFieldBands();
+        const clamped = clampChapaToPlayableArea(movedX, movedY, touchlineBand, goalBackBand, nextScaleX, nextScaleY);
+
+        next[chapaResizeSession.playerId] = {
+          ...chapa,
+          scaleX: nextScaleX,
+          scaleY: nextScaleY,
+          x: clamped.x,
+          y: clamped.y,
+        };
+
+        return next;
+      });
+    };
+
+    const handleMouseUp = () => setChapaResizeSession(null);
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [chapaResizeSession]);
 
   const handleMaterialDragEnd = () => setDraggingMaterialId(null);
 
@@ -886,6 +1222,33 @@ export function useTacticalBoard(
     setDrawingState(null);
   };
 
+  const duplicatePlacedLine = (lineId: string) => {
+    const src = placedLines.find((l) => l.id === lineId);
+    if (!src) return;
+    const dx = 2;
+    const dy = 2;
+    const duplicatedId = typeof crypto?.randomUUID === "function" ? crypto.randomUUID() : `line-${Date.now()}-${Math.random()}`;
+    setPlacedLines((prev) => [
+      ...prev,
+      {
+        ...src,
+        id: duplicatedId,
+        x1: Math.max(0, Math.min(100, src.x1 + dx)),
+        y1: Math.max(0, Math.min(100, src.y1 + dy)),
+        x2: Math.max(0, Math.min(100, src.x2 + dx)),
+        y2: Math.max(0, Math.min(100, src.y2 + dy)),
+      },
+    ]);
+  };
+
+  const removePlacedLine = (lineId: string) => {
+    setPlacedLines((prev) => prev.filter((l) => l.id !== lineId));
+  };
+
+  const setPlacedLineColor = (lineId: string, color: string) => {
+    setPlacedLines((prev) => prev.map((l) => (l.id === lineId ? { ...l, color } : l)));
+  };
+
   // ─── Derived state ────────────────────────────────────────────────────────
 
   const playersById = useMemo(() => {
@@ -927,6 +1290,12 @@ export function useTacticalBoard(
     handleToggleChapaMenu,
     handleSetChapaPeto,
     handleClearChapaPeto,
+    duplicatePlacedChapa,
+    toggleLockPlacedChapa,
+    rotatePlacedChapa,
+    handleManualResizeChapa,
+    handleChapaResizeStart,
+    removePlacedChapa,
     // Spaces
     placedSpaces,
     draggingSpaceId,
@@ -948,9 +1317,18 @@ export function useTacticalBoard(
     handlePlacedMaterialDragStart,
     handlePlacedMaterialDragEnd,
     rotatePlacedMaterial,
+    duplicatePlacedMaterial,
+    toggleLockPlacedMaterial,
+    handleManualResizeMaterial,
+    scalePlacedMaterial,
+    handleMaterialResizeStart,
+    removePlacedMaterial,
     // Lines
     placedLines,
     setPlacedLines,
+    duplicatePlacedLine,
+    removePlacedLine,
+    setPlacedLineColor,
     activeLineKind,
     setActiveLineKind,
     activeLineColor,

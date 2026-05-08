@@ -91,6 +91,152 @@
   align-items: start;
 }
 
+.matchToolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.matchToolbarDesc {
+  opacity: 0.75;
+}
+
+.matchToolbarRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.matchRowClickable {
+  cursor: pointer;
+}
+
+.matchPlayerChips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.matchTotalsChips {
+  display: inline-flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.matchTableContainer {
+  overflow: auto;
+  /* header (64) + footer (64) + pageheader+actionbar+padding+tabs+inforow ≈ 290px */
+  max-height: calc(100vh - var(--rffm-header-h) - var(--rffm-footer-h) - 290px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.matchTable {
+  min-width: max-content;
+}
+
+/* reduce padding on non-sticky data cells */
+.matchTable td:not(.matchStickyCell),
+.matchTable th:not(.matchStickyCell) {
+  padding-left: 2px !important;
+  padding-right: 2px !important;
+}
+
+.matchHeaderCell {
+  background: rgba(16, 22, 32, 0.98) !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  font-weight: 700 !important;
+  white-space: nowrap;
+  padding: 6px 2px !important;
+}
+
+.matchHeaderText {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  white-space: pre-line;
+  line-height: 1.15;
+  min-width: 0;
+}
+
+.matchStickyCell {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  min-width: 210px;
+  background: rgba(12, 18, 26, 0.98) !important;
+  box-shadow: 12px 0 16px rgba(0, 0, 0, 0.12);
+}
+
+/* name header cell: not sticky-left itself but sits right of the checkbox sticky cell */
+.matchNameHeaderCell {
+  left: 40px; /* width of the checkbox cell */
+}
+
+.matchStickyCell.matchHeaderCell {
+  z-index: 4 !important;
+}
+
+.matchPlayerName {
+  font-weight: 700 !important;
+}
+
+.matchCell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 0.75rem;
+  border: 1px solid transparent;
+}
+
+.matchCellStarter {
+  background: rgba(76, 175, 80, 0.2);
+  color: #8ff09c;
+  border-color: rgba(76, 175, 80, 0.4);
+}
+
+.matchCellCalled {
+  background: rgba(255, 152, 0, 0.2);
+  color: #ffcc80;
+  border-color: rgba(255, 152, 0, 0.35);
+}
+
+.matchCellNotCalled {
+  background: rgba(240, 100, 100, 0.18);
+  color: #ff9b9b;
+  border-color: rgba(240, 100, 100, 0.35);
+}
+
+.matchCellAbsent {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.45);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.matchMetricChip,
+.matchMetricChipSuccess,
+.matchMetricChipMuted {
+  font-weight: 600 !important;
+}
+
+.matchMetricChipSuccess {
+  background: rgba(76, 175, 80, 0.18) !important;
+}
+
+.matchMetricChipMuted {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
 .trainingToolbar {
   display: flex;
   justify-content: flex-end;

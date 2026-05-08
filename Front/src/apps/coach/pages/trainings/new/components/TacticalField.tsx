@@ -1,12 +1,12 @@
 import { Box, Typography } from "@mui/material";
-import type React from "react";
-import { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { LINE_COLORS, petoOptions } from "../constants";
 import { buildLinePath, getArrowMarkerId } from "../helpers/lineHelpers";
-import { getMaterialSizePercent } from "../helpers/materialHelpers";
+import { getMaterialSizePercent, getChapaSizePercent } from "../helpers/materialHelpers";
 import { getDimensionsPercent, formatMeters, getSideLengthsMeters, getShapeVertices } from "../helpers/spaceGeometry";
 import type { TacticalBoardState } from "../hooks/useTacticalBoard";
 import styles from "../NewExercisePage.module.css";
+import PlacedObjectControls from "./PlacedObjectControls";
 import type { ResizeHandle, SpacePosition } from "../types";
 
 interface TacticalFieldProps {
@@ -16,6 +16,28 @@ interface TacticalFieldProps {
 
 export default function TacticalField({ halfPitchRef, board }: TacticalFieldProps) {
   const [activeMaterialId, setActiveMaterialId] = useState<string | null>(null);
+  const [selectedLineId, setSelectedLineId] = useState<string | null>(null);
+  const [lineResizeSession, setLineResizeSession] = useState<
+    | { lineId: string; endpoint: "a" | "b"; startClientX: number; startClientY: number }
+    | null
+  >(null);
+
+  const [lineDragSession, setLineDragSession] = useState<
+    | {
+        lineId: string;
+        startClientX: number;
+        startClientY: number;
+        startX1: number;
+        startY1: number;
+        startX2: number;
+        startY2: number;
+      }
+    | null
+  >(null);
+
+  const lineDidMoveRef = useRef(false);
+  const justDraggedLineRef = useRef<string | null>(null);
+ 
 
   const {
     placedChapas,
@@ -29,6 +51,12 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
     handleToggleChapaMenu,
     handleSetChapaPeto,
     handleClearChapaPeto,
+    duplicatePlacedChapa,
+    toggleLockPlacedChapa,
+    rotatePlacedChapa,
+    handleManualResizeChapa,
+    handleChapaResizeStart,
+    removePlacedChapa,
     placedSpaces,
     draggingSpaceId,
     handlePlacedSpaceDragStart,
@@ -44,8 +72,17 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
     handlePlacedMaterialDragStart,
     handlePlacedMaterialDragEnd,
     rotatePlacedMaterial,
+    duplicatePlacedMaterial,
+    toggleLockPlacedMaterial,
+    handleMaterialResizeStart,
+    handleManualResizeMaterial,
+    scalePlacedMaterial,
+    removePlacedMaterial,
     placedLines,
     setPlacedLines,
+    duplicatePlacedLine,
+    removePlacedLine,
+    setPlacedLineColor,
     drawingState,
     showLines,
     activeLineKind,
@@ -55,6 +92,74 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
     handleFieldDragOver,
     handleFieldDrop,
   } = board;
+
+  // Attach mousemove/up listeners for line handle dragging (defined after board destructuring)
+  useEffect(() => {
+    if (!lineResizeSession) return;
+    const handleMouseMove = (ev: MouseEvent) => {
+      const pitch = halfPitchRef.current;
+      if (!pitch) return;
+      const rect = pitch.getBoundingClientRect();
+      const x = ((ev.clientX - rect.left) / rect.width) * 100;
+      const y = ((ev.clientY - rect.top) / rect.height) * 100;
+      setPlacedLines((prev) =>
+        prev.map((l) => {
+          if (l.id !== lineResizeSession.lineId) return l;
+          if (lineResizeSession.endpoint === "a") {
+            return { ...l, x1: Math.max(0, Math.min(100, x)), y1: Math.max(0, Math.min(100, y)) };
+          }
+          return { ...l, x2: Math.max(0, Math.min(100, x)), y2: Math.max(0, Math.min(100, y)) };
+        }),
+      );
+    };
+
+    const handleMouseUp = () => setLineResizeSession(null);
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [lineResizeSession, halfPitchRef, setPlacedLines]);
+
+  // Drag whole line session: move both endpoints together
+  useEffect(() => {
+    if (!lineDragSession) return;
+
+    const handleMouseMove = (ev: MouseEvent) => {
+      const pitch = halfPitchRef.current;
+      if (!pitch) return;
+      const rect = pitch.getBoundingClientRect();
+      const dxPercent = ((ev.clientX - lineDragSession.startClientX) / rect.width) * 100;
+      const dyPercent = ((ev.clientY - lineDragSession.startClientY) / rect.height) * 100;
+
+      setPlacedLines((prev) =>
+        prev.map((l) => {
+          if (l.id !== lineDragSession.lineId) return l;
+          const nx1 = Math.max(0, Math.min(100, lineDragSession.startX1 + dxPercent));
+          const ny1 = Math.max(0, Math.min(100, lineDragSession.startY1 + dyPercent));
+          const nx2 = Math.max(0, Math.min(100, lineDragSession.startX2 + dxPercent));
+          const ny2 = Math.max(0, Math.min(100, lineDragSession.startY2 + dyPercent));
+          return { ...l, x1: nx1, y1: ny1, x2: nx2, y2: ny2 };
+        }),
+      );
+
+      lineDidMoveRef.current = true;
+    };
+
+    const handleMouseUp = () => {
+      if (lineDidMoveRef.current) justDraggedLineRef.current = lineDragSession.lineId;
+      setLineDragSession(null);
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [lineDragSession, halfPitchRef, setPlacedLines]);
 
   return (
     <Box
@@ -84,6 +189,8 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
         const dorsal = player?.dorsal ?? idx + 1;
         const alias = (player?.alias ?? "").trim() || `J${idx + 1}`;
         const petoColor = chapaPetoById[playerId];
+        const baseSize = getChapaSizePercent();
+        const size = { width: baseSize.width * (pos.scaleX ?? 1), height: baseSize.height * (pos.scaleY ?? 1) };
 
         return (
           <Box
@@ -92,11 +199,14 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
             style={{
               left: `${pos.x}%`,
               top: `${pos.y}%`,
+              width: `${size.width}%`,
+              height: `${size.height}%`,
+              transform: `translate(-50%, -50%) rotate(${pos.rotation ?? 0}deg)`,
               background: petoColor
                 ? `linear-gradient(165deg, ${petoColor} 0%, ${petoColor} 100%)`
                 : undefined,
             }}
-            draggable
+            draggable={!pos.locked}
             onDragStart={(e) => handleChapaDragStart(e, playerId)}
             onDragEnd={(e) => handleChapaDragEnd(e, playerId)}
             onClick={(e) => handleToggleChapaMenu(e, playerId)}
@@ -106,29 +216,53 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
             <span className={styles.chapaAliasOutside}>{alias}</span>
 
             {activeChapaMenuId === playerId && (
-              <Box className={styles.chapaPetoMenu} onClick={(e) => e.stopPropagation()}>
-                <Typography className={styles.chapaPetoMenuTitle}>Petos</Typography>
-                <Box className={styles.chapaPetoGrid}>
-                  {petoOptions.map((peto) => (
+              <>
+                <Box className={styles.chapaPetoMenu} onClick={(e) => e.stopPropagation()}>
+                  <Typography className={styles.chapaPetoMenuTitle}>Petos</Typography>
+                  <Box className={styles.chapaPetoGrid}>
+                    {petoOptions.map((peto) => (
+                      <button
+                        key={`${playerId}-${peto.key}`}
+                        type="button"
+                        className={styles.chapaPetoSwatch}
+                        style={{ backgroundColor: peto.color }}
+                        onClick={(e) => handleSetChapaPeto(e, playerId, peto.color)}
+                        title={peto.label}
+                        aria-label={`Peto ${peto.label}`}
+                      />
+                    ))}
+                  </Box>
+                  <button
+                    type="button"
+                    className={styles.chapaPetoClearBtn}
+                    onClick={(e) => handleClearChapaPeto(e, playerId)}
+                  >
+                    Quitar peto
+                  </button>
+                </Box>
+
+                <PlacedObjectControls
+                  id={playerId}
+                  locked={pos.locked}
+                  onLock={toggleLockPlacedChapa}
+                  onManualResize={handleManualResizeChapa}
+                  onRotate={rotatePlacedChapa}
+                  onDuplicate={duplicatePlacedChapa}
+                  onRemove={removePlacedChapa}
+                  renderResizeHandles={(
+                    ["n", "s", "e", "w", "ne", "nw", "se", "sw"] as ResizeHandle[]
+                  ).map((handle) => (
                     <button
-                      key={`${playerId}-${peto.key}`}
+                      key={`${playerId}-handle-${handle}`}
                       type="button"
-                      className={styles.chapaPetoSwatch}
-                      style={{ backgroundColor: peto.color }}
-                      onClick={(e) => handleSetChapaPeto(e, playerId, peto.color)}
-                      title={peto.label}
-                      aria-label={`Peto ${peto.label}`}
+                      className={`${styles.spaceResizeAnchor} ${styles[`spaceResize${handle.toUpperCase()}` as keyof typeof styles]}`}
+                      onMouseDown={(e) => handleChapaResizeStart(e, playerId, handle)}
+                      aria-label={`Redimensionar por ${handle}`}
+                      title="Arrastra borde o esquina para redimensionar"
                     />
                   ))}
-                </Box>
-                <button
-                  type="button"
-                  className={styles.chapaPetoClearBtn}
-                  onClick={(e) => handleClearChapaPeto(e, playerId)}
-                >
-                  Quitar peto
-                </button>
-              </Box>
+                />
+              </>
             )}
           </Box>
         );
@@ -208,20 +342,37 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
               )}
             </Box>
 
-            <SpaceControls
-              space={space}
+            <PlacedObjectControls
+              id={space.id}
+              locked={space.locked}
               onLock={toggleLockPlacedSpace}
               onManualResize={handleManualResize}
               onRotate={rotatePlacedSpace}
               onDuplicate={duplicatePlacedSpace}
               onRemove={removePlacedSpace}
+              renderResizeHandles={(
+                ["n", "s", "e", "w", "ne", "nw", "se", "sw"] as ResizeHandle[]
+              ).map((handle) => (
+                <button
+                  key={`${space.id}-handle-${handle}`}
+                  type="button"
+                  className={`${styles.spaceResizeAnchor} ${styles[`spaceResize${handle.toUpperCase()}` as keyof typeof styles]}`}
+                  onMouseDown={(e) => handleResizeStart(e, space, handle)}
+                  aria-label={`Redimensionar por ${handle}`}
+                  title="Arrastra borde o esquina para redimensionar"
+                />
+              ))}
             />
           </Box>
         );
       })}
 
       {placedMaterials.map((material) => {
-        const size = getMaterialSizePercent(material.kind);
+        const baseSize = getMaterialSizePercent(material.kind);
+        const size = {
+          width: baseSize.width * (material.scaleX ?? 1),
+          height: baseSize.height * (material.scaleY ?? 1),
+        };
 
         return (
           <Box
@@ -277,19 +428,27 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
             </Box>
 
             {activeMaterialId === material.id && (
-              <button
-                type="button"
-                className={styles.materialRotateBtn}
-                onMouseDown={(e) => e.stopPropagation()}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  rotatePlacedMaterial(material.id);
-                }}
-                title="Girar"
-                aria-label="Girar"
-              >
-                ↻
-              </button>
+              <PlacedObjectControls
+                id={material.id}
+                locked={material.locked}
+                onLock={toggleLockPlacedMaterial}
+                onManualResize={handleManualResizeMaterial}
+                onRotate={rotatePlacedMaterial}
+                onDuplicate={duplicatePlacedMaterial}
+                onRemove={removePlacedMaterial}
+                renderResizeHandles={(
+                  ["n", "s", "e", "w", "ne", "nw", "se", "sw"] as ResizeHandle[]
+                ).map((handle) => (
+                  <button
+                    key={`${material.id}-handle-${handle}`}
+                    type="button"
+                    className={`${styles.spaceResizeAnchor} ${styles[`spaceResize${handle.toUpperCase()}` as keyof typeof styles]}`}
+                    onMouseDown={(e) => handleMaterialResizeStart(e, material, handle)}
+                    aria-label={`Redimensionar por ${handle}`}
+                    title="Arrastra borde o esquina para redimensionar"
+                  />
+                ))}
+              />
             )}
           </Box>
         );
@@ -318,7 +477,7 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
           ))}
         </defs>
 
-        {placedLines.map((line) => {
+              {placedLines.map((line) => {
           const isArrow = line.kind === "arrow" || line.kind === "arrow-dashed";
           const isDashed = line.kind === "dashed" || line.kind === "arrow-dashed";
           const markerId = isArrow ? getArrowMarkerId(line.color) : undefined;
@@ -347,7 +506,29 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
                 pointerEvents: showLines && !activeLineKind ? "stroke" : "none",
                 cursor: "pointer",
               }}
-              onClick={() => setPlacedLines((prev) => prev.filter((l) => l.id !== line.id))}
+              onMouseDown={(e) => {
+                if (!showLines || activeLineKind) return;
+                e.preventDefault();
+                e.stopPropagation();
+                setSelectedLineId(line.id);
+                setLineDragSession({
+                  lineId: line.id,
+                  startClientX: (e as React.MouseEvent).clientX,
+                  startClientY: (e as React.MouseEvent).clientY,
+                  startX1: line.x1,
+                  startY1: line.y1,
+                  startX2: line.x2,
+                  startY2: line.y2,
+                });
+                lineDidMoveRef.current = false;
+              }}
+              onClick={() => {
+                if (justDraggedLineRef.current === line.id) {
+                  justDraggedLineRef.current = null;
+                  return;
+                }
+                setSelectedLineId((prev) => (prev === line.id ? null : line.id));
+              }}
             />
           );
         })}
@@ -395,6 +576,106 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
           onMouseLeave={handleDrawMouseUp}
         />
       )}
+
+      {/* Line endpoint handles for selected line */}
+      {selectedLineId &&
+        (() => {
+          const line = placedLines.find((l) => l.id === selectedLineId);
+          if (!line) return null;
+          const start = { x: line.x1, y: line.y1 };
+          const end = { x: line.x2, y: line.y2 };
+
+          return (
+            <>
+              {[{ id: "a", pt: start }, { id: "b", pt: end }].map(({ id, pt }) => (
+                <button
+                  key={`line-handle-${id}`}
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.stopPropagation();
+                    setLineResizeSession({ lineId: selectedLineId as string, endpoint: id as "a" | "b", startClientX: (e as React.MouseEvent).clientX, startClientY: (e as React.MouseEvent).clientY });
+                  }}
+                  style={{
+                    position: "absolute",
+                    left: `${pt.x}%`,
+                    top: `${pt.y}%`,
+                    transform: "translate(-50%, -50%)",
+                    width: 12,
+                    height: 12,
+                    borderRadius: 6,
+                    background: "#fff",
+                    border: "2px solid #4d9de0",
+                    zIndex: 30,
+                    cursor: "move",
+                  }}
+                />
+              ))}
+
+              {/* Line controls: color swatches and action buttons at the midpoint */}
+              {
+                (() => {
+                  const midX = (start.x + end.x) / 2;
+                  const midY = (start.y + end.y) / 2;
+                  return (
+                    <Box
+                      key={`line-controls-${line.id}`}
+                      style={{
+                        position: "absolute",
+                        left: `${midX}%`,
+                        top: `${midY}%`,
+                        transform: "translate(-50%, -140%)",
+                        zIndex: 40,
+                        display: "flex",
+                        gap: 6,
+                        alignItems: "center",
+                        pointerEvents: "auto",
+                      }}
+                      onMouseDown={(e) => e.stopPropagation()}
+                    >
+                      <Box style={{ display: "flex", gap: 6 }}>
+                        {LINE_COLORS.map((c) => (
+                          <button
+                            key={`line-color-${c.key}`}
+                            type="button"
+                            className={`${styles.lineColorSwatch} ${line.color === c.value ? styles.lineColorSwatchActive : ""}`}
+                            title={c.key}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPlacedLineColor(line.id, c.value);
+                            }}
+                            style={{ background: c.value }}
+                          />
+                        ))}
+                      </Box>
+
+                      <button
+                        type="button"
+                        className={styles.spaceScaleBtn}
+                        onClick={(e) => { e.stopPropagation(); duplicatePlacedLine(line.id); }}
+                        title="Duplicar línea"
+                        aria-label="Duplicar línea"
+                      >
+                        ⧉
+                      </button>
+
+                      <button
+                        type="button"
+                        className={styles.spaceScaleBtn}
+                        onClick={(e) => { e.stopPropagation(); removePlacedLine(line.id); setSelectedLineId(null); }}
+                        title="Eliminar línea"
+                        aria-label="Eliminar línea"
+                      >
+                        ✕
+                      </button>
+                    </Box>
+                  );
+                })()
+              }
+            </>
+          );
+        })()}
+
+      
     </Box>
   );
 }
