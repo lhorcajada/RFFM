@@ -1,62 +1,27 @@
 import React from "react";
+import { Box, Button, CircularProgress, Typography } from "@mui/material";
 import styles from "./GoalSectorsComparison.module.css";
-import { getTeamsGoalSectorsComparison } from "../../services/api";
-import type { TeamsGoalSectorsComparison } from "../../../../shared/utils/goalSectors";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
-import Typography from "@mui/material/Typography";
-import Box from "@mui/material/Box";
-import CircularProgress from "@mui/material/CircularProgress";
-import Button from "@mui/material/Button";
 import StatsControls from "../../../../shared/components/ui/StatsControls/StatsControls";
-import settingsStyles from "../Settings/Settings.module.css";
 import SectorChart from "../../../../shared/components/ui/SectorChart/SectorChart";
 import SectorDataTable from "../../../../shared/components/ui/SectorDataTable/SectorDataTable";
+import GoalSectorsComparisonDialog from "./Components/GoalSectorsComparisonDialog";
+import { useGoalSectorsComparison } from "./hooks/useGoalSectorsComparison";
 
 export default function GoalSectorsComparison(): JSX.Element {
-  const [data, setData] = React.useState<TeamsGoalSectorsComparison | null>(
-    null
-  );
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const [selection, setSelection] = React.useState({
-    competitionId: "",
-    groupId: "",
-    team1: "",
-    team2: "",
-    loading: false,
-  });
-
-  function handleCompare(opts: {
-    competitionId: string;
-    groupId: string;
-    team1: string;
-    team2: string;
-  }) {
-    setLoading(true);
-    setError(null);
-    setData(null);
-
-    getTeamsGoalSectorsComparison({
-      teamCode: opts.team1,
-      competitionId: opts.competitionId,
-      groupId: opts.groupId,
-      teamCode1: opts.team1,
-      teamCode2: opts.team2,
-    })
-      .then((res) => {
-        if (!res || !Array.isArray(res) || res.length === 0) {
-          setError("No hay datos de sectores para la selección indicada.");
-          return;
-        }
-        // API returns two teams in array; set data
-        setData(res as TeamsGoalSectorsComparison);
-      })
-      .catch((e) => {
-        setError(String(e));
-      })
-      .finally(() => setLoading(false));
-  }
+  const {
+    data,
+    comparison,
+    loading,
+    error,
+    selection,
+    setSelection,
+    handleCompare,
+    sectorPopup,
+    closePopup,
+    handleGoalsAgainstClick,
+  } = useGoalSectorsComparison();
 
   return (
     <BaseLayout>
@@ -126,73 +91,21 @@ export default function GoalSectorsComparison(): JSX.Element {
             </Box>
           )}
           {error && <Typography color="error">Error: {error}</Typography>}
-          {data && data.length === 2 && (
+          {comparison.teamA && comparison.teamB && (
             <>
               <SectorChart data={data as any} />
-
-              {/* build merged rows to pass to the table */}
-              {(() => {
-                const t1 = data[0];
-                const t2 = data[1];
-                const map = new Map<string, { start: number; end: number }>();
-                (t1?.sectors ?? []).forEach((s) =>
-                  map.set(`${s.startMinute}-${s.endMinute}`, {
-                    start: s.startMinute,
-                    end: s.endMinute,
-                  })
-                );
-                (t2?.sectors ?? []).forEach((s) =>
-                  map.set(`${s.startMinute}-${s.endMinute}`, {
-                    start: s.startMinute,
-                    end: s.endMinute,
-                  })
-                );
-                const merged = Array.from(map.values()).sort(
-                  (a, b) => a.start - b.start
-                );
-                const rows = merged
-                  .map((s) => {
-                    const a = (t1?.sectors ?? []).find(
-                      (x) => x.startMinute === s.start && x.endMinute === s.end
-                    ) ?? {
-                      startMinute: s.start,
-                      endMinute: s.end,
-                      goalsFor: 0,
-                      goalsAgainst: 0,
-                    };
-                    const b = (t2?.sectors ?? []).find(
-                      (x) => x.startMinute === s.start && x.endMinute === s.end
-                    ) ?? {
-                      startMinute: s.start,
-                      endMinute: s.end,
-                      goalsFor: 0,
-                      goalsAgainst: 0,
-                    };
-                    return {
-                      start: s.start,
-                      end: s.end,
-                      aGoals: a.goalsFor ?? 0,
-                      aAgainst: a.goalsAgainst ?? 0,
-                      bGoals: b.goalsFor ?? 0,
-                      bAgainst: b.goalsAgainst ?? 0,
-                    };
-                  })
-                  .filter(
-                    (r) => r.aGoals || r.bGoals || r.aAgainst || r.bAgainst
-                  );
-
-                return (
-                  <SectorDataTable
-                    rows={rows}
-                    teamAName={t1.teamName}
-                    teamBName={t2.teamName}
-                  />
-                );
-              })()}
+              <SectorDataTable
+                rows={comparison.rows}
+                teamAName={comparison.teamA.teamName}
+                teamBName={comparison.teamB.teamName}
+                onGoalsAgainstClick={handleGoalsAgainstClick}
+              />
             </>
           )}
         </Box>
       </ContentLayout>
+
+      <GoalSectorsComparisonDialog popup={sectorPopup} onClose={closePopup} />
     </BaseLayout>
   );
 }

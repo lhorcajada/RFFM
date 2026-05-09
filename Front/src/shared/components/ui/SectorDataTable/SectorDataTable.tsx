@@ -1,7 +1,7 @@
 import React from "react";
 import styles from "./SectorDataTable.module.css";
 
-type Row = {
+export type SectorDataRow = {
   start: number;
   end: number;
   aGoals: number;
@@ -14,10 +14,12 @@ export default function SectorDataTable({
   rows,
   teamAName,
   teamBName,
+  onGoalsAgainstClick,
 }: {
-  rows: Row[];
+  rows: SectorDataRow[];
   teamAName?: string;
   teamBName?: string;
+  onGoalsAgainstClick?: (row: SectorDataRow, teamIndex: 0 | 1) => void;
 }) {
   return (
     <div className={styles.root}>
@@ -31,9 +33,20 @@ export default function SectorDataTable({
               </div>
               <div>
                 <div className={styles.value}>{r.aGoals} GF</div>
-                <div className={styles.value} style={{ color: "#ef4444" }}>
-                  {r.aAgainst} GC
-                </div>
+                {onGoalsAgainstClick ? (
+                  <button
+                    type="button"
+                    className={styles.goalsAgainstButton}
+                    onClick={() => onGoalsAgainstClick(r, 0)}
+                    aria-label={`${teamAName ?? "Equipo A"} ${r.start}-${r.end} goles en contra`}
+                  >
+                    {r.aAgainst} GC
+                  </button>
+                ) : (
+                  <div className={styles.value} style={{ color: "#ef4444" }}>
+                    {r.aAgainst} GC
+                  </div>
+                )}
               </div>
             </div>
           ))}
@@ -48,9 +61,20 @@ export default function SectorDataTable({
               </div>
               <div>
                 <div className={styles.value}>{r.bGoals} GF</div>
-                <div className={styles.value} style={{ color: "#ef4444" }}>
-                  {r.bAgainst} GC
-                </div>
+                {onGoalsAgainstClick ? (
+                  <button
+                    type="button"
+                    className={styles.goalsAgainstButton}
+                    onClick={() => onGoalsAgainstClick(r, 1)}
+                    aria-label={`${teamBName ?? "Equipo B"} ${r.start}-${r.end} goles en contra`}
+                  >
+                    {r.bAgainst} GC
+                  </button>
+                ) : (
+                  <div className={styles.value} style={{ color: "#ef4444" }}>
+                    {r.bAgainst} GC
+                  </div>
+                )}
               </div>
             </div>
           ))}

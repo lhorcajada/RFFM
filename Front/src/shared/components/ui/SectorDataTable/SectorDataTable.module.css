@@ -31,6 +31,33 @@
   color: var(--text-primary, #fff);
 }
 
+.goalsAgainstButton {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-weight: 700;
+  color: #ef4444;
+  cursor: pointer;
+  text-align: left;
+}
+
+.goalsAgainstButton:hover {
+  text-decoration: underline;
+}
+
+.goalsAgainstButton:focus-visible {
+  outline: 2px solid rgba(239, 68, 68, 0.75);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.goalsAgainstButton:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
 @media (max-width: 600px) {
   .grid {
     grid-template-columns: 1fr;
