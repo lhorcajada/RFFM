@@ -19,6 +19,7 @@ export interface UseMatchSimulationReturn {
   currentSecond: number;
   isRunning: boolean;
   half: 1 | 2;
+  isHalftime: boolean;
   slots: Record<number, string | null>;
   playerStates: Record<string, SimulationPlayerState>;
   /** Per-player minutes computed live every second */

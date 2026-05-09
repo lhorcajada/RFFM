@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { SubstitutionWindow } from "./simulation.types";
 import type { SimSlotPlayer } from "./SimulationPlayerSlot";
 import styles from "./SubstitutionHistoryPanel.module.css";
@@ -13,11 +14,22 @@ export default function SubstitutionHistoryPanel({
 }: SubstitutionHistoryPanelProps) {
   if (windows.length === 0) return null;
 
-  return (
-    <div className={styles.root}>
-      <div className={styles.header}>Ventanas de cambios</div>
+  const [isExpanded, setIsExpanded] = useState(false);
 
-      <div className={styles.windowList}>
+  return (
+    <div className={`${styles.root} ${isExpanded ? styles.rootExpanded : styles.rootCollapsed}`}>
+      <button
+        type="button"
+        className={styles.header}
+        onClick={() => setIsExpanded((prev) => !prev)}
+        aria-expanded={isExpanded}
+      >
+        <span>Ventanas de cambios</span>
+        <span className={styles.headerBadge}>{windows.length}</span>
+        <span className={styles.headerChevron}>{isExpanded ? "▾" : "▸"}</span>
+      </button>
+
+      <div className={styles.windowList} aria-hidden={!isExpanded}>
         {windows.map((win, idx) => (
           <div key={idx} className={styles.window}>
             <div className={styles.windowMeta}>

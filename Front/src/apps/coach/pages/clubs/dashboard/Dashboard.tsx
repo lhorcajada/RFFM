@@ -7,7 +7,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import GroupIcon from "@mui/icons-material/Group";
 import SportsFootballIcon from "@mui/icons-material/SportsFootball";
 import DashboardCard from "../../../../../shared/components/ui/DashboardCard/DashboardCard";
-import styles from "../../Dashboard.module.css";
+import styles from "../../Dashboard/Dashboard.module.css";
 import localStyles from "./Dashboard.module.css";
 import { useNavigate } from "react-router-dom";
 import clubService from "../../../services/clubService";
