@@ -1,1 +1,15 @@
-
+services:
+  - type: web
+    name: rffm-api
+    runtime: docker
+    rootDir: Back/ExtractionApi
+    plan: starter
+    autoDeploy: true
+    healthCheckPath: /health
+    dockerfilePath: Back/ExtractionApi/src/RFFM.Host/Dockerfile
+    dockerContext: Back/ExtractionApi
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ASPNETCORE_URLS
+        value: http://0.0.0.0:$PORT
