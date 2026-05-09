@@ -78,6 +78,12 @@ dotnet ef migrations list --project src/RFFM.Api --startup-project src/RFFM.Host
 - ?? **[Docker Setup](DOCKER_README.md)** - Gu�a completa de Docker
 - ?? **[Variables de Entorno](.env.example)** - Configuraci�n requerida
 
+### Almacenamiento de im�genes
+
+- En local, la API usa filesystem y guarda las im�genes en `%LocalAppData%\RFFM\storage` salvo que se indique `LocalStorage__BasePath`.
+- En despliegue, la API usa Supabase Storage cuando `Storage__UseLocal=false` y est�n configurados `SupabaseStorage__Url` y `SupabaseStorage__ServiceKey`.
+- El frontend no cambia su comportamiento: la selecci�n de storage se hace en el backend.
+
 ### Para Deployment
 
 - ?? **[GitHub Actions + Azure](GITHUB_ACTIONS_AZURE_GUIDE.md)** - Gu�a completa de CI/CD

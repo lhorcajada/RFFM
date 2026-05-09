@@ -54,6 +54,18 @@ namespace RFFM.Api.Infrastructure.Storage
 
         public async Task<(byte[] Content, string ContentType)?> DownloadAsync(string url, CancellationToken cancellationToken)
         {
+            if (!Uri.TryCreate(url, UriKind.Absolute, out _))
+            {
+                var relativePath = url.TrimStart('/');
+                var bucketSeparatorIndex = relativePath.IndexOf('/');
+                if (bucketSeparatorIndex <= 0 || bucketSeparatorIndex >= relativePath.Length - 1)
+                    return null;
+
+                var bucket = relativePath[..bucketSeparatorIndex];
+                var filePath = relativePath[(bucketSeparatorIndex + 1)..];
+                url = _supabase.Storage.From(bucket).GetPublicUrl(filePath);
+            }
+
             var client = _httpClientFactory.CreateClient();
             var response = await client.GetAsync(url, cancellationToken);
             if (!response.IsSuccessStatusCode)

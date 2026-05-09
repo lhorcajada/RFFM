@@ -315,101 +315,113 @@ namespace RFFM.Host.DependencyInjection
 
         private static async Task SeedFeaturePermissionsAsync(AppDbContext db, ILogger? logger)
         {
-            using var tx = await db.Database.BeginTransactionAsync();
-            try
+            var strategy = db.Database.CreateExecutionStrategy();
+
+            await strategy.ExecuteAsync(async () =>
             {
-                var entries = new[]
+                await using var tx = await db.Database.BeginTransactionAsync();
+
+                try
                 {
-                    // Coach
-                    ("SeasonPrep",   "/coach/season-prep",   "Coach",       3, false),
-                    ("Roster",        "/coach/roster",        "Coach",       3, false),
-                    ("Trainings",     "/coach/trainings",     "Coach",       3, false),
-                    ("GameModels",    "/coach/game-models",   "Coach",       3, false),
-                    ("Assistances",   "/coach/assistances",   "Coach",       3, false),
-                    ("Convocations",  "/coach/convocations",  "Coach",       3, false),
-                    ("Dashboard",     "/coach/dashboard",     "Coach",       1, false),
-
-                    // ClubDirector
-                    ("Dashboard",     "/coach/dashboard",     "ClubDirector", 1, true),
-                    ("Roster",        "/coach/roster",        "ClubDirector", 1, true),
-
-                    // Player
-                    ("Dashboard",     "/coach/dashboard",     "Player",      1, false),
-                    ("Roster",        "/coach/roster",        "Player",      1, false),
-
-                    // FamilyMember
-                    ("Dashboard",     "/coach/dashboard",     "FamilyMember", 1, false),
-                    ("Roster",        "/coach/roster",        "FamilyMember", 1, false),
-
-                    // Fan
-                    ("Dashboard",     "/coach/dashboard",     "Fan",         1, false),
-
-                    // ClubMember
-                    ("Dashboard",     "/coach/dashboard",     "ClubMember",  1, false),
-                    ("Roster",        "/coach/roster",        "ClubMember",  1, false),
-                };
-
-                foreach (var (featureName, featureRoute, roleName, permTypeId, isEditable) in entries)
-                {
-                    var exists = db.FeaturePermissions.Any(
-                        fp => fp.RoleName == roleName && fp.FeatureRoute == featureRoute);
-                    if (!exists)
+                    var entries = new[]
                     {
-                        db.FeaturePermissions.Add(new RFFM.Api.Domain.Entities.FeaturePermission(
-                            featureName, featureRoute, roleName,
-                            RFFM.Api.Domain.Entities.PermissionType.FromId(permTypeId),
-                            isEditable));
-                        logger?.LogDebug("Seeded FeaturePermission {Role} -> {Route}", roleName, featureRoute);
-                    }
-                }
+                        // Coach
+                        ("SeasonPrep",   "/coach/season-prep",   "Coach",       3, false),
+                        ("Roster",        "/coach/roster",        "Coach",       3, false),
+                        ("Trainings",     "/coach/trainings",     "Coach",       3, false),
+                        ("GameModels",    "/coach/game-models",   "Coach",       3, false),
+                        ("Assistances",   "/coach/assistances",   "Coach",       3, false),
+                        ("Convocations",  "/coach/convocations",  "Coach",       3, false),
+                        ("Dashboard",     "/coach/dashboard",     "Coach",       1, false),
 
-                await db.SaveChangesAsync();
-                await tx.CommitAsync();
-            }
-            catch
-            {
-                await tx.RollbackAsync();
-                throw;
-            }
+                        // ClubDirector
+                        ("Dashboard",     "/coach/dashboard",     "ClubDirector", 1, true),
+                        ("Roster",        "/coach/roster",        "ClubDirector", 1, true),
+
+                        // Player
+                        ("Dashboard",     "/coach/dashboard",     "Player",      1, false),
+                        ("Roster",        "/coach/roster",        "Player",      1, false),
+
+                        // FamilyMember
+                        ("Dashboard",     "/coach/dashboard",     "FamilyMember", 1, false),
+                        ("Roster",        "/coach/roster",        "FamilyMember", 1, false),
+
+                        // Fan
+                        ("Dashboard",     "/coach/dashboard",     "Fan",         1, false),
+
+                        // ClubMember
+                        ("Dashboard",     "/coach/dashboard",     "ClubMember",  1, false),
+                        ("Roster",        "/coach/roster",        "ClubMember",  1, false),
+                    };
+
+                    foreach (var (featureName, featureRoute, roleName, permTypeId, isEditable) in entries)
+                    {
+                        var exists = db.FeaturePermissions.Any(
+                            fp => fp.RoleName == roleName && fp.FeatureRoute == featureRoute);
+                        if (!exists)
+                        {
+                            db.FeaturePermissions.Add(new RFFM.Api.Domain.Entities.FeaturePermission(
+                                featureName, featureRoute, roleName,
+                                RFFM.Api.Domain.Entities.PermissionType.FromId(permTypeId),
+                                isEditable));
+                            logger?.LogDebug("Seeded FeaturePermission {Role} -> {Route}", roleName, featureRoute);
+                        }
+                    }
+
+                    await db.SaveChangesAsync();
+                    await tx.CommitAsync();
+                }
+                catch
+                {
+                    await tx.RollbackAsync();
+                    throw;
+                }
+            });
         }
 
         private static async Task SeedPagePermissionsAsync(AppDbContext db, ILogger? logger)
         {
-            using var tx = await db.Database.BeginTransactionAsync();
-            try
-            {
-                var entries = new[]
-                {
-                    // Roster page
-                    ("Roster", "view_all_ratings",  "Coach",       1, false),
-                    ("Roster", "edit_ratings",       "Coach",       3, false),
-                    ("Roster", "view_own_rating",    "Player",      1, false),
-                    ("Roster", "view_all_ratings",   "ClubDirector", 1, true),
-                    ("Roster", "view_own_rating",    "FamilyMember", 1, false),
-                };
+            var strategy = db.Database.CreateExecutionStrategy();
 
-                foreach (var (pageId, key, roleName, permTypeId, isEditable) in entries)
+            await strategy.ExecuteAsync(async () =>
+            {
+                await using var tx = await db.Database.BeginTransactionAsync();
+
+                try
                 {
-                    var exists = db.PagePermissions.Any(
-                        pp => pp.RoleName == roleName && pp.PageIdentifier == pageId && pp.PermissionKey == key);
-                    if (!exists)
+                    var entries = new[]
                     {
-                        db.PagePermissions.Add(new RFFM.Api.Domain.Entities.PagePermission(
-                            pageId, key, roleName,
-                            RFFM.Api.Domain.Entities.PermissionType.FromId(permTypeId),
-                            isEditable));
-                        logger?.LogDebug("Seeded PagePermission {Role} -> {Page}.{Key}", roleName, pageId, key);
-                    }
-                }
+                        // Roster page
+                        ("Roster", "view_all_ratings",  "Coach",       1, false),
+                        ("Roster", "edit_ratings",       "Coach",       3, false),
+                        ("Roster", "view_own_rating",    "Player",      1, false),
+                        ("Roster", "view_all_ratings",   "ClubDirector", 1, true),
+                        ("Roster", "view_own_rating",    "FamilyMember", 1, false),
+                    };
 
-                await db.SaveChangesAsync();
-                await tx.CommitAsync();
-            }
-            catch
-            {
-                await tx.RollbackAsync();
-                throw;
-            }
+                    foreach (var (pageId, key, roleName, permTypeId, isEditable) in entries)
+                    {
+                        var exists = db.PagePermissions.Any(
+                            pp => pp.RoleName == roleName && pp.PageIdentifier == pageId && pp.PermissionKey == key);
+                        if (!exists)
+                        {
+                            db.PagePermissions.Add(new RFFM.Api.Domain.Entities.PagePermission(
+                                pageId, key, roleName,
+                                RFFM.Api.Domain.Entities.PermissionType.FromId(permTypeId),
+                                isEditable));
+                            logger?.LogDebug("Seeded PagePermission {Role} -> {Page}.{Key}", roleName, pageId, key);
+                        }
+                    }
+
+                    await db.SaveChangesAsync();
+                    await tx.CommitAsync();
+                }
+                catch
+                {
+                    await tx.RollbackAsync();
+                    throw;
+                }
+            });
         }
     }
 }

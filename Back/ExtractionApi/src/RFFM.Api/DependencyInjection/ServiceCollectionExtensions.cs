@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Routing.Template;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
 using RFFM.Api.Common.Behaviors;
 using RFFM.Api.Domain.Services;
@@ -26,7 +27,8 @@ namespace RFFM.Api.DependencyInjection
     public static class ServiceCollectionExtensions
     {
         public static IServiceCollection AddAppServices(this IServiceCollection services,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            IHostEnvironment environment)
         {
             services.AddControllers()
                 .AddApplicationPart(typeof(App).Assembly);
@@ -57,68 +59,69 @@ namespace RFFM.Api.DependencyInjection
             services.AddScoped<EmailService>();
             services.AddScoped<IUserRegistrationEmailService, UserRegistrationEmailService>();
 
-            // Register IdentityDbContext if a connection string is present
-            var identityConn = configuration.GetConnectionString("IdentityConnection") ?? configuration.GetConnectionString("DefaultConnection");
-            if (!string.IsNullOrWhiteSpace(identityConn))
-            {
-                services.AddDbContext<IdentityDbContext>(options =>
-                    options.UseNpgsql(identityConn));
-            }
+            // Single shared connection string for all DbContexts
+            var futbolBaseConn = configuration.GetConnectionString("FutbolBaseConnection")
+                ?? throw new InvalidOperationException("Connection string 'FutbolBaseConnection' is required.");
 
-            // Register AppDbContext using CatalogConnection (required)
-            var catalogConn = configuration.GetConnectionString("CatalogConnection");
-            if (string.IsNullOrWhiteSpace(catalogConn))
-            {
-                throw new InvalidOperationException("Connection string 'CatalogConnection' is required.");
-            }
-
-            services.AddDbContext<AppDbContext>(options =>
-            {
-                options.UseNpgsql(catalogConn, npgsqlOptions =>
+            services.AddDbContext<IdentityDbContext>(options =>
+                options.UseNpgsql(futbolBaseConn, npgsqlOptions =>
                 {
                     npgsqlOptions.EnableRetryOnFailure(
                         maxRetryCount: 5,
                         maxRetryDelay: TimeSpan.FromSeconds(30),
                         errorCodesToAdd: null);
+                    npgsqlOptions.CommandTimeout(120);
+                    npgsqlOptions.MigrationsHistoryTable("__EFMigrationsHistory", "identity");
+                }));
 
-                    npgsqlOptions.CommandTimeout(60);
+            services.AddDbContext<AppDbContext>(options =>
+            {
+                options.UseNpgsql(futbolBaseConn, npgsqlOptions =>
+                {
+                    npgsqlOptions.EnableRetryOnFailure(
+                        maxRetryCount: 5,
+                        maxRetryDelay: TimeSpan.FromSeconds(30),
+                        errorCodesToAdd: null);
+                    npgsqlOptions.CommandTimeout(120);
+                    npgsqlOptions.MigrationsHistoryTable("__EFMigrationsHistory", "app");
                 });
 
                 options.ConfigureWarnings(warnings => warnings.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
             });
 
-            // Register FederationDbContext using FederationConnection (PostgreSQL)
-            var federationConn = configuration.GetConnectionString("FederationConnection");
-            if (!string.IsNullOrWhiteSpace(federationConn))
-            {
-                services.AddDbContext<FederationDbContext>(options =>
-                    options.UseNpgsql(federationConn, npgsqlOptions =>
-                    {
-                        npgsqlOptions.EnableRetryOnFailure(
-                            maxRetryCount: 3,
-                            maxRetryDelay: TimeSpan.FromSeconds(10),
-                            errorCodesToAdd: null);
-                        npgsqlOptions.CommandTimeout(60);
-                    }));
-            }
+            services.AddDbContext<FederationDbContext>(options =>
+                options.UseNpgsql(futbolBaseConn, npgsqlOptions =>
+                {
+                    npgsqlOptions.EnableRetryOnFailure(
+                        maxRetryCount: 5,
+                        maxRetryDelay: TimeSpan.FromSeconds(30),
+                        errorCodesToAdd: null);
+                    npgsqlOptions.CommandTimeout(120);
+                    npgsqlOptions.MigrationsHistoryTable("__EFMigrationsHistory", "federation");
+                }));
 
             // Register other domain services
             services.AddScoped<IActaService, ActaService>();
             services.AddScoped<IPlayerService, PlayerService>();
 
-            // Register Supabase client and storage service
-            // Set "Storage:UseLocal": true in appsettings.Development.json to force local storage
-            var useLocalStorage = configuration.GetValue<bool>("Storage:UseLocal");
-            var supabaseUrl = configuration["Supabase:Url"];
-            var supabaseKey = configuration["Supabase:ServiceKey"];
-            if (!useLocalStorage && !string.IsNullOrWhiteSpace(supabaseUrl) && !string.IsNullOrWhiteSpace(supabaseKey))
+            // Register Supabase client and storage service.
+            // Development defaults to local filesystem; deployed environments default to Supabase.
+            bool? useLocalStorage = configuration.GetSection("Storage").GetValue<bool?>("UseLocal");
+            var useLocalStorageResolved = useLocalStorage ?? environment.IsDevelopment();
+            var supabaseUrl = configuration["SupabaseStorage:Url"];
+            var supabaseKey = configuration["SupabaseStorage:ServiceKey"];
+            if (useLocalStorageResolved)
+            {
+                services.AddScoped<IStorageService, LocalStorageService>();
+            }
+            else if (!string.IsNullOrWhiteSpace(supabaseUrl) && !string.IsNullOrWhiteSpace(supabaseKey))
             {
                 services.AddSingleton(new Supabase.Client(supabaseUrl, supabaseKey));
                 services.AddScoped<IStorageService, SupabaseStorageService>();
             }
             else
             {
-                services.AddScoped<IStorageService, LocalStorageService>();
+                throw new InvalidOperationException("Supabase storage is required outside local development. Set Storage:UseLocal=true for local runs or provide Supabase configuration.");
             }
             services.AddScoped<RFFM.Api.Features.Coaches.Players.Services.IPlayerService, RFFM.Api.Features.Coaches.Players.Services.PlayerService>();
 

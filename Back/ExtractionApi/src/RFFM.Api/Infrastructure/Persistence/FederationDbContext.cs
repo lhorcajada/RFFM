@@ -13,6 +13,7 @@ namespace RFFM.Api.Infrastructure.Persistence
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+            modelBuilder.HasDefaultSchema("federation");
             modelBuilder.ApplyConfiguration(new FederationSettingEntityConfiguration());
         }
 

@@ -66,12 +66,16 @@ namespace RFFM.Api.Infrastructure.Migrations
                 oldClrType: typeof(string),
                 oldType: "text");
 
-            migrationBuilder.AddColumn<DateTime>(
-                name: "MasteredAt",
-                schema: "app",
-                table: "EssentialSkills",
-                type: "timestamp with time zone",
-                nullable: true);
+            migrationBuilder.Sql(@"
+                DO $$ BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_schema = 'app' AND table_name = 'EssentialSkills' AND column_name = 'MasteredAt'
+                    ) THEN
+                        ALTER TABLE app.""EssentialSkills"" ADD COLUMN ""MasteredAt"" timestamp with time zone;
+                    END IF;
+                END $$;
+            ");
 
             migrationBuilder.CreateTable(
                 name: "TaskTrainingSkills",
@@ -221,10 +225,7 @@ namespace RFFM.Api.Infrastructure.Migrations
                 schema: "app",
                 table: "TaskTrainingBases");
 
-            migrationBuilder.DropColumn(
-                name: "MasteredAt",
-                schema: "app",
-                table: "EssentialSkills");
+            migrationBuilder.Sql(@"ALTER TABLE app.""EssentialSkills"" DROP COLUMN IF EXISTS ""MasteredAt"";");
 
             migrationBuilder.AlterColumn<string>(
                 name: "SessionTrainingId",

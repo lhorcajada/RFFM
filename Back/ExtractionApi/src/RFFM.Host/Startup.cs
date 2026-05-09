@@ -6,6 +6,7 @@ using System.Data.Common;
 using System.Security.Claims;
 using Npgsql;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Extensions.Localization;
@@ -19,37 +20,27 @@ namespace RFFM.Host
     public class Startup
     {
         private readonly IConfiguration _configuration;
+        private readonly IHostEnvironment _environment;
 
-        public Startup(IConfiguration configuration)
+        public Startup(IConfiguration configuration, IHostEnvironment environment)
         {
             _configuration = configuration;
+            _environment = environment;
         }
 
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddAppServices(_configuration);
+            services.AddAppServices(_configuration, _environment);
 
-            // Register a shared DbConnection for AppDbContext / ReadOnlyCatalogDbContext
-            var catalogConn = _configuration.GetConnectionString("CatalogConnection");
-            if (!string.IsNullOrWhiteSpace(catalogConn))
+            // Shared DbConnection using the unified FutbolBaseConnection string
+            var futbolBaseConn = _configuration.GetConnectionString("FutbolBaseConnection");
+            if (!string.IsNullOrWhiteSpace(futbolBaseConn))
             {
-                services.AddScoped<DbConnection>(_ => new NpgsqlConnection(catalogConn));
+                services.AddScoped<DbConnection>(_ => new NpgsqlConnection(futbolBaseConn));
 
                 // Register EF DbContexts that depend on the DbConnection
                 services.AddDbContext<AppDbContext>();
                 services.AddDbContext<ReadOnlyCatalogDbContext>();
-
-                // Register IdentityDbContext using the same connection with retry policy
-                services.AddDbContext<IdentityDbContext>(options =>
-                    options.UseNpgsql(catalogConn, npgsqlOptions =>
-                    {
-                        npgsqlOptions.EnableRetryOnFailure(
-                            maxRetryCount: 5,
-                            maxRetryDelay: TimeSpan.FromSeconds(30),
-                            errorCodesToAdd: null
-                        );
-                        npgsqlOptions.CommandTimeout(60);
-                    }));
 
                 // Identity
                 services.AddIdentity<IdentityUser, IdentityRole>()

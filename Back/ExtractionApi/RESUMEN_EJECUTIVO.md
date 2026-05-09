@@ -1,39 +1,45 @@
-# ?? Resumen Ejecutivo - Actualización Docker y CI/CD
+# ?? Resumen Ejecutivo - Actualizaciï¿½n Docker y CI/CD
 
 ## ? Cambios Realizados
 
-### 1. Actualización a .NET 9
+### 1. Actualizaciï¿½n a .NET 9
 - ? Dockerfile actualizado a .NET 9.0
 - ? GitHub Actions workflow configurado para .NET 9
 - ? Build verificado y funcionando
 
-### 2. Configuración de Docker
+### 2. Configuraciï¿½n de Docker
 - ? `docker-compose.yml` - Servicios API + SQL Server
 - ? `docker-compose.override.yml` - Variables para desarrollo
 - ? `.env.example` - Template de variables de entorno
-- ? `docker-build-run.ps1` - Script de automatización
-- ? `.dockerignore` - Optimización de build
+- ? `docker-build-run.ps1` - Script de automatizaciï¿½n
+- ? `.dockerignore` - Optimizaciï¿½n de build
 
 ### 3. GitHub Actions + Azure
 - ? Workflow `back-azure-acr-deploy.yml` actualizado
-- ? Pipeline de CI/CD con build, test y deployment automático
-- ? Integración con Azure Container Registry
-- ? Deployment automático a Azure Web App
+- ? Pipeline de CI/CD con build, test y deployment automï¿½tico
+- ? Integraciï¿½n con Azure Container Registry
+- ? Deployment automï¿½tico a Azure Web App
 
-### 4. Documentación
-- ? `README.md` - Documentación principal del proyecto
-- ? `DOCKER_README.md` - Guía completa de Docker
-- ? `GITHUB_ACTIONS_AZURE_GUIDE.md` - Guía de CI/CD
-- ? `SETUP_CHECKLIST.md` - Lista de verificación paso a paso
+### 4. Documentaciï¿½n
+- ? `README.md` - Documentaciï¿½n principal del proyecto
+- ? `DOCKER_README.md` - Guï¿½a completa de Docker
+- ? `GITHUB_ACTIONS_AZURE_GUIDE.md` - Guï¿½a de CI/CD
+- ? `SETUP_CHECKLIST.md` - Lista de verificaciï¿½n paso a paso
 
-### 5. Scripts de Automatización
-- ? `setup-azure.ps1` - Configuración automática de Azure
-- ? `verify-setup.ps1` - Verificación de configuración
-- ? `docker-build-run.ps1` - Gestión de containers
+### 5. Almacenamiento de imï¿½genes por entorno
+- ? En desarrollo se usa el filesystem local por defecto (`Storage__UseLocal=true`)
+- ? En despliegue se usa Supabase Storage (`Storage__UseLocal=false`)
+- ? El directorio local puede overridearse con `LocalStorage__BasePath`
+- ? La selecciï¿½n la resuelve el backend, no el frontend
+
+### 6. Scripts de Automatizaciï¿½n
+- ? `setup-azure.ps1` - Configuraciï¿½n automï¿½tica de Azure
+- ? `verify-setup.ps1` - Verificaciï¿½n de configuraciï¿½n
+- ? `docker-build-run.ps1` - Gestiï¿½n de containers
 
 ---
 
-## ?? Próximos Pasos (IMPORTANTE)
+## ?? Prï¿½ximos Pasos (IMPORTANTE)
 
 ### 1?? Configurar Secretos en GitHub (OBLIGATORIO)
 ```
@@ -45,31 +51,31 @@ Crear estos 3 secretos:
 - **ACR_USERNAME**: `rffmregistry`
 - **ACR_PASSWORD**: [Obtenerlo de Azure Portal]
 
-?? **Guía detallada**: `SETUP_CHECKLIST.md` (sección "Configuración de GitHub Secrets")
+?? **Guï¿½a detallada**: `SETUP_CHECKLIST.md` (secciï¿½n "Configuraciï¿½n de GitHub Secrets")
 
 ### 2?? Habilitar Admin User en Azure Container Registry
 ```bash
-# Opción A: Ejecutar script
+# Opciï¿½n A: Ejecutar script
 .\setup-azure.ps1
 
-# Opción B: Azure CLI
+# Opciï¿½n B: Azure CLI
 az acr update -n rffmregistry --admin-enabled true
 
-# Opción C: Azure Portal
+# Opciï¿½n C: Azure Portal
 # Container Registry ? Access keys ? Enable "Admin user"
 ```
 
 ### 3?? Configurar Azure Web App
 ```bash
-# Ejecutar script de configuración automática
+# Ejecutar script de configuraciï¿½n automï¿½tica
 .\setup-azure.ps1
 
-# O seguir la guía manual en SETUP_CHECKLIST.md
+# O seguir la guï¿½a manual en SETUP_CHECKLIST.md
 ```
 
-### 4?? Verificar Configuración
+### 4?? Verificar Configuraciï¿½n
 ```bash
-# Ejecutar verificación automática
+# Ejecutar verificaciï¿½n automï¿½tica
 .\verify-setup.ps1
 ```
 
@@ -82,7 +88,7 @@ git push origin main
 
 ---
 
-## ?? Cómo Usar
+## ?? Cï¿½mo Usar
 
 ### Desarrollo Local con Docker
 ```bash
@@ -99,12 +105,12 @@ cp .env.example .env
 # Swagger: https://localhost:7287/swagger
 ```
 
-### Deployment Automático
+### Deployment Automï¿½tico
 ```bash
 # Simplemente hacer push a main
 git push origin main
 
-# GitHub Actions automáticamente:
+# GitHub Actions automï¿½ticamente:
 # 1. Compila el proyecto
 # 2. Ejecuta tests
 # 3. Construye imagen Docker
@@ -134,7 +140,7 @@ git push origin main
 ### Archivos Modificados
 ```
 ?? src/RFFM.Host/Dockerfile (actualizado a .NET 9)
-?? ../../.github/workflows/back-azure-acr-deploy.yml (mejorado con .NET 9 y mejores prácticas)
+?? ../../.github/workflows/back-azure-acr-deploy.yml (mejorado con .NET 9 y mejores prï¿½cticas)
 ```
 
 ---
@@ -147,31 +153,31 @@ git push origin main
 | Dockerfile | ? OK | Actualizado a .NET 9 |
 | Docker Compose | ? OK | Configurado para desarrollo |
 | GitHub Workflow | ? OK | Listo para usar |
-| Documentación | ? OK | Completa y detallada |
+| Documentaciï¿½n | ? OK | Completa y detallada |
 | Scripts | ? OK | Probados y funcionales |
-| Azure Secrets | ? PENDIENTE | Requiere configuración manual |
-| Azure Web App | ? PENDIENTE | Requiere configuración manual |
+| Azure Secrets | ? PENDIENTE | Requiere configuraciï¿½n manual |
+| Azure Web App | ? PENDIENTE | Requiere configuraciï¿½n manual |
 
 ---
 
-## ?? Acciones Críticas Requeridas
+## ?? Acciones Crï¿½ticas Requeridas
 
 ### Para que el pipeline funcione, DEBES:
 
 1. **Configurar secretos en GitHub** (5 minutos)
-   - Sin esto, el workflow fallará al intentar subir a ACR
+   - Sin esto, el workflow fallarï¿½ al intentar subir a ACR
 
 2. **Habilitar Admin User en ACR** (1 minuto)
-   - Sin esto, el workflow no podrá autenticarse
+   - Sin esto, el workflow no podrï¿½ autenticarse
 
 3. **Configurar variables de entorno en Azure** (10 minutos)
-   - Sin esto, la API no funcionará correctamente en producción
+   - Sin esto, la API no funcionarï¿½ correctamente en producciï¿½n
 
-**?? Sigue la guía**: `SETUP_CHECKLIST.md` (tiene checkboxes para marcar cada paso)
+**?? Sigue la guï¿½a**: `SETUP_CHECKLIST.md` (tiene checkboxes para marcar cada paso)
 
 ---
 
-## ?? Ventajas de esta Configuración
+## ?? Ventajas de esta Configuraciï¿½n
 
 ### Desarrollo
 - ? Docker Compose para entorno local completo (API + SQL Server)
@@ -180,17 +186,17 @@ git push origin main
 - ? Hot reload durante desarrollo
 
 ### CI/CD
-- ? Build automático en cada push a main
-- ? Tests automáticos (cuando se agreguen)
-- ? Deployment automático a producción
-- ? Rollback fácil (usar tag específico)
+- ? Build automï¿½tico en cada push a main
+- ? Tests automï¿½ticos (cuando se agreguen)
+- ? Deployment automï¿½tico a producciï¿½n
+- ? Rollback fï¿½cil (usar tag especï¿½fico)
 - ? Logs y monitoreo integrados
 
 ### Operaciones
-- ? Scripts de verificación de configuración
-- ? Documentación completa y actualizada
+- ? Scripts de verificaciï¿½n de configuraciï¿½n
+- ? Documentaciï¿½n completa y actualizada
 - ? Troubleshooting guides incluidas
-- ? Comandos útiles documentados
+- ? Comandos ï¿½tiles documentados
 
 ---
 
@@ -198,15 +204,15 @@ git push origin main
 
 ### Si algo no funciona:
 
-1. **Ejecutar verificación**: `.\verify-setup.ps1`
+1. **Ejecutar verificaciï¿½n**: `.\verify-setup.ps1`
 2. **Revisar checklist**: `SETUP_CHECKLIST.md`
-3. **Consultar troubleshooting**: `GITHUB_ACTIONS_AZURE_GUIDE.md` (sección Troubleshooting)
+3. **Consultar troubleshooting**: `GITHUB_ACTIONS_AZURE_GUIDE.md` (secciï¿½n Troubleshooting)
 4. **Ver logs de Azure**:
    ```bash
    az webapp log tail --name rffmapi --resource-group rffm-resources
    ```
 
-### Comandos de diagnóstico rápido:
+### Comandos de diagnï¿½stico rï¿½pido:
 ```bash
 # Ver estado de todo
 .\verify-setup.ps1
@@ -214,7 +220,7 @@ git push origin main
 # Ver logs de API
 az webapp log tail --name rffmapi --resource-group rffm-resources
 
-# Ver última ejecución de GitHub Actions
+# Ver ï¿½ltima ejecuciï¿½n de GitHub Actions
 # https://github.com/lhorcajada/RFFM/actions
 
 # Reiniciar API en Azure
@@ -223,16 +229,16 @@ az webapp restart --name rffmapi --resource-group rffm-resources
 
 ---
 
-## ?? Conclusión
+## ?? Conclusiï¿½n
 
-Todo está configurado y listo para usar. Solo faltan los pasos de configuración de Azure y GitHub Secrets (documentados en `SETUP_CHECKLIST.md`).
+Todo estï¿½ configurado y listo para usar. Solo faltan los pasos de configuraciï¿½n de Azure y GitHub Secrets (documentados en `SETUP_CHECKLIST.md`).
 
-Una vez completados esos pasos, tendrás un pipeline de CI/CD completamente automatizado:
+Una vez completados esos pasos, tendrï¿½s un pipeline de CI/CD completamente automatizado:
 
 **Push to main ? Build ? Test ? Docker ? ACR ? Azure ? Production** ??
 
 ---
 
 **Fecha**: Diciembre 2025  
-**Versión**: .NET 9.0  
-**Estado**: ? Build OK - ? Pendiente configuración de secretos
+**Versiï¿½n**: .NET 9.0  
+**Estado**: ? Build OK - ? Pendiente configuraciï¿½n de secretos

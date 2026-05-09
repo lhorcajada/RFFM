@@ -13,6 +13,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Remove="migrations-archive\**" />
+    <EmbeddedResource Remove="migrations-archive\**" />
+    <None Remove="migrations-archive\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Content Include="Infrastructure\MasterData\Countries.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -78,7 +84,6 @@
 
   <ItemGroup>
     <Folder Include="Features\Users\" />
-    <Folder Include="Infrastructure\Migrations\Identity\" />
     <Folder Include="Infrastructure\Persistence\Migrations\Identity\" />
   </ItemGroup>
 

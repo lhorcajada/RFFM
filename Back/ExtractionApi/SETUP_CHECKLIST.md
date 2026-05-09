@@ -1,36 +1,36 @@
 # ? Azure + GitHub Actions - Setup Checklist
 
-## ?? Preparación Inicial
+## ?? Preparaciï¿½n Inicial
 
 - [ ] Tener cuenta de Azure activa
 - [ ] Azure CLI instalado localmente (`az --version`)
 - [ ] Docker Desktop instalado y funcionando
-- [ ] Permisos de Owner/Contributor en la suscripción de Azure
+- [ ] Permisos de Owner/Contributor en la suscripciï¿½n de Azure
 - [ ] Acceso de Admin al repositorio de GitHub
 
 ---
 
-## ?? Configuración de Azure Container Registry
+## ?? Configuraciï¿½n de Azure Container Registry
 
 ### Paso 1: Habilitar Admin User
 
-**Opción A - Azure Portal:**
+**Opciï¿½n A - Azure Portal:**
 - [ ] Ir a Azure Portal ? Container Registry ? `rffmregistry`
-- [ ] Click en "Access keys" en el menú lateral
+- [ ] Click en "Access keys" en el menï¿½ lateral
 - [ ] Activar toggle "Admin user"
 - [ ] Copiar:
   - [ ] Login server
   - [ ] Username
   - [ ] Password (cualquiera de las dos)
 
-**Opción B - Script PowerShell:**
+**Opciï¿½n B - Script PowerShell:**
 ```powershell
 .\setup-azure.ps1
 ```
 - [ ] Ejecutar script
 - [ ] Copiar las credenciales que muestra al final
 
-**Opción C - Azure CLI:**
+**Opciï¿½n C - Azure CLI:**
 ```bash
 az acr update -n rffmregistry --admin-enabled true
 az acr credential show --name rffmregistry
@@ -38,7 +38,7 @@ az acr credential show --name rffmregistry
 
 ---
 
-## ?? Configuración de GitHub Secrets
+## ?? Configuraciï¿½n de GitHub Secrets
 
 ### Ir a: `https://github.com/lhorcajada/RFFM/settings/secrets/actions`
 
@@ -67,7 +67,7 @@ az acr credential show --name rffmregistry
 
 ---
 
-## ?? Configuración de Azure Web App
+## ?? Configuraciï¿½n de Azure Web App
 
 ### Paso 1: Configurar Container Registry
 
@@ -111,6 +111,9 @@ az webapp deployment container config \
 | `Cors__AllowedOrigins__0` | `https://rffm.netlify.app` | - |
 | `Cors__AllowedOrigins__1` | `https://localhost:5173` | Para desarrollo |
 | `ASPNETCORE_ENVIRONMENT` | `Production` | - |
+| `Storage__UseLocal` | `false` | Usa Supabase en despliegue |
+| `SupabaseStorage__Url` | `https://your-project.supabase.co` | URL del proyecto Supabase |
+| `SupabaseStorage__ServiceKey` | `[Service key de Supabase]` | Clave privada para Storage |
 
 #### Connection Strings (separado):
 - [ ] Click "New connection string"
@@ -121,7 +124,7 @@ az webapp deployment container config \
 | `AzureBlobStorage` | `DefaultEndpointsProtocol=https;AccountName=futbolbase;AccountKey=...;EndpointSuffix=core.windows.net` | Custom |
 
 - [ ] Click "Save" (importante!)
-- [ ] Click "Continue" en el diálogo de confirmación
+- [ ] Click "Continue" en el diï¿½logo de confirmaciï¿½n
 
 ---
 
@@ -140,7 +143,7 @@ git push origin main
 
 ### Paso 3: Monitorear Deployment
 - [ ] Ir a: `https://github.com/lhorcajada/RFFM/actions`
-- [ ] Verificar que el workflow se está ejecutando
+- [ ] Verificar que el workflow se estï¿½ ejecutando
 - [ ] Esperar a que termine (verde ?)
 
 ### Paso 4: Verificar en Azure
@@ -150,7 +153,7 @@ git push origin main
 
 ---
 
-## ? Verificación Final
+## ? Verificaciï¿½n Final
 
 ### API Funcionando:
 - [ ] Acceder a: `https://rffmapi.azurewebsites.net/swagger`
@@ -165,8 +168,8 @@ git push origin main
 ```bash
 az webapp log tail --name rffmapi --resource-group rffm-resources
 ```
-- [ ] Los logs muestran la aplicación iniciando correctamente
-- [ ] No hay errores críticos
+- [ ] Los logs muestran la aplicaciï¿½n iniciando correctamente
+- [ ] No hay errores crï¿½ticos
 
 ### Test de Login (desde frontend):
 - [ ] El frontend puede hacer login correctamente
@@ -182,14 +185,14 @@ Ahora, cada vez que hagas:
 git push origin main
 ```
 
-Automáticamente:
+Automï¿½ticamente:
 1. ? GitHub Actions compila el proyecto
 2. ? Ejecuta tests (si existen)
 3. ? Construye imagen Docker
 4. ? Sube imagen a Azure Container Registry
 5. ? Azure Web App detecta nueva imagen
 6. ? Azure Web App descarga y ejecuta nueva imagen
-7. ? API actualizada en producción
+7. ? API actualizada en producciï¿½n
 
 ---
 
@@ -197,10 +200,10 @@ Automáticamente:
 
 ### Workflow falla en "Build and push Docker image"
 - [ ] Verificar secretos en GitHub (typos?)
-- [ ] Verificar que Admin user está habilitado en ACR
+- [ ] Verificar que Admin user estï¿½ habilitado en ACR
 
 ### Web App no actualiza
-- [ ] Verificar Continuous Deployment está ON
+- [ ] Verificar Continuous Deployment estï¿½ ON
 - [ ] Manualmente reiniciar: `az webapp restart --name rffmapi --resource-group rffm-resources`
 
 ### Error 500 en la API
@@ -214,25 +217,25 @@ Automáticamente:
 
 ---
 
-## ?? Comandos de Diagnóstico
+## ?? Comandos de Diagnï¿½stico
 
 ```bash
 # Ver logs en tiempo real
 az webapp log tail --name rffmapi --resource-group rffm-resources
 
-# Ver configuración actual
+# Ver configuraciï¿½n actual
 az webapp config show --name rffmapi --resource-group rffm-resources
 
 # Ver variables de entorno
 az webapp config appsettings list --name rffmapi --resource-group rffm-resources
 
-# Ver imágenes en ACR
+# Ver imï¿½genes en ACR
 az acr repository show-tags --name rffmregistry --repository rffm-api --output table
 
 # Reiniciar Web App
 az webapp restart --name rffmapi --resource-group rffm-resources
 
-# Forzar pull de última imagen
+# Forzar pull de ï¿½ltima imagen
 az webapp config container set \
   --name rffmapi \
   --resource-group rffm-resources \
@@ -243,6 +246,6 @@ az webapp config container set \
 
 ## ?? Todo Listo!
 
-Si todos los checkboxes están marcados, tu pipeline de CI/CD está completamente configurado y funcional.
+Si todos los checkboxes estï¿½n marcados, tu pipeline de CI/CD estï¿½ completamente configurado y funcional.
 
-**Siguiente commit a `main` = Deployment automático a producción** ??
+**Siguiente commit a `main` = Deployment automï¿½tico a producciï¿½n** ??

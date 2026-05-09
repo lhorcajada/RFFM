@@ -21,6 +21,8 @@ namespace RFFM.Api.Infrastructure.Migrations.Federation
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.HasDefaultSchema("federation");
+
             modelBuilder.Entity("RFFM.Api.Domain.Entities.Federation.FederationSetting", b =>
                 {
                     b.Property<string>("Id")
@@ -69,7 +71,7 @@ namespace RFFM.Api.Infrastructure.Migrations.Federation
 
                     b.HasIndex("UserId", "IsPrimary");
 
-                    b.ToTable("FederationSettings", (string)null);
+                    b.ToTable("FederationSettings", "federation");
                 });
 #pragma warning restore 612, 618
         }
