@@ -20,8 +20,10 @@ import { fetchPlayerPhoto } from "../../../services/playerService";
 import {
   createRating,
   getRatingHistory,
+  getTeamLatestRatings,
   type CharacteristicAnswer,
 } from "../../../services/playerRatingService";
+import { getPlayersByTeam } from "../../../services/teamplayerService";
 import {
   FIELD_PLAYER_CHARACTERISTICS,
   GOALKEEPER_CHARACTERISTICS,
@@ -30,6 +32,8 @@ import {
   type CharacteristicDef,
 } from "./ratingConcepts";
 import type { PlayerRating } from "../../../types/playerRating";
+import { getAnswerLevel } from "../../../types/playerRating";
+import type { PlayerResponse } from "../../../services/teamplayerService";
 
 import styles from "./NewRatingPage.module.css";
 
@@ -37,6 +41,29 @@ function isGoalkeeperDemarcation(demarcation?: string | null): boolean {
   if (!demarcation) return false;
   const d = demarcation.toLowerCase();
   return d.includes("portero") || d.includes("keeper") || d.includes("arquero");
+}
+
+function positionCategory(position?: string | null): number {
+  const normalized = (position ?? "").toLowerCase();
+  if (!normalized) return 4;
+  if (normalized.includes("portero") || normalized.includes("keeper") || normalized.includes("arquero")) return 0;
+  if (
+    normalized.includes("defensa") || normalized.includes("central") || normalized.includes("lateral") ||
+    normalized.includes("libero") || normalized.includes("stopper")
+  ) return 1;
+  if (
+    normalized.includes("centrocampista") || normalized.includes("medio") || normalized.includes("pivote") ||
+    normalized.includes("interior") || normalized.includes("volante")
+  ) return 2;
+  if (
+    normalized.includes("delantero") || normalized.includes("extremo") || normalized.includes("punta") ||
+    normalized.includes("ariete") || normalized.includes("winger")
+  ) return 3;
+  return 4;
+}
+
+function formatPlayerName(player: PlayerResponse): string {
+  return `${player.name ?? ""} ${player.lastName ?? ""}`.trim() || player.alias || player.id;
 }
 
 export default function NewRatingPage() {
@@ -49,6 +76,9 @@ export default function NewRatingPage() {
   const [playerDorsal, setPlayerDorsal] = useState<number | null>(null);
   const [playerPhoto, setPlayerPhoto] = useState<string | null>(null);
   const [isGoalkeeper, setIsGoalkeeper] = useState(false);
+  const [playerPosition, setPlayerPosition] = useState<string | null>(null);
+  const [teamPlayers, setTeamPlayers] = useState<PlayerResponse[]>([]);
+  const [latestTeamRatings, setLatestTeamRatings] = useState<Record<string, PlayerRating>>({});
   const [loadingPlayer, setLoadingPlayer] = useState(true);
   const [answers, setAnswers] = useState<Record<string, CharacteristicAnswer>>({});
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
@@ -62,43 +92,63 @@ export default function NewRatingPage() {
     if (!playerId) return;
     setLoadingPlayer(true);
     Promise.all([getTeamPlayerById(playerId), getRatingHistory(playerId)])
-      .then(([tp, history]) => {
-        if (tp) {
-          const name = `${tp.player?.name ?? ""} ${tp.player?.lastName ?? ""}`.trim() || tp.id;
-          setPlayerName(name);
-          setPlayerDorsal(tp.dorsal ?? tp.player?.dorsal ?? null);
-          const photoUrl = tp.player?.urlPhoto ?? tp.player?.photoUrl ?? null;
-          if (photoUrl) {
-            fetchPlayerPhoto(photoUrl).then((obj) => { if (obj) setPlayerPhoto(obj); }).catch(() => {});
-          }
+      .then(async ([tp, history]) => {
+        if (!tp) return;
 
-          const demarcation = tp.demarcation?.activePositionName ?? null;
-          const goalkeeper = isGoalkeeperDemarcation(demarcation);
-          setIsGoalkeeper(goalkeeper);
+        const name = `${tp.player?.name ?? ""} ${tp.player?.lastName ?? ""}`.trim() || tp.id;
+        setPlayerName(name);
+        setPlayerDorsal(tp.dorsal ?? tp.player?.dorsal ?? null);
+        const photoUrl = tp.player?.urlPhoto ?? tp.player?.photoUrl ?? null;
+        if (photoUrl) {
+          fetchPlayerPhoto(photoUrl).then((obj) => { if (obj) setPlayerPhoto(obj); }).catch(() => {});
+        }
 
-          const orderedHistory = [...history].sort(
-            (a, b) => new Date(b.ratedAt).getTime() - new Date(a.ratedAt).getTime(),
+        const demarcation = tp.demarcation?.activePositionName ?? tp.player?.position ?? null;
+        const goalkeeper = isGoalkeeperDemarcation(demarcation);
+        setIsGoalkeeper(goalkeeper);
+        setPlayerPosition(demarcation);
+
+        const orderedHistory = [...history].sort(
+          (a, b) => new Date(b.ratedAt).getTime() - new Date(a.ratedAt).getTime(),
+        );
+        const last = orderedHistory[0] ?? null;
+        setLatestRating(last);
+
+        if (last) {
+          const validKeys = new Set(
+            (goalkeeper ? GOALKEEPER_CHARACTERISTICS : FIELD_PLAYER_CHARACTERISTICS).map((c) => c.key),
           );
-          const last = orderedHistory[0] ?? null;
-          setLatestRating(last);
+          const prefilled = last.answers
+            .filter((a) => validKeys.has(a.characteristicKey))
+            .reduce<Record<string, CharacteristicAnswer>>((acc, a) => {
+              acc[a.characteristicKey] = {
+                characteristicKey: a.characteristicKey,
+                level: a.level,
+                concept: a.concept,
+                categoryKey: a.categoryKey,
+              };
+              return acc;
+            }, {});
+          setAnswers(prefilled);
+          setNotes(last.notes ?? "");
+        }
 
-          if (last) {
-            const validKeys = new Set(
-              (goalkeeper ? GOALKEEPER_CHARACTERISTICS : FIELD_PLAYER_CHARACTERISTICS).map((c) => c.key),
-            );
-            const prefilled = last.answers
-              .filter((a) => validKeys.has(a.characteristicKey))
-              .reduce<Record<string, CharacteristicAnswer>>((acc, a) => {
-                acc[a.characteristicKey] = {
-                  characteristicKey: a.characteristicKey,
-                  level: a.level,
-                  concept: a.concept,
-                  categoryKey: a.categoryKey,
-                };
+        if (tp.teamId) {
+          try {
+            const [squadPlayers, teamRatings] = await Promise.all([
+              getPlayersByTeam(tp.teamId),
+              getTeamLatestRatings(tp.teamId),
+            ]);
+            setTeamPlayers(squadPlayers);
+            setLatestTeamRatings(
+              teamRatings.reduce<Record<string, PlayerRating>>((acc, rating) => {
+                acc[rating.teamPlayerId] = rating;
                 return acc;
-              }, {});
-            setAnswers(prefilled);
-            setNotes(last.notes ?? "");
+              }, {}),
+            );
+          } catch {
+            setTeamPlayers([]);
+            setLatestTeamRatings({});
           }
         }
       })
@@ -128,6 +178,41 @@ export default function NewRatingPage() {
   const selectedChar = selectedKey
     ? characteristics.find((c) => c.key === selectedKey) ?? null
     : null;
+
+  const peerRatings = useMemo(() => {
+    if (!selectedChar) return [];
+
+    const currentPositionCategory = positionCategory(playerPosition);
+    return teamPlayers
+      .filter((player) => player.id !== playerId)
+      .filter((player) => positionCategory(player.position) === currentPositionCategory)
+      .map((player) => {
+        const rating = latestTeamRatings[player.id];
+        return {
+          player,
+          rating,
+          level: rating ? getAnswerLevel(rating, selectedChar.key) : null,
+        };
+      })
+      .filter((item) => item.rating && item.rating.isGoalkeeper === isGoalkeeper)
+      .sort((a, b) => {
+        const levelA = a.level ?? -1;
+        const levelB = b.level ?? -1;
+        if (levelA !== levelB) return levelB - levelA;
+        return formatPlayerName(a.player).localeCompare(formatPlayerName(b.player), "es");
+      });
+  }, [isGoalkeeper, latestTeamRatings, playerId, playerPosition, selectedChar, teamPlayers]);
+
+  const peerRatingsByLevel = useMemo(() => {
+    const groupedByLevel = new Map<number, typeof peerRatings>();
+    for (const item of peerRatings) {
+      if (item.level == null) continue;
+      const existing = groupedByLevel.get(item.level) ?? [];
+      existing.push(item);
+      groupedByLevel.set(item.level, existing);
+    }
+    return groupedByLevel;
+  }, [peerRatings]);
 
   useEffect(() => {
     if (selectedKey) return;
@@ -295,14 +380,31 @@ export default function NewRatingPage() {
                   {selectedChar.levels.map((conceptLevel, idx) => {
                     const level = idx + 1;
                     const isActive = answers[selectedChar.key]?.level === level;
+                    const peersAtLevel = peerRatingsByLevel.get(level) ?? [];
                     return (
                       <button
                         key={level}
                         className={`${styles.conceptPill} ${isActive ? styles.conceptPillActive : ""}`}
                         onClick={() => selectLevel(level)}
                       >
-                        <span className={styles.conceptLevel}>{level}</span>
-                        <span className={styles.conceptText}>{conceptLevel.concept}</span>
+                        <span className={styles.conceptPillBody}>
+                          <span className={styles.conceptLevel}>{level}</span>
+                          <span className={styles.conceptText}>{conceptLevel.concept}</span>
+                        </span>
+                        <span className={styles.conceptPeers}>
+                          {peersAtLevel.length > 0 ? (
+                            peersAtLevel.map(({ player }) => (
+                              <span key={player.id} className={styles.conceptPeerChip}>
+                                <span className={styles.conceptPeerName}>{formatPlayerName(player)}</span>
+                                <span className={styles.conceptPeerMeta}>
+                                  {player.dorsal != null ? `#${player.dorsal}` : ""}
+                                </span>
+                              </span>
+                            ))
+                          ) : (
+                            <span className={styles.conceptPeerEmpty}>Sin comparativa</span>
+                          )}
+                        </span>
                       </button>
                     );
                   })}
