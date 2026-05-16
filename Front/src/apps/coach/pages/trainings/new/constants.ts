@@ -44,6 +44,8 @@ export const LINE_COLORS: LineColorOption[] = [
   { key: "black", value: "#1a1a1a", label: "Negro" },
 ];
 
+export const SPACE_COLORS: LineColorOption[] = LINE_COLORS;
+
 export const LINE_KIND_OPTIONS: LineKindOption[] = [
   { kind: "straight", label: "Recta" },
   { kind: "dashed", label: "Discontinua" },
@@ -73,6 +75,16 @@ export const petoOptions: PetoOption[] = [
   { key: "green", label: "Verde", color: "#2ecc71" },
   { key: "white", label: "Blanco", color: "#ecf0f1" },
   { key: "black", label: "Negro", color: "#2c3e50" },
+];
+
+export const anonymousChapaOptions: PetoOption[] = [
+  { key: "anon-yellow", label: "Amarilla", color: "#f1c40f" },
+  { key: "anon-orange", label: "Naranja", color: "#e67e22" },
+  { key: "anon-red", label: "Roja", color: "#e74c3c" },
+  { key: "anon-blue", label: "Azul", color: "#3498db" },
+  { key: "anon-green", label: "Verde", color: "#2ecc71" },
+  { key: "anon-white", label: "Blanca", color: "#ecf0f1" },
+  { key: "anon-black", label: "Negra", color: "#2c3e50" },
 ];
 
 export const emptyExercise: CreateExerciseRequest = {

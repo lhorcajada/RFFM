@@ -3,20 +3,24 @@ import { useNavigate } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
-import EmptyState from "../../../../shared/components/ui/EmptyState/EmptyState";
 import configurationCoachService, {
   ConfigurationCoachDto,
   ConfigurationCoachRequest,
 } from "../../services/configurationCoachService";
 import clubService from "../../services/clubService";
 import teamService from "../../services/teamService";
+import seasonService, { type Season } from "../../services/seasonService";
+import SeasonManagementDialog from "./components/SeasonManagementDialog";
 import styles from "./Settings.module.css";
 import {
   Button,
+  Chip,
+  Stack,
   Select,
   MenuItem,
   FormControl,
   InputLabel,
+  Typography,
   Snackbar,
   Alert,
 } from "@mui/material";
@@ -29,8 +33,11 @@ const Settings: React.FC = () => {
   const [config, setConfig] = useState<ConfigurationCoachDto | null>(null);
   const [clubs, setClubs] = useState<{ id: string; name: string }[]>([]);
   const [teams, setTeams] = useState<{ id: string; name: string }[]>([]);
+  const [seasons, setSeasons] = useState<Season[]>([]);
   const [preferredClubId, setPreferredClubId] = useState<string | null>(null);
   const [preferredTeamId, setPreferredTeamId] = useState<string | null>(null);
+  const [seasonManagerOpen, setSeasonManagerOpen] = useState(false);
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [snackbar, setSnackbar] = useState<{
@@ -56,29 +63,30 @@ const Settings: React.FC = () => {
       const first = configs.length ? configs[0] : null;
       setConfig(first);
       setPreferredClubId(first?.preferredClubId ?? null);
-      if (first?.preferredClubId) {
-        const teamsResp = await teamService.getTeams(first.preferredClubId);
-        setTeams(
-          teamsResp.map((t) => ({
-            id: t.id,
-            name: t.name,
-          }))
-        );
-        // seleccionar el team guardado si existe
-        setPreferredTeamId(first?.preferredTeamId ?? null);
-      }
       setLoading(false);
     };
     load();
   }, []);
 
+  const activeSeason = seasons.find((season) => season.active ?? season.isActive) ?? null;
+
+  const formatSeasonDate = (value?: string | null) => {
+    if (!value) return "-";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value.slice(0, 10);
+    return date.toLocaleDateString("es-ES");
+  };
+
   useEffect(() => {
     const loadTeams = async () => {
       if (!preferredClubId) {
+        setSeasons([]);
         setTeams([]);
         setPreferredTeamId(null);
         return;
       }
+      const seasonsResp = await seasonService.getSeasons(preferredClubId);
+      setSeasons(seasonsResp);
       const teamsResp = await teamService.getTeams(preferredClubId);
       setTeams(
         teamsResp.map((t) => ({
@@ -86,9 +94,10 @@ const Settings: React.FC = () => {
           name: t.name,
         }))
       );
+      setPreferredTeamId(config?.preferredTeamId ?? null);
     };
     loadTeams();
-  }, [preferredClubId]);
+  }, [config?.preferredTeamId, preferredClubId]);
 
   const handleSave = async () => {
     const payload: ConfigurationCoachRequest = {
@@ -122,23 +131,6 @@ const Settings: React.FC = () => {
     }
   };
 
-  if (!loading && !config && clubs.length === 0) {
-    return (
-      <BaseLayout hideFooterMenu>
-        <ContentLayout title={"Ajustes"} subtitle={null}>
-          <div className={styles.root}>
-            <EmptyState
-              title="Sin clubes"
-              description="No hay clubes disponibles."
-            />
-          </div>
-        </ContentLayout>
-      </BaseLayout>
-    );
-  }
-
-  const navigate = useNavigate();
-
   const handleDeleteConfirmed = async () => {
     if (!config) return;
     try {
@@ -170,6 +162,36 @@ const Settings: React.FC = () => {
       <ContentLayout
         title={"Ajustes"}
         subtitle={<span>Configuración del entrenador</span>}
+        actionBar={
+          <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+            <Button
+              startIcon={<ArrowBackIcon />}
+              onClick={() => navigate("/coach/dashboard")}
+              variant="outlined"
+              size="small"
+            >
+              Volver
+            </Button>
+            {config && (
+              <Button
+                variant="outlined"
+                color="error"
+                onClick={() => setConfirmOpen(true)}
+                size="small"
+              >
+                Eliminar
+              </Button>
+            )}
+            <Button
+              onClick={handleSave}
+              variant="contained"
+              color="primary"
+              disabled={saving}
+            >
+              {saving ? "Guardando..." : "Guardar"}
+            </Button>
+          </Stack>
+        }
       >
         <div className={styles.root}>
           {/* ── Left category sidebar ── */}
@@ -184,29 +206,35 @@ const Settings: React.FC = () => {
             {/* Panel header */}
             <div className={styles.panelHeader}>
               <span className={styles.panelHeaderDot} />
-              <span className={styles.panelHeaderTitle}>Preferencias del entrenador</span>
+              <span className={styles.panelHeaderTitle}>Club y equipo preferido</span>
             </div>
 
             {/* Club preference row */}
             <div className={styles.settingRow}>
               <div className={styles.settingLabel}>Club preferido</div>
               <div className={styles.settingControl}>
-                <FormControl fullWidth size="small">
-                  <InputLabel id="club-label">Club</InputLabel>
-                  <Select
-                    labelId="club-label"
-                    value={preferredClubId ?? ""}
-                    label="Club"
-                    onChange={(e) => setPreferredClubId(e.target.value as string)}
-                  >
-                    <MenuItem value="">-- Ninguno --</MenuItem>
-                    {clubs.map((c) => (
-                      <MenuItem key={c.id} value={c.id}>
-                        {c.name}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+                {clubs.length === 0 && !loading ? (
+                  <div className={styles.emptyNotice}>
+                    Sin clubes. No hay clubes disponibles para configurar.
+                  </div>
+                ) : (
+                  <FormControl fullWidth size="small">
+                    <InputLabel id="club-label">Club</InputLabel>
+                    <Select
+                      labelId="club-label"
+                      value={preferredClubId ?? ""}
+                      label="Club"
+                      onChange={(e) => setPreferredClubId(e.target.value as string)}
+                    >
+                      <MenuItem value="">-- Ninguno --</MenuItem>
+                      {clubs.map((c) => (
+                        <MenuItem key={c.id} value={c.id}>
+                          {c.name}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                )}
               </div>
             </div>
 
@@ -234,38 +262,63 @@ const Settings: React.FC = () => {
               </div>
             </div>
 
-            {/* Actions bar */}
-            <div className={styles.actions}>
-              <Button
-                startIcon={<ArrowBackIcon />}
-                onClick={() => navigate("/coach/dashboard")}
-                variant="outlined"
-                size="small"
-              >
-                Volver
-              </Button>
-              {config && (
-                <Button
-                  variant="outlined"
-                  color="error"
-                  onClick={() => setConfirmOpen(true)}
-                  size="small"
-                >
-                  Eliminar
-                </Button>
-              )}
-              <Button
-                onClick={handleSave}
-                variant="contained"
-                color="primary"
-                disabled={saving}
-              >
-                {saving ? "Guardando..." : "Guardar"}
-              </Button>
+            <div className={styles.sectionBlock}>
+              <div className={styles.sectionHeader}>
+                <span className={styles.panelHeaderDot} />
+                <span className={styles.panelHeaderTitle}>Temporadas</span>
+              </div>
+
+              <div className={styles.seasonSummary}>
+                <div className={styles.seasonMeta}>
+                  <Typography variant="subtitle2" className={styles.sectionTitle}>
+                    Temporada activa
+                  </Typography>
+                  {activeSeason ? (
+                    <>
+                      <Typography variant="body2" className={styles.seasonName}>
+                        {activeSeason.name ?? activeSeason.id}
+                      </Typography>
+                      <Typography variant="body2" className={styles.seasonRange}>
+                        {formatSeasonDate(activeSeason.startDate)} - {formatSeasonDate(activeSeason.endDate)}
+                      </Typography>
+                    </>
+                  ) : (
+                    <div className={styles.emptyNotice}>
+                      No hay temporada activa. Entra al formulario para crear o activar una temporada.
+                    </div>
+                  )}
+                </div>
+
+                <div className={styles.sectionActions}>
+                  <Chip
+                    label={seasons.length > 0 ? `${seasons.length} temporadas` : "Sin temporadas"}
+                    size="small"
+                    variant="outlined"
+                  />
+                  <Button
+                    variant="contained"
+                    size="small"
+                    onClick={() => setSeasonManagerOpen(true)}
+                  >
+                    Administrar temporadas
+                  </Button>
+                </div>
+              </div>
             </div>
+
           </div>
         </div>
       </ContentLayout>
+      <SeasonManagementDialog
+        clubId={preferredClubId ?? ""}
+        open={seasonManagerOpen}
+        onClose={() => setSeasonManagerOpen(false)}
+        onChanged={async () => {
+          if (!preferredClubId) return;
+          const latestSeasons = await seasonService.getSeasons(preferredClubId);
+          setSeasons(latestSeasons);
+        }}
+      />
       <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
         <DialogTitle>Eliminar configuración</DialogTitle>
         <DialogContent>

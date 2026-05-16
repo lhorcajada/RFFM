@@ -9,7 +9,6 @@ import {
   FormControl,
   CircularProgress,
 } from "@mui/material";
-import CoachDialog from "../../../components/CoachDialog/CoachDialog";
 import styles from "./CreateClub.module.css";
 import clubService from "../../../services/clubService";
 import MembershipRole from "../../../types/MembershipRole";

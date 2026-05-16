@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { NavigateFunction } from "react-router-dom";
+import { client } from "../../../../../../core/api/client";
 import gameModelService from "../../../../services/gameModelService";
 import trainingService from "../../../../services/trainingService";
 import type {
   CreateExerciseRequest,
+  Exercise,
   ExerciseCondition,
   ExerciseSection,
+  UpdateExerciseRequest,
   ExerciseType,
 } from "../../../../types/training";
 import { emptyExercise } from "../constants";
@@ -16,6 +19,7 @@ interface UseExerciseFormParams {
   subSubPrincipleId: string | null;
   navigate: NavigateFunction;
   returnTo: string;
+  getBoardStateJson?: () => string;
 }
 
 export function useExerciseForm({
@@ -23,7 +27,9 @@ export function useExerciseForm({
   subSubPrincipleId,
   navigate,
   returnTo,
+  getBoardStateJson,
 }: UseExerciseFormParams) {
+  const [resolvedSubSubPrincipleId, setResolvedSubSubPrincipleId] = useState<string | null>(subSubPrincipleId);
   const [form, setForm] = useState<CreateExerciseRequest>({
     ...emptyExercise,
     clubId,
@@ -47,6 +53,61 @@ export function useExerciseForm({
   const [savingCondition, setSavingCondition] = useState(false);
   const [savedExerciseId, setSavedExerciseId] = useState<string | null>(null);
 
+  const applyExercise = async (exercise: Exercise, asCopy: boolean) => {
+    setResolvedSubSubPrincipleId(exercise.subSubPrincipleId ?? subSubPrincipleId ?? null);
+    setForm({
+      clubId,
+      name: exercise.name,
+      description: exercise.description,
+      type: exercise.type,
+      section: exercise.section,
+      durationTotal: exercise.durationTotal,
+      playersNumber: exercise.playersNumber,
+      goalPeekersNumber: exercise.goalPeekersNumber,
+      fieldSpace: exercise.fieldSpace,
+      subSubPrincipleId: exercise.subSubPrincipleId ?? subSubPrincipleId ?? null,
+      essentialSkillIds: exercise.skills.map((skill) => skill.essentialSkillId),
+      boardStateJson: exercise.boardStateJson ?? null,
+      touchesNumber: exercise.touchesNumber ?? 0,
+      wildCards: exercise.wildCards ?? 0,
+      series: exercise.series ?? 0,
+      durationSeries: exercise.durationSeries ?? 0,
+      restSeries: exercise.restSeries ?? 0,
+    });
+
+    setSavedExerciseId(asCopy ? null : exercise.id);
+    setConditions(exercise.conditions ?? []);
+    setConditionInput("");
+    setEditingCondition(null);
+    setPendingFile(null);
+
+    if (previewUrl?.startsWith("blob:")) {
+      URL.revokeObjectURL(previewUrl);
+    }
+
+    if (exercise.urlImage) {
+      const base = (client.defaults.baseURL ?? "/").replace(/\/$/, "");
+      const preview = `${base}/api/local-storage/${exercise.urlImage}`;
+      setPreviewUrl(preview);
+
+      if (asCopy) {
+        try {
+          const response = await fetch(preview);
+          if (response.ok) {
+            const blob = await response.blob();
+            const guessedName = exercise.urlImage.split("/").pop() ?? "media";
+            const file = new File([blob], guessedName, { type: blob.type || "application/octet-stream" });
+            setPendingFile(file);
+          }
+        } catch {
+          setPendingFile(null);
+        }
+      }
+    } else {
+      setPreviewUrl(null);
+    }
+  };
+
   useEffect(() => {
     return () => {
       if (previewUrl?.startsWith("blob:")) {
@@ -56,21 +117,25 @@ export function useExerciseForm({
   }, [previewUrl]);
 
   useEffect(() => {
+    setResolvedSubSubPrincipleId(subSubPrincipleId);
     setForm({ ...emptyExercise, clubId, subSubPrincipleId });
   }, [clubId, subSubPrincipleId]);
 
   useEffect(() => {
-    if (!subSubPrincipleId) {
+    if (!resolvedSubSubPrincipleId) {
       setSkills([]);
       return;
     }
     setLoadingSkills(true);
     gameModelService
-      .getSubSubPrincipleSkills(subSubPrincipleId)
+      .getSubSubPrincipleSkills(resolvedSubSubPrincipleId)
       .then(setSkills)
       .catch(() => setSkills([]))
       .finally(() => setLoadingSkills(false));
-  }, [subSubPrincipleId]);
+  }, [resolvedSubSubPrincipleId]);
+
+  const loadExercise = (exercise: Exercise) => void applyExercise(exercise, false);
+  const loadExerciseAsCopy = (exercise: Exercise) => void applyExercise(exercise, true);
 
   const setField = (field: keyof CreateExerciseRequest, value: unknown) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -121,15 +186,31 @@ export function useExerciseForm({
     setError(null);
 
     try {
-      const created = await trainingService.createExercise(form);
-      const exerciseId = created.id;
+      const boardStateJson = getBoardStateJson?.() ?? null;
+      const exerciseId = savedExerciseId;
+
+      if (exerciseId) {
+        const { clubId: _c, ...update }: CreateExerciseRequest = form;
+        await trainingService.updateExercise(exerciseId, {
+          ...update,
+          boardStateJson,
+        });
+      } else {
+        const created = await trainingService.createExercise({
+          ...form,
+          boardStateJson,
+        });
+        setSavedExerciseId(created.id);
+
+        if (pendingFile) {
+          await trainingService.uploadExerciseMedia(created.id, pendingFile);
+        }
+        return;
+      }
 
       if (pendingFile) {
         await trainingService.uploadExerciseMedia(exerciseId, pendingFile);
       }
-
-      setSavedExerciseId(exerciseId);
-      navigate(returnTo, { replace: true });
     } catch {
       setError("Error al guardar el ejercicio.");
     } finally {
@@ -191,6 +272,8 @@ export function useExerciseForm({
     pendingFile,
     previewUrl,
     fileInputRef,
+    loadExercise,
+    loadExerciseAsCopy,
     conditions,
     conditionInput,
     setConditionInput,

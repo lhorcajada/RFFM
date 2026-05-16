@@ -20,7 +20,7 @@ namespace RFFM.Api.Tests.UnitTests
             var services = new ServiceCollection();
             var configuration = BuildConfiguration(new Dictionary<string, string?>
             {
-                ["ConnectionStrings:CatalogConnection"] = "Host=localhost;Database=rffm;Username=test;Password=test"
+                ["ConnectionStrings:FutbolBaseConnection"] = "Host=localhost;Database=rffm;Username=test;Password=test"
             });
 
             services.AddSingleton(configuration);
@@ -38,7 +38,7 @@ namespace RFFM.Api.Tests.UnitTests
             var services = new ServiceCollection();
             var configuration = BuildConfiguration(new Dictionary<string, string?>
             {
-                ["ConnectionStrings:CatalogConnection"] = "Host=localhost;Database=rffm;Username=test;Password=test",
+                ["ConnectionStrings:FutbolBaseConnection"] = "Host=localhost;Database=rffm;Username=test;Password=test",
                 ["Storage:UseLocal"] = "false",
                 ["SupabaseStorage:Url"] = "https://example.supabase.co",
                 ["SupabaseStorage:ServiceKey"] = "service-key"
@@ -59,7 +59,7 @@ namespace RFFM.Api.Tests.UnitTests
             var services = new ServiceCollection();
             var configuration = BuildConfiguration(new Dictionary<string, string?>
             {
-                ["ConnectionStrings:CatalogConnection"] = "Host=localhost;Database=rffm;Username=test;Password=test"
+                ["ConnectionStrings:FutbolBaseConnection"] = "Host=localhost;Database=rffm;Username=test;Password=test"
             });
 
             services.AddSingleton(configuration);

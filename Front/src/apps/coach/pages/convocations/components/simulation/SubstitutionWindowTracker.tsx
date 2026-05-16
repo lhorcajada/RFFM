@@ -11,6 +11,8 @@ interface SubstitutionWindowTrackerProps {
   canOpenWindow: boolean;
   half: 1 | 2;
   prepareMode: boolean;
+  showCounters?: boolean;
+  unlimitedWindows?: boolean;
   onPrepare: () => void;
   onCancel: () => void;
   onCommit: () => void;
@@ -22,6 +24,8 @@ export default function SubstitutionWindowTracker({
   canOpenWindow,
   half,
   prepareMode,
+  showCounters = true,
+  unlimitedWindows = false,
   onPrepare,
   onCancel,
   onCommit,
@@ -31,38 +35,49 @@ export default function SubstitutionWindowTracker({
 
   return (
     <div className={styles.root}>
-      {/* Total windows */}
-      <div className={styles.counter}>
-        <span className={styles.counterLabel}>Ventanas</span>
-        <div className={styles.dots}>
-          {totalDots.map((_, i) => (
-            <span
-              key={i}
-              className={`${styles.dot} ${i < windowsTotal ? styles.dotUsed : styles.dotFree}`}
-            />
-          ))}
-        </div>
-        <span className={styles.counterValue}>
-          {windowsTotal}/{MAX_TOTAL_WINDOWS}
-        </span>
-      </div>
-
-      {/* 2nd-half sub-counter */}
-      {half === 2 && (
-        <div className={styles.counter}>
-          <span className={styles.counterLabel}>2ª parte</span>
-          <div className={styles.dots}>
-            {halfDots.map((_, i) => (
-              <span
-                key={i}
-                className={`${styles.dot} ${
-                  i < windowsInSecondHalf ? styles.dotUsed : styles.dotFree
-                }`}
-              />
-            ))}
+      {showCounters ? (
+        <>
+          {/* Total windows */}
+          <div className={styles.counter}>
+            <span className={styles.counterLabel}>Ventanas</span>
+            <div className={styles.dots}>
+              {totalDots.map((_, i) => (
+                <span
+                  key={i}
+                  className={`${styles.dot} ${i < windowsTotal ? styles.dotUsed : styles.dotFree}`}
+                />
+              ))}
+            </div>
+            <span className={styles.counterValue}>
+              {windowsTotal}/{MAX_TOTAL_WINDOWS}
+            </span>
           </div>
+
+          {/* 2nd-half sub-counter */}
+          {half === 2 && (
+            <div className={styles.counter}>
+              <span className={styles.counterLabel}>2ª parte</span>
+              <div className={styles.dots}>
+                {halfDots.map((_, i) => (
+                  <span
+                    key={i}
+                    className={`${styles.dot} ${
+                      i < windowsInSecondHalf ? styles.dotUsed : styles.dotFree
+                    }`}
+                  />
+                ))}
+              </div>
+              <span className={styles.counterValue}>
+                {windowsInSecondHalf}/{MAX_SECOND_HALF_WINDOWS}
+              </span>
+            </div>
+          )}
+        </>
+      ) : (
+        <div className={styles.counter}>
+          <span className={styles.counterLabel}>Cambios</span>
           <span className={styles.counterValue}>
-            {windowsInSecondHalf}/{MAX_SECOND_HALF_WINDOWS}
+            {unlimitedWindows ? "Infinitos" : `${windowsTotal}`}
           </span>
         </div>
       )}

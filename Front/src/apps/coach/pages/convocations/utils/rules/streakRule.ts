@@ -1,5 +1,7 @@
 import type { Rule, RuleResult, RuleContext } from "./types";
 
+const STREAK_POINTS = [50, 45, 20, 15, 10, 5, 3] as const;
+
 function isTechnicalDecisionLocal(cell: any): boolean {
   if (!cell) return false;
   const NOT_CALLED_NAMES = new Set(["Deconvoke", "No disponible"]);
@@ -30,16 +32,15 @@ export default function streakRule(ctx: RuleContext, _prev: Record<string, RuleR
     recentTechnicalDecision = isTechnicalDecisionLocal(recentCell);
   }
 
-  // New discrete penalty tiers: from 7 jornadas onwards apply negative deltas.
-  // <7 jornadas keep the smoothed positive protection behavior.
   const s = Math.max(0, Math.floor(Number(effectiveStreak ?? 0)));
 
   let streakImpact: number;
-  if (s >= 7) {
-    if (s <= 10) streakImpact = -1;
-    else if (s <= 15) streakImpact = -2;
-    else if (s <= 20) streakImpact = -3;
-    else streakImpact = -4;
+  if (s >= 1) {
+    if (s <= STREAK_POINTS.length) {
+      streakImpact = STREAK_POINTS[s - 1];
+    } else {
+      streakImpact = STREAK_POINTS[STREAK_POINTS.length - 1];
+    }
   } else {
     // Compute continuously and round only at the end to avoid quantization steps for protected players
     let raw = STREAK_OFFSET - STREAK_SLOPE * s;
@@ -52,7 +53,7 @@ export default function streakRule(ctx: RuleContext, _prev: Record<string, RuleR
   const factor = {
     key: "streak",
     label: injuryAbsencesInStreak > 0
-      ? `Jornadas sin desconvocatoria técnica (${injuryAbsencesInStreak} de lesión descontadas)`
+      ? `Jornadas sin desconvocatoria técnica (${injuryAbsencesInStreak} de lesión/enfermedad/familia descontadas)`
       : "Jornadas sin desconvocatoria técnica",
     value: effectiveStreak,
     impact: Number(streakImpact.toFixed(2)),

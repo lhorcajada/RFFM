@@ -1,0 +1,189 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 8px 0 24px;
+}
+
+.noticeRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.noticeText {
+  font-size: 0.85rem;
+  opacity: 0.72;
+}
+
+.teamsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+@media (max-width: 1100px) {
+  .teamsGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.teamCard {
+  border-radius: 16px;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.02) 100%);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.teamHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.teamTitle {
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.teamSubtitle {
+  font-size: 0.72rem;
+  opacity: 0.58;
+}
+
+.teamFieldWrap {
+  padding: 12px;
+}
+
+.teamFieldFrame {
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.benchPanel {
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.015) 100%);
+  min-height: 0;
+}
+
+.benchHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.benchTitle {
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.benchCount {
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: rgba(255,255,255,0.09);
+}
+
+.benchGroups {
+  padding: 8px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 10px;
+  align-items: start;
+}
+
+.benchGroupColumn {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.benchGroupCards {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.benchGroupCards :global(.benchDragHandle) {
+  width: 100%;
+}
+
+.benchGroupCards :global(.benchCard) {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+}
+
+.benchGroupCards :global(.benchCardName) {
+  white-space: normal;
+}
+
+.benchGroupCards :global(.benchCardTopRow) {
+  align-items: center;
+}
+
+.benchGroupCards :global(.benchCardPosition) {
+  white-space: normal;
+}
+
+.benchGroupCards :global(.benchCardBottomRow) {
+  align-items: flex-start;
+}
+
+.benchGroupCards :global(.benchNoPlayTag) {
+  align-self: flex-end;
+}
+
+.benchGroupCards :global(.benchCardAvatar),
+.benchGroupCards :global(.benchCardInitials) {
+  width: 36px;
+  height: 36px;
+}
+
+.benchGroupCards :global(.benchCardDorsal) {
+  flex-shrink: 0;
+}
+
+.benchGroupCards :global(.benchCompTag) {
+  white-space: nowrap;
+}
+
+.benchZone {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.benchZoneStatic {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.teamTag {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 1px 7px;
+  margin-top: 2px;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  width: fit-content;
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.78);
+}

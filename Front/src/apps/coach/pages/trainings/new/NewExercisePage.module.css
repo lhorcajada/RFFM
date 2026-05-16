@@ -447,15 +447,51 @@
 }
 
 .chapasStrip {
-  min-height: 88px;
+  min-height: 122px;
   border-top: 1px solid rgba(77, 157, 224, 0.2);
   background: rgba(6, 10, 24, 0.95);
   display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding: 8px 12px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.chapasStripGroup {
+  display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 12px;
+  min-width: 0;
+}
+
+.chapasStripLabel {
+  flex: 0 0 auto;
+  min-width: 86px;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(221, 238, 255, 0.72);
+}
+
+.chapasStripRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
   overflow-x: auto;
-  flex-shrink: 0;
+  padding-bottom: 2px;
+}
+
+.chapasStripAnonRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  overflow-x: auto;
+  padding-bottom: 2px;
 }
 
 .spacesStrip {
@@ -709,6 +745,10 @@
   cursor: grab;
 }
 
+.materialSelected {
+  z-index: 34;
+}
+
 .materialDragging {
   opacity: 0.7;
 }
@@ -891,6 +931,14 @@
   z-index: 6;
   cursor: grab;
   user-select: none;
+}
+
+.spaceMenuOpen {
+  z-index: 120;
+}
+
+.spaceSelected {
+  z-index: 40;
 }
 
 .spaceRotatedContent {
@@ -1090,6 +1138,10 @@
     0 2px 6px rgba(0, 0, 0, 0.4);
 }
 
+.chapaSelected {
+  z-index: 38;
+}
+
 .chapaOnField .chapaDorsal {
   font-size: clamp(0.58rem, 1.15vw, 0.84rem);
 }
@@ -1140,7 +1192,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  z-index: 30;
+  z-index: 9999;
   box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45);
 }
 

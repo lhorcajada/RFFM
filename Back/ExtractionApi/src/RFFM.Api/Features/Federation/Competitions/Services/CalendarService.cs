@@ -31,7 +31,7 @@ namespace RFFM.Api.Features.Federation.Competitions.Services
             var positions = await GetTeamPositionsAsync(groupId, cancellationToken);
 
             var calendarResponse = new CalendarResponse();
-            for (var workingDayNumber = 1; workingDayNumber < workingDays; workingDayNumber++)
+            for (var workingDayNumber = 1; workingDayNumber <= workingDays; workingDayNumber++)
             {
                 var workingDay = await GetWorkingDayAsync(groupId, workingDayNumber, positions, cancellationToken);
                 calendarResponse.MatchDays.Add(workingDay);

@@ -18,11 +18,11 @@ namespace RFFM.Api.Features.Coaches.SeasonPrep
         public void AddRoutes(IEndpointRouteBuilder app)
         {
             app.MapGet("api/season-prep/session",
-                    async (IMediator mediator, HttpContext httpContext, CancellationToken cancellationToken) =>
+                    async (string? sportEventId, IMediator mediator, HttpContext httpContext, CancellationToken cancellationToken) =>
                     {
                         var userId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
                                      ?? throw new UnauthorizedAccessException("Usuario no autenticado");
-                        var result = await mediator.Send(new GetSeasonPrepSessionQuery(userId), cancellationToken);
+                        var result = await mediator.Send(new GetSeasonPrepSessionQuery(userId, sportEventId), cancellationToken);
                         return result is not null ? Results.Ok(result) : Results.NoContent();
                     })
                 .WithName(nameof(GetSeasonPrepSession))
@@ -35,7 +35,7 @@ namespace RFFM.Api.Features.Coaches.SeasonPrep
 
     public record SeasonPrepSessionDto(string Data, DateTime UpdatedAt);
 
-    public record GetSeasonPrepSessionQuery(string UserId) : IRequest<SeasonPrepSessionDto?>;
+    public record GetSeasonPrepSessionQuery(string UserId, string? SportEventId) : IRequest<SeasonPrepSessionDto?>;
 
     public class GetSeasonPrepSessionHandler : IRequestHandler<GetSeasonPrepSessionQuery, SeasonPrepSessionDto?>
     {
@@ -47,7 +47,14 @@ namespace RFFM.Api.Features.Coaches.SeasonPrep
         {
             var session = await _db.SeasonPrepSessions
                 .AsNoTracking()
-                .FirstOrDefaultAsync(s => s.UserId == request.UserId, cancellationToken);
+                .FirstOrDefaultAsync(s => s.UserId == request.UserId && s.SportEventId == request.SportEventId, cancellationToken);
+
+            if (session is null && request.SportEventId is not null)
+            {
+                session = await _db.SeasonPrepSessions
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(s => s.UserId == request.UserId && s.SportEventId == null, cancellationToken);
+            }
 
             return session is not null
                 ? new SeasonPrepSessionDto(session.Data, session.UpdatedAt)
@@ -77,7 +84,7 @@ namespace RFFM.Api.Features.Coaches.SeasonPrep
         }
     }
 
-    public record UpsertSeasonPrepSessionCommand(string Data, string UserId = "") : IRequest;
+    public record UpsertSeasonPrepSessionCommand(string Data, string? SportEventId, string UserId = "") : IRequest;
 
     public class UpsertSeasonPrepSessionHandler : IRequestHandler<UpsertSeasonPrepSessionCommand>
     {
@@ -88,13 +95,14 @@ namespace RFFM.Api.Features.Coaches.SeasonPrep
         public async ValueTask<Unit> Handle(UpsertSeasonPrepSessionCommand request, CancellationToken cancellationToken)
         {
             var session = await _db.SeasonPrepSessions
-                .FirstOrDefaultAsync(s => s.UserId == request.UserId, cancellationToken);
+                .FirstOrDefaultAsync(s => s.UserId == request.UserId && s.SportEventId == request.SportEventId, cancellationToken);
 
             if (session is null)
             {
                 session = new SeasonPrepSession
                 {
                     UserId = request.UserId,
+                    SportEventId = request.SportEventId,
                     Data = request.Data,
                     UpdatedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc),
                 };
@@ -122,7 +130,8 @@ namespace RFFM.Api.Features.Coaches.SeasonPrep
                     {
                         var userId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
                                      ?? throw new UnauthorizedAccessException("Usuario no autenticado");
-                        await mediator.Send(new DeleteSeasonPrepSessionCommand(userId), cancellationToken);
+                        var sportEventId = httpContext.Request.Query["sportEventId"].ToString();
+                        await mediator.Send(new DeleteSeasonPrepSessionCommand(userId, string.IsNullOrWhiteSpace(sportEventId) ? null : sportEventId), cancellationToken);
                         return Results.NoContent();
                     })
                 .WithName(nameof(DeleteSeasonPrepSession))
@@ -132,7 +141,7 @@ namespace RFFM.Api.Features.Coaches.SeasonPrep
         }
     }
 
-    public record DeleteSeasonPrepSessionCommand(string UserId) : IRequest;
+    public record DeleteSeasonPrepSessionCommand(string UserId, string? SportEventId) : IRequest;
 
     public class DeleteSeasonPrepSessionHandler : IRequestHandler<DeleteSeasonPrepSessionCommand>
     {
@@ -143,7 +152,13 @@ namespace RFFM.Api.Features.Coaches.SeasonPrep
         public async ValueTask<Unit> Handle(DeleteSeasonPrepSessionCommand request, CancellationToken cancellationToken)
         {
             var session = await _db.SeasonPrepSessions
-                .FirstOrDefaultAsync(s => s.UserId == request.UserId, cancellationToken);
+                .FirstOrDefaultAsync(s => s.UserId == request.UserId && s.SportEventId == request.SportEventId, cancellationToken);
+
+            if (session is null && request.SportEventId is not null)
+            {
+                session = await _db.SeasonPrepSessions
+                    .FirstOrDefaultAsync(s => s.UserId == request.UserId && s.SportEventId == null, cancellationToken);
+            }
 
             if (session is not null)
             {

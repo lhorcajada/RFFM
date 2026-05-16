@@ -24,6 +24,11 @@ const trainingService = {
     return res.data;
   },
 
+  async getExerciseById(id: string): Promise<Exercise | null> {
+    const res = await client.get<Exercise>(`/api/trainings/exercises/${id}`);
+    return res.data ?? null;
+  },
+
   async updateExercise(id: string, data: UpdateExerciseRequest): Promise<void> {
     await client.put(`/api/trainings/exercises/${id}`, data);
   },

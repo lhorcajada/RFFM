@@ -1,13 +1,47 @@
-﻿import ExcelJS from "exceljs";
-import type { PoolPlayer, PlayerEvaluation, ConceptEval } from "../SeasonPrep";
-import { FP_ALL_CONCEPTS, GK_ALL_CONCEPTS } from "./evaluationConstants";
+import ExcelJS from "exceljs";
+import type { PoolPlayer, RecruitmentStatus } from "../SeasonPrep";
+import type { PlayerRating } from "../../../../types/playerRating";
+import { FP_ALL_CONCEPTS, GK_ALL_CONCEPTS, getConceptForLevel, playerIsGk, type CharacteristicDef } from "./evaluationConstants";
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+type RatingCategory = "physical" | "technical" | "tactical" | "competitiveness";
 
-function playerIsGk(p: PoolPlayer): boolean {
-  if (p.isGoalkeeper) return true;
-  const pos = p.position?.toLowerCase() ?? "";
-  return pos.includes("portero") || pos.includes("keeper") || pos.includes("arquero");
+function roundUpToOneDecimal(value: number): number {
+  return Math.ceil(value * 10) / 10;
+}
+
+function emptyRating(playerId: string, isGoalkeeper: boolean): PlayerRating {
+  return {
+    id: `draft-${playerId}`,
+    teamPlayerId: playerId,
+    isGoalkeeper,
+    physical: 0,
+    technical: 0,
+    tactical: 0,
+    competitiveness: 0,
+    answers: [],
+    ratedAt: new Date().toISOString(),
+    notes: null,
+  };
+}
+
+function buildRating(playerId: string, isGoalkeeper: boolean, answers: PlayerRating["answers"], notes?: string | null, ratedAt?: string): PlayerRating {
+  const byCategory = (categoryKey: RatingCategory) => {
+    const levels = answers.filter((a) => a.categoryKey === categoryKey).map((a) => a.level);
+    return levels.length === 0 ? 0 : roundUpToOneDecimal(levels.reduce((sum, level) => sum + level, 0) / levels.length);
+  };
+
+  return {
+    id: `draft-${playerId}`,
+    teamPlayerId: playerId,
+    isGoalkeeper,
+    physical: byCategory("physical"),
+    technical: byCategory("technical"),
+    tactical: byCategory("tactical"),
+    competitiveness: byCategory("competitiveness"),
+    answers,
+    ratedAt: ratedAt ?? new Date().toISOString(),
+    notes: notes ?? null,
+  };
 }
 
 function positionRank(pos: string): number {
@@ -30,77 +64,48 @@ function sortPlayers(players: PoolPlayer[]): PoolPlayer[] {
   });
 }
 
-// ── Build worksheet ───────────────────────────────────────────────────────────
-
 const STATIC_COLS = [
-  { header: "uniqueId",    key: "uid",      width: 0.1, hidden: true  },
-  { header: "Equipo",      key: "team",     width: 22  },
-  { header: "Dorsal",      key: "dorsal",   width: 9   },
-  { header: "Nombre",      key: "name",     width: 26  },
-  { header: "Demarcación", key: "position", width: 18  },
-  { header: "Estado",      key: "status",   width: 16  },
+  { header: "uniqueId", key: "uid", width: 0.1, hidden: true },
+  { header: "Equipo", key: "team", width: 22 },
+  { header: "Dorsal", key: "dorsal", width: 9 },
+  { header: "Nombre", key: "name", width: 26 },
+  { header: "Demarcación", key: "position", width: 18 },
+  { header: "Estado", key: "status", width: 16 },
 ];
 
 const HEADER_BG = "1F4E79";
-
-const FP_COLOR_BY_KEY: Record<string, string> = {
-  valentiaDiv: "7B3F00",      duelos: "7B3F00",          segundasJugadas: "7B3F00",
-  marcajeFerreo: "C00000",    pressingTrasPerdida: "C00000",
-  controlOrientado: "375623", visionFiltrados: "375623",  finalizacionCentro: "375623",
-  velocidadAccion: "2E75B6",  fuerzaUso: "2E75B6",       usoAltura: "2E75B6",
-};
-
-const GK_COLOR_BY_KEY: Record<string, string> = {
-  seguridadManos: "1F4E79",       gestionRechace: "1F4E79",    reflejosReaccion: "1F4E79",
-  valentiaSalidas: "843C0C",      dominioAereo: "843C0C",      duelos1v1Gk: "843C0C",
-  juegosDePies: "375623",         precisionSaque: "375623",
-  velocidadDesplazamiento: "2E75B6", potenciaSalto: "2E75B6",
-};
-
-// ── Build worksheet (generic) ─────────────────────────────────────────────────
-
-import type { ConceptDef } from "./evaluationConstants";
 
 async function buildConceptWorksheet(
   workbook: ExcelJS.Workbook,
   sheetName: string,
   players: PoolPlayer[],
-  concepts: ConceptDef[],
-  colorByKey: Record<string, string>
+  concepts: CharacteristicDef[],
+  color: string
 ): Promise<void> {
   const ws = workbook.addWorksheet(sheetName);
 
-  const conceptCols: { header: string; key: string; conceptKey: string }[] = [];
-  for (const c of concepts) {
-    conceptCols.push({ header: `${c.label} — Consistencia`, key: `${String(c.key)}_c`, conceptKey: String(c.key) });
-    conceptCols.push({ header: `${c.label} — Tendencia`,    key: `${String(c.key)}_t`, conceptKey: String(c.key) });
-  }
-
   ws.columns = [
     ...STATIC_COLS.map((c) => ({ header: c.header, key: c.key, width: c.width })),
-    ...conceptCols.map((c) => ({ header: c.header, key: c.key, width: 20 })),
+    ...concepts.map((c) => ({ header: c.label, key: c.key, width: 20 })),
     { header: "Notas", key: "notes", width: 35 },
   ];
   ws.getColumn(1).hidden = true;
 
   const headerRow = ws.getRow(1);
   headerRow.height = 36;
-
   for (let ci = 1; ci <= STATIC_COLS.length; ci++) {
     const cell = headerRow.getCell(ci);
     cell.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 10 };
     cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF" + HEADER_BG } };
     cell.alignment = { vertical: "middle", horizontal: "center", wrapText: true };
   }
-  conceptCols.forEach((col, i) => {
-    const ci = STATIC_COLS.length + 1 + i;
-    const color = colorByKey[col.conceptKey] ?? "2E75B6";
-    const cell = headerRow.getCell(ci);
+  for (let i = 0; i < concepts.length; i++) {
+    const cell = headerRow.getCell(STATIC_COLS.length + 1 + i);
     cell.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 9 };
     cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF" + color } };
     cell.alignment = { vertical: "middle", horizontal: "center", wrapText: true };
-  });
-  const notesHdr = headerRow.getCell(STATIC_COLS.length + conceptCols.length + 1);
+  }
+  const notesHdr = headerRow.getCell(STATIC_COLS.length + concepts.length + 1);
   notesHdr.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 10 };
   notesHdr.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF" + HEADER_BG } };
   notesHdr.alignment = { vertical: "middle", horizontal: "center" };
@@ -109,20 +114,20 @@ async function buildConceptWorksheet(
 
   const sorted = sortPlayers(players);
   sorted.forEach((p, rowIdx) => {
-    const ev = p.evaluation ?? {};
-    const rowData: Record<string, string> = {
-      uid:      p.uniqueId,
-      team:     p.team ?? p.procedencia ?? "",
-      dorsal:   p.jerseyNumber ?? "",
-      name:     p.name,
+    const rating = p.rating ?? emptyRating(p.uniqueId, playerIsGk(p));
+    const rowData: Record<string, string | number> = {
+      uid: p.uniqueId,
+      team: p.team ?? p.procedencia ?? "",
+      dorsal: p.jerseyNumber ?? "",
+      name: p.name,
       position: p.position ?? "",
-      status:   p.recruitmentStatus ?? "",
-      notes:    ev.notes ?? "",
+      status: p.recruitmentStatus ?? "",
+      notes: rating.notes ?? "",
     };
-    for (const c of concepts) {
-      const v = ev[c.key] as ConceptEval | undefined;
-      rowData[`${String(c.key)}_c`] = v?.consistencia ?? "";
-      rowData[`${String(c.key)}_t`] = v?.tendencia ?? "";
+
+    for (const concept of concepts) {
+      const answer = rating.answers.find((a) => a.characteristicKey === concept.key);
+      rowData[concept.key] = answer?.level ?? "";
     }
 
     const row = ws.addRow(rowData);
@@ -137,67 +142,9 @@ async function buildConceptWorksheet(
   });
 
   ws.autoFilter = { from: { row: 1, column: 2 }, to: { row: 1, column: ws.columnCount } };
-
-  // Add data validation (dropdown lists) per concept column using concept definitions
-  for (let i = 0; i < conceptCols.length; i++) {
-    const colIndex = STATIC_COLS.length + 1 + i; // 1-based column index in worksheet
-    const colDef = conceptCols[i];
-    const conceptKey = colDef.conceptKey;
-    const isConsistencia = String(colDef.key).endsWith("_c");
-    const conceptDef = concepts.find((c) => String(c.key) === conceptKey);
-    const options = isConsistencia
-      ? conceptDef?.consistenciaOptions
-      : conceptDef?.tendenciaOptions;
-    if (!options || options.length === 0) continue;
-    const formula = `"${options.join(",")}"`;
-    for (let r = 2; r <= ws.rowCount; r++) {
-      const cell = ws.getRow(r).getCell(colIndex);
-      try {
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        cell.dataValidation = {
-          type: 'list',
-          allowBlank: true,
-          showInputMessage: true,
-          showErrorMessage: true,
-          formulae: [formula],
-        } as unknown;
-      } catch {
-        // ignore per-cell validation errors
-      }
-    }
-  }
-
-  // Add data validation for the recruitment status column (Estado)
-  const statusColIndex = STATIC_COLS.findIndex((c) => c.key === "status") + 1;
-  if (statusColIndex > 0) {
-    const statusOptions = ["Observando", "Interesado", "Fichado", "Descartado"];
-    const statusFormula = `"${statusOptions.join(",")}"`;
-    for (let r = 2; r <= ws.rowCount; r++) {
-      const cell = ws.getRow(r).getCell(statusColIndex);
-      try {
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        cell.dataValidation = {
-          type: 'list',
-          allowBlank: true,
-          showInputMessage: true,
-          showErrorMessage: true,
-          formulae: [statusFormula],
-        } as unknown;
-      } catch {
-        // ignore
-      }
-    }
-  }
 }
 
-// ── Export ────────────────────────────────────────────────────────────────────
-
-export async function exportEvaluationsToExcel(
-  players: PoolPlayer[],
-  fedSeason: string
-): Promise<void> {
+export async function exportEvaluationsToExcel(players: PoolPlayer[], fedSeason: string): Promise<void> {
   const eligible = players.filter((p) => p.assignment === "eligible");
   const fpPlayers = eligible.filter((p) => !playerIsGk(p));
   const gkPlayers = eligible.filter((p) => playerIsGk(p));
@@ -206,15 +153,13 @@ export async function exportEvaluationsToExcel(
   workbook.creator = "RFFM";
   workbook.created = new Date();
 
-  await buildConceptWorksheet(workbook, "Jugadores", fpPlayers, FP_ALL_CONCEPTS, FP_COLOR_BY_KEY);
+  await buildConceptWorksheet(workbook, "Jugadores", fpPlayers, FP_ALL_CONCEPTS, "2E75B6");
   if (gkPlayers.length > 0) {
-    await buildConceptWorksheet(workbook, "Porteros", gkPlayers, GK_ALL_CONCEPTS, GK_COLOR_BY_KEY);
+    await buildConceptWorksheet(workbook, "Porteros", gkPlayers, GK_ALL_CONCEPTS, "7B3F00");
   }
 
   const buffer = await workbook.xlsx.writeBuffer();
-  const blob = new Blob([buffer], {
-    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  });
+  const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -225,12 +170,17 @@ export async function exportEvaluationsToExcel(
   URL.revokeObjectURL(url);
 }
 
-// ── Import ────────────────────────────────────────────────────────────────────
-
 export type ImportResult = {
   updated: number;
   unknown: string[];
 };
+
+function extractLevel(raw: string): number | null {
+  const match = raw.match(/(10|[1-9])/);
+  if (!match) return null;
+  const level = Number(match[1]);
+  return level >= 1 && level <= 10 ? level : null;
+}
 
 export function importEvaluationsFromExcel(
   file: File,
@@ -255,81 +205,69 @@ export function importEvaluationsFromExcel(
           headerMap.set(col, String(cell.value ?? "").trim());
         });
 
-        const uidCol   = [...headerMap.entries()].find(([, v]) => v.toLowerCase() === "uniqueid")?.[0];
-        const nameCol  = [...headerMap.entries()].find(([, v]) => v.toLowerCase() === "nombre")?.[0];
+        const uidCol = [...headerMap.entries()].find(([, v]) => v.toLowerCase() === "uniqueid")?.[0];
+        const nameCol = [...headerMap.entries()].find(([, v]) => v.toLowerCase() === "nombre")?.[0];
         const notesCol = [...headerMap.entries()].find(([, v]) => v.toLowerCase() === "notas")?.[0];
+        const statusCol = [...headerMap.entries()].find(([, v]) => v.toLowerCase() === "estado")?.[0];
 
-        // Map header label → { conceptKey, dimension } (covers FP + GK)
-        const allConcepts = [...FP_ALL_CONCEPTS, ...GK_ALL_CONCEPTS];
-        const conceptColMap = new Map<number, { key: string; dim: "consistencia" | "tendencia" }>();
+        const concepts = [...FP_ALL_CONCEPTS, ...GK_ALL_CONCEPTS];
+        const conceptColMap = new Map<number, CharacteristicDef>();
         headerMap.forEach((label, col) => {
-          for (const c of allConcepts) {
-            if (label === `${c.label} — Consistencia`) {
-              conceptColMap.set(col, { key: String(c.key), dim: "consistencia" });
-            } else if (label === `${c.label} — Tendencia`) {
-              conceptColMap.set(col, { key: String(c.key), dim: "tendencia" });
-            }
-          }
+          const concept = concepts.find((c) => c.label === label);
+          if (concept) conceptColMap.set(col, concept);
         });
 
         for (let ri = 1; ri < rows.length; ri++) {
           const row = rows[ri];
-          const uid  = uidCol  ? String(row.getCell(uidCol).value  ?? "").trim() : "";
+          const uid = uidCol ? String(row.getCell(uidCol).value ?? "").trim() : "";
           const name = nameCol ? String(row.getCell(nameCol).value ?? "").trim() : "";
 
           let player = uid ? updatedMap.get(uid) : undefined;
-          if (!player) {
-            player = [...updatedMap.values()].find(
-              (p) => p.name.toLowerCase().trim() === name.toLowerCase()
-            );
+          if (!player && name) {
+            player = [...updatedMap.values()].find((p) => p.name.trim().toLowerCase() === name.trim().toLowerCase());
           }
           if (!player) {
-              if (name) unknownNames.push(name);
-              continue;
-            }
+            if (name) unknownNames.push(name);
+            continue;
+          }
 
-            const ev: PlayerEvaluation = { ...(player.evaluation ?? {}) };
-            // determine status column index (if present)
-            const statusCol = [...headerMap.entries()].find(([, v]) => v.toLowerCase() === "estado")?.[0];
-          conceptColMap.forEach(({ key, dim }, col) => {
+          const isGk = playerIsGk(player);
+          const answers: PlayerRating["answers"] = [];
+          conceptColMap.forEach((concept, col) => {
             const raw = String(row.getCell(col).value ?? "").trim();
-            const existing = (ev as Record<string, unknown>)[key] as ConceptEval | undefined;
-            if (raw) {
-              // Normalize imported concept values to the allowed dropdown options
-              const lr = raw.toLowerCase();
-              let mapped = raw;
-              if (lr.includes("nunc")) mapped = "Nunca";
-              else if (lr.includes("rara")) mapped = "Rara vez";
-              else if (lr.includes("inter")) mapped = "Intermitente";
-              else if (lr.includes("habit")) mapped = "Habitual";
-              (ev as Record<string, unknown>)[key] = { ...(existing ?? {}), [dim]: mapped };
-            }
+            const level = extractLevel(raw);
+            if (!level) return;
+            const conceptText = getConceptForLevel(concept, level) ?? raw;
+            answers.push({
+              characteristicKey: concept.key,
+              categoryKey: concept.categoryKey,
+              level,
+              concept: conceptText,
+            });
           });
-          if (notesCol) {
-            const notes = String(row.getCell(notesCol).value ?? "").trim();
-            ev.notes = notes || undefined;
-          }
 
-          // read and map recruitment status (if provided)
-          let mappedStatus: string | undefined = undefined;
+          if (answers.length === 0) continue;
+
+          const existing = player.rating;
+          const rating = buildRating(player.uniqueId, isGk, answers, existing?.notes ?? undefined, existing?.ratedAt);
+          const notes = notesCol ? String(row.getCell(notesCol).value ?? "").trim() : "";
+          if (notes) rating.notes = notes;
+
+          let mappedStatus: RecruitmentStatus | undefined;
           if (statusCol) {
-            const rawStatus = String(row.getCell(statusCol).value ?? "").trim();
-            const rs = rawStatus.toLowerCase();
-            if (rs.includes("observ")) mappedStatus = "observando";
-            else if (rs.includes("interes")) mappedStatus = "interesado";
-            else if (rs.includes("fich")) mappedStatus = "fichado";
-            else if (rs.includes("descar")) mappedStatus = "descartado";
+            const rawStatus = String(row.getCell(statusCol).value ?? "").trim().toLowerCase();
+            if (rawStatus.includes("observ")) mappedStatus = "observando";
+            else if (rawStatus.includes("interes")) mappedStatus = "interesado";
+            else if (rawStatus.includes("fich")) mappedStatus = "fichado";
+            else if (rawStatus.includes("descar")) mappedStatus = "descartado";
           }
 
-          updatedMap.set(player.uniqueId, { ...player, evaluation: ev, recruitmentStatus: mappedStatus ?? player.recruitmentStatus });
+          updatedMap.set(player.uniqueId, { ...player, rating, recruitmentStatus: mappedStatus ?? player.recruitmentStatus });
           updatedCount++;
         }
       });
 
-      onDone(
-        [...updatedMap.values()],
-        { updated: updatedCount, unknown: [...new Set(unknownNames)] }
-      );
+      onDone([...updatedMap.values()], { updated: updatedCount, unknown: [...new Set(unknownNames)] });
     }).catch(() => onDone(currentPlayers, { updated: 0, unknown: [] }));
   }).catch(() => onDone(currentPlayers, { updated: 0, unknown: [] }));
 }

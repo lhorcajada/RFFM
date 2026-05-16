@@ -1,7 +1,8 @@
 import client from "../../../core/api/client";
-import type { PlayerEvaluation, RecruitmentStatus } from "../pages/season-prep/SeasonPrep";
+import type { PlayerRating } from "../types/playerRating";
+import type { RecruitmentStatus } from "../pages/season-prep/SeasonPrep";
 
-/** Minimal player record stored in the evaluations endpoint */
+/** Minimal player record stored in the season-prep ratings endpoint */
 export type EvalPlayer = {
   uniqueId: string;
   name: string;
@@ -11,32 +12,41 @@ export type EvalPlayer = {
   birthYear?: number;
   procedencia?: string;
   manualEntry?: boolean;
-  evaluation?: PlayerEvaluation;
+  rating?: PlayerRating;
   recruitmentStatus?: RecruitmentStatus;
   starter?: number;
   totalGoals?: number;
 };
 
 export async function getSeasonPrepEvaluations(
-  fedSeason: string
+  fedSeason: string,
+  sportEventId?: string | null
 ): Promise<EvalPlayer[] | null> {
-  const response = await client.get<{ data: string; updatedAt: string }>(
-    `/api/season-prep/evaluations?fedSeason=${encodeURIComponent(fedSeason)}`
+  const params = new URLSearchParams({ fedSeason });
+  if (sportEventId) params.set("sportEventId", sportEventId);
+  const response = await client.get<EvalPlayer[]>(
+    `/api/season-prep/evaluations?${params.toString()}`
   );
-  if (response.status === 204 || !response.data?.data) return null;
-  try {
-    return JSON.parse(response.data.data) as EvalPlayer[];
-  } catch {
-    return null;
+  if (response.status === 204) return null;
+
+  const payload = response.data as unknown;
+  if (Array.isArray(payload)) return payload;
+
+  if (payload && typeof payload === "object" && Array.isArray((payload as { data?: unknown }).data)) {
+    return (payload as { data: EvalPlayer[] }).data;
   }
+
+  return null;
 }
 
 export async function upsertSeasonPrepEvaluations(
   fedSeason: string,
+  sportEventId: string | null | undefined,
   players: EvalPlayer[]
 ): Promise<void> {
   await client.put("/api/season-prep/evaluations", {
     fedSeason,
-    data: JSON.stringify(players),
+    sportEventId: sportEventId ?? null,
+    players,
   });
 }

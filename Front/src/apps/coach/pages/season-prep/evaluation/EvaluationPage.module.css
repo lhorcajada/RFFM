@@ -13,6 +13,26 @@
   overflow: hidden;
 }
 
+@media (max-width: 1100px) {
+  .splitLayout {
+    flex-direction: column;
+    height: auto;
+    overflow: visible;
+  }
+
+  .leftPanel {
+    width: 100%;
+    min-width: 0;
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    max-height: 34vh;
+  }
+
+  .rightPanel {
+    min-height: 56vh;
+  }
+}
+
 .leftPanel {
   width: 260px;
   min-width: 220px;
@@ -170,7 +190,7 @@
 }
 
 .attrGroupTitle {
-  font-size: 0.8rem;
+  font-size: 0.92rem;
   font-weight: 700;
   opacity: 0.7;
   margin-bottom: 8px;
@@ -221,13 +241,13 @@
 }
 
 .conceptLabel {
-  font-size: 0.88rem;
+  font-size: 0.98rem;
   font-weight: 700;
   color: rgba(255,255,255,0.92);
 }
 
 .conceptDescriptor {
-  font-size: 0.74rem;
+  font-size: 0.86rem;
   color: rgba(255,255,255,0.38);
   font-style: italic;
 }
@@ -240,7 +260,7 @@
 }
 
 .pillRowLabel {
-  font-size: 0.63rem;
+  font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.07em;
@@ -248,38 +268,90 @@
 }
 
 .pillGroup {
-  display: flex;
-  gap: 6px;
-  flex-wrap: nowrap;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
 }
 
-.pillGroup > * {
-  flex: 1;
+@media (min-width: 900px) {
+  .pillGroup {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
 }
 
 /* Base pill */
 .conceptPill {
-  padding: 0;
-  min-height: 44px;
+  padding: 12px 10px;
+  min-height: 86px;
   border-radius: 10px;
   border: 1.5px solid rgba(255,255,255,0.12);
   background: rgba(255,255,255,0.05);
   color: rgba(255,255,255,0.65);
-  font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.12s, border-color 0.12s, color 0.12s, box-shadow 0.12s;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
-  white-space: normal;
   text-align: center;
-  line-height: 1.2;
+  line-height: 1.15;
   word-break: break-word;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
 }
 
 .conceptPill:hover {
   background: rgba(255,255,255,0.1);
   color: rgba(255,255,255,0.85);
+}
+
+.conceptPillActive {
+  background: rgba(78, 201, 176, 0.22);
+  border-color: rgba(78, 201, 176, 0.95);
+  color: #eafffb;
+  box-shadow: 0 0 0 1px rgba(78, 201, 176, 0.18) inset, 0 0 10px rgba(78, 201, 176, 0.25);
+}
+
+.conceptPillActive:hover {
+  background: rgba(78, 201, 176, 0.28);
+  color: #ffffff;
+}
+
+.conceptPillActive .conceptPillLevel {
+  color: #ffffff;
+}
+
+.conceptPillActive .conceptPillText {
+  color: rgba(255,255,255,0.95);
+}
+
+.conceptPillLevel {
+  font-size: 1.04rem;
+  font-weight: 800;
+  color: var(--rffm-primary, #4ec9b0);
+}
+
+.conceptPillText {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: rgba(255,255,255,0.84);
+  line-height: 1.28;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@media (max-width: 1100px) {
+  .conceptPill {
+    min-height: 100px;
+  }
+
+  .conceptPillText {
+    -webkit-line-clamp: 4;
+    font-size: 0.92rem;
+  }
 }
 
 /* Consistencia pill active — teal glow */

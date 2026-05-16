@@ -1,63 +1,44 @@
-import type { ConceptDef, ConceptEval } from "../evaluationConstants";
+import type { CharacteristicDef } from "../evaluationConstants";
+import type { RatingAnswer } from "../../../../types/playerRating";
 import styles from "../EvaluationPage.module.css";
 
 interface ConceptRowProps {
-  concept: ConceptDef;
-  value: ConceptEval | undefined;
-  onChange: (val: ConceptEval) => void;
+  concept: CharacteristicDef;
+  value: RatingAnswer | undefined;
+  onChange: (val: RatingAnswer) => void;
 }
 
 export function ConceptRow({ concept, value, onChange }: ConceptRowProps) {
-  function toggleConsistencia(option: string) {
-    const next = value?.consistencia === option ? undefined : option;
-    onChange({ ...value, consistencia: next });
-  }
-
-  function toggleTendencia(option: string) {
-    const next = value?.tendencia === option ? undefined : option;
-    onChange({ ...value, tendencia: next });
-  }
-
   return (
     <div className={styles.conceptRow}>
       <div className={styles.conceptHeader}>
         <span className={styles.conceptLabel}>{concept.label}</span>
-        <span className={styles.conceptDescriptor}>{concept.descriptor}</span>
+        <span className={styles.conceptDescriptor}>{concept.levels[value?.level ? value.level - 1 : 0]?.concept ?? ""}</span>
       </div>
 
       <div className={styles.pillRow}>
-        <span className={styles.pillRowLabel}>Consistencia</span>
         <div className={styles.pillGroup}>
-          {concept.consistenciaOptions.map((opt) => (
+          {concept.levels.map((levelDef) => {
+            const isActive = value?.level === levelDef.level;
+            return (
             <button
-              key={opt}
-              className={`${styles.conceptPill} ${styles.conceptPillConsistencia} ${
-                value?.consistencia === opt ? styles.conceptPillActive : ""
-              }`}
-              onClick={() => toggleConsistencia(opt)}
+              key={levelDef.level}
+              className={`${styles.conceptPill} ${isActive ? styles.conceptPillActive : ""}`}
+              aria-label={`Nivel ${levelDef.level}: ${levelDef.concept}`}
+              title={levelDef.concept}
+              onClick={() => onChange({
+                characteristicKey: concept.key,
+                categoryKey: concept.categoryKey,
+                level: levelDef.level,
+                concept: levelDef.concept,
+              })}
               type="button"
             >
-              {opt}
+              <span className={styles.conceptPillLevel}>{levelDef.level}</span>
+              <span className={styles.conceptPillText}>{levelDef.concept}</span>
             </button>
-          ))}
-        </div>
-      </div>
-
-      <div className={styles.pillRow}>
-        <span className={styles.pillRowLabel}>Tendencia</span>
-        <div className={styles.pillGroup}>
-          {concept.tendenciaOptions.map((opt) => (
-            <button
-              key={opt}
-              className={`${styles.conceptPill} ${styles.conceptPillTendencia} ${
-                value?.tendencia === opt ? styles.conceptPillActive : ""
-              }`}
-              onClick={() => toggleTendencia(opt)}
-              type="button"
-            >
-              {opt}
-            </button>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

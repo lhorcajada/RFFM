@@ -1,14 +1,16 @@
 import React from "react";
-import { Link, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import styles from "./Footer.module.css";
 import SvgIcon from "@mui/material/SvgIcon";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import EventAvailableIcon from "@mui/icons-material/EventAvailable";
 import SportsSoccerIcon from "@mui/icons-material/SportsSoccer";
-import SettingsIcon from "@mui/icons-material/Settings";
-import HowToRegIcon from "@mui/icons-material/HowToReg";
 import BottomMenu, { BottomMenuItem } from "../BottomMenu/BottomMenu";
 import { getSettingsForUser } from "../../../../apps/federation/services/federationApi";
+import seasonService, {
+  COACH_ACTIVE_SEASON_CHANGED_EVENT,
+  type Season,
+} from "../../../../apps/coach/services/seasonService";
 import { useUser } from "../../../context/UserContext";
 
 interface FooterProps {
@@ -19,6 +21,16 @@ export default function Footer({ hideMenu }: FooterProps): JSX.Element {
   const loc = useLocation();
   const { user } = useUser();
   const [showActions, setShowActions] = React.useState<boolean>(false);
+  const [activeSeason, setActiveSeason] = React.useState<Season | null>(null);
+  const isCoachRoute = loc.pathname.startsWith("/coach");
+  const copyrightYear = new Date().getFullYear();
+
+  function formatSeasonDate(value?: string | null) {
+    if (!value) return "-";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value.slice(0, 10);
+    return date.toLocaleDateString("es-ES");
+  }
 
   React.useEffect(() => {
     async function checkSettings() {
@@ -53,11 +65,57 @@ export default function Footer({ hideMenu }: FooterProps): JSX.Element {
     };
   }, [user, hideMenu]);
 
+  React.useEffect(() => {
+    let cancelled = false;
+
+    if (!isCoachRoute) {
+      setActiveSeason(null);
+      return;
+    }
+
+    async function loadActiveSeason() {
+      const season = await seasonService.getActiveSeason();
+      if (!cancelled) {
+        setActiveSeason(season);
+      }
+    }
+
+    loadActiveSeason();
+
+    function handleSeasonChanged() {
+      loadActiveSeason();
+    }
+
+    window.addEventListener(COACH_ACTIVE_SEASON_CHANGED_EVENT, handleSeasonChanged);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener(COACH_ACTIVE_SEASON_CHANGED_EVENT, handleSeasonChanged);
+    };
+  }, [isCoachRoute]);
+
+  const seasonInfo =
+    isCoachRoute && activeSeason ? (
+      <div className={styles.seasonInfo} aria-label="Temporada activa">
+        <span className={styles.seasonLabel}>Temporada activa</span>
+        <span className={styles.seasonName}>{activeSeason.name ?? activeSeason.id}</span>
+        <span className={styles.seasonRange}>
+          {formatSeasonDate(activeSeason.startDate)} - {formatSeasonDate(activeSeason.endDate)}
+        </span>
+      </div>
+    ) : null;
+
+  const copyright = (
+    <div className={styles.copyright}>
+      © {copyrightYear} Futbol Base. Todos los derechos reservados.
+    </div>
+  );
+
   if (hideMenu) {
     return (
       <div className={styles.root} role="contentinfo">
-        {/* Empty footer area when menu is hidden */}
-        <div style={{ height: "100%" }} />
+        {seasonInfo ?? <div className={styles.spacer} />}
+        {copyright}
       </div>
     );
   }
@@ -135,6 +193,8 @@ export default function Footer({ hideMenu }: FooterProps): JSX.Element {
 
   return (
     <div className={styles.root} role="contentinfo">
+      {seasonInfo}
+      {copyright}
       <BottomMenu items={items} />
     </div>
   );

@@ -4,6 +4,7 @@
     {
         public const string SeasonFeature = "SeasonFeature";
         public const string CachePrefix = SeasonFeature;
+        public const string SeasonHasRelatedDataCode = "season_has_related_data";
 
     }
 }

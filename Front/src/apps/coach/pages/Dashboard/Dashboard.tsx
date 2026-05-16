@@ -1,8 +1,8 @@
 import { Slide, Snackbar, Alert } from "@mui/material";
+import React from "react";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import useTeamAndClub from "../../hooks/useTeamAndClub.tsx";
-import { useDashboardSeason } from "./hooks/useDashboardSeason";
 import { usePreferredSelection } from "./hooks/usePreferredSelection";
 import { usePlayerAutoLoad } from "./hooks/usePlayerAutoLoad";
 import DashboardActionBar from "./components/DashboardActionBar";
@@ -10,9 +10,8 @@ import DashboardCards from "./components/DashboardCards";
 
 export default function CoachDashboard() {
   const { teamTitleNode, clubSubtitleNode, loading: loadingTeam, team } = useTeamAndClub();
-  const { selectedSeason, handleSeasonChange } = useDashboardSeason();
-  const { hasPreferredSelection, loadingConfig, snackbar, setSnackbar, handleLoadPreferred } =
-    usePreferredSelection(selectedSeason);
+  const selectedSeason = "";
+  const { snackbar, setSnackbar } = usePreferredSelection(selectedSeason);
   const { isPlayer } = usePlayerAutoLoad();
 
   return (
@@ -22,11 +21,6 @@ export default function CoachDashboard() {
         subtitle={clubSubtitleNode ?? "Gestión y herramientas para entrenadores"}
         actionBar={
           <DashboardActionBar
-            selectedSeason={selectedSeason}
-            onSeasonChange={handleSeasonChange}
-            hasPreferredSelection={hasPreferredSelection}
-            loadingConfig={loadingConfig}
-            onLoadPreferred={handleLoadPreferred}
             isPlayer={isPlayer}
           />
         }

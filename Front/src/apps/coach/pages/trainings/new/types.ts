@@ -15,6 +15,7 @@ export interface ChapaPosition {
   scaleY?: number;
   rotation?: number;
   locked?: boolean;
+  anonymous?: boolean;
 }
 
 export interface PetoOption {
@@ -68,6 +69,7 @@ export interface SpacePosition {
   scaleY: number;
   rotation: number;
   locked: boolean;
+  color?: string;
 }
 
 export interface SpaceTemplate {
@@ -130,4 +132,12 @@ export interface LineColorOption {
 export interface LineKindOption {
   kind: LineKind;
   label: string;
+}
+
+export interface TacticalBoardSnapshot {
+  placedChapas: Record<string, ChapaPosition>;
+  chapaPetoById: Record<string, string>;
+  placedSpaces: SpacePosition[];
+  placedMaterials: PlacedMaterial[];
+  placedLines: PlacedLine[];
 }

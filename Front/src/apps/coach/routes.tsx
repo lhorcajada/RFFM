@@ -35,6 +35,7 @@ const Sanctions = lazy(() => import("./pages/sanctions/Sanctions"));
 const Lottery = lazy(() => import("./pages/lottery/Lottery"));
 const SeasonPrep = lazy(() => import("./pages/season-prep/SeasonPrep"));
 const EvaluationPage = lazy(() => import("./pages/season-prep/evaluation/EvaluationPage"));
+const SeasonPrepSimulationPage = lazy(() => import("./pages/season-prep/simulation/SeasonPrepTestPage"));
 const Rivals = lazy(() => import("./pages/rivals/Rivals"));
 const PlayerDetail = lazy(() => import("./pages/player/PlayerDetail"));
 const NewRatingPage = lazy(() => import("./pages/squad/rating/NewRatingPage"));
@@ -106,6 +107,7 @@ function CoachRoutesContent() {
             <Route path="lottery" element={<Lottery />} />
             <Route path="season-prep" element={<SeasonPrep />} />
             <Route path="season-prep/evaluate" element={<EvaluationPage />} />
+            <Route path="season-prep/simulation" element={<SeasonPrepSimulationPage />} />
             <Route path="rivals" element={<Rivals />} />
             <Route path="clubs" element={<Clubs />} />
             <Route path="clubs/dashboard/:id" element={<ClubsDashboard />} />

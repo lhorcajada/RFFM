@@ -16,11 +16,13 @@ export default function SeasonSelector({
   onChange,
   showLabel = true,
   size = "small",
+  clubId,
 }: {
   value?: string;
   onChange?: (seasonId?: string) => void;
   showLabel?: boolean;
   size?: "small" | "medium";
+  clubId: string;
 }) {
   const [seasons, setSeasons] = useState<Season[]>([]);
   const [loading, setLoading] = useState(false);
@@ -28,22 +30,21 @@ export default function SeasonSelector({
   const [selected, setSelected] = useState<string>(value ?? "");
 
   useEffect(() => {
+    if (!clubId) {
+      setSeasons([]);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
     let mounted = true;
     async function load() {
       setLoading(true);
       setError(null);
       try {
-        const all = await seasonService.getSeasons();
+        const all = await seasonService.getSeasons(clubId);
         if (!mounted) return;
         setSeasons(all || []);
-        if ((value === undefined || value === "") && all && all.length > 0) {
-          const active = await seasonService.getActiveSeason();
-          if (!mounted) return;
-          if (active && active.id) {
-            setSelected(active.id);
-            if (onChange) onChange(active.id);
-          }
-        }
       } catch (e: any) {
         if (!mounted) return;
         setError(String(e?.message ?? "Error cargando temporadas"));
@@ -56,12 +57,24 @@ export default function SeasonSelector({
     return () => {
       mounted = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [clubId]);
 
   useEffect(() => {
     setSelected(value ?? "");
   }, [value]);
+
+  useEffect(() => {
+    if (loading || seasons.length === 0) return;
+
+    const hasValidValue = Boolean(value) && seasons.some((season) => season.id === value);
+    if (hasValidValue) return;
+
+    const fallbackSeason = seasons.find((season) => season.active ?? season.isActive) ?? seasons[0];
+    if (!fallbackSeason?.id || fallbackSeason.id === selected) return;
+
+    setSelected(fallbackSeason.id);
+    if (onChange) onChange(fallbackSeason.id);
+  }, [loading, onChange, selected, seasons, value]);
 
   function handleChange(e: any) {
     const v = String(e.target.value ?? "");

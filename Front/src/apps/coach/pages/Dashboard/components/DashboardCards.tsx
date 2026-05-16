@@ -1,4 +1,3 @@
-import { CircularProgress } from "@mui/material";
 import SettingsIcon from "@mui/icons-material/Settings";
 import NewspaperIcon from "@mui/icons-material/Newspaper";
 import GroupIcon from "@mui/icons-material/Group";
@@ -13,6 +12,7 @@ import CasinoIcon from "@mui/icons-material/Casino";
 import TimelineIcon from "@mui/icons-material/Timeline";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import FlagIcon from "@mui/icons-material/Flag";
+import CircularProgress from "@mui/material/CircularProgress";
 import DashboardCard from "../../../../../shared/components/ui/DashboardCard/DashboardCard";
 import type { TeamResponse } from "../../../services/teamService";
 import styles from "../Dashboard.module.css";
@@ -35,6 +35,7 @@ export default function DashboardCards({
 }: DashboardCardsProps) {
   const seasonParam = selectedSeason ? `?seasonId=${selectedSeason}` : "";
   const seasonSuffix = selectedSeason ? `&seasonId=${selectedSeason}` : "";
+  const hasAssignedClubAndTeam = Boolean(team?.id && team?.club?.id);
 
   const canSeeGameModel =
     coachAuthService.hasRole("Administrator") ||
@@ -45,7 +46,7 @@ export default function DashboardCards({
   return (
     <div className={styles.container}>
       <div className={styles.cards}>
-        {!isPlayer && (
+        {!isPlayer && hasAssignedClubAndTeam && (
           <DashboardCard
             title="Configuración"
             description="Ajustes y preferencias."
@@ -61,14 +62,15 @@ export default function DashboardCards({
             to={`/coach/clubs${seasonParam}`}
           />
         )}
-        {!isPlayer && (
-          <DashboardCard
-            title="Prep. temporada"
-            description="Importar plantillas de federación y planificar la nueva temporada."
-            icon={<CalendarMonthIcon style={{ fontSize: 40 }} />}
-            to="/coach/season-prep"
-          />
-        )}
+        {!isPlayer &&
+          hasAssignedClubAndTeam && (
+            <DashboardCard
+              title="Prep. temporada"
+              description="Importar plantillas de federación y planificar la nueva temporada."
+              icon={<CalendarMonthIcon style={{ fontSize: 40 }} />}
+              to="/coach/season-prep"
+            />
+          )}
 
         {!!teamTitleNode && (
           <>

@@ -7,10 +7,11 @@ public class AppDbContextDesignTimeFactory : IDesignTimeDbContextFactory<AppDbCo
 {
     public AppDbContext CreateDbContext(string[] args)
     {
+        var configuration = DesignTimeDbContextConfiguration.BuildConfiguration();
+        var connectionString = DesignTimeDbContextConfiguration.ResolveConnectionString(configuration, "FutbolBaseConnection", args);
+
         var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseNpgsql(
-                "Host=localhost;Port=5433;Database=futbolbase;Username=rffm_coaches;Password=rffm_coaches_dev_2024",
-                npgsql => npgsql.MigrationsHistoryTable("__EFMigrationsHistory", "app"))
+            .UseNpgsql(connectionString, npgsql => npgsql.MigrationsHistoryTable("__EFMigrationsHistory", "app"))
             .Options;
 
         return new AppDbContext(options);

@@ -1,6 +1,6 @@
 import { Box, Typography } from "@mui/material";
 import React, { useState, useEffect, useRef } from "react";
-import { LINE_COLORS, petoOptions } from "../constants";
+import { LINE_COLORS, SPACE_COLORS, petoOptions } from "../constants";
 import { buildLinePath, getArrowMarkerId } from "../helpers/lineHelpers";
 import { getMaterialSizePercent, getChapaSizePercent } from "../helpers/materialHelpers";
 import { getDimensionsPercent, formatMeters, getSideLengthsMeters, getShapeVertices } from "../helpers/spaceGeometry";
@@ -16,6 +16,9 @@ interface TacticalFieldProps {
 
 export default function TacticalField({ halfPitchRef, board }: TacticalFieldProps) {
   const [activeMaterialId, setActiveMaterialId] = useState<string | null>(null);
+  const [activeSpaceId, setActiveSpaceId] = useState<string | null>(null);
+  const [activeSpaceMenuId, setActiveSpaceMenuId] = useState<string | null>(null);
+  const [activeChapaColorMenuId, setActiveChapaColorMenuId] = useState<string | null>(null);
   const [selectedLineId, setSelectedLineId] = useState<string | null>(null);
   const [lineResizeSession, setLineResizeSession] = useState<
     | { lineId: string; endpoint: "a" | "b"; startClientX: number; startClientY: number }
@@ -37,6 +40,32 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
 
   const lineDidMoveRef = useRef(false);
   const justDraggedLineRef = useRef<string | null>(null);
+
+  const handleSpaceKeyNudge = (key: string, shiftKey: boolean, preventDefault: () => void) => {
+    if (!activeSpaceId) return;
+
+    const pitch = halfPitchRef.current;
+    if (!pitch) return;
+
+    const rect = pitch.getBoundingClientRect();
+    const baseStepPx = shiftKey ? 10 : 2;
+    const stepX = (baseStepPx / rect.width) * 100;
+    const stepY = (baseStepPx / rect.height) * 100;
+
+    if (key === "ArrowLeft") {
+      preventDefault();
+      nudgePlacedSpace(activeSpaceId, -stepX, 0);
+    } else if (key === "ArrowRight") {
+      preventDefault();
+      nudgePlacedSpace(activeSpaceId, stepX, 0);
+    } else if (key === "ArrowUp") {
+      preventDefault();
+      nudgePlacedSpace(activeSpaceId, 0, -stepY);
+    } else if (key === "ArrowDown") {
+      preventDefault();
+      nudgePlacedSpace(activeSpaceId, 0, stepY);
+    }
+  };
  
 
   const {
@@ -67,6 +96,8 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
     rotatePlacedSpace,
     duplicatePlacedSpace,
     removePlacedSpace,
+    setPlacedSpaceColor,
+    nudgePlacedSpace,
     placedMaterials,
     draggingMaterialId,
     handlePlacedMaterialDragStart,
@@ -161,13 +192,38 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
     };
   }, [lineDragSession, halfPitchRef, setPlacedLines]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+      handleSpaceKeyNudge(e.key, e.shiftKey, () => e.preventDefault());
+    };
+
+    document.addEventListener("keydown", handleKeyDown, true);
+    return () => document.removeEventListener("keydown", handleKeyDown, true);
+  }, [activeSpaceId, halfPitchRef, nudgePlacedSpace]);
+
   return (
     <Box
       ref={halfPitchRef}
       className={styles.halfPitch}
       onDragOver={handleFieldDragOver}
       onDrop={handleFieldDrop}
-      onClick={() => { setActiveChapaMenuId(null); setActiveMaterialId(null); }}
+      onClick={() => {
+        setActiveChapaMenuId(null);
+        setActiveChapaColorMenuId(null);
+        setActiveMaterialId(null);
+        setActiveSpaceId(null);
+        setActiveSpaceMenuId(null);
+      }}
     >
       <Box className={styles.terrainBandTop} />
       <Box className={styles.terrainBandBottom} />
@@ -186,21 +242,22 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
 
       {Object.entries(placedChapas).map(([playerId, pos], idx) => {
         const player = playersById.get(playerId);
+        const isAnonymous = pos.anonymous === true;
         const dorsal = player?.dorsal ?? idx + 1;
         const alias = (player?.alias ?? "").trim() || `J${idx + 1}`;
         const petoColor = chapaPetoById[playerId];
         const baseSize = getChapaSizePercent();
-        const size = { width: baseSize.width * (pos.scaleX ?? 1), height: baseSize.height * (pos.scaleY ?? 1) };
+        const chapaScale = Math.max(pos.scaleX ?? 1, pos.scaleY ?? 1);
+        const size = baseSize.width * chapaScale;
 
         return (
           <Box
             key={`placed-${playerId}`}
-            className={`${styles.chapa} ${styles.chapaOnField} ${draggingChapaId === playerId ? styles.chapaDragging : ""}`}
+            className={`${styles.chapa} ${styles.chapaOnField} ${draggingChapaId === playerId ? styles.chapaDragging : ""} ${activeChapaMenuId === playerId || activeChapaColorMenuId === playerId ? styles.chapaSelected : ""}`}
             style={{
               left: `${pos.x}%`,
               top: `${pos.y}%`,
-              width: `${size.width}%`,
-              height: `${size.height}%`,
+              width: `${size}%`,
               transform: `translate(-50%, -50%) rotate(${pos.rotation ?? 0}deg)`,
               background: petoColor
                 ? `linear-gradient(165deg, ${petoColor} 0%, ${petoColor} 100%)`
@@ -209,38 +266,20 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
             draggable={!pos.locked}
             onDragStart={(e) => handleChapaDragStart(e, playerId)}
             onDragEnd={(e) => handleChapaDragEnd(e, playerId)}
-            onClick={(e) => handleToggleChapaMenu(e, playerId)}
-            title={`${dorsal} - ${alias}`}
+            onClick={(e) => {
+              setActiveMaterialId(null);
+              setActiveSpaceId(null);
+              setActiveSpaceMenuId(null);
+              setSelectedLineId(null);
+              handleToggleChapaMenu(e, playerId);
+            }}
+            title={isAnonymous ? "Chapa anónima" : `${dorsal} - ${alias}`}
           >
-            <span className={styles.chapaDorsal}>{dorsal}</span>
-            <span className={styles.chapaAliasOutside}>{alias}</span>
+            {!isAnonymous && <span className={styles.chapaDorsal}>{dorsal}</span>}
+            {!isAnonymous && <span className={styles.chapaAliasOutside}>{alias}</span>}
 
             {activeChapaMenuId === playerId && (
               <>
-                <Box className={styles.chapaPetoMenu} onClick={(e) => e.stopPropagation()}>
-                  <Typography className={styles.chapaPetoMenuTitle}>Petos</Typography>
-                  <Box className={styles.chapaPetoGrid}>
-                    {petoOptions.map((peto) => (
-                      <button
-                        key={`${playerId}-${peto.key}`}
-                        type="button"
-                        className={styles.chapaPetoSwatch}
-                        style={{ backgroundColor: peto.color }}
-                        onClick={(e) => handleSetChapaPeto(e, playerId, peto.color)}
-                        title={peto.label}
-                        aria-label={`Peto ${peto.label}`}
-                      />
-                    ))}
-                  </Box>
-                  <button
-                    type="button"
-                    className={styles.chapaPetoClearBtn}
-                    onClick={(e) => handleClearChapaPeto(e, playerId)}
-                  >
-                    Quitar peto
-                  </button>
-                </Box>
-
                 <PlacedObjectControls
                   id={playerId}
                   locked={pos.locked}
@@ -249,6 +288,20 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
                   onRotate={rotatePlacedChapa}
                   onDuplicate={duplicatePlacedChapa}
                   onRemove={removePlacedChapa}
+                  renderExtras={(
+                    <button
+                      type="button"
+                      className={styles.spaceScaleBtn}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveChapaColorMenuId((prev) => (prev === playerId ? null : playerId));
+                      }}
+                      aria-label="Elegir color del peto"
+                      title="Colores"
+                    >
+                      C
+                    </button>
+                  )}
                   renderResizeHandles={(
                     ["n", "s", "e", "w", "ne", "nw", "se", "sw"] as ResizeHandle[]
                   ).map((handle) => (
@@ -262,6 +315,41 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
                     />
                   ))}
                 />
+
+                {activeChapaColorMenuId === playerId && (
+                  <Box className={styles.chapaPetoMenu} onClick={(e) => e.stopPropagation()}>
+                    <Typography className={styles.chapaPetoMenuTitle}>{isAnonymous ? "Colores" : "Petos"}</Typography>
+                    <Box className={styles.chapaPetoGrid}>
+                      {petoOptions.map((peto) => (
+                        <button
+                          key={`${playerId}-${peto.key}`}
+                          type="button"
+                          className={styles.chapaPetoSwatch}
+                          style={{ backgroundColor: peto.color }}
+                          onClick={(e) => {
+                            handleSetChapaPeto(e, playerId, peto.color);
+                            setActiveChapaColorMenuId(null);
+                          }}
+                          title={peto.label}
+                          aria-label={`Peto ${peto.label}`}
+                        />
+                      ))}
+                    </Box>
+                    {!isAnonymous && (
+                      <button
+                        type="button"
+                        className={styles.chapaPetoClearBtn}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleClearChapaPeto(e, playerId);
+                          setActiveChapaColorMenuId(null);
+                        }}
+                      >
+                        Quitar peto
+                      </button>
+                    )}
+                  </Box>
+                )}
               </>
             )}
           </Box>
@@ -272,11 +360,12 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
         const size = getDimensionsPercent(space.kind, space.scaleX, space.scaleY);
         const vertices = getShapeVertices(space.kind);
         const sideLengths = getSideLengthsMeters(space.kind, space.scaleX, space.scaleY);
+        const spaceColor = space.color ?? SPACE_COLORS[0].value;
 
         return (
           <Box
             key={space.id}
-            className={`${styles.spaceShape} ${draggingSpaceId === space.id ? styles.spaceDragging : ""}`}
+            className={`${styles.spaceShape} ${draggingSpaceId === space.id ? styles.spaceDragging : ""} ${activeSpaceMenuId === space.id ? styles.spaceMenuOpen : ""} ${activeSpaceId === space.id ? styles.spaceSelected : ""}`}
             style={{
               left: `${space.x}%`,
               top: `${space.y}%`,
@@ -284,9 +373,19 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
               height: `${size.height}%`,
               transform: "translate(-50%, -50%)",
             }}
+            tabIndex={activeSpaceId === space.id ? 0 : -1}
             draggable={!space.locked}
             onDragStart={(e) => handlePlacedSpaceDragStart(e, space.id)}
             onDragEnd={(e) => handlePlacedSpaceDragEnd(e, space.id)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setActiveChapaMenuId(null);
+              setActiveChapaColorMenuId(null);
+              setActiveMaterialId(null);
+              setActiveSpaceId(space.id);
+              setSelectedLineId(null);
+            }}
+            onKeyDown={(e) => handleSpaceKeyNudge(e.key, e.shiftKey, () => e.preventDefault())}
             title={
               space.locked
                 ? "Espacio bloqueado"
@@ -311,11 +410,18 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
 
               <svg viewBox="0 0 100 100" preserveAspectRatio="none" className={styles.spaceSvg}>
                 {space.kind === "circle" ? (
-                  <circle cx="50" cy="50" r="50" className={styles.spaceStroke} />
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="50"
+                    className={styles.spaceStroke}
+                    style={{ fill: spaceColor, fillOpacity: 0.18, stroke: spaceColor }}
+                  />
                 ) : (
                   <polygon
                     points={vertices.map((v) => `${v.x},${v.y}`).join(" ")}
                     className={styles.spaceStroke}
+                    style={{ fill: spaceColor, fillOpacity: 0.18, stroke: spaceColor }}
                   />
                 )}
               </svg>
@@ -342,27 +448,69 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
               )}
             </Box>
 
-            <PlacedObjectControls
-              id={space.id}
-              locked={space.locked}
-              onLock={toggleLockPlacedSpace}
-              onManualResize={handleManualResize}
-              onRotate={rotatePlacedSpace}
-              onDuplicate={duplicatePlacedSpace}
-              onRemove={removePlacedSpace}
-              renderResizeHandles={(
-                ["n", "s", "e", "w", "ne", "nw", "se", "sw"] as ResizeHandle[]
-              ).map((handle) => (
-                <button
-                  key={`${space.id}-handle-${handle}`}
-                  type="button"
-                  className={`${styles.spaceResizeAnchor} ${styles[`spaceResize${handle.toUpperCase()}` as keyof typeof styles]}`}
-                  onMouseDown={(e) => handleResizeStart(e, space, handle)}
-                  aria-label={`Redimensionar por ${handle}`}
-                  title="Arrastra borde o esquina para redimensionar"
-                />
-              ))}
-            />
+            {activeSpaceId === space.id && (
+              <PlacedObjectControls
+                id={space.id}
+                locked={space.locked}
+                onLock={toggleLockPlacedSpace}
+                onManualResize={handleManualResize}
+                onRotate={rotatePlacedSpace}
+                onDuplicate={duplicatePlacedSpace}
+                onRemove={removePlacedSpace}
+                renderExtras={(
+                  <button
+                    type="button"
+                    className={styles.spaceScaleBtn}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveSpaceMenuId((prev) => (prev === space.id ? null : space.id));
+                    }}
+                    aria-label="Elegir color del espacio"
+                    title="Colores"
+                  >
+                    C
+                  </button>
+                )}
+                renderResizeHandles={(
+                  ["n", "s", "e", "w", "ne", "nw", "se", "sw"] as ResizeHandle[]
+                ).map((handle) => (
+                  <button
+                    key={`${space.id}-handle-${handle}`}
+                    type="button"
+                    className={`${styles.spaceResizeAnchor} ${styles[`spaceResize${handle.toUpperCase()}` as keyof typeof styles]}`}
+                    onMouseDown={(e) => handleResizeStart(e, space, handle)}
+                    aria-label={`Redimensionar por ${handle}`}
+                    title="Arrastra borde o esquina para redimensionar"
+                  />
+                ))}
+              />
+            )}
+
+            {activeSpaceMenuId === space.id && (
+              <Box className={styles.chapaPetoMenu} onClick={(e) => e.stopPropagation()}>
+                <Typography className={styles.chapaPetoMenuTitle}>Colores</Typography>
+                <Box className={styles.chapaPetoGrid}>
+                  {SPACE_COLORS.map((option) => (
+                    <button
+                      key={`${space.id}-color-${option.key}`}
+                      type="button"
+                      className={`${styles.chapaPetoSwatch} ${spaceColor === option.value ? styles.lineColorSwatchActive : ""}`}
+                      style={{ backgroundColor: option.value }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (!space.locked) {
+                          setPlacedSpaceColor(space.id, option.value);
+                          setActiveSpaceMenuId(null);
+                        }
+                      }}
+                      title={option.label}
+                      aria-label={`Color ${option.label}`}
+                      disabled={space.locked}
+                    />
+                  ))}
+                </Box>
+              </Box>
+            )}
           </Box>
         );
       })}
@@ -377,7 +525,7 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
         return (
           <Box
             key={material.id}
-            className={`${styles.materialOnField} ${draggingMaterialId === material.id ? styles.materialDragging : ""}`}
+            className={`${styles.materialOnField} ${draggingMaterialId === material.id ? styles.materialDragging : ""} ${activeMaterialId === material.id ? styles.materialSelected : ""}`}
             style={{
               left: `${material.x}%`,
               top: `${material.y}%`,
@@ -388,7 +536,15 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
             onDragStart={(e) => handlePlacedMaterialDragStart(e, material.id)}
             onDragEnd={(e) => handlePlacedMaterialDragEnd(e, material.id)}
             title="Arrastra para mover"
-            onClick={(e) => { e.stopPropagation(); setActiveMaterialId(material.id); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setActiveChapaMenuId(null);
+              setActiveChapaColorMenuId(null);
+              setActiveSpaceId(null);
+              setActiveSpaceMenuId(null);
+              setSelectedLineId(null);
+              setActiveMaterialId(material.id);
+            }}
           >
             <Box
               className={`${styles.materialGlyphOnField} ${styles[`materialGlyph${material.kind.replace("-", "")}` as keyof typeof styles]}`}
@@ -510,6 +666,11 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
                 if (!showLines || activeLineKind) return;
                 e.preventDefault();
                 e.stopPropagation();
+                setActiveChapaMenuId(null);
+                setActiveChapaColorMenuId(null);
+                setActiveMaterialId(null);
+                setActiveSpaceId(null);
+                setActiveSpaceMenuId(null);
                 setSelectedLineId(line.id);
                 setLineDragSession({
                   lineId: line.id,
@@ -689,11 +850,28 @@ interface SpaceControlsProps {
   onRotate: (id: string) => void;
   onDuplicate: (id: string) => void;
   onRemove: (id: string) => void;
+  onSetColor: (id: string, color: string) => void;
 }
 
-function SpaceControls({ space, onLock, onManualResize, onRotate, onDuplicate, onRemove }: SpaceControlsProps) {
+function SpaceControls({ space, onLock, onManualResize, onRotate, onDuplicate, onRemove, onSetColor }: SpaceControlsProps) {
+  const activeColor = space.color ?? SPACE_COLORS[0].value;
+
   return (
     <Box className={styles.spaceScaleControls}>
+      <Box className={styles.linesStripColors} sx={{ flexDirection: "column", gap: 0.5 }}>
+        {SPACE_COLORS.map((option) => (
+          <button
+            key={`${space.id}-color-${option.key}`}
+            type="button"
+            className={`${styles.lineColorSwatch} ${activeColor === option.value ? styles.lineColorSwatchActive : ""}`}
+            title={option.label}
+            aria-label={`Color ${option.label}`}
+            onClick={(e) => { e.stopPropagation(); if (!space.locked) onSetColor(space.id, option.value); }}
+            disabled={space.locked}
+            style={{ backgroundColor: option.value }}
+          />
+        ))}
+      </Box>
       <button
         type="button"
         className={styles.spaceScaleBtn}

@@ -37,7 +37,7 @@ namespace RFFM.Api.Features.Coaches.Seasons.Queries
             public DateTime? AbsoluteExpirationRelativeToNow { get; }
         }
 
-        public record GetSeasonResponse(string Id, string Name);
+        public record GetSeasonResponse(string Id, string Name, DateTime StartDate, DateTime EndDate, bool IsActive);
 
         public class SeasonsRequestHandler(AppDbContext db) : IRequestHandler<GetSeasonQuery, GetSeasonResponse>
         {
@@ -48,7 +48,7 @@ namespace RFFM.Api.Features.Coaches.Seasons.Queries
                 if (season == null)
                     throw new KeyNotFoundException($"{nameof(Season)} '{request.SeasonId}' Not Found");
 
-                return new GetSeasonResponse(season.Id, season.Name);
+                return new GetSeasonResponse(season.Id, season.Name, season.StartDate, season.EndDate, season.IsActive);
 
 
             }

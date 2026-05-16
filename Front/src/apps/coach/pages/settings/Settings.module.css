@@ -127,6 +127,71 @@
   min-width: 0;
 }
 
+.sectionBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 24px 22px;
+  border-top: 1px solid rgba(77, 157, 224, 0.12);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sectionTitle {
+  color: rgba(232, 232, 232, 0.95);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.72rem;
+}
+
+.seasonSummary {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.seasonMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.seasonName {
+  color: #e8e8e8;
+  font-weight: 700;
+}
+
+.seasonRange {
+  color: rgba(232, 232, 232, 0.68);
+}
+
+.sectionActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.emptyNotice {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px dashed rgba(77, 157, 224, 0.35);
+  background: rgba(77, 157, 224, 0.08);
+  color: rgba(232, 232, 232, 0.78);
+  font-size: 0.84rem;
+  line-height: 1.4;
+}
+
 /* ── Actions bar ────────────────────────────────────────── */
 .actions {
   display: flex;
@@ -172,5 +237,17 @@
   }
   .settingLabel {
     flex: none;
+  }
+
+  .sectionBlock {
+    padding-inline: 16px;
+  }
+
+  .seasonSummary {
+    flex-direction: column;
+  }
+
+  .sectionActions {
+    justify-content: flex-start;
   }
 }

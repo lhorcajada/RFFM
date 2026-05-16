@@ -16,10 +16,11 @@ interface PlayerListItemProps {
 }
 
 export function PlayerListItem({ player, selected, onSelect }: PlayerListItemProps) {
-  const { filled, total } = usePlayerAvgScore(player);
+  const { filled, total, avg } = usePlayerAvgScore(player);
   const statusColor = STATUS_COLOR[player.recruitmentStatus ?? "observando"];
   const complete = filled === total && total > 0;
   const partial = filled > 0 && !complete;
+  const avgLabel = avg > 0 ? avg.toFixed(1) : "--";
 
   return (
     <button
@@ -51,8 +52,9 @@ export function PlayerListItem({ player, selected, onSelect }: PlayerListItemPro
           color: complete ? "#4ec9b0" : partial ? "#f59e0b" : "rgba(255,255,255,0.3)",
           borderColor: complete ? "#4ec9b0" : partial ? "#f59e0b" : "rgba(255,255,255,0.15)",
         }}
+        aria-label={`Media de evaluación ${avgLabel}`}
       >
-        {filled}/{total}
+        {avgLabel}
       </span>
     </button>
   );

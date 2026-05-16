@@ -1,4 +1,5 @@
-﻿using Mediator;
+﻿using System.Security.Claims;
+using Mediator;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -15,22 +16,21 @@ namespace RFFM.Api.Features.Coaches.Seasons.Queries
         public void AddRoutes(IEndpointRouteBuilder app)
         {
             app.MapGet("/api/catalog/seasons",
-                    async (IMediator mediator, CancellationToken cancellationToken) =>
+                    async (IMediator mediator, string clubId, CancellationToken cancellationToken) =>
                     {
-                        return await mediator.Send(new SeasonsQuery(), cancellationToken);
+                        return await mediator.Send(new SeasonsQuery { ClubId = clubId }, cancellationToken);    
                     })
                 .WithName(nameof(GetSeasons))
                 .WithTags(SeasonConstants.SeasonFeature)
                 .Produces<SeasonsResponse[]>();
         }
 
-        public record SeasonsQuery : IQueryApp<SeasonsResponse[]>, ICacheRequest
+        public record SeasonsQuery : IQueryApp<SeasonsResponse[]>
         {
-            public string CacheKey => SeasonConstants.CachePrefix;
-            public DateTime? AbsoluteExpirationRelativeToNow { get; }
+            public string ClubId { get; internal set; }
         }
 
-        public record SeasonsResponse(string Id, string Name, bool isActive);
+        public record SeasonsResponse(string Id, string Name, DateTime StartDate, DateTime EndDate, bool IsActive);
 
         public class SeasonsRequestHandler : IRequestHandler<SeasonsQuery, SeasonsResponse[]>
         {
@@ -44,7 +44,8 @@ namespace RFFM.Api.Features.Coaches.Seasons.Queries
             public async ValueTask<SeasonsResponse[]> Handle(SeasonsQuery request, CancellationToken cancellationToken = default)
             {
                 return await _db.Seasons
-                    .Select(td => new SeasonsResponse(td.Id, td.Name, td.IsActive))
+                    .Where(s=> s.ClubId == request.ClubId)
+                    .Select(td => new SeasonsResponse(td.Id, td.Name, td.StartDate, td.EndDate, td.IsActive))
                     .ToArrayAsync(cancellationToken);
             }
         }

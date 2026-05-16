@@ -5,6 +5,7 @@ namespace RFFM.Api.Domain.Entities.Coaches
         public string Id { get; set; } = Guid.NewGuid().ToString();
         public string UserId { get; set; } = null!;
         public string FedSeason { get; set; } = null!;
+        public string? SportEventId { get; set; }
         /// <summary>JSON array of evaluated players with their evaluation data.</summary>
         public string Data { get; set; } = "[]";
         public DateTime UpdatedAt { get; set; } = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);

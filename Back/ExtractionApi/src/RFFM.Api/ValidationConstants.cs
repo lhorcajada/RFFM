@@ -3,6 +3,7 @@
     public class ValidationConstants
     {
         public const int ClubNameMaxLength = 200;
+        public const int ClubIdMaxLength = 450;
         public const string ClubNameCannotBeNullEmpty = "Club name cannot be null or empty.";
         public const string ClubNameCannotExceedMaxLength = "Club name cannot exceed {0} characters.";
         public const string CountryIdMustBePositive = "Country ID must be a positive integer.";
@@ -12,11 +13,14 @@
         public const int SeasonNameMaxLength = 200;
         public const string SeasonNameCannotBeNullEmpty = "Season name cannot be null or empty.";
         public const string SeasonNameCannotExceedMaxLength = "Season name cannot exceed {0} characters.";
+        public const string SeasonEndDateCannotBeBeforeStartDate = "Season end date cannot be before the start date.";
+        public const string SeasonStartDateCannotBeInThePast = "Season start date cannot be in the past.";
+        public const string SeasonEndDateCannotBeInThePast = "Season end date cannot be in the past.";
         public const int TeamNameMaxLength = 500;
         public const int TeamJoinCodeLength = 8;
         public const int TechnicalNameMaxLength = 200;
         public const string TechnicalNameCannotBeNullEmpty = "Technical name cannot be null or empty.";
-        public const string TechnicalNameCannotExceedMaxLength = "Technical name cannot exceed {0} characters."; 
+        public const string TechnicalNameCannotExceedMaxLength = "Technical name cannot exceed {0} characters.";
         public const int PlayerNameMaxLength = 500;
         public const string PlayerNameCannotBeNullEmpty = "Player name cannot be null or empty.";
         public const string PlayerNameCannotExceedMaxLength = "League name cannot exceed {0} characters.";

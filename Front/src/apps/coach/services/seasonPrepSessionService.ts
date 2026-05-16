@@ -2,13 +2,16 @@ import client from "../../../core/api/client";
 
 export type SeasonPrepSessionData = {
   fedSeason: string;
+  sportEventId?: string | null;
   slot: object;
   pool: object[];
 };
 
-export async function getSeasonPrepSession(): Promise<SeasonPrepSessionData | null> {
+export async function getSeasonPrepSession(sportEventId?: string | null): Promise<SeasonPrepSessionData | null> {
+  const params = sportEventId ? { sportEventId } : undefined;
   const response = await client.get<{ data: string; updatedAt: string }>(
-    "/api/season-prep/session"
+    "/api/season-prep/session",
+    { params }
   );
   if (response.status === 204 || !response.data?.data) return null;
   try {
@@ -21,9 +24,14 @@ export async function getSeasonPrepSession(): Promise<SeasonPrepSessionData | nu
 export async function upsertSeasonPrepSession(
   state: SeasonPrepSessionData
 ): Promise<void> {
-  await client.put("/api/season-prep/session", { data: JSON.stringify(state) });
+  await client.put("/api/season-prep/session", {
+    data: JSON.stringify(state),
+    sportEventId: state.sportEventId ?? null,
+  });
 }
 
-export async function deleteSeasonPrepSession(): Promise<void> {
-  await client.delete("/api/season-prep/session");
+export async function deleteSeasonPrepSession(sportEventId?: string | null): Promise<void> {
+  await client.delete("/api/season-prep/session", {
+    params: sportEventId ? { sportEventId } : undefined,
+  });
 }

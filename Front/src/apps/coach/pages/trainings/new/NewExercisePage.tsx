@@ -6,6 +6,7 @@ import SportsSoccerIcon from "@mui/icons-material/SportsSoccer";
 import ViewSidebarIcon from "@mui/icons-material/ViewSidebar";
 import { useLocation, useNavigate } from "react-router-dom";
 import BaseLayout from "../../../../../shared/components/ui/BaseLayout/BaseLayout";
+import trainingService from "../../../services/trainingService";
 import styles from "./NewExercisePage.module.css";
 import ChapasStrip from "./components/ChapasStrip";
 import ExerciseFormPanel from "./components/ExerciseFormPanel";
@@ -25,6 +26,8 @@ export default function NewExercisePage() {
   const params = new URLSearchParams(location.search);
   const clubId = params.get("clubId") ?? "";
   const teamId = params.get("teamId") ?? "";
+  const exerciseId = params.get("exerciseId");
+  const duplicateFromId = params.get("duplicateFrom");
   const subSubPrincipleId = params.get("subSubPrincipleId");
   const subSubPrincipleName = params.get("sspName");
 
@@ -33,7 +36,34 @@ export default function NewExercisePage() {
 
   const halfPitchRef = useRef<HTMLDivElement>(null);
   const board = useTacticalBoard(halfPitchRef, teamId);
-  const exerciseForm = useExerciseForm({ clubId, subSubPrincipleId, navigate, returnTo });
+  const exerciseForm = useExerciseForm({
+    clubId,
+    subSubPrincipleId,
+    navigate,
+    returnTo,
+    getBoardStateJson: board.serializeBoardStateJson,
+  });
+
+  useEffect(() => {
+    const sourceId = exerciseId ?? duplicateFromId;
+    if (!sourceId) return;
+
+    let cancelled = false;
+
+    void trainingService.getExerciseById(sourceId).then((exercise) => {
+      if (cancelled || !exercise) return;
+      if (duplicateFromId) {
+        exerciseForm.loadExerciseAsCopy(exercise);
+      } else {
+        exerciseForm.loadExercise(exercise);
+      }
+      board.loadBoardStateJson(exercise.boardStateJson);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [exerciseId, duplicateFromId]);
 
   const [panelVisible, setPanelVisible] = useState(false);
   useEffect(() => { setPanelVisible(true); }, []);

@@ -2,30 +2,38 @@ import { useState, useEffect } from "react";
 import { getSeasonPrepSession } from "../../../../services/seasonPrepSessionService";
 import { getSeasonPrepEvaluations } from "../../../../services/seasonPrepEvaluationsService";
 import type { EvalPlayer } from "../../../../services/seasonPrepEvaluationsService";
-import type { PoolPlayer, ConceptEval, RecruitmentStatus } from "../../SeasonPrep";
-import type { ConceptKey } from "../evaluationConstants";
+import type { PoolPlayer, RecruitmentStatus } from "../../SeasonPrep";
+import type { PlayerRating } from "../../../../types/playerRating";
 
 /**
  * Loads the eligible player pool from the session and merges saved evaluations.
  * Exposes mutation handlers for eval changes, position changes and adding manual players.
  */
-export function useEvaluationPool() {
+export function useEvaluationPool(sportEventId?: string | null) {
   const [pool, setPool] = useState<PoolPlayer[]>([]);
   const [fedSeason, setFedSeason] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getSeasonPrepSession()
+    if (!sportEventId) {
+      setPool([]);
+      setFedSeason("");
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    getSeasonPrepSession(sportEventId)
       .then(async (saved) => {
         if (!saved) return;
-        const s = saved as unknown as { fedSeason: string; slot: object; pool: PoolPlayer[] };
+        const s = saved as unknown as { fedSeason: string; sportEventId?: string | null; slot: object; pool: PoolPlayer[] };
         const season = s.fedSeason ?? "";
         setFedSeason(season);
         const basePlayers: PoolPlayer[] = s.pool ?? [];
 
         let savedEvals: EvalPlayer[] | null = null;
         try {
-          savedEvals = season ? await getSeasonPrepEvaluations(season) : null;
+          savedEvals = season ? await getSeasonPrepEvaluations(season, sportEventId ?? s.sportEventId ?? null) : null;
         } catch {
           // non-critical — proceed without saved evaluations
         }
@@ -39,7 +47,7 @@ export function useEvaluationPool() {
             return {
               ...p,
               position: ev.position ?? p.position,
-              evaluation: ev.evaluation,
+              rating: ev.rating,
               recruitmentStatus: ev.recruitmentStatus,
               matches: {
                 ...(p.matches ?? { called: 0, substitute: 0, played: 0, goalsPerMatch: 0 }),
@@ -73,7 +81,7 @@ export function useEvaluationPool() {
               assignment: "eligible" as const,
               manualEntry: true,
               procedencia: e.procedencia,
-              evaluation: e.evaluation,
+              rating: e.rating,
               recruitmentStatus: e.recruitmentStatus,
             }));
 
@@ -84,17 +92,16 @@ export function useEvaluationPool() {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }, [sportEventId]);
 
-  function handleEvalChange(
+  function handleRatingChange(
     uniqueId: string,
-    key: ConceptKey | "notes",
-    val: ConceptEval | string
+    rating: PlayerRating
   ) {
     setPool((prev) =>
       prev.map((p) => {
         if (p.uniqueId !== uniqueId) return p;
-        return { ...p, evaluation: { ...(p.evaluation ?? {}), [key]: val } };
+        return { ...p, rating };
       })
     );
   }
@@ -144,6 +151,7 @@ export function useEvaluationPool() {
       assignment: "eligible",
       manualEntry: true,
       procedencia: data.procedencia,
+      rating: undefined,
     };
     setPool((prev) => [...prev, newPlayer]);
     return newPlayer;
@@ -154,7 +162,7 @@ export function useEvaluationPool() {
     setPool,
     fedSeason,
     loading,
-    handleEvalChange,
+    handleRatingChange,
     handlePositionChange,
     handleStatusChange,
     handleAddPlayer,

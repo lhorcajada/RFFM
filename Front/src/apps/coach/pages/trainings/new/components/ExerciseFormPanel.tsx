@@ -62,7 +62,9 @@ export default function ExerciseFormPanel({
   return (
     <Box className={`${styles.formPanel} ${panelVisible ? styles.formPanelVisible : ""}`}>
       <Box className={styles.panelHeader}>
-        <Typography className={styles.panelTitle}>Nuevo ejercicio</Typography>
+        <Typography className={styles.panelTitle}>
+          {form.savedExerciseId ? "Editar ejercicio" : "Nuevo ejercicio"}
+        </Typography>
         {subSubPrincipleName && (
           <Typography className={styles.panelSubtitle}>{subSubPrincipleName}</Typography>
         )}

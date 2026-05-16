@@ -1,25 +1,25 @@
-import type { PlayerEvaluation, ConceptEval } from "../../SeasonPrep";
-import type { ConceptDef, ConceptKey } from "../evaluationConstants";
+import type { PlayerRating, RatingAnswer } from "../../../../types/playerRating";
+import type { CharacteristicDef } from "../evaluationConstants";
 import { ConceptRow } from "./ConceptRow";
 import styles from "../EvaluationPage.module.css";
 
 interface AttributeGroupProps {
   title: string;
-  concepts: ConceptDef[];
-  evaluation: PlayerEvaluation;
-  onChange: (key: ConceptKey, val: ConceptEval) => void;
+  concepts: CharacteristicDef[];
+  rating: PlayerRating;
+  onChange: (answer: RatingAnswer) => void;
 }
 
-export function AttributeGroup({ title, concepts, evaluation, onChange }: AttributeGroupProps) {
+export function AttributeGroup({ title, concepts, rating, onChange }: AttributeGroupProps) {
   return (
     <div className={styles.attrGroup}>
       <div className={styles.attrGroupTitle}>{title}</div>
-      {concepts.map(({ key, ...rest }) => (
+      {concepts.map((concept) => (
         <ConceptRow
-          key={key}
-          concept={{ key, ...rest }}
-          value={evaluation[key] as ConceptEval | undefined}
-          onChange={(val) => onChange(key, val)}
+          key={concept.key}
+          concept={concept}
+          value={rating.answers.find((answer) => answer.characteristicKey === concept.key)}
+          onChange={onChange}
         />
       ))}
     </div>

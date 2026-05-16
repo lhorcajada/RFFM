@@ -16,6 +16,14 @@
             }
         }
 
+        public static void ValidatePeriod(DateTime startDate, DateTime endDate)
+        {
+            if (endDate < startDate)
+            {
+                throw new ArgumentException(ValidationConstants.SeasonEndDateCannotBeBeforeStartDate, nameof(endDate));
+            }
+        }
+
         internal static void ValidateClubId(string clubId)
         {
             if (string.IsNullOrEmpty(clubId))

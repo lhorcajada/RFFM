@@ -5,7 +5,7 @@ services:
     environment:
       # Override para desarrollo local
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__CatalogConnection=Server=sqlserver,1433;Database=FutbolBase;User Id=sa;Password=PassLogo33.#;TrustServerCertificate=True;
+      - ConnectionStrings__FutbolBaseConnection=Server=sqlserver,1433;Database=FutbolBase;User Id=sa;Password=PassLogo33.#;TrustServerCertificate=True;
       - Jwt__Key=${JWT_KEY}
       - Jwt__Issuer=FutbolBaseAPI
       - Jwt__Audience=FutbolBaseAPIUsers

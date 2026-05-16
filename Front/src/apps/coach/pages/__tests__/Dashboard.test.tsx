@@ -1,67 +1,97 @@
 import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { UserProvider } from "../../../../shared/context/UserContext";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("../../services/clubService", () => ({
-  getUserClubs: vi.fn(),
+vi.mock("../../../../shared/components/ui/BaseLayout/BaseLayout", () => ({
+  default: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
-import { getUserClubs } from "../../services/clubService";
+vi.mock("../../hooks/useTeamAndClub.tsx", () => ({
+  default: vi.fn(),
+}));
+
+vi.mock("../Dashboard/hooks/useDashboardSeason", () => ({
+  useDashboardSeason: vi.fn(),
+}));
+
+vi.mock("../Dashboard/hooks/usePreferredSelection", () => ({
+  usePreferredSelection: vi.fn(),
+}));
+
+vi.mock("../Dashboard/hooks/usePlayerAutoLoad", () => ({
+  usePlayerAutoLoad: vi.fn(),
+}));
+
+vi.mock("../../services/authService", () => ({
+  coachAuthService: {
+    hasRole: vi.fn(() => false),
+  },
+}));
+
 import CoachDashboard from "../Dashboard/Dashboard";
+import useTeamAndClub from "../../hooks/useTeamAndClub.tsx";
+import { useDashboardSeason } from "../Dashboard/hooks/useDashboardSeason";
+import { usePreferredSelection } from "../Dashboard/hooks/usePreferredSelection";
+import { usePlayerAutoLoad } from "../Dashboard/hooks/usePlayerAutoLoad";
 
 describe("CoachDashboard", () => {
   beforeEach(() => {
     vi.resetAllMocks();
-  });
-
-  it("shows only Clubs card when user has no clubs", async () => {
-    (getUserClubs as any).mockResolvedValue([]);
-
-    render(
-      <MemoryRouter>
-        <UserProvider>
-          <CoachDashboard />
-        </UserProvider>
-      </MemoryRouter>
-    );
-
-    await waitFor(() => expect(getUserClubs).toHaveBeenCalled());
-
-    // Clubs should be visible
-    expect(screen.getByText(/Clubs/i)).toBeInTheDocument();
-    // Another card should not be visible
-    await waitFor(() => {
-      expect(screen.queryByText(/Plantilla/i)).not.toBeInTheDocument();
+    (useTeamAndClub as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
+      team: null,
+      teamTitleNode: null,
+      clubSubtitleNode: null,
+      loading: false,
+    });
+    (useDashboardSeason as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
+      selectedSeason: "",
+      handleSeasonChange: vi.fn(),
+    });
+    (usePreferredSelection as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
+      hasPreferredSelection: false,
+      loadingConfig: false,
+      snackbar: { open: false, severity: "info", message: "" },
+      setSnackbar: vi.fn(),
+      handleLoadPreferred: vi.fn(),
+    });
+    (usePlayerAutoLoad as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
+      isPlayer: false,
     });
   });
 
-  it("shows other cards when user has clubs", async () => {
-    (getUserClubs as any).mockResolvedValue([
-      {
-        clubId: "1",
-        clubName: "C1",
-        shieldUrl: "",
-        role: "admin",
-        roleId: 1,
-        isCreator: true,
-      },
-    ]);
-
+  it("shows only Clubs card when user has no assigned club or team", async () => {
     render(
       <MemoryRouter>
-        <UserProvider>
-          <CoachDashboard />
-        </UserProvider>
+        <CoachDashboard />
       </MemoryRouter>
     );
 
-    await waitFor(() => expect(getUserClubs).toHaveBeenCalled());
+    await waitFor(() => expect(screen.getByRole("link", { name: /^Clubs$/i })).toBeInTheDocument());
+    expect(screen.queryByRole("link", { name: /^Configuración$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /^Plantilla$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /^Partidos$/i })).not.toBeInTheDocument();
+  });
 
-    expect(screen.getByText(/Clubs/i)).toBeInTheDocument();
-    // Other cards should appear
-    expect(screen.getByText(/Plantilla/i)).toBeInTheDocument();
-    expect(screen.getByText(/Partidos/i)).toBeInTheDocument();
+  it("shows configuration when user has an assigned club and team", async () => {
+    (useTeamAndClub as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
+      team: {
+        id: "team-1",
+        name: "Equipo 1",
+        club: { id: "club-1", name: "Club 1" },
+      },
+      teamTitleNode: <span>Equipo 1</span>,
+      clubSubtitleNode: <span>Club 1</span>,
+      loading: false,
+    });
+
+    render(
+      <MemoryRouter>
+        <CoachDashboard />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => expect(screen.getByRole("link", { name: /^Configuración$/i })).toBeInTheDocument());
+    expect(screen.getByRole("link", { name: /^Clubs$/i })).toBeInTheDocument();
   });
 });

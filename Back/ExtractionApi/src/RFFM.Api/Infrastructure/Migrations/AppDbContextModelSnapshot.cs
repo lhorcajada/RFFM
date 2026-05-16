@@ -352,6 +352,11 @@ namespace RFFM.Api.Infrastructure.Migrations
                         {
                             Id = 4,
                             Name = "Amistoso"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Name = "Pruebas de acceso"
                         });
                 });
 
@@ -1062,6 +1067,9 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.Property<string>("Id")
                         .HasColumnType("text");
 
+                    b.Property<string>("BoardStateJson")
+                        .HasColumnType("text");
+
                     b.Property<string>("ClubId")
                         .IsRequired()
                         .HasMaxLength(36)
@@ -1540,7 +1548,8 @@ namespace RFFM.Api.Infrastructure.Migrations
             modelBuilder.Entity("RFFM.Api.Domain.Entities.Coaches.SeasonPrepEvaluations", b =>
                 {
                     b.Property<string>("Id")
-                        .HasColumnType("text");
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<string>("Data")
                         .IsRequired()
@@ -1548,10 +1557,142 @@ namespace RFFM.Api.Infrastructure.Migrations
 
                     b.Property<string>("FedSeason")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<string>("SportEventId")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "FedSeason", "SportEventId")
+                        .IsUnique();
+
+                    b.ToTable("SeasonPrepEvaluations", "app");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Entities.Coaches.SeasonPrepPlayerRating", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<decimal?>("CompetConstantEffort")
+                        .HasColumnType("decimal(5,1)");
+
+                    b.Property<decimal?>("CompetDecisiveActions")
+                        .HasColumnType("decimal(5,1)");
+
+                    b.Property<decimal?>("CompetDuelWinning")
+                        .HasColumnType("decimal(5,1)");
+
+                    b.Property<decimal?>("CompetLooseBalls")
+                        .HasColumnType("decimal(5,1)");
+
+                    b.Property<decimal?>("CompetRecoveries")
+                        .HasColumnType("decimal(5,1)");
+
+                    b.Property<decimal?>("CompetResponsibility")
+                        .HasColumnType("decimal(5,1)");
+
+                    b.Property<decimal>("Competitiveness")
+                        .HasColumnType("decimal(5,1)");
+
+                    b.Property<string>("FedSeason")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<bool>("IsGoalkeeper")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<decimal>("Physical")
+                        .HasColumnType("decimal(5,1)");
+
+                    b.Property<decimal?>("PhysicalEndurance")
+                        .HasColumnType("decimal(5,1)");
+
+                    b.Property<decimal?>("PhysicalSpeed")
+                        .HasColumnType("decimal(5,1)");
+
+                    b.Property<decimal?>("PhysicalStrength")
+                        .HasColumnType("decimal(5,1)");
+
+                    b.Property<DateTime>("RatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SeasonPrepPlayerId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("SportEventId")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<decimal>("Tactical")
+                        .HasColumnType("decimal(5,1)");
+
+                    b.Property<decimal?>("TacticalAttackParticipation")
+                        .HasColumnType("decimal(5,1)");
+
+                    b.Property<decimal?>("TacticalBeatsOpponents")
+                        .HasColumnType("decimal(5,1)");
+
+                    b.Property<decimal?>("TacticalDefensiveAwareness")
+                        .HasColumnType("decimal(5,1)");
+
+                    b.Property<decimal?>("TacticalGeneratesAdvantage")
+                        .HasColumnType("decimal(5,1)");
+
+                    b.Property<decimal?>("TacticalMarking")
+                        .HasColumnType("decimal(5,1)");
+
+                    b.Property<decimal?>("TacticalOffMovement")
+                        .HasColumnType("decimal(5,1)");
+
+                    b.Property<decimal?>("TacticalPressing")
+                        .HasColumnType("decimal(5,1)");
+
+                    b.Property<decimal?>("TacticalTrackBack")
+                        .HasColumnType("decimal(5,1)");
+
+                    b.Property<decimal>("Technical")
+                        .HasColumnType("decimal(5,1)");
+
+                    b.Property<decimal?>("TechnicalControl")
+                        .HasColumnType("decimal(5,1)");
+
+                    b.Property<decimal?>("TechnicalDribbling")
+                        .HasColumnType("decimal(5,1)");
+
+                    b.Property<decimal?>("TechnicalHeading")
+                        .HasColumnType("decimal(5,1)");
+
+                    b.Property<decimal?>("TechnicalInterceptions")
+                        .HasColumnType("decimal(5,1)");
+
+                    b.Property<decimal?>("TechnicalPassing")
+                        .HasColumnType("decimal(5,1)");
+
+                    b.Property<decimal?>("TechnicalShooting")
+                        .HasColumnType("decimal(5,1)");
+
+                    b.Property<decimal?>("TechnicalTackling")
+                        .HasColumnType("decimal(5,1)");
 
                     b.Property<string>("UserId")
                         .IsRequired()
@@ -1559,7 +1700,49 @@ namespace RFFM.Api.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("SeasonPrepEvaluations", "app");
+                    b.HasIndex("RatedAt");
+
+                    b.HasIndex("UserId", "FedSeason", "SportEventId", "SeasonPrepPlayerId")
+                        .IsUnique();
+
+                    b.ToTable("SeasonPrepPlayerRatings", "app");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Entities.Coaches.SeasonPrepPlayerRatingDetail", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<string>("CategoryKey")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("CharacteristicKey")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Concept")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("Level")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("RatingId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RatingId");
+
+                    b.HasIndex("RatingId", "CharacteristicKey")
+                        .IsUnique();
+
+                    b.ToTable("SeasonPrepPlayerRatingDetails", "app");
                 });
 
             modelBuilder.Entity("RFFM.Api.Domain.Entities.Coaches.SeasonPrepSession", b =>
@@ -1572,6 +1755,10 @@ namespace RFFM.Api.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("SportEventId")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -1582,7 +1769,7 @@ namespace RFFM.Api.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId")
+                    b.HasIndex("UserId", "SportEventId")
                         .IsUnique();
 
                     b.ToTable("SeasonPrepSessions", "app");
@@ -3478,6 +3665,14 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.Property<string>("Id")
                         .HasColumnType("text");
 
+                    b.Property<string>("ClubId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<DateTime>("EndDate")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
@@ -3486,46 +3681,14 @@ namespace RFFM.Api.Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("timestamp with time zone");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("ClubId");
 
                     b.ToTable("Seasons", "app");
-                });
-
-            modelBuilder.Entity("RFFM.Api.Domain.Entities.UserProfile", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("text");
-
-                    b.Property<string>("ApplicationUserId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("now()");
-
-                    b.Property<string>("PlayerId")
-                        .HasColumnType("text");
-
-                    b.Property<string>("RoleName")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("TeamId")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("now()");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ApplicationUserId")
-                        .IsUnique();
-
-                    b.ToTable("UserProfiles", "app");
                 });
 
             modelBuilder.Entity("RFFM.Api.Domain.Entities.Subscription", b =>
@@ -3976,6 +4139,36 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.ToTable("TeamPlayerRatingDetails", "app");
                 });
 
+            modelBuilder.Entity("RFFM.Api.Domain.Entities.UserProfile", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ApplicationUserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PlayerId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("RoleName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("TeamId")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("UserProfiles", "app");
+                });
+
             modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Training.TasksTraining.PhysicalTaskTraining", b =>
                 {
                     b.HasBaseType("RFFM.Api.Domain.Aggregates.Training.TasksTraining.TaskTrainingBase");
@@ -4398,6 +4591,17 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.Navigation("Membership");
                 });
 
+            modelBuilder.Entity("RFFM.Api.Domain.Entities.Coaches.SeasonPrepPlayerRatingDetail", b =>
+                {
+                    b.HasOne("RFFM.Api.Domain.Entities.Coaches.SeasonPrepPlayerRating", "Rating")
+                        .WithMany("Details")
+                        .HasForeignKey("RatingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Rating");
+                });
+
             modelBuilder.Entity("RFFM.Api.Domain.Entities.Competitions.League", b =>
                 {
                     b.HasOne("RFFM.Api.Domain.Entities.Competitions.Category", "Category")
@@ -4415,6 +4619,17 @@ namespace RFFM.Api.Infrastructure.Migrations
                         .WithMany("Players")
                         .HasForeignKey("ClubId")
                         .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Club");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Entities.Seasons.Season", b =>
+                {
+                    b.HasOne("RFFM.Api.Domain.Aggregates.UserClubs.Club", "Club")
+                        .WithMany()
+                        .HasForeignKey("ClubId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Club");
@@ -4775,6 +4990,11 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.Navigation("SportEvents");
 
                     b.Navigation("Trainings");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Entities.Coaches.SeasonPrepPlayerRating", b =>
+                {
+                    b.Navigation("Details");
                 });
 
             modelBuilder.Entity("RFFM.Api.Domain.Entities.TeamPlayers.TeamIdealLineup", b =>

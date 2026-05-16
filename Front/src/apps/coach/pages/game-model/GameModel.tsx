@@ -167,13 +167,15 @@ export default function GameModel() {
   };
 
   const handleOpenNewSeasonDialog = async () => {
+    const clubId = team?.club?.id;
+    if (!clubId) return;
     setSelectedDialogSeasonId("");
     setShowAddSeasonInDialog(false);
     setNewSeasonFormName("");
     setNewSeasonDialogOpen(true);
     setDialogSeasonsLoading(true);
     try {
-      const seasons = await seasonService.getSeasons();
+      const seasons = await seasonService.getSeasons(clubId);
       setDialogSeasons(seasons);
     } finally {
       setDialogSeasonsLoading(false);
@@ -195,11 +197,12 @@ export default function GameModel() {
 
   const handleCreateSeasonInDialog = async () => {
     const name = newSeasonFormName.trim();
-    if (!name) return;
+    const clubId = team?.club?.id;
+    if (!name || !clubId) return;
     setCreateSeasonLoading(true);
     try {
-      await seasonService.createSeason(name);
-      const seasons = await seasonService.getSeasons();
+      await seasonService.createSeason(name, false, undefined, undefined, clubId);
+      const seasons = await seasonService.getSeasons(clubId);
       setDialogSeasons(seasons);
       const created = seasons.find((s) => s.name === name);
       if (created) setSelectedDialogSeasonId(created.id);

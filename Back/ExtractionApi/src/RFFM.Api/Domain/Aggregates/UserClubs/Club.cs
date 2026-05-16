@@ -19,7 +19,12 @@ namespace RFFM.Api.Domain.Aggregates.UserClubs
         private Club()
         {
         }
-        public Club(string name, int countryId, string? shieldUrl = "", string? invitationCode = null)
+
+        public static Club Create(string name, int countryId, string? shieldUrl = "", string? invitationCode = null)
+        {
+            return new Club(name, countryId, shieldUrl, invitationCode);
+        }
+        private Club(string name, int countryId, string? shieldUrl = "", string? invitationCode = null)
         {
             UpdateName(name);
             UpdateCountry(countryId);

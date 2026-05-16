@@ -30,7 +30,7 @@ interface Props {
   teamId: string;
   event?: SportEventResponse | null;
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (event?: SportEventResponse) => void;
 }
 
 function toLocalDateTimeInput(iso?: string | null): string {
@@ -162,13 +162,14 @@ export default function SportEventDialog({
         isHomeMatch: isMatchType ? isHomeMatch : undefined,
       };
 
+      let savedEvent: SportEventResponse | undefined;
       if (isEdit && event) {
         const { teamId: _tid, ...updatePayload } = payload;
-        await sportEventService.updateSportEvent(String(event.id), updatePayload);
+        savedEvent = await sportEventService.updateSportEvent(String(event.id), updatePayload);
       } else {
-        await sportEventService.createSportEvent(payload);
+        savedEvent = await sportEventService.createSportEvent(payload);
       }
-      onSaved();
+      onSaved(savedEvent);
       onClose();
     } catch (e: any) {
       setError(e?.response?.data?.detail ?? e?.message ?? "Error al guardar.");

@@ -12,6 +12,9 @@ param(
     [Parameter(Mandatory=$false)]
     [ValidateSet("AppDbContext", "IdentityDbContext", "FederationDbContext")]
     [string]$Context = "AppDbContext",
+
+    [Parameter(Mandatory=$false)]
+    [string]$ConnectionStringKey = "",
     
     [Parameter(Mandatory=$false)]
     [string]$OutputScript = "migration-script.sql"
@@ -34,7 +37,18 @@ switch ($Action) {
         
         Write-Host "📝 Creando migración: $MigrationName" -ForegroundColor Yellow
         Write-Host "   Context: $Context" -ForegroundColor Gray
+        if (-not [string]::IsNullOrWhiteSpace($ConnectionStringKey)) {
+            Write-Host "   Connection key: $ConnectionStringKey" -ForegroundColor Gray
+        }
         Write-Host ""
+
+        $resolvedConnectionKey = if ([string]::IsNullOrWhiteSpace($ConnectionStringKey)) {
+            if ($Context -eq "IdentityDbContext") { "IdentityConnection" }
+            elseif ($Context -eq "FederationDbContext") { "FederationConnection" }
+            else { "FutbolBaseConnection" }
+        } else {
+            $ConnectionStringKey
+        }
 
         $outputDir = if ($Context -eq "FederationDbContext") { "Infrastructure/Migrations/Federation" } `
                      elseif ($Context -eq "IdentityDbContext") { "Infrastructure/Migrations/Identity" } `
@@ -44,7 +58,9 @@ switch ($Action) {
             --project $apiProject `
             --startup-project $startupProject `
             --context "RFFM.Api.Infrastructure.Persistence.$Context" `
-            --output-dir $outputDir
+            --output-dir $outputDir `
+            -- `
+            --connection-string-key $resolvedConnectionKey
         
         if ($LASTEXITCODE -eq 0) {
             Write-Host ""
@@ -63,12 +79,25 @@ switch ($Action) {
     "apply" {
         Write-Host "🚀 Aplicando migraciones..." -ForegroundColor Yellow
         Write-Host "   Context: $Context" -ForegroundColor Gray
+        if (-not [string]::IsNullOrWhiteSpace($ConnectionStringKey)) {
+            Write-Host "   Connection key: $ConnectionStringKey" -ForegroundColor Gray
+        }
         Write-Host ""
+
+        $resolvedConnectionKey = if ([string]::IsNullOrWhiteSpace($ConnectionStringKey)) {
+            if ($Context -eq "IdentityDbContext") { "IdentityConnection" }
+            elseif ($Context -eq "FederationDbContext") { "FederationConnection" }
+            else { "FutbolBaseConnection" }
+        } else {
+            $ConnectionStringKey
+        }
         
         dotnet ef database update `
             --project $apiProject `
             --startup-project $startupProject `
-            --context "RFFM.Api.Infrastructure.Persistence.$Context"
+            --context "RFFM.Api.Infrastructure.Persistence.$Context" `
+            -- `
+            --connection-string-key $resolvedConnectionKey
         
         if ($LASTEXITCODE -eq 0) {
             Write-Host ""
@@ -82,7 +111,18 @@ switch ($Action) {
     "remove" {
         Write-Host "🗑️  Eliminando última migración..." -ForegroundColor Yellow
         Write-Host "   Context: $Context" -ForegroundColor Gray
+        if (-not [string]::IsNullOrWhiteSpace($ConnectionStringKey)) {
+            Write-Host "   Connection key: $ConnectionStringKey" -ForegroundColor Gray
+        }
         Write-Host ""
+
+        $resolvedConnectionKey = if ([string]::IsNullOrWhiteSpace($ConnectionStringKey)) {
+            if ($Context -eq "IdentityDbContext") { "IdentityConnection" }
+            elseif ($Context -eq "FederationDbContext") { "FederationConnection" }
+            else { "FutbolBaseConnection" }
+        } else {
+            $ConnectionStringKey
+        }
         
         $confirm = Read-Host "¿Estás seguro? (s/n)"
         if ($confirm -eq "s") {
@@ -90,7 +130,9 @@ switch ($Action) {
                 --project $apiProject `
                 --startup-project $startupProject `
                 --context "RFFM.Api.Infrastructure.Persistence.$Context" `
-                --force
+                --force `
+                -- `
+                --connection-string-key $resolvedConnectionKey
             
             if ($LASTEXITCODE -eq 0) {
                 Write-Host ""
@@ -107,12 +149,25 @@ switch ($Action) {
     "list" {
         Write-Host "📋 Listando migraciones..." -ForegroundColor Yellow
         Write-Host "   Context: $Context" -ForegroundColor Gray
+        if (-not [string]::IsNullOrWhiteSpace($ConnectionStringKey)) {
+            Write-Host "   Connection key: $ConnectionStringKey" -ForegroundColor Gray
+        }
         Write-Host ""
+
+        $resolvedConnectionKey = if ([string]::IsNullOrWhiteSpace($ConnectionStringKey)) {
+            if ($Context -eq "IdentityDbContext") { "IdentityConnection" }
+            elseif ($Context -eq "FederationDbContext") { "FederationConnection" }
+            else { "FutbolBaseConnection" }
+        } else {
+            $ConnectionStringKey
+        }
         
         dotnet ef migrations list `
             --project $apiProject `
             --startup-project $startupProject `
-            --context "RFFM.Api.Infrastructure.Persistence.$Context"
+            --context "RFFM.Api.Infrastructure.Persistence.$Context" `
+            -- `
+            --connection-string-key $resolvedConnectionKey
         
         Write-Host ""
         Write-Host "Leyenda:" -ForegroundColor Cyan
@@ -123,15 +178,28 @@ switch ($Action) {
     "script" {
         Write-Host "📜 Generando script SQL..." -ForegroundColor Yellow
         Write-Host "   Context: $Context" -ForegroundColor Gray
+        if (-not [string]::IsNullOrWhiteSpace($ConnectionStringKey)) {
+            Write-Host "   Connection key: $ConnectionStringKey" -ForegroundColor Gray
+        }
         Write-Host "   Output: $OutputScript" -ForegroundColor Gray
         Write-Host ""
+
+        $resolvedConnectionKey = if ([string]::IsNullOrWhiteSpace($ConnectionStringKey)) {
+            if ($Context -eq "IdentityDbContext") { "IdentityConnection" }
+            elseif ($Context -eq "FederationDbContext") { "FederationConnection" }
+            else { "FutbolBaseConnection" }
+        } else {
+            $ConnectionStringKey
+        }
         
         dotnet ef migrations script `
             --project $apiProject `
             --startup-project $startupProject `
             --context "RFFM.Api.Infrastructure.Persistence.$Context" `
             --output $OutputScript `
-            --idempotent
+            --idempotent `
+            -- `
+            --connection-string-key $resolvedConnectionKey
         
         if ($LASTEXITCODE -eq 0) {
             Write-Host ""
@@ -156,12 +224,22 @@ switch ($Action) {
         if ($confirm -eq "RESET") {
             Write-Host ""
             Write-Host "1️⃣ Eliminando base de datos..." -ForegroundColor Yellow
+
+            $resolvedConnectionKey = if ([string]::IsNullOrWhiteSpace($ConnectionStringKey)) {
+                if ($Context -eq "IdentityDbContext") { "IdentityConnection" }
+                elseif ($Context -eq "FederationDbContext") { "FederationConnection" }
+                else { "FutbolBaseConnection" }
+            } else {
+                $ConnectionStringKey
+            }
             
             dotnet ef database drop `
                 --project $apiProject `
                 --startup-project $startupProject `
                 --context "RFFM.Api.Infrastructure.Persistence.$Context" `
-                --force
+                --force `
+                -- `
+                --connection-string-key $resolvedConnectionKey
             
             Write-Host ""
             Write-Host "2️⃣ Aplicando migraciones..." -ForegroundColor Yellow
@@ -169,7 +247,9 @@ switch ($Action) {
             dotnet ef database update `
                 --project $apiProject `
                 --startup-project $startupProject `
-                --context "RFFM.Api.Infrastructure.Persistence.$Context"
+                --context "RFFM.Api.Infrastructure.Persistence.$Context" `
+                -- `
+                --connection-string-key $resolvedConnectionKey
             
             if ($LASTEXITCODE -eq 0) {
                 Write-Host ""

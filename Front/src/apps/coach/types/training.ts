@@ -26,6 +26,7 @@ export interface Exercise {
   subSubPrincipleName?: string | null;
   skills: SkillCoverage[];
   urlImage?: string | null;
+  boardStateJson?: string | null;
   conditions: ExerciseCondition[];
   // Type-specific (only present from list endpoint now)
   series?: number;
@@ -47,6 +48,7 @@ export interface CreateExerciseRequest {
   fieldSpace: string;
   subSubPrincipleId?: string | null;
   essentialSkillIds: string[];
+  boardStateJson?: string | null;
   // Physical
   series?: number;
   durationSeries?: number;
@@ -86,6 +88,7 @@ export interface SessionExerciseItem {
   goalPeekersNumber: number;
   fieldSpace: string;
   urlImage?: string | null;
+  boardStateJson?: string | null;
   skills: SkillCoverage[];
   conditions: ExerciseCondition[];
 }

@@ -24,6 +24,7 @@ interface SimulationPlayerSlotProps {
   /** Prepare-mode: player is going off (still shown in the real slot briefly) */
   leaving?: boolean;
   prepareMode: boolean;
+  slotIdPrefix?: string;
   /** Show a soccer-ball badge (used in live match to indicate the player has scored) */
   hasGoals?: boolean;
 }
@@ -135,9 +136,11 @@ export default function SimulationPlayerSlot({
   entering = false,
   leaving = false,
   prepareMode,
+  slotIdPrefix,
   hasGoals = false,
 }: SimulationPlayerSlotProps) {
-  const { setNodeRef: dropRef, isOver } = useDroppable({ id: `sim-slot-${slotIndex}` });
+  const dropId = slotIdPrefix ? `sim-slot-${slotIdPrefix}-${slotIndex}` : `sim-slot-${slotIndex}`;
+  const { setNodeRef: dropRef, isOver } = useDroppable({ id: dropId });
 
   const shortName = player
     ? (player.alias?.trim() || player.displayName.split(" ").slice(0, 2).join(" "))

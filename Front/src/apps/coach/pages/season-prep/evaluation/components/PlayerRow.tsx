@@ -1,34 +1,22 @@
 import { useState } from "react";
-import { Autocomplete, Chip, MenuItem, Select, TextField } from "@mui/material";
+import { Autocomplete, Chip, TextField } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import EditIcon from "@mui/icons-material/Edit";
 
-import type { PoolPlayer, ConceptEval, RecruitmentStatus } from "../../SeasonPrep";
-import type { ConceptKey } from "../evaluationConstants";
-import { playerIsGk, FP_GROUPS, GK_GROUPS } from "../evaluationConstants";
+import type { PoolPlayer, RecruitmentStatus } from "../../SeasonPrep";
+import type { PlayerRating } from "../../../../types/playerRating";
+import { playerIsGk } from "../evaluationConstants";
 import { SummaryDots } from "./SummaryDots";
-import { AttributeGroup } from "./AttributeGroup";
 import { usePlayerAvgScore } from "../hooks/usePlayerAvgScore";
+import { RecruitmentStatusChips } from "./RecruitmentStatusChips";
 import styles from "../EvaluationPage.module.css";
-
-const STATUS_OPTIONS: { value: RecruitmentStatus; label: string; color: string }[] = [
-  { value: "observando",  label: "Observando",  color: "#9e9e9e" },
-  { value: "interesado",  label: "Interesado",  color: "#4d9de0" },
-  { value: "fichado",     label: "Fichado",     color: "#22c55e" },
-  { value: "descartado",  label: "Descartado",  color: "#ef4444" },
-];
-
-function statusColor(s: RecruitmentStatus | undefined): string {
-  return STATUS_OPTIONS.find((o) => o.value === s)?.color ?? "#9e9e9e";
-}
 
 interface PlayerRowProps {
   player: PoolPlayer;
   expanded: boolean;
   onToggle: () => void;
-  onEvalChange: (key: ConceptKey, val: ConceptEval) => void;
-  onNotesChange: (notes: string) => void;
+  onRatingChange: (rating: PlayerRating) => void;
   onPositionChange: (pos: string) => void;
   onStatusChange: (status: RecruitmentStatus) => void;
   positionOptions: string[];
@@ -38,27 +26,38 @@ export function PlayerRow({
   player,
   expanded,
   onToggle,
-  onEvalChange,
-  onNotesChange,
+  onRatingChange,
   onPositionChange,
   onStatusChange,
   positionOptions,
 }: PlayerRowProps) {
-  const eval_ = player.evaluation ?? {};
   const [editingPos, setEditingPos] = useState(false);
   const [posValue, setPosValue] = useState(player.position ?? "");
-  const { filled, total } = usePlayerAvgScore(player);
+  const { filled, total, avg } = usePlayerAvgScore(player);
   const status = player.recruitmentStatus ?? "observando";
   const isGk = playerIsGk(player);
+  const avgLabel = avg > 0 ? avg.toFixed(1) : "--";
 
   function commitPos() {
     setEditingPos(false);
     if (posValue.trim() !== player.position) onPositionChange(posValue.trim());
   }
 
+  const rating = player.rating ?? {
+    id: `draft-${player.uniqueId}`,
+    teamPlayerId: player.uniqueId,
+    isGoalkeeper: isGk,
+    physical: 0,
+    technical: 0,
+    tactical: 0,
+    competitiveness: 0,
+    answers: [],
+    ratedAt: new Date().toISOString(),
+    notes: null,
+  };
+
   return (
     <div className={`${styles.playerRow} ${expanded ? styles.playerRowExpanded : ""}`}>
-      {/* Collapsed header — always visible */}
       <div className={styles.playerRowHeader} onClick={onToggle}>
         <div className={styles.playerRowLeft}>
           {player.jerseyNumber != null && player.jerseyNumber !== "" && player.jerseyNumber !== "0" && (
@@ -103,50 +102,15 @@ export function PlayerRow({
           {!!player.birthYear && (
             <Chip size="small" label={player.birthYear} sx={{ fontSize: "0.68rem", height: 18, opacity: 0.6 }} />
           )}
-          {(player.matches?.starter ?? 0) > 0 && (
-            <Chip size="small" label={`T:${player.matches!.starter}`} sx={{ fontSize: "0.68rem", height: 18, opacity: 0.7 }} title="Titularidades" />
-          )}
-          {(player.matches?.totalGoals ?? 0) > 0 && (
-            <Chip size="small" label={`⚽${player.matches!.totalGoals}`} sx={{ fontSize: "0.68rem", height: 18, opacity: 0.7 }} title="Goles" />
-          )}
         </div>
         <div className={styles.playerRowRight}>
-          <SummaryDots evaluation={eval_} isGoalkeeper={isGk} />
+          <SummaryDots rating={rating} isGoalkeeper={isGk} />
           {total > 0 && (
-            <span
-              className={styles.avgBadge}
-              style={{ color: filled === total ? "#4ec9b0" : filled > 0 ? "#f59e0b" : "rgba(255,255,255,0.3)" }}
-            >
-              {filled}/{total}
+            <span className={styles.avgBadge} style={{ color: filled === total ? "#4ec9b0" : filled > 0 ? "#f59e0b" : "rgba(255,255,255,0.3)" }} title={`Media de evaluación: ${avgLabel}`}>
+              {avgLabel}
             </span>
           )}
-          {/* Recruitment status selector */}
-          <Select
-            size="small"
-            value={status}
-            onClick={(e) => e.stopPropagation()}
-            onChange={(e) => {
-              e.stopPropagation();
-              onStatusChange(e.target.value as RecruitmentStatus);
-            }}
-            variant="outlined"
-            sx={{
-              fontSize: "0.7rem",
-              height: 22,
-              minWidth: 108,
-              "& .MuiSelect-select": { py: "1px !important", pl: "6px !important", pr: "24px !important" },
-              "& .MuiOutlinedInput-notchedOutline": { borderColor: statusColor(status) },
-              "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: statusColor(status) },
-              "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: statusColor(status) },
-              color: statusColor(status),
-            }}
-          >
-            {STATUS_OPTIONS.map((o) => (
-              <MenuItem key={o.value} value={o.value} sx={{ fontSize: "0.78rem", color: o.color }}>
-                {o.label}
-              </MenuItem>
-            ))}
-          </Select>
+          <RecruitmentStatusChips value={status} onChange={onStatusChange} />
           {expanded
             ? <ExpandLessIcon sx={{ fontSize: 18, opacity: 0.5 }} />
             : <ExpandMoreIcon sx={{ fontSize: 18, opacity: 0.5 }} />
@@ -154,26 +118,16 @@ export function PlayerRow({
         </div>
       </div>
 
-      {/* Expanded evaluation card */}
       {expanded && (
         <div className={styles.evalCard}>
-          {(isGk ? GK_GROUPS : FP_GROUPS).map(({ title, concepts }) => (
-            <AttributeGroup
-              key={title}
-              title={title}
-              concepts={concepts}
-              evaluation={eval_}
-              onChange={onEvalChange}
-            />
-          ))}
           <div className={styles.notesRow}>
             <TextField
               fullWidth
               size="small"
-              label="Nota"
+              label="Notas"
               placeholder="Observación rápida..."
-              value={eval_.notes ?? ""}
-              onChange={(e) => onNotesChange(e.target.value)}
+              value={rating.notes ?? ""}
+              onChange={(e) => onRatingChange({ ...rating, notes: e.target.value })}
               inputProps={{ maxLength: 150 }}
               sx={{ mt: 1 }}
             />

@@ -82,17 +82,38 @@ export interface UseMatchSimulationReturn {
   ) => MatchSimulation;
 }
 
+export interface UseMatchSimulationOptions {
+  /** Initial duration of each half, or total duration in single-phase mode */
+  initialHalfDuration?: number;
+  /** When false, the clock is treated as a single continuous session */
+  enableHalves?: boolean;
+  /** When false, substitutions can be opened without window quotas */
+  enableWindowLimits?: boolean;
+  maxTotalWindows?: number;
+  maxSecondHalfWindows?: number;
+}
+
 // ─── Hook ────────────────────────────────────────────────────────────────────
 
-export function useMatchSimulation(): UseMatchSimulationReturn {
+export function useMatchSimulation(
+  options: UseMatchSimulationOptions = {},
+): UseMatchSimulationReturn {
+  const {
+    initialHalfDuration = 35,
+    enableHalves = true,
+    enableWindowLimits = true,
+    maxTotalWindows = MAX_TOTAL_WINDOWS,
+    maxSecondHalfWindows = MAX_SECOND_HALF_WINDOWS,
+  } = options;
+
   const [totalSeconds, setTotalSeconds] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
-  const [halfDuration, setHalfDuration] = useState(35);
+  const [halfDuration, setHalfDuration] = useState(initialHalfDuration);
   const [half, setHalf] = useState<1 | 2>(1);
   const [isHalftime, setIsHalftime] = useState(false);
   const isHalftimeRef = useRef(false);
   isHalftimeRef.current = isHalftime;
-  const halfDurationRef = useRef(35);
+  const halfDurationRef = useRef(initialHalfDuration);
   halfDurationRef.current = halfDuration;
   const halfRef = useRef<1 | 2>(1);
   halfRef.current = half;
@@ -140,13 +161,17 @@ export function useMatchSimulation(): UseMatchSimulationReturn {
   // Halftime windows are tracked but excluded from quota counts
   const windowsTotal = windows.filter((w) => !w.isHalftime).length;
   const windowsInSecondHalf = windows.filter((w) => w.half === 2 && !w.isHalftime).length;
-  const canOpenWindow =
-    !prepareMode &&
-    (isHalftime || (
-      windowsTotal < MAX_TOTAL_WINDOWS &&
-      (half === 1 || windowsInSecondHalf < MAX_SECOND_HALF_WINDOWS)
-    ));
-  const isMatchOver = !isRunning && half === 2 && totalSeconds >= halfDuration * 2 * 60;
+  const canOpenWindow = !prepareMode && (
+    !enableWindowLimits || !enableHalves || isHalftime || (
+      windowsTotal < maxTotalWindows &&
+      (half === 1 || windowsInSecondHalf < maxSecondHalfWindows)
+    )
+  );
+  const isMatchOver = !isRunning && (
+    enableHalves
+      ? half === 2 && totalSeconds >= halfDuration * 2 * 60
+      : totalSeconds >= halfDuration * 60
+  );
 
   // ─── Timer interval ────────────────────────────────────────────────────────
 
@@ -154,9 +179,15 @@ export function useMatchSimulation(): UseMatchSimulationReturn {
     if (isRunning) {
       intervalRef.current = setInterval(() => {
         setTotalSeconds((prev) => {
-          const next = Math.min(7200, prev + 1);
-          // Auto-stop at full time in the 2nd half
-          if (halfRef.current === 2 && next >= halfDurationRef.current * 2 * 60) {
+          const nextLimit = enableHalves
+            ? halfDurationRef.current * 2 * 60
+            : halfDurationRef.current * 60;
+          const next = Math.min(nextLimit, prev + 1);
+          // Auto-stop at full time
+          if (
+            (enableHalves && halfRef.current === 2 && next >= nextLimit) ||
+            (!enableHalves && next >= nextLimit)
+          ) {
             setIsRunning(false);
           }
           return next;
@@ -174,7 +205,7 @@ export function useMatchSimulation(): UseMatchSimulationReturn {
         intervalRef.current = null;
       }
     };
-  }, [isRunning]);
+  }, [isRunning, enableHalves]);
 
   // ─── Player minutes (recomputed every second) ──────────────────────────────
 
@@ -234,7 +265,7 @@ export function useMatchSimulation(): UseMatchSimulationReturn {
     setTotalSeconds(sim.savedAtMinute * 60);
     setIsRunning(false);
     // Restore half from windows: if any window was in half 2, restore to half 2
-    const restoredHalf: 1 | 2 = sim.windows.some((w) => w.half === 2) ? 2 : 1;
+    const restoredHalf: 1 | 2 = enableHalves && sim.windows.some((w) => w.half === 2) ? 2 : 1;
     setHalf(restoredHalf);
     setIsHalftime(false);
     setIsFinished(false);
@@ -253,7 +284,7 @@ export function useMatchSimulation(): UseMatchSimulationReturn {
       states[state.playerId] = { ...state };
     }
     setPlayerStates(states);
-  }, []);
+  }, [enableHalves]);
 
   const start = useCallback(() => setIsRunning(true), []);
   const stop = useCallback(() => setIsRunning(false), []);
@@ -275,21 +306,25 @@ export function useMatchSimulation(): UseMatchSimulationReturn {
   }, []);
 
   const jumpToMinute = useCallback((minute: number) => {
-    setTotalSeconds(Math.max(0, Math.min(7200, minute * 60)));
-  }, []);
+    const minuteLimit = (enableHalves ? halfDurationRef.current * 2 : halfDurationRef.current) * 60;
+    setTotalSeconds(Math.max(0, Math.min(minuteLimit, minute * 60)));
+  }, [enableHalves]);
 
   const advanceBy = useCallback((minutes: number) => {
-    setTotalSeconds((prev) => Math.min(7200, prev + minutes * 60));
-  }, []);
+    const minuteLimit = (enableHalves ? halfDurationRef.current * 2 : halfDurationRef.current) * 60;
+    setTotalSeconds((prev) => Math.min(minuteLimit, prev + minutes * 60));
+  }, [enableHalves]);
 
   const startSecondHalf = useCallback(() => {
+    if (!enableHalves) return;
     setHalf(2);
     setIsHalftime(false);
-  }, []);
+  }, [enableHalves]);
 
   const startHalftime = useCallback(() => {
+    if (!enableHalves) return;
     setIsHalftime(true);
-  }, []);
+  }, [enableHalves]);
 
   const finishMatch = useCallback(() => {
     setIsRunning(false);

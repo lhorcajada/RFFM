@@ -6,11 +6,13 @@ import styles from "./SubstitutionHistoryPanel.module.css";
 interface SubstitutionHistoryPanelProps {
   windows: SubstitutionWindow[];
   playersById: Record<string, SimSlotPlayer>;
+  phaseLabel?: string;
 }
 
 export default function SubstitutionHistoryPanel({
   windows,
   playersById,
+  phaseLabel,
 }: SubstitutionHistoryPanelProps) {
   if (windows.length === 0) return null;
 
@@ -38,7 +40,7 @@ export default function SubstitutionHistoryPanel({
               </span>
               <span className={styles.windowMinute}>min {win.minute}</span>
               <span className={`${styles.halfPill} ${win.half === 2 ? styles.secondHalf : ""} ${win.isHalftime ? styles.halftimePill : ""}`}>
-                {win.isHalftime ? "Descanso" : `${win.half}ª parte`}
+                {win.isHalftime ? "Descanso" : (phaseLabel ?? `${win.half}ª parte`)}
               </span>
             </div>
 

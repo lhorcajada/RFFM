@@ -14,6 +14,7 @@ namespace RFFM.Api.Domain.Aggregates.Training.TasksTraining
         public string FieldSpace { get; set; } = string.Empty;
         public int Points { get; set; }
         public string? UrlImage { get; set; } = string.Empty;
+        public string? BoardStateJson { get; set; }
 
         /// <summary>Club that owns this exercise (shared library).</summary>
         public string ClubId { get; set; } = string.Empty;

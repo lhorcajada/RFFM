@@ -33,6 +33,8 @@ namespace RFFM.Api.Features.Coaches.Seasons.Commands
     {
         public string SeasonId { get; set; } = string.Empty;
         public string SeasonName { get; set; } = string.Empty;
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
         public bool IsActive { get; set; }
         public string PrefixCacheKey => SeasonConstants.CachePrefix;
     }
@@ -53,6 +55,20 @@ namespace RFFM.Api.Features.Coaches.Seasons.Commands
                 throw new KeyNotFoundException($"Season '{request.SeasonId}' Not Found");
 
             season.UpdateName(request.SeasonName);
+            season.UpdatePeriod(request.StartDate, request.EndDate);
+
+            if (request.IsActive)
+            {
+                var activeSeasons = await _catalogDbContext.Seasons
+                    .Where(c => c.IsActive && c.Id != season.Id)
+                    .ToListAsync(cancellationToken);
+
+                foreach (var activeSeason in activeSeasons)
+                {
+                    activeSeason.UpdateIsActive(false);
+                }
+            }
+
             season.UpdateIsActive(request.IsActive);
 
             await _catalogDbContext.SaveChangesAsync(cancellationToken);
@@ -67,6 +83,14 @@ namespace RFFM.Api.Features.Coaches.Seasons.Commands
             RuleFor(r => r.SeasonName)
                 .NotEmpty()
                 .MaximumLength(ValidationConstants.SeasonNameMaxLength);
+
+            RuleFor(r => r.StartDate)
+                .NotEmpty();
+
+            RuleFor(r => r.EndDate)
+                .NotEmpty()
+                .GreaterThanOrEqualTo(r => r.StartDate)
+                .WithMessage(ValidationConstants.SeasonEndDateCannotBeBeforeStartDate);
 
         }
     }

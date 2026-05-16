@@ -18,6 +18,16 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
             app.MapPost("/api/sport-events",
                     async (CreateSportEventRequest req, AppDbContext db, CancellationToken cancellationToken) =>
                     {
+                        var resolvedTeamId = await db.Teams
+                            .Where(t => t.Id.Trim() == req.TeamId.Trim())
+                            .Select(t => t.Id)
+                            .FirstOrDefaultAsync(cancellationToken);
+
+                        if (string.IsNullOrWhiteSpace(resolvedTeamId))
+                        {
+                            return Results.BadRequest($"El equipo '{req.TeamId}' no existe.");
+                        }
+
                         var resolvedRivalId = req.RivalId != null
                             ? (await db.Rivals.Select(r => r.Id).ToListAsync(cancellationToken))
                                 .FirstOrDefault(id => id.Trim() == req.RivalId.Trim()) ?? req.RivalId
@@ -32,7 +42,7 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
                             req.Location,
                             req.Description,
                             req.EventTypeId,
-                            req.TeamId,
+                            resolvedTeamId,
                             resolvedRivalId,
                             req.IsHomeMatch ?? true,
                             req.CodActa

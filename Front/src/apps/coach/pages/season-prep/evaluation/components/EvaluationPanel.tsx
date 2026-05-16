@@ -1,9 +1,7 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Autocomplete,
   Chip,
-  MenuItem,
-  Select,
   Tab,
   Tabs,
   TextField,
@@ -11,28 +9,58 @@ import {
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 
-import type { PoolPlayer, ConceptEval, RecruitmentStatus } from "../../SeasonPrep";
-import type { ConceptKey } from "../evaluationConstants";
-import { playerIsGk, FP_GROUPS, GK_GROUPS } from "../evaluationConstants";
+import type { PoolPlayer, RecruitmentStatus } from "../../SeasonPrep";
+import type { PlayerRating, RatingAnswer } from "../../../../types/playerRating";
+import { playerIsGk, FP_GROUPS, GK_GROUPS, getCategoryLabel } from "../evaluationConstants";
 import { AttributeGroup } from "./AttributeGroup";
+import { RecruitmentStatusChips } from "./RecruitmentStatusChips";
 import styles from "./EvaluationPanel.module.css";
 
-const STATUS_OPTIONS: { value: RecruitmentStatus; label: string; color: string }[] = [
-  { value: "observando",  label: "Observando",  color: "#9e9e9e" },
-  { value: "interesado",  label: "Interesado",  color: "#4d9de0" },
-  { value: "fichado",     label: "Fichado",     color: "#22c55e" },
-  { value: "descartado",  label: "Descartado",  color: "#ef4444" },
-];
+function emptyRating(playerId: string, isGoalkeeper: boolean): PlayerRating {
+  return {
+    id: `draft-${playerId}`,
+    teamPlayerId: playerId,
+    isGoalkeeper,
+    physical: 0,
+    technical: 0,
+    tactical: 0,
+    competitiveness: 0,
+    answers: [],
+    ratedAt: new Date().toISOString(),
+    notes: null,
+  };
+}
 
-function statusColor(s: RecruitmentStatus | undefined): string {
-  return STATUS_OPTIONS.find((o) => o.value === s)?.color ?? "#9e9e9e";
+function roundUpToOneDecimal(value: number): number {
+  return Math.ceil(value * 10) / 10;
+}
+
+function buildRating(player: PoolPlayer, rating: PlayerRating, answer?: RatingAnswer, notes?: string): PlayerRating {
+  const answers = answer
+    ? [...rating.answers.filter((a) => a.characteristicKey !== answer.characteristicKey), answer]
+    : rating.answers;
+  const scoreFor = (categoryKey: "physical" | "technical" | "tactical" | "competitiveness") => {
+    const levels = answers.filter((a) => a.categoryKey === categoryKey).map((a) => a.level);
+    return levels.length === 0 ? 0 : roundUpToOneDecimal(levels.reduce((sum, level) => sum + level, 0) / levels.length);
+  };
+
+  return {
+    ...rating,
+    teamPlayerId: player.uniqueId,
+    isGoalkeeper: playerIsGk(player),
+    answers,
+    physical: scoreFor("physical"),
+    technical: scoreFor("technical"),
+    tactical: scoreFor("tactical"),
+    competitiveness: scoreFor("competitiveness"),
+    notes: notes === undefined ? rating.notes : notes || null,
+  };
 }
 
 interface EvaluationPanelProps {
   player: PoolPlayer;
   positionOptions: string[];
-  onEvalChange: (key: ConceptKey, val: ConceptEval) => void;
-  onNotesChange: (notes: string) => void;
+  onRatingChange: (rating: PlayerRating) => void;
   onPositionChange: (pos: string) => void;
   onStatusChange: (status: RecruitmentStatus) => void;
 }
@@ -40,8 +68,7 @@ interface EvaluationPanelProps {
 export function EvaluationPanel({
   player,
   positionOptions,
-  onEvalChange,
-  onNotesChange,
+  onRatingChange,
   onPositionChange,
   onStatusChange,
 }: EvaluationPanelProps) {
@@ -51,25 +78,34 @@ export function EvaluationPanel({
   const [editingPos, setEditingPos] = useState(false);
   const [posValue, setPosValue] = useState(player.position ?? "");
 
-  const eval_ = player.evaluation ?? {};
+  const rating = useMemo(() => player.rating ?? emptyRating(player.uniqueId, isGk), [player.rating, player.uniqueId, isGk]);
   const status = player.recruitmentStatus ?? "observando";
   const activeGroup = groups[activeTab] ?? groups[0];
+
+  useEffect(() => {
+    setPosValue(player.position ?? "");
+  }, [player.position]);
 
   function commitPos() {
     setEditingPos(false);
     if (posValue.trim() !== player.position) onPositionChange(posValue.trim());
   }
 
+  function handleAnswer(answer: RatingAnswer) {
+    onRatingChange(buildRating(player, rating, answer));
+  }
+
+  function handleNotesChange(notes: string) {
+    onRatingChange(buildRating(player, rating, undefined, notes));
+  }
+
   return (
     <div className={styles.panel}>
-      {/* ── Player header ─────────────────────────────────── */}
       <div className={styles.playerHeader}>
         <div className={styles.playerIdentity}>
-          {player.jerseyNumber != null &&
-            player.jerseyNumber !== "" &&
-            player.jerseyNumber !== "0" && (
-              <span className={styles.dorsal}>{player.jerseyNumber}</span>
-            )}
+          {player.jerseyNumber != null && player.jerseyNumber !== "" && player.jerseyNumber !== "0" && (
+            <span className={styles.dorsal}>{player.jerseyNumber}</span>
+          )}
           <span className={styles.name}>{player.name}</span>
 
           {editingPos ? (
@@ -104,29 +140,9 @@ export function EvaluationPanel({
           )}
         </div>
 
-        <Select
-          size="small"
-          value={status}
-          onChange={(e) => onStatusChange(e.target.value as RecruitmentStatus)}
-          sx={{
-            fontSize: "0.8rem",
-            minWidth: 120,
-            "& .MuiSelect-select": { py: "5px" },
-            "& .MuiOutlinedInput-notchedOutline": {
-              borderColor: statusColor(status),
-            },
-            color: statusColor(status),
-          }}
-        >
-          {STATUS_OPTIONS.map((opt) => (
-            <MenuItem key={opt.value} value={opt.value} sx={{ fontSize: "0.8rem" }}>
-              {opt.label}
-            </MenuItem>
-          ))}
-        </Select>
+        <RecruitmentStatusChips value={status} onChange={onStatusChange} />
       </div>
 
-      {/* ── Category tabs ──────────────────────────────────── */}
       <Tabs
         value={activeTab}
         onChange={(_e, v: number) => setActiveTab(v)}
@@ -141,12 +157,8 @@ export function EvaluationPanel({
             textTransform: "none",
             letterSpacing: "0.01em",
           },
-          "& .Mui-selected": {
-            color: "#4ec9b0 !important",
-          },
-          "& .MuiTabs-indicator": {
-            backgroundColor: "#4ec9b0",
-          },
+          "& .Mui-selected": { color: "#4ec9b0 !important" },
+          "& .MuiTabs-indicator": { backgroundColor: "#4ec9b0" },
         }}
       >
         {groups.map((g) => (
@@ -154,16 +166,14 @@ export function EvaluationPanel({
         ))}
       </Tabs>
 
-      {/* ── Concepts for active category ───────────────────── */}
       <div className={styles.conceptsArea}>
         <AttributeGroup
-          title=""
+          title={getCategoryLabel(activeGroup.concepts[0]?.categoryKey ?? "technical")}
           concepts={activeGroup.concepts}
-          evaluation={eval_}
-          onChange={onEvalChange}
+          rating={rating}
+          onChange={handleAnswer}
         />
 
-        {/* Notes — shown on the last tab */}
         {activeTab === groups.length - 1 && (
           <div className={styles.notesRow}>
             <TextField
@@ -173,22 +183,15 @@ export function EvaluationPanel({
               minRows={2}
               maxRows={4}
               placeholder="Nota sobre el jugador…"
-              value={eval_.notes ?? ""}
-              onChange={(e) => onNotesChange(e.target.value.slice(0, 150))}
+              value={rating.notes ?? ""}
+              onChange={(e) => handleNotesChange(e.target.value.slice(0, 150))}
               inputProps={{ maxLength: 150 }}
-              helperText={`${(eval_.notes ?? "").length}/150`}
+              helperText={`${(rating.notes ?? "").length}/150`}
               sx={{ mt: 1 }}
             />
           </div>
         )}
       </div>
-
-      {/* ── Empty-state placeholder ────────────────────────── */}
-      {!player && (
-        <Typography sx={{ opacity: 0.35, textAlign: "center", mt: 6 }}>
-          Selecciona un jugador para evaluar
-        </Typography>
-      )}
     </div>
   );
 }

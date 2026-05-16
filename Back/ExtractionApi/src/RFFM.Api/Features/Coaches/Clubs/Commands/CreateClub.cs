@@ -92,7 +92,7 @@ namespace RFFM.Api.Features.Coaches.Clubs.Commands
                 emblemUrl = await _storageService.UploadAsync(ClubConstants.ClubsContainerName, fileName, request.Emblem, cancellationToken);
             }
 
-            var club = new Club(request.Name, country.Id);
+            var club = Club.Create(request.Name, country.Id);
             club.UpdateShieldUrl(emblemUrl);
             var entryClub = await _catalogDbContext.Clubs.AddAsync(club, cancellationToken);
             var userClub = new UserClub(request.UserId, entryClub.Entity.Id, Membership.Coach.Id);

@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type React from "react";
 import teamplayerService, { type PlayerResponse } from "../../../../services/teamplayerService";
-import { FIELD_WIDTH_METERS, HALF_FIELD_LENGTH_METERS } from "../constants";
+import { FIELD_WIDTH_METERS, HALF_FIELD_LENGTH_METERS, SPACE_COLORS, anonymousChapaOptions } from "../constants";
 import { getMaterialSizePercent, isMaterialKind, getChapaSizePercent } from "../helpers/materialHelpers";
 import {
   clamp,
@@ -20,11 +20,13 @@ import type {
   MaterialKind,
   PlacedLine,
   PlacedMaterial,
+  PetoOption,
   ResizeHandle,
   ResizeSession,
   SpaceKind,
   SpacePosition,
 } from "../types";
+import type { TacticalBoardSnapshot } from "../types";
 
 export function useTacticalBoard(
   halfPitchRef: React.RefObject<HTMLDivElement | null>,
@@ -42,6 +44,7 @@ export function useTacticalBoard(
   const [showSpaces, setShowSpaces] = useState(false);
   const [placedSpaces, setPlacedSpaces] = useState<SpacePosition[]>([]);
   const [draggingSpaceId, setDraggingSpaceId] = useState<string | null>(null);
+  const spaceDragOffsetRef = useRef<{ x: number; y: number } | null>(null);
   const [resizeSession, setResizeSession] = useState<ResizeSession | null>(null);
 
   const [showMaterials, setShowMaterials] = useState(false);
@@ -53,6 +56,105 @@ export function useTacticalBoard(
   const [activeLineKind, setActiveLineKind] = useState<LineKind | null>(null);
   const [activeLineColor, setActiveLineColor] = useState<string>("#ffffff");
   const [drawingState, setDrawingState] = useState<DrawingState | null>(null);
+
+  const normalizeSpacePosition = (space: SpacePosition): SpacePosition => ({
+    ...space,
+    scaleX: space.scaleX ?? 1,
+    scaleY: space.scaleY ?? 1,
+    rotation: space.rotation ?? 0,
+    locked: space.locked ?? false,
+    color: space.color ?? SPACE_COLORS[0].value,
+  });
+
+  const clearBoardState = () => {
+    setPlacedChapas({});
+    setChapaPetoById({});
+    setPlacedSpaces([]);
+    setPlacedMaterials([]);
+    setPlacedLines([]);
+  };
+
+  const normalizeChapaPosition = (chapa: ChapaPosition): ChapaPosition => {
+    const scale = chapa.scaleX ?? chapa.scaleY ?? 1;
+    return {
+      ...chapa,
+      scaleX: scale,
+      scaleY: scale,
+    };
+  };
+
+  const loadBoardSnapshot = (snapshot: TacticalBoardSnapshot | null | undefined) => {
+    if (!snapshot) return;
+
+    const normalizedChapas = Object.fromEntries(
+      Object.entries(snapshot.placedChapas ?? {}).map(([playerId, chapa]) => [playerId, normalizeChapaPosition(chapa)]),
+    );
+
+    setPlacedChapas(normalizedChapas);
+    setChapaPetoById(snapshot.chapaPetoById ?? {});
+    setPlacedSpaces((snapshot.placedSpaces ?? []).map(normalizeSpacePosition));
+    setPlacedMaterials(snapshot.placedMaterials ?? []);
+    setPlacedLines(snapshot.placedLines ?? []);
+  };
+
+  const loadBoardStateJson = (boardStateJson?: string | null) => {
+    if (!boardStateJson) {
+      clearBoardState();
+      return;
+    }
+
+    try {
+      const snapshot = JSON.parse(boardStateJson) as TacticalBoardSnapshot;
+      loadBoardSnapshot(snapshot);
+    } catch {
+      clearBoardState();
+    }
+  };
+
+  const serializeBoardStateJson = () =>
+    JSON.stringify({
+      placedChapas: Object.fromEntries(
+        Object.entries(placedChapas).map(([playerId, chapa]) => [playerId, normalizeChapaPosition(chapa)]),
+      ),
+      chapaPetoById,
+      placedSpaces,
+      placedMaterials,
+      placedLines,
+    } satisfies TacticalBoardSnapshot);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadPlayers = async () => {
+      if (!teamId) {
+        setPlayers([]);
+        setChapasError(null);
+        setLoadingPlayers(false);
+        return;
+      }
+
+      setLoadingPlayers(true);
+      setChapasError(null);
+
+      try {
+        const list = await teamplayerService.getPlayersByTeam(teamId);
+        if (cancelled) return;
+        setPlayers(list);
+      } catch {
+        if (cancelled) return;
+        setPlayers([]);
+        setChapasError("No se pudieron cargar las chapas del equipo.");
+      } finally {
+        if (!cancelled) setLoadingPlayers(false);
+      }
+    };
+
+    void loadPlayers();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [teamId]);
 
   // ─── Helpers that depend on the pitch ref ────────────────────────────────
 
@@ -232,23 +334,47 @@ export function useTacticalBoard(
 
     setPlacedSpaces((prev) => [
       ...prev,
-      { id, kind, x: clamped.x, y: clamped.y, scaleX: nextScaleX, scaleY: nextScaleY, rotation: 0, locked: false },
+      {
+        id,
+        kind,
+        x: clamped.x,
+        y: clamped.y,
+        scaleX: nextScaleX,
+        scaleY: nextScaleY,
+        rotation: 0,
+        locked: false,
+        color: SPACE_COLORS[0].value,
+      },
     ]);
   };
 
   const movePlacedSpace = (spaceId: string, clientX: number, clientY: number) => {
     const raw = getRawDropPosition(clientX, clientY);
     if (!raw) return;
+    const dragOffset = spaceDragOffsetRef.current ?? { x: 0, y: 0 };
+    const targetX = raw.x - dragOffset.x;
+    const targetY = raw.y - dragOffset.y;
 
     const { touchlineBand, goalBackBand } = getFieldBands();
 
     const snapByVertices = (
       draft: SpacePosition,
       others: SpacePosition[],
-      thresholdPercent = 0.9,
+      thresholdPercent = 0.5,
     ) => {
       const selfVertices = getSpaceVerticesPercent(draft, touchlineBand, goalBackBand);
       if (selfVertices.length === 0 || others.length === 0) return draft;
+
+      let anchorVertex = selfVertices[0];
+      let anchorDistance = Number.POSITIVE_INFINITY;
+
+      selfVertices.forEach((vertex) => {
+        const distanceToDrop = Math.hypot(vertex.x - targetX, vertex.y - targetY);
+        if (distanceToDrop < anchorDistance) {
+          anchorDistance = distanceToDrop;
+          anchorVertex = vertex;
+        }
+      });
 
       let bestDistance = Number.POSITIVE_INFINITY;
       let bestDelta: { dx: number; dy: number } | null = null;
@@ -256,15 +382,13 @@ export function useTacticalBoard(
       others.forEach((other) => {
         const otherVertices = getSpaceVerticesPercent(other, touchlineBand, goalBackBand);
         otherVertices.forEach((ov) => {
-          selfVertices.forEach((sv) => {
-            const dx = ov.x - sv.x;
-            const dy = ov.y - sv.y;
-            const distance = Math.hypot(dx, dy);
-            if (distance < bestDistance) {
-              bestDistance = distance;
-              bestDelta = { dx, dy };
-            }
-          });
+          const dx = ov.x - anchorVertex.x;
+          const dy = ov.y - anchorVertex.y;
+          const distance = Math.hypot(dx, dy);
+          if (distance < bestDistance) {
+            bestDistance = distance;
+            bestDelta = { dx, dy };
+          }
         });
       });
 
@@ -294,8 +418,8 @@ export function useTacticalBoard(
           space.kind,
           space.scaleX,
           space.scaleY,
-          raw.x,
-          raw.y,
+          targetX,
+          targetY,
           touchlineBand,
           goalBackBand,
         );
@@ -304,6 +428,31 @@ export function useTacticalBoard(
       }),
     );
   };
+
+    const nudgePlacedSpace = (spaceId: string, dxPercent: number, dyPercent: number) => {
+      const { touchlineBand, goalBackBand } = getFieldBands();
+
+      setPlacedSpaces((prev) =>
+        prev.map((space) => {
+          if (space.id !== spaceId) return space;
+          if (space.locked) return space;
+
+          const nextX = space.x + dxPercent;
+          const nextY = space.y + dyPercent;
+          const clamped = clampSpaceToPlayableArea(
+            space.kind,
+            space.scaleX,
+            space.scaleY,
+            nextX,
+            nextY,
+            touchlineBand,
+            goalBackBand,
+          );
+
+          return { ...space, x: clamped.x, y: clamped.y };
+        }),
+      );
+    };
 
   const rotatePlacedSpace = (spaceId: string) => {
     setPlacedSpaces((prev) =>
@@ -325,6 +474,10 @@ export function useTacticalBoard(
 
   const removePlacedSpace = (spaceId: string) => {
     setPlacedSpaces((prev) => prev.filter((space) => space.id !== spaceId));
+  };
+
+  const setPlacedSpaceColor = (spaceId: string, color: string) => {
+    setPlacedSpaces((prev) => prev.map((space) => (space.id === spaceId ? { ...space, color } : space)));
   };
 
   const duplicatePlacedSpace = (spaceId: string) => {
@@ -349,7 +502,7 @@ export function useTacticalBoard(
 
     setPlacedSpaces((prev) => [
       ...prev,
-      { ...source, id: duplicatedId, x: clampedPos.x, y: clampedPos.y },
+      { ...normalizeSpacePosition(source), id: duplicatedId, x: clampedPos.x, y: clampedPos.y },
     ]);
   };
 
@@ -703,7 +856,14 @@ export function useTacticalBoard(
 
   // ─── Chapa operations ─────────────────────────────────────────────────────
 
-  const placeChapaAtClientPoint = (playerId: string, clientX: number, clientY: number) => {
+  const makeAnonymousChapaId = (key: string) => {
+    const suffix = typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random()}`;
+    return `anon-chapa-${key}-${suffix}`;
+  };
+
+  const placeChapaAtClientPoint = (chapaId: string, clientX: number, clientY: number, anonymous = false) => {
     const pitch = halfPitchRef.current;
     if (!pitch) return;
 
@@ -720,7 +880,7 @@ export function useTacticalBoard(
 
     setPlacedChapas((prev) => ({
       ...prev,
-      [playerId]: { x, y, scaleX: 1, scaleY: 1, rotation: 0, locked: false },
+      [chapaId]: { x, y, scaleX: 1, scaleY: 1, rotation: 0, locked: false, anonymous },
     }));
   };
 
@@ -728,6 +888,13 @@ export function useTacticalBoard(
     e.dataTransfer.setData("text/chapa-player-id", playerId);
     e.dataTransfer.effectAllowed = "move";
     setDraggingChapaId(playerId);
+  };
+
+  const handleAnonymousChapaDragStart = (e: React.DragEvent<HTMLElement>, option: PetoOption) => {
+    e.dataTransfer.setData("text/chapa-anonymous-key", option.key);
+    e.dataTransfer.setData("text/chapa-anonymous-color", option.color);
+    e.dataTransfer.effectAllowed = "move";
+    setDraggingChapaId(`anon-${option.key}`);
   };
 
   const handleChapaDragEnd = (e: React.DragEvent<HTMLElement>, playerId: string) => {
@@ -740,21 +907,25 @@ export function useTacticalBoard(
         e.clientY < rect.top ||
         e.clientY > rect.bottom;
       if (outside) {
-        setPlacedChapas((prev) => {
-          const next = { ...prev };
-          delete next[playerId];
-          return next;
-        });
+        removePlacedChapa(playerId);
       }
     }
   };
 
   const removePlacedChapa = (playerId: string) => {
+    const shouldRemoveColor = placedChapas[playerId]?.anonymous === true;
     setPlacedChapas((prev) => {
       const next = { ...prev };
       delete next[playerId];
       return next;
     });
+    if (shouldRemoveColor) {
+      setChapaPetoById((prev) => {
+        const next = { ...prev };
+        delete next[playerId];
+        return next;
+      });
+    }
   };
 
   const handleToggleChapaMenu = (e: React.MouseEvent<HTMLElement>, playerId: string) => {
@@ -789,6 +960,10 @@ export function useTacticalBoard(
     const clamped = clampChapaToPlayableArea(source.x + 2, source.y + 2, touchlineBand, goalBackBand, source.scaleX ?? 1, source.scaleY ?? 1);
     const duplicatedId = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `chapa-${Date.now()}-${Math.random()}`;
     setPlacedChapas((prev) => ({ ...prev, [duplicatedId]: { ...source, x: clamped.x, y: clamped.y } }));
+    const sourceColor = chapaPetoById[playerId];
+    if (sourceColor) {
+      setChapaPetoById((prev) => ({ ...prev, [duplicatedId]: sourceColor }));
+    }
   };
 
   const toggleLockPlacedChapa = (playerId: string) => {
@@ -835,14 +1010,23 @@ export function useTacticalBoard(
       e.preventDefault();
       return;
     }
+    const rect = e.currentTarget.getBoundingClientRect();
+    spaceDragOffsetRef.current = {
+      x: ((e.clientX - rect.left) / rect.width) * 100 - 50,
+      y: ((e.clientY - rect.top) / rect.height) * 100 - 50,
+    };
     e.dataTransfer.setData("text/space-instance-id", spaceId);
     e.dataTransfer.effectAllowed = "move";
     setDraggingSpaceId(spaceId);
   };
 
-  const handleSpaceDragEnd = () => setDraggingSpaceId(null);
+  const handleSpaceDragEnd = () => {
+    spaceDragOffsetRef.current = null;
+    setDraggingSpaceId(null);
+  };
 
   const handlePlacedSpaceDragEnd = (e: React.DragEvent<HTMLElement>, spaceId: string) => {
+    spaceDragOffsetRef.current = null;
     setDraggingSpaceId(null);
     if (halfPitchRef.current) {
       const rect = halfPitchRef.current.getBoundingClientRect();
@@ -1150,13 +1334,25 @@ export function useTacticalBoard(
     const spaceId = e.dataTransfer.getData("text/space-instance-id");
     if (spaceId) {
       movePlacedSpace(spaceId, e.clientX, e.clientY);
+      spaceDragOffsetRef.current = null;
       setDraggingSpaceId(null);
       return;
     }
 
     const playerId = e.dataTransfer.getData("text/chapa-player-id");
-    if (!playerId) return;
-    placeChapaAtClientPoint(playerId, e.clientX, e.clientY);
+    if (playerId) {
+      const isAnonymous = placedChapas[playerId]?.anonymous === true;
+      placeChapaAtClientPoint(playerId, e.clientX, e.clientY, isAnonymous);
+      setDraggingChapaId(null);
+      return;
+    }
+
+    const anonymousColor = e.dataTransfer.getData("text/chapa-anonymous-color");
+    if (!anonymousColor) return;
+    const anonymousKey = e.dataTransfer.getData("text/chapa-anonymous-key") || anonymousColor;
+    const anonymousId = makeAnonymousChapaId(anonymousKey);
+    placeChapaAtClientPoint(anonymousId, e.clientX, e.clientY, true);
+    setChapaPetoById((prev) => ({ ...prev, [anonymousId]: anonymousColor }));
     setDraggingChapaId(null);
   };
 
@@ -1274,6 +1470,8 @@ export function useTacticalBoard(
     handleToggleSpaces,
     handleToggleMaterials,
     handleToggleLines,
+    loadBoardStateJson,
+    serializeBoardStateJson,
     // Chapas
     players,
     loadingPlayers,
@@ -1285,7 +1483,9 @@ export function useTacticalBoard(
     setActiveChapaMenuId,
     playersById,
     availablePlayersForStrip,
+    anonymousChapaOptions,
     handleChapaDragStart,
+    handleAnonymousChapaDragStart,
     handleChapaDragEnd,
     handleToggleChapaMenu,
     handleSetChapaPeto,
@@ -1309,6 +1509,8 @@ export function useTacticalBoard(
     rotatePlacedSpace,
     duplicatePlacedSpace,
     removePlacedSpace,
+    setPlacedSpaceColor,
+    nudgePlacedSpace,
     // Materials
     placedMaterials,
     draggingMaterialId,

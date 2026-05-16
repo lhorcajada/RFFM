@@ -15,7 +15,7 @@ function buildEvalPlayers(pool: PoolPlayer[]): EvalPlayer[] {
       birthYear: p.birthYear,
       procedencia: p.procedencia,
       manualEntry: p.manualEntry,
-      evaluation: p.evaluation,
+      rating: p.rating,
       recruitmentStatus: p.recruitmentStatus,
       starter: p.matches?.starter,
       totalGoals: p.matches?.totalGoals,
@@ -29,6 +29,7 @@ function buildEvalPlayers(pool: PoolPlayer[]): EvalPlayer[] {
 export function useEvaluationPersistence(
   pool: PoolPlayer[],
   fedSeason: string,
+  sportEventId: string | null | undefined,
   loading: boolean
 ) {
   const [saving, setSaving] = useState(false);
@@ -42,16 +43,16 @@ export function useEvaluationPersistence(
     if (!fedSeason) return;
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
-      upsertSeasonPrepEvaluations(fedSeason, buildEvalPlayers(pool)).catch(() => {});
+      upsertSeasonPrepEvaluations(fedSeason, sportEventId, buildEvalPlayers(pool)).catch(() => {});
     }, 800);
-  }, [pool, fedSeason, loading]);
+  }, [pool, fedSeason, sportEventId, loading]);
 
   async function saveNow(): Promise<void> {
     if (!fedSeason) return;
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     setSaving(true);
     try {
-      await upsertSeasonPrepEvaluations(fedSeason, buildEvalPlayers(pool));
+      await upsertSeasonPrepEvaluations(fedSeason, sportEventId, buildEvalPlayers(pool));
     } finally {
       setSaving(false);
     }

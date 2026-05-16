@@ -12,6 +12,32 @@
   margin-top: 8px;
 }
 
+.onboarding {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 8px 0 16px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(111, 228, 255, 0.34);
+  background:
+    radial-gradient(circle at top right, rgba(111, 228, 255, 0.16), transparent 30%),
+    linear-gradient(135deg, rgba(5, 16, 28, 0.95), rgba(10, 31, 45, 0.98));
+  box-shadow: 0 12px 34px rgba(3, 14, 20, 0.22);
+}
+
+.onboardingTitle {
+  font-weight: 700;
+  color: #8cf5ff;
+  letter-spacing: 0.01em;
+}
+
+.onboardingText {
+  max-width: 720px;
+  color: rgba(228, 241, 247, 0.9);
+  line-height: 1.55;
+}
+
 /* ── Action bar inner content ───────────────────────── */
 .actionBarContent {
   display: flex;

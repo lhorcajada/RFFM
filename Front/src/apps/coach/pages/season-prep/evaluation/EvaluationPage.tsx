@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   Alert,
   Box,
@@ -17,37 +17,68 @@ import AssessmentIcon from "@mui/icons-material/Assessment";
 
 import BaseLayout from "../../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../../shared/components/ui/ContentLayout/ContentLayout";
-import type { PoolPlayer, ConceptEval, RecruitmentStatus } from "../SeasonPrep";
-import type { ImportResult } from "./evaluationExcel";
-import type { ConceptKey } from "./evaluationConstants";
+import type { PoolPlayer, RecruitmentStatus } from "../SeasonPrep";
+import type { ImportResult } from "./evaluationExcel.ts";
+import type { PlayerRating } from "../../../types/playerRating";
+import type { SportEventResponse } from "../../../services/sportEventService";
 import { useEvaluationPool } from "./hooks/useEvaluationPool";
 import { useEvaluationPersistence } from "./hooks/useEvaluationPersistence";
 import { useEvaluationExcel } from "./hooks/useEvaluationExcel";
 import { usePositionOptions } from "./hooks/usePositionOptions";
+import SeasonPrepEventPicker from "../components/SeasonPrepEventPicker";
 import { PlayerListPanel } from "./components/PlayerListPanel";
-import { EvaluationPanel } from "./components/EvaluationPanel";
+import { EvaluationPanel } from "./components/EvaluationPanel.tsx";
 import { AddPlayerDialog } from "./components/AddPlayerDialog";
 import { RecruitmentSummaryDialog } from "./components/RecruitmentSummaryDialog";
+import { loadSeasonPrepSelection, saveSeasonPrepSelection } from "../seasonPrepSelectionStorage";
 
 import styles from "./EvaluationPage.module.css";
 
-// ── Main page ─────────────────────────────────────────────────────────────────
+function isDiscardedRecruitmentStatus(status?: string | null) {
+  const normalized = status?.trim().toLowerCase() ?? "";
+  return normalized.includes("descart") || normalized.includes("descat");
+}
+
+function isDiscardedPlayer(player: { recruitmentStatus?: string | null; assignment?: string | null }) {
+  return isDiscardedRecruitmentStatus(player.recruitmentStatus) || player.assignment?.trim().toLowerCase() === "discard";
+}
 
 export default function EvaluationPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const routeState = (location.state as {
+    teamId?: string;
+    teamName?: string;
+    sportEventId?: string;
+    sportEventName?: string;
+  } | null) ?? null;
+  const storedSelection = loadSeasonPrepSelection();
+  const teamId = routeState?.teamId ?? storedSelection?.teamId ?? null;
+  const teamName = routeState?.teamName ?? storedSelection?.teamName ?? null;
 
-  // Data hooks — each owns a single concern
-  const { pool, setPool, fedSeason, loading, handleEvalChange, handlePositionChange, handleStatusChange, handleAddPlayer } =
-    useEvaluationPool();
-  const { saving, saveNow } = useEvaluationPersistence(pool, fedSeason, loading);
+  const [selectedEvent, setSelectedEvent] = useState<SportEventResponse | null>(() =>
+    (routeState?.sportEventId ?? storedSelection?.sportEventId)
+      ? ({
+          id: routeState?.sportEventId ?? storedSelection?.sportEventId ?? "",
+          name: routeState?.sportEventName ?? storedSelection?.sportEventName ?? "Evento seleccionado",
+        } as SportEventResponse)
+      : null
+  );
+
+  const activeEventId = selectedEvent?.id ?? routeState?.sportEventId ?? storedSelection?.sportEventId ?? null;
+
+  const { pool, setPool, fedSeason, loading, handleRatingChange, handlePositionChange, handleStatusChange, handleAddPlayer } =
+    useEvaluationPool(activeEventId);
+  const { saving, saveNow } = useEvaluationPersistence(pool, fedSeason, activeEventId, loading);
   const positionOptions = usePositionOptions();
 
-  // UI-only state
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: "success" | "error" | "info" }>({
-    open: false, message: "", severity: "info",
+    open: false,
+    message: "",
+    severity: "info",
   });
 
   function notify(message: string, severity: "success" | "error" | "info") {
@@ -71,6 +102,20 @@ export default function EvaluationPage() {
     () => notify("Error al generar el Excel", "error")
   );
 
+  useEffect(() => {
+    setSelectedId(null);
+  }, [activeEventId]);
+
+  useEffect(() => {
+    if (!teamId) return;
+    saveSeasonPrepSelection({
+      teamId,
+      teamName,
+      sportEventId: activeEventId,
+      sportEventName: selectedEvent?.name ?? selectedEvent?.title ?? routeState?.sportEventName ?? null,
+    });
+  }, [activeEventId, routeState?.sportEventName, selectedEvent, teamId, teamName]);
+
   async function handleSave() {
     try {
       await saveNow();
@@ -85,15 +130,17 @@ export default function EvaluationPage() {
     notify(`${added.name} añadido`, "success");
   }
 
-  const eligiblePlayers = pool.filter((p) => p.assignment === "eligible");
+  const eligiblePlayers = activeEventId ? pool.filter((p) => p.assignment === "eligible" && !isDiscardedPlayer(p)) : [];
   const selectedPlayer = eligiblePlayers.find((p) => p.uniqueId === selectedId) ?? null;
 
-  // Auto-select first player once loaded
-  if (!loading && !selectedId && eligiblePlayers.length > 0) {
-    setSelectedId(eligiblePlayers[0].uniqueId);
-  }
+  useEffect(() => {
+    if (loading || !activeEventId) return;
+    if (eligiblePlayers.length > 0 && !selectedPlayer) {
+      setSelectedId(eligiblePlayers[0].uniqueId);
+    }
+  }, [activeEventId, eligiblePlayers, loading, selectedPlayer]);
 
-  if (loading) {
+  if (loading && activeEventId) {
     return (
       <BaseLayout hideFooterMenu>
         <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "60vh" }}>
@@ -108,25 +155,47 @@ export default function EvaluationPage() {
       <ContentLayout
         title="Evaluación"
         actionBar={
-          <Box sx={{ ml: "auto", display: "flex", alignItems: "center", gap: 1 }}>
+          <Box sx={{ ml: "auto", display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", justifyContent: "flex-end" }}>
+            <Chip
+              size="small"
+              color={activeEventId ? "primary" : "warning"}
+              label={selectedEvent ? (selectedEvent.name ?? selectedEvent.title ?? "Evento") : "Selecciona evento"}
+            />
             <Chip size="small" label={`${eligiblePlayers.length} jugadores`} />
-            <Button size="small" variant="outlined" startIcon={<ArrowBackIcon />} onClick={() => navigate("/coach/season-prep")}>
+            <Button size="small" variant="outlined" startIcon={<ArrowBackIcon />} onClick={() => navigate("/coach/season-prep", { state: { teamId: routeState?.teamId, teamName: routeState?.teamName } })}>
               Volver
             </Button>
-            <Button size="small" variant="outlined" color="success" disabled={saving} onClick={handleSave}>
+            <Button size="small" variant="outlined" color="success" disabled={saving || !activeEventId} onClick={handleSave}>
               {saving ? "Guardando…" : "Guardar"}
             </Button>
-            <Button size="small" variant="outlined" startIcon={<AssessmentIcon />} onClick={() => setSummaryOpen(true)} disabled={eligiblePlayers.length === 0}>
+            <Button size="small" variant="outlined" startIcon={<AssessmentIcon />} onClick={() => setSummaryOpen(true)} disabled={!activeEventId || eligiblePlayers.length === 0}>
               Resumen
             </Button>
-            <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => setAddDialogOpen(true)}>
+            <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => setAddDialogOpen(true)} disabled={!activeEventId}>
               Añadir
             </Button>
-            <Button size="small" variant="outlined" startIcon={<DownloadIcon />} onClick={handleExport} disabled={eligiblePlayers.length === 0}>
+            <Button size="small" variant="outlined" startIcon={<DownloadIcon />} onClick={handleExport} disabled={!activeEventId || eligiblePlayers.length === 0}>
               Excel
             </Button>
-            <Button size="small" variant="outlined" startIcon={<UploadIcon />} onClick={openFilePicker}>
+            <Button size="small" variant="outlined" startIcon={<UploadIcon />} onClick={openFilePicker} disabled={!activeEventId}>
               Importar
+            </Button>
+            <Button
+              size="small"
+              variant="contained"
+              startIcon={<AssessmentIcon />}
+              disabled={!activeEventId || eligiblePlayers.length === 0}
+              onClick={() => navigate("/coach/season-prep/simulation", {
+                state: {
+                  players: eligiblePlayers,
+                  teamId: routeState?.teamId,
+                  teamName: routeState?.teamName,
+                  sportEventId: selectedEvent?.id,
+                  sportEventName: selectedEvent?.name ?? selectedEvent?.title,
+                },
+              })}
+            >
+              Ir a pruebas
             </Button>
             <input
               ref={fileInputRef}
@@ -138,13 +207,23 @@ export default function EvaluationPage() {
           </Box>
         }
       >
-        {eligiblePlayers.length === 0 ? (
+        <SeasonPrepEventPicker
+          teamId={teamId}
+          teamName={teamName}
+          value={selectedEvent}
+          onChange={setSelectedEvent}
+        />
+
+        {!selectedEvent ? (
+          <Typography sx={{ opacity: 0.5, mt: 3, textAlign: "center" }}>
+            Selecciona o crea un evento para empezar.
+          </Typography>
+        ) : eligiblePlayers.length === 0 ? (
           <Typography sx={{ opacity: 0.5, mt: 3, textAlign: "center" }}>
             No hay jugadores en la lista de Elegidos para evaluar.
           </Typography>
         ) : (
           <div className={styles.splitLayout}>
-            {/* ── Left panel: player list ─────────────────── */}
             <div className={styles.leftPanel}>
               <PlayerListPanel
                 players={eligiblePlayers}
@@ -153,25 +232,15 @@ export default function EvaluationPage() {
               />
             </div>
 
-            {/* ── Right panel: evaluation form ────────────── */}
             <div className={styles.rightPanel}>
               {selectedPlayer ? (
                 <EvaluationPanel
                   key={selectedPlayer.uniqueId}
                   player={selectedPlayer}
                   positionOptions={positionOptions}
-                  onEvalChange={(key: ConceptKey, val: ConceptEval) =>
-                    handleEvalChange(selectedPlayer.uniqueId, key, val)
-                  }
-                  onNotesChange={(notes: string) =>
-                    handleEvalChange(selectedPlayer.uniqueId, "notes", notes)
-                  }
-                  onPositionChange={(pos: string) =>
-                    handlePositionChange(selectedPlayer.uniqueId, pos)
-                  }
-                  onStatusChange={(status: RecruitmentStatus) =>
-                    handleStatusChange(selectedPlayer.uniqueId, status)
-                  }
+                  onRatingChange={(rating: PlayerRating) => handleRatingChange(selectedPlayer.uniqueId, rating)}
+                  onPositionChange={(pos: string) => handlePositionChange(selectedPlayer.uniqueId, pos)}
+                  onStatusChange={(status: RecruitmentStatus) => handleStatusChange(selectedPlayer.uniqueId, status)}
                 />
               ) : (
                 <Typography sx={{ opacity: 0.35, textAlign: "center", mt: 8 }}>

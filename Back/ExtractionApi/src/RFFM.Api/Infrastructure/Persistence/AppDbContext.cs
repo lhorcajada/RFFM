@@ -92,6 +92,8 @@ namespace RFFM.Api.Infrastructure.Persistence
         // Season prep session
         public DbSet<SeasonPrepSession> SeasonPrepSessions { get; set; }
         public DbSet<SeasonPrepEvaluations> SeasonPrepEvaluations { get; set; }
+        public DbSet<SeasonPrepPlayerRating> SeasonPrepPlayerRatings { get; set; }
+        public DbSet<SeasonPrepPlayerRatingDetail> SeasonPrepPlayerRatingDetails { get; set; }
         public DbSet<SubPrinciple> SubPrinciples { get; set; }
         public DbSet<SubPrincipleTacticalPrinciple> SubPrincipleTacticalPrinciples { get; set; }
         public DbSet<SubSubPrinciple> SubSubPrinciples { get; set; }

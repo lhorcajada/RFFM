@@ -25,6 +25,10 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.Trainings
                 .IsRequired(false)
                 .HasMaxLength(ValidationConstants.TaskTrainingBaseUrlImageMaxLength);
 
+            builder.Property(tb => tb.BoardStateJson)
+                .IsRequired(false)
+                .HasColumnType("text");
+
             builder.Property(tb => tb.Points).IsRequired();
             builder.Property(tb => tb.PlayersNumber).IsRequired();
             builder.Property(tb => tb.GoalPeekersNumber).IsRequired();

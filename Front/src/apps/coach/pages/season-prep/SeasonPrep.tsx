@@ -59,6 +59,8 @@ import {
   upsertSeasonPrepSession,
   deleteSeasonPrepSession,
 } from "../../services/seasonPrepSessionService";
+import { loadSeasonPrepSelection } from "./seasonPrepSelectionStorage";
+import type { PlayerRating } from "../../types/playerRating";
 
 import styles from "./SeasonPrep.module.css";
 
@@ -77,52 +79,13 @@ type Assignment = "pool" | "eligible" | "discard";
 
 export type RecruitmentStatus = "observando" | "interesado" | "fichado" | "descartado";
 
-/** A single concept evaluation with two qualitative dimensions */
-export type ConceptEval = { consistencia?: string; tendencia?: string };
-
-export type PlayerEvaluation = {
-  // ── Field player concepts ──────────────────────────────
-  // Combate
-  valentiaDiv?: ConceptEval;
-  duelos?: ConceptEval;
-  segundasJugadas?: ConceptEval;
-  // Defensa
-  marcajeFerreo?: ConceptEval;
-  pressingTrasPerdida?: ConceptEval;
-  // Ataque
-  controlOrientado?: ConceptEval;
-  visionFiltrados?: ConceptEval;
-  finalizacionCentro?: ConceptEval;
-  // Físico
-  velocidadAccion?: ConceptEval;
-  fuerzaUso?: ConceptEval;
-  usoAltura?: ConceptEval;
-  // ── Goalkeeper concepts ────────────────────────────────
-  // Manos
-  seguridadManos?: ConceptEval;
-  gestionRechace?: ConceptEval;
-  reflejosReaccion?: ConceptEval;
-  // Valentía
-  valentiaSalidas?: ConceptEval;
-  dominioAereo?: ConceptEval;
-  duelos1v1Gk?: ConceptEval;
-  // Juego
-  juegosDePies?: ConceptEval;
-  precisionSaque?: ConceptEval;
-  // Físico GK
-  velocidadDesplazamiento?: ConceptEval;
-  potenciaSalto?: ConceptEval;
-  // Universal
-  notes?: string;
-};
-
 export type PoolPlayer = FedPlayer & {
   uniqueId: string;
   assignment: Assignment;
   manualEntry?: boolean;
   birthYear?: number;
   procedencia?: string;
-  evaluation?: PlayerEvaluation;
+  rating?: PlayerRating;
   recruitmentStatus?: RecruitmentStatus;
 };
 
@@ -284,7 +247,11 @@ function SaveDialog({
                 ))}
               </Select>
             </FormControl>
-            <SeasonSelector value={seasonId} onChange={(v) => setSeasonId(v ?? "")} />
+            <SeasonSelector
+              clubId={clubId}
+              value={seasonId}
+              onChange={(v) => setSeasonId(v ?? "")}
+            />
           </Box>
         )}
       </DialogContent>
@@ -730,6 +697,7 @@ type PersistedState = {
 
 export default function SeasonPrep() {
   const navigate = useNavigate();
+  const activeSelection = loadSeasonPrepSelection();
   const [fedSeason, setFedSeason] = useState("26");
   const [slot, setSlot] = useState<TeamSlot>(emptySlot());
 
@@ -1071,6 +1039,11 @@ export default function SeasonPrep() {
         title="Preparación nueva temporada"
         actionBar={
           <>
+            <Chip
+              size="small"
+              color={activeSelection?.sportEventId ? "primary" : "default"}
+              label={activeSelection?.sportEventName ?? activeSelection?.sportEventId ?? "Sin evento activo"}
+            />
             <Button
               size="small"
               variant="outlined"
@@ -1107,7 +1080,7 @@ export default function SeasonPrep() {
                 variant="contained"
                 color="success"
                 startIcon={<AssessmentIcon />}
-                onClick={() => navigate("/coach/season-prep/evaluate")}
+                onClick={() => navigate("/coach/season-prep/evaluate", { state: { teamId: slot.teamId, teamName: slot.teamName } })}
               >
                 Evaluar
               </Button>

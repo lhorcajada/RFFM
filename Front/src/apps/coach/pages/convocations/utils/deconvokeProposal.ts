@@ -162,6 +162,24 @@ function isInjuryAbsence(cell: GridCell | undefined): boolean {
   return cell.excuseTypeId === 1 || !!cell.excuseName?.toLowerCase().includes("lesi");
 }
 
+export function isProtectedStreakAbsence(cell: GridCell | undefined): boolean {
+  if (!cell) return false;
+  if (!NOT_CALLED_NAMES.has(cell.statusName)) return false;
+  if (cell.statusName === "No disponible") return true;
+
+  const excuseName = cell.excuseName?.toLowerCase() ?? "";
+  return (
+    cell.excuseTypeId === 1 ||
+    cell.excuseTypeId === 3 ||
+    cell.excuseTypeId === 4 ||
+    excuseName.includes("lesi") ||
+    excuseName.includes("enfermedad") ||
+    excuseName.includes("ill") ||
+    excuseName.includes("problema familiar") ||
+    excuseName.includes("family problem")
+  );
+}
+
 function isNonTechnicalAbsence(cell: GridCell | undefined): boolean {
   if (!cell) return false;
   if (!NOT_CALLED_NAMES.has(cell.statusName)) return false;
@@ -308,7 +326,7 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
       // Rounds where the player was injured shouldn't inflate the technical streak.
       let injuryAbsences = 0;
       let nonTechnicalAbsences = 0;
-      let injuryAbsencesInStreak = 0;
+      let protectedAbsencesInStreak = 0;
       seasonColumns.forEach((col, i) => {
         const cell = enrichedGrid.get(col.eventId)?.get(playerId);
         if (isNonTechnicalAbsence(cell)) {
@@ -316,7 +334,9 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
         }
         if (isInjuryAbsence(cell)) {
           injuryAbsences++;
-          if (i < technicalStreak) injuryAbsencesInStreak++;
+        }
+        if (isProtectedStreakAbsence(cell) && i < technicalStreak) {
+          protectedAbsencesInStreak++;
         }
       });
 
@@ -329,9 +349,10 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
       // Prioriza el nivel competitivo por encima de titularidades/convocatorias.
       const necessity = competitivenessRate;
 
-      // Effective streak: discount rounds where the player was injured
-      // (they couldn't have been technically deconvoked anyway)
-      const effectiveStreak = Math.max(0, technicalStreak - injuryAbsencesInStreak);
+      // Effective streak: discount rounds where the player was unavailable due to a
+      // protected cause (injury, illness, or family problem), because those do not
+      // represent a coach-driven technical deconvocation.
+      const effectiveStreak = Math.max(0, technicalStreak - protectedAbsencesInStreak);
 
       const proportionalMin = Math.ceil(
         18 * (availableMatches / Math.max(1, seasonMatchCount)),
@@ -377,7 +398,7 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
         seasonPlayerStats: calledStats ?? null,
         effectiveStreak,
         technicalTotal,
-        injuryAbsencesInStreak,
+        injuryAbsencesInStreak: protectedAbsencesInStreak,
         calledCount,
         startsCount,
         startsDataAvailable,

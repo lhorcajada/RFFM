@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using RFFM.Api.Domain;
 using RFFM.Api.Common.Behaviors;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
@@ -18,12 +19,23 @@ namespace RFFM.Api.Features.Coaches.Seasons.Commands
             app.MapDelete("api/catalog/season/{id}",
                     async (string id, IMediator mediator, CancellationToken cancellationToken) =>
                     {
-                        var request = new DeleteSeasonCommand()
+                        try
                         {
-                            SeasonId = id
-                        };
-                        await mediator.Send(request, cancellationToken);
-                        return Results.Ok();
+                            var request = new DeleteSeasonCommand()
+                            {
+                                SeasonId = id
+                            };
+                            await mediator.Send(request, cancellationToken);
+                            return Results.Ok();
+                        }
+                        catch (DomainException exception) when (exception.Code == SeasonConstants.SeasonHasRelatedDataCode)
+                        {
+                            return Results.Conflict(new ProblemDetails
+                            {
+                                Title = exception.Title,
+                                Detail = exception.Description,
+                            });
+                        }
                     })
                 .WithName(nameof(DeleteSeason))
                 .WithTags(SeasonConstants.SeasonFeature)
@@ -52,6 +64,19 @@ namespace RFFM.Api.Features.Coaches.Seasons.Commands
                 .FirstOrDefaultAsync(c => c.Id == request.SeasonId, cancellationToken: cancellationToken);
             if (season == null)
                 throw new KeyNotFoundException($"Season '{request.SeasonId}' Not Found");
+
+            var hasRelatedData = await _catalogDbContext.Teams.AnyAsync(team => team.SeasonId == season.Id, cancellationToken)
+                || await _catalogDbContext.ClubKits.AnyAsync(kit => kit.SeasonId == season.Id, cancellationToken)
+                || await _catalogDbContext.TeamIdealLineups.AnyAsync(lineup => lineup.SeasonId == season.Id, cancellationToken)
+                || await _catalogDbContext.TrainingPointsReports.AnyAsync(report => report.SeasonId == season.Id, cancellationToken);
+
+            if (hasRelatedData)
+            {
+                throw new DomainException(
+                    "Temporadas",
+                    "No se puede eliminar la temporada porque ya tiene datos relacionados.",
+                    SeasonConstants.SeasonHasRelatedDataCode);
+            }
 
             _catalogDbContext.Seasons.Remove(season);
             await _catalogDbContext.SaveChangesAsync(cancellationToken);

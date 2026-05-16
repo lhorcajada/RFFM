@@ -49,6 +49,7 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         string? SubSubPrincipleId,
         string Section,
         List<string> EssentialSkillIds,
+        string? BoardStateJson,
         int? Series,
         int? DurationSeries,
         int? RestSeries,
@@ -89,6 +90,8 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
             if (!string.IsNullOrEmpty(request.SubSubPrincipleId))
                 exercise.SubSubPrincipleId = request.SubSubPrincipleId;
             exercise.Section = request.Section;
+            if (request.BoardStateJson is not null)
+                exercise.BoardStateJson = request.BoardStateJson;
 
             // Replace skills
             _db.TaskTrainingSkills.RemoveRange(exercise.Skills);

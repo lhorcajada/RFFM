@@ -1,9 +1,9 @@
-# Script para obtener la cadena de conexión de Azure SQL Database
+# Script para obtener la cadena de conexiï¿½n de Azure SQL Database
 # Uso: .\get-azure-sql-connection.ps1
 
 param(
     [string]$ResourceGroup = "rffm-resources",
-    [string]$ServerName = "",  # Déjalo vacío para listar todos
+    [string]$ServerName = "",  # Dï¿½jalo vacï¿½o para listar todos
     [string]$DatabaseName = "FutbolBase"
 )
 
@@ -12,8 +12,8 @@ Write-Host "   Azure SQL Database - Connection String" -ForegroundColor Cyan
 Write-Host "???????????????????????????????????????????" -ForegroundColor Cyan
 Write-Host ""
 
-# Login en Azure (si no está logueado)
-Write-Host "?? Verificando sesión de Azure..." -ForegroundColor Yellow
+# Login en Azure (si no estï¿½ logueado)
+Write-Host "?? Verificando sesiï¿½n de Azure..." -ForegroundColor Yellow
 $azAccount = az account show 2>$null
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Ejecutando 'az login'..." -ForegroundColor Yellow
@@ -24,9 +24,9 @@ $account = az account show | ConvertFrom-Json
 Write-Host "? Logueado como: $($account.user.name)" -ForegroundColor Green
 Write-Host ""
 
-# Si no se especificó servidor, listar todos
+# Si no se especificï¿½ servidor, listar todos
 if ([string]::IsNullOrEmpty($ServerName)) {
-    Write-Host "?? Listando SQL Servers en la suscripción..." -ForegroundColor Yellow
+    Write-Host "?? Listando SQL Servers en la suscripciï¿½n..." -ForegroundColor Yellow
     Write-Host ""
     
     $servers = az sql server list | ConvertFrom-Json
@@ -42,7 +42,7 @@ if ([string]::IsNullOrEmpty($ServerName)) {
     }
     
     Write-Host ""
-    $selection = Read-Host "Selecciona el número del servidor"
+    $selection = Read-Host "Selecciona el nï¿½mero del servidor"
     $selectedServer = $servers[[int]$selection]
     $ServerName = $selectedServer.name
     $ResourceGroup = $selectedServer.resourceGroup
@@ -52,8 +52,8 @@ if ([string]::IsNullOrEmpty($ServerName)) {
     Write-Host ""
 }
 
-# Obtener información del servidor
-Write-Host "?? Obteniendo información del servidor..." -ForegroundColor Yellow
+# Obtener informaciï¿½n del servidor
+Write-Host "?? Obteniendo informaciï¿½n del servidor..." -ForegroundColor Yellow
 $server = az sql server show `
     --name $ServerName `
     --resource-group $ResourceGroup | ConvertFrom-Json
@@ -82,22 +82,22 @@ Write-Host "   CONNECTION STRING" -ForegroundColor Cyan
 Write-Host "???????????????????????????????????????????" -ForegroundColor Cyan
 Write-Host ""
 
-Write-Host "??  NECESITAS RESETEAR LA CONTRASEÑA:" -ForegroundColor Yellow
+Write-Host "??  NECESITAS RESETEAR LA CONTRASEï¿½A:" -ForegroundColor Yellow
 Write-Host ""
-Write-Host "Opción 1 - Azure Portal:" -ForegroundColor White
+Write-Host "Opciï¿½n 1 - Azure Portal:" -ForegroundColor White
 Write-Host "  1. Ir a: Azure Portal ? SQL servers ? $ServerName" -ForegroundColor Gray
 Write-Host "  2. Click en: Reset password" -ForegroundColor Gray
-Write-Host "  3. Ingresar nueva contraseña" -ForegroundColor Gray
+Write-Host "  3. Ingresar nueva contraseï¿½a" -ForegroundColor Gray
 Write-Host ""
 
-Write-Host "Opción 2 - Azure CLI (ejecutar ahora):" -ForegroundColor White
-$newPassword = Read-Host "Ingresa nueva contraseña para SQL Admin (min 8 chars, mayúsculas, minúsculas, números)" -AsSecureString
+Write-Host "Opciï¿½n 2 - Azure CLI (ejecutar ahora):" -ForegroundColor White
+$newPassword = Read-Host "Ingresa nueva contraseï¿½a para SQL Admin (min 8 chars, mayï¿½sculas, minï¿½sculas, nï¿½meros)" -AsSecureString
 $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($newPassword)
 $plainPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
 
 if ($plainPassword.Length -ge 8) {
     Write-Host ""
-    Write-Host "Reseteando contraseña..." -ForegroundColor Yellow
+    Write-Host "Reseteando contraseï¿½a..." -ForegroundColor Yellow
     
     az sql server update `
         --name $ServerName `
@@ -105,7 +105,7 @@ if ($plainPassword.Length -ge 8) {
         --admin-password $plainPassword
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "? Contraseña actualizada exitosamente" -ForegroundColor Green
+        Write-Host "? Contraseï¿½a actualizada exitosamente" -ForegroundColor Green
         Write-Host ""
         
         # Construir connection string completa
@@ -136,13 +136,13 @@ if ($plainPassword.Length -ge 8) {
 $connectionString
 
 # For Azure App Service Configuration:
-Name: ConnectionStrings__CatalogConnection
+Name: ConnectionStrings__FutbolBaseConnection
 Value: $connectionString
 Type: SQL Azure
 
 # For appsettings.json (development):
 "ConnectionStrings": {
-  "CatalogConnection": "$connectionString"
+    "FutbolBaseConnection": "$connectionString"
 }
 "@ | Out-File $outputFile -Encoding UTF8
         
@@ -150,12 +150,12 @@ Type: SQL Azure
         Write-Host ""
         
         Write-Host "???????????????????????????????????????????" -ForegroundColor Cyan
-        Write-Host "   PRÓXIMOS PASOS:" -ForegroundColor Cyan
+        Write-Host "   PRï¿½XIMOS PASOS:" -ForegroundColor Cyan
         Write-Host "???????????????????????????????????????????" -ForegroundColor Cyan
         Write-Host ""
         Write-Host "1. Configurar en Azure Web App:" -ForegroundColor Yellow
         Write-Host "   Portal ? App Service ? Configuration ? Connection strings" -ForegroundColor Gray
-        Write-Host "   Name: CatalogConnection" -ForegroundColor Gray
+        Write-Host "   Name: FutbolBaseConnection" -ForegroundColor Gray
         Write-Host "   Value: [la connection string de arriba]" -ForegroundColor Gray
         Write-Host "   Type: SQL Azure" -ForegroundColor Gray
         Write-Host ""
@@ -167,17 +167,17 @@ Type: SQL Azure
         Write-Host "     --start-ip-address 0.0.0.0 \\" -ForegroundColor Gray
         Write-Host "     --end-ip-address 0.0.0.0" -ForegroundColor Gray
         Write-Host ""
-        Write-Host "3. Test de conexión:" -ForegroundColor Yellow
+        Write-Host "3. Test de conexiï¿½n:" -ForegroundColor Yellow
         Write-Host "   Usar SQL Server Management Studio o Azure Data Studio" -ForegroundColor Gray
         Write-Host "   Server: $fqdn" -ForegroundColor Gray
         Write-Host "   Login: $admin" -ForegroundColor Gray
         Write-Host "   Password: [la que ingresaste]" -ForegroundColor Gray
         Write-Host ""
     } else {
-        Write-Host "? Error al actualizar contraseña" -ForegroundColor Red
+        Write-Host "? Error al actualizar contraseï¿½a" -ForegroundColor Red
     }
 } else {
-    Write-Host "? Contraseña muy corta (mínimo 8 caracteres)" -ForegroundColor Red
+    Write-Host "? Contraseï¿½a muy corta (mï¿½nimo 8 caracteres)" -ForegroundColor Red
 }
 
 Write-Host "???????????????????????????????????????????" -ForegroundColor Cyan

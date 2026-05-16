@@ -14,22 +14,19 @@ var app = builder.Build();
 
 startup.Configure(app, app.Environment);
 
-// Apply database migrations automatically (skip in Production if RunMigrationsOnStartup=false)
-if (!app.Environment.IsProduction() || builder.Configuration.GetValue<bool>("RunMigrationsOnStartup", true))
-{
-    await app.MigrateDbContext<AppDbContext>();
-    await app.MigrateDbContext<IdentityDbContext>();
+// Apply database migrations automatically on startup.
+await app.MigrateDbContext<AppDbContext>();
+await app.MigrateDbContext<IdentityDbContext>();
 
-    // FederationDbContext usa PostgreSQL externo (Supabase) — no debe crashear el app si falla
-    try
-    {
-        await app.MigrateDbContext<FederationDbContext>();
-    }
-    catch (Exception ex)
-    {
-        var logger = app.Services.GetRequiredService<ILogger<Program>>();
-        logger.LogWarning(ex, "⚠️ FederationDbContext migration failed. Recheck FederationConnection string (SSL required for Supabase).");
-    }
+// FederationDbContext usa PostgreSQL externo (Supabase) — no debe crashear el app si falla
+try
+{
+    await app.MigrateDbContext<FederationDbContext>();
+}
+catch (Exception ex)
+{
+    var logger = app.Services.GetRequiredService<ILogger<Program>>();
+    logger.LogWarning(ex, "⚠️ FederationDbContext migration failed. Recheck FederationConnection string (SSL required for Supabase).");
 }
 
 // Seed roles/claims asynchronously (non-blocking)

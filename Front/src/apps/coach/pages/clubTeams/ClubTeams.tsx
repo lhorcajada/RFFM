@@ -51,7 +51,7 @@ export default function ClubTeams() {
         setTeams(data);
         if (seasonId) {
           try {
-            const seasons: Season[] = await seasonService.getSeasons();
+            const seasons: Season[] = await seasonService.getSeasons(id);
             const s = seasons.find((x) => x.id === seasonId);
             if (s) setSeasonName(s.name ?? s.id);
             else setSeasonName(null);

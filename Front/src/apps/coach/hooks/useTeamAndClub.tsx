@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import teamService, { TeamResponse } from "../services/teamService";
 import clubService from "../services/clubService";
+import configurationCoachService from "../services/configurationCoachService";
 import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
 import { fetchImage } from "../../../shared/services/imageService";
@@ -20,15 +21,34 @@ export default function useTeamAndClub() {
     let mounted = true;
     let createdObjUrls: string[] = [];
 
+    function resetState() {
+      setTeam(null);
+      setTeamTitleNode(null);
+      setClubSubtitleNode(null);
+    }
+
+    async function resolveTeamId() {
+      const params = new URLSearchParams(location.search);
+      const urlTeamId = params.get("teamId");
+      if (urlTeamId) return urlTeamId;
+
+      try {
+        const configs = await configurationCoachService.getAll();
+        const preferredTeamId = configs[0]?.preferredTeamId ?? null;
+        if (preferredTeamId) return preferredTeamId;
+      } catch {
+        // Ignore configuration lookup failures and fall back to the empty dashboard.
+      }
+
+      return null;
+    }
+
     async function load() {
       setLoading(true);
-      const params = new URLSearchParams(location.search);
-      const teamId = params.get("teamId");
+      const teamId = await resolveTeamId();
       if (!teamId) {
         if (mounted) {
-          setTeam(null);
-          setTeamTitleNode(null);
-          setClubSubtitleNode(null);
+          resetState();
           setLoading(false);
         }
         return;
@@ -38,9 +58,7 @@ export default function useTeamAndClub() {
         const t = await teamService.getTeamById(teamId);
         if (!mounted) return;
         if (!t) {
-          setTeam(null);
-          setTeamTitleNode(null);
-          setClubSubtitleNode(null);
+          resetState();
           setLoading(false);
           return;
         }
@@ -123,9 +141,7 @@ export default function useTeamAndClub() {
         setClubSubtitleNode(clubNode);
       } catch (e) {
         if (!mounted) return;
-        setTeam(null);
-        setTeamTitleNode(null);
-        setClubSubtitleNode(null);
+        resetState();
       } finally {
         if (!mounted) return;
         setLoading(false);

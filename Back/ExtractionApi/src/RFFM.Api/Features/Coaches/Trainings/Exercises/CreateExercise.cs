@@ -54,6 +54,7 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         string? SubSubPrincipleId,
         string Section,
         List<string> EssentialSkillIds,
+        string? BoardStateJson,
         // Physical-specific
         int? Series,
         int? DurationSeries,
@@ -110,6 +111,7 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
             exercise.ClubId = request.ClubId;
             exercise.SubSubPrincipleId = request.SubSubPrincipleId;
             exercise.Section = request.Section;
+            exercise.BoardStateJson = request.BoardStateJson;
 
             foreach (var skillId in request.EssentialSkillIds.Distinct())
                 exercise.Skills.Add(new TaskTrainingSkill { EssentialSkillId = skillId });

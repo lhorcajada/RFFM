@@ -39,24 +39,6 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
 
     public record GetExercisesQuery(string ClubId, string? SubSubPrincipleId, string UserId) : IRequest<IEnumerable<ExerciseListItem>>;
 
-    public record ExerciseListItem(
-        string Id,
-        string Name,
-        string Description,
-        string Type,
-        string Section,
-        int DurationTotal,
-        int PlayersNumber,
-        int GoalPeekersNumber,
-        string FieldSpace,
-        string? SubSubPrincipleId,
-        string? SubSubPrincipleName,
-        IEnumerable<SkillCoverageDto> Skills,
-        string? UrlImage,
-        IEnumerable<ConditionDto> Conditions);
-
-    public record SkillCoverageDto(string EssentialSkillId, string SkillName);
-
     public class GetExercisesHandler : IRequestHandler<GetExercisesQuery, IEnumerable<ExerciseListItem>>
     {
         private readonly AppDbContext _db;
@@ -99,8 +81,28 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
                 tb.SubSubPrinciple?.Name,
                 tb.Skills.Select(s => new SkillCoverageDto(s.EssentialSkillId, s.EssentialSkill.Name)),
                 tb.UrlImage,
+                tb.BoardStateJson,
                 tb.Conditions.OrderBy(c => c.Order).Select(c => new ConditionDto(c.Id, c.Text, c.Order))
             ));
         }
     }
+
+    public record ExerciseListItem(
+        string Id,
+        string Name,
+        string Description,
+        string Type,
+        string Section,
+        int DurationTotal,
+        int PlayersNumber,
+        int GoalPeekersNumber,
+        string FieldSpace,
+        string? SubSubPrincipleId,
+        string? SubSubPrincipleName,
+        IEnumerable<SkillCoverageDto> Skills,
+        string? UrlImage,
+        string? BoardStateJson,
+        IEnumerable<ConditionDto> Conditions);
+
+    public record SkillCoverageDto(string EssentialSkillId, string SkillName);
 }

@@ -12,9 +12,10 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Entities
             builder.HasKey(s => s.Id);
             builder.Property(s => s.Id).HasMaxLength(50);
             builder.Property(s => s.UserId).IsRequired().HasMaxLength(50);
+            builder.Property(s => s.SportEventId).HasMaxLength(50);
             builder.Property(s => s.Data).IsRequired().HasColumnType("text");
             builder.Property(s => s.UpdatedAt).IsRequired();
-            builder.HasIndex(s => s.UserId).IsUnique();
+            builder.HasIndex(s => new { s.UserId, s.SportEventId }).IsUnique();
         }
     }
 }

@@ -20,14 +20,16 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
                     {
                         var userId = httpContext.User.Claims.FirstOrDefault(c =>
                             c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value;
-                        return await mediator.Send(new TeamQuery(id, userId), cancellationToken);
+                        var result = await mediator.Send(new TeamQuery(id, userId), cancellationToken);
+                        return result is null ? Results.NotFound() : Results.Ok(result);
                     })
                 .WithName(nameof(GetTeam))
                 .WithTags(TeamConstants.TeamFeature)
-                .Produces<TeamResponse>();
+                .Produces<TeamResponse>()
+                .Produces(StatusCodes.Status404NotFound);
         }
 
-        public record TeamQuery(string TeamId, string UserId) : IQueryApp<TeamResponse>;
+        public record TeamQuery(string TeamId, string UserId) : IQueryApp<TeamResponse?>;
 
         public record TeamResponse(string Id,
             string Name,
@@ -37,7 +39,7 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
             string? UrlPhoto,
             string? JoinCode);
 
-        public class TeamsRequestHandler : IRequestHandler<TeamQuery, TeamResponse>
+        public class TeamsRequestHandler : IRequestHandler<TeamQuery, TeamResponse?>
         {
             private readonly AppDbContext _db;
 
@@ -46,7 +48,7 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
                 _db = db;
             }
 
-            public async ValueTask<TeamResponse> Handle(TeamQuery request, CancellationToken cancellationToken = default)
+            public async ValueTask<TeamResponse?> Handle(TeamQuery request, CancellationToken cancellationToken = default)
             {
                 var team = await _db.Teams
                         .Include(t => t.Club)
@@ -58,7 +60,7 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
                         t.Id == request.TeamId,
                         cancellationToken);
                 if (team == null)
-                    throw new KeyNotFoundException($"Team '{request.TeamId}' Not Found");
+                    return null;
                 return new TeamResponse(team.Id, team.Name,
                     new GetTeams.CategoryResponse(team.CategoryId, team.Category.Name),
                     new GetTeams.LeagueResponse(team.League!.Id, team.League.Name, team.LeagueGroup),
