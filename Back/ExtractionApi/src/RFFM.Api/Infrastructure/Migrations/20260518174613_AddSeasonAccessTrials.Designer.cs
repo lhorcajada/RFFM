@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using RFFM.Api.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using RFFM.Api.Infrastructure.Persistence;
 namespace RFFM.Api.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260518174613_AddSeasonAccessTrials")]
+    partial class AddSeasonAccessTrials
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -3687,73 +3690,6 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.ToTable("SeasonAccessTrials", "app");
                 });
 
-            modelBuilder.Entity("RFFM.Api.Domain.Entities.SeasonAccess.SeasonAccessTrialDay", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("text");
-
-                    b.Property<DateOnly>("Date")
-                        .HasColumnType("date");
-
-                    b.Property<string>("Label")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("TrialId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TrialId");
-
-                    b.ToTable("SeasonAccessTrialDays", "app");
-                });
-
-            modelBuilder.Entity("RFFM.Api.Domain.Entities.SeasonAccess.SeasonAccessTrialDayRating", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("text");
-
-                    b.Property<int?>("IdealDemarcationId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.PrimitiveCollection<int[]>("PossibleDemarcationIds")
-                        .IsRequired()
-                        .HasColumnType("integer[]");
-
-                    b.Property<decimal?>("Score")
-                        .HasColumnType("numeric(5,2)");
-
-                    b.Property<string>("Status")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<int?>("TotalGoals")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("TrialDayId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("TrialPlayerId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TrialPlayerId");
-
-                    b.HasIndex("TrialDayId", "TrialPlayerId")
-                        .IsUnique();
-
-                    b.ToTable("SeasonAccessTrialDayRatings", "app");
-                });
-
             modelBuilder.Entity("RFFM.Api.Domain.Entities.SeasonAccess.SeasonAccessTrialPlayer", b =>
                 {
                     b.Property<string>("Id")
@@ -3793,9 +3729,6 @@ namespace RFFM.Api.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
-
-                    b.Property<int?>("TotalGoals")
-                        .HasColumnType("integer");
 
                     b.Property<string>("TrialId")
                         .IsRequired()
@@ -4775,36 +4708,6 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.Navigation("Club");
                 });
 
-            modelBuilder.Entity("RFFM.Api.Domain.Entities.SeasonAccess.SeasonAccessTrialDay", b =>
-                {
-                    b.HasOne("RFFM.Api.Domain.Entities.SeasonAccess.SeasonAccessTrial", "Trial")
-                        .WithMany("TrialDays")
-                        .HasForeignKey("TrialId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Trial");
-                });
-
-            modelBuilder.Entity("RFFM.Api.Domain.Entities.SeasonAccess.SeasonAccessTrialDayRating", b =>
-                {
-                    b.HasOne("RFFM.Api.Domain.Entities.SeasonAccess.SeasonAccessTrialDay", "TrialDay")
-                        .WithMany("Ratings")
-                        .HasForeignKey("TrialDayId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("RFFM.Api.Domain.Entities.SeasonAccess.SeasonAccessTrialPlayer", "TrialPlayer")
-                        .WithMany()
-                        .HasForeignKey("TrialPlayerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("TrialDay");
-
-                    b.Navigation("TrialPlayer");
-                });
-
             modelBuilder.Entity("RFFM.Api.Domain.Entities.SeasonAccess.SeasonAccessTrialPlayer", b =>
                 {
                     b.HasOne("RFFM.Api.Domain.Entities.SeasonAccess.SeasonAccessTrial", "Trial")
@@ -5192,13 +5095,6 @@ namespace RFFM.Api.Infrastructure.Migrations
             modelBuilder.Entity("RFFM.Api.Domain.Entities.SeasonAccess.SeasonAccessTrial", b =>
                 {
                     b.Navigation("Players");
-
-                    b.Navigation("TrialDays");
-                });
-
-            modelBuilder.Entity("RFFM.Api.Domain.Entities.SeasonAccess.SeasonAccessTrialDay", b =>
-                {
-                    b.Navigation("Ratings");
                 });
 
             modelBuilder.Entity("RFFM.Api.Domain.Entities.TeamPlayers.TeamIdealLineup", b =>

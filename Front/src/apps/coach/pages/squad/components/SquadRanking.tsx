@@ -77,65 +77,23 @@ function buildTiers(
 
 const MEDALS = ["\uD83E\uDD47", "\uD83E\uDD48", "\uD83E\uDD49"];
 
-function pickInitialSubRatings(rating: PlayerRating | undefined): Partial<Omit<CreateRatingPayload, "notes">> {
+function pickInitialSubRatings(rating: PlayerRating | undefined): Partial<Record<string, number>> {
   if (!rating) return {};
-  return {
-    physicalSpeed: rating.physicalSpeed ?? undefined,
-    physicalEndurance: rating.physicalEndurance ?? undefined,
-    physicalStrength: rating.physicalStrength ?? undefined,
-    technicalDribbling: rating.technicalDribbling ?? undefined,
-    technicalPassing: rating.technicalPassing ?? undefined,
-    technicalControl: rating.technicalControl ?? undefined,
-    technicalShooting: rating.technicalShooting ?? undefined,
-    technicalTackling: rating.technicalTackling ?? undefined,
-    technicalInterceptions: rating.technicalInterceptions ?? undefined,
-    technicalHeading: rating.technicalHeading ?? undefined,
-    tacticalDefensiveAwareness: rating.tacticalDefensiveAwareness ?? undefined,
-    tacticalMarking: rating.tacticalMarking ?? undefined,
-    tacticalTrackBack: rating.tacticalTrackBack ?? undefined,
-    tacticalPressing: rating.tacticalPressing ?? undefined,
-    tacticalGeneratesAdvantage: rating.tacticalGeneratesAdvantage ?? undefined,
-    tacticalOffMovement: rating.tacticalOffMovement ?? undefined,
-    tacticalBeatsOpponents: rating.tacticalBeatsOpponents ?? undefined,
-    tacticalAttackParticipation: rating.tacticalAttackParticipation ?? undefined,
-    competDuelWinning: rating.competDuelWinning ?? undefined,
-    competLooseBalls: rating.competLooseBalls ?? undefined,
-    competRecoveries: rating.competRecoveries ?? undefined,
-    competDecisiveActions: rating.competDecisiveActions ?? undefined,
-    competResponsibility: rating.competResponsibility ?? undefined,
-    competConstantEffort: rating.competConstantEffort ?? undefined,
-  };
+  const result: Partial<Record<string, number>> = {};
+  for (const a of rating.answers) {
+    // answers.level is 1-10; convert to 0-100 slider scale
+    result[a.characteristicKey] = Math.min(100, Math.max(0, Math.round(a.level * 10)));
+  }
+  return result;
 }
 
-function pickInitialKeeperSubRatings(rating: PlayerRating | undefined): Partial<Omit<CreateGoalkeeperRatingPayload, "notes">> {
+function pickInitialKeeperSubRatings(rating: PlayerRating | undefined): Partial<Record<string, number>> {
   if (!rating) return {};
-  return {
-    keeperReactionSpeed: rating.keeperReactionSpeed ?? undefined,
-    keeperAgility: rating.keeperAgility ?? undefined,
-    keeperJumpPower: rating.keeperJumpPower ?? undefined,
-    keeperStrength: rating.keeperStrength ?? undefined,
-    keeperEndurance: rating.keeperEndurance ?? undefined,
-    keeperHandSecurity: rating.keeperHandSecurity ?? undefined,
-    keeperSaves: rating.keeperSaves ?? undefined,
-    keeperAerialPlay: rating.keeperAerialPlay ?? undefined,
-    keeperHandDistribution: rating.keeperHandDistribution ?? undefined,
-    keeperKickDistribution: rating.keeperKickDistribution ?? undefined,
-    keeperFirstTouch: rating.keeperFirstTouch ?? undefined,
-    keeperPlayUnderPressure: rating.keeperPlayUnderPressure ?? undefined,
-    keeperPositioning: rating.keeperPositioning ?? undefined,
-    keeperGameReading: rating.keeperGameReading ?? undefined,
-    keeperOneOnOne: rating.keeperOneOnOne ?? undefined,
-    keeperBackCoverage: rating.keeperBackCoverage ?? undefined,
-    keeperSallyTiming: rating.keeperSallyTiming ?? undefined,
-    keeperBuildupPlay: rating.keeperBuildupPlay ?? undefined,
-    keeperDefensiveOrganization: rating.keeperDefensiveOrganization ?? undefined,
-    keeperValor: rating.keeperValor ?? undefined,
-    keeperConcentration: rating.keeperConcentration ?? undefined,
-    keeperKeyMoments: rating.keeperKeyMoments ?? undefined,
-    keeperErrorManagement: rating.keeperErrorManagement ?? undefined,
-    keeperResponsibility: rating.keeperResponsibility ?? undefined,
-    keeperConsistency: rating.keeperConsistency ?? undefined,
-  };
+  const result: Partial<Record<string, number>> = {};
+  for (const a of rating.answers) {
+    result[a.characteristicKey] = Math.min(100, Math.max(0, Math.round(a.level * 10)));
+  }
+  return result;
 }
 
 function isGoalkeeperPosition(position?: string | null): boolean {

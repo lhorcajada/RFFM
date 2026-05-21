@@ -33,10 +33,8 @@ const CreateSessionFromSubPrinciple = lazy(() => import("./pages/game-model/Crea
 const SessionsFromSubPrinciple = lazy(() => import("./pages/game-model/SessionsFromSubPrinciple"));
 const Sanctions = lazy(() => import("./pages/sanctions/Sanctions"));
 const Lottery = lazy(() => import("./pages/lottery/Lottery"));
-const SeasonPrep = lazy(() => import("./pages/season-prep/SeasonPrep"));
-const EvaluationPage = lazy(() => import("./pages/season-prep/evaluation/EvaluationPage"));
-const SeasonPrepSimulationPage = lazy(() => import("./pages/season-prep/simulation/SeasonPrepTestPage"));
 const Rivals = lazy(() => import("./pages/rivals/Rivals"));
+const SeasonAccess = lazy(() => import("./pages/season-access/SeasonAccess"));
 const PlayerDetail = lazy(() => import("./pages/player/PlayerDetail"));
 const NewRatingPage = lazy(() => import("./pages/squad/rating/NewRatingPage"));
 const RatingHistoryPage = lazy(() => import("./pages/squad/rating/RatingHistoryPage"));
@@ -105,10 +103,8 @@ function CoachRoutesContent() {
             <Route path="game-model/sessions" element={<SessionsFromSubPrinciple />} />
             <Route path="sanctions" element={<Sanctions />} />
             <Route path="lottery" element={<Lottery />} />
-            <Route path="season-prep" element={<SeasonPrep />} />
-            <Route path="season-prep/evaluate" element={<EvaluationPage />} />
-            <Route path="season-prep/simulation" element={<SeasonPrepSimulationPage />} />
             <Route path="rivals" element={<Rivals />} />
+            <Route path="season-access" element={<SeasonAccess />} />
             <Route path="clubs" element={<Clubs />} />
             <Route path="clubs/dashboard/:id" element={<ClubsDashboard />} />
             <Route path="clubs/:id/teams" element={<ClubTeams />} />

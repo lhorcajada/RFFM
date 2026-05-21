@@ -62,16 +62,14 @@ export default function DashboardCards({
             to={`/coach/clubs${seasonParam}`}
           />
         )}
-        {!isPlayer &&
-          hasAssignedClubAndTeam && (
-            <DashboardCard
-              title="Prep. temporada"
-              description="Importar plantillas de federación y planificar la nueva temporada."
-              icon={<CalendarMonthIcon style={{ fontSize: 40 }} />}
-              to="/coach/season-prep"
-            />
-          )}
-
+        {!isPlayer && (
+          <DashboardCard
+            title="Pruebas de acceso"
+            description="Temporada que viene."
+            icon={<CalendarMonthIcon style={{ fontSize: 40 }} />}
+            to="/coach/season-access"
+          />
+        )}
         {!!teamTitleNode && (
           <>
             <DashboardCard

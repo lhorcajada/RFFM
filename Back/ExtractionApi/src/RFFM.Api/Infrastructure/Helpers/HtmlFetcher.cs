@@ -20,33 +20,44 @@ namespace RFFM.Api.Infrastructure.Helpers
             request.Headers.TryAddWithoutValidation("Accept-Language", "es-ES,es;q=0.9,en;q=0.8");
             // Let HttpClient handle compression (AutomaticDecompression should be enabled on handler by default in most environments)
 
-            using var resp = await _http.SendAsync(request, HttpCompletionOption.ResponseContentRead, ct).ConfigureAwait(false);
-            resp.EnsureSuccessStatusCode();
-
-            var bytes = await resp.Content.ReadAsByteArrayAsync(ct).ConfigureAwait(false);
-
-            // try to detect charset from headers
-            var charset = resp.Content.Headers.ContentType?.CharSet;
-            if (!string.IsNullOrWhiteSpace(charset))
+            try
             {
-                try
-                {
-                    return Encoding.GetEncoding(charset).GetString(bytes);
-                }
-                catch
-                {
-                    // ignore and fallback to utf8
-                }
-            }
+                using var resp = await _http.SendAsync(request, HttpCompletionOption.ResponseContentRead, ct).ConfigureAwait(false);
+                resp.EnsureSuccessStatusCode();
 
-            // fallback: try to sniff BOM
-            if (bytes.Length >=3 && bytes[0] ==0xEF && bytes[1] ==0xBB && bytes[2] ==0xBF)
+                var bytes = await resp.Content.ReadAsByteArrayAsync(ct).ConfigureAwait(false);
+
+                // try to detect charset from headers
+                var charset = resp.Content.Headers.ContentType?.CharSet;
+                if (!string.IsNullOrWhiteSpace(charset))
+                {
+                    try
+                    {
+                        return Encoding.GetEncoding(charset).GetString(bytes);
+                    }
+                    catch
+                    {
+                        // ignore and fallback to utf8
+                    }
+                }
+
+                // fallback: try to sniff BOM
+                if (bytes.Length >=3 && bytes[0] ==0xEF && bytes[1] ==0xBB && bytes[2] ==0xBF)
+                {
+                    return Encoding.UTF8.GetString(bytes,3, bytes.Length -3);
+                }
+
+                // fallback: try UTF8 by default
+                return Encoding.UTF8.GetString(bytes);
+            }
+            catch (OperationCanceledException)
             {
-                return Encoding.UTF8.GetString(bytes,3, bytes.Length -3);
+                return string.Empty;
             }
-
-            // fallback: try UTF8 by default
-            return Encoding.UTF8.GetString(bytes);
+            catch (HttpRequestException)
+            {
+                return string.Empty;
+            }
         }
     }
 }

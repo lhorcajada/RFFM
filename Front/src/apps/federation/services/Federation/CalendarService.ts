@@ -1,6 +1,6 @@
 import { client } from "../../../../core/api/client";
 import { coachAuthService } from "../../../../apps/coach/services/authService";
-import { settingsService } from "../Federation";
+import { settingsService } from "./SettingsService";
 import type {
   CalendarResponse,
   MatchEntry,

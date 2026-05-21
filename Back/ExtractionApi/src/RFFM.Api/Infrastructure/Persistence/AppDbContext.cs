@@ -14,6 +14,7 @@ using RFFM.Api.Domain.Entities.Players;
 using RFFM.Api.Domain.Entities.Seasons;
 using RFFM.Api.Domain.Entities.Formations;
 using RFFM.Api.Domain.Entities.TeamPlayers;
+using RFFM.Api.Domain.Entities.SeasonAccess;
 using SmartEnum.EFCore;
 
 namespace RFFM.Api.Infrastructure.Persistence
@@ -67,6 +68,12 @@ namespace RFFM.Api.Infrastructure.Persistence
         // Ideal lineup
         public DbSet<TeamIdealLineup> TeamIdealLineups { get; set; }
         public DbSet<TeamIdealLineupSlot> TeamIdealLineupSlots { get; set; }
+
+        // Season access selections
+        public DbSet<SeasonAccessTrial> SeasonAccessTrials { get; set; }
+        public DbSet<SeasonAccessTrialPlayer> SeasonAccessTrialPlayers { get; set; }
+        public DbSet<SeasonAccessTrialDay> SeasonAccessTrialDays { get; set; }
+        public DbSet<SeasonAccessTrialDayRating> SeasonAccessTrialDayRatings { get; set; }
 
         // Match participation (partido en directo)
         public DbSet<MatchParticipation> MatchParticipations { get; set; }

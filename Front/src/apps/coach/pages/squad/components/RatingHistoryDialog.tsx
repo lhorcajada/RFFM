@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { IconButton, LinearProgress, Typography } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import HistoryIcon from "@mui/icons-material/History";
-import type { PlayerRating } from "../../../types/playerRating";
+import type { PlayerRating, CategoryKey } from "../../../types/playerRating";
+import { getAnswerLevel, getAvgLevel } from "../../../types/playerRating";
 import playerRatingService from "../../../services/playerRatingService";
 import styles from "./RatingHistoryDialog.module.css";
 
@@ -12,9 +13,9 @@ type Props = {
   onClose: () => void;
 };
 
-type SubItem = { key: keyof PlayerRating; label: string };
+type SubItem = { key: string; label: string };
 
-const CATEGORY_GROUPS: { key: keyof PlayerRating; label: string; subItems: SubItem[] }[] = [
+const CATEGORY_GROUPS: { key: CategoryKey; label: string; subItems: SubItem[] }[] = [
   {
     key: "physical",
     label: "Físico",
@@ -65,7 +66,7 @@ const CATEGORY_GROUPS: { key: keyof PlayerRating; label: string; subItems: SubIt
   },
 ];
 
-const KEEPER_CATEGORY_GROUPS: { key: keyof PlayerRating; label: string; subItems: SubItem[] }[] = [
+const KEEPER_CATEGORY_GROUPS: { key: CategoryKey; label: string; subItems: SubItem[] }[] = [
   {
     key: "physical",
     label: "Físico",
@@ -118,9 +119,7 @@ const KEEPER_CATEGORY_GROUPS: { key: keyof PlayerRating; label: string; subItems
 ];
 
 function hasSubRatings(entry: PlayerRating): boolean {
-  return entry.isGoalkeeper
-    ? entry.keeperReactionSpeed != null
-    : entry.physicalSpeed != null;
+  return Array.isArray(entry.answers) && entry.answers.length > 0;
 }
 
 export default function RatingHistoryDialog({
@@ -180,23 +179,26 @@ export default function RatingHistoryDialog({
                         <Typography variant="caption" className={styles.ratingGroupLabel}>
                           {group.label}
                         </Typography>
-                        <Typography variant="caption" className={styles.ratingGroupAvg}>
-                          {Math.round(Number(entry[group.key]))}
-                        </Typography>
-                      </div>
-                      {group.subItems.map(({ key, label }) => (
-                        <div key={String(key)} className={styles.ratingItem}>
-                          <Typography variant="caption" className={styles.ratingLabel}>
-                            {label}
-                            <span style={{ marginLeft: 4, opacity: 0.7 }}>{Math.round(Number(entry[key] ?? 0))}</span>
+                          <Typography variant="caption" className={styles.ratingGroupAvg}>
+                            {Math.round(getAvgLevel(entry, group.key))}
                           </Typography>
-                          <LinearProgress
-                            variant="determinate"
-                            value={Number(entry[key] ?? 0)}
-                            sx={{ height: 4, borderRadius: 3 }}
-                          />
-                        </div>
-                      ))}
+                      </div>
+                      {group.subItems.map(({ key, label }) => {
+                        const lvl = getAnswerLevel(entry, key) ?? 0;
+                        return (
+                          <div key={String(key)} className={styles.ratingItem}>
+                            <Typography variant="caption" className={styles.ratingLabel}>
+                              {label}
+                              <span style={{ marginLeft: 4, opacity: 0.7 }}>{Math.round(Number(lvl))}</span>
+                            </Typography>
+                            <LinearProgress
+                              variant="determinate"
+                              value={Number(lvl)}
+                              sx={{ height: 4, borderRadius: 3 }}
+                            />
+                          </div>
+                        );
+                      })}
                     </div>
                   ))}
                 </div>
@@ -206,11 +208,11 @@ export default function RatingHistoryDialog({
                     <div key={String(key)} className={styles.ratingItem}>
                       <Typography variant="caption" className={styles.ratingLabel}>
                         {label}
-                        <span style={{ marginLeft: 4, opacity: 0.7 }}>{Math.round(Number(entry[key]))}</span>
+                        <span style={{ marginLeft: 4, opacity: 0.7 }}>{Math.round(getAvgLevel(entry, key))}</span>
                       </Typography>
                       <LinearProgress
                         variant="determinate"
-                        value={Number(entry[key])}
+                        value={Number(getAvgLevel(entry, key))}
                         sx={{ height: 5, borderRadius: 3 }}
                       />
                     </div>

@@ -2,12 +2,12 @@ import { useState } from "react";
 import { Button, IconButton, Slider, TextField } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import EditIcon from "@mui/icons-material/Edit";
-import type { CreateGoalkeeperRatingPayload } from "../../../services/playerRatingService";
+import type { CreateGoalkeeperRatingPayload, CharacteristicAnswer } from "../../../services/playerRatingService";
 import styles from "./EditRatingDialog.module.css";
 
-type KeeperKey = keyof Omit<CreateGoalkeeperRatingPayload, "notes">;
+type KeeperKey = string;
 
-type KeeperState = Omit<CreateGoalkeeperRatingPayload, "notes"> & { notes: string };
+type KeeperState = { notes: string; [key: string]: number | string };
 
 type RatingGroup = {
   categoryKey: "physical" | "technical" | "tactical" | "competitiveness";
@@ -70,7 +70,7 @@ const KEEPER_GROUPS: RatingGroup[] = [
 const DEFAULT_VALUE = 50;
 
 function computeAvg(state: KeeperState, keys: KeeperKey[]): number {
-  const sum = keys.reduce((acc, k) => acc + state[k], 0);
+  const sum = keys.reduce((acc, k) => acc + Number(state[k] ?? 0), 0);
   return Math.round((sum / keys.length) * 10) / 10;
 }
 
@@ -83,9 +83,9 @@ function ratingColor(v: number): string {
 
 type Props = {
   playerDisplayName: string;
-  initial: Partial<Omit<KeeperState, "notes">>;
+  initial: Partial<Record<string, number>>;
   saving: boolean;
-  onSave: (state: KeeperState) => void;
+  onSave: (state: CreateGoalkeeperRatingPayload & { notes: string }) => void;
   onClose: () => void;
 };
 
@@ -175,7 +175,7 @@ export default function EditGoalkeeperRatingDialog({
                   <div key={key} className={styles.field}>
                     <span className={styles.fieldLabel}>{label}</span>
                     <Slider
-                      value={state[key]}
+                      value={Number(state[key] ?? 0)}
                       onChange={(_, v) => handleSlider(key, v as number)}
                       min={0}
                       max={100}
@@ -184,7 +184,7 @@ export default function EditGoalkeeperRatingDialog({
                       sx={{ flex: 1 }}
                     />
                     <TextField
-                      value={state[key]}
+                      value={Number(state[key] ?? 0)}
                       onChange={(e) => handleInput(key, e.target.value)}
                       size="small"
                       inputProps={{ min: 0, max: 100, style: { textAlign: "center", width: 36, padding: "3px 4px" } }}
@@ -216,7 +216,29 @@ export default function EditGoalkeeperRatingDialog({
           <Button
             size="small"
             variant="contained"
-            onClick={() => onSave(state)}
+            onClick={() => {
+              const answers: CharacteristicAnswer[] = [];
+              for (const group of KEEPER_GROUPS) {
+                for (const s of group.subRatings) {
+                  const raw = Number(state[s.key] ?? 0);
+                  const level = Math.max(1, Math.min(10, Math.round(raw / 10)));
+                  answers.push({
+                    characteristicKey: s.key,
+                    level,
+                    concept: "",
+                    categoryKey: group.categoryKey,
+                  });
+                }
+              }
+
+              const payload: CreateGoalkeeperRatingPayload & { notes: string } = {
+                isGoalkeeper: true,
+                answers,
+                notes: state.notes ?? "",
+              };
+
+              onSave(payload);
+            }}
             disabled={saving}
           >
             {saving ? "Guardando..." : "Guardar"}
