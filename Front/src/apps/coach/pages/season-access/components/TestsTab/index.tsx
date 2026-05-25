@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Box, CircularProgress, Tab, Tabs, Typography } from "@mui/material";
-import styles from "../SeasonAccess.module.css";
-import TestGrid, { Player as TestPlayer } from "./testgrid";
-import type { SeasonAccessDemarcation } from "../../../services/seasonAccessService";
+import styles from "../../SeasonAccess.module.css";
+import TestGrid, { Player as TestPlayer } from "../testgrid";
+import type { SeasonAccessDemarcation } from "../../../../services/seasonAccessService";
 import {
   getTrialDays,
   getTrialDayRatings,
@@ -12,8 +12,8 @@ import {
   type SeasonAccessTrialDay,
   type SeasonAccessTrialPlayerDto,
   type UpsertTrialDayRatingPayload,
-} from "../../../services/seasonAccessService";
-import { normalizeCategory } from "../helpers/seasonAccess.helpers";
+} from "../../../../services/seasonAccessService";
+import { normalizeCategory } from "../../helpers/seasonAccess.helpers";
 
 type Props = {
   selectedPlayers?: any[]; // kept for compatibility but TestsTab no longer depends on it for display

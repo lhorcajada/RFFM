@@ -55,7 +55,7 @@ const TestGrid: React.FC<TestGridProps> = (props) => {
         setFilterDemarcation={setFilterDemarcation}
         demarcations={demarcations}
         hasFilters={hasFilters}
-        clearFilters={() => { setFilterTeam(''); setFilterStatus(''); setFilterDemarcation(''); }}
+        clearFilters={() => { setFilterTeam(''); setFilterStatus([]); setFilterDemarcation(''); }}
         filteredLength={filtered.length}
         totalLength={players.length}
       />

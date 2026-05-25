@@ -1,9 +1,9 @@
 import React from "react";
 import { Alert, Button, CircularProgress, Typography, Table, TableBody, TableCell, TableHead, TableRow } from "@mui/material";
-import TeamCard from "./TeamCard";
-import styles from "../SeasonAccess.module.css";
-import { ClubTeamCard } from "../helpers/seasonAccess.helpers";
-import { getTrialDays, getTrialDayRatings } from "../../../services/seasonAccessService";
+import TeamCard from "../TeamCard";
+import styles from "../../SeasonAccess.module.css";
+import { ClubTeamCard } from "../../helpers/seasonAccess.helpers";
+import { getTrialDays, getTrialDayRatings } from "../../../../services/seasonAccessService";
 
 type AnyFn = (...args: any[]) => any;
 

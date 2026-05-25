@@ -21,7 +21,7 @@ import {
   getTrialDays,
   updateTrialDay,
   type SeasonAccessTrialDay,
-} from "../../../services/seasonAccessService";
+} from "../../../../services/seasonAccessService";
 import styles from "./TrialDaysManager.module.css";
 
 interface Props {

@@ -21,7 +21,7 @@ export default function useTestGridData({
   const [players, setPlayers] = useState<Player[]>(initialPlayers);
   const [exporting, setExporting] = useState(false);
   const [filterTeam, setFilterTeam] = useState('');
-  const [filterStatus, setFilterStatus] = useState<Status | ''>('');
+  const [filterStatus, setFilterStatus] = useState<Status[]>([]);
   const [filterDemarcation, setFilterDemarcation] = useState<number | ''>('');
   const [sortBy, setSortBy] = useState<{ key: keyof Player | null; dir: 'asc' | 'desc' }>({ key: null, dir: 'asc' });
 
@@ -96,12 +96,18 @@ export default function useTestGridData({
   }, [initialPlayers]);
 
   const filtered = useMemo(() => {
-    return players.filter((p) => {
+    const normalizedFilterSet = new Set((Array.isArray(filterStatus) ? filterStatus : []).map((s) => String(s).trim().toLowerCase()));
+    const res = players.filter((p) => {
       if (filterTeam && !(p.teamName ?? '').toLowerCase().includes(filterTeam.toLowerCase())) return false;
-      if (filterStatus && p.status !== filterStatus) return false;
+      if (normalizedFilterSet.size > 0) {
+        const ps = String(p.status ?? '').trim().toLowerCase();
+        if (!normalizedFilterSet.has(ps)) return false;
+      }
       if (filterDemarcation !== '' && p.idealDemarcationId !== filterDemarcation) return false;
       return true;
     });
+    try { console.debug('[useTestGridData] filter', { filterStatus, players: players.map((x) => ({ id: x.id, status: x.status, name: x.name })), resultCount: res.length }); } catch {}
+    return res;
   }, [players, filterTeam, filterStatus, filterDemarcation]);
 
   const sorted = useMemo(() => {
@@ -121,9 +127,13 @@ export default function useTestGridData({
   }, [filtered, sortBy]);
 
   const statusCounts = useMemo(() => {
+    const valid: Status[] = ['descartado', 'poco', 'interesado', 'solicitado', 'seleccionado'];
     return filtered.reduce<Record<Status, number>>(
       (acc, player) => {
-        acc[player.status] += 1;
+        const s = String(player.status ?? '').trim().toLowerCase();
+        if ((valid as string[]).includes(s)) {
+          acc[s as Status] += 1;
+        }
         return acc;
       },
       { descartado: 0, poco: 0, interesado: 0, solicitado: 0, seleccionado: 0 },
@@ -132,7 +142,11 @@ export default function useTestGridData({
 
   const [openStatusPopup, setOpenStatusPopup] = useState<Status | null>(null);
 
-  const playersInOpenStatus = useMemo(() => (openStatusPopup ? filtered.filter((p) => p.status === openStatusPopup) : [] as Player[]), [filtered, openStatusPopup]);
+  const playersInOpenStatus = useMemo(() => {
+    if (!openStatusPopup) return [] as Player[];
+    const key = String(openStatusPopup).trim().toLowerCase();
+    return filtered.filter((p) => String(p.status ?? '').trim().toLowerCase() === key);
+  }, [filtered, openStatusPopup]);
 
   const demarcationCounts = useMemo(() => {
     if (!openStatusPopup) return [] as Array<{ demId: number; code: string; name: string; ideal: number; possible: number }>;
@@ -150,11 +164,15 @@ export default function useTestGridData({
 
   const teamsByStatus = useMemo(() => {
     const init: Record<Status, Record<string, number>> = { descartado: {}, poco: {}, interesado: {}, solicitado: {}, seleccionado: {} };
+    const valid: Status[] = ['descartado', 'poco', 'interesado', 'solicitado', 'seleccionado'];
     return filtered.reduce<Record<Status, Record<string, number>>>((acc, player) => {
       const team = (player.teamName && player.teamName.trim()) || 'Sin equipo';
-      const map = acc[player.status] ?? {};
+      const s = String(player.status ?? '').trim().toLowerCase();
+      if (!(valid as string[]).includes(s)) return acc;
+      const key = s as Status;
+      const map = acc[key] ?? {};
       map[team] = (map[team] || 0) + 1;
-      acc[player.status] = map;
+      acc[key] = map;
       return acc;
     }, init);
   }, [filtered]);
@@ -234,7 +252,7 @@ export default function useTestGridData({
     });
   };
 
-  const hasFilters = filterTeam !== '' || filterStatus !== '' || filterDemarcation !== '';
+  const hasFilters = filterTeam !== '' || (Array.isArray(filterStatus) && filterStatus.length > 0) || filterDemarcation !== '';
 
   return {
     players,

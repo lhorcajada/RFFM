@@ -1,0 +1,132 @@
+.selectedPanelTitle {
+  color: var(--rffm-selected-title, #f6c85f) !important;
+}
+
+.selectedPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  align-self: stretch;
+}
+
+.selectedPanelHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  justify-content: flex-start;
+}
+
+.selectedPanelTitleWrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.selectedList {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.selectedPlayerRow {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--rffm-hero-card-border, rgba(77, 157, 224, 0.1));
+  background: var(--rffm-hero-surface, linear-gradient(135deg, #1c1c30 0%, #15182c 100%));
+  color: var(--rffm-card-text, #e8e8e8);
+  box-shadow: var(--rffm-hero-shadow, 0 18px 40px rgba(0, 0, 0, 0.18));
+}
+
+.selectedPlayerTopRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.selectedPlayerHeading {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.selectedPlayerName {
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.selectedPlayerMeta {
+  font-size: 0.78rem;
+  color: var(--rffm-card-subtext, rgba(255, 255, 255, 0.68));
+}
+
+.selectedPlayerCategory {
+  font-size: 0.72rem;
+  color: var(--rffm-hero-eyebrow-text, #4d9de0);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+}
+
+.selectedPlayerRemoveButton {
+  color: var(--rffm-card-subtext, rgba(255, 255, 255, 0.68)) !important;
+  margin-top: -4px;
+  margin-right: -4px;
+}
+
+.selectedPlayerBirthYear {
+  width: 100%;
+}
+
+.selectedPlayerSection {
+  display: grid;
+  gap: 6px;
+}
+
+.selectedPlayerSectionLabel {
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--rffm-card-subtext, rgba(255, 255, 255, 0.68));
+}
+
+.selectedPlayerChipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.selectedPlayerClearIdealButton {
+  min-width: auto;
+  padding-left: 8px;
+  padding-right: 8px;
+  color: var(--rffm-card-subtext, rgba(255, 255, 255, 0.68));
+}
+
+.selectedEmptyState {
+  min-height: 0;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px dashed var(--rffm-hero-border, rgba(77, 157, 224, 0.22));
+  background: var(--rffm-hero-surface, linear-gradient(135deg, #1c1c30 0%, #15182c 100%));
+  color: var(--rffm-card-subtext, rgba(255, 255, 255, 0.68));
+}

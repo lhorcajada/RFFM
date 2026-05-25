@@ -1,10 +1,11 @@
 import { Button, IconButton, TextField, Typography } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 
-import SelectableChip from "../../../../../shared/components/ui/SelectableChip/SelectableChip";
-import styles from "../SeasonAccess.module.css";
-import type { SeasonAccessPlayer } from "./PlayerCromo";
-import type { SeasonAccessDemarcation } from "../../../services/seasonAccessService";
+import SelectableChip from "../../../../../../shared/components/ui/SelectableChip/SelectableChip";
+import pageStyles from "../../SeasonAccess.module.css";
+import styles from "./SelectedPlayersPanel.module.css";
+import type { SeasonAccessPlayer } from "../PlayerCromo";
+import type { SeasonAccessDemarcation } from "../../../../services/seasonAccessService";
 
 type Props = {
   players: SeasonAccessPlayer[];
@@ -29,10 +30,10 @@ export default function SelectedPlayersPanel({
     <aside className={styles.selectedPanel} aria-label="Jugadores seleccionados">
       <div className={styles.selectedPanelHeader}>
         <div className={styles.selectedPanelTitleWrap}>
-          <Typography variant="subtitle2" className={`${styles.groupTitle} ${styles.selectedPanelTitle}`}>
+          <Typography variant="subtitle2" className={`${pageStyles.groupTitle} ${styles.selectedPanelTitle}`}>
             Jugadores seleccionados
           </Typography>
-          <span className={styles.groupCount}>{players.length}</span>
+          <span className={pageStyles.groupCount}>{players.length}</span>
         </div>
       </div>
 

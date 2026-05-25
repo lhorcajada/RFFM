@@ -1,4 +1,4 @@
-import styles from "../SeasonAccess.module.css";
+import styles from "./PlayerCromo.module.css";
 
 export type SeasonAccessPlayer = {
   id: string;

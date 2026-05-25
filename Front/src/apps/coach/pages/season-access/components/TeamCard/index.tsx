@@ -1,5 +1,5 @@
-import styles from "../SeasonAccess.module.css";
-import type { ClubTeamCard } from "../helpers/seasonAccess.helpers";
+import styles from "./TeamCard.module.css";
+import type { ClubTeamCard } from "../../helpers/seasonAccess.helpers";
 
 type Props = {
   team: ClubTeamCard;
