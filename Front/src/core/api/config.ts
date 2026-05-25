@@ -7,11 +7,11 @@ export interface ApiConfig {
 
 export const API_CONFIGS: Record<AppType, ApiConfig> = {
   federation: {
-    baseURL: process.env.VITE_FEDERATION_API_URL || "https://api.rffm.es",
+    baseURL: (import.meta as any).env?.VITE_FEDERATION_API_URL || "https://api.rffm.es",
     timeout: 30000,
   },
   coach: {
-    baseURL: process.env.VITE_COACH_API_URL || "https://api-coach.rffm.es",
+    baseURL: (import.meta as any).env?.VITE_COACH_API_URL || "https://api-coach.rffm.es",
     timeout: 30000,
   },
 };

@@ -150,13 +150,13 @@ export class CalendarService {
         if (Array.isArray(combos) && combos.length > 0) {
           const primary = combos.find((c: any) => c.isPrimary) || combos[0];
           if (primary) {
-            finalParams = Object.assign(
+              finalParams = Object.assign(
               {},
               {
-                season: primary.seasonId ?? primary.season,
-                competition: primary.competitionId ?? primary.competition?.id,
-                group: primary.groupId ?? primary.group?.id,
-                playType: primary.playType ?? primary.play_type,
+                season: (primary as any).seasonId ?? (primary as any).season,
+                competition: (primary as any).competitionId ?? (primary as any).competition?.id,
+                group: (primary as any).groupId ?? (primary as any).group?.id,
+                playType: (primary as any).playType ?? (primary as any).play_type,
               },
               finalParams || {},
             );

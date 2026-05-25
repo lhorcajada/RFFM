@@ -60,7 +60,7 @@ describe("CoachDashboard auto-load", () => {
 
     expect(screen.getByRole("link", { name: /^Configuración$/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /^Clubs$/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /^Prep\. temporada$/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /^Pruebas de acceso$/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /^Plantilla$/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /^Eventos$/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /^Resumen de asistencias$/i })).toBeInTheDocument();

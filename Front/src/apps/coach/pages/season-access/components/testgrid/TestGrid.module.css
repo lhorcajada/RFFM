@@ -144,6 +144,16 @@
   max-width: 80px;
 }
 
+/* Make "Nombre" (first) column wider */
+.table th:first-child,
+.table td:first-child {
+  min-width: 320px;
+}
+
+.table td:first-child .input {
+  min-width: 240px;
+}
+
 .select {
   width: 100%;
   padding: 5px 8px;
@@ -171,6 +181,7 @@
 .status-descartado { border-color: rgba(158,158,158,0.5); color: #9e9e9e; }
 .status-poco       { border-color: rgba(255,183,77,0.5);  color: #ffb74d; }
 .status-interesado { border-color: rgba(79,195,247,0.5);  color: #4fc3f7; }
+.status-solicitado { border-color: rgba(186,104,200,0.5); color: #ba68c8; }
 .status-seleccionado { border-color: rgba(102,187,106,0.5); color: #66bb6a; }
 
 .readonlyCell {
@@ -456,6 +467,15 @@
 
 .statusTag-interesado {
   border-color: rgba(79, 195, 247, 0.28);
+}
+
+.statusTag-solicitado {
+  border-color: rgba(186, 104, 200, 0.28);
+}
+
+.statusTag-solicitado .statusTagCount {
+  background: rgba(186, 104, 200, 0.18);
+  color: #ba68c8;
 }
 
 .statusTag-interesado .statusTagCount {

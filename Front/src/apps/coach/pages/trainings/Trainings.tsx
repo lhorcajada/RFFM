@@ -31,6 +31,14 @@ import SessionDialog from "./components/SessionDialog";
 import type { TacticalBoardSnapshot } from "./new/types";
 import { getDimensionsPercent, getShapeVertices } from "./new/helpers/spaceGeometry";
 import styles from "./Trainings.module.css";
+import { client } from "../../../../core/api/client";
+
+const API_BASE = (client.defaults.baseURL ?? "/").replace(/\/$/, "");
+function mediaUrl(urlImage: string) {
+  if (!urlImage) return urlImage;
+  if (urlImage.startsWith("http://") || urlImage.startsWith("https://")) return urlImage;
+  return `${API_BASE}/api/local-storage/${urlImage}`;
+}
 
 function formatDate(iso: string) {
   const d = new Date(iso);

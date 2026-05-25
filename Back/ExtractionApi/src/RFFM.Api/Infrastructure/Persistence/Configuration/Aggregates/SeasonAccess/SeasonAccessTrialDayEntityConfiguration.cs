@@ -17,7 +17,12 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.SeasonAcc
 
             builder.HasIndex(x => x.TrialId);
 
-            builder.HasMany(x => x.Ratings)
+            builder.HasOne(x => x.Trial)
+                .WithMany(x => x.TrialDays)
+                .HasForeignKey(x => x.TrialId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.HasMany(x => x.Players)
                 .WithOne(x => x.TrialDay)
                 .HasForeignKey(x => x.TrialDayId)
                 .OnDelete(DeleteBehavior.Cascade);

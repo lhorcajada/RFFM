@@ -56,10 +56,12 @@ namespace RFFM.Api.Features.Coaches.SeasonAccess
             {
                 var userId = _currentUser.UserId ?? throw new UnauthorizedAccessException("Usuario no autenticado");
 
+                var trialCategory = SeasonAccessCategoryHelper.ExtractGeneralCategory(command.Category);
+
                 var trial = await _db.SeasonAccessTrials
                     .Include(x => x.Players)
                     .FirstOrDefaultAsync(
-                        x => x.ApplicationUserId == userId && x.SeasonId == command.SeasonId && x.Category == command.Category,
+                        x => x.ApplicationUserId == userId && x.SeasonId == command.SeasonId && x.Category == trialCategory,
                         cancellationToken);
 
                 if (trial is null)
@@ -76,7 +78,7 @@ namespace RFFM.Api.Features.Coaches.SeasonAccess
                 {
                     _db.SeasonAccessTrials.Remove(trial);
                     await _db.SaveChangesAsync(cancellationToken);
-                    return new SeasonAccessTrialDto(string.Empty, command.SeasonId, command.Category, Array.Empty<SeasonAccessPlayerDto>());
+                    return new SeasonAccessTrialDto(string.Empty, command.SeasonId, trialCategory, Array.Empty<SeasonAccessTrialPlayerDto>());
                 }
 
                 await _db.SaveChangesAsync(cancellationToken);
@@ -85,7 +87,7 @@ namespace RFFM.Api.Features.Coaches.SeasonAccess
                     .AsNoTracking()
                     .Include(x => x.Players)
                     .FirstAsync(
-                        x => x.ApplicationUserId == userId && x.SeasonId == command.SeasonId && x.Category == command.Category,
+                        x => x.ApplicationUserId == userId && x.SeasonId == command.SeasonId && x.Category == trialCategory,
                         cancellationToken);
 
                 return refreshed.ToDto();

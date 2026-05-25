@@ -16,7 +16,7 @@ const Error500: React.FC = () => {
   }, [navigate]);
 
   return (
-    <BaseLayout>
+    <BaseLayout hideFooterMenu>
       <ContentLayout
         title="Vaya... algo no ha salido bien"
         subtitle="Error del servidor"

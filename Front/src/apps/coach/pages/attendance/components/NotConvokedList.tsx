@@ -2,7 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import styles from "../AttendanceTabs.module.css";
 import defaultAvatar from "../../../../../assets/avatar.svg";
-import type { PlayerSimple } from "../../services/convocationService";
+import type { PlayerSimple } from "../../../services/convocationService";
 
 type Props = {
   players: PlayerSimple[];
@@ -41,12 +41,13 @@ export default function NotConvokedList({
           const byUrl = p.urlPhoto ? photos[String(p.urlPhoto)] : null;
           const rawPhotoSrc = byId ?? byUrl ?? null;
           const photo = rawPhotoSrc ?? defaultAvatar;
-          const displayName = p.alias || ((p.name ?? "") + " " + (p.lastName ?? "")).trim() || "Jugador";
+          const displayName =
+            p.alias || (((p as any).name ?? "") + " " + ((p as any).lastName ?? "")).trim() || "Jugador";
           const dorsalValue =
-            typeof p.dorsal === "number"
-              ? p.dorsal
-              : p.dorsal
-              ? Number(p.dorsal)
+            typeof (p as any).dorsal === "number"
+              ? (p as any).dorsal
+              : (p as any).dorsal
+              ? Number((p as any).dorsal)
               : null;
           const hasDorsal =
             typeof dorsalValue === "number" && Number.isFinite(dorsalValue);

@@ -8,7 +8,7 @@ import {
   Typography,
 } from "@mui/material";
 import { getTeamsForClassification } from "../../../../apps/federation/services/api";
-import type { ClassificationTeam } from "../../../types/classification";
+type ClassificationTeam = any;
 
 type Team = {
   id: string;

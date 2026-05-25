@@ -3710,50 +3710,6 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.ToTable("SeasonAccessTrialDays", "app");
                 });
 
-            modelBuilder.Entity("RFFM.Api.Domain.Entities.SeasonAccess.SeasonAccessTrialDayRating", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("text");
-
-                    b.Property<int?>("IdealDemarcationId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.PrimitiveCollection<int[]>("PossibleDemarcationIds")
-                        .IsRequired()
-                        .HasColumnType("integer[]");
-
-                    b.Property<decimal?>("Score")
-                        .HasColumnType("numeric(5,2)");
-
-                    b.Property<string>("Status")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<int?>("TotalGoals")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("TrialDayId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("TrialPlayerId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TrialPlayerId");
-
-                    b.HasIndex("TrialDayId", "TrialPlayerId")
-                        .IsUnique();
-
-                    b.ToTable("SeasonAccessTrialDayRatings", "app");
-                });
-
             modelBuilder.Entity("RFFM.Api.Domain.Entities.SeasonAccess.SeasonAccessTrialPlayer", b =>
                 {
                     b.Property<string>("Id")
@@ -3775,6 +3731,10 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.Property<int?>("IdealDemarcationId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
                     b.Property<string>("PlayerName")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -3783,6 +3743,16 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.PrimitiveCollection<int[]>("PossibleDemarcationIds")
                         .IsRequired()
                         .HasColumnType("integer[]");
+
+                    b.Property<DateOnly?>("RemovedFromDate")
+                        .HasColumnType("date");
+
+                    b.Property<decimal?>("Score")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<string>("Status")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<string>("TeamCode")
                         .IsRequired()
@@ -3797,6 +3767,9 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.Property<int?>("TotalGoals")
                         .HasColumnType("integer");
 
+                    b.Property<string>("TrialDayId")
+                        .HasColumnType("text");
+
                     b.Property<string>("TrialId")
                         .IsRequired()
                         .HasColumnType("text");
@@ -3804,6 +3777,8 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("IdealDemarcationId");
+
+                    b.HasIndex("TrialDayId");
 
                     b.HasIndex("TrialId", "FederationPlayerCode")
                         .IsUnique();
@@ -4786,27 +4761,13 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.Navigation("Trial");
                 });
 
-            modelBuilder.Entity("RFFM.Api.Domain.Entities.SeasonAccess.SeasonAccessTrialDayRating", b =>
-                {
-                    b.HasOne("RFFM.Api.Domain.Entities.SeasonAccess.SeasonAccessTrialDay", "TrialDay")
-                        .WithMany("Ratings")
-                        .HasForeignKey("TrialDayId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("RFFM.Api.Domain.Entities.SeasonAccess.SeasonAccessTrialPlayer", "TrialPlayer")
-                        .WithMany()
-                        .HasForeignKey("TrialPlayerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("TrialDay");
-
-                    b.Navigation("TrialPlayer");
-                });
-
             modelBuilder.Entity("RFFM.Api.Domain.Entities.SeasonAccess.SeasonAccessTrialPlayer", b =>
                 {
+                    b.HasOne("RFFM.Api.Domain.Entities.SeasonAccess.SeasonAccessTrialDay", "TrialDay")
+                        .WithMany("Players")
+                        .HasForeignKey("TrialDayId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
                     b.HasOne("RFFM.Api.Domain.Entities.SeasonAccess.SeasonAccessTrial", "Trial")
                         .WithMany("Players")
                         .HasForeignKey("TrialId")
@@ -4814,6 +4775,8 @@ namespace RFFM.Api.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Trial");
+
+                    b.Navigation("TrialDay");
                 });
 
             modelBuilder.Entity("RFFM.Api.Domain.Entities.Seasons.Season", b =>
@@ -5198,7 +5161,7 @@ namespace RFFM.Api.Infrastructure.Migrations
 
             modelBuilder.Entity("RFFM.Api.Domain.Entities.SeasonAccess.SeasonAccessTrialDay", b =>
                 {
-                    b.Navigation("Ratings");
+                    b.Navigation("Players");
                 });
 
             modelBuilder.Entity("RFFM.Api.Domain.Entities.TeamPlayers.TeamIdealLineup", b =>

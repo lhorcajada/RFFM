@@ -3,6 +3,7 @@ import { Alert, Button, CircularProgress, Typography, Table, TableBody, TableCel
 import TeamCard from "./TeamCard";
 import styles from "../SeasonAccess.module.css";
 import { ClubTeamCard } from "../helpers/seasonAccess.helpers";
+import { getTrialDays, getTrialDayRatings } from "../../../services/seasonAccessService";
 
 type AnyFn = (...args: any[]) => any;
 
@@ -31,6 +32,7 @@ interface Props {
 }
 
 export default function SelectionPlayersTab(props: Props) {
+  const { seasonId } = props;
   const {
     selectedPlayers,
     demarcations,
@@ -54,8 +56,36 @@ export default function SelectionPlayersTab(props: Props) {
     handleTogglePlayer,
   } = props;
 
-  // hide from roster any players already added to the trial (selectedPlayers)
-  const existingKeys = new Set((selectedPlayers ?? []).map((sp) => String((sp as any).federationPlayerCode ?? (sp as any).id)));
+  // hide from roster any players already added to the trial (server ratings preferred)
+  const [existingKeys, setExistingKeys] = React.useState<Set<string>>(new Set((selectedPlayers ?? []).map((sp) => String((sp as any).federationPlayerCode ?? (sp as any).id))));
+  const [sendingKeys, setSendingKeys] = React.useState<Set<string>>(new Set());
+
+  React.useEffect(() => {
+    let mounted = true;
+    async function loadRatings() {
+      if (!seasonId || !selectedCategory) return;
+      try {
+        const days = await getTrialDays(seasonId, selectedCategory);
+        const keys = new Set<string>();
+        for (const d of days) {
+          try {
+            const ratings = await getTrialDayRatings(d.id);
+            for (const r of (ratings ?? [])) keys.add(String(r.federationPlayerCode ?? r.id));
+          } catch (e) {
+            // ignore per-day errors
+          }
+        }
+        if (mounted && keys.size > 0) setExistingKeys(keys);
+      } catch (err) {
+        // ignore
+      }
+    }
+
+    void loadRatings();
+    return () => { mounted = false; };
+  }, [seasonId, selectedCategory]);
+
+  // players available to send (not already in trials)
   const availablePlayers = (players ?? []).filter((p) => !existingKeys.has(String((p as any).federationPlayerCode ?? p.id)));
 
   return (
@@ -121,8 +151,47 @@ export default function SelectionPlayersTab(props: Props) {
             <Button
               size="small"
               variant="outlined"
-              onClick={handleAddAllPlayers}
-              disabled={players.length === 0}
+              onClick={async () => {
+                // Add only players that are not already in trials
+                const toAdd = (players ?? []).filter((p) => !existingKeys.has(String((p as any).federationPlayerCode ?? p.id)));
+                if (toAdd.length === 0) return;
+                for (const pl of toAdd) {
+                  const key = String((pl as any).federationPlayerCode ?? pl.id);
+                  try {
+                    setSendingKeys((s) => new Set(s).add(key));
+                    // await the parent handler to perform the save
+                    await handleTogglePlayer(pl.id);
+
+                    // verify server-side that the player is now present in any trial day
+                    let confirmed = false;
+                    if (seasonId && selectedCategory) {
+                      try {
+                        const days = await getTrialDays(seasonId, selectedCategory);
+                        for (const d of days) {
+                          try {
+                            const ratings = await getTrialDayRatings(d.id);
+                            if ((ratings ?? []).some((r) => String(r.federationPlayerCode ?? r.id) === key)) {
+                              confirmed = true;
+                              break;
+                            }
+                          } catch { /* ignore per-day */ }
+                        }
+                      } catch { /* ignore */ }
+                    }
+
+                    if (confirmed) setExistingKeys((s) => new Set(s).add(key));
+                  } catch (e) {
+                    // ignore per-player failures
+                  } finally {
+                    setSendingKeys((s) => {
+                      const next = new Set(s);
+                      next.delete(key);
+                      return next;
+                    });
+                  }
+                }
+              }}
+              disabled={players.length === 0 || availablePlayers.length === 0}
               className={styles.addAllButton}
             >
               Añadir todos
@@ -143,7 +212,7 @@ export default function SelectionPlayersTab(props: Props) {
             </div>
           )}
 
-          {!playersLoading && availablePlayers.length > 0 && (
+          {!playersLoading && players.length > 0 && (
             <Table size="small">
               <TableHead>
                 <TableRow>
@@ -154,23 +223,71 @@ export default function SelectionPlayersTab(props: Props) {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {availablePlayers.map((player) => (
-                  <TableRow key={player.id}>
-                    <TableCell>{player.displayName}</TableCell>
-                    <TableCell>{player.age != null ? `${player.age} años` : "—"}</TableCell>
-                    <TableCell>{player.totalGoals != null ? `${player.totalGoals}` : "—"}</TableCell>
-                    <TableCell>
-                      <Button size="small" variant="outlined" onClick={() => handleTogglePlayer(player.id)}>
-                        Traspasar a pruebas
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {players.map((player) => {
+                  const key = String((player as any).federationPlayerCode ?? player.id);
+                  const already = existingKeys.has(key);
+                  const sending = sendingKeys.has(key);
+                  return (
+                    <TableRow key={player.id}>
+                      <TableCell>{player.displayName}</TableCell>
+                      <TableCell>{player.age != null ? `${player.age} años` : "—"}</TableCell>
+                      <TableCell>{player.totalGoals != null ? `${player.totalGoals}` : "—"}</TableCell>
+                      <TableCell>
+                        {already ? (
+                          <Button size="small" variant="outlined" disabled>
+                            Enviado
+                          </Button>
+                        ) : (
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            onClick={async () => {
+                              try {
+                                setSendingKeys((s) => new Set(s).add(key));
+                                await handleTogglePlayer(player.id);
+
+                                // verify server-side that the player is now present in any trial day
+                                let confirmed = false;
+                                if (seasonId && selectedCategory) {
+                                  try {
+                                    const days = await getTrialDays(seasonId, selectedCategory);
+                                    for (const d of days) {
+                                      try {
+                                        const ratings = await getTrialDayRatings(d.id);
+                                        if ((ratings ?? []).some((r) => String(r.federationPlayerCode ?? r.id) === key)) {
+                                          confirmed = true;
+                                          break;
+                                        }
+                                      } catch { /* ignore per-day */ }
+                                    }
+                                  } catch { /* ignore */ }
+                                }
+
+                                if (confirmed) setExistingKeys((s) => new Set(s).add(key));
+                              } catch (e) {
+                                // ignore; handler shows errors
+                              } finally {
+                                setSendingKeys((s) => {
+                                  const next = new Set(s);
+                                  next.delete(key);
+                                  return next;
+                                });
+                              }
+                            }}
+                            disabled={sending}
+                          >
+                            {sending ? "Enviando..." : "Traspasar a pruebas"}
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}
 
-          {!playersLoading && availablePlayers.length === 0 && !error && (
+          {!playersLoading && players.length === 0 && !error && (
             <Alert severity="info">No hay jugadores disponibles para este equipo.</Alert>
           )}
         </section>

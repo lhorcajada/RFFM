@@ -11,7 +11,7 @@ import SportsSoccerIcon from "@mui/icons-material/SportsSoccer";
 import {
   YellowCardIcon,
   RedCardIcon,
-} from "../../../../shared/components/ui/CardIcons/CardIcons";
+} from "../../../../../shared/components/ui/CardIcons/CardIcons";
 import playersStyles from "../components/players/PlayersContainer/PlayersContainer.module.css";
 import type { Player } from "../hooks/usePlayers";
 

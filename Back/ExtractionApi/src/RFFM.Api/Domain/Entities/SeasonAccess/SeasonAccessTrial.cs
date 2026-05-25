@@ -19,13 +19,13 @@ namespace RFFM.Api.Domain.Entities.SeasonAccess
             {
                 ApplicationUserId = applicationUserId,
                 SeasonId = seasonId,
-                Category = category,
+                Category = string.IsNullOrWhiteSpace(category) ? string.Empty : category.Trim(),
             };
         }
 
         public void UpdateCategory(string category)
         {
-            Category = category;
+            Category = string.IsNullOrWhiteSpace(category) ? string.Empty : category.Trim();
         }
     }
 }

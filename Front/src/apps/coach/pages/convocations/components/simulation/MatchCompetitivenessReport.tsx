@@ -8,6 +8,7 @@ interface MatchCompetitivenessReportProps {
   finalSlots: Record<number, string | null>;
   playersById: Record<string, SimSlotPlayer>;
   halfDuration: number;
+  playerMinutes?: Record<string, number>;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────

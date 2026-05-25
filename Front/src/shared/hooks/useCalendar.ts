@@ -79,7 +79,7 @@ export default function useCalendar({
         const bootstrapRound = 1;
         const bootstrap = await getCalendarMatchDay({
           season,
-          group,
+          group: group!,
           round: bootstrapRound,
           playType: "1",
         });
@@ -136,7 +136,7 @@ export default function useCalendar({
           if (preferredRound !== bootstrapRound) {
             const preferred = await getCalendarMatchDay({
               season,
-              group,
+              group: group!,
               round: preferredRound,
               playType: "1",
             });
@@ -179,7 +179,7 @@ export default function useCalendar({
         setError(null);
         const data = await getCalendarMatchDay({
           season,
-          group,
+          group: group!,
           round: roundNumber,
           playType: "1",
         });

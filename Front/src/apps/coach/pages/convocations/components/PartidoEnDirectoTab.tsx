@@ -685,6 +685,7 @@ export default function PartidoEnDirectoTab({
           windows={live.windows}
           finalSlots={live.slots}
           playerMinutes={effectiveMinutes}
+          halfDuration={live.halfDuration}
           playersById={playersById}
         />
       )}

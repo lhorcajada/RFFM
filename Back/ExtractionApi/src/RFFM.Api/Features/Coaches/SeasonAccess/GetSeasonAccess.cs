@@ -55,14 +55,16 @@ namespace RFFM.Api.Features.Coaches.SeasonAccess
             {
                 var userId = _currentUser.UserId ?? throw new UnauthorizedAccessException("Usuario no autenticado");
 
+                var trialCategory = SeasonAccessCategoryHelper.ExtractGeneralCategory(request.Category);
+
                 var trial = await _db.SeasonAccessTrials
                     .AsNoTracking()
                     .Include(x => x.Players)
                     .FirstOrDefaultAsync(
-                        x => x.ApplicationUserId == userId && x.SeasonId == request.SeasonId && x.Category == request.Category,
+                        x => x.ApplicationUserId == userId && x.SeasonId == request.SeasonId && x.Category == trialCategory,
                         cancellationToken);
 
-                return trial?.ToDto() ?? new SeasonAccessTrialDto(string.Empty, request.SeasonId, request.Category, Array.Empty<SeasonAccessPlayerDto>());
+                return trial?.ToDto() ?? new SeasonAccessTrialDto(string.Empty, request.SeasonId, trialCategory, Array.Empty<SeasonAccessTrialPlayerDto>());
             }
         }
     }

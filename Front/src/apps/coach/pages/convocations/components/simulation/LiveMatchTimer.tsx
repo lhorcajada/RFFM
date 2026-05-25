@@ -6,7 +6,7 @@ import {
   DialogTitle,
 } from "@mui/material";
 import type { LiveMatchPhase } from "./liveMatch.types";
-import type { PendingAction } from "../../../../hooks/useLiveMatch";
+import type { PendingAction } from "../../hooks/useLiveMatch";
 import SimulationConfig from "./SimulationConfig";
 import styles from "./LiveMatchTimer.module.css";
 

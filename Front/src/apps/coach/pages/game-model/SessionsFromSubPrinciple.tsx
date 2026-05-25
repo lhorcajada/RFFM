@@ -338,7 +338,7 @@ function handlePrint(sess: TrainingSession, exercises: SessionExerciseItem[], ct
   win.onload = () => { win.focus(); win.print(); };
 }
 
-function SessionCard({ sess, clubId, subSubPrincipleId, printContext }: {
+function SessionCard({ sess, clubId, teamId, subSubPrincipleId, printContext }: {
   sess: TrainingSession;
   clubId: string;
   teamId: string;

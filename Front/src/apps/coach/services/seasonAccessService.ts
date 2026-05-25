@@ -14,10 +14,12 @@ export type SeasonAccessSelectionPlayer = {
   teamCode: string;
   teamName: string;
   category: string;
+  status?: string | null;
   birthYear: number | null;
   totalGoals?: number | null;
   possibleDemarcationIds: number[];
   idealDemarcationId: number | null;
+  removedFromDate?: string | null;
 };
 
 export type SeasonAccessSelection = {
@@ -29,7 +31,8 @@ export type SeasonAccessSelection = {
 
 export type SeasonAccessPlayerPayload = {
   seasonId: string;
-  category: string;
+  category: string; // general category (e.g. Debutantes, Prebenjamines...)
+  divisionCategory?: string | null; // specific division/category string (matches CAT_COLORS entries)
   federationPlayerCode: string;
   playerName: string;
   teamCode: string;
@@ -38,6 +41,10 @@ export type SeasonAccessPlayerPayload = {
   totalGoals?: number | null;
   possibleDemarcationIds: number[];
   idealDemarcationId: number | null;
+  status?: string | null;
+  score?: number | null;
+  trialDayId?: string | null;
+  notes?: string | null;
 };
 
 export async function getSeasonAccessSelection(
@@ -94,21 +101,31 @@ export type SeasonAccessTrialDay = {
   label: string | null;
 };
 
-export type SeasonAccessTrialDayRating = {
+// NOTE: Use `SeasonAccessTrialPlayerDto` returned by the server as the single
+// source of truth for trial-day player ratings. The legacy `SeasonAccessTrialDayRating`
+// typedef is removed to avoid divergent shapes in the client.
+
+export type SeasonAccessTrialPlayerDto = {
   id: string;
   trialDayId: string;
-  trialPlayerId: string;
   score: number | null;
   notes: string | null;
-  status: string | null;
   idealDemarcationId: number | null;
   possibleDemarcationIds: number[];
-  totalGoals?: number | null;
+  totalGoals: number | null;
+  status: string | null;
+  birthYear: number | null;
+  category: string | null;
+  teamCode: string | null;
+  teamName: string | null;
+  federationPlayerCode: string | null;
+  playerName: string | null;
+  removedFromDate: string | null;
 };
 
 export type CreateTrialDayPayload = {
   seasonId: string;
-  category: string;
+  generalCategory: string;
   date: string;
   label?: string | null;
 };
@@ -149,23 +166,28 @@ export async function deleteTrialDay(id: string): Promise<void> {
   await client.delete(`/api/catalog/season-access/trial-days/${encodeURIComponent(id)}`);
 }
 
-export async function getTrialDayRatings(dayId: string): Promise<SeasonAccessTrialDayRating[]> {
-  const resp = await client.get<SeasonAccessTrialDayRating[]>(
+export async function getTrialDayRatings(dayId: string): Promise<SeasonAccessTrialPlayerDto[]> {
+  const resp = await client.get<SeasonAccessTrialPlayerDto[]>(
     `/api/catalog/season-access/trial-days/${encodeURIComponent(dayId)}/ratings`,
   );
+  try {
+    console.debug('[seasonAccessService] getTrialDayRatings', {
+      dayId,
+      count: resp?.data?.length ?? 0,
+      sample: (resp?.data ?? []).slice(0, 50).map((r) => ({ id: r.id, federationPlayerCode: r.federationPlayerCode, trialPlayerId: r.federationPlayerCode ?? r.id, status: r.status, score: r.score })),
+    });
+  } catch {}
+
   return resp.data ?? [];
 }
 
-export async function upsertTrialDayRating(
-  dayId: string,
-  payload: UpsertTrialDayRatingPayload,
-): Promise<SeasonAccessTrialDayRating> {
-  const resp = await client.post<SeasonAccessTrialDayRating>(
-    `/api/catalog/season-access/trial-days/${encodeURIComponent(dayId)}/ratings`,
-    payload,
+export async function removeTrialPlayerFromDay(dayId: string, trialPlayerId: string): Promise<SeasonAccessSelection | null> {
+  const resp = await client.delete<SeasonAccessSelection | null>(
+    `/api/catalog/season-access/trial-days/${encodeURIComponent(dayId)}/players/${encodeURIComponent(trialPlayerId)}`,
   );
-  return resp.data;
+  return resp.data ?? null;
 }
+
 
 export default {
   getSeasonAccessSelection,
@@ -178,5 +200,5 @@ export default {
   updateTrialDay,
   deleteTrialDay,
   getTrialDayRatings,
-  upsertTrialDayRating,
+  removeTrialPlayerFromDay,
 };

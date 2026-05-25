@@ -13,6 +13,7 @@ export type SeasonAccessPlayer = {
   totalGoals?: number | null;
   federationPlayerCode?: string;
   age?: number | null;
+  status?: string | null;
 };
 
 type Props = {

@@ -22,7 +22,7 @@ import sportEventService, {
 import sportEventTypeService, {
   SportEventType,
 } from "../../../services/sportEventTypeService";
-import rivalService, { RivalResponse } from "../../../services/rivalService";
+import rivalService, { Rival } from "../../../services/rivalService";
 import styles from "./SportEventDialog.module.css";
 
 interface Props {
@@ -68,7 +68,7 @@ export default function SportEventDialog({
   const [isHomeMatch, setIsHomeMatch] = useState<boolean>(true);
 
   const [eventTypes, setEventTypes] = useState<SportEventType[]>([]);
-  const [rivals, setRivals] = useState<RivalResponse[]>([]);
+  const [rivals, setRivals] = useState<Rival[]>([]);
   const [loadingTypes, setLoadingTypes] = useState(false);
   const [loadingRivals, setLoadingRivals] = useState(false);
   const [saving, setSaving] = useState(false);

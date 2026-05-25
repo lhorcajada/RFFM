@@ -1,5 +1,14 @@
-import ExcelJS from 'exceljs';
-import type { Player, Demarcation } from './TestGrid';
+// Avoid importing exceljs types (they reference Node libs) at top-level.
+// Use a dynamic import at runtime so bundlers produce an ESM chunk and
+// the browser doesn't need a `require` global.
+import type { Player, Demarcation } from './types';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function loadExcelJS(): Promise<any> {
+  const mod = await import('exceljs');
+  // exceljs may export as default or as the module itself depending on bundler
+  return (mod as any).default ?? mod;
+}
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -111,7 +120,7 @@ const STATUS_FILL_ARGB: Record<string, string> = {
 
 // ── Column definitions ────────────────────────────────────────────────────────
 
-const COLUMNS: Partial<ExcelJS.Column>[] = [
+const COLUMNS = [
   { header: 'Nombre',          key: 'name',                 width: 28 },
   { header: 'Ficha',           key: 'trialPlayerId',        width: 18 },
   { header: 'Código Federación', key: 'federationPlayerCode', width: 18 },
@@ -132,6 +141,7 @@ export async function exportTestGridToExcel(
   demarcations: Demarcation[],
   filename = 'jugadores.xlsx',
 ): Promise<void> {
+  const ExcelJS = await loadExcelJS();
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'RFFM';
   workbook.created = new Date();
@@ -146,7 +156,7 @@ export async function exportTestGridToExcel(
   // ── Header row ──────────────────────────────────────────────────────────────
   const headerRow = ws.getRow(1);
   headerRow.height = 30;
-  headerRow.eachCell({ includeEmpty: true }, (cell) => {
+  headerRow.eachCell({ includeEmpty: true }, (cell: any) => {
     cell.fill   = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0D0D1A' } };
     cell.font   = { bold: true, color: { argb: 'FF4D9DE0' }, size: 10, name: 'Calibri' };
     cell.alignment = { vertical: 'middle', horizontal: 'left' };
@@ -177,7 +187,7 @@ export async function exportTestGridToExcel(
     row.height = 22;
     const rowBg = idx % 2 === 0 ? 'FF15182C' : 'FF1C1C30';
 
-    row.eachCell({ includeEmpty: true }, (cell) => {
+    row.eachCell({ includeEmpty: true }, (cell: any) => {
       cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: rowBg } };
       cell.font      = { color: { argb: 'FFE8E8E8' }, size: 11, name: 'Calibri' };
       cell.alignment = { vertical: 'middle' };
@@ -207,12 +217,12 @@ export async function exportTestGridToExcel(
   const statusFormula = `"${Object.values(STATUS_LABEL).join(',')}"`;
   for (let r = 2; r <= players.length + 1; r++) {
     // Estado column (now at index 7)
-    ws.getCell(r, 7).dataValidation = {
+    (ws.getCell(r, 7) as any).dataValidation = {
       type: 'list',
       allowBlank: true,
       showDropDown: false,
       formulae: [statusFormula],
-    };
+    } as any;
   }
 
   // ── Data validation: Dem. ideal dropdown ────────────────────────────────────
@@ -220,12 +230,12 @@ export async function exportTestGridToExcel(
     const demFormula = `"${demarcations.map(d => d.code).join(',')}"`;
     for (let r = 2; r <= players.length + 1; r++) {
       // Dem. ideal column (now at index 8)
-      ws.getCell(r, 8).dataValidation = {
+      (ws.getCell(r, 8) as any).dataValidation = {
         type: 'list',
         allowBlank: true,
         showDropDown: false,
         formulae: [demFormula],
-      };
+      } as any;
     }
   }
 

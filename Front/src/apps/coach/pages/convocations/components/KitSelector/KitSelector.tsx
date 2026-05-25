@@ -1,5 +1,5 @@
 import Jersey from "../../../../../federation/components/players/Jersey/Jersey";
-import type { ClubKit } from "../../../services/kitService";
+import type { ClubKit } from "../../../../services/kitService";
 import styles from "./KitSelector.module.css";
 
 type Props = {

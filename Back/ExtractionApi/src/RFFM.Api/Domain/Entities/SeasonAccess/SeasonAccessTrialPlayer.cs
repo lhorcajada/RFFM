@@ -5,6 +5,7 @@ namespace RFFM.Api.Domain.Entities.SeasonAccess
     public class SeasonAccessTrialPlayer : BaseEntity
     {
         public string TrialId { get; private set; } = null!;
+        public string? TrialDayId { get; private set; }
         public string FederationPlayerCode { get; private set; } = null!;
         public string PlayerName { get; private set; } = null!;
         public string TeamCode { get; private set; } = null!;
@@ -13,9 +14,15 @@ namespace RFFM.Api.Domain.Entities.SeasonAccess
         public int? BirthYear { get; private set; }
         public int? IdealDemarcationId { get; private set; }
         public int? TotalGoals { get; private set; }
+        public string? Status { get; private set; }
+        public decimal? Score { get; private set; }
+        public string? Notes { get; private set; }
+
         public int[] PossibleDemarcationIds { get; private set; } = Array.Empty<int>();
+        public DateOnly? RemovedFromDate { get; private set; }
 
         public SeasonAccessTrial? Trial { get; private set; }
+        public SeasonAccessTrialDay? TrialDay { get; private set; }
 
         protected SeasonAccessTrialPlayer() { }
 
@@ -29,7 +36,11 @@ namespace RFFM.Api.Domain.Entities.SeasonAccess
             int? birthYear,
             IEnumerable<int>? possibleDemarcationIds,
             int? idealDemarcationId,
-            int? totalGoals)
+            int? totalGoals,
+            string? status,
+            decimal? score,
+            string? notes,
+            string? trialDayId = null)
         {
             var player = new SeasonAccessTrialPlayer();
             player.Update(
@@ -42,7 +53,11 @@ namespace RFFM.Api.Domain.Entities.SeasonAccess
                 birthYear,
                 possibleDemarcationIds,
                 idealDemarcationId,
-                totalGoals);
+                totalGoals,
+                status,
+                score,
+                notes,
+                trialDayId);
             return player;
         }
 
@@ -56,9 +71,14 @@ namespace RFFM.Api.Domain.Entities.SeasonAccess
             int? birthYear,
             IEnumerable<int>? possibleDemarcationIds,
             int? idealDemarcationId,
-            int? totalGoals)
+            int? totalGoals,
+            string? status,
+            decimal? score,
+            string? notes,
+            string? trialDayId = null)
         {
             TrialId = trialId;
+            TrialDayId = trialDayId;
             FederationPlayerCode = federationPlayerCode;
             PlayerName = playerName;
             TeamCode = teamCode;
@@ -67,12 +87,20 @@ namespace RFFM.Api.Domain.Entities.SeasonAccess
             BirthYear = birthYear;
             IdealDemarcationId = idealDemarcationId;
             TotalGoals = totalGoals;
+            Score = score;
+            Status = status;
+            Notes = notes;
             PossibleDemarcationIds = NormalizeDemarcations(possibleDemarcationIds, idealDemarcationId);
         }
 
         public void SetBirthYear(int? birthYear)
         {
             BirthYear = birthYear;
+        }
+
+        public void SetRemovedFromDate(DateOnly? removedFromDate)
+        {
+            RemovedFromDate = removedFromDate;
         }
 
         public void SetIdealDemarcationId(int? idealDemarcationId)

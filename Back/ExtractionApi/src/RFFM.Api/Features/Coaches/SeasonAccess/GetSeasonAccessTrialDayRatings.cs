@@ -21,16 +21,16 @@ namespace RFFM.Api.Features.Coaches.SeasonAccess
                     async (string dayId, IMediator mediator, CancellationToken cancellationToken) =>
                     {
                         var result = await mediator.Send(new GetSeasonAccessTrialDayRatingsQuery(dayId), cancellationToken);
-                        return result is null ? Results.NotFound() : Results.Ok(result);
+                        return Results.Ok(result);
                     })
                 .WithName(nameof(GetSeasonAccessTrialDayRatings))
                 .WithTags("SeasonAccess")
-                .Produces<IReadOnlyCollection<SeasonAccessTrialDayRatingDto>>()
+                .Produces<IReadOnlyCollection<SeasonAccessTrialPlayerDto>>()
                 .Produces(StatusCodes.Status404NotFound)
                 .Produces(StatusCodes.Status403Forbidden);
         }
 
-        public record GetSeasonAccessTrialDayRatingsQuery(string DayId) : IQueryApp<IReadOnlyCollection<SeasonAccessTrialDayRatingDto>?>;
+        public record GetSeasonAccessTrialDayRatingsQuery(string DayId) : IQueryApp<IReadOnlyCollection<SeasonAccessTrialPlayerDto>>;
 
         public class Validator : AbstractValidator<GetSeasonAccessTrialDayRatingsQuery>
         {
@@ -40,7 +40,7 @@ namespace RFFM.Api.Features.Coaches.SeasonAccess
             }
         }
 
-        public class Handler : IRequestHandler<GetSeasonAccessTrialDayRatingsQuery, IReadOnlyCollection<SeasonAccessTrialDayRatingDto>?>
+        public class Handler : IRequestHandler<GetSeasonAccessTrialDayRatingsQuery, IReadOnlyCollection<SeasonAccessTrialPlayerDto>?>
         {
             private readonly AppDbContext _db;
             private readonly ICurrentUserService _currentUser;
@@ -51,7 +51,7 @@ namespace RFFM.Api.Features.Coaches.SeasonAccess
                 _currentUser = currentUser;
             }
 
-            public async ValueTask<IReadOnlyCollection<SeasonAccessTrialDayRatingDto>?> Handle(GetSeasonAccessTrialDayRatingsQuery request, CancellationToken cancellationToken = default)
+            public async ValueTask<IReadOnlyCollection<SeasonAccessTrialPlayerDto>?> Handle(GetSeasonAccessTrialDayRatingsQuery request, CancellationToken cancellationToken = default)
             {
                 var userId = _currentUser.UserId ?? throw new UnauthorizedAccessException("Usuario no autenticado");
 
@@ -63,12 +63,27 @@ namespace RFFM.Api.Features.Coaches.SeasonAccess
                 if (day is null || day.Trial?.ApplicationUserId != userId)
                     return null;
 
-                var ratings = await _db.SeasonAccessTrialDayRatings
+                var ratings = await _db.SeasonAccessTrialPlayers
                     .AsNoTracking()
-                    .Where(x => x.TrialDayId == request.DayId)
+                    .Where(x => x.TrialId == day.TrialId)
                     .ToListAsync(cancellationToken);
 
-                return ratings.Select(r => r.ToDto()).ToList();
+                return ratings.Select(r => new SeasonAccessTrialPlayerDto(
+                    r.Id,
+                    r.TrialDayId ?? day.Id,
+                    r.Score,
+                    r.Notes,
+                    r.IdealDemarcationId,
+                    r.PossibleDemarcationIds,
+                    r.TotalGoals,
+                    r.Status,
+                    r.BirthYear,
+                    r.Category,
+                    r.TeamCode,
+                    r.TeamName,
+                    r.FederationPlayerCode,
+                    r.PlayerName,
+                    r.RemovedFromDate)).ToList();
             }
         }
     }

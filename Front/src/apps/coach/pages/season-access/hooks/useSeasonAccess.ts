@@ -9,6 +9,8 @@ import {
   getSeasonAccessSelection,
   getSeasonAccessSelectionsBySeason,
   saveSeasonAccessPlayer,
+  getTrialDays,
+  getTrialDayRatings,
   type SeasonAccessDemarcation,
   type SeasonAccessPlayerPayload,
   type SeasonAccessSelectionPlayer,
@@ -41,6 +43,7 @@ function normalizeSelectedPlayer(
     totalGoals?: number | null;
     possibleDemarcationIds?: number[];
     idealDemarcationId?: number | null;
+    status?: string | null;
   },
 ): SeasonAccessPlayer {
   function firstNonEmpty(...vals: Array<string | undefined | null>) {
@@ -65,6 +68,7 @@ function normalizeSelectedPlayer(
     birthYear: player.birthYear ?? null,
     possibleDemarcationIds: player.possibleDemarcationIds ?? [],
     idealDemarcationId: player.idealDemarcationId ?? null,
+    status: player.status ?? null,
   };
 }
 
@@ -206,6 +210,28 @@ export default function useSeasonAccess() {
       const payload = rosterPlayer ? buildPayloadFromPlayer(rosterPlayer) : null;
 
       if (!payload) return;
+
+      // Prevent adding the same player to trials if they already have ratings
+      try {
+        if (activeSeason?.id && selectedCategory) {
+          const days = await getTrialDays(activeSeason.id, selectedCategory);
+          for (const d of days) {
+            try {
+              const ratings = await getTrialDayRatings(d.id);
+              const already = (ratings ?? []).some((r) => String(r.federationPlayerCode ?? r.id) === String(payload.federationPlayerCode));
+              if (already) {
+                window.dispatchEvent(new CustomEvent('rffm.show_snackbar', { detail: { message: 'El jugador ya está en pruebas.', severity: 'warning' } }));
+                return;
+              }
+            } catch (e) {
+              // ignore per-day fetch errors and continue
+              console.error('Error checking ratings for day', d.id, e);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Failed to check existing trial days', err);
+      }
 
       try {
         const result = await saveSeasonAccessPlayer(payload);
@@ -548,17 +574,22 @@ export default function useSeasonAccess() {
     };
   }, [activeClub, selectedCategory]);
 
-  function buildPayloadFromPlayer(player: SeasonAccessPlayer): SeasonAccessPlayerPayload | null {
+  function buildPayloadFromPlayer(player: SeasonAccessPlayer, trialDayId?: string | null): SeasonAccessPlayerPayload | null {
     if (!activeSeason?.id) {
       return null;
     }
-
-    const payloadCategory = player.category ?? selectedTeam?.categoryDescription ?? selectedCategory ?? "";
-    if (!payloadCategory) return null;
+    // Division category: specific string from team metadata (e.g. 'PRIMERA BENJAMIN')
+    const divisionCategory = player.category ?? selectedTeam?.categoryDescription ?? "";
+    // General category: prefer explicit selected category (CategoryKey), otherwise try to normalize
+    const generalCategory = (selectedCategory ?? normalizeCategory(divisionCategory) ?? "") as string;
+    if (!generalCategory) return null;
 
     return {
       seasonId: activeSeason.id,
-      category: payloadCategory,
+      // `category` is the general category used to find/create the trial
+      category: generalCategory,
+      // `divisionCategory` preserves the specific division string for the player record
+      divisionCategory: divisionCategory || null,
       federationPlayerCode: player.federationPlayerCode ?? player.id,
       playerName: player.playerName ?? player.displayName,
       teamCode: player.teamCode ?? selectedTeam?.teamCode ?? "",
@@ -567,6 +598,8 @@ export default function useSeasonAccess() {
       birthYear: player.birthYear ?? null,
       possibleDemarcationIds: player.possibleDemarcationIds ?? [],
       idealDemarcationId: player.idealDemarcationId ?? null,
+      status: (player as SeasonAccessPlayer & { status?: string | null }).status ?? null,
+      trialDayId: trialDayId ?? null,
     };
   }
 
@@ -750,6 +783,7 @@ export default function useSeasonAccess() {
     handleTogglePossibleDemarcation,
     handleSetIdealDemarcation,
     handleRemoveSelectedPlayer,
+    reloadSelection,
     setSelectedTeamCode,
   };
 }

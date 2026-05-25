@@ -5,9 +5,9 @@ import {
   getTeamAgeSummary,
   getTeamParticipationSummary,
   getTeamsForClassification,
-} from "../../services/api";
+} from "../../../services/api";
 
-import type { PlayerDetailsResponse } from "../../types/player";
+import type { PlayerDetailsResponse } from "../../../types/player";
 
 type SelectedTeam = {
   id: string | number;

@@ -106,7 +106,7 @@ export default function TrialDaysManager({ seasonId, category }: Props) {
       } else {
         const created = await createTrialDay({
           seasonId,
-          category,
+          generalCategory: category,
           date: form.date,
           label: form.label || null,
         });

@@ -58,7 +58,7 @@ namespace RFFM.Api.Features.Coaches.SeasonAccess
                 var trial = await _db.SeasonAccessTrials
                     .AsNoTracking()
                     .FirstOrDefaultAsync(
-                        x => x.ApplicationUserId == userId && x.SeasonId == request.SeasonId && x.Category == request.Category,
+                        x => x.ApplicationUserId == userId && x.SeasonId == request.SeasonId && x.Category.ToUpper() == request.Category.ToUpper(),
                         cancellationToken);
 
                 if (trial is null)

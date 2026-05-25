@@ -58,7 +58,7 @@ export default function PlayerRow({ player }: Props) {
       }
       const data = await getPlayer(id);
       // Normalize response: some backends return the player directly, others wrap
-      const raw = (data && (data.player || data)) as any;
+      const raw = (data && (((data as any).player) || data)) as any;
 
       // If the backend returns a flat object with season fields (no statistics array),
       // build a single-element statistics array from those fields so the UI can render it.

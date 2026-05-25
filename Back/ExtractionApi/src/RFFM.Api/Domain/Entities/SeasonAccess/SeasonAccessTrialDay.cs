@@ -9,7 +9,7 @@ namespace RFFM.Api.Domain.Entities.SeasonAccess
         public string? Label { get; private set; }
 
         public SeasonAccessTrial? Trial { get; private set; }
-        public ICollection<SeasonAccessTrialDayRating> Ratings { get; private set; } = new List<SeasonAccessTrialDayRating>();
+        public ICollection<SeasonAccessTrialPlayer> Players { get; private set; } = new List<SeasonAccessTrialPlayer>();
 
         protected SeasonAccessTrialDay() { }
 

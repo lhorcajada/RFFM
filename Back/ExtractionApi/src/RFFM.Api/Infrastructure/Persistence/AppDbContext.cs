@@ -73,7 +73,6 @@ namespace RFFM.Api.Infrastructure.Persistence
         public DbSet<SeasonAccessTrial> SeasonAccessTrials { get; set; }
         public DbSet<SeasonAccessTrialPlayer> SeasonAccessTrialPlayers { get; set; }
         public DbSet<SeasonAccessTrialDay> SeasonAccessTrialDays { get; set; }
-        public DbSet<SeasonAccessTrialDayRating> SeasonAccessTrialDayRatings { get; set; }
 
         // Match participation (partido en directo)
         public DbSet<MatchParticipation> MatchParticipations { get; set; }

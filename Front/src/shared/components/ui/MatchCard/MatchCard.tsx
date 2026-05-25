@@ -11,7 +11,7 @@ import TeamInfo from "./TeamInfo";
 import FieldInfo from "./FieldInfo";
 import ScoreChip from "./ScoreChip";
 import MatchTime from "./MatchTime";
-import { MatchEntry } from "../../../types/match";
+// MatchEntry type not available in all builds; treat as any
 import useMatch from "../../../hooks/useMatch";
 import usePrimaryTeam from "../../../hooks/usePrimaryTeam";
 import { useUser } from "../../../context/UserContext";
@@ -19,7 +19,7 @@ import { useUser } from "../../../context/UserContext";
 type MatchItem = {
   rawDate?: string | null;
   parsedDate?: Date | null;
-  match: MatchEntry | any;
+  match: any;
 };
 
 export default function MatchCard({

@@ -69,8 +69,8 @@ export default function ClubTeams() {
               if (t.urlPhoto) {
                 const obj = await teamService.fetchTeamPhoto(t.urlPhoto);
                 photos[t.id] = obj;
-              } else if (t.club?.shieldUrl) {
-                const obj = await teamService.fetchTeamPhoto(t.club.shieldUrl);
+              } else if (t.club?.emblemUrl) {
+                const obj = await teamService.fetchTeamPhoto(t.club.emblemUrl);
                 photos[t.id] = obj;
               } else photos[t.id] = null;
             } catch (e) {

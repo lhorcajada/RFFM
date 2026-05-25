@@ -4,23 +4,12 @@ namespace RFFM.Api.Features.Coaches.SeasonAccess
 {
     public record SeasonAccessDemarcationDto(int Id, string Name, string Code);
 
-    public record SeasonAccessPlayerDto(
-        string Id,
-        string FederationPlayerCode,
-        string PlayerName,
-        string TeamCode,
-        string TeamName,
-        string Category,
-        int? BirthYear,
-        IReadOnlyCollection<int> PossibleDemarcationIds,
-        int? IdealDemarcationId,
-        int? TotalGoals);
-
+   
     public record SeasonAccessTrialDto(
         string Id,
         string SeasonId,
         string Category,
-        IReadOnlyCollection<SeasonAccessPlayerDto> Players);
+        IReadOnlyCollection<SeasonAccessTrialPlayerDto> Players);
 
     public record SeasonAccessTrialDayDto(
         string Id,
@@ -28,20 +17,27 @@ namespace RFFM.Api.Features.Coaches.SeasonAccess
         DateOnly Date,
         string? Label);
 
-    public record SeasonAccessTrialDayRatingDto(
+    public record SeasonAccessTrialPlayerDto(
         string Id,
         string TrialDayId,
-        string TrialPlayerId,
         decimal? Score,
         string? Notes,
-        string? Status,
         int? IdealDemarcationId,
         IReadOnlyCollection<int> PossibleDemarcationIds,
-        int? TotalGoals);
+        int? TotalGoals,
+        string? Status,
+        int? BirthYear,
+        string? Category,
+        string? TeamCode,
+        string? TeamName,
+        string? FederationPlayerCode,
+        string? PlayerName,
+        DateOnly? RemovedFromDate);
 
     public record UpsertSeasonAccessPlayerRequest(
         string SeasonId,
         string Category,
+        string? DivisionCategory,
         string FederationPlayerCode,
         string PlayerName,
         string TeamCode,
@@ -49,26 +45,21 @@ namespace RFFM.Api.Features.Coaches.SeasonAccess
         int? BirthYear,
         IReadOnlyCollection<int>? PossibleDemarcationIds,
         int? IdealDemarcationId,
-        int? TotalGoals);
+        int? TotalGoals,
+        string? Status,
+        decimal? Score,
+        string? Notes,
+        string? TrialDayId);
 
     public record CreateSeasonAccessTrialDayRequest(
         string SeasonId,
-        string Category,
+        string GeneralCategory,
         DateOnly Date,
         string? Label);
 
     public record UpdateSeasonAccessTrialDayRequest(
         DateOnly Date,
         string? Label);
-
-    public record UpsertSeasonAccessTrialDayRatingRequest(
-        string TrialPlayerId,
-        decimal? Score,
-        string? Notes,
-        string? Status,
-        int? IdealDemarcationId,
-        IReadOnlyCollection<int>? PossibleDemarcationIds,
-        int? TotalGoals);
 
     internal static class SeasonAccessMappings
     {
@@ -85,19 +76,25 @@ namespace RFFM.Api.Features.Coaches.SeasonAccess
                     .ToList());
         }
 
-        public static SeasonAccessPlayerDto ToDto(this SeasonAccessTrialPlayer player)
+        public static SeasonAccessTrialPlayerDto ToDto(this SeasonAccessTrialPlayer player)
         {
-            return new SeasonAccessPlayerDto(
+            return new SeasonAccessTrialPlayerDto(
                 player.Id,
-                player.FederationPlayerCode,
-                player.PlayerName,
+                player.TrialDayId ?? string.Empty,
+                player.Score,
+                player.Notes,
+                player.IdealDemarcationId,
+                player.PossibleDemarcationIds,
+                player.TotalGoals,
+                player.Status,
+                player.BirthYear,
+                player.Category,
                 player.TeamCode,
                 player.TeamName,
-                player.Category,
-                player.BirthYear,
-                player.PossibleDemarcationIds,
-                player.IdealDemarcationId,
-                player.TotalGoals);
+                player.FederationPlayerCode,
+                player.PlayerName,
+                player.RemovedFromDate);
+
         }
 
         public static SeasonAccessTrialDayDto ToDto(this SeasonAccessTrialDay day)
@@ -109,21 +106,7 @@ namespace RFFM.Api.Features.Coaches.SeasonAccess
                 day.Label);
         }
 
-        public static SeasonAccessTrialDayRatingDto ToDto(this SeasonAccessTrialDayRating rating)
-        {
-            return new SeasonAccessTrialDayRatingDto(
-                rating.Id,
-                rating.TrialDayId,
-                rating.TrialPlayerId,
-                rating.Score,
-                rating.Notes,
-                rating.Status,
-                rating.IdealDemarcationId,
-                rating.PossibleDemarcationIds,
-                rating.TotalGoals);
-        }
-
-        public static SeasonAccessDemarcationDto ToDto(this RFFM.Api.Domain.Entities.Demarcations.DemarcationMaster demarcation)
+        public static SeasonAccessDemarcationDto ToDto(Domain.Entities.Demarcations.DemarcationMaster demarcation)
         {
             return new SeasonAccessDemarcationDto(demarcation.Id, demarcation.Name, demarcation.Code);
         }

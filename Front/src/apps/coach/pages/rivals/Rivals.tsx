@@ -253,11 +253,11 @@ export default function Rivals() {
               <div className={styles.grid}>
                 {rivals.map((r) => (
                   <ClubCromo
-                    key={r.id ?? r.Id}
-                    id={r.id ?? r.Id}
-                    name={r.name ?? r.Name}
-                    image={publicImageUrl((r.urlPhoto ?? r.UrlPhoto) ?? null)}
-                    category={r.category ?? r.Category ?? null}
+                    key={r.id ?? (r as any).Id}
+                    id={r.id ?? (r as any).Id}
+                    name={r.name ?? (r as any).Name}
+                    image={publicImageUrl(((r as any).urlPhoto ?? (r as any).UrlPhoto) ?? null)}
+                    category={(r as any).category ?? (r as any).Category ?? null}
                     onEdit={() => openEdit(r)}
                     onDelete={() => handleDelete(r)}
                   />

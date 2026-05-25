@@ -1,5 +1,5 @@
 import React from "react";
-import { Goleador } from "../../../services/api";
+import type { Goleador } from "../../../types/goleador";
 import styles from "./GoleadoresList.module.css";
 import Chip from "@mui/material/Chip";
 import SportsSoccerIcon from "@mui/icons-material/SportsSoccer";

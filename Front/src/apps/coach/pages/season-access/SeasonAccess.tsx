@@ -1,12 +1,13 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button, Tabs, Tab, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from "@mui/material";
-import { getTrialDays, getTrialDayRatings, upsertTrialDayRating } from "../../services/seasonAccessService";
+import { getTrialDays, getTrialDayRatings, saveSeasonAccessPlayer } from "../../services/seasonAccessService";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import TrialDaysManager from "./components/TrialDaysManager";
 
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
+import ErrorBoundary from "../../../../shared/components/ui/ErrorBoundary/ErrorBoundary";
 import SelectableChip from "../../../../shared/components/ui/SelectableChip/SelectableChip";
 import SelectionPlayersTab from "./components/SelectionPlayersTab";
 import TestsTab from "./components/TestsTab";
@@ -47,6 +48,7 @@ export default function SeasonAccess() {
     setSelectedTeamCode,
     trialId,
     activeSeason,
+    reloadSelection,
   } = useSeasonAccess();
 
   async function handleTrialDialogClose() {
@@ -71,12 +73,13 @@ export default function SeasonAccess() {
 
   return (
     <BaseLayout hideFooterMenu>
-      <ContentLayout
-        title="Pruebas de acceso"
-        subtitle="Temporada que viene"
-        actionBar={
-          <div className={styles.actionBarContent}>
-            <div className={styles.chipGroup}>
+      <ErrorBoundary>
+        <ContentLayout
+          title="Pruebas de acceso"
+          subtitle="Temporada que viene"
+          actionBar={
+            <div className={styles.actionBarContent}>
+              <div className={styles.chipGroup}>
               {CATEGORY_ORDER.map((category) => (
                 <SelectableChip
                   key={category}
@@ -142,8 +145,8 @@ export default function SeasonAccess() {
             </Button>
           </div>
         }
-      >
-        <Tabs value={tabIndex} onChange={(_, v) => setTabIndex(v)} aria-label="Pestañas de Season Access" sx={{ mb: 1 }}>
+        >
+          <Tabs value={tabIndex} onChange={(_, v) => setTabIndex(v)} aria-label="Pestañas de Season Access" sx={{ mb: 1 }}>
           <Tab label="Jugadores del club" />
           <Tab label="Pruebas" />
         </Tabs>
@@ -180,6 +183,7 @@ export default function SeasonAccess() {
             trialId={trialId}
             seasonId={activeSeason?.id ?? null}
             category={selectedCategory}
+            reloadSelection={reloadSelection}
           />
         )}
         <Dialog open={confirmCopyOpen} onClose={() => setConfirmCopyOpen(false)}>
@@ -208,15 +212,26 @@ export default function SeasonAccess() {
                   for (let i = 1; i < days.length; i++) {
                     const targetDay = days[i];
                     for (const r of source) {
-                      await upsertTrialDayRating(targetDay.id, {
-                        trialPlayerId: r.trialPlayerId,
-                        score: r.score ?? null,
-                        notes: (r as any).notes ?? null,
-                        status: r.status ?? null,
-                        idealDemarcationId: r.idealDemarcationId ?? null,
-                        possibleDemarcationIds: r.possibleDemarcationIds ?? [],
+                      // Find matching player in selectedPlayers to obtain player details
+                        const sp = selectedPlayers?.find((p: any) => {
+                          const rId = String(r.federationPlayerCode ?? r.id);
+                          return String(p.id) === rId || String(p.federationPlayerCode) === rId || String(p.id) === rId;
+                        });
+                      const payload = {
+                        seasonId: activeSeason?.id,
+                        category: selectedCategory,
+                        divisionCategory: sp?.category ?? selectedCategory,
+                          federationPlayerCode: sp?.federationPlayerCode ?? String(r.federationPlayerCode ?? r.id),
+                        playerName: sp?.playerName ?? sp?.displayName ?? 'Jugador',
+                        teamCode: sp?.teamCode ?? sp?.teamName ?? 'manual',
+                        teamName: sp?.teamName ?? sp?.teamCode ?? 'manual',
+                        birthYear: sp?.birthYear ?? null,
+                          status: (sp as any)?.status ?? null,
                         totalGoals: (r as any).totalGoals ?? null,
-                      });
+                        possibleDemarcationIds: r.possibleDemarcationIds ?? [],
+                        idealDemarcationId: r.idealDemarcationId ?? null,
+                      } as any;
+                      await saveSeasonAccessPlayer(payload);
                     }
                   }
                   window.dispatchEvent(new CustomEvent('rffm.show_snackbar', { detail: { message: 'Copia completada.', severity: 'success' } }));
@@ -261,6 +276,7 @@ export default function SeasonAccess() {
           </DialogActions>
         </Dialog>
       </ContentLayout>
+      </ErrorBoundary>
     </BaseLayout>
   );
 }

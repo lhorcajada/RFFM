@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
-using RFFM.Api.Common;
 using RFFM.Api.Domain.Entities.SeasonAccess;
 using RFFM.Api.Domain.Services;
 using RFFM.Api.FeatureModules;
@@ -37,7 +36,7 @@ namespace RFFM.Api.Features.Coaches.SeasonAccess
             public Validator()
             {
                 RuleFor(x => x.Request.SeasonId).NotEmpty();
-                RuleFor(x => x.Request.Category).NotEmpty();
+                RuleFor(x => x.Request.GeneralCategory).NotEmpty();
             }
         }
 
@@ -59,12 +58,12 @@ namespace RFFM.Api.Features.Coaches.SeasonAccess
 
                 var trial = await _db.SeasonAccessTrials
                     .FirstOrDefaultAsync(
-                        x => x.ApplicationUserId == userId && x.SeasonId == request.SeasonId && x.Category == request.Category,
+                        x => x.ApplicationUserId == userId && x.SeasonId == request.SeasonId && x.Category == request.GeneralCategory,
                         cancellationToken);
 
                 if (trial is null)
                 {
-                    trial = SeasonAccessTrial.Create(userId, request.SeasonId, request.Category);
+                    trial = SeasonAccessTrial.Create(userId, request.SeasonId, request.GeneralCategory);
                     _db.SeasonAccessTrials.Add(trial);
                     await _db.SaveChangesAsync(cancellationToken);
                 }
