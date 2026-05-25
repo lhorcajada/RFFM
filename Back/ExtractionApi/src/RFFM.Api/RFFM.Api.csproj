@@ -68,6 +68,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="QuestPDF" Version="2026.5.0" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Update="Domain\Resources\ValidationMessages.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>

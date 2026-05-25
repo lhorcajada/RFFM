@@ -1,0 +1,41 @@
+.page {
+  display: flex;
+  flex-direction: column;
+}
+.content {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+.leftCol {
+  width: 520px;
+  flex: 0 0 520px;
+}
+.rightCol {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.tabsBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.formationSelect {
+  min-width: 180px;
+}
+
+.dragOverlay {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #1e2a3a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid rgba(77,157,224,0.6);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  color: #fff;
+}
+.dragOverlayInitials { font-weight: 800; font-size: 0.75rem; }
+ 

@@ -121,6 +121,15 @@ export default function SeasonAccess() {
             >
               Días de prueba
             </Button>
+            <Button
+              size="small"
+              variant="contained"
+              onClick={() => navigate("/coach/season-access/prepare")}
+              disabled={!activeSeason?.id || !selectedCategory}
+              sx={{ ml: 1 }}
+            >
+              Preparar prueba
+            </Button>
             {tabIndex === 1 && (
               <Button
                 size="small"

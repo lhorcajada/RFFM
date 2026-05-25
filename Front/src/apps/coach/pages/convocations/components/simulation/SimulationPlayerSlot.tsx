@@ -27,6 +27,8 @@ interface SimulationPlayerSlotProps {
   slotIdPrefix?: string;
   /** Show a soccer-ball badge (used in live match to indicate the player has scored) */
   hasGoals?: boolean;
+  activeTab?: number;
+  usedTabById?: Record<string, number>;
 }
 
 // ─── Draggable card (used only in prepare mode) ───────────────────────────────
@@ -36,11 +38,15 @@ function DraggablePrepareCard({
   entering,
   leaving,
   hasGoals,
+  usedTab,
+  usedElsewhere,
 }: {
   player: SimSlotPlayer;
   entering: boolean;
   leaving: boolean;
   hasGoals?: boolean;
+  usedTab?: number;
+  usedElsewhere?: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `sim-player-${player.teamPlayerId}`,
@@ -88,13 +94,14 @@ function DraggablePrepareCard({
       {entering && <span className={styles.enteringBadge}>ENTRA</span>}
       {leaving && <span className={styles.leavingBadge}>SALE</span>}
       {hasGoals && <span className={styles.goalBadge}>⚽</span>}
+      {usedElsewhere ? <span className={styles.usedBadgeSlot}>Equipo {usedTab! + 1}</span> : null}
     </div>
   );
 }
 
 // ─── Static card (normal game mode) ──────────────────────────────────────────
 
-function StaticCard({ player, hasGoals }: { player: SimSlotPlayer; hasGoals?: boolean }) {
+function StaticCard({ player, hasGoals, usedTab, usedElsewhere }: { player: SimSlotPlayer; hasGoals?: boolean; usedTab?: number; usedElsewhere?: boolean }) {
   const initials = player.displayName
     .split(" ")
     .slice(0, 2)
@@ -120,6 +127,7 @@ function StaticCard({ player, hasGoals }: { player: SimSlotPlayer; hasGoals?: bo
         }`}>{Math.round(player.competitiveness)}</span>
       )}
       {hasGoals && <span className={styles.goalBadge}>⚽</span>}
+      {usedElsewhere ? <span className={styles.usedBadgeSlot}>Equipo {usedTab! + 1}</span> : null}
     </div>
   );
 }
@@ -138,6 +146,8 @@ export default function SimulationPlayerSlot({
   prepareMode,
   slotIdPrefix,
   hasGoals = false,
+  activeTab,
+  usedTabById,
 }: SimulationPlayerSlotProps) {
   const dropId = slotIdPrefix ? `sim-slot-${slotIdPrefix}-${slotIndex}` : `sim-slot-${slotIndex}`;
   const { setNodeRef: dropRef, isOver } = useDroppable({ id: dropId });
@@ -145,6 +155,10 @@ export default function SimulationPlayerSlot({
   const shortName = player
     ? (player.alias?.trim() || player.displayName.split(" ").slice(0, 2).join(" "))
     : null;
+
+  // compute used badge info
+  const usedTab = player && usedTabById ? usedTabById[player.teamPlayerId] : undefined;
+  const usedElsewhere = typeof usedTab === 'number' && activeTab !== undefined && usedTab !== activeTab;
 
   return (
     <div ref={dropRef} className={`${styles.slot} ${prepareMode && isOver ? styles.slotOver : ""}`} style={{ left: `${x}%`, top: `${y}%` }}>
@@ -156,9 +170,9 @@ export default function SimulationPlayerSlot({
       <div className={`${styles.dropTarget} ${isOver ? styles.over : ""} ${player ? styles.occupied : ""}`}>
         {player ? (
           prepareMode ? (
-            <DraggablePrepareCard player={player} entering={entering} leaving={leaving} hasGoals={hasGoals} />
+            <DraggablePrepareCard player={player} entering={entering} leaving={leaving} hasGoals={hasGoals} usedTab={usedTab} usedElsewhere={usedElsewhere} />
           ) : (
-            <StaticCard player={player} hasGoals={hasGoals} />
+            <StaticCard player={player} hasGoals={hasGoals} usedTab={usedTab} usedElsewhere={usedElsewhere} />
           )
         ) : (
           <span className={styles.emptyLabel}>{label}</span>
@@ -170,4 +184,5 @@ export default function SimulationPlayerSlot({
       )}
     </div>
   );
-}
+
+    }

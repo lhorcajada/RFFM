@@ -1545,6 +1545,31 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.ToTable("ConfigurationCoach", "app");
                 });
 
+            modelBuilder.Entity("RFFM.Api.Domain.Entities.Coaches.SeasonPrepAllTeamsSession", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Data")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("SportEventId")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SportEventId")
+                        .IsUnique();
+
+                    b.ToTable("SeasonPrepAllTeamsSessions", "app");
+                });
+
             modelBuilder.Entity("RFFM.Api.Domain.Entities.Coaches.SeasonPrepEvaluations", b =>
                 {
                     b.Property<string>("Id")
@@ -1773,6 +1798,36 @@ namespace RFFM.Api.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("SeasonPrepSessions", "app");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Entities.Coaches.SeasonPrepTeamSession", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Data")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("SportEventId")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("TeamId")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TeamId", "SportEventId")
+                        .IsUnique();
+
+                    b.ToTable("SeasonPrepTeamSessions", "app");
                 });
 
             modelBuilder.Entity("RFFM.Api.Domain.Entities.Competitions.Category", b =>

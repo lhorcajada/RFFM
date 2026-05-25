@@ -12,8 +12,11 @@ interface SimulationFieldProps {
   playerMinutes: Record<string, number>;
   prepareMode: boolean;
   slotIdPrefix?: string;
+  wrapperRef?: React.Ref<HTMLDivElement>;
   /** Optional set of teamPlayerIds that have scored — shows a goal badge on their avatar */
   scorerIds?: Set<string>;
+  activeTab?: number;
+  usedTabById?: Record<string, number>;
 }
 
 export default function SimulationField({
@@ -25,6 +28,9 @@ export default function SimulationField({
   prepareMode,
   slotIdPrefix,
   scorerIds,
+  activeTab,
+  usedTabById,
+  wrapperRef,
 }: SimulationFieldProps) {
   // In prepare mode we render from the preview, otherwise from real slots
   const activeSlots = prepareMode && prepareSlotsPreview ? prepareSlotsPreview : slots;
@@ -47,7 +53,7 @@ export default function SimulationField({
   }
 
   return (
-    <div className={styles.fieldWrapper}>
+    <div ref={wrapperRef} className={styles.fieldWrapper}>
       <div className={styles.field}>
         {/* Field markings */}
         <div className={styles.centerCircle} />
@@ -91,6 +97,8 @@ export default function SimulationField({
               leaving={leaving}
               prepareMode={prepareMode}
                 slotIdPrefix={slotIdPrefix}
+              activeTab={activeTab}
+              usedTabById={usedTabById}
               hasGoals={playerId !== null && scorerIds?.has(playerId)}
             />
           );

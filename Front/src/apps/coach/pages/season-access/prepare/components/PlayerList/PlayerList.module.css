@@ -1,0 +1,109 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.listWrap {
+  overflow-y: auto;
+  padding: 8px;
+}
+.playerItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  background: var(--rffm-card-bg, #1c1c30);
+  color: var(--rffm-card-text, #e8e8e8);
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.06);
+  box-shadow: 0 1px 0 rgba(0,0,0,0.12);
+  cursor: grab;
+}
+.playerUsed {
+  opacity: 0.85;
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02));
+  border-left: 4px solid var(--rffm-primary, #4d9de0);
+}
+
+.playerOnField {
+  opacity: 0.95;
+  background: linear-gradient(180deg, rgba(16,185,129,0.03), rgba(5,150,105,0.03));
+  border-left: 4px solid #10b981; /* green */
+}
+
+.playerOnFieldDragging {
+  box-shadow: 0 6px 18px rgba(16,185,129,0.12);
+}
+
+.onFieldBadge {
+  background: #10b981;
+  color: white;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.75rem;
+}
+
+.playerOnBench {
+  opacity: 0.95;
+  background: linear-gradient(180deg, rgba(99,102,241,0.03), rgba(79,70,229,0.03));
+  border-left: 4px solid #6366f1; /* indigo */
+}
+
+.benchBadge {
+  background: #6366f1;
+  color: white;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.75rem;
+}
+.usedBadge {
+  background: rgba(255,255,255,0.06);
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-weight: 700;
+  color: var(--rffm-card-text, #e8e8e8);
+  font-size: 0.85rem;
+}
+.playerName {
+  font-weight: 600;
+}
+.playerMeta {
+  font-size: 0.85rem;
+  color: var(--rffm-muted, #6b7280);
+}
+.dragging {
+  opacity: 0.7;
+}
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 6px;
+  color: var(--rffm-card-text, #e8e8e8);
+}
+ .header strong { color: var(--rffm-card-text, #e8e8e8); }
+ .header span { color: var(--rffm-muted, #6b7280); font-size: .95rem; }
+
+.group {
+  margin-bottom: 10px;
+}
+.groupHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  color: var(--rffm-card-text, #e8e8e8);
+  font-size: 0.95rem;
+  border-bottom: 1px dashed rgba(255,255,255,0.03);
+  margin-bottom: 6px;
+}
+.groupHeader span { color: #fff; font-size: .9rem; padding: 2px 8px; border-radius: 999px; font-weight: 600; box-shadow: 0 2px 6px rgba(0,0,0,0.25); }
+.header span {
+  background: rgba(255,255,255,0.04);
+  padding: 2px 8px;
+  border-radius: 999px;
+  color: var(--rffm-card-text, #e8e8e8);
+}
+.groupList { display: flex; flex-direction: column; gap: 8px; }

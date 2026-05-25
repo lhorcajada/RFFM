@@ -3,8 +3,20 @@ import client from "../../../core/api/client";
 export type SeasonPrepSessionData = {
   fedSeason: string;
   sportEventId?: string | null;
-  slot: object;
+  // full slot state including formation and tabs
+  slot: {
+    formationId?: string | null;
+    formation?: string | null;
+    activeTab?: number;
+    tabs: Array<{ slots: Record<number, string | null>; bench: string[] }>;
+  };
+  // players pool
   pool: object[];
+  // optional UI state
+  activeTab?: number;
+  formationId?: string | null;
+  formationName?: string | null;
+  selectedDayIndex?: number | null;
 };
 
 export async function getSeasonPrepSession(sportEventId?: string | null): Promise<SeasonPrepSessionData | null> {

@@ -4,6 +4,9 @@ using RFFM.Api.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Configure QuestPDF license type for runtime. Set to Community for free usage.
+QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
+
 builder.Host.AddSerilog(builder.Configuration);
 
 var startup = new Startup(builder.Configuration, builder.Environment);

@@ -20,6 +20,7 @@ using RFFM.Api.Features.Federation.Settings.Services;
 using RFFM.Api.Features.Federation.Teams.Services;
 using RFFM.Api.Infrastructure.Persistence;
 using RFFM.Api.Infrastructure.Services.Email;
+using RFFM.Api.Services.Export;
 using System.IO;
 
 namespace RFFM.Api.DependencyInjection
@@ -135,6 +136,8 @@ namespace RFFM.Api.DependencyInjection
             services.AddScoped<IGoalSectorsAggregator, GoalSectorsAggregator>();
             services.AddScoped<IFederationSettingService, FederationSettingService>();
             services.AddMemoryCache();
+            // PDF generators
+            services.AddSingleton<SeasonPrepPdfGenerator>();
             return services;
         }
 
