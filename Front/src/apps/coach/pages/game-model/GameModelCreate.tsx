@@ -316,38 +316,29 @@ export default function GameModelCreate() {
 
   useEffect(() => {
     const teamId = team?.id || resolvedTeamId;
-    console.log("[GameModelCreate] effect fired — teamId:", teamId, "season:", seasonFromState);
     if (!teamId || !seasonFromState) {
-      console.log("[GameModelCreate] guard blocked — teamId:", teamId, "season:", seasonFromState);
       return;
     }
     setLoading(true);
     let mounted = true;
     async function init() {
-      console.log("[GameModelCreate] init start");
       const principles = await gameModelService.getAvailableTacticalPrinciples();
-      console.log("[GameModelCreate] principles loaded:", principles.length);
 
       let initialDraft: GameModel;
       if (isEdit && seasonFromState) {
-        console.log("[GameModelCreate] loading existing model for edit");
         const existing = await gameModelService.getByTeamIdAndSeason(teamId, seasonFromState);
         initialDraft = existing ?? (await gameModelService.getEmptyDraft(teamId, seasonFromState));
       } else {
-        console.log("[GameModelCreate] loading empty draft");
         initialDraft = await gameModelService.getEmptyDraft(teamId, seasonFromState);
       }
-      console.log("[GameModelCreate] draft ready, moments:", initialDraft.gameMoments.length);
 
       if (mounted) {
         setDraft(initialDraft);
         setAvailablePrinciples(principles);
         setLoading(false);
-        console.log("[GameModelCreate] done");
       }
     }
     init().catch((err) => {
-      console.error("[GameModelCreate] init error:", err);
       if (mounted) {
         setLoading(false);
         setInitError(err?.message ?? "Error al cargar el formulario");

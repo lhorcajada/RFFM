@@ -35,13 +35,12 @@ export default function FilterBar({
 
   const open = Boolean(anchorEl);
   const handleToggleStatus = (s: Status) => {
-    try { console.debug('[FilterBar] toggleStatus start', { s, before: filterStatus }); } catch {}
     if (filterStatus.includes(s)) {
       setFilterStatus(filterStatus.filter((x) => x !== s));
     } else {
       setFilterStatus([...filterStatus, s]);
     }
-    try { console.debug('[FilterBar] toggleStatus after', { s }); } catch {}
+    
   };
 
   const handleClose = () => setAnchorEl(null);

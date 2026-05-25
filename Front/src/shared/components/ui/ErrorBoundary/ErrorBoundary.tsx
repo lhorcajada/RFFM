@@ -17,10 +17,7 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    // Log to console and preserve stack for debugging
     // (server-side logging can be added here)
-    // eslint-disable-next-line no-console
-    console.error('ErrorBoundary caught an error', error, errorInfo);
     this.setState({ error, errorInfo });
   }
 

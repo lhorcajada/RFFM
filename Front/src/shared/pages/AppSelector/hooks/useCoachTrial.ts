@@ -72,28 +72,22 @@ export function useCoachTrial() {
               const storedRoles = localStorage.getItem("coach_roles");
               if (storedRoles) evtDetail.roles = JSON.parse(storedRoles);
             }
-            console.log("AppSelector: dispatching rffm.coach_token_updated", evtDetail);
-            console.debug("AppSelector: dispatching rffm.coach_token_updated", evtDetail);
             window.dispatchEvent(new CustomEvent("rffm.coach_token_updated", { detail: evtDetail }));
             await new Promise((r) => setTimeout(r, 120));
           } catch {}
         } catch {}
       } else {
         try {
-          console.log("AppSelector: no token from acquireCoachTrial, calling getMyRoles to confirm server-side roles");
           const freshRoles = await getMyRoles();
-          console.log("AppSelector: getMyRoles result", freshRoles);
           if (Array.isArray(freshRoles) && freshRoles.length > 0) {
             try { localStorage.setItem("coach_roles", JSON.stringify(freshRoles)); } catch {}
             try {
               const evtDetail: Record<string, unknown> = { roles: freshRoles };
-              console.log("AppSelector: dispatching rffm.coach_token_updated (roles only)", evtDetail);
               window.dispatchEvent(new CustomEvent("rffm.coach_token_updated", { detail: evtDetail }));
               await new Promise((r) => setTimeout(r, 120));
             } catch {}
           }
         } catch (e) {
-          console.warn("AppSelector: getMyRoles failed", e);
         }
       }
 
@@ -103,7 +97,7 @@ export function useCoachTrial() {
           try {
             const has = coachAuthService.hasRole("Coach");
             const rolesNow = coachAuthService.getRoles();
-            console.log("AppSelector: wait loop rolesNow:", rolesNow, "hasCoach:", has);
+            
             if (has) return true;
           } catch {}
           await new Promise((r) => setTimeout(r, 50));
@@ -112,11 +106,7 @@ export function useCoachTrial() {
       };
 
       const ok = await waitForCoachRole(3000);
-      if (ok) {
-        console.log("AppSelector: role detected, navigating to coach dashboard");
-      } else {
-        console.warn("AppSelector: role NOT detected after wait, will attempt navigation but user may be redirected back");
-      }
+      
       navigate("/coach/dashboard");
 
       dispatchSnackbar("Licencia activada. ¡Disfruta 7 días!", "success");

@@ -225,12 +225,10 @@ export default function useSeasonAccess() {
               }
             } catch (e) {
               // ignore per-day fetch errors and continue
-              console.error('Error checking ratings for day', d.id, e);
             }
           }
         }
       } catch (err) {
-        console.error('Failed to check existing trial days', err);
       }
 
       try {

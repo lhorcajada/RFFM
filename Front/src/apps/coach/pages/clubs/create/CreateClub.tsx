@@ -93,7 +93,6 @@ export default function CreateClub() {
       }, 1200);
     } catch (err) {
       // TODO: show nice error dialog
-      console.error(err);
     } finally {
       setLoading(false);
     }

@@ -106,7 +106,6 @@ export default function useTestGridData({
       if (filterDemarcation !== '' && p.idealDemarcationId !== filterDemarcation) return false;
       return true;
     });
-    try { console.debug('[useTestGridData] filter', { filterStatus, players: players.map((x) => ({ id: x.id, status: x.status, name: x.name })), resultCount: res.length }); } catch {}
     return res;
   }, [players, filterTeam, filterStatus, filterDemarcation]);
 

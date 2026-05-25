@@ -71,10 +71,7 @@ export const CoachAuthProvider: React.FC<{ children: React.ReactNode }> = ({
       try {
         const custom = ev as CustomEvent<any>;
         const detail = custom?.detail ?? {};
-        console.debug(
-          "CoachAuthContext: received rffm.coach_token_updated",
-          detail
-        );
+        
 
         // If roles are provided, cache them so coachAuthService can read them
         if (Array.isArray(detail.roles)) {
@@ -90,14 +87,6 @@ export const CoachAuthProvider: React.FC<{ children: React.ReactNode }> = ({
         const nowUserId = coachAuthService.getUserId();
         setIsAuthenticated(nowAuth);
         setUserId(nowUserId);
-        console.log(
-          "CoachAuthContext: received rffm.coach_token_updated",
-          detail
-        );
-        console.debug(
-          "CoachAuthContext: received rffm.coach_token_updated",
-          detail
-        );
       } catch (e) {
         // ignore
       }

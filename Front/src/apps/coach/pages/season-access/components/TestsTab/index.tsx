@@ -66,9 +66,7 @@ function buildMappedPlayersFromRatings(
     const trialPlayerId = String(r.id);
     const normalizedStatus = normalizeStatusValue(r.status) ?? "interesado";
     const name = (r as any).playerName ?? r.teamName ?? `Jugador ${idx + 1}`;
-    try {
-      console.debug("[TestsTab] buildMappedPlayersFromRatings row", { idx, id: r.id, trialPlayerId, status: r.status });
-    } catch {}
+    
 
     return {
       id: idx + 1,
@@ -137,7 +135,6 @@ function DayTab({ day, selectedPlayers, demarcations, previousDayId, reloadSelec
       setRatings((updated ?? []).filter((r) => String(r.trialDayId) === String(day.id)));
       window.dispatchEvent(new CustomEvent('rffm.show_snackbar', { detail: { message: 'Jugador eliminado del día y siguientes.', severity: 'success' } }));
     } catch (err) {
-      console.error(err);
       window.dispatchEvent(new CustomEvent('rffm.show_snackbar', { detail: { message: 'No se pudo eliminar el jugador.', severity: 'error' } }));
     } finally {
       setLoading(false);
@@ -171,7 +168,7 @@ function DayTab({ day, selectedPlayers, demarcations, previousDayId, reloadSelec
 
   function handlePlayerChange(player: TestPlayer) {
     const key = player.trialPlayerId ?? `__local_${player.id}`;
-    try { console.debug('[TestsTab] handlePlayerChange start', { dayId: day.id, key, player }); } catch {}
+    
     const existing = saveTimersRef.current.get(key);
     if (existing) clearTimeout(existing);
     const timer = setTimeout(async () => {
@@ -215,7 +212,6 @@ function DayTab({ day, selectedPlayers, demarcations, previousDayId, reloadSelec
             }
             needReloadSelectionRef.current = true;
           } catch (err) {
-            console.error('Failed to save selection player', err);
           }
         }
 
@@ -246,9 +242,7 @@ function DayTab({ day, selectedPlayers, demarcations, previousDayId, reloadSelec
           const prevCount = informativeCount(prev);
           const nextCount = informativeCount(currentPayload);
           if (prev && nextCount < prevCount) {
-            console.debug('Skipping less-informative upsert for', keyUp, { prev, next: currentPayload });
           } else {
-            try { console.debug('[TestsTab] upsert current payload', { dayId: day.id, keyUp, currentPayload, createdNow }); } catch {}
             lastUpsertRef.current.set(keyUp, currentPayload);
 
             const previousServerRating = ratings.find((r) => String(r.id) === String(trialPlayerId));
@@ -297,7 +291,6 @@ function DayTab({ day, selectedPlayers, demarcations, previousDayId, reloadSelec
             })();
 
             if (!createdNow && !needReloadSelectionRef.current && !serverChanged) {
-              try { console.debug('[TestsTab] skipping refresh after upsert (no server change)', { dayId: day.id, trialPlayerId }); } catch {}
             } else {
               try {
                 const updated = await getTrialDayRatings(day.id);
@@ -310,15 +303,13 @@ function DayTab({ day, selectedPlayers, demarcations, previousDayId, reloadSelec
               } catch {}
             }
           }
-        } catch (err) {
-          console.error('Failed to upsert trial day rating', err);
+          } catch (err) {
         }
 
         // seed subsequent days if newly created
         try {
           if (createdNow && Array.isArray(days) && typeof activeDayIndex === 'number') {
             if (!trialPlayerId) {
-              console.error('Missing trialPlayerId when seeding subsequent days');
               return;
             }
             const subsequent = days.slice(activeDayIndex + 1);
@@ -350,9 +341,8 @@ function DayTab({ day, selectedPlayers, demarcations, previousDayId, reloadSelec
                   trialDayId: d.id,
                 } as any;
                 await saveSeasonAccessPlayer(seedSnapshotPayload);
-              } catch (seedErr) {
+                } catch (seedErr) {
                 try { lastUpsertRef.current.delete(`${d.id}|${trialPlayerId}`); } catch {}
-                console.error('Seed snapshot update failed for day', d.id, seedErr);
               }
             }
           }
@@ -360,7 +350,6 @@ function DayTab({ day, selectedPlayers, demarcations, previousDayId, reloadSelec
           // ignore
         }
       } catch (err) {
-        console.error(err);
       }
     }, 1500);
     saveTimersRef.current.set(key, timer);

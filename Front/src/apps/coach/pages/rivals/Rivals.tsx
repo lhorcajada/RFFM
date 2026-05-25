@@ -61,7 +61,6 @@ export default function Rivals() {
       const data = await getRivals();
       setRivals(data || []);
     } catch (e) {
-      console.error(e);
     } finally {
       setLoading(false);
     }
@@ -130,7 +129,6 @@ export default function Rivals() {
         }
       } catch (e) {
         // ignore local update errors
-        console.error(e);
       }
       setDialogOpen(false);
       setFile(null);
@@ -138,7 +136,6 @@ export default function Rivals() {
       load();
       window.dispatchEvent(new CustomEvent("rffm.show_snackbar", { detail: { message: "Rival guardado", severity: "success" } }));
     } catch (e) {
-      console.error(e);
       window.dispatchEvent(new CustomEvent("rffm.show_snackbar", { detail: { message: "Error al guardar rival", severity: "error" } }));
     } finally {
       setSaving(false);
@@ -154,7 +151,6 @@ export default function Rivals() {
       // clear previous teams map so teams are shown only after user clicks 'Ver equipos'
       setClubTeamsMap({});
     } catch (e) {
-      console.error(e);
       setClubs([]);
     } finally {
       setSearchLoading(false);
@@ -171,7 +167,6 @@ export default function Rivals() {
       setRivals((prev) => prev.filter((x: any) => (x.id ?? x.Id) !== id));
       window.dispatchEvent(new CustomEvent("rffm.show_snackbar", { detail: { message: "Rival eliminado", severity: "success" } }));
     } catch (err: any) {
-      console.error(err);
       const msg = err?.response?.data?.Message ?? err?.response?.data?.message ?? err?.message ?? "Error al eliminar rival";
       window.dispatchEvent(new CustomEvent("rffm.show_snackbar", { detail: { message: msg, severity: "error" } }));
     }
@@ -182,7 +177,6 @@ export default function Rivals() {
       const teams = await clubService.getClubTeams(clubCode);
       setClubTeamsMap((prev) => ({ ...prev, [clubCode]: teams || [] }));
     } catch (e) {
-      console.error(e);
       setClubTeamsMap((prev) => ({ ...prev, [clubCode]: [] }));
     }
   }
@@ -195,7 +189,6 @@ export default function Rivals() {
       await createRival({ Name: name, UrlPhoto: url, Category: normalizedCategory });
       await load();
     } catch (e) {
-      console.error(e);
       alert("Error al importar equipo");
     }
   }

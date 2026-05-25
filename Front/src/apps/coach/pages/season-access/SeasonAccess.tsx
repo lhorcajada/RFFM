@@ -236,7 +236,6 @@ export default function SeasonAccess() {
                   }
                   window.dispatchEvent(new CustomEvent('rffm.show_snackbar', { detail: { message: 'Copia completada.', severity: 'success' } }));
                 } catch (err) {
-                  console.error(err);
                   window.dispatchEvent(new CustomEvent('rffm.show_snackbar', { detail: { message: 'Error al copiar los datos.', severity: 'error' } }));
                 } finally {
                   setCopying(false);

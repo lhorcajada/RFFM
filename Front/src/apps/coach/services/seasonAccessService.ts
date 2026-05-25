@@ -170,13 +170,7 @@ export async function getTrialDayRatings(dayId: string): Promise<SeasonAccessTri
   const resp = await client.get<SeasonAccessTrialPlayerDto[]>(
     `/api/catalog/season-access/trial-days/${encodeURIComponent(dayId)}/ratings`,
   );
-  try {
-    console.debug('[seasonAccessService] getTrialDayRatings', {
-      dayId,
-      count: resp?.data?.length ?? 0,
-      sample: (resp?.data ?? []).slice(0, 50).map((r) => ({ id: r.id, federationPlayerCode: r.federationPlayerCode, trialPlayerId: r.federationPlayerCode ?? r.id, status: r.status, score: r.score })),
-    });
-  } catch {}
+  
 
   return resp.data ?? [];
 }
