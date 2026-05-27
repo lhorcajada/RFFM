@@ -19,12 +19,14 @@ export async function upsertSeasonPrepAllTeams(state: SeasonPrepSessionData): Pr
   });
 }
 
-export async function exportSeasonPrepAllTeams(state: SeasonPrepSessionData, options?: { templateMode?: boolean; clubName?: string; clubLogoBase64?: string; saveBeforeExport?: boolean; }) : Promise<Blob> {
+export async function exportSeasonPrepAllTeams(state: SeasonPrepSessionData, options?: { templateMode?: boolean; listMode?: boolean; clubName?: string; clubLogoBase64?: string; saveBeforeExport?: boolean; teamIndex?: number | null; }) : Promise<Blob> {
   const payload = {
     Data: JSON.stringify(state),
     SportEventId: state.sportEventId ?? null,
     SaveBeforeExport: options?.saveBeforeExport ?? true,
     TemplateMode: options?.templateMode ?? false,
+    ListMode: options?.listMode ?? false,
+    TeamIndex: options?.teamIndex ?? null,
     ClubName: options?.clubName ?? null,
     ClubLogoBase64: options?.clubLogoBase64 ?? null,
   } as any;

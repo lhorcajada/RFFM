@@ -31,7 +31,7 @@ namespace RFFM.Api.Features.Coaches.SeasonPrep
         }
     }
 
-    public record ExportSeasonPrepCommand(string Data, string? SportEventId, bool SaveBeforeExport, bool TemplateMode, string? ClubName, string? ClubLogoBase64) : IRequest<ExportPdfResult>;
+    public record ExportSeasonPrepCommand(string Data, string? SportEventId, bool SaveBeforeExport, bool TemplateMode, bool ListMode, int? TeamIndex, string? ClubName, string? ClubLogoBase64) : IRequest<ExportPdfResult>;
 
     public record ExportPdfResult(byte[] Bytes, string FileName, string ContentType);
 
@@ -94,7 +94,9 @@ namespace RFFM.Api.Features.Coaches.SeasonPrep
             }
 
             // Generate PDF bytes
-            var pdfBytes = await _generator.GeneratePdfAsync(request.Data, request.SportEventId, request.TemplateMode, request.ClubName ?? teamNameFromEvent, request.ClubLogoBase64);
+            // When generating a printable template, ignore any passed club name so the generator prints placeholders
+            var clubNameParam = request.TemplateMode ? null : (request.ClubName ?? teamNameFromEvent);
+            var pdfBytes = await _generator.GeneratePdfAsync(request.Data, request.SportEventId, request.TemplateMode, clubNameParam, request.ClubLogoBase64, request.ListMode, request.TeamIndex);
 
             var filename = $"Preparacion_{(eventDate.HasValue ? eventDate.Value.ToString("yyyyMMdd") : DateTime.UtcNow.ToString("yyyyMMdd_HHmmss"))}.pdf";
             return new ExportPdfResult(pdfBytes, filename, "application/pdf");

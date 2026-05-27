@@ -82,6 +82,7 @@ export default function PrepareTestsPage() {
   const [fieldHeight, setFieldHeight] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [printing, setPrinting] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   const [navConfirmOpen, setNavConfirmOpen] = useState(false);
@@ -233,6 +234,52 @@ export default function PrepareTestsPage() {
       try { window.dispatchEvent(new CustomEvent('rffm.show_snackbar', { detail: { message: 'Error al exportar PDF.', severity: 'error' } })); } catch {}
     } finally {
       setExporting(false);
+    }
+  }
+
+  async function printTemplate() {
+    if (!activeSeason?.id) {
+      try { window.dispatchEvent(new CustomEvent('rffm.show_snackbar', { detail: { message: 'No hay temporada activa para imprimir.', severity: 'warning' } })); } catch {}
+      return;
+    }
+    setPrinting(true);
+    try {
+      const sessionState = {
+        fedSeason: activeSeason.id,
+        sportEventId: days[selectedDayIndex]?.id ?? null,
+        slot: {
+          formationId: formationId || null,
+          formation: formationName,
+          activeTab,
+          tabs: tabsData,
+        },
+        pool: Object.values(playersById),
+        activeTab,
+        formationId: formationId || null,
+        formationName: formationName || null,
+        selectedDayIndex: selectedDayIndex ?? null,
+      } as const;
+
+      // Generate and download one PDF per team (Equipo 1 and Equipo 2)
+      for (let teamIdx = 0; teamIdx < 2; teamIdx++) {
+        try {
+          const blob = await import("../../../../coach/services/seasonPrepAllTeamsService").then(m => m.exportSeasonPrepAllTeams(sessionState as any, { templateMode: false, listMode: true, saveBeforeExport: false, teamIndex: teamIdx }));
+          const url = window.URL.createObjectURL(blob as Blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `Lista_Jugadores_Equipo_${teamIdx + 1}_${(new Date()).toISOString().replace(/[:.]/g, "_")}.pdf`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          window.URL.revokeObjectURL(url);
+        } catch (err) {
+          // continue with next team
+        }
+      }
+    } catch (err) {
+      try { window.dispatchEvent(new CustomEvent('rffm.show_snackbar', { detail: { message: 'Error al imprimir plantilla.', severity: 'error' } })); } catch {}
+    } finally {
+      setPrinting(false);
     }
   }
 
@@ -480,7 +527,7 @@ export default function PrepareTestsPage() {
           title="Preparación de la prueba"
           subtitle="Organiza equipo y variantes"
           actionBar={(
-            <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{ display: 'flex', gap: 8 }}>
                 <Button size="small" onClick={() => {
                   if (!isDirty) return navigate(-1);
@@ -490,8 +537,21 @@ export default function PrepareTestsPage() {
                 }} variant="outlined">Volver</Button>
                 <Button size="small" onClick={() => void reloadRatings()} variant="outlined">Recargar jugadores</Button>
                 <Button size="small" variant="outlined" onClick={() => setResetConfirmOpen(true)}>Reiniciar equipos</Button>
+                <div style={{ width: 8 }} />
+                <Button size="small" color="primary" variant="outlined" onClick={() => void printTemplate()} disabled={printing}>
+                  {printing ? <CircularProgress size={16} color="inherit" /> : "Lista de jugadores"}
+                </Button>
+                <Button size="small" color="primary" variant="outlined" onClick={() => void exportPdf()} disabled={exporting}>
+                  {exporting ? <CircularProgress size={16} color="inherit" /> : "Valoraciones PDF"}
+                </Button>
               </div>
-            </>
+
+              <div style={{ marginLeft: 'auto' }}>
+                <Button size="small" color="primary" variant="contained" onClick={() => setConfirmOpen(true)} disabled={saving}>
+                  {saving ? <CircularProgress size={16} color="inherit" /> : "Guardar"}
+                </Button>
+              </div>
+            </div>
           )}
         >
           <div className={styles.page}>
@@ -508,12 +568,6 @@ export default function PrepareTestsPage() {
                     <MenuItem key={f.id} value={f.id}>{f.name}</MenuItem>
                   ))}
                 </Select>
-                <Button size="small" color="primary" variant="contained" onClick={() => setConfirmOpen(true)} disabled={saving}>
-                  {saving ? <CircularProgress size={16} color="inherit" /> : "Guardar"}
-                </Button>
-                <Button size="small" color="primary" variant="outlined" onClick={() => void exportPdf()} disabled={exporting}>
-                  {exporting ? <CircularProgress size={16} color="inherit" /> : "Exportar PDF"}
-                </Button>
               </div>
             </div>
 
