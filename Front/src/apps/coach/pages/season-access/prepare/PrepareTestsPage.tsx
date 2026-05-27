@@ -219,17 +219,23 @@ export default function PrepareTestsPage() {
         selectedDayIndex: selectedDayIndex ?? null,
       } as const;
 
-      const blob = await import("../../../../coach/services/seasonPrepAllTeamsService").then(m => m.exportSeasonPrepAllTeams(sessionState as any, { saveBeforeExport: true }));
-      // download
-      const url = window.URL.createObjectURL(blob as Blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `preparacion_${(new Date()).toISOString().replace(/[:.]/g, "_")}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-      try { window.dispatchEvent(new CustomEvent('rffm.show_snackbar', { detail: { message: 'PDF descargado.', severity: 'success' } })); } catch {}
+      // Generate one PDF per team (Equipo 1 y Equipo 2)
+      for (let teamIdx = 0; teamIdx < 2; teamIdx++) {
+        try {
+          const blob = await import("../../../../coach/services/seasonPrepAllTeamsService").then(m => m.exportSeasonPrepAllTeams(sessionState as any, { templateMode: false, ratingsMode: true, saveBeforeExport: false, teamIndex: teamIdx }));
+          const url = window.URL.createObjectURL(blob as Blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `Valoraciones_Equipo_${teamIdx + 1}_${(new Date()).toISOString().replace(/[:.]/g, "_")}.pdf`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          window.URL.revokeObjectURL(url);
+        } catch (err) {
+          // continue with next team
+        }
+      }
+      try { window.dispatchEvent(new CustomEvent('rffm.show_snackbar', { detail: { message: 'PDFs descargados.', severity: 'success' } })); } catch {}
     } catch (err) {
       try { window.dispatchEvent(new CustomEvent('rffm.show_snackbar', { detail: { message: 'Error al exportar PDF.', severity: 'error' } })); } catch {}
     } finally {

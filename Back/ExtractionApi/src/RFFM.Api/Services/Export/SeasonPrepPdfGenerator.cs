@@ -168,7 +168,7 @@ namespace RFFM.Api.Services.Export
             return players;
         }
 
-        public Task<byte[]> GeneratePdfAsync(string dataJson, string? sportEventId, bool templateMode, string? clubName, string? clubLogoBase64, bool listMode = false, int? teamIndex = null)
+        public Task<byte[]> GeneratePdfAsync(string dataJson, string? sportEventId, bool templateMode, string? clubName, string? clubLogoBase64, bool listMode = false, bool ratingsMode = false, int? teamIndex = null)
         {
             var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
             var model = JsonSerializer.Deserialize<SessionModel>(dataJson ?? "{}", options) ?? new SessionModel();
@@ -180,7 +180,7 @@ namespace RFFM.Api.Services.Export
 
             var distinctTeamNames = pool.Where(p => !string.IsNullOrWhiteSpace(p.TeamName)).Select(p => p.TeamName!.Trim()).Distinct().ToList();
 
-            if (listMode)
+            if (listMode || ratingsMode)
             {
                 if (teamIndex.HasValue)
                 {
@@ -267,42 +267,130 @@ namespace RFFM.Api.Services.Export
                             {
                                 col.Item().Text(teamLabel).FontSize(11).SemiBold();
 
-                                // Header row
-                                col.Item().BorderBottom(1).PaddingBottom(6).Row(r =>
+                                if (ratingsMode)
                                 {
-                                    r.ConstantItem(30).AlignCenter().Text("#").SemiBold();
-                                    r.ConstantItem(40).AlignCenter().Text("Dorsal").SemiBold();
-                                    r.RelativeItem().Text("Nombre y apellidos").SemiBold();
-                                    r.ConstantItem(100).Text("Equipo").SemiBold();
-                                    r.ConstantItem(40).AlignCenter().Text("Asist.").SemiBold();
-                                    r.ConstantItem(50).Text("Pos. ideal").SemiBold();
-                                    r.ConstantItem(90).Text("Pos. posibles").SemiBold();
-                                    r.ConstantItem(100).Text("Padre (tel)").SemiBold();
-                                    r.ConstantItem(100).Text("Madre (tel)").SemiBold();
-                                    r.ConstantItem(120).Text("Observaciones").SemiBold();
-                                });
-
-                                // Player rows
-                                int idx = 1;
-                                foreach (var p in players)
-                                {
-                                    col.Item().PaddingTop(6).BorderBottom(1).PaddingBottom(6).Row(r =>
+                                    // Header row for valoraciones: #, Nombre, Pos ideal, Pos posibles
+                                    col.Item().BorderBottom(1).PaddingBottom(6).Row(r =>
                                     {
-                                        r.ConstantItem(30).AlignCenter().Text(idx.ToString());
-                                        r.ConstantItem(40).AlignCenter().Text(p.Dorsal ?? string.Empty);
-                                        r.RelativeItem().Text(p.DisplayName ?? string.Empty);
-                                        r.ConstantItem(100).Text(p.TeamName ?? string.Empty);
-                                        r.ConstantItem(40).AlignCenter().Text(p.Attendance == true ? "[X]" : "[ ]");
-                                        r.ConstantItem(50).Text(AbbreviatePosition(p.PrimaryPosition));
-                                        var possible = p.PossiblePositions != null ? string.Join(", ", p.PossiblePositions.Select(pp => AbbreviatePosition(pp))) : string.Empty;
-                                        r.ConstantItem(90).Text(possible);
-                                        var father = string.IsNullOrWhiteSpace(p.FatherName) && string.IsNullOrWhiteSpace(p.FatherPhone) ? string.Empty : $"{p.FatherName} {p.FatherPhone}".Trim();
-                                        r.ConstantItem(100).Text(father);
-                                        var mother = string.IsNullOrWhiteSpace(p.MotherName) && string.IsNullOrWhiteSpace(p.MotherPhone) ? string.Empty : $"{p.MotherName} {p.MotherPhone}".Trim();
-                                        r.ConstantItem(100).Text(mother);
-                                        r.ConstantItem(120).Text(p.Observations ?? string.Empty);
+                                        r.ConstantItem(30).AlignCenter().Text("#").SemiBold();
+                                        r.RelativeItem().Text("Nombre del jugador").SemiBold();
+                                        r.ConstantItem(80).Text("Pos. ideal").SemiBold();
+                                        r.ConstantItem(160).Text("Pos. posibles").SemiBold();
                                     });
-                                    idx++;
+
+                                    int idx = 1;
+                                    foreach (var p in players)
+                                    {
+                                        var possible = p.PossiblePositions != null ? string.Join(", ", p.PossiblePositions.Select(pp => AbbreviatePosition(pp))) : string.Empty;
+
+                                        // Group the player's basic row + valoraciones box so it won't be split across pages
+                                        col.Item().PaddingTop(6).PaddingBottom(6).Element(el =>
+                                        {
+                                            el.PreventPageBreak().Column(pc =>
+                                            {
+                                                // Basic info row
+                                                pc.Item().BorderBottom(0).PaddingBottom(4).Row(r =>
+                                                {
+                                                    r.ConstantItem(30).AlignCenter().Text(idx.ToString()).FontSize(10);
+                                                    r.RelativeItem().Text(p.DisplayName ?? string.Empty).FontSize(10);
+                                                    r.ConstantItem(80).Text(AbbreviatePosition(p.PrimaryPosition)).FontSize(10);
+                                                    r.ConstantItem(160).Text(possible).FontSize(10);
+                                                });
+
+                                                // Valoraciones box (compact, but with larger fonts and bigger check symbols)
+                                                pc.Item().PaddingTop(2).PaddingBottom(6).BorderBottom(1).Column(inner =>
+                                                {
+                                                    inner.Item().Padding(6).Background(Colors.White).Border(1).Column(box =>
+                                                    {
+                                                        // First row: Actitud | Esfuerzo
+                                                        box.Item().Row(rr =>
+                                                        {
+                                                            rr.RelativeItem().Column(g =>
+                                                            {
+                                                                g.Item().Text("Actitud:").SemiBold().FontSize(11);
+                                                                g.Item().Text("☐ Pasota  ☐ No soporta la presión  ☐ Temperamental  ☐ comunicador  ☐ concentrado  ☐ no baja los brazos  ☐ es líder").FontSize(10);
+                                                            });
+
+                                                            rr.RelativeItem().Column(g =>
+                                                            {
+                                                                g.Item().Text("Esfuerzo:").SemiBold().FontSize(11);
+                                                                g.Item().Text("☐ Poco esfuerzo  ☐ a ratos  ☐ gran parte del tiempo  ☐ máximo").FontSize(10);
+                                                            });
+                                                        });
+
+                                                        // Second row: Con balón | Sin balón | Competición
+                                                        box.Item().PaddingTop(6).Row(rr =>
+                                                        {
+                                                            rr.RelativeItem().Column(g =>
+                                                            {
+                                                                g.Item().Text("Con balón:").SemiBold().FontSize(11);
+                                                                g.Item().Text("☐ poco  ☐ se defiende  ☐ se desenvuelve  ☐ la esconde  ☐ pocas perdidas  ☐ buena visión").FontSize(10);
+                                                            });
+
+                                                            rr.RelativeItem().Column(g =>
+                                                            {
+                                                                g.Item().Text("Sin balón:").SemiBold().FontSize(11);
+                                                                g.Item().Text("☐ no aparece  ☐ no sigue a la marca  ☐ no se posiciona bien  ☐ se ofrece  ☐ se anticipa  ☐ sigue bien a la marca  ☐ se posiciona bien  ☐ se desmarca bien").FontSize(10);
+                                                            });
+
+                                                            rr.RelativeItem().Column(g =>
+                                                            {
+                                                                g.Item().Text("Competición:").SemiBold().FontSize(11);
+                                                                g.Item().Text("☐ poca lucha  ☐ no gana duelos  ☐ poca participación  ☐ participación a ratos  ☐ va a los balones divididos  ☐ gana duelos  ☐ se hace notar  ☐ es determinante").FontSize(10);
+                                                            });
+                                                        });
+
+                                                        // Observaciones area
+                                                        box.Item().PaddingTop(6).Text("Observaciones:").FontSize(10).SemiBold();
+                                                        box.Item().Height(40).Text(string.Empty).FontSize(10);
+                                                    });
+                                                });
+                                            });
+                                        });
+
+                                        idx++;
+                                    }
+                                }
+                                else
+                                {
+                                    // Existing players list layout
+                                    // Header row
+                                    col.Item().BorderBottom(1).PaddingBottom(6).Row(r =>
+                                    {
+                                        r.ConstantItem(30).AlignCenter().Text("#").SemiBold();
+                                        r.ConstantItem(40).AlignCenter().Text("Dorsal").SemiBold();
+                                        r.RelativeItem().Text("Nombre y apellidos").SemiBold();
+                                        r.ConstantItem(100).Text("Equipo").SemiBold();
+                                        r.ConstantItem(40).AlignCenter().Text("Asist.").SemiBold();
+                                        r.ConstantItem(50).Text("Pos. ideal").SemiBold();
+                                        r.ConstantItem(90).Text("Pos. posibles").SemiBold();
+                                        r.ConstantItem(100).Text("Padre (tel)").SemiBold();
+                                        r.ConstantItem(100).Text("Madre (tel)").SemiBold();
+                                        r.ConstantItem(120).Text("Observaciones").SemiBold();
+                                    });
+
+                                    // Player rows
+                                    int idx = 1;
+                                    foreach (var p in players)
+                                    {
+                                        col.Item().PaddingTop(6).BorderBottom(1).PaddingBottom(6).Row(r =>
+                                        {
+                                            r.ConstantItem(30).AlignCenter().Text(idx.ToString());
+                                            r.ConstantItem(40).AlignCenter().Text(p.Dorsal ?? string.Empty);
+                                            r.RelativeItem().Text(p.DisplayName ?? string.Empty);
+                                            r.ConstantItem(100).Text(p.TeamName ?? string.Empty);
+                                            r.ConstantItem(40).AlignCenter().Text(p.Attendance == true ? "☑" : "☐").FontSize(11).SemiBold();
+                                            r.ConstantItem(50).Text(AbbreviatePosition(p.PrimaryPosition));
+                                            var possible = p.PossiblePositions != null ? string.Join(", ", p.PossiblePositions.Select(pp => AbbreviatePosition(pp))) : string.Empty;
+                                            r.ConstantItem(90).Text(possible);
+                                            var father = string.IsNullOrWhiteSpace(p.FatherName) && string.IsNullOrWhiteSpace(p.FatherPhone) ? string.Empty : $"{p.FatherName} {p.FatherPhone}".Trim();
+                                            r.ConstantItem(100).Text(father);
+                                            var mother = string.IsNullOrWhiteSpace(p.MotherName) && string.IsNullOrWhiteSpace(p.MotherPhone) ? string.Empty : $"{p.MotherName} {p.MotherPhone}".Trim();
+                                            r.ConstantItem(100).Text(mother);
+                                            r.ConstantItem(120).Text(p.Observations ?? string.Empty);
+                                        });
+                                        idx++;
+                                    }
                                 }
                             });
                         });
