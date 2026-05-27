@@ -27,6 +27,7 @@ export default function useTestGridData({
 
   useEffect(() => {
     setPlayers((prev) => {
+      
       const prevServerIds = new Set(prev.filter((p) => p.trialPlayerId).map((p) => String(p.trialPlayerId)));
       const newServerIds = new Set(initialPlayers.filter((p) => p.trialPlayerId).map((p) => String(p.trialPlayerId)));
 
@@ -34,6 +35,7 @@ export default function useTestGridData({
 
       if (setsEqual) {
         const serverMap = new Map<string, Player>(initialPlayers.filter((p) => p.trialPlayerId).map((p) => [String(p.trialPlayerId), p]));
+        
         return prev.map((lp) => {
           if (!lp.trialPlayerId) return lp;
           const sp = serverMap.get(String(lp.trialPlayerId));
@@ -91,9 +93,39 @@ export default function useTestGridData({
         merged.push({ ...lp, id: nextId++ });
       }
 
+      
+
       return merged;
     });
   }, [initialPlayers]);
+
+  
+
+  useEffect(() => {
+    try {
+      const filteredCount = (() => {
+        const normalizedFilterSet = new Set((Array.isArray(filterStatus) ? filterStatus : []).map((s) => String(s).trim().toLowerCase()));
+        const res = players.filter((p) => {
+          if (filterTeam && !(p.teamName ?? '').toLowerCase().includes(filterTeam.toLowerCase())) return false;
+          if (normalizedFilterSet.size > 0) {
+            const ps = String(p.status ?? '').trim().toLowerCase();
+            if (!normalizedFilterSet.has(ps)) return false;
+          }
+          if (filterDemarcation !== '' && p.idealDemarcationId !== filterDemarcation) return false;
+          return true;
+        });
+        return res;
+      })();
+
+      const sortedCount = (() => {
+        if (!sortBy.key) return filteredCount.length;
+        // approximate: apply simple sort doesn't change length
+        return filteredCount.length;
+      })();
+
+      const sampleKeys = players.slice(0, 80).map((p) => String(p.trialPlayerId ?? `local-${p.id}`));
+    } catch {}
+  }, [players, filterTeam, filterStatus, filterDemarcation, sortBy]);
 
   const filtered = useMemo(() => {
     const normalizedFilterSet = new Set((Array.isArray(filterStatus) ? filterStatus : []).map((s) => String(s).trim().toLowerCase()));

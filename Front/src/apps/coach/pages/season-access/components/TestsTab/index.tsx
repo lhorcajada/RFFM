@@ -13,6 +13,8 @@ import {
   type SeasonAccessTrialPlayerDto,
   type UpsertTrialDayRatingPayload,
 } from "../../../../services/seasonAccessService";
+import useTrialDays from './hooks/useTrialDays';
+import useTrialDayRatings from './hooks/useTrialDayRatings';
 import { normalizeCategory } from "../../helpers/seasonAccess.helpers";
 
 type Props = {
@@ -99,11 +101,19 @@ interface DayTabProps {
 }
 
 function DayTab({ day, selectedPlayers, demarcations, previousDayId, reloadSelection, seasonId, category, days = [], activeDayIndex = 0 }: DayTabProps) {
-  const [ratings, setRatings] = useState<SeasonAccessTrialPlayerDto[]>([]);
-  const [loading, setLoading] = useState(true);
   const saveTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const needReloadSelectionRef = useRef(false);
   const lastUpsertRef = useRef<Map<string, UpsertTrialDayRatingPayload>>(new Map());
+  const [actionLoading, setActionLoading] = useState(false);
+
+  const {
+    raw: rawRatings,
+    filtered: ratings,
+    excluded: excludedRatings,
+    loading: ratingsLoading,
+    reload: reloadRatings,
+    counts: ratingCounts,
+  } = useTrialDayRatings(day, previousDayId);
 
   function updateLastUpsertsFromRatings(list: SeasonAccessTrialPlayerDto[] | null | undefined) {
     if (!Array.isArray(list)) return;
@@ -123,48 +133,34 @@ function DayTab({ day, selectedPlayers, demarcations, previousDayId, reloadSelec
 
   async function handleRemovePlayer(player: TestPlayer) {
     if (!player.trialPlayerId) return;
-    setLoading(true);
+    setActionLoading(true);
     try {
       await removeTrialPlayerFromDay(day.id, player.trialPlayerId);
       try {
         if (reloadSelection) await reloadSelection();
-      } catch {
-        // ignore reload errors
-      }
-      const updated = await getTrialDayRatings(day.id);
-      setRatings((updated ?? []).filter((r) => String(r.trialDayId) === String(day.id)));
+      } catch {}
+      try {
+        await reloadRatings();
+      } catch {}
       window.dispatchEvent(new CustomEvent('rffm.show_snackbar', { detail: { message: 'Jugador eliminado del día y siguientes.', severity: 'success' } }));
     } catch (err) {
       window.dispatchEvent(new CustomEvent('rffm.show_snackbar', { detail: { message: 'No se pudo eliminar el jugador.', severity: 'error' } }));
     } finally {
-      setLoading(false);
+      setActionLoading(false);
     }
   }
 
+  // Keep last-upserts in sync when ratings change
   useEffect(() => {
-    let mounted = true;
-    setLoading(true);
+    try { updateLastUpsertsFromRatings(ratings); } catch {}
+  }, [ratings]);
 
-    getTrialDayRatings(day.id)
-      .then((result) => {
-        if (!mounted) return;
-        const filtered = (result ?? []).filter((r) => String(r.trialDayId) === String(day.id));
-        setRatings(filtered);
-        updateLastUpsertsFromRatings(filtered);
-      })
-      .catch(() => {
-        if (mounted) setRatings([]);
-      })
-      .finally(() => {
-        if (mounted) setLoading(false);
-      });
-
+  useEffect(() => {
     return () => {
-      mounted = false;
       saveTimersRef.current.forEach((t) => clearTimeout(t));
       saveTimersRef.current.clear();
     };
-  }, [day.id, previousDayId]);
+  }, []);
 
   function handlePlayerChange(player: TestPlayer) {
     const key = player.trialPlayerId ?? `__local_${player.id}`;
@@ -293,9 +289,7 @@ function DayTab({ day, selectedPlayers, demarcations, previousDayId, reloadSelec
             if (!createdNow && !needReloadSelectionRef.current && !serverChanged) {
             } else {
               try {
-                const updated = await getTrialDayRatings(day.id);
-                setRatings((updated ?? []).filter((r) => String(r.trialDayId) === String(day.id)));
-                updateLastUpsertsFromRatings(updated);
+                await reloadRatings();
                 if (needReloadSelectionRef.current) {
                   try { if (reloadSelection) await reloadSelection(); } catch {}
                   needReloadSelectionRef.current = false;
@@ -356,8 +350,11 @@ function DayTab({ day, selectedPlayers, demarcations, previousDayId, reloadSelec
   }
 
   const mappedPlayers = buildMappedPlayersFromRatings(ratings, day.date);
+  // debug traces removed
+  const counts = ratingCounts ?? { rawCount: (rawRatings ?? []).length, filteredCount: (ratings ?? []).length, excludedCount: (excludedRatings ?? []).length };
+  const isLoading = ratingsLoading || actionLoading;
 
-  if (loading) {
+  if (isLoading) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
         <CircularProgress size={24} />
@@ -365,7 +362,14 @@ function DayTab({ day, selectedPlayers, demarcations, previousDayId, reloadSelec
     );
   }
 
-  return <TestGrid initialPlayers={mappedPlayers} demarcations={demarcations} onPlayerChange={handlePlayerChange} onPlayerRemove={handleRemovePlayer} />;
+  return (
+    <div>
+      <div style={{ marginBottom: 8, fontSize: '0.85rem', color: '#666' }}>
+        Registros raw: {counts.rawCount} · Incluidos: {counts.filteredCount} · Excluidos: {counts.excludedCount} · Mapeados: {mappedPlayers.length}
+      </div>
+      <TestGrid initialPlayers={mappedPlayers} demarcations={demarcations} onPlayerChange={handlePlayerChange} onPlayerRemove={handleRemovePlayer} />
+    </div>
+  );
 }
 
 export default function TestsTab({
@@ -375,37 +379,8 @@ export default function TestsTab({
   category,
   reloadSelection,
 }: Props) {
-  const [days, setDays] = useState<SeasonAccessTrialDay[]>([]);
-  const [daysLoading, setDaysLoading] = useState(false);
   const [activeDay, setActiveDay] = useState(0);
-
-  useEffect(() => {
-    if (!seasonId || !category) {
-      setDays([]);
-      return;
-    }
-
-    let mounted = true;
-    setDaysLoading(true);
-
-    getTrialDays(seasonId, category)
-      .then((result) => {
-        if (mounted) {
-          setDays(result);
-          setActiveDay(0);
-        }
-      })
-      .catch(() => {
-        if (mounted) setDays([]);
-      })
-      .finally(() => {
-        if (mounted) setDaysLoading(false);
-      });
-
-    return () => {
-      mounted = false;
-    };
-  }, [seasonId, category]);
+  const { days, loading: daysLoading, reload: reloadDays } = useTrialDays(seasonId, category);
 
   if (daysLoading) {
     return (

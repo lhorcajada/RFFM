@@ -183,6 +183,7 @@ export default function SeasonAccess() {
             handleAddAllPlayers={handleAddAllPlayers}
             handleTogglePlayer={handleTogglePlayer}
             seasonId={activeSeason?.id ?? null}
+            reloadSelection={reloadSelection}
           />
         )}
         {tabIndex === 1 && (

@@ -69,6 +69,7 @@ function normalizeSelectedPlayer(
     possibleDemarcationIds: player.possibleDemarcationIds ?? [],
     idealDemarcationId: player.idealDemarcationId ?? null,
     status: player.status ?? null,
+    removedFromDate: (player as any).removedFromDate ?? null,
   };
 }
 

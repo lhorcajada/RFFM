@@ -126,7 +126,7 @@ export default function TestGridTable({ sorted, demarcations, updatePlayer, togg
         </thead>
         <tbody>
           {sorted.map((p) => (
-            <tr key={p.trialPlayerId ?? `local-${p.id}`} className={styles.tr}>
+            <tr key={String(p.id)} className={styles.tr}>
               <td className={styles.td}>
                 <input className={styles.input} value={p.name} onChange={(e) => updatePlayer(p.id, 'name', e.target.value)} />
               </td>

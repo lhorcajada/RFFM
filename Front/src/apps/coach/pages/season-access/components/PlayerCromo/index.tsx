@@ -14,6 +14,7 @@ export type SeasonAccessPlayer = {
   federationPlayerCode?: string;
   age?: number | null;
   status?: string | null;
+  removedFromDate?: string | null;
 };
 
 type Props = {

@@ -139,6 +139,17 @@ namespace RFFM.Api.Features.Coaches.SeasonAccess
                         request.TrialDayId);
                 }
 
+                // If the client provided a TrialDayId we are (re)adding the player to a day —
+                // clear any previous RemovedFromDate so the player becomes active again.
+                if (!string.IsNullOrWhiteSpace(request.TrialDayId))
+                {
+                    try
+                    {
+                        player.SetRemovedFromDate(null);
+                    }
+                    catch { }
+                }
+
                 await _db.SaveChangesAsync(cancellationToken);
 
                 var refreshed = await _db.SeasonAccessTrials
