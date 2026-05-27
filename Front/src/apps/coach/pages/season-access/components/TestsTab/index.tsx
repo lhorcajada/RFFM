@@ -364,9 +364,6 @@ function DayTab({ day, selectedPlayers, demarcations, previousDayId, reloadSelec
 
   return (
     <div>
-      <div style={{ marginBottom: 8, fontSize: '0.85rem', color: '#666' }}>
-        Registros raw: {counts.rawCount} · Incluidos: {counts.filteredCount} · Excluidos: {counts.excludedCount} · Mapeados: {mappedPlayers.length}
-      </div>
       <TestGrid initialPlayers={mappedPlayers} demarcations={demarcations} onPlayerChange={handlePlayerChange} onPlayerRemove={handleRemovePlayer} />
     </div>
   );
