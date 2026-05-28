@@ -348,6 +348,21 @@ const IdealLineup = forwardRef<IdealLineupHandle, IdealLineupProps>(function Ide
     });
   }
 
+  // Ensure any stray global drag/pointer/end events reset the active drag
+  // This prevents the UI from remaining in a 'dragging' state if a drag
+  // ends unexpectedly or is interrupted outside the DnD context.
+  useEffect(() => {
+    const cleanup = () => setActiveId(null);
+    window.addEventListener("pointerup", cleanup);
+    window.addEventListener("dragend", cleanup);
+    window.addEventListener("touchend", cleanup);
+    return () => {
+      window.removeEventListener("pointerup", cleanup);
+      window.removeEventListener("dragend", cleanup);
+      window.removeEventListener("touchend", cleanup);
+    };
+  }, []);
+
   // ── Save ─────────────────────────────────────────────────────────────
   async function handleSave() {
     if (!formationId || !teamId) return;

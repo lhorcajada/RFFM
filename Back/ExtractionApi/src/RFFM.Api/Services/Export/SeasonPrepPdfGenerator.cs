@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using QuestPDF.Fluent;
 using QuestPDF.Infrastructure;
 using QuestPDF.Helpers;
+using System.Text.RegularExpressions;
 
 namespace RFFM.Api.Services.Export
 {
@@ -97,6 +98,91 @@ namespace RFFM.Api.Services.Export
             return 4;
         }
 
+        private static string GetPrimaryDemarcationLabel(Player p)
+        {
+            if (!string.IsNullOrWhiteSpace(p.PrimaryPosition))
+                return p.PrimaryPosition!.Trim();
+
+            if (p.PossiblePositions != null && p.PossiblePositions.Count > 0)
+                return (p.PossiblePositions[0] ?? string.Empty).Trim();
+
+            return string.Empty;
+        }
+
+        private static int GetDemarcationGroupPriority(string? label)
+        {
+            var s = (label ?? string.Empty).ToLowerInvariant();
+            if (string.IsNullOrWhiteSpace(s) || s.Contains("sin demarc")) return 99;
+            if (s.Contains("port") || s.Contains("arquero") || s.Contains("guardameta")) return 0;
+            if (s.Contains("defen") || s.Contains("lateral") || s.Contains("central") || s.Contains("zague") || s.Contains("defensa")) return 1;
+            if (s.Contains("medio") || s.Contains("centro") || s.Contains("volante") || s.Contains("medioc")) return 2;
+            if (s.Contains("extrem") || s.Contains("ala") || s.Contains("wing")) return 3;
+            if (s.Contains("delanter") || s.Contains("punta") || s.Contains("nueve") || s.Contains("9")) return 4;
+            return 98;
+        }
+
+        private static string PluralizeLabel(string label)
+        {
+            if (string.IsNullOrWhiteSpace(label)) return label;
+
+            string PluralizeWord(string word)
+            {
+                if (string.IsNullOrWhiteSpace(word)) return word;
+                var original = word;
+                var firstUpper = char.IsUpper(original[0]);
+                var lower = original.ToLowerInvariant();
+
+                // Heurística simple: si ya parece plural (termina en 's'), lo dejamos
+                if (lower.EndsWith("s")) return original;
+
+                // si termina en 'ión' -> 'iones' (quita acento automáticamente en la transformación)
+                if (Regex.IsMatch(lower, "ión$"))
+                {
+                    var candidate = Regex.Replace(lower, "ión$", "iones", RegexOptions.IgnoreCase);
+                    return ApplyCase(candidate, firstUpper);
+                }
+
+                // z -> ces
+                if (lower.EndsWith("z"))
+                {
+                    var candidate = lower.Substring(0, lower.Length - 1) + "ces";
+                    return ApplyCase(candidate, firstUpper);
+                }
+
+                // vocales (incluye vocales acentuadas y ü)
+                var last = lower[lower.Length - 1];
+                var vowels = new[] { 'a', 'e', 'i', 'o', 'u', 'á', 'é', 'í', 'ó', 'ú', 'ü' };
+                if (Array.IndexOf(vowels, last) >= 0)
+                {
+                    var candidate = lower + "s";
+                    return ApplyCase(candidate, firstUpper);
+                }
+
+                // consonante -> es
+                var candidateFinal = lower + "es";
+                return ApplyCase(candidateFinal, firstUpper);
+            }
+
+            string ApplyCase(string w, bool firstUpper)
+            {
+                if (string.IsNullOrEmpty(w)) return w;
+                if (firstUpper) return char.ToUpperInvariant(w[0]) + w.Substring(1);
+                return w;
+            }
+
+            // Split by spaces, and pluralize subparts separated by hyphens
+            var parts = label.Split(' ');
+            for (int i = 0; i < parts.Length; i++)
+            {
+                var segment = parts[i];
+                var hy = segment.Split('-');
+                for (int j = 0; j < hy.Length; j++) hy[j] = PluralizeWord(hy[j]);
+                parts[i] = string.Join("-", hy);
+            }
+
+            return string.Join(" ", parts);
+        }
+
         private static List<Player> BuildPlayersForTeam(string teamName, List<Player> pool, List<TabData> tabs)
         {
             if (tabs != null && tabs.Count > 0)
@@ -132,8 +218,8 @@ namespace RFFM.Api.Services.Export
                     }
 
                     var others = pool.Where(p => (p.TeamName ?? string.Empty).Trim() == teamName && !added.Contains(p.TeamPlayerId))
-                                     .OrderBy(p => GetPositionGroup(p))
-                                     .ThenBy(p => { if (int.TryParse(p.Dorsal, out var v)) return v; return int.MaxValue; })
+                                     .OrderBy(p => GetDemarcationGroupPriority(GetPrimaryDemarcationLabel(p)))
+                                     .ThenBy(p => GetPrimaryDemarcationLabel(p))
                                      .ThenBy(p => p.DisplayName)
                                      .ToList();
 
@@ -143,8 +229,8 @@ namespace RFFM.Api.Services.Export
             }
 
             return pool.Where(p => (p.TeamName ?? string.Empty).Trim() == teamName)
-                       .OrderBy(p => GetPositionGroup(p))
-                       .ThenBy(p => { if (int.TryParse(p.Dorsal, out var v)) return v; return int.MaxValue; })
+                       .OrderBy(p => GetDemarcationGroupPriority(GetPrimaryDemarcationLabel(p)))
+                       .ThenBy(p => GetPrimaryDemarcationLabel(p))
                        .ThenBy(p => p.DisplayName)
                        .ToList();
         }
@@ -223,13 +309,13 @@ namespace RFFM.Api.Services.Export
                     }
                     else
                     {
-                        pages.Add(("Lista de jugadores", pool.OrderBy(p => GetPositionGroup(p)).ThenBy(p => { if (int.TryParse(p.Dorsal, out var v)) return v; return int.MaxValue; }).ThenBy(p => p.DisplayName).ToList()));
+                        pages.Add(("Lista de jugadores", pool.OrderBy(p => GetDemarcationGroupPriority(GetPrimaryDemarcationLabel(p))).ThenBy(p => GetPrimaryDemarcationLabel(p)).ThenBy(p => p.DisplayName).ToList()));
                     }
                 }
             }
             else
             {
-                pages.Add(("Lista de jugadores", pool.OrderBy(p => GetPositionGroup(p)).ThenBy(p => { if (int.TryParse(p.Dorsal, out var v)) return v; return int.MaxValue; }).ThenBy(p => p.DisplayName).ToList()));
+                pages.Add(("Lista de jugadores", pool.OrderBy(p => GetDemarcationGroupPriority(GetPrimaryDemarcationLabel(p))).ThenBy(p => GetPrimaryDemarcationLabel(p)).ThenBy(p => p.DisplayName).ToList()));
             }
 
             var document = Document.Create(container =>
@@ -238,6 +324,17 @@ namespace RFFM.Api.Services.Export
                 {
                     var teamLabel = pageData.TeamLabel;
                     var players = pageData.Players ?? new List<Player>();
+
+                    // When generating list or ratings PDFs, order players by position groups
+                    // Porteros (0), Defensas (1), Medios (2), Delanteros (3), Unknown (4)
+                    if (listMode || ratingsMode)
+                    {
+                        players = players
+                            .OrderBy(p => GetDemarcationGroupPriority(GetPrimaryDemarcationLabel(p)))
+                            .ThenBy(p => GetPrimaryDemarcationLabel(p))
+                            .ThenBy(p => p.DisplayName)
+                            .ToList();
+                    }
 
                     container.Page(page =>
                     {
@@ -279,76 +376,106 @@ namespace RFFM.Api.Services.Export
                                     });
 
                                     int idx = 1;
-                                    foreach (var p in players)
-                                    {
-                                        var possible = p.PossiblePositions != null ? string.Join(", ", p.PossiblePositions.Select(pp => AbbreviatePosition(pp))) : string.Empty;
 
-                                        // Group the player's basic row + valoraciones box so it won't be split across pages
-                                        col.Item().PaddingTop(6).PaddingBottom(6).Element(el =>
+                                    // Group players by primary demarcation label (ideal position)
+                                    var groups = players.GroupBy(p =>
                                         {
-                                            el.PreventPageBreak().Column(pc =>
+                                            var lab = GetPrimaryDemarcationLabel(p);
+                                            return string.IsNullOrWhiteSpace(lab) ? "Sin demarcación" : lab;
+                                        })
+                                        .OrderBy(g => GetDemarcationGroupPriority(g.Key))
+                                        .ThenBy(g => g.Key)
+                                        .ToList();
+
+                                    foreach (var grp in groups)
+                                    {
+                                        var groupLabel = grp.Key;
+                                        var groupPlayers = grp.OrderBy(p => p.DisplayName).ToList();
+                                        // Group container: prevent page break for the whole group and render header with background only
+                                        col.Item().PaddingTop(8).PaddingBottom(2).Element(groupContainer =>
+                                        {
+                                            groupContainer.PreventPageBreak().Column(groupCol =>
                                             {
-                                                // Basic info row
-                                                pc.Item().BorderBottom(0).PaddingBottom(4).Row(r =>
+                                                // Group header: centered, pluralized, with background and count
+                                                var headerText = PluralizeLabel(groupLabel);
+                                                groupCol.Item().PaddingBottom(6).Element(h =>
                                                 {
-                                                    r.ConstantItem(30).AlignCenter().Text(idx.ToString()).FontSize(10);
-                                                    r.RelativeItem().Text(p.DisplayName ?? string.Empty).FontSize(10);
-                                                    r.ConstantItem(80).Text(AbbreviatePosition(p.PrimaryPosition)).FontSize(10);
-                                                    r.ConstantItem(160).Text(possible).FontSize(10);
+                                                    h.Background(Colors.Grey.Lighten3).Padding(6).AlignCenter().Text($"{headerText} ({groupPlayers.Count})").SemiBold();
                                                 });
 
-                                                // Valoraciones box (compact, but with larger fonts and bigger check symbols)
-                                                pc.Item().PaddingTop(2).PaddingBottom(6).BorderBottom(1).Column(inner =>
+                                                foreach (var p in groupPlayers)
                                                 {
-                                                    inner.Item().Padding(6).Background(Colors.White).Border(1).Column(box =>
+                                                    var possible = p.PossiblePositions != null ? string.Join(", ", p.PossiblePositions.Select(pp => AbbreviatePosition(pp))) : string.Empty;
+
+                                                    // Player row + valoraciones inside the group container
+                                                    groupCol.Item().PaddingTop(6).PaddingBottom(6).Element(el =>
                                                     {
-                                                        // First row: Actitud | Esfuerzo
-                                                        box.Item().Row(rr =>
+                                                        el.PreventPageBreak().Column(pc =>
                                                         {
-                                                            rr.RelativeItem().Column(g =>
+                                                            // Basic info row
+                                                            pc.Item().BorderBottom(0).PaddingBottom(4).Row(r =>
                                                             {
-                                                                g.Item().Text("Actitud:").SemiBold().FontSize(11);
-                                                                g.Item().Text("☐ Pasota  ☐ No soporta la presión  ☐ Temperamental  ☐ comunicador  ☐ concentrado  ☐ no baja los brazos  ☐ es líder").FontSize(10);
+                                                                r.ConstantItem(30).AlignCenter().Text(idx.ToString()).FontSize(10);
+                                                                r.RelativeItem().Text(p.DisplayName ?? string.Empty).FontSize(10);
+                                                                r.ConstantItem(80).Text(AbbreviatePosition(p.PrimaryPosition)).FontSize(10);
+                                                                r.ConstantItem(160).Text(possible).FontSize(10);
                                                             });
 
-                                                            rr.RelativeItem().Column(g =>
+                                                            // Valoraciones box (compact, but with larger fonts and bigger check symbols)
+                                                            pc.Item().PaddingTop(2).PaddingBottom(6).BorderBottom(1).Column(inner =>
                                                             {
-                                                                g.Item().Text("Esfuerzo:").SemiBold().FontSize(11);
-                                                                g.Item().Text("☐ Poco esfuerzo  ☐ a ratos  ☐ gran parte del tiempo  ☐ máximo").FontSize(10);
+                                                                inner.Item().Padding(6).Background(Colors.White).Border(1).Column(box =>
+                                                                {
+                                                                    // First row: Actitud | Esfuerzo
+                                                                    box.Item().Row(rr =>
+                                                                    {
+                                                                        rr.RelativeItem().Column(g =>
+                                                                        {
+                                                                            g.Item().Text("Actitud:").SemiBold().FontSize(11);
+                                                                            g.Item().Text("☐ Pasota  ☐ No soporta la presión  ☐ Temperamental  ☐ comunicador  ☐ concentrado  ☐ no baja los brazos  ☐ es líder").FontSize(10);
+                                                                        });
+
+                                                                        rr.RelativeItem().Column(g =>
+                                                                        {
+                                                                            g.Item().Text("Esfuerzo:").SemiBold().FontSize(11);
+                                                                            g.Item().Text("☐ Poco esfuerzo  ☐ a ratos  ☐ gran parte del tiempo  ☐ máximo").FontSize(10);
+                                                                        });
+                                                                    });
+
+                                                                    // Second row: Con balón | Sin balón | Competición
+                                                                    box.Item().PaddingTop(6).Row(rr =>
+                                                                    {
+                                                                        rr.RelativeItem().Column(g =>
+                                                                        {
+                                                                            g.Item().Text("Con balón:").SemiBold().FontSize(11);
+                                                                            g.Item().Text("☐ poco  ☐ se defiende  ☐ se desenvuelve  ☐ la esconde  ☐ pocas perdidas  ☐ buena visión").FontSize(10);
+                                                                        });
+
+                                                                        rr.RelativeItem().Column(g =>
+                                                                        {
+                                                                            g.Item().Text("Sin balón:").SemiBold().FontSize(11);
+                                                                            g.Item().Text("☐ no aparece  ☐ no sigue a la marca  ☐ no se posiciona bien  ☐ se ofrece  ☐ se anticipa  ☐ sigue bien a la marca  ☐ se posiciona bien  ☐ se desmarca bien").FontSize(10);
+                                                                        });
+
+                                                                        rr.RelativeItem().Column(g =>
+                                                                        {
+                                                                            g.Item().Text("Competición:").SemiBold().FontSize(11);
+                                                                            g.Item().Text("☐ poca lucha  ☐ no gana duelos  ☐ poca participación  ☐ participación a ratos  ☐ va a los balones divididos  ☐ gana duelos  ☐ se hace notar  ☐ es determinante").FontSize(10);
+                                                                        });
+                                                                    });
+
+                                                                    // Observaciones area
+                                                                    box.Item().PaddingTop(6).Text("Observaciones:").FontSize(10).SemiBold();
+                                                                    box.Item().Height(40).Text(string.Empty).FontSize(10);
+                                                                });
                                                             });
                                                         });
-
-                                                        // Second row: Con balón | Sin balón | Competición
-                                                        box.Item().PaddingTop(6).Row(rr =>
-                                                        {
-                                                            rr.RelativeItem().Column(g =>
-                                                            {
-                                                                g.Item().Text("Con balón:").SemiBold().FontSize(11);
-                                                                g.Item().Text("☐ poco  ☐ se defiende  ☐ se desenvuelve  ☐ la esconde  ☐ pocas perdidas  ☐ buena visión").FontSize(10);
-                                                            });
-
-                                                            rr.RelativeItem().Column(g =>
-                                                            {
-                                                                g.Item().Text("Sin balón:").SemiBold().FontSize(11);
-                                                                g.Item().Text("☐ no aparece  ☐ no sigue a la marca  ☐ no se posiciona bien  ☐ se ofrece  ☐ se anticipa  ☐ sigue bien a la marca  ☐ se posiciona bien  ☐ se desmarca bien").FontSize(10);
-                                                            });
-
-                                                            rr.RelativeItem().Column(g =>
-                                                            {
-                                                                g.Item().Text("Competición:").SemiBold().FontSize(11);
-                                                                g.Item().Text("☐ poca lucha  ☐ no gana duelos  ☐ poca participación  ☐ participación a ratos  ☐ va a los balones divididos  ☐ gana duelos  ☐ se hace notar  ☐ es determinante").FontSize(10);
-                                                            });
-                                                        });
-
-                                                        // Observaciones area
-                                                        box.Item().PaddingTop(6).Text("Observaciones:").FontSize(10).SemiBold();
-                                                        box.Item().Height(40).Text(string.Empty).FontSize(10);
                                                     });
-                                                });
+
+                                                    idx++;
+                                                }
                                             });
                                         });
-
-                                        idx++;
                                     }
                                 }
                                 else
@@ -369,27 +496,56 @@ namespace RFFM.Api.Services.Export
                                         r.ConstantItem(120).Text("Observaciones").SemiBold();
                                     });
 
-                                    // Player rows
+                                    // Player rows grouped by primary demarcation label (ideal position)
                                     int idx = 1;
-                                    foreach (var p in players)
-                                    {
-                                        col.Item().PaddingTop(6).BorderBottom(1).PaddingBottom(6).Row(r =>
+
+                                    var listGroups = players.GroupBy(p =>
                                         {
-                                            r.ConstantItem(30).AlignCenter().Text(idx.ToString());
-                                            r.ConstantItem(40).AlignCenter().Text(p.Dorsal ?? string.Empty);
-                                            r.RelativeItem().Text(p.DisplayName ?? string.Empty);
-                                            r.ConstantItem(100).Text(p.TeamName ?? string.Empty);
-                                            r.ConstantItem(40).AlignCenter().Text(p.Attendance == true ? "☑" : "☐").FontSize(11).SemiBold();
-                                            r.ConstantItem(50).Text(AbbreviatePosition(p.PrimaryPosition));
-                                            var possible = p.PossiblePositions != null ? string.Join(", ", p.PossiblePositions.Select(pp => AbbreviatePosition(pp))) : string.Empty;
-                                            r.ConstantItem(90).Text(possible);
-                                            var father = string.IsNullOrWhiteSpace(p.FatherName) && string.IsNullOrWhiteSpace(p.FatherPhone) ? string.Empty : $"{p.FatherName} {p.FatherPhone}".Trim();
-                                            r.ConstantItem(100).Text(father);
-                                            var mother = string.IsNullOrWhiteSpace(p.MotherName) && string.IsNullOrWhiteSpace(p.MotherPhone) ? string.Empty : $"{p.MotherName} {p.MotherPhone}".Trim();
-                                            r.ConstantItem(100).Text(mother);
-                                            r.ConstantItem(120).Text(p.Observations ?? string.Empty);
-                                        });
-                                        idx++;
+                                            var lab = GetPrimaryDemarcationLabel(p);
+                                            return string.IsNullOrWhiteSpace(lab) ? "Sin demarcación" : lab;
+                                        })
+                                        .OrderBy(g => GetDemarcationGroupPriority(g.Key))
+                                        .ThenBy(g => g.Key)
+                                        .ToList();
+
+                                    foreach (var grp in listGroups)
+                                    {
+                                        var groupLabel = grp.Key;
+                                        var groupPlayers = grp.OrderBy(p => p.DisplayName).ToList();
+
+                                            // Group container: prevent page break and render header with background only (centered, plural)
+                                            col.Item().PaddingTop(8).PaddingBottom(2).Element(groupContainer =>
+                                            {
+                                                groupContainer.PreventPageBreak().Column(groupCol =>
+                                                {
+                                                    var headerText = PluralizeLabel(groupLabel);
+                                                    groupCol.Item().PaddingBottom(6).Element(h =>
+                                                    {
+                                                        h.Background(Colors.Grey.Lighten3).Padding(6).AlignCenter().Text($"{headerText} ({groupPlayers.Count})").SemiBold();
+                                                    });
+
+                                                    foreach (var p in groupPlayers)
+                                                    {
+                                                        groupCol.Item().PaddingTop(6).BorderBottom(1).PaddingBottom(6).Row(r =>
+                                                        {
+                                                            r.ConstantItem(30).AlignCenter().Text(idx.ToString());
+                                                            r.ConstantItem(40).AlignCenter().Text(p.Dorsal ?? string.Empty);
+                                                            r.RelativeItem().Text(p.DisplayName ?? string.Empty);
+                                                            r.ConstantItem(100).Text(p.TeamName ?? string.Empty);
+                                                            r.ConstantItem(40).AlignCenter().Text(p.Attendance == true ? "☑" : "☐").FontSize(11).SemiBold();
+                                                            r.ConstantItem(50).Text(AbbreviatePosition(p.PrimaryPosition));
+                                                            var possible = p.PossiblePositions != null ? string.Join(", ", p.PossiblePositions.Select(pp => AbbreviatePosition(pp))) : string.Empty;
+                                                            r.ConstantItem(90).Text(possible);
+                                                            var father = string.IsNullOrWhiteSpace(p.FatherName) && string.IsNullOrWhiteSpace(p.FatherPhone) ? string.Empty : $"{p.FatherName} {p.FatherPhone}".Trim();
+                                                            r.ConstantItem(100).Text(father);
+                                                            var mother = string.IsNullOrWhiteSpace(p.MotherName) && string.IsNullOrWhiteSpace(p.MotherPhone) ? string.Empty : $"{p.MotherName} {p.MotherPhone}".Trim();
+                                                            r.ConstantItem(100).Text(mother);
+                                                            r.ConstantItem(120).Text(p.Observations ?? string.Empty);
+                                                        });
+                                                        idx++;
+                                                    }
+                                                });
+                                            });
                                     }
                                 }
                             });

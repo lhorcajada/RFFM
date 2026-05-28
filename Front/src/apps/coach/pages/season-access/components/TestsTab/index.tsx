@@ -112,6 +112,7 @@ function DayTab({ day, selectedPlayers, demarcations, previousDayId, reloadSelec
     excluded: excludedRatings,
     loading: ratingsLoading,
     reload: reloadRatings,
+    applyLocalUpdate,
     counts: ratingCounts,
   } = useTrialDayRatings(day, previousDayId);
 
@@ -140,7 +141,8 @@ function DayTab({ day, selectedPlayers, demarcations, previousDayId, reloadSelec
         if (reloadSelection) await reloadSelection();
       } catch {}
       try {
-        await reloadRatings();
+        // update local state to remove player from this day without full reload
+        try { applyLocalUpdate({ trialPlayerId: String(player.trialPlayerId), removedFromDate: (new Date()).toISOString().slice(0, 10) }); } catch {}
       } catch {}
       window.dispatchEvent(new CustomEvent('rffm.show_snackbar', { detail: { message: 'Jugador eliminado del día y siguientes.', severity: 'success' } }));
     } catch (err) {
@@ -289,7 +291,23 @@ function DayTab({ day, selectedPlayers, demarcations, previousDayId, reloadSelec
             if (!createdNow && !needReloadSelectionRef.current && !serverChanged) {
             } else {
               try {
-                await reloadRatings();
+                // update local ratings state to reflect the recent changes without triggering full reload
+                try {
+                  applyLocalUpdate({
+                    trialPlayerId: String(trialPlayerId),
+                    score: currentPayload.score ?? null,
+                    totalGoals: currentPayload.totalGoals ?? null,
+                    status: currentPayload.status ?? null,
+                    idealDemarcationId: currentPayload.idealDemarcationId ?? null,
+                    possibleDemarcationIds: currentPayload.possibleDemarcationIds ?? null,
+                    playerName: snapshotPayloadForUpdate.playerName ?? null,
+                    teamName: snapshotPayloadForUpdate.teamName ?? null,
+                    federationPlayerCode: snapshotPayloadForUpdate.federationPlayerCode ?? null,
+                    birthYear: snapshotPayloadForUpdate.birthYear ?? null,
+                    category: snapshotPayloadForUpdate.category ?? null,
+                  });
+                } catch {}
+
                 if (needReloadSelectionRef.current) {
                   try { if (reloadSelection) await reloadSelection(); } catch {}
                   needReloadSelectionRef.current = false;

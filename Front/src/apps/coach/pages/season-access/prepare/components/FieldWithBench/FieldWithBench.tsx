@@ -58,7 +58,7 @@ export default function FieldWithBench({ tabIndex, slotDefs = [], slots = {}, be
       <div className={styles.fieldArea}>
         <SimulationField wrapperRef={fieldWrapperRef} slotDefs={slotDefs} slots={slots} playersById={playersById} prepareMode={true} slotIdPrefix={`prep-${tabIndex}`} playerMinutes={{}} activeTab={activeTab} usedTabById={usedTabById} />
 
-        <div ref={setBenchRef} className={`${styles.bench} ${isOver ? styles.benchZoneOver : ""}`} style={{ height: fieldH ? `${fieldH}px` : (typeof maxHeight === 'number' ? `${maxHeight}px` : (maxHeight as any)) }}>
+        <div ref={setBenchRef} data-droppable-id={benchId} className={`${styles.bench} ${isOver ? styles.benchZoneOver : ""}`} style={{ height: fieldH ? `${fieldH}px` : (typeof maxHeight === 'number' ? `${maxHeight}px` : (maxHeight as any)) }}>
           <div className={styles.benchTitle}>
             <span>Banquillo</span>
             <span className={styles.benchCount}>{bench ? bench.length : 0}</span>
@@ -126,7 +126,7 @@ function getGroupPriority(label: string) {
 }
 
 function BenchCard({ id, player, activeTab, usedTabById }: { id: string; player?: SimSlotPlayer | undefined; activeTab?: number; usedTabById?: Record<string, number> }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: `sim-player-${id}` });
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: `sim-player-bench-${id}` });
   const style = { transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined } as React.CSSProperties;
 
   if (!player) return <div className={styles.benchItem}>Jugador</div>;

@@ -76,7 +76,7 @@ export default function PlayerList({ players = [], demarcations = [], maxHeight,
         <span>{players.length}</span>
       </div>
 
-      <div ref={setListRef} className={styles.listWrap} style={ listH ? { height: `${listH}px` } : { maxHeight: maxHeight ?? 480 } }>
+      <div ref={setListRef} data-droppable-id={"prep-list"} className={styles.listWrap} style={ listH ? { height: `${listH}px` } : { maxHeight: maxHeight ?? 480 } }>
         {grouped.map((g) => {
           const hue = getHueForLabel(g.label);
           const headerBg = `hsla(${hue}, 70%, 45%, 0.08)`;
@@ -125,7 +125,7 @@ function getGroupPriority(label: string) {
 }
 
 function DraggablePlayer({ player, demMap, activeTab, usedTabById, usedLocationById, activeDragId }: { player: SeasonAccessTrialPlayerDto; demMap: Record<number, string>; activeTab?: number; usedTabById?: Record<string, number>; usedLocationById?: Record<string, { tab: number; type: 'slot' | 'bench'; slotIndex?: number }>; activeDragId?: string | null }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: `sim-player-${player.id}` });
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: `sim-player-list-${player.id}` });
   const style = { transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined } as React.CSSProperties;
   const possible = (player.possibleDemarcationIds ?? []).map((id) => demMap[id]).filter(Boolean).join(", ");
   const ideal = player.idealDemarcationId ? demMap[player.idealDemarcationId] : null;

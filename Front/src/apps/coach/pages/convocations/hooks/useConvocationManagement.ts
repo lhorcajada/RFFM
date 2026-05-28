@@ -422,6 +422,24 @@ export function useConvocationManagement(
     }
   }
 
+  // Global cleanup: ensure native drag/pointer events clear the drag state
+  // This helps recover from interrupted drags and avoids leaving the UI
+  // in a state where no further drags are possible until reload.
+  useEffect(() => {
+    const cleanup = () => {
+      setMgmtDragPlayer(null);
+      setMgmtDragOver(null);
+    };
+    window.addEventListener("pointerup", cleanup);
+    window.addEventListener("dragend", cleanup);
+    window.addEventListener("touchend", cleanup);
+    return () => {
+      window.removeEventListener("pointerup", cleanup);
+      window.removeEventListener("dragend", cleanup);
+      window.removeEventListener("touchend", cleanup);
+    };
+  }, []);
+
   async function handleSave() {
     if (!mgmtEventId) return;
     setMgmtSaving(true);

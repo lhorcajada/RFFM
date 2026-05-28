@@ -314,15 +314,45 @@ export default function PrepareTestsPage() {
 
   function handleDragStart(event: DragStartEvent) {
     const aid = String(event.active.id ?? "");
-    setActiveDragId(aid.startsWith("sim-player-") ? aid.replace(/^sim-player-/, "") : aid);
+    // normalize IDs that may come with prefixes
+    const m = aid.match(/^sim-player-(?:bench-|list-)?(.+)$/);
+    const pid = m ? m[1] : (aid.startsWith("sim-player-") ? aid.replace(/^sim-player-/, "") : aid);
+    setActiveDragId(pid);
   }
 
   function handleDragEnd(event: DragEndEvent) {
     const activeId = String(event.active.id ?? "");
-    const overId = String(event.over?.id ?? "");
+    let overId = event.over?.id ? String(event.over?.id) : "";
+    // fallback: try to detect droppable by DOM element at pointer coordinates
+    if (!overId) {
+      try {
+        const native = (event as any).event as MouseEvent | TouchEvent | undefined;
+        let x: number | null = null;
+        let y: number | null = null;
+        if (native && 'clientX' in native && 'clientY' in native) {
+          x = (native as MouseEvent).clientX;
+          y = (native as MouseEvent).clientY;
+        } else if (native && (native as any).touches && (native as any).touches[0]) {
+          x = (native as any).touches[0].clientX;
+          y = (native as any).touches[0].clientY;
+        }
+        if (x != null && y != null) {
+          const el = document.elementFromPoint(x, y) as HTMLElement | null;
+          if (el) {
+            const droppable = el.closest('[data-droppable-id]') as HTMLElement | null;
+            if (droppable) overId = String(droppable.getAttribute('data-droppable-id') || "");
+          }
+        }
+      } catch {
+        // ignore fallback errors
+      }
+    }
+
     setActiveDragId(null);
-    if (!activeId.startsWith("sim-player-")) return;
-    const pid = activeId.replace("sim-player-", "");
+
+    const match = activeId.match(/^sim-player-(?:bench-|list-)?(.+)$/);
+    if (!match) return;
+    const pid = match[1];
 
     // drop back to list
     if (overId === "prep-list") {
@@ -419,33 +449,24 @@ export default function PrepareTestsPage() {
     return lastSavedJsonRef.current !== current;
   }, [formationName, tabsData, playersById, days, selectedDayIndex, activeSeason?.id]);
 
-  // beforeunload (refresh/close)
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (isDirty) {
-        e.preventDefault();
-        e.returnValue = "";
-        return "";
-      }
-      return undefined;
-    };
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [isDirty]);
+  // NOTE: we intentionally do not use the native `beforeunload` prompt here.
+  // Navigation attempts are intercepted and handled via the in-app confirmation dialog
+  // so the browser native leave dialog will not be shown.
 
   async function handleNavDiscard() {
+    // Discard changes and continue navigation
     setNavConfirmOpen(false);
     const dest = pendingNavRef.current;
     const type = pendingNavTypeRef.current;
     pendingNavRef.current = null;
     pendingNavTypeRef.current = null;
+    // mark as not dirty so navigation doesn't re-trigger guard
+    try { lastSavedJsonRef.current = buildSessionJson(); } catch {}
     if (type === 'back') {
       navigate(-1);
       return;
     }
-    if (dest) {
-      navigate(dest);
-    }
+    if (dest) navigate(dest);
   }
 
   async function handleNavSaveAndLeave() {
@@ -633,16 +654,16 @@ export default function PrepareTestsPage() {
               onConfirm={() => resetTeams()}
             />
             <Dialog open={navConfirmOpen} onClose={() => setNavConfirmOpen(false)}>
-              <DialogTitle>Salir de la página</DialogTitle>
+              <DialogTitle>Cambios sin guardar</DialogTitle>
               <DialogContent>
                 <DialogContentText>
-                  Tienes cambios sin guardar. ¿Qué quieres hacer?
+                  Tienes cambios sin guardar. Elige una opción:
                 </DialogContentText>
               </DialogContent>
               <DialogActions>
                 <Button onClick={() => setNavConfirmOpen(false)} color="inherit">Cancelar</Button>
-                <Button onClick={() => void handleNavDiscard()} color="inherit">Descartar cambios</Button>
-                <Button autoFocus onClick={() => void handleNavSaveAndLeave()} variant="contained" color="primary">Guardar y salir</Button>
+                <Button onClick={() => void handleNavDiscard()} color="inherit">Continuar sin guardar</Button>
+                <Button autoFocus onClick={() => void handleNavSaveAndLeave()} variant="contained" color="primary">Guardar y continuar</Button>
               </DialogActions>
             </Dialog>
           </div>

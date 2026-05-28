@@ -384,8 +384,9 @@ export default function SimulacionTab({ teamId, eventId, lineupPlayers }: Props)
   function handleDragEnd({ active, over }: DragEndEvent) {
     setActiveDragId(null);
     if (!sim.prepareMode) return;
-
-    const draggedId = (active.id as string).replace("sim-player-", "");
+    const activeRaw = String(active.id ?? "");
+    const draggedMatch = activeRaw.match(/^sim-player-(?:bench-|list-)?(.+)$/);
+    const draggedId = draggedMatch ? draggedMatch[1] : activeRaw.replace(/^sim-player-/, "");
     if (!over) return;
 
     const overId = over.id as string;
@@ -437,7 +438,11 @@ export default function SimulacionTab({ teamId, eventId, lineupPlayers }: Props)
   // ─── Active drag player ───────────────────────────────────────────────────
 
   const activeDragPlayer = activeDragId
-    ? playersById[activeDragId.replace("sim-player-", "")]
+    ? (() => {
+        const m = String(activeDragId).match(/^sim-player-(?:bench-|list-)?(.+)$/);
+        const pid = m ? m[1] : String(activeDragId).replace(/^sim-player-/, "");
+        return playersById[pid];
+      })()
     : null;
 
   // ─── Render guards ────────────────────────────────────────────────────────
