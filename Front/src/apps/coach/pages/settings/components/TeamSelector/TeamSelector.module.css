@@ -1,0 +1,40 @@
+.settingRow {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 18px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: background 0.12s ease;
+}
+
+.settingRow:last-of-type {
+  border-bottom: none;
+}
+
+.settingRow:hover {
+  background: rgba(77, 157, 224, 0.04);
+}
+
+.settingLabel {
+  flex: 0 0 200px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(232, 232, 232, 0.65);
+}
+
+.settingControl {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.emptyNotice {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px dashed rgba(77, 157, 224, 0.35);
+  background: rgba(77, 157, 224, 0.08);
+  color: rgba(232, 232, 232, 0.78);
+  font-size: 0.84rem;
+  line-height: 1.4;
+}

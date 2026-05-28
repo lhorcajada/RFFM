@@ -35,7 +35,9 @@ export async function createTeam(
     name: string;
     categoryId: number;
     leagueId?: number | null;
+    leagueGroup?: number | null;
     photo?: File | null;
+    seasonId?: string | null;
   }
 ) {
   if (!clubId) throw new Error("clubId is required");
@@ -45,6 +47,9 @@ export async function createTeam(
   if (typeof payload.leagueId !== "undefined" && payload.leagueId !== null) {
     form.append("LeagueId", String(payload.leagueId));
   }
+  if (typeof payload.leagueGroup !== "undefined" && payload.leagueGroup !== null) {
+    form.append("LeagueGroup", String(payload.leagueGroup));
+  }
   form.append("ClubId", clubId);
   if (payload.photo) form.append("Photo", payload.photo);
   // backend expects multipart/form-data with field names matching CreateTeamCommand
@@ -53,9 +58,43 @@ export async function createTeam(
     form.delete("Photo");
     form.append("PhotoFile", payload.photo);
   }
-  const activeSeason = await seasonService.getActiveSeason();
-  if (activeSeason?.id) form.append("SeasonId", activeSeason.id);
+  if (payload.seasonId) {
+    form.append("SeasonId", payload.seasonId);
+  } else {
+    const activeSeason = await seasonService.getActiveSeason();
+    if (activeSeason?.id) form.append("SeasonId", activeSeason.id);
+  }
   const resp = await client.post(`/api/catalog/team`, form as any);
+  return resp.data;
+}
+
+export async function updateTeam(
+  teamId: string,
+  payload: {
+    name: string;
+    categoryId: number;
+    leagueId?: number | null;
+    leagueGroup?: number | null;
+    urlPhoto?: string | null;
+    clubId: string;
+    seasonId?: string | null;
+  }
+) {
+  if (!teamId) throw new Error("teamId is required");
+  const teamModel: any = {
+    Id: teamId,
+    Name: payload.name,
+    CategoryId: payload.categoryId,
+    LeagueId: payload.leagueId ?? null,
+    ClubId: payload.clubId,
+    UrlPhoto: payload.urlPhoto ?? null,
+    SeasonId: payload.seasonId ?? "",
+    LeagueGroup: payload.leagueGroup ?? null,
+  };
+
+  const resp = await client.put(`/api/catalog/team/${encodeURIComponent(teamId)}`, {
+    TeamModel: teamModel,
+  } as any);
   return resp.data;
 }
 
@@ -117,12 +156,22 @@ export async function verifyPlayerIdentity(
   return resp.data;
 }
 
+export async function setSeasonPreferredTeam(seasonId: string, teamId?: string | null) {
+  if (!seasonId) throw new Error("seasonId is required");
+  const resp = await client.post(`/api/catalog/season/${encodeURIComponent(seasonId)}/preferred-team`, {
+    teamId: teamId ?? null,
+  } as any);
+  return resp.data;
+}
+
 export default {
   getTeams,
   createTeam,
   uploadTeamPhoto,
   fetchTeamPhoto,
   getTeamById,
+  updateTeam,
   validateTeamCode,
   verifyPlayerIdentity,
+  setSeasonPreferredTeam,
 };

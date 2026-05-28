@@ -7,23 +7,11 @@ import configurationCoachService, {
   ConfigurationCoachDto,
   ConfigurationCoachRequest,
 } from "../../services/configurationCoachService";
-import clubService from "../../services/clubService";
-import teamService from "../../services/teamService";
-import seasonService, { type Season } from "../../services/seasonService";
-import SeasonManagementDialog from "./components/SeasonManagementDialog";
 import styles from "./Settings.module.css";
-import {
-  Button,
-  Chip,
-  Stack,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Typography,
-  Snackbar,
-  Alert,
-} from "@mui/material";
+import ClubSelector from "./components/ClubSelector/ClubSelector";
+import TeamSelector from "./components/TeamSelector/TeamSelector";
+import SeasonsSelector from "./components/SeasonsSelector/SeasonsSelector";
+import { Button, Stack, Snackbar, Alert } from "@mui/material";
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
@@ -31,14 +19,9 @@ import DialogActions from "@mui/material/DialogActions";
 
 const Settings: React.FC = () => {
   const [config, setConfig] = useState<ConfigurationCoachDto | null>(null);
-  const [clubs, setClubs] = useState<{ id: string; name: string }[]>([]);
-  const [teams, setTeams] = useState<{ id: string; name: string }[]>([]);
-  const [seasons, setSeasons] = useState<Season[]>([]);
   const [preferredClubId, setPreferredClubId] = useState<string | null>(null);
   const [preferredTeamId, setPreferredTeamId] = useState<string | null>(null);
-  const [seasonManagerOpen, setSeasonManagerOpen] = useState(false);
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [snackbar, setSnackbar] = useState<{
     open: boolean;
@@ -49,55 +32,15 @@ const Settings: React.FC = () => {
 
   useEffect(() => {
     const load = async () => {
-      setLoading(true);
-      const [configs, clubsResp] = await Promise.all([
-        configurationCoachService.getAll(),
-        clubService.getUserClubs(),
-      ]);
-      setClubs(
-        clubsResp.map((c) => ({
-          id: c.clubId,
-          name: c.clubName,
-        }))
-      );
+      const configs = await configurationCoachService.getAll();
       const first = configs.length ? configs[0] : null;
       setConfig(first);
       setPreferredClubId(first?.preferredClubId ?? null);
-      setLoading(false);
+      setPreferredTeamId(first?.preferredTeamId ?? null);
     };
     load();
   }, []);
-
-  const activeSeason = seasons.find((season) => season.active ?? season.isActive) ?? null;
-
-  const formatSeasonDate = (value?: string | null) => {
-    if (!value) return "-";
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return value.slice(0, 10);
-    return date.toLocaleDateString("es-ES");
-  };
-
-  useEffect(() => {
-    const loadTeams = async () => {
-      if (!preferredClubId) {
-        setSeasons([]);
-        setTeams([]);
-        setPreferredTeamId(null);
-        return;
-      }
-      const seasonsResp = await seasonService.getSeasons(preferredClubId);
-      setSeasons(seasonsResp);
-      const teamsResp = await teamService.getTeams(preferredClubId);
-      setTeams(
-        teamsResp.map((t) => ({
-          id: t.id,
-          name: t.name,
-        }))
-      );
-      setPreferredTeamId(config?.preferredTeamId ?? null);
-    };
-    loadTeams();
-  }, [config?.preferredTeamId, preferredClubId]);
+  
 
   const handleSave = async () => {
     const payload: ConfigurationCoachRequest = {
@@ -161,7 +104,7 @@ const Settings: React.FC = () => {
     <BaseLayout hideFooterMenu>
       <ContentLayout
         title={"Ajustes"}
-        subtitle={<span>Configuración del entrenador</span>}
+        subtitle={"Configuración"}
         actionBar={
           <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
             <Button
@@ -209,116 +152,26 @@ const Settings: React.FC = () => {
               <span className={styles.panelHeaderTitle}>Club y equipo preferido</span>
             </div>
 
-            {/* Club preference row */}
-            <div className={styles.settingRow}>
-              <div className={styles.settingLabel}>Club preferido</div>
-              <div className={styles.settingControl}>
-                {clubs.length === 0 && !loading ? (
-                  <div className={styles.emptyNotice}>
-                    Sin clubes. No hay clubes disponibles para configurar.
-                  </div>
-                ) : (
-                  <FormControl fullWidth size="small">
-                    <InputLabel id="club-label">Club</InputLabel>
-                    <Select
-                      labelId="club-label"
-                      value={preferredClubId ?? ""}
-                      label="Club"
-                      onChange={(e) => setPreferredClubId(e.target.value as string)}
-                    >
-                      <MenuItem value="">-- Ninguno --</MenuItem>
-                      {clubs.map((c) => (
-                        <MenuItem key={c.id} value={c.id}>
-                          {c.name}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                )}
-              </div>
-            </div>
+            <ClubSelector
+              initialValue={preferredClubId}
+              onChange={(id) => {
+                setPreferredClubId(id);
+                setPreferredTeamId(null);
+              }}
+            />
 
-            {/* Team preference row */}
-            <div className={styles.settingRow}>
-              <div className={styles.settingLabel}>Equipo preferido</div>
-              <div className={styles.settingControl}>
-                <FormControl fullWidth size="small">
-                  <InputLabel id="team-label">Equipo</InputLabel>
-                  <Select
-                    labelId="team-label"
-                    value={preferredTeamId ?? ""}
-                    label="Equipo"
-                    onChange={(e) => setPreferredTeamId(e.target.value as string)}
-                    disabled={!preferredClubId}
-                  >
-                    <MenuItem value="">-- Ninguno --</MenuItem>
-                    {teams.map((t) => (
-                      <MenuItem key={t.id} value={t.id}>
-                        {t.name}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </div>
-            </div>
+            <TeamSelector
+              clubId={preferredClubId}
+              initialValue={preferredTeamId}
+              onChange={(id) => setPreferredTeamId(id)}
+            />
 
-            <div className={styles.sectionBlock}>
-              <div className={styles.sectionHeader}>
-                <span className={styles.panelHeaderDot} />
-                <span className={styles.panelHeaderTitle}>Temporadas</span>
-              </div>
-
-              <div className={styles.seasonSummary}>
-                <div className={styles.seasonMeta}>
-                  <Typography variant="subtitle2" className={styles.sectionTitle}>
-                    Temporada activa
-                  </Typography>
-                  {activeSeason ? (
-                    <>
-                      <Typography variant="body2" className={styles.seasonName}>
-                        {activeSeason.name ?? activeSeason.id}
-                      </Typography>
-                      <Typography variant="body2" className={styles.seasonRange}>
-                        {formatSeasonDate(activeSeason.startDate)} - {formatSeasonDate(activeSeason.endDate)}
-                      </Typography>
-                    </>
-                  ) : (
-                    <div className={styles.emptyNotice}>
-                      No hay temporada activa. Entra al formulario para crear o activar una temporada.
-                    </div>
-                  )}
-                </div>
-
-                <div className={styles.sectionActions}>
-                  <Chip
-                    label={seasons.length > 0 ? `${seasons.length} temporadas` : "Sin temporadas"}
-                    size="small"
-                    variant="outlined"
-                  />
-                  <Button
-                    variant="contained"
-                    size="small"
-                    onClick={() => setSeasonManagerOpen(true)}
-                  >
-                    Administrar temporadas
-                  </Button>
-                </div>
-              </div>
-            </div>
+            <SeasonsSelector clubId={preferredClubId} />
 
           </div>
         </div>
       </ContentLayout>
-      <SeasonManagementDialog
-        clubId={preferredClubId ?? ""}
-        open={seasonManagerOpen}
-        onClose={() => setSeasonManagerOpen(false)}
-        onChanged={async () => {
-          if (!preferredClubId) return;
-          const latestSeasons = await seasonService.getSeasons(preferredClubId);
-          setSeasons(latestSeasons);
-        }}
-      />
+      
       <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
         <DialogTitle>Eliminar configuración</DialogTitle>
         <DialogContent>

@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using RFFM.Api.Domain.Entities.Seasons;
+using RFFM.Api.Domain.Aggregates.UserClubs;
 
 namespace RFFM.Api.Infrastructure.Persistence.Configuration.Entities
 {
@@ -30,6 +31,16 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Entities
                 .IsRequired();
 
             builder.HasKey(c => c.Id);
+
+            builder.Property(c => c.PreferredTeamId)
+                .IsRequired(false)
+                .HasMaxLength(ValidationConstants.TeamIdMaxLength);
+
+            builder.HasOne<Team>()
+                .WithMany()
+                .HasForeignKey(c => c.PreferredTeamId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.SetNull);
 
         }
     }

@@ -9,6 +9,7 @@ export type Season = {
   endDate?: string | null;
   active?: boolean | null;
   isActive?: boolean | null;
+  preferredTeamId?: string | null;
 };
 
 function normalizeSeason(season: Season): Season {

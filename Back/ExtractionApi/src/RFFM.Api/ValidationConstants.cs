@@ -4,6 +4,7 @@
     {
         public const int ClubNameMaxLength = 200;
         public const int ClubIdMaxLength = 450;
+        public const int TeamIdMaxLength = 450;
         public const string ClubNameCannotBeNullEmpty = "Club name cannot be null or empty.";
         public const string ClubNameCannotExceedMaxLength = "Club name cannot exceed {0} characters.";
         public const string CountryIdMustBePositive = "Country ID must be a positive integer.";

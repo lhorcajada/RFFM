@@ -30,7 +30,7 @@ namespace RFFM.Api.Features.Coaches.Seasons.Queries
             public string ClubId { get; internal set; }
         }
 
-        public record SeasonsResponse(string Id, string Name, DateTime StartDate, DateTime EndDate, bool IsActive);
+        public record SeasonsResponse(string Id, string Name, DateTime StartDate, DateTime EndDate, bool IsActive, string? PreferredTeamId);
 
         public class SeasonsRequestHandler : IRequestHandler<SeasonsQuery, SeasonsResponse[]>
         {
@@ -45,7 +45,7 @@ namespace RFFM.Api.Features.Coaches.Seasons.Queries
             {
                 return await _db.Seasons
                     .Where(s=> s.ClubId == request.ClubId)
-                    .Select(td => new SeasonsResponse(td.Id, td.Name, td.StartDate, td.EndDate, td.IsActive))
+                    .Select(td => new SeasonsResponse(td.Id, td.Name, td.StartDate, td.EndDate, td.IsActive, td.PreferredTeamId))
                     .ToArrayAsync(cancellationToken);
             }
         }
