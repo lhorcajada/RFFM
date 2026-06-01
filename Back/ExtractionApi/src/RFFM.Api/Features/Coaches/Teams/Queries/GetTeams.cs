@@ -69,7 +69,7 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
                     .Where(t=> t.ClubId == request.ClubId)
                     .Select(t=> new TeamsResponse(t.Id, t.Name, 
                         new CategoryResponse(t.CategoryId, t.Category!.Name),
-                        new LeagueResponse(t.LeagueId, t.League!.Name, t.LeagueGroup),
+                        new LeagueResponse(t.LeagueId, t.League != null ? t.League.Name : null, t.LeagueGroup),
                         new GetClubResponse(t.ClubId, 
                             t.Club.Name, new GetCountries.CountriesResponse(t.Club.CountryId, t.Club.Country.Name, t.Club.Country.Code),
                             t.Club.ShieldUrl, null), t.UrlPhoto, t.JoinCode))

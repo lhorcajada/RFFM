@@ -13,9 +13,10 @@
   flex: 0 0 200px;
   display: flex;
   flex-direction: column;
-  background: #09091f;
-  border-right: 1px solid rgba(77, 157, 224, 0.15);
-  padding: 8px 0;
+  background: linear-gradient(180deg, #0b0c1a, #0e1124);
+  border-right: 1px solid rgba(77, 157, 224, 0.08);
+  padding: 8px;
+  gap: 6px;
 }
 
 .categoryItem {
@@ -192,6 +193,15 @@
   line-height: 1.4;
 }
 
+/* ── Two-column layout for selectors and seasons ── */
+.panelContent {
+  padding: 16px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 220px;
+}
+
 /* ── Actions bar ────────────────────────────────────────── */
 .actions {
   display: flex;
@@ -249,5 +259,11 @@
 
   .sectionActions {
     justify-content: flex-start;
+  }
+}
+
+@media (max-width: 900px) {
+  .panelContent {
+    padding-inline: 16px;
   }
 }

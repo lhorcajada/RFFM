@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Button, Chip, Typography, Avatar, Box } from "@mui/material";
 import teamService, { TeamResponse } from "../../../../services/teamService";
-import seasonStyles from "../SeasonsSelector/SeasonsSelector.module.css";
-import TeamManagementDialog from "./TeamManagementDialog";
+import seasonStyles from "../Seasons/SeasonManager/SeasonManager.module.css";
+import TeamManagementDialog from "./TeamManager";
 
 interface TeamSelectorProps {
   clubId?: string | null;
@@ -74,15 +74,11 @@ const TeamSelector: React.FC<TeamSelectorProps> = ({ clubId, initialValue, onCha
   return (
     <div className={seasonStyles.sectionBlock}>
       <div className={seasonStyles.sectionHeader}>
-        <span className={seasonStyles.panelHeaderDot} />
         <span className={seasonStyles.panelHeaderTitle}>Equipo preferido</span>
       </div>
 
       <div className={seasonStyles.seasonSummary}>
         <div className={seasonStyles.seasonMeta}>
-          <Typography variant="subtitle2" className={seasonStyles.sectionTitle}>
-            Equipo preferido
-          </Typography>
 
           {preferredTeam ? (
             <>
@@ -98,12 +94,12 @@ const TeamSelector: React.FC<TeamSelectorProps> = ({ clubId, initialValue, onCha
               </Typography>
 
               <Typography variant="body2" className={seasonStyles.seasonRange}>
-                {preferredTeam.league?.name ? `${preferredTeam.league.name}${preferredTeam.league.group ? ` (Grupo ${preferredTeam.league.group})` : ""}` : "-"}
+                {preferredTeam.league?.name ? `${preferredTeam.league.name}${preferredTeam.league.group ? ` (Grupo ${preferredTeam.league.group})` : ""}` : ""}
               </Typography>
 
               <Typography variant="body2" className={seasonStyles.seasonRange}>
                 {/* TeamResponse currently doesn't include season info explicitly; show '-' when unknown */}
-                {"-"}
+                {""}
               </Typography>
             </>
           ) : (
@@ -117,29 +113,60 @@ const TeamSelector: React.FC<TeamSelectorProps> = ({ clubId, initialValue, onCha
 
         <div className={seasonStyles.sectionActions}>
           <Chip label={teams.length > 0 ? `${teams.length} equipos` : "Sin equipos"} size="small" variant="outlined" />
-          <Button variant="contained" size="small" onClick={() => setDialogOpen(true)} disabled={!clubId}>
-            Administrar equipos
+          <Button variant="contained" size="small" onClick={() => setDialogOpen((s) => !s)} disabled={!clubId}>
+            {dialogOpen ? "Ocultar equipos" : "Administrar equipos"}
           </Button>
         </div>
       </div>
 
-      <TeamManagementDialog
-        open={dialogOpen}
-        onClose={() => {
-          setDialogOpen(false);
-          void (async () => {
+      {dialogOpen && (
+        <TeamManagementDialog
+          inline
+          onClose={() => {
+            setDialogOpen(false);
+            void (async () => {
+              if (!clubId) return;
+              const latest = await teamService.getTeams(clubId);
+              setTeams(latest);
+              if (value) {
+                try {
+                  const full = await teamService.getTeamById(value);
+                  setPreferredTeam(full);
+                  if (full?.urlPhoto) {
+                    const obj = await teamService.fetchTeamPhoto(full.urlPhoto);
+                    setPhotoSrc(obj ?? null);
+                  } else {
+                    setPhotoSrc(null);
+                  }
+                } catch (e) {
+                  // ignore
+                }
+              }
+            })();
+          }}
+          clubId={clubId ?? ""}
+          onChanged={async () => {
             if (!clubId) return;
             const latest = await teamService.getTeams(clubId);
             setTeams(latest);
-          })();
-        }}
-        clubId={clubId ?? ""}
-        onChanged={async () => {
-          if (!clubId) return;
-          const latest = await teamService.getTeams(clubId);
-          setTeams(latest);
-        }}
-      />
+            if (value) {
+              try {
+                const full = await teamService.getTeamById(value);
+                setPreferredTeam(full);
+                if (full?.urlPhoto) {
+                  const obj = await teamService.fetchTeamPhoto(full.urlPhoto);
+                  setPhotoSrc(obj ?? null);
+                } else {
+                  setPhotoSrc(null);
+                }
+              } catch (e) {
+                // ignore
+              }
+            }
+          }}
+        />
+      )}
+      
     </div>
   );
 };

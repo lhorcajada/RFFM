@@ -9,13 +9,13 @@ import configurationCoachService, {
 } from "../../services/configurationCoachService";
 import styles from "./Settings.module.css";
 import ClubSelector from "./components/ClubSelector/ClubSelector";
-import TeamSelector from "./components/TeamSelector/TeamSelector";
-import SeasonsSelector from "./components/SeasonsSelector/SeasonsSelector";
+import MyTeams from "./components/MyTeams/MyTeams";
 import { Button, Stack, Snackbar, Alert } from "@mui/material";
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
+import SeasonOption from "./components/Seasons/SeasonOption/SeasonOption";
 
 const Settings: React.FC = () => {
   const [config, setConfig] = useState<ConfigurationCoachDto | null>(null);
@@ -29,6 +29,7 @@ const Settings: React.FC = () => {
     severity: "success" | "error";
   }>({ open: false, message: "", severity: "success" });
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [selectedSection, setSelectedSection] = useState<"seasons" | "clubs" | "teams">("seasons");
 
   useEffect(() => {
     const load = async () => {
@@ -136,11 +137,28 @@ const Settings: React.FC = () => {
           </Stack>
         }
       >
-        <div className={styles.root}>
+          <div className={styles.root}>
           {/* ── Left category sidebar ── */}
           <nav className={styles.categoryNav}>
-            <div className={`${styles.categoryItem} ${styles.categoryItemActive}`}>
-              Preferencias
+            <div
+              className={`${styles.categoryItem} ${selectedSection === "seasons" ? styles.categoryItemActive : ""}`}
+              onClick={() => setSelectedSection("seasons")}
+            >
+              Temporadas
+            </div>
+
+            <div
+              className={`${styles.categoryItem} ${selectedSection === "clubs" ? styles.categoryItemActive : ""}`}
+              onClick={() => setSelectedSection("clubs")}
+            >
+              Mis clubes
+            </div>
+
+            <div
+              className={`${styles.categoryItem} ${selectedSection === "teams" ? styles.categoryItemActive : ""}`}
+              onClick={() => setSelectedSection("teams")}
+            >
+              Mis equipos
             </div>
           </nav>
 
@@ -148,26 +166,36 @@ const Settings: React.FC = () => {
           <div className={styles.settingsPanel}>
             {/* Panel header */}
             <div className={styles.panelHeader}>
-              <span className={styles.panelHeaderDot} />
-              <span className={styles.panelHeaderTitle}>Club y equipo preferido</span>
+              <span className={styles.panelHeaderTitle}>
+                {selectedSection === "seasons"
+                  ? "Temporadas"
+                  : selectedSection === "clubs"
+                  ? "Mis clubes"
+                  : "Mis equipos"}
+              </span>
             </div>
 
-            <ClubSelector
-              initialValue={preferredClubId}
-              onChange={(id) => {
-                setPreferredClubId(id);
-                setPreferredTeamId(null);
-              }}
-            />
+            <div className={styles.panelContent}>
+              {selectedSection === "seasons" && <SeasonOption clubId={preferredClubId} />}
 
-            <TeamSelector
-              clubId={preferredClubId}
-              initialValue={preferredTeamId}
-              onChange={(id) => setPreferredTeamId(id)}
-            />
+              {selectedSection === "clubs" && (
+                <ClubSelector
+                  initialValue={preferredClubId}
+                  onChange={(id) => {
+                    setPreferredClubId(id);
+                    setPreferredTeamId(null);
+                  }}
+                />
+              )}
 
-            <SeasonsSelector clubId={preferredClubId} />
-
+              {selectedSection === "teams" && (
+                <MyTeams
+                  clubId={preferredClubId}
+                  initialValue={preferredTeamId}
+                  onChange={(id) => setPreferredTeamId(id)}
+                />
+              )}
+            </div>
           </div>
         </div>
       </ContentLayout>

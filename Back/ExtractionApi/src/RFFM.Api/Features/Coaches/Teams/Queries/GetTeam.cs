@@ -63,7 +63,7 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
                     return null;
                 return new TeamResponse(team.Id, team.Name,
                     new GetTeams.CategoryResponse(team.CategoryId, team.Category.Name),
-                    new GetTeams.LeagueResponse(team.League!.Id, team.League.Name, team.LeagueGroup),
+                    new GetTeams.LeagueResponse(team.LeagueId, team.League?.Name, team.LeagueGroup),
                     new GetClubResponse(team.ClubId, team.Club.Name,
                         new GetCountries.CountriesResponse(team.Club.CountryId, team.Club.Country.Name, team.Club.Country.Code),
                         team.Club.ShieldUrl, null),

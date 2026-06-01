@@ -56,9 +56,9 @@ namespace RFFM.Api.Features.Coaches.Seasons.Commands
             {
                 var team = await _db.Teams.FirstOrDefaultAsync(t => t.Id == request.TeamId, cancellationToken);
                 if (team == null)
-                    throw new DomainException("Preferred team", $"Team '{request.TeamId}' not found", "");
+                    throw new DomainException("Preferred team", $"Team '{request.TeamId}' not found", "TeamNotFound");
                 if (team.SeasonId != season.Id)
-                    throw new DomainException("Preferred team", $"Team '{request.TeamId}' doesn't belong to season '{season.Id}'", "");
+                    throw new DomainException("Preferred team", $"Team '{request.TeamId}' doesn't belong to season '{season.Id}'", "TeamNotInSeason");
             }
 
             season.UpdatePreferredTeam(request.TeamId);
