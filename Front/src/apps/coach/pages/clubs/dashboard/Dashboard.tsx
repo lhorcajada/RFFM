@@ -85,7 +85,7 @@ export default function ClubsDashboard() {
         <div className={styles.container}>
           <div className={styles.cards}>
             <DashboardCard
-              title="Plantilla"
+              title="Personal del club"
               description="Entrenadores, directivos, ayudantes, etc."
               icon={<GroupIcon className={localStyles.icon} />}
               to={`/coach/clubs/${id}/staff${

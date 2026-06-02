@@ -26,8 +26,45 @@
   transition: transform 0.15s ease, filter 0.15s ease, border-color 0.15s ease;
 }
 
+.cardShell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 112px;
+  box-sizing: border-box;
+  background: var(--rffm-dash-card-bg, #081628);
+  clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 0 100%);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-left: 3px solid var(--rffm-dash-accent, #00e5ff);
+  overflow: hidden;
+  transition: transform 0.15s ease, filter 0.15s ease, border-color 0.15s ease;
+}
+
+.mainLink {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  box-sizing: border-box;
+  padding: 16px 14px 12px 18px;
+  text-decoration: none;
+  color: inherit;
+}
+
 /* Diagonal corner fill — matches the clip chamfer shape */
 .card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 20px;
+  height: 20px;
+  background: var(--rffm-dash-accent, #00e5ff);
+  clip-path: polygon(0 0, 100% 100%, 100% 0);
+  opacity: 0.35;
+}
+
+.cardShell::after {
   content: "";
   position: absolute;
   top: 0;
@@ -45,6 +82,18 @@
   filter: brightness(1.18);
   border-left-color: var(--rffm-dash-accent, #00e5ff);
   border-color: rgba(255, 255, 255, 0.18);
+  outline: none;
+}
+
+.cardShell:hover,
+.cardShell:focus-within {
+  transform: translateY(-3px) scale(1.025);
+  filter: brightness(1.18);
+  border-left-color: var(--rffm-dash-accent, #00e5ff);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.mainLink:focus-visible {
   outline: none;
 }
 
@@ -82,6 +131,11 @@
   color: var(--rffm-dash-desc-text, rgba(230, 247, 255, 0.5));
 }
 
+.footer {
+  margin-top: auto;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
 /* ── Responsive ─────────────────────────────────────────── */
 @media (max-width: 768px) {
   .card {
@@ -90,7 +144,21 @@
     clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 0 100%);
   }
 
+  .cardShell {
+    min-height: 96px;
+    clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 0 100%);
+  }
+
+  .mainLink {
+    padding: 13px 12px 10px 15px;
+  }
+
   .card::after {
+    width: 16px;
+    height: 16px;
+  }
+
+  .cardShell::after {
     width: 16px;
     height: 16px;
   }
@@ -117,7 +185,21 @@
     clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%);
   }
 
+  .cardShell {
+    min-height: 84px;
+    clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%);
+  }
+
+  .mainLink {
+    padding: 11px 10px 9px 13px;
+  }
+
   .card::after {
+    width: 14px;
+    height: 14px;
+  }
+
+  .cardShell::after {
     width: 14px;
     height: 14px;
   }

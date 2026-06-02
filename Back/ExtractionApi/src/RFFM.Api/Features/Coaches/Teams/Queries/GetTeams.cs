@@ -58,15 +58,18 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
                         , cancellationToken);
                 if (userClub == null)
                     throw new DomainException("Listado de equipos",
-                        "El usuario no tiene acceso al listado de equipo del club", "");
+                        "El usuario no tiene acceso al listado de equipos del club", "");
 
-
+                var activeSeason = await _db.Seasons
+                .FirstOrDefaultAsync(s => s.ClubId == request.ClubId && s.IsActive, cancellationToken) 
+                    ?? throw new DomainException("Listado de equipos",
+                        "No hay una temporada activa para el club", "");
                 return await _db.Teams
                     .Include(t => t.Club)
                     .ThenInclude(c=> c.Country)
                     .Include(t=> t.Category)
                     .Include(cat=> cat!.League)
-                    .Where(t=> t.ClubId == request.ClubId)
+                    .Where(t=> t.ClubId == request.ClubId && t.SeasonId == activeSeason!.Id)
                     .Select(t=> new TeamsResponse(t.Id, t.Name, 
                         new CategoryResponse(t.CategoryId, t.Category!.Name),
                         new LeagueResponse(t.LeagueId, t.League != null ? t.League.Name : null, t.LeagueGroup),

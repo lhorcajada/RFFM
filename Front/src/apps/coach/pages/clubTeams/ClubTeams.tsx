@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
-import DashboardCard from "../../../../shared/components/ui/DashboardCard/DashboardCard";
 import { useParams, useLocation } from "react-router-dom";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
+import DashboardCard from "../../../../shared/components/ui/DashboardCard/DashboardCard";
 import ClubHeader from "../../components/ClubHeader/ClubHeader";
 import styles from "./ClubTeams.module.css";
 import EmptyState from "../../../../shared/components/ui/EmptyState/EmptyState";
@@ -11,7 +11,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import GroupsIcon from "@mui/icons-material/Groups";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { useNavigate } from "react-router-dom";
-import { Box, Paper } from "@mui/material";
+import { Box } from "@mui/material";
 import teamService, { TeamResponse } from "../../services/teamService";
 import seasonService, { Season } from "../../services/seasonService";
 
@@ -107,7 +107,7 @@ export default function ClubTeams() {
             <>
               <ClubHeader clubId={id} />
               {seasonName && (
-                <div style={{ fontSize: 12, color: "#666", marginTop: 4 }}>
+                <div style={{ fontSize: 12, color: "var(--rffm-card-subtext)", marginTop: 4 }}>
                   Temporada: {seasonName}
                 </div>
               )}
@@ -151,49 +151,68 @@ export default function ClubTeams() {
               teams.map((t) => (
                 <div key={t.id} className={styles.cardWrap}>
                   <DashboardCard
+                    className={styles.teamCard}
+                    iconClassName={styles.teamCardIconWrap}
+                    titleClassName={styles.teamTitle}
+                    descriptionClassName={styles.teamMeta}
                     title={t.name}
                     description={t.category?.name ?? t.league?.name}
                     icon={
-                      teamPhotos[t.id] ? (
-                        <img
-                          src={teamPhotos[t.id]!}
-                          alt={t.name}
-                          className={styles.teamIcon}
-                        />
-                      ) : (
-                        <Avatar
-                          className={styles.teamIcon}
-                          sx={{
-                            bgcolor: "var(--rffm-primary, #e65c00)",
-                            width: 48,
-                            height: 48,
-                            borderRadius: "8px",
-                          }}
-                        >
-                          <GroupsIcon sx={{ fontSize: 28, color: "#fff" }} />
-                        </Avatar>
-                      )
+                      <div className={styles.teamPhoto}>
+                        {teamPhotos[t.id] ? (
+                          <img
+                            src={teamPhotos[t.id]!}
+                            alt={t.name}
+                            className={styles.teamIcon}
+                          />
+                        ) : (
+                          <Avatar
+                            className={styles.teamIcon}
+                            sx={{
+                              bgcolor: "var(--rffm-primary)",
+                              width: "100%",
+                              height: "100%",
+                              borderRadius: "inherit",
+                            }}
+                          >
+                            <GroupsIcon
+                              sx={{
+                                fontSize: "var(--rffm-club-teams-fallback-icon-size)",
+                                color: "var(--rffm-card-text)",
+                              }}
+                            />
+                          </Avatar>
+                        )}
+                      </div>
                     }
                     to={`/coach/dashboard?teamId=${t.id}${
                       seasonId ? `&seasonId=${seasonId}` : ""
                     }`}
+                    footer={
+                      t.joinCode ? (
+                        <div className={styles.codeRow}>
+                          <Typography variant="caption" className={styles.codeText}>
+                            <span className={styles.codeLabel}>CODIGO:&nbsp;</span>
+                            <strong className={styles.codeValue}>{t.joinCode}</strong>
+                          </Typography>
+                          <Tooltip title="Copiar código">
+                            <IconButton
+                              className={styles.copyBtn}
+                              size="small"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                handleCopyCode(t.joinCode!);
+                              }}
+                              aria-label="Copiar código de equipo"
+                            >
+                              <ContentCopyIcon fontSize="inherit" />
+                            </IconButton>
+                          </Tooltip>
+                        </div>
+                      ) : null
+                    }
                   />
-                  {t.joinCode && (
-                    <div className={styles.codeRow}>
-                      <Typography variant="caption" className={styles.codeText}>
-                        Código de equipo:&nbsp;<strong>{t.joinCode}</strong>
-                      </Typography>
-                      <Tooltip title="Copiar código">
-                        <IconButton
-                          size="small"
-                          onClick={() => handleCopyCode(t.joinCode!)}
-                          aria-label="Copiar código de equipo"
-                        >
-                          <ContentCopyIcon fontSize="inherit" />
-                        </IconButton>
-                      </Tooltip>
-                    </div>
-                  )}
                 </div>
               ))}
           </div>

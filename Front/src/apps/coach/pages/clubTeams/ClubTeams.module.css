@@ -1,86 +1,113 @@
 .page {
-  padding: 20px;
+  padding: var(--rffm-club-teams-page-padding);
+  color: var(--rffm-card-text);
+  font-family: var(--rffm-font-family-base);
 }
 
 .list {
   display: grid;
-  gap: 12px;
-  grid-template-columns: 1fr;
+  row-gap: var(--rffm-club-teams-list-row-gap, 1.25rem);
+  column-gap: var(--rffm-club-teams-list-column-gap, 1.25rem);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
 }
 
 .cardWrap {
   width: 100%;
+  padding: var(--rffm-club-teams-card-margin, 0.5rem);
+  box-sizing: border-box;
 }
 
 .teamCard {
-  padding: 12px;
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  border-radius: 8px;
-  background: var(--rffm-card-bg);
+  min-height: var(--rffm-club-teams-card-min-height);
+  margin: var(--rffm-club-teams-card-outer-margin, 0.25rem);
 }
 
-.teamHeader {
-  display: flex;
-  gap: 12px;
-  align-items: center;
+.teamCardIconWrap {
+  width: var(--rffm-club-teams-icon-wrap-size);
+  height: var(--rffm-club-teams-icon-wrap-size);
+  margin-bottom: var(--rffm-club-teams-icon-wrap-gap);
 }
 
 .teamPhoto {
   width: 64px;
   height: 64px;
-  object-fit: cover;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #f0f0f0, #e8e8e8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: var(--rffm-club-teams-photo-radius);
+  background: var(--rffm-club-teams-photo-bg);
 }
 
 .teamIcon {
-  width: 48px;
-  height: 48px;
-  object-fit: cover;
-  border-radius: 8px;
-}
-
-.teamInfo {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  border-radius: var(--rffm-club-teams-icon-radius);
+  display: block;
 }
 
 .teamTitle {
-  font-weight: 700;
-  font-size: 1rem;
+  font-size: var(--rffm-club-teams-title-size);
+  letter-spacing: var(--rffm-club-teams-title-letter-spacing);
 }
 
 .teamMeta {
-  font-size: 0.9rem;
-  color: rgba(240, 233, 233, 0.6);
-}
-
-@media (max-width: 520px) {
-  .teamHeader {
-    gap: 8px;
-  }
-  .teamPhoto {
-    width: 48px;
-    height: 48px;
-  }
-}
-
-@media (min-width: 900px) {
-  .list {
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    align-items: start;
-  }
+  font-size: var(--rffm-club-teams-meta-size);
 }
 
 .codeRow {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 8px 6px;
+  justify-content: space-between;
+  gap: var(--rffm-club-teams-code-row-gap);
+  padding: var(--rffm-club-teams-code-row-padding-y-top) var(--rffm-club-teams-code-row-padding-x) var(--rffm-club-teams-code-row-padding-y-bottom);
+  border-top: 1px solid var(--rffm-hero-card-border);
 }
 
 .codeText {
-  color: var(--rffm-text-secondary, rgba(0, 0, 0, 0.6));
-  font-size: 0.75rem;
+  color: var(--rffm-dash-card-text);
+  font-size: var(--rffm-club-teams-code-size);
+  line-height: var(--rffm-club-teams-code-line-height);
+  letter-spacing: var(--rffm-club-teams-code-letter-spacing);
+  font-family: var(--rffm-font-family-monospace);
+  margin: var(--rffm-club-teams-card-outer-margin, 0.25rem);
+}
+
+.codeLabel {
+  color: var(--rffm-dash-desc-text);
+}
+
+.codeValue {
+  color: var(--rffm-dash-accent);
+  letter-spacing: var(--rffm-club-teams-code-letter-spacing);
+}
+
+.copyBtn {
+  color: var(--rffm-dash-accent);
+}
+
+@media (max-width: 900px) {
+  .list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1280px) {
+  .list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .list {
+    grid-template-columns: 1fr;
+  }
+
+  .teamCardIconWrap {
+    width: var(--rffm-club-teams-icon-wrap-size-mobile);
+    height: var(--rffm-club-teams-icon-wrap-size-mobile);
+  }
 }
