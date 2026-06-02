@@ -5,6 +5,28 @@
 }
 
 .list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--rffm-club-teams-list-row-gap, 1.25rem);
+}
+
+.categoryGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.categoryTitle {
+  margin: 0;
+  padding: 0 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--rffm-dash-accent);
+}
+
+.teamGrid {
   display: grid;
   row-gap: var(--rffm-club-teams-list-row-gap, 1.25rem);
   column-gap: var(--rffm-club-teams-list-column-gap, 1.25rem);
@@ -90,19 +112,19 @@
 }
 
 @media (max-width: 900px) {
-  .list {
+  .teamGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (min-width: 1280px) {
-  .list {
+  .teamGrid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 640px) {
-  .list {
+  .teamGrid {
     grid-template-columns: 1fr;
   }
 

@@ -39,6 +39,34 @@ export default function ClubTeams() {
     });
   }
 
+  function formatTeamMeta(team: TeamResponse) {
+    const categoryName = team.category?.name?.trim() || "Sin categoría";
+    const leagueName = team.league?.name?.trim() || "Sin liga";
+    return `Categoría: ${categoryName} · Liga: ${leagueName}`;
+  }
+
+  const groupedTeams = Object.entries(
+    teams.reduce<Record<string, TeamResponse[]>>((groups, team) => {
+      const categoryName = team.category?.name?.trim() || "Sin categoría";
+      if (!groups[categoryName]) {
+        groups[categoryName] = [];
+      }
+      groups[categoryName].push(team);
+      return groups;
+    }, {})
+  )
+    .map(([categoryName, categoryTeams]) => ({
+      categoryName,
+      teams: [...categoryTeams].sort((a, b) =>
+        (a.name ?? "").localeCompare(b.name ?? "", "es", {
+          sensitivity: "base",
+        })
+      ),
+    }))
+    .sort((a, b) =>
+      a.categoryName.localeCompare(b.categoryName, "es", { sensitivity: "base" })
+    );
+
   useEffect(() => {
     let mounted = true;
     async function load() {
@@ -148,72 +176,79 @@ export default function ClubTeams() {
             )}
             {!loading &&
               !error &&
-              teams.map((t) => (
-                <div key={t.id} className={styles.cardWrap}>
-                  <DashboardCard
-                    className={styles.teamCard}
-                    iconClassName={styles.teamCardIconWrap}
-                    titleClassName={styles.teamTitle}
-                    descriptionClassName={styles.teamMeta}
-                    title={t.name}
-                    description={t.category?.name ?? t.league?.name}
-                    icon={
-                      <div className={styles.teamPhoto}>
-                        {teamPhotos[t.id] ? (
-                          <img
-                            src={teamPhotos[t.id]!}
-                            alt={t.name}
-                            className={styles.teamIcon}
-                          />
-                        ) : (
-                          <Avatar
-                            className={styles.teamIcon}
-                            sx={{
-                              bgcolor: "var(--rffm-primary)",
-                              width: "100%",
-                              height: "100%",
-                              borderRadius: "inherit",
-                            }}
-                          >
-                            <GroupsIcon
-                              sx={{
-                                fontSize: "var(--rffm-club-teams-fallback-icon-size)",
-                                color: "var(--rffm-card-text)",
-                              }}
-                            />
-                          </Avatar>
-                        )}
+              groupedTeams.map((group) => (
+                <section key={group.categoryName} className={styles.categoryGroup}>
+                  <h3 className={styles.categoryTitle}>{group.categoryName}</h3>
+                  <div className={styles.teamGrid}>
+                    {group.teams.map((t) => (
+                      <div key={t.id} className={styles.cardWrap}>
+                        <DashboardCard
+                          className={styles.teamCard}
+                          iconClassName={styles.teamCardIconWrap}
+                          titleClassName={styles.teamTitle}
+                          descriptionClassName={styles.teamMeta}
+                          title={t.name}
+                          description={formatTeamMeta(t)}
+                          icon={
+                            <div className={styles.teamPhoto}>
+                              {teamPhotos[t.id] ? (
+                                <img
+                                  src={teamPhotos[t.id]!}
+                                  alt={t.name}
+                                  className={styles.teamIcon}
+                                />
+                              ) : (
+                                <Avatar
+                                  className={styles.teamIcon}
+                                  sx={{
+                                    bgcolor: "var(--rffm-primary)",
+                                    width: "100%",
+                                    height: "100%",
+                                    borderRadius: "inherit",
+                                  }}
+                                >
+                                  <GroupsIcon
+                                    sx={{
+                                      fontSize: "var(--rffm-club-teams-fallback-icon-size)",
+                                      color: "var(--rffm-card-text)",
+                                    }}
+                                  />
+                                </Avatar>
+                              )}
+                            </div>
+                          }
+                          to={`/coach/dashboard?teamId=${t.id}${
+                            seasonId ? `&seasonId=${seasonId}` : ""
+                          }`}
+                          footer={
+                            t.joinCode ? (
+                              <div className={styles.codeRow}>
+                                <Typography variant="caption" className={styles.codeText}>
+                                  <span className={styles.codeLabel}>CODIGO:&nbsp;</span>
+                                  <strong className={styles.codeValue}>{t.joinCode}</strong>
+                                </Typography>
+                                <Tooltip title="Copiar código">
+                                  <IconButton
+                                    className={styles.copyBtn}
+                                    size="small"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      e.preventDefault();
+                                      handleCopyCode(t.joinCode!);
+                                    }}
+                                    aria-label="Copiar código de equipo"
+                                  >
+                                    <ContentCopyIcon fontSize="inherit" />
+                                  </IconButton>
+                                </Tooltip>
+                              </div>
+                            ) : null
+                          }
+                        />
                       </div>
-                    }
-                    to={`/coach/dashboard?teamId=${t.id}${
-                      seasonId ? `&seasonId=${seasonId}` : ""
-                    }`}
-                    footer={
-                      t.joinCode ? (
-                        <div className={styles.codeRow}>
-                          <Typography variant="caption" className={styles.codeText}>
-                            <span className={styles.codeLabel}>CODIGO:&nbsp;</span>
-                            <strong className={styles.codeValue}>{t.joinCode}</strong>
-                          </Typography>
-                          <Tooltip title="Copiar código">
-                            <IconButton
-                              className={styles.copyBtn}
-                              size="small"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                e.preventDefault();
-                                handleCopyCode(t.joinCode!);
-                              }}
-                              aria-label="Copiar código de equipo"
-                            >
-                              <ContentCopyIcon fontSize="inherit" />
-                            </IconButton>
-                          </Tooltip>
-                        </div>
-                      ) : null
-                    }
-                  />
-                </div>
+                    ))}
+                  </div>
+                </section>
               ))}
           </div>
         </Box>
