@@ -29,7 +29,7 @@ namespace RFFM.Api.Features.Coaches.Seasons.Commands
         }
     }
 
-    public class UpdateSeasonCommand : IRequest, IInvalidateCacheRequest
+    public class UpdateSeasonCommand : RFFM.Api.Common.ICommand, IInvalidateCacheRequest
     {
         public string SeasonId { get; set; } = string.Empty;
         public string SeasonName { get; set; } = string.Empty;

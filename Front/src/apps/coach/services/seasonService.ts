@@ -2,6 +2,10 @@ import client from "../../../core/api/client";
 
 export const COACH_ACTIVE_SEASON_CHANGED_EVENT = "rffm.coach_active_season_changed";
 
+type ActiveSeasonChangedDetail = {
+  season: Season | null;
+};
+
 export type Season = {
   id: string;
   name?: string | null;
@@ -51,12 +55,21 @@ function buildSeasonPayload(
   };
 }
 
-function notifyActiveSeasonChanged() {
+function notifyActiveSeasonChanged(season: Season | null = null) {
   if (typeof window === "undefined") {
     return;
   }
 
-  window.dispatchEvent(new CustomEvent(COACH_ACTIVE_SEASON_CHANGED_EVENT));
+  window.dispatchEvent(
+    new CustomEvent<ActiveSeasonChangedDetail>(COACH_ACTIVE_SEASON_CHANGED_EVENT, {
+      detail: { season },
+    })
+  );
+}
+
+async function refreshAndNotifyActiveSeasonChanged() {
+  const activeSeason = await getActiveSeason();
+  notifyActiveSeasonChanged(activeSeason);
 }
 
 export async function getActiveSeason(): Promise<Season | null> {
@@ -106,7 +119,7 @@ export async function createSeason(
     `/api/catalog/season` as any,
     { ...buildSeasonPayload(name, isActive, startDate, endDate), clubId }
   );
-  notifyActiveSeasonChanged();
+  await refreshAndNotifyActiveSeasonChanged();
 }
 
 export async function updateSeason(
@@ -117,12 +130,12 @@ export async function updateSeason(
   endDate?: string,
 ): Promise<void> {
   await client.put(`/api/catalog/season/${id}` as any, buildSeasonPayload(name, isActive, startDate, endDate));
-  notifyActiveSeasonChanged();
+  await refreshAndNotifyActiveSeasonChanged();
 }
 
 export async function deleteSeason(id: string): Promise<void> {
   await client.delete(`/api/catalog/season/${id}` as any);
-  notifyActiveSeasonChanged();
+  await refreshAndNotifyActiveSeasonChanged();
 }
 
 export default { getActiveSeason, getSeasons, getSeason, createSeason, updateSeason, deleteSeason };

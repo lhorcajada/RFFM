@@ -4,6 +4,8 @@
     {
         public const string SeasonFeature = "SeasonFeature";
         public const string CachePrefix = SeasonFeature;
+        public const string ActiveSeasonCacheKey = CachePrefix + ":active";
+        public const string SeasonByIdCacheKeyPrefix = CachePrefix + ":id:";
         public const string SeasonHasRelatedDataCode = "season_has_related_data";
 
     }

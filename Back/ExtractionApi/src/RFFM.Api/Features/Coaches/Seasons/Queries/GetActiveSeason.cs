@@ -28,7 +28,7 @@ namespace RFFM.Api.Features.Coaches.Seasons.Queries
 
         public record GetActiveSeasonQuery : IQueryApp<GetActiveSeasonResponse>, ICacheRequest
         {
-            public string CacheKey => SeasonConstants.CachePrefix;
+            public string CacheKey => SeasonConstants.ActiveSeasonCacheKey;
             public DateTime? AbsoluteExpirationRelativeToNow { get; }
         }
 

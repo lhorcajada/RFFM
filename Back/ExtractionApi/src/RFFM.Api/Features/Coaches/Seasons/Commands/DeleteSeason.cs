@@ -44,7 +44,7 @@ namespace RFFM.Api.Features.Coaches.Seasons.Commands
         }
     }
 
-    public class DeleteSeasonCommand : IRequest, IInvalidateCacheRequest
+    public class DeleteSeasonCommand : RFFM.Api.Common.ICommand, IInvalidateCacheRequest
     {
         public string SeasonId { get; set; } = string.Empty;
         public string PrefixCacheKey => SeasonConstants.CachePrefix;

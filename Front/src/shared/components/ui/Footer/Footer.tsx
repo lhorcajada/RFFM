@@ -13,6 +13,10 @@ import seasonService, {
 } from "../../../../apps/coach/services/seasonService";
 import { useUser } from "../../../context/UserContext";
 
+type ActiveSeasonChangedDetail = {
+  season: Season | null;
+};
+
 interface FooterProps {
   hideMenu?: boolean;
 }
@@ -82,7 +86,13 @@ export default function Footer({ hideMenu }: FooterProps): JSX.Element {
 
     loadActiveSeason();
 
-    function handleSeasonChanged() {
+    function handleSeasonChanged(event: Event) {
+      const seasonEvent = event as CustomEvent<ActiveSeasonChangedDetail>;
+      if (seasonEvent.detail && "season" in seasonEvent.detail) {
+        setActiveSeason(seasonEvent.detail.season ?? null);
+        return;
+      }
+
       loadActiveSeason();
     }
 
