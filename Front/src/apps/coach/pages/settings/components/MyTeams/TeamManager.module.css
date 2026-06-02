@@ -9,6 +9,10 @@
   min-width: 0;
 }
 
+.layoutSingle {
+  grid-template-columns: 1fr;
+}
+
 .panel {
   display: flex;
   flex-direction: column;

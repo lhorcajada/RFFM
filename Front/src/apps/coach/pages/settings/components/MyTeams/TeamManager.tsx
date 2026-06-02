@@ -1,9 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
-  Button,
   CircularProgress,
-  FormControlLabel,
-  IconButton,
   Stack,
   Switch,
   Table,
@@ -11,28 +8,13 @@ import {
   TableCell,
   TableHead,
   TableRow,
-  TextField,
   Typography,
 } from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
-import EditIcon from "@mui/icons-material/Edit";
 import teamService, { TeamResponse } from "../../../../services/teamService";
-import CategorySelect from "../../../../components/CategorySelect/CategorySelect";
-import LeagueSelect from "../../../../components/LeagueSelect/LeagueSelect";
-import SeasonSelector from "../../../../../../shared/components/ui/SeasonSelector/SeasonSelector";
 import styles from "./TeamManager.module.css";
 import seasonService from "../../../../services/seasonService";
-
-interface TeamFormState {
-  name: string;
-  categoryId?: number | null;
-  leagueId?: number | null;
-  leagueGroup?: number | null;
-  photo?: File | null;
-  urlPhoto?: string | null;
-  seasonId?: string | null;
-  isPreferred?: boolean;
-}
+import clubService from "../../../../services/clubService";
+import type { Season } from "../../../../services/seasonService";
 
 interface TeamManagementDialogProps {
   open?: boolean;
@@ -47,46 +29,60 @@ export default function TeamManager({ open, onChanged, clubId }: TeamManagementD
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedTeamId, setSelectedTeamId] = useState<string>("");
-  const [form, setForm] = useState<TeamFormState>({ name: "", categoryId: undefined, leagueId: undefined, leagueGroup: undefined, photo: null, urlPhoto: null, seasonId: undefined });
   const [seasonPreferredTeamId, setSeasonPreferredTeamId] = useState<string | null>(null);
-  const [selectedSeasonId, setSelectedSeasonId] = useState<string | undefined>(undefined);
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [activeSeason, setActiveSeason] = useState<Season | null>(null);
+  const [preferredClubName, setPreferredClubName] = useState<string | null>(null);
 
   useEffect(() => {
     if (!clubId) {
       setTeams([]);
-      setSelectedTeamId("");
-      setForm({ name: "", categoryId: undefined, leagueId: undefined, leagueGroup: undefined, photo: null, urlPhoto: null, seasonId: undefined, isPreferred: false });
+      setActiveSeason(null);
+      setSeasonPreferredTeamId(null);
+      setPreferredClubName(null);
       setError("Selecciona un club para administrar los equipos.");
       return;
     }
-    void loadTeams();
+    void loadActiveSeasonTeams();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, clubId, selectedSeasonId]);
+  }, [open, clubId]);
 
-  useEffect(() => {
-    if (!selectedSeasonId) {
-      setSeasonPreferredTeamId(null);
-      return;
-    }
-    let mounted = true;
-    (async () => {
-      const s = await seasonService.getSeason(selectedSeasonId as string);
-      if (!mounted) return;
-      setSeasonPreferredTeamId((s as any)?.preferredTeamId ?? null);
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, [selectedSeasonId]);
-
-  const loadTeams = async () => {
+  const loadActiveSeasonTeams = async () => {
     setLoading(true);
     setError(null);
     try {
-      const all = await teamService.getTeams(clubId, selectedSeasonId as any);
+      let preferredClubNameFromApi: string | null = null;
+      try {
+        const preferredClub = await clubService.getClubById(clubId);
+        preferredClubNameFromApi = preferredClub?.name ?? null;
+      } catch {
+        // Ignore club detail errors and keep loading teams by selected club.
+      }
+      setPreferredClubName(preferredClubNameFromApi);
+
+      const seasons = await seasonService.getSeasons(clubId);
+      const currentActiveSeason = seasons.find((season) => season.active ?? season.isActive) ?? null;
+      setActiveSeason(currentActiveSeason);
+
+      if (!currentActiveSeason?.id) {
+        setTeams([]);
+        setSeasonPreferredTeamId(null);
+        setError("No hay una temporada activa para este club.");
+        return;
+      }
+
+      const all = await teamService.getTeams(clubId, currentActiveSeason.id as any);
       setTeams(all || []);
+
+      if (!preferredClubNameFromApi && all.length > 0) {
+        setPreferredClubName(all[0]?.club?.name ?? null);
+      }
+
+      setSeasonPreferredTeamId(currentActiveSeason.preferredTeamId ?? null);
+
+      if (!currentActiveSeason.preferredTeamId) {
+        const fullSeason = await seasonService.getSeason(currentActiveSeason.id);
+        setSeasonPreferredTeamId(fullSeason?.preferredTeamId ?? null);
+      }
     } catch (e: any) {
       setError(String(e?.message ?? "Error cargando equipos"));
     } finally {
@@ -95,113 +91,18 @@ export default function TeamManager({ open, onChanged, clubId }: TeamManagementD
   };
 
   const handleTogglePreferred = async (team: TeamResponse, checked: boolean) => {
-    if (!selectedSeasonId) {
-      setError("Selecciona una temporada");
+    if (!activeSeason?.id) {
+      setError("No hay una temporada activa disponible");
       return;
     }
     setSaving(true);
     setError(null);
     try {
-      await teamService.setSeasonPreferredTeam(selectedSeasonId as string, checked ? team.id : null);
+      await teamService.setSeasonPreferredTeam(activeSeason.id, checked ? team.id : null);
       setSeasonPreferredTeamId(checked ? team.id : null);
+      onChanged?.();
     } catch (e: any) {
       setError(String(e?.message ?? "Error marcando equipo preferido"));
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleSelectTeam = async (team: TeamResponse) => {
-    setSelectedTeamId(team.id);
-    setError(null);
-    try {
-      const full = await teamService.getTeamById(team.id);
-      setForm({
-        name: full?.name ?? "",
-        categoryId: full?.category?.id ?? undefined,
-        leagueId: full?.league?.id ?? undefined,
-        leagueGroup: full?.league?.group ?? undefined,
-        photo: null,
-        urlPhoto: full?.urlPhoto ?? null,
-        seasonId: full?.club?.id ? selectedSeasonId ?? undefined : selectedSeasonId ?? undefined,
-        isPreferred: full?.id === seasonPreferredTeamId,
-      });
-      if (full?.urlPhoto) {
-        const p = await teamService.fetchTeamPhoto(full.urlPhoto);
-        setPhotoPreview(p);
-      } else {
-        setPhotoPreview(null);
-      }
-    } catch (e: any) {
-      setError(String(e?.message ?? "Error cargando equipo"));
-    }
-  };
-
-  const handleNewTeam = () => {
-    setSelectedTeamId("");
-    setForm({ name: "", categoryId: undefined, leagueId: undefined, leagueGroup: undefined, photo: null, urlPhoto: null, seasonId: undefined });
-    setPhotoPreview(null);
-    setError(null);
-  };
-
-  const handleSave = async () => {
-    if (!form.name || !form.name.trim()) return;
-    if (!form.categoryId || Number(form.categoryId) <= 0) {
-      setError("Selecciona una categoría.");
-      return;
-    }
-
-    setSaving(true);
-    setError(null);
-    try {
-      if (!selectedTeamId) {
-        // create
-        await teamService.createTeam(clubId, {
-          name: form.name.trim(),
-          categoryId: form.categoryId!,
-          leagueId: form.leagueId ?? null,
-          leagueGroup: form.leagueGroup ?? null,
-          photo: form.photo ?? null,
-          seasonId: form.seasonId ?? selectedSeasonId ?? null,
-        } as any);
-      } else {
-        // update
-        let urlPhoto = form.urlPhoto ?? null;
-        if (form.photo) {
-          const uploaded: any = await teamService.uploadTeamPhoto(form.photo);
-          urlPhoto = uploaded?.url ?? uploaded ?? null;
-        }
-        await teamService.updateTeam(selectedTeamId, {
-          name: form.name.trim(),
-          categoryId: form.categoryId!,
-          leagueId: form.leagueId ?? null,
-          leagueGroup: form.leagueGroup ?? null,
-          urlPhoto,
-          clubId,
-          seasonId: form.seasonId ?? selectedSeasonId ?? null,
-        });
-      }
-
-      await loadTeams();
-      // If the user marked the team as preferred, set it for the season.
-      try {
-        const targetSeasonId = form.seasonId ?? selectedSeasonId ?? undefined;
-        if (form.isPreferred && targetSeasonId) {
-          // find the created/updated team id from server
-          const refreshed = await teamService.getTeams(clubId, targetSeasonId as any);
-          const found = refreshed.find((t) => t.name === form.name.trim() && t.category?.id === form.categoryId);
-          if (found) {
-            await teamService.setSeasonPreferredTeam(targetSeasonId as string, found.id);
-            setSeasonPreferredTeamId(found.id);
-          }
-        }
-      } catch (e) {
-        // ignore pref setting errors here, show later if needed
-      }
-      onChanged?.();
-      handleNewTeam();
-    } catch (e: any) {
-      setError(String(e?.message ?? "Error guardando equipo"));
     } finally {
       setSaving(false);
     }
@@ -211,20 +112,25 @@ export default function TeamManager({ open, onChanged, clubId }: TeamManagementD
     <div className={styles.dialogContent}>
       <Stack spacing={2} sx={{ mt: 1 }}>
         <Typography variant="body2" className={styles.helperText}>
-          Crea y administra equipos para el club seleccionado. Solo podrás crear equipos en los clubes a los que tienes acceso.
+          Se muestran los equipos de la temporada activa. Solo puedes actualizar el equipo preferido.
+        </Typography>
+
+        <Typography variant="body2" className={styles.helperText}>
+          Temporada activa: {activeSeason?.name ?? "Sin temporada activa"}
+        </Typography>
+
+        <Typography variant="body2" className={styles.helperText}>
+          Club preferido: {preferredClubName ?? "Sin club preferido"}
         </Typography>
 
         {error && <div className={styles.errorBox}>{error}</div>}
 
-        <div className={styles.layout}>
+        <div className={`${styles.layout} ${styles.layoutSingle}`}>
           <div className={styles.panel}>
             <div className={styles.listHeader}>
               <Typography variant="subtitle1" fontWeight={700}>
                 Todos los equipos
               </Typography>
-              <Button startIcon={<AddIcon />} size="small" variant="outlined" onClick={handleNewTeam}>
-                Nuevo equipo
-              </Button>
             </div>
 
             <div className={styles.listWrap}>
@@ -243,7 +149,6 @@ export default function TeamManager({ open, onChanged, clubId }: TeamManagementD
                       <TableCell>Liga</TableCell>
                       <TableCell>Grupo</TableCell>
                       <TableCell>Preferido</TableCell>
-                      <TableCell align="right">Acciones</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -257,109 +162,16 @@ export default function TeamManager({ open, onChanged, clubId }: TeamManagementD
                           <Switch
                             checked={team.id === seasonPreferredTeamId}
                             onChange={(e) => handleTogglePreferred(team, e.target.checked)}
+                            disabled={saving || !activeSeason?.id}
                             size="small"
                             inputProps={{ 'aria-label': 'Marcar preferido' }}
                           />
-                        </TableCell>
-                        <TableCell align="right">
-                          <Stack direction="row" spacing={0.5} justifyContent="flex-end">
-                            <IconButton size="small" onClick={() => handleSelectTeam(team)} aria-label="Editar equipo">
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                          </Stack>
                         </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
               )}
-            </div>
-          </div>
-
-          <div className={styles.panel}>
-            <Typography variant="subtitle1" fontWeight={700}>
-              {selectedTeamId ? "Editar equipo" : "Crear equipo"}
-            </Typography>
-
-            <div className={styles.formGrid}>
-              <TextField
-                className={styles.fullWidth}
-                label="Nombre"
-                value={form.name}
-                onChange={(e) => setForm((c) => ({ ...c, name: e.target.value }))}
-                size="small"
-                inputProps={{ maxLength: 200 }}
-              />
-
-              <div style={{ gridColumn: "1 / -1" }}>
-                <CategorySelect
-                  value={form.categoryId ?? null}
-                  onChange={(c) => setForm((cur) => ({ ...cur, categoryId: c?.id ?? undefined, leagueId: undefined }))}
-                />
-              </div>
-
-              <div style={{ gridColumn: "1 / -1" }}>
-                <LeagueSelect
-                  categoryId={form.categoryId ?? undefined}
-                  value={form.leagueId ?? null}
-                  onChange={(l) => setForm((cur) => ({ ...cur, leagueId: l?.id ?? undefined, leagueGroup: l?.group ?? cur.leagueGroup }))}
-                />
-              </div>
-
-              <TextField
-                label="Grupo de liga"
-                type="number"
-                value={form.leagueGroup ?? ""}
-                onChange={(e) => setForm((c) => ({ ...c, leagueGroup: e.target.value ? Number(e.target.value) : undefined }))}
-                size="small"
-                InputLabelProps={{ shrink: true }}
-              />
-
-              <div style={{ gridColumn: "1 / -1" }}>
-                <SeasonSelector value={form.seasonId ?? ""} onChange={(s) => setForm((c) => ({ ...c, seasonId: s ?? undefined }))} clubId={clubId} />
-              </div>
-
-              <div style={{ gridColumn: "1 / -1" }}>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={form.isPreferred ?? false}
-                      onChange={(e) => setForm((c) => ({ ...c, isPreferred: e.target.checked }))}
-                      name="isPreferred"
-                      size="small"
-                    />
-                  }
-                  label="Marcar como preferido de la temporada"
-                />
-              </div>
-
-              <div className={styles.fullWidth}>
-                <input
-                  accept="image/*"
-                  style={{ display: "block", marginBottom: 8 }}
-                  id="team-photo-input"
-                  type="file"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0] ?? null;
-                    setForm((c) => ({ ...c, photo: f }));
-                    if (f) setPhotoPreview(URL.createObjectURL(f));
-                  }}
-                />
-                {photoPreview && <img src={photoPreview} alt="preview" style={{ maxWidth: 160, borderRadius: 6 }} />}
-              </div>
-            </div>
-
-            <Typography variant="body2" className={styles.helperText}>
-              {selectedTeamId ? `Editando ${form.name || selectedTeamId}` : "Completa el formulario para crear un nuevo equipo."}
-            </Typography>
-
-            <div className={styles.actionButtons}>
-              <Button onClick={handleNewTeam} variant="outlined" size="small">
-                Limpiar
-              </Button>
-              <Button onClick={handleSave} variant="contained" size="small" disabled={saving || !form.name.trim()}>
-                {saving ? <CircularProgress size={16} color="inherit" /> : selectedTeamId ? "Guardar cambios" : "Crear equipo"}
-              </Button>
             </div>
           </div>
         </div>
