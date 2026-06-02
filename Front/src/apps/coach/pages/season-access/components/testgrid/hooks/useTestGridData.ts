@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { Player, Demarcation, Status } from '../types';
 import { SAMPLE_PLAYERS } from '../helper/helpers';
 import { exportTestGridToExcel } from '../exportToExcel';
+import { exportTestGridToPdf } from '../exportToPdf';
 
 export interface UseTestGridDataParams {
   initialPlayers?: Player[];
@@ -20,6 +21,7 @@ export default function useTestGridData({
 }: UseTestGridDataParams) {
   const [players, setPlayers] = useState<Player[]>(initialPlayers);
   const [exporting, setExporting] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
   const [filterTeam, setFilterTeam] = useState('');
   const [filterStatus, setFilterStatus] = useState<Status[]>([]);
   const [filterDemarcation, setFilterDemarcation] = useState<number | ''>('');
@@ -249,6 +251,15 @@ export default function useTestGridData({
     }
   };
 
+  const handleExportPdf = async () => {
+    setExportingPdf(true);
+    try {
+      await exportTestGridToPdf(sorted, demarcations);
+    } finally {
+      setExportingPdf(false);
+    }
+  };
+
   const addPlayer = () => {
     const newId = players.length > 0 ? Math.max(...players.map((p) => p.id)) + 1 : 1;
     setPlayers((prev) => [
@@ -310,6 +321,8 @@ export default function useTestGridData({
     togglePossible,
     exporting,
     handleExport,
+    exportingPdf,
+    handleExportPdf,
     hasFilters,
   };
 }

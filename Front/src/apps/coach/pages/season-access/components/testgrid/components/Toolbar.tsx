@@ -10,10 +10,12 @@ interface Props {
   addPlayer: () => void;
   handleExport: () => Promise<void>;
   exporting: boolean;
+  handleExportPdf: () => Promise<void>;
+  exportingPdf: boolean;
   playersLength: number;
 }
 
-export default function Toolbar({ statusCounts, teamsByStatus, setOpenStatusPopup, addPlayer, handleExport, exporting, playersLength }: Props) {
+export default function Toolbar({ statusCounts, teamsByStatus, setOpenStatusPopup, addPlayer, handleExport, exporting, handleExportPdf, exportingPdf, playersLength }: Props) {
   return (
     <div className={styles.toolbar}>
       <div className={styles.statusSummary} aria-label="Resumen por estado">
@@ -61,6 +63,15 @@ export default function Toolbar({ statusCounts, teamsByStatus, setOpenStatusPopu
           title="Descargar Excel"
         >
           {exporting ? 'Exportando…' : '⬇ Excel'}
+        </button>
+        <button
+          type="button"
+          className={styles.exportBtn}
+          onClick={() => void handleExportPdf()}
+          disabled={exportingPdf || playersLength === 0}
+          title="Descargar PDF"
+        >
+          {exportingPdf ? 'Generando…' : '⬇ PDF'}
         </button>
       </div>
     </div>

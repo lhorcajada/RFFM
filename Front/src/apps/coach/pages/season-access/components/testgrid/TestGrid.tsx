@@ -38,6 +38,8 @@ const TestGrid: React.FC<TestGridProps> = (props) => {
     addPlayer,
     handleExport,
     exporting,
+    handleExportPdf,
+    exportingPdf,
     updatePlayer,
     togglePossible,
     removePlayer,
@@ -67,6 +69,8 @@ const TestGrid: React.FC<TestGridProps> = (props) => {
         addPlayer={addPlayer}
         handleExport={handleExport}
         exporting={exporting}
+        handleExportPdf={handleExportPdf}
+        exportingPdf={exportingPdf}
         playersLength={sorted.length}
       />
 

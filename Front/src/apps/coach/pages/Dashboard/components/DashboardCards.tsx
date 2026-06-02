@@ -13,10 +13,12 @@ import TimelineIcon from "@mui/icons-material/Timeline";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import FlagIcon from "@mui/icons-material/Flag";
 import CircularProgress from "@mui/material/CircularProgress";
+import { useEffect, useState } from "react";
 import DashboardCard from "../../../../../shared/components/ui/DashboardCard/DashboardCard";
 import type { TeamResponse } from "../../../services/teamService";
 import styles from "../Dashboard.module.css";
 import { coachAuthService } from "../../../services/authService";
+import configurationCoachService from "../../../services/configurationCoachService";
 
 interface DashboardCardsProps {
   team: TeamResponse | null;
@@ -33,6 +35,7 @@ export default function DashboardCards({
   loadingTeam,
   isPlayer = false,
 }: DashboardCardsProps) {
+  const [preferredClubId, setPreferredClubId] = useState<string | null>(null);
   const seasonParam = selectedSeason ? `?seasonId=${selectedSeason}` : "";
   const seasonSuffix = selectedSeason ? `&seasonId=${selectedSeason}` : "";
   const hasAssignedClubAndTeam = Boolean(team?.id && team?.club?.id);
@@ -42,6 +45,32 @@ export default function DashboardCards({
     coachAuthService.hasRole("Coach") ||
     coachAuthService.hasRole("ClubDirector") ||
     coachAuthService.hasRole("ClubMember");
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadPreferredClub() {
+      try {
+        const configs = await configurationCoachService.getAll();
+        if (!mounted) return;
+        const firstConfig = configs.length > 0 ? configs[0] : null;
+        setPreferredClubId(firstConfig?.preferredClubId ?? null);
+      } catch {
+        if (!mounted) return;
+        setPreferredClubId(null);
+      }
+    }
+
+    void loadPreferredClub();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const clubDashboardRoute = preferredClubId
+    ? `/coach/clubs/dashboard/${preferredClubId}${seasonParam}`
+    : `/coach/clubs${seasonParam}`;
 
   return (
     <div className={styles.container}>
@@ -56,18 +85,10 @@ export default function DashboardCards({
         )}
         {!isPlayer && (
           <DashboardCard
-            title="Clubs"
-            description="Gestión de clubs."
+            title="Club"
+            description="Gestión de club."
             icon={<SportsFootballIcon style={{ fontSize: 40 }} />}
-            to={`/coach/clubs${seasonParam}`}
-          />
-        )}
-        {!isPlayer && (
-          <DashboardCard
-            title="Pruebas de acceso"
-            description="Temporada que viene."
-            icon={<CalendarMonthIcon style={{ fontSize: 40 }} />}
-            to="/coach/season-access"
+            to={clubDashboardRoute}
           />
         )}
         {!!teamTitleNode && (
@@ -152,6 +173,14 @@ export default function DashboardCards({
               icon={<NewspaperIcon style={{ fontSize: 40 }} />}
               to="/coach/news"
             />
+            {!isPlayer && (
+              <DashboardCard
+                title="Pruebas de acceso"
+                description="Temporada que viene."
+                icon={<CalendarMonthIcon style={{ fontSize: 40 }} />}
+                to="/coach/season-access"
+              />
+            )}
           </>
         )}
       </div>
