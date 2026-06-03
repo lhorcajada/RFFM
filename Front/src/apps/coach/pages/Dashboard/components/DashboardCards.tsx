@@ -75,7 +75,7 @@ export default function DashboardCards({
   return (
     <div className={styles.container}>
       <div className={styles.cards}>
-        {!isPlayer && hasAssignedClubAndTeam && (
+        {!isPlayer && (
           <DashboardCard
             title="Configuración"
             description="Ajustes y preferencias."

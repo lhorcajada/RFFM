@@ -32,7 +32,7 @@ namespace RFFM.Api.Features.Coaches.Clubs.Queries
         public record GetClubQueryApp : Common.IQueryApp<GetClubResponse>, ICacheRequest
         {
             public string ClubId { get; set; }
-            public string CacheKey => ClubConstants.CachePrefix;
+            public string CacheKey => $"{ClubConstants.CachePrefix}:{ClubId}";
             public DateTime? AbsoluteExpirationRelativeToNow { get; }
         }
 

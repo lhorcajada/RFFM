@@ -60,15 +60,15 @@ describe("CoachDashboard", () => {
     });
   });
 
-  it("shows only Clubs card when user has no assigned club or team", async () => {
+  it("shows configuration and Club cards when user has no assigned club or team", async () => {
     render(
       <MemoryRouter>
         <CoachDashboard />
       </MemoryRouter>
     );
 
-    await waitFor(() => expect(screen.getByRole("link", { name: /^Clubs$/i })).toBeInTheDocument());
-    expect(screen.queryByRole("link", { name: /^Configuración$/i })).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole("link", { name: /^Club$/i })).toBeInTheDocument());
+    expect(screen.getByRole("link", { name: /^Configuración$/i })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /^Plantilla$/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /^Partidos$/i })).not.toBeInTheDocument();
   });
