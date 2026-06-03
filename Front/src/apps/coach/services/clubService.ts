@@ -71,6 +71,12 @@ export async function uploadClubEmblem(id: string, file: File) {
   return resp.data;
 }
 
+export async function deleteClub(id: string) {
+  if (!id) throw new Error("id is required");
+  const resp = await client.delete(`/api/catalog/club/${id}`);
+  return resp.data;
+}
+
 export default {
   getUserClubs,
   getClubById,
@@ -78,4 +84,5 @@ export default {
   createClub,
   createClubMultipart,
   uploadClubEmblem,
+  deleteClub,
 };

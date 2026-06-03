@@ -134,6 +134,12 @@ export async function getTeamById(
   }
 }
 
+export async function deleteTeam(teamId: string) {
+  if (!teamId) throw new Error("teamId is required");
+  const resp = await client.delete(`/api/catalog/team/${encodeURIComponent(teamId)}` as any);
+  return resp.data;
+}
+
 export async function validateTeamCode(
   code: string
 ): Promise<{ teamId: string; teamName: string }> {
@@ -170,6 +176,7 @@ export default {
   uploadTeamPhoto,
   fetchTeamPhoto,
   getTeamById,
+  deleteTeam,
   updateTeam,
   validateTeamCode,
   verifyPlayerIdentity,

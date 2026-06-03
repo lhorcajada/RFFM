@@ -55,6 +55,12 @@
   font-size: 0.86rem;
 }
 
+.fieldError {
+  margin-top: 6px;
+  color: #d32f2f;
+  font-size: 0.78rem;
+}
+
 .shieldImage {
   width: 28px;
   height: 28px;

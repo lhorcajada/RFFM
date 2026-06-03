@@ -60,7 +60,8 @@ namespace RFFM.Api.Features.Coaches.Teams.Commands
 
             if (request.PhotoFile != null && request.PhotoFile.Length > 0)
             {
-                var fileName = Guid.NewGuid() + Path.GetExtension(request.PhotoFile.Name);
+                // Use the uploaded file name (not the multipart field name) to preserve extension.
+                var fileName = Guid.NewGuid() + Path.GetExtension(request.PhotoFile.FileName);
                 urlPhoto = await _storageService.UploadAsync(TeamConstants.TeamsContainerName, fileName, request.PhotoFile, cancellationToken);
             }
             var team = new Team(new TeamModel

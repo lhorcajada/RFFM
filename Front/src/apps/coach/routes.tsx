@@ -117,6 +117,12 @@ function CoachRoutesContent() {
               )}
             />
             <Route
+              path="clubs/:id/teams/:teamId/edit"
+              element={React.createElement(
+                React.lazy(() => import("./pages/clubTeams/edit/EditTeam")),
+              )}
+            />
+            <Route
               path="clubs/new"
               element={React.createElement(
                 React.lazy(() => import("./pages/clubs/create/CreateClub")),
