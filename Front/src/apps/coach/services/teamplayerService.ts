@@ -80,28 +80,39 @@ export type TeamPlayerResponse = {
 export async function getPlayersByTeam(teamId: string, seasonId?: string): Promise<PlayerResponse[]> {
   if (!teamId) throw new Error("teamId is required");
 
-  const query = seasonId ? `?seasonId=${encodeURIComponent(seasonId)}` : "";
-  const resp = await client.get<any>(`teams/${encodeURIComponent(teamId)}${query}`);
-  const payload = resp.data as {
-    players?: PlayerResponse[];
-    jugadores_equipo?: PlayerResponse[];
-    jugadores?: PlayerResponse[];
-  } | null;
+  // Primary source for Coach app roster: TeamPlayers in catalog DB.
+  try {
+    const resp = await client.get<PlayerResponse[]>(
+      `/api/catalog/team/${encodeURIComponent(teamId)}/players`,
+      seasonId ? { params: { seasonId } } : undefined
+    );
+    return Array.isArray(resp.data) ? resp.data : [];
+  } catch {
+    // Backward-compatible fallback for environments where catalog route is unavailable.
+    const query = seasonId ? `?seasonId=${encodeURIComponent(seasonId)}` : "";
+    const resp = await client.get<any>(`teams/${encodeURIComponent(teamId)}${query}`);
+    const payload = resp.data as {
+      players?: PlayerResponse[];
+      jugadores_equipo?: PlayerResponse[];
+      jugadores?: PlayerResponse[];
+    } | null;
 
-  if (!payload) return [];
+    if (!payload) return [];
 
-  const roster =
-    payload.players ??
-    payload.jugadores_equipo ??
-    payload.jugadores ??
-    [];
+    const roster =
+      payload.players ??
+      payload.jugadores_equipo ??
+      payload.jugadores ??
+      [];
 
-  return Array.isArray(roster) ? roster : [];
+    return Array.isArray(roster) ? roster : [];
+  }
 }
 
 export async function addPlayerToTeam(payload: {
   teamId: string;
   clubId: string;
+  seasonId: string;
   playerId?: string | null;
   name: string;
   lastName?: string | null;
@@ -113,12 +124,14 @@ export async function addPlayerToTeam(payload: {
 }): Promise<void> {
   if (!payload.teamId) throw new Error("teamId is required");
   if (!payload.clubId) throw new Error("clubId is required");
+  if (!payload.seasonId?.trim()) throw new Error("seasonId is required");
   if (!payload.name?.trim()) throw new Error("name is required");
   if (!payload.alias?.trim()) throw new Error("alias is required");
 
   const form = new FormData();
   form.append("TeamId", payload.teamId);
   form.append("ClubId", payload.clubId);
+  form.append("SeasonId", payload.seasonId.trim());
   form.append("Name", payload.name.trim());
   form.append("Alias", payload.alias.trim());
 

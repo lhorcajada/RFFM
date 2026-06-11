@@ -80,6 +80,11 @@
   pointer-events: none;
 }
 
+/* ── Teams section ──────────────────────────────────── */
+.teamsSection {
+  margin-bottom: 24px;
+}
+
 /* ── Breakpoints ────────────────────────────────────── */
 @media (max-width: 768px) {
   .container {

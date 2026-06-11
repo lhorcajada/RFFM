@@ -12,6 +12,7 @@ import React from "react";
 
 // Placeholder pages for Coach app
 const Dashboard = lazy(() => import("./pages/Dashboard/Dashboard"));
+const TeamDashboard = lazy(() => import("./pages/team-dashboard/TeamDashboard"));
 // Auth pages are provided at top-level shared/pages/auth; coach redirects to those routes
 
 // Feature pages for Coach app
@@ -84,6 +85,7 @@ function CoachRoutesContent() {
               element={<Navigate to="/reset-password" replace />}
             />
             <Route path="dashboard" element={<Dashboard />} />
+            <Route path="team-dashboard" element={<TeamDashboard />} />
             <Route path="settings" element={<Settings />} />
             <Route path="news" element={<News />} />
             <Route path="squad" element={<Squad />} />

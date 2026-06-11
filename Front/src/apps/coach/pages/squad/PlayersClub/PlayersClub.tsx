@@ -7,6 +7,7 @@ import BaseLayout from "../../../../../shared/components/ui/BaseLayout/BaseLayou
 import ContentLayout from "../../../../../shared/components/ui/ContentLayout/ContentLayout";
 import TeamPlayersList from "../../../components/TeamPlayersList/TeamPlayersList";
 import useTeamAndClub from "../../../hooks/useTeamAndClub";
+import seasonService, { type Season } from "../../../services/seasonService";
 import type { PlayerResponse } from "../../../services/teamplayerService";
 import { addPlayerToTeam } from "../../../services/teamplayerService";
 import styles from "./PlayersClub.module.css";
@@ -18,9 +19,30 @@ export default function PlayersClub() {
   const params = new URLSearchParams(search);
   const teamId = params.get("teamId");
   const seasonId = params.get("seasonId");
+  const [activeSeason, setActiveSeason] = React.useState<Season | null>(null);
   const [selectedPlayers, setSelectedPlayers] = React.useState<PlayerResponse[]>([]);
   const [isSaving, setIsSaving] = React.useState(false);
   const [saveMessage, setSaveMessage] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    let cancelled = false;
+
+    async function loadActiveSeason() {
+      const season = await seasonService.getActiveSeason();
+      if (!cancelled) {
+        setActiveSeason(season);
+      }
+    }
+
+    void loadActiveSeason();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const effectiveSeasonId = seasonId ?? activeSeason?.id ?? null;
+  const effectiveSeasonLabel = seasonId ?? activeSeason?.name ?? activeSeason?.id ?? "Sin temporada";
 
   const clubTeam = React.useMemo(() => {
     if (!team) return null;
@@ -36,6 +58,7 @@ export default function PlayersClub() {
   }, [team]);
 
   const selectedCount = selectedPlayers.length;
+  const activeClubId = team?.club?.id?.trim() ?? null;
 
   const handleBack = () => {
     if (teamId) {
@@ -50,6 +73,11 @@ export default function PlayersClub() {
     if (!team) return;
     if (selectedPlayers.length === 0) {
       setSaveMessage("Selecciona al menos un jugador antes de guardar.");
+      return;
+    }
+
+    if (!effectiveSeasonId) {
+      setSaveMessage("No se puede guardar porque no hay temporada activa disponible.");
       return;
     }
 
@@ -77,6 +105,7 @@ export default function PlayersClub() {
           await addPlayerToTeam({
             teamId: team.id,
             clubId,
+            seasonId: effectiveSeasonId,
             playerId: player.playerId ?? player.id ?? null,
             name: firstName,
             lastName,
@@ -169,7 +198,7 @@ export default function PlayersClub() {
                 <Divider className={styles.divider} />
                 <div className={styles.summaryItem}>
                   <span>Temporada</span>
-                  <strong>{seasonId ?? "Sin temporada"}</strong>
+                  <strong>{effectiveSeasonLabel}</strong>
                 </div>
                 <Divider className={styles.divider} />
                 <div className={styles.summaryItem}>
@@ -213,7 +242,8 @@ export default function PlayersClub() {
               <Box className={styles.listStage}>
                 <TeamPlayersList
                   team={clubTeam}
-                  seasonId={seasonId}
+                  clubId={activeClubId}
+                  seasonId={effectiveSeasonId}
                   onSelectionChange={setSelectedPlayers}
                 />
               </Box>

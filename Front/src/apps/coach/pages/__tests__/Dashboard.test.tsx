@@ -92,6 +92,6 @@ describe("CoachDashboard", () => {
     );
 
     await waitFor(() => expect(screen.getByRole("link", { name: /^Configuración$/i })).toBeInTheDocument());
-    expect(screen.getByRole("link", { name: /^Clubs$/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /^Club$/i })).toBeInTheDocument();
   });
 });

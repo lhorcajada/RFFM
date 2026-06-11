@@ -9,7 +9,7 @@ import DashboardActionBar from "./components/DashboardActionBar";
 import DashboardCards from "./components/DashboardCards";
 
 export default function CoachDashboard() {
-  const { teamTitleNode, clubSubtitleNode, loading: loadingTeam, team } = useTeamAndClub();
+  const { teamTitleNode, clubSubtitleNode } = useTeamAndClub();
   const selectedSeason = "";
   const { snackbar, setSnackbar } = usePreferredSelection(selectedSeason);
   const { isPlayer } = usePlayerAutoLoad();
@@ -26,10 +26,7 @@ export default function CoachDashboard() {
         }
       >
         <DashboardCards
-          team={team}
-          teamTitleNode={teamTitleNode}
           selectedSeason={selectedSeason}
-          loadingTeam={loadingTeam}
           isPlayer={isPlayer}
         />
       </ContentLayout>

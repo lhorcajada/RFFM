@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import {
   CircularProgress,
   Stack,
-  Switch,
   Table,
   TableBody,
   TableCell,
@@ -24,12 +23,10 @@ interface TeamManagementDialogProps {
   inline?: boolean;
 }
 
-export default function TeamManager({ open, onChanged, clubId }: TeamManagementDialogProps) {
+export default function TeamManager({ open, clubId }: TeamManagementDialogProps) {
   const [teams, setTeams] = useState<TeamResponse[]>([]);
   const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [seasonPreferredTeamId, setSeasonPreferredTeamId] = useState<string | null>(null);
   const [activeSeason, setActiveSeason] = useState<Season | null>(null);
   const [preferredClubName, setPreferredClubName] = useState<string | null>(null);
 
@@ -37,7 +34,6 @@ export default function TeamManager({ open, onChanged, clubId }: TeamManagementD
     if (!clubId) {
       setTeams([]);
       setActiveSeason(null);
-      setSeasonPreferredTeamId(null);
       setPreferredClubName(null);
       setError("Selecciona un club para administrar los equipos.");
       return;
@@ -65,7 +61,6 @@ export default function TeamManager({ open, onChanged, clubId }: TeamManagementD
 
       if (!currentActiveSeason?.id) {
         setTeams([]);
-        setSeasonPreferredTeamId(null);
         setError("No hay una temporada activa para este club.");
         return;
       }
@@ -76,13 +71,6 @@ export default function TeamManager({ open, onChanged, clubId }: TeamManagementD
       if (!preferredClubNameFromApi && all.length > 0) {
         setPreferredClubName(all[0]?.club?.name ?? null);
       }
-
-      setSeasonPreferredTeamId(currentActiveSeason.preferredTeamId ?? null);
-
-      if (!currentActiveSeason.preferredTeamId) {
-        const fullSeason = await seasonService.getSeason(currentActiveSeason.id);
-        setSeasonPreferredTeamId(fullSeason?.preferredTeamId ?? null);
-      }
     } catch (e: any) {
       setError(String(e?.message ?? "Error cargando equipos"));
     } finally {
@@ -90,29 +78,11 @@ export default function TeamManager({ open, onChanged, clubId }: TeamManagementD
     }
   };
 
-  const handleTogglePreferred = async (team: TeamResponse, checked: boolean) => {
-    if (!activeSeason?.id) {
-      setError("No hay una temporada activa disponible");
-      return;
-    }
-    setSaving(true);
-    setError(null);
-    try {
-      await teamService.setSeasonPreferredTeam(activeSeason.id, checked ? team.id : null);
-      setSeasonPreferredTeamId(checked ? team.id : null);
-      onChanged?.();
-    } catch (e: any) {
-      setError(String(e?.message ?? "Error marcando equipo preferido"));
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const content = (
     <div className={styles.dialogContent}>
       <Stack spacing={2} sx={{ mt: 1 }}>
         <Typography variant="body2" className={styles.helperText}>
-          Se muestran los equipos de la temporada activa. Solo puedes actualizar el equipo preferido.
+          Se muestran los equipos de la temporada activa del club seleccionado.
         </Typography>
 
         <Typography variant="body2" className={styles.helperText}>
@@ -148,7 +118,6 @@ export default function TeamManager({ open, onChanged, clubId }: TeamManagementD
                       <TableCell>Categoría</TableCell>
                       <TableCell>Liga</TableCell>
                       <TableCell>Grupo</TableCell>
-                      <TableCell>Preferido</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -158,15 +127,6 @@ export default function TeamManager({ open, onChanged, clubId }: TeamManagementD
                         <TableCell>{team.category?.name}</TableCell>
                         <TableCell>{team.league?.name ?? "-"}</TableCell>
                         <TableCell>{team.league?.group ?? "-"}</TableCell>
-                        <TableCell>
-                          <Switch
-                            checked={team.id === seasonPreferredTeamId}
-                            onChange={(e) => handleTogglePreferred(team, e.target.checked)}
-                            disabled={saving || !activeSeason?.id}
-                            size="small"
-                            inputProps={{ 'aria-label': 'Marcar preferido' }}
-                          />
-                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

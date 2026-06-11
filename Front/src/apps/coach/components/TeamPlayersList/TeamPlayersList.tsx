@@ -12,6 +12,7 @@ import {
 } from "@mui/material";
 import PlayerCromo from "../../pages/season-access/components/PlayerCromo";
 import { getPlayersByTeam, type PlayerResponse } from "../../services/teamplayerService";
+import { getPlayersByClub } from "../../services/playerService";
 import { getSeasonAccessSelection, getTrialDays, getTrialDayRatings } from "../../services/seasonAccessService";
 import type { ClubTeam } from "../../../federation/services/Federation/ClubService";
 import { normalizeText } from "../../pages/season-access/helpers/seasonAccess.helpers";
@@ -19,6 +20,7 @@ import styles from "./TeamPlayersList.module.css";
 
 export type TeamPlayersListProps = {
   team: ClubTeam | null;
+  clubId?: string | null;
   seasonId?: string | null;
   category?: string | null;
   onPlayerSelect?: (player: PlayerResponse) => void;
@@ -45,6 +47,7 @@ const playerSelectionKey = (player: PlayerResponse, fallbackIndex?: number) => {
 
 export default function TeamPlayersList({
   team,
+  clubId = null,
   seasonId = null,
   category = null,
   onPlayerSelect,
@@ -215,7 +218,9 @@ export default function TeamPlayersList({
       setError(null);
 
       try {
-        const roster = await getPlayersByTeam(team.teamCode);
+        const roster = clubId
+          ? await getPlayersByClub(clubId)
+          : await getPlayersByTeam(team.teamCode);
         if (!mounted) return;
 
         setPlayers(roster);
@@ -223,7 +228,11 @@ export default function TeamPlayersList({
         if (mounted) {
           setPlayers([]);
           setSelectedPlayerIds(new Set());
-          setError("No se pudieron cargar los jugadores del equipo seleccionado.");
+          setError(
+            clubId
+              ? "No se pudieron cargar los jugadores del club seleccionado."
+              : "No se pudieron cargar los jugadores del equipo seleccionado."
+          );
         }
       } finally {
         if (mounted) setLoading(false);
@@ -235,7 +244,7 @@ export default function TeamPlayersList({
     return () => {
       mounted = false;
     };
-  }, [team]);
+  }, [team, clubId]);
 
   React.useEffect(() => {
     setSelectedPlayerIds(new Set());
@@ -251,10 +260,10 @@ export default function TeamPlayersList({
       <div className={styles.headerRow}>
         <div>
           <Typography variant="subtitle1" className={styles.panelTitle}>
-            Jugadores del equipo
+            {clubId ? "Jugadores del club" : "Jugadores del equipo"}
           </Typography>
           <Typography variant="body2" className={styles.panelText}>
-            {team.teamName} · {team.categoryDescription}
+            {clubId ? `Club: ${clubId}` : `${team.teamName} · ${team.categoryDescription}`}
           </Typography>
         </div>
 
