@@ -48,8 +48,8 @@ namespace RFFM.Api.Features.Coaches.Clubs.Commands
 
     public class CreateClubRequest
     {
-        public string Name { get; set; }
-        public string CountryCode { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string CountryCode { get; set; } = string.Empty;
         public IFormFile? Emblem { get; set; }
         public int RoleId { get; set; }
     }
@@ -58,7 +58,7 @@ namespace RFFM.Api.Features.Coaches.Clubs.Commands
     {
         public string CountryCode { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
-        public string UserId { get; set; }
+        public string UserId { get; set; } = string.Empty;
         public IFormFile? Emblem { get; set; }
 
         public string PrefixCacheKey => ClubConstants.CachePrefix;

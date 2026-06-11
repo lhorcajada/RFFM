@@ -1,4 +1,5 @@
 import client from "../../../core/api/client";
+import { coachAuthService } from "./authService";
 
 export type ConfigurationCoachDto = {
   id: number;
@@ -18,6 +19,17 @@ const baseUrl = "/api/coaches/configuration";
 const getAll = async (): Promise<ConfigurationCoachDto[]> => {
   const { data } = await client.get<ConfigurationCoachDto[]>(baseUrl);
   return data;
+};
+
+const getCurrent = async (): Promise<ConfigurationCoachDto | null> => {
+  const configs = await getAll();
+  const coachId = coachAuthService.getUserId();
+  if (coachId) {
+    const current = configs.find((config) => config.coachId === coachId);
+    if (current) return current;
+  }
+
+  return configs[0] ?? null;
 };
 
 const getById = async (id: number): Promise<ConfigurationCoachDto> => {
@@ -52,6 +64,7 @@ const remove = async (id: number): Promise<ConfigurationCoachDto> => {
 
 export default {
   getAll,
+  getCurrent,
   getById,
   create,
   update,

@@ -11,9 +11,22 @@ type Props = {
   photoSrc?: string | null;
   to?: string;
   actions?: React.ReactNode;
+  details?: Array<string | null | undefined>;
+  hideDefaultAction?: boolean;
+  hideAvatar?: boolean;
+  onClick?: () => void;
 };
 
-export default function PlayerCard({ player, photoSrc, to, actions }: Props) {
+export default function PlayerCard({
+  player,
+  photoSrc,
+  to,
+  actions,
+  details,
+  hideDefaultAction,
+  hideAvatar,
+  onClick,
+}: Props) {
   const navigate = useNavigate();
   const rawName = ((player.name ?? "") + " " + (player.lastName ?? "")).trim();
   const displayName = rawName || player.alias || "Jugador";
@@ -35,7 +48,7 @@ export default function PlayerCard({ player, photoSrc, to, actions }: Props) {
       })
     : null;
 
-  const avatarNode = photoSrc ? (
+  const avatarNode = hideAvatar ? null : photoSrc ? (
     // eslint-disable-next-line jsx-a11y/img-redundant-alt
     <img
       src={photoSrc}
@@ -51,7 +64,12 @@ export default function PlayerCard({ player, photoSrc, to, actions }: Props) {
   );
 
   const content = (
-    <div className={styles.card} role="group" aria-label={`${displayName}`}>
+    <div
+      className={`${styles.card} ${onClick ? styles.clickable : ""}`}
+      role={onClick ? "button" : "group"}
+      aria-label={`${displayName}`}
+      onClick={onClick}
+    >
       {hasDorsal ? (
         <div
           className={styles.dorsalBadge}
@@ -62,7 +80,7 @@ export default function PlayerCard({ player, photoSrc, to, actions }: Props) {
       ) : null}
 
       <div className={styles.topRow}>
-        <div className={styles.left}>{avatarNode}</div>
+        {avatarNode ? <div className={styles.left}>{avatarNode}</div> : null}
         <div className={styles.info}>
           <div className={styles.title}>{displayAlias || displayName}</div>
           <div className={styles.subtitle}>
@@ -70,7 +88,7 @@ export default function PlayerCard({ player, photoSrc, to, actions }: Props) {
             {dobText ? ` • ${dobText}` : ""}
           </div>
         </div>
-        {!to && player.id && (
+        {!to && player.id && !hideDefaultAction && (
           <div className={styles.actionCol}>
             <IconButton
               size="small"
@@ -85,6 +103,18 @@ export default function PlayerCard({ player, photoSrc, to, actions }: Props) {
           </div>
         )}
       </div>
+
+      {details && details.some((detail) => Boolean(detail?.trim())) ? (
+        <div className={styles.meta}>
+          {details
+            .filter((detail): detail is string => Boolean(detail?.trim()))
+            .map((detail) => (
+              <span key={detail} className={styles.metaItem}>
+                {detail}
+              </span>
+            ))}
+        </div>
+      ) : null}
 
       {actions ? <div className={styles.actionsRow}>{actions}</div> : null}
 

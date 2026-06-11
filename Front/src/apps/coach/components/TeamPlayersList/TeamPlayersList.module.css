@@ -1,0 +1,59 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  padding: 1rem;
+  border-radius: 1rem;
+  border: 1px solid var(--rffm-hero-border);
+  background: var(--rffm-card-bg);
+  color: var(--rffm-card-text);
+  box-shadow: var(--rffm-hero-shadow);
+}
+
+.headerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.selectionBar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 0.75rem;
+  background: var(--rffm-hero-surface);
+  border: 1px solid var(--rffm-hero-card-border);
+}
+
+.selectionText {
+  flex: 1;
+  color: var(--rffm-card-subtext);
+}
+
+.selectionCount {
+  margin-left: auto;
+}
+
+.panelTitle {
+  font-weight: 600;
+}
+
+.panelText {
+  color: var(--rffm-card-subtext);
+}
+
+.playersList {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+
+.loadingState {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--rffm-card-subtext);
+}

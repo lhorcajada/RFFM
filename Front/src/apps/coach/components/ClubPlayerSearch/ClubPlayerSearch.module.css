@@ -1,0 +1,195 @@
+.root {
+  width: 100%;
+}
+
+.panel {
+  padding: 1.25rem;
+  border-radius: 1.125rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.18);
+}
+
+.headerRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.selectorDisclosure {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.selectorSummary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  list-style: none;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.selectorSummary::-webkit-details-marker {
+  display: none;
+}
+
+.selectorSummaryLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.selectorSummaryIcon {
+  transition: transform 160ms ease;
+}
+
+.selectorSummaryIconOpen {
+  transform: rotate(180deg);
+}
+
+.selectorBody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.selectorActions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.summaryChips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.kicker {
+  letter-spacing: 0.12em;
+  opacity: 0.78;
+}
+
+.title {
+  font-weight: 700;
+}
+
+.description,
+.panelText {
+  opacity: 0.84;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.groups {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.groupHeader,
+.playersHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.groupTitle,
+.panelTitle {
+  font-weight: 600;
+}
+
+.groupCount {
+  min-width: 2rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  text-align: center;
+}
+
+.teamGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.75rem;
+}
+
+.teamCard {
+  min-height: 4.75rem;
+  padding: 0.9rem 1rem;
+  border-radius: 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: transform 120ms ease, border-color 120ms ease, background-color 120ms ease;
+}
+
+.teamCard:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.teamCardSelected {
+  border-color: rgba(255, 161, 51, 0.65);
+  background: rgba(255, 161, 51, 0.12);
+  box-shadow: 0 0 0 1px rgba(255, 161, 51, 0.15) inset;
+}
+
+.teamInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.teamName {
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.teamCategory {
+  font-size: 0.875rem;
+  opacity: 0.8;
+}
+
+.loadingState {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  opacity: 0.84;
+}
+
+@media (max-width: 900px) {
+  .headerRow {
+    flex-direction: column;
+  }
+
+  .summaryChips {
+    justify-content: flex-start;
+  }
+
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+}

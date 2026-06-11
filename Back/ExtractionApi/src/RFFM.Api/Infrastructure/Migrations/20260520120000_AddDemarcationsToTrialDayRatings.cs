@@ -10,34 +10,37 @@ namespace RFFM.Api.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<int>(
-                name: "IdealDemarcationId",
-                schema: "app",
-                table: "SeasonAccessTrialDayRatings",
-                type: "integer",
-                nullable: true);
+            migrationBuilder.Sql(
+                """
+                DO $$
+                BEGIN
+                    IF to_regclass('app."SeasonAccessTrialDayRatings"') IS NOT NULL THEN
+                        ALTER TABLE app."SeasonAccessTrialDayRatings"
+                        ADD COLUMN IF NOT EXISTS "IdealDemarcationId" integer;
 
-            migrationBuilder.AddColumn<int[]>(
-                name: "PossibleDemarcationIds",
-                schema: "app",
-                table: "SeasonAccessTrialDayRatings",
-                type: "integer[]",
-                nullable: false,
-                defaultValue: new int[0]);
+                        ALTER TABLE app."SeasonAccessTrialDayRatings"
+                        ADD COLUMN IF NOT EXISTS "PossibleDemarcationIds" integer[] NOT NULL DEFAULT ARRAY[]::integer[];
+                    END IF;
+                END $$;
+                """);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "IdealDemarcationId",
-                schema: "app",
-                table: "SeasonAccessTrialDayRatings");
+            migrationBuilder.Sql(
+                """
+                DO $$
+                BEGIN
+                    IF to_regclass('app."SeasonAccessTrialDayRatings"') IS NOT NULL THEN
+                        ALTER TABLE app."SeasonAccessTrialDayRatings"
+                        DROP COLUMN IF EXISTS "IdealDemarcationId";
 
-            migrationBuilder.DropColumn(
-                name: "PossibleDemarcationIds",
-                schema: "app",
-                table: "SeasonAccessTrialDayRatings");
+                        ALTER TABLE app."SeasonAccessTrialDayRatings"
+                        DROP COLUMN IF EXISTS "PossibleDemarcationIds";
+                    END IF;
+                END $$;
+                """);
         }
     }
 }

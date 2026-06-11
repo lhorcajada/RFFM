@@ -10,9 +10,18 @@
   padding: 10px 12px;
   background: var(--rffm-card-bg, #1c1c30);
   border-radius: 12px;
-  box-shadow: 0 6px 20px rgba(19, 38, 63, 0.04);
+  border: 1px solid var(--rffm-hero-card-border, rgba(255, 255, 255, 0.08));
+  box-shadow: 0 10px 26px rgba(19, 38, 63, 0.1);
   min-height: 72px;
   color: var(--rffm-card-text, #e8e8e8);
+}
+
+.clickable {
+  cursor: pointer;
+}
+
+.card:hover {
+  border-color: color-mix(in srgb, var(--rffm-primary) 55%, transparent);
 }
 .avatar {
   width: 56px;

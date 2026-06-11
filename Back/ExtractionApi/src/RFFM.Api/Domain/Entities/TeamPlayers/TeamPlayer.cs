@@ -1,5 +1,6 @@
 ﻿using RFFM.Api.Domain.Aggregates.UserClubs;
 using RFFM.Api.Domain.Entities.Players;
+using RFFM.Api.Domain.Entities.Seasons;
 using RFFM.Api.Domain.Models;
 using RFFM.Api.Domain.ValueObjects;
 using RFFM.Api.Domain.ValueObjects.Player;
@@ -22,7 +23,13 @@ namespace RFFM.Api.Domain.Entities.TeamPlayers
 
         public Team Team { get; set; } = null!;
         public Player Player { get; set; } = null!;
+        public string SeasonId { get; set; } = null!;
+        public Season Season { get; set; } = null!;
 
+        public int? Age { get; set; }
+        public int? BirthYear { get; set; }
+        public string? TeamName { get; set; } = null!;
+        public string? TeamCategory { get; set; } = null!;
 
         private TeamPlayer() { }
         private TeamPlayer(TeamPlayerModel teamPlayerModel)
@@ -36,11 +43,42 @@ namespace RFFM.Api.Domain.Entities.TeamPlayers
             SetDorsal(teamPlayerModel.Dorsal?.Number);
             SetPhysicalInfo(teamPlayerModel.Height, teamPlayerModel.Weight, teamPlayerModel.DominantFootId);
             SetFamily(teamPlayerModel.FamilyMembers);
+            SetSeasonId(teamPlayerModel.SeasonId);
+            SetAge(teamPlayerModel.Age);
+            SetBirthYear(teamPlayerModel.BirthYear);
+            SetTeamName(teamPlayerModel.TeamName);
+            SetTeamCategory(teamPlayerModel.TeamCategory);
         }
         
         public static TeamPlayer Create(TeamPlayerModel teamPlayerModel)
         {
             return new TeamPlayer(teamPlayerModel);
+        }
+
+        public void SetSeasonId (string seasonId)
+        {
+            if (string.IsNullOrEmpty(seasonId))
+                throw new ArgumentException("La temporada no puede estar vacía");
+            SeasonId = seasonId;
+        }
+
+        public void SetAge(int? age)
+        {
+            Age = age;
+        }
+
+        public void SetTeamName(string? teamName)
+        {
+            TeamName = teamName;
+        }
+
+        public void SetTeamCategory(string? teamCategory)
+        {
+            TeamCategory = teamCategory;
+        }
+        public void SetBirthYear(int? birthYear)
+        {
+            SetAge(birthYear != null ? DateTime.UtcNow.Year - birthYear.Value : null);
         }
 
         public void SetDemarcation(DemarcationModel? demarcation)

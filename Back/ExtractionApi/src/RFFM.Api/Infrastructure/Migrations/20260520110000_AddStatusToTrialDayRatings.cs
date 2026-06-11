@@ -10,22 +10,31 @@ namespace RFFM.Api.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<string>(
-                name: "Status",
-                schema: "app",
-                table: "SeasonAccessTrialDayRatings",
-                type: "character varying(50)",
-                maxLength: 50,
-                nullable: true);
+            migrationBuilder.Sql(
+                """
+                DO $$
+                BEGIN
+                    IF to_regclass('app."SeasonAccessTrialDayRatings"') IS NOT NULL THEN
+                        ALTER TABLE app."SeasonAccessTrialDayRatings"
+                        ADD COLUMN IF NOT EXISTS "Status" character varying(50);
+                    END IF;
+                END $$;
+                """);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "Status",
-                schema: "app",
-                table: "SeasonAccessTrialDayRatings");
+            migrationBuilder.Sql(
+                """
+                DO $$
+                BEGIN
+                    IF to_regclass('app."SeasonAccessTrialDayRatings"') IS NOT NULL THEN
+                        ALTER TABLE app."SeasonAccessTrialDayRatings"
+                        DROP COLUMN IF EXISTS "Status";
+                    END IF;
+                END $$;
+                """);
         }
     }
 }

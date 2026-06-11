@@ -21,13 +21,27 @@ export default function ClubHeader({ clubId, className }: Props) {
       if (!clubId) return;
       setLoading(true);
       try {
+        const userClubs = await clubService.getUserClubs();
+        const currentClub = userClubs.find((club) => club.clubId === clubId);
+
+        if (currentClub) {
+          if (!mounted) return;
+          setClubName(currentClub.clubName ?? null);
+          if (currentClub.shieldUrl) {
+            setEmblemSrc(currentClub.shieldUrl);
+          }
+        }
+
         const c = await clubService.getClubById(clubId);
         if (!mounted) return;
-        setClubName(c?.name ?? null);
+
+        if (!currentClub) {
+          setClubName(c?.name ?? null);
+        }
 
         if (c && (c as any).shieldUrl) {
           setEmblemSrc((c as any).shieldUrl);
-        } else if (c) {
+        } else {
           const resp = await clubService.getClubEmblem(clubId);
           if (!mounted) return;
           if (resp && resp.data) {

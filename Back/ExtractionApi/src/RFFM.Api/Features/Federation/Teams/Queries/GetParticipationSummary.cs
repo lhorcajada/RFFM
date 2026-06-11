@@ -16,7 +16,7 @@ namespace RFFM.Api.Features.Federation.Teams.Queries
         public void AddRoutes(IEndpointRouteBuilder app)
         {
             app.MapGet("/teams/{teamId}/participation-summary",
-                    async (IMediator mediator, CancellationToken cancellationToken, int teamId, int season = 21) =>
+                    async (IMediator mediator, CancellationToken cancellationToken, string teamId, int season = 21) =>
                     {
                         var request = new ParticipationQueryApp(teamId, season);
                         var response = await mediator.Send(request, cancellationToken);
@@ -29,7 +29,7 @@ namespace RFFM.Api.Features.Federation.Teams.Queries
                 .Produces(StatusCodes.Status404NotFound);
         }
 
-        public record ParticipationQueryApp(int TeamId, int SeasonId = 21) : Common.IQueryApp<ParticipationCount[]>;
+        public record ParticipationQueryApp(string TeamId, int SeasonId = 21) : Common.IQueryApp<ParticipationCount[]>;
 
         public class PlayerSummary
         {

@@ -71,16 +71,6 @@ namespace RFFM.Api.Features.Coaches.Seasons.Commands
 
             season.UpdateIsActive(request.IsActive);
 
-            if (request.IsActive)
-            {
-                // When a season becomes active, propagate its preferred team (if any)
-                var coaches = await _catalogDbContext.ConfigurationCoaches.ToListAsync(cancellationToken);
-                foreach (var cfg in coaches)
-                {
-                    cfg.PreferredTeamId = season.PreferredTeamId;
-                }
-            }
-
             await _catalogDbContext.SaveChangesAsync(cancellationToken);
             return Unit.Value;
 

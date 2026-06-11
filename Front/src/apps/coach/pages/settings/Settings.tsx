@@ -21,11 +21,10 @@ const Settings: React.FC = () => {
 
   useEffect(() => {
     const load = async () => {
-      const configs = await configurationCoachService.getAll();
-      const first = configs.length ? configs[0] : null;
-      setConfigurationId(first?.id ?? null);
-      setPreferredClubId(first?.preferredClubId ?? null);
-      setPreferredTeamId(first?.preferredTeamId ?? null);
+      const current = await configurationCoachService.getCurrent();
+      setConfigurationId(current?.id ?? null);
+      setPreferredClubId(current?.preferredClubId ?? null);
+      setPreferredTeamId(current?.preferredTeamId ?? null);
     };
     load();
   }, []);

@@ -16,7 +16,7 @@ namespace RFFM.Api.Features.Federation.Teams.Queries
     {
         public void AddRoutes(IEndpointRouteBuilder app)
         {
-            app.MapGet("/teams/{teamId}/callups", async (IMediator mediator, CancellationToken cancellationToken, int teamId = 13553720, string seasonId = "21", int competitionId = 25255269, int groupId = 25255283) =>
+            app.MapGet("/teams/{teamId}/callups", async (IMediator mediator, CancellationToken cancellationToken, string teamId, string seasonId = "21", int competitionId = 25255269, int groupId = 25255283) =>
             {
                 // seasonId, competitionId and groupId are required as per request
                 if (string.IsNullOrWhiteSpace(seasonId)) return Results.BadRequest("seasonId is required");
@@ -31,7 +31,7 @@ namespace RFFM.Api.Features.Federation.Teams.Queries
             .Produces<ProblemDetails>(StatusCodes.Status400BadRequest);
         }
 
-        public record QueryApp(int TeamId, string SeasonId, int CompetitionId, int GroupId) : Common.IQueryApp<List<PlayerCallupsResponse>>;
+        public record QueryApp(string TeamId, string SeasonId, int CompetitionId, int GroupId) : Common.IQueryApp<List<PlayerCallupsResponse>>;
 
         public class RequestHandler(
             ICalendarService calendarService,

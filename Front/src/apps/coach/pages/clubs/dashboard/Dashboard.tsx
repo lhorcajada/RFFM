@@ -1,16 +1,16 @@
-import React, { useEffect, useState } from "react";
-import { useParams, useLocation } from "react-router-dom";
-import BaseLayout from "../../../../../shared/components/ui/BaseLayout/BaseLayout";
-import ContentLayout from "../../../../../shared/components/ui/ContentLayout/ContentLayout";
-import { Box, Typography, CircularProgress, Button } from "@mui/material";
+import React from "react";
+import { useParams, useLocation, useNavigate } from "react-router-dom";
+import { Button } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import GroupIcon from "@mui/icons-material/Group";
+import PeopleIcon from "@mui/icons-material/People";
 import SportsFootballIcon from "@mui/icons-material/SportsFootball";
+import HowToRegIcon from "@mui/icons-material/HowToReg";
+import BaseLayout from "../../../../../shared/components/ui/BaseLayout/BaseLayout";
+import ContentLayout from "../../../../../shared/components/ui/ContentLayout/ContentLayout";
 import DashboardCard from "../../../../../shared/components/ui/DashboardCard/DashboardCard";
 import styles from "../../Dashboard/Dashboard.module.css";
 import localStyles from "./Dashboard.module.css";
-import { useNavigate } from "react-router-dom";
-import clubService from "../../../services/clubService";
 import ClubHeader from "../../../components/ClubHeader/ClubHeader";
 
 export default function ClubsDashboard() {
@@ -19,52 +19,6 @@ export default function ClubsDashboard() {
   const qs = new URLSearchParams(search);
   const seasonId = qs.get("seasonId") ?? undefined;
   const navigate = useNavigate();
-  const [clubName, setClubName] = useState<string | null>(null);
-  const [emblemSrc, setEmblemSrc] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    let mounted = true;
-    let objectUrl: string | null = null;
-
-    async function load() {
-      if (!id) return;
-      setLoading(true);
-      try {
-        const c = await clubService.getClubById(id as string);
-        if (!mounted) return;
-        setClubName(c?.name ?? null);
-
-        if (c && (c as any).shieldUrl) {
-          setEmblemSrc((c as any).shieldUrl);
-        } else if (c) {
-          try {
-            const resp = await clubService.getClubEmblem(id as string);
-            if (!mounted) return;
-            if (resp && resp.data) {
-              const blob = new Blob([resp.data], {
-                type: resp.contentType ?? "image/png",
-              });
-              objectUrl = URL.createObjectURL(blob);
-              setEmblemSrc(objectUrl);
-            }
-          } catch (e) {
-            // ignore emblem load errors
-          }
-        }
-      } catch (e) {
-        // ignore
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    }
-
-    load();
-    return () => {
-      mounted = false;
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
-    };
-  }, [id]);
 
   return (
     <BaseLayout hideFooterMenu>
@@ -80,7 +34,7 @@ export default function ClubsDashboard() {
             Volver
           </Button>
         }
-        subtitle={<ClubHeader clubId={id as string} />}
+        subtitle={id ? <ClubHeader clubId={id} /> : "-"}
       >
         <div className={styles.container}>
           <div className={styles.cards}>
@@ -94,10 +48,28 @@ export default function ClubsDashboard() {
             />
 
             <DashboardCard
+              title="Jugadores del club"
+              description="Listado general de jugadores registrados en el club."
+              icon={<PeopleIcon className={localStyles.icon} />}
+              to={`/coach/clubs/${id}/players${
+                seasonId ? `?seasonId=${seasonId}` : ""
+              }`}
+            />
+
+            <DashboardCard
               title="Equipos"
               description="Gestión de equipos vinculados al club."
               icon={<SportsFootballIcon className={localStyles.icon} />}
               to={`/coach/clubs/${id}/teams${
+                seasonId ? `?seasonId=${seasonId}` : ""
+              }`}
+            />
+
+            <DashboardCard
+              title="Inscripciones de jugadores"
+              description="Altas, renovaciones y control de accesos."
+              icon={<HowToRegIcon className={localStyles.icon} />}
+              to={`/coach/clubs/${id}/registrations${
                 seasonId ? `?seasonId=${seasonId}` : ""
               }`}
             />

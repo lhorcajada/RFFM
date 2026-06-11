@@ -10,8 +10,7 @@ namespace RFFM.Api.Domain.Entities.Seasons
         public bool IsActive { get; private set; }
         public string? ClubId { get; private set; }
         public Club? Club { get; private set; }
-        public string? PreferredTeamId { get; private set; }
-        public Team? PreferredTeam { get; private set; }
+
 
         public static Season Create(string name, DateTime startDate, DateTime endDate, bool isActive, Club club)
             => new Season(name, startDate, endDate, isActive, club);
@@ -27,11 +26,6 @@ namespace RFFM.Api.Domain.Entities.Seasons
             EndDate = NormalizeDate(endDate);
             IsActive = isActive;
             ClubId = club.Id;
-        }
-
-        public void UpdatePreferredTeam(string? teamId)
-        {
-            PreferredTeamId = teamId;
         }
 
         public void UpdateName(string name)

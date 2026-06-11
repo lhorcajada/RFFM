@@ -17,37 +17,41 @@ namespace RFFM.Api.Infrastructure.Migrations
                 type: "integer",
                 nullable: true);
 
-            migrationBuilder.AddColumn<int>(
-                name: "TotalGoals",
-                schema: "app",
-                table: "SeasonAccessTrialDayRatings",
-                type: "integer",
-                nullable: true);
+            migrationBuilder.Sql(
+                """
+                DO $$
+                BEGIN
+                    IF to_regclass('app."SeasonAccessTrialDayRatings"') IS NOT NULL THEN
+                        ALTER TABLE app."SeasonAccessTrialDayRatings"
+                        ADD COLUMN IF NOT EXISTS "TotalGoals" integer;
 
-            migrationBuilder.CreateIndex(
-                name: "IX_SeasonAccessTrialDayRatings_TrialPlayerId",
-                schema: "app",
-                table: "SeasonAccessTrialDayRatings",
-                column: "TrialPlayerId");
+                        CREATE INDEX IF NOT EXISTS "IX_SeasonAccessTrialDayRatings_TrialPlayerId"
+                        ON app."SeasonAccessTrialDayRatings" ("TrialPlayerId");
+                    END IF;
+                END $$;
+                """);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropIndex(
-                name: "IX_SeasonAccessTrialDayRatings_TrialPlayerId",
-                schema: "app",
-                table: "SeasonAccessTrialDayRatings");
+            migrationBuilder.Sql(
+                """
+                DO $$
+                BEGIN
+                    IF to_regclass('app."SeasonAccessTrialDayRatings"') IS NOT NULL THEN
+                        DROP INDEX IF EXISTS app."IX_SeasonAccessTrialDayRatings_TrialPlayerId";
+
+                        ALTER TABLE app."SeasonAccessTrialDayRatings"
+                        DROP COLUMN IF EXISTS "TotalGoals";
+                    END IF;
+                END $$;
+                """);
 
             migrationBuilder.DropColumn(
                 name: "TotalGoals",
                 schema: "app",
                 table: "SeasonAccessTrialPlayers");
-
-            migrationBuilder.DropColumn(
-                name: "TotalGoals",
-                schema: "app",
-                table: "SeasonAccessTrialDayRatings");
         }
     }
 }

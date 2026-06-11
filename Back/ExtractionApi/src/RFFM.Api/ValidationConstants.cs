@@ -70,6 +70,8 @@
         public const int TaskTrainingBaseFieldSpaceMaxLength = 100;
         public const int TaskTrainingBaseUrlImageMaxLength = 500;
         public const int ExerciseConditionTextMaxLength = 500;
+        public const int PlayerLastTeamNameMaxLength = 200;
+        public const int PlayerLastTeamCategoryMaxLength = 200;
 
 
     }

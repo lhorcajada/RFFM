@@ -4,6 +4,7 @@
     {
         public string Id { get; set; } = null!;
 
+
     }
     public class PlayerModelBase
     {
@@ -14,5 +15,10 @@
         public DateTime? BirthDate { get; set; }
         public string? Dni { get; set; }
         public string ClubId { get; set; } = null!;
+        public int? Age { get; set; }
+        public int? BirthYear { get; set; }
+        public string? LastTeamName { get; set; }
+        public string? LastTeamCategory { get; set; }
+
     }
 }

@@ -13,7 +13,7 @@ namespace RFFM.Api.Features.Federation.Teams.Queries
         public void AddRoutes(IEndpointRouteBuilder app)
         {
             app.MapGet("/teams/{teamId}/age-summary",
-                    async (IMediator mediator, CancellationToken cancellationToken, int teamId, int season = 21) =>
+                    async (IMediator mediator, CancellationToken cancellationToken, string teamId, int season = 21) =>
                     {
                         var request = new AgesQueryApp(teamId, season);
                         var response = await mediator.Send(request, cancellationToken);
@@ -27,7 +27,7 @@ namespace RFFM.Api.Features.Federation.Teams.Queries
         }
 
         // QueryApp to get age distribution (allow season to be provided)
-        public record AgesQueryApp(int TeamId, int SeasonId = 21) : Common.IQueryApp<AgeCount[]>;
+        public record AgesQueryApp(string TeamId, int SeasonId = 21) : Common.IQueryApp<AgeCount[]>;
 
         public class AgeCount
         {

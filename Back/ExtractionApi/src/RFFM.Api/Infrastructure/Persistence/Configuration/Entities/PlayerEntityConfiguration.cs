@@ -26,7 +26,14 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Entities
                 .HasMaxLength(ValidationConstants.PlayerUrlPhotoMaxLength);
             builder.Property(p => p.Dni)
                 .HasMaxLength(ValidationConstants.PlayerDniMaxLength);
-                
+            builder.Ignore(p => p.BirthYear);
+            builder.Ignore(p => p.Age);
+            builder.Property(p => p.LastTeamName)
+                .IsRequired(false)
+                .HasMaxLength(ValidationConstants.PlayerLastTeamNameMaxLength);
+            builder.Property(p => p.LastTeamCategory)
+                .IsRequired(false)
+                .HasMaxLength(ValidationConstants.PlayerLastTeamCategoryMaxLength);
             builder.HasKey(p => p.Id);
             builder.HasIndex(p => p.Id).IsUnique();
             builder.HasIndex(p => p.Alias).IsUnique();

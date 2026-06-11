@@ -51,10 +51,9 @@ export default function DashboardCards({
 
     async function loadPreferredClub() {
       try {
-        const configs = await configurationCoachService.getAll();
+        const currentConfig = await configurationCoachService.getCurrent();
         if (!mounted) return;
-        const firstConfig = configs.length > 0 ? configs[0] : null;
-        setPreferredClubId(firstConfig?.preferredClubId ?? null);
+        setPreferredClubId(currentConfig?.preferredClubId ?? null);
       } catch {
         if (!mounted) return;
         setPreferredClubId(null);

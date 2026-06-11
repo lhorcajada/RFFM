@@ -5,6 +5,8 @@ import { useLayoutEffect } from "react";
 import { CoachAuthProvider, CoachAuthGuard } from "./context/CoachAuthContext";
 import Clubs from "./pages/clubs/clubs";
 const ClubsDashboard = lazy(() => import("./pages/clubs/dashboard/Dashboard"));
+const ClubPlayerRegistrations = lazy(() => import("./pages/clubs/registrations/PlayerRegistrations"));
+const ClubPlayers = lazy(() => import("./pages/clubs/players/ClubPlayers"));
 const ClubTeams = lazy(() => import("./pages/clubTeams/ClubTeams"));
 import React from "react";
 
@@ -17,6 +19,7 @@ const Settings = lazy(() => import("./pages/settings/Settings"));
 const News = lazy(() => import("./pages/news/News"));
 const Squad = lazy(() => import("./pages/squad/Squad"));
 const NewPlayer = lazy(() => import("./pages/squad/new/NewPlayer"));
+const PlayersClub = lazy(() => import("./pages/squad/PlayersClub/PlayersClub"));
 const Attendance = lazy(() => import("./pages/attendance/Attendance"));
 const AttendanceEvent = lazy(
   () => import("./pages/attendance/AttendanceEvent"),
@@ -85,6 +88,7 @@ function CoachRoutesContent() {
             <Route path="news" element={<News />} />
             <Route path="squad" element={<Squad />} />
             <Route path="squad/new" element={<NewPlayer />} />
+            <Route path="squad/players-club" element={<PlayersClub />} />
             <Route path="squad/:playerId/rating/new" element={<NewRatingPage />} />
             <Route path="squad/:playerId/rating/history" element={<RatingHistoryPage />} />
             <Route path="squad/:playerId/rating/evolution" element={<RatingEvolutionPage />} />
@@ -109,6 +113,8 @@ function CoachRoutesContent() {
             <Route path="season-access/prepare" element={<PrepareTests />} />
             <Route path="clubs" element={<Clubs />} />
             <Route path="clubs/dashboard/:id" element={<ClubsDashboard />} />
+            <Route path="clubs/:id/players" element={<ClubPlayers />} />
+            <Route path="clubs/:id/registrations" element={<ClubPlayerRegistrations />} />
             <Route path="clubs/:id/teams" element={<ClubTeams />} />
             <Route
               path="clubs/:id/teams/new"

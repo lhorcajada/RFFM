@@ -1,5 +1,5 @@
 import { Box, Button, Chip, Stack, Tab, Tabs, Typography } from "@mui/material";
-import { useMemo, useState as useTabState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import SquadRatings from "./components/SquadRatings";
 import SquadRanking from "./components/SquadRanking";
 import IdealLineup from "./components/IdealLineup";
@@ -21,7 +21,8 @@ import { getSeasonPlayerStats } from "../../services/liveMatchService";
 import type { SeasonPlayerStats } from "../convocations/components/simulation/liveMatch.types";
 import type { PlayerRating } from "../../types/playerRating";
 import styles from "./Squad.module.css";
-import { useEffect, useState } from "react";
+
+const useTabState = useState;
 
 function positionCategory(position: string): number {
   const p = position.toLowerCase();
@@ -258,6 +259,25 @@ export default function Squad() {
                 size="small"
               >
                 Añadir jugador
+              </Button>
+            )}
+            {!isRestricted && (
+              <Button
+                onClick={() => {
+                  const params = team ? `?teamId=${team.id}` : "";
+                  const season = new URLSearchParams(window.location.search).get(
+                    "seasonId"
+                  );
+                  navigate(
+                    `/coach/squad/players-club${params}${
+                      season ? `&seasonId=${season}` : ""
+                    }`
+                  );
+                }}
+                variant="outlined"
+                size="small"
+              >
+                Añadir jugadores del club
               </Button>
             )}
           </Stack>

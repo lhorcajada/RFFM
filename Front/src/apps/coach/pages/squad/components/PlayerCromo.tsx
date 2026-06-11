@@ -19,6 +19,7 @@ type Props = {
   photoSrc?: string | null;
   dorsal?: number | null;
   position?: string | null;
+  details?: Array<string | null | undefined>;
   rating?: RatingData | null;
   rank?: number | null;
   injured?: boolean;
@@ -27,6 +28,10 @@ type Props = {
   onEdit?: () => void;
   onHistory?: () => void;
   onPrint?: () => void;
+  actions?: React.ReactNode;
+  hidePhoto?: boolean;
+  selected?: boolean;
+  onClick?: () => void;
   seasonStats?: SeasonPlayerStats | null;
   /** Consecutive past matches since the last technical deconvocation. Shown as a small badge. */
   streakCount?: number | null;
@@ -65,6 +70,7 @@ export default function PlayerCromo({
   photoSrc,
   dorsal,
   position,
+  details,
   rating,
   rank,
   injured,
@@ -73,14 +79,24 @@ export default function PlayerCromo({
   onEdit,
   onHistory,
   onPrint,
+  actions,
+  hidePhoto,
+  selected,
+  onClick,
   seasonStats,
   streakCount,
 }: Props) {
   const initial = displayName.trim().charAt(0).toUpperCase();
-  const showActions = onEdit != null || onHistory != null || onPrint != null;
+  const showActions =
+    actions != null || onEdit != null || onHistory != null || onPrint != null;
 
   const card = (
-    <div className={styles.card}>
+    <div
+      className={`${styles.card} ${selected ? styles.cardSelected : ""} ${onClick ? styles.cardClickable : ""}`}
+      onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+    >
       {/* Edit button — top-right corner */}
       {onEdit && (
         <Tooltip title="Editar valoración">
@@ -98,39 +114,41 @@ export default function PlayerCromo({
       )}
 
       {/* Photo area */}
-      <div className={styles.photoArea}>
-        {photoSrc ? (
-          <img src={photoSrc} alt={displayName} className={styles.photo} />
-        ) : (
-          <img src={avatarFallback} alt={displayName} className={styles.photoAvatar} />
-        )}
-        <div className={styles.photoGradient} />
+      {!hidePhoto ? (
+        <div className={styles.photoArea}>
+          {photoSrc ? (
+            <img src={photoSrc} alt={displayName} className={styles.photo} />
+          ) : (
+            <img src={avatarFallback} alt={displayName} className={styles.photoAvatar} />
+          )}
+          <div className={styles.photoGradient} />
 
-        {rating && (
-          <div
-            className={styles.avgBadge}
-            style={{ color: ratingColor(avgRating(rating)) }}
-          >
-            {formatAvg(avgRating(rating))}
-          </div>
-        )}
+          {rating && (
+            <div
+              className={styles.avgBadge}
+              style={{ color: ratingColor(avgRating(rating)) }}
+            >
+              {formatAvg(avgRating(rating))}
+            </div>
+          )}
 
-        {injured && (
-          <div
-            className={`${styles.injuredBadge} ${onClearInjury ? styles.injuredBadgeClickable : ""}`}
-            onClick={onClearInjury ? (e) => { e.preventDefault(); onClearInjury(); } : undefined}
-            title={onClearInjury ? "Dar de alta" : undefined}
-          >
-            🩹 Lesionado{onClearInjury && <span className={styles.injuredAltaHint}>· Alta</span>}
-          </div>
-        )}
+          {injured && (
+            <div
+              className={`${styles.injuredBadge} ${onClearInjury ? styles.injuredBadgeClickable : ""}`}
+              onClick={onClearInjury ? (e) => { e.preventDefault(); onClearInjury(); } : undefined}
+              title={onClearInjury ? "Dar de alta" : undefined}
+            >
+              🩹 Lesionado{onClearInjury && <span className={styles.injuredAltaHint}>· Alta</span>}
+            </div>
+          )}
 
-        {rank != null && (
-          <div className={`${styles.rankBadge} ${rank > 3 ? styles.rankOther : ""}`}>
-            {rank <= 3 ? MEDALS[rank - 1] : rank}
-          </div>
-        )}
-      </div>
+          {rank != null && (
+            <div className={`${styles.rankBadge} ${rank > 3 ? styles.rankOther : ""}`}>
+              {rank <= 3 ? MEDALS[rank - 1] : rank}
+            </div>
+          )}
+        </div>
+      ) : null}
 
       {/* Body */}
       <div className={styles.body}>
@@ -140,6 +158,17 @@ export default function PlayerCromo({
           {displayName}
         </div>
         {position && <div className={styles.positionTag}>{position}</div>}
+        {details && details.some((detail) => Boolean(detail?.trim())) ? (
+          <div className={styles.detailsRow}>
+            {details
+              .filter((detail): detail is string => Boolean(detail?.trim()))
+              .map((detail) => (
+                <span key={detail} className={styles.detailPill}>
+                  {detail}
+                </span>
+              ))}
+          </div>
+        ) : null}
 
         {rating ? (
           <div className={styles.statsRow}>
@@ -178,6 +207,7 @@ export default function PlayerCromo({
 
         {showActions && (
           <div className={styles.cardActions}>
+            {actions}
             {onHistory && (
               <Tooltip title="Ver histórico">
                 <IconButton

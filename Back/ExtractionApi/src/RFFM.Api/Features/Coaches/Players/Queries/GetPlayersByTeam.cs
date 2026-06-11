@@ -40,10 +40,32 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
             public string? UrlPhoto { get; set; }
             public int? Dorsal { get; set; }
             public string? Position { get; set; }
+            public int? Age { get; set; }
+            public int? BirthYear { get; set; }
+            public string Team { get; set; } = string.Empty;
+            public string TeamCategory { get; set; } = string.Empty;
             public bool IsInjured { get; set; }
             public DateTime? InjuryStartDate { get; set; }
 
         };
+
+        private static int? CalculateAge(DateTime? birthDate)
+        {
+            if (!birthDate.HasValue)
+            {
+                return null;
+            }
+
+            var today = DateTime.UtcNow.Date;
+            var age = today.Year - birthDate.Value.Year;
+
+            if (birthDate.Value.Date > today.AddYears(-age))
+            {
+                age--;
+            }
+
+            return age < 0 ? null : age;
+        }
 
         public class GetPlayersByTeamRequestHandler : IRequestHandler<PlayersByTeamQuery, PlayersByTeamResponse[]>
         {
@@ -60,6 +82,8 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                 var items = await _db.TeamPlayers
                     .AsNoTracking()
                     .Include(tp => tp.Player)
+                    .Include(tp => tp.Team)
+                        .ThenInclude(team => team.Category)
                     .Where(tp => tp.TeamId == request.TeamId)
                     .Select(tp => new
                     {
@@ -71,6 +95,9 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                         tp.Player.UrlPhoto,
                         Dorsal = tp.Dorsal != null ? tp.Dorsal.Number : (int?)null,
                         ActivePositionId = tp.Demarcation != null ? (int?)tp.Demarcation.ActivePositionId : null,
+                        BirthDate = tp.Player.BirthDate,
+                        Team = tp.Team.Name,
+                        TeamCategory = tp.Team.Category.Name,
                         IsInjured = tp.Injuries.Any(i => i.EndDate == null),
                         InjuryStartDate = tp.Injuries
                             .Where(i => i.EndDate == null)
@@ -90,6 +117,10 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                     UrlPhoto = i.UrlPhoto,
                     Dorsal = i.Dorsal,
                     Position = i.ActivePositionId != null ? DemarcationMaster.GetById(i.ActivePositionId.Value)?.Name : null,
+                    Age = CalculateAge(i.BirthDate),
+                    BirthYear = i.BirthDate?.Year,
+                    Team = i.Team,
+                    TeamCategory = i.TeamCategory,
                     IsInjured = i.IsInjured,
                     InjuryStartDate = i.InjuryStartDate
                 }).ToArray();

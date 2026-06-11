@@ -6,6 +6,11 @@ namespace RFFM.Api.Domain.Models
         public string PlayerId { get; set; } = null!;
         public PlayerModel PlayerModel { get; set; } = null!;
         public string TeamId { get; set; } = null!;
+        public string SeasonId { get; set; } = null!;
+        public int? Age { get; set; }
+        public int? BirthYear { get; set; }
+        public string? TeamName { get; set; }
+        public string? TeamCategory { get; set; }
         public DateTime JoinedDate { get; set; }
         public DateTime? LeftDate { get; set; }
         public decimal? Height { get; set; }

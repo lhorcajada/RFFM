@@ -10,111 +10,101 @@ namespace RFFM.Api.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AlterColumn<string>(
-                name: "Status",
-                schema: "app",
-                table: "SeasonAccessTrialPlayers",
-                type: "character varying(50)",
-                maxLength: 50,
-                nullable: true,
-                oldClrType: typeof(string),
-                oldType: "text",
-                oldNullable: true);
+            migrationBuilder.Sql(
+                """
+                DO $$
+                BEGIN
+                    IF to_regclass('app."SeasonAccessTrialPlayers"') IS NOT NULL THEN
+                        ALTER TABLE app."SeasonAccessTrialPlayers"
+                        ADD COLUMN IF NOT EXISTS "Status" character varying(50);
 
-            migrationBuilder.AlterColumn<decimal>(
-                name: "Score",
-                schema: "app",
-                table: "SeasonAccessTrialPlayers",
-                type: "numeric(5,2)",
-                nullable: true,
-                oldClrType: typeof(decimal),
-                oldType: "numeric",
-                oldNullable: true);
+                        ALTER TABLE app."SeasonAccessTrialPlayers"
+                        ADD COLUMN IF NOT EXISTS "Score" numeric(5,2);
 
-            migrationBuilder.AlterColumn<string>(
-                name: "Notes",
-                schema: "app",
-                table: "SeasonAccessTrialPlayers",
-                type: "character varying(1000)",
-                maxLength: 1000,
-                nullable: true,
-                oldClrType: typeof(string),
-                oldType: "text",
-                oldNullable: true);
+                        ALTER TABLE app."SeasonAccessTrialPlayers"
+                        ADD COLUMN IF NOT EXISTS "Notes" character varying(1000);
 
-            migrationBuilder.AddColumn<string>(
-                name: "TrialDayId",
-                schema: "app",
-                table: "SeasonAccessTrialPlayers",
-                type: "text",
-                nullable: true);
+                        ALTER TABLE app."SeasonAccessTrialPlayers"
+                        ALTER COLUMN "Status" TYPE character varying(50);
 
-            migrationBuilder.CreateIndex(
-                name: "IX_SeasonAccessTrialPlayers_TrialDayId",
-                schema: "app",
-                table: "SeasonAccessTrialPlayers",
-                column: "TrialDayId");
+                        ALTER TABLE app."SeasonAccessTrialPlayers"
+                        ALTER COLUMN "Score" TYPE numeric(5,2);
 
-            migrationBuilder.AddForeignKey(
-                name: "FK_SeasonAccessTrialPlayers_SeasonAccessTrialDays_TrialDayId",
-                schema: "app",
-                table: "SeasonAccessTrialPlayers",
-                column: "TrialDayId",
-                principalSchema: "app",
-                principalTable: "SeasonAccessTrialDays",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.Cascade);
+                        ALTER TABLE app."SeasonAccessTrialPlayers"
+                        ALTER COLUMN "Notes" TYPE character varying(1000);
+
+                        ALTER TABLE app."SeasonAccessTrialPlayers"
+                        ADD COLUMN IF NOT EXISTS "TrialDayId" text;
+
+                        CREATE INDEX IF NOT EXISTS "IX_SeasonAccessTrialPlayers_TrialDayId"
+                        ON app."SeasonAccessTrialPlayers" ("TrialDayId");
+
+                        ALTER TABLE app."SeasonAccessTrialPlayers"
+                        DROP CONSTRAINT IF EXISTS "FK_SeasonAccessTrialPlayers_SeasonAccessTrialDays_TrialDayId";
+
+                        IF to_regclass('app."SeasonAccessTrialDays"') IS NOT NULL THEN
+                            ALTER TABLE app."SeasonAccessTrialPlayers"
+                            ADD CONSTRAINT "FK_SeasonAccessTrialPlayers_SeasonAccessTrialDays_TrialDayId"
+                            FOREIGN KEY ("TrialDayId")
+                            REFERENCES app."SeasonAccessTrialDays" ("Id")
+                            ON DELETE CASCADE;
+                        END IF;
+                    END IF;
+                END $$;
+                """);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(
-                name: "FK_SeasonAccessTrialPlayers_SeasonAccessTrialDays_TrialDayId",
-                schema: "app",
-                table: "SeasonAccessTrialPlayers");
+            migrationBuilder.Sql(
+                """
+                DO $$
+                BEGIN
+                    IF to_regclass('app."SeasonAccessTrialPlayers"') IS NOT NULL THEN
+                        ALTER TABLE app."SeasonAccessTrialPlayers"
+                        DROP CONSTRAINT IF EXISTS "FK_SeasonAccessTrialPlayers_SeasonAccessTrialDays_TrialDayId";
 
-            migrationBuilder.DropIndex(
-                name: "IX_SeasonAccessTrialPlayers_TrialDayId",
-                schema: "app",
-                table: "SeasonAccessTrialPlayers");
+                        DROP INDEX IF EXISTS app."IX_SeasonAccessTrialPlayers_TrialDayId";
 
-            migrationBuilder.DropColumn(
-                name: "TrialDayId",
-                schema: "app",
-                table: "SeasonAccessTrialPlayers");
+                        ALTER TABLE app."SeasonAccessTrialPlayers"
+                        DROP COLUMN IF EXISTS "TrialDayId";
 
-            migrationBuilder.AlterColumn<string>(
-                name: "Status",
-                schema: "app",
-                table: "SeasonAccessTrialPlayers",
-                type: "text",
-                nullable: true,
-                oldClrType: typeof(string),
-                oldType: "character varying(50)",
-                oldMaxLength: 50,
-                oldNullable: true);
+                        IF EXISTS (
+                            SELECT 1
+                            FROM information_schema.columns
+                            WHERE table_schema = 'app'
+                              AND table_name = 'SeasonAccessTrialPlayers'
+                              AND column_name = 'Status'
+                        ) THEN
+                            ALTER TABLE app."SeasonAccessTrialPlayers"
+                            ALTER COLUMN "Status" TYPE text;
+                        END IF;
 
-            migrationBuilder.AlterColumn<decimal>(
-                name: "Score",
-                schema: "app",
-                table: "SeasonAccessTrialPlayers",
-                type: "numeric",
-                nullable: true,
-                oldClrType: typeof(decimal),
-                oldType: "numeric(5,2)",
-                oldNullable: true);
+                        IF EXISTS (
+                            SELECT 1
+                            FROM information_schema.columns
+                            WHERE table_schema = 'app'
+                              AND table_name = 'SeasonAccessTrialPlayers'
+                              AND column_name = 'Score'
+                        ) THEN
+                            ALTER TABLE app."SeasonAccessTrialPlayers"
+                            ALTER COLUMN "Score" TYPE numeric;
+                        END IF;
 
-            migrationBuilder.AlterColumn<string>(
-                name: "Notes",
-                schema: "app",
-                table: "SeasonAccessTrialPlayers",
-                type: "text",
-                nullable: true,
-                oldClrType: typeof(string),
-                oldType: "character varying(1000)",
-                oldMaxLength: 1000,
-                oldNullable: true);
+                        IF EXISTS (
+                            SELECT 1
+                            FROM information_schema.columns
+                            WHERE table_schema = 'app'
+                              AND table_name = 'SeasonAccessTrialPlayers'
+                              AND column_name = 'Notes'
+                        ) THEN
+                            ALTER TABLE app."SeasonAccessTrialPlayers"
+                            ALTER COLUMN "Notes" TYPE text;
+                        END IF;
+                    END IF;
+                END $$;
+                """);
         }
     }
 }

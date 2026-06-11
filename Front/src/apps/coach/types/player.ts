@@ -8,4 +8,6 @@ export type Player = {
   position?: string | null;
   birthDate?: string | null;
   licenseNumber?: string | null;
+  dni?: string | null;
+  clubId?: string | null;
 };

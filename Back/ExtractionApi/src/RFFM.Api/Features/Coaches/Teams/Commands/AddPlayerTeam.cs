@@ -36,6 +36,11 @@ namespace RFFM.Api.Features.Coaches.Teams.Commands
         {
             public string TeamId { get; set; } = null!;
             public string? PlayerId { get; set; } = null!;
+            public string? SeasonId { get; set; }
+            public int? Age { get; set; }
+            public int? BirthYear { get; set; }
+            public string? TeamName { get; set; }
+            public string? TeamCategory { get; set; }
             public string Name { get; set; } = null!;
             public string? LastName { get; set; } = null!;
             public string Alias { get; set; } = null!;
@@ -91,6 +96,11 @@ namespace RFFM.Api.Features.Coaches.Teams.Commands
 
                 if (existing != null)
                 {
+                    existing.SetSeasonId(request.SeasonId);
+                    existing.SetAge(request.Age);
+                    existing.SetBirthYear(request.BirthYear);
+                    existing.SetTeamName(request.TeamName);
+                    existing.SetTeamCategory(request.TeamCategory);
                     if (request.Demarcation != null)
                         existing.SetDemarcation(request.Demarcation);
                     await _catalogDbContext.SaveChangesAsync(cancellationToken);
@@ -101,6 +111,11 @@ namespace RFFM.Api.Features.Coaches.Teams.Commands
                 {
                     PlayerId = player.Id,
                     TeamId = request.TeamId,
+                    SeasonId = request.SeasonId,
+                    Age = request.Age,
+                    BirthYear = request.BirthYear,
+                    TeamName = request.TeamName,
+                    TeamCategory = request.TeamCategory,
                     JoinedDate = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc),
                     LeftDate = null,
                     Demarcation = request.Demarcation,
@@ -155,6 +170,8 @@ namespace RFFM.Api.Features.Coaches.Teams.Commands
                 if (!teamExists)
                     throw new KeyNotFoundException($"Team '{request.TeamId}' Not Found");
             }
+
+            
         }
     }
 

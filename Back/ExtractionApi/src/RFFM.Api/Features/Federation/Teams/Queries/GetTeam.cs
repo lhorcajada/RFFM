@@ -16,7 +16,7 @@ namespace RFFM.Api.Features.Federation.Teams.Queries
         public void AddRoutes(IEndpointRouteBuilder app)
         {
             app.MapGet("/teams/{teamId}",
-                    async (IMediator mediator, CancellationToken cancellationToken, int teamId) =>
+                    async (IMediator mediator, CancellationToken cancellationToken, string teamId) =>
                     {
                         var request = new QueryApp(teamId);
 
@@ -31,7 +31,7 @@ namespace RFFM.Api.Features.Federation.Teams.Queries
                 .Produces(StatusCodes.Status404NotFound);
         }
 
-        public record QueryApp(int TeamId) : Common.IQueryApp<Team>
+        public record QueryApp(string TeamId) : Common.IQueryApp<Team>
         {
 
         }
@@ -47,7 +47,7 @@ namespace RFFM.Api.Features.Federation.Teams.Queries
                     // Cache validity: keep for 5 minutes by default. Adjust if needed.
                     entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
 
-                    var team = await teamService.GetTeamDetailsAsync(request.TeamId.ToString(), cancellationToken);
+                    var team = await teamService.GetTeamDetailsAsync(request.TeamId, cancellationToken);
                     var statistics = await teamService.GetStaticsTeamPlayers(new GetAgeSummary.AgesQueryApp(request.TeamId), cancellationToken);
                     var playerDetails = statistics.resolved.Select(x => x.playerDetails);
 

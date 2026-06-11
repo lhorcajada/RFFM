@@ -3,12 +3,17 @@ import client from "../../../core/api/client";
 export type PlayerResponse = {
   id: string;
   playerId?: string | null;
+  seasonId?: string | null;
   name: string;
   lastName?: string | null;
   alias: string;
   urlPhoto?: string | null;
   dorsal?: number | null;
   position?: string | null;
+  age?: number | null;
+  birthYear?: number | null;
+  team?: string | null;
+  teamCategory?: string | null;
   isInjured?: boolean;
   injuryStartDate?: string | null;
 };
@@ -72,18 +77,59 @@ export type TeamPlayerResponse = {
   injuryInfo?: InjuryInfoResponse | null;
 };
 
-export async function getPlayersByTeam(
-  teamId: string,
-  seasonId?: string
-): Promise<PlayerResponse[]> {
+export async function getPlayersByTeam(teamId: string, seasonId?: string): Promise<PlayerResponse[]> {
   if (!teamId) throw new Error("teamId is required");
-  const params: any = {};
-  if (seasonId) params.seasonId = seasonId;
-  const resp = await client.get<PlayerResponse[]>(
-    `/api/catalog/team/${encodeURIComponent(teamId)}/players`,
-    { params } as any
-  );
-  return resp.data ?? [];
+
+  const query = seasonId ? `?seasonId=${encodeURIComponent(seasonId)}` : "";
+  const resp = await client.get<any>(`teams/${encodeURIComponent(teamId)}${query}`);
+  const payload = resp.data as {
+    players?: PlayerResponse[];
+    jugadores_equipo?: PlayerResponse[];
+    jugadores?: PlayerResponse[];
+  } | null;
+
+  if (!payload) return [];
+
+  const roster =
+    payload.players ??
+    payload.jugadores_equipo ??
+    payload.jugadores ??
+    [];
+
+  return Array.isArray(roster) ? roster : [];
+}
+
+export async function addPlayerToTeam(payload: {
+  teamId: string;
+  clubId: string;
+  playerId?: string | null;
+  name: string;
+  lastName?: string | null;
+  alias: string;
+  dorsal?: number | null;
+  birthDate?: string | null;
+  position?: string | null;
+  urlPhoto?: string | null;
+}): Promise<void> {
+  if (!payload.teamId) throw new Error("teamId is required");
+  if (!payload.clubId) throw new Error("clubId is required");
+  if (!payload.name?.trim()) throw new Error("name is required");
+  if (!payload.alias?.trim()) throw new Error("alias is required");
+
+  const form = new FormData();
+  form.append("TeamId", payload.teamId);
+  form.append("ClubId", payload.clubId);
+  form.append("Name", payload.name.trim());
+  form.append("Alias", payload.alias.trim());
+
+  if (payload.playerId?.trim()) form.append("PlayerId", payload.playerId.trim());
+  if (payload.lastName?.trim()) form.append("LastName", payload.lastName.trim());
+  if (payload.dorsal != null) form.append("Dorsal", String(payload.dorsal));
+  if (payload.birthDate) form.append("BirthDate", payload.birthDate);
+  if (payload.position?.trim()) form.append("Position", payload.position.trim());
+  if (payload.urlPhoto?.trim()) form.append("UrlPhoto", payload.urlPhoto.trim());
+
+  await client.post("/api/catalog/team/add-player", form);
 }
 
 export async function getTeamPlayerById(
@@ -195,4 +241,4 @@ export async function dischargeActiveInjury(teamPlayerId: string): Promise<boole
   return result != null;
 }
 
-export default { getPlayersByTeam, getTeamPlayerById, updateTeamPlayer, getPlayerInjuries, createPlayerInjury, updatePlayerInjury, deletePlayerInjury, dischargeActiveInjury };
+export default { getPlayersByTeam, addPlayerToTeam, getTeamPlayerById, updateTeamPlayer, getPlayerInjuries, createPlayerInjury, updatePlayerInjury, deletePlayerInjury, dischargeActiveInjury };

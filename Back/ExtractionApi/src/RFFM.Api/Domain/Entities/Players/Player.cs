@@ -1,4 +1,5 @@
 ﻿using RFFM.Api.Domain.Aggregates.UserClubs;
+using RFFM.Api.Domain.Entities.Seasons;
 using RFFM.Api.Domain.Models;
 
 namespace RFFM.Api.Domain.Entities.Players
@@ -11,8 +12,11 @@ namespace RFFM.Api.Domain.Entities.Players
         public string Alias { get; private set; } = null!;
         public DateTime? BirthDate { get; private set; }
         public string? Dni { get; private set; }
+        public int? Age => CalculateAge();
+        public int? BirthYear => CalculateBirthYear();
+        public string? LastTeamName { get; set; } = null!;
+        public string? LastTeamCategory { get; set; } = null!;
         public string ClubId { get; private set; } = null!;
-
         public Club Club { get; private set; } = null!;
 
         public Player() { }
@@ -30,6 +34,34 @@ namespace RFFM.Api.Domain.Entities.Players
            UpdateBirthDate(modelBase.BirthDate);
            UpdateDni(modelBase.Dni);
            UpdateClubId(modelBase.ClubId);
+           SetLastTeamName(modelBase.LastTeamName);
+           SetLastTeamCategory(modelBase.LastTeamCategory);
+        }
+
+        private int? CalculateBirthYear()
+        {
+            return BirthDate?.Year;
+        }   
+
+        public int? CalculateAge()
+        {
+            if (!BirthDate.HasValue)
+                return null;
+            
+            var today = DateTime.UtcNow;
+            var age = today.Year - BirthDate.Value.Year;
+            if (BirthDate.Value.Date > today.AddYears(-age)) age--;
+            return age;
+        }
+
+        public void SetLastTeamName(string? lastTeamName)
+        {
+            LastTeamName = lastTeamName;
+        }
+
+        public void SetLastTeamCategory(string? lastTeamCategory)
+        {
+            LastTeamCategory = lastTeamCategory;
         }
 
         public void UpdateName(string name)
