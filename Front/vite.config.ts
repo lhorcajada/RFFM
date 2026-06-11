@@ -44,6 +44,7 @@ export default defineConfig(async ({ command, mode }) => {
       ],
     },
     define: {
+      global: "globalThis",
       // Expose a default API base URL to the client bundles (can be overridden by env)
       __VITE_API_BASE_URL__: JSON.stringify(env.VITE_API_BASE_URL || ""),
       __VITE_APP_ENV__: JSON.stringify(appEnv),

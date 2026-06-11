@@ -7,7 +7,12 @@ const BASE = (import.meta.env.VITE_API_BASE_URL || "/")
 
 const DEFAULT_TIMEOUT = Number(import.meta.env.VITE_API_TIMEOUT ?? 60000);
 
-export const client = axios.create({ baseURL: BASE, timeout: DEFAULT_TIMEOUT });
+export const client = axios.create({
+  baseURL: BASE,
+  timeout: DEFAULT_TIMEOUT,
+  // Avoid axios fetch adapter runtime issues in some browser/bundle contexts.
+  adapter: "xhr",
+});
 
 export const DEFAULT_RETRIES = Number(import.meta.env.VITE_API_RETRIES ?? 3);
 

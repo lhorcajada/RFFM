@@ -88,7 +88,9 @@ export default function Squad() {
     (roles.includes("fan") || roles.includes("follower")) &&
     !isAdminOrCoach;
   const isPlayerOrFamily =
-    (roles.includes("player") || roles.includes("familyplayer")) &&
+    (roles.includes("player") ||
+      roles.includes("familyplayer") ||
+      roles.includes("familymember")) &&
     !isAdminOrCoach;
   const isRestricted = isFan || isPlayerOrFamily;
 

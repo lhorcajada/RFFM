@@ -12,6 +12,29 @@
   z-index: 1600;
 }
 
+.rootSeasonOnly {
+  height: auto;
+  min-height: 82px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 12px 6px;
+  box-sizing: border-box;
+}
+
+.rootSeasonOnly .seasonInfo {
+  height: auto;
+  padding: 0;
+  gap: 1px;
+}
+
+.rootSeasonOnly .copyright {
+  position: static;
+  text-align: center;
+  white-space: normal;
+}
+
 .copyright {
   position: absolute;
   right: 16px;
@@ -64,6 +87,19 @@
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: calc(100vw - 32px);
+}
+
+@media (max-width: 480px) {
+  .rootSeasonOnly {
+    min-height: 92px;
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .rootSeasonOnly .seasonName,
+  .rootSeasonOnly .seasonRange {
+    max-width: 100%;
+  }
 }
 
 /* Coach theme specific override */

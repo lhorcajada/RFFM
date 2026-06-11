@@ -4,8 +4,8 @@ import { coachAuthService } from "../../../services/authService";
 import { getMyProfile } from "../../../services/coachApi";
 
 /**
- * Detects if the current user has exclusively the "Player" role (not Coach/Admin)
- * and auto-loads their associated team from the user profile.
+ * Detects if the current user is a player or family member without coach/admin access
+ * and auto-loads their associated team dashboard from cached/profile data.
  */
 export function usePlayerAutoLoad() {
   const [isPlayer, setIsPlayer] = useState(false);
@@ -15,7 +15,9 @@ export function usePlayerAutoLoad() {
   useEffect(() => {
     const roles = coachAuthService.getRoles();
     const isPlayerRole =
-      roles.includes("Player") &&
+      (roles.includes("Player") ||
+        roles.includes("FamilyPlayer") ||
+        roles.includes("FamilyMember")) &&
       !roles.includes("Administrator") &&
       !roles.includes("Coach");
 
@@ -23,15 +25,19 @@ export function usePlayerAutoLoad() {
 
     if (!isPlayerRole) return;
 
-    // If teamId is already in the URL, no need to fetch
     const params = new URLSearchParams(location.search);
-    if (params.get("teamId")) return;
+    const teamIdInUrl = params.get("teamId");
+    if (location.pathname === "/coach/team-dashboard") return;
+    if (location.pathname === "/coach/dashboard" && teamIdInUrl) {
+      navigate(`/coach/team-dashboard?${params.toString()}`, { replace: true });
+      return;
+    }
 
     // Check localStorage first (set during identity verification)
     try {
       const cached = localStorage.getItem("coach_player_teamId");
       if (cached) {
-        navigate(`/coach/dashboard?teamId=${cached}`, { replace: true });
+        navigate(`/coach/team-dashboard?teamId=${cached}`, { replace: true });
         return;
       }
     } catch {}
@@ -40,7 +46,7 @@ export function usePlayerAutoLoad() {
     getMyProfile().then((profile) => {
       if (profile?.teamId) {
         try { localStorage.setItem("coach_player_teamId", profile.teamId); } catch {}
-        navigate(`/coach/dashboard?teamId=${profile.teamId}`, { replace: true });
+        navigate(`/coach/team-dashboard?teamId=${profile.teamId}`, { replace: true });
       } else {
         // No team linked — send back to AppSelector to re-link
         navigate("/", { replace: true, state: { needsTeamRelink: true } });

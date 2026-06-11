@@ -115,6 +115,10 @@ export default function Footer({ hideMenu }: FooterProps): JSX.Element {
       </div>
     ) : null;
 
+  const rootClassName = [styles.root, hideMenu && seasonInfo ? styles.rootSeasonOnly : ""]
+    .filter(Boolean)
+    .join(" ");
+
   const copyright = (
     <div className={styles.copyright}>
       © {copyrightYear} Futbol Base. Todos los derechos reservados.
@@ -123,7 +127,7 @@ export default function Footer({ hideMenu }: FooterProps): JSX.Element {
 
   if (hideMenu) {
     return (
-      <div className={styles.root} role="contentinfo">
+      <div className={rootClassName} role="contentinfo">
         {seasonInfo ?? <div className={styles.spacer} />}
         {copyright}
       </div>
@@ -202,7 +206,7 @@ export default function Footer({ hideMenu }: FooterProps): JSX.Element {
   ];
 
   return (
-    <div className={styles.root} role="contentinfo">
+    <div className={rootClassName} role="contentinfo">
       {seasonInfo}
       {copyright}
       <BottomMenu items={items} />

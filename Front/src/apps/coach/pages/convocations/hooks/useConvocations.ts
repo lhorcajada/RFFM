@@ -36,19 +36,41 @@ export function useConvocations(teamId?: string) {
   }, []);
 
   const loadCoachEvents = useCallback(async () => {
-    if (!teamId) return;
+    if (!teamId) {
+      setLoading(false);
+      setMatches([]);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
       const pageSize = 200;
       let pageNumber = 1;
       const allItems: Array<any> = [];
+      const seenEventIds = new Set<string>();
+      const MAX_PAGES = 12;
       // eslint-disable-next-line no-constant-condition
       while (true) {
         const result = await sportEventService.getSportEvents(teamId, pageNumber, pageSize);
-        allItems.push(...result.items);
-        if (pageNumber >= result.totalPages || result.items.length < pageSize) break;
+        const pageItems = Array.isArray(result.items) ? result.items : [];
+        let addedInPage = 0;
+        for (const item of pageItems) {
+          const id = item?.id != null ? String(item.id) : "";
+          const syntheticId = id || JSON.stringify(item);
+          if (seenEventIds.has(syntheticId)) continue;
+          seenEventIds.add(syntheticId);
+          allItems.push(item);
+          addedInPage++;
+        }
+
+        const totalPages = Number(result.totalPages);
+        const reachedLastPageByMeta = Number.isFinite(totalPages) && totalPages > 0 && pageNumber >= totalPages;
+        const reachedLastPageByCount = pageItems.length < pageSize;
+        const noProgress = addedInPage === 0;
+        if (reachedLastPageByMeta || reachedLastPageByCount || noProgress) break;
+
         pageNumber++;
+        if (pageNumber > MAX_PAGES) break;
       }
       if (!mountedRef.current) return;
       const matchEvents = allItems.filter(
@@ -66,6 +88,16 @@ export function useConvocations(teamId?: string) {
     if (settingsLoading) return;
     loadCoachEvents();
   }, [teamId, settingsLoading, loadCoachEvents]);
+
+  useEffect(() => {
+    if (!loading) return;
+    const timeoutId = window.setTimeout(() => {
+      if (!mountedRef.current) return;
+      setLoading(false);
+      setError((prev) => prev ?? "La carga está tardando demasiado. Intenta recargar la página.");
+    }, 15000);
+    return () => window.clearTimeout(timeoutId);
+  }, [loading]);
 
   const handleSyncCalendar = useCallback(async () => {
     if (!federationTeamId || !teamId || syncing) return;

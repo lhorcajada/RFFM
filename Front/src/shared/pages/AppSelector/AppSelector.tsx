@@ -118,6 +118,7 @@ export default function AppSelector() {
                   if (
                     coachAuthService.hasRole("Player") ||
                     coachAuthService.hasRole("FamilyPlayer") ||
+                    coachAuthService.hasRole("FamilyMember") ||
                     coachAuthService.hasRole("ClubMember") ||
                     coachAuthService.hasRole("Follower")
                   ) {
