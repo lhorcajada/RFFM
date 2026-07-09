@@ -28,7 +28,7 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
                         var userId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
                                      ?? httpContext.User.FindFirst("sub")?.Value;
 
-                        var query = new VerifyPlayerQuery(teamId, body.Name, body.LastName, body.BirthDate, userId);
+                        var query = new VerifyPlayerQuery(teamId, body.Name, body.LastName, body.BirthDate, body.TeamPlayerId, userId);
                         var result = await mediator.Send(query, cancellationToken);
                         return result is null
                             ? Results.NotFound()
@@ -41,9 +41,9 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
                 .RequireAuthorization();
         }
 
-        public record VerifyPlayerRequest(string Name, string? LastName, DateOnly BirthDate);
+        public record VerifyPlayerRequest(string? Name, string? LastName, DateOnly? BirthDate, string? TeamPlayerId);
 
-        public record VerifyPlayerQuery(string TeamId, string Name, string? LastName, DateOnly BirthDate, string? UserId)
+        public record VerifyPlayerQuery(string TeamId, string? Name, string? LastName, DateOnly? BirthDate, string? TeamPlayerId, string? UserId)
             : IRequest<VerifyPlayerResponse?>;
 
         public record VerifyPlayerResponse(string PlayerId, string TeamId, string TeamName, string[]? Roles = null, string? Token = null);
@@ -77,29 +77,43 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
 
                 if (team is null) return null;
 
-                var players = await _db.TeamPlayers
+                var teamPlayers = await _db.TeamPlayers
                     .AsNoTracking()
                     .Include(tp => tp.Player)
                     .Where(tp => tp.TeamId == request.TeamId)
                     .Select(tp => new
                     {
-                        TeamPlayerId = tp.Id,  // used to match frontend p.id
+                        TeamPlayerId = tp.Id,
                         tp.Player.Name,
                         tp.Player.LastName,
                         tp.Player.BirthDate
                     })
                     .ToListAsync(cancellationToken);
 
-                var inputName = NormalizeText(request.Name);
-                var inputLastName = NormalizeText(request.LastName);
+                var match = (object?)null;
 
-                var match = players.FirstOrDefault(p =>
-                    NormalizeText(p.Name) == inputName &&
-                    NormalizeText(p.LastName) == inputLastName &&
-                    p.BirthDate.HasValue &&
-                    DateOnly.FromDateTime(p.BirthDate.Value.AddHours(12).Date) == request.BirthDate);
+                // If TeamPlayerId is provided (from new player selection flow), use direct lookup
+                if (!string.IsNullOrEmpty(request.TeamPlayerId))
+                {
+                    match = teamPlayers.FirstOrDefault(p => p.TeamPlayerId == request.TeamPlayerId);
+                }
+                // Otherwise, use legacy text-based matching (Name, LastName, BirthDate)
+                else if (!string.IsNullOrEmpty(request.Name) && request.BirthDate.HasValue)
+                {
+                    var inputName = NormalizeText(request.Name);
+                    var inputLastName = NormalizeText(request.LastName);
+
+                    match = teamPlayers.FirstOrDefault(p =>
+                        NormalizeText(p.Name) == inputName &&
+                        NormalizeText(p.LastName) == inputLastName &&
+                        p.BirthDate.HasValue &&
+                        DateOnly.FromDateTime(p.BirthDate.Value.AddHours(12).Date) == request.BirthDate);
+                }
 
                 if (match is null) return null;
+
+                var teamPlayerRecord = (dynamic)match;
+                var teamPlayerId = (string)teamPlayerRecord.TeamPlayerId;
 
                 // Assign role + save profile if user is authenticated
                 string[]? roles = null;
@@ -110,13 +124,13 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
                     if (user is not null)
                     {
                         await EnsureRoleAssignedAsync(user, AppRoles.Player.Name, cancellationToken);
-                        await SaveUserProfileAsync(request.UserId, AppRoles.Player.Name, match.TeamPlayerId, team.Id, cancellationToken);
+                        await SaveUserProfileAsync(request.UserId, AppRoles.Player.Name, teamPlayerId, team.Id, cancellationToken);
                         roles = (await _userManager.GetRolesAsync(user)).ToArray();
                         jwt = await TryGenerateJwtAsync(request.UserId, cancellationToken);
                     }
                 }
 
-                return new VerifyPlayerResponse(match.TeamPlayerId, team.Id, team.Name, roles, jwt);
+                return new VerifyPlayerResponse(teamPlayerId, team.Id, team.Name, roles, jwt);
             }
 
             private async Task EnsureRoleAssignedAsync(IdentityUser user, string roleName, CancellationToken ct)

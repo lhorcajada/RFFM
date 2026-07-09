@@ -55,6 +55,8 @@ export default function AppSelector() {
     identityDialogLoading,
     identityDialogError,
     validatedTeamName,
+    playersLoading,
+    players,
     closeIdentityDialog,
     handleIdentityAccept,
     openPlayerRelinkDialog,
@@ -165,6 +167,8 @@ export default function AppSelector() {
                 open={identityDialogOpen}
                 teamName={validatedTeamName}
                 loading={identityDialogLoading}
+                playersLoading={playersLoading}
+                players={players}
                 error={identityDialogError}
                 onClose={closeIdentityDialog}
                 onAccept={handleIdentityAccept}

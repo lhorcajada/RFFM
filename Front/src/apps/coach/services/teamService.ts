@@ -151,13 +151,18 @@ export async function validateTeamCode(
 
 export async function verifyPlayerIdentity(
   teamId: string,
-  name: string,
-  lastName: string,
-  birthDate: string
+  nameOrPlayerId: string,
+  lastName: string = "",
+  birthDate: string = ""
 ): Promise<{ playerId: string; teamId: string; teamName: string; roles?: string[]; token?: string }> {
+  // If lastName and birthDate are empty, assume we're using the new flow with playerId
+  const payload = lastName === "" && birthDate === "" 
+    ? { teamPlayerId: nameOrPlayerId }
+    : { name: nameOrPlayerId, lastName, birthDate };
+  
   const resp = await client.post<{ playerId: string; teamId: string; teamName: string; roles?: string[]; token?: string }>(
     `/api/catalog/team/${encodeURIComponent(teamId)}/verify-player`,
-    { name, lastName, birthDate }
+    payload
   );
   return resp.data;
 }
@@ -167,6 +172,31 @@ export async function setSeasonPreferredTeam(seasonId: string, teamId?: string |
   const resp = await client.post(`/api/catalog/season/${encodeURIComponent(seasonId)}/preferred-team`, {
     teamId: teamId ?? null,
   } as any);
+  return resp.data;
+}
+
+export type PlayerForSelection = {
+  id: string;
+  name: string;
+  lastName?: string | null;
+  alias?: string | null;
+  urlPhoto?: string | null;
+  birthDate?: string | null;
+  dorsal?: number | null;
+};
+
+export type GetTeamPlayersResponse = {
+  teamId: string;
+  teamName: string;
+  players: PlayerForSelection[];
+};
+
+export async function getTeamPlayersForSelection(
+  teamId: string
+): Promise<GetTeamPlayersResponse> {
+  const resp = await client.get<GetTeamPlayersResponse>(
+    `/api/catalog/team/${encodeURIComponent(teamId)}/players-for-selection`
+  );
   return resp.data;
 }
 
@@ -181,4 +211,5 @@ export default {
   validateTeamCode,
   verifyPlayerIdentity,
   setSeasonPreferredTeam,
+  getTeamPlayersForSelection,
 };

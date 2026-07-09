@@ -2,7 +2,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useCoachTrial } from "./useCoachTrial";
 import type { UserType } from "../components/UserTypeDialog";
-import teamService from "../../../../apps/coach/services/teamService";
+import teamService, { type PlayerForSelection } from "../../../../apps/coach/services/teamService";
 import { coachAuthService } from "../../../../apps/coach/services/authService";
 
 export function useTeamAppEntry() {
@@ -23,6 +23,8 @@ export function useTeamAppEntry() {
   const [codeDialogError, setCodeDialogError] = React.useState<string | null>(null);
   const [selectedUserType, setSelectedUserType] = React.useState<UserType | null>(null);
   const [validatedTeam, setValidatedTeam] = React.useState<{ teamId: string; teamName: string } | null>(null);
+  const [players, setPlayers] = React.useState<PlayerForSelection[]>([]);
+  const [playersLoading, setPlayersLoading] = React.useState(false);
   const [identityDialogOpen, setIdentityDialogOpen] = React.useState(false);
   const [identityDialogLoading, setIdentityDialogLoading] = React.useState(false);
   const [identityDialogError, setIdentityDialogError] = React.useState<string | null>(null);
@@ -110,8 +112,25 @@ export function useTeamAppEntry() {
     try {
       const team = await teamService.validateTeamCode(code);
       setCodeDialogOpen(false);
-      if (selectedUserType === "Player") {
+      if (selectedUserType === "Player" || selectedUserType === "FamilyMember") {
         setValidatedTeam(team);
+        // Fetch players for selection
+        setPlayersLoading(true);
+        try {
+          const response = await teamService.getTeamPlayersForSelection(team.teamId);
+          setPlayers(response.players);
+        } catch {
+          setPlayersLoading(false);
+          setIdentityDialogError("No se pudo cargar la lista de jugadores. Intenta de nuevo.");
+          window.dispatchEvent(
+            new CustomEvent("rffm.show_snackbar", {
+              detail: { message: "Error al cargar jugadores", severity: "error" },
+            })
+          );
+          setCodeDialogOpen(true);
+          return;
+        }
+        setPlayersLoading(false);
         setIdentityDialogOpen(true);
       } else {
         navigate("/coach/dashboard");
@@ -131,14 +150,16 @@ export function useTeamAppEntry() {
   function closeIdentityDialog() {
     setIdentityDialogOpen(false);
     setIdentityDialogError(null);
+    setPlayers([]);
   }
 
-  async function handleIdentityAccept(name: string, lastName: string, birthDate: string) {
+  async function handleIdentityAccept(playerId: string) {
     if (!validatedTeam) return;
     setIdentityDialogLoading(true);
     setIdentityDialogError(null);
     try {
-      const result = await teamService.verifyPlayerIdentity(validatedTeam.teamId, name, lastName, birthDate);
+      // Use the playerId from selection to verify identity (new flow)
+      const result = await teamService.verifyPlayerIdentity(validatedTeam.teamId, playerId);
       // Store the refreshed JWT (now includes "Player" role) so the next session skips onboarding
       if (result.token) {
         coachAuthService.storeUpdatedToken(result.token);
@@ -151,7 +172,7 @@ export function useTeamAppEntry() {
       navigate(result.teamId ? `/coach/dashboard?teamId=${result.teamId}` : "/coach/dashboard");
     } catch {
       setIdentityDialogError(
-        "No se encontraron tus datos en la plantilla. Comprueba nombre, apellidos y fecha de nacimiento."
+        "No se pudo verificar tu identidad. Intenta de nuevo."
       );
     } finally {
       setIdentityDialogLoading(false);
@@ -201,11 +222,13 @@ export function useTeamAppEntry() {
     closeCodeDialog,
     handleCodeAccept,
 
-    // Player identity verification step
+    // Player identity verification step (now uses player selection)
     identityDialogOpen,
     identityDialogLoading,
     identityDialogError,
     validatedTeamName: validatedTeam?.teamName,
+    playersLoading,
+    players,
     closeIdentityDialog,
     handleIdentityAccept,
     openPlayerRelinkDialog,
