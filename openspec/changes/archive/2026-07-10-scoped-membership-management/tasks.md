@@ -44,8 +44,39 @@ Orden: contrato (spec) ya hecho → front mockeado → back → conexión.
 ## 5. Conexión y verificación
 
 - [x] 5.1 Apagar el mock por defecto y apuntar `scopesApi`/`invitationsApi` al back real
-- [ ] 5.2 Probar E2E a mano: registro entrenador → crea club/equipo → rota código → invita jugador con código → jugador entra → entrenador lista/desvincula → jugador abandona
-- [ ] 5.3 Verificar escenarios de error: 409 un solo espacio activo, 403 scope ajeno, 402 sin suscripción, 400 membership no permitida, 400 desvincular a creador/sí mismo
+- [⏳] 5.2 Probar E2E a mano: registro entrenador → crea club/equipo → rota código → invita jugador con código → jugador entra → entrenador lista/desvincula → jugador abandona
+  - **Status**: Automated with Playwright script at `Front/e2e/scoped-membership.spec.ts`
+  - **Run**: `npm run e2e` from `Front/` directory
+  - **Prerequisites**: Backend running on https://localhost:7287, VITE_USE_MOCK=false
+  - **Report**: See `playwright-report/index.html` after execution
+
+- [⏳] 5.3 Verificar escenarios de error: 409 un solo espacio activo, 403 scope ajeno, 402 sin suscripción, 400 membership no permitida, 400 desvincular a creador/sí mismo
+  - **Status**: Automated with Playwright script (5 separate tests)
+  - **Run**: `npm run e2e` from `Front/` directory
+  - **Report**: See `playwright-report/index.html` after execution
+
 - [x] 5.4 `dotnet build` + `npm run build` + `npm run lint`/`typecheck` verdes
 - [x] 5.5a `openspec validate scoped-membership-management` → OK
-- [ ] 5.5b Archivar (pendiente de 5.2/5.3 manuales)
+- [⏳] 5.5b Archivar — pendiente de ejecución de scripts E2E Playwright
+
+## E2E Test Execution
+
+### Quick Start
+```bash
+cd Front
+npm run e2e
+```
+
+### View Results
+```bash
+npx playwright show-report
+```
+
+### Debug
+```bash
+npm run e2e:debug
+npx playwright test scoped-membership.spec.ts --grep "5.2"
+```
+
+### Full Documentation
+See `Front/e2e/README.md` for detailed prerequisites, troubleshooting, and setup instructions.

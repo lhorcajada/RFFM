@@ -1,20 +1,65 @@
 schema: spec-driven
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+context: |
+  ## Project Overview
+  FutbolBase: Football management platform. Monorepo with React SPA frontend + ASP.NET Core Minimal API backend.
 
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+  ## Tech Stack
+  Frontend:
+    - React 19, TypeScript 5.5 (strict mode)
+    - Vite 7, MUI v5, Axios
+    - Architecture: Multi-app SPA (Federation + Coach)
+    - Styling: CSS Modules + MUI themes (per-app nested ThemeProvider)
+    - Auth: HS256 temp-token + full JWT in localStorage
+
+  Backend:
+    - .NET 9, ASP.NET Core Minimal API (no controllers)
+    - Mediator v3 (source-generated, zero reflection)
+    - EF Core 9 + PostgreSQL (3 DbContexts: Identity, App, Federation schemas)
+    - Validation: FluentValidation v12 (required per ICommand)
+    - Error handling: RFC 7807 ProblemDetails
+    - Caching: EasyCaching.InMemory (1h default, cache-invalidation by prefix)
+
+  ## Architecture Principles
+  - Vertical Slice: Backend (1 feature = 1 .cs file), Frontend (co-located CSS Modules)
+  - CQRS: ICommand and ICommand<T> (writes), IQueryApp<T> (reads)
+  - Domain Layer: Rich entities, domain events, SmartEnums (no raw int enums)
+  - Auth flow: temp-token (HS256) to full JWT (Bearer)
+  - Event bus: Custom browser events (rffm.auth_expired, rffm.show_snackbar)
+
+  ## Authority References
+  - .github/instructions/copilot-instructions.md — source of truth for backend/frontend conventions
+  - Backend: back-specialist.md (patterns, IFeatureModule, EF contexts, validation)
+  - Frontend: front-specialist.md (MUI themes, CSS Modules, auth flow, event bus)
+
+  ## OpenSpec Workflow
+  - Propose: Describe what to build (rationale, scope, non-goals)
+  - Design: How to build it (architecture, new files, changes)
+  - Implement: Execute via openspec-implementer agent (follows implement.md script)
+  - Verify: Ensure completeness, correctness, coherence
+  - Archive: Move to archive/YYYY-MM-DD-name when done
+
+rules:
+  proposal:
+    - Keep to 200-300 words; be specific about scope
+    - Include rationale, what's in scope, what's not
+    - Reference backend (Back/ExtractionApi) or frontend (Front) ownership
+
+  design:
+    - List new files and modifications with code snippets
+    - Explain architectural decisions (vertical slice, CQRS, MUI themes, auth flows)
+    - Reference patterns from copilot-instructions.md
+    - For backend: mention IFeatureModule, ICommand and IQueryApp, validators, DbContexts
+    - For frontend: mention CSS Modules, MUI theme, single Axios, event bus, lazy pages
+
+  tasks:
+    - Break into 2-hour chunks
+    - Include specific file paths and verification commands
+    - Backend verify: dotnet build, unit tests if present
+    - Frontend verify: npm run build, npm run test
+
+  implement:
+    - Include step-by-step technical script for openspec-implementer agent
+    - Exact file paths, code patterns, migration steps
+    - Verification commands with expected output
+    - Reference backend/frontend conventions from copilot-instructions.md
