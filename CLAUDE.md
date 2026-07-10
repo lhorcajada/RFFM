@@ -143,6 +143,102 @@ For non-trivial changes (backend features, frontend components, cross-stack work
 
 ---
 
+## Test-Driven Development (TDD) — Mandatory Methodology
+
+**All implementations follow strict TDD: Red → Green → Refactor**
+
+### Frontend TDD (React + Vitest + Testing Library)
+
+**Red Phase**: Write tests first using Testing Library (user-centric assertions)
+```typescript
+// MyComponent.test.tsx — write first
+describe('MyComponent', () => {
+  it('renders button with correct text', () => {
+    render(<MyComponent />);
+    expect(screen.getByRole('button', { name: /submit/i })).toBeInTheDocument();
+  });
+});
+```
+
+**Green Phase**: Write minimal implementation to pass
+```typescript
+// MyComponent.tsx — write after test
+export const MyComponent = () => <button>Submit</button>;
+```
+
+**Refactor**: Clean up, extract logic, apply patterns (maintain green)
+
+**Command**: `npm run test` (watch mode) — run before commit
+
+### Backend TDD (xUnit + Moq)
+
+**Red Phase**: Write tests first using Arrange-Act-Assert
+```csharp
+// CreateClubHandler.Tests.cs — write first
+[Fact]
+public async Task Handle_WithValidRequest_CreatesClub()
+{
+    // Arrange
+    var handler = new CreateClubHandler(_mockRepo.Object, _mockCache.Object);
+    var cmd = new CreateClubCommand(new CreateClubRequest("FC Barcelona"));
+    
+    // Act
+    var result = await handler.Handle(cmd, CancellationToken.None);
+    
+    // Assert
+    Assert.NotNull(result);
+    Assert.Equal("FC Barcelona", result.Name);
+}
+```
+
+**Green Phase**: Implement handler to pass (minimal, no over-engineering)
+**Refactor**: Extract, optimize, apply DDD patterns (maintain green)
+
+**Commands**:
+```bash
+dotnet test                              # Run all tests
+dotnet test --filter Category=Feature    # Run feature tests only
+dotnet test --no-build -v minimal        # Fast re-run (no rebuild)
+```
+
+### TDD Workflow for Features
+
+1. **Create test file** in `*.Tests.cs` (adjacent to implementation)
+2. **Write failing test** (Red) — assert behavior, not implementation
+3. **Write minimal code** (Green) — just enough to pass
+4. **Refactor** (Refactor) — clean code, move to proper layers
+5. **Verify coverage** — aim for >80% on new code
+6. **Commit with tests** — never commit code without passing tests
+
+### Coverage Targets
+
+| Layer | Coverage |
+|-------|----------|
+| **Domain/Business Logic** | >85% |
+| **Handlers/Commands** | >80% |
+| **Components** | >75% (UI testing is harder) |
+| **Infrastructure** | >60% (mocked dependencies) |
+| **API Contracts** (E2E) | >70% |
+
+### Test Discipline
+
+- ✅ **Unit tests** — Fast, isolated, test one concern
+- ✅ **Integration tests** — Hit real DB (use test containers), real cache
+- ✅ **E2E tests** — Playwright tests for critical user journeys
+- ❌ **No skipped tests** — `[Fact(Skip = "...")]` is a code smell
+- ❌ **No mocking the impossible** — If it's hard to test, refactor
+
+### Before Commit Checklist
+
+- [ ] All tests **pass locally** (`npm run test` or `dotnet test`)
+- [ ] No skipped/xfailed tests
+- [ ] New code has **corresponding tests**
+- [ ] Tests are **focused** (one assertion per `it` / `[Fact]` where possible)
+- [ ] Coverage **meets target** for modified code
+- [ ] Integration tests use **real dependencies** (DB, cache)
+
+---
+
 ## Agents
 
 | Agent | Scope | Use When |
@@ -155,23 +251,30 @@ For non-trivial changes (backend features, frontend components, cross-stack work
 
 ## Quick Checks Before Commit
 
-### Frontend
+### Frontend (TDD First)
+- [ ] **Tests written first** (Red → Green → Refactor)
+- [ ] `npm run test` passes — 100% pass rate
+- [ ] Test coverage ≥75% for modified code
 - [ ] TypeScript strict — no `any`
 - [ ] CSS Modules co-located with components
 - [ ] MUI theme per app (Federation or Coach)
 - [ ] Single Axios instance used
 - [ ] `npm run build` passes
-- [ ] `npm run test` passes (if relevant)
 
-### Backend
+### Backend (TDD First)
+- [ ] **Tests written first** (Red → Green → Refactor)
+- [ ] `dotnet test` passes — 100% pass rate
+- [ ] Test coverage ≥80% for handlers/commands, ≥85% for domain logic
 - [ ] Vertical slice: 1 feature = 1 `.cs` file
 - [ ] Validator present for every `ICommand` (FluentValidation)
 - [ ] All errors return `ProblemDetails`
 - [ ] DbContext used correctly (Identity/App/Federation)
 - [ ] `dotnet build` passes
-- [ ] Tests pass (if present)
 
-### Both
+### Both (TDD + Code Quality)
+- [ ] **No skipped tests** — Remove `Skip` attributes
+- [ ] Tests are **focused** — one concern per test
+- [ ] Integration tests use **real dependencies** (not all mocks)
 - [ ] Nearest sibling patterns followed
 - [ ] Imports/paths correct
 - [ ] No secrets committed
