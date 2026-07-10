@@ -4,6 +4,7 @@ import { useCoachTrial } from "./useCoachTrial";
 import type { UserType } from "../components/UserTypeDialog";
 import teamService, { type PlayerForSelection } from "../../../../apps/coach/services/teamService";
 import { coachAuthService } from "../../../../apps/coach/services/authService";
+import { invitationsApi } from "../../../services/invitations/invitationsApi";
 
 export function useTeamAppEntry() {
   const navigate = useNavigate();
@@ -110,6 +111,19 @@ export function useTeamAppEntry() {
     setCodeDialogLoading(true);
     setCodeDialogError(null);
     try {
+      if (selectedUserType === "ClubMember") {
+        const res = await invitationsApi.validateClubCode({
+          code,
+          membershipKind: "ClubMember",
+        });
+        if (res.token) {
+          coachAuthService.storeUpdatedToken(res.token);
+        }
+        setCodeDialogOpen(false);
+        navigate("/coach/dashboard");
+        return;
+      }
+
       const team = await teamService.validateTeamCode(code);
       setCodeDialogOpen(false);
       if (selectedUserType === "Player" || selectedUserType === "FamilyMember") {
@@ -135,11 +149,17 @@ export function useTeamAppEntry() {
       } else {
         navigate("/coach/dashboard");
       }
-    } catch {
-      setCodeDialogError("Código no válido. Comprueba el código e inténtalo de nuevo.");
+    } catch (error: any) {
+      const data = error?.response?.data;
+      const apiMessage = data?.detail ?? data?.message ?? data?.title;
+      const fallback = "Código no válido. Comprueba el código e inténtalo de nuevo.";
+      setCodeDialogError(apiMessage ? String(apiMessage) : fallback);
       window.dispatchEvent(
         new CustomEvent("rffm.show_snackbar", {
-          detail: { message: "Código de equipo incorrecto", severity: "error" },
+          detail: {
+            message: apiMessage ? String(apiMessage) : "Código incorrecto",
+            severity: "error",
+          },
         })
       );
     } finally {

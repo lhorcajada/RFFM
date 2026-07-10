@@ -1,4 +1,8 @@
 import { client } from "../../../core/api/client";
+import type {
+  RegisterPayingAccountPayload,
+  RegisterPayingAccountResponse,
+} from "../../../shared/types/scope";
 
 function decodeJwtPayload(token: string): any | null {
   try {
@@ -34,6 +38,13 @@ export const coachAuthService = {
   register: async (token: string) => {
     const response = await client.post("/api/register", { token });
     return response.data;
+  },
+
+  registerPayingAccount: async (
+    payload: RegisterPayingAccountPayload,
+  ): Promise<RegisterPayingAccountResponse> => {
+    const response = await client.post("/api/register", payload);
+    return response.data as RegisterPayingAccountResponse;
   },
 
   requestPasswordReset: async (email: string) => {

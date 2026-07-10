@@ -23,6 +23,9 @@ const SharedReset = lazy(
 const Error500 = lazy(
   () => import("../../shared/components/ui/Error500/Error500")
 );
+const ScopeMembers = lazy(
+  () => import("../../shared/pages/ScopeMembers/ScopeMembers")
+);
 
 function LoadingFallback() {
   return (
@@ -152,6 +155,14 @@ export default function AppRouter() {
           }
         />
         <Route path="/coach/*" element={<CoachApp />} />
+        <Route
+          path="/scope/members"
+          element={
+            <RequireAuth>
+              <ScopeMembers />
+            </RequireAuth>
+          }
+        />
         <Route
           path="/player/:id"
           element={<Navigate to="/coach/player/:id" replace />}

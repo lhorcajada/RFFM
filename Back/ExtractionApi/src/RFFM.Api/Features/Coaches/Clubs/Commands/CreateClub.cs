@@ -96,6 +96,7 @@ namespace RFFM.Api.Features.Coaches.Clubs.Commands
             club.UpdateShieldUrl(emblemUrl);
             var entryClub = await _catalogDbContext.Clubs.AddAsync(club, cancellationToken);
             var userClub = new UserClub(request.UserId, entryClub.Entity.Id, Membership.Coach.Id);
+            userClub.IsCreator = true;
             await _catalogDbContext.UserClubs.AddAsync(userClub, cancellationToken);
             await _catalogDbContext.SaveChangesAsync(cancellationToken);
 

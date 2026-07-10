@@ -27,6 +27,15 @@
   gap: 28px;
 }
 
+.accountTypeField {
+  margin-top: 4px;
+}
+
+.accountTypeField :global(.MuiFormLabel-root) {
+  font-size: 0.95rem;
+  margin-bottom: 4px;
+}
+
 .submitButton {
   padding: 10px 0;
   font-size: 16px;

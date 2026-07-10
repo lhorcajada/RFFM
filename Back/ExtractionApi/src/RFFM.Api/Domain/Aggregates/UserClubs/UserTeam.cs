@@ -1,23 +1,26 @@
-﻿using RFFM.Api.Domain.Resources;
+using RFFM.Api.Domain.Resources;
 
 namespace RFFM.Api.Domain.Aggregates.UserClubs
 {
-    public class UserClub : BaseEntity, IAggregateRoot
+    public class UserTeam : BaseEntity, IAggregateRoot
     {
         public string ApplicationUserId { get; set; } = string.Empty;
-        public string ClubId { get; set; } = string.Empty;
+        public string TeamId { get; set; } = string.Empty;
         public int RoleId { get; set; }
         public bool IsCreator { get; set; }
-        public Club Club { get; set; } = null!;
+        public DateTime JoinedAt { get; set; }
+
+        public Team Team { get; set; } = null!;
         public Membership Membership { get; set; } = null!;
 
-        private UserClub() { }
-        public UserClub(string applicationUserId,
-            string clubId, int membershipId)
+        private UserTeam() { }
+
+        public UserTeam(string applicationUserId, string teamId, int membershipId)
         {
             UpdateRoleId(membershipId);
             UpdateApplicationUserId(applicationUserId);
-            UpdateClubId(clubId);
+            UpdateTeamId(teamId);
+            MarkAsJoined();
         }
 
         public void UpdateRoleId(int id)
@@ -38,13 +41,24 @@ namespace RFFM.Api.Domain.Aggregates.UserClubs
                     CodeMessages.UserClubNotValidUserId.Code);
             ApplicationUserId = id;
         }
-        public void UpdateClubId (string id)
+
+        public void UpdateTeamId(string id)
         {
             if (string.IsNullOrWhiteSpace(id))
                 throw new DomainException("",
                     CodeMessages.UserClubNotValidClubId.Message,
                     CodeMessages.UserClubNotValidClubId.Code);
-            ClubId = id;
+            TeamId = id;
+        }
+
+        public void MarkAsCreator()
+        {
+            IsCreator = true;
+        }
+
+        public void MarkAsJoined()
+        {
+            JoinedAt = DateTime.UtcNow;
         }
     }
 }

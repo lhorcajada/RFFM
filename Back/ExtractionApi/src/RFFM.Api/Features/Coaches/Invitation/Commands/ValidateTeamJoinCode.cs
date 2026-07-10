@@ -1,4 +1,4 @@
-﻿using FluentValidation;
+using FluentValidation;
 using Mediator;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -16,12 +16,12 @@ using System.Security.Claims;
 
 namespace RFFM.Api.Features.Coaches.Invitation.Commands
 {
-    public class ValidateInvitationCode : IFeatureModule
+    public class ValidateTeamJoinCode : IFeatureModule
     {
         public void AddRoutes(IEndpointRouteBuilder app)
         {
-            app.MapPost("api/invitations/club/validate",
-                    async (ValidateClubInvitationRequest request,
+            app.MapPost("api/invitations/team/validate",
+                    async (ValidateTeamInvitationRequest request,
                            IMediator mediator,
                            HttpContext httpContext,
                            CancellationToken cancellationToken) =>
@@ -33,7 +33,7 @@ namespace RFFM.Api.Features.Coaches.Invitation.Commands
                             return Results.Unauthorized();
                         }
 
-                        var command = new ValidateClubInvitationCommand
+                        var command = new ValidateTeamInvitationCommand
                         {
                             Code = request.Code,
                             MembershipKind = request.MembershipKind,
@@ -41,10 +41,10 @@ namespace RFFM.Api.Features.Coaches.Invitation.Commands
                         };
                         return await mediator.Send(command, cancellationToken);
                     })
-                .WithName(nameof(ValidateInvitationCode))
+                .WithName(nameof(ValidateTeamJoinCode))
                 .WithTags("InvitationFeature")
                 .RequireAuthorization()
-                .Produces<ValidateClubInvitationResponse>(StatusCodes.Status200OK)
+                .Produces<ValidateTeamInvitationResponse>(StatusCodes.Status200OK)
                 .Produces<ProblemDetails>(StatusCodes.Status400BadRequest)
                 .Produces<ProblemDetails>(StatusCodes.Status402PaymentRequired)
                 .Produces<ProblemDetails>(StatusCodes.Status404NotFound)
@@ -52,43 +52,44 @@ namespace RFFM.Api.Features.Coaches.Invitation.Commands
         }
     }
 
-    public class ValidateClubInvitationRequest
+    public class ValidateTeamInvitationRequest
     {
         public string Code { get; set; } = string.Empty;
         public string MembershipKind { get; set; } = string.Empty;
     }
 
-    public class ValidateClubInvitationCommand : IRequest<IResult>
+    public class ValidateTeamInvitationCommand : IRequest<IResult>
     {
         public string Code { get; set; } = string.Empty;
         public string MembershipKind { get; set; } = string.Empty;
         public string UserId { get; set; } = string.Empty;
     }
 
-    public class ValidateClubInvitationResponse
+    public class ValidateTeamInvitationResponse
     {
+        public string TeamId { get; set; } = string.Empty;
+        public string TeamName { get; set; } = string.Empty;
         public string ClubId { get; set; } = string.Empty;
-        public string ClubName { get; set; } = string.Empty;
         public string MembershipKind { get; set; } = string.Empty;
         public string? Token { get; set; }
     }
 
-    public class ValidateClubInvitationHandler : IRequestHandler<ValidateClubInvitationCommand, IResult>
+    public class ValidateTeamInvitationHandler : IRequestHandler<ValidateTeamInvitationCommand, IResult>
     {
         private readonly AppDbContext _db;
         private readonly UserManager<IdentityUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly ITokenService _tokenService;
         private readonly IScopeAuthorizationService _scopeAuth;
-        private readonly ILogger<ValidateClubInvitationHandler> _logger;
+        private readonly ILogger<ValidateTeamInvitationHandler> _logger;
 
-        public ValidateClubInvitationHandler(
+        public ValidateTeamInvitationHandler(
             AppDbContext db,
             UserManager<IdentityUser> userManager,
             RoleManager<IdentityRole> roleManager,
             ITokenService tokenService,
             IScopeAuthorizationService scopeAuth,
-            ILogger<ValidateClubInvitationHandler> logger)
+            ILogger<ValidateTeamInvitationHandler> logger)
         {
             _db = db;
             _userManager = userManager;
@@ -98,44 +99,45 @@ namespace RFFM.Api.Features.Coaches.Invitation.Commands
             _logger = logger;
         }
 
-        public async ValueTask<IResult> Handle(ValidateClubInvitationCommand request, CancellationToken cancellationToken)
+        public async ValueTask<IResult> Handle(ValidateTeamInvitationCommand request, CancellationToken cancellationToken)
         {
             var membership = MembershipIdentityRoles.FromKey(request.MembershipKind);
             if (membership is null
                 || membership.Key == Membership.Coach.Key
-                || membership.Key == Membership.Directive.Key)
+                || membership.Key == Membership.Directive.Key
+                || membership.Key == Membership.ClubMember.Key)
             {
                 return Results.BadRequest(new ProblemDetails
                 {
                     Title = "Membership no permitida",
-                    Detail = "Los roles Coach y Directive requieren cuenta pagadora, no código de invitación."
+                    Detail = "El rol indicado no aplica a un equipo. Use Player, FamilyPlayer o Follower."
                 });
             }
 
             var normalizedCode = (request.Code ?? string.Empty).Trim().ToUpperInvariant();
-            var club = await _db.Clubs
-                .FirstOrDefaultAsync(c => c.InvitationCode != null
-                                          && c.InvitationCode.ToUpper() == normalizedCode,
+            var team = await _db.Teams
+                .FirstOrDefaultAsync(t => t.JoinCode != null
+                                           && t.JoinCode.ToUpper() == normalizedCode,
                     cancellationToken);
 
-            if (club is null)
+            if (team is null)
             {
                 return Results.NotFound(new ProblemDetails
                 {
                     Title = "Código inexistente",
-                    Detail = "El código de invitación no corresponde a ningún club."
+                    Detail = "El código de invitación no corresponde a ningún equipo."
                 });
             }
 
-            var alreadyInClub = await _db.UserClubs
+            var alreadyInTeam = await _db.UserTeams
                 .AsNoTracking()
-                .AnyAsync(uc => uc.ApplicationUserId == request.UserId && uc.ClubId == club.Id, cancellationToken);
-            if (alreadyInClub)
+                .AnyAsync(ut => ut.ApplicationUserId == request.UserId && ut.TeamId == team.Id, cancellationToken);
+            if (alreadyInTeam)
             {
                 return Results.BadRequest(new ProblemDetails
                 {
-                    Title = "Ya perteneces a este club",
-                    Detail = "Ya perteneces a este club."
+                    Title = "Ya perteneces a este equipo",
+                    Detail = "Ya perteneces a este equipo."
                 });
             }
 
@@ -160,9 +162,9 @@ namespace RFFM.Api.Features.Coaches.Invitation.Commands
                 });
             }
 
-            _db.UserClubs.Add(new UserClub(
+            _db.UserTeams.Add(new UserTeam(
                 request.UserId,
-                club.Id,
+                team.Id,
                 membership.Id));
 
             await _db.SaveChangesAsync(cancellationToken);
@@ -171,10 +173,11 @@ namespace RFFM.Api.Features.Coaches.Invitation.Commands
 
             var jwt = await TryGenerateJwtAsync(request.UserId, cancellationToken);
 
-            return Results.Ok(new ValidateClubInvitationResponse
+            return Results.Ok(new ValidateTeamInvitationResponse
             {
-                ClubId = club.Id,
-                ClubName = club.Name,
+                TeamId = team.Id,
+                TeamName = team.Name,
+                ClubId = team.ClubId,
                 MembershipKind = membership.Key,
                 Token = jwt
             });
@@ -202,7 +205,7 @@ namespace RFFM.Api.Features.Coaches.Invitation.Commands
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "ValidateClubInvitation: could not assign Identity role {Role} to user {UserId}",
+                _logger.LogWarning(ex, "ValidateTeamInvitation: could not assign Identity role {Role} to user {UserId}",
                     membership.Key, userId);
             }
         }
@@ -215,15 +218,15 @@ namespace RFFM.Api.Features.Coaches.Invitation.Commands
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "ValidateClubInvitation: could not generate JWT for user {UserId}", userId);
+                _logger.LogWarning(ex, "ValidateTeamInvitation: could not generate JWT for user {UserId}", userId);
                 return null;
             }
         }
     }
 
-    public class ValidateClubInvitationValidator : AbstractValidator<ValidateClubInvitationCommand>
+    public class ValidateTeamInvitationValidator : AbstractValidator<ValidateTeamInvitationCommand>
     {
-        public ValidateClubInvitationValidator()
+        public ValidateTeamInvitationValidator()
         {
             RuleFor(r => r.Code).NotEmpty();
             RuleFor(r => r.MembershipKind).NotEmpty();

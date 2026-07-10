@@ -23,6 +23,7 @@ namespace RFFM.Api.Infrastructure.Persistence
     {
         public DbSet<Club> Clubs { get; set; }
         public DbSet<UserClub> UserClubs { get; set; }
+        public DbSet<UserTeam> UserTeams { get; set; }
         public DbSet<Country> Countries { get; set; }
         public DbSet<Category> Categories { get; set; }
         public DbSet<League> Leagues { get; set; }
