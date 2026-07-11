@@ -29,7 +29,7 @@
   "LoginEmptyUserOrPass": "Debes indicar usuario y contraseña.",
   "LoginUserNotRegistered": "El usuario no está registrado. Por favor, verifica tu nombre de usuario o regístrate.",
   "LoginErrorUserOrPassword": "Usuario o contraseña incorrectos.",
-  "LoginEmailNotConfirmed": "Debes confirmar tu correo electrónico antes de iniciar sesión.",
+  "LoginEmailNotConfirmed": "Tu registro todavía no ha sido aprobado por el administrador de Futbol Base.",
   "RegisterEmailExistsAlready": "El correo electrónico ya está registrado.",
   "RegisterPassworNotMeetRequirements": "La contraseña no cumple los requisitos mínimos de seguridad.",
   "RegisterGeneralError": "No se ha podido completar el registro. Inténtalo de nuevo.",

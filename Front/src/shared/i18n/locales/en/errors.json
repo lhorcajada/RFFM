@@ -29,7 +29,7 @@
   "LoginEmptyUserOrPass": "You must enter a username and password.",
   "LoginUserNotRegistered": "This user is not registered. Please check your username or sign up.",
   "LoginErrorUserOrPassword": "Incorrect username or password.",
-  "LoginEmailNotConfirmed": "You must confirm your email before signing in.",
+  "LoginEmailNotConfirmed": "Your registration has not yet been approved by the Futbol Base administrator.",
   "RegisterEmailExistsAlready": "This email is already registered.",
   "RegisterPassworNotMeetRequirements": "The password does not meet the minimum security requirements.",
   "RegisterGeneralError": "We couldn't complete the registration. Please try again.",

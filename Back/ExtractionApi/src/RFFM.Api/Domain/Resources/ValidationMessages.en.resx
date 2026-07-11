@@ -193,6 +193,6 @@
     <value>Club identifier cannot be null</value>
   </data>
   <data name="LoginEmailNotConfirmed" xml:space="preserve">
-    <value>Your account has been created but is still pending confirmation by the system administrator.</value>
+    <value>Your registration has not yet been approved by the Futbol Base administrator.</value>
   </data>
 </root>
