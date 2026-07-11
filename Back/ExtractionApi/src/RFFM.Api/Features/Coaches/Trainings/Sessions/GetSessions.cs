@@ -62,7 +62,7 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
                 .AnyAsync(x => x.uc.ApplicationUserId == request.UserId && x.t.Id == request.TeamId, ct);
 
             if (!hasAccess)
-                throw new DomainException("Sesiones", "No tienes acceso a este equipo.", "");
+                throw new DomainException("Sesiones", "No tienes acceso a este equipo.", ErrorCodes.TeamAccessDenied);
 
             var query = _db.TrainingSessions
                 .Include(s => s.Tasks)

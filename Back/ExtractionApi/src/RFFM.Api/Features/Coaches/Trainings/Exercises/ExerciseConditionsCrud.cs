@@ -97,13 +97,13 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
                 .FirstOrDefaultAsync(tb => tb.Id == request.ExerciseId, ct);
 
             if (exercise is null)
-                throw new Domain.DomainException("Condiciones", "Ejercicio no encontrado.", request.ExerciseId);
+                throw new Domain.DomainException("Condiciones", $"Ejercicio no encontrado: {request.ExerciseId}", Domain.ErrorCodes.ExerciseNotFound);
 
             var hasAccess = await _db.UserClubs
                 .AnyAsync(uc => uc.ApplicationUserId == request.UserId && uc.ClubId == exercise.ClubId, ct);
 
             if (!hasAccess)
-                throw new Domain.DomainException("Condiciones", "No tienes acceso a este ejercicio.", request.ExerciseId);
+                throw new Domain.DomainException("Condiciones", "No tienes acceso a este ejercicio.", Domain.ErrorCodes.ExerciseAccessDenied);
 
             var nextOrder = await _db.ExerciseConditions
                 .Where(c => c.TaskTrainingBaseId == request.ExerciseId)
@@ -136,13 +136,13 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
                 .FirstOrDefaultAsync(c => c.Id == request.ConditionId, ct);
 
             if (condition is null)
-                throw new Domain.DomainException("Condiciones", "Condición no encontrada.", request.ConditionId);
+                throw new Domain.DomainException("Condiciones", $"Condición no encontrada: {request.ConditionId}", Domain.ErrorCodes.ExerciseConditionNotFound);
 
             var hasAccess = await _db.UserClubs
                 .AnyAsync(uc => uc.ApplicationUserId == request.UserId && uc.ClubId == condition.TaskTrainingBase.ClubId, ct);
 
             if (!hasAccess)
-                throw new Domain.DomainException("Condiciones", "No tienes acceso a esta condición.", request.ConditionId);
+                throw new Domain.DomainException("Condiciones", "No tienes acceso a esta condición.", Domain.ErrorCodes.ExerciseConditionAccessDenied);
 
             condition.Text = request.Text.Trim();
             await _db.SaveChangesAsync(ct);
@@ -163,13 +163,13 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
                 .FirstOrDefaultAsync(c => c.Id == request.ConditionId, ct);
 
             if (condition is null)
-                throw new Domain.DomainException("Condiciones", "Condición no encontrada.", request.ConditionId);
+                throw new Domain.DomainException("Condiciones", $"Condición no encontrada: {request.ConditionId}", Domain.ErrorCodes.ExerciseConditionNotFound);
 
             var hasAccess = await _db.UserClubs
                 .AnyAsync(uc => uc.ApplicationUserId == request.UserId && uc.ClubId == condition.TaskTrainingBase.ClubId, ct);
 
             if (!hasAccess)
-                throw new Domain.DomainException("Condiciones", "No tienes acceso a esta condición.", request.ConditionId);
+                throw new Domain.DomainException("Condiciones", "No tienes acceso a esta condición.", Domain.ErrorCodes.ExerciseConditionAccessDenied);
 
             _db.ExerciseConditions.Remove(condition);
             await _db.SaveChangesAsync(ct);

@@ -15,7 +15,7 @@ import {
   Link as RouterLink,
 } from "react-router-dom";
 import { coachAuthService } from "../../../../apps/coach/services/authService";
-import { mapApiErrorToMessage } from "../../../../apps/coach/utils/errorMessages";
+import { mapApiErrorToMessage } from "../../../utils/errorMessages";
 import BaseLayout from "../../../components/ui/BaseLayout/BaseLayout";
 
 const ResetPassword: React.FC = () => {

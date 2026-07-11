@@ -96,14 +96,14 @@ namespace RFFM.Api.Features.Coaches.GameModels.Commands
                 .AnyAsync(x => x.uc.ApplicationUserId == request.UserId && x.t.Id == request.TeamId, cancellationToken);
 
             if (!hasAccess)
-                throw new DomainException("Modelo de Juego", "No tienes acceso a este equipo.", "");
+                throw new DomainException("Modelo de Juego", "No tienes acceso a este equipo.", ErrorCodes.TeamAccessDenied);
 
             var exists = await _db.GameModels
                 .AnyAsync(gm => gm.TeamId == request.TeamId && gm.Season == request.Season, cancellationToken);
 
             if (exists)
                 throw new DomainException("Modelo de Juego",
-                    $"Ya existe un modelo de juego para la temporada {request.Season}.", "");
+                    $"Ya existe un modelo de juego para la temporada {request.Season}.", ErrorCodes.GameModelAlreadyExists);
 
             var model = new GameModel(request.TeamId, request.Name, request.Season);
 

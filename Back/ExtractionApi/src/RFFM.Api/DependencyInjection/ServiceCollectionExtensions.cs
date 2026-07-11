@@ -154,7 +154,7 @@ namespace RFFM.Api.DependencyInjection
                 .AddTransient(typeof(IPipelineBehavior<,>), typeof(FeaturePermissionBehavior<,>));
         }
 
-        static IServiceCollection AddCustomProblemDetails(this IServiceCollection services)
+        internal static IServiceCollection AddCustomProblemDetails(this IServiceCollection services)
         {
             return services.AddProblemDetails(setup =>
             {
@@ -213,18 +213,28 @@ namespace RFFM.Api.DependencyInjection
                     });
                 
                 // Errores de validación
-                setup.Map<ValidationException>(exception =>
+                // NOTA: ValidationBehavior.cs lanza System.ComponentModel.DataAnnotations.ValidationException
+                // (no FluentValidation.ValidationException, aunque este archivo tiene "using FluentValidation;").
+                // Hay que calificar el tipo completo aquí para que el mapping realmente se dispare;
+                // de lo contrario cae en el catch-all Exception -> 500.
+                setup.Map<System.ComponentModel.DataAnnotations.ValidationException>(exception =>
                     new StatusCodeProblemDetails(StatusCodes.Status400BadRequest)
                     {
                         Title = "Error de validación",
-                        Detail = exception.Message
+                        Detail = exception.Message,
+                        Extensions =
+                        {
+                            ["code"] = RFFM.Api.Domain.ErrorCodes.ValidationFailed,
+                            ["errors"] = ParseValidationErrors(exception.Message)
+                        }
                     });
-                
+
                 setup.Map<ArgumentNullException>(exception =>
                     new StatusCodeProblemDetails(StatusCodes.Status400BadRequest)
                     {
                         Title = "Argumento requerido",
-                        Detail = exception.Message
+                        Detail = exception.Message,
+                        Extensions = { ["code"] = RFFM.Api.Domain.ErrorCodes.MissingRequiredArgument }
                     });
                 
                 // Errores HTTP
@@ -235,5 +245,33 @@ namespace RFFM.Api.DependencyInjection
                 setup.MapToStatusCode<Exception>(StatusCodes.Status500InternalServerError);
             });
         }
+
+        /// <summary>
+        /// Parses the "Property1: Message1; Property2: Message2" string built by
+        /// ValidationBehavior into a structured list so the frontend can, if it wants,
+        /// highlight the specific field without needing a code-per-rule catalog.
+        /// </summary>
+        internal static IReadOnlyList<ValidationFieldError> ParseValidationErrors(string errorMessage)
+        {
+            if (string.IsNullOrWhiteSpace(errorMessage))
+            {
+                return Array.Empty<ValidationFieldError>();
+            }
+
+            return errorMessage
+                .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(entry =>
+                {
+                    var separatorIndex = entry.IndexOf(':');
+                    return separatorIndex < 0
+                        ? new ValidationFieldError(string.Empty, entry.Trim())
+                        : new ValidationFieldError(
+                            entry[..separatorIndex].Trim(),
+                            entry[(separatorIndex + 1)..].Trim());
+                })
+                .ToArray();
+        }
     }
+
+    public record ValidationFieldError(string Field, string Message);
 }

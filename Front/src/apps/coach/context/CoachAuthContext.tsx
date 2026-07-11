@@ -2,7 +2,7 @@ import React, { createContext, useState, useContext, useEffect } from "react";
 import { coachAuthService } from "../services/authService";
 import { useNavigate, useLocation } from "react-router-dom";
 import useTempToken from "../hooks/useTempToken";
-import { mapApiErrorToMessage } from "../utils/errorMessages";
+import { mapApiErrorToMessage } from "../../../shared/utils/errorMessages";
 import { useUser } from "../../../shared/context/UserContext";
 
 interface CoachAuthContextType {

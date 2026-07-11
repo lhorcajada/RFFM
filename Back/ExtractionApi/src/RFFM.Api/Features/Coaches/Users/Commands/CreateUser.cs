@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using RFFM.Api.Common.Behaviors;
+using RFFM.Api.Domain;
 using RFFM.Api.Domain.Entities;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Features.Coaches.Auth;
@@ -75,7 +76,8 @@ namespace RFFM.Api.Features.Coaches.Users.Commands
                     return Results.BadRequest(new ProblemDetails
                     {
                         Title = "Tipo de cuenta requerido",
-                        Detail = "Debe seleccionar accountType 'Coach' o 'Directive'."
+                        Detail = "Debe seleccionar accountType 'Coach' o 'Directive'.",
+                        Extensions = { ["code"] = ErrorCodes.AccountTypeRequired }
                     });
                 }
 
@@ -90,7 +92,19 @@ namespace RFFM.Api.Features.Coaches.Users.Commands
                     {
                         Status = StatusCodes.Status409Conflict,
                         Title = "Alias duplicado",
-                        Detail = $"Ya existe un usuario con el alias: {request.Alias}"
+                        Detail = $"Ya existe un usuario con el alias: {request.Alias}",
+                        Extensions = { ["code"] = ErrorCodes.AliasIsAlreadyTaken }
+                    });
+                }
+
+                var existsEmail = await _userManager.FindByEmailAsync(request.Email);
+                if (existsEmail != null)
+                {
+                    return Results.BadRequest(new ProblemDetails
+                    {
+                        Title = "Email ya registrado",
+                        Detail = $"Ya existe una cuenta con el email: {request.Email}",
+                        Extensions = { ["code"] = ErrorCodes.EmailIsAlreadyTaken }
                     });
                 }
 
@@ -106,7 +120,8 @@ namespace RFFM.Api.Features.Coaches.Users.Commands
                     return Results.BadRequest(new ProblemDetails
                     {
                         Title = "No se pudo crear el usuario",
-                        Detail = string.Join("; ", result.Errors.Select(e => e.Description))
+                        Detail = string.Join("; ", result.Errors.Select(e => e.Description)),
+                        Extensions = { ["code"] = ErrorCodes.UserCreationFailed }
                     });
                 }
 

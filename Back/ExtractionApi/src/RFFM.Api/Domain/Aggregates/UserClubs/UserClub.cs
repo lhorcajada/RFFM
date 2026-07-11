@@ -24,7 +24,7 @@ namespace RFFM.Api.Domain.Aggregates.UserClubs
         {
             var membership = Membership.GetById(id);
             if (membership is null)
-                throw new DomainException("",
+                throw new DomainException("UserClub",
                     CodeMessages.UserClubNotRolePermissive.Message,
                     CodeMessages.UserClubNotRolePermissive.Code);
             RoleId = id;
@@ -33,7 +33,7 @@ namespace RFFM.Api.Domain.Aggregates.UserClubs
         public void UpdateApplicationUserId(string id)
         {
             if (string.IsNullOrWhiteSpace(id))
-                throw new DomainException("",
+                throw new DomainException("UserClub",
                     CodeMessages.UserClubNotValidUserId.Message,
                     CodeMessages.UserClubNotValidUserId.Code);
             ApplicationUserId = id;
@@ -41,7 +41,7 @@ namespace RFFM.Api.Domain.Aggregates.UserClubs
         public void UpdateClubId (string id)
         {
             if (string.IsNullOrWhiteSpace(id))
-                throw new DomainException("",
+                throw new DomainException("UserClub",
                     CodeMessages.UserClubNotValidClubId.Message,
                     CodeMessages.UserClubNotValidClubId.Code);
             ClubId = id;

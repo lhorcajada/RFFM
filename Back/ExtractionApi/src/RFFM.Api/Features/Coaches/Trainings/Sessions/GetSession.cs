@@ -93,7 +93,7 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
                 .AnyAsync(x => x.uc.ApplicationUserId == request.UserId && x.t.Id == session.TeamId, ct);
 
             if (!hasAccess)
-                throw new DomainException("Sesiones", "No tienes acceso a esta sesión.", "");
+                throw new DomainException("Sesiones", "No tienes acceso a esta sesión.", ErrorCodes.SessionAccessDenied);
 
             return new SessionDetail(
                 session.Id,

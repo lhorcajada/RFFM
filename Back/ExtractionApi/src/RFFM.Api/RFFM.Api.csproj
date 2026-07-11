@@ -35,6 +35,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="RFFM.Api.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="EasyCaching.Core" Version="1.9.2" />
 <PackageReference Include="EasyCaching.InMemory" Version="1.9.2" />
     <PackageReference Include="FluentValidation" Version="12.1.0" />

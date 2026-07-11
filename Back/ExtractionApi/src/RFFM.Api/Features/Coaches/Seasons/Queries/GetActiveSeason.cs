@@ -41,7 +41,7 @@ namespace RFFM.Api.Features.Coaches.Seasons.Queries
                 var season = await db.Seasons
                     .FirstOrDefaultAsync(c => c.IsActive, cancellationToken);
                 if (season == null)
-                    throw new DomainException("Active season", "There is not active season","NotActiveSeason");
+                    throw new DomainException("Active season", "There is not active season", ErrorCodes.NoActiveSeason);
 
                 return new GetActiveSeasonResponse(season.Id, season.Name, season.StartDate, season.EndDate, season.IsActive);
 

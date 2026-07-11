@@ -64,7 +64,7 @@ namespace RFFM.Api.Features.Coaches.GameModels.Queries
                 .AnyAsync(uc => uc.ApplicationUserId == request.UserId, ct);
 
             if (!hasAccess)
-                throw new DomainException("Modelo de Juego", "No tienes acceso a este sub-subprincipio.", request.SspId);
+                throw new DomainException("Modelo de Juego", "No tienes acceso a este sub-subprincipio.", ErrorCodes.SubSubPrincipleAccessDenied);
 
             var ssp = await _db.SubSubPrinciples
                 .Include(x => x.EssentialSkills)

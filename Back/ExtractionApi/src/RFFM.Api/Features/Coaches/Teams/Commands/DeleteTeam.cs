@@ -28,12 +28,13 @@ namespace RFFM.Api.Features.Coaches.Teams.Commands
                             await mediator.Send(request, cancellationToken);
                             return Results.Ok();
                         }
-                        catch (DomainException exception) when (exception.Code == TeamConstants.TeamHasPlayersCode)
+                        catch (DomainException exception) when (exception.Code == ErrorCodes.TeamHasPlayers)
                         {
                             return Results.Conflict(new ProblemDetails
                             {
                                 Title = exception.Title,
                                 Detail = exception.Description,
+                                Extensions = { ["code"] = exception.Code }
                             });
                         }
                     })
@@ -74,7 +75,7 @@ namespace RFFM.Api.Features.Coaches.Teams.Commands
                 throw new DomainException(
                     "Equipos",
                     "No se puede eliminar el equipo porque tiene jugadores asociados.",
-                    TeamConstants.TeamHasPlayersCode);
+                    ErrorCodes.TeamHasPlayers);
             }
 
             _catalogDbContext.Teams.Remove(team);

@@ -23,7 +23,7 @@ namespace RFFM.Api.Features.Coaches.Players.Services
             var club = await _catalogDbContext.Clubs
                 .FirstOrDefaultAsync(c => c.Id == request.ClubId);
             if (club == null)
-                throw new DomainException("Club", $"Club does not exist {request.ClubId}", "ClubNotExist");
+                throw new DomainException("Club", $"Club does not exist {request.ClubId}", ErrorCodes.ClubNotExist);
 
             string? urlPhoto = null;
 

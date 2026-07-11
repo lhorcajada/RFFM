@@ -52,7 +52,7 @@ namespace RFFM.Api.Features.Coaches.GameModels.Queries
                     .AnyAsync(x => x.uc.ApplicationUserId == request.UserId && x.t.Id == request.TeamId, cancellationToken);
 
                 if (!hasAccess)
-                    throw new DomainException("Modelo de Juego", "No tienes acceso a este equipo.", "");
+                    throw new DomainException("Modelo de Juego", "No tienes acceso a este equipo.", ErrorCodes.TeamAccessDenied);
 
                 return await _db.GameModels
                     .Where(gm => gm.TeamId == request.TeamId)

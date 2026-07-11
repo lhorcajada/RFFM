@@ -58,14 +58,14 @@ namespace RFFM.Api.Features.Coaches.GameModels.Commands
                 .FirstOrDefaultAsync(gm => gm.Id == request.Id, cancellationToken);
 
             if (model is null)
-                throw new DomainException("Modelo de Juego", "Modelo de juego no encontrado.", "");
+                throw new DomainException("Modelo de Juego", "Modelo de juego no encontrado.", ErrorCodes.GameModelNotFound);
 
             var hasAccess = await _db.UserClubs
                 .Join(_db.Teams, uc => uc.ClubId, t => t.ClubId, (uc, t) => new { uc, t })
                 .AnyAsync(x => x.uc.ApplicationUserId == request.UserId && x.t.Id == model.TeamId, cancellationToken);
 
             if (!hasAccess)
-                throw new DomainException("Modelo de Juego", "No tienes acceso a este modelo de juego.", "");
+                throw new DomainException("Modelo de Juego", "No tienes acceso a este modelo de juego.", ErrorCodes.GameModelAccessDenied);
 
             _db.GameModels.Remove(model);
             await _db.SaveChangesAsync(cancellationToken);

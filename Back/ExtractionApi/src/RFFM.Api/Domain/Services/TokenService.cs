@@ -239,7 +239,7 @@ namespace RFFM.Api.Domain.Services
             }
 
             var user = await _applicationDbContext.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
-            if (user == null) throw new DomainException("Generando token", "Usuario no encontrado", "user_not_found");
+            if (user == null) throw new DomainException("Generando token", "Usuario no encontrado", ErrorCodes.UserNotFound);
 
             var claims = new Dictionary<string, object>
             {

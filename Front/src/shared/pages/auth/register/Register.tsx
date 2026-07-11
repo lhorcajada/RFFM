@@ -16,7 +16,7 @@ import {
 import styles from "./Register.module.css";
 import { coachAuthService } from "../../../../apps/coach/services/authService";
 import { useNavigate, Link as RouterLink } from "react-router-dom";
-import { mapApiErrorToMessage } from "../../../../apps/coach/utils/errorMessages";
+import { mapApiErrorToMessage } from "../../../utils/errorMessages";
 import BaseLayout from "../../../components/ui/BaseLayout/BaseLayout";
 import type {
   RegisterPayingAccountPayload,

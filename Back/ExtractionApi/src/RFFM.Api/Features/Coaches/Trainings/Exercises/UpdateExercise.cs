@@ -73,12 +73,12 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
                 .FirstOrDefaultAsync(tb => tb.Id == request.Id, ct);
 
             if (exercise is null)
-                throw new DomainException("Ejercicios", "Ejercicio no encontrado.", "");
+                throw new DomainException("Ejercicios", "Ejercicio no encontrado.", ErrorCodes.ExerciseNotFound);
 
             var hasAccess = await _db.UserClubs
                 .AnyAsync(uc => uc.ApplicationUserId == request.UserId && uc.ClubId == exercise.ClubId, ct);
             if (!hasAccess)
-                throw new DomainException("Ejercicios", "No tienes acceso a este ejercicio.", "");
+                throw new DomainException("Ejercicios", "No tienes acceso a este ejercicio.", ErrorCodes.ExerciseAccessDenied);
 
             exercise.Name = request.Name.Trim();
             exercise.Description = request.Description;

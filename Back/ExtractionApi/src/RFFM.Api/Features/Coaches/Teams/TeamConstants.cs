@@ -5,7 +5,5 @@
         public const string TeamFeature = "TeamFeature";
         public const string CachePrefix = TeamFeature;
         public const string TeamsContainerName = "teamphotos";
-        public const string TeamHasPlayersCode = "team_has_players";
-
     }
 }

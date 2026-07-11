@@ -82,13 +82,13 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
                 .FirstOrDefaultAsync(s => s.Id == request.Id, ct);
 
             if (session is null)
-                throw new DomainException("Sesiones", "Sesión no encontrada.", request.Id);
+                throw new DomainException("Sesiones", $"Sesión no encontrada: {request.Id}", ErrorCodes.SessionNotFound);
 
             var hasAccess = await _db.UserClubs
                 .AnyAsync(uc => uc.ApplicationUserId == request.UserId && uc.ClubId == session.Team.ClubId, ct);
 
             if (!hasAccess)
-                throw new DomainException("Sesiones", "No tienes acceso a esta sesión.", request.Id);
+                throw new DomainException("Sesiones", "No tienes acceso a esta sesión.", ErrorCodes.SessionAccessDenied);
 
             session.Name = request.Name.Trim();
             session.Description = request.Description;

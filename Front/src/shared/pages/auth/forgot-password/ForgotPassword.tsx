@@ -11,7 +11,7 @@ import {
 } from "@mui/material";
 import styles from "./ForgotPassword.module.css";
 import { coachAuthService } from "../../../../apps/coach/services/authService";
-import { mapApiErrorToMessage } from "../../../../apps/coach/utils/errorMessages";
+import { mapApiErrorToMessage } from "../../../utils/errorMessages";
 import { Link as RouterLink } from "react-router-dom";
 import BaseLayout from "../../../components/ui/BaseLayout/BaseLayout";
 

@@ -60,7 +60,7 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
                 .AnyAsync(uc => uc.ApplicationUserId == request.UserId && uc.ClubId == exercise.ClubId, ct);
 
             if (!hasAccess)
-                throw new DomainException("Ejercicios", "No tienes acceso a este ejercicio.", request.ExerciseId);
+                throw new DomainException("Ejercicios", "No tienes acceso a este ejercicio.", ErrorCodes.ExerciseAccessDenied);
 
             return new ExerciseListItem(
                 exercise.Id,

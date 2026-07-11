@@ -28,12 +28,13 @@ namespace RFFM.Api.Features.Coaches.Seasons.Commands
                             await mediator.Send(request, cancellationToken);
                             return Results.Ok();
                         }
-                        catch (DomainException exception) when (exception.Code == SeasonConstants.SeasonHasRelatedDataCode)
+                        catch (DomainException exception) when (exception.Code == ErrorCodes.SeasonHasRelatedData)
                         {
                             return Results.Conflict(new ProblemDetails
                             {
                                 Title = exception.Title,
                                 Detail = exception.Description,
+                                Extensions = { ["code"] = exception.Code }
                             });
                         }
                     })
@@ -75,7 +76,7 @@ namespace RFFM.Api.Features.Coaches.Seasons.Commands
                 throw new DomainException(
                     "Temporadas",
                     "No se puede eliminar la temporada porque ya tiene datos relacionados.",
-                    SeasonConstants.SeasonHasRelatedDataCode);
+                    ErrorCodes.SeasonHasRelatedData);
             }
 
             _catalogDbContext.Seasons.Remove(season);

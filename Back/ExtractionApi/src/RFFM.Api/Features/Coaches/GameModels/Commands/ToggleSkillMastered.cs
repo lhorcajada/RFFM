@@ -51,7 +51,7 @@ namespace RFFM.Api.Features.Coaches.GameModels.Commands
                 .FirstOrDefaultAsync(es => es.Id == request.SkillId, ct);
 
             if (skill is null)
-                throw new DomainException("Habilidades", "Habilidad no encontrada.", request.SkillId);
+                throw new DomainException("Habilidades", $"Habilidad no encontrada: {request.SkillId}", ErrorCodes.SkillNotFound);
 
             // Verify access: EssentialSkill → SubSubPrinciple → SubPrinciple → GameScenario → GameModel → Team → Club → UserClub
             var hasAccess = await _db.EssentialSkills
@@ -65,7 +65,7 @@ namespace RFFM.Api.Features.Coaches.GameModels.Commands
                 .AnyAsync(uc => uc.ApplicationUserId == request.UserId, ct);
 
             if (!hasAccess)
-                throw new DomainException("Habilidades", "No tienes acceso a esta habilidad.", request.SkillId);
+                throw new DomainException("Habilidades", "No tienes acceso a esta habilidad.", ErrorCodes.SkillAccessDenied);
 
             skill.MasteredAt = skill.MasteredAt.HasValue ? null : DateTime.UtcNow;
 

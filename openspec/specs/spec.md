@@ -94,6 +94,7 @@ window.dispatchEvent(new CustomEvent('rffm.coach_token_updated', { detail: token
 - Shared UI components in `src/shared/components/`
 - Every React component gets co-located `.module.css`
 - Update import paths when moving files
+- **API error translation** (capability `unified-error-codes-i18n`): backend error `code` values (from `ProblemDetails.extensions.code`) are translated via `react-i18next`, namespace `errors`, locales `Front/src/shared/i18n/locales/{es,en}/errors.json`. Use `mapApiErrorToMessage(error)` / `useApiErrorMessage()` from `Front/src/shared/utils/errorMessages.ts` to resolve a translated string from an Axios error — this utility only resolves the message; each screen still decides how to present it (inline `Alert`, e.g. `Register`, vs. the global toast via `rffm.show_snackbar`). The Axios interceptor in `core/api/client.ts` does not read `code` itself (only handles 401/500 globally); reading `code` happens at the consumption point.
 
 ---
 
@@ -193,6 +194,7 @@ Entity type configurations are discovered via reflection (`IEntityTypeConfigurat
 - No controllers; all endpoints registered via `IFeatureModule`
 - `Nullable` and `ImplicitUsings` enabled project-wide
 - Return RFC 7807 `ProblemDetails` for **all** errors — never raw strings
+- **Error `code` convention** (capability `unified-error-codes-i18n`): every error mapped to HTTP 400 exposes a non-empty, PascalCase, event-style `Extensions["code"]` (e.g. `EmailIsAlreadyTaken`), sourced from the central catalog `RFFM.Api.Domain.ErrorCodes` — never an empty string or an entity id. FluentValidation failures use `code=ValidationFailed` plus `Extensions["errors"]: [{ field, message }]` for per-field detail. Frontend translates `code` via i18next (see Frontend Conventions below); the `Title`/`Detail` strings remain backend-authored Spanish text as a fallback for codes the frontend dictionary doesn't yet cover.
 - Env-specific config: `appsettings.Development.json` / `appsettings.Production.json`
 - Mirror the nearest sibling feature file for patterns
 

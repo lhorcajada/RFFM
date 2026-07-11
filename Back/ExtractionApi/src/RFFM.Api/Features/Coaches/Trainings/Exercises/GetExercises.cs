@@ -50,7 +50,7 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
                 .AnyAsync(uc => uc.ApplicationUserId == request.UserId && uc.ClubId == request.ClubId, ct);
 
             if (!hasAccess)
-                throw new DomainException("Ejercicios", "No tienes acceso a este club.", "");
+                throw new DomainException("Ejercicios", "No tienes acceso a este club.", ErrorCodes.ClubAccessDenied);
 
             var query = _db.TaskTrainingBases
                 .Include(tb => tb.Skills)
