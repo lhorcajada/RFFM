@@ -32,10 +32,9 @@
     "UserPromptSubmit": [
       {
         "matcher": "implement|feature|fix|refactor|bug",
-        "enabled": false,
         "hooks": [
           {
-            "type": "log",
+            "type": "prompt",
             "prompt": "🔴 TDD REMINDER: Strict Red → Green → Refactor methodology required.\n\n1. RED: Write failing tests FIRST (Vitest + Testing Library for frontend, xUnit + Moq for backend)\n2. GREEN: Write minimal implementation to pass tests only\n3. REFACTOR: Clean code while keeping tests green\n\nNEVER start with implementation. Test file first, always.\nTarget coverage: ≥75% frontend, ≥80% backend handlers, ≥85% domain logic.",
             "continueOnBlock": true
           }
@@ -44,7 +43,7 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "Bash(git commit|git push|Bash(npm run build|dotnet build",
+        "matcher": "Bash(git commit)|Bash(git push)|Bash(npm run build)|Bash(dotnet build)",
         "hooks": [
           {
             "type": "command",
@@ -63,8 +62,7 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "Bash(git commit",
-        "enabled": false,
+        "matcher": "Bash(git commit)",
         "hooks": [
           {
             "type": "prompt",
@@ -74,6 +72,5 @@
         ]
       }
     ]
-  },
-  "claudeMd": ""
+  }
 }
