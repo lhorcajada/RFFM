@@ -21,6 +21,16 @@
   margin-bottom: 12px;
 }
 
+.title h1 {
+  background: var(
+    --rffm-title-gradient,
+    linear-gradient(135deg, #00e5ff 0%, #5fffff 50%, #ffc107 100%)
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
 .form {
   display: flex;
   flex-direction: column;
