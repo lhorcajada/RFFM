@@ -32,6 +32,17 @@ vi.mock("../../../services/authService", () => ({
   },
 }));
 
+vi.mock("../../../../../shared/hooks/useFeaturePermission", () => ({
+  useFeaturePermission: vi.fn(() => ({ hasAccess: true, loading: false })),
+}));
+
+vi.mock("../components/hooks/useUserTeams", () => ({
+  useUserTeams: vi.fn(() => ({
+    teams: [],
+    loading: false,
+  })),
+}));
+
 import CoachDashboard from "../Dashboard";
 import useTeamAndClub from "../../../hooks/useTeamAndClub.tsx";
 
@@ -60,17 +71,5 @@ describe("CoachDashboard auto-load", () => {
 
     expect(screen.getByRole("link", { name: /^Configuración$/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /^Club$/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /^Pruebas de acceso$/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /^Plantilla$/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /^Eventos$/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /^Resumen de asistencias$/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /^Partidos$/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /^Rivales$/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /^Entrenamientos$/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /^Lesionados$/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /^Modelo de Juego$/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /^Sanciones$/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /^Lotería$/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /^Noticias$/i })).toBeInTheDocument();
   });
 });

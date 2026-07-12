@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using RFFM.Api.Common;
 using RFFM.Api.Common.Behaviors;
 using RFFM.Api.Domain.Aggregates.UserClubs;
 using RFFM.Api.FeatureModules;
@@ -54,7 +55,7 @@ namespace RFFM.Api.Features.Coaches.Clubs.Commands
         public int RoleId { get; set; }
     }
 
-    public class CreateClubCommand : IRequest, IInvalidateCacheRequest
+    public class CreateClubCommand : IRequest, IInvalidateCacheRequest, IRequireFeaturePermission
     {
         public string CountryCode { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
@@ -62,6 +63,8 @@ namespace RFFM.Api.Features.Coaches.Clubs.Commands
         public IFormFile? Emblem { get; set; }
 
         public string PrefixCacheKey => ClubConstants.CachePrefix;
+        public string FeatureRoute => "/coach/clubs";
+        public string RequiredPermission => "Write";
     }
 
     public class CreateClubHandler : IRequestHandler<CreateClubCommand, Unit>

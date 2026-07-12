@@ -29,6 +29,17 @@ vi.mock("../../services/authService", () => ({
   },
 }));
 
+vi.mock("../../../../shared/hooks/useFeaturePermission", () => ({
+  useFeaturePermission: vi.fn(() => ({ hasAccess: true, loading: false })),
+}));
+
+vi.mock("../Dashboard/components/hooks/useUserTeams", () => ({
+  useUserTeams: vi.fn(() => ({
+    teams: [],
+    loading: false,
+  })),
+}));
+
 import CoachDashboard from "../Dashboard/Dashboard";
 import useTeamAndClub from "../../hooks/useTeamAndClub.tsx";
 import { useDashboardSeason } from "../Dashboard/hooks/useDashboardSeason";

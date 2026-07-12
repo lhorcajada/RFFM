@@ -337,6 +337,7 @@ namespace RFFM.Host.DependencyInjection
                         // ClubDirector
                         ("Dashboard",     "/coach/dashboard",     "ClubDirector", 1, true),
                         ("Roster",        "/coach/roster",        "ClubDirector", 1, true),
+                        ("ClubManagement", "/coach/clubs",        "ClubDirector", 3, true),
 
                         // Player
                         ("Dashboard",     "/coach/dashboard",     "Player",      1, false),

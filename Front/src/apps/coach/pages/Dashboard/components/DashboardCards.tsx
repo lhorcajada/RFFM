@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import Avatar from "@mui/material/Avatar";
 import Typography from "@mui/material/Typography";
 import DashboardCard from "../../../../../shared/components/ui/DashboardCard/DashboardCard";
+import { useFeaturePermission } from "../../../../../shared/hooks/useFeaturePermission";
 import styles from "../Dashboard.module.css";
 import configurationCoachService from "../../../services/configurationCoachService";
 import { useUserTeams } from "../hooks/useUserTeams";
@@ -24,6 +25,7 @@ export default function DashboardCards({
   const [preferredClubId, setPreferredClubId] = useState<string | null>(null);
   const [teamPhotos, setTeamPhotos] = useState<Record<string, string | null>>({});
   const { teams: userTeams, loading: loadingUserTeams } = useUserTeams();
+  const { hasAccess: canManageClub } = useFeaturePermission("/coach/clubs");
   
   const seasonParam = selectedSeason ? `?seasonId=${selectedSeason}` : "";
   const seasonSuffix = selectedSeason ? `&seasonId=${selectedSeason}` : "";
@@ -145,7 +147,7 @@ export default function DashboardCards({
                 to="/coach/settings"
               />
             )}
-            {!isPlayer && (
+            {canManageClub && (
               <DashboardCard
                 title="Club"
                 description="Gestión de club."

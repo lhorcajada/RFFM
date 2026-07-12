@@ -175,7 +175,14 @@ namespace RFFM.Api.DependencyInjection
                         Title = "No autorizado",
                         Detail = exception.Message
                     });
-                
+
+                setup.Map<RFFM.Api.Domain.ForbiddenAccessException>(exception =>
+                    new StatusCodeProblemDetails(StatusCodes.Status403Forbidden)
+                    {
+                        Title = "Acceso denegado",
+                        Detail = exception.Message
+                    });
+
                 setup.Map<SecurityTokenException>(exception =>
                     new StatusCodeProblemDetails(StatusCodes.Status401Unauthorized)
                     {

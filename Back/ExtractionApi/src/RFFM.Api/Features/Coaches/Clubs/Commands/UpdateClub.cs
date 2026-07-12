@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using RFFM.Api.Common;
 using RFFM.Api.Common.Behaviors;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
@@ -38,7 +39,8 @@ namespace RFFM.Api.Features.Coaches.Clubs.Commands
                 .WithTags(ClubConstants.ClubFeature)
                 .Produces(StatusCodes.Status200OK)
                 .Produces<ProblemDetails>(StatusCodes.Status409Conflict)
-                .DisableAntiforgery(); ;
+                .RequireAuthorization()
+                .DisableAntiforgery();
         }
     }
 
@@ -49,7 +51,7 @@ namespace RFFM.Api.Features.Coaches.Clubs.Commands
         public string CountryCode { get; set; }
     }
 
-    public class UpdateClubCommand : IRequest, IInvalidateCacheRequest
+    public class UpdateClubCommand : IRequest, IInvalidateCacheRequest, IRequireFeaturePermission
     {
         public string ClubId { get; set; } = string.Empty;
         public string ClubName { get; set; } = string.Empty;
@@ -57,6 +59,8 @@ namespace RFFM.Api.Features.Coaches.Clubs.Commands
         public IFormFile? Emblem { get; set; } // Archivo opcional para la imagen del club.
 
         public string PrefixCacheKey => ClubConstants.CachePrefix;
+        public string FeatureRoute => "/coach/clubs";
+        public string RequiredPermission => "Write";
     }
 
     public class UpdateClubHandler : IRequestHandler<UpdateClubCommand, Unit>

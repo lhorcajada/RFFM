@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using RFFM.Api.Common;
 using RFFM.Api.Common.Behaviors;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
@@ -29,14 +30,17 @@ namespace RFFM.Api.Features.Coaches.Clubs.Commands
                 .WithName(nameof(DeleteClub))
                 .WithTags(ClubConstants.ClubFeature)
                 .Produces(StatusCodes.Status200OK)
-                .Produces<ProblemDetails>(StatusCodes.Status409Conflict);
+                .Produces<ProblemDetails>(StatusCodes.Status409Conflict)
+                .RequireAuthorization();
         }
     }
 
-    public class DeleteClubCommand : IRequest, IInvalidateCacheRequest
+    public class DeleteClubCommand : IRequest, IInvalidateCacheRequest, IRequireFeaturePermission
     {
         public string ClubId { get; set; } = string.Empty;
         public string PrefixCacheKey => ClubConstants.CachePrefix;
+        public string FeatureRoute => "/coach/clubs";
+        public string RequiredPermission => "Write";
     }
 
     public class DeleteClubHandler : IRequestHandler<DeleteClubCommand, Unit>

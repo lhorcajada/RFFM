@@ -1,5 +1,6 @@
 using Mediator;
 using Microsoft.EntityFrameworkCore;
+using RFFM.Api.Domain;
 using RFFM.Api.Domain.Entities;
 using RFFM.Api.Domain.Services;
 using RFFM.Api.Infrastructure.Persistence;
@@ -51,7 +52,7 @@ namespace RFFM.Api.Common.Behaviors
                     cancellationToken);
 
             if (permission == null)
-                throw new UnauthorizedAccessException(
+                throw new ForbiddenAccessException(
                     $"El rol '{role}' no tiene acceso a la funcionalidad '{requirement.FeatureRoute}'.");
 
             bool allowed = requirement.RequiredPermission switch
@@ -65,7 +66,7 @@ namespace RFFM.Api.Common.Behaviors
             };
 
             if (!allowed)
-                throw new UnauthorizedAccessException(
+                throw new ForbiddenAccessException(
                     $"El rol '{role}' solo tiene acceso de tipo '{PermissionType.FromId(permission.PermissionTypeId).Name}' " +
                     $"a '{requirement.FeatureRoute}', pero se requiere '{requirement.RequiredPermission}'.");
 
