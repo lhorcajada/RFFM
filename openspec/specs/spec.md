@@ -333,5 +333,16 @@ dotnet run --project src/RFFM.Host
 
 ---
 
+## 9. Implemented Capabilities
+
+### Core Features
+- `unified-error-codes-i18n`: HTTP error codes unified under RFC 7807 ProblemDetails with i18n translations via `code` field
+- `role-based-registration-flows`: Multi-role registration with conditional validation (trial/club-code/team-code), pending-approval flow for coaches joining via club invitation, and atomic cross-DbContext transaction handling
+
+### Modified/Extended Capabilities
+- Invitaciones de club/equipo (`ValidateInvitationCode`, `ValidateTeamJoinCode`): Enhanced for registration flow; `Coach` now allowed for club-code path; team-code responses include player roster with uniqueness hints
+
+---
+
 ## Last Updated
-July 10, 2026
+July 12, 2026

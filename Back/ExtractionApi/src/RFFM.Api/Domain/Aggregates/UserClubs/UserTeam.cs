@@ -1,4 +1,5 @@
 using RFFM.Api.Domain.Resources;
+using RFFM.Api.Domain.Entities.TeamPlayers;
 
 namespace RFFM.Api.Domain.Aggregates.UserClubs
 {
@@ -9,9 +10,11 @@ namespace RFFM.Api.Domain.Aggregates.UserClubs
         public int RoleId { get; set; }
         public bool IsCreator { get; set; }
         public DateTime JoinedAt { get; set; }
+        public string? LinkedTeamPlayerId { get; private set; }
 
         public Team Team { get; set; } = null!;
         public Membership Membership { get; set; } = null!;
+        public TeamPlayer? TeamPlayer { get; set; }
 
         private UserTeam() { }
 
@@ -59,6 +62,19 @@ namespace RFFM.Api.Domain.Aggregates.UserClubs
         public void MarkAsJoined()
         {
             JoinedAt = DateTime.UtcNow;
+        }
+
+        public void LinkPlayer(string teamPlayerId)
+        {
+            if (RoleId != Membership.Player.Id && RoleId != Membership.FamilyPlayer.Id)
+                throw new DomainException("UserTeam",
+                    "Solo los roles Player o FamilyPlayer pueden vincularse a un jugador.",
+                    ErrorCodes.LinkedPlayerRequired);
+            if (string.IsNullOrWhiteSpace(teamPlayerId))
+                throw new DomainException("UserTeam",
+                    "El identificador del jugador es obligatorio.",
+                    ErrorCodes.LinkedPlayerRequired);
+            LinkedTeamPlayerId = teamPlayerId;
         }
     }
 }

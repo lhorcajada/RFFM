@@ -3,20 +3,30 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using RFFM.Api.Domain;
+using RFFM.Api.Domain.Aggregates.UserClubs;
+using RFFM.Api.Domain.Entities;
+using RFFM.Api.Features.Coaches.Auth;
 using RFFM.Api.Features.Coaches.Users.Commands;
-using RFFM.Api.Infrastructure.Persistence;
 using RFFM.Api.Infrastructure.Services.Email;
+using RFFM.Api.Tests.Fixtures;
 using Xunit;
 
 namespace RFFM.Api.Tests.UnitTests
 {
+    [Collection(PostgresCollection.Name)]
     public class CreateUserHandlerTests
     {
+        private readonly PostgresContainerFixture _fixture;
+
+        public CreateUserHandlerTests(PostgresContainerFixture fixture)
+        {
+            _fixture = fixture;
+        }
+
         [Fact]
         public async Task Handle_WithAlreadyRegisteredEmail_ReturnsBadRequestWithEmailIsAlreadyTakenCode_AndDoesNotCreateUser()
         {
@@ -31,9 +41,7 @@ namespace RFFM.Api.Tests.UnitTests
 
             var roleManagerMock = MockRoleManager();
             var configuration = new ConfigurationBuilder().Build();
-            var db = new AppDbContext(new DbContextOptionsBuilder<AppDbContext>()
-                .UseNpgsql("Host=localhost;Database=rffm_test;Username=test;Password=test")
-                .Options);
+            var db = _fixture.CreateDbContext();
             var emailService = new EmailService(configuration, null!);
             var logger = NullLogger<CreateUser.Handler>.Instance;
 
@@ -80,9 +88,7 @@ namespace RFFM.Api.Tests.UnitTests
 
             var roleManagerMock = MockRoleManager();
             var configuration = new ConfigurationBuilder().Build();
-            var db = new AppDbContext(new DbContextOptionsBuilder<AppDbContext>()
-                .UseNpgsql("Host=localhost;Database=rffm_test;Username=test;Password=test")
-                .Options);
+            var db = _fixture.CreateDbContext();
             var emailService = new EmailService(configuration, null!);
             var logger = NullLogger<CreateUser.Handler>.Instance;
 
@@ -139,9 +145,7 @@ namespace RFFM.Api.Tests.UnitTests
 
             var roleManagerMock = MockRoleManager();
             var configuration = new ConfigurationBuilder().Build();
-            var db = new AppDbContext(new DbContextOptionsBuilder<AppDbContext>()
-                .UseNpgsql("Host=localhost;Database=rffm_test;Username=test;Password=test")
-                .Options);
+            var db = _fixture.CreateDbContext();
             var emailService = new EmailService(configuration, null!);
             var logger = NullLogger<CreateUser.Handler>.Instance;
 
@@ -158,7 +162,8 @@ namespace RFFM.Api.Tests.UnitTests
                 Alias = "newcoach",
                 Email = "newcoach@rffm.test",
                 Password = "S3cure!Pass",
-                AccountType = "Coach"
+                AccountType = "Coach",
+                TrialAccepted = true  // Required for Coach without code
             };
 
             // Act
@@ -180,9 +185,7 @@ namespace RFFM.Api.Tests.UnitTests
             var userManagerMock = MockUserManager();
             var roleManagerMock = MockRoleManager();
             var configuration = new ConfigurationBuilder().Build();
-            var db = new AppDbContext(new DbContextOptionsBuilder<AppDbContext>()
-                .UseNpgsql("Host=localhost;Database=rffm_test;Username=test;Password=test")
-                .Options);
+            var db = _fixture.CreateDbContext();
             var emailService = new EmailService(configuration, null!);
             var logger = NullLogger<CreateUser.Handler>.Instance;
 
@@ -199,7 +202,7 @@ namespace RFFM.Api.Tests.UnitTests
                 Alias = "newcoach",
                 Email = "someone@rffm.test",
                 Password = "S3cure!Pass",
-                AccountType = null
+                AccountType = null!  // Missing required field
             };
 
             // Act
@@ -215,6 +218,155 @@ namespace RFFM.Api.Tests.UnitTests
             userManagerMock.Verify(
                 m => m.CreateAsync(It.IsAny<IdentityUser>(), It.IsAny<string>()),
                 Times.Never);
+        }
+
+        [Fact]
+        public async Task Handle_ClubDirector_WithoutTrialAccepted_ReturnsBadRequestWithTrialAcceptanceRequired()
+        {
+            // Arrange
+            var userManagerMock = MockUserManager();
+            userManagerMock
+                .Setup(m => m.FindByNameAsync(It.IsAny<string>()))
+                .ReturnsAsync((IdentityUser?)null);
+            userManagerMock
+                .Setup(m => m.FindByEmailAsync(It.IsAny<string>()))
+                .ReturnsAsync((IdentityUser?)null);
+
+            var roleManagerMock = MockRoleManager();
+            var configuration = new ConfigurationBuilder().Build();
+            var db = _fixture.CreateDbContext();
+            var emailService = new EmailService(configuration, null!);
+            var logger = NullLogger<CreateUser.Handler>.Instance;
+
+            var handler = new CreateUser.Handler(
+                userManagerMock.Object,
+                roleManagerMock.Object,
+                emailService,
+                configuration,
+                db,
+                logger);
+
+            var command = new CreateUser.Command
+            {
+                Alias = "newdirector",
+                Email = "newdirector@rffm.test",
+                Password = "S3cure!Pass",
+                AccountType = "ClubDirector",
+                TrialAccepted = false
+            };
+
+            // Act
+            var result = await handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            var statusCodeResult = Assert.IsAssignableFrom<IStatusCodeHttpResult>(result);
+            Assert.Equal(StatusCodes.Status400BadRequest, statusCodeResult.StatusCode);
+
+            var valueResult = Assert.IsAssignableFrom<IValueHttpResult<ProblemDetails>>(result);
+            Assert.NotNull(valueResult.Value);
+            Assert.Equal(ErrorCodes.TrialAcceptanceRequired, valueResult.Value!.Extensions["code"]);
+        }
+
+        [Fact]
+        public async Task Handle_Coach_WithoutCodeAndWithoutTrialAccepted_ReturnsBadRequestWithTrialAcceptanceRequired()
+        {
+            // Arrange
+            var userManagerMock = MockUserManager();
+            userManagerMock
+                .Setup(m => m.FindByNameAsync(It.IsAny<string>()))
+                .ReturnsAsync((IdentityUser?)null);
+            userManagerMock
+                .Setup(m => m.FindByEmailAsync(It.IsAny<string>()))
+                .ReturnsAsync((IdentityUser?)null);
+
+            var roleManagerMock = MockRoleManager();
+            var configuration = new ConfigurationBuilder().Build();
+            var db = _fixture.CreateDbContext();
+            var emailService = new EmailService(configuration, null!);
+            var logger = NullLogger<CreateUser.Handler>.Instance;
+
+            var handler = new CreateUser.Handler(
+                userManagerMock.Object,
+                roleManagerMock.Object,
+                emailService,
+                configuration,
+                db,
+                logger);
+
+            var command = new CreateUser.Command
+            {
+                Alias = "newcoach2",
+                Email = "newcoach2@rffm.test",
+                Password = "S3cure!Pass",
+                AccountType = "Coach",
+                TrialAccepted = false
+            };
+
+            // Act
+            var result = await handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            var statusCodeResult = Assert.IsAssignableFrom<IStatusCodeHttpResult>(result);
+            Assert.Equal(StatusCodes.Status400BadRequest, statusCodeResult.StatusCode);
+
+            var valueResult = Assert.IsAssignableFrom<IValueHttpResult<ProblemDetails>>(result);
+            Assert.NotNull(valueResult.Value);
+            Assert.Equal(ErrorCodes.TrialAcceptanceRequired, valueResult.Value!.Extensions["code"]);
+        }
+
+        [Fact]
+        public async Task Handle_Fan_WithNoCodeOrTrial_CreatesActiveAccountWithFanRole()
+        {
+            // Arrange
+            var userManagerMock = MockUserManager();
+            userManagerMock
+                .Setup(m => m.FindByNameAsync(It.IsAny<string>()))
+                .ReturnsAsync((IdentityUser?)null);
+            userManagerMock
+                .Setup(m => m.FindByEmailAsync(It.IsAny<string>()))
+                .ReturnsAsync((IdentityUser?)null);
+            userManagerMock
+                .Setup(m => m.CreateAsync(It.IsAny<IdentityUser>(), It.IsAny<string>()))
+                .ReturnsAsync(IdentityResult.Success);
+            userManagerMock
+                .Setup(m => m.GetRolesAsync(It.IsAny<IdentityUser>()))
+                .ReturnsAsync(new List<string> { AppRoles.Fan.Name });
+
+            var roleManagerMock = MockRoleManager();
+            roleManagerMock
+                .Setup(m => m.RoleExistsAsync(It.IsAny<string>()))
+                .ReturnsAsync(true);
+
+            var configuration = new ConfigurationBuilder().Build();
+            var db = _fixture.CreateDbContext();
+            var emailService = new EmailService(configuration, null!);
+            var logger = NullLogger<CreateUser.Handler>.Instance;
+
+            var handler = new CreateUser.Handler(
+                userManagerMock.Object,
+                roleManagerMock.Object,
+                emailService,
+                configuration,
+                db,
+                logger);
+
+            var command = new CreateUser.Command
+            {
+                Alias = "newfan",
+                Email = "newfan@rffm.test",
+                Password = "S3cure!Pass",
+                AccountType = "Fan"
+            };
+
+            // Act
+            var result = await handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            var okResult = Assert.IsAssignableFrom<Ok<RegisterAccountResponse>>(result);
+            Assert.NotNull(okResult.Value);
+            Assert.Equal(RegistrationStatus.Active, okResult.Value.Status);
+            Assert.Null(okResult.Value.ClubJoinRequestId);
+            Assert.Contains(AppRoles.Fan.Name, okResult.Value.Roles);
         }
 
         private static Mock<UserManager<IdentityUser>> MockUserManager()

@@ -1,0 +1,30 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Solicitud de unión al club aprobada</title>
+    <style>
+      .btn {
+        background-color: #ffffff; /* contraste alto */
+        color: #1a73e8; /* color del texto en azul para contraste */
+        padding: 12px 20px;
+        text-decoration: none;
+        border-radius: 6px;
+        display: inline-block;
+        border: 2px solid #1a73e8;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+      .wrapper { font-family: Arial, sans-serif; text-align:center; padding:30px; }
+    </style>
+  </head>
+  <body>
+    <div class="wrapper">
+      <h1>¡Solicitud aprobada!</h1>
+      <p>Hola {{UserName}},</p>
+      <p>Tu solicitud para unirte a <strong>{{ClubName}}</strong> ha sido aprobada.</p>
+      <p>Ahora puedes iniciar sesión en Futbol Base con tu cuenta y acceder a {{ClubName}}.</p>
+      <p>¡Bienvenido al equipo!</p>
+    </div>
+  </body>
+</html>

@@ -20,6 +20,22 @@ namespace RFFM.Api.Domain
         public const string AccountTypeRequired = "AccountTypeRequired";
         public const string UserCreationFailed = "UserCreationFailed";
 
+        // Role-based registration (Features/Coaches/Users/Commands/CreateUser.cs, api/register;
+        // Features/Coaches/Invitation/...; Features/Coaches/ClubJoinRequests/...)
+        public const string TrialAcceptanceRequired = "TrialAcceptanceRequired";
+        public const string ClubInvitationCodeRequired = "ClubInvitationCodeRequired";
+        public const string ClubInvitationCodeInvalid = "ClubInvitationCodeInvalid";
+        public const string ClubInvitationCodeNotAllowedForRole = "ClubInvitationCodeNotAllowedForRole";
+        public const string TeamInvitationCodeRequired = "TeamInvitationCodeRequired";
+        public const string TeamInvitationCodeInvalid = "TeamInvitationCodeInvalid";
+        public const string TeamInvitationCodeNotAllowedForRole = "TeamInvitationCodeNotAllowedForRole";
+        public const string LinkedPlayerRequired = "LinkedPlayerRequired";
+        public const string LinkedPlayerNotInTeam = "LinkedPlayerNotInTeam";
+        public const string LinkedPlayerAlreadyClaimed = "LinkedPlayerAlreadyClaimed";
+        public const string ClubJoinRequestNotFound = "ClubJoinRequestNotFound";
+        public const string ClubJoinRequestAlreadyDecided = "ClubJoinRequestAlreadyDecided";
+        public const string ClubJoinRequestCancelForbidden = "ClubJoinRequestCancelForbidden";
+
         // Auth / TokenService (login) -- most codes here are already-established via CodeMessages,
         // listed here only for documentation purposes (values come from ValidationMessages.resx):
         // LoginEmptyUserOrPass, LoginUserNotRegistered, LoginEmailNotConfirmed, LoginErrorUserOrPassword.

@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, Link as RouterLink } from "react-router-dom";
 import MuiAlert from "@mui/material/Alert";
 import Snackbar from "@mui/material/Snackbar";
+import Badge from "@mui/material/Badge";
 import BaseLayout from "../../components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../components/ui/ContentLayout/ContentLayout";
 import Paper from "@mui/material/Paper";
@@ -23,8 +24,10 @@ import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import GroupAddIcon from "@mui/icons-material/GroupAdd";
 import styles from "./ScopeMembers.module.css";
 import { scopesApi } from "../../services/scopes/scopesApi";
+import { clubJoinRequestsApi } from "../../services/clubJoinRequests/clubJoinRequestsApi";
 import type {
   ScopeMember,
   MembershipKind,
@@ -91,6 +94,7 @@ export default function ScopeMembers(): JSX.Element {
   const [rotating, setRotating] = useState(false);
   const [removeTarget, setRemoveTarget] = useState<ScopeMember | null>(null);
   const [removing, setRemoving] = useState(false);
+  const [pendingJoinRequests, setPendingJoinRequests] = useState(0);
 
   const invalidScope = !scopeId;
 
@@ -104,12 +108,14 @@ export default function ScopeMembers(): JSX.Element {
     if (invalidScope) return;
     setLoading(true);
     try {
-      const [inv, list] = await Promise.all([
+      const [inv, list, pendingCount] = await Promise.all([
         scopesApi.getInvitation(scopeKind, scopeId),
         scopesApi.listScopeMembers(scopeKind === "club" ? { clubId: scopeId } : { teamId: scopeId }),
+        scopeKind === "club" ? clubJoinRequestsApi.getPendingCount(scopeId) : Promise.resolve(0),
       ]);
       setCode(inv.code);
       setMembers(list);
+      setPendingJoinRequests(pendingCount);
     } catch (err) {
       showSnack(problemMessage(err, "Error al cargar los miembros."), "error");
     } finally {
@@ -177,15 +183,34 @@ export default function ScopeMembers(): JSX.Element {
                 </Typography>
                 <span className={styles.codeValue}>{code || "—"}</span>
               </Box>
-              <Button
-                variant="contained"
-                color="primary"
-                startIcon={<RefreshIcon />}
-                onClick={() => setRotateOpen(true)}
-                disabled={loading}
-              >
-                Rotar código
-              </Button>
+              <Box sx={{ display: "flex", gap: 1 }}>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  startIcon={<RefreshIcon />}
+                  onClick={() => setRotateOpen(true)}
+                  disabled={loading}
+                >
+                  Rotar código
+                </Button>
+                {scopeKind === "club" && (
+                  <Badge
+                    badgeContent={pendingJoinRequests}
+                    color="error"
+                    invisible={pendingJoinRequests === 0}
+                  >
+                    <Button
+                      variant="outlined"
+                      color="primary"
+                      component={RouterLink}
+                      to={`/club-join-requests?clubId=${encodeURIComponent(scopeId)}`}
+                      startIcon={<GroupAddIcon />}
+                    >
+                      Solicitudes de entrenadores
+                    </Button>
+                  </Badge>
+                )}
+              </Box>
             </Paper>
 
             {loading ? (

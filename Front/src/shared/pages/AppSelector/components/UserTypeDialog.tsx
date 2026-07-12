@@ -11,23 +11,10 @@ import {
   Typography,
 } from "@mui/material";
 import React from "react";
+import type { UserType, UserTypeOption } from "../../../constants/userTypes";
+import { USER_TYPE_OPTIONS } from "../../../constants/userTypes";
 
-export type UserType =
-  | "Coach"
-  | "ClubDirector"
-  | "Player"
-  | "FamilyMember"
-  | "Fan"
-  | "ClubMember";
-
-const USER_TYPE_OPTIONS: { value: UserType; label: string }[] = [
-  { value: "ClubDirector", label: "Directivo de club" },
-  { value: "Coach", label: "Entrenador" },
-  { value: "Player", label: "Jugador" },
-  { value: "FamilyMember", label: "Familiar de jugador" },
-  { value: "Fan", label: "Seguidor" },
-  { value: "ClubMember", label: "Miembro de club" },
-];
+export type { UserType };
 
 interface UserTypeDialogProps {
   open: boolean;

@@ -26,6 +26,9 @@ const Error500 = lazy(
 const ScopeMembers = lazy(
   () => import("../../shared/pages/ScopeMembers/ScopeMembers")
 );
+const ClubJoinRequests = lazy(
+  () => import("../../shared/pages/ClubJoinRequests/ClubJoinRequests")
+);
 
 function LoadingFallback() {
   return (
@@ -160,6 +163,14 @@ export default function AppRouter() {
           element={
             <RequireAuth>
               <ScopeMembers />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/club-join-requests"
+          element={
+            <RequireAuth>
+              <ClubJoinRequests />
             </RequireAuth>
           }
         />

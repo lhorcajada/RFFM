@@ -24,6 +24,7 @@ namespace RFFM.Api.Infrastructure.Persistence
         public DbSet<Club> Clubs { get; set; }
         public DbSet<UserClub> UserClubs { get; set; }
         public DbSet<UserTeam> UserTeams { get; set; }
+        public DbSet<ClubJoinRequest> ClubJoinRequests { get; set; }
         public DbSet<Country> Countries { get; set; }
         public DbSet<Category> Categories { get; set; }
         public DbSet<League> Leagues { get; set; }
@@ -84,6 +85,9 @@ namespace RFFM.Api.Infrastructure.Persistence
         // Payment plans and subscriptions
         public DbSet<PaymentPlan> PaymentPlans { get; set; }
         public DbSet<Subscription> Subscriptions { get; set; }
+
+        // Club seat charges (billing)
+        public DbSet<ClubSeatCharge> ClubSeatCharges { get; set; }
 
         // RBAC — feature and page permissions
         public DbSet<FeaturePermission> FeaturePermissions { get; set; }

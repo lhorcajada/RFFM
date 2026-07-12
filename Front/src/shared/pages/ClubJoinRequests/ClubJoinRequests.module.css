@@ -1,0 +1,60 @@
+.loadingOverlay {
+  display: flex;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.emptyPaper {
+  padding: 2rem;
+  text-align: center;
+}
+
+.textMuted {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.tableWrap {
+  margin-top: 1rem;
+}
+
+.cardView {
+  display: none;
+}
+
+.card {
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.cardTitle {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cardSubtitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cardActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 599px) {
+  .tableView {
+    display: none;
+  }
+  .cardView {
+    display: block;
+    margin-top: 1rem;
+  }
+}

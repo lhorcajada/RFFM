@@ -28,12 +28,40 @@ export interface RegisterPayingAccountPayload {
   alias: string;
   email: string;
   password: string;
-  accountType: "Coach" | "Directive";
+  accountType: string;
+  trialAccepted?: boolean;
+  clubInvitationCode?: string;
+  teamInvitationCode?: string;
+  teamPlayerId?: string;
 }
 
 export interface ValidateCodePayload {
   code: string;
-  membershipKind: Exclude<MembershipKind, "Coach" | "Directive">;
+  membershipKind: string;
+}
+
+export interface TeamRosterPlayer {
+  teamPlayerId: string;
+  playerId: string;
+  name: string;
+  lastName: string | null;
+  urlPhoto: string | null;
+  dorsal: number | null;
+  alreadyLinked: boolean;
+}
+
+export interface PreviewClubCodeResponse {
+  clubId: string;
+  clubName: string;
+  membershipKind: MembershipKind;
+}
+
+export interface PreviewTeamCodeResponse {
+  teamId: string;
+  teamName: string;
+  clubId: string;
+  membershipKind: MembershipKind;
+  players: TeamRosterPlayer[];
 }
 
 export interface ValidateClubCodeResponse {
@@ -49,6 +77,7 @@ export interface ValidateTeamCodeResponse {
   clubId: string;
   membershipKind: MembershipKind;
   token?: string;
+  players?: TeamRosterPlayer[];
 }
 
 export interface ListScopeMembersParams {
@@ -71,10 +100,26 @@ export interface LeaveScopeResponse {
   leftScope: ActiveScope;
 }
 
+export type RegistrationStatus = "Active" | "PendingClubApproval";
+
 export interface RegisterPayingAccountResponse {
   userId: string;
   roles: string[];
-  subscription: { plan: string; status: string; endDate: string };
+  status: RegistrationStatus;
+  subscription: { plan: string; status: string; endDate: string } | null;
+  clubJoinRequestId: string | null;
+}
+
+export type ClubJoinRequestStatus = "Pending" | "Approved" | "Rejected" | "Cancelled";
+
+export interface ClubJoinRequestDto {
+  requestId: string;
+  alias: string;
+  email: string;
+  requestedAt: string;
+  status: ClubJoinRequestStatus;
+  decidedAt: string | null;
+  decidedByAlias: string | null;
 }
 
 export interface ProblemDetails {

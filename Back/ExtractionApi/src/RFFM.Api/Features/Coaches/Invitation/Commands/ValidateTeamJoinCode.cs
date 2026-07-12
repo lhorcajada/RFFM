@@ -72,6 +72,7 @@ namespace RFFM.Api.Features.Coaches.Invitation.Commands
         public string ClubId { get; set; } = string.Empty;
         public string MembershipKind { get; set; } = string.Empty;
         public string? Token { get; set; }
+        public TeamRosterPlayerDto[] Players { get; set; } = Array.Empty<TeamRosterPlayerDto>();
     }
 
     public class ValidateTeamInvitationHandler : IRequestHandler<ValidateTeamInvitationCommand, IResult>
@@ -102,32 +103,26 @@ namespace RFFM.Api.Features.Coaches.Invitation.Commands
         public async ValueTask<IResult> Handle(ValidateTeamInvitationCommand request, CancellationToken cancellationToken)
         {
             var membership = MembershipIdentityRoles.FromKey(request.MembershipKind);
-            if (membership is null
-                || membership.Key == Membership.Coach.Key
-                || membership.Key == Membership.Directive.Key
-                || membership.Key == Membership.ClubMember.Key)
+            if (membership is null)
             {
                 return Results.BadRequest(new ProblemDetails
                 {
                     Title = "Membership no permitida",
-                    Detail = "El rol indicado no aplica a un equipo. Use Player, FamilyPlayer o Follower."
+                    Detail = "Rol de membership desconocido."
                 });
             }
 
-            var normalizedCode = (request.Code ?? string.Empty).Trim().ToUpperInvariant();
-            var team = await _db.Teams
-                .FirstOrDefaultAsync(t => t.JoinCode != null
-                                           && t.JoinCode.ToUpper() == normalizedCode,
-                    cancellationToken);
-
-            if (team is null)
+            var validation = await TeamInvitationValidation.Validate(_db, request.Code, membership, cancellationToken);
+            if (!validation.Success)
             {
-                return Results.NotFound(new ProblemDetails
-                {
-                    Title = "Código inexistente",
-                    Detail = "El código de invitación no corresponde a ningún equipo."
-                });
+                return Results.Problem(
+                    statusCode: validation.StatusCode,
+                    title: validation.Title,
+                    detail: validation.Detail,
+                    extensions: new Dictionary<string, object?> { ["code"] = validation.ErrorCode });
             }
+
+            var team = validation.Team!;
 
             var alreadyInTeam = await _db.UserTeams
                 .AsNoTracking()
@@ -173,13 +168,26 @@ namespace RFFM.Api.Features.Coaches.Invitation.Commands
 
             var jwt = await TryGenerateJwtAsync(request.UserId, cancellationToken);
 
+            var rosterMembershipId = membership.Key == Membership.Player.Key ? Membership.Player.Id : (int?)null;
+            var players = await global::RFFM.Api.Features.Coaches.Players.Queries.TeamRosterQueries.GetRoster(_db, team.Id, rosterMembershipId, cancellationToken);
+
             return Results.Ok(new ValidateTeamInvitationResponse
             {
                 TeamId = team.Id,
                 TeamName = team.Name,
                 ClubId = team.ClubId,
                 MembershipKind = membership.Key,
-                Token = jwt
+                Token = jwt,
+                Players = players.Select(p => new TeamRosterPlayerDto
+                {
+                    TeamPlayerId = p.TeamPlayerId,
+                    PlayerId = p.PlayerId,
+                    Name = p.Name,
+                    LastName = p.LastName,
+                    UrlPhoto = p.UrlPhoto,
+                    Dorsal = p.Dorsal,
+                    AlreadyLinked = p.AlreadyLinked
+                }).ToArray()
             });
         }
 

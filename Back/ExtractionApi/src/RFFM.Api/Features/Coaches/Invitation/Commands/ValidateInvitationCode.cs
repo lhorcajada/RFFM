@@ -101,31 +101,26 @@ namespace RFFM.Api.Features.Coaches.Invitation.Commands
         public async ValueTask<IResult> Handle(ValidateClubInvitationCommand request, CancellationToken cancellationToken)
         {
             var membership = MembershipIdentityRoles.FromKey(request.MembershipKind);
-            if (membership is null
-                || membership.Key == Membership.Coach.Key
-                || membership.Key == Membership.Directive.Key)
+            if (membership is null)
             {
                 return Results.BadRequest(new ProblemDetails
                 {
                     Title = "Membership no permitida",
-                    Detail = "Los roles Coach y Directive requieren cuenta pagadora, no código de invitación."
+                    Detail = "Rol de membership desconocido."
                 });
             }
 
-            var normalizedCode = (request.Code ?? string.Empty).Trim().ToUpperInvariant();
-            var club = await _db.Clubs
-                .FirstOrDefaultAsync(c => c.InvitationCode != null
-                                          && c.InvitationCode.ToUpper() == normalizedCode,
-                    cancellationToken);
-
-            if (club is null)
+            var validation = await ClubInvitationValidation.Validate(_db, request.Code, membership, cancellationToken);
+            if (!validation.Success)
             {
-                return Results.NotFound(new ProblemDetails
-                {
-                    Title = "Código inexistente",
-                    Detail = "El código de invitación no corresponde a ningún club."
-                });
+                return Results.Problem(
+                    statusCode: validation.StatusCode,
+                    title: validation.Title,
+                    detail: validation.Detail,
+                    extensions: new Dictionary<string, object?> { ["code"] = validation.ErrorCode });
             }
+
+            var club = validation.Club!;
 
             var alreadyInClub = await _db.UserClubs
                 .AsNoTracking()

@@ -1,4 +1,4 @@
-﻿using FluentValidation;
+using FluentValidation;
 using Mediator;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -10,9 +10,11 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using RFFM.Api.Common.Behaviors;
 using RFFM.Api.Domain;
+using RFFM.Api.Domain.Aggregates.UserClubs;
 using RFFM.Api.Domain.Entities;
 using RFFM.Api.FeatureModules;
-using RFFM.Api.Features.Coaches.Auth;
+using RFFM.Api.Features.Coaches.Invitation;
+using RFFM.Api.Features.Coaches.Players.Queries;
 using RFFM.Api.Infrastructure.Persistence;
 using RFFM.Api.Infrastructure.Services.Email;
 using System.Security.Claims;
@@ -27,8 +29,9 @@ namespace RFFM.Api.Features.Coaches.Users.Commands
                     => await mediator.Send(command, cancellationToken))
                 .WithName(nameof(CreateUser))
                 .WithTags(UserConstants.UserFeature)
-                .Produces<RegisterPayingAccountResponse>(StatusCodes.Status200OK)
+                .Produces<RegisterAccountResponse>(StatusCodes.Status200OK)
                 .Produces<ProblemDetails>(StatusCodes.Status400BadRequest)
+                .Produces<ProblemDetails>(StatusCodes.Status404NotFound)
                 .Produces<ProblemDetails>(StatusCodes.Status409Conflict)
                 .AllowAnonymous();
         }
@@ -38,7 +41,13 @@ namespace RFFM.Api.Features.Coaches.Users.Commands
             public string Alias { get; set; } = null!;
             public string Email { get; set; } = null!;
             public string Password { get; set; } = null!;
-            public string? AccountType { get; set; }
+            public string AccountType { get; set; } = null!;
+
+            public bool? TrialAccepted { get; set; }
+            public string? ClubInvitationCode { get; set; }
+            public string? TeamInvitationCode { get; set; }
+            public string? TeamPlayerId { get; set; }
+
             public string PrefixCacheKey => UserConstants.CachePrefix;
         }
 
@@ -69,22 +78,19 @@ namespace RFFM.Api.Features.Coaches.Users.Commands
             public async ValueTask<IResult> Handle(Command request, CancellationToken cancellationToken)
             {
                 var accountType = (request.AccountType ?? string.Empty).Trim();
-                if (!string.Equals(accountType, AppRoles.Coach.Name, StringComparison.OrdinalIgnoreCase)
-                    && !string.Equals(accountType, AppRoles.ClubDirector.Name, StringComparison.OrdinalIgnoreCase)
-                    && !string.Equals(accountType, "Directive", StringComparison.OrdinalIgnoreCase))
+
+                // Validate accountType early
+                if (string.IsNullOrEmpty(accountType) || !AppRoles.List().Any(r => string.Equals(r.Name, accountType, StringComparison.OrdinalIgnoreCase)))
                 {
                     return Results.BadRequest(new ProblemDetails
                     {
                         Title = "Tipo de cuenta requerido",
-                        Detail = "Debe seleccionar accountType 'Coach' o 'Directive'.",
+                        Detail = "Debe seleccionar un tipo de cuenta válido.",
                         Extensions = { ["code"] = ErrorCodes.AccountTypeRequired }
                     });
                 }
 
-                var identityRoleName = string.Equals(accountType, AppRoles.Coach.Name, StringComparison.OrdinalIgnoreCase)
-                    ? AppRoles.Coach.Name
-                    : AppRoles.ClubDirector.Name;
-
+                // 1. Duplicate alias/email checks (UNCHANGED from today — keep these first).
                 var existsAlias = await _userManager.FindByNameAsync(request.Alias);
                 if (existsAlias != null)
                 {
@@ -108,54 +114,266 @@ namespace RFFM.Api.Features.Coaches.Users.Commands
                     });
                 }
 
-                var user = new IdentityUser
-                {
-                    Email = request.Email,
-                    UserName = request.Alias
-                };
+                // 2. Pre-checks BEFORE any Identity/DB write — resolve club/team/roster
+                //    and fail fast with the right status code.
+                Club? club = null;
+                Team? team = null;
+                TeamRosterQueries.RosterPlayer[]? roster = null;
+                Membership? membership = null;
 
-                var result = await _userManager.CreateAsync(user, request.Password);
-                if (!result.Succeeded)
+                if (IsClubDirector(accountType))
+                {
+                    if (request.TrialAccepted != true) return TrialRequiredResult();
+                    membership = null; // no Membership row for a club director (not a club/team member concept)
+                }
+                else if (IsCoach(accountType))
+                {
+                    if (string.IsNullOrWhiteSpace(request.ClubInvitationCode))
+                    {
+                        if (request.TrialAccepted != true) return TrialRequiredResult();
+                    }
+                    else
+                    {
+                        var validation = await ClubInvitationValidation.Validate(_db, request.ClubInvitationCode, Membership.Coach, cancellationToken);
+                        if (!validation.Success) return ProblemFrom(validation.StatusCode, validation.Title, validation.Detail, validation.ErrorCode);
+                        club = validation.Club; membership = Membership.Coach;
+                    }
+                }
+                else if (IsClubMember(accountType))
+                {
+                    var validation = await ClubInvitationValidation.Validate(_db, request.ClubInvitationCode, Membership.ClubMember, cancellationToken);
+                    if (!validation.Success) return ProblemFrom(validation.StatusCode, validation.Title, validation.Detail, validation.ErrorCode);
+                    club = validation.Club; membership = Membership.ClubMember;
+                }
+                else if (IsPlayer(accountType) || IsFamilyMember(accountType))
+                {
+                    var wantedMembership = IsPlayer(accountType) ? Membership.Player : Membership.FamilyPlayer;
+                    var validation = await TeamInvitationValidation.Validate(_db, request.TeamInvitationCode, wantedMembership, cancellationToken);
+                    if (!validation.Success) return ProblemFrom(validation.StatusCode, validation.Title, validation.Detail, validation.ErrorCode);
+                    team = validation.Team; membership = wantedMembership;
+
+                    var rosterMembershipId = wantedMembership.Key == Membership.Player.Key ? Membership.Player.Id : (int?)null;
+                    roster = await TeamRosterQueries.GetRoster(_db, team!.Id, rosterMembershipId, cancellationToken);
+                    var chosen = roster.FirstOrDefault(p => p.TeamPlayerId == request.TeamPlayerId);
+                    if (chosen is null)
+                    {
+                        return Results.BadRequest(new ProblemDetails
+                        {
+                            Title = "Jugador no pertenece al equipo",
+                            Detail = "El jugador seleccionado no está en el roster del equipo.",
+                            Extensions = { ["code"] = ErrorCodes.LinkedPlayerNotInTeam }
+                        });
+                    }
+                    if (wantedMembership.Key == Membership.Player.Key && chosen.AlreadyLinked)
+                    {
+                        return Results.Conflict(new ProblemDetails
+                        {
+                            Status = StatusCodes.Status409Conflict,
+                            Title = "Jugador ya vinculado",
+                            Detail = "Este jugador ya tiene una cuenta de tipo Player vinculada.",
+                            Extensions = { ["code"] = ErrorCodes.LinkedPlayerAlreadyClaimed }
+                        });
+                    }
+                }
+                // Fan: no pre-checks.
+
+                // 3. Create the Identity user, then persist the club/team/join-request row.
+                //
+                //    NOTE on atomicity: Identity (IdentityUser/roles) lives in a separate
+                //    DbContext/connection (IdentityDbContext) from the club/team rows
+                //    (AppDbContext). Npgsql does not support promoting a
+                //    System.Transactions.TransactionScope spanning two independent connections
+                //    into a real distributed (two-phase-commit) transaction, and — independently
+                //    of that — an ambient/explicit TransactionScope is fundamentally incompatible
+                //    with AppDbContext's EnableRetryOnFailure execution strategy (EF Core throws
+                //    "The configured execution strategy ... does not support user-initiated
+                //    transactions" as soon as any command runs under one). The previous
+                //    TransactionScope here therefore never gave genuine cross-DbContext atomicity
+                //    (see design.md's own "Cross-DbContext transaction" risk note) and, once
+                //    retry-on-failure was enabled the same way in production and in tests, made
+                //    every registration fail with HTTP 500.
+                //
+                //    The fix: use EF Core's execution-strategy-aware transaction API
+                //    (CreateExecutionStrategy + BeginTransactionAsync/CommitAsync) to keep the
+                //    AppDbContext writes (club/team/join-request row + SaveChangesAsync) atomic
+                //    and retry-safe on their own. Identity role assignment stays a best-effort,
+                //    swallow-and-log step outside that transaction (as it already was for 3 of 4
+                //    branches via EnsureIdentityRoleAsync) since it was never truly part of the
+                //    same atomic unit to begin with.
+                var user = new IdentityUser { Email = request.Email, UserName = request.Alias };
+                var createResult = await _userManager.CreateAsync(user, request.Password);
+                if (!createResult.Succeeded)
                 {
                     return Results.BadRequest(new ProblemDetails
                     {
                         Title = "No se pudo crear el usuario",
-                        Detail = string.Join("; ", result.Errors.Select(e => e.Description)),
+                        Detail = string.Join("; ", createResult.Errors.Select(e => e.Description)),
                         Extensions = { ["code"] = ErrorCodes.UserCreationFailed }
                     });
                 }
 
+                var identityRoleName = accountType; // AppRoles names match AccountType strings 1:1 (validated above)
+                ClubJoinRequest? pendingJoinRequest = null;
+
+                var strategy = _db.Database.CreateExecutionStrategy();
+                await strategy.ExecuteAsync(async () =>
+                {
+                    // Retries re-run this whole delegate, so make sure it starts from a clean
+                    // change-tracker state each attempt instead of re-adding entities tracked by
+                    // a previous (failed) attempt.
+                    _db.ChangeTracker.Clear();
+
+                    await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
+
+                    if (IsCoach(accountType) && !string.IsNullOrWhiteSpace(request.ClubInvitationCode))
+                    {
+                        // Pending path: create ClubJoinRequest, NO UserClub, NO Identity role yet.
+                        pendingJoinRequest = ClubJoinRequest.Create(user.Id, club!.Id, Membership.Coach.Id);
+                        _db.ClubJoinRequests.Add(pendingJoinRequest);
+                    }
+                    else if (club is not null && membership is not null) // ClubMember
+                    {
+                        _db.UserClubs.Add(new UserClub(user.Id, club.Id, membership.Id));
+                    }
+                    else if (team is not null && membership is not null) // Player/FamilyMember
+                    {
+                        var userTeam = new UserTeam(user.Id, team.Id, membership.Id);
+                        userTeam.LinkPlayer(request.TeamPlayerId!);
+                        _db.UserTeams.Add(userTeam);
+                    }
+
+                    await _db.SaveChangesAsync(cancellationToken);
+                    await transaction.CommitAsync(cancellationToken);
+                });
+
+                if (pendingJoinRequest is null) // ClubDirector, ClubMember, Player/FamilyMember, Coach-no-code, Fan
+                {
+                    await EnsureIdentityRoleAsync(user, identityRoleName);
+                }
+
+                // 4. Best-effort, non-security side effects OUTSIDE the transaction (unchanged pattern).
+                Subscription? subscription = null;
+                var grantsTrial = IsClubDirector(accountType) || (IsCoach(accountType) && string.IsNullOrWhiteSpace(request.ClubInvitationCode));
+                if (grantsTrial)
+                {
+                    subscription = await CreateFreeTrialSubscriptionAsync(user.Id, cancellationToken);
+                }
+
+                await SendConfirmationEmailAsync(user, cancellationToken); // unchanged admin-moderation email
+
+                if (pendingJoinRequest is not null)
+                {
+                    await NotifyClubCreatorOfPendingRequestAsync(pendingJoinRequest, cancellationToken); // best-effort
+                }
+
+                var roles = await _userManager.GetRolesAsync(user);
+
+                return Results.Ok(new RegisterAccountResponse
+                {
+                    UserId = user.Id,
+                    Roles = roles.ToArray(),
+                    Status = pendingJoinRequest is not null ? RegistrationStatus.PendingClubApproval : RegistrationStatus.Active,
+                    Subscription = subscription is null ? null : new SubscriptionDto
+                    {
+                        Plan = "Free",
+                        Status = subscription.Status.ToString(),
+                        EndDate = subscription.EndDate
+                    },
+                    ClubJoinRequestId = pendingJoinRequest?.Id
+                });
+            }
+
+            private IResult TrialRequiredResult()
+            {
+                return Results.BadRequest(new ProblemDetails
+                {
+                    Title = "Aceptación de prueba requerida",
+                    Detail = "Debe aceptar la prueba de 7 días para continuar.",
+                    Extensions = { ["code"] = ErrorCodes.TrialAcceptanceRequired }
+                });
+            }
+
+            private IResult ProblemFrom(int? statusCode, string? title, string? detail, string? code)
+            {
+                return (statusCode ?? 400) switch
+                {
+                    404 => Results.NotFound(new ProblemDetails
+                    {
+                        Status = 404,
+                        Title = title,
+                        Detail = detail,
+                        Extensions = { ["code"] = code }
+                    }),
+                    409 => Results.Conflict(new ProblemDetails
+                    {
+                        Status = StatusCodes.Status409Conflict,
+                        Title = title,
+                        Detail = detail,
+                        Extensions = { ["code"] = code }
+                    }),
+                    _ => Results.BadRequest(new ProblemDetails
+                    {
+                        Title = title,
+                        Detail = detail,
+                        Extensions = { ["code"] = code }
+                    })
+                };
+            }
+
+            private async Task EnsureIdentityRoleAsync(IdentityUser user, string roleName)
+            {
                 try
                 {
-                    if (!await _roleManager.RoleExistsAsync(identityRoleName))
+                    if (!await _roleManager.RoleExistsAsync(roleName))
                     {
-                        await _roleManager.CreateAsync(new IdentityRole(identityRoleName));
+                        await _roleManager.CreateAsync(new IdentityRole(roleName));
                     }
-                    await _userManager.AddToRoleAsync(user, identityRoleName);
+                    await _userManager.AddToRoleAsync(user, roleName);
                 }
                 catch (Exception ex)
                 {
                     _logger.LogWarning(ex, "CreateUser: could not assign Identity role {Role} to user {UserId}",
-                        identityRoleName, user.Id);
+                        roleName, user.Id);
                 }
+            }
 
-                var subscription = await CreateFreeTrialSubscriptionAsync(user.Id, cancellationToken);
-
-                await SendConfirmationEmailAsync(user, cancellationToken);
-
-                var roles = await _userManager.GetRolesAsync(user);
-
-                return Results.Ok(new RegisterPayingAccountResponse
+            private async Task NotifyClubCreatorOfPendingRequestAsync(ClubJoinRequest joinRequest, CancellationToken cancellationToken)
+            {
+                try
                 {
-                    UserId = user.Id,
-                    Roles = roles.ToArray(),
-                    Subscription = new SubscriptionDto
+                    var creator = await _db.UserClubs
+                        .AsNoTracking()
+                        .Where(uc => uc.ClubId == joinRequest.ClubId && uc.IsCreator)
+                        .Select(uc => uc.ApplicationUserId)
+                        .FirstOrDefaultAsync(cancellationToken);
+
+                    if (string.IsNullOrEmpty(creator))
+                        return;
+
+                    var creatorUser = await _userManager.FindByIdAsync(creator);
+                    if (creatorUser?.Email == null)
+                        return;
+
+                    var applicant = await _userManager.FindByIdAsync(joinRequest.ApplicationUserId);
+                    var club = await _db.Clubs.AsNoTracking().FirstOrDefaultAsync(c => c.Id == joinRequest.ClubId, cancellationToken);
+
+                    if (applicant == null || club == null)
+                        return;
+
+                    var placeholders = new Dictionary<string, string>
                     {
-                        Plan = "Free",
-                        Status = subscription?.Status.ToString() ?? SubscriptionStatus.Active.ToString(),
-                        EndDate = subscription?.EndDate ?? DateTime.UtcNow.AddDays(7)
-                    }
-                });
+                        ["DirectorName"] = creatorUser.UserName ?? string.Empty,
+                        ["ApplicantAlias"] = applicant.UserName ?? string.Empty,
+                        ["ClubName"] = club.Name
+                    };
+
+                    var subject = "Nueva solicitud de entrenador - Futbol Base";
+                    await _emailService.SendEmailAsync(creatorUser.Email, subject, "ClubJoinRequestReceivedTemplate", placeholders);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "CreateUser: could not send club join request notification for request {RequestId}", joinRequest.Id);
+                }
             }
 
             private async Task<Subscription?> CreateFreeTrialSubscriptionAsync(string userId, CancellationToken cancellationToken)
@@ -233,6 +451,12 @@ namespace RFFM.Api.Features.Coaches.Users.Commands
                     _logger.LogWarning(ex, "CreateUser: could not send confirmation email for user {UserId}", user.Id);
                 }
             }
+
+            private static bool IsClubDirector(string? t) => string.Equals(t, AppRoles.ClubDirector.Name, StringComparison.OrdinalIgnoreCase);
+            private static bool IsCoach(string? t) => string.Equals(t, AppRoles.Coach.Name, StringComparison.OrdinalIgnoreCase);
+            private static bool IsClubMember(string? t) => string.Equals(t, AppRoles.ClubMember.Name, StringComparison.OrdinalIgnoreCase);
+            private static bool IsPlayer(string? t) => string.Equals(t, AppRoles.Player.Name, StringComparison.OrdinalIgnoreCase);
+            private static bool IsFamilyMember(string? t) => string.Equals(t, AppRoles.FamilyMember.Name, StringComparison.OrdinalIgnoreCase);
         }
 
         public class Validator : AbstractValidator<Command>
@@ -242,15 +466,55 @@ namespace RFFM.Api.Features.Coaches.Users.Commands
                 RuleFor(r => r.Alias).NotEmpty();
                 RuleFor(r => r.Email).NotEmpty().EmailAddress();
                 RuleFor(r => r.Password).NotEmpty();
+                RuleFor(r => r.AccountType).NotEmpty()
+                    .Must(BeAKnownSelfRegisterableRole)
+                    .WithMessage("Tipo de cuenta desconocido o no auto-registrable.");
+
+                When(r => IsClubDirector(r.AccountType) ||
+                          (IsCoach(r.AccountType) && string.IsNullOrWhiteSpace(r.ClubInvitationCode)), () =>
+                {
+                    RuleFor(r => r.TrialAccepted).Equal(true)
+                        .WithMessage("Debes aceptar la prueba de 7 días.");
+                });
+
+                When(r => (IsCoach(r.AccountType) && !string.IsNullOrWhiteSpace(r.ClubInvitationCode)) ||
+                          IsClubMember(r.AccountType), () =>
+                {
+                    RuleFor(r => r.ClubInvitationCode).NotEmpty();
+                });
+
+                When(r => IsPlayer(r.AccountType) || IsFamilyMember(r.AccountType), () =>
+                {
+                    RuleFor(r => r.TeamInvitationCode).NotEmpty();
+                    RuleFor(r => r.TeamPlayerId).NotEmpty();
+                });
             }
+
+            private static bool BeAKnownSelfRegisterableRole(string? accountType)
+            {
+                if (string.IsNullOrWhiteSpace(accountType)) return false;
+                if (string.Equals(accountType, AppRoles.Administrator.Name, StringComparison.OrdinalIgnoreCase)) return false;
+                if (string.Equals(accountType, AppRoles.Federation.Name, StringComparison.OrdinalIgnoreCase)) return false;
+                return AppRoles.List().Any(r => string.Equals(r.Name, accountType, StringComparison.OrdinalIgnoreCase));
+            }
+
+            private static bool IsClubDirector(string? t) => string.Equals(t, AppRoles.ClubDirector.Name, StringComparison.OrdinalIgnoreCase);
+            private static bool IsCoach(string? t) => string.Equals(t, AppRoles.Coach.Name, StringComparison.OrdinalIgnoreCase);
+            private static bool IsClubMember(string? t) => string.Equals(t, AppRoles.ClubMember.Name, StringComparison.OrdinalIgnoreCase);
+            private static bool IsPlayer(string? t) => string.Equals(t, AppRoles.Player.Name, StringComparison.OrdinalIgnoreCase);
+            private static bool IsFamilyMember(string? t) => string.Equals(t, AppRoles.FamilyMember.Name, StringComparison.OrdinalIgnoreCase);
         }
     }
 
-    public class RegisterPayingAccountResponse
+    public enum RegistrationStatus { Active, PendingClubApproval }
+
+    public class RegisterAccountResponse
     {
         public string UserId { get; set; } = string.Empty;
         public string[] Roles { get; set; } = Array.Empty<string>();
-        public SubscriptionDto Subscription { get; set; } = new();
+        public RegistrationStatus Status { get; set; }
+        public SubscriptionDto? Subscription { get; set; }
+        public string? ClubJoinRequestId { get; set; }
     }
 
     public class SubscriptionDto

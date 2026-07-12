@@ -8,7 +8,7 @@ import ContentLayout from "../../components/ui/ContentLayout/ContentLayout";
 import { coachAuthService } from "../../../apps/coach/services/authService";
 import { useTeamAppEntry } from "./hooks/useTeamAppEntry";
 import AppCard from "./components/AppCard";
-import CoachTrialDialog from "./components/CoachTrialDialog";
+import TrialConfirmDialog from "../../components/TrialConfirmDialog";
 import UserTypeDialog from "./components/UserTypeDialog";
 import ClubLicenseDialog from "./components/ClubLicenseDialog";
 import CodeInputDialog from "./components/CodeInputDialog";
@@ -141,7 +141,7 @@ export default function AppSelector() {
                 onClose={closeUserTypeDialog}
                 onSelect={handleUserTypeSelect}
               />
-              <CoachTrialDialog
+              <TrialConfirmDialog
                 open={coachTrialOpen}
                 isProcessing={coachTrialProcessing}
                 onClose={closeCoachTrial}

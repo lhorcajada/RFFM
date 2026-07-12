@@ -27,6 +27,9 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.UserClubs
             builder.Property(ut => ut.JoinedAt)
                 .IsRequired();
 
+            builder.Property(ut => ut.LinkedTeamPlayerId)
+                .IsRequired(false);
+
             builder.HasOne(ut => ut.Team)
                 .WithMany()
                 .HasForeignKey(ut => ut.TeamId);
@@ -34,6 +37,20 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.UserClubs
             builder.HasOne(ut => ut.Membership)
                 .WithMany()
                 .HasForeignKey(ut => ut.RoleId);
+
+            builder.HasOne(ut => ut.TeamPlayer)
+                .WithMany()
+                .HasForeignKey(ut => ut.LinkedTeamPlayerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Only one Membership.Player-kind account may claim a given TeamPlayer;
+            // FamilyPlayer rows are excluded from this constraint (design.md §4) —
+            // replace 4 below with the REAL Membership.Player.Id constant value if it
+            // differs (Membership.Player.Id == 4 per Domain/Aggregates/UserClubs/Membership.cs
+            // at the time this script was written — double check before generating SQL).
+            builder.HasIndex(ut => ut.LinkedTeamPlayerId)
+                .IsUnique()
+                .HasFilter("\"LinkedTeamPlayerId\" IS NOT NULL AND \"RoleId\" = 4");
 
             builder.HasIndex(ut => new { ut.ApplicationUserId, ut.TeamId });
             builder.HasIndex(ut => ut.ApplicationUserId);
