@@ -19,9 +19,12 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import useMediaQuery from "@mui/material/useMediaQuery";
+import { useTheme } from "@mui/material/styles";
 import seasonService, { Season } from "../../../../../services/seasonService";
 import { mapApiErrorToMessage } from "../../../../../../../shared/utils/errorMessages";
 import SeasonEditorForm, { type SeasonFormState } from "../SeasonEditorForm/SeasonEditorForm";
+import SettingsRowCard from "../../shared/SettingsRowCard/SettingsRowCard";
 import styles from "./SeasonManager.module.css";
 
 interface SeasonManagerProps {
@@ -64,6 +67,8 @@ function toIsoDate(value: string) {
 }
 
 export default function SeasonManager({ open, onClose, onChanged, clubId }: SeasonManagerProps) {
+  const theme = useTheme();
+  const isCompact = useMediaQuery(theme.breakpoints.down("lg"));
   const [seasons, setSeasons] = useState<Season[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -224,6 +229,54 @@ export default function SeasonManager({ open, onClose, onChanged, clubId }: Seas
               ) : seasons.length === 0 ? (
                 <div className={styles.emptyState}>
                   Todavía no hay temporadas creadas.
+                </div>
+              ) : isCompact ? (
+                <div className={styles.cardList}>
+                  {seasons.map((season) => {
+                    const isActive = season.active ?? season.isActive ?? false;
+                    return (
+                      <SettingsRowCard
+                        key={season.id}
+                        title={season.name ?? season.id}
+                        data-testid={`season-row-card-${season.id}`}
+                        fields={[
+                          { label: "Inicio", value: toInputDate(season.startDate) || "-" },
+                          { label: "Fin", value: toInputDate(season.endDate) || "-" },
+                          {
+                            label: "Estado",
+                            value: (
+                              <Chip
+                                size="small"
+                                label={isActive ? "Activa" : "Inactiva"}
+                                color={isActive ? "success" : "default"}
+                                variant={isActive ? "filled" : "outlined"}
+                                className={styles.statusChip}
+                              />
+                            ),
+                          },
+                        ]}
+                        actions={
+                          <>
+                            <IconButton
+                              size="small"
+                              onClick={() => handleSelectSeason(season)}
+                              aria-label="Editar temporada"
+                            >
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                            <IconButton
+                              size="small"
+                              color="error"
+                              onClick={() => setDeleteTarget(season)}
+                              aria-label="Eliminar temporada"
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </>
+                        }
+                      />
+                    );
+                  })}
                 </div>
               ) : (
                 <Table size="small">

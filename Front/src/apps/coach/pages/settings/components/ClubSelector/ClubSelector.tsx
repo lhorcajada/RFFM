@@ -23,10 +23,13 @@ import {
   IconButton,
 } from "@mui/material";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import useMediaQuery from "@mui/material/useMediaQuery";
+import { useTheme } from "@mui/material/styles";
 import clubService from "../../../../services/clubService";
 import countryService from "../../../../services/countryService";
 import MembershipRole from "../../../../types/MembershipRole";
 import FileImagePicker from "../../../../../../shared/components/ui/FileImagePicker/FileImagePicker";
+import SettingsRowCard from "../shared/SettingsRowCard/SettingsRowCard";
 import styles from "./ClubSelector.module.css";
 
 interface ClubSelectorProps {
@@ -70,6 +73,8 @@ function resolveErrorMessage(error: any, fallback: string): string {
 const ClubSelector: React.FC<ClubSelectorProps> = ({ initialValue, onChange }) => {
   const mountedRef = useRef(true);
   const objectUrlsRef = useRef<string[]>([]);
+  const theme = useTheme();
+  const isCompact = useMediaQuery(theme.breakpoints.down("lg"));
 
   const [clubs, setClubs] = useState<ClubGridItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -338,6 +343,59 @@ const ClubSelector: React.FC<ClubSelectorProps> = ({ initialValue, onChange }) =
                 </Stack>
               ) : clubs.length === 0 ? (
                 <div className={styles.emptyState}>No hay clubes disponibles para configurar.</div>
+              ) : isCompact ? (
+                <div className={styles.cardList}>
+                  {clubs.map((club) => (
+                    <SettingsRowCard
+                      key={club.id}
+                      title={club.name}
+                      data-testid={`club-row-card-${club.id}`}
+                      fields={[
+                        { label: "País", value: club.country },
+                        {
+                          label: "Escudo",
+                          value: club.shieldUrl ? (
+                            <img
+                              src={club.shieldUrl}
+                              alt={`Escudo ${club.name}`}
+                              className={styles.shieldImage}
+                            />
+                          ) : (
+                            "-"
+                          ),
+                        },
+                        { label: "Código de invitación", value: club.invitationCode ?? "-" },
+                        {
+                          label: "Preferido",
+                          value: (
+                            <Switch
+                              checked={club.id === value}
+                              onChange={(e) => handleTogglePreferred(club.id, e.target.checked)}
+                              disabled={saving}
+                              size="small"
+                              inputProps={{ "aria-label": "Marcar club preferido" }}
+                            />
+                          ),
+                        },
+                      ]}
+                      actions={
+                        <Tooltip title="Eliminar club">
+                          <span>
+                            <IconButton
+                              color="error"
+                              size="small"
+                              onClick={() => openDeleteDialog(club)}
+                              disabled={deleteLoading || loading}
+                              aria-label={`Eliminar ${club.name}`}
+                            >
+                              <DeleteOutlineIcon fontSize="small" />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                      }
+                    />
+                  ))}
+                </div>
               ) : (
                 <Table size="small">
                   <TableHead>

@@ -68,6 +68,13 @@
   border-radius: 6px;
 }
 
+.cardList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+}
+
 @media (max-width: 900px) {
   .layout {
     grid-template-columns: 1fr;

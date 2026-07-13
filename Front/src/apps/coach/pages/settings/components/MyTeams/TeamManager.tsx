@@ -19,12 +19,15 @@ import {
   TableRow,
   Typography,
 } from "@mui/material";
+import useMediaQuery from "@mui/material/useMediaQuery";
+import { useTheme } from "@mui/material/styles";
 import teamService, { TeamResponse } from "../../../../services/teamService";
 import styles from "./TeamManager.module.css";
 import seasonService from "../../../../services/seasonService";
 import clubService from "../../../../services/clubService";
 import type { Season } from "../../../../services/seasonService";
 import type { UserClubsResponse } from "../../../../types/userClubs";
+import SettingsRowCard from "../shared/SettingsRowCard/SettingsRowCard";
 
 interface TeamManagementDialogProps {
   open?: boolean;
@@ -36,6 +39,8 @@ interface TeamManagementDialogProps {
 
 export default function TeamManager({ open, clubId }: TeamManagementDialogProps) {
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isCompact = useMediaQuery(theme.breakpoints.down("lg"));
   const [teams, setTeams] = useState<TeamResponse[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -155,6 +160,21 @@ export default function TeamManager({ open, clubId }: TeamManagementDialogProps)
                 </Stack>
               ) : teams.length === 0 ? (
                 <div className={styles.emptyState}>No hay equipos creados para esta temporada.</div>
+              ) : isCompact ? (
+                <div className={styles.cardList}>
+                  {teams.map((team) => (
+                    <SettingsRowCard
+                      key={team.id}
+                      title={team.name}
+                      data-testid={`team-row-card-${team.id}`}
+                      fields={[
+                        { label: "Categoría", value: team.category?.name ?? "-" },
+                        { label: "Liga", value: team.league?.name ?? "-" },
+                        { label: "Grupo", value: team.league?.group ?? "-" },
+                      ]}
+                    />
+                  ))}
+                </div>
               ) : (
                 <Table size="small">
                   <TableHead>

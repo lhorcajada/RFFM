@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
@@ -28,6 +28,11 @@ vi.mock("../../../../../../services/countryService", () => ({
   default: { getCountries: vi.fn().mockResolvedValue([]) },
 }));
 
+const mockUseMediaQuery = vi.fn();
+vi.mock("@mui/material/useMediaQuery", () => ({
+  default: (...args: unknown[]) => mockUseMediaQuery(...args),
+}));
+
 import i18next from "../../../../../../../../shared/i18n/i18n";
 import SeasonManager from "../SeasonManager";
 
@@ -39,6 +44,49 @@ describe("SeasonManager", () => {
     mockGetUserClubs.mockResolvedValue([
       { clubId: "club-1", clubName: "FC Uno", shieldUrl: "", role: "Coach", roleId: 2, isCreator: true },
     ]);
+    mockUseMediaQuery.mockReturnValue(false);
+  });
+
+  it("en escritorio muestra las temporadas en una tabla", async () => {
+    mockGetSeasons.mockResolvedValue([
+      { id: "season-1", name: "Temporada 25/26", startDate: "2025-08-01", endDate: "2026-06-30", active: true },
+    ]);
+    mockUseMediaQuery.mockReturnValue(false);
+
+    render(<SeasonManager clubId="club-1" />);
+
+    expect(await screen.findByRole("table")).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Nombre" })).toBeInTheDocument();
+    expect(screen.getByText("Temporada 25/26")).toBeInTheDocument();
+    expect(screen.queryByTestId("season-row-card-season-1")).not.toBeInTheDocument();
+  });
+
+  it("en móvil/tablet muestra las temporadas como tarjetas con acciones funcionales", async () => {
+    mockGetSeasons.mockResolvedValue([
+      { id: "season-1", name: "Temporada 25/26", startDate: "2025-08-01", endDate: "2026-06-30", active: true },
+    ]);
+    mockDeleteSeason.mockResolvedValue(undefined);
+    mockUseMediaQuery.mockReturnValue(true);
+
+    render(<SeasonManager clubId="club-1" />);
+
+    await screen.findByText("Temporada 25/26");
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+
+    const card = screen.getByTestId("season-row-card-season-1");
+    expect(within(card).getByText("Temporada 25/26")).toBeInTheDocument();
+    expect(within(card).getByText("2025-08-01")).toBeInTheDocument();
+    expect(within(card).getByText("2026-06-30")).toBeInTheDocument();
+    expect(within(card).getByText("Activa")).toBeInTheDocument();
+
+    await userEvent.click(within(card).getByRole("button", { name: "Editar temporada" }));
+    expect(await screen.findByLabelText("Nombre")).toBeInTheDocument();
+
+    await userEvent.click(within(card).getByRole("button", { name: "Eliminar temporada" }));
+    const dialog = await screen.findByRole("dialog");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Eliminar" }));
+
+    await waitFor(() => expect(mockDeleteSeason).toHaveBeenCalledWith("season-1"));
   });
 
   it("renderiza el listado y el botón 'Nueva temporada' aunque no haya clubId inicial", async () => {

@@ -35,6 +35,11 @@ vi.mock("../../../../../services/clubService", () => ({
   },
 }));
 
+const mockUseMediaQuery = vi.fn();
+vi.mock("@mui/material/useMediaQuery", () => ({
+  default: (...args: unknown[]) => mockUseMediaQuery(...args),
+}));
+
 import TeamManager from "../TeamManager";
 
 describe("TeamManager", () => {
@@ -46,6 +51,49 @@ describe("TeamManager", () => {
     mockGetUserClubs.mockResolvedValue([
       { clubId: "club-1", clubName: "FC Uno", shieldUrl: "", role: "Coach", roleId: 2, isCreator: true },
     ]);
+    mockUseMediaQuery.mockReturnValue(false);
+  });
+
+  it("en escritorio muestra los equipos en una tabla", async () => {
+    mockGetTeams.mockResolvedValue([
+      {
+        id: "team-1",
+        name: "Alevín A",
+        category: { name: "Alevín" },
+        league: { name: "Liga Local", group: "Grupo 2" },
+      },
+    ]);
+    mockUseMediaQuery.mockReturnValue(false);
+
+    render(<TeamManager clubId="club-1" />);
+
+    expect(await screen.findByRole("table")).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Nombre" })).toBeInTheDocument();
+    expect(screen.getByText("Alevín A")).toBeInTheDocument();
+    expect(screen.queryByTestId("team-row-card-team-1")).not.toBeInTheDocument();
+  });
+
+  it("en móvil/tablet muestra los equipos como tarjetas en vez de tabla", async () => {
+    mockGetTeams.mockResolvedValue([
+      {
+        id: "team-1",
+        name: "Alevín A",
+        category: { name: "Alevín" },
+        league: { name: "Liga Local", group: "Grupo 2" },
+      },
+    ]);
+    mockUseMediaQuery.mockReturnValue(true);
+
+    render(<TeamManager clubId="club-1" />);
+
+    await screen.findByText("Alevín A");
+
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    const card = screen.getByTestId("team-row-card-team-1");
+    expect(within(card).getByText("Alevín A")).toBeInTheDocument();
+    expect(within(card).getByText("Alevín")).toBeInTheDocument();
+    expect(within(card).getByText("Liga Local")).toBeInTheDocument();
+    expect(within(card).getByText("Grupo 2")).toBeInTheDocument();
   });
 
   it("muestra siempre el botón 'Crear equipo' aunque no haya equipos", async () => {
