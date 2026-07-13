@@ -1,5 +1,4 @@
 import client from "../../../core/api/client";
-import { coachAuthService } from "./authService";
 
 export type ConfigurationCoachDto = {
   id: number;
@@ -23,12 +22,6 @@ const getAll = async (): Promise<ConfigurationCoachDto[]> => {
 
 const getCurrent = async (): Promise<ConfigurationCoachDto | null> => {
   const configs = await getAll();
-  const coachId = coachAuthService.getUserId();
-  if (coachId) {
-    const current = configs.find((config) => config.coachId === coachId);
-    if (current) return current;
-  }
-
   return configs[0] ?? null;
 };
 
