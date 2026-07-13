@@ -1,13 +1,10 @@
 import SettingsIcon from "@mui/icons-material/Settings";
-import SportsFootballIcon from "@mui/icons-material/SportsFootball";
 import CircularProgress from "@mui/material/CircularProgress";
 import { useEffect, useState } from "react";
 import Avatar from "@mui/material/Avatar";
 import Typography from "@mui/material/Typography";
 import DashboardCard from "../../../../../shared/components/ui/DashboardCard/DashboardCard";
-import { useFeaturePermission } from "../../../../../shared/hooks/useFeaturePermission";
 import styles from "../Dashboard.module.css";
-import configurationCoachService from "../../../services/configurationCoachService";
 import { useUserTeams } from "../hooks/useUserTeams";
 import { fetchImage } from "../../../../../shared/services/imageService";
 import teamService from "../../../services/teamService";
@@ -22,34 +19,11 @@ export default function DashboardCards({
   selectedSeason,
   isPlayer = false,
 }: DashboardCardsProps) {
-  const [preferredClubId, setPreferredClubId] = useState<string | null>(null);
   const [teamPhotos, setTeamPhotos] = useState<Record<string, string | null>>({});
   const { teams: userTeams, loading: loadingUserTeams } = useUserTeams();
-  const { hasAccess: canManageClub } = useFeaturePermission("/coach/clubs");
-  
+
   const seasonParam = selectedSeason ? `?seasonId=${selectedSeason}` : "";
   const seasonSuffix = selectedSeason ? `&seasonId=${selectedSeason}` : "";
-
-  useEffect(() => {
-    let mounted = true;
-
-    async function loadPreferredClub() {
-      try {
-        const currentConfig = await configurationCoachService.getCurrent();
-        if (!mounted) return;
-        setPreferredClubId(currentConfig?.preferredClubId ?? null);
-      } catch {
-        if (!mounted) return;
-        setPreferredClubId(null);
-      }
-    }
-
-    void loadPreferredClub();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -113,10 +87,6 @@ export default function DashboardCards({
     };
   }, [userTeams]);
 
-  const clubDashboardRoute = preferredClubId
-    ? `/coach/clubs/dashboard/${preferredClubId}${seasonParam}`
-    : `/coach/clubs${seasonParam}`;
-
   const buildTeamDashboardRoute = (teamId?: string | null) =>
     teamId
       ? `/coach/team-dashboard?teamId=${teamId}${seasonSuffix}`
@@ -147,15 +117,7 @@ export default function DashboardCards({
                 to="/coach/settings"
               />
             )}
-            {canManageClub && (
-              <DashboardCard
-                title="Club"
-                description="Gestión de club."
-                icon={<SportsFootballIcon style={{ fontSize: 40 }} />}
-                to={clubDashboardRoute}
-              />
-            )}
-            {userTeams.length > 0 && !loadingUserTeams && 
+            {userTeams.length > 0 && !loadingUserTeams &&
               userTeams.map((t) => (
                 <DashboardCard
                   key={t.id}
