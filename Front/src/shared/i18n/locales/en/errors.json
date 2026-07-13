@@ -37,6 +37,7 @@
   "NotActiveSeason": "There is no active season.",
   "season_has_related_data": "You can't delete this season because it has related data.",
   "ClubNotExist": "The specified club does not exist.",
+  "club_quota_exceeded": "You've reached the maximum number of clubs you can create (3).",
   "user_not_found": "The specified user was not found.",
 
   "LoginEmptyUserOrPass": "You must enter a username and password.",

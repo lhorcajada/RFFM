@@ -78,5 +78,8 @@ namespace RFFM.Api.Domain
         // Players / Clubs (Features/Coaches/Players/Services/PlayerService.cs)
         // Value preserved from the pre-existing literal used in PlayerService.cs
         public const string ClubNotExist = "ClubNotExist";
+
+        // Clubs (Features/Coaches/Clubs/Commands/CreateClub.cs)
+        public const string ClubQuotaExceeded = "club_quota_exceeded";
     }
 }

@@ -37,6 +37,7 @@
   "NotActiveSeason": "No hay ninguna temporada activa.",
   "season_has_related_data": "No puedes eliminar la temporada porque tiene datos relacionados.",
   "ClubNotExist": "El club indicado no existe.",
+  "club_quota_exceeded": "Has alcanzado el número máximo de clubes que puedes crear (3).",
   "user_not_found": "No se encontró el usuario indicado.",
 
   "LoginEmptyUserOrPass": "Debes indicar usuario y contraseña.",

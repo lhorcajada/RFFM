@@ -1,5 +1,6 @@
 import React from "react";
 import { Button, CircularProgress, FormControlLabel, Switch, TextField, Typography } from "@mui/material";
+import SeasonClubField from "../SeasonClubField/SeasonClubField";
 import styles from "./SeasonEditorForm.module.css";
 
 export interface SeasonFormState {
@@ -14,6 +15,8 @@ interface SeasonEditorFormProps {
   isEditing: boolean;
   selectedSeasonLabel?: string;
   saving: boolean;
+  clubId: string;
+  onClubIdChange: (clubId: string) => void;
   onChange: (nextForm: SeasonFormState) => void;
   onReset: () => void;
   onCancel: () => void;
@@ -25,6 +28,8 @@ export default function SeasonEditorForm({
   isEditing,
   selectedSeasonLabel,
   saving,
+  clubId,
+  onClubIdChange,
   onChange,
   onReset,
   onCancel,
@@ -41,6 +46,11 @@ export default function SeasonEditorForm({
       </Typography>
 
       <div className={styles.formGrid}>
+        {!isEditing && (
+          <div className={styles.fullWidth}>
+            <SeasonClubField value={clubId} onChange={onClubIdChange} disabled={saving} />
+          </div>
+        )}
         <TextField
           className={styles.fullWidth}
           label="Nombre"
@@ -88,7 +98,12 @@ export default function SeasonEditorForm({
         <Button onClick={onCancel} variant="text" size="small" disabled={saving}>
           Cancelar
         </Button>
-        <Button onClick={onSave} variant="contained" size="small" disabled={saving || !form.name.trim()}>
+        <Button
+          onClick={onSave}
+          variant="contained"
+          size="small"
+          disabled={saving || !form.name.trim() || (!isEditing && !clubId)}
+        >
           {saving ? <CircularProgress size={16} color="inherit" /> : isEditing ? "Guardar cambios" : "Crear temporada"}
         </Button>
       </div>

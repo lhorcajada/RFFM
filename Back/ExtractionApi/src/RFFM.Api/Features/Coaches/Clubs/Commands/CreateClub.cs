@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Common;
 using RFFM.Api.Common.Behaviors;
+using RFFM.Api.Domain;
 using RFFM.Api.Domain.Aggregates.UserClubs;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Features.Coaches.Auth;
@@ -80,6 +81,15 @@ namespace RFFM.Api.Features.Coaches.Clubs.Commands
 
         public async ValueTask<Unit> Handle(CreateClubCommand request, CancellationToken cancellationToken)
         {
+            var createdClubsCount = await _catalogDbContext.UserClubs
+                .AsNoTracking()
+                .CountAsync(uc => uc.ApplicationUserId == request.UserId && uc.IsCreator, cancellationToken);
+            if (createdClubsCount >= ClubConstants.MaxClubsPerCreator)
+                throw new DomainException(
+                    "Clubes",
+                    $"Has alcanzado el número máximo de clubes que puedes crear ({ClubConstants.MaxClubsPerCreator}).",
+                    ErrorCodes.ClubQuotaExceeded);
+
             var country = await _catalogDbContext
                 .Countries
                 .AsNoTracking()

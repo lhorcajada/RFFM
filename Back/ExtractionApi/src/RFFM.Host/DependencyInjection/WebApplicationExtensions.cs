@@ -333,6 +333,7 @@ namespace RFFM.Host.DependencyInjection
                         ("Assistances",   "/coach/assistances",   "Coach",       3, false),
                         ("Convocations",  "/coach/convocations",  "Coach",       3, false),
                         ("Dashboard",     "/coach/dashboard",     "Coach",       1, false),
+                        ("ClubManagement", "/coach/clubs",        "Coach",       2, false),
 
                         // ClubDirector
                         ("Dashboard",     "/coach/dashboard",     "ClubDirector", 1, true),

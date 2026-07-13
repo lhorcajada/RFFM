@@ -1,0 +1,31 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.emptyState {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(255, 152, 0, 0.08);
+  border: 1px solid rgba(255, 152, 0, 0.24);
+}
+
+.helperText {
+  color: rgba(232, 232, 232, 0.72);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.errorBox {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(211, 47, 47, 0.12);
+  border: 1px solid rgba(211, 47, 47, 0.28);
+  color: #ffd1d1;
+  font-size: 0.86rem;
+}

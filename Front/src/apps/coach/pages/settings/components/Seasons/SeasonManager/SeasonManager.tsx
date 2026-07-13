@@ -20,6 +20,7 @@ import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import seasonService, { Season } from "../../../../../services/seasonService";
+import { mapApiErrorToMessage } from "../../../../../../../shared/utils/errorMessages";
 import SeasonEditorForm, { type SeasonFormState } from "../SeasonEditorForm/SeasonEditorForm";
 import styles from "./SeasonManager.module.css";
 
@@ -62,21 +63,6 @@ function toIsoDate(value: string) {
   return new Date(`${value}T00:00:00.000Z`).toISOString();
 }
 
-function getErrorMessage(error: unknown, fallback: string) {
-  const anyError = error as {
-    response?: { data?: { detail?: string; title?: string; message?: string } };
-    message?: string;
-  };
-
-  return (
-    anyError?.response?.data?.detail ??
-    anyError?.response?.data?.title ??
-    anyError?.response?.data?.message ??
-    anyError?.message ??
-    fallback
-  );
-}
-
 export default function SeasonManager({ open, onClose, onChanged, clubId }: SeasonManagerProps) {
   const [seasons, setSeasons] = useState<Season[]>([]);
   const [loading, setLoading] = useState(false);
@@ -87,25 +73,31 @@ export default function SeasonManager({ open, onClose, onChanged, clubId }: Seas
   const [selectedSeasonId, setSelectedSeasonId] = useState<string>("");
   const [form, setForm] = useState<SeasonFormState>(buildDefaultForm());
   const [deleteTarget, setDeleteTarget] = useState<Season | null>(null);
+  const [activeClubId, setActiveClubId] = useState<string>(clubId || "");
 
   useEffect(() => {
-    if (!clubId) {
+    setActiveClubId(clubId || "");
+  }, [clubId]);
+
+  useEffect(() => {
+    if (!activeClubId) {
       setSeasons([]);
       setSelectedSeasonId("");
       setForm(buildDefaultForm());
-      setIsFormVisible(false);
-      setError("Selecciona un club para cargar las temporadas.");
+      setError(null);
       return;
     }
 
     void loadSeasons();
-  }, [clubId, open]);
+  }, [activeClubId, open]);
 
   const loadSeasons = async () => {
+    if (!activeClubId) return;
+
     setLoading(true);
     setError(null);
     try {
-      const allSeasons = await seasonService.getSeasons(clubId);
+      const allSeasons = await seasonService.getSeasons(activeClubId);
       setSeasons(allSeasons);
 
       if (allSeasons.length === 0) {
@@ -119,7 +111,7 @@ export default function SeasonManager({ open, onClose, onChanged, clubId }: Seas
       setSelectedSeasonId(activeSeason.id);
       setForm(seasonToForm(activeSeason));
     } catch (caughtError) {
-      setError(getErrorMessage(caughtError, "No se han podido cargar las temporadas."));
+      setError(mapApiErrorToMessage(caughtError));
     } finally {
       setLoading(false);
     }
@@ -149,6 +141,9 @@ export default function SeasonManager({ open, onClose, onChanged, clubId }: Seas
     if (!name || !form.startDate || !form.endDate) {
       return;
     }
+    if (!selectedSeasonId && !activeClubId) {
+      return;
+    }
     if (form.endDate < form.startDate) {
       setError("La fecha fin no puede ser anterior a la fecha de inicio.");
       return;
@@ -163,14 +158,14 @@ export default function SeasonManager({ open, onClose, onChanged, clubId }: Seas
       if (selectedSeasonId) {
         await seasonService.updateSeason(selectedSeasonId, name, form.isActive, startDate, endDate);
       } else {
-        await seasonService.createSeason(name, form.isActive, startDate, endDate, clubId);
+        await seasonService.createSeason(name, form.isActive, startDate, endDate, activeClubId);
       }
 
       await loadSeasons();
       setIsFormVisible(false);
       onChanged?.();
     } catch (caughtError) {
-      setError(getErrorMessage(caughtError, "No se ha podido guardar la temporada."));
+      setError(mapApiErrorToMessage(caughtError));
     } finally {
       setSaving(false);
     }
@@ -189,7 +184,7 @@ export default function SeasonManager({ open, onClose, onChanged, clubId }: Seas
       await loadSeasons();
       onChanged?.();
     } catch (caughtError) {
-      setError(getErrorMessage(caughtError, "No se ha podido eliminar la temporada."));
+      setError(mapApiErrorToMessage(caughtError));
     } finally {
       setDeleteLoading(false);
     }
@@ -222,6 +217,10 @@ export default function SeasonManager({ open, onClose, onChanged, clubId }: Seas
                 <Stack alignItems="center" justifyContent="center" sx={{ minHeight: 180 }}>
                   <CircularProgress size={28} />
                 </Stack>
+              ) : !activeClubId ? (
+                <div className={styles.emptyState}>
+                  Selecciona o crea un club para ver sus temporadas.
+                </div>
               ) : seasons.length === 0 ? (
                 <div className={styles.emptyState}>
                   Todavía no hay temporadas creadas.
@@ -280,6 +279,8 @@ export default function SeasonManager({ open, onClose, onChanged, clubId }: Seas
               isEditing={Boolean(selectedSeasonId)}
               selectedSeasonLabel={selectedSeason?.name ?? selectedSeason?.id}
               saving={saving}
+              clubId={activeClubId}
+              onClubIdChange={setActiveClubId}
               onChange={setForm}
               onReset={handleNewSeason}
               onCancel={handleCancelForm}

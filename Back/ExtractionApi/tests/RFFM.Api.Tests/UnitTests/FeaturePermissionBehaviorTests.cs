@@ -93,6 +93,30 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
+        public async Task Handle_CoachRoleWithSeededWritePermission_CallsNext()
+        {
+            // Mirrors the seed row added to SeedFeaturePermissionsAsync
+            // ("ClubManagement", "/coach/clubs", "Coach", PermissionType.Write, false) so a Coach
+            // user (previously blocked with 403 by commit f3e776b) can create/update/delete clubs.
+            await using var db = _fixture.CreateDbContext();
+            const string role = "Coach";
+            if (!db.FeaturePermissions.Any(fp => fp.RoleName == role && fp.FeatureRoute == "/coach/clubs"))
+            {
+                db.FeaturePermissions.Add(new FeaturePermission("ClubManagement", "/coach/clubs", role, PermissionType.Write, false));
+                await db.SaveChangesAsync();
+            }
+
+            var currentUser = new Mock<ICurrentUserService>();
+            currentUser.Setup(c => c.IsAuthenticated).Returns(true);
+            currentUser.Setup(c => c.Role).Returns(role);
+
+            var behavior = new FeaturePermissionBehavior<TestRequest, Unit>(currentUser.Object, db);
+            var result = await behavior.Handle(new TestRequest(), Next, CancellationToken.None);
+
+            Assert.Equal(Unit.Value, result);
+        }
+
+        [Fact]
         public async Task Handle_AdministratorRole_BypassesEvenWithoutFeaturePermissionRow()
         {
             await using var db = _fixture.CreateDbContext();
