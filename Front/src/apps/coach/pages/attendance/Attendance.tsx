@@ -1,11 +1,11 @@
 import { Box, Button, CircularProgress, Pagination } from "@mui/material";
-import { useNavigate } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import AddIcon from "@mui/icons-material/Add";
 import SportEventDialog from "./components/SportEventDialog";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import useTeamAndClub from "../../hooks/useTeamAndClub";
+import useTeamDashboardBack from "../../hooks/useTeamDashboardBack";
 import sportEventService, {
   SportEventResponse,
 } from "../../services/sportEventService";
@@ -30,7 +30,7 @@ function getWeekBounds(): { start: string; end: string } {
 }
 
 export default function Attendance() {
-  const navigate = useNavigate();
+  const goToTeamDashboard = useTeamDashboardBack();
   const {
     team,
     teamTitleNode,
@@ -159,7 +159,7 @@ export default function Attendance() {
           <Box sx={{ display: "flex", gap: 1 }}>
             <Button
               startIcon={<ArrowBackIcon />}
-              onClick={() => navigate("/coach/dashboard")}
+              onClick={() => goToTeamDashboard()}
               variant="outlined"
               size="small"
             >

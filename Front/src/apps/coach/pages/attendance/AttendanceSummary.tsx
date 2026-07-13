@@ -1,15 +1,15 @@
 import { Box, Button } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import { useNavigate } from "react-router-dom";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import EmptyState from "../../../../shared/components/ui/EmptyState/EmptyState";
 import useTeamAndClub from "../../hooks/useTeamAndClub";
+import useTeamDashboardBack from "../../hooks/useTeamDashboardBack";
 import AttendanceSummaryContent from "./components/summary/AttendanceSummaryContent";
 import styles from "./AttendanceSummary.module.css";
 
 export default function AttendanceSummary() {
-  const navigate = useNavigate();
+  const goToTeamDashboard = useTeamDashboardBack();
   const { team, teamTitleNode, loading: teamLoading } = useTeamAndClub();
 
   return (
@@ -20,7 +20,7 @@ export default function AttendanceSummary() {
         actionBar={
           <Button
             startIcon={<ArrowBackIcon />}
-            onClick={() => navigate("/coach/dashboard")}
+            onClick={() => goToTeamDashboard()}
             variant="outlined"
             size="small"
           >

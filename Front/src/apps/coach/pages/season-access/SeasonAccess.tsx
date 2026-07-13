@@ -12,12 +12,14 @@ import SelectableChip from "../../../../shared/components/ui/SelectableChip/Sele
 import SelectionPlayersTab from "./components/SelectionPlayersTab";
 import TestsTab from "./components/TestsTab";
 import useSeasonAccess from "./hooks/useSeasonAccess";
+import useTeamDashboardBack from "../../hooks/useTeamDashboardBack";
 import { CATEGORY_ORDER, type CategoryKey } from "./helpers/seasonAccess.helpers";
 
 import styles from "./SeasonAccess.module.css";
 
 export default function SeasonAccess() {
   const navigate = useNavigate();
+  const goToTeamDashboard = useTeamDashboardBack();
   const [tabIndex, setTabIndex] = useState(0);
   const [confirmCopyOpen, setConfirmCopyOpen] = useState(false);
   const [copying, setCopying] = useState(false);
@@ -147,7 +149,7 @@ export default function SeasonAccess() {
               size="small"
               variant="outlined"
               startIcon={<ArrowBackIcon />}
-              onClick={() => navigate("/coach/dashboard")}
+              onClick={() => goToTeamDashboard()}
               className={styles.backButton}
             >
               Volver

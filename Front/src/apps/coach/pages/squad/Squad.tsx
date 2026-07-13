@@ -12,6 +12,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import useTeamAndClub from "../../hooks/useTeamAndClub.tsx";
+import useTeamDashboardBack from "../../hooks/useTeamDashboardBack";
 import EmptyState from "../../../../shared/components/ui/EmptyState/EmptyState";
 import teamplayerService from "../../services/teamplayerService";
 import { dischargeActiveInjury } from "../../services/teamplayerService";
@@ -68,6 +69,7 @@ function groupByPosition(players: any[]) {
 
 export default function Squad() {
   const navigate = useNavigate();
+  const goToTeamDashboard = useTeamDashboardBack();
   const [squadSearchParams] = useSearchParams();
   const { team, teamTitleNode } = useTeamAndClub();
   const [players, setPlayers] = useState<any[]>([]);
@@ -237,7 +239,7 @@ export default function Squad() {
           <Stack direction="row" spacing={1} alignItems="center">
             <Button
               startIcon={<ArrowBackIcon />}
-              onClick={() => navigate("/coach/dashboard")}
+              onClick={() => goToTeamDashboard()}
               variant="outlined"
               size="small"
             >

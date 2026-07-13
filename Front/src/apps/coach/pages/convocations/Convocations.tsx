@@ -10,6 +10,7 @@ import styles from "./Convocations.module.css";
 import { useState, useMemo } from "react";
 
 import useConvocations from "./hooks/useConvocations";
+import useTeamDashboardBack from "../../hooks/useTeamDashboardBack";
 import MatchCard from "./components/MatchCard";
 import AgendaList from "./components/AgendaList";
 import { DAYS_ES, MONTHS_ES, buildCalendarGrid, toDateKey } from "./helpers/convocationUtils";
@@ -22,6 +23,7 @@ import type { NormalizedMatch } from "./types";
 export default function Convocations() {
   const navigate = useNavigate();
   const location = useLocation();
+  const goToTeamDashboard = useTeamDashboardBack();
   const urlParams = new URLSearchParams(location.search);
   const teamId = urlParams.get("teamId") ?? "";
 
@@ -100,7 +102,7 @@ export default function Convocations() {
             </Button>
             <Button
               startIcon={<ArrowBackIcon />}
-              onClick={() => navigate("/coach/dashboard")}
+              onClick={() => goToTeamDashboard()}
               variant="outlined"
               size="small"
             >

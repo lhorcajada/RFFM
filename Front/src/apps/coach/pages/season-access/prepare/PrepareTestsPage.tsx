@@ -16,6 +16,7 @@ import { DndContext, DragOverlay, PointerSensor, TouchSensor, useSensor, useSens
 import { getFormations } from "../../../services/formationService";
 import { FORMATION_POSITIONS } from "../../../types/formation";
 import type { SeasonAccessTrialPlayerDto } from "../../../services/seasonAccessService";
+import useTeamDashboardBack from "../../../hooks/useTeamDashboardBack";
 
 type SimSlotPlayer = {
   teamPlayerId: string;
@@ -34,6 +35,7 @@ export default function PrepareTestsPage() {
   const { days, loadingDays, selectedDayIndex, setSelectedDayIndex, ratings, loadingRatings, reloadRatings } = usePrepareTests(activeSeason?.id ?? null, selectedCategory ?? null);
   const navigate = useNavigate();
   const location = useLocation();
+  const goToTeamDashboard = useTeamDashboardBack();
 
   const [formations, setFormations] = useState<Array<{ id: string; name: string; displayName?: string }>>([]);
   const [formationId, setFormationId] = useState<string>("");
@@ -463,7 +465,7 @@ export default function PrepareTestsPage() {
     // mark as not dirty so navigation doesn't re-trigger guard
     try { lastSavedJsonRef.current = buildSessionJson(); } catch {}
     if (type === 'back') {
-      navigate(-1);
+      goToTeamDashboard();
       return;
     }
     if (dest) navigate(dest);
@@ -479,7 +481,7 @@ export default function PrepareTestsPage() {
     setNavConfirmOpen(false);
     if (!ok) return; // keep user on page if save failed
     if (type === 'back') {
-      navigate(-1);
+      goToTeamDashboard();
       return;
     }
     if (dest) navigate(dest);
@@ -557,7 +559,7 @@ export default function PrepareTestsPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{ display: 'flex', gap: 8 }}>
                 <Button size="small" onClick={() => {
-                  if (!isDirty) return navigate(-1);
+                  if (!isDirty) return goToTeamDashboard();
                   pendingNavRef.current = null;
                   pendingNavTypeRef.current = 'back';
                   setNavConfirmOpen(true);

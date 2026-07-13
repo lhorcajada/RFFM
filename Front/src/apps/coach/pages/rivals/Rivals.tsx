@@ -21,14 +21,14 @@ import {
 import EditIcon from "@mui/icons-material/Edit";
 import AddIcon from "@mui/icons-material/Add";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import { useNavigate } from "react-router-dom";
+import useTeamDashboardBack from "../../hooks/useTeamDashboardBack";
 import { getRivals, createRival, updateRival, uploadRivalPhoto, Rival } from "../../services/rivalService";
 import ClubCromo from "./components/ClubCromo";
 import { clubService } from "../../../federation/services/Federation/ClubService";
 import styles from "./Rivals.module.css";
 
 export default function Rivals() {
-  const navigate = useNavigate();
+  const goToTeamDashboard = useTeamDashboardBack();
   const [rivals, setRivals] = useState<Rival[]>([]);
   const [loading, setLoading] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -225,7 +225,7 @@ export default function Rivals() {
           <Stack direction="row" spacing={1} alignItems="center">
             <Button
               startIcon={<ArrowBackIcon />}
-              onClick={() => navigate("/coach/dashboard")}
+              onClick={() => goToTeamDashboard()}
               variant="outlined"
               size="small"
             >

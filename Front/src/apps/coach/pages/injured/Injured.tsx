@@ -20,7 +20,6 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import { useNavigate } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import AddIcon from "@mui/icons-material/Add";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
@@ -29,6 +28,7 @@ import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import EmptyState from "../../../../shared/components/ui/EmptyState/EmptyState";
 import useTeamAndClub from "../../hooks/useTeamAndClub.tsx";
+import useTeamDashboardBack from "../../hooks/useTeamDashboardBack";
 import teamplayerService, {
   createPlayerInjury,
   getPlayerInjuries,
@@ -44,7 +44,7 @@ type InjuryRow = {
 };
 
 export default function Injured() {
-  const navigate = useNavigate();
+  const goToTeamDashboard = useTeamDashboardBack();
   const { team, teamTitleNode } = useTeamAndClub();
 
   const [players, setPlayers] = useState<PlayerResponse[]>([]);
@@ -190,7 +190,7 @@ export default function Injured() {
             </Button>
             <Button
               startIcon={<ArrowBackIcon />}
-              onClick={() => navigate("/coach/dashboard")}
+              onClick={() => goToTeamDashboard()}
               variant="outlined"
               size="small"
             >

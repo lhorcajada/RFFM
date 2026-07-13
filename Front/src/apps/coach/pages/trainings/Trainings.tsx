@@ -24,6 +24,7 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import useTeamAndClub from "../../hooks/useTeamAndClub";
+import useTeamDashboardBack from "../../hooks/useTeamDashboardBack";
 import trainingService from "../../services/trainingService";
 import type { Exercise, TrainingSession } from "../../types/training";
 import ExerciseCromo from "./components/ExerciseCromo";
@@ -249,6 +250,7 @@ export default function Trainings() {
   const navigate = useNavigate();
   const location = useLocation();
   const { team, teamTitleNode } = useTeamAndClub();
+  const goToTeamDashboard = useTeamDashboardBack();
 
   const params = new URLSearchParams(location.search);
   const teamId = params.get("teamId") ?? "";
@@ -372,7 +374,7 @@ export default function Trainings() {
           <Stack direction="row" spacing={1} alignItems="center">
             <Button
               startIcon={<ArrowBackIcon />}
-              onClick={() => navigate(-1)}
+              onClick={() => goToTeamDashboard()}
               variant="outlined"
               size="small"
             >

@@ -1,11 +1,11 @@
 import { Box, Button } from "@mui/material";
-import { useNavigate } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
+import useTeamDashboardBack from "../../hooks/useTeamDashboardBack";
 
 export default function Lottery() {
-  const navigate = useNavigate();
+  const goToTeamDashboard = useTeamDashboardBack();
 
   return (
     <BaseLayout hideFooterMenu>
@@ -15,7 +15,7 @@ export default function Lottery() {
         actionBar={
           <Button
             startIcon={<ArrowBackIcon />}
-            onClick={() => navigate("/coach/dashboard")}
+            onClick={() => goToTeamDashboard()}
             variant="outlined"
             size="small"
           >

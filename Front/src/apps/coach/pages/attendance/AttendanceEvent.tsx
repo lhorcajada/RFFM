@@ -7,6 +7,7 @@ import {
   SportEventResponse,
 } from "../../services/sportEventService";
 import useTeamAndClub from "../../hooks/useTeamAndClub";
+import useTeamDashboardBack from "../../hooks/useTeamDashboardBack";
 import sportEventTypeService from "../../services/sportEventTypeService";
 import teamService from "../../services/teamService";
 import clubService from "../../services/clubService";
@@ -103,6 +104,7 @@ export default function AttendanceEvent() {
   }, [id]);
 
   const { teamTitleNode } = useTeamAndClub();
+  const goToTeamDashboard = useTeamDashboardBack();
 
   const [localTeamTitle, setLocalTeamTitle] = useState<React.ReactNode | null>(
     null
@@ -184,7 +186,7 @@ export default function AttendanceEvent() {
             <div className={styles.actionRight}>
               <Button
                 startIcon={<ArrowBackIcon />}
-                onClick={() => navigate(-1)}
+                onClick={() => goToTeamDashboard()}
                 variant="outlined"
                 size="small"
               >
