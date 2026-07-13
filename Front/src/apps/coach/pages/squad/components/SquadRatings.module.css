@@ -50,6 +50,14 @@
   border-color: rgba(200, 75, 0, 0.5) !important;
 }
 
+@media (max-width: 600px) {
+  .toolbar .MuiButton-root {
+    font-size: 0.7rem;
+    padding: 4px 10px;
+    min-height: 30px;
+  }
+}
+
 /* ─── Position panel (igual que Plantilla) ─── */
 
 .positionPanel {
@@ -161,5 +169,22 @@
 .panelSliderCollapsed {
   width: 0;
   height: 0;
+}
+
+/* ─── Mobile: compact cromos, single column, narrower slide panel ─── */
+@media (max-width: 600px) {
+  .grid {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    justify-content: center;
+  }
+
+  .cromoCell {
+    width: 150px;
+  }
+
+  .panelSlider {
+    width: 200px;
+  }
 }
 

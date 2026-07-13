@@ -261,6 +261,7 @@ export default function Squad() {
                 }}
                 variant="contained"
                 size="small"
+                className={styles.addButton}
               >
                 Añadir jugador
               </Button>
@@ -280,6 +281,7 @@ export default function Squad() {
                 }}
                 variant="outlined"
                 size="small"
+                className={styles.addButton}
               >
                 Añadir jugadores del club
               </Button>

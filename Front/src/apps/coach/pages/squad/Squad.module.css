@@ -15,6 +15,16 @@
   justify-content: flex-end;
 }
 
+/* ── Secondary action buttons in the action bar (not "Volver") ── */
+@media (max-width: 600px) {
+  .addButton {
+    font-size: 0.7rem !important;
+    padding: 4px 10px !important;
+    min-height: 30px !important;
+    line-height: 1.2 !important;
+  }
+}
+
 /* ── Position dashboard: panels flow left-to-right, wrap ── */
 .positionsDashboard {
   display: flex;
@@ -79,7 +89,15 @@
     width: 100%;
   }
   .positionPanelGrid {
-    grid-template-columns: repeat(auto-fill, 210px);
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    justify-content: center;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 400px) {
+  .positionPanelGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
