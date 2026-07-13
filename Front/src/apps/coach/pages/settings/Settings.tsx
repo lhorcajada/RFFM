@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
@@ -17,7 +17,12 @@ const Settings: React.FC = () => {
   const [preferredTeamId, setPreferredTeamId] = useState<string | null>(null);
   const [configurationId, setConfigurationId] = useState<number | null>(null);
   const navigate = useNavigate();
-  const [selectedSection, setSelectedSection] = useState<"seasons" | "clubs" | "teams">("seasons");
+  const location = useLocation();
+  const initialSection =
+    (location.state as { section?: "seasons" | "clubs" | "teams" } | null)?.section ?? "seasons";
+  const [selectedSection, setSelectedSection] = useState<"seasons" | "clubs" | "teams">(
+    initialSection
+  );
 
   useEffect(() => {
     const load = async () => {
