@@ -80,4 +80,56 @@ describe("Register — role gating", () => {
     });
     expect(screen.getByRole("button", { name: /Registrarse/i })).toBeEnabled();
   });
+
+  it("Player: submits with the typed team invitation code, not an empty string", async () => {
+    vi.mocked(invitationsApi.previewTeamCode).mockResolvedValue({
+      teamId: "t1",
+      teamName: "Test Team",
+      clubId: "c1",
+      membershipKind: "Player",
+      players: [
+        {
+          teamPlayerId: "tp1",
+          playerId: "p1",
+          name: "John",
+          lastName: "Doe",
+          urlPhoto: null,
+          dorsal: 10,
+          alreadyLinked: false,
+        },
+      ],
+    });
+    vi.mocked(coachAuthService.registerPayingAccount).mockResolvedValue({
+      roles: [],
+      status: "Active",
+    } as any);
+
+    renderRegister();
+    fillBaseFields();
+    fireEvent.click(screen.getByLabelText("Jugador"));
+
+    const input = screen.getByLabelText(/código de invitación de equipo/i);
+    fireEvent.change(input, { target: { value: "TEAM123" } });
+
+    await waitFor(() => {
+      expect(invitationsApi.previewTeamCode).toHaveBeenCalled();
+    }, { timeout: 2000 });
+
+    await waitFor(() => {
+      expect(screen.getByText("John Doe")).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByLabelText("John Doe"));
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /Registrarse/i })).toBeEnabled();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /Registrarse/i }));
+
+    await waitFor(() => {
+      expect(coachAuthService.registerPayingAccount).toHaveBeenCalledWith(
+        expect.objectContaining({ teamInvitationCode: "TEAM123" })
+      );
+    });
+  });
 });

@@ -321,6 +321,8 @@ const Register: React.FC = () => {
                   <InvitationCodeField
                     kind="club"
                     membershipKind="Coach"
+                    value={state.invitationCode}
+                    onChange={(value) => dispatch({ type: "SET_INVITATION_CODE", value })}
                     onValid={(response) =>
                       dispatch({ type: "SET_CODE_VALIDATION", value: { status: "valid", club: response as any } })
                     }
@@ -336,6 +338,8 @@ const Register: React.FC = () => {
               <InvitationCodeField
                 kind="club"
                 membershipKind={isCoach(state.role) ? "Coach" : "ClubMember"}
+                value={state.invitationCode}
+                onChange={(value) => dispatch({ type: "SET_INVITATION_CODE", value })}
                 onValid={(response) =>
                   dispatch({ type: "SET_CODE_VALIDATION", value: { status: "valid", club: response as any } })
                 }
@@ -350,6 +354,8 @@ const Register: React.FC = () => {
                 <InvitationCodeField
                   kind="team"
                   membershipKind={state.role === "Player" ? "Player" : "FamilyPlayer"}
+                  value={state.invitationCode}
+                  onChange={(value) => dispatch({ type: "SET_INVITATION_CODE", value })}
                   onValid={(response) =>
                     dispatch({ type: "SET_CODE_VALIDATION", value: { status: "valid", team: response as any } })
                   }

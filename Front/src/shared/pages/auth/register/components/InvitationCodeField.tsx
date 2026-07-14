@@ -12,6 +12,8 @@ type PreviewResponse<K extends "club" | "team"> =
 interface InvitationCodeFieldProps<K extends "club" | "team"> {
   kind: K;
   membershipKind: string;
+  value: string;
+  onChange: (value: string) => void;
   onValid: (response: PreviewResponse<K>) => void;
   onInvalid: () => void;
 }
@@ -21,17 +23,18 @@ const DEBOUNCE_MS = 500;
 export default function InvitationCodeField<K extends "club" | "team">({
   kind,
   membershipKind,
+  value,
+  onChange,
   onValid,
   onInvalid,
 }: InvitationCodeFieldProps<K>) {
-  const [code, setCode] = useState("");
   const [status, setStatus] = useState<"idle" | "checking" | "valid" | "invalid">("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    if (!code.trim()) {
+    if (!value.trim()) {
       setStatus("idle");
       return;
     }
@@ -40,8 +43,8 @@ export default function InvitationCodeField<K extends "club" | "team">({
       try {
         const response =
           kind === "club"
-            ? await invitationsApi.previewClubCode({ code, membershipKind: membershipKind as any })
-            : await invitationsApi.previewTeamCode({ code, membershipKind: membershipKind as any });
+            ? await invitationsApi.previewClubCode({ code: value, membershipKind: membershipKind as any })
+            : await invitationsApi.previewTeamCode({ code: value, membershipKind: membershipKind as any });
         setStatus("valid");
         onValid(response as PreviewResponse<K>);
       } catch (err: any) {
@@ -55,7 +58,7 @@ export default function InvitationCodeField<K extends "club" | "team">({
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [code, kind]);
+  }, [value, kind]);
 
   return (
     <TextField
@@ -63,8 +66,8 @@ export default function InvitationCodeField<K extends "club" | "team">({
       variant="outlined"
       fullWidth
       className={styles.field}
-      value={code}
-      onChange={(e) => setCode(e.target.value)}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
       error={status === "invalid"}
       helperText={status === "invalid" ? errorMessage : " "}
       InputProps={{

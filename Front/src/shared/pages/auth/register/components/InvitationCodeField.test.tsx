@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import InvitationCodeField from "./InvitationCodeField";
@@ -9,6 +10,27 @@ vi.mock("../../../../services/invitations/invitationsApi", () => ({
     previewTeamCode: vi.fn(),
   },
 }));
+
+// Test harness mirroring how Register.tsx wires the controlled value/onChange
+// props into InvitationCodeField (parent owns the typed code).
+function ControlledInvitationCodeField(
+  props: Omit<Parameters<typeof InvitationCodeField>[0], "value" | "onChange"> & {
+    onCodeChange?: (value: string) => void;
+  }
+) {
+  const { onCodeChange, ...rest } = props;
+  const [value, setValue] = useState("");
+  return (
+    <InvitationCodeField
+      {...(rest as any)}
+      value={value}
+      onChange={(next) => {
+        setValue(next);
+        onCodeChange?.(next);
+      }}
+    />
+  );
+}
 
 describe("InvitationCodeField", () => {
   beforeEach(() => {
@@ -25,7 +47,7 @@ describe("InvitationCodeField", () => {
       const onInvalid = vi.fn();
 
       render(
-        <InvitationCodeField
+        <ControlledInvitationCodeField
           kind="club"
           membershipKind="Coach"
           onValid={onValid}
@@ -56,7 +78,7 @@ describe("InvitationCodeField", () => {
       const onInvalid = vi.fn();
 
       render(
-        <InvitationCodeField
+        <ControlledInvitationCodeField
           kind="club"
           membershipKind="Coach"
           onValid={onValid}
@@ -69,7 +91,9 @@ describe("InvitationCodeField", () => {
 
       await waitFor(
         () => {
-          expect(vi.mocked(invitationsApi.previewClubCode)).toHaveBeenCalled();
+          expect(vi.mocked(invitationsApi.previewClubCode)).toHaveBeenCalledWith(
+            expect.objectContaining({ code: "ABC123" })
+          );
           expect(onValid).toHaveBeenCalled();
         },
         { timeout: 2000 }
@@ -90,7 +114,7 @@ describe("InvitationCodeField", () => {
       const onInvalid = vi.fn();
 
       render(
-        <InvitationCodeField
+        <ControlledInvitationCodeField
           kind="club"
           membershipKind="Coach"
           onValid={onValid}
@@ -137,7 +161,7 @@ describe("InvitationCodeField", () => {
       const onValid = vi.fn();
 
       render(
-        <InvitationCodeField
+        <ControlledInvitationCodeField
           kind="team"
           membershipKind="Player"
           onValid={onValid}
@@ -154,6 +178,34 @@ describe("InvitationCodeField", () => {
         },
         { timeout: 2000 }
       );
+    });
+
+    it("propagates the typed code to the parent via onChange (regression: payload must not stay empty)", async () => {
+      vi.mocked(invitationsApi.previewTeamCode).mockResolvedValue({
+        teamId: "t1",
+        teamName: "Test Team",
+        clubId: "c1",
+        membershipKind: "Player",
+        players: [],
+      });
+
+      const onCodeChange = vi.fn();
+
+      render(
+        <ControlledInvitationCodeField
+          kind="team"
+          membershipKind="Player"
+          onValid={() => {}}
+          onInvalid={() => {}}
+          onCodeChange={onCodeChange}
+        />
+      );
+
+      const input = screen.getByDisplayValue("");
+      fireEvent.change(input, { target: { value: "TEAM123" } });
+
+      expect(onCodeChange).toHaveBeenCalledWith("TEAM123");
+      expect(screen.getByDisplayValue("TEAM123")).toBeInTheDocument();
     });
   });
 });
