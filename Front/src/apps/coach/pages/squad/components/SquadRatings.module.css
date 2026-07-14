@@ -171,20 +171,65 @@
   height: 0;
 }
 
-/* ─── Mobile: compact cromos, single column, narrower slide panel ─── */
-@media (max-width: 600px) {
+.mobileCloseBtn {
+  display: none;
+}
+
+/* ─── Tablet & mobile: single column, panel wraps full-width below the
+     cromo instead of squeezing into a narrow fixed sidebar ─── */
+@media (max-width: 960px) {
   .grid {
     grid-template-columns: 1fr;
     justify-items: center;
     justify-content: center;
   }
 
-  .cromoCell {
-    width: 150px;
+  .playerRow {
+    flex-wrap: wrap;
+    width: 100%;
+    max-width: 420px;
   }
 
   .panelSlider {
-    width: 200px;
+    width: 100%;
+    flex-basis: 100%;
+    border-radius: 0 0 14px 14px;
+    border-left: 1px solid rgba(255, 255, 255, 0.08);
+    margin-top: 8px;
+  }
+
+  .panelSliderCollapsed {
+    width: 0;
+    flex-basis: 0;
+    margin-top: 0;
+    border: none;
+  }
+
+  .mobileCloseBtn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    align-self: flex-end;
+    margin: 6px 8px 0 0;
+    padding: 4px 10px;
+    background: rgba(255, 140, 0, 0.15);
+    border: 1px solid rgba(255, 140, 0, 0.35);
+    border-radius: 8px;
+    color: rgba(255, 180, 60, 0.95);
+    font-size: 0.7rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .mobileCloseBtn:hover {
+    background: rgba(255, 140, 0, 0.25);
+  }
+}
+
+/* ─── Mobile: compact cromos ─── */
+@media (max-width: 600px) {
+  .cromoCell {
+    width: 150px;
   }
 }
 

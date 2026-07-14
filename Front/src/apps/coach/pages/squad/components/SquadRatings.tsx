@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import CloseIcon from "@mui/icons-material/Close";
 import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
 import { Button, ToggleButton, ToggleButtonGroup } from "@mui/material";
 import { exportAllPlayersPdf, exportPlayerPdf } from "../squadPdfExport";
@@ -14,11 +15,16 @@ import styles from "./SquadRatings.module.css";
 type PlayerEntry = {
   teamPlayerId: string;
   displayName: string;
+  alias?: string | null;
   position?: string | null;
   dorsal?: number | null;
   photoSrc?: string | null;
   to?: string;
 };
+
+function resolvedPlayerName(p: PlayerEntry): string {
+  return p.alias?.trim() ? p.alias.trim() : p.displayName;
+}
 
 type Props = {
   teamId: string;
@@ -122,6 +128,16 @@ export default function SquadRatings({ teamId: _teamId, players, latestRatings, 
     setExpandedId((prev) => (prev === id ? null : id));
   }
 
+  useEffect(() => {
+    if (!expandedId) return;
+    // El panel aparece debajo del cromo en móvil/tablet; sin esto queda fuera
+    // de la vista y el usuario lo percibe como vacío hasta hacer scroll manual.
+    const panel = document.getElementById(`sub-ratings-panel-${expandedId}`);
+    if (typeof panel?.scrollIntoView === "function") {
+      panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [expandedId]);
+
 
   if (players.length === 0) {
     return <div className={styles.empty}>No hay jugadores para valorar.</div>;
@@ -185,11 +201,13 @@ export default function SquadRatings({ teamId: _teamId, players, latestRatings, 
               {group.map((p) => {
                 const rating = latestRatings[p.teamPlayerId];
                 const isCollapsed = expandedId !== p.teamPlayerId;
+                const panelId = `sub-ratings-panel-${p.teamPlayerId}`;
                 return (
                   <div key={p.teamPlayerId} className={styles.playerRow}>
                     <div className={styles.cromoCell}>
                       <PlayerCromo
                         displayName={p.displayName}
+                        alias={p.alias}
                         photoSrc={p.photoSrc}
                         dorsal={p.dorsal}
                         position={p.position}
@@ -213,6 +231,8 @@ export default function SquadRatings({ teamId: _teamId, players, latestRatings, 
                       className={`${styles.toggleTab} ${!isCollapsed ? styles.toggleTabOpen : ""}`}
                       onClick={() => togglePanel(p.teamPlayerId)}
                       title={isCollapsed ? "Ver subvaloraciones" : "Ocultar subvaloraciones"}
+                      aria-expanded={!isCollapsed}
+                      aria-controls={panelId}
                     >
                       {isCollapsed ? (
                         <ChevronRightIcon sx={{ fontSize: 16 }} />
@@ -221,8 +241,23 @@ export default function SquadRatings({ teamId: _teamId, players, latestRatings, 
                       )}
                     </button>
                     <div
+                      id={panelId}
                       className={`${styles.panelSlider} ${isCollapsed ? styles.panelSliderCollapsed : ""}`}
+                      role={isCollapsed ? undefined : "region"}
+                      aria-label={isCollapsed ? undefined : `Valoraciones detalladas de ${resolvedPlayerName(p)}`}
+                      aria-hidden={isCollapsed}
                     >
+                      {!isCollapsed && (
+                        <button
+                          type="button"
+                          className={styles.mobileCloseBtn}
+                          onClick={() => togglePanel(p.teamPlayerId)}
+                          aria-label="Cerrar valoraciones"
+                        >
+                          <CloseIcon sx={{ fontSize: 16 }} />
+                          Cerrar
+                        </button>
+                      )}
                       <SubRatingsPanel rating={rating ?? null} />
                     </div>
                   </div>

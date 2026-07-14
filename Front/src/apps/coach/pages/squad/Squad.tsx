@@ -129,6 +129,7 @@ export default function Squad() {
           teamPlayerId: p.id ?? `${p.name ?? ""}-${idx}`,
           displayName:
             ((p.name ?? "") + " " + (p.lastName ?? "")).trim() || p.alias || "Jugador",
+          alias: p.alias ?? null,
           position: p.position ?? null,
           dorsal: p.dorsal ?? null,
           photoSrc: playerPhotos[key] ?? null,

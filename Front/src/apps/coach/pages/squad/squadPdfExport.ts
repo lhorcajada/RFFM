@@ -16,9 +16,14 @@ export type RatingSortKey = "physical" | "technical" | "tactical" | "competitive
 export type PdfPlayerEntry = {
   teamPlayerId: string;
   displayName: string;
+  alias?: string | null;
   position?: string | null;
   dorsal?: number | null;
 };
+
+function resolvedPdfName(p: PdfPlayerEntry): string {
+  return p.alias?.trim() ? p.alias.trim() : p.displayName;
+}
 
 // ─── Sub-rating group definitions ─────────────────────────────────────────────
 
@@ -318,7 +323,7 @@ function drawPlayerCard(
   doc.setFontSize(8);
   doc.setTextColor(255, 255, 255);
   const nameMaxW = cardW - (nameX - x) - (player.position ? cardW * 0.35 + 4 : 6);
-  doc.text(truncate(doc, player.displayName, nameMaxW), nameX, y + NAME_BAR_H - 4.5);
+  doc.text(truncate(doc, resolvedPdfName(player), nameMaxW), nameX, y + NAME_BAR_H - 4.5);
 
   // Position (right-aligned, subtle)
   if (player.position) {
@@ -720,7 +725,7 @@ function drawSummaryPage(
     const r = latestRatings[p.teamPlayerId];
     const rowVals: string[] = [
       String(rowIdx + 1),
-      p.displayName,
+      resolvedPdfName(p),
       p.dorsal != null ? String(p.dorsal) : "—",
       p.position ?? "—",
       r ? fmtNum(r.physical) : "—",
@@ -1038,7 +1043,7 @@ export function exportPlayerPdf(
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
   doc.setTextColor(255, 255, 255);
-  doc.text(truncate(doc, player.displayName, CW * 0.6), MH + 6, y + 14.5);
+  doc.text(truncate(doc, resolvedPdfName(player), CW * 0.6), MH + 6, y + 14.5);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7);
   doc.setTextColor(170, 170, 170);
@@ -1081,5 +1086,5 @@ export function exportPlayerPdf(
   }
   addPageNumbers(doc);
   const datePart = todayStr().replace(/\//g, "-");
-  doc.save(`valoracion_${safeFilename(player.displayName)}_${datePart}.pdf`);
+  doc.save(`valoracion_${safeFilename(resolvedPdfName(player))}_${datePart}.pdf`);
 }
