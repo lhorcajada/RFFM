@@ -86,4 +86,56 @@ describe("ClubSelector", () => {
 
     await waitFor(() => expect(mockDeleteClub).toHaveBeenCalledWith("club-1"));
   });
+
+  it("no muestra la columna Código de invitación cuando ningún club tiene código visible", async () => {
+    mockUseMediaQuery.mockReturnValue(false);
+    const onChange = vi.fn();
+    mockGetUserClubs.mockResolvedValue([
+      { clubId: "club-1", clubName: "FC Uno", shieldUrl: "", role: "Coach", roleId: 2, isCreator: true },
+    ]);
+    mockGetClubById.mockResolvedValue({
+      id: "club-1",
+      name: "FC Uno",
+      country: { name: "España" },
+      invitationCode: null,
+      emblemUrl: null,
+    });
+
+    render(<ClubSelector initialValue={null} onChange={onChange} />);
+
+    await waitFor(() => expect(screen.queryByText(/cargando/i)).not.toBeInTheDocument());
+    expect(screen.queryByText("Código de invitación")).not.toBeInTheDocument();
+  });
+
+  it("muestra la columna Código de invitación cuando al menos un club tiene código visible", async () => {
+    mockUseMediaQuery.mockReturnValue(false);
+    const onChange = vi.fn();
+    mockGetUserClubs.mockResolvedValue([
+      { clubId: "club-1", clubName: "FC Uno", shieldUrl: "", role: "Coach", roleId: 2, isCreator: true },
+      { clubId: "club-2", clubName: "FC Dos", shieldUrl: "", role: "Coach", roleId: 2, isCreator: true },
+    ]);
+    mockGetClubById.mockImplementation((clubId) => {
+      if (clubId === "club-1") {
+        return Promise.resolve({
+          id: "club-1",
+          name: "FC Uno",
+          country: { name: "España" },
+          invitationCode: "ABC123",
+          emblemUrl: null,
+        });
+      }
+      return Promise.resolve({
+        id: "club-2",
+        name: "FC Dos",
+        country: { name: "Portugal" },
+        invitationCode: null,
+        emblemUrl: null,
+      });
+    });
+
+    render(<ClubSelector initialValue={null} onChange={onChange} />);
+
+    await waitFor(() => expect(screen.getByText("Código de invitación")).toBeInTheDocument());
+    expect(screen.getByText("ABC123")).toBeInTheDocument();
+  });
 });

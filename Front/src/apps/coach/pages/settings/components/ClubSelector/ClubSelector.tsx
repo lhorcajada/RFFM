@@ -315,6 +315,8 @@ const ClubSelector: React.FC<ClubSelectorProps> = ({ initialValue, onChange }) =
     }
   };
 
+  const anyClubHasInvitationCode = clubs.some((club) => club.invitationCode != null);
+
   return (
     <div className={styles.dialogContent}>
       <Stack spacing={2} sx={{ mt: 1 }}>
@@ -364,7 +366,9 @@ const ClubSelector: React.FC<ClubSelectorProps> = ({ initialValue, onChange }) =
                             "-"
                           ),
                         },
-                        { label: "Código de invitación", value: club.invitationCode ?? "-" },
+                        ...(anyClubHasInvitationCode
+                          ? [{ label: "Código de invitación", value: club.invitationCode ?? "-" }]
+                          : []),
                         {
                           label: "Preferido",
                           value: (
@@ -403,7 +407,7 @@ const ClubSelector: React.FC<ClubSelectorProps> = ({ initialValue, onChange }) =
                       <TableCell>Nombre</TableCell>
                       <TableCell>País</TableCell>
                       <TableCell>Escudo</TableCell>
-                      <TableCell>Código de invitación</TableCell>
+                      {anyClubHasInvitationCode && <TableCell>Código de invitación</TableCell>}
                       <TableCell>Preferido</TableCell>
                       <TableCell>Acciones</TableCell>
                     </TableRow>
@@ -424,7 +428,9 @@ const ClubSelector: React.FC<ClubSelectorProps> = ({ initialValue, onChange }) =
                             "-"
                           )}
                         </TableCell>
-                        <TableCell>{club.invitationCode ?? "-"}</TableCell>
+                        {anyClubHasInvitationCode && (
+                          <TableCell>{club.invitationCode ?? "-"}</TableCell>
+                        )}
                         <TableCell>
                           <Switch
                             checked={club.id === value}

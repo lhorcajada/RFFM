@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Common.Behaviors;
+using RFFM.Api.Features.Coaches.Clubs;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
 using static RFFM.Api.Features.Coaches.Countries.Queries.GetCountries;
@@ -15,12 +16,13 @@ namespace RFFM.Api.Features.Coaches.Clubs.Queries
         public void AddRoutes(IEndpointRouteBuilder app)
         {
             app.MapGet("/api/catalog/club/{id}",
-                    async (string id, IMediator mediator, CancellationToken cancellationToken) =>
+                    async (string id, HttpContext httpContext, IMediator mediator, AppDbContext db, CancellationToken cancellationToken) =>
                     {
+                        var canViewInvitationCode = await ClubInvitationCodeVisibility.CanViewAsync(db, httpContext.User, id, cancellationToken);
                         var query = new GetClubQueryApp
                         {
-                            ClubId = id
-
+                            ClubId = id,
+                            CanViewInvitationCode = canViewInvitationCode
                         };
                         return await mediator.Send(query, cancellationToken);
                     })
@@ -32,7 +34,8 @@ namespace RFFM.Api.Features.Coaches.Clubs.Queries
         public record GetClubQueryApp : Common.IQueryApp<GetClubResponse>, ICacheRequest
         {
             public string ClubId { get; set; }
-            public string CacheKey => $"{ClubConstants.CachePrefix}:{ClubId}";
+            public bool CanViewInvitationCode { get; set; }
+            public string CacheKey => $"{ClubConstants.CachePrefix}:{ClubId}:{(CanViewInvitationCode ? "priv" : "pub")}";
             public DateTime? AbsoluteExpirationRelativeToNow { get; }
         }
 
@@ -57,9 +60,8 @@ namespace RFFM.Api.Features.Coaches.Clubs.Queries
 
                 return new GetClubResponse(club.Id, club.Name,
                     new CountriesResponse(club.CountryId, club.Country.Name, club.Country.Code),
-                    club.ShieldUrl, club.InvitationCode);
-
-
+                    club.ShieldUrl,
+                    request.CanViewInvitationCode ? club.InvitationCode : null);
             }
         }
     }
