@@ -49,7 +49,7 @@ export function usePlayerAutoLoad() {
         navigate(`/coach/team-dashboard?teamId=${profile.teamId}`, { replace: true });
       } else {
         // No team linked — send back to AppSelector to re-link
-        navigate("/", { replace: true, state: { needsTeamRelink: true } });
+        navigate("/appSelector", { replace: true, state: { needsTeamRelink: true } });
       }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps

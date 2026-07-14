@@ -88,4 +88,18 @@ describe("usePlayerAutoLoad", () => {
     });
     expect(localStorage.getItem("coach_player_teamId")).toBe("team-77");
   });
+
+  it("redirects players without a linked team to AppSelector to trigger re-linking", async () => {
+    mockGetRoles.mockReturnValue(["Player"]);
+    mockGetMyProfile.mockResolvedValue({ teamId: null });
+
+    render(<HookProbe />);
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith("/appSelector", {
+        replace: true,
+        state: { needsTeamRelink: true },
+      });
+    });
+  });
 });

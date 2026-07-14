@@ -67,6 +67,8 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
                     .AsNoTracking()
                     .Include(tp => tp.Player)
                     .Where(tp => tp.TeamId == request.TeamId)
+                    .OrderBy(tp => tp.Player.Name)
+                    .ThenBy(tp => tp.Player.LastName)
                     .Select(tp => new PlayerForSelection(
                         tp.Id,
                         tp.Player.Name,
@@ -75,8 +77,6 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
                         tp.Player.UrlPhoto,
                         tp.Player.BirthDate.HasValue ? tp.Player.BirthDate.Value.ToString("yyyy-MM-dd") : null,
                         tp.Dorsal != null ? tp.Dorsal.Number : null))
-                    .OrderBy(p => p.Name)
-                    .ThenBy(p => p.LastName)
                     .ToListAsync(cancellationToken);
 
                 return new GetTeamPlayersResponse(team.Id, team.Name, players);

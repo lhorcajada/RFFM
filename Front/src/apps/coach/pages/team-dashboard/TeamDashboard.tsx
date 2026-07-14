@@ -24,10 +24,10 @@ export default function TeamDashboard() {
             <Button
               variant="outlined"
               startIcon={<ArrowBackIcon />}
-              onClick={() => navigate("/coach/dashboard")}
+              onClick={() => navigate(isPlayer ? "/appSelector" : "/coach/dashboard")}
               sx={{ textTransform: "none", marginLeft: "auto" }}
             >
-              Volver al dashboard de entrenador
+              {isPlayer ? "Volver" : "Volver al dashboard de entrenador"}
             </Button>
           </div>
         }
