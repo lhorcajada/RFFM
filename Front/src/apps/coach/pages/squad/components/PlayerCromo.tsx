@@ -15,7 +15,10 @@ type RatingData = {
 };
 
 type Props = {
+  /** Full name of the player, used as a fallback when there is no alias. */
   displayName: string;
+  /** Player's alias/nickname. When present (non-empty), it takes priority over displayName. */
+  alias?: string | null;
   photoSrc?: string | null;
   dorsal?: number | null;
   position?: string | null;
@@ -67,6 +70,7 @@ const MEDALS = ["🥇", "🥈", "🥉"];
 
 export default function PlayerCromo({
   displayName,
+  alias,
   photoSrc,
   dorsal,
   position,
@@ -86,7 +90,8 @@ export default function PlayerCromo({
   seasonStats,
   streakCount,
 }: Props) {
-  const initial = displayName.trim().charAt(0).toUpperCase();
+  const resolvedName = alias?.trim() ? alias.trim() : displayName;
+  const initial = resolvedName.trim().charAt(0).toUpperCase();
   const showActions =
     actions != null || onEdit != null || onHistory != null || onPrint != null;
 
@@ -117,9 +122,9 @@ export default function PlayerCromo({
       {!hidePhoto ? (
         <div className={styles.photoArea}>
           {photoSrc ? (
-            <img src={photoSrc} alt={displayName} className={styles.photo} />
+            <img src={photoSrc} alt={resolvedName} className={styles.photo} />
           ) : (
-            <img src={avatarFallback} alt={displayName} className={styles.photoAvatar} />
+            <img src={avatarFallback} alt={resolvedName} className={styles.photoAvatar} />
           )}
           <div className={styles.photoGradient} />
 
@@ -155,7 +160,7 @@ export default function PlayerCromo({
         <div className={styles.accentLine} />
         <div className={styles.playerName}>
           {dorsal != null && <span className={styles.dorsalInline}>{dorsal}</span>}
-          {displayName}
+          {resolvedName}
         </div>
         {position && <div className={styles.positionTag}>{position}</div>}
         {details && details.some((detail) => Boolean(detail?.trim())) ? (

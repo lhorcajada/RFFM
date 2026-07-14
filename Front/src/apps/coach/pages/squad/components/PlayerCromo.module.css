@@ -38,7 +38,8 @@
 /* ─── Photo ─── */
 .photoArea {
   position: relative;
-  height: 240px;
+  width: 100%;
+  aspect-ratio: 3 / 4;
   flex: 0 0 auto;
   overflow: hidden;
 }
@@ -364,10 +365,6 @@
 
 /* ─── Compact mobile layout ─── */
 @media (max-width: 600px) {
-  .photoArea {
-    height: 130px;
-  }
-
   .avgBadge {
     font-size: 1.15rem;
   }

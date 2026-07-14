@@ -340,11 +340,12 @@ export default function Squad() {
                     <div className={styles.positionPanelGrid}>
                       {group.map((p, idx) => {
                         const key = p.id ?? `${p.name ?? ""}-${p.lastName ?? ""}-${idx}`;
-                        const displayName = ((p.name ?? "") + " " + (p.lastName ?? "")).trim() || p.alias || "Jugador";
+                        const displayName = ((p.name ?? "") + " " + (p.lastName ?? "")).trim() || "Jugador";
                         return (
                           <PlayerCromo
                             key={key}
                             displayName={displayName}
+                            alias={p.alias}
                             photoSrc={playerPhotos[key] ?? null}
                             dorsal={p.dorsal ?? null}
                             position={p.position ?? null}
