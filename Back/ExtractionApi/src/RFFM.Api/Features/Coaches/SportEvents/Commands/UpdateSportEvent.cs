@@ -37,7 +37,7 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
 
                         await db.SaveChangesAsync(cancellationToken);
 
-                        return Results.Ok(new SportEventSaveResponse(ev.Id, ev.Name, ev.EveDateTime, ev.StartTime, ev.EndTime, ev.ArrivalDate, ev.Location, ev.Description, ev.EventTypeId, ev.TeamId, ev.RivalId, ev.IsHomeMatch, ev.CodActa));
+                        return Results.Ok(new SportEventSaveResponse(ev.Id, ev.Name, ev.EveDateTime, ev.StartTime, ev.EndTime, ev.ArrivalDate, ev.Location, ev.Description, ev.EventTypeId, ev.TeamId, ev.RivalId, ev.IsHomeMatch, ev.CodActa, ev.RecurrenceId, ev.IsRecurrenceMaster, null));
                     })
                 .WithName(nameof(UpdateSportEvent))
                 .WithTags(SportEventsConstants.SportEventsFeature)

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   Button,
+  Checkbox,
   CircularProgress,
   Dialog,
   DialogActions,
@@ -67,6 +68,11 @@ export default function SportEventDialog({
   const [rivalId, setRivalId] = useState<string>("");
   const [isHomeMatch, setIsHomeMatch] = useState<boolean>(true);
 
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurrenceFrequency, setRecurrenceFrequency] =
+    useState<"daily" | "weekly" | "monthly">("weekly");
+  const [recurrenceEndDate, setRecurrenceEndDate] = useState("");
+
   const [eventTypes, setEventTypes] = useState<SportEventType[]>([]);
   const [rivals, setRivals] = useState<Rival[]>([]);
   const [loadingTypes, setLoadingTypes] = useState(false);
@@ -130,6 +136,9 @@ export default function SportEventDialog({
       setRivalId("");
       setIsHomeMatch(true);
     }
+    setIsRecurring(false);
+    setRecurrenceFrequency("weekly");
+    setRecurrenceEndDate("");
     setError(null);
   }, [open, event]);
 
@@ -146,6 +155,19 @@ export default function SportEventDialog({
       setError("El tipo de evento es obligatorio.");
       return;
     }
+    if (isRecurring) {
+      if (!recurrenceEndDate) {
+        setError("La fecha final de la recurrencia es obligatoria.");
+        return;
+      }
+      const eventDateOnly = eveDateTime.slice(0, 10);
+      if (recurrenceEndDate <= eventDateOnly) {
+        setError(
+          "La fecha final de la recurrencia debe ser posterior a la fecha del evento."
+        );
+        return;
+      }
+    }
     setSaving(true);
     setError(null);
     try {
@@ -160,6 +182,9 @@ export default function SportEventDialog({
         teamId,
         rivalId: isMatchType ? (rivalId || null) : null,
         isHomeMatch: isMatchType ? isHomeMatch : undefined,
+        recurrence: isRecurring
+          ? { frequency: recurrenceFrequency, endDate: recurrenceEndDate }
+          : undefined,
       };
 
       let savedEvent: SportEventResponse | undefined;
@@ -242,6 +267,49 @@ export default function SportEventDialog({
           onChange={(e) => setEndTime(e.target.value)}
           sx={{ mb: 2 }}
         />
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={isRecurring}
+              onChange={(e) => setIsRecurring(e.target.checked)}
+              size="small"
+            />
+          }
+          label="¿Es recurrente?"
+          sx={{ mb: 1 }}
+        />
+        {isRecurring && (
+          <>
+            <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+              <InputLabel id="recurrence-frequency-label">Frecuencia</InputLabel>
+              <Select
+                labelId="recurrence-frequency-label"
+                label="Frecuencia"
+                value={recurrenceFrequency}
+                onChange={(e) =>
+                  setRecurrenceFrequency(
+                    e.target.value as "daily" | "weekly" | "monthly"
+                  )
+                }
+              >
+                <MenuItem value="daily">Diaria</MenuItem>
+                <MenuItem value="weekly">Semanal</MenuItem>
+                <MenuItem value="monthly">Mensual</MenuItem>
+              </Select>
+            </FormControl>
+            <TextField
+              label="Fecha final de la recurrencia"
+              type="date"
+              fullWidth
+              size="small"
+              InputLabelProps={{ shrink: true }}
+              value={recurrenceEndDate}
+              onChange={(e) => setRecurrenceEndDate(e.target.value)}
+              sx={{ mb: 2 }}
+              required
+            />
+          </>
+        )}
         {isMatchType && (
           <FormControl fullWidth size="small" sx={{ mb: 2 }}>
             <InputLabel id="rival-label">Rival (opcional)</InputLabel>

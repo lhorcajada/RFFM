@@ -58,6 +58,18 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.Assistanc
 
             builder.Property(se => se.SelectedKitNumber)
                 .IsRequired(false);
+
+            builder.Property(se => se.RecurrenceId)
+                .IsRequired(false);
+
+            builder.Property(se => se.IsRecurrenceMaster)
+                .IsRequired()
+                .HasDefaultValue(false);
+
+            builder.HasOne(se => se.Recurrence)
+                .WithMany(r => r.Events)
+                .HasForeignKey(se => se.RecurrenceId)
+                .OnDelete(DeleteBehavior.SetNull);
         }
     }
 }

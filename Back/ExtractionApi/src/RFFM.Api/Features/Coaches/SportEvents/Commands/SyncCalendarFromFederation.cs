@@ -165,7 +165,7 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
                                     existing.Id, existing.Name, existing.EveDateTime, existing.StartTime,
                                     existing.EndTime, existing.ArrivalDate, existing.Location, existing.Description,
                                     existing.EventTypeId, existing.TeamId, existing.RivalId,
-                                    existing.IsHomeMatch, existing.CodActa));
+                                    existing.IsHomeMatch, existing.CodActa, existing.RecurrenceId, existing.IsRecurrenceMaster, null));
                             }
                             else
                             {
@@ -183,7 +183,7 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
                                     newEvent.Id, newEvent.Name, newEvent.EveDateTime, newEvent.StartTime,
                                     newEvent.EndTime, newEvent.ArrivalDate, newEvent.Location, newEvent.Description,
                                     newEvent.EventTypeId, newEvent.TeamId, newEvent.RivalId,
-                                    newEvent.IsHomeMatch, newEvent.CodActa));
+                                    newEvent.IsHomeMatch, newEvent.CodActa, newEvent.RecurrenceId, newEvent.IsRecurrenceMaster, null));
                             }
 
                             await db.SaveChangesAsync(cancellationToken);

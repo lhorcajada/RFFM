@@ -104,6 +104,11 @@ export async function deleteSportEvent(id: string): Promise<void> {
   await client.delete(`/api/sport-events/${id}`);
 }
 
+export interface SportEventRecurrencePayload {
+  frequency: "daily" | "weekly" | "monthly";
+  endDate: string; // yyyy-MM-dd
+}
+
 export interface SportEventPayload {
   name: string;
   eveDateTime: string; // ISO
@@ -117,6 +122,7 @@ export interface SportEventPayload {
   rivalId?: string | null;
   isHomeMatch?: boolean | null;
   codActa?: string | null;
+  recurrence?: SportEventRecurrencePayload | null;
 }
 
 export async function createSportEvent(

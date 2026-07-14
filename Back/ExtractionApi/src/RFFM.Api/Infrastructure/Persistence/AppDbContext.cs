@@ -46,6 +46,7 @@ namespace RFFM.Api.Infrastructure.Persistence
         public DbSet<ConvocationHistory> ConvocationHistories { get; set; }
         public DbSet<ConvocationStatus> ConvocationStatuses { get; set; }
         public DbSet<SportEvent> SportEvents { get; set; }
+        public DbSet<EventRecurrence> EventRecurrences { get; set; }
         public DbSet<SportEventType> SportEventTypes { get; set; }
         public DbSet<TrainingSession> TrainingSessions { get; set; }
         public DbSet<TaskTraining> TasksTraining { get; set; }

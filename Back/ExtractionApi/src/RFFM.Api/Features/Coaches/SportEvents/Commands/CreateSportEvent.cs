@@ -1,3 +1,4 @@
+using System.Linq;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
@@ -48,10 +49,59 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
                             req.CodActa
                         );
 
+                        EventRecurrence? recurrence = null;
+                        var instances = Array.Empty<SportEvent>();
+
+                        // The master SportEvent must be persisted (unlinked) before EventRecurrence
+                        // can be created, because EventRecurrence.MasterEventId and
+                        // SportEvent.RecurrenceId are FKs pointing at each other: adding both as new
+                        // rows in the same SaveChanges is rejected by EF Core as a circular
+                        // dependency (neither insert can be ordered before the other).
                         db.SportEvents.Add(ev);
                         await db.SaveChangesAsync(cancellationToken);
 
-                        return Results.Ok(new SportEventSaveResponse(ev.Id, ev.Name, ev.EveDateTime, ev.StartTime, ev.EndTime, ev.ArrivalDate, ev.Location, ev.Description, ev.EventTypeId, ev.TeamId, ev.RivalId, ev.IsHomeMatch, ev.CodActa));
+                        if (req.Recurrence is not null)
+                        {
+                            var frequency = RecurrenceFrequency.FromCode(req.Recurrence.Frequency);
+                            var endDateUtc = DateTime.SpecifyKind(req.Recurrence.EndDate, DateTimeKind.Utc);
+                            var dates = RecurrenceScheduler.GenerateDates(ev.EveDateTime, frequency, endDateUtc);
+
+                            recurrence = EventRecurrence.Create(frequency, endDateUtc, ev.Id, dates.Count);
+                            ev.RecurrenceId = recurrence.Id;
+                            ev.IsRecurrenceMaster = true;
+
+                            var startOffset = ev.StartTime - ev.EveDateTime;
+                            var endOffset = ev.EndTime.HasValue ? ev.EndTime.Value - ev.EveDateTime : (TimeSpan?)null;
+                            var arrivalOffset = ev.ArrivalDate.HasValue ? ev.ArrivalDate.Value - ev.EveDateTime : (TimeSpan?)null;
+
+                            instances = dates.Skip(1)
+                                .Select(d => SportEvent.CreateNew(
+                                    ev.Name,
+                                    d,
+                                    d.Add(startOffset),
+                                    endOffset.HasValue ? d.Add(endOffset.Value) : (DateTime?)null,
+                                    arrivalOffset.HasValue ? d.Add(arrivalOffset.Value) : (DateTime?)null,
+                                    ev.Location,
+                                    ev.Description,
+                                    ev.EventTypeId,
+                                    ev.TeamId,
+                                    ev.RivalId,
+                                    ev.IsHomeMatch,
+                                    null // CodActa is match-specific, never copied to generated instances
+                                ))
+                                .ToArray();
+
+                            foreach (var instance in instances)
+                            {
+                                instance.RecurrenceId = recurrence.Id;
+                            }
+
+                            db.EventRecurrences.Add(recurrence);
+                            db.SportEvents.AddRange(instances);
+                            await db.SaveChangesAsync(cancellationToken);
+                        }
+
+                        return Results.Ok(new SportEventSaveResponse(ev.Id, ev.Name, ev.EveDateTime, ev.StartTime, ev.EndTime, ev.ArrivalDate, ev.Location, ev.Description, ev.EventTypeId, ev.TeamId, ev.RivalId, ev.IsHomeMatch, ev.CodActa, ev.RecurrenceId, ev.IsRecurrenceMaster, recurrence?.InstanceCount));
                     })
                 .WithName(nameof(CreateSportEvent))
                 .WithTags(SportEventsConstants.SportEventsFeature)
@@ -72,7 +122,13 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
         string TeamId,
         string? RivalId,
         bool? IsHomeMatch,
-        string? CodActa
+        string? CodActa,
+        RecurrenceRequest? Recurrence = null
+    );
+
+    public record RecurrenceRequest(
+        string Frequency,
+        DateTime EndDate
     );
 
     public class CreateSportEventValidator : AbstractValidator<CreateSportEventRequest>
@@ -82,6 +138,33 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
             RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
             RuleFor(x => x.TeamId).NotEmpty();
             RuleFor(x => x.EventTypeId).GreaterThan(0);
+
+            When(x => x.Recurrence is not null, () =>
+            {
+                RuleFor(x => x.Recurrence!.Frequency)
+                    .Must(f => RecurrenceFrequency.IsValidCode(f))
+                    .WithMessage("La frecuencia debe ser 'daily', 'weekly' o 'monthly'");
+
+                RuleFor(x => x.Recurrence!.EndDate)
+                    .GreaterThan(x => x.EveDateTime)
+                    .WithMessage("La fecha final de la recurrencia debe ser posterior a la fecha del evento");
+
+                RuleFor(x => x)
+                    .Must(BeWithinInstanceCap)
+                    .WithMessage($"Una serie recurrente no puede generar más de {RecurrenceConstants.MaxInstances} eventos; acorta la fecha final o cambia la frecuencia");
+            });
+        }
+
+        private static bool BeWithinInstanceCap(CreateSportEventRequest request)
+        {
+            if (!RecurrenceFrequency.IsValidCode(request.Recurrence!.Frequency))
+            {
+                // Frequency-validity rule above already reports this; do not double-fail here.
+                return true;
+            }
+            var frequency = RecurrenceFrequency.FromCode(request.Recurrence.Frequency);
+            var dates = RecurrenceScheduler.GenerateDates(request.EveDateTime, frequency, request.Recurrence.EndDate);
+            return dates.Count <= RecurrenceConstants.MaxInstances;
         }
     }
 
@@ -98,6 +181,9 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
         string TeamId,
         string? RivalId,
         bool IsHomeMatch,
-        string? CodActa
+        string? CodActa,
+        string? RecurrenceId,
+        bool IsRecurrenceMaster,
+        int? RecurrenceInstanceCount
     );
 }

@@ -22,6 +22,9 @@ namespace RFFM.Api.Domain.Aggregates.Assistances
         public string? VisitorGoals { get; set; }
         /// <summary>Kit number selected for this match (1 = primera, 2 = segunda, null = not selected).</summary>
         public int? SelectedKitNumber { get; set; }
+        public string? RecurrenceId { get; set; }
+        public bool IsRecurrenceMaster { get; set; }
+        public EventRecurrence? Recurrence { get; set; }
 
         public Team Team { get; set; } = null!;
         public Rival? Rival { get; set; } = null!;
