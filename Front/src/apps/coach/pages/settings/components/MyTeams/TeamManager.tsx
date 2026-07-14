@@ -8,6 +8,7 @@ import {
   DialogContent,
   DialogTitle,
   FormControl,
+  IconButton,
   InputLabel,
   MenuItem,
   Select,
@@ -17,10 +18,12 @@ import {
   TableCell,
   TableHead,
   TableRow,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { useTheme } from "@mui/material/styles";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import teamService, { TeamResponse } from "../../../../services/teamService";
 import styles from "./TeamManager.module.css";
 import seasonService from "../../../../services/seasonService";
@@ -28,6 +31,7 @@ import clubService from "../../../../services/clubService";
 import type { Season } from "../../../../services/seasonService";
 import type { UserClubsResponse } from "../../../../types/userClubs";
 import SettingsRowCard from "../shared/SettingsRowCard/SettingsRowCard";
+import { scopesApi } from "../../../../../../shared/services/scopes/scopesApi";
 
 interface TeamManagementDialogProps {
   open?: boolean;
@@ -51,6 +55,8 @@ export default function TeamManager({ open, clubId }: TeamManagementDialogProps)
   const [availableClubs, setAvailableClubs] = useState<UserClubsResponse[]>([]);
   const [clubsLoading, setClubsLoading] = useState(false);
   const [selectedClubForCreation, setSelectedClubForCreation] = useState("");
+
+  const [generatingCodeForTeamId, setGeneratingCodeForTeamId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!clubId) {
@@ -125,6 +131,73 @@ export default function TeamManager({ open, clubId }: TeamManagementDialogProps)
     goToCreateTeam(selectedClubForCreation);
   };
 
+  const handleCopyCode = (code: string) => {
+    navigator.clipboard.writeText(code).then(() => {
+      window.dispatchEvent(
+        new CustomEvent("rffm.show_snackbar", {
+          detail: { message: "Código copiado al portapapeles", severity: "success" },
+        })
+      );
+    });
+  };
+
+  const handleGenerateCode = async (team: TeamResponse) => {
+    setGeneratingCodeForTeamId(team.id);
+    try {
+      const res = await scopesApi.regenerateInvitation({ scopeKind: "team", scopeId: team.id });
+      setTeams((prev) =>
+        prev.map((t) => (t.id === team.id ? { ...t, joinCode: res.newCode } : t))
+      );
+      window.dispatchEvent(
+        new CustomEvent("rffm.show_snackbar", {
+          detail: { message: "Código generado correctamente", severity: "success" },
+        })
+      );
+    } catch (e: any) {
+      const message = e?.response?.data?.detail ?? "Error al generar el código";
+      window.dispatchEvent(
+        new CustomEvent("rffm.show_snackbar", {
+          detail: { message, severity: "error" },
+        })
+      );
+    } finally {
+      setGeneratingCodeForTeamId(null);
+    }
+  };
+
+  const renderJoinCode = (team: TeamResponse) => {
+    if (team.joinCode) {
+      return (
+        <div className={styles.codeRow}>
+          <Typography variant="body2" className={styles.codeValue}>
+            {team.joinCode}
+          </Typography>
+          <Tooltip title="Copiar código">
+            <IconButton
+              className={styles.copyButton}
+              size="small"
+              onClick={() => handleCopyCode(team.joinCode!)}
+              aria-label="Copiar código"
+            >
+              <ContentCopyIcon fontSize="inherit" />
+            </IconButton>
+          </Tooltip>
+        </div>
+      );
+    }
+
+    return (
+      <Button
+        variant="outlined"
+        size="small"
+        onClick={() => handleGenerateCode(team)}
+        disabled={generatingCodeForTeamId === team.id}
+      >
+        {generatingCodeForTeamId === team.id ? "Generando..." : "Generar código"}
+      </Button>
+    );
+  };
+
   const content = (
     <div className={styles.dialogContent}>
       <Stack spacing={2} sx={{ mt: 1 }}>
@@ -171,6 +244,7 @@ export default function TeamManager({ open, clubId }: TeamManagementDialogProps)
                         { label: "Categoría", value: team.category?.name ?? "-" },
                         { label: "Liga", value: team.league?.name ?? "-" },
                         { label: "Grupo", value: team.league?.group ?? "-" },
+                        { label: "Código", value: renderJoinCode(team) },
                       ]}
                     />
                   ))}
@@ -183,6 +257,7 @@ export default function TeamManager({ open, clubId }: TeamManagementDialogProps)
                       <TableCell>Categoría</TableCell>
                       <TableCell>Liga</TableCell>
                       <TableCell>Grupo</TableCell>
+                      <TableCell>Código</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -192,6 +267,7 @@ export default function TeamManager({ open, clubId }: TeamManagementDialogProps)
                         <TableCell>{team.category?.name}</TableCell>
                         <TableCell>{team.league?.name ?? "-"}</TableCell>
                         <TableCell>{team.league?.group ?? "-"}</TableCell>
+                        <TableCell>{renderJoinCode(team)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

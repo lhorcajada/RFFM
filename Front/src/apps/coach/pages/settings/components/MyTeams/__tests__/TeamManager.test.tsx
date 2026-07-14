@@ -40,6 +40,13 @@ vi.mock("@mui/material/useMediaQuery", () => ({
   default: (...args: unknown[]) => mockUseMediaQuery(...args),
 }));
 
+const mockRegenerateInvitation = vi.fn();
+vi.mock("../../../../../../../shared/services/scopes/scopesApi", () => ({
+  scopesApi: {
+    regenerateInvitation: (...args: unknown[]) => mockRegenerateInvitation(...args),
+  },
+}));
+
 import TeamManager from "../TeamManager";
 
 describe("TeamManager", () => {
@@ -52,6 +59,9 @@ describe("TeamManager", () => {
       { clubId: "club-1", clubName: "FC Uno", shieldUrl: "", role: "Coach", roleId: 2, isCreator: true },
     ]);
     mockUseMediaQuery.mockReturnValue(false);
+    Object.assign(navigator, {
+      clipboard: { writeText: vi.fn().mockResolvedValue(undefined) },
+    });
   });
 
   it("en escritorio muestra los equipos en una tabla", async () => {
@@ -134,5 +144,101 @@ describe("TeamManager", () => {
       "/coach/clubs/club-1/teams/new",
       expect.objectContaining({ state: expect.objectContaining({ from: "settings" }) })
     );
+  });
+
+  it("en escritorio muestra el código de invitación y permite copiarlo", async () => {
+    mockGetTeams.mockResolvedValue([
+      {
+        id: "team-1",
+        name: "Alevín A",
+        category: { name: "Alevín" },
+        league: { name: "Liga Local", group: "Grupo 2" },
+        joinCode: "ABC123",
+      },
+    ]);
+    mockUseMediaQuery.mockReturnValue(false);
+    const dispatchSpy = vi.spyOn(window, "dispatchEvent");
+
+    render(<TeamManager clubId="club-1" />);
+
+    expect(await screen.findByText("ABC123")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: /copiar código/i }));
+
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith("ABC123");
+    await waitFor(() => {
+      expect(dispatchSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "rffm.show_snackbar",
+          detail: expect.objectContaining({ severity: "success" }),
+        })
+      );
+    });
+  });
+
+  it("en escritorio muestra un botón para generar el código cuando no existe", async () => {
+    mockGetTeams.mockResolvedValue([
+      {
+        id: "team-1",
+        name: "Alevín A",
+        category: { name: "Alevín" },
+        league: { name: "Liga Local", group: "Grupo 2" },
+        joinCode: null,
+      },
+    ]);
+    mockUseMediaQuery.mockReturnValue(false);
+
+    render(<TeamManager clubId="club-1" />);
+
+    expect(await screen.findByRole("button", { name: /generar código/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /copiar código/i })).not.toBeInTheDocument();
+  });
+
+  it("genera el código de invitación de un equipo y lo muestra sin recargar toda la lista", async () => {
+    mockGetTeams.mockResolvedValue([
+      {
+        id: "team-1",
+        name: "Alevín A",
+        category: { name: "Alevín" },
+        league: { name: "Liga Local", group: "Grupo 2" },
+        joinCode: null,
+      },
+    ]);
+    mockUseMediaQuery.mockReturnValue(false);
+    mockRegenerateInvitation.mockResolvedValue({
+      scopeKind: "team",
+      scopeId: "team-1",
+      newCode: "NEWCODE1",
+    });
+
+    render(<TeamManager clubId="club-1" />);
+
+    const generateButton = await screen.findByRole("button", { name: /generar código/i });
+    await userEvent.click(generateButton);
+
+    expect(mockRegenerateInvitation).toHaveBeenCalledWith({ scopeKind: "team", scopeId: "team-1" });
+
+    expect(await screen.findByText("NEWCODE1")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /generar código/i })).not.toBeInTheDocument();
+    expect(mockGetTeams).toHaveBeenCalledTimes(1);
+  });
+
+  it("en móvil muestra el código de invitación dentro de la tarjeta del equipo", async () => {
+    mockGetTeams.mockResolvedValue([
+      {
+        id: "team-1",
+        name: "Alevín A",
+        category: { name: "Alevín" },
+        league: { name: "Liga Local", group: "Grupo 2" },
+        joinCode: "ABC123",
+      },
+    ]);
+    mockUseMediaQuery.mockReturnValue(true);
+
+    render(<TeamManager clubId="club-1" />);
+
+    const card = await screen.findByTestId("team-row-card-team-1");
+    expect(within(card).getByText("ABC123")).toBeInTheDocument();
+    expect(within(card).getByRole("button", { name: /copiar código/i })).toBeInTheDocument();
   });
 });

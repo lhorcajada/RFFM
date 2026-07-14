@@ -84,3 +84,18 @@
     grid-template-columns: 1fr;
   }
 }
+
+.codeRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.codeValue {
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.copyButton {
+  color: inherit;
+}
