@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -10,9 +11,11 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
 {
     // Intentionally not gated by IRequireFeaturePermission: these routes are inline Minimal API
     // handlers (not Mediator ICommand/IQueryApp), so FeaturePermissionBehavior cannot intercept them
-    // without a refactor to CQRS. Player is Read-only on CoachFeatureRoutes.Injured but must retain
-    // today's access to this endpoint (Lesionados is one of the 8 allowed dashboard features);
-    // revisit by converting this feature to Mediator records if stricter enforcement is needed.
+    // without a refactor to CQRS. GET stays open to every authenticated role -- Player is Read-only
+    // on CoachFeatureRoutes.Injured and must retain today's access (Lesionados is one of the 8
+    // allowed dashboard features). Writes (POST/PUT/DELETE) are restricted directly via
+    // [Authorize(Roles = "Coach,Administrator")], mirroring the pattern used by UpdateTeamPlayer,
+    // CreateConceptualRating and CreateTeamPlayerRating.
     public class SetPlayerInjury : IFeatureModule
     {
         public void AddRoutes(IEndpointRouteBuilder app)
@@ -39,6 +42,7 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
 
             // POST create injury
             app.MapPost("/api/catalog/teamplayer/{id}/injuries",
+                [Authorize(Roles = "Coach,Administrator")]
                 async (string id, InjuryCreateRequest req, AppDbContext db, CancellationToken ct) =>
                 {
                     var exists = await db.TeamPlayers.AnyAsync(tp => tp.Id == id, ct);
@@ -60,6 +64,7 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
 
             // PUT update injury
             app.MapPut("/api/catalog/teamplayer/{id}/injuries/{injuryId}",
+                [Authorize(Roles = "Coach,Administrator")]
                 async (string id, string injuryId, InjuryUpdateRequest req, AppDbContext db, CancellationToken ct) =>
                 {
                     var injury = await db.TeamPlayerInjuries
@@ -79,6 +84,7 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
 
             // DELETE injury
             app.MapDelete("/api/catalog/teamplayer/{id}/injuries/{injuryId}",
+                [Authorize(Roles = "Coach,Administrator")]
                 async (string id, string injuryId, AppDbContext db, CancellationToken ct) =>
                 {
                     var injury = await db.TeamPlayerInjuries

@@ -12,6 +12,7 @@ import {
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SaveIcon from "@mui/icons-material/Save";
 
+import { usePermissions } from "../../../../../shared/hooks/usePermissions";
 import BaseLayout from "../../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../../shared/components/ui/ContentLayout/ContentLayout";
 import avatarFallback from "../../../../../assets/avatar.svg";
@@ -71,6 +72,8 @@ export default function NewRatingPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const squadSearch = searchParams.toString() ? `?${searchParams.toString()}&tab=1` : "?tab=1";
+  const { role } = usePermissions();
+  const canSaveRating = role === "Coach" || role === "Administrator";
 
   const [playerName, setPlayerName] = useState<string>("");
   const [playerDorsal, setPlayerDorsal] = useState<number | null>(null);
@@ -326,15 +329,17 @@ export default function NewRatingPage() {
             <Button size="small" variant="outlined" startIcon={<ArrowBackIcon />} onClick={() => navigate(`/coach/squad${squadSearch}`)}>
               Volver
             </Button>
-            <Button
-              size="small"
-              variant="contained"
-              startIcon={<SaveIcon />}
-              disabled={!allAnswered || saving}
-              onClick={handleSave}
-            >
-              {saving ? "Guardando…" : "Guardar"}
-            </Button>
+            {canSaveRating && (
+              <Button
+                size="small"
+                variant="contained"
+                startIcon={<SaveIcon />}
+                disabled={!allAnswered || saving}
+                onClick={handleSave}
+              >
+                {saving ? "Guardando…" : "Guardar"}
+              </Button>
+            )}
           </Box>
           </>
         }

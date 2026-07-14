@@ -1,4 +1,5 @@
 using Mediator;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -12,11 +13,16 @@ using RFFM.Api.Domain.ValueObjects;
 
 namespace RFFM.Api.Features.Coaches.Players.Commands
 {
+    // Intentionally not gated by IRequireFeaturePermission: this route is an inline Minimal API
+    // handler (not a Mediator ICommand/IQueryApp), so FeaturePermissionBehavior cannot intercept
+    // it without a refactor to CQRS. Restricted directly via [Authorize(Roles = ...)] instead,
+    // mirroring the pattern used by CreateConceptualRating and CreateTeamPlayerRating.
     public class UpdateTeamPlayer : IFeatureModule
     {
         public void AddRoutes(IEndpointRouteBuilder app)
         {
             app.MapPut("/api/catalog/teamplayer/{id}",
+                    [Authorize(Roles = "Coach,Administrator")]
                     async (string id, UpdateRequest req, AppDbContext db, CancellationToken cancellationToken) =>
                     {
                         var item = await db.TeamPlayers
@@ -153,7 +159,9 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
                 .WithName(nameof(UpdateTeamPlayer))
                 .WithTags(PlayerConstants.PlayerFeature)
                 .Accepts<UpdateRequest>("application/json")
-                .Produces<TeamPlayerResponse>();
+                .Produces<TeamPlayerResponse>()
+                .Produces(StatusCodes.Status404NotFound)
+                .Produces(StatusCodes.Status403Forbidden);
         }
 
         public record UpdateRequest(

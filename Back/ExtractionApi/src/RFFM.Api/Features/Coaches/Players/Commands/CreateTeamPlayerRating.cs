@@ -1,4 +1,5 @@
 using FluentValidation;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -9,11 +10,16 @@ using RFFM.Api.Infrastructure.Persistence;
 
 namespace RFFM.Api.Features.Coaches.Players.Commands
 {
+    // Intentionally not gated by IRequireFeaturePermission: this route is an inline Minimal API
+    // handler (not a Mediator ICommand/IQueryApp), so FeaturePermissionBehavior cannot intercept
+    // it without a refactor to CQRS. Restricted directly via [Authorize(Roles = ...)] instead,
+    // mirroring the pattern used by the SeasonAccess and Convocations features.
     public class CreateTeamPlayerRating : IFeatureModule
     {
         public void AddRoutes(IEndpointRouteBuilder app)
         {
             app.MapPost("/api/catalog/teamplayer/{id}/ratings",
+                    [Authorize(Roles = "Coach,Administrator")]
                     async (string id, CreateRatingRequest req, AppDbContext db, CancellationToken cancellationToken) =>
                     {
                         var teamPlayer = await db.TeamPlayers
@@ -99,7 +105,8 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
                 .WithName(nameof(CreateTeamPlayerRating))
                 .WithTags(PlayerConstants.PlayerFeature)
                 .Produces<RatingCreatedResponse>()
-                .Produces(StatusCodes.Status404NotFound);
+                .Produces(StatusCodes.Status404NotFound)
+                .Produces(StatusCodes.Status403Forbidden);
         }
 
         public record CreateRatingRequest(

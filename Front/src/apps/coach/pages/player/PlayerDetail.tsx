@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   Box,
@@ -25,6 +25,7 @@ import {
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import MedicalServicesIcon from "@mui/icons-material/MedicalServices";
+import { usePermissions } from "../../../../shared/hooks/usePermissions";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import useTeamAndClub from "../../hooks/useTeamAndClub.tsx";
@@ -59,7 +60,23 @@ export default function PlayerDetail() {
   const location = useLocation();
   const { teamTitleNode } = useTeamAndClub();
   const locationState = location.state as { editing?: boolean; from?: string; fromState?: unknown } | null;
-  const [editing, setEditing] = useState(locationState?.editing === true);
+  const { role, loading: loadingPermissions } = usePermissions();
+  const canEdit = role === "Coach" || role === "Administrator";
+  const [editing, setEditingState] = useState(locationState?.editing === true);
+  const setEditing: typeof setEditingState = (value) => {
+    setEditingState((prev) => {
+      const next = typeof value === "function" ? (value as (s: boolean) => boolean)(prev) : value;
+      return canEdit ? next : false;
+    });
+  };
+
+  // Once the role resolves, force-exit edit mode for restricted roles (Player /
+  // FamilyMember) even if it was entered via location.state (e.g. from IdealLineup).
+  useEffect(() => {
+    if (!loadingPermissions && !canEdit) {
+      setEditingState(false);
+    }
+  }, [loadingPermissions, canEdit]);
   const handleBack = () => {
     if (locationState?.from) navigate(locationState.from, { state: locationState.fromState ?? null });
     else navigate(-1);
@@ -115,7 +132,7 @@ export default function PlayerDetail() {
             >
               Volver
             </Button>
-            {teamPlayer && (
+            {teamPlayer && canEdit && (
               <>
                 <Button
                   onClick={() => setEditing((s) => !s)}
@@ -326,15 +343,17 @@ export default function PlayerDetail() {
                 {activeTab === 4 && (
                   <>
                     <div className={styles.injuryActions}>
-                      <Button
-                        startIcon={<MedicalServicesIcon />}
-                        onClick={() => setInjuryCreateOpen(true)}
-                        variant="outlined"
-                        color="inherit"
-                        size="small"
-                      >
-                        Registrar lesión
-                      </Button>
+                      {canEdit && (
+                        <Button
+                          startIcon={<MedicalServicesIcon />}
+                          onClick={() => setInjuryCreateOpen(true)}
+                          variant="outlined"
+                          color="inherit"
+                          size="small"
+                        >
+                          Registrar lesión
+                        </Button>
+                      )}
                     </div>
                     <InjuryHistoryPanel
                       teamPlayerId={teamPlayer.id}
