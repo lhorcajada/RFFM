@@ -5,7 +5,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using RFFM.Api.Common;
 using RFFM.Api.Common.Behaviors;
+using RFFM.Api.Domain.Entities;
 using RFFM.Api.Domain.Models;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
@@ -29,11 +31,13 @@ namespace RFFM.Api.Features.Coaches.Teams.Commands
         }
     }
 
-    public class UpdateTeamCommand : IRequest, IInvalidateCacheRequest
+    public class UpdateTeamCommand : IRequest, IInvalidateCacheRequest, IRequireFeaturePermission
     {
         public TeamModel TeamModel { get; set; }
 
         public string PrefixCacheKey => TeamConstants.CachePrefix;
+        public string FeatureRoute => CoachFeatureRoutes.ClubTeams;
+        public string RequiredPermission => "ReadWrite";
     }
 
     public class UpdateTeamHandler : IRequestHandler<UpdateTeamCommand, Unit>

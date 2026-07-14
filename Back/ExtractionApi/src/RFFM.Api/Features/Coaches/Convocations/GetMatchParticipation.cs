@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using RFFM.Api.Common;
+using RFFM.Api.Domain.Entities;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
 
@@ -23,9 +25,12 @@ namespace RFFM.Api.Features.Coaches.Convocations
 
         // ─── Query & response ─────────────────────────────────────────────────
 
-        public record GetMatchParticipationQuery : Common.IQueryApp<MatchParticipationResponse?>
+        public record GetMatchParticipationQuery : Common.IQueryApp<MatchParticipationResponse?>, IRequireFeaturePermission
         {
             public string EventId { get; init; } = null!;
+
+            public string FeatureRoute => CoachFeatureRoutes.Convocations;
+            public string RequiredPermission => "Read";
         }
 
         public record MatchParticipationResponse(

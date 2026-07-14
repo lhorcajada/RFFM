@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Common;
 using RFFM.Api.Domain;
 using RFFM.Api.Domain.Aggregates.GameModels;
+using RFFM.Api.Domain.Entities;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
 
@@ -49,9 +50,12 @@ namespace RFFM.Api.Features.Coaches.GameModels.Commands
         string TeamId,
         string Name,
         string Season,
-        List<ScenarioRequest> Scenarios) : IRequest<string>
+        List<ScenarioRequest> Scenarios) : IRequest<string>, IRequireFeaturePermission
     {
         public string UserId { get; init; } = string.Empty;
+
+        public string FeatureRoute => CoachFeatureRoutes.GameModel;
+        public string RequiredPermission => "ReadWrite";
     }
 
     public record ScenarioRequest(

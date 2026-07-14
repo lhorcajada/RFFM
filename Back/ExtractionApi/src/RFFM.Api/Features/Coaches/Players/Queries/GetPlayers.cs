@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Common;
 using RFFM.Api.Common.Behaviors;
+using RFFM.Api.Domain.Entities;
 using RFFM.Api.Domain.Models;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
@@ -25,11 +26,14 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                 .Produces<PlayersResponse[]>();
         }
 
-        public record PlayersQuery : IQueryApp<PlayersResponse[]>, ICacheRequest
+        public record PlayersQuery : IQueryApp<PlayersResponse[]>, ICacheRequest, IRequireFeaturePermission
         {
             public string ClubId { get; set; } = null!;
             public string CacheKey => PlayerConstants.CachePrefix;
             public DateTime? AbsoluteExpirationRelativeToNow { get; }
+
+            public string FeatureRoute => CoachFeatureRoutes.ClubPlayers;
+            public string RequiredPermission => "Read";
         }
 
         public record PlayersResponse(PlayerModel PlayerModel);

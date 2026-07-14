@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Common;
+using RFFM.Api.Domain.Entities;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
 
@@ -33,7 +34,7 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Queries
                 .Produces<SportEventResponse[]>();
         }
 
-        public record SportEventsQuery : IQueryApp<SportEventResponse[]>
+        public record SportEventsQuery : IQueryApp<SportEventResponse[]>, IRequireFeaturePermission
         {
             public string TeamId { get; set; } = null!;
             public int PageNumber { get; set; } // Página actual
@@ -41,6 +42,9 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Queries
             public DateTime? StartDate { get; set; }
             public DateTime? EndDate { get; set; }
             public bool Descending { get; set; } = false;
+
+            public string FeatureRoute => CoachFeatureRoutes.Events;
+            public string RequiredPermission => "Read";
         }
 
 

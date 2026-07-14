@@ -7,6 +7,9 @@ vi.mock("../../hooks/useUserTeams", () => ({ useUserTeams: () => ({ teams: [], l
 vi.mock("../../../../../shared/services/imageService", () => ({ fetchImage: vi.fn() }));
 vi.mock("../../../services/teamService", () => ({ default: {} }));
 vi.mock("../../../services/clubService", () => ({ default: {} }));
+vi.mock("../../../../../../shared/hooks/usePermissions", () => ({
+  usePermissions: () => ({ loading: false, hasFeatureAccess: () => true }),
+}));
 
 import DashboardCards from "../DashboardCards";
 

@@ -3,7 +3,9 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using RFFM.Api.Common;
 using RFFM.Api.Domain;
+using RFFM.Api.Domain.Entities;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
 
@@ -36,7 +38,11 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
         }
     }
 
-    public record DeleteSessionCommand(string Id, string UserId) : IRequest;
+    public record DeleteSessionCommand(string Id, string UserId) : IRequest, IRequireFeaturePermission
+    {
+        public string FeatureRoute => CoachFeatureRoutes.Trainings;
+        public string RequiredPermission => "ReadWrite";
+    }
 
     public class DeleteSessionHandler : IRequestHandler<DeleteSessionCommand>
     {

@@ -3,7 +3,9 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using RFFM.Api.Common;
 using RFFM.Api.Domain;
+using RFFM.Api.Domain.Entities;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
 using RFFM.Api.Infrastructure.Storage;
@@ -40,7 +42,11 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
     }
 
     public record UploadExerciseMediaCommand(string ExerciseId, IFormFile File, string UserId)
-        : IRequest<UploadExerciseMediaResult>;
+        : IRequest<UploadExerciseMediaResult>, IRequireFeaturePermission
+    {
+        public string FeatureRoute => CoachFeatureRoutes.Trainings;
+        public string RequiredPermission => "ReadWrite";
+    }
 
     public record UploadExerciseMediaResult(string Url);
 

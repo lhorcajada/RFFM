@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Common;
+using RFFM.Api.Domain.Entities;
 using RFFM.Api.Domain.Services;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
@@ -29,7 +30,11 @@ namespace RFFM.Api.Features.Coaches.SeasonAccess
                 .Produces(StatusCodes.Status403Forbidden);
         }
 
-        public record GetSeasonAccessTrialDaysQuery(string SeasonId, string Category) : IQueryApp<IReadOnlyCollection<SeasonAccessTrialDayDto>>;
+        public record GetSeasonAccessTrialDaysQuery(string SeasonId, string Category) : IQueryApp<IReadOnlyCollection<SeasonAccessTrialDayDto>>, IRequireFeaturePermission
+        {
+            public string FeatureRoute => CoachFeatureRoutes.SeasonAccess;
+            public string RequiredPermission => "Read";
+        }
 
         public class Validator : AbstractValidator<GetSeasonAccessTrialDaysQuery>
         {

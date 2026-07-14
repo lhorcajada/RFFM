@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Common;
 using RFFM.Api.Domain;
+using RFFM.Api.Domain.Entities;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
 
@@ -43,7 +44,11 @@ namespace RFFM.Api.Features.Coaches.GameModels.Commands
 
     // ── Request ──────────────────────────────────────────────────────────────────
 
-    public record DeleteGameModelCommand(string Id, string UserId) : IRequest;
+    public record DeleteGameModelCommand(string Id, string UserId) : IRequest, IRequireFeaturePermission
+    {
+        public string FeatureRoute => CoachFeatureRoutes.GameModel;
+        public string RequiredPermission => "ReadWrite";
+    }
 
     // ── Handler ──────────────────────────────────────────────────────────────────
 

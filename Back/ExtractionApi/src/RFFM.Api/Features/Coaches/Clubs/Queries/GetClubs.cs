@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using RFFM.Api.Common;
 using RFFM.Api.Common.Behaviors;
 using RFFM.Api.Domain.Entities;
 using RFFM.Api.Features.Coaches.Clubs;
@@ -33,10 +34,13 @@ namespace RFFM.Api.Features.Coaches.Clubs.Queries
 
         // Ya no implementa ICacheRequest — ver design.md §4: cachear esta lista por-usuario
         // no es correcto de forma general y hoy no tiene consumidores en frontend.
-        public record ClubsQueryApp : Common.IQueryApp<ClubsResponse[]>
+        public record ClubsQueryApp : Common.IQueryApp<ClubsResponse[]>, IRequireFeaturePermission
         {
             public bool CanViewAllInvitationCodes { get; set; }
             public string? RequestingUserId { get; set; }
+
+            public string FeatureRoute => CoachFeatureRoutes.ClubManagement;
+            public string RequiredPermission => "Read";
         }
 
         public record ClubsResponse(string Id, string Name, CountriesResponse Country, string? shieldUrl, string? invitationCode);

@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using RFFM.Api.Common;
+using RFFM.Api.Domain.Entities;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Storage;
 
@@ -28,9 +30,12 @@ namespace RFFM.Api.Features.Coaches.Teams.Commands
         }
     }
 
-    public class UploadTeamPhotoCommand : IRequest<UploadTeamPhotoResult>
+    public class UploadTeamPhotoCommand : IRequest<UploadTeamPhotoResult>, IRequireFeaturePermission
     {
         public IFormFile File { get; set; }
+
+        public string FeatureRoute => CoachFeatureRoutes.ClubTeams;
+        public string RequiredPermission => "ReadWrite";
     }
 
     public class UploadTeamPhotoResult

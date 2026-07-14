@@ -2,7 +2,9 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using RFFM.Api.Common;
 using RFFM.Api.Domain;
+using RFFM.Api.Domain.Entities;
 using RFFM.Api.Domain.Services;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
@@ -38,8 +40,10 @@ namespace RFFM.Api.Features.Coaches.Settings
         public record ConfigDto(int Id, string CoachId, string? PreferredClubId, string? PreferredTeamId);
         public record ConfigRequest(string CoachId, string? PreferredClubId, string? PreferredTeamId);
 
-        public record GetConfigQuery : RFFM.Api.Common.IQueryApp<ConfigDto[]>
+        public record GetConfigQuery : RFFM.Api.Common.IQueryApp<ConfigDto[]>, IRequireFeaturePermission
         {
+            public string FeatureRoute => CoachFeatureRoutes.Settings;
+            public string RequiredPermission => "Read";
         }
 
         public class GetConfigHandler : IRequestHandler<GetConfigQuery, ConfigDto[]>
@@ -64,7 +68,11 @@ namespace RFFM.Api.Features.Coaches.Settings
             }
         }
 
-        public record CreateConfigCommand(ConfigRequest Request) : RFFM.Api.Common.ICommand<ConfigDto>;
+        public record CreateConfigCommand(ConfigRequest Request) : RFFM.Api.Common.ICommand<ConfigDto>, IRequireFeaturePermission
+        {
+            public string FeatureRoute => CoachFeatureRoutes.Settings;
+            public string RequiredPermission => "ReadWrite";
+        }
         public class CreateConfigHandler : IRequestHandler<CreateConfigCommand, ConfigDto>
         {
             private readonly AppDbContext _db;
@@ -91,7 +99,11 @@ namespace RFFM.Api.Features.Coaches.Settings
             }
         }
 
-        public record UpdateConfigCommand(int Id, ConfigRequest Request) : RFFM.Api.Common.ICommand<ConfigDto>;
+        public record UpdateConfigCommand(int Id, ConfigRequest Request) : RFFM.Api.Common.ICommand<ConfigDto>, IRequireFeaturePermission
+        {
+            public string FeatureRoute => CoachFeatureRoutes.Settings;
+            public string RequiredPermission => "ReadWrite";
+        }
         public class UpdateConfigHandler : IRequestHandler<UpdateConfigCommand, ConfigDto>
         {
             private readonly AppDbContext _db;
@@ -117,7 +129,11 @@ namespace RFFM.Api.Features.Coaches.Settings
             }
         }
 
-        public record DeleteConfigCommand(int Id) : RFFM.Api.Common.ICommand<ConfigDto>;
+        public record DeleteConfigCommand(int Id) : RFFM.Api.Common.ICommand<ConfigDto>, IRequireFeaturePermission
+        {
+            public string FeatureRoute => CoachFeatureRoutes.Settings;
+            public string RequiredPermission => "ReadWrite";
+        }
         public class DeleteConfigHandler : IRequestHandler<DeleteConfigCommand, ConfigDto>
         {
             private readonly AppDbContext _db;

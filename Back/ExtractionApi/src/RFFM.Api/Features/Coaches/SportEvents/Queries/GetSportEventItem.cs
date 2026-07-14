@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Common;
+using RFFM.Api.Domain.Entities;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
 
@@ -25,9 +26,12 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Queries
                 .Produces<SportEventItemResponse>();
         }
 
-        public record SportEventItemQuery : IQueryApp<SportEventItemResponse?>
+        public record SportEventItemQuery : IQueryApp<SportEventItemResponse?>, IRequireFeaturePermission
         {
             public string Id { get; set; } = null!;
+
+            public string FeatureRoute => CoachFeatureRoutes.Events;
+            public string RequiredPermission => "Read";
         }
 
         public record SportEventItemResponse()

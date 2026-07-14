@@ -4,7 +4,9 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using RFFM.Api.Common;
 using RFFM.Api.Domain.Aggregates.Assistances;
+using RFFM.Api.Domain.Entities;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
 
@@ -35,10 +37,13 @@ namespace RFFM.Api.Features.Coaches.Assistances.Queries
                 .Produces<Response>();
         }
 
-        public record Query : Common.IQueryApp<Response>
+        public record Query : Common.IQueryApp<Response>, IRequireFeaturePermission
         {
             public string TeamId { get; init; } = null!;
             public string? SeasonId { get; init; }
+
+            public string FeatureRoute => CoachFeatureRoutes.AttendanceSummary;
+            public string RequiredPermission => "Read";
         }
 
         public record Response(int TotalTrainingEvents, PlayerRow[] Players);

@@ -5,8 +5,10 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using RFFM.Api.Common;
 using RFFM.Api.Domain;
 using RFFM.Api.Domain.Aggregates.Training.TasksTraining;
+using RFFM.Api.Domain.Entities;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
 
@@ -67,7 +69,11 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
         string? SportEventId,
         List<SessionExerciseInput> Exercises,
         string UserId
-    ) : IRequest;
+    ) : IRequest, IRequireFeaturePermission
+    {
+        public string FeatureRoute => CoachFeatureRoutes.Trainings;
+        public string RequiredPermission => "ReadWrite";
+    }
 
     public class UpdateSessionHandler : IRequestHandler<UpdateSessionCommand>
     {

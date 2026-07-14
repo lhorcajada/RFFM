@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using RFFM.Api.Common;
+using RFFM.Api.Domain.Entities;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
 
@@ -22,9 +24,12 @@ namespace RFFM.Api.Features.Coaches.Convocations
                 .Produces<EventPlayerResponse[]>();
         }
 
-        public record EventPlayersQuery : Common.IQueryApp<EventPlayerResponse[]>
+        public record EventPlayersQuery : Common.IQueryApp<EventPlayerResponse[]>, IRequireFeaturePermission
         {
             public string EventId { get; init; } = null!;
+
+            public string FeatureRoute => CoachFeatureRoutes.Convocations;
+            public string RequiredPermission => "Read";
         }
 
         // Added Dorsal (nullable int) to response

@@ -4,7 +4,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using RFFM.Api.Common;
 using RFFM.Api.Domain;
+using RFFM.Api.Domain.Entities;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Features.Coaches.Trainings.Exercises;
 using RFFM.Api.Infrastructure.Persistence;
@@ -37,7 +39,11 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
         }
     }
 
-    public record GetSessionQuery(string Id, string UserId) : IRequest<SessionDetail?>;
+    public record GetSessionQuery(string Id, string UserId) : IRequest<SessionDetail?>, IRequireFeaturePermission
+    {
+        public string FeatureRoute => CoachFeatureRoutes.Trainings;
+        public string RequiredPermission => "Read";
+    }
 
     public record SessionDetail(
         string Id,

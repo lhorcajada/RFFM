@@ -3,6 +3,8 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { CircularProgress, Box } from "@mui/material";
 import { useLayoutEffect } from "react";
 import { CoachAuthProvider, CoachAuthGuard } from "./context/CoachAuthContext";
+import { RequireFeaturePermission } from "./components/RequireFeaturePermission";
+import { COACH_FEATURE_ROUTES } from "./constants/featureRoutes";
 import Clubs from "./pages/clubs/clubs";
 const ClubsDashboard = lazy(() => import("./pages/clubs/dashboard/Dashboard"));
 const ClubPlayerRegistrations = lazy(() => import("./pages/clubs/registrations/PlayerRegistrations"));
@@ -86,55 +88,291 @@ function CoachRoutesContent() {
             />
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="team-dashboard" element={<TeamDashboard />} />
-            <Route path="settings" element={<Settings />} />
-            <Route path="news" element={<News />} />
-            <Route path="squad" element={<Squad />} />
-            <Route path="squad/new" element={<NewPlayer />} />
-            <Route path="squad/players-club" element={<PlayersClub />} />
-            <Route path="squad/:playerId/rating/new" element={<NewRatingPage />} />
-            <Route path="squad/:playerId/rating/history" element={<RatingHistoryPage />} />
-            <Route path="squad/:playerId/rating/evolution" element={<RatingEvolutionPage />} />
-            <Route path="player/:id" element={<PlayerDetail />} />
-            <Route path="attendance" element={<Attendance />} />
-            <Route path="attendance/:id" element={<AttendanceEvent />} />
-            <Route path="attendance/summary" element={<AttendanceSummary />} />
-            <Route path="convocations" element={<Convocations />} />
-            <Route path="convocations/match" element={<ConvocationMatchDetail />} />
-            <Route path="trainings" element={<Trainings />} />
-            <Route path="trainings/new-exercise" element={<NewExercisePage />} />
-            <Route path="injured" element={<Injured />} />
-            <Route path="game-model" element={<GameModel />} />
-            <Route path="game-model/create" element={<GameModelCreate />} />
-            <Route path="game-model/edit" element={<GameModelCreate />} />
-            <Route path="game-model/create-session" element={<CreateSessionFromSubPrinciple />} />
-            <Route path="game-model/sessions" element={<SessionsFromSubPrinciple />} />
-            <Route path="sanctions" element={<Sanctions />} />
-            <Route path="lottery" element={<Lottery />} />
-            <Route path="rivals" element={<Rivals />} />
-            <Route path="season-access" element={<SeasonAccess />} />
-            <Route path="season-access/prepare" element={<PrepareTests />} />
-            <Route path="clubs" element={<Clubs />} />
-            <Route path="clubs/dashboard/:id" element={<ClubsDashboard />} />
-            <Route path="clubs/:id/players" element={<ClubPlayers />} />
-            <Route path="clubs/:id/registrations" element={<ClubPlayerRegistrations />} />
-            <Route path="clubs/:id/teams" element={<ClubTeams />} />
+            <Route
+              path="settings"
+              element={
+                <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.Settings}>
+                  <Settings />
+                </RequireFeaturePermission>
+              }
+            />
+            <Route
+              path="news"
+              element={
+                <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.News}>
+                  <News />
+                </RequireFeaturePermission>
+              }
+            />
+            <Route
+              path="squad"
+              element={
+                <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.Squad}>
+                  <Squad />
+                </RequireFeaturePermission>
+              }
+            />
+            <Route
+              path="squad/new"
+              element={
+                <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.Squad}>
+                  <NewPlayer />
+                </RequireFeaturePermission>
+              }
+            />
+            <Route
+              path="squad/players-club"
+              element={
+                <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.Squad}>
+                  <PlayersClub />
+                </RequireFeaturePermission>
+              }
+            />
+            <Route
+              path="squad/:playerId/rating/new"
+              element={
+                <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.Squad}>
+                  <NewRatingPage />
+                </RequireFeaturePermission>
+              }
+            />
+            <Route
+              path="squad/:playerId/rating/history"
+              element={
+                <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.Squad}>
+                  <RatingHistoryPage />
+                </RequireFeaturePermission>
+              }
+            />
+            <Route
+              path="squad/:playerId/rating/evolution"
+              element={
+                <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.Squad}>
+                  <RatingEvolutionPage />
+                </RequireFeaturePermission>
+              }
+            />
+            <Route
+              path="player/:id"
+              element={
+                <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.Squad}>
+                  <PlayerDetail />
+                </RequireFeaturePermission>
+              }
+            />
+            <Route
+              path="attendance"
+              element={
+                <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.Events}>
+                  <Attendance />
+                </RequireFeaturePermission>
+              }
+            />
+            <Route
+              path="attendance/:id"
+              element={
+                <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.Events}>
+                  <AttendanceEvent />
+                </RequireFeaturePermission>
+              }
+            />
+            <Route
+              path="attendance/summary"
+              element={
+                <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.AttendanceSummary}>
+                  <AttendanceSummary />
+                </RequireFeaturePermission>
+              }
+            />
+            <Route
+              path="convocations"
+              element={
+                <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.Convocations}>
+                  <Convocations />
+                </RequireFeaturePermission>
+              }
+            />
+            <Route
+              path="convocations/match"
+              element={
+                <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.Convocations}>
+                  <ConvocationMatchDetail />
+                </RequireFeaturePermission>
+              }
+            />
+            <Route
+              path="trainings"
+              element={
+                <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.Trainings}>
+                  <Trainings />
+                </RequireFeaturePermission>
+              }
+            />
+            <Route
+              path="trainings/new-exercise"
+              element={
+                <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.Trainings}>
+                  <NewExercisePage />
+                </RequireFeaturePermission>
+              }
+            />
+            <Route
+              path="injured"
+              element={
+                <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.Injured}>
+                  <Injured />
+                </RequireFeaturePermission>
+              }
+            />
+            <Route
+              path="game-model"
+              element={
+                <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.GameModel}>
+                  <GameModel />
+                </RequireFeaturePermission>
+              }
+            />
+            <Route
+              path="game-model/create"
+              element={
+                <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.GameModel}>
+                  <GameModelCreate />
+                </RequireFeaturePermission>
+              }
+            />
+            <Route
+              path="game-model/edit"
+              element={
+                <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.GameModel}>
+                  <GameModelCreate />
+                </RequireFeaturePermission>
+              }
+            />
+            <Route
+              path="game-model/create-session"
+              element={
+                <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.GameModel}>
+                  <CreateSessionFromSubPrinciple />
+                </RequireFeaturePermission>
+              }
+            />
+            <Route
+              path="game-model/sessions"
+              element={
+                <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.GameModel}>
+                  <SessionsFromSubPrinciple />
+                </RequireFeaturePermission>
+              }
+            />
+            <Route
+              path="sanctions"
+              element={
+                <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.Sanctions}>
+                  <Sanctions />
+                </RequireFeaturePermission>
+              }
+            />
+            <Route
+              path="lottery"
+              element={
+                <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.Lottery}>
+                  <Lottery />
+                </RequireFeaturePermission>
+              }
+            />
+            <Route
+              path="rivals"
+              element={
+                <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.Rivals}>
+                  <Rivals />
+                </RequireFeaturePermission>
+              }
+            />
+            <Route
+              path="season-access"
+              element={
+                <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.SeasonAccess}>
+                  <SeasonAccess />
+                </RequireFeaturePermission>
+              }
+            />
+            <Route
+              path="season-access/prepare"
+              element={
+                <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.SeasonAccess}>
+                  <PrepareTests />
+                </RequireFeaturePermission>
+              }
+            />
+            <Route
+              path="clubs"
+              element={
+                <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.ClubManagement}>
+                  <Clubs />
+                </RequireFeaturePermission>
+              }
+            />
+            <Route
+              path="clubs/dashboard/:id"
+              element={
+                <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.ClubManagement}>
+                  <ClubsDashboard />
+                </RequireFeaturePermission>
+              }
+            />
+            <Route
+              path="clubs/:id/players"
+              element={
+                <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.ClubPlayers}>
+                  <ClubPlayers />
+                </RequireFeaturePermission>
+              }
+            />
+            <Route
+              path="clubs/:id/registrations"
+              element={
+                <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.ClubRegistrations}>
+                  <ClubPlayerRegistrations />
+                </RequireFeaturePermission>
+              }
+            />
+            <Route
+              path="clubs/:id/teams"
+              element={
+                <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.ClubTeams}>
+                  <ClubTeams />
+                </RequireFeaturePermission>
+              }
+            />
             <Route
               path="clubs/:id/teams/new"
-              element={React.createElement(
-                React.lazy(() => import("./pages/clubTeams/create/CreateTeam")),
-              )}
+              element={
+                <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.ClubTeams}>
+                  {React.createElement(
+                    React.lazy(() => import("./pages/clubTeams/create/CreateTeam")),
+                  )}
+                </RequireFeaturePermission>
+              }
             />
             <Route
               path="clubs/:id/teams/:teamId/edit"
-              element={React.createElement(
-                React.lazy(() => import("./pages/clubTeams/edit/EditTeam")),
-              )}
+              element={
+                <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.ClubTeams}>
+                  {React.createElement(
+                    React.lazy(() => import("./pages/clubTeams/edit/EditTeam")),
+                  )}
+                </RequireFeaturePermission>
+              }
             />
             <Route
               path="clubs/new"
-              element={React.createElement(
-                React.lazy(() => import("./pages/clubs/create/CreateClub")),
-              )}
+              element={
+                <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.ClubManagement}>
+                  {React.createElement(
+                    React.lazy(() => import("./pages/clubs/create/CreateClub")),
+                  )}
+                </RequireFeaturePermission>
+              }
             />
           </Routes>
         </Suspense>

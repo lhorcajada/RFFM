@@ -5,8 +5,10 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using RFFM.Api.Common;
 using RFFM.Api.Common.Behaviors;
 using RFFM.Api.Domain.Aggregates.UserClubs;
+using RFFM.Api.Domain.Entities;
 using RFFM.Api.Domain.Models;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
@@ -31,7 +33,7 @@ namespace RFFM.Api.Features.Coaches.Teams.Commands
         }
     }
 
-    public class CreateTeamCommand : IRequest, IInvalidateCacheRequest
+    public class CreateTeamCommand : IRequest, IInvalidateCacheRequest, IRequireFeaturePermission
     {
         public string Name { get; set; } = null!;
         public int CategoryId { get; set; }
@@ -42,6 +44,8 @@ namespace RFFM.Api.Features.Coaches.Teams.Commands
         public int? LeagueGroup { get; set; }
 
         public string PrefixCacheKey => TeamConstants.CachePrefix;
+        public string FeatureRoute => CoachFeatureRoutes.ClubTeams;
+        public string RequiredPermission => "ReadWrite";
     }
 
     public class CreateTeamHandler : IRequestHandler<CreateTeamCommand, Unit>

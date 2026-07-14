@@ -5,6 +5,7 @@ using RFFM.Api.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
 using System.Security.Claims;
 using RFFM.Api.Infrastructure.Persistence.Seed;
+using RFFM.Api.Domain.Entities;
 
 namespace RFFM.Host.DependencyInjection
 {
@@ -325,35 +326,80 @@ namespace RFFM.Host.DependencyInjection
                 {
                     var entries = new[]
                     {
-                        // Coach
+                        // Keep existing rows for backward compatibility
                         ("SeasonPrep",   "/coach/season-prep",   "Coach",       3, false),
                         ("Roster",        "/coach/roster",        "Coach",       3, false),
-                        ("Trainings",     "/coach/trainings",     "Coach",       3, false),
-                        ("GameModels",    "/coach/game-models",   "Coach",       3, false),
                         ("Assistances",   "/coach/assistances",   "Coach",       3, false),
-                        ("Convocations",  "/coach/convocations",  "Coach",       3, false),
                         ("Dashboard",     "/coach/dashboard",     "Coach",       1, false),
                         ("ClubManagement", "/coach/clubs",        "Coach",       2, false),
 
-                        // ClubDirector
                         ("Dashboard",     "/coach/dashboard",     "ClubDirector", 1, true),
                         ("Roster",        "/coach/roster",        "ClubDirector", 1, true),
                         ("ClubManagement", "/coach/clubs",        "ClubDirector", 3, true),
 
-                        // Player
                         ("Dashboard",     "/coach/dashboard",     "Player",      1, false),
                         ("Roster",        "/coach/roster",        "Player",      1, false),
 
-                        // FamilyMember
                         ("Dashboard",     "/coach/dashboard",     "FamilyMember", 1, false),
                         ("Roster",        "/coach/roster",        "FamilyMember", 1, false),
 
-                        // Fan
                         ("Dashboard",     "/coach/dashboard",     "Fan",         1, false),
 
-                        // ClubMember
                         ("Dashboard",     "/coach/dashboard",     "ClubMember",  1, false),
                         ("Roster",        "/coach/roster",        "ClubMember",  1, false),
+
+                        // --- New rows added by restrict-player-role-coach-features ---
+
+                        // Administrator bypasses the check entirely (see FeaturePermissionBehavior) — no row needed.
+                        // Coach, ClubDirector: ReadWrite on every newly-catalogued route (Squad/Events/etc. below).
+                        // (ClubManagement "/coach/clubs" rows already exist above — do not duplicate.)
+                        ("Squad", CoachFeatureRoutes.Squad, "Coach", 3, false),
+                        ("Events", CoachFeatureRoutes.Events, "Coach", 3, false),
+                        ("AttendanceSummary", CoachFeatureRoutes.AttendanceSummary, "Coach", 3, false),
+                        ("Convocations", CoachFeatureRoutes.Convocations, "Coach", 3, false),
+                        ("Injured", CoachFeatureRoutes.Injured, "Coach", 3, false),
+                        ("Sanctions", CoachFeatureRoutes.Sanctions, "Coach", 3, false),
+                        ("Lottery", CoachFeatureRoutes.Lottery, "Coach", 3, false),
+                        ("News", CoachFeatureRoutes.News, "Coach", 3, false),
+                        ("Rivals", CoachFeatureRoutes.Rivals, "Coach", 3, false),
+                        ("Trainings", CoachFeatureRoutes.Trainings, "Coach", 3, false),
+                        ("GameModel", CoachFeatureRoutes.GameModel, "Coach", 3, false),
+                        ("SeasonAccess", CoachFeatureRoutes.SeasonAccess, "Coach", 3, false),
+                        ("Settings", CoachFeatureRoutes.Settings, "Coach", 3, false),
+                        ("ClubPlayers", CoachFeatureRoutes.ClubPlayers, "Coach", 3, false),
+                        ("ClubTeams", CoachFeatureRoutes.ClubTeams, "Coach", 3, false),
+                        ("ClubRegistrations", CoachFeatureRoutes.ClubRegistrations, "Coach", 3, false),
+
+                        ("Squad", CoachFeatureRoutes.Squad, "ClubDirector", 3, false),
+                        ("Events", CoachFeatureRoutes.Events, "ClubDirector", 3, false),
+                        ("AttendanceSummary", CoachFeatureRoutes.AttendanceSummary, "ClubDirector", 3, false),
+                        ("Convocations", CoachFeatureRoutes.Convocations, "ClubDirector", 3, false),
+                        ("Injured", CoachFeatureRoutes.Injured, "ClubDirector", 3, false),
+                        ("Sanctions", CoachFeatureRoutes.Sanctions, "ClubDirector", 3, false),
+                        ("Lottery", CoachFeatureRoutes.Lottery, "ClubDirector", 3, false),
+                        ("News", CoachFeatureRoutes.News, "ClubDirector", 3, false),
+                        ("Rivals", CoachFeatureRoutes.Rivals, "ClubDirector", 3, false),
+                        ("Trainings", CoachFeatureRoutes.Trainings, "ClubDirector", 3, false),
+                        ("GameModel", CoachFeatureRoutes.GameModel, "ClubDirector", 3, false),
+                        ("SeasonAccess", CoachFeatureRoutes.SeasonAccess, "ClubDirector", 3, false),
+                        ("Settings", CoachFeatureRoutes.Settings, "ClubDirector", 3, false),
+                        ("ClubPlayers", CoachFeatureRoutes.ClubPlayers, "ClubDirector", 3, false),
+                        ("ClubTeams", CoachFeatureRoutes.ClubTeams, "ClubDirector", 3, false),
+                        ("ClubRegistrations", CoachFeatureRoutes.ClubRegistrations, "ClubDirector", 3, false),
+
+                        // ClubMember: only GameModel (matches existing frontend canSeeGameModel gate in
+                        // Front/src/apps/coach/pages/team-dashboard/TeamDashboardCards.tsx)
+                        ("GameModel", CoachFeatureRoutes.GameModel, "ClubMember", 3, false),
+
+                        // Player: Read-only on the 8 approved dashboard features
+                        ("Squad", CoachFeatureRoutes.Squad, "Player", 1, false),
+                        ("Events", CoachFeatureRoutes.Events, "Player", 1, false),
+                        ("AttendanceSummary", CoachFeatureRoutes.AttendanceSummary, "Player", 1, false),
+                        ("Convocations", CoachFeatureRoutes.Convocations, "Player", 1, false),
+                        ("Injured", CoachFeatureRoutes.Injured, "Player", 1, false),
+                        ("Sanctions", CoachFeatureRoutes.Sanctions, "Player", 1, false),
+                        ("Lottery", CoachFeatureRoutes.Lottery, "Player", 1, false),
+                        ("News", CoachFeatureRoutes.News, "Player", 1, false),
                     };
 
                     foreach (var (featureName, featureRoute, roleName, permTypeId, isEditable) in entries)

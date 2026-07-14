@@ -8,6 +8,11 @@ using RFFM.Api.Infrastructure.Persistence;
 
 namespace RFFM.Api.Features.Coaches.Players.Commands
 {
+    // Intentionally not gated by IRequireFeaturePermission: these routes are inline Minimal API
+    // handlers (not Mediator ICommand/IQueryApp), so FeaturePermissionBehavior cannot intercept them
+    // without a refactor to CQRS. Player is Read-only on CoachFeatureRoutes.Injured but must retain
+    // today's access to this endpoint (Lesionados is one of the 8 allowed dashboard features);
+    // revisit by converting this feature to Mediator records if stricter enforcement is needed.
     public class SetPlayerInjury : IFeatureModule
     {
         public void AddRoutes(IEndpointRouteBuilder app)

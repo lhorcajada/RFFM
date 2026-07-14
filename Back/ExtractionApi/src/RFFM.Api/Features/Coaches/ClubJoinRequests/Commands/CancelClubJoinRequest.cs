@@ -4,8 +4,10 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using RFFM.Api.Common;
 using RFFM.Api.Domain;
 using RFFM.Api.Domain.Aggregates.UserClubs;
+using RFFM.Api.Domain.Entities;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
 using System.Security.Claims;
@@ -39,10 +41,13 @@ namespace RFFM.Api.Features.Coaches.ClubJoinRequests.Commands
         }
     }
 
-    public class CancelClubJoinRequestCommand : IRequest<IResult>
+    public class CancelClubJoinRequestCommand : IRequest<IResult>, IRequireFeaturePermission
     {
         public string RequestId { get; set; } = string.Empty;
         public string CallerUserId { get; set; } = string.Empty;
+
+        public string FeatureRoute => CoachFeatureRoutes.ClubRegistrations;
+        public string RequiredPermission => "ReadWrite";
     }
 
     public class CancelClubJoinRequestHandler : IRequestHandler<CancelClubJoinRequestCommand, IResult>

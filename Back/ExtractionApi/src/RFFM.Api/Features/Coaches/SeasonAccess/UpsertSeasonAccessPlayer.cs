@@ -9,6 +9,7 @@ using RFFM.Api.Common;
 using Microsoft.Extensions.Logging;
 using System.Linq;
 using Azure.Core;
+using RFFM.Api.Domain.Entities;
 using RFFM.Api.Domain.Entities.SeasonAccess;
 using RFFM.Api.Domain.Services;
 using RFFM.Api.FeatureModules;
@@ -33,7 +34,11 @@ namespace RFFM.Api.Features.Coaches.SeasonAccess
                 .Produces(StatusCodes.Status403Forbidden);
         }
 
-        public record UpsertSeasonAccessPlayerCommand(UpsertSeasonAccessPlayerRequest Request) : RFFM.Api.Common.ICommand<SeasonAccessTrialDto?>;
+        public record UpsertSeasonAccessPlayerCommand(UpsertSeasonAccessPlayerRequest Request) : RFFM.Api.Common.ICommand<SeasonAccessTrialDto?>, IRequireFeaturePermission
+        {
+            public string FeatureRoute => CoachFeatureRoutes.SeasonAccess;
+            public string RequiredPermission => "ReadWrite";
+        }
 
         public class Validator : AbstractValidator<UpsertSeasonAccessPlayerCommand>
         {

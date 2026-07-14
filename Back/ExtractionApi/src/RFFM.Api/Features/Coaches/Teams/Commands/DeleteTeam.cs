@@ -5,8 +5,10 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using RFFM.Api.Common;
 using RFFM.Api.Common.Behaviors;
 using RFFM.Api.Domain;
+using RFFM.Api.Domain.Entities;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
 
@@ -45,10 +47,12 @@ namespace RFFM.Api.Features.Coaches.Teams.Commands
         }
     }
 
-    public class DeleteTeamCommand : IRequest, IInvalidateCacheRequest
+    public class DeleteTeamCommand : IRequest, IInvalidateCacheRequest, IRequireFeaturePermission
     {
         public string TeamId { get; set; } = string.Empty;
         public string PrefixCacheKey => TeamConstants.CachePrefix;
+        public string FeatureRoute => CoachFeatureRoutes.ClubTeams;
+        public string RequiredPermission => "ReadWrite";
     }
 
     public class DeleteTeamHandler : IRequestHandler<DeleteTeamCommand, Unit>

@@ -3,7 +3,9 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using RFFM.Api.Common;
 using RFFM.Api.Domain;
+using RFFM.Api.Domain.Entities;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
 
@@ -36,7 +38,11 @@ namespace RFFM.Api.Features.Coaches.GameModels.Queries
         }
     }
 
-    public record GetSubSubPrincipleQuery(string SspId, string UserId) : IRequest<SubSubPrincipleDetail?>;
+    public record GetSubSubPrincipleQuery(string SspId, string UserId) : IRequest<SubSubPrincipleDetail?>, IRequireFeaturePermission
+    {
+        public string FeatureRoute => CoachFeatureRoutes.GameModel;
+        public string RequiredPermission => "Read";
+    }
 
     public record SubSubPrincipleSkillItem(string Id, string Name, string Description, DateTime? MasteredAt);
 

@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Common;
 using RFFM.Api.Domain;
 using RFFM.Api.Domain.Aggregates.Training;
+using RFFM.Api.Domain.Entities;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
 
@@ -41,7 +42,11 @@ namespace RFFM.Api.Features.Coaches.GameModels.Queries
                 .Produces<ProblemDetails>(StatusCodes.Status403Forbidden);
         }
 
-        public record GameModelQuery(string TeamId, string Season, string UserId) : IRequest<GameModelResponse?>;
+        public record GameModelQuery(string TeamId, string Season, string UserId) : IRequest<GameModelResponse?>, IRequireFeaturePermission
+        {
+            public string FeatureRoute => CoachFeatureRoutes.GameModel;
+            public string RequiredPermission => "Read";
+        }
 
         // ── Response DTOs ────────────────────────────────────────────────────────
 

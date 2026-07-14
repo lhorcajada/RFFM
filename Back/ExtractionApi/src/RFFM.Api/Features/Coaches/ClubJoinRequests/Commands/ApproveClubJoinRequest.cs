@@ -15,6 +15,7 @@ using RFFM.Api.FeatureModules;
 using RFFM.Api.Features.Scopes;
 using RFFM.Api.Infrastructure.Persistence;
 using RFFM.Api.Infrastructure.Services.Email;
+using RFFM.Api.Common;
 using System.Security.Claims;
 
 namespace RFFM.Api.Features.Coaches.ClubJoinRequests.Commands
@@ -46,10 +47,13 @@ namespace RFFM.Api.Features.Coaches.ClubJoinRequests.Commands
         }
     }
 
-    public class ApproveClubJoinRequestCommand : IRequest<IResult>
+    public class ApproveClubJoinRequestCommand : IRequest<IResult>, IRequireFeaturePermission
     {
         public string RequestId { get; set; } = string.Empty;
         public string CallerUserId { get; set; } = string.Empty;
+
+        public string FeatureRoute => CoachFeatureRoutes.ClubRegistrations;
+        public string RequiredPermission => "ReadWrite";
     }
 
     public class ApproveClubJoinRequestHandler : IRequestHandler<ApproveClubJoinRequestCommand, IResult>

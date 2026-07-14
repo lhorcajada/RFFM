@@ -33,6 +33,10 @@ vi.mock("../../../../shared/hooks/useFeaturePermission", () => ({
   useFeaturePermission: vi.fn(() => ({ hasAccess: true, loading: false })),
 }));
 
+vi.mock("../../../../shared/hooks/usePermissions", () => ({
+  usePermissions: vi.fn(() => ({ loading: false, hasFeatureAccess: () => true })),
+}));
+
 vi.mock("../Dashboard/components/hooks/useUserTeams", () => ({
   useUserTeams: vi.fn(() => ({
     teams: [],

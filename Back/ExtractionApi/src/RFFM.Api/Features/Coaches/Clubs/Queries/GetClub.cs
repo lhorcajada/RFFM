@@ -3,7 +3,9 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using RFFM.Api.Common;
 using RFFM.Api.Common.Behaviors;
+using RFFM.Api.Domain.Entities;
 using RFFM.Api.Features.Coaches.Clubs;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
@@ -31,12 +33,15 @@ namespace RFFM.Api.Features.Coaches.Clubs.Queries
                 .Produces<GetClubResponse>();
         }
 
-        public record GetClubQueryApp : Common.IQueryApp<GetClubResponse>, ICacheRequest
+        public record GetClubQueryApp : Common.IQueryApp<GetClubResponse>, ICacheRequest, IRequireFeaturePermission
         {
             public string ClubId { get; set; }
             public bool CanViewInvitationCode { get; set; }
             public string CacheKey => $"{ClubConstants.CachePrefix}:{ClubId}:{(CanViewInvitationCode ? "priv" : "pub")}";
             public DateTime? AbsoluteExpirationRelativeToNow { get; }
+
+            public string FeatureRoute => CoachFeatureRoutes.ClubManagement;
+            public string RequiredPermission => "Read";
         }
 
         public record GetClubResponse(string Id, string Name, CountriesResponse Country, string? EmblemUrl,  string? invitationCode);

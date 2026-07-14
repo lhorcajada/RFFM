@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using RFFM.Api.Common;
+using RFFM.Api.Domain.Entities;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
 
@@ -22,9 +24,12 @@ namespace RFFM.Api.Features.Coaches.Convocations
                 .Produces<ConvocationResponse[]>();
         }
 
-        public record EventConvocationsQuery : Common.IQueryApp<ConvocationResponse[]>
+        public record EventConvocationsQuery : Common.IQueryApp<ConvocationResponse[]>, IRequireFeaturePermission
         {
             public string EventId { get; init; } = null!;
+
+            public string FeatureRoute => CoachFeatureRoutes.Convocations;
+            public string RequiredPermission => "Read";
         }
 
         public record ConvocationResponse(string ConvocationId, string TeamPlayerId, string Alias, string? UrlPhoto, string? Position, string Status, int? StatusId, int? ExcuseTypeId, int? AssistanceTypeId, bool IsInjured, string? PlayerId);

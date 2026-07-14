@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Common;
 using RFFM.Api.Domain;
+using RFFM.Api.Domain.Entities;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
 
@@ -38,7 +39,11 @@ namespace RFFM.Api.Features.Coaches.GameModels.Queries
                 .Produces<ProblemDetails>(StatusCodes.Status403Forbidden);
         }
 
-        public record SeasonsQuery(string TeamId, string UserId) : IQueryApp<string[]>;
+        public record SeasonsQuery(string TeamId, string UserId) : IQueryApp<string[]>, IRequireFeaturePermission
+        {
+            public string FeatureRoute => CoachFeatureRoutes.GameModel;
+            public string RequiredPermission => "Read";
+        }
 
         public class Handler : IRequestHandler<SeasonsQuery, string[]>
         {

@@ -2,7 +2,9 @@ using Mediator;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using RFFM.Api.Common;
 using RFFM.Api.FeatureModules;
+using RFFM.Api.Domain.Entities;
 using RFFM.Api.Domain.Entities.Demarcations;
 using System.Linq;
 
@@ -22,7 +24,11 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                 .Produces<DemarcationResponse[]>();
         }
 
-        public record Query() : Common.IQueryApp<DemarcationResponse[]>;
+        public record Query() : Common.IQueryApp<DemarcationResponse[]>, IRequireFeaturePermission
+        {
+            public string FeatureRoute => CoachFeatureRoutes.Squad;
+            public string RequiredPermission => "Read";
+        }
 
         public record DemarcationResponse(int Id, string Name, string Code);
 

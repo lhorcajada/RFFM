@@ -5,8 +5,10 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using RFFM.Api.Common;
 using RFFM.Api.Domain;
 using RFFM.Api.Domain.Aggregates.Training.TasksTraining;
+using RFFM.Api.Domain.Entities;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
 
@@ -55,10 +57,13 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         int? RestSeries,
         int? TouchesNumber,
         int? WildCards
-    ) : IRequest
+    ) : IRequest, IRequireFeaturePermission
     {
         public string Id { get; init; } = string.Empty;
         public string UserId { get; init; } = string.Empty;
+
+        public string FeatureRoute => CoachFeatureRoutes.Trainings;
+        public string RequiredPermission => "ReadWrite";
     }
 
     public class UpdateExerciseHandler : IRequestHandler<UpdateExerciseCommand, Unit>

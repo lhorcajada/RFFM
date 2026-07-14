@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Common;
 using RFFM.Api.Common.Behaviors;
+using RFFM.Api.Domain.Entities;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
 
@@ -24,10 +25,13 @@ namespace RFFM.Api.Features.Coaches.Rivals.Queries
                 .Produces<RivalResponse[]>();
         }
 
-        public record RivalsQuery : IQueryApp<RivalResponse[]>, ICacheRequest
+        public record RivalsQuery : IQueryApp<RivalResponse[]>, ICacheRequest, IRequireFeaturePermission
         {
             public string CacheKey => "Rivals";
             public DateTime? AbsoluteExpirationRelativeToNow { get; }
+
+            public string FeatureRoute => CoachFeatureRoutes.Rivals;
+            public string RequiredPermission => "Read";
         }
 
         public record RivalResponse()

@@ -9,6 +9,8 @@ import { useUserTeams } from "../hooks/useUserTeams";
 import { fetchImage } from "../../../../../shared/services/imageService";
 import teamService from "../../../services/teamService";
 import clubService from "../../../services/clubService";
+import { usePermissions } from "../../../../../shared/hooks/usePermissions";
+import { COACH_FEATURE_ROUTES } from "../../../constants/featureRoutes";
 
 interface DashboardCardsProps {
   selectedSeason: string;
@@ -21,6 +23,7 @@ export default function DashboardCards({
 }: DashboardCardsProps) {
   const [teamPhotos, setTeamPhotos] = useState<Record<string, string | null>>({});
   const { teams: userTeams, loading: loadingUserTeams } = useUserTeams();
+  const { hasFeatureAccess } = usePermissions();
 
   const seasonParam = selectedSeason ? `?seasonId=${selectedSeason}` : "";
   const seasonSuffix = selectedSeason ? `&seasonId=${selectedSeason}` : "";
@@ -109,7 +112,7 @@ export default function DashboardCards({
           )}
 
           <div className={styles.cards}>
-            {!isPlayer && (
+            {!isPlayer && hasFeatureAccess(COACH_FEATURE_ROUTES.Settings) && (
               <DashboardCard
                 title="Configuración"
                 description="Ajustes y preferencias."

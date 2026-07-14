@@ -160,4 +160,219 @@ namespace RFFM.Api.Tests.UnitTests
             Assert.Equal("Write", requirement.RequiredPermission);
         }
     }
+
+    public class AllowedFeatureQueriesPermissionTests
+    {
+        [Fact]
+        public void PlayersByTeamQuery_ImplementsIRequireFeaturePermission_WithSquadRoute()
+        {
+            var query = new RFFM.Api.Features.Coaches.Players.Queries.GetPlayersByTeam.PlayersByTeamQuery { TeamId = "test" };
+            var requirement = Assert.IsAssignableFrom<IRequireFeaturePermission>(query);
+            Assert.Equal("/coach/squad", requirement.FeatureRoute);
+            Assert.Equal("Read", requirement.RequiredPermission);
+        }
+
+        [Fact]
+        public void SportEventsQuery_ImplementsIRequireFeaturePermission_WithEventsRoute()
+        {
+            var query = new RFFM.Api.Features.Coaches.SportEvents.Queries.GetSportEvents.SportEventsQuery
+            {
+                TeamId = "test",
+                PageNumber = 1,
+                PageSize = 10
+            };
+            var requirement = Assert.IsAssignableFrom<IRequireFeaturePermission>(query);
+            Assert.Equal("/coach/attendance", requirement.FeatureRoute);
+            Assert.Equal("Read", requirement.RequiredPermission);
+        }
+
+        [Fact]
+        public void TrainingAttendanceSummaryQuery_ImplementsIRequireFeaturePermission_WithAttendanceSummaryRoute()
+        {
+            var query = new RFFM.Api.Features.Coaches.Assistances.Queries.GetTrainingAttendanceSummary.Query
+            {
+                TeamId = "test"
+            };
+            var requirement = Assert.IsAssignableFrom<IRequireFeaturePermission>(query);
+            Assert.Equal("/coach/attendance/summary", requirement.FeatureRoute);
+            Assert.Equal("Read", requirement.RequiredPermission);
+        }
+
+        [Fact]
+        public void EventConvocationsQuery_ImplementsIRequireFeaturePermission_WithConvocationsRoute()
+        {
+            var query = new RFFM.Api.Features.Coaches.Convocations.GetEventConvocations.EventConvocationsQuery
+            {
+                EventId = "test"
+            };
+            var requirement = Assert.IsAssignableFrom<IRequireFeaturePermission>(query);
+            Assert.Equal("/coach/convocations", requirement.FeatureRoute);
+            Assert.Equal("Read", requirement.RequiredPermission);
+        }
+    }
+
+    public class BlockedFeatureCommandsPermissionTests
+    {
+        [Fact]
+        public void CreateRivalCommand_ImplementsIRequireFeaturePermission_WithRivalsRoute()
+        {
+            var command = new RFFM.Api.Features.Coaches.Rivals.Commands.CreateRivalCommand();
+            var requirement = Assert.IsAssignableFrom<IRequireFeaturePermission>(command);
+            Assert.Equal(CoachFeatureRoutes.Rivals, requirement.FeatureRoute);
+            Assert.Equal("ReadWrite", requirement.RequiredPermission);
+        }
+
+        [Fact]
+        public void GetRivalsQuery_ImplementsIRequireFeaturePermission_WithRivalsRoute()
+        {
+            var query = new RFFM.Api.Features.Coaches.Rivals.Queries.GetRivals.RivalsQuery();
+            var requirement = Assert.IsAssignableFrom<IRequireFeaturePermission>(query);
+            Assert.Equal(CoachFeatureRoutes.Rivals, requirement.FeatureRoute);
+            Assert.Equal("Read", requirement.RequiredPermission);
+        }
+
+        [Fact]
+        public void DeleteGameModelCommand_ImplementsIRequireFeaturePermission_WithGameModelRoute()
+        {
+            var command = new RFFM.Api.Features.Coaches.GameModels.Commands.DeleteGameModelCommand("id", "user");
+            var requirement = Assert.IsAssignableFrom<IRequireFeaturePermission>(command);
+            Assert.Equal(CoachFeatureRoutes.GameModel, requirement.FeatureRoute);
+            Assert.Equal("ReadWrite", requirement.RequiredPermission);
+        }
+
+        [Fact]
+        public void GameModelQuery_ImplementsIRequireFeaturePermission_WithGameModelRoute()
+        {
+            var query = new RFFM.Api.Features.Coaches.GameModels.Queries.GetGameModel.GameModelQuery("team", "season", "user");
+            var requirement = Assert.IsAssignableFrom<IRequireFeaturePermission>(query);
+            Assert.Equal(CoachFeatureRoutes.GameModel, requirement.FeatureRoute);
+            Assert.Equal("Read", requirement.RequiredPermission);
+        }
+
+        [Fact]
+        public void GetSeasonAccessQuery_ImplementsIRequireFeaturePermission_WithSeasonAccessRoute()
+        {
+            var query = new RFFM.Api.Features.Coaches.SeasonAccess.GetSeasonAccess.GetSeasonAccessQuery("season", "category");
+            var requirement = Assert.IsAssignableFrom<IRequireFeaturePermission>(query);
+            Assert.Equal(CoachFeatureRoutes.SeasonAccess, requirement.FeatureRoute);
+            Assert.Equal("Read", requirement.RequiredPermission);
+        }
+
+        [Fact]
+        public void UpsertSeasonAccessPlayerCommand_ImplementsIRequireFeaturePermission_WithSeasonAccessRoute()
+        {
+            var command = new RFFM.Api.Features.Coaches.SeasonAccess.UpsertSeasonAccessPlayer.UpsertSeasonAccessPlayerCommand(null!);
+            var requirement = Assert.IsAssignableFrom<IRequireFeaturePermission>(command);
+            Assert.Equal(CoachFeatureRoutes.SeasonAccess, requirement.FeatureRoute);
+            Assert.Equal("ReadWrite", requirement.RequiredPermission);
+        }
+
+        [Fact]
+        public void GetConfigQuery_ImplementsIRequireFeaturePermission_WithSettingsRoute()
+        {
+            var query = new RFFM.Api.Features.Coaches.Settings.ConfigurationCoachModule.GetConfigQuery();
+            var requirement = Assert.IsAssignableFrom<IRequireFeaturePermission>(query);
+            Assert.Equal(CoachFeatureRoutes.Settings, requirement.FeatureRoute);
+            Assert.Equal("Read", requirement.RequiredPermission);
+        }
+
+        [Fact]
+        public void CreateConfigCommand_ImplementsIRequireFeaturePermission_WithSettingsRoute()
+        {
+            var command = new RFFM.Api.Features.Coaches.Settings.ConfigurationCoachModule.CreateConfigCommand(null!);
+            var requirement = Assert.IsAssignableFrom<IRequireFeaturePermission>(command);
+            Assert.Equal(CoachFeatureRoutes.Settings, requirement.FeatureRoute);
+            Assert.Equal("ReadWrite", requirement.RequiredPermission);
+        }
+
+        [Fact]
+        public void GetClubQueryApp_ImplementsIRequireFeaturePermission_WithClubManagementRoute()
+        {
+            var query = new RFFM.Api.Features.Coaches.Clubs.Queries.GetClub.GetClubQueryApp { ClubId = "test" };
+            var requirement = Assert.IsAssignableFrom<IRequireFeaturePermission>(query);
+            Assert.Equal(CoachFeatureRoutes.ClubManagement, requirement.FeatureRoute);
+            Assert.Equal("Read", requirement.RequiredPermission);
+        }
+
+        [Fact]
+        public void ClubsQueryApp_ImplementsIRequireFeaturePermission_WithClubManagementRoute()
+        {
+            var query = new RFFM.Api.Features.Coaches.Clubs.Queries.GetClubs.ClubsQueryApp();
+            var requirement = Assert.IsAssignableFrom<IRequireFeaturePermission>(query);
+            Assert.Equal(CoachFeatureRoutes.ClubManagement, requirement.FeatureRoute);
+            Assert.Equal("Read", requirement.RequiredPermission);
+        }
+
+        [Fact]
+        public void PlayersQuery_ClubLevel_ImplementsIRequireFeaturePermission_WithClubPlayersRoute()
+        {
+            var query = new RFFM.Api.Features.Coaches.Players.Queries.GetPlayers.PlayersQuery { ClubId = "test" };
+            var requirement = Assert.IsAssignableFrom<IRequireFeaturePermission>(query);
+            Assert.Equal(CoachFeatureRoutes.ClubPlayers, requirement.FeatureRoute);
+            Assert.Equal("Read", requirement.RequiredPermission);
+        }
+
+        [Fact]
+        public void CreateTeamCommand_ImplementsIRequireFeaturePermission_WithClubTeamsRoute()
+        {
+            var command = new RFFM.Api.Features.Coaches.Teams.Commands.CreateTeamCommand();
+            var requirement = Assert.IsAssignableFrom<IRequireFeaturePermission>(command);
+            Assert.Equal(CoachFeatureRoutes.ClubTeams, requirement.FeatureRoute);
+            Assert.Equal("ReadWrite", requirement.RequiredPermission);
+        }
+
+        [Fact]
+        public void TeamsQuery_ImplementsIRequireFeaturePermission_WithClubTeamsRoute()
+        {
+            var query = new RFFM.Api.Features.Coaches.Teams.Queries.GetTeams.TeamsQuery("club", "user");
+            var requirement = Assert.IsAssignableFrom<IRequireFeaturePermission>(query);
+            Assert.Equal(CoachFeatureRoutes.ClubTeams, requirement.FeatureRoute);
+            Assert.Equal("Read", requirement.RequiredPermission);
+        }
+
+        [Fact]
+        public void ApproveClubJoinRequestCommand_ImplementsIRequireFeaturePermission_WithClubRegistrationsRoute()
+        {
+            var command = new RFFM.Api.Features.Coaches.ClubJoinRequests.Commands.ApproveClubJoinRequestCommand();
+            var requirement = Assert.IsAssignableFrom<IRequireFeaturePermission>(command);
+            Assert.Equal(CoachFeatureRoutes.ClubRegistrations, requirement.FeatureRoute);
+            Assert.Equal("ReadWrite", requirement.RequiredPermission);
+        }
+
+        [Fact]
+        public void GetClubJoinRequestsQuery_ImplementsIRequireFeaturePermission_WithClubRegistrationsRoute()
+        {
+            var query = new RFFM.Api.Features.Coaches.ClubJoinRequests.Queries.ClubJoinRequestsQuery();
+            var requirement = Assert.IsAssignableFrom<IRequireFeaturePermission>(query);
+            Assert.Equal(CoachFeatureRoutes.ClubRegistrations, requirement.FeatureRoute);
+            Assert.Equal("Read", requirement.RequiredPermission);
+        }
+
+        [Fact]
+        public void DeleteExerciseCommand_ImplementsIRequireFeaturePermission_WithTrainingsRoute()
+        {
+            var command = new RFFM.Api.Features.Coaches.Trainings.Exercises.DeleteExerciseCommand("id", "user");
+            var requirement = Assert.IsAssignableFrom<IRequireFeaturePermission>(command);
+            Assert.Equal(CoachFeatureRoutes.Trainings, requirement.FeatureRoute);
+            Assert.Equal("ReadWrite", requirement.RequiredPermission);
+        }
+
+        [Fact]
+        public void GetExercisesQuery_ImplementsIRequireFeaturePermission_WithTrainingsRoute()
+        {
+            var query = new RFFM.Api.Features.Coaches.Trainings.Exercises.GetExercisesQuery("club", null, "user");
+            var requirement = Assert.IsAssignableFrom<IRequireFeaturePermission>(query);
+            Assert.Equal(CoachFeatureRoutes.Trainings, requirement.FeatureRoute);
+            Assert.Equal("Read", requirement.RequiredPermission);
+        }
+
+        [Fact]
+        public void DeleteSessionCommand_ImplementsIRequireFeaturePermission_WithTrainingsRoute()
+        {
+            var command = new RFFM.Api.Features.Coaches.Trainings.Sessions.DeleteSessionCommand("id", "user");
+            var requirement = Assert.IsAssignableFrom<IRequireFeaturePermission>(command);
+            Assert.Equal(CoachFeatureRoutes.Trainings, requirement.FeatureRoute);
+            Assert.Equal("ReadWrite", requirement.RequiredPermission);
+        }
+    }
 }

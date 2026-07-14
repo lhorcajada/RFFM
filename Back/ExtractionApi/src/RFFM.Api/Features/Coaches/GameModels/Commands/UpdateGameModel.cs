@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Common;
 using RFFM.Api.Domain;
 using RFFM.Api.Domain.Aggregates.GameModels;
+using RFFM.Api.Domain.Entities;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
 
@@ -47,10 +48,13 @@ namespace RFFM.Api.Features.Coaches.GameModels.Commands
 
     public record UpdateGameModelCommand(
         string Name,
-        List<ScenarioRequest> Scenarios) : IRequest
+        List<ScenarioRequest> Scenarios) : IRequest, IRequireFeaturePermission
     {
         public string Id { get; init; } = string.Empty;
         public string UserId { get; init; } = string.Empty;
+
+        public string FeatureRoute => CoachFeatureRoutes.GameModel;
+        public string RequiredPermission => "ReadWrite";
     }
 
     // ── Handler ──────────────────────────────────────────────────────────────────

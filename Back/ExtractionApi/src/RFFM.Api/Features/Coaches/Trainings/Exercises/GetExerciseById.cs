@@ -4,7 +4,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using RFFM.Api.Common;
 using RFFM.Api.Domain;
+using RFFM.Api.Domain.Entities;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
 
@@ -37,7 +39,11 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         }
     }
 
-    public record GetExerciseByIdQuery(string ExerciseId, string UserId) : IRequest<ExerciseListItem?>;
+    public record GetExerciseByIdQuery(string ExerciseId, string UserId) : IRequest<ExerciseListItem?>, IRequireFeaturePermission
+    {
+        public string FeatureRoute => CoachFeatureRoutes.Trainings;
+        public string RequiredPermission => "Read";
+    }
 
     public class GetExerciseByIdHandler : IRequestHandler<GetExerciseByIdQuery, ExerciseListItem?>
     {

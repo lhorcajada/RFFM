@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Common;
 using RFFM.Api.Domain;
+using RFFM.Api.Domain.Entities;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Features.Coaches.Countries.Queries;
 using RFFM.Api.Infrastructure.Persistence;
@@ -28,7 +29,11 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
                 .Produces<TeamsResponse[]>();
         }
 
-        public record TeamsQuery(string ClubId, string UserId) : IQueryApp<TeamsResponse[]>;
+        public record TeamsQuery(string ClubId, string UserId) : IQueryApp<TeamsResponse[]>, IRequireFeaturePermission
+        {
+            public string FeatureRoute => CoachFeatureRoutes.ClubTeams;
+            public string RequiredPermission => "Read";
+        }
 
         public record TeamsResponse(string Id, 
             string Name, 

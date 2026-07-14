@@ -3,8 +3,10 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using RFFM.Api.Common;
 using RFFM.Api.Common.Behaviors;
 using RFFM.Api.Domain;
+using RFFM.Api.Domain.Entities;
 using RFFM.Api.Domain.Entities.Players;
 using RFFM.Api.Domain.Entities.TeamPlayers;
 using RFFM.Api.Domain.Models;
@@ -32,7 +34,7 @@ namespace RFFM.Api.Features.Coaches.Teams.Commands
                 .DisableAntiforgery();
         }
 
-        public class AddPlayerCommand : IRequest, IInvalidateCacheRequest
+        public class AddPlayerCommand : IRequest, IInvalidateCacheRequest, IRequireFeaturePermission
         {
             public string TeamId { get; set; } = null!;
             public string? PlayerId { get; set; } = null!;
@@ -61,6 +63,8 @@ namespace RFFM.Api.Features.Coaches.Teams.Commands
 
 
             public string PrefixCacheKey => PlayerConstants.CachePrefix;
+            public string FeatureRoute => CoachFeatureRoutes.ClubTeams;
+            public string RequiredPermission => "ReadWrite";
         }
 
         public class AddPlayerHandler : IRequestHandler<AddPlayerCommand, Unit>

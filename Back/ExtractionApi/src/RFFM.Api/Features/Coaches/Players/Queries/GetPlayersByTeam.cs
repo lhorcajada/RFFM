@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Common;
 using RFFM.Api.Domain.Models;
+using RFFM.Api.Domain.Entities;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
 using RFFM.Api.Domain.Entities.Demarcations;
@@ -25,9 +26,12 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                 .Produces<PlayersByTeamResponse[]>();
         }
 
-        public record PlayersByTeamQuery : IQueryApp<PlayersByTeamResponse[]>
+        public record PlayersByTeamQuery : IQueryApp<PlayersByTeamResponse[]>, IRequireFeaturePermission
         {
             public string TeamId { get; set; } = null!;
+
+            public string FeatureRoute => CoachFeatureRoutes.Squad;
+            public string RequiredPermission => "Read";
         }
 
         public record PlayersByTeamResponse()
