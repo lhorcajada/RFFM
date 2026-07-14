@@ -379,24 +379,33 @@
 /* ===== Responsive — narrower viewport ===== */
 @media (max-width: 480px) {
   .card {
-    height: 300px;
+    height: 230px;
   }
   .header {
-    height: 105px;
+    height: 78px;
   }
   .matchHeader {
-    height: 105px;
+    height: 78px;
   }
   .avatar {
-    font-size: 2.2rem;
+    font-size: 1.8rem;
   }
   .matchShield,
   .matchShieldPlaceholder {
-    width: 36px;
-    height: 36px;
+    width: 30px;
+    height: 30px;
+  }
+  .matchTeamBlock {
+    padding-top: 12px;
+  }
+  .matchCenter {
+    padding-top: 8px;
   }
   .matchScore {
-    font-size: 1.4rem;
+    font-size: 1.2rem;
+  }
+  .matchVs {
+    font-size: 1.1rem;
   }
 }
 

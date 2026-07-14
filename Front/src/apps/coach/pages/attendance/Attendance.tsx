@@ -181,7 +181,13 @@ export default function Attendance() {
         <Box sx={{ p: 3 }}>
           <Box
             className={styles.filters}
-            sx={{ display: "flex", gap: 2, mb: 2, alignItems: "center" }}
+            sx={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 2,
+              mb: 2,
+              alignItems: "center",
+            }}
           >
             <TextField
               label="Desde"
@@ -190,6 +196,7 @@ export default function Attendance() {
               InputLabelProps={{ shrink: true }}
               value={startDate ?? ""}
               onChange={(e) => setStartDate(e.target.value || null)}
+              sx={{ flex: { xs: "1 1 45%", sm: "0 0 auto" } }}
             />
             <TextField
               label="Hasta"
@@ -198,6 +205,7 @@ export default function Attendance() {
               InputLabelProps={{ shrink: true }}
               value={endDate ?? ""}
               onChange={(e) => setEndDate(e.target.value || null)}
+              sx={{ flex: { xs: "1 1 45%", sm: "0 0 auto" } }}
             />
             <FormControlLabel
               control={
