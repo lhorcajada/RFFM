@@ -6,17 +6,19 @@ import {
 } from "../services/permissions/permissionService";
 
 /**
- * Fetches the current user's full permission set once (role + featurePermissions +
+ * Fetches the current user's full permission set once (roles + featurePermissions +
  * pagePermissions) and exposes a `hasFeatureAccess` helper. Prefer this hook over
  * `useFeaturePermission` when a page/component needs to check several feature routes
  * at once (e.g. a dashboard rendering many cards) to avoid one network call per route.
  *
- * `Administrator` never has seeded `FeaturePermission` rows on the backend (it bypasses
- * the permission check entirely there), so `featurePermissions` comes back empty for it.
- * `hasFeatureAccess` mirrors that backend bypass explicitly.
+ * The backend returns every role the user holds (a user can hold more than one, e.g.
+ * "Federacion-xxx" and "Coach") and the combined `featurePermissions` across all of
+ * them. `Administrator` never has seeded `FeaturePermission` rows on the backend (it
+ * bypasses the permission check entirely there), so `hasFeatureAccess` mirrors that
+ * bypass explicitly by checking whether `roles` includes "Administrator".
  */
 export function usePermissions() {
-  const [role, setRole] = useState<string>("");
+  const [roles, setRoles] = useState<string[]>([]);
   const [featurePermissions, setFeaturePermissions] = useState<FeaturePermissionDto[]>([]);
   const [pagePermissions, setPagePermissions] = useState<PagePermissionDto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,7 +30,7 @@ export function usePermissions() {
     getMyPermissions()
       .then((res) => {
         if (!mounted) return;
-        setRole(res.role);
+        setRoles(res.roles);
         setFeaturePermissions(res.featurePermissions);
         setPagePermissions(res.pagePermissions);
         setError(null);
@@ -36,7 +38,7 @@ export function usePermissions() {
       .catch((err) => {
         if (!mounted) return;
         setError(err);
-        setRole("");
+        setRoles([]);
         setFeaturePermissions([]);
         setPagePermissions([]);
       })
@@ -49,9 +51,9 @@ export function usePermissions() {
   }, []);
 
   const hasFeatureAccess = (featureRoute: string): boolean => {
-    if (role === "Administrator") return true;
+    if (roles.includes("Administrator")) return true;
     return featurePermissions.some((p) => p.featureRoute === featureRoute);
   };
 
-  return { role, featurePermissions, pagePermissions, loading, error, hasFeatureAccess };
+  return { roles, featurePermissions, pagePermissions, loading, error, hasFeatureAccess };
 }

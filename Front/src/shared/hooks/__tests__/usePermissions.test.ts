@@ -22,9 +22,9 @@ describe("usePermissions", () => {
     expect(result.current.loading).toBe(true);
   });
 
-  it("exposes role and featurePermissions after a successful fetch", async () => {
+  it("exposes roles and featurePermissions after a successful fetch", async () => {
     mockGetMyPermissions.mockResolvedValue({
-      role: "Player",
+      roles: ["Player"],
       featurePermissions: [
         { featureName: "Squad", featureRoute: "/coach/squad", permissionType: "Read" },
       ],
@@ -34,13 +34,13 @@ describe("usePermissions", () => {
     const { result } = renderHook(() => usePermissions());
 
     await waitFor(() => expect(result.current.loading).toBe(false));
-    expect(result.current.role).toBe("Player");
+    expect(result.current.roles).toEqual(["Player"]);
     expect(result.current.featurePermissions).toHaveLength(1);
   });
 
   it("hasFeatureAccess returns true when the route is present in featurePermissions", async () => {
     mockGetMyPermissions.mockResolvedValue({
-      role: "Player",
+      roles: ["Player"],
       featurePermissions: [
         { featureName: "Squad", featureRoute: "/coach/squad", permissionType: "Read" },
       ],
@@ -55,7 +55,7 @@ describe("usePermissions", () => {
 
   it("hasFeatureAccess returns false when the route is absent", async () => {
     mockGetMyPermissions.mockResolvedValue({
-      role: "Player",
+      roles: ["Player"],
       featurePermissions: [
         { featureName: "Squad", featureRoute: "/coach/squad", permissionType: "Read" },
       ],
@@ -68,9 +68,9 @@ describe("usePermissions", () => {
     expect(result.current.hasFeatureAccess("/coach/settings")).toBe(false);
   });
 
-  it("hasFeatureAccess returns true for any route when role is Administrator, even with an empty list", async () => {
+  it("hasFeatureAccess returns true for any route when roles include Administrator, even with an empty list", async () => {
     mockGetMyPermissions.mockResolvedValue({
-      role: "Administrator",
+      roles: ["Administrator"],
       featurePermissions: [],
       pagePermissions: [],
     });
@@ -82,7 +82,36 @@ describe("usePermissions", () => {
     expect(result.current.hasFeatureAccess("/coach/clubs")).toBe(true);
   });
 
-  it("hasFeatureAccess returns false for every route when the request fails", async () => {
+  it("hasFeatureAccess returns true when Administrator is one of several roles (not an exact string match)", async () => {
+    mockGetMyPermissions.mockResolvedValue({
+      roles: ["Federacion-xxx", "Administrator"],
+      featurePermissions: [],
+      pagePermissions: [],
+    });
+
+    const { result } = renderHook(() => usePermissions());
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.hasFeatureAccess("/coach/anything")).toBe(true);
+  });
+
+  it("hasFeatureAccess still resolves via featurePermissions when roles has multiple non-Administrator entries", async () => {
+    mockGetMyPermissions.mockResolvedValue({
+      roles: ["Federacion-xxx", "Coach"],
+      featurePermissions: [
+        { featureName: "Settings", featureRoute: "/coach/settings", permissionType: "ReadWrite" },
+      ],
+      pagePermissions: [],
+    });
+
+    const { result } = renderHook(() => usePermissions());
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.hasFeatureAccess("/coach/settings")).toBe(true);
+    expect(result.current.hasFeatureAccess("/coach/clubs")).toBe(false);
+  });
+
+  it("hasFeatureAccess returns false for every route when the request fails and resets roles", async () => {
     mockGetMyPermissions.mockRejectedValue(new Error("network error"));
 
     const { result } = renderHook(() => usePermissions());

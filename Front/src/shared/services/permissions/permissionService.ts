@@ -13,7 +13,7 @@ export interface PagePermissionDto {
 }
 
 export interface MyPermissionsResponse {
-  role: string;
+  roles: string[];
   featurePermissions: FeaturePermissionDto[];
   pagePermissions: PagePermissionDto[];
 }

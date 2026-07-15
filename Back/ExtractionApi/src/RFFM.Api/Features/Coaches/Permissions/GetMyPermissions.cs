@@ -45,7 +45,7 @@ namespace RFFM.Api.Features.Coaches.Permissions
             string PermissionType);
 
         public record MyPermissionsResponse(
-            string Role,
+            IEnumerable<string> Roles,
             IEnumerable<FeaturePermissionDto> FeaturePermissions,
             IEnumerable<PagePermissionDto> PagePermissions);
 
@@ -64,11 +64,14 @@ namespace RFFM.Api.Features.Coaches.Permissions
                 GetMyPermissionsQuery request,
                 CancellationToken cancellationToken = default)
             {
-                var role = _currentUser.Role ?? string.Empty;
+                var roles = (_currentUser.Roles ?? [])
+                    .Where(r => !string.IsNullOrEmpty(r))
+                    .Distinct()
+                    .ToArray();
 
                 var featurePerms = await _db.FeaturePermissions
                     .AsNoTracking()
-                    .Where(fp => fp.RoleName == role)
+                    .Where(fp => roles.Contains(fp.RoleName))
                     .Select(fp => new FeaturePermissionDto(
                         fp.FeatureName,
                         fp.FeatureRoute,
@@ -79,7 +82,7 @@ namespace RFFM.Api.Features.Coaches.Permissions
 
                 var pagePerms = await _db.PagePermissions
                     .AsNoTracking()
-                    .Where(pp => pp.RoleName == role)
+                    .Where(pp => roles.Contains(pp.RoleName))
                     .Select(pp => new PagePermissionDto(
                         pp.PageIdentifier,
                         pp.PermissionKey,
@@ -88,7 +91,7 @@ namespace RFFM.Api.Features.Coaches.Permissions
                             : "ReadWrite"))
                     .ToListAsync(cancellationToken);
 
-                return new MyPermissionsResponse(role, featurePerms, pagePerms);
+                return new MyPermissionsResponse(roles, featurePerms, pagePerms);
             }
         }
     }

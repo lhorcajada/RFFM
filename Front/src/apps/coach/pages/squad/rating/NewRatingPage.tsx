@@ -72,8 +72,8 @@ export default function NewRatingPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const squadSearch = searchParams.toString() ? `?${searchParams.toString()}&tab=1` : "?tab=1";
-  const { role } = usePermissions();
-  const canSaveRating = role === "Coach" || role === "Administrator";
+  const { roles } = usePermissions();
+  const canSaveRating = roles.includes("Coach") || roles.includes("Administrator");
 
   const [playerName, setPlayerName] = useState<string>("");
   const [playerDorsal, setPlayerDorsal] = useState<number | null>(null);

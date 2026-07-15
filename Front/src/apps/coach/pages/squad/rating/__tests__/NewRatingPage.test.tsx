@@ -73,7 +73,7 @@ describe("NewRatingPage — visibilidad del botón Guardar según rol", () => {
   });
 
   it("no muestra el botón Guardar para el rol Player", async () => {
-    mockUsePermissions.mockReturnValue({ role: "Player", loading: false });
+    mockUsePermissions.mockReturnValue({ roles: ["Player"], loading: false });
 
     renderPage();
 
@@ -85,7 +85,7 @@ describe("NewRatingPage — visibilidad del botón Guardar según rol", () => {
   });
 
   it("no muestra el botón Guardar para el rol FamilyMember", async () => {
-    mockUsePermissions.mockReturnValue({ role: "FamilyMember", loading: false });
+    mockUsePermissions.mockReturnValue({ roles: ["FamilyMember"], loading: false });
 
     renderPage();
 
@@ -97,7 +97,7 @@ describe("NewRatingPage — visibilidad del botón Guardar según rol", () => {
   });
 
   it("muestra el botón Guardar para el rol Coach", async () => {
-    mockUsePermissions.mockReturnValue({ role: "Coach", loading: false });
+    mockUsePermissions.mockReturnValue({ roles: ["Coach"], loading: false });
 
     renderPage();
 
@@ -109,7 +109,7 @@ describe("NewRatingPage — visibilidad del botón Guardar según rol", () => {
   });
 
   it("muestra el botón Guardar para el rol Administrator", async () => {
-    mockUsePermissions.mockReturnValue({ role: "Administrator", loading: false });
+    mockUsePermissions.mockReturnValue({ roles: ["Administrator"], loading: false });
 
     renderPage();
 

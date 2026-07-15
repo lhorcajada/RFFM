@@ -60,8 +60,8 @@ export default function PlayerDetail() {
   const location = useLocation();
   const { teamTitleNode } = useTeamAndClub();
   const locationState = location.state as { editing?: boolean; from?: string; fromState?: unknown } | null;
-  const { role, loading: loadingPermissions } = usePermissions();
-  const canEdit = role === "Coach" || role === "Administrator";
+  const { roles, loading: loadingPermissions } = usePermissions();
+  const canEdit = roles.includes("Coach") || roles.includes("Administrator");
   const [editing, setEditingState] = useState(locationState?.editing === true);
   const setEditing: typeof setEditingState = (value) => {
     setEditingState((prev) => {

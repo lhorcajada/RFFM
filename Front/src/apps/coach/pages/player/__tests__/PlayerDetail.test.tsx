@@ -87,7 +87,7 @@ describe("PlayerDetail — visibilidad de edición según rol", () => {
   });
 
   it("no muestra Editar ni Guardar para el rol Player", () => {
-    mockUsePermissions.mockReturnValue({ role: "Player", loading: false });
+    mockUsePermissions.mockReturnValue({ roles: ["Player"], loading: false });
 
     renderPage();
 
@@ -96,7 +96,7 @@ describe("PlayerDetail — visibilidad de edición según rol", () => {
   });
 
   it("no muestra Editar ni Guardar para el rol FamilyMember", () => {
-    mockUsePermissions.mockReturnValue({ role: "FamilyMember", loading: false });
+    mockUsePermissions.mockReturnValue({ roles: ["FamilyMember"], loading: false });
 
     renderPage();
 
@@ -105,7 +105,7 @@ describe("PlayerDetail — visibilidad de edición según rol", () => {
   });
 
   it("no permite modo edición para Player aunque se navegue con location.state.editing=true", () => {
-    mockUsePermissions.mockReturnValue({ role: "Player", loading: false });
+    mockUsePermissions.mockReturnValue({ roles: ["Player"], loading: false });
 
     renderPage({ editing: true });
 
@@ -114,7 +114,7 @@ describe("PlayerDetail — visibilidad de edición según rol", () => {
   });
 
   it("no permite modo edición para FamilyMember aunque se navegue con location.state.editing=true", () => {
-    mockUsePermissions.mockReturnValue({ role: "FamilyMember", loading: false });
+    mockUsePermissions.mockReturnValue({ roles: ["FamilyMember"], loading: false });
 
     renderPage({ editing: true });
 
@@ -123,7 +123,7 @@ describe("PlayerDetail — visibilidad de edición según rol", () => {
   });
 
   it("muestra Editar para el rol Coach y al pulsarlo aparece Guardar", async () => {
-    mockUsePermissions.mockReturnValue({ role: "Coach", loading: false });
+    mockUsePermissions.mockReturnValue({ roles: ["Coach"], loading: false });
 
     renderPage();
 
@@ -137,7 +137,7 @@ describe("PlayerDetail — visibilidad de edición según rol", () => {
   });
 
   it("muestra Editar para el rol Administrator", () => {
-    mockUsePermissions.mockReturnValue({ role: "Administrator", loading: false });
+    mockUsePermissions.mockReturnValue({ roles: ["Administrator"], loading: false });
 
     renderPage();
 
@@ -157,7 +157,7 @@ describe("PlayerDetail — visibilidad de 'Registrar lesión' según rol", () =>
   }
 
   it("no muestra 'Registrar lesión' para el rol Player", async () => {
-    mockUsePermissions.mockReturnValue({ role: "Player", loading: false });
+    mockUsePermissions.mockReturnValue({ roles: ["Player"], loading: false });
 
     renderPage();
     await goToInjuriesTab();
@@ -168,7 +168,7 @@ describe("PlayerDetail — visibilidad de 'Registrar lesión' según rol", () =>
   });
 
   it("no muestra 'Registrar lesión' para el rol FamilyMember", async () => {
-    mockUsePermissions.mockReturnValue({ role: "FamilyMember", loading: false });
+    mockUsePermissions.mockReturnValue({ roles: ["FamilyMember"], loading: false });
 
     renderPage();
     await goToInjuriesTab();
@@ -179,7 +179,7 @@ describe("PlayerDetail — visibilidad de 'Registrar lesión' según rol", () =>
   });
 
   it("muestra 'Registrar lesión' para el rol Coach", async () => {
-    mockUsePermissions.mockReturnValue({ role: "Coach", loading: false });
+    mockUsePermissions.mockReturnValue({ roles: ["Coach"], loading: false });
 
     renderPage();
     await goToInjuriesTab();
@@ -190,7 +190,7 @@ describe("PlayerDetail — visibilidad de 'Registrar lesión' según rol", () =>
   });
 
   it("muestra 'Registrar lesión' para el rol Administrator", async () => {
-    mockUsePermissions.mockReturnValue({ role: "Administrator", loading: false });
+    mockUsePermissions.mockReturnValue({ roles: ["Administrator"], loading: false });
 
     renderPage();
     await goToInjuriesTab();
