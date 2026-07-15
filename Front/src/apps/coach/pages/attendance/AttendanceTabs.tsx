@@ -289,35 +289,7 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch }: Props) 
                   <Button
                     size="small"
                     variant="outlined"
-                    onClick={async () => {
-                      if (!coachAuthService.hasRole("Coach"))
-                        return alert("Solo un entrenador puede convocar.");
-                      if (!canEdit)
-                        return alert(
-                          "No se puede editar: el evento ya ha comenzado o está cerrado."
-                        );
-                      if (adding) return;
-                      setAdding(true);
-                      try {
-                        await Promise.all(
-                          waitingList
-                            .filter((p) => p.id)
-                            .map((p) =>
-                              convocationService.addConvocation(eventId, p.id!)
-                            )
-                        );
-                        const [conv, pl] = await Promise.all([
-                          convocationService.getConvocations(eventId),
-                          convocationService.getEventPlayers(eventId),
-                        ]);
-                        setConvocations(conv);
-                        setPlayers(pl);
-                      } catch (e: any) {
-                        alert(e?.message ?? "Error al convocar");
-                      } finally {
-                        setAdding(false);
-                      }
-                    }}
+                    onClick={() => handleAdd()}
                     disabled={adding || !coachAuthService.hasRole("Coach")}
                   >
                     Convocar toda la lista de espera
