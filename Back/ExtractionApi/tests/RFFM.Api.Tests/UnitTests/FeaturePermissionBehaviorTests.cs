@@ -29,6 +29,14 @@ namespace RFFM.Api.Tests.UnitTests
 
         private static ValueTask<Unit> Next(TestRequest r, CancellationToken ct) => ValueTask.FromResult(Unit.Value);
 
+        public record TestReadRequest : IRequest<Unit>, IRequireFeaturePermission
+        {
+            public string FeatureRoute => "/coach/clubs";
+            public string RequiredPermission => "Read";
+        }
+
+        private static ValueTask<Unit> NextRead(TestReadRequest r, CancellationToken ct) => ValueTask.FromResult(Unit.Value);
+
         [Fact]
         public async Task Handle_NotAuthenticated_ThrowsUnauthorizedAccessException()
         {
@@ -117,6 +125,30 @@ namespace RFFM.Api.Tests.UnitTests
 
             var behavior = new FeaturePermissionBehavior<TestRequest, Unit>(currentUser.Object, db);
             var result = await behavior.Handle(new TestRequest(), Next, CancellationToken.None);
+
+            Assert.Equal(Unit.Value, result);
+        }
+
+        [Fact]
+        public async Task Handle_CoachRoleClubManagementSeed_AlsoGrantsReadAccess()
+        {
+            // Regression: the seed row for Coach on ClubManagement ("/coach/clubs") granted only
+            // PermissionType.Write (see WebApplicationExtensions.SeedFeaturePermissionsAsync), which
+            // blocks GetClubs/GetClub (both require "Read") with a 403 -- Coach users could never
+            // open the "Clubs" settings tab, even though they were meant to manage it. Must be
+            // ReadWrite so both the Read-required queries and the Write-required commands succeed.
+            await using var db = _fixture.CreateDbContext();
+            var role = $"Coach-{Guid.NewGuid():N}";
+            db.FeaturePermissions.Add(new FeaturePermission("ClubManagement", "/coach/clubs", role, PermissionType.ReadWrite, false));
+            await db.SaveChangesAsync();
+
+            var currentUser = new Mock<ICurrentUserService>();
+            currentUser.Setup(c => c.IsAuthenticated).Returns(true);
+            currentUser.Setup(c => c.Role).Returns(role);
+            currentUser.Setup(c => c.Roles).Returns(new[] { role });
+
+            var behavior = new FeaturePermissionBehavior<TestReadRequest, Unit>(currentUser.Object, db);
+            var result = await behavior.Handle(new TestReadRequest(), NextRead, CancellationToken.None);
 
             Assert.Equal(Unit.Value, result);
         }
