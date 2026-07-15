@@ -13,18 +13,12 @@ namespace RFFM.Api.Common.Behaviors
     /// it checks the <see cref="AppDbContext.FeaturePermissions"/> table for the
     /// current user's role before proceeding.
     /// </summary>
-    public class FeaturePermissionBehavior<TRequest, TResponse>
+    public class FeaturePermissionBehavior<TRequest, TResponse>(ICurrentUserService currentUser, AppDbContext db)
         : IPipelineBehavior<TRequest, TResponse>
         where TRequest : IRequest<TResponse>
     {
-        private readonly ICurrentUserService _currentUser;
-        private readonly AppDbContext _db;
-
-        public FeaturePermissionBehavior(ICurrentUserService currentUser, AppDbContext db)
-        {
-            _currentUser = currentUser;
-            _db = db;
-        }
+        private readonly ICurrentUserService _currentUser = currentUser;
+        private readonly AppDbContext _db = db;
 
         public async ValueTask<TResponse> Handle(
             TRequest message,
@@ -37,25 +31,27 @@ namespace RFFM.Api.Common.Behaviors
             if (!_currentUser.IsAuthenticated)
                 throw new UnauthorizedAccessException("No autenticado.");
 
-            var role = _currentUser.Role;
-            if (string.IsNullOrEmpty(role))
+            var roles = (_currentUser.Roles ?? [])
+                .Where(r => !string.IsNullOrEmpty(r))
+                .Distinct()
+                .ToArray();
+            if (roles.Length == 0)
                 throw new UnauthorizedAccessException("No se pudo determinar el rol del usuario.");
 
             // Administrator bypasses all feature permission checks
-            if (string.Equals(role, AppRoles.Administrator.Name, StringComparison.OrdinalIgnoreCase))
+            if (roles.Any(r => string.Equals(r, AppRoles.Administrator.Name, StringComparison.OrdinalIgnoreCase)))
                 return await next(message, cancellationToken);
 
-            var permission = await _db.FeaturePermissions
+            var permissions = await _db.FeaturePermissions
                 .AsNoTracking()
-                .FirstOrDefaultAsync(
-                    fp => fp.RoleName == role && fp.FeatureRoute == requirement.FeatureRoute,
-                    cancellationToken);
+                .Where(fp => fp.FeatureRoute == requirement.FeatureRoute && roles.Contains(fp.RoleName))
+                .ToListAsync(cancellationToken);
 
-            if (permission == null)
+            if (permissions.Count == 0)
                 throw new ForbiddenAccessException(
-                    $"El rol '{role}' no tiene acceso a la funcionalidad '{requirement.FeatureRoute}'.");
+                    $"Ninguno de los roles del usuario ('{string.Join(", ", roles)}') tiene acceso a la funcionalidad '{requirement.FeatureRoute}'.");
 
-            bool allowed = requirement.RequiredPermission switch
+            bool AllowsRequirement(FeaturePermission permission) => requirement.RequiredPermission switch
             {
                 "Read" => permission.PermissionTypeId == PermissionType.Read.Id
                           || permission.PermissionTypeId == PermissionType.ReadWrite.Id,
@@ -65,10 +61,13 @@ namespace RFFM.Api.Common.Behaviors
                 _ => false
             };
 
-            if (!allowed)
+            if (!permissions.Any(AllowsRequirement))
+            {
+                var grantedTypes = string.Join(", ", permissions.Select(p => PermissionType.FromId(p.PermissionTypeId).Name));
                 throw new ForbiddenAccessException(
-                    $"El rol '{role}' solo tiene acceso de tipo '{PermissionType.FromId(permission.PermissionTypeId).Name}' " +
+                    $"Los roles del usuario ('{string.Join(", ", roles)}') solo tienen acceso de tipo '{grantedTypes}' " +
                     $"a '{requirement.FeatureRoute}', pero se requiere '{requirement.RequiredPermission}'.");
+            }
 
             return await next(message, cancellationToken);
         }

@@ -8,6 +8,9 @@ namespace RFFM.Api.Domain.Services
         /// <summary>Primary role of the authenticated user (first role claim).</summary>
         string? Role { get; }
 
+        /// <summary>All role claims of the authenticated user (supports multi-role users).</summary>
+        IEnumerable<string> Roles { get; }
+
         bool IsAuthenticated { get; }
     }
 }

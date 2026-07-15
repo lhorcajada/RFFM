@@ -48,7 +48,9 @@ namespace RFFM.Api.Tests.UnitTests
             await using var db = _fixture.CreateDbContext();
             var currentUser = new Mock<ICurrentUserService>();
             currentUser.Setup(c => c.IsAuthenticated).Returns(true);
-            currentUser.Setup(c => c.Role).Returns($"Coach-{Guid.NewGuid():N}"); // rol único, sin fila seed
+            var singleRole = $"Coach-{Guid.NewGuid():N}"; // rol único, sin fila seed
+            currentUser.Setup(c => c.Role).Returns(singleRole);
+            currentUser.Setup(c => c.Roles).Returns(new[] { singleRole });
 
             var behavior = new FeaturePermissionBehavior<TestRequest, Unit>(currentUser.Object, db);
 
@@ -67,6 +69,7 @@ namespace RFFM.Api.Tests.UnitTests
             var currentUser = new Mock<ICurrentUserService>();
             currentUser.Setup(c => c.IsAuthenticated).Returns(true);
             currentUser.Setup(c => c.Role).Returns(role);
+            currentUser.Setup(c => c.Roles).Returns(new[] { role });
 
             var behavior = new FeaturePermissionBehavior<TestRequest, Unit>(currentUser.Object, db);
 
@@ -85,6 +88,7 @@ namespace RFFM.Api.Tests.UnitTests
             var currentUser = new Mock<ICurrentUserService>();
             currentUser.Setup(c => c.IsAuthenticated).Returns(true);
             currentUser.Setup(c => c.Role).Returns(role);
+            currentUser.Setup(c => c.Roles).Returns(new[] { role });
 
             var behavior = new FeaturePermissionBehavior<TestRequest, Unit>(currentUser.Object, db);
             var result = await behavior.Handle(new TestRequest(), Next, CancellationToken.None);
@@ -109,6 +113,31 @@ namespace RFFM.Api.Tests.UnitTests
             var currentUser = new Mock<ICurrentUserService>();
             currentUser.Setup(c => c.IsAuthenticated).Returns(true);
             currentUser.Setup(c => c.Role).Returns(role);
+            currentUser.Setup(c => c.Roles).Returns(new[] { role });
+
+            var behavior = new FeaturePermissionBehavior<TestRequest, Unit>(currentUser.Object, db);
+            var result = await behavior.Handle(new TestRequest(), Next, CancellationToken.None);
+
+            Assert.Equal(Unit.Value, result);
+        }
+
+        [Fact]
+        public async Task Handle_MultipleRoles_SecondaryRoleHasPermission_CallsNext()
+        {
+            // Regression test: a user with TWO roles (e.g. "Federacion" and "Coach") must be
+            // granted access if ANY of their roles has the required FeaturePermission, even if
+            // the first role in the claims collection does not.
+            await using var db = _fixture.CreateDbContext();
+            var primaryRoleWithoutAccess = $"Federacion-{Guid.NewGuid():N}";
+            var secondaryRoleWithAccess = $"Coach-{Guid.NewGuid():N}";
+            db.FeaturePermissions.Add(new FeaturePermission(
+                "ClubManagement", "/coach/clubs", secondaryRoleWithAccess, PermissionType.ReadWrite, true));
+            await db.SaveChangesAsync();
+
+            var currentUser = new Mock<ICurrentUserService>();
+            currentUser.Setup(c => c.IsAuthenticated).Returns(true);
+            currentUser.Setup(c => c.Role).Returns(primaryRoleWithoutAccess);
+            currentUser.Setup(c => c.Roles).Returns(new[] { primaryRoleWithoutAccess, secondaryRoleWithAccess });
 
             var behavior = new FeaturePermissionBehavior<TestRequest, Unit>(currentUser.Object, db);
             var result = await behavior.Handle(new TestRequest(), Next, CancellationToken.None);
@@ -123,6 +152,7 @@ namespace RFFM.Api.Tests.UnitTests
             var currentUser = new Mock<ICurrentUserService>();
             currentUser.Setup(c => c.IsAuthenticated).Returns(true);
             currentUser.Setup(c => c.Role).Returns(AppRoles.Administrator.Name);
+            currentUser.Setup(c => c.Roles).Returns(new[] { AppRoles.Administrator.Name });
 
             var behavior = new FeaturePermissionBehavior<TestRequest, Unit>(currentUser.Object, db);
             var result = await behavior.Handle(new TestRequest(), Next, CancellationToken.None);

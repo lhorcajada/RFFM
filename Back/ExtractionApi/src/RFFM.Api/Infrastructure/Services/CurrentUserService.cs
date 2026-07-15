@@ -24,6 +24,13 @@ namespace RFFM.Api.Infrastructure.Services
                 .FirstOrDefault(c => c.Type == "roles" || c.Type == System.Security.Claims.ClaimTypes.Role)
                 ?.Value;
 
+        public IEnumerable<string> Roles =>
+            _httpContextAccessor.HttpContext?.User.Claims
+                .Where(c => c.Type == "roles" || c.Type == System.Security.Claims.ClaimTypes.Role)
+                .Select(c => c.Value)
+                .ToArray()
+            ?? Array.Empty<string>();
+
         public bool IsAuthenticated =>
             _httpContextAccessor.HttpContext?.User.Identity?.IsAuthenticated == true;
     }
