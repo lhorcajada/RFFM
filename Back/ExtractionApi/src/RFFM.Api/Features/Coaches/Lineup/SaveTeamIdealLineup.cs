@@ -63,15 +63,16 @@ namespace RFFM.Api.Features.Coaches.Lineup
             public async ValueTask<SaveLineupResponse> Handle(SaveLineupCommand command, CancellationToken cancellationToken = default)
             {
                 var req = command.Request;
+                var seasonId = req.SeasonId ?? string.Empty;
 
                 var existing = await _db.TeamIdealLineups
                     .Include(l => l.Slots)
-                    .Where(l => l.TeamId == command.TeamId && l.SeasonId == req.SeasonId)
+                    .Where(l => l.TeamId == command.TeamId && l.SeasonId == seasonId)
                     .FirstOrDefaultAsync(cancellationToken);
 
                 if (existing is null)
                 {
-                    existing = TeamIdealLineup.Create(command.TeamId, req.SeasonId ?? string.Empty, req.FormationId);
+                    existing = TeamIdealLineup.Create(command.TeamId, seasonId, req.FormationId);
                     _db.TeamIdealLineups.Add(existing);
                     await _db.SaveChangesAsync(cancellationToken);
                 }

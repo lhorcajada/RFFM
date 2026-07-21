@@ -43,10 +43,11 @@ namespace RFFM.Api.Features.Coaches.Lineup
 
             public async ValueTask<TeamIdealLineupDto?> Handle(GetTeamIdealLineupQuery request, CancellationToken cancellationToken = default)
             {
+                var seasonId = request.SeasonId ?? string.Empty;
                 var lineup = await _db.TeamIdealLineups
                     .AsNoTracking()
                     .Include(l => l.Slots)
-                    .Where(l => l.TeamId == request.TeamId && l.SeasonId == request.SeasonId)
+                    .Where(l => l.TeamId == request.TeamId && l.SeasonId == seasonId)
                     .FirstOrDefaultAsync(cancellationToken);
 
                 if (lineup is null) return null;
