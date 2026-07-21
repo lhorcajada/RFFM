@@ -19,8 +19,26 @@ import defaultAvatar from "../../../../assets/avatar.svg";
 import NotConvokedList from "./components/NotConvokedList";
 import ConvocationCard from "./components/ConvocationCard";
 import DeconvokeDialog from "./components/DeconvokeDialog";
+import CollapsibleGroup from "./components/CollapsibleGroup";
 
 type Props = { eventId: string; eventStart?: string | null; isMatch?: boolean };
+
+type GroupKey = "waiting" | "pending" | "accepted" | "desconvocados";
+
+// A player only ever belongs to one of the 4 groups. Used to resolve the
+// default expanded/collapsed state per group for Player/FamilyMember users.
+function matchesAssociatedPlayer(
+  entity: { id?: string; playerId?: string } | null | undefined,
+  associatedPlayerId: string | null
+): boolean {
+  if (!entity || !associatedPlayerId) return false;
+  const pid = entity.playerId;
+  const id = entity.id;
+  return (
+    (pid != null && String(pid) === String(associatedPlayerId)) ||
+    (id != null && String(id) === String(associatedPlayerId))
+  );
+}
 
 // A player is injured for a given event only if the injury started BEFORE that day (not same day).
 function isInjuredBeforeDate(injuryStartDate: string | null | undefined, eventDate: string | null | undefined): boolean {
@@ -194,6 +212,59 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch }: Props) 
   const waitingList = notConvoked.filter((p) => !p.isInjured || !isInjuredBeforeDate(p.injuryStartDate, eventStart));
   const injuredWaiting = notConvoked.filter((p) => p.isInjured && isInjuredBeforeDate(p.injuryStartDate, eventStart));
 
+  // ── Group membership (hoisted so both rendering and the default expand/
+  // collapse logic can share the same source of truth) ──────────────────
+  const convocatedFiltered = useMemo(() => convocations.filter((c) => c.player), [convocations]);
+  const acceptedStatusId = useMemo(() => statuses.find((s) => s.name === "Accepted")?.id, [statuses]);
+  const pendingStatusId = useMemo(() => statuses.find((s) => s.name === "Pending")?.id, [statuses]);
+  const deconvokeStatusId = useMemo(() => statuses.find((s) => s.name === "Deconvoke")?.id, [statuses]);
+
+  const accepted = useMemo(
+    () => convocatedFiltered.filter((c) => c.status === acceptedStatusId && !c.isInjured),
+    [convocatedFiltered, acceptedStatusId]
+  );
+  const pending = useMemo(
+    () => convocatedFiltered.filter((c) => c.status === pendingStatusId && !c.isInjured),
+    [convocatedFiltered, pendingStatusId]
+  );
+  const injuredWithConv = useMemo(() => convocatedFiltered.filter((c) => c.isInjured), [convocatedFiltered]);
+  const injuredNoConv: PlayerSimple[] = injuredWaiting;
+  const declinedNonInjured = useMemo(
+    () => convocatedFiltered.filter((c) => c.status === deconvokeStatusId && !c.isInjured),
+    [convocatedFiltered, deconvokeStatusId]
+  );
+  const totalDesconvocados = injuredNoConv.length + injuredWithConv.length + declinedNonInjured.length;
+
+  // ── Collapsible groups ──────────────────────────────────────────────
+  // Coach/Administrator: everything collapsed by default.
+  // Player/FamilyMember: the group containing their own player is expanded
+  // by default; every other group (and the edge case of not being found in
+  // any group) stays collapsed.
+  const [groupOverrides, setGroupOverrides] = useState<Partial<Record<GroupKey, boolean>>>({});
+
+  const defaultExpandedGroup: GroupKey | null = useMemo(() => {
+    if (!isPlayerOrFamily || !associatedPlayerId) return null;
+    if (waitingList.some((p) => matchesAssociatedPlayer(p, associatedPlayerId))) return "waiting";
+    if (pending.some((c) => matchesAssociatedPlayer(c.player, associatedPlayerId))) return "pending";
+    if (accepted.some((c) => matchesAssociatedPlayer(c.player, associatedPlayerId))) return "accepted";
+    if (
+      injuredNoConv.some((p) => matchesAssociatedPlayer(p, associatedPlayerId)) ||
+      injuredWithConv.some((c) => matchesAssociatedPlayer(c.player, associatedPlayerId)) ||
+      declinedNonInjured.some((c) => matchesAssociatedPlayer(c.player, associatedPlayerId))
+    )
+      return "desconvocados";
+    return null;
+  }, [isPlayerOrFamily, associatedPlayerId, waitingList, pending, accepted, injuredNoConv, injuredWithConv, declinedNonInjured]);
+
+  const isGroupExpanded = (key: GroupKey): boolean => {
+    if (Object.prototype.hasOwnProperty.call(groupOverrides, key)) return !!groupOverrides[key];
+    return defaultExpandedGroup === key;
+  };
+
+  const toggleGroup = (key: GroupKey) => {
+    setGroupOverrides((prev) => ({ ...prev, [key]: !isGroupExpanded(key) }));
+  };
+
   const [adding, setAdding] = useState(false);
 
   const handleAdd = async (playerId?: string) => {
@@ -280,12 +351,14 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch }: Props) 
       {tab === 0 && (
         <Box className={styles.page}>
           <div className={styles.half}>
-            <div className={`${styles.listGroupHeader} ${styles.listGroupHeaderBlue}`}>
-              <div className={styles.listGroupTitle}>
-                <span>Lista de espera</span>
-                <span className={styles.listGroupCount}>{notConvoked.length}</span>
-              </div>
-              {waitingList.length > 0 && (
+            <CollapsibleGroup
+              title="Lista de espera"
+              count={notConvoked.length}
+              colorClassName={styles.listGroupHeaderBlue}
+              expanded={isGroupExpanded("waiting")}
+              onToggle={() => toggleGroup("waiting")}
+              headerExtra={
+                waitingList.length > 0 && (
                   <Button
                     size="small"
                     variant="outlined"
@@ -294,19 +367,20 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch }: Props) 
                   >
                     Convocar toda la lista de espera
                   </Button>
-                )}
-            </div>
-
-            <NotConvokedList
-              players={waitingList}
-              photos={playerPhotos}
-              onAdd={handleAdd}
-              onReject={(playerId) =>
-                setDeconvokeDialog({ open: true, waitingPlayerId: playerId })
+                )
               }
-              canEdit={coachAuthService.hasRole("Coach")}
-              adding={adding}
-            />
+            >
+              <NotConvokedList
+                players={waitingList}
+                photos={playerPhotos}
+                onAdd={handleAdd}
+                onReject={(playerId) =>
+                  setDeconvokeDialog({ open: true, waitingPlayerId: playerId })
+                }
+                canEdit={coachAuthService.hasRole("Coach")}
+                adding={adding}
+              />
+            </CollapsibleGroup>
           </div>
 
           <div className={styles.half}>
@@ -319,23 +393,7 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch }: Props) 
 
             {(() => {
               if (loading) return <div>Cargando...</div>;
-              const filtered = convocations.filter((c) => c.player);
-
-              const acceptedId = statuses.find((s) => s.name === "Accepted")?.id;
-              const pendingId = statuses.find((s) => s.name === "Pending")?.id;
-              const deconvokeId = statuses.find((s) => s.name === "Deconvoke")?.id;
-              // Exclude injured players from accepted/pending — they always go to Desconvocados
-              const accepted = filtered.filter((c) => c.status === acceptedId && !c.isInjured);
-              const pending = filtered.filter((c) => c.status === pendingId && !c.isInjured);
-              // Injured with a convocation record
-              const injuredWithConv = filtered.filter((c) => c.isInjured);
-              // Injured without a convocation record (already in the waiting list as injured)
-              const injuredNoConv: PlayerSimple[] = injuredWaiting;
-              // Desconvocados no lesionados (solo Deconvoke)
-              const declinedNonInjured = filtered.filter(
-                (c) => c.status === deconvokeId && !c.isInjured
-              );
-              const totalDesconvocados = injuredNoConv.length + injuredWithConv.length + declinedNonInjured.length;
+              const filtered = convocatedFiltered;
 
               if (filtered.length === 0 && injuredNoConv.length === 0)
                 return <EmptyState description="No hay convocados aún." />;
@@ -455,70 +513,74 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch }: Props) 
               return (
                 <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 24 }}>
                   {pending.length > 0 && (
-                    <div>
-                      <div className={`${styles.listGroupHeader} ${styles.listGroupHeaderOrange}`}>
-                        <div className={styles.listGroupTitle}>
-                          <span>Pendientes de aceptar</span>
-                          <span className={styles.listGroupCount}>{pending.length}</span>
-                        </div>
-                        {!isPlayerOrFamily && canEdit && (() => {
-                            const acceptedId = statuses.find((s) => s.name === "Accepted")?.id;
-                            if (!acceptedId) return null;
-                            return (
-                              <Button
-                                size="small"
-                                variant="outlined"
-                                disabled={acceptingAll}
-                                onClick={async () => {
-                                  setAcceptingAll(true);
-                                  try {
-                                    await Promise.all(
-                                      pending.map((c) =>
-                                        convocationService.updateConvocationStatus(eventId, c.id, acceptedId, null)
-                                      )
-                                    );
-                                    const conv = await convocationService.getConvocations(eventId);
-                                    setConvocations(conv);
-                                  } catch (err: any) {
-                                    alert(err?.message ?? "Error al aceptar convocados");
-                                  } finally {
-                                    setAcceptingAll(false);
-                                  }
-                                }}
-                              >
-                                Aceptar todos
-                              </Button>
-                            );
-                          })()}
-                      </div>
+                    <CollapsibleGroup
+                      title="Pendientes de aceptar"
+                      count={pending.length}
+                      colorClassName={styles.listGroupHeaderOrange}
+                      expanded={isGroupExpanded("pending")}
+                      onToggle={() => toggleGroup("pending")}
+                      headerExtra={
+                        !isPlayerOrFamily &&
+                        canEdit &&
+                        (() => {
+                          const acceptedId = statuses.find((s) => s.name === "Accepted")?.id;
+                          if (!acceptedId) return null;
+                          return (
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              disabled={acceptingAll}
+                              onClick={async () => {
+                                setAcceptingAll(true);
+                                try {
+                                  await Promise.all(
+                                    pending.map((c) =>
+                                      convocationService.updateConvocationStatus(eventId, c.id, acceptedId, null)
+                                    )
+                                  );
+                                  const conv = await convocationService.getConvocations(eventId);
+                                  setConvocations(conv);
+                                } catch (err: any) {
+                                  alert(err?.message ?? "Error al aceptar convocados");
+                                } finally {
+                                  setAcceptingAll(false);
+                                }
+                              }}
+                            >
+                              Aceptar todos
+                            </Button>
+                          );
+                        })()
+                      }
+                    >
                       <div className={styles.convocatedList}>{sortedPending.map((c) => renderCard(c, true))}</div>
-                    </div>
+                    </CollapsibleGroup>
                   )}
                   {accepted.length > 0 && (
-                    <div>
-                      <div className={`${styles.listGroupHeader} ${styles.listGroupHeaderGreen}`}>
-                        <div className={styles.listGroupTitle}>
-                          <span>Aceptados</span>
-                          <span className={styles.listGroupCount}>{accepted.length}</span>
-                        </div>
-                      </div>
+                    <CollapsibleGroup
+                      title="Aceptados"
+                      count={accepted.length}
+                      colorClassName={styles.listGroupHeaderGreen}
+                      expanded={isGroupExpanded("accepted")}
+                      onToggle={() => toggleGroup("accepted")}
+                    >
                       <div className={styles.convocatedList}>{accepted.map((c) => renderCard(c))}</div>
-                    </div>
+                    </CollapsibleGroup>
                   )}
                   {totalDesconvocados > 0 ? (
-                    <div>
-                      <div className={`${styles.listGroupHeader} ${styles.listGroupHeaderRed}`}>
-                        <div className={styles.listGroupTitle}>
-                          <span>Desconvocados</span>
-                          <span className={styles.listGroupCount}>{totalDesconvocados}</span>
-                        </div>
-                      </div>
+                    <CollapsibleGroup
+                      title="Desconvocados"
+                      count={totalDesconvocados}
+                      colorClassName={styles.listGroupHeaderRed}
+                      expanded={isGroupExpanded("desconvocados")}
+                      onToggle={() => toggleGroup("desconvocados")}
+                    >
                       <div className={styles.convocatedList}>
                         {injuredNoConv.map(renderInjuredCard)}
                         {injuredWithConv.map(renderDeconvokedCard)}
                         {declinedNonInjured.map(renderDeconvokedCard)}
                       </div>
-                    </div>
+                    </CollapsibleGroup>
                   ) : null}
                 </div>
               );
