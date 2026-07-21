@@ -15,6 +15,7 @@ import {
   Box,
   Button,
   CircularProgress,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import SaveIcon from "@mui/icons-material/Save";
@@ -110,20 +111,31 @@ interface IdealLineupProps {
   extraPanel?: React.ReactNode;
 }
 
+// ─── Name resolution helper ─────────────────────────────────────────────
+function resolvedPlayerName(player: SquadPlayer): string {
+  return player.alias?.trim() ? player.alias.trim() : player.displayName;
+}
+
+function computeInitials(name: string): string {
+  return name
+    .split(" ")
+    .slice(0, 2)
+    .map((w) => w[0] ?? "")
+    .join("")
+    .toUpperCase();
+}
+
 // ─── Draggable list item ───────────────────────────────────────────────
-function DraggableListItem({ player, onDeconvoke }: { player: SquadPlayer; onDeconvoke?: (id: string) => void }) {
+export function DraggableListItem({ player, onDeconvoke }: { player: SquadPlayer; onDeconvoke?: (id: string) => void }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: player.id,
   });
   const style = { transform: CSS.Translate.toString(transform) };
-  const initials = player.displayName
-    .split(" ")
-    .slice(0, 2)
-    .map((w) => w[0] ?? "")
-    .join("")
-    .toUpperCase();
+  const resolvedName = resolvedPlayerName(player);
+  const hasAlias = Boolean(player.alias?.trim());
+  const initials = computeInitials(resolvedName);
 
   return (
     <div
@@ -140,7 +152,13 @@ function DraggableListItem({ player, onDeconvoke }: { player: SquadPlayer; onDec
             {player.dorsal != null && (
               <span className={styles.playerDorsalInline}>{player.dorsal}</span>
             )}
-            {player.displayName}
+            {hasAlias ? (
+              <Tooltip title={player.displayName}>
+                <span>{resolvedName}</span>
+              </Tooltip>
+            ) : (
+              resolvedName
+            )}
             {player.isInjured && <span className={styles.injuredDot} title="Lesionado"> 🩹</span>}
           </div>
           {player.position && (
@@ -148,7 +166,7 @@ function DraggableListItem({ player, onDeconvoke }: { player: SquadPlayer; onDec
           )}
         </div>
         {player.photoSrc ? (
-          <img src={player.photoSrc} alt={player.displayName} className={styles.playerAvatar} />
+          <img src={player.photoSrc} alt={resolvedName} className={styles.playerAvatar} />
         ) : (
           <div className={styles.playerAvatarInitials}>{initials}</div>
         )}
@@ -206,22 +224,25 @@ function DraggableListItem({ player, onDeconvoke }: { player: SquadPlayer; onDec
   );
 }
 
-function OverlayItem({ player }: { player: SquadPlayer }) {
-  const initials = player.displayName
-    .split(" ")
-    .slice(0, 2)
-    .map((w) => w[0] ?? "")
-    .join("")
-    .toUpperCase();
+export function OverlayItem({ player }: { player: SquadPlayer }) {
+  const resolvedName = resolvedPlayerName(player);
+  const hasAlias = Boolean(player.alias?.trim());
+  const initials = computeInitials(resolvedName);
 
   return (
     <div className={styles.dragOverlay}>
       {player.photoSrc ? (
-        <img src={player.photoSrc} alt={player.displayName} className={styles.playerAvatar} />
+        <img src={player.photoSrc} alt={resolvedName} className={styles.playerAvatar} />
       ) : (
         <div className={styles.playerAvatarInitials}>{initials}</div>
       )}
-      <span className={styles.dragOverlayName}>{player.displayName}</span>
+      {hasAlias ? (
+        <Tooltip title={player.displayName}>
+          <span className={styles.dragOverlayName}>{resolvedName}</span>
+        </Tooltip>
+      ) : (
+        <span className={styles.dragOverlayName}>{resolvedName}</span>
+      )}
     </div>
   );
 }

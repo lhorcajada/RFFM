@@ -11,6 +11,7 @@ import styles from "./SquadRanking.module.css";
 type PlayerEntry = {
   teamPlayerId: string;
   displayName: string;
+  alias?: string | null;
   position?: string | null;
   dorsal?: number | null;
   photoSrc?: string | null;
@@ -155,6 +156,7 @@ export default function SquadRanking({ teamId: _teamId, players, latestRatings, 
               <PlayerCromo
                 key={p.teamPlayerId}
                 displayName={p.displayName}
+                alias={p.alias}
                 photoSrc={p.photoSrc}
                 dorsal={p.dorsal}
                 position={p.position}
@@ -218,6 +220,7 @@ export default function SquadRanking({ teamId: _teamId, players, latestRatings, 
                       <PlayerCromo
                         key={p.teamPlayerId}
                         displayName={p.displayName}
+                        alias={p.alias}
                         photoSrc={p.photoSrc}
                         dorsal={p.dorsal}
                         position={p.position}
@@ -265,6 +268,7 @@ export default function SquadRanking({ teamId: _teamId, players, latestRatings, 
               <PlayerCromo
                 key={p.teamPlayerId}
                 displayName={p.displayName}
+                alias={p.alias}
                 photoSrc={p.photoSrc}
                 dorsal={p.dorsal}
                 position={p.position}
