@@ -4,10 +4,12 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
+using RFFM.Api.Domain;
 using RFFM.Api.Domain.Services;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
 using RFFM.Api.Domain.Aggregates.Assistances;
+using System.Linq;
 
 namespace RFFM.Api.Features.Coaches.Convocations
 {
@@ -16,7 +18,7 @@ namespace RFFM.Api.Features.Coaches.Convocations
         public void AddRoutes(IEndpointRouteBuilder app)
         {
             app.MapPut("/api/events/{eventId}/convocations/{convocationId}/status",
-                    [Authorize(Roles = "Coach,Administrator,Player,FamilyPlayer,FamilyMember")] async (string eventId, string convocationId, UpdateStatusRequest request, IMediator mediator, CancellationToken cancellationToken) =>
+                    [Authorize(Roles = "Coach,Administrator,Player,FamilyMember")] async (string eventId, string convocationId, UpdateStatusRequest request, IMediator mediator, CancellationToken cancellationToken) =>
                     {
                         request.EventId = eventId;
                         request.ConvocationId = convocationId;
@@ -27,6 +29,7 @@ namespace RFFM.Api.Features.Coaches.Convocations
                 .WithTags("Convocations")
                 .Produces(StatusCodes.Status200OK)
                 .Produces(StatusCodes.Status400BadRequest)
+                .Produces(StatusCodes.Status401Unauthorized)
                 .Produces(StatusCodes.Status403Forbidden);
         }
 
@@ -53,31 +56,33 @@ namespace RFFM.Api.Features.Coaches.Convocations
             {
                 var conv = await _db.Convocations
                     .Include(c => c.SportEvent)
-                    .Include(c=> c.Player)
                     .FirstOrDefaultAsync(c => c.Id == request.ConvocationId && c.SportEventId == request.EventId, cancellationToken);
                 if (conv == null) throw new ArgumentException("Convocation not found");
 
                 var userId = _currentUser.UserId ?? throw new UnauthorizedAccessException("Usuario no autenticado");
 
-                var profile = await _db.UserProfiles
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(p => p.ApplicationUserId == userId, cancellationToken);
+                // Coach/Administrator manage any convocation; Player/FamilyMember may only manage
+                // the convocation of the player associated with their own account. Base the role
+                // check on the authenticated JWT roles (not the self-reported UserProfile.RoleName)
+                // so it can't drift from the identity that actually authorized the request.
+                var roles = _currentUser.Roles ?? Enumerable.Empty<string>();
+                var isPlayerOrFamilyRole = roles.Any(r =>
+                    r.Equals("Player", StringComparison.OrdinalIgnoreCase) ||
+                    r.Equals("FamilyMember", StringComparison.OrdinalIgnoreCase));
 
-                if (profile is not null)
+                if (isPlayerOrFamilyRole)
                 {
-                    var roleName = profile.RoleName ?? string.Empty;
-                    var isPlayerOrFamilyRole =
-                        roleName.Equals("Player", StringComparison.OrdinalIgnoreCase) ||
-                        roleName.Equals("FamilyPlayer", StringComparison.OrdinalIgnoreCase) ||
-                        roleName.Equals("FamilyMember", StringComparison.OrdinalIgnoreCase);
+                    var profile = await _db.UserProfiles
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(p => p.ApplicationUserId == userId, cancellationToken);
 
-                    if (isPlayerOrFamilyRole)
+                    // UserProfile.PlayerId stores the TeamPlayer.Id the account was linked to during
+                    // onboarding (see VerifyPlayerIdentity), the same ID space as Convocation.TeamPlayerId.
+                    if (profile is null ||
+                        string.IsNullOrWhiteSpace(profile.PlayerId) ||
+                        !string.Equals(profile.PlayerId, conv.TeamPlayerId, StringComparison.OrdinalIgnoreCase))
                     {
-                        if (string.IsNullOrWhiteSpace(profile.PlayerId) ||
-                            !string.Equals(profile.PlayerId, conv.Player.PlayerId, StringComparison.OrdinalIgnoreCase))
-                        {
-                            throw new UnauthorizedAccessException("No autorizado para responder esta convocatoria");
-                        }
+                        throw new ForbiddenAccessException("No autorizado para responder la convocatoria de otro jugador.");
                     }
                 }
 
