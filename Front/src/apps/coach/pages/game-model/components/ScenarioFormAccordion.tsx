@@ -1,8 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
   Box,
   Typography,
   TextField,
@@ -12,15 +9,17 @@ import {
   Button,
   Tooltip,
 } from "@mui/material";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import AddIcon from "@mui/icons-material/Add";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
+import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import type { Scenario, SubPrinciple, SubSubPrinciple, TacticalPrinciple } from "../../../types/gameModel";
 import { useGameModelDraft } from "../../../context/GameModelDraftContext";
+import DrillDownPanel from "./DrillDownPanel";
 import styles from "./ScenarioFormAccordion.module.css";
 
-// ─── Sub-utils ───────────────────────────────────────────────────────
+// ─── Skill row ───────────────────────────────────────────────────────
 
 interface SkillRowProps {
   mi: number; zi: number; si: number; pi: number; qi: number; ki: number;
@@ -67,230 +66,141 @@ function SkillRow({ mi, zi, si, pi, qi, ki, name, description }: SkillRowProps) 
   );
 }
 
-// ─── SubSubPrinciple Form ────────────────────────────────────────────
+// ─── SubSubPrinciple detail form ─────────────────────────────────────
 
-interface SubSubPrincipleFormProps {
+interface SubSubPrincipleDetailFormProps {
   mi: number; zi: number; si: number; pi: number; qi: number;
-  index: number;
   ssp: SubSubPrinciple;
 }
 
-function SubSubPrincipleForm({ mi, zi, si, pi, qi, index, ssp }: SubSubPrincipleFormProps) {
+function SubSubPrincipleDetailForm({ mi, zi, si, pi, qi, ssp }: SubSubPrincipleDetailFormProps) {
   const { dispatch } = useGameModelDraft();
-  const isNew = ssp.name === "" && ssp.action === "";
-  const [expanded, setExpanded] = useState(isNew);
-
   return (
-    <Accordion
-      expanded={expanded}
-      onChange={(_, v) => setExpanded(v)}
-      className={styles.sspAccordion}
-      disableGutters
-    >
-      <AccordionSummary
-        expandIcon={<ExpandMoreIcon className={styles.sspExpandIcon} />}
-        className={styles.sspSummary}
-      >
-        <Box className={styles.sspSummaryContent}>
-          <Typography className={styles.sspNumber}>
-            Sub-subprincipio {index}
-          </Typography>
-          <TextField
-            value={ssp.name}
-            onChange={(e) => {
-              e.stopPropagation();
-              dispatch({ type: "UPD_SSP", mi, zi, si, pi, qi, changes: { name: e.target.value } });
-            }}
-            onClick={(e) => e.stopPropagation()}
-            placeholder="Nombre del sub-subprincipio…"
-            size="small"
-            variant="standard"
-            className={styles.inlineNameField}
-            inputProps={{ className: styles.inlineNameInput }}
-          />
-          {ssp.essentialSkills.length > 0 && (
-            <Chip
-              label={`${ssp.essentialSkills.length} hab.`}
-              size="small"
-              className={styles.countChip}
-            />
-          )}
-          <Tooltip title="Eliminar sub-subprincipio">
-            <IconButton
-              size="small"
-              className={styles.deleteIconBtn}
-              onClick={(e) => {
-                e.stopPropagation();
-                dispatch({ type: "DEL_SSP", mi, zi, si, pi, qi });
-              }}
-            >
-              <DeleteOutlineIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      </AccordionSummary>
-
-      <AccordionDetails className={styles.sspDetails}>
-        <TextField
-          value={ssp.action}
-          onChange={(e) =>
-            dispatch({ type: "UPD_SSP", mi, zi, si, pi, qi, changes: { action: e.target.value } })
-          }
-          placeholder="Acción: describe lo que hace el jugador en este momento…"
-          multiline
-          minRows={2}
-          fullWidth
+    <Box className={styles.sspDetailForm}>
+      <TextField
+        value={ssp.name}
+        onChange={(e) => dispatch({ type: "UPD_SSP", mi, zi, si, pi, qi, changes: { name: e.target.value } })}
+        placeholder="Nombre del sub-subprincipio…"
+        size="small"
+        label="Nombre"
+        fullWidth
+        className={styles.detailNameField}
+      />
+      <TextField
+        value={ssp.action}
+        onChange={(e) => dispatch({ type: "UPD_SSP", mi, zi, si, pi, qi, changes: { action: e.target.value } })}
+        placeholder="Acción: describe lo que hace el jugador en este momento…"
+        multiline
+        minRows={2}
+        fullWidth
+        size="small"
+        className={styles.contextField}
+        label="Acción"
+      />
+      <Box className={styles.skillsSection}>
+        <Typography className={styles.sectionLabel}>Habilidades imprescindibles</Typography>
+        {ssp.essentialSkills.map((sk, ki) => (
+          <SkillRow key={sk.id} mi={mi} zi={zi} si={si} pi={pi} qi={qi} ki={ki} name={sk.name} description={sk.description} />
+        ))}
+        <Button
           size="small"
-          className={styles.contextField}
-          label="Acción"
-        />
-
-        <Box className={styles.skillsSection}>
-          <Typography className={styles.sectionLabel}>
-            Habilidades imprescindibles
-          </Typography>
-          {ssp.essentialSkills.map((sk, ki) => (
-            <SkillRow
-              key={sk.id}
-              mi={mi} zi={zi} si={si} pi={pi} qi={qi} ki={ki}
-              name={sk.name}
-              description={sk.description}
-            />
-          ))}
-          <Button
-            size="small"
-            startIcon={<AddIcon />}
-            className={styles.addBtn}
-            onClick={() => dispatch({ type: "ADD_SKILL", mi, zi, si, pi, qi })}
-          >
-            Añadir habilidad
-          </Button>
-        </Box>
-      </AccordionDetails>
-    </Accordion>
+          startIcon={<AddIcon />}
+          className={styles.addBtn}
+          onClick={() => dispatch({ type: "ADD_SKILL", mi, zi, si, pi, qi })}
+        >
+          Añadir habilidad
+        </Button>
+      </Box>
+    </Box>
   );
 }
 
-// ─── SubPrinciple Form ───────────────────────────────────────────────
+// ─── SubPrinciple detail form (hosts SubSubPrinciple DrillDownPanel) ─
 
-interface SubPrincipleFormProps {
+interface SubPrincipleDetailFormProps {
   mi: number; zi: number; si: number; pi: number;
   sp: SubPrinciple;
 }
 
-function SubPrincipleForm({ mi, zi, si, pi, sp }: SubPrincipleFormProps) {
+function SubPrincipleDetailForm({ mi, zi, si, pi, sp }: SubPrincipleDetailFormProps) {
   const { dispatch, availablePrinciples } = useGameModelDraft();
-  const isNew = sp.name === "" && sp.context === "";
-  const [expanded, setExpanded] = useState(isNew);
+  const [selectedQi, setSelectedQi] = useState<number | null>(sp.subSubPrinciples.length === 1 ? 0 : null);
   const [draggingSspIdx, setDraggingSspIdx] = useState<number | null>(null);
   const [dragOverSspIdx, setDragOverSspIdx] = useState<number | null>(null);
 
+  useEffect(() => {
+    if (selectedQi !== null && selectedQi >= sp.subSubPrinciples.length) setSelectedQi(null);
+  }, [sp.subSubPrinciples.length, selectedQi]);
+
   return (
-    <Accordion
-      expanded={expanded}
-      onChange={(_, v) => setExpanded(v)}
-      className={styles.spAccordion}
-      disableGutters
-    >
-      <AccordionSummary
-        expandIcon={<ExpandMoreIcon className={styles.spExpandIcon} />}
-        className={styles.spSummary}
-      >
-        <Box className={styles.spSummaryContent}>
-          <Typography className={styles.spLabel}>
-            Subprincipio {sp.label}
-          </Typography>
-          <TextField
-            value={sp.name}
-            onChange={(e) => {
-              e.stopPropagation();
-              dispatch({ type: "UPD_SP", mi, zi, si, pi, changes: { name: e.target.value } });
-            }}
-            onClick={(e) => e.stopPropagation()}
-            placeholder="Nombre del subprincipio…"
-            size="small"
-            variant="standard"
-            className={styles.inlineNameField}
-            inputProps={{ className: styles.inlineNameInput }}
-          />
-          {sp.subSubPrinciples.length > 0 && (
-            <Chip
-              label={`${sp.subSubPrinciples.length} sub-subprincipio${sp.subSubPrinciples.length !== 1 ? "s" : ""}`}
+    <Box className={styles.spDetailForm}>
+      <TextField
+        value={sp.name}
+        onChange={(e) => dispatch({ type: "UPD_SP", mi, zi, si, pi, changes: { name: e.target.value } })}
+        placeholder="Nombre del subprincipio…"
+        size="small"
+        label="Nombre"
+        fullWidth
+        className={styles.detailNameField}
+      />
+      <TextField
+        value={sp.context}
+        onChange={(e) => dispatch({ type: "UPD_SP", mi, zi, si, pi, changes: { context: e.target.value } })}
+        placeholder="Contexto del subprincipio: describe la situación de juego…"
+        multiline
+        minRows={2}
+        fullWidth
+        size="small"
+        className={styles.contextField}
+        label="Contexto"
+      />
+      <Autocomplete
+        multiple
+        options={availablePrinciples}
+        getOptionLabel={(o: TacticalPrinciple) => o.name}
+        isOptionEqualToValue={(a, b) => a.id === b.id}
+        value={sp.tacticalPrinciples}
+        onChange={(_, value) => dispatch({ type: "UPD_SP", mi, zi, si, pi, changes: { tacticalPrinciples: value } })}
+        renderInput={(params) => (
+          <TextField {...params} label="Principios tácticos colectivos" size="small" className={styles.principlesField} />
+        )}
+        renderTags={(value, getTagProps) =>
+          value.map((option, index) => {
+            const { key, ...tagProps } = getTagProps({ index });
+            return <Chip key={key} label={option.name} size="small" {...tagProps} className={styles.principleChip} />;
+          })
+        }
+        className={styles.principlesAutocomplete}
+      />
+
+      <Box className={styles.nestedSection}>
+        <Typography className={styles.sectionLabel}>Sub-subprincipios</Typography>
+        <DrillDownPanel<SubSubPrinciple>
+          items={sp.subSubPrinciples}
+          getKey={(ssp) => ssp.id}
+          selectedIndex={selectedQi}
+          onSelect={setSelectedQi}
+          onBack={() => setSelectedQi(null)}
+          listAriaLabel="Lista de sub-subprincipios"
+          emptyMessage="No hay sub-subprincipios. Añade el primero."
+          detailTitle={(_ssp, qi) => `Sub-subprincipio ${qi + 1}`}
+          renderListFooter={
+            <Button
               size="small"
-              className={styles.countChip}
-            />
-          )}
-          <Tooltip title="Eliminar subprincipio">
-            <IconButton
-              size="small"
-              className={styles.deleteIconBtn}
-              onClick={(e) => {
-                e.stopPropagation();
-                dispatch({ type: "DEL_SP", mi, zi, si, pi });
+              startIcon={<AddIcon />}
+              className={styles.addBtn}
+              onClick={() => {
+                const newIndex = sp.subSubPrinciples.length;
+                dispatch({ type: "ADD_SSP", mi, zi, si, pi });
+                setSelectedQi(newIndex);
               }}
             >
-              <DeleteOutlineIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      </AccordionSummary>
-
-      <AccordionDetails className={styles.spDetails}>
-        <TextField
-          value={sp.context}
-          onChange={(e) =>
-            dispatch({ type: "UPD_SP", mi, zi, si, pi, changes: { context: e.target.value } })
+              Añadir sub-subprincipio
+            </Button>
           }
-          placeholder="Contexto del subprincipio: describe la situación de juego…"
-          multiline
-          minRows={2}
-          fullWidth
-          size="small"
-          className={styles.contextField}
-          label="Contexto"
-        />
-
-        <Autocomplete
-          multiple
-          options={availablePrinciples}
-          getOptionLabel={(o: TacticalPrinciple) => o.name}
-          isOptionEqualToValue={(a, b) => a.id === b.id}
-          value={sp.tacticalPrinciples}
-          onChange={(_, value) =>
-            dispatch({ type: "UPD_SP", mi, zi, si, pi, changes: { tacticalPrinciples: value } })
-          }
-          renderInput={(params) => (
-            <TextField
-              {...params}
-              label="Principios tácticos colectivos"
-              size="small"
-              className={styles.principlesField}
-            />
-          )}
-          renderTags={(value, getTagProps) =>
-            value.map((option, index) => {
-              const { key, ...tagProps } = getTagProps({ index });
-              return (
-                <Chip
-                  key={key}
-                  label={option.name}
-                  size="small"
-                  {...tagProps}
-                  className={styles.principleChip}
-                />
-              );
-            })
-          }
-          className={styles.principlesAutocomplete}
-        />
-
-        <Box className={styles.nestedSection}>
-          <Typography className={styles.sectionLabel}>
-            Sub-subprincipios
-          </Typography>
-          {sp.subSubPrinciples.map((ssp, qi) => (
+          forceSinglePane
+          renderListItem={(ssp, qi) => (
             <Box
-              key={ssp.id}
               className={`${styles.dragRow}${draggingSspIdx === qi ? ` ${styles.isDragging}` : ""}${dragOverSspIdx === qi && draggingSspIdx !== qi ? ` ${styles.isDragOver}` : ""}`}
               onDragOver={(e) => { e.preventDefault(); setDragOverSspIdx(qi); }}
               onDragLeave={() => setDragOverSspIdx(null)}
@@ -307,7 +217,9 @@ function SubPrincipleForm({ mi, zi, si, pi, sp }: SubPrincipleFormProps) {
                 component="span"
                 className={styles.dragHandle}
                 draggable
+                onClick={(e) => e.stopPropagation()}
                 onDragStart={(e: React.DragEvent) => {
+                  e.stopPropagation();
                   e.dataTransfer.setData("text/plain", String(qi));
                   e.dataTransfer.effectAllowed = "move";
                   setDraggingSspIdx(qi);
@@ -316,154 +228,139 @@ function SubPrincipleForm({ mi, zi, si, pi, sp }: SubPrincipleFormProps) {
               >
                 <DragIndicatorIcon />
               </Box>
+              <Box className={styles.reorderBtns}>
+                <IconButton
+                  size="small"
+                  aria-label="Mover arriba"
+                  className={styles.reorderBtn}
+                  disabled={qi === 0}
+                  onClick={(e) => { e.stopPropagation(); dispatch({ type: "MOVE_SSP", mi, zi, si, pi, from: qi, to: qi - 1 }); }}
+                >
+                  <ArrowUpwardIcon fontSize="small" />
+                </IconButton>
+                <IconButton
+                  size="small"
+                  aria-label="Mover abajo"
+                  className={styles.reorderBtn}
+                  disabled={qi === sp.subSubPrinciples.length - 1}
+                  onClick={(e) => { e.stopPropagation(); dispatch({ type: "MOVE_SSP", mi, zi, si, pi, from: qi, to: qi + 1 }); }}
+                >
+                  <ArrowDownwardIcon fontSize="small" />
+                </IconButton>
+              </Box>
               <Box className={styles.dragRowContent}>
-                <SubSubPrincipleForm
-                  key={ssp.id}
-                  mi={mi} zi={zi} si={si} pi={pi} qi={qi}
-                  index={qi + 1}
-                  ssp={ssp}
-                />
+                <Typography className={styles.sspNumber}>Sub-subprincipio {qi + 1}</Typography>
+                <Typography className={styles.listItemName}>{ssp.name || "Sin nombre"}</Typography>
+                {ssp.essentialSkills.length > 0 && (
+                  <Chip label={`${ssp.essentialSkills.length} hab.`} size="small" className={styles.countChip} />
+                )}
+                <Tooltip title="Eliminar sub-subprincipio">
+                  <IconButton
+                    size="small"
+                    className={styles.deleteIconBtn}
+                    onClick={(e) => { e.stopPropagation(); dispatch({ type: "DEL_SSP", mi, zi, si, pi, qi }); }}
+                  >
+                    <DeleteOutlineIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
               </Box>
             </Box>
-          ))}
-          <Button
-            size="small"
-            startIcon={<AddIcon />}
-            className={styles.addBtn}
-            onClick={() => dispatch({ type: "ADD_SSP", mi, zi, si, pi })}
-          >
-            Añadir sub-subprincipio
-          </Button>
-        </Box>
-      </AccordionDetails>
-    </Accordion>
+          )}
+          renderDetail={(ssp, qi) => (
+            <SubSubPrincipleDetailForm mi={mi} zi={zi} si={si} pi={pi} qi={qi} ssp={ssp} />
+          )}
+        />
+      </Box>
+    </Box>
   );
 }
 
-// ─── ScenarioFormAccordion (default export) ──────────────────────────
+// ─── Scenario detail form (hosts SubPrinciple DrillDownPanel) ───────
 
-interface Props {
-  mi: number;
-  zi: number;
-  si: number;
+interface ScenarioDetailFormProps {
+  mi: number; zi: number; si: number;
   scenario: Scenario;
-  defaultExpanded?: boolean;
 }
 
-export default function ScenarioFormAccordion({
-  mi, zi, si, scenario, defaultExpanded = false,
-}: Props) {
+function ScenarioDetailForm({ mi, zi, si, scenario }: ScenarioDetailFormProps) {
   const { dispatch, availablePrinciples } = useGameModelDraft();
-  const [expanded, setExpanded] = useState(defaultExpanded);
+  const [selectedPi, setSelectedPi] = useState<number | null>(scenario.subPrinciples.length === 1 ? 0 : null);
   const [draggingSpIdx, setDraggingSpIdx] = useState<number | null>(null);
   const [dragOverSpIdx, setDragOverSpIdx] = useState<number | null>(null);
 
+  useEffect(() => {
+    if (selectedPi !== null && selectedPi >= scenario.subPrinciples.length) setSelectedPi(null);
+  }, [scenario.subPrinciples.length, selectedPi]);
+
   return (
-    <Accordion
-      expanded={expanded}
-      onChange={(_, v) => setExpanded(v)}
-      className={styles.accordion}
-      disableGutters
-    >
-      <AccordionSummary
-        expandIcon={<ExpandMoreIcon className={styles.expandIcon} />}
-        className={styles.summary}
-      >
-        <Box className={styles.summaryContent}>
-          <Typography className={styles.scenarioNumber}>
-            Escenario {scenario.order}
-          </Typography>
-          <TextField
-            value={scenario.name}
-            onChange={(e) => {
-              e.stopPropagation();
-              dispatch({ type: "UPD_SCENARIO", mi, zi, si, changes: { name: e.target.value } });
-            }}
-            onClick={(e) => e.stopPropagation()}
-            placeholder="Nombre del escenario…"
-            size="small"
-            variant="standard"
-            className={styles.inlineNameField}
-            inputProps={{ className: styles.inlineNameInput }}
-          />
-          {scenario.subPrinciples.length > 0 && (
-            <Chip
-              label={`${scenario.subPrinciples.length} subprincipio${scenario.subPrinciples.length !== 1 ? "s" : ""}`}
+    <Box className={styles.scenarioDetailForm}>
+      <TextField
+        value={scenario.name}
+        onChange={(e) => dispatch({ type: "UPD_SCENARIO", mi, zi, si, changes: { name: e.target.value } })}
+        placeholder="Nombre del escenario…"
+        size="small"
+        label="Nombre"
+        fullWidth
+        className={styles.detailNameField}
+      />
+      <TextField
+        value={scenario.context}
+        onChange={(e) => dispatch({ type: "UPD_SCENARIO", mi, zi, si, changes: { context: e.target.value } })}
+        placeholder="Contexto: describe la situación del juego en este escenario…"
+        multiline
+        minRows={2}
+        fullWidth
+        size="small"
+        className={styles.contextField}
+        label="Contexto"
+      />
+      <Autocomplete
+        multiple
+        options={availablePrinciples}
+        getOptionLabel={(o: TacticalPrinciple) => o.name}
+        isOptionEqualToValue={(a, b) => a.id === b.id}
+        value={scenario.tacticalPrinciples}
+        onChange={(_, value) => dispatch({ type: "UPD_SCENARIO", mi, zi, si, changes: { tacticalPrinciples: value } })}
+        renderInput={(params) => (
+          <TextField {...params} label="Principios tácticos colectivos" size="small" className={styles.principlesField} />
+        )}
+        renderTags={(value, getTagProps) =>
+          value.map((option, index) => {
+            const { key, ...tagProps } = getTagProps({ index });
+            return <Chip key={key} label={option.name} size="small" {...tagProps} className={styles.principleChip} />;
+          })
+        }
+        className={styles.principlesAutocomplete}
+      />
+
+      <Box className={styles.nestedSection}>
+        <Typography className={styles.sectionLabel}>Subprincipios</Typography>
+        <DrillDownPanel<SubPrinciple>
+          items={scenario.subPrinciples}
+          getKey={(sp) => sp.id}
+          selectedIndex={selectedPi}
+          onSelect={setSelectedPi}
+          onBack={() => setSelectedPi(null)}
+          listAriaLabel="Lista de subprincipios"
+          emptyMessage="No hay subprincipios. Añade el primero."
+          detailTitle={(sp) => `Subprincipio ${sp.label}`}
+          renderListFooter={
+            <Button
               size="small"
-              className={styles.countChip}
-            />
-          )}
-          <Tooltip title="Eliminar escenario">
-            <IconButton
-              size="small"
-              className={styles.deleteIconBtn}
-              onClick={(e) => {
-                e.stopPropagation();
-                dispatch({ type: "DEL_SCENARIO", mi, zi, si });
+              startIcon={<AddIcon />}
+              className={styles.addBtn}
+              onClick={() => {
+                const newIndex = scenario.subPrinciples.length;
+                dispatch({ type: "ADD_SP", mi, zi, si });
+                setSelectedPi(newIndex);
               }}
             >
-              <DeleteOutlineIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      </AccordionSummary>
-
-      <AccordionDetails className={styles.details}>
-        <TextField
-          value={scenario.context}
-          onChange={(e) =>
-            dispatch({ type: "UPD_SCENARIO", mi, zi, si, changes: { context: e.target.value } })
+              Añadir subprincipio
+            </Button>
           }
-          placeholder="Contexto: describe la situación del juego en este escenario…"
-          multiline
-          minRows={2}
-          fullWidth
-          size="small"
-          className={styles.contextField}
-          label="Contexto"
-        />
-
-        <Autocomplete
-          multiple
-          options={availablePrinciples}
-          getOptionLabel={(o: TacticalPrinciple) => o.name}
-          isOptionEqualToValue={(a, b) => a.id === b.id}
-          value={scenario.tacticalPrinciples}
-          onChange={(_, value) =>
-            dispatch({ type: "UPD_SCENARIO", mi, zi, si, changes: { tacticalPrinciples: value } })
-          }
-          renderInput={(params) => (
-            <TextField
-              {...params}
-              label="Principios tácticos colectivos"
-              size="small"
-              className={styles.principlesField}
-            />
-          )}
-          renderTags={(value, getTagProps) =>
-            value.map((option, index) => {
-              const { key, ...tagProps } = getTagProps({ index });
-              return (
-                <Chip
-                  key={key}
-                  label={option.name}
-                  size="small"
-                  {...tagProps}
-                  className={styles.principleChip}
-                />
-              );
-            })
-          }
-          className={styles.principlesAutocomplete}
-        />
-
-        <Box className={styles.nestedSection}>
-          <Typography className={styles.sectionLabel}>
-            Subprincipios
-          </Typography>
-          {scenario.subPrinciples.map((sp, pi) => (
+          forceSinglePane
+          renderListItem={(sp, pi) => (
             <Box
-              key={sp.id}
               className={`${styles.dragRow}${draggingSpIdx === pi ? ` ${styles.isDragging}` : ""}${dragOverSpIdx === pi && draggingSpIdx !== pi ? ` ${styles.isDragOver}` : ""}`}
               onDragOver={(e) => { e.preventDefault(); setDragOverSpIdx(pi); }}
               onDragLeave={() => setDragOverSpIdx(null)}
@@ -480,7 +377,9 @@ export default function ScenarioFormAccordion({
                 component="span"
                 className={styles.dragHandle}
                 draggable
+                onClick={(e) => e.stopPropagation()}
                 onDragStart={(e: React.DragEvent) => {
+                  e.stopPropagation();
                   e.dataTransfer.setData("text/plain", String(pi));
                   e.dataTransfer.effectAllowed = "move";
                   setDraggingSpIdx(pi);
@@ -489,25 +388,119 @@ export default function ScenarioFormAccordion({
               >
                 <DragIndicatorIcon />
               </Box>
+              <Box className={styles.reorderBtns}>
+                <IconButton
+                  size="small"
+                  aria-label="Mover arriba"
+                  className={styles.reorderBtn}
+                  disabled={pi === 0}
+                  onClick={(e) => { e.stopPropagation(); dispatch({ type: "MOVE_SP", mi, zi, si, from: pi, to: pi - 1 }); }}
+                >
+                  <ArrowUpwardIcon fontSize="small" />
+                </IconButton>
+                <IconButton
+                  size="small"
+                  aria-label="Mover abajo"
+                  className={styles.reorderBtn}
+                  disabled={pi === scenario.subPrinciples.length - 1}
+                  onClick={(e) => { e.stopPropagation(); dispatch({ type: "MOVE_SP", mi, zi, si, from: pi, to: pi + 1 }); }}
+                >
+                  <ArrowDownwardIcon fontSize="small" />
+                </IconButton>
+              </Box>
               <Box className={styles.dragRowContent}>
-                <SubPrincipleForm
-                  key={sp.id}
-                  mi={mi} zi={zi} si={si} pi={pi}
-                  sp={sp}
-                />
+                <Typography className={styles.spLabel}>Subprincipio {sp.label}</Typography>
+                <Typography className={styles.listItemName}>{sp.name || "Sin nombre"}</Typography>
+                {sp.subSubPrinciples.length > 0 && (
+                  <Chip
+                    label={`${sp.subSubPrinciples.length} sub-subprincipio${sp.subSubPrinciples.length !== 1 ? "s" : ""}`}
+                    size="small"
+                    className={styles.countChip}
+                  />
+                )}
+                <Tooltip title="Eliminar subprincipio">
+                  <IconButton
+                    size="small"
+                    className={styles.deleteIconBtn}
+                    onClick={(e) => { e.stopPropagation(); dispatch({ type: "DEL_SP", mi, zi, si, pi }); }}
+                  >
+                    <DeleteOutlineIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
               </Box>
             </Box>
-          ))}
-          <Button
-            size="small"
-            startIcon={<AddIcon />}
-            className={styles.addBtn}
-            onClick={() => dispatch({ type: "ADD_SP", mi, zi, si })}
-          >
-            Añadir subprincipio
-          </Button>
+          )}
+          renderDetail={(sp, pi) => <SubPrincipleDetailForm mi={mi} zi={zi} si={si} pi={pi} sp={sp} />}
+        />
+      </Box>
+    </Box>
+  );
+}
+
+// ─── ScenarioFormAccordion (default export) — one instance per Zone ─
+
+interface Props {
+  mi: number;
+  zi: number;
+  scenarios: Scenario[];
+}
+
+export default function ScenarioFormAccordion({ mi, zi, scenarios: initialScenarios }: Props) {
+  const { dispatch, draft } = useGameModelDraft();
+  const scenarios = draft.gameMoments[mi]?.zones[zi]?.scenarios || initialScenarios;
+  const [selectedSi, setSelectedSi] = useState<number | null>(scenarios.length === 1 ? 0 : null);
+
+  useEffect(() => {
+    if (selectedSi !== null && selectedSi >= scenarios.length) setSelectedSi(null);
+  }, [scenarios.length, selectedSi]);
+
+  return (
+    <DrillDownPanel<Scenario>
+      items={scenarios}
+      getKey={(s) => s.id}
+      selectedIndex={selectedSi}
+      onSelect={setSelectedSi}
+      onBack={() => setSelectedSi(null)}
+      listAriaLabel="Lista de escenarios"
+      emptyMessage="No hay escenarios. Añade el primero."
+      detailTitle={(s) => `Escenario ${s.order}`}
+      renderListFooter={
+        <Button
+          size="small"
+          startIcon={<AddIcon />}
+          className={styles.addBtn}
+          onClick={() => {
+            const newIndex = scenarios.length;
+            dispatch({ type: "ADD_SCENARIO", mi, zi });
+            setSelectedSi(newIndex);
+          }}
+        >
+          Añadir escenario
+        </Button>
+      }
+      renderListItem={(scenario, si) => (
+        <Box className={styles.listItemContent}>
+          <Typography className={styles.scenarioNumber}>Escenario {scenario.order}</Typography>
+          <Typography className={styles.listItemName}>{scenario.name || "Sin nombre"}</Typography>
+          {scenario.subPrinciples.length > 0 && (
+            <Chip
+              label={`${scenario.subPrinciples.length} subprincipio${scenario.subPrinciples.length !== 1 ? "s" : ""}`}
+              size="small"
+              className={styles.countChip}
+            />
+          )}
+          <Tooltip title="Eliminar escenario">
+            <IconButton
+              size="small"
+              className={styles.deleteIconBtn}
+              onClick={(e) => { e.stopPropagation(); dispatch({ type: "DEL_SCENARIO", mi, zi, si }); }}
+            >
+              <DeleteOutlineIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
         </Box>
-      </AccordionDetails>
-    </Accordion>
+      )}
+      renderDetail={(scenario, si) => <ScenarioDetailForm mi={mi} zi={zi} si={si} scenario={scenario} />}
+    />
   );
 }

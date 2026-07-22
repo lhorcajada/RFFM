@@ -33,7 +33,7 @@
 }
 
 .scenarioNumber {
-  font-size: 1.22rem !important;
+  font-size: 0.8rem !important;
   font-weight: 700 !important;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -42,7 +42,7 @@
 }
 
 .scenarioName {
-  font-size: 1.42rem !important;
+  font-size: 0.9rem !important;
   font-weight: 600 !important;
   color: #e8e8e8 !important;
   flex: 1;
@@ -51,7 +51,7 @@
 .countChip {
   background-color: rgba(77, 157, 224, 0.15) !important;
   color: #a8d4f5 !important;
-  font-size: 1.2rem !important;
+  font-size: 0.75rem !important;
   height: 20px !important;
 }
 
@@ -62,7 +62,7 @@
 }
 
 .context {
-  font-size: 1.37rem !important;
+  font-size: 0.875rem !important;
   color: #e8e8e8 !important;
   font-style: italic;
   line-height: 1.55 !important;
@@ -78,7 +78,7 @@
 }
 
 .principlesLabel {
-  font-size: 1.28rem !important;
+  font-size: 0.8rem !important;
   color: #a8d4f5 !important;
   font-weight: 600 !important;
   white-space: nowrap;
@@ -94,7 +94,7 @@
   background-color: rgba(156, 220, 254, 0.12) !important;
   color: #a8d4f5 !important;
   border: 1px solid rgba(156, 220, 254, 0.3) !important;
-  font-size: 1.25rem !important;
+  font-size: 0.75rem !important;
   height: 22px !important;
 }
 
@@ -149,7 +149,7 @@
 }
 
 .subPrincipleLabel {
-  font-size: 1.2rem !important;
+  font-size: 0.8rem !important;
   font-weight: 700 !important;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -158,14 +158,14 @@
 }
 
 .subPrincipleName {
-  font-size: 1.38rem !important;
+  font-size: 0.9rem !important;
   font-weight: 700 !important;
   color: #a8d4f5 !important;
   letter-spacing: 0.02em;
 }
 
 .subPrincipleContext {
-  font-size: 1.34rem !important;
+  font-size: 0.875rem !important;
   color: #e8e8e8 !important;
   font-style: italic;
   line-height: 1.5 !important;
@@ -184,7 +184,7 @@
   margin-left: auto !important;
   color: #4ec9b0 !important;
   border-color: rgba(78, 201, 176, 0.4) !important;
-  font-size: 1.15rem !important;
+  font-size: 0.8rem !important;
   white-space: nowrap;
 }
 
@@ -197,11 +197,64 @@
   margin-left: 4px !important;
   color: #a8d4f5 !important;
   border-color: rgba(156, 220, 254, 0.35) !important;
-  font-size: 1.15rem !important;
+  font-size: 0.8rem !important;
   white-space: nowrap;
 }
 
 .viewSessionsBtn:hover {
   background-color: rgba(156, 220, 254, 0.08) !important;
   border-color: #a8d4f5 !important;
+}
+
+/* ── New: DrillDownPanel-based list items and detail panels ── */
+
+.listItemContent {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  width: 100%;
+  min-width: 0;
+}
+
+.listItemName {
+  font-size: 0.9rem !important;
+  font-weight: 600 !important;
+  color: #e8e8e8 !important;
+  flex: 1 1 100%;
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
+.scenarioDetailView,
+.spDetailView {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.spDetailHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ── Responsive: stack header actions and enforce touch targets below md (900px) ── */
+@media (max-width: 899.95px) {
+  .spDetailHeader {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .newSessionBtn,
+  .viewSessionsBtn {
+    margin-left: 0 !important;
+    min-height: 44px !important;
+    width: 100%;
+  }
+
+  .listItemContent {
+    gap: 6px;
+  }
 }

@@ -1,31 +1,22 @@
-import { useState } from "react";
-import {
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Box,
-  Typography,
-  Chip,
-  Button,
-} from "@mui/material";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { useEffect, useState } from "react";
+import { Box, Typography, Chip, Button } from "@mui/material";
 import FitnessCenterIcon from "@mui/icons-material/FitnessCenter";
 import EventNoteIcon from "@mui/icons-material/EventNote";
 import { useNavigate, useLocation } from "react-router-dom";
 import type { Scenario, SubPrinciple } from "../../../types/gameModel";
+import DrillDownPanel from "./DrillDownPanel";
 import SubSubPrincipleCard from "./SubSubPrincipleCard";
 import styles from "./ScenarioAccordion.module.css";
 
 interface Props {
-  scenario: Scenario;
-  defaultExpanded?: boolean;
+  scenarios: Scenario[];
   clubId: string;
   teamId: string;
   gameMomentName: string;
   zoneName: string;
 }
 
-interface SpProps {
+interface SpDetailProps {
   sp: SubPrinciple;
   clubId: string;
   teamId: string;
@@ -34,8 +25,7 @@ interface SpProps {
   zoneName: string;
 }
 
-function SubPrincipleAccordion({ sp, clubId, teamId, scenario, gameMomentName, zoneName }: SpProps) {
-  const [expanded, setExpanded] = useState(false);
+function SubPrincipleDetailView({ sp, clubId, teamId, scenario, gameMomentName, zoneName }: SpDetailProps) {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -52,9 +42,7 @@ function SubPrincipleAccordion({ sp, clubId, teamId, scenario, gameMomentName, z
           name: sp.name,
           context: sp.context,
           tacticalPrinciples: sp.tacticalPrinciples,
-          subSubPrincipleApiIds: sp.subSubPrinciples
-            .map((ssp) => ssp.apiId)
-            .filter((id): id is string => id != null),
+          subSubPrincipleApiIds: sp.subSubPrinciples.map((ssp) => ssp.apiId).filter((id): id is string => id != null),
         },
         clubId,
         teamId,
@@ -82,118 +70,146 @@ function SubPrincipleAccordion({ sp, clubId, teamId, scenario, gameMomentName, z
   };
 
   return (
-    <Accordion
-      expanded={expanded}
-      onChange={(_, isExpanded) => setExpanded(isExpanded)}
-      className={styles.spAccordion}
-      disableGutters
-    >
-      <AccordionSummary
-        expandIcon={<ExpandMoreIcon className={styles.spExpandIcon} />}
-        className={styles.spSummary}
-      >
-        <Box className={styles.spSummaryContent}>
-          <Typography className={styles.subPrincipleLabel}>
-            Subprincipio {sp.label}
-          </Typography>
-          <Typography className={styles.subPrincipleName}>
-            {sp.name.toUpperCase()}
-          </Typography>
-          {sp.subSubPrinciples.length > 0 && (
-            <Chip
-              label={`${sp.subSubPrinciples.length} sub-subprincipio${sp.subSubPrinciples.length !== 1 ? "s" : ""}`}
-              size="small"
-              className={styles.countChip}
-            />
-          )}
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<FitnessCenterIcon />}
-            className={styles.newSessionBtn}
-            onClick={(e) => { e.stopPropagation(); handleNewSession(); }}
-          >
-            Nueva sesión
-          </Button>
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<EventNoteIcon />}
-            className={styles.viewSessionsBtn}
-            onClick={(e) => { e.stopPropagation(); handleViewSessions(); }}
-          >
-            Ver sesiones
-          </Button>
-        </Box>
-      </AccordionSummary>
+    <Box className={styles.spDetailView}>
+      <Box className={styles.spDetailHeader}>
+        <Typography className={styles.subPrincipleName}>{sp.name.toUpperCase()}</Typography>
+        <Button
+          size="small"
+          variant="outlined"
+          startIcon={<FitnessCenterIcon />}
+          className={styles.newSessionBtn}
+          onClick={handleNewSession}
+        >
+          Nueva sesión
+        </Button>
+        <Button
+          size="small"
+          variant="outlined"
+          startIcon={<EventNoteIcon />}
+          className={styles.viewSessionsBtn}
+          onClick={handleViewSessions}
+        >
+          Ver sesiones
+        </Button>
+      </Box>
 
-      <AccordionDetails className={styles.spDetails}>
-        <Typography className={styles.subPrincipleContext}>
-          {sp.context}
-        </Typography>
+      <Typography className={styles.subPrincipleContext}>{sp.context}</Typography>
 
-        {sp.tacticalPrinciples.length > 0 && (
-          <Box className={styles.principlesRow}>
-            <Typography className={styles.principlesLabel}>
-              Principios tácticos colectivos:
-            </Typography>
-            <Box className={styles.chipRow}>
-              {sp.tacticalPrinciples.map((p) => (
-                <Chip
-                  key={p.id}
-                  label={p.name}
-                  size="small"
-                  className={styles.principleChip}
-                />
-              ))}
-            </Box>
-          </Box>
-        )}
-
-        {sp.subSubPrinciples.length > 0 && (
-          <Box className={styles.subSubPrinciples}>
-            {sp.subSubPrinciples.map((ssp, idx) => (
-              <SubSubPrincipleCard
-                key={ssp.id}
-                index={idx + 1}
-                subSubPrinciple={ssp}
-                clubId={clubId}
-              />
+      {sp.tacticalPrinciples.length > 0 && (
+        <Box className={styles.principlesRow}>
+          <Typography className={styles.principlesLabel}>Principios tácticos colectivos:</Typography>
+          <Box className={styles.chipRow}>
+            {sp.tacticalPrinciples.map((p) => (
+              <Chip key={p.id} label={p.name} size="small" className={styles.principleChip} />
             ))}
           </Box>
-        )}
+        </Box>
+      )}
 
-      </AccordionDetails>
-    </Accordion>
+      {sp.subSubPrinciples.length > 0 && (
+        <Box className={styles.subSubPrinciples}>
+          {sp.subSubPrinciples.map((ssp, idx) => (
+            <SubSubPrincipleCard key={ssp.id} index={idx + 1} subSubPrinciple={ssp} clubId={clubId} />
+          ))}
+        </Box>
+      )}
+    </Box>
   );
 }
 
-export default function ScenarioAccordion({
-  scenario,
-  defaultExpanded = false,
-  clubId,
-  teamId,
-  gameMomentName,
-  zoneName,
-}: Props) {
-  const [expanded, setExpanded] = useState(defaultExpanded);
+interface ScenarioDetailProps {
+  scenario: Scenario;
+  clubId: string;
+  teamId: string;
+  gameMomentName: string;
+  zoneName: string;
+}
+
+function ScenarioDetailView({ scenario, clubId, teamId, gameMomentName, zoneName }: ScenarioDetailProps) {
+  const [selectedPi, setSelectedPi] = useState<number | null>(scenario.subPrinciples.length === 1 ? 0 : null);
+
+  useEffect(() => {
+    if (selectedPi !== null && selectedPi >= scenario.subPrinciples.length) setSelectedPi(null);
+  }, [scenario.subPrinciples.length, selectedPi]);
 
   return (
-    <Accordion
-      expanded={expanded}
-      onChange={(_, isExpanded) => setExpanded(isExpanded)}
-      className={styles.accordion}
-      disableGutters
-    >
-      <AccordionSummary
-        expandIcon={<ExpandMoreIcon className={styles.expandIcon} />}
-        className={styles.summary}
-      >
-        <Box className={styles.summaryContent}>
-          <Typography className={styles.scenarioNumber}>
-            Escenario {scenario.order}
-          </Typography>
-          <Typography className={styles.scenarioName}>{scenario.name}</Typography>
+    <Box className={styles.scenarioDetailView}>
+      <Typography className={styles.context}>{scenario.context}</Typography>
+
+      {scenario.tacticalPrinciples.length > 0 && (
+        <Box className={styles.principlesRow}>
+          <Typography className={styles.principlesLabel}>Principios tácticos colectivos:</Typography>
+          <Box className={styles.chipRow}>
+            {scenario.tacticalPrinciples.map((p) => (
+              <Chip key={p.id} label={p.name} size="small" className={styles.principleChip} />
+            ))}
+          </Box>
+        </Box>
+      )}
+
+      {scenario.subPrinciples.length > 0 ? (
+        <DrillDownPanel<SubPrinciple>
+          items={scenario.subPrinciples}
+          getKey={(sp) => sp.id}
+          selectedIndex={selectedPi}
+          onSelect={setSelectedPi}
+          onBack={() => setSelectedPi(null)}
+          listAriaLabel="Lista de subprincipios"
+          emptyMessage="Selecciona un subprincipio para ver su detalle."
+          detailTitle={(sp) => `Subprincipio ${sp.label}`}
+          forceSinglePane
+          renderListItem={(sp) => (
+            <Box className={styles.listItemContent}>
+              <Typography className={styles.subPrincipleLabel}>Subprincipio {sp.label}</Typography>
+              <Typography className={styles.listItemName}>{sp.name.toUpperCase()}</Typography>
+              {sp.subSubPrinciples.length > 0 && (
+                <Chip
+                  label={`${sp.subSubPrinciples.length} sub-subprincipio${sp.subSubPrinciples.length !== 1 ? "s" : ""}`}
+                  size="small"
+                  className={styles.countChip}
+                />
+              )}
+            </Box>
+          )}
+          renderDetail={(sp) => (
+            <SubPrincipleDetailView
+              sp={sp}
+              clubId={clubId}
+              teamId={teamId}
+              scenario={{ id: scenario.id, name: scenario.name, order: scenario.order }}
+              gameMomentName={gameMomentName}
+              zoneName={zoneName}
+            />
+          )}
+        />
+      ) : (
+        <Typography className={styles.emptyZoneText}>No hay subprincipios definidos.</Typography>
+      )}
+    </Box>
+  );
+}
+
+export default function ScenarioAccordion({ scenarios, clubId, teamId, gameMomentName, zoneName }: Props) {
+  const [selectedSi, setSelectedSi] = useState<number | null>(scenarios.length === 1 ? 0 : null);
+
+  useEffect(() => {
+    if (selectedSi !== null && selectedSi >= scenarios.length) setSelectedSi(null);
+  }, [scenarios.length, selectedSi]);
+
+  return (
+    <DrillDownPanel<Scenario>
+      items={scenarios}
+      getKey={(s) => s.id}
+      selectedIndex={selectedSi}
+      onSelect={setSelectedSi}
+      onBack={() => setSelectedSi(null)}
+      listAriaLabel="Lista de escenarios"
+      emptyMessage="Selecciona un escenario para ver su detalle."
+      detailTitle={(s) => `Escenario ${s.order}`}
+      renderListItem={(scenario) => (
+        <Box className={styles.listItemContent}>
+          <Typography className={styles.scenarioNumber}>Escenario {scenario.order}</Typography>
+          <Typography className={styles.listItemName}>{scenario.name}</Typography>
           {scenario.subPrinciples.length > 0 && (
             <Chip
               label={`${scenario.subPrinciples.length} subprincipio${scenario.subPrinciples.length !== 1 ? "s" : ""}`}
@@ -202,29 +218,16 @@ export default function ScenarioAccordion({
             />
           )}
         </Box>
-      </AccordionSummary>
-
-      <AccordionDetails className={styles.details}>
-        {/* Scenario context */}
-        <Typography className={styles.context}>{scenario.context}</Typography>
-
-        {/* Sub-principles */}
-        {scenario.subPrinciples.length > 0 && (
-          <Box className={styles.subPrinciples}>
-            {scenario.subPrinciples.map((sp) => (
-              <SubPrincipleAccordion
-                key={sp.id}
-                sp={sp}
-                clubId={clubId}
-                teamId={teamId}
-                scenario={{ id: scenario.id, name: scenario.name, order: scenario.order }}
-                gameMomentName={gameMomentName}
-                zoneName={zoneName}
-              />
-            ))}
-          </Box>
-        )}
-      </AccordionDetails>
-    </Accordion>
+      )}
+      renderDetail={(scenario) => (
+        <ScenarioDetailView
+          scenario={scenario}
+          clubId={clubId}
+          teamId={teamId}
+          gameMomentName={gameMomentName}
+          zoneName={zoneName}
+        />
+      )}
+    />
   );
 }

@@ -20,7 +20,6 @@ import {
 import { useNavigate, useLocation } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SaveIcon from "@mui/icons-material/Save";
-import AddIcon from "@mui/icons-material/Add";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import useTeamAndClub from "../../hooks/useTeamAndClub";
@@ -31,6 +30,7 @@ import {
   useGameModelDraft,
 } from "../../context/GameModelDraftContext";
 import ScenarioFormAccordion from "./components/ScenarioFormAccordion";
+import MobileSaveCancelBar from "./components/MobileSaveCancelBar";
 import styles from "./GameModelCreate.module.css";
 
 // ─── Validation ──────────────────────────────────────────────────────
@@ -110,39 +110,13 @@ function ZoneFormContent({
   mi: number;
   zi: number;
 }) {
-  const { draft, dispatch } = useGameModelDraft();
+  const { draft } = useGameModelDraft();
   const zone = draft.gameMoments[mi]?.zones[zi];
   if (!zone) return null;
 
   return (
     <Box className={styles.zoneContent}>
-      {zone.scenarios.length === 0 && (
-        <Box className={styles.emptyZone}>
-          <Typography className={styles.emptyZoneText}>
-            No hay escenarios. Añade el primero.
-          </Typography>
-        </Box>
-      )}
-
-      {zone.scenarios.map((scenario, si) => (
-        <ScenarioFormAccordion
-          key={scenario.id}
-          mi={mi}
-          zi={zi}
-          si={si}
-          scenario={scenario}
-          defaultExpanded={zone.scenarios.length === 1}
-        />
-      ))}
-
-      <Button
-        size="small"
-        startIcon={<AddIcon />}
-        className={styles.addScenarioBtn}
-        onClick={() => dispatch({ type: "ADD_SCENARIO", mi, zi })}
-      >
-        Añadir escenario
-      </Button>
+      <ScenarioFormAccordion mi={mi} zi={zi} scenarios={zone.scenarios} />
     </Box>
   );
 }
@@ -289,6 +263,13 @@ function GameModelFormEditor({ onSave, onCancel, isEdit, saveRef }: {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <MobileSaveCancelBar
+        onSave={handleSave}
+        onCancel={onCancel}
+        saving={saving}
+        saveLabel={isEdit ? "Guardar cambios" : "Guardar Modelo"}
+      />
     </Box>
   );
 }

@@ -47,17 +47,13 @@ function ZoneContent({
   }
   return (
     <Box className={styles.scenarios}>
-      {zone.scenarios.map((scenario) => (
-        <ScenarioAccordion
-          key={scenario.id}
-          scenario={scenario}
-          defaultExpanded={zone.scenarios.length === 1}
-          clubId={clubId}
-          teamId={teamId}
-          gameMomentName={gameMomentName}
-          zoneName={zone.name}
-        />
-      ))}
+      <ScenarioAccordion
+        scenarios={zone.scenarios}
+        clubId={clubId}
+        teamId={teamId}
+        gameMomentName={gameMomentName}
+        zoneName={zone.name}
+      />
     </Box>
   );
 }

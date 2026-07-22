@@ -37,7 +37,7 @@
 }
 
 .scenarioNumber {
-  font-size: 1.2rem !important;
+  font-size: 0.8rem !important;
   font-weight: 700 !important;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -76,7 +76,7 @@
 .countChip {
   background-color: rgba(77, 157, 224, 0.15) !important;
   color: #a8d4f5 !important;
-  font-size: 1.2rem !important;
+  font-size: 0.8rem !important;
   height: 20px !important;
   flex-shrink: 0;
 }
@@ -109,7 +109,7 @@
 
 .contextField .MuiOutlinedInput-root {
   color: #e8e8e8 !important;
-  font-size: 1.37rem !important;
+  font-size: 0.875rem !important;
   font-style: italic;
 }
 
@@ -127,7 +127,7 @@
 
 .contextField .MuiInputLabel-root {
   color: rgba(156, 220, 254, 0.6) !important;
-  font-size: 1.32rem !important;
+  font-size: 0.8rem !important;
 }
 
 .contextField .MuiInputLabel-root.Mui-focused {
@@ -148,7 +148,7 @@
 
 .principlesField .MuiInputLabel-root {
   color: rgba(156, 220, 254, 0.6) !important;
-  font-size: 1.32rem !important;
+  font-size: 0.8rem !important;
 }
 
 .principlesField .MuiInputLabel-root.Mui-focused {
@@ -170,7 +170,7 @@
 .principleChip {
   background-color: rgba(77, 157, 224, 0.15) !important;
   color: #a8d4f5 !important;
-  font-size: 1.2rem !important;
+  font-size: 0.8rem !important;
   height: 22px !important;
 }
 
@@ -192,7 +192,7 @@
 }
 
 .sectionLabel {
-  font-size: 1.22rem !important;
+  font-size: 0.85rem !important;
   font-weight: 700 !important;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -202,7 +202,7 @@
 
 .addBtn {
   color: #4d9de0 !important;
-  font-size: 1.28rem !important;
+  font-size: 0.85rem !important;
   text-transform: none !important;
   padding: 4px 8px !important;
   margin-top: 6px !important;
@@ -254,7 +254,7 @@
 }
 
 .spLabel {
-  font-size: 1.18rem !important;
+  font-size: 0.8rem !important;
   font-weight: 700 !important;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -310,7 +310,7 @@
 }
 
 .sspNumber {
-  font-size: 1.15rem !important;
+  font-size: 0.8rem !important;
   font-weight: 700 !important;
   text-transform: uppercase;
   letter-spacing: 0.07em;
@@ -349,7 +349,7 @@
 
 .skillNameField .MuiOutlinedInput-root {
   color: #e8e8e8 !important;
-  font-size: 1.32rem !important;
+  font-size: 0.8rem !important;
   font-weight: 600 !important;
 }
 
@@ -377,7 +377,7 @@
 
 .skillDescField .MuiOutlinedInput-root {
   color: #e8e8e8 !important;
-  font-size: 1.32rem !important;
+  font-size: 0.8rem !important;
   font-style: italic;
 }
 
@@ -438,4 +438,108 @@
 .dragRowContent {
   flex: 1;
   min-width: 0;
+}
+
+/* ── Responsive: skill row stacks + touch targets below md (900px) ── */
+@media (max-width: 899.95px) {
+  .skillRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .skillNameField {
+    flex: 1 1 auto;
+  }
+
+  .skillNameField .MuiOutlinedInput-root,
+  .skillDescField .MuiOutlinedInput-root {
+    min-height: 44px;
+  }
+
+  .deleteIconBtn {
+    min-width: 44px !important;
+    min-height: 44px !important;
+    align-self: flex-end;
+  }
+}
+
+/* ── New: DrillDownPanel-based list items and detail panels ── */
+
+.listItemContent,
+.dragRowContent {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  width: 100%;
+  min-width: 0;
+}
+
+.listItemName {
+  font-size: 0.9rem !important;
+  font-weight: 600 !important;
+  color: #e8e8e8 !important;
+  flex: 1 1 100%;
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
+.detailNameField .MuiOutlinedInput-root {
+  color: #e8e8e8 !important;
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+}
+
+.detailNameField .MuiOutlinedInput-notchedOutline {
+  border-color: rgba(77, 157, 224, 0.3) !important;
+}
+
+.detailNameField .MuiInputLabel-root {
+  color: rgba(156, 220, 254, 0.6) !important;
+}
+
+.scenarioDetailForm,
+.spDetailForm,
+.sspDetailForm {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.reorderBtns {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.reorderBtn {
+  color: rgba(77, 157, 224, 0.7) !important;
+  padding: 2px !important;
+}
+
+.reorderBtn:hover {
+  color: #4d9de0 !important;
+}
+
+.reorderBtn:disabled {
+  color: rgba(156, 220, 254, 0.15) !important;
+}
+
+/* ── Responsive: stack detail field rows and enforce touch targets below md (900px) ── */
+@media (max-width: 899.95px) {
+  .listItemContent,
+  .dragRowContent {
+    gap: 6px;
+  }
+
+  .reorderBtn,
+  .deleteIconBtn,
+  .dragHandle {
+    min-width: 44px !important;
+    min-height: 44px !important;
+  }
+
+  .addBtn {
+    min-height: 44px !important;
+  }
 }
