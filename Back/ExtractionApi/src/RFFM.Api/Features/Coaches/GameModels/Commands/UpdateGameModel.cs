@@ -108,11 +108,21 @@ namespace RFFM.Api.Features.Coaches.GameModels.Commands
                     existing.UpdateName(sr.Name);
                     existing.UpdateContext(sr.Context);
 
-                    // Replace tactical principles
-                    _db.ScenarioTacticalPrinciples.RemoveRange(existing.TacticalPrinciples);
-                    existing.TacticalPrinciples.Clear();
-                    foreach (var tpId in sr.TacticalPrincipleIds)
-                        existing.TacticalPrinciples.Add(new ScenarioTacticalPrinciple(existing.Id, tpId));
+                    // Diff tactical principles instead of clear + re-add: with a composite key
+                    // (GameScenarioId, TechnicalGoalId), removing and re-adding an entry with the
+                    // same key confuses EF Core's change tracker (see UpdateGameModelResavePrinciplesTests).
+                    var requestedTpIds = new HashSet<int>(sr.TacticalPrincipleIds);
+                    var tpToRemove = existing.TacticalPrinciples
+                        .Where(tp => !requestedTpIds.Contains(tp.TechnicalGoalId))
+                        .ToList();
+                    _db.ScenarioTacticalPrinciples.RemoveRange(tpToRemove);
+                    foreach (var tp in tpToRemove)
+                        existing.TacticalPrinciples.Remove(tp);
+
+                    var existingTpIds = existing.TacticalPrinciples.Select(tp => tp.TechnicalGoalId).ToHashSet();
+                    foreach (var tpId in requestedTpIds)
+                        if (!existingTpIds.Contains(tpId))
+                            existing.TacticalPrinciples.Add(new ScenarioTacticalPrinciple(existing.Id, tpId));
 
                     UpsertSubPrinciples(existing, sr.SubPrinciples);
                 }
@@ -157,10 +167,20 @@ namespace RFFM.Api.Features.Coaches.GameModels.Commands
                     existing.UpdateContext(spr.Context);
                     existing.UpdateOrder(spr.Order);
 
-                    _db.SubPrincipleTacticalPrinciples.RemoveRange(existing.TacticalPrinciples);
-                    existing.TacticalPrinciples.Clear();
-                    foreach (var tpId in spr.TacticalPrincipleIds)
-                        existing.TacticalPrinciples.Add(new SubPrincipleTacticalPrinciple(existing.Id, tpId));
+                    // Diff tactical principles instead of clear + re-add (see the equivalent
+                    // scenario-level comment above for the composite-key tracking rationale).
+                    var requestedSpTpIds = new HashSet<int>(spr.TacticalPrincipleIds);
+                    var spTpToRemove = existing.TacticalPrinciples
+                        .Where(tp => !requestedSpTpIds.Contains(tp.TechnicalGoalId))
+                        .ToList();
+                    _db.SubPrincipleTacticalPrinciples.RemoveRange(spTpToRemove);
+                    foreach (var tp in spTpToRemove)
+                        existing.TacticalPrinciples.Remove(tp);
+
+                    var existingSpTpIds = existing.TacticalPrinciples.Select(tp => tp.TechnicalGoalId).ToHashSet();
+                    foreach (var tpId in requestedSpTpIds)
+                        if (!existingSpTpIds.Contains(tpId))
+                            existing.TacticalPrinciples.Add(new SubPrincipleTacticalPrinciple(existing.Id, tpId));
 
                     UpsertSubSubPrinciples(existing, spr.SubSubPrinciples);
                 }
