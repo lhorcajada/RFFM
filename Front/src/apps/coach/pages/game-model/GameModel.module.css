@@ -60,84 +60,76 @@
   color: #4d9de0;
 }
 
-/* ── Moment tabs ── */
-.momentTabsWrap {
-  background-color: #07071a;
-  border-radius: 10px 10px 0 0;
-  border: 1px solid rgba(77, 157, 224, 0.2);
-  border-bottom: none;
+/* ── Moment selector ── */
+.momentSelect {
+  margin-bottom: 16px;
 }
 
-.momentTabs {
-  min-height: 44px !important;
+.momentSelect .MuiOutlinedInput-root,
+.momentSelectInput {
+  color: #e8e8e8;
+  font-size: 1.3rem;
+  font-weight: 500;
 }
 
-.momentTabs .MuiTabs-scrollButtons {
+.momentSelect .MuiInputLabel-root {
+  color: #a8d4f5;
+}
+
+.momentSelect .MuiOutlinedInput-notchedOutline {
+  border-color: rgba(77, 157, 224, 0.4) !important;
+}
+
+.momentSelect .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline,
+.momentSelect .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: #4d9de0 !important;
+}
+
+.momentSelect .MuiSvgIcon-root {
   color: #4d9de0;
-}
-
-.momentTab {
-  color: #e8e8e8 !important;
-  font-size: 1.32rem !important;
-  font-weight: 500 !important;
-  text-transform: none !important;
-  min-height: 44px !important;
-  padding: 0 16px !important;
-}
-
-.momentTab.Mui-selected {
-  color: #4d9de0 !important;
-  font-weight: 700 !important;
-}
-
-.tabIndicator {
-  background-color: #4d9de0 !important;
-  height: 3px !important;
 }
 
 /* ── Moment content area ── */
 .momentContent {
   border: 1px solid rgba(77, 157, 224, 0.2);
-  border-top: none;
-  border-radius: 0 0 10px 10px;
+  border-radius: 10px;
   background-color: #07071a;
-  padding: 0 0 16px;
+  padding: 16px 0;
 }
 
-/* ── Zone tabs ── */
-.zoneTabs {
-  min-height: 40px !important;
-  border-bottom: 1px solid rgba(77, 157, 224, 0.15) !important;
+/* ── Zone chips ── */
+.zoneChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 0 16px 16px;
+  border-bottom: 1px solid rgba(77, 157, 224, 0.15);
   margin-bottom: 20px;
 }
 
-.zoneTabs .MuiTabs-scrollButtons {
-  color: #a8d4f5;
-}
-
-.zoneTab {
+.zoneChip {
   color: #a8d4f5 !important;
+  border-color: rgba(168, 212, 245, 0.4) !important;
   font-size: 1.28rem !important;
   font-weight: 500 !important;
-  text-transform: none !important;
-  min-height: 40px !important;
-  padding: 0 14px !important;
+  height: auto !important;
+  padding: 4px 2px !important;
 }
 
-.zoneTab.Mui-selected {
-  color: #4d9de0 !important;
+.zoneChip:hover {
+  border-color: #4d9de0 !important;
+}
+
+.zoneChipSelected {
+  color: #07071a !important;
   font-weight: 700 !important;
 }
 
-.zoneTabIndicator {
-  background-color: rgba(77, 157, 224, 0.6) !important;
-  height: 2px !important;
-}
-
-.zoneTabLabel {
+.zoneChipLabel {
   display: flex;
   align-items: center;
   gap: 6px;
+  padding: 2px 2px;
 }
 
 .zoneCount {
@@ -148,6 +140,11 @@
   border-radius: 10px;
   padding: 1px 6px;
   line-height: 1.4;
+}
+
+.zoneChipSelected .zoneCount {
+  background-color: rgba(7, 7, 26, 0.2);
+  color: #07071a;
 }
 
 /* ── Zone content ── */
@@ -185,14 +182,12 @@
 }
 
 @media (max-width: 600px) {
-  .momentTab {
-    font-size: 1.25rem !important;
-    padding: 0 10px !important;
+  .zoneChip {
+    font-size: 1.16rem !important;
   }
 
-  .zoneTab {
-    font-size: 1.22rem !important;
-    padding: 0 10px !important;
+  .zoneChips {
+    gap: 8px;
   }
 }
 
@@ -200,7 +195,7 @@
 @media print {
   .page,
   .modelHeader,
-  .momentTabsWrap,
+  .momentSelect,
   .momentContent,
   .loadingBox,
   .emptyState {
