@@ -15,7 +15,6 @@ import { client } from "../../../../../core/api/client";
 import type { SubSubPrinciple } from "../../../types/gameModel";
 import type { Exercise } from "../../../types/training";
 import trainingService from "../../../services/trainingService";
-import ExerciseDialog from "../../trainings/components/ExerciseDialog";
 import TacticalBoardSnapshotPreview, { tryParseBoardSnapshot } from "../../../components/TacticalBoardSnapshotPreview";
 import styles from "./SubSubPrincipleCard.module.css";
 
@@ -52,8 +51,6 @@ export default function SubSubPrincipleCard({ index, subSubPrinciple, clubId }: 
   const [loadingEx, setLoadingEx] = useState(false);
   const [exLoaded, setExLoaded] = useState(false);
 
-  const [exDialogOpen, setExDialogOpen] = useState(false);
-  const [editExercise, setEditExercise] = useState<Exercise | null>(null);
   const [deleteExId, setDeleteExId] = useState<string | null>(null);
   const [deletingEx, setDeletingEx] = useState(false);
 
@@ -89,7 +86,7 @@ export default function SubSubPrincipleCard({ index, subSubPrinciple, clubId }: 
     }
   };
 
-  const handleNewExercise = () => {
+  const goToExercisePage = (exerciseId?: string) => {
     if (!clubId || !sspApiId) return;
 
     const createParams = new URLSearchParams();
@@ -97,6 +94,7 @@ export default function SubSubPrincipleCard({ index, subSubPrinciple, clubId }: 
     if (teamId) createParams.set("teamId", teamId);
     createParams.set("subSubPrincipleId", sspApiId);
     createParams.set("sspName", subSubPrinciple.name);
+    if (exerciseId) createParams.set("exerciseId", exerciseId);
 
     navigate(`/coach/trainings/new-exercise?${createParams.toString()}`, {
       state: { returnTo: `${location.pathname}${location.search}` },
@@ -184,7 +182,7 @@ export default function SubSubPrincipleCard({ index, subSubPrinciple, clubId }: 
                     className={styles.addExBtn}
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleNewExercise();
+                      goToExercisePage();
                     }}
                   >
                     Añadir ejercicio
@@ -247,8 +245,7 @@ export default function SubSubPrincipleCard({ index, subSubPrinciple, clubId }: 
                                 className={styles.exEditBtn}
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setEditExercise(ex);
-                                  setExDialogOpen(true);
+                                  goToExercisePage(ex.id);
                                 }}
                               >
                                 <EditIcon style={{ fontSize: 13 }} />
@@ -337,17 +334,6 @@ export default function SubSubPrincipleCard({ index, subSubPrinciple, clubId }: 
           )}
         </Box>
       </Collapse>
-
-      {/* ── Exercise form dialog ──────────────────────────────── */}
-      <ExerciseDialog
-        open={exDialogOpen}
-        clubId={clubId}
-        subSubPrincipleId={sspApiId}
-        subSubPrincipleName={subSubPrinciple.name}
-        exercise={editExercise}
-        onClose={() => setExDialogOpen(false)}
-        onSaved={() => { setExDialogOpen(false); loadExercises(); }}
-      />
 
       {/* ── Delete confirmation ───────────────────────────────── */}
       <Dialog

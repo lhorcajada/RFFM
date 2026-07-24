@@ -8,6 +8,15 @@ import type { SubSubPrinciple } from "../../../../types/gameModel";
 import type { Exercise } from "../../../../types/training";
 import trainingService from "../../../../services/trainingService";
 
+const mockNavigate = vi.fn();
+vi.mock("react-router-dom", async () => {
+  const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  };
+});
+
 vi.mock("../../../../services/trainingService", () => ({
   default: { getExercises: vi.fn(), deleteExercise: vi.fn() },
 }));
@@ -56,6 +65,44 @@ describe("SubSubPrincipleCard", () => {
       </MemoryRouter>
     );
     expect(screen.getByText(/Sub-subprincipio de prueba/)).toHaveClass(styles.title);
+  });
+
+  describe("editar ejercicio", () => {
+    beforeEach(() => {
+      vi.mocked(trainingService.getExercises).mockReset();
+      mockNavigate.mockReset();
+    });
+
+    it("navega al formulario completo con el exerciseId al pulsar Editar, en lugar de abrir un diálogo", async () => {
+      vi.mocked(trainingService.getExercises).mockResolvedValue([
+        buildExercise({ id: "ex-42", urlImage: null, boardStateJson: null }),
+      ]);
+
+      render(
+        <MemoryRouter initialEntries={["/coach/game-model?clubId=club-1&teamId=team-9"]}>
+          <SubSubPrincipleCard index={1} subSubPrinciple={ssp} clubId="club-1" />
+        </MemoryRouter>
+      );
+
+      await userEvent.click(screen.getByText(/Sub-subprincipio de prueba/));
+
+      const editBtn = await waitFor(() => screen.getByRole("button", { name: "Editar" }));
+      await userEvent.click(editBtn);
+
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(mockNavigate).toHaveBeenCalledTimes(1);
+      const [url, options] = mockNavigate.mock.calls[0];
+      const search = new URLSearchParams(url.split("?")[1]);
+      expect(url.startsWith("/coach/trainings/new-exercise?")).toBe(true);
+      expect(search.get("clubId")).toBe("club-1");
+      expect(search.get("teamId")).toBe("team-9");
+      expect(search.get("subSubPrincipleId")).toBe("ssp-1");
+      expect(search.get("sspName")).toBe("Sub-subprincipio de prueba");
+      expect(search.get("exerciseId")).toBe("ex-42");
+      expect(options).toMatchObject({
+        state: { returnTo: "/coach/game-model?clubId=club-1&teamId=team-9" },
+      });
+    });
   });
 
   describe("media del ejercicio sin urlImage", () => {
