@@ -880,7 +880,12 @@ export function useTacticalBoard(
 
     setPlacedChapas((prev) => ({
       ...prev,
-      [chapaId]: { x, y, scaleX: 1, scaleY: 1, rotation: 0, locked: false, anonymous },
+      [chapaId]: {
+        ...(prev[chapaId] ?? { scaleX: 1, scaleY: 1, rotation: 0, locked: false }),
+        x,
+        y,
+        anonymous: prev[chapaId]?.anonymous ?? anonymous,
+      },
     }));
   };
 
