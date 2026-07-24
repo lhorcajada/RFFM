@@ -24,7 +24,9 @@ type Action =
       mi: number;
       zi: number;
       si: number;
-      changes: Partial<Pick<Scenario, "name" | "context" | "tacticalPrinciples">>;
+      changes: Partial<
+        Pick<Scenario, "name" | "context" | "tacticalPrinciples" | "mediaUrl" | "mediaType">
+      >;
     }
   | { type: "DEL_SCENARIO"; mi: number; zi: number; si: number }
   // SubPrinciple

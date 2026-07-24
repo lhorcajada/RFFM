@@ -10,9 +10,17 @@ vi.mock("@mui/material/useMediaQuery", () => ({
   default: (...args: unknown[]) => mockUseMediaQuery(...args),
 }));
 
-function buildScenario(id: number, order: number, subPrincipleCount = 0): Scenario {
+vi.mock("../../../../services/gameModelService", () => ({
+  default: {
+    uploadScenarioMedia: vi.fn(),
+    deleteScenarioMedia: vi.fn(),
+  },
+}));
+
+function buildScenario(id: number, order: number, subPrincipleCount = 0, apiId?: string): Scenario {
   return {
     id,
+    apiId,
     order,
     name: `Escenario nombre ${order}`,
     context: "",
@@ -108,5 +116,17 @@ describe("ScenarioFormAccordion", () => {
     await userEvent.click(screen.getByRole("button", { name: /añadir sub-subprincipio/i }));
     await userEvent.click(screen.getByRole("button", { name: /añadir habilidad/i }));
     expect(screen.getByPlaceholderText("Nombre de la habilidad")).toBeInTheDocument();
+  });
+
+  it("escenario sin apiId muestra el aviso de guardar el modelo y no el campo de media", () => {
+    renderWithDraft([buildScenario(1, 1, 0)]);
+    expect(screen.getByText(/guarda el modelo de juego/i)).toBeInTheDocument();
+    expect(screen.queryByText(/subir imagen.*v[ií]deo/i)).not.toBeInTheDocument();
+  });
+
+  it("escenario con apiId muestra el campo de media", () => {
+    renderWithDraft([buildScenario(1, 1, 0, "scenario-api-1")]);
+    expect(screen.getByText(/subir imagen.*v[ií]deo/i)).toBeInTheDocument();
+    expect(screen.queryByText(/guarda el modelo de juego/i)).not.toBeInTheDocument();
   });
 });

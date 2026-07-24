@@ -69,6 +69,18 @@
   margin-bottom: 12px !important;
 }
 
+.mediaViewer {
+  margin-bottom: 14px;
+}
+
+.mediaViewerContent {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  border: 1px solid rgba(77, 157, 224, 0.25);
+}
+
 .principlesRow {
   display: flex;
   align-items: center;

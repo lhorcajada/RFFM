@@ -136,6 +136,20 @@ function ScenarioDetailView({ scenario, clubId, teamId, gameMomentName, zoneName
     <Box className={styles.scenarioDetailView}>
       <Typography className={styles.context}>{scenario.context}</Typography>
 
+      {scenario.mediaUrl && (
+        <Box className={styles.mediaViewer}>
+          {scenario.mediaType === "video" ? (
+            <video src={scenario.mediaUrl} controls className={styles.mediaViewerContent} />
+          ) : (
+            <img
+              src={scenario.mediaUrl}
+              alt={`Situación: ${scenario.name}`}
+              className={styles.mediaViewerContent}
+            />
+          )}
+        </Box>
+      )}
+
       {scenario.tacticalPrinciples.length > 0 && (
         <Box className={styles.principlesRow}>
           <Typography className={styles.principlesLabel}>Principios tácticos colectivos:</Typography>

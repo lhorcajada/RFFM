@@ -17,6 +17,7 @@ import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import type { Scenario, SubPrinciple, SubSubPrinciple, TacticalPrinciple } from "../../../types/gameModel";
 import { useGameModelDraft } from "../../../context/GameModelDraftContext";
 import DrillDownPanel from "./DrillDownPanel";
+import ScenarioMediaField from "./ScenarioMediaField";
 import styles from "./ScenarioFormAccordion.module.css";
 
 // ─── Skill row ───────────────────────────────────────────────────────
@@ -332,6 +333,21 @@ function ScenarioDetailForm({ mi, zi, si, scenario }: ScenarioDetailFormProps) {
         }
         className={styles.principlesAutocomplete}
       />
+
+      {scenario.apiId ? (
+        <ScenarioMediaField
+          scenarioApiId={scenario.apiId}
+          mediaUrl={scenario.mediaUrl}
+          mediaType={scenario.mediaType}
+          onChange={(mediaUrl, mediaType) =>
+            dispatch({ type: "UPD_SCENARIO", mi, zi, si, changes: { mediaUrl, mediaType } })
+          }
+        />
+      ) : (
+        <Typography className={styles.mediaHint} color="text.secondary">
+          Guarda el modelo de juego para poder añadir una foto o vídeo a este escenario.
+        </Typography>
+      )}
 
       <Box className={styles.nestedSection}>
         <Typography className={styles.sectionLabel}>Subprincipios</Typography>

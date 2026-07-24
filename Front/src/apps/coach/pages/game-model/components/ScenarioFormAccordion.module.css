@@ -183,6 +183,11 @@
   color: #4d9de0 !important;
 }
 
+.mediaHint {
+  font-size: 0.8rem !important;
+  font-style: italic;
+}
+
 /* ── Nested sections ── */
 
 .nestedSection {

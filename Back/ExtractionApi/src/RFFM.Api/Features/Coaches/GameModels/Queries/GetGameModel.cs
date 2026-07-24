@@ -69,7 +69,9 @@ namespace RFFM.Api.Features.Coaches.GameModels.Queries
             string Name,
             string Context,
             IEnumerable<TacticalPrincipleDto> TacticalPrinciples,
-            IEnumerable<SubPrincipleResponse> SubPrinciples);
+            IEnumerable<SubPrincipleResponse> SubPrinciples,
+            string? MediaUrl,
+            string? MediaType);
 
         public record SubPrincipleResponse(
             string Id,
@@ -192,7 +194,9 @@ namespace RFFM.Api.Features.Coaches.GameModels.Queries
                                                 sk.MasteredAt,
                                                 exerciseCounts.GetValueOrDefault(sk.Id, 0)))
                                         ))
-                                ))
+                                )),
+                            s.MediaUrl,
+                            s.MediaType
                         ))
                 );
             }
