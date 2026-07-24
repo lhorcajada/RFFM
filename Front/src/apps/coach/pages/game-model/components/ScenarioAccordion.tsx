@@ -6,6 +6,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import type { Scenario, SubPrinciple } from "../../../types/gameModel";
 import DrillDownPanel from "./DrillDownPanel";
 import SubSubPrincipleCard from "./SubSubPrincipleCard";
+import { resolveMediaUrl } from "./resolveMediaUrl";
 import styles from "./ScenarioAccordion.module.css";
 
 interface Props {
@@ -139,10 +140,10 @@ function ScenarioDetailView({ scenario, clubId, teamId, gameMomentName, zoneName
       {scenario.mediaUrl && (
         <Box className={styles.mediaViewer}>
           {scenario.mediaType === "video" ? (
-            <video src={scenario.mediaUrl} controls className={styles.mediaViewerContent} />
+            <video src={resolveMediaUrl(scenario.mediaUrl)} controls className={styles.mediaViewerContent} />
           ) : (
             <img
-              src={scenario.mediaUrl}
+              src={resolveMediaUrl(scenario.mediaUrl)}
               alt={`Situación: ${scenario.name}`}
               className={styles.mediaViewerContent}
             />

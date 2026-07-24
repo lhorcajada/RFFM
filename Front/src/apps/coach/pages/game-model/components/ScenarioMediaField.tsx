@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { Box, Button, IconButton, Typography, CircularProgress } from "@mui/material";
 import gameModelService from "../../../services/gameModelService";
+import { resolveMediaUrl } from "./resolveMediaUrl";
 import styles from "./ScenarioMediaField.module.css";
 
 const MAX_BYTES = 20 * 1024 * 1024; // 20 MB
@@ -111,9 +112,9 @@ export default function ScenarioMediaField({
       {mediaUrl && (
         <Box className={styles.mediaPreviewWrap}>
           {mediaType === "video" ? (
-            <video src={mediaUrl} controls className={styles.mediaPreview} />
+            <video src={resolveMediaUrl(mediaUrl)} controls className={styles.mediaPreview} />
           ) : (
-            <img src={mediaUrl} alt="Vista previa" className={styles.mediaPreview} />
+            <img src={resolveMediaUrl(mediaUrl)} alt="Vista previa" className={styles.mediaPreview} />
           )}
           <IconButton
             size="small"

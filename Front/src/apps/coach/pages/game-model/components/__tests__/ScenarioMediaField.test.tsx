@@ -120,4 +120,36 @@ describe("ScenarioMediaField", () => {
       expect(onChange).toHaveBeenCalledWith(null, null);
     });
   });
+
+  it("con una mediaUrl relativa (storage local), usa el proxy /api/public/storage", () => {
+    render(
+      <ScenarioMediaField
+        scenarioApiId="scenario-1"
+        mediaUrl="game-scenarios/abc.jpg"
+        mediaType="image"
+        onChange={vi.fn()}
+      />
+    );
+
+    expect(screen.getByAltText(/vista previa/i)).toHaveAttribute(
+      "src",
+      "/api/public/storage?url=game-scenarios%2Fabc.jpg"
+    );
+  });
+
+  it("con una mediaUrl absoluta (http/https), la usa tal cual", () => {
+    render(
+      <ScenarioMediaField
+        scenarioApiId="scenario-1"
+        mediaUrl="https://example.com/img.jpg"
+        mediaType="image"
+        onChange={vi.fn()}
+      />
+    );
+
+    expect(screen.getByAltText(/vista previa/i)).toHaveAttribute(
+      "src",
+      "https://example.com/img.jpg"
+    );
+  });
 });

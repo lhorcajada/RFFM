@@ -107,4 +107,14 @@ describe("ScenarioAccordion", () => {
     expect(document.querySelector("video")).not.toBeInTheDocument();
     expect(document.querySelector("img")).not.toBeInTheDocument();
   });
+
+  it("con una mediaUrl relativa (storage local), usa el proxy /api/public/storage", () => {
+    renderAccordion([
+      buildScenario(1, 1, 0, { mediaUrl: "game-scenarios/abc.jpg", mediaType: "image" }),
+    ]);
+    expect(screen.getByAltText(/situación: escenario nombre 1/i)).toHaveAttribute(
+      "src",
+      "/api/public/storage?url=game-scenarios%2Fabc.jpg"
+    );
+  });
 });
