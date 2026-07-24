@@ -115,7 +115,6 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
     removePlacedLine,
     setPlacedLineColor,
     drawingState,
-    showLines,
     activeLineKind,
     handleDrawMouseDown,
     handleDrawMouseMove,
@@ -223,6 +222,7 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
         setActiveMaterialId(null);
         setActiveSpaceId(null);
         setActiveSpaceMenuId(null);
+        setSelectedLineId(null);
       }}
     >
       <Box className={styles.terrainBandTop} />
@@ -637,60 +637,74 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
           const isArrow = line.kind === "arrow" || line.kind === "arrow-dashed";
           const isDashed = line.kind === "dashed" || line.kind === "arrow-dashed";
           const markerId = isArrow ? getArrowMarkerId(line.color) : undefined;
+          const pathD = buildLinePath(
+            line.kind,
+            line.x1,
+            line.y1,
+            line.x2,
+            line.y2,
+            line.cx,
+            line.cy,
+            line.points,
+          );
           return (
-            <path
-              key={line.id}
-              d={buildLinePath(
-                line.kind,
-                line.x1,
-                line.y1,
-                line.x2,
-                line.y2,
-                line.cx,
-                line.cy,
-                line.points,
-              )}
-              stroke={line.color}
-              strokeWidth="1.5"
-              vectorEffect="non-scaling-stroke"
-              fill="none"
-              strokeDasharray={isDashed ? "6 4" : undefined}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              markerEnd={markerId ? `url(#${markerId})` : undefined}
-              style={{
-                pointerEvents: showLines && !activeLineKind ? "stroke" : "none",
-                cursor: "pointer",
-              }}
-              onMouseDown={(e) => {
-                if (!showLines || activeLineKind) return;
-                e.preventDefault();
-                e.stopPropagation();
-                setActiveChapaMenuId(null);
-                setActiveChapaColorMenuId(null);
-                setActiveMaterialId(null);
-                setActiveSpaceId(null);
-                setActiveSpaceMenuId(null);
-                setSelectedLineId(line.id);
-                setLineDragSession({
-                  lineId: line.id,
-                  startClientX: (e as React.MouseEvent).clientX,
-                  startClientY: (e as React.MouseEvent).clientY,
-                  startX1: line.x1,
-                  startY1: line.y1,
-                  startX2: line.x2,
-                  startY2: line.y2,
-                });
-                lineDidMoveRef.current = false;
-              }}
-              onClick={() => {
-                if (justDraggedLineRef.current === line.id) {
-                  justDraggedLineRef.current = null;
-                  return;
-                }
-                setSelectedLineId((prev) => (prev === line.id ? null : line.id));
-              }}
-            />
+            <g key={line.id}>
+              <path
+                d={pathD}
+                stroke={line.color}
+                strokeWidth="1.5"
+                vectorEffect="non-scaling-stroke"
+                fill="none"
+                strokeDasharray={isDashed ? "6 4" : undefined}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                markerEnd={markerId ? `url(#${markerId})` : undefined}
+                style={{ pointerEvents: "none" }}
+              />
+              <path
+                data-testid={`line-hit-${line.id}`}
+                d={pathD}
+                stroke="transparent"
+                strokeWidth="8"
+                vectorEffect="non-scaling-stroke"
+                fill="none"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{
+                  pointerEvents: activeLineKind ? "none" : "stroke",
+                  cursor: "pointer",
+                }}
+                onMouseDown={(e) => {
+                  if (activeLineKind) return;
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setActiveChapaMenuId(null);
+                  setActiveChapaColorMenuId(null);
+                  setActiveMaterialId(null);
+                  setActiveSpaceId(null);
+                  setActiveSpaceMenuId(null);
+                  setSelectedLineId(line.id);
+                  setLineDragSession({
+                    lineId: line.id,
+                    startClientX: (e as React.MouseEvent).clientX,
+                    startClientY: (e as React.MouseEvent).clientY,
+                    startX1: line.x1,
+                    startY1: line.y1,
+                    startX2: line.x2,
+                    startY2: line.y2,
+                  });
+                  lineDidMoveRef.current = false;
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (justDraggedLineRef.current === line.id) {
+                    justDraggedLineRef.current = null;
+                    return;
+                  }
+                  setSelectedLineId((prev) => (prev === line.id ? null : line.id));
+                }}
+              />
+            </g>
           );
         })}
 
