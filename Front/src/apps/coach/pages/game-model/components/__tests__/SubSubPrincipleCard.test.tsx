@@ -105,6 +105,44 @@ describe("SubSubPrincipleCard", () => {
     });
   });
 
+  describe("duplicar ejercicio", () => {
+    beforeEach(() => {
+      vi.mocked(trainingService.getExercises).mockReset();
+      mockNavigate.mockReset();
+    });
+
+    it("navega al formulario de creación con duplicateFrom al pulsar Duplicar, en lugar de exerciseId", async () => {
+      vi.mocked(trainingService.getExercises).mockResolvedValue([
+        buildExercise({ id: "ex-42", urlImage: null, boardStateJson: null }),
+      ]);
+
+      render(
+        <MemoryRouter initialEntries={["/coach/game-model?clubId=club-1&teamId=team-9"]}>
+          <SubSubPrincipleCard index={1} subSubPrinciple={ssp} clubId="club-1" />
+        </MemoryRouter>
+      );
+
+      await userEvent.click(screen.getByText(/Sub-subprincipio de prueba/));
+
+      const duplicateBtn = await waitFor(() => screen.getByRole("button", { name: "Duplicar" }));
+      await userEvent.click(duplicateBtn);
+
+      expect(mockNavigate).toHaveBeenCalledTimes(1);
+      const [url, options] = mockNavigate.mock.calls[0];
+      const search = new URLSearchParams(url.split("?")[1]);
+      expect(url.startsWith("/coach/trainings/new-exercise?")).toBe(true);
+      expect(search.get("clubId")).toBe("club-1");
+      expect(search.get("teamId")).toBe("team-9");
+      expect(search.get("subSubPrincipleId")).toBe("ssp-1");
+      expect(search.get("sspName")).toBe("Sub-subprincipio de prueba");
+      expect(search.get("duplicateFrom")).toBe("ex-42");
+      expect(search.get("exerciseId")).toBeNull();
+      expect(options).toMatchObject({
+        state: { returnTo: "/coach/game-model?clubId=club-1&teamId=team-9" },
+      });
+    });
+  });
+
   describe("media del ejercicio sin urlImage", () => {
     beforeEach(() => {
       vi.mocked(trainingService.getExercises).mockReset();

@@ -9,6 +9,7 @@ import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import FitnessCenterIcon from "@mui/icons-material/FitnessCenter";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import { useLocation, useNavigate } from "react-router-dom";
 import { client } from "../../../../../core/api/client";
@@ -86,19 +87,35 @@ export default function SubSubPrincipleCard({ index, subSubPrinciple, clubId }: 
     }
   };
 
-  const goToExercisePage = (exerciseId?: string) => {
-    if (!clubId || !sspApiId) return;
-
+  const buildExerciseParams = () => {
     const createParams = new URLSearchParams();
     createParams.set("clubId", clubId);
     if (teamId) createParams.set("teamId", teamId);
     createParams.set("subSubPrincipleId", sspApiId);
     createParams.set("sspName", subSubPrinciple.name);
-    if (exerciseId) createParams.set("exerciseId", exerciseId);
+    return createParams;
+  };
 
+  const navigateToExerciseForm = (createParams: URLSearchParams) => {
     navigate(`/coach/trainings/new-exercise?${createParams.toString()}`, {
       state: { returnTo: `${location.pathname}${location.search}` },
     });
+  };
+
+  const goToExercisePage = (exerciseId?: string) => {
+    if (!clubId || !sspApiId) return;
+
+    const createParams = buildExerciseParams();
+    if (exerciseId) createParams.set("exerciseId", exerciseId);
+    navigateToExerciseForm(createParams);
+  };
+
+  const duplicateExercise = (exerciseId: string) => {
+    if (!clubId || !sspApiId) return;
+
+    const createParams = buildExerciseParams();
+    createParams.set("duplicateFrom", exerciseId);
+    navigateToExerciseForm(createParams);
   };
 
   return (
@@ -249,6 +266,19 @@ export default function SubSubPrincipleCard({ index, subSubPrinciple, clubId }: 
                                 }}
                               >
                                 <EditIcon style={{ fontSize: 13 }} />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Duplicar">
+                              <IconButton
+                                size="small"
+                                className={styles.exDuplicateBtn}
+                                aria-label="Duplicar"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  duplicateExercise(ex.id);
+                                }}
+                              >
+                                <ContentCopyIcon style={{ fontSize: 13 }} />
                               </IconButton>
                             </Tooltip>
                             <Tooltip title="Eliminar">

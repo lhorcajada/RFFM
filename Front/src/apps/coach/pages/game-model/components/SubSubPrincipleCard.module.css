@@ -428,6 +428,15 @@
   color: #4d9de0 !important;
 }
 
+.exDuplicateBtn {
+  color: rgba(212, 212, 212, 0.45) !important;
+  padding: 3px !important;
+}
+
+.exDuplicateBtn:hover {
+  color: #4d9de0 !important;
+}
+
 .exDeleteBtn {
   color: rgba(78, 201, 176, 0.4) !important;
   padding: 3px !important;
@@ -446,6 +455,7 @@
 
   .expandBtn,
   .exEditBtn,
+  .exDuplicateBtn,
   .exDeleteBtn,
   .addExBtn {
     min-width: 44px !important;
