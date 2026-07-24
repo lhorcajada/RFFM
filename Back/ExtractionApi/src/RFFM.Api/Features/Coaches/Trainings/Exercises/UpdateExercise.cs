@@ -49,6 +49,7 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         int GoalPeekersNumber,
         string FieldSpace,
         string? SubSubPrincipleId,
+        string? SubPrincipleId,
         string Section,
         List<string> EssentialSkillIds,
         string? BoardStateJson,
@@ -91,9 +92,8 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
             exercise.PlayersNumber = request.PlayersNumber;
             exercise.GoalPeekersNumber = request.GoalPeekersNumber;
             exercise.FieldSpace = request.FieldSpace;
-            // Only overwrite SubSubPrincipleId if explicitly provided — never clear an existing link
-            if (!string.IsNullOrEmpty(request.SubSubPrincipleId))
-                exercise.SubSubPrincipleId = request.SubSubPrincipleId;
+            exercise.SubSubPrincipleId = request.SubSubPrincipleId;
+            exercise.SubPrincipleId = request.SubPrincipleId;
             exercise.Section = request.Section;
             if (request.BoardStateJson is not null)
                 exercise.BoardStateJson = request.BoardStateJson;
@@ -134,6 +134,9 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
             RuleFor(x => x.DurationTotal).GreaterThan(0);
             RuleFor(x => x.Section).Must(s => s is "Calentamiento" or "Principal" or "VueltaALaCalma")
                 .WithMessage("Section must be Calentamiento, Principal or VueltaALaCalma.");
+            RuleFor(x => x)
+                .Must(x => string.IsNullOrEmpty(x.SubSubPrincipleId) != string.IsNullOrEmpty(x.SubPrincipleId))
+                .WithMessage("Exactly one of SubSubPrincipleId or SubPrincipleId must be provided.");
         }
     }
 }

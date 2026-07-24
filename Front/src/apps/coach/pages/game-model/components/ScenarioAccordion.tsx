@@ -5,6 +5,7 @@ import EventNoteIcon from "@mui/icons-material/EventNote";
 import { useNavigate, useLocation } from "react-router-dom";
 import type { Scenario, SubPrinciple } from "../../../types/gameModel";
 import DrillDownPanel from "./DrillDownPanel";
+import PrincipleExercisesSection from "./PrincipleExercisesSection";
 import SubSubPrincipleCard from "./SubSubPrincipleCard";
 import { resolveMediaUrl } from "./resolveMediaUrl";
 import styles from "./ScenarioAccordion.module.css";
@@ -29,6 +30,7 @@ interface SpDetailProps {
 function SubPrincipleDetailView({ sp, clubId, teamId, scenario, gameMomentName, zoneName }: SpDetailProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const [exerciseCount, setExerciseCount] = useState(0);
 
   const handleNewSession = () => {
     navigate(`/coach/game-model/create-session${location.search}`, {
@@ -92,6 +94,14 @@ function SubPrincipleDetailView({ sp, clubId, teamId, scenario, gameMomentName, 
         >
           Ver sesiones
         </Button>
+        {exerciseCount > 0 && (
+          <Chip
+            icon={<FitnessCenterIcon style={{ fontSize: 12 }} />}
+            label={`${exerciseCount} ej.`}
+            size="small"
+            className={styles.exerciseChip}
+          />
+        )}
       </Box>
 
       <Typography className={styles.subPrincipleContext}>{sp.context}</Typography>
@@ -110,9 +120,28 @@ function SubPrincipleDetailView({ sp, clubId, teamId, scenario, gameMomentName, 
       {sp.subSubPrinciples.length > 0 && (
         <Box className={styles.subSubPrinciples}>
           {sp.subSubPrinciples.map((ssp, idx) => (
-            <SubSubPrincipleCard key={ssp.id} index={idx + 1} subSubPrinciple={ssp} clubId={clubId} />
+            <SubSubPrincipleCard
+              key={ssp.id}
+              index={idx + 1}
+              subSubPrinciple={ssp}
+              clubId={clubId}
+              subPrincipleApiId={sp.apiId}
+              subPrincipleName={sp.name}
+            />
           ))}
         </Box>
+      )}
+
+      {clubId && sp.apiId && (
+        <PrincipleExercisesSection
+          clubId={clubId}
+          teamId={teamId}
+          levelKind="subPrinciple"
+          levelApiId={sp.apiId}
+          levelName={sp.name}
+          active
+          onCountChange={setExerciseCount}
+        />
       )}
     </Box>
   );

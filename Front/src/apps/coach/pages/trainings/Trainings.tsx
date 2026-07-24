@@ -279,7 +279,7 @@ export default function Trainings() {
   useEffect(() => {
     if (!clubId) return;
     setLoadingEx(true);
-    trainingService.getExercises(clubId, initialSspId ?? undefined)
+    trainingService.getExercises(clubId, { subSubPrincipleId: initialSspId ?? undefined })
       .then(setExercises)
       .catch(() => setExercises([]))
       .finally(() => setLoadingEx(false));
@@ -298,7 +298,7 @@ export default function Trainings() {
   const refreshExercises = () => {
     if (!clubId) return;
     setLoadingEx(true);
-    trainingService.getExercises(clubId, initialSspId ?? undefined)
+    trainingService.getExercises(clubId, { subSubPrincipleId: initialSspId ?? undefined })
       .then(setExercises)
       .finally(() => setLoadingEx(false));
   };

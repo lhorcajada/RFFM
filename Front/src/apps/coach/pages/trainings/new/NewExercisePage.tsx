@@ -30,6 +30,8 @@ export default function NewExercisePage() {
   const duplicateFromId = params.get("duplicateFrom");
   const subSubPrincipleId = params.get("subSubPrincipleId");
   const subSubPrincipleName = params.get("sspName");
+  const subPrincipleId = params.get("subPrincipleId");
+  const subPrincipleName = params.get("spName");
 
   const navState = (location.state as NavState | null) ?? null;
   const returnTo = navState?.returnTo ?? "/coach/trainings";
@@ -39,6 +41,7 @@ export default function NewExercisePage() {
   const exerciseForm = useExerciseForm({
     clubId,
     subSubPrincipleId,
+    subPrincipleId,
     navigate,
     returnTo,
     getBoardStateJson: board.serializeBoardStateJson,
@@ -101,6 +104,8 @@ export default function NewExercisePage() {
             panelVisible={panelVisible}
             subSubPrincipleId={subSubPrincipleId}
             subSubPrincipleName={subSubPrincipleName}
+            subPrincipleId={subPrincipleId}
+            subPrincipleName={subPrincipleName}
             form={exerciseForm}
           />
         </Box>

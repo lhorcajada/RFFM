@@ -24,6 +24,8 @@ interface ExerciseFormPanelProps {
   panelVisible: boolean;
   subSubPrincipleId: string | null;
   subSubPrincipleName: string | null;
+  subPrincipleId: string | null;
+  subPrincipleName: string | null;
   form: ExerciseFormState;
 }
 
@@ -31,11 +33,14 @@ export default function ExerciseFormPanel({
   panelVisible,
   subSubPrincipleId,
   subSubPrincipleName,
+  subPrincipleId,
+  subPrincipleName,
   form,
 }: ExerciseFormPanelProps) {
   const {
     form: formData,
     setField,
+    setLevel,
     toggleSkill,
     skills,
     loadingSkills,
@@ -163,6 +168,23 @@ export default function ExerciseFormPanel({
           />
         </Box>
 
+        {subSubPrincipleId && subPrincipleId && (
+          <FormControl size="small" className={styles.field}>
+            <InputLabel id="exercise-level-label">Vinculado a</InputLabel>
+            <Select
+              labelId="exercise-level-label"
+              value={formData.subPrincipleId ? "subPrinciple" : "subSubPrinciple"}
+              label="Vinculado a"
+              onChange={(e: SelectChangeEvent) =>
+                setLevel(e.target.value as "subSubPrinciple" | "subPrinciple")
+              }
+            >
+              <MenuItem value="subSubPrinciple">Habilidad: {subSubPrincipleName}</MenuItem>
+              <MenuItem value="subPrinciple">Subprincipio: {subPrincipleName}</MenuItem>
+            </Select>
+          </FormControl>
+        )}
+
         {isPhysical && (
           <Box className={styles.row}>
             <TextField
@@ -218,7 +240,7 @@ export default function ExerciseFormPanel({
           </Box>
         )}
 
-        {subSubPrincipleId && (
+        {formData.subSubPrincipleId && (
           <>
             <Divider className={styles.divider} />
             <Typography className={styles.skillsTitle}>Habilidades asociadas</Typography>

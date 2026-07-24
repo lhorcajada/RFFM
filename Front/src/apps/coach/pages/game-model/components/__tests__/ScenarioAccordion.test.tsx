@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
@@ -12,6 +13,29 @@ vi.mock("@mui/material/useMediaQuery", () => ({
 
 vi.mock("../../../../services/trainingService", () => ({
   default: { getExercises: vi.fn().mockResolvedValue([]), deleteExercise: vi.fn() },
+}));
+
+vi.mock("../PrincipleExercisesSection", () => ({
+  default: ({
+    levelKind,
+    levelApiId,
+    onCountChange,
+  }: {
+    levelKind: string;
+    levelApiId: string;
+    onCountChange?: (count: number) => void;
+  }) => {
+    useEffect(() => {
+      onCountChange?.(3);
+    }, [onCountChange]);
+    return (
+      <div
+        data-testid="principle-exercises-section"
+        data-level-kind={levelKind}
+        data-level-api-id={levelApiId}
+      />
+    );
+  },
 }));
 
 function buildScenario(
@@ -116,5 +140,50 @@ describe("ScenarioAccordion", () => {
       "src",
       "/api/public/storage?url=game-scenarios%2Fabc.jpg"
     );
+  });
+
+  describe("ejercicios a nivel de subprincipio", () => {
+    function scenarioWithSubPrincipleApiId(apiId: string): Scenario {
+      return {
+        id: 1,
+        order: 1,
+        name: "Escenario X",
+        context: "Contexto",
+        tacticalPrinciples: [],
+        mediaUrl: null,
+        mediaType: null,
+        subPrinciples: [
+          {
+            id: 101,
+            apiId,
+            order: 1,
+            label: "A",
+            name: "Subprincipio A",
+            context: "Contexto SP",
+            tacticalPrinciples: [],
+            subSubPrinciples: [],
+          },
+        ],
+      };
+    }
+
+    it("renderiza PrincipleExercisesSection con levelKind=subPrinciple y el apiId del subprincipio", async () => {
+      renderAccordion([scenarioWithSubPrincipleApiId("sp-api-1")]);
+
+      const section = await screen.findByTestId("principle-exercises-section");
+      expect(section).toHaveAttribute("data-level-kind", "subPrinciple");
+      expect(section).toHaveAttribute("data-level-api-id", "sp-api-1");
+    });
+
+    it("muestra un chip con el conteo de ejercicios junto a los botones de sesiones", async () => {
+      renderAccordion([scenarioWithSubPrincipleApiId("sp-api-1")]);
+
+      expect(await screen.findByText("3 ej.")).toBeInTheDocument();
+    });
+
+    it("no renderiza la sección de ejercicios cuando el subprincipio no tiene apiId", () => {
+      renderAccordion([buildScenario(1, 1, 1)]);
+      expect(screen.queryByTestId("principle-exercises-section")).not.toBeInTheDocument();
+    });
   });
 });

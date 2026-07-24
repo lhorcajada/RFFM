@@ -98,6 +98,7 @@ export const emptyExercise: CreateExerciseRequest = {
   goalPeekersNumber: 1,
   fieldSpace: "",
   subSubPrincipleId: null,
+  subPrincipleId: null,
   essentialSkillIds: [],
   touchesNumber: 0,
   wildCards: 0,

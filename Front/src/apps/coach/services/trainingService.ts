@@ -12,9 +12,13 @@ import type {
 const trainingService = {
   // ── Exercises ─────────────────────────────────────────────────────────
 
-  async getExercises(clubId: string, subSubPrincipleId?: string | null): Promise<Exercise[]> {
+  async getExercises(
+    clubId: string,
+    opts?: { subSubPrincipleId?: string | null; subPrincipleId?: string | null }
+  ): Promise<Exercise[]> {
     const params: Record<string, string> = { clubId };
-    if (subSubPrincipleId) params.subSubPrincipleId = subSubPrincipleId;
+    if (opts?.subSubPrincipleId) params.subSubPrincipleId = opts.subSubPrincipleId;
+    if (opts?.subPrincipleId) params.subPrincipleId = opts.subPrincipleId;
     const res = await client.get<Exercise[]>("/api/trainings/exercises", { params });
     return res.data;
   },

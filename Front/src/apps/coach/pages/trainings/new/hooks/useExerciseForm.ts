@@ -17,6 +17,7 @@ import type { SkillOption } from "../types";
 interface UseExerciseFormParams {
   clubId: string;
   subSubPrincipleId: string | null;
+  subPrincipleId: string | null;
   navigate: NavigateFunction;
   returnTo: string;
   getBoardStateJson?: () => string;
@@ -25,6 +26,7 @@ interface UseExerciseFormParams {
 export function useExerciseForm({
   clubId,
   subSubPrincipleId,
+  subPrincipleId,
   navigate,
   returnTo,
   getBoardStateJson,
@@ -34,6 +36,7 @@ export function useExerciseForm({
     ...emptyExercise,
     clubId,
     subSubPrincipleId,
+    subPrincipleId,
   });
   const [skills, setSkills] = useState<SkillOption[]>([]);
   const [loadingSkills, setLoadingSkills] = useState(false);
@@ -66,6 +69,7 @@ export function useExerciseForm({
       goalPeekersNumber: exercise.goalPeekersNumber,
       fieldSpace: exercise.fieldSpace,
       subSubPrincipleId: exercise.subSubPrincipleId ?? subSubPrincipleId ?? null,
+      subPrincipleId: exercise.subPrincipleId ?? subPrincipleId ?? null,
       essentialSkillIds: exercise.skills.map((skill) => skill.essentialSkillId),
       boardStateJson: exercise.boardStateJson ?? null,
       touchesNumber: exercise.touchesNumber ?? 0,
@@ -118,8 +122,8 @@ export function useExerciseForm({
 
   useEffect(() => {
     setResolvedSubSubPrincipleId(subSubPrincipleId);
-    setForm({ ...emptyExercise, clubId, subSubPrincipleId });
-  }, [clubId, subSubPrincipleId]);
+    setForm({ ...emptyExercise, clubId, subSubPrincipleId, subPrincipleId });
+  }, [clubId, subSubPrincipleId, subPrincipleId]);
 
   useEffect(() => {
     if (!resolvedSubSubPrincipleId) {
@@ -139,6 +143,15 @@ export function useExerciseForm({
 
   const setField = (field: keyof CreateExerciseRequest, value: unknown) =>
     setForm((prev) => ({ ...prev, [field]: value }));
+
+  const setLevel = (kind: "subSubPrinciple" | "subPrinciple") => {
+    setForm((prev) => ({
+      ...prev,
+      subSubPrincipleId: kind === "subSubPrinciple" ? (subSubPrincipleId ?? prev.subSubPrincipleId ?? null) : null,
+      subPrincipleId: kind === "subPrinciple" ? (subPrincipleId ?? prev.subPrincipleId ?? null) : null,
+      essentialSkillIds: kind === "subPrinciple" ? [] : prev.essentialSkillIds,
+    }));
+  };
 
   const toggleSkill = (skillId: string) => {
     setForm((prev) => {
@@ -264,6 +277,7 @@ export function useExerciseForm({
   return {
     form,
     setField,
+    setLevel,
     toggleSkill,
     skills,
     loadingSkills,

@@ -218,6 +218,14 @@
   border-color: #a8d4f5 !important;
 }
 
+.exerciseChip {
+  background-color: rgba(100, 180, 255, 0.12) !important;
+  color: #90caf9 !important;
+  border: 1px solid rgba(100, 180, 255, 0.25) !important;
+  font-size: 0.75rem !important;
+  height: 20px !important;
+}
+
 /* ── New: DrillDownPanel-based list items and detail panels ── */
 
 .listItemContent {
