@@ -443,6 +443,7 @@ export default function Trainings() {
                     <ExerciseCromo
                       key={ex.id}
                       exercise={ex}
+                      teamId={teamId}
                       onEdit={() => goToExercisePage(ex.id)}
                       onDuplicate={() => duplicateExercise(ex.id)}
                       onPrint={() => printExercise(ex)}

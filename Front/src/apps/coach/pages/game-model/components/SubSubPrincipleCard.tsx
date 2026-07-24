@@ -16,6 +16,7 @@ import type { SubSubPrinciple } from "../../../types/gameModel";
 import type { Exercise } from "../../../types/training";
 import trainingService from "../../../services/trainingService";
 import ExerciseDialog from "../../trainings/components/ExerciseDialog";
+import TacticalBoardSnapshotPreview, { tryParseBoardSnapshot } from "../../../components/TacticalBoardSnapshotPreview";
 import styles from "./SubSubPrincipleCard.module.css";
 
 const TYPE_LABELS: Record<string, string> = {
@@ -200,7 +201,9 @@ export default function SubSubPrincipleCard({ index, subSubPrinciple, clubId }: 
                 </Typography>
               ) : (
                 <Box className={styles.exGrid}>
-                  {exercises.map((ex) => (
+                  {exercises.map((ex) => {
+                    const boardSnapshot = tryParseBoardSnapshot(ex.boardStateJson);
+                    return (
                     <Box key={ex.id} className={styles.exCard}>
                       {/* ── Media / Placeholder ── */}
                       <Box className={styles.exCardMedia}>
@@ -218,6 +221,8 @@ export default function SubSubPrincipleCard({ index, subSubPrinciple, clubId }: 
                               className={styles.exMediaEl}
                             />
                           )
+                        ) : boardSnapshot ? (
+                          <TacticalBoardSnapshotPreview snapshot={boardSnapshot} teamId={teamId} />
                         ) : (
                           <Box className={`${styles.exMediaPlaceholder} ${styles[`exPlaceholder_${ex.type}`]}`}>
                             <Typography className={styles.exPlaceholderInitials}>
@@ -323,7 +328,8 @@ export default function SubSubPrincipleCard({ index, subSubPrinciple, clubId }: 
                         </Box>
                       )}                      </Box>
                     </Box>
-                  ))}
+                    );
+                  })}
                 </Box>
               )}
               </Box>
