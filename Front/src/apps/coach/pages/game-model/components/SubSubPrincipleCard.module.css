@@ -317,6 +317,8 @@
 
 .exTypeRow {
   display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
 }
 
 .exStats {
@@ -400,6 +402,13 @@
 .typeChip {
   background-color: rgba(77, 157, 224, 0.12) !important;
   color: #4d9de0 !important;
+  font-size: 0.75rem !important;
+  height: 18px !important;
+}
+
+.sectionChip {
+  background-color: rgba(130, 220, 130, 0.12) !important;
+  color: #7deb9a !important;
   font-size: 0.75rem !important;
   height: 18px !important;
 }

@@ -220,4 +220,37 @@ describe("SubSubPrincipleCard", () => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
   });
+
+  describe("chips de tipo y sección", () => {
+    beforeEach(() => {
+      vi.mocked(trainingService.getExercises).mockReset();
+    });
+
+    it("muestra el chip de tipo y el de sección aunque el ejercicio no tenga urlImage", async () => {
+      vi.mocked(trainingService.getExercises).mockResolvedValue([
+        buildExercise({
+          id: "ex-99",
+          urlImage: null,
+          boardStateJson: null,
+          type: "Technical",
+          section: "Principal",
+        }),
+      ]);
+
+      render(
+        <MemoryRouter>
+          <SubSubPrincipleCard index={1} subSubPrinciple={ssp} clubId="club-1" />
+        </MemoryRouter>
+      );
+
+      await userEvent.click(screen.getByText(/Sub-subprincipio de prueba/));
+
+      await waitFor(() => {
+        expect(document.querySelector(`.${styles.typeChip}`)).toBeInTheDocument();
+      });
+      expect(document.querySelector(`.${styles.typeChip}`)).toHaveTextContent("Técnico");
+      expect(document.querySelector(`.${styles.sectionChip}`)).toBeInTheDocument();
+      expect(document.querySelector(`.${styles.sectionChip}`)).toHaveTextContent("Principal");
+    });
+  });
 });

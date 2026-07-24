@@ -25,6 +25,12 @@ const TYPE_LABELS: Record<string, string> = {
   Tactical: "Táctico",
 };
 
+const SECTION_LABELS: Record<string, string> = {
+  Calentamiento: "Calentamiento",
+  Principal: "Principal",
+  VueltaALaCalma: "Vuelta calma",
+};
+
 const API_BASE = (client.defaults.baseURL ?? "/").replace(/\/$/, "");
 
 function mediaUrl(urlImage: string) {
@@ -296,16 +302,19 @@ export default function SubSubPrincipleCard({ index, subSubPrinciple, clubId }: 
                           </Box>
                         </Box>
 
-                        {/* Type chip */}
-                        {ex.urlImage && (
-                          <Box className={styles.exTypeRow}>
-                            <Chip
-                              label={TYPE_LABELS[ex.type] ?? ex.type}
-                              size="small"
-                              className={styles.typeChip}
-                            />
-                          </Box>
-                        )}
+                        {/* Type + section chips */}
+                        <Box className={styles.exTypeRow}>
+                          <Chip
+                            label={TYPE_LABELS[ex.type] ?? ex.type}
+                            size="small"
+                            className={styles.typeChip}
+                          />
+                          <Chip
+                            label={SECTION_LABELS[ex.section] ?? ex.section}
+                            size="small"
+                            className={styles.sectionChip}
+                          />
+                        </Box>
 
                         {/* Stats */}
                         <Box className={styles.exStats}>
