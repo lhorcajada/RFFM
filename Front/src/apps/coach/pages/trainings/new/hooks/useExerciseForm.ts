@@ -14,6 +14,22 @@ import type {
 import { emptyExercise } from "../constants";
 import type { SkillOption } from "../types";
 
+/**
+ * SubSubPrincipleId and SubPrincipleId are mutually exclusive (a task links to exactly
+ * one level). Callers may pass both a "current" candidate pair (e.g. from an existing
+ * exercise) and a "fallback" pair (the entry-point ids from the URL, used only to know
+ * which parent to offer as a reassignment target). Only the most specific id (sub-sub-
+ * principle over sub-principle) is kept; the other is always forced to null so the two
+ * levels never end up populated at once.
+ */
+function resolveLevelIds(
+  subSubPrincipleId: string | null | undefined,
+  subPrincipleId: string | null | undefined,
+): { subSubPrincipleId: string | null; subPrincipleId: string | null } {
+  if (subSubPrincipleId) return { subSubPrincipleId, subPrincipleId: null };
+  return { subSubPrincipleId: null, subPrincipleId: subPrincipleId ?? null };
+}
+
 interface UseExerciseFormParams {
   clubId: string;
   subSubPrincipleId: string | null;
@@ -35,8 +51,7 @@ export function useExerciseForm({
   const [form, setForm] = useState<CreateExerciseRequest>({
     ...emptyExercise,
     clubId,
-    subSubPrincipleId,
-    subPrincipleId,
+    ...resolveLevelIds(subSubPrincipleId, subPrincipleId),
   });
   const [skills, setSkills] = useState<SkillOption[]>([]);
   const [loadingSkills, setLoadingSkills] = useState(false);
@@ -68,8 +83,10 @@ export function useExerciseForm({
       playersNumber: exercise.playersNumber,
       goalPeekersNumber: exercise.goalPeekersNumber,
       fieldSpace: exercise.fieldSpace,
-      subSubPrincipleId: exercise.subSubPrincipleId ?? subSubPrincipleId ?? null,
-      subPrincipleId: exercise.subPrincipleId ?? subPrincipleId ?? null,
+      ...resolveLevelIds(
+        exercise.subSubPrincipleId ?? subSubPrincipleId,
+        exercise.subPrincipleId ?? subPrincipleId,
+      ),
       essentialSkillIds: exercise.skills.map((skill) => skill.essentialSkillId),
       boardStateJson: exercise.boardStateJson ?? null,
       touchesNumber: exercise.touchesNumber ?? 0,
@@ -122,7 +139,7 @@ export function useExerciseForm({
 
   useEffect(() => {
     setResolvedSubSubPrincipleId(subSubPrincipleId);
-    setForm({ ...emptyExercise, clubId, subSubPrincipleId, subPrincipleId });
+    setForm({ ...emptyExercise, clubId, ...resolveLevelIds(subSubPrincipleId, subPrincipleId) });
   }, [clubId, subSubPrincipleId, subPrincipleId]);
 
   useEffect(() => {

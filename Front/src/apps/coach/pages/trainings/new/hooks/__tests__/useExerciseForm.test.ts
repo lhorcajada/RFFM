@@ -1,6 +1,7 @@
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { useExerciseForm } from "../useExerciseForm";
+import type { Exercise } from "../../../../../types/training";
 
 vi.mock("../../../../../services/gameModelService", () => ({
   default: { getSubSubPrincipleSkills: vi.fn().mockResolvedValue([]) },
@@ -13,6 +14,47 @@ vi.mock("../../../../../services/trainingService", () => ({
 }));
 
 const navigate = vi.fn();
+
+describe("useExerciseForm — nivel inicial al crear (bug: no debe fijar ambos IDs)", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("al crear desde un sub-subprincipio, el formulario inicial solo fija subSubPrincipleId, no subPrincipleId", async () => {
+    const { result } = renderHook(() =>
+      useExerciseForm({
+        clubId: "club-1", subSubPrincipleId: "ssp-1", subPrincipleId: "sp-1",
+        navigate, returnTo: "/coach/trainings",
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.form.subSubPrincipleId).toBe("ssp-1");
+      expect(result.current.form.subPrincipleId).toBeNull();
+    });
+  });
+
+  it("al editar/duplicar un ejercicio ya vinculado a un sub-subprincipio, no reintroduce el subPrincipleId del padre", async () => {
+    const { result } = renderHook(() =>
+      useExerciseForm({
+        clubId: "club-1", subSubPrincipleId: "ssp-1", subPrincipleId: "sp-1",
+        navigate, returnTo: "/coach/trainings",
+      })
+    );
+
+    const exercise: Exercise = {
+      id: "ex-1", name: "Ejercicio", description: "", types: ["Tactical"],
+      section: "Principal", durationTotal: 10, playersNumber: 8, goalPeekersNumber: 0,
+      fieldSpace: "", skills: [], conditions: [],
+      subSubPrincipleId: "ssp-1", subPrincipleId: null,
+    };
+
+    act(() => result.current.loadExercise(exercise));
+
+    await waitFor(() => {
+      expect(result.current.form.subSubPrincipleId).toBe("ssp-1");
+      expect(result.current.form.subPrincipleId).toBeNull();
+    });
+  });
+});
 
 describe("useExerciseForm — reasignación de nivel", () => {
   beforeEach(() => vi.clearAllMocks());
