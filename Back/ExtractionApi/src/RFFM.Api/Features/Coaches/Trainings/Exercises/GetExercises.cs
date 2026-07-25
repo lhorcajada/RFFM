@@ -61,6 +61,8 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
             var query = _db.TaskTrainingBases
                 .Include(tb => tb.Skills)
                     .ThenInclude(s => s.EssentialSkill)
+                .Include(tb => tb.Types)
+                    .ThenInclude(t => t.ExerciseType)
                 .Include(tb => tb.SubSubPrinciple)
                 .Include(tb => tb.SubPrinciple)
                 .Include(tb => tb.Conditions)
@@ -72,7 +74,6 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
             if (!string.IsNullOrEmpty(request.SubPrincipleId))
                 query = query.Where(tb => tb.SubPrincipleId == request.SubPrincipleId);
 
-            // Materialize first — EF Core cannot translate GetType() in a projection
             var entities = await query
                 .OrderBy(tb => tb.Name)
                 .ToListAsync(ct);
@@ -81,7 +82,7 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
                 tb.Id,
                 tb.Name,
                 tb.Description,
-                tb.GetType().Name.Replace("TaskTraining", ""),
+                tb.Types.Select(t => t.ExerciseType.Name),
                 tb.Section,
                 tb.DurationTotal,
                 tb.PlayersNumber,
@@ -103,7 +104,7 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         string Id,
         string Name,
         string Description,
-        string Type,
+        IEnumerable<string> Types,
         string Section,
         int DurationTotal,
         int PlayersNumber,

@@ -35,7 +35,7 @@ function buildExercise(overrides: Partial<Exercise> = {}): Exercise {
     id: "ex-1",
     name: "Ejercicio de prueba",
     description: "",
-    type: "Tactical",
+    types: ["Tactical"],
     section: "Principal",
     durationTotal: 10,
     playersNumber: 6,
@@ -232,7 +232,7 @@ describe("SubSubPrincipleCard", () => {
           id: "ex-99",
           urlImage: null,
           boardStateJson: null,
-          type: "Technical",
+          types: ["Technical"],
           section: "Principal",
         }),
       ]);

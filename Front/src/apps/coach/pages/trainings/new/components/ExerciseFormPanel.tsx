@@ -2,6 +2,7 @@ import {
   Box,
   Button,
   Checkbox,
+  Chip,
   CircularProgress,
   Divider,
   FormControl,
@@ -97,11 +98,23 @@ export default function ExerciseFormPanel({
 
         <Box className={styles.row}>
           <FormControl size="small" className={styles.typeSelect}>
-            <InputLabel>Tipo</InputLabel>
+            <InputLabel id="exercise-type-label">Tipo</InputLabel>
             <Select
-              value={formData.type}
+              multiple
+              labelId="exercise-type-label"
+              value={formData.types}
               label="Tipo"
-              onChange={(e: SelectChangeEvent) => setField("type", e.target.value as ExerciseType)}
+              onChange={(e: SelectChangeEvent<ExerciseType[]>) => {
+                const value = e.target.value;
+                setField("types", typeof value === "string" ? value.split(",") : value);
+              }}
+              renderValue={(selected) => (
+                <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
+                  {(selected as ExerciseType[]).map((v) => (
+                    <Chip key={v} label={typeOptions.find((o) => o.value === v)?.label ?? v} size="small" />
+                  ))}
+                </Box>
+              )}
             >
               {typeOptions.map((o) => (
                 <MenuItem key={o.value} value={o.value}>

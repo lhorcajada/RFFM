@@ -17,18 +17,7 @@ import TacticalBoardSnapshotPreview, { tryParseBoardSnapshot } from "../../../co
 // component, and SubSubPrincipleCard.test.tsx already asserts against these
 // scoped class names, so importing the same module file keeps both in sync.
 import styles from "./SubSubPrincipleCard.module.css";
-
-const TYPE_LABELS: Record<string, string> = {
-  Physical: "Físico",
-  Technical: "Técnico",
-  Tactical: "Táctico",
-};
-
-const SECTION_LABELS: Record<string, string> = {
-  Calentamiento: "Calentamiento",
-  Principal: "Principal",
-  VueltaALaCalma: "Vuelta calma",
-};
+import { TYPE_LABELS, SECTION_LABELS } from "../../trainings/exerciseTypeLabels";
 
 const API_BASE = (client.defaults.baseURL ?? "/").replace(/\/$/, "");
 
@@ -210,12 +199,12 @@ export default function PrincipleExercisesSection({
                     ) : boardSnapshot ? (
                       <TacticalBoardSnapshotPreview snapshot={boardSnapshot} teamId={teamId} />
                     ) : (
-                      <Box className={`${styles.exMediaPlaceholder} ${styles[`exPlaceholder_${ex.type}`]}`}>
+                      <Box className={`${styles.exMediaPlaceholder} ${styles[`exPlaceholder_${ex.types[0]}`]}`}>
                         <Typography className={styles.exPlaceholderInitials}>
                           {ex.name.slice(0, 2).toUpperCase()}
                         </Typography>
                         <Typography className={styles.exPlaceholderType}>
-                          {TYPE_LABELS[ex.type] ?? ex.type}
+                          {TYPE_LABELS[ex.types[0]] ?? ex.types[0]}
                         </Typography>
                       </Box>
                     )}
@@ -269,11 +258,14 @@ export default function PrincipleExercisesSection({
 
                     {/* Type + section chips */}
                     <Box className={styles.exTypeRow}>
-                      <Chip
-                        label={TYPE_LABELS[ex.type] ?? ex.type}
-                        size="small"
-                        className={styles.typeChip}
-                      />
+                      {ex.types.map((t) => (
+                        <Chip
+                          key={t}
+                          label={TYPE_LABELS[t] ?? t}
+                          size="small"
+                          className={styles.typeChip}
+                        />
+                      ))}
                       <Chip
                         label={SECTION_LABELS[ex.section] ?? ex.section}
                         size="small"

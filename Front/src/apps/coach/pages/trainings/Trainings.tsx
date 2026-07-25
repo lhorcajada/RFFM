@@ -27,6 +27,7 @@ import useTeamAndClub from "../../hooks/useTeamAndClub";
 import useTeamDashboardBack from "../../hooks/useTeamDashboardBack";
 import trainingService from "../../services/trainingService";
 import type { Exercise, TrainingSession } from "../../types/training";
+import { TYPE_LABELS } from "./exerciseTypeLabels";
 import ExerciseCromo from "./components/ExerciseCromo";
 import SessionDialog from "./components/SessionDialog";
 import type { TacticalBoardSnapshot } from "./new/types";
@@ -205,7 +206,7 @@ async function printExercise(exercise: Exercise) {
           <div>
             <h1 class="title">${escapeHtml(exercise.name)}</h1>
             <div class="meta">
-              <span class="pill">${escapeHtml(exercise.type)}</span>
+              <span class="pill">${escapeHtml(exercise.types.map((t) => TYPE_LABELS[t] ?? t).join(", "))}</span>
               <span class="pill">${escapeHtml(exercise.section)}</span>
               ${exercise.subSubPrincipleName ? `<span class="pill">${escapeHtml(exercise.subSubPrincipleName)}</span>` : ""}
             </div>

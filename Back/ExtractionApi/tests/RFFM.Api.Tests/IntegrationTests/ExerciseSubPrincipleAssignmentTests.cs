@@ -29,6 +29,8 @@ namespace RFFM.Api.Tests.IntegrationTests
 
         private async Task<(string UserId, string ClubId, string SubPrincipleId, string SubSubPrincipleId)> SeedAsync(AppDbContext db)
         {
+            await RFFM.Api.Infrastructure.Persistence.Seed.ExerciseTypesSeeder.SeedAsync(db);
+
             var club = Club.Create($"Exercise SP Test Club {Guid.NewGuid():N}", 1);
             db.Clubs.Add(club);
             await db.SaveChangesAsync();
@@ -65,7 +67,7 @@ namespace RFFM.Api.Tests.IntegrationTests
         }
 
         private static CreateExerciseCommand BaseCreateCommand(string clubId, string userId) => new(
-            clubId, "Ejercicio de prueba", "Descripción", "Tactical",
+            clubId, "Ejercicio de prueba", "Descripción", new List<string> { "Tactical" },
             10, 8, 0, "Media cancha",
             SubSubPrincipleId: null,
             SubPrincipleId: null,
@@ -141,7 +143,7 @@ namespace RFFM.Api.Tests.IntegrationTests
             await using var updateDb = _fixture.CreateDbContext();
             var updateHandler = new UpdateExerciseHandler(updateDb);
             var updateCommand = new UpdateExerciseCommand(
-                "Ejercicio de prueba", "Descripción", 10, 8, 0, "Media cancha",
+                "Ejercicio de prueba", "Descripción", new List<string> { "Tactical" }, 10, 8, 0, "Media cancha",
                 SubSubPrincipleId: null,
                 SubPrincipleId: null,
                 Section: "Principal",
@@ -174,7 +176,7 @@ namespace RFFM.Api.Tests.IntegrationTests
             await using var updateDb = _fixture.CreateDbContext();
             var updateHandler = new UpdateExerciseHandler(updateDb);
             var updateCommand = new UpdateExerciseCommand(
-                "Ejercicio de prueba", "Descripción", 10, 8, 0, "Media cancha",
+                "Ejercicio de prueba", "Descripción", new List<string> { "Tactical" }, 10, 8, 0, "Media cancha",
                 SubSubPrincipleId: subSubPrincipleId,
                 SubPrincipleId: null,
                 Section: "Principal",

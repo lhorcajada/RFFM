@@ -37,6 +37,7 @@ import { client } from "../../../../core/api/client";
 import trainingService from "../../services/trainingService";
 import type { TrainingSession, SessionExerciseItem, Exercise, ExerciseSection } from "../../types/training";
 import type { TacticalPrinciple } from "../../types/gameModel";
+import { TYPE_LABELS } from "../trainings/exerciseTypeLabels";
 import styles from "./SessionsFromSubPrinciple.module.css";
 
 const API_BASE = (client.defaults.baseURL ?? "/").replace(/\/$/, "");
@@ -75,18 +76,6 @@ function formatTime(t: string) {
   return t ? t.slice(0, 5) : "";
 }
 
-const TYPE_LABELS: Record<string, string> = {
-  Physical: "Físico",
-  Technical: "Técnico",
-  Tactical: "Táctico",
-};
-
-const SECTION_LABELS: Record<string, string> = {
-  Calentamiento: "Calentamiento",
-  Principal: "Principal",
-  VueltaALaCalma: "Vuelta a la Calma",
-};
-
 const SECTION_OPTIONS: { value: ExerciseSection; label: string }[] = [
   { value: "Calentamiento",  label: "Calentamiento" },
   { value: "Principal",      label: "Principal" },
@@ -98,7 +87,7 @@ function sessionItemToExercise(item: SessionExerciseItem): Exercise {
     id: item.exerciseId,
     name: item.name,
     description: item.description,
-    type: item.type,
+    types: item.types,
     section: item.section,
     durationTotal: item.durationTotal,
     playersNumber: item.playersNumber,
@@ -152,19 +141,22 @@ function ExerciseModal({ ex, onClose }: { ex: SessionExerciseItem | null; onClos
               )}
             </Box>
           ) : (
-            <Box className={`${styles.modalPlaceholder} ${styles[`exPlaceholder_${ex.type}`]}`}>
+            <Box className={`${styles.modalPlaceholder} ${styles[`exPlaceholder_${ex.types[0]}`]}`}>
               <FitnessCenterIcon className={styles.modalPlaceholderIcon} />
             </Box>
           )}
 
           {/* Header */}
           <Box className={styles.modalHeader}>
-            <Chip
-              label={TYPE_LABELS[ex.type] ?? ex.type}
-              size="small"
-              className={`${styles.exTypeBadge} ${styles[`badge_${ex.type}`]}`}
-              sx={{ position: "static" }}
-            />
+            {ex.types.map((t) => (
+              <Chip
+                key={t}
+                label={TYPE_LABELS[t] ?? t}
+                size="small"
+                className={`${styles.exTypeBadge} ${styles[`badge_${t}`]}`}
+                sx={{ position: "static" }}
+              />
+            ))}
             <Typography className={styles.modalName}>{ex.name}</Typography>
           </Box>
 
@@ -236,8 +228,15 @@ function buildPrintHtml(sess: TrainingSession, exercises: SessionExerciseItem[],
     { key: "VueltaALaCalma",  label: "Vuelta a la Calma",    color: "#2980b9" },
   ];
 
-  const typeLabel: Record<string, string> = { Physical: "Físico", Technical: "Técnico", Tactical: "Táctico" };
-  const typeColor: Record<string, string> = { Physical: "#c0392b", Technical: "#2980b9", Tactical: "#27ae60" };
+  const typeLabel: Record<string, string> = TYPE_LABELS;
+  const typeColor: Record<string, string> = {
+    Physical: "#c0392b",
+    Technical: "#2980b9",
+    Tactical: "#27ae60",
+    Game: "#d4a017",
+    Cognitive: "#8e44ad",
+    Psychological: "#e84393",
+  };
 
   const sectionHtml = sections.map(({ key, label, color }) => {
     const exs = exercises.filter(e => e.section === key);
@@ -253,7 +252,7 @@ function buildPrintHtml(sess: TrainingSession, exercises: SessionExerciseItem[],
             }
             <div style="padding:8px 10px;">
               <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
-                <span style="background:${typeColor[ex.type] ?? "#555"};color:#fff;font-size:10px;font-weight:700;border-radius:3px;padding:1px 6px;">${typeLabel[ex.type] ?? ex.type}</span>
+                ${ex.types.map(t => `<span style="background:${typeColor[t] ?? "#555"};color:#fff;font-size:10px;font-weight:700;border-radius:3px;padding:1px 6px;">${typeLabel[t] ?? t}</span>`).join("")}
                 <span style="font-size:10px;color:#888;">#${idx + 1}</span>
               </div>
               <div style="font-size:13px;font-weight:700;color:#1a1a1a;margin-bottom:4px;">${ex.name}</div>
@@ -419,7 +418,7 @@ function SessionCard({ sess, clubId, teamId, subSubPrincipleId, printContext }: 
       exerciseId: selectedToAdd.id,
       name: selectedToAdd.name,
       description: selectedToAdd.description,
-      type: selectedToAdd.type,
+      types: selectedToAdd.types,
       section: addSection,
       durationTotal: selectedToAdd.durationTotal,
       playersNumber: selectedToAdd.playersNumber,
@@ -543,22 +542,22 @@ function SessionCard({ sess, clubId, teamId, subSubPrincipleId, printContext }: 
                               <img src={mediaUrl(ex.urlImage)} alt={ex.name} className={styles.exMediaEl} />
                             )}
                             <Chip
-                              label={TYPE_LABELS[ex.type] ?? ex.type}
+                              label={TYPE_LABELS[ex.types[0]] ?? ex.types[0]}
                               size="small"
-                              className={`${styles.exTypeBadge} ${styles[`badge_${ex.type}`]}`}
+                              className={`${styles.exTypeBadge} ${styles[`badge_${ex.types[0]}`]}`}
                             />
                             <span className={styles.exOrderBadge}>{idx + 1}</span>
                           </Box>
                         ) : (
-                          <Box className={`${styles.exPlaceholder} ${styles[`exPlaceholder_${ex.type}`]}`}>
+                          <Box className={`${styles.exPlaceholder} ${styles[`exPlaceholder_${ex.types[0]}`]}`}>
                             <FitnessCenterIcon className={styles.exPlaceholderIcon} />
                             <Typography className={styles.exPlaceholderType}>
-                              {TYPE_LABELS[ex.type] ?? ex.type}
+                              {TYPE_LABELS[ex.types[0]] ?? ex.types[0]}
                             </Typography>
                             <Chip
-                              label={TYPE_LABELS[ex.type] ?? ex.type}
+                              label={TYPE_LABELS[ex.types[0]] ?? ex.types[0]}
                               size="small"
-                              className={`${styles.exTypeBadge} ${styles[`badge_${ex.type}`]}`}
+                              className={`${styles.exTypeBadge} ${styles[`badge_${ex.types[0]}`]}`}
                             />
                             <span className={styles.exOrderBadge}>{idx + 1}</span>
                           </Box>

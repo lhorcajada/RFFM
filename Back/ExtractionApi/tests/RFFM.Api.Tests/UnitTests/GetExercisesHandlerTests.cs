@@ -1,0 +1,78 @@
+#nullable enable
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using RFFM.Api.Domain.Aggregates.UserClubs;
+using RFFM.Api.Features.Coaches.Trainings.Exercises;
+using RFFM.Api.Infrastructure.Persistence;
+using RFFM.Api.Infrastructure.Persistence.Seed;
+using RFFM.Api.Tests.Fixtures;
+using Xunit;
+
+namespace RFFM.Api.Tests.UnitTests
+{
+    [Collection(PostgresCollection.Name)]
+    public class GetExercisesHandlerTests
+    {
+        private readonly PostgresContainerFixture _fixture;
+
+        public GetExercisesHandlerTests(PostgresContainerFixture fixture)
+        {
+            _fixture = fixture;
+        }
+
+        private static async Task<(string UserId, string ClubId)> SeedClubAsync(AppDbContext db)
+        {
+            await ExerciseTypesSeeder.SeedAsync(db);
+
+            var club = Club.Create($"GetExercises Test Club {Guid.NewGuid():N}", 1);
+            db.Clubs.Add(club);
+            await db.SaveChangesAsync();
+
+            var userId = $"coach-{Guid.NewGuid():N}";
+            db.UserClubs.Add(new UserClub(userId, club.Id, Membership.Coach.Id));
+            await db.SaveChangesAsync();
+
+            return (userId, club.Id);
+        }
+
+        private static CreateExerciseCommand CreateCommand(string clubId, string userId, List<string> types) => new(
+            clubId, "Ejercicio de prueba", "Descripción", types,
+            10, 8, 0, "Media cancha",
+            SubSubPrincipleId: null,
+            SubPrincipleId: null,
+            Section: "Principal",
+            EssentialSkillIds: new List<string>(),
+            BoardStateJson: null,
+            Series: null, DurationSeries: null, RestSeries: null,
+            TouchesNumber: null, WildCards: null)
+        { UserId = userId };
+
+        [Fact]
+        public async Task Handle_ProjectsTypesAsListOfNames()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (userId, clubId) = await SeedClubAsync(seedDb);
+
+            await using var createDb = _fixture.CreateDbContext();
+            var createHandler = new CreateExerciseHandler(createDb);
+            await createHandler.Handle(
+                CreateCommand(clubId, userId, new List<string> { "Physical", "Game", "Psychological" }),
+                CancellationToken.None);
+
+            await using var queryDb = _fixture.CreateDbContext();
+            var handler = new GetExercisesHandler(queryDb);
+            var result = await handler.Handle(
+                new GetExercisesQuery(clubId, SubSubPrincipleId: null, SubPrincipleId: null, UserId: userId),
+                CancellationToken.None);
+
+            var item = Assert.Single(result);
+            Assert.Equal(3, item.Types.Count());
+            Assert.Contains("Physical", item.Types);
+            Assert.Contains("Game", item.Types);
+            Assert.Contains("Psychological", item.Types);
+        }
+    }
+}

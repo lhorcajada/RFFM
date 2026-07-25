@@ -18,6 +18,7 @@ import {
   CircularProgress,
   Divider,
   IconButton,
+  Chip,
   type SelectChangeEvent,
 } from "@mui/material";
 import { client } from "../../../../../core/api/client";
@@ -48,6 +49,9 @@ const typeOptions: { value: ExerciseType; label: string }[] = [
   { value: "Physical", label: "Físico" },
   { value: "Technical", label: "Técnico" },
   { value: "Tactical", label: "Táctico" },
+  { value: "Game", label: "Juego" },
+  { value: "Cognitive", label: "Cognitivo" },
+  { value: "Psychological", label: "Psicológico" },
 ];
 
 const sectionOptions: { value: ExerciseSection; label: string }[] = [
@@ -60,7 +64,7 @@ const empty: CreateExerciseRequest = {
   clubId: "",
   name: "",
   description: "",
-  type: "Tactical",
+  types: ["Tactical"],
   section: "Principal",
   durationTotal: 15,
   playersNumber: 10,
@@ -115,7 +119,7 @@ export default function ExerciseDialog({
         clubId,
         name: exercise.name,
         description: exercise.description,
-        type: exercise.type,
+        types: exercise.types,
         section: exercise.section,
         durationTotal: exercise.durationTotal,
         playersNumber: exercise.playersNumber,
@@ -176,6 +180,7 @@ export default function ExerciseDialog({
 
   const handleSave = async () => {
     if (!form.name.trim()) { setError("El nombre es obligatorio."); return; }
+    if (form.types.length === 0) { setError("Selecciona al menos un tipo."); return; }
     setSaving(true);
     setError(null);
     try {
@@ -237,8 +242,8 @@ export default function ExerciseDialog({
     }
   };
 
-  const isPhysical = form.type === "Physical";
-  const isTechTac = form.type === "Technical" || form.type === "Tactical";
+  const isPhysical = form.types.includes("Physical");
+  const isTechTac = form.types.includes("Technical") || form.types.includes("Tactical");
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth
@@ -266,9 +271,20 @@ export default function ExerciseDialog({
           <FormControl size="small" className={styles.typeSelect}>
             <InputLabel>Tipo</InputLabel>
             <Select
-              value={form.type}
+              multiple
+              value={form.types}
               label="Tipo"
-              onChange={(e: SelectChangeEvent) => setField("type", e.target.value as ExerciseType)}
+              onChange={(e: SelectChangeEvent<ExerciseType[]>) => {
+                const value = e.target.value;
+                setField("types", typeof value === "string" ? value.split(",") : value);
+              }}
+              renderValue={(selected) => (
+                <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
+                  {(selected as ExerciseType[]).map((v) => (
+                    <Chip key={v} label={typeOptions.find((o) => o.value === v)?.label ?? v} size="small" />
+                  ))}
+                </Box>
+              )}
             >
               {typeOptions.map(o => (
                 <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>

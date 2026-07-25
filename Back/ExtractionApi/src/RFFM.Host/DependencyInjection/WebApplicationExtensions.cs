@@ -236,6 +236,24 @@ namespace RFFM.Host.DependencyInjection
             }
         }
 
+        public static async Task SeedExerciseTypesAsync(this WebApplication app)
+        {
+            using var scope = app.Services.CreateScope();
+            var logger = scope.ServiceProvider.GetService<ILogger<WebApplication>>();
+
+            try
+            {
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                logger?.LogInformation("Seeding exercise types if not present...");
+                await RFFM.Api.Infrastructure.Persistence.Seed.ExerciseTypesSeeder.SeedAsync(db);
+                logger?.LogInformation("✓ Exercise types seeding finished");
+            }
+            catch (Exception ex)
+            {
+                logger?.LogError(ex, "Error while seeding exercise types");
+            }
+        }
+
         public static async Task SeedClubKitsAsync(this WebApplication app)
         {
             using var scope = app.Services.CreateScope();

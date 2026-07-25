@@ -11,6 +11,7 @@ using RFFM.Api.Domain.Aggregates.Training.TasksTraining;
 using RFFM.Api.Domain.Entities;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
+using RFFM.Api.Infrastructure.Persistence.Seed;
 
 namespace RFFM.Api.Features.Coaches.Trainings.Exercises
 {
@@ -44,6 +45,7 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
     public record UpdateExerciseCommand(
         string Name,
         string Description,
+        List<string> Types,
         int DurationTotal,
         int PlayersNumber,
         int GoalPeekersNumber,
@@ -76,6 +78,7 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         {
             var exercise = await _db.TaskTrainingBases
                 .Include(tb => tb.Skills)
+                .Include(tb => tb.Types)
                 .FirstOrDefaultAsync(tb => tb.Id == request.Id, ct);
 
             if (exercise is null)
@@ -98,28 +101,26 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
             if (request.BoardStateJson is not null)
                 exercise.BoardStateJson = request.BoardStateJson;
 
+            exercise.Series = request.Series ?? exercise.Series;
+            exercise.DurationSeries = request.DurationSeries ?? exercise.DurationSeries;
+            exercise.RestSeries = request.RestSeries ?? exercise.RestSeries;
+            exercise.TouchesNumber = request.TouchesNumber ?? exercise.TouchesNumber;
+            exercise.WildCards = request.WildCards ?? exercise.WildCards;
+
             // Replace skills
             _db.TaskTrainingSkills.RemoveRange(exercise.Skills);
             exercise.Skills.Clear();
             foreach (var skillId in request.EssentialSkillIds.Distinct())
                 exercise.Skills.Add(new TaskTrainingSkill { TaskTrainingBaseId = exercise.Id, EssentialSkillId = skillId });
 
-            if (exercise is PhysicalTaskTraining physical)
-            {
-                physical.Series = request.Series ?? physical.Series;
-                physical.DurationSeries = request.DurationSeries ?? physical.DurationSeries;
-                physical.RestSeries = request.RestSeries ?? physical.RestSeries;
-            }
-            else if (exercise is TacticalTaskTraining tactical)
-            {
-                tactical.TouchesNumber = request.TouchesNumber ?? tactical.TouchesNumber;
-                tactical.WildCards = request.WildCards ?? tactical.WildCards;
-            }
-            else if (exercise is TechnicalTaskTraining technical)
-            {
-                technical.TouchesNumber = request.TouchesNumber ?? technical.TouchesNumber;
-                technical.WildCards = request.WildCards ?? technical.WildCards;
-            }
+            // Replace types
+            _db.TaskTrainingTypes.RemoveRange(exercise.Types);
+            exercise.Types.Clear();
+            var typeEntities = await _db.ExerciseTypes
+                .Where(t => request.Types.Contains(t.Name))
+                .ToListAsync(ct);
+            foreach (var typeEntity in typeEntities)
+                exercise.Types.Add(new TaskTrainingType { TaskTrainingBaseId = exercise.Id, ExerciseTypeId = typeEntity.Id });
 
             await _db.SaveChangesAsync(ct);
             return Unit.Value;
@@ -131,6 +132,11 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         public UpdateExerciseValidator()
         {
             RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
+            RuleFor(x => x.Types).NotEmpty()
+                .WithMessage("At least one type is required.");
+            RuleForEach(x => x.Types)
+                .Must(t => ExerciseTypesSeeder.Types.Contains(t))
+                .WithMessage("Type must be one of: " + "Physical, Technical, Tactical, Game, Cognitive, Psychological");
             RuleFor(x => x.DurationTotal).GreaterThan(0);
             RuleFor(x => x.Section).Must(s => s is "Calentamiento" or "Principal" or "VueltaALaCalma")
                 .WithMessage("Section must be Calentamiento, Principal or VueltaALaCalma.");

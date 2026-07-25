@@ -6,12 +6,17 @@ import PrintOutlinedIcon from "@mui/icons-material/PrintOutlined";
 import FitnessCenterIcon from "@mui/icons-material/FitnessCenter";
 import SportsSoccerIcon from "@mui/icons-material/SportsSoccer";
 import PsychologyIcon from "@mui/icons-material/Psychology";
+import SportsEsportsIcon from "@mui/icons-material/SportsEsports";
+import PsychologyAltIcon from "@mui/icons-material/PsychologyAlt";
+import SelfImprovementIcon from "@mui/icons-material/SelfImprovement";
+import { Chip } from "@mui/material";
 import { client } from "../../../../../core/api/client";
 import type { Exercise } from "../../../types/training";
 import TacticalBoardSnapshotPreview, {
   hasBoardObjects,
   tryParseBoardSnapshot,
 } from "../../../components/TacticalBoardSnapshotPreview";
+import { TYPE_LABELS, SECTION_LABELS } from "../exerciseTypeLabels";
 import styles from "./ExerciseCromo.module.css";
 
 const API_BASE = (client.defaults.baseURL ?? "/").replace(/\/$/, "");
@@ -22,22 +27,13 @@ function mediaUrl(urlImage: string): string {
   return `${API_BASE}/api/local-storage/${urlImage}`;
 }
 
-const TYPE_LABELS: Record<string, string> = {
-  Physical: "Físico",
-  Technical: "Técnico",
-  Tactical: "Táctico",
-};
-
-const SECTION_LABELS: Record<string, string> = {
-  Calentamiento: "Calentamiento",
-  Principal: "Principal",
-  VueltaALaCalma: "Vuelta calma",
-};
-
 function TypeIcon({ type }: { type: string }) {
   if (type === "Physical") return <FitnessCenterIcon sx={{ fontSize: 14 }} />;
   if (type === "Technical") return <SportsSoccerIcon sx={{ fontSize: 14 }} />;
   if (type === "Tactical") return <PsychologyIcon sx={{ fontSize: 14 }} />;
+  if (type === "Game") return <SportsEsportsIcon sx={{ fontSize: 14 }} />;
+  if (type === "Cognitive") return <PsychologyAltIcon sx={{ fontSize: 14 }} />;
+  if (type === "Psychological") return <SelfImprovementIcon sx={{ fontSize: 14 }} />;
   return null;
 }
 
@@ -55,8 +51,11 @@ export default function ExerciseCromo({ exercise, onEdit, onDuplicate, onPrint, 
   const boardSnapshot = tryParseBoardSnapshot(exercise.boardStateJson);
   const showSnapshot = !exercise.urlImage && hasBoardObjects(boardSnapshot);
 
+  const primaryType = exercise.types[0];
+  const extraTypes = exercise.types.slice(1);
+
   return (
-    <div className={`${styles.card} ${styles[`type_${exercise.type}`] ?? ""}`}>
+    <div className={`${styles.card} ${styles[`type_${primaryType}`] ?? ""}`}>
       {/* Photo area */}
       <div className={styles.photoArea}>
         {exercise.urlImage ? (
@@ -70,16 +69,26 @@ export default function ExerciseCromo({ exercise, onEdit, onDuplicate, onPrint, 
         ) : (
           <div className={styles.photoFallback}>
             <div className={styles.fallbackIconWrap}>
-              <TypeIcon type={exercise.type} />
+              <TypeIcon type={primaryType} />
             </div>
           </div>
         )}
         <div className={styles.photoGradient} />
 
-        {/* Type badge bottom-left over gradient */}
-        <div className={`${styles.typeBadge} ${styles[`typeBadge_${exercise.type}`] ?? ""}`}>
-          <TypeIcon type={exercise.type} />
-          <span>{TYPE_LABELS[exercise.type] ?? exercise.type}</span>
+        {/* Type badge bottom-left over gradient (primary type) + extra type chips */}
+        <div className={styles.typeBadgeRow}>
+          <div className={`${styles.typeBadge} ${styles[`typeBadge_${primaryType}`] ?? ""}`}>
+            <TypeIcon type={primaryType} />
+            <span>{TYPE_LABELS[primaryType] ?? primaryType}</span>
+          </div>
+          {extraTypes.map((t) => (
+            <Chip
+              key={t}
+              label={TYPE_LABELS[t] ?? t}
+              size="small"
+              className={styles.extraTypeChip}
+            />
+          ))}
         </div>
       </div>
 

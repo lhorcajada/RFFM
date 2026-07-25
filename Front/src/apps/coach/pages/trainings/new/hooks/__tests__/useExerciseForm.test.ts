@@ -2,10 +2,10 @@ import { renderHook, act, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { useExerciseForm } from "../useExerciseForm";
 
-vi.mock("../../../../services/gameModelService", () => ({
+vi.mock("../../../../../services/gameModelService", () => ({
   default: { getSubSubPrincipleSkills: vi.fn().mockResolvedValue([]) },
 }));
-vi.mock("../../../../services/trainingService", () => ({
+vi.mock("../../../../../services/trainingService", () => ({
   default: {
     getExerciseById: vi.fn(), createExercise: vi.fn(), updateExercise: vi.fn(),
     uploadExerciseMedia: vi.fn(), createCondition: vi.fn(), updateCondition: vi.fn(), deleteCondition: vi.fn(),
@@ -64,5 +64,61 @@ describe("useExerciseForm — reasignación de nivel", () => {
     act(() => result.current.setLevel("subPrinciple"));
 
     await waitFor(() => expect(result.current.form.essentialSkillIds).toEqual([]));
+  });
+});
+
+describe("useExerciseForm — multi-tipo", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("isPhysical es true cuando el array types incluye Physical", async () => {
+    const { result } = renderHook(() =>
+      useExerciseForm({
+        clubId: "club-1", subSubPrincipleId: null, subPrincipleId: null,
+        navigate, returnTo: "/coach/trainings",
+      })
+    );
+
+    act(() => result.current.setField("types", ["Physical", "Technical"]));
+
+    await waitFor(() => {
+      expect(result.current.isPhysical).toBe(true);
+      expect(result.current.isTechTac).toBe(true);
+    });
+  });
+
+  it("isPhysical y isTechTac son ambos true cuando se seleccionan Physical y Tactical juntos (no son excluyentes)", async () => {
+    const { result } = renderHook(() =>
+      useExerciseForm({
+        clubId: "club-1", subSubPrincipleId: null, subPrincipleId: null,
+        navigate, returnTo: "/coach/trainings",
+      })
+    );
+
+    act(() => result.current.setField("types", ["Physical", "Tactical"]));
+
+    await waitFor(() => {
+      expect(result.current.isPhysical).toBe(true);
+      expect(result.current.isTechTac).toBe(true);
+    });
+  });
+
+  it("bloquea el guardado con un mensaje de error cuando no hay ningún tipo seleccionado", async () => {
+    const trainingService = (await import("../../../../../services/trainingService")).default;
+    const { result } = renderHook(() =>
+      useExerciseForm({
+        clubId: "club-1", subSubPrincipleId: null, subPrincipleId: null,
+        navigate, returnTo: "/coach/trainings",
+      })
+    );
+
+    act(() => result.current.setField("types", []));
+    act(() => result.current.setField("name", "Ejercicio sin tipo"));
+
+    await act(async () => {
+      await result.current.handleSave();
+    });
+
+    expect(result.current.error).toMatch(/tipo/i);
+    expect(trainingService.createExercise).not.toHaveBeenCalled();
   });
 });

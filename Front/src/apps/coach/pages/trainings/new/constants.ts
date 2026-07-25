@@ -59,6 +59,9 @@ export const typeOptions: { value: ExerciseType; label: string }[] = [
   { value: "Physical", label: "Fisico" },
   { value: "Technical", label: "Tecnico" },
   { value: "Tactical", label: "Tactico" },
+  { value: "Game", label: "Juego" },
+  { value: "Cognitive", label: "Cognitivo" },
+  { value: "Psychological", label: "Psicologico" },
 ];
 
 export const sectionOptions: { value: ExerciseSection; label: string }[] = [
@@ -91,7 +94,7 @@ export const emptyExercise: CreateExerciseRequest = {
   clubId: "",
   name: "",
   description: "",
-  type: "Tactical",
+  types: ["Tactical"],
   section: "Principal",
   durationTotal: 15,
   playersNumber: 10,

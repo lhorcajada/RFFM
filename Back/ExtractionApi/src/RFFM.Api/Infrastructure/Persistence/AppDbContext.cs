@@ -56,6 +56,8 @@ namespace RFFM.Api.Infrastructure.Persistence
         public DbSet<TrainingPointsReport> TrainingPointsReports { get; set; }
         public DbSet<TaskTrainingBase> TaskTrainingBases { get; set; }
         public DbSet<TaskTrainingSkill> TaskTrainingSkills { get; set; }
+        public DbSet<ExerciseType> ExerciseTypes { get; set; }
+        public DbSet<TaskTrainingType> TaskTrainingTypes { get; set; }
         public DbSet<ExerciseCondition> ExerciseConditions { get; set; }
         public DbSet<TechnicalGoalsEnum> TechnicalGoals { get; set; }
         public DbSet<Rival> Rivals { get; set; }

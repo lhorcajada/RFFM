@@ -62,7 +62,7 @@ export function useExerciseForm({
       clubId,
       name: exercise.name,
       description: exercise.description,
-      type: exercise.type,
+      types: exercise.types,
       section: exercise.section,
       durationTotal: exercise.durationTotal,
       playersNumber: exercise.playersNumber,
@@ -194,6 +194,10 @@ export function useExerciseForm({
       setError("El nombre es obligatorio.");
       return;
     }
+    if (form.types.length === 0) {
+      setError("Selecciona al menos un tipo.");
+      return;
+    }
 
     setSaving(true);
     setError(null);
@@ -268,10 +272,10 @@ export function useExerciseForm({
     }
   };
 
-  const isPhysical = useMemo(() => form.type === "Physical", [form.type]);
+  const isPhysical = useMemo(() => form.types.includes("Physical"), [form.types]);
   const isTechTac = useMemo(
-    () => form.type === "Technical" || form.type === "Tactical",
-    [form.type],
+    () => form.types.includes("Technical") || form.types.includes("Tactical"),
+    [form.types],
   );
 
   return {

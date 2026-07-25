@@ -11,6 +11,7 @@ using RFFM.Api.Domain.Aggregates.Training.TasksTraining;
 using RFFM.Api.Domain.Entities;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
+using RFFM.Api.Infrastructure.Persistence.Seed;
 
 namespace RFFM.Api.Features.Coaches.Trainings.Exercises
 {
@@ -43,12 +44,12 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
 
     // ── Request ──────────────────────────────────────────────────────────────────
 
-    /// <param name="Type">Physical | Technical | Tactical</param>
+    /// <param name="Types">One or more of: Physical, Technical, Tactical, Game, Cognitive, Psychological</param>
     public record CreateExerciseCommand(
         string ClubId,
         string Name,
         string Description,
-        string Type,
+        List<string> Types,
         int DurationTotal,
         int PlayersNumber,
         int GoalPeekersNumber,
@@ -88,40 +89,34 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
             if (!hasAccess)
                 throw new DomainException("Ejercicios", "No tienes acceso a este club.", ErrorCodes.ClubAccessDenied);
 
-            TaskTrainingBase exercise = request.Type switch
+            var exercise = new TaskTrainingBase
             {
-                "Physical" => new PhysicalTaskTraining
-                {
-                    Series = request.Series ?? 1,
-                    DurationSeries = request.DurationSeries ?? 0,
-                    RestSeries = request.RestSeries ?? 0,
-                },
-                "Technical" => new TechnicalTaskTraining
-                {
-                    TouchesNumber = request.TouchesNumber ?? 0,
-                    WildCards = request.WildCards ?? 0,
-                },
-                _ => new TacticalTaskTraining
-                {
-                    TouchesNumber = request.TouchesNumber ?? 0,
-                    WildCards = request.WildCards ?? 0,
-                }
+                Name = request.Name.Trim(),
+                Description = request.Description,
+                DurationTotal = request.DurationTotal,
+                PlayersNumber = request.PlayersNumber,
+                GoalPeekersNumber = request.GoalPeekersNumber,
+                FieldSpace = request.FieldSpace,
+                ClubId = request.ClubId,
+                SubSubPrincipleId = request.SubSubPrincipleId,
+                SubPrincipleId = request.SubPrincipleId,
+                Section = request.Section,
+                BoardStateJson = request.BoardStateJson,
+                Series = request.Series ?? 0,
+                DurationSeries = request.DurationSeries ?? 0,
+                RestSeries = request.RestSeries ?? 0,
+                TouchesNumber = request.TouchesNumber ?? 0,
+                WildCards = request.WildCards ?? 0,
             };
-
-            exercise.Name = request.Name.Trim();
-            exercise.Description = request.Description;
-            exercise.DurationTotal = request.DurationTotal;
-            exercise.PlayersNumber = request.PlayersNumber;
-            exercise.GoalPeekersNumber = request.GoalPeekersNumber;
-            exercise.FieldSpace = request.FieldSpace;
-            exercise.ClubId = request.ClubId;
-            exercise.SubSubPrincipleId = request.SubSubPrincipleId;
-            exercise.SubPrincipleId = request.SubPrincipleId;
-            exercise.Section = request.Section;
-            exercise.BoardStateJson = request.BoardStateJson;
 
             foreach (var skillId in request.EssentialSkillIds.Distinct())
                 exercise.Skills.Add(new TaskTrainingSkill { EssentialSkillId = skillId });
+
+            var typeEntities = await _db.ExerciseTypes
+                .Where(t => request.Types.Contains(t.Name))
+                .ToListAsync(ct);
+            foreach (var typeEntity in typeEntities)
+                exercise.Types.Add(new TaskTrainingType { ExerciseTypeId = typeEntity.Id });
 
             await _db.TaskTrainingBases.AddAsync(exercise, ct);
             await _db.SaveChangesAsync(ct);
@@ -137,8 +132,11 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         {
             RuleFor(x => x.ClubId).NotEmpty();
             RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
-            RuleFor(x => x.Type).Must(t => t is "Physical" or "Technical" or "Tactical")
-                .WithMessage("Type must be Physical, Technical or Tactical.");
+            RuleFor(x => x.Types).NotEmpty()
+                .WithMessage("At least one type is required.");
+            RuleForEach(x => x.Types)
+                .Must(t => ExerciseTypesSeeder.Types.Contains(t))
+                .WithMessage("Type must be one of: " + "Physical, Technical, Tactical, Game, Cognitive, Psychological");
             RuleFor(x => x.Section).Must(s => s is "Calentamiento" or "Principal" or "VueltaALaCalma")
                 .WithMessage("Section must be Calentamiento, Principal or VueltaALaCalma.");
             RuleFor(x => x.DurationTotal).GreaterThan(0);

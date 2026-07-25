@@ -63,7 +63,7 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
         string ExerciseId,
         string Name,
         string Description,
-        string Type,
+        IEnumerable<string> Types,
         string Section,
         int DurationTotal,
         int PlayersNumber,
@@ -89,6 +89,10 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
                 .Include(s => s.Tasks)
                     .ThenInclude(tt => tt.Task)
                         .ThenInclude(tb => tb.Conditions)
+                .Include(s => s.Tasks)
+                    .ThenInclude(tt => tt.Task)
+                        .ThenInclude(tb => tb.Types)
+                            .ThenInclude(t => t.ExerciseType)
                 .AsSplitQuery()
                 .FirstOrDefaultAsync(s => s.Id == request.Id, ct);
 
@@ -119,7 +123,7 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
                         tt.Task.Id,
                         tt.Task.Name,
                         tt.Task.Description,
-                        tt.Task.GetType().Name.Replace("TaskTraining", ""),
+                        tt.Task.Types.Select(t => t.ExerciseType.Name),
                         tt.Section,
                         tt.Task.DurationTotal,
                         tt.Task.PlayersNumber,

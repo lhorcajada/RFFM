@@ -55,6 +55,8 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
             var exercise = await _db.TaskTrainingBases
                 .Include(tb => tb.Skills)
                     .ThenInclude(s => s.EssentialSkill)
+                .Include(tb => tb.Types)
+                    .ThenInclude(t => t.ExerciseType)
                 .Include(tb => tb.SubSubPrinciple)
                 .Include(tb => tb.SubPrinciple)
                 .Include(tb => tb.Conditions)
@@ -73,7 +75,7 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
                 exercise.Id,
                 exercise.Name,
                 exercise.Description,
-                exercise.GetType().Name.Replace("TaskTraining", ""),
+                exercise.Types.Select(t => t.ExerciseType.Name),
                 exercise.Section,
                 exercise.DurationTotal,
                 exercise.PlayersNumber,

@@ -30,6 +30,12 @@
 .type_Technical:hover { border-color: rgba(77, 157, 224, 0.65); }
 .type_Tactical { border-color: rgba(39, 174, 96, 0.35); }
 .type_Tactical:hover { border-color: rgba(39, 174, 96, 0.65); }
+.type_Game { border-color: rgba(230, 178, 33, 0.35); }
+.type_Game:hover { border-color: rgba(230, 178, 33, 0.65); }
+.type_Cognitive { border-color: rgba(155, 89, 182, 0.35); }
+.type_Cognitive:hover { border-color: rgba(155, 89, 182, 0.65); }
+.type_Psychological { border-color: rgba(232, 67, 147, 0.35); }
+.type_Psychological:hover { border-color: rgba(232, 67, 147, 0.65); }
 
 /* ─── Photo area — aspect ratio so it scales with card width ─── */
 .photoArea {
@@ -82,11 +88,20 @@
   pointer-events: none;
 }
 
-/* ─── Type badge — anchored to bottom of photo over gradient ─── */
-.typeBadge {
+/* ─── Type badge row — anchored to bottom of photo over gradient ─── */
+.typeBadgeRow {
   position: absolute;
   bottom: 7px;
   left: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  z-index: 2;
+}
+
+.typeBadge {
   display: flex;
   align-items: center;
   gap: 4px;
@@ -96,7 +111,6 @@
   font-weight: 800;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  z-index: 2;
 }
 
 .typeBadge_Physical {
@@ -115,6 +129,38 @@
   background: rgba(39, 174, 96, 0.9);
   color: #fff;
   box-shadow: 0 1px 5px rgba(39, 174, 96, 0.5);
+}
+
+.typeBadge_Game {
+  background: rgba(230, 178, 33, 0.9);
+  color: #fff;
+  box-shadow: 0 1px 5px rgba(230, 178, 33, 0.5);
+}
+
+.typeBadge_Cognitive {
+  background: rgba(155, 89, 182, 0.9);
+  color: #fff;
+  box-shadow: 0 1px 5px rgba(155, 89, 182, 0.5);
+}
+
+.typeBadge_Psychological {
+  background: rgba(232, 67, 147, 0.9);
+  color: #fff;
+  box-shadow: 0 1px 5px rgba(232, 67, 147, 0.5);
+}
+
+.extraTypeChip {
+  height: 18px !important;
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.85) !important;
+  color: #1c1c30 !important;
+}
+
+.extraTypeChip :global(.MuiChip-label) {
+  padding: 0 6px;
 }
 
 /* ─── Body ─── */
