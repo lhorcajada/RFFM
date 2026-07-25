@@ -134,10 +134,30 @@ export interface LineKindOption {
   label: string;
 }
 
+export interface TextStyle {
+  fontFamily: string;
+  fontSize: number;
+  bold: boolean;
+  italic: boolean;
+  color: string;
+}
+
+export interface PlacedText extends TextStyle {
+  id: string;
+  text: string;
+  x: number;
+  y: number;
+  rotation: number;
+  scaleX: number;
+  scaleY: number;
+  locked: boolean;
+}
+
 export interface TacticalBoardSnapshot {
   placedChapas: Record<string, ChapaPosition>;
   chapaPetoById: Record<string, string>;
   placedSpaces: SpacePosition[];
   placedMaterials: PlacedMaterial[];
   placedLines: PlacedLine[];
+  placedTexts?: PlacedText[];
 }

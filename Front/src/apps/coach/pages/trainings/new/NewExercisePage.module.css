@@ -1420,3 +1420,82 @@
   color: rgba(170, 210, 250, 0.7) !important;
   font-style: italic;
 }
+
+/* Text strip styles */
+.textsStrip {
+  border-top: 1px solid rgba(77, 157, 224, 0.2);
+  background: rgba(6, 10, 24, 0.95);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px 8px;
+  flex-shrink: 0;
+}
+
+.textsStripControls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.textsStripColors {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.textStyleBtn {
+  min-width: 32px;
+  height: 32px;
+  padding: 4px 8px;
+  border: 1px solid rgba(77, 157, 224, 0.3);
+  border-radius: 6px;
+  background: rgba(12, 22, 42, 0.7);
+  color: #c5dff5;
+  cursor: pointer;
+  font-weight: 600;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.textStyleBtn:hover {
+  border-color: rgba(77, 157, 224, 0.7);
+  background: rgba(20, 38, 68, 0.8);
+}
+
+.textStyleBtnActive {
+  border-color: #4d9de0 !important;
+  background: rgba(30, 60, 100, 0.85) !important;
+}
+
+/* Placed text in field */
+.placedText {
+  position: absolute;
+  cursor: move;
+  user-select: none;
+  white-space: pre-wrap;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  word-wrap: break-word;
+  max-width: 200px;
+}
+
+.placedTextSelected {
+  outline: 1px dashed rgba(255, 255, 255, 0.8);
+  outline-offset: 2px;
+}
+
+.placedTextEditor {
+  position: absolute;
+  background: rgba(12, 22, 42, 0.95);
+  border: 1px solid rgba(77, 157, 224, 0.6);
+  border-radius: 4px;
+  padding: 4px 6px;
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  font-style: inherit;
+  resize: none;
+  outline: none;
+  max-width: 300px;
+}

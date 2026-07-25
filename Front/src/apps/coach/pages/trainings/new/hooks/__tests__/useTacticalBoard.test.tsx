@@ -130,3 +130,329 @@ describe("useTacticalBoard - placeChapaAtClientPoint", () => {
     });
   });
 });
+
+describe("useTacticalBoard - texts", () => {
+  beforeEach(() => {
+    vi.mocked(teamplayerService.getPlayersByTeam).mockReset();
+    vi.mocked(teamplayerService.getPlayersByTeam).mockResolvedValue([]);
+  });
+
+  it("creates text at point with active style and enters editing mode", () => {
+    const pitchEl = makePitchElement();
+    const halfPitchRef = { current: pitchEl } as React.RefObject<HTMLDivElement>;
+
+    const { result } = renderHook(() => useTacticalBoard(halfPitchRef, ""));
+
+    act(() => {
+      result.current.createTextAtPoint(20, 30);
+    });
+
+    expect(result.current.placedTexts).toHaveLength(1);
+    const text = result.current.placedTexts[0];
+    expect(text.text).toBe("Texto");
+    expect(text.x).toBe(20);
+    expect(text.y).toBe(30);
+    expect(text.rotation).toBe(0);
+    expect(text.scaleX).toBe(1);
+    expect(text.scaleY).toBe(1);
+    expect(text.locked).toBe(false);
+    expect(text.fontFamily).toBe(result.current.activeTextStyle.fontFamily);
+    expect(text.fontSize).toBe(result.current.activeTextStyle.fontSize);
+    expect(text.bold).toBe(result.current.activeTextStyle.bold);
+    expect(text.italic).toBe(result.current.activeTextStyle.italic);
+    expect(text.color).toBe(result.current.activeTextStyle.color);
+    expect(result.current.editingTextId).toBe(text.id);
+  });
+
+  it("updates placed text content", () => {
+    const pitchEl = makePitchElement();
+    const halfPitchRef = { current: pitchEl } as React.RefObject<HTMLDivElement>;
+
+    const { result } = renderHook(() => useTacticalBoard(halfPitchRef, ""));
+
+    act(() => {
+      result.current.createTextAtPoint(20, 30);
+    });
+
+    const textId = result.current.placedTexts[0].id;
+
+    act(() => {
+      result.current.updatePlacedText(textId, { text: "Presión alta" });
+    });
+
+    expect(result.current.placedTexts[0].text).toBe("Presión alta");
+  });
+
+  it("updates placed text style", () => {
+    const pitchEl = makePitchElement();
+    const halfPitchRef = { current: pitchEl } as React.RefObject<HTMLDivElement>;
+
+    const { result } = renderHook(() => useTacticalBoard(halfPitchRef, ""));
+
+    act(() => {
+      result.current.createTextAtPoint(20, 30);
+    });
+
+    const textId = result.current.placedTexts[0].id;
+
+    act(() => {
+      result.current.updatePlacedText(textId, { bold: true, color: "#ff0000" });
+    });
+
+    expect(result.current.placedTexts[0].bold).toBe(true);
+    expect(result.current.placedTexts[0].color).toBe("#ff0000");
+  });
+
+  it("removes placed text", () => {
+    const pitchEl = makePitchElement();
+    const halfPitchRef = { current: pitchEl } as React.RefObject<HTMLDivElement>;
+
+    const { result } = renderHook(() => useTacticalBoard(halfPitchRef, ""));
+
+    act(() => {
+      result.current.createTextAtPoint(20, 30);
+    });
+
+    const textId = result.current.placedTexts[0].id;
+
+    act(() => {
+      result.current.removePlacedText(textId);
+    });
+
+    expect(result.current.placedTexts).toHaveLength(0);
+  });
+
+  it("duplicates placed text with offset", () => {
+    const pitchEl = makePitchElement();
+    const halfPitchRef = { current: pitchEl } as React.RefObject<HTMLDivElement>;
+
+    const { result } = renderHook(() => useTacticalBoard(halfPitchRef, ""));
+
+    act(() => {
+      result.current.createTextAtPoint(20, 30);
+    });
+
+    const textId = result.current.placedTexts[0].id;
+    const origText = result.current.placedTexts[0];
+
+    act(() => {
+      result.current.duplicatePlacedText(textId);
+    });
+
+    expect(result.current.placedTexts).toHaveLength(2);
+    const duplicate = result.current.placedTexts[1];
+    expect(duplicate.id).not.toBe(textId);
+    expect(duplicate.x).toBe(origText.x + 2);
+    expect(duplicate.y).toBe(origText.y + 2);
+    expect(duplicate.text).toBe(origText.text);
+    expect(duplicate.fontFamily).toBe(origText.fontFamily);
+  });
+
+  it("toggles lock on placed text", () => {
+    const pitchEl = makePitchElement();
+    const halfPitchRef = { current: pitchEl } as React.RefObject<HTMLDivElement>;
+
+    const { result } = renderHook(() => useTacticalBoard(halfPitchRef, ""));
+
+    act(() => {
+      result.current.createTextAtPoint(20, 30);
+    });
+
+    const textId = result.current.placedTexts[0].id;
+
+    act(() => {
+      result.current.toggleLockPlacedText(textId);
+    });
+
+    expect(result.current.placedTexts[0].locked).toBe(true);
+
+    act(() => {
+      result.current.toggleLockPlacedText(textId);
+    });
+
+    expect(result.current.placedTexts[0].locked).toBe(false);
+  });
+
+  it("rotates placed text by 15 degrees", () => {
+    const pitchEl = makePitchElement();
+    const halfPitchRef = { current: pitchEl } as React.RefObject<HTMLDivElement>;
+
+    const { result } = renderHook(() => useTacticalBoard(halfPitchRef, ""));
+
+    act(() => {
+      result.current.createTextAtPoint(20, 30);
+    });
+
+    const textId = result.current.placedTexts[0].id;
+
+    act(() => {
+      result.current.rotatePlacedText(textId);
+    });
+
+    expect(result.current.placedTexts[0].rotation).toBe(15);
+
+    act(() => {
+      result.current.rotatePlacedText(textId);
+    });
+
+    expect(result.current.placedTexts[0].rotation).toBe(30);
+
+    // Rotate 23 more times to return to 0 (360 degrees total: 2 + 23 = 25 * 15 = 375, which wraps to 15... wait)
+    // Actually: 360 / 15 = 24 rotations. We already did 2, so 24 - 2 = 22 more.
+    for (let i = 0; i < 22; i++) {
+      act(() => {
+        result.current.rotatePlacedText(textId);
+      });
+    }
+
+    expect(result.current.placedTexts[0].rotation).toBe(0);
+  });
+
+  it("locked text does not move when dragged", () => {
+    const pitchEl = makePitchElement();
+    const halfPitchRef = { current: pitchEl } as React.RefObject<HTMLDivElement>;
+
+    const { result } = renderHook(() => useTacticalBoard(halfPitchRef, ""));
+
+    act(() => {
+      result.current.createTextAtPoint(20, 30);
+    });
+
+    const textId = result.current.placedTexts[0].id;
+
+    act(() => {
+      result.current.toggleLockPlacedText(textId);
+    });
+
+    const origX = result.current.placedTexts[0].x;
+    const origY = result.current.placedTexts[0].y;
+
+    act(() => {
+      result.current.movePlacedText(textId, 50, 60);
+    });
+
+    expect(result.current.placedTexts[0].x).toBe(origX);
+    expect(result.current.placedTexts[0].y).toBe(origY);
+  });
+
+  it("sets active text style for future texts", () => {
+    const pitchEl = makePitchElement();
+    const halfPitchRef = { current: pitchEl } as React.RefObject<HTMLDivElement>;
+
+    const { result } = renderHook(() => useTacticalBoard(halfPitchRef, ""));
+
+    act(() => {
+      result.current.setActiveTextStyle({ ...result.current.activeTextStyle, bold: true, color: "#ff0000" });
+    });
+
+    act(() => {
+      result.current.createTextAtPoint(20, 30);
+    });
+
+    const newText = result.current.placedTexts[0];
+    expect(newText.bold).toBe(true);
+    expect(newText.color).toBe("#ff0000");
+  });
+
+  it("serializes and deserializes board state with texts", () => {
+    const pitchEl = makePitchElement();
+    const halfPitchRef = { current: pitchEl } as React.RefObject<HTMLDivElement>;
+
+    const { result } = renderHook(() => useTacticalBoard(halfPitchRef, ""));
+
+    act(() => {
+      result.current.createTextAtPoint(20, 30);
+    });
+
+    const textId = result.current.placedTexts[0].id;
+
+    act(() => {
+      result.current.updatePlacedText(textId, { text: "Test", bold: true });
+    });
+
+    let json: string;
+    act(() => {
+      json = result.current.serializeBoardStateJson();
+    });
+
+    const origState = { ...result.current.placedTexts[0] };
+
+    act(() => {
+      result.current.clearBoardState();
+    });
+
+    expect(result.current.placedTexts).toHaveLength(0);
+
+    act(() => {
+      result.current.loadBoardStateJson(json);
+    });
+
+    expect(result.current.placedTexts).toHaveLength(1);
+    expect(result.current.placedTexts[0]).toEqual(origState);
+  });
+
+  it("loads empty texts array when snapshot has no placedTexts", () => {
+    const pitchEl = makePitchElement();
+    const halfPitchRef = { current: pitchEl } as React.RefObject<HTMLDivElement>;
+
+    const { result } = renderHook(() => useTacticalBoard(halfPitchRef, ""));
+
+    act(() => {
+      result.current.loadBoardStateJson(
+        JSON.stringify({
+          placedChapas: {},
+          chapaPetoById: {},
+          placedSpaces: [],
+          placedMaterials: [],
+          placedLines: [],
+        }),
+      );
+    });
+
+    expect(result.current.placedTexts).toEqual([]);
+  });
+
+  it("handleToggleTexts activates texts and deactivates other modes", () => {
+    const pitchEl = makePitchElement();
+    const halfPitchRef = { current: pitchEl } as React.RefObject<HTMLDivElement>;
+
+    const { result } = renderHook(() => useTacticalBoard(halfPitchRef, ""));
+
+    act(() => {
+      result.current.handleToggleMaterials();
+    });
+
+    expect(result.current.showMaterials).toBe(true);
+    expect(result.current.showTexts).toBe(false);
+
+    act(() => {
+      result.current.handleToggleTexts();
+    });
+
+    expect(result.current.showTexts).toBe(true);
+    expect(result.current.showMaterials).toBe(false);
+    expect(result.current.showChapas).toBe(false);
+    expect(result.current.showSpaces).toBe(false);
+    expect(result.current.showLines).toBe(false);
+  });
+
+  it("handleToggleLines deactivates texts when activating lines", () => {
+    const pitchEl = makePitchElement();
+    const halfPitchRef = { current: pitchEl } as React.RefObject<HTMLDivElement>;
+
+    const { result } = renderHook(() => useTacticalBoard(halfPitchRef, ""));
+
+    act(() => {
+      result.current.handleToggleTexts();
+    });
+
+    expect(result.current.showTexts).toBe(true);
+
+    act(() => {
+      result.current.handleToggleLines();
+    });
+
+    expect(result.current.showLines).toBe(true);
+    expect(result.current.showTexts).toBe(false);
+  });
+});

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type React from "react";
 import teamplayerService, { type PlayerResponse } from "../../../../services/teamplayerService";
-import { FIELD_WIDTH_METERS, HALF_FIELD_LENGTH_METERS, SPACE_COLORS, anonymousChapaOptions } from "../constants";
+import { FIELD_WIDTH_METERS, HALF_FIELD_LENGTH_METERS, SPACE_COLORS, anonymousChapaOptions, DEFAULT_TEXT_STYLE } from "../constants";
 import { getMaterialSizePercent, isMaterialKind, getChapaSizePercent } from "../helpers/materialHelpers";
 import {
   clamp,
@@ -20,11 +20,13 @@ import type {
   MaterialKind,
   PlacedLine,
   PlacedMaterial,
+  PlacedText,
   PetoOption,
   ResizeHandle,
   ResizeSession,
   SpaceKind,
   SpacePosition,
+  TextStyle,
 } from "../types";
 import type { TacticalBoardSnapshot } from "../types";
 
@@ -57,6 +59,13 @@ export function useTacticalBoard(
   const [activeLineColor, setActiveLineColor] = useState<string>("#ffffff");
   const [drawingState, setDrawingState] = useState<DrawingState | null>(null);
 
+  const [showTexts, setShowTexts] = useState(false);
+  const [placedTexts, setPlacedTexts] = useState<PlacedText[]>([]);
+  const [activeTextStyle, setActiveTextStyle] = useState<TextStyle>(DEFAULT_TEXT_STYLE);
+  const [editingTextId, setEditingTextId] = useState<string | null>(null);
+  const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
+  const [draggingTextId, setDraggingTextId] = useState<string | null>(null);
+
   const normalizeSpacePosition = (space: SpacePosition): SpacePosition => ({
     ...space,
     scaleX: space.scaleX ?? 1,
@@ -72,6 +81,7 @@ export function useTacticalBoard(
     setPlacedSpaces([]);
     setPlacedMaterials([]);
     setPlacedLines([]);
+    setPlacedTexts([]);
   };
 
   const normalizeChapaPosition = (chapa: ChapaPosition): ChapaPosition => {
@@ -95,6 +105,7 @@ export function useTacticalBoard(
     setPlacedSpaces((snapshot.placedSpaces ?? []).map(normalizeSpacePosition));
     setPlacedMaterials(snapshot.placedMaterials ?? []);
     setPlacedLines(snapshot.placedLines ?? []);
+    setPlacedTexts(snapshot.placedTexts ?? []);
   };
 
   const loadBoardStateJson = (boardStateJson?: string | null) => {
@@ -120,6 +131,7 @@ export function useTacticalBoard(
       placedSpaces,
       placedMaterials,
       placedLines,
+      placedTexts,
     } satisfies TacticalBoardSnapshot);
 
   useEffect(() => {
@@ -268,6 +280,7 @@ export function useTacticalBoard(
         setShowChapas(false);
         setShowMaterials(false);
         setShowLines(false);
+        setShowTexts(false);
         setActiveLineKind(null);
         setDrawingState(null);
       }
@@ -282,6 +295,7 @@ export function useTacticalBoard(
         setShowSpaces(false);
         setShowMaterials(false);
         setShowLines(false);
+        setShowTexts(false);
         setActiveLineKind(null);
         setDrawingState(null);
       }
@@ -296,6 +310,7 @@ export function useTacticalBoard(
         setShowChapas(false);
         setShowSpaces(false);
         setShowLines(false);
+        setShowTexts(false);
         setActiveLineKind(null);
         setDrawingState(null);
       }
@@ -310,6 +325,7 @@ export function useTacticalBoard(
         setShowChapas(false);
         setShowSpaces(false);
         setShowMaterials(false);
+        setShowTexts(false);
       } else {
         setActiveLineKind(null);
         setDrawingState(null);
@@ -1344,6 +1360,13 @@ export function useTacticalBoard(
       return;
     }
 
+    const textId = e.dataTransfer.getData("text/text-instance-id");
+    if (textId) {
+      movePlacedText(textId, e.clientX, e.clientY);
+      setDraggingTextId(null);
+      return;
+    }
+
     const playerId = e.dataTransfer.getData("text/chapa-player-id");
     if (playerId) {
       const isAnonymous = placedChapas[playerId]?.anonymous === true;
@@ -1450,6 +1473,195 @@ export function useTacticalBoard(
     setPlacedLines((prev) => prev.map((l) => (l.id === lineId ? { ...l, color } : l)));
   };
 
+  // ─── Text operations ──────────────────────────────────────────────────────
+
+  const handleToggleTexts = () => {
+    setShowTexts((prev) => {
+      const next = !prev;
+      if (next) {
+        setShowChapas(false);
+        setShowSpaces(false);
+        setShowMaterials(false);
+        setShowLines(false);
+        setActiveLineKind(null);
+        setDrawingState(null);
+      }
+      return next;
+    });
+  };
+
+  const createTextAtPoint = (clientX: number, clientY: number) => {
+    const raw = getRawDropPosition(clientX, clientY);
+    if (!raw) return;
+
+    const clamped = { x: clamp(raw.x, 0, 100), y: clamp(raw.y, 0, 100) };
+    const id =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `text-${Date.now()}-${Math.random()}`;
+
+    setPlacedTexts((prev) => [
+      ...prev,
+      {
+        id,
+        text: "Texto",
+        x: clamped.x,
+        y: clamped.y,
+        rotation: 0,
+        scaleX: 1,
+        scaleY: 1,
+        locked: false,
+        ...activeTextStyle,
+      },
+    ]);
+    setEditingTextId(id);
+  };
+
+  const updatePlacedText = (textId: string, patch: Partial<PlacedText>) => {
+    setPlacedTexts((prev) => prev.map((t) => (t.id === textId ? { ...t, ...patch } : t)));
+  };
+
+  const movePlacedText = (textId: string, clientX: number, clientY: number) => {
+    const raw = getRawDropPosition(clientX, clientY);
+    if (!raw) return;
+
+    const clamped = { x: clamp(raw.x, 0, 100), y: clamp(raw.y, 0, 100) };
+
+    setPlacedTexts((prev) =>
+      prev.map((text) => {
+        if (text.id !== textId) return text;
+        if (text.locked) return text;
+        return { ...text, x: clamped.x, y: clamped.y };
+      }),
+    );
+  };
+
+  const removePlacedText = (textId: string) => {
+    setPlacedTexts((prev) => prev.filter((t) => t.id !== textId));
+  };
+
+  const duplicatePlacedText = (textId: string) => {
+    const source = placedTexts.find((t) => t.id === textId);
+    if (!source) return;
+
+    const duplicatedId =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `text-${Date.now()}-${Math.random()}`;
+
+    setPlacedTexts((prev) => [
+      ...prev,
+      {
+        ...source,
+        id: duplicatedId,
+        x: clamp(source.x + 2, 0, 100),
+        y: clamp(source.y + 2, 0, 100),
+      },
+    ]);
+  };
+
+  const toggleLockPlacedText = (textId: string) => {
+    setPlacedTexts((prev) => prev.map((t) => (t.id === textId ? { ...t, locked: !t.locked } : t)));
+  };
+
+  const rotatePlacedText = (textId: string) => {
+    setPlacedTexts((prev) =>
+      prev.map((t) => (t.id === textId && !t.locked ? { ...t, rotation: (t.rotation + 15) % 360 } : t)),
+    );
+  };
+
+  const [textResizeSession, setTextResizeSession] = useState<
+    | {
+        textId: string;
+        startClientX: number;
+        startClientY: number;
+        startScaleX: number;
+        startScaleY: number;
+      }
+    | null
+  >(null);
+
+  const handleTextResizeStart = (
+    e: React.MouseEvent<HTMLButtonElement> | React.MouseEvent<HTMLElement>,
+    textId: string,
+  ) => {
+    const text = placedTexts.find((t) => t.id === textId);
+    if (!text || text.locked) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setTextResizeSession({
+      textId,
+      startClientX: (e as React.MouseEvent).clientX,
+      startClientY: (e as React.MouseEvent).clientY,
+      startScaleX: text.scaleX,
+      startScaleY: text.scaleY,
+    });
+  };
+
+  useEffect(() => {
+    if (!textResizeSession) return;
+
+    const handleMouseMove = (ev: MouseEvent) => {
+      const pitch = halfPitchRef.current;
+      if (!pitch) return;
+      const rect = pitch.getBoundingClientRect();
+      const dxPx = ev.clientX - textResizeSession.startClientX;
+      const dyPx = ev.clientY - textResizeSession.startClientY;
+      const dxPercent = (dxPx / rect.width) * 100;
+      const dyPercent = (dyPx / rect.height) * 100;
+
+      const delta = Math.abs(dxPercent) > Math.abs(dyPercent) ? dxPercent : dyPercent;
+      const factor = 1 + delta / 50;
+
+      setPlacedTexts((prev) =>
+        prev.map((t) => {
+          if (t.id !== textResizeSession.textId) return t;
+          const nextScaleX = Math.max(0.3, Math.min(4, textResizeSession.startScaleX * factor));
+          const nextScaleY = Math.max(0.3, Math.min(4, textResizeSession.startScaleY * factor));
+          return { ...t, scaleX: nextScaleX, scaleY: nextScaleY };
+        }),
+      );
+    };
+
+    const handleMouseUp = () => setTextResizeSession(null);
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [textResizeSession]);
+
+  const handlePlacedTextDragStart = (e: React.DragEvent<HTMLElement>, textId: string) => {
+    const text = placedTexts.find((t) => t.id === textId);
+    if (!text || text.locked) {
+      e.preventDefault();
+      return;
+    }
+    e.dataTransfer.setData("text/text-instance-id", textId);
+    e.dataTransfer.effectAllowed = "move";
+    setDraggingTextId(textId);
+  };
+
+  const handlePlacedTextDragEnd = (e: React.DragEvent<HTMLElement>, textId: string) => {
+    setDraggingTextId(null);
+    if (halfPitchRef.current && !placedTexts.find((t) => t.id === textId)?.locked) {
+      const rect = halfPitchRef.current.getBoundingClientRect();
+      const outside =
+        e.clientX < rect.left ||
+        e.clientX > rect.right ||
+        e.clientY < rect.top ||
+        e.clientY > rect.bottom;
+      if (outside) removePlacedText(textId);
+    }
+  };
+
+  const handleTextFieldClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!showTexts || editingTextId) return;
+    createTextAtPoint(e.clientX, e.clientY);
+  };
+
   // ─── Derived state ────────────────────────────────────────────────────────
 
   const playersById = useMemo(() => {
@@ -1475,6 +1687,7 @@ export function useTacticalBoard(
     handleToggleSpaces,
     handleToggleMaterials,
     handleToggleLines,
+    clearBoardState,
     loadBoardStateJson,
     serializeBoardStateJson,
     // Chapas
@@ -1544,6 +1757,29 @@ export function useTacticalBoard(
     handleDrawMouseDown,
     handleDrawMouseMove,
     handleDrawMouseUp,
+    // Texts
+    showTexts,
+    placedTexts,
+    setPlacedTexts,
+    activeTextStyle,
+    setActiveTextStyle,
+    editingTextId,
+    setEditingTextId,
+    selectedTextId,
+    setSelectedTextId,
+    draggingTextId,
+    handleToggleTexts,
+    createTextAtPoint,
+    updatePlacedText,
+    movePlacedText,
+    removePlacedText,
+    duplicatePlacedText,
+    toggleLockPlacedText,
+    rotatePlacedText,
+    handleTextResizeStart,
+    handlePlacedTextDragStart,
+    handlePlacedTextDragEnd,
+    handleTextFieldClick,
     // Field events
     handleFieldDragOver,
     handleFieldDrop,

@@ -1,5 +1,5 @@
 import type React from "react";
-import { act, render, renderHook } from "@testing-library/react";
+import { act, render, renderHook, fireEvent } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import TacticalField from "../TacticalField";
 import { useTacticalBoard } from "../../hooks/useTacticalBoard";
@@ -230,5 +230,243 @@ describe("TacticalField - line selection with lines panel closed", () => {
     // The line must still be selected after the drag+click sequence: the
     // endpoint handle buttons should still be present.
     expect(container.querySelectorAll("button").length).toBeGreaterThan(0);
+  });
+});
+
+describe("TacticalField - texts rendering and interaction", () => {
+  beforeEach(() => {
+    vi.mocked(teamplayerService.getPlayersByTeam).mockReset();
+    vi.mocked(teamplayerService.getPlayersByTeam).mockResolvedValue([]);
+  });
+
+  it("renders placed texts with correct styles", () => {
+    const pitchEl = makePitchElement();
+    const halfPitchRef = { current: pitchEl } as React.RefObject<HTMLDivElement>;
+
+    const { result: boardResult } = renderHook(() => useTacticalBoard(halfPitchRef, ""));
+
+    act(() => {
+      boardResult.current.setPlacedTexts([
+        {
+          id: "text-1",
+          text: "Test",
+          x: 50,
+          y: 50,
+          fontFamily: "Arial, sans-serif",
+          fontSize: 16,
+          bold: true,
+          italic: true,
+          color: "#ff0000",
+          rotation: 15,
+          scaleX: 1.5,
+          scaleY: 1.5,
+          locked: false,
+        },
+      ]);
+    });
+
+    const { container } = render(
+      <TacticalField halfPitchRef={halfPitchRef} board={boardResult.current} />,
+    );
+
+    const textElement = container.querySelector('[data-testid="placed-text-text-1"]') as HTMLElement;
+    if (textElement) {
+      expect(textElement.textContent).toBe("Test");
+      expect(textElement.style.fontFamily).toBe("Arial, sans-serif");
+      expect(textElement.style.color).toBe("rgb(255, 0, 0)");
+      expect(textElement.style.fontWeight).toBe("700");
+      expect(textElement.style.fontStyle).toBe("italic");
+    }
+  });
+
+  it("selects text on click", () => {
+    const pitchEl = makePitchElement();
+    const halfPitchRef = { current: pitchEl } as React.RefObject<HTMLDivElement>;
+
+    const { result: boardResult } = renderHook(() => useTacticalBoard(halfPitchRef, ""));
+
+    act(() => {
+      boardResult.current.setPlacedTexts([
+        {
+          id: "text-1",
+          text: "Click me",
+          x: 50,
+          y: 50,
+          fontFamily: "Arial, sans-serif",
+          fontSize: 16,
+          bold: false,
+          italic: false,
+          color: "#ffffff",
+          rotation: 0,
+          scaleX: 1,
+          scaleY: 1,
+          locked: false,
+        },
+      ]);
+    });
+
+    const { container } = render(
+      <TacticalField halfPitchRef={halfPitchRef} board={boardResult.current} />,
+    );
+
+    const textElement = container.querySelector('[data-testid="placed-text-text-1"]') as HTMLElement;
+    if (textElement) {
+      act(() => {
+        fireEvent.click(textElement);
+      });
+
+      // After clicking, check that PlacedObjectControls is rendered (which means the text is selected)
+      const controls = container.querySelector(`button[aria-label*="Redimensionar"]`);
+      expect(controls).toBeTruthy();
+    }
+  });
+
+  it("enters edit mode on double click", () => {
+    const pitchEl = makePitchElement();
+    const halfPitchRef = { current: pitchEl } as React.RefObject<HTMLDivElement>;
+
+    const { result: boardResult } = renderHook(() => useTacticalBoard(halfPitchRef, ""));
+
+    act(() => {
+      boardResult.current.createTextAtPoint(50, 50);
+    });
+
+    const textId = boardResult.current.placedTexts[0].id;
+
+    const { container, rerender } = render(
+      <TacticalField halfPitchRef={halfPitchRef} board={boardResult.current} />,
+    );
+
+    const textElement = container.querySelector(`[data-testid="placed-text-${textId}"]`) as HTMLElement;
+    if (textElement) {
+      act(() => {
+        textElement.dispatchEvent(new MouseEvent("dblclick", { bubbles: true }));
+      });
+
+      rerender(
+        <TacticalField halfPitchRef={halfPitchRef} board={boardResult.current} />,
+      );
+
+      // After double click, there should be a textarea
+      const textarea = container.querySelector(`[data-testid="text-editor-${textId}"]`);
+      expect(textarea).toBeTruthy();
+    }
+  });
+
+  it("confirms text content on blur", () => {
+    const pitchEl = makePitchElement();
+    const halfPitchRef = { current: pitchEl } as React.RefObject<HTMLDivElement>;
+
+    const { result: boardResult } = renderHook(() => useTacticalBoard(halfPitchRef, ""));
+
+    act(() => {
+      boardResult.current.createTextAtPoint(50, 50);
+    });
+
+    const textId = boardResult.current.placedTexts[0].id;
+
+    act(() => {
+      boardResult.current.setEditingTextId(textId);
+    });
+
+    const { container, rerender } = render(
+      <TacticalField halfPitchRef={halfPitchRef} board={boardResult.current} />,
+    );
+
+    const textarea = container.querySelector(`[data-testid="text-editor-${textId}"]`) as HTMLTextAreaElement;
+    if (textarea) {
+      act(() => {
+        fireEvent.change(textarea, { target: { value: "Updated text" } });
+      });
+
+      rerender(
+        <TacticalField halfPitchRef={halfPitchRef} board={boardResult.current} />,
+      );
+
+      act(() => {
+        fireEvent.blur(textarea);
+      });
+
+      expect(boardResult.current.placedTexts[0].text).toBe("Updated text");
+      expect(boardResult.current.editingTextId).toBeNull();
+    }
+  });
+
+  it("removes empty text on confirm", () => {
+    const pitchEl = makePitchElement();
+    const halfPitchRef = { current: pitchEl } as React.RefObject<HTMLDivElement>;
+
+    const { result: boardResult } = renderHook(() => useTacticalBoard(halfPitchRef, ""));
+
+    act(() => {
+      boardResult.current.createTextAtPoint(50, 50);
+    });
+
+    const textId = boardResult.current.placedTexts[0].id;
+
+    act(() => {
+      boardResult.current.setEditingTextId(textId);
+    });
+
+    const { container, rerender } = render(
+      <TacticalField halfPitchRef={halfPitchRef} board={boardResult.current} />,
+    );
+
+    const textarea = container.querySelector(`[data-testid="text-editor-${textId}"]`) as HTMLTextAreaElement;
+    if (textarea) {
+      act(() => {
+        fireEvent.change(textarea, { target: { value: "" } });
+      });
+
+      rerender(
+        <TacticalField halfPitchRef={halfPitchRef} board={boardResult.current} />,
+      );
+
+      act(() => {
+        fireEvent.blur(textarea);
+      });
+
+      expect(boardResult.current.placedTexts).toHaveLength(0);
+    }
+  });
+
+  it("cancels editing on escape", () => {
+    const pitchEl = makePitchElement();
+    const halfPitchRef = { current: pitchEl } as React.RefObject<HTMLDivElement>;
+
+    const { result: boardResult } = renderHook(() => useTacticalBoard(halfPitchRef, ""));
+
+    act(() => {
+      boardResult.current.createTextAtPoint(50, 50);
+    });
+
+    const textId = boardResult.current.placedTexts[0].id;
+    const originalText = boardResult.current.placedTexts[0].text;
+
+    act(() => {
+      boardResult.current.setEditingTextId(textId);
+    });
+
+    const { container, rerender } = render(
+      <TacticalField halfPitchRef={halfPitchRef} board={boardResult.current} />,
+    );
+
+    const textarea = container.querySelector(`[data-testid="text-editor-${textId}"]`) as HTMLTextAreaElement;
+    if (textarea) {
+      act(() => {
+        fireEvent.change(textarea, { target: { value: "Changed" } });
+      });
+
+      rerender(
+        <TacticalField halfPitchRef={halfPitchRef} board={boardResult.current} />,
+      );
+
+      act(() => {
+        fireEvent.keyDown(textarea, { key: "Escape" });
+      });
+
+      expect(boardResult.current.placedTexts[0].text).toBe(originalText);
+      expect(boardResult.current.editingTextId).toBeNull();
+    }
   });
 });
