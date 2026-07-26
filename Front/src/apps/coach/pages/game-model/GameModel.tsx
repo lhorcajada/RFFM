@@ -25,6 +25,7 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import useTeamAndClub from "../../hooks/useTeamAndClub";
+import useTeamDashboardBack from "../../hooks/useTeamDashboardBack";
 import gameModelService from "../../services/gameModelService";
 import seasonService, { type Season } from "../../services/seasonService";
 import type { GameModel as GameModelType, Zone } from "../../types/gameModel";
@@ -61,6 +62,7 @@ export default function GameModel() {
   const navigate = useNavigate();
   const location = useLocation();
   const { team, teamTitleNode } = useTeamAndClub();
+  const goToTeamDashboard = useTeamDashboardBack();
 
   const [availableSeasons, setAvailableSeasons] = useState<string[]>([]);
   const [selectedSeason, setSelectedSeason] = useState<string>("");
@@ -225,7 +227,7 @@ export default function GameModel() {
           <>
             <Button
               startIcon={<ArrowBackIcon />}
-              onClick={() => navigate("/coach/dashboard")}
+              onClick={() => goToTeamDashboard()}
               variant="outlined"
               size="small"
             >

@@ -33,6 +33,11 @@ vi.mock("../../../hooks/useTeamAndClub", () => ({
   })),
 }));
 
+const mockGoToTeamDashboard = vi.fn();
+vi.mock("../../../hooks/useTeamDashboardBack", () => ({
+  default: () => mockGoToTeamDashboard,
+}));
+
 vi.mock("../components/ScenarioAccordion", () => ({
   default: ({ zoneName }: { zoneName: string }) => <div>Escenarios de {zoneName}</div>,
 }));
@@ -165,5 +170,13 @@ describe("GameModel — selector de fase y chips de zona", () => {
 
     const zonaPropiaChip = within(zoneGroup).getByText("Zona propia").closest(".MuiChip-root") as HTMLElement;
     expect(zonaPropiaChip).toHaveClass("MuiChip-filled");
+  });
+
+  it("el botón Volver navega al dashboard del equipo actual, no al dashboard general", async () => {
+    await renderPage();
+
+    await userEvent.click(screen.getByRole("button", { name: /volver/i }));
+
+    expect(mockGoToTeamDashboard).toHaveBeenCalledTimes(1);
   });
 });
