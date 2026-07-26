@@ -1031,10 +1031,18 @@ export function useTacticalBoard(
       e.preventDefault();
       return;
     }
+    const pitch = halfPitchRef.current;
+    if (!pitch) return;
     const rect = e.currentTarget.getBoundingClientRect();
+    const pitchRect = pitch.getBoundingClientRect();
+    const elementCenterX = rect.left + rect.width / 2;
+    const elementCenterY = rect.top + rect.height / 2;
+    // Offset between the grab point and the shape's own center, expressed as
+    // percent of the PITCH (matching movePlacedSpace's raw.x/raw.y units) —
+    // not percent of the shape's own (much smaller) box.
     spaceDragOffsetRef.current = {
-      x: ((e.clientX - rect.left) / rect.width) * 100 - 50,
-      y: ((e.clientY - rect.top) / rect.height) * 100 - 50,
+      x: ((e.clientX - elementCenterX) / pitchRect.width) * 100,
+      y: ((e.clientY - elementCenterY) / pitchRect.height) * 100,
     };
     e.dataTransfer.setData("text/space-instance-id", spaceId);
     e.dataTransfer.effectAllowed = "move";

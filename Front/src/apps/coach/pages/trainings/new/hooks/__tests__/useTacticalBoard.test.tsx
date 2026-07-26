@@ -131,6 +131,63 @@ describe("useTacticalBoard - placeChapaAtClientPoint", () => {
   });
 });
 
+function makeSpaceDragStartEvent(
+  clientX: number,
+  clientY: number,
+  elementRect: Pick<DOMRect, "left" | "top" | "width" | "height">,
+) {
+  return {
+    preventDefault: () => {},
+    clientX,
+    clientY,
+    currentTarget: {
+      getBoundingClientRect: () => ({ ...elementRect, right: 0, bottom: 0, x: 0, y: 0, toJSON: () => ({}) }),
+    },
+    dataTransfer: { setData: () => {}, effectAllowed: "" },
+  } as unknown as React.DragEvent<HTMLElement>;
+}
+
+describe("useTacticalBoard - space drag repositioning", () => {
+  it("re-dragging an already-placed space lands it under the cursor, honoring the grab offset, instead of jumping elsewhere", () => {
+    const pitchEl = makePitchElement(); // 100x100 px == 100x100 percent
+    const halfPitchRef = { current: pitchEl } as React.RefObject<HTMLDivElement>;
+
+    const { result } = renderHook(() => useTacticalBoard(halfPitchRef, ""));
+
+    // 1) Create a space at (50, 50) by dropping a template.
+    act(() => {
+      result.current.handleFieldDrop(
+        makeDropEvent({ "text/space-template-kind": "square" }, 50, 50),
+      );
+    });
+    const spaceId = result.current.placedSpaces[0].id;
+    expect(result.current.placedSpaces[0]).toMatchObject({ x: 50, y: 50 });
+
+    // 2) Grab it 3px off-center (its own rendered box is 10x10px, centered at
+    // (50, 50), so its top-left is at (45, 45); grabbing at (53, 53) is 3px
+    // right/down of its center).
+    act(() => {
+      result.current.handlePlacedSpaceDragStart(
+        makeSpaceDragStartEvent(53, 53, { left: 45, top: 45, width: 10, height: 10 }),
+        spaceId,
+      );
+    });
+
+    // 3) Drop at (70, 70). Since the grab point was 3px off the shape's own
+    // center, the shape's center should land 3px off the drop point too —
+    // i.e. at (67, 67) — not jump to an unrelated location.
+    act(() => {
+      result.current.handleFieldDrop(
+        makeDropEvent({ "text/space-instance-id": spaceId }, 70, 70),
+      );
+    });
+
+    const moved = result.current.placedSpaces.find((s) => s.id === spaceId)!;
+    expect(moved.x).toBeCloseTo(67, 1);
+    expect(moved.y).toBeCloseTo(67, 1);
+  });
+});
+
 describe("useTacticalBoard - texts", () => {
   beforeEach(() => {
     vi.mocked(teamplayerService.getPlayersByTeam).mockReset();

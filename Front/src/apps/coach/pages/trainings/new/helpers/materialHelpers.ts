@@ -4,7 +4,7 @@ import { MATERIAL_OPTIONS } from "../constants";
 export const getMaterialSizePercent = (kind: MaterialKind) => {
   switch (kind) {
     case "balones":
-      return { width: 1.7, height: 2.6 };
+      return { width: 3.368, height: 2.6 };
     case "setas":
       return { width: 2.2, height: 2.8 };
     case "conos":
