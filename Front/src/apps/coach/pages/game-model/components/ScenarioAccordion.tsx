@@ -44,7 +44,6 @@ function SubPrincipleDetailView({ sp, clubId, teamId, scenario, gameMomentName, 
           label: sp.label,
           name: sp.name,
           context: sp.context,
-          tacticalPrinciples: sp.tacticalPrinciples,
           subSubPrincipleApiIds: sp.subSubPrinciples.map((ssp) => ssp.apiId).filter((id): id is string => id != null),
         },
         clubId,
@@ -64,7 +63,6 @@ function SubPrincipleDetailView({ sp, clubId, teamId, scenario, gameMomentName, 
           apiId: sp.apiId ?? null,
           label: sp.label,
           name: sp.name,
-          tacticalPrinciples: sp.tacticalPrinciples,
         },
         teamId,
         clubId,
@@ -105,17 +103,6 @@ function SubPrincipleDetailView({ sp, clubId, teamId, scenario, gameMomentName, 
       </Box>
 
       <Typography className={styles.subPrincipleContext}>{sp.context}</Typography>
-
-      {sp.tacticalPrinciples.length > 0 && (
-        <Box className={styles.principlesRow}>
-          <Typography className={styles.principlesLabel}>Principios tácticos colectivos:</Typography>
-          <Box className={styles.chipRow}>
-            {sp.tacticalPrinciples.map((p) => (
-              <Chip key={p.id} label={p.name} size="small" className={styles.principleChip} />
-            ))}
-          </Box>
-        </Box>
-      )}
 
       {sp.subSubPrinciples.length > 0 && (
         <Box className={styles.subSubPrinciples}>

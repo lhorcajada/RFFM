@@ -111,7 +111,6 @@ namespace RFFM.Api.Infrastructure.Persistence
         public DbSet<SeasonPrepPlayerRating> SeasonPrepPlayerRatings { get; set; }
         public DbSet<SeasonPrepPlayerRatingDetail> SeasonPrepPlayerRatingDetails { get; set; }
         public DbSet<SubPrinciple> SubPrinciples { get; set; }
-        public DbSet<SubPrincipleTacticalPrinciple> SubPrincipleTacticalPrinciples { get; set; }
         public DbSet<SubSubPrinciple> SubSubPrinciples { get; set; }
         public DbSet<EssentialSkill> EssentialSkills { get; set; }
 

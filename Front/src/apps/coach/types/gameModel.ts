@@ -32,7 +32,6 @@ export interface SubPrinciple {
   label: string;
   name: string;
   context: string;
-  tacticalPrinciples: TacticalPrinciple[];
   subSubPrinciples: SubSubPrinciple[];
 }
 

@@ -115,7 +115,6 @@ namespace RFFM.Api.Tests.IntegrationTests
                                 0,
                                 "Subprincipio 1",
                                 "Contexto",
-                                new List<int> { tacticalPrincipleId },
                                 new List<SubSubPrincipleRequest>())
                         })
                 })
@@ -134,13 +133,10 @@ namespace RFFM.Api.Tests.IntegrationTests
                 .SelectMany(gm => gm.Scenarios)
                 .Include(s => s.TacticalPrinciples)
                 .Include(s => s.SubPrinciples)
-                    .ThenInclude(sp => sp.TacticalPrinciples)
                 .SingleAsync();
 
             Assert.Single(persistedScenario.TacticalPrinciples);
             Assert.Equal(tacticalPrincipleId, persistedScenario.TacticalPrinciples.Single().TechnicalGoalId);
-            Assert.Single(persistedScenario.SubPrinciples.Single().TacticalPrinciples);
-            Assert.Equal(tacticalPrincipleId, persistedScenario.SubPrinciples.Single().TacticalPrinciples.Single().TechnicalGoalId);
         }
     }
 }

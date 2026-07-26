@@ -23,10 +23,8 @@ namespace RFFM.Api.Tests.IntegrationTests
     ///
     /// UpdateGameModelHandler.Handle used to replace tactical principles with
     /// `RemoveRange(existing.TacticalPrinciples); existing.TacticalPrinciples.Clear();` followed by
-    /// `Add(new ScenarioTacticalPrinciple(...))` for every requested id (same pattern for
-    /// SubPrincipleTacticalPrinciples in UpsertSubPrinciples). ScenarioTacticalPrinciple and
-    /// SubPrincipleTacticalPrinciple have composite keys (GameScenarioId, TechnicalGoalId) /
-    /// (SubPrincipleId, TechnicalGoalId).
+    /// `Add(new ScenarioTacticalPrinciple(...))` for every requested id. ScenarioTacticalPrinciple
+    /// has a composite key (GameScenarioId, TechnicalGoalId).
     ///
     /// EF Core 9's SaveChanges can merge a Deleted + re-Added entity that share the same key into
     /// a single change, so simply resending the exact same (non-duplicated) id list does NOT
@@ -87,7 +85,6 @@ namespace RFFM.Api.Tests.IntegrationTests
             scenario.TacticalPrinciples.Add(new ScenarioTacticalPrinciple(scenario.Id, technicalGoalId: 1));
 
             var subPrinciple = new SubPrinciple(scenario.Id, "A", "Subprincipio 1", "Contexto", order: 0);
-            subPrinciple.TacticalPrinciples.Add(new SubPrincipleTacticalPrinciple(subPrinciple.Id, technicalGoalId: 1));
             scenario.SubPrinciples.Add(subPrinciple);
 
             model.Scenarios.Add(scenario);
@@ -135,7 +132,6 @@ namespace RFFM.Api.Tests.IntegrationTests
                                 subPrinciple.Order,
                                 subPrinciple.Name,
                                 subPrinciple.Context,
-                                new List<int> { 1 }, // same TacticalPrincipleId resent
                                 new List<SubSubPrincipleRequest>())
                         })
                 })
@@ -154,13 +150,10 @@ namespace RFFM.Api.Tests.IntegrationTests
                 .SelectMany(gm => gm.Scenarios)
                 .Include(s => s.TacticalPrinciples)
                 .Include(s => s.SubPrinciples)
-                    .ThenInclude(sp => sp.TacticalPrinciples)
                 .SingleAsync();
 
             Assert.Single(persistedScenario.TacticalPrinciples);
             Assert.Equal(1, persistedScenario.TacticalPrinciples.Single().TechnicalGoalId);
-            Assert.Single(persistedScenario.SubPrinciples.Single().TacticalPrinciples);
-            Assert.Equal(1, persistedScenario.SubPrinciples.Single().TacticalPrinciples.Single().TechnicalGoalId);
         }
 
         [Fact]

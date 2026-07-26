@@ -31,7 +31,6 @@ function buildScenario(id: number, order: number, subPrincipleCount = 0, apiId?:
       label: String.fromCharCode(65 + i),
       name: `Subprincipio ${String.fromCharCode(65 + i)}`,
       context: "",
-      tacticalPrinciples: [],
       subSubPrinciples: [],
     })),
   };
@@ -128,5 +127,17 @@ describe("ScenarioFormAccordion", () => {
     renderWithDraft([buildScenario(1, 1, 0, "scenario-api-1")]);
     expect(screen.getByText(/subir imagen.*v[ií]deo/i)).toBeInTheDocument();
     expect(screen.queryByText(/guarda el modelo de juego/i)).not.toBeInTheDocument();
+  });
+
+  it("el formulario de escenario muestra principios tácticos colectivos pero el de subprincipio no", async () => {
+    renderWithDraft([buildScenario(1, 1, 1)]);
+
+    // Scenario-level field is present (single scenario auto-selected).
+    expect(screen.getByLabelText("Principios tácticos colectivos")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByText("Subprincipio A"));
+
+    // Only the scenario-level field remains; no duplicate for the subprincipio.
+    expect(screen.getAllByLabelText("Principios tácticos colectivos")).toHaveLength(1);
   });
 });

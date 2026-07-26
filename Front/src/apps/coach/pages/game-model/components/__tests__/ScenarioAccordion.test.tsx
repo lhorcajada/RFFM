@@ -58,7 +58,6 @@ function buildScenario(
       label: String.fromCharCode(65 + i),
       name: `Subprincipio ${String.fromCharCode(65 + i)}`,
       context: `Contexto subprincipio ${String.fromCharCode(65 + i)}`,
-      tacticalPrinciples: [],
       subSubPrinciples: [],
     })),
   };
@@ -126,6 +125,33 @@ describe("ScenarioAccordion", () => {
     expect(screen.getByAltText(/situación: escenario nombre 1/i)).toBeInTheDocument();
   });
 
+  it("muestra los principios tácticos del escenario pero no dentro del subprincipio", async () => {
+    const scenario: Scenario = {
+      id: 1,
+      order: 1,
+      name: "Escenario X",
+      context: "Contexto",
+      tacticalPrinciples: [{ id: 1, name: "Coberturas y Permutas" }],
+      mediaUrl: null,
+      mediaType: null,
+      subPrinciples: [
+        {
+          id: 101,
+          order: 1,
+          label: "A",
+          name: "Subprincipio A",
+          context: "Contexto SP",
+          subSubPrinciples: [],
+        },
+      ],
+    };
+    renderAccordion([scenario]);
+
+    // Single subprincipio auto-selects its detail view alongside the scenario detail.
+    const principlesLabels = screen.getAllByText("Principios tácticos colectivos:");
+    expect(principlesLabels).toHaveLength(1);
+  });
+
   it("no renderiza ningún elemento de media si no hay mediaUrl", () => {
     renderAccordion([buildScenario(1, 1, 0)]);
     expect(document.querySelector("video")).not.toBeInTheDocument();
@@ -160,7 +186,6 @@ describe("ScenarioAccordion", () => {
             label: "A",
             name: "Subprincipio A",
             context: "Contexto SP",
-            tacticalPrinciples: [],
             subSubPrinciples: [],
           },
         ],

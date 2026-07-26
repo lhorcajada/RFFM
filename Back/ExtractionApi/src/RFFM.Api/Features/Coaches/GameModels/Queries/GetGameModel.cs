@@ -79,7 +79,6 @@ namespace RFFM.Api.Features.Coaches.GameModels.Queries
             int Order,
             string Name,
             string Context,
-            IEnumerable<TacticalPrincipleDto> TacticalPrinciples,
             IEnumerable<SubSubPrincipleResponse> SubSubPrinciples);
 
         public record SubSubPrincipleResponse(
@@ -119,9 +118,6 @@ namespace RFFM.Api.Features.Coaches.GameModels.Queries
                         .ThenInclude(s => s.GameMoment)
                     .Include(gm => gm.Scenarios)
                         .ThenInclude(s => s.GameZone)
-                    .Include(gm => gm.Scenarios)
-                        .ThenInclude(s => s.SubPrinciples)
-                            .ThenInclude(sp => sp.TacticalPrinciples)
                     .Include(gm => gm.Scenarios)
                         .ThenInclude(s => s.SubPrinciples)
                             .ThenInclude(sp => sp.SubSubPrinciples)
@@ -178,7 +174,6 @@ namespace RFFM.Api.Features.Coaches.GameModels.Queries
                                     sp.Order,
                                     sp.Name,
                                     sp.Context,
-                                    sp.TacticalPrinciples.Select(tp => new TacticalPrincipleDto(tp.TechnicalGoalId, tpLookup.GetValueOrDefault(tp.TechnicalGoalId, ""))),
                                     sp.SubSubPrinciples
                                         .OrderBy(ssp => ssp.Order)
                                         .ThenBy(ssp => ssp.Name)

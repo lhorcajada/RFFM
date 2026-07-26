@@ -15,7 +15,6 @@ import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import trainingService from "../../services/trainingService";
 import type { Exercise, CreateSessionRequest, ExerciseSection, SessionExerciseEntry } from "../../types/training";
-import type { TacticalPrinciple } from "../../types/gameModel";
 import styles from "./CreateSessionFromSubPrinciple.module.css";
 
 interface SubPrincipleInfo {
@@ -23,7 +22,6 @@ interface SubPrincipleInfo {
   label: string;
   name: string;
   context: string;
-  tacticalPrinciples: TacticalPrinciple[];
   subSubPrincipleApiIds: string[];
 }
 
@@ -206,21 +204,6 @@ export default function CreateSessionFromSubPrinciple() {
               <Typography className={styles.contextText}>
                 {subPrinciple.context}
               </Typography>
-            )}
-            {subPrinciple.tacticalPrinciples.length > 0 && (
-              <Box className={styles.principlesRow}>
-                <Typography className={styles.principlesLabel}>
-                  Principios tácticos:
-                </Typography>
-                {subPrinciple.tacticalPrinciples.map((p) => (
-                  <Chip
-                    key={p.id}
-                    label={p.name}
-                    size="small"
-                    className={styles.principleChip}
-                  />
-                ))}
-              </Box>
             )}
           </Box>
 

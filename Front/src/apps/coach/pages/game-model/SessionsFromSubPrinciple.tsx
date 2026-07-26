@@ -36,7 +36,6 @@ import ContentLayout from "../../../../shared/components/ui/ContentLayout/Conten
 import { client } from "../../../../core/api/client";
 import trainingService from "../../services/trainingService";
 import type { TrainingSession, SessionExerciseItem, Exercise, ExerciseSection } from "../../types/training";
-import type { TacticalPrinciple } from "../../types/gameModel";
 import { TYPE_LABELS } from "../trainings/exerciseTypeLabels";
 import styles from "./SessionsFromSubPrinciple.module.css";
 
@@ -49,7 +48,6 @@ interface SubPrincipleInfo {
   apiId: string | null;
   label: string;
   name: string;
-  tacticalPrinciples: TacticalPrinciple[];
 }
 
 interface ScenarioInfo {
@@ -218,7 +216,6 @@ interface PrintContext {
   scenarioOrder: number;
   subPrincipleLabel: string;
   subPrincipleName: string;
-  tacticalPrinciples: TacticalPrinciple[];
 }
 
 function buildPrintHtml(sess: TrainingSession, exercises: SessionExerciseItem[], ctx: PrintContext) {
@@ -281,12 +278,6 @@ function buildPrintHtml(sess: TrainingSession, exercises: SessionExerciseItem[],
     sess.location ?? null,
   ].filter(Boolean).join(" · ");
 
-  const principlesHtml = ctx.tacticalPrinciples.length > 0
-    ? `<div style="display:flex;flex-direction:column;gap:4px;margin-top:6px;">${ctx.tacticalPrinciples.map(p =>
-        `<span style="background:#eaf4fb;color:#1a6fa3;border:1px solid #b3d9f0;border-radius:4px;font-size:10px;padding:2px 7px;display:inline-block;">${p.name}</span>`
-      ).join("")}</div>`
-    : "";
-
   return `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -314,9 +305,6 @@ function buildPrintHtml(sess: TrainingSession, exercises: SessionExerciseItem[],
         <div style="font-size:10px;color:#555;margin-bottom:8px;">Escenario ${ctx.scenarioOrder} — ${ctx.scenarioName}</div>
         <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#aaa;margin-bottom:4px;">Subprincipio</div>
         <div style="font-size:11px;font-weight:700;color:#1a6fa3;line-height:1.3;margin-bottom:8px;">${ctx.subPrincipleLabel}: ${ctx.subPrincipleName}</div>
-        ${ctx.tacticalPrinciples.length > 0 ? `
-        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#aaa;margin-bottom:4px;">Principios tácticos</div>
-        ${principlesHtml}` : ""}
       </div>
     </div>
     <!-- Exercises -->
@@ -812,21 +800,6 @@ export default function SessionsFromSubPrinciple() {
             <Typography className={styles.subPrincipleTitle}>
               Subprincipio {subPrinciple.label}: {subPrinciple.name}
             </Typography>
-            {subPrinciple.tacticalPrinciples.length > 0 && (
-              <Box className={styles.principlesRow}>
-                <Typography className={styles.principlesLabel}>
-                  Principios tácticos:
-                </Typography>
-                {subPrinciple.tacticalPrinciples.map((p) => (
-                  <Chip
-                    key={p.id}
-                    label={p.name}
-                    size="small"
-                    className={styles.principleChip}
-                  />
-                ))}
-              </Box>
-            )}
           </Box>
 
           {/* ── Toolbar ──────────────────────────────────── */}
@@ -866,7 +839,6 @@ export default function SessionsFromSubPrinciple() {
                   scenarioOrder: state.scenario.order,
                   subPrincipleLabel: state.subPrinciple.label,
                   subPrincipleName: state.subPrinciple.name,
-                  tacticalPrinciples: state.subPrinciple.tacticalPrinciples,
                 }}
               />
             ))

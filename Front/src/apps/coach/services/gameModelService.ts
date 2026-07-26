@@ -38,7 +38,6 @@ interface ApiSubPrinciple {
   label: string;
   name: string;
   context: string;
-  tacticalPrinciples: ApiTacticalPrinciple[];
   subSubPrinciples: ApiSubSubPrinciple[];
 }
 
@@ -102,7 +101,6 @@ function mapApiToGameModel(
         label: sp.label,
         name: sp.name,
         context: sp.context,
-        tacticalPrinciples: sp.tacticalPrinciples,
         subSubPrinciples: sp.subSubPrinciples.map((ssp) => ({
           id: nextKey(),
           apiId: ssp.id,
@@ -157,7 +155,6 @@ function mapModelToRequest(model: GameModel) {
             order: sp.order,
             name: sp.name,
             context: sp.context,
-            tacticalPrincipleIds: sp.tacticalPrinciples.map((tp) => tp.id),
             subSubPrinciples: sp.subSubPrinciples.map((ssp) => ({
               id: ssp.apiId,
               order: ssp.order,

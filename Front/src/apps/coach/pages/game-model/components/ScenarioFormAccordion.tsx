@@ -124,7 +124,7 @@ interface SubPrincipleDetailFormProps {
 }
 
 function SubPrincipleDetailForm({ mi, zi, si, pi, sp }: SubPrincipleDetailFormProps) {
-  const { dispatch, availablePrinciples } = useGameModelDraft();
+  const { dispatch } = useGameModelDraft();
   const [selectedQi, setSelectedQi] = useState<number | null>(sp.subSubPrinciples.length === 1 ? 0 : null);
   const [draggingSspIdx, setDraggingSspIdx] = useState<number | null>(null);
   const [dragOverSspIdx, setDragOverSspIdx] = useState<number | null>(null);
@@ -154,24 +154,6 @@ function SubPrincipleDetailForm({ mi, zi, si, pi, sp }: SubPrincipleDetailFormPr
         size="small"
         className={styles.contextField}
         label="Contexto"
-      />
-      <Autocomplete
-        multiple
-        options={availablePrinciples}
-        getOptionLabel={(o: TacticalPrinciple) => o.name}
-        isOptionEqualToValue={(a, b) => a.id === b.id}
-        value={sp.tacticalPrinciples}
-        onChange={(_, value) => dispatch({ type: "UPD_SP", mi, zi, si, pi, changes: { tacticalPrinciples: value } })}
-        renderInput={(params) => (
-          <TextField {...params} label="Principios tácticos colectivos" size="small" className={styles.principlesField} />
-        )}
-        renderTags={(value, getTagProps) =>
-          value.map((option, index) => {
-            const { key, ...tagProps } = getTagProps({ index });
-            return <Chip key={key} label={option.name} size="small" {...tagProps} className={styles.principleChip} />;
-          })
-        }
-        className={styles.principlesAutocomplete}
       />
 
       <Box className={styles.nestedSection}>

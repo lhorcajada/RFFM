@@ -71,9 +71,6 @@ namespace RFFM.Api.Features.Coaches.GameModels.Commands
                     .ThenInclude(s => s.TacticalPrinciples)
                 .Include(gm => gm.Scenarios)
                     .ThenInclude(s => s.SubPrinciples)
-                        .ThenInclude(sp => sp.TacticalPrinciples)
-                .Include(gm => gm.Scenarios)
-                    .ThenInclude(s => s.SubPrinciples)
                         .ThenInclude(sp => sp.SubSubPrinciples)
                             .ThenInclude(ssp => ssp.EssentialSkills)
                 .FirstOrDefaultAsync(gm => gm.Id == request.Id, cancellationToken);
@@ -167,28 +164,11 @@ namespace RFFM.Api.Features.Coaches.GameModels.Commands
                     existing.UpdateContext(spr.Context);
                     existing.UpdateOrder(spr.Order);
 
-                    // Diff tactical principles instead of clear + re-add (see the equivalent
-                    // scenario-level comment above for the composite-key tracking rationale).
-                    var requestedSpTpIds = new HashSet<int>(spr.TacticalPrincipleIds);
-                    var spTpToRemove = existing.TacticalPrinciples
-                        .Where(tp => !requestedSpTpIds.Contains(tp.TechnicalGoalId))
-                        .ToList();
-                    _db.SubPrincipleTacticalPrinciples.RemoveRange(spTpToRemove);
-                    foreach (var tp in spTpToRemove)
-                        existing.TacticalPrinciples.Remove(tp);
-
-                    var existingSpTpIds = existing.TacticalPrinciples.Select(tp => tp.TechnicalGoalId).ToHashSet();
-                    foreach (var tpId in requestedSpTpIds)
-                        if (!existingSpTpIds.Contains(tpId))
-                            existing.TacticalPrinciples.Add(new SubPrincipleTacticalPrinciple(existing.Id, tpId));
-
                     UpsertSubSubPrinciples(existing, spr.SubSubPrinciples);
                 }
                 else
                 {
                     var newSp = new SubPrinciple(scenario.Id, spr.Label, spr.Name, spr.Context, spr.Order);
-                    foreach (var tpId in spr.TacticalPrincipleIds)
-                        newSp.TacticalPrinciples.Add(new SubPrincipleTacticalPrinciple(newSp.Id, tpId));
                     BuildSubSubPrinciples(newSp, spr.SubSubPrinciples);
                     scenario.SubPrinciples.Add(newSp);
                     matchedSpIds.Add(newSp.Id);
@@ -283,8 +263,6 @@ namespace RFFM.Api.Features.Coaches.GameModels.Commands
             foreach (var spr in requests)
             {
                 var sp = new SubPrinciple(scenario.Id, spr.Label, spr.Name, spr.Context, spr.Order);
-                foreach (var tpId in spr.TacticalPrincipleIds)
-                    sp.TacticalPrinciples.Add(new SubPrincipleTacticalPrinciple(sp.Id, tpId));
                 BuildSubSubPrinciples(sp, spr.SubSubPrinciples);
                 scenario.SubPrinciples.Add(sp);
             }

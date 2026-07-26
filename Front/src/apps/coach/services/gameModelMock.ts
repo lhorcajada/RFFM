@@ -29,9 +29,6 @@ export const mockGameModel: GameModel = {
                   name: "Evitar que el rival profundice por banda",
                   context:
                     "El rival progresa por los carriles laterales buscando el desborde para centrar o recortar hacia dentro. Nuestro equipo está en bloque bajo.",
-                  tacticalPrinciples: [
-                    { id: 1, name: "Coberturas y Permutas" },
-                  ],
                   subSubPrinciples: [
                     {
                       id: 1,
@@ -84,10 +81,6 @@ export const mockGameModel: GameModel = {
                   name: "Cerrar el carril central ante centros",
                   context:
                     "Cuando el rival llega a la línea de fondo o a la zona de córner y prepara un centro al área.",
-                  tacticalPrinciples: [
-                    { id: 2, name: "Marcaje al hombre en área" },
-                    { id: 3, name: "Segunda jugada" },
-                  ],
                   subSubPrinciples: [
                     {
                       id: 3,
@@ -132,7 +125,6 @@ export const mockGameModel: GameModel = {
                   name: "Cerrar la línea de pase interior",
                   context:
                     "El mediocentro defensor debe orientar su posición para tapar el pase entre líneas antes de que el rival lo intente.",
-                  tacticalPrinciples: [{ id: 5, name: "Compacidad" }],
                   subSubPrinciples: [
                     {
                       id: 4,
@@ -182,9 +174,6 @@ export const mockGameModel: GameModel = {
                   name: "Generar superioridad numérica construyendo desde atrás",
                   context:
                     "Nuestros centrales y portero forman un triángulo para superar la primera línea de presión rival.",
-                  tacticalPrinciples: [
-                    { id: 6, name: "Circulación de balón bajo presión" },
-                  ],
                   subSubPrinciples: [
                     {
                       id: 5,
@@ -251,9 +240,6 @@ export const mockGameModel: GameModel = {
                   name: "Uso del lateral para dar amplitud y atraer presión",
                   context:
                     "Los laterales se proyectan muy abiertos para estirar la defensa rival y crear espacios interiores para los centrocampistas.",
-                  tacticalPrinciples: [
-                    { id: 8, name: "Amplitud y profundidad" },
-                  ],
                   subSubPrinciples: [
                     {
                       id: 6,
@@ -352,7 +338,6 @@ export const mockGameModel_2024_2025: GameModel = {
                   name: "Mantener el bloque entre líneas compacto",
                   context:
                     "Las líneas defensiva y media deben mantenerse juntas, sin dejar espacio entre ellas para evitar el pase al pie del mediapunta rival.",
-                  tacticalPrinciples: [{ id: 1, name: "Compacidad" }],
                   subSubPrinciples: [
                     {
                       id: 1,
