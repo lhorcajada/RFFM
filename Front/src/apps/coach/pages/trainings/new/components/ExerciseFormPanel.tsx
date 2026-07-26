@@ -29,6 +29,10 @@ interface ExerciseFormPanelProps {
   subPrincipleName: string | null;
   scenarioId: string | null;
   scenarioName: string | null;
+  /** When the current subprincipio has more than one sub-subprincipio, lists
+   * them all so the coach can pick which one to reassign the exercise to
+   * (instead of the single, ambiguous `subSubPrincipleId` context id). */
+  subSubPrincipleOptions?: { apiId: string; name: string }[];
   form: ExerciseFormState;
 }
 
@@ -40,6 +44,7 @@ export default function ExerciseFormPanel({
   subPrincipleName,
   scenarioId,
   scenarioName,
+  subSubPrincipleOptions = [],
   form,
 }: ExerciseFormPanelProps) {
   const {
@@ -185,25 +190,51 @@ export default function ExerciseFormPanel({
           />
         </Box>
 
-        {(Number(!!scenarioId) + Number(!!subPrincipleId) + Number(!!subSubPrincipleId)) >= 2 && (
-          <FormControl size="small" className={styles.field}>
-            <InputLabel id="exercise-level-label">Vinculado a</InputLabel>
-            <Select
-              labelId="exercise-level-label"
-              value={
-                formData.scenarioId ? "scenario" : formData.subPrincipleId ? "subPrinciple" : "subSubPrinciple"
-              }
-              label="Vinculado a"
-              onChange={(e: SelectChangeEvent) =>
-                setLevel(e.target.value as "subSubPrinciple" | "subPrinciple" | "scenario")
-              }
-            >
-              {scenarioId && <MenuItem value="scenario">Escenario: {scenarioName}</MenuItem>}
-              {subPrincipleId && <MenuItem value="subPrinciple">Subprincipio: {subPrincipleName}</MenuItem>}
-              {subSubPrincipleId && <MenuItem value="subSubPrinciple">Habilidad: {subSubPrincipleName}</MenuItem>}
-            </Select>
-          </FormControl>
-        )}
+        {(() => {
+          const sspOptions =
+            subSubPrincipleOptions.length > 0
+              ? subSubPrincipleOptions
+              : subSubPrincipleId
+              ? [{ apiId: subSubPrincipleId, name: subSubPrincipleName ?? "" }]
+              : [];
+
+          if ((Number(!!scenarioId) + Number(!!subPrincipleId) + Number(sspOptions.length > 0)) < 2) return null;
+
+          return (
+            <FormControl size="small" className={styles.field}>
+              <InputLabel id="exercise-level-label">Vinculado a</InputLabel>
+              <Select
+                labelId="exercise-level-label"
+                value={
+                  formData.scenarioId
+                    ? "scenario"
+                    : formData.subPrincipleId
+                    ? "subPrinciple"
+                    : formData.subSubPrincipleId
+                    ? `ssp:${formData.subSubPrincipleId}`
+                    : ""
+                }
+                label="Vinculado a"
+                onChange={(e: SelectChangeEvent) => {
+                  const value = e.target.value;
+                  if (value.startsWith("ssp:")) {
+                    setLevel("subSubPrinciple", value.slice(4));
+                  } else {
+                    setLevel(value as "subPrinciple" | "scenario");
+                  }
+                }}
+              >
+                {scenarioId && <MenuItem value="scenario">Escenario: {scenarioName}</MenuItem>}
+                {subPrincipleId && <MenuItem value="subPrinciple">Subprincipio: {subPrincipleName}</MenuItem>}
+                {sspOptions.map((opt) => (
+                  <MenuItem key={opt.apiId} value={`ssp:${opt.apiId}`}>
+                    Habilidad: {opt.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          );
+        })()}
 
         {isPhysical && (
           <Box className={styles.row}>

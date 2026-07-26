@@ -130,6 +130,9 @@ function SubPrincipleDetailView({ sp, clubId, teamId, scenario, gameMomentName, 
           onCountChange={setExerciseCount}
           parentScenarioApiId={scenario.apiId}
           parentScenarioName={scenario.name}
+          siblingSubSubPrinciples={sp.subSubPrinciples
+            .filter((ssp): ssp is typeof ssp & { apiId: string } => !!ssp.apiId)
+            .map((ssp) => ({ apiId: ssp.apiId, name: ssp.name }))}
         />
       )}
     </Box>

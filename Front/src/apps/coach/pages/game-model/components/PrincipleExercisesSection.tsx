@@ -47,6 +47,10 @@ interface Props {
    * form offer reassignment to the parent scenario. */
   parentScenarioApiId?: string | null;
   parentScenarioName?: string | null;
+  /** Only relevant when levelKind is "subPrinciple": lets the create/edit
+   * form offer reassignment to any of this subprincipio's own
+   * sub-subprincipios, when there's more than one candidate. */
+  siblingSubSubPrinciples?: { apiId: string; name: string }[];
 }
 
 export default function PrincipleExercisesSection({
@@ -61,6 +65,7 @@ export default function PrincipleExercisesSection({
   parentSubPrincipleName,
   parentScenarioApiId,
   parentScenarioName,
+  siblingSubSubPrinciples,
 }: Props) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -137,7 +142,12 @@ export default function PrincipleExercisesSection({
 
   const navigateToExerciseForm = (createParams: URLSearchParams) => {
     navigate(`/coach/trainings/new-exercise?${createParams.toString()}`, {
-      state: { returnTo: `${location.pathname}${location.search}` },
+      state: {
+        returnTo: `${location.pathname}${location.search}`,
+        ...(levelKind === "subPrinciple" && siblingSubSubPrinciples && siblingSubSubPrinciples.length > 0
+          ? { subSubPrincipleOptions: siblingSubSubPrinciples }
+          : {}),
+      },
     });
   };
 

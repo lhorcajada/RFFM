@@ -173,6 +173,50 @@ describe("useExerciseForm — reasignación de nivel (3 vías)", () => {
   });
 });
 
+describe("useExerciseForm — setLevel con id explícito (varios sub-subprincipios candidatos)", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("setLevel('subSubPrinciple', targetId) fija ESE id, no el subSubPrincipleId de contexto (que puede ni existir)", async () => {
+    const { result } = renderHook(() =>
+      useExerciseForm({
+        clubId: "club-1", subSubPrincipleId: null, subPrincipleId: "sp-1", scenarioId: null,
+        navigate, returnTo: "/coach/trainings",
+      })
+    );
+
+    act(() => result.current.setLevel("subSubPrinciple", "ssp-other"));
+
+    await waitFor(() => {
+      expect(result.current.form.subSubPrincipleId).toBe("ssp-other");
+      expect(result.current.form.subPrincipleId).toBeNull();
+      expect(result.current.form.scenarioId).toBeNull();
+    });
+  });
+
+  it("cambiar a un sub-subprincipio distinto del que ya estaba seleccionado limpia essentialSkillIds y refresca las habilidades de ESE sub-subprincipio", async () => {
+    const gameModelService = (await import("../../../../../services/gameModelService")).default;
+    const { result } = renderHook(() =>
+      useExerciseForm({
+        clubId: "club-1", subSubPrincipleId: "ssp-1", subPrincipleId: null, scenarioId: null,
+        navigate, returnTo: "/coach/trainings",
+      })
+    );
+
+    await waitFor(() => expect(gameModelService.getSubSubPrincipleSkills).toHaveBeenCalledWith("ssp-1"));
+
+    act(() => result.current.toggleSkill("skill-1"));
+    await waitFor(() => expect(result.current.form.essentialSkillIds).toEqual(["skill-1"]));
+
+    act(() => result.current.setLevel("subSubPrinciple", "ssp-2"));
+
+    await waitFor(() => {
+      expect(result.current.form.subSubPrincipleId).toBe("ssp-2");
+      expect(result.current.form.essentialSkillIds).toEqual([]);
+      expect(gameModelService.getSubSubPrincipleSkills).toHaveBeenCalledWith("ssp-2");
+    });
+  });
+});
+
 describe("useExerciseForm — multi-tipo", () => {
   beforeEach(() => vi.clearAllMocks());
 

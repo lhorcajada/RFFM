@@ -6,6 +6,10 @@ export interface SkillOption {
 
 export interface NavState {
   returnTo?: string;
+  /** Sub-subprincipios of the subprincipio the coach is editing an exercise
+   * from, so the "Vinculado a" selector can offer each one as a target
+   * (instead of a single, ambiguous id) when there's more than one. */
+  subSubPrincipleOptions?: { apiId: string; name: string }[];
 }
 
 export interface ChapaPosition {

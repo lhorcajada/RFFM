@@ -169,6 +169,35 @@ describe("ExerciseFormPanel — selector de nivel", () => {
     await userEvent.click(within(listbox).getByText(/Escenario: Escenario Z/));
     expect(setLevel).toHaveBeenCalledWith("scenario");
   });
+
+  it("con varios sub-subprincipios candidatos (subSubPrincipleOptions), ofrece una opción por cada uno y llama a setLevel con el apiId concreto elegido", async () => {
+    const setLevel = vi.fn();
+    render(
+      <ExerciseFormPanel
+        panelVisible
+        subSubPrincipleId={null}
+        subSubPrincipleName={null}
+        subPrincipleId="sp-1"
+        subPrincipleName="Subprincipio Y"
+        scenarioId="scenario-1"
+        scenarioName="Escenario Z"
+        subSubPrincipleOptions={[
+          { apiId: "ssp-a", name: "Habilidad A" },
+          { apiId: "ssp-b", name: "Habilidad B" },
+        ]}
+        form={buildFormState({ setLevel })}
+      />
+    );
+
+    const select = screen.getByRole("combobox", { name: /vinculado a/i });
+    await userEvent.click(select);
+    const listbox = screen.getByRole("listbox");
+    expect(within(listbox).getByText(/Habilidad: Habilidad A/)).toBeInTheDocument();
+    expect(within(listbox).getByText(/Habilidad: Habilidad B/)).toBeInTheDocument();
+
+    await userEvent.click(within(listbox).getByText(/Habilidad: Habilidad B/));
+    expect(setLevel).toHaveBeenCalledWith("subSubPrinciple", "ssp-b");
+  });
 });
 
 describe("ExerciseFormPanel — selector de tipo multi-selección", () => {

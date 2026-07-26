@@ -164,14 +164,33 @@ export function useExerciseForm({
   const setField = (field: keyof CreateExerciseRequest, value: unknown) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
-  const setLevel = (kind: "subSubPrinciple" | "subPrinciple" | "scenario") => {
-    setForm((prev) => ({
-      ...prev,
-      subSubPrincipleId: kind === "subSubPrinciple" ? (subSubPrincipleId ?? prev.subSubPrincipleId ?? null) : null,
-      subPrincipleId: kind === "subPrinciple" ? (subPrincipleId ?? prev.subPrincipleId ?? null) : null,
-      scenarioId: kind === "scenario" ? (scenarioId ?? prev.scenarioId ?? null) : null,
-      essentialSkillIds: kind === "subPrinciple" || kind === "scenario" ? [] : prev.essentialSkillIds,
-    }));
+  /**
+   * `targetId` lets a caller pick a SPECIFIC sub-subprincipio when there are
+   * several candidates to choose from (e.g. reassigning from a subprincipio
+   * with multiple sub-subprincipios) — it always wins over the single
+   * `subSubPrincipleId` context prop, which only ever names one candidate.
+   */
+  const setLevel = (kind: "subSubPrinciple" | "subPrinciple" | "scenario", targetId?: string) => {
+    if (kind === "subSubPrinciple") {
+      const nextSubSubPrincipleId = targetId ?? subSubPrincipleId ?? form.subSubPrincipleId ?? null;
+      if (nextSubSubPrincipleId !== form.subSubPrincipleId) {
+        setResolvedSubSubPrincipleId(nextSubSubPrincipleId);
+      }
+    }
+
+    setForm((prev) => {
+      const nextSubSubPrincipleId =
+        kind === "subSubPrinciple" ? (targetId ?? subSubPrincipleId ?? prev.subSubPrincipleId ?? null) : null;
+      const changedSubSubPrinciple = nextSubSubPrincipleId !== prev.subSubPrincipleId;
+
+      return {
+        ...prev,
+        subSubPrincipleId: nextSubSubPrincipleId,
+        subPrincipleId: kind === "subPrinciple" ? (subPrincipleId ?? prev.subPrincipleId ?? null) : null,
+        scenarioId: kind === "scenario" ? (scenarioId ?? prev.scenarioId ?? null) : null,
+        essentialSkillIds: kind !== "subSubPrinciple" || changedSubSubPrinciple ? [] : prev.essentialSkillIds,
+      };
+    });
   };
 
   const toggleSkill = (skillId: string) => {

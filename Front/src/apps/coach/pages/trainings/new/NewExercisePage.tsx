@@ -113,6 +113,7 @@ export default function NewExercisePage() {
             subPrincipleName={subPrincipleName}
             scenarioId={scenarioId}
             scenarioName={scenarioName}
+            subSubPrincipleOptions={navState?.subSubPrincipleOptions}
             form={exerciseForm}
           />
         </Box>

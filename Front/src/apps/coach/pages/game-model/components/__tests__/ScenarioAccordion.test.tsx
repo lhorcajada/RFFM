@@ -22,12 +22,14 @@ vi.mock("../PrincipleExercisesSection", () => ({
     onCountChange,
     parentScenarioApiId,
     parentScenarioName,
+    siblingSubSubPrinciples,
   }: {
     levelKind: string;
     levelApiId: string;
     onCountChange?: (count: number) => void;
     parentScenarioApiId?: string | null;
     parentScenarioName?: string | null;
+    siblingSubSubPrinciples?: { apiId: string; name: string }[];
   }) => {
     useEffect(() => {
       onCountChange?.(3);
@@ -39,6 +41,7 @@ vi.mock("../PrincipleExercisesSection", () => ({
         data-level-api-id={levelApiId}
         data-parent-scenario-api-id={parentScenarioApiId ?? ""}
         data-parent-scenario-name={parentScenarioName ?? ""}
+        data-sibling-ssp={JSON.stringify(siblingSubSubPrinciples ?? [])}
       />
     );
   },
@@ -228,6 +231,43 @@ describe("ScenarioAccordion", () => {
       expect(section).toBeDefined();
       expect(section).toHaveAttribute("data-parent-scenario-api-id", "scenario-api-parent");
       expect(section).toHaveAttribute("data-parent-scenario-name", "Escenario X");
+    });
+
+    it("pasa la lista de sub-subprincipios del propio subprincipio, para ofrecerlos como destino cuando hay varios", async () => {
+      renderAccordion([
+        {
+          id: 1,
+          apiId: "scenario-api-parent",
+          order: 1,
+          name: "Escenario X",
+          context: "Contexto",
+          tacticalPrinciples: [],
+          mediaUrl: null,
+          mediaType: null,
+          subPrinciples: [
+            {
+              id: 101,
+              apiId: "sp-api-1",
+              order: 1,
+              label: "A",
+              name: "Subprincipio A",
+              context: "Contexto SP",
+              subSubPrinciples: [
+                { id: 1001, apiId: "ssp-a", order: 1, name: "Habilidad A", action: "", essentialSkills: [] },
+                { id: 1002, apiId: "ssp-b", order: 2, name: "Habilidad B", action: "", essentialSkills: [] },
+              ],
+            },
+          ],
+        },
+      ]);
+
+      const sections = await screen.findAllByTestId("principle-exercises-section");
+      const section = sections.find((el) => el.getAttribute("data-level-kind") === "subPrinciple");
+      expect(section).toBeDefined();
+      expect(JSON.parse(section!.getAttribute("data-sibling-ssp") ?? "[]")).toEqual([
+        { apiId: "ssp-a", name: "Habilidad A" },
+        { apiId: "ssp-b", name: "Habilidad B" },
+      ]);
     });
 
     it("renderiza PrincipleExercisesSection con levelKind=subPrinciple y el apiId del subprincipio", async () => {
