@@ -21,7 +21,7 @@ describe("useExerciseForm — nivel inicial al crear (bug: no debe fijar ambos I
   it("al crear desde un sub-subprincipio, el formulario inicial solo fija subSubPrincipleId, no subPrincipleId", async () => {
     const { result } = renderHook(() =>
       useExerciseForm({
-        clubId: "club-1", subSubPrincipleId: "ssp-1", subPrincipleId: "sp-1",
+        clubId: "club-1", subSubPrincipleId: "ssp-1", subPrincipleId: "sp-1", scenarioId: null,
         navigate, returnTo: "/coach/trainings",
       })
     );
@@ -35,7 +35,7 @@ describe("useExerciseForm — nivel inicial al crear (bug: no debe fijar ambos I
   it("al editar/duplicar un ejercicio ya vinculado a un sub-subprincipio, no reintroduce el subPrincipleId del padre", async () => {
     const { result } = renderHook(() =>
       useExerciseForm({
-        clubId: "club-1", subSubPrincipleId: "ssp-1", subPrincipleId: "sp-1",
+        clubId: "club-1", subSubPrincipleId: "ssp-1", subPrincipleId: "sp-1", scenarioId: null,
         navigate, returnTo: "/coach/trainings",
       })
     );
@@ -56,13 +56,13 @@ describe("useExerciseForm — nivel inicial al crear (bug: no debe fijar ambos I
   });
 });
 
-describe("useExerciseForm — reasignación de nivel", () => {
+describe("useExerciseForm — reasignación de nivel (3 vías)", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("setLevel('subPrinciple') limpia subSubPrincipleId y fija subPrincipleId", async () => {
+  it("setLevel('subPrinciple') limpia subSubPrincipleId y scenarioId, fija subPrincipleId", async () => {
     const { result } = renderHook(() =>
       useExerciseForm({
-        clubId: "club-1", subSubPrincipleId: "ssp-1", subPrincipleId: "sp-1",
+        clubId: "club-1", subSubPrincipleId: "ssp-1", subPrincipleId: "sp-1", scenarioId: null,
         navigate, returnTo: "/coach/trainings",
       })
     );
@@ -72,13 +72,14 @@ describe("useExerciseForm — reasignación de nivel", () => {
     await waitFor(() => {
       expect(result.current.form.subPrincipleId).toBe("sp-1");
       expect(result.current.form.subSubPrincipleId).toBeNull();
+      expect(result.current.form.scenarioId).toBeNull();
     });
   });
 
-  it("setLevel('subSubPrinciple') limpia subPrincipleId y fija subSubPrincipleId", async () => {
+  it("setLevel('subSubPrinciple') limpia subPrincipleId y scenarioId, fija subSubPrincipleId", async () => {
     const { result } = renderHook(() =>
       useExerciseForm({
-        clubId: "club-1", subSubPrincipleId: "ssp-1", subPrincipleId: "sp-1",
+        clubId: "club-1", subSubPrincipleId: "ssp-1", subPrincipleId: "sp-1", scenarioId: null,
         navigate, returnTo: "/coach/trainings",
       })
     );
@@ -89,13 +90,31 @@ describe("useExerciseForm — reasignación de nivel", () => {
     await waitFor(() => {
       expect(result.current.form.subSubPrincipleId).toBe("ssp-1");
       expect(result.current.form.subPrincipleId).toBeNull();
+      expect(result.current.form.scenarioId).toBeNull();
     });
   });
 
-  it("setLevel('subPrinciple') vacía essentialSkillIds porque no aplican a ese nivel", async () => {
+  it("setLevel('scenario') limpia subSubPrincipleId y subPrincipleId, fija scenarioId", async () => {
     const { result } = renderHook(() =>
       useExerciseForm({
-        clubId: "club-1", subSubPrincipleId: "ssp-1", subPrincipleId: "sp-1",
+        clubId: "club-1", subSubPrincipleId: "ssp-1", subPrincipleId: "sp-1", scenarioId: "scenario-1",
+        navigate, returnTo: "/coach/trainings",
+      })
+    );
+
+    act(() => result.current.setLevel("scenario"));
+
+    await waitFor(() => {
+      expect(result.current.form.scenarioId).toBe("scenario-1");
+      expect(result.current.form.subPrincipleId).toBeNull();
+      expect(result.current.form.subSubPrincipleId).toBeNull();
+    });
+  });
+
+  it("setLevel('subPrinciple') y setLevel('scenario') limpian essentialSkillIds", async () => {
+    const { result } = renderHook(() =>
+      useExerciseForm({
+        clubId: "club-1", subSubPrincipleId: "ssp-1", subPrincipleId: "sp-1", scenarioId: "scenario-1",
         navigate, returnTo: "/coach/trainings",
       })
     );
@@ -103,9 +122,54 @@ describe("useExerciseForm — reasignación de nivel", () => {
     act(() => result.current.toggleSkill("skill-1"));
     await waitFor(() => expect(result.current.form.essentialSkillIds).toEqual(["skill-1"]));
 
-    act(() => result.current.setLevel("subPrinciple"));
+    act(() => result.current.setLevel("scenario"));
 
     await waitFor(() => expect(result.current.form.essentialSkillIds).toEqual([]));
+  });
+
+  it("al inicializar con scenarioId, resolveLevelIds prioriza subSubPrincipleId si está presente", async () => {
+    const { result } = renderHook(() =>
+      useExerciseForm({
+        clubId: "club-1", subSubPrincipleId: "ssp-1", subPrincipleId: null, scenarioId: "scenario-1",
+        navigate, returnTo: "/coach/trainings",
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.form.subSubPrincipleId).toBe("ssp-1");
+      expect(result.current.form.subPrincipleId).toBeNull();
+      expect(result.current.form.scenarioId).toBeNull();
+    });
+  });
+
+  it("al inicializar sin subSubPrincipleId pero con subPrincipleId, prioriza subPrincipleId sobre scenarioId", async () => {
+    const { result } = renderHook(() =>
+      useExerciseForm({
+        clubId: "club-1", subSubPrincipleId: null, subPrincipleId: "sp-1", scenarioId: "scenario-1",
+        navigate, returnTo: "/coach/trainings",
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.form.subSubPrincipleId).toBeNull();
+      expect(result.current.form.subPrincipleId).toBe("sp-1");
+      expect(result.current.form.scenarioId).toBeNull();
+    });
+  });
+
+  it("al inicializar solo con scenarioId, fija scenarioId", async () => {
+    const { result } = renderHook(() =>
+      useExerciseForm({
+        clubId: "club-1", subSubPrincipleId: null, subPrincipleId: null, scenarioId: "scenario-1",
+        navigate, returnTo: "/coach/trainings",
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.form.subSubPrincipleId).toBeNull();
+      expect(result.current.form.subPrincipleId).toBeNull();
+      expect(result.current.form.scenarioId).toBe("scenario-1");
+    });
   });
 });
 

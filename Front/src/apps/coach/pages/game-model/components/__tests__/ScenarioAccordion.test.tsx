@@ -211,4 +211,50 @@ describe("ScenarioAccordion", () => {
       expect(screen.queryByTestId("principle-exercises-section")).not.toBeInTheDocument();
     });
   });
+
+  describe("ejercicios a nivel de escenario", () => {
+    function scenarioWithApiId(apiId: string): Scenario {
+      return {
+        id: 1,
+        apiId,
+        order: 1,
+        name: "Escenario X",
+        context: "Contexto",
+        tacticalPrinciples: [],
+        mediaUrl: null,
+        mediaType: null,
+        subPrinciples: [
+          {
+            id: 101,
+            order: 1,
+            label: "A",
+            name: "Subprincipio A",
+            context: "Contexto SP",
+            subSubPrinciples: [],
+          },
+        ],
+      };
+    }
+
+    it("renderiza PrincipleExercisesSection con levelKind=scenario y el apiId del escenario", async () => {
+      renderAccordion([scenarioWithApiId("scenario-api-1")]);
+
+      const section = await screen.findByTestId("principle-exercises-section");
+      expect(section).toHaveAttribute("data-level-kind", "scenario");
+      expect(section).toHaveAttribute("data-level-api-id", "scenario-api-1");
+    });
+
+    it("muestra un chip con el conteo de ejercicios en la cabecera del escenario", async () => {
+      renderAccordion([scenarioWithApiId("scenario-api-1")]);
+
+      expect(await screen.findByText("3 ej.")).toBeInTheDocument();
+    });
+
+    it("no renderiza la sección de ejercicios cuando el escenario no tiene apiId", () => {
+      renderAccordion([buildScenario(1, 1, 1)]);
+      const sections = screen.queryAllByTestId("principle-exercises-section");
+      // Should only have section from subprincipio, not from scenario
+      expect(sections.length).toBeLessThanOrEqual(1);
+    });
+  });
 });

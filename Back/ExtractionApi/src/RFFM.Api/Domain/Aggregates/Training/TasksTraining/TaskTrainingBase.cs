@@ -22,8 +22,11 @@ namespace RFFM.Api.Domain.Aggregates.Training.TasksTraining
         /// <summary>Optional: the sub-sub-principle this exercise targets.</summary>
         public string? SubSubPrincipleId { get; set; }
 
-        /// <summary>Optional: the sub-principle this exercise targets (mutually exclusive with SubSubPrincipleId).</summary>
+        /// <summary>Optional: the sub-principle this exercise targets (mutually exclusive with SubSubPrincipleId/ScenarioId).</summary>
         public string? SubPrincipleId { get; set; }
+
+        /// <summary>Optional: the scenario this exercise targets (mutually exclusive with SubPrincipleId/SubSubPrincipleId).</summary>
+        public string? ScenarioId { get; set; }
 
         /// <summary>Section of the training session: Calentamiento, Principal, VueltaALaCalma.</summary>
         public string Section { get; set; } = "Principal";
@@ -40,6 +43,7 @@ namespace RFFM.Api.Domain.Aggregates.Training.TasksTraining
         public Club Club { get; set; } = null!;
         public SubSubPrinciple? SubSubPrinciple { get; set; }
         public SubPrinciple? SubPrinciple { get; set; }
+        public GameScenario? Scenario { get; set; }
         public List<MaterialsEnum> Material { get; set; } = new();
         public List<TaskTrainingSkill> Skills { get; set; } = new();
         public List<ExerciseCondition> Conditions { get; set; } = new();

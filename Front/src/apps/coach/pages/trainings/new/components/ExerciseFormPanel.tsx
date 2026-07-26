@@ -27,6 +27,8 @@ interface ExerciseFormPanelProps {
   subSubPrincipleName: string | null;
   subPrincipleId: string | null;
   subPrincipleName: string | null;
+  scenarioId: string | null;
+  scenarioName: string | null;
   form: ExerciseFormState;
 }
 
@@ -36,6 +38,8 @@ export default function ExerciseFormPanel({
   subSubPrincipleName,
   subPrincipleId,
   subPrincipleName,
+  scenarioId,
+  scenarioName,
   form,
 }: ExerciseFormPanelProps) {
   const {
@@ -181,19 +185,22 @@ export default function ExerciseFormPanel({
           />
         </Box>
 
-        {subSubPrincipleId && subPrincipleId && (
+        {(Number(!!scenarioId) + Number(!!subPrincipleId) + Number(!!subSubPrincipleId)) >= 2 && (
           <FormControl size="small" className={styles.field}>
             <InputLabel id="exercise-level-label">Vinculado a</InputLabel>
             <Select
               labelId="exercise-level-label"
-              value={formData.subPrincipleId ? "subPrinciple" : "subSubPrinciple"}
+              value={
+                formData.scenarioId ? "scenario" : formData.subPrincipleId ? "subPrinciple" : "subSubPrinciple"
+              }
               label="Vinculado a"
               onChange={(e: SelectChangeEvent) =>
-                setLevel(e.target.value as "subSubPrinciple" | "subPrinciple")
+                setLevel(e.target.value as "subSubPrinciple" | "subPrinciple" | "scenario")
               }
             >
-              <MenuItem value="subSubPrinciple">Habilidad: {subSubPrincipleName}</MenuItem>
-              <MenuItem value="subPrinciple">Subprincipio: {subPrincipleName}</MenuItem>
+              {scenarioId && <MenuItem value="scenario">Escenario: {scenarioName}</MenuItem>}
+              {subPrincipleId && <MenuItem value="subPrinciple">Subprincipio: {subPrincipleName}</MenuItem>}
+              {subSubPrincipleId && <MenuItem value="subSubPrinciple">Habilidad: {subSubPrincipleName}</MenuItem>}
             </Select>
           </FormControl>
         )}

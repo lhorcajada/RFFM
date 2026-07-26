@@ -14,11 +14,12 @@ const trainingService = {
 
   async getExercises(
     clubId: string,
-    opts?: { subSubPrincipleId?: string | null; subPrincipleId?: string | null }
+    opts?: { subSubPrincipleId?: string | null; subPrincipleId?: string | null; scenarioId?: string | null }
   ): Promise<Exercise[]> {
     const params: Record<string, string> = { clubId };
     if (opts?.subSubPrincipleId) params.subSubPrincipleId = opts.subSubPrincipleId;
     if (opts?.subPrincipleId) params.subPrincipleId = opts.subPrincipleId;
+    if (opts?.scenarioId) params.scenarioId = opts.scenarioId;
     const res = await client.get<Exercise[]>("/api/trainings/exercises", { params });
     return res.data;
   },

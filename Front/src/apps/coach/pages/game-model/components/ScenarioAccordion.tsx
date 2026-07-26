@@ -144,6 +144,7 @@ interface ScenarioDetailProps {
 
 function ScenarioDetailView({ scenario, clubId, teamId, gameMomentName, zoneName }: ScenarioDetailProps) {
   const [selectedPi, setSelectedPi] = useState<number | null>(scenario.subPrinciples.length === 1 ? 0 : null);
+  const [exerciseCount, setExerciseCount] = useState(0);
 
   useEffect(() => {
     if (selectedPi !== null && selectedPi >= scenario.subPrinciples.length) setSelectedPi(null);
@@ -151,7 +152,17 @@ function ScenarioDetailView({ scenario, clubId, teamId, gameMomentName, zoneName
 
   return (
     <Box className={styles.scenarioDetailView}>
-      <Typography className={styles.context}>{scenario.context}</Typography>
+      <Box className={styles.scenarioDetailHeader}>
+        <Typography className={styles.context}>{scenario.context}</Typography>
+        {exerciseCount > 0 && (
+          <Chip
+            icon={<FitnessCenterIcon style={{ fontSize: 12 }} />}
+            label={`${exerciseCount} ej.`}
+            size="small"
+            className={styles.exerciseChip}
+          />
+        )}
+      </Box>
 
       {scenario.mediaUrl && (
         <Box className={styles.mediaViewer}>
@@ -215,6 +226,18 @@ function ScenarioDetailView({ scenario, clubId, teamId, gameMomentName, zoneName
         />
       ) : (
         <Typography className={styles.emptyZoneText}>No hay subprincipios definidos.</Typography>
+      )}
+
+      {clubId && scenario.apiId && (
+        <PrincipleExercisesSection
+          clubId={clubId}
+          teamId={teamId}
+          levelKind="scenario"
+          levelApiId={scenario.apiId}
+          levelName={scenario.name}
+          active
+          onCountChange={setExerciseCount}
+        />
       )}
     </Box>
   );

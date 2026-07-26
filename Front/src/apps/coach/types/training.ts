@@ -32,6 +32,8 @@ export interface Exercise {
   subSubPrincipleName?: string | null;
   subPrincipleId?: string | null;
   subPrincipleName?: string | null;
+  scenarioId?: string | null;
+  scenarioName?: string | null;
   skills: SkillCoverage[];
   urlImage?: string | null;
   boardStateJson?: string | null;
@@ -56,6 +58,7 @@ export interface CreateExerciseRequest {
   fieldSpace: string;
   subSubPrincipleId?: string | null;
   subPrincipleId?: string | null;
+  scenarioId?: string | null;
   essentialSkillIds: string[];
   boardStateJson?: string | null;
   // Physical

@@ -56,6 +56,7 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         string FieldSpace,
         string? SubSubPrincipleId,
         string? SubPrincipleId,
+        string? ScenarioId,
         string Section,
         List<string> EssentialSkillIds,
         string? BoardStateJson,
@@ -100,6 +101,7 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
                 ClubId = request.ClubId,
                 SubSubPrincipleId = request.SubSubPrincipleId,
                 SubPrincipleId = request.SubPrincipleId,
+                ScenarioId = request.ScenarioId,
                 Section = request.Section,
                 BoardStateJson = request.BoardStateJson,
                 Series = request.Series ?? 0,
@@ -141,8 +143,9 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
                 .WithMessage("Section must be Calentamiento, Principal or VueltaALaCalma.");
             RuleFor(x => x.DurationTotal).GreaterThan(0);
             RuleFor(x => x)
-                .Must(x => string.IsNullOrEmpty(x.SubSubPrincipleId) != string.IsNullOrEmpty(x.SubPrincipleId))
-                .WithMessage("Exactly one of SubSubPrincipleId or SubPrincipleId must be provided.");
+                .Must(x => new[] { x.ScenarioId, x.SubPrincipleId, x.SubSubPrincipleId }
+                    .Count(id => !string.IsNullOrEmpty(id)) == 1)
+                .WithMessage("Exactly one of ScenarioId, SubPrincipleId or SubSubPrincipleId must be provided.");
         }
     }
 }

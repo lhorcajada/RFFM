@@ -49,6 +49,8 @@ describe("ExerciseFormPanel — selector de nivel", () => {
         subSubPrincipleName="Habilidad X"
         subPrincipleId={null}
         subPrincipleName={null}
+        scenarioId={null}
+        scenarioName={null}
         form={buildFormState()}
       />
     );
@@ -64,6 +66,8 @@ describe("ExerciseFormPanel — selector de nivel", () => {
         subSubPrincipleName={null}
         subPrincipleId="sp-1"
         subPrincipleName="Subprincipio Y"
+        scenarioId={null}
+        scenarioName={null}
         form={buildFormState()}
       />
     );
@@ -71,7 +75,24 @@ describe("ExerciseFormPanel — selector de nivel", () => {
     expect(screen.queryByRole("combobox", { name: /vinculado a/i })).not.toBeInTheDocument();
   });
 
-  it("muestra el selector 'Vinculado a' cuando hay ambos contextos y llama a setLevel al cambiar", async () => {
+  it("no muestra el selector 'Vinculado a' cuando solo hay contexto de escenario", () => {
+    render(
+      <ExerciseFormPanel
+        panelVisible
+        subSubPrincipleId={null}
+        subSubPrincipleName={null}
+        subPrincipleId={null}
+        subPrincipleName={null}
+        scenarioId="scenario-1"
+        scenarioName="Escenario Z"
+        form={buildFormState()}
+      />
+    );
+
+    expect(screen.queryByRole("combobox", { name: /vinculado a/i })).not.toBeInTheDocument();
+  });
+
+  it("muestra el selector 'Vinculado a' cuando hay dos contextos (sub-subprincipio + subprincipio)", async () => {
     const setLevel = vi.fn();
     render(
       <ExerciseFormPanel
@@ -80,6 +101,8 @@ describe("ExerciseFormPanel — selector de nivel", () => {
         subSubPrincipleName="Habilidad X"
         subPrincipleId="sp-1"
         subPrincipleName="Subprincipio Y"
+        scenarioId={null}
+        scenarioName={null}
         form={buildFormState({ setLevel })}
       />
     );
@@ -93,6 +116,59 @@ describe("ExerciseFormPanel — selector de nivel", () => {
 
     expect(setLevel).toHaveBeenCalledWith("subPrinciple");
   });
+
+  it("muestra el selector 'Vinculado a' cuando hay dos contextos (escenario + subprincipio)", async () => {
+    const setLevel = vi.fn();
+    render(
+      <ExerciseFormPanel
+        panelVisible
+        subSubPrincipleId={null}
+        subSubPrincipleName={null}
+        subPrincipleId="sp-1"
+        subPrincipleName="Subprincipio Y"
+        scenarioId="scenario-1"
+        scenarioName="Escenario Z"
+        form={buildFormState({ setLevel })}
+      />
+    );
+
+    const select = screen.getByRole("combobox", { name: /vinculado a/i });
+    expect(select).toBeInTheDocument();
+
+    await userEvent.click(select);
+    const listbox = screen.getByRole("listbox");
+    await userEvent.click(within(listbox).getByText(/Escenario: Escenario Z/));
+
+    expect(setLevel).toHaveBeenCalledWith("scenario");
+  });
+
+  it("muestra el selector 'Vinculado a' cuando hay tres contextos con sus tres MenuItems", async () => {
+    const setLevel = vi.fn();
+    render(
+      <ExerciseFormPanel
+        panelVisible
+        subSubPrincipleId="ssp-1"
+        subSubPrincipleName="Habilidad X"
+        subPrincipleId="sp-1"
+        subPrincipleName="Subprincipio Y"
+        scenarioId="scenario-1"
+        scenarioName="Escenario Z"
+        form={buildFormState({ setLevel })}
+      />
+    );
+
+    const select = screen.getByRole("combobox", { name: /vinculado a/i });
+    expect(select).toBeInTheDocument();
+
+    await userEvent.click(select);
+    const listbox = screen.getByRole("listbox");
+    expect(within(listbox).getByText(/Escenario: Escenario Z/)).toBeInTheDocument();
+    expect(within(listbox).getByText(/Subprincipio: Subprincipio Y/)).toBeInTheDocument();
+    expect(within(listbox).getByText(/Habilidad: Habilidad X/)).toBeInTheDocument();
+
+    await userEvent.click(within(listbox).getByText(/Escenario: Escenario Z/));
+    expect(setLevel).toHaveBeenCalledWith("scenario");
+  });
 });
 
 describe("ExerciseFormPanel — selector de tipo multi-selección", () => {
@@ -104,6 +180,8 @@ describe("ExerciseFormPanel — selector de tipo multi-selección", () => {
         subSubPrincipleName={null}
         subPrincipleId={null}
         subPrincipleName={null}
+        scenarioId={null}
+        scenarioName={null}
         form={buildFormState({ form: { ...emptyExercise, types: ["Physical", "Game"] } })}
       />
     );

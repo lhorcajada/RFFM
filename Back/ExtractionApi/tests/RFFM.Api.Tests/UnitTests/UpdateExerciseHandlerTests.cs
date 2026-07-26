@@ -5,7 +5,11 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using RFFM.Api.Domain.Aggregates.GameModels;
 using RFFM.Api.Domain.Aggregates.UserClubs;
+using RFFM.Api.Domain.Entities.Competitions;
+using RFFM.Api.Domain.Entities.Seasons;
+using RFFM.Api.Domain.Models;
 using RFFM.Api.Features.Coaches.Trainings.Exercises;
 using RFFM.Api.Infrastructure.Persistence;
 using RFFM.Api.Infrastructure.Persistence.Seed;
@@ -24,7 +28,7 @@ namespace RFFM.Api.Tests.UnitTests
             _fixture = fixture;
         }
 
-        private static async Task<(string UserId, string ClubId)> SeedClubAsync(AppDbContext db)
+        private static async Task<(string UserId, string ClubId, Club Club)> SeedClubAsync(AppDbContext db)
         {
             await ExerciseTypesSeeder.SeedAsync(db);
 
@@ -36,14 +40,48 @@ namespace RFFM.Api.Tests.UnitTests
             db.UserClubs.Add(new UserClub(userId, club.Id, Membership.Coach.Id));
             await db.SaveChangesAsync();
 
-            return (userId, club.Id);
+            return (userId, club.Id, club);
         }
 
-        private static CreateExerciseCommand CreateCommand(string clubId, string userId, List<string> types) => new(
+        private static async Task<string> SeedScenarioAsync(AppDbContext db, Club club)
+        {
+            var (scenarioId, _) = await SeedScenarioWithSubPrincipleAsync(db, club);
+            return scenarioId;
+        }
+
+        private static async Task<(string ScenarioId, string SubPrincipleId)> SeedScenarioWithSubPrincipleAsync(AppDbContext db, Club club)
+        {
+            var season = Season.Create($"Season {Guid.NewGuid():N}", DateTime.UtcNow, DateTime.UtcNow.AddMonths(9), isActive: true, club: club);
+            db.Seasons.Add(season);
+            await db.SaveChangesAsync();
+
+            var team = new Team(new TeamModelBase
+            {
+                Name = "UpdateExercise Test Team",
+                CategoryId = Category.NationalCategory.Id,
+                ClubId = club.Id,
+                SeasonId = season.Id
+            });
+            db.Teams.Add(team);
+            await db.SaveChangesAsync();
+
+            var model = new GameModel(team.Id, "Modelo de prueba", "2025-2026");
+            var scenario = new GameScenario(model.Id, gameMomentId: 1, gameZoneId: 1, order: 0, "Escenario 1", "Contexto");
+            var subPrinciple = new SubPrinciple(scenario.Id, "A", "Subprincipio 1", "Contexto", order: 0);
+            scenario.SubPrinciples.Add(subPrinciple);
+            model.Scenarios.Add(scenario);
+            db.GameModels.Add(model);
+            await db.SaveChangesAsync();
+
+            return (scenario.Id, subPrinciple.Id);
+        }
+
+        private static CreateExerciseCommand CreateCommand(string clubId, string userId, List<string> types, string? scenarioId = null) => new(
             clubId, "Ejercicio de prueba", "Descripción", types,
             10, 8, 0, "Media cancha",
             SubSubPrincipleId: null,
             SubPrincipleId: null,
+            ScenarioId: scenarioId,
             Section: "Principal",
             EssentialSkillIds: new List<string>(),
             BoardStateJson: null,
@@ -51,11 +89,12 @@ namespace RFFM.Api.Tests.UnitTests
             TouchesNumber: 5, WildCards: 2)
         { UserId = userId };
 
-        private static UpdateExerciseCommand UpdateCommand(string exerciseId, string userId, List<string> types) => new(
+        private static UpdateExerciseCommand UpdateCommand(string exerciseId, string userId, List<string> types, string? scenarioId = null) => new(
             "Ejercicio actualizado", "Descripción actualizada", types,
             12, 10, 1, "Cancha completa",
             SubSubPrincipleId: null,
             SubPrincipleId: null,
+            ScenarioId: scenarioId,
             Section: "Principal",
             EssentialSkillIds: new List<string>(),
             BoardStateJson: null,
@@ -67,7 +106,7 @@ namespace RFFM.Api.Tests.UnitTests
         public async Task Handle_ReplacesTypeSet_AddsAndRemoves()
         {
             await using var seedDb = _fixture.CreateDbContext();
-            var (userId, clubId) = await SeedClubAsync(seedDb);
+            var (userId, clubId, _) = await SeedClubAsync(seedDb);
 
             await using var createDb = _fixture.CreateDbContext();
             var createHandler = new CreateExerciseHandler(createDb);
@@ -97,7 +136,7 @@ namespace RFFM.Api.Tests.UnitTests
         public async Task Handle_WithoutTouchingSeries_KeepsExistingValue()
         {
             await using var seedDb = _fixture.CreateDbContext();
-            var (userId, clubId) = await SeedClubAsync(seedDb);
+            var (userId, clubId, _) = await SeedClubAsync(seedDb);
 
             await using var createDb = _fixture.CreateDbContext();
             var createHandler = new CreateExerciseHandler(createDb);
@@ -118,6 +157,80 @@ namespace RFFM.Api.Tests.UnitTests
             Assert.Equal(3, exercise.Series);
             Assert.Equal(30, exercise.DurationSeries);
             Assert.Equal(15, exercise.RestSeries);
+        }
+
+        [Fact]
+        public async Task Handle_ReassignFromSubPrincipleToScenario_ClearsOldLinkAndSetsScenario()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (userId, clubId, club) = await SeedClubAsync(seedDb);
+            var (scenarioId, subPrincipleId) = await SeedScenarioWithSubPrincipleAsync(seedDb, club);
+
+            await using var createDb = _fixture.CreateDbContext();
+            var createHandler = new CreateExerciseHandler(createDb);
+            var exerciseId = await createHandler.Handle(
+                CreateCommand(clubId, userId, new List<string> { "Physical" }) with { SubPrincipleId = subPrincipleId },
+                CancellationToken.None);
+
+            await using var updateDb = _fixture.CreateDbContext();
+            var updateHandler = new UpdateExerciseHandler(updateDb);
+            await updateHandler.Handle(
+                UpdateCommand(exerciseId, userId, new List<string> { "Physical" }, scenarioId: scenarioId),
+                CancellationToken.None);
+
+            await using var verifyDb = _fixture.CreateDbContext();
+            var exercise = await verifyDb.TaskTrainingBases.SingleAsync(e => e.Id == exerciseId);
+            Assert.Equal(scenarioId, exercise.ScenarioId);
+            Assert.Null(exercise.SubPrincipleId);
+            Assert.Null(exercise.SubSubPrincipleId);
+        }
+
+        [Fact]
+        public async Task Validator_AcceptsScenarioIdOnly()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (userId, clubId, _) = await SeedClubAsync(seedDb);
+
+            var command = UpdateCommand("exercise-id", userId, new List<string> { "Physical" }, scenarioId: "fake-scenario");
+            var validator = new UpdateExerciseValidator();
+
+            var result = await validator.ValidateAsync(command);
+
+            Assert.True(result.IsValid);
+        }
+
+        [Fact]
+        public async Task Validator_RejectsNoLevelId()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (userId, clubId, _) = await SeedClubAsync(seedDb);
+
+            // UpdateCommand default has all three level ids null.
+            var command = UpdateCommand("exercise-id", userId, new List<string> { "Physical" });
+            var validator = new UpdateExerciseValidator();
+
+            var result = await validator.ValidateAsync(command);
+
+            Assert.False(result.IsValid);
+        }
+
+        [Fact]
+        public async Task Validator_RejectsAllThreeLevelIdsTogether()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (userId, clubId, _) = await SeedClubAsync(seedDb);
+
+            var command = UpdateCommand("exercise-id", userId, new List<string> { "Physical" }) with
+            {
+                ScenarioId = "fake-scenario",
+                SubPrincipleId = "fake-sub-principle",
+                SubSubPrincipleId = "fake-sub-sub-principle"
+            };
+            var validator = new UpdateExerciseValidator();
+
+            var result = await validator.ValidateAsync(command);
+
+            Assert.False(result.IsValid);
         }
     }
 }

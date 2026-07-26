@@ -260,6 +260,13 @@
   flex-wrap: wrap;
 }
 
+.scenarioDetailHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 /* ── Responsive: stack header actions and enforce touch targets below md (900px) ── */
 @media (max-width: 899.95px) {
   .spDetailHeader {

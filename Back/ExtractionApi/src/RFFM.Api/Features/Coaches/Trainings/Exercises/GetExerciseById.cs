@@ -59,6 +59,7 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
                     .ThenInclude(t => t.ExerciseType)
                 .Include(tb => tb.SubSubPrinciple)
                 .Include(tb => tb.SubPrinciple)
+                .Include(tb => tb.Scenario)
                 .Include(tb => tb.Conditions)
                 .FirstOrDefaultAsync(tb => tb.Id == request.ExerciseId, ct);
 
@@ -85,6 +86,8 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
                 exercise.SubSubPrinciple?.Name,
                 exercise.SubPrincipleId,
                 exercise.SubPrinciple?.Name,
+                exercise.ScenarioId,
+                exercise.Scenario?.Name,
                 exercise.Skills.Select(s => new SkillCoverageDto(s.EssentialSkillId, s.EssentialSkill.Name)),
                 exercise.UrlImage,
                 exercise.BoardStateJson,

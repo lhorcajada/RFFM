@@ -15,25 +15,26 @@ import { emptyExercise } from "../constants";
 import type { SkillOption } from "../types";
 
 /**
- * SubSubPrincipleId and SubPrincipleId are mutually exclusive (a task links to exactly
- * one level). Callers may pass both a "current" candidate pair (e.g. from an existing
- * exercise) and a "fallback" pair (the entry-point ids from the URL, used only to know
- * which parent to offer as a reassignment target). Only the most specific id (sub-sub-
- * principle over sub-principle) is kept; the other is always forced to null so the two
- * levels never end up populated at once.
+ * ScenarioId, SubPrincipleId and SubSubPrincipleId are mutually exclusive (a task links to exactly
+ * one level). Callers may pass multiple candidate ids (e.g. from an existing exercise or fallback
+ * from URL). Only the most specific id wins with priority: SubSubPrincipleId > SubPrincipleId > ScenarioId.
+ * The others are forced to null so only one level is ever populated at once.
  */
 function resolveLevelIds(
+  scenarioId: string | null | undefined,
   subSubPrincipleId: string | null | undefined,
   subPrincipleId: string | null | undefined,
-): { subSubPrincipleId: string | null; subPrincipleId: string | null } {
-  if (subSubPrincipleId) return { subSubPrincipleId, subPrincipleId: null };
-  return { subSubPrincipleId: null, subPrincipleId: subPrincipleId ?? null };
+): { scenarioId: string | null; subSubPrincipleId: string | null; subPrincipleId: string | null } {
+  if (subSubPrincipleId) return { scenarioId: null, subSubPrincipleId, subPrincipleId: null };
+  if (subPrincipleId) return { scenarioId: null, subSubPrincipleId: null, subPrincipleId };
+  return { scenarioId: scenarioId ?? null, subSubPrincipleId: null, subPrincipleId: null };
 }
 
 interface UseExerciseFormParams {
   clubId: string;
   subSubPrincipleId: string | null;
   subPrincipleId: string | null;
+  scenarioId: string | null;
   navigate: NavigateFunction;
   returnTo: string;
   getBoardStateJson?: () => string;
@@ -43,6 +44,7 @@ export function useExerciseForm({
   clubId,
   subSubPrincipleId,
   subPrincipleId,
+  scenarioId,
   navigate,
   returnTo,
   getBoardStateJson,
@@ -51,7 +53,7 @@ export function useExerciseForm({
   const [form, setForm] = useState<CreateExerciseRequest>({
     ...emptyExercise,
     clubId,
-    ...resolveLevelIds(subSubPrincipleId, subPrincipleId),
+    ...resolveLevelIds(scenarioId, subSubPrincipleId, subPrincipleId),
   });
   const [skills, setSkills] = useState<SkillOption[]>([]);
   const [loadingSkills, setLoadingSkills] = useState(false);
@@ -84,6 +86,7 @@ export function useExerciseForm({
       goalPeekersNumber: exercise.goalPeekersNumber,
       fieldSpace: exercise.fieldSpace,
       ...resolveLevelIds(
+        exercise.scenarioId ?? scenarioId,
         exercise.subSubPrincipleId ?? subSubPrincipleId,
         exercise.subPrincipleId ?? subPrincipleId,
       ),
@@ -139,8 +142,8 @@ export function useExerciseForm({
 
   useEffect(() => {
     setResolvedSubSubPrincipleId(subSubPrincipleId);
-    setForm({ ...emptyExercise, clubId, ...resolveLevelIds(subSubPrincipleId, subPrincipleId) });
-  }, [clubId, subSubPrincipleId, subPrincipleId]);
+    setForm({ ...emptyExercise, clubId, ...resolveLevelIds(scenarioId, subSubPrincipleId, subPrincipleId) });
+  }, [clubId, subSubPrincipleId, subPrincipleId, scenarioId]);
 
   useEffect(() => {
     if (!resolvedSubSubPrincipleId) {
@@ -161,12 +164,13 @@ export function useExerciseForm({
   const setField = (field: keyof CreateExerciseRequest, value: unknown) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
-  const setLevel = (kind: "subSubPrinciple" | "subPrinciple") => {
+  const setLevel = (kind: "subSubPrinciple" | "subPrinciple" | "scenario") => {
     setForm((prev) => ({
       ...prev,
       subSubPrincipleId: kind === "subSubPrinciple" ? (subSubPrincipleId ?? prev.subSubPrincipleId ?? null) : null,
       subPrincipleId: kind === "subPrinciple" ? (subPrincipleId ?? prev.subPrincipleId ?? null) : null,
-      essentialSkillIds: kind === "subPrinciple" ? [] : prev.essentialSkillIds,
+      scenarioId: kind === "scenario" ? (scenarioId ?? prev.scenarioId ?? null) : null,
+      essentialSkillIds: kind === "subPrinciple" || kind === "scenario" ? [] : prev.essentialSkillIds,
     }));
   };
 

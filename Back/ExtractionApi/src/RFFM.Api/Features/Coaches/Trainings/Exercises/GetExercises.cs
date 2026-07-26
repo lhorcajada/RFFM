@@ -23,13 +23,13 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         public void AddRoutes(IEndpointRouteBuilder app)
         {
             app.MapGet("/api/trainings/exercises",
-                    async (string clubId, string? subSubPrincipleId, string? subPrincipleId, HttpContext httpContext, IMediator mediator, CancellationToken ct) =>
+                    async (string clubId, string? subSubPrincipleId, string? subPrincipleId, string? scenarioId, HttpContext httpContext, IMediator mediator, CancellationToken ct) =>
                     {
                         var userId = httpContext.User.Claims
                             .FirstOrDefault(c => c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value;
                         if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
 
-                        var result = await mediator.Send(new GetExercisesQuery(clubId, subSubPrincipleId, subPrincipleId, userId), ct);
+                        var result = await mediator.Send(new GetExercisesQuery(clubId, subSubPrincipleId, subPrincipleId, scenarioId, userId), ct);
                         return Results.Ok(result);
                     })
                 .WithName(nameof(GetExercises))
@@ -39,7 +39,7 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         }
     }
 
-    public record GetExercisesQuery(string ClubId, string? SubSubPrincipleId, string? SubPrincipleId, string UserId) : IRequest<IEnumerable<ExerciseListItem>>, IRequireFeaturePermission
+    public record GetExercisesQuery(string ClubId, string? SubSubPrincipleId, string? SubPrincipleId, string? ScenarioId, string UserId) : IRequest<IEnumerable<ExerciseListItem>>, IRequireFeaturePermission
     {
         public string FeatureRoute => CoachFeatureRoutes.Trainings;
         public string RequiredPermission => "Read";
@@ -65,6 +65,7 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
                     .ThenInclude(t => t.ExerciseType)
                 .Include(tb => tb.SubSubPrinciple)
                 .Include(tb => tb.SubPrinciple)
+                .Include(tb => tb.Scenario)
                 .Include(tb => tb.Conditions)
                 .Where(tb => tb.ClubId == request.ClubId);
 
@@ -73,6 +74,9 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
 
             if (!string.IsNullOrEmpty(request.SubPrincipleId))
                 query = query.Where(tb => tb.SubPrincipleId == request.SubPrincipleId);
+
+            if (!string.IsNullOrEmpty(request.ScenarioId))
+                query = query.Where(tb => tb.ScenarioId == request.ScenarioId);
 
             var entities = await query
                 .OrderBy(tb => tb.Name)
@@ -92,6 +96,8 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
                 tb.SubSubPrinciple?.Name,
                 tb.SubPrincipleId,
                 tb.SubPrinciple?.Name,
+                tb.ScenarioId,
+                tb.Scenario?.Name,
                 tb.Skills.Select(s => new SkillCoverageDto(s.EssentialSkillId, s.EssentialSkill.Name)),
                 tb.UrlImage,
                 tb.BoardStateJson,
@@ -114,6 +120,8 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         string? SubSubPrincipleName,
         string? SubPrincipleId,
         string? SubPrincipleName,
+        string? ScenarioId,
+        string? ScenarioName,
         IEnumerable<SkillCoverageDto> Skills,
         string? UrlImage,
         string? BoardStateJson,

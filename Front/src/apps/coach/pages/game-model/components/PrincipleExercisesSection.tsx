@@ -29,7 +29,7 @@ function isVideo(urlImage: string) {
   return /\.(mp4|webm|ogg)$/i.test(urlImage);
 }
 
-export type PrincipleLevelKind = "subSubPrinciple" | "subPrinciple";
+export type PrincipleLevelKind = "subSubPrinciple" | "subPrinciple" | "scenario";
 
 interface Props {
   clubId: string;
@@ -72,7 +72,9 @@ export default function PrincipleExercisesSection({
     const opts =
       levelKind === "subSubPrinciple"
         ? { subSubPrincipleId: levelApiId }
-        : { subPrincipleId: levelApiId };
+        : levelKind === "subPrinciple"
+        ? { subPrincipleId: levelApiId }
+        : { scenarioId: levelApiId };
     trainingService
       .getExercises(clubId, opts)
       .then(setExercises)
@@ -113,9 +115,12 @@ export default function PrincipleExercisesSection({
         createParams.set("subPrincipleId", parentSubPrincipleApiId);
         createParams.set("spName", parentSubPrincipleName ?? "");
       }
-    } else {
+    } else if (levelKind === "subPrinciple") {
       createParams.set("subPrincipleId", levelApiId);
       createParams.set("spName", levelName);
+    } else {
+      createParams.set("scenarioId", levelApiId);
+      createParams.set("scenarioName", levelName);
     }
     return createParams;
   };

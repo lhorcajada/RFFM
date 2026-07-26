@@ -71,6 +71,7 @@ namespace RFFM.Api.Tests.IntegrationTests
             10, 8, 0, "Media cancha",
             SubSubPrincipleId: null,
             SubPrincipleId: null,
+            ScenarioId: null,
             Section: "Principal",
             EssentialSkillIds: new List<string>(),
             BoardStateJson: null,
@@ -146,6 +147,7 @@ namespace RFFM.Api.Tests.IntegrationTests
                 "Ejercicio de prueba", "Descripción", new List<string> { "Tactical" }, 10, 8, 0, "Media cancha",
                 SubSubPrincipleId: null,
                 SubPrincipleId: null,
+                ScenarioId: null,
                 Section: "Principal",
                 EssentialSkillIds: new List<string>(),
                 BoardStateJson: null,
@@ -179,6 +181,7 @@ namespace RFFM.Api.Tests.IntegrationTests
                 "Ejercicio de prueba", "Descripción", new List<string> { "Tactical" }, 10, 8, 0, "Media cancha",
                 SubSubPrincipleId: subSubPrincipleId,
                 SubPrincipleId: null,
+                ScenarioId: null,
                 Section: "Principal",
                 EssentialSkillIds: new List<string>(),
                 BoardStateJson: null,
@@ -209,7 +212,7 @@ namespace RFFM.Api.Tests.IntegrationTests
 
             await using var queryDb = _fixture.CreateDbContext();
             var handler = new GetExercisesHandler(queryDb);
-            var result = await handler.Handle(new GetExercisesQuery(clubId, SubSubPrincipleId: null, SubPrincipleId: subPrincipleId, UserId: userId), CancellationToken.None);
+            var result = await handler.Handle(new GetExercisesQuery(clubId, SubSubPrincipleId: null, SubPrincipleId: subPrincipleId, ScenarioId: null, UserId: userId), CancellationToken.None);
 
             var list = result.ToList();
             Assert.Single(list);

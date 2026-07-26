@@ -45,6 +45,10 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.Trainings
                 .IsRequired(false)
                 .HasMaxLength(36);
 
+            builder.Property(tb => tb.ScenarioId)
+                .IsRequired(false)
+                .HasMaxLength(36);
+
             builder.Property(tb => tb.Section)
                 .IsRequired()
                 .HasMaxLength(50);
@@ -63,6 +67,12 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.Trainings
             builder.HasOne(tb => tb.SubPrinciple)
                 .WithMany()
                 .HasForeignKey(tb => tb.SubPrincipleId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            builder.HasOne(tb => tb.Scenario)
+                .WithMany()
+                .HasForeignKey(tb => tb.ScenarioId)
                 .IsRequired(false)
                 .OnDelete(DeleteBehavior.SetNull);
 
