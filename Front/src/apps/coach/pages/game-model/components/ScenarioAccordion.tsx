@@ -22,7 +22,7 @@ interface SpDetailProps {
   sp: SubPrinciple;
   clubId: string;
   teamId: string;
-  scenario: { id: number; name: string; order: number };
+  scenario: { id: number; apiId?: string | null; name: string; order: number };
   gameMomentName: string;
   zoneName: string;
 }
@@ -128,6 +128,8 @@ function SubPrincipleDetailView({ sp, clubId, teamId, scenario, gameMomentName, 
           levelName={sp.name}
           active
           onCountChange={setExerciseCount}
+          parentScenarioApiId={scenario.apiId}
+          parentScenarioName={scenario.name}
         />
       )}
     </Box>
@@ -218,7 +220,7 @@ function ScenarioDetailView({ scenario, clubId, teamId, gameMomentName, zoneName
               sp={sp}
               clubId={clubId}
               teamId={teamId}
-              scenario={{ id: scenario.id, name: scenario.name, order: scenario.order }}
+              scenario={{ id: scenario.id, apiId: scenario.apiId, name: scenario.name, order: scenario.order }}
               gameMomentName={gameMomentName}
               zoneName={zoneName}
             />

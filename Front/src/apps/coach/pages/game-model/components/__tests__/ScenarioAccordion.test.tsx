@@ -20,10 +20,14 @@ vi.mock("../PrincipleExercisesSection", () => ({
     levelKind,
     levelApiId,
     onCountChange,
+    parentScenarioApiId,
+    parentScenarioName,
   }: {
     levelKind: string;
     levelApiId: string;
     onCountChange?: (count: number) => void;
+    parentScenarioApiId?: string | null;
+    parentScenarioName?: string | null;
   }) => {
     useEffect(() => {
       onCountChange?.(3);
@@ -33,6 +37,8 @@ vi.mock("../PrincipleExercisesSection", () => ({
         data-testid="principle-exercises-section"
         data-level-kind={levelKind}
         data-level-api-id={levelApiId}
+        data-parent-scenario-api-id={parentScenarioApiId ?? ""}
+        data-parent-scenario-name={parentScenarioName ?? ""}
       />
     );
   },
@@ -191,6 +197,38 @@ describe("ScenarioAccordion", () => {
         ],
       };
     }
+
+    it("pasa también el apiId/nombre del escenario padre, para que el selector 'Vinculado a' pueda ofrecer moverlo al escenario", async () => {
+      renderAccordion([
+        {
+          id: 1,
+          apiId: "scenario-api-parent",
+          order: 1,
+          name: "Escenario X",
+          context: "Contexto",
+          tacticalPrinciples: [],
+          mediaUrl: null,
+          mediaType: null,
+          subPrinciples: [
+            {
+              id: 101,
+              apiId: "sp-api-1",
+              order: 1,
+              label: "A",
+              name: "Subprincipio A",
+              context: "Contexto SP",
+              subSubPrinciples: [],
+            },
+          ],
+        },
+      ]);
+
+      const sections = await screen.findAllByTestId("principle-exercises-section");
+      const section = sections.find((el) => el.getAttribute("data-level-kind") === "subPrinciple");
+      expect(section).toBeDefined();
+      expect(section).toHaveAttribute("data-parent-scenario-api-id", "scenario-api-parent");
+      expect(section).toHaveAttribute("data-parent-scenario-name", "Escenario X");
+    });
 
     it("renderiza PrincipleExercisesSection con levelKind=subPrinciple y el apiId del subprincipio", async () => {
       renderAccordion([scenarioWithSubPrincipleApiId("sp-api-1")]);

@@ -43,6 +43,10 @@ interface Props {
    * form offer reassignment to the parent subprincipio. */
   parentSubPrincipleApiId?: string | null;
   parentSubPrincipleName?: string | null;
+  /** Only relevant when levelKind is "subPrinciple": lets the create/edit
+   * form offer reassignment to the parent scenario. */
+  parentScenarioApiId?: string | null;
+  parentScenarioName?: string | null;
 }
 
 export default function PrincipleExercisesSection({
@@ -55,6 +59,8 @@ export default function PrincipleExercisesSection({
   onCountChange,
   parentSubPrincipleApiId,
   parentSubPrincipleName,
+  parentScenarioApiId,
+  parentScenarioName,
 }: Props) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -118,6 +124,10 @@ export default function PrincipleExercisesSection({
     } else if (levelKind === "subPrinciple") {
       createParams.set("subPrincipleId", levelApiId);
       createParams.set("spName", levelName);
+      if (parentScenarioApiId) {
+        createParams.set("scenarioId", parentScenarioApiId);
+        createParams.set("scenarioName", parentScenarioName ?? "");
+      }
     } else {
       createParams.set("scenarioId", levelApiId);
       createParams.set("scenarioName", levelName);
