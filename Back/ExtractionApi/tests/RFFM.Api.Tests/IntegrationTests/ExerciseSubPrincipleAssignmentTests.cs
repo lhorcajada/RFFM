@@ -116,7 +116,7 @@ namespace RFFM.Api.Tests.IntegrationTests
         }
 
         [Fact]
-        public async Task Create_WithNeitherId_FailsValidation()
+        public async Task Create_WithNeitherId_Succeeds()
         {
             await using var seedDb = _fixture.CreateDbContext();
             var (userId, clubId, _, _) = await SeedAsync(seedDb);
@@ -126,7 +126,7 @@ namespace RFFM.Api.Tests.IntegrationTests
 
             var result = await validator.ValidateAsync(command);
 
-            Assert.False(result.IsValid);
+            Assert.True(result.IsValid);
         }
 
         [Fact]

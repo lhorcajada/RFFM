@@ -207,7 +207,7 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
-        public async Task Validator_RejectsNoLevelId()
+        public async Task Validator_AcceptsNoLevelId()
         {
             await using var seedDb = _fixture.CreateDbContext();
             var (userId, clubId, _) = await SeedClubAsync(seedDb);
@@ -218,7 +218,7 @@ namespace RFFM.Api.Tests.UnitTests
 
             var result = await validator.ValidateAsync(command);
 
-            Assert.False(result.IsValid);
+            Assert.True(result.IsValid);
         }
 
         [Fact]
@@ -275,6 +275,27 @@ namespace RFFM.Api.Tests.UnitTests
             var exercise = await verifyDb.TaskTrainingBases.SingleAsync(e => e.Id == id);
 
             Assert.Equal(scenarioId, exercise.ScenarioId);
+            Assert.Null(exercise.SubPrincipleId);
+            Assert.Null(exercise.SubSubPrincipleId);
+        }
+
+        [Fact]
+        public async Task Handle_WithNoLevelId_PersistsExerciseUnlinked()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (userId, clubId, _) = await SeedClubAsync(seedDb);
+
+            await using var db = _fixture.CreateDbContext();
+            var handler = new CreateExerciseHandler(db);
+            // BaseCommand has all three level ids null by default
+            var command = BaseCommand(clubId, userId, new List<string> { "Physical" });
+
+            var id = await handler.Handle(command, CancellationToken.None);
+
+            await using var verifyDb = _fixture.CreateDbContext();
+            var exercise = await verifyDb.TaskTrainingBases.SingleAsync(e => e.Id == id);
+
+            Assert.Null(exercise.ScenarioId);
             Assert.Null(exercise.SubPrincipleId);
             Assert.Null(exercise.SubSubPrincipleId);
         }

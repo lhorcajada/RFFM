@@ -186,6 +186,33 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
+        public async Task Handle_ReassignFromSubPrincipleToNoLevel_ClearsLink()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (userId, clubId, club) = await SeedClubAsync(seedDb);
+            var (scenarioId, subPrincipleId) = await SeedScenarioWithSubPrincipleAsync(seedDb, club);
+
+            await using var createDb = _fixture.CreateDbContext();
+            var createHandler = new CreateExerciseHandler(createDb);
+            var exerciseId = await createHandler.Handle(
+                CreateCommand(clubId, userId, new List<string> { "Physical" }) with { SubPrincipleId = subPrincipleId },
+                CancellationToken.None);
+
+            await using var updateDb = _fixture.CreateDbContext();
+            var updateHandler = new UpdateExerciseHandler(updateDb);
+            // Update with all three level ids null to unlink the exercise
+            await updateHandler.Handle(
+                UpdateCommand(exerciseId, userId, new List<string> { "Physical" }),
+                CancellationToken.None);
+
+            await using var verifyDb = _fixture.CreateDbContext();
+            var exercise = await verifyDb.TaskTrainingBases.SingleAsync(e => e.Id == exerciseId);
+            Assert.Null(exercise.ScenarioId);
+            Assert.Null(exercise.SubPrincipleId);
+            Assert.Null(exercise.SubSubPrincipleId);
+        }
+
+        [Fact]
         public async Task Validator_AcceptsScenarioIdOnly()
         {
             await using var seedDb = _fixture.CreateDbContext();
@@ -200,7 +227,7 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
-        public async Task Validator_RejectsNoLevelId()
+        public async Task Validator_AcceptsNoLevelId()
         {
             await using var seedDb = _fixture.CreateDbContext();
             var (userId, clubId, _) = await SeedClubAsync(seedDb);
@@ -211,7 +238,7 @@ namespace RFFM.Api.Tests.UnitTests
 
             var result = await validator.ValidateAsync(command);
 
-            Assert.False(result.IsValid);
+            Assert.True(result.IsValid);
         }
 
         [Fact]

@@ -144,8 +144,8 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
             RuleFor(x => x.DurationTotal).GreaterThan(0);
             RuleFor(x => x)
                 .Must(x => new[] { x.ScenarioId, x.SubPrincipleId, x.SubSubPrincipleId }
-                    .Count(id => !string.IsNullOrEmpty(id)) == 1)
-                .WithMessage("Exactly one of ScenarioId, SubPrincipleId or SubSubPrincipleId must be provided.");
+                    .Count(id => !string.IsNullOrEmpty(id)) <= 1)
+                .WithMessage("At most one of ScenarioId, SubPrincipleId or SubSubPrincipleId may be provided.");
         }
     }
 }

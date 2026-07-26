@@ -228,3 +228,52 @@ describe("useExerciseForm — multi-tipo", () => {
     expect(trainingService.createExercise).not.toHaveBeenCalled();
   });
 });
+
+describe("useExerciseForm — ejercicio sin vincular", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("al inicializar sin ningún id de contexto, el formulario fija todos los ids en null", async () => {
+    const { result } = renderHook(() =>
+      useExerciseForm({
+        clubId: "club-1", subSubPrincipleId: null, subPrincipleId: null, scenarioId: null,
+        navigate, returnTo: "/coach/trainings",
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.form.subSubPrincipleId).toBeNull();
+      expect(result.current.form.subPrincipleId).toBeNull();
+      expect(result.current.form.scenarioId).toBeNull();
+    });
+  });
+
+  it("handleSave invoca createExercise con los tres ids en null cuando no hay contexto de nivel", async () => {
+    const trainingService = (await import("../../../../../services/trainingService")).default;
+    const { result } = renderHook(() =>
+      useExerciseForm({
+        clubId: "club-1", subSubPrincipleId: null, subPrincipleId: null, scenarioId: null,
+        navigate, returnTo: "/coach/trainings",
+      })
+    );
+
+    act(() => result.current.setField("name", "Ejercicio sin vinculación"));
+    act(() => result.current.setField("description", "Descripción"));
+    act(() => result.current.setField("types", ["Tactical"]));
+    act(() => result.current.setField("durationTotal", 30));
+    act(() => result.current.setField("playersNumber", 8));
+    act(() => result.current.setField("fieldSpace", "Media cancha"));
+
+    await act(async () => {
+      await result.current.handleSave();
+    });
+
+    await waitFor(() => {
+      expect(trainingService.createExercise).toHaveBeenCalled();
+    });
+
+    const callArgs = trainingService.createExercise.mock.calls[0][0];
+    expect(callArgs.subSubPrincipleId).toBeNull();
+    expect(callArgs.subPrincipleId).toBeNull();
+    expect(callArgs.scenarioId).toBeNull();
+  });
+});
