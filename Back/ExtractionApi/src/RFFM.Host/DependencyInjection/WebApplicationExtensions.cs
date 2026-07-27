@@ -418,6 +418,16 @@ namespace RFFM.Host.DependencyInjection
                         ("Sanctions", CoachFeatureRoutes.Sanctions, "Player", 1, false),
                         ("Lottery", CoachFeatureRoutes.Lottery, "Player", 1, false),
                         ("News", CoachFeatureRoutes.News, "Player", 1, false),
+
+                        // FamilyMember: Read-only on the 4 approved features (Squad, Events, Convocations, News)
+                        ("Squad", CoachFeatureRoutes.Squad, "FamilyMember", 1, false),
+                        ("Events", CoachFeatureRoutes.Events, "FamilyMember", 1, false),
+                        ("Convocations", CoachFeatureRoutes.Convocations, "FamilyMember", 1, false),
+                        ("News", CoachFeatureRoutes.News, "FamilyMember", 1, false),
+
+                        // AttendanceConfirmation: ReadWrite for Player and FamilyMember
+                        ("AttendanceConfirmation", CoachFeatureRoutes.AttendanceConfirmation, "Player", 3, false),
+                        ("AttendanceConfirmation", CoachFeatureRoutes.AttendanceConfirmation, "FamilyMember", 3, false),
                     };
 
                     foreach (var (featureName, featureRoute, roleName, permTypeId, isEditable) in entries)

@@ -36,7 +36,7 @@ namespace RFFM.Api.Tests.Fixtures
 
             await _container.StartAsync();
 
-            var options = new DbContextOptionsBuilder<AppDbContext>()
+            var appDbOptions = new DbContextOptionsBuilder<AppDbContext>()
                 .UseNpgsql(ConnectionString, npgsql =>
                 {
                     // Mirrors the production AppDbContext registration in
@@ -61,9 +61,23 @@ namespace RFFM.Api.Tests.Fixtures
                 .ConfigureWarnings(warnings => warnings.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning))
                 .Options;
 
-            await using var db = new AppDbContext(options);
-
+            await using var db = new AppDbContext(appDbOptions);
             await db.Database.MigrateAsync();
+
+            // Also migrate IdentityDbContext
+            var identityDbOptions = new DbContextOptionsBuilder<IdentityDbContext>()
+                .UseNpgsql(ConnectionString, npgsql =>
+                {
+                    npgsql.EnableRetryOnFailure(
+                        maxRetryCount: 5,
+                        maxRetryDelay: TimeSpan.FromSeconds(30),
+                        errorCodesToAdd: null);
+                    npgsql.MigrationsHistoryTable("__EFMigrationsHistory", "identity");
+                })
+                .Options;
+
+            await using var identityDb = new IdentityDbContext(identityDbOptions);
+            await identityDb.Database.MigrateAsync();
         }
 
         public async Task DisposeAsync()
@@ -88,6 +102,22 @@ namespace RFFM.Api.Tests.Fixtures
                 .Options;
 
             return new AppDbContext(options);
+        }
+
+        public IdentityDbContext CreateIdentityDbContext()
+        {
+            var options = new DbContextOptionsBuilder<IdentityDbContext>()
+                .UseNpgsql(ConnectionString, npgsql =>
+                {
+                    npgsql.EnableRetryOnFailure(
+                        maxRetryCount: 5,
+                        maxRetryDelay: TimeSpan.FromSeconds(30),
+                        errorCodesToAdd: null);
+                    npgsql.MigrationsHistoryTable("__EFMigrationsHistory", "identity");
+                })
+                .Options;
+
+            return new IdentityDbContext(options);
         }
     }
 

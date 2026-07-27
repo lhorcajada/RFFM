@@ -150,9 +150,10 @@ namespace RFFM.Api.DependencyInjection
                 .AddTransient(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>))
                 .AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>))
                 .AddTransient(typeof(IPipelineBehavior<,>), typeof(TimeLoggingBehavior<,>))
+                .AddTransient(typeof(IPipelineBehavior<,>), typeof(FeaturePermissionBehavior<,>))
+                .AddTransient(typeof(IPipelineBehavior<,>), typeof(TeamMembershipBehavior<,>))
                 .AddTransient(typeof(IPipelineBehavior<,>), typeof(CachingBehavior<,>))
-                .AddTransient(typeof(IPipelineBehavior<,>), typeof(InvalidateCachingBehavior<,>))
-                .AddTransient(typeof(IPipelineBehavior<,>), typeof(FeaturePermissionBehavior<,>));
+                .AddTransient(typeof(IPipelineBehavior<,>), typeof(InvalidateCachingBehavior<,>));
         }
 
         internal static IServiceCollection AddCustomProblemDetails(this IServiceCollection services)

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Common;
+using RFFM.Api.Domain;
 using RFFM.Api.Domain.Entities;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
@@ -16,8 +17,12 @@ namespace RFFM.Api.Features.Coaches.Convocations
         {
             app.MapGet(
                     "/api/events/{eventId}/match-participation",
-                    async (string eventId, IMediator mediator, CancellationToken cancellationToken) =>
-                        await mediator.Send(new GetMatchParticipationQuery { EventId = eventId }, cancellationToken))
+                    async (string eventId, AppDbContext db, IMediator mediator, CancellationToken cancellationToken) =>
+                    {
+                        var sportEvent = await db.SportEvents.AsNoTracking().FirstOrDefaultAsync(se => se.Id == eventId, cancellationToken);
+                        if (sportEvent == null) throw new DomainException("Evento", "Evento no encontrado", "EventNotFound");
+                        return await mediator.Send(new GetMatchParticipationQuery { EventId = eventId, TeamId = sportEvent.TeamId }, cancellationToken);
+                    })
                 .WithName(nameof(GetMatchParticipation))
                 .WithTags("MatchParticipation")
                 .Produces<MatchParticipationResponse>();
@@ -25,9 +30,10 @@ namespace RFFM.Api.Features.Coaches.Convocations
 
         // ─── Query & response ─────────────────────────────────────────────────
 
-        public record GetMatchParticipationQuery : Common.IQueryApp<MatchParticipationResponse?>, IRequireFeaturePermission
+        public record GetMatchParticipationQuery : Common.IQueryApp<MatchParticipationResponse?>, IRequireFeaturePermission, IRequireTeamMembership
         {
             public string EventId { get; init; } = null!;
+            public string TeamId { get; set; } = null!;
 
             public string FeatureRoute => CoachFeatureRoutes.Convocations;
             public string RequiredPermission => "Read";
