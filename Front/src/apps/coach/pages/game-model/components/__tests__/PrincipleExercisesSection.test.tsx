@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from "@testing-library/react";
+import type { ComponentProps } from "react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -63,6 +64,39 @@ describe("PrincipleExercisesSection", () => {
     await waitFor(() => expect(trainingService.getExercises).toHaveBeenCalledWith(
       "club-1", { subPrincipleId: "sp-1" }
     ));
+  });
+
+  it("recarga los ejercicios cuando cambia el escenario sin desmontar el componente", async () => {
+    vi.mocked(trainingService.getExercises)
+      .mockResolvedValueOnce([buildExercise({ id: "ex-scenario-1", name: "Ejercicio del escenario 1" })])
+      .mockResolvedValueOnce([buildExercise({ id: "ex-scenario-2", name: "Ejercicio del escenario 2" })]);
+
+    const renderSection = (
+      props: Partial<ComponentProps<typeof PrincipleExercisesSection>> = {}
+    ) => (
+      <MemoryRouter initialEntries={["/coach/game-model?clubId=club-1&teamId=team-9"]}>
+        <PrincipleExercisesSection
+          clubId="club-1" teamId="team-9" levelKind="scenario"
+          levelApiId="scenario-1" levelName="Escenario 1" active
+          {...props}
+        />
+      </MemoryRouter>
+    );
+
+    const { rerender } = render(renderSection());
+
+    expect(await screen.findByText("Ejercicio del escenario 1")).toBeInTheDocument();
+
+    // Simula el comportamiento real: DrillDownPanel reutiliza la misma instancia
+    // de PrincipleExercisesSection al cambiar de escenario (no la desmonta), solo
+    // le pasa un levelApiId nuevo.
+    rerender(renderSection({ levelApiId: "scenario-2", levelName: "Escenario 2" }));
+
+    await waitFor(() => expect(trainingService.getExercises).toHaveBeenCalledWith(
+      "club-1", { scenarioId: "scenario-2" }
+    ));
+    expect(await screen.findByText("Ejercicio del escenario 2")).toBeInTheDocument();
+    expect(screen.queryByText("Ejercicio del escenario 1")).not.toBeInTheDocument();
   });
 
   it("no carga ejercicios cuando active es false", () => {

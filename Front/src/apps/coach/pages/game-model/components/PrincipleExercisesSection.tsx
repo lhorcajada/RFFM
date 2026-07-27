@@ -93,7 +93,14 @@ export default function PrincipleExercisesSection({
       .finally(() => { setLoadingEx(false); setExLoaded(true); });
   }, [clubId, levelApiId, levelKind]);
 
-  // Load exercises the first time the section becomes active
+  // DrillDownPanel reuses the same component instance when the user switches
+  // between scenarios/sub-principles (no `key` remount), so exLoaded must be
+  // reset whenever the target level changes to force a reload.
+  useEffect(() => {
+    setExLoaded(false);
+  }, [levelApiId, levelKind]);
+
+  // Load exercises the first time the section becomes active for this level
   useEffect(() => {
     if (active && !exLoaded) loadExercises();
   }, [active, exLoaded, loadExercises]);
