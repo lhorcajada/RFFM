@@ -73,6 +73,7 @@ namespace RFFM.Api.Tests.IntegrationTests
             SubPrincipleId: null,
             ScenarioId: null,
             Section: "Principal",
+            Methodology: "Integrado",
             EssentialSkillIds: new List<string>(),
             BoardStateJson: null,
             Series: null, DurationSeries: null, RestSeries: null,
@@ -149,6 +150,7 @@ namespace RFFM.Api.Tests.IntegrationTests
                 SubPrincipleId: null,
                 ScenarioId: null,
                 Section: "Principal",
+                Methodology: "Integrado",
                 EssentialSkillIds: new List<string>(),
                 BoardStateJson: null,
                 Series: null, DurationSeries: null, RestSeries: null,
@@ -183,6 +185,7 @@ namespace RFFM.Api.Tests.IntegrationTests
                 SubPrincipleId: null,
                 ScenarioId: null,
                 Section: "Principal",
+                Methodology: "Integrado",
                 EssentialSkillIds: new List<string>(),
                 BoardStateJson: null,
                 Series: null, DurationSeries: null, RestSeries: null,
@@ -212,7 +215,7 @@ namespace RFFM.Api.Tests.IntegrationTests
 
             await using var queryDb = _fixture.CreateDbContext();
             var handler = new GetExercisesHandler(queryDb);
-            var result = await handler.Handle(new GetExercisesQuery(clubId, SubSubPrincipleId: null, SubPrincipleId: subPrincipleId, ScenarioId: null, UserId: userId), CancellationToken.None);
+            var result = await handler.Handle(new GetExercisesQuery(clubId, SubSubPrincipleId: null, SubPrincipleId: subPrincipleId, ScenarioId: null, Methodology: null, UserId: userId), CancellationToken.None);
 
             var list = result.ToList();
             Assert.Single(list);

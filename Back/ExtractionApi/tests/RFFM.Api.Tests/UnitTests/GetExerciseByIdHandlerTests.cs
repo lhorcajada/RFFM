@@ -74,6 +74,7 @@ namespace RFFM.Api.Tests.UnitTests
             SubPrincipleId: null,
             ScenarioId: scenarioId,
             Section: "Principal",
+            Methodology: "Integrado",
             EssentialSkillIds: new List<string>(),
             BoardStateJson: null,
             Series: null, DurationSeries: null, RestSeries: null,
@@ -122,6 +123,26 @@ namespace RFFM.Api.Tests.UnitTests
             Assert.NotNull(result);
             Assert.Equal(scenarioId, result!.ScenarioId);
             Assert.Equal("Escenario 1", result.ScenarioName);
+        }
+
+        [Fact]
+        public async Task Handle_ReturnsMethodology()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (userId, clubId, _) = await SeedClubAsync(seedDb);
+
+            await using var createDb = _fixture.CreateDbContext();
+            var createHandler = new CreateExerciseHandler(createDb);
+            var exerciseId = await createHandler.Handle(
+                CreateCommand(clubId, userId, new List<string> { "Physical" }) with { Methodology = "Global" },
+                CancellationToken.None);
+
+            await using var queryDb = _fixture.CreateDbContext();
+            var handler = new GetExerciseByIdHandler(queryDb);
+            var result = await handler.Handle(new GetExerciseByIdQuery(exerciseId, userId), CancellationToken.None);
+
+            Assert.NotNull(result);
+            Assert.Equal("Global", result!.Methodology);
         }
     }
 }

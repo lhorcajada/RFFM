@@ -31,6 +31,9 @@ namespace RFFM.Api.Domain.Aggregates.Training.TasksTraining
         /// <summary>Section of the training session: Calentamiento, Principal, VueltaALaCalma.</summary>
         public string Section { get; set; } = "Principal";
 
+        /// <summary>Training methodology: Analitico, Integrado, Global.</summary>
+        public string Methodology { get; set; } = "Integrado";
+
         // Fields formerly exclusive to a TPH subclass — merged here since an exercise can now
         // have multiple types at once (Physical, Technical/Tactical fields all coexist).
         public int Series { get; set; }

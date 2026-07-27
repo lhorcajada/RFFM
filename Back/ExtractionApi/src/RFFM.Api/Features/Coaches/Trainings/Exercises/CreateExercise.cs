@@ -58,6 +58,7 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         string? SubPrincipleId,
         string? ScenarioId,
         string Section,
+        string Methodology,
         List<string> EssentialSkillIds,
         string? BoardStateJson,
         // Physical-specific
@@ -103,6 +104,7 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
                 SubPrincipleId = request.SubPrincipleId,
                 ScenarioId = request.ScenarioId,
                 Section = request.Section,
+                Methodology = request.Methodology,
                 BoardStateJson = request.BoardStateJson,
                 Series = request.Series ?? 0,
                 DurationSeries = request.DurationSeries ?? 0,
@@ -141,6 +143,8 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
                 .WithMessage("Type must be one of: " + "Physical, Technical, Tactical, Game, Cognitive, Psychological");
             RuleFor(x => x.Section).Must(s => s is "Calentamiento" or "Principal" or "VueltaALaCalma")
                 .WithMessage("Section must be Calentamiento, Principal or VueltaALaCalma.");
+            RuleFor(x => x.Methodology).Must(m => m is "Analitico" or "Integrado" or "Global")
+                .WithMessage("Methodology must be Analitico, Integrado or Global.");
             RuleFor(x => x.DurationTotal).GreaterThan(0);
             RuleFor(x => x)
                 .Must(x => new[] { x.ScenarioId, x.SubPrincipleId, x.SubSubPrincipleId }

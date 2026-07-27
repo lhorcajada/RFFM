@@ -78,6 +78,7 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
                 exercise.Description,
                 exercise.Types.Select(t => t.ExerciseType.Name),
                 exercise.Section,
+                exercise.Methodology,
                 exercise.DurationTotal,
                 exercise.PlayersNumber,
                 exercise.GoalPeekersNumber,

@@ -83,6 +83,7 @@ namespace RFFM.Api.Tests.UnitTests
             SubPrincipleId: null,
             ScenarioId: scenarioId,
             Section: "Principal",
+            Methodology: "Integrado",
             EssentialSkillIds: new List<string>(),
             BoardStateJson: null,
             Series: 3, DurationSeries: 30, RestSeries: 15,
@@ -96,6 +97,7 @@ namespace RFFM.Api.Tests.UnitTests
             SubPrincipleId: null,
             ScenarioId: scenarioId,
             Section: "Principal",
+            Methodology: "Integrado",
             EssentialSkillIds: new List<string>(),
             BoardStateJson: null,
             Series: null, DurationSeries: null, RestSeries: null,
@@ -253,6 +255,41 @@ namespace RFFM.Api.Tests.UnitTests
                 SubPrincipleId = "fake-sub-principle",
                 SubSubPrincipleId = "fake-sub-sub-principle"
             };
+            var validator = new UpdateExerciseValidator();
+
+            var result = await validator.ValidateAsync(command);
+
+            Assert.False(result.IsValid);
+        }
+
+        [Fact]
+        public async Task Handle_UpdatesMethodology()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (userId, clubId, _) = await SeedClubAsync(seedDb);
+
+            await using var createDb = _fixture.CreateDbContext();
+            var createHandler = new CreateExerciseHandler(createDb);
+            var exerciseId = await createHandler.Handle(
+                CreateCommand(clubId, userId, new List<string> { "Physical" }),
+                CancellationToken.None);
+
+            await using var updateDb = _fixture.CreateDbContext();
+            var updateHandler = new UpdateExerciseHandler(updateDb);
+            await updateHandler.Handle(
+                UpdateCommand(exerciseId, userId, new List<string> { "Physical" }) with { Methodology = "Global" },
+                CancellationToken.None);
+
+            await using var verifyDb = _fixture.CreateDbContext();
+            var exercise = await verifyDb.TaskTrainingBases.SingleAsync(e => e.Id == exerciseId);
+
+            Assert.Equal("Global", exercise.Methodology);
+        }
+
+        [Fact]
+        public async Task Validator_RejectsInvalidMethodology()
+        {
+            var command = UpdateCommand("fake-id", "fake-user", new List<string> { "Physical" }) with { Methodology = "NotValid" };
             var validator = new UpdateExerciseValidator();
 
             var result = await validator.ValidateAsync(command);

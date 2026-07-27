@@ -422,7 +422,7 @@ namespace RFFM.Api.Tests.UnitTests
         [Fact]
         public void GetExercisesQuery_ImplementsIRequireFeaturePermission_WithTrainingsRoute()
         {
-            var query = new RFFM.Api.Features.Coaches.Trainings.Exercises.GetExercisesQuery("club", null, null, null, "user");
+            var query = new RFFM.Api.Features.Coaches.Trainings.Exercises.GetExercisesQuery("club", null, null, null, null, "user");
             var requirement = Assert.IsAssignableFrom<IRequireFeaturePermission>(query);
             Assert.Equal(CoachFeatureRoutes.Trainings, requirement.FeatureRoute);
             Assert.Equal("Read", requirement.RequiredPermission);

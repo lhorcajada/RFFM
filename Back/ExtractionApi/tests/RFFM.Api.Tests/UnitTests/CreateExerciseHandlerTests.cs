@@ -75,6 +75,7 @@ namespace RFFM.Api.Tests.UnitTests
             SubPrincipleId: null,
             ScenarioId: null,
             Section: "Principal",
+            Methodology: "Integrado",
             EssentialSkillIds: new List<string>(),
             BoardStateJson: null,
             Series: null, DurationSeries: null, RestSeries: null,
@@ -298,6 +299,69 @@ namespace RFFM.Api.Tests.UnitTests
             Assert.Null(exercise.ScenarioId);
             Assert.Null(exercise.SubPrincipleId);
             Assert.Null(exercise.SubSubPrincipleId);
+        }
+
+        [Fact]
+        public async Task Handle_PersistsMethodology()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (userId, clubId, _) = await SeedClubAsync(seedDb);
+
+            await using var db = _fixture.CreateDbContext();
+            var handler = new CreateExerciseHandler(db);
+            var command = BaseCommand(clubId, userId, new List<string> { "Physical" }) with { Methodology = "Global" };
+
+            var id = await handler.Handle(command, CancellationToken.None);
+
+            await using var verifyDb = _fixture.CreateDbContext();
+            var exercise = await verifyDb.TaskTrainingBases.SingleAsync(e => e.Id == id);
+
+            Assert.Equal("Global", exercise.Methodology);
+        }
+
+        [Theory]
+        [InlineData("Analitico")]
+        [InlineData("Integrado")]
+        [InlineData("Global")]
+        public async Task Validator_AcceptsValidMethodology(string methodology)
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (userId, clubId, _) = await SeedClubAsync(seedDb);
+
+            var command = BaseCommand(clubId, userId, new List<string> { "Physical" }) with { Methodology = methodology };
+            var validator = new CreateExerciseValidator();
+
+            var result = await validator.ValidateAsync(command);
+
+            Assert.True(result.IsValid);
+        }
+
+        [Fact]
+        public async Task Validator_RejectsInvalidMethodology()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (userId, clubId, _) = await SeedClubAsync(seedDb);
+
+            var command = BaseCommand(clubId, userId, new List<string> { "Physical" }) with { Methodology = "NotAValidMethodology" };
+            var validator = new CreateExerciseValidator();
+
+            var result = await validator.ValidateAsync(command);
+
+            Assert.False(result.IsValid);
+        }
+
+        [Fact]
+        public async Task Validator_RejectsEmptyMethodology()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (userId, clubId, _) = await SeedClubAsync(seedDb);
+
+            var command = BaseCommand(clubId, userId, new List<string> { "Physical" }) with { Methodology = "" };
+            var validator = new CreateExerciseValidator();
+
+            var result = await validator.ValidateAsync(command);
+
+            Assert.False(result.IsValid);
         }
     }
 }

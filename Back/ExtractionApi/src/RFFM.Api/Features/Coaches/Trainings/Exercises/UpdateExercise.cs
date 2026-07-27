@@ -54,6 +54,7 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         string? SubPrincipleId,
         string? ScenarioId,
         string Section,
+        string Methodology,
         List<string> EssentialSkillIds,
         string? BoardStateJson,
         int? Series,
@@ -100,6 +101,7 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
             exercise.SubPrincipleId = request.SubPrincipleId;
             exercise.ScenarioId = request.ScenarioId;
             exercise.Section = request.Section;
+            exercise.Methodology = request.Methodology;
             if (request.BoardStateJson is not null)
                 exercise.BoardStateJson = request.BoardStateJson;
 
@@ -142,6 +144,8 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
             RuleFor(x => x.DurationTotal).GreaterThan(0);
             RuleFor(x => x.Section).Must(s => s is "Calentamiento" or "Principal" or "VueltaALaCalma")
                 .WithMessage("Section must be Calentamiento, Principal or VueltaALaCalma.");
+            RuleFor(x => x.Methodology).Must(m => m is "Analitico" or "Integrado" or "Global")
+                .WithMessage("Methodology must be Analitico, Integrado or Global.");
             RuleFor(x => x)
                 .Must(x => new[] { x.ScenarioId, x.SubPrincipleId, x.SubSubPrincipleId }
                     .Count(id => !string.IsNullOrEmpty(id)) <= 1)

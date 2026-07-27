@@ -53,6 +53,10 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.Trainings
                 .IsRequired()
                 .HasMaxLength(50);
 
+            builder.Property(tb => tb.Methodology)
+                .IsRequired()
+                .HasMaxLength(50);
+
             builder.HasOne(tb => tb.Club)
                 .WithMany()
                 .HasForeignKey(tb => tb.ClubId)
