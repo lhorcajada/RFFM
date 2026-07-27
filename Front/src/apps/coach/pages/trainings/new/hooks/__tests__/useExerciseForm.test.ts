@@ -321,3 +321,33 @@ describe("useExerciseForm — ejercicio sin vincular", () => {
     expect(callArgs.scenarioId).toBeNull();
   });
 });
+
+describe("useExerciseForm — methodology", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("emptyExercise trae 'Integrado' como metodologia por defecto", async () => {
+    const { emptyExercise: empty } = await import("../../constants");
+    expect(empty.methodology).toBe("Integrado");
+  });
+
+  it("applyExercise carga la metodologia del ejercicio existente", async () => {
+    const { result } = renderHook(() =>
+      useExerciseForm({
+        clubId: "club-1", subSubPrincipleId: null, subPrincipleId: null, scenarioId: null,
+        navigate, returnTo: "/coach/trainings",
+      })
+    );
+
+    const exercise: Exercise = {
+      id: "ex-1", name: "Ejercicio", description: "", types: ["Tactical"],
+      section: "Principal", methodology: "Global", durationTotal: 10, playersNumber: 8, goalPeekersNumber: 0,
+      fieldSpace: "", skills: [], conditions: [],
+    };
+
+    act(() => result.current.loadExercise(exercise));
+
+    await waitFor(() => {
+      expect(result.current.form.methodology).toBe("Global");
+    });
+  });
+});

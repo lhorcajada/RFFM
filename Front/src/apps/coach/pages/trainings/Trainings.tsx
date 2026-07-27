@@ -9,12 +9,17 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
+  FormControl,
   IconButton,
+  InputLabel,
+  MenuItem,
+  Select,
   Stack,
   Tab,
   Tabs,
   Tooltip,
   Typography,
+  type SelectChangeEvent,
 } from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -26,8 +31,9 @@ import ContentLayout from "../../../../shared/components/ui/ContentLayout/Conten
 import useTeamAndClub from "../../hooks/useTeamAndClub";
 import useTeamDashboardBack from "../../hooks/useTeamDashboardBack";
 import trainingService from "../../services/trainingService";
-import type { Exercise, TrainingSession } from "../../types/training";
+import type { Exercise, ExerciseMethodology, TrainingSession } from "../../types/training";
 import { TYPE_LABELS } from "./exerciseTypeLabels";
+import { methodologyOptions } from "./new/constants";
 import ExerciseCromo from "./components/ExerciseCromo";
 import SessionDialog from "./components/SessionDialog";
 import type { TacticalBoardSnapshot } from "./new/types";
@@ -265,6 +271,7 @@ export default function Trainings() {
   const [loadingEx, setLoadingEx] = useState(false);
   const [deleteExId, setDeleteExId] = useState<string | null>(null);
   const [deletingEx, setDeletingEx] = useState(false);
+  const [methodologyFilter, setMethodologyFilter] = useState<ExerciseMethodology | "">("");
 
   // ── Sessions state ───────────────────────────────────────────────
   const [sessions, setSessions] = useState<TrainingSession[]>([]);
@@ -280,11 +287,14 @@ export default function Trainings() {
   useEffect(() => {
     if (!clubId) return;
     setLoadingEx(true);
-    trainingService.getExercises(clubId, { subSubPrincipleId: initialSspId ?? undefined })
+    trainingService.getExercises(clubId, {
+      subSubPrincipleId: initialSspId ?? undefined,
+      methodology: methodologyFilter || undefined,
+    })
       .then(setExercises)
       .catch(() => setExercises([]))
       .finally(() => setLoadingEx(false));
-  }, [clubId, initialSspId]);
+  }, [clubId, initialSspId, methodologyFilter]);
 
   // Load sessions
   useEffect(() => {
@@ -299,7 +309,10 @@ export default function Trainings() {
   const refreshExercises = () => {
     if (!clubId) return;
     setLoadingEx(true);
-    trainingService.getExercises(clubId, { subSubPrincipleId: initialSspId ?? undefined })
+    trainingService.getExercises(clubId, {
+      subSubPrincipleId: initialSspId ?? undefined,
+      methodology: methodologyFilter || undefined,
+    })
       .then(setExercises)
       .finally(() => setLoadingEx(false));
   };
@@ -421,16 +434,30 @@ export default function Trainings() {
           {/* ── Exercises tab ──────────────────────────────────── */}
           {tab === 0 && (
             <Box>
-              {initialSspName && (
-                <Box className={styles.toolbarRow}>
+              <Box className={styles.toolbarRow}>
+                {initialSspName && (
                   <Chip
                     label={`Filtro: ${initialSspName}`}
                     size="small"
                     className={styles.filterLabel}
                     onDelete={() => navigate(`/coach/trainings?teamId=${teamId}`)}
                   />
-                </Box>
-              )}
+                )}
+                <FormControl size="small" sx={{ minWidth: 160 }}>
+                  <InputLabel id="methodology-filter-label">Metodologia</InputLabel>
+                  <Select
+                    labelId="methodology-filter-label"
+                    label="Metodologia"
+                    value={methodologyFilter}
+                    onChange={(e) => setMethodologyFilter(e.target.value as ExerciseMethodology | "")}
+                  >
+                    <MenuItem value="">Todas</MenuItem>
+                    {methodologyOptions.map((o) => (
+                      <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Box>
 
               {loadingEx ? (
                 <Box className={styles.loadingBox}><CircularProgress size={32} /></Box>

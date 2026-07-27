@@ -7,6 +7,7 @@ import type {
   CreateExerciseRequest,
   Exercise,
   ExerciseCondition,
+  ExerciseMethodology,
   ExerciseSection,
   UpdateExerciseRequest,
   ExerciseType,
@@ -81,6 +82,7 @@ export function useExerciseForm({
       description: exercise.description,
       types: exercise.types,
       section: exercise.section,
+      methodology: exercise.methodology,
       durationTotal: exercise.durationTotal,
       playersNumber: exercise.playersNumber,
       goalPeekersNumber: exercise.goalPeekersNumber,
@@ -354,4 +356,4 @@ export function useExerciseForm({
 export type ExerciseFormState = ReturnType<typeof useExerciseForm>;
 
 // Re-export types consumed by the form panel
-export type { ExerciseSection, ExerciseType };
+export type { ExerciseSection, ExerciseType, ExerciseMethodology };

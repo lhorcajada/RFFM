@@ -16,8 +16,8 @@ import {
   Typography,
   type SelectChangeEvent,
 } from "@mui/material";
-import { sectionOptions, typeOptions } from "../constants";
-import type { ExerciseFormState } from "../hooks/useExerciseForm";
+import { methodologyOptions, sectionOptions, typeOptions } from "../constants";
+import type { ExerciseFormState, ExerciseMethodology } from "../hooks/useExerciseForm";
 import styles from "../NewExercisePage.module.css";
 import type { ExerciseSection, ExerciseType } from "../../../../types/training";
 
@@ -143,6 +143,23 @@ export default function ExerciseFormPanel({
               }
             >
               {sectionOptions.map((o) => (
+                <MenuItem key={o.value} value={o.value}>
+                  {o.label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <FormControl size="small" className={styles.typeSelect}>
+            <InputLabel>Metodologia</InputLabel>
+            <Select
+              value={formData.methodology}
+              label="Metodologia"
+              onChange={(e: SelectChangeEvent) =>
+                setField("methodology", e.target.value as ExerciseMethodology)
+              }
+            >
+              {methodologyOptions.map((o) => (
                 <MenuItem key={o.value} value={o.value}>
                   {o.label}
                 </MenuItem>

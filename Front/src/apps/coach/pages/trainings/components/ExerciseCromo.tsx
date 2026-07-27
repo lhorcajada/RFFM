@@ -16,7 +16,7 @@ import TacticalBoardSnapshotPreview, {
   hasBoardObjects,
   tryParseBoardSnapshot,
 } from "../../../components/TacticalBoardSnapshotPreview";
-import { TYPE_LABELS, SECTION_LABELS } from "../exerciseTypeLabels";
+import { TYPE_LABELS, SECTION_LABELS, METHODOLOGY_LABELS } from "../exerciseTypeLabels";
 import styles from "./ExerciseCromo.module.css";
 
 const API_BASE = (client.defaults.baseURL ?? "/").replace(/\/$/, "");
@@ -101,6 +101,9 @@ export default function ExerciseCromo({ exercise, onEdit, onDuplicate, onPrint, 
         <div className={styles.metaRow}>
           <span className={`${styles.sectionPill} ${styles[`sectionPill_${exercise.section}`] ?? ""}`}>
             {SECTION_LABELS[exercise.section] ?? exercise.section}
+          </span>
+          <span className={`${styles.methodologyPill} ${styles[`methodologyPill_${exercise.methodology}`] ?? ""}`}>
+            {METHODOLOGY_LABELS[exercise.methodology] ?? exercise.methodology}
           </span>
           {exercise.subSubPrincipleName && (
             <span className={styles.sspPill}>{exercise.subSubPrincipleName}</span>

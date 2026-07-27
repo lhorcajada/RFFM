@@ -10,6 +10,7 @@ function buildExercise(overrides: Partial<Exercise> = {}): Exercise {
     description: "",
     types: ["Tactical"],
     section: "Principal",
+    methodology: "Integrado",
     durationTotal: 10,
     playersNumber: 6,
     goalPeekersNumber: 0,
@@ -48,5 +49,19 @@ describe("ExerciseCromo", () => {
     );
 
     expect(container.querySelector('[class*="type_Game"]')).toBeInTheDocument();
+  });
+
+  it("muestra un pill con la metodologia del ejercicio", () => {
+    render(
+      <ExerciseCromo
+        exercise={buildExercise({ methodology: "Global" })}
+        onEdit={vi.fn()}
+        onDuplicate={vi.fn()}
+        onPrint={vi.fn()}
+        onDelete={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText("Global")).toBeInTheDocument();
   });
 });

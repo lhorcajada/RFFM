@@ -1,4 +1,4 @@
-import type { CreateExerciseRequest, ExerciseSection, ExerciseType } from "../../../types/training";
+import type { CreateExerciseRequest, ExerciseMethodology, ExerciseSection, ExerciseType } from "../../../types/training";
 import type { LineColorOption, LineKindOption, MaterialTemplate, PetoOption, SpaceKind, SpaceTemplate, TextStyle } from "./types";
 
 export const HALF_FIELD_LENGTH_METERS = 52.5;
@@ -70,6 +70,12 @@ export const sectionOptions: { value: ExerciseSection; label: string }[] = [
   { value: "VueltaALaCalma", label: "Vuelta a la Calma" },
 ];
 
+export const methodologyOptions: { value: ExerciseMethodology; label: string }[] = [
+  { value: "Analitico", label: "Analítico" },
+  { value: "Integrado", label: "Integrado" },
+  { value: "Global", label: "Global" },
+];
+
 export const petoOptions: PetoOption[] = [
   { key: "yellow", label: "Amarillo", color: "#f1c40f" },
   { key: "orange", label: "Naranja", color: "#e67e22" },
@@ -96,6 +102,7 @@ export const emptyExercise: CreateExerciseRequest = {
   description: "",
   types: ["Tactical"],
   section: "Principal",
+  methodology: "Integrado",
   durationTotal: 15,
   playersNumber: 10,
   goalPeekersNumber: 1,

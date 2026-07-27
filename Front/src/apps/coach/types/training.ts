@@ -6,6 +6,7 @@ export type ExerciseType =
   | "Cognitive"
   | "Psychological";
 export type ExerciseSection = "Calentamiento" | "Principal" | "VueltaALaCalma";
+export type ExerciseMethodology = "Analitico" | "Integrado" | "Global";
 
 export interface SkillCoverage {
   essentialSkillId: string;
@@ -24,6 +25,7 @@ export interface Exercise {
   description: string;
   types: ExerciseType[];
   section: ExerciseSection;
+  methodology: ExerciseMethodology;
   durationTotal: number;
   playersNumber: number;
   goalPeekersNumber: number;
@@ -52,6 +54,7 @@ export interface CreateExerciseRequest {
   description: string;
   types: ExerciseType[];
   section: ExerciseSection;
+  methodology: ExerciseMethodology;
   durationTotal: number;
   playersNumber: number;
   goalPeekersNumber: number;
