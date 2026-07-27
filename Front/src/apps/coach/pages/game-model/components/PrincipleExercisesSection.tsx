@@ -17,7 +17,7 @@ import TacticalBoardSnapshotPreview, { tryParseBoardSnapshot } from "../../../co
 // component, and SubSubPrincipleCard.test.tsx already asserts against these
 // scoped class names, so importing the same module file keeps both in sync.
 import styles from "./SubSubPrincipleCard.module.css";
-import { TYPE_LABELS, SECTION_LABELS } from "../../trainings/exerciseTypeLabels";
+import { TYPE_LABELS, SECTION_LABELS, METHODOLOGY_LABELS } from "../../trainings/exerciseTypeLabels";
 
 const API_BASE = (client.defaults.baseURL ?? "/").replace(/\/$/, "");
 
@@ -308,6 +308,11 @@ export default function PrincipleExercisesSection({
                         size="small"
                         className={styles.sectionChip}
                       />
+                      <Chip
+                        label={METHODOLOGY_LABELS[ex.methodology] ?? ex.methodology}
+                        size="small"
+                        className={`${styles.methodologyChip} ${styles[`methodologyChip_${ex.methodology}`] ?? ""}`}
+                      />
                     </Box>
 
                     {/* Stats */}
@@ -326,13 +331,6 @@ export default function PrincipleExercisesSection({
                       )}
                     </Box>
 
-                    {/* Description */}
-                    {ex.description && (
-                      <Typography className={styles.exDescription}>
-                        {ex.description}
-                      </Typography>
-                    )}
-
                     {/* Skill tags */}
                     {ex.skills.length > 0 && (
                       <Box className={styles.exSkills}>
@@ -344,17 +342,6 @@ export default function PrincipleExercisesSection({
                             className={styles.skillTagChip}
                           />
                         ))}
-                      </Box>
-                    )}
-                    {/* Conditions */}
-                    {(ex.conditions ?? []).length > 0 && (
-                      <Box className={styles.exConditions}>
-                        <Typography className={styles.exConditionsLabel}>Condiciones</Typography>
-                        <ul className={styles.exConditionsList}>
-                          {(ex.conditions ?? []).map(c => (
-                            <li key={c.id} className={styles.exConditionItem}>{c.text}</li>
-                          ))}
-                        </ul>
                       </Box>
                     )}
                   </Box>

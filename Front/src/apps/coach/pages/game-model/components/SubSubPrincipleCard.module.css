@@ -205,20 +205,8 @@
 
 .exGrid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 10px;
-}
-
-@media (max-width: 900px) {
-  .exGrid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 560px) {
-  .exGrid {
-    grid-template-columns: 1fr;
-  }
 }
 
 .exCard {
@@ -318,7 +306,7 @@
 .exTypeRow {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 5px;
 }
 
 .exStats {
@@ -341,62 +329,10 @@
   line-height: 1;
 }
 
-.exDescription {
-  font-size: 0.8rem !important;
-  color: rgba(212, 212, 212, 0.7) !important;
-  line-height: 1.45 !important;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
 .exSkills {
   display: flex;
   flex-wrap: wrap;
   gap: 3px;
-}
-
-/* ── Conditions ── */
-.exConditions {
-  background: rgba(77, 157, 224, 0.05);
-  border: 1px solid rgba(77, 157, 224, 0.12);
-  border-radius: 4px;
-  padding: 5px 8px;
-}
-
-.exConditionsLabel {
-  font-size: 0.7rem !important;
-  font-weight: 700 !important;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: #4d9de0 !important;
-  margin-bottom: 3px !important;
-}
-
-.exConditionsList {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.exConditionItem {
-  font-size: 0.8rem;
-  color: rgba(212, 212, 212, 0.75);
-  line-height: 1.4;
-  padding-left: 10px;
-  position: relative;
-}
-
-.exConditionItem::before {
-  content: "·";
-  position: absolute;
-  left: 0;
-  color: #4d9de0;
-  font-weight: 700;
 }
 
 .typeChip {
@@ -411,6 +347,28 @@
   color: #7deb9a !important;
   font-size: 0.75rem !important;
   height: 18px !important;
+}
+
+.methodologyChip {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  color: rgba(212, 212, 212, 0.6) !important;
+  font-size: 0.75rem !important;
+  height: 18px !important;
+}
+
+.methodologyChip_Analitico {
+  background-color: rgba(155, 89, 182, 0.12) !important;
+  color: #c39bd3 !important;
+}
+
+.methodologyChip_Integrado {
+  background-color: rgba(22, 160, 133, 0.15) !important;
+  color: #48c9b0 !important;
+}
+
+.methodologyChip_Global {
+  background-color: rgba(233, 30, 99, 0.12) !important;
+  color: #f06292 !important;
 }
 
 .skillTagChip {

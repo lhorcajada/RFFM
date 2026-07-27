@@ -20,7 +20,7 @@ vi.mock("../../../../services/trainingService", () => ({
 function buildExercise(overrides: Partial<Exercise> = {}): Exercise {
   return {
     id: "ex-1", name: "Ejercicio de prueba", description: "", types: ["Tactical"],
-    section: "Principal", durationTotal: 10, playersNumber: 6, goalPeekersNumber: 0,
+    section: "Principal", methodology: "Analitico", durationTotal: 10, playersNumber: 6, goalPeekersNumber: 0,
     fieldSpace: "", skills: [], conditions: [], ...overrides,
   };
 }
@@ -143,6 +143,23 @@ describe("PrincipleExercisesSection", () => {
 
     expect((await screen.findAllByText("Físico")).length).toBeGreaterThan(0);
     expect(screen.getByText("Cognitivo")).toBeInTheDocument();
+  });
+
+  it("renderiza un chip con la metodología del ejercicio", async () => {
+    vi.mocked(trainingService.getExercises).mockResolvedValue([
+      buildExercise({ methodology: "Integrado" }),
+    ]);
+
+    render(
+      <MemoryRouter initialEntries={["/coach/game-model?clubId=club-1&teamId=team-9"]}>
+        <PrincipleExercisesSection
+          clubId="club-1" teamId="team-9" levelKind="subSubPrinciple"
+          levelApiId="ssp-1" levelName="Sub-subprincipio X" contextLabel="Sub-subprincipio 1" active
+        />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText("Integrado")).toBeInTheDocument();
   });
 
   it("el botón Añadir ejercicio navega con subPrincipleId cuando levelKind es subPrinciple", async () => {
