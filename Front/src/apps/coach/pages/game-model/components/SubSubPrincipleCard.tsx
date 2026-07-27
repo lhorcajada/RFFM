@@ -110,6 +110,7 @@ export default function SubSubPrincipleCard({
               levelKind="subSubPrinciple"
               levelApiId={sspApiId}
               levelName={subSubPrinciple.name}
+              contextLabel={`Sub-subprincipio ${index}`}
               active={expanded}
               onCountChange={setExCount}
               parentSubPrincipleApiId={subPrincipleApiId}

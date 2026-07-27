@@ -19,6 +19,7 @@ vi.mock("../PrincipleExercisesSection", () => ({
   default: ({
     levelKind,
     levelApiId,
+    active,
     onCountChange,
     parentScenarioApiId,
     parentScenarioName,
@@ -26,14 +27,16 @@ vi.mock("../PrincipleExercisesSection", () => ({
   }: {
     levelKind: string;
     levelApiId: string;
+    active: boolean;
     onCountChange?: (count: number) => void;
     parentScenarioApiId?: string | null;
     parentScenarioName?: string | null;
     siblingSubSubPrinciples?: { apiId: string; name: string }[];
   }) => {
     useEffect(() => {
-      onCountChange?.(3);
-    }, [onCountChange]);
+      if (active) onCountChange?.(3);
+    }, [active, onCountChange]);
+    if (!active) return null;
     return (
       <div
         data-testid="principle-exercises-section"
@@ -301,16 +304,10 @@ describe("ScenarioAccordion", () => {
         tacticalPrinciples: [],
         mediaUrl: null,
         mediaType: null,
-        subPrinciples: [
-          {
-            id: 101,
-            order: 1,
-            label: "A",
-            name: "Subprincipio A",
-            context: "Contexto SP",
-            subSubPrinciples: [],
-          },
-        ],
+        // Sin subprincipios: así el panel de nivel escenario se ve solo, sin que
+        // un subprincipio auto-seleccionado (cuando solo hay uno) lo oculte al
+        // pasar `active={selectedPi === null}` en false.
+        subPrinciples: [],
       };
     }
 
@@ -333,6 +330,37 @@ describe("ScenarioAccordion", () => {
       const sections = screen.queryAllByTestId("principle-exercises-section");
       // Should only have section from subprincipio, not from scenario
       expect(sections.length).toBeLessThanOrEqual(1);
+    });
+
+    it("al entrar en el detalle de un subprincipio no se duplica con la sección de ejercicios del escenario", async () => {
+      const scenario: Scenario = {
+        id: 1,
+        apiId: "scenario-api-1",
+        order: 1,
+        name: "Escenario X",
+        context: "Contexto",
+        tacticalPrinciples: [],
+        mediaUrl: null,
+        mediaType: null,
+        subPrinciples: [
+          {
+            id: 101,
+            apiId: "sp-api-1",
+            order: 1,
+            label: "A",
+            name: "Subprincipio A",
+            context: "Contexto SP",
+            subSubPrinciples: [],
+          },
+        ],
+      };
+      renderAccordion([scenario]);
+
+      // Un único subprincipio se auto-selecciona: solo debe verse su propia
+      // sección de ejercicios (subPrinciple), nunca junto a la del escenario.
+      const sections = await screen.findAllByTestId("principle-exercises-section");
+      expect(sections).toHaveLength(1);
+      expect(sections[0]).toHaveAttribute("data-level-kind", "subPrinciple");
     });
   });
 });

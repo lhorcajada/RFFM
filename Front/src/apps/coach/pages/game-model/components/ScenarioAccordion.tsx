@@ -126,6 +126,7 @@ function SubPrincipleDetailView({ sp, clubId, teamId, scenario, gameMomentName, 
           levelKind="subPrinciple"
           levelApiId={sp.apiId}
           levelName={sp.name}
+          contextLabel={`Subprincipio ${sp.label}`}
           active
           onCountChange={setExerciseCount}
           parentScenarioApiId={scenario.apiId}
@@ -240,7 +241,8 @@ function ScenarioDetailView({ scenario, clubId, teamId, gameMomentName, zoneName
           levelKind="scenario"
           levelApiId={scenario.apiId}
           levelName={scenario.name}
-          active
+          contextLabel={`Escenario ${scenario.order}`}
+          active={selectedPi === null}
           onCountChange={setExerciseCount}
         />
       )}

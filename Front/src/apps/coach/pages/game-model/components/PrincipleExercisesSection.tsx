@@ -37,6 +37,10 @@ interface Props {
   levelKind: PrincipleLevelKind;
   levelApiId: string;
   levelName: string;
+  /** Human-readable context shown in the header (e.g. "Subprincipio A",
+   * "Sub-subprincipio 1", "Escenario 2") so it's clear which level this
+   * exercises box belongs to when several can appear on the same page. */
+  contextLabel: string;
   active: boolean;
   onCountChange?: (count: number) => void;
   /** Only relevant when levelKind is "subSubPrinciple": lets the create/edit
@@ -59,6 +63,7 @@ export default function PrincipleExercisesSection({
   levelKind,
   levelApiId,
   levelName,
+  contextLabel,
   active,
   onCountChange,
   parentSubPrincipleApiId,
@@ -182,7 +187,7 @@ export default function PrincipleExercisesSection({
       <Box className={styles.exercisesSection}>
         <Box className={styles.exercisesHeader}>
           <Typography className={styles.exercisesLabel}>
-            Ejercicios de entrenamiento
+            Ejercicios de entrenamiento de {contextLabel}
           </Typography>
           <Button
             size="small"

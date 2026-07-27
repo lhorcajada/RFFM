@@ -38,7 +38,7 @@ describe("PrincipleExercisesSection", () => {
       <MemoryRouter initialEntries={["/coach/game-model?clubId=club-1&teamId=team-9"]}>
         <PrincipleExercisesSection
           clubId="club-1" teamId="team-9" levelKind="subSubPrinciple"
-          levelApiId="ssp-1" levelName="Sub-subprincipio X" active
+          levelApiId="ssp-1" levelName="Sub-subprincipio X" contextLabel="Sub-subprincipio 1" active
         />
       </MemoryRouter>
     );
@@ -56,7 +56,7 @@ describe("PrincipleExercisesSection", () => {
       <MemoryRouter initialEntries={["/coach/game-model?clubId=club-1&teamId=team-9"]}>
         <PrincipleExercisesSection
           clubId="club-1" teamId="team-9" levelKind="subPrinciple"
-          levelApiId="sp-1" levelName="Subprincipio X" active
+          levelApiId="sp-1" levelName="Subprincipio X" contextLabel="Subprincipio A" active
         />
       </MemoryRouter>
     );
@@ -77,7 +77,7 @@ describe("PrincipleExercisesSection", () => {
       <MemoryRouter initialEntries={["/coach/game-model?clubId=club-1&teamId=team-9"]}>
         <PrincipleExercisesSection
           clubId="club-1" teamId="team-9" levelKind="scenario"
-          levelApiId="scenario-1" levelName="Escenario 1" active
+          levelApiId="scenario-1" levelName="Escenario 1" contextLabel="Escenario 1" active
           {...props}
         />
       </MemoryRouter>
@@ -90,7 +90,7 @@ describe("PrincipleExercisesSection", () => {
     // Simula el comportamiento real: DrillDownPanel reutiliza la misma instancia
     // de PrincipleExercisesSection al cambiar de escenario (no la desmonta), solo
     // le pasa un levelApiId nuevo.
-    rerender(renderSection({ levelApiId: "scenario-2", levelName: "Escenario 2" }));
+    rerender(renderSection({ levelApiId: "scenario-2", levelName: "Escenario 2", contextLabel: "Escenario 2" }));
 
     await waitFor(() => expect(trainingService.getExercises).toHaveBeenCalledWith(
       "club-1", { scenarioId: "scenario-2" }
@@ -104,7 +104,7 @@ describe("PrincipleExercisesSection", () => {
       <MemoryRouter>
         <PrincipleExercisesSection
           clubId="club-1" teamId="team-9" levelKind="subPrinciple"
-          levelApiId="sp-1" levelName="Subprincipio X" active={false}
+          levelApiId="sp-1" levelName="Subprincipio X" contextLabel="Subprincipio A" active={false}
         />
       </MemoryRouter>
     );
@@ -119,7 +119,7 @@ describe("PrincipleExercisesSection", () => {
       <MemoryRouter initialEntries={["/coach/game-model?clubId=club-1&teamId=team-9"]}>
         <PrincipleExercisesSection
           clubId="club-1" teamId="team-9" levelKind="subPrinciple"
-          levelApiId="sp-1" levelName="Subprincipio X" active onCountChange={onCountChange}
+          levelApiId="sp-1" levelName="Subprincipio X" contextLabel="Subprincipio A" active onCountChange={onCountChange}
         />
       </MemoryRouter>
     );
@@ -136,7 +136,7 @@ describe("PrincipleExercisesSection", () => {
       <MemoryRouter initialEntries={["/coach/game-model?clubId=club-1&teamId=team-9"]}>
         <PrincipleExercisesSection
           clubId="club-1" teamId="team-9" levelKind="subSubPrinciple"
-          levelApiId="ssp-1" levelName="Sub-subprincipio X" active
+          levelApiId="ssp-1" levelName="Sub-subprincipio X" contextLabel="Sub-subprincipio 1" active
         />
       </MemoryRouter>
     );
@@ -152,7 +152,7 @@ describe("PrincipleExercisesSection", () => {
       <MemoryRouter initialEntries={["/coach/game-model?clubId=club-1&teamId=team-9"]}>
         <PrincipleExercisesSection
           clubId="club-1" teamId="team-9" levelKind="subPrinciple"
-          levelApiId="sp-1" levelName="Subprincipio X" active
+          levelApiId="sp-1" levelName="Subprincipio X" contextLabel="Subprincipio A" active
         />
       </MemoryRouter>
     );
@@ -163,5 +163,20 @@ describe("PrincipleExercisesSection", () => {
       expect.stringContaining("subPrincipleId=sp-1"),
       expect.anything()
     );
+  });
+
+  it("muestra el nombre del nivel en la cabecera para distinguir cajas en la misma pantalla", async () => {
+    vi.mocked(trainingService.getExercises).mockResolvedValue([]);
+
+    render(
+      <MemoryRouter initialEntries={["/coach/game-model?clubId=club-1&teamId=team-9"]}>
+        <PrincipleExercisesSection
+          clubId="club-1" teamId="team-9" levelKind="subPrinciple"
+          levelApiId="sp-1" levelName="Subprincipio X" contextLabel="Subprincipio A" active
+        />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText("Ejercicios de entrenamiento de Subprincipio A")).toBeInTheDocument();
   });
 });
