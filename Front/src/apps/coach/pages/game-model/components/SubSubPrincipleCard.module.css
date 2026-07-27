@@ -215,7 +215,7 @@
   border-radius: 8px;
   overflow: hidden;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   transition: border-color 0.15s;
 }
 
@@ -223,14 +223,83 @@
   border-color: rgba(144, 202, 249, 0.3);
 }
 
+/* ── Section strip — vertical color accent with the section name ── */
+
+.exSectionStrip {
+  flex: 0 0 20px;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 6px 0;
+}
+
+.exSectionStrip_Calentamiento  { background: #ffb300; }
+.exSectionStrip_Principal      { background: #4d9de0; }
+.exSectionStrip_VueltaALaCalma { background: #27ae60; }
+
+.exSectionStripLabel {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+}
+
+.exCardMain {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 /* ── Media area ── */
 
 .exCardMedia {
+  position: relative;
   width: 100%;
   aspect-ratio: 16 / 9;
   overflow: hidden;
   flex-shrink: 0;
   background: #07071a;
+}
+
+.exMethodologyBadge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 2;
+}
+
+.exMethodologyBadgeChip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 7px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+
+.exMethodologyBadgeChip_Analitico {
+  background: rgba(155, 89, 182, 0.9);
+}
+
+.exMethodologyBadgeChip_Integrado {
+  background: rgba(22, 160, 133, 0.9);
+}
+
+.exMethodologyBadgeChip_Global {
+  background: rgba(233, 30, 99, 0.9);
 }
 
 .exMediaEl {
@@ -340,35 +409,6 @@
   color: #4d9de0 !important;
   font-size: 0.75rem !important;
   height: 18px !important;
-}
-
-.sectionChip {
-  background-color: rgba(130, 220, 130, 0.12) !important;
-  color: #7deb9a !important;
-  font-size: 0.75rem !important;
-  height: 18px !important;
-}
-
-.methodologyChip {
-  background-color: rgba(255, 255, 255, 0.08) !important;
-  color: rgba(212, 212, 212, 0.6) !important;
-  font-size: 0.75rem !important;
-  height: 18px !important;
-}
-
-.methodologyChip_Analitico {
-  background-color: rgba(155, 89, 182, 0.12) !important;
-  color: #c39bd3 !important;
-}
-
-.methodologyChip_Integrado {
-  background-color: rgba(22, 160, 133, 0.15) !important;
-  color: #48c9b0 !important;
-}
-
-.methodologyChip_Global {
-  background-color: rgba(233, 30, 99, 0.12) !important;
-  color: #f06292 !important;
 }
 
 .skillTagChip {

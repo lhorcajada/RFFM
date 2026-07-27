@@ -249,8 +249,9 @@ describe("SubSubPrincipleCard", () => {
         expect(document.querySelector(`.${styles.typeChip}`)).toBeInTheDocument();
       });
       expect(document.querySelector(`.${styles.typeChip}`)).toHaveTextContent("Técnico");
-      expect(document.querySelector(`.${styles.sectionChip}`)).toBeInTheDocument();
-      expect(document.querySelector(`.${styles.sectionChip}`)).toHaveTextContent("Principal");
+      const sectionStrip = document.querySelector('[data-testid="ex-section-strip"]');
+      expect(sectionStrip).toBeInTheDocument();
+      expect(sectionStrip).toHaveTextContent("Principal");
     });
   });
 });

@@ -11,10 +11,44 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s;
   color: #e8e8e8;
   user-select: none;
+}
+
+/* ─── Section strip — vertical color accent on the left edge, with the section name ─── */
+.sectionStrip {
+  flex: 0 0 22px;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 6px 0;
+}
+
+.sectionStrip_Calentamiento  { background: #ffb300; }
+.sectionStrip_Principal      { background: #4d9de0; }
+.sectionStrip_VueltaALaCalma { background: #27ae60; }
+
+.sectionStripLabel {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+}
+
+.cardMain {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .card:hover {
@@ -88,17 +122,39 @@
   pointer-events: none;
 }
 
-/* ─── Type badge row — anchored to bottom of photo over gradient ─── */
-.typeBadgeRow {
+/* ─── Methodology badge — card header, anchored top-right over the photo ─── */
+.methodologyBadge {
   position: absolute;
-  bottom: 7px;
-  left: 8px;
+  top: 7px;
   right: 8px;
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 4px;
   z-index: 2;
+}
+
+.methodologyBadgeChip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+.methodologyBadgeChip_Analitico {
+  background: rgba(155, 89, 182, 0.9);
+  box-shadow: 0 1px 5px rgba(155, 89, 182, 0.5);
+}
+
+.methodologyBadgeChip_Integrado {
+  background: rgba(22, 160, 133, 0.9);
+  box-shadow: 0 1px 5px rgba(22, 160, 133, 0.5);
+}
+
+.methodologyBadgeChip_Global {
+  background: rgba(233, 30, 99, 0.9);
+  box-shadow: 0 1px 5px rgba(233, 30, 99, 0.5);
 }
 
 .typeBadge {
@@ -186,49 +242,18 @@
   min-height: calc(13px * 1.35 * 2);
 }
 
-/* ─── Meta pills row ─── */
-.metaRow {
+/* ─── Tags row — type badges + sub-principle, uniformly wrapped below the title ─── */
+.tagsRow {
   display: flex;
   flex-wrap: wrap;
-  gap: 3px;
+  align-items: center;
+  gap: 4px;
   min-width: 0;
 }
 
-.sectionPill {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  padding: 2px 7px;
-  border-radius: 5px;
-  white-space: nowrap;
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(212, 212, 212, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.sectionPill_Calentamiento  { color: #ffb300; border-color: rgba(255, 179, 0, 0.3);    background: rgba(255, 179, 0, 0.1); }
-.sectionPill_Principal      { color: #4d9de0; border-color: rgba(77, 157, 224, 0.3);   background: rgba(77, 157, 224, 0.1); }
-.sectionPill_VueltaALaCalma { color: #27ae60; border-color: rgba(39, 174, 96, 0.3);    background: rgba(39, 174, 96, 0.1); }
-
-.methodologyPill {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  padding: 2px 7px;
-  border-radius: 5px;
-  white-space: nowrap;
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(212, 212, 212, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.methodologyPill_Analitico { color: #9b59b6; border-color: rgba(155, 89, 182, 0.3); background: rgba(155, 89, 182, 0.1); }
-.methodologyPill_Integrado { color: #16a085; border-color: rgba(22, 160, 133, 0.3); background: rgba(22, 160, 133, 0.1); }
-.methodologyPill_Global    { color: #e91e63; border-color: rgba(233, 30, 99, 0.3);  background: rgba(233, 30, 99, 0.1); }
-
 .sspPill {
+  flex: 0 1 auto;
+  min-width: 0;
   font-size: 10px;
   font-weight: 600;
   padding: 2px 7px;
@@ -236,7 +261,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 100%;
+  max-width: 160px;
   background: rgba(156, 220, 254, 0.08);
   color: rgba(168, 212, 245, 0.6);
   border: 1px solid rgba(156, 220, 254, 0.15);

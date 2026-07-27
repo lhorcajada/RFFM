@@ -162,6 +162,47 @@ describe("PrincipleExercisesSection", () => {
     expect(await screen.findByText("Integrado")).toBeInTheDocument();
   });
 
+  it("coloca el tag de metodologia en la cabecera de la tarjeta, sobre la media", async () => {
+    vi.mocked(trainingService.getExercises).mockResolvedValue([
+      buildExercise({ methodology: "Global" }),
+    ]);
+
+    const { container } = render(
+      <MemoryRouter initialEntries={["/coach/game-model?clubId=club-1&teamId=team-9"]}>
+        <PrincipleExercisesSection
+          clubId="club-1" teamId="team-9" levelKind="subSubPrinciple"
+          levelApiId="ssp-1" levelName="Sub-subprincipio X" contextLabel="Sub-subprincipio 1" active
+        />
+      </MemoryRouter>
+    );
+
+    await screen.findByText("Global");
+    const media = container.querySelector('[class*="exCardMedia"]');
+    expect(media).not.toBeNull();
+    expect(media?.querySelector('[data-testid="ex-methodology-badge"]')).toBeInTheDocument();
+  });
+
+  it("representa la seccion como una franja lateral de color con el nombre en vertical", async () => {
+    vi.mocked(trainingService.getExercises).mockResolvedValue([
+      buildExercise({ section: "Calentamiento" }),
+    ]);
+
+    const { container } = render(
+      <MemoryRouter initialEntries={["/coach/game-model?clubId=club-1&teamId=team-9"]}>
+        <PrincipleExercisesSection
+          clubId="club-1" teamId="team-9" levelKind="subSubPrinciple"
+          levelApiId="ssp-1" levelName="Sub-subprincipio X" contextLabel="Sub-subprincipio 1" active
+        />
+      </MemoryRouter>
+    );
+
+    await screen.findByText("Ejercicio de prueba");
+    const strip = container.querySelector('[data-testid="ex-section-strip"]');
+    expect(strip).toBeInTheDocument();
+    expect(strip).toHaveAttribute("title", "Calentamiento");
+    expect(strip?.textContent).toBe("Calentamiento");
+  });
+
   it("el botón Añadir ejercicio navega con subPrincipleId cuando levelKind es subPrinciple", async () => {
     vi.mocked(trainingService.getExercises).mockResolvedValue([]);
 

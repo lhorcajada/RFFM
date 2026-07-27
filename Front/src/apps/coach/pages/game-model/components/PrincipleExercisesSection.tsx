@@ -217,133 +217,145 @@ export default function PrincipleExercisesSection({
               const boardSnapshot = tryParseBoardSnapshot(ex.boardStateJson);
               return (
                 <Box key={ex.id} className={styles.exCard}>
-                  {/* ── Media / Placeholder ── */}
-                  <Box className={styles.exCardMedia}>
-                    {ex.urlImage ? (
-                      isVideo(ex.urlImage) ? (
-                        <video
-                          src={mediaUrl(ex.urlImage)}
-                          controls
-                          className={styles.exMediaEl}
-                        />
-                      ) : (
-                        <img
-                          src={mediaUrl(ex.urlImage)}
-                          alt={ex.name}
-                          className={styles.exMediaEl}
-                        />
-                      )
-                    ) : boardSnapshot ? (
-                      <TacticalBoardSnapshotPreview snapshot={boardSnapshot} teamId={teamId} />
-                    ) : (
-                      <Box className={`${styles.exMediaPlaceholder} ${styles[`exPlaceholder_${ex.types[0]}`]}`}>
-                        <Typography className={styles.exPlaceholderInitials}>
-                          {ex.name.slice(0, 2).toUpperCase()}
-                        </Typography>
-                        <Typography className={styles.exPlaceholderType}>
-                          {TYPE_LABELS[ex.types[0]] ?? ex.types[0]}
-                        </Typography>
-                      </Box>
-                    )}
+                  {/* Section strip — vertical color accent with the section name */}
+                  <Box
+                    className={`${styles.exSectionStrip} ${styles[`exSectionStrip_${ex.section}`] ?? ""}`}
+                    title={SECTION_LABELS[ex.section] ?? ex.section}
+                    data-testid="ex-section-strip"
+                  >
+                    <span className={styles.exSectionStripLabel}>
+                      {SECTION_LABELS[ex.section] ?? ex.section}
+                    </span>
                   </Box>
 
-                  {/* ── Card body ── */}
-                  <Box className={styles.exCardBody}>
-                    {/* Name + actions */}
-                    <Box className={styles.exCardTop}>
-                      <Typography className={styles.exName}>{ex.name}</Typography>
-                      <Box className={styles.exActions}>
-                        <Tooltip title="Editar">
-                          <IconButton
-                            size="small"
-                            className={styles.exEditBtn}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              goToExercisePage(ex.id);
-                            }}
-                          >
-                            <EditIcon style={{ fontSize: 13 }} />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Duplicar">
-                          <IconButton
-                            size="small"
-                            className={styles.exDuplicateBtn}
-                            aria-label="Duplicar"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              duplicateExercise(ex.id);
-                            }}
-                          >
-                            <ContentCopyIcon style={{ fontSize: 13 }} />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Eliminar">
-                          <IconButton
-                            size="small"
-                            className={styles.exDeleteBtn}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDeleteExId(ex.id);
-                            }}
-                          >
-                            <DeleteOutlineIcon style={{ fontSize: 13 }} />
-                          </IconButton>
-                        </Tooltip>
+                  <Box className={styles.exCardMain}>
+                    {/* ── Media / Placeholder ── */}
+                    <Box className={styles.exCardMedia}>
+                      {ex.urlImage ? (
+                        isVideo(ex.urlImage) ? (
+                          <video
+                            src={mediaUrl(ex.urlImage)}
+                            controls
+                            className={styles.exMediaEl}
+                          />
+                        ) : (
+                          <img
+                            src={mediaUrl(ex.urlImage)}
+                            alt={ex.name}
+                            className={styles.exMediaEl}
+                          />
+                        )
+                      ) : boardSnapshot ? (
+                        <TacticalBoardSnapshotPreview snapshot={boardSnapshot} teamId={teamId} />
+                      ) : (
+                        <Box className={`${styles.exMediaPlaceholder} ${styles[`exPlaceholder_${ex.types[0]}`]}`}>
+                          <Typography className={styles.exPlaceholderInitials}>
+                            {ex.name.slice(0, 2).toUpperCase()}
+                          </Typography>
+                          <Typography className={styles.exPlaceholderType}>
+                            {TYPE_LABELS[ex.types[0]] ?? ex.types[0]}
+                          </Typography>
+                        </Box>
+                      )}
+
+                      {/* Methodology badge in the card header, over the media */}
+                      <Box className={styles.exMethodologyBadge} data-testid="ex-methodology-badge">
+                        <span
+                          className={`${styles.exMethodologyBadgeChip} ${styles[`exMethodologyBadgeChip_${ex.methodology}`] ?? ""}`}
+                        >
+                          {METHODOLOGY_LABELS[ex.methodology] ?? ex.methodology}
+                        </span>
                       </Box>
                     </Box>
 
-                    {/* Type + section chips */}
-                    <Box className={styles.exTypeRow}>
-                      {ex.types.map((t) => (
-                        <Chip
-                          key={t}
-                          label={TYPE_LABELS[t] ?? t}
-                          size="small"
-                          className={styles.typeChip}
-                        />
-                      ))}
-                      <Chip
-                        label={SECTION_LABELS[ex.section] ?? ex.section}
-                        size="small"
-                        className={styles.sectionChip}
-                      />
-                      <Chip
-                        label={METHODOLOGY_LABELS[ex.methodology] ?? ex.methodology}
-                        size="small"
-                        className={`${styles.methodologyChip} ${styles[`methodologyChip_${ex.methodology}`] ?? ""}`}
-                      />
-                    </Box>
+                    {/* ── Card body ── */}
+                    <Box className={styles.exCardBody}>
+                      {/* Name + actions */}
+                      <Box className={styles.exCardTop}>
+                        <Typography className={styles.exName}>{ex.name}</Typography>
+                        <Box className={styles.exActions}>
+                          <Tooltip title="Editar">
+                            <IconButton
+                              size="small"
+                              className={styles.exEditBtn}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                goToExercisePage(ex.id);
+                              }}
+                            >
+                              <EditIcon style={{ fontSize: 13 }} />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Duplicar">
+                            <IconButton
+                              size="small"
+                              className={styles.exDuplicateBtn}
+                              aria-label="Duplicar"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                duplicateExercise(ex.id);
+                              }}
+                            >
+                              <ContentCopyIcon style={{ fontSize: 13 }} />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Eliminar">
+                            <IconButton
+                              size="small"
+                              className={styles.exDeleteBtn}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteExId(ex.id);
+                              }}
+                            >
+                              <DeleteOutlineIcon style={{ fontSize: 13 }} />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      </Box>
 
-                    {/* Stats */}
-                    <Box className={styles.exStats}>
-                      <Typography className={styles.exStatItem}>
-                        <span className={styles.exStatIcon}>⏱</span>{ex.durationTotal} min
-                      </Typography>
-                      <Typography className={styles.exStatItem}>
-                        <span className={styles.exStatIcon}>👥</span>{ex.playersNumber}
-                        {ex.goalPeekersNumber > 0 ? ` + ${ex.goalPeekersNumber}P` : ""}
-                      </Typography>
-                      {ex.fieldSpace && (
-                        <Typography className={styles.exStatItem}>
-                          <span className={styles.exStatIcon}>📐</span>{ex.fieldSpace}
-                        </Typography>
-                      )}
-                    </Box>
-
-                    {/* Skill tags */}
-                    {ex.skills.length > 0 && (
-                      <Box className={styles.exSkills}>
-                        {ex.skills.map((sk) => (
+                      {/* Type tags, uniformly wrapped below the title */}
+                      <Box className={styles.exTypeRow}>
+                        {ex.types.map((t) => (
                           <Chip
-                            key={sk.essentialSkillId}
-                            label={sk.skillName}
+                            key={t}
+                            label={TYPE_LABELS[t] ?? t}
                             size="small"
-                            className={styles.skillTagChip}
+                            className={styles.typeChip}
                           />
                         ))}
                       </Box>
-                    )}
+
+                      {/* Stats */}
+                      <Box className={styles.exStats}>
+                        <Typography className={styles.exStatItem}>
+                          <span className={styles.exStatIcon}>⏱</span>{ex.durationTotal} min
+                        </Typography>
+                        <Typography className={styles.exStatItem}>
+                          <span className={styles.exStatIcon}>👥</span>{ex.playersNumber}
+                          {ex.goalPeekersNumber > 0 ? ` + ${ex.goalPeekersNumber}P` : ""}
+                        </Typography>
+                        {ex.fieldSpace && (
+                          <Typography className={styles.exStatItem}>
+                            <span className={styles.exStatIcon}>📐</span>{ex.fieldSpace}
+                          </Typography>
+                        )}
+                      </Box>
+
+                      {/* Skill tags */}
+                      {ex.skills.length > 0 && (
+                        <Box className={styles.exSkills}>
+                          {ex.skills.map((sk) => (
+                            <Chip
+                              key={sk.essentialSkillId}
+                              label={sk.skillName}
+                              size="small"
+                              className={styles.skillTagChip}
+                            />
+                          ))}
+                        </Box>
+                      )}
+                    </Box>
                   </Box>
                 </Box>
               );
