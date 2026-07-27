@@ -3,6 +3,7 @@ import { View, Text, FlatList, Pressable, StyleSheet, ActivityIndicator } from '
 import { useNavigation } from '@react-navigation/native';
 import { api } from '../api/client';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { coachColors } from '../theme/colors';
 
 interface Team {
   teamId: string;
@@ -57,7 +58,7 @@ const TeamSwitcherScreen = () => {
   if (loading) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator testID="loading-indicator" size="large" color="#007AFF" />
+        <ActivityIndicator testID="loading-indicator" size="large" color={coachColors.primary} />
       </View>
     );
   }
@@ -97,31 +98,33 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     paddingHorizontal: 20,
-    backgroundColor: '#fff',
+    backgroundColor: coachColors.background,
   },
   title: {
     fontSize: 22,
     fontWeight: 'bold',
     marginBottom: 20,
     textAlign: 'center',
+    color: coachColors.textPrimary,
   },
   teamCard: {
     paddingVertical: 16,
     paddingHorizontal: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: coachColors.border,
   },
   teamNameText: {
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 4,
+    color: coachColors.textPrimary,
   },
   teamRole: {
     fontSize: 14,
-    color: '#666',
+    color: coachColors.textSecondary,
   },
   errorText: {
-    color: '#d32f2f',
+    color: coachColors.error,
     fontSize: 16,
     textAlign: 'center',
   },

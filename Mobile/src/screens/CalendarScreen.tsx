@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, ActivityIndicator, StyleSheet, Pressable, RefreshControl } from 'react-native';
 import { api } from '../api/client';
 import { useRoute, useNavigation } from '@react-navigation/native';
+import { coachColors } from '../theme/colors';
 
 interface SportEvent {
   id: string;
@@ -56,7 +57,7 @@ const CalendarScreen = () => {
   if (loading) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator testID="loading-indicator" size="large" color="#007AFF" />
+        <ActivityIndicator testID="loading-indicator" size="large" color={coachColors.primary} />
       </View>
     );
   }
@@ -111,48 +112,49 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     paddingHorizontal: 20,
-    backgroundColor: '#fff',
+    backgroundColor: coachColors.background,
   },
   eventCard: {
     paddingVertical: 12,
     paddingHorizontal: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: coachColors.border,
   },
   eventTitle: {
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 4,
+    color: coachColors.textPrimary,
   },
   eventDate: {
     fontSize: 14,
-    color: '#666',
+    color: coachColors.textSecondary,
     marginBottom: 2,
   },
   eventOpponent: {
     fontSize: 14,
-    color: '#007AFF',
+    color: coachColors.primary,
   },
   errorText: {
-    color: '#d32f2f',
+    color: coachColors.error,
     fontSize: 16,
     marginBottom: 20,
     textAlign: 'center',
   },
   retryButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: coachColors.primary,
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 8,
     alignItems: 'center',
   },
   retryButtonText: {
-    color: '#fff',
+    color: coachColors.contrastText,
     fontWeight: '600',
   },
   emptyText: {
     fontSize: 16,
-    color: '#999',
+    color: coachColors.textSecondary,
     textAlign: 'center',
   },
 });

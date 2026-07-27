@@ -10,6 +10,7 @@ import {
 import { api } from '../api/client';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { useAuth } from '../auth/AuthContext';
+import { coachColors } from '../theme/colors';
 
 interface ConvocationResponse {
   convocationId: string;
@@ -81,7 +82,7 @@ const EventDetailScreen = () => {
   if (loading) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator testID="loading-indicator" size="large" color="#007AFF" />
+        <ActivityIndicator testID="loading-indicator" size="large" color={coachColors.primary} />
       </View>
     );
   }
@@ -138,7 +139,7 @@ const EventDetailScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: coachColors.background,
   },
   contentContainer: {
     paddingHorizontal: 20,
@@ -151,10 +152,11 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 8,
+    color: coachColors.textPrimary,
   },
   status: {
     fontSize: 14,
-    color: '#666',
+    color: coachColors.textSecondary,
   },
   buttonGroup: {
     flexDirection: 'row',
@@ -167,43 +169,43 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   buttonPrimary: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: coachColors.secondary,
   },
   buttonSecondary: {
-    backgroundColor: '#f5f5f5',
+    backgroundColor: coachColors.surface,
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: coachColors.border,
   },
   buttonText: {
-    color: '#fff',
+    color: coachColors.contrastText,
     fontWeight: '600',
     fontSize: 16,
   },
   buttonTextSecondary: {
-    color: '#333',
+    color: coachColors.textPrimary,
     fontWeight: '600',
     fontSize: 16,
   },
   errorText: {
-    color: '#d32f2f',
+    color: coachColors.error,
     fontSize: 16,
     marginBottom: 20,
     textAlign: 'center',
   },
   retryButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: coachColors.primary,
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 8,
     alignItems: 'center',
   },
   retryButtonText: {
-    color: '#fff',
+    color: coachColors.contrastText,
     fontWeight: '600',
   },
   emptyText: {
     fontSize: 16,
-    color: '#999',
+    color: coachColors.textSecondary,
     textAlign: 'center',
   },
 });

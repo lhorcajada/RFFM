@@ -3,6 +3,7 @@ import { View, Text, TextInput, Pressable, StyleSheet, Alert } from 'react-nativ
 import { useAuth } from '../auth/AuthContext';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { coachColors } from '../theme/colors';
 
 type NavigationProp = NativeStackNavigationProp<any>;
 
@@ -86,31 +87,33 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     paddingHorizontal: 20,
-    backgroundColor: '#fff',
+    backgroundColor: coachColors.background,
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
     marginBottom: 10,
     textAlign: 'center',
+    color: coachColors.textPrimary,
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
+    color: coachColors.textSecondary,
     marginBottom: 30,
     textAlign: 'center',
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: coachColors.border,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     marginBottom: 15,
     fontSize: 14,
+    color: coachColors.textPrimary,
   },
   button: {
-    backgroundColor: '#007AFF',
+    backgroundColor: coachColors.primary,
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
@@ -120,12 +123,12 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   buttonText: {
-    color: '#fff',
+    color: coachColors.contrastText,
     fontSize: 16,
     fontWeight: '600',
   },
   errorText: {
-    color: '#d32f2f',
+    color: coachColors.error,
     marginBottom: 15,
     fontSize: 14,
   },

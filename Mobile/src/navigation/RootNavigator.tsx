@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { DarkTheme, NavigationContainer, Theme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import LoginScreen from '../screens/LoginScreen';
@@ -8,9 +8,22 @@ import CalendarScreen from '../screens/CalendarScreen';
 import EventDetailScreen from '../screens/EventDetailScreen';
 import NewsScreen from '../screens/NewsScreen';
 import { useAuth } from '../auth/AuthContext';
+import { coachColors } from '../theme/colors';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
+
+const rffmCoachNavTheme: Theme = {
+  ...DarkTheme,
+  colors: {
+    ...DarkTheme.colors,
+    background: coachColors.background,
+    card: coachColors.surfaceAlt,
+    text: coachColors.textPrimary,
+    primary: coachColors.primary,
+    border: coachColors.border,
+  },
+};
 
 const CalendarTabs = ({ route }: { route: { params?: { teamId?: string; teamPlayerId?: string } } }) => {
   const teamId = route.params?.teamId;
@@ -45,7 +58,7 @@ export const RootNavigator = () => {
   const { isAuthenticated } = useAuth();
 
   return (
-    <NavigationContainer>
+    <NavigationContainer theme={rffmCoachNavTheme}>
       <Stack.Navigator
         screenOptions={{
           headerShown: true,

@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { coachColors } from '../theme/colors';
 
 const NewsScreen = () => {
   return (
@@ -15,16 +16,17 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: coachColors.background,
   },
   title: {
     fontSize: 22,
     fontWeight: 'bold',
     marginBottom: 10,
+    color: coachColors.textPrimary,
   },
   placeholder: {
     fontSize: 16,
-    color: '#999',
+    color: coachColors.textSecondary,
   },
 });
 
