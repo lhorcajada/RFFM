@@ -2,6 +2,7 @@ import React from 'react';
 import { DarkTheme, NavigationContainer, Theme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { Ionicons } from '@expo/vector-icons';
 import LoginScreen from '../screens/LoginScreen';
 import TeamSwitcherScreen from '../screens/TeamSwitcherScreen';
 import CalendarScreen from '../screens/CalendarScreen';
@@ -43,6 +44,7 @@ const CalendarTabs = ({ route }: { route: { params?: { teamId?: string; teamPlay
         initialParams={{ teamId, teamPlayerId }}
         options={{
           tabBarLabel: 'Eventos',
+          tabBarIcon: ({ color, size }) => <Ionicons name="calendar-outline" size={size} color={color} />,
         }}
       />
       <Tab.Screen
@@ -50,6 +52,7 @@ const CalendarTabs = ({ route }: { route: { params?: { teamId?: string; teamPlay
         component={NewsScreen}
         options={{
           tabBarLabel: 'Noticias',
+          tabBarIcon: ({ color, size }) => <Ionicons name="newspaper-outline" size={size} color={color} />,
         }}
       />
     </Tab.Navigator>
