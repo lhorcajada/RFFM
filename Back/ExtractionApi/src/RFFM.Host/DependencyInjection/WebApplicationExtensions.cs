@@ -432,6 +432,12 @@ namespace RFFM.Host.DependencyInjection
                         // already bypasses FeaturePermissionBehavior entirely) so Coach can confirm/edit
                         // attendance for any player on the roster, not just their own linked player.
                         ("AttendanceConfirmation", CoachFeatureRoutes.AttendanceConfirmation, "Coach", 3, false),
+
+                        // PlayerSeasonCards: Read-only for Player, FamilyMember and Coach — the Mobile
+                        // "Cromos" screen only displays aggregated season data, no edit affordances.
+                        ("PlayerSeasonCards", CoachFeatureRoutes.PlayerSeasonCards, "Player", 1, false),
+                        ("PlayerSeasonCards", CoachFeatureRoutes.PlayerSeasonCards, "FamilyMember", 1, false),
+                        ("PlayerSeasonCards", CoachFeatureRoutes.PlayerSeasonCards, "Coach", 1, false),
                     };
 
                     foreach (var (featureName, featureRoute, roleName, permTypeId, isEditable) in entries)

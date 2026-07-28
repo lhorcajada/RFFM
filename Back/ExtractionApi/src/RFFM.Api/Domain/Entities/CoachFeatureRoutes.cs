@@ -17,6 +17,7 @@ namespace RFFM.Api.Domain.Entities
         public const string Lottery = "/coach/lottery";
         public const string News = "/coach/news";
         public const string AttendanceConfirmation = "/mobile/attendance";
+        public const string PlayerSeasonCards = "/mobile/season-cards";
 
         // Blocked for Player
         public const string Rivals = "/coach/rivals";

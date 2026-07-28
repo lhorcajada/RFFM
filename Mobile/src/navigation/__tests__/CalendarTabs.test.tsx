@@ -1,0 +1,40 @@
+import React from 'react';
+import { render } from '@testing-library/react-native';
+import { CalendarTabs } from '../RootNavigator';
+
+jest.mock('../../screens/CalendarScreen', () => 'CalendarScreen');
+jest.mock('../../screens/NewsScreen', () => 'NewsScreen');
+jest.mock('../../screens/PlayerSeasonCardsScreen', () => 'PlayerSeasonCardsScreen');
+
+jest.mock('@react-navigation/bottom-tabs', () => {
+  const ReactActual = require('react');
+  const { View, Text } = require('react-native');
+  return {
+    createBottomTabNavigator: () => ({
+      Navigator: ({ children }: any) => ReactActual.createElement(View, { testID: 'tab-navigator' }, children),
+      Screen: ({ name, options }: any) =>
+        ReactActual.createElement(
+          View,
+          { testID: `tab-screen-${name}` },
+          ReactActual.createElement(Text, { testID: `tab-label-${name}` }, options?.tabBarLabel ?? name),
+        ),
+    }),
+  };
+});
+
+describe('CalendarTabs', () => {
+  it('registers a "Cromos" PlayersTab alongside CalendarTab and NewsTab', async () => {
+    const { getByTestId } = await render(
+      <CalendarTabs route={{ params: { teamId: 'team1' } }} />,
+    );
+
+    expect(getByTestId('tab-screen-CalendarTab')).toBeTruthy();
+    expect(getByTestId('tab-label-CalendarTab').props.children).toBe('Eventos');
+
+    expect(getByTestId('tab-screen-NewsTab')).toBeTruthy();
+    expect(getByTestId('tab-label-NewsTab').props.children).toBe('Noticias');
+
+    expect(getByTestId('tab-screen-PlayersTab')).toBeTruthy();
+    expect(getByTestId('tab-label-PlayersTab').props.children).toBe('Cromos');
+  });
+});

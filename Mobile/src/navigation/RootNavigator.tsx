@@ -8,6 +8,7 @@ import TeamSwitcherScreen from '../screens/TeamSwitcherScreen';
 import CalendarScreen from '../screens/CalendarScreen';
 import EventDetailScreen from '../screens/EventDetailScreen';
 import NewsScreen from '../screens/NewsScreen';
+import PlayerSeasonCardsScreen from '../screens/PlayerSeasonCardsScreen';
 import AppHeaderTitle from './AppHeaderTitle';
 import UserAvatarMenu from './UserAvatarMenu';
 import { useAuth } from '../auth/AuthContext';
@@ -28,7 +29,7 @@ const rffmCoachNavTheme: Theme = {
   },
 };
 
-const CalendarTabs = ({ route }: { route: { params?: { teamId?: string; teamPlayerId?: string } } }) => {
+export const CalendarTabs = ({ route }: { route: { params?: { teamId?: string; teamPlayerId?: string } } }) => {
   const teamId = route.params?.teamId;
   const teamPlayerId = route.params?.teamPlayerId;
 
@@ -53,6 +54,15 @@ const CalendarTabs = ({ route }: { route: { params?: { teamId?: string; teamPlay
         options={{
           tabBarLabel: 'Noticias',
           tabBarIcon: ({ color, size }) => <Ionicons name="newspaper-outline" size={size} color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="PlayersTab"
+        component={PlayerSeasonCardsScreen}
+        initialParams={{ teamId }}
+        options={{
+          tabBarLabel: 'Cromos',
+          tabBarIcon: ({ color, size }) => <Ionicons name="albums-outline" size={size} color={color} />,
         }}
       />
     </Tab.Navigator>

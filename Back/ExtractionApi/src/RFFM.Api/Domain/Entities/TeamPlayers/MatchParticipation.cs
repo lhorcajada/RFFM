@@ -33,6 +33,9 @@ namespace RFFM.Api.Domain.Entities.TeamPlayers
         /// <summary>Serialised JSON array of GoalEvent objects scored during the match.</summary>
         public string? GoalsJson { get; private set; }
 
+        /// <summary>Serialised JSON array of CardEvent(TeamPlayerId, CardType) objects issued during the match.</summary>
+        public string? CardsJson { get; private set; }
+
         /// <summary>Home team goals at end of match.</summary>
         public int ScoreLocal { get; private set; }
 
@@ -60,7 +63,8 @@ namespace RFFM.Api.Domain.Entities.TeamPlayers
             string matchPhase,
             string? substitutionWindowsJson,
             string? ratingSnapshotsJson,
-            string? goalsJson)
+            string? goalsJson,
+            string? cardsJson = null)
         {
             var now = DateTime.UtcNow;
             return new MatchParticipation
@@ -78,6 +82,7 @@ namespace RFFM.Api.Domain.Entities.TeamPlayers
                 SubstitutionWindowsJson = substitutionWindowsJson,
                 RatingSnapshotsJson = ratingSnapshotsJson,
                 GoalsJson = goalsJson,
+                CardsJson = cardsJson,
                 CreatedAt = now,
                 UpdatedAt = now,
             };
@@ -93,7 +98,8 @@ namespace RFFM.Api.Domain.Entities.TeamPlayers
             string matchPhase,
             string? substitutionWindowsJson,
             string? ratingSnapshotsJson,
-            string? goalsJson)
+            string? goalsJson,
+            string? cardsJson = null)
         {
             MinutesPlayed = minutesPlayed;
             IsStarter = isStarter;
@@ -105,6 +111,7 @@ namespace RFFM.Api.Domain.Entities.TeamPlayers
             SubstitutionWindowsJson = substitutionWindowsJson;
             RatingSnapshotsJson = ratingSnapshotsJson;
             GoalsJson = goalsJson;
+            CardsJson = cardsJson;
             UpdatedAt = DateTime.UtcNow;
         }
     }

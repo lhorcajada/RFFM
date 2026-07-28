@@ -25,6 +25,7 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Entities
             builder.Property(x => x.SubstitutionWindowsJson);
             builder.Property(x => x.RatingSnapshotsJson);
             builder.Property(x => x.GoalsJson);
+            builder.Property(x => x.CardsJson);
             builder.Property(x => x.CreatedAt).IsRequired();
             builder.Property(x => x.UpdatedAt).IsRequired();
 

@@ -43,6 +43,7 @@ namespace RFFM.Api.Features.Coaches.Convocations
             public string? SubstitutionWindowsJson { get; init; }
             public string? RatingSnapshotsJson { get; init; }
             public string? GoalsJson { get; init; }
+            public string? CardsJson { get; init; }
         }
 
         public record PlayerParticipationDto(
@@ -86,7 +87,8 @@ namespace RFFM.Api.Features.Coaches.Convocations
                             request.MatchPhase,
                             request.SubstitutionWindowsJson,
                             request.RatingSnapshotsJson,
-                            request.GoalsJson);
+                            request.GoalsJson,
+                            request.CardsJson);
                     }
                     else
                     {
@@ -104,7 +106,8 @@ namespace RFFM.Api.Features.Coaches.Convocations
                             request.MatchPhase,
                             request.SubstitutionWindowsJson,
                             request.RatingSnapshotsJson,
-                            request.GoalsJson);
+                            request.GoalsJson,
+                            request.CardsJson);
 
                         _db.MatchParticipations.Add(newRecord);
                     }
