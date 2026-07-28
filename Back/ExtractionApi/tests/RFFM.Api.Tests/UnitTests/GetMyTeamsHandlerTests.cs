@@ -137,6 +137,95 @@ namespace RFFM.Api.Tests.UnitTests
             Assert.Equal(linkedPlayerId, teamDto.LinkedTeamPlayerId);
         }
 
+        // Seeds a club + active season + team, without any Player/TeamPlayer graph,
+        // for the Admin/Coach-at-club-level scenario (no UserTeam row involved).
+        private async Task<(Club Club, Team Team)> SeedClubWithActiveSeasonAndTeamAsync(AppDbContext db, string teamName)
+        {
+            var club = Club.Create($"MyTeams Test Club {Guid.NewGuid():N}", 1);
+            db.Clubs.Add(club);
+            await db.SaveChangesAsync();
+
+            var season = Season.Create(
+                $"Season {Guid.NewGuid():N}",
+                DateTime.UtcNow,
+                DateTime.UtcNow.AddMonths(9),
+                isActive: true,
+                club: club);
+            db.Seasons.Add(season);
+            await db.SaveChangesAsync();
+
+            var team = new Team(new TeamModelBase
+            {
+                Name = teamName,
+                CategoryId = Category.NationalCategory.Id,
+                ClubId = club.Id,
+                SeasonId = season.Id
+            });
+            db.Teams.Add(team);
+            await db.SaveChangesAsync();
+
+            return (club, team);
+        }
+
+        [Fact]
+        public async Task Handle_UserWithOnlyClubMembership_ReturnsClubTeamsInActiveSeason()
+        {
+            // Arrange - reproduces the Lucio bug: Admin/Coach onboarded at club level,
+            // with a UserClub row but no UserTeam row at all.
+            await using var db = _fixture.CreateDbContext();
+            var userId = Guid.NewGuid().ToString();
+            var (club, team) = await SeedClubWithActiveSeasonAndTeamAsync(db, "Club Team");
+
+            var userClub = new UserClub(userId, club.Id, Membership.Coach.Id);
+            db.Set<UserClub>().Add(userClub);
+            await db.SaveChangesAsync();
+
+            var mockCurrentUser = MockCurrentUser(userId);
+            var handler = new GetMyTeams.Handler(db, mockCurrentUser.Object);
+            var query = new GetMyTeams.GetMyTeamsQuery();
+
+            // Act
+            var result = await handler.Handle(query, CancellationToken.None);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Single(result);
+            var teamDto = result.First();
+            Assert.Equal(team.Id, teamDto.TeamId);
+            Assert.Equal("Club Team", teamDto.TeamName);
+            Assert.Equal(Membership.Coach.Id, teamDto.RoleId);
+            Assert.Null(teamDto.LinkedTeamPlayerId);
+        }
+
+        [Fact]
+        public async Task Handle_UserWithClubMembershipAndDirectUserTeam_DoesNotDuplicateTeam()
+        {
+            // Arrange - user has both a UserClub row (club-level access) and a UserTeam row
+            // for the same team (e.g. also joined directly). Must appear only once.
+            await using var db = _fixture.CreateDbContext();
+            var userId = Guid.NewGuid().ToString();
+            var (club, team) = await SeedClubWithActiveSeasonAndTeamAsync(db, "Shared Team");
+
+            var userClub = new UserClub(userId, club.Id, Membership.Coach.Id);
+            db.Set<UserClub>().Add(userClub);
+
+            var userTeam = new UserTeam(userId, team.Id, Membership.Coach.Id);
+            db.Set<UserTeam>().Add(userTeam);
+            await db.SaveChangesAsync();
+
+            var mockCurrentUser = MockCurrentUser(userId);
+            var handler = new GetMyTeams.Handler(db, mockCurrentUser.Object);
+            var query = new GetMyTeams.GetMyTeamsQuery();
+
+            // Act
+            var result = await handler.Handle(query, CancellationToken.None);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Single(result);
+            Assert.Equal(team.Id, result.First().TeamId);
+        }
+
         [Fact]
         public async Task Handle_UserWithMultipleTeams_ReturnsAllTeamsInOrder()
         {
