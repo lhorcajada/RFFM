@@ -202,5 +202,106 @@ namespace RFFM.Api.Tests.UnitTests
             await Assert.ThrowsAsync<ForbiddenAccessException>(
                 async () => await handler.Handle(cmd, CancellationToken.None));
         }
+
+        [Fact]
+        public async Task Handle_PlayerConfirmsAnotherPlayersAttendance_ThrowsForbiddenAccessException()
+        {
+            // Arrange
+            await using var db = _fixture.CreateDbContext();
+            var userId = Guid.NewGuid().ToString();
+            var sportEventId = Guid.NewGuid().ToString();
+            var (teamId, teamPlayerId) = await SeedTeamAndPlayerAsync(db);
+            var (_, otherTeamPlayerId) = await SeedTeamAndPlayerAsync(db);
+
+            var userTeam = new UserTeam(userId, teamId, Membership.Player.Id);
+            db.Set<UserTeam>().Add(userTeam);
+            await db.SaveChangesAsync();
+
+            userTeam.LinkPlayer(teamPlayerId);
+            await db.SaveChangesAsync();
+
+            var mockCurrentUser = MockCurrentUser(userId, new[] { "Player" });
+            var handler = new ConfirmAttendance.Handler(db, mockCurrentUser.Object);
+            var cmd = new ConfirmAttendance.ConfirmAttendanceCommand
+            {
+                SportEventId = sportEventId,
+                TeamId = teamId,
+                TeamPlayerId = otherTeamPlayerId,
+                Status = "Going"
+            };
+
+            // Act & Assert
+            await Assert.ThrowsAsync<ForbiddenAccessException>(
+                async () => await handler.Handle(cmd, CancellationToken.None));
+        }
+
+        [Fact]
+        public async Task Handle_CoachConfirmsAnotherPlayersAttendance_CreatesRecord()
+        {
+            // Arrange
+            await using var db = _fixture.CreateDbContext();
+            var coachUserId = Guid.NewGuid().ToString();
+            var sportEventId = Guid.NewGuid().ToString();
+            var (teamId, teamPlayerId) = await SeedTeamAndPlayerAsync(db);
+
+            // No UserTeam/LinkPlayer link for the Coach — they are not the player's owner.
+            var mockCurrentUser = MockCurrentUser(coachUserId, new[] { "Coach" });
+            var handler = new ConfirmAttendance.Handler(db, mockCurrentUser.Object);
+            var cmd = new ConfirmAttendance.ConfirmAttendanceCommand
+            {
+                SportEventId = sportEventId,
+                TeamId = teamId,
+                TeamPlayerId = teamPlayerId,
+                Status = "Going"
+            };
+
+            // Act
+            await handler.Handle(cmd, CancellationToken.None);
+
+            // Assert
+            var created = await db.Set<EventAttendanceConfirmation>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(eac =>
+                    eac.SportEventId == sportEventId &&
+                    eac.TeamPlayerId == teamPlayerId);
+
+            Assert.NotNull(created);
+            Assert.Equal(coachUserId, created!.ConfirmedByApplicationUserId);
+            Assert.Equal(AttendanceStatus.Going.Id, created.AttendanceStatusId);
+        }
+
+        [Fact]
+        public async Task Handle_AdministratorConfirmsAnotherPlayersAttendance_CreatesRecord()
+        {
+            // Arrange
+            await using var db = _fixture.CreateDbContext();
+            var adminUserId = Guid.NewGuid().ToString();
+            var sportEventId = Guid.NewGuid().ToString();
+            var (teamId, teamPlayerId) = await SeedTeamAndPlayerAsync(db);
+
+            var mockCurrentUser = MockCurrentUser(adminUserId, new[] { "Administrator" });
+            var handler = new ConfirmAttendance.Handler(db, mockCurrentUser.Object);
+            var cmd = new ConfirmAttendance.ConfirmAttendanceCommand
+            {
+                SportEventId = sportEventId,
+                TeamId = teamId,
+                TeamPlayerId = teamPlayerId,
+                Status = "NotGoing"
+            };
+
+            // Act
+            await handler.Handle(cmd, CancellationToken.None);
+
+            // Assert
+            var created = await db.Set<EventAttendanceConfirmation>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(eac =>
+                    eac.SportEventId == sportEventId &&
+                    eac.TeamPlayerId == teamPlayerId);
+
+            Assert.NotNull(created);
+            Assert.Equal(adminUserId, created!.ConfirmedByApplicationUserId);
+            Assert.Equal(AttendanceStatus.NotGoing.Id, created.AttendanceStatusId);
+        }
     }
 }

@@ -67,8 +67,13 @@ namespace RFFM.Api.Features.Mobile.Attendance.Commands
         {
             public async ValueTask<Unit> Handle(ConfirmAttendanceCommand request, CancellationToken cancellationToken)
             {
+                // Coach and Administrator may confirm attendance for any player on the team.
+                var isPrivilegedRole = (currentUser.Roles ?? Enumerable.Empty<string>())
+                    .Any(r => string.Equals(r, AppRoles.Administrator.Name, StringComparison.OrdinalIgnoreCase) ||
+                              string.Equals(r, AppRoles.Coach.Name, StringComparison.OrdinalIgnoreCase));
+
                 // Verify the player belongs to the user (Player or FamilyMember linked player)
-                var isOwnPlayer = await db.Set<UserTeam>()
+                var isOwnPlayer = isPrivilegedRole || await db.Set<UserTeam>()
                     .AsNoTracking()
                     .AnyAsync(ut =>
                         ut.ApplicationUserId == currentUser.UserId &&

@@ -11,6 +11,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   extra: {
     apiBaseUrl: process.env.API_BASE_URL || 'https://localhost:7287',
   },
+  plugins: ['expo-localization'],
   ios: {
     supportsTablet: true,
   },

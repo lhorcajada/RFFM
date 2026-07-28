@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
 import { api, setApiTokenGetter } from '../api/client';
 import * as SecureStore from '../auth/secureStore';
+import { getRolesFromToken } from './roles';
 
 interface AuthContextType {
   token: string | null;
@@ -8,6 +9,7 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   error: string | null;
+  roles: string[];
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -70,8 +72,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, []);
 
+  const roles = useMemo(() => getRolesFromToken(token), [token]);
+
   return (
-    <AuthContext.Provider value={{ token, isAuthenticated, login, logout, error }}>
+    <AuthContext.Provider value={{ token, isAuthenticated, login, logout, error, roles }}>
       {children}
     </AuthContext.Provider>
   );

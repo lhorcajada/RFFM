@@ -1,6 +1,8 @@
 import React from 'react';
 import { View, Text, Pressable, Image, StyleSheet } from 'react-native';
 import { coachColors } from '../../theme/colors';
+import { API_BASE_URL } from '../../api/client';
+import { resolvePhotoUrl } from '../../utils/resolvePhotoUrl';
 
 export interface SportEvent {
   id: string;
@@ -98,7 +100,7 @@ export default function EventCard({ event, eventTypeName, onPress }: Props) {
         <View style={styles.matchHeader}>
           <Text style={styles.homeBadge}>{isAway ? '✈️ Visitante' : '🏠 Local'}</Text>
           <View style={styles.matchTeamBlock}>
-            <ShieldImage src={leftShield} />
+            <ShieldImage src={leftShield} testIDPrefix="shield-left" />
             <Text style={styles.matchTeamName} numberOfLines={2}>{leftTeamName}</Text>
           </View>
           <View style={styles.matchCenter}>
@@ -115,7 +117,7 @@ export default function EventCard({ event, eventTypeName, onPress }: Props) {
             )}
           </View>
           <View style={styles.matchTeamBlock}>
-            <ShieldImage src={rightShield} />
+            <ShieldImage src={rightShield} testIDPrefix="shield-right" />
             <Text style={styles.matchTeamName} numberOfLines={2}>{rightTeamName}</Text>
           </View>
         </View>
@@ -143,9 +145,10 @@ export default function EventCard({ event, eventTypeName, onPress }: Props) {
   );
 }
 
-function ShieldImage({ src }: { src?: string }) {
-  if (!src) return <View style={styles.shieldPlaceholder} />;
-  return <Image source={{ uri: src }} style={styles.shield} />;
+function ShieldImage({ src, testIDPrefix }: { src?: string; testIDPrefix: string }) {
+  const resolved = resolvePhotoUrl(src, API_BASE_URL);
+  if (!resolved) return <View testID={`${testIDPrefix}-placeholder`} style={styles.shieldPlaceholder} />;
+  return <Image testID={testIDPrefix} source={{ uri: resolved }} style={styles.shield} />;
 }
 
 function resultBadgeStyle(result: MatchResult) {

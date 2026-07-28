@@ -428,6 +428,10 @@ namespace RFFM.Host.DependencyInjection
                         // AttendanceConfirmation: ReadWrite for Player and FamilyMember
                         ("AttendanceConfirmation", CoachFeatureRoutes.AttendanceConfirmation, "Player", 3, false),
                         ("AttendanceConfirmation", CoachFeatureRoutes.AttendanceConfirmation, "FamilyMember", 3, false),
+                        // AttendanceConfirmation: ReadWrite for Coach (parity with Administrator, which
+                        // already bypasses FeaturePermissionBehavior entirely) so Coach can confirm/edit
+                        // attendance for any player on the roster, not just their own linked player.
+                        ("AttendanceConfirmation", CoachFeatureRoutes.AttendanceConfirmation, "Coach", 3, false),
                     };
 
                     foreach (var (featureName, featureRoute, roleName, permTypeId, isEditable) in entries)

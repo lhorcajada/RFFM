@@ -2,6 +2,10 @@ import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
 import EventCard, { SportEvent } from '../EventCard';
 
+jest.mock('../../../api/client', () => ({
+  API_BASE_URL: 'https://api.example.com',
+}));
+
 const baseEvent: SportEvent = {
   id: '1',
   name: 'Entrenamiento semanal',
@@ -134,6 +138,58 @@ describe('EventCard', () => {
     expect(queryByText('Victoria')).toBeNull();
     expect(queryByText('Empate')).toBeNull();
     expect(queryByText('Derrota')).toBeNull();
+  });
+
+  it('renders team shields with an absolute photo URL unchanged', async () => {
+    const event: SportEvent = {
+      ...baseEvent,
+      teamName: 'Mi Equipo',
+      rivalName: 'Real Madrid',
+      isHomeMatch: true,
+      teamPhotoUrl: 'https://cdn.example.com/team.jpg',
+      rivalPhotoUrl: 'https://cdn.example.com/rival.jpg',
+    };
+
+    const { getByTestId } = await render(
+      <EventCard event={event} eventTypeName="Partido" onPress={jest.fn()} />,
+    );
+
+    expect(getByTestId('shield-left').props.source).toEqual({ uri: 'https://cdn.example.com/team.jpg' });
+    expect(getByTestId('shield-right').props.source).toEqual({ uri: 'https://cdn.example.com/rival.jpg' });
+  });
+
+  it('resolves a relative shield photo path through the public storage proxy', async () => {
+    const event: SportEvent = {
+      ...baseEvent,
+      teamName: 'Mi Equipo',
+      rivalName: 'Real Madrid',
+      isHomeMatch: true,
+      teamPhotoUrl: 'teams/club1/team.jpg',
+    };
+
+    const { getByTestId } = await render(
+      <EventCard event={event} eventTypeName="Partido" onPress={jest.fn()} />,
+    );
+
+    expect(getByTestId('shield-left').props.source).toEqual({
+      uri: 'https://api.example.com/api/public/storage?url=teams%2Fclub1%2Fteam.jpg',
+    });
+  });
+
+  it('shows a placeholder when a shield has no photo', async () => {
+    const event: SportEvent = {
+      ...baseEvent,
+      teamName: 'Mi Equipo',
+      rivalName: 'Real Madrid',
+      isHomeMatch: true,
+    };
+
+    const { getByTestId, queryByTestId } = await render(
+      <EventCard event={event} eventTypeName="Partido" onPress={jest.fn()} />,
+    );
+
+    expect(getByTestId('shield-left-placeholder')).toBeTruthy();
+    expect(queryByTestId('shield-left')).toBeNull();
   });
 
   it('calls onPress with the event id when tapped', async () => {

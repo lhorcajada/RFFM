@@ -15,16 +15,31 @@ const mockSecureStore = SecureStore as jest.Mocked<typeof SecureStore>;
 const mockApi = api as jest.Mocked<typeof api>;
 
 const Probe = () => {
-  const { isAuthenticated, error, login, logout } = useAuth();
+  const { isAuthenticated, error, login, logout, roles } = useAuth();
   return (
     <>
       <Text testID="status">{isAuthenticated ? 'authenticated' : 'anonymous'}</Text>
       {error && <Text testID="error">{error}</Text>}
+      <Text testID="roles">{roles.join(',')}</Text>
       <Text testID="login-btn" onPress={() => login('user1', 'pass1').catch(() => {})}>login</Text>
       <Text testID="logout-btn" onPress={() => logout()}>logout</Text>
     </>
   );
 };
+
+function base64UrlEncode(json: object): string {
+  return Buffer.from(JSON.stringify(json))
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
+function buildFakeToken(payload: object): string {
+  const header = base64UrlEncode({ alg: 'HS256', typ: 'JWT' });
+  const body = base64UrlEncode(payload);
+  return `${header}.${body}.fake-signature`;
+}
 
 describe('AuthContext', () => {
   beforeEach(() => {
@@ -32,6 +47,31 @@ describe('AuthContext', () => {
     (mockSecureStore.getItemAsync as jest.Mock).mockResolvedValue(null);
     (mockSecureStore.setItemAsync as jest.Mock).mockResolvedValue(undefined);
     (mockSecureStore.deleteItemAsync as jest.Mock).mockResolvedValue(undefined);
+  });
+
+  it('exposes the roles decoded from the token after login', async () => {
+    const token = buildFakeToken({ sub: 'user-1', roles: ['Coach', 'ClubMember'] });
+    (mockApi.post as jest.Mock).mockResolvedValue({ data: token });
+
+    const { getByTestId } = await render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>,
+    );
+
+    await fireEvent.press(getByTestId('login-btn'));
+
+    await waitFor(() => expect(getByTestId('roles').props.children).toBe('Coach,ClubMember'));
+  });
+
+  it('exposes an empty roles array when not authenticated', async () => {
+    const { getByTestId } = await render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>,
+    );
+
+    expect(getByTestId('roles').props.children).toBe('');
   });
 
   it('login success stores the token and flips isAuthenticated to true', async () => {
