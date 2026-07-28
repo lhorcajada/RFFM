@@ -3,13 +3,8 @@ import { View, Text, FlatList, ActivityIndicator, StyleSheet, Pressable, Refresh
 import { api } from '../api/client';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { coachColors } from '../theme/colors';
-
-interface SportEvent {
-  id: string;
-  name: string;
-  eveDateTime: string;
-  rivalName?: string;
-}
+import { fetchSportEventTypeMap, SportEventTypeMap } from '../api/sportEventTypes';
+import EventCard, { SportEvent } from './components/EventCard';
 
 const CalendarScreen = () => {
   const route = useRoute();
@@ -19,6 +14,7 @@ const CalendarScreen = () => {
   const teamPlayerId = params?.teamPlayerId;
 
   const [events, setEvents] = useState<SportEvent[]>([]);
+  const [eventTypeMap, setEventTypeMap] = useState<SportEventTypeMap>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -36,10 +32,14 @@ const CalendarScreen = () => {
       }
 
       setLoading(true);
-      const response = await api.get(`/api/sport-events/${teamId}`, {
-        params: { pageNumber: 1, pageSize: 50, descending: false },
-      });
-      setEvents(response.data || []);
+      const [eventsResponse, typeMap] = await Promise.all([
+        api.get(`/api/sport-events/${teamId}`, {
+          params: { pageNumber: 1, pageSize: 50, descending: false },
+        }),
+        fetchSportEventTypeMap(),
+      ]);
+      setEvents(eventsResponse.data || []);
+      setEventTypeMap(typeMap);
       setError(null);
     } catch (e: any) {
       setError(e.response?.data?.detail || 'Error al cargar eventos');
@@ -56,48 +56,52 @@ const CalendarScreen = () => {
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <ActivityIndicator testID="loading-indicator" size="large" color={coachColors.primary} />
+      <View style={styles.listContainer}>
+        <Text style={styles.sectionTitle}>Eventos</Text>
+        <View style={styles.centeredContent}>
+          <ActivityIndicator testID="loading-indicator" size="large" color={coachColors.primary} />
+        </View>
       </View>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.container}>
-        <Text testID="error-message" style={styles.errorText}>{error}</Text>
-        <Pressable testID="retry-button" style={styles.retryButton} onPress={fetchEvents}>
-          <Text style={styles.retryButtonText}>Reintentar</Text>
-        </Pressable>
+      <View style={styles.listContainer}>
+        <Text style={styles.sectionTitle}>Eventos</Text>
+        <View style={styles.centeredContent}>
+          <Text testID="error-message" style={styles.errorText}>{error}</Text>
+          <Pressable testID="retry-button" style={styles.retryButton} onPress={fetchEvents}>
+            <Text style={styles.retryButtonText}>Reintentar</Text>
+          </Pressable>
+        </View>
       </View>
     );
   }
 
   if (events.length === 0) {
     return (
-      <View style={styles.container}>
-        <Text testID="empty-message" style={styles.emptyText}>No hay eventos programados</Text>
+      <View style={styles.listContainer}>
+        <Text style={styles.sectionTitle}>Eventos</Text>
+        <View style={styles.centeredContent}>
+          <Text testID="empty-message" style={styles.emptyText}>No hay eventos programados</Text>
+        </View>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={styles.listContainer}>
+      <Text style={styles.sectionTitle}>Eventos</Text>
       <FlatList
         data={events}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <Pressable
-            testID={`event-item-${item.id}`}
-            style={styles.eventCard}
-            onPress={() =>
-              navigation.navigate('EventDetail', { eventId: item.id, teamId, teamPlayerId })
-            }
-          >
-            <Text style={styles.eventTitle}>{item.name}</Text>
-            <Text style={styles.eventDate}>{item.eveDateTime}</Text>
-            {item.rivalName && <Text style={styles.eventOpponent}>vs {item.rivalName}</Text>}
-          </Pressable>
+          <EventCard
+            event={item}
+            eventTypeName={eventTypeMap[item.eventTypeId ?? -1]}
+            onPress={(eventId) => navigation.navigate('EventDetail', { eventId, teamId, teamPlayerId })}
+          />
         )}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -108,32 +112,21 @@ const CalendarScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
+  centeredContent: {
     flex: 1,
     justifyContent: 'center',
+  },
+  listContainer: {
+    flex: 1,
     paddingHorizontal: 20,
+    paddingTop: 16,
     backgroundColor: coachColors.background,
   },
-  eventCard: {
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: coachColors.border,
-  },
-  eventTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
     color: coachColors.textPrimary,
-  },
-  eventDate: {
-    fontSize: 14,
-    color: coachColors.textSecondary,
-    marginBottom: 2,
-  },
-  eventOpponent: {
-    fontSize: 14,
-    color: coachColors.primary,
+    marginBottom: 12,
   },
   errorText: {
     color: coachColors.error,

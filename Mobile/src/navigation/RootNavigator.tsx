@@ -40,7 +40,7 @@ const CalendarTabs = ({ route }: { route: { params?: { teamId?: string; teamPlay
         component={CalendarScreen}
         initialParams={{ teamId, teamPlayerId }}
         options={{
-          tabBarLabel: 'Calendario',
+          tabBarLabel: 'Eventos',
         }}
       />
       <Tab.Screen
@@ -92,7 +92,7 @@ export const RootNavigator = () => {
                 name="Calendar"
                 component={CalendarTabs}
                 options={{
-                  title: 'Calendario',
+                  title: 'Eventos',
                 }}
               />
               <Stack.Screen
