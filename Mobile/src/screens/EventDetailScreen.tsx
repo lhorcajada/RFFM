@@ -201,20 +201,35 @@ const EventDetailScreen = () => {
                       <View style={styles.buttonGroup}>
                         <Pressable
                           testID={`going-button-${row.teamPlayerId}`}
-                          style={[styles.button, styles.buttonPrimary]}
+                          style={[styles.button, row.status === 'Going' ? styles.buttonSelected : styles.buttonSecondary]}
                           onPress={() => handleConfirmAttendance(row.teamPlayerId, 'Going')}
                           disabled={confirmingTeamPlayerId === row.teamPlayerId}
                         >
-                          <Text style={styles.buttonText}>{t('attendance.going')}</Text>
+                          <Text style={row.status === 'Going' ? styles.buttonTextSelected : styles.buttonTextSecondary}>
+                            {t('attendance.going')}
+                          </Text>
                         </Pressable>
 
                         <Pressable
                           testID={`not-going-button-${row.teamPlayerId}`}
-                          style={[styles.button, styles.buttonSecondary]}
+                          style={[styles.button, row.status === 'NotGoing' ? styles.buttonSelected : styles.buttonSecondary]}
                           onPress={() => handleConfirmAttendance(row.teamPlayerId, 'NotGoing')}
                           disabled={confirmingTeamPlayerId === row.teamPlayerId}
                         >
-                          <Text style={styles.buttonTextSecondary}>{t('attendance.notGoing')}</Text>
+                          <Text style={row.status === 'NotGoing' ? styles.buttonTextSelected : styles.buttonTextSecondary}>
+                            {t('attendance.notGoing')}
+                          </Text>
+                        </Pressable>
+
+                        <Pressable
+                          testID={`pending-button-${row.teamPlayerId}`}
+                          style={[styles.button, row.status === 'Pending' ? styles.buttonSelected : styles.buttonSecondary]}
+                          onPress={() => handleConfirmAttendance(row.teamPlayerId, 'Pending')}
+                          disabled={confirmingTeamPlayerId === row.teamPlayerId}
+                        >
+                          <Text style={row.status === 'Pending' ? styles.buttonTextSelected : styles.buttonTextSecondary}>
+                            {t('attendance.pending')}
+                          </Text>
                         </Pressable>
                       </View>
                     )}
@@ -333,21 +348,23 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
   },
-  buttonPrimary: {
-    backgroundColor: coachColors.secondary,
-  },
   buttonSecondary: {
     backgroundColor: coachColors.background,
     borderWidth: 1,
     borderColor: coachColors.border,
   },
-  buttonText: {
-    color: coachColors.contrastText,
-    fontWeight: '600',
-    fontSize: 13,
+  buttonSelected: {
+    backgroundColor: coachColors.secondary,
+    borderWidth: 1,
+    borderColor: coachColors.secondary,
   },
   buttonTextSecondary: {
     color: coachColors.textPrimary,
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  buttonTextSelected: {
+    color: coachColors.contrastText,
     fontWeight: '600',
     fontSize: 13,
   },

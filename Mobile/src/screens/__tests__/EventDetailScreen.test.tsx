@@ -1,8 +1,10 @@
 import React from 'react';
+import { StyleSheet } from 'react-native';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import EventDetailScreen from '../EventDetailScreen';
 import { api } from '../../api/client';
 import { useAuth } from '../../auth/AuthContext';
+import { coachColors } from '../../theme/colors';
 
 jest.mock('../../api/client', () => ({
   api: { get: jest.fn(), post: jest.fn() },
@@ -228,6 +230,7 @@ describe('EventDetailScreen', () => {
     await findByTestId('going-button-player1');
     expect(queryByTestId('going-button-other-pending')).toBeNull();
     expect(queryByTestId('not-going-button-other-pending')).toBeNull();
+    expect(queryByTestId('pending-button-other-pending')).toBeNull();
   });
 
   it('shows edit buttons on every row for a Coach role once its group is expanded', async () => {
@@ -238,6 +241,8 @@ describe('EventDetailScreen', () => {
 
     expect(await findByTestId('going-button-player1')).toBeTruthy();
     expect(await findByTestId('going-button-other-pending')).toBeTruthy();
+    expect(await findByTestId('pending-button-player1')).toBeTruthy();
+    expect(await findByTestId('pending-button-other-pending')).toBeTruthy();
   });
 
   it('confirms attendance for my own row, moves it to the new group and keeps it visible', async () => {
@@ -285,6 +290,78 @@ describe('EventDetailScreen', () => {
 
     await waitFor(async () =>
       expect((await findByTestId('error-message')).props.children).toBe('No autorizado'),
+    );
+  });
+
+  it('marks attendance as pending for my own row, moves it to the Pending group and keeps it visible', async () => {
+    const myRowGoing = { ...myRow, status: 'Going' };
+    (mockApi.get as jest.Mock).mockResolvedValue({ data: [myRowGoing] });
+    (mockApi.post as jest.Mock).mockResolvedValue({ data: {} });
+
+    const { findByTestId, queryByTestId } = await render(<EventDetailScreen />);
+    await fireEvent.press(await findByTestId('pending-button-player1'));
+
+    await waitFor(() => expect(queryByTestId('roster-row-player1')).toBeTruthy());
+    expect((await findByTestId('group-label-Pending')).props.children.join('')).toBe('Pendientes (1)');
+    expect((await findByTestId('group-label-Going')).props.children.join('')).toBe('Asisten (0)');
+    expect(mockApi.post).toHaveBeenCalledWith('/api/mobile/events/event1/attendance', {
+      teamId: 'team1',
+      teamPlayerId: 'player1',
+      status: 'Pending',
+    });
+  });
+
+  it('renders the three action buttons identically styled, except the one matching the current status which looks pressed/selected', async () => {
+    mockUseAuth.mockReturnValue({ isAuthenticated: true, roles: ['Coach'] });
+    (mockApi.get as jest.Mock).mockResolvedValue({ data: [goingRow] });
+
+    const { findByTestId } = await render(<EventDetailScreen />);
+    await fireEvent.press(await findByTestId('group-header-Going'));
+
+    const goingButton = await findByTestId('going-button-someone-going');
+    const notGoingButton = await findByTestId('not-going-button-someone-going');
+    const pendingButton = await findByTestId('pending-button-someone-going');
+
+    const flatten = (style: unknown) => StyleSheet.flatten(style as never);
+
+    expect(flatten(notGoingButton.props.style)).toEqual(flatten(pendingButton.props.style));
+    expect(flatten(goingButton.props.style)).not.toEqual(flatten(notGoingButton.props.style));
+    expect(flatten(goingButton.props.style)).toMatchObject({ backgroundColor: coachColors.secondary });
+    expect(flatten(notGoingButton.props.style)).not.toMatchObject({ backgroundColor: coachColors.secondary });
+  });
+
+  it('marks the Pending button as selected (not Going) when the row status is Pending', async () => {
+    mockUseAuth.mockReturnValue({ isAuthenticated: true, roles: ['Coach'] });
+    (mockApi.get as jest.Mock).mockResolvedValue({ data: [otherPendingRow] });
+
+    const { findByTestId } = await render(<EventDetailScreen />);
+
+    const goingButton = await findByTestId('going-button-other-pending');
+    const notGoingButton = await findByTestId('not-going-button-other-pending');
+    const pendingButton = await findByTestId('pending-button-other-pending');
+
+    const flatten = (style: unknown) => StyleSheet.flatten(style as never);
+
+    expect(flatten(pendingButton.props.style)).toMatchObject({ backgroundColor: coachColors.secondary });
+    expect(flatten(goingButton.props.style)).toEqual(flatten(notGoingButton.props.style));
+    expect(flatten(goingButton.props.style)).not.toMatchObject({ backgroundColor: coachColors.secondary });
+  });
+
+  it('a Coach marks another player as pending', async () => {
+    mockUseAuth.mockReturnValue({ isAuthenticated: true, roles: ['Coach'] });
+    (mockApi.get as jest.Mock).mockResolvedValue({ data: [myRow, goingRow] });
+    (mockApi.post as jest.Mock).mockResolvedValue({ data: {} });
+
+    const { findByTestId } = await render(<EventDetailScreen />);
+    await fireEvent.press(await findByTestId('group-header-Going'));
+    await fireEvent.press(await findByTestId('pending-button-someone-going'));
+
+    await waitFor(() =>
+      expect(mockApi.post).toHaveBeenCalledWith('/api/mobile/events/event1/attendance', {
+        teamId: 'team1',
+        teamPlayerId: 'someone-going',
+        status: 'Pending',
+      }),
     );
   });
 });
