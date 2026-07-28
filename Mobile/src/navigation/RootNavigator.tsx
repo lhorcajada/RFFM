@@ -7,6 +7,7 @@ import TeamSwitcherScreen from '../screens/TeamSwitcherScreen';
 import CalendarScreen from '../screens/CalendarScreen';
 import EventDetailScreen from '../screens/EventDetailScreen';
 import NewsScreen from '../screens/NewsScreen';
+import AppHeaderTitle from './AppHeaderTitle';
 import { useAuth } from '../auth/AuthContext';
 import { coachColors } from '../theme/colors';
 
@@ -91,9 +92,11 @@ export const RootNavigator = () => {
               <Stack.Screen
                 name="Calendar"
                 component={CalendarTabs}
-                options={{
-                  title: 'Eventos',
-                }}
+                options={({ route }) => ({
+                  headerTitle: () => (
+                    <AppHeaderTitle teamId={(route.params as { teamId?: string } | undefined)?.teamId} />
+                  ),
+                })}
               />
               <Stack.Screen
                 name="EventDetail"
