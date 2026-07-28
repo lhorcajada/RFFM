@@ -26,7 +26,7 @@ const LoginScreen = () => {
     setError(null);
 
     try {
-      await login(username, password);
+      await login(username.trim(), password);
       navigation.navigate('TeamSwitcher');
     } catch (e: any) {
       const errorMessage =

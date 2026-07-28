@@ -52,6 +52,18 @@ describe('LoginScreen', () => {
     expect(mockNavigate).toHaveBeenCalledWith('TeamSwitcher');
   });
 
+  it('trims leading/trailing whitespace from the username before submitting', async () => {
+    const login = jest.fn().mockResolvedValue(undefined);
+    mockUseAuth.mockReturnValue({ login });
+    const { getByTestId } = await render(<LoginScreen />);
+
+    await fireEvent.changeText(getByTestId('username-input'), ' Lucio ');
+    await fireEvent.changeText(getByTestId('password-input'), 'secret');
+    await fireEvent.press(getByTestId('login-button'));
+
+    await waitFor(() => expect(login).toHaveBeenCalledWith('Lucio', 'secret'));
+  });
+
   it('shows an error message when login fails and does not navigate', async () => {
     const login = jest.fn().mockRejectedValue({
       response: { data: { detail: 'Credenciales inválidas' } },
