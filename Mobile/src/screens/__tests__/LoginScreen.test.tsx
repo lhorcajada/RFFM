@@ -2,6 +2,7 @@ import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import LoginScreen from '../LoginScreen';
 import { useAuth } from '../../auth/AuthContext';
+import { coachColors } from '../../theme/colors';
 
 jest.mock('../../auth/AuthContext');
 const mockNavigate = jest.fn();
@@ -28,6 +29,14 @@ describe('LoginScreen', () => {
 
     await fireEvent.changeText(getByTestId('password-input'), 'secret');
     expect(getByTestId('login-button').props.accessibilityState.disabled).toBe(false);
+  });
+
+  it('renders placeholders with a color visible against the dark background', async () => {
+    mockUseAuth.mockReturnValue({ login: jest.fn() });
+    const { getByTestId } = await render(<LoginScreen />);
+
+    expect(getByTestId('username-input').props.placeholderTextColor).toBe(coachColors.textSecondary);
+    expect(getByTestId('password-input').props.placeholderTextColor).toBe(coachColors.textSecondary);
   });
 
   it('submits credentials and navigates to TeamSwitcher on success', async () => {

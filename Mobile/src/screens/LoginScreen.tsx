@@ -49,6 +49,7 @@ const LoginScreen = () => {
         testID="username-input"
         style={styles.input}
         placeholder="Usuario"
+        placeholderTextColor={coachColors.textSecondary}
         value={username}
         onChangeText={setUsername}
         editable={!loading}
@@ -59,6 +60,7 @@ const LoginScreen = () => {
         testID="password-input"
         style={styles.input}
         placeholder="Contraseña"
+        placeholderTextColor={coachColors.textSecondary}
         value={password}
         onChangeText={setPassword}
         editable={!loading}
