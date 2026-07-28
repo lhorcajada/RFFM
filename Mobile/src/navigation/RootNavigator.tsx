@@ -8,6 +8,7 @@ import CalendarScreen from '../screens/CalendarScreen';
 import EventDetailScreen from '../screens/EventDetailScreen';
 import NewsScreen from '../screens/NewsScreen';
 import AppHeaderTitle from './AppHeaderTitle';
+import UserAvatarMenu from './UserAvatarMenu';
 import { useAuth } from '../auth/AuthContext';
 import { coachColors } from '../theme/colors';
 
@@ -63,6 +64,7 @@ export const RootNavigator = () => {
       <Stack.Navigator
         screenOptions={{
           headerShown: true,
+          headerRight: () => <UserAvatarMenu />,
         }}
       >
         {!isAuthenticated ? (
