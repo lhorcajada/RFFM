@@ -5,6 +5,9 @@ import { useRoute, useNavigation } from '@react-navigation/native';
 import { coachColors } from '../theme/colors';
 import { fetchSportEventTypeMap, SportEventTypeMap } from '../api/sportEventTypes';
 import EventCard, { SportEvent } from './components/EventCard';
+import EventFiltersModal, { EventFiltersValue } from './components/EventFiltersModal';
+import { useEventFilters } from './hooks/useEventFilters';
+import { useToast } from '../shared/context/ToastContext';
 
 const CalendarScreen = () => {
   const route = useRoute();
@@ -18,10 +21,17 @@ const CalendarScreen = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [filtersModalVisible, setFiltersModalVisible] = useState(false);
+  const { filters, isLoaded, saveFilters, clearFilters } = useEventFilters();
+  const { showToast } = useToast();
 
   useEffect(() => {
+    if (!isLoaded) return;
     fetchEvents();
-  }, [teamId]);
+    // filters.eventTypeId is intentionally excluded: it is applied client-side only
+    // and must not trigger a re-fetch.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [teamId, isLoaded, filters.startDate, filters.endDate]);
 
   const fetchEvents = async () => {
     try {
@@ -34,7 +44,13 @@ const CalendarScreen = () => {
       setLoading(true);
       const [eventsResponse, typeMap] = await Promise.all([
         api.get(`/api/sport-events/${teamId}`, {
-          params: { pageNumber: 1, pageSize: 50, descending: false },
+          params: {
+            pageNumber: 1,
+            pageSize: 50,
+            descending: false,
+            startDate: filters.startDate ?? undefined,
+            endDate: filters.endDate ?? undefined,
+          },
         }),
         fetchSportEventTypeMap(),
       ]);
@@ -54,13 +70,55 @@ const CalendarScreen = () => {
     setRefreshing(false);
   };
 
+  const visibleEvents =
+    filters.eventTypeId == null ? events : events.filter((e) => e.eventTypeId === filters.eventTypeId);
+
+  const eventTypeOptions = Object.entries(eventTypeMap).map(([id, name]) => ({ id: Number(id), name }));
+
+  const handleApplyFilters = async (value: EventFiltersValue) => {
+    const persisted = await saveFilters(value);
+    setFiltersModalVisible(false);
+    if (!persisted) {
+      showToast('Los filtros se han aplicado, pero no se pudieron guardar para la próxima vez', 'error');
+    }
+  };
+
+  const handleClearFilters = async () => {
+    const persisted = await clearFilters();
+    setFiltersModalVisible(false);
+    if (!persisted) {
+      showToast('Los filtros se han limpiado, pero no se pudo guardar el cambio', 'error');
+    }
+  };
+
+  const renderFiltersModal = () => (
+    <EventFiltersModal
+      visible={filtersModalVisible}
+      value={filters}
+      eventTypeOptions={eventTypeOptions}
+      onApply={handleApplyFilters}
+      onClear={handleClearFilters}
+      onClose={() => setFiltersModalVisible(false)}
+    />
+  );
+
+  const renderHeader = () => (
+    <View style={styles.headerRow}>
+      <Text style={styles.sectionTitle}>Eventos</Text>
+      <Pressable testID="open-filters-button" style={styles.filterButton} onPress={() => setFiltersModalVisible(true)}>
+        <Text style={styles.filterButtonText}>Filtrar</Text>
+      </Pressable>
+    </View>
+  );
+
   if (loading) {
     return (
       <View style={styles.listContainer}>
-        <Text style={styles.sectionTitle}>Eventos</Text>
+        {renderHeader()}
         <View style={styles.centeredContent}>
           <ActivityIndicator testID="loading-indicator" size="large" color={coachColors.primary} />
         </View>
+        {renderFiltersModal()}
       </View>
     );
   }
@@ -68,33 +126,35 @@ const CalendarScreen = () => {
   if (error) {
     return (
       <View style={styles.listContainer}>
-        <Text style={styles.sectionTitle}>Eventos</Text>
+        {renderHeader()}
         <View style={styles.centeredContent}>
           <Text testID="error-message" style={styles.errorText}>{error}</Text>
           <Pressable testID="retry-button" style={styles.retryButton} onPress={fetchEvents}>
             <Text style={styles.retryButtonText}>Reintentar</Text>
           </Pressable>
         </View>
+        {renderFiltersModal()}
       </View>
     );
   }
 
-  if (events.length === 0) {
+  if (visibleEvents.length === 0) {
     return (
       <View style={styles.listContainer}>
-        <Text style={styles.sectionTitle}>Eventos</Text>
+        {renderHeader()}
         <View style={styles.centeredContent}>
           <Text testID="empty-message" style={styles.emptyText}>No hay eventos programados</Text>
         </View>
+        {renderFiltersModal()}
       </View>
     );
   }
 
   return (
     <View style={styles.listContainer}>
-      <Text style={styles.sectionTitle}>Eventos</Text>
+      {renderHeader()}
       <FlatList
-        data={events}
+        data={visibleEvents}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <EventCard
@@ -107,6 +167,7 @@ const CalendarScreen = () => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       />
+      {renderFiltersModal()}
     </View>
   );
 };
@@ -122,11 +183,28 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     backgroundColor: coachColors.background,
   },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: '700',
     color: coachColors.textPrimary,
-    marginBottom: 12,
+  },
+  filterButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: coachColors.border,
+  },
+  filterButtonText: {
+    color: coachColors.textPrimary,
+    fontWeight: '600',
+    fontSize: 13,
   },
   errorText: {
     color: coachColors.error,
