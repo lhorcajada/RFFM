@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import LoginScreen from '../screens/LoginScreen';
 import TeamSwitcherScreen from '../screens/TeamSwitcherScreen';
 import CalendarScreen from '../screens/CalendarScreen';
+import FriendliesScreen from '../screens/FriendliesScreen';
 import EventDetailScreen from '../screens/EventDetailScreen';
 import NewsScreen from '../screens/NewsScreen';
 import PlayerSeasonCardsScreen from '../screens/PlayerSeasonCardsScreen';
@@ -41,6 +42,14 @@ export const CalendarTabs = ({ route }: { route: { params?: { teamId?: string; t
       }}
     >
       <Tab.Screen
+        name="NewsTab"
+        component={NewsScreen}
+        options={{
+          tabBarLabel: 'Noticias',
+          tabBarIcon: ({ color, size }) => <Ionicons name="newspaper-outline" size={size} color={color} />,
+        }}
+      />
+      <Tab.Screen
         name="CalendarTab"
         component={CalendarScreen}
         initialParams={{ teamId, teamPlayerId }}
@@ -50,11 +59,21 @@ export const CalendarTabs = ({ route }: { route: { params?: { teamId?: string; t
         }}
       />
       <Tab.Screen
-        name="NewsTab"
-        component={NewsScreen}
+        name="LeagueTab"
+        component={LeagueScreen}
+        initialParams={{ teamId }}
         options={{
-          tabBarLabel: 'Noticias',
-          tabBarIcon: ({ color, size }) => <Ionicons name="newspaper-outline" size={size} color={color} />,
+          tabBarLabel: 'Liga',
+          tabBarIcon: ({ color, size }) => <Ionicons name="trophy-outline" size={size} color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="FriendliesTab"
+        component={FriendliesScreen}
+        initialParams={{ teamId, teamPlayerId }}
+        options={{
+          tabBarLabel: 'Amistosos',
+          tabBarIcon: ({ color, size }) => <Ionicons name="football-outline" size={size} color={color} />,
         }}
       />
       <Tab.Screen
@@ -64,15 +83,6 @@ export const CalendarTabs = ({ route }: { route: { params?: { teamId?: string; t
         options={{
           tabBarLabel: 'Estadísticas',
           tabBarIcon: ({ color, size }) => <Ionicons name="stats-chart-outline" size={size} color={color} />,
-        }}
-      />
-      <Tab.Screen
-        name="LeagueTab"
-        component={LeagueScreen}
-        initialParams={{ teamId }}
-        options={{
-          tabBarLabel: 'Liga',
-          tabBarIcon: ({ color, size }) => <Ionicons name="trophy-outline" size={size} color={color} />,
         }}
       />
     </Tab.Navigator>

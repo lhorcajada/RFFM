@@ -3,6 +3,7 @@ import { View, Text, Pressable, Image, StyleSheet } from 'react-native';
 import { coachColors } from '../../theme/colors';
 import { API_BASE_URL } from '../../api/client';
 import { resolvePhotoUrl } from '../../utils/resolvePhotoUrl';
+import { isTrainingEventType, isTournamentEventType, isMatchEventType } from '../../utils/sportEventTypeMatchers';
 
 export interface SportEvent {
   id: string;
@@ -43,11 +44,10 @@ function getMatchResult(event: SportEvent): MatchResult {
 }
 
 function getHeaderStyle(eventTypeName?: string | null) {
-  const name = (eventTypeName ?? '').toLowerCase();
-  if (name.includes('entrenamiento')) {
+  if (isTrainingEventType(eventTypeName)) {
     return { emoji: '⚽', backgroundColor: '#2e7d32' };
   }
-  if (name.includes('torneo') || name.includes('competici')) {
+  if (isTournamentEventType(eventTypeName)) {
     return { emoji: '🏆', backgroundColor: '#c62828' };
   }
   return { emoji: '📅', backgroundColor: '#455a64' };
@@ -70,7 +70,7 @@ function formatTime(raw: string): string | null {
 }
 
 export default function EventCard({ event, eventTypeName, onPress }: Props) {
-  const isMatch = (eventTypeName ?? '').toLowerCase().includes('partido');
+  const isMatch = isMatchEventType(eventTypeName);
   const isAway = event.isHomeMatch === false;
   const hasScore =
     event.localGoals != null && event.localGoals !== '' &&
