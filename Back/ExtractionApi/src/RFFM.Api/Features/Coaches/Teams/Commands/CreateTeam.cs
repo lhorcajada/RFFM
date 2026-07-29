@@ -42,6 +42,8 @@ namespace RFFM.Api.Features.Coaches.Teams.Commands
         public IFormFile? PhotoFile { get; set; }
         public string SeasonId { get; set; }
         public int? LeagueGroup { get; set; }
+        public int? RffmCompetitionId { get; set; }
+        public int? RffmGroupId { get; set; }
 
         public string PrefixCacheKey => TeamConstants.CachePrefix;
         public string FeatureRoute => CoachFeatureRoutes.ClubTeams;
@@ -76,7 +78,9 @@ namespace RFFM.Api.Features.Coaches.Teams.Commands
                 LeagueId = request.LeagueId,
                 SeasonId = request.SeasonId,
                 UrlPhoto = urlPhoto,
-                LeagueGroup = request.LeagueGroup
+                LeagueGroup = request.LeagueGroup,
+                RffmCompetitionId = request.RffmCompetitionId,
+                RffmGroupId = request.RffmGroupId
             });
             await _catalogDbContext.Teams.AddAsync(team, cancellationToken);
             await _catalogDbContext.SaveChangesAsync(cancellationToken);

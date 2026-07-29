@@ -438,6 +438,14 @@ namespace RFFM.Host.DependencyInjection
                         ("PlayerSeasonCards", CoachFeatureRoutes.PlayerSeasonCards, "Player", 1, false),
                         ("PlayerSeasonCards", CoachFeatureRoutes.PlayerSeasonCards, "FamilyMember", 1, false),
                         ("PlayerSeasonCards", CoachFeatureRoutes.PlayerSeasonCards, "Coach", 1, false),
+
+                        // CompetitionData: Read-only for Player, FamilyMember and Coach — the Mobile
+                        // classification/calendar/next-match screens only display RFFM competition
+                        // data resolved from the team's own RffmCompetitionId/RffmGroupId, no edit
+                        // affordances.
+                        ("CompetitionData", CoachFeatureRoutes.CompetitionData, "Player", 1, false),
+                        ("CompetitionData", CoachFeatureRoutes.CompetitionData, "FamilyMember", 1, false),
+                        ("CompetitionData", CoachFeatureRoutes.CompetitionData, "Coach", 1, false),
                     };
 
                     foreach (var (featureName, featureRoute, roleName, permTypeId, isEditable) in entries)
