@@ -9,6 +9,7 @@ import CalendarScreen from '../screens/CalendarScreen';
 import EventDetailScreen from '../screens/EventDetailScreen';
 import NewsScreen from '../screens/NewsScreen';
 import PlayerSeasonCardsScreen from '../screens/PlayerSeasonCardsScreen';
+import LeagueScreen from '../screens/LeagueScreen';
 import AppHeaderTitle from './AppHeaderTitle';
 import UserAvatarMenu from './UserAvatarMenu';
 import { useAuth } from '../auth/AuthContext';
@@ -63,6 +64,15 @@ export const CalendarTabs = ({ route }: { route: { params?: { teamId?: string; t
         options={{
           tabBarLabel: 'Estadísticas',
           tabBarIcon: ({ color, size }) => <Ionicons name="stats-chart-outline" size={size} color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="LeagueTab"
+        component={LeagueScreen}
+        initialParams={{ teamId }}
+        options={{
+          tabBarLabel: 'Liga',
+          tabBarIcon: ({ color, size }) => <Ionicons name="trophy-outline" size={size} color={color} />,
         }}
       />
     </Tab.Navigator>
