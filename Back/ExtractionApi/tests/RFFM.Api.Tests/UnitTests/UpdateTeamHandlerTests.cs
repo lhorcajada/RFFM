@@ -3,6 +3,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using RFFM.Api.Domain;
 using RFFM.Api.Domain.Aggregates.UserClubs;
 using RFFM.Api.Domain.Entities.Competitions;
 using RFFM.Api.Domain.Entities.Seasons;
@@ -69,10 +70,15 @@ namespace RFFM.Api.Tests.UnitTests
         {
             await using var seedDb = _fixture.CreateDbContext();
             var (teamId, clubId) = await SeedTeamAsync(seedDb, leagueId: null, leagueGroup: null);
+            var userId = Guid.NewGuid().ToString();
+            seedDb.UserTeams.Add(new UserTeam(userId, teamId, Membership.Coach.Id));
+            await seedDb.SaveChangesAsync();
 
             await using var updateDb = _fixture.CreateDbContext();
             var handler = new UpdateTeamHandler(updateDb);
-            await handler.Handle(UpdateCommand(teamId, clubId, leagueId: 1, leagueGroup: 2), CancellationToken.None);
+            var command = UpdateCommand(teamId, clubId, leagueId: 1, leagueGroup: 2);
+            command.UserId = userId;
+            await handler.Handle(command, CancellationToken.None);
 
             await using var verifyDb = _fixture.CreateDbContext();
             var team = await verifyDb.Teams.SingleAsync(t => t.Id == teamId);
@@ -86,16 +92,91 @@ namespace RFFM.Api.Tests.UnitTests
         {
             await using var seedDb = _fixture.CreateDbContext();
             var (teamId, clubId) = await SeedTeamAsync(seedDb, leagueId: 1, leagueGroup: 2);
+            var userId = Guid.NewGuid().ToString();
+            seedDb.UserTeams.Add(new UserTeam(userId, teamId, Membership.Coach.Id));
+            await seedDb.SaveChangesAsync();
 
             await using var updateDb = _fixture.CreateDbContext();
             var handler = new UpdateTeamHandler(updateDb);
-            await handler.Handle(UpdateCommand(teamId, clubId, leagueId: null, leagueGroup: null), CancellationToken.None);
+            var command = UpdateCommand(teamId, clubId, leagueId: null, leagueGroup: null);
+            command.UserId = userId;
+            await handler.Handle(command, CancellationToken.None);
 
             await using var verifyDb = _fixture.CreateDbContext();
             var team = await verifyDb.Teams.SingleAsync(t => t.Id == teamId);
 
             Assert.Null(team.LeagueId);
             Assert.Null(team.LeagueGroup);
+        }
+
+        [Fact]
+        public async Task Handle_UserIsCoachOfTeam_UpdatesSuccessfully()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (teamId, clubId) = await SeedTeamAsync(seedDb);
+            var userId = Guid.NewGuid().ToString();
+            seedDb.UserTeams.Add(new UserTeam(userId, teamId, Membership.Coach.Id));
+            await seedDb.SaveChangesAsync();
+
+            await using var updateDb = _fixture.CreateDbContext();
+            var handler = new UpdateTeamHandler(updateDb);
+            var command = UpdateCommand(teamId, clubId, leagueId: null, leagueGroup: null);
+            command.UserId = userId;
+            await handler.Handle(command, CancellationToken.None);
+
+            await using var verifyDb = _fixture.CreateDbContext();
+            var team = await verifyDb.Teams.SingleAsync(t => t.Id == teamId);
+            Assert.Equal("UpdateTeam Test Team", team.Name);
+        }
+
+        [Fact]
+        public async Task Handle_UserIsDirectiveOfClub_UpdatesSuccessfully()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (teamId, clubId) = await SeedTeamAsync(seedDb);
+            var userId = Guid.NewGuid().ToString();
+            seedDb.UserClubs.Add(new UserClub(userId, clubId, Membership.Directive.Id));
+            await seedDb.SaveChangesAsync();
+
+            await using var updateDb = _fixture.CreateDbContext();
+            var handler = new UpdateTeamHandler(updateDb);
+            var command = UpdateCommand(teamId, clubId, leagueId: null, leagueGroup: null);
+            command.UserId = userId;
+            await handler.Handle(command, CancellationToken.None);
+
+            await using var verifyDb = _fixture.CreateDbContext();
+            var team = await verifyDb.Teams.SingleAsync(t => t.Id == teamId);
+            Assert.Equal("UpdateTeam Test Team", team.Name);
+        }
+
+        [Fact]
+        public async Task Handle_UserUnrelatedToTeamAndClub_ThrowsForbiddenAndDoesNotPersist()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (teamId, clubId) = await SeedTeamAsync(seedDb);
+            var userId = Guid.NewGuid().ToString();
+
+            await using var updateDb = _fixture.CreateDbContext();
+            var handler = new UpdateTeamHandler(updateDb);
+            var command = new UpdateTeamCommand
+            {
+                TeamModel = new TeamModel
+                {
+                    Id = teamId,
+                    Name = "Hacked Name",
+                    CategoryId = Category.NationalCategory.Id,
+                    ClubId = clubId,
+                    UrlPhoto = null
+                },
+                UserId = userId
+            };
+
+            await Assert.ThrowsAsync<ForbiddenAccessException>(
+                () => handler.Handle(command, CancellationToken.None).AsTask());
+
+            await using var verifyDb = _fixture.CreateDbContext();
+            var team = await verifyDb.Teams.SingleAsync(t => t.Id == teamId);
+            Assert.Equal("UpdateTeam Test Team", team.Name);
         }
     }
 }

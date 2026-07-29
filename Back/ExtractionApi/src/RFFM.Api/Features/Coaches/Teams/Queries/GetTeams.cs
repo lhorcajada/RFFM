@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Common;
 using RFFM.Api.Domain;
+using RFFM.Api.Domain.Aggregates.UserClubs;
 using RFFM.Api.Domain.Entities;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Features.Coaches.Countries.Queries;
@@ -35,13 +36,14 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
             public string RequiredPermission => "Read";
         }
 
-        public record TeamsResponse(string Id, 
-            string Name, 
+        public record TeamsResponse(string Id,
+            string Name,
             CategoryResponse Category,
             LeagueResponse League,
             GetClubResponse Club,
             string? UrlPhoto,
-            string? JoinCode);
+            string? JoinCode,
+            bool CanEdit);
         public record CategoryResponse(int Id, string Name);
         public record LeagueResponse(int? Id, string? Name, int? group);
 
@@ -57,8 +59,8 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
             public async ValueTask<TeamsResponse[]> Handle(TeamsQuery request, CancellationToken cancellationToken = default)
             {
                 var userClub = await _db.UserClubs
-                    .FirstOrDefaultAsync(u => 
-                            u.ApplicationUserId == request.UserId 
+                    .FirstOrDefaultAsync(u =>
+                            u.ApplicationUserId == request.UserId
                             && u.ClubId == request.ClubId
                         , cancellationToken);
                 if (userClub == null)
@@ -69,20 +71,27 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
                 .FirstOrDefaultAsync(s => s.ClubId == request.ClubId && s.IsActive, cancellationToken)
                     ?? throw new DomainException("Listado de equipos",
                         "No hay una temporada activa para el club", ErrorCodes.NoActiveSeason);
-                return await _db.Teams
+
+                var isClubManager = userClub.RoleId == Membership.Directive.Id || userClub.RoleId == Membership.Coach.Id;
+                var coachTeamIds = await TeamEditAuthorization.CoachTeamIdsAsync(_db, request.UserId, cancellationToken);
+
+                var teams = await _db.Teams
                     .Include(t => t.Club)
                     .ThenInclude(c=> c.Country)
                     .Include(t=> t.Category)
                     .Include(cat=> cat!.League)
                     .Where(t=> t.ClubId == request.ClubId && t.SeasonId == activeSeason!.Id)
-                    .Select(t=> new TeamsResponse(t.Id, t.Name, 
-                        new CategoryResponse(t.CategoryId, t.Category!.Name),
-                        new LeagueResponse(t.LeagueId, t.League != null ? t.League.Name : null, t.LeagueGroup),
-                        new GetClubResponse(t.ClubId, 
-                            t.Club.Name, new GetCountries.CountriesResponse(t.Club.CountryId, t.Club.Country.Name, t.Club.Country.Code),
-                            t.Club.ShieldUrl, null), t.UrlPhoto, t.JoinCode))
                     .AsNoTracking()
                     .ToArrayAsync(cancellationToken);
+
+                return teams.Select(t=> new TeamsResponse(t.Id, t.Name,
+                        new CategoryResponse(t.CategoryId, t.Category!.Name),
+                        new LeagueResponse(t.LeagueId, t.League != null ? t.League.Name : null, t.LeagueGroup),
+                        new GetClubResponse(t.ClubId,
+                            t.Club.Name, new GetCountries.CountriesResponse(t.Club.CountryId, t.Club.Country.Name, t.Club.Country.Code),
+                            t.Club.ShieldUrl, null), t.UrlPhoto, t.JoinCode,
+                        isClubManager || coachTeamIds.Contains(t.Id)))
+                    .ToArray();
             }
         }
     }

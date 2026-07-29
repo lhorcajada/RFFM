@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Common;
 using RFFM.Api.Common.Behaviors;
+using RFFM.Api.Domain;
 using RFFM.Api.Domain.Entities;
 using RFFM.Api.Domain.Models;
 using RFFM.Api.FeatureModules;
@@ -19,9 +20,12 @@ namespace RFFM.Api.Features.Coaches.Teams.Commands
         public void AddRoutes(IEndpointRouteBuilder app)
         {
             app.MapPut("api/catalog/team/{id}",
-                    async (string id, UpdateTeamCommand command, IMediator mediator, CancellationToken cancellationToken) =>
+                    async (string id, UpdateTeamCommand command, HttpContext httpContext, IMediator mediator, CancellationToken cancellationToken) =>
                     {
-                        command.TeamModel.Id = id; await mediator.Send(command, cancellationToken);
+                        command.TeamModel.Id = id;
+                        command.UserId = httpContext.User.Claims.FirstOrDefault(c =>
+                            c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value;
+                        await mediator.Send(command, cancellationToken);
                         return Results.Ok();
                     })
                 .WithName(nameof(UpdateTeam))
@@ -34,6 +38,7 @@ namespace RFFM.Api.Features.Coaches.Teams.Commands
     public class UpdateTeamCommand : IRequest, IInvalidateCacheRequest, IRequireFeaturePermission
     {
         public TeamModel TeamModel { get; set; }
+        public string? UserId { get; set; }
 
         public string PrefixCacheKey => TeamConstants.CachePrefix;
         public string FeatureRoute => CoachFeatureRoutes.ClubTeams;
@@ -53,7 +58,13 @@ namespace RFFM.Api.Features.Coaches.Teams.Commands
             var team = await _catalogDbContext.Teams
                 .FirstOrDefaultAsync(c => c.Id == request.TeamModel.Id, cancellationToken: cancellationToken);
             if (team == null)
-                throw new KeyNotFoundException($"Team '{request.TeamModel.Id}' Not Found"); 
+                throw new KeyNotFoundException($"Team '{request.TeamModel.Id}' Not Found");
+
+            var canEdit = await TeamEditAuthorization.CanEditAsync(
+                _catalogDbContext, request.UserId, team.Id, team.ClubId, cancellationToken);
+            if (!canEdit)
+                throw new ForbiddenAccessException("No tienes permiso para editar este equipo.");
+
             team.UpdateName(request.TeamModel.Name);
             team.UpdateUrlPhoto(request.TeamModel.UrlPhoto);
             team.UpdateCategoryId(request.TeamModel.CategoryId);

@@ -24,6 +24,7 @@ import {
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { useTheme } from "@mui/material/styles";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import teamService, { TeamResponse } from "../../../../services/teamService";
 import styles from "./TeamManager.module.css";
 import seasonService from "../../../../services/seasonService";
@@ -108,6 +109,10 @@ export default function TeamManager({ open, clubId }: TeamManagementDialogProps)
 
   const goToCreateTeam = (targetClubId: string) => {
     navigate(`/coach/clubs/${targetClubId}/teams/new`, { state: { from: "settings" } });
+  };
+
+  const goToEditTeam = (team: TeamResponse) => {
+    navigate(`/coach/clubs/${clubId}/teams/${team.id}/edit`);
   };
 
   const handleCreateTeamClick = () => {
@@ -246,6 +251,13 @@ export default function TeamManager({ open, clubId }: TeamManagementDialogProps)
                         { label: "Grupo", value: team.league?.group ?? "-" },
                         { label: "Código", value: renderJoinCode(team) },
                       ]}
+                      actions={
+                        team.canEdit ? (
+                          <Button size="small" variant="outlined" onClick={() => goToEditTeam(team)}>
+                            Editar
+                          </Button>
+                        ) : undefined
+                      }
                     />
                   ))}
                 </div>
@@ -258,6 +270,7 @@ export default function TeamManager({ open, clubId }: TeamManagementDialogProps)
                       <TableCell>Liga</TableCell>
                       <TableCell>Grupo</TableCell>
                       <TableCell>Código</TableCell>
+                      <TableCell>Acciones</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -268,6 +281,15 @@ export default function TeamManager({ open, clubId }: TeamManagementDialogProps)
                         <TableCell>{team.league?.name ?? "-"}</TableCell>
                         <TableCell>{team.league?.group ?? "-"}</TableCell>
                         <TableCell>{renderJoinCode(team)}</TableCell>
+                        <TableCell>
+                          {team.canEdit && (
+                            <Tooltip title="Editar equipo">
+                              <IconButton size="small" aria-label="Editar" onClick={() => goToEditTeam(team)}>
+                                <EditOutlinedIcon fontSize="inherit" />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

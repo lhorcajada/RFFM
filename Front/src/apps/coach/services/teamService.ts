@@ -14,6 +14,7 @@ export type TeamResponse = {
   };
   urlPhoto?: string | null;
   joinCode?: string | null;
+  canEdit: boolean;
   rffmCompetitionId?: number | null;
   rffmGroupId?: number | null;
 };

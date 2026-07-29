@@ -241,4 +241,42 @@ describe("TeamManager", () => {
     expect(within(card).getByText("ABC123")).toBeInTheDocument();
     expect(within(card).getByRole("button", { name: /copiar código/i })).toBeInTheDocument();
   });
+
+  it("muestra un botón Editar cuando el equipo es editable por el usuario y navega al formulario", async () => {
+    mockGetTeams.mockResolvedValue([
+      {
+        id: "team-1",
+        name: "Alevín A",
+        category: { name: "Alevín" },
+        league: { name: "Liga Local", group: "Grupo 2" },
+        canEdit: true,
+      },
+    ]);
+    mockUseMediaQuery.mockReturnValue(false);
+
+    render(<TeamManager clubId="club-1" />);
+
+    const editButton = await screen.findByRole("button", { name: /editar/i });
+    await userEvent.click(editButton);
+
+    expect(mockNavigate).toHaveBeenCalledWith("/coach/clubs/club-1/teams/team-1/edit");
+  });
+
+  it("no muestra el botón Editar cuando el equipo no es editable por el usuario", async () => {
+    mockGetTeams.mockResolvedValue([
+      {
+        id: "team-1",
+        name: "Alevín A",
+        category: { name: "Alevín" },
+        league: { name: "Liga Local", group: "Grupo 2" },
+        canEdit: false,
+      },
+    ]);
+    mockUseMediaQuery.mockReturnValue(false);
+
+    render(<TeamManager clubId="club-1" />);
+
+    await screen.findByText("Alevín A");
+    expect(screen.queryByRole("button", { name: /editar/i })).not.toBeInTheDocument();
+  });
 });
