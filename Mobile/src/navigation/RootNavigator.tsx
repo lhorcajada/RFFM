@@ -81,8 +81,8 @@ export const CalendarTabs = ({ route }: { route: { params?: { teamId?: string; t
         component={PlayerSeasonCardsScreen}
         initialParams={{ teamId }}
         options={{
-          tabBarLabel: 'Estadísticas',
-          tabBarIcon: ({ color, size }) => <Ionicons name="stats-chart-outline" size={size} color={color} />,
+          tabBarLabel: 'Plantilla',
+          tabBarIcon: ({ color, size }) => <Ionicons name="shirt-outline" size={size} color={color} />,
         }}
       />
     </Tab.Navigator>

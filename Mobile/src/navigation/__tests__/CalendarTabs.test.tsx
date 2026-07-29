@@ -28,7 +28,7 @@ jest.mock('@react-navigation/bottom-tabs', () => {
 });
 
 describe('CalendarTabs', () => {
-  it('registers an "Estadísticas" PlayersTab alongside CalendarTab and NewsTab', async () => {
+  it('registers a "Plantilla" PlayersTab alongside CalendarTab and NewsTab', async () => {
     const { getByTestId } = await render(
       <CalendarTabs route={{ params: { teamId: 'team1' } }} />,
     );
@@ -40,18 +40,18 @@ describe('CalendarTabs', () => {
     expect(getByTestId('tab-label-NewsTab').props.children).toBe('Noticias');
 
     expect(getByTestId('tab-screen-PlayersTab')).toBeTruthy();
-    expect(getByTestId('tab-label-PlayersTab').props.children).toBe('Estadísticas');
+    expect(getByTestId('tab-label-PlayersTab').props.children).toBe('Plantilla');
 
     expect(getByTestId('tab-screen-LeagueTab')).toBeTruthy();
     expect(getByTestId('tab-label-LeagueTab').props.children).toBe('Liga');
   });
 
-  it('uses a statistics icon for the PlayersTab', async () => {
+  it('uses a shirt icon for the PlayersTab', async () => {
     const { getByTestId } = await render(
       <CalendarTabs route={{ params: { teamId: 'team1' } }} />,
     );
 
-    expect(getByTestId('tab-icon-PlayersTab').props.children).toBe('stats-chart-outline');
+    expect(getByTestId('tab-icon-PlayersTab').props.children).toBe('shirt-outline');
   });
 
   it('uses a trophy icon for the LeagueTab', async () => {
