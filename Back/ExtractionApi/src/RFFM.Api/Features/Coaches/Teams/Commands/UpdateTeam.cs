@@ -58,7 +58,9 @@ namespace RFFM.Api.Features.Coaches.Teams.Commands
             team.UpdateUrlPhoto(request.TeamModel.UrlPhoto);
             team.UpdateCategoryId(request.TeamModel.CategoryId);
             team.UpdateClubId(request.TeamModel.ClubId);
-            
+            team.UpdateLeagueId(request.TeamModel.LeagueId);
+            team.UpdateLeagueGroup(request.TeamModel.LeagueGroup);
+
             await _catalogDbContext.SaveChangesAsync(cancellationToken);
             return Unit.Value;
 
