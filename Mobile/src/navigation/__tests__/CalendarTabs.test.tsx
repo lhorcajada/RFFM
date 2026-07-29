@@ -6,6 +6,7 @@ jest.mock('../../screens/CalendarScreen', () => 'CalendarScreen');
 jest.mock('../../screens/NewsScreen', () => 'NewsScreen');
 jest.mock('../../screens/PlayerSeasonCardsScreen', () => 'PlayerSeasonCardsScreen');
 jest.mock('../../screens/LeagueScreen', () => 'LeagueScreen');
+jest.mock('../../screens/FriendliesScreen', () => 'FriendliesScreen');
 
 jest.mock('@react-navigation/bottom-tabs', () => {
   const ReactActual = require('react');
@@ -59,5 +60,33 @@ describe('CalendarTabs', () => {
     );
 
     expect(getByTestId('tab-icon-LeagueTab').props.children).toBe('trophy-outline');
+  });
+
+  it('registers a FriendliesTab with label "Amistosos"', async () => {
+    const { getByTestId } = await render(
+      <CalendarTabs route={{ params: { teamId: 'team1' } }} />,
+    );
+
+    expect(getByTestId('tab-screen-FriendliesTab')).toBeTruthy();
+    expect(getByTestId('tab-label-FriendliesTab').props.children).toBe('Amistosos');
+  });
+
+  it('uses a football icon for the FriendliesTab', async () => {
+    const { getByTestId } = await render(
+      <CalendarTabs route={{ params: { teamId: 'team1' } }} />,
+    );
+
+    expect(getByTestId('tab-icon-FriendliesTab').props.children).toBe('football-outline');
+  });
+
+  it('registers tabs in order: NewsTab, CalendarTab, LeagueTab, FriendliesTab, PlayersTab', async () => {
+    const { getAllByTestId } = await render(
+      <CalendarTabs route={{ params: { teamId: 'team1' } }} />,
+    );
+
+    const allTabs = getAllByTestId(/^tab-screen-/);
+    const tabNames = allTabs.map((tab) => tab.props.testID.replace('tab-screen-', ''));
+
+    expect(tabNames).toEqual(['NewsTab', 'CalendarTab', 'LeagueTab', 'FriendliesTab', 'PlayersTab']);
   });
 });
