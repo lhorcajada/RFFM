@@ -102,6 +102,7 @@ describe('PlayerSeasonCardsScreen', () => {
     await fireEvent.press(await findByTestId('retry-button'));
 
     await waitFor(() => expect(mockApi.get).toHaveBeenCalledTimes(2));
+    fireEvent.press(await findByTestId('position-section-header-porteros'));
     await findByTestId('player-season-card-player1');
   });
 
@@ -128,13 +129,15 @@ describe('PlayerSeasonCardsScreen', () => {
 
     const { findByTestId } = await render(<PlayerSeasonCardsScreen />);
 
+    fireEvent.press(await findByTestId('position-section-header-porteros'));
     const card1 = await findByTestId('player-season-card-player1');
-    const card2 = await findByTestId('player-season-card-player2');
     expect(card1).toBeTruthy();
-    expect(card2).toBeTruthy();
-
     expect((await findByTestId('player-alias-player1')).props.children).toBe('John Doe');
     expect((await findByTestId('player-dorsal-player1')).props.children).toBe(7);
+
+    fireEvent.press(await findByTestId('position-section-header-sin-posicion'));
+    const card2 = await findByTestId('player-season-card-player2');
+    expect(card2).toBeTruthy();
   });
 
   it('shows the player photo when urlPhoto is an absolute URL', async () => {
@@ -142,6 +145,7 @@ describe('PlayerSeasonCardsScreen', () => {
 
     const { findByTestId } = await render(<PlayerSeasonCardsScreen />);
 
+    fireEvent.press(await findByTestId('position-section-header-sin-posicion'));
     const photo = await findByTestId('player-photo-player2');
     expect(photo.props.source).toEqual({ uri: 'https://example.com/photo.jpg' });
   });
@@ -152,6 +156,7 @@ describe('PlayerSeasonCardsScreen', () => {
 
     const { findByTestId } = await render(<PlayerSeasonCardsScreen />);
 
+    fireEvent.press(await findByTestId('position-section-header-porteros'));
     const photo = await findByTestId('player-photo-player1');
     expect(photo.props.source).toEqual({
       uri: 'https://api.example.com/api/public/storage?url=players%2Fclub1%2Fabc123.jpg',
@@ -163,6 +168,7 @@ describe('PlayerSeasonCardsScreen', () => {
 
     const { findByTestId, queryByTestId } = await render(<PlayerSeasonCardsScreen />);
 
+    fireEvent.press(await findByTestId('position-section-header-porteros'));
     await findByTestId('player-photo-placeholder-player1');
     expect(queryByTestId('player-photo-player1')).toBeNull();
   });
@@ -172,6 +178,7 @@ describe('PlayerSeasonCardsScreen', () => {
 
     const { findByTestId } = await render(<PlayerSeasonCardsScreen />);
 
+    fireEvent.press(await findByTestId('position-section-header-porteros'));
     expect((await findByTestId('stat-currentMatchday-player1')).props.children).toBe(6);
     expect((await findByTestId('stat-matchesPlayed-player1')).props.children).toBe(5);
     expect((await findByTestId('stat-matchesStarted-player1')).props.children).toBe(4);
@@ -189,6 +196,7 @@ describe('PlayerSeasonCardsScreen', () => {
 
     const { findByTestId } = await render(<PlayerSeasonCardsScreen />);
 
+    fireEvent.press(await findByTestId('position-section-header-porteros'));
     const demarcation = await findByTestId('player-demarcation-player1');
     expect(demarcation.props.children).toEqual(expect.stringContaining('Portero'));
   });
@@ -198,6 +206,7 @@ describe('PlayerSeasonCardsScreen', () => {
 
     const { findByTestId } = await render(<PlayerSeasonCardsScreen />);
 
+    fireEvent.press(await findByTestId('position-section-header-porteros'));
     const chip1 = await findByTestId('player-possible-demarcation-player1-1');
     const chip2 = await findByTestId('player-possible-demarcation-player1-2');
     expect(chip1.props.children).toBe('POR');
@@ -209,6 +218,7 @@ describe('PlayerSeasonCardsScreen', () => {
 
     const { findByTestId, queryByTestId } = await render(<PlayerSeasonCardsScreen />);
 
+    fireEvent.press(await findByTestId('position-section-header-sin-posicion'));
     const demarcation = await findByTestId('player-demarcation-player2');
     expect(demarcation.props.children).toBe('-');
     expect(queryByTestId(/player-possible-demarcation-player2-/)).toBeNull();
@@ -217,10 +227,148 @@ describe('PlayerSeasonCardsScreen', () => {
   it('renders no edit controls for any role, read-only screen', async () => {
     (mockApi.get as jest.Mock).mockResolvedValue({ data: [cardOne] });
 
-    const { queryByTestId, queryByText } = await render(<PlayerSeasonCardsScreen />);
+    const { queryByTestId, queryByText, findByTestId } = await render(<PlayerSeasonCardsScreen />);
 
     await waitFor(() => expect(mockApi.get).toHaveBeenCalled());
+    fireEvent.press(await findByTestId('position-section-header-porteros'));
     expect(queryByTestId(/button/)).toBeNull();
     expect(queryByText(/Guardar|Editar|Confirmar/)).toBeNull();
+  });
+
+  it('Section headers render in the fixed order, only for groups that have players', async () => {
+    const cards = [
+      { ...cardOne, activeDemarcation: { id: 1, name: 'Portero', code: 'POR' } },
+      { ...cardOne, teamPlayerId: 'player3', activeDemarcation: { id: 4, name: 'Defensa Central', code: 'DFC' } },
+      { ...cardOne, teamPlayerId: 'player4', activeDemarcation: { id: 11, name: 'Delantero Centro', code: 'DC' } },
+      { ...cardTwo, teamPlayerId: 'player5', activeDemarcation: null },
+    ];
+
+    (mockApi.get as jest.Mock).mockResolvedValue({ data: cards });
+
+    const { findAllByTestId } = await render(<PlayerSeasonCardsScreen />);
+
+    const headers = await findAllByTestId(/^position-section-header-/);
+    const orderedKeys = headers.map((h) => h.props.testID);
+    expect(orderedKeys).toEqual([
+      'position-section-header-porteros',
+      'position-section-header-defensas',
+      'position-section-header-delanteros',
+      'position-section-header-sin-posicion',
+    ]);
+  });
+
+  it('Sin posición header absent when no player lacks a demarcation', async () => {
+    (mockApi.get as jest.Mock).mockResolvedValue({ data: [cardOne] });
+
+    const { queryByTestId } = await render(<PlayerSeasonCardsScreen />);
+
+    await waitFor(() => expect(mockApi.get).toHaveBeenCalled());
+    expect(queryByTestId('position-section-header-sin-posicion')).toBeNull();
+  });
+
+  it('Existing per-card fields still resolve after grouping', async () => {
+    (mockApi.get as jest.Mock).mockResolvedValue({ data: [cardOne, cardTwo] });
+
+    const { findByTestId } = await render(<PlayerSeasonCardsScreen />);
+
+    fireEvent.press(await findByTestId('position-section-header-porteros'));
+    expect((await findByTestId('player-alias-player1')).props.children).toBe('John Doe');
+    expect((await findByTestId('player-dorsal-player1')).props.children).toBe(7);
+
+    fireEvent.press(await findByTestId('position-section-header-sin-posicion'));
+    expect((await findByTestId('player-demarcation-player2')).props.children).toBe('-');
+  });
+
+  it('all sections start collapsed on mount', async () => {
+    const cards = [
+      { ...cardOne, activeDemarcation: { id: 1, name: 'Portero', code: 'POR' } },
+      { ...cardTwo, teamPlayerId: 'player5', activeDemarcation: null },
+    ];
+    (mockApi.get as jest.Mock).mockResolvedValue({ data: cards });
+
+    const { findByTestId, queryByTestId } = await render(<PlayerSeasonCardsScreen />);
+
+    await findByTestId('position-section-header-porteros');
+    expect(queryByTestId('player-season-card-player1')).toBeNull();
+    expect(queryByTestId('player-season-card-player5')).toBeNull();
+  });
+
+  it('expands a section on tap, revealing only its own cards', async () => {
+    const cards = [
+      { ...cardOne, activeDemarcation: { id: 1, name: 'Portero', code: 'POR' } },
+      { ...cardTwo, teamPlayerId: 'player5', activeDemarcation: null },
+    ];
+    (mockApi.get as jest.Mock).mockResolvedValue({ data: cards });
+
+    const { findByTestId, queryByTestId } = await render(<PlayerSeasonCardsScreen />);
+
+    fireEvent.press(await findByTestId('position-section-header-porteros'));
+
+    await findByTestId('player-season-card-player1');
+    expect(queryByTestId('player-season-card-player5')).toBeNull();
+  });
+
+  it('collapses an expanded section on a second tap', async () => {
+    (mockApi.get as jest.Mock).mockResolvedValue({ data: [cardOne] });
+
+    const { findByTestId, queryByTestId } = await render(<PlayerSeasonCardsScreen />);
+
+    const header = await findByTestId('position-section-header-porteros');
+    fireEvent.press(header);
+    await findByTestId('player-season-card-player1');
+
+    fireEvent.press(header);
+    await waitFor(() => {
+      expect(queryByTestId('player-season-card-player1')).toBeNull();
+    });
+  });
+
+  it('exclusive accordion: expanding one section collapses the previously expanded one', async () => {
+    const cards = [
+      { ...cardOne, activeDemarcation: { id: 1, name: 'Portero', code: 'POR' } },
+      { ...cardOne, teamPlayerId: 'player3', activeDemarcation: { id: 4, name: 'Defensa Central', code: 'DFC' } },
+    ];
+    (mockApi.get as jest.Mock).mockResolvedValue({ data: cards });
+
+    const { findByTestId, queryByTestId } = await render(<PlayerSeasonCardsScreen />);
+
+    fireEvent.press(await findByTestId('position-section-header-porteros'));
+    await findByTestId('player-season-card-player1');
+
+    fireEvent.press(await findByTestId('position-section-header-defensas'));
+    await findByTestId('player-season-card-player3');
+    expect(queryByTestId('player-season-card-player1')).toBeNull();
+  });
+
+  it('chevron icon reflects the collapsed/expanded state', async () => {
+    (mockApi.get as jest.Mock).mockResolvedValue({ data: [cardOne] });
+
+    const { findByTestId } = await render(<PlayerSeasonCardsScreen />);
+
+    const chevronCollapsed = await findByTestId('position-section-chevron-porteros');
+    expect(chevronCollapsed.props.name).toBe('chevron-forward-outline');
+
+    fireEvent.press(await findByTestId('position-section-header-porteros'));
+
+    const chevronExpanded = await findByTestId('position-section-chevron-porteros');
+    expect(chevronExpanded.props.name).toBe('chevron-down-outline');
+  });
+
+  it('shows the player count in the header in both collapsed and expanded states', async () => {
+    const cards = [
+      { ...cardOne, activeDemarcation: { id: 4, name: 'Defensa Central', code: 'DFC' } },
+      { ...cardOne, teamPlayerId: 'player3', activeDemarcation: { id: 3, name: 'Lateral Derecho', code: 'LD' } },
+    ];
+    (mockApi.get as jest.Mock).mockResolvedValue({ data: cards });
+
+    const { findByTestId } = await render(<PlayerSeasonCardsScreen />);
+
+    const headerCollapsed = await findByTestId('position-section-header-defensas');
+    expect(headerCollapsed).toHaveTextContent('Defensas (2)');
+
+    fireEvent.press(headerCollapsed);
+
+    const headerExpanded = await findByTestId('position-section-header-defensas');
+    expect(headerExpanded).toHaveTextContent('Defensas (2)');
   });
 });

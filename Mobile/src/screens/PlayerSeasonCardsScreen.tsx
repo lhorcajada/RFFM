@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -6,12 +6,14 @@ import {
   StyleSheet,
   Pressable,
   ActivityIndicator,
-  ScrollView,
+  SectionList,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { api, API_BASE_URL } from '../api/client';
 import { useRoute } from '@react-navigation/native';
 import { coachColors } from '../theme/colors';
 import { resolvePhotoUrl } from '../utils/resolvePhotoUrl';
+import { groupPlayersByPosition, PlayerPositionSection } from './hooks/groupPlayersByPosition';
 
 interface Demarcation {
   id: number;
@@ -76,6 +78,7 @@ const PlayerSeasonCardsScreen = () => {
   const [cards, setCards] = useState<PlayerSeasonCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [expandedSectionKey, setExpandedSectionKey] = useState<string | null>(null);
 
   useEffect(() => {
     if (teamId) {
@@ -95,6 +98,95 @@ const PlayerSeasonCardsScreen = () => {
       setLoading(false);
     }
   };
+
+  const toggleSection = (key: string) => {
+    setExpandedSectionKey((current) => (current === key ? null : key));
+  };
+
+  const renderPlayerCard = (card: PlayerSeasonCard) => {
+    const photoUri = resolvePhotoUrl(card.urlPhoto, API_BASE_URL);
+    return (
+      <View key={card.teamPlayerId} testID={`player-season-card-${card.teamPlayerId}`} style={styles.card}>
+        <View style={styles.header}>
+          <View style={styles.photoArea}>
+            {photoUri ? (
+              <Image
+                testID={`player-photo-${card.teamPlayerId}`}
+                source={{ uri: photoUri }}
+                style={styles.photo}
+              />
+            ) : (
+              <View
+                testID={`player-photo-placeholder-${card.teamPlayerId}`}
+                style={styles.photoPlaceholder}
+              />
+            )}
+            {card.dorsal != null && (
+              <View style={styles.dorsalBadge}>
+                <Text testID={`player-dorsal-${card.teamPlayerId}`} style={styles.dorsalBadgeText}>
+                  {card.dorsal}
+                </Text>
+              </View>
+            )}
+          </View>
+
+          <View style={styles.headerBody}>
+            <View style={styles.accentLine} />
+            <Text testID={`player-alias-${card.teamPlayerId}`} style={styles.playerName} numberOfLines={1}>
+              {card.alias}
+            </Text>
+            <Text testID={`player-demarcation-${card.teamPlayerId}`} style={styles.demarcationText}>
+              {card.activeDemarcation
+                ? `${card.activeDemarcation.name} (${card.activeDemarcation.code})`
+                : '-'}
+            </Text>
+            {card.possibleDemarcations.length > 0 && (
+              <View style={styles.possibleDemarcationsRow}>
+                {card.possibleDemarcations.map((demarcation) => (
+                  <View key={demarcation.id} style={styles.demarcationChip}>
+                    <Text
+                      testID={`player-possible-demarcation-${card.teamPlayerId}-${demarcation.id}`}
+                      style={styles.demarcationChipText}
+                    >
+                      {demarcation.code}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+        </View>
+
+        <View style={styles.statsGrid}>
+          {STAT_FIELDS.map((field) => (
+            <View key={field.key} style={styles.statItem}>
+              <Text
+                testID={`stat-${field.key}-${card.teamPlayerId}`}
+                style={styles.statValue}
+              >
+                {card[field.key]}
+              </Text>
+              <Text style={styles.statLabel}>{field.label}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+    );
+  };
+
+  const sections = useMemo(
+    () => groupPlayersByPosition(cards) as PlayerPositionSection<PlayerSeasonCard>[],
+    [cards],
+  );
+
+  const visibleSections = useMemo(
+    () =>
+      sections.map((section) => ({
+        ...section,
+        data: section.key === expandedSectionKey ? section.data : [],
+      })),
+    [sections, expandedSectionKey],
+  );
 
   if (loading) {
     return (
@@ -124,78 +216,35 @@ const PlayerSeasonCardsScreen = () => {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-      {cards.map((card) => {
-        const photoUri = resolvePhotoUrl(card.urlPhoto, API_BASE_URL);
+    <SectionList
+      style={styles.container}
+      contentContainerStyle={styles.contentContainer}
+      sections={visibleSections}
+      keyExtractor={(card) => card.teamPlayerId}
+      renderSectionHeader={({ section }) => {
+        const isExpanded = section.key === expandedSectionKey;
+        const fullSection = sections.find((s) => s.key === section.key);
+        const count = fullSection ? fullSection.data.length : 0;
         return (
-          <View key={card.teamPlayerId} testID={`player-season-card-${card.teamPlayerId}`} style={styles.card}>
-            <View style={styles.header}>
-              <View style={styles.photoArea}>
-                {photoUri ? (
-                  <Image
-                    testID={`player-photo-${card.teamPlayerId}`}
-                    source={{ uri: photoUri }}
-                    style={styles.photo}
-                  />
-                ) : (
-                  <View
-                    testID={`player-photo-placeholder-${card.teamPlayerId}`}
-                    style={styles.photoPlaceholder}
-                  />
-                )}
-                {card.dorsal != null && (
-                  <View style={styles.dorsalBadge}>
-                    <Text testID={`player-dorsal-${card.teamPlayerId}`} style={styles.dorsalBadgeText}>
-                      {card.dorsal}
-                    </Text>
-                  </View>
-                )}
-              </View>
-
-              <View style={styles.headerBody}>
-                <View style={styles.accentLine} />
-                <Text testID={`player-alias-${card.teamPlayerId}`} style={styles.playerName} numberOfLines={1}>
-                  {card.alias}
-                </Text>
-                <Text testID={`player-demarcation-${card.teamPlayerId}`} style={styles.demarcationText}>
-                  {card.activeDemarcation
-                    ? `${card.activeDemarcation.name} (${card.activeDemarcation.code})`
-                    : '-'}
-                </Text>
-                {card.possibleDemarcations.length > 0 && (
-                  <View style={styles.possibleDemarcationsRow}>
-                    {card.possibleDemarcations.map((demarcation) => (
-                      <View key={demarcation.id} style={styles.demarcationChip}>
-                        <Text
-                          testID={`player-possible-demarcation-${card.teamPlayerId}-${demarcation.id}`}
-                          style={styles.demarcationChipText}
-                        >
-                          {demarcation.code}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                )}
-              </View>
-            </View>
-
-            <View style={styles.statsGrid}>
-              {STAT_FIELDS.map((field) => (
-                <View key={field.key} style={styles.statItem}>
-                  <Text
-                    testID={`stat-${field.key}-${card.teamPlayerId}`}
-                    style={styles.statValue}
-                  >
-                    {card[field.key]}
-                  </Text>
-                  <Text style={styles.statLabel}>{field.label}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
+          <Pressable
+            testID={`position-section-header-${section.key}`}
+            onPress={() => toggleSection(section.key)}
+            style={styles.sectionHeader}
+          >
+            <Text style={styles.sectionHeaderTitle}>
+              {section.title} ({count})
+            </Text>
+            <Ionicons
+              testID={`position-section-chevron-${section.key}`}
+              name={isExpanded ? 'chevron-down-outline' : 'chevron-forward-outline'}
+              size={18}
+              color={coachColors.primaryLight}
+            />
+          </Pressable>
         );
-      })}
-    </ScrollView>
+      }}
+      renderItem={({ item }) => renderPlayerCard(item)}
+    />
   );
 };
 
@@ -207,6 +256,25 @@ const styles = StyleSheet.create({
   contentContainer: {
     paddingHorizontal: 20,
     paddingVertical: 20,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginTop: 12,
+    borderRadius: 10,
+    backgroundColor: coachColors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: coachColors.border,
+  },
+  sectionHeaderTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: coachColors.primaryLight,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   card: {
     borderRadius: 14,
