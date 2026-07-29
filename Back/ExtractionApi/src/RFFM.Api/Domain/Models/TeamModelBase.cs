@@ -14,6 +14,8 @@
         public string? UrlPhoto { get; set; }
         public string SeasonId { get; set; }
         public int? LeagueGroup { get; set; }
+        public int? RffmCompetitionId { get; set; }
+        public int? RffmGroupId { get; set; }
 
     }
 }

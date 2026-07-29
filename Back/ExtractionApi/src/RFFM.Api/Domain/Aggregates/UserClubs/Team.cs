@@ -14,6 +14,8 @@ namespace RFFM.Api.Domain.Aggregates.UserClubs
         public int CategoryId { get; private set; }
         public int? LeagueId { get; private set; }
         public int? LeagueGroup { get; private set; }
+        public int? RffmCompetitionId { get; private set; }
+        public int? RffmGroupId { get; private set; }
         public string? UrlPhoto { get; set; }
         public string ClubId { get; set; }
         public string SeasonId { get; set; }
@@ -36,6 +38,8 @@ namespace RFFM.Api.Domain.Aggregates.UserClubs
             SeasonId = model.SeasonId;
             LeagueId = model.LeagueId;
             LeagueGroup = model.LeagueGroup;
+            RffmCompetitionId = model.RffmCompetitionId;
+            RffmGroupId = model.RffmGroupId;
             JoinCode = Guid.NewGuid().ToString("N")[..ValidationConstants.TeamJoinCodeLength].ToUpper();
         }
         public void UpdateName(string name)
@@ -66,6 +70,16 @@ namespace RFFM.Api.Domain.Aggregates.UserClubs
         public void UpdateLeagueGroup(int? leagueGroup)
         {
             LeagueGroup = leagueGroup;
+        }
+
+        public void UpdateRffmCompetitionId(int? rffmCompetitionId)
+        {
+            RffmCompetitionId = rffmCompetitionId;
+        }
+
+        public void UpdateRffmGroupId(int? rffmGroupId)
+        {
+            RffmGroupId = rffmGroupId;
         }
     }
 }
