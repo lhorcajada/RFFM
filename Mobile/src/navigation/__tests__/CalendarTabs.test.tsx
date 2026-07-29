@@ -5,6 +5,7 @@ import { CalendarTabs } from '../RootNavigator';
 jest.mock('../../screens/CalendarScreen', () => 'CalendarScreen');
 jest.mock('../../screens/NewsScreen', () => 'NewsScreen');
 jest.mock('../../screens/PlayerSeasonCardsScreen', () => 'PlayerSeasonCardsScreen');
+jest.mock('../../screens/LeagueScreen', () => 'LeagueScreen');
 
 jest.mock('@react-navigation/bottom-tabs', () => {
   const ReactActual = require('react');
@@ -39,6 +40,9 @@ describe('CalendarTabs', () => {
 
     expect(getByTestId('tab-screen-PlayersTab')).toBeTruthy();
     expect(getByTestId('tab-label-PlayersTab').props.children).toBe('Estadísticas');
+
+    expect(getByTestId('tab-screen-LeagueTab')).toBeTruthy();
+    expect(getByTestId('tab-label-LeagueTab').props.children).toBe('Liga');
   });
 
   it('uses a statistics icon for the PlayersTab', async () => {
@@ -47,5 +51,13 @@ describe('CalendarTabs', () => {
     );
 
     expect(getByTestId('tab-icon-PlayersTab').props.children).toBe('stats-chart-outline');
+  });
+
+  it('uses a trophy icon for the LeagueTab', async () => {
+    const { getByTestId } = await render(
+      <CalendarTabs route={{ params: { teamId: 'team1' } }} />,
+    );
+
+    expect(getByTestId('tab-icon-LeagueTab').props.children).toBe('trophy-outline');
   });
 });
