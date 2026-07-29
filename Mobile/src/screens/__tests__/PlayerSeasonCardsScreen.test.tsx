@@ -105,6 +105,15 @@ describe('PlayerSeasonCardsScreen', () => {
     await findByTestId('player-season-card-player1');
   });
 
+  it('falls back to a statistics-worded error when the server sends no detail', async () => {
+    (mockApi.get as jest.Mock).mockRejectedValueOnce({ response: { data: {} } });
+
+    const { findByTestId } = await render(<PlayerSeasonCardsScreen />);
+
+    const errorMessage = await findByTestId('error-message');
+    expect(errorMessage.props.children).toBe('Error al cargar las estadísticas');
+  });
+
   it('shows an empty-state message when there are no players', async () => {
     (mockApi.get as jest.Mock).mockResolvedValue({ data: [] });
 

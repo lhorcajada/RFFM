@@ -90,7 +90,7 @@ const PlayerSeasonCardsScreen = () => {
       setCards((response.data || []) as PlayerSeasonCard[]);
       setError(null);
     } catch (e: any) {
-      setError(e.response?.data?.detail || 'Error al cargar los cromos');
+      setError(e.response?.data?.detail || 'Error al cargar las estadísticas');
     } finally {
       setLoading(false);
     }

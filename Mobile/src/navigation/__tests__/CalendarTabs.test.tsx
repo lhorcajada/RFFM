@@ -12,18 +12,21 @@ jest.mock('@react-navigation/bottom-tabs', () => {
   return {
     createBottomTabNavigator: () => ({
       Navigator: ({ children }: any) => ReactActual.createElement(View, { testID: 'tab-navigator' }, children),
-      Screen: ({ name, options }: any) =>
-        ReactActual.createElement(
+      Screen: ({ name, options }: any) => {
+        const icon = options?.tabBarIcon?.({ color: '#fff', size: 24 });
+        return ReactActual.createElement(
           View,
           { testID: `tab-screen-${name}` },
           ReactActual.createElement(Text, { testID: `tab-label-${name}` }, options?.tabBarLabel ?? name),
-        ),
+          ReactActual.createElement(Text, { testID: `tab-icon-${name}` }, icon?.props?.name ?? ''),
+        );
+      },
     }),
   };
 });
 
 describe('CalendarTabs', () => {
-  it('registers a "Cromos" PlayersTab alongside CalendarTab and NewsTab', async () => {
+  it('registers an "Estadísticas" PlayersTab alongside CalendarTab and NewsTab', async () => {
     const { getByTestId } = await render(
       <CalendarTabs route={{ params: { teamId: 'team1' } }} />,
     );
@@ -35,6 +38,14 @@ describe('CalendarTabs', () => {
     expect(getByTestId('tab-label-NewsTab').props.children).toBe('Noticias');
 
     expect(getByTestId('tab-screen-PlayersTab')).toBeTruthy();
-    expect(getByTestId('tab-label-PlayersTab').props.children).toBe('Cromos');
+    expect(getByTestId('tab-label-PlayersTab').props.children).toBe('Estadísticas');
+  });
+
+  it('uses a statistics icon for the PlayersTab', async () => {
+    const { getByTestId } = await render(
+      <CalendarTabs route={{ params: { teamId: 'team1' } }} />,
+    );
+
+    expect(getByTestId('tab-icon-PlayersTab').props.children).toBe('stats-chart-outline');
   });
 });
