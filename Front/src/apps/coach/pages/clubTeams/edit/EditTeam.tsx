@@ -6,8 +6,10 @@ import ClubHeader from "../../../components/ClubHeader/ClubHeader";
 import { Box, Button, CircularProgress, TextField, Typography } from "@mui/material";
 import styles from "../ClubTeams.module.css";
 import teamService from "../../../services/teamService";
+import rffmCompetitionService from "../../../services/rffmCompetitionService";
 import CategorySelect from "../../../components/CategorySelect/CategorySelect";
 import LeagueSelect from "../../../components/LeagueSelect/LeagueSelect";
+import RffmCompetitionSelect from "../../../components/RffmCompetitionSelect/RffmCompetitionSelect";
 import FileImagePicker from "../../../../../shared/components/ui/FileImagePicker/FileImagePicker";
 
 export default function EditTeam() {
@@ -25,6 +27,13 @@ export default function EditTeam() {
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+
+  // Competición/grupo REALES de RFFM (catálogo scrapeado de la federación), distintos del
+  // catálogo local de Liga/Grupo gestionado arriba por LeagueSelect.
+  const [rffmCompetitionId, setRffmCompetitionId] = React.useState<number | null>(null);
+  const [rffmGroupId, setRffmGroupId] = React.useState<number | null>(null);
+  const [savingRffmCompetition, setSavingRffmCompetition] = React.useState(false);
+  const [rffmCompetitionError, setRffmCompetitionError] = React.useState<string | null>(null);
 
   const teamsListPath = `/coach/clubs/${id}/teams${
     seasonId ? `?seasonId=${encodeURIComponent(seasonId)}` : ""
@@ -51,6 +60,8 @@ export default function EditTeam() {
         setCategoryId(team.category?.id ?? null);
         setLeagueId(team.league?.id ?? null);
         setExistingPhotoUrl(team.urlPhoto ?? null);
+        setRffmCompetitionId(team.rffmCompetitionId ?? null);
+        setRffmGroupId(team.rffmGroupId ?? null);
       } catch (e: any) {
         if (!mounted) return;
         setError(e?.message ?? "No se pudo cargar el equipo");
@@ -150,6 +161,41 @@ export default function EditTeam() {
     }
   };
 
+  const handleSaveRffmCompetition = async () => {
+    if (!teamId) return;
+
+    setSavingRffmCompetition(true);
+    setRffmCompetitionError(null);
+
+    try {
+      await rffmCompetitionService.updateTeamCompetition(teamId, {
+        competitionId: rffmCompetitionId,
+        groupId: rffmGroupId,
+      });
+
+      window.dispatchEvent(
+        new CustomEvent("rffm.show_snackbar", {
+          detail: { message: "Competición RFFM guardada correctamente", severity: "success" },
+        })
+      );
+    } catch (e: any) {
+      const message =
+        e?.response?.data?.detail ??
+        e?.response?.data?.message ??
+        e?.message ??
+        "No se pudo guardar la competición RFFM";
+
+      setRffmCompetitionError(message);
+      window.dispatchEvent(
+        new CustomEvent("rffm.show_snackbar", {
+          detail: { message, severity: "error" },
+        })
+      );
+    } finally {
+      setSavingRffmCompetition(false);
+    }
+  };
+
   return (
     <BaseLayout hideFooterMenu>
       <ContentLayout
@@ -194,6 +240,33 @@ export default function EditTeam() {
                 value={leagueId}
                 onChange={(l) => setLeagueId(l?.id ?? null)}
               />
+
+              <Box mt={2} mb={1}>
+                <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                  Competición RFFM (catálogo real de la federación)
+                </Typography>
+                <RffmCompetitionSelect
+                  competitionId={rffmCompetitionId}
+                  groupId={rffmGroupId}
+                  onChange={(v) => {
+                    setRffmCompetitionId(v.competitionId);
+                    setRffmGroupId(v.groupId);
+                  }}
+                />
+                {rffmCompetitionError && (
+                  <Typography color="error" variant="body2" sx={{ mb: 1 }}>
+                    {rffmCompetitionError}
+                  </Typography>
+                )}
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={handleSaveRffmCompetition}
+                  disabled={savingRffmCompetition}
+                >
+                  {savingRffmCompetition ? "Guardando..." : "Guardar competición RFFM"}
+                </Button>
+              </Box>
 
               <Box mt={1.5} mb={1}>
                 <FileImagePicker

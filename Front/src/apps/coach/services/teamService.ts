@@ -14,6 +14,8 @@ export type TeamResponse = {
   };
   urlPhoto?: string | null;
   joinCode?: string | null;
+  rffmCompetitionId?: number | null;
+  rffmGroupId?: number | null;
 };
 
 export async function getTeams(
