@@ -24,7 +24,9 @@ type Action =
       mi: number;
       zi: number;
       si: number;
-      changes: Partial<Pick<Scenario, "name" | "context" | "tacticalPrinciples">>;
+      changes: Partial<
+        Pick<Scenario, "name" | "context" | "tacticalPrinciples" | "mediaUrl" | "mediaType">
+      >;
     }
   | { type: "DEL_SCENARIO"; mi: number; zi: number; si: number }
   // SubPrinciple
@@ -35,7 +37,7 @@ type Action =
       zi: number;
       si: number;
       pi: number;
-      changes: Partial<Pick<SubPrinciple, "name" | "context" | "tacticalPrinciples">>;
+      changes: Partial<Pick<SubPrinciple, "name" | "context">>;
     }
   | { type: "DEL_SP"; mi: number; zi: number; si: number; pi: number }
   | { type: "MOVE_SP"; mi: number; zi: number; si: number; from: number; to: number }
@@ -178,7 +180,6 @@ function reducer(state: GameModel, action: Action): GameModel {
                   label: String.fromCharCode(65 + s.subPrinciples.length),
                   name: "",
                   context: "",
-                  tacticalPrinciples: [],
                   subSubPrinciples: [],
                 } satisfies SubPrinciple,
               ],

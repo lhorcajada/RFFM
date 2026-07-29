@@ -32,7 +32,6 @@ export interface SubPrinciple {
   label: string;
   name: string;
   context: string;
-  tacticalPrinciples: TacticalPrinciple[];
   subSubPrinciples: SubSubPrinciple[];
 }
 
@@ -44,6 +43,8 @@ export interface Scenario {
   context: string;
   tacticalPrinciples: TacticalPrinciple[];
   subPrinciples: SubPrinciple[];
+  mediaUrl?: string | null;
+  mediaType?: "image" | "video" | null;
 }
 
 export interface Zone {

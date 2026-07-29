@@ -44,6 +44,9 @@ await app.SeedFormationsAsync();
 // Seed club kits
 await app.SeedClubKitsAsync();
 
+// Seed exercise types catalog
+await app.SeedExerciseTypesAsync();
+
 // Seed new roles and feature/page permissions
 await app.SeedPermissionsAsync();
 

@@ -1,5 +1,5 @@
-import type { CreateExerciseRequest, ExerciseSection, ExerciseType } from "../../../types/training";
-import type { LineColorOption, LineKindOption, MaterialTemplate, PetoOption, SpaceKind, SpaceTemplate } from "./types";
+import type { CreateExerciseRequest, ExerciseMethodology, ExerciseSection, ExerciseType } from "../../../types/training";
+import type { LineColorOption, LineKindOption, MaterialTemplate, PetoOption, SpaceKind, SpaceTemplate, TextStyle } from "./types";
 
 export const HALF_FIELD_LENGTH_METERS = 52.5;
 export const FIELD_WIDTH_METERS = 68;
@@ -59,12 +59,21 @@ export const typeOptions: { value: ExerciseType; label: string }[] = [
   { value: "Physical", label: "Fisico" },
   { value: "Technical", label: "Tecnico" },
   { value: "Tactical", label: "Tactico" },
+  { value: "Game", label: "Juego" },
+  { value: "Cognitive", label: "Cognitivo" },
+  { value: "Psychological", label: "Psicologico" },
 ];
 
 export const sectionOptions: { value: ExerciseSection; label: string }[] = [
   { value: "Calentamiento", label: "Calentamiento" },
   { value: "Principal", label: "Principal" },
   { value: "VueltaALaCalma", label: "Vuelta a la Calma" },
+];
+
+export const methodologyOptions: { value: ExerciseMethodology; label: string }[] = [
+  { value: "Analitico", label: "Analítico" },
+  { value: "Integrado", label: "Integrado" },
+  { value: "Global", label: "Global" },
 ];
 
 export const petoOptions: PetoOption[] = [
@@ -91,13 +100,15 @@ export const emptyExercise: CreateExerciseRequest = {
   clubId: "",
   name: "",
   description: "",
-  type: "Tactical",
+  types: ["Tactical"],
   section: "Principal",
+  methodology: "Integrado",
   durationTotal: 15,
   playersNumber: 10,
   goalPeekersNumber: 1,
   fieldSpace: "",
   subSubPrincipleId: null,
+  subPrincipleId: null,
   essentialSkillIds: [],
   touchesNumber: 0,
   wildCards: 0,
@@ -105,3 +116,21 @@ export const emptyExercise: CreateExerciseRequest = {
   durationSeries: 0,
   restSeries: 0,
 };
+
+export const TEXT_FONT_OPTIONS = [
+  { key: "Arial, sans-serif", label: "Arial" },
+  { key: "'Roboto', sans-serif", label: "Roboto" },
+  { key: "Georgia, serif", label: "Georgia" },
+  { key: "'Courier New', monospace", label: "Courier" },
+  { key: "'Comic Sans MS', cursive", label: "Comic" },
+];
+
+export const TEXT_SIZE_OPTIONS = [12, 14, 16, 20, 24, 32, 40];
+
+export const DEFAULT_TEXT_STYLE = {
+  fontFamily: TEXT_FONT_OPTIONS[0].key,
+  fontSize: 16,
+  bold: false,
+  italic: false,
+  color: "#ffffff",
+} satisfies TextStyle;

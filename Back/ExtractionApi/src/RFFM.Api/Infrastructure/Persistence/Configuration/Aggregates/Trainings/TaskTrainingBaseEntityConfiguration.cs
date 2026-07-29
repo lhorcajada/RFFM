@@ -41,7 +41,19 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.Trainings
                 .IsRequired(false)
                 .HasMaxLength(36);
 
+            builder.Property(tb => tb.SubPrincipleId)
+                .IsRequired(false)
+                .HasMaxLength(36);
+
+            builder.Property(tb => tb.ScenarioId)
+                .IsRequired(false)
+                .HasMaxLength(36);
+
             builder.Property(tb => tb.Section)
+                .IsRequired()
+                .HasMaxLength(50);
+
+            builder.Property(tb => tb.Methodology)
                 .IsRequired()
                 .HasMaxLength(50);
 
@@ -56,16 +68,34 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.Trainings
                 .IsRequired(false)
                 .OnDelete(DeleteBehavior.SetNull);
 
+            builder.HasOne(tb => tb.SubPrinciple)
+                .WithMany()
+                .HasForeignKey(tb => tb.SubPrincipleId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            builder.HasOne(tb => tb.Scenario)
+                .WithMany()
+                .HasForeignKey(tb => tb.ScenarioId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            builder.Property(tb => tb.Series).IsRequired();
+            builder.Property(tb => tb.DurationSeries).IsRequired();
+            builder.Property(tb => tb.RestSeries).IsRequired();
+            builder.Property(tb => tb.Time).IsRequired();
+            builder.Property(tb => tb.TouchesNumber).IsRequired();
+            builder.Property(tb => tb.WildCards).IsRequired();
+
             builder.HasMany(tb => tb.Skills)
                 .WithOne(s => s.TaskTrainingBase)
                 .HasForeignKey(s => s.TaskTrainingBaseId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            builder.HasDiscriminator<string>("Discriminator")
-                .HasValue<TaskTrainingBase>("Base")
-                .HasValue<PhysicalTaskTraining>("Physical")
-                .HasValue<TechnicalTaskTraining>("Technical")
-                .HasValue<TacticalTaskTraining>("Tactical");
+            builder.HasMany(tb => tb.Types)
+                .WithOne(t => t.TaskTrainingBase)
+                .HasForeignKey(t => t.TaskTrainingBaseId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

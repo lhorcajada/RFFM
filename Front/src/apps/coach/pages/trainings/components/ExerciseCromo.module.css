@@ -11,10 +11,44 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s;
   color: #e8e8e8;
   user-select: none;
+}
+
+/* ─── Section strip — vertical color accent on the left edge, with the section name ─── */
+.sectionStrip {
+  flex: 0 0 22px;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 6px 0;
+}
+
+.sectionStrip_Calentamiento  { background: #ffb300; }
+.sectionStrip_Principal      { background: #4d9de0; }
+.sectionStrip_VueltaALaCalma { background: #27ae60; }
+
+.sectionStripLabel {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+}
+
+.cardMain {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .card:hover {
@@ -30,6 +64,12 @@
 .type_Technical:hover { border-color: rgba(77, 157, 224, 0.65); }
 .type_Tactical { border-color: rgba(39, 174, 96, 0.35); }
 .type_Tactical:hover { border-color: rgba(39, 174, 96, 0.65); }
+.type_Game { border-color: rgba(230, 178, 33, 0.35); }
+.type_Game:hover { border-color: rgba(230, 178, 33, 0.65); }
+.type_Cognitive { border-color: rgba(155, 89, 182, 0.35); }
+.type_Cognitive:hover { border-color: rgba(155, 89, 182, 0.65); }
+.type_Psychological { border-color: rgba(232, 67, 147, 0.35); }
+.type_Psychological:hover { border-color: rgba(232, 67, 147, 0.65); }
 
 /* ─── Photo area — aspect ratio so it scales with card width ─── */
 .photoArea {
@@ -58,120 +98,6 @@
   background: linear-gradient(160deg, #252545 0%, #1a1a38 100%);
 }
 
-.snapshotBoard {
-  width: 100%;
-  height: 100%;
-  padding: 10px;
-  background:
-    radial-gradient(circle at 50% 20%, rgba(77, 157, 224, 0.14), transparent 36%),
-    linear-gradient(180deg, rgba(16, 22, 38, 0.98) 0%, rgba(8, 12, 24, 0.98) 100%);
-}
-
-.snapshotPitch {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  border-radius: 12px;
-  overflow: hidden;
-  background:
-    linear-gradient(180deg, #2f7b43 0%, #28683a 100%);
-  box-shadow:
-    inset 0 0 0 2px rgba(255, 255, 255, 0.15),
-    inset 0 0 0 6px rgba(14, 40, 22, 0.55);
-}
-
-.snapshotPitch::before,
-.snapshotPitch::after {
-  content: "";
-  position: absolute;
-  inset: 8px;
-  border: 1px solid rgba(245, 255, 247, 0.8);
-  border-radius: 9px;
-  pointer-events: none;
-}
-
-.snapshotPitch::after {
-  inset: 0;
-  border-radius: 12px;
-  border-width: 2px;
-}
-
-.snapshotHalfLine {
-  position: absolute;
-  inset: 0;
-  left: 50%;
-  width: 1px;
-  background: rgba(245, 255, 247, 0.72);
-}
-
-.snapshotCenterCircle {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 22%;
-  height: 22%;
-  transform: translate(-50%, -50%);
-  border-radius: 50%;
-  border: 1px solid rgba(245, 255, 247, 0.72);
-}
-
-.snapshotPenaltyArea {
-  position: absolute;
-  left: 0;
-  top: 28%;
-  width: 18%;
-  height: 44%;
-  border: 1px solid rgba(245, 255, 247, 0.72);
-  border-left: none;
-}
-
-.snapshotGoalArea {
-  position: absolute;
-  left: 0;
-  top: 37%;
-  width: 9%;
-  height: 26%;
-  border: 1px solid rgba(245, 255, 247, 0.72);
-  border-left: none;
-}
-
-.snapshotLine {
-  position: absolute;
-  height: 1.5px;
-  transform-origin: 0 50%;
-  z-index: 2;
-  opacity: 0.95;
-}
-
-.snapshotSpace {
-  position: absolute;
-  z-index: 3;
-  overflow: visible;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25));
-}
-
-.snapshotMaterial {
-  position: absolute;
-  width: 4.5%;
-  height: 4.5%;
-  border-radius: 50%;
-  background: linear-gradient(160deg, rgba(245, 245, 245, 0.9) 0%, rgba(140, 140, 140, 0.72) 100%);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.3);
-  z-index: 4;
-}
-
-.snapshotChapa {
-  position: absolute;
-  aspect-ratio: 1 / 1;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.2),
-    0 1px 3px rgba(0, 0, 0, 0.35);
-  z-index: 5;
-  background: linear-gradient(160deg, #4d9de0 0%, #245f94 100%);
-}
-
 .fallbackIconWrap {
   display: flex;
   align-items: center;
@@ -196,11 +122,42 @@
   pointer-events: none;
 }
 
-/* ─── Type badge — anchored to bottom of photo over gradient ─── */
-.typeBadge {
+/* ─── Methodology badge — card header, anchored top-right over the photo ─── */
+.methodologyBadge {
   position: absolute;
-  bottom: 7px;
-  left: 8px;
+  top: 7px;
+  right: 8px;
+  z-index: 2;
+}
+
+.methodologyBadgeChip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+.methodologyBadgeChip_Analitico {
+  background: rgba(155, 89, 182, 0.9);
+  box-shadow: 0 1px 5px rgba(155, 89, 182, 0.5);
+}
+
+.methodologyBadgeChip_Integrado {
+  background: rgba(22, 160, 133, 0.9);
+  box-shadow: 0 1px 5px rgba(22, 160, 133, 0.5);
+}
+
+.methodologyBadgeChip_Global {
+  background: rgba(233, 30, 99, 0.9);
+  box-shadow: 0 1px 5px rgba(233, 30, 99, 0.5);
+}
+
+.typeBadge {
   display: flex;
   align-items: center;
   gap: 4px;
@@ -210,7 +167,6 @@
   font-weight: 800;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  z-index: 2;
 }
 
 .typeBadge_Physical {
@@ -229,6 +185,38 @@
   background: rgba(39, 174, 96, 0.9);
   color: #fff;
   box-shadow: 0 1px 5px rgba(39, 174, 96, 0.5);
+}
+
+.typeBadge_Game {
+  background: rgba(230, 178, 33, 0.9);
+  color: #fff;
+  box-shadow: 0 1px 5px rgba(230, 178, 33, 0.5);
+}
+
+.typeBadge_Cognitive {
+  background: rgba(155, 89, 182, 0.9);
+  color: #fff;
+  box-shadow: 0 1px 5px rgba(155, 89, 182, 0.5);
+}
+
+.typeBadge_Psychological {
+  background: rgba(232, 67, 147, 0.9);
+  color: #fff;
+  box-shadow: 0 1px 5px rgba(232, 67, 147, 0.5);
+}
+
+.extraTypeChip {
+  height: 18px !important;
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.85) !important;
+  color: #1c1c30 !important;
+}
+
+.extraTypeChip :global(.MuiChip-label) {
+  padding: 0 6px;
 }
 
 /* ─── Body ─── */
@@ -254,32 +242,18 @@
   min-height: calc(13px * 1.35 * 2);
 }
 
-/* ─── Meta pills row ─── */
-.metaRow {
+/* ─── Tags row — type badges + sub-principle, uniformly wrapped below the title ─── */
+.tagsRow {
   display: flex;
   flex-wrap: wrap;
-  gap: 3px;
+  align-items: center;
+  gap: 4px;
   min-width: 0;
 }
 
-.sectionPill {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  padding: 2px 7px;
-  border-radius: 5px;
-  white-space: nowrap;
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(212, 212, 212, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.sectionPill_Calentamiento  { color: #ffb300; border-color: rgba(255, 179, 0, 0.3);    background: rgba(255, 179, 0, 0.1); }
-.sectionPill_Principal      { color: #4d9de0; border-color: rgba(77, 157, 224, 0.3);   background: rgba(77, 157, 224, 0.1); }
-.sectionPill_VueltaALaCalma { color: #27ae60; border-color: rgba(39, 174, 96, 0.3);    background: rgba(39, 174, 96, 0.1); }
-
 .sspPill {
+  flex: 0 1 auto;
+  min-width: 0;
   font-size: 10px;
   font-weight: 600;
   padding: 2px 7px;
@@ -287,7 +261,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 100%;
+  max-width: 160px;
   background: rgba(156, 220, 254, 0.08);
   color: rgba(168, 212, 245, 0.6);
   border: 1px solid rgba(156, 220, 254, 0.15);

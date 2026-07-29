@@ -236,6 +236,24 @@ namespace RFFM.Host.DependencyInjection
             }
         }
 
+        public static async Task SeedExerciseTypesAsync(this WebApplication app)
+        {
+            using var scope = app.Services.CreateScope();
+            var logger = scope.ServiceProvider.GetService<ILogger<WebApplication>>();
+
+            try
+            {
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                logger?.LogInformation("Seeding exercise types if not present...");
+                await RFFM.Api.Infrastructure.Persistence.Seed.ExerciseTypesSeeder.SeedAsync(db);
+                logger?.LogInformation("✓ Exercise types seeding finished");
+            }
+            catch (Exception ex)
+            {
+                logger?.LogError(ex, "Error while seeding exercise types");
+            }
+        }
+
         public static async Task SeedClubKitsAsync(this WebApplication app)
         {
             using var scope = app.Services.CreateScope();
@@ -400,6 +418,26 @@ namespace RFFM.Host.DependencyInjection
                         ("Sanctions", CoachFeatureRoutes.Sanctions, "Player", 1, false),
                         ("Lottery", CoachFeatureRoutes.Lottery, "Player", 1, false),
                         ("News", CoachFeatureRoutes.News, "Player", 1, false),
+
+                        // FamilyMember: Read-only on the 4 approved features (Squad, Events, Convocations, News)
+                        ("Squad", CoachFeatureRoutes.Squad, "FamilyMember", 1, false),
+                        ("Events", CoachFeatureRoutes.Events, "FamilyMember", 1, false),
+                        ("Convocations", CoachFeatureRoutes.Convocations, "FamilyMember", 1, false),
+                        ("News", CoachFeatureRoutes.News, "FamilyMember", 1, false),
+
+                        // AttendanceConfirmation: ReadWrite for Player and FamilyMember
+                        ("AttendanceConfirmation", CoachFeatureRoutes.AttendanceConfirmation, "Player", 3, false),
+                        ("AttendanceConfirmation", CoachFeatureRoutes.AttendanceConfirmation, "FamilyMember", 3, false),
+                        // AttendanceConfirmation: ReadWrite for Coach (parity with Administrator, which
+                        // already bypasses FeaturePermissionBehavior entirely) so Coach can confirm/edit
+                        // attendance for any player on the roster, not just their own linked player.
+                        ("AttendanceConfirmation", CoachFeatureRoutes.AttendanceConfirmation, "Coach", 3, false),
+
+                        // PlayerSeasonCards: Read-only for Player, FamilyMember and Coach — the Mobile
+                        // "Cromos" screen only displays aggregated season data, no edit affordances.
+                        ("PlayerSeasonCards", CoachFeatureRoutes.PlayerSeasonCards, "Player", 1, false),
+                        ("PlayerSeasonCards", CoachFeatureRoutes.PlayerSeasonCards, "FamilyMember", 1, false),
+                        ("PlayerSeasonCards", CoachFeatureRoutes.PlayerSeasonCards, "Coach", 1, false),
                     };
 
                     foreach (var (featureName, featureRoute, roleName, permTypeId, isEditable) in entries)

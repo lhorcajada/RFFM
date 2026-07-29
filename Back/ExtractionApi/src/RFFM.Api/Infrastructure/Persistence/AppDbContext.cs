@@ -48,6 +48,7 @@ namespace RFFM.Api.Infrastructure.Persistence
         public DbSet<SportEvent> SportEvents { get; set; }
         public DbSet<EventRecurrence> EventRecurrences { get; set; }
         public DbSet<SportEventType> SportEventTypes { get; set; }
+        public DbSet<EventAttendanceConfirmation> EventAttendanceConfirmations { get; set; }
         public DbSet<TrainingSession> TrainingSessions { get; set; }
         public DbSet<TaskTraining> TasksTraining { get; set; }
         public DbSet<MaterialsEnum> Materials { get; set; }
@@ -56,6 +57,8 @@ namespace RFFM.Api.Infrastructure.Persistence
         public DbSet<TrainingPointsReport> TrainingPointsReports { get; set; }
         public DbSet<TaskTrainingBase> TaskTrainingBases { get; set; }
         public DbSet<TaskTrainingSkill> TaskTrainingSkills { get; set; }
+        public DbSet<ExerciseType> ExerciseTypes { get; set; }
+        public DbSet<TaskTrainingType> TaskTrainingTypes { get; set; }
         public DbSet<ExerciseCondition> ExerciseConditions { get; set; }
         public DbSet<TechnicalGoalsEnum> TechnicalGoals { get; set; }
         public DbSet<Rival> Rivals { get; set; }
@@ -109,7 +112,6 @@ namespace RFFM.Api.Infrastructure.Persistence
         public DbSet<SeasonPrepPlayerRating> SeasonPrepPlayerRatings { get; set; }
         public DbSet<SeasonPrepPlayerRatingDetail> SeasonPrepPlayerRatingDetails { get; set; }
         public DbSet<SubPrinciple> SubPrinciples { get; set; }
-        public DbSet<SubPrincipleTacticalPrinciple> SubPrincipleTacticalPrinciples { get; set; }
         public DbSet<SubSubPrinciple> SubSubPrinciples { get; set; }
         public DbSet<EssentialSkill> EssentialSkills { get; set; }
 

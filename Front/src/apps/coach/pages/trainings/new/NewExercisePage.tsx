@@ -4,6 +4,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SaveIcon from "@mui/icons-material/Save";
 import SportsSoccerIcon from "@mui/icons-material/SportsSoccer";
 import ViewSidebarIcon from "@mui/icons-material/ViewSidebar";
+import TextFieldsIcon from "@mui/icons-material/TextFields";
 import { useLocation, useNavigate } from "react-router-dom";
 import BaseLayout from "../../../../../shared/components/ui/BaseLayout/BaseLayout";
 import trainingService from "../../../services/trainingService";
@@ -13,6 +14,7 @@ import ExerciseFormPanel from "./components/ExerciseFormPanel";
 import LinesStrip from "./components/LinesStrip";
 import MaterialsStrip from "./components/MaterialsStrip";
 import SpacesStrip from "./components/SpacesStrip";
+import TextsStrip from "./components/TextsStrip";
 import TacticalField from "./components/TacticalField";
 import { useExerciseForm } from "./hooks/useExerciseForm";
 import { useTacticalBoard } from "./hooks/useTacticalBoard";
@@ -30,6 +32,10 @@ export default function NewExercisePage() {
   const duplicateFromId = params.get("duplicateFrom");
   const subSubPrincipleId = params.get("subSubPrincipleId");
   const subSubPrincipleName = params.get("sspName");
+  const subPrincipleId = params.get("subPrincipleId");
+  const subPrincipleName = params.get("spName");
+  const scenarioId = params.get("scenarioId");
+  const scenarioName = params.get("scenarioName");
 
   const navState = (location.state as NavState | null) ?? null;
   const returnTo = navState?.returnTo ?? "/coach/trainings";
@@ -39,6 +45,8 @@ export default function NewExercisePage() {
   const exerciseForm = useExerciseForm({
     clubId,
     subSubPrincipleId,
+    subPrincipleId,
+    scenarioId,
     navigate,
     returnTo,
     getBoardStateJson: board.serializeBoardStateJson,
@@ -101,6 +109,11 @@ export default function NewExercisePage() {
             panelVisible={panelVisible}
             subSubPrincipleId={subSubPrincipleId}
             subSubPrincipleName={subSubPrincipleName}
+            subPrincipleId={subPrincipleId}
+            subPrincipleName={subPrincipleName}
+            scenarioId={scenarioId}
+            scenarioName={scenarioName}
+            subSubPrincipleOptions={navState?.subSubPrincipleOptions}
             form={exerciseForm}
           />
         </Box>
@@ -109,6 +122,7 @@ export default function NewExercisePage() {
         {board.showSpaces && <SpacesStrip board={board} />}
         {board.showMaterials && <MaterialsStrip board={board} />}
         {board.showLines && <LinesStrip board={board} />}
+        {board.showTexts && <TextsStrip board={board} selectedTextId={board.selectedTextId} />}
 
         <Box className={styles.bottomToolBar}>
           <Button
@@ -144,6 +158,15 @@ export default function NewExercisePage() {
             onClick={board.handleToggleLines}
           >
             Lineas
+          </Button>
+          <Button
+            size="small"
+            variant={board.showTexts ? "contained" : "outlined"}
+            startIcon={<TextFieldsIcon />}
+            className={styles.toolBtn}
+            onClick={board.handleToggleTexts}
+          >
+            Texto
           </Button>
         </Box>
       </Box>

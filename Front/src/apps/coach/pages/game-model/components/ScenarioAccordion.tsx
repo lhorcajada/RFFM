@@ -5,7 +5,9 @@ import EventNoteIcon from "@mui/icons-material/EventNote";
 import { useNavigate, useLocation } from "react-router-dom";
 import type { Scenario, SubPrinciple } from "../../../types/gameModel";
 import DrillDownPanel from "./DrillDownPanel";
+import PrincipleExercisesSection from "./PrincipleExercisesSection";
 import SubSubPrincipleCard from "./SubSubPrincipleCard";
+import { resolveMediaUrl } from "./resolveMediaUrl";
 import styles from "./ScenarioAccordion.module.css";
 
 interface Props {
@@ -20,7 +22,7 @@ interface SpDetailProps {
   sp: SubPrinciple;
   clubId: string;
   teamId: string;
-  scenario: { id: number; name: string; order: number };
+  scenario: { id: number; apiId?: string | null; name: string; order: number };
   gameMomentName: string;
   zoneName: string;
 }
@@ -28,6 +30,7 @@ interface SpDetailProps {
 function SubPrincipleDetailView({ sp, clubId, teamId, scenario, gameMomentName, zoneName }: SpDetailProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const [exerciseCount, setExerciseCount] = useState(0);
 
   const handleNewSession = () => {
     navigate(`/coach/game-model/create-session${location.search}`, {
@@ -41,7 +44,6 @@ function SubPrincipleDetailView({ sp, clubId, teamId, scenario, gameMomentName, 
           label: sp.label,
           name: sp.name,
           context: sp.context,
-          tacticalPrinciples: sp.tacticalPrinciples,
           subSubPrincipleApiIds: sp.subSubPrinciples.map((ssp) => ssp.apiId).filter((id): id is string => id != null),
         },
         clubId,
@@ -61,7 +63,6 @@ function SubPrincipleDetailView({ sp, clubId, teamId, scenario, gameMomentName, 
           apiId: sp.apiId ?? null,
           label: sp.label,
           name: sp.name,
-          tacticalPrinciples: sp.tacticalPrinciples,
         },
         teamId,
         clubId,
@@ -91,27 +92,49 @@ function SubPrincipleDetailView({ sp, clubId, teamId, scenario, gameMomentName, 
         >
           Ver sesiones
         </Button>
+        {exerciseCount > 0 && (
+          <Chip
+            icon={<FitnessCenterIcon style={{ fontSize: 12 }} />}
+            label={`${exerciseCount} ej.`}
+            size="small"
+            className={styles.exerciseChip}
+          />
+        )}
       </Box>
 
       <Typography className={styles.subPrincipleContext}>{sp.context}</Typography>
 
-      {sp.tacticalPrinciples.length > 0 && (
-        <Box className={styles.principlesRow}>
-          <Typography className={styles.principlesLabel}>Principios tácticos colectivos:</Typography>
-          <Box className={styles.chipRow}>
-            {sp.tacticalPrinciples.map((p) => (
-              <Chip key={p.id} label={p.name} size="small" className={styles.principleChip} />
-            ))}
-          </Box>
-        </Box>
-      )}
-
       {sp.subSubPrinciples.length > 0 && (
         <Box className={styles.subSubPrinciples}>
           {sp.subSubPrinciples.map((ssp, idx) => (
-            <SubSubPrincipleCard key={ssp.id} index={idx + 1} subSubPrinciple={ssp} clubId={clubId} />
+            <SubSubPrincipleCard
+              key={ssp.id}
+              index={idx + 1}
+              subSubPrinciple={ssp}
+              clubId={clubId}
+              subPrincipleApiId={sp.apiId}
+              subPrincipleName={sp.name}
+            />
           ))}
         </Box>
+      )}
+
+      {clubId && sp.apiId && (
+        <PrincipleExercisesSection
+          clubId={clubId}
+          teamId={teamId}
+          levelKind="subPrinciple"
+          levelApiId={sp.apiId}
+          levelName={sp.name}
+          contextLabel={`Subprincipio ${sp.label}`}
+          active
+          onCountChange={setExerciseCount}
+          parentScenarioApiId={scenario.apiId}
+          parentScenarioName={scenario.name}
+          siblingSubSubPrinciples={sp.subSubPrinciples
+            .filter((ssp): ssp is typeof ssp & { apiId: string } => !!ssp.apiId)
+            .map((ssp) => ({ apiId: ssp.apiId, name: ssp.name }))}
+        />
       )}
     </Box>
   );
@@ -127,6 +150,7 @@ interface ScenarioDetailProps {
 
 function ScenarioDetailView({ scenario, clubId, teamId, gameMomentName, zoneName }: ScenarioDetailProps) {
   const [selectedPi, setSelectedPi] = useState<number | null>(scenario.subPrinciples.length === 1 ? 0 : null);
+  const [exerciseCount, setExerciseCount] = useState(0);
 
   useEffect(() => {
     if (selectedPi !== null && selectedPi >= scenario.subPrinciples.length) setSelectedPi(null);
@@ -134,7 +158,31 @@ function ScenarioDetailView({ scenario, clubId, teamId, gameMomentName, zoneName
 
   return (
     <Box className={styles.scenarioDetailView}>
-      <Typography className={styles.context}>{scenario.context}</Typography>
+      <Box className={styles.scenarioDetailHeader}>
+        <Typography className={styles.context}>{scenario.context}</Typography>
+        {exerciseCount > 0 && (
+          <Chip
+            icon={<FitnessCenterIcon style={{ fontSize: 12 }} />}
+            label={`${exerciseCount} ej.`}
+            size="small"
+            className={styles.exerciseChip}
+          />
+        )}
+      </Box>
+
+      {scenario.mediaUrl && (
+        <Box className={styles.mediaViewer}>
+          {scenario.mediaType === "video" ? (
+            <video src={resolveMediaUrl(scenario.mediaUrl)} controls className={styles.mediaViewerContent} />
+          ) : (
+            <img
+              src={resolveMediaUrl(scenario.mediaUrl)}
+              alt={`Situación: ${scenario.name}`}
+              className={styles.mediaViewerContent}
+            />
+          )}
+        </Box>
+      )}
 
       {scenario.tacticalPrinciples.length > 0 && (
         <Box className={styles.principlesRow}>
@@ -176,7 +224,7 @@ function ScenarioDetailView({ scenario, clubId, teamId, gameMomentName, zoneName
               sp={sp}
               clubId={clubId}
               teamId={teamId}
-              scenario={{ id: scenario.id, name: scenario.name, order: scenario.order }}
+              scenario={{ id: scenario.id, apiId: scenario.apiId, name: scenario.name, order: scenario.order }}
               gameMomentName={gameMomentName}
               zoneName={zoneName}
             />
@@ -184,6 +232,19 @@ function ScenarioDetailView({ scenario, clubId, teamId, gameMomentName, zoneName
         />
       ) : (
         <Typography className={styles.emptyZoneText}>No hay subprincipios definidos.</Typography>
+      )}
+
+      {clubId && scenario.apiId && (
+        <PrincipleExercisesSection
+          clubId={clubId}
+          teamId={teamId}
+          levelKind="scenario"
+          levelApiId={scenario.apiId}
+          levelName={scenario.name}
+          contextLabel={`Escenario ${scenario.order}`}
+          active={selectedPi === null}
+          onCountChange={setExerciseCount}
+        />
       )}
     </Box>
   );

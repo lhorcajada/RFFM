@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Common;
+using RFFM.Api.Domain;
 using RFFM.Api.Domain.Entities;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
@@ -15,18 +16,21 @@ namespace RFFM.Api.Features.Coaches.Convocations
         public void AddRoutes(IEndpointRouteBuilder app)
         {
             app.MapGet("/api/events/{eventId}/convocations",
-                    async (string eventId, IMediator mediator, CancellationToken cancellationToken) =>
+                    async (string eventId, AppDbContext db, IMediator mediator, CancellationToken cancellationToken) =>
                     {
-                        return await mediator.Send(new EventConvocationsQuery { EventId = eventId }, cancellationToken);
+                        var sportEvent = await db.SportEvents.AsNoTracking().FirstOrDefaultAsync(se => se.Id == eventId, cancellationToken);
+                        if (sportEvent == null) throw new DomainException("Evento", "Evento no encontrado", "EventNotFound");
+                        return await mediator.Send(new EventConvocationsQuery { EventId = eventId, TeamId = sportEvent.TeamId }, cancellationToken);
                     })
                 .WithName(nameof(GetEventConvocations))
                 .WithTags("Convocations")
                 .Produces<ConvocationResponse[]>();
         }
 
-        public record EventConvocationsQuery : Common.IQueryApp<ConvocationResponse[]>, IRequireFeaturePermission
+        public record EventConvocationsQuery : Common.IQueryApp<ConvocationResponse[]>, IRequireFeaturePermission, IRequireTeamMembership
         {
             public string EventId { get; init; } = null!;
+            public string TeamId { get; set; } = null!;
 
             public string FeatureRoute => CoachFeatureRoutes.Convocations;
             public string RequiredPermission => "Read";

@@ -12,6 +12,8 @@ namespace RFFM.Api.Domain.Aggregates.GameModels
         public int Order { get; private set; }
         public string Name { get; private set; } = null!;
         public string Context { get; private set; } = string.Empty;
+        public string? MediaUrl { get; private set; }
+        public string? MediaType { get; private set; } // "image" | "video"
 
         public GameModel GameModel { get; private set; } = null!;
         public GameMoment GameMoment { get; private set; } = null!;
@@ -46,6 +48,22 @@ namespace RFFM.Api.Domain.Aggregates.GameModels
         {
             GameMomentId = momentId;
             GameZoneId = zoneId;
+        }
+
+        public void UpdateMedia(string url, string mediaType)
+        {
+            if (string.IsNullOrWhiteSpace(url))
+                throw new ArgumentException("Media url cannot be empty.", nameof(url));
+            if (mediaType != "image" && mediaType != "video")
+                throw new ArgumentException("Invalid media type.", nameof(mediaType));
+            MediaUrl = url;
+            MediaType = mediaType;
+        }
+
+        public void ClearMedia()
+        {
+            MediaUrl = null;
+            MediaType = null;
         }
     }
 }

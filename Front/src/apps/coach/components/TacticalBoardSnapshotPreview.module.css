@@ -1,0 +1,454 @@
+/* ═══════════════════════════════════════
+   TacticalBoardSnapshotPreview — read-only mini
+   tactical board preview, shared across coach pages.
+   Geometry (bands, lines, areas) mirrors the real
+   editor (pages/trainings/new/NewExercisePage.module.css
+   → .halfPitch), scaled to a card-sized thumbnail.
+   ═══════════════════════════════════════ */
+
+.board {
+  width: 100%;
+  height: 100%;
+  /* Self-contained "object-fit: contain": always centers a correctly
+     proportioned .pitch inside whatever box shape the consuming card gives
+     us (16:9, 4:3, ...), instead of stretching the pitch to match it. */
+  container-type: size;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pitch {
+  position: relative;
+  width: min(100%, calc(100cqh * 52.5 / 68));
+  aspect-ratio: 52.5 / 68;
+  overflow: hidden;
+  background: linear-gradient(
+    90deg,
+    #1a7a2e 0%,
+    #1d8a32 17%,
+    #1a7a2e 34%,
+    #1d8a32 51%,
+    #1a7a2e 68%,
+    #1d8a32 85%,
+    #1a7a2e 100%
+  );
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  --touchline-band: 8%;
+  --goal-back-band: 10%;
+}
+
+/* ── Field silhouette (half-pitch + goal, same proportions as the editor) ── */
+
+.terrainBandTop,
+.terrainBandBottom,
+.terrainGoalBack {
+  position: absolute;
+  background: linear-gradient(180deg, rgba(18, 72, 31, 0.7), rgba(15, 60, 27, 0.9));
+  pointer-events: none;
+}
+
+.terrainBandTop,
+.terrainBandBottom {
+  left: 0;
+  right: var(--goal-back-band);
+  height: var(--touchline-band);
+}
+
+.terrainBandTop {
+  top: 0;
+}
+
+.terrainBandBottom {
+  bottom: 0;
+}
+
+.terrainGoalBack {
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: var(--goal-back-band);
+}
+
+.touchLineTop,
+.touchLineBottom,
+.midLine,
+.goalLine {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.68);
+  pointer-events: none;
+}
+
+.touchLineTop,
+.touchLineBottom {
+  left: 0;
+  right: var(--goal-back-band);
+  height: 1px;
+}
+
+.touchLineTop {
+  top: var(--touchline-band);
+}
+
+.touchLineBottom {
+  bottom: var(--touchline-band);
+}
+
+.midLine,
+.goalLine {
+  top: var(--touchline-band);
+  bottom: var(--touchline-band);
+  width: 1px;
+}
+
+.midLine {
+  left: 0;
+}
+
+.goalLine {
+  right: var(--goal-back-band);
+}
+
+.centerCircle {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 34.857%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border: 1px solid rgba(255, 255, 255, 0.58);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.penaltyArea,
+.goalArea {
+  position: absolute;
+  top: 50%;
+  right: var(--goal-back-band);
+  transform: translateY(-50%);
+  border: 1px solid rgba(255, 255, 255, 0.56);
+  border-right: none;
+  pointer-events: none;
+}
+
+.penaltyArea {
+  width: 31.429%;
+  height: 59.294%;
+}
+
+.goalArea {
+  width: 10.476%;
+  height: 26.941%;
+}
+
+.penaltySpot {
+  position: absolute;
+  top: 50%;
+  left: calc(100% - var(--goal-back-band) - 20.952%);
+  width: 3px;
+  height: 3px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.78);
+  pointer-events: none;
+}
+
+.penaltyArc {
+  position: absolute;
+  top: 50%;
+  left: calc(100% - var(--goal-back-band) - 20.952%);
+  width: 34.857%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border: 1px solid rgba(255, 255, 255, 0.58);
+  border-radius: 50%;
+  clip-path: inset(0 80.05% 0 0);
+  pointer-events: none;
+}
+
+.goalMouth {
+  position: absolute;
+  top: 50%;
+  right: var(--goal-back-band);
+  transform: translateY(-50%);
+  height: 10.765%;
+  border-right: 2px solid rgba(255, 255, 255, 0.86);
+  pointer-events: none;
+}
+
+.goalFrame {
+  position: absolute;
+  top: 50%;
+  right: calc(var(--goal-back-band) - 4.6%);
+  transform: translateY(-50%);
+  width: 4.6%;
+  height: 10.765%;
+  border: 1px solid rgba(255, 255, 255, 0.74);
+  border-left: none;
+  pointer-events: none;
+}
+
+/* ── Spaces ── */
+
+.spaceShape {
+  position: absolute;
+  z-index: 3;
+  overflow: visible;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25));
+}
+
+.spaceSvg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.spaceStroke {
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+/* ── Lines overlay (paths built via buildLinePath, same as the editor) ── */
+
+.linesSvg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 4;
+  overflow: visible;
+  pointer-events: none;
+}
+
+/* ── Materials (per-kind glyphs, geometry expressed in % of their own box
+   so they scale correctly at thumbnail size, unlike the editor's
+   fixed-px inner parts meant for a full-size pitch) ── */
+
+.materialOnField {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  z-index: 5;
+}
+
+.materialGlyph {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.materialGlyph_balones {
+  border-radius: 50%;
+  background: radial-gradient(circle at 32% 28%, #ffffff 0%, #d5e7ff 35%, #2a3f58 100%);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+}
+
+.materialGlyph_setas {
+  border-radius: 50%;
+  background: #e67e22;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.materialSetaHole {
+  width: 38%;
+  height: 38%;
+  border-radius: 50%;
+  background: rgba(12, 22, 42, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.materialGlyph_conos {
+  clip-path: polygon(50% 0%, 95% 100%, 5% 100%);
+  background: linear-gradient(
+    180deg,
+    #ffae42 0%,
+    #e67e22 28%,
+    #ffffff 28%,
+    #ffffff 36%,
+    #e67e22 36%,
+    #e67e22 64%,
+    #ffffff 64%,
+    #ffffff 72%,
+    #e67e22 72%,
+    #d35400 100%
+  );
+  border: 1px solid rgba(0, 0, 0, 0.45);
+}
+
+.materialConoBase {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 0;
+  width: 90%;
+  height: 10%;
+  background: #111;
+  border-radius: 2px;
+}
+
+.materialGlyph_vallas {
+  position: relative;
+}
+
+.materialVallaLegLeft,
+.materialVallaLegRight {
+  position: absolute;
+  bottom: 0;
+  width: 10%;
+  height: 62%;
+  background: #f0f7ff;
+  border-radius: 2px;
+}
+
+.materialVallaLegLeft {
+  left: 10%;
+}
+
+.materialVallaLegRight {
+  right: 10%;
+}
+
+.materialVallaBar {
+  position: absolute;
+  top: 10%;
+  left: 3%;
+  right: 3%;
+  height: 22%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #f1c40f 0%, #e67e22 48%, #f1c40f 100%);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+}
+
+.materialGlyph_aros {
+  border-radius: 50%;
+  background: transparent;
+  border: 2px solid #f1c40f;
+}
+
+.materialGlyph_miniporterias,
+.materialGlyph_porteriasf11 {
+  position: relative;
+}
+
+.materialGoalPostLeft,
+.materialGoalPostRight {
+  position: absolute;
+  bottom: 0;
+  width: 9%;
+  height: 92%;
+  background: #f5f8ff;
+  border-radius: 2px;
+}
+
+.materialGoalPostLeft {
+  left: 6%;
+}
+
+.materialGoalPostRight {
+  right: 6%;
+}
+
+.materialGoalCrossbar {
+  position: absolute;
+  top: 0;
+  left: 5%;
+  right: 5%;
+  height: 12%;
+  background: #f5f8ff;
+  border-radius: 2px;
+}
+
+.materialGoalNet {
+  position: absolute;
+  top: 12%;
+  left: 12%;
+  right: 12%;
+  bottom: 2%;
+  border: 1px dashed rgba(173, 220, 255, 0.72);
+  border-top: none;
+  border-radius: 0 0 20% 20%;
+}
+
+.materialGlyph_picas {
+  position: relative;
+}
+
+.materialPicaTip {
+  position: absolute;
+  top: 0;
+  left: 15%;
+  width: 70%;
+  height: 22%;
+  clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+  background: #f5f8ff;
+}
+
+.materialPicaStick {
+  position: absolute;
+  top: 20%;
+  left: 42%;
+  width: 16%;
+  height: 66%;
+  background: #f5f8ff;
+  border-radius: 2px;
+}
+
+.materialPicaBase {
+  position: absolute;
+  bottom: 0;
+  left: 20%;
+  width: 60%;
+  height: 14%;
+  border-radius: 999px;
+  background: #e74c3c;
+}
+
+/* ── Player chapas (dorsal + alias resolved from the team roster) ── */
+
+.chapa {
+  position: absolute;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  color: #f3f8ff;
+  border: 1px solid rgba(220, 236, 255, 0.72);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.24),
+    0 2px 6px rgba(0, 0, 0, 0.4);
+  z-index: 6;
+  background: linear-gradient(160deg, #4d9de0 0%, #245f94 42%, #173f64 100%);
+}
+
+.chapaDorsal {
+  font-size: clamp(0.5rem, 1.6vw, 0.78rem);
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.chapaAliasOutside {
+  position: absolute;
+  top: calc(100% + 3px);
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: clamp(0.36rem, 1.1vw, 0.5rem);
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #f3fbff;
+  background: linear-gradient(180deg, rgba(14, 38, 62, 0.9) 0%, rgba(10, 28, 46, 0.94) 100%);
+  border: 1px solid rgba(130, 198, 245, 0.62);
+  border-radius: 999px;
+  padding: 1px 5px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+  pointer-events: none;
+}

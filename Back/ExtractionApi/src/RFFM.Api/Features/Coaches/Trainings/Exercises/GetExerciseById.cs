@@ -55,7 +55,11 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
             var exercise = await _db.TaskTrainingBases
                 .Include(tb => tb.Skills)
                     .ThenInclude(s => s.EssentialSkill)
+                .Include(tb => tb.Types)
+                    .ThenInclude(t => t.ExerciseType)
                 .Include(tb => tb.SubSubPrinciple)
+                .Include(tb => tb.SubPrinciple)
+                .Include(tb => tb.Scenario)
                 .Include(tb => tb.Conditions)
                 .FirstOrDefaultAsync(tb => tb.Id == request.ExerciseId, ct);
 
@@ -72,14 +76,19 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
                 exercise.Id,
                 exercise.Name,
                 exercise.Description,
-                exercise.GetType().Name.Replace("TaskTraining", ""),
+                exercise.Types.Select(t => t.ExerciseType.Name),
                 exercise.Section,
+                exercise.Methodology,
                 exercise.DurationTotal,
                 exercise.PlayersNumber,
                 exercise.GoalPeekersNumber,
                 exercise.FieldSpace,
                 exercise.SubSubPrincipleId,
                 exercise.SubSubPrinciple?.Name,
+                exercise.SubPrincipleId,
+                exercise.SubPrinciple?.Name,
+                exercise.ScenarioId,
+                exercise.Scenario?.Name,
                 exercise.Skills.Select(s => new SkillCoverageDto(s.EssentialSkillId, s.EssentialSkill.Name)),
                 exercise.UrlImage,
                 exercise.BoardStateJson,

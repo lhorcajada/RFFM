@@ -38,7 +38,6 @@ interface ApiSubPrinciple {
   label: string;
   name: string;
   context: string;
-  tacticalPrinciples: ApiTacticalPrinciple[];
   subSubPrinciples: ApiSubSubPrinciple[];
 }
 
@@ -53,6 +52,8 @@ interface ApiScenario {
   context: string;
   tacticalPrinciples: ApiTacticalPrinciple[];
   subPrinciples: ApiSubPrinciple[];
+  mediaUrl: string | null;
+  mediaType: "image" | "video" | null;
 }
 
 interface ApiGameModel {
@@ -91,6 +92,8 @@ function mapApiToGameModel(
       name: s.name,
       context: s.context,
       tacticalPrinciples: s.tacticalPrinciples,
+      mediaUrl: s.mediaUrl,
+      mediaType: s.mediaType,
       subPrinciples: s.subPrinciples.map((sp) => ({
         id: nextKey(),
         apiId: sp.id,
@@ -98,7 +101,6 @@ function mapApiToGameModel(
         label: sp.label,
         name: sp.name,
         context: sp.context,
-        tacticalPrinciples: sp.tacticalPrinciples,
         subSubPrinciples: sp.subSubPrinciples.map((ssp) => ({
           id: nextKey(),
           apiId: ssp.id,
@@ -153,7 +155,6 @@ function mapModelToRequest(model: GameModel) {
             order: sp.order,
             name: sp.name,
             context: sp.context,
-            tacticalPrincipleIds: sp.tacticalPrinciples.map((tp) => tp.id),
             subSubPrinciples: sp.subSubPrinciples.map((ssp) => ({
               id: ssp.apiId,
               order: ssp.order,
@@ -269,6 +270,23 @@ const gameModelService = {
       essentialSkills: { id: string; name: string; description: string }[];
     }>(`/api/game-models/sub-sub-principles/${sspId}`);
     return res.data.essentialSkills;
+  },
+
+  async uploadScenarioMedia(
+    scenarioApiId: string,
+    file: File
+  ): Promise<{ url: string; mediaType: "image" | "video" }> {
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await client.post<{ url: string; mediaType: "image" | "video" }>(
+      `/api/game-models/scenarios/${scenarioApiId}/media`,
+      formData
+    );
+    return res.data;
+  },
+
+  async deleteScenarioMedia(scenarioApiId: string): Promise<void> {
+    await client.delete(`/api/game-models/scenarios/${scenarioApiId}/media`);
   },
 };
 

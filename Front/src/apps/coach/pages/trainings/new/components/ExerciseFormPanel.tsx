@@ -2,6 +2,7 @@ import {
   Box,
   Button,
   Checkbox,
+  Chip,
   CircularProgress,
   Divider,
   FormControl,
@@ -15,8 +16,8 @@ import {
   Typography,
   type SelectChangeEvent,
 } from "@mui/material";
-import { sectionOptions, typeOptions } from "../constants";
-import type { ExerciseFormState } from "../hooks/useExerciseForm";
+import { methodologyOptions, sectionOptions, typeOptions } from "../constants";
+import type { ExerciseFormState, ExerciseMethodology } from "../hooks/useExerciseForm";
 import styles from "../NewExercisePage.module.css";
 import type { ExerciseSection, ExerciseType } from "../../../../types/training";
 
@@ -24,6 +25,14 @@ interface ExerciseFormPanelProps {
   panelVisible: boolean;
   subSubPrincipleId: string | null;
   subSubPrincipleName: string | null;
+  subPrincipleId: string | null;
+  subPrincipleName: string | null;
+  scenarioId: string | null;
+  scenarioName: string | null;
+  /** When the current subprincipio has more than one sub-subprincipio, lists
+   * them all so the coach can pick which one to reassign the exercise to
+   * (instead of the single, ambiguous `subSubPrincipleId` context id). */
+  subSubPrincipleOptions?: { apiId: string; name: string }[];
   form: ExerciseFormState;
 }
 
@@ -31,11 +40,17 @@ export default function ExerciseFormPanel({
   panelVisible,
   subSubPrincipleId,
   subSubPrincipleName,
+  subPrincipleId,
+  subPrincipleName,
+  scenarioId,
+  scenarioName,
+  subSubPrincipleOptions = [],
   form,
 }: ExerciseFormPanelProps) {
   const {
     form: formData,
     setField,
+    setLevel,
     toggleSkill,
     skills,
     loadingSkills,
@@ -92,11 +107,23 @@ export default function ExerciseFormPanel({
 
         <Box className={styles.row}>
           <FormControl size="small" className={styles.typeSelect}>
-            <InputLabel>Tipo</InputLabel>
+            <InputLabel id="exercise-type-label">Tipo</InputLabel>
             <Select
-              value={formData.type}
+              multiple
+              labelId="exercise-type-label"
+              value={formData.types}
               label="Tipo"
-              onChange={(e: SelectChangeEvent) => setField("type", e.target.value as ExerciseType)}
+              onChange={(e: SelectChangeEvent<ExerciseType[]>) => {
+                const value = e.target.value;
+                setField("types", typeof value === "string" ? value.split(",") : value);
+              }}
+              renderValue={(selected) => (
+                <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
+                  {(selected as ExerciseType[]).map((v) => (
+                    <Chip key={v} label={typeOptions.find((o) => o.value === v)?.label ?? v} size="small" />
+                  ))}
+                </Box>
+              )}
             >
               {typeOptions.map((o) => (
                 <MenuItem key={o.value} value={o.value}>
@@ -116,6 +143,23 @@ export default function ExerciseFormPanel({
               }
             >
               {sectionOptions.map((o) => (
+                <MenuItem key={o.value} value={o.value}>
+                  {o.label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <FormControl size="small" className={styles.typeSelect}>
+            <InputLabel>Metodologia</InputLabel>
+            <Select
+              value={formData.methodology}
+              label="Metodologia"
+              onChange={(e: SelectChangeEvent) =>
+                setField("methodology", e.target.value as ExerciseMethodology)
+              }
+            >
+              {methodologyOptions.map((o) => (
                 <MenuItem key={o.value} value={o.value}>
                   {o.label}
                 </MenuItem>
@@ -162,6 +206,52 @@ export default function ExerciseFormPanel({
             className={styles.numField}
           />
         </Box>
+
+        {(() => {
+          const sspOptions =
+            subSubPrincipleOptions.length > 0
+              ? subSubPrincipleOptions
+              : subSubPrincipleId
+              ? [{ apiId: subSubPrincipleId, name: subSubPrincipleName ?? "" }]
+              : [];
+
+          if ((Number(!!scenarioId) + Number(!!subPrincipleId) + Number(sspOptions.length > 0)) < 2) return null;
+
+          return (
+            <FormControl size="small" className={styles.field}>
+              <InputLabel id="exercise-level-label">Vinculado a</InputLabel>
+              <Select
+                labelId="exercise-level-label"
+                value={
+                  formData.scenarioId
+                    ? "scenario"
+                    : formData.subPrincipleId
+                    ? "subPrinciple"
+                    : formData.subSubPrincipleId
+                    ? `ssp:${formData.subSubPrincipleId}`
+                    : ""
+                }
+                label="Vinculado a"
+                onChange={(e: SelectChangeEvent) => {
+                  const value = e.target.value;
+                  if (value.startsWith("ssp:")) {
+                    setLevel("subSubPrinciple", value.slice(4));
+                  } else {
+                    setLevel(value as "subPrinciple" | "scenario");
+                  }
+                }}
+              >
+                {scenarioId && <MenuItem value="scenario">Escenario: {scenarioName}</MenuItem>}
+                {subPrincipleId && <MenuItem value="subPrinciple">Subprincipio: {subPrincipleName}</MenuItem>}
+                {sspOptions.map((opt) => (
+                  <MenuItem key={opt.apiId} value={`ssp:${opt.apiId}`}>
+                    Habilidad: {opt.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          );
+        })()}
 
         {isPhysical && (
           <Box className={styles.row}>
@@ -218,7 +308,7 @@ export default function ExerciseFormPanel({
           </Box>
         )}
 
-        {subSubPrincipleId && (
+        {formData.subSubPrincipleId && (
           <>
             <Divider className={styles.divider} />
             <Typography className={styles.skillsTitle}>Habilidades asociadas</Typography>

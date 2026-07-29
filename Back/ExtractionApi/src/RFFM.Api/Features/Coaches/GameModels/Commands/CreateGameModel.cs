@@ -74,7 +74,6 @@ namespace RFFM.Api.Features.Coaches.GameModels.Commands
         int Order,
         string Name,
         string Context,
-        List<int> TacticalPrincipleIds,
         List<SubSubPrincipleRequest> SubSubPrinciples);
 
     public record SubSubPrincipleRequest(
@@ -121,9 +120,6 @@ namespace RFFM.Api.Features.Coaches.GameModels.Commands
                 foreach (var spr in sr.SubPrinciples)
                 {
                     var subPrinciple = new SubPrinciple(scenario.Id, spr.Label, spr.Name, spr.Context, spr.Order);
-
-                    foreach (var tpId in spr.TacticalPrincipleIds)
-                        subPrinciple.TacticalPrinciples.Add(new SubPrincipleTacticalPrinciple(subPrinciple.Id, tpId));
 
                     foreach (var sspr in spr.SubSubPrinciples)
                     {

@@ -1,5 +1,12 @@
-export type ExerciseType = "Physical" | "Technical" | "Tactical";
+export type ExerciseType =
+  | "Physical"
+  | "Technical"
+  | "Tactical"
+  | "Game"
+  | "Cognitive"
+  | "Psychological";
 export type ExerciseSection = "Calentamiento" | "Principal" | "VueltaALaCalma";
+export type ExerciseMethodology = "Analitico" | "Integrado" | "Global";
 
 export interface SkillCoverage {
   essentialSkillId: string;
@@ -16,14 +23,19 @@ export interface Exercise {
   id: string;
   name: string;
   description: string;
-  type: ExerciseType;
+  types: ExerciseType[];
   section: ExerciseSection;
+  methodology: ExerciseMethodology;
   durationTotal: number;
   playersNumber: number;
   goalPeekersNumber: number;
   fieldSpace: string;
   subSubPrincipleId?: string | null;
   subSubPrincipleName?: string | null;
+  subPrincipleId?: string | null;
+  subPrincipleName?: string | null;
+  scenarioId?: string | null;
+  scenarioName?: string | null;
   skills: SkillCoverage[];
   urlImage?: string | null;
   boardStateJson?: string | null;
@@ -40,13 +52,16 @@ export interface CreateExerciseRequest {
   clubId: string;
   name: string;
   description: string;
-  type: ExerciseType;
+  types: ExerciseType[];
   section: ExerciseSection;
+  methodology: ExerciseMethodology;
   durationTotal: number;
   playersNumber: number;
   goalPeekersNumber: number;
   fieldSpace: string;
   subSubPrincipleId?: string | null;
+  subPrincipleId?: string | null;
+  scenarioId?: string | null;
   essentialSkillIds: string[];
   boardStateJson?: string | null;
   // Physical
@@ -81,7 +96,7 @@ export interface SessionExerciseItem {
   exerciseId: string;
   name: string;
   description: string;
-  type: ExerciseType;
+  types: ExerciseType[];
   section: ExerciseSection;
   durationTotal: number;
   playersNumber: number;

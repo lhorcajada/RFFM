@@ -35,11 +35,6 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.GameModel
                 .IsRequired()
                 .HasDefaultValue(0);
 
-            builder.HasMany(x => x.TacticalPrinciples)
-                .WithOne(tp => tp.SubPrinciple)
-                .HasForeignKey(tp => tp.SubPrincipleId)
-                .OnDelete(DeleteBehavior.Cascade);
-
             builder.HasMany(x => x.SubSubPrinciples)
                 .WithOne(ssp => ssp.SubPrinciple)
                 .HasForeignKey(ssp => ssp.SubPrincipleId)

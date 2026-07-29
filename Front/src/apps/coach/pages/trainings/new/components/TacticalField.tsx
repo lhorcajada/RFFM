@@ -20,6 +20,8 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
   const [activeSpaceMenuId, setActiveSpaceMenuId] = useState<string | null>(null);
   const [activeChapaColorMenuId, setActiveChapaColorMenuId] = useState<string | null>(null);
   const [selectedLineId, setSelectedLineId] = useState<string | null>(null);
+  const [activeTextId, setActiveTextId] = useState<string | null>(null);
+  const [editingTextValue, setEditingTextValue] = useState<string>("");
   const [lineResizeSession, setLineResizeSession] = useState<
     | { lineId: string; endpoint: "a" | "b"; startClientX: number; startClientY: number }
     | null
@@ -115,11 +117,23 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
     removePlacedLine,
     setPlacedLineColor,
     drawingState,
-    showLines,
     activeLineKind,
     handleDrawMouseDown,
     handleDrawMouseMove,
     handleDrawMouseUp,
+    placedTexts,
+    editingTextId,
+    setEditingTextId,
+    draggingTextId,
+    updatePlacedText,
+    removePlacedText,
+    handlePlacedTextDragStart,
+    handlePlacedTextDragEnd,
+    handleTextResizeStart,
+    duplicatePlacedText,
+    rotatePlacedText,
+    toggleLockPlacedText,
+    handleTextFieldClick,
     handleFieldDragOver,
     handleFieldDrop,
   } = board;
@@ -193,6 +207,15 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
   }, [lineDragSession, halfPitchRef, setPlacedLines]);
 
   useEffect(() => {
+    if (editingTextId) {
+      const text = placedTexts.find((t) => t.id === editingTextId);
+      if (text) {
+        setEditingTextValue(text.text);
+      }
+    }
+  }, [editingTextId, placedTexts]);
+
+  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
       if (
@@ -217,12 +240,15 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
       className={styles.halfPitch}
       onDragOver={handleFieldDragOver}
       onDrop={handleFieldDrop}
-      onClick={() => {
+      onClick={(e) => {
         setActiveChapaMenuId(null);
         setActiveChapaColorMenuId(null);
         setActiveMaterialId(null);
         setActiveSpaceId(null);
         setActiveSpaceMenuId(null);
+        setSelectedLineId(null);
+        setActiveTextId(null);
+        handleTextFieldClick(e);
       }}
     >
       <Box className={styles.terrainBandTop} />
@@ -610,6 +636,117 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
         );
       })}
 
+      {/* Texts */}
+      {placedTexts.map((text) => (
+        <Box key={text.id}>
+          {editingTextId === text.id ? (
+            <textarea
+              data-testid={`text-editor-${text.id}`}
+              className={styles.placedTextEditor}
+              autoFocus
+              value={editingTextValue}
+              onChange={(e) => setEditingTextValue(e.currentTarget.value)}
+              onBlur={(e) => {
+                const newText = editingTextValue.trim();
+                if (newText === "") {
+                  removePlacedText(text.id);
+                } else {
+                  updatePlacedText(text.id, { text: newText });
+                }
+                setEditingTextId(null);
+                setEditingTextValue("");
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  const newText = editingTextValue.trim();
+                  if (newText === "") {
+                    removePlacedText(text.id);
+                  } else {
+                    updatePlacedText(text.id, { text: newText });
+                  }
+                  setEditingTextId(null);
+                  setEditingTextValue("");
+                } else if (e.key === "Escape") {
+                  e.preventDefault();
+                  setEditingTextId(null);
+                  setEditingTextValue("");
+                }
+              }}
+              style={{
+                position: "absolute",
+                left: `${text.x}%`,
+                top: `${text.y}%`,
+                transform: `translate(-50%, -50%) rotate(${text.rotation}deg)`,
+                fontFamily: text.fontFamily,
+                fontSize: `${text.fontSize * text.scaleX}px`,
+                fontWeight: text.bold ? 700 : 400,
+                fontStyle: text.italic ? "italic" : "normal",
+                color: text.color,
+              }}
+            />
+          ) : (
+            <div
+              data-testid={`placed-text-${text.id}`}
+              className={`${styles.placedText} ${activeTextId === text.id ? styles.placedTextSelected : ""}`}
+              style={{
+                position: "absolute",
+                left: `${text.x}%`,
+                top: `${text.y}%`,
+                transform: `translate(-50%, -50%) rotate(${text.rotation}deg)`,
+                fontFamily: text.fontFamily,
+                fontSize: `${text.fontSize * text.scaleX}px`,
+                fontWeight: text.bold ? 700 : 400,
+                fontStyle: text.italic ? "italic" : "normal",
+                color: text.color,
+              }}
+              draggable={!text.locked}
+              onDragStart={(e) => handlePlacedTextDragStart(e, text.id)}
+              onDragEnd={(e) => handlePlacedTextDragEnd(e, text.id)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveChapaMenuId(null);
+                setActiveChapaColorMenuId(null);
+                setActiveMaterialId(null);
+                setActiveSpaceId(null);
+                setActiveSpaceMenuId(null);
+                setSelectedLineId(null);
+                setActiveTextId(text.id);
+              }}
+              onDoubleClick={(e) => {
+                e.stopPropagation();
+                setEditingTextId(text.id);
+              }}
+            >
+              {text.text}
+              {activeTextId === text.id && (
+                <PlacedObjectControls
+                  id={text.id}
+                  locked={text.locked}
+                  onLock={toggleLockPlacedText}
+                  onManualResize={() => {
+                    /* Texts don't have manual resize */
+                  }}
+                  onRotate={rotatePlacedText}
+                  onDuplicate={duplicatePlacedText}
+                  onRemove={removePlacedText}
+                  renderResizeHandles={[
+                    <button
+                      key={`${text.id}-resize-se`}
+                      type="button"
+                      className={`${styles.spaceResizeAnchor} ${styles.spaceResizeSE}`}
+                      onMouseDown={(e) => handleTextResizeStart(e, text.id)}
+                      aria-label="Redimensionar"
+                      title="Arrastra para redimensionar"
+                    />,
+                  ]}
+                />
+              )}
+            </div>
+          )}
+        </Box>
+      ))}
+
       {/* Lines SVG overlay */}
       <svg
         className={styles.linesSvg}
@@ -637,60 +774,74 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
           const isArrow = line.kind === "arrow" || line.kind === "arrow-dashed";
           const isDashed = line.kind === "dashed" || line.kind === "arrow-dashed";
           const markerId = isArrow ? getArrowMarkerId(line.color) : undefined;
+          const pathD = buildLinePath(
+            line.kind,
+            line.x1,
+            line.y1,
+            line.x2,
+            line.y2,
+            line.cx,
+            line.cy,
+            line.points,
+          );
           return (
-            <path
-              key={line.id}
-              d={buildLinePath(
-                line.kind,
-                line.x1,
-                line.y1,
-                line.x2,
-                line.y2,
-                line.cx,
-                line.cy,
-                line.points,
-              )}
-              stroke={line.color}
-              strokeWidth="1.5"
-              vectorEffect="non-scaling-stroke"
-              fill="none"
-              strokeDasharray={isDashed ? "6 4" : undefined}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              markerEnd={markerId ? `url(#${markerId})` : undefined}
-              style={{
-                pointerEvents: showLines && !activeLineKind ? "stroke" : "none",
-                cursor: "pointer",
-              }}
-              onMouseDown={(e) => {
-                if (!showLines || activeLineKind) return;
-                e.preventDefault();
-                e.stopPropagation();
-                setActiveChapaMenuId(null);
-                setActiveChapaColorMenuId(null);
-                setActiveMaterialId(null);
-                setActiveSpaceId(null);
-                setActiveSpaceMenuId(null);
-                setSelectedLineId(line.id);
-                setLineDragSession({
-                  lineId: line.id,
-                  startClientX: (e as React.MouseEvent).clientX,
-                  startClientY: (e as React.MouseEvent).clientY,
-                  startX1: line.x1,
-                  startY1: line.y1,
-                  startX2: line.x2,
-                  startY2: line.y2,
-                });
-                lineDidMoveRef.current = false;
-              }}
-              onClick={() => {
-                if (justDraggedLineRef.current === line.id) {
-                  justDraggedLineRef.current = null;
-                  return;
-                }
-                setSelectedLineId((prev) => (prev === line.id ? null : line.id));
-              }}
-            />
+            <g key={line.id}>
+              <path
+                d={pathD}
+                stroke={line.color}
+                strokeWidth="1.5"
+                vectorEffect="non-scaling-stroke"
+                fill="none"
+                strokeDasharray={isDashed ? "6 4" : undefined}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                markerEnd={markerId ? `url(#${markerId})` : undefined}
+                style={{ pointerEvents: "none" }}
+              />
+              <path
+                data-testid={`line-hit-${line.id}`}
+                d={pathD}
+                stroke="transparent"
+                strokeWidth="8"
+                vectorEffect="non-scaling-stroke"
+                fill="none"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{
+                  pointerEvents: activeLineKind ? "none" : "stroke",
+                  cursor: "pointer",
+                }}
+                onMouseDown={(e) => {
+                  if (activeLineKind) return;
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setActiveChapaMenuId(null);
+                  setActiveChapaColorMenuId(null);
+                  setActiveMaterialId(null);
+                  setActiveSpaceId(null);
+                  setActiveSpaceMenuId(null);
+                  setSelectedLineId(line.id);
+                  setLineDragSession({
+                    lineId: line.id,
+                    startClientX: (e as React.MouseEvent).clientX,
+                    startClientY: (e as React.MouseEvent).clientY,
+                    startX1: line.x1,
+                    startY1: line.y1,
+                    startX2: line.x2,
+                    startY2: line.y2,
+                  });
+                  lineDidMoveRef.current = false;
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (justDraggedLineRef.current === line.id) {
+                    justDraggedLineRef.current = null;
+                    return;
+                  }
+                  setSelectedLineId((prev) => (prev === line.id ? null : line.id));
+                }}
+              />
+            </g>
           );
         })}
 

@@ -34,7 +34,7 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Queries
                 .Produces<SportEventResponse[]>();
         }
 
-        public record SportEventsQuery : IQueryApp<SportEventResponse[]>, IRequireFeaturePermission
+        public record SportEventsQuery : IQueryApp<SportEventResponse[]>, IRequireFeaturePermission, IRequireTeamMembership
         {
             public string TeamId { get; set; } = null!;
             public int PageNumber { get; set; } // Página actual

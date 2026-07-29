@@ -7,6 +7,7 @@ import type {
   CreateExerciseRequest,
   Exercise,
   ExerciseCondition,
+  ExerciseMethodology,
   ExerciseSection,
   UpdateExerciseRequest,
   ExerciseType,
@@ -14,9 +15,27 @@ import type {
 import { emptyExercise } from "../constants";
 import type { SkillOption } from "../types";
 
+/**
+ * ScenarioId, SubPrincipleId and SubSubPrincipleId are mutually exclusive (a task links to exactly
+ * one level). Callers may pass multiple candidate ids (e.g. from an existing exercise or fallback
+ * from URL). Only the most specific id wins with priority: SubSubPrincipleId > SubPrincipleId > ScenarioId.
+ * The others are forced to null so only one level is ever populated at once.
+ */
+function resolveLevelIds(
+  scenarioId: string | null | undefined,
+  subSubPrincipleId: string | null | undefined,
+  subPrincipleId: string | null | undefined,
+): { scenarioId: string | null; subSubPrincipleId: string | null; subPrincipleId: string | null } {
+  if (subSubPrincipleId) return { scenarioId: null, subSubPrincipleId, subPrincipleId: null };
+  if (subPrincipleId) return { scenarioId: null, subSubPrincipleId: null, subPrincipleId };
+  return { scenarioId: scenarioId ?? null, subSubPrincipleId: null, subPrincipleId: null };
+}
+
 interface UseExerciseFormParams {
   clubId: string;
   subSubPrincipleId: string | null;
+  subPrincipleId: string | null;
+  scenarioId: string | null;
   navigate: NavigateFunction;
   returnTo: string;
   getBoardStateJson?: () => string;
@@ -25,6 +44,8 @@ interface UseExerciseFormParams {
 export function useExerciseForm({
   clubId,
   subSubPrincipleId,
+  subPrincipleId,
+  scenarioId,
   navigate,
   returnTo,
   getBoardStateJson,
@@ -33,7 +54,7 @@ export function useExerciseForm({
   const [form, setForm] = useState<CreateExerciseRequest>({
     ...emptyExercise,
     clubId,
-    subSubPrincipleId,
+    ...resolveLevelIds(scenarioId, subSubPrincipleId, subPrincipleId),
   });
   const [skills, setSkills] = useState<SkillOption[]>([]);
   const [loadingSkills, setLoadingSkills] = useState(false);
@@ -59,13 +80,18 @@ export function useExerciseForm({
       clubId,
       name: exercise.name,
       description: exercise.description,
-      type: exercise.type,
+      types: exercise.types,
       section: exercise.section,
+      methodology: exercise.methodology,
       durationTotal: exercise.durationTotal,
       playersNumber: exercise.playersNumber,
       goalPeekersNumber: exercise.goalPeekersNumber,
       fieldSpace: exercise.fieldSpace,
-      subSubPrincipleId: exercise.subSubPrincipleId ?? subSubPrincipleId ?? null,
+      ...resolveLevelIds(
+        exercise.scenarioId ?? scenarioId,
+        exercise.subSubPrincipleId ?? subSubPrincipleId,
+        exercise.subPrincipleId ?? subPrincipleId,
+      ),
       essentialSkillIds: exercise.skills.map((skill) => skill.essentialSkillId),
       boardStateJson: exercise.boardStateJson ?? null,
       touchesNumber: exercise.touchesNumber ?? 0,
@@ -118,8 +144,8 @@ export function useExerciseForm({
 
   useEffect(() => {
     setResolvedSubSubPrincipleId(subSubPrincipleId);
-    setForm({ ...emptyExercise, clubId, subSubPrincipleId });
-  }, [clubId, subSubPrincipleId]);
+    setForm({ ...emptyExercise, clubId, ...resolveLevelIds(scenarioId, subSubPrincipleId, subPrincipleId) });
+  }, [clubId, subSubPrincipleId, subPrincipleId, scenarioId]);
 
   useEffect(() => {
     if (!resolvedSubSubPrincipleId) {
@@ -139,6 +165,35 @@ export function useExerciseForm({
 
   const setField = (field: keyof CreateExerciseRequest, value: unknown) =>
     setForm((prev) => ({ ...prev, [field]: value }));
+
+  /**
+   * `targetId` lets a caller pick a SPECIFIC sub-subprincipio when there are
+   * several candidates to choose from (e.g. reassigning from a subprincipio
+   * with multiple sub-subprincipios) — it always wins over the single
+   * `subSubPrincipleId` context prop, which only ever names one candidate.
+   */
+  const setLevel = (kind: "subSubPrinciple" | "subPrinciple" | "scenario", targetId?: string) => {
+    if (kind === "subSubPrinciple") {
+      const nextSubSubPrincipleId = targetId ?? subSubPrincipleId ?? form.subSubPrincipleId ?? null;
+      if (nextSubSubPrincipleId !== form.subSubPrincipleId) {
+        setResolvedSubSubPrincipleId(nextSubSubPrincipleId);
+      }
+    }
+
+    setForm((prev) => {
+      const nextSubSubPrincipleId =
+        kind === "subSubPrinciple" ? (targetId ?? subSubPrincipleId ?? prev.subSubPrincipleId ?? null) : null;
+      const changedSubSubPrinciple = nextSubSubPrincipleId !== prev.subSubPrincipleId;
+
+      return {
+        ...prev,
+        subSubPrincipleId: nextSubSubPrincipleId,
+        subPrincipleId: kind === "subPrinciple" ? (subPrincipleId ?? prev.subPrincipleId ?? null) : null,
+        scenarioId: kind === "scenario" ? (scenarioId ?? prev.scenarioId ?? null) : null,
+        essentialSkillIds: kind !== "subSubPrinciple" || changedSubSubPrinciple ? [] : prev.essentialSkillIds,
+      };
+    });
+  };
 
   const toggleSkill = (skillId: string) => {
     setForm((prev) => {
@@ -179,6 +234,10 @@ export function useExerciseForm({
     }
     if (!form.name.trim()) {
       setError("El nombre es obligatorio.");
+      return;
+    }
+    if (form.types.length === 0) {
+      setError("Selecciona al menos un tipo.");
       return;
     }
 
@@ -255,15 +314,16 @@ export function useExerciseForm({
     }
   };
 
-  const isPhysical = useMemo(() => form.type === "Physical", [form.type]);
+  const isPhysical = useMemo(() => form.types.includes("Physical"), [form.types]);
   const isTechTac = useMemo(
-    () => form.type === "Technical" || form.type === "Tactical",
-    [form.type],
+    () => form.types.includes("Technical") || form.types.includes("Tactical"),
+    [form.types],
   );
 
   return {
     form,
     setField,
+    setLevel,
     toggleSkill,
     skills,
     loadingSkills,
@@ -296,4 +356,4 @@ export function useExerciseForm({
 export type ExerciseFormState = ReturnType<typeof useExerciseForm>;
 
 // Re-export types consumed by the form panel
-export type { ExerciseSection, ExerciseType };
+export type { ExerciseSection, ExerciseType, ExerciseMethodology };

@@ -30,6 +30,12 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.GameModel
             builder.Property(x => x.Order)
                 .IsRequired();
 
+            builder.Property(x => x.MediaUrl)
+                .HasMaxLength(500);
+
+            builder.Property(x => x.MediaType)
+                .HasMaxLength(10);
+
             builder.HasOne(x => x.GameMoment)
                 .WithMany(m => m.Scenarios)
                 .HasForeignKey(x => x.GameMomentId)

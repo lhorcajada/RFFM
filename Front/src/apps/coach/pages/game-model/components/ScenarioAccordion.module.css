@@ -69,6 +69,18 @@
   margin-bottom: 12px !important;
 }
 
+.mediaViewer {
+  margin-bottom: 14px;
+}
+
+.mediaViewerContent {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  border: 1px solid rgba(77, 157, 224, 0.25);
+}
+
 .principlesRow {
   display: flex;
   align-items: center;
@@ -206,6 +218,14 @@
   border-color: #a8d4f5 !important;
 }
 
+.exerciseChip {
+  background-color: rgba(100, 180, 255, 0.12) !important;
+  color: #90caf9 !important;
+  border: 1px solid rgba(100, 180, 255, 0.25) !important;
+  font-size: 0.75rem !important;
+  height: 20px !important;
+}
+
 /* ── New: DrillDownPanel-based list items and detail panels ── */
 
 .listItemContent {
@@ -234,6 +254,13 @@
 }
 
 .spDetailHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.scenarioDetailHeader {
   display: flex;
   align-items: center;
   gap: 8px;

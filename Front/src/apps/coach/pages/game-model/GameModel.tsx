@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   Box,
-  Tab,
-  Tabs,
+  Chip,
   Typography,
   CircularProgress,
   Button,
@@ -26,6 +25,7 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import useTeamAndClub from "../../hooks/useTeamAndClub";
+import useTeamDashboardBack from "../../hooks/useTeamDashboardBack";
 import gameModelService from "../../services/gameModelService";
 import seasonService, { type Season } from "../../services/seasonService";
 import type { GameModel as GameModelType, Zone } from "../../types/gameModel";
@@ -62,6 +62,7 @@ export default function GameModel() {
   const navigate = useNavigate();
   const location = useLocation();
   const { team, teamTitleNode } = useTeamAndClub();
+  const goToTeamDashboard = useTeamDashboardBack();
 
   const [availableSeasons, setAvailableSeasons] = useState<string[]>([]);
   const [selectedSeason, setSelectedSeason] = useState<string>("");
@@ -135,12 +136,12 @@ export default function GameModel() {
     setSelectedSeason(e.target.value);
   };
 
-  const handleMomentChange = (_: React.SyntheticEvent, newValue: number) => {
-    setMomentTab(newValue);
+  const handleMomentChange = (e: SelectChangeEvent<number>) => {
+    setMomentTab(Number(e.target.value));
     setZoneTab(0);
   };
 
-  const handleZoneChange = (_: React.SyntheticEvent, newValue: number) => {
+  const handleZoneChange = (newValue: number) => {
     setZoneTab(newValue);
   };
 
@@ -226,7 +227,7 @@ export default function GameModel() {
           <>
             <Button
               startIcon={<ArrowBackIcon />}
-              onClick={() => navigate("/coach/dashboard")}
+              onClick={() => goToTeamDashboard()}
               variant="outlined"
               size="small"
             >
@@ -316,55 +317,53 @@ export default function GameModel() {
               )}
             </Box>
 
-            {/* Game moment tabs */}
-            <Box className={styles.momentTabsWrap}>
-              <Tabs
+            {/* Game moment selector */}
+            <FormControl size="small" className={styles.momentSelect} fullWidth>
+              <InputLabel id="game-moment-label">Fase</InputLabel>
+              <Select
+                labelId="game-moment-label"
+                label="Fase"
                 value={momentTab}
                 onChange={handleMomentChange}
-                variant="scrollable"
-                scrollButtons="auto"
-                className={styles.momentTabs}
-                TabIndicatorProps={{ className: styles.tabIndicator }}
+                classes={{ select: styles.momentSelectInput }}
               >
-                {gameModel.gameMoments.map((moment) => (
-                  <Tab
-                    key={moment.id}
-                    label={moment.name}
-                    className={styles.momentTab}
-                  />
-                ))}
-              </Tabs>
-            </Box>
+                {gameModel.gameMoments.map((moment, index) => {
+                  const zoneCount = moment.zones.length;
+                  return (
+                    <MenuItem key={moment.id} value={index}>
+                      {moment.name} ({zoneCount} {zoneCount === 1 ? "zona" : "zonas"})
+                    </MenuItem>
+                  );
+                })}
+              </Select>
+            </FormControl>
 
             {currentMoment && (
               <Box className={styles.momentContent}>
-                {/* Zone sub-tabs */}
-                <Tabs
-                  value={zoneTab}
-                  onChange={handleZoneChange}
-                  variant="scrollable"
-                  scrollButtons="auto"
-                  className={styles.zoneTabs}
-                  TabIndicatorProps={{ className: styles.zoneTabIndicator }}
-                >
-                  {currentMoment.zones.map((zone) => {
+                {/* Zone chips */}
+                <Box className={styles.zoneChips} role="group" aria-label="Zonas">
+                  {currentMoment.zones.map((zone, index) => {
                     const count = zone.scenarios.length;
+                    const selected = index === zoneTab;
                     return (
-                      <Tab
+                      <Chip
                         key={zone.id}
                         label={
-                          <Box className={styles.zoneTabLabel}>
+                          <Box className={styles.zoneChipLabel}>
                             <span>{zone.name}</span>
                             {count > 0 && (
                               <span className={styles.zoneCount}>{count}</span>
                             )}
                           </Box>
                         }
-                        className={styles.zoneTab}
+                        onClick={() => handleZoneChange(index)}
+                        variant={selected ? "filled" : "outlined"}
+                        color={selected ? "primary" : "default"}
+                        className={`${styles.zoneChip} ${selected ? styles.zoneChipSelected : ""}`}
                       />
                     );
                   })}
-                </Tabs>
+                </Box>
 
                 {/* Zone content */}
                 {currentZone && (

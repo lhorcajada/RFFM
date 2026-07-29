@@ -26,16 +26,58 @@ namespace RFFM.Api.Domain.Services
             _logger = logger;
         }
 
+        private async Task<IdentityUser> ValidateCredentialsAsync(string username, string password, CancellationToken cancellationToken)
+        {
+            var normalizedUsername = username.ToUpperInvariant();
+            var user = await _applicationDbContext.Users
+                .FirstOrDefaultAsync(uc => uc.NormalizedUserName == normalizedUsername, cancellationToken);
+
+            if (user == null)
+            {
+                _logger.LogWarning("User not found: {Username}", username);
+                throw new DomainException(
+                    "Generando token",
+                    CodeMessages.LoginUserNotRegistered.Message,
+                    CodeMessages.LoginUserNotRegistered.Code);
+            }
+
+            if (!user.EmailConfirmed)
+            {
+                _logger.LogWarning("User email not confirmed: {Username}", username);
+                throw new DomainException(
+                    "Generando token",
+                    CodeMessages.LoginEmailNotConfirmed.Message,
+                    CodeMessages.LoginEmailNotConfirmed.Code);
+            }
+
+            if (!VerifyPassword(password, user.PasswordHash ?? throw new InvalidOperationException()))
+            {
+                _logger.LogWarning("Invalid password for user: {Username}", username);
+                throw new DomainException(
+                    "Generando token",
+                    CodeMessages.LoginErrorUserOrPassword.Message,
+                    CodeMessages.LoginErrorUserOrPassword.Code);
+            }
+
+            return user;
+        }
+
+        public async Task<string> GenerateJwtForCredentials(string username, string password, CancellationToken cancellationToken)
+        {
+            var user = await ValidateCredentialsAsync(username, password, cancellationToken);
+            return await GenerateJwtForUser(user.Id, cancellationToken);
+        }
+
         public async Task<string> GenerateJwtToken(string tempToken, CancellationToken cancellationToken)
         {
             var tempSecret = _configuration["Authentication:FrontendSecret"];
             var backendSecret = _configuration["Jwt:Key"];
-            
+
             // Log para debugging (solo en desarrollo)
             _logger.LogDebug("FrontendSecret configured: {HasSecret}", !string.IsNullOrWhiteSpace(tempSecret));
             _logger.LogDebug("FrontendSecret length: {Length}", tempSecret?.Length ?? 0);
             _logger.LogDebug("Token length: {Length}", tempToken?.Length ?? 0);
-            
+
             // Validar que las configuraciones existen
             if (string.IsNullOrWhiteSpace(tempSecret))
             {
@@ -60,17 +102,17 @@ namespace RFFM.Api.Domain.Services
             try
             {
                 _logger.LogInformation("Validating temporary token with Jose-JWT...");
-                
+
                 // Convertir el secret a bytes
                 var secretBytes = Encoding.UTF8.GetBytes(tempSecret);
-                
+
                 // Decodificar el token - Jose automáticamente valida la firma
                 var payloadJson = JWT.Decode(tempToken, secretBytes, JwsAlgorithm.HS256);
-                
+
                 // Deserializar el payload
-                payload = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(payloadJson) 
+                payload = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(payloadJson)
                     ?? throw new SecurityTokenException("El payload del token está vacío");
-                
+
                 _logger.LogInformation("✓ Temporary token validated successfully with Jose-JWT");
                 _logger.LogDebug("Payload claims count: {Count}", payload.Count);
             }
@@ -90,7 +132,7 @@ namespace RFFM.Api.Domain.Services
             {
                 _logger.LogError(ex, "❌ Invalid token algorithm. Expected HS256");
                 throw new UnauthorizedAccessException(
-                    "El algoritmo del token no es válido. Debe ser HS256.", 
+                    "El algoritmo del token no es válido. Debe ser HS256.",
                     ex);
             }
             catch (Exception ex) when (ex is not UnauthorizedAccessException)
@@ -100,10 +142,10 @@ namespace RFFM.Api.Domain.Services
             }
 
             // Extraer claims del payload
-            var username = GetClaimValue(payload, "username") 
+            var username = GetClaimValue(payload, "username")
                         ?? GetClaimValue(payload, "name")
                         ?? GetClaimValue(payload, "sub");
-                        
+
             var password = GetClaimValue(payload, "password");
 
             _logger.LogInformation("Token validated for user: {Username}", username);
@@ -113,117 +155,16 @@ namespace RFFM.Api.Domain.Services
                 _logger.LogWarning("Token missing username or password claims");
                 _logger.LogDebug("Available claims: {Claims}", string.Join(", ", payload.Keys));
                 throw new DomainException(
-                    "Generando token", 
-                    CodeMessages.LoginEmptyUserOrPass.Message, 
+                    "Generando token",
+                    CodeMessages.LoginEmptyUserOrPass.Message,
                     CodeMessages.LoginEmptyUserOrPass.Code);
             }
 
-            // Buscar usuario en la base de datos (NormalizedUserName para comparación case-insensitive)
-            var normalizedUsername = username.ToUpperInvariant();
-            var user = await _applicationDbContext.Users
-                .FirstOrDefaultAsync(uc => uc.NormalizedUserName == normalizedUsername, cancellationToken);
-
-            if (user == null)
-            {
-                _logger.LogWarning("User not found: {Username}", username);
-                throw new DomainException(
-                    "Generando token",
-                    CodeMessages.LoginUserNotRegistered.Message,
-                    CodeMessages.LoginUserNotRegistered.Code);
-            }
-
-            // Verificar que el email del usuario ha sido confirmado por el administrador
-            if (!user.EmailConfirmed)
-            {
-                _logger.LogWarning("User email not confirmed: {Username}", username);
-                throw new DomainException(
-                    "Generando token",
-                    CodeMessages.LoginEmailNotConfirmed.Message,
-                    CodeMessages.LoginEmailNotConfirmed.Code);
-            }
-
-            // Verificar contraseña
-            if (!VerifyPassword(password, user.PasswordHash ?? throw new InvalidOperationException()))
-            {
-                _logger.LogWarning("Invalid password for user: {Username}", username);
-                throw new DomainException(
-                    "Generando token",
-                    CodeMessages.LoginErrorUserOrPassword.Message,
-                    CodeMessages.LoginErrorUserOrPassword.Code);
-            }
+            // Validar credenciales usando el método privado compartido
+            var user = await ValidateCredentialsAsync(username, password, cancellationToken);
 
             // Generar JWT final usando Jose
-            var issuer = _configuration["Jwt:Issuer"];
-            var audience = _configuration["Jwt:Audience"];
-            
-            var claims = new Dictionary<string, object>
-            {
-                { "sub", user.Id },
-                { "username", user.UserName ?? string.Empty },
-                { "email", user.Email ?? string.Empty },
-                // Include standard WS-Federation / WS-Identity claim URIs so clients
-                // that expect those keys (e.g. frontend token parser) can find them.
-                { "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier", user.Id },
-                { "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name", user.UserName ?? string.Empty },
-                { "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress", user.Email ?? string.Empty },
-                { "iss", issuer ?? string.Empty },
-                { "aud", audience ?? string.Empty },
-                { "exp", DateTimeOffset.UtcNow.AddDays(8).ToUnixTimeSeconds() },
-                { "iat", DateTimeOffset.UtcNow.ToUnixTimeSeconds() }
-            };
-
-            // Agregar claims adicionales de Identity
-            var additionalClaims = ClaimService.GetClaims(user);
-            foreach (var claim in additionalClaims)
-            {
-                if (!claims.ContainsKey(claim.Type))
-                {
-                    claims[claim.Type] = claim.Value;
-                }
-            }
-
-            // Incluir roles y permisos asociados a cada role en el token
-            try
-            {
-                // Obtener roleIds del usuario
-                var roleIds = await _applicationDbContext.Set<IdentityUserRole<string>>()
-                    .Where(ur => ur.UserId == user.Id)
-                    .Select(ur => ur.RoleId)
-                    .ToListAsync(cancellationToken);
-
-                // Obtener nombres de roles
-                var roles = await _applicationDbContext.Roles
-                    .Where(r => roleIds.Contains(r.Id))
-                    .Select(r => new { r.Id, r.Name })
-                    .ToListAsync(cancellationToken);
-
-                var roleNames = roles.Select(r => r.Name ?? string.Empty).ToArray();
-                claims["roles"] = roleNames;
-
-                // Obtener permisos (claims de tipo 'permission') por role
-                var roleClaims = await _applicationDbContext.Set<IdentityRoleClaim<string>>()
-                    .Where(rc => roleIds.Contains(rc.RoleId) && rc.ClaimType == "permission")
-                    .ToListAsync(cancellationToken);
-
-                var permissionsByRole = roles.ToDictionary(
-                    r => r.Name ?? string.Empty,
-                    r => roleClaims.Where(rc => rc.RoleId == r.Id).Select(rc => rc.ClaimValue).ToArray() as object
-                );
-
-                claims["role_permissions"] = permissionsByRole;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "No se pudieron incluir roles/permisos en el token");
-            }
-
-            // Generar token con Jose
-            var backendSecretBytes = Encoding.UTF8.GetBytes(backendSecret);
-            var token = JWT.Encode(claims, backendSecretBytes, JwsAlgorithm.HS256);
-            
-            _logger.LogInformation("✓ JWT token generated successfully for user: {Username}", username);
-            
-            return token;
+            return await GenerateJwtForUser(user.Id, cancellationToken);
         }
 
         public async Task<string> GenerateJwtForUser(string userId, CancellationToken cancellationToken)

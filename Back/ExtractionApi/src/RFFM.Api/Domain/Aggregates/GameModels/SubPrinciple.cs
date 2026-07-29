@@ -16,7 +16,6 @@ namespace RFFM.Api.Domain.Aggregates.GameModels
 
         public GameScenario GameScenario { get; private set; } = null!;
 
-        public List<SubPrincipleTacticalPrinciple> TacticalPrinciples { get; private set; } = new();
         public List<SubSubPrinciple> SubSubPrinciples { get; private set; } = new();
 
         private SubPrinciple() { }

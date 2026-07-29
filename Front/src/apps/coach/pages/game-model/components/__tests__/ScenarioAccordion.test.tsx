@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
@@ -14,20 +15,61 @@ vi.mock("../../../../services/trainingService", () => ({
   default: { getExercises: vi.fn().mockResolvedValue([]), deleteExercise: vi.fn() },
 }));
 
-function buildScenario(id: number, order: number, subPrincipleCount = 0): Scenario {
+vi.mock("../PrincipleExercisesSection", () => ({
+  default: ({
+    levelKind,
+    levelApiId,
+    active,
+    onCountChange,
+    parentScenarioApiId,
+    parentScenarioName,
+    siblingSubSubPrinciples,
+  }: {
+    levelKind: string;
+    levelApiId: string;
+    active: boolean;
+    onCountChange?: (count: number) => void;
+    parentScenarioApiId?: string | null;
+    parentScenarioName?: string | null;
+    siblingSubSubPrinciples?: { apiId: string; name: string }[];
+  }) => {
+    useEffect(() => {
+      if (active) onCountChange?.(3);
+    }, [active, onCountChange]);
+    if (!active) return null;
+    return (
+      <div
+        data-testid="principle-exercises-section"
+        data-level-kind={levelKind}
+        data-level-api-id={levelApiId}
+        data-parent-scenario-api-id={parentScenarioApiId ?? ""}
+        data-parent-scenario-name={parentScenarioName ?? ""}
+        data-sibling-ssp={JSON.stringify(siblingSubSubPrinciples ?? [])}
+      />
+    );
+  },
+}));
+
+function buildScenario(
+  id: number,
+  order: number,
+  subPrincipleCount = 0,
+  media?: { mediaUrl: string | null; mediaType: "image" | "video" | null }
+): Scenario {
   return {
     id,
     order,
     name: `Escenario nombre ${order}`,
     context: `Contexto del escenario ${order}`,
     tacticalPrinciples: [],
+    mediaUrl: media?.mediaUrl ?? null,
+    mediaType: media?.mediaType ?? null,
     subPrinciples: Array.from({ length: subPrincipleCount }, (_, i) => ({
       id: id * 100 + i,
       order: i + 1,
       label: String.fromCharCode(65 + i),
       name: `Subprincipio ${String.fromCharCode(65 + i)}`,
       context: `Contexto subprincipio ${String.fromCharCode(65 + i)}`,
-      tacticalPrinciples: [],
       subSubPrinciples: [],
     })),
   };
@@ -77,5 +119,248 @@ describe("ScenarioAccordion", () => {
     renderAccordion([buildScenario(1, 1, 2)]);
     await userEvent.click(screen.getByText("Subprincipio A"));
     expect(screen.getByText("Contexto subprincipio A")).toBeInTheDocument();
+  });
+
+  it("renderiza un <video> cuando mediaType es 'video'", () => {
+    renderAccordion([
+      buildScenario(1, 1, 0, { mediaUrl: "https://example.com/clip.mp4", mediaType: "video" }),
+    ]);
+    const video = document.querySelector("video");
+    expect(video).toBeInTheDocument();
+    expect(video).toHaveAttribute("src", "https://example.com/clip.mp4");
+  });
+
+  it("renderiza un <img> cuando mediaType es 'image'", () => {
+    renderAccordion([
+      buildScenario(1, 1, 0, { mediaUrl: "https://example.com/img.jpg", mediaType: "image" }),
+    ]);
+    expect(screen.getByAltText(/situación: escenario nombre 1/i)).toBeInTheDocument();
+  });
+
+  it("muestra los principios tácticos del escenario pero no dentro del subprincipio", async () => {
+    const scenario: Scenario = {
+      id: 1,
+      order: 1,
+      name: "Escenario X",
+      context: "Contexto",
+      tacticalPrinciples: [{ id: 1, name: "Coberturas y Permutas" }],
+      mediaUrl: null,
+      mediaType: null,
+      subPrinciples: [
+        {
+          id: 101,
+          order: 1,
+          label: "A",
+          name: "Subprincipio A",
+          context: "Contexto SP",
+          subSubPrinciples: [],
+        },
+      ],
+    };
+    renderAccordion([scenario]);
+
+    // Single subprincipio auto-selects its detail view alongside the scenario detail.
+    const principlesLabels = screen.getAllByText("Principios tácticos colectivos:");
+    expect(principlesLabels).toHaveLength(1);
+  });
+
+  it("no renderiza ningún elemento de media si no hay mediaUrl", () => {
+    renderAccordion([buildScenario(1, 1, 0)]);
+    expect(document.querySelector("video")).not.toBeInTheDocument();
+    expect(document.querySelector("img")).not.toBeInTheDocument();
+  });
+
+  it("con una mediaUrl relativa (storage local), usa el proxy /api/public/storage", () => {
+    renderAccordion([
+      buildScenario(1, 1, 0, { mediaUrl: "game-scenarios/abc.jpg", mediaType: "image" }),
+    ]);
+    expect(screen.getByAltText(/situación: escenario nombre 1/i)).toHaveAttribute(
+      "src",
+      "/api/public/storage?url=game-scenarios%2Fabc.jpg"
+    );
+  });
+
+  describe("ejercicios a nivel de subprincipio", () => {
+    function scenarioWithSubPrincipleApiId(apiId: string): Scenario {
+      return {
+        id: 1,
+        order: 1,
+        name: "Escenario X",
+        context: "Contexto",
+        tacticalPrinciples: [],
+        mediaUrl: null,
+        mediaType: null,
+        subPrinciples: [
+          {
+            id: 101,
+            apiId,
+            order: 1,
+            label: "A",
+            name: "Subprincipio A",
+            context: "Contexto SP",
+            subSubPrinciples: [],
+          },
+        ],
+      };
+    }
+
+    it("pasa también el apiId/nombre del escenario padre, para que el selector 'Vinculado a' pueda ofrecer moverlo al escenario", async () => {
+      renderAccordion([
+        {
+          id: 1,
+          apiId: "scenario-api-parent",
+          order: 1,
+          name: "Escenario X",
+          context: "Contexto",
+          tacticalPrinciples: [],
+          mediaUrl: null,
+          mediaType: null,
+          subPrinciples: [
+            {
+              id: 101,
+              apiId: "sp-api-1",
+              order: 1,
+              label: "A",
+              name: "Subprincipio A",
+              context: "Contexto SP",
+              subSubPrinciples: [],
+            },
+          ],
+        },
+      ]);
+
+      const sections = await screen.findAllByTestId("principle-exercises-section");
+      const section = sections.find((el) => el.getAttribute("data-level-kind") === "subPrinciple");
+      expect(section).toBeDefined();
+      expect(section).toHaveAttribute("data-parent-scenario-api-id", "scenario-api-parent");
+      expect(section).toHaveAttribute("data-parent-scenario-name", "Escenario X");
+    });
+
+    it("pasa la lista de sub-subprincipios del propio subprincipio, para ofrecerlos como destino cuando hay varios", async () => {
+      renderAccordion([
+        {
+          id: 1,
+          apiId: "scenario-api-parent",
+          order: 1,
+          name: "Escenario X",
+          context: "Contexto",
+          tacticalPrinciples: [],
+          mediaUrl: null,
+          mediaType: null,
+          subPrinciples: [
+            {
+              id: 101,
+              apiId: "sp-api-1",
+              order: 1,
+              label: "A",
+              name: "Subprincipio A",
+              context: "Contexto SP",
+              subSubPrinciples: [
+                { id: 1001, apiId: "ssp-a", order: 1, name: "Habilidad A", action: "", essentialSkills: [] },
+                { id: 1002, apiId: "ssp-b", order: 2, name: "Habilidad B", action: "", essentialSkills: [] },
+              ],
+            },
+          ],
+        },
+      ]);
+
+      const sections = await screen.findAllByTestId("principle-exercises-section");
+      const section = sections.find((el) => el.getAttribute("data-level-kind") === "subPrinciple");
+      expect(section).toBeDefined();
+      expect(JSON.parse(section!.getAttribute("data-sibling-ssp") ?? "[]")).toEqual([
+        { apiId: "ssp-a", name: "Habilidad A" },
+        { apiId: "ssp-b", name: "Habilidad B" },
+      ]);
+    });
+
+    it("renderiza PrincipleExercisesSection con levelKind=subPrinciple y el apiId del subprincipio", async () => {
+      renderAccordion([scenarioWithSubPrincipleApiId("sp-api-1")]);
+
+      const section = await screen.findByTestId("principle-exercises-section");
+      expect(section).toHaveAttribute("data-level-kind", "subPrinciple");
+      expect(section).toHaveAttribute("data-level-api-id", "sp-api-1");
+    });
+
+    it("muestra un chip con el conteo de ejercicios junto a los botones de sesiones", async () => {
+      renderAccordion([scenarioWithSubPrincipleApiId("sp-api-1")]);
+
+      expect(await screen.findByText("3 ej.")).toBeInTheDocument();
+    });
+
+    it("no renderiza la sección de ejercicios cuando el subprincipio no tiene apiId", () => {
+      renderAccordion([buildScenario(1, 1, 1)]);
+      expect(screen.queryByTestId("principle-exercises-section")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("ejercicios a nivel de escenario", () => {
+    function scenarioWithApiId(apiId: string): Scenario {
+      return {
+        id: 1,
+        apiId,
+        order: 1,
+        name: "Escenario X",
+        context: "Contexto",
+        tacticalPrinciples: [],
+        mediaUrl: null,
+        mediaType: null,
+        // Sin subprincipios: así el panel de nivel escenario se ve solo, sin que
+        // un subprincipio auto-seleccionado (cuando solo hay uno) lo oculte al
+        // pasar `active={selectedPi === null}` en false.
+        subPrinciples: [],
+      };
+    }
+
+    it("renderiza PrincipleExercisesSection con levelKind=scenario y el apiId del escenario", async () => {
+      renderAccordion([scenarioWithApiId("scenario-api-1")]);
+
+      const section = await screen.findByTestId("principle-exercises-section");
+      expect(section).toHaveAttribute("data-level-kind", "scenario");
+      expect(section).toHaveAttribute("data-level-api-id", "scenario-api-1");
+    });
+
+    it("muestra un chip con el conteo de ejercicios en la cabecera del escenario", async () => {
+      renderAccordion([scenarioWithApiId("scenario-api-1")]);
+
+      expect(await screen.findByText("3 ej.")).toBeInTheDocument();
+    });
+
+    it("no renderiza la sección de ejercicios cuando el escenario no tiene apiId", () => {
+      renderAccordion([buildScenario(1, 1, 1)]);
+      const sections = screen.queryAllByTestId("principle-exercises-section");
+      // Should only have section from subprincipio, not from scenario
+      expect(sections.length).toBeLessThanOrEqual(1);
+    });
+
+    it("al entrar en el detalle de un subprincipio no se duplica con la sección de ejercicios del escenario", async () => {
+      const scenario: Scenario = {
+        id: 1,
+        apiId: "scenario-api-1",
+        order: 1,
+        name: "Escenario X",
+        context: "Contexto",
+        tacticalPrinciples: [],
+        mediaUrl: null,
+        mediaType: null,
+        subPrinciples: [
+          {
+            id: 101,
+            apiId: "sp-api-1",
+            order: 1,
+            label: "A",
+            name: "Subprincipio A",
+            context: "Contexto SP",
+            subSubPrinciples: [],
+          },
+        ],
+      };
+      renderAccordion([scenario]);
+
+      // Un único subprincipio se auto-selecciona: solo debe verse su propia
+      // sección de ejercicios (subPrinciple), nunca junto a la del escenario.
+      const sections = await screen.findAllByTestId("principle-exercises-section");
+      expect(sections).toHaveLength(1);
+      expect(sections[0]).toHaveAttribute("data-level-kind", "subPrinciple");
+    });
   });
 });

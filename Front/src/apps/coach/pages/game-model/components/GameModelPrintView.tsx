@@ -58,15 +58,6 @@ export default function GameModelPrintView({ gameModel, teamName, season }: Prop
                         </h5>
                         <p className={styles.context}>{sp.context}</p>
 
-                        {sp.tacticalPrinciples.length > 0 && (
-                          <p className={styles.principles}>
-                            <span className={styles.principlesLabel}>
-                              Principios tácticos colectivos:{" "}
-                            </span>
-                            {sp.tacticalPrinciples.map((p) => p.name).join(", ")}
-                          </p>
-                        )}
-
                         {/* ── Sub-sub-principios ── */}
                         {sp.subSubPrinciples.map((ssp, idx) => (
                           <div key={ssp.id} className={styles.subSubPrinciple}>
