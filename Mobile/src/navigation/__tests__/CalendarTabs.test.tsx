@@ -7,6 +7,8 @@ jest.mock('../../screens/NewsScreen', () => 'NewsScreen');
 jest.mock('../../screens/PlayerSeasonCardsScreen', () => 'PlayerSeasonCardsScreen');
 jest.mock('../../screens/LeagueScreen', () => 'LeagueScreen');
 jest.mock('../../screens/FriendliesScreen', () => 'FriendliesScreen');
+jest.mock('../../screens/InjuriesScreen', () => 'InjuriesScreen');
+jest.mock('../../screens/SanctionsScreen', () => 'SanctionsScreen');
 
 jest.mock('@react-navigation/bottom-tabs', () => {
   const ReactActual = require('react');
@@ -79,7 +81,7 @@ describe('CalendarTabs', () => {
     expect(getByTestId('tab-icon-FriendliesTab').props.children).toBe('football-outline');
   });
 
-  it('registers tabs in order: NewsTab, CalendarTab, LeagueTab, FriendliesTab, PlayersTab', async () => {
+  it('registers tabs in order: NewsTab, CalendarTab, LeagueTab, FriendliesTab, PlayersTab, InjuriesTab, SanctionsTab', async () => {
     const { getAllByTestId } = await render(
       <CalendarTabs route={{ params: { teamId: 'team1' } }} />,
     );
@@ -87,6 +89,40 @@ describe('CalendarTabs', () => {
     const allTabs = getAllByTestId(/^tab-screen-/);
     const tabNames = allTabs.map((tab) => tab.props.testID.replace('tab-screen-', ''));
 
-    expect(tabNames).toEqual(['NewsTab', 'CalendarTab', 'LeagueTab', 'FriendliesTab', 'PlayersTab']);
+    expect(tabNames).toEqual(['NewsTab', 'CalendarTab', 'LeagueTab', 'FriendliesTab', 'PlayersTab', 'InjuriesTab', 'SanctionsTab']);
+  });
+
+  it('registers an InjuriesTab with label "Lesiones"', async () => {
+    const { getByTestId } = await render(
+      <CalendarTabs route={{ params: { teamId: 'team1' } }} />,
+    );
+
+    expect(getByTestId('tab-screen-InjuriesTab')).toBeTruthy();
+    expect(getByTestId('tab-label-InjuriesTab').props.children).toBe('Lesiones');
+  });
+
+  it('uses a medkit icon for the InjuriesTab', async () => {
+    const { getByTestId } = await render(
+      <CalendarTabs route={{ params: { teamId: 'team1' } }} />,
+    );
+
+    expect(getByTestId('tab-icon-InjuriesTab').props.children).toBe('medkit-outline');
+  });
+
+  it('registers a SanctionsTab with label "Sanciones"', async () => {
+    const { getByTestId } = await render(
+      <CalendarTabs route={{ params: { teamId: 'team1' } }} />,
+    );
+
+    expect(getByTestId('tab-screen-SanctionsTab')).toBeTruthy();
+    expect(getByTestId('tab-label-SanctionsTab').props.children).toBe('Sanciones');
+  });
+
+  it('uses a warning icon for the SanctionsTab', async () => {
+    const { getByTestId } = await render(
+      <CalendarTabs route={{ params: { teamId: 'team1' } }} />,
+    );
+
+    expect(getByTestId('tab-icon-SanctionsTab').props.children).toBe('warning-outline');
   });
 });

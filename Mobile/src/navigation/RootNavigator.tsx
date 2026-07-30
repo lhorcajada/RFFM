@@ -11,6 +11,8 @@ import EventDetailScreen from '../screens/EventDetailScreen';
 import NewsScreen from '../screens/NewsScreen';
 import PlayerSeasonCardsScreen from '../screens/PlayerSeasonCardsScreen';
 import LeagueScreen from '../screens/LeagueScreen';
+import InjuriesScreen from '../screens/InjuriesScreen';
+import SanctionsScreen from '../screens/SanctionsScreen';
 import AppHeaderTitle from './AppHeaderTitle';
 import UserAvatarMenu from './UserAvatarMenu';
 import { useAuth } from '../auth/AuthContext';
@@ -83,6 +85,24 @@ export const CalendarTabs = ({ route }: { route: { params?: { teamId?: string; t
         options={{
           tabBarLabel: 'Plantilla',
           tabBarIcon: ({ color, size }) => <Ionicons name="shirt-outline" size={size} color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="InjuriesTab"
+        component={InjuriesScreen}
+        initialParams={{ teamId }}
+        options={{
+          tabBarLabel: 'Lesiones',
+          tabBarIcon: ({ color, size }) => <Ionicons name="medkit-outline" size={size} color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="SanctionsTab"
+        component={SanctionsScreen}
+        initialParams={{ teamId }}
+        options={{
+          tabBarLabel: 'Sanciones',
+          tabBarIcon: ({ color, size }) => <Ionicons name="warning-outline" size={size} color={color} />,
         }}
       />
     </Tab.Navigator>
