@@ -25,6 +25,14 @@ const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 const TeamStack = createNativeStackNavigator();
 const CompetitionStack = createNativeStackNavigator();
+const CalendarStack = createNativeStackNavigator();
+
+const eventDetailScreenOptions = ({ route }: { route: { params?: { teamId?: string } } }) => ({
+  headerShown: true,
+  headerTitle: () => <AppHeaderTitle teamId={route.params?.teamId} />,
+  headerRight: () => <UserAvatarMenu />,
+  headerBackVisible: false,
+});
 
 const rffmCoachNavTheme: Theme = {
   ...DarkTheme,
@@ -93,7 +101,34 @@ export const CompetitionTabStack = ({ route }: { route: { params?: { teamId?: st
         component={TournamentsScreen}
         initialParams={{ teamId, teamPlayerId }}
       />
+      <CompetitionStack.Screen
+        name="EventDetail"
+        component={EventDetailScreen}
+        initialParams={{ teamId }}
+        options={eventDetailScreenOptions}
+      />
     </CompetitionStack.Navigator>
+  );
+};
+
+export const CalendarTabStack = ({ route }: { route: { params?: { teamId?: string; teamPlayerId?: string } } }) => {
+  const teamId = route.params?.teamId;
+  const teamPlayerId = route.params?.teamPlayerId;
+
+  return (
+    <CalendarStack.Navigator screenOptions={{ headerShown: false }}>
+      <CalendarStack.Screen
+        name="CalendarMain"
+        component={CalendarScreen}
+        initialParams={{ teamId, teamPlayerId }}
+      />
+      <CalendarStack.Screen
+        name="EventDetail"
+        component={EventDetailScreen}
+        initialParams={{ teamId }}
+        options={eventDetailScreenOptions}
+      />
+    </CalendarStack.Navigator>
   );
 };
 
@@ -117,7 +152,7 @@ export const CalendarTabs = ({ route }: { route: { params?: { teamId?: string; t
       />
       <Tab.Screen
         name="CalendarTab"
-        component={CalendarScreen}
+        component={CalendarTabStack}
         initialParams={{ teamId, teamPlayerId }}
         options={{
           tabBarLabel: 'Eventos',
@@ -184,15 +219,6 @@ export const RootNavigator = () => {
               <Stack.Screen
                 name="Calendar"
                 component={CalendarTabs}
-                options={({ route }) => ({
-                  headerTitle: () => (
-                    <AppHeaderTitle teamId={(route.params as { teamId?: string } | undefined)?.teamId} />
-                  ),
-                })}
-              />
-              <Stack.Screen
-                name="EventDetail"
-                component={EventDetailScreen}
                 options={({ route }) => ({
                   headerTitle: () => (
                     <AppHeaderTitle teamId={(route.params as { teamId?: string } | undefined)?.teamId} />

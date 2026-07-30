@@ -11,6 +11,7 @@ jest.mock('../../screens/PlayerSeasonCardsScreen', () => 'PlayerSeasonCardsScree
 jest.mock('../../screens/InjuriesScreen', () => 'InjuriesScreen');
 jest.mock('../../screens/SanctionsScreen', () => 'SanctionsScreen');
 jest.mock('../../screens/TeamMenuScreen', () => 'TeamMenuScreen');
+jest.mock('../../screens/EventDetailScreen', () => 'EventDetailScreen');
 jest.mock('@react-native-community/datetimepicker', () => 'DateTimePicker');
 
 import { CompetitionTabStack } from '../RootNavigator';
@@ -21,11 +22,16 @@ jest.mock('@react-navigation/native-stack', () => {
   return {
     createNativeStackNavigator: () => ({
       Navigator: ({ children }: any) => ReactActual.createElement(View, { testID: 'stack-navigator' }, children),
-      Screen: ({ name, initialParams }: any) => {
+      Screen: ({ name, initialParams, options }: any) => {
+        const resolvedOptions = typeof options === 'function' ? options({ route: { params: initialParams } }) : options;
         return ReactActual.createElement(
           View,
           { testID: `stack-screen-${name}` },
           ReactActual.createElement(Text, { testID: `stack-initial-params-${name}` }, JSON.stringify(initialParams)),
+          resolvedOptions?.headerShown !== undefined &&
+            ReactActual.createElement(Text, { testID: `stack-header-shown-${name}` }, String(resolvedOptions.headerShown)),
+          resolvedOptions?.headerBackVisible !== undefined &&
+            ReactActual.createElement(Text, { testID: `stack-header-back-visible-${name}` }, String(resolvedOptions.headerBackVisible)),
         );
       },
     }),
@@ -33,7 +39,7 @@ jest.mock('@react-navigation/native-stack', () => {
 });
 
 describe('CompetitionTabStack', () => {
-  it('registers routes in order: CompetitionMenu, LeagueTab, FriendliesTab, TournamentsTab', async () => {
+  it('registers routes in order: CompetitionMenu, LeagueTab, FriendliesTab, TournamentsTab, EventDetail', async () => {
     const { getAllByTestId } = await render(
       <CompetitionTabStack route={{ params: { teamId: 'team1', teamPlayerId: 'player1' } }} />,
     );
@@ -41,7 +47,16 @@ describe('CompetitionTabStack', () => {
     const allStacks = getAllByTestId(/^stack-screen-/);
     const stackNames = allStacks.map((stack) => stack.props.testID.replace('stack-screen-', ''));
 
-    expect(stackNames).toEqual(['CompetitionMenu', 'LeagueTab', 'FriendliesTab', 'TournamentsTab']);
+    expect(stackNames).toEqual(['CompetitionMenu', 'LeagueTab', 'FriendliesTab', 'TournamentsTab', 'EventDetail']);
+  });
+
+  it('keeps the native header visible (no back button) for EventDetail, so the tab bar stays reachable', async () => {
+    const { getByTestId } = await render(
+      <CompetitionTabStack route={{ params: { teamId: 'team1', teamPlayerId: 'player1' } }} />,
+    );
+
+    expect(getByTestId('stack-header-shown-EventDetail').props.children).toBe('true');
+    expect(getByTestId('stack-header-back-visible-EventDetail').props.children).toBe('false');
   });
 
   it('forwards teamId and teamPlayerId via initialParams to CompetitionMenu', async () => {
