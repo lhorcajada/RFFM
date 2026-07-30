@@ -446,6 +446,13 @@ namespace RFFM.Host.DependencyInjection
                         ("CompetitionData", CoachFeatureRoutes.CompetitionData, "Player", 1, false),
                         ("CompetitionData", CoachFeatureRoutes.CompetitionData, "FamilyMember", 1, false),
                         ("CompetitionData", CoachFeatureRoutes.CompetitionData, "Coach", 1, false),
+
+                        // TeamRulesDocument: ReadWrite for Coach/ClubDirector only — uploading/replacing
+                        // the team's rules PDF. The GET endpoint only carries IRequireTeamMembership (not
+                        // IRequireFeaturePermission), so every team role (including Player/FamilyMember)
+                        // can read it without a row in this table.
+                        ("TeamRulesDocument", CoachFeatureRoutes.TeamRulesDocument, "Coach", 3, false),
+                        ("TeamRulesDocument", CoachFeatureRoutes.TeamRulesDocument, "ClubDirector", 3, false),
                     };
 
                     foreach (var (featureName, featureRoute, roleName, permTypeId, isEditable) in entries)
