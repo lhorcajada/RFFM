@@ -10,8 +10,8 @@ type NavigationProp = NativeStackNavigationProp<any>;
 
 interface MenuItemConfig {
   label: string;
-  icon: 'shirt-outline' | 'medkit-outline' | 'warning-outline';
-  target: 'PlayersTab' | 'InjuriesTab' | 'SanctionsTab';
+  icon: 'shirt-outline' | 'medkit-outline' | 'warning-outline' | 'document-text-outline';
+  target: 'PlayersTab' | 'InjuriesTab' | 'SanctionsTab' | 'RulesTab';
   testID: string;
 }
 
@@ -24,6 +24,7 @@ const TeamMenuScreen = () => {
     { label: 'Plantilla', icon: 'shirt-outline', target: 'PlayersTab', testID: 'menu-players' },
     { label: 'Lesiones', icon: 'medkit-outline', target: 'InjuriesTab', testID: 'menu-injuries' },
     { label: 'Sanciones', icon: 'warning-outline', target: 'SanctionsTab', testID: 'menu-sanctions' },
+    { label: 'Normas del equipo', icon: 'document-text-outline', target: 'RulesTab', testID: 'menu-rules' },
   ];
 
   const handleMenuItemPress = (target: string) => {

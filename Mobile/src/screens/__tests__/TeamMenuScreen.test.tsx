@@ -49,7 +49,7 @@ describe('TeamMenuScreen', () => {
     expect(getByTestId('screen-header-title').props.children).toBe('Equipo');
   });
 
-  it('renders 3 TabMenuCards with correct labels and icons', async () => {
+  it('renders 4 TabMenuCards with correct labels and icons', async () => {
     const mockNavigate = jest.fn();
     (useNavigation as jest.Mock).mockReturnValue({ navigate: mockNavigate });
     (useRoute as jest.Mock).mockReturnValue({ params: { teamId: 'team1' } });
@@ -70,6 +70,11 @@ describe('TeamMenuScreen', () => {
     expect(getByTestId('menu-sanctions')).toBeTruthy();
     expect(getByTestId('menu-sanctions-label').props.children).toBe('Sanciones');
     expect(getByTestId('menu-sanctions-icon').props.children).toBe('warning-outline');
+
+    // Normas del equipo
+    expect(getByTestId('menu-rules')).toBeTruthy();
+    expect(getByTestId('menu-rules-label').props.children).toBe('Normas del equipo');
+    expect(getByTestId('menu-rules-icon').props.children).toBe('document-text-outline');
   });
 
   it('navigates to PlayersTab with teamId when Plantilla is pressed', async () => {
@@ -106,5 +111,17 @@ describe('TeamMenuScreen', () => {
     fireEvent.press(getByTestId('menu-sanctions'));
 
     expect(mockNavigate).toHaveBeenCalledWith('SanctionsTab', { teamId: 'team1' });
+  });
+
+  it('navigates to RulesTab with teamId when Normas del equipo is pressed', async () => {
+    const mockNavigate = jest.fn();
+    (useNavigation as jest.Mock).mockReturnValue({ navigate: mockNavigate });
+    (useRoute as jest.Mock).mockReturnValue({ params: { teamId: 'team1' } });
+
+    const { getByTestId } = await render(<TeamMenuScreen />);
+
+    fireEvent.press(getByTestId('menu-rules'));
+
+    expect(mockNavigate).toHaveBeenCalledWith('RulesTab', { teamId: 'team1' });
   });
 });
