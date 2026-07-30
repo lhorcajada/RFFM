@@ -11,7 +11,7 @@ using RFFM.Api.Infrastructure.Persistence;
 namespace RFFM.Api.Features.Coaches.News
 {
     /// <summary>
-    /// GET /api/coach/news?pageNumber=&amp;pageSize= — published-only, sorted PublishedAt DESC,
+    /// GET /api/coach/news?pageNumber=&amp;pageSize= — published-only, sorted NewsDate ASC,
     /// open to any authenticated role. Cached (never contains drafts, so caching is safe across
     /// all roles).
     /// </summary>
@@ -64,10 +64,10 @@ namespace RFFM.Api.Features.Coaches.News
             }
 
             var items = await query
-                .OrderByDescending(n => n.PublishedAt)
+                .OrderBy(n => n.NewsDate)
                 .Skip((request.PageNumber - 1) * request.PageSize)
                 .Take(request.PageSize)
-                .Select(n => new NewsSummaryResponse(n.Id, n.Title, n.Subtitle, n.CoverImageUrl, n.Status.Name, n.PublishedAt))
+                .Select(n => new NewsSummaryResponse(n.Id, n.Title, n.Subtitle, n.CoverImageUrl, n.Status.Name, n.PublishedAt, n.NewsDate))
                 .ToArrayAsync(ct);
 
             return items;
@@ -75,8 +75,8 @@ namespace RFFM.Api.Features.Coaches.News
     }
 }
 
-public record NewsSummaryResponse(string Id, string Title, string Subtitle, string CoverImageUrl, string Status, DateTime? PublishedAt);
+public record NewsSummaryResponse(string Id, string Title, string Subtitle, string CoverImageUrl, string Status, DateTime? PublishedAt, DateTime NewsDate);
 
 public record NewsDetailResponse(
     string Id, string Title, string Subtitle, string Body, string CoverImageUrl,
-    string Status, DateTime? PublishedAt, DateTime CreatedAt, DateTime UpdatedAt);
+    string Status, DateTime? PublishedAt, DateTime NewsDate, DateTime CreatedAt, DateTime UpdatedAt);

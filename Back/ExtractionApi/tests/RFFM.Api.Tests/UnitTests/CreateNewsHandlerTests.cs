@@ -26,12 +26,14 @@ namespace RFFM.Api.Tests.UnitTests
         {
             await using var db = _fixture.CreateDbContext();
             var handler = new CreateNewsHandler(db);
+            var newsDate = new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc);
             var command = new CreateNewsCommand(
                 Title: "Test Draft News",
                 Subtitle: "Draft Subtitle",
                 Body: "Draft body content",
                 CoverImageUrl: "https://example.com/image.jpg",
-                Status: "Draft"
+                Status: "Draft",
+                NewsDate: newsDate
             );
 
             var newsId = await handler.Handle(command, CancellationToken.None);
@@ -44,6 +46,7 @@ namespace RFFM.Api.Tests.UnitTests
             Assert.Equal("https://example.com/image.jpg", news.CoverImageUrl);
             Assert.Equal(NewsStatus.Draft, news.Status);
             Assert.Null(news.PublishedAt);
+            Assert.Equal(newsDate, news.NewsDate);
         }
 
         [Fact]
@@ -57,7 +60,8 @@ namespace RFFM.Api.Tests.UnitTests
                 Subtitle: "Published Subtitle",
                 Body: "Published body content",
                 CoverImageUrl: "https://example.com/image.jpg",
-                Status: "Published"
+                Status: "Published",
+                NewsDate: new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc)
             );
 
             var newsId = await handler.Handle(command, CancellationToken.None);
@@ -80,7 +84,8 @@ namespace RFFM.Api.Tests.UnitTests
                 Subtitle: "Complete Subtitle",
                 Body: "Complete body content with lots of text",
                 CoverImageUrl: "https://example.com/complete.jpg",
-                Status: "Draft"
+                Status: "Draft",
+                NewsDate: new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc)
             );
 
             var newsId = await handler.Handle(command, CancellationToken.None);
@@ -90,6 +95,32 @@ namespace RFFM.Api.Tests.UnitTests
             Assert.NotNull(news.CreatedAt);
             Assert.NotNull(news.UpdatedAt);
             Assert.Equal(news.CreatedAt, news.UpdatedAt);
+        }
+
+        // Regression guard: Mobile sends newsDate as a bare "YYYY-MM-DD" string, which
+        // System.Text.Json deserializes with DateTimeKind.Unspecified. NewsItem.Create must
+        // normalize it to Utc before it reaches Npgsql, or SaveChangesAsync throws because
+        // NewsDate is mapped as `timestamp with time zone`.
+        [Fact]
+        public async Task Handle_WithUnspecifiedKindNewsDate_PersistsAsUtc()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var handler = new CreateNewsHandler(db);
+            var command = new CreateNewsCommand(
+                Title: "Unspecified Kind News",
+                Subtitle: "Subtitle",
+                Body: "Body",
+                CoverImageUrl: "https://example.com/image.jpg",
+                Status: "Draft",
+                NewsDate: new DateTime(2026, 8, 15, 0, 0, 0, DateTimeKind.Unspecified)
+            );
+
+            var newsId = await handler.Handle(command, CancellationToken.None);
+
+            await using var verifyDb = _fixture.CreateDbContext();
+            var news = await verifyDb.News.SingleAsync(n => n.Id == newsId);
+            Assert.Equal(DateTimeKind.Utc, news.NewsDate.Kind);
+            Assert.Equal(new DateTime(2026, 8, 15, 0, 0, 0, DateTimeKind.Utc), news.NewsDate);
         }
     }
 }

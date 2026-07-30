@@ -8,12 +8,13 @@ namespace RFFM.Api.Domain.Entities.News
         public string CoverImageUrl { get; private set; } = null!;
         public NewsStatus Status { get; private set; } = null!;
         public DateTime? PublishedAt { get; private set; }
+        public DateTime NewsDate { get; private set; }
         public DateTime CreatedAt { get; private set; }
         public DateTime UpdatedAt { get; private set; }
 
         private NewsItem() { }
 
-        public static NewsItem Create(string title, string subtitle, string body, string coverImageUrl, NewsStatus status)
+        public static NewsItem Create(string title, string subtitle, string body, string coverImageUrl, NewsStatus status, DateTime newsDate)
         {
             if (string.IsNullOrWhiteSpace(title))
                 throw new ArgumentException("El título es obligatorio.");
@@ -25,6 +26,8 @@ namespace RFFM.Api.Domain.Entities.News
                 throw new ArgumentException("La foto de portada es obligatoria.");
             if (status is null)
                 throw new ArgumentException("El estado es obligatorio.");
+            if (newsDate == default)
+                throw new ArgumentException("La fecha de la noticia es obligatoria.");
 
             var now = DateTime.UtcNow;
             return new NewsItem
@@ -35,12 +38,13 @@ namespace RFFM.Api.Domain.Entities.News
                 CoverImageUrl = coverImageUrl,
                 Status = status,
                 PublishedAt = status == NewsStatus.Published ? now : null,
+                NewsDate = DateTime.SpecifyKind(newsDate.Date, DateTimeKind.Utc),
                 CreatedAt = now,
                 UpdatedAt = now
             };
         }
 
-        public void UpdateContent(string title, string subtitle, string body, string coverImageUrl)
+        public void UpdateContent(string title, string subtitle, string body, string coverImageUrl, DateTime newsDate)
         {
             if (string.IsNullOrWhiteSpace(title))
                 throw new ArgumentException("El título es obligatorio.");
@@ -50,11 +54,14 @@ namespace RFFM.Api.Domain.Entities.News
                 throw new ArgumentException("El cuerpo es obligatorio.");
             if (string.IsNullOrWhiteSpace(coverImageUrl))
                 throw new ArgumentException("La foto de portada es obligatoria.");
+            if (newsDate == default)
+                throw new ArgumentException("La fecha de la noticia es obligatoria.");
 
             Title = title.Trim();
             Subtitle = subtitle.Trim();
             Body = body;
             CoverImageUrl = coverImageUrl;
+            NewsDate = DateTime.SpecifyKind(newsDate.Date, DateTimeKind.Utc);
             UpdatedAt = DateTime.UtcNow;
         }
 

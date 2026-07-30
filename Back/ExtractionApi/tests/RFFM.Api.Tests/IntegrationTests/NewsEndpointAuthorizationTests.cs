@@ -162,7 +162,7 @@ namespace RFFM.Api.Tests.IntegrationTests
         private async Task<NewsItem> CreateNewsItemAsync(NewsStatus status)
         {
             await using var db = _fixture.CreateDbContext();
-            var news = NewsItem.Create("Test News", "Test Subtitle", "Test Body", "https://example.com/test.jpg", status);
+            var news = NewsItem.Create("Test News", "Test Subtitle", "Test Body", "https://example.com/test.jpg", status, new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc));
             db.News.Add(news);
             await db.SaveChangesAsync();
             return news;
@@ -179,7 +179,7 @@ namespace RFFM.Api.Tests.IntegrationTests
 
             var request = new HttpRequestMessage(HttpMethod.Post, "/api/coach/news")
             {
-                Content = JsonContent.Create(new CreateNewsCommand("Title", "Sub", "Body", "url", "Draft"))
+                Content = JsonContent.Create(new CreateNewsCommand("Title", "Sub", "Body", "url", "Draft", new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc)))
             };
             request.Headers.Add("X-Test-Role", role);
 
@@ -196,7 +196,31 @@ namespace RFFM.Api.Tests.IntegrationTests
 
             var request = new HttpRequestMessage(HttpMethod.Post, "/api/coach/news")
             {
-                Content = JsonContent.Create(new CreateNewsCommand("Title", "Sub", "Body", "https://example.com/image.jpg", "Draft"))
+                Content = JsonContent.Create(new CreateNewsCommand("Title", "Sub", "Body", "https://example.com/image.jpg", "Draft", new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc)))
+            };
+            request.Headers.Add("X-Test-Role", "Coach");
+
+            var response = await client.SendAsync(request);
+
+            Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        }
+
+        // Mobile sends newsDate as a bare "YYYY-MM-DD" string with no time-of-day/offset.
+        // System.Text.Json deserializes that into a DateTime with Kind=Unspecified, which
+        // Npgsql rejects when writing to a `timestamp with time zone` column unless the
+        // entity normalizes it to Kind=Utc first (see NewsItem.Create/UpdateContent).
+        [Fact]
+        public async Task CreateNews_WithDateOnlyNewsDate_ReturnsCreated()
+        {
+            var (host, client) = await StartHostAsync(new CreateNews());
+            using var _ = host;
+
+            var request = new HttpRequestMessage(HttpMethod.Post, "/api/coach/news")
+            {
+                Content = new StringContent(
+                    "{\"title\":\"Title\",\"subtitle\":\"Sub\",\"body\":\"Body\",\"coverImageUrl\":\"https://example.com/image.jpg\",\"status\":\"Draft\",\"newsDate\":\"2026-08-15\"}",
+                    System.Text.Encoding.UTF8,
+                    "application/json")
             };
             request.Headers.Add("X-Test-Role", "Coach");
 
@@ -213,7 +237,7 @@ namespace RFFM.Api.Tests.IntegrationTests
 
             var request = new HttpRequestMessage(HttpMethod.Post, "/api/coach/news")
             {
-                Content = JsonContent.Create(new CreateNewsCommand("Title", "Sub", "Body", "", "Draft"))
+                Content = JsonContent.Create(new CreateNewsCommand("Title", "Sub", "Body", "", "Draft", new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc)))
             };
             request.Headers.Add("X-Test-Role", "Coach");
 
@@ -234,7 +258,7 @@ namespace RFFM.Api.Tests.IntegrationTests
 
             var request = new HttpRequestMessage(HttpMethod.Put, $"/api/coach/news/{news.Id}")
             {
-                Content = JsonContent.Create(new UpdateNewsCommand("New Title", "New Sub", "New Body", "url"))
+                Content = JsonContent.Create(new UpdateNewsCommand("New Title", "New Sub", "New Body", "url", new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc)))
             };
             request.Headers.Add("X-Test-Role", role);
 
@@ -252,7 +276,28 @@ namespace RFFM.Api.Tests.IntegrationTests
 
             var request = new HttpRequestMessage(HttpMethod.Put, $"/api/coach/news/{news.Id}")
             {
-                Content = JsonContent.Create(new UpdateNewsCommand("New Title", "New Sub", "New Body", "https://example.com/new.jpg"))
+                Content = JsonContent.Create(new UpdateNewsCommand("New Title", "New Sub", "New Body", "https://example.com/new.jpg", new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc)))
+            };
+            request.Headers.Add("X-Test-Role", "Coach");
+
+            var response = await client.SendAsync(request);
+
+            Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task UpdateNews_WithDateOnlyNewsDate_ReturnsNoContent()
+        {
+            var news = await CreateNewsItemAsync(NewsStatus.Draft);
+            var (host, client) = await StartHostAsync(new UpdateNews());
+            using var _ = host;
+
+            var request = new HttpRequestMessage(HttpMethod.Put, $"/api/coach/news/{news.Id}")
+            {
+                Content = new StringContent(
+                    "{\"title\":\"New Title\",\"subtitle\":\"New Sub\",\"body\":\"New Body\",\"coverImageUrl\":\"https://example.com/new.jpg\",\"newsDate\":\"2026-08-15\"}",
+                    System.Text.Encoding.UTF8,
+                    "application/json")
             };
             request.Headers.Add("X-Test-Role", "Coach");
 
@@ -269,7 +314,7 @@ namespace RFFM.Api.Tests.IntegrationTests
 
             var request = new HttpRequestMessage(HttpMethod.Put, "/api/coach/news/nonexistent")
             {
-                Content = JsonContent.Create(new UpdateNewsCommand("Title", "Sub", "Body", "url"))
+                Content = JsonContent.Create(new UpdateNewsCommand("Title", "Sub", "Body", "url", new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc)))
             };
             request.Headers.Add("X-Test-Role", "Coach");
 

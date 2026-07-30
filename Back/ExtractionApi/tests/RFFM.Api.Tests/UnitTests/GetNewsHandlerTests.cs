@@ -30,7 +30,8 @@ namespace RFFM.Api.Tests.UnitTests
                     $"Subtitle {i}",
                     $"Body {i}",
                     "https://example.com/image.jpg",
-                    status
+                    status,
+                    new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc)
                 );
                 db.News.Add(news);
             }
@@ -85,18 +86,20 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
-        public async Task Handle_SortsByPublishedAtDescending()
+        public async Task Handle_SortsByNewsDateAscending()
         {
             await ClearNewsTableAsync();
             await using var seedDb = _fixture.CreateDbContext();
 
-            var news1 = NewsItem.Create("News 1", "Sub 1", "Body 1", "https://example.com/1.jpg", NewsStatus.Published);
+            // news1 is published after news2 but has an earlier NewsDate, so it must come first
+            // in the response — the feed orders by relevance date, not by publish order.
+            var news1 = NewsItem.Create("News 1", "Sub 1", "Body 1", "https://example.com/1.jpg", NewsStatus.Published, new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc));
             seedDb.News.Add(news1);
             await seedDb.SaveChangesAsync();
 
-            await Task.Delay(100); // Ensure time difference
+            await Task.Delay(100); // Ensure time difference in PublishedAt
 
-            var news2 = NewsItem.Create("News 2", "Sub 2", "Body 2", "https://example.com/2.jpg", NewsStatus.Published);
+            var news2 = NewsItem.Create("News 2", "Sub 2", "Body 2", "https://example.com/2.jpg", NewsStatus.Published, new DateTime(2026, 8, 1, 0, 0, 0, DateTimeKind.Utc));
             seedDb.News.Add(news2);
             await seedDb.SaveChangesAsync();
 
@@ -107,7 +110,7 @@ namespace RFFM.Api.Tests.UnitTests
             var result = await handler.Handle(query, CancellationToken.None);
 
             Assert.Equal(2, result.Length);
-            // Most recent first (news2 was published after news1)
+            // Earliest NewsDate first, regardless of publish order.
             Assert.Equal("News 2", result[0].Title);
             Assert.Equal("News 1", result[1].Title);
         }

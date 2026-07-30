@@ -30,7 +30,8 @@ namespace RFFM.Api.Tests.UnitTests
                     $"Subtitle {i}",
                     $"Body {i}",
                     "https://example.com/image.jpg",
-                    status
+                    status,
+                    new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc)
                 );
                 db.News.Add(news);
             }
@@ -74,13 +75,13 @@ namespace RFFM.Api.Tests.UnitTests
             await ClearNewsTableAsync();
             await using var seedDb = _fixture.CreateDbContext();
 
-            var draft1 = NewsItem.Create("Draft 1", "Sub 1", "Body 1", "https://example.com/1.jpg", NewsStatus.Draft);
+            var draft1 = NewsItem.Create("Draft 1", "Sub 1", "Body 1", "https://example.com/1.jpg", NewsStatus.Draft, new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc));
             seedDb.News.Add(draft1);
             await seedDb.SaveChangesAsync();
 
             await Task.Delay(100);
 
-            var draft2 = NewsItem.Create("Draft 2", "Sub 2", "Body 2", "https://example.com/2.jpg", NewsStatus.Draft);
+            var draft2 = NewsItem.Create("Draft 2", "Sub 2", "Body 2", "https://example.com/2.jpg", NewsStatus.Draft, new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc));
             seedDb.News.Add(draft2);
             await seedDb.SaveChangesAsync();
 

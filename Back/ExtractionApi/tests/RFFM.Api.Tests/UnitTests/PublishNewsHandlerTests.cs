@@ -24,7 +24,7 @@ namespace RFFM.Api.Tests.UnitTests
 
         private async Task<NewsItem> CreateTestNewsAsync(AppDbContext db, NewsStatus status)
         {
-            var news = NewsItem.Create("Test Title", "Test Subtitle", "Test Body", "https://example.com/image.jpg", status);
+            var news = NewsItem.Create("Test Title", "Test Subtitle", "Test Body", "https://example.com/image.jpg", status, new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc));
             db.News.Add(news);
             await db.SaveChangesAsync();
             return news;

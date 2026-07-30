@@ -18,6 +18,7 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Entities
             builder.Property(n => n.CoverImageUrl).HasMaxLength(2000).IsRequired();
             builder.Property(n => n.Status).IsRequired();
             builder.Property(n => n.PublishedAt).IsRequired(false);
+            builder.Property(n => n.NewsDate).IsRequired();
             builder.Property(n => n.CreatedAt).IsRequired();
             builder.Property(n => n.UpdatedAt).IsRequired();
 

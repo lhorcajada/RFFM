@@ -24,7 +24,7 @@ namespace RFFM.Api.Tests.UnitTests
 
         private async Task<NewsItem> CreateTestNewsAsync(AppDbContext db, NewsStatus status)
         {
-            var news = NewsItem.Create("Original Title", "Original Subtitle", "Original Body", "https://example.com/original.jpg", status);
+            var news = NewsItem.Create("Original Title", "Original Subtitle", "Original Body", "https://example.com/original.jpg", status, new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc));
             db.News.Add(news);
             await db.SaveChangesAsync();
             return news;
@@ -38,11 +38,13 @@ namespace RFFM.Api.Tests.UnitTests
 
             await using var db = _fixture.CreateDbContext();
             var handler = new UpdateNewsHandler(db);
+            var newNewsDate = new DateTime(2026, 10, 15, 0, 0, 0, DateTimeKind.Utc);
             var command = new UpdateNewsCommand(
                 Title: "Updated Title",
                 Subtitle: "Updated Subtitle",
                 Body: "Updated Body",
-                CoverImageUrl: "https://example.com/updated.jpg"
+                CoverImageUrl: "https://example.com/updated.jpg",
+                NewsDate: newNewsDate
             )
             { Id = news.Id };
 
@@ -55,6 +57,7 @@ namespace RFFM.Api.Tests.UnitTests
             Assert.Equal("Updated Body", updated.Body);
             Assert.Equal("https://example.com/updated.jpg", updated.CoverImageUrl);
             Assert.Equal(NewsStatus.Draft, updated.Status);
+            Assert.Equal(newNewsDate, updated.NewsDate);
         }
 
         [Fact]
@@ -76,7 +79,8 @@ namespace RFFM.Api.Tests.UnitTests
                 Title: "Updated Title",
                 Subtitle: "Updated Subtitle",
                 Body: "Updated Body",
-                CoverImageUrl: "https://example.com/updated.jpg"
+                CoverImageUrl: "https://example.com/updated.jpg",
+                NewsDate: new DateTime(2026, 10, 15, 0, 0, 0, DateTimeKind.Utc)
             )
             { Id = news.Id };
 
@@ -89,6 +93,33 @@ namespace RFFM.Api.Tests.UnitTests
             Assert.Equal(originalPublishedAt, updated.PublishedAt);
         }
 
+        // Regression guard: mirrors CreateNewsHandlerTests.Handle_WithUnspecifiedKindNewsDate_PersistsAsUtc
+        // for the update path — NewsItem.UpdateContent must also normalize Kind=Unspecified to Utc.
+        [Fact]
+        public async Task Handle_WithUnspecifiedKindNewsDate_PersistsAsUtc()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var news = await CreateTestNewsAsync(seedDb, NewsStatus.Draft);
+
+            await using var db = _fixture.CreateDbContext();
+            var handler = new UpdateNewsHandler(db);
+            var command = new UpdateNewsCommand(
+                Title: "Updated Title",
+                Subtitle: "Updated Subtitle",
+                Body: "Updated Body",
+                CoverImageUrl: "https://example.com/updated.jpg",
+                NewsDate: new DateTime(2026, 8, 15, 0, 0, 0, DateTimeKind.Unspecified)
+            )
+            { Id = news.Id };
+
+            await handler.Handle(command, CancellationToken.None);
+
+            await using var verifyDb = _fixture.CreateDbContext();
+            var updated = await verifyDb.News.SingleAsync(n => n.Id == news.Id);
+            Assert.Equal(DateTimeKind.Utc, updated.NewsDate.Kind);
+            Assert.Equal(new DateTime(2026, 8, 15, 0, 0, 0, DateTimeKind.Utc), updated.NewsDate);
+        }
+
         [Fact]
         public async Task Handle_WithNonExistentId_ThrowsNotFoundException()
         {
@@ -98,7 +129,8 @@ namespace RFFM.Api.Tests.UnitTests
                 Title: "Title",
                 Subtitle: "Subtitle",
                 Body: "Body",
-                CoverImageUrl: "https://example.com/image.jpg"
+                CoverImageUrl: "https://example.com/image.jpg",
+                NewsDate: new DateTime(2026, 10, 15, 0, 0, 0, DateTimeKind.Utc)
             )
             { Id = "nonexistent-id" };
 

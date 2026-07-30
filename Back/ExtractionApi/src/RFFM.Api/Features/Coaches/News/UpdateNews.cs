@@ -34,7 +34,7 @@ namespace RFFM.Api.Features.Coaches.News
         }
     }
 
-    public record UpdateNewsCommand(string Title, string Subtitle, string Body, string CoverImageUrl)
+    public record UpdateNewsCommand(string Title, string Subtitle, string Body, string CoverImageUrl, DateTime NewsDate)
         : IRequest<Unit>, IInvalidateCacheRequest
     {
         public string Id { get; init; } = string.Empty;
@@ -52,7 +52,7 @@ namespace RFFM.Api.Features.Coaches.News
             if (news is null)
                 throw new NotFoundException("Noticia no encontrada.", ErrorCodes.NewsNotFound);
 
-            news.UpdateContent(request.Title, request.Subtitle, request.Body, request.CoverImageUrl);
+            news.UpdateContent(request.Title, request.Subtitle, request.Body, request.CoverImageUrl, request.NewsDate);
             await _db.SaveChangesAsync(ct);
             return Unit.Value;
         }
@@ -66,6 +66,7 @@ namespace RFFM.Api.Features.Coaches.News
             RuleFor(x => x.Subtitle).NotEmpty().MaximumLength(300);
             RuleFor(x => x.Body).NotEmpty();
             RuleFor(x => x.CoverImageUrl).NotEmpty();
+            RuleFor(x => x.NewsDate).NotEmpty();
         }
     }
 }

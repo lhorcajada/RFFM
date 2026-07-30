@@ -32,7 +32,7 @@ namespace RFFM.Api.Features.Coaches.News
         }
     }
 
-    public record CreateNewsCommand(string Title, string Subtitle, string Body, string CoverImageUrl, string Status)
+    public record CreateNewsCommand(string Title, string Subtitle, string Body, string CoverImageUrl, string Status, DateTime NewsDate)
         : IRequest<string>, IInvalidateCacheRequest
     {
         public string PrefixCacheKey => NewsConstants.PublishedListCachePrefix;
@@ -46,7 +46,7 @@ namespace RFFM.Api.Features.Coaches.News
         public async ValueTask<string> Handle(CreateNewsCommand request, CancellationToken ct = default)
         {
             NewsStatus.TryParseName(request.Status, out var status);
-            var news = NewsItem.Create(request.Title, request.Subtitle, request.Body, request.CoverImageUrl, status!);
+            var news = NewsItem.Create(request.Title, request.Subtitle, request.Body, request.CoverImageUrl, status!, request.NewsDate);
 
             await _db.News.AddAsync(news, ct);
             await _db.SaveChangesAsync(ct);
@@ -62,6 +62,7 @@ namespace RFFM.Api.Features.Coaches.News
             RuleFor(x => x.Subtitle).NotEmpty().MaximumLength(300);
             RuleFor(x => x.Body).NotEmpty();
             RuleFor(x => x.CoverImageUrl).NotEmpty();
+            RuleFor(x => x.NewsDate).NotEmpty();
             RuleFor(x => x.Status)
                 .Must(s => s is "Draft" or "Published")
                 .WithMessage("Status must be Draft or Published.");
