@@ -54,7 +54,23 @@ describe('NewsDetailScreen', () => {
       expect(getByTestId('news-detail-title')).toBeTruthy();
       expect(getByTestId('news-detail-subtitle')).toBeTruthy();
       expect(getByTestId('news-detail-body')).toBeTruthy();
-      expect(getByTestId('news-detail-date')).toBeTruthy();
+      expect(getByTestId('news-detail-date-label')).toBeTruthy();
+      expect(getByTestId('news-detail-date-value')).toBeTruthy();
+    });
+  });
+
+  it('shows a "Fecha de publicación:" label styled differently from the date value', async () => {
+    mockGetNewsById.mockResolvedValue(newsDetail);
+    mockUseAuth.mockReturnValue({ roles: ['Player'] });
+
+    const { getByTestId } = await render(<NewsDetailScreen />);
+
+    await waitFor(() => {
+      const label = getByTestId('news-detail-date-label');
+      const value = getByTestId('news-detail-date-value');
+      expect(label.props.children).toBe('Fecha de publicación: ');
+      expect(value.props.children).toBe('01 de enero de 2026');
+      expect(label.props.style.color).not.toBe(value.props.style.color);
     });
   });
 

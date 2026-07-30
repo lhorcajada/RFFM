@@ -128,7 +128,10 @@ const NewsDetailScreen = () => {
         {coverUri && <Image testID="news-detail-cover" source={{ uri: coverUri }} style={styles.cover} />}
         <Text testID="news-detail-title" style={styles.title}>{news.title}</Text>
         <Text testID="news-detail-subtitle" style={styles.subtitle}>{news.subtitle}</Text>
-        <Text testID="news-detail-date" style={styles.date}>{formatPublishDate(news.publishedAt)}</Text>
+        <Text style={styles.dateRow}>
+          <Text testID="news-detail-date-label" style={styles.dateLabel}>{'Fecha de publicación: '}</Text>
+          <Text testID="news-detail-date-value" style={styles.date}>{formatPublishDate(news.publishedAt)}</Text>
+        </Text>
         <Text testID="news-detail-body" style={styles.body}>{news.body}</Text>
       </ScrollView>
     </View>
@@ -142,7 +145,9 @@ const styles = StyleSheet.create({
   cover: { width: '100%', aspectRatio: 16 / 9, borderRadius: 14, marginBottom: 16 },
   title: { fontSize: 22, fontWeight: '800', color: coachColors.textPrimary, marginBottom: 6 },
   subtitle: { fontSize: 15, color: coachColors.textSecondary, marginBottom: 6 },
-  date: { fontSize: 12, color: coachColors.textSecondary, marginBottom: 16, textTransform: 'capitalize' },
+  dateRow: { marginBottom: 16 },
+  dateLabel: { fontSize: 12, color: coachColors.primary, fontWeight: '600' },
+  date: { fontSize: 12, color: coachColors.textSecondary, textTransform: 'capitalize' },
   body: { fontSize: 15, color: coachColors.textPrimary, lineHeight: 22 },
   errorText: { color: coachColors.error, fontSize: 16, marginBottom: 20, textAlign: 'center' },
   retryButton: { backgroundColor: coachColors.primary, paddingVertical: 10, paddingHorizontal: 20, borderRadius: 8, alignItems: 'center' },
