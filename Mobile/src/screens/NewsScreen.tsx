@@ -1,12 +1,15 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { coachColors } from '../theme/colors';
+import ScreenHeader from '../shared/components/ScreenHeader';
 
 const NewsScreen = () => {
   return (
-    <View style={styles.container}>
-      <Text testID="news-title" style={styles.title}>Noticias</Text>
-      <Text testID="news-placeholder" style={styles.placeholder}>Próximamente...</Text>
+    <View testID="news-screen-container" style={styles.container}>
+      <ScreenHeader title="Noticias" showBack={false} />
+      <View style={styles.centeredContent}>
+        <Text testID="news-placeholder" style={styles.placeholder}>Próximamente...</Text>
+      </View>
     </View>
   );
 };
@@ -14,15 +17,14 @@ const NewsScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 16,
     backgroundColor: coachColors.background,
   },
-  title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    color: coachColors.textPrimary,
+  centeredContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   placeholder: {
     fontSize: 16,

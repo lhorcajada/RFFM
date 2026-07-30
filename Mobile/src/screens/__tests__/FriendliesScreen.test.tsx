@@ -54,9 +54,9 @@ describe('FriendliesScreen', () => {
     (mockApi.get as jest.Mock).mockResolvedValue({ data: [] });
     mockFetchSportEventTypeMap.mockResolvedValue({});
 
-    const { findByText } = await render(<FriendliesScreen />);
+    const { getByTestId } = await render(<FriendliesScreen />);
 
-    expect(await findByText('Amistosos')).toBeTruthy();
+    expect(getByTestId('screen-header-title').props.children).toBe('Amistosos');
   });
 
   it('filters friendly events only, excluding tournaments', async () => {

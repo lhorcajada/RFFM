@@ -13,7 +13,7 @@ import { api, API_BASE_URL } from '../api/client';
 import { getTeamPlayerSanctions, type SanctionRecord } from '../api/sanctions';
 import { coachColors } from '../theme/colors';
 import { resolvePhotoUrl } from '../utils/resolvePhotoUrl';
-import ScreenSectionHeader from '../shared/components/ScreenSectionHeader';
+import ScreenHeader from '../shared/components/ScreenHeader';
 
 interface Demarcation {
   id: number;
@@ -205,7 +205,7 @@ const SanctionsScreen = () => {
     );
   };
 
-  const renderHeader = () => <ScreenSectionHeader title="Sanciones" />;
+  const renderHeader = () => <ScreenHeader title="Sanciones" />;
 
   const renderTabs = () => (
     <View style={styles.tabContainer}>

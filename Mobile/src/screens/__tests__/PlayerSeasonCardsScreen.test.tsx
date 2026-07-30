@@ -11,6 +11,7 @@ jest.mock('../../api/client', () => ({
 const mockUseRoute = jest.fn();
 jest.mock('@react-navigation/native', () => ({
   useRoute: () => mockUseRoute(),
+  useNavigation: () => ({ goBack: jest.fn() }),
 }));
 
 const mockApi = api as jest.Mocked<typeof api>;
@@ -118,9 +119,9 @@ describe('PlayerSeasonCardsScreen', () => {
   it('shows the "Plantilla" section title', async () => {
     (mockApi.get as jest.Mock).mockResolvedValue({ data: [cardOne] });
 
-    const { findByText } = await render(<PlayerSeasonCardsScreen />);
+    const { getByTestId } = await render(<PlayerSeasonCardsScreen />);
 
-    expect(await findByText('Plantilla')).toBeTruthy();
+    expect(getByTestId('screen-header-title').props.children).toBe('Plantilla');
   });
 
   it('shows an empty-state message when there are no players', async () => {
@@ -239,7 +240,7 @@ describe('PlayerSeasonCardsScreen', () => {
 
     await waitFor(() => expect(mockApi.get).toHaveBeenCalled());
     fireEvent.press(await findByTestId('position-section-header-porteros'));
-    expect(queryByTestId(/button/)).toBeNull();
+    expect(queryByTestId(/^(?!screen-header).*button/)).toBeNull();
     expect(queryByText(/Guardar|Editar|Confirmar/)).toBeNull();
   });
 

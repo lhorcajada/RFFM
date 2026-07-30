@@ -2,7 +2,7 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import ScreenSectionHeader from '../shared/components/ScreenSectionHeader';
+import ScreenHeader from '../shared/components/ScreenHeader';
 import TabMenuCard from './components/TabMenuCard';
 import { coachColors } from '../theme/colors';
 
@@ -39,7 +39,7 @@ const CompetitionMenuScreen = () => {
 
   return (
     <View style={styles.container}>
-      <ScreenSectionHeader title="Competición" />
+      <ScreenHeader title="Competición" showBack={false} />
       <View style={styles.menuContainer}>
         {menuItems.map((item) => (
           <TabMenuCard

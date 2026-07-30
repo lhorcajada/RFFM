@@ -92,6 +92,8 @@ describe('EventDetailScreen', () => {
     const { getByTestId, findByTestId } = await render(<EventDetailScreen />);
 
     expect(getByTestId('loading-indicator')).toBeTruthy();
+    expect(getByTestId('screen-header-title').props.children).toBe('Detalles del evento');
+    expect(getByTestId('screen-header-back-button')).toBeTruthy();
 
     resolveRequest({ data: fullRoster });
 
@@ -107,6 +109,8 @@ describe('EventDetailScreen', () => {
 
     const errorMessage = await findByTestId('error-message');
     expect(errorMessage.props.children).toBe('Error del servidor');
+    expect((await findByTestId('screen-header-title')).props.children).toBe('Detalles del evento');
+    expect(await findByTestId('screen-header-back-button')).toBeTruthy();
 
     await fireEvent.press(await findByTestId('retry-button'));
 
@@ -121,6 +125,18 @@ describe('EventDetailScreen', () => {
 
     const emptyMessage = await findByTestId('empty-message');
     expect(emptyMessage.props.children).toBe('No hay información disponible');
+    expect((await findByTestId('screen-header-title')).props.children).toBe('Detalles del evento');
+    expect(await findByTestId('screen-header-back-button')).toBeTruthy();
+  });
+
+  it('shows the shared screen header with a back button when the roster loads successfully', async () => {
+    (mockApi.get as jest.Mock).mockResolvedValue({ data: fullRoster });
+
+    const { findByTestId } = await render(<EventDetailScreen />);
+
+    await findByTestId('group-header-Pending');
+    expect((await findByTestId('screen-header-title')).props.children).toBe('Detalles del evento');
+    expect(await findByTestId('screen-header-back-button')).toBeTruthy();
   });
 
   it('shows the three groups with the correct label and player count', async () => {

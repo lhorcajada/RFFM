@@ -13,7 +13,7 @@ import { api, API_BASE_URL } from '../api/client';
 import { getTeamPlayerInjuries, type InjuryRecord } from '../api/injuries';
 import { coachColors } from '../theme/colors';
 import { resolvePhotoUrl } from '../utils/resolvePhotoUrl';
-import ScreenSectionHeader from '../shared/components/ScreenSectionHeader';
+import ScreenHeader from '../shared/components/ScreenHeader';
 
 interface Demarcation {
   id: number;
@@ -171,7 +171,7 @@ const InjuriesScreen = () => {
     );
   };
 
-  const renderHeader = () => <ScreenSectionHeader title="Lesiones" />;
+  const renderHeader = () => <ScreenHeader title="Lesiones" />;
 
   if (loading) {
     return (

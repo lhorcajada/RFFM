@@ -6,7 +6,7 @@ import { coachColors } from '../theme/colors';
 import { fetchSportEventTypeMap, SportEventTypeMap } from '../api/sportEventTypes';
 import EventCard, { SportEvent } from './components/EventCard';
 import { isTournamentEventType } from '../utils/sportEventTypeMatchers';
-import ScreenSectionHeader from '../shared/components/ScreenSectionHeader';
+import ScreenHeader from '../shared/components/ScreenHeader';
 
 const TournamentsScreen = () => {
   const route = useRoute();
@@ -65,7 +65,7 @@ const TournamentsScreen = () => {
     .filter((e) => isTournamentEventType(eventTypeMap[e.eventTypeId ?? -1]))
     .sort((a, b) => new Date(a.eveDateTime).getTime() - new Date(b.eveDateTime).getTime());
 
-  const renderHeader = () => <ScreenSectionHeader title="Torneos" />;
+  const renderHeader = () => <ScreenHeader title="Torneos" />;
 
   if (loading) {
     return (

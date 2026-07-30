@@ -193,9 +193,11 @@ export const RootNavigator = () => {
               <Stack.Screen
                 name="EventDetail"
                 component={EventDetailScreen}
-                options={{
-                  title: 'Detalles del evento',
-                }}
+                options={({ route }) => ({
+                  headerTitle: () => (
+                    <AppHeaderTitle teamId={(route.params as { teamId?: string } | undefined)?.teamId} />
+                  ),
+                })}
               />
             </Stack.Group>
           </>

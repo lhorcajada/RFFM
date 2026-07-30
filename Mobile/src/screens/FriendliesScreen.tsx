@@ -6,7 +6,7 @@ import { coachColors } from '../theme/colors';
 import { fetchSportEventTypeMap, SportEventTypeMap } from '../api/sportEventTypes';
 import EventCard, { SportEvent } from './components/EventCard';
 import { isFriendlyEventType } from '../utils/sportEventTypeMatchers';
-import ScreenSectionHeader from '../shared/components/ScreenSectionHeader';
+import ScreenHeader from '../shared/components/ScreenHeader';
 
 const FriendliesScreen = () => {
   const route = useRoute();
@@ -65,7 +65,7 @@ const FriendliesScreen = () => {
     .filter((e) => isFriendlyEventType(eventTypeMap[e.eventTypeId ?? -1]))
     .sort((a, b) => new Date(a.eveDateTime).getTime() - new Date(b.eveDateTime).getTime());
 
-  const renderHeader = () => <ScreenSectionHeader title="Amistosos" />;
+  const renderHeader = () => <ScreenHeader title="Amistosos" />;
 
   if (loading) {
     return (

@@ -6,6 +6,7 @@ import * as injuriesApi from '../../api/injuries';
 
 jest.mock('@react-navigation/native', () => ({
   useRoute: jest.fn(() => ({ params: { teamId: 'team1' } })),
+  useNavigation: () => ({ goBack: jest.fn() }),
 }));
 
 jest.mock('../../api/client', () => ({
@@ -129,9 +130,9 @@ describe('InjuriesScreen', () => {
     (mockApi.get as jest.Mock).mockResolvedValue({ data: mockRosterData });
     (injuriesApi.getTeamPlayerInjuries as jest.Mock).mockResolvedValue([]);
 
-    const { findByText } = await render(<InjuriesScreen />);
+    const { getByTestId } = await render(<InjuriesScreen />);
 
-    expect(await findByText('Lesiones')).toBeTruthy();
+    expect(getByTestId('screen-header-title').props.children).toBe('Lesiones');
   });
 
   it('renders empty state when no injuries are found after successful roster load', async () => {

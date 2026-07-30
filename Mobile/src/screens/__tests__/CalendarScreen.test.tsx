@@ -86,9 +86,17 @@ describe('CalendarScreen', () => {
   it('shows the "Eventos" section title', async () => {
     mockEventTypesOnce([]);
 
-    const { findByText } = await render(<Wrapped />);
+    const { getByTestId } = await render(<Wrapped />);
 
-    expect(await findByText('Eventos')).toBeTruthy();
+    expect(getByTestId('screen-header-title').props.children).toBe('Eventos');
+  });
+
+  it('does not render a back button, since Eventos is a tab root screen', async () => {
+    mockEventTypesOnce([]);
+
+    const { queryByTestId } = await render(<Wrapped />);
+
+    expect(queryByTestId('screen-header-back-button')).toBeNull();
   });
 
   it('shows an empty-state message when there are no events', async () => {

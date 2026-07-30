@@ -11,7 +11,7 @@ import {
   Match,
 } from '../api/competitions';
 import { fetchTeamSummary } from '../api/team';
-import ScreenSectionHeader from '../shared/components/ScreenSectionHeader';
+import ScreenHeader from '../shared/components/ScreenHeader';
 
 function formatDate(raw: string): string {
   const date = new Date(raw);
@@ -63,7 +63,7 @@ const LeagueScreen = () => {
     }
   };
 
-  const renderHeader = () => <ScreenSectionHeader title="Liga" />;
+  const renderHeader = () => <ScreenHeader title="Liga" />;
 
   if (loading) {
     return (

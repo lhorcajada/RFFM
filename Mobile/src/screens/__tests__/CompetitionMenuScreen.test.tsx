@@ -8,14 +8,14 @@ jest.mock('@react-navigation/native', () => ({
   useRoute: jest.fn(),
 }));
 
-jest.mock('../../shared/components/ScreenSectionHeader', () => {
+jest.mock('../../shared/components/ScreenHeader', () => {
   const React = require('react');
   const { Text, View } = require('react-native');
-  return function MockScreenSectionHeader({ title }: any) {
+  return function MockScreenHeader({ title }: any) {
     return React.createElement(
       View,
-      { testID: 'screen-section-header' },
-      React.createElement(Text, { testID: 'screen-title' }, title),
+      { testID: 'screen-header' },
+      React.createElement(Text, { testID: 'screen-header-title' }, title),
     );
   };
 });
@@ -45,8 +45,8 @@ describe('CompetitionMenuScreen', () => {
 
     const { getByTestId } = await render(<CompetitionMenuScreen />);
 
-    expect(getByTestId('screen-title')).toBeTruthy();
-    expect(getByTestId('screen-title').props.children).toBe('Competición');
+    expect(getByTestId('screen-header-title')).toBeTruthy();
+    expect(getByTestId('screen-header-title').props.children).toBe('Competición');
   });
 
   it('renders 3 TabMenuCards with correct labels and icons', async () => {

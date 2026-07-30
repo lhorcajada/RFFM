@@ -14,6 +14,7 @@ import { useAuth } from '../auth/AuthContext';
 import { coachColors } from '../theme/colors';
 import { t } from '../i18n';
 import { resolvePhotoUrl } from '../utils/resolvePhotoUrl';
+import ScreenHeader from '../shared/components/ScreenHeader';
 
 interface AttendanceRosterRow {
   teamPlayerId: string;
@@ -115,10 +116,15 @@ const EventDetailScreen = () => {
     }
   };
 
+  const renderHeader = () => <ScreenHeader title="Detalles del evento" />;
+
   if (loading) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator testID="loading-indicator" size="large" color={coachColors.primary} />
+        {renderHeader()}
+        <View style={styles.centeredContent}>
+          <ActivityIndicator testID="loading-indicator" size="large" color={coachColors.primary} />
+        </View>
       </View>
     );
   }
@@ -126,10 +132,13 @@ const EventDetailScreen = () => {
   if (error) {
     return (
       <View style={styles.container}>
-        <Text testID="error-message" style={styles.errorText}>{error}</Text>
-        <Pressable testID="retry-button" style={styles.retryButton} onPress={fetchRoster}>
-          <Text style={styles.retryButtonText}>Reintentar</Text>
-        </Pressable>
+        {renderHeader()}
+        <View style={styles.centeredContent}>
+          <Text testID="error-message" style={styles.errorText}>{error}</Text>
+          <Pressable testID="retry-button" style={styles.retryButton} onPress={fetchRoster}>
+            <Text style={styles.retryButtonText}>Reintentar</Text>
+          </Pressable>
+        </View>
       </View>
     );
   }
@@ -137,13 +146,18 @@ const EventDetailScreen = () => {
   if (roster.length === 0) {
     return (
       <View style={styles.container}>
-        <Text testID="empty-message" style={styles.emptyText}>No hay información disponible</Text>
+        {renderHeader()}
+        <View style={styles.centeredContent}>
+          <Text testID="empty-message" style={styles.emptyText}>No hay información disponible</Text>
+        </View>
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+    <View style={styles.container}>
+      {renderHeader()}
+      <ScrollView contentContainerStyle={styles.contentContainer}>
       {GROUP_ORDER.map((status) => {
         const groupRows = roster
           .filter((row) => row.status === status)
@@ -240,17 +254,24 @@ const EventDetailScreen = () => {
           </View>
         );
       })}
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 16,
     backgroundColor: coachColors.background,
   },
+  centeredContent: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   contentContainer: {
-    paddingHorizontal: 20,
     paddingVertical: 20,
   },
   group: {

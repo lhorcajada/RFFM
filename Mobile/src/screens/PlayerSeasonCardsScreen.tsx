@@ -14,7 +14,7 @@ import { useRoute } from '@react-navigation/native';
 import { coachColors } from '../theme/colors';
 import { resolvePhotoUrl } from '../utils/resolvePhotoUrl';
 import { groupPlayersByPosition, PlayerPositionSection } from './hooks/groupPlayersByPosition';
-import ScreenSectionHeader from '../shared/components/ScreenSectionHeader';
+import ScreenHeader from '../shared/components/ScreenHeader';
 
 interface Demarcation {
   id: number;
@@ -189,7 +189,7 @@ const PlayerSeasonCardsScreen = () => {
     [sections, expandedSectionKey],
   );
 
-  const renderHeader = () => <ScreenSectionHeader title="Plantilla" />;
+  const renderHeader = () => <ScreenHeader title="Plantilla" />;
 
   if (loading) {
     return (

@@ -17,6 +17,7 @@ jest.mock('../../api/team', () => ({
 const mockUseRoute = jest.fn();
 jest.mock('@react-navigation/native', () => ({
   useRoute: () => mockUseRoute(),
+  useNavigation: () => ({ goBack: jest.fn() }),
 }));
 
 const mockFetchTeamClassification = fetchTeamClassification as jest.Mock;
@@ -106,9 +107,9 @@ describe('LeagueScreen', () => {
   it('shows the "Liga" section title', async () => {
     mockFullSuccess();
 
-    const { findByText } = await render(<LeagueScreen />);
+    const { getByTestId } = await render(<LeagueScreen />);
 
-    expect(await findByText('Liga')).toBeTruthy();
+    expect(getByTestId('screen-header-title').props.children).toBe('Liga');
   });
 
   it('fetches classification, calendar and next match for the team from route params on mount', async () => {

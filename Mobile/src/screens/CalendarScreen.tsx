@@ -8,7 +8,7 @@ import EventCard, { SportEvent } from './components/EventCard';
 import EventFiltersModal, { EventFiltersValue } from './components/EventFiltersModal';
 import { useEventFilters } from './hooks/useEventFilters';
 import { useToast } from '../shared/context/ToastContext';
-import ScreenSectionHeader from '../shared/components/ScreenSectionHeader';
+import ScreenHeader from '../shared/components/ScreenHeader';
 
 const CalendarScreen = () => {
   const route = useRoute();
@@ -104,11 +104,19 @@ const CalendarScreen = () => {
   );
 
   const renderHeader = () => (
-    <ScreenSectionHeader title="Eventos">
-      <Pressable testID="open-filters-button" style={styles.filterButton} onPress={() => setFiltersModalVisible(true)}>
-        <Text style={styles.filterButtonText}>Filtrar</Text>
-      </Pressable>
-    </ScreenSectionHeader>
+    <ScreenHeader
+      title="Eventos"
+      showBack={false}
+      actions={[
+        {
+          key: 'filter',
+          icon: 'options-outline',
+          label: 'Filtrar',
+          onPress: () => setFiltersModalVisible(true),
+          testID: 'open-filters-button',
+        },
+      ]}
+    />
   );
 
   if (loading) {
@@ -182,18 +190,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 16,
     backgroundColor: coachColors.background,
-  },
-  filterButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: coachColors.border,
-  },
-  filterButtonText: {
-    color: coachColors.textPrimary,
-    fontWeight: '600',
-    fontSize: 13,
   },
   errorText: {
     color: coachColors.error,

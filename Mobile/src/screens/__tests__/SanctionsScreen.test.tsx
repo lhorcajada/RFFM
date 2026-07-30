@@ -6,6 +6,7 @@ import * as sanctionsApi from '../../api/sanctions';
 
 jest.mock('@react-navigation/native', () => ({
   useRoute: jest.fn(() => ({ params: { teamId: 'team1' } })),
+  useNavigation: () => ({ goBack: jest.fn() }),
 }));
 
 jest.mock('../../api/client', () => ({
@@ -99,9 +100,9 @@ describe('SanctionsScreen', () => {
     (mockApi.get as jest.Mock).mockResolvedValue({ data: mockRosterData });
     (sanctionsApi.getTeamPlayerSanctions as jest.Mock).mockResolvedValue([]);
 
-    const { findByText } = await render(<SanctionsScreen />);
+    const { getByTestId } = await render(<SanctionsScreen />);
 
-    expect(await findByText('Sanciones')).toBeTruthy();
+    expect(getByTestId('screen-header-title').props.children).toBe('Sanciones');
   });
 
   it('renders segmented control with "En competición" and "Por normas internas" tabs', async () => {
