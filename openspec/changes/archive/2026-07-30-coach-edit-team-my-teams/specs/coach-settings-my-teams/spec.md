@@ -1,4 +1,4 @@
-## MODIFIED Requirements
+## ADDED Requirements
 
 ### Requirement: "Mis equipos" lists and manages the active season's teams
 In Coach Settings, "Mis equipos" (`TeamManager.tsx`) SHALL list the teams of the club's active
