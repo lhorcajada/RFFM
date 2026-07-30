@@ -20,6 +20,7 @@ namespace RFFM.Api.Domain.Entities.TeamPlayers
         public List<Family> FamilyMembers { get; set; } = new();
         public Demarcation? Demarcation { get; set; } = null!;
         public ICollection<TeamPlayerInjury> Injuries { get; private set; } = new List<TeamPlayerInjury>();
+        public ICollection<TeamPlayerSanction> Sanctions { get; private set; } = new List<TeamPlayerSanction>();
 
         public Team Team { get; set; } = null!;
         public Player Player { get; set; } = null!;
