@@ -13,6 +13,8 @@ import PlayerSeasonCardsScreen from '../screens/PlayerSeasonCardsScreen';
 import LeagueScreen from '../screens/LeagueScreen';
 import InjuriesScreen from '../screens/InjuriesScreen';
 import SanctionsScreen from '../screens/SanctionsScreen';
+import TeamMenuScreen from '../screens/TeamMenuScreen';
+import CompetitionMenuScreen from '../screens/CompetitionMenuScreen';
 import AppHeaderTitle from './AppHeaderTitle';
 import UserAvatarMenu from './UserAvatarMenu';
 import { useAuth } from '../auth/AuthContext';
@@ -20,6 +22,8 @@ import { coachColors } from '../theme/colors';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
+const TeamStack = createNativeStackNavigator();
+const CompetitionStack = createNativeStackNavigator();
 
 const rffmCoachNavTheme: Theme = {
   ...DarkTheme,
@@ -31,6 +35,60 @@ const rffmCoachNavTheme: Theme = {
     primary: coachColors.primary,
     border: coachColors.border,
   },
+};
+
+export const TeamTabStack = ({ route }: { route: { params?: { teamId?: string } } }) => {
+  const teamId = route.params?.teamId;
+
+  return (
+    <TeamStack.Navigator screenOptions={{ headerShown: false }}>
+      <TeamStack.Screen
+        name="TeamMenu"
+        component={TeamMenuScreen}
+        initialParams={{ teamId }}
+      />
+      <TeamStack.Screen
+        name="PlayersTab"
+        component={PlayerSeasonCardsScreen}
+        initialParams={{ teamId }}
+      />
+      <TeamStack.Screen
+        name="InjuriesTab"
+        component={InjuriesScreen}
+        initialParams={{ teamId }}
+      />
+      <TeamStack.Screen
+        name="SanctionsTab"
+        component={SanctionsScreen}
+        initialParams={{ teamId }}
+      />
+    </TeamStack.Navigator>
+  );
+};
+
+export const CompetitionTabStack = ({ route }: { route: { params?: { teamId?: string; teamPlayerId?: string } } }) => {
+  const teamId = route.params?.teamId;
+  const teamPlayerId = route.params?.teamPlayerId;
+
+  return (
+    <CompetitionStack.Navigator screenOptions={{ headerShown: false }}>
+      <CompetitionStack.Screen
+        name="CompetitionMenu"
+        component={CompetitionMenuScreen}
+        initialParams={{ teamId, teamPlayerId }}
+      />
+      <CompetitionStack.Screen
+        name="LeagueTab"
+        component={LeagueScreen}
+        initialParams={{ teamId }}
+      />
+      <CompetitionStack.Screen
+        name="FriendliesTab"
+        component={FriendliesScreen}
+        initialParams={{ teamId, teamPlayerId }}
+      />
+    </CompetitionStack.Navigator>
+  );
 };
 
 export const CalendarTabs = ({ route }: { route: { params?: { teamId?: string; teamPlayerId?: string } } }) => {
@@ -61,48 +119,21 @@ export const CalendarTabs = ({ route }: { route: { params?: { teamId?: string; t
         }}
       />
       <Tab.Screen
-        name="LeagueTab"
-        component={LeagueScreen}
+        name="TeamTab"
+        component={TeamTabStack}
         initialParams={{ teamId }}
         options={{
-          tabBarLabel: 'Liga',
-          tabBarIcon: ({ color, size }) => <Ionicons name="trophy-outline" size={size} color={color} />,
+          tabBarLabel: 'Equipo',
+          tabBarIcon: ({ color, size }) => <Ionicons name="people-outline" size={size} color={color} />,
         }}
       />
       <Tab.Screen
-        name="FriendliesTab"
-        component={FriendliesScreen}
+        name="CompetitionTab"
+        component={CompetitionTabStack}
         initialParams={{ teamId, teamPlayerId }}
         options={{
-          tabBarLabel: 'Amistosos',
-          tabBarIcon: ({ color, size }) => <Ionicons name="football-outline" size={size} color={color} />,
-        }}
-      />
-      <Tab.Screen
-        name="PlayersTab"
-        component={PlayerSeasonCardsScreen}
-        initialParams={{ teamId }}
-        options={{
-          tabBarLabel: 'Plantilla',
-          tabBarIcon: ({ color, size }) => <Ionicons name="shirt-outline" size={size} color={color} />,
-        }}
-      />
-      <Tab.Screen
-        name="InjuriesTab"
-        component={InjuriesScreen}
-        initialParams={{ teamId }}
-        options={{
-          tabBarLabel: 'Lesiones',
-          tabBarIcon: ({ color, size }) => <Ionicons name="medkit-outline" size={size} color={color} />,
-        }}
-      />
-      <Tab.Screen
-        name="SanctionsTab"
-        component={SanctionsScreen}
-        initialParams={{ teamId }}
-        options={{
-          tabBarLabel: 'Sanciones',
-          tabBarIcon: ({ color, size }) => <Ionicons name="warning-outline" size={size} color={color} />,
+          tabBarLabel: 'Competición',
+          tabBarIcon: ({ color, size }) => <Ionicons name="podium-outline" size={size} color={color} />,
         }}
       />
     </Tab.Navigator>

@@ -1,6 +1,5 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
-import { CalendarTabs } from '../RootNavigator';
 
 jest.mock('../../screens/CalendarScreen', () => 'CalendarScreen');
 jest.mock('../../screens/NewsScreen', () => 'NewsScreen');
@@ -9,6 +8,11 @@ jest.mock('../../screens/LeagueScreen', () => 'LeagueScreen');
 jest.mock('../../screens/FriendliesScreen', () => 'FriendliesScreen');
 jest.mock('../../screens/InjuriesScreen', () => 'InjuriesScreen');
 jest.mock('../../screens/SanctionsScreen', () => 'SanctionsScreen');
+jest.mock('../../screens/TeamMenuScreen', () => 'TeamMenuScreen');
+jest.mock('../../screens/CompetitionMenuScreen', () => 'CompetitionMenuScreen');
+jest.mock('@react-native-community/datetimepicker', () => 'DateTimePicker');
+
+import { CalendarTabs, TeamTabStack, CompetitionTabStack } from '../RootNavigator';
 
 jest.mock('@react-navigation/bottom-tabs', () => {
   const ReactActual = require('react');
@@ -16,13 +20,16 @@ jest.mock('@react-navigation/bottom-tabs', () => {
   return {
     createBottomTabNavigator: () => ({
       Navigator: ({ children }: any) => ReactActual.createElement(View, { testID: 'tab-navigator' }, children),
-      Screen: ({ name, options }: any) => {
+      Screen: ({ name, component, options }: any) => {
         const icon = options?.tabBarIcon?.({ color: '#fff', size: 24 });
+        // Render the component even if it's a navigator
+        const Screen = component;
         return ReactActual.createElement(
           View,
           { testID: `tab-screen-${name}` },
           ReactActual.createElement(Text, { testID: `tab-label-${name}` }, options?.tabBarLabel ?? name),
           ReactActual.createElement(Text, { testID: `tab-icon-${name}` }, icon?.props?.name ?? ''),
+          ReactActual.createElement(View, { testID: `tab-component-${name}` }),
         );
       },
     }),
@@ -30,58 +37,69 @@ jest.mock('@react-navigation/bottom-tabs', () => {
 });
 
 describe('CalendarTabs', () => {
-  it('registers a "Plantilla" PlayersTab alongside CalendarTab and NewsTab', async () => {
+  it('registers NewsTab and CalendarTab', async () => {
     const { getByTestId } = await render(
       <CalendarTabs route={{ params: { teamId: 'team1' } }} />,
     );
-
-    expect(getByTestId('tab-screen-CalendarTab')).toBeTruthy();
-    expect(getByTestId('tab-label-CalendarTab').props.children).toBe('Eventos');
 
     expect(getByTestId('tab-screen-NewsTab')).toBeTruthy();
     expect(getByTestId('tab-label-NewsTab').props.children).toBe('Noticias');
 
-    expect(getByTestId('tab-screen-PlayersTab')).toBeTruthy();
-    expect(getByTestId('tab-label-PlayersTab').props.children).toBe('Plantilla');
-
-    expect(getByTestId('tab-screen-LeagueTab')).toBeTruthy();
-    expect(getByTestId('tab-label-LeagueTab').props.children).toBe('Liga');
+    expect(getByTestId('tab-screen-CalendarTab')).toBeTruthy();
+    expect(getByTestId('tab-label-CalendarTab').props.children).toBe('Eventos');
   });
 
-  it('uses a shirt icon for the PlayersTab', async () => {
+  it('uses a newspaper icon for the NewsTab', async () => {
     const { getByTestId } = await render(
       <CalendarTabs route={{ params: { teamId: 'team1' } }} />,
     );
 
-    expect(getByTestId('tab-icon-PlayersTab').props.children).toBe('shirt-outline');
+    expect(getByTestId('tab-icon-NewsTab').props.children).toBe('newspaper-outline');
   });
 
-  it('uses a trophy icon for the LeagueTab', async () => {
+  it('uses a calendar icon for the CalendarTab', async () => {
     const { getByTestId } = await render(
       <CalendarTabs route={{ params: { teamId: 'team1' } }} />,
     );
 
-    expect(getByTestId('tab-icon-LeagueTab').props.children).toBe('trophy-outline');
+    expect(getByTestId('tab-icon-CalendarTab').props.children).toBe('calendar-outline');
   });
 
-  it('registers a FriendliesTab with label "Amistosos"', async () => {
+  it('registers a TeamTab with label "Equipo"', async () => {
     const { getByTestId } = await render(
       <CalendarTabs route={{ params: { teamId: 'team1' } }} />,
     );
 
-    expect(getByTestId('tab-screen-FriendliesTab')).toBeTruthy();
-    expect(getByTestId('tab-label-FriendliesTab').props.children).toBe('Amistosos');
+    expect(getByTestId('tab-screen-TeamTab')).toBeTruthy();
+    expect(getByTestId('tab-label-TeamTab').props.children).toBe('Equipo');
   });
 
-  it('uses a football icon for the FriendliesTab', async () => {
+  it('uses a people icon for the TeamTab', async () => {
     const { getByTestId } = await render(
       <CalendarTabs route={{ params: { teamId: 'team1' } }} />,
     );
 
-    expect(getByTestId('tab-icon-FriendliesTab').props.children).toBe('football-outline');
+    expect(getByTestId('tab-icon-TeamTab').props.children).toBe('people-outline');
   });
 
-  it('registers tabs in order: NewsTab, CalendarTab, LeagueTab, FriendliesTab, PlayersTab, InjuriesTab, SanctionsTab', async () => {
+  it('registers a CompetitionTab with label "Competición"', async () => {
+    const { getByTestId } = await render(
+      <CalendarTabs route={{ params: { teamId: 'team1' } }} />,
+    );
+
+    expect(getByTestId('tab-screen-CompetitionTab')).toBeTruthy();
+    expect(getByTestId('tab-label-CompetitionTab').props.children).toBe('Competición');
+  });
+
+  it('uses a podium icon for the CompetitionTab', async () => {
+    const { getByTestId } = await render(
+      <CalendarTabs route={{ params: { teamId: 'team1' } }} />,
+    );
+
+    expect(getByTestId('tab-icon-CompetitionTab').props.children).toBe('podium-outline');
+  });
+
+  it('registers tabs in order: NewsTab, CalendarTab, TeamTab, CompetitionTab', async () => {
     const { getAllByTestId } = await render(
       <CalendarTabs route={{ params: { teamId: 'team1' } }} />,
     );
@@ -89,40 +107,6 @@ describe('CalendarTabs', () => {
     const allTabs = getAllByTestId(/^tab-screen-/);
     const tabNames = allTabs.map((tab) => tab.props.testID.replace('tab-screen-', ''));
 
-    expect(tabNames).toEqual(['NewsTab', 'CalendarTab', 'LeagueTab', 'FriendliesTab', 'PlayersTab', 'InjuriesTab', 'SanctionsTab']);
-  });
-
-  it('registers an InjuriesTab with label "Lesiones"', async () => {
-    const { getByTestId } = await render(
-      <CalendarTabs route={{ params: { teamId: 'team1' } }} />,
-    );
-
-    expect(getByTestId('tab-screen-InjuriesTab')).toBeTruthy();
-    expect(getByTestId('tab-label-InjuriesTab').props.children).toBe('Lesiones');
-  });
-
-  it('uses a medkit icon for the InjuriesTab', async () => {
-    const { getByTestId } = await render(
-      <CalendarTabs route={{ params: { teamId: 'team1' } }} />,
-    );
-
-    expect(getByTestId('tab-icon-InjuriesTab').props.children).toBe('medkit-outline');
-  });
-
-  it('registers a SanctionsTab with label "Sanciones"', async () => {
-    const { getByTestId } = await render(
-      <CalendarTabs route={{ params: { teamId: 'team1' } }} />,
-    );
-
-    expect(getByTestId('tab-screen-SanctionsTab')).toBeTruthy();
-    expect(getByTestId('tab-label-SanctionsTab').props.children).toBe('Sanciones');
-  });
-
-  it('uses a warning icon for the SanctionsTab', async () => {
-    const { getByTestId } = await render(
-      <CalendarTabs route={{ params: { teamId: 'team1' } }} />,
-    );
-
-    expect(getByTestId('tab-icon-SanctionsTab').props.children).toBe('warning-outline');
+    expect(tabNames).toEqual(['NewsTab', 'CalendarTab', 'TeamTab', 'CompetitionTab']);
   });
 });
