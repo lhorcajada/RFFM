@@ -15,6 +15,7 @@ using RFFM.Api.Domain.Entities.Seasons;
 using RFFM.Api.Domain.Entities.Formations;
 using RFFM.Api.Domain.Entities.TeamPlayers;
 using RFFM.Api.Domain.Entities.SeasonAccess;
+using RFFM.Api.Domain.Entities.News;
 using SmartEnum.EFCore;
 
 namespace RFFM.Api.Infrastructure.Persistence
@@ -115,6 +116,9 @@ namespace RFFM.Api.Infrastructure.Persistence
         public DbSet<SubPrinciple> SubPrinciples { get; set; }
         public DbSet<SubSubPrinciple> SubSubPrinciples { get; set; }
         public DbSet<EssentialSkill> EssentialSkills { get; set; }
+
+        // News
+        public DbSet<NewsItem> News { get; set; }
 
         public AppDbContext(DbContextOptions<AppDbContext> options)
             : base(options)

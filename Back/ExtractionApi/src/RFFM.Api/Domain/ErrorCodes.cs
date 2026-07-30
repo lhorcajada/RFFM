@@ -82,5 +82,9 @@ namespace RFFM.Api.Domain
 
         // Clubs (Features/Coaches/Clubs/Commands/CreateClub.cs)
         public const string ClubQuotaExceeded = "club_quota_exceeded";
+
+        // News (Features/Coaches/News)
+        public const string NewsNotFound = "NewsNotFound";
+        public const string NewsAlreadyPublished = "NewsAlreadyPublished";
     }
 }

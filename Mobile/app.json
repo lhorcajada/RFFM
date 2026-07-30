@@ -20,6 +20,14 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "RFFM Coach necesita acceso a tus fotos para elegir la portada de una noticia."
+        }
+      ]
+    ]
   }
 }

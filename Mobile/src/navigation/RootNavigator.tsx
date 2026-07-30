@@ -10,6 +10,8 @@ import FriendliesScreen from '../screens/FriendliesScreen';
 import TournamentsScreen from '../screens/TournamentsScreen';
 import EventDetailScreen from '../screens/EventDetailScreen';
 import NewsScreen from '../screens/NewsScreen';
+import NewsDetailScreen from '../screens/NewsDetailScreen';
+import NewsFormScreen from '../screens/NewsFormScreen';
 import PlayerSeasonCardsScreen from '../screens/PlayerSeasonCardsScreen';
 import LeagueScreen from '../screens/LeagueScreen';
 import InjuriesScreen from '../screens/InjuriesScreen';
@@ -26,6 +28,7 @@ const Tab = createBottomTabNavigator();
 const TeamStack = createNativeStackNavigator();
 const CompetitionStack = createNativeStackNavigator();
 const CalendarStack = createNativeStackNavigator();
+const NewsStack = createNativeStackNavigator();
 
 const eventDetailScreenOptions = ({ route }: { route: { params?: { teamId?: string } } }) => ({
   headerShown: true,
@@ -132,6 +135,14 @@ export const CalendarTabStack = ({ route }: { route: { params?: { teamId?: strin
   );
 };
 
+export const NewsTabStack = () => (
+  <NewsStack.Navigator screenOptions={{ headerShown: false }}>
+    <NewsStack.Screen name="NewsList" component={NewsScreen} />
+    <NewsStack.Screen name="NewsDetail" component={NewsDetailScreen} />
+    <NewsStack.Screen name="NewsForm" component={NewsFormScreen} options={{ headerShown: false }} />
+  </NewsStack.Navigator>
+);
+
 export const CalendarTabs = ({ route }: { route: { params?: { teamId?: string; teamPlayerId?: string } } }) => {
   const teamId = route.params?.teamId;
   const teamPlayerId = route.params?.teamPlayerId;
@@ -144,7 +155,7 @@ export const CalendarTabs = ({ route }: { route: { params?: { teamId?: string; t
     >
       <Tab.Screen
         name="NewsTab"
-        component={NewsScreen}
+        component={NewsTabStack}
         options={{
           tabBarLabel: 'Noticias',
           tabBarIcon: ({ color, size }) => <Ionicons name="newspaper-outline" size={size} color={color} />,

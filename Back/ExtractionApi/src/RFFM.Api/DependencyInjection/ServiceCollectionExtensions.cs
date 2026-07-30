@@ -50,6 +50,13 @@ namespace RFFM.Api.DependencyInjection
             services.AddScoped<IInvitationService, InvitationService>();
             services.AddScoped<ICurrentUserService, CurrentUserService>();
 
+            // FluentValidation validators for the News feature (explicit registration — no
+            // assembly-wide validator scan exists in this project; ValidationBehavior resolves
+            // IEnumerable<IValidator<TRequest>> from DI, so each validator must be registered).
+            services.AddScoped<FluentValidation.IValidator<RFFM.Api.Features.Coaches.News.CreateNewsCommand>, RFFM.Api.Features.Coaches.News.CreateNewsValidator>();
+            services.AddScoped<FluentValidation.IValidator<RFFM.Api.Features.Coaches.News.UpdateNewsCommand>, RFFM.Api.Features.Coaches.News.UpdateNewsValidator>();
+            services.AddScoped<FluentValidation.IValidator<RFFM.Api.Features.Coaches.News.UploadNewsImageCommand>, RFFM.Api.Features.Coaches.News.UploadNewsImageValidator>();
+
             // Email template service requires a template path; allow configuration override
             var templatePath = Path.Combine(Directory.GetParent(Directory.GetCurrentDirectory()).FullName,
                 "RFFM.Api", "Infrastructure", "Services", "Email", "Templates");
@@ -182,6 +189,22 @@ namespace RFFM.Api.DependencyInjection
                     {
                         Title = "Acceso denegado",
                         Detail = exception.Message
+                    });
+
+                setup.Map<RFFM.Api.Domain.NotFoundException>(exception =>
+                    new StatusCodeProblemDetails(StatusCodes.Status404NotFound)
+                    {
+                        Title = "No encontrado",
+                        Detail = exception.Message,
+                        Extensions = { ["code"] = exception.Code }
+                    });
+
+                setup.Map<RFFM.Api.Domain.ConflictException>(exception =>
+                    new StatusCodeProblemDetails(StatusCodes.Status409Conflict)
+                    {
+                        Title = "Conflicto",
+                        Detail = exception.Message,
+                        Extensions = { ["code"] = exception.Code }
                     });
 
                 setup.Map<SecurityTokenException>(exception =>
