@@ -115,6 +115,14 @@ describe('PlayerSeasonCardsScreen', () => {
     expect(errorMessage.props.children).toBe('Error al cargar las estadísticas');
   });
 
+  it('shows the "Plantilla" section title', async () => {
+    (mockApi.get as jest.Mock).mockResolvedValue({ data: [cardOne] });
+
+    const { findByText } = await render(<PlayerSeasonCardsScreen />);
+
+    expect(await findByText('Plantilla')).toBeTruthy();
+  });
+
   it('shows an empty-state message when there are no players', async () => {
     (mockApi.get as jest.Mock).mockResolvedValue({ data: [] });
 

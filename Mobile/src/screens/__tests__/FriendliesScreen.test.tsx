@@ -50,6 +50,15 @@ describe('FriendliesScreen', () => {
     await findByTestId('empty-message');
   });
 
+  it('shows the "Amistosos y torneos" section title', async () => {
+    (mockApi.get as jest.Mock).mockResolvedValue({ data: [] });
+    mockFetchSportEventTypeMap.mockResolvedValue({});
+
+    const { findByText } = await render(<FriendliesScreen />);
+
+    expect(await findByText('Amistosos y torneos')).toBeTruthy();
+  });
+
   it('filters and sorts friendly/tournament events correctly', async () => {
     (mockApi.get as jest.Mock).mockResolvedValue({
       data: [

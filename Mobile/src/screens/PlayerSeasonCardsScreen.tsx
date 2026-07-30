@@ -14,6 +14,7 @@ import { useRoute } from '@react-navigation/native';
 import { coachColors } from '../theme/colors';
 import { resolvePhotoUrl } from '../utils/resolvePhotoUrl';
 import { groupPlayersByPosition, PlayerPositionSection } from './hooks/groupPlayersByPosition';
+import ScreenSectionHeader from '../shared/components/ScreenSectionHeader';
 
 interface Demarcation {
   id: number;
@@ -188,36 +189,48 @@ const PlayerSeasonCardsScreen = () => {
     [sections, expandedSectionKey],
   );
 
+  const renderHeader = () => <ScreenSectionHeader title="Plantilla" />;
+
   if (loading) {
     return (
-      <View style={styles.container}>
-        <ActivityIndicator testID="loading-indicator" size="large" color={coachColors.primary} />
+      <View style={styles.listContainer}>
+        {renderHeader()}
+        <View style={styles.centeredContent}>
+          <ActivityIndicator testID="loading-indicator" size="large" color={coachColors.primary} />
+        </View>
       </View>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.container}>
-        <Text testID="error-message" style={styles.errorText}>{error}</Text>
-        <Pressable testID="retry-button" style={styles.retryButton} onPress={fetchCards}>
-          <Text style={styles.retryButtonText}>Reintentar</Text>
-        </Pressable>
+      <View style={styles.listContainer}>
+        {renderHeader()}
+        <View style={styles.centeredContent}>
+          <Text testID="error-message" style={styles.errorText}>{error}</Text>
+          <Pressable testID="retry-button" style={styles.retryButton} onPress={fetchCards}>
+            <Text style={styles.retryButtonText}>Reintentar</Text>
+          </Pressable>
+        </View>
       </View>
     );
   }
 
   if (cards.length === 0) {
     return (
-      <View style={styles.container}>
-        <Text testID="empty-message" style={styles.emptyText}>No hay información disponible</Text>
+      <View style={styles.listContainer}>
+        {renderHeader()}
+        <View style={styles.centeredContent}>
+          <Text testID="empty-message" style={styles.emptyText}>No hay información disponible</Text>
+        </View>
       </View>
     );
   }
 
   return (
-    <SectionList
-      style={styles.container}
+    <View style={styles.listContainer}>
+      {renderHeader()}
+      <SectionList
       contentContainerStyle={styles.contentContainer}
       sections={visibleSections}
       keyExtractor={(card) => card.teamPlayerId}
@@ -244,18 +257,25 @@ const PlayerSeasonCardsScreen = () => {
         );
       }}
       renderItem={({ item }) => renderPlayerCard(item)}
-    />
+      />
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  listContainer: {
     flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 16,
     backgroundColor: coachColors.background,
   },
+  centeredContent: {
+    flex: 1,
+    justifyContent: 'center',
+  },
   contentContainer: {
-    paddingHorizontal: 20,
-    paddingVertical: 20,
+    paddingTop: 4,
+    paddingBottom: 20,
   },
   sectionHeader: {
     flexDirection: 'row',

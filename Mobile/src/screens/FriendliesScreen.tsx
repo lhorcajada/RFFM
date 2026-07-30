@@ -6,6 +6,7 @@ import { coachColors } from '../theme/colors';
 import { fetchSportEventTypeMap, SportEventTypeMap } from '../api/sportEventTypes';
 import EventCard, { SportEvent } from './components/EventCard';
 import { isFriendlyOrTournamentEventType } from '../utils/sportEventTypeMatchers';
+import ScreenSectionHeader from '../shared/components/ScreenSectionHeader';
 
 const FriendliesScreen = () => {
   const route = useRoute();
@@ -64,9 +65,7 @@ const FriendliesScreen = () => {
     .filter((e) => isFriendlyOrTournamentEventType(eventTypeMap[e.eventTypeId ?? -1]))
     .sort((a, b) => new Date(a.eveDateTime).getTime() - new Date(b.eveDateTime).getTime());
 
-  const renderHeader = () => (
-    <Text style={styles.sectionTitle}>Amistosos y torneos</Text>
-  );
+  const renderHeader = () => <ScreenSectionHeader title="Amistosos y torneos" />;
 
   if (loading) {
     return (
@@ -135,12 +134,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 16,
     backgroundColor: coachColors.background,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: coachColors.textPrimary,
-    marginBottom: 12,
   },
   errorText: {
     color: coachColors.error,

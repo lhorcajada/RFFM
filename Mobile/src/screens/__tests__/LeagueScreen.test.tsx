@@ -103,6 +103,14 @@ describe('LeagueScreen', () => {
     await waitFor(() => expect(mockFetchTeamClassification).toHaveBeenCalled());
   });
 
+  it('shows the "Liga" section title', async () => {
+    mockFullSuccess();
+
+    const { findByText } = await render(<LeagueScreen />);
+
+    expect(await findByText('Liga')).toBeTruthy();
+  });
+
   it('fetches classification, calendar and next match for the team from route params on mount', async () => {
     mockFullSuccess();
 

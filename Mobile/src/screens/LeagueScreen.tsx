@@ -11,6 +11,7 @@ import {
   Match,
 } from '../api/competitions';
 import { fetchTeamSummary } from '../api/team';
+import ScreenSectionHeader from '../shared/components/ScreenSectionHeader';
 
 function formatDate(raw: string): string {
   const date = new Date(raw);
@@ -62,21 +63,29 @@ const LeagueScreen = () => {
     }
   };
 
+  const renderHeader = () => <ScreenSectionHeader title="Liga" />;
+
   if (loading) {
     return (
-      <View style={styles.centeredContainer}>
-        <ActivityIndicator testID="loading-indicator" size="large" color={coachColors.primary} />
+      <View style={styles.screenContainer}>
+        {renderHeader()}
+        <View style={styles.centeredContent}>
+          <ActivityIndicator testID="loading-indicator" size="large" color={coachColors.primary} />
+        </View>
       </View>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.centeredContainer}>
-        <Text testID="error-message" style={styles.errorText}>{error}</Text>
-        <Pressable testID="retry-button" style={styles.retryButton} onPress={fetchLeagueData}>
-          <Text style={styles.retryButtonText}>Reintentar</Text>
-        </Pressable>
+      <View style={styles.screenContainer}>
+        {renderHeader()}
+        <View style={styles.centeredContent}>
+          <Text testID="error-message" style={styles.errorText}>{error}</Text>
+          <Pressable testID="retry-button" style={styles.retryButton} onPress={fetchLeagueData}>
+            <Text style={styles.retryButtonText}>Reintentar</Text>
+          </Pressable>
+        </View>
       </View>
     );
   }
@@ -85,10 +94,13 @@ const LeagueScreen = () => {
 
   if (noCompetition) {
     return (
-      <View style={styles.centeredContainer}>
-        <Text testID="no-competition-message" style={styles.emptyText}>
-          Este equipo todavía no tiene una competición asociada
-        </Text>
+      <View style={styles.screenContainer}>
+        {renderHeader()}
+        <View style={styles.centeredContent}>
+          <Text testID="no-competition-message" style={styles.emptyText}>
+            Este equipo todavía no tiene una competición asociada
+          </Text>
+        </View>
       </View>
     );
   }
@@ -101,7 +113,9 @@ const LeagueScreen = () => {
     : null;
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+    <View style={styles.screenContainer}>
+      {renderHeader()}
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.contentContainer}>
       {nextMatch && (
         <View testID="next-match-card" style={styles.card}>
           <Text style={styles.sectionTitle}>Próximo partido</Text>
@@ -188,26 +202,30 @@ const LeagueScreen = () => {
           </View>
         ))}
       </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  screenContainer: {
     flex: 1,
     backgroundColor: coachColors.background,
-  },
-  contentContainer: {
     paddingHorizontal: 20,
-    paddingVertical: 20,
-    gap: 16,
+    paddingTop: 16,
   },
-  centeredContainer: {
+  scrollView: {
+    flex: 1,
+  },
+  centeredContent: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 20,
-    backgroundColor: coachColors.background,
+  },
+  contentContainer: {
+    paddingVertical: 4,
+    paddingBottom: 20,
+    gap: 16,
   },
   card: {
     borderRadius: 14,
