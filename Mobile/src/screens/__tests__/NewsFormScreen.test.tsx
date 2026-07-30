@@ -7,6 +7,15 @@ import * as ImagePicker from 'expo-image-picker';
 jest.mock('../../api/news');
 jest.mock('expo-image-picker');
 
+jest.mock('@react-native-community/datetimepicker', () => {
+  const ReactActual = require('react');
+  const { View } = require('react-native');
+  return {
+    __esModule: true,
+    default: (props: any) => ReactActual.createElement(View, { testID: 'mock-date-time-picker', ...props }),
+  };
+});
+
 const mockReplace = jest.fn();
 let mockRouteParams = { mode: 'create' as const };
 
@@ -28,6 +37,7 @@ const newsDetail = {
   coverImageUrl: 'https://example.com/existing.jpg',
   status: 'Draft' as const,
   publishedAt: null,
+  newsDate: '2026-08-15',
   createdAt: '2026-01-01T00:00:00Z',
   updatedAt: '2026-01-01T00:00:00Z',
 };
@@ -69,18 +79,20 @@ describe('NewsFormScreen', () => {
     mockRouteParams = { mode: 'edit', newsId: 'news1' };
     mockGetNewsById.mockResolvedValue(newsDetail);
 
-    const { getByTestId, queryByTestId } = await render(<NewsFormScreen />);
+    const { getByTestId, queryByTestId, getByText } = await render(<NewsFormScreen />);
 
     await waitFor(() => {
       const titleInput = getByTestId('title-input') as any;
       expect(titleInput.props.value).toBe('Existing Title');
     });
 
+    expect(getByText('15 de agosto de 2026')).toBeTruthy();
+
     expect(mockGetNewsById).toHaveBeenCalledWith('news1');
     expect(queryByTestId('save-button')).toBeTruthy();
   });
 
-  it('edit mode calls updateNews without status key', async () => {
+  it('edit mode calls updateNews without status key, including the (possibly edited) news date', async () => {
     mockRouteParams = { mode: 'edit', newsId: 'news1' };
     mockGetNewsById.mockResolvedValue(newsDetail);
     mockUpdateNews.mockResolvedValue(undefined);
@@ -92,6 +104,9 @@ describe('NewsFormScreen', () => {
       expect(titleInput.props.value).toBe('Existing Title');
     });
 
+    await fireEvent.press(getByTestId('news-date-input'));
+    await fireEvent(getByTestId('mock-date-time-picker'), 'change', {}, new Date(2026, 8, 20));
+
     const saveButton = getByTestId('save-button');
     await fireEvent.press(saveButton);
 
@@ -99,7 +114,60 @@ describe('NewsFormScreen', () => {
       expect(mockUpdateNews).toHaveBeenCalled();
       const callArgs = mockUpdateNews.mock.calls[0][1];
       expect(callArgs).not.toHaveProperty('status');
+      expect(callArgs.newsDate).toBe('2026-09-20');
     });
+  });
+
+  it('defaults the news date field to today in create mode', async () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const expectedLabel = new Date(year, now.getMonth(), now.getDate())
+      .toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
+    const capitalizedExpectedLabel = expectedLabel.charAt(0).toUpperCase() + expectedLabel.slice(1);
+
+    const { getByText } = await render(<NewsFormScreen />);
+
+    await waitFor(() => {
+      expect(getByText(capitalizedExpectedLabel)).toBeTruthy();
+    });
+  });
+
+  it('computes "today" from local date components, never from toISOString (UTC)', async () => {
+    // Local time is 2026-08-15T00:30:00 in a timezone ahead of UTC (e.g. Spain, UTC+1),
+    // so the equivalent UTC instant is still 2026-08-14T23:30:00Z. toISOString() would
+    // therefore incorrectly resolve "today" to Aug 14; local date components must not.
+    jest.useFakeTimers().setSystemTime(new Date(2026, 7, 15, 0, 30, 0));
+
+    try {
+      const { getByText } = await render(<NewsFormScreen />);
+
+      await waitFor(() => {
+        expect(getByText('15 de agosto de 2026')).toBeTruthy();
+      });
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('blocks submission when the loaded news has no date (defensive, edit mode)', async () => {
+    mockRouteParams = { mode: 'edit', newsId: 'news1' };
+    mockGetNewsById.mockResolvedValue({ ...newsDetail, newsDate: '' });
+    mockUpdateNews.mockResolvedValue(undefined);
+
+    const { getByTestId, findByTestId } = await render(<NewsFormScreen />);
+
+    await waitFor(() => {
+      const titleInput = getByTestId('title-input') as any;
+      expect(titleInput.props.value).toBe('Existing Title');
+    });
+
+    await fireEvent.press(getByTestId('save-button'));
+
+    const error = await findByTestId('error-message');
+    expect(error.props.children).toContain('fecha de la noticia');
+    expect(mockUpdateNews).not.toHaveBeenCalled();
   });
 
   it('uploads the picked photo and submits the remote URL, not the local uri', async () => {

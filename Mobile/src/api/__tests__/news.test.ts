@@ -48,6 +48,7 @@ describe('getNews', () => {
         coverImageUrl: 'url1',
         status: 'Published',
         publishedAt: '2026-01-01T00:00:00Z',
+        newsDate: '2026-01-05',
       },
     ];
     mockApi.get.mockResolvedValue({
@@ -106,6 +107,7 @@ describe('getNewsDrafts', () => {
         coverImageUrl: 'url',
         status: 'Draft',
         publishedAt: null,
+        newsDate: '2026-02-10',
       },
     ];
     mockApi.get.mockResolvedValue({
@@ -139,6 +141,7 @@ describe('getNewsById', () => {
       coverImageUrl: 'url',
       status: 'Published',
       publishedAt: '2026-01-01T00:00:00Z',
+      newsDate: '2026-01-05',
       createdAt: '2026-01-01T00:00:00Z',
       updatedAt: '2026-01-01T00:00:00Z',
     };
@@ -158,6 +161,7 @@ describe('getNewsById', () => {
       coverImageUrl: 'url',
       status: 'Published',
       publishedAt: '2026-01-01T00:00:00Z',
+      newsDate: '2026-01-05',
       createdAt: '2026-01-01T00:00:00Z',
       updatedAt: '2026-01-01T00:00:00Z',
     };
@@ -227,6 +231,7 @@ describe('createNews', () => {
       body: 'Body',
       coverImageUrl: 'url',
       status: 'Draft' as const,
+      newsDate: '2026-09-01',
     };
 
     await createNews(payload);
@@ -245,6 +250,7 @@ describe('createNews', () => {
       body: 'Body',
       coverImageUrl: 'url',
       status: 'Published' as const,
+      newsDate: '2026-09-01',
     };
 
     const result = await createNews(payload);
@@ -261,6 +267,7 @@ describe('createNews', () => {
       body: 'Body',
       coverImageUrl: 'url',
       status: 'Draft' as const,
+      newsDate: '2026-09-01',
     };
 
     await expect(createNews(payload)).rejects.toThrow('validation error');
@@ -280,6 +287,7 @@ describe('updateNews', () => {
       subtitle: 'Subtitle',
       body: 'Body',
       coverImageUrl: 'url',
+      newsDate: '2026-09-01',
     };
 
     await updateNews('news1', payload);
@@ -295,6 +303,7 @@ describe('updateNews', () => {
       subtitle: 'Subtitle',
       body: 'Body',
       coverImageUrl: 'url',
+      newsDate: '2026-09-01',
     };
 
     const result = await updateNews('news1', payload);
@@ -310,6 +319,7 @@ describe('updateNews', () => {
       subtitle: 'Subtitle',
       body: 'Body',
       coverImageUrl: 'url',
+      newsDate: '2026-09-01',
     };
 
     await expect(updateNews('missing', payload)).rejects.toThrow('not found');
@@ -330,6 +340,7 @@ describe('publishNews', () => {
       coverImageUrl: 'url',
       status: 'Published',
       publishedAt: '2026-01-01T00:00:00Z',
+      newsDate: '2026-01-05',
       createdAt: '2026-01-01T00:00:00Z',
       updatedAt: '2026-01-01T00:00:00Z',
     };
@@ -349,6 +360,7 @@ describe('publishNews', () => {
       coverImageUrl: 'url',
       status: 'Published',
       publishedAt: '2026-01-01T00:00:00Z',
+      newsDate: '2026-01-05',
       createdAt: '2026-01-01T00:00:00Z',
       updatedAt: '2026-01-01T00:00:00Z',
     };

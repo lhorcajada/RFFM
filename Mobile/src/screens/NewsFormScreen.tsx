@@ -1,6 +1,7 @@
 ﻿import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, TextInput, StyleSheet, Pressable, Image, ActivityIndicator, ScrollView } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { coachColors } from '../theme/colors';
 import { getNewsById, uploadNewsImage, createNews, updateNews } from '../api/news';
@@ -9,6 +10,33 @@ import { resolvePhotoUrl } from '../utils/resolvePhotoUrl';
 import ScreenHeader from '../shared/components/ScreenHeader';
 
 type FormMode = 'create' | 'edit';
+
+// newsDate is a pure calendar date with no time-of-day meaning, so all date math here
+// must use local date components (never toISOString()/UTC parsing, which shift the
+// resulting day near local midnight depending on the timezone offset).
+const toLocalIsoDate = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const todayIsoDate = () => toLocalIsoDate(new Date());
+
+const parseLocalDateOnly = (isoDateOnly: string): Date => {
+  const source = isoDateOnly && isoDateOnly.length >= 10 ? isoDateOnly.slice(0, 10) : todayIsoDate();
+  const [year, month, day] = source.split('-').map(Number);
+  return new Date(year, (month || 1) - 1, day || 1);
+};
+
+const capitalize = (text: string): string => (text ? text.charAt(0).toUpperCase() + text.slice(1) : text);
+
+const formatNewsDateLabel = (isoDateOnly: string): string => {
+  if (!isoDateOnly) return 'Selecciona una fecha';
+  return capitalize(
+    parseLocalDateOnly(isoDateOnly).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }),
+  );
+};
 
 const NewsFormScreen = () => {
   const navigation = useNavigation<any>();
@@ -21,6 +49,8 @@ const NewsFormScreen = () => {
   const [subtitle, setSubtitle] = useState('');
   const [body, setBody] = useState('');
   const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
+  const [newsDate, setNewsDate] = useState(todayIsoDate());
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [loading, setLoading] = useState(mode === 'edit');
   const [uploadingImage, setUploadingImage] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -36,6 +66,7 @@ const NewsFormScreen = () => {
           setSubtitle(data.subtitle);
           setBody(data.body);
           setCoverImageUrl(data.coverImageUrl);
+          setNewsDate(data.newsDate ? data.newsDate.slice(0, 10) : '');
         } catch (e: any) {
           setError(e.response?.data?.detail || 'No se pudo cargar la noticia');
         } finally {
@@ -78,6 +109,10 @@ const NewsFormScreen = () => {
         setError('Completa el título, la entradilla, el cuerpo y elige una foto de portada');
         return;
       }
+      if (!newsDate.trim()) {
+        setError('Indica la fecha de la noticia');
+        return;
+      }
 
       try {
         setSaving(true);
@@ -89,6 +124,7 @@ const NewsFormScreen = () => {
             body,
             coverImageUrl,
             status: status ?? 'Draft',
+            newsDate,
           });
           navigation.replace('NewsDetail', { newsId: id });
         } else if (newsId) {
@@ -97,6 +133,7 @@ const NewsFormScreen = () => {
             subtitle: subtitle.trim(),
             body,
             coverImageUrl,
+            newsDate,
           });
           navigation.replace('NewsDetail', { newsId });
         }
@@ -106,8 +143,15 @@ const NewsFormScreen = () => {
         setSaving(false);
       }
     },
-    [title, subtitle, body, coverImageUrl, mode, newsId, navigation],
+    [title, subtitle, body, coverImageUrl, newsDate, mode, newsId, navigation],
   );
+
+  const handleDateChange = useCallback((_event: unknown, date?: Date) => {
+    setShowDatePicker(false);
+    if (date) {
+      setNewsDate(toLocalIsoDate(date));
+    }
+  }, []);
 
   const renderHeader = () => (
     <ScreenHeader title={mode === 'create' ? 'Nueva noticia' : 'Editar noticia'} />
@@ -156,6 +200,13 @@ const NewsFormScreen = () => {
           value={subtitle}
           onChangeText={setSubtitle}
         />
+        <Text style={styles.label}>Fecha de la noticia</Text>
+        <Pressable testID="news-date-input" style={styles.input} onPress={() => setShowDatePicker(true)}>
+          <Text style={styles.dateInputText}>{formatNewsDateLabel(newsDate)}</Text>
+        </Pressable>
+        {showDatePicker && (
+          <DateTimePicker value={parseLocalDateOnly(newsDate)} mode="date" onChange={handleDateChange} />
+        )}
         <TextInput
           testID="body-input"
           style={[styles.input, styles.bodyInput]}
@@ -218,6 +269,7 @@ const styles = StyleSheet.create({
   },
   coverPreview: { width: '100%', height: '100%' },
   imagePickerText: { color: coachColors.textSecondary },
+  label: { fontSize: 13, fontWeight: '600', color: coachColors.textSecondary },
   input: {
     borderWidth: 1,
     borderColor: coachColors.border,
@@ -228,6 +280,7 @@ const styles = StyleSheet.create({
     backgroundColor: coachColors.surface,
   },
   bodyInput: { minHeight: 120, textAlignVertical: 'top' },
+  dateInputText: { color: coachColors.textPrimary },
   errorText: { color: coachColors.error, fontSize: 14, textAlign: 'center' },
   buttonRow: { flexDirection: 'row', gap: 12 },
   button: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center' },

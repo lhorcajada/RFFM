@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import NewsScreen from '../NewsScreen';
 import { getNews, getNewsDrafts } from '../../api/news';
@@ -16,6 +16,16 @@ const mockGetNews = getNews as jest.Mock;
 const mockGetNewsDrafts = getNewsDrafts as jest.Mock;
 const mockUseAuth = useAuth as jest.Mock;
 
+function isoDaysFromToday(offsetDays: number): string {
+  const date = new Date();
+  date.setDate(date.getDate() + offsetDays);
+  return date.toISOString().slice(0, 10);
+}
+
+const todayIso = isoDaysFromToday(0);
+const futureIso = isoDaysFromToday(60); // ~2 months ahead, guaranteed different month bucket than today
+const pastIso = isoDaysFromToday(-60); // ~2 months in the past
+
 const publishedItem = {
   id: 'news1',
   title: 'Published Title',
@@ -23,6 +33,27 @@ const publishedItem = {
   coverImageUrl: 'https://example.com/cover.jpg',
   status: 'Published' as const,
   publishedAt: '2026-01-01T00:00:00Z',
+  newsDate: todayIso,
+};
+
+const futureItem = {
+  id: 'news2',
+  title: 'Future Title',
+  subtitle: 'Future Subtitle',
+  coverImageUrl: 'https://example.com/future-cover.jpg',
+  status: 'Published' as const,
+  publishedAt: '2026-01-01T00:00:00Z',
+  newsDate: futureIso,
+};
+
+const pastItem = {
+  id: 'news3',
+  title: 'Past Title',
+  subtitle: 'Past Subtitle',
+  coverImageUrl: 'https://example.com/past-cover.jpg',
+  status: 'Published' as const,
+  publishedAt: '2026-01-01T00:00:00Z',
+  newsDate: pastIso,
 };
 
 const draftItem = {
@@ -32,6 +63,7 @@ const draftItem = {
   coverImageUrl: 'https://example.com/draft-cover.jpg',
   status: 'Draft' as const,
   publishedAt: null,
+  newsDate: futureIso,
 };
 
 describe('NewsScreen', () => {
@@ -66,7 +98,14 @@ describe('NewsScreen', () => {
     mockGetNewsDrafts.mockResolvedValue({ items: [draftItem], totalCount: 1 });
     mockUseAuth.mockReturnValue({ roles: ['Coach'] });
 
-    const { getAllByTestId } = await render(<NewsScreen />);
+    const { getByTestId, getAllByTestId } = await render(<NewsScreen />);
+
+    await waitFor(() => {
+      expect(getByTestId('news-root-header-current-future')).toBeTruthy();
+    });
+
+    const monthKey = futureIso.slice(0, 7);
+    await fireEvent.press(getByTestId(`news-sub-header-current-future-${monthKey}`));
 
     await waitFor(() => {
       const cards = getAllByTestId(/^news-card-/);
@@ -80,6 +119,13 @@ describe('NewsScreen', () => {
     mockUseAuth.mockReturnValue({ roles: ['Coach'] });
 
     const { getByTestId } = await render(<NewsScreen />);
+
+    await waitFor(() => {
+      expect(getByTestId('news-root-header-current-future')).toBeTruthy();
+    });
+
+    const monthKey = futureIso.slice(0, 7);
+    await fireEvent.press(getByTestId(`news-sub-header-current-future-${monthKey}`));
 
     await waitFor(() => {
       expect(getByTestId(`news-draft-badge-${draftItem.id}`)).toBeTruthy();
@@ -165,5 +211,99 @@ describe('NewsScreen', () => {
     });
 
     expect(mockNavigationNavigate).toHaveBeenCalledWith('NewsForm', { mode: 'create' });
+  });
+
+  it('renders the "Actuales y futuras" root group expanded by default with today\'s item visible', async () => {
+    mockGetNews.mockResolvedValue({ items: [publishedItem], totalCount: 1 });
+    mockUseAuth.mockReturnValue({ roles: ['FamilyMember'] });
+
+    const { getByTestId, queryByTestId } = await render(<NewsScreen />);
+
+    await waitFor(() => {
+      expect(getByTestId('news-root-header-current-future')).toBeTruthy();
+      expect(getByTestId('news-sub-header-current-future-today')).toBeTruthy();
+      expect(getByTestId(`news-card-${publishedItem.id}`)).toBeTruthy();
+    });
+    expect(queryByTestId('news-root-header-past')).toBeNull();
+  });
+
+  it('keeps a non-"Hoy" month subgroup collapsed by default within current/future', async () => {
+    mockGetNews.mockResolvedValue({ items: [futureItem], totalCount: 1 });
+    mockUseAuth.mockReturnValue({ roles: ['FamilyMember'] });
+
+    const { getByTestId, queryByTestId } = await render(<NewsScreen />);
+
+    await waitFor(() => {
+      expect(getByTestId('news-root-header-current-future')).toBeTruthy();
+    });
+
+    // The month sub-header is rendered, but the item itself should not be, since the
+    // month subgroup is not the "today" one and starts collapsed.
+    expect(queryByTestId(`news-card-${futureItem.id}`)).toBeNull();
+  });
+
+  it('shows the "Anteriores" root group collapsed by default; expanding it reveals its items', async () => {
+    mockGetNews.mockResolvedValue({ items: [pastItem], totalCount: 1 });
+    mockUseAuth.mockReturnValue({ roles: ['FamilyMember'] });
+
+    const { getByTestId, queryByTestId } = await render(<NewsScreen />);
+
+    await waitFor(() => {
+      expect(getByTestId('news-root-header-past')).toBeTruthy();
+    });
+
+    expect(queryByTestId(`news-card-${pastItem.id}`)).toBeNull();
+
+    await fireEvent.press(getByTestId('news-root-header-past'));
+
+    await waitFor(() => {
+      // Root expanded reveals the month sub-header, but the month subgroup itself is
+      // still collapsed, so the item is still not visible yet.
+      expect(queryByTestId(`news-card-${pastItem.id}`)).toBeNull();
+    });
+  });
+
+  it('toggling a collapsed month sub-header reveals its items', async () => {
+    mockGetNews.mockResolvedValue({ items: [futureItem], totalCount: 1 });
+    mockUseAuth.mockReturnValue({ roles: ['FamilyMember'] });
+
+    const { getByTestId, queryByTestId } = await render(<NewsScreen />);
+
+    let subHeaderTestId = '';
+    await waitFor(() => {
+      const found = queryByTestId(/^news-sub-header-current-future-/);
+      expect(found).toBeTruthy();
+    });
+
+    const monthKey = futureIso.slice(0, 7);
+    subHeaderTestId = `news-sub-header-current-future-${monthKey}`;
+
+    expect(queryByTestId(`news-card-${futureItem.id}`)).toBeNull();
+
+    await fireEvent.press(getByTestId(subHeaderTestId));
+
+    await waitFor(() => {
+      expect(getByTestId(`news-card-${futureItem.id}`)).toBeTruthy();
+    });
+  });
+
+  it('places a draft item within the group/subgroup matching its own news date', async () => {
+    mockGetNews.mockResolvedValue({ items: [], totalCount: 0 });
+    mockGetNewsDrafts.mockResolvedValue({ items: [draftItem], totalCount: 1 });
+    mockUseAuth.mockReturnValue({ roles: ['Coach'] });
+
+    const { getByTestId } = await render(<NewsScreen />);
+
+    await waitFor(() => {
+      expect(getByTestId('news-root-header-current-future')).toBeTruthy();
+    });
+
+    const monthKey = futureIso.slice(0, 7);
+    await fireEvent.press(getByTestId(`news-sub-header-current-future-${monthKey}`));
+
+    await waitFor(() => {
+      expect(getByTestId(`news-card-${draftItem.id}`)).toBeTruthy();
+      expect(getByTestId(`news-draft-badge-${draftItem.id}`)).toBeTruthy();
+    });
   });
 });

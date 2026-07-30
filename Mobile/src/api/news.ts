@@ -7,6 +7,7 @@ export interface NewsSummary {
   coverImageUrl: string;
   status: 'Draft' | 'Published';
   publishedAt: string | null;
+  newsDate: string;
 }
 
 export interface NewsDetail extends NewsSummary {
@@ -26,6 +27,7 @@ export interface CreateNewsPayload {
   body: string;
   coverImageUrl: string;
   status: 'Draft' | 'Published';
+  newsDate: string;
 }
 
 export interface UpdateNewsPayload {
@@ -33,6 +35,7 @@ export interface UpdateNewsPayload {
   subtitle: string;
   body: string;
   coverImageUrl: string;
+  newsDate: string;
 }
 
 function parseTotalCount(headers: Record<string, any> | undefined): number {

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Image, Pressable, ActivityIndicator, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -8,13 +8,28 @@ import { getNews, getNewsDrafts, NewsSummary } from '../api/news';
 import { API_BASE_URL } from '../api/client';
 import { resolvePhotoUrl } from '../utils/resolvePhotoUrl';
 import ScreenHeader from '../shared/components/ScreenHeader';
+import { groupNewsByDate } from './hooks/groupNewsByDate';
 
 const PAGE_SIZE = 20;
 const COACH_ADMIN_ROLES = ['coach', 'administrator'];
+const DEFAULT_EXPANDED_KEYS = ['current-future', 'current-future:today'];
 
 interface FeedItem extends NewsSummary {
   isDraft: boolean;
 }
+
+type FeedRow =
+  | { type: 'root-header'; rowKey: string; groupKey: string; title: string; count: number; expanded: boolean }
+  | {
+      type: 'sub-header';
+      rowKey: string;
+      groupKey: string;
+      subKey: string;
+      title: string;
+      count: number;
+      expanded: boolean;
+    }
+  | { type: 'item'; rowKey: string; item: FeedItem };
 
 const NewsScreen = () => {
   const navigation = useNavigation<any>();
@@ -24,6 +39,19 @@ const NewsScreen = () => {
   const [items, setItems] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(() => new Set(DEFAULT_EXPANDED_KEYS));
+
+  const toggleKey = useCallback((key: string) => {
+    setExpandedKeys((current) => {
+      const next = new Set(current);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  }, []);
 
   const fetchFeed = useCallback(async () => {
     try {
@@ -56,6 +84,48 @@ const NewsScreen = () => {
   useEffect(() => {
     fetchFeed();
   }, [fetchFeed]);
+
+  const rows = useMemo<FeedRow[]>(() => {
+    const groups = groupNewsByDate(items);
+    const result: FeedRow[] = [];
+
+    for (const group of groups) {
+      const groupExpanded = expandedKeys.has(group.key);
+      const groupCount = group.subgroups.reduce((sum, sub) => sum + sub.data.length, 0);
+      result.push({
+        type: 'root-header',
+        rowKey: `root-${group.key}`,
+        groupKey: group.key,
+        title: group.title,
+        count: groupCount,
+        expanded: groupExpanded,
+      });
+
+      if (!groupExpanded) continue;
+
+      for (const sub of group.subgroups) {
+        const subFullKey = `${group.key}:${sub.key}`;
+        const subExpanded = expandedKeys.has(subFullKey);
+        result.push({
+          type: 'sub-header',
+          rowKey: `sub-${subFullKey}`,
+          groupKey: group.key,
+          subKey: sub.key,
+          title: sub.title,
+          count: sub.data.length,
+          expanded: subExpanded,
+        });
+
+        if (!subExpanded) continue;
+
+        for (const item of sub.data) {
+          result.push({ type: 'item', rowKey: `item-${item.id}`, item });
+        }
+      }
+    }
+
+    return result;
+  }, [items, expandedKeys]);
 
   const renderHeader = () => <ScreenHeader title="Noticias" showBack={false} />;
 
@@ -94,10 +164,50 @@ const NewsScreen = () => {
       ) : (
         <FlatList
           testID="news-feed-list"
-          data={items}
-          keyExtractor={(item) => item.id}
+          data={rows}
+          keyExtractor={(row) => row.rowKey}
           contentContainerStyle={styles.listContent}
-          renderItem={({ item }) => {
+          renderItem={({ item: row }) => {
+            if (row.type === 'root-header') {
+              return (
+                <Pressable
+                  testID={`news-root-header-${row.groupKey}`}
+                  onPress={() => toggleKey(row.groupKey)}
+                  style={styles.rootHeader}
+                >
+                  <Text style={styles.rootHeaderTitle}>
+                    {row.title} ({row.count})
+                  </Text>
+                  <Ionicons
+                    name={row.expanded ? 'chevron-down-outline' : 'chevron-forward-outline'}
+                    size={20}
+                    color={coachColors.primaryLight}
+                  />
+                </Pressable>
+              );
+            }
+
+            if (row.type === 'sub-header') {
+              const subFullKey = `${row.groupKey}:${row.subKey}`;
+              return (
+                <Pressable
+                  testID={`news-sub-header-${row.groupKey}-${row.subKey}`}
+                  onPress={() => toggleKey(subFullKey)}
+                  style={styles.subHeader}
+                >
+                  <Text style={styles.subHeaderTitle}>
+                    {row.title} ({row.count})
+                  </Text>
+                  <Ionicons
+                    name={row.expanded ? 'chevron-down-outline' : 'chevron-forward-outline'}
+                    size={16}
+                    color={coachColors.primaryLight}
+                  />
+                </Pressable>
+              );
+            }
+
+            const item = row.item;
             const coverUri = resolvePhotoUrl(item.coverImageUrl, API_BASE_URL);
             return (
               <Pressable
@@ -162,6 +272,44 @@ const styles = StyleSheet.create({
     backgroundColor: coachColors.accentOrange,
   },
   draftBadgeText: { color: coachColors.contrastText, fontWeight: '800', fontSize: 11, textTransform: 'uppercase' },
+  rootHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginTop: 12,
+    marginBottom: 4,
+    borderRadius: 10,
+    backgroundColor: coachColors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: coachColors.border,
+  },
+  rootHeaderTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: coachColors.primaryLight,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  subHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginLeft: 12,
+    marginBottom: 4,
+    borderRadius: 8,
+    backgroundColor: coachColors.surface,
+    borderWidth: 1,
+    borderColor: coachColors.border,
+  },
+  subHeaderTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: coachColors.primaryLight,
+  },
   cardBody: { padding: 12, gap: 4 },
   headline: { fontSize: 18, fontWeight: '800', color: coachColors.textPrimary },
   subtitleText: { fontSize: 13, color: coachColors.textSecondary },

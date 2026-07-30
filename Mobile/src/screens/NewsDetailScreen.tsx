@@ -15,6 +15,23 @@ function formatPublishDate(iso: string | null): string {
   return new Date(iso).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' });
 }
 
+function formatNewsDate(iso: string): string {
+  if (!iso) return '';
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
+  const date = match
+    ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+    : new Date(iso);
+  const formatted = date
+    .toLocaleDateString('es-ES', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    })
+    .replace(',', '');
+  return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+}
+
 const NewsDetailScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute();
@@ -131,6 +148,10 @@ const NewsDetailScreen = () => {
         <Text style={styles.dateRow}>
           <Text testID="news-detail-date-label" style={styles.dateLabel}>{'Fecha de publicación: '}</Text>
           <Text testID="news-detail-date-value" style={styles.date}>{formatPublishDate(news.publishedAt)}</Text>
+        </Text>
+        <Text style={styles.dateRow}>
+          <Text testID="news-detail-newsdate-label" style={styles.dateLabel}>{'Fecha de la noticia: '}</Text>
+          <Text testID="news-detail-newsdate-value" style={styles.date}>{formatNewsDate(news.newsDate)}</Text>
         </Text>
         <Text testID="news-detail-body" style={styles.body}>{news.body}</Text>
       </ScrollView>

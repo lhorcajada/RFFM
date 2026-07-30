@@ -26,6 +26,7 @@ const newsDetail = {
   coverImageUrl: 'https://example.com/cover.jpg',
   status: 'Published' as const,
   publishedAt: '2026-01-01T00:00:00Z',
+  newsDate: '2026-07-30',
   createdAt: '2026-01-01T00:00:00Z',
   updatedAt: '2026-01-01T00:00:00Z',
 };
@@ -56,6 +57,22 @@ describe('NewsDetailScreen', () => {
       expect(getByTestId('news-detail-body')).toBeTruthy();
       expect(getByTestId('news-detail-date-label')).toBeTruthy();
       expect(getByTestId('news-detail-date-value')).toBeTruthy();
+      expect(getByTestId('news-detail-newsdate-label')).toBeTruthy();
+      expect(getByTestId('news-detail-newsdate-value')).toBeTruthy();
+    });
+  });
+
+  it('shows the news date formatted with weekday, e.g. "Jueves 30 de julio de 2026"', async () => {
+    mockGetNewsById.mockResolvedValue(newsDetail);
+    mockUseAuth.mockReturnValue({ roles: ['Player'] });
+
+    const { getByTestId } = await render(<NewsDetailScreen />);
+
+    await waitFor(() => {
+      const label = getByTestId('news-detail-newsdate-label');
+      const value = getByTestId('news-detail-newsdate-value');
+      expect(label.props.children).toBe('Fecha de la noticia: ');
+      expect(value.props.children).toBe('Jueves 30 de julio de 2026');
     });
   });
 
