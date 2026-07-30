@@ -5,10 +5,10 @@ import { useRoute, useNavigation } from '@react-navigation/native';
 import { coachColors } from '../theme/colors';
 import { fetchSportEventTypeMap, SportEventTypeMap } from '../api/sportEventTypes';
 import EventCard, { SportEvent } from './components/EventCard';
-import { isFriendlyEventType } from '../utils/sportEventTypeMatchers';
+import { isTournamentEventType } from '../utils/sportEventTypeMatchers';
 import ScreenSectionHeader from '../shared/components/ScreenSectionHeader';
 
-const FriendliesScreen = () => {
+const TournamentsScreen = () => {
   const route = useRoute();
   const navigation = useNavigation<any>();
   const params = route.params as { teamId: string; teamPlayerId?: string } | undefined;
@@ -22,11 +22,11 @@ const FriendliesScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    fetchFriendlies();
+    fetchTournaments();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [teamId]);
 
-  const fetchFriendlies = async () => {
+  const fetchTournaments = async () => {
     try {
       if (!teamId) {
         setError('Team ID not provided');
@@ -49,7 +49,7 @@ const FriendliesScreen = () => {
       setEventTypeMap(typeMap);
       setError(null);
     } catch (e: any) {
-      setError(e.response?.data?.detail || 'Error al cargar los amistosos');
+      setError(e.response?.data?.detail || 'Error al cargar los torneos');
     } finally {
       setLoading(false);
     }
@@ -57,15 +57,15 @@ const FriendliesScreen = () => {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchFriendlies();
+    await fetchTournaments();
     setRefreshing(false);
   };
 
-  const friendlyEvents = events
-    .filter((e) => isFriendlyEventType(eventTypeMap[e.eventTypeId ?? -1]))
+  const tournamentEvents = events
+    .filter((e) => isTournamentEventType(eventTypeMap[e.eventTypeId ?? -1]))
     .sort((a, b) => new Date(a.eveDateTime).getTime() - new Date(b.eveDateTime).getTime());
 
-  const renderHeader = () => <ScreenSectionHeader title="Amistosos" />;
+  const renderHeader = () => <ScreenSectionHeader title="Torneos" />;
 
   if (loading) {
     return (
@@ -84,7 +84,7 @@ const FriendliesScreen = () => {
         {renderHeader()}
         <View style={styles.centeredContent}>
           <Text testID="error-message" style={styles.errorText}>{error}</Text>
-          <Pressable testID="retry-button" style={styles.retryButton} onPress={fetchFriendlies}>
+          <Pressable testID="retry-button" style={styles.retryButton} onPress={fetchTournaments}>
             <Text style={styles.retryButtonText}>Reintentar</Text>
           </Pressable>
         </View>
@@ -92,12 +92,12 @@ const FriendliesScreen = () => {
     );
   }
 
-  if (friendlyEvents.length === 0) {
+  if (tournamentEvents.length === 0) {
     return (
       <View style={styles.listContainer}>
         {renderHeader()}
         <View style={styles.centeredContent}>
-          <Text testID="empty-message" style={styles.emptyText}>No hay amistosos próximos</Text>
+          <Text testID="empty-message" style={styles.emptyText}>No hay torneos próximos</Text>
         </View>
       </View>
     );
@@ -107,7 +107,7 @@ const FriendliesScreen = () => {
     <View style={styles.listContainer}>
       {renderHeader()}
       <FlatList
-        data={friendlyEvents}
+        data={tournamentEvents}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <EventCard
@@ -159,4 +159,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default FriendliesScreen;
+export default TournamentsScreen;

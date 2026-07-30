@@ -10,8 +10,8 @@ type NavigationProp = NativeStackNavigationProp<any>;
 
 interface MenuItemConfig {
   label: string;
-  icon: 'trophy-outline' | 'football-outline';
-  target: 'LeagueTab' | 'FriendliesTab';
+  icon: 'trophy-outline' | 'football-outline' | 'medal-outline';
+  target: 'LeagueTab' | 'FriendliesTab' | 'TournamentsTab';
   testID: string;
   includeTeamPlayerId?: boolean;
 }
@@ -26,6 +26,7 @@ const CompetitionMenuScreen = () => {
   const menuItems: MenuItemConfig[] = [
     { label: 'Liga', icon: 'trophy-outline', target: 'LeagueTab', testID: 'menu-league' },
     { label: 'Amistosos', icon: 'football-outline', target: 'FriendliesTab', testID: 'menu-friendlies', includeTeamPlayerId: true },
+    { label: 'Torneos', icon: 'medal-outline', target: 'TournamentsTab', testID: 'menu-tournaments', includeTeamPlayerId: true },
   ];
 
   const handleMenuItemPress = (target: string, includeTeamPlayerId?: boolean) => {

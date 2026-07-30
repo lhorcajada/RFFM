@@ -4,6 +4,7 @@ import { render } from '@testing-library/react-native';
 jest.mock('../../screens/CompetitionMenuScreen', () => 'CompetitionMenuScreen');
 jest.mock('../../screens/LeagueScreen', () => 'LeagueScreen');
 jest.mock('../../screens/FriendliesScreen', () => 'FriendliesScreen');
+jest.mock('../../screens/TournamentsScreen', () => 'TournamentsScreen');
 jest.mock('../../screens/CalendarScreen', () => 'CalendarScreen');
 jest.mock('../../screens/NewsScreen', () => 'NewsScreen');
 jest.mock('../../screens/PlayerSeasonCardsScreen', () => 'PlayerSeasonCardsScreen');
@@ -32,7 +33,7 @@ jest.mock('@react-navigation/native-stack', () => {
 });
 
 describe('CompetitionTabStack', () => {
-  it('registers routes in order: CompetitionMenu, LeagueTab, FriendliesTab', async () => {
+  it('registers routes in order: CompetitionMenu, LeagueTab, FriendliesTab, TournamentsTab', async () => {
     const { getAllByTestId } = await render(
       <CompetitionTabStack route={{ params: { teamId: 'team1', teamPlayerId: 'player1' } }} />,
     );
@@ -40,7 +41,7 @@ describe('CompetitionTabStack', () => {
     const allStacks = getAllByTestId(/^stack-screen-/);
     const stackNames = allStacks.map((stack) => stack.props.testID.replace('stack-screen-', ''));
 
-    expect(stackNames).toEqual(['CompetitionMenu', 'LeagueTab', 'FriendliesTab']);
+    expect(stackNames).toEqual(['CompetitionMenu', 'LeagueTab', 'FriendliesTab', 'TournamentsTab']);
   });
 
   it('forwards teamId and teamPlayerId via initialParams to CompetitionMenu', async () => {
@@ -72,6 +73,18 @@ describe('CompetitionTabStack', () => {
     );
 
     const params = getByTestId('stack-initial-params-FriendliesTab').props.children;
+    const parsedParams = JSON.parse(params);
+
+    expect(parsedParams.teamId).toBe('team1');
+    expect(parsedParams.teamPlayerId).toBe('player1');
+  });
+
+  it('forwards teamId and teamPlayerId via initialParams to TournamentsTab', async () => {
+    const { getByTestId } = await render(
+      <CompetitionTabStack route={{ params: { teamId: 'team1', teamPlayerId: 'player1' } }} />,
+    );
+
+    const params = getByTestId('stack-initial-params-TournamentsTab').props.children;
     const parsedParams = JSON.parse(params);
 
     expect(parsedParams.teamId).toBe('team1');

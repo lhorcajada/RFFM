@@ -49,7 +49,7 @@ describe('CompetitionMenuScreen', () => {
     expect(getByTestId('screen-title').props.children).toBe('Competición');
   });
 
-  it('renders 2 TabMenuCards with correct labels and icons', async () => {
+  it('renders 3 TabMenuCards with correct labels and icons', async () => {
     const mockNavigate = jest.fn();
     (useNavigation as jest.Mock).mockReturnValue({ navigate: mockNavigate });
     (useRoute as jest.Mock).mockReturnValue({ params: { teamId: 'team1', teamPlayerId: 'player1' } });
@@ -65,6 +65,11 @@ describe('CompetitionMenuScreen', () => {
     expect(getByTestId('menu-friendlies')).toBeTruthy();
     expect(getByTestId('menu-friendlies-label').props.children).toBe('Amistosos');
     expect(getByTestId('menu-friendlies-icon').props.children).toBe('football-outline');
+
+    // Torneos
+    expect(getByTestId('menu-tournaments')).toBeTruthy();
+    expect(getByTestId('menu-tournaments-label').props.children).toBe('Torneos');
+    expect(getByTestId('menu-tournaments-icon').props.children).toBe('medal-outline');
   });
 
   it('navigates to LeagueTab with teamId when Liga is pressed', async () => {
@@ -89,5 +94,17 @@ describe('CompetitionMenuScreen', () => {
     fireEvent.press(getByTestId('menu-friendlies'));
 
     expect(mockNavigate).toHaveBeenCalledWith('FriendliesTab', { teamId: 'team1', teamPlayerId: 'player1' });
+  });
+
+  it('navigates to TournamentsTab with teamId and teamPlayerId when Torneos is pressed', async () => {
+    const mockNavigate = jest.fn();
+    (useNavigation as jest.Mock).mockReturnValue({ navigate: mockNavigate });
+    (useRoute as jest.Mock).mockReturnValue({ params: { teamId: 'team1', teamPlayerId: 'player1' } });
+
+    const { getByTestId } = await render(<CompetitionMenuScreen />);
+
+    fireEvent.press(getByTestId('menu-tournaments'));
+
+    expect(mockNavigate).toHaveBeenCalledWith('TournamentsTab', { teamId: 'team1', teamPlayerId: 'player1' });
   });
 });

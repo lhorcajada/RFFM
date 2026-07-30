@@ -7,6 +7,7 @@ import LoginScreen from '../screens/LoginScreen';
 import TeamSwitcherScreen from '../screens/TeamSwitcherScreen';
 import CalendarScreen from '../screens/CalendarScreen';
 import FriendliesScreen from '../screens/FriendliesScreen';
+import TournamentsScreen from '../screens/TournamentsScreen';
 import EventDetailScreen from '../screens/EventDetailScreen';
 import NewsScreen from '../screens/NewsScreen';
 import PlayerSeasonCardsScreen from '../screens/PlayerSeasonCardsScreen';
@@ -85,6 +86,11 @@ export const CompetitionTabStack = ({ route }: { route: { params?: { teamId?: st
       <CompetitionStack.Screen
         name="FriendliesTab"
         component={FriendliesScreen}
+        initialParams={{ teamId, teamPlayerId }}
+      />
+      <CompetitionStack.Screen
+        name="TournamentsTab"
+        component={TournamentsScreen}
         initialParams={{ teamId, teamPlayerId }}
       />
     </CompetitionStack.Navigator>

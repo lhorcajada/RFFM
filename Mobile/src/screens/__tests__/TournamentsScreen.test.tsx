@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
-import FriendliesScreen from '../FriendliesScreen';
+import TournamentsScreen from '../TournamentsScreen';
 import { api } from '../../api/client';
 
 jest.mock('../../api/client', () => ({
@@ -24,7 +24,7 @@ jest.mock('@react-navigation/native', () => ({
 
 const mockApi = api as jest.Mocked<typeof api>;
 
-describe('FriendliesScreen', () => {
+describe('TournamentsScreen', () => {
   let mockFetchSportEventTypeMap: jest.Mock;
 
   beforeEach(() => {
@@ -41,7 +41,7 @@ describe('FriendliesScreen', () => {
     });
     mockFetchSportEventTypeMap.mockResolvedValue({});
 
-    const { getByTestId, findByTestId } = await render(<FriendliesScreen />);
+    const { getByTestId, findByTestId } = await render(<TournamentsScreen />);
 
     expect(getByTestId('loading-indicator')).toBeTruthy();
 
@@ -50,16 +50,16 @@ describe('FriendliesScreen', () => {
     await findByTestId('empty-message');
   });
 
-  it('shows the "Amistosos" section title', async () => {
+  it('shows the "Torneos" section title', async () => {
     (mockApi.get as jest.Mock).mockResolvedValue({ data: [] });
     mockFetchSportEventTypeMap.mockResolvedValue({});
 
-    const { findByText } = await render(<FriendliesScreen />);
+    const { findByText } = await render(<TournamentsScreen />);
 
-    expect(await findByText('Amistosos')).toBeTruthy();
+    expect(await findByText('Torneos')).toBeTruthy();
   });
 
-  it('filters friendly events only, excluding tournaments', async () => {
+  it('filters tournament events only, excluding friendlies', async () => {
     (mockApi.get as jest.Mock).mockResolvedValue({
       data: [
         {
@@ -102,16 +102,16 @@ describe('FriendliesScreen', () => {
       6: 'Torneo Regional',
     });
 
-    const { getByTestId, queryByTestId } = await render(<FriendliesScreen />);
+    const { getByTestId, queryByTestId } = await render(<TournamentsScreen />);
 
     await waitFor(() => {
-      expect(getByTestId('event-item-event4')).toBeTruthy();
+      expect(getByTestId('event-item-event5')).toBeTruthy();
     });
 
     expect(queryByTestId('event-item-event1')).toBeNull();
     expect(queryByTestId('event-item-event2')).toBeNull();
     expect(queryByTestId('event-item-event3')).toBeNull();
-    expect(queryByTestId('event-item-event5')).toBeNull();
+    expect(queryByTestId('event-item-event4')).toBeNull();
   });
 
   it('shows error message when api.get rejects with detail', async () => {
@@ -120,7 +120,7 @@ describe('FriendliesScreen', () => {
     });
     mockFetchSportEventTypeMap.mockResolvedValue({});
 
-    const { findByTestId } = await render(<FriendliesScreen />);
+    const { findByTestId } = await render(<TournamentsScreen />);
 
     const errorMessage = await findByTestId('error-message');
     expect(errorMessage.props.children).toBe('Fallo de red');
@@ -130,32 +130,32 @@ describe('FriendliesScreen', () => {
     (mockApi.get as jest.Mock).mockRejectedValue(new Error('network error'));
     mockFetchSportEventTypeMap.mockResolvedValue({});
 
-    const { findByTestId } = await render(<FriendliesScreen />);
+    const { findByTestId } = await render(<TournamentsScreen />);
 
     const errorMessage = await findByTestId('error-message');
-    expect(errorMessage.props.children).toBe('Error al cargar los amistosos');
+    expect(errorMessage.props.children).toBe('Error al cargar los torneos');
   });
 
-  it('shows empty state when no friendly events exist', async () => {
+  it('shows empty state when no tournament events exist', async () => {
     (mockApi.get as jest.Mock).mockResolvedValue({
       data: [
         { id: 'e1', name: 'Partido', eveDateTime: '2026-08-05T18:00:00Z', eventTypeId: 1 },
         { id: 'e2', name: 'Entrenamiento', eveDateTime: '2026-08-03T17:00:00Z', eventTypeId: 2 },
         { id: 'e3', name: 'Reunión', eveDateTime: '2026-08-02T10:00:00Z', eventTypeId: 3 },
-        { id: 'e4', name: 'Torneo Regional', eveDateTime: '2026-08-01T15:00:00Z', eventTypeId: 6 },
+        { id: 'e4', name: 'Amistoso vs Real Madrid', eveDateTime: '2026-08-07T19:00:00Z', eventTypeId: 4 },
       ],
     });
     mockFetchSportEventTypeMap.mockResolvedValue({
       1: 'Partido',
       2: 'Entrenamiento',
       3: 'Reunión',
-      6: 'Torneo Regional',
+      4: 'Amistoso',
     });
 
-    const { findByTestId } = await render(<FriendliesScreen />);
+    const { findByTestId } = await render(<TournamentsScreen />);
 
     const emptyMessage = await findByTestId('empty-message');
-    expect(emptyMessage.props.children).toBe('No hay amistosos próximos');
+    expect(emptyMessage.props.children).toBe('No hay torneos próximos');
   });
 
   it('retries the request when retry button is pressed', async () => {
@@ -169,7 +169,7 @@ describe('FriendliesScreen', () => {
     });
     mockFetchSportEventTypeMap.mockResolvedValue({});
 
-    const { getByTestId, findByTestId } = await render(<FriendliesScreen />);
+    const { getByTestId, findByTestId } = await render(<TournamentsScreen />);
 
     await findByTestId('error-message');
 
@@ -183,17 +183,17 @@ describe('FriendliesScreen', () => {
       data: [
         {
           id: 'event42',
-          name: 'Amistoso',
+          name: 'Torneo Regional',
           eveDateTime: '2026-08-07T19:00:00Z',
-          eventTypeId: 4,
+          eventTypeId: 6,
         },
       ],
     });
     mockFetchSportEventTypeMap.mockResolvedValue({
-      4: 'Amistoso',
+      6: 'Torneo Regional',
     });
 
-    const { getByTestId } = await render(<FriendliesScreen />);
+    const { getByTestId } = await render(<TournamentsScreen />);
 
     await waitFor(() => getByTestId('event-item-event42'));
     await fireEvent.press(getByTestId('event-item-event42'));
@@ -209,7 +209,7 @@ describe('FriendliesScreen', () => {
     (mockApi.get as jest.Mock).mockResolvedValue({ data: [] });
     mockFetchSportEventTypeMap.mockResolvedValue({});
 
-    await render(<FriendliesScreen />);
+    await render(<TournamentsScreen />);
 
     await waitFor(() => {
       expect(mockApi.get).toHaveBeenCalledWith('/api/sport-events/team1', {
