@@ -80,6 +80,14 @@ const LoginScreen = () => {
           {loading ? 'Cargando...' : 'Iniciar sesión'}
         </Text>
       </Pressable>
+
+      <Pressable
+        testID="register-link"
+        onPress={() => navigation.navigate('Register')}
+        style={styles.registerLinkContainer}
+      >
+        <Text style={styles.registerLinkText}>¿No tienes cuenta? Regístrate</Text>
+      </Pressable>
     </View>
   );
 };
@@ -133,6 +141,15 @@ const styles = StyleSheet.create({
     color: coachColors.error,
     marginBottom: 15,
     fontSize: 14,
+  },
+  registerLinkContainer: {
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  registerLinkText: {
+    color: coachColors.primary,
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
 
