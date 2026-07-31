@@ -1,6 +1,6 @@
 ## MODIFIED Requirements
 
-### Requirement: Published news are grouped by news date into collapsible sections for every authenticated user
+### Requirement: Published news are shown as a newspaper-style feed to every authenticated user
 The Mobile app SHALL render `NewsScreen` as a feed grouped by `newsDate` (not by publish order) into two root groups: **Anteriores** (`newsDate` earlier than today, subgrouped by month descending) and **Actuales y futuras** (`newsDate` today or later, subgrouped as "Hoy" first, then by month ascending). All groups and subgroups SHALL start collapsed, except the "Actuales y futuras" root group and its "Hoy" subgroup, which SHALL start expanded. Each collapsible header SHALL be toggleable independently.
 
 #### Scenario: Familia opens the Noticias tab
