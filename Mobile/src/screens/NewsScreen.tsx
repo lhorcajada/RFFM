@@ -218,7 +218,12 @@ const NewsScreen = () => {
                 onPress={() => navigation.navigate('NewsDetail', { newsId: item.id })}
               >
                 {coverUri ? (
-                  <Image testID={`news-cover-${item.id}`} source={{ uri: coverUri }} style={styles.cover} />
+                  <Image
+                    testID={`news-cover-${item.id}`}
+                    source={{ uri: coverUri }}
+                    style={styles.cover}
+                    resizeMode="contain"
+                  />
                 ) : (
                   <View testID={`news-cover-placeholder-${item.id}`} style={styles.coverPlaceholder} />
                 )}

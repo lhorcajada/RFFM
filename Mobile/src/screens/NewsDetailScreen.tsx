@@ -163,7 +163,9 @@ const NewsDetailScreen = () => {
     <View testID="news-detail-container" style={styles.container}>
       {renderHeader()}
       <ScrollView contentContainerStyle={styles.contentContainer}>
-        {coverUri && <Image testID="news-detail-cover" source={{ uri: coverUri }} style={styles.cover} />}
+        {coverUri && (
+          <Image testID="news-detail-cover" source={{ uri: coverUri }} style={styles.cover} resizeMode="contain" />
+        )}
         <Text testID="news-detail-title" style={styles.title}>{news.title}</Text>
         <Text testID="news-detail-subtitle" style={styles.subtitle}>{news.subtitle}</Text>
         <Text style={styles.dateRow}>

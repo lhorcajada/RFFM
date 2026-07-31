@@ -69,6 +69,17 @@ describe('NewsDetailScreen', () => {
     });
   });
 
+  it('shows the full cover photo without cropping it', async () => {
+    mockGetNewsById.mockResolvedValue(newsDetail);
+    mockUseAuth.mockReturnValue({ roles: ['Player'] });
+
+    const { getByTestId } = await render(<NewsDetailScreen />);
+
+    await waitFor(() => {
+      expect(getByTestId('news-detail-cover').props.resizeMode).toBe('contain');
+    });
+  });
+
   it('shows the news date formatted with weekday, e.g. "Jueves 30 de julio de 2026"', async () => {
     mockGetNewsById.mockResolvedValue(newsDetail);
     mockUseAuth.mockReturnValue({ roles: ['Player'] });

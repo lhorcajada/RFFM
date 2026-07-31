@@ -91,6 +91,17 @@ describe('NewsScreen', () => {
     expect(getByTestId('loading-indicator')).toBeTruthy();
   });
 
+  it('shows the full cover photo without cropping it', async () => {
+    mockGetNews.mockResolvedValue({ items: [publishedItem], totalCount: 1 });
+    mockUseAuth.mockReturnValue({ roles: ['FamilyMember'] });
+
+    const { getByTestId } = await render(<NewsScreen />);
+
+    await waitFor(() => {
+      expect(getByTestId(`news-cover-${publishedItem.id}`).props.resizeMode).toBe('contain');
+    });
+  });
+
   it('calls only getNews for non-coach roles', async () => {
     mockGetNews.mockResolvedValue({ items: [publishedItem], totalCount: 1 });
     mockUseAuth.mockReturnValue({ roles: ['FamilyMember'] });
