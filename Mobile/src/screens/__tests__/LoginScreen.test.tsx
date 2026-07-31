@@ -79,4 +79,13 @@ describe('LoginScreen', () => {
     expect(errorMessage.props.children).toBe('Credenciales inválidas');
     expect(mockNavigate).not.toHaveBeenCalled();
   });
+
+  it('navigates to Register screen when register link is pressed', async () => {
+    mockUseAuth.mockReturnValue({ login: jest.fn() });
+    const { getByTestId } = await render(<LoginScreen />);
+
+    await fireEvent.press(getByTestId('register-link'));
+
+    expect(mockNavigate).toHaveBeenCalledWith('Register');
+  });
 });
