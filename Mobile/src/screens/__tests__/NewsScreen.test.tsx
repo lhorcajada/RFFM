@@ -7,6 +7,11 @@ import { useAuth } from '../../auth/AuthContext';
 jest.mock('../../api/news');
 jest.mock('../../auth/AuthContext');
 
+const mockSetBadgeCountAsync = jest.fn();
+jest.mock('expo-notifications', () => ({
+  setBadgeCountAsync: (...args: unknown[]) => mockSetBadgeCountAsync(...args),
+}));
+
 const mockNavigationNavigate = jest.fn();
 let capturedFocusCallback: (() => void) | null = null;
 jest.mock('@react-navigation/native', () => {
@@ -324,6 +329,17 @@ describe('NewsScreen', () => {
 
     await waitFor(() => {
       expect(mockGetNews).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it('clears the app icon badge count when the screen gains focus', async () => {
+    mockGetNews.mockResolvedValue({ items: [publishedItem], totalCount: 1 });
+    mockUseAuth.mockReturnValue({ roles: ['FamilyMember'] });
+
+    await render(<NewsScreen />);
+
+    await waitFor(() => {
+      expect(mockSetBadgeCountAsync).toHaveBeenCalledWith(0);
     });
   });
 

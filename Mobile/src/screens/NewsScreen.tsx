@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Image, Pressable, ActivityIndicator, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { getNotificationsModule } from '../notifications/notificationsClient';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { coachColors } from '../theme/colors';
 import { useAuth } from '../auth/AuthContext';
@@ -84,6 +85,7 @@ const NewsScreen = () => {
   useFocusEffect(
     useCallback(() => {
       fetchFeed();
+      getNotificationsModule()?.setBadgeCountAsync(0);
     }, [fetchFeed])
   );
 

@@ -26,9 +26,22 @@ jest.mock('@react-native-community/datetimepicker', () => {
 
 const mockUseRoute = jest.fn();
 const mockNavigate = jest.fn();
-jest.mock('@react-navigation/native', () => ({
-  useRoute: () => mockUseRoute(),
-  useNavigation: () => ({ navigate: mockNavigate }),
+jest.mock('@react-navigation/native', () => {
+  const actualReact = require('react');
+  return {
+    useRoute: () => mockUseRoute(),
+    useNavigation: () => ({ navigate: mockNavigate }),
+    useFocusEffect: (cb: () => void) => {
+      actualReact.useEffect(() => {
+        cb();
+      }, [cb]);
+    },
+  };
+});
+
+const mockSetBadgeCountAsync = jest.fn();
+jest.mock('expo-notifications', () => ({
+  setBadgeCountAsync: (...args: unknown[]) => mockSetBadgeCountAsync(...args),
 }));
 
 const mockApi = api as jest.Mocked<typeof api>;
@@ -396,5 +409,13 @@ describe('CalendarScreen', () => {
     expect(getByTestId('toast-message').props.children).toEqual(
       expect.stringContaining('no se pudieron guardar'),
     );
+  });
+
+  it('clears the app icon badge count when the screen gains focus', async () => {
+    mockEventTypesOnce([]);
+
+    await render(<Wrapped />);
+
+    await waitFor(() => expect(mockSetBadgeCountAsync).toHaveBeenCalledWith(0));
   });
 });

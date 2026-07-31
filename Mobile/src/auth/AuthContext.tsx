@@ -2,6 +2,15 @@ import React, { createContext, useContext, useState, useCallback, useEffect, use
 import { api, setApiTokenGetter } from '../api/client';
 import * as SecureStore from '../auth/secureStore';
 import { getRolesFromToken } from './roles';
+// Lazy require (not a static import): notifications/index.ts pulls in expo-notifications,
+// which in turn requires the 'expo' package — a chain many existing screen/navigation tests
+// don't (and shouldn't have to) mock. A static import here would execute that chain any time
+// AuthContext.tsx is loaded for real, including when Jest automocks this module to build a
+// shape for `jest.mock('.../AuthContext')` in unrelated test files. Requiring lazily inside
+// login()/logout() defers that cost to actual invocation, which is already covered by an
+// explicit `jest.mock('../../notifications', ...)` in AuthContext's own test file.
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const getNotificationsModule = () => require('../notifications') as typeof import('../notifications');
 
 interface AuthContextType {
   token: string | null;
@@ -51,6 +60,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       await SecureStore.saveToken(newToken);
       setToken(newToken);
       setIsAuthenticated(true);
+      // Fire-and-forget: a slow/failed permission flow must never delay or block login.
+      getNotificationsModule()
+        .initPushNotifications()
+        .catch((e) => console.error('Push notification init failed:', e));
     } catch (e: any) {
       const errorMessage = e.response?.data?.detail || e.message || 'Login failed';
       setError(errorMessage);
@@ -62,6 +75,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const logout = useCallback(async () => {
     try {
+      await getNotificationsModule().teardownPushNotifications();
       await SecureStore.deleteToken();
       setToken(null);
       setIsAuthenticated(false);

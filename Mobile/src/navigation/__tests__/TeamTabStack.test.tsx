@@ -1,6 +1,7 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
 
+jest.mock('expo-notifications', () => ({ setBadgeCountAsync: jest.fn() }));
 jest.mock('../../screens/TeamMenuScreen', () => 'TeamMenuScreen');
 jest.mock('../../screens/PlayerSeasonCardsScreen', () => 'PlayerSeasonCardsScreen');
 jest.mock('../../screens/InjuriesScreen', () => 'InjuriesScreen');

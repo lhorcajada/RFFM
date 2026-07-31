@@ -7,6 +7,11 @@ jest.mock('../../auth/AuthContext', () => ({
   useAuth: jest.fn(),
 }));
 
+const mockNavigate = jest.fn();
+jest.mock('@react-navigation/native', () => ({
+  useNavigation: () => ({ navigate: mockNavigate }),
+}));
+
 const mockUseAuth = useAuth as jest.Mock;
 const mockLogout = jest.fn();
 
@@ -64,6 +69,18 @@ describe('UserAvatarMenu', () => {
     fireEvent.press(getByTestId('logout-menu-item'));
 
     await waitFor(() => expect(mockLogout).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(queryByTestId('user-avatar-menu')).toBeNull());
+  });
+
+  it('navigates to NotificationSettings and closes the menu when "Notificaciones" is pressed', async () => {
+    const { getByTestId, queryByTestId } = await render(<UserAvatarMenu />);
+
+    fireEvent.press(getByTestId('user-avatar-button'));
+    await waitFor(() => expect(queryByTestId('user-avatar-menu')).toBeTruthy());
+
+    fireEvent.press(getByTestId('notification-settings-menu-item'));
+
+    expect(mockNavigate).toHaveBeenCalledWith('NotificationSettings');
     await waitFor(() => expect(queryByTestId('user-avatar-menu')).toBeNull());
   });
 });

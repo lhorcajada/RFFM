@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import TeamSwitcherScreen from '../screens/TeamSwitcherScreen';
+import NotificationSettingsScreen from '../screens/NotificationSettingsScreen';
 import CalendarScreen from '../screens/CalendarScreen';
 import FriendliesScreen from '../screens/FriendliesScreen';
 import TournamentsScreen from '../screens/TournamentsScreen';
@@ -24,6 +25,7 @@ import AppHeaderTitle from './AppHeaderTitle';
 import UserAvatarMenu from './UserAvatarMenu';
 import { useAuth } from '../auth/AuthContext';
 import { coachColors } from '../theme/colors';
+import { navigationRef } from './navigationRef';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -198,7 +200,7 @@ export const RootNavigator = () => {
   const { isAuthenticated } = useAuth();
 
   return (
-    <NavigationContainer theme={rffmCoachNavTheme}>
+    <NavigationContainer ref={navigationRef} theme={rffmCoachNavTheme}>
       <Stack.Navigator
         screenOptions={{
           headerShown: true,
@@ -230,6 +232,13 @@ export const RootNavigator = () => {
               component={TeamSwitcherScreen}
               options={{
                 title: 'Seleccionar equipo',
+              }}
+            />
+            <Stack.Screen
+              name="NotificationSettings"
+              component={NotificationSettingsScreen}
+              options={{
+                title: 'Notificaciones',
               }}
             />
             <Stack.Group

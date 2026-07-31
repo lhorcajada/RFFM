@@ -5,6 +5,11 @@ jest.mock('../../screens/NewsScreen', () => 'NewsScreen');
 jest.mock('../../screens/NewsDetailScreen', () => 'NewsDetailScreen');
 jest.mock('../../screens/NewsFormScreen', () => 'NewsFormScreen');
 jest.mock('@react-native-community/datetimepicker', () => 'DateTimePicker');
+// RootNavigator imports CalendarScreen (unmocked here since this suite only covers
+// NewsTabStack), which imports expo-notifications for badge clearing on focus.
+jest.mock('expo-notifications', () => ({
+  setBadgeCountAsync: jest.fn(),
+}));
 
 jest.mock('@react-navigation/native-stack', () => {
   const ReactActual = require('react');

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { coachColors } from '../theme/colors';
 import { useAuth } from '../auth/AuthContext';
 
@@ -8,6 +9,7 @@ const MENU_ANIMATION_MS = 150;
 
 const UserAvatarMenu = () => {
   const { logout } = useAuth();
+  const navigation = useNavigation<any>();
   const [open, setOpen] = useState(false);
   const animation = useRef(new Animated.Value(0)).current;
 
@@ -25,6 +27,11 @@ const UserAvatarMenu = () => {
   const handleLogout = async () => {
     closeMenu();
     await logout();
+  };
+
+  const handleNotificationSettings = () => {
+    closeMenu();
+    navigation.navigate('NotificationSettings');
   };
 
   return (
@@ -52,6 +59,13 @@ const UserAvatarMenu = () => {
               },
             ]}
           >
+            <Pressable
+              testID="notification-settings-menu-item"
+              onPress={handleNotificationSettings}
+              style={styles.menuItem}
+            >
+              <Text style={styles.menuItemText}>Notificaciones</Text>
+            </Pressable>
             <Pressable testID="logout-menu-item" onPress={handleLogout} style={styles.menuItem}>
               <Text style={styles.menuItemText}>Cerrar sesión</Text>
             </Pressable>

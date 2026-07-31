@@ -11,6 +11,13 @@ jest.mock('../../api/client', () => ({
   setApiTokenGetter: jest.fn(),
 }));
 
+const mockInitPushNotifications = jest.fn();
+const mockTeardownPushNotifications = jest.fn();
+jest.mock('../../notifications', () => ({
+  initPushNotifications: (...args: unknown[]) => mockInitPushNotifications(...args),
+  teardownPushNotifications: (...args: unknown[]) => mockTeardownPushNotifications(...args),
+}));
+
 const mockSecureStore = SecureStore as jest.Mocked<typeof SecureStore>;
 const mockApi = api as jest.Mocked<typeof api>;
 
@@ -47,6 +54,8 @@ describe('AuthContext', () => {
     (mockSecureStore.getItemAsync as jest.Mock).mockResolvedValue(null);
     (mockSecureStore.setItemAsync as jest.Mock).mockResolvedValue(undefined);
     (mockSecureStore.deleteItemAsync as jest.Mock).mockResolvedValue(undefined);
+    mockInitPushNotifications.mockResolvedValue(undefined);
+    mockTeardownPushNotifications.mockResolvedValue(undefined);
   });
 
   it('exposes the roles decoded from the token after login', async () => {
@@ -129,5 +138,69 @@ describe('AuthContext', () => {
 
     await waitFor(() => expect(getByTestId('status').props.children).toBe('anonymous'));
     expect(mockSecureStore.deleteItemAsync).toHaveBeenCalledWith('auth_token');
+  });
+
+  it('calls initPushNotifications on successful login without blocking isAuthenticated from flipping', async () => {
+    (mockApi.post as jest.Mock).mockResolvedValue({ data: 'jwt-token-123' });
+    let resolveInit: (() => void) | undefined;
+    mockInitPushNotifications.mockReturnValue(
+      new Promise<void>((resolve) => {
+        resolveInit = resolve;
+      }),
+    );
+
+    const { getByTestId } = await render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>,
+    );
+
+    await fireEvent.press(getByTestId('login-btn'));
+
+    await waitFor(() => expect(getByTestId('status').props.children).toBe('authenticated'));
+    expect(mockInitPushNotifications).toHaveBeenCalledTimes(1);
+
+    resolveInit?.();
+  });
+
+  it('login still succeeds even if initPushNotifications rejects', async () => {
+    (mockApi.post as jest.Mock).mockResolvedValue({ data: 'jwt-token-123' });
+    mockInitPushNotifications.mockRejectedValue(new Error('push init failed'));
+
+    const { getByTestId } = await render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>,
+    );
+
+    await fireEvent.press(getByTestId('login-btn'));
+
+    await waitFor(() => expect(getByTestId('status').props.children).toBe('authenticated'));
+  });
+
+  it('awaits teardownPushNotifications before deleting the stored token on logout', async () => {
+    (mockApi.post as jest.Mock).mockResolvedValue({ data: 'jwt-token-123' });
+    const callOrder: string[] = [];
+    mockTeardownPushNotifications.mockImplementation(async () => {
+      callOrder.push('teardown');
+    });
+    (mockSecureStore.deleteItemAsync as jest.Mock).mockImplementation(async () => {
+      callOrder.push('deleteToken');
+    });
+
+    const { getByTestId } = await render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>,
+    );
+
+    await fireEvent.press(getByTestId('login-btn'));
+    await waitFor(() => expect(getByTestId('status').props.children).toBe('authenticated'));
+
+    await fireEvent.press(getByTestId('logout-btn'));
+
+    await waitFor(() => expect(getByTestId('status').props.children).toBe('anonymous'));
+    expect(mockTeardownPushNotifications).toHaveBeenCalledTimes(1);
+    expect(callOrder).toEqual(['teardown', 'deleteToken']);
   });
 });

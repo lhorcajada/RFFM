@@ -1,7 +1,7 @@
 module.exports = {
   preset: 'jest-expo',
   transformIgnorePatterns: [
-    'node_modules/(?!(expo|expo-secure-store|expo-constants|expo-localization|expo-image-picker|expo-document-picker|expo-file-system|expo-modules-core|@react-native|react-native|react-native-webview|@react-navigation)/)'
+    'node_modules/(?!(expo|expo-secure-store|expo-constants|expo-localization|expo-image-picker|expo-document-picker|expo-file-system|expo-notifications|expo-crypto|expo-modules-core|@react-native|react-native|react-native-webview|@react-navigation)/)'
   ],
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   testEnvironment: 'node',
