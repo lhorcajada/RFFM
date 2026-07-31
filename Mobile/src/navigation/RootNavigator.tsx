@@ -32,12 +32,7 @@ const CompetitionStack = createNativeStackNavigator();
 const CalendarStack = createNativeStackNavigator();
 const NewsStack = createNativeStackNavigator();
 
-const eventDetailScreenOptions = ({ route }: { route: { params?: { teamId?: string } } }) => ({
-  headerShown: true,
-  headerTitle: () => <AppHeaderTitle teamId={route.params?.teamId} />,
-  headerRight: () => <UserAvatarMenu />,
-  headerBackVisible: false,
-});
+const eventDetailScreenOptions = { headerShown: false };
 
 const rffmCoachNavTheme: Theme = {
   ...DarkTheme,

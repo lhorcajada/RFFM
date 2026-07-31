@@ -63,20 +63,11 @@ describe('CalendarTabStack', () => {
     expect(params.teamPlayerId).toBe('player1');
   });
 
-  it('keeps the native header visible with the app/club/team title for EventDetail, so the header matches the rest of the app', async () => {
+  it('hides the nested native header for EventDetail, since the outer Calendar stack already renders the persistent app header', async () => {
     const { getByTestId } = await render(
       <CalendarTabStack route={{ params: { teamId: 'team1', teamPlayerId: 'player1' } }} />,
     );
 
-    expect(getByTestId('stack-header-shown-EventDetail').props.children).toBe('true');
-    expect(getByTestId('stack-has-header-title-EventDetail').props.children).toBe('true');
-  });
-
-  it('hides the native back button for EventDetail, since the in-content ScreenHeader already provides one', async () => {
-    const { getByTestId } = await render(
-      <CalendarTabStack route={{ params: { teamId: 'team1', teamPlayerId: 'player1' } }} />,
-    );
-
-    expect(getByTestId('stack-header-back-visible-EventDetail').props.children).toBe('false');
+    expect(getByTestId('stack-header-shown-EventDetail').props.children).toBe('false');
   });
 });

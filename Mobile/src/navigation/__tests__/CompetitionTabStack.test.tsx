@@ -50,13 +50,12 @@ describe('CompetitionTabStack', () => {
     expect(stackNames).toEqual(['CompetitionMenu', 'LeagueTab', 'FriendliesTab', 'TournamentsTab', 'EventDetail']);
   });
 
-  it('keeps the native header visible (no back button) for EventDetail, so the tab bar stays reachable', async () => {
+  it('hides the nested native header for EventDetail, since the outer Calendar stack already renders the persistent app header', async () => {
     const { getByTestId } = await render(
       <CompetitionTabStack route={{ params: { teamId: 'team1', teamPlayerId: 'player1' } }} />,
     );
 
-    expect(getByTestId('stack-header-shown-EventDetail').props.children).toBe('true');
-    expect(getByTestId('stack-header-back-visible-EventDetail').props.children).toBe('false');
+    expect(getByTestId('stack-header-shown-EventDetail').props.children).toBe('false');
   });
 
   it('forwards teamId and teamPlayerId via initialParams to CompetitionMenu', async () => {
