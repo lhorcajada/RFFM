@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
 import NewsScreen from '../NewsScreen';
 import { getNews, getNewsDrafts } from '../../api/news';
 import { useAuth } from '../../auth/AuthContext';
@@ -8,9 +8,19 @@ jest.mock('../../api/news');
 jest.mock('../../auth/AuthContext');
 
 const mockNavigationNavigate = jest.fn();
-jest.mock('@react-navigation/native', () => ({
-  useNavigation: () => ({ navigate: mockNavigationNavigate }),
-}));
+let capturedFocusCallback: (() => void) | null = null;
+jest.mock('@react-navigation/native', () => {
+  const actualReact = require('react');
+  return {
+    useNavigation: () => ({ navigate: mockNavigationNavigate }),
+    useFocusEffect: (cb: () => void) => {
+      capturedFocusCallback = cb;
+      actualReact.useEffect(() => {
+        cb();
+      }, [cb]);
+    },
+  };
+});
 
 const mockGetNews = getNews as jest.Mock;
 const mockGetNewsDrafts = getNewsDrafts as jest.Mock;
@@ -284,6 +294,25 @@ describe('NewsScreen', () => {
 
     await waitFor(() => {
       expect(getByTestId(`news-card-${futureItem.id}`)).toBeTruthy();
+    });
+  });
+
+  it('refetches the feed when the screen regains focus', async () => {
+    mockGetNews.mockResolvedValue({ items: [publishedItem], totalCount: 1 });
+    mockUseAuth.mockReturnValue({ roles: ['FamilyMember'] });
+
+    await render(<NewsScreen />);
+
+    await waitFor(() => {
+      expect(mockGetNews).toHaveBeenCalledTimes(1);
+    });
+
+    await act(async () => {
+      capturedFocusCallback?.();
+    });
+
+    await waitFor(() => {
+      expect(mockGetNews).toHaveBeenCalledTimes(2);
     });
   });
 

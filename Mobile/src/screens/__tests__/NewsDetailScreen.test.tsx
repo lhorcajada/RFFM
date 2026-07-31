@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import NewsDetailScreen from '../NewsDetailScreen';
-import { getNewsById, deleteNews } from '../../api/news';
+import { getNewsById, deleteNews, publishNews } from '../../api/news';
 import { useAuth } from '../../auth/AuthContext';
 
 jest.mock('../../api/news');
@@ -16,6 +16,7 @@ jest.mock('@react-navigation/native', () => ({
 
 const mockGetNewsById = getNewsById as jest.Mock;
 const mockDeleteNews = deleteNews as jest.Mock;
+const mockPublishNews = publishNews as jest.Mock;
 const mockUseAuth = useAuth as jest.Mock;
 
 const newsDetail = {
@@ -29,6 +30,12 @@ const newsDetail = {
   newsDate: '2026-07-30',
   createdAt: '2026-01-01T00:00:00Z',
   updatedAt: '2026-01-01T00:00:00Z',
+};
+
+const draftNewsDetail = {
+  ...newsDetail,
+  status: 'Draft' as const,
+  publishedAt: null,
 };
 
 describe('NewsDetailScreen', () => {
@@ -153,5 +160,93 @@ describe('NewsDetailScreen', () => {
 
     // Since we can't easily mock Alert in this env, just verify the function is accessible
     expect(getByTestId('delete-button')).toBeTruthy();
+  });
+
+  it('shows the publish button for Coach when the news is a Draft', async () => {
+    mockGetNewsById.mockResolvedValue(draftNewsDetail);
+    mockUseAuth.mockReturnValue({ roles: ['Coach'] });
+
+    const { queryByTestId } = await render(<NewsDetailScreen />);
+
+    await waitFor(() => {
+      expect(queryByTestId('publish-button')).toBeTruthy();
+    });
+  });
+
+  it('does not show the publish button when the news is already Published', async () => {
+    mockGetNewsById.mockResolvedValue(newsDetail);
+    mockUseAuth.mockReturnValue({ roles: ['Coach'] });
+
+    const { queryByTestId } = await render(<NewsDetailScreen />);
+
+    await waitFor(() => {
+      expect(queryByTestId('edit-button')).toBeTruthy();
+    });
+    expect(queryByTestId('publish-button')).toBeNull();
+  });
+
+  it('does not show the publish button for non-Coach roles even when the news is a Draft', async () => {
+    mockGetNewsById.mockResolvedValue(draftNewsDetail);
+    mockUseAuth.mockReturnValue({ roles: ['Player'] });
+
+    const { queryByTestId } = await render(<NewsDetailScreen />);
+
+    await waitFor(() => {
+      expect(queryByTestId('news-detail-title')).toBeTruthy();
+    });
+    expect(queryByTestId('publish-button')).toBeNull();
+  });
+
+  it('Publicar button calls publishNews and updates the news to Published', async () => {
+    mockGetNewsById.mockResolvedValue(draftNewsDetail);
+    mockPublishNews.mockResolvedValue({ ...draftNewsDetail, status: 'Published', publishedAt: '2026-07-31T00:00:00Z' });
+    mockUseAuth.mockReturnValue({ roles: ['Coach'] });
+
+    const { getByTestId, queryByTestId } = await render(<NewsDetailScreen />);
+
+    await waitFor(() => {
+      expect(getByTestId('publish-button')).toBeTruthy();
+    });
+
+    await fireEvent.press(getByTestId('publish-button'));
+
+    expect(mockPublishNews).toHaveBeenCalledWith('news1');
+    await waitFor(() => {
+      expect(queryByTestId('publish-button')).toBeNull();
+    });
+  });
+
+  it('shows an error message when publishing fails', async () => {
+    mockGetNewsById.mockResolvedValue(draftNewsDetail);
+    mockPublishNews.mockRejectedValue({ response: { data: { detail: 'No autorizado' } } });
+    mockUseAuth.mockReturnValue({ roles: ['Coach'] });
+
+    const { getByTestId, findByTestId } = await render(<NewsDetailScreen />);
+
+    await waitFor(() => {
+      expect(getByTestId('publish-button')).toBeTruthy();
+    });
+
+    await fireEvent.press(getByTestId('publish-button'));
+
+    const error = await findByTestId('error-message');
+    expect(error.props.children).toBe('No autorizado');
+  });
+
+  it('shows a fallback error message when publishing fails without a detail', async () => {
+    mockGetNewsById.mockResolvedValue(draftNewsDetail);
+    mockPublishNews.mockRejectedValue(new Error('network error'));
+    mockUseAuth.mockReturnValue({ roles: ['Coach'] });
+
+    const { getByTestId, findByTestId } = await render(<NewsDetailScreen />);
+
+    await waitFor(() => {
+      expect(getByTestId('publish-button')).toBeTruthy();
+    });
+
+    await fireEvent.press(getByTestId('publish-button'));
+
+    const error = await findByTestId('error-message');
+    expect(error.props.children).toBe('No se pudo publicar la noticia');
   });
 });

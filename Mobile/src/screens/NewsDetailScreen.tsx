@@ -3,7 +3,7 @@ import { View, Text, Image, StyleSheet, ActivityIndicator, ScrollView, Alert, Pr
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { coachColors } from '../theme/colors';
 import { useAuth } from '../auth/AuthContext';
-import { getNewsById, deleteNews, NewsDetail } from '../api/news';
+import { getNewsById, deleteNews, publishNews, NewsDetail } from '../api/news';
 import { API_BASE_URL } from '../api/client';
 import { resolvePhotoUrl } from '../utils/resolvePhotoUrl';
 import ScreenHeader, { ScreenHeaderAction } from '../shared/components/ScreenHeader';
@@ -79,8 +79,29 @@ const NewsDetailScreen = () => {
     ]);
   };
 
+  const handlePublish = async () => {
+    try {
+      const updated = await publishNews(newsId);
+      setNews(updated);
+      setError(null);
+    } catch (e: any) {
+      setError(e.response?.data?.detail || 'No se pudo publicar la noticia');
+    }
+  };
+
   const actions: ScreenHeaderAction[] | undefined = isCoachOrAdmin
     ? [
+        ...(news?.status === 'Draft'
+          ? [
+              {
+                key: 'publish',
+                icon: 'megaphone-outline',
+                label: 'Publicar',
+                testID: 'publish-button',
+                onPress: handlePublish,
+              },
+            ]
+          : []),
         {
           key: 'edit',
           icon: 'create-outline',

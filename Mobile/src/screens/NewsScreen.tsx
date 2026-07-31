@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Image, Pressable, ActivityIndicator, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { coachColors } from '../theme/colors';
 import { useAuth } from '../auth/AuthContext';
 import { getNews, getNewsDrafts, NewsSummary } from '../api/news';
@@ -81,9 +81,11 @@ const NewsScreen = () => {
     }
   }, [isCoachOrAdmin]);
 
-  useEffect(() => {
-    fetchFeed();
-  }, [fetchFeed]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchFeed();
+    }, [fetchFeed])
+  );
 
   const rows = useMemo<FeedRow[]>(() => {
     const groups = groupNewsByDate(items);
