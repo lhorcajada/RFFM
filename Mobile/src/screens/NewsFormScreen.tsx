@@ -1,5 +1,16 @@
 ﻿import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, TextInput, StyleSheet, Pressable, Image, ActivityIndicator, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  StyleSheet,
+  Pressable,
+  Image,
+  ActivityIndicator,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -173,7 +184,13 @@ const NewsFormScreen = () => {
   return (
     <View testID="news-form-container" style={styles.container}>
       {renderHeader()}
-      <ScrollView contentContainerStyle={styles.contentContainer}>
+      <KeyboardAvoidingView
+        testID="news-form-keyboard-avoiding"
+        style={styles.keyboardAvoiding}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 24}
+      >
+      <ScrollView contentContainerStyle={styles.contentContainer} keyboardShouldPersistTaps="handled">
         <Pressable testID="pick-image-button" style={styles.imagePicker} onPress={handlePickImage}>
           {coverUri ? (
             <Image testID="news-form-cover-preview" source={{ uri: coverUri }} style={styles.coverPreview} />
@@ -249,12 +266,14 @@ const NewsFormScreen = () => {
           </Pressable>
         )}
       </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1, paddingHorizontal: 20, paddingTop: 16, backgroundColor: coachColors.background },
+  keyboardAvoiding: { flex: 1 },
   centeredContent: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   contentContainer: { paddingBottom: 32, gap: 12 },
   imagePicker: {

@@ -53,6 +53,14 @@ describe('NewsFormScreen', () => {
     });
   });
 
+  it('wraps the form in a KeyboardAvoidingView so the keyboard does not cover the body input', async () => {
+    const { getByTestId } = await render(<NewsFormScreen />);
+
+    await waitFor(() => {
+      expect(getByTestId('news-form-keyboard-avoiding')).toBeTruthy();
+    });
+  });
+
   it('renders create mode with draft and publish buttons', async () => {
     const { queryByTestId } = await render(<NewsFormScreen />);
 
