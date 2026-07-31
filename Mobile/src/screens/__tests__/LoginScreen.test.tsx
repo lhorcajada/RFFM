@@ -39,7 +39,10 @@ describe('LoginScreen', () => {
     expect(getByTestId('password-input').props.placeholderTextColor).toBe(coachColors.textSecondary);
   });
 
-  it('submits credentials and navigates to TeamSwitcher on success', async () => {
+  it('submits credentials and does not navigate manually on success', async () => {
+    // RootNavigator conditionally renders the authenticated stack (TeamSwitcher) once
+    // isAuthenticated flips to true; calling navigate('TeamSwitcher') here would race
+    // that swap and throw "The action 'NAVIGATE' ... was not handled by any navigator."
     const login = jest.fn().mockResolvedValue(undefined);
     mockUseAuth.mockReturnValue({ login });
     const { getByTestId } = await render(<LoginScreen />);
@@ -49,7 +52,7 @@ describe('LoginScreen', () => {
     await fireEvent.press(getByTestId('login-button'));
 
     await waitFor(() => expect(login).toHaveBeenCalledWith('player1', 'secret'));
-    expect(mockNavigate).toHaveBeenCalledWith('TeamSwitcher');
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 
   it('trims leading/trailing whitespace from the username before submitting', async () => {

@@ -27,7 +27,8 @@ const LoginScreen = () => {
 
     try {
       await login(username.trim(), password);
-      navigation.navigate('TeamSwitcher');
+      // RootNavigator swaps to the authenticated stack (TeamSwitcher) automatically
+      // once isAuthenticated flips to true — navigating here would race that swap.
     } catch (e: any) {
       const errorMessage =
         e.response?.data?.detail ||
