@@ -202,6 +202,7 @@ export const RootNavigator = () => {
       <Stack.Navigator
         screenOptions={{
           headerShown: true,
+          headerTitleAlign: 'left',
           headerRight: () => <UserAvatarMenu />,
         }}
       >

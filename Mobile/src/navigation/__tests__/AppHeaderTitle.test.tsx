@@ -39,7 +39,7 @@ describe('AppHeaderTitle', () => {
     expect(mockFetchTeamSummary).not.toHaveBeenCalled();
   });
 
-  it('renders the team shield and name as a subtitle when teamId is provided', async () => {
+  it('renders a single row with the club shield and the concatenated club + team name when teamId is provided', async () => {
     mockFetchTeamSummary.mockResolvedValue({
       name: 'Alevin A',
       shieldUrl: 'https://example.com/shield.png',
@@ -47,11 +47,12 @@ describe('AppHeaderTitle', () => {
       clubShieldUrl: 'https://example.com/club-shield.png',
     });
 
-    const { getByTestId, findByText } = await render(<AppHeaderTitle teamId="team1" />);
+    const { getByTestId, findByText, queryByTestId } = await render(<AppHeaderTitle teamId="team1" />);
 
     expect(mockFetchTeamSummary).toHaveBeenCalledWith('team1');
-    await findByText('Alevin A');
+    await findByText('FC Example Alevin A');
     expect(getByTestId('team-shield')).toBeTruthy();
+    expect(queryByTestId('club-shield')).toBeNull();
   });
 
   it('does not render the subtitle when the team request fails', async () => {
@@ -64,25 +65,12 @@ describe('AppHeaderTitle', () => {
     expect(queryByText('Alevin A')).toBeNull();
   });
 
-  it('does not render a club shield/name next to the title when no teamId is provided', async () => {
+  it('does not render the club/team row next to the title when no teamId is provided', async () => {
     const { queryByTestId, queryByText } = await render(<AppHeaderTitle />);
 
-    expect(queryByTestId('club-shield')).toBeNull();
+    expect(queryByTestId('team-shield')).toBeNull();
     expect(queryByText('FC Example')).toBeNull();
-  });
-
-  it('renders the club shield and name next to the FutbolBase title when teamId is provided', async () => {
-    mockFetchTeamSummary.mockResolvedValue({
-      name: 'Alevin A',
-      shieldUrl: 'https://example.com/shield.png',
-      clubName: 'FC Example',
-      clubShieldUrl: 'https://example.com/club-shield.png',
-    });
-
-    const { getByTestId, findByText } = await render(<AppHeaderTitle teamId="team1" />);
-
-    await findByText('FC Example');
-    expect(getByTestId('club-shield')).toBeTruthy();
+    expect(queryByText(/FC Example/)).toBeNull();
   });
 
   it('resolves the emblem via the authenticated download endpoint when the club shield is a relative storage path', async () => {
@@ -97,9 +85,8 @@ describe('AppHeaderTitle', () => {
 
     const { getByTestId, findByText } = await render(<AppHeaderTitle teamId="team1" />);
 
-    await findByText('FC Example');
+    await findByText('FC Example Alevin A');
     expect(mockFetchClubEmblemDataUri).toHaveBeenCalledWith('club1');
-    expect(getByTestId('club-shield').props.source).toEqual({ uri: 'data:image/png;base64,AAA=' });
     expect(getByTestId('team-shield').props.source).toEqual({ uri: 'data:image/png;base64,AAA=' });
   });
 });
