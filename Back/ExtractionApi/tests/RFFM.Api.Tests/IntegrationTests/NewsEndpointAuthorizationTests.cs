@@ -82,6 +82,26 @@ namespace RFFM.Api.Tests.IntegrationTests
             }
         }
 
+        /// <summary>
+        /// Spy standing in for the real ExpoPushService-backed dispatcher in this minimal test
+        /// host. Tests in this class run sequentially (shared PostgresCollection), so a static
+        /// call counter reset at the start of each test that cares about it is safe.
+        /// </summary>
+        private class NoOpPushNotificationDispatcher : RFFM.Api.Features.Mobile.PushNotifications.IPushNotificationDispatcher
+        {
+            public static int NewsPublishedCallCount;
+            public static string? LastNewsId;
+
+            public Task DispatchNewsPublishedAsync(string newsId, CancellationToken ct = default)
+            {
+                NewsPublishedCallCount++;
+                LastNewsId = newsId;
+                return Task.CompletedTask;
+            }
+
+            public Task DispatchCalendarChangedAsync(string eventId, string teamId, CancellationToken ct = default) => Task.CompletedTask;
+        }
+
         private async Task<(IHost Host, HttpClient Client)> StartHostAsync(IFeatureModule module)
         {
             var host = new HostBuilder()
@@ -133,6 +153,13 @@ namespace RFFM.Api.Tests.IntegrationTests
                             services.AddScoped<IValidator<CreateNewsCommand>, CreateNewsValidator>();
                             services.AddScoped<IValidator<UpdateNewsCommand>, UpdateNewsValidator>();
                             services.AddScoped<IValidator<UploadNewsImageCommand>, UploadNewsImageValidator>();
+
+                            // PublishNewsHandler depends on IPushNotificationDispatcher (dispatches
+                            // a push notification after publish); this minimal test host doesn't go
+                            // through AddAppServices, so it must be registered explicitly for
+                            // Mediator's DI resolution to succeed. A no-op stub is enough here —
+                            // dispatcher behavior itself is covered by PushNotificationDispatcherTests.
+                            services.AddScoped<RFFM.Api.Features.Mobile.PushNotifications.IPushNotificationDispatcher, NoOpPushNotificationDispatcher>();
                         })
                         .Configure(app =>
                         {
@@ -328,6 +355,8 @@ namespace RFFM.Api.Tests.IntegrationTests
         public async Task PublishNews_DraftToPublished_ReturnsOk()
         {
             var news = await CreateNewsItemAsync(NewsStatus.Draft);
+            NoOpPushNotificationDispatcher.NewsPublishedCallCount = 0;
+            NoOpPushNotificationDispatcher.LastNewsId = null;
             var (host, client) = await StartHostAsync(new PublishNews());
             using var _ = host;
 
@@ -337,6 +366,8 @@ namespace RFFM.Api.Tests.IntegrationTests
             var response = await client.SendAsync(request);
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal(1, NoOpPushNotificationDispatcher.NewsPublishedCallCount);
+            Assert.Equal(news.Id, NoOpPushNotificationDispatcher.LastNewsId);
         }
 
         [Fact]

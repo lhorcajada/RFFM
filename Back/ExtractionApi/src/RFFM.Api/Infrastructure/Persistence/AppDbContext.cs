@@ -16,6 +16,7 @@ using RFFM.Api.Domain.Entities.Formations;
 using RFFM.Api.Domain.Entities.TeamPlayers;
 using RFFM.Api.Domain.Entities.SeasonAccess;
 using RFFM.Api.Domain.Entities.News;
+using RFFM.Api.Domain.Entities.PushNotifications;
 using SmartEnum.EFCore;
 
 namespace RFFM.Api.Infrastructure.Persistence
@@ -119,6 +120,9 @@ namespace RFFM.Api.Infrastructure.Persistence
 
         // News
         public DbSet<NewsItem> News { get; set; }
+
+        // Push notifications
+        public DbSet<PushToken> PushTokens { get; set; }
 
         public AppDbContext(DbContextOptions<AppDbContext> options)
             : base(options)

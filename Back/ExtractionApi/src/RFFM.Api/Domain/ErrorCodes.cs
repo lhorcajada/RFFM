@@ -86,5 +86,8 @@ namespace RFFM.Api.Domain
         // News (Features/Coaches/News)
         public const string NewsNotFound = "NewsNotFound";
         public const string NewsAlreadyPublished = "NewsAlreadyPublished";
+
+        // Push Notifications (Features/Mobile/PushNotifications)
+        public const string PushTokenNotFound = "PushTokenNotFound";
     }
 }

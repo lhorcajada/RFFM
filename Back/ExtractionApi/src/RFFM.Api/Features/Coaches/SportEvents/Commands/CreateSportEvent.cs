@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Domain.Aggregates.Assistances;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Features.Coaches.SportEvents.Queries;
+using RFFM.Api.Features.Mobile.PushNotifications;
 using RFFM.Api.Infrastructure.Persistence;
 
 namespace RFFM.Api.Features.Coaches.SportEvents.Commands
@@ -17,7 +18,7 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
         public void AddRoutes(IEndpointRouteBuilder app)
         {
             app.MapPost("/api/sport-events",
-                    async (CreateSportEventRequest req, AppDbContext db, CancellationToken cancellationToken) =>
+                    async (CreateSportEventRequest req, AppDbContext db, IPushNotificationDispatcher dispatcher, CancellationToken cancellationToken) =>
                     {
                         var resolvedTeamId = await db.Teams
                             .Where(t => t.Id.Trim() == req.TeamId.Trim())
@@ -100,6 +101,10 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
                             db.SportEvents.AddRange(instances);
                             await db.SaveChangesAsync(cancellationToken);
                         }
+
+                        // Dispatch once for the master event only — not per generated recurrence
+                        // instance, to avoid notification spam for a long recurring series.
+                        await dispatcher.DispatchCalendarChangedAsync(ev.Id, ev.TeamId, cancellationToken);
 
                         return Results.Ok(new SportEventSaveResponse(ev.Id, ev.Name, ev.EveDateTime, ev.StartTime, ev.EndTime, ev.ArrivalDate, ev.Location, ev.Description, ev.EventTypeId, ev.TeamId, ev.RivalId, ev.IsHomeMatch, ev.CodActa, ev.RecurrenceId, ev.IsRecurrenceMaster, recurrence?.InstanceCount));
                     })

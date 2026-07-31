@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Features.Coaches.SportEvents.Queries;
+using RFFM.Api.Features.Mobile.PushNotifications;
 using RFFM.Api.Infrastructure.Persistence;
 
 namespace RFFM.Api.Features.Coaches.SportEvents.Commands
@@ -15,7 +16,7 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
         public void AddRoutes(IEndpointRouteBuilder app)
         {
             app.MapPut("/api/sport-events/{id}",
-                    async (string id, UpdateSportEventRequest req, AppDbContext db, CancellationToken cancellationToken) =>
+                    async (string id, UpdateSportEventRequest req, AppDbContext db, IPushNotificationDispatcher dispatcher, CancellationToken cancellationToken) =>
                     {
                         var ev = await db.SportEvents.FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
                         if (ev is null) return Results.NotFound();
@@ -36,6 +37,8 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
                         ev.CodActa = req.CodActa;
 
                         await db.SaveChangesAsync(cancellationToken);
+
+                        await dispatcher.DispatchCalendarChangedAsync(ev.Id, ev.TeamId, cancellationToken);
 
                         return Results.Ok(new SportEventSaveResponse(ev.Id, ev.Name, ev.EveDateTime, ev.StartTime, ev.EndTime, ev.ArrivalDate, ev.Location, ev.Description, ev.EventTypeId, ev.TeamId, ev.RivalId, ev.IsHomeMatch, ev.CodActa, ev.RecurrenceId, ev.IsRecurrenceMaster, null));
                     })

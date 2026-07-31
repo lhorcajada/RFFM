@@ -57,6 +57,12 @@ namespace RFFM.Api.DependencyInjection
             services.AddScoped<FluentValidation.IValidator<RFFM.Api.Features.Coaches.News.UpdateNewsCommand>, RFFM.Api.Features.Coaches.News.UpdateNewsValidator>();
             services.AddScoped<FluentValidation.IValidator<RFFM.Api.Features.Coaches.News.UploadNewsImageCommand>, RFFM.Api.Features.Coaches.News.UploadNewsImageValidator>();
 
+            // FluentValidation validators for the PushNotifications feature (same manual
+            // registration requirement as News above — no assembly-wide validator scan).
+            services.AddScoped<FluentValidation.IValidator<RFFM.Api.Features.Mobile.PushNotifications.RegisterPushToken.RegisterPushTokenCommand>, RFFM.Api.Features.Mobile.PushNotifications.RegisterPushToken.Validator>();
+            services.AddScoped<FluentValidation.IValidator<RFFM.Api.Features.Mobile.PushNotifications.UnregisterPushToken.UnregisterPushTokenCommand>, RFFM.Api.Features.Mobile.PushNotifications.UnregisterPushToken.Validator>();
+            services.AddScoped<FluentValidation.IValidator<RFFM.Api.Features.Mobile.PushNotifications.UpdatePushPreferences.UpdatePushPreferencesCommand>, RFFM.Api.Features.Mobile.PushNotifications.UpdatePushPreferences.Validator>();
+
             // Email template service requires a template path; allow configuration override
             var templatePath = Path.Combine(Directory.GetParent(Directory.GetCurrentDirectory()).FullName,
                 "RFFM.Api", "Infrastructure", "Services", "Email", "Templates");
@@ -137,6 +143,9 @@ namespace RFFM.Api.DependencyInjection
             services.AddScoped<ITeamService, TeamService>();
             services.AddScoped<IClubDirectoryService, ClubDirectoryService>();
             services.AddScoped<ICalendarService, CalendarService>();
+            services.AddHttpClient("ExpoPush", c => c.BaseAddress = new Uri("https://exp.host/"));
+            services.AddScoped<RFFM.Api.Features.Mobile.PushNotifications.Services.IExpoPushService, RFFM.Api.Features.Mobile.PushNotifications.Services.ExpoPushService>();
+            services.AddScoped<RFFM.Api.Features.Mobile.PushNotifications.IPushNotificationDispatcher, RFFM.Api.Features.Mobile.PushNotifications.PushNotificationDispatcher>();
             services.AddScoped<IMatchDayService, MatchDayService>();
             services.AddScoped<IGoalMinuteParser, GoalMinuteParser>();
             services.AddScoped<ISectorFactory, SectorFactory>();

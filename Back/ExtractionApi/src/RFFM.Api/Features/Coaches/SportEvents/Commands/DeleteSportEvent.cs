@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.FeatureModules;
+using RFFM.Api.Features.Mobile.PushNotifications;
 using RFFM.Api.Infrastructure.Persistence;
 
 namespace RFFM.Api.Features.Coaches.SportEvents.Commands
@@ -38,10 +39,12 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
     public class DeleteSportEventHandler : IRequestHandler<DeleteSportEventCommand, Unit>
     {
         private readonly AppDbContext _db;
+        private readonly IPushNotificationDispatcher _dispatcher;
 
-        public DeleteSportEventHandler(AppDbContext db)
+        public DeleteSportEventHandler(AppDbContext db, IPushNotificationDispatcher dispatcher)
         {
             _db = db;
+            _dispatcher = dispatcher;
         }
 
         public async ValueTask<Unit> Handle(DeleteSportEventCommand request, CancellationToken cancellationToken)
@@ -50,8 +53,15 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
             if (ev == null)
                 throw new KeyNotFoundException($"SportEvent '{request.SportEventId}' Not Found");
 
+            // Capture before deleting: the row (and its TeamId) is gone after Remove+SaveChanges.
+            var eventId = ev.Id;
+            var teamId = ev.TeamId;
+
             _db.SportEvents.Remove(ev);
             await _db.SaveChangesAsync(cancellationToken);
+
+            await _dispatcher.DispatchCalendarChangedAsync(eventId, teamId, cancellationToken);
+
             return Unit.Value;
         }
     }
