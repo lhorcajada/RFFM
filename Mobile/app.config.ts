@@ -11,7 +11,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   extra: {
     apiBaseUrl: process.env.API_BASE_URL || 'https://localhost:7287',
   },
-  plugins: ['expo-localization', '@react-native-community/datetimepicker'],
+  plugins: [
+    'expo-localization',
+    '@react-native-community/datetimepicker',
+    'expo-secure-store',
+    'expo-status-bar',
+    'expo-font',
+  ],
   ios: {
     supportsTablet: true,
   },
