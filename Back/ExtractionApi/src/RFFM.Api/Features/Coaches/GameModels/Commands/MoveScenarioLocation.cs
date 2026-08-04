@@ -14,9 +14,9 @@ using RFFM.Api.Infrastructure.Persistence;
 namespace RFFM.Api.Features.Coaches.GameModels.Commands
 {
     /// <summary>
-    /// Moves a scenario to a different game moment/zone, keeping its full nested content
-    /// (tactical principles, sub-principles, sub-sub-principles, essential skills, media) intact
-    /// and renumbering the scenarios that remain in the source moment/zone.
+    /// Moves a scenario to a different principle within the same game model, keeping its full
+    /// nested content (sub-principles, sub-sub-principles, essential skills, media) intact and
+    /// renumbering the scenarios that remain in the source principle.
     /// PATCH /api/game-models/scenarios/{scenarioId}/location
     /// </summary>
     public class MoveScenarioLocation : IFeatureModule
@@ -32,7 +32,7 @@ namespace RFFM.Api.Features.Coaches.GameModels.Commands
                         if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
 
                         var result = await mediator.Send(
-                            new MoveScenarioLocationCommand(scenarioId, request.GameMomentId, request.GameZoneId, userId), ct);
+                            new MoveScenarioLocationCommand(scenarioId, request.TargetGamePrincipleId, userId), ct);
                         return Results.Ok(result);
                     })
                 .WithName(nameof(MoveScenarioLocation))
@@ -45,10 +45,10 @@ namespace RFFM.Api.Features.Coaches.GameModels.Commands
         }
     }
 
-    public record MoveScenarioLocationRequest(int GameMomentId, int GameZoneId);
+    public record MoveScenarioLocationRequest(string TargetGamePrincipleId);
 
     public record MoveScenarioLocationCommand(
-        string ScenarioId, int GameMomentId, int GameZoneId, string UserId) : IRequest<MoveScenarioLocationResult>, IRequireFeaturePermission
+        string ScenarioId, string TargetGamePrincipleId, string UserId) : IRequest<MoveScenarioLocationResult>, IRequireFeaturePermission
     {
         public string FeatureRoute => CoachFeatureRoutes.GameModel;
         public string RequiredPermission => "ReadWrite";
@@ -68,35 +68,48 @@ namespace RFFM.Api.Features.Coaches.GameModels.Commands
             if (scenario is null)
                 throw new DomainException("Modelo de Juego", "Escenario no encontrado.", ErrorCodes.GameModelNotFound);
 
-            // Access check: GameScenario → GameModel → Team → Club → UserClub (same shape as ToggleSkillMastered/UpdateGameModel).
+            var sourcePrinciple = await _db.GamePrinciples
+                .FirstOrDefaultAsync(p => p.Id == scenario.GamePrincipleId, ct);
+            if (sourcePrinciple is null)
+                throw new DomainException("Modelo de Juego", "Principio no encontrado.", ErrorCodes.GameModelNotFound);
+
+            var targetPrinciple = await _db.GamePrinciples
+                .FirstOrDefaultAsync(p => p.Id == request.TargetGamePrincipleId, ct);
+            if (targetPrinciple is null)
+                throw new DomainException("Modelo de Juego", "Principio de destino no encontrado.", ErrorCodes.GameModelNotFound);
+
+            // Access check: GameScenario → GamePrinciple → GameModel → Team → Club → UserClub (same shape as ToggleSkillMastered/UpdateGameModel).
             var hasAccess = await _db.GameScenarios
                 .Where(s => s.Id == request.ScenarioId)
-                .Join(_db.GameModels, s => s.GameModelId, gm => gm.Id, (s, gm) => gm)
+                .Join(_db.GamePrinciples, s => s.GamePrincipleId, gp => gp.Id, (s, gp) => gp)
+                .Join(_db.GameModels, gp => gp.GameModelId, gm => gm.Id, (gp, gm) => gm)
                 .Join(_db.Teams, gm => gm.TeamId, t => t.Id, (gm, t) => t)
                 .Join(_db.UserClubs, t => t.ClubId, uc => uc.ClubId, (t, uc) => uc)
                 .AnyAsync(uc => uc.ApplicationUserId == request.UserId, ct);
             if (!hasAccess)
                 throw new DomainException("Modelo de Juego", "No tienes acceso a este modelo de juego.", ErrorCodes.GameModelAccessDenied);
 
-            var siblingsInModel = await _db.GameScenarios
-                .Where(s => s.GameModelId == scenario.GameModelId && s.Id != scenario.Id)
-                .ToListAsync(ct);
+            if (targetPrinciple.GameModelId != sourcePrinciple.GameModelId)
+                throw new DomainException("Modelo de Juego", "El principio de destino pertenece a otro modelo de juego.", ErrorCodes.GameModelNotFound);
 
-            var sameLocation = scenario.GameMomentId == request.GameMomentId && scenario.GameZoneId == request.GameZoneId;
+            var sameLocation = scenario.GamePrincipleId == targetPrinciple.Id;
             if (sameLocation)
                 return new MoveScenarioLocationResult(scenario.Order);
 
-            var (oldMomentId, oldZoneId) = (scenario.GameMomentId, scenario.GameZoneId);
+            var sourcePrincipleId = scenario.GamePrincipleId;
 
-            var newOrder = siblingsInModel
-                .Count(s => s.GameMomentId == request.GameMomentId && s.GameZoneId == request.GameZoneId) + 1;
+            var siblingsInModel = await _db.GameScenarios
+                .Where(s => s.Id != scenario.Id && (s.GamePrincipleId == sourcePrincipleId || s.GamePrincipleId == targetPrinciple.Id))
+                .ToListAsync(ct);
 
-            scenario.UpdateMomentAndZone(request.GameMomentId, request.GameZoneId);
+            var newOrder = siblingsInModel.Count(s => s.GamePrincipleId == targetPrinciple.Id) + 1;
+
+            scenario.ReparentTo(targetPrinciple.Id);
             scenario.UpdateOrder(newOrder);
 
-            // Renumber the scenarios left behind in the source moment/zone (mirrors DEL_SCENARIO reducer on the frontend).
+            // Renumber the scenarios left behind in the source principle (mirrors DEL_SCENARIO reducer on the frontend).
             var remainingInSource = siblingsInModel
-                .Where(s => s.GameMomentId == oldMomentId && s.GameZoneId == oldZoneId)
+                .Where(s => s.GamePrincipleId == sourcePrincipleId)
                 .OrderBy(s => s.Order)
                 .ToList();
             for (var i = 0; i < remainingInSource.Count; i++)
@@ -112,8 +125,7 @@ namespace RFFM.Api.Features.Coaches.GameModels.Commands
         public MoveScenarioLocationValidator()
         {
             RuleFor(x => x.ScenarioId).NotEmpty();
-            RuleFor(x => x.GameMomentId).GreaterThan(0);
-            RuleFor(x => x.GameZoneId).GreaterThan(0);
+            RuleFor(x => x.TargetGamePrincipleId).NotEmpty();
         }
     }
 }

@@ -59,11 +59,13 @@ namespace RFFM.Api.Tests.UnitTests
             await db.SaveChangesAsync();
 
             var model = new GameModel(team.Id, "Modelo de prueba", "2025-2026");
-            var scenario = new GameScenario(model.Id, gameMomentId: 1, gameZoneId: 1, order: 0, "Escenario 1", "Contexto");
+            var principle = new GamePrinciple(model.Id, gameMomentId: 1, gameZoneId: 1, order: 1, "Principio 1", "");
+            var scenario = new GameScenario(principle.Id, order: 0, "Escenario 1", "Contexto");
             if (existingMediaUrl is not null && existingMediaType is not null)
                 scenario.UpdateMedia(existingMediaUrl, existingMediaType);
 
-            model.Scenarios.Add(scenario);
+            principle.Scenarios.Add(scenario);
+            model.Principles.Add(principle);
             db.GameModels.Add(model);
             await db.SaveChangesAsync();
 

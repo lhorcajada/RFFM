@@ -1,34 +1,27 @@
 namespace RFFM.Api.Domain.Aggregates.GameModels
 {
     /// <summary>
-    /// A scenario inside a specific game moment + zone combination.
-    /// e.g. Defensa Organizada / Zona de Iniciación / Escenario 1: El rival juega por bandas
+    /// A scenario inside a specific GamePrinciple.
+    /// e.g. Defensa Organizada / Zona de Iniciación / El rival juega por bandas / Escenario 1
     /// </summary>
     public class GameScenario : BaseEntity
     {
-        public string GameModelId { get; private set; } = null!;
-        public int GameMomentId { get; private set; }
-        public int GameZoneId { get; private set; }
+        public string GamePrincipleId { get; private set; } = null!;
         public int Order { get; private set; }
         public string Name { get; private set; } = null!;
         public string Context { get; private set; } = string.Empty;
         public string? MediaUrl { get; private set; }
         public string? MediaType { get; private set; } // "image" | "video"
 
-        public GameModel GameModel { get; private set; } = null!;
-        public GameMoment GameMoment { get; private set; } = null!;
-        public GameZone GameZone { get; private set; } = null!;
+        public GamePrinciple GamePrinciple { get; private set; } = null!;
 
-        public List<ScenarioTacticalPrinciple> TacticalPrinciples { get; private set; } = new();
         public List<SubPrinciple> SubPrinciples { get; private set; } = new();
 
         private GameScenario() { }
 
-        public GameScenario(string gameModelId, int gameMomentId, int gameZoneId, int order, string name, string context)
+        public GameScenario(string gamePrincipleId, int order, string name, string context)
         {
-            GameModelId = gameModelId;
-            GameMomentId = gameMomentId;
-            GameZoneId = gameZoneId;
+            GamePrincipleId = gamePrincipleId;
             Order = order;
             UpdateName(name);
             Context = context;
@@ -44,11 +37,8 @@ namespace RFFM.Api.Domain.Aggregates.GameModels
         public void UpdateContext(string context) => Context = context;
 
         public void UpdateOrder(int order) => Order = order;
-        public void UpdateMomentAndZone(int momentId, int zoneId)
-        {
-            GameMomentId = momentId;
-            GameZoneId = zoneId;
-        }
+
+        public void ReparentTo(string gamePrincipleId) => GamePrincipleId = gamePrincipleId;
 
         public void UpdateMedia(string url, string mediaType)
         {

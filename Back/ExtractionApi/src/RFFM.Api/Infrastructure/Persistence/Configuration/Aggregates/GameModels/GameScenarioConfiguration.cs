@@ -16,7 +16,7 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.GameModel
                 .IsRequired()
                 .HasMaxLength(36);
 
-            builder.Property(x => x.GameModelId)
+            builder.Property(x => x.GamePrincipleId)
                 .IsRequired()
                 .HasMaxLength(36);
 
@@ -36,19 +36,9 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.GameModel
             builder.Property(x => x.MediaType)
                 .HasMaxLength(10);
 
-            builder.HasOne(x => x.GameMoment)
-                .WithMany(m => m.Scenarios)
-                .HasForeignKey(x => x.GameMomentId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            builder.HasOne(x => x.GameZone)
-                .WithMany(z => z.Scenarios)
-                .HasForeignKey(x => x.GameZoneId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            builder.HasMany(x => x.TacticalPrinciples)
-                .WithOne(tp => tp.GameScenario)
-                .HasForeignKey(tp => tp.GameScenarioId)
+            builder.HasOne(x => x.GamePrinciple)
+                .WithMany(p => p.Scenarios)
+                .HasForeignKey(x => x.GamePrincipleId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             builder.HasMany(x => x.SubPrinciples)

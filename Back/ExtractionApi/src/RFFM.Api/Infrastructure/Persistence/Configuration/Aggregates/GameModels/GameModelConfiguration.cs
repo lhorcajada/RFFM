@@ -31,9 +31,9 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.GameModel
             builder.HasIndex(x => new { x.TeamId, x.Season })
                 .IsUnique();
 
-            builder.HasMany(x => x.Scenarios)
-                .WithOne(s => s.GameModel)
-                .HasForeignKey(s => s.GameModelId)
+            builder.HasMany(x => x.Principles)
+                .WithOne(p => p.GameModel)
+                .HasForeignKey(p => p.GameModelId)
                 .OnDelete(DeleteBehavior.Cascade);
         }
     }

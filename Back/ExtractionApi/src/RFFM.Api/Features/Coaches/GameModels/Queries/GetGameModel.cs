@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Common;
 using RFFM.Api.Domain;
-using RFFM.Api.Domain.Aggregates.Training;
 using RFFM.Api.Domain.Entities;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
@@ -55,20 +54,24 @@ namespace RFFM.Api.Features.Coaches.GameModels.Queries
             string TeamId,
             string Name,
             string Season,
-            IEnumerable<ScenarioResponse> Scenarios);
+            IEnumerable<PrincipleResponse> Principles);
 
-        public record TacticalPrincipleDto(int Id, string Name);
-
-        public record ScenarioResponse(
+        public record PrincipleResponse(
             string Id,
             int GameMomentId,
             string GameMomentName,
             int GameZoneId,
             string GameZoneName,
             int Order,
+            string Title,
+            string Description,
+            IEnumerable<ScenarioResponse> Scenarios);
+
+        public record ScenarioResponse(
+            string Id,
+            int Order,
             string Name,
             string Context,
-            IEnumerable<TacticalPrincipleDto> TacticalPrinciples,
             IEnumerable<SubPrincipleResponse> SubPrinciples,
             string? MediaUrl,
             string? MediaType);
@@ -112,16 +115,15 @@ namespace RFFM.Api.Features.Coaches.GameModels.Queries
                     throw new DomainException("Modelo de Juego", "No tienes acceso a este equipo.", ErrorCodes.TeamAccessDenied);
 
                 var model = await _db.GameModels
-                    .Include(gm => gm.Scenarios)
-                        .ThenInclude(s => s.TacticalPrinciples)
-                    .Include(gm => gm.Scenarios)
-                        .ThenInclude(s => s.GameMoment)
-                    .Include(gm => gm.Scenarios)
-                        .ThenInclude(s => s.GameZone)
-                    .Include(gm => gm.Scenarios)
-                        .ThenInclude(s => s.SubPrinciples)
-                            .ThenInclude(sp => sp.SubSubPrinciples)
-                                .ThenInclude(ssp => ssp.EssentialSkills)
+                    .Include(gm => gm.Principles)
+                        .ThenInclude(p => p.GameMoment)
+                    .Include(gm => gm.Principles)
+                        .ThenInclude(p => p.GameZone)
+                    .Include(gm => gm.Principles)
+                        .ThenInclude(p => p.Scenarios)
+                            .ThenInclude(s => s.SubPrinciples)
+                                .ThenInclude(sp => sp.SubSubPrinciples)
+                                    .ThenInclude(ssp => ssp.EssentialSkills)
                     .AsNoTracking()
                     .FirstOrDefaultAsync(gm => gm.TeamId == request.TeamId && gm.Season == request.Season, cancellationToken);
 
@@ -129,7 +131,8 @@ namespace RFFM.Api.Features.Coaches.GameModels.Queries
                     return null;
 
                 // Load exercise counts per essential skill
-                var skillIds = model.Scenarios
+                var skillIds = model.Principles
+                    .SelectMany(p => p.Scenarios)
                     .SelectMany(s => s.SubPrinciples)
                     .SelectMany(sp => sp.SubSubPrinciples)
                     .SelectMany(ssp => ssp.EssentialSkills)
@@ -144,54 +147,59 @@ namespace RFFM.Api.Features.Coaches.GameModels.Queries
                         .ToDictionaryAsync(x => x.SkillId, x => x.Count, cancellationToken)
                     : new Dictionary<string, int>();
 
-                var tpLookup = TacticalGoalsEnum.List().ToDictionary(tg => tg.Id, tg => tg.Name);
-
                 return new GameModelResponse(
                     model.Id,
                     model.TeamId,
                     model.Name,
                     model.Season,
-                    model.Scenarios
-                        .OrderBy(s => s.GameMomentId)
-                        .ThenBy(s => s.GameZoneId)
-                        .ThenBy(s => s.Order)
-                        .Select(s => new ScenarioResponse(
-                            s.Id,
-                            s.GameMomentId,
-                            s.GameMoment.Name,
-                            s.GameZoneId,
-                            s.GameZone.Name,
-                            s.Order,
-                            s.Name,
-                            s.Context,
-                            s.TacticalPrinciples.Select(tp => new TacticalPrincipleDto(tp.TechnicalGoalId, tpLookup.GetValueOrDefault(tp.TechnicalGoalId, ""))),
-                            s.SubPrinciples
-                                .OrderBy(sp => sp.Order)
-                                .ThenBy(sp => sp.Label)
-                                .Select(sp => new SubPrincipleResponse(
-                                    sp.Id,
-                                    sp.Label,
-                                    sp.Order,
-                                    sp.Name,
-                                    sp.Context,
-                                    sp.SubSubPrinciples
-                                        .OrderBy(ssp => ssp.Order)
-                                        .ThenBy(ssp => ssp.Name)
-                                        .Select(ssp => new SubSubPrincipleResponse(
-                                            ssp.Id,
-                                            ssp.Order,
-                                            ssp.Name,
-                                            ssp.Action,
-                                            ssp.EssentialSkills.Select(sk => new EssentialSkillResponse(
-                                                sk.Id,
-                                                sk.Name,
-                                                sk.Description,
-                                                sk.MasteredAt,
-                                                exerciseCounts.GetValueOrDefault(sk.Id, 0)))
-                                        ))
-                                )),
-                            s.MediaUrl,
-                            s.MediaType
+                    model.Principles
+                        .OrderBy(p => p.GameMomentId)
+                        .ThenBy(p => p.GameZoneId)
+                        .ThenBy(p => p.Order)
+                        .Select(p => new PrincipleResponse(
+                            p.Id,
+                            p.GameMomentId,
+                            p.GameMoment.Name,
+                            p.GameZoneId,
+                            p.GameZone.Name,
+                            p.Order,
+                            p.Title,
+                            p.Description,
+                            p.Scenarios
+                                .OrderBy(s => s.Order)
+                                .Select(s => new ScenarioResponse(
+                                    s.Id,
+                                    s.Order,
+                                    s.Name,
+                                    s.Context,
+                                    s.SubPrinciples
+                                        .OrderBy(sp => sp.Order)
+                                        .ThenBy(sp => sp.Label)
+                                        .Select(sp => new SubPrincipleResponse(
+                                            sp.Id,
+                                            sp.Label,
+                                            sp.Order,
+                                            sp.Name,
+                                            sp.Context,
+                                            sp.SubSubPrinciples
+                                                .OrderBy(ssp => ssp.Order)
+                                                .ThenBy(ssp => ssp.Name)
+                                                .Select(ssp => new SubSubPrincipleResponse(
+                                                    ssp.Id,
+                                                    ssp.Order,
+                                                    ssp.Name,
+                                                    ssp.Action,
+                                                    ssp.EssentialSkills.Select(sk => new EssentialSkillResponse(
+                                                        sk.Id,
+                                                        sk.Name,
+                                                        sk.Description,
+                                                        sk.MasteredAt,
+                                                        exerciseCounts.GetValueOrDefault(sk.Id, 0)))
+                                                ))
+                                        )),
+                                    s.MediaUrl,
+                                    s.MediaType
+                                ))
                         ))
                 );
             }

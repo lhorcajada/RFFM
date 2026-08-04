@@ -56,7 +56,6 @@ namespace RFFM.Api.Infrastructure.Persistence
         public DbSet<TaskTraining> TasksTraining { get; set; }
         public DbSet<MaterialsEnum> Materials { get; set; }
         public DbSet<PointsTypeEnum> PointsTypes { get; set; }
-        public DbSet<TacticalGoalsEnum> TacticalGoals { get; set; }
         public DbSet<TrainingPointsReport> TrainingPointsReports { get; set; }
         public DbSet<TaskTrainingBase> TaskTrainingBases { get; set; }
         public DbSet<TaskTrainingSkill> TaskTrainingSkills { get; set; }
@@ -104,8 +103,8 @@ namespace RFFM.Api.Infrastructure.Persistence
         public DbSet<GameModel> GameModels { get; set; }
         public DbSet<GameMoment> GameMoments { get; set; }
         public DbSet<GameZone> GameZones { get; set; }
+        public DbSet<GamePrinciple> GamePrinciples { get; set; }
         public DbSet<GameScenario> GameScenarios { get; set; }
-        public DbSet<ScenarioTacticalPrinciple> ScenarioTacticalPrinciples { get; set; }
 
         // Season prep session
         public DbSet<SeasonPrepSession> SeasonPrepSessions { get; set; }

@@ -59,13 +59,14 @@ namespace RFFM.Api.Features.Coaches.GameModels.Commands
             if (skill is null)
                 throw new DomainException("Habilidades", $"Habilidad no encontrada: {request.SkillId}", ErrorCodes.SkillNotFound);
 
-            // Verify access: EssentialSkill → SubSubPrinciple → SubPrinciple → GameScenario → GameModel → Team → Club → UserClub
+            // Verify access: EssentialSkill → SubSubPrinciple → SubPrinciple → GameScenario → GamePrinciple → GameModel → Team → Club → UserClub
             var hasAccess = await _db.EssentialSkills
                 .Where(es => es.Id == request.SkillId)
                 .Join(_db.SubSubPrinciples, es => es.SubSubPrincipleId, ssp => ssp.Id, (es, ssp) => ssp)
                 .Join(_db.SubPrinciples, ssp => ssp.SubPrincipleId, sp => sp.Id, (ssp, sp) => sp)
                 .Join(_db.GameScenarios, sp => sp.GameScenarioId, gs => gs.Id, (sp, gs) => gs)
-                .Join(_db.GameModels, gs => gs.GameModelId, gm => gm.Id, (gs, gm) => gm)
+                .Join(_db.GamePrinciples, gs => gs.GamePrincipleId, gp => gp.Id, (gs, gp) => gp)
+                .Join(_db.GameModels, gp => gp.GameModelId, gm => gm.Id, (gp, gm) => gm)
                 .Join(_db.Teams, gm => gm.TeamId, t => t.Id, (gm, t) => t)
                 .Join(_db.UserClubs, t => t.ClubId, uc => uc.ClubId, (t, uc) => uc)
                 .AnyAsync(uc => uc.ApplicationUserId == request.UserId, ct);

@@ -69,14 +69,15 @@ namespace RFFM.Api.Features.Coaches.GameModels.Commands
         public async ValueTask<UploadScenarioMediaResult> Handle(UploadScenarioMediaCommand request, CancellationToken ct = default)
         {
             var scenario = await _db.GameScenarios
-                .Include(s => s.GameModel)
+                .Include(s => s.GamePrinciple)
+                    .ThenInclude(p => p.GameModel)
                 .FirstOrDefaultAsync(s => s.Id == request.ScenarioId, ct);
             if (scenario is null)
                 throw new DomainException("Modelo de Juego", "Escenario no encontrado.", ErrorCodes.ScenarioNotFound);
 
             var hasAccess = await _db.UserClubs
                 .Join(_db.Teams, uc => uc.ClubId, t => t.ClubId, (uc, t) => new { uc, t })
-                .AnyAsync(x => x.uc.ApplicationUserId == request.UserId && x.t.Id == scenario.GameModel.TeamId, ct);
+                .AnyAsync(x => x.uc.ApplicationUserId == request.UserId && x.t.Id == scenario.GamePrinciple.GameModel.TeamId, ct);
             if (!hasAccess)
                 throw new DomainException("Modelo de Juego", "No tienes acceso a este escenario.", ErrorCodes.GameModelAccessDenied);
 

@@ -50,7 +50,7 @@ namespace RFFM.Api.Features.Coaches.GameModels.Commands
         string TeamId,
         string Name,
         string Season,
-        List<ScenarioRequest> Scenarios) : IRequest<string>, IRequireFeaturePermission
+        List<PrincipleRequest> Principles) : IRequest<string>, IRequireFeaturePermission
     {
         public string UserId { get; init; } = string.Empty;
 
@@ -58,14 +58,20 @@ namespace RFFM.Api.Features.Coaches.GameModels.Commands
         public string RequiredPermission => "ReadWrite";
     }
 
-    public record ScenarioRequest(
+    public record PrincipleRequest(
         string? Id,
         int GameMomentId,
         int GameZoneId,
         int Order,
+        string Title,
+        string Description,
+        List<ScenarioRequest> Scenarios);
+
+    public record ScenarioRequest(
+        string? Id,
+        int Order,
         string Name,
         string Context,
-        List<int> TacticalPrincipleIds,
         List<SubPrincipleRequest> SubPrinciples);
 
     public record SubPrincipleRequest(
@@ -110,31 +116,35 @@ namespace RFFM.Api.Features.Coaches.GameModels.Commands
 
             var model = new GameModel(request.TeamId, request.Name, request.Season);
 
-            foreach (var sr in request.Scenarios)
+            foreach (var pr in request.Principles)
             {
-                var scenario = new GameScenario(model.Id, sr.GameMomentId, sr.GameZoneId, sr.Order, sr.Name, sr.Context);
+                var principle = new GamePrinciple(model.Id, pr.GameMomentId, pr.GameZoneId, pr.Order, pr.Title, pr.Description);
 
-                foreach (var tpId in sr.TacticalPrincipleIds)
-                    scenario.TacticalPrinciples.Add(new ScenarioTacticalPrinciple(scenario.Id, tpId));
-
-                foreach (var spr in sr.SubPrinciples)
+                foreach (var sr in pr.Scenarios)
                 {
-                    var subPrinciple = new SubPrinciple(scenario.Id, spr.Label, spr.Name, spr.Context, spr.Order);
+                    var scenario = new GameScenario(principle.Id, sr.Order, sr.Name, sr.Context);
 
-                    foreach (var sspr in spr.SubSubPrinciples)
+                    foreach (var spr in sr.SubPrinciples)
                     {
-                        var subSubPrinciple = new SubSubPrinciple(subPrinciple.Id, sspr.Name, sspr.Action, sspr.Order);
+                        var subPrinciple = new SubPrinciple(scenario.Id, spr.Label, spr.Name, spr.Context, spr.Order);
 
-                        foreach (var skr in sspr.EssentialSkills)
-                            subSubPrinciple.EssentialSkills.Add(new EssentialSkill(subSubPrinciple.Id, skr.Name, skr.Description));
+                        foreach (var sspr in spr.SubSubPrinciples)
+                        {
+                            var subSubPrinciple = new SubSubPrinciple(subPrinciple.Id, sspr.Name, sspr.Action, sspr.Order);
 
-                        subPrinciple.SubSubPrinciples.Add(subSubPrinciple);
+                            foreach (var skr in sspr.EssentialSkills)
+                                subSubPrinciple.EssentialSkills.Add(new EssentialSkill(subSubPrinciple.Id, skr.Name, skr.Description));
+
+                            subPrinciple.SubSubPrinciples.Add(subSubPrinciple);
+                        }
+
+                        scenario.SubPrinciples.Add(subPrinciple);
                     }
 
-                    scenario.SubPrinciples.Add(subPrinciple);
+                    principle.Scenarios.Add(scenario);
                 }
 
-                model.Scenarios.Add(scenario);
+                model.Principles.Add(principle);
             }
 
             await _db.GameModels.AddAsync(model, cancellationToken);

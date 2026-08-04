@@ -15,7 +15,7 @@ using RFFM.Api.Infrastructure.Persistence;
 namespace RFFM.Api.Features.Coaches.GameModels.Commands
 {
     /// <summary>
-    /// Replaces all scenarios of an existing game model.
+    /// Replaces all principles and scenarios of an existing game model.
     /// PUT /api/game-models/{id}
     /// </summary>
     public class UpdateGameModel : IFeatureModule
@@ -48,7 +48,7 @@ namespace RFFM.Api.Features.Coaches.GameModels.Commands
 
     public record UpdateGameModelCommand(
         string Name,
-        List<ScenarioRequest> Scenarios) : IRequest, IRequireFeaturePermission
+        List<PrincipleRequest> Principles) : IRequest, IRequireFeaturePermission
     {
         public string Id { get; init; } = string.Empty;
         public string UserId { get; init; } = string.Empty;
@@ -67,12 +67,11 @@ namespace RFFM.Api.Features.Coaches.GameModels.Commands
         public async ValueTask<Unit> Handle(UpdateGameModelCommand request, CancellationToken cancellationToken = default)
         {
             var model = await _db.GameModels
-                .Include(gm => gm.Scenarios)
-                    .ThenInclude(s => s.TacticalPrinciples)
-                .Include(gm => gm.Scenarios)
-                    .ThenInclude(s => s.SubPrinciples)
-                        .ThenInclude(sp => sp.SubSubPrinciples)
-                            .ThenInclude(ssp => ssp.EssentialSkills)
+                .Include(gm => gm.Principles)
+                    .ThenInclude(p => p.Scenarios)
+                        .ThenInclude(s => s.SubPrinciples)
+                            .ThenInclude(sp => sp.SubSubPrinciples)
+                                .ThenInclude(ssp => ssp.EssentialSkills)
                 .FirstOrDefaultAsync(gm => gm.Id == request.Id, cancellationToken);
 
             if (model is null)
@@ -87,61 +86,80 @@ namespace RFFM.Api.Features.Coaches.GameModels.Commands
 
             model.UpdateName(request.Name);
 
-            // ── Upsert scenarios ────────────────────────────────────────────────
+            // ── Upsert principles ───────────────────────────────────────────────
+            var matchedPrincipleIds = new HashSet<string>();
+
+            foreach (var pr in request.Principles)
+            {
+                var existing = string.IsNullOrEmpty(pr.Id)
+                    ? model.Principles.FirstOrDefault(p =>
+                        p.GameMomentId == pr.GameMomentId &&
+                        p.GameZoneId == pr.GameZoneId &&
+                        p.Order == pr.Order)
+                    : model.Principles.FirstOrDefault(p => p.Id == pr.Id);
+
+                if (existing is not null)
+                {
+                    matchedPrincipleIds.Add(existing.Id);
+                    existing.UpdateTitle(pr.Title);
+                    existing.UpdateDescription(pr.Description);
+                    existing.UpdateOrder(pr.Order);
+
+                    UpsertScenarios(existing, pr.Scenarios);
+                }
+                else
+                {
+                    var newPrinciple = new GamePrinciple(model.Id, pr.GameMomentId, pr.GameZoneId, pr.Order, pr.Title, pr.Description);
+                    BuildScenarios(newPrinciple, pr.Scenarios);
+                    model.Principles.Add(newPrinciple);
+                    matchedPrincipleIds.Add(newPrinciple.Id);
+                }
+            }
+
+            // Remove principles no longer in request (cascades to their scenarios)
+            var principlesToRemove = model.Principles
+                .Where(p => !matchedPrincipleIds.Contains(p.Id))
+                .ToList();
+            _db.GamePrinciples.RemoveRange(principlesToRemove);
+
+            await _db.SaveChangesAsync(cancellationToken);
+            return Unit.Value;
+        }
+
+        // ── Upsert scenarios inside an existing principle ──────────────────────
+
+        private void UpsertScenarios(GamePrinciple principle, List<ScenarioRequest> requests)
+        {
             var matchedScenarioIds = new HashSet<string>();
 
-            foreach (var sr in request.Scenarios)
+            foreach (var sr in requests)
             {
                 var existing = string.IsNullOrEmpty(sr.Id)
-                    ? model.Scenarios.FirstOrDefault(s =>
-                        s.GameMomentId == sr.GameMomentId &&
-                        s.GameZoneId == sr.GameZoneId &&
-                        s.Order == sr.Order)
-                    : model.Scenarios.FirstOrDefault(s => s.Id == sr.Id);
+                    ? principle.Scenarios.FirstOrDefault(s => s.Order == sr.Order)
+                    : principle.Scenarios.FirstOrDefault(s => s.Id == sr.Id);
 
                 if (existing is not null)
                 {
                     matchedScenarioIds.Add(existing.Id);
                     existing.UpdateName(sr.Name);
                     existing.UpdateContext(sr.Context);
-
-                    // Diff tactical principles instead of clear + re-add: with a composite key
-                    // (GameScenarioId, TechnicalGoalId), removing and re-adding an entry with the
-                    // same key confuses EF Core's change tracker (see UpdateGameModelResavePrinciplesTests).
-                    var requestedTpIds = new HashSet<int>(sr.TacticalPrincipleIds);
-                    var tpToRemove = existing.TacticalPrinciples
-                        .Where(tp => !requestedTpIds.Contains(tp.TechnicalGoalId))
-                        .ToList();
-                    _db.ScenarioTacticalPrinciples.RemoveRange(tpToRemove);
-                    foreach (var tp in tpToRemove)
-                        existing.TacticalPrinciples.Remove(tp);
-
-                    var existingTpIds = existing.TacticalPrinciples.Select(tp => tp.TechnicalGoalId).ToHashSet();
-                    foreach (var tpId in requestedTpIds)
-                        if (!existingTpIds.Contains(tpId))
-                            existing.TacticalPrinciples.Add(new ScenarioTacticalPrinciple(existing.Id, tpId));
+                    existing.UpdateOrder(sr.Order);
 
                     UpsertSubPrinciples(existing, sr.SubPrinciples);
                 }
                 else
                 {
-                    var newScenario = new GameScenario(model.Id, sr.GameMomentId, sr.GameZoneId, sr.Order, sr.Name, sr.Context);
-                    foreach (var tpId in sr.TacticalPrincipleIds)
-                        newScenario.TacticalPrinciples.Add(new ScenarioTacticalPrinciple(newScenario.Id, tpId));
+                    var newScenario = new GameScenario(principle.Id, sr.Order, sr.Name, sr.Context);
                     BuildSubPrinciples(newScenario, sr.SubPrinciples);
-                    model.Scenarios.Add(newScenario);
+                    principle.Scenarios.Add(newScenario);
                     matchedScenarioIds.Add(newScenario.Id);
                 }
             }
 
-            // Remove scenarios no longer in request
-            var toRemove = model.Scenarios
+            var toRemove = principle.Scenarios
                 .Where(s => !matchedScenarioIds.Contains(s.Id))
                 .ToList();
             _db.GameScenarios.RemoveRange(toRemove);
-
-            await _db.SaveChangesAsync(cancellationToken);
-            return Unit.Value;
         }
 
         // ── Upsert sub-principles inside an existing scenario ─────────────────
@@ -257,6 +275,16 @@ namespace RFFM.Api.Features.Coaches.GameModels.Commands
         }
 
         // ── Build helpers for new entities (no existing IDs) ─────────────────
+
+        private static void BuildScenarios(GamePrinciple principle, List<ScenarioRequest> requests)
+        {
+            foreach (var sr in requests)
+            {
+                var scenario = new GameScenario(principle.Id, sr.Order, sr.Name, sr.Context);
+                BuildSubPrinciples(scenario, sr.SubPrinciples);
+                principle.Scenarios.Add(scenario);
+            }
+        }
 
         private static void BuildSubPrinciples(GameScenario scenario, List<SubPrincipleRequest> requests)
         {

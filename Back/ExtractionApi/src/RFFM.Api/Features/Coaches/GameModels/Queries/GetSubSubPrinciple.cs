@@ -64,7 +64,8 @@ namespace RFFM.Api.Features.Coaches.GameModels.Queries
                 .Where(ssp => ssp.Id == request.SspId)
                 .Join(_db.SubPrinciples, ssp => ssp.SubPrincipleId, sp => sp.Id, (ssp, sp) => sp)
                 .Join(_db.GameScenarios, sp => sp.GameScenarioId, gs => gs.Id, (sp, gs) => gs)
-                .Join(_db.GameModels, gs => gs.GameModelId, gm => gm.Id, (gs, gm) => gm)
+                .Join(_db.GamePrinciples, gs => gs.GamePrincipleId, gp => gp.Id, (gs, gp) => gp)
+                .Join(_db.GameModels, gp => gp.GameModelId, gm => gm.Id, (gp, gm) => gm)
                 .Join(_db.Teams, gm => gm.TeamId, t => t.Id, (gm, t) => t)
                 .Join(_db.UserClubs, t => t.ClubId, uc => uc.ClubId, (t, uc) => uc)
                 .AnyAsync(uc => uc.ApplicationUserId == request.UserId, ct);

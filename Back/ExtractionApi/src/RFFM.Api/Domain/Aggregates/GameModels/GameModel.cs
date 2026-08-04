@@ -9,7 +9,7 @@ namespace RFFM.Api.Domain.Aggregates.GameModels
         public string Name { get; private set; } = null!;
         public string Season { get; private set; } = null!;
 
-        public List<GameScenario> Scenarios { get; private set; } = new();
+        public List<GamePrinciple> Principles { get; private set; } = new();
 
         private GameModel() { }
 
