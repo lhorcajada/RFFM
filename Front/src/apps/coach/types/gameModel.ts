@@ -1,8 +1,3 @@
-export interface TacticalPrinciple {
-  id: number;
-  name: string;
-}
-
 export interface EssentialSkill {
   id: number;
   /** Backend UUID — use for API calls like mastery toggle */
@@ -41,16 +36,26 @@ export interface Scenario {
   order: number;
   name: string;
   context: string;
-  tacticalPrinciples: TacticalPrinciple[];
   subPrinciples: SubPrinciple[];
   mediaUrl?: string | null;
   mediaType?: "image" | "video" | null;
 }
 
+export interface Principle {
+  id: number;
+  apiId?: string;
+  gameMomentId: number;
+  gameZoneId: number;
+  order: number;
+  title: string;
+  description: string;
+  scenarios: Scenario[];
+}
+
 export interface Zone {
   id: number;
   name: string;
-  scenarios: Scenario[];
+  principles: Principle[];
 }
 
 export interface GameMoment {

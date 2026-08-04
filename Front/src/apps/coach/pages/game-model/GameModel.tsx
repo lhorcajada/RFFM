@@ -36,7 +36,7 @@ import styles from "./GameModel.module.css";
 function ZoneContent({
   zone, clubId, teamId, gameMomentName,
 }: { zone: Zone; clubId: string; teamId: string; gameMomentName: string }) {
-  if (zone.scenarios.length === 0) {
+  if (zone.principles.length === 0) {
     return (
       <Box className={styles.emptyZone}>
         <Typography className={styles.emptyZoneText}>
@@ -48,7 +48,7 @@ function ZoneContent({
   return (
     <Box className={styles.scenarios}>
       <ScenarioAccordion
-        scenarios={zone.scenarios}
+        principles={zone.principles}
         clubId={clubId}
         teamId={teamId}
         gameMomentName={gameMomentName}
@@ -343,7 +343,7 @@ export default function GameModel() {
                 {/* Zone chips */}
                 <Box className={styles.zoneChips} role="group" aria-label="Zonas">
                   {currentMoment.zones.map((zone, index) => {
-                    const count = zone.scenarios.length;
+                    const count = zone.principles.length;
                     const selected = index === zoneTab;
                     return (
                       <Chip
@@ -369,7 +369,7 @@ export default function GameModel() {
                 {currentZone && (
                   <Box className={styles.zoneContent}>
                     <Typography className={styles.zoneName}>
-                      {currentZone.name}
+                      Principios
                     </Typography>
                     <ZoneContent zone={currentZone} clubId={team?.club?.id ?? ""} teamId={team?.id ?? ""} gameMomentName={currentMoment.name} />
                   </Box>

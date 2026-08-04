@@ -64,9 +64,10 @@
   padding: 2mm 4mm;
   margin: 0 0 4mm;
   border-radius: 2px;
-  /* Keep title with the first content block below it */
-  break-after: avoid;
-  page-break-after: avoid;
+  /* No break-after:avoid here on purpose: chained with zoneTitle/principleTitle's own
+     "keep with next" it would glue the whole first moment/zone/principle/scenario into one
+     unbreakable block, which the browser then bumps whole to the next page — leaving the
+     first page with only the document header. Let titles break naturally instead. */
 }
 
 /* ── Zona ── */
@@ -85,9 +86,6 @@
   padding-bottom: 1mm;
   margin: 0 0 3mm;
   color: #333;
-  /* Keep title with first scenario below it */
-  break-after: avoid;
-  page-break-after: avoid;
 }
 
 .empty {
@@ -97,15 +95,51 @@
   margin: 2mm 0;
 }
 
+/* ── Principio ── */
+.principle {
+  margin-bottom: 6mm;
+  margin-left: 4mm;
+}
+
+.principleTitle {
+  font-size: 10.5pt;
+  font-weight: 700;
+  margin: 0 0 1mm;
+  color: #111;
+}
+
+.principleDescription {
+  font-size: 9pt;
+  font-style: italic;
+  color: #444;
+  margin: 0 0 2mm;
+}
+
 /* ── Escenario ── */
 .scenario {
   margin-bottom: 5mm;
   margin-left: 4mm;
   border-left: 2px solid #444;
   padding-left: 4mm;
-  /* Scenarios are medium-sized: try to keep together but allow break if too large */
-  break-inside: avoid;
-  page-break-inside: avoid;
+  /* No break-inside:avoid: a scenario can now include a photo and a full sub-principle
+     tree, easily taller than one page — forcing it whole onto the next page would waste
+     the same space this change is fixing. Let it flow/paginate naturally. */
+}
+
+.scenarioMedia {
+  display: block;
+  max-width: 100%;
+  max-height: 90mm;
+  object-fit: contain;
+  margin: 2mm 0 3mm;
+  border: 1px solid #ccc;
+}
+
+.mediaNote {
+  font-size: 8.5pt;
+  color: #666;
+  font-style: italic;
+  margin: 0 0 2mm;
 }
 
 .scenarioTitle {
@@ -131,17 +165,6 @@
   color: #333;
   font-style: italic;
   margin: 0 0 1.5mm;
-}
-
-.principles {
-  font-size: 8.5pt;
-  color: #444;
-  margin: 0 0 1.5mm;
-}
-
-.principlesLabel {
-  font-weight: 600;
-  color: #222;
 }
 
 /* ── Sub-principio ── */

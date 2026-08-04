@@ -1,4 +1,5 @@
 import type { GameModel } from "../../../types/gameModel";
+import { resolveMediaUrl } from "./resolveMediaUrl";
 import styles from "./GameModelPrintView.module.css";
 
 interface Props {
@@ -30,57 +31,69 @@ export default function GameModelPrintView({ gameModel, teamName, season }: Prop
             <div key={zone.id} className={styles.zone}>
               <h3 className={styles.zoneTitle}>{zone.name}</h3>
 
-              {zone.scenarios.length === 0 ? (
+              {zone.principles.length === 0 ? (
                 <p className={styles.empty}>Sin escenarios definidos.</p>
               ) : (
-                zone.scenarios.map((scenario) => (
-                  <div key={scenario.id} className={styles.scenario}>
-                    <h4 className={styles.scenarioTitle}>
-                      Escenario {scenario.order}:{" "}
-                      <span className={styles.scenarioName}>{scenario.name}</span>
-                    </h4>
-                    <p className={styles.context}>{scenario.context}</p>
-
-                    {scenario.tacticalPrinciples.length > 0 && (
-                      <p className={styles.principles}>
-                        <span className={styles.principlesLabel}>
-                          Principios tácticos colectivos:{" "}
-                        </span>
-                        {scenario.tacticalPrinciples.map((p) => p.name).join(", ")}
-                      </p>
+                zone.principles.map((principle) => (
+                  <div key={principle.id} className={styles.principle}>
+                    <h4 className={styles.principleTitle}>Principio: {principle.title}</h4>
+                    {principle.description && (
+                      <p className={styles.principleDescription}>{principle.description}</p>
                     )}
 
-                    {/* ── Sub-principios ── */}
-                    {scenario.subPrinciples.map((sp) => (
-                      <div key={sp.id} className={styles.subPrinciple}>
-                        <h5 className={styles.spTitle}>
-                          Subprincipio {sp.label}: {sp.name}
+                    {principle.scenarios.map((scenario) => (
+                      <div key={scenario.id} className={styles.scenario}>
+                        <h5 className={styles.scenarioTitle}>
+                          Escenario {scenario.order}:{" "}
+                          <span className={styles.scenarioName}>{scenario.name}</span>
                         </h5>
-                        <p className={styles.context}>{sp.context}</p>
+                        <p className={styles.context}>{scenario.context}</p>
 
-                        {/* ── Sub-sub-principios ── */}
-                        {sp.subSubPrinciples.map((ssp, idx) => (
-                          <div key={ssp.id} className={styles.subSubPrinciple}>
-                            <h6 className={styles.sspTitle}>
-                              {idx + 1}. {ssp.name}
+                        {/* ── Foto/vídeo del escenario ── */}
+                        {scenario.mediaUrl && scenario.mediaType === "image" && (
+                          <img
+                            src={resolveMediaUrl(scenario.mediaUrl)}
+                            alt={scenario.name}
+                            className={styles.scenarioMedia}
+                          />
+                        )}
+                        {scenario.mediaUrl && scenario.mediaType === "video" && (
+                          <p className={styles.mediaNote}>Vídeo disponible en la aplicación.</p>
+                        )}
+
+                        {/* ── Sub-principios ── */}
+                        {scenario.subPrinciples.map((sp) => (
+                          <div key={sp.id} className={styles.subPrinciple}>
+                            <h6 className={styles.spTitle}>
+                              Subprincipio {sp.label}: {sp.name}
                             </h6>
-                            <p className={styles.action}>{ssp.action}</p>
+                            <p className={styles.context}>{sp.context}</p>
 
-                            {ssp.essentialSkills.length > 0 && (
-                              <div className={styles.skills}>
-                                <p className={styles.skillsLabel}>
-                                  Habilidades imprescindibles:
+                            {/* ── Sub-sub-principios ── */}
+                            {sp.subSubPrinciples.map((ssp, idx) => (
+                              <div key={ssp.id} className={styles.subSubPrinciple}>
+                                <p className={styles.sspTitle}>
+                                  {idx + 1}. {ssp.name}
                                 </p>
-                                <ul className={styles.skillList}>
-                                  {ssp.essentialSkills.map((skill) => (
-                                    <li key={skill.id} className={styles.skillItem}>
-                                      <strong>{skill.name}:</strong>{" "}
-                                      {skill.description}
-                                    </li>
-                                  ))}
-                                </ul>
+                                <p className={styles.action}>{ssp.action}</p>
+
+                                {ssp.essentialSkills.length > 0 && (
+                                  <div className={styles.skills}>
+                                    <p className={styles.skillsLabel}>
+                                      Habilidades imprescindibles:
+                                    </p>
+                                    <ul className={styles.skillList}>
+                                      {ssp.essentialSkills.map((skill) => (
+                                        <li key={skill.id} className={styles.skillItem}>
+                                          <strong>{skill.name}:</strong>{" "}
+                                          {skill.description}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
                               </div>
-                            )}
+                            ))}
                           </div>
                         ))}
                       </div>

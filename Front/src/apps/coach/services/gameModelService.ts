@@ -1,20 +1,7 @@
 import { client } from "../../../core/api/client";
-import type {
-  GameModel,
-  GameMoment,
-  Zone,
-  Scenario,
-  SubPrinciple,
-  SubSubPrinciple,
-  TacticalPrinciple,
-} from "../types/gameModel";
+import type { GameModel, GameMoment, Zone, Principle, Scenario } from "../types/gameModel";
 
-// ── API response types (flat structure from backend) ─────────────────
-
-interface ApiTacticalPrinciple {
-  id: number;
-  name: string;
-}
+// ── API response types (nested structure from backend) ────────────────
 
 interface ApiEssentialSkill {
   id: string;
@@ -43,17 +30,24 @@ interface ApiSubPrinciple {
 
 interface ApiScenario {
   id: string;
+  order: number;
+  name: string;
+  context: string;
+  subPrinciples: ApiSubPrinciple[];
+  mediaUrl: string | null;
+  mediaType: "image" | "video" | null;
+}
+
+interface ApiPrinciple {
+  id: string;
   gameMomentId: number;
   gameMomentName: string;
   gameZoneId: number;
   gameZoneName: string;
   order: number;
-  name: string;
-  context: string;
-  tacticalPrinciples: ApiTacticalPrinciple[];
-  subPrinciples: ApiSubPrinciple[];
-  mediaUrl: string | null;
-  mediaType: "image" | "video" | null;
+  title: string;
+  description: string;
+  scenarios: ApiScenario[];
 }
 
 interface ApiGameModel {
@@ -61,7 +55,7 @@ interface ApiGameModel {
   teamId: string;
   name: string;
   season: string;
-  scenarios: ApiScenario[];
+  principles: ApiPrinciple[];
 }
 
 interface ApiCatalogItem {
@@ -74,49 +68,59 @@ interface ApiCatalogItem {
 let _keyCounter = -1;
 const nextKey = () => _keyCounter--;
 
-// ── Mapper: flat API → nested GameModel ──────────────────────────────
+// ── Mapper: nested API → nested GameModel ──────────────────────────────
 function mapApiToGameModel(
   api: ApiGameModel,
   allMoments: ApiCatalogItem[],
   allZones: ApiCatalogItem[]
 ): GameModel {
-  // Index scenarios by moment → zone
-  const scenariosByMomentZone = new Map<string, Scenario[]>();
-  for (const s of api.scenarios) {
-    const key = `${s.gameMomentId}:${s.gameZoneId}`;
-    if (!scenariosByMomentZone.has(key)) scenariosByMomentZone.set(key, []);
-    scenariosByMomentZone.get(key)!.push({
+  // Index principles by moment → zone
+  const principlesByMomentZone = new Map<string, Principle[]>();
+  for (const p of api.principles) {
+    const key = `${p.gameMomentId}:${p.gameZoneId}`;
+    if (!principlesByMomentZone.has(key)) principlesByMomentZone.set(key, []);
+    principlesByMomentZone.get(key)!.push({
       id: nextKey(),
-      apiId: s.id,
-      order: s.order,
-      name: s.name,
-      context: s.context,
-      tacticalPrinciples: s.tacticalPrinciples,
-      mediaUrl: s.mediaUrl,
-      mediaType: s.mediaType,
-      subPrinciples: s.subPrinciples.map((sp) => ({
-        id: nextKey(),
-        apiId: sp.id,
-        order: sp.order,
-        label: sp.label,
-        name: sp.name,
-        context: sp.context,
-        subSubPrinciples: sp.subSubPrinciples.map((ssp) => ({
+      apiId: p.id,
+      gameMomentId: p.gameMomentId,
+      gameZoneId: p.gameZoneId,
+      order: p.order,
+      title: p.title,
+      description: p.description,
+      scenarios: p.scenarios
+        .map((s): Scenario => ({
           id: nextKey(),
-          apiId: ssp.id,
-          order: ssp.order,
-          name: ssp.name,
-          action: ssp.action,
-          essentialSkills: ssp.essentialSkills.map((sk) => ({
+          apiId: s.id,
+          order: s.order,
+          name: s.name,
+          context: s.context,
+          mediaUrl: s.mediaUrl,
+          mediaType: s.mediaType,
+          subPrinciples: s.subPrinciples.map((sp) => ({
             id: nextKey(),
-            apiId: sk.id,
-            name: sk.name,
-            description: sk.description,
-            masteredAt: sk.masteredAt ?? null,
-            exerciseCount: sk.exerciseCount ?? 0,
+            apiId: sp.id,
+            order: sp.order,
+            label: sp.label,
+            name: sp.name,
+            context: sp.context,
+            subSubPrinciples: sp.subSubPrinciples.map((ssp) => ({
+              id: nextKey(),
+              apiId: ssp.id,
+              order: ssp.order,
+              name: ssp.name,
+              action: ssp.action,
+              essentialSkills: ssp.essentialSkills.map((sk) => ({
+                id: nextKey(),
+                apiId: sk.id,
+                name: sk.name,
+                description: sk.description,
+                masteredAt: sk.masteredAt ?? null,
+                exerciseCount: sk.exerciseCount ?? 0,
+              })),
+            })),
           })),
-        })),
-      })),
+        }))
+        .sort((a, b) => a.order - b.order),
     });
   }
 
@@ -126,7 +130,7 @@ function mapApiToGameModel(
     zones: allZones.map((z) => ({
       id: z.id,
       name: z.name,
-      scenarios: (scenariosByMomentZone.get(`${m.id}:${z.id}`) ?? []).sort(
+      principles: (principlesByMomentZone.get(`${m.id}:${z.id}`) ?? []).sort(
         (a, b) => a.order - b.order
       ),
     })),
@@ -135,35 +139,40 @@ function mapApiToGameModel(
   return { id: api.id, teamId: api.teamId, name: api.name, season: api.season, gameMoments };
 }
 
-// ── Mapper: nested GameModel → flat API request ───────────────────────
+// ── Mapper: nested GameModel → nested API request ───────────────────────
 function mapModelToRequest(model: GameModel) {
-  const scenarios: object[] = [];
+  const principles: object[] = [];
   for (const moment of model.gameMoments) {
     for (const zone of moment.zones) {
-      for (const s of zone.scenarios) {
-        scenarios.push({
-          id: s.apiId,
+      for (const p of zone.principles) {
+        principles.push({
+          id: p.apiId,
           gameMomentId: moment.id,
           gameZoneId: zone.id,
-          order: s.order,
-          name: s.name,
-          context: s.context,
-          tacticalPrincipleIds: s.tacticalPrinciples.map((tp) => tp.id),
-          subPrinciples: s.subPrinciples.map((sp) => ({
-            id: sp.apiId,
-            label: sp.label,
-            order: sp.order,
-            name: sp.name,
-            context: sp.context,
-            subSubPrinciples: sp.subSubPrinciples.map((ssp) => ({
-              id: ssp.apiId,
-              order: ssp.order,
-              name: ssp.name,
-              action: ssp.action,
-              essentialSkills: ssp.essentialSkills.map((sk) => ({
-                id: sk.apiId,
-                name: sk.name,
-                description: sk.description,
+          order: p.order,
+          title: p.title,
+          description: p.description,
+          scenarios: p.scenarios.map((s) => ({
+            id: s.apiId,
+            order: s.order,
+            name: s.name,
+            context: s.context,
+            subPrinciples: s.subPrinciples.map((sp) => ({
+              id: sp.apiId,
+              label: sp.label,
+              order: sp.order,
+              name: sp.name,
+              context: sp.context,
+              subSubPrinciples: sp.subSubPrinciples.map((ssp) => ({
+                id: ssp.apiId,
+                order: ssp.order,
+                name: ssp.name,
+                action: ssp.action,
+                essentialSkills: ssp.essentialSkills.map((sk) => ({
+                  id: sk.apiId,
+                  name: sk.name,
+                  description: sk.description,
+                })),
               })),
             })),
           })),
@@ -171,7 +180,7 @@ function mapModelToRequest(model: GameModel) {
       }
     }
   }
-  return { teamId: model.teamId, name: model.name, season: model.season, scenarios };
+  return { teamId: model.teamId, name: model.name, season: model.season, principles };
 }
 
 // ── Empty draft builder ───────────────────────────────────────────────
@@ -189,7 +198,7 @@ function buildEmptyDraft(
     gameMoments: moments.map((m) => ({
       id: m.id,
       name: m.name,
-      zones: zones.map((z) => ({ id: z.id, name: z.name, scenarios: [] })),
+      zones: zones.map((z): Zone => ({ id: z.id, name: z.name, principles: [] })),
     })),
   };
 }
@@ -227,11 +236,6 @@ const gameModelService = {
     return mapApiToGameModel(res.data, moments, zones);
   },
 
-  async getAvailableTacticalPrinciples(): Promise<TacticalPrinciple[]> {
-    const res = await client.get<ApiTacticalPrinciple[]>("/api/technical-goals");
-    return res.data;
-  },
-
   async getEmptyDraft(teamId: string, season: string): Promise<GameModel> {
     const [moments, zones] = await getCatalog();
     return buildEmptyDraft(teamId, season, moments, zones);
@@ -247,9 +251,9 @@ const gameModelService = {
       teamId: string;
       season: string;
       name: string;
-      scenarios: object[];
+      principles: object[];
     };
-    await client.put(`/api/game-models/${draft.id}`, { name: body.name, scenarios: body.scenarios });
+    await client.put(`/api/game-models/${draft.id}`, { name: body.name, principles: body.principles });
     return draft;
   },
 
@@ -289,18 +293,16 @@ const gameModelService = {
     await client.delete(`/api/game-models/scenarios/${scenarioApiId}/media`);
   },
 
-  async moveScenarioLocation(
+  async moveScenarioToPrinciple(
     scenarioApiId: string,
-    gameMomentId: number,
-    gameZoneId: number
+    targetGamePrincipleId: string
   ): Promise<{ order: number }> {
     const res = await client.patch<{ order: number }>(
       `/api/game-models/scenarios/${scenarioApiId}/location`,
-      { gameMomentId, gameZoneId }
+      { targetGamePrincipleId }
     );
     return res.data;
   },
 };
 
 export default gameModelService;
-

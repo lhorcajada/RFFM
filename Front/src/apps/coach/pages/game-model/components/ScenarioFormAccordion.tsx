@@ -3,7 +3,6 @@ import {
   Box,
   Typography,
   TextField,
-  Autocomplete,
   IconButton,
   Chip,
   Button,
@@ -19,7 +18,7 @@ import AddIcon from "@mui/icons-material/Add";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
-import type { Scenario, SubPrinciple, SubSubPrinciple, TacticalPrinciple } from "../../../types/gameModel";
+import type { Principle, Scenario, SubPrinciple, SubSubPrinciple } from "../../../types/gameModel";
 import { useGameModelDraft } from "../../../context/GameModelDraftContext";
 import gameModelService from "../../../services/gameModelService";
 import DrillDownPanel from "./DrillDownPanel";
@@ -29,19 +28,19 @@ import styles from "./ScenarioFormAccordion.module.css";
 // ─── Skill row ───────────────────────────────────────────────────────
 
 interface SkillRowProps {
-  mi: number; zi: number; si: number; pi: number; qi: number; ki: number;
+  mi: number; zi: number; pi: number; si: number; spi: number; qi: number; ki: number;
   name: string;
   description: string;
 }
 
-function SkillRow({ mi, zi, si, pi, qi, ki, name, description }: SkillRowProps) {
+function SkillRow({ mi, zi, pi, si, spi, qi, ki, name, description }: SkillRowProps) {
   const { dispatch } = useGameModelDraft();
   return (
     <Box className={styles.skillRow}>
       <TextField
         value={name}
         onChange={(e) =>
-          dispatch({ type: "UPD_SKILL", mi, zi, si, pi, qi, ki, changes: { name: e.target.value } })
+          dispatch({ type: "UPD_SKILL", mi, zi, pi, si, spi, qi, ki, changes: { name: e.target.value } })
         }
         placeholder="Nombre de la habilidad"
         size="small"
@@ -51,7 +50,7 @@ function SkillRow({ mi, zi, si, pi, qi, ki, name, description }: SkillRowProps) 
       <TextField
         value={description}
         onChange={(e) =>
-          dispatch({ type: "UPD_SKILL", mi, zi, si, pi, qi, ki, changes: { description: e.target.value } })
+          dispatch({ type: "UPD_SKILL", mi, zi, pi, si, spi, qi, ki, changes: { description: e.target.value } })
         }
         placeholder="Descripción de la habilidad"
         size="small"
@@ -64,7 +63,7 @@ function SkillRow({ mi, zi, si, pi, qi, ki, name, description }: SkillRowProps) 
         <IconButton
           size="small"
           className={styles.deleteIconBtn}
-          onClick={() => dispatch({ type: "DEL_SKILL", mi, zi, si, pi, qi, ki })}
+          onClick={() => dispatch({ type: "DEL_SKILL", mi, zi, pi, si, spi, qi, ki })}
         >
           <DeleteOutlineIcon fontSize="small" />
         </IconButton>
@@ -76,17 +75,17 @@ function SkillRow({ mi, zi, si, pi, qi, ki, name, description }: SkillRowProps) 
 // ─── SubSubPrinciple detail form ─────────────────────────────────────
 
 interface SubSubPrincipleDetailFormProps {
-  mi: number; zi: number; si: number; pi: number; qi: number;
+  mi: number; zi: number; pi: number; si: number; spi: number; qi: number;
   ssp: SubSubPrinciple;
 }
 
-function SubSubPrincipleDetailForm({ mi, zi, si, pi, qi, ssp }: SubSubPrincipleDetailFormProps) {
+function SubSubPrincipleDetailForm({ mi, zi, pi, si, spi, qi, ssp }: SubSubPrincipleDetailFormProps) {
   const { dispatch } = useGameModelDraft();
   return (
     <Box className={styles.sspDetailForm}>
       <TextField
         value={ssp.name}
-        onChange={(e) => dispatch({ type: "UPD_SSP", mi, zi, si, pi, qi, changes: { name: e.target.value } })}
+        onChange={(e) => dispatch({ type: "UPD_SSP", mi, zi, pi, si, spi, qi, changes: { name: e.target.value } })}
         placeholder="Nombre del sub-subprincipio…"
         size="small"
         label="Nombre"
@@ -95,7 +94,7 @@ function SubSubPrincipleDetailForm({ mi, zi, si, pi, qi, ssp }: SubSubPrincipleD
       />
       <TextField
         value={ssp.action}
-        onChange={(e) => dispatch({ type: "UPD_SSP", mi, zi, si, pi, qi, changes: { action: e.target.value } })}
+        onChange={(e) => dispatch({ type: "UPD_SSP", mi, zi, pi, si, spi, qi, changes: { action: e.target.value } })}
         placeholder="Acción: describe lo que hace el jugador en este momento…"
         multiline
         minRows={2}
@@ -107,13 +106,13 @@ function SubSubPrincipleDetailForm({ mi, zi, si, pi, qi, ssp }: SubSubPrincipleD
       <Box className={styles.skillsSection}>
         <Typography className={styles.sectionLabel}>Habilidades imprescindibles</Typography>
         {ssp.essentialSkills.map((sk, ki) => (
-          <SkillRow key={sk.id} mi={mi} zi={zi} si={si} pi={pi} qi={qi} ki={ki} name={sk.name} description={sk.description} />
+          <SkillRow key={sk.id} mi={mi} zi={zi} pi={pi} si={si} spi={spi} qi={qi} ki={ki} name={sk.name} description={sk.description} />
         ))}
         <Button
           size="small"
           startIcon={<AddIcon />}
           className={styles.addBtn}
-          onClick={() => dispatch({ type: "ADD_SKILL", mi, zi, si, pi, qi })}
+          onClick={() => dispatch({ type: "ADD_SKILL", mi, zi, pi, si, spi, qi })}
         >
           Añadir habilidad
         </Button>
@@ -125,11 +124,11 @@ function SubSubPrincipleDetailForm({ mi, zi, si, pi, qi, ssp }: SubSubPrincipleD
 // ─── SubPrinciple detail form (hosts SubSubPrinciple DrillDownPanel) ─
 
 interface SubPrincipleDetailFormProps {
-  mi: number; zi: number; si: number; pi: number;
+  mi: number; zi: number; pi: number; si: number; spi: number;
   sp: SubPrinciple;
 }
 
-function SubPrincipleDetailForm({ mi, zi, si, pi, sp }: SubPrincipleDetailFormProps) {
+function SubPrincipleDetailForm({ mi, zi, pi, si, spi, sp }: SubPrincipleDetailFormProps) {
   const { dispatch } = useGameModelDraft();
   const [selectedQi, setSelectedQi] = useState<number | null>(sp.subSubPrinciples.length === 1 ? 0 : null);
   const [draggingSspIdx, setDraggingSspIdx] = useState<number | null>(null);
@@ -143,7 +142,7 @@ function SubPrincipleDetailForm({ mi, zi, si, pi, sp }: SubPrincipleDetailFormPr
     <Box className={styles.spDetailForm}>
       <TextField
         value={sp.name}
-        onChange={(e) => dispatch({ type: "UPD_SP", mi, zi, si, pi, changes: { name: e.target.value } })}
+        onChange={(e) => dispatch({ type: "UPD_SP", mi, zi, pi, si, spi, changes: { name: e.target.value } })}
         placeholder="Nombre del subprincipio…"
         size="small"
         label="Nombre"
@@ -152,7 +151,7 @@ function SubPrincipleDetailForm({ mi, zi, si, pi, sp }: SubPrincipleDetailFormPr
       />
       <TextField
         value={sp.context}
-        onChange={(e) => dispatch({ type: "UPD_SP", mi, zi, si, pi, changes: { context: e.target.value } })}
+        onChange={(e) => dispatch({ type: "UPD_SP", mi, zi, pi, si, spi, changes: { context: e.target.value } })}
         placeholder="Contexto del subprincipio: describe la situación de juego…"
         multiline
         minRows={2}
@@ -180,7 +179,7 @@ function SubPrincipleDetailForm({ mi, zi, si, pi, sp }: SubPrincipleDetailFormPr
               className={styles.addBtn}
               onClick={() => {
                 const newIndex = sp.subSubPrinciples.length;
-                dispatch({ type: "ADD_SSP", mi, zi, si, pi });
+                dispatch({ type: "ADD_SSP", mi, zi, pi, si, spi });
                 setSelectedQi(newIndex);
               }}
             >
@@ -196,7 +195,7 @@ function SubPrincipleDetailForm({ mi, zi, si, pi, sp }: SubPrincipleDetailFormPr
               onDrop={(e) => {
                 e.preventDefault();
                 if (draggingSspIdx !== null && draggingSspIdx !== qi) {
-                  dispatch({ type: "MOVE_SSP", mi, zi, si, pi, from: draggingSspIdx, to: qi });
+                  dispatch({ type: "MOVE_SSP", mi, zi, pi, si, spi, from: draggingSspIdx, to: qi });
                 }
                 setDraggingSspIdx(null);
                 setDragOverSspIdx(null);
@@ -223,7 +222,7 @@ function SubPrincipleDetailForm({ mi, zi, si, pi, sp }: SubPrincipleDetailFormPr
                   aria-label="Mover arriba"
                   className={styles.reorderBtn}
                   disabled={qi === 0}
-                  onClick={(e) => { e.stopPropagation(); dispatch({ type: "MOVE_SSP", mi, zi, si, pi, from: qi, to: qi - 1 }); }}
+                  onClick={(e) => { e.stopPropagation(); dispatch({ type: "MOVE_SSP", mi, zi, pi, si, spi, from: qi, to: qi - 1 }); }}
                 >
                   <ArrowUpwardIcon fontSize="small" />
                 </IconButton>
@@ -232,7 +231,7 @@ function SubPrincipleDetailForm({ mi, zi, si, pi, sp }: SubPrincipleDetailFormPr
                   aria-label="Mover abajo"
                   className={styles.reorderBtn}
                   disabled={qi === sp.subSubPrinciples.length - 1}
-                  onClick={(e) => { e.stopPropagation(); dispatch({ type: "MOVE_SSP", mi, zi, si, pi, from: qi, to: qi + 1 }); }}
+                  onClick={(e) => { e.stopPropagation(); dispatch({ type: "MOVE_SSP", mi, zi, pi, si, spi, from: qi, to: qi + 1 }); }}
                 >
                   <ArrowDownwardIcon fontSize="small" />
                 </IconButton>
@@ -247,7 +246,7 @@ function SubPrincipleDetailForm({ mi, zi, si, pi, sp }: SubPrincipleDetailFormPr
                   <IconButton
                     size="small"
                     className={styles.deleteIconBtn}
-                    onClick={(e) => { e.stopPropagation(); dispatch({ type: "DEL_SSP", mi, zi, si, pi, qi }); }}
+                    onClick={(e) => { e.stopPropagation(); dispatch({ type: "DEL_SSP", mi, zi, pi, si, spi, qi }); }}
                   >
                     <DeleteOutlineIcon fontSize="small" />
                   </IconButton>
@@ -256,7 +255,7 @@ function SubPrincipleDetailForm({ mi, zi, si, pi, sp }: SubPrincipleDetailFormPr
             </Box>
           )}
           renderDetail={(ssp, qi) => (
-            <SubSubPrincipleDetailForm mi={mi} zi={zi} si={si} pi={pi} qi={qi} ssp={ssp} />
+            <SubSubPrincipleDetailForm mi={mi} zi={zi} pi={pi} si={si} spi={spi} qi={qi} ssp={ssp} />
           )}
         />
       </Box>
@@ -267,47 +266,84 @@ function SubPrincipleDetailForm({ mi, zi, si, pi, sp }: SubPrincipleDetailFormPr
 // ─── Scenario detail form (hosts SubPrinciple DrillDownPanel) ───────
 
 interface ScenarioDetailFormProps {
-  mi: number; zi: number; si: number;
+  mi: number; zi: number; pi: number; si: number;
   scenario: Scenario;
 }
 
-function ScenarioDetailForm({ mi, zi, si, scenario }: ScenarioDetailFormProps) {
-  const { dispatch, draft, availablePrinciples } = useGameModelDraft();
-  const [selectedPi, setSelectedPi] = useState<number | null>(scenario.subPrinciples.length === 1 ? 0 : null);
+interface MoveTargetOption {
+  mi: number;
+  zi: number;
+  pi: number;
+  label: string;
+  apiId?: string;
+}
+
+function ScenarioDetailForm({ mi, zi, pi, si, scenario }: ScenarioDetailFormProps) {
+  const { dispatch, draft } = useGameModelDraft();
+  const [selectedSpi, setSelectedSpi] = useState<number | null>(scenario.subPrinciples.length === 1 ? 0 : null);
   const [draggingSpIdx, setDraggingSpIdx] = useState<number | null>(null);
   const [dragOverSpIdx, setDragOverSpIdx] = useState<number | null>(null);
-  const [targetMi, setTargetMi] = useState(mi);
-  const [targetZi, setTargetZi] = useState(zi);
   const [moving, setMoving] = useState(false);
 
   useEffect(() => {
-    if (selectedPi !== null && selectedPi >= scenario.subPrinciples.length) setSelectedPi(null);
-  }, [scenario.subPrinciples.length, selectedPi]);
+    if (selectedSpi !== null && selectedSpi >= scenario.subPrinciples.length) setSelectedSpi(null);
+  }, [scenario.subPrinciples.length, selectedSpi]);
 
-  const isSameLocation = targetMi === mi && targetZi === zi;
-  const targetZoneOptions = draft.gameMoments[targetMi]?.zones ?? [];
+  const allTargets: MoveTargetOption[] = draft.gameMoments.flatMap((m, tmi) =>
+    m.zones.flatMap((z, tzi) =>
+      z.principles.map((p, tpi) => ({
+        mi: tmi,
+        zi: tzi,
+        pi: tpi,
+        apiId: p.apiId,
+        label: `${m.name} · ${z.name} · ${p.title || "Sin título"}`,
+      }))
+    )
+  );
 
-  const handleMomentChange = (e: SelectChangeEvent<number>) => {
-    const newMi = Number(e.target.value);
-    setTargetMi(newMi);
-    setTargetZi(0);
+  const moveTargets = allTargets.filter((opt) => {
+    const isCurrent = opt.mi === mi && opt.zi === zi && opt.pi === pi;
+    if (isCurrent) return false;
+    if (scenario.apiId) return !!opt.apiId;
+    return true;
+  });
+
+  const [targetKey, setTargetKey] = useState<string>(moveTargets[0] ? keyOf(moveTargets[0]) : "");
+
+  useEffect(() => {
+    if (!moveTargets.some((t) => keyOf(t) === targetKey)) {
+      setTargetKey(moveTargets[0] ? keyOf(moveTargets[0]) : "");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [moveTargets.length]);
+
+  function keyOf(opt: MoveTargetOption) {
+    return `${opt.mi}:${opt.zi}:${opt.pi}`;
+  }
+
+  const handleTargetChange = (e: SelectChangeEvent<string>) => {
+    setTargetKey(e.target.value);
   };
 
   const handleMove = async () => {
-    if (isSameLocation) return;
+    const target = moveTargets.find((t) => keyOf(t) === targetKey);
+    if (!target) return;
     setMoving(true);
     try {
-      if (scenario.apiId) {
-        const targetMoment = draft.gameMoments[targetMi];
-        const targetZone = targetMoment.zones[targetZi];
-        const { order } = await gameModelService.moveScenarioLocation(
-          scenario.apiId,
-          targetMoment.id,
-          targetZone.id
-        );
-        dispatch({ type: "MOVE_SCENARIO_LOCATION", fromMi: mi, fromZi: zi, si, toMi: targetMi, toZi: targetZi, order });
+      if (scenario.apiId && target.apiId) {
+        const { order } = await gameModelService.moveScenarioToPrinciple(scenario.apiId, target.apiId);
+        dispatch({
+          type: "MOVE_SCENARIO_LOCATION",
+          fromMi: mi, fromZi: zi, fromPi: pi, si,
+          toMi: target.mi, toZi: target.zi, toPi: target.pi,
+          order,
+        });
       } else {
-        dispatch({ type: "MOVE_SCENARIO_LOCATION", fromMi: mi, fromZi: zi, si, toMi: targetMi, toZi: targetZi });
+        dispatch({
+          type: "MOVE_SCENARIO_LOCATION",
+          fromMi: mi, fromZi: zi, fromPi: pi, si,
+          toMi: target.mi, toZi: target.zi, toPi: target.pi,
+        });
       }
     } catch {
       window.dispatchEvent(
@@ -322,56 +358,42 @@ function ScenarioDetailForm({ mi, zi, si, scenario }: ScenarioDetailFormProps) {
 
   return (
     <Box className={styles.scenarioDetailForm}>
-      <Box className={styles.moveSection}>
-        <Typography className={styles.sectionLabel}>Mover a…</Typography>
-        <Box className={styles.moveControls}>
-          <FormControl size="small" className={styles.moveSelect}>
-            <InputLabel id={`move-moment-label-${scenario.id}`}>Momento</InputLabel>
-            <Select
-              labelId={`move-moment-label-${scenario.id}`}
-              label="Momento"
-              value={targetMi}
-              onChange={handleMomentChange}
-              data-testid="scenario-move-moment-select"
+      {moveTargets.length > 0 && (
+        <Box className={styles.moveSection}>
+          <Typography className={styles.sectionLabel}>Mover a…</Typography>
+          <Box className={styles.moveControls}>
+            <FormControl size="small" className={styles.moveSelect}>
+              <InputLabel id={`move-principle-label-${scenario.id}`}>Principio</InputLabel>
+              <Select
+                labelId={`move-principle-label-${scenario.id}`}
+                label="Principio"
+                value={targetKey}
+                onChange={handleTargetChange}
+                data-testid="scenario-move-principle-select"
+              >
+                {moveTargets.map((opt) => (
+                  <MenuItem key={keyOf(opt)} value={keyOf(opt)}>
+                    {opt.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <Button
+              size="small"
+              variant="outlined"
+              className={styles.moveBtn}
+              disabled={!targetKey || moving}
+              aria-label="Mover escenario"
+              onClick={handleMove}
             >
-              {draft.gameMoments.map((m, idx) => (
-                <MenuItem key={m.id} value={idx}>
-                  {m.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <FormControl size="small" className={styles.moveSelect}>
-            <InputLabel id={`move-zone-label-${scenario.id}`}>Zona</InputLabel>
-            <Select
-              labelId={`move-zone-label-${scenario.id}`}
-              label="Zona"
-              value={targetZi}
-              onChange={(e) => setTargetZi(Number(e.target.value))}
-              data-testid="scenario-move-zone-select"
-            >
-              {targetZoneOptions.map((z, idx) => (
-                <MenuItem key={z.id} value={idx}>
-                  {z.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <Button
-            size="small"
-            variant="outlined"
-            className={styles.moveBtn}
-            disabled={isSameLocation || moving}
-            aria-label="Mover escenario"
-            onClick={handleMove}
-          >
-            Mover
-          </Button>
+              Mover
+            </Button>
+          </Box>
         </Box>
-      </Box>
+      )}
       <TextField
         value={scenario.name}
-        onChange={(e) => dispatch({ type: "UPD_SCENARIO", mi, zi, si, changes: { name: e.target.value } })}
+        onChange={(e) => dispatch({ type: "UPD_SCENARIO", mi, zi, pi, si, changes: { name: e.target.value } })}
         placeholder="Nombre del escenario…"
         size="small"
         label="Nombre"
@@ -380,7 +402,7 @@ function ScenarioDetailForm({ mi, zi, si, scenario }: ScenarioDetailFormProps) {
       />
       <TextField
         value={scenario.context}
-        onChange={(e) => dispatch({ type: "UPD_SCENARIO", mi, zi, si, changes: { context: e.target.value } })}
+        onChange={(e) => dispatch({ type: "UPD_SCENARIO", mi, zi, pi, si, changes: { context: e.target.value } })}
         placeholder="Contexto: describe la situación del juego en este escenario…"
         multiline
         minRows={2}
@@ -389,24 +411,6 @@ function ScenarioDetailForm({ mi, zi, si, scenario }: ScenarioDetailFormProps) {
         className={styles.contextField}
         label="Contexto"
       />
-      <Autocomplete
-        multiple
-        options={availablePrinciples}
-        getOptionLabel={(o: TacticalPrinciple) => o.name}
-        isOptionEqualToValue={(a, b) => a.id === b.id}
-        value={scenario.tacticalPrinciples}
-        onChange={(_, value) => dispatch({ type: "UPD_SCENARIO", mi, zi, si, changes: { tacticalPrinciples: value } })}
-        renderInput={(params) => (
-          <TextField {...params} label="Principios tácticos colectivos" size="small" className={styles.principlesField} />
-        )}
-        renderTags={(value, getTagProps) =>
-          value.map((option, index) => {
-            const { key, ...tagProps } = getTagProps({ index });
-            return <Chip key={key} label={option.name} size="small" {...tagProps} className={styles.principleChip} />;
-          })
-        }
-        className={styles.principlesAutocomplete}
-      />
 
       {scenario.apiId ? (
         <ScenarioMediaField
@@ -414,7 +418,7 @@ function ScenarioDetailForm({ mi, zi, si, scenario }: ScenarioDetailFormProps) {
           mediaUrl={scenario.mediaUrl}
           mediaType={scenario.mediaType}
           onChange={(mediaUrl, mediaType) =>
-            dispatch({ type: "UPD_SCENARIO", mi, zi, si, changes: { mediaUrl, mediaType } })
+            dispatch({ type: "UPD_SCENARIO", mi, zi, pi, si, changes: { mediaUrl, mediaType } })
           }
         />
       ) : (
@@ -428,9 +432,9 @@ function ScenarioDetailForm({ mi, zi, si, scenario }: ScenarioDetailFormProps) {
         <DrillDownPanel<SubPrinciple>
           items={scenario.subPrinciples}
           getKey={(sp) => sp.id}
-          selectedIndex={selectedPi}
-          onSelect={setSelectedPi}
-          onBack={() => setSelectedPi(null)}
+          selectedIndex={selectedSpi}
+          onSelect={setSelectedSpi}
+          onBack={() => setSelectedSpi(null)}
           listAriaLabel="Lista de subprincipios"
           emptyMessage="No hay subprincipios. Añade el primero."
           detailTitle={(sp) => `Subprincipio ${sp.label}`}
@@ -441,23 +445,23 @@ function ScenarioDetailForm({ mi, zi, si, scenario }: ScenarioDetailFormProps) {
               className={styles.addBtn}
               onClick={() => {
                 const newIndex = scenario.subPrinciples.length;
-                dispatch({ type: "ADD_SP", mi, zi, si });
-                setSelectedPi(newIndex);
+                dispatch({ type: "ADD_SP", mi, zi, pi, si });
+                setSelectedSpi(newIndex);
               }}
             >
               Añadir subprincipio
             </Button>
           }
           forceSinglePane
-          renderListItem={(sp, pi) => (
+          renderListItem={(sp, spi) => (
             <Box
-              className={`${styles.dragRow}${draggingSpIdx === pi ? ` ${styles.isDragging}` : ""}${dragOverSpIdx === pi && draggingSpIdx !== pi ? ` ${styles.isDragOver}` : ""}`}
-              onDragOver={(e) => { e.preventDefault(); setDragOverSpIdx(pi); }}
+              className={`${styles.dragRow}${draggingSpIdx === spi ? ` ${styles.isDragging}` : ""}${dragOverSpIdx === spi && draggingSpIdx !== spi ? ` ${styles.isDragOver}` : ""}`}
+              onDragOver={(e) => { e.preventDefault(); setDragOverSpIdx(spi); }}
               onDragLeave={() => setDragOverSpIdx(null)}
               onDrop={(e) => {
                 e.preventDefault();
-                if (draggingSpIdx !== null && draggingSpIdx !== pi) {
-                  dispatch({ type: "MOVE_SP", mi, zi, si, from: draggingSpIdx, to: pi });
+                if (draggingSpIdx !== null && draggingSpIdx !== spi) {
+                  dispatch({ type: "MOVE_SP", mi, zi, pi, si, from: draggingSpIdx, to: spi });
                 }
                 setDraggingSpIdx(null);
                 setDragOverSpIdx(null);
@@ -470,9 +474,9 @@ function ScenarioDetailForm({ mi, zi, si, scenario }: ScenarioDetailFormProps) {
                 onClick={(e) => e.stopPropagation()}
                 onDragStart={(e: React.DragEvent) => {
                   e.stopPropagation();
-                  e.dataTransfer.setData("text/plain", String(pi));
+                  e.dataTransfer.setData("text/plain", String(spi));
                   e.dataTransfer.effectAllowed = "move";
-                  setDraggingSpIdx(pi);
+                  setDraggingSpIdx(spi);
                 }}
                 onDragEnd={() => { setDraggingSpIdx(null); setDragOverSpIdx(null); }}
               >
@@ -483,8 +487,8 @@ function ScenarioDetailForm({ mi, zi, si, scenario }: ScenarioDetailFormProps) {
                   size="small"
                   aria-label="Mover arriba"
                   className={styles.reorderBtn}
-                  disabled={pi === 0}
-                  onClick={(e) => { e.stopPropagation(); dispatch({ type: "MOVE_SP", mi, zi, si, from: pi, to: pi - 1 }); }}
+                  disabled={spi === 0}
+                  onClick={(e) => { e.stopPropagation(); dispatch({ type: "MOVE_SP", mi, zi, pi, si, from: spi, to: spi - 1 }); }}
                 >
                   <ArrowUpwardIcon fontSize="small" />
                 </IconButton>
@@ -492,8 +496,8 @@ function ScenarioDetailForm({ mi, zi, si, scenario }: ScenarioDetailFormProps) {
                   size="small"
                   aria-label="Mover abajo"
                   className={styles.reorderBtn}
-                  disabled={pi === scenario.subPrinciples.length - 1}
-                  onClick={(e) => { e.stopPropagation(); dispatch({ type: "MOVE_SP", mi, zi, si, from: pi, to: pi + 1 }); }}
+                  disabled={spi === scenario.subPrinciples.length - 1}
+                  onClick={(e) => { e.stopPropagation(); dispatch({ type: "MOVE_SP", mi, zi, pi, si, from: spi, to: spi + 1 }); }}
                 >
                   <ArrowDownwardIcon fontSize="small" />
                 </IconButton>
@@ -512,7 +516,7 @@ function ScenarioDetailForm({ mi, zi, si, scenario }: ScenarioDetailFormProps) {
                   <IconButton
                     size="small"
                     className={styles.deleteIconBtn}
-                    onClick={(e) => { e.stopPropagation(); dispatch({ type: "DEL_SP", mi, zi, si, pi }); }}
+                    onClick={(e) => { e.stopPropagation(); dispatch({ type: "DEL_SP", mi, zi, pi, si, spi }); }}
                   >
                     <DeleteOutlineIcon fontSize="small" />
                   </IconButton>
@@ -520,24 +524,22 @@ function ScenarioDetailForm({ mi, zi, si, scenario }: ScenarioDetailFormProps) {
               </Box>
             </Box>
           )}
-          renderDetail={(sp, pi) => <SubPrincipleDetailForm mi={mi} zi={zi} si={si} pi={pi} sp={sp} />}
+          renderDetail={(sp, spi) => <SubPrincipleDetailForm mi={mi} zi={zi} pi={pi} si={si} spi={spi} sp={sp} />}
         />
       </Box>
     </Box>
   );
 }
 
-// ─── ScenarioFormAccordion (default export) — one instance per Zone ─
+// ─── Scenario list (hosts Scenario DrillDownPanel) — nested inside a Principio ─
 
-interface Props {
-  mi: number;
-  zi: number;
+interface ScenarioListFormProps {
+  mi: number; zi: number; pi: number;
   scenarios: Scenario[];
 }
 
-export default function ScenarioFormAccordion({ mi, zi, scenarios: initialScenarios }: Props) {
-  const { dispatch, draft } = useGameModelDraft();
-  const scenarios = draft.gameMoments[mi]?.zones[zi]?.scenarios || initialScenarios;
+function ScenarioListForm({ mi, zi, pi, scenarios }: ScenarioListFormProps) {
+  const { dispatch } = useGameModelDraft();
   const [selectedSi, setSelectedSi] = useState<number | null>(scenarios.length === 1 ? 0 : null);
 
   useEffect(() => {
@@ -554,6 +556,7 @@ export default function ScenarioFormAccordion({ mi, zi, scenarios: initialScenar
       listAriaLabel="Lista de escenarios"
       emptyMessage="No hay escenarios. Añade el primero."
       detailTitle={(s) => `Escenario ${s.order}`}
+      forceSinglePane
       renderListFooter={
         <Button
           size="small"
@@ -561,7 +564,7 @@ export default function ScenarioFormAccordion({ mi, zi, scenarios: initialScenar
           className={styles.addBtn}
           onClick={() => {
             const newIndex = scenarios.length;
-            dispatch({ type: "ADD_SCENARIO", mi, zi });
+            dispatch({ type: "ADD_SCENARIO", mi, zi, pi });
             setSelectedSi(newIndex);
           }}
         >
@@ -583,14 +586,120 @@ export default function ScenarioFormAccordion({ mi, zi, scenarios: initialScenar
             <IconButton
               size="small"
               className={styles.deleteIconBtn}
-              onClick={(e) => { e.stopPropagation(); dispatch({ type: "DEL_SCENARIO", mi, zi, si }); }}
+              onClick={(e) => { e.stopPropagation(); dispatch({ type: "DEL_SCENARIO", mi, zi, pi, si }); }}
             >
               <DeleteOutlineIcon fontSize="small" />
             </IconButton>
           </Tooltip>
         </Box>
       )}
-      renderDetail={(scenario, si) => <ScenarioDetailForm mi={mi} zi={zi} si={si} scenario={scenario} />}
+      renderDetail={(scenario, si) => <ScenarioDetailForm mi={mi} zi={zi} pi={pi} si={si} scenario={scenario} />}
+    />
+  );
+}
+
+// ─── Principle detail form (title/description + nested scenarios) ───
+
+interface PrincipleDetailFormProps {
+  mi: number; zi: number; pi: number;
+  principle: Principle;
+}
+
+function PrincipleDetailForm({ mi, zi, pi, principle }: PrincipleDetailFormProps) {
+  const { dispatch } = useGameModelDraft();
+  return (
+    <Box className={styles.principleDetailForm}>
+      <TextField
+        value={principle.title}
+        onChange={(e) => dispatch({ type: "UPD_PRINCIPLE", mi, zi, pi, changes: { title: e.target.value } })}
+        placeholder="Título del principio…"
+        size="small"
+        label="Título"
+        fullWidth
+        className={styles.detailNameField}
+      />
+      <TextField
+        value={principle.description}
+        onChange={(e) => dispatch({ type: "UPD_PRINCIPLE", mi, zi, pi, changes: { description: e.target.value } })}
+        placeholder="Descripción del principio…"
+        multiline
+        minRows={2}
+        fullWidth
+        size="small"
+        className={styles.contextField}
+        label="Descripción"
+      />
+      <Box className={styles.nestedSection}>
+        <Typography className={styles.sectionLabel}>Escenarios</Typography>
+        <ScenarioListForm mi={mi} zi={zi} pi={pi} scenarios={principle.scenarios} />
+      </Box>
+    </Box>
+  );
+}
+
+// ─── ScenarioFormAccordion (default export) — one instance per Zone ─
+
+interface Props {
+  mi: number;
+  zi: number;
+  principles: Principle[];
+}
+
+export default function ScenarioFormAccordion({ mi, zi, principles: initialPrinciples }: Props) {
+  const { dispatch, draft } = useGameModelDraft();
+  const principles = draft.gameMoments[mi]?.zones[zi]?.principles || initialPrinciples;
+  const [selectedPi, setSelectedPi] = useState<number | null>(principles.length === 1 ? 0 : null);
+
+  useEffect(() => {
+    if (selectedPi !== null && selectedPi >= principles.length) setSelectedPi(null);
+  }, [principles.length, selectedPi]);
+
+  return (
+    <DrillDownPanel<Principle>
+      items={principles}
+      getKey={(p) => p.id}
+      selectedIndex={selectedPi}
+      onSelect={setSelectedPi}
+      onBack={() => setSelectedPi(null)}
+      listAriaLabel="Lista de principios"
+      emptyMessage="No hay principios. Añade el primero."
+      detailTitle={(p) => `Principio: ${p.title || "Sin título"}`}
+      renderListFooter={
+        <Button
+          size="small"
+          startIcon={<AddIcon />}
+          className={styles.addBtn}
+          onClick={() => {
+            const newIndex = principles.length;
+            dispatch({ type: "ADD_PRINCIPLE", mi, zi });
+            setSelectedPi(newIndex);
+          }}
+        >
+          Añadir principio
+        </Button>
+      }
+      renderListItem={(principle, pi) => (
+        <Box className={styles.listItemContent}>
+          <Typography className={styles.listItemName}>{principle.title || "Sin título"}</Typography>
+          {principle.scenarios.length > 0 && (
+            <Chip
+              label={`${principle.scenarios.length} escenario${principle.scenarios.length !== 1 ? "s" : ""}`}
+              size="small"
+              className={styles.countChip}
+            />
+          )}
+          <Tooltip title="Eliminar principio">
+            <IconButton
+              size="small"
+              className={styles.deleteIconBtn}
+              onClick={(e) => { e.stopPropagation(); dispatch({ type: "DEL_PRINCIPLE", mi, zi, pi }); }}
+            >
+              <DeleteOutlineIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Box>
+      )}
+      renderDetail={(principle, pi) => <PrincipleDetailForm mi={mi} zi={zi} pi={pi} principle={principle} />}
     />
   );
 }

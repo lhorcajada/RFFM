@@ -76,16 +76,27 @@ function buildModel(): GameModelType {
         id: 1,
         name: "Fase de ataque",
         zones: [
-          { id: 10, name: "Zona defensiva", scenarios: [{ id: -1 } as never] },
-          { id: 11, name: "Zona media", scenarios: [] },
-          { id: 12, name: "Zona ofensiva", scenarios: [{ id: -2 } as never, { id: -3 } as never] },
+          {
+            id: 10,
+            name: "Zona defensiva",
+            principles: [{ id: -1, scenarios: [{ id: -1 } as never] } as never],
+          },
+          { id: 11, name: "Zona media", principles: [] },
+          {
+            id: 12,
+            name: "Zona ofensiva",
+            principles: [
+              { id: -2, scenarios: [{ id: -2 } as never, { id: -4 } as never] } as never,
+              { id: -3, scenarios: [{ id: -3 } as never] } as never,
+            ],
+          },
         ],
       },
       {
         id: 2,
         name: "Fase de defensa",
         zones: [
-          { id: 20, name: "Zona propia", scenarios: [] },
+          { id: 20, name: "Zona propia", principles: [] },
         ],
       },
     ],
@@ -122,7 +133,7 @@ describe("GameModel — selector de fase y chips de zona", () => {
     expect(within(listbox).getByText(/1 zona\b/)).toBeInTheDocument();
   });
 
-  it("muestra chips de zona con el nombre y el número de escenarios", async () => {
+  it("muestra chips de zona con el nombre y el número de principios (no de escenarios)", async () => {
     await renderPage();
 
     const zoneGroup = screen.getByRole("group", { name: "Zonas" });
@@ -130,9 +141,11 @@ describe("GameModel — selector de fase y chips de zona", () => {
     expect(within(zoneGroup).getByText("Zona media")).toBeInTheDocument();
     expect(within(zoneGroup).getByText("Zona ofensiva")).toBeInTheDocument();
 
+    // "Zona ofensiva" has 2 principles totalling 3 scenarios — the chip must show 2 (principles).
     const zoneOfensivaChip = within(zoneGroup).getByText("Zona ofensiva").closest(".MuiChip-root");
     expect(zoneOfensivaChip).not.toBeNull();
     expect(within(zoneOfensivaChip as HTMLElement).getByText("2")).toBeInTheDocument();
+    expect(within(zoneOfensivaChip as HTMLElement).queryByText("3")).not.toBeInTheDocument();
   });
 
   it("marca visualmente la zona seleccionada y muestra su contenido", async () => {
@@ -149,6 +162,13 @@ describe("GameModel — selector de fase y chips de zona", () => {
     expect(screen.getByText(/No hay escenarios definidos para esta zona\./)).toBeInTheDocument();
     expect(zoneMediaChip).toHaveClass("MuiChip-filled");
     expect(zoneDefensivaChip).not.toHaveClass("MuiChip-filled");
+  });
+
+  it("muestra 'Principios' como encabezado de la lista, no el nombre de la zona", async () => {
+    await renderPage();
+
+    expect(screen.getByText("Principios")).toBeInTheDocument();
+    expect(screen.queryByText("Zona defensiva", { selector: "p, h1, h2, h3, h4" })).not.toBeInTheDocument();
   });
 
   it("al cambiar de fase, la zona seleccionada vuelve a ser la primera de la nueva fase", async () => {

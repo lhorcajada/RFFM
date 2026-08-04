@@ -24,7 +24,7 @@ import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import useTeamAndClub from "../../hooks/useTeamAndClub";
 import gameModelService from "../../services/gameModelService";
-import type { GameModel, TacticalPrinciple } from "../../types/gameModel";
+import type { GameModel } from "../../types/gameModel";
 import {
   GameModelDraftProvider,
   useGameModelDraft,
@@ -51,41 +51,50 @@ function validateDraft(draft: GameModel): ValidationError[] {
 
   for (const moment of draft.gameMoments) {
     for (const zone of moment.zones) {
-      for (let si = 0; si < zone.scenarios.length; si++) {
-        totalScenarios++;
-        const s = zone.scenarios[si];
-        const sPath = `${moment.name} › ${zone.name} › Escenario ${si + 1}`;
+      for (let pi = 0; pi < zone.principles.length; pi++) {
+        const principle = zone.principles[pi];
+        const pPath = `${moment.name} › ${zone.name} › Principio ${pi + 1}`;
 
-        if (!s.name.trim()) {
-          errors.push({ path: sPath, message: "El nombre del escenario es obligatorio." });
+        if (!principle.title.trim()) {
+          errors.push({ path: pPath, message: "El título del principio es obligatorio." });
         }
 
-        for (let pi = 0; pi < s.subPrinciples.length; pi++) {
-          const sp = s.subPrinciples[pi];
-          const spPath = `${sPath} › Subprincipio ${sp.label}`;
+        for (let si = 0; si < principle.scenarios.length; si++) {
+          totalScenarios++;
+          const s = principle.scenarios[si];
+          const sPath = `${pPath} › Escenario ${si + 1}`;
 
-          if (!sp.name.trim()) {
-            errors.push({ path: spPath, message: "El nombre del subprincipio es obligatorio." });
+          if (!s.name.trim()) {
+            errors.push({ path: sPath, message: "El nombre del escenario es obligatorio." });
           }
 
-          for (let qi = 0; qi < sp.subSubPrinciples.length; qi++) {
-            const ssp = sp.subSubPrinciples[qi];
-            const sspPath = `${spPath} › Sub-subprincipio ${qi + 1}`;
+          for (let spi = 0; spi < s.subPrinciples.length; spi++) {
+            const sp = s.subPrinciples[spi];
+            const spPath = `${sPath} › Subprincipio ${sp.label}`;
 
-            if (!ssp.name.trim()) {
-              errors.push({ path: sspPath, message: "El nombre del sub-subprincipio es obligatorio." });
-            }
-            if (!ssp.action.trim()) {
-              errors.push({ path: sspPath, message: "La acción del sub-subprincipio es obligatoria." });
+            if (!sp.name.trim()) {
+              errors.push({ path: spPath, message: "El nombre del subprincipio es obligatorio." });
             }
 
-            for (let ki = 0; ki < ssp.essentialSkills.length; ki++) {
-              const sk = ssp.essentialSkills[ki];
-              if (!sk.name.trim()) {
-                errors.push({
-                  path: `${sspPath} › Habilidad ${ki + 1}`,
-                  message: "El nombre de la habilidad es obligatorio.",
-                });
+            for (let qi = 0; qi < sp.subSubPrinciples.length; qi++) {
+              const ssp = sp.subSubPrinciples[qi];
+              const sspPath = `${spPath} › Sub-subprincipio ${qi + 1}`;
+
+              if (!ssp.name.trim()) {
+                errors.push({ path: sspPath, message: "El nombre del sub-subprincipio es obligatorio." });
+              }
+              if (!ssp.action.trim()) {
+                errors.push({ path: sspPath, message: "La acción del sub-subprincipio es obligatoria." });
+              }
+
+              for (let ki = 0; ki < ssp.essentialSkills.length; ki++) {
+                const sk = ssp.essentialSkills[ki];
+                if (!sk.name.trim()) {
+                  errors.push({
+                    path: `${sspPath} › Habilidad ${ki + 1}`,
+                    message: "El nombre de la habilidad es obligatorio.",
+                  });
+                }
               }
             }
           }
@@ -116,7 +125,7 @@ function ZoneFormContent({
 
   return (
     <Box className={styles.zoneContent}>
-      <ScenarioFormAccordion mi={mi} zi={zi} scenarios={zone.scenarios} />
+      <ScenarioFormAccordion mi={mi} zi={zi} principles={zone.principles} />
     </Box>
   );
 }
@@ -206,16 +215,18 @@ function GameModelFormEditor({ onSave, onCancel, isEdit, saveRef }: {
               TabIndicatorProps={{ className: styles.zoneTabIndicator }}
               className={styles.zoneTabs}
             >
-              {currentMoment.zones.map((z, zi) => (
+              {currentMoment.zones.map((z, zi) => {
+                const principleCount = z.principles.length;
+                return (
                 <Tab
                   key={z.id}
                   className={styles.zoneTab}
                   label={
                     <Box className={styles.zoneTabLabel}>
                       <span>{z.name}</span>
-                      {z.scenarios.length > 0 && (
+                      {principleCount > 0 && (
                         <Chip
-                          label={z.scenarios.length}
+                          label={principleCount}
                           size="small"
                           className={styles.zoneChip}
                         />
@@ -224,7 +235,8 @@ function GameModelFormEditor({ onSave, onCancel, isEdit, saveRef }: {
                   }
                   value={zi}
                 />
-              ))}
+                );
+              })}
             </Tabs>
           </Box>
 
@@ -289,7 +301,6 @@ export default function GameModelCreate() {
   const { team, teamTitleNode } = useTeamAndClub();
 
   const [draft, setDraft] = useState<GameModel | null>(null);
-  const [availablePrinciples, setAvailablePrinciples] = useState<TacticalPrinciple[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
@@ -303,8 +314,6 @@ export default function GameModelCreate() {
     setLoading(true);
     let mounted = true;
     async function init() {
-      const principles = await gameModelService.getAvailableTacticalPrinciples();
-
       let initialDraft: GameModel;
       if (isEdit && seasonFromState) {
         const existing = await gameModelService.getByTeamIdAndSeason(teamId, seasonFromState);
@@ -315,7 +324,6 @@ export default function GameModelCreate() {
 
       if (mounted) {
         setDraft(initialDraft);
-        setAvailablePrinciples(principles);
         setLoading(false);
       }
     }
@@ -392,10 +400,7 @@ export default function GameModelCreate() {
             <Button variant="outlined" size="small" onClick={handleCancel}>Volver</Button>
           </Box>
         ) : draft ? (
-          <GameModelDraftProvider
-            initialDraft={draft}
-            availablePrinciples={availablePrinciples}
-          >
+          <GameModelDraftProvider initialDraft={draft}>
             <GameModelFormEditor onSave={handleSave} onCancel={handleCancel} isEdit={isEdit} saveRef={saveRef} />
           </GameModelDraftProvider>
         ) : null}

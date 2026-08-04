@@ -3,7 +3,7 @@ import { Box, Typography, Chip, Button } from "@mui/material";
 import FitnessCenterIcon from "@mui/icons-material/FitnessCenter";
 import EventNoteIcon from "@mui/icons-material/EventNote";
 import { useNavigate, useLocation } from "react-router-dom";
-import type { Scenario, SubPrinciple } from "../../../types/gameModel";
+import type { Principle, Scenario, SubPrinciple } from "../../../types/gameModel";
 import DrillDownPanel from "./DrillDownPanel";
 import PrincipleExercisesSection from "./PrincipleExercisesSection";
 import SubSubPrincipleCard from "./SubSubPrincipleCard";
@@ -11,7 +11,7 @@ import { resolveMediaUrl } from "./resolveMediaUrl";
 import styles from "./ScenarioAccordion.module.css";
 
 interface Props {
-  scenarios: Scenario[];
+  principles: Principle[];
   clubId: string;
   teamId: string;
   gameMomentName: string;
@@ -184,17 +184,6 @@ function ScenarioDetailView({ scenario, clubId, teamId, gameMomentName, zoneName
         </Box>
       )}
 
-      {scenario.tacticalPrinciples.length > 0 && (
-        <Box className={styles.principlesRow}>
-          <Typography className={styles.principlesLabel}>Principios tácticos colectivos:</Typography>
-          <Box className={styles.chipRow}>
-            {scenario.tacticalPrinciples.map((p) => (
-              <Chip key={p.id} label={p.name} size="small" className={styles.principleChip} />
-            ))}
-          </Box>
-        </Box>
-      )}
-
       {scenario.subPrinciples.length > 0 ? (
         <DrillDownPanel<SubPrinciple>
           items={scenario.subPrinciples}
@@ -250,39 +239,103 @@ function ScenarioDetailView({ scenario, clubId, teamId, gameMomentName, zoneName
   );
 }
 
-export default function ScenarioAccordion({ scenarios, clubId, teamId, gameMomentName, zoneName }: Props) {
-  const [selectedSi, setSelectedSi] = useState<number | null>(scenarios.length === 1 ? 0 : null);
+interface PrincipleDetailProps {
+  principle: Principle;
+  clubId: string;
+  teamId: string;
+  gameMomentName: string;
+  zoneName: string;
+}
+
+function PrincipleDetailView({ principle, clubId, teamId, gameMomentName, zoneName }: PrincipleDetailProps) {
+  const [selectedSi, setSelectedSi] = useState<number | null>(principle.scenarios.length === 1 ? 0 : null);
 
   useEffect(() => {
-    if (selectedSi !== null && selectedSi >= scenarios.length) setSelectedSi(null);
-  }, [scenarios.length, selectedSi]);
+    if (selectedSi !== null && selectedSi >= principle.scenarios.length) setSelectedSi(null);
+  }, [principle.scenarios.length, selectedSi]);
 
   return (
-    <DrillDownPanel<Scenario>
-      items={scenarios}
-      getKey={(s) => s.id}
-      selectedIndex={selectedSi}
-      onSelect={setSelectedSi}
-      onBack={() => setSelectedSi(null)}
-      listAriaLabel="Lista de escenarios"
-      emptyMessage="Selecciona un escenario para ver su detalle."
-      detailTitle={(s) => `Escenario ${s.order}`}
-      renderListItem={(scenario) => (
+    <Box className={styles.principleDetailView}>
+      <Box className={styles.principleHeader}>
+        <Typography component="h3" className={styles.principleTitle}>Principio: {principle.title}</Typography>
+        {principle.description && (
+          <Typography className={styles.principleDescription}>{principle.description}</Typography>
+        )}
+      </Box>
+
+      {principle.scenarios.length > 0 ? (
+        <DrillDownPanel<Scenario>
+          items={principle.scenarios}
+          getKey={(s) => s.id}
+          selectedIndex={selectedSi}
+          onSelect={setSelectedSi}
+          onBack={() => setSelectedSi(null)}
+          listAriaLabel="Lista de escenarios"
+          emptyMessage="Selecciona un escenario para ver su detalle."
+          detailTitle={(s) => `Escenario ${s.order}`}
+          forceSinglePane
+          renderListItem={(scenario) => (
+            <Box className={styles.listItemContent}>
+              <Typography className={styles.scenarioNumber}>Escenario {scenario.order}</Typography>
+              <Typography className={styles.listItemName}>{scenario.name}</Typography>
+              {scenario.subPrinciples.length > 0 && (
+                <Chip
+                  label={`${scenario.subPrinciples.length} subprincipio${scenario.subPrinciples.length !== 1 ? "s" : ""}`}
+                  size="small"
+                  className={styles.countChip}
+                />
+              )}
+            </Box>
+          )}
+          renderDetail={(scenario) => (
+            <ScenarioDetailView
+              scenario={scenario}
+              clubId={clubId}
+              teamId={teamId}
+              gameMomentName={gameMomentName}
+              zoneName={zoneName}
+            />
+          )}
+        />
+      ) : (
+        <Typography className={styles.emptyZoneText}>No hay escenarios definidos.</Typography>
+      )}
+    </Box>
+  );
+}
+
+export default function ScenarioAccordion({ principles, clubId, teamId, gameMomentName, zoneName }: Props) {
+  const [selectedPi, setSelectedPi] = useState<number | null>(principles.length === 1 ? 0 : null);
+
+  useEffect(() => {
+    if (selectedPi !== null && selectedPi >= principles.length) setSelectedPi(null);
+  }, [principles.length, selectedPi]);
+
+  return (
+    <DrillDownPanel<Principle>
+      items={principles}
+      getKey={(p) => p.id}
+      selectedIndex={selectedPi}
+      onSelect={setSelectedPi}
+      onBack={() => setSelectedPi(null)}
+      listAriaLabel="Lista de principios"
+      emptyMessage="Selecciona un principio para ver su detalle."
+      detailTitle={(p) => `Principio: ${p.title}`}
+      renderListItem={(principle) => (
         <Box className={styles.listItemContent}>
-          <Typography className={styles.scenarioNumber}>Escenario {scenario.order}</Typography>
-          <Typography className={styles.listItemName}>{scenario.name}</Typography>
-          {scenario.subPrinciples.length > 0 && (
+          <Typography className={styles.listItemName}>{principle.title}</Typography>
+          {principle.scenarios.length > 0 && (
             <Chip
-              label={`${scenario.subPrinciples.length} subprincipio${scenario.subPrinciples.length !== 1 ? "s" : ""}`}
+              label={`${principle.scenarios.length} escenario${principle.scenarios.length !== 1 ? "s" : ""}`}
               size="small"
               className={styles.countChip}
             />
           )}
         </Box>
       )}
-      renderDetail={(scenario) => (
-        <ScenarioDetailView
-          scenario={scenario}
+      renderDetail={(principle) => (
+        <PrincipleDetailView
+          principle={principle}
           clubId={clubId}
           teamId={teamId}
           gameMomentName={gameMomentName}

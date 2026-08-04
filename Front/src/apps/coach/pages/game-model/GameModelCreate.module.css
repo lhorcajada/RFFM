@@ -132,22 +132,30 @@
   text-transform: none !important;
   min-height: 36px !important;
   padding: 0 14px !important;
+  border-radius: 6px 6px 0 0 !important;
 }
 
 .zoneTab.Mui-selected {
-  color: #4d9de0 !important;
+  color: #ffffff !important;
   font-weight: 700 !important;
+  background-color: #2f6fa8 !important;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.6);
 }
 
 .zoneTabIndicator {
-  background-color: rgba(77, 157, 224, 0.7) !important;
-  height: 2px !important;
+  background-color: #4d9de0 !important;
+  height: 3px !important;
 }
 
 .zoneTabLabel {
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+.zoneTab.Mui-selected .zoneChip {
+  background-color: rgba(255, 255, 255, 0.25) !important;
+  color: #ffffff !important;
 }
 
 .zoneChip {

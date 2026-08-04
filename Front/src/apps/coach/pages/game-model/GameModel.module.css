@@ -121,8 +121,10 @@
 }
 
 .zoneChipSelected {
-  color: #07071a !important;
+  color: #ffffff !important;
   font-weight: 700 !important;
+  background-color: #2f6fa8 !important;
+  border-color: #4d9de0 !important;
 }
 
 .zoneChipLabel {
@@ -143,8 +145,8 @@
 }
 
 .zoneChipSelected .zoneCount {
-  background-color: rgba(7, 7, 26, 0.2);
-  color: #07071a;
+  background-color: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
 }
 
 /* ── Zone content ── */

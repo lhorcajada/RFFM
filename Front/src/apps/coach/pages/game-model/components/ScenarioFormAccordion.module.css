@@ -134,55 +134,6 @@
   color: #4d9de0 !important;
 }
 
-.principlesField .MuiOutlinedInput-notchedOutline {
-  border-color: rgba(77, 157, 224, 0.3) !important;
-}
-
-.principlesField .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
-  border-color: rgba(77, 157, 224, 0.6) !important;
-}
-
-.principlesField .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
-  border-color: #4d9de0 !important;
-}
-
-.principlesField .MuiInputLabel-root {
-  color: rgba(156, 220, 254, 0.6) !important;
-  font-size: 0.8rem !important;
-}
-
-.principlesField .MuiInputLabel-root.Mui-focused {
-  color: #4d9de0 !important;
-}
-
-.principlesField .MuiInputBase-input {
-  color: #e8e8e8 !important;
-}
-
-.principlesField .MuiSvgIcon-root {
-  color: #4d9de0 !important;
-}
-
-.principlesAutocomplete :global(.MuiAutocomplete-option) {
-  color: #e8e8e8 !important;
-}
-
-.principleChip {
-  background-color: rgba(77, 157, 224, 0.15) !important;
-  color: #a8d4f5 !important;
-  font-size: 0.8rem !important;
-  height: 22px !important;
-}
-
-.principleChip :global(.MuiChip-deleteIcon) {
-  color: rgba(156, 220, 254, 0.6) !important;
-  font-size: 22px !important;
-}
-
-.principleChip :global(.MuiChip-deleteIcon):hover {
-  color: #4d9de0 !important;
-}
-
 .mediaHint {
   font-size: 0.8rem !important;
   font-style: italic;
@@ -573,6 +524,7 @@
   color: rgba(156, 220, 254, 0.6) !important;
 }
 
+.principleDetailForm,
 .scenarioDetailForm,
 .spDetailForm,
 .sspDetailForm {

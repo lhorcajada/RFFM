@@ -1,11 +1,11 @@
 import { createContext, useContext, useReducer, type ReactNode } from "react";
 import type {
   GameModel,
+  Principle,
   Scenario,
   SubPrinciple,
   SubSubPrinciple,
   EssentialSkill,
-  TacticalPrinciple,
 } from "../types/gameModel";
 
 // ─── Temp-ID counter (negatives = unsaved) ───────────────────────────
@@ -17,47 +17,60 @@ type Action =
   | { type: "SET_NAME"; value: string }
   | { type: "SET_SEASON"; value: string }
   | { type: "SET_DRAFT"; draft: GameModel }
+  // Principle
+  | { type: "ADD_PRINCIPLE"; mi: number; zi: number }
+  | {
+      type: "UPD_PRINCIPLE";
+      mi: number;
+      zi: number;
+      pi: number;
+      changes: Partial<Pick<Principle, "title" | "description">>;
+    }
+  | { type: "DEL_PRINCIPLE"; mi: number; zi: number; pi: number }
   // Scenario
-  | { type: "ADD_SCENARIO"; mi: number; zi: number }
+  | { type: "ADD_SCENARIO"; mi: number; zi: number; pi: number }
   | {
       type: "UPD_SCENARIO";
       mi: number;
       zi: number;
+      pi: number;
       si: number;
-      changes: Partial<
-        Pick<Scenario, "name" | "context" | "tacticalPrinciples" | "mediaUrl" | "mediaType">
-      >;
+      changes: Partial<Pick<Scenario, "name" | "context" | "mediaUrl" | "mediaType">>;
     }
-  | { type: "DEL_SCENARIO"; mi: number; zi: number; si: number }
+  | { type: "DEL_SCENARIO"; mi: number; zi: number; pi: number; si: number }
   | {
       type: "MOVE_SCENARIO_LOCATION";
       fromMi: number;
       fromZi: number;
+      fromPi: number;
       si: number;
       toMi: number;
       toZi: number;
+      toPi: number;
       order?: number;
     }
   // SubPrinciple
-  | { type: "ADD_SP"; mi: number; zi: number; si: number }
+  | { type: "ADD_SP"; mi: number; zi: number; pi: number; si: number }
   | {
       type: "UPD_SP";
       mi: number;
       zi: number;
-      si: number;
       pi: number;
+      si: number;
+      spi: number;
       changes: Partial<Pick<SubPrinciple, "name" | "context">>;
     }
-  | { type: "DEL_SP"; mi: number; zi: number; si: number; pi: number }
-  | { type: "MOVE_SP"; mi: number; zi: number; si: number; from: number; to: number }
+  | { type: "DEL_SP"; mi: number; zi: number; pi: number; si: number; spi: number }
+  | { type: "MOVE_SP"; mi: number; zi: number; pi: number; si: number; from: number; to: number }
   // SubSubPrinciple
-  | { type: "ADD_SSP"; mi: number; zi: number; si: number; pi: number }
+  | { type: "ADD_SSP"; mi: number; zi: number; pi: number; si: number; spi: number }
   | {
       type: "UPD_SSP";
       mi: number;
       zi: number;
-      si: number;
       pi: number;
+      si: number;
+      spi: number;
       qi: number;
       changes: Partial<Pick<SubSubPrinciple, "name" | "action">>;
     }
@@ -65,24 +78,29 @@ type Action =
       type: "DEL_SSP";
       mi: number;
       zi: number;
-      si: number;
       pi: number;
+      si: number;
+      spi: number;
       qi: number;
-    }  | { type: "MOVE_SSP"; mi: number; zi: number; si: number; pi: number; from: number; to: number }  // EssentialSkill
+    }
+  | { type: "MOVE_SSP"; mi: number; zi: number; pi: number; si: number; spi: number; from: number; to: number }
+  // EssentialSkill
   | {
       type: "ADD_SKILL";
       mi: number;
       zi: number;
-      si: number;
       pi: number;
+      si: number;
+      spi: number;
       qi: number;
     }
   | {
       type: "UPD_SKILL";
       mi: number;
       zi: number;
-      si: number;
       pi: number;
+      si: number;
+      spi: number;
       qi: number;
       ki: number;
       changes: Partial<EssentialSkill>;
@@ -91,8 +109,9 @@ type Action =
       type: "DEL_SKILL";
       mi: number;
       zi: number;
-      si: number;
       pi: number;
+      si: number;
+      spi: number;
       qi: number;
       ki: number;
     };
@@ -118,6 +137,60 @@ function reducer(state: GameModel, action: Action): GameModel {
     case "SET_DRAFT":
       return action.draft;
 
+    // ── Principles ────────────────────────────────────────────────
+    case "ADD_PRINCIPLE":
+      return {
+        ...state,
+        gameMoments: mapAt(state.gameMoments, action.mi, (m) => ({
+          ...m,
+          zones: mapAt(m.zones, action.zi, (z) => ({
+            ...z,
+            principles: [
+              ...z.principles,
+              {
+                id: nextId(),
+                gameMomentId: m.id,
+                gameZoneId: z.id,
+                order: z.principles.length + 1,
+                title: "",
+                description: "",
+                scenarios: [],
+              } satisfies Principle,
+            ],
+          })),
+        })),
+      };
+
+    case "UPD_PRINCIPLE":
+      return {
+        ...state,
+        gameMoments: mapAt(state.gameMoments, action.mi, (m) => ({
+          ...m,
+          zones: mapAt(m.zones, action.zi, (z) => ({
+            ...z,
+            principles: mapAt(z.principles, action.pi, (p) => ({
+              ...p,
+              ...action.changes,
+            })),
+          })),
+        })),
+      };
+
+    case "DEL_PRINCIPLE":
+      return {
+        ...state,
+        gameMoments: mapAt(state.gameMoments, action.mi, (m) => ({
+          ...m,
+          zones: mapAt(m.zones, action.zi, (z) => {
+            const filtered = z.principles.filter((_, i) => i !== action.pi);
+            return {
+              ...z,
+              principles: filtered.map((p, i) => ({ ...p, order: i + 1 })),
+            };
+          }),
+        })),
+      };
+
     // ── Scenarios ──────────────────────────────────────────────────
     case "ADD_SCENARIO":
       return {
@@ -126,17 +199,19 @@ function reducer(state: GameModel, action: Action): GameModel {
           ...m,
           zones: mapAt(m.zones, action.zi, (z) => ({
             ...z,
-            scenarios: [
-              ...z.scenarios,
-              {
-                id: nextId(),
-                order: z.scenarios.length + 1,
-                name: "",
-                context: "",
-                tacticalPrinciples: [],
-                subPrinciples: [],
-              } satisfies Scenario,
-            ],
+            principles: mapAt(z.principles, action.pi, (p) => ({
+              ...p,
+              scenarios: [
+                ...p.scenarios,
+                {
+                  id: nextId(),
+                  order: p.scenarios.length + 1,
+                  name: "",
+                  context: "",
+                  subPrinciples: [],
+                } satisfies Scenario,
+              ],
+            })),
           })),
         })),
       };
@@ -148,9 +223,12 @@ function reducer(state: GameModel, action: Action): GameModel {
           ...m,
           zones: mapAt(m.zones, action.zi, (z) => ({
             ...z,
-            scenarios: mapAt(z.scenarios, action.si, (s) => ({
-              ...s,
-              ...action.changes,
+            principles: mapAt(z.principles, action.pi, (p) => ({
+              ...p,
+              scenarios: mapAt(p.scenarios, action.si, (s) => ({
+                ...s,
+                ...action.changes,
+              })),
             })),
           })),
         })),
@@ -161,29 +239,35 @@ function reducer(state: GameModel, action: Action): GameModel {
         ...state,
         gameMoments: mapAt(state.gameMoments, action.mi, (m) => ({
           ...m,
-          zones: mapAt(m.zones, action.zi, (z) => {
-            const filtered = z.scenarios.filter((_, i) => i !== action.si);
-            return {
-              ...z,
-              scenarios: filtered.map((s, i) => ({ ...s, order: i + 1 })),
-            };
-          }),
+          zones: mapAt(m.zones, action.zi, (z) => ({
+            ...z,
+            principles: mapAt(z.principles, action.pi, (p) => {
+              const filtered = p.scenarios.filter((_, i) => i !== action.si);
+              return {
+                ...p,
+                scenarios: filtered.map((s, i) => ({ ...s, order: i + 1 })),
+              };
+            }),
+          })),
         })),
       };
 
     case "MOVE_SCENARIO_LOCATION": {
-      const sourceZone = state.gameMoments[action.fromMi]?.zones[action.fromZi];
-      const moved = sourceZone?.scenarios[action.si];
+      const sourcePrinciple = state.gameMoments[action.fromMi]?.zones[action.fromZi]?.principles[action.fromPi];
+      const moved = sourcePrinciple?.scenarios[action.si];
       if (!moved) return state;
 
       const withoutMoved: GameModel = {
         ...state,
         gameMoments: mapAt(state.gameMoments, action.fromMi, (m) => ({
           ...m,
-          zones: mapAt(m.zones, action.fromZi, (z) => {
-            const filtered = z.scenarios.filter((_, i) => i !== action.si);
-            return { ...z, scenarios: filtered.map((s, i) => ({ ...s, order: i + 1 })) };
-          }),
+          zones: mapAt(m.zones, action.fromZi, (z) => ({
+            ...z,
+            principles: mapAt(z.principles, action.fromPi, (p) => {
+              const filtered = p.scenarios.filter((_, i) => i !== action.si);
+              return { ...p, scenarios: filtered.map((s, i) => ({ ...s, order: i + 1 })) };
+            }),
+          })),
         })),
       };
 
@@ -193,7 +277,10 @@ function reducer(state: GameModel, action: Action): GameModel {
           ...m,
           zones: mapAt(m.zones, action.toZi, (z) => ({
             ...z,
-            scenarios: [...z.scenarios, { ...moved, order: action.order ?? z.scenarios.length + 1 }],
+            principles: mapAt(z.principles, action.toPi, (p) => ({
+              ...p,
+              scenarios: [...p.scenarios, { ...moved, order: action.order ?? p.scenarios.length + 1 }],
+            })),
           })),
         })),
       };
@@ -207,19 +294,22 @@ function reducer(state: GameModel, action: Action): GameModel {
           ...m,
           zones: mapAt(m.zones, action.zi, (z) => ({
             ...z,
-            scenarios: mapAt(z.scenarios, action.si, (s) => ({
-              ...s,
-              subPrinciples: [
-                ...s.subPrinciples,
-                {
-                  id: nextId(),
-                  order: s.subPrinciples.length + 1,
-                  label: String.fromCharCode(65 + s.subPrinciples.length),
-                  name: "",
-                  context: "",
-                  subSubPrinciples: [],
-                } satisfies SubPrinciple,
-              ],
+            principles: mapAt(z.principles, action.pi, (p) => ({
+              ...p,
+              scenarios: mapAt(p.scenarios, action.si, (s) => ({
+                ...s,
+                subPrinciples: [
+                  ...s.subPrinciples,
+                  {
+                    id: nextId(),
+                    order: s.subPrinciples.length + 1,
+                    label: String.fromCharCode(65 + s.subPrinciples.length),
+                    name: "",
+                    context: "",
+                    subSubPrinciples: [],
+                  } satisfies SubPrinciple,
+                ],
+              })),
             })),
           })),
         })),
@@ -232,11 +322,14 @@ function reducer(state: GameModel, action: Action): GameModel {
           ...m,
           zones: mapAt(m.zones, action.zi, (z) => ({
             ...z,
-            scenarios: mapAt(z.scenarios, action.si, (s) => ({
-              ...s,
-              subPrinciples: mapAt(s.subPrinciples, action.pi, (sp) => ({
-                ...sp,
-                ...action.changes,
+            principles: mapAt(z.principles, action.pi, (p) => ({
+              ...p,
+              scenarios: mapAt(p.scenarios, action.si, (s) => ({
+                ...s,
+                subPrinciples: mapAt(s.subPrinciples, action.spi, (sp) => ({
+                  ...sp,
+                  ...action.changes,
+                })),
               })),
             })),
           })),
@@ -250,17 +343,20 @@ function reducer(state: GameModel, action: Action): GameModel {
           ...m,
           zones: mapAt(m.zones, action.zi, (z) => ({
             ...z,
-            scenarios: mapAt(z.scenarios, action.si, (s) => {
-              const filtered = s.subPrinciples.filter((_, i) => i !== action.pi);
-              return {
-                ...s,
-                subPrinciples: filtered.map((sp, i) => ({
-                  ...sp,
-                  order: i + 1,
-                  label: String.fromCharCode(65 + i),
-                })),
-              };
-            }),
+            principles: mapAt(z.principles, action.pi, (p) => ({
+              ...p,
+              scenarios: mapAt(p.scenarios, action.si, (s) => {
+                const filtered = s.subPrinciples.filter((_, i) => i !== action.spi);
+                return {
+                  ...s,
+                  subPrinciples: filtered.map((sp, i) => ({
+                    ...sp,
+                    order: i + 1,
+                    label: String.fromCharCode(65 + i),
+                  })),
+                };
+              }),
+            })),
           })),
         })),
       };
@@ -271,19 +367,22 @@ function reducer(state: GameModel, action: Action): GameModel {
           ...m,
           zones: mapAt(m.zones, action.zi, (z) => ({
             ...z,
-            scenarios: mapAt(z.scenarios, action.si, (s) => {
-              const items = [...s.subPrinciples];
-              const [moved] = items.splice(action.from, 1);
-              items.splice(action.to, 0, moved);
-              return {
-                ...s,
-                subPrinciples: items.map((sp, i) => ({
-                  ...sp,
-                  order: i + 1,
-                  label: String.fromCharCode(65 + i),
-                })),
-              };
-            }),
+            principles: mapAt(z.principles, action.pi, (p) => ({
+              ...p,
+              scenarios: mapAt(p.scenarios, action.si, (s) => {
+                const items = [...s.subPrinciples];
+                const [moved] = items.splice(action.from, 1);
+                items.splice(action.to, 0, moved);
+                return {
+                  ...s,
+                  subPrinciples: items.map((sp, i) => ({
+                    ...sp,
+                    order: i + 1,
+                    label: String.fromCharCode(65 + i),
+                  })),
+                };
+              }),
+            })),
           })),
         })),
       };
@@ -295,20 +394,23 @@ function reducer(state: GameModel, action: Action): GameModel {
           ...m,
           zones: mapAt(m.zones, action.zi, (z) => ({
             ...z,
-            scenarios: mapAt(z.scenarios, action.si, (s) => ({
-              ...s,
-              subPrinciples: mapAt(s.subPrinciples, action.pi, (sp) => ({
-                ...sp,
-                subSubPrinciples: [
-                  ...sp.subSubPrinciples,
-                  {
-                    id: nextId(),
-                    order: sp.subSubPrinciples.length + 1,
-                    name: "",
-                    action: "",
-                    essentialSkills: [],
-                  } satisfies SubSubPrinciple,
-                ],
+            principles: mapAt(z.principles, action.pi, (p) => ({
+              ...p,
+              scenarios: mapAt(p.scenarios, action.si, (s) => ({
+                ...s,
+                subPrinciples: mapAt(s.subPrinciples, action.spi, (sp) => ({
+                  ...sp,
+                  subSubPrinciples: [
+                    ...sp.subSubPrinciples,
+                    {
+                      id: nextId(),
+                      order: sp.subSubPrinciples.length + 1,
+                      name: "",
+                      action: "",
+                      essentialSkills: [],
+                    } satisfies SubSubPrinciple,
+                  ],
+                })),
               })),
             })),
           })),
@@ -322,13 +424,16 @@ function reducer(state: GameModel, action: Action): GameModel {
           ...m,
           zones: mapAt(m.zones, action.zi, (z) => ({
             ...z,
-            scenarios: mapAt(z.scenarios, action.si, (s) => ({
-              ...s,
-              subPrinciples: mapAt(s.subPrinciples, action.pi, (sp) => ({
-                ...sp,
-                subSubPrinciples: mapAt(sp.subSubPrinciples, action.qi, (ssp) => ({
-                  ...ssp,
-                  ...action.changes,
+            principles: mapAt(z.principles, action.pi, (p) => ({
+              ...p,
+              scenarios: mapAt(p.scenarios, action.si, (s) => ({
+                ...s,
+                subPrinciples: mapAt(s.subPrinciples, action.spi, (sp) => ({
+                  ...sp,
+                  subSubPrinciples: mapAt(sp.subSubPrinciples, action.qi, (ssp) => ({
+                    ...ssp,
+                    ...action.changes,
+                  })),
                 })),
               })),
             })),
@@ -343,13 +448,16 @@ function reducer(state: GameModel, action: Action): GameModel {
           ...m,
           zones: mapAt(m.zones, action.zi, (z) => ({
             ...z,
-            scenarios: mapAt(z.scenarios, action.si, (s) => ({
-              ...s,
-              subPrinciples: mapAt(s.subPrinciples, action.pi, (sp) => ({
-                ...sp,
-                subSubPrinciples: sp.subSubPrinciples.filter(
-                  (_, i) => i !== action.qi,
-                ).map((ssp, i) => ({ ...ssp, order: i + 1 })),
+            principles: mapAt(z.principles, action.pi, (p) => ({
+              ...p,
+              scenarios: mapAt(p.scenarios, action.si, (s) => ({
+                ...s,
+                subPrinciples: mapAt(s.subPrinciples, action.spi, (sp) => ({
+                  ...sp,
+                  subSubPrinciples: sp.subSubPrinciples.filter(
+                    (_, i) => i !== action.qi,
+                  ).map((ssp, i) => ({ ...ssp, order: i + 1 })),
+                })),
               })),
             })),
           })),
@@ -362,17 +470,20 @@ function reducer(state: GameModel, action: Action): GameModel {
           ...m,
           zones: mapAt(m.zones, action.zi, (z) => ({
             ...z,
-            scenarios: mapAt(z.scenarios, action.si, (s) => ({
-              ...s,
-              subPrinciples: mapAt(s.subPrinciples, action.pi, (sp) => {
-                const items = [...sp.subSubPrinciples];
-                const [moved] = items.splice(action.from, 1);
-                items.splice(action.to, 0, moved);
-                return {
-                  ...sp,
-                  subSubPrinciples: items.map((ssp, i) => ({ ...ssp, order: i + 1 })),
-                };
-              }),
+            principles: mapAt(z.principles, action.pi, (p) => ({
+              ...p,
+              scenarios: mapAt(p.scenarios, action.si, (s) => ({
+                ...s,
+                subPrinciples: mapAt(s.subPrinciples, action.spi, (sp) => {
+                  const items = [...sp.subSubPrinciples];
+                  const [moved] = items.splice(action.from, 1);
+                  items.splice(action.to, 0, moved);
+                  return {
+                    ...sp,
+                    subSubPrinciples: items.map((ssp, i) => ({ ...ssp, order: i + 1 })),
+                  };
+                }),
+              })),
             })),
           })),
         })),
@@ -385,20 +496,23 @@ function reducer(state: GameModel, action: Action): GameModel {
           ...m,
           zones: mapAt(m.zones, action.zi, (z) => ({
             ...z,
-            scenarios: mapAt(z.scenarios, action.si, (s) => ({
-              ...s,
-              subPrinciples: mapAt(s.subPrinciples, action.pi, (sp) => ({
-                ...sp,
-                subSubPrinciples: mapAt(sp.subSubPrinciples, action.qi, (ssp) => ({
-                  ...ssp,
-                  essentialSkills: [
-                    ...ssp.essentialSkills,
-                    {
-                      id: nextId(),
-                      name: "",
-                      description: "",
-                    } satisfies EssentialSkill,
-                  ],
+            principles: mapAt(z.principles, action.pi, (p) => ({
+              ...p,
+              scenarios: mapAt(p.scenarios, action.si, (s) => ({
+                ...s,
+                subPrinciples: mapAt(s.subPrinciples, action.spi, (sp) => ({
+                  ...sp,
+                  subSubPrinciples: mapAt(sp.subSubPrinciples, action.qi, (ssp) => ({
+                    ...ssp,
+                    essentialSkills: [
+                      ...ssp.essentialSkills,
+                      {
+                        id: nextId(),
+                        name: "",
+                        description: "",
+                      } satisfies EssentialSkill,
+                    ],
+                  })),
                 })),
               })),
             })),
@@ -413,15 +527,18 @@ function reducer(state: GameModel, action: Action): GameModel {
           ...m,
           zones: mapAt(m.zones, action.zi, (z) => ({
             ...z,
-            scenarios: mapAt(z.scenarios, action.si, (s) => ({
-              ...s,
-              subPrinciples: mapAt(s.subPrinciples, action.pi, (sp) => ({
-                ...sp,
-                subSubPrinciples: mapAt(sp.subSubPrinciples, action.qi, (ssp) => ({
-                  ...ssp,
-                  essentialSkills: mapAt(ssp.essentialSkills, action.ki, (sk) => ({
-                    ...sk,
-                    ...action.changes,
+            principles: mapAt(z.principles, action.pi, (p) => ({
+              ...p,
+              scenarios: mapAt(p.scenarios, action.si, (s) => ({
+                ...s,
+                subPrinciples: mapAt(s.subPrinciples, action.spi, (sp) => ({
+                  ...sp,
+                  subSubPrinciples: mapAt(sp.subSubPrinciples, action.qi, (ssp) => ({
+                    ...ssp,
+                    essentialSkills: mapAt(ssp.essentialSkills, action.ki, (sk) => ({
+                      ...sk,
+                      ...action.changes,
+                    })),
                   })),
                 })),
               })),
@@ -437,15 +554,18 @@ function reducer(state: GameModel, action: Action): GameModel {
           ...m,
           zones: mapAt(m.zones, action.zi, (z) => ({
             ...z,
-            scenarios: mapAt(z.scenarios, action.si, (s) => ({
-              ...s,
-              subPrinciples: mapAt(s.subPrinciples, action.pi, (sp) => ({
-                ...sp,
-                subSubPrinciples: mapAt(sp.subSubPrinciples, action.qi, (ssp) => ({
-                  ...ssp,
-                  essentialSkills: ssp.essentialSkills.filter(
-                    (_, i) => i !== action.ki,
-                  ),
+            principles: mapAt(z.principles, action.pi, (p) => ({
+              ...p,
+              scenarios: mapAt(p.scenarios, action.si, (s) => ({
+                ...s,
+                subPrinciples: mapAt(s.subPrinciples, action.spi, (sp) => ({
+                  ...sp,
+                  subSubPrinciples: mapAt(sp.subSubPrinciples, action.qi, (ssp) => ({
+                    ...ssp,
+                    essentialSkills: ssp.essentialSkills.filter(
+                      (_, i) => i !== action.ki,
+                    ),
+                  })),
                 })),
               })),
             })),
@@ -462,23 +582,20 @@ function reducer(state: GameModel, action: Action): GameModel {
 interface DraftContextValue {
   draft: GameModel;
   dispatch: React.Dispatch<Action>;
-  availablePrinciples: TacticalPrinciple[];
 }
 
 const GameModelDraftContext = createContext<DraftContextValue | null>(null);
 
 export function GameModelDraftProvider({
   initialDraft,
-  availablePrinciples,
   children,
 }: {
   initialDraft: GameModel;
-  availablePrinciples: TacticalPrinciple[];
   children: ReactNode;
 }) {
   const [draft, dispatch] = useReducer(reducer, initialDraft);
   return (
-    <GameModelDraftContext.Provider value={{ draft, dispatch, availablePrinciples }}>
+    <GameModelDraftContext.Provider value={{ draft, dispatch }}>
       {children}
     </GameModelDraftContext.Provider>
   );
