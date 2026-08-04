@@ -188,6 +188,76 @@
   font-style: italic;
 }
 
+/* ── Mover a… ── */
+
+.moveSection {
+  border: 1px dashed rgba(77, 157, 224, 0.3);
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+
+.moveControls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.moveSelect {
+  min-width: 140px;
+}
+
+.moveSelect .MuiOutlinedInput-notchedOutline {
+  border-color: rgba(77, 157, 224, 0.3) !important;
+}
+
+.moveSelect .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
+  border-color: rgba(77, 157, 224, 0.6) !important;
+}
+
+.moveSelect .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: #4d9de0 !important;
+}
+
+.moveSelect .MuiInputLabel-root {
+  color: rgba(156, 220, 254, 0.6) !important;
+}
+
+.moveSelect .MuiSelect-select {
+  color: #e8e8e8 !important;
+}
+
+.moveBtn {
+  color: #4d9de0 !important;
+  border-color: rgba(77, 157, 224, 0.5) !important;
+  text-transform: none !important;
+}
+
+.moveBtn:hover {
+  border-color: #4d9de0 !important;
+  background-color: rgba(77, 157, 224, 0.08) !important;
+}
+
+.moveBtn:disabled {
+  color: rgba(156, 220, 254, 0.25) !important;
+  border-color: rgba(156, 220, 254, 0.15) !important;
+}
+
+@media (max-width: 899.95px) {
+  .moveControls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .moveSelect {
+    min-width: 0;
+  }
+
+  .moveBtn {
+    min-height: 44px !important;
+  }
+}
+
 /* ── Nested sections ── */
 
 .nestedSection {

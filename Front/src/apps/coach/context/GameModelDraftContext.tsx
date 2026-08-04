@@ -29,6 +29,15 @@ type Action =
       >;
     }
   | { type: "DEL_SCENARIO"; mi: number; zi: number; si: number }
+  | {
+      type: "MOVE_SCENARIO_LOCATION";
+      fromMi: number;
+      fromZi: number;
+      si: number;
+      toMi: number;
+      toZi: number;
+      order?: number;
+    }
   // SubPrinciple
   | { type: "ADD_SP"; mi: number; zi: number; si: number }
   | {
@@ -161,6 +170,34 @@ function reducer(state: GameModel, action: Action): GameModel {
           }),
         })),
       };
+
+    case "MOVE_SCENARIO_LOCATION": {
+      const sourceZone = state.gameMoments[action.fromMi]?.zones[action.fromZi];
+      const moved = sourceZone?.scenarios[action.si];
+      if (!moved) return state;
+
+      const withoutMoved: GameModel = {
+        ...state,
+        gameMoments: mapAt(state.gameMoments, action.fromMi, (m) => ({
+          ...m,
+          zones: mapAt(m.zones, action.fromZi, (z) => {
+            const filtered = z.scenarios.filter((_, i) => i !== action.si);
+            return { ...z, scenarios: filtered.map((s, i) => ({ ...s, order: i + 1 })) };
+          }),
+        })),
+      };
+
+      return {
+        ...withoutMoved,
+        gameMoments: mapAt(withoutMoved.gameMoments, action.toMi, (m) => ({
+          ...m,
+          zones: mapAt(m.zones, action.toZi, (z) => ({
+            ...z,
+            scenarios: [...z.scenarios, { ...moved, order: action.order ?? z.scenarios.length + 1 }],
+          })),
+        })),
+      };
+    }
 
     // ── SubPrinciples ───────────────────────────────────────────────
     case "ADD_SP":

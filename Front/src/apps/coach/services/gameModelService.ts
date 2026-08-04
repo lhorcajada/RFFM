@@ -288,6 +288,18 @@ const gameModelService = {
   async deleteScenarioMedia(scenarioApiId: string): Promise<void> {
     await client.delete(`/api/game-models/scenarios/${scenarioApiId}/media`);
   },
+
+  async moveScenarioLocation(
+    scenarioApiId: string,
+    gameMomentId: number,
+    gameZoneId: number
+  ): Promise<{ order: number }> {
+    const res = await client.patch<{ order: number }>(
+      `/api/game-models/scenarios/${scenarioApiId}/location`,
+      { gameMomentId, gameZoneId }
+    );
+    return res.data;
+  },
 };
 
 export default gameModelService;

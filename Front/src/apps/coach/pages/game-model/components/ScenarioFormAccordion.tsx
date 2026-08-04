@@ -8,7 +8,12 @@ import {
   Chip,
   Button,
   Tooltip,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
 } from "@mui/material";
+import type { SelectChangeEvent } from "@mui/material";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import AddIcon from "@mui/icons-material/Add";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
@@ -16,6 +21,7 @@ import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import type { Scenario, SubPrinciple, SubSubPrinciple, TacticalPrinciple } from "../../../types/gameModel";
 import { useGameModelDraft } from "../../../context/GameModelDraftContext";
+import gameModelService from "../../../services/gameModelService";
 import DrillDownPanel from "./DrillDownPanel";
 import ScenarioMediaField from "./ScenarioMediaField";
 import styles from "./ScenarioFormAccordion.module.css";
@@ -266,17 +272,103 @@ interface ScenarioDetailFormProps {
 }
 
 function ScenarioDetailForm({ mi, zi, si, scenario }: ScenarioDetailFormProps) {
-  const { dispatch, availablePrinciples } = useGameModelDraft();
+  const { dispatch, draft, availablePrinciples } = useGameModelDraft();
   const [selectedPi, setSelectedPi] = useState<number | null>(scenario.subPrinciples.length === 1 ? 0 : null);
   const [draggingSpIdx, setDraggingSpIdx] = useState<number | null>(null);
   const [dragOverSpIdx, setDragOverSpIdx] = useState<number | null>(null);
+  const [targetMi, setTargetMi] = useState(mi);
+  const [targetZi, setTargetZi] = useState(zi);
+  const [moving, setMoving] = useState(false);
 
   useEffect(() => {
     if (selectedPi !== null && selectedPi >= scenario.subPrinciples.length) setSelectedPi(null);
   }, [scenario.subPrinciples.length, selectedPi]);
 
+  const isSameLocation = targetMi === mi && targetZi === zi;
+  const targetZoneOptions = draft.gameMoments[targetMi]?.zones ?? [];
+
+  const handleMomentChange = (e: SelectChangeEvent<number>) => {
+    const newMi = Number(e.target.value);
+    setTargetMi(newMi);
+    setTargetZi(0);
+  };
+
+  const handleMove = async () => {
+    if (isSameLocation) return;
+    setMoving(true);
+    try {
+      if (scenario.apiId) {
+        const targetMoment = draft.gameMoments[targetMi];
+        const targetZone = targetMoment.zones[targetZi];
+        const { order } = await gameModelService.moveScenarioLocation(
+          scenario.apiId,
+          targetMoment.id,
+          targetZone.id
+        );
+        dispatch({ type: "MOVE_SCENARIO_LOCATION", fromMi: mi, fromZi: zi, si, toMi: targetMi, toZi: targetZi, order });
+      } else {
+        dispatch({ type: "MOVE_SCENARIO_LOCATION", fromMi: mi, fromZi: zi, si, toMi: targetMi, toZi: targetZi });
+      }
+    } catch {
+      window.dispatchEvent(
+        new CustomEvent("rffm.show_snackbar", {
+          detail: { message: "No se pudo mover el escenario.", severity: "error" },
+        })
+      );
+    } finally {
+      setMoving(false);
+    }
+  };
+
   return (
     <Box className={styles.scenarioDetailForm}>
+      <Box className={styles.moveSection}>
+        <Typography className={styles.sectionLabel}>Mover a…</Typography>
+        <Box className={styles.moveControls}>
+          <FormControl size="small" className={styles.moveSelect}>
+            <InputLabel id={`move-moment-label-${scenario.id}`}>Momento</InputLabel>
+            <Select
+              labelId={`move-moment-label-${scenario.id}`}
+              label="Momento"
+              value={targetMi}
+              onChange={handleMomentChange}
+              data-testid="scenario-move-moment-select"
+            >
+              {draft.gameMoments.map((m, idx) => (
+                <MenuItem key={m.id} value={idx}>
+                  {m.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <FormControl size="small" className={styles.moveSelect}>
+            <InputLabel id={`move-zone-label-${scenario.id}`}>Zona</InputLabel>
+            <Select
+              labelId={`move-zone-label-${scenario.id}`}
+              label="Zona"
+              value={targetZi}
+              onChange={(e) => setTargetZi(Number(e.target.value))}
+              data-testid="scenario-move-zone-select"
+            >
+              {targetZoneOptions.map((z, idx) => (
+                <MenuItem key={z.id} value={idx}>
+                  {z.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <Button
+            size="small"
+            variant="outlined"
+            className={styles.moveBtn}
+            disabled={isSameLocation || moving}
+            aria-label="Mover escenario"
+            onClick={handleMove}
+          >
+            Mover
+          </Button>
+        </Box>
+      </Box>
       <TextField
         value={scenario.name}
         onChange={(e) => dispatch({ type: "UPD_SCENARIO", mi, zi, si, changes: { name: e.target.value } })}

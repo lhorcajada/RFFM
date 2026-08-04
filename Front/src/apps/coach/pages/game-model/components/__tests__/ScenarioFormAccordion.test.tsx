@@ -14,8 +14,11 @@ vi.mock("../../../../services/gameModelService", () => ({
   default: {
     uploadScenarioMedia: vi.fn(),
     deleteScenarioMedia: vi.fn(),
+    moveScenarioLocation: vi.fn(),
   },
 }));
+
+import gameModelService from "../../../../services/gameModelService";
 
 function buildScenario(id: number, order: number, subPrincipleCount = 0, apiId?: string): Scenario {
   return {
@@ -43,7 +46,22 @@ function buildDraft(scenarios: Scenario[]): GameModel {
     name: "Modelo de prueba",
     season: "2025/2026",
     gameMoments: [
-      { id: 1, name: "Momento", zones: [{ id: 1, name: "Zona", scenarios }] },
+      {
+        id: 1,
+        name: "Momento",
+        zones: [
+          { id: 1, name: "Zona", scenarios },
+          { id: 2, name: "Zona 2", scenarios: [] },
+        ],
+      },
+      {
+        id: 2,
+        name: "Momento 2",
+        zones: [
+          { id: 1, name: "Zona", scenarios: [] },
+          { id: 2, name: "Zona 2", scenarios: [] },
+        ],
+      },
     ],
   };
 }
@@ -139,5 +157,65 @@ describe("ScenarioFormAccordion", () => {
 
     // Only the scenario-level field remains; no duplicate for the subprincipio.
     expect(screen.getAllByLabelText("Principios tácticos colectivos")).toHaveLength(1);
+  });
+
+  describe("Mover a…", () => {
+    it("los selects de mover están inicializados a la ubicación actual y el botón mover está deshabilitado", () => {
+      renderWithDraft([buildScenario(1, 1)]);
+      expect(screen.getByLabelText("Momento")).toHaveTextContent("Momento");
+      expect(screen.getByLabelText("Zona")).toHaveTextContent("Zona");
+      expect(screen.getByRole("button", { name: "Mover escenario" })).toBeDisabled();
+    });
+
+    it("escenario con apiId: al mover llama al servicio y despacha MOVE_SCENARIO_LOCATION con el order devuelto", async () => {
+      vi.mocked(gameModelService.moveScenarioLocation).mockResolvedValue({ order: 1 });
+      renderWithDraft([buildScenario(1, 1, 0, "scenario-api-1")]);
+
+      await userEvent.click(screen.getByLabelText("Momento"));
+      await userEvent.click(await screen.findByRole("option", { name: "Momento 2" }));
+
+      const moveButton = screen.getByRole("button", { name: "Mover escenario" });
+      expect(moveButton).not.toBeDisabled();
+      await userEvent.click(moveButton);
+
+      expect(gameModelService.moveScenarioLocation).toHaveBeenCalledWith("scenario-api-1", 2, 1);
+      // After the move, the scenario list for this zone becomes empty (moved away).
+      expect(screen.getByText(/no hay escenarios/i)).toBeInTheDocument();
+    });
+
+    it("escenario sin apiId: al mover despacha MOVE_SCENARIO_LOCATION sin llamar al servicio", async () => {
+      renderWithDraft([buildScenario(1, 1, 0)]);
+
+      await userEvent.click(screen.getByLabelText("Zona"));
+      await userEvent.click(await screen.findByRole("option", { name: "Zona 2" }));
+
+      const moveButton = screen.getByRole("button", { name: "Mover escenario" });
+      await userEvent.click(moveButton);
+
+      expect(gameModelService.moveScenarioLocation).not.toHaveBeenCalled();
+      expect(screen.getByText(/no hay escenarios/i)).toBeInTheDocument();
+    });
+
+    it("si el servicio falla, emite rffm.show_snackbar con severity error y no despacha MOVE_SCENARIO_LOCATION", async () => {
+      vi.mocked(gameModelService.moveScenarioLocation).mockRejectedValue(new Error("network error"));
+      const listener = vi.fn();
+      window.addEventListener("rffm.show_snackbar", listener);
+
+      renderWithDraft([buildScenario(1, 1, 0, "scenario-api-1")]);
+
+      await userEvent.click(screen.getByLabelText("Momento"));
+      await userEvent.click(await screen.findByRole("option", { name: "Momento 2" }));
+
+      const moveButton = screen.getByRole("button", { name: "Mover escenario" });
+      await userEvent.click(moveButton);
+
+      expect(listener).toHaveBeenCalledTimes(1);
+      const event = listener.mock.calls[0][0] as CustomEvent<{ message: string; severity: string }>;
+      expect(event.detail.severity).toBe("error");
+      // The scenario stays in its original zone (dispatch was not called).
+      expect(screen.getByText("Escenario nombre 1")).toBeInTheDocument();
+
+      window.removeEventListener("rffm.show_snackbar", listener);
+    });
   });
 });
