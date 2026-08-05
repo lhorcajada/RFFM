@@ -43,6 +43,7 @@ jest.mock('../../screens/InjuriesScreen', () => 'InjuriesScreen');
 jest.mock('../../screens/SanctionsScreen', () => 'SanctionsScreen');
 jest.mock('../../screens/TeamMenuScreen', () => 'TeamMenuScreen');
 jest.mock('../../screens/TeamRulesScreen', () => 'TeamRulesScreen');
+jest.mock('../../screens/TeamRulesEditScreen', () => 'TeamRulesEditScreen');
 jest.mock('../../screens/CompetitionMenuScreen', () => 'CompetitionMenuScreen');
 jest.mock('../AppHeaderTitle', () => 'AppHeaderTitle');
 jest.mock('../UserAvatarMenu', () => 'UserAvatarMenu');

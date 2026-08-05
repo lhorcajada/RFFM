@@ -7,6 +7,7 @@ jest.mock('../../screens/PlayerSeasonCardsScreen', () => 'PlayerSeasonCardsScree
 jest.mock('../../screens/InjuriesScreen', () => 'InjuriesScreen');
 jest.mock('../../screens/SanctionsScreen', () => 'SanctionsScreen');
 jest.mock('../../screens/TeamRulesScreen', () => 'TeamRulesScreen');
+jest.mock('../../screens/TeamRulesEditScreen', () => 'TeamRulesEditScreen');
 jest.mock('../../screens/CalendarScreen', () => 'CalendarScreen');
 jest.mock('../../screens/NewsScreen', () => 'NewsScreen');
 jest.mock('../../screens/LeagueScreen', () => 'LeagueScreen');
@@ -34,7 +35,7 @@ jest.mock('@react-navigation/native-stack', () => {
 });
 
 describe('TeamTabStack', () => {
-  it('registers routes in order: TeamMenu, PlayersTab, InjuriesTab, SanctionsTab, RulesTab', async () => {
+  it('registers routes in order: TeamMenu, PlayersTab, InjuriesTab, SanctionsTab, RulesTab, TeamRulesEdit', async () => {
     const { getAllByTestId } = await render(
       <TeamTabStack route={{ params: { teamId: 'team1' } }} />,
     );
@@ -42,7 +43,14 @@ describe('TeamTabStack', () => {
     const allStacks = getAllByTestId(/^stack-screen-/);
     const stackNames = allStacks.map((stack) => stack.props.testID.replace('stack-screen-', ''));
 
-    expect(stackNames).toEqual(['TeamMenu', 'PlayersTab', 'InjuriesTab', 'SanctionsTab', 'RulesTab']);
+    expect(stackNames).toEqual([
+      'TeamMenu',
+      'PlayersTab',
+      'InjuriesTab',
+      'SanctionsTab',
+      'RulesTab',
+      'TeamRulesEdit',
+    ]);
   });
 
   it('forwards teamId via initialParams to TeamMenu', async () => {
@@ -95,6 +103,17 @@ describe('TeamTabStack', () => {
     );
 
     const params = getByTestId('stack-initial-params-RulesTab').props.children;
+    const parsedParams = JSON.parse(params);
+
+    expect(parsedParams.teamId).toBe('team1');
+  });
+
+  it('forwards teamId via initialParams to TeamRulesEdit', async () => {
+    const { getByTestId } = await render(
+      <TeamTabStack route={{ params: { teamId: 'team1' } }} />,
+    );
+
+    const params = getByTestId('stack-initial-params-TeamRulesEdit').props.children;
     const parsedParams = JSON.parse(params);
 
     expect(parsedParams.teamId).toBe('team1');

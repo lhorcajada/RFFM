@@ -1,44 +1,34 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, Pressable } from 'react-native';
-import { useRoute } from '@react-navigation/native';
-import { WebView } from 'react-native-webview';
-import * as DocumentPicker from 'expo-document-picker';
-import { getTeamRulesDocument, uploadTeamRulesDocument } from '../api/teamRulesDocument';
-import { preparePdfViewerAssets } from '../pdfViewer/preparePdfViewer';
+import { View, Text, StyleSheet, ActivityIndicator, Pressable, ScrollView } from 'react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { getTeamRules, type TeamRules } from '../api/teamRules';
 import { useAuth } from '../auth/AuthContext';
 import { coachColors } from '../theme/colors';
-import ScreenHeader from '../shared/components/ScreenHeader';
+import ScreenHeader, { ScreenHeaderAction } from '../shared/components/ScreenHeader';
 
 const COACH_ADMIN_ROLES = ['coach', 'administrator'];
-const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024;
 
 const TeamRulesScreen = () => {
+  const navigation = useNavigation<any>();
   const route = useRoute();
   const params = route.params as { teamId?: string } | undefined;
   const teamId = params?.teamId || '';
   const { roles } = useAuth();
   const isCoachOrAdmin = (roles ?? []).some((r) => COACH_ADMIN_ROLES.includes(r.toLowerCase()));
 
-  const [localUri, setLocalUri] = useState<string | null>(null);
-  const [viewerUri, setViewerUri] = useState<string | null>(null);
+  const [rules, setRules] = useState<TeamRules | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [uploading, setUploading] = useState(false);
+  const [expandedRuleId, setExpandedRuleId] = useState<string | null>(null);
 
-  const fetchDocument = useCallback(async () => {
+  const fetchRules = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const result = await getTeamRulesDocument(teamId);
-      if (!result) {
-        setLocalUri(null);
-        setViewerUri(null);
-        return;
-      }
-      setLocalUri(result.localUri);
-      setViewerUri(await preparePdfViewerAssets(result.localUri));
+      const result = await getTeamRules(teamId);
+      setRules(result);
     } catch (e: any) {
-      setError(e.response?.data?.detail || 'No se pudo cargar el documento');
+      setError(e.response?.data?.detail || 'No se pudieron cargar las normas del equipo');
     } finally {
       setLoading(false);
     }
@@ -46,44 +36,32 @@ const TeamRulesScreen = () => {
 
   useEffect(() => {
     if (teamId) {
-      fetchDocument();
+      fetchRules();
     }
-  }, [teamId, fetchDocument]);
+  }, [teamId, fetchRules]);
 
-  const handleUpload = async () => {
-    setError(null);
-    const result = await DocumentPicker.getDocumentAsync({ type: 'application/pdf' });
-    if (result.canceled || !result.assets || result.assets.length === 0) {
-      return;
-    }
-
-    const asset = result.assets[0];
-
-    if (asset.mimeType !== 'application/pdf') {
-      setError('El archivo debe ser un PDF');
-      return;
-    }
-
-    if ((asset.size ?? 0) > MAX_FILE_SIZE_BYTES) {
-      setError('El archivo no puede superar los 20 MB');
-      return;
-    }
-
-    try {
-      setUploading(true);
-      await uploadTeamRulesDocument(teamId, asset.uri, asset.name);
-      await fetchDocument();
-    } catch (e: any) {
-      setError(e.response?.data?.detail || 'No se pudo subir el documento');
-    } finally {
-      setUploading(false);
-    }
+  const toggleRule = (ruleId: string) => {
+    setExpandedRuleId((current) => (current === ruleId ? null : ruleId));
   };
+
+  const actions: ScreenHeaderAction[] | undefined = isCoachOrAdmin
+    ? [
+        {
+          key: 'edit',
+          icon: 'create-outline',
+          label: 'Editar',
+          testID: 'edit-button',
+          onPress: () => navigation.navigate('TeamRulesEdit', { teamId }),
+        },
+      ]
+    : undefined;
+
+  const renderHeader = () => <ScreenHeader title="Normas del equipo" actions={actions} />;
 
   if (loading) {
     return (
       <View style={styles.container}>
-        <ScreenHeader title="Normas del equipo" />
+        {renderHeader()}
         <View style={styles.centeredContent}>
           <ActivityIndicator testID="loading-indicator" size="large" color={coachColors.primary} />
         </View>
@@ -94,12 +72,12 @@ const TeamRulesScreen = () => {
   if (error) {
     return (
       <View style={styles.container}>
-        <ScreenHeader title="Normas del equipo" />
+        {renderHeader()}
         <View style={styles.centeredContent}>
           <Text testID="error-message" style={styles.errorText}>
             {error}
           </Text>
-          <Pressable testID="retry-button" style={styles.retryButton} onPress={fetchDocument}>
+          <Pressable testID="retry-button" style={styles.retryButton} onPress={fetchRules}>
             <Text style={styles.retryButtonText}>Reintentar</Text>
           </Pressable>
         </View>
@@ -107,26 +85,14 @@ const TeamRulesScreen = () => {
     );
   }
 
-  if (!localUri) {
+  if (!rules) {
     return (
       <View style={styles.container}>
-        <ScreenHeader title="Normas del equipo" />
+        {renderHeader()}
         <View style={styles.centeredContent}>
           <Text testID="empty-message" style={styles.emptyText}>
             Aún no disponible
           </Text>
-          {isCoachOrAdmin && (
-            <Pressable
-              testID="upload-button"
-              style={styles.uploadButton}
-              onPress={handleUpload}
-              disabled={uploading}
-            >
-              <Text style={styles.uploadButtonText}>
-                {uploading ? 'Subiendo...' : 'Subir documento'}
-              </Text>
-            </Pressable>
-          )}
         </View>
       </View>
     );
@@ -134,29 +100,67 @@ const TeamRulesScreen = () => {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="Normas del equipo" />
-      <View style={styles.viewerContainer}>
-        <WebView
-          testID="rules-pdf-viewer"
-          source={{ uri: viewerUri ?? undefined }}
-          style={styles.webview}
-          originWhitelist={['*']}
-          allowFileAccess
-          allowUniversalAccessFromFileURLs
-        />
-      </View>
-      {isCoachOrAdmin && (
-        <Pressable
-          testID="replace-button"
-          style={styles.replaceButton}
-          onPress={handleUpload}
-          disabled={uploading}
-        >
-          <Text style={styles.uploadButtonText}>
-            {uploading ? 'Subiendo...' : 'Reemplazar documento'}
+      {renderHeader()}
+      <ScrollView contentContainerStyle={styles.contentContainer}>
+        <Text testID="intro-note" style={styles.noteText}>
+          {rules.introNote}
+        </Text>
+
+        {rules.rules.map((rule) => {
+          const isExpanded = expandedRuleId === rule.id;
+          const hasDetail = Boolean(rule.longDescription || rule.bulletPoints?.length || rule.consequenceDetail);
+
+          return (
+            <Pressable
+              key={rule.id}
+              testID={`rule-card-${rule.id}`}
+              style={styles.ruleCard}
+              onPress={() => toggleRule(rule.id)}
+            >
+              <Text testID={`rule-order-${rule.id}`} style={styles.ruleOrder}>
+                {rule.order}
+              </Text>
+              <Text style={styles.ruleTitle}>{rule.shortTitle}</Text>
+              {rule.highlight && <Text style={styles.ruleHighlight}>{rule.highlight}</Text>}
+
+              <View style={styles.ruleSummaryRow}>
+                <Text style={styles.ruleSummaryLabel}>Incumplimiento:</Text>
+                <Text style={styles.ruleSummaryValue}>{rule.violationSummary}</Text>
+              </View>
+              <View style={styles.ruleSummaryRow}>
+                <Text style={styles.ruleSummaryLabel}>Consecuencia:</Text>
+                <Text style={styles.ruleSummaryValue}>{rule.consequenceSummary}</Text>
+              </View>
+
+              {isExpanded && hasDetail && (
+                <View testID={`rule-detail-${rule.id}`} style={styles.ruleDetail}>
+                  {rule.longDescription && <Text style={styles.ruleDetailText}>{rule.longDescription}</Text>}
+                  {rule.bulletPoints?.map((bullet, index) => (
+                    <Text key={index} style={styles.ruleBullet}>
+                      {'• '}
+                      {bullet}
+                    </Text>
+                  ))}
+                  {rule.consequenceDetail && (
+                    <Text style={styles.ruleDetailText}>{rule.consequenceDetail}</Text>
+                  )}
+                </View>
+              )}
+            </Pressable>
+          );
+        })}
+
+        {rules.closingNote && (
+          <Text testID="closing-note" style={styles.noteText}>
+            {rules.closingNote}
           </Text>
-        </Pressable>
-      )}
+        )}
+        {rules.applicationNote && (
+          <Text testID="application-note" style={styles.noteText}>
+            {rules.applicationNote}
+          </Text>
+        )}
+      </ScrollView>
     </View>
   );
 };
@@ -173,14 +177,69 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  viewerContainer: {
-    flex: 1,
-    borderRadius: 12,
-    overflow: 'hidden',
-    backgroundColor: coachColors.surface,
+  contentContainer: {
+    paddingBottom: 32,
+    gap: 12,
   },
-  webview: {
+  noteText: {
+    color: coachColors.textSecondary,
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  ruleCard: {
+    backgroundColor: coachColors.surface,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: coachColors.border,
+    padding: 14,
+    gap: 6,
+  },
+  ruleOrder: {
+    color: coachColors.primary,
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  ruleTitle: {
+    color: coachColors.textPrimary,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  ruleHighlight: {
+    color: coachColors.primaryLight,
+    fontSize: 13,
+    fontStyle: 'italic',
+    marginBottom: 4,
+  },
+  ruleSummaryRow: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  ruleSummaryLabel: {
+    color: coachColors.textSecondary,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  ruleSummaryValue: {
+    color: coachColors.textPrimary,
+    fontSize: 13,
     flex: 1,
+  },
+  ruleDetail: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: coachColors.border,
+    gap: 6,
+  },
+  ruleDetailText: {
+    color: coachColors.textPrimary,
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  ruleBullet: {
+    color: coachColors.textPrimary,
+    fontSize: 13,
+    lineHeight: 19,
   },
   errorText: {
     color: coachColors.error,
@@ -201,27 +260,6 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   retryButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-  },
-  uploadButton: {
-    marginTop: 20,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    backgroundColor: coachColors.primary,
-    borderRadius: 8,
-    alignSelf: 'center',
-  },
-  replaceButton: {
-    marginTop: 12,
-    marginBottom: 16,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    backgroundColor: coachColors.primary,
-    borderRadius: 8,
-    alignSelf: 'center',
-  },
-  uploadButtonText: {
     color: '#fff',
     fontWeight: '600',
   },

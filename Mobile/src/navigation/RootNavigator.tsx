@@ -20,6 +20,7 @@ import InjuriesScreen from '../screens/InjuriesScreen';
 import SanctionsScreen from '../screens/SanctionsScreen';
 import TeamMenuScreen from '../screens/TeamMenuScreen';
 import TeamRulesScreen from '../screens/TeamRulesScreen';
+import TeamRulesEditScreen from '../screens/TeamRulesEditScreen';
 import CompetitionMenuScreen from '../screens/CompetitionMenuScreen';
 import AppHeaderTitle from './AppHeaderTitle';
 import UserAvatarMenu from './UserAvatarMenu';
@@ -76,6 +77,11 @@ export const TeamTabStack = ({ route }: { route: { params?: { teamId?: string } 
       <TeamStack.Screen
         name="RulesTab"
         component={TeamRulesScreen}
+        initialParams={{ teamId }}
+      />
+      <TeamStack.Screen
+        name="TeamRulesEdit"
+        component={TeamRulesEditScreen}
         initialParams={{ teamId }}
       />
     </TeamStack.Navigator>
