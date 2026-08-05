@@ -99,6 +99,10 @@ namespace RFFM.Api.Infrastructure.Persistence
         public DbSet<FeaturePermission> FeaturePermissions { get; set; }
         public DbSet<PagePermission> PagePermissions { get; set; }
 
+        // Team rules ("Normas del equipo")
+        public DbSet<TeamRulesSet> TeamRulesSets { get; set; }
+        public DbSet<TeamRule> TeamRules { get; set; }
+
         // Game Model
         public DbSet<GameModel> GameModels { get; set; }
         public DbSet<GameMoment> GameMoments { get; set; }

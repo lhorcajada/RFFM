@@ -17,7 +17,6 @@ namespace RFFM.Api.Domain.Aggregates.UserClubs
         public int? RffmCompetitionId { get; private set; }
         public int? RffmGroupId { get; private set; }
         public string? UrlPhoto { get; set; }
-        public string? RulesDocumentUrl { get; set; }
         public string ClubId { get; set; }
         public string SeasonId { get; set; }
         public string JoinCode { get; private set; }
@@ -29,6 +28,7 @@ namespace RFFM.Api.Domain.Aggregates.UserClubs
         public List<SportEvent> SportEvents { get; set; } = null!;
         public List<TrainingSession> Trainings { get; set; } = null!;
         public List<TeamPlayer> Players { get; set; } = null!;
+        public TeamRulesSet? RulesSet { get; private set; }
         public Team() { }
         public Team(TeamModelBase model)
         {
@@ -58,10 +58,6 @@ namespace RFFM.Api.Domain.Aggregates.UserClubs
         public void UpdateUrlPhoto(string? urlPhoto)
         {
             UrlPhoto = urlPhoto;
-        }
-        public void UpdateRulesDocumentUrl(string? url)
-        {
-            RulesDocumentUrl = url;
         }
         public void UpdateSeasonId(string seasonId)
         {
