@@ -7,6 +7,7 @@ import LocalHospitalIcon from "@mui/icons-material/LocalHospital";
 import GavelIcon from "@mui/icons-material/Gavel";
 import CasinoIcon from "@mui/icons-material/Casino";
 import TimelineIcon from "@mui/icons-material/Timeline";
+import RuleIcon from "@mui/icons-material/Rule";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import FlagIcon from "@mui/icons-material/Flag";
 import NewspaperIcon from "@mui/icons-material/Newspaper";
@@ -107,6 +108,14 @@ export default function TeamDashboardCards({
           description="Estrategia y tácticas."
           icon={<TimelineIcon style={{ fontSize: 40 }} />}
           to={team?.id ? `/coach/game-model?teamId=${team.id}` : "/coach/game-model"}
+        />
+      )}
+      {hasFeatureAccess(COACH_FEATURE_ROUTES.TeamRulesDocument) && (
+        <DashboardCard
+          title="Normas del Equipo"
+          description="Normas de convivencia y disciplina."
+          icon={<RuleIcon style={{ fontSize: 40 }} />}
+          to={team?.id ? `/coach/team-rules?teamId=${team.id}` : "/coach/team-rules"}
         />
       )}
       {hasFeatureAccess(COACH_FEATURE_ROUTES.Sanctions) && (

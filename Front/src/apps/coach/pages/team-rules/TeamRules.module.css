@@ -1,0 +1,129 @@
+.page {
+  padding: 12px 4px;
+}
+
+.loadingBox {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 60px 0;
+}
+
+.emptyState {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 60px 0;
+  text-align: center;
+}
+
+.emptyStateText {
+  font-size: 1.45rem !important;
+  color: #e8e8e8 !important;
+}
+
+.header {
+  margin-bottom: 12px;
+}
+
+.title {
+  font-size: 1.3rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #4d9de0 !important;
+}
+
+.subtitle {
+  font-size: 1.1rem !important;
+  color: #a8d4f5 !important;
+  margin-bottom: 4px !important;
+}
+
+.introNote {
+  font-size: 1.1rem !important;
+  color: #d4d4d4 !important;
+  margin-bottom: 20px !important;
+  font-style: italic;
+}
+
+.rulesList {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ruleCard {
+  background-color: #07071a !important;
+  border-color: rgba(77, 157, 224, 0.2) !important;
+}
+
+.ruleHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.ruleOrderChip {
+  background-color: rgba(77, 157, 224, 0.25) !important;
+  color: #4d9de0 !important;
+  font-weight: 700 !important;
+}
+
+.ruleTitle {
+  font-size: 1.2rem !important;
+  font-weight: 700 !important;
+  color: #e8e8e8 !important;
+}
+
+.ruleHighlight {
+  font-size: 1.05rem !important;
+  font-style: italic;
+  color: rgba(168, 212, 245, 0.8) !important;
+  margin-bottom: 10px !important;
+}
+
+.ruleSummaryRow {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.ruleSummaryLabel {
+  font-size: 1rem !important;
+  font-weight: 600 !important;
+  color: #a8d4f5 !important;
+  white-space: nowrap;
+}
+
+.ruleSummaryValue {
+  font-size: 1rem !important;
+  color: #d4d4d4 !important;
+}
+
+.ruleDescription {
+  font-size: 1rem !important;
+  color: #d4d4d4 !important;
+  margin-top: 10px !important;
+}
+
+.ruleBullets {
+  margin: 8px 0 0 0;
+  padding-left: 20px;
+  color: #d4d4d4;
+  font-size: 1rem;
+}
+
+.ruleConsequenceDetail {
+  font-size: 0.95rem !important;
+  color: rgba(212, 212, 212, 0.7) !important;
+  margin-top: 8px !important;
+}
+
+.closingNote,
+.applicationNote {
+  font-size: 0.95rem !important;
+  color: rgba(212, 212, 212, 0.65) !important;
+  margin-top: 20px !important;
+}

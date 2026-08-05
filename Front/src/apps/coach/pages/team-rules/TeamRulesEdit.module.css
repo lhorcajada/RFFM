@@ -1,0 +1,78 @@
+.loadingBox {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 60px 0;
+}
+
+.form {
+  padding: 12px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.errorsBox {
+  background-color: rgba(220, 80, 80, 0.12);
+  border: 1px solid rgba(220, 80, 80, 0.4);
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+
+.errorText {
+  font-size: 0.95rem !important;
+  color: #e88 !important;
+}
+
+.metadataSection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.field {
+  margin-bottom: 4px;
+}
+
+.rulesSection {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.rulesSectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.rulesSectionTitle {
+  font-size: 1.15rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #4d9de0 !important;
+}
+
+.ruleCard {
+  background-color: #07071a !important;
+  border-color: rgba(77, 157, 224, 0.2) !important;
+}
+
+.ruleCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.ruleCardIndex {
+  font-size: 1rem !important;
+  font-weight: 700 !important;
+  color: #a8d4f5 !important;
+}
+
+.ruleCardActions {
+  display: flex;
+  gap: 2px;
+}

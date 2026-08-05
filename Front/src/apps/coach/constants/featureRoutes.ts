@@ -27,6 +27,9 @@ export const COACH_FEATURE_ROUTES = {
   ClubPlayers: "/coach/clubs/players",
   ClubTeams: "/coach/clubs/teams",
   ClubRegistrations: "/coach/clubs/registrations",
+
+  // Read for every team member (any authenticated role); ReadWrite for Coach/Admin
+  TeamRulesDocument: "/mobile/team-rules",
 } as const;
 
 export type CoachFeatureRoute = (typeof COACH_FEATURE_ROUTES)[keyof typeof COACH_FEATURE_ROUTES];
