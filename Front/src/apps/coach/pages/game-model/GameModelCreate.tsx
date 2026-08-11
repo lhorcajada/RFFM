@@ -1,13 +1,9 @@
 import { useEffect, useState, useRef } from "react";
 import {
   Box,
-  Tab,
-  Tabs,
   Typography,
   CircularProgress,
   Button,
-  Chip,
-  TextField,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -24,19 +20,16 @@ import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import useTeamAndClub from "../../hooks/useTeamAndClub";
 import gameModelService from "../../services/gameModelService";
-import type { GameModel } from "../../types/gameModel";
-import {
-  GameModelDraftProvider,
-  useGameModelDraft,
-} from "../../context/GameModelDraftContext";
-import ScenarioFormAccordion from "./components/ScenarioFormAccordion";
+import type { GameModel, GameMomentCatalogItem } from "../../types/gameModel";
+import { GameModelDraftProvider, useGameModelDraft } from "../../context/GameModelDraftContext";
+import GameModelFormEditor from "./components/GameModelFormEditor";
 import MobileSaveCancelBar from "./components/MobileSaveCancelBar";
 import styles from "./GameModelCreate.module.css";
 
 // ─── Validation ──────────────────────────────────────────────────────
 
 interface ValidationError {
-  path: string;   // e.g. "Defensa Organizada > Zona de Iniciación > Escenario 1"
+  path: string;
   message: string;
 }
 
@@ -47,107 +40,83 @@ function validateDraft(draft: GameModel): ValidationError[] {
     errors.push({ path: "Cabecera", message: "El nombre del modelo es obligatorio." });
   }
 
-  let totalScenarios = 0;
+  let totalPrinciples = 0;
 
-  for (const moment of draft.gameMoments) {
-    for (const zone of moment.zones) {
-      for (let pi = 0; pi < zone.principles.length; pi++) {
-        const principle = zone.principles[pi];
-        const pPath = `${moment.name} › ${zone.name} › Principio ${pi + 1}`;
+  for (let pi = 0; pi < draft.principles.length; pi++) {
+    totalPrinciples++;
+    const principle = draft.principles[pi];
+    const pPath = `Principio ${pi + 1}`;
 
-        if (!principle.title.trim()) {
-          errors.push({ path: pPath, message: "El título del principio es obligatorio." });
-        }
+    if (!principle.titulo.trim()) {
+      errors.push({ path: pPath, message: "El título del principio es obligatorio." });
+    }
 
-        for (let si = 0; si < principle.scenarios.length; si++) {
-          totalScenarios++;
-          const s = principle.scenarios[si];
-          const sPath = `${pPath} › Escenario ${si + 1}`;
+    for (let spi = 0; spi < principle.subprincipios.length; spi++) {
+      const sp = principle.subprincipios[spi];
+      const spPath = `${pPath} › Subprincipio ${sp.numero || spi + 1}`;
 
-          if (!s.name.trim()) {
-            errors.push({ path: sPath, message: "El nombre del escenario es obligatorio." });
-          }
-
-          for (let spi = 0; spi < s.subPrinciples.length; spi++) {
-            const sp = s.subPrinciples[spi];
-            const spPath = `${sPath} › Subprincipio ${sp.label}`;
-
-            if (!sp.name.trim()) {
-              errors.push({ path: spPath, message: "El nombre del subprincipio es obligatorio." });
-            }
-
-            for (let qi = 0; qi < sp.subSubPrinciples.length; qi++) {
-              const ssp = sp.subSubPrinciples[qi];
-              const sspPath = `${spPath} › Sub-subprincipio ${qi + 1}`;
-
-              if (!ssp.name.trim()) {
-                errors.push({ path: sspPath, message: "El nombre del sub-subprincipio es obligatorio." });
-              }
-              if (!ssp.action.trim()) {
-                errors.push({ path: sspPath, message: "La acción del sub-subprincipio es obligatoria." });
-              }
-
-              for (let ki = 0; ki < ssp.essentialSkills.length; ki++) {
-                const sk = ssp.essentialSkills[ki];
-                if (!sk.name.trim()) {
-                  errors.push({
-                    path: `${sspPath} › Habilidad ${ki + 1}`,
-                    message: "El nombre de la habilidad es obligatorio.",
-                  });
-                }
-              }
-            }
-          }
-        }
+      if (!sp.titulo.trim()) {
+        errors.push({ path: spPath, message: "El título del subprincipio es obligatorio." });
       }
+      if (sp.zonas.length > 0 && sp.subSubPrincipios.length > 0) {
+        errors.push({
+          path: spPath,
+          message: "Un subprincipio no puede tener Zonas y sub-subprincipios directos a la vez.",
+        });
+      }
+
+      const validateSsp = (sspPath: string, numero: string, rol: string, habilidades: { nombre: string }[]) => {
+        if (!rol.trim()) {
+          errors.push({ path: sspPath, message: "El rol del sub-subprincipio es obligatorio." });
+        }
+        habilidades.forEach((h, hi) => {
+          if (!h.nombre.trim()) {
+            errors.push({ path: `${sspPath} › Habilidad ${hi + 1}`, message: "El nombre de la habilidad es obligatorio." });
+          }
+        });
+      };
+
+      sp.zonas.forEach((zona, zi) => {
+        const zPath = `${spPath} › Zona ${zi + 1}`;
+        if (zona.zoneKeys.length === 0) {
+          errors.push({ path: zPath, message: "La zona debe tener al menos un zoneKey." });
+        }
+        zona.subSubPrincipios.forEach((ssp, sspi) =>
+          validateSsp(`${zPath} › Sub-subprincipio ${sspi + 1}`, ssp.numero, ssp.rol, ssp.habilidades)
+        );
+      });
+
+      sp.subSubPrincipios.forEach((ssp, sspi) =>
+        validateSsp(`${spPath} › Sub-subprincipio ${sspi + 1}`, ssp.numero, ssp.rol, ssp.habilidades)
+      );
     }
   }
 
-  if (totalScenarios === 0) {
-    errors.push({ path: "General", message: "El modelo debe tener al menos un escenario." });
+  if (totalPrinciples === 0 && draft.setPieceRules.length === 0) {
+    errors.push({ path: "General", message: "El modelo debe tener al menos un principio o una regla de balón parado." });
   }
 
   return errors;
 }
 
-// ─── Zone content editor ─────────────────────────────────────────────
+// ─── Form editor wrapper (needs context) ─────────────────────────────
 
-function ZoneFormContent({
-  mi,
-  zi,
+function GameModelFormEditorWithActions({
+  moments,
+  onSave,
+  onCancel,
+  isEdit,
+  saveRef,
 }: {
-  mi: number;
-  zi: number;
-}) {
-  const { draft } = useGameModelDraft();
-  const zone = draft.gameMoments[mi]?.zones[zi];
-  if (!zone) return null;
-
-  return (
-    <Box className={styles.zoneContent}>
-      <ScenarioFormAccordion mi={mi} zi={zi} principles={zone.principles} />
-    </Box>
-  );
-}
-
-// ─── Form editor (needs context) ─────────────────────────────────────
-
-function GameModelFormEditor({ onSave, onCancel, isEdit, saveRef }: {
+  moments: GameMomentCatalogItem[];
   onSave: (draft: GameModel) => Promise<void>;
   onCancel: () => void;
   isEdit: boolean;
   saveRef: React.MutableRefObject<(() => Promise<void>) | null>;
 }) {
-  const { draft, dispatch } = useGameModelDraft();
-  const [momentTab, setMomentTab] = useState(0);
-  const [zoneTab, setZoneTab] = useState(0);
+  const { draft } = useGameModelDraft();
   const [saving, setSaving] = useState(false);
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
-
-  const handleMomentChange = (_: React.SyntheticEvent, v: number) => {
-    setMomentTab(v);
-    setZoneTab(0);
-  };
 
   const handleSave = async () => {
     const errors = validateDraft(draft);
@@ -163,95 +132,13 @@ function GameModelFormEditor({ onSave, onCancel, isEdit, saveRef }: {
     }
   };
 
-  // Expose handleSave to parent via ref
   saveRef.current = handleSave;
-
-  const currentMoment = draft.gameMoments[momentTab];
 
   return (
     <Box className={styles.editor}>
-      {/* Model name field */}
-      <Box className={styles.modelHeader}>
-        <TextField
-          value={draft.name}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => dispatch({ type: "SET_NAME", value: e.target.value })}
-          label="Nombre del modelo"
-          size="small"
-          className={styles.nameField}
-          placeholder="Nombre del modelo de juego"
-        />
-      </Box>
+      <GameModelFormEditor moments={moments} />
 
-      {/* Moment tabs */}
-      <Box className={styles.momentTabsWrap}>
-        <Tabs
-          value={momentTab}
-          onChange={handleMomentChange}
-          variant="scrollable"
-          scrollButtons="auto"
-          TabIndicatorProps={{ className: styles.tabIndicator }}
-          className={styles.momentTabs}
-        >
-          {draft.gameMoments.map((m) => (
-            <Tab
-              key={m.id}
-              label={m.name}
-              className={styles.momentTab}
-            />
-          ))}
-        </Tabs>
-      </Box>
-
-      {/* Moment content */}
-      {currentMoment && (
-        <Box className={styles.momentContent}>
-          {/* Zone tabs */}
-          <Box className={styles.zoneTabsWrap}>
-            <Tabs
-              value={zoneTab}
-              onChange={(_, v) => setZoneTab(v)}
-              variant="scrollable"
-              scrollButtons="auto"
-              TabIndicatorProps={{ className: styles.zoneTabIndicator }}
-              className={styles.zoneTabs}
-            >
-              {currentMoment.zones.map((z, zi) => {
-                const principleCount = z.principles.length;
-                return (
-                <Tab
-                  key={z.id}
-                  className={styles.zoneTab}
-                  label={
-                    <Box className={styles.zoneTabLabel}>
-                      <span>{z.name}</span>
-                      {principleCount > 0 && (
-                        <Chip
-                          label={principleCount}
-                          size="small"
-                          className={styles.zoneChip}
-                        />
-                      )}
-                    </Box>
-                  }
-                  value={zi}
-                />
-                );
-              })}
-            </Tabs>
-          </Box>
-
-          {/* Zone form content */}
-          <ZoneFormContent mi={momentTab} zi={zoneTab} />
-        </Box>
-      )}
-
-      {/* Validation error dialog */}
-      <Dialog
-        open={validationErrors.length > 0}
-        onClose={() => setValidationErrors([])}
-        maxWidth="sm"
-        fullWidth
-      >
+      <Dialog open={validationErrors.length > 0} onClose={() => setValidationErrors([])} maxWidth="sm" fullWidth>
         <DialogTitle>Errores de validación</DialogTitle>
         <DialogContent>
           <Alert severity="warning" sx={{ mb: 2 }}>
@@ -301,6 +188,7 @@ export default function GameModelCreate() {
   const { team, teamTitleNode } = useTeamAndClub();
 
   const [draft, setDraft] = useState<GameModel | null>(null);
+  const [moments, setMoments] = useState<GameMomentCatalogItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
@@ -314,6 +202,7 @@ export default function GameModelCreate() {
     setLoading(true);
     let mounted = true;
     async function init() {
+      const momentsList = await gameModelService.getMoments();
       let initialDraft: GameModel;
       if (isEdit && seasonFromState) {
         const existing = await gameModelService.getByTeamIdAndSeason(teamId, seasonFromState);
@@ -323,6 +212,7 @@ export default function GameModelCreate() {
       }
 
       if (mounted) {
+        setMoments(momentsList);
         setDraft(initialDraft);
         setLoading(false);
       }
@@ -333,7 +223,9 @@ export default function GameModelCreate() {
         setInitError(err?.message ?? "Error al cargar el formulario");
       }
     });
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [team, resolvedTeamId, isEdit, seasonFromState]);
 
   const handleSave = async (currentDraft: GameModel) => {
@@ -358,9 +250,7 @@ export default function GameModelCreate() {
     navigate(`/coach/game-model${location.search}`);
   };
 
-  const pageTitle = isEdit
-    ? `Editar Modelo · ${seasonFromState}`
-    : `Nuevo Modelo · ${seasonFromState}`;
+  const pageTitle = isEdit ? `Editar Modelo · ${seasonFromState}` : `Nuevo Modelo · ${seasonFromState}`;
 
   return (
     <BaseLayout hideFooterMenu>
@@ -369,12 +259,7 @@ export default function GameModelCreate() {
         subtitle={teamTitleNode}
         actionBar={
           <>
-            <Button
-              startIcon={<ArrowBackIcon />}
-              onClick={handleCancel}
-              variant="outlined"
-              size="small"
-            >
+            <Button startIcon={<ArrowBackIcon />} onClick={handleCancel} variant="outlined" size="small">
               Cancelar
             </Button>
             <Button
@@ -396,12 +281,22 @@ export default function GameModelCreate() {
           </Box>
         ) : initError ? (
           <Box className={styles.loadingBox}>
-            <Typography color="error" sx={{ mb: 2 }}>{initError}</Typography>
-            <Button variant="outlined" size="small" onClick={handleCancel}>Volver</Button>
+            <Typography color="error" sx={{ mb: 2 }}>
+              {initError}
+            </Typography>
+            <Button variant="outlined" size="small" onClick={handleCancel}>
+              Volver
+            </Button>
           </Box>
         ) : draft ? (
           <GameModelDraftProvider initialDraft={draft}>
-            <GameModelFormEditor onSave={handleSave} onCancel={handleCancel} isEdit={isEdit} saveRef={saveRef} />
+            <GameModelFormEditorWithActions
+              moments={moments}
+              onSave={handleSave}
+              onCancel={handleCancel}
+              isEdit={isEdit}
+              saveRef={saveRef}
+            />
           </GameModelDraftProvider>
         ) : null}
       </ContentLayout>

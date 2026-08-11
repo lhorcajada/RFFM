@@ -1,5 +1,4 @@
-﻿using RFFM.Api.Domain.Aggregates.GameModels;
-using RFFM.Api.Domain.Aggregates.UserClubs;
+﻿using RFFM.Api.Domain.Aggregates.UserClubs;
 
 namespace RFFM.Api.Domain.Aggregates.Training.TasksTraining
 {
@@ -19,15 +18,6 @@ namespace RFFM.Api.Domain.Aggregates.Training.TasksTraining
         /// <summary>Club that owns this exercise (shared library).</summary>
         public string ClubId { get; set; } = string.Empty;
 
-        /// <summary>Optional: the sub-sub-principle this exercise targets.</summary>
-        public string? SubSubPrincipleId { get; set; }
-
-        /// <summary>Optional: the sub-principle this exercise targets (mutually exclusive with SubSubPrincipleId/ScenarioId).</summary>
-        public string? SubPrincipleId { get; set; }
-
-        /// <summary>Optional: the scenario this exercise targets (mutually exclusive with SubPrincipleId/SubSubPrincipleId).</summary>
-        public string? ScenarioId { get; set; }
-
         /// <summary>Section of the training session: Calentamiento, Principal, VueltaALaCalma.</summary>
         public string Section { get; set; } = "Principal";
 
@@ -44,11 +34,7 @@ namespace RFFM.Api.Domain.Aggregates.Training.TasksTraining
         public int WildCards { get; set; }
 
         public Club Club { get; set; } = null!;
-        public SubSubPrinciple? SubSubPrinciple { get; set; }
-        public SubPrinciple? SubPrinciple { get; set; }
-        public GameScenario? Scenario { get; set; }
         public List<MaterialsEnum> Material { get; set; } = new();
-        public List<TaskTrainingSkill> Skills { get; set; } = new();
         public List<ExerciseCondition> Conditions { get; set; } = new();
         public List<TaskTrainingType> Types { get; set; } = new();
     }

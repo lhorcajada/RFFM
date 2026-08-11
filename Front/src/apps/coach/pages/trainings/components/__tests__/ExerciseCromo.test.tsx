@@ -15,7 +15,6 @@ function buildExercise(overrides: Partial<Exercise> = {}): Exercise {
     playersNumber: 6,
     goalPeekersNumber: 0,
     fieldSpace: "",
-    skills: [],
     conditions: [],
     ...overrides,
   };
@@ -98,13 +97,10 @@ describe("ExerciseCromo", () => {
     expect(strip?.textContent).toBe("Calentamiento");
   });
 
-  it("agrupa los tags de tipo y sub-principio debajo del titulo, no sobre la foto", () => {
+  it("agrupa los tags de tipo debajo del titulo, no sobre la foto", () => {
     const { container } = render(
       <ExerciseCromo
-        exercise={buildExercise({
-          types: ["Physical", "Cognitive"],
-          subSubPrincipleName: "Superioridad posicional",
-        })}
+        exercise={buildExercise({ types: ["Physical", "Cognitive"] })}
         onEdit={vi.fn()}
         onDuplicate={vi.fn()}
         onPrint={vi.fn()}
@@ -118,6 +114,5 @@ describe("ExerciseCromo", () => {
     expect(photoArea?.contains(tagsRow)).toBe(false);
     expect(tagsRow?.textContent).toContain("Físico");
     expect(tagsRow?.textContent).toContain("Cognitivo");
-    expect(tagsRow?.textContent).toContain("Superioridad posicional");
   });
 });

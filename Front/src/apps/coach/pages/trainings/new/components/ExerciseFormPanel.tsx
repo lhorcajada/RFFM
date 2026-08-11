@@ -1,13 +1,9 @@
 import {
   Box,
   Button,
-  Checkbox,
   Chip,
-  CircularProgress,
   Divider,
   FormControl,
-  FormControlLabel,
-  FormGroup,
   IconButton,
   InputLabel,
   MenuItem,
@@ -23,37 +19,13 @@ import type { ExerciseSection, ExerciseType } from "../../../../types/training";
 
 interface ExerciseFormPanelProps {
   panelVisible: boolean;
-  subSubPrincipleId: string | null;
-  subSubPrincipleName: string | null;
-  subPrincipleId: string | null;
-  subPrincipleName: string | null;
-  scenarioId: string | null;
-  scenarioName: string | null;
-  /** When the current subprincipio has more than one sub-subprincipio, lists
-   * them all so the coach can pick which one to reassign the exercise to
-   * (instead of the single, ambiguous `subSubPrincipleId` context id). */
-  subSubPrincipleOptions?: { apiId: string; name: string }[];
   form: ExerciseFormState;
 }
 
-export default function ExerciseFormPanel({
-  panelVisible,
-  subSubPrincipleId,
-  subSubPrincipleName,
-  subPrincipleId,
-  subPrincipleName,
-  scenarioId,
-  scenarioName,
-  subSubPrincipleOptions = [],
-  form,
-}: ExerciseFormPanelProps) {
+export default function ExerciseFormPanel({ panelVisible, form }: ExerciseFormPanelProps) {
   const {
     form: formData,
     setField,
-    setLevel,
-    toggleSkill,
-    skills,
-    loadingSkills,
     error,
     pendingFile,
     previewUrl,
@@ -80,9 +52,6 @@ export default function ExerciseFormPanel({
         <Typography className={styles.panelTitle}>
           {form.savedExerciseId ? "Editar ejercicio" : "Nuevo ejercicio"}
         </Typography>
-        {subSubPrincipleName && (
-          <Typography className={styles.panelSubtitle}>{subSubPrincipleName}</Typography>
-        )}
       </Box>
 
       <Box className={styles.panelBody}>
@@ -207,52 +176,6 @@ export default function ExerciseFormPanel({
           />
         </Box>
 
-        {(() => {
-          const sspOptions =
-            subSubPrincipleOptions.length > 0
-              ? subSubPrincipleOptions
-              : subSubPrincipleId
-              ? [{ apiId: subSubPrincipleId, name: subSubPrincipleName ?? "" }]
-              : [];
-
-          if ((Number(!!scenarioId) + Number(!!subPrincipleId) + Number(sspOptions.length > 0)) < 2) return null;
-
-          return (
-            <FormControl size="small" className={styles.field}>
-              <InputLabel id="exercise-level-label">Vinculado a</InputLabel>
-              <Select
-                labelId="exercise-level-label"
-                value={
-                  formData.scenarioId
-                    ? "scenario"
-                    : formData.subPrincipleId
-                    ? "subPrinciple"
-                    : formData.subSubPrincipleId
-                    ? `ssp:${formData.subSubPrincipleId}`
-                    : ""
-                }
-                label="Vinculado a"
-                onChange={(e: SelectChangeEvent) => {
-                  const value = e.target.value;
-                  if (value.startsWith("ssp:")) {
-                    setLevel("subSubPrinciple", value.slice(4));
-                  } else {
-                    setLevel(value as "subPrinciple" | "scenario");
-                  }
-                }}
-              >
-                {scenarioId && <MenuItem value="scenario">Escenario: {scenarioName}</MenuItem>}
-                {subPrincipleId && <MenuItem value="subPrinciple">Subprincipio: {subPrincipleName}</MenuItem>}
-                {sspOptions.map((opt) => (
-                  <MenuItem key={opt.apiId} value={`ssp:${opt.apiId}`}>
-                    Habilidad: {opt.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          );
-        })()}
-
         {isPhysical && (
           <Box className={styles.row}>
             <TextField
@@ -306,44 +229,6 @@ export default function ExerciseFormPanel({
               className={styles.numField}
             />
           </Box>
-        )}
-
-        {formData.subSubPrincipleId && (
-          <>
-            <Divider className={styles.divider} />
-            <Typography className={styles.skillsTitle}>Habilidades asociadas</Typography>
-            {loadingSkills ? (
-              <CircularProgress size={20} />
-            ) : skills.length === 0 ? (
-              <Typography className={styles.noSkills}>
-                Sin habilidades definidas para este sub-subprincipio.
-              </Typography>
-            ) : (
-              <FormGroup>
-                {skills.map((sk) => (
-                  <FormControlLabel
-                    key={sk.id}
-                    control={
-                      <Checkbox
-                        checked={formData.essentialSkillIds.includes(sk.id)}
-                        onChange={() => toggleSkill(sk.id)}
-                        size="small"
-                        className={styles.checkbox}
-                      />
-                    }
-                    label={
-                      <Box>
-                        <Typography className={styles.skillName}>{sk.name}</Typography>
-                        {sk.description && (
-                          <Typography className={styles.skillDesc}>{sk.description}</Typography>
-                        )}
-                      </Box>
-                    }
-                  />
-                ))}
-              </FormGroup>
-            )}
-          </>
         )}
 
         <Divider className={styles.divider} />

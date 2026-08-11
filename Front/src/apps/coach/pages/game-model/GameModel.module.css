@@ -60,145 +60,19 @@
   color: #4d9de0;
 }
 
-/* ── Moment selector ── */
-.momentSelect {
-  margin-bottom: 16px;
-}
-
-.momentSelect .MuiOutlinedInput-root,
-.momentSelectInput {
-  color: #e8e8e8;
-  font-size: 1.3rem;
-  font-weight: 500;
-}
-
-.momentSelect .MuiInputLabel-root {
-  color: #a8d4f5;
-}
-
-.momentSelect .MuiOutlinedInput-notchedOutline {
-  border-color: rgba(77, 157, 224, 0.4) !important;
-}
-
-.momentSelect .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline,
-.momentSelect .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
-  border-color: #4d9de0 !important;
-}
-
-.momentSelect .MuiSvgIcon-root {
-  color: #4d9de0;
-}
-
-/* ── Moment content area ── */
-.momentContent {
+/* ── Document read view ── */
+.documentContent {
   border: 1px solid rgba(77, 157, 224, 0.2);
   border-radius: 10px;
   background-color: #07071a;
-  padding: 16px 0;
-}
-
-/* ── Zone chips ── */
-.zoneChips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  padding: 0 16px 16px;
-  border-bottom: 1px solid rgba(77, 157, 224, 0.15);
-  margin-bottom: 20px;
-}
-
-.zoneChip {
-  color: #a8d4f5 !important;
-  border-color: rgba(168, 212, 245, 0.4) !important;
-  font-size: 1.28rem !important;
-  font-weight: 500 !important;
-  height: auto !important;
-  padding: 4px 2px !important;
-}
-
-.zoneChip:hover {
-  border-color: #4d9de0 !important;
-}
-
-.zoneChipSelected {
-  color: #ffffff !important;
-  font-weight: 700 !important;
-  background-color: #2f6fa8 !important;
-  border-color: #4d9de0 !important;
-}
-
-.zoneChipLabel {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 2px 2px;
-}
-
-.zoneCount {
-  background-color: rgba(77, 157, 224, 0.25);
-  color: #4d9de0;
-  font-size: 1.18rem;
-  font-weight: 700;
-  border-radius: 10px;
-  padding: 1px 6px;
-  line-height: 1.4;
-}
-
-.zoneChipSelected .zoneCount {
-  background-color: rgba(255, 255, 255, 0.25);
-  color: #ffffff;
-}
-
-/* ── Zone content ── */
-.zoneContent {
-  padding: 0 16px;
-}
-
-.zoneName {
-  font-size: 1.25rem !important;
-  font-weight: 700 !important;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: rgba(156, 220, 254, 0.7) !important;
-  margin-bottom: 14px !important;
-}
-
-/* ── Scenarios list ── */
-.scenarios {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-/* ── Empty zone ── */
-.emptyZone {
-  padding: 32px 0;
-  display: flex;
-  justify-content: center;
-}
-
-.emptyZoneText {
-  font-size: 1.38rem !important;
-  color: rgba(212, 212, 212, 0.45) !important;
-  font-style: italic;
-}
-
-@media (max-width: 600px) {
-  .zoneChip {
-    font-size: 1.16rem !important;
-  }
-
-  .zoneChips {
-    gap: 8px;
-  }
+  padding: 16px;
 }
 
 /* ── Ocultar la vista interactiva al imprimir ── */
 @media print {
   .page,
   .modelHeader,
-  .momentSelect,
-  .momentContent,
+  .documentContent,
   .loadingBox,
   .emptyState {
     display: none !important;

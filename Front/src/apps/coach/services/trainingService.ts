@@ -12,14 +12,8 @@ import type {
 const trainingService = {
   // ── Exercises ─────────────────────────────────────────────────────────
 
-  async getExercises(
-    clubId: string,
-    opts?: { subSubPrincipleId?: string | null; subPrincipleId?: string | null; scenarioId?: string | null; methodology?: string | null }
-  ): Promise<Exercise[]> {
+  async getExercises(clubId: string, opts?: { methodology?: string | null }): Promise<Exercise[]> {
     const params: Record<string, string> = { clubId };
-    if (opts?.subSubPrincipleId) params.subSubPrincipleId = opts.subSubPrincipleId;
-    if (opts?.subPrincipleId) params.subPrincipleId = opts.subPrincipleId;
-    if (opts?.scenarioId) params.scenarioId = opts.scenarioId;
     if (opts?.methodology) params.methodology = opts.methodology;
     const res = await client.get<Exercise[]>("/api/trainings/exercises", { params });
     return res.data;
@@ -70,10 +64,8 @@ const trainingService = {
 
   // ── Sessions ──────────────────────────────────────────────────────────
 
-  async getSessions(teamId: string, subPrincipleId?: string | null): Promise<TrainingSession[]> {
-    const params: Record<string, string> = { teamId };
-    if (subPrincipleId) params.subPrincipleId = subPrincipleId;
-    const res = await client.get<TrainingSession[]>("/api/trainings/sessions", { params });
+  async getSessions(teamId: string): Promise<TrainingSession[]> {
+    const res = await client.get<TrainingSession[]>("/api/trainings/sessions", { params: { teamId } });
     return res.data;
   },
 

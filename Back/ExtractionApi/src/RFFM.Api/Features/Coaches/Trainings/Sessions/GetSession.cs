@@ -70,7 +70,6 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
         int GoalPeekersNumber,
         string FieldSpace,
         string? UrlImage,
-        IEnumerable<SkillCoverageDto> Skills,
         IEnumerable<ConditionDto> Conditions);
 
     public class GetSessionHandler : IRequestHandler<GetSessionQuery, SessionDetail?>
@@ -82,10 +81,6 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
         {
             var session = await _db.TrainingSessions
                 .Include(s => s.SportEvent)
-                .Include(s => s.Tasks)
-                    .ThenInclude(tt => tt.Task)
-                        .ThenInclude(tb => tb.Skills)
-                            .ThenInclude(sk => sk.EssentialSkill)
                 .Include(s => s.Tasks)
                     .ThenInclude(tt => tt.Task)
                         .ThenInclude(tb => tb.Conditions)
@@ -130,7 +125,6 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
                         tt.Task.GoalPeekersNumber,
                         tt.Task.FieldSpace,
                         tt.Task.UrlImage,
-                        tt.Task.Skills.Select(sk => new SkillCoverageDto(sk.EssentialSkillId, sk.EssentialSkill.Name)),
                         tt.Task.Conditions.OrderBy(c => c.Order).Select(c => new ConditionDto(c.Id, c.Text, c.Order))
                     ))
             );

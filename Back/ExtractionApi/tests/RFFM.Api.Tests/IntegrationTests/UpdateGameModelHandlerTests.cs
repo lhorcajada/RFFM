@@ -20,7 +20,7 @@ namespace RFFM.Api.Tests.IntegrationTests
 {
     /// <summary>
     /// Integration tests for PUT /api/game-models/{id} (<see cref="UpdateGameModelCommand"/>),
-    /// covering create/update/delete of principles and their nested scenarios.
+    /// covering create/update/delete of principles and their nested subprincipios.
     /// </summary>
     [Collection(PostgresCollection.Name)]
     public class UpdateGameModelHandlerTests
@@ -32,7 +32,11 @@ namespace RFFM.Api.Tests.IntegrationTests
             _fixture = fixture;
         }
 
-        private async Task<(string UserId, string TeamId, string GameModelId, string PrincipleId, string ScenarioId)> SeedGameModelAsync(AppDbContext db)
+        private static List<SetPieceRuleRequest> NoRules => new();
+        private static List<OpenIssueRequest> NoIssues => new();
+        private static List<NotaRequest> NoNotas => new();
+
+        private async Task<(string UserId, string TeamId, string GameModelId, string PrincipleId, string SubprincipioId)> SeedGameModelAsync(AppDbContext db)
         {
             var club = Club.Create($"UpdateGameModel Test Club {Guid.NewGuid():N}", 1);
             db.Clubs.Add(club);
@@ -62,21 +66,29 @@ namespace RFFM.Api.Tests.IntegrationTests
             await db.SaveChangesAsync();
 
             var model = new GameModel(team.Id, "Modelo de prueba", "2025-2026");
-            var principle = new GamePrinciple(model.Id, gameMomentId: 1, gameZoneId: 1, order: 1, "Principio original", "Descripcion original");
-            var scenario = new GameScenario(principle.Id, order: 1, "Escenario original", "Contexto original");
-            principle.Scenarios.Add(scenario);
+            var principle = new GamePrinciple(model.Id, gameMomentId: 1, key: "defensa-organizada-1", numero: 1, "Principio original", "Texto original");
+            var subprincipio = new Subprincipio(principle.Id, "defensa-organizada-1.1", "1.1", "Subprincipio original", "Contexto original");
+            principle.Subprincipios.Add(subprincipio);
             model.Principles.Add(principle);
             db.GameModels.Add(model);
             await db.SaveChangesAsync();
 
-            return (userId, team.Id, model.Id, principle.Id, scenario.Id);
+            return (userId, team.Id, model.Id, principle.Id, subprincipio.Id);
         }
 
+        private static PrincipleRequest OriginalPrincipleRequest(string principleId, string subprincipioId, string subprincipioNumero = "1.1", string titulo = "Subprincipio original") =>
+            new(principleId, 1, 1, "Principio original", "Texto original",
+                new List<SubprincipioRequest>
+                {
+                    new(subprincipioId, subprincipioNumero, titulo, "Contexto original", new List<ZonaRequest>(), new List<SubSubPrincipioRequest>(), NoNotas)
+                },
+                NoNotas);
+
         [Fact]
-        public async Task Update_WithNewPrincipleContainingScenario_CreatesPrincipleAndScenario()
+        public async Task Update_WithNewPrincipleContainingSubprincipio_CreatesPrincipleAndSubprincipio()
         {
             await using var seedDb = _fixture.CreateDbContext();
-            var (userId, _, gameModelId, principleId, scenarioId) = await SeedGameModelAsync(seedDb);
+            var (userId, _, gameModelId, principleId, subprincipioId) = await SeedGameModelAsync(seedDb);
 
             await using var db = _fixture.CreateDbContext();
             var handler = new UpdateGameModelHandler(db);
@@ -85,32 +97,36 @@ namespace RFFM.Api.Tests.IntegrationTests
                 "Modelo de prueba",
                 new List<PrincipleRequest>
                 {
-                    new PrincipleRequest(principleId, 1, 1, 1, "Principio original", "Descripcion original",
-                        new List<ScenarioRequest> { new ScenarioRequest(scenarioId, 1, "Escenario original", "Contexto original", new List<SubPrincipleRequest>()) }),
-                    new PrincipleRequest(null, 2, 2, 1, "Principio nuevo", "Descripcion nueva",
-                        new List<ScenarioRequest> { new ScenarioRequest(null, 1, "Escenario nuevo", "Contexto nuevo", new List<SubPrincipleRequest>()) })
-                })
+                    OriginalPrincipleRequest(principleId, subprincipioId),
+                    new PrincipleRequest(null, 2, 1, "Principio nuevo", "Texto nuevo",
+                        new List<SubprincipioRequest>
+                        {
+                            new(null, "1.1", "Subprincipio nuevo", "Contexto nuevo", new List<ZonaRequest>(), new List<SubSubPrincipioRequest>(), NoNotas)
+                        },
+                        NoNotas)
+                },
+                NoRules, NoIssues)
             { Id = gameModelId, UserId = userId };
 
             await handler.Handle(command, CancellationToken.None);
 
             await using var verifyDb = _fixture.CreateDbContext();
             var principles = await verifyDb.GamePrinciples
-                .Include(p => p.Scenarios)
+                .Include(p => p.Subprincipios)
                 .Where(p => p.GameModelId == gameModelId)
                 .ToListAsync();
 
             Assert.Equal(2, principles.Count);
-            var newPrinciple = Assert.Single(principles, p => p.Title == "Principio nuevo");
-            Assert.Single(newPrinciple.Scenarios);
-            Assert.Equal("Escenario nuevo", newPrinciple.Scenarios.Single().Name);
+            var newPrinciple = Assert.Single(principles, p => p.Titulo == "Principio nuevo");
+            Assert.Single(newPrinciple.Subprincipios);
+            Assert.Equal("Subprincipio nuevo", newPrinciple.Subprincipios.Single().Titulo);
         }
 
         [Fact]
-        public async Task Update_ExistingPrincipleTitleAndDescription_UpdatesInPlace_ScenariosUnaffected()
+        public async Task Update_ExistingPrincipleTituloAndTexto_UpdatesInPlace_SubprincipiosUnaffected()
         {
             await using var seedDb = _fixture.CreateDbContext();
-            var (userId, _, gameModelId, principleId, scenarioId) = await SeedGameModelAsync(seedDb);
+            var (userId, _, gameModelId, principleId, subprincipioId) = await SeedGameModelAsync(seedDb);
 
             await using var db = _fixture.CreateDbContext();
             var handler = new UpdateGameModelHandler(db);
@@ -119,49 +135,54 @@ namespace RFFM.Api.Tests.IntegrationTests
                 "Modelo de prueba",
                 new List<PrincipleRequest>
                 {
-                    new PrincipleRequest(principleId, 1, 1, 1, "Principio editado", "Descripcion editada",
-                        new List<ScenarioRequest> { new ScenarioRequest(scenarioId, 1, "Escenario original", "Contexto original", new List<SubPrincipleRequest>()) })
-                })
+                    new PrincipleRequest(principleId, 1, 1, "Principio editado", "Texto editado",
+                        new List<SubprincipioRequest>
+                        {
+                            new(subprincipioId, "1.1", "Subprincipio original", "Contexto original", new List<ZonaRequest>(), new List<SubSubPrincipioRequest>(), NoNotas)
+                        },
+                        NoNotas)
+                },
+                NoRules, NoIssues)
             { Id = gameModelId, UserId = userId };
 
             await handler.Handle(command, CancellationToken.None);
 
             await using var verifyDb = _fixture.CreateDbContext();
             var principle = await verifyDb.GamePrinciples
-                .Include(p => p.Scenarios)
+                .Include(p => p.Subprincipios)
                 .SingleAsync(p => p.Id == principleId);
 
-            Assert.Equal("Principio editado", principle.Title);
-            Assert.Equal("Descripcion editada", principle.Description);
-            var scenario = Assert.Single(principle.Scenarios);
-            Assert.Equal(scenarioId, scenario.Id);
-            Assert.Equal("Escenario original", scenario.Name);
+            Assert.Equal("Principio editado", principle.Titulo);
+            Assert.Equal("Texto editado", principle.Texto);
+            var subprincipio = Assert.Single(principle.Subprincipios);
+            Assert.Equal(subprincipioId, subprincipio.Id);
+            Assert.Equal("Subprincipio original", subprincipio.Titulo);
         }
 
         [Fact]
-        public async Task Update_WithoutPreviouslyExistingPrinciple_DeletesPrincipleAndItsScenarios()
+        public async Task Update_WithoutPreviouslyExistingPrinciple_DeletesPrincipleAndItsSubprincipios()
         {
             await using var seedDb = _fixture.CreateDbContext();
-            var (userId, _, gameModelId, principleId, scenarioId) = await SeedGameModelAsync(seedDb);
+            var (userId, _, gameModelId, principleId, subprincipioId) = await SeedGameModelAsync(seedDb);
 
             await using var db = _fixture.CreateDbContext();
             var handler = new UpdateGameModelHandler(db);
 
-            var command = new UpdateGameModelCommand("Modelo de prueba", new List<PrincipleRequest>())
+            var command = new UpdateGameModelCommand("Modelo de prueba", new List<PrincipleRequest>(), NoRules, NoIssues)
             { Id = gameModelId, UserId = userId };
 
             await handler.Handle(command, CancellationToken.None);
 
             await using var verifyDb = _fixture.CreateDbContext();
             Assert.False(await verifyDb.GamePrinciples.AnyAsync(p => p.Id == principleId));
-            Assert.False(await verifyDb.GameScenarios.AnyAsync(s => s.Id == scenarioId));
+            Assert.False(await verifyDb.Subprincipios.AnyAsync(s => s.Id == subprincipioId));
         }
 
         [Fact]
-        public async Task Update_AddingScenarioToExistingPrinciple_PersistsNewScenario()
+        public async Task Update_AddingSubprincipioToExistingPrinciple_PersistsNewSubprincipio()
         {
             await using var seedDb = _fixture.CreateDbContext();
-            var (userId, _, gameModelId, principleId, scenarioId) = await SeedGameModelAsync(seedDb);
+            var (userId, _, gameModelId, principleId, subprincipioId) = await SeedGameModelAsync(seedDb);
 
             await using var db = _fixture.CreateDbContext();
             var handler = new UpdateGameModelHandler(db);
@@ -170,31 +191,33 @@ namespace RFFM.Api.Tests.IntegrationTests
                 "Modelo de prueba",
                 new List<PrincipleRequest>
                 {
-                    new PrincipleRequest(principleId, 1, 1, 1, "Principio original", "Descripcion original",
-                        new List<ScenarioRequest>
+                    new PrincipleRequest(principleId, 1, 1, "Principio original", "Texto original",
+                        new List<SubprincipioRequest>
                         {
-                            new ScenarioRequest(scenarioId, 1, "Escenario original", "Contexto original", new List<SubPrincipleRequest>()),
-                            new ScenarioRequest(null, 2, "Escenario adicional", "Contexto adicional", new List<SubPrincipleRequest>())
-                        })
-                })
+                            new(subprincipioId, "1.1", "Subprincipio original", "Contexto original", new List<ZonaRequest>(), new List<SubSubPrincipioRequest>(), NoNotas),
+                            new(null, "1.2", "Subprincipio adicional", "Contexto adicional", new List<ZonaRequest>(), new List<SubSubPrincipioRequest>(), NoNotas)
+                        },
+                        NoNotas)
+                },
+                NoRules, NoIssues)
             { Id = gameModelId, UserId = userId };
 
             await handler.Handle(command, CancellationToken.None);
 
             await using var verifyDb = _fixture.CreateDbContext();
-            var scenarios = await verifyDb.GameScenarios
+            var subprincipios = await verifyDb.Subprincipios
                 .Where(s => s.GamePrincipleId == principleId)
                 .ToListAsync();
 
-            Assert.Equal(2, scenarios.Count);
-            Assert.Contains(scenarios, s => s.Name == "Escenario adicional");
+            Assert.Equal(2, subprincipios.Count);
+            Assert.Contains(subprincipios, s => s.Titulo == "Subprincipio adicional");
         }
 
         [Fact]
-        public async Task Update_RemovingScenarioFromExistingPrinciple_DeletesScenario()
+        public async Task Update_RemovingSubprincipioFromExistingPrinciple_DeletesSubprincipio()
         {
             await using var seedDb = _fixture.CreateDbContext();
-            var (userId, _, gameModelId, principleId, scenarioId) = await SeedGameModelAsync(seedDb);
+            var (userId, _, gameModelId, principleId, subprincipioId) = await SeedGameModelAsync(seedDb);
 
             await using var db = _fixture.CreateDbContext();
             var handler = new UpdateGameModelHandler(db);
@@ -203,14 +226,15 @@ namespace RFFM.Api.Tests.IntegrationTests
                 "Modelo de prueba",
                 new List<PrincipleRequest>
                 {
-                    new PrincipleRequest(principleId, 1, 1, 1, "Principio original", "Descripcion original", new List<ScenarioRequest>())
-                })
+                    new PrincipleRequest(principleId, 1, 1, "Principio original", "Texto original", new List<SubprincipioRequest>(), NoNotas)
+                },
+                NoRules, NoIssues)
             { Id = gameModelId, UserId = userId };
 
             await handler.Handle(command, CancellationToken.None);
 
             await using var verifyDb = _fixture.CreateDbContext();
-            Assert.False(await verifyDb.GameScenarios.AnyAsync(s => s.Id == scenarioId));
+            Assert.False(await verifyDb.Subprincipios.AnyAsync(s => s.Id == subprincipioId));
             Assert.True(await verifyDb.GamePrinciples.AnyAsync(p => p.Id == principleId));
         }
 
@@ -223,7 +247,7 @@ namespace RFFM.Api.Tests.IntegrationTests
             await using var db = _fixture.CreateDbContext();
             var handler = new UpdateGameModelHandler(db);
 
-            var command = new UpdateGameModelCommand("Modelo de prueba", new List<PrincipleRequest>())
+            var command = new UpdateGameModelCommand("Modelo de prueba", new List<PrincipleRequest>(), NoRules, NoIssues)
             { Id = Guid.NewGuid().ToString(), UserId = userId };
 
             var ex = await Assert.ThrowsAsync<DomainException>(() => handler.Handle(command, CancellationToken.None).AsTask());
@@ -239,7 +263,7 @@ namespace RFFM.Api.Tests.IntegrationTests
             await using var db = _fixture.CreateDbContext();
             var handler = new UpdateGameModelHandler(db);
 
-            var command = new UpdateGameModelCommand("Modelo de prueba", new List<PrincipleRequest>())
+            var command = new UpdateGameModelCommand("Modelo de prueba", new List<PrincipleRequest>(), NoRules, NoIssues)
             { Id = gameModelId, UserId = $"stranger-{Guid.NewGuid():N}" };
 
             var ex = await Assert.ThrowsAsync<DomainException>(() => handler.Handle(command, CancellationToken.None).AsTask());

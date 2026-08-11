@@ -1,46 +1,55 @@
 namespace RFFM.Api.Domain.Aggregates.GameModels
 {
     /// <summary>
-    /// A Principio (title + description) grouping one or more scenarios inside a specific
-    /// game moment + zone combination.
-    /// e.g. Defensa Organizada / Zona de Iniciación / "El rival juega por bandas"
+    /// A Principio of the ADN hierarchy: "N. Título." within a Fase (GameMoment) — spec §1–§2.
+    /// Fase-scoped only (no longer Fase×Zona); Zona now hangs off Subprincipio instead.
     /// </summary>
     public class GamePrinciple : BaseEntity
     {
         public string GameModelId { get; private set; } = null!;
         public int GameMomentId { get; private set; }
-        public int GameZoneId { get; private set; }
-        public int Order { get; private set; }
-        public string Title { get; private set; } = null!;
-        public string Description { get; private set; } = string.Empty;
+        public string Key { get; private set; } = null!;
+        /// <summary>Literal numbering as written in the legible document, e.g. 1.</summary>
+        public int Numero { get; private set; }
+        public string Titulo { get; private set; } = null!;
+        public string Texto { get; private set; } = string.Empty;
 
         public GameModel GameModel { get; private set; } = null!;
         public GameMoment GameMoment { get; private set; } = null!;
-        public GameZone GameZone { get; private set; } = null!;
 
-        public List<GameScenario> Scenarios { get; private set; } = new();
+        public List<Subprincipio> Subprincipios { get; private set; } = new();
 
         private GamePrinciple() { }
 
-        public GamePrinciple(string gameModelId, int gameMomentId, int gameZoneId, int order, string title, string description)
+        public GamePrinciple(string gameModelId, int gameMomentId, string key, int numero, string titulo, string texto)
         {
+            if (string.IsNullOrWhiteSpace(gameModelId))
+                throw new ArgumentException("GameModelId cannot be empty.", nameof(gameModelId));
+
             GameModelId = gameModelId;
             GameMomentId = gameMomentId;
-            GameZoneId = gameZoneId;
-            Order = order;
-            UpdateTitle(title);
-            Description = description ?? string.Empty;
+            UpdateKey(key);
+            Numero = numero;
+            UpdateTitulo(titulo);
+            Texto = texto ?? string.Empty;
         }
 
-        public void UpdateTitle(string title)
+        public void UpdateKey(string key)
         {
-            if (string.IsNullOrWhiteSpace(title))
-                throw new ArgumentException("Principle title cannot be empty.", nameof(title));
-            Title = title.Trim();
+            if (string.IsNullOrWhiteSpace(key))
+                throw new ArgumentException("Key cannot be empty.", nameof(key));
+            Key = key.Trim();
         }
 
-        public void UpdateDescription(string description) => Description = description ?? string.Empty;
+        public void UpdateNumero(int numero) => Numero = numero;
 
-        public void UpdateOrder(int order) => Order = order;
+        public void UpdateTitulo(string titulo)
+        {
+            if (string.IsNullOrWhiteSpace(titulo))
+                throw new ArgumentException("Titulo cannot be empty.", nameof(titulo));
+            Titulo = titulo.Trim();
+        }
+
+        public void UpdateTexto(string texto) => Texto = texto ?? string.Empty;
     }
 }

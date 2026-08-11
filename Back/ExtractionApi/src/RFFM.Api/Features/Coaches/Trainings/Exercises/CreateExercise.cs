@@ -54,12 +54,8 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         int PlayersNumber,
         int GoalPeekersNumber,
         string FieldSpace,
-        string? SubSubPrincipleId,
-        string? SubPrincipleId,
-        string? ScenarioId,
         string Section,
         string Methodology,
-        List<string> EssentialSkillIds,
         string? BoardStateJson,
         // Physical-specific
         int? Series,
@@ -100,9 +96,6 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
                 GoalPeekersNumber = request.GoalPeekersNumber,
                 FieldSpace = request.FieldSpace,
                 ClubId = request.ClubId,
-                SubSubPrincipleId = request.SubSubPrincipleId,
-                SubPrincipleId = request.SubPrincipleId,
-                ScenarioId = request.ScenarioId,
                 Section = request.Section,
                 Methodology = request.Methodology,
                 BoardStateJson = request.BoardStateJson,
@@ -112,9 +105,6 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
                 TouchesNumber = request.TouchesNumber ?? 0,
                 WildCards = request.WildCards ?? 0,
             };
-
-            foreach (var skillId in request.EssentialSkillIds.Distinct())
-                exercise.Skills.Add(new TaskTrainingSkill { EssentialSkillId = skillId });
 
             var typeEntities = await _db.ExerciseTypes
                 .Where(t => request.Types.Contains(t.Name))
@@ -146,10 +136,6 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
             RuleFor(x => x.Methodology).Must(m => m is "Analitico" or "Integrado" or "Global")
                 .WithMessage("Methodology must be Analitico, Integrado or Global.");
             RuleFor(x => x.DurationTotal).GreaterThan(0);
-            RuleFor(x => x)
-                .Must(x => new[] { x.ScenarioId, x.SubPrincipleId, x.SubSubPrincipleId }
-                    .Count(id => !string.IsNullOrEmpty(id)) <= 1)
-                .WithMessage("At most one of ScenarioId, SubPrincipleId or SubSubPrincipleId may be provided.");
         }
     }
 }

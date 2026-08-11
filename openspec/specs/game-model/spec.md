@@ -3,65 +3,66 @@
 ## Purpose
 TBD - created by archiving change move-game-scenario. Update Purpose after archive.
 ## Requirements
-### Requirement: Coach can move a game scenario to a different moment/zone with an atomic, immediate save
-The system SHALL let an authenticated Coach reclassify an existing `GameScenario` into a different `GamePrinciple` from the game-model edit view, via `PATCH /api/game-models/scenarios/{scenarioId}/location`, persisting the change immediately without requiring the general "Guardar cambios" action. The target principle SHALL belong to the same `GameModel` as the scenario. The scenario's nested content (sub-principles, sub-sub-principles, essential skills, media) SHALL remain unchanged — only its owning principle and ordering are affected. The scenario is appended to the end of the target principle's scenarios, and the scenarios remaining in the source principle are renumbered to stay contiguous.
+### Requirement: Game model follows the ADN hierarchy
+The system SHALL model a `GameModel`'s content as `Fase (GameMoment) → Principio (GamePrinciple) → Subprincipio → (Zona, 0..N) → SubSubPrincipio → Habilidad`, where a `Subprincipio`'s `SubSubPrincipio`s hang either directly off it or off one of its `Zona`s, never both. A `Nota` MAY be anchored to a `Principio`, `Subprincipio`, `Zona`, or `SubSubPrincipio`. The "Balón parado" `Fase` instead holds a flat list of `SetPieceRule`s with no Principio/Subprincipio/Zona nesting. `Habilidad.Nombre` SHALL be restricted to the fixed 14-value vocabulary defined in `docs/game-model/ADN-modelo-de-juego-especificacion-tecnica.md` §4; any other value is rejected.
 
-#### Scenario: Coach moves an already-saved scenario to a different principle
-- **WHEN** a Coach with access to the team selects a different principle (in the same game model) for a persisted scenario (has a backend id) and confirms the move
-- **THEN** the app calls `PATCH /api/game-models/scenarios/{scenarioId}/location` with the target principle id, the scenario's `GamePrincipleId` is updated, it is placed after the existing scenarios of the target principle, and all of its sub-principles, sub-sub-principles and essential skills remain associated and unchanged
+#### Scenario: SubSubPrincipio hangs off a Zona when the Subprincipio varies by zone
+- **WHEN** a Coach adds a `SubSubPrincipio` under a `Zona` that belongs to a `Subprincipio`
+- **THEN** the `SubSubPrincipio` is persisted anchored to that `Zona`, not directly to the `Subprincipio`
 
-#### Scenario: Remaining scenarios in the source principle are renumbered
-- **WHEN** a scenario is moved out of a principle that had other scenarios after it in order
-- **THEN** the scenarios left behind in that principle are renumbered to a contiguous `1..N` sequence
+#### Scenario: SubSubPrincipio hangs directly off a Subprincipio with no zone variation
+- **WHEN** a Coach adds a `SubSubPrincipio` to a `Subprincipio` that has no `Zona`s
+- **THEN** the `SubSubPrincipio` is persisted anchored directly to that `Subprincipio`
 
-#### Scenario: Moving to the same principle is a no-op
-- **WHEN** the requested target principle is identical to the scenario's current principle
-- **THEN** the scenario's order is left unchanged and no sibling scenarios are renumbered
+#### Scenario: Habilidad name outside the closed vocabulary is rejected
+- **WHEN** a Coach (or the markdown importer) attempts to save a `Habilidad` with a `Nombre` not in the 14-value vocabulary
+- **THEN** the save is rejected with a validation error and no `Habilidad` is created
 
-#### Scenario: Coach moves a scenario not yet saved to the backend
-- **WHEN** a Coach selects a different principle for a scenario that only exists in the local draft (not yet persisted)
-- **THEN** the app updates the local draft to reflect the new principle without calling the move endpoint
+#### Scenario: Balón parado phase holds flat SetPieceRules
+- **WHEN** a Coach adds content under the Balón Parado `Fase`
+- **THEN** it is persisted as a `SetPieceRule` (`subtype` + free text), with no `Principio`/`Subprincipio`/`Zona` nesting
 
-#### Scenario: User without access to the team cannot move a scenario
-- **WHEN** an authenticated user without a `UserClub` link to the scenario's team's club calls the move endpoint
-- **THEN** the API returns an access-denied error and the scenario is not modified
+### Requirement: Coach can create and edit the game model
+A Coach with access to the team SHALL be able to create and edit a `GameModel`'s full ADN tree (Principios, Subprincipios, Zonas, SubSubPrincipios, Habilidades, Notas, SetPieceRules, OpenIssues) via the game-model edit view, and delete any node at any level, cascading to its descendants.
 
-#### Scenario: Move to a principle in a different game model is rejected
-- **WHEN** the requested target `GamePrincipleId` belongs to a different `GameModel` than the scenario's
-- **THEN** the API returns a not-found/validation error and the scenario is not modified
+#### Scenario: Coach creates a full model tree
+- **WHEN** a Coach saves a game model with a new Principio containing Subprincipios, Zonas/SubSubPrincipios, and Habilidades
+- **THEN** the full tree is persisted with the structure and content as submitted
 
-#### Scenario: Move fails gracefully in the UI
-- **WHEN** the move API call fails
-- **THEN** the Coach app shows an error notification and the local draft keeps the scenario in its original principle
+#### Scenario: Coach deletes a node and its descendants
+- **WHEN** a Coach saves a game model that no longer includes a previously-existing Subprincipio
+- **THEN** that Subprincipio and everything nested under it (Zonas, SubSubPrincipios, Habilidades, Notas) are removed
 
-<!--
-Note: the pre-existing "Principios tácticos colectivos" scenario selector was never captured
-in openspec/specs/game-model/spec.md (only the move-scenario requirement was tracked there),
-so there is nothing for the archiver to remove from the canonical spec. Its removal —
-ScenarioTacticalPrinciple/TacticalGoalsEnum tables dropped, GET /api/technical-goals removed,
-no replacement field — is documented in this change's proposal.md "What Changes"/"Impact"
-sections instead.
--->
+### Requirement: Game model can be seeded and re-imported from the legible ADN document
+The system SHALL provide a markdown importer that parses `docs/game-model/ADN-Modelo-de-Juego-Legible.md` per the parsing and key-derivation rules in `docs/game-model/ADN-modelo-de-juego-especificacion-tecnica.md` (§1–§5), producing entities keyed deterministically so re-running the import against an unchanged document upserts the same rows rather than duplicating them. This importer SHALL be used to seed the real game model so it does not have to be entered by hand.
 
-### Requirement: Scenarios are grouped under a Principio within each moment/zone cell
-The system SHALL introduce a `GamePrinciple` (Principio) level between the Momento de Juego × Zona de Juego cell and `GameScenario`. Each `GamePrinciple` SHALL have a `Title` and a `Description`, belong to exactly one Momento de Juego and Zona de Juego, and contain zero or more `GameScenario`s. A Coach with access to the team SHALL be able to create, edit, and delete `GamePrinciple`s within a moment/zone cell, and create, edit, and delete `GameScenario`s within a `GamePrinciple`, via the existing `POST /api/game-models` / `PUT /api/game-models/{id}` full-model save.
+#### Scenario: Re-running the import is idempotent
+- **WHEN** the importer runs twice against the same unchanged legible document for the same `GameModel`
+- **THEN** the second run does not create duplicate Principios/Subprincipios/Zonas/SubSubPrincipios — it upserts by key
 
-#### Scenario: Coach creates a principle with scenarios in a moment/zone cell
-- **WHEN** a Coach saves a game model with a new `GamePrinciple` (title, description) containing one or more new scenarios under a given moment/zone
-- **THEN** the principle and its scenarios are persisted, associated with that moment/zone
+#### Scenario: Unresolvable Zona heading is rejected, not guessed
+- **WHEN** the legible document contains a Zona heading that matches neither the 4-zone catalog nor one of the documented special cases
+- **THEN** the importer rejects it (or marks it pending) rather than forcing it into an incorrect catalog zone
 
-#### Scenario: Coach edits a principle's title and description
-- **WHEN** a Coach saves a game model with changes to an existing principle's `Title` and/or `Description`
-- **THEN** the principle is updated in place and its scenarios are unaffected
+#### Scenario: Habilidad name outside the vocabulary during import is rejected
+- **WHEN** the legible document contains a Habilidad name not in the 14-value closed vocabulary
+- **THEN** the importer rejects that entry rather than silently creating a new habilidad
 
-#### Scenario: Coach deletes a principle
-- **WHEN** a Coach saves a game model that no longer includes a previously-existing principle
-- **THEN** the principle and all of its scenarios (with their sub-principles, sub-sub-principles, and essential skills) are removed
+### Requirement: Game-model read views reproduce the legible document's structure
+The Coach app's read and print views of a `GameModel` SHALL present the ADN tree in the same order and nesting as `docs/game-model/ADN-Modelo-de-Juego-Legible.md`: Fases in document order, numbered Principios and Subprincipios, Zona blocks where present, SubSubPrincipios with their Rol and Habilidades, Notas rendered near their anchor, and a flat "Balón parado" section.
 
-### Requirement: Existing scenarios are migrated into one generated principle each
-The system SHALL, as part of introducing the `GamePrinciple` level, create exactly one `GamePrinciple` per pre-existing `GameScenario`, in the same moment/zone as the scenario, with `Title` set to the scenario's current name and an empty `Description`. No existing scenario, sub-principle, sub-sub-principle, essential skill, or media reference SHALL be lost or reparented incorrectly by this migration.
+#### Scenario: Read view mirrors the legible document's nesting
+- **WHEN** a Coach opens a game model for a Fase with several numbered Principios and Subprincipios
+- **THEN** the read view renders them in the same numbered, nested order as the legible document, including Zona blocks and Notas at their anchored level
 
-#### Scenario: Pre-existing scenario is wrapped in a generated principle
-- **WHEN** the migration runs against a game model that has an existing scenario "Escenario 1: El rival juega por bandas" in Defensa Organizada / Zona de Iniciación
-- **THEN** a new `GamePrinciple` with `Title` = "Escenario 1: El rival juega por bandas", empty `Description`, in Defensa Organizada / Zona de Iniciación is created, and the scenario is reparented under it as its only scenario
+### Requirement: Exercises and training sessions are independent of the game model
+The system SHALL NOT link `Exercise`/`TaskTrainingBase` or `TrainingSession` records to any game-model entity. No exercise or session creation/edit flow SHALL reference a Principio, Subprincipio, Zona, SubSubPrincipio, or Habilidad.
+
+#### Scenario: Creating an exercise has no game-model field
+- **WHEN** a Coach creates or edits an exercise
+- **THEN** the form has no field to select a Subprincipio, Zona, SubSubPrincipio, or Habilidad, and the saved exercise carries no such reference
+
+#### Scenario: Creating a session has no game-model field
+- **WHEN** a Coach creates or edits a training session
+- **THEN** the form has no field to select a Subprincipio, and the saved session carries no such reference
 

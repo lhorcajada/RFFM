@@ -35,6 +35,21 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.GameModel
                 .WithOne(p => p.GameModel)
                 .HasForeignKey(p => p.GameModelId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            builder.HasMany(x => x.Notas)
+                .WithOne(n => n.GameModel)
+                .HasForeignKey(n => n.GameModelId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.HasMany(x => x.SetPieceRules)
+                .WithOne(s => s.GameModel)
+                .HasForeignKey(s => s.GameModelId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.HasMany(x => x.OpenIssues)
+                .WithOne(o => o.GameModel)
+                .HasForeignKey(o => o.GameModelId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

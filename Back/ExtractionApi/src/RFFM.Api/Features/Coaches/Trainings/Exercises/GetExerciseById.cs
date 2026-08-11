@@ -53,13 +53,8 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         public async ValueTask<ExerciseListItem?> Handle(GetExerciseByIdQuery request, CancellationToken ct = default)
         {
             var exercise = await _db.TaskTrainingBases
-                .Include(tb => tb.Skills)
-                    .ThenInclude(s => s.EssentialSkill)
                 .Include(tb => tb.Types)
                     .ThenInclude(t => t.ExerciseType)
-                .Include(tb => tb.SubSubPrinciple)
-                .Include(tb => tb.SubPrinciple)
-                .Include(tb => tb.Scenario)
                 .Include(tb => tb.Conditions)
                 .FirstOrDefaultAsync(tb => tb.Id == request.ExerciseId, ct);
 
@@ -83,13 +78,6 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
                 exercise.PlayersNumber,
                 exercise.GoalPeekersNumber,
                 exercise.FieldSpace,
-                exercise.SubSubPrincipleId,
-                exercise.SubSubPrinciple?.Name,
-                exercise.SubPrincipleId,
-                exercise.SubPrinciple?.Name,
-                exercise.ScenarioId,
-                exercise.Scenario?.Name,
-                exercise.Skills.Select(s => new SkillCoverageDto(s.EssentialSkillId, s.EssentialSkill.Name)),
                 exercise.UrlImage,
                 exercise.BoardStateJson,
                 exercise.Conditions.OrderBy(c => c.Order).Select(c => new ConditionDto(c.Id, c.Text, c.Order))

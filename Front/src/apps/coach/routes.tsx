@@ -37,8 +37,6 @@ const GameModel = lazy(() => import("./pages/game-model/GameModel"));
 const GameModelCreate = lazy(() => import("./pages/game-model/GameModelCreate"));
 const TeamRules = lazy(() => import("./pages/team-rules/TeamRules"));
 const TeamRulesEdit = lazy(() => import("./pages/team-rules/TeamRulesEdit"));
-const CreateSessionFromSubPrinciple = lazy(() => import("./pages/game-model/CreateSessionFromSubPrinciple"));
-const SessionsFromSubPrinciple = lazy(() => import("./pages/game-model/SessionsFromSubPrinciple"));
 const Sanctions = lazy(() => import("./pages/sanctions/Sanctions"));
 const Lottery = lazy(() => import("./pages/lottery/Lottery"));
 const Rivals = lazy(() => import("./pages/rivals/Rivals"));
@@ -247,22 +245,6 @@ function CoachRoutesContent() {
               element={
                 <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.GameModel}>
                   <GameModelCreate />
-                </RequireFeaturePermission>
-              }
-            />
-            <Route
-              path="game-model/create-session"
-              element={
-                <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.GameModel}>
-                  <CreateSessionFromSubPrinciple />
-                </RequireFeaturePermission>
-              }
-            />
-            <Route
-              path="game-model/sessions"
-              element={
-                <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.GameModel}>
-                  <SessionsFromSubPrinciple />
                 </RequireFeaturePermission>
               }
             />

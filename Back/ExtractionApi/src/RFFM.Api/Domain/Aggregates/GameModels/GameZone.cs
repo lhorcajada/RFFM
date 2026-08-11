@@ -11,8 +11,6 @@ namespace RFFM.Api.Domain.Aggregates.GameModels
         public int Order { get; private set; }
         public bool IsActive { get; private set; } = true;
 
-        public List<GamePrinciple> Principles { get; private set; } = new();
-
         private GameZone() { }
 
         public GameZone(string name, int order)

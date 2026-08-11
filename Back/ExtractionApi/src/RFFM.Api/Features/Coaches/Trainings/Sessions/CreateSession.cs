@@ -54,7 +54,6 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
         TimeSpan? EndTime,
         string? Location,
         string? SportEventId,
-        string? SubPrincipleId,
         List<SessionExerciseInput> Exercises
     ) : IRequest<string>, IRequireFeaturePermission
     {
@@ -88,7 +87,6 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
                 Location = request.Location ?? string.Empty,
                 TeamId = request.TeamId,
                 SportEventId = request.SportEventId,
-                SubPrincipleId = request.SubPrincipleId,
             };
 
             for (var i = 0; i < request.Exercises.Count; i++)

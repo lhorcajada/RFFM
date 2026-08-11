@@ -1,6 +1,5 @@
 import React from "react";
-import { render, screen, waitFor, within } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { GameModel as GameModelType } from "../../../types/gameModel";
@@ -10,13 +9,7 @@ vi.mock("../../../../../shared/components/ui/BaseLayout/BaseLayout", () => ({
 }));
 
 vi.mock("../../../../../shared/components/ui/ContentLayout/ContentLayout", () => ({
-  default: ({
-    actionBar,
-    children,
-  }: {
-    actionBar?: React.ReactNode;
-    children: React.ReactNode;
-  }) => (
+  default: ({ actionBar, children }: { actionBar?: React.ReactNode; children: React.ReactNode }) => (
     <>
       {actionBar}
       {children}
@@ -36,14 +29,6 @@ vi.mock("../../../hooks/useTeamAndClub", () => ({
 const mockGoToTeamDashboard = vi.fn();
 vi.mock("../../../hooks/useTeamDashboardBack", () => ({
   default: () => mockGoToTeamDashboard,
-}));
-
-vi.mock("../components/ScenarioAccordion", () => ({
-  default: ({ zoneName }: { zoneName: string }) => <div>Escenarios de {zoneName}</div>,
-}));
-
-vi.mock("../components/GameModelPrintView", () => ({
-  default: () => <div data-testid="print-view" />,
 }));
 
 const mockGetSeasonsByTeamId = vi.fn();
@@ -71,132 +56,54 @@ function buildModel(): GameModelType {
     teamId: "team-1",
     name: "Modelo de Juego 2025/2026",
     season: "2025/2026",
-    gameMoments: [
+    principles: [
       {
         id: 1,
-        name: "Fase de ataque",
-        zones: [
-          {
-            id: 10,
-            name: "Zona defensiva",
-            principles: [{ id: -1, scenarios: [{ id: -1 } as never] } as never],
-          },
-          { id: 11, name: "Zona media", principles: [] },
-          {
-            id: 12,
-            name: "Zona ofensiva",
-            principles: [
-              { id: -2, scenarios: [{ id: -2 } as never, { id: -4 } as never] } as never,
-              { id: -3, scenarios: [{ id: -3 } as never] } as never,
-            ],
-          },
-        ],
-      },
-      {
-        id: 2,
-        name: "Fase de defensa",
-        zones: [
-          { id: 20, name: "Zona propia", principles: [] },
-        ],
+        gameMomentId: 1,
+        gameMomentName: "Defensa Organizada",
+        numero: 1,
+        titulo: "No permitir progresar al rival",
+        texto: "texto",
+        subprincipios: [],
+        notas: [],
       },
     ],
+    setPieceRules: [],
+    openIssues: [],
   };
 }
 
-async function renderPage() {
-  mockGetSeasonsByTeamId.mockResolvedValue(["2025/2026"]);
-  mockGetByTeamIdAndSeason.mockResolvedValue(buildModel());
-  render(
-    <MemoryRouter>
-      <GameModel />
-    </MemoryRouter>
-  );
-  await waitFor(() => expect(screen.getByText("Modelo de Juego 2025/2026")).toBeInTheDocument());
-}
+beforeEach(() => {
+  vi.clearAllMocks();
+});
 
-describe("GameModel — selector de fase y chips de zona", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
+describe("GameModel page", () => {
+  it("muestra el estado vacío cuando el equipo no tiene modelo de juego", async () => {
+    mockGetSeasonsByTeamId.mockResolvedValue([]);
+
+    render(
+      <MemoryRouter>
+        <GameModel />
+      </MemoryRouter>
+    );
+
+    await waitFor(() =>
+      expect(screen.getByText(/No hay modelo de juego creado para este equipo/)).toBeInTheDocument()
+    );
   });
 
-  it("muestra un selector de fase con el nombre y el número de zonas de cada fase", async () => {
-    await renderPage();
+  it("carga el modelo de la temporada seleccionada y lo renderiza como el documento legible", async () => {
+    mockGetSeasonsByTeamId.mockResolvedValue(["2025/2026"]);
+    mockGetByTeamIdAndSeason.mockResolvedValue(buildModel());
 
-    const phaseSelect = screen.getByRole("combobox", { name: /fase/i });
-    expect(phaseSelect).toBeInTheDocument();
-    expect(within(phaseSelect).getByText(/Fase de ataque/)).toBeInTheDocument();
-    expect(within(phaseSelect).getByText(/3 zonas/)).toBeInTheDocument();
+    render(
+      <MemoryRouter>
+        <GameModel />
+      </MemoryRouter>
+    );
 
-    await userEvent.click(phaseSelect);
-    const listbox = screen.getByRole("listbox");
-    expect(within(listbox).getByText(/Fase de defensa/)).toBeInTheDocument();
-    expect(within(listbox).getByText(/1 zona\b/)).toBeInTheDocument();
-  });
-
-  it("muestra chips de zona con el nombre y el número de principios (no de escenarios)", async () => {
-    await renderPage();
-
-    const zoneGroup = screen.getByRole("group", { name: "Zonas" });
-    expect(within(zoneGroup).getByText("Zona defensiva")).toBeInTheDocument();
-    expect(within(zoneGroup).getByText("Zona media")).toBeInTheDocument();
-    expect(within(zoneGroup).getByText("Zona ofensiva")).toBeInTheDocument();
-
-    // "Zona ofensiva" has 2 principles totalling 3 scenarios — the chip must show 2 (principles).
-    const zoneOfensivaChip = within(zoneGroup).getByText("Zona ofensiva").closest(".MuiChip-root");
-    expect(zoneOfensivaChip).not.toBeNull();
-    expect(within(zoneOfensivaChip as HTMLElement).getByText("2")).toBeInTheDocument();
-    expect(within(zoneOfensivaChip as HTMLElement).queryByText("3")).not.toBeInTheDocument();
-  });
-
-  it("marca visualmente la zona seleccionada y muestra su contenido", async () => {
-    await renderPage();
-
-    const zoneGroup = screen.getByRole("group", { name: "Zonas" });
-    const zoneDefensivaChip = within(zoneGroup).getByText("Zona defensiva").closest(".MuiChip-root") as HTMLElement;
-    expect(zoneDefensivaChip).toHaveClass("MuiChip-filled");
-    expect(screen.getByText("Escenarios de Zona defensiva")).toBeInTheDocument();
-
-    const zoneMediaChip = within(zoneGroup).getByText("Zona media").closest(".MuiChip-root") as HTMLElement;
-    await userEvent.click(zoneMediaChip);
-
-    expect(screen.getByText(/No hay escenarios definidos para esta zona\./)).toBeInTheDocument();
-    expect(zoneMediaChip).toHaveClass("MuiChip-filled");
-    expect(zoneDefensivaChip).not.toHaveClass("MuiChip-filled");
-  });
-
-  it("muestra 'Principios' como encabezado de la lista, no el nombre de la zona", async () => {
-    await renderPage();
-
-    expect(screen.getByText("Principios")).toBeInTheDocument();
-    expect(screen.queryByText("Zona defensiva", { selector: "p, h1, h2, h3, h4" })).not.toBeInTheDocument();
-  });
-
-  it("al cambiar de fase, la zona seleccionada vuelve a ser la primera de la nueva fase", async () => {
-    await renderPage();
-
-    let zoneGroup = screen.getByRole("group", { name: "Zonas" });
-    const zoneOfensivaChip = within(zoneGroup).getByText("Zona ofensiva").closest(".MuiChip-root") as HTMLElement;
-    await userEvent.click(zoneOfensivaChip);
-    expect(screen.getByText("Escenarios de Zona ofensiva")).toBeInTheDocument();
-
-    const phaseSelect = screen.getByRole("combobox", { name: /fase/i });
-    await userEvent.click(phaseSelect);
-    const listbox = screen.getByRole("listbox");
-    await userEvent.click(within(listbox).getByText(/Fase de defensa/));
-
-    zoneGroup = screen.getByRole("group", { name: "Zonas" });
-    expect(within(zoneGroup).getByText("Zona propia")).toBeInTheDocument();
-    expect(within(zoneGroup).queryByText("Zona ofensiva")).not.toBeInTheDocument();
-
-    const zonaPropiaChip = within(zoneGroup).getByText("Zona propia").closest(".MuiChip-root") as HTMLElement;
-    expect(zonaPropiaChip).toHaveClass("MuiChip-filled");
-  });
-
-  it("el botón Volver navega al dashboard del equipo actual, no al dashboard general", async () => {
-    await renderPage();
-
-    await userEvent.click(screen.getByRole("button", { name: /volver/i }));
-
-    expect(mockGoToTeamDashboard).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(mockGetByTeamIdAndSeason).toHaveBeenCalledWith("team-1", "2025/2026"));
+    expect(await screen.findByText("Modelo de Juego 2025/2026")).toBeInTheDocument();
+    expect(screen.getAllByRole("heading", { level: 2, name: "Defensa Organizada" }).length).toBeGreaterThan(0);
   });
 });

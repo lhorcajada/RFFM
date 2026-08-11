@@ -58,7 +58,6 @@ namespace RFFM.Api.Infrastructure.Persistence
         public DbSet<PointsTypeEnum> PointsTypes { get; set; }
         public DbSet<TrainingPointsReport> TrainingPointsReports { get; set; }
         public DbSet<TaskTrainingBase> TaskTrainingBases { get; set; }
-        public DbSet<TaskTrainingSkill> TaskTrainingSkills { get; set; }
         public DbSet<ExerciseType> ExerciseTypes { get; set; }
         public DbSet<TaskTrainingType> TaskTrainingTypes { get; set; }
         public DbSet<ExerciseCondition> ExerciseConditions { get; set; }
@@ -108,7 +107,12 @@ namespace RFFM.Api.Infrastructure.Persistence
         public DbSet<GameMoment> GameMoments { get; set; }
         public DbSet<GameZone> GameZones { get; set; }
         public DbSet<GamePrinciple> GamePrinciples { get; set; }
-        public DbSet<GameScenario> GameScenarios { get; set; }
+        public DbSet<Subprincipio> Subprincipios { get; set; }
+        public DbSet<Zona> Zonas { get; set; }
+        public DbSet<Habilidad> Habilidades { get; set; }
+        public DbSet<Nota> Notas { get; set; }
+        public DbSet<SetPieceRule> SetPieceRules { get; set; }
+        public DbSet<OpenIssue> OpenIssues { get; set; }
 
         // Season prep session
         public DbSet<SeasonPrepSession> SeasonPrepSessions { get; set; }
@@ -117,9 +121,7 @@ namespace RFFM.Api.Infrastructure.Persistence
         public DbSet<SeasonPrepEvaluations> SeasonPrepEvaluations { get; set; }
         public DbSet<SeasonPrepPlayerRating> SeasonPrepPlayerRatings { get; set; }
         public DbSet<SeasonPrepPlayerRatingDetail> SeasonPrepPlayerRatingDetails { get; set; }
-        public DbSet<SubPrinciple> SubPrinciples { get; set; }
-        public DbSet<SubSubPrinciple> SubSubPrinciples { get; set; }
-        public DbSet<EssentialSkill> EssentialSkills { get; set; }
+        public DbSet<SubSubPrincipio> SubSubPrincipios { get; set; }
 
         // News
         public DbSet<NewsItem> News { get; set; }

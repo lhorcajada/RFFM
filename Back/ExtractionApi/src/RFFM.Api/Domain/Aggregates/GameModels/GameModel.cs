@@ -10,6 +10,9 @@ namespace RFFM.Api.Domain.Aggregates.GameModels
         public string Season { get; private set; } = null!;
 
         public List<GamePrinciple> Principles { get; private set; } = new();
+        public List<Nota> Notas { get; private set; } = new();
+        public List<SetPieceRule> SetPieceRules { get; private set; } = new();
+        public List<OpenIssue> OpenIssues { get; private set; } = new();
 
         private GameModel() { }
 

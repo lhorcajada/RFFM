@@ -117,9 +117,6 @@ export default function ExerciseCromo({ exercise, onEdit, onDuplicate, onPrint, 
                 className={styles.extraTypeChip}
               />
             ))}
-            {exercise.subSubPrincipleName && (
-              <span className={styles.sspPill}>{exercise.subSubPrincipleName}</span>
-            )}
           </div>
 
           {/* Stats row */}

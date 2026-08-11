@@ -30,12 +30,6 @@ export default function NewExercisePage() {
   const teamId = params.get("teamId") ?? "";
   const exerciseId = params.get("exerciseId");
   const duplicateFromId = params.get("duplicateFrom");
-  const subSubPrincipleId = params.get("subSubPrincipleId");
-  const subSubPrincipleName = params.get("sspName");
-  const subPrincipleId = params.get("subPrincipleId");
-  const subPrincipleName = params.get("spName");
-  const scenarioId = params.get("scenarioId");
-  const scenarioName = params.get("scenarioName");
 
   const navState = (location.state as NavState | null) ?? null;
   const returnTo = navState?.returnTo ?? "/coach/trainings";
@@ -44,9 +38,6 @@ export default function NewExercisePage() {
   const board = useTacticalBoard(halfPitchRef, teamId);
   const exerciseForm = useExerciseForm({
     clubId,
-    subSubPrincipleId,
-    subPrincipleId,
-    scenarioId,
     navigate,
     returnTo,
     getBoardStateJson: board.serializeBoardStateJson,
@@ -105,17 +96,7 @@ export default function NewExercisePage() {
           <Box className={styles.pitchArea}>
             <TacticalField halfPitchRef={halfPitchRef} board={board} />
           </Box>
-          <ExerciseFormPanel
-            panelVisible={panelVisible}
-            subSubPrincipleId={subSubPrincipleId}
-            subSubPrincipleName={subSubPrincipleName}
-            subPrincipleId={subPrincipleId}
-            subPrincipleName={subPrincipleName}
-            scenarioId={scenarioId}
-            scenarioName={scenarioName}
-            subSubPrincipleOptions={navState?.subSubPrincipleOptions}
-            form={exerciseForm}
-          />
+          <ExerciseFormPanel panelVisible={panelVisible} form={exerciseForm} />
         </Box>
 
         {board.showChapas && <ChapasStrip board={board} />}

@@ -395,37 +395,6 @@ namespace RFFM.Api.Infrastructure.Migrations
                         });
                 });
 
-            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.GameModels.EssentialSkill", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasMaxLength(36)
-                        .HasColumnType("character varying(36)");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
-
-                    b.Property<DateTime?>("MasteredAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(300)
-                        .HasColumnType("character varying(300)");
-
-                    b.Property<string>("SubSubPrincipleId")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("character varying(36)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("SubSubPrincipleId");
-
-                    b.ToTable("EssentialSkills", "app");
-                });
-
             modelBuilder.Entity("RFFM.Api.Domain.Aggregates.GameModels.GameModel", b =>
                 {
                     b.Property<string>("Id")
@@ -524,11 +493,6 @@ namespace RFFM.Api.Infrastructure.Migrations
                         .HasMaxLength(36)
                         .HasColumnType("character varying(36)");
 
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
-
                     b.Property<string>("GameModelId")
                         .IsRequired()
                         .HasMaxLength(36)
@@ -537,65 +501,32 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.Property<int>("GameMomentId")
                         .HasColumnType("integer");
 
-                    b.Property<int>("GameZoneId")
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("Numero")
                         .HasColumnType("integer");
 
-                    b.Property<int>("Order")
-                        .HasColumnType("integer");
+                    b.Property<string>("Texto")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
 
-                    b.Property<string>("Title")
+                    b.Property<string>("Titulo")
                         .IsRequired()
                         .HasMaxLength(300)
                         .HasColumnType("character varying(300)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("GameModelId");
 
                     b.HasIndex("GameMomentId");
 
-                    b.HasIndex("GameZoneId");
+                    b.HasIndex("GameModelId", "Key")
+                        .IsUnique();
 
                     b.ToTable("GamePrinciples", "app");
-                });
-
-            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.GameModels.GameScenario", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasMaxLength(36)
-                        .HasColumnType("character varying(36)");
-
-                    b.Property<string>("Context")
-                        .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
-
-                    b.Property<string>("GamePrincipleId")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("character varying(36)");
-
-                    b.Property<string>("MediaType")
-                        .HasMaxLength(10)
-                        .HasColumnType("character varying(10)");
-
-                    b.Property<string>("MediaUrl")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(300)
-                        .HasColumnType("character varying(300)");
-
-                    b.Property<int>("Order")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("GamePrincipleId");
-
-                    b.ToTable("GameScenarios", "app");
                 });
 
             modelBuilder.Entity("RFFM.Api.Domain.Aggregates.GameModels.GameZone", b =>
@@ -654,75 +585,280 @@ namespace RFFM.Api.Infrastructure.Migrations
                         });
                 });
 
-            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.GameModels.SubPrinciple", b =>
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.GameModels.Habilidad", b =>
                 {
                     b.Property<string>("Id")
                         .HasMaxLength(36)
                         .HasColumnType("character varying(36)");
 
-                    b.Property<string>("Context")
+                    b.Property<string>("Descripcion")
                         .IsRequired()
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
 
-                    b.Property<string>("GameScenarioId")
+                    b.Property<string>("Entrenable")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("ReferenciaAKey")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("SubSubPrincipioId")
                         .IsRequired()
                         .HasMaxLength(36)
                         .HasColumnType("character varying(36)");
 
-                    b.Property<string>("Label")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("character varying(10)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(300)
-                        .HasColumnType("character varying(300)");
-
-                    b.Property<int>("Order")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0);
-
                     b.HasKey("Id");
 
-                    b.HasIndex("GameScenarioId");
+                    b.HasIndex("SubSubPrincipioId", "Nombre")
+                        .IsUnique();
 
-                    b.ToTable("SubPrinciples", "app");
+                    b.ToTable("Habilidades", "app");
                 });
 
-            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.GameModels.SubSubPrinciple", b =>
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.GameModels.Nota", b =>
                 {
                     b.Property<string>("Id")
                         .HasMaxLength(36)
                         .HasColumnType("character varying(36)");
 
-                    b.Property<string>("Action")
+                    b.Property<string>("GameModelId")
                         .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
 
-                    b.Property<string>("Name")
+                    b.Property<string>("PrincipioId")
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<string>("SubSubPrincipioId")
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<string>("SubprincipioId")
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<string>("Texto")
                         .IsRequired()
-                        .HasMaxLength(300)
-                        .HasColumnType("character varying(300)");
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
 
-                    b.Property<int>("Order")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0);
-
-                    b.Property<string>("SubPrincipleId")
+                    b.Property<string>("Tipo")
                         .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("ZonaId")
                         .HasMaxLength(36)
                         .HasColumnType("character varying(36)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("SubPrincipleId");
+                    b.HasIndex("GameModelId");
 
-                    b.ToTable("SubSubPrinciples", "app");
+                    b.HasIndex("PrincipioId");
+
+                    b.HasIndex("SubSubPrincipioId");
+
+                    b.HasIndex("SubprincipioId");
+
+                    b.HasIndex("ZonaId");
+
+                    b.ToTable("Notas", "app");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.GameModels.OpenIssue", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<string>("GameModelId")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Topic")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GameModelId");
+
+                    b.ToTable("OpenIssues", "app");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.GameModels.SetPieceRule", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<string>("GameModelId")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<string>("Subtype")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Texto")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GameModelId", "Subtype")
+                        .IsUnique();
+
+                    b.ToTable("SetPieceRules", "app");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.GameModels.SubSubPrincipio", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Numero")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Rol")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("SubprincipioId")
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<string>("Texto")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<string>("ZonaId")
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SubprincipioId");
+
+                    b.HasIndex("ZonaId");
+
+                    b.ToTable("SubSubPrincipios", "app");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.GameModels.Subprincipio", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<string>("GamePrincipleId")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Numero")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Texto")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<string>("Titulo")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GamePrincipleId", "Key")
+                        .IsUnique();
+
+                    b.ToTable("Subprincipios", "app");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.GameModels.Zona", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("Label")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("SubprincipioId")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<string>("Texto")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<string>("ZonaTexto")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("ZoneKeysCsv")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SubprincipioId", "Key")
+                        .IsUnique();
+
+                    b.ToTable("Zonas", "app");
                 });
 
             modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Technicals.Technical", b =>
@@ -1052,10 +1188,6 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.Property<int>("RestSeries")
                         .HasColumnType("integer");
 
-                    b.Property<string>("ScenarioId")
-                        .HasMaxLength(36)
-                        .HasColumnType("character varying(36)");
-
                     b.Property<string>("Section")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -1063,14 +1195,6 @@ namespace RFFM.Api.Infrastructure.Migrations
 
                     b.Property<int>("Series")
                         .HasColumnType("integer");
-
-                    b.Property<string>("SubPrincipleId")
-                        .HasMaxLength(36)
-                        .HasColumnType("character varying(36)");
-
-                    b.Property<string>("SubSubPrincipleId")
-                        .HasMaxLength(36)
-                        .HasColumnType("character varying(36)");
 
                     b.Property<TimeSpan>("Time")
                         .HasColumnType("interval");
@@ -1089,30 +1213,7 @@ namespace RFFM.Api.Infrastructure.Migrations
 
                     b.HasIndex("ClubId");
 
-                    b.HasIndex("ScenarioId");
-
-                    b.HasIndex("SubPrincipleId");
-
-                    b.HasIndex("SubSubPrincipleId");
-
                     b.ToTable("TaskTrainingBases", "app");
-                });
-
-            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Training.TasksTraining.TaskTrainingSkill", b =>
-                {
-                    b.Property<string>("TaskTrainingBaseId")
-                        .HasMaxLength(36)
-                        .HasColumnType("character varying(36)");
-
-                    b.Property<string>("EssentialSkillId")
-                        .HasMaxLength(36)
-                        .HasColumnType("character varying(36)");
-
-                    b.HasKey("TaskTrainingBaseId", "EssentialSkillId");
-
-                    b.HasIndex("EssentialSkillId");
-
-                    b.ToTable("TaskTrainingSkills", "app");
                 });
 
             modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Training.TasksTraining.TaskTrainingType", b =>
@@ -1266,9 +1367,6 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.Property<TimeSpan>("StartTime")
                         .HasColumnType("interval");
 
-                    b.Property<string>("SubPrincipleId")
-                        .HasColumnType("character varying(36)");
-
                     b.Property<string>("TeamId")
                         .IsRequired()
                         .HasColumnType("text");
@@ -1280,8 +1378,6 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("SportEventId");
-
-                    b.HasIndex("SubPrincipleId");
 
                     b.HasIndex("TeamId");
 
@@ -4843,17 +4939,6 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.Navigation("Team");
                 });
 
-            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.GameModels.EssentialSkill", b =>
-                {
-                    b.HasOne("RFFM.Api.Domain.Aggregates.GameModels.SubSubPrinciple", "SubSubPrinciple")
-                        .WithMany("EssentialSkills")
-                        .HasForeignKey("SubSubPrincipleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("SubSubPrinciple");
-                });
-
             modelBuilder.Entity("RFFM.Api.Domain.Aggregates.GameModels.GamePrinciple", b =>
                 {
                     b.HasOne("RFFM.Api.Domain.Aggregates.GameModels.GameModel", "GameModel")
@@ -4868,23 +4953,76 @@ namespace RFFM.Api.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("RFFM.Api.Domain.Aggregates.GameModels.GameZone", "GameZone")
-                        .WithMany("Principles")
-                        .HasForeignKey("GameZoneId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.Navigation("GameModel");
 
                     b.Navigation("GameMoment");
-
-                    b.Navigation("GameZone");
                 });
 
-            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.GameModels.GameScenario", b =>
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.GameModels.Habilidad", b =>
+                {
+                    b.HasOne("RFFM.Api.Domain.Aggregates.GameModels.SubSubPrincipio", "SubSubPrincipio")
+                        .WithMany("Habilidades")
+                        .HasForeignKey("SubSubPrincipioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("SubSubPrincipio");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.GameModels.Nota", b =>
+                {
+                    b.HasOne("RFFM.Api.Domain.Aggregates.GameModels.GameModel", "GameModel")
+                        .WithMany("Notas")
+                        .HasForeignKey("GameModelId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("GameModel");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.GameModels.OpenIssue", b =>
+                {
+                    b.HasOne("RFFM.Api.Domain.Aggregates.GameModels.GameModel", "GameModel")
+                        .WithMany("OpenIssues")
+                        .HasForeignKey("GameModelId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("GameModel");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.GameModels.SetPieceRule", b =>
+                {
+                    b.HasOne("RFFM.Api.Domain.Aggregates.GameModels.GameModel", "GameModel")
+                        .WithMany("SetPieceRules")
+                        .HasForeignKey("GameModelId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("GameModel");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.GameModels.SubSubPrincipio", b =>
+                {
+                    b.HasOne("RFFM.Api.Domain.Aggregates.GameModels.Subprincipio", "Subprincipio")
+                        .WithMany("SubSubPrincipios")
+                        .HasForeignKey("SubprincipioId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("RFFM.Api.Domain.Aggregates.GameModels.Zona", "Zona")
+                        .WithMany("SubSubPrincipios")
+                        .HasForeignKey("ZonaId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Subprincipio");
+
+                    b.Navigation("Zona");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.GameModels.Subprincipio", b =>
                 {
                     b.HasOne("RFFM.Api.Domain.Aggregates.GameModels.GamePrinciple", "GamePrinciple")
-                        .WithMany("Scenarios")
+                        .WithMany("Subprincipios")
                         .HasForeignKey("GamePrincipleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -4892,26 +5030,15 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.Navigation("GamePrinciple");
                 });
 
-            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.GameModels.SubPrinciple", b =>
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.GameModels.Zona", b =>
                 {
-                    b.HasOne("RFFM.Api.Domain.Aggregates.GameModels.GameScenario", "GameScenario")
-                        .WithMany("SubPrinciples")
-                        .HasForeignKey("GameScenarioId")
+                    b.HasOne("RFFM.Api.Domain.Aggregates.GameModels.Subprincipio", "Subprincipio")
+                        .WithMany("Zonas")
+                        .HasForeignKey("SubprincipioId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("GameScenario");
-                });
-
-            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.GameModels.SubSubPrinciple", b =>
-                {
-                    b.HasOne("RFFM.Api.Domain.Aggregates.GameModels.SubPrinciple", "SubPrinciple")
-                        .WithMany("SubSubPrinciples")
-                        .HasForeignKey("SubPrincipleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("SubPrinciple");
+                    b.Navigation("Subprincipio");
                 });
 
             modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Technicals.Technical", b =>
@@ -4970,47 +5097,7 @@ namespace RFFM.Api.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("RFFM.Api.Domain.Aggregates.GameModels.GameScenario", "Scenario")
-                        .WithMany()
-                        .HasForeignKey("ScenarioId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("RFFM.Api.Domain.Aggregates.GameModels.SubPrinciple", "SubPrinciple")
-                        .WithMany()
-                        .HasForeignKey("SubPrincipleId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("RFFM.Api.Domain.Aggregates.GameModels.SubSubPrinciple", "SubSubPrinciple")
-                        .WithMany()
-                        .HasForeignKey("SubSubPrincipleId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.Navigation("Club");
-
-                    b.Navigation("Scenario");
-
-                    b.Navigation("SubPrinciple");
-
-                    b.Navigation("SubSubPrinciple");
-                });
-
-            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Training.TasksTraining.TaskTrainingSkill", b =>
-                {
-                    b.HasOne("RFFM.Api.Domain.Aggregates.GameModels.EssentialSkill", "EssentialSkill")
-                        .WithMany()
-                        .HasForeignKey("EssentialSkillId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("RFFM.Api.Domain.Aggregates.Training.TasksTraining.TaskTrainingBase", "TaskTrainingBase")
-                        .WithMany("Skills")
-                        .HasForeignKey("TaskTrainingBaseId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("EssentialSkill");
-
-                    b.Navigation("TaskTrainingBase");
                 });
 
             modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Training.TasksTraining.TaskTrainingType", b =>
@@ -5057,10 +5144,6 @@ namespace RFFM.Api.Infrastructure.Migrations
                         .WithMany()
                         .HasForeignKey("SportEventId");
 
-                    b.HasOne("RFFM.Api.Domain.Aggregates.GameModels.SubPrinciple", "SubPrinciple")
-                        .WithMany()
-                        .HasForeignKey("SubPrincipleId");
-
                     b.HasOne("RFFM.Api.Domain.Aggregates.UserClubs.Team", "Team")
                         .WithMany("Trainings")
                         .HasForeignKey("TeamId")
@@ -5068,8 +5151,6 @@ namespace RFFM.Api.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("SportEvent");
-
-                    b.Navigation("SubPrinciple");
 
                     b.Navigation("Team");
                 });
@@ -5615,7 +5696,13 @@ namespace RFFM.Api.Infrastructure.Migrations
 
             modelBuilder.Entity("RFFM.Api.Domain.Aggregates.GameModels.GameModel", b =>
                 {
+                    b.Navigation("Notas");
+
+                    b.Navigation("OpenIssues");
+
                     b.Navigation("Principles");
+
+                    b.Navigation("SetPieceRules");
                 });
 
             modelBuilder.Entity("RFFM.Api.Domain.Aggregates.GameModels.GameMoment", b =>
@@ -5625,27 +5712,24 @@ namespace RFFM.Api.Infrastructure.Migrations
 
             modelBuilder.Entity("RFFM.Api.Domain.Aggregates.GameModels.GamePrinciple", b =>
                 {
-                    b.Navigation("Scenarios");
+                    b.Navigation("Subprincipios");
                 });
 
-            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.GameModels.GameScenario", b =>
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.GameModels.SubSubPrincipio", b =>
                 {
-                    b.Navigation("SubPrinciples");
+                    b.Navigation("Habilidades");
                 });
 
-            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.GameModels.GameZone", b =>
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.GameModels.Subprincipio", b =>
                 {
-                    b.Navigation("Principles");
+                    b.Navigation("SubSubPrincipios");
+
+                    b.Navigation("Zonas");
                 });
 
-            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.GameModels.SubPrinciple", b =>
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.GameModels.Zona", b =>
                 {
-                    b.Navigation("SubSubPrinciples");
-                });
-
-            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.GameModels.SubSubPrinciple", b =>
-                {
-                    b.Navigation("EssentialSkills");
+                    b.Navigation("SubSubPrincipios");
                 });
 
             modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Training.TasksTraining.TaskTrainingBase", b =>
@@ -5653,8 +5737,6 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.Navigation("Conditions");
 
                     b.Navigation("Material");
-
-                    b.Navigation("Skills");
 
                     b.Navigation("Types");
                 });

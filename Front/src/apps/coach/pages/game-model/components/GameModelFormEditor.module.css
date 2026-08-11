@@ -1,0 +1,107 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-bottom: 80px;
+}
+
+.nameField {
+  max-width: 420px;
+}
+
+.momentSection {
+  border: 1px solid rgba(77, 157, 224, 0.2);
+  border-radius: 10px;
+  background-color: #07071a;
+  padding: 14px;
+}
+
+.momentTitle {
+  font-size: 1.05rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #4d9de0 !important;
+  margin: 0 0 10px !important;
+}
+
+.accordion {
+  margin-bottom: 8px !important;
+}
+
+/* Same per-level hierarchy colors as the read view (GameModelTree.module.css), from the
+   Coach theme's own palette (muiCoachTheme.ts): primary.light #7ab8f5, secondary.main
+   #4ec9b0, primary.main #4d9de0, accent #ff7a1a. */
+.principleSummaryTitle {
+  font-size: 0.9rem !important;
+  font-weight: 600 !important;
+  color: #7ab8f5 !important;
+}
+
+.subprincipioSummaryTitle {
+  font-size: 0.9rem !important;
+  font-weight: 600 !important;
+  color: #4ec9b0 !important;
+}
+
+.zonaSummaryTitle {
+  font-size: 0.9rem !important;
+  font-weight: 600 !important;
+  color: #4d9de0 !important;
+}
+
+.sspSummaryTitle {
+  font-size: 0.9rem !important;
+  font-weight: 600 !important;
+  color: #ff7a1a !important;
+}
+
+.countChip {
+  margin-left: 8px !important;
+}
+
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fieldsRow {
+  display: flex;
+  gap: 8px;
+}
+
+.numeroField {
+  min-width: 110px;
+  flex-shrink: 0;
+}
+
+.nestedSection {
+  border-left: 2px solid rgba(255, 255, 255, 0.1);
+  padding-left: 10px;
+  margin-top: 4px;
+}
+
+.sectionLabel {
+  font-size: 0.75rem !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.7;
+  margin-bottom: 6px !important;
+}
+
+.addBtn {
+  text-transform: none !important;
+}
+
+.deleteBtn {
+  align-self: flex-start;
+  text-transform: none !important;
+}
+
+.flatRow {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}

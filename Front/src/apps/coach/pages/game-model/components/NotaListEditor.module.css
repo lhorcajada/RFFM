@@ -1,0 +1,31 @@
+.root {
+  margin-top: 8px;
+}
+
+.label {
+  font-size: 0.75rem !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.7;
+  margin-bottom: 4px !important;
+}
+
+.row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.tipoSelect {
+  min-width: 160px;
+  flex-shrink: 0;
+}
+
+.textoField {
+  flex: 1;
+}
+
+.addBtn {
+  text-transform: none !important;
+}

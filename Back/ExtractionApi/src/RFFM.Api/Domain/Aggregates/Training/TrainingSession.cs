@@ -1,5 +1,4 @@
 ﻿using RFFM.Api.Domain.Aggregates.Assistances;
-using RFFM.Api.Domain.Aggregates.GameModels;
 using RFFM.Api.Domain.Aggregates.Training.TasksTraining;
 using RFFM.Api.Domain.Aggregates.UserClubs;
 
@@ -16,11 +15,9 @@ namespace RFFM.Api.Domain.Aggregates.Training
         public string? SportEventId { get; set; }
         public string TeamId { get; set; } = string.Empty;
         public string? UrlImage { get; set; }
-        public string? SubPrincipleId { get; set; }
 
         public Team Team { get; set; } = null!;
         public SportEvent? SportEvent { get; set; }
-        public SubPrinciple? SubPrinciple { get; set; }
         public List<TaskTraining> Tasks { get; set; } = new();
     }
 }

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Resumen del Modelo de Juego</title>
+<style>
+  :root{
+    --green-dark:#0B3D24;
+    --green-mid:#1F6B3A;
+    --gold:#C79A3C;
+    --text:#212529;
+    --gray:#5A6570;
+    --light-bg:#F2F5F0;
+    --gold-bg:#F7F0DF;
+  }
+  *{box-sizing:border-box;}
+  body{
+    font-family:-apple-system,"Segoe UI",Calibri,Arial,sans-serif;
+    color:var(--text);
+    max-width:1100px;
+    margin:0 auto;
+    padding:32px 24px 80px;
+    background:#fff;
+    line-height:1.5;
+  }
+  h1{
+    color:var(--green-dark);
+    font-size:28px;
+    border-bottom:3px solid var(--gold);
+    padding-bottom:10px;
+    margin-bottom:4px;
+  }
+  .subtitle{color:var(--gold);font-weight:600;margin-top:0;margin-bottom:24px;}
+  .regla-madre{
+    background:var(--light-bg);
+    border-left:6px solid var(--gold);
+    padding:14px 18px;
+    margin-bottom:28px;
+    font-weight:600;
+    color:var(--green-dark);
+  }
+  h2{
+    color:var(--green-mid);
+    font-size:20px;
+    margin-top:36px;
+    border-bottom:1px solid #ddd;
+    padding-bottom:6px;
+  }
+  table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:14px;
+    font-size:13.5px;
+  }
+  th, td{
+    border:1px solid #ddd;
+    padding:10px 12px;
+    vertical-align:top;
+    text-align:left;
+  }
+  th{
+    background:var(--green-dark);
+    color:#fff;
+    font-size:13px;
+  }
+  td.zona-label{
+    background:var(--gold-bg);
+    font-weight:700;
+    color:var(--green-dark);
+    white-space:nowrap;
+  }
+  td.excepcion{
+    background:#FCEFEF;
+  }
+  .tag{
+    display:inline-block;
+    font-size:11px;
+    font-weight:700;
+    padding:1px 6px;
+    border-radius:3px;
+    margin-bottom:4px;
+  }
+  .tag.paciencia{background:#DCEEE2;color:var(--green-dark);}
+  .tag.riesgo{background:#FCEFEF;color:#8a2b2b;}
+  .tag.mixto{background:var(--gold-bg);color:#7a5a12;}
+  ul.excepciones li{margin-bottom:10px;}
+  .excepciones{
+    background:#FCEFEF;
+    border-left:6px solid #b23b3b;
+    padding:16px 20px;
+    border-radius:2px;
+  }
+  .footer-note{
+    margin-top:40px;
+    font-size:12.5px;
+    color:var(--gray);
+    font-style:italic;
+    border-top:1px solid #ddd;
+    padding-top:14px;
+  }
+  .col-zona{width:110px;}
+</style>
+</head>
+<body>
+
+<h1>Resumen del Modelo de Juego</h1>
+<p class="subtitle">Referencia rápida — decisiones ya tomadas, por zona y fase</p>
+
+<div class="regla-madre">
+  Regla madre: el riesgo se calibra por zona. Cuanto más cerca de nuestra portería, más conservador
+  (evitar pérdidas, no arriesgar falta cerca del área, no buscar fuera de juego con trampa alta).
+  Cuanto más cerca de la portería rival, más agresivo (arriesgar el pase, la falta táctica, la presión,
+  aceptar dejar rivales libres lejos del balón). Cualquier idea nueva que no encaje en este gradiente
+  probablemente está rompiendo el modelo, no matizándolo.
+</div>
+
+<table>
+  <tr>
+    <th class="col-zona">Zona</th>
+    <th>Defensa organizada</th>
+    <th>Transición defensa-ataque</th>
+    <th>Ataque organizado</th>
+    <th>Transición ataque-defensa</th>
+  </tr>
+  <tr>
+    <td class="zona-label">Iniciación<br><span style="font-weight:400;font-size:11px;color:#555;">(junto a nuestra portería)</span></td>
+    <td><span class="tag riesgo">Máxima prudencia</span>Bloque bajo; superioridad numérica se usa para contener, no para robar; no se arriesga falta táctica (riesgo de tarjeta/penalti); subida de línea muy conservadora (~5m).</td>
+    <td><span class="tag riesgo">Salida directa</span>Balón largo a la banda más cercana al robo. Se acepta perderlo de nuevo con tal de salir del área de riesgo.</td>
+    <td><span class="tag riesgo">Riesgo bajo</span>Desorganizar solo si el rival no presiona alto. Progresar con pase directo solo si el hueco está realmente limpio.</td>
+    <td><span class="tag riesgo">Cierre central</span>Cerrar carriles centrales, presión sin falta, ayudas y recuperación de marcas.</td>
+  </tr>
+  <tr>
+    <td class="zona-label">Creación Propia</td>
+    <td><span class="tag mixto">Organizado</span>Marcaje interior compacto; falta táctica sí asumible como último recurso; se gestiona activamente la línea de fuera de juego.</td>
+    <td><span class="tag paciencia">Paciencia por defecto</span>Mantener posesión, iniciar jugada. <em>(Objetivo de temporada: corregir la tendencia actual a la verticalidad aquí.)</em></td>
+    <td><span class="tag paciencia">Desorganizar antes de atacar</span>Circulación paciente; progresar de zona con riesgo bajo (ventaja de recepción, conducción, tercer hombre, paredes, diagonal). Todavía no se busca ocasión de gol.</td>
+    <td><span class="tag mixto">Repliegue a bloque medio</span>Basculación según banda/central; jugador cercano temporiza (falta táctica si hace falta).</td>
+  </tr>
+  <tr>
+    <td class="zona-label">Creación Rival</td>
+    <td><span class="tag mixto">Presión cauta</span>Impedir el vertical/largo sin marcaje al hombre generalizado; falta táctica asumible; interceptar aceptando riesgo, con cobertura.</td>
+    <td class="excepcion"><span class="tag paciencia">Paciencia por defecto</span>Mantener posesión, iniciar jugada.<br><strong>Excepción:</strong> si el robo es directamente a un central o lateral rival → verticalidad inmediata.</td>
+    <td class="excepcion"><span class="tag mixto">Desorganizar + ya se busca ocasión</span>Generar superioridad interior → trasladar a banda alejada.<br><strong>Excepción:</strong> si hay superioridad numérica + espacio + líneas separadas a la vez → ir directo a Finalización.</td>
+    <td><span class="tag riesgo">Presión de los 4 cercanos</span>Resto en contención; repliegue a carriles centrales si el rival tiene salida en largo; falta táctica si hace falta. Si no se recupera, el central de cobertura avisa para abandonar y replegar (gatillo: 3 pases del rival o balón fuera de zona).</td>
+  </tr>
+  <tr>
+    <td class="zona-label">Finalización<br><span style="font-weight:400;font-size:11px;color:#555;">(junto a portería rival)</span></td>
+    <td><span class="tag riesgo">Presión altísima</span>Riesgos calculados aceptados (ej. lateral opuesto libre). En inferioridad numérica aquí, solo replegar — hay margen de sobra.</td>
+    <td class="excepcion"><span class="tag mixto">Depende del orden rival</span>Rival ordenado → mantener posesión.<br><strong>Excepción:</strong> rival desorganizado + 3 o más efectivos propios cerca del área → verticalidad inmediata.</td>
+    <td class="excepcion"><span class="tag riesgo">Se resuelve, no se desorganiza</span>Salvo llegada por banda o rival replegado: cambio de ritmo, delantero de espaldas, paredes hasta línea de fondo, pase atrás al punto de penalti (prioritario sobre centro aéreo), llegada de segunda línea como vía principal de gol.</td>
+    <td><span class="tag riesgo">Presión máxima inmediata</span>Todo el equipo, sin dar ni un segundo. Mismo mecanismo de abandono de presión que en Creación Rival si no se recupera.</td>
+  </tr>
+</table>
+
+<h2>Excepciones que rompen el patrón por defecto (las que hay que vigilar)</h2>
+<div class="excepciones">
+<ul class="excepciones">
+  <li><strong>Robo a central o lateral rival en Creación Rival</strong> → verticalidad inmediata, aunque la zona por defecto pida paciencia.</li>
+  <li><strong>Robo al último mediocentro rival con compañeros por delante</strong> → sube todo el equipo, incluidos los centrales, buscando fuera de juego.</li>
+  <li><strong>Rival desorganizado + 3 o más efectivos propios cerca del área, tras robar en Finalización</strong> → verticalidad inmediata, aunque rival ordenado pediría mantener posesión.</li>
+  <li><strong>Superioridad numérica + espacio libre + líneas rivales separadas, los tres a la vez, en Creación Propia/Rival</strong> → se salta la progresión zona a zona y se busca Finalización directamente.</li>
+  <li><strong>Pérdida del balón con cobertura ya colocada</strong> (roles de contención de Ataque organizado) → reacción agresiva de Transición ataque-defensa sin dudar. <strong>Pérdida por error no forzado, sin esa cobertura</strong> → reacción más prudente, temporizar y recomponer primero.</li>
+  <li><strong>Cualquier decisión de riesgo en Zona de Iniciación</strong> (falta táctica, fuera de juego con trampa, robo con superioridad numérica) → no se arriesga nunca aquí, por muy tentador que parezca en el momento — es la zona más cara para fallar.</li>
+</ul>
+</div>
+
+<p class="footer-note">
+  Generado a partir de ADN-Modelo-de-Juego-Legible.md. Si una idea nueva no encaja aquí, probablemente
+  sea un cambio de identidad real (a valorar con calma) y no un simple matiz — trátala como tal antes
+  de aplicarla en un entrenamiento o partido.
+</p>
+
+</body>
+</html>

@@ -8,11 +8,6 @@ export type ExerciseType =
 export type ExerciseSection = "Calentamiento" | "Principal" | "VueltaALaCalma";
 export type ExerciseMethodology = "Analitico" | "Integrado" | "Global";
 
-export interface SkillCoverage {
-  essentialSkillId: string;
-  skillName: string;
-}
-
 export interface ExerciseCondition {
   id: string;
   text: string;
@@ -30,13 +25,6 @@ export interface Exercise {
   playersNumber: number;
   goalPeekersNumber: number;
   fieldSpace: string;
-  subSubPrincipleId?: string | null;
-  subSubPrincipleName?: string | null;
-  subPrincipleId?: string | null;
-  subPrincipleName?: string | null;
-  scenarioId?: string | null;
-  scenarioName?: string | null;
-  skills: SkillCoverage[];
   urlImage?: string | null;
   boardStateJson?: string | null;
   conditions: ExerciseCondition[];
@@ -59,10 +47,6 @@ export interface CreateExerciseRequest {
   playersNumber: number;
   goalPeekersNumber: number;
   fieldSpace: string;
-  subSubPrincipleId?: string | null;
-  subPrincipleId?: string | null;
-  scenarioId?: string | null;
-  essentialSkillIds: string[];
   boardStateJson?: string | null;
   // Physical
   series?: number;
@@ -85,8 +69,6 @@ export interface TrainingSession {
   location?: string | null;
   sportEventId?: string | null;
   sportEventName?: string | null;
-  subPrincipleId?: string | null;
-  subPrincipleName?: string | null;
   exerciseCount: number;
 }
 
@@ -104,7 +86,6 @@ export interface SessionExerciseItem {
   fieldSpace: string;
   urlImage?: string | null;
   boardStateJson?: string | null;
-  skills: SkillCoverage[];
   conditions: ExerciseCondition[];
 }
 
@@ -135,7 +116,6 @@ export interface CreateSessionRequest {
   endTime?: string | null;
   location?: string | null;
   sportEventId?: string | null;
-  subPrincipleId?: string | null;
   exercises: SessionExerciseEntry[];
 }
 

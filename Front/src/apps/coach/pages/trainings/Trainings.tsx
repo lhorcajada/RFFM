@@ -198,7 +198,7 @@ async function printExercise(exercise: Exercise) {
         .section p, .section li { margin: 0; font-size: 13px; line-height: 1.45; }
         .section ul { margin: 0; padding-left: 18px; }
         .boardWrap { border: 1px solid #c9d8e6; border-radius: 14px; padding: 10px; }
-        .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+        .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
         .stat { border: 1px solid #d9e4ee; border-radius: 10px; padding: 8px 10px; background: #f8fbfe; }
         .statValue { display: block; font-size: 20px; font-weight: 700; line-height: 1; }
         .statLabel { display: block; margin-top: 3px; font-size: 11px; color: #5a6f85; text-transform: uppercase; letter-spacing: .04em; }
@@ -214,14 +214,12 @@ async function printExercise(exercise: Exercise) {
             <div class="meta">
               <span class="pill">${escapeHtml(exercise.types.map((t) => TYPE_LABELS[t] ?? t).join(", "))}</span>
               <span class="pill">${escapeHtml(exercise.section)}</span>
-              ${exercise.subSubPrincipleName ? `<span class="pill">${escapeHtml(exercise.subSubPrincipleName)}</span>` : ""}
             </div>
           </div>
           <div class="stats" style="min-width: 280px; max-width: 320px;">
             <div class="stat"><span class="statValue">${exercise.durationTotal}</span><span class="statLabel">min</span></div>
             <div class="stat"><span class="statValue">${exercise.playersNumber}</span><span class="statLabel">jug.</span></div>
             <div class="stat"><span class="statValue">${exercise.goalPeekersNumber}</span><span class="statLabel">port.</span></div>
-            <div class="stat"><span class="statValue">${exercise.skills.length}</span><span class="statLabel">skills</span></div>
           </div>
         </div>
 
@@ -261,8 +259,6 @@ export default function Trainings() {
 
   const params = new URLSearchParams(location.search);
   const teamId = params.get("teamId") ?? "";
-  const initialSspId = params.get("subSubPrincipleId") ?? null;
-  const initialSspName = params.get("sspName") ?? null;
 
   const [tab, setTab] = useState(0);
 
@@ -288,13 +284,12 @@ export default function Trainings() {
     if (!clubId) return;
     setLoadingEx(true);
     trainingService.getExercises(clubId, {
-      subSubPrincipleId: initialSspId ?? undefined,
       methodology: methodologyFilter || undefined,
     })
       .then(setExercises)
       .catch(() => setExercises([]))
       .finally(() => setLoadingEx(false));
-  }, [clubId, initialSspId, methodologyFilter]);
+  }, [clubId, methodologyFilter]);
 
   // Load sessions
   useEffect(() => {
@@ -310,7 +305,6 @@ export default function Trainings() {
     if (!clubId) return;
     setLoadingEx(true);
     trainingService.getExercises(clubId, {
-      subSubPrincipleId: initialSspId ?? undefined,
       methodology: methodologyFilter || undefined,
     })
       .then(setExercises)
@@ -331,8 +325,6 @@ export default function Trainings() {
     const createParams = new URLSearchParams();
     createParams.set("clubId", clubId);
     if (teamId) createParams.set("teamId", teamId);
-    if (initialSspId) createParams.set("subSubPrincipleId", initialSspId);
-    if (initialSspName) createParams.set("sspName", initialSspName);
     if (exerciseId) createParams.set("exerciseId", exerciseId);
 
     navigate(`/coach/trainings/new-exercise?${createParams.toString()}`, {
@@ -346,8 +338,6 @@ export default function Trainings() {
     const createParams = new URLSearchParams();
     createParams.set("clubId", clubId);
     if (teamId) createParams.set("teamId", teamId);
-    if (initialSspId) createParams.set("subSubPrincipleId", initialSspId);
-    if (initialSspName) createParams.set("sspName", initialSspName);
     createParams.set("duplicateFrom", exerciseId);
 
     navigate(`/coach/trainings/new-exercise?${createParams.toString()}`, {
@@ -435,14 +425,6 @@ export default function Trainings() {
           {tab === 0 && (
             <Box>
               <Box className={styles.toolbarRow}>
-                {initialSspName && (
-                  <Chip
-                    label={`Filtro: ${initialSspName}`}
-                    size="small"
-                    className={styles.filterLabel}
-                    onDelete={() => navigate(`/coach/trainings?teamId=${teamId}`)}
-                  />
-                )}
                 <FormControl size="small" sx={{ minWidth: 160 }}>
                   <InputLabel id="methodology-filter-label">Metodologia</InputLabel>
                   <Select
@@ -511,9 +493,6 @@ export default function Trainings() {
                       />
                       {sess.sportEventName && (
                         <Chip label={sess.sportEventName} size="small" className={styles.sspChip} />
-                      )}
-                      {sess.subPrincipleName && (
-                        <Chip label={sess.subPrincipleName} size="small" className={styles.sspChip} />
                       )}
                     </Box>
                   </Box>

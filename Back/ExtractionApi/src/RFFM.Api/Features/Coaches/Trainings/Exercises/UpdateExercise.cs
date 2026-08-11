@@ -50,12 +50,8 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         int PlayersNumber,
         int GoalPeekersNumber,
         string FieldSpace,
-        string? SubSubPrincipleId,
-        string? SubPrincipleId,
-        string? ScenarioId,
         string Section,
         string Methodology,
-        List<string> EssentialSkillIds,
         string? BoardStateJson,
         int? Series,
         int? DurationSeries,
@@ -79,7 +75,6 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         public async ValueTask<Unit> Handle(UpdateExerciseCommand request, CancellationToken ct = default)
         {
             var exercise = await _db.TaskTrainingBases
-                .Include(tb => tb.Skills)
                 .Include(tb => tb.Types)
                 .FirstOrDefaultAsync(tb => tb.Id == request.Id, ct);
 
@@ -97,9 +92,6 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
             exercise.PlayersNumber = request.PlayersNumber;
             exercise.GoalPeekersNumber = request.GoalPeekersNumber;
             exercise.FieldSpace = request.FieldSpace;
-            exercise.SubSubPrincipleId = request.SubSubPrincipleId;
-            exercise.SubPrincipleId = request.SubPrincipleId;
-            exercise.ScenarioId = request.ScenarioId;
             exercise.Section = request.Section;
             exercise.Methodology = request.Methodology;
             if (request.BoardStateJson is not null)
@@ -110,12 +102,6 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
             exercise.RestSeries = request.RestSeries ?? exercise.RestSeries;
             exercise.TouchesNumber = request.TouchesNumber ?? exercise.TouchesNumber;
             exercise.WildCards = request.WildCards ?? exercise.WildCards;
-
-            // Replace skills
-            _db.TaskTrainingSkills.RemoveRange(exercise.Skills);
-            exercise.Skills.Clear();
-            foreach (var skillId in request.EssentialSkillIds.Distinct())
-                exercise.Skills.Add(new TaskTrainingSkill { TaskTrainingBaseId = exercise.Id, EssentialSkillId = skillId });
 
             // Replace types
             _db.TaskTrainingTypes.RemoveRange(exercise.Types);
@@ -146,10 +132,6 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
                 .WithMessage("Section must be Calentamiento, Principal or VueltaALaCalma.");
             RuleFor(x => x.Methodology).Must(m => m is "Analitico" or "Integrado" or "Global")
                 .WithMessage("Methodology must be Analitico, Integrado or Global.");
-            RuleFor(x => x)
-                .Must(x => new[] { x.ScenarioId, x.SubPrincipleId, x.SubSubPrincipleId }
-                    .Count(id => !string.IsNullOrEmpty(id)) <= 1)
-                .WithMessage("At most one of ScenarioId, SubPrincipleId or SubSubPrincipleId may be provided.");
         }
     }
 }

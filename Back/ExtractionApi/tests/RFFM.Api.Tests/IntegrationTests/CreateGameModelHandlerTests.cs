@@ -19,7 +19,7 @@ namespace RFFM.Api.Tests.IntegrationTests
 {
     /// <summary>
     /// Integration tests for POST /api/game-models (<see cref="CreateGameModelCommand"/>),
-    /// covering the new Principle → Scenario nesting.
+    /// covering the ADN hierarchy: Principio → Subprincipio → (Zona | direct) → SubSubPrincipio → Habilidad.
     /// </summary>
     [Collection(PostgresCollection.Name)]
     public class CreateGameModelHandlerTests
@@ -64,7 +64,7 @@ namespace RFFM.Api.Tests.IntegrationTests
         }
 
         [Fact]
-        public async Task Create_WithPrincipleContainingScenarios_PersistsPrincipleAndScenarios()
+        public async Task Create_WithPrincipleContainingSubprincipios_PersistsPrincipleAndSubprincipios()
         {
             await using var seedDb = _fixture.CreateDbContext();
             var (userId, teamId) = await SeedTeamAsync(seedDb);
@@ -77,29 +77,32 @@ namespace RFFM.Api.Tests.IntegrationTests
                 new List<PrincipleRequest>
                 {
                     new PrincipleRequest(
-                        null, GameMomentId: 1, GameZoneId: 1, Order: 1, "Principio 1", "Descripcion 1",
-                        new List<ScenarioRequest>
+                        null, GameMomentId: 1, Numero: 1, "Principio 1", "Texto 1",
+                        new List<SubprincipioRequest>
                         {
-                            new ScenarioRequest(null, 1, "Escenario 1", "Contexto 1", new List<SubPrincipleRequest>()),
-                            new ScenarioRequest(null, 2, "Escenario 2", "Contexto 2", new List<SubPrincipleRequest>())
-                        })
-                })
+                            new SubprincipioRequest(null, "1.1", "Subprincipio 1", "Contexto 1", new List<ZonaRequest>(), new List<SubSubPrincipioRequest>(), new List<NotaRequest>()),
+                            new SubprincipioRequest(null, "1.2", "Subprincipio 2", "Contexto 2", new List<ZonaRequest>(), new List<SubSubPrincipioRequest>(), new List<NotaRequest>())
+                        },
+                        new List<NotaRequest>())
+                },
+                new List<SetPieceRuleRequest>(),
+                new List<OpenIssueRequest>())
             { UserId = userId };
 
             var gameModelId = await handler.Handle(command, CancellationToken.None);
 
             await using var verifyDb = _fixture.CreateDbContext();
             var principle = await verifyDb.GamePrinciples
-                .Include(p => p.Scenarios)
+                .Include(p => p.Subprincipios)
                 .SingleAsync(p => p.GameModelId == gameModelId);
 
-            Assert.Equal("Principio 1", principle.Title);
-            Assert.Equal("Descripcion 1", principle.Description);
+            Assert.Equal("Principio 1", principle.Titulo);
+            Assert.Equal("Texto 1", principle.Texto);
             Assert.Equal(1, principle.GameMomentId);
-            Assert.Equal(1, principle.GameZoneId);
-            Assert.Equal(2, principle.Scenarios.Count);
-            Assert.Contains(principle.Scenarios, s => s.Name == "Escenario 1");
-            Assert.Contains(principle.Scenarios, s => s.Name == "Escenario 2");
+            Assert.Equal("defensa-organizada-1", principle.Key);
+            Assert.Equal(2, principle.Subprincipios.Count);
+            Assert.Contains(principle.Subprincipios, s => s.Titulo == "Subprincipio 1");
+            Assert.Contains(principle.Subprincipios, s => s.Titulo == "Subprincipio 2");
         }
 
         [Fact]
@@ -115,9 +118,11 @@ namespace RFFM.Api.Tests.IntegrationTests
                 teamId, "Modelo de prueba", "2025-2026",
                 new List<PrincipleRequest>
                 {
-                    new PrincipleRequest(null, 1, 1, 1, "Principio A", "", new List<ScenarioRequest>()),
-                    new PrincipleRequest(null, 2, 2, 1, "Principio B", "", new List<ScenarioRequest>())
-                })
+                    new PrincipleRequest(null, 1, 1, "Principio A", "", new List<SubprincipioRequest>(), new List<NotaRequest>()),
+                    new PrincipleRequest(null, 2, 1, "Principio B", "", new List<SubprincipioRequest>(), new List<NotaRequest>())
+                },
+                new List<SetPieceRuleRequest>(),
+                new List<OpenIssueRequest>())
             { UserId = userId };
 
             var gameModelId = await handler.Handle(command, CancellationToken.None);
@@ -128,8 +133,47 @@ namespace RFFM.Api.Tests.IntegrationTests
                 .ToListAsync();
 
             Assert.Equal(2, principles.Count);
-            Assert.Contains(principles, p => p.Title == "Principio A" && p.GameMomentId == 1);
-            Assert.Contains(principles, p => p.Title == "Principio B" && p.GameMomentId == 2);
+            Assert.Contains(principles, p => p.Titulo == "Principio A" && p.GameMomentId == 1);
+            Assert.Contains(principles, p => p.Titulo == "Principio B" && p.GameMomentId == 2);
+        }
+
+        [Fact]
+        public async Task Create_WithZonaAndSubSubPrincipioAndHabilidad_PersistsFullTree()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (userId, teamId) = await SeedTeamAsync(seedDb);
+
+            await using var db = _fixture.CreateDbContext();
+            var handler = new CreateGameModelHandler(db);
+
+            var habilidad = new HabilidadRequest(null, "Activación", "Descripcion", "Entrenable", null);
+            var ssp = new SubSubPrincipioRequest(null, "1.1.1", "Delantero", "Texto SSP", new List<HabilidadRequest> { habilidad }, new List<NotaRequest>());
+            var zona = new ZonaRequest(null, "finalizacion", null, null, "Texto zona", new List<SubSubPrincipioRequest> { ssp }, new List<NotaRequest>());
+            var subprincipio = new SubprincipioRequest(null, "1.1", "Subprincipio 1", "Texto SP", new List<ZonaRequest> { zona }, new List<SubSubPrincipioRequest>(), new List<NotaRequest>());
+            var principio = new PrincipleRequest(null, 1, 1, "Principio 1", "Texto", new List<SubprincipioRequest> { subprincipio }, new List<NotaRequest>());
+
+            var command = new CreateGameModelCommand(
+                teamId, "Modelo de prueba", "2025-2026",
+                new List<PrincipleRequest> { principio },
+                new List<SetPieceRuleRequest>(),
+                new List<OpenIssueRequest>())
+            { UserId = userId };
+
+            var gameModelId = await handler.Handle(command, CancellationToken.None);
+
+            await using var verifyDb = _fixture.CreateDbContext();
+            var persistedZona = await verifyDb.Zonas
+                .Include(z => z.SubSubPrincipios)
+                    .ThenInclude(s => s.Habilidades)
+                .SingleAsync(z => z.Subprincipio.GamePrinciple.GameModelId == gameModelId);
+
+            Assert.Equal("defensa-organizada-1.1-finalizacion", persistedZona.Key);
+            var persistedSsp = Assert.Single(persistedZona.SubSubPrincipios);
+            Assert.Equal("defensa-organizada-1.1.1", persistedSsp.Key);
+            Assert.Null(persistedSsp.SubprincipioId);
+            Assert.Equal(persistedZona.Id, persistedSsp.ZonaId);
+            var persistedHabilidad = Assert.Single(persistedSsp.Habilidades);
+            Assert.Equal("Activación", persistedHabilidad.Nombre);
         }
     }
 }

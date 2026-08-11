@@ -20,29 +20,31 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.GameModel
                 .IsRequired()
                 .HasMaxLength(36);
 
-            builder.Property(x => x.Title)
+            builder.Property(x => x.Key)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            builder.Property(x => x.Numero)
+                .IsRequired();
+
+            builder.Property(x => x.Titulo)
                 .IsRequired()
                 .HasMaxLength(300);
 
-            builder.Property(x => x.Description)
-                .HasMaxLength(2000);
+            builder.Property(x => x.Texto)
+                .HasMaxLength(4000);
 
-            builder.Property(x => x.Order)
-                .IsRequired();
+            builder.HasIndex(x => new { x.GameModelId, x.Key })
+                .IsUnique();
 
             builder.HasOne(x => x.GameMoment)
                 .WithMany(m => m.Principles)
                 .HasForeignKey(x => x.GameMomentId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            builder.HasOne(x => x.GameZone)
-                .WithMany(z => z.Principles)
-                .HasForeignKey(x => x.GameZoneId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            builder.HasMany(x => x.Scenarios)
-                .WithOne(s => s.GamePrinciple)
-                .HasForeignKey(s => s.GamePrincipleId)
+            builder.HasMany(x => x.Subprincipios)
+                .WithOne(sp => sp.GamePrinciple)
+                .HasForeignKey(sp => sp.GamePrincipleId)
                 .OnDelete(DeleteBehavior.Cascade);
         }
     }

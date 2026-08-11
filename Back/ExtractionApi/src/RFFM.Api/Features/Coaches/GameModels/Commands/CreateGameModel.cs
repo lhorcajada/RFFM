@@ -15,7 +15,9 @@ using RFFM.Api.Infrastructure.Persistence;
 namespace RFFM.Api.Features.Coaches.GameModels.Commands
 {
     /// <summary>
-    /// Creates a new game model for a team and season.
+    /// Creates a new game model for a team and season, following the ADN hierarchy:
+    /// Principio → Subprincipio → (Zona, 0..N) → SubSubPrincipio → Habilidad, plus Notas
+    /// anchored per level, flat SetPieceRules and OpenIssues.
     /// POST /api/game-models
     /// </summary>
     public class CreateGameModel : IFeatureModule
@@ -50,7 +52,9 @@ namespace RFFM.Api.Features.Coaches.GameModels.Commands
         string TeamId,
         string Name,
         string Season,
-        List<PrincipleRequest> Principles) : IRequest<string>, IRequireFeaturePermission
+        List<PrincipleRequest> Principles,
+        List<SetPieceRuleRequest> SetPieceRules,
+        List<OpenIssueRequest> OpenIssues) : IRequest<string>, IRequireFeaturePermission
     {
         public string UserId { get; init; } = string.Empty;
 
@@ -61,35 +65,45 @@ namespace RFFM.Api.Features.Coaches.GameModels.Commands
     public record PrincipleRequest(
         string? Id,
         int GameMomentId,
-        int GameZoneId,
-        int Order,
-        string Title,
-        string Description,
-        List<ScenarioRequest> Scenarios);
+        int Numero,
+        string Titulo,
+        string Texto,
+        List<SubprincipioRequest> Subprincipios,
+        List<NotaRequest> Notas);
 
-    public record ScenarioRequest(
+    public record SubprincipioRequest(
         string? Id,
-        int Order,
-        string Name,
-        string Context,
-        List<SubPrincipleRequest> SubPrinciples);
+        string Numero,
+        string Titulo,
+        string Texto,
+        List<ZonaRequest> Zonas,
+        List<SubSubPrincipioRequest> SubSubPrincipios,
+        List<NotaRequest> Notas);
 
-    public record SubPrincipleRequest(
+    public record ZonaRequest(
         string? Id,
-        string Label,
-        int Order,
-        string Name,
-        string Context,
-        List<SubSubPrincipleRequest> SubSubPrinciples);
+        string ZoneKeysCsv,
+        string? Label,
+        string? ZonaTexto,
+        string Texto,
+        List<SubSubPrincipioRequest> SubSubPrincipios,
+        List<NotaRequest> Notas);
 
-    public record SubSubPrincipleRequest(
+    public record SubSubPrincipioRequest(
         string? Id,
-        int Order,
-        string Name,
-        string Action,
-        List<EssentialSkillRequest> EssentialSkills);
+        string Numero,
+        string Rol,
+        string Texto,
+        List<HabilidadRequest> Habilidades,
+        List<NotaRequest> Notas);
 
-    public record EssentialSkillRequest(string? Id, string Name, string Description);
+    public record HabilidadRequest(string? Id, string Nombre, string Descripcion, string Entrenable, string? ReferenciaAKey);
+
+    public record NotaRequest(string? Id, string Tipo, string Texto);
+
+    public record SetPieceRuleRequest(string? Id, string Subtype, string Texto);
+
+    public record OpenIssueRequest(string? Id, string Topic, string Description, string Status);
 
     // ── Handler ──────────────────────────────────────────────────────────────────
 
@@ -117,40 +131,78 @@ namespace RFFM.Api.Features.Coaches.GameModels.Commands
             var model = new GameModel(request.TeamId, request.Name, request.Season);
 
             foreach (var pr in request.Principles)
-            {
-                var principle = new GamePrinciple(model.Id, pr.GameMomentId, pr.GameZoneId, pr.Order, pr.Title, pr.Description);
+                model.Principles.Add(BuildPrinciple(model.Id, pr, model.Notas));
 
-                foreach (var sr in pr.Scenarios)
-                {
-                    var scenario = new GameScenario(principle.Id, sr.Order, sr.Name, sr.Context);
+            foreach (var spr in request.SetPieceRules)
+                model.SetPieceRules.Add(new SetPieceRule(model.Id, spr.Subtype, spr.Texto));
 
-                    foreach (var spr in sr.SubPrinciples)
-                    {
-                        var subPrinciple = new SubPrinciple(scenario.Id, spr.Label, spr.Name, spr.Context, spr.Order);
-
-                        foreach (var sspr in spr.SubSubPrinciples)
-                        {
-                            var subSubPrinciple = new SubSubPrinciple(subPrinciple.Id, sspr.Name, sspr.Action, sspr.Order);
-
-                            foreach (var skr in sspr.EssentialSkills)
-                                subSubPrinciple.EssentialSkills.Add(new EssentialSkill(subSubPrinciple.Id, skr.Name, skr.Description));
-
-                            subPrinciple.SubSubPrinciples.Add(subSubPrinciple);
-                        }
-
-                        scenario.SubPrinciples.Add(subPrinciple);
-                    }
-
-                    principle.Scenarios.Add(scenario);
-                }
-
-                model.Principles.Add(principle);
-            }
+            foreach (var oir in request.OpenIssues)
+                model.OpenIssues.Add(new OpenIssue(model.Id, oir.Topic, oir.Description, oir.Status));
 
             await _db.GameModels.AddAsync(model, cancellationToken);
             await _db.SaveChangesAsync(cancellationToken);
 
             return model.Id;
+        }
+
+        internal static GamePrinciple BuildPrinciple(string gameModelId, PrincipleRequest pr, List<Nota> notas)
+        {
+            var faseSlug = GameModelKeys.FaseSlugsById[pr.GameMomentId];
+            var key = GameModelKeys.BuildPrincipioKey(faseSlug, pr.Numero);
+            var principle = new GamePrinciple(gameModelId, pr.GameMomentId, key, pr.Numero, pr.Titulo, pr.Texto);
+
+            foreach (var spr in pr.Subprincipios)
+                principle.Subprincipios.Add(BuildSubprincipio(principle.Id, faseSlug, spr, gameModelId, notas));
+
+            foreach (var nr in pr.Notas)
+                notas.Add(new Nota(gameModelId, nr.Tipo, nr.Texto, principle.Id, null, null, null));
+
+            return principle;
+        }
+
+        private static Subprincipio BuildSubprincipio(string gamePrincipleId, string faseSlug, SubprincipioRequest spr, string gameModelId, List<Nota> notas)
+        {
+            var key = GameModelKeys.BuildSubprincipioKey(faseSlug, spr.Numero);
+            var sp = new Subprincipio(gamePrincipleId, key, spr.Numero, spr.Titulo, spr.Texto);
+
+            foreach (var zr in spr.Zonas)
+                sp.Zonas.Add(BuildZona(sp.Id, faseSlug, spr.Numero, zr, gameModelId, notas));
+
+            foreach (var sspr in spr.SubSubPrincipios)
+                sp.SubSubPrincipios.Add(BuildSubSubPrincipio(faseSlug, sspr, subprincipioId: sp.Id, zonaId: null, gameModelId, notas));
+
+            foreach (var nr in spr.Notas)
+                notas.Add(new Nota(gameModelId, nr.Tipo, nr.Texto, null, sp.Id, null, null));
+
+            return sp;
+        }
+
+        private static Zona BuildZona(string subprincipioId, string faseSlug, string subprincipioNumero, ZonaRequest zr, string gameModelId, List<Nota> notas)
+        {
+            var key = GameModelKeys.BuildZonaKey(faseSlug, subprincipioNumero, zr.ZoneKeysCsv, zr.Label);
+            var zona = new Zona(subprincipioId, key, zr.ZoneKeysCsv, zr.Label, zr.ZonaTexto, zr.Texto);
+
+            foreach (var sspr in zr.SubSubPrincipios)
+                zona.SubSubPrincipios.Add(BuildSubSubPrincipio(faseSlug, sspr, subprincipioId: null, zonaId: zona.Id, gameModelId, notas));
+
+            foreach (var nr in zr.Notas)
+                notas.Add(new Nota(gameModelId, nr.Tipo, nr.Texto, null, null, zona.Id, null));
+
+            return zona;
+        }
+
+        private static SubSubPrincipio BuildSubSubPrincipio(string faseSlug, SubSubPrincipioRequest sspr, string? subprincipioId, string? zonaId, string gameModelId, List<Nota> notas)
+        {
+            var key = GameModelKeys.BuildSubSubPrincipioKey(faseSlug, sspr.Numero);
+            var ssp = new SubSubPrincipio(key, sspr.Numero, sspr.Rol, sspr.Texto, subprincipioId, zonaId);
+
+            foreach (var hr in sspr.Habilidades)
+                ssp.Habilidades.Add(new Habilidad(ssp.Id, hr.Nombre, hr.Descripcion, hr.Entrenable, hr.ReferenciaAKey));
+
+            foreach (var nr in sspr.Notas)
+                notas.Add(new Nota(gameModelId, nr.Tipo, nr.Texto, null, null, null, ssp.Id));
+
+            return ssp;
         }
     }
 
@@ -163,6 +215,70 @@ namespace RFFM.Api.Features.Coaches.GameModels.Commands
             RuleFor(x => x.TeamId).NotEmpty();
             RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
             RuleFor(x => x.Season).NotEmpty().MaximumLength(20);
+
+            RuleForEach(x => x.Principles).SetValidator(new PrincipleRequestValidator());
+            RuleForEach(x => x.SetPieceRules).SetValidator(new SetPieceRuleRequestValidator());
+        }
+    }
+
+    public class PrincipleRequestValidator : AbstractValidator<PrincipleRequest>
+    {
+        public PrincipleRequestValidator()
+        {
+            RuleFor(x => x.Titulo).NotEmpty();
+            RuleFor(x => x.GameMomentId).Must(id => GameModelKeys.FaseSlugsById.ContainsKey(id))
+                .WithMessage("GameMomentId must be one of the 5 Fase catalog values.");
+            RuleForEach(x => x.Subprincipios).SetValidator(new SubprincipioRequestValidator());
+        }
+    }
+
+    public class SubprincipioRequestValidator : AbstractValidator<SubprincipioRequest>
+    {
+        public SubprincipioRequestValidator()
+        {
+            RuleFor(x => x.Titulo).NotEmpty();
+            RuleFor(x => x.Numero).NotEmpty();
+            RuleForEach(x => x.Zonas).SetValidator(new ZonaRequestValidator());
+            RuleForEach(x => x.SubSubPrincipios).SetValidator(new SubSubPrincipioRequestValidator());
+        }
+    }
+
+    public class ZonaRequestValidator : AbstractValidator<ZonaRequest>
+    {
+        public ZonaRequestValidator()
+        {
+            RuleFor(x => x.ZoneKeysCsv).NotEmpty();
+            RuleForEach(x => x.SubSubPrincipios).SetValidator(new SubSubPrincipioRequestValidator());
+        }
+    }
+
+    public class SubSubPrincipioRequestValidator : AbstractValidator<SubSubPrincipioRequest>
+    {
+        public SubSubPrincipioRequestValidator()
+        {
+            RuleFor(x => x.Numero).NotEmpty();
+            RuleFor(x => x.Rol).NotEmpty();
+            RuleForEach(x => x.Habilidades).SetValidator(new HabilidadRequestValidator());
+        }
+    }
+
+    public class HabilidadRequestValidator : AbstractValidator<HabilidadRequest>
+    {
+        public HabilidadRequestValidator()
+        {
+            RuleFor(x => x.Nombre)
+                .Must(n => Habilidad.Vocabulary.Contains(n))
+                .WithMessage("Nombre must be one of the 14-value Habilidad closed vocabulary.");
+        }
+    }
+
+    public class SetPieceRuleRequestValidator : AbstractValidator<SetPieceRuleRequest>
+    {
+        public SetPieceRuleRequestValidator()
+        {
+            RuleFor(x => x.Subtype)
+                .Must(s => SetPieceRule.Subtypes.Contains(s))
+                .WithMessage("Subtype must be one of the Balón Parado closed vocabulary.");
         }
     }
 }

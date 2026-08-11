@@ -1,0 +1,241 @@
+/* ── On-screen read view ── */
+.root {
+  color: var(--rffm-coach-text-primary, #f0f0f0);
+}
+
+.moment {
+  margin-bottom: 24px;
+}
+
+.momentTitle {
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--rffm-coach-accent, #ff7a1a);
+  color: #1a1000;
+  padding: 8px 14px;
+  margin: 0 0 12px;
+  border-radius: 4px;
+  flex: 1;
+}
+
+.momentHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 0 0 12px;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+
+.momentHeader .momentTitle {
+  margin: 0;
+}
+
+.momentChevron,
+.momentChevronCollapsed {
+  flex-shrink: 0;
+  color: var(--rffm-coach-accent, #ff7a1a);
+  transition: transform 0.15s ease;
+}
+
+.momentChevronCollapsed {
+  transform: rotate(-90deg);
+}
+
+.principle {
+  margin: 0 0 16px 8px;
+}
+
+/* Hierarchy colors below reuse the Coach theme's own palette (see muiCoachTheme.ts):
+   primary.light #7ab8f5, secondary.main #4ec9b0, primary.main #4d9de0, accent #ff7a1a —
+   one distinct, theme-consistent color per nesting depth so levels are easy to tell apart. */
+.principleTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0 0 4px;
+  color: #7ab8f5;
+}
+
+.subprincipio {
+  margin: 8px 0 0 16px;
+  padding-left: 10px;
+  border-left: 2px solid rgba(255, 255, 255, 0.15);
+}
+
+.subprincipioTitle {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin: 0 0 3px;
+  text-transform: none;
+  color: #4ec9b0;
+}
+
+.zona {
+  margin: 6px 0 0 12px;
+  padding-left: 10px;
+  border-left: 1.5px solid rgba(255, 255, 255, 0.1);
+}
+
+.zonaTitle {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin: 0 0 3px;
+  color: #4d9de0;
+}
+
+.subSubPrincipio {
+  margin: 6px 0 0 10px;
+  padding-left: 10px;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sspTitle {
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin: 0 0 3px;
+  color: #ff7a1a;
+}
+
+.sspTexto {
+  font-weight: 400;
+  color: #e8e8ea;
+}
+
+.texto {
+  font-size: 0.85rem;
+  color: #d6d6da;
+  margin: 0 0 4px;
+}
+
+.skillList {
+  list-style: disc;
+  padding-left: 20px;
+  margin: 2px 0 4px;
+}
+
+.habilidadItem {
+  font-size: 0.82rem;
+  color: #e8e8ea;
+  margin-bottom: 2px;
+}
+
+.nota {
+  font-style: italic;
+  font-size: 0.82rem;
+  color: #e8e8ea;
+  border-left: 3px solid rgba(255, 255, 255, 0.3);
+  padding: 4px 8px;
+  margin: 4px 0;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 2px;
+}
+
+.nota strong {
+  font-style: normal;
+  color: #4ec9b0;
+}
+
+.nota_riesgo_aceptado {
+  border-left-color: #e74c3c;
+}
+
+.nota_riesgo_aceptado strong {
+  color: #ff6b5a;
+}
+
+.nota_excepcion {
+  border-left-color: #f1c40f;
+}
+
+.nota_excepcion strong {
+  color: #f1c40f;
+}
+
+.nota_objetivo_temporada {
+  border-left-color: #2ecc71;
+}
+
+.nota_objetivo_temporada strong {
+  color: #4ee88a;
+}
+
+.setPieceRule {
+  margin: 0 0 10px 8px;
+}
+
+.setPieceRuleTitle {
+  font-weight: 700;
+  margin: 0 0 2px;
+}
+
+.openIssueList {
+  padding-left: 20px;
+  margin: 0;
+}
+
+.openIssueItem {
+  font-size: 0.85rem;
+  margin-bottom: 4px;
+}
+
+.empty {
+  opacity: 0.7;
+  font-style: italic;
+}
+
+/* ── Print view: hidden on screen, shown only when printing ── */
+.printRoot {
+  display: none;
+  font-family: "Segoe UI", Arial, Helvetica, sans-serif;
+  font-size: 10pt;
+  color: #111;
+  background: #fff;
+  padding: 12mm 16mm;
+  line-height: 1.45;
+}
+
+.printRoot .momentTitle {
+  background: #222;
+  color: #fff;
+  border-radius: 2px;
+}
+
+.printRoot .principleTitle {
+  color: #1a4d7a;
+}
+
+.printRoot .subprincipioTitle {
+  color: #1a7a63;
+}
+
+.printRoot .zonaTitle {
+  color: #333;
+}
+
+.printRoot .sspTitle {
+  color: #a34d0a;
+}
+
+.printRoot .nota {
+  color: #333;
+  background: #f4f4f4;
+}
+
+.printRoot .nota strong {
+  color: #222;
+}
+
+@media print {
+  .printRoot {
+    display: block;
+  }
+}

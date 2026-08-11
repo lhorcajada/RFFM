@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Common;
 using RFFM.Api.Domain;
+using RFFM.Api.Domain.Aggregates.GameModels;
 using RFFM.Api.Domain.Entities;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
@@ -13,7 +14,9 @@ using RFFM.Api.Infrastructure.Persistence;
 namespace RFFM.Api.Features.Coaches.GameModels.Queries
 {
     /// <summary>
-    /// Returns the full game model for a team and season.
+    /// Returns the full game model for a team and season, following the ADN hierarchy:
+    /// Principio → Subprincipio → (Zona 0..N | direct) → SubSubPrincipio → Habilidad, with Notas
+    /// nested at whichever level they anchor to, plus flat SetPieceRules and OpenIssues.
     /// GET /api/game-models?teamId={teamId}&amp;season={season}
     /// </summary>
     public class GetGameModel : IFeatureModule
@@ -54,49 +57,57 @@ namespace RFFM.Api.Features.Coaches.GameModels.Queries
             string TeamId,
             string Name,
             string Season,
-            IEnumerable<PrincipleResponse> Principles);
+            IEnumerable<PrincipleResponse> Principles,
+            IEnumerable<SetPieceRuleResponse> SetPieceRules,
+            IEnumerable<OpenIssueResponse> OpenIssues);
 
         public record PrincipleResponse(
             string Id,
             int GameMomentId,
             string GameMomentName,
-            int GameZoneId,
-            string GameZoneName,
-            int Order,
-            string Title,
-            string Description,
-            IEnumerable<ScenarioResponse> Scenarios);
+            string Key,
+            int Numero,
+            string Titulo,
+            string Texto,
+            IEnumerable<SubprincipioResponse> Subprincipios,
+            IEnumerable<NotaResponse> Notas);
 
-        public record ScenarioResponse(
+        public record SubprincipioResponse(
             string Id,
-            int Order,
-            string Name,
-            string Context,
-            IEnumerable<SubPrincipleResponse> SubPrinciples,
-            string? MediaUrl,
-            string? MediaType);
+            string Key,
+            string Numero,
+            string Titulo,
+            string Texto,
+            IEnumerable<ZonaResponse> Zonas,
+            IEnumerable<SubSubPrincipioResponse> SubSubPrincipios,
+            IEnumerable<NotaResponse> Notas);
 
-        public record SubPrincipleResponse(
+        public record ZonaResponse(
             string Id,
-            string Label,
-            int Order,
-            string Name,
-            string Context,
-            IEnumerable<SubSubPrincipleResponse> SubSubPrinciples);
+            string Key,
+            string ZoneKeysCsv,
+            string? Label,
+            string? ZonaTexto,
+            string Texto,
+            IEnumerable<SubSubPrincipioResponse> SubSubPrincipios,
+            IEnumerable<NotaResponse> Notas);
 
-        public record SubSubPrincipleResponse(
+        public record SubSubPrincipioResponse(
             string Id,
-            int Order,
-            string Name,
-            string Action,
-            IEnumerable<EssentialSkillResponse> EssentialSkills);
+            string Key,
+            string Numero,
+            string Rol,
+            string Texto,
+            IEnumerable<HabilidadResponse> Habilidades,
+            IEnumerable<NotaResponse> Notas);
 
-        public record EssentialSkillResponse(
-            string Id,
-            string Name,
-            string Description,
-            DateTime? MasteredAt,
-            int ExerciseCount);
+        public record HabilidadResponse(string Id, string Nombre, string Descripcion, string Entrenable, string? ReferenciaAKey);
+
+        public record NotaResponse(string Id, string Tipo, string Texto);
+
+        public record SetPieceRuleResponse(string Id, string Subtype, string Texto);
+
+        public record OpenIssueResponse(string Id, string Topic, string Description, string Status);
 
         // ── Handler ──────────────────────────────────────────────────────────────
 
@@ -118,34 +129,68 @@ namespace RFFM.Api.Features.Coaches.GameModels.Queries
                     .Include(gm => gm.Principles)
                         .ThenInclude(p => p.GameMoment)
                     .Include(gm => gm.Principles)
-                        .ThenInclude(p => p.GameZone)
+                        .ThenInclude(p => p.Subprincipios)
+                            .ThenInclude(sp => sp.Zonas)
+                                .ThenInclude(z => z.SubSubPrincipios)
+                                    .ThenInclude(ssp => ssp.Habilidades)
                     .Include(gm => gm.Principles)
-                        .ThenInclude(p => p.Scenarios)
-                            .ThenInclude(s => s.SubPrinciples)
-                                .ThenInclude(sp => sp.SubSubPrinciples)
-                                    .ThenInclude(ssp => ssp.EssentialSkills)
+                        .ThenInclude(p => p.Subprincipios)
+                            .ThenInclude(sp => sp.SubSubPrincipios)
+                                .ThenInclude(ssp => ssp.Habilidades)
+                    .Include(gm => gm.Notas)
+                    .Include(gm => gm.SetPieceRules)
+                    .Include(gm => gm.OpenIssues)
+                    .AsSplitQuery()
                     .AsNoTracking()
                     .FirstOrDefaultAsync(gm => gm.TeamId == request.TeamId && gm.Season == request.Season, cancellationToken);
 
                 if (model is null)
                     return null;
 
-                // Load exercise counts per essential skill
-                var skillIds = model.Principles
-                    .SelectMany(p => p.Scenarios)
-                    .SelectMany(s => s.SubPrinciples)
-                    .SelectMany(sp => sp.SubSubPrinciples)
-                    .SelectMany(ssp => ssp.EssentialSkills)
-                    .Select(sk => sk.Id)
-                    .ToList();
+                var notas = model.Notas;
 
-                var exerciseCounts = skillIds.Count > 0
-                    ? await _db.TaskTrainingSkills
-                        .Where(ts => skillIds.Contains(ts.EssentialSkillId))
-                        .GroupBy(ts => ts.EssentialSkillId)
-                        .Select(g => new { SkillId = g.Key, Count = g.Count() })
-                        .ToDictionaryAsync(x => x.SkillId, x => x.Count, cancellationToken)
-                    : new Dictionary<string, int>();
+                IEnumerable<NotaResponse> NotasFor(Func<Nota, bool> predicate) =>
+                    notas.Where(predicate).Select(n => new NotaResponse(n.Id, n.Tipo, n.Texto));
+
+                SubSubPrincipioResponse MapSsp(SubSubPrincipio ssp) => new(
+                    ssp.Id,
+                    ssp.Key,
+                    ssp.Numero,
+                    ssp.Rol,
+                    ssp.Texto,
+                    ssp.Habilidades.Select(h => new HabilidadResponse(h.Id, h.Nombre, h.Descripcion, h.Entrenable, h.ReferenciaAKey)),
+                    NotasFor(n => n.SubSubPrincipioId == ssp.Id));
+
+                ZonaResponse MapZona(Zona z) => new(
+                    z.Id,
+                    z.Key,
+                    z.ZoneKeysCsv,
+                    z.Label,
+                    z.ZonaTexto,
+                    z.Texto,
+                    z.SubSubPrincipios.Select(MapSsp),
+                    NotasFor(n => n.ZonaId == z.Id));
+
+                SubprincipioResponse MapSubprincipio(Subprincipio sp) => new(
+                    sp.Id,
+                    sp.Key,
+                    sp.Numero,
+                    sp.Titulo,
+                    sp.Texto,
+                    sp.Zonas.Select(MapZona),
+                    sp.SubSubPrincipios.Select(MapSsp),
+                    NotasFor(n => n.SubprincipioId == sp.Id));
+
+                PrincipleResponse MapPrincipio(GamePrinciple p) => new(
+                    p.Id,
+                    p.GameMomentId,
+                    p.GameMoment.Name,
+                    p.Key,
+                    p.Numero,
+                    p.Titulo,
+                    p.Texto,
+                    p.Subprincipios.Select(MapSubprincipio),
+                    NotasFor(n => n.PrincipioId == p.Id));
 
                 return new GameModelResponse(
                     model.Id,
@@ -154,53 +199,10 @@ namespace RFFM.Api.Features.Coaches.GameModels.Queries
                     model.Season,
                     model.Principles
                         .OrderBy(p => p.GameMomentId)
-                        .ThenBy(p => p.GameZoneId)
-                        .ThenBy(p => p.Order)
-                        .Select(p => new PrincipleResponse(
-                            p.Id,
-                            p.GameMomentId,
-                            p.GameMoment.Name,
-                            p.GameZoneId,
-                            p.GameZone.Name,
-                            p.Order,
-                            p.Title,
-                            p.Description,
-                            p.Scenarios
-                                .OrderBy(s => s.Order)
-                                .Select(s => new ScenarioResponse(
-                                    s.Id,
-                                    s.Order,
-                                    s.Name,
-                                    s.Context,
-                                    s.SubPrinciples
-                                        .OrderBy(sp => sp.Order)
-                                        .ThenBy(sp => sp.Label)
-                                        .Select(sp => new SubPrincipleResponse(
-                                            sp.Id,
-                                            sp.Label,
-                                            sp.Order,
-                                            sp.Name,
-                                            sp.Context,
-                                            sp.SubSubPrinciples
-                                                .OrderBy(ssp => ssp.Order)
-                                                .ThenBy(ssp => ssp.Name)
-                                                .Select(ssp => new SubSubPrincipleResponse(
-                                                    ssp.Id,
-                                                    ssp.Order,
-                                                    ssp.Name,
-                                                    ssp.Action,
-                                                    ssp.EssentialSkills.Select(sk => new EssentialSkillResponse(
-                                                        sk.Id,
-                                                        sk.Name,
-                                                        sk.Description,
-                                                        sk.MasteredAt,
-                                                        exerciseCounts.GetValueOrDefault(sk.Id, 0)))
-                                                ))
-                                        )),
-                                    s.MediaUrl,
-                                    s.MediaType
-                                ))
-                        ))
+                        .ThenBy(p => p.Numero)
+                        .Select(MapPrincipio),
+                    model.SetPieceRules.Select(s => new SetPieceRuleResponse(s.Id, s.Subtype, s.Texto)),
+                    model.OpenIssues.Select(o => new OpenIssueResponse(o.Id, o.Topic, o.Description, o.Status))
                 );
             }
         }
