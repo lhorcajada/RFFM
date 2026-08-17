@@ -28,6 +28,56 @@
   overflow: hidden;
 }
 
+.microcicloBanner {
+  padding: 6px 14px;
+  background: rgba(77, 157, 224, 0.1);
+  border-bottom: 1px solid rgba(77, 157, 224, 0.22);
+}
+
+.microcicloBannerText {
+  font-size: 0.78rem !important;
+  color: #a8d4f5 !important;
+}
+
+.microcicloBannerSession {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.microcicloBannerSessionLabel {
+  font-size: 0.66rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(168, 212, 245, 0.7) !important;
+  flex: 0 0 auto;
+}
+
+.microcicloBannerChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.microcicloBannerChip {
+  background-color: rgba(77, 157, 224, 0.12) !important;
+  color: #a8d4f5 !important;
+  border: 1px solid rgba(77, 157, 224, 0.3) !important;
+  font-size: 0.66rem !important;
+  height: 20px !important;
+}
+
+.microcicloBannerHabilidadChip {
+  background-color: rgba(46, 204, 113, 0.12) !important;
+  color: #7fe0a8 !important;
+  border: 1px solid rgba(46, 204, 113, 0.3) !important;
+  font-size: 0.66rem !important;
+  height: 20px !important;
+}
+
 .pitchArea {
   flex: 1;
   min-width: 0;

@@ -31,11 +31,17 @@ import ContentLayout from "../../../../shared/components/ui/ContentLayout/Conten
 import useTeamAndClub from "../../hooks/useTeamAndClub";
 import useTeamDashboardBack from "../../hooks/useTeamDashboardBack";
 import trainingService from "../../services/trainingService";
+import seasonPlanService from "../../services/seasonPlanService";
+import gameModelService from "../../services/gameModelService";
+import seasonService from "../../services/seasonService";
 import type { Exercise, ExerciseMethodology, TrainingSession } from "../../types/training";
+import type { AdnOptions, GameZoneCatalogItem, SeasonPlan } from "../../types/seasonPlan";
 import { TYPE_LABELS } from "./exerciseTypeLabels";
 import { methodologyOptions } from "./new/constants";
 import ExerciseCromo from "./components/ExerciseCromo";
 import SessionDialog from "./components/SessionDialog";
+import SeasonPlanView from "./season-plan/SeasonPlanView";
+import SeasonPlanEditor from "./season-plan/SeasonPlanEditor";
 import type { TacticalBoardSnapshot } from "./new/types";
 import { getDimensionsPercent, getShapeVertices } from "./new/helpers/spaceGeometry";
 import styles from "./Trainings.module.css";
@@ -277,6 +283,18 @@ export default function Trainings() {
   const [deleteSessId, setDeleteSessId] = useState<string | null>(null);
   const [deletingSess, setDeletingSess] = useState(false);
 
+  // ── Season plan state ────────────────────────────────────────────
+  const [seasonId, setSeasonId] = useState("");
+  const [seasonName, setSeasonName] = useState("");
+  const [seasonPlan, setSeasonPlan] = useState<SeasonPlan | null>(null);
+  const [loadingPlan, setLoadingPlan] = useState(false);
+  const [zones, setZones] = useState<GameZoneCatalogItem[]>([]);
+  const [adnOptions, setAdnOptions] = useState<AdnOptions>({ subprincipios: [], subSubPrincipios: [] });
+  const [planEditing, setPlanEditing] = useState(false);
+  const [savingPlan, setSavingPlan] = useState(false);
+  const [deletePlanOpen, setDeletePlanOpen] = useState(false);
+  const [deletingPlan, setDeletingPlan] = useState(false);
+
   const clubId = team?.club?.id ?? "";
 
   // Load exercises
@@ -319,17 +337,81 @@ export default function Trainings() {
       .finally(() => setLoadingSess(false));
   };
 
-  const goToExercisePage = (exerciseId?: string) => {
+  // Load the club's active season once (SeasonPlan.SeasonId is a real FK to Season).
+  // seasonName is kept alongside for ADN lookups: GameModel.Season is a free-text label
+  // (Season.name, falling back to Season.id), distinct from SeasonPlan's SeasonId FK — see
+  // GameModelCreate.tsx's `season.name ?? season.id` convention.
+  useEffect(() => {
+    let mounted = true;
+    seasonService.getActiveSeason().then((active) => {
+      if (mounted) {
+        setSeasonId(active?.id ?? "");
+        setSeasonName(active?.name ?? active?.id ?? "");
+      }
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [clubId]);
+
+  const refreshSeasonPlan = () => {
+    if (!teamId || !seasonId) return;
+    setLoadingPlan(true);
+    seasonPlanService
+      .getByTeamIdAndSeason(teamId, seasonId)
+      .then(setSeasonPlan)
+      .catch(() => setSeasonPlan(null))
+      .finally(() => setLoadingPlan(false));
+  };
+
+  // Load season plan + zone catalog + ADN options when the Planificación tab is opened
+  useEffect(() => {
+    if (tab !== 2 || !teamId || !seasonId) return;
+    refreshSeasonPlan();
+    gameModelService.getZones().then(setZones).catch(() => setZones([]));
+    if (seasonName) {
+      seasonPlanService
+        .getAdnOptions(teamId, seasonName)
+        .then(setAdnOptions)
+        .catch(() => setAdnOptions({ subprincipios: [], subSubPrincipios: [] }));
+    }
+  }, [tab, teamId, seasonId, seasonName]);
+
+  const goToExercisePage = (exerciseId?: string, microcicloId?: string) => {
     if (!clubId) return;
 
     const createParams = new URLSearchParams();
     createParams.set("clubId", clubId);
     if (teamId) createParams.set("teamId", teamId);
     if (exerciseId) createParams.set("exerciseId", exerciseId);
+    if (microcicloId) createParams.set("microcicloId", microcicloId);
 
     navigate(`/coach/trainings/new-exercise?${createParams.toString()}`, {
       state: { returnTo: `/coach/trainings${location.search}` },
     });
+  };
+
+  const handleSavePlan = async (draft: SeasonPlan) => {
+    setSavingPlan(true);
+    try {
+      const saved = draft.id ? await seasonPlanService.update(draft) : await seasonPlanService.create(draft);
+      setSeasonPlan(saved);
+      setPlanEditing(false);
+    } finally {
+      setSavingPlan(false);
+    }
+  };
+
+  const handleDeletePlan = async () => {
+    if (!seasonPlan?.id) return;
+    setDeletingPlan(true);
+    try {
+      await seasonPlanService.remove(seasonPlan.id);
+      setSeasonPlan(null);
+      setDeletePlanOpen(false);
+    } finally {
+      setDeletingPlan(false);
+    }
   };
 
   const duplicateExercise = (exerciseId: string) => {
@@ -408,6 +490,31 @@ export default function Trainings() {
                 Nueva sesión
               </Button>
             )}
+            {tab === 2 && !planEditing && (
+              <>
+                <Button
+                  size="small"
+                  startIcon={<AddIcon />}
+                  variant="contained"
+                  className={styles.addBtn}
+                  onClick={() => setPlanEditing(true)}
+                  disabled={!teamId || !seasonId}
+                >
+                  {seasonPlan ? "Editar planificación" : "Nueva planificación"}
+                </Button>
+                {seasonPlan && (
+                  <Button
+                    size="small"
+                    startIcon={<DeleteOutlineIcon />}
+                    variant="outlined"
+                    color="error"
+                    onClick={() => setDeletePlanOpen(true)}
+                  >
+                    Eliminar planificación
+                  </Button>
+                )}
+              </>
+            )}
           </Stack>
         }
       >
@@ -419,6 +526,7 @@ export default function Trainings() {
           >
             <Tab label="Ejercicios" />
             <Tab label="Sesiones" />
+            <Tab label="Planificación" />
           </Tabs>
 
           {/* ── Exercises tab ──────────────────────────────────── */}
@@ -514,6 +622,29 @@ export default function Trainings() {
               ))}
             </Box>
           )}
+
+          {/* ── Planificación tab ─────────────────────────────── */}
+          {tab === 2 && (
+            <Box>
+              {planEditing ? (
+                <SeasonPlanEditor
+                  draft={seasonPlan ?? { id: "", teamId, seasonId, macrociclos: [] }}
+                  zones={zones}
+                  adnOptions={adnOptions}
+                  saving={savingPlan}
+                  onSave={handleSavePlan}
+                  onCancel={() => setPlanEditing(false)}
+                />
+              ) : (
+                <SeasonPlanView
+                  plan={seasonPlan}
+                  loading={loadingPlan}
+                  onCreatePlan={() => setPlanEditing(true)}
+                  onCreateExercise={(microcicloId) => goToExercisePage(undefined, microcicloId)}
+                />
+              )}
+            </Box>
+          )}
         </Box>
 
         {/* ── Session dialog ────────────────────────────────────── */}
@@ -562,6 +693,27 @@ export default function Trainings() {
             <Button onClick={handleDeleteSession} disabled={deletingSess} variant="contained"
               sx={{ bgcolor: "#c0392b", "&:hover": { bgcolor: "#e74c3c" } }}>
               {deletingSess ? <CircularProgress size={16} /> : "Eliminar"}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* ── Delete season plan confirmation ───────────────────── */}
+        <Dialog open={deletePlanOpen} onClose={() => setDeletePlanOpen(false)}
+          PaperProps={{ sx: { bgcolor: "#07071a", border: "1px solid rgba(77,157,224,.25)" } }}>
+          <DialogTitle sx={{ color: "#4d9de0" }}>Eliminar planificación</DialogTitle>
+          <DialogContent>
+            <DialogContentText sx={{ color: "#e8e8e8" }}>
+              ¿Seguro que quieres eliminar la planificación de temporada? Los ejercicios enlazados
+              a sus microciclos no se eliminarán, pero perderán ese enlace.
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setDeletePlanOpen(false)} sx={{ color: "rgba(212, 212, 212, .6)" }}>
+              Cancelar
+            </Button>
+            <Button onClick={handleDeletePlan} disabled={deletingPlan} variant="contained"
+              sx={{ bgcolor: "#c0392b", "&:hover": { bgcolor: "#e74c3c" } }}>
+              {deletingPlan ? <CircularProgress size={16} /> : "Eliminar"}
             </Button>
           </DialogActions>
         </Dialog>

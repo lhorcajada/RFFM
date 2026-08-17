@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   Box,
   Button,
@@ -16,13 +17,60 @@ import { methodologyOptions, sectionOptions, typeOptions } from "../constants";
 import type { ExerciseFormState, ExerciseMethodology } from "../hooks/useExerciseForm";
 import styles from "../NewExercisePage.module.css";
 import type { ExerciseSection, ExerciseType } from "../../../../types/training";
+import seasonPlanService from "../../../../services/seasonPlanService";
+import seasonService from "../../../../services/seasonService";
+
+interface MicrocicloOption {
+  id: string;
+  label: string;
+}
+
+function useMicrocicloOptions(teamId?: string): MicrocicloOption[] {
+  const [options, setOptions] = useState<MicrocicloOption[]>([]);
+
+  useEffect(() => {
+    if (!teamId) {
+      setOptions([]);
+      return;
+    }
+    let cancelled = false;
+
+    async function load() {
+      const activeSeason = await seasonService.getActiveSeason();
+      if (!activeSeason?.id) return;
+      const plan = await seasonPlanService.getByTeamIdAndSeason(teamId as string, activeSeason.id);
+      if (cancelled || !plan) return;
+
+      const flat: MicrocicloOption[] = [];
+      for (const macrociclo of plan.macrociclos) {
+        for (const mesociclo of macrociclo.mesociclos) {
+          for (const microciclo of mesociclo.microciclos) {
+            if (microciclo.apiId) {
+              flat.push({ id: microciclo.apiId, label: `${mesociclo.name} — ${microciclo.weekLabel}` });
+            }
+          }
+        }
+      }
+      setOptions(flat);
+    }
+
+    void load().catch(() => setOptions([]));
+    return () => {
+      cancelled = true;
+    };
+  }, [teamId]);
+
+  return options;
+}
 
 interface ExerciseFormPanelProps {
   panelVisible: boolean;
   form: ExerciseFormState;
+  teamId?: string;
 }
 
-export default function ExerciseFormPanel({ panelVisible, form }: ExerciseFormPanelProps) {
+export default function ExerciseFormPanel({ panelVisible, form, teamId }: ExerciseFormPanelProps) {
+  const microcicloOptions = useMicrocicloOptions(teamId);
   const {
     form: formData,
     setField,
@@ -229,6 +277,26 @@ export default function ExerciseFormPanel({ panelVisible, form }: ExerciseFormPa
               className={styles.numField}
             />
           </Box>
+        )}
+
+        {microcicloOptions.length > 0 && (
+          <FormControl size="small" className={styles.field}>
+            <InputLabel id="exercise-microciclo-label">Microciclo</InputLabel>
+            <Select
+              labelId="exercise-microciclo-label"
+              label="Microciclo"
+              value={formData.microcicloId ?? ""}
+              displayEmpty
+              onChange={(e: SelectChangeEvent) => setField("microcicloId", e.target.value || undefined)}
+            >
+              <MenuItem value="">Sin vincular</MenuItem>
+              {microcicloOptions.map((o) => (
+                <MenuItem key={o.id} value={o.id}>
+                  {o.label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
         )}
 
         <Divider className={styles.divider} />

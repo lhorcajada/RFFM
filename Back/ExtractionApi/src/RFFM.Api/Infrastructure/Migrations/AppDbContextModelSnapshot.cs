@@ -861,6 +861,213 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.ToTable("Zonas", "app");
                 });
 
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.SeasonPlans.Macrociclo", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<DateOnly>("EndDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SeasonPlanId")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<DateOnly>("StartDate")
+                        .HasColumnType("date");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SeasonPlanId");
+
+                    b.ToTable("Macrociclos", "app");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.SeasonPlans.Mesociclo", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<DateOnly>("EndDate")
+                        .HasColumnType("date");
+
+                    b.Property<int>("GameZoneId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("MacrocicloId")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("integer");
+
+                    b.Property<DateOnly>("StartDate")
+                        .HasColumnType("date");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GameZoneId");
+
+                    b.HasIndex("MacrocicloId");
+
+                    b.ToTable("Mesociclos", "app");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.SeasonPlans.Microciclo", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<DateOnly>("EndDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("MesocicloId")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<string>("ObjetivoSesionA")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("ObjetivoSesionB")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SesionAHabilidades")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("SesionBHabilidades")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateOnly>("StartDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("WeekLabel")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MesocicloId");
+
+                    b.ToTable("Microciclos", "app");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.SeasonPlans.MicrocicloSubSubPrincipioLink", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<string>("MicrocicloId")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<string>("Session")
+                        .IsRequired()
+                        .HasMaxLength(1)
+                        .HasColumnType("character varying(1)");
+
+                    b.Property<string>("SubSubPrincipioId")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SubSubPrincipioId");
+
+                    b.HasIndex("MicrocicloId", "Session", "SubSubPrincipioId")
+                        .IsUnique();
+
+                    b.ToTable("MicrocicloSubSubPrincipioLinks", "app");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.SeasonPlans.MicrocicloSubprincipioLink", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<string>("MicrocicloId")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<string>("Session")
+                        .IsRequired()
+                        .HasMaxLength(1)
+                        .HasColumnType("character varying(1)");
+
+                    b.Property<string>("SubprincipioId")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SubprincipioId");
+
+                    b.HasIndex("MicrocicloId", "Session", "SubprincipioId")
+                        .IsUnique();
+
+                    b.ToTable("MicrocicloSubprincipioLinks", "app");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.SeasonPlans.SeasonPlan", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<string>("SeasonId")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<string>("TeamId")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SeasonId");
+
+                    b.HasIndex("TeamId", "SeasonId")
+                        .IsUnique();
+
+                    b.ToTable("SeasonPlans", "app");
+                });
+
             modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Technicals.Technical", b =>
                 {
                     b.Property<string>("Id")
@@ -1174,6 +1381,10 @@ namespace RFFM.Api.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<string>("MicrocicloId")
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -1212,6 +1423,8 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ClubId");
+
+                    b.HasIndex("MicrocicloId");
 
                     b.ToTable("TaskTrainingBases", "app");
                 });
@@ -5041,6 +5254,78 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.Navigation("Subprincipio");
                 });
 
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.SeasonPlans.Macrociclo", b =>
+                {
+                    b.HasOne("RFFM.Api.Domain.Aggregates.SeasonPlans.SeasonPlan", null)
+                        .WithMany("Macrociclos")
+                        .HasForeignKey("SeasonPlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.SeasonPlans.Mesociclo", b =>
+                {
+                    b.HasOne("RFFM.Api.Domain.Aggregates.GameModels.GameZone", null)
+                        .WithMany()
+                        .HasForeignKey("GameZoneId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RFFM.Api.Domain.Aggregates.SeasonPlans.Macrociclo", null)
+                        .WithMany("Mesociclos")
+                        .HasForeignKey("MacrocicloId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.SeasonPlans.Microciclo", b =>
+                {
+                    b.HasOne("RFFM.Api.Domain.Aggregates.SeasonPlans.Mesociclo", null)
+                        .WithMany("Microciclos")
+                        .HasForeignKey("MesocicloId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.SeasonPlans.MicrocicloSubSubPrincipioLink", b =>
+                {
+                    b.HasOne("RFFM.Api.Domain.Aggregates.SeasonPlans.Microciclo", null)
+                        .WithMany("SubSubPrincipioLinks")
+                        .HasForeignKey("MicrocicloId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("RFFM.Api.Domain.Aggregates.GameModels.SubSubPrincipio", null)
+                        .WithMany()
+                        .HasForeignKey("SubSubPrincipioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.SeasonPlans.MicrocicloSubprincipioLink", b =>
+                {
+                    b.HasOne("RFFM.Api.Domain.Aggregates.SeasonPlans.Microciclo", null)
+                        .WithMany("SubprincipioLinks")
+                        .HasForeignKey("MicrocicloId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("RFFM.Api.Domain.Aggregates.GameModels.Subprincipio", null)
+                        .WithMany()
+                        .HasForeignKey("SubprincipioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.SeasonPlans.SeasonPlan", b =>
+                {
+                    b.HasOne("RFFM.Api.Domain.Entities.Seasons.Season", null)
+                        .WithMany()
+                        .HasForeignKey("SeasonId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Technicals.Technical", b =>
                 {
                     b.HasOne("RFFM.Api.Domain.Aggregates.Technicals.TechnicalType", "TechnicalType")
@@ -5096,6 +5381,11 @@ namespace RFFM.Api.Infrastructure.Migrations
                         .HasForeignKey("ClubId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("RFFM.Api.Domain.Aggregates.SeasonPlans.Microciclo", null)
+                        .WithMany()
+                        .HasForeignKey("MicrocicloId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Club");
                 });
@@ -5730,6 +6020,28 @@ namespace RFFM.Api.Infrastructure.Migrations
             modelBuilder.Entity("RFFM.Api.Domain.Aggregates.GameModels.Zona", b =>
                 {
                     b.Navigation("SubSubPrincipios");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.SeasonPlans.Macrociclo", b =>
+                {
+                    b.Navigation("Mesociclos");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.SeasonPlans.Mesociclo", b =>
+                {
+                    b.Navigation("Microciclos");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.SeasonPlans.Microciclo", b =>
+                {
+                    b.Navigation("SubSubPrincipioLinks");
+
+                    b.Navigation("SubprincipioLinks");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.SeasonPlans.SeasonPlan", b =>
+                {
+                    b.Navigation("Macrociclos");
                 });
 
             modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Training.TasksTraining.TaskTrainingBase", b =>

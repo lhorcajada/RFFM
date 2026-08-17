@@ -63,7 +63,8 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         int? RestSeries,
         // Technical/Tactical-specific
         int? TouchesNumber,
-        int? WildCards
+        int? WildCards,
+        string? MicrocicloId = null
     ) : IRequest<string>, IRequireFeaturePermission
     {
         public string UserId { get; init; } = string.Empty;
@@ -104,6 +105,7 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
                 RestSeries = request.RestSeries ?? 0,
                 TouchesNumber = request.TouchesNumber ?? 0,
                 WildCards = request.WildCards ?? 0,
+                MicrocicloId = request.MicrocicloId,
             };
 
             var typeEntities = await _db.ExerciseTypes

@@ -129,3 +129,41 @@ describe("useExerciseForm — methodology", () => {
     });
   });
 });
+
+describe("useExerciseForm — vínculo con Microciclo (SeasonPlan)", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("prellena form.microcicloId cuando se pasa el parámetro microcicloId", () => {
+    const { result } = renderHook(() =>
+      useExerciseForm({ clubId: "club-1", navigate, returnTo: "/coach/trainings", microcicloId: "micro-1" })
+    );
+
+    expect(result.current.form.microcicloId).toBe("micro-1");
+  });
+
+  it("no establece microcicloId cuando no se pasa el parámetro", () => {
+    const { result } = renderHook(() =>
+      useExerciseForm({ clubId: "club-1", navigate, returnTo: "/coach/trainings" })
+    );
+
+    expect(result.current.form.microcicloId).toBeFalsy();
+  });
+
+  it("loadExercise conserva el microcicloId del ejercicio cargado", async () => {
+    const { result } = renderHook(() =>
+      useExerciseForm({ clubId: "club-1", navigate, returnTo: "/coach/trainings" })
+    );
+
+    const exercise: Exercise = {
+      id: "ex-1", name: "Ejercicio", description: "", types: ["Tactical"],
+      section: "Principal", methodology: "Global", durationTotal: 10, playersNumber: 8, goalPeekersNumber: 0,
+      fieldSpace: "", conditions: [], microcicloId: "micro-2",
+    };
+
+    act(() => result.current.loadExercise(exercise));
+
+    await waitFor(() => {
+      expect(result.current.form.microcicloId).toBe("micro-2");
+    });
+  });
+});

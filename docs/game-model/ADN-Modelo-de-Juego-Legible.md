@@ -69,7 +69,7 @@ Está en construcción: de momento tiene desarrollado en detalle Defensa organiz
        - **Sub-subprincipio 1.1.19 — Central B:** cobertura/vigilancia sobre el delantero rival y el espacio, sin comprometerse en marcaje estricto.
          - Habilidad imprescindible — **Temporización** (misma que 1.1.7).
 
-     - **Zona de Creación Propia / Iniciación (bloque bajo).** Situación de bloque organizado: el balón todavía está en zona de iniciación rival y nuestro equipo, en conjunto, ocupa dos zonas a la vez (iniciación y creación propia) a la espera de que el rival avance. Lo que define esta zona no es dónde está el balón ni dónde está todo el bloque, sino la posición relativa de nuestra primera línea de presión respecto al resto del equipo: delantero, mediapunta y los dos extremos adelantados un escalón por delante, mientras el resto del equipo (mediocentros, laterales y centrales) permanece organizado justo detrás. Sistema base asumido: 1-4-2-3-1.
+     - **Zona de Creación Propia / Iniciación (bloque medio).** Situación de bloque organizado: el balón todavía está en zona de iniciación rival y nuestro equipo, en conjunto, ocupa dos zonas a la vez (iniciación y creación propia) a la espera de que el rival avance. Lo que define esta zona no es dónde está el balón ni dónde está todo el bloque, sino la posición relativa de nuestra primera línea de presión respecto al resto del equipo: delantero, mediapunta y los dos extremos adelantados un escalón por delante, mientras el resto del equipo (mediocentros, laterales y centrales) permanece organizado justo detrás. Sistema base asumido: 1-4-2-3-1.
 
        Cuando el rival nos tiene sometidos territorialmente y todo el bloque retrocede —incluida la línea de presión— hasta zona de iniciación, se aplican estos mismos sub-subprincipios (1.1.20–1.1.24) sin cambios: lo que importa es la relación entre la línea de presión y el resto del bloque, no la zona absoluta del campo en la que se encuentren.
 
@@ -643,8 +643,8 @@ Está en construcción: de momento tiene desarrollado en detalle Defensa organiz
 
      - **Zona de Creación Propia.**
 
-       - **Sub-subprincipio 1.1.6 — Todo el equipo:** repliegue rápido hasta formar un bloque medio.
-         - Habilidad imprescindible — **Activación**: repliega a máxima velocidad en cuanto se pierde el balón, sin esperar a ver qué hace el rival primero. (Entrenable: ejercicios de repliegue tras pérdida simulada en zona propia, midiendo el tiempo hasta formar el bloque medio.)
+       - **Sub-subprincipio 1.1.6 — Todo el equipo:** repliegue rápido hasta formar un bloque de urgencia.
+         - Habilidad imprescindible — **Activación**: repliega a máxima velocidad en cuanto se pierde el balón, sin esperar a ver qué hace el rival primero. (Entrenable: ejercicios de repliegue tras pérdida simulada en zona propia, midiendo el tiempo hasta formar el bloque de urgencia.)
        - **Sub-subprincipio 1.1.7 — Todo el equipo, basculación:** si se pierde el balón en banda, el equipo bascula hacia ese lado; si se pierde en carril central, el equipo repliega y se cierra en carriles centrales.
          - Habilidad imprescindible — **Anticipación**: reconoce por dónde se ha perdido el balón (banda o carril central) para bascular o cerrarse en consecuencia. (Entrenable: ejercicios de pérdida simulada alternando banda y carril central, exigiendo la báscula o el cierre correcto en cada caso.)
        - **Sub-subprincipio 1.1.8 — Jugador más cercano al poseedor:** presiona sin intentar robar, solo temporizando y conteniendo mientras el resto del equipo repliega.
@@ -700,11 +700,13 @@ Está en construcción: de momento tiene desarrollado en detalle Defensa organiz
 
 ## 5. Balón parado (ABP)
 
+**Filosofía general.** Es la única excepción deliberada a la flexibilidad e interpretación libre que rige el resto del modelo. Se trabaja de forma mecanizada, con jugadas ensayadas (guiones concretos); la creatividad individual solo entra en juego cuando el rival consigue frenar el guion inicial.
+
 **Córners defensivos.** Marcaje mixto: zona general más marcaje individual a los rivales más peligrosos por juego aéreo. Hay jugadores específicos asignados a cubrir el borde del área para la segunda jugada o el rechace.
 
 **Córners ofensivos.** Jugadas ensayadas con guiones concretos: bloqueos, pantallas, movimientos cruzados. Siempre se mantiene superioridad numérica atrás (+1 sobre el rival) — así nunca se cae en el escenario de "2 o más de desventaja" que en transición defensa-ataque dispara el modo paciencia.
 
-**Faltas defendiendo (cerca del área propia).** Reparto: 4 en barrera, 5 en marcaje mixto, 1 en mediocampo. Ese jugador de mediocampo cumple doble función: es el seguro anti-contragolpe y, si se recupera el balón tras el despeje, es la salida natural para la verticalidad inmediata. (El reparto 4+5+1+portero asume siempre equipo a 11.)
+**Faltas defendiendo (cerca del área propia).** Reparto: 4 en barrera, 5 en marcaje mixto, 1 en mediocampo. Ese jugador de mediocampo cumple doble función: es el seguro anti-contragolpe y, si se recupera el balón tras el despeje, es la salida natural para la verticalidad inmediata. (El reparto 4+5+1+portero asume siempre equipo a 11 — el club no exige ningún ADN de formato reducido, ver más abajo.)
 
 **Faltas atacando (cerca del área rival).** Mismo criterio que los córners ofensivos: guiones + superioridad numérica atrás.
 
@@ -712,9 +714,9 @@ Está en construcción: de momento tiene desarrollado en detalle Defensa organiz
 
 **Saque de portería.** Sigue el mismo ADN que la salida de balón en juego dinámico — los mismos gatillos de corto/largo del punto 8 de Ataque organizado.
 
-**Saque de centro.** Saque hacia atrás con golpeo en largo a una banda. Delantero, extremos y mediapunta se colocan en la línea de medio campo sobre el lado que se va a lanzar el pase. El saque de centro lo hace un medio centro. El centro en largo lo hace un medio centro o un central.
-
 **Penaltis.** Los lanzadores están prefijados; no se decide en el momento.
+
+**Formato reducido.** El club no pide ningún ADN de formato reducido (fútbol 7 o similar) en ninguna categoría — no hace falta desarrollarlo.
 
 ---
 

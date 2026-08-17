@@ -24,6 +24,9 @@ namespace RFFM.Api.Domain.Aggregates.Training.TasksTraining
         /// <summary>Training methodology: Analitico, Integrado, Global.</summary>
         public string Methodology { get; set; } = "Integrado";
 
+        /// <summary>Optional link to the SeasonPlan week (Microciclo) this exercise belongs to.</summary>
+        public string? MicrocicloId { get; set; }
+
         // Fields formerly exclusive to a TPH subclass — merged here since an exercise can now
         // have multiple types at once (Physical, Technical/Tactical fields all coexist).
         public int Series { get; set; }

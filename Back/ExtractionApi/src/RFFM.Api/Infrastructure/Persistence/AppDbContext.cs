@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using RFFM.Api.Domain.Aggregates.Assistances;
 using RFFM.Api.Domain.Aggregates.GameModels;
+using RFFM.Api.Domain.Aggregates.SeasonPlans;
 using RFFM.Api.Domain.Aggregates.Technicals;
 using RFFM.Api.Domain.Aggregates.Training;
 using RFFM.Api.Domain.Aggregates.Training.TasksTraining;
@@ -122,6 +123,14 @@ namespace RFFM.Api.Infrastructure.Persistence
         public DbSet<SeasonPrepPlayerRating> SeasonPrepPlayerRatings { get; set; }
         public DbSet<SeasonPrepPlayerRatingDetail> SeasonPrepPlayerRatingDetails { get; set; }
         public DbSet<SubSubPrincipio> SubSubPrincipios { get; set; }
+
+        // Season Plan (coach season planning: Macrociclo -> Mesociclo -> Microciclo)
+        public DbSet<SeasonPlan> SeasonPlans { get; set; }
+        public DbSet<Macrociclo> Macrociclos { get; set; }
+        public DbSet<Mesociclo> Mesociclos { get; set; }
+        public DbSet<Microciclo> Microciclos { get; set; }
+        public DbSet<MicrocicloSubprincipioLink> MicrocicloSubprincipioLinks { get; set; }
+        public DbSet<MicrocicloSubSubPrincipioLink> MicrocicloSubSubPrincipioLinks { get; set; }
 
         // News
         public DbSet<NewsItem> News { get; set; }

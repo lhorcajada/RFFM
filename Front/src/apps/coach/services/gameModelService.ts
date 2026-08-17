@@ -101,6 +101,12 @@ interface ApiGameMoment {
   order: number;
 }
 
+interface ApiGameZone {
+  id: number;
+  name: string;
+  order: number;
+}
+
 // ── Temp key counter (negative = unsaved) ────────────────────────────
 let _keyCounter = -1;
 const nextKey = () => _keyCounter--;
@@ -291,6 +297,7 @@ function mapModelToUpdateRequest(model: GameModel) {
 
 // ── Cached catalog (loaded once per session) ─────────────────────────
 let _momentsCache: GameMomentCatalogItem[] | null = null;
+let _zonesCache: ApiGameZone[] | null = null;
 
 async function getMoments(): Promise<GameMomentCatalogItem[]> {
   if (!_momentsCache || _momentsCache.length === 0) {
@@ -300,10 +307,23 @@ async function getMoments(): Promise<GameMomentCatalogItem[]> {
   return _momentsCache;
 }
 
+async function getZones(): Promise<ApiGameZone[]> {
+  if (!_zonesCache || _zonesCache.length === 0) {
+    const res = await client.get<ApiGameZone[]>("/api/game-models/zones");
+    _zonesCache = res.data;
+  }
+  return _zonesCache;
+}
+
 // ── Service ───────────────────────────────────────────────────────────
 const gameModelService = {
   async getMoments(): Promise<GameMomentCatalogItem[]> {
     return getMoments();
+  },
+
+  /** GameZone catalog (Iniciación/Creación Propia/Creación Rival/Finalización) — shared with SeasonPlan's Mesociclo.GameZoneId. */
+  async getZones(): Promise<ApiGameZone[]> {
+    return getZones();
   },
 
   async getSeasonsByTeamId(teamId: string): Promise<string[]> {

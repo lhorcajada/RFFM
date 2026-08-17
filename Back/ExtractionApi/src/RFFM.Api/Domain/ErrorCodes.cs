@@ -89,5 +89,10 @@ namespace RFFM.Api.Domain
 
         // Push Notifications (Features/Mobile/PushNotifications)
         public const string PushTokenNotFound = "PushTokenNotFound";
+
+        // Season Plans (Features/Coaches/SeasonPlans)
+        public const string SeasonPlanNotFound = "SeasonPlanNotFound";
+        public const string SeasonPlanAccessDenied = "SeasonPlanAccessDenied";
+        public const string SeasonPlanAlreadyExists = "SeasonPlanAlreadyExists";
     }
 }

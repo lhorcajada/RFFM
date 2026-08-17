@@ -18,10 +18,16 @@ interface UseExerciseFormParams {
   navigate: NavigateFunction;
   returnTo: string;
   getBoardStateJson?: () => string;
+  /** Prefills the form's link to a SeasonPlan Microciclo when creating from the Planificación tab. */
+  microcicloId?: string | null;
 }
 
-export function useExerciseForm({ clubId, navigate, returnTo, getBoardStateJson }: UseExerciseFormParams) {
-  const [form, setForm] = useState<CreateExerciseRequest>({ ...emptyExercise, clubId });
+export function useExerciseForm({ clubId, navigate, returnTo, getBoardStateJson, microcicloId }: UseExerciseFormParams) {
+  const [form, setForm] = useState<CreateExerciseRequest>({
+    ...emptyExercise,
+    clubId,
+    microcicloId: microcicloId ?? undefined,
+  });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -56,6 +62,7 @@ export function useExerciseForm({ clubId, navigate, returnTo, getBoardStateJson 
       series: exercise.series ?? 0,
       durationSeries: exercise.durationSeries ?? 0,
       restSeries: exercise.restSeries ?? 0,
+      microcicloId: exercise.microcicloId ?? undefined,
     });
 
     setSavedExerciseId(asCopy ? null : exercise.id);
@@ -100,7 +107,8 @@ export function useExerciseForm({ clubId, navigate, returnTo, getBoardStateJson 
   }, [previewUrl]);
 
   useEffect(() => {
-    setForm({ ...emptyExercise, clubId });
+    setForm({ ...emptyExercise, clubId, microcicloId: microcicloId ?? undefined });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clubId]);
 
   const loadExercise = (exercise: Exercise) => void applyExercise(exercise, false);

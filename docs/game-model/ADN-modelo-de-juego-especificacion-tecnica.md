@@ -75,7 +75,7 @@ El legible sigue sus propias convenciones de forma consistente en todo el docume
 
 El legible tiene varias cabeceras de Zona que no son una única zona del catálogo. El importador debe resolverlas así, caso por caso, en vez de intentar adivinar un patrón genérico:
 
-- **"Zona de Creación Propia / Iniciación (bloque bajo)"** (Defensa organizada, Subprincipio 1.1) → `zoneKeys: [creacion-propia, iniciacion]`, con una `Nota` explicando que lo que define esta Zona es la posición relativa de la línea de presión respecto al resto del bloque, no la zona absoluta del campo.
+- **"Zona de Creación Propia / Iniciación (bloque medio)"** (Defensa organizada, Subprincipio 1.1) → `zoneKeys: [creacion-propia, iniciacion]`, con una `Nota` explicando que lo que define esta Zona es la posición relativa de la línea de presión respecto al resto del bloque, no la zona absoluta del campo.
 - **"Zona de Finalización / Creación Rival / Creación Propia."** (Defensa organizada, Subprincipio 1.3) → `zoneKeys: [finalizacion, creacion-rival, creacion-propia]`.
 - **"Balón cae entre Zona de Creación Rival y Zona de Creación Propia (extremo superado en Finalización)"** (Defensa organizada, Subprincipio 1.4) → `zoneKey: compuesta`, con `zona_texto` guardando el texto literal — este caso depende de dónde cae el balón tras un pase largo, no de dónde se defiende, y no encaja limpio en el catálogo de 4 zonas.
 - **"Balón cae en Zona de Creación Rival."** / **"Balón cae en Zona de Creación Propia / Iniciación."** (mismo Subprincipio 1.4) → mismo tratamiento que el punto anterior.
@@ -102,8 +102,8 @@ Si el legible introduce una habilidad nueva en el futuro, hay que añadirla expl
 A diferencia de las otras cuatro fases, "## 5. Balón parado (ABP)" no tiene Subprincipios ni Zonas — es una lista plana de bloques `**Etiqueta.** texto`. Cada uno se importa como `SetPieceRule`:
 
 ```yaml
-subtype: corners-defensivos | corners-ofensivos | faltas-defendiendo |
-  faltas-atacando | saques-banda | saque-porteria | saque-centro | penaltis
+subtype: filosofia-general | corners-defensivos | corners-ofensivos | faltas-defendiendo |
+  faltas-atacando | saques-banda | saque-porteria | penaltis | formato-reducido
 fields:
   texto: "el contenido completo del bloque, sin trocear más"
 notes: "Balón parado se trabaja con guiones cerrados, no con decisiones por rol — no hace

@@ -57,7 +57,8 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         int? DurationSeries,
         int? RestSeries,
         int? TouchesNumber,
-        int? WildCards
+        int? WildCards,
+        string? MicrocicloId = null
     ) : IRequest, IRequireFeaturePermission
     {
         public string Id { get; init; } = string.Empty;
@@ -94,6 +95,7 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
             exercise.FieldSpace = request.FieldSpace;
             exercise.Section = request.Section;
             exercise.Methodology = request.Methodology;
+            exercise.MicrocicloId = request.MicrocicloId;
             if (request.BoardStateJson is not null)
                 exercise.BoardStateJson = request.BoardStateJson;
 

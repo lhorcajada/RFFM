@@ -80,7 +80,8 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
                 exercise.FieldSpace,
                 exercise.UrlImage,
                 exercise.BoardStateJson,
-                exercise.Conditions.OrderBy(c => c.Order).Select(c => new ConditionDto(c.Id, c.Text, c.Order))
+                exercise.Conditions.OrderBy(c => c.Order).Select(c => new ConditionDto(c.Id, c.Text, c.Order)),
+                exercise.MicrocicloId
             );
         }
     }

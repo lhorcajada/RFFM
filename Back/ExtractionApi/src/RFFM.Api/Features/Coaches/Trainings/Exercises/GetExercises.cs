@@ -21,13 +21,13 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         public void AddRoutes(IEndpointRouteBuilder app)
         {
             app.MapGet("/api/trainings/exercises",
-                    async (string clubId, string? methodology, HttpContext httpContext, IMediator mediator, CancellationToken ct) =>
+                    async (string clubId, string? methodology, string? microcicloId, HttpContext httpContext, IMediator mediator, CancellationToken ct) =>
                     {
                         var userId = httpContext.User.Claims
                             .FirstOrDefault(c => c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value;
                         if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
 
-                        var result = await mediator.Send(new GetExercisesQuery(clubId, methodology, userId), ct);
+                        var result = await mediator.Send(new GetExercisesQuery(clubId, methodology, userId, microcicloId), ct);
                         return Results.Ok(result);
                     })
                 .WithName(nameof(GetExercises))
@@ -37,7 +37,7 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         }
     }
 
-    public record GetExercisesQuery(string ClubId, string? Methodology, string UserId) : IRequest<IEnumerable<ExerciseListItem>>, IRequireFeaturePermission
+    public record GetExercisesQuery(string ClubId, string? Methodology, string UserId, string? MicrocicloId = null) : IRequest<IEnumerable<ExerciseListItem>>, IRequireFeaturePermission
     {
         public string FeatureRoute => CoachFeatureRoutes.Trainings;
         public string RequiredPermission => "Read";
@@ -65,6 +65,9 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
             if (!string.IsNullOrEmpty(request.Methodology))
                 query = query.Where(tb => tb.Methodology == request.Methodology);
 
+            if (!string.IsNullOrEmpty(request.MicrocicloId))
+                query = query.Where(tb => tb.MicrocicloId == request.MicrocicloId);
+
             var entities = await query
                 .OrderBy(tb => tb.Name)
                 .ToListAsync(ct);
@@ -82,7 +85,8 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
                 tb.FieldSpace,
                 tb.UrlImage,
                 tb.BoardStateJson,
-                tb.Conditions.OrderBy(c => c.Order).Select(c => new ConditionDto(c.Id, c.Text, c.Order))
+                tb.Conditions.OrderBy(c => c.Order).Select(c => new ConditionDto(c.Id, c.Text, c.Order)),
+                tb.MicrocicloId
             ));
         }
     }
@@ -100,5 +104,6 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         string FieldSpace,
         string? UrlImage,
         string? BoardStateJson,
-        IEnumerable<ConditionDto> Conditions);
+        IEnumerable<ConditionDto> Conditions,
+        string? MicrocicloId = null);
 }

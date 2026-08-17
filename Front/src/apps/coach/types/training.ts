@@ -34,6 +34,8 @@ export interface Exercise {
   restSeries?: number;
   touchesNumber?: number;
   wildCards?: number;
+  /** Optional link to a SeasonPlan Microciclo (week of the season planning calendar). */
+  microcicloId?: string | null;
 }
 
 export interface CreateExerciseRequest {
@@ -55,6 +57,8 @@ export interface CreateExerciseRequest {
   // Technical/Tactical
   touchesNumber?: number;
   wildCards?: number;
+  /** Optional link to a SeasonPlan Microciclo (week of the season planning calendar). */
+  microcicloId?: string | null;
 }
 
 export type UpdateExerciseRequest = Omit<CreateExerciseRequest, "clubId">;

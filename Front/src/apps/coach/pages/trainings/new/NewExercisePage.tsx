@@ -1,5 +1,5 @@
 ﻿import { useEffect, useRef, useState } from "react";
-import { Box, Button, CircularProgress } from "@mui/material";
+import { Box, Button, Chip, CircularProgress, Typography } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SaveIcon from "@mui/icons-material/Save";
 import SportsSoccerIcon from "@mui/icons-material/SportsSoccer";
@@ -8,6 +8,10 @@ import TextFieldsIcon from "@mui/icons-material/TextFields";
 import { useLocation, useNavigate } from "react-router-dom";
 import BaseLayout from "../../../../../shared/components/ui/BaseLayout/BaseLayout";
 import trainingService from "../../../services/trainingService";
+import seasonPlanService from "../../../services/seasonPlanService";
+import seasonService from "../../../services/seasonService";
+import { GAME_ZONE_LABELS } from "../season-plan/gameZoneLabels";
+import type { AdnSubprincipioSummary, AdnSubSubPrincipioSummary } from "../../../types/seasonPlan";
 import styles from "./NewExercisePage.module.css";
 import ChapasStrip from "./components/ChapasStrip";
 import ExerciseFormPanel from "./components/ExerciseFormPanel";
@@ -30,6 +34,7 @@ export default function NewExercisePage() {
   const teamId = params.get("teamId") ?? "";
   const exerciseId = params.get("exerciseId");
   const duplicateFromId = params.get("duplicateFrom");
+  const microcicloId = params.get("microcicloId");
 
   const navState = (location.state as NavState | null) ?? null;
   const returnTo = navState?.returnTo ?? "/coach/trainings";
@@ -41,7 +46,65 @@ export default function NewExercisePage() {
     navigate,
     returnTo,
     getBoardStateJson: board.serializeBoardStateJson,
+    microcicloId,
   });
+
+  // Read-only context banner: the Microciclo's week label + its parent Mesociclo's zone,
+  // shown above the form when creating an exercise from the Planificación tab. Also shows
+  // each session's linked ADN targets (Subprincipio/SubSubPrincipio/Habilidad) — the create
+  // flow doesn't currently know whether the exercise is "for" Sesión A or B, so both
+  // sessions' chips are shown, clearly labeled, rather than guessing which one applies.
+  interface SessionAdnContext {
+    subprincipios: AdnSubprincipioSummary[];
+    subSubPrincipios: AdnSubSubPrincipioSummary[];
+    habilidades: string[];
+  }
+  const [microcicloContext, setMicrocicloContext] = useState<{
+    weekLabel: string;
+    zoneLabel: string;
+    sesionA: SessionAdnContext;
+    sesionB: SessionAdnContext;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!microcicloId || !teamId) return;
+    let cancelled = false;
+
+    async function loadContext() {
+      const activeSeason = await seasonService.getActiveSeason();
+      if (!activeSeason?.id) return;
+      const plan = await seasonPlanService.getByTeamIdAndSeason(teamId, activeSeason.id);
+      if (cancelled || !plan) return;
+
+      for (const macrociclo of plan.macrociclos) {
+        for (const mesociclo of macrociclo.mesociclos) {
+          const microciclo = mesociclo.microciclos.find((m) => m.apiId === microcicloId);
+          if (microciclo) {
+            setMicrocicloContext({
+              weekLabel: microciclo.weekLabel,
+              zoneLabel: GAME_ZONE_LABELS[mesociclo.gameZoneId] ?? "",
+              sesionA: {
+                subprincipios: microciclo.sesionASubprincipios,
+                subSubPrincipios: microciclo.sesionASubSubPrincipios,
+                habilidades: microciclo.sesionAHabilidades,
+              },
+              sesionB: {
+                subprincipios: microciclo.sesionBSubprincipios,
+                subSubPrincipios: microciclo.sesionBSubSubPrincipios,
+                habilidades: microciclo.sesionBHabilidades,
+              },
+            });
+            return;
+          }
+        }
+      }
+    }
+
+    void loadContext();
+    return () => {
+      cancelled = true;
+    };
+  }, [microcicloId, teamId]);
 
   useEffect(() => {
     const sourceId = exerciseId ?? duplicateFromId;
@@ -92,11 +155,50 @@ export default function NewExercisePage() {
           </Button>
         </Box>
 
+        {microcicloContext && (
+          <Box className={styles.microcicloBanner}>
+            <Typography className={styles.microcicloBannerText}>
+              Vinculado a <strong>{microcicloContext.weekLabel}</strong>
+              {microcicloContext.zoneLabel ? ` · ${microcicloContext.zoneLabel}` : ""}
+            </Typography>
+            {([
+              ["A", microcicloContext.sesionA],
+              ["B", microcicloContext.sesionB],
+            ] as const).map(([sessionLabel, session]) => {
+              const hasLinks =
+                session.subprincipios.length > 0 || session.subSubPrincipios.length > 0 || session.habilidades.length > 0;
+              if (!hasLinks) return null;
+
+              return (
+                <Box key={sessionLabel} className={styles.microcicloBannerSession}>
+                  <Typography className={styles.microcicloBannerSessionLabel}>Sesión {sessionLabel}</Typography>
+                  <Box className={styles.microcicloBannerChips}>
+                    {session.subprincipios.map((s) => (
+                      <Chip key={s.id} label={`${s.titulo} ${s.numero}`} size="small" className={styles.microcicloBannerChip} />
+                    ))}
+                    {session.subSubPrincipios.map((s) => (
+                      <Chip
+                        key={s.id}
+                        label={`${s.numero} · ${s.rol}`}
+                        size="small"
+                        className={styles.microcicloBannerChip}
+                      />
+                    ))}
+                    {session.habilidades.map((h) => (
+                      <Chip key={h} label={h} size="small" className={styles.microcicloBannerHabilidadChip} />
+                    ))}
+                  </Box>
+                </Box>
+              );
+            })}
+          </Box>
+        )}
+
         <Box className={styles.workspace}>
           <Box className={styles.pitchArea}>
             <TacticalField halfPitchRef={halfPitchRef} board={board} />
           </Box>
-          <ExerciseFormPanel panelVisible={panelVisible} form={exerciseForm} />
+          <ExerciseFormPanel panelVisible={panelVisible} form={exerciseForm} teamId={teamId} />
         </Box>
 
         {board.showChapas && <ChapasStrip board={board} />}

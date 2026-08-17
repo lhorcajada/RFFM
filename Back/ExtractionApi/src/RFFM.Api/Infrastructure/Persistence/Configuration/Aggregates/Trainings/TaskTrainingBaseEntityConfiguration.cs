@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using RFFM.Api.Domain.Aggregates.SeasonPlans;
 using RFFM.Api.Domain.Aggregates.Training.TasksTraining;
 
 namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.Trainings
@@ -61,6 +62,15 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.Trainings
                 .WithOne(t => t.TaskTrainingBase)
                 .HasForeignKey(t => t.TaskTrainingBaseId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Property(tb => tb.MicrocicloId)
+                .IsRequired(false)
+                .HasMaxLength(36);
+
+            builder.HasOne<Microciclo>()
+                .WithMany()
+                .HasForeignKey(tb => tb.MicrocicloId)
+                .OnDelete(DeleteBehavior.SetNull);
         }
     }
 }
