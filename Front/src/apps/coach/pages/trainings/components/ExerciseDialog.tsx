@@ -54,6 +54,7 @@ const empty: CreateExerciseRequest = {
   description: "",
   types: ["Tactical"],
   section: "Principal",
+  methodology: "Integrado",
   durationTotal: 15,
   playersNumber: 10,
   goalPeekersNumber: 1,
@@ -63,6 +64,8 @@ const empty: CreateExerciseRequest = {
   series: 0,
   durationSeries: 0,
   restSeries: 0,
+  modelLinks: [],
+  habilidades: [],
 };
 
 export default function ExerciseDialog({ open, clubId, exercise, onClose, onSaved }: Props) {
@@ -90,6 +93,7 @@ export default function ExerciseDialog({ open, clubId, exercise, onClose, onSave
         description: exercise.description,
         types: exercise.types,
         section: exercise.section,
+        methodology: exercise.methodology,
         durationTotal: exercise.durationTotal,
         playersNumber: exercise.playersNumber,
         goalPeekersNumber: exercise.goalPeekersNumber,
@@ -99,6 +103,12 @@ export default function ExerciseDialog({ open, clubId, exercise, onClose, onSave
         series: exercise.series ?? 0,
         durationSeries: exercise.durationSeries ?? 0,
         restSeries: exercise.restSeries ?? 0,
+        modelLinks: (exercise.modelLinks ?? []).map((link) => ({
+          subprincipioId: link.subprincipioId ?? null,
+          subSubPrincipioId: link.subSubPrincipioId ?? null,
+          isFoco: link.isFoco,
+        })),
+        habilidades: exercise.habilidades ?? [],
       });
     } else {
       setForm({ ...empty, clubId });

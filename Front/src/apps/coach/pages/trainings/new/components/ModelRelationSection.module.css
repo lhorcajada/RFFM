@@ -1,0 +1,80 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.title {
+  font-size: 0.78rem !important;
+  font-weight: 700 !important;
+  color: #a8d4f5 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.noGameModelHint {
+  font-size: 0.72rem !important;
+  color: rgba(255, 193, 7, 0.85) !important;
+  font-style: italic;
+}
+
+.noGameModelLink {
+  color: #4d9de0 !important;
+}
+
+.linkRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.linkPicker {
+  flex: 1.5;
+  min-width: 0;
+}
+
+.linkPicker :global(.MuiInputBase-root) {
+  color: #e8e8e8 !important;
+}
+
+.linkPicker :global(.MuiInputLabel-root) {
+  color: rgba(212, 212, 212, 0.62) !important;
+}
+
+.linkPicker :global(.MuiOutlinedInput-notchedOutline) {
+  border-color: rgba(77, 157, 224, 0.3) !important;
+}
+
+.focoToggle {
+  flex-shrink: 0;
+}
+
+.focoToggleBtn {
+  font-size: 0.65rem !important;
+  padding: 4px 8px !important;
+  color: rgba(212, 212, 212, 0.7) !important;
+  border-color: rgba(77, 157, 224, 0.3) !important;
+}
+
+.focoToggleBtn.Mui-selected {
+  background-color: rgba(77, 157, 224, 0.2) !important;
+  color: #4d9de0 !important;
+}
+
+.addLinkBtn {
+  align-self: flex-start;
+  color: #4d9de0 !important;
+}
+
+.habilidadesPicker :global(.MuiInputBase-root) {
+  color: #e8e8e8 !important;
+}
+
+.habilidadesPicker :global(.MuiInputLabel-root) {
+  color: rgba(212, 212, 212, 0.62) !important;
+}
+
+.habilidadesPicker :global(.MuiOutlinedInput-notchedOutline) {
+  border-color: rgba(77, 157, 224, 0.3) !important;
+}

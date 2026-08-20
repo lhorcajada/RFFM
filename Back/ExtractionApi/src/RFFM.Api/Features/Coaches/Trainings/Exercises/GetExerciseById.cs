@@ -56,6 +56,8 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
                 .Include(tb => tb.Types)
                     .ThenInclude(t => t.ExerciseType)
                 .Include(tb => tb.Conditions)
+                .Include(tb => tb.ModelLinks)
+                .AsSplitQuery()
                 .FirstOrDefaultAsync(tb => tb.Id == request.ExerciseId, ct);
 
             if (exercise is null)
@@ -66,6 +68,8 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
 
             if (!hasAccess)
                 throw new DomainException("Ejercicios", "No tienes acceso a este ejercicio.", ErrorCodes.ExerciseAccessDenied);
+
+            var modelLinkSummaries = await ExerciseModelLinkResolver.ResolveAsync(_db, exercise.ModelLinks, ct);
 
             return new ExerciseListItem(
                 exercise.Id,
@@ -81,7 +85,9 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
                 exercise.UrlImage,
                 exercise.BoardStateJson,
                 exercise.Conditions.OrderBy(c => c.Order).Select(c => new ConditionDto(c.Id, c.Text, c.Order)),
-                exercise.MicrocicloId
+                exercise.MicrocicloId,
+                exercise.ModelLinks.Select(l => modelLinkSummaries[l.Id]),
+                exercise.Habilidades
             );
         }
     }

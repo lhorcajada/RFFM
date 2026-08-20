@@ -39,6 +39,16 @@
     font-weight:600;
     color:var(--green-dark);
   }
+  .nota-transversal{
+    background:var(--gold-bg);
+    border-left:6px solid var(--green-mid);
+    padding:12px 18px;
+    margin-top:-16px;
+    margin-bottom:28px;
+    font-size:13.5px;
+    color:var(--text);
+  }
+  .nota-transversal strong{color:var(--green-dark);}
   h2{
     color:var(--green-mid);
     font-size:20px;
@@ -114,6 +124,23 @@
   probablemente está rompiendo el modelo, no matizándolo.
 </div>
 
+<div class="nota-transversal">
+  <strong>Nota transversal (Transición ataque-defensa, las cuatro zonas):</strong> en el instante mismo
+  en que se pierde el balón, el jugador más cercano avisa en voz alta ("¡Perdido!") para que todo el
+  equipo reaccione a la vez, sin depender de que cada uno perciba la pérdida por su cuenta — esto se
+  aplica siempre, además del criterio de agresividad/prudencia que marca cada zona en la tabla de abajo.
+  <br><br>
+  <strong>Nota transversal (Transición ataque-defensa, número de efectivos cerca del balón):</strong>
+  tras la reacción inmediata, si quedamos en inferioridad numérica se prioriza contener y ganar tiempo
+  sin entrar a robar, con cobertura detrás; en superioridad numérica se presiona a máxima intensidad
+  de inmediato, sin esperar, porque el rival aún no ha tenido tiempo de organizarse tras perder el balón.
+  <br><br>
+  <strong>Nota transversal (Ataque organizado, saque de puerta):</strong> por defecto se saca en corto.
+  Si se encadenan 3 saques seguidos sin progresar a Creación Rival, se pasa a jugar largo el resto del
+  partido — salvo en los últimos 15 minutos de la primera parte (y solo si no vamos perdiendo), donde
+  se reinicia el criterio y se prueba en corto otras 3 veces antes de quedarse en largo de forma definitiva.
+</div>
+
 <table>
   <tr>
     <th class="col-zona">Zona</th>
@@ -161,6 +188,8 @@
   <li><strong>Superioridad numérica + espacio libre + líneas rivales separadas, los tres a la vez, en Creación Propia/Rival</strong> → se salta la progresión zona a zona y se busca Finalización directamente.</li>
   <li><strong>Pérdida del balón con cobertura ya colocada</strong> (roles de contención de Ataque organizado) → reacción agresiva de Transición ataque-defensa sin dudar. <strong>Pérdida por error no forzado, sin esa cobertura</strong> → reacción más prudente, temporizar y recomponer primero.</li>
   <li><strong>Cualquier decisión de riesgo en Zona de Iniciación</strong> (falta táctica, fuera de juego con trampa, robo con superioridad numérica) → no se arriesga nunca aquí, por muy tentador que parezca en el momento — es la zona más cara para fallar.</li>
+  <li><strong>3 saques de puerta seguidos sin progresar a Creación Rival</strong> → se pasa a jugar largo el resto del partido, rompiendo la preferencia por defecto de salir en corto — con la única excepción de los últimos 15 minutos de la primera parte si no vamos perdiendo.</li>
+  <li><strong>Inferioridad numérica justo tras la reacción inmediata a una pérdida</strong> → contener y ganar tiempo en vez de entrar a robar, aunque la zona por defecto pidiera presión.</li>
 </ul>
 </div>
 

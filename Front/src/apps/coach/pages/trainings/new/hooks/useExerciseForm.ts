@@ -63,6 +63,12 @@ export function useExerciseForm({ clubId, navigate, returnTo, getBoardStateJson,
       durationSeries: exercise.durationSeries ?? 0,
       restSeries: exercise.restSeries ?? 0,
       microcicloId: exercise.microcicloId ?? undefined,
+      modelLinks: (exercise.modelLinks ?? []).map((link) => ({
+        subprincipioId: link.subprincipioId ?? null,
+        subSubPrincipioId: link.subSubPrincipioId ?? null,
+        isFoco: link.isFoco,
+      })),
+      habilidades: exercise.habilidades ?? [],
     });
 
     setSavedExerciseId(asCopy ? null : exercise.id);

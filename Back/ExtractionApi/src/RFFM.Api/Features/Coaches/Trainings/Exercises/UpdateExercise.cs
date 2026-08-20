@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Common;
 using RFFM.Api.Domain;
+using RFFM.Api.Domain.Aggregates.GameModels;
 using RFFM.Api.Domain.Aggregates.Training.TasksTraining;
 using RFFM.Api.Domain.Entities;
 using RFFM.Api.FeatureModules;
@@ -58,7 +59,9 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         int? RestSeries,
         int? TouchesNumber,
         int? WildCards,
-        string? MicrocicloId = null
+        string? MicrocicloId = null,
+        List<ExerciseModelLinkRequest>? ModelLinks = null,
+        List<string>? Habilidades = null
     ) : IRequest, IRequireFeaturePermission
     {
         public string Id { get; init; } = string.Empty;
@@ -77,6 +80,7 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         {
             var exercise = await _db.TaskTrainingBases
                 .Include(tb => tb.Types)
+                .Include(tb => tb.ModelLinks)
                 .FirstOrDefaultAsync(tb => tb.Id == request.Id, ct);
 
             if (exercise is null)
@@ -114,6 +118,12 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
             foreach (var typeEntity in typeEntities)
                 exercise.Types.Add(new TaskTrainingType { TaskTrainingBaseId = exercise.Id, ExerciseTypeId = typeEntity.Id });
 
+            // Replace model links
+            _db.ExerciseModelLinks.RemoveRange(exercise.ModelLinks);
+            exercise.ReplaceModelLinks((request.ModelLinks ?? new List<ExerciseModelLinkRequest>())
+                .Select(l => (l.SubprincipioId, l.SubSubPrincipioId, l.IsFoco)));
+            exercise.UpdateHabilidades(request.Habilidades);
+
             await _db.SaveChangesAsync(ct);
             return Unit.Value;
         }
@@ -134,6 +144,10 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
                 .WithMessage("Section must be Calentamiento, Principal or VueltaALaCalma.");
             RuleFor(x => x.Methodology).Must(m => m is "Analitico" or "Integrado" or "Global")
                 .WithMessage("Methodology must be Analitico, Integrado or Global.");
+            RuleForEach(x => x.ModelLinks).SetValidator(new ExerciseModelLinkRequestValidator());
+            RuleForEach(x => x.Habilidades)
+                .Must(h => Habilidad.Vocabulary.Contains(h))
+                .WithMessage("Habilidad must be one of the 15-value closed vocabulary.");
         }
     }
 }

@@ -2,16 +2,16 @@ namespace RFFM.Api.Domain.Aggregates.GameModels
 {
     /// <summary>
     /// An indispensable skill ("Habilidad imprescindible") linked to a SubSubPrincipio.
-    /// <see cref="Nombre"/> is restricted to the 14-value closed vocabulary in spec §4 — no
+    /// <see cref="Nombre"/> is restricted to the 15-value closed vocabulary in spec §4 — no
     /// free-text skill names, and no own key (spec §1.4): addressed by (SubSubPrincipioId, Nombre).
     /// </summary>
     public class Habilidad : BaseEntity
     {
-        /// <summary>The 14-value closed vocabulary from the technical import spec §4.</summary>
+        /// <summary>The 15-value closed vocabulary from the technical import spec §4.</summary>
         public static readonly IReadOnlySet<string> Vocabulary = new HashSet<string>
         {
             "Perfilamiento", "Anticipación", "Activación", "Carga", "Temporización", "Comunicación",
-            "Entrada", "Conducción", "Protección de balón", "Control orientado", "Pase", "Centro",
+            "Entrada", "Intercepción", "Conducción", "Protección de balón", "Control orientado", "Pase", "Centro",
             "Remate", "Remate de cabeza"
         };
 
@@ -42,7 +42,7 @@ namespace RFFM.Api.Domain.Aggregates.GameModels
         public void UpdateNombre(string nombre)
         {
             if (string.IsNullOrWhiteSpace(nombre) || !Vocabulary.Contains(nombre))
-                throw new ArgumentException($"'{nombre}' is not a valid Habilidad name. Must be one of the 14-value closed vocabulary.", nameof(nombre));
+                throw new ArgumentException($"'{nombre}' is not a valid Habilidad name. Must be one of the 15-value closed vocabulary.", nameof(nombre));
             Nombre = nombre;
         }
 

@@ -16,6 +16,8 @@ function buildExercise(overrides: Partial<Exercise> = {}): Exercise {
     goalPeekersNumber: 0,
     fieldSpace: "",
     conditions: [],
+    modelLinks: [],
+    habilidades: [],
     ...overrides,
   };
 }
@@ -95,6 +97,75 @@ describe("ExerciseCromo", () => {
     expect(strip).toBeInTheDocument();
     expect(strip).toHaveAttribute("title", "Calentamiento");
     expect(strip?.textContent).toBe("Calentamiento");
+  });
+
+  it("renderiza un chip por cada modelLink y por cada habilidad del ejercicio", () => {
+    render(
+      <ExerciseCromo
+        exercise={buildExercise({
+          modelLinks: [
+            {
+              id: "link-1",
+              subprincipioId: "sub-1",
+              subprincipioNumero: "1.1",
+              subprincipioTitulo: "Presión alta",
+              isFoco: true,
+            },
+            {
+              id: "link-2",
+              subSubPrincipioId: "ssp-1",
+              subSubPrincipioNumero: "1.1.1",
+              subSubPrincipioRol: "Central",
+              isFoco: false,
+            },
+          ],
+          habilidades: ["Pase", "Intercepción"],
+        })}
+        onEdit={vi.fn()}
+        onDuplicate={vi.fn()}
+        onPrint={vi.fn()}
+        onDelete={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText(/1\.1.*Presión alta/)).toBeInTheDocument();
+    expect(screen.getByText(/1\.1\.1.*Central/)).toBeInTheDocument();
+    expect(screen.getByText("Pase")).toBeInTheDocument();
+    expect(screen.getByText("Intercepción")).toBeInTheDocument();
+  });
+
+  it("distingue visualmente los modelLinks FOCO de los INTEGRADO", () => {
+    const { container } = render(
+      <ExerciseCromo
+        exercise={buildExercise({
+          modelLinks: [
+            { id: "link-1", subprincipioId: "sub-1", subprincipioNumero: "1.1", subprincipioTitulo: "Foco", isFoco: true },
+            { id: "link-2", subprincipioId: "sub-2", subprincipioNumero: "1.2", subprincipioTitulo: "Integrado", isFoco: false },
+          ],
+        })}
+        onEdit={vi.fn()}
+        onDuplicate={vi.fn()}
+        onPrint={vi.fn()}
+        onDelete={vi.fn()}
+      />
+    );
+
+    expect(container.querySelector('[class*="modelLinkChipFoco"]')).toBeInTheDocument();
+    expect(container.querySelector('[class*="modelLinkChipIntegrado"]')).toBeInTheDocument();
+  });
+
+  it("no renderiza ninguna fila de chips de modelo cuando modelLinks y habilidades están vacíos", () => {
+    const { container } = render(
+      <ExerciseCromo
+        exercise={buildExercise({ modelLinks: [], habilidades: [] })}
+        onEdit={vi.fn()}
+        onDuplicate={vi.fn()}
+        onPrint={vi.fn()}
+        onDelete={vi.fn()}
+      />
+    );
+
+    expect(container.querySelector('[data-testid="model-chips-row"]')).not.toBeInTheDocument();
   });
 
   it("agrupa los tags de tipo debajo del titulo, no sobre la foto", () => {

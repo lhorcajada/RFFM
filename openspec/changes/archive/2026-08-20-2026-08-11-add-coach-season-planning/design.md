@@ -111,12 +111,46 @@ After the first implementation pass, the user reviewed it against the source doc
 
 **Risk added**: this reintroduces exactly the kind of cross-aggregate dependency Decision 1 originally avoided — editing a team's `GameModel` (removing/renumbering a `Subprincipio`) can silently drop `SeasonPlan` links that referenced it. Accepted per explicit user direction; mitigated only by the cascade-delete keeping the data model consistent (no orphaned FKs), not by any UI warning on the `GameModel` edit side (out of scope for this change).
 
+## Amendment 2 (post-implementation): direct Exercise↔GameModel link, plus Habilidad vocabulary bump to 15
+
+**This supersedes the framing in this document's own opening `Context` section** — the note that "[the 11 Aug game-model-adn-hierarchy change] deliberately removed every FK from `TaskTrainingBase` to the ADN hierarchy... this change reintroduces **one** narrow FK... not back to `GameModel`" is no longer true after this amendment. It is being reintroduced, deliberately, per explicit user direction while building out `Plantilla-Ejercicio.md`/`Ejemplo-Sesion-1.md` (the exercise/session content templates, `docs/game-model/`): every exercise's "Relación con el modelo de juego" is now a first-class part of the exercise itself — which `Subprincipio`/`SubSubPrincipio` it trains (tagged FOCO/INTEGRADO, possibly several), plus which closed-vocabulary `Habilidad`s it targets — because an exercise needs to carry that regardless of which Microciclo (if any) it's used from. This is not a rollback of a mistake; it's the requirement changing as the session-template design matured past this change's original scope.
+
+Separately: the source documents' Habilidad closed vocabulary gained a 15th value, `"Intercepción"`, after this change's Amendment 1 (task 10) was written and verified against 14. `Habilidad.Vocabulary` (backend) and `HABILIDAD_VOCABULARY` (frontend) both need the addition; `specs/season-plan/spec.md`'s "14-value" mentions in Amendment 1's own added requirement need correcting to 15 in the same pass, since that requirement hasn't merged yet.
+
+**Why both the Microciclo-level link (Amendment 1) and this Exercise-level link (Amendment 2) coexist, not one replacing the other**: they answer different questions. A Microciclo's session links say "this week's intent is Subprincipio 1.1" — set once, for planning. An Exercise's own links say "this specific drill, wherever/whenever it's used, trains Subprincipio 1.1 with FOCO" — a property of the exercise, independent of any one week (the same exercise can be reused across many Microciclos with different weekly intents, per how `Plantilla-Ejercicio.md` explicitly designs exercises to be session-independent and reusable). Neither is redundant with the other.
+
+**New shape**, additive to `TaskTrainingBase` (no changes to `Types`/`Section`/`Methodology`/`MicrocicloId`):
+
+```
+ExerciseModelLink : BaseEntity            table: ExerciseModelLinks, schema app
+  TaskTrainingBaseId   string, required
+  SubprincipioId        string?  — exactly one of these two set, never both/neither
+  SubSubPrincipioId     string?    (same "exactly one parent" invariant as SubSubPrincipio's own Subprincipio/Zona split)
+  IsFoco                bool, required   — FOCO if true, INTEGRADO if false
+```
+Dedicated `BaseEntity`-derived class with a validating constructor, not a plain many-to-many join — matches this codebase's established precedent (`Habilidad`, `SubSubPrincipio`, and this same change's own `MicrocicloSubprincipioLink`/`MicrocicloSubSubPrincipioLink` from Amendment 1, per task 10.1's explicit decision to always model join-like relationships this way).
+
+```
+TaskTrainingBase.Habilidades : List<string>   jsonb column, not a join table
+```
+Mirrors `Microciclo.SesionAHabilidades`/`SesionBHabilidades` exactly (Amendment 1, task 10.1) rather than introducing a third storage pattern for "list of closed-vocabulary Habilidad names" — validated against `Habilidad.Vocabulary` in the command validator, same as `Types` and as Amendment 1's session Habilidad lists.
+
+**Commands**: `CreateExercise`/`UpdateExercise` gain `ModelLinks: List<ExerciseModelLinkRequest>` (`SubprincipioId`, `SubSubPrincipioId`, `IsFoco`) and `Habilidades: List<string>`. `UpdateExercise` clear-and-rebuilds `ModelLinks` and replaces the `Habilidades` list wholesale — same "trust server-derived state" approach Amendment 1 already established for session links, not an incremental diff.
+
+**Queries**: `GetExercises`/`GetExerciseById` DTOs gain denormalized `ModelLinks` (joining `Subprincipio`/`SubSubPrincipio` for `Numero`+`Titulo`/`Rol` display fields alongside `IsFoco`, `AsNoTracking`) and the flat `Habilidades: string[]` — same shape Amendment 1's `GetSeasonPlan` already uses for its own session summaries.
+
+**Frontend**: `types/training.ts` gains `ExerciseModelLinkRequest`/`ExerciseModelLink`, and `modelLinks`/`habilidades` on `Exercise`/`Create·/UpdateExerciseRequest`. New `ModelRelationSection.tsx` (under `pages/trainings/new/components/`, own `.module.css`) reuses `getAdnOptions`/`flattenGameModelToAdnOptions` from `seasonPlanService.ts` (Amendment 1, task 10.5) — **extract it to `gameModelService.ts` first** so both features share one implementation instead of forking a second copy; a `ToggleButtonGroup` per link row for FOCO/INTEGRADO; a `HABILIDAD_VOCABULARY`-sourced `Autocomplete multiple` below it. Same empty-state treatment as `SeasonPlanEditor.tsx` (task 10.6) when the team has no `GameModel` yet. Exercise cards/detail views add one chip per `ModelLinks` entry and per `Habilidades` entry, mirroring `SessionAdnChips` (task 10.7).
+
+**Spec reconciliation required, not optional**: `openspec/specs/game-model/spec.md`'s already-merged "Exercises and training sessions are independent of the game model" requirement (from the archived `game-model-adn-hierarchy` change) must be formally removed via this change's own `specs/game-model/spec.md` delta (`## REMOVED Requirements`) — it can't just be ignored, since it's live in the global spec today. `specs/exercises/spec.md`'s existing sentence ("that linkage was removed entirely by a prior change and is not reintroduced here") is edited in place, since that whole delta file hasn't merged yet.
+
 ## Risks / Trade-offs
 
 - **[Risk] Seed migration needs a live-DB team lookup not available during design** → **Mitigation**: same accepted pattern as `TeamRulesSet`'s migration; `tasks.md` requires the `SELECT` + eyeball check before finalizing; importer is safe to no-op or re-run.
 - **[Risk] Free-text session objectives (Decision 1) mean the Planificación tab can't cross-filter "show me exercises for Subprincipio 1.1"** → accepted; the user's stated acceptance criteria only ask for manual CRUD + seed + per-Microciclo coverage, not ADN-level filtering. Flagged as a possible follow-up, not blocking.
 - **[Trade-off] `GameModel.Season` (string) vs. `SeasonPlan.SeasonId` (FK) inconsistency persists** → accepted per Decision 3; not fixing pre-existing `GameModel` shape in this change.
 - **[Risk] Full-aggregate `PUT` allows concurrent edits to silently clobber each other** → same accepted trade-off as `UpdateGameModel`/`SaveTeamRulesCommand`, not a regression introduced here.
+- **[Risk, Amendment 2] Reverses this same change's own earlier framing (Context, and Decision 1's "Rejected" call), which itself deliberately avoided re-coupling `TaskTrainingBase` to `GameModel`** → accepted per explicit, direct user instruction after reviewing the actual code; not a silent reversal — called out in both places (Context note left uncorrected/annotated rather than rewritten, so the history is visible) and requires the `specs/game-model/spec.md` deletion delta described in Amendment 2, not just a code change.
+- **[Risk, Amendment 2] `ExerciseModelLink`/`GameModel` editing can silently drop exercise links, same as Amendment 1's Microciclo links** → same accepted mitigation (cascade removes the link row, exercise and its other content survive), no UI warning on the `GameModel` edit side, same trade-off already accepted once in this document.
 
 ## Open Questions
 

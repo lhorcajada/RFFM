@@ -50,5 +50,9 @@ await app.SeedExerciseTypesAsync();
 // Seed new roles and feature/page permissions
 await app.SeedPermissionsAsync();
 
+// Update the season plan (Cadete, 2ª División) from hardcoded importer data — safe to
+// re-run on every startup (upsert by Order), no exercises linked to it yet.
+await app.SeedSeasonPlanAsync();
+
 app.Run();
 

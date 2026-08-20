@@ -17,9 +17,12 @@ namespace RFFM.Api.Tests.IntegrationTests
 {
     /// <summary>
     /// Verifies <see cref="SeasonPlanImporter"/> upserts the full "Plan de Temporada" (Cadete,
-    /// 2ª División) calendar transcribed from docs/game-model/Plan-de-Temporada.docx: 3
-    /// macrociclos (2 real + "Cierre de temporada"), 9 mesociclos, 37 microciclos — and that
-    /// re-running it against the same team/season updates in place rather than duplicating.
+    /// 2ª División) calendar transcribed from docs/game-model/Plan-de-Temporada.docx: 4
+    /// macrociclos (Pretemporada, Iniciación, Perfeccionamiento + "Cierre de temporada"), 14
+    /// mesociclos (generaciones 1–12, with generación 6 split across two Mesociclo rows —
+    /// "parte 1" in Macrociclo 2 and "continuación" in Macrociclo 3 — plus Cierre), 31
+    /// microciclos (Microciclos 1–30 plus the Cierre block) — and that re-running it against the
+    /// same team/season updates in place rather than duplicating.
     /// </summary>
     [Collection(PostgresCollection.Name)]
     public class SeasonPlanImporterTests
@@ -75,9 +78,9 @@ namespace RFFM.Api.Tests.IntegrationTests
             var mesociclos = await verifyDb.Mesociclos.Where(m => macrociclos.Select(x => x.Id).Contains(m.MacrocicloId)).ToListAsync();
             var microciclos = await verifyDb.Microciclos.Where(m => mesociclos.Select(x => x.Id).Contains(m.MesocicloId)).ToListAsync();
 
-            Assert.Equal(3, macrociclos.Count);
-            Assert.Equal(9, mesociclos.Count);
-            Assert.Equal(37, microciclos.Count);
+            Assert.Equal(4, macrociclos.Count);
+            Assert.Equal(14, mesociclos.Count);
+            Assert.Equal(31, microciclos.Count);
         }
 
         [Fact]
@@ -97,11 +100,11 @@ namespace RFFM.Api.Tests.IntegrationTests
             await using var verifyDb = _fixture.CreateDbContext();
             Assert.Equal(1, await verifyDb.SeasonPlans.CountAsync(sp => sp.TeamId == teamId && sp.SeasonId == seasonId));
             var macrociclos = await verifyDb.Macrociclos.Where(m => m.SeasonPlanId == firstPlanId).ToListAsync();
-            Assert.Equal(3, macrociclos.Count);
+            Assert.Equal(4, macrociclos.Count);
         }
 
         [Fact]
-        public async Task ImportAsync_Macrociclo1Mesociclo1_1_MatchesSourceDocument()
+        public async Task ImportAsync_Macrociclo1_MatchesSourceDocument()
         {
             await using var seedDb = _fixture.CreateDbContext();
             var (teamId, seasonId) = await SeedTeamAsync(seedDb);
@@ -114,17 +117,63 @@ namespace RFFM.Api.Tests.IntegrationTests
                 .Include(m => m.Mesociclos).ThenInclude(m => m.Microciclos)
                 .SingleAsync(m => m.SeasonPlanId == planId && m.Order == 1);
 
-            Assert.Equal("Macrociclo 1", macrociclo1.Name);
-            Assert.Equal(4, macrociclo1.Mesociclos.Count);
+            Assert.Equal("Macrociclo 1 — Pretemporada", macrociclo1.Name);
+            Assert.Equal(2, macrociclo1.Mesociclos.Count);
 
-            var mesociclo11 = macrociclo1.Mesociclos.Single(m => m.Order == 1);
-            Assert.Equal("Mesociclo 1.1 — Creación Propia", mesociclo11.Name);
-            Assert.Equal(2, mesociclo11.GameZoneId);
-            Assert.Equal(3, mesociclo11.Microciclos.Count);
+            var mesociclo1 = macrociclo1.Mesociclos.Single(m => m.Order == 1);
+            Assert.Equal("Mesociclo 1 — generación 1", mesociclo1.Name);
+            // Placeholder Mesociclo-level zone = first Microciclo's Sesión A zone (see importer's
+            // doc-comment) — Semana 1 trains both sessions in Creación Propia.
+            Assert.Equal(2, mesociclo1.GameZoneId);
+            Assert.Equal(4, mesociclo1.Microciclos.Count);
 
-            var semana1 = mesociclo11.Microciclos.Single(m => m.Order == 1);
-            Assert.Contains("evitar que el rival progrese con orden", semana1.ObjetivoSesionA);
-            Assert.Contains("empezar a desorganizar al rival por dentro", semana1.ObjetivoSesionB);
+            var semana1 = mesociclo1.Microciclos.Single(m => m.Order == 1);
+            Assert.Contains("Defensa organizada 1.1", semana1.ObjetivoSesionA);
+            Assert.Contains("Ataque organizado 1.1", semana1.ObjetivoSesionB);
+        }
+
+        [Fact]
+        public async Task ImportAsync_Microciclo5_HasDifferentZonesPerSession()
+        {
+            // Microciclo 5 is the clearest source example of the schema conflict this revision
+            // resolves: Sesión A (Creación Propia) and Sesión B (Creación Rival) train in
+            // different zones within the same week.
+            await using var seedDb = _fixture.CreateDbContext();
+            var (teamId, seasonId) = await SeedTeamAsync(seedDb);
+
+            await using var db = _fixture.CreateDbContext();
+            var planId = await new SeasonPlanImporter(db).ImportAsync(teamId, seasonId, CancellationToken.None);
+
+            await using var verifyDb = _fixture.CreateDbContext();
+            var mesociclo2 = await verifyDb.Mesociclos
+                .Include(m => m.Microciclos)
+                .Where(m => m.Microciclos.Any(mc => mc.WeekLabel == "Semana 5 — generación 2"))
+                .SingleAsync();
+            var semana5 = mesociclo2.Microciclos.Single(m => m.WeekLabel == "Semana 5 — generación 2");
+
+            Assert.Equal(2, semana5.GameZoneIdSesionA);
+            Assert.Equal(3, semana5.GameZoneIdSesionB);
+        }
+
+        [Fact]
+        public async Task ImportAsync_Macrociclo4_IsCierreDeTemporada()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (teamId, seasonId) = await SeedTeamAsync(seedDb);
+
+            await using var db = _fixture.CreateDbContext();
+            var planId = await new SeasonPlanImporter(db).ImportAsync(teamId, seasonId, CancellationToken.None);
+
+            await using var verifyDb = _fixture.CreateDbContext();
+            var cierre = await verifyDb.Macrociclos
+                .Include(m => m.Mesociclos).ThenInclude(m => m.Microciclos)
+                .SingleAsync(m => m.SeasonPlanId == planId && m.Order == 4);
+
+            Assert.Equal("Cierre de temporada", cierre.Name);
+            var mesociclo = Assert.Single(cierre.Mesociclos);
+            var microciclo = Assert.Single(mesociclo.Microciclos);
+            Assert.Equal(1, microciclo.GameZoneIdSesionA);
+            Assert.Equal(1, microciclo.GameZoneIdSesionB);
         }
     }
 }

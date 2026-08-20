@@ -19,6 +19,7 @@ import styles from "../NewExercisePage.module.css";
 import type { ExerciseSection, ExerciseType } from "../../../../types/training";
 import seasonPlanService from "../../../../services/seasonPlanService";
 import seasonService from "../../../../services/seasonService";
+import ModelRelationSection from "./ModelRelationSection";
 
 interface MicrocicloOption {
   id: string;
@@ -298,6 +299,15 @@ export default function ExerciseFormPanel({ panelVisible, form, teamId }: Exerci
             </Select>
           </FormControl>
         )}
+
+        <Divider className={styles.divider} />
+        <ModelRelationSection
+          modelLinks={formData.modelLinks}
+          habilidades={formData.habilidades}
+          onChangeModelLinks={(links) => setField("modelLinks", links)}
+          onChangeHabilidades={(habilidades) => setField("habilidades", habilidades)}
+          teamId={teamId}
+        />
 
         <Divider className={styles.divider} />
         <Typography className={styles.skillsTitle}>Condiciones</Typography>

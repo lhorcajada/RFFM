@@ -939,6 +939,12 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.Property<DateOnly>("EndDate")
                         .HasColumnType("date");
 
+                    b.Property<int>("GameZoneIdSesionA")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("GameZoneIdSesionB")
+                        .HasColumnType("integer");
+
                     b.Property<string>("MesocicloId")
                         .IsRequired()
                         .HasMaxLength(36)
@@ -1294,6 +1300,39 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.ToTable("ExerciseConditions", "app");
                 });
 
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Training.TasksTraining.ExerciseModelLink", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<bool>("IsFoco")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("SubSubPrincipioId")
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<string>("SubprincipioId")
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<string>("TaskTrainingBaseId")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SubSubPrincipioId");
+
+                    b.HasIndex("SubprincipioId");
+
+                    b.HasIndex("TaskTrainingBaseId");
+
+                    b.ToTable("ExerciseModelLinks", "app");
+                });
+
             modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Training.TasksTraining.ExerciseType", b =>
                 {
                     b.Property<string>("Id")
@@ -1375,6 +1414,10 @@ namespace RFFM.Api.Infrastructure.Migrations
 
                     b.Property<int>("GoalPeekersNumber")
                         .HasColumnType("integer");
+
+                    b.Property<string>("Habilidades")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
 
                     b.Property<string>("Methodology")
                         .IsRequired()
@@ -5355,6 +5398,25 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.Navigation("TaskTrainingBase");
                 });
 
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Training.TasksTraining.ExerciseModelLink", b =>
+                {
+                    b.HasOne("RFFM.Api.Domain.Aggregates.GameModels.SubSubPrincipio", null)
+                        .WithMany()
+                        .HasForeignKey("SubSubPrincipioId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("RFFM.Api.Domain.Aggregates.GameModels.Subprincipio", null)
+                        .WithMany()
+                        .HasForeignKey("SubprincipioId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("RFFM.Api.Domain.Aggregates.Training.TasksTraining.TaskTrainingBase", null)
+                        .WithMany("ModelLinks")
+                        .HasForeignKey("TaskTrainingBaseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Training.TasksTraining.TaskTraining", b =>
                 {
                     b.HasOne("RFFM.Api.Domain.Aggregates.Training.TrainingSession", "TrainingSession")
@@ -6049,6 +6111,8 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.Navigation("Conditions");
 
                     b.Navigation("Material");
+
+                    b.Navigation("ModelLinks");
 
                     b.Navigation("Types");
                 });

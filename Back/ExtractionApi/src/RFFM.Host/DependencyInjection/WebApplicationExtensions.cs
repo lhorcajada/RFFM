@@ -290,6 +290,32 @@ namespace RFFM.Host.DependencyInjection
             }
         }
 
+        /// <summary>
+        /// Team+Season the "Plan de Temporada" (Cadete, 2ª División) belongs to — see
+        /// <c>SeasonPlanImporter</c> and the season-plan change's design.md Decision 5.
+        /// </summary>
+        private const string SeasonPlanTeamId = "db380999-9dc8-47d9-8bc5-f90145543ca5";
+        private const string SeasonPlanSeasonId = "819e69cd-a1f3-4705-963f-3a8bc6eb446c";
+
+        public static async Task SeedSeasonPlanAsync(this WebApplication app)
+        {
+            using var scope = app.Services.CreateScope();
+            var logger = scope.ServiceProvider.GetService<ILogger<WebApplication>>();
+
+            try
+            {
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                logger?.LogInformation("Updating season plan (Cadete, 2ª División) from hardcoded importer data...");
+                var importer = new RFFM.Api.Infrastructure.Services.SeasonPlanImporter(db);
+                await importer.ImportAsync(SeasonPlanTeamId, SeasonPlanSeasonId);
+                logger?.LogInformation("✓ Season plan update finished");
+            }
+            catch (Exception ex)
+            {
+                logger?.LogError(ex, "Error while updating season plan");
+            }
+        }
+
         public static async Task SeedPermissionsAsync(this WebApplication app)
         {
             using var scope = app.Services.CreateScope();

@@ -40,6 +40,21 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.SeasonPla
                 .IsRequired()
                 .HasMaxLength(2000);
 
+            // Per-session field zone (see Microciclo's doc-comment): unlike Mesociclo.GameZoneId
+            // (one zone for the whole Mesociclo), Sesión A and Sesión B of the same week
+            // frequently train in different zones in the real "Plan de Temporada", so each is
+            // its own required int column. No FK to the GameZone catalog table here (unlike
+            // Mesociclo.GameZoneId's HasOne<GameZone>() below) because other Microciclo writers —
+            // CreateSeasonPlan/UpdateSeasonPlan command handlers and their tests — do not yet
+            // populate these fields and would fail an FK check with the CLR default (0); adding
+            // the FK is follow-up work once those handlers are updated to collect per-session
+            // zones too.
+            builder.Property(x => x.GameZoneIdSesionA)
+                .IsRequired();
+
+            builder.Property(x => x.GameZoneIdSesionB)
+                .IsRequired();
+
             ConfigureHabilidadesColumn(builder.Property(x => x.SesionAHabilidades));
             ConfigureHabilidadesColumn(builder.Property(x => x.SesionBHabilidades));
         }

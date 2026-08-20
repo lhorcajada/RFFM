@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Common;
 using RFFM.Api.Domain;
+using RFFM.Api.Domain.Aggregates.GameModels;
 using RFFM.Api.Domain.Aggregates.Training.TasksTraining;
 using RFFM.Api.Domain.Entities;
 using RFFM.Api.FeatureModules;
@@ -64,7 +65,9 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         // Technical/Tactical-specific
         int? TouchesNumber,
         int? WildCards,
-        string? MicrocicloId = null
+        string? MicrocicloId = null,
+        List<ExerciseModelLinkRequest>? ModelLinks = null,
+        List<string>? Habilidades = null
     ) : IRequest<string>, IRequireFeaturePermission
     {
         public string UserId { get; init; } = string.Empty;
@@ -72,6 +75,13 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         public string FeatureRoute => CoachFeatureRoutes.Trainings;
         public string RequiredPermission => "ReadWrite";
     }
+
+    /// <summary>
+    /// A single "Relación con el modelo de juego" row: which Subprincipio/SubSubPrincipio the
+    /// exercise trains (exactly one of the two, never both/neither) and whether it's the FOCO
+    /// (<see cref="IsFoco"/> true) or an INTEGRADO one.
+    /// </summary>
+    public record ExerciseModelLinkRequest(string? SubprincipioId, string? SubSubPrincipioId, bool IsFoco);
 
     // ── Handler ──────────────────────────────────────────────────────────────────
 
@@ -114,6 +124,10 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
             foreach (var typeEntity in typeEntities)
                 exercise.Types.Add(new TaskTrainingType { ExerciseTypeId = typeEntity.Id });
 
+            exercise.ReplaceModelLinks((request.ModelLinks ?? new List<ExerciseModelLinkRequest>())
+                .Select(l => (l.SubprincipioId, l.SubSubPrincipioId, l.IsFoco)));
+            exercise.UpdateHabilidades(request.Habilidades);
+
             await _db.TaskTrainingBases.AddAsync(exercise, ct);
             await _db.SaveChangesAsync(ct);
             return exercise.Id;
@@ -138,6 +152,21 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
             RuleFor(x => x.Methodology).Must(m => m is "Analitico" or "Integrado" or "Global")
                 .WithMessage("Methodology must be Analitico, Integrado or Global.");
             RuleFor(x => x.DurationTotal).GreaterThan(0);
+            RuleForEach(x => x.ModelLinks).SetValidator(new ExerciseModelLinkRequestValidator());
+            RuleForEach(x => x.Habilidades)
+                .Must(h => Habilidad.Vocabulary.Contains(h))
+                .WithMessage("Habilidad must be one of the 15-value closed vocabulary.");
+        }
+    }
+
+    /// <summary>Shared by <see cref="CreateExerciseValidator"/> and <c>UpdateExerciseValidator</c>.</summary>
+    public class ExerciseModelLinkRequestValidator : AbstractValidator<ExerciseModelLinkRequest>
+    {
+        public ExerciseModelLinkRequestValidator()
+        {
+            RuleFor(x => x)
+                .Must(x => new[] { x.SubprincipioId, x.SubSubPrincipioId }.Count(id => !string.IsNullOrEmpty(id)) == 1)
+                .WithMessage("Exactly one of SubprincipioId or SubSubPrincipioId must be set.");
         }
     }
 }

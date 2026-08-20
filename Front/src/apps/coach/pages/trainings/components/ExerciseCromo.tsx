@@ -119,6 +119,27 @@ export default function ExerciseCromo({ exercise, onEdit, onDuplicate, onPrint, 
             ))}
           </div>
 
+          {/* Model relation chips — one per ModelLinks entry (FOCO vs INTEGRADO) and per Habilidad */}
+          {(exercise.modelLinks.length > 0 || exercise.habilidades.length > 0) && (
+            <div className={styles.modelChipsRow} data-testid="model-chips-row">
+              {exercise.modelLinks.map((link) => (
+                <Chip
+                  key={link.id}
+                  label={
+                    link.subprincipioId
+                      ? `${link.subprincipioNumero} · ${link.subprincipioTitulo}`
+                      : `${link.subSubPrincipioNumero} · ${link.subSubPrincipioRol}`
+                  }
+                  size="small"
+                  className={link.isFoco ? styles.modelLinkChipFoco : styles.modelLinkChipIntegrado}
+                />
+              ))}
+              {exercise.habilidades.map((h) => (
+                <Chip key={h} label={h} size="small" className={styles.habilidadChip} />
+              ))}
+            </div>
+          )}
+
           {/* Stats row */}
           <div className={styles.statsRow}>
             <div className={styles.statItem}>

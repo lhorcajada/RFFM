@@ -61,7 +61,7 @@ The backend SHALL expose `GET /api/season-plans?teamId=&seasonId=`, `POST /api/s
 - **THEN** the backend responds `409 Conflict` and no change is persisted
 
 ### Requirement: Microciclo sessions link to concrete ADN targets
-Each `Microciclo` SHALL have two sessions (A: Defensa organizada + Transición defensa-ataque; B: Ataque organizado + Transición ataque-defensa), each optionally linked to specific `Subprincipio`s and `SubSubPrincipio`s from the team's current `GameModel`, plus a set of `Habilidad` names drawn from the closed 14-value vocabulary. Free-text objectives (`ObjetivoSesionA`/`ObjetivoSesionB`) remain and are not replaced by these links.
+Each `Microciclo` SHALL have two sessions (A: Defensa organizada + Transición defensa-ataque; B: Ataque organizado + Transición ataque-defensa), each optionally linked to specific `Subprincipio`s and `SubSubPrincipio`s from the team's current `GameModel`, plus a set of `Habilidad` names drawn from the closed 15-value vocabulary. Free-text objectives (`ObjetivoSesionA`/`ObjetivoSesionB`) remain and are not replaced by these links.
 
 #### Scenario: Coach links a Subprincipio to a session
 - **WHEN** a Coach editing a Microciclo selects a `Subprincipio` from the team's `GameModel` for Sesión A
@@ -69,7 +69,7 @@ Each `Microciclo` SHALL have two sessions (A: Defensa organizada + Transición d
 
 #### Scenario: Habilidad selection restricted to the closed vocabulary
 - **WHEN** a Coach selects Habilidades imprescindibles for a session
-- **THEN** only the 14-value closed vocabulary is offered, and any value outside it is rejected by the backend
+- **THEN** only the 15-value closed vocabulary is offered, and any value outside it is rejected by the backend
 
 #### Scenario: Team with no GameModel yet
 - **WHEN** a Coach edits a Microciclo for a team with no `GameModel` for that season

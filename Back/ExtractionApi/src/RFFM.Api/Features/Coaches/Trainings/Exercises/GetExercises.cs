@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Common;
 using RFFM.Api.Domain;
+using RFFM.Api.Domain.Aggregates.Training.TasksTraining;
 using RFFM.Api.Domain.Entities;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
@@ -60,6 +61,8 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
                 .Include(tb => tb.Types)
                     .ThenInclude(t => t.ExerciseType)
                 .Include(tb => tb.Conditions)
+                .Include(tb => tb.ModelLinks)
+                .AsSplitQuery()
                 .Where(tb => tb.ClubId == request.ClubId);
 
             if (!string.IsNullOrEmpty(request.Methodology))
@@ -71,6 +74,8 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
             var entities = await query
                 .OrderBy(tb => tb.Name)
                 .ToListAsync(ct);
+
+            var modelLinkSummaries = await ExerciseModelLinkResolver.ResolveAsync(_db, entities.SelectMany(e => e.ModelLinks), ct);
 
             return entities.Select(tb => new ExerciseListItem(
                 tb.Id,
@@ -86,7 +91,9 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
                 tb.UrlImage,
                 tb.BoardStateJson,
                 tb.Conditions.OrderBy(c => c.Order).Select(c => new ConditionDto(c.Id, c.Text, c.Order)),
-                tb.MicrocicloId
+                tb.MicrocicloId,
+                tb.ModelLinks.Select(l => modelLinkSummaries[l.Id]),
+                tb.Habilidades
             ));
         }
     }
@@ -105,5 +112,59 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         string? UrlImage,
         string? BoardStateJson,
         IEnumerable<ConditionDto> Conditions,
-        string? MicrocicloId = null);
+        string? MicrocicloId = null,
+        IEnumerable<ExerciseModelLinkDto>? ModelLinks = null,
+        IEnumerable<string>? Habilidades = null)
+    {
+        public IEnumerable<ExerciseModelLinkDto> ModelLinks { get; init; } = ModelLinks ?? Enumerable.Empty<ExerciseModelLinkDto>();
+        public IEnumerable<string> Habilidades { get; init; } = Habilidades ?? Enumerable.Empty<string>();
+    }
+
+    /// <summary>Denormalized display fields for an <see cref="RFFM.Api.Domain.Aggregates.Training.TasksTraining.ExerciseModelLink"/>,
+    /// joining <c>Subprincipio</c>/<c>SubSubPrincipio</c> for <c>Numero</c>+<c>Titulo</c>/<c>Rol</c> (design.md Amendment 2).</summary>
+    public record ExerciseModelLinkDto(
+        string Id,
+        string? SubprincipioId,
+        string? SubprincipioNumero,
+        string? SubprincipioTitulo,
+        string? SubSubPrincipioId,
+        string? SubSubPrincipioNumero,
+        string? SubSubPrincipioRol,
+        bool IsFoco);
+
+    /// <summary>Batch-resolves <see cref="ExerciseModelLink"/> rows to their denormalized
+    /// <see cref="ExerciseModelLinkDto"/> display fields, shared by GetExercises/GetExerciseById.</summary>
+    internal static class ExerciseModelLinkResolver
+    {
+        public static async Task<Dictionary<string, ExerciseModelLinkDto>> ResolveAsync(
+            AppDbContext db, IEnumerable<ExerciseModelLink> links, CancellationToken ct)
+        {
+            var linkList = links.ToList();
+
+            var subprincipioIds = linkList.Where(l => l.SubprincipioId != null).Select(l => l.SubprincipioId!).Distinct().ToList();
+            var subSubPrincipioIds = linkList.Where(l => l.SubSubPrincipioId != null).Select(l => l.SubSubPrincipioId!).Distinct().ToList();
+
+            var subprincipios = await db.Subprincipios
+                .AsNoTracking()
+                .Where(s => subprincipioIds.Contains(s.Id))
+                .ToDictionaryAsync(s => s.Id, ct);
+
+            var subSubPrincipios = await db.SubSubPrincipios
+                .AsNoTracking()
+                .Where(s => subSubPrincipioIds.Contains(s.Id))
+                .ToDictionaryAsync(s => s.Id, ct);
+
+            return linkList.ToDictionary(l => l.Id, l =>
+            {
+                var subprincipio = l.SubprincipioId is not null ? subprincipios.GetValueOrDefault(l.SubprincipioId) : null;
+                var subSubPrincipio = l.SubSubPrincipioId is not null ? subSubPrincipios.GetValueOrDefault(l.SubSubPrincipioId) : null;
+
+                return new ExerciseModelLinkDto(
+                    l.Id,
+                    subprincipio?.Id, subprincipio?.Numero, subprincipio?.Titulo,
+                    subSubPrincipio?.Id, subSubPrincipio?.Numero, subSubPrincipio?.Rol,
+                    l.IsFoco);
+            });
+        }
+    }
 }

@@ -1,5 +1,7 @@
+import type { ReactElement } from "react";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 vi.mock("../../../../../services/seasonPlanService", () => ({
@@ -7,6 +9,9 @@ vi.mock("../../../../../services/seasonPlanService", () => ({
 }));
 vi.mock("../../../../../services/seasonService", () => ({
   default: { getActiveSeason: vi.fn() },
+}));
+vi.mock("../../../../../services/gameModelService", () => ({
+  default: { getAdnOptions: vi.fn().mockResolvedValue({ subprincipios: [], subSubPrincipios: [] }) },
 }));
 
 import ExerciseFormPanel from "../ExerciseFormPanel";
@@ -46,18 +51,22 @@ function buildFormState(overrides: Partial<ExerciseFormState> = {}): ExerciseFor
   } as ExerciseFormState;
 }
 
-describe("ExerciseFormPanel — sin campos de vinculación al modelo de juego", () => {
-  it("no renderiza ningún selector 'Vinculado a' ni campo de habilidades asociadas", () => {
-    render(<ExerciseFormPanel panelVisible form={buildFormState()} />);
+function renderPanel(ui: ReactElement) {
+  return render(<MemoryRouter>{ui}</MemoryRouter>);
+}
 
-    expect(screen.queryByRole("combobox", { name: /vinculado a/i })).not.toBeInTheDocument();
-    expect(screen.queryByText(/habilidades asociadas/i)).not.toBeInTheDocument();
+describe("ExerciseFormPanel — vínculo directo con el modelo de juego (Amendment 2)", () => {
+  it("renderiza la sección de relación con el modelo de juego (ModelRelationSection)", () => {
+    renderPanel(<ExerciseFormPanel panelVisible form={buildFormState()} />);
+
+    expect(screen.getByText(/relación con el modelo de juego/i)).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: /habilidades/i })).toBeInTheDocument();
   });
 });
 
 describe("ExerciseFormPanel — selector de tipo multi-selección", () => {
   it("renderiza un chip por cada tipo seleccionado en el select de Tipo", () => {
-    render(
+    renderPanel(
       <ExerciseFormPanel
         panelVisible
         form={buildFormState({ form: { ...emptyExercise, types: ["Physical", "Game"] } })}
@@ -70,7 +79,7 @@ describe("ExerciseFormPanel — selector de tipo multi-selección", () => {
   });
 
   it("muestra ambos bloques de campos (Series y Toques) cuando isPhysical e isTechTac son true a la vez", () => {
-    render(
+    renderPanel(
       <ExerciseFormPanel
         panelVisible
         form={buildFormState({
@@ -87,7 +96,7 @@ describe("ExerciseFormPanel — selector de tipo multi-selección", () => {
 
   it("llama a setField con el nuevo array de tipos al seleccionar una opción", async () => {
     const setField = vi.fn();
-    render(
+    renderPanel(
       <ExerciseFormPanel
         panelVisible
         form={buildFormState({ form: { ...emptyExercise, types: ["Tactical"] }, setField })}
@@ -110,7 +119,7 @@ describe("ExerciseFormPanel — selector de Microciclo (SeasonPlan)", () => {
     (seasonService.getActiveSeason as ReturnType<typeof vi.fn>).mockResolvedValue({ id: "season-1" });
     (seasonPlanService.getByTeamIdAndSeason as ReturnType<typeof vi.fn>).mockResolvedValue(null);
 
-    render(<ExerciseFormPanel panelVisible form={buildFormState()} teamId="team-1" />);
+    renderPanel(<ExerciseFormPanel panelVisible form={buildFormState()} teamId="team-1" />);
 
     await waitFor(() => {
       expect(seasonPlanService.getByTeamIdAndSeason).toHaveBeenCalledWith("team-1", "season-1");
@@ -160,7 +169,7 @@ describe("ExerciseFormPanel — selector de Microciclo (SeasonPlan)", () => {
       ],
     });
 
-    render(<ExerciseFormPanel panelVisible form={buildFormState()} teamId="team-1" />);
+    renderPanel(<ExerciseFormPanel panelVisible form={buildFormState()} teamId="team-1" />);
 
     const select = await screen.findByRole("combobox", { name: /microciclo/i });
     await userEvent.click(select);
@@ -211,7 +220,7 @@ describe("ExerciseFormPanel — selector de Microciclo (SeasonPlan)", () => {
     });
 
     const setField = vi.fn();
-    render(<ExerciseFormPanel panelVisible form={buildFormState({ setField })} teamId="team-1" />);
+    renderPanel(<ExerciseFormPanel panelVisible form={buildFormState({ setField })} teamId="team-1" />);
 
     const select = await screen.findByRole("combobox", { name: /microciclo/i });
     await userEvent.click(select);

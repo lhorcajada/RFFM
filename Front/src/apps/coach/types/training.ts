@@ -14,6 +14,27 @@ export interface ExerciseCondition {
   order: number;
 }
 
+/** A link from an exercise to a single Subprincipio or SubSubPrincipio of the team's
+ * GameModel (exactly one of the two id pairs is populated), tagged FOCO/INTEGRADO.
+ * Denormalized display fields are read-side only, populated from GetExercises/GetExerciseById. */
+export interface ExerciseModelLink {
+  id: string;
+  subprincipioId?: string | null;
+  subprincipioNumero?: string | null;
+  subprincipioTitulo?: string | null;
+  subSubPrincipioId?: string | null;
+  subSubPrincipioNumero?: string | null;
+  subSubPrincipioRol?: string | null;
+  isFoco: boolean;
+}
+
+/** Write-side shape of an `ExerciseModelLink`, sent on create/update. */
+export interface ExerciseModelLinkRequest {
+  subprincipioId?: string | null;
+  subSubPrincipioId?: string | null;
+  isFoco: boolean;
+}
+
 export interface Exercise {
   id: string;
   name: string;
@@ -36,6 +57,10 @@ export interface Exercise {
   wildCards?: number;
   /** Optional link to a SeasonPlan Microciclo (week of the season planning calendar). */
   microcicloId?: string | null;
+  /** GameModel Subprincipio/SubSubPrincipio links this exercise trains, tagged FOCO/INTEGRADO. */
+  modelLinks: ExerciseModelLink[];
+  /** Closed-vocabulary Habilidad names this exercise targets — see `HABILIDAD_VOCABULARY`. */
+  habilidades: string[];
 }
 
 export interface CreateExerciseRequest {
@@ -59,6 +84,10 @@ export interface CreateExerciseRequest {
   wildCards?: number;
   /** Optional link to a SeasonPlan Microciclo (week of the season planning calendar). */
   microcicloId?: string | null;
+  /** GameModel Subprincipio/SubSubPrincipio links this exercise trains, tagged FOCO/INTEGRADO. */
+  modelLinks: ExerciseModelLinkRequest[];
+  /** Closed-vocabulary Habilidad names this exercise targets — see `HABILIDAD_VOCABULARY`. */
+  habilidades: string[];
 }
 
 export type UpdateExerciseRequest = Omit<CreateExerciseRequest, "clubId">;

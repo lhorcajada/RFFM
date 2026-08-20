@@ -119,7 +119,7 @@ describe("useExerciseForm — methodology", () => {
     const exercise: Exercise = {
       id: "ex-1", name: "Ejercicio", description: "", types: ["Tactical"],
       section: "Principal", methodology: "Global", durationTotal: 10, playersNumber: 8, goalPeekersNumber: 0,
-      fieldSpace: "", conditions: [],
+      fieldSpace: "", conditions: [], modelLinks: [], habilidades: [],
     };
 
     act(() => result.current.loadExercise(exercise));
@@ -157,7 +157,7 @@ describe("useExerciseForm — vínculo con Microciclo (SeasonPlan)", () => {
     const exercise: Exercise = {
       id: "ex-1", name: "Ejercicio", description: "", types: ["Tactical"],
       section: "Principal", methodology: "Global", durationTotal: 10, playersNumber: 8, goalPeekersNumber: 0,
-      fieldSpace: "", conditions: [], microcicloId: "micro-2",
+      fieldSpace: "", conditions: [], microcicloId: "micro-2", modelLinks: [], habilidades: [],
     };
 
     act(() => result.current.loadExercise(exercise));

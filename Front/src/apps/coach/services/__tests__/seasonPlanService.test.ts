@@ -14,11 +14,11 @@ vi.mock("../../../../core/api/client", () => ({
   },
 }));
 
-const mockGetGameModelByTeamIdAndSeason = vi.fn();
+const mockGetAdnOptions = vi.fn();
 
 vi.mock("../gameModelService", () => ({
   default: {
-    getByTeamIdAndSeason: (...args: unknown[]) => mockGetGameModelByTeamIdAndSeason(...args),
+    getAdnOptions: (...args: unknown[]) => mockGetAdnOptions(...args),
   },
 }));
 
@@ -317,73 +317,30 @@ describe("seasonPlanService", () => {
   });
 
   describe("getAdnOptions", () => {
-    it("aplana el GameModel del equipo en listas de Subprincipio y SubSubPrincipio", async () => {
-      mockGetGameModelByTeamIdAndSeason.mockResolvedValue({
-        id: "model-1",
-        teamId: "team-1",
-        name: "Modelo",
-        season: "2026-2027",
-        principles: [
-          {
-            id: 1,
-            apiId: "principle-1",
-            gameMomentId: 1,
-            gameMomentName: "Fase defensiva",
-            numero: 1,
-            titulo: "Defensa organizada",
-            texto: "",
-            notas: [],
-            subprincipios: [
-              {
-                id: 2,
-                apiId: "sub-1",
-                numero: "1.1",
-                titulo: "Presión alta",
-                texto: "",
-                notas: [],
-                zonas: [
-                  {
-                    id: 3,
-                    apiId: "zona-1",
-                    zoneKeys: ["iniciacion"],
-                    texto: "",
-                    notas: [],
-                    subSubPrincipios: [
-                      { id: 4, apiId: "ssp-1", numero: "1.1.1", rol: "Central", texto: "", habilidades: [], notas: [] },
-                    ],
-                  },
-                ],
-                subSubPrincipios: [],
-              },
-            ],
-          },
-        ],
-        setPieceRules: [],
-        openIssues: [],
-      });
+    it("delega en gameModelService.getAdnOptions con teamId y season", async () => {
+      const options = {
+        subprincipios: [{ id: "sub-1", numero: "1.1", titulo: "Presión alta", gameMomentName: "Fase defensiva" }],
+        subSubPrincipios: [{ id: "ssp-1", numero: "1.1.1", rol: "Central", subprincipioId: "sub-1" }],
+      };
+      mockGetAdnOptions.mockResolvedValue(options);
 
       const result = await seasonPlanService.getAdnOptions("team-1", "2026-2027");
 
-      expect(mockGetGameModelByTeamIdAndSeason).toHaveBeenCalledWith("team-1", "2026-2027");
-      expect(result.subprincipios).toEqual([
-        { id: "sub-1", numero: "1.1", titulo: "Presión alta", gameMomentName: "Fase defensiva" },
-      ]);
-      expect(result.subSubPrincipios).toEqual([
-        { id: "ssp-1", numero: "1.1.1", rol: "Central", subprincipioId: "sub-1" },
-      ]);
+      expect(mockGetAdnOptions).toHaveBeenCalledWith("team-1", "2026-2027");
+      expect(result).toEqual(options);
     });
 
-    it("devuelve listas vacías (no un error) cuando el equipo no tiene GameModel todavía", async () => {
-      mockGetGameModelByTeamIdAndSeason.mockRejectedValue({ response: { status: 404 } });
+    it("propaga el resultado (listas vacías incluidas) tal cual lo devuelve gameModelService", async () => {
+      mockGetAdnOptions.mockResolvedValue({ subprincipios: [], subSubPrincipios: [] });
 
       const result = await seasonPlanService.getAdnOptions("team-1", "2026-2027");
 
       expect(result).toEqual({ subprincipios: [], subSubPrincipios: [] });
     });
 
-    it("propaga errores que no son 404", async () => {
+    it("propaga errores lanzados por gameModelService.getAdnOptions", async () => {
       const error = { response: { status: 403 } };
-      mockGetGameModelByTeamIdAndSeason.mockRejectedValue(error);
+      mockGetAdnOptions.mockRejectedValue(error);
 
       await expect(seasonPlanService.getAdnOptions("team-1", "2026-2027")).rejects.toBe(error);
     });

@@ -19,7 +19,7 @@ export const NOTA_TIPO_LABELS: Record<NotaTipo, string> = {
   excepcion: "Excepción",
 };
 
-/** The 14-value closed vocabulary — spec §4. */
+/** The 15-value closed vocabulary — spec §4. */
 export const HABILIDAD_VOCABULARY = [
   "Perfilamiento",
   "Anticipación",
@@ -28,6 +28,7 @@ export const HABILIDAD_VOCABULARY = [
   "Temporización",
   "Comunicación",
   "Entrada",
+  "Intercepción",
   "Conducción",
   "Protección de balón",
   "Control orientado",

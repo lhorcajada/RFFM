@@ -86,7 +86,7 @@ interface SessionAdnPickersProps {
 
 /** Subprincipio/SubSubPrincipio/Habilidad multi-selects for one Microciclo session (A or B).
  * Subprincipio/SubSubPrincipio stay disabled (not hidden) when the team has no GameModel yet
- * for this season — Habilidad selection is always usable (fixed 14-value vocabulary). */
+ * for this season — Habilidad selection is always usable (fixed 15-value vocabulary). */
 function SessionAdnPickers({
   sessionLabel,
   subprincipioIds,

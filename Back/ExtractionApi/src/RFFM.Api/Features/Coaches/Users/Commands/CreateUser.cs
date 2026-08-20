@@ -252,6 +252,11 @@ namespace RFFM.Api.Features.Coaches.Users.Commands
                 }
 
                 // 4. Best-effort, non-security side effects OUTSIDE the transaction (unchanged pattern).
+                if (team is not null && (IsPlayer(accountType) || IsFamilyMember(accountType)))
+                {
+                    await SaveUserProfileAsync(user.Id, identityRoleName, request.TeamPlayerId!, team.Id, cancellationToken);
+                }
+
                 Subscription? subscription = null;
                 var grantsTrial = IsClubDirector(accountType) || (IsCoach(accountType) && string.IsNullOrWhiteSpace(request.ClubInvitationCode));
                 if (grantsTrial)
@@ -373,6 +378,30 @@ namespace RFFM.Api.Features.Coaches.Users.Commands
                 catch (Exception ex)
                 {
                     _logger.LogWarning(ex, "CreateUser: could not send club join request notification for request {RequestId}", joinRequest.Id);
+                }
+            }
+
+            private async Task SaveUserProfileAsync(string userId, string roleName, string playerId, string teamId, CancellationToken ct)
+            {
+                try
+                {
+                    var existing = await _db.UserProfiles
+                        .FirstOrDefaultAsync(p => p.ApplicationUserId == userId, ct);
+
+                    if (existing is null)
+                    {
+                        _db.UserProfiles.Add(new UserProfile(userId, roleName, playerId, teamId));
+                    }
+                    else
+                    {
+                        existing.Update(roleName, playerId, teamId);
+                    }
+
+                    await _db.SaveChangesAsync(ct);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "CreateUser: could not save UserProfile for user {UserId}", userId);
                 }
             }
 

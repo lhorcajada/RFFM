@@ -5,7 +5,7 @@
 
 Este documento es la versión legible del ADN — el mismo contenido que `ADN-Modelo-de-Juego.md` (la versión pensada para que la app la importe), pero en prosa, sin nombres de campo ni bloques de datos, para leer, discutir y corregir con cualquier entrenador. Cuando se cierre un cambio aquí, hay que trasladarlo también a la versión técnica, y viceversa — las dos deben decir siempre lo mismo.
 
-Está en construcción: de momento tiene desarrollado en detalle Defensa organizada (Principio 1 — No permitir progresar al rival — y Principio 2 — Recuperar el balón —), Transición defensa-ataque (Principio 1 — decidir velocidad vs. paciencia según zona de recuperación — y Principio 2 — ejecutar la verticalidad según el gatillo de robo —), Ataque organizado (Principio 1 — Progresar con balón — y Principio 2 — Generar y resolver la ocasión de gol —), Transición ataque-defensa (Principio 1 — reaccionar de inmediato a la pérdida según la zona —), y la sección de Balón parado. El ciclo completo de las cuatro fases más balón parado está desarrollado con la jerarquía Principio → Subprincipio → Sub-subprincipio → Habilidad; quedan matices y revisiones pendientes que se irán afinando en próximas sesiones.
+Está en construcción: de momento tiene desarrollado en detalle Defensa organizada (Principio 1 — No permitir progresar al rival — y Principio 2 — Recuperar el balón —), Transición defensa-ataque (Principio 1 — decidir velocidad vs. paciencia según zona de recuperación — y Principio 2 — ejecutar la verticalidad según el gatillo de robo —), Ataque organizado (Principio 1 — Progresar con balón —, Principio 2 — Generar y resolver la ocasión de gol — y Principio 3 — Decidir y ejecutar la salida de balón en el saque de puerta —), Transición ataque-defensa (Principio 1 — reaccionar de inmediato a la pérdida del balón — y Principio 2 — replegar tras fallar la reacción inmediata —), y Balón parado, ahora con la misma jerarquía Principio → Subprincipio → Sub-subprincipio → Habilidad que el resto de fases (Córners, Faltas, Saques de banda, Saque de portería, Penaltis, Saque de centro), salvo la Nota transversal de Filosofía general y la de Formato reducido, que quedan fuera de la jerarquía por ser transversales. Quedan matices y revisiones pendientes que se irán afinando en próximas sesiones.
 
 ---
 
@@ -616,11 +616,80 @@ Está en construcción: de momento tiene desarrollado en detalle Defensa organiz
        - **Sub-subprincipio 2.3.7 — Resto del equipo:** mantiene el equilibrio y la cobertura mientras se resuelve la jugada, listo para reaccionar si se pierde el balón en el área.
          - Habilidad imprescindible — **Temporización** (mismo criterio de contención ya establecido en el Principio 1).
 
+3. **Decidir y ejecutar la salida de balón en el saque de puerta.** A diferencia de los dos Principios anteriores, este cubre específicamente el reinicio del juego tras saque de puerta — con su propio gatillo de decisión, independiente de la zona de recuperación que rige el resto del modelo.
+
+   - **Subprincipio 3.1 — Elegir entre salida corta y larga según el gatillo de fallos consecutivos y el momento del partido.** Por defecto, el equipo saca siempre en corto, buscando construir desde atrás. Si se encadenan 3 saques de puerta seguidos sin progresar a Zona de Creación Rival, el equipo pasa a sacar en largo — y se mantiene en largo el resto del partido, sin más ciclos de reintento, salvo por una única excepción: en los últimos 15 minutos de la primera parte, el rival suele perder concentración y espera que saquemos en largo, así que el equipo reinicia el criterio y vuelve a intentar la salida corta, con otros 3 intentos. Esta excepción solo aplica si el rival no va ganando en ese momento — si el rival va ganando, seguirá presionando arriba con intensidad y no hay ventana real de desconcentración, así que no se reinicia: se sigue sacando en largo directamente. Si los 3 intentos de este reinicio también fallan, el equipo saca en largo el resto del partido, sin más ciclos.
+
+     - **Todas las zonas.**
+
+       - **Sub-subprincipio 3.1.1 — Portero (o jugador de referencia que cuenta los intentos):** lleva la cuenta de los saques de puerta consecutivos sin progresar a Zona de Creación Rival, y decide el cambio a largo en el instante en que se cumplen los 3 fallos.
+         - Habilidad imprescindible — **Anticipación**: reconoce el gatillo de los 3 fallos consecutivos sin depender de que el entrenador se lo indique desde fuera. (Entrenable: series de saques de puerta con progresión variable, exigiendo que el portero identifique el momento exacto de cambiar a largo.)
+         - Habilidad imprescindible — **Comunicación**: avisa en voz alta el cambio de criterio (a largo, o el reinicio a corto en el tramo final de la primera parte) para que todo el equipo se coloque en consecuencia. (Entrenable: mismo ejercicio, exigiendo aviso verbal claro antes de cada saque.)
+
+   - **Subprincipio 3.2 — Ejecutar la salida corta** (portero con balón en la mano o balón parado).
+
+     - **Todas las zonas.**
+
+       - **Sub-subprincipio 3.2.1 — Portero:** distribuye corto al central que esté más libre de presión directa, evitando el pase al que tenga a un rival ya orientado a robar.
+         - Habilidad imprescindible — **Pase**: entrega el balón con el peso adecuado al central libre, priorizando seguridad sobre velocidad. (Entrenable: salidas cortas con presión variable sobre cada central, exigiendo que el portero elija siempre al libre.)
+       - **Sub-subprincipio 3.2.2 — Centrales (los dos):** se abren hacia las esquinas del área, ofreciendo un ángulo de pase claro al portero y separación suficiente entre ellos para no compartir la misma línea de presión rival.
+         - Habilidad imprescindible — **Perfilamiento**: se orienta abierto hacia el portero y hacia el siguiente pase de progresión a la vez, sin recibir de espaldas. (Entrenable: salidas cortas repetidas, evaluando ángulo y apertura de los centrales antes de cada saque.)
+       - **Sub-subprincipio 3.2.3 — Pivotes (los dos):** se escalonan entre líneas rivales, mismo criterio que Ataque organizado en Zona de Creación Propia, ofreciendo la siguiente línea de pase de progresión.
+         - Habilidad imprescindible — **Anticipación** (mismo criterio que Ataque organizado, Subprincipio 1.1).
+       - **Sub-subprincipio 3.2.4 — Laterales:** se abren en amplitud, dando opción de salida por banda si el centro se cierra.
+         - Habilidad imprescindible — **Anticipación**: ocupa la posición de amplitud antes de que el portero decida el saque, leyendo si el centro va a estar disponible. (Entrenable: salidas cortas con central bajo presión variable, exigiendo que los laterales ya estén abiertos como alternativa.)
+       - **Sub-subprincipio 3.2.5 — Extremo del lado por donde sale el balón:** se mete en carril interior, en apoyo cercano a los mediocentros.
+         - Habilidad imprescindible — **Anticipación**: ocupa el carril interior de apoyo antes de que se resuelva la salida corta, leyendo hacia qué lado va a progresar el balón. (Entrenable: salidas cortas repetidas, midiendo si el extremo del lado del balón ya está en carril interior cuando llega el pase.)
+       - **Sub-subprincipio 3.2.6 — Mediapunta:** se coloca por el centro, cerca del círculo central, como referencia de apoyo interior.
+         - Habilidad imprescindible — **Anticipación**: mantiene la posición central de referencia cerca del círculo, disponible como salida interior si hace falta. (Entrenable: mismo ejercicio, evaluando si la mediapunta sostiene esa posición sin desplazarse a banda.)
+       - **Sub-subprincipio 3.2.7 — Extremo del lado contrario:** se coloca por carriles centrales, cerca de la línea de medio campo.
+         - Habilidad imprescindible — **Anticipación**: ocupa el carril central de referencia sin adelantarse en exceso, listo para el cambio de orientación si la salida corta progresa hacia su lado. (Entrenable: mismo ejercicio, midiendo la posición del extremo contrario respecto a la línea de medio campo.)
+       - **Sub-subprincipio 3.2.8 — Delantero:** se coloca en el lado del balón, haciendo de extremo — amplitud en ese carril en vez de referencia central.
+         - Habilidad imprescindible — **Anticipación**: ocupa el carril de banda del lado del balón, dando amplitud en vez de mantenerse en su posición central habitual. (Entrenable: mismo ejercicio, evaluando si el delantero da la amplitud correcta en el lado del balón.)
+
+   - **Subprincipio 3.3 — Ejecutar la salida larga** (portero con balón en la mano).
+
+     - **Todas las zonas.**
+
+       - **Sub-subprincipio 3.3.1 — Portero:** golpea largo hacia el delantero o hacia el carril de banda donde ya arranca un compañero, evitando el carril central por ser la disputa más peligrosa si se pierde.
+         - Habilidad imprescindible — **Pase**: golpea con la trayectoria y potencia adecuadas hacia el delantero o el carril de banda elegido, evitando el carril central. (Entrenable: saques largos repetidos, evaluando precisión hacia la zona elegida y evitación del carril central.)
+       - **Sub-subprincipio 3.3.2 — Delantero:** disputa el balón dividido con el central rival, priorizando prolongar hacia la banda o hacia el hueco donde llegan los compañeros de apoyo, sin intentar controlar limpio bajo presión.
+         - Habilidad imprescindible — **Remate de cabeza**: prolonga el balón dividido hacia la zona de apoyo acordada, priorizando la segunda jugada sobre el control. (Entrenable: saques largos con disputa aérea real, evaluando si el delantero prolonga hacia la zona correcta en vez de intentar controlar.)
+       - **Sub-subprincipio 3.3.3 — Mediapunta y un pivote:** se posicionan cerca de la zona de caída probable del balón largo, listos para disputar el rechace o la segunda jugada.
+         - Habilidad imprescindible — **Anticipación**: se coloca en la zona de caída antes de que el balón llegue, leyendo la trayectoria del saque. (Entrenable: saques largos repetidos, midiendo si mediapunta y pivote llegan a tiempo a la zona de disputa.)
+       - **Sub-subprincipio 3.3.4 — Extremos:** se abren en amplitud, listos para recibir si el balón prolongado cae hacia banda.
+         - Habilidad imprescindible — **Anticipación** (mismo criterio que 3.3.3, aplicado a la amplitud de banda).
+       - **Sub-subprincipio 3.3.5 — Centrales, laterales y el pivote restante:** se mantienen replegados en posición de cobertura, formando la red de seguridad si se pierde el balón dividido — mismo criterio que la red de seguridad ya establecida en Ataque organizado (Sub-subprincipios 1.2.5, 1.3.3, 1.4.5, 1.5.4 y 1.6.5).
+         - Habilidad imprescindible — **Temporización** (misma que la red de seguridad de Ataque organizado).
+
+   - **Subprincipio 3.4 — Ejecutar la salida larga** (balón parado).
+
+     - **Todas las zonas.**
+
+       - **Sub-subprincipio 3.4.1 — Jugador con más potencia de golpeo:** saca largo hacia la banda cercana acordada.
+         - Habilidad imprescindible — **Pase**: golpea largo con la potencia y trayectoria necesarias para alcanzar la banda cercana con garantías. (Entrenable: saques de puerta a balón parado repetidos, evaluando distancia y precisión del golpeo hacia la banda.)
+       - **Sub-subprincipio 3.4.2 — Los dos centrales (o un central y un mediocentro):** se quedan en el borde del área, cubriendo por si el balón queda corto.
+         - Habilidad imprescindible — **Temporización**: sostiene la posición de cobertura en el borde del área sin adelantarse, listo para el balón corto. (Entrenable: mismo ejercicio, con saques cortos simulados ocasionalmente, midiendo si la cobertura reacciona a tiempo.)
+       - **Sub-subprincipio 3.4.3 — Lateral de la banda del saque:** carril interior, algo más adelantado que la línea de cobertura.
+         - Habilidad imprescindible — **Anticipación**: ocupa la posición de carril interior adelantado antes del saque, sin esperar a ver hacia dónde cae el balón. (Entrenable: saques largos repetidos, midiendo la posición del lateral respecto al resto de la estructura antes de cada saque.)
+       - **Sub-subprincipio 3.4.4 — Extremo de la banda del saque:** carril exterior, a la altura del lateral de esa banda.
+         - Habilidad imprescindible — **Anticipación** (mismo criterio que 3.4.3, aplicado al carril exterior).
+       - **Sub-subprincipio 3.4.5 — Delantero:** en la banda del saque, con más altura (más adelantado) que el extremo de esa banda.
+         - Habilidad imprescindible — **Anticipación** (mismo criterio, siendo la referencia más adelantada de la estructura).
+       - **Sub-subprincipio 3.4.6 — Mediapunta:** se coloca en el círculo central.
+         - Habilidad imprescindible — **Anticipación** (mismo criterio, como referencia central).
+       - **Sub-subprincipio 3.4.7 — El mediocentro que no ha quedado de cobertura:** carril central, a la altura del lateral y el extremo de la banda del saque.
+         - Habilidad imprescindible — **Anticipación** (mismo criterio, sosteniendo la referencia de carril central).
+       - **Sub-subprincipio 3.4.8 — Lateral de la banda contraria:** en línea con los centrales, carril interior.
+         - Habilidad imprescindible — **Anticipación** (mismo criterio, en línea con la cobertura).
+       - **Sub-subprincipio 3.4.9 — Extremo de la banda contraria:** carril interior, a la altura del mediocentro más adelantado.
+         - Habilidad imprescindible — **Anticipación** (mismo criterio, a la altura del mediocentro de carril central).
+
 ---
 
 ## 4. Transición ataque-defensa
 
-1. **Reaccionar de inmediato a la pérdida del balón.** La intensidad y el riesgo de la reacción se gradúan según la zona donde se pierde el balón: cuanto más cerca de la portería rival, más agresiva la reacción (recuperar es barato y muy valioso); cuanto más cerca de nuestra propia portería, más conservadora (el riesgo de una falta o de ser superado ahí es demasiado caro).
+**Principio 1 — Reaccionar de inmediato a la pérdida del balón.** La intensidad y el riesgo de la reacción se gradúan según la zona donde se pierde el balón: cuanto más cerca de la portería rival, más agresiva la reacción (recuperar es barato y muy valioso); cuanto más cerca de nuestra propia portería, más conservadora (el riesgo de una falta o de ser superado ahí es demasiado caro).
 
    - **Subprincipio 1.1 — Reaccionar según la zona donde se pierde el balón.**
 
@@ -663,60 +732,271 @@ Está en construcción: de momento tiene desarrollado en detalle Defensa organiz
          - Habilidad imprescindible — **Comunicación**: coordina las ayudas y las marcas en voz alta, para que el jugador que temporiza no quede solo sosteniendo la presión. (Entrenable: ejercicios de pérdida simulada en zona de iniciación con ayudas constantes, exigiendo comunicación clara para repartir marcas.)
          - Habilidad imprescindible — **Anticipación**: recupera la marca sobre el rival más cercano antes de que reciba, en vez de esperar a que el balón le llegue. (Entrenable: mismo ejercicio, midiendo si las marcas se recuperan antes de que el rival reciba con comodidad.)
 
-   - **Subprincipio 1.2 — Abandonar la presión inmediata y replegar organizado cuando no se recupera a tiempo.** Matiza el Subprincipio 1.1: la presión intensa o la presión de los cuatro más cercanos no puede mantenerse indefinidamente si no está funcionando. En vez de contar segundos (poco realista a esta edad), el gatillo es una lectura observable de la situación, con una única voz de referencia que decide y avisa — igual que ya hace el jugador que cuenta rivales y compañeros en Ataque organizado, Sub-subprincipio 1.1.1.
+   - **Subprincipio 1.2 — Diferenciar la reacción según si la pérdida fue un riesgo asumido o un error no forzado.** Cuando el equipo pierde el balón en una jugada donde ya había cobertura colocada de antemano (los roles de contención definidos en Ataque organizado — Sub-subprincipios 1.2.5, 1.3.3, 1.4.5, 1.5.4 y 1.6.5: los dos centrales, el lateral alejado del balón y un mediocentro), la reacción del Subprincipio 1.1 puede aplicarse sin matices, porque la red de seguridad ya está en posición. Si la pérdida es un error no forzado sin esa cobertura preparada (por ejemplo, un pase interceptado durante la circulación paciente, antes de activarse ningún mecanismo de progresión), la reacción debe ser más prudente, porque el equipo no está organizado para asumir ese riesgo.
+
+     - **Todas las zonas.**
+
+       - **Sub-subprincipio 1.2.1 — Pérdida en jugada de riesgo asumido (cobertura ya colocada):** el equipo aplica el criterio de zona del Subprincipio 1.1 sin dudar, sabiendo que la contención ya estaba en posición antes de perder el balón.
+         - Habilidad imprescindible — **Anticipación**: reconoce que la pérdida se produjo durante una jugada de progresión con contención ya activa, y actúa con la agresividad que marca 1.1 sin dudar. (Entrenable: ejercicios de pérdida simulada durante una jugada de progresión con roles de contención ya colocados, exigiendo reacción inmediata según el criterio de zona.)
+       - **Sub-subprincipio 1.2.2 — Pérdida por error no forzado, jugador más cercano:** temporiza en vez de presionar a robar, dando tiempo a que el resto del equipo — que no estaba organizado en contención — recomponga posiciones antes de arriesgar.
+         - Habilidad imprescindible — **Temporización**: contiene sin comprometerse a robar, consciente de que no hay cobertura preparada detrás. (Entrenable: ejercicios de pérdida por error no forzado sin roles de contención previos, penalizando al jugador si presiona a robar en vez de temporizar.)
+         - Habilidad imprescindible — **Anticipación**: reconoce que no había cobertura previa a la pérdida, y que por tanto el repliegue del resto del equipo va a tardar más de lo habitual. (Entrenable: mismo ejercicio, evaluando si el jugador ajusta su temporización a la ausencia de cobertura.)
+       - **Sub-subprincipio 1.2.3 — Resto del equipo, en el caso de error no forzado:** repliegue inmediato priorizando recomponer líneas, con más urgencia que en el escenario de riesgo asumido, porque no hay nadie ya colocado en cobertura.
+         - Habilidad imprescindible — **Activación**: repliega a máxima velocidad reconociendo que la pérdida les ha pillado sin cobertura organizada, a diferencia del escenario de riesgo asumido. (Entrenable: ejercicios de pérdida por error no forzado, comparando el tiempo de repliegue con el escenario de riesgo asumido para exigir mayor urgencia aquí.)
+
+   - **Subprincipio 1.3 — Qué hace cada jugador en inferioridad numérica tras la reacción inmediata.** Una vez resuelta la reacción del Subprincipio 1.1, si el equipo queda en inferioridad numérica cerca del balón (el rival tiene más efectivos que nosotros en la zona de la contra), la prioridad deja de ser robar y pasa a ser ganar tiempo sin comprometerse, hasta que lleguen refuerzos.
+
+     - **Todas las zonas.**
+
+       - **Sub-subprincipio 1.3.1 — Jugador que contiene al poseedor rival (el más cercano al balón tras la reacción inmediata):** temporiza sin entrar a robar, orientando la conducción del rival hacia la banda o hacia la zona con menos apoyos, ganando tiempo para que lleguen refuerzos en vez de arriesgar la superación limpia.
+         - Habilidad imprescindible — **Temporización**: retrasa el avance del rival sin comprometerse a la entrada, cerrando con el cuerpo la vía más peligrosa (centro) y cediendo la exterior. (Entrenable: ejercicios de contención en inferioridad numérica —2vs1, 3vs2— penalizando al jugador si entra a robar en vez de temporizar y orientar.)
+       - **Sub-subprincipio 1.3.2 — Jugador de cobertura (el compañero más cercano al que contiene):** se coloca justo por detrás y descentrado hacia el lado más peligroso, sin adelantarse a robar, listo para intervenir si el compañero que contiene es superado.
+         - Habilidad imprescindible — **Temporización**: sostiene la posición de cobertura sin anticiparse a la entrada, esperando a que el compañero de contención sea superado antes de comprometerse. (Entrenable: mismo ejercicio de inferioridad numérica, exigiendo que el jugador de cobertura mantenga la distancia de seguridad correcta.)
+       - **Sub-subprincipio 1.3.3 — Resto de jugadores en repliegue (los que no llegan a la acción inmediata):** esprintan en diagonal hacia el centro del campo para recomponer la cobertura interior, priorizando cerrar el carril central sobre acompañar por banda.
+         - Habilidad imprescindible — **Activación**: repliega a máxima intensidad en diagonal hacia dentro, priorizando el carril central sobre llegar a tiempo a banda. (Entrenable: ejercicios de repliegue en inferioridad con jugadores de segunda línea, midiendo si cierran el centro antes que la banda.)
+       - **Sub-subprincipio 1.3.4 — Portero:** en cuanto se resuelve la reacción inmediata del Subprincipio 1.1 y detecta que no se ha igualado ni superado en número a los rivales cercanos al balón, adelanta su posición para cubrir el espacio a la espalda de la línea defensiva, priorizando anticipar un pase en profundidad sobre quedarse pegado a su portería.
+         - Habilidad imprescindible — **Anticipación**: reconoce la inferioridad numérica en el instante en que se resuelve la reacción inmediata y ajusta su posición antes de que el rival intente el pase en profundidad. (Entrenable: ejercicios de pérdida de balón con inferioridad numérica simulada y portero de referencia, midiendo si ajusta posición antes de que llegue el pase en profundidad.)
+         - Habilidad imprescindible — **Comunicación**: avisa en voz alta a la línea defensiva de la inferioridad numérica, marcando quién debe priorizar cerrar el espacio central. (Entrenable: mismo ejercicio, exigiendo aviso verbal claro y a tiempo.)
+
+   - **Subprincipio 1.4 — Qué hace cada jugador en superioridad numérica tras la reacción inmediata.** Cuando la reacción del Subprincipio 1.1 deja al equipo con más efectivos que el rival cerca del balón, la ventana de desorganización rival justo tras perder ellos la posesión es más corta que en un bloque ya organizado — así que, a diferencia de Defensa organizada (Subprincipio 2.4), aquí no hay margen para esperar antes de comprometerse.
+
+     - **Todas las zonas.**
+
+       - **Sub-subprincipio 1.4.1 — Jugador más cercano al poseedor (el que reacciona primero):** presiona de inmediato a máxima intensidad, aprovechando que el rival acaba de recuperar y todavía no ha tenido tiempo de orientarse ni de buscar apoyos.
+         - Habilidad imprescindible — **Activación**: arranca la presión a máxima intensidad en el instante mismo de la pérdida, sin dar ni un segundo al rival para levantar la cabeza y orientarse. (Entrenable: ejercicios de pérdida simulada en superioridad numérica cercana, cronometrando el tiempo de reacción del jugador más próximo frente al mismo ejercicio en bloque ya organizado.)
+       - **Sub-subprincipio 1.4.2 — Jugadores de apoyo cercanos:** cierran de inmediato las líneas de pase de los apoyos rivales que todavía están llegando a la jugada (no completamente posicionados), para que el rival no pueda aliviar la presión con un pase seguro mientras se reorganiza.
+         - Habilidad imprescindible — **Anticipación**: identifica qué apoyos rivales todavía no han llegado a su posición y cierra esas líneas antes de que se completen, distinguiéndolas de las líneas ya establecidas. (Entrenable: ejercicios de pérdida con apoyos rivales llegando en distintos tiempos, exigiendo que los jugadores de apoyo prioricen cerrar las líneas que aún se están formando.)
+       - **Sub-subprincipio 1.4.3 — Resto del equipo:** sube en bloque de forma coordinada para comprimir el espacio, evitando que el rival escape con un pase largo hacia zonas libres, apoyándose en que la superioridad numérica cercana permite arriesgar el conjunto.
+         - Habilidad imprescindible — **Activación**: sube a la vez que el resto de la línea en el instante de la pérdida, comprimiendo distancias sin quedarse ningún jugador rezagado. (Entrenable: ejercicios de pérdida en superioridad numérica con todo el equipo participando, midiendo la compactación del bloque en los segundos siguientes a la pérdida.)
+       - **Sub-subprincipio 1.4.4 — Portero:** mantiene su posición habitual sin adelantarse, consciente de que la superioridad numérica cercana reduce el riesgo de un pase directo a la espalda, y refuerza con la voz el compromiso de sus compañeros para comprometerse a fondo en la presión.
+         - Habilidad imprescindible — **Anticipación**: reconoce que la superioridad numérica limita las opciones de salida rápida del rival y mantiene la posición habitual sin arriesgar innecesariamente. (Entrenable: ejercicios de pérdida con superioridad numérica simulada, evaluando si el portero mantiene la posición adecuada sin adelantarse de más.)
+         - Habilidad imprescindible — **Comunicación**: anima verbalmente el compromiso total en la presión, indicando a los compañeros que la superioridad numérica permite arriesgar más. (Entrenable: mismo ejercicio, exigiendo un mensaje claro de refuerzo del compromiso.)
+
+   - **Subprincipio 1.5 — Comunicar el instante de la pérdida.** En el momento exacto en que se pierde el balón, no todos los jugadores lo perciben a la vez — los más alejados de la jugada tardan más en darse cuenta. Este subprincipio es transversal y complementa al Subprincipio 1.1 en cualquiera de sus zonas.
+
+     - **Todas las zonas.**
+
+       - **Sub-subprincipio 1.5.1 — Jugador más cercano al balón en el momento de la pérdida:** avisa en voz alta de inmediato (por ejemplo, "¡Perdido!"), para que todo el equipo reaccione a la vez sin depender de que cada uno lo vea por su cuenta.
+         - Habilidad imprescindible — **Comunicación**: avisa en el instante mismo de la pérdida, con una palabra clara y audible para todo el equipo. (Entrenable: ejercicios de pérdida simulada, exigiendo aviso verbal inmediato del jugador más cercano y midiendo el tiempo de reacción del resto del equipo.)
+       - **Sub-subprincipio 1.5.2 — Resto del equipo:** reacciona a la señal verbal aplicando el criterio de zona del Subprincipio 1.1, sin esperar a percibir la pérdida por su cuenta.
+         - Habilidad imprescindible — **Activación**: se activa en cuanto escucha el aviso, no cuando percibe la pérdida por sí mismo. (Entrenable: mismo ejercicio, comparando el tiempo de reacción de los jugadores alejados de la jugada con y sin el aviso verbal.)
+
+**Principio 2 — Replegar tras fallar la reacción inmediata.** Cuando la presión del Principio 1 no basta para recuperar el balón a tiempo, el equipo tiene que pasar de presionar de forma desorganizada a replegarse en bloque — este Principio cubre solo ese tránsito, desde que se reconoce el fallo hasta que el bloque queda formado; lo que el rival haga después contra ese bloque ya organizado lo cubre Defensa organizada.
+
+   - **Subprincipio 2.1 — Reconocer el gatillo de fallo en la presión y formar bloque organizado.** La presión intensa o la presión de los cuatro más cercanos no puede mantenerse indefinidamente si no está funcionando. En vez de contar segundos (poco realista a esta edad), el gatillo es una lectura observable de la situación, con una única voz de referencia que decide y avisa — igual que ya hace el jugador que cuenta rivales y compañeros en Ataque organizado, Sub-subprincipio 1.1.1.
 
      - **Zona de Finalización y Zona de Creación Rival.** Aplica aquí porque el Subprincipio 1.1 pide presión en estas dos zonas. En Zona de Creación Propia y Zona de Iniciación no aplica — ahí el 1.1 ya pide repliegue o cierre por defecto, así que no hay presión que abandonar.
 
-       - **Sub-subprincipio 1.2.1 — Central B (el de cobertura/vigilancia, ya definido en Defensa organizada 1.1.7/1.1.19):** es el jugador de referencia que decide cuándo abandonar la presión, por no estar él mismo presionando y tener visión de conjunto. Reconoce el gatillo — el rival completa 3 pases seguidos escapando de la presión, o el balón sale de la zona donde se perdió hacia la zona siguiente más cercana a nuestra portería — y avisa con una palabra clave (a definir en la planificación de entrenamientos) en el instante en que lo reconoce.
+       - **Sub-subprincipio 2.1.1 — Central B (el de cobertura/vigilancia, ya definido en Defensa organizada 1.1.7/1.1.19):** es el jugador de referencia que decide cuándo abandonar la presión, por no estar él mismo presionando y tener visión de conjunto. Reconoce el gatillo — el rival completa 3 pases seguidos escapando de la presión, o el balón sale de la zona donde se perdió hacia la zona siguiente más cercana a nuestra portería — y avisa con una palabra clave (a definir en la planificación de entrenamientos) en el instante en que lo reconoce.
          - Habilidad imprescindible — **Anticipación**: reconoce el gatillo (3 pases seguidos del rival escapando la presión, o el balón saliendo de zona) sin necesidad de contar tiempo. (Entrenable: ejercicios de presión con pérdida simulada, variando cuántos pases necesita el rival para escapar, exigiendo que el central de referencia identifique el gatillo correcto y no otro criterio.)
          - Habilidad imprescindible — **Comunicación**: avisa con la palabra clave en el instante en que reconoce el gatillo, para que todo el equipo abandone la presión a la vez y no cada uno por su cuenta. (Entrenable: mismo ejercicio, exigiendo que la señal verbal sea clara y llegue a tiempo a todo el equipo.)
-       - **Sub-subprincipio 1.2.2 — Resto del equipo:** abandona la presión y repliega en el instante en que escucha la palabra clave del central de referencia, sin decidir cada uno por su cuenta si seguir presionando o no.
+       - **Sub-subprincipio 2.1.2 — Resto del equipo:** abandona la presión y repliega en el instante en que escucha la palabra clave del central de referencia, sin decidir cada uno por su cuenta si seguir presionando o no.
          - Habilidad imprescindible — **Activación**: reacciona a la señal verbal del compañero, no a su propio criterio individual sobre si la presión está funcionando. (Entrenable: ejercicios de presión con aviso de repliegue, penalizando a cualquier jugador que siga presionando por su cuenta tras la señal.)
-       - **Sub-subprincipio 1.2.3 — Todo el equipo, tras el aviso:** forma bloque organizado con el mismo criterio ya definido en los Sub-subprincipios 1.1.6–1.1.10 para Zona de Creación Propia y Zona de Iniciación.
+       - **Sub-subprincipio 2.1.3 — Todo el equipo, tras el aviso:** forma bloque organizado con el mismo criterio ya definido en los Sub-subprincipios 1.1.6–1.1.10 para Zona de Creación Propia y Zona de Iniciación.
          - Habilidad imprescindible — **Activación** (misma que 1.1.6).
-
-   - **Subprincipio 1.3 — Diferenciar la reacción según si la pérdida fue un riesgo asumido o un error no forzado.** Cuando el equipo pierde el balón en una jugada donde ya había cobertura colocada de antemano (los roles de contención definidos en Ataque organizado — Sub-subprincipios 1.2.5, 1.3.3, 1.4.5, 1.5.4 y 1.6.5: los dos centrales, el lateral alejado del balón y un mediocentro), la reacción del Subprincipio 1.1 puede aplicarse sin matices, porque la red de seguridad ya está en posición. Si la pérdida es un error no forzado sin esa cobertura preparada (por ejemplo, un pase interceptado durante la circulación paciente, antes de activarse ningún mecanismo de progresión), la reacción debe ser más prudente, porque el equipo no está organizado para asumir ese riesgo.
-
-     - **Todas las zonas.**
-
-       - **Sub-subprincipio 1.3.1 — Pérdida en jugada de riesgo asumido (cobertura ya colocada):** el equipo aplica el criterio de zona del Subprincipio 1.1 sin dudar, sabiendo que la contención ya estaba en posición antes de perder el balón.
-         - Habilidad imprescindible — **Anticipación**: reconoce que la pérdida se produjo durante una jugada de progresión con contención ya activa, y actúa con la agresividad que marca 1.1 sin dudar. (Entrenable: ejercicios de pérdida simulada durante una jugada de progresión con roles de contención ya colocados, exigiendo reacción inmediata según el criterio de zona.)
-       - **Sub-subprincipio 1.3.2 — Pérdida por error no forzado, jugador más cercano:** temporiza en vez de presionar a robar, dando tiempo a que el resto del equipo — que no estaba organizado en contención — recomponga posiciones antes de arriesgar.
-         - Habilidad imprescindible — **Temporización**: contiene sin comprometerse a robar, consciente de que no hay cobertura preparada detrás. (Entrenable: ejercicios de pérdida por error no forzado sin roles de contención previos, penalizando al jugador si presiona a robar en vez de temporizar.)
-         - Habilidad imprescindible — **Anticipación**: reconoce que no había cobertura previa a la pérdida, y que por tanto el repliegue del resto del equipo va a tardar más de lo habitual. (Entrenable: mismo ejercicio, evaluando si el jugador ajusta su temporización a la ausencia de cobertura.)
-       - **Sub-subprincipio 1.3.3 — Resto del equipo, en el caso de error no forzado:** repliegue inmediato priorizando recomponer líneas, con más urgencia que en el escenario de riesgo asumido, porque no hay nadie ya colocado en cobertura.
-         - Habilidad imprescindible — **Activación**: repliega a máxima velocidad reconociendo que la pérdida les ha pillado sin cobertura organizada, a diferencia del escenario de riesgo asumido. (Entrenable: ejercicios de pérdida por error no forzado, comparando el tiempo de repliegue con el escenario de riesgo asumido para exigir mayor urgencia aquí.)
-
-   - **Subprincipio 1.4 — Comunicar el instante de la pérdida.** En el momento exacto en que se pierde el balón, no todos los jugadores lo perciben a la vez — los más alejados de la jugada tardan más en darse cuenta. Este subprincipio es transversal y complementa al Subprincipio 1.1 en cualquiera de sus zonas.
-
-     - **Todas las zonas.**
-
-       - **Sub-subprincipio 1.4.1 — Jugador más cercano al balón en el momento de la pérdida:** avisa en voz alta de inmediato (por ejemplo, "¡Perdido!"), para que todo el equipo reaccione a la vez sin depender de que cada uno lo vea por su cuenta.
-         - Habilidad imprescindible — **Comunicación**: avisa en el instante mismo de la pérdida, con una palabra clara y audible para todo el equipo. (Entrenable: ejercicios de pérdida simulada, exigiendo aviso verbal inmediato del jugador más cercano y midiendo el tiempo de reacción del resto del equipo.)
-       - **Sub-subprincipio 1.4.2 — Resto del equipo:** reacciona a la señal verbal aplicando el criterio de zona del Subprincipio 1.1, sin esperar a percibir la pérdida por su cuenta.
-         - Habilidad imprescindible — **Activación**: se activa en cuanto escucha el aviso, no cuando percibe la pérdida por sí mismo. (Entrenable: mismo ejercicio, comparando el tiempo de reacción de los jugadores alejados de la jugada con y sin el aviso verbal.)
-
----
+       - **Sub-subprincipio 2.1.4 — Portero:** en cuanto reconoce el gatillo de fallo en la presión (la misma señal verbal que da el Central de referencia), adelanta su posición para cubrir el espacio a la espalda de la línea que todavía está replegando, y dirige en voz alta la formación del bloque, aprovechando que es quien mejor visión tiene de toda la jugada.
+         - Habilidad imprescindible — **Anticipación**: adelanta su posición en el instante en que escucha la señal de repliegue, cubriendo el espacio que la línea todavía no ha recompuesto, sin esperar a que el bloque esté ya formado. (Entrenable: ejercicios de presión fallida con portero de referencia, midiendo si adelanta posición a la vez que arranca el repliegue del resto del equipo.)
+         - Habilidad imprescindible — **Comunicación**: dirige en voz alta la formación del bloque —posición de la línea, quién cierra el centro, cuándo queda cubierto— aprovechando su visión de conjunto desde atrás. (Entrenable: ejercicios de repliegue con portero dando referencias verbales, exigiendo que la línea ajuste su posición según esas indicaciones.)
 
 ## 5. Balón parado (ABP)
 
-**Filosofía general.** Es la única excepción deliberada a la flexibilidad e interpretación libre que rige el resto del modelo. Se trabaja de forma mecanizada, con jugadas ensayadas (guiones concretos); la creatividad individual solo entra en juego cuando el rival consigue frenar el guion inicial.
+*Nota de fase — Filosofía general.* Es la única excepción deliberada a la flexibilidad e interpretación libre que rige el resto del modelo. Se trabaja de forma mecanizada, con jugadas ensayadas (guiones concretos); la creatividad individual solo entra en juego cuando el rival consigue frenar el guion inicial.
 
-**Córners defensivos.** Marcaje mixto: zona general más marcaje individual a los rivales más peligrosos por juego aéreo. Hay jugadores específicos asignados a cubrir el borde del área para la segunda jugada o el rechace.
+1. **Córners.**
 
-**Córners ofensivos.** Jugadas ensayadas con guiones concretos: bloqueos, pantallas, movimientos cruzados. Siempre se mantiene superioridad numérica atrás (+1 sobre el rival) — así nunca se cae en el escenario de "2 o más de desventaja" que en transición defensa-ataque dispara el modo paciencia.
+   - **Subprincipio 1.1 — Defender el córner.**
 
-**Faltas defendiendo (cerca del área propia).** Reparto: 4 en barrera, 5 en marcaje mixto, 1 en mediocampo. Ese jugador de mediocampo cumple doble función: es el seguro anti-contragolpe y, si se recupera el balón tras el despeje, es la salida natural para la verticalidad inmediata. (El reparto 4+5+1+portero asume siempre equipo a 11 — el club no exige ningún ADN de formato reducido, ver más abajo.)
+     - **Todas las zonas.**
 
-**Faltas atacando (cerca del área rival).** Mismo criterio que los córners ofensivos: guiones + superioridad numérica atrás.
+       - **Sub-subprincipio 1.1.1 — Portero:** se coloca en el centro de la portería, perfilado hacia el punto de centro más probable, listo para salir a cualquier balón que domine antes que un rival.
+         - Habilidad imprescindible — **Anticipación**: lee la trayectoria del centro en el instante del golpeo para decidir si sale o se queda en la línea. (Entrenable: córners repetidos variando el tipo de centro, exigiendo que el portero identifique cuándo salir.)
+       - **Sub-subprincipio 1.1.2 — Lateral del lado del córner:** se coloca cerca del rival que saca el córner, presionando la opción de un saque en corto.
+         - Habilidad imprescindible — **Activación**: se sitúa junto al sacador antes del saque, cerrando la opción de apoyo corto desde el primer instante. (Entrenable: córners con opción de saque en corto simulada, midiendo si el lateral llega a tiempo de cerrarla.)
+       - **Sub-subprincipio 1.1.3 — Extremo del lado del córner:** se mantiene atento para ir en ayuda del lateral si el rival busca el apoyo en corto; si esa amenaza no se produce, marca al rival más cercano a la banda con peligro de remate.
+         - Habilidad imprescindible — **Anticipación**: reconoce si el rival va a buscar el apoyo en corto o no, y decide entre ayudar al lateral o fijar su marca antes de que se produzca el saque. (Entrenable: córners alternando saque en corto y saque directo, exigiendo que el extremo lea correctamente cuál de las dos responsabilidades le toca.)
+       - **Sub-subprincipio 1.1.4 — Centrales (los dos):** marcan en individual a los dos rivales más altos y peligrosos por juego aéreo, ganando la posición antes del golpeo.
+         - Habilidad imprescindible — **Carga**: se coloca pegado al rival marcado antes de que el balón salga golpeado, usando el cuerpo para ganar la posición de salto. (Entrenable: córners con marcaje individual asignado, puntuando si el central gana la posición antes del salto del rival.)
+       - **Sub-subprincipio 1.1.5 — Mediocentros (los dos):** completan, junto a los centrales, las cuatro marcas individuales del córner sobre los rivales más peligrosos restantes.
+         - Habilidad imprescindible — **Carga** (misma que 1.1.4, aplicada a los mediocentros).
+       - **Sub-subprincipio 1.1.6 — Lateral del lado contrario:** cubre el primer palo, sin marca individual fija, priorizando el espacio de remate.
+         - Habilidad imprescindible — **Temporización**: sostiene la posición del primer palo sin comprometerse a ningún marcaje individual. (Entrenable: córners con rivales cruzando la zona del primer palo, penalizando si el lateral abandona el espacio para seguir a un hombre.)
+       - **Sub-subprincipio 1.1.7 — Extremo del lado contrario:** cubre el segundo palo, mismo criterio que el lateral en el primer palo.
+         - Habilidad imprescindible — **Temporización** (misma que 1.1.6, aplicada al segundo palo).
+       - **Sub-subprincipio 1.1.8 — Mediapunta:** se mantiene en zona en el borde del área, en vigilancia sobre los rivales que quedan fuera del área, priorizando la segunda jugada o el rechace sobre disputar el balón aéreo.
+         - Habilidad imprescindible — **Anticipación**: vigila a los rivales fuera del área y anticipa por dónde puede salir el rechace, sin subir a disputar el juego aéreo. (Entrenable: córners con rechace simulado, midiendo si la mediapunta llega primero al segundo balón.)
+       - **Sub-subprincipio 1.1.9 — Delantero:** se posiciona en el mediocampo, en el lado contrario al saque del córner, quedando como referencia de salida rápida si el equipo recupera el balón.
+         - Habilidad imprescindible — **Anticipación**: mantiene la posición de referencia en mediocampo sin bajar a ayudar en el área, atento a activarse en cuanto el equipo recupere. (Entrenable: córners con robo simulado, midiendo si el delantero ya está en posición de recibir la salida rápida.)
 
-**Saques de banda.** En transición, si el balón queda cerca tras el corte, se saca rápido buscando sorprender; si hay que esperar a recuperar el balón, se saca organizado. En ataque organizado, siempre se saca organizado.
+   - **Subprincipio 1.2 — Atacar el córner.** Jugada ensayada con guion base: bloqueos, pantallas, movimientos cruzados. Siempre se mantiene superioridad numérica atrás (+1 sobre el rival) — así nunca se cae en el escenario de "2 o más de desventaja" que en Transición defensa-ataque dispara el modo paciencia. Las variantes concretas del guion (distintos bloqueos, distintos cruces, distinto rematador según el córner) se desarrollan como contenido de ejercicio/sesión, no como Sub-subprincipios adicionales aquí.
 
-**Saque de portería.** Sigue el mismo ADN que la salida de balón en juego dinámico — los mismos gatillos de corto/largo del punto 8 de Ataque organizado.
+     - **Todas las zonas.**
 
-**Penaltis.** Los lanzadores están prefijados; no se decide en el momento.
+       - **Sub-subprincipio 1.2.1 — Lanzador:** golpea el balón con el efecto y la trayectoria acordados en el guion, buscando la zona del área donde arranca el rematador principal.
+         - Habilidad imprescindible — **Centro**: golpea con la rosca y el peso acordados para que el balón llegue a la zona exacta del guion, ni corto ni pasado. (Entrenable: repetición del guion de córner fijo, evaluando precisión del golpeo respecto a la zona acordada.)
+       - **Sub-subprincipio 1.2.2 — Rematador principal:** se posiciona inicialmente lejos de la zona de remate y arranca en el último instante hacia el punto acordado, aprovechando el bloqueo de los compañeros para llegar libre de marca.
+         - Habilidad imprescindible — **Activación**: arranca la carrera en el momento exacto del guion, ni antes (perdería el efecto sorpresa) ni después (llegaría sin la ventaja del bloqueo). (Entrenable: repetición del guion con oposición progresiva, midiendo si el rematador llega libre de marca al punto acordado.)
+         - Habilidad imprescindible — **Remate de cabeza**: remata con la superficie y la dirección adecuadas según el punto de llegada del centro. (Entrenable: mismo ejercicio, evaluando calidad del remate de cabeza en la zona acordada.)
+       - **Sub-subprincipio 1.2.3 — Jugadores de bloqueo/pantalla:** se interponen, dentro del reglamento, en el camino de los marcadores rivales del rematador principal, ganando la posición antes de que llegue el balón.
+         - Habilidad imprescindible — **Carga**: ocupa el espacio y gana la posición frente al marcador rival justo antes de que arranque el rematador principal. (Entrenable: repetición del guion con marcadores rivales simulados, evaluando si el bloqueo libera al rematador de su marca.)
+       - **Sub-subprincipio 1.2.4 — Jugadores de movimiento cruzado:** cruzan sus trayectorias con otros atacantes para generar confusión en las marcas rivales, atrayendo a su propio marcador lejos de la zona real de remate.
+         - Habilidad imprescindible — **Anticipación**: ejecuta el cruce en el instante exacto del guion, arrastrando a su marcador fuera de la zona donde va a rematar el compañero. (Entrenable: repetición del guion con movimientos cruzados, midiendo si el marcador rival queda desplazado de la zona real de remate.)
+       - **Sub-subprincipio 1.2.5 — Jugadores de cobertura atrás (+1 sobre el rival):** permanecen fuera del área en posición de contención, garantizando superioridad numérica si el rival roba el balón e intenta un contragolpe inmediato.
+         - Habilidad imprescindible — **Temporización**: sostiene la posición de cobertura sin subir al área a rematar, consciente de que su función es la seguridad, no el gol. (Entrenable: córners ofensivos con contragolpe simulado tras robo rival, penalizando si algún jugador de cobertura sube a rematar dejando la salida abierta.)
 
-**Formato reducido.** El club no pide ningún ADN de formato reducido (fútbol 7 o similar) en ninguna categoría — no hace falta desarrollarlo.
+2. **Faltas.** Se diferencian por distancia y posición del golpeo respecto a nuestra propia área: Directa frontal y Directa lateral (hasta ~20m), Intermedia frontal e Intermedia lateral (20-30m, sin barrera), y Lejana (+30m, sin distinción frontal/lateral).
+
+   - **Subprincipio 2.1 — Defender la falta.**
+
+     - **Zona — Directa frontal (hasta ~20m, frontal).**
+
+       - **Sub-subprincipio 2.1.1 — Barrera (4 jugadores):** se coloca tapando el ángulo directo a portería, según la referencia que marca el portero.
+         - Habilidad imprescindible — **Carga**: mantiene la posición del cuerpo en la barrera sin moverse ni saltar antes de tiempo, sosteniendo el bloqueo hasta que el balón esté golpeado. (Entrenable: faltas directas repetidas con barrera fija, penalizando el movimiento anticipado antes del golpeo.)
+       - **Sub-subprincipio 2.1.2 — Portero:** se coloca cubriendo el poste y el ángulo que la barrera deja sin tapar, y da la orden de colocación a los jugadores de la barrera.
+         - Habilidad imprescindible — **Comunicación**: dirige en voz alta la colocación de la barrera respecto al poste que él mismo cubre. (Entrenable: faltas directas repetidas, evaluando si la barrera tapa correctamente el ángulo indicado por el portero.)
+       - **Sub-subprincipio 2.1.3 — Jugadores de marcaje mixto (5):** marcaje individual sobre los rivales más peligrosos por juego aéreo dentro del área, resto en zona.
+         - Habilidad imprescindible — **Carga** (mismo criterio que Córners, Sub-subprincipio 1.1.4).
+       - **Sub-subprincipio 2.1.4 — Jugador de mediocampo (1):** se mantiene en mediocampo como seguro anti-contragolpe y como salida natural si el equipo recupera tras el despeje.
+         - Habilidad imprescindible — **Anticipación**: mantiene la posición de mediocampo sin bajar al área, listo para recibir si el equipo despeja o roba. (Entrenable: faltas defendidas con despeje simulado, midiendo si el jugador de mediocampo está ya posicionado para recibir la salida.)
+
+     - **Zona — Directa lateral (hasta ~20m, lateral).**
+
+       - **Sub-subprincipio 2.1.5 — Barrera reducida (2-3 jugadores):** tapa el primer palo y el ángulo más cercano, dejando el resto de la portería a cargo del portero.
+         - Habilidad imprescindible — **Carga** (mismo criterio que 2.1.1, con menos efectivos en la barrera).
+       - **Sub-subprincipio 2.1.6 — Portero:** cubre el segundo palo y el ángulo lejano, ajustando su posición al lado exacto del golpeo.
+         - Habilidad imprescindible — **Comunicación** (mismo criterio que 2.1.2, adaptado a la barrera reducida).
+       - **Sub-subprincipio 2.1.7 — Jugadores de marcaje mixto y jugador de mediocampo:** mismo criterio que 2.1.3 y 2.1.4.
+         - Habilidad imprescindible — **Carga** / **Anticipación** (mismas que 2.1.3/2.1.4).
+
+     - **Zona — Intermedia frontal (20-30m, frontal), sin barrera.**
+
+       - **Sub-subprincipio 2.1.8 — Todo el equipo:** se organiza como si defendiera un córner (mismo criterio que Principio 1, Subprincipio 1.1) — marcaje mixto en el área, sin barrera, priorizando cubrir el posible centro/pase al área sobre el disparo directo, que a esta distancia es menos probable.
+         - Habilidad imprescindible — **Carga** (mismo criterio que Córners defensivos).
+       - **Sub-subprincipio 2.1.9 — Portero:** se coloca centrado, atento tanto a un disparo directo como a un balón centrado al área.
+         - Habilidad imprescindible — **Anticipación**: lee si el golpeo va a ser directo a portería o centrado al área, ajustando su posición de partida. (Entrenable: faltas intermedias repetidas alternando disparo directo y centro al área.)
+
+     - **Zona — Intermedia lateral (20-30m, lateral), sin barrera.**
+
+       - **Sub-subprincipio 2.1.10 — Todo el equipo:** se organiza igual que defendiendo un córner lateral (mismo criterio que Principio 1, roles de córner defensivo aplicados a esta posición).
+         - Habilidad imprescindible — **Carga** (mismo criterio que Córners defensivos).
+       - **Sub-subprincipio 2.1.11 — Portero:** se perfila hacia el lado del golpeo, priorizando la cobertura del segundo palo.
+         - Habilidad imprescindible — **Anticipación** (mismo criterio que 1.1.1 de Córners, adaptado a la falta lateral).
+
+     - **Zona — Lejana (+30m), sin distinción frontal/lateral.**
+
+       - **Sub-subprincipio 2.1.12 — Todo el equipo:** mantiene el bloque organizado normal, sin estructura especial de falta — mismo criterio que Defensa organizada, sin riesgo real a esta distancia.
+         - Habilidad imprescindible — **Temporización** (mismo criterio que Defensa organizada, Subprincipio 1.1).
+
+   - **Subprincipio 2.2 — Atacar la falta.**
+
+     - **Zona — Directa frontal (hasta ~20m, frontal) — el disparo directo es una opción real.**
+
+       - **Sub-subprincipio 2.2.1 — Lanzador:** decide entre el disparo directo a portería (buscando el hueco en la barrera o por encima) o el pase al área, según el guion acordado para esa falta concreta.
+         - Habilidad imprescindible — **Remate**: golpea directo a portería con la trayectoria y el efecto acordados, buscando el hueco de la barrera o por encima de ella. (Entrenable: faltas directas repetidas con barrera real, evaluando precisión del golpeo al hueco o por encima.)
+       - **Sub-subprincipio 2.2.2 — Resto de atacantes:** se colocan en posición de emboscada para el rechace (mismo criterio que un córner, sin ser el objetivo principal de la jugada), listos para rematar si el portero o la barrera despejan corto.
+         - Habilidad imprescindible — **Anticipación** (mismo criterio que 1.1.5 de Córners defensivos, aplicado aquí en ataque).
+       - **Sub-subprincipio 2.2.3 — Jugadores de cobertura atrás (+1):** mismo criterio que Córners ofensivos, Sub-subprincipio 1.2.5.
+         - Habilidad imprescindible — **Temporización** (misma que 1.2.5).
+
+     - **Zona — Directa lateral (hasta ~20m, lateral) — ángulo cerrado, se centra igual que un córner.**
+
+       - **Sub-subprincipio 2.2.4 — Lanzador, rematador principal, jugadores de bloqueo/pantalla y movimiento cruzado, cobertura atrás:** mismo criterio completo que Córners ofensivos, Subprincipio 1.2 (Sub-subprincipios 1.2.1-1.2.5).
+         - Habilidades imprescindibles — **Centro / Activación / Remate de cabeza / Carga / Anticipación / Temporización** (mismas que 1.2.1-1.2.5).
+
+     - **Zona — Intermedia frontal (20-30m, frontal) — centro al área con opción de disparo sorpresa.**
+
+       - **Sub-subprincipio 2.2.5 — Lanzador:** centra al área siguiendo el guion (mismo criterio que 1.2.1 de Córners), reservando el disparo directo solo como sorpresa ocasional si detecta al portero adelantado o la barrera mal colocada.
+         - Habilidad imprescindible — **Centro** (misma que 1.2.1 de Córners).
+       - **Sub-subprincipio 2.2.6 — Rematador principal, bloqueos, movimiento cruzado, cobertura atrás:** mismo criterio que Córners ofensivos, Sub-subprincipios 1.2.2-1.2.5.
+         - Habilidades imprescindibles — **Activación / Remate de cabeza / Carga / Anticipación / Temporización** (mismas que 1.2.2-1.2.5).
+
+     - **Zona — Intermedia lateral (20-30m, lateral) — mismo criterio que córner lateral.**
+
+       - **Sub-subprincipio 2.2.7 — Todo el equipo:** mismo criterio completo que Córners ofensivos, Subprincipio 1.2.
+         - Habilidades imprescindibles (mismas que 1.2.1-1.2.5).
+
+     - **Zona — Lejana (+30m) — sin estructura especial.**
+
+       - **Sub-subprincipio 2.2.8 — Todo el equipo:** retoma la circulación normal de Ataque organizado, sin montar ningún guion de falta — a esta distancia no hay amenaza real de gol directo ni de centro con peligro.
+         - Habilidad imprescindible — **Anticipación** (mismo criterio que Ataque organizado, Subprincipio 1.1).
+
+3. **Saques de banda.**
+
+   - **Subprincipio 3.1 — Sacar rápido** (en transición, balón cerca tras el corte).
+
+     - **Todas las zonas.**
+
+       - **Sub-subprincipio 3.1.1 — Jugador que saca (el más cercano al balón cuando sale fuera):** saca de inmediato sin esperar a que el equipo se organice, buscando al compañero mejor posicionado para sorprender al rival antes de que reaccione — mismo espíritu que Transición defensa-ataque, Principio 1 (decidir velocidad según la situación).
+         - Habilidad imprescindible — **Activación**: ejecuta el saque en el instante en que recupera el balón fuera de banda, sin pausa para organizar la jugada. (Entrenable: ejercicios de saque de banda con tiempo límite tras la recuperación, penalizando la demora.)
+         - Habilidad imprescindible — **Pase**: entrega el balón con precisión al compañero mejor posicionado, priorizando velocidad de ejecución sobre la comodidad del receptor. (Entrenable: mismo ejercicio, evaluando calidad del saque bajo presión de tiempo.)
+       - **Sub-subprincipio 3.1.2 — Compañero más cercano al que saca:** se ofrece de inmediato como opción de recepción, sin esperar a que el resto del equipo se coloque, para no perder la ventana de sorpresa.
+         - Habilidad imprescindible — **Activación**: se activa a recibir en el mismo instante en que el balón sale de banda, anticipándose a la decisión del que saca. (Entrenable: mismo ejercicio, midiendo el tiempo de reacción del compañero de apoyo.)
+
+   - **Subprincipio 3.2 — Sacar organizado** (resto de casos, incluido siempre en Ataque organizado).
+
+     - **Todas las zonas.**
+
+       - **Sub-subprincipio 3.2.1 — Jugador que saca:** espera a que el equipo ocupe las posiciones habituales de circulación (mismas referencias que Ataque organizado en la zona correspondiente) antes de ejecutar el saque.
+         - Habilidad imprescindible — **Temporización**: retiene el saque hasta que el equipo esté posicionado, resistiendo la tentación de sacar rápido sin necesidad. (Entrenable: ejercicios de saque de banda en fase de posesión calmada, penalizando el saque precipitado sin estructura detrás.)
+       - **Sub-subprincipio 3.2.2 — Resto del equipo:** ocupa las posiciones de circulación habituales antes del saque, igual que en cualquier inicio de jugada de Ataque organizado.
+         - Habilidad imprescindible — **Anticipación**: se coloca en referencia de circulación en cuanto ve que el saque va a ser organizado, sin esperar a que el balón ya esté en juego. (Entrenable: mismo ejercicio, midiendo si el equipo está posicionado antes del saque.)
+       - **Sub-subprincipio 3.2.3 — Central y/o mediocentro no implicado en la circulación inmediata:** mantiene posición de cobertura sin sumarse en exceso a la circulación — misma red de seguridad ya definida en Ataque organizado (Sub-subprincipios 1.2.5, 1.3.3, 1.4.5, 1.5.4 y 1.6.5).
+         - Habilidad imprescindible — **Temporización** (misma que la red de seguridad de Ataque organizado).
+
+4. **Saque de portería.** Cubierto íntegramente por Ataque organizado, Principio 3 ("Decidir y ejecutar la salida de balón en el saque de puerta") — no se duplica aquí.
+
+5. **Penaltis.**
+
+   - **Subprincipio 5.1 — Lanzar el penalti.**
+
+     - **Todas las zonas.**
+
+       - **Sub-subprincipio 5.1.1 — Lanzador (según el orden prefijado):** ejecuta el penalti con la zona de tiro decidida de antemano, sin improvisar en el momento — el orden y la zona de cada lanzador están fijados en la planificación, no se deciden sobre la marcha.
+         - Habilidad imprescindible — **Remate**: golpea a la zona acordada con la potencia y colocación entrenadas, manteniendo el mismo gesto decidido de antemano independientemente del comportamiento del portero rival. (Entrenable: series de penaltis con zona de tiro prefijada por jugador, evaluando consistencia del golpeo a esa zona bajo presión.)
+       - **Sub-subprincipio 5.1.2 — Resto del equipo:** se mantiene fuera del área a la distancia reglamentaria, listo para la segunda jugada si el portero rechaza.
+         - Habilidad imprescindible — **Anticipación**: se posiciona anticipando por dónde puede salir el rechace, sin invadir el área antes del golpeo. (Entrenable: penaltis con rechace simulado, midiendo si el equipo llega primero al segundo balón.)
+       - **Sub-subprincipio 5.1.3 — Los dos centrales:** se colocan más retrasados que el resto del equipo, cerca de la línea de medio campo, para prevenir el contragolpe inmediato si el rival roba el rechace y sale rápido.
+         - Habilidad imprescindible — **Temporización**: sostiene la posición retrasada sin acercarse al área a buscar el rechace, priorizando la seguridad ante la pérdida. (Entrenable: penaltis con rechace y contragolpe simulado, midiendo si los centrales están ya posicionados para frenar la salida rival.)
+
+   - **Subprincipio 5.2 — Defender el penalti.**
+
+     - **Todas las zonas.**
+
+       - **Sub-subprincipio 5.2.1 — Portero:** se coloca centrado en la línea y decide su lado antes del golpeo o en el instante del golpeo, según conozca o no el patrón del lanzador rival (si hay información previa, se anticipa a un lado prefijado; si no la hay, lee el apoyo y la carrera del lanzador en el último instante).
+         - Habilidad imprescindible — **Anticipación**: decide el lado de la estirada según la información disponible del lanzador —prefijada si se conoce su patrón, leída en el gesto si no— sin quedarse quieto esperando a ver el golpeo completo. (Entrenable: series de penaltis alternando lanzadores con patrón conocido y desconocido, evaluando si el portero ajusta su criterio de decisión a cada caso.)
+       - **Sub-subprincipio 5.2.2 — Resto del equipo:** se mantiene fuera del área a distancia reglamentaria, listo para la segunda jugada si el portero rechaza o el balón rebota.
+         - Habilidad imprescindible — **Anticipación** (mismo criterio que 5.1.2, aplicado en defensa).
+
+6. **Saque de centro.**
+
+   - **Subprincipio 6.1 — Ejecutar nuestro saque de centro** (guion ofensivo).
+
+     - **Todas las zonas.**
+
+       - **Sub-subprincipio 6.1.1 — Mediocentro que inicia el saque:** toca el balón corto y lateral al otro mediocentro.
+         - Habilidad imprescindible — **Pase**: toca con precisión y el peso justo para que el compañero reciba cómodo sin perder tiempo. (Entrenable: repeticiones de saque de centro con los dos mediocentros, evaluando precisión y peso del primer toque.)
+       - **Sub-subprincipio 6.1.2 — Mediocentro receptor:** en cuanto recibe, busca de inmediato el balón largo hacia el carril de banda donde ya está arrancando la carrera del extremo, la mediapunta o el delantero.
+         - Habilidad imprescindible — **Control orientado**: el primer toque ya orienta el balón hacia el carril de banda elegido, sin pararlo. (Entrenable: mismo ejercicio, exigiendo un solo toque de control ya orientado hacia el carril de salida.)
+         - Habilidad imprescindible — **Pase**: golpea el balón largo con la trayectoria y el peso adecuados para que el compañero en carrera pueda controlarlo sin frenar. (Entrenable: mismo ejercicio, evaluando la calidad del balón largo hacia banda.)
+       - **Sub-subprincipio 6.1.3 — Extremos, mediapunta y delantero:** se colocan en la línea de medio campo, y arrancan la carrera hacia banda en el instante en que el balón sale tocado hacia el segundo mediocentro, buscando recibir el balón largo ya en carrera.
+         - Habilidad imprescindible — **Anticipación**: se coloca en la línea de medio campo justo antes del saque, sin descolocarse. (Entrenable: ejercicios de saque de centro cronometrados, midiendo si la línea está formada antes del pitido.)
+         - Habilidad imprescindible — **Activación**: arranca la carrera en el instante del segundo toque (mediocentro a mediocentro), no después de ver hacia qué lado sale el balón largo. (Entrenable: mismo ejercicio, midiendo el tiempo de reacción de la línea adelantada tras el segundo toque.)
+       - **Sub-subprincipio 6.1.4 — Un central (el que queda de cobertura):** se mantiene replegado cerca de medio campo, sin avanzar con el resto, previniendo la pérdida del balón largo inicial.
+         - Habilidad imprescindible — **Temporización** (mismo criterio que la red de seguridad de Ataque organizado).
+       - **Sub-subprincipio 6.1.5 — Resto (el otro central y los dos laterales):** avanza ocupando Zona de Creación Propia y Zona de Creación Rival, dando amplitud y compactando las líneas para sostener la segunda jugada si el balón largo no se resuelve directo.
+         - Habilidad imprescindible — **Activación**: sube ocupando ambas zonas en el mismo instante del saque, sin esperar al resultado del balón largo. (Entrenable: mismo ejercicio, midiendo si el resto del equipo ya ha ocupado ambas zonas cuando el balón largo llega a su destino.)
+
+   - **Subprincipio 6.2 — Organizarnos frente al saque de centro rival** (posicionamiento defensivo).
+
+     - **Todas las zonas.**
+
+       - **Sub-subprincipio 6.2.1 — Todo el equipo:** en el instante en que el rival golpea el saque de centro, reacciona igual que si acabara de perder el balón en Zona de Creación Rival — sube ocupando Zona de Creación Propia y Zona de Creación Rival, sin dar tiempo al rival a pensar, en vez de esperar organizados en bloque medio.
+         - Habilidad imprescindible — **Activación**: sube de inmediato al saque rival, tratándolo como una pérdida de balón propia, sin esperar a ver el primer pase. (Entrenable: ejercicios de saque de centro rival simulado, midiendo el tiempo de reacción de todo el equipo respecto a una pérdida de balón real.)
+       - **Sub-subprincipio 6.2.2 — Los cuatro jugadores más cercanos al balón** (mismo criterio que Transición ataque-defensa, Sub-subprincipio 1.1.2): presionan de forma coordinada al poseedor y sus apoyos inmediatos, buscando robar antes de que el rival organice su salida.
+         - Habilidad imprescindible — **Activación** (misma que 1.1.2 de Transición ataque-defensa).
+       - **Sub-subprincipio 6.2.3 — Resto del equipo** (mismo criterio que 1.1.3): se mantiene en labor de contención, sujetando posiciones mientras se resuelve la presión de los cuatro cercanos.
+         - Habilidad imprescindible — **Temporización** (misma que 1.1.3 de Transición ataque-defensa).
+
+*Nota — Formato reducido.* El club no pide ningún ADN de formato reducido (fútbol 7 o similar) en ninguna categoría — no hace falta desarrollarlo.
 
 ---
 

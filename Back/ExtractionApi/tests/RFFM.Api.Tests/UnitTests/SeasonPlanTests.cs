@@ -296,5 +296,65 @@ namespace RFFM.Api.Tests.UnitTests
 
             Assert.Throws<ArgumentException>(() => microciclo.ReplaceSubSubPrincipioLinks("Z", new List<string> { "subsub-1" }));
         }
+
+        [Fact]
+        public void Create_WithoutUpdateZones_GameZoneIdSesionAAndB_DefaultToZero()
+        {
+            var microciclo = new Microciclo("mesociclo-1", 1, "Semana 1", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 7), "A", "B");
+
+            Assert.Equal(0, microciclo.GameZoneIdSesionA);
+            Assert.Equal(0, microciclo.GameZoneIdSesionB);
+        }
+
+        [Fact]
+        public void UpdateZones_WithPositiveValues_SetsBothSessions()
+        {
+            var microciclo = new Microciclo("mesociclo-1", 1, "Semana 1", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 7), "A", "B");
+
+            microciclo.UpdateZones(2, 3);
+
+            Assert.Equal(2, microciclo.GameZoneIdSesionA);
+            Assert.Equal(3, microciclo.GameZoneIdSesionB);
+        }
+
+        [Fact]
+        public void UpdateZones_AllowsDifferentZonesPerSession()
+        {
+            // Real-world case from the plan (e.g. Microciclo 5): Sesión A and Sesión B of the
+            // same week are frequently trained in different field zones.
+            var microciclo = new Microciclo("mesociclo-1", 1, "Semana 5", new DateOnly(2026, 9, 29), new DateOnly(2026, 10, 5), "A", "B");
+
+            microciclo.UpdateZones(2, 3);
+
+            Assert.NotEqual(microciclo.GameZoneIdSesionA, microciclo.GameZoneIdSesionB);
+        }
+
+        [Fact]
+        public void UpdateZones_WithZeroGameZoneIdSesionA_Throws()
+        {
+            var microciclo = new Microciclo("mesociclo-1", 1, "Semana 1", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 7), "A", "B");
+
+            Assert.Throws<ArgumentException>(() => microciclo.UpdateZones(0, 1));
+        }
+
+        [Fact]
+        public void UpdateZones_WithZeroGameZoneIdSesionB_Throws()
+        {
+            var microciclo = new Microciclo("mesociclo-1", 1, "Semana 1", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 7), "A", "B");
+
+            Assert.Throws<ArgumentException>(() => microciclo.UpdateZones(1, 0));
+        }
+
+        [Fact]
+        public void UpdateZones_CalledAgain_OverwritesPreviousValues()
+        {
+            var microciclo = new Microciclo("mesociclo-1", 1, "Semana 1", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 7), "A", "B");
+            microciclo.UpdateZones(1, 1);
+
+            microciclo.UpdateZones(4, 2);
+
+            Assert.Equal(4, microciclo.GameZoneIdSesionA);
+            Assert.Equal(2, microciclo.GameZoneIdSesionB);
+        }
     }
 }

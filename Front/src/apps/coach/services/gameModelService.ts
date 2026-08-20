@@ -11,6 +11,7 @@ import type {
   SetPieceRule,
   OpenIssue,
 } from "../types/gameModel";
+import type { AdnOptions, AdnSubSubPrincipioOption } from "../types/seasonPlan";
 
 // ── API response types (nested structure from backend — camelCase over the wire) ──
 
@@ -204,6 +205,50 @@ function mapApiToGameModel(api: ApiGameModel): GameModel {
   };
 }
 
+function isNotFound(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "response" in error &&
+    (error as { response?: { status?: number } }).response?.status === 404
+  );
+}
+
+// ── ADN options (Subprincipio/SubSubPrincipio pickers) ─────────────────
+// Flattens the team's current GameModel tree (Principle → Subprincipio →
+// (Zona 0..N | direct) → SubSubPrincipio) into flat option lists, consumed by
+// both the SeasonPlan Microciclo session pickers and the Exercise
+// ModelRelationSection (see design.md's Amendment 2).
+
+function flattenGameModelToAdnOptions(model: GameModel | null): AdnOptions {
+  if (!model) return { subprincipios: [], subSubPrincipios: [] };
+
+  const subprincipios: AdnOptions["subprincipios"] = [];
+  const subSubPrincipios: AdnSubSubPrincipioOption[] = [];
+
+  for (const principle of model.principles) {
+    for (const sp of principle.subprincipios) {
+      const subprincipioId = sp.apiId;
+      if (!subprincipioId) continue;
+
+      subprincipios.push({
+        id: subprincipioId,
+        numero: sp.numero,
+        titulo: sp.titulo,
+        gameMomentName: principle.gameMomentName ?? "",
+      });
+
+      const nestedSubSubPrincipios = [...sp.subSubPrincipios, ...sp.zonas.flatMap((z) => z.subSubPrincipios)];
+      for (const ssp of nestedSubSubPrincipios) {
+        if (!ssp.apiId) continue;
+        subSubPrincipios.push({ id: ssp.apiId, numero: ssp.numero, rol: ssp.rol, subprincipioId });
+      }
+    }
+  }
+
+  return { subprincipios, subSubPrincipios };
+}
+
 // ── Mapper: nested GameModel → nested API request ───────────────────────
 
 function mapNotaRequest(n: Nota) {
@@ -364,6 +409,20 @@ const gameModelService = {
 
   async delete(id: string): Promise<void> {
     await client.delete(`/api/game-models/${id}`);
+  },
+
+  /** Flattened Subprincipio/SubSubPrincipio option lists for ADN pickers (SeasonPlan session
+   * pickers, Exercise ModelRelationSection), sourced from the team's current GameModel for
+   * that season (`season` matches GameModel's free-text Season label). Returns empty arrays
+   * (not an error) when the team has no GameModel yet for that season. */
+  async getAdnOptions(teamId: string, season: string): Promise<AdnOptions> {
+    try {
+      const model = await this.getByTeamIdAndSeason(teamId, season);
+      return flattenGameModelToAdnOptions(model);
+    } catch (error) {
+      if (isNotFound(error)) return { subprincipios: [], subSubPrincipios: [] };
+      throw error;
+    }
   },
 };
 

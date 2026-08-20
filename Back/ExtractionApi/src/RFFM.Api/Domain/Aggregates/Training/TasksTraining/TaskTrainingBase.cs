@@ -1,4 +1,5 @@
-﻿using RFFM.Api.Domain.Aggregates.UserClubs;
+﻿using RFFM.Api.Domain.Aggregates.GameModels;
+using RFFM.Api.Domain.Aggregates.UserClubs;
 
 namespace RFFM.Api.Domain.Aggregates.Training.TasksTraining
 {
@@ -40,5 +41,40 @@ namespace RFFM.Api.Domain.Aggregates.Training.TasksTraining
         public List<MaterialsEnum> Material { get; set; } = new();
         public List<ExerciseCondition> Conditions { get; set; } = new();
         public List<TaskTrainingType> Types { get; set; } = new();
+
+        /// <summary>Habilidad names (closed 15-value vocabulary) this exercise targets — jsonb
+        /// column, mirrors <see cref="SeasonPlans.Microciclo.SesionAHabilidades"/> exactly
+        /// (design.md Amendment 2).</summary>
+        public List<string> Habilidades { get; private set; } = new();
+
+        /// <summary>Which Subprincipio/SubSubPrincipio nodes of the team's current GameModel
+        /// this exercise trains, tagged FOCO/INTEGRADO (design.md Amendment 2). A property of
+        /// the exercise itself, independent of any one Microciclo/week.</summary>
+        public List<ExerciseModelLink> ModelLinks { get; private set; } = new();
+
+        public void UpdateHabilidades(IEnumerable<string>? habilidades) => Habilidades = ValidateHabilidades(habilidades);
+
+        /// <summary>Clears and rebuilds <see cref="ModelLinks"/> wholesale — no incremental
+        /// diffing, same "trust server-derived state" approach as
+        /// <see cref="SeasonPlans.Microciclo.ReplaceSubprincipioLinks"/>.</summary>
+        public void ReplaceModelLinks(IEnumerable<(string? SubprincipioId, string? SubSubPrincipioId, bool IsFoco)> links)
+        {
+            ModelLinks.Clear();
+            foreach (var link in links)
+                ModelLinks.Add(new ExerciseModelLink(Id, link.SubprincipioId, link.SubSubPrincipioId, link.IsFoco));
+        }
+
+        private static List<string> ValidateHabilidades(IEnumerable<string>? habilidades)
+        {
+            var list = (habilidades ?? Enumerable.Empty<string>()).ToList();
+            foreach (var habilidad in list)
+            {
+                if (!Habilidad.Vocabulary.Contains(habilidad))
+                    throw new ArgumentException(
+                        $"'{habilidad}' is not a valid Habilidad name. Must be one of the 15-value closed vocabulary.",
+                        nameof(habilidades));
+            }
+            return list;
+        }
     }
 }

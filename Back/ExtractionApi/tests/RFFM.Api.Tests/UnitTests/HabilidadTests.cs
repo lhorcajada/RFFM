@@ -14,6 +14,7 @@ namespace RFFM.Api.Tests.UnitTests
         [InlineData("Temporización")]
         [InlineData("Comunicación")]
         [InlineData("Entrada")]
+        [InlineData("Intercepción")]
         [InlineData("Conducción")]
         [InlineData("Protección de balón")]
         [InlineData("Control orientado")]

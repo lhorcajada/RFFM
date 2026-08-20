@@ -112,6 +112,8 @@ export const emptyExercise: CreateExerciseRequest = {
   series: 0,
   durationSeries: 0,
   restSeries: 0,
+  modelLinks: [],
+  habilidades: [],
 };
 
 export const TEXT_FONT_OPTIONS = [

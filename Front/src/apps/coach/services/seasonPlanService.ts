@@ -1,7 +1,6 @@
 import { client } from "../../../core/api/client";
 import gameModelService from "./gameModelService";
-import type { AdnOptions, AdnSubSubPrincipioOption, Macrociclo, Mesociclo, Microciclo, SeasonPlan } from "../types/seasonPlan";
-import type { GameModel } from "../types/gameModel";
+import type { AdnOptions, Macrociclo, Mesociclo, Microciclo, SeasonPlan } from "../types/seasonPlan";
 
 // ── API response types (nested structure from backend — camelCase over the wire) ──
 
@@ -226,41 +225,6 @@ function isNotFound(error: unknown): boolean {
   );
 }
 
-// ── ADN options (Subprincipio/SubSubPrincipio pickers) ─────────────────
-// Flattens the team's current GameModel tree (Principle → Subprincipio →
-// (Zona 0..N | direct) → SubSubPrincipio) into flat option lists for the
-// Microciclo session pickers. Reuses gameModelService's fetch rather than a
-// dedicated backend endpoint (see design.md's Amendment section).
-
-function flattenGameModelToAdnOptions(model: GameModel | null): AdnOptions {
-  if (!model) return { subprincipios: [], subSubPrincipios: [] };
-
-  const subprincipios: AdnOptions["subprincipios"] = [];
-  const subSubPrincipios: AdnSubSubPrincipioOption[] = [];
-
-  for (const principle of model.principles) {
-    for (const sp of principle.subprincipios) {
-      const subprincipioId = sp.apiId;
-      if (!subprincipioId) continue;
-
-      subprincipios.push({
-        id: subprincipioId,
-        numero: sp.numero,
-        titulo: sp.titulo,
-        gameMomentName: principle.gameMomentName ?? "",
-      });
-
-      const nestedSubSubPrincipios = [...sp.subSubPrincipios, ...sp.zonas.flatMap((z) => z.subSubPrincipios)];
-      for (const ssp of nestedSubSubPrincipios) {
-        if (!ssp.apiId) continue;
-        subSubPrincipios.push({ id: ssp.apiId, numero: ssp.numero, rol: ssp.rol, subprincipioId });
-      }
-    }
-  }
-
-  return { subprincipios, subSubPrincipios };
-}
-
 // ── Service ───────────────────────────────────────────────────────────
 const seasonPlanService = {
   async getByTeamIdAndSeason(teamId: string, seasonId: string): Promise<SeasonPlan | null> {
@@ -298,15 +262,10 @@ const seasonPlanService = {
    * free-text Season label — see `gameModelService.getByTeamIdAndSeason` — not SeasonPlan's
    * `seasonId` FK; callers must resolve/pass the right one, same as `GameModelCreate.tsx`
    * does via `season.name ?? season.id`). Returns empty arrays (not an error) when the team
-   * has no GameModel yet for that season. */
+   * has no GameModel yet for that season. Delegates to `gameModelService.getAdnOptions`
+   * (the canonical implementation, shared with the Exercise ModelRelationSection). */
   async getAdnOptions(teamId: string, season: string): Promise<AdnOptions> {
-    try {
-      const model = await gameModelService.getByTeamIdAndSeason(teamId, season);
-      return flattenGameModelToAdnOptions(model);
-    } catch (error) {
-      if (isNotFound(error)) return { subprincipios: [], subSubPrincipios: [] };
-      throw error;
-    }
+    return gameModelService.getAdnOptions(teamId, season);
   },
 };
 

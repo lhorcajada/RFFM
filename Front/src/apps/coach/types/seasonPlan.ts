@@ -53,7 +53,7 @@ export interface Microciclo {
   sesionASubprincipioIds: string[];
   /** Selected SubSubPrincipio ids for Sesión A — write side. */
   sesionASubSubPrincipioIds: string[];
-  /** Selected Habilidad names for Sesión A (closed 14-value vocabulary). */
+  /** Selected Habilidad names for Sesión A (closed 15-value vocabulary). */
   sesionAHabilidades: string[];
   /** Denormalized Subprincipio summaries for Sesión A — read side, populated from GetSeasonPlan. */
   sesionASubprincipios: AdnSubprincipioSummary[];
