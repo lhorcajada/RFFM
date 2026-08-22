@@ -59,6 +59,10 @@ export interface Microciclo {
   endDate: string;
   /** TrainingSessions linked to this Microciclo — read side, populated from GetSeasonPlan. */
   sessions: SessionSummary[];
+  /** Denormalized target-Subprincipio summaries — read side, populated from GetSeasonPlan. */
+  subprincipiosObjetivo: AdnSubprincipioSummary[];
+  /** Selected Subprincipio ids — write side, sent on create/update (replace-wholesale). */
+  subprincipioObjetivoIds: string[];
 }
 
 export interface Mesociclo {

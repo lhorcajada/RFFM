@@ -17,6 +17,11 @@ namespace RFFM.Api.Domain.Aggregates.SeasonPlans
         public DateOnly StartDate { get; private set; }
         public DateOnly EndDate { get; private set; }
 
+        /// <summary>Target Subprincipios for this week — reference-only intent, per the
+        /// `season-plan-target-subprincipios` OpenSpec change. See
+        /// <see cref="ReplaceSubprincipiosObjetivo"/>.</summary>
+        public List<MicrocicloSubprincipioObjetivo> SubprincipiosObjetivo { get; private set; } = new();
+
         private Microciclo() { }
 
         public Microciclo(string mesocicloId, int order, string weekLabel, DateOnly startDate, DateOnly endDate)
@@ -44,6 +49,16 @@ namespace RFFM.Api.Domain.Aggregates.SeasonPlans
                 throw new ArgumentException("EndDate cannot be before StartDate.", nameof(endDate));
             StartDate = startDate;
             EndDate = endDate;
+        }
+
+        /// <summary>Clears and rebuilds <see cref="SubprincipiosObjetivo"/> wholesale — same
+        /// "trust server-derived state" approach used across this codebase (e.g.
+        /// <c>TaskTrainingBase.ReplaceModelRelations</c>).</summary>
+        public void ReplaceSubprincipiosObjetivo(IEnumerable<string>? subprincipioIds)
+        {
+            SubprincipiosObjetivo.Clear();
+            foreach (var id in (subprincipioIds ?? Enumerable.Empty<string>()).Distinct())
+                SubprincipiosObjetivo.Add(new MicrocicloSubprincipioObjetivo(Id, id));
         }
     }
 }

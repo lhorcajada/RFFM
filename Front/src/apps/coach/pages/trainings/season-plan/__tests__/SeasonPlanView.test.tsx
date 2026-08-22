@@ -35,6 +35,8 @@ function buildPlan(overrides: Partial<SeasonPlan> = {}): SeasonPlan {
                 startDate: "2026-09-01",
                 endDate: "2026-09-07",
                 sessions: [],
+                subprincipiosObjetivo: [],
+                subprincipioObjetivoIds: [],
               },
               {
                 id: 4,
@@ -52,6 +54,11 @@ function buildPlan(overrides: Partial<SeasonPlan> = {}): SeasonPlan {
                     exerciseCount: 3,
                   },
                 ],
+                subprincipiosObjetivo: [
+                  { id: "sub-1", numero: "1.1", titulo: "Defensa organizada", gameMomentName: "Fase defensiva" },
+                  { id: "sub-2", numero: "3.1", titulo: "Transición defensa-ataque", gameMomentName: "Fase de transición" },
+                ],
+                subprincipioObjetivoIds: ["sub-1", "sub-2"],
               },
             ],
           },
@@ -126,6 +133,36 @@ describe("SeasonPlanView — sesiones vinculadas por microciclo", () => {
 
     const weekOneRow = screen.getByTestId("microciclo-row-3");
     expect(within(weekOneRow).queryByText(/Sesión/)).not.toBeInTheDocument();
+  });
+});
+
+describe("SeasonPlanView — Subprincipios objetivo por microciclo", () => {
+  it("renderiza un chip por cada Subprincipio objetivo (Numero · Titulo)", () => {
+    render(
+      <SeasonPlanView plan={buildPlan()} loading={false} onCreatePlan={vi.fn()} onCreateSession={vi.fn()} />
+    );
+
+    expect(screen.getByText(/1\.1.*Defensa organizada/)).toBeInTheDocument();
+    expect(screen.getByText(/3\.1.*Transición defensa-ataque/)).toBeInTheDocument();
+  });
+
+  it("no renderiza la fila de chips de Subprincipios objetivo cuando la lista está vacía", () => {
+    render(
+      <SeasonPlanView plan={buildPlan()} loading={false} onCreatePlan={vi.fn()} onCreateSession={vi.fn()} />
+    );
+
+    const weekOneRow = screen.getByTestId("microciclo-row-3");
+    expect(within(weekOneRow).queryByText(/Defensa organizada/)).not.toBeInTheDocument();
+  });
+
+  it("usa una clase distinta de coverageChip para el chip de Subprincipio objetivo", () => {
+    const { container } = render(
+      <SeasonPlanView plan={buildPlan()} loading={false} onCreatePlan={vi.fn()} onCreateSession={vi.fn()} />
+    );
+
+    const chip = screen.getByText(/1\.1.*Defensa organizada/).closest(".MuiChip-root");
+    expect(chip?.className).not.toMatch(/coverageChip/);
+    expect(container.querySelector('[class*="targetSubprincipioChip"]')).toBeInTheDocument();
   });
 });
 

@@ -3,6 +3,7 @@ import {
   Accordion,
   AccordionDetails,
   AccordionSummary,
+  Autocomplete,
   Box,
   Button,
   CircularProgress,
@@ -15,7 +16,10 @@ import {
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import { Link as RouterLink } from "react-router-dom";
 import type {
+  AdnOptions,
+  AdnSubprincipioOption,
   GameZoneCatalogItem,
   Macrociclo,
   Mesociclo,
@@ -34,6 +38,8 @@ const EMPTY_MICROCICLO = (order: number): Microciclo => ({
   startDate: "",
   endDate: "",
   sessions: [],
+  subprincipiosObjetivo: [],
+  subprincipioObjetivoIds: [],
 });
 
 const EMPTY_MESOCICLO = (order: number): Mesociclo => ({
@@ -55,13 +61,48 @@ const EMPTY_MACROCICLO = (order: number): Macrociclo => ({
   mesociclos: [],
 });
 
+interface MicrocicloSubprincipioObjetivoPickerProps {
+  subprincipioObjetivoIds: string[];
+  adnOptions: AdnOptions;
+  hasGameModel: boolean;
+  onChange: (ids: string[]) => void;
+}
+
+/** Multi-select of target Subprincipios for a Microciclo — reference-only, no FOCO/INTEGRADO,
+ * no Habilidades, no SubSubPrincipio (those stay exercise-only, see
+ * openspec/changes/season-plan-target-subprincipios). */
+function MicrocicloSubprincipioObjetivoPicker({
+  subprincipioObjetivoIds,
+  adnOptions,
+  hasGameModel,
+  onChange,
+}: MicrocicloSubprincipioObjetivoPickerProps) {
+  return (
+    <Autocomplete<AdnSubprincipioOption, true>
+      multiple
+      size="small"
+      disabled={!hasGameModel}
+      options={adnOptions.subprincipios}
+      value={adnOptions.subprincipios.filter((o) => subprincipioObjetivoIds.includes(o.id))}
+      getOptionLabel={(o) => `${o.numero} · ${o.titulo}`}
+      isOptionEqualToValue={(a, b) => a.id === b.id}
+      onChange={(_, value) => onChange(value.map((v) => v.id))}
+      renderInput={(params) => <TextField {...params} label="Subprincipios objetivo de la semana" />}
+      className={styles.subprincipioObjetivoPicker}
+    />
+  );
+}
+
 interface MicrocicloEditorProps {
   microciclo: Microciclo;
+  adnOptions: AdnOptions;
   onUpdate: (changes: Partial<Microciclo>) => void;
   onDelete: () => void;
 }
 
-function MicrocicloEditor({ microciclo, onUpdate, onDelete }: MicrocicloEditorProps) {
+function MicrocicloEditor({ microciclo, adnOptions, onUpdate, onDelete }: MicrocicloEditorProps) {
+  const hasGameModel = adnOptions.subprincipios.length > 0;
+
   return (
     <Box className={styles.microcicloCard}>
       <Box className={styles.fieldsRow}>
@@ -90,6 +131,22 @@ function MicrocicloEditor({ microciclo, onUpdate, onDelete }: MicrocicloEditorPr
         />
       </Box>
 
+      {!hasGameModel && (
+        <Typography className={styles.noGameModelHint}>
+          Añade primero el{" "}
+          <RouterLink to="/coach/game-model" className={styles.noGameModelLink}>
+            Modelo ADN
+          </RouterLink>{" "}
+          del equipo para poder elegir Subprincipios objetivo.
+        </Typography>
+      )}
+      <MicrocicloSubprincipioObjetivoPicker
+        subprincipioObjetivoIds={microciclo.subprincipioObjetivoIds}
+        adnOptions={adnOptions}
+        hasGameModel={hasGameModel}
+        onChange={(ids) => onUpdate({ subprincipioObjetivoIds: ids })}
+      />
+
       <Button size="small" color="error" startIcon={<DeleteOutlineIcon />} onClick={onDelete} className={styles.deleteBtn}>
         Eliminar microciclo
       </Button>
@@ -100,11 +157,12 @@ function MicrocicloEditor({ microciclo, onUpdate, onDelete }: MicrocicloEditorPr
 interface MesocicloEditorProps {
   mesociclo: Mesociclo;
   zones: GameZoneCatalogItem[];
+  adnOptions: AdnOptions;
   onUpdate: (changes: Partial<Mesociclo>) => void;
   onDelete: () => void;
 }
 
-function MesocicloEditor({ mesociclo, zones, onUpdate, onDelete }: MesocicloEditorProps) {
+function MesocicloEditor({ mesociclo, zones, adnOptions, onUpdate, onDelete }: MesocicloEditorProps) {
   const updateMicrociclo = (mi: number, changes: Partial<Microciclo>) => {
     const microciclos = mesociclo.microciclos.map((m, i) => (i === mi ? { ...m, ...changes } : m));
     onUpdate({ microciclos });
@@ -174,6 +232,7 @@ function MesocicloEditor({ mesociclo, zones, onUpdate, onDelete }: MesocicloEdit
             <MicrocicloEditor
               key={microciclo.id}
               microciclo={microciclo}
+              adnOptions={adnOptions}
               onUpdate={(changes) => updateMicrociclo(mi, changes)}
               onDelete={() => deleteMicrociclo(mi)}
             />
@@ -194,11 +253,12 @@ function MesocicloEditor({ mesociclo, zones, onUpdate, onDelete }: MesocicloEdit
 interface MacrocicloEditorProps {
   macrociclo: Macrociclo;
   zones: GameZoneCatalogItem[];
+  adnOptions: AdnOptions;
   onUpdate: (changes: Partial<Macrociclo>) => void;
   onDelete: () => void;
 }
 
-function MacrocicloEditor({ macrociclo, zones, onUpdate, onDelete }: MacrocicloEditorProps) {
+function MacrocicloEditor({ macrociclo, zones, adnOptions, onUpdate, onDelete }: MacrocicloEditorProps) {
   const updateMesociclo = (mi: number, changes: Partial<Mesociclo>) => {
     const mesociclos = macrociclo.mesociclos.map((m, i) => (i === mi ? { ...m, ...changes } : m));
     onUpdate({ mesociclos });
@@ -251,6 +311,7 @@ function MacrocicloEditor({ macrociclo, zones, onUpdate, onDelete }: MacrocicloE
               key={mesociclo.id}
               mesociclo={mesociclo}
               zones={zones}
+              adnOptions={adnOptions}
               onUpdate={(changes) => updateMesociclo(mi, changes)}
               onDelete={() => deleteMesociclo(mi)}
             />
@@ -271,12 +332,13 @@ function MacrocicloEditor({ macrociclo, zones, onUpdate, onDelete }: MacrocicloE
 interface SeasonPlanEditorProps {
   draft: SeasonPlan;
   zones: GameZoneCatalogItem[];
+  adnOptions: AdnOptions;
   saving: boolean;
   onSave: (draft: SeasonPlan) => void;
   onCancel: () => void;
 }
 
-export default function SeasonPlanEditor({ draft: initialDraft, zones, saving, onSave, onCancel }: SeasonPlanEditorProps) {
+export default function SeasonPlanEditor({ draft: initialDraft, zones, adnOptions, saving, onSave, onCancel }: SeasonPlanEditorProps) {
   const [draft, setDraft] = useState<SeasonPlan>(initialDraft);
 
   const updateMacrociclo = (mi: number, changes: Partial<Macrociclo>) => {
@@ -301,6 +363,7 @@ export default function SeasonPlanEditor({ draft: initialDraft, zones, saving, o
           key={macrociclo.id}
           macrociclo={macrociclo}
           zones={zones}
+          adnOptions={adnOptions}
           onUpdate={(changes) => updateMacrociclo(mi, changes)}
           onDelete={() => deleteMacrociclo(mi)}
         />

@@ -35,7 +35,7 @@ import seasonPlanService from "../../services/seasonPlanService";
 import gameModelService from "../../services/gameModelService";
 import seasonService from "../../services/seasonService";
 import type { Exercise, ExerciseTipo, TrainingSession } from "../../types/training";
-import type { GameZoneCatalogItem, SeasonPlan } from "../../types/seasonPlan";
+import type { AdnOptions, GameZoneCatalogItem, SeasonPlan } from "../../types/seasonPlan";
 import { tipoOptions } from "./new/constants";
 import ExerciseCromo from "./components/ExerciseCromo";
 import SeasonPlanView from "./season-plan/SeasonPlanView";
@@ -198,6 +198,7 @@ export default function Trainings() {
   const [seasonPlan, setSeasonPlan] = useState<SeasonPlan | null>(null);
   const [loadingPlan, setLoadingPlan] = useState(false);
   const [zones, setZones] = useState<GameZoneCatalogItem[]>([]);
+  const [adnOptions, setAdnOptions] = useState<AdnOptions>({ subprincipios: [], subSubPrincipios: [] });
   const [planEditing, setPlanEditing] = useState(false);
   const [savingPlan, setSavingPlan] = useState(false);
   const [deletePlanOpen, setDeletePlanOpen] = useState(false);
@@ -265,13 +266,20 @@ export default function Trainings() {
       .finally(() => setLoadingPlan(false));
   };
 
-  // Load season plan + zone catalog when the Planificación tab (now tab 0) is opened
+  // Load season plan + zone catalog + ADN options (for the Microciclo Subprincipio-objetivo
+  // picker) when the Planificación tab (now tab 0) is opened
   useEffect(() => {
     if (tab !== 0 || !teamId || !seasonId) return;
     refreshSeasonPlan();
     gameModelService.getZones().then(setZones).catch(() => setZones([]));
+    if (seasonName) {
+      seasonPlanService
+        .getAdnOptions(teamId, seasonName)
+        .then(setAdnOptions)
+        .catch(() => setAdnOptions({ subprincipios: [], subSubPrincipios: [] }));
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, teamId, seasonId]);
+  }, [tab, teamId, seasonId, seasonName]);
 
   const goToExercisePage = (exerciseId?: string) => {
     if (!clubId) return;
@@ -450,6 +458,7 @@ export default function Trainings() {
                 <SeasonPlanEditor
                   draft={seasonPlan ?? { id: "", teamId, seasonId, macrociclos: [] }}
                   zones={zones}
+                  adnOptions={adnOptions}
                   saving={savingPlan}
                   onSave={handleSavePlan}
                   onCancel={() => setPlanEditing(false)}

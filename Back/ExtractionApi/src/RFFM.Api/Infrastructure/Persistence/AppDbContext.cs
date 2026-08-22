@@ -129,6 +129,7 @@ namespace RFFM.Api.Infrastructure.Persistence
         public DbSet<Macrociclo> Macrociclos { get; set; }
         public DbSet<Mesociclo> Mesociclos { get; set; }
         public DbSet<Microciclo> Microciclos { get; set; }
+        public DbSet<MicrocicloSubprincipioObjetivo> MicrocicloSubprincipiosObjetivo { get; set; }
 
         // News
         public DbSet<NewsItem> News { get; set; }

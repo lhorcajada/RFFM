@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Domain;
+using RFFM.Api.Domain.Aggregates.GameModels;
 using RFFM.Api.Domain.Aggregates.SeasonPlans;
 using RFFM.Api.Domain.Aggregates.UserClubs;
 using RFFM.Api.Domain.Entities.Competitions;
@@ -71,6 +72,18 @@ namespace RFFM.Api.Tests.IntegrationTests
             await db.SaveChangesAsync();
 
             return (userId, team.Id, plan.Id, macrociclo.Id, mesociclo.Id, microciclo.Id);
+        }
+
+        private static async Task<string> SeedSubprincipioAsync(AppDbContext db, string teamId)
+        {
+            var model = new GameModel(teamId, "Modelo de prueba", "2026-2027");
+            var principle = new GamePrinciple(model.Id, gameMomentId: 1, key: $"principio-{Guid.NewGuid():N}", numero: 1, "Principio", "Texto");
+            var subprincipio = new Subprincipio(principle.Id, $"sub-{Guid.NewGuid():N}", "1.1", "Subprincipio", "Contexto");
+            principle.Subprincipios.Add(subprincipio);
+            model.Principles.Add(principle);
+            db.GameModels.Add(model);
+            await db.SaveChangesAsync();
+            return subprincipio.Id;
         }
 
         [Fact]
@@ -203,6 +216,82 @@ namespace RFFM.Api.Tests.IntegrationTests
 
             var ex = await Assert.ThrowsAsync<DomainException>(() => handler.Handle(command, CancellationToken.None).AsTask());
             Assert.Equal(ErrorCodes.SeasonPlanAccessDenied, ex.Code);
+        }
+
+        [Fact]
+        public async Task Update_AddingSubprincipioObjetivoIds_PersistsThem()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (userId, teamId, planId, macrocicloId, mesocicloId, microcicloId) = await SeedPlanAsync(seedDb);
+            var subprincipioId = await SeedSubprincipioAsync(seedDb, teamId);
+
+            await using var db = _fixture.CreateDbContext();
+            var handler = new UpdateSeasonPlanHandler(db);
+
+            var command = new UpdateSeasonPlanCommand(
+                new List<MacrocicloUpdateRequest>
+                {
+                    new(macrocicloId, "Macrociclo original", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 21),
+                        new List<MesocicloUpdateRequest>
+                        {
+                            new(mesocicloId, "Mesociclo original", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 21), 2,
+                                new List<MicrocicloUpdateRequest>
+                                {
+                                    new(microcicloId, "Semana original", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 7),
+                                        SubprincipioObjetivoIds: new List<string> { subprincipioId }),
+                                })
+                        })
+                })
+            { Id = planId, UserId = userId };
+
+            await handler.Handle(command, CancellationToken.None);
+
+            await using var verifyDb = _fixture.CreateDbContext();
+            var microciclo = await verifyDb.Microciclos
+                .Include(m => m.SubprincipiosObjetivo)
+                .SingleAsync(m => m.Id == microcicloId);
+
+            var target = Assert.Single(microciclo.SubprincipiosObjetivo);
+            Assert.Equal(subprincipioId, target.SubprincipioId);
+        }
+
+        [Fact]
+        public async Task Update_CalledAgainWithDifferentSubprincipioObjetivoIds_ReplacesPreviousSet()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (userId, teamId, planId, macrocicloId, mesocicloId, microcicloId) = await SeedPlanAsync(seedDb);
+            var firstSubprincipioId = await SeedSubprincipioAsync(seedDb, teamId);
+            var secondSubprincipioId = await SeedSubprincipioAsync(seedDb, teamId);
+
+            UpdateSeasonPlanCommand BuildCommand(string subprincipioId) => new(
+                new List<MacrocicloUpdateRequest>
+                {
+                    new(macrocicloId, "Macrociclo original", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 21),
+                        new List<MesocicloUpdateRequest>
+                        {
+                            new(mesocicloId, "Mesociclo original", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 21), 2,
+                                new List<MicrocicloUpdateRequest>
+                                {
+                                    new(microcicloId, "Semana original", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 7),
+                                        SubprincipioObjetivoIds: new List<string> { subprincipioId }),
+                                })
+                        })
+                })
+            { Id = planId, UserId = userId };
+
+            await using var firstDb = _fixture.CreateDbContext();
+            await new UpdateSeasonPlanHandler(firstDb).Handle(BuildCommand(firstSubprincipioId), CancellationToken.None);
+
+            await using var secondDb = _fixture.CreateDbContext();
+            await new UpdateSeasonPlanHandler(secondDb).Handle(BuildCommand(secondSubprincipioId), CancellationToken.None);
+
+            await using var verifyDb = _fixture.CreateDbContext();
+            var microciclo = await verifyDb.Microciclos
+                .Include(m => m.SubprincipiosObjetivo)
+                .SingleAsync(m => m.Id == microcicloId);
+
+            var target = Assert.Single(microciclo.SubprincipiosObjetivo);
+            Assert.Equal(secondSubprincipioId, target.SubprincipioId);
         }
     }
 }

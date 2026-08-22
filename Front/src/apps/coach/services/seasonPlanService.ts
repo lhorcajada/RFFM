@@ -12,6 +12,13 @@ interface ApiSessionSummary {
   exerciseCount: number;
 }
 
+interface ApiAdnSubprincipioSummary {
+  id: string;
+  numero: string;
+  titulo: string;
+  gameMomentName: string;
+}
+
 interface ApiMicrociclo {
   id: string;
   order: number;
@@ -19,6 +26,7 @@ interface ApiMicrociclo {
   startDate: string;
   endDate: string;
   sessions: ApiSessionSummary[];
+  subprincipiosObjetivo: ApiAdnSubprincipioSummary[];
 }
 
 interface ApiMesociclo {
@@ -63,7 +71,17 @@ function mapSessionSummary(s: ApiSessionSummary) {
   };
 }
 
+function mapAdnSubprincipioSummary(s: ApiAdnSubprincipioSummary) {
+  return {
+    id: s.id,
+    numero: s.numero,
+    titulo: s.titulo,
+    gameMomentName: s.gameMomentName,
+  };
+}
+
 function mapMicrociclo(m: ApiMicrociclo): Microciclo {
+  const subprincipiosObjetivo = (m.subprincipiosObjetivo ?? []).map(mapAdnSubprincipioSummary);
   return {
     id: nextKey(),
     apiId: m.id,
@@ -72,6 +90,8 @@ function mapMicrociclo(m: ApiMicrociclo): Microciclo {
     startDate: m.startDate,
     endDate: m.endDate,
     sessions: (m.sessions ?? []).map(mapSessionSummary),
+    subprincipiosObjetivo,
+    subprincipioObjetivoIds: subprincipiosObjetivo.map((s) => s.id),
   };
 }
 
@@ -117,6 +137,7 @@ function mapMicrocicloCreateRequest(m: Microciclo) {
     weekLabel: m.weekLabel,
     startDate: m.startDate,
     endDate: m.endDate,
+    subprincipioObjetivoIds: m.subprincipioObjetivoIds,
   };
 }
 
@@ -147,6 +168,7 @@ function mapMicrocicloUpdateRequest(m: Microciclo) {
     weekLabel: m.weekLabel,
     startDate: m.startDate,
     endDate: m.endDate,
+    subprincipioObjetivoIds: m.subprincipioObjetivoIds,
   };
 }
 

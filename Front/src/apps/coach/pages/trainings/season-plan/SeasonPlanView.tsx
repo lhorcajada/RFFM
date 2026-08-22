@@ -50,6 +50,7 @@ function MicrocicloRow({
   onOpenSession?: (id: string) => void;
 }) {
   const hasSessions = microciclo.sessions.length > 0;
+  const hasTargetSubprincipios = microciclo.subprincipiosObjetivo.length > 0;
 
   return (
     <Box className={styles.microcicloCard} data-testid={`microciclo-row-${microciclo.id}`}>
@@ -76,6 +77,18 @@ function MicrocicloRow({
           Crear sesión
         </Button>
       </Box>
+      {hasTargetSubprincipios && (
+        <Box className={styles.targetSubprincipiosRow}>
+          {microciclo.subprincipiosObjetivo.map((s) => (
+            <Chip
+              key={s.id}
+              label={`${s.numero} · ${s.titulo}`}
+              size="small"
+              className={styles.targetSubprincipioChip}
+            />
+          ))}
+        </Box>
+      )}
       {hasSessions && (
         <Box className={styles.sessionsList}>
           {microciclo.sessions.map((session) => (

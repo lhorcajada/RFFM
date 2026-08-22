@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Domain;
+using RFFM.Api.Domain.Aggregates.GameModels;
 using RFFM.Api.Domain.Aggregates.SeasonPlans;
 using RFFM.Api.Domain.Aggregates.Training;
 using RFFM.Api.Domain.Aggregates.Training.TasksTraining;
@@ -73,6 +74,19 @@ namespace RFFM.Api.Tests.IntegrationTests
             await db.SaveChangesAsync();
 
             return (userId, club.Id, team.Id, season.Id, microciclo.Id);
+        }
+
+        private static async Task<(string SubprincipioId, string Numero, string Titulo, string GameMomentName)> SeedSubprincipioAsync(AppDbContext db, string teamId)
+        {
+            var gameMoment = await db.GameMoments.AsNoTracking().FirstAsync();
+            var model = new GameModel(teamId, "Modelo de prueba", "2026-2027");
+            var principle = new GamePrinciple(model.Id, gameMoment.Id, key: $"principio-{Guid.NewGuid():N}", numero: 1, "Principio", "Texto");
+            var subprincipio = new Subprincipio(principle.Id, $"sub-{Guid.NewGuid():N}", "1.1", "Subprincipio objetivo", "Contexto");
+            principle.Subprincipios.Add(subprincipio);
+            model.Principles.Add(principle);
+            db.GameModels.Add(model);
+            await db.SaveChangesAsync();
+            return (subprincipio.Id, subprincipio.Numero, subprincipio.Titulo, gameMoment.Name);
         }
 
         private static TaskTrainingBase NewExercise(string clubId, string name) => new()
@@ -177,6 +191,47 @@ namespace RFFM.Api.Tests.IntegrationTests
                 handler.Handle(new GetSeasonPlanFeature.SeasonPlanQuery(teamId, seasonId, $"stranger-{Guid.NewGuid():N}"), CancellationToken.None).AsTask());
 
             Assert.Equal(ErrorCodes.TeamAccessDenied, ex.Code);
+        }
+
+        [Fact]
+        public async Task Handle_MicrocicloWithSubprincipioObjetivo_ResolvesDenormalizedSummary()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (userId, _, teamId, seasonId, microcicloId) = await SeedPlanAsync(seedDb);
+            var (subprincipioId, numero, titulo, gameMomentName) = await SeedSubprincipioAsync(seedDb, teamId);
+
+            await using var linkDb = _fixture.CreateDbContext();
+            var microciclo = await linkDb.Microciclos.SingleAsync(m => m.Id == microcicloId);
+            microciclo.ReplaceSubprincipiosObjetivo(new List<string> { subprincipioId });
+            await linkDb.SaveChangesAsync();
+
+            await using var db = _fixture.CreateDbContext();
+            var handler = new GetSeasonPlanFeature.Handler(db);
+
+            var result = await handler.Handle(new GetSeasonPlanFeature.SeasonPlanQuery(teamId, seasonId, userId), CancellationToken.None);
+
+            var microcicloResponse = result!.Macrociclos.Single().Mesociclos.Single().Microciclos.Single();
+            var summary = Assert.Single(microcicloResponse.SubprincipiosObjetivo);
+            Assert.Equal(subprincipioId, summary.Id);
+            Assert.Equal(numero, summary.Numero);
+            Assert.Equal(titulo, summary.Titulo);
+            Assert.Equal(gameMomentName, summary.GameMomentName);
+        }
+
+        [Fact]
+        public async Task Handle_MicrocicloWithNoSubprincipioObjetivo_ReturnsEmptyNotNull()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (userId, _, teamId, seasonId, _) = await SeedPlanAsync(seedDb);
+
+            await using var db = _fixture.CreateDbContext();
+            var handler = new GetSeasonPlanFeature.Handler(db);
+
+            var result = await handler.Handle(new GetSeasonPlanFeature.SeasonPlanQuery(teamId, seasonId, userId), CancellationToken.None);
+
+            var microcicloResponse = result!.Macrociclos.Single().Mesociclos.Single().Microciclos.Single();
+            Assert.NotNull(microcicloResponse.SubprincipiosObjetivo);
+            Assert.Empty(microcicloResponse.SubprincipiosObjetivo);
         }
     }
 }
