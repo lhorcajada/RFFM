@@ -75,6 +75,22 @@
   font-style: italic;
 }
 
+.noGameModelLink {
+  color: #4d9de0 !important;
+}
+
+.subprincipioObjetivoPicker :global(.MuiInputBase-root) {
+  color: #e8e8e8 !important;
+}
+
+.subprincipioObjetivoPicker :global(.MuiInputLabel-root) {
+  color: rgba(212, 212, 212, 0.62) !important;
+}
+
+.subprincipioObjetivoPicker :global(.MuiOutlinedInput-notchedOutline) {
+  border-color: rgba(77, 157, 224, 0.3) !important;
+}
+
 .adnPickersRow {
   display: flex;
   gap: 10px;

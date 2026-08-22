@@ -6,86 +6,122 @@ import type { Exercise } from "../../../../../types/training";
 vi.mock("../../../../../services/trainingService", () => ({
   default: {
     getExerciseById: vi.fn(), createExercise: vi.fn(), updateExercise: vi.fn(),
-    uploadExerciseMedia: vi.fn(), createCondition: vi.fn(), updateCondition: vi.fn(), deleteCondition: vi.fn(),
+    uploadExerciseMedia: vi.fn(),
   },
 }));
 
 const navigate = vi.fn();
 
-describe("useExerciseForm — multi-tipo", () => {
+describe("useExerciseForm — campos por defecto", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("isPhysical es true cuando el array types incluye Physical", async () => {
+  it("emptyExercise trae 'Situacional' como tipo por defecto y 2 niveles vacíos", async () => {
+    const { emptyExercise } = await import("../../constants");
+    expect(emptyExercise.tipo).toBe("Situacional");
+    expect(emptyExercise.niveles).toHaveLength(2);
+  });
+
+  it("el formulario no expone campos de condiciones ni de microciclo", () => {
     const { result } = renderHook(() =>
       useExerciseForm({ clubId: "club-1", navigate, returnTo: "/coach/trainings" })
     );
 
-    act(() => result.current.setField("types", ["Physical", "Technical"]));
-
-    await waitFor(() => {
-      expect(result.current.isPhysical).toBe(true);
-      expect(result.current.isTechTac).toBe(true);
-    });
+    expect(result.current).not.toHaveProperty("conditions");
+    expect(result.current).not.toHaveProperty("handleAddCondition");
+    expect(result.current.form).not.toHaveProperty("microcicloId");
   });
+});
 
-  it("isPhysical y isTechTac son ambos true cuando se seleccionan Physical y Tactical juntos (no son excluyentes)", async () => {
-    const { result } = renderHook(() =>
-      useExerciseForm({ clubId: "club-1", navigate, returnTo: "/coach/trainings" })
-    );
+describe("useExerciseForm — validación al guardar", () => {
+  beforeEach(() => vi.clearAllMocks());
 
-    act(() => result.current.setField("types", ["Physical", "Tactical"]));
-
-    await waitFor(() => {
-      expect(result.current.isPhysical).toBe(true);
-      expect(result.current.isTechTac).toBe(true);
-    });
-  });
-
-  it("bloquea el guardado con un mensaje de error cuando no hay ningún tipo seleccionado", async () => {
+  it("bloquea el guardado con un mensaje de error cuando falta el nombre", async () => {
     const trainingService = (await import("../../../../../services/trainingService")).default;
     const { result } = renderHook(() =>
       useExerciseForm({ clubId: "club-1", navigate, returnTo: "/coach/trainings" })
     );
 
-    act(() => result.current.setField("types", []));
-    act(() => result.current.setField("name", "Ejercicio sin tipo"));
+    act(() => result.current.setField("objetivo", "Objetivo"));
 
     await act(async () => {
       await result.current.handleSave();
     });
 
-    expect(result.current.error).toMatch(/tipo/i);
+    expect(result.current.error).toMatch(/nombre/i);
     expect(trainingService.createExercise).not.toHaveBeenCalled();
   });
-});
 
-describe("useExerciseForm — ejercicio independiente del modelo de juego", () => {
-  beforeEach(() => vi.clearAllMocks());
-
-  it("el formulario nunca expone campos de vinculación al modelo de juego", async () => {
+  it("bloquea el guardado cuando falta el objetivo", async () => {
+    const trainingService = (await import("../../../../../services/trainingService")).default;
     const { result } = renderHook(() =>
       useExerciseForm({ clubId: "club-1", navigate, returnTo: "/coach/trainings" })
     );
 
-    expect(result.current.form).not.toHaveProperty("subSubPrincipleId");
-    expect(result.current.form).not.toHaveProperty("subPrincipleId");
-    expect(result.current.form).not.toHaveProperty("scenarioId");
-    expect(result.current.form).not.toHaveProperty("essentialSkillIds");
+    act(() => result.current.setField("name", "Ejercicio"));
+
+    await act(async () => {
+      await result.current.handleSave();
+    });
+
+    expect(result.current.error).toMatch(/objetivo/i);
+    expect(trainingService.createExercise).not.toHaveBeenCalled();
   });
 
-  it("handleSave crea el ejercicio sin ningún campo de modelo de juego en el payload", async () => {
+  it("bloquea el guardado cuando niveles tiene menos de 2 filas", async () => {
+    const trainingService = (await import("../../../../../services/trainingService")).default;
+    const { result } = renderHook(() =>
+      useExerciseForm({ clubId: "club-1", navigate, returnTo: "/coach/trainings" })
+    );
+
+    act(() => result.current.setField("name", "Ejercicio"));
+    act(() => result.current.setField("objetivo", "Objetivo"));
+    act(() => result.current.setField("logistica", "Logística"));
+    act(() => result.current.setField("descripcion", "Descripción"));
+    act(() => result.current.setField("niveles", [{ nivel: 1, valores: {} }]));
+
+    await act(async () => {
+      await result.current.handleSave();
+    });
+
+    expect(result.current.error).toMatch(/nivel/i);
+    expect(trainingService.createExercise).not.toHaveBeenCalled();
+  });
+
+  it("bloquea el guardado cuando una relación con el modelo no tiene Subprincipio elegido", async () => {
+    const trainingService = (await import("../../../../../services/trainingService")).default;
+    const { result } = renderHook(() =>
+      useExerciseForm({ clubId: "club-1", navigate, returnTo: "/coach/trainings" })
+    );
+
+    act(() => result.current.setField("name", "Ejercicio"));
+    act(() => result.current.setField("objetivo", "Objetivo"));
+    act(() => result.current.setField("logistica", "Logística"));
+    act(() => result.current.setField("descripcion", "Descripción"));
+    act(() =>
+      result.current.setField("modelRelations", [
+        { subprincipioId: "", isFoco: true, habilidadesImprescindibles: [], items: [] },
+      ])
+    );
+
+    await act(async () => {
+      await result.current.handleSave();
+    });
+
+    expect(result.current.error).toMatch(/subprincipio/i);
+    expect(trainingService.createExercise).not.toHaveBeenCalled();
+  });
+
+  it("guarda correctamente cuando todos los campos requeridos están completos", async () => {
     const trainingService = (await import("../../../../../services/trainingService")).default;
     (trainingService.createExercise as ReturnType<typeof vi.fn>).mockResolvedValue({ id: "ex-new" });
     const { result } = renderHook(() =>
       useExerciseForm({ clubId: "club-1", navigate, returnTo: "/coach/trainings" })
     );
 
-    act(() => result.current.setField("name", "Ejercicio sin vinculación"));
-    act(() => result.current.setField("description", "Descripción"));
-    act(() => result.current.setField("types", ["Tactical"]));
-    act(() => result.current.setField("durationTotal", 30));
-    act(() => result.current.setField("playersNumber", 8));
-    act(() => result.current.setField("fieldSpace", "Media cancha"));
+    act(() => result.current.setField("name", "Ejercicio completo"));
+    act(() => result.current.setField("objetivo", "Objetivo claro"));
+    act(() => result.current.setField("logistica", "12 min, 20 jugadores"));
+    act(() => result.current.setField("descripcion", "Desarrollo completo"));
 
     await act(async () => {
       await result.current.handleSave();
@@ -94,76 +130,38 @@ describe("useExerciseForm — ejercicio independiente del modelo de juego", () =
     await waitFor(() => {
       expect(trainingService.createExercise).toHaveBeenCalled();
     });
-
-    const callArgs = trainingService.createExercise.mock.calls[0][0];
-    expect(callArgs).not.toHaveProperty("subSubPrincipleId");
-    expect(callArgs).not.toHaveProperty("subPrincipleId");
-    expect(callArgs).not.toHaveProperty("scenarioId");
-    expect(callArgs).not.toHaveProperty("essentialSkillIds");
+    expect(result.current.error).toBeNull();
   });
 });
 
-describe("useExerciseForm — methodology", () => {
+describe("useExerciseForm — carga de ejercicio existente", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("emptyExercise trae 'Integrado' como metodologia por defecto", async () => {
-    const { emptyExercise: empty } = await import("../../constants");
-    expect(empty.methodology).toBe("Integrado");
-  });
-
-  it("applyExercise carga la metodologia del ejercicio existente", async () => {
+  it("applyExercise carga el tipo del ejercicio existente", async () => {
     const { result } = renderHook(() =>
       useExerciseForm({ clubId: "club-1", navigate, returnTo: "/coach/trainings" })
     );
 
     const exercise: Exercise = {
-      id: "ex-1", name: "Ejercicio", description: "", types: ["Tactical"],
-      section: "Principal", methodology: "Global", durationTotal: 10, playersNumber: 8, goalPeekersNumber: 0,
-      fieldSpace: "", conditions: [], modelLinks: [], habilidades: [],
+      id: "ex-1",
+      name: "Ejercicio",
+      tipo: "Global",
+      objetivo: "Objetivo",
+      modelRelations: [],
+      nivelesColumnas: ["Palanca 1"],
+      niveles: [
+        { nivel: 1, valores: {} },
+        { nivel: 2, valores: {} },
+      ],
+      logistica: "10 min",
+      descripcion: "Desc",
+      isAssociatedToGameModel: false,
     };
 
     act(() => result.current.loadExercise(exercise));
 
     await waitFor(() => {
-      expect(result.current.form.methodology).toBe("Global");
-    });
-  });
-});
-
-describe("useExerciseForm — vínculo con Microciclo (SeasonPlan)", () => {
-  beforeEach(() => vi.clearAllMocks());
-
-  it("prellena form.microcicloId cuando se pasa el parámetro microcicloId", () => {
-    const { result } = renderHook(() =>
-      useExerciseForm({ clubId: "club-1", navigate, returnTo: "/coach/trainings", microcicloId: "micro-1" })
-    );
-
-    expect(result.current.form.microcicloId).toBe("micro-1");
-  });
-
-  it("no establece microcicloId cuando no se pasa el parámetro", () => {
-    const { result } = renderHook(() =>
-      useExerciseForm({ clubId: "club-1", navigate, returnTo: "/coach/trainings" })
-    );
-
-    expect(result.current.form.microcicloId).toBeFalsy();
-  });
-
-  it("loadExercise conserva el microcicloId del ejercicio cargado", async () => {
-    const { result } = renderHook(() =>
-      useExerciseForm({ clubId: "club-1", navigate, returnTo: "/coach/trainings" })
-    );
-
-    const exercise: Exercise = {
-      id: "ex-1", name: "Ejercicio", description: "", types: ["Tactical"],
-      section: "Principal", methodology: "Global", durationTotal: 10, playersNumber: 8, goalPeekersNumber: 0,
-      fieldSpace: "", conditions: [], microcicloId: "micro-2", modelLinks: [], habilidades: [],
-    };
-
-    act(() => result.current.loadExercise(exercise));
-
-    await waitFor(() => {
-      expect(result.current.form.microcicloId).toBe("micro-2");
+      expect(result.current.form.tipo).toBe("Global");
     });
   });
 });

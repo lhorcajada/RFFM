@@ -62,10 +62,6 @@ namespace RFFM.Api.Infrastructure.Services
     ///   dates. Macrociclo 3's EndDate is kept at the document's stated hito boundary (17 May)
     ///   even though only Microciclos 17–30 (through 14 Apr) are concretely modelled within it —
     ///   see the Microciclos-31+ note above.
-    /// - SubprincipioLinks/SubSubPrincipioLinks are left empty for every Microciclo: resolving
-    ///   real GameModel Subprincipio/SubSubPrincipio ids from this standalone transcription isn't
-    ///   feasible here. A future pass should link them once the corresponding GameModel ids are
-    ///   available.
     /// </summary>
     public class SeasonPlanImporter
     {
@@ -89,10 +85,10 @@ namespace RFFM.Api.Infrastructure.Services
                 _db.SeasonPlans.Add(plan);
             }
 
-            UpsertMacrociclo(plan, 1, "Macrociclo 1 — Pretemporada", new DateOnly(2026, 9, 1), new DateOnly(2026, 10, 12), BuildMacrociclo1Mesociclos());
-            UpsertMacrociclo(plan, 2, "Macrociclo 2 — Iniciación", new DateOnly(2026, 10, 12), new DateOnly(2026, 12, 20), BuildMacrociclo2Mesociclos());
-            UpsertMacrociclo(plan, 3, "Macrociclo 3 — Perfeccionamiento", new DateOnly(2027, 1, 7), new DateOnly(2027, 5, 17), BuildMacrociclo3Mesociclos());
-            UpsertMacrociclo(plan, 4, "Cierre de temporada", new DateOnly(2027, 5, 19), new DateOnly(2027, 6, 15), BuildCierreMesociclos());
+            await UpsertMacrocicloAsync(teamId, plan, 1, "Macrociclo 1 — Pretemporada", new DateOnly(2026, 9, 1), new DateOnly(2026, 10, 12), BuildMacrociclo1Mesociclos(), ct);
+            await UpsertMacrocicloAsync(teamId, plan, 2, "Macrociclo 2 — Iniciación", new DateOnly(2026, 10, 12), new DateOnly(2026, 12, 20), BuildMacrociclo2Mesociclos(), ct);
+            await UpsertMacrocicloAsync(teamId, plan, 3, "Macrociclo 3 — Perfeccionamiento", new DateOnly(2027, 1, 7), new DateOnly(2027, 5, 17), BuildMacrociclo3Mesociclos(), ct);
+            await UpsertMacrocicloAsync(teamId, plan, 4, "Cierre de temporada", new DateOnly(2027, 5, 19), new DateOnly(2027, 6, 15), BuildCierreMesociclos(), ct);
 
             await _db.SaveChangesAsync(ct);
             return plan.Id;
@@ -317,7 +313,7 @@ namespace RFFM.Api.Infrastructure.Services
 
         // ── Upsert helpers (match by Order within parent — the only deterministic key) ──
 
-        private static void UpsertMacrociclo(SeasonPlan plan, int order, string name, DateOnly start, DateOnly end, List<MesocicloData> mesociclos)
+        private async Task UpsertMacrocicloAsync(string teamId, SeasonPlan plan, int order, string name, DateOnly start, DateOnly end, List<MesocicloData> mesociclos, CancellationToken ct)
         {
             var macrociclo = plan.Macrociclos.FirstOrDefault(m => m.Order == order);
             if (macrociclo is null)
@@ -332,10 +328,10 @@ namespace RFFM.Api.Infrastructure.Services
             }
 
             foreach (var mesData in mesociclos)
-                UpsertMesociclo(macrociclo, mesData);
+                await UpsertMesocicloAsync(teamId, macrociclo, mesData, ct);
         }
 
-        private static void UpsertMesociclo(Macrociclo macrociclo, MesocicloData data)
+        private async Task UpsertMesocicloAsync(string teamId, Macrociclo macrociclo, MesocicloData data, CancellationToken ct)
         {
             var mesociclo = macrociclo.Mesociclos.FirstOrDefault(m => m.Order == data.Order);
             if (mesociclo is null)
@@ -351,25 +347,32 @@ namespace RFFM.Api.Infrastructure.Services
             }
 
             foreach (var micData in data.Microciclos)
-                UpsertMicrociclo(mesociclo, micData);
+                await UpsertMicrocicloAsync(teamId, mesociclo, micData, ct);
         }
 
-        private static void UpsertMicrociclo(Mesociclo mesociclo, MicrocicloData data)
+        /// <summary>
+        /// Since the `session-exercise-plan-redesign` OpenSpec change, <see cref="Microciclo"/>
+        /// no longer carries its own per-session objective/zone/ADN-link data (design.md §1.5) —
+        /// that content now lives on the <see cref="Domain.Aggregates.Training.TrainingSession"/>
+        /// entities optionally linked to a week. So
+        /// <see cref="MicrocicloData.ObjetivoSesionA"/>/<see cref="MicrocicloData.ObjetivoSesionB"/>/
+        /// <see cref="MicrocicloData.GameZoneIdSesionA"/>/<see cref="MicrocicloData.GameZoneIdSesionB"/>
+        /// are kept on the record (they document the real plan's intent for each week, useful
+        /// reference for whoever authors the actual TrainingSession content later) but are not
+        /// persisted directly — only the week skeleton (Order/WeekLabel/dates) is.
+        /// </summary>
+        private async Task UpsertMicrocicloAsync(string teamId, Mesociclo mesociclo, MicrocicloData data, CancellationToken ct)
         {
             var microciclo = mesociclo.Microciclos.FirstOrDefault(m => m.Order == data.Order);
             if (microciclo is null)
             {
-                microciclo = new Microciclo(
-                    mesociclo.Id, data.Order, data.WeekLabel, data.StartDate, data.EndDate, data.ObjetivoSesionA, data.ObjetivoSesionB);
-                microciclo.UpdateZones(data.GameZoneIdSesionA, data.GameZoneIdSesionB);
+                microciclo = new Microciclo(mesociclo.Id, data.Order, data.WeekLabel, data.StartDate, data.EndDate);
                 mesociclo.Microciclos.Add(microciclo);
             }
             else
             {
                 microciclo.UpdateWeekLabel(data.WeekLabel);
                 microciclo.Reschedule(data.StartDate, data.EndDate);
-                microciclo.UpdateObjectives(data.ObjetivoSesionA, data.ObjetivoSesionB);
-                microciclo.UpdateZones(data.GameZoneIdSesionA, data.GameZoneIdSesionB);
             }
         }
 

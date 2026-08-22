@@ -4,17 +4,12 @@ import type { AdnOptions, Macrociclo, Mesociclo, Microciclo, SeasonPlan } from "
 
 // ── API response types (nested structure from backend — camelCase over the wire) ──
 
-interface ApiAdnSubprincipioSummary {
+interface ApiSessionSummary {
   id: string;
-  numero: string;
-  titulo: string;
-  gameMomentName: string;
-}
-
-interface ApiAdnSubSubPrincipioSummary {
-  id: string;
-  numero: string;
-  rol: string;
+  name: string;
+  objetivoGeneral?: string | null;
+  date: string;
+  exerciseCount: number;
 }
 
 interface ApiMicrociclo {
@@ -23,15 +18,7 @@ interface ApiMicrociclo {
   weekLabel: string;
   startDate: string;
   endDate: string;
-  objetivoSesionA: string;
-  objetivoSesionB: string;
-  exerciseCount: number;
-  sesionASubprincipios: ApiAdnSubprincipioSummary[];
-  sesionASubSubPrincipios: ApiAdnSubSubPrincipioSummary[];
-  sesionAHabilidades: string[];
-  sesionBSubprincipios: ApiAdnSubprincipioSummary[];
-  sesionBSubSubPrincipios: ApiAdnSubSubPrincipioSummary[];
-  sesionBHabilidades: string[];
+  sessions: ApiSessionSummary[];
 }
 
 interface ApiMesociclo {
@@ -66,6 +53,16 @@ const nextKey = () => _keyCounter--;
 
 // ── Mapper: nested API → nested SeasonPlan ──────────────────────────
 
+function mapSessionSummary(s: ApiSessionSummary) {
+  return {
+    id: s.id,
+    name: s.name,
+    objetivoGeneral: s.objetivoGeneral ?? null,
+    date: s.date,
+    exerciseCount: s.exerciseCount,
+  };
+}
+
 function mapMicrociclo(m: ApiMicrociclo): Microciclo {
   return {
     id: nextKey(),
@@ -74,19 +71,7 @@ function mapMicrociclo(m: ApiMicrociclo): Microciclo {
     weekLabel: m.weekLabel,
     startDate: m.startDate,
     endDate: m.endDate,
-    objetivoSesionA: m.objetivoSesionA,
-    objetivoSesionB: m.objetivoSesionB,
-    exerciseCount: m.exerciseCount,
-    sesionASubprincipioIds: (m.sesionASubprincipios ?? []).map((s) => s.id),
-    sesionASubSubPrincipioIds: (m.sesionASubSubPrincipios ?? []).map((s) => s.id),
-    sesionAHabilidades: m.sesionAHabilidades ?? [],
-    sesionASubprincipios: m.sesionASubprincipios ?? [],
-    sesionASubSubPrincipios: m.sesionASubSubPrincipios ?? [],
-    sesionBSubprincipioIds: (m.sesionBSubprincipios ?? []).map((s) => s.id),
-    sesionBSubSubPrincipioIds: (m.sesionBSubSubPrincipios ?? []).map((s) => s.id),
-    sesionBHabilidades: m.sesionBHabilidades ?? [],
-    sesionBSubprincipios: m.sesionBSubprincipios ?? [],
-    sesionBSubSubPrincipios: m.sesionBSubSubPrincipios ?? [],
+    sessions: (m.sessions ?? []).map(mapSessionSummary),
   };
 }
 
@@ -132,14 +117,6 @@ function mapMicrocicloCreateRequest(m: Microciclo) {
     weekLabel: m.weekLabel,
     startDate: m.startDate,
     endDate: m.endDate,
-    objetivoSesionA: m.objetivoSesionA,
-    objetivoSesionB: m.objetivoSesionB,
-    sesionASubprincipioIds: m.sesionASubprincipioIds,
-    sesionASubSubPrincipioIds: m.sesionASubSubPrincipioIds,
-    sesionAHabilidades: m.sesionAHabilidades,
-    sesionBSubprincipioIds: m.sesionBSubprincipioIds,
-    sesionBSubSubPrincipioIds: m.sesionBSubSubPrincipioIds,
-    sesionBHabilidades: m.sesionBHabilidades,
   };
 }
 
@@ -170,14 +147,6 @@ function mapMicrocicloUpdateRequest(m: Microciclo) {
     weekLabel: m.weekLabel,
     startDate: m.startDate,
     endDate: m.endDate,
-    objetivoSesionA: m.objetivoSesionA,
-    objetivoSesionB: m.objetivoSesionB,
-    sesionASubprincipioIds: m.sesionASubprincipioIds,
-    sesionASubSubPrincipioIds: m.sesionASubSubPrincipioIds,
-    sesionAHabilidades: m.sesionAHabilidades,
-    sesionBSubprincipioIds: m.sesionBSubprincipioIds,
-    sesionBSubSubPrincipioIds: m.sesionBSubSubPrincipioIds,
-    sesionBHabilidades: m.sesionBHabilidades,
   };
 }
 

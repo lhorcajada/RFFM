@@ -80,12 +80,48 @@
   gap: 10px;
 }
 
-.sessionBlock {
+.sessionsList {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   padding-top: 4px;
   border-top: 1px solid rgba(77, 157, 224, 0.08);
+}
+
+.sessionRow {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.02);
+  cursor: pointer;
+}
+
+.sessionRow:hover {
+  background: rgba(77, 157, 224, 0.08);
+}
+
+.sessionRowName {
+  font-size: 0.8rem !important;
+  font-weight: 600 !important;
+  color: #e8e8e8 !important;
+}
+
+.sessionRowMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sessionRowDate {
+  font-size: 0.7rem !important;
+  color: rgba(212, 212, 212, 0.55) !important;
+}
+
+.sessionRowObjective {
+  font-size: 0.72rem !important;
+  color: rgba(212, 212, 212, 0.7) !important;
 }
 
 .sessionLabel {
@@ -144,6 +180,22 @@
 }
 
 .coverageChip {
+  font-size: 0.68rem !important;
+  height: 20px !important;
+}
+
+.targetSubprincipiosRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-top: 4px;
+  padding-bottom: 2px;
+}
+
+.targetSubprincipioChip {
+  background-color: rgba(155, 89, 182, 0.15) !important;
+  color: #c79ee6 !important;
+  border: 1px solid rgba(155, 89, 182, 0.4) !important;
   font-size: 0.68rem !important;
   height: 20px !important;
 }

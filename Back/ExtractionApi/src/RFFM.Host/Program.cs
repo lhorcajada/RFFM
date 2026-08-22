@@ -44,15 +44,16 @@ await app.SeedFormationsAsync();
 // Seed club kits
 await app.SeedClubKitsAsync();
 
-// Seed exercise types catalog
-await app.SeedExerciseTypesAsync();
-
 // Seed new roles and feature/page permissions
 await app.SeedPermissionsAsync();
 
 // Update the season plan (Cadete, 2ª División) from hardcoded importer data — safe to
-// re-run on every startup (upsert by Order), no exercises linked to it yet.
+// re-run on every startup (upsert by Order).
 await app.SeedSeasonPlanAsync();
+
+// Rebuild the example session (Sesión 1) for the same team/season — safe to re-run
+// (upsert by Name); no-ops with a log line if the team's GameModel isn't imported yet.
+await app.SeedExampleSessionAsync();
 
 app.Run();
 

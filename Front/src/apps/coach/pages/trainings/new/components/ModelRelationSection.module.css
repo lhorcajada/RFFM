@@ -23,27 +23,59 @@
   color: #4d9de0 !important;
 }
 
-.linkRow {
+.relationCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid rgba(77, 157, 224, 0.22);
+  border-radius: 8px;
+  background: rgba(12, 22, 42, 0.4);
+}
+
+.relationHeader {
   display: flex;
   gap: 8px;
   align-items: center;
 }
 
-.linkPicker {
+.subprincipioPicker {
   flex: 1.5;
   min-width: 0;
 }
 
-.linkPicker :global(.MuiInputBase-root) {
+.subprincipioPicker :global(.MuiInputBase-root),
+.itemPicker :global(.MuiInputBase-root) {
   color: #e8e8e8 !important;
 }
 
-.linkPicker :global(.MuiInputLabel-root) {
+.subprincipioPicker :global(.MuiInputLabel-root),
+.itemPicker :global(.MuiInputLabel-root) {
   color: rgba(212, 212, 212, 0.62) !important;
 }
 
-.linkPicker :global(.MuiOutlinedInput-notchedOutline) {
+.subprincipioPicker :global(.MuiOutlinedInput-notchedOutline),
+.itemPicker :global(.MuiOutlinedInput-notchedOutline) {
   border-color: rgba(77, 157, 224, 0.3) !important;
+}
+
+.itemRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-left: 12px;
+}
+
+.itemPicker {
+  flex: 1.5;
+  min-width: 0;
+}
+
+.addItemBtn {
+  align-self: flex-start;
+  margin-left: 12px;
+  color: #4d9de0 !important;
+  font-size: 0.72rem !important;
 }
 
 .focoToggle {

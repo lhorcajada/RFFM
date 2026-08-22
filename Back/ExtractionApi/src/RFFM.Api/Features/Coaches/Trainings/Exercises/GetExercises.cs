@@ -1,4 +1,3 @@
-using FluentValidation;
 using Mediator;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -15,20 +14,20 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
 {
     /// <summary>
     /// Lists exercises for a club.
-    /// GET /api/trainings/exercises?clubId=&amp;methodology=
+    /// GET /api/trainings/exercises?clubId=
     /// </summary>
     public class GetExercises : IFeatureModule
     {
         public void AddRoutes(IEndpointRouteBuilder app)
         {
             app.MapGet("/api/trainings/exercises",
-                    async (string clubId, string? methodology, string? microcicloId, HttpContext httpContext, IMediator mediator, CancellationToken ct) =>
+                    async (string clubId, string? tipo, HttpContext httpContext, IMediator mediator, CancellationToken ct) =>
                     {
                         var userId = httpContext.User.Claims
                             .FirstOrDefault(c => c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value;
                         if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
 
-                        var result = await mediator.Send(new GetExercisesQuery(clubId, methodology, userId, microcicloId), ct);
+                        var result = await mediator.Send(new GetExercisesQuery(clubId, tipo, userId), ct);
                         return Results.Ok(result);
                     })
                 .WithName(nameof(GetExercises))
@@ -38,7 +37,7 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         }
     }
 
-    public record GetExercisesQuery(string ClubId, string? Methodology, string UserId, string? MicrocicloId = null) : IRequest<IEnumerable<ExerciseListItem>>, IRequireFeaturePermission
+    public record GetExercisesQuery(string ClubId, string? Tipo, string UserId) : IRequest<IEnumerable<ExerciseListItem>>, IRequireFeaturePermission
     {
         public string FeatureRoute => CoachFeatureRoutes.Trainings;
         public string RequiredPermission => "Read";
@@ -58,91 +57,88 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
                 throw new DomainException("Ejercicios", "No tienes acceso a este club.", ErrorCodes.ClubAccessDenied);
 
             var query = _db.TaskTrainingBases
-                .Include(tb => tb.Types)
-                    .ThenInclude(t => t.ExerciseType)
-                .Include(tb => tb.Conditions)
-                .Include(tb => tb.ModelLinks)
+                .Include(tb => tb.ModelRelations)
+                    .ThenInclude(r => r.Items)
                 .AsSplitQuery()
                 .Where(tb => tb.ClubId == request.ClubId);
 
-            if (!string.IsNullOrEmpty(request.Methodology))
-                query = query.Where(tb => tb.Methodology == request.Methodology);
-
-            if (!string.IsNullOrEmpty(request.MicrocicloId))
-                query = query.Where(tb => tb.MicrocicloId == request.MicrocicloId);
+            if (!string.IsNullOrEmpty(request.Tipo))
+                query = query.Where(tb => tb.Tipo == request.Tipo);
 
             var entities = await query
                 .OrderBy(tb => tb.Name)
                 .ToListAsync(ct);
 
-            var modelLinkSummaries = await ExerciseModelLinkResolver.ResolveAsync(_db, entities.SelectMany(e => e.ModelLinks), ct);
+            var relationSummaries = await ExerciseModelRelationResolver.ResolveAsync(_db, entities.SelectMany(e => e.ModelRelations), ct);
 
-            return entities.Select(tb => new ExerciseListItem(
-                tb.Id,
-                tb.Name,
-                tb.Description,
-                tb.Types.Select(t => t.ExerciseType.Name),
-                tb.Section,
-                tb.Methodology,
-                tb.DurationTotal,
-                tb.PlayersNumber,
-                tb.GoalPeekersNumber,
-                tb.FieldSpace,
-                tb.UrlImage,
-                tb.BoardStateJson,
-                tb.Conditions.OrderBy(c => c.Order).Select(c => new ConditionDto(c.Id, c.Text, c.Order)),
-                tb.MicrocicloId,
-                tb.ModelLinks.Select(l => modelLinkSummaries[l.Id]),
-                tb.Habilidades
-            ));
+            return entities.Select(tb => ExerciseListItem.From(tb, relationSummaries));
         }
     }
+
+    public record NivelRowDto(int Nivel, Dictionary<string, string> Valores);
 
     public record ExerciseListItem(
         string Id,
         string Name,
-        string Description,
-        IEnumerable<string> Types,
-        string Section,
-        string Methodology,
-        int DurationTotal,
-        int PlayersNumber,
-        int GoalPeekersNumber,
-        string FieldSpace,
+        string Tipo,
+        string Objetivo,
+        string? ObjetivoPorRol,
+        string Logistica,
+        int? DurationMinutes,
+        string? Porteros,
+        string? Dibujo,
+        string Descripcion,
         string? UrlImage,
         string? BoardStateJson,
-        IEnumerable<ConditionDto> Conditions,
-        string? MicrocicloId = null,
-        IEnumerable<ExerciseModelLinkDto>? ModelLinks = null,
-        IEnumerable<string>? Habilidades = null)
+        List<string> NivelesColumnas,
+        IEnumerable<NivelRowDto> Niveles,
+        IEnumerable<ExerciseModelRelationDto> ModelRelations,
+        bool IsAssociatedToGameModel)
     {
-        public IEnumerable<ExerciseModelLinkDto> ModelLinks { get; init; } = ModelLinks ?? Enumerable.Empty<ExerciseModelLinkDto>();
-        public IEnumerable<string> Habilidades { get; init; } = Habilidades ?? Enumerable.Empty<string>();
+        public static ExerciseListItem From(TaskTrainingBase tb, IReadOnlyDictionary<string, ExerciseModelRelationDto> relationSummaries) => new(
+            tb.Id,
+            tb.Name,
+            tb.Tipo,
+            tb.Objetivo,
+            tb.ObjetivoPorRol,
+            tb.Logistica,
+            tb.DurationMinutes,
+            tb.Porteros,
+            tb.Dibujo,
+            tb.Descripcion,
+            tb.UrlImage,
+            tb.BoardStateJson,
+            tb.NivelesColumnas,
+            tb.Niveles.Select(n => new NivelRowDto(n.Nivel, n.Valores)),
+            tb.ModelRelations.Select(r => relationSummaries[r.Id]),
+            tb.ModelRelations.Count > 0);
     }
 
-    /// <summary>Denormalized display fields for an <see cref="RFFM.Api.Domain.Aggregates.Training.TasksTraining.ExerciseModelLink"/>,
-    /// joining <c>Subprincipio</c>/<c>SubSubPrincipio</c> for <c>Numero</c>+<c>Titulo</c>/<c>Rol</c> (design.md Amendment 2).</summary>
-    public record ExerciseModelLinkDto(
+    /// <summary>Denormalized display fields for an <see cref="ExerciseModelRelationItem"/>.</summary>
+    public record ExerciseModelRelationItemDto(string Id, string SubSubPrincipioId, string? SubSubPrincipioNumero, string? SubSubPrincipioRol, bool IsFoco);
+
+    /// <summary>Denormalized display fields for an <see cref="ExerciseModelRelation"/>, joining
+    /// Subprincipio for Numero/Titulo (design.md §1.2).</summary>
+    public record ExerciseModelRelationDto(
         string Id,
-        string? SubprincipioId,
+        string SubprincipioId,
         string? SubprincipioNumero,
         string? SubprincipioTitulo,
-        string? SubSubPrincipioId,
-        string? SubSubPrincipioNumero,
-        string? SubSubPrincipioRol,
-        bool IsFoco);
+        bool IsFoco,
+        IEnumerable<string> HabilidadesImprescindibles,
+        IEnumerable<ExerciseModelRelationItemDto> Items);
 
-    /// <summary>Batch-resolves <see cref="ExerciseModelLink"/> rows to their denormalized
-    /// <see cref="ExerciseModelLinkDto"/> display fields, shared by GetExercises/GetExerciseById.</summary>
-    internal static class ExerciseModelLinkResolver
+    /// <summary>Batch-resolves <see cref="ExerciseModelRelation"/> rows (and their items) to
+    /// their denormalized display fields, shared by GetExercises/GetExerciseById.</summary>
+    internal static class ExerciseModelRelationResolver
     {
-        public static async Task<Dictionary<string, ExerciseModelLinkDto>> ResolveAsync(
-            AppDbContext db, IEnumerable<ExerciseModelLink> links, CancellationToken ct)
+        public static async Task<Dictionary<string, ExerciseModelRelationDto>> ResolveAsync(
+            AppDbContext db, IEnumerable<ExerciseModelRelation> relations, CancellationToken ct)
         {
-            var linkList = links.ToList();
+            var relationList = relations.ToList();
 
-            var subprincipioIds = linkList.Where(l => l.SubprincipioId != null).Select(l => l.SubprincipioId!).Distinct().ToList();
-            var subSubPrincipioIds = linkList.Where(l => l.SubSubPrincipioId != null).Select(l => l.SubSubPrincipioId!).Distinct().ToList();
+            var subprincipioIds = relationList.Select(r => r.SubprincipioId).Distinct().ToList();
+            var subSubPrincipioIds = relationList.SelectMany(r => r.Items).Select(i => i.SubSubPrincipioId).Distinct().ToList();
 
             var subprincipios = await db.Subprincipios
                 .AsNoTracking()
@@ -154,16 +150,18 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
                 .Where(s => subSubPrincipioIds.Contains(s.Id))
                 .ToDictionaryAsync(s => s.Id, ct);
 
-            return linkList.ToDictionary(l => l.Id, l =>
+            return relationList.ToDictionary(r => r.Id, r =>
             {
-                var subprincipio = l.SubprincipioId is not null ? subprincipios.GetValueOrDefault(l.SubprincipioId) : null;
-                var subSubPrincipio = l.SubSubPrincipioId is not null ? subSubPrincipios.GetValueOrDefault(l.SubSubPrincipioId) : null;
+                var subprincipio = subprincipios.GetValueOrDefault(r.SubprincipioId);
 
-                return new ExerciseModelLinkDto(
-                    l.Id,
-                    subprincipio?.Id, subprincipio?.Numero, subprincipio?.Titulo,
-                    subSubPrincipio?.Id, subSubPrincipio?.Numero, subSubPrincipio?.Rol,
-                    l.IsFoco);
+                return new ExerciseModelRelationDto(
+                    r.Id, r.SubprincipioId, subprincipio?.Numero, subprincipio?.Titulo, r.IsFoco,
+                    r.HabilidadesImprescindibles,
+                    r.Items.Select(i =>
+                    {
+                        var subSubPrincipio = subSubPrincipios.GetValueOrDefault(i.SubSubPrincipioId);
+                        return new ExerciseModelRelationItemDto(i.Id, i.SubSubPrincipioId, subSubPrincipio?.Numero, subSubPrincipio?.Rol, i.IsFoco);
+                    }));
             });
         }
     }

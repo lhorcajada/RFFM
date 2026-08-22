@@ -128,31 +128,7 @@ namespace RFFM.Api.Tests.IntegrationTests
             Assert.Equal(4, mesociclo1.Microciclos.Count);
 
             var semana1 = mesociclo1.Microciclos.Single(m => m.Order == 1);
-            Assert.Contains("Defensa organizada 1.1", semana1.ObjetivoSesionA);
-            Assert.Contains("Ataque organizado 1.1", semana1.ObjetivoSesionB);
-        }
-
-        [Fact]
-        public async Task ImportAsync_Microciclo5_HasDifferentZonesPerSession()
-        {
-            // Microciclo 5 is the clearest source example of the schema conflict this revision
-            // resolves: Sesión A (Creación Propia) and Sesión B (Creación Rival) train in
-            // different zones within the same week.
-            await using var seedDb = _fixture.CreateDbContext();
-            var (teamId, seasonId) = await SeedTeamAsync(seedDb);
-
-            await using var db = _fixture.CreateDbContext();
-            var planId = await new SeasonPlanImporter(db).ImportAsync(teamId, seasonId, CancellationToken.None);
-
-            await using var verifyDb = _fixture.CreateDbContext();
-            var mesociclo2 = await verifyDb.Mesociclos
-                .Include(m => m.Microciclos)
-                .Where(m => m.Microciclos.Any(mc => mc.WeekLabel == "Semana 5 — generación 2"))
-                .SingleAsync();
-            var semana5 = mesociclo2.Microciclos.Single(m => m.WeekLabel == "Semana 5 — generación 2");
-
-            Assert.Equal(2, semana5.GameZoneIdSesionA);
-            Assert.Equal(3, semana5.GameZoneIdSesionB);
+            Assert.Equal("Semana 1 — generación 1", semana1.WeekLabel);
         }
 
         [Fact]
@@ -171,9 +147,7 @@ namespace RFFM.Api.Tests.IntegrationTests
 
             Assert.Equal("Cierre de temporada", cierre.Name);
             var mesociclo = Assert.Single(cierre.Mesociclos);
-            var microciclo = Assert.Single(mesociclo.Microciclos);
-            Assert.Equal(1, microciclo.GameZoneIdSesionA);
-            Assert.Equal(1, microciclo.GameZoneIdSesionB);
+            Assert.Single(mesociclo.Microciclos);
         }
     }
 }

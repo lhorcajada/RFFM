@@ -1,80 +1,90 @@
-﻿using RFFM.Api.Domain.Aggregates.GameModels;
+using RFFM.Api.Domain.Aggregates.GameModels;
 using RFFM.Api.Domain.Aggregates.UserClubs;
 
 namespace RFFM.Api.Domain.Aggregates.Training.TasksTraining
 {
+    /// <summary>
+    /// An exercise ("Ejercicio"), club-owned shared library item, following the reduced content
+    /// template in <c>docs/game-model/Plantilla-Ejercicio.md</c>. See design.md §1.1 of the
+    /// `session-exercise-plan-redesign` OpenSpec change for the full field-by-field rationale.
+    /// </summary>
     public class TaskTrainingBase : BaseEntity
     {
-        public string Name { get; set; } = string.Empty;
-        public string Description { get; set; } = string.Empty;
-        public int PlayersNumber { get; set; }
-        public int GoalPeekersNumber { get; set; }
+        /// <summary>The three allowed <see cref="Tipo"/> values, per the reduced template.</summary>
+        public static readonly IReadOnlySet<string> TipoValues = new HashSet<string> { "Analitico", "Situacional", "Global" };
 
-        public int DurationTotal { get; set; }
-        public string FieldSpace { get; set; } = string.Empty;
-        public int Points { get; set; }
+        /// <summary>Título.</summary>
+        public string Name { get; set; } = string.Empty;
+
+        /// <summary>Analitico | Situacional | Global.</summary>
+        public string Tipo { get; set; } = "Analitico";
+
+        public string Objetivo { get; set; } = string.Empty;
+        public string? ObjetivoPorRol { get; set; }
+
+        public string Logistica { get; set; } = string.Empty;
+        public int? DurationMinutes { get; set; }
+        public string? Porteros { get; set; }
+        public string? Dibujo { get; set; }
+        public string Descripcion { get; set; } = string.Empty;
+
         public string? UrlImage { get; set; } = string.Empty;
         public string? BoardStateJson { get; set; }
 
         /// <summary>Club that owns this exercise (shared library).</summary>
         public string ClubId { get; set; } = string.Empty;
 
-        /// <summary>Section of the training session: Calentamiento, Principal, VueltaALaCalma.</summary>
-        public string Section { get; set; } = "Principal";
-
-        /// <summary>Training methodology: Analitico, Integrado, Global.</summary>
-        public string Methodology { get; set; } = "Integrado";
-
-        /// <summary>Optional link to the SeasonPlan week (Microciclo) this exercise belongs to.</summary>
-        public string? MicrocicloId { get; set; }
-
-        // Fields formerly exclusive to a TPH subclass — merged here since an exercise can now
-        // have multiple types at once (Physical, Technical/Tactical fields all coexist).
-        public int Series { get; set; }
-        public int DurationSeries { get; set; }
-        public int RestSeries { get; set; }
-        public TimeSpan Time { get; set; } = TimeSpan.Zero;
-        public int TouchesNumber { get; set; }
-        public int WildCards { get; set; }
-
         public Club Club { get; set; } = null!;
-        public List<MaterialsEnum> Material { get; set; } = new();
-        public List<ExerciseCondition> Conditions { get; set; } = new();
-        public List<TaskTrainingType> Types { get; set; } = new();
 
-        /// <summary>Habilidad names (closed 15-value vocabulary) this exercise targets — jsonb
-        /// column, mirrors <see cref="SeasonPlans.Microciclo.SesionAHabilidades"/> exactly
-        /// (design.md Amendment 2).</summary>
-        public List<string> Habilidades { get; private set; } = new();
+        public List<string> NivelesColumnas { get; private set; } = new();
+        public List<ExerciseLevelRow> Niveles { get; private set; } = new();
 
-        /// <summary>Which Subprincipio/SubSubPrincipio nodes of the team's current GameModel
-        /// this exercise trains, tagged FOCO/INTEGRADO (design.md Amendment 2). A property of
-        /// the exercise itself, independent of any one Microciclo/week.</summary>
-        public List<ExerciseModelLink> ModelLinks { get; private set; } = new();
+        public List<ExerciseModelRelation> ModelRelations { get; private set; } = new();
 
-        public void UpdateHabilidades(IEnumerable<string>? habilidades) => Habilidades = ValidateHabilidades(habilidades);
-
-        /// <summary>Clears and rebuilds <see cref="ModelLinks"/> wholesale — no incremental
-        /// diffing, same "trust server-derived state" approach as
-        /// <see cref="SeasonPlans.Microciclo.ReplaceSubprincipioLinks"/>.</summary>
-        public void ReplaceModelLinks(IEnumerable<(string? SubprincipioId, string? SubSubPrincipioId, bool IsFoco)> links)
+        /// <summary>Clears and rebuilds <see cref="ModelRelations"/> wholesale — no incremental
+        /// diffing, same "trust server-derived state" approach used across this codebase (e.g.
+        /// the old <c>ReplaceModelLinks</c>).</summary>
+        public void ReplaceModelRelations(
+            IEnumerable<(string SubprincipioId, bool IsFoco, IEnumerable<string>? Habilidades,
+                IEnumerable<(string SubSubPrincipioId, bool IsFoco)> Items)> relations)
         {
-            ModelLinks.Clear();
-            foreach (var link in links)
-                ModelLinks.Add(new ExerciseModelLink(Id, link.SubprincipioId, link.SubSubPrincipioId, link.IsFoco));
+            ModelRelations.Clear();
+            foreach (var relation in relations)
+            {
+                var entity = new ExerciseModelRelation(Id, relation.SubprincipioId, relation.IsFoco, relation.Habilidades);
+                entity.ReplaceItems(relation.Items);
+                ModelRelations.Add(entity);
+            }
         }
 
-        private static List<string> ValidateHabilidades(IEnumerable<string>? habilidades)
+        /// <summary>
+        /// Validates and replaces <see cref="NivelesColumnas"/>/<see cref="Niveles"/>. Invariants
+        /// (design.md §1.3): 2-5 rows, <see cref="ExerciseLevelRow.Nivel"/> numbered 1..N with no
+        /// gaps/duplicates, and every row's cell keys must be a subset of <paramref name="columnas"/>
+        /// (no orphan cells).
+        /// </summary>
+        public void UpdateNiveles(IEnumerable<string> columnas, IEnumerable<ExerciseLevelRow> niveles)
         {
-            var list = (habilidades ?? Enumerable.Empty<string>()).ToList();
-            foreach (var habilidad in list)
+            var columnasList = (columnas ?? Enumerable.Empty<string>()).ToList();
+            var nivelesList = (niveles ?? Enumerable.Empty<ExerciseLevelRow>()).ToList();
+
+            if (nivelesList.Count is < 2 or > 5)
+                throw new ArgumentException("Niveles must have between 2 and 5 rows.", nameof(niveles));
+
+            var expectedNumbers = Enumerable.Range(1, nivelesList.Count).ToHashSet();
+            var actualNumbers = nivelesList.Select(n => n.Nivel).ToList();
+            if (actualNumbers.Distinct().Count() != actualNumbers.Count || !actualNumbers.All(expectedNumbers.Contains))
+                throw new ArgumentException("Niveles must be numbered 1..N contiguously, with no gaps or duplicates.", nameof(niveles));
+
+            var columnSet = columnasList.ToHashSet();
+            foreach (var row in nivelesList)
             {
-                if (!Habilidad.Vocabulary.Contains(habilidad))
-                    throw new ArgumentException(
-                        $"'{habilidad}' is not a valid Habilidad name. Must be one of the 15-value closed vocabulary.",
-                        nameof(habilidades));
+                if (row.Valores.Keys.Any(k => !columnSet.Contains(k)))
+                    throw new ArgumentException("A Nivel row references a palanca column that is not in NivelesColumnas.", nameof(niveles));
             }
-            return list;
+
+            NivelesColumnas = columnasList;
+            Niveles = nivelesList;
         }
     }
 }

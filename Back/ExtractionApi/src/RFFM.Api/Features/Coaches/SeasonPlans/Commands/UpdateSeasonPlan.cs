@@ -78,15 +78,7 @@ namespace RFFM.Api.Features.Coaches.SeasonPlans.Commands
         string? Id,
         string WeekLabel,
         DateOnly StartDate,
-        DateOnly EndDate,
-        string ObjetivoSesionA,
-        string ObjetivoSesionB,
-        List<string>? SesionASubprincipioIds = null,
-        List<string>? SesionASubSubPrincipioIds = null,
-        List<string>? SesionAHabilidades = null,
-        List<string>? SesionBSubprincipioIds = null,
-        List<string>? SesionBSubSubPrincipioIds = null,
-        List<string>? SesionBHabilidades = null);
+        DateOnly EndDate);
 
     // ── Handler ──────────────────────────────────────────────────────────────────
 
@@ -101,11 +93,6 @@ namespace RFFM.Api.Features.Coaches.SeasonPlans.Commands
                 .Include(sp => sp.Macrociclos)
                     .ThenInclude(m => m.Mesociclos)
                         .ThenInclude(m => m.Microciclos)
-                            .ThenInclude(m => m.SubprincipioLinks)
-                .Include(sp => sp.Macrociclos)
-                    .ThenInclude(m => m.Mesociclos)
-                        .ThenInclude(m => m.Microciclos)
-                            .ThenInclude(m => m.SubSubPrincipioLinks)
                 .AsSplitQuery()
                 .FirstOrDefaultAsync(sp => sp.Id == request.Id, cancellationToken);
 
@@ -181,7 +168,7 @@ namespace RFFM.Api.Features.Coaches.SeasonPlans.Commands
                     {
                         microOrder++;
                         built.Microciclos.Add(new Microciclo(
-                            built.Id, microOrder, mir.WeekLabel, mir.StartDate, mir.EndDate, mir.ObjetivoSesionA, mir.ObjetivoSesionB));
+                            built.Id, microOrder, mir.WeekLabel, mir.StartDate, mir.EndDate));
                     }
 
                     macrociclo.Mesociclos.Add(built);
@@ -208,29 +195,16 @@ namespace RFFM.Api.Features.Coaches.SeasonPlans.Commands
                     existing.UpdateOrder(order);
                     existing.UpdateWeekLabel(mir.WeekLabel);
                     existing.Reschedule(mir.StartDate, mir.EndDate);
-                    existing.UpdateObjectives(mir.ObjetivoSesionA, mir.ObjetivoSesionB);
-                    ApplySesionAdnLinks(existing, mir);
                 }
                 else
                 {
-                    var newMicrociclo = new Microciclo(mesociclo.Id, order, mir.WeekLabel, mir.StartDate, mir.EndDate, mir.ObjetivoSesionA, mir.ObjetivoSesionB);
-                    ApplySesionAdnLinks(newMicrociclo, mir);
+                    var newMicrociclo = new Microciclo(mesociclo.Id, order, mir.WeekLabel, mir.StartDate, mir.EndDate);
                     mesociclo.Microciclos.Add(newMicrociclo);
                     matchedIds.Add(newMicrociclo.Id);
                 }
             }
 
             _db.Microciclos.RemoveRange(mesociclo.Microciclos.Where(m => !matchedIds.Contains(m.Id)).ToList());
-        }
-
-        private static void ApplySesionAdnLinks(Microciclo microciclo, MicrocicloUpdateRequest mir)
-        {
-            microciclo.UpdateSesionAHabilidades(mir.SesionAHabilidades);
-            microciclo.UpdateSesionBHabilidades(mir.SesionBHabilidades);
-            microciclo.ReplaceSubprincipioLinks(Microciclo.SessionA, mir.SesionASubprincipioIds);
-            microciclo.ReplaceSubprincipioLinks(Microciclo.SessionB, mir.SesionBSubprincipioIds);
-            microciclo.ReplaceSubSubPrincipioLinks(Microciclo.SessionA, mir.SesionASubSubPrincipioIds);
-            microciclo.ReplaceSubSubPrincipioLinks(Microciclo.SessionB, mir.SesionBSubSubPrincipioIds);
         }
 
         private static Mesociclo BuildNewMesociclo(string macrocicloId, MesocicloUpdateRequest mesr)
@@ -240,9 +214,7 @@ namespace RFFM.Api.Features.Coaches.SeasonPlans.Commands
             foreach (var mir in mesr.Microciclos)
             {
                 order++;
-                var newMicrociclo = new Microciclo(
-                    mesociclo.Id, order, mir.WeekLabel, mir.StartDate, mir.EndDate, mir.ObjetivoSesionA, mir.ObjetivoSesionB);
-                ApplySesionAdnLinks(newMicrociclo, mir);
+                var newMicrociclo = new Microciclo(mesociclo.Id, order, mir.WeekLabel, mir.StartDate, mir.EndDate);
                 mesociclo.Microciclos.Add(newMicrociclo);
             }
             return mesociclo;
@@ -286,8 +258,6 @@ namespace RFFM.Api.Features.Coaches.SeasonPlans.Commands
         public MicrocicloUpdateRequestValidator()
         {
             RuleFor(x => x.WeekLabel).NotEmpty().MaximumLength(200);
-            RuleFor(x => x.ObjetivoSesionA).NotEmpty().MaximumLength(2000);
-            RuleFor(x => x.ObjetivoSesionB).NotEmpty().MaximumLength(2000);
             RuleFor(x => x.EndDate).GreaterThanOrEqualTo(x => x.StartDate);
         }
     }

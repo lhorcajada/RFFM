@@ -51,10 +51,11 @@ namespace RFFM.Api.Domain
         public const string ExerciseNotFound = "ExerciseNotFound";
         public const string ExerciseAccessDenied = "ExerciseAccessDenied";
         public const string ClubAccessDenied = "ClubAccessDenied";
+        public const string ExerciseInUseBySession = "ExerciseInUseBySession";
 
-        // Exercise Conditions (Features/Coaches/Trainings/Exercises/ExerciseConditionsCrud.cs)
-        public const string ExerciseConditionNotFound = "ExerciseConditionNotFound";
-        public const string ExerciseConditionAccessDenied = "ExerciseConditionAccessDenied";
+        // Training Sessions (Features/Coaches/Trainings/Sessions) - Microciclo/plan association
+        public const string MicrocicloTeamMismatch = "MicrocicloTeamMismatch";
+        public const string MicrocicloNotFound = "MicrocicloNotFound";
 
         // Game Models (Features/Coaches/GameModels)
         public const string GameModelNotFound = "GameModelNotFound";

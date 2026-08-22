@@ -285,7 +285,7 @@
 }
 
 .formPanel {
-  width: min(430px, 38vw);
+  width: min(720px, 55vw);
   max-width: 100%;
   height: 100%;
   background: rgba(7, 7, 26, 0.96);
@@ -296,6 +296,22 @@
   display: flex;
   flex-direction: column;
   z-index: 4;
+}
+
+.panelBodyGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 16px;
+}
+
+.fullWidthRow {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 768px) {
+  .panelBodyGrid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .formPanelVisible {
@@ -1319,7 +1335,7 @@
     right: 0;
     top: 0;
     bottom: 0;
-    width: min(460px, 86vw);
+    width: min(680px, 92vw);
     box-shadow: -10px 0 30px rgba(0, 0, 0, 0.45);
   }
 

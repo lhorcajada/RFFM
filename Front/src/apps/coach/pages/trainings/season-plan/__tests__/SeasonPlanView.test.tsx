@@ -4,21 +4,6 @@ import { describe, expect, it, vi } from "vitest";
 import SeasonPlanView from "../SeasonPlanView";
 import type { SeasonPlan } from "../../../../types/seasonPlan";
 
-function emptyAdnLinks() {
-  return {
-    sesionASubprincipioIds: [],
-    sesionASubSubPrincipioIds: [],
-    sesionAHabilidades: [],
-    sesionASubprincipios: [],
-    sesionASubSubPrincipios: [],
-    sesionBSubprincipioIds: [],
-    sesionBSubSubPrincipioIds: [],
-    sesionBHabilidades: [],
-    sesionBSubprincipios: [],
-    sesionBSubSubPrincipios: [],
-  };
-}
-
 function buildPlan(overrides: Partial<SeasonPlan> = {}): SeasonPlan {
   return {
     id: "plan-1",
@@ -49,10 +34,7 @@ function buildPlan(overrides: Partial<SeasonPlan> = {}): SeasonPlan {
                 weekLabel: "Semana 1 — Analítico",
                 startDate: "2026-09-01",
                 endDate: "2026-09-07",
-                objetivoSesionA: "Objetivo A",
-                objetivoSesionB: "Objetivo B",
-                exerciseCount: 0,
-                ...emptyAdnLinks(),
+                sessions: [],
               },
               {
                 id: 4,
@@ -61,17 +43,15 @@ function buildPlan(overrides: Partial<SeasonPlan> = {}): SeasonPlan {
                 weekLabel: "Semana 2 — Situacional",
                 startDate: "2026-09-08",
                 endDate: "2026-09-14",
-                objetivoSesionA: "Objetivo A2",
-                objetivoSesionB: "Objetivo B2",
-                exerciseCount: 3,
-                ...emptyAdnLinks(),
-                sesionASubprincipios: [
-                  { id: "sub-1", numero: "1.1", titulo: "Defensa organizada", gameMomentName: "Fase defensiva" },
+                sessions: [
+                  {
+                    id: "sess-1",
+                    name: "Sesión 1 — Defensa organizada",
+                    objetivoGeneral: "Que el equipo defienda organizado",
+                    date: "2026-09-09",
+                    exerciseCount: 3,
+                  },
                 ],
-                sesionASubprincipioIds: ["sub-1"],
-                sesionASubSubPrincipios: [{ id: "ssp-1", numero: "1.1.1", rol: "Central" }],
-                sesionASubSubPrincipioIds: ["ssp-1"],
-                sesionAHabilidades: ["Perfilamiento"],
               },
             ],
           },
@@ -85,7 +65,7 @@ function buildPlan(overrides: Partial<SeasonPlan> = {}): SeasonPlan {
 describe("SeasonPlanView — estado vacío", () => {
   it('muestra el CTA "Crear planificación" cuando no hay plan todavía', () => {
     const onCreatePlan = vi.fn();
-    render(<SeasonPlanView plan={null} loading={false} onCreatePlan={onCreatePlan} onCreateExercise={vi.fn()} />);
+    render(<SeasonPlanView plan={null} loading={false} onCreatePlan={onCreatePlan} onCreateSession={vi.fn()} />);
 
     expect(screen.getByText(/no hay planificación de temporada/i)).toBeInTheDocument();
     const cta = screen.getByRole("button", { name: /crear planificación/i });
@@ -94,7 +74,7 @@ describe("SeasonPlanView — estado vacío", () => {
 
   it("el CTA invoca onCreatePlan al hacer click", async () => {
     const onCreatePlan = vi.fn();
-    render(<SeasonPlanView plan={null} loading={false} onCreatePlan={onCreatePlan} onCreateExercise={vi.fn()} />);
+    render(<SeasonPlanView plan={null} loading={false} onCreatePlan={onCreatePlan} onCreateSession={vi.fn()} />);
 
     await userEvent.click(screen.getByRole("button", { name: /crear planificación/i }));
 
@@ -102,60 +82,56 @@ describe("SeasonPlanView — estado vacío", () => {
   });
 });
 
-describe("SeasonPlanView — árbol con badges de cobertura", () => {
-  it("muestra un chip de advertencia para la semana con 0 ejercicios y un chip de cuenta para la que tiene 3", () => {
+describe("SeasonPlanView — árbol con badges de cobertura de sesiones", () => {
+  it("muestra un chip 'Sin sesiones' para la semana sin sesiones y 'N sesiones' para la que tiene 1", () => {
     render(
-      <SeasonPlanView plan={buildPlan()} loading={false} onCreatePlan={vi.fn()} onCreateExercise={vi.fn()} />
+      <SeasonPlanView plan={buildPlan()} loading={false} onCreatePlan={vi.fn()} onCreateSession={vi.fn()} />
     );
 
-    expect(screen.getByText("Sin ejercicios")).toBeInTheDocument();
-    expect(screen.getByText("3 ejercicios")).toBeInTheDocument();
+    expect(screen.getByText("Sin sesiones")).toBeInTheDocument();
+    expect(screen.getByText("1 sesiones")).toBeInTheDocument();
   });
 
-  it('llama a onCreateExercise con el id del microciclo al pulsar "Crear ejercicio"', async () => {
-    const onCreateExercise = vi.fn();
+  it('llama a onCreateSession con el id del microciclo al pulsar "Crear sesión"', async () => {
+    const onCreateSession = vi.fn();
     render(
       <SeasonPlanView
         plan={buildPlan()}
         loading={false}
         onCreatePlan={vi.fn()}
-        onCreateExercise={onCreateExercise}
+        onCreateSession={onCreateSession}
       />
     );
 
-    const buttons = screen.getAllByRole("button", { name: /crear ejercicio/i });
+    const buttons = screen.getAllByRole("button", { name: /crear sesión/i });
     await userEvent.click(buttons[0]);
 
-    expect(onCreateExercise).toHaveBeenCalledWith("micro-1");
+    expect(onCreateSession).toHaveBeenCalledWith("micro-1");
   });
 });
 
-describe("SeasonPlanView — enlaces ADN por sesión", () => {
-  it("muestra chips de Subprincipio, SubSubPrincipio y Habilidad para la semana que tiene enlaces", () => {
+describe("SeasonPlanView — sesiones vinculadas por microciclo", () => {
+  it("muestra nombre, fecha y cuenta de ejercicios de cada sesión vinculada", () => {
     render(
-      <SeasonPlanView plan={buildPlan()} loading={false} onCreatePlan={vi.fn()} onCreateExercise={vi.fn()} />
+      <SeasonPlanView plan={buildPlan()} loading={false} onCreatePlan={vi.fn()} onCreateSession={vi.fn()} />
     );
 
-    expect(screen.getByText("Defensa organizada 1.1")).toBeInTheDocument();
-    expect(screen.getByText("1.1.1 · Central")).toBeInTheDocument();
-    expect(screen.getByText("Perfilamiento")).toBeInTheDocument();
+    expect(screen.getByText(/Sesión 1 — Defensa organizada/)).toBeInTheDocument();
   });
 
-  it("no renderiza chips ADN para la semana sin enlaces", () => {
+  it("no renderiza ninguna sesión para la semana sin sesiones vinculadas", () => {
     render(
-      <SeasonPlanView plan={buildPlan()} loading={false} onCreatePlan={vi.fn()} onCreateExercise={vi.fn()} />
+      <SeasonPlanView plan={buildPlan()} loading={false} onCreatePlan={vi.fn()} onCreateSession={vi.fn()} />
     );
 
-    // "Semana 1" (microciclo id 3) tiene 0 enlaces — su fila no debe incluir ningún chip ADN
     const weekOneRow = screen.getByTestId("microciclo-row-3");
-    expect(within(weekOneRow).queryByText(/1\.1\.1/)).not.toBeInTheDocument();
-    expect(within(weekOneRow).queryByText("Perfilamiento")).not.toBeInTheDocument();
+    expect(within(weekOneRow).queryByText(/Sesión/)).not.toBeInTheDocument();
   });
 });
 
 describe("SeasonPlanView — loading", () => {
   it("muestra un indicador de carga cuando loading es true", () => {
-    render(<SeasonPlanView plan={null} loading onCreatePlan={vi.fn()} onCreateExercise={vi.fn()} />);
+    render(<SeasonPlanView plan={null} loading onCreatePlan={vi.fn()} onCreateSession={vi.fn()} />);
 
     expect(screen.getByRole("progressbar")).toBeInTheDocument();
   });

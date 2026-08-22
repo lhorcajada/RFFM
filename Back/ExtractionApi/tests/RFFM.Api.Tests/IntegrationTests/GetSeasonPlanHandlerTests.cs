@@ -1,13 +1,12 @@
 #nullable enable
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Domain;
-using RFFM.Api.Domain.Aggregates.GameModels;
 using RFFM.Api.Domain.Aggregates.SeasonPlans;
+using RFFM.Api.Domain.Aggregates.Training;
 using RFFM.Api.Domain.Aggregates.Training.TasksTraining;
 using RFFM.Api.Domain.Aggregates.UserClubs;
 using RFFM.Api.Domain.Entities.Competitions;
@@ -22,7 +21,7 @@ namespace RFFM.Api.Tests.IntegrationTests
 {
     /// <summary>
     /// Integration tests for GET /api/season-plans (<see cref="GetSeasonPlanFeature.SeasonPlanQuery"/>),
-    /// including the per-Microciclo ExerciseCount projection that powers the coverage view.
+    /// including the per-Microciclo linked-session summary that powers the coverage view.
     /// </summary>
     [Collection(PostgresCollection.Name)]
     public class GetSeasonPlanHandlerTests
@@ -66,7 +65,7 @@ namespace RFFM.Api.Tests.IntegrationTests
             var plan = new SeasonPlan(team.Id, season.Id);
             var macrociclo = new Macrociclo(plan.Id, 1, "Macrociclo 1", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 21));
             var mesociclo = new Mesociclo(macrociclo.Id, 1, "Mesociclo 1.1", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 21), 2);
-            var microciclo = new Microciclo(mesociclo.Id, 1, "Semana 1", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 7), "Obj A", "Obj B");
+            var microciclo = new Microciclo(mesociclo.Id, 1, "Semana 1", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 7));
             mesociclo.Microciclos.Add(microciclo);
             macrociclo.Mesociclos.Add(mesociclo);
             plan.Macrociclos.Add(macrociclo);
@@ -76,24 +75,10 @@ namespace RFFM.Api.Tests.IntegrationTests
             return (userId, club.Id, team.Id, season.Id, microciclo.Id);
         }
 
-        private async Task<(string SubprincipioId, string SubSubPrincipioId, string GameMomentName, string Numero, string Titulo, string Rol)> SeedAdnNodesAsync(AppDbContext db, string teamId)
+        private static TaskTrainingBase NewExercise(string clubId, string name) => new()
         {
-            var gameMoment = await db.GameMoments.AsNoTracking().FirstAsync();
-
-            var model = new GameModel(teamId, "Modelo de prueba", "2026-2027");
-            var principle = new GamePrinciple(model.Id, gameMoment.Id, key: $"principio-{Guid.NewGuid():N}", numero: 1, "Principio", "Texto");
-            var subprincipio = new Subprincipio(principle.Id, $"sub-{Guid.NewGuid():N}", "1.1", "Defensa organizada 1.1", "Contexto");
-            var subSubPrincipio = new SubSubPrincipio($"subsub-{Guid.NewGuid():N}", "1.1.1", "Central", "Texto", subprincipio.Id, null);
-
-            principle.Subprincipios.Add(subprincipio);
-            subprincipio.SubSubPrincipios.Add(subSubPrincipio);
-            model.Principles.Add(principle);
-
-            db.GameModels.Add(model);
-            await db.SaveChangesAsync();
-
-            return (subprincipio.Id, subSubPrincipio.Id, gameMoment.Name, subprincipio.Numero, subprincipio.Titulo, subSubPrincipio.Rol);
-        }
+            Name = name, Tipo = "Analitico", Objetivo = "O", Logistica = "L", Descripcion = "D", ClubId = clubId,
+        };
 
         [Fact]
         public async Task Handle_ExistingPlan_ReturnsFullTree()
@@ -111,6 +96,7 @@ namespace RFFM.Api.Tests.IntegrationTests
             var mesociclo = Assert.Single(macrociclo.Mesociclos);
             var microciclo = Assert.Single(mesociclo.Microciclos);
             Assert.Equal("Semana 1", microciclo.WeekLabel);
+            Assert.Empty(microciclo.Sessions);
         }
 
         [Fact]
@@ -130,15 +116,25 @@ namespace RFFM.Api.Tests.IntegrationTests
         }
 
         [Fact]
-        public async Task Handle_MicrocicloWithLinkedExercises_ProjectsExerciseCount()
+        public async Task Handle_MicrocicloWithLinkedSession_ProjectsSessionSummary()
         {
             await using var seedDb = _fixture.CreateDbContext();
             var (userId, clubId, teamId, seasonId, microcicloId) = await SeedPlanAsync(seedDb);
 
-            seedDb.TaskTrainingBases.AddRange(
-                new TaskTrainingBase { Name = "Ej 1", Description = "D", ClubId = clubId, FieldSpace = "F", MicrocicloId = microcicloId },
-                new TaskTrainingBase { Name = "Ej 2", Description = "D", ClubId = clubId, FieldSpace = "F", MicrocicloId = microcicloId },
-                new TaskTrainingBase { Name = "Ej sin vincular", Description = "D", ClubId = clubId, FieldSpace = "F", MicrocicloId = null });
+            var exercise1 = NewExercise(clubId, "Ej 1");
+            var exercise2 = NewExercise(clubId, "Ej 2");
+            seedDb.TaskTrainingBases.AddRange(exercise1, exercise2);
+            await seedDb.SaveChangesAsync();
+
+            var session = new TrainingSession
+            {
+                Name = "Sesion 1", TeamId = teamId, Date = DateTime.UtcNow, MicrocicloId = microcicloId,
+                ObjetivoGeneral = "Objetivo de la sesion",
+            };
+            var block = new SessionBlock(session.Id, 1, "Bloque 1", "Primer bloque.", null);
+            block.ReplaceExercises(new[] { (exercise1.Id, 1), (exercise2.Id, 2) });
+            session.Blocks.Add(block);
+            seedDb.TrainingSessions.Add(session);
             await seedDb.SaveChangesAsync();
 
             await using var db = _fixture.CreateDbContext();
@@ -147,11 +143,14 @@ namespace RFFM.Api.Tests.IntegrationTests
             var result = await handler.Handle(new GetSeasonPlanFeature.SeasonPlanQuery(teamId, seasonId, userId), CancellationToken.None);
 
             var microciclo = result!.Macrociclos.Single().Mesociclos.Single().Microciclos.Single();
-            Assert.Equal(2, microciclo.ExerciseCount);
+            var sessionSummary = Assert.Single(microciclo.Sessions);
+            Assert.Equal(session.Id, sessionSummary.Id);
+            Assert.Equal("Objetivo de la sesion", sessionSummary.ObjetivoGeneral);
+            Assert.Equal(2, sessionSummary.ExerciseCount);
         }
 
         [Fact]
-        public async Task Handle_MicrocicloWithNoLinkedExercises_ProjectsZero()
+        public async Task Handle_MicrocicloWithNoLinkedSessions_ProjectsEmptySessions()
         {
             await using var seedDb = _fixture.CreateDbContext();
             var (userId, _, teamId, seasonId, _) = await SeedPlanAsync(seedDb);
@@ -162,7 +161,7 @@ namespace RFFM.Api.Tests.IntegrationTests
             var result = await handler.Handle(new GetSeasonPlanFeature.SeasonPlanQuery(teamId, seasonId, userId), CancellationToken.None);
 
             var microciclo = result!.Macrociclos.Single().Mesociclos.Single().Microciclos.Single();
-            Assert.Equal(0, microciclo.ExerciseCount);
+            Assert.Empty(microciclo.Sessions);
         }
 
         [Fact]
@@ -178,62 +177,6 @@ namespace RFFM.Api.Tests.IntegrationTests
                 handler.Handle(new GetSeasonPlanFeature.SeasonPlanQuery(teamId, seasonId, $"stranger-{Guid.NewGuid():N}"), CancellationToken.None).AsTask());
 
             Assert.Equal(ErrorCodes.TeamAccessDenied, ex.Code);
-        }
-
-        [Fact]
-        public async Task Handle_MicrocicloWithSesionAdnLinks_ResolvesDenormalizedSummaries()
-        {
-            await using var seedDb = _fixture.CreateDbContext();
-            var (userId, _, teamId, seasonId, microcicloId) = await SeedPlanAsync(seedDb);
-            var (subprincipioId, subSubPrincipioId, gameMomentName, numero, titulo, rol) = await SeedAdnNodesAsync(seedDb, teamId);
-
-            await using var linkDb = _fixture.CreateDbContext();
-            var microciclo = await linkDb.Microciclos.SingleAsync(m => m.Id == microcicloId);
-            microciclo.ReplaceSubprincipioLinks(Microciclo.SessionA, new List<string> { subprincipioId });
-            microciclo.ReplaceSubSubPrincipioLinks(Microciclo.SessionA, new List<string> { subSubPrincipioId });
-            microciclo.UpdateSesionAHabilidades(new List<string> { "Pase" });
-            await linkDb.SaveChangesAsync();
-
-            await using var db = _fixture.CreateDbContext();
-            var handler = new GetSeasonPlanFeature.Handler(db);
-
-            var result = await handler.Handle(new GetSeasonPlanFeature.SeasonPlanQuery(teamId, seasonId, userId), CancellationToken.None);
-
-            var microcicloResponse = result!.Macrociclos.Single().Mesociclos.Single().Microciclos.Single();
-            var subprincipioSummary = Assert.Single(microcicloResponse.SesionASubprincipios);
-            Assert.Equal(subprincipioId, subprincipioSummary.Id);
-            Assert.Equal(numero, subprincipioSummary.Numero);
-            Assert.Equal(titulo, subprincipioSummary.Titulo);
-            Assert.Equal(gameMomentName, subprincipioSummary.GameMomentName);
-
-            var subSubPrincipioSummary = Assert.Single(microcicloResponse.SesionASubSubPrincipios);
-            Assert.Equal(subSubPrincipioId, subSubPrincipioSummary.Id);
-            Assert.Equal(rol, subSubPrincipioSummary.Rol);
-
-            Assert.Equal(new List<string> { "Pase" }, microcicloResponse.SesionAHabilidades);
-            Assert.Empty(microcicloResponse.SesionBSubprincipios);
-            Assert.Empty(microcicloResponse.SesionBSubSubPrincipios);
-            Assert.Empty(microcicloResponse.SesionBHabilidades);
-        }
-
-        [Fact]
-        public async Task Handle_MicrocicloWithNoSesionAdnLinks_ReturnsEmptySummariesNotNull()
-        {
-            await using var seedDb = _fixture.CreateDbContext();
-            var (userId, _, teamId, seasonId, _) = await SeedPlanAsync(seedDb);
-
-            await using var db = _fixture.CreateDbContext();
-            var handler = new GetSeasonPlanFeature.Handler(db);
-
-            var result = await handler.Handle(new GetSeasonPlanFeature.SeasonPlanQuery(teamId, seasonId, userId), CancellationToken.None);
-
-            var microcicloResponse = result!.Macrociclos.Single().Mesociclos.Single().Microciclos.Single();
-            Assert.NotNull(microcicloResponse.SesionASubprincipios);
-            Assert.Empty(microcicloResponse.SesionASubprincipios);
-            Assert.NotNull(microcicloResponse.SesionASubSubPrincipios);
-            Assert.Empty(microcicloResponse.SesionASubSubPrincipios);
-            Assert.NotNull(microcicloResponse.SesionAHabilidades);
-            Assert.Empty(microcicloResponse.SesionAHabilidades);
         }
     }
 }

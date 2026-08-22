@@ -7,55 +7,26 @@ function buildExercise(overrides: Partial<Exercise> = {}): Exercise {
   return {
     id: "ex-1",
     name: "Ejercicio de prueba",
-    description: "",
-    types: ["Tactical"],
-    section: "Principal",
-    methodology: "Integrado",
-    durationTotal: 10,
-    playersNumber: 6,
-    goalPeekersNumber: 0,
-    fieldSpace: "",
-    conditions: [],
-    modelLinks: [],
-    habilidades: [],
+    tipo: "Situacional",
+    objetivo: "Objetivo",
+    modelRelations: [],
+    nivelesColumnas: ["Palanca 1"],
+    niveles: [
+      { nivel: 1, valores: {} },
+      { nivel: 2, valores: {} },
+    ],
+    logistica: "10 min",
+    descripcion: "Desc",
+    isAssociatedToGameModel: false,
     ...overrides,
   };
 }
 
 describe("ExerciseCromo", () => {
-  it("renderiza un chip/badge por cada tipo asignado al ejercicio", () => {
+  it("muestra un badge con el Tipo del ejercicio", () => {
     render(
       <ExerciseCromo
-        exercise={buildExercise({ types: ["Physical", "Cognitive"] })}
-        onEdit={vi.fn()}
-        onDuplicate={vi.fn()}
-        onPrint={vi.fn()}
-        onDelete={vi.fn()}
-      />
-    );
-
-    expect(screen.getByText("Físico")).toBeInTheDocument();
-    expect(screen.getByText("Cognitivo")).toBeInTheDocument();
-  });
-
-  it("usa el primer tipo como tipo primario para el color de borde de la tarjeta", () => {
-    const { container } = render(
-      <ExerciseCromo
-        exercise={buildExercise({ types: ["Game", "Psychological"] })}
-        onEdit={vi.fn()}
-        onDuplicate={vi.fn()}
-        onPrint={vi.fn()}
-        onDelete={vi.fn()}
-      />
-    );
-
-    expect(container.querySelector('[class*="type_Game"]')).toBeInTheDocument();
-  });
-
-  it("muestra un pill con la metodologia del ejercicio", () => {
-    render(
-      <ExerciseCromo
-        exercise={buildExercise({ methodology: "Global" })}
+        exercise={buildExercise({ tipo: "Global" })}
         onEdit={vi.fn()}
         onDuplicate={vi.fn()}
         onPrint={vi.fn()}
@@ -66,10 +37,10 @@ describe("ExerciseCromo", () => {
     expect(screen.getByText("Global")).toBeInTheDocument();
   });
 
-  it("coloca el tag de metodologia en la cabecera de la tarjeta, sobre la foto", () => {
-    const { container } = render(
+  it("muestra el chip 'Asociado al modelo' cuando isAssociatedToGameModel es true", () => {
+    render(
       <ExerciseCromo
-        exercise={buildExercise({ methodology: "Analitico" })}
+        exercise={buildExercise({ isAssociatedToGameModel: true })}
         onEdit={vi.fn()}
         onDuplicate={vi.fn()}
         onPrint={vi.fn()}
@@ -77,15 +48,13 @@ describe("ExerciseCromo", () => {
       />
     );
 
-    const photoArea = container.querySelector('[class*="photoArea"]');
-    expect(photoArea).not.toBeNull();
-    expect(photoArea?.querySelector('[data-testid="methodology-badge"]')).toBeInTheDocument();
+    expect(screen.getByText(/asociado al modelo/i)).toBeInTheDocument();
   });
 
-  it("representa la seccion como una franja lateral de color con el nombre en vertical", () => {
-    const { container } = render(
+  it("no muestra el chip 'Asociado al modelo' cuando isAssociatedToGameModel es false", () => {
+    render(
       <ExerciseCromo
-        exercise={buildExercise({ section: "Calentamiento" })}
+        exercise={buildExercise({ isAssociatedToGameModel: false })}
         onEdit={vi.fn()}
         onDuplicate={vi.fn()}
         onPrint={vi.fn()}
@@ -93,33 +62,27 @@ describe("ExerciseCromo", () => {
       />
     );
 
-    const strip = container.querySelector('[data-testid="section-strip"]');
-    expect(strip).toBeInTheDocument();
-    expect(strip).toHaveAttribute("title", "Calentamiento");
-    expect(strip?.textContent).toBe("Calentamiento");
+    expect(screen.queryByText(/asociado al modelo/i)).not.toBeInTheDocument();
   });
 
-  it("renderiza un chip por cada modelLink y por cada habilidad del ejercicio", () => {
+  it("renderiza un chip por cada relación con el modelo (Subprincipio) y por cada item (SubSubPrincipio)", () => {
     render(
       <ExerciseCromo
         exercise={buildExercise({
-          modelLinks: [
+          isAssociatedToGameModel: true,
+          modelRelations: [
             {
-              id: "link-1",
+              id: "rel-1",
               subprincipioId: "sub-1",
               subprincipioNumero: "1.1",
               subprincipioTitulo: "Presión alta",
               isFoco: true,
-            },
-            {
-              id: "link-2",
-              subSubPrincipioId: "ssp-1",
-              subSubPrincipioNumero: "1.1.1",
-              subSubPrincipioRol: "Central",
-              isFoco: false,
+              habilidadesImprescindibles: ["Pase"],
+              items: [
+                { id: "item-1", subSubPrincipioId: "ssp-1", subSubPrincipioNumero: "1.1.1", subSubPrincipioRol: "Central", isFoco: false },
+              ],
             },
           ],
-          habilidades: ["Pase", "Intercepción"],
         })}
         onEdit={vi.fn()}
         onDuplicate={vi.fn()}
@@ -131,18 +94,12 @@ describe("ExerciseCromo", () => {
     expect(screen.getByText(/1\.1.*Presión alta/)).toBeInTheDocument();
     expect(screen.getByText(/1\.1\.1.*Central/)).toBeInTheDocument();
     expect(screen.getByText("Pase")).toBeInTheDocument();
-    expect(screen.getByText("Intercepción")).toBeInTheDocument();
   });
 
-  it("distingue visualmente los modelLinks FOCO de los INTEGRADO", () => {
-    const { container } = render(
+  it("muestra la duración cuando durationMinutes está establecido", () => {
+    render(
       <ExerciseCromo
-        exercise={buildExercise({
-          modelLinks: [
-            { id: "link-1", subprincipioId: "sub-1", subprincipioNumero: "1.1", subprincipioTitulo: "Foco", isFoco: true },
-            { id: "link-2", subprincipioId: "sub-2", subprincipioNumero: "1.2", subprincipioTitulo: "Integrado", isFoco: false },
-          ],
-        })}
+        exercise={buildExercise({ durationMinutes: 15 })}
         onEdit={vi.fn()}
         onDuplicate={vi.fn()}
         onPrint={vi.fn()}
@@ -150,14 +107,13 @@ describe("ExerciseCromo", () => {
       />
     );
 
-    expect(container.querySelector('[class*="modelLinkChipFoco"]')).toBeInTheDocument();
-    expect(container.querySelector('[class*="modelLinkChipIntegrado"]')).toBeInTheDocument();
+    expect(screen.getByText("15")).toBeInTheDocument();
   });
 
-  it("no renderiza ninguna fila de chips de modelo cuando modelLinks y habilidades están vacíos", () => {
+  it("no renderiza ninguna fila de chips de modelo cuando modelRelations está vacío", () => {
     const { container } = render(
       <ExerciseCromo
-        exercise={buildExercise({ modelLinks: [], habilidades: [] })}
+        exercise={buildExercise({ modelRelations: [] })}
         onEdit={vi.fn()}
         onDuplicate={vi.fn()}
         onPrint={vi.fn()}
@@ -166,24 +122,5 @@ describe("ExerciseCromo", () => {
     );
 
     expect(container.querySelector('[data-testid="model-chips-row"]')).not.toBeInTheDocument();
-  });
-
-  it("agrupa los tags de tipo debajo del titulo, no sobre la foto", () => {
-    const { container } = render(
-      <ExerciseCromo
-        exercise={buildExercise({ types: ["Physical", "Cognitive"] })}
-        onEdit={vi.fn()}
-        onDuplicate={vi.fn()}
-        onPrint={vi.fn()}
-        onDelete={vi.fn()}
-      />
-    );
-
-    const photoArea = container.querySelector('[class*="photoArea"]');
-    const tagsRow = container.querySelector('[data-testid="tags-row"]');
-    expect(tagsRow).toBeInTheDocument();
-    expect(photoArea?.contains(tagsRow)).toBe(false);
-    expect(tagsRow?.textContent).toContain("Físico");
-    expect(tagsRow?.textContent).toContain("Cognitivo");
   });
 });

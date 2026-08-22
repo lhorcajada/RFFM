@@ -14,8 +14,9 @@ namespace RFFM.Api.Features.Coaches.SeasonPlans.Commands
 {
     /// <summary>
     /// Deletes a season plan and all its nested Macrociclo/Mesociclo/Microciclo data.
-    /// Exercises linked to a Microciclo of this plan have their MicrocicloId cleared first —
-    /// they are never deleted by this operation.
+    /// Any TrainingSession linked to one of this plan's Microciclos is preserved — only its
+    /// MicrocicloId is cleared, via the SetNull FK behavior configured on
+    /// TrainingSession.MicrocicloId (see SessionTrainingEntityConfiguration).
     /// DELETE /api/season-plans/{id}
     /// </summary>
     public class DeleteSeasonPlan : IFeatureModule
@@ -77,19 +78,6 @@ namespace RFFM.Api.Features.Coaches.SeasonPlans.Commands
 
             if (!hasAccess)
                 throw new DomainException("Planificación de Temporada", "No tienes acceso a esta planificación.", ErrorCodes.SeasonPlanAccessDenied);
-
-            var microcicloIds = plan.Macrociclos
-                .SelectMany(m => m.Mesociclos)
-                .SelectMany(m => m.Microciclos)
-                .Select(m => m.Id)
-                .ToList();
-
-            if (microcicloIds.Count > 0)
-            {
-                await _db.TaskTrainingBases
-                    .Where(t => t.MicrocicloId != null && microcicloIds.Contains(t.MicrocicloId))
-                    .ExecuteUpdateAsync(s => s.SetProperty(t => t.MicrocicloId, (string?)null), cancellationToken);
-            }
 
             _db.SeasonPlans.Remove(plan);
             await _db.SaveChangesAsync(cancellationToken);

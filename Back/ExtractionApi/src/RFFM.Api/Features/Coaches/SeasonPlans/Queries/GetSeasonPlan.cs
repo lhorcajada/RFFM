@@ -14,8 +14,8 @@ using RFFM.Api.Infrastructure.Persistence;
 namespace RFFM.Api.Features.Coaches.SeasonPlans.Queries
 {
     /// <summary>
-    /// Returns the full season plan for a team and season, including a per-Microciclo
-    /// linked-exercise count (this single query powers the Planificación coverage view).
+    /// Returns the full season plan for a team and season, including a per-Microciclo linked
+    /// TrainingSession summary (this single query powers the Planificación coverage view).
     /// GET /api/season-plans?teamId={teamId}&amp;seasonId={seasonId}
     /// </summary>
     public class GetSeasonPlan : IFeatureModule
@@ -32,14 +32,14 @@ namespace RFFM.Api.Features.Coaches.SeasonPlans.Queries
                             return Results.Unauthorized();
 
                         var result = await mediator.Send(new SeasonPlanQuery(teamId, seasonId, userId), cancellationToken);
-                        return result is null ? Results.NotFound() : Results.Ok(result);
+                        return result is null ? Results.NoContent() : Results.Ok(result);
                     })
                 .WithName(nameof(GetSeasonPlan))
                 .WithTags(SeasonPlanConstants.Tag)
                 .RequireAuthorization()
                 .Produces<SeasonPlanResponse>()
+                .Produces(StatusCodes.Status204NoContent)
                 .Produces(StatusCodes.Status401Unauthorized)
-                .Produces(StatusCodes.Status404NotFound)
                 .Produces<ProblemDetails>(StatusCodes.Status403Forbidden);
         }
 
@@ -80,21 +80,11 @@ namespace RFFM.Api.Features.Coaches.SeasonPlans.Queries
             string WeekLabel,
             DateOnly StartDate,
             DateOnly EndDate,
-            string ObjetivoSesionA,
-            string ObjetivoSesionB,
-            int ExerciseCount,
-            IEnumerable<SubprincipioSummary> SesionASubprincipios,
-            IEnumerable<SubSubPrincipioSummary> SesionASubSubPrincipios,
-            IEnumerable<string> SesionAHabilidades,
-            IEnumerable<SubprincipioSummary> SesionBSubprincipios,
-            IEnumerable<SubSubPrincipioSummary> SesionBSubSubPrincipios,
-            IEnumerable<string> SesionBHabilidades);
+            IEnumerable<SessionSummary> Sessions);
 
-        /// <summary>Denormalized display fields for a Subprincipio linked to a Microciclo session.</summary>
-        public record SubprincipioSummary(string Id, string Numero, string Titulo, string GameMomentName);
-
-        /// <summary>Denormalized display fields for a SubSubPrincipio linked to a Microciclo session.</summary>
-        public record SubSubPrincipioSummary(string Id, string Numero, string Rol);
+        /// <summary>Summary of a TrainingSession linked to a Microciclo, per specs/season-plan.md
+        /// "GET includes session coverage per Microciclo".</summary>
+        public record SessionSummary(string Id, string Name, string? ObjetivoGeneral, DateTime Date, int ExerciseCount);
 
         // ── Handler ──────────────────────────────────────────────────────────────
 
@@ -123,64 +113,29 @@ namespace RFFM.Api.Features.Coaches.SeasonPlans.Queries
                 if (plan is null)
                     return null;
 
-                var exerciseCounts = await _db.TaskTrainingBases
-                    .Where(t => t.MicrocicloId != null)
-                    .GroupBy(t => t.MicrocicloId!)
-                    .Select(g => new { MicrocicloId = g.Key, Count = g.Count() })
-                    .ToDictionaryAsync(x => x.MicrocicloId, x => x.Count, cancellationToken);
-
                 var microcicloIds = plan.Macrociclos
                     .SelectMany(m => m.Mesociclos)
                     .SelectMany(m => m.Microciclos)
                     .Select(m => m.Id)
                     .ToList();
 
-                var subprincipioLinks = await _db.Set<MicrocicloSubprincipioLink>()
+                var sessions = await _db.TrainingSessions
+                    .Include(s => s.Blocks)
+                        .ThenInclude(b => b.Exercises)
+                    .AsSplitQuery()
                     .AsNoTracking()
-                    .Where(l => microcicloIds.Contains(l.MicrocicloId))
+                    .Where(s => s.MicrocicloId != null && microcicloIds.Contains(s.MicrocicloId!))
                     .ToListAsync(cancellationToken);
 
-                var subSubPrincipioLinks = await _db.Set<MicrocicloSubSubPrincipioLink>()
-                    .AsNoTracking()
-                    .Where(l => microcicloIds.Contains(l.MicrocicloId))
-                    .ToListAsync(cancellationToken);
-
-                var subprincipioIds = subprincipioLinks.Select(l => l.SubprincipioId).Distinct().ToList();
-                var subSubPrincipioIds = subSubPrincipioLinks.Select(l => l.SubSubPrincipioId).Distinct().ToList();
-
-                var subprincipioSummaries = await _db.Subprincipios
-                    .AsNoTracking()
-                    .Where(s => subprincipioIds.Contains(s.Id))
-                    .Select(s => new SubprincipioSummary(s.Id, s.Numero, s.Titulo, s.GamePrinciple.GameMoment.Name))
-                    .ToDictionaryAsync(s => s.Id, cancellationToken);
-
-                var subSubPrincipioSummaries = await _db.SubSubPrincipios
-                    .AsNoTracking()
-                    .Where(s => subSubPrincipioIds.Contains(s.Id))
-                    .Select(s => new SubSubPrincipioSummary(s.Id, s.Numero, s.Rol))
-                    .ToDictionaryAsync(s => s.Id, cancellationToken);
-
-                IEnumerable<SubprincipioSummary> ResolveSubprincipios(string microcicloId, string session) =>
-                    subprincipioLinks
-                        .Where(l => l.MicrocicloId == microcicloId && l.Session == session)
-                        .Select(l => subprincipioSummaries.GetValueOrDefault(l.SubprincipioId))
-                        .Where(s => s is not null)!;
-
-                IEnumerable<SubSubPrincipioSummary> ResolveSubSubPrincipios(string microcicloId, string session) =>
-                    subSubPrincipioLinks
-                        .Where(l => l.MicrocicloId == microcicloId && l.Session == session)
-                        .Select(l => subSubPrincipioSummaries.GetValueOrDefault(l.SubSubPrincipioId))
-                        .Where(s => s is not null)!;
+                IEnumerable<SessionSummary> ResolveSessions(string microcicloId) =>
+                    sessions
+                        .Where(s => s.MicrocicloId == microcicloId)
+                        .Select(s => new SessionSummary(
+                            s.Id, s.Name, s.ObjetivoGeneral, s.Date,
+                            s.Blocks.SelectMany(b => b.Exercises).Select(e => e.TaskTrainingBaseId).Distinct().Count()));
 
                 MicrocicloResponse MapMicrociclo(Microciclo m) => new(
-                    m.Id, m.Order, m.WeekLabel, m.StartDate, m.EndDate, m.ObjetivoSesionA, m.ObjetivoSesionB,
-                    exerciseCounts.GetValueOrDefault(m.Id, 0),
-                    ResolveSubprincipios(m.Id, Microciclo.SessionA),
-                    ResolveSubSubPrincipios(m.Id, Microciclo.SessionA),
-                    m.SesionAHabilidades,
-                    ResolveSubprincipios(m.Id, Microciclo.SessionB),
-                    ResolveSubSubPrincipios(m.Id, Microciclo.SessionB),
-                    m.SesionBHabilidades);
+                    m.Id, m.Order, m.WeekLabel, m.StartDate, m.EndDate, ResolveSessions(m.Id));
 
                 MesocicloResponse MapMesociclo(Mesociclo m) => new(
                     m.Id, m.Order, m.Name, m.StartDate, m.EndDate, m.GameZoneId,

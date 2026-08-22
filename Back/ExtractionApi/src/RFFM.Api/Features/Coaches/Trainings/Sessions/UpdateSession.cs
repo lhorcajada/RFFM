@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Common;
 using RFFM.Api.Domain;
-using RFFM.Api.Domain.Aggregates.Training.TasksTraining;
+using RFFM.Api.Domain.Aggregates.Training;
 using RFFM.Api.Domain.Entities;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
@@ -15,7 +15,7 @@ using RFFM.Api.Infrastructure.Persistence;
 namespace RFFM.Api.Features.Coaches.Trainings.Sessions
 {
     /// <summary>
-    /// Updates an existing training session.
+    /// Updates an existing training session, replacing its blocks wholesale.
     /// PUT /api/trainings/sessions/{id}
     /// </summary>
     public class UpdateSession : IFeatureModule
@@ -30,9 +30,9 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
                         if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
 
                         var command = new UpdateSessionCommand(
-                            id, body.Name, body.Description, body.Date,
-                            body.StartTime, body.EndTime, body.Location,
-                            body.SportEventId, body.Exercises, userId);
+                            id, body.Name, body.Description, body.Date, body.StartTime, body.EndTime,
+                            body.Location, body.SportEventId, body.MicrocicloId, body.ObjetivoGeneral,
+                            body.MapaCampoTexto, body.Blocks, userId);
 
                         await mediator.Send(command, ct);
                         return Results.NoContent();
@@ -49,25 +49,31 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
 
     public record UpdateSessionBody(
         string Name,
-        string Description,
+        string? Description,
         DateTime Date,
         TimeSpan StartTime,
         TimeSpan? EndTime,
         string? Location,
         string? SportEventId,
-        List<SessionExerciseInput> Exercises
+        string? MicrocicloId,
+        string? ObjetivoGeneral,
+        string? MapaCampoTexto,
+        List<SessionBlockRequest> Blocks
     );
 
     public record UpdateSessionCommand(
         string Id,
         string Name,
-        string Description,
+        string? Description,
         DateTime Date,
         TimeSpan StartTime,
         TimeSpan? EndTime,
         string? Location,
         string? SportEventId,
-        List<SessionExerciseInput> Exercises,
+        string? MicrocicloId,
+        string? ObjetivoGeneral,
+        string? MapaCampoTexto,
+        List<SessionBlockRequest> Blocks,
         string UserId
     ) : IRequest, IRequireFeaturePermission
     {
@@ -83,8 +89,10 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
         public async ValueTask<Unit> Handle(UpdateSessionCommand request, CancellationToken ct = default)
         {
             var session = await _db.TrainingSessions
-                .Include(s => s.Tasks)
+                .Include(s => s.Blocks)
+                    .ThenInclude(b => b.Exercises)
                 .Include(s => s.Team)
+                .AsSplitQuery()
                 .FirstOrDefaultAsync(s => s.Id == request.Id, ct);
 
             if (session is null)
@@ -96,27 +104,32 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
             if (!hasAccess)
                 throw new DomainException("Sesiones", "No tienes acceso a esta sesión.", ErrorCodes.SessionAccessDenied);
 
+            if (request.MicrocicloId is not null)
+                await CreateSessionHandler.EnsureMicrocicloBelongsToTeam(_db, request.MicrocicloId, session.TeamId, ct);
+
             session.Name = request.Name.Trim();
-            session.Description = request.Description;
+            session.Description = request.Description ?? string.Empty;
             session.Date = request.Date;
             session.StartTime = request.StartTime;
             session.EndTime = request.EndTime;
             session.Location = request.Location ?? string.Empty;
             session.SportEventId = request.SportEventId;
+            session.MicrocicloId = request.MicrocicloId;
+            session.ObjetivoGeneral = request.ObjetivoGeneral;
+            session.MapaCampoTexto = request.MapaCampoTexto;
 
-            // Replace exercise list
-            _db.TasksTraining.RemoveRange(session.Tasks);
-            session.Tasks.Clear();
+            // Replace blocks wholesale — same "trust server-derived state" approach used
+            // throughout this codebase (was ReplaceModelLinks/ReplaceSubprincipioLinks).
+            _db.RemoveRange(session.Blocks.SelectMany(b => b.Exercises));
+            _db.RemoveRange(session.Blocks);
+            session.Blocks.Clear();
 
-            for (var i = 0; i < request.Exercises.Count; i++)
+            foreach (var blockRequest in request.Blocks.OrderBy(b => b.Order))
             {
-                session.Tasks.Add(new TaskTraining
-                {
-                    Order = i + 1,
-                    Section = request.Exercises[i].Section,
-                    TaskTrainingBaseId = request.Exercises[i].ExerciseId,
-                    SessionTrainingId = session.Id,
-                });
+                var block = new SessionBlock(session.Id, blockRequest.Order, blockRequest.Nombre,
+                    blockRequest.ComoConectaConAnterior, blockRequest.RotacionEntreEjercicios);
+                block.ReplaceExercises(blockRequest.Exercises.Select(e => (e.ExerciseId, e.Position)));
+                session.Blocks.Add(block);
             }
 
             await _db.SaveChangesAsync(ct);
@@ -130,6 +143,9 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
         {
             RuleFor(x => x.Id).NotEmpty();
             RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
+            RuleFor(x => x.Blocks).NotEmpty()
+                .WithMessage("Una sesión debe tener al menos un bloque.");
+            RuleForEach(x => x.Blocks).SetValidator(new SessionBlockRequestValidator());
         }
     }
 }

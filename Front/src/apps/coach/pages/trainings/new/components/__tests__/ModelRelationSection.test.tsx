@@ -13,7 +13,7 @@ vi.mock("../../../../../services/seasonService", () => ({
 import ModelRelationSection from "../ModelRelationSection";
 import gameModelService from "../../../../../services/gameModelService";
 import seasonService from "../../../../../services/seasonService";
-import type { ExerciseModelLinkRequest } from "../../../../../types/training";
+import type { ExerciseModelRelationRequest } from "../../../../../types/training";
 
 const adnOptionsWithData = {
   subprincipios: [
@@ -26,27 +26,22 @@ const emptyAdnOptions = { subprincipios: [], subSubPrincipios: [] };
 
 function setup(
   overrides: Partial<{
-    modelLinks: ExerciseModelLinkRequest[];
-    habilidades: string[];
-    onChangeModelLinks: (links: ExerciseModelLinkRequest[]) => void;
-    onChangeHabilidades: (habilidades: string[]) => void;
+    modelRelations: ExerciseModelRelationRequest[];
+    onChange: (relations: ExerciseModelRelationRequest[]) => void;
     teamId?: string;
   }> = {}
 ) {
-  const onChangeModelLinks = overrides.onChangeModelLinks ?? vi.fn();
-  const onChangeHabilidades = overrides.onChangeHabilidades ?? vi.fn();
+  const onChange = overrides.onChange ?? vi.fn();
   render(
     <MemoryRouter>
       <ModelRelationSection
-        modelLinks={overrides.modelLinks ?? []}
-        habilidades={overrides.habilidades ?? []}
-        onChangeModelLinks={onChangeModelLinks}
-        onChangeHabilidades={onChangeHabilidades}
+        modelRelations={overrides.modelRelations ?? []}
+        onChange={onChange}
         teamId={overrides.teamId ?? "team-1"}
       />
     </MemoryRouter>
   );
-  return { onChangeModelLinks, onChangeHabilidades };
+  return { onChange };
 }
 
 describe("ModelRelationSection", () => {
@@ -61,59 +56,37 @@ describe("ModelRelationSection", () => {
   it("carga las opciones ADN del GameModel del equipo vía gameModelService.getAdnOptions", async () => {
     (gameModelService.getAdnOptions as ReturnType<typeof vi.fn>).mockResolvedValue(adnOptionsWithData);
 
-    setup({ modelLinks: [{ subprincipioId: null, subSubPrincipioId: null, isFoco: true }] });
+    setup({
+      modelRelations: [{ subprincipioId: "sub-1", isFoco: true, habilidadesImprescindibles: [], items: [] }],
+    });
 
     await waitFor(() => {
       expect(gameModelService.getAdnOptions).toHaveBeenCalledWith("team-1", "2026-2027");
     });
 
-    const combobox = await screen.findByRole("combobox", { name: /subprincipio.*subsubprincipio/i });
-    await userEvent.click(combobox);
-    const listbox = screen.getByRole("listbox");
-    expect(within(listbox).getByText(/1.1.*Presión alta/)).toBeInTheDocument();
-    expect(within(listbox).getByText(/1.1.1.*Central/)).toBeInTheDocument();
+    const combobox = await screen.findByRole("combobox", { name: /subprincipio/i });
+    expect(combobox).toHaveValue("1.1 · Presión alta");
   });
 
-  it("muestra el estado vacío (mensaje + campos deshabilitados) cuando el equipo no tiene GameModel", async () => {
+  it("muestra el estado vacío (mensaje + selector deshabilitado) cuando el equipo no tiene GameModel", async () => {
     (gameModelService.getAdnOptions as ReturnType<typeof vi.fn>).mockResolvedValue(emptyAdnOptions);
 
-    setup({ modelLinks: [{ subprincipioId: null, subSubPrincipioId: null, isFoco: true }] });
+    setup({ modelRelations: [{ subprincipioId: "", isFoco: true, habilidadesImprescindibles: [], items: [] }] });
 
     await waitFor(() => {
       expect(gameModelService.getAdnOptions).toHaveBeenCalled();
     });
 
     expect(screen.getByText(/Modelo ADN/i)).toBeInTheDocument();
-    const combobox = screen.getByRole("combobox", { name: /subprincipio.*subsubprincipio/i });
+    const combobox = screen.getByRole("combobox", { name: /subprincipio/i });
     expect(combobox).toBeDisabled();
   });
 
-  it("alterna FOCO/INTEGRADO en una fila y notifica el cambio", async () => {
+  it("añade una relación vacía (sin Subprincipio) al pulsar 'Añadir vínculo'", async () => {
     (gameModelService.getAdnOptions as ReturnType<typeof vi.fn>).mockResolvedValue(adnOptionsWithData);
-    const onChangeModelLinks = vi.fn();
+    const onChange = vi.fn();
 
-    setup({
-      modelLinks: [{ subprincipioId: "sub-1", subSubPrincipioId: null, isFoco: true }],
-      onChangeModelLinks,
-    });
-
-    await waitFor(() => {
-      expect(gameModelService.getAdnOptions).toHaveBeenCalled();
-    });
-
-    const integradoBtn = screen.getByRole("button", { name: /integrado/i });
-    await userEvent.click(integradoBtn);
-
-    expect(onChangeModelLinks).toHaveBeenCalledWith([
-      { subprincipioId: "sub-1", subSubPrincipioId: null, isFoco: false },
-    ]);
-  });
-
-  it("añade una fila nueva vacía al pulsar 'Añadir vínculo'", async () => {
-    (gameModelService.getAdnOptions as ReturnType<typeof vi.fn>).mockResolvedValue(adnOptionsWithData);
-    const onChangeModelLinks = vi.fn();
-
-    setup({ modelLinks: [], onChangeModelLinks });
+    setup({ modelRelations: [], onChange });
 
     await waitFor(() => {
       expect(gameModelService.getAdnOptions).toHaveBeenCalled();
@@ -121,66 +94,102 @@ describe("ModelRelationSection", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /añadir vínculo/i }));
 
-    expect(onChangeModelLinks).toHaveBeenCalledWith([
-      { subprincipioId: null, subSubPrincipioId: null, isFoco: true },
+    expect(onChange).toHaveBeenCalledWith([
+      { subprincipioId: "", isFoco: true, habilidadesImprescindibles: [], items: [] },
     ]);
   });
 
-  it("elimina una fila al pulsar su botón de eliminar", async () => {
+  it("no permite añadir un item (X.Y.Z) hasta que la relación tenga un Subprincipio elegido", async () => {
     (gameModelService.getAdnOptions as ReturnType<typeof vi.fn>).mockResolvedValue(adnOptionsWithData);
-    const onChangeModelLinks = vi.fn();
+
+    setup({ modelRelations: [{ subprincipioId: "", isFoco: true, habilidadesImprescindibles: [], items: [] }] });
+
+    await waitFor(() => {
+      expect(gameModelService.getAdnOptions).toHaveBeenCalled();
+    });
+
+    expect(screen.getByRole("button", { name: /acción/i })).toBeDisabled();
+  });
+
+  it("añade un item narrowed al SubSubPrincipio del Subprincipio elegido en la relación", async () => {
+    (gameModelService.getAdnOptions as ReturnType<typeof vi.fn>).mockResolvedValue(adnOptionsWithData);
+    const onChange = vi.fn();
 
     setup({
-      modelLinks: [
-        { subprincipioId: "sub-1", subSubPrincipioId: null, isFoco: true },
-        { subprincipioId: null, subSubPrincipioId: "ssp-1", isFoco: false },
-      ],
-      onChangeModelLinks,
+      modelRelations: [{ subprincipioId: "sub-1", isFoco: true, habilidadesImprescindibles: [], items: [] }],
+      onChange,
     });
 
     await waitFor(() => {
       expect(gameModelService.getAdnOptions).toHaveBeenCalled();
     });
 
-    const deleteButtons = screen.getAllByRole("button", { name: /eliminar vínculo/i });
-    await userEvent.click(deleteButtons[0]);
+    await userEvent.click(screen.getByRole("button", { name: /acción/i }));
 
-    expect(onChangeModelLinks).toHaveBeenCalledWith([
-      { subprincipioId: null, subSubPrincipioId: "ssp-1", isFoco: false },
+    expect(onChange).toHaveBeenCalledWith([
+      {
+        subprincipioId: "sub-1",
+        isFoco: true,
+        habilidadesImprescindibles: [],
+        items: [{ subSubPrincipioId: "", isFoco: true }],
+      },
     ]);
   });
 
-  it("renderiza el Autocomplete de habilidades con las opciones del vocabulario cerrado", async () => {
-    (gameModelService.getAdnOptions as ReturnType<typeof vi.fn>).mockResolvedValue(emptyAdnOptions);
+  it("alterna FOCO/INTEGRADO a nivel de relación", async () => {
+    (gameModelService.getAdnOptions as ReturnType<typeof vi.fn>).mockResolvedValue(adnOptionsWithData);
+    const onChange = vi.fn();
 
-    setup({ habilidades: ["Pase"] });
+    setup({
+      modelRelations: [{ subprincipioId: "sub-1", isFoco: true, habilidadesImprescindibles: [], items: [] }],
+      onChange,
+    });
+
+    await waitFor(() => {
+      expect(gameModelService.getAdnOptions).toHaveBeenCalled();
+    });
+
+    await userEvent.click(screen.getByRole("button", { name: /integrado/i }));
+
+    expect(onChange).toHaveBeenCalledWith([
+      { subprincipioId: "sub-1", isFoco: false, habilidadesImprescindibles: [], items: [] },
+    ]);
+  });
+
+  it("elimina una relación al pulsar su botón de eliminar", async () => {
+    (gameModelService.getAdnOptions as ReturnType<typeof vi.fn>).mockResolvedValue(adnOptionsWithData);
+    const onChange = vi.fn();
+
+    setup({
+      modelRelations: [
+        { subprincipioId: "sub-1", isFoco: true, habilidadesImprescindibles: [], items: [] },
+      ],
+      onChange,
+    });
+
+    await waitFor(() => {
+      expect(gameModelService.getAdnOptions).toHaveBeenCalled();
+    });
+
+    await userEvent.click(screen.getByRole("button", { name: /eliminar vínculo/i }));
+
+    expect(onChange).toHaveBeenCalledWith([]);
+  });
+
+  it("renderiza el Autocomplete de Habilidades por relación (no global) con el vocabulario cerrado", async () => {
+    (gameModelService.getAdnOptions as ReturnType<typeof vi.fn>).mockResolvedValue(adnOptionsWithData);
+
+    setup({
+      modelRelations: [{ subprincipioId: "sub-1", isFoco: true, habilidadesImprescindibles: ["Pase"], items: [] }],
+    });
 
     await waitFor(() => {
       expect(gameModelService.getAdnOptions).toHaveBeenCalled();
     });
 
     const habilidadesInput = screen.getByRole("combobox", { name: /habilidades/i });
-    expect(habilidadesInput).not.toBeDisabled();
     await userEvent.click(habilidadesInput);
     const listbox = screen.getByRole("listbox");
     expect(within(listbox).getByText("Intercepción")).toBeInTheDocument();
-  });
-
-  it("notifica el cambio de habilidades seleccionadas", async () => {
-    (gameModelService.getAdnOptions as ReturnType<typeof vi.fn>).mockResolvedValue(emptyAdnOptions);
-    const onChangeHabilidades = vi.fn();
-
-    setup({ habilidades: [], onChangeHabilidades });
-
-    await waitFor(() => {
-      expect(gameModelService.getAdnOptions).toHaveBeenCalled();
-    });
-
-    const habilidadesInput = screen.getByRole("combobox", { name: /habilidades/i });
-    await userEvent.click(habilidadesInput);
-    const listbox = screen.getByRole("listbox");
-    await userEvent.click(within(listbox).getByText("Pase"));
-
-    expect(onChangeHabilidades).toHaveBeenCalledWith(["Pase"]);
   });
 });

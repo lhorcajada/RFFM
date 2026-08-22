@@ -8,13 +8,12 @@ using RFFM.Api.Common;
 using RFFM.Api.Domain;
 using RFFM.Api.Domain.Entities;
 using RFFM.Api.FeatureModules;
-using RFFM.Api.Features.Coaches.Trainings.Exercises;
 using RFFM.Api.Infrastructure.Persistence;
 
 namespace RFFM.Api.Features.Coaches.Trainings.Sessions
 {
     /// <summary>
-    /// Get a single session with its exercises.
+    /// Get a single session with its blocks and their exercises.
     /// GET /api/trainings/sessions/{id}
     /// </summary>
     public class GetSession : IFeatureModule
@@ -55,22 +54,34 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
         string? Location,
         string? SportEventId,
         string? SportEventName,
-        IEnumerable<SessionExerciseItem> Exercises);
-
-    public record SessionExerciseItem(
-        string TaskTrainingId,
-        int Order,
-        string ExerciseId,
-        string Name,
-        string Description,
-        IEnumerable<string> Types,
-        string Section,
-        int DurationTotal,
-        int PlayersNumber,
-        int GoalPeekersNumber,
-        string FieldSpace,
+        string? MicrocicloId,
+        string? MicrocicloWeekLabel,
+        bool IsAssociatedToPlan,
+        string? ObjetivoGeneral,
+        string? MapaCampoTexto,
         string? UrlImage,
-        IEnumerable<ConditionDto> Conditions);
+        IEnumerable<SessionBlockDetail> Blocks);
+
+    public record SessionBlockDetail(
+        string Id,
+        int Order,
+        string Nombre,
+        string ComoConectaConAnterior,
+        string? RotacionEntreEjercicios,
+        IEnumerable<SessionBlockExerciseDetail> Exercises);
+
+    /// <summary>Summary DTO for an exercise placed in a block — full exercise detail (Niveles,
+    /// ModelRelations, etc.) is a separate <c>GetExerciseById</c> call, avoiding duplicating the
+    /// whole payload per block (design.md §4).</summary>
+    public record SessionBlockExerciseDetail(
+        string Id,
+        string ExerciseId,
+        int Position,
+        string Name,
+        string Tipo,
+        string Objetivo,
+        int? DurationMinutes,
+        string? UrlImage);
 
     public class GetSessionHandler : IRequestHandler<GetSessionQuery, SessionDetail?>
     {
@@ -81,13 +92,9 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
         {
             var session = await _db.TrainingSessions
                 .Include(s => s.SportEvent)
-                .Include(s => s.Tasks)
-                    .ThenInclude(tt => tt.Task)
-                        .ThenInclude(tb => tb.Conditions)
-                .Include(s => s.Tasks)
-                    .ThenInclude(tt => tt.Task)
-                        .ThenInclude(tb => tb.Types)
-                            .ThenInclude(t => t.ExerciseType)
+                .Include(s => s.Blocks)
+                    .ThenInclude(b => b.Exercises)
+                        .ThenInclude(e => e.Exercise)
                 .AsSplitQuery()
                 .FirstOrDefaultAsync(s => s.Id == request.Id, ct);
 
@@ -100,6 +107,14 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
             if (!hasAccess)
                 throw new DomainException("Sesiones", "No tienes acceso a esta sesión.", ErrorCodes.SessionAccessDenied);
 
+            string? weekLabel = null;
+            if (session.MicrocicloId is not null)
+                weekLabel = await _db.Microciclos
+                    .AsNoTracking()
+                    .Where(m => m.Id == session.MicrocicloId)
+                    .Select(m => m.WeekLabel)
+                    .FirstOrDefaultAsync(ct);
+
             return new SessionDetail(
                 session.Id,
                 session.Name,
@@ -110,23 +125,22 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
                 session.Location,
                 session.SportEventId,
                 session.SportEvent?.Name,
-                session.Tasks
-                    .OrderBy(tt => tt.Order)
-                    .Select(tt => new SessionExerciseItem(
-                        tt.Id,
-                        tt.Order,
-                        tt.Task.Id,
-                        tt.Task.Name,
-                        tt.Task.Description,
-                        tt.Task.Types.Select(t => t.ExerciseType.Name),
-                        tt.Section,
-                        tt.Task.DurationTotal,
-                        tt.Task.PlayersNumber,
-                        tt.Task.GoalPeekersNumber,
-                        tt.Task.FieldSpace,
-                        tt.Task.UrlImage,
-                        tt.Task.Conditions.OrderBy(c => c.Order).Select(c => new ConditionDto(c.Id, c.Text, c.Order))
-                    ))
+                session.MicrocicloId,
+                weekLabel,
+                session.MicrocicloId != null,
+                session.ObjetivoGeneral,
+                session.MapaCampoTexto,
+                session.UrlImage,
+                session.Blocks
+                    .OrderBy(b => b.Order)
+                    .Select(b => new SessionBlockDetail(
+                        b.Id, b.Order, b.Nombre, b.ComoConectaConAnterior, b.RotacionEntreEjercicios,
+                        b.Exercises
+                            .OrderBy(e => e.Position)
+                            .Select(e => new SessionBlockExerciseDetail(
+                                e.Id, e.TaskTrainingBaseId, e.Position,
+                                e.Exercise.Name, e.Exercise.Tipo, e.Exercise.Objetivo,
+                                e.Exercise.DurationMinutes, e.Exercise.UrlImage))))
             );
         }
     }

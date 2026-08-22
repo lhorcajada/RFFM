@@ -52,7 +52,10 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
         string? Location,
         string? SportEventId,
         string? SportEventName,
-        int ExerciseCount);
+        int ExerciseCount,
+        bool IsAssociatedToPlan,
+        string? MicrocicloId,
+        string? MicrocicloWeekLabel);
 
     public class GetSessionsHandler : IRequestHandler<GetSessionsQuery, IEnumerable<SessionListItem>>
     {
@@ -69,24 +72,34 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
                 throw new DomainException("Sesiones", "No tienes acceso a este equipo.", ErrorCodes.TeamAccessDenied);
 
             var sessions = await _db.TrainingSessions
-                .Include(s => s.Tasks)
+                .Include(s => s.Blocks)
+                    .ThenInclude(b => b.Exercises)
                 .Include(s => s.SportEvent)
+                .AsSplitQuery()
                 .Where(s => s.TeamId == request.TeamId)
                 .OrderByDescending(s => s.Date)
-                .Select(s => new SessionListItem(
-                    s.Id,
-                    s.Name,
-                    s.Description,
-                    s.Date,
-                    s.StartTime,
-                    s.EndTime,
-                    s.Location,
-                    s.SportEventId,
-                    s.SportEvent != null ? s.SportEvent.Name : null,
-                    s.Tasks.Count))
                 .ToListAsync(ct);
 
-            return sessions;
+            var microcicloIds = sessions.Where(s => s.MicrocicloId != null).Select(s => s.MicrocicloId!).Distinct().ToList();
+            var weekLabels = await _db.Microciclos
+                .AsNoTracking()
+                .Where(m => microcicloIds.Contains(m.Id))
+                .ToDictionaryAsync(m => m.Id, m => m.WeekLabel, ct);
+
+            return sessions.Select(s => new SessionListItem(
+                s.Id,
+                s.Name,
+                s.Description,
+                s.Date,
+                s.StartTime,
+                s.EndTime,
+                s.Location,
+                s.SportEventId,
+                s.SportEvent?.Name,
+                s.Blocks.SelectMany(b => b.Exercises).Select(e => e.TaskTrainingBaseId).Distinct().Count(),
+                s.MicrocicloId != null,
+                s.MicrocicloId,
+                s.MicrocicloId != null ? weekLabels.GetValueOrDefault(s.MicrocicloId) : null));
         }
     }
 }

@@ -6,8 +6,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Domain;
-using RFFM.Api.Domain.Aggregates.GameModels;
-using RFFM.Api.Domain.Aggregates.SeasonPlans;
 using RFFM.Api.Domain.Aggregates.UserClubs;
 using RFFM.Api.Domain.Entities.Competitions;
 using RFFM.Api.Domain.Entities.Seasons;
@@ -64,23 +62,6 @@ namespace RFFM.Api.Tests.IntegrationTests
             return (userId, team.Id, season.Id);
         }
 
-        private async Task<(string SubprincipioId, string SubSubPrincipioId)> SeedAdnNodesAsync(AppDbContext db, string teamId)
-        {
-            var model = new GameModel(teamId, "Modelo de prueba", "2026-2027");
-            var principle = new GamePrinciple(model.Id, gameMomentId: 1, key: $"principio-{Guid.NewGuid():N}", numero: 1, "Principio", "Texto");
-            var subprincipio = new Subprincipio(principle.Id, $"sub-{Guid.NewGuid():N}", "1.1", "Subprincipio", "Contexto");
-            var subSubPrincipio = new SubSubPrincipio($"subsub-{Guid.NewGuid():N}", "1.1.1", "Rol", "Texto", subprincipio.Id, null);
-
-            principle.Subprincipios.Add(subprincipio);
-            subprincipio.SubSubPrincipios.Add(subSubPrincipio);
-            model.Principles.Add(principle);
-
-            db.GameModels.Add(model);
-            await db.SaveChangesAsync();
-
-            return (subprincipio.Id, subSubPrincipio.Id);
-        }
-
         private static List<MacrocicloRequest> OneMacrocicloWithTree() => new()
         {
             new MacrocicloRequest(1, "Macrociclo 1", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 21),
@@ -89,8 +70,8 @@ namespace RFFM.Api.Tests.IntegrationTests
                     new MesocicloRequest(1, "Mesociclo 1.1 — Creación Propia", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 21), 2,
                         new List<MicrocicloRequest>
                         {
-                            new MicrocicloRequest(1, "Semana 1 — Analítico", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 7), "Objetivo A", "Objetivo B"),
-                            new MicrocicloRequest(2, "Semana 2 — Situacional", new DateOnly(2026, 9, 8), new DateOnly(2026, 9, 14), "Objetivo A2", "Objetivo B2"),
+                            new MicrocicloRequest(1, "Semana 1 — Analítico", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 7)),
+                            new MicrocicloRequest(2, "Semana 2 — Situacional", new DateOnly(2026, 9, 8), new DateOnly(2026, 9, 14)),
                         })
                 })
         };
@@ -119,7 +100,7 @@ namespace RFFM.Api.Tests.IntegrationTests
             Assert.Equal("Mesociclo 1.1 — Creación Propia", mesociclo.Name);
             Assert.Equal(2, mesociclo.GameZoneId);
             Assert.Equal(2, mesociclo.Microciclos.Count);
-            Assert.Contains(mesociclo.Microciclos, m => m.WeekLabel == "Semana 1 — Analítico" && m.ObjetivoSesionA == "Objetivo A");
+            Assert.Contains(mesociclo.Microciclos, m => m.WeekLabel == "Semana 1 — Analítico");
         }
 
         [Fact]
@@ -158,89 +139,6 @@ namespace RFFM.Api.Tests.IntegrationTests
                 () => handler.Handle(command, CancellationToken.None).AsTask());
 
             Assert.Equal(ErrorCodes.TeamAccessDenied, ex.Code);
-        }
-
-        [Fact]
-        public async Task Create_WithSesionAdnLinks_PersistsSubprincipioSubSubPrincipioAndHabilidadLinks()
-        {
-            await using var seedDb = _fixture.CreateDbContext();
-            var (userId, teamId, seasonId) = await SeedTeamAsync(seedDb);
-            var (subprincipioId, subSubPrincipioId) = await SeedAdnNodesAsync(seedDb, teamId);
-
-            await using var db = _fixture.CreateDbContext();
-            var handler = new CreateSeasonPlanHandler(db);
-
-            var macrociclos = new List<MacrocicloRequest>
-            {
-                new MacrocicloRequest(1, "Macrociclo 1", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 21),
-                    new List<MesocicloRequest>
-                    {
-                        new MesocicloRequest(1, "Mesociclo 1.1", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 21), 2,
-                            new List<MicrocicloRequest>
-                            {
-                                new MicrocicloRequest(1, "Semana 1", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 7), "Objetivo A", "Objetivo B",
-                                    SesionASubprincipioIds: new List<string> { subprincipioId },
-                                    SesionASubSubPrincipioIds: new List<string> { subSubPrincipioId },
-                                    SesionAHabilidades: new List<string> { "Pase", "Control orientado" },
-                                    SesionBSubprincipioIds: new List<string>(),
-                                    SesionBSubSubPrincipioIds: new List<string>(),
-                                    SesionBHabilidades: new List<string> { "Remate" }),
-                            })
-                    })
-            };
-
-            var command = new CreateSeasonPlanCommand(teamId, seasonId, macrociclos) { UserId = userId };
-
-            var planId = await handler.Handle(command, CancellationToken.None);
-
-            await using var verifyDb = _fixture.CreateDbContext();
-            var macrociclo = await verifyDb.Macrociclos
-                .Include(m => m.Mesociclos)
-                    .ThenInclude(m => m.Microciclos)
-                        .ThenInclude(m => m.SubprincipioLinks)
-                .Include(m => m.Mesociclos)
-                    .ThenInclude(m => m.Microciclos)
-                        .ThenInclude(m => m.SubSubPrincipioLinks)
-                .AsSplitQuery()
-                .SingleAsync(m => m.SeasonPlanId == planId);
-            var microciclo = macrociclo.Mesociclos.Single().Microciclos.Single();
-
-            Assert.Equal(new List<string> { "Pase", "Control orientado" }, microciclo.SesionAHabilidades);
-            Assert.Equal(new List<string> { "Remate" }, microciclo.SesionBHabilidades);
-            var subprincipioLink = Assert.Single(microciclo.SubprincipioLinks);
-            Assert.Equal(Microciclo.SessionA, subprincipioLink.Session);
-            Assert.Equal(subprincipioId, subprincipioLink.SubprincipioId);
-            var subSubPrincipioLink = Assert.Single(microciclo.SubSubPrincipioLinks);
-            Assert.Equal(Microciclo.SessionA, subSubPrincipioLink.Session);
-            Assert.Equal(subSubPrincipioId, subSubPrincipioLink.SubSubPrincipioId);
-        }
-
-        [Fact]
-        public async Task Create_WithInvalidHabilidad_ThrowsArgumentException()
-        {
-            await using var seedDb = _fixture.CreateDbContext();
-            var (userId, teamId, seasonId) = await SeedTeamAsync(seedDb);
-
-            await using var db = _fixture.CreateDbContext();
-            var handler = new CreateSeasonPlanHandler(db);
-
-            var macrociclos = new List<MacrocicloRequest>
-            {
-                new MacrocicloRequest(1, "Macrociclo 1", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 21),
-                    new List<MesocicloRequest>
-                    {
-                        new MesocicloRequest(1, "Mesociclo 1.1", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 21), 2,
-                            new List<MicrocicloRequest>
-                            {
-                                new MicrocicloRequest(1, "Semana 1", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 7), "Objetivo A", "Objetivo B",
-                                    SesionAHabilidades: new List<string> { "No existe" }),
-                            })
-                    })
-            };
-
-            var command = new CreateSeasonPlanCommand(teamId, seasonId, macrociclos) { UserId = userId };
-
-            await Assert.ThrowsAsync<ArgumentException>(() => handler.Handle(command, CancellationToken.None).AsTask());
         }
     }
 }

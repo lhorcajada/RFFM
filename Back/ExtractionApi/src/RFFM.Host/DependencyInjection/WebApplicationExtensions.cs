@@ -236,24 +236,6 @@ namespace RFFM.Host.DependencyInjection
             }
         }
 
-        public static async Task SeedExerciseTypesAsync(this WebApplication app)
-        {
-            using var scope = app.Services.CreateScope();
-            var logger = scope.ServiceProvider.GetService<ILogger<WebApplication>>();
-
-            try
-            {
-                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-                logger?.LogInformation("Seeding exercise types if not present...");
-                await RFFM.Api.Infrastructure.Persistence.Seed.ExerciseTypesSeeder.SeedAsync(db);
-                logger?.LogInformation("✓ Exercise types seeding finished");
-            }
-            catch (Exception ex)
-            {
-                logger?.LogError(ex, "Error while seeding exercise types");
-            }
-        }
-
         public static async Task SeedClubKitsAsync(this WebApplication app)
         {
             using var scope = app.Services.CreateScope();
@@ -313,6 +295,39 @@ namespace RFFM.Host.DependencyInjection
             catch (Exception ex)
             {
                 logger?.LogError(ex, "Error while updating season plan");
+            }
+        }
+
+        /// <summary>
+        /// Rebuilds the example "Sesión 1" (docs/game-model/Ejemplo-Sesion.md) for the same
+        /// hardcoded team/season as <see cref="SeedSeasonPlanAsync"/> — see
+        /// <c>RFFM.Api.Infrastructure.Persistence.Seed.ExampleSessionSeeder</c> and the
+        /// `session-exercise-plan-redesign` change's design.md §3. Requires that team to already
+        /// have a GameModel imported (via the one-off <c>GameModelSeeder</c>) — logs and
+        /// continues rather than failing startup if the ADN nodes it needs aren't there yet.
+        /// </summary>
+        public static async Task SeedExampleSessionAsync(this WebApplication app)
+        {
+            using var scope = app.Services.CreateScope();
+            var logger = scope.ServiceProvider.GetService<ILogger<WebApplication>>();
+
+            try
+            {
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                var team = await db.Teams.FirstOrDefaultAsync(t => t.Id == SeasonPlanTeamId);
+                if (team is null)
+                {
+                    logger?.LogInformation("Skipping example session seeding: team {TeamId} does not exist yet.", SeasonPlanTeamId);
+                    return;
+                }
+
+                logger?.LogInformation("Seeding example session (Sesión 1) from Ejemplo-Sesion.md...");
+                await RFFM.Api.Infrastructure.Persistence.Seed.ExampleSessionSeeder.SeedAsync(db, team.ClubId, SeasonPlanTeamId, SeasonPlanSeasonId);
+                logger?.LogInformation("✓ Example session seeding finished");
+            }
+            catch (Exception ex)
+            {
+                logger?.LogError(ex, "Error while seeding example session");
             }
         }
 

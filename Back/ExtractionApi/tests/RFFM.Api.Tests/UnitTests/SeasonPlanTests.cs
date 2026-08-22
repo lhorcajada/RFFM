@@ -123,238 +123,61 @@ namespace RFFM.Api.Tests.UnitTests
         [Fact]
         public void Create_WithValidData_SetsProperties()
         {
-            var microciclo = new Microciclo("mesociclo-1", 1, "Semana 1 — Analítico", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 7),
-                "Objetivo sesión A", "Objetivo sesión B");
+            var microciclo = new Microciclo("mesociclo-1", 1, "Semana 1 — Analítico", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 7));
 
             Assert.Equal("mesociclo-1", microciclo.MesocicloId);
+            Assert.Equal(1, microciclo.Order);
             Assert.Equal("Semana 1 — Analítico", microciclo.WeekLabel);
-            Assert.Equal("Objetivo sesión A", microciclo.ObjetivoSesionA);
-            Assert.Equal("Objetivo sesión B", microciclo.ObjetivoSesionB);
+            Assert.Equal(new DateOnly(2026, 9, 1), microciclo.StartDate);
+            Assert.Equal(new DateOnly(2026, 9, 7), microciclo.EndDate);
         }
 
         [Theory]
         [InlineData("")]
         [InlineData("   ")]
         [InlineData(null)]
-        public void Create_WithEmptyObjetivoSesionA_Throws(string? objetivo)
+        public void Create_WithEmptyWeekLabel_Throws(string? weekLabel)
         {
             Assert.Throws<ArgumentException>(() => new Microciclo(
-                "mesociclo-1", 1, "Semana 1", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 7), objetivo!, "Objetivo B"));
+                "mesociclo-1", 1, weekLabel!, new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 7)));
         }
 
         [Theory]
         [InlineData("")]
         [InlineData("   ")]
         [InlineData(null)]
-        public void Create_WithEmptyObjetivoSesionB_Throws(string? objetivo)
+        public void Create_WithEmptyMesocicloId_Throws(string? mesocicloId)
         {
             Assert.Throws<ArgumentException>(() => new Microciclo(
-                "mesociclo-1", 1, "Semana 1", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 7), "Objetivo A", objetivo!));
+                mesocicloId!, 1, "Semana 1", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 7)));
         }
 
         [Fact]
-        public void UpdateObjectives_TrimsAndSetsBoth()
+        public void Create_WithEndDateBeforeStartDate_Throws()
         {
-            var microciclo = new Microciclo("mesociclo-1", 1, "Semana 1", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 7), "A", "B");
-
-            microciclo.UpdateObjectives("  Nuevo A  ", "  Nuevo B  ");
-
-            Assert.Equal("Nuevo A", microciclo.ObjetivoSesionA);
-            Assert.Equal("Nuevo B", microciclo.ObjetivoSesionB);
+            Assert.Throws<ArgumentException>(() => new Microciclo(
+                "mesociclo-1", 1, "Semana 1", new DateOnly(2026, 9, 7), new DateOnly(2026, 9, 1)));
         }
 
         [Fact]
-        public void Create_SessionLinksAndHabilidades_StartEmpty()
+        public void UpdateWeekLabel_TrimsAndSets()
         {
-            var microciclo = new Microciclo("mesociclo-1", 1, "Semana 1", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 7), "A", "B");
+            var microciclo = new Microciclo("mesociclo-1", 1, "Semana 1", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 7));
 
-            Assert.Empty(microciclo.SesionAHabilidades);
-            Assert.Empty(microciclo.SesionBHabilidades);
-            Assert.Empty(microciclo.SubprincipioLinks);
-            Assert.Empty(microciclo.SubSubPrincipioLinks);
+            microciclo.UpdateWeekLabel("  Semana editada  ");
+
+            Assert.Equal("Semana editada", microciclo.WeekLabel);
         }
 
         [Fact]
-        public void UpdateSesionAHabilidades_WithVocabularyValues_Sets()
+        public void Reschedule_WithValidRange_UpdatesDates()
         {
-            var microciclo = new Microciclo("mesociclo-1", 1, "Semana 1", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 7), "A", "B");
+            var microciclo = new Microciclo("mesociclo-1", 1, "Semana 1", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 7));
 
-            microciclo.UpdateSesionAHabilidades(new List<string> { "Pase", "Control orientado" });
+            microciclo.Reschedule(new DateOnly(2026, 10, 1), new DateOnly(2026, 10, 7));
 
-            Assert.Equal(new List<string> { "Pase", "Control orientado" }, microciclo.SesionAHabilidades);
-        }
-
-        [Fact]
-        public void UpdateSesionBHabilidades_WithVocabularyValues_Sets()
-        {
-            var microciclo = new Microciclo("mesociclo-1", 1, "Semana 1", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 7), "A", "B");
-
-            microciclo.UpdateSesionBHabilidades(new List<string> { "Remate" });
-
-            Assert.Equal(new List<string> { "Remate" }, microciclo.SesionBHabilidades);
-        }
-
-        [Fact]
-        public void UpdateSesionAHabilidades_WithNonVocabularyValue_Throws()
-        {
-            var microciclo = new Microciclo("mesociclo-1", 1, "Semana 1", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 7), "A", "B");
-
-            Assert.Throws<ArgumentException>(() => microciclo.UpdateSesionAHabilidades(new List<string> { "No existe" }));
-        }
-
-        [Fact]
-        public void UpdateSesionBHabilidades_WithNonVocabularyValue_Throws()
-        {
-            var microciclo = new Microciclo("mesociclo-1", 1, "Semana 1", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 7), "A", "B");
-
-            Assert.Throws<ArgumentException>(() => microciclo.UpdateSesionBHabilidades(new List<string> { "No existe" }));
-        }
-
-        [Fact]
-        public void UpdateSesionAHabilidades_WithNull_ClearsToEmptyList()
-        {
-            var microciclo = new Microciclo("mesociclo-1", 1, "Semana 1", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 7), "A", "B");
-            microciclo.UpdateSesionAHabilidades(new List<string> { "Pase" });
-
-            microciclo.UpdateSesionAHabilidades(null);
-
-            Assert.Empty(microciclo.SesionAHabilidades);
-        }
-
-        [Fact]
-        public void ReplaceSubprincipioLinks_ForSessionA_AddsLinksForThatSessionOnly()
-        {
-            var microciclo = new Microciclo("mesociclo-1", 1, "Semana 1", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 7), "A", "B");
-
-            microciclo.ReplaceSubprincipioLinks(Microciclo.SessionA, new List<string> { "sub-1", "sub-2" });
-
-            Assert.Equal(2, microciclo.SubprincipioLinks.Count);
-            Assert.All(microciclo.SubprincipioLinks, l => Assert.Equal(Microciclo.SessionA, l.Session));
-            Assert.All(microciclo.SubprincipioLinks, l => Assert.Equal(microciclo.Id, l.MicrocicloId));
-        }
-
-        [Fact]
-        public void ReplaceSubprincipioLinks_CalledAgainForSameSession_ReplacesPreviousLinks()
-        {
-            var microciclo = new Microciclo("mesociclo-1", 1, "Semana 1", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 7), "A", "B");
-            microciclo.ReplaceSubprincipioLinks(Microciclo.SessionA, new List<string> { "sub-1" });
-
-            microciclo.ReplaceSubprincipioLinks(Microciclo.SessionA, new List<string> { "sub-2", "sub-3" });
-
-            Assert.Equal(2, microciclo.SubprincipioLinks.Count);
-            Assert.DoesNotContain(microciclo.SubprincipioLinks, l => l.SubprincipioId == "sub-1");
-        }
-
-        [Fact]
-        public void ReplaceSubprincipioLinks_ForSessionB_DoesNotAffectSessionALinks()
-        {
-            var microciclo = new Microciclo("mesociclo-1", 1, "Semana 1", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 7), "A", "B");
-            microciclo.ReplaceSubprincipioLinks(Microciclo.SessionA, new List<string> { "sub-1" });
-
-            microciclo.ReplaceSubprincipioLinks(Microciclo.SessionB, new List<string> { "sub-2" });
-
-            Assert.Equal(2, microciclo.SubprincipioLinks.Count);
-            Assert.Contains(microciclo.SubprincipioLinks, l => l.Session == Microciclo.SessionA && l.SubprincipioId == "sub-1");
-            Assert.Contains(microciclo.SubprincipioLinks, l => l.Session == Microciclo.SessionB && l.SubprincipioId == "sub-2");
-        }
-
-        [Fact]
-        public void ReplaceSubprincipioLinks_WithEmptyList_RemovesAllLinksForThatSession()
-        {
-            var microciclo = new Microciclo("mesociclo-1", 1, "Semana 1", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 7), "A", "B");
-            microciclo.ReplaceSubprincipioLinks(Microciclo.SessionA, new List<string> { "sub-1" });
-
-            microciclo.ReplaceSubprincipioLinks(Microciclo.SessionA, new List<string>());
-
-            Assert.Empty(microciclo.SubprincipioLinks);
-        }
-
-        [Fact]
-        public void ReplaceSubprincipioLinks_WithInvalidSession_Throws()
-        {
-            var microciclo = new Microciclo("mesociclo-1", 1, "Semana 1", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 7), "A", "B");
-
-            Assert.Throws<ArgumentException>(() => microciclo.ReplaceSubprincipioLinks("C", new List<string> { "sub-1" }));
-        }
-
-        [Fact]
-        public void ReplaceSubSubPrincipioLinks_ForSessionA_AddsLinksForThatSessionOnly()
-        {
-            var microciclo = new Microciclo("mesociclo-1", 1, "Semana 1", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 7), "A", "B");
-
-            microciclo.ReplaceSubSubPrincipioLinks(Microciclo.SessionA, new List<string> { "subsub-1" });
-
-            var link = Assert.Single(microciclo.SubSubPrincipioLinks);
-            Assert.Equal(Microciclo.SessionA, link.Session);
-            Assert.Equal("subsub-1", link.SubSubPrincipioId);
-        }
-
-        [Fact]
-        public void ReplaceSubSubPrincipioLinks_WithInvalidSession_Throws()
-        {
-            var microciclo = new Microciclo("mesociclo-1", 1, "Semana 1", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 7), "A", "B");
-
-            Assert.Throws<ArgumentException>(() => microciclo.ReplaceSubSubPrincipioLinks("Z", new List<string> { "subsub-1" }));
-        }
-
-        [Fact]
-        public void Create_WithoutUpdateZones_GameZoneIdSesionAAndB_DefaultToZero()
-        {
-            var microciclo = new Microciclo("mesociclo-1", 1, "Semana 1", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 7), "A", "B");
-
-            Assert.Equal(0, microciclo.GameZoneIdSesionA);
-            Assert.Equal(0, microciclo.GameZoneIdSesionB);
-        }
-
-        [Fact]
-        public void UpdateZones_WithPositiveValues_SetsBothSessions()
-        {
-            var microciclo = new Microciclo("mesociclo-1", 1, "Semana 1", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 7), "A", "B");
-
-            microciclo.UpdateZones(2, 3);
-
-            Assert.Equal(2, microciclo.GameZoneIdSesionA);
-            Assert.Equal(3, microciclo.GameZoneIdSesionB);
-        }
-
-        [Fact]
-        public void UpdateZones_AllowsDifferentZonesPerSession()
-        {
-            // Real-world case from the plan (e.g. Microciclo 5): Sesión A and Sesión B of the
-            // same week are frequently trained in different field zones.
-            var microciclo = new Microciclo("mesociclo-1", 1, "Semana 5", new DateOnly(2026, 9, 29), new DateOnly(2026, 10, 5), "A", "B");
-
-            microciclo.UpdateZones(2, 3);
-
-            Assert.NotEqual(microciclo.GameZoneIdSesionA, microciclo.GameZoneIdSesionB);
-        }
-
-        [Fact]
-        public void UpdateZones_WithZeroGameZoneIdSesionA_Throws()
-        {
-            var microciclo = new Microciclo("mesociclo-1", 1, "Semana 1", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 7), "A", "B");
-
-            Assert.Throws<ArgumentException>(() => microciclo.UpdateZones(0, 1));
-        }
-
-        [Fact]
-        public void UpdateZones_WithZeroGameZoneIdSesionB_Throws()
-        {
-            var microciclo = new Microciclo("mesociclo-1", 1, "Semana 1", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 7), "A", "B");
-
-            Assert.Throws<ArgumentException>(() => microciclo.UpdateZones(1, 0));
-        }
-
-        [Fact]
-        public void UpdateZones_CalledAgain_OverwritesPreviousValues()
-        {
-            var microciclo = new Microciclo("mesociclo-1", 1, "Semana 1", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 7), "A", "B");
-            microciclo.UpdateZones(1, 1);
-
-            microciclo.UpdateZones(4, 2);
-
-            Assert.Equal(4, microciclo.GameZoneIdSesionA);
-            Assert.Equal(2, microciclo.GameZoneIdSesionB);
+            Assert.Equal(new DateOnly(2026, 10, 1), microciclo.StartDate);
+            Assert.Equal(new DateOnly(2026, 10, 7), microciclo.EndDate);
         }
     }
 }

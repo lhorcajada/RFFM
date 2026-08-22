@@ -217,3 +217,18 @@
   gap: 2px;
   flex-shrink: 0;
 }
+
+.planLinkedChip {
+  background-color: rgba(255, 152, 0, 0.15) !important;
+  color: #ffb74d !important;
+  border: 1px solid rgba(255, 152, 0, 0.35) !important;
+  font-size: 0.7rem !important;
+  height: 20px !important;
+}
+
+.independentChip {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+  color: rgba(212, 212, 212, 0.7) !important;
+  font-size: 0.7rem !important;
+  height: 20px !important;
+}

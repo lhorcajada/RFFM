@@ -1,14 +1,7 @@
 import { Accordion, AccordionDetails, AccordionSummary, Box, Button, Chip, CircularProgress, Typography } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import AddIcon from "@mui/icons-material/Add";
-import type {
-  AdnSubprincipioSummary,
-  AdnSubSubPrincipioSummary,
-  Macrociclo,
-  Mesociclo,
-  Microciclo,
-  SeasonPlan,
-} from "../../../types/seasonPlan";
+import type { Macrociclo, Mesociclo, Microciclo, SeasonPlan, SessionSummary } from "../../../types/seasonPlan";
 import { GAME_ZONE_LABELS } from "./gameZoneLabels";
 import styles from "./SeasonPlanView.module.css";
 
@@ -16,62 +9,47 @@ interface SeasonPlanViewProps {
   plan: SeasonPlan | null;
   loading: boolean;
   onCreatePlan: () => void;
-  onCreateExercise: (microcicloId: string) => void;
+  onCreateSession: (microcicloId: string) => void;
+  onOpenSession?: (sessionId: string) => void;
 }
 
-/** ADN chips (Subprincipio/SubSubPrincipio/Habilidad) linked to one Microciclo session —
- * renders nothing when the session has no links (no empty chip row). */
-function SessionAdnChips({
-  subprincipios,
-  subSubPrincipios,
-  habilidades,
-}: {
-  subprincipios: AdnSubprincipioSummary[];
-  subSubPrincipios: AdnSubSubPrincipioSummary[];
-  habilidades: string[];
-}) {
-  const hasLinks = subprincipios.length > 0 || subSubPrincipios.length > 0 || habilidades.length > 0;
-  if (!hasLinks) return null;
+function formatDate(iso: string) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString("es-ES", { day: "2-digit", month: "short" });
+}
 
+function SessionRow({ session, onOpen }: { session: SessionSummary; onOpen?: (id: string) => void }) {
   return (
-    <Box className={styles.adnChipsRow}>
-      {subprincipios.map((s) => (
-        <Chip key={s.id} label={`${s.titulo} ${s.numero}`} size="small" className={styles.adnChip} />
-      ))}
-      {subSubPrincipios.map((s) => (
-        <Chip key={s.id} label={`${s.numero} · ${s.rol}`} size="small" className={styles.adnChip} />
-      ))}
-      {habilidades.map((h) => (
-        <Chip key={h} label={h} size="small" className={styles.habilidadChip} />
-      ))}
+    <Box
+      className={styles.sessionRow}
+      onClick={() => onOpen?.(session.id)}
+      role={onOpen ? "button" : undefined}
+      data-testid={`session-row-${session.id}`}
+    >
+      <Typography className={styles.sessionRowName}>{session.name}</Typography>
+      <Box className={styles.sessionRowMeta}>
+        <Typography className={styles.sessionRowDate}>{formatDate(session.date)}</Typography>
+        <Chip label={`${session.exerciseCount} ej.`} size="small" className={styles.coverageChip} />
+      </Box>
+      {session.objetivoGeneral && (
+        <Typography className={styles.sessionRowObjective}>{session.objetivoGeneral}</Typography>
+      )}
     </Box>
   );
 }
 
-function SessionBlock({
-  sessionLabel,
-  objetivo,
-  subprincipios,
-  subSubPrincipios,
-  habilidades,
+function MicrocicloRow({
+  microciclo,
+  onCreateSession,
+  onOpenSession,
 }: {
-  sessionLabel: "A" | "B";
-  objetivo: string;
-  subprincipios: AdnSubprincipioSummary[];
-  subSubPrincipios: AdnSubSubPrincipioSummary[];
-  habilidades: string[];
+  microciclo: Microciclo;
+  onCreateSession: (id: string) => void;
+  onOpenSession?: (id: string) => void;
 }) {
-  return (
-    <Box className={styles.sessionBlock}>
-      <Typography className={styles.sessionLabel}>Sesión {sessionLabel}</Typography>
-      <Typography className={styles.sessionObjective}>{objetivo}</Typography>
-      <SessionAdnChips subprincipios={subprincipios} subSubPrincipios={subSubPrincipios} habilidades={habilidades} />
-    </Box>
-  );
-}
-
-function MicrocicloRow({ microciclo, onCreateExercise }: { microciclo: Microciclo; onCreateExercise: (id: string) => void }) {
-  const hasExercises = microciclo.exerciseCount > 0;
+  const hasSessions = microciclo.sessions.length > 0;
 
   return (
     <Box className={styles.microcicloCard} data-testid={`microciclo-row-${microciclo.id}`}>
@@ -82,9 +60,9 @@ function MicrocicloRow({ microciclo, onCreateExercise }: { microciclo: Microcicl
             {microciclo.startDate} – {microciclo.endDate}
           </Typography>
           <Chip
-            label={hasExercises ? `${microciclo.exerciseCount} ejercicios` : "Sin ejercicios"}
+            label={hasSessions ? `${microciclo.sessions.length} sesiones` : "Sin sesiones"}
             size="small"
-            color={hasExercises ? "primary" : "warning"}
+            color={hasSessions ? "primary" : "warning"}
             className={styles.coverageChip}
           />
         </Box>
@@ -92,31 +70,32 @@ function MicrocicloRow({ microciclo, onCreateExercise }: { microciclo: Microcicl
           size="small"
           startIcon={<AddIcon />}
           variant="outlined"
-          onClick={() => microciclo.apiId && onCreateExercise(microciclo.apiId)}
+          onClick={() => microciclo.apiId && onCreateSession(microciclo.apiId)}
           disabled={!microciclo.apiId}
         >
-          Crear ejercicio
+          Crear sesión
         </Button>
       </Box>
-      <SessionBlock
-        sessionLabel="A"
-        objetivo={microciclo.objetivoSesionA}
-        subprincipios={microciclo.sesionASubprincipios}
-        subSubPrincipios={microciclo.sesionASubSubPrincipios}
-        habilidades={microciclo.sesionAHabilidades}
-      />
-      <SessionBlock
-        sessionLabel="B"
-        objetivo={microciclo.objetivoSesionB}
-        subprincipios={microciclo.sesionBSubprincipios}
-        subSubPrincipios={microciclo.sesionBSubSubPrincipios}
-        habilidades={microciclo.sesionBHabilidades}
-      />
+      {hasSessions && (
+        <Box className={styles.sessionsList}>
+          {microciclo.sessions.map((session) => (
+            <SessionRow key={session.id} session={session} onOpen={onOpenSession} />
+          ))}
+        </Box>
+      )}
     </Box>
   );
 }
 
-function MesocicloBlock({ mesociclo, onCreateExercise }: { mesociclo: Mesociclo; onCreateExercise: (id: string) => void }) {
+function MesocicloBlock({
+  mesociclo,
+  onCreateSession,
+  onOpenSession,
+}: {
+  mesociclo: Mesociclo;
+  onCreateSession: (id: string) => void;
+  onOpenSession?: (id: string) => void;
+}) {
   return (
     <Accordion className={styles.accordion} defaultExpanded TransitionProps={{ unmountOnExit: true }}>
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -132,14 +111,27 @@ function MesocicloBlock({ mesociclo, onCreateExercise }: { mesociclo: Mesociclo;
           .slice()
           .sort((a, b) => a.order - b.order)
           .map((microciclo) => (
-            <MicrocicloRow key={microciclo.id} microciclo={microciclo} onCreateExercise={onCreateExercise} />
+            <MicrocicloRow
+              key={microciclo.id}
+              microciclo={microciclo}
+              onCreateSession={onCreateSession}
+              onOpenSession={onOpenSession}
+            />
           ))}
       </AccordionDetails>
     </Accordion>
   );
 }
 
-function MacrocicloBlock({ macrociclo, onCreateExercise }: { macrociclo: Macrociclo; onCreateExercise: (id: string) => void }) {
+function MacrocicloBlock({
+  macrociclo,
+  onCreateSession,
+  onOpenSession,
+}: {
+  macrociclo: Macrociclo;
+  onCreateSession: (id: string) => void;
+  onOpenSession?: (id: string) => void;
+}) {
   return (
     <Accordion className={styles.accordion} defaultExpanded TransitionProps={{ unmountOnExit: true }}>
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -150,14 +142,19 @@ function MacrocicloBlock({ macrociclo, onCreateExercise }: { macrociclo: Macroci
           .slice()
           .sort((a, b) => a.order - b.order)
           .map((mesociclo) => (
-            <MesocicloBlock key={mesociclo.id} mesociclo={mesociclo} onCreateExercise={onCreateExercise} />
+            <MesocicloBlock
+              key={mesociclo.id}
+              mesociclo={mesociclo}
+              onCreateSession={onCreateSession}
+              onOpenSession={onOpenSession}
+            />
           ))}
       </AccordionDetails>
     </Accordion>
   );
 }
 
-export default function SeasonPlanView({ plan, loading, onCreatePlan, onCreateExercise }: SeasonPlanViewProps) {
+export default function SeasonPlanView({ plan, loading, onCreatePlan, onCreateSession, onOpenSession }: SeasonPlanViewProps) {
   if (loading) {
     return (
       <Box className={styles.loadingBox}>
@@ -185,7 +182,12 @@ export default function SeasonPlanView({ plan, loading, onCreatePlan, onCreateEx
         .slice()
         .sort((a, b) => a.order - b.order)
         .map((macrociclo) => (
-          <MacrocicloBlock key={macrociclo.id} macrociclo={macrociclo} onCreateExercise={onCreateExercise} />
+          <MacrocicloBlock
+            key={macrociclo.id}
+            macrociclo={macrociclo}
+            onCreateSession={onCreateSession}
+            onOpenSession={onOpenSession}
+          />
         ))}
     </Box>
   );

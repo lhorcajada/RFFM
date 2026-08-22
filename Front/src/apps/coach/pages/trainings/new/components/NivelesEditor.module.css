@@ -1,0 +1,79 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+  overflow-x: auto;
+}
+
+.headerRow,
+.dataRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nivelHeaderCell,
+.nivelCell {
+  flex: 0 0 44px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #a8d4f5;
+  text-align: center;
+}
+
+.columnHeaderCell {
+  flex: 1;
+  min-width: 96px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.columnNameField {
+  flex: 1;
+}
+
+.columnNameField :global(.MuiInputBase-input) {
+  color: #e8e8e8 !important;
+  font-size: 0.78rem !important;
+  font-weight: 700 !important;
+}
+
+.cellField {
+  flex: 1;
+  min-width: 96px;
+}
+
+.cellField :global(.MuiInputBase-input) {
+  color: #e8e8e8 !important;
+  font-size: 0.78rem !important;
+}
+
+.removeColumnBtn,
+.removeRowBtn {
+  color: rgba(212, 212, 212, 0.5) !important;
+}
+
+.addColumnBtn {
+  color: #4d9de0 !important;
+  flex-shrink: 0;
+}
+
+.addRowBtn {
+  align-self: flex-start;
+  margin-top: 4px;
+  border: 1px solid rgba(77, 157, 224, 0.45);
+  border-radius: 6px;
+  background: transparent;
+  color: #4d9de0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.addRowBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

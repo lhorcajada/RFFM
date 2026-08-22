@@ -1,8 +1,7 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using RFFM.Api.Domain.Aggregates.SeasonPlans;
 using RFFM.Api.Domain.Aggregates.Training.TasksTraining;
 
 namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.Trainings
@@ -18,11 +17,36 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.Trainings
                 .IsRequired()
                 .HasMaxLength(ValidationConstants.TaskTrainingBaseNameMaxLength);
 
-            builder.Property(tb => tb.Description)
-                .HasMaxLength(ValidationConstants.TaskTrainingBaseDescriptionMaxLength);
+            builder.Property(tb => tb.Tipo)
+                .IsRequired()
+                .HasMaxLength(50);
 
-            builder.Property(tb => tb.FieldSpace)
-                .HasMaxLength(ValidationConstants.TaskTrainingBaseFieldSpaceMaxLength);
+            builder.Property(tb => tb.Objetivo)
+                .IsRequired()
+                .HasMaxLength(2000);
+
+            builder.Property(tb => tb.ObjetivoPorRol)
+                .IsRequired(false)
+                .HasMaxLength(2000);
+
+            builder.Property(tb => tb.Logistica)
+                .IsRequired()
+                .HasMaxLength(2000);
+
+            builder.Property(tb => tb.DurationMinutes)
+                .IsRequired(false);
+
+            builder.Property(tb => tb.Porteros)
+                .IsRequired(false)
+                .HasMaxLength(1000);
+
+            builder.Property(tb => tb.Dibujo)
+                .IsRequired(false)
+                .HasMaxLength(1000);
+
+            builder.Property(tb => tb.Descripcion)
+                .IsRequired()
+                .HasColumnType("text");
 
             builder.Property(tb => tb.UrlImage)
                 .IsRequired(false)
@@ -32,52 +56,47 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.Trainings
                 .IsRequired(false)
                 .HasColumnType("text");
 
-            builder.Property(tb => tb.Points).IsRequired();
-            builder.Property(tb => tb.PlayersNumber).IsRequired();
-            builder.Property(tb => tb.GoalPeekersNumber).IsRequired();
-
             builder.Property(tb => tb.ClubId)
                 .IsRequired()
                 .HasMaxLength(36);
-
-            builder.Property(tb => tb.Section)
-                .IsRequired()
-                .HasMaxLength(50);
-
-            builder.Property(tb => tb.Methodology)
-                .IsRequired()
-                .HasMaxLength(50);
 
             builder.HasOne(tb => tb.Club)
                 .WithMany()
                 .HasForeignKey(tb => tb.ClubId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            builder.Property(tb => tb.Series).IsRequired();
-            builder.Property(tb => tb.DurationSeries).IsRequired();
-            builder.Property(tb => tb.RestSeries).IsRequired();
-            builder.Property(tb => tb.Time).IsRequired();
-            builder.Property(tb => tb.TouchesNumber).IsRequired();
-            builder.Property(tb => tb.WildCards).IsRequired();
-
-            builder.HasMany(tb => tb.Types)
-                .WithOne(t => t.TaskTrainingBase)
-                .HasForeignKey(t => t.TaskTrainingBaseId)
+            builder.HasMany(tb => tb.ModelRelations)
+                .WithOne()
+                .HasForeignKey(r => r.TaskTrainingBaseId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            builder.Property(tb => tb.MicrocicloId)
-                .IsRequired(false)
-                .HasMaxLength(36);
-
-            builder.HasOne<Microciclo>()
-                .WithMany()
-                .HasForeignKey(tb => tb.MicrocicloId)
-                .OnDelete(DeleteBehavior.SetNull);
-
-            ConfigureHabilidadesColumn(builder.Property(tb => tb.Habilidades));
+            JsonColumns.ConfigureStringList(builder.Property(tb => tb.NivelesColumnas));
+            ConfigureNivelesColumn(builder.Property(tb => tb.Niveles));
         }
 
-        private static void ConfigureHabilidadesColumn(PropertyBuilder<List<string>> property)
+        private static void ConfigureNivelesColumn(PropertyBuilder<List<ExerciseLevelRow>> property)
+        {
+            property
+                .HasConversion(
+                    v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
+                    v => string.IsNullOrEmpty(v)
+                        ? new List<ExerciseLevelRow>()
+                        : JsonSerializer.Deserialize<List<ExerciseLevelRow>>(v, (JsonSerializerOptions?)null)!)
+                .HasColumnType("jsonb");
+
+            property.Metadata.SetValueComparer(new ValueComparer<List<ExerciseLevelRow>>(
+                (a, b) => (a ?? new List<ExerciseLevelRow>()).SequenceEqual(b ?? new List<ExerciseLevelRow>()),
+                v => v.Aggregate(0, (hash, row) => HashCode.Combine(hash, row.GetHashCode())),
+                v => v.ToList()));
+        }
+    }
+
+    /// <summary>Shared jsonb <c>List&lt;string&gt;</c> column helper — same conversion pattern
+    /// used across the codebase for closed-vocabulary/free-text lists (Habilidades, palanca
+    /// column names, etc.). Centralized here so every consumer configures it identically.</summary>
+    internal static class JsonColumns
+    {
+        public static void ConfigureStringList(PropertyBuilder<List<string>> property)
         {
             property
                 .HasConversion(

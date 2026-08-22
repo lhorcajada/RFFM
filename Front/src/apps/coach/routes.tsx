@@ -32,6 +32,7 @@ const Convocations = lazy(() => import("./pages/convocations/Convocations"));
 const ConvocationMatchDetail = lazy(() => import("./pages/convocations/ConvocationMatchDetail"));
 const Trainings = lazy(() => import("./pages/trainings/Trainings"));
 const NewExercisePage = lazy(() => import("./pages/trainings/new/NewExercisePage"));
+const NewSessionPage = lazy(() => import("./pages/trainings/new-session/NewSessionPage"));
 const Injured = lazy(() => import("./pages/injured/Injured"));
 const GameModel = lazy(() => import("./pages/game-model/GameModel"));
 const GameModelCreate = lazy(() => import("./pages/game-model/GameModelCreate"));
@@ -213,6 +214,14 @@ function CoachRoutesContent() {
               element={
                 <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.Trainings}>
                   <NewExercisePage />
+                </RequireFeaturePermission>
+              }
+            />
+            <Route
+              path="trainings/new-session"
+              element={
+                <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.Trainings}>
+                  <NewSessionPage />
                 </RequireFeaturePermission>
               }
             />

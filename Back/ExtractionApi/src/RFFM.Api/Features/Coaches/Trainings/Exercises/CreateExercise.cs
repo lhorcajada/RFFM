@@ -12,12 +12,12 @@ using RFFM.Api.Domain.Aggregates.Training.TasksTraining;
 using RFFM.Api.Domain.Entities;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
-using RFFM.Api.Infrastructure.Persistence.Seed;
 
 namespace RFFM.Api.Features.Coaches.Trainings.Exercises
 {
     /// <summary>
-    /// Creates a new exercise in the club library.
+    /// Creates a new exercise in the club library, following the reduced content template
+    /// (docs/game-model/Plantilla-Ejercicio.md).
     /// POST /api/trainings/exercises
     /// </summary>
     public class CreateExercise : IFeatureModule
@@ -45,29 +45,22 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
 
     // ── Request ──────────────────────────────────────────────────────────────────
 
-    /// <param name="Types">One or more of: Physical, Technical, Tactical, Game, Cognitive, Psychological</param>
+    /// <param name="Tipo">Analitico | Situacional | Global.</param>
     public record CreateExerciseCommand(
         string ClubId,
         string Name,
-        string Description,
-        List<string> Types,
-        int DurationTotal,
-        int PlayersNumber,
-        int GoalPeekersNumber,
-        string FieldSpace,
-        string Section,
-        string Methodology,
+        string Tipo,
+        string Objetivo,
+        string? ObjetivoPorRol,
+        string Logistica,
+        int? DurationMinutes,
+        string? Porteros,
+        string? Dibujo,
+        string Descripcion,
+        List<string> NivelesColumnas,
+        List<NivelRowRequest> Niveles,
         string? BoardStateJson,
-        // Physical-specific
-        int? Series,
-        int? DurationSeries,
-        int? RestSeries,
-        // Technical/Tactical-specific
-        int? TouchesNumber,
-        int? WildCards,
-        string? MicrocicloId = null,
-        List<ExerciseModelLinkRequest>? ModelLinks = null,
-        List<string>? Habilidades = null
+        List<ExerciseModelRelationRequest>? ModelRelations = null
     ) : IRequest<string>, IRequireFeaturePermission
     {
         public string UserId { get; init; } = string.Empty;
@@ -76,12 +69,19 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         public string RequiredPermission => "ReadWrite";
     }
 
-    /// <summary>
-    /// A single "Relación con el modelo de juego" row: which Subprincipio/SubSubPrincipio the
-    /// exercise trains (exactly one of the two, never both/neither) and whether it's the FOCO
-    /// (<see cref="IsFoco"/> true) or an INTEGRADO one.
-    /// </summary>
-    public record ExerciseModelLinkRequest(string? SubprincipioId, string? SubSubPrincipioId, bool IsFoco);
+    /// <summary>One row of the "Niveles" table.</summary>
+    public record NivelRowRequest(int Nivel, Dictionary<string, string> Valores);
+
+    /// <summary>A single "Relación con el modelo de juego" row: the Fase/Principio/Subprincipio
+    /// the exercise trains, tagged FOCO/INTEGRADO, with its own Habilidades imprescindibles and
+    /// a repeatable list of SubSubPrincipio items.</summary>
+    public record ExerciseModelRelationRequest(
+        string SubprincipioId,
+        bool IsFoco,
+        List<string>? HabilidadesImprescindibles,
+        List<ExerciseModelRelationItemRequest>? Items);
+
+    public record ExerciseModelRelationItemRequest(string SubSubPrincipioId, bool IsFoco);
 
     // ── Handler ──────────────────────────────────────────────────────────────────
 
@@ -101,37 +101,39 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
             var exercise = new TaskTrainingBase
             {
                 Name = request.Name.Trim(),
-                Description = request.Description,
-                DurationTotal = request.DurationTotal,
-                PlayersNumber = request.PlayersNumber,
-                GoalPeekersNumber = request.GoalPeekersNumber,
-                FieldSpace = request.FieldSpace,
+                Tipo = request.Tipo,
+                Objetivo = request.Objetivo,
+                ObjetivoPorRol = request.ObjetivoPorRol,
+                Logistica = request.Logistica,
+                DurationMinutes = request.DurationMinutes,
+                Porteros = request.Porteros,
+                Dibujo = request.Dibujo,
+                Descripcion = request.Descripcion,
                 ClubId = request.ClubId,
-                Section = request.Section,
-                Methodology = request.Methodology,
                 BoardStateJson = request.BoardStateJson,
-                Series = request.Series ?? 0,
-                DurationSeries = request.DurationSeries ?? 0,
-                RestSeries = request.RestSeries ?? 0,
-                TouchesNumber = request.TouchesNumber ?? 0,
-                WildCards = request.WildCards ?? 0,
-                MicrocicloId = request.MicrocicloId,
             };
 
-            var typeEntities = await _db.ExerciseTypes
-                .Where(t => request.Types.Contains(t.Name))
-                .ToListAsync(ct);
-            foreach (var typeEntity in typeEntities)
-                exercise.Types.Add(new TaskTrainingType { ExerciseTypeId = typeEntity.Id });
+            exercise.UpdateNiveles(
+                request.NivelesColumnas,
+                request.Niveles.Select(n => new ExerciseLevelRow(n.Nivel, n.Valores)));
 
-            exercise.ReplaceModelLinks((request.ModelLinks ?? new List<ExerciseModelLinkRequest>())
-                .Select(l => (l.SubprincipioId, l.SubSubPrincipioId, l.IsFoco)));
-            exercise.UpdateHabilidades(request.Habilidades);
+            exercise.ReplaceModelRelations(BuildModelRelations(request.ModelRelations));
 
             await _db.TaskTrainingBases.AddAsync(exercise, ct);
             await _db.SaveChangesAsync(ct);
             return exercise.Id;
         }
+
+        internal static IEnumerable<(string SubprincipioId, bool IsFoco, IEnumerable<string>? Habilidades,
+            IEnumerable<(string SubSubPrincipioId, bool IsFoco)> Items)> BuildModelRelations(
+            List<ExerciseModelRelationRequest>? relations) =>
+            (relations ?? new List<ExerciseModelRelationRequest>())
+                .Select(r => (
+                    r.SubprincipioId,
+                    r.IsFoco,
+                    (IEnumerable<string>?)r.HabilidadesImprescindibles,
+                    (IEnumerable<(string, bool)>)(r.Items ?? new List<ExerciseModelRelationItemRequest>())
+                        .Select(i => (i.SubSubPrincipioId, i.IsFoco))));
     }
 
     // ── Validator ────────────────────────────────────────────────────────────────
@@ -142,31 +144,36 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         {
             RuleFor(x => x.ClubId).NotEmpty();
             RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
-            RuleFor(x => x.Types).NotEmpty()
-                .WithMessage("At least one type is required.");
-            RuleForEach(x => x.Types)
-                .Must(t => ExerciseTypesSeeder.Types.Contains(t))
-                .WithMessage("Type must be one of: " + "Physical, Technical, Tactical, Game, Cognitive, Psychological");
-            RuleFor(x => x.Section).Must(s => s is "Calentamiento" or "Principal" or "VueltaALaCalma")
-                .WithMessage("Section must be Calentamiento, Principal or VueltaALaCalma.");
-            RuleFor(x => x.Methodology).Must(m => m is "Analitico" or "Integrado" or "Global")
-                .WithMessage("Methodology must be Analitico, Integrado or Global.");
-            RuleFor(x => x.DurationTotal).GreaterThan(0);
-            RuleForEach(x => x.ModelLinks).SetValidator(new ExerciseModelLinkRequestValidator());
-            RuleForEach(x => x.Habilidades)
-                .Must(h => Habilidad.Vocabulary.Contains(h))
-                .WithMessage("Habilidad must be one of the 15-value closed vocabulary.");
+            RuleFor(x => x.Tipo).Must(t => TaskTrainingBase.TipoValues.Contains(t))
+                .WithMessage("Tipo must be one of: Analitico, Situacional, Global.");
+            RuleFor(x => x.Objetivo).NotEmpty();
+            RuleFor(x => x.Logistica).NotEmpty();
+            RuleFor(x => x.Descripcion).NotEmpty();
+            RuleFor(x => x.Niveles).Must(n => n.Count is >= 2 and <= 5)
+                .WithMessage("Niveles must have between 2 and 5 rows.");
+            RuleForEach(x => x.ModelRelations).SetValidator(new ExerciseModelRelationRequestValidator());
         }
     }
 
     /// <summary>Shared by <see cref="CreateExerciseValidator"/> and <c>UpdateExerciseValidator</c>.</summary>
-    public class ExerciseModelLinkRequestValidator : AbstractValidator<ExerciseModelLinkRequest>
+    public class ExerciseModelRelationRequestValidator : AbstractValidator<ExerciseModelRelationRequest>
     {
-        public ExerciseModelLinkRequestValidator()
+        public ExerciseModelRelationRequestValidator()
         {
-            RuleFor(x => x)
-                .Must(x => new[] { x.SubprincipioId, x.SubSubPrincipioId }.Count(id => !string.IsNullOrEmpty(id)) == 1)
-                .WithMessage("Exactly one of SubprincipioId or SubSubPrincipioId must be set.");
+            RuleFor(x => x.SubprincipioId).NotEmpty()
+                .WithMessage("A model relation requires a Subprincipio.");
+            RuleForEach(x => x.HabilidadesImprescindibles)
+                .Must(h => Habilidad.Vocabulary.Contains(h))
+                .WithMessage("Habilidad must be one of the 15-value closed vocabulary.");
+            RuleForEach(x => x.Items).SetValidator(new ExerciseModelRelationItemRequestValidator());
+        }
+    }
+
+    public class ExerciseModelRelationItemRequestValidator : AbstractValidator<ExerciseModelRelationItemRequest>
+    {
+        public ExerciseModelRelationItemRequestValidator()
+        {
+            RuleFor(x => x.SubSubPrincipioId).NotEmpty();
         }
     }
 }

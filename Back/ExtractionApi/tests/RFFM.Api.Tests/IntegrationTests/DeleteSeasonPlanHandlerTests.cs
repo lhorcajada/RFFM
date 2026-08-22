@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Domain;
 using RFFM.Api.Domain.Aggregates.SeasonPlans;
-using RFFM.Api.Domain.Aggregates.Training.TasksTraining;
+using RFFM.Api.Domain.Aggregates.Training;
 using RFFM.Api.Domain.Aggregates.UserClubs;
 using RFFM.Api.Domain.Entities.Competitions;
 using RFFM.Api.Domain.Entities.Seasons;
@@ -62,7 +62,7 @@ namespace RFFM.Api.Tests.IntegrationTests
             var plan = new SeasonPlan(team.Id, season.Id);
             var macrociclo = new Macrociclo(plan.Id, 1, "Macrociclo 1", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 21));
             var mesociclo = new Mesociclo(macrociclo.Id, 1, "Mesociclo 1.1", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 21), 2);
-            var microciclo = new Microciclo(mesociclo.Id, 1, "Semana 1", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 7), "Obj A", "Obj B");
+            var microciclo = new Microciclo(mesociclo.Id, 1, "Semana 1", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 7));
             mesociclo.Microciclos.Add(microciclo);
             macrociclo.Mesociclos.Add(mesociclo);
             plan.Macrociclos.Add(macrociclo);
@@ -89,20 +89,13 @@ namespace RFFM.Api.Tests.IntegrationTests
         }
 
         [Fact]
-        public async Task Delete_PlanWithLinkedExercise_ClearsMicrocicloIdButKeepsExercise()
+        public async Task Delete_PlanWithLinkedSession_ClearsMicrocicloIdButKeepsSession()
         {
             await using var seedDb = _fixture.CreateDbContext();
-            var (userId, clubId, _, planId, microcicloId) = await SeedPlanAsync(seedDb);
+            var (userId, _, teamId, planId, microcicloId) = await SeedPlanAsync(seedDb);
 
-            var exercise = new TaskTrainingBase
-            {
-                Name = "Ejercicio vinculado",
-                Description = "Descripción",
-                ClubId = clubId,
-                FieldSpace = "Media cancha",
-                MicrocicloId = microcicloId,
-            };
-            seedDb.TaskTrainingBases.Add(exercise);
+            var session = new TrainingSession { Name = "Sesion vinculada", TeamId = teamId, Date = DateTime.UtcNow, MicrocicloId = microcicloId };
+            seedDb.TrainingSessions.Add(session);
             await seedDb.SaveChangesAsync();
 
             await using var db = _fixture.CreateDbContext();
@@ -111,8 +104,8 @@ namespace RFFM.Api.Tests.IntegrationTests
             await handler.Handle(new DeleteSeasonPlanCommand(planId, userId), CancellationToken.None);
 
             await using var verifyDb = _fixture.CreateDbContext();
-            var persistedExercise = await verifyDb.TaskTrainingBases.SingleAsync(e => e.Id == exercise.Id);
-            Assert.Null(persistedExercise.MicrocicloId);
+            var persistedSession = await verifyDb.TrainingSessions.SingleAsync(s => s.Id == session.Id);
+            Assert.Null(persistedSession.MicrocicloId);
         }
 
         [Fact]

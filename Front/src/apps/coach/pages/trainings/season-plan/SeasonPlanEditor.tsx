@@ -3,7 +3,6 @@ import {
   Accordion,
   AccordionDetails,
   AccordionSummary,
-  Autocomplete,
   Box,
   Button,
   CircularProgress,
@@ -17,16 +16,12 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import type {
-  AdnOptions,
-  AdnSubprincipioOption,
-  AdnSubSubPrincipioOption,
   GameZoneCatalogItem,
   Macrociclo,
   Mesociclo,
   Microciclo,
   SeasonPlan,
 } from "../../../types/seasonPlan";
-import { HABILIDAD_VOCABULARY } from "../../../types/gameModel";
 import styles from "./SeasonPlanEditor.module.css";
 
 let _draftKeyCounter = -1;
@@ -38,19 +33,7 @@ const EMPTY_MICROCICLO = (order: number): Microciclo => ({
   weekLabel: "",
   startDate: "",
   endDate: "",
-  objetivoSesionA: "",
-  objetivoSesionB: "",
-  exerciseCount: 0,
-  sesionASubprincipioIds: [],
-  sesionASubSubPrincipioIds: [],
-  sesionAHabilidades: [],
-  sesionASubprincipios: [],
-  sesionASubSubPrincipios: [],
-  sesionBSubprincipioIds: [],
-  sesionBSubSubPrincipioIds: [],
-  sesionBHabilidades: [],
-  sesionBSubprincipios: [],
-  sesionBSubSubPrincipios: [],
+  sessions: [],
 });
 
 const EMPTY_MESOCICLO = (order: number): Mesociclo => ({
@@ -72,86 +55,13 @@ const EMPTY_MACROCICLO = (order: number): Macrociclo => ({
   mesociclos: [],
 });
 
-interface SessionAdnPickersProps {
-  sessionLabel: "A" | "B";
-  subprincipioIds: string[];
-  subSubPrincipioIds: string[];
-  habilidades: string[];
-  adnOptions: AdnOptions;
-  hasGameModel: boolean;
-  onChangeSubprincipioIds: (ids: string[]) => void;
-  onChangeSubSubPrincipioIds: (ids: string[]) => void;
-  onChangeHabilidades: (habilidades: string[]) => void;
-}
-
-/** Subprincipio/SubSubPrincipio/Habilidad multi-selects for one Microciclo session (A or B).
- * Subprincipio/SubSubPrincipio stay disabled (not hidden) when the team has no GameModel yet
- * for this season — Habilidad selection is always usable (fixed 15-value vocabulary). */
-function SessionAdnPickers({
-  sessionLabel,
-  subprincipioIds,
-  subSubPrincipioIds,
-  habilidades,
-  adnOptions,
-  hasGameModel,
-  onChangeSubprincipioIds,
-  onChangeSubSubPrincipioIds,
-  onChangeHabilidades,
-}: SessionAdnPickersProps) {
-  const availableSubSubPrincipios =
-    subprincipioIds.length > 0
-      ? adnOptions.subSubPrincipios.filter((s) => subprincipioIds.includes(s.subprincipioId))
-      : adnOptions.subSubPrincipios;
-
-  return (
-    <Box className={styles.adnPickersRow}>
-      <Autocomplete<AdnSubprincipioOption, true>
-        multiple
-        size="small"
-        disabled={!hasGameModel}
-        options={adnOptions.subprincipios}
-        value={adnOptions.subprincipios.filter((o) => subprincipioIds.includes(o.id))}
-        getOptionLabel={(o) => `${o.numero} · ${o.titulo}`}
-        isOptionEqualToValue={(a, b) => a.id === b.id}
-        onChange={(_, value) => onChangeSubprincipioIds(value.map((v) => v.id))}
-        renderInput={(params) => <TextField {...params} label={`Subprincipio — Sesión ${sessionLabel}`} />}
-        className={styles.adnPicker}
-      />
-      <Autocomplete<AdnSubSubPrincipioOption, true>
-        multiple
-        size="small"
-        disabled={!hasGameModel}
-        options={availableSubSubPrincipios}
-        value={adnOptions.subSubPrincipios.filter((o) => subSubPrincipioIds.includes(o.id))}
-        getOptionLabel={(o) => `${o.numero} · ${o.rol}`}
-        isOptionEqualToValue={(a, b) => a.id === b.id}
-        onChange={(_, value) => onChangeSubSubPrincipioIds(value.map((v) => v.id))}
-        renderInput={(params) => <TextField {...params} label={`SubSubPrincipio — Sesión ${sessionLabel}`} />}
-        className={styles.adnPicker}
-      />
-      <Autocomplete<string, true>
-        multiple
-        size="small"
-        options={HABILIDAD_VOCABULARY as unknown as string[]}
-        value={habilidades}
-        onChange={(_, value) => onChangeHabilidades(value)}
-        renderInput={(params) => <TextField {...params} label={`Habilidad — Sesión ${sessionLabel}`} />}
-        className={styles.adnPicker}
-      />
-    </Box>
-  );
-}
-
 interface MicrocicloEditorProps {
   microciclo: Microciclo;
-  adnOptions: AdnOptions;
   onUpdate: (changes: Partial<Microciclo>) => void;
   onDelete: () => void;
 }
 
-function MicrocicloEditor({ microciclo, adnOptions, onUpdate, onDelete }: MicrocicloEditorProps) {
-  const hasGameModel = adnOptions.subprincipios.length > 0;
-
+function MicrocicloEditor({ microciclo, onUpdate, onDelete }: MicrocicloEditorProps) {
   return (
     <Box className={styles.microcicloCard}>
       <Box className={styles.fieldsRow}>
@@ -180,54 +90,6 @@ function MicrocicloEditor({ microciclo, adnOptions, onUpdate, onDelete }: Microc
         />
       </Box>
 
-      {!hasGameModel && (
-        <Typography className={styles.noGameModelHint}>
-          Añade primero el Modelo ADN del equipo para poder enlazar subprincipios.
-        </Typography>
-      )}
-
-      <TextField
-        value={microciclo.objetivoSesionA}
-        onChange={(e) => onUpdate({ objetivoSesionA: e.target.value })}
-        label="Objetivo sesión A (Defensa organizada + Transición defensa-ataque)"
-        multiline
-        minRows={2}
-        fullWidth
-        size="small"
-      />
-      <SessionAdnPickers
-        sessionLabel="A"
-        subprincipioIds={microciclo.sesionASubprincipioIds}
-        subSubPrincipioIds={microciclo.sesionASubSubPrincipioIds}
-        habilidades={microciclo.sesionAHabilidades}
-        adnOptions={adnOptions}
-        hasGameModel={hasGameModel}
-        onChangeSubprincipioIds={(ids) => onUpdate({ sesionASubprincipioIds: ids })}
-        onChangeSubSubPrincipioIds={(ids) => onUpdate({ sesionASubSubPrincipioIds: ids })}
-        onChangeHabilidades={(habilidades) => onUpdate({ sesionAHabilidades: habilidades })}
-      />
-
-      <TextField
-        value={microciclo.objetivoSesionB}
-        onChange={(e) => onUpdate({ objetivoSesionB: e.target.value })}
-        label="Objetivo sesión B (Ataque organizado + Transición ataque-defensa)"
-        multiline
-        minRows={2}
-        fullWidth
-        size="small"
-      />
-      <SessionAdnPickers
-        sessionLabel="B"
-        subprincipioIds={microciclo.sesionBSubprincipioIds}
-        subSubPrincipioIds={microciclo.sesionBSubSubPrincipioIds}
-        habilidades={microciclo.sesionBHabilidades}
-        adnOptions={adnOptions}
-        hasGameModel={hasGameModel}
-        onChangeSubprincipioIds={(ids) => onUpdate({ sesionBSubprincipioIds: ids })}
-        onChangeSubSubPrincipioIds={(ids) => onUpdate({ sesionBSubSubPrincipioIds: ids })}
-        onChangeHabilidades={(habilidades) => onUpdate({ sesionBHabilidades: habilidades })}
-      />
-
       <Button size="small" color="error" startIcon={<DeleteOutlineIcon />} onClick={onDelete} className={styles.deleteBtn}>
         Eliminar microciclo
       </Button>
@@ -238,12 +100,11 @@ function MicrocicloEditor({ microciclo, adnOptions, onUpdate, onDelete }: Microc
 interface MesocicloEditorProps {
   mesociclo: Mesociclo;
   zones: GameZoneCatalogItem[];
-  adnOptions: AdnOptions;
   onUpdate: (changes: Partial<Mesociclo>) => void;
   onDelete: () => void;
 }
 
-function MesocicloEditor({ mesociclo, zones, adnOptions, onUpdate, onDelete }: MesocicloEditorProps) {
+function MesocicloEditor({ mesociclo, zones, onUpdate, onDelete }: MesocicloEditorProps) {
   const updateMicrociclo = (mi: number, changes: Partial<Microciclo>) => {
     const microciclos = mesociclo.microciclos.map((m, i) => (i === mi ? { ...m, ...changes } : m));
     onUpdate({ microciclos });
@@ -313,7 +174,6 @@ function MesocicloEditor({ mesociclo, zones, adnOptions, onUpdate, onDelete }: M
             <MicrocicloEditor
               key={microciclo.id}
               microciclo={microciclo}
-              adnOptions={adnOptions}
               onUpdate={(changes) => updateMicrociclo(mi, changes)}
               onDelete={() => deleteMicrociclo(mi)}
             />
@@ -334,12 +194,11 @@ function MesocicloEditor({ mesociclo, zones, adnOptions, onUpdate, onDelete }: M
 interface MacrocicloEditorProps {
   macrociclo: Macrociclo;
   zones: GameZoneCatalogItem[];
-  adnOptions: AdnOptions;
   onUpdate: (changes: Partial<Macrociclo>) => void;
   onDelete: () => void;
 }
 
-function MacrocicloEditor({ macrociclo, zones, adnOptions, onUpdate, onDelete }: MacrocicloEditorProps) {
+function MacrocicloEditor({ macrociclo, zones, onUpdate, onDelete }: MacrocicloEditorProps) {
   const updateMesociclo = (mi: number, changes: Partial<Mesociclo>) => {
     const mesociclos = macrociclo.mesociclos.map((m, i) => (i === mi ? { ...m, ...changes } : m));
     onUpdate({ mesociclos });
@@ -392,7 +251,6 @@ function MacrocicloEditor({ macrociclo, zones, adnOptions, onUpdate, onDelete }:
               key={mesociclo.id}
               mesociclo={mesociclo}
               zones={zones}
-              adnOptions={adnOptions}
               onUpdate={(changes) => updateMesociclo(mi, changes)}
               onDelete={() => deleteMesociclo(mi)}
             />
@@ -413,13 +271,12 @@ function MacrocicloEditor({ macrociclo, zones, adnOptions, onUpdate, onDelete }:
 interface SeasonPlanEditorProps {
   draft: SeasonPlan;
   zones: GameZoneCatalogItem[];
-  adnOptions: AdnOptions;
   saving: boolean;
   onSave: (draft: SeasonPlan) => void;
   onCancel: () => void;
 }
 
-export default function SeasonPlanEditor({ draft: initialDraft, zones, adnOptions, saving, onSave, onCancel }: SeasonPlanEditorProps) {
+export default function SeasonPlanEditor({ draft: initialDraft, zones, saving, onSave, onCancel }: SeasonPlanEditorProps) {
   const [draft, setDraft] = useState<SeasonPlan>(initialDraft);
 
   const updateMacrociclo = (mi: number, changes: Partial<Macrociclo>) => {
@@ -444,7 +301,6 @@ export default function SeasonPlanEditor({ draft: initialDraft, zones, adnOption
           key={macrociclo.id}
           macrociclo={macrociclo}
           zones={zones}
-          adnOptions={adnOptions}
           onUpdate={(changes) => updateMacrociclo(mi, changes)}
           onDelete={() => deleteMacrociclo(mi)}
         />

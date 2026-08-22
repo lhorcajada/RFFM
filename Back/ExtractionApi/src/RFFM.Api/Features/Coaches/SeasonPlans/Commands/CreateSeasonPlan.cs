@@ -76,15 +76,7 @@ namespace RFFM.Api.Features.Coaches.SeasonPlans.Commands
         int Order,
         string WeekLabel,
         DateOnly StartDate,
-        DateOnly EndDate,
-        string ObjetivoSesionA,
-        string ObjetivoSesionB,
-        List<string>? SesionASubprincipioIds = null,
-        List<string>? SesionASubSubPrincipioIds = null,
-        List<string>? SesionAHabilidades = null,
-        List<string>? SesionBSubprincipioIds = null,
-        List<string>? SesionBSubSubPrincipioIds = null,
-        List<string>? SesionBHabilidades = null);
+        DateOnly EndDate);
 
     // ── Handler ──────────────────────────────────────────────────────────────────
 
@@ -140,25 +132,8 @@ namespace RFFM.Api.Features.Coaches.SeasonPlans.Commands
             return mesociclo;
         }
 
-        internal static Microciclo BuildMicrociclo(string mesocicloId, MicrocicloRequest mir)
-        {
-            var microciclo = new Microciclo(
-                mesocicloId, mir.Order, mir.WeekLabel, mir.StartDate, mir.EndDate, mir.ObjetivoSesionA, mir.ObjetivoSesionB);
-
-            ApplySesionAdnLinks(microciclo, mir);
-
-            return microciclo;
-        }
-
-        internal static void ApplySesionAdnLinks(Microciclo microciclo, MicrocicloRequest mir)
-        {
-            microciclo.UpdateSesionAHabilidades(mir.SesionAHabilidades);
-            microciclo.UpdateSesionBHabilidades(mir.SesionBHabilidades);
-            microciclo.ReplaceSubprincipioLinks(Microciclo.SessionA, mir.SesionASubprincipioIds);
-            microciclo.ReplaceSubprincipioLinks(Microciclo.SessionB, mir.SesionBSubprincipioIds);
-            microciclo.ReplaceSubSubPrincipioLinks(Microciclo.SessionA, mir.SesionASubSubPrincipioIds);
-            microciclo.ReplaceSubSubPrincipioLinks(Microciclo.SessionB, mir.SesionBSubSubPrincipioIds);
-        }
+        internal static Microciclo BuildMicrociclo(string mesocicloId, MicrocicloRequest mir) =>
+            new(mesocicloId, mir.Order, mir.WeekLabel, mir.StartDate, mir.EndDate);
     }
 
     // ── Validator ────────────────────────────────────────────────────────────────
@@ -199,8 +174,6 @@ namespace RFFM.Api.Features.Coaches.SeasonPlans.Commands
         public MicrocicloRequestValidator()
         {
             RuleFor(x => x.WeekLabel).NotEmpty().MaximumLength(200);
-            RuleFor(x => x.ObjetivoSesionA).NotEmpty().MaximumLength(2000);
-            RuleFor(x => x.ObjetivoSesionB).NotEmpty().MaximumLength(2000);
             RuleFor(x => x.EndDate).GreaterThanOrEqualTo(x => x.StartDate);
         }
     }

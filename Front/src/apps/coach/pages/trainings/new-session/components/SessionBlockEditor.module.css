@@ -1,0 +1,79 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.blockCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid rgba(77, 157, 224, 0.25);
+  border-radius: 10px;
+  background: rgba(12, 22, 42, 0.4);
+}
+
+.blockHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.blockNameField {
+  flex: 1;
+}
+
+.field {
+  margin-bottom: 2px;
+}
+
+.exercisesRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+@media (min-width: 700px) {
+  .exercisesRow {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.exerciseCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  padding: 6px 10px;
+  border: 1px solid rgba(77, 157, 224, 0.3);
+  border-radius: 8px;
+  background: rgba(7, 7, 26, 0.6);
+}
+
+.exerciseCardLabel {
+  font-size: 0.8rem !important;
+  color: #e8e8e8 !important;
+}
+
+.addExerciseRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.exercisePicker {
+  flex: 1;
+  min-width: 200px;
+}
+
+.createInlineBtn {
+  color: #4d9de0 !important;
+  white-space: nowrap;
+}
+
+.addBlockBtn {
+  align-self: flex-start;
+  color: #4d9de0 !important;
+}

@@ -54,15 +54,14 @@ namespace RFFM.Api.Infrastructure.Persistence
         public DbSet<SportEventType> SportEventTypes { get; set; }
         public DbSet<EventAttendanceConfirmation> EventAttendanceConfirmations { get; set; }
         public DbSet<TrainingSession> TrainingSessions { get; set; }
-        public DbSet<TaskTraining> TasksTraining { get; set; }
+        public DbSet<SessionBlock> SessionBlocks { get; set; }
+        public DbSet<SessionBlockExercise> SessionBlockExercises { get; set; }
         public DbSet<MaterialsEnum> Materials { get; set; }
         public DbSet<PointsTypeEnum> PointsTypes { get; set; }
         public DbSet<TrainingPointsReport> TrainingPointsReports { get; set; }
         public DbSet<TaskTrainingBase> TaskTrainingBases { get; set; }
-        public DbSet<ExerciseType> ExerciseTypes { get; set; }
-        public DbSet<TaskTrainingType> TaskTrainingTypes { get; set; }
-        public DbSet<ExerciseCondition> ExerciseConditions { get; set; }
-        public DbSet<ExerciseModelLink> ExerciseModelLinks { get; set; }
+        public DbSet<ExerciseModelRelation> ExerciseModelRelations { get; set; }
+        public DbSet<ExerciseModelRelationItem> ExerciseModelRelationItems { get; set; }
         public DbSet<TechnicalGoalsEnum> TechnicalGoals { get; set; }
         public DbSet<Rival> Rivals { get; set; }
         public DbSet<ExcuseTypes> ExcuseTypes { get; set; }
@@ -130,8 +129,6 @@ namespace RFFM.Api.Infrastructure.Persistence
         public DbSet<Macrociclo> Macrociclos { get; set; }
         public DbSet<Mesociclo> Mesociclos { get; set; }
         public DbSet<Microciclo> Microciclos { get; set; }
-        public DbSet<MicrocicloSubprincipioLink> MicrocicloSubprincipioLinks { get; set; }
-        public DbSet<MicrocicloSubSubPrincipioLink> MicrocicloSubSubPrincipioLinks { get; set; }
 
         // News
         public DbSet<NewsItem> News { get; set; }

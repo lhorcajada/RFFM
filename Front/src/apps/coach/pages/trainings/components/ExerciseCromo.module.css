@@ -57,19 +57,13 @@
   border-color: rgba(255, 255, 255, 0.22);
 }
 
-/* Type-based border accent */
-.type_Physical { border-color: rgba(255, 124, 0, 0.35); }
-.type_Physical:hover { border-color: rgba(255, 124, 0, 0.65); }
-.type_Technical { border-color: rgba(77, 157, 224, 0.35); }
-.type_Technical:hover { border-color: rgba(77, 157, 224, 0.65); }
-.type_Tactical { border-color: rgba(39, 174, 96, 0.35); }
-.type_Tactical:hover { border-color: rgba(39, 174, 96, 0.65); }
-.type_Game { border-color: rgba(230, 178, 33, 0.35); }
-.type_Game:hover { border-color: rgba(230, 178, 33, 0.65); }
-.type_Cognitive { border-color: rgba(155, 89, 182, 0.35); }
-.type_Cognitive:hover { border-color: rgba(155, 89, 182, 0.65); }
-.type_Psychological { border-color: rgba(232, 67, 147, 0.35); }
-.type_Psychological:hover { border-color: rgba(232, 67, 147, 0.65); }
+/* Tipo-based border accent */
+.tipo_Analitico { border-color: rgba(155, 89, 182, 0.35); }
+.tipo_Analitico:hover { border-color: rgba(155, 89, 182, 0.65); }
+.tipo_Situacional { border-color: rgba(77, 157, 224, 0.35); }
+.tipo_Situacional:hover { border-color: rgba(77, 157, 224, 0.65); }
+.tipo_Global { border-color: rgba(233, 30, 99, 0.35); }
+.tipo_Global:hover { border-color: rgba(233, 30, 99, 0.65); }
 
 /* ─── Photo area — aspect ratio so it scales with card width ─── */
 .photoArea {
@@ -122,15 +116,15 @@
   pointer-events: none;
 }
 
-/* ─── Methodology badge — card header, anchored top-right over the photo ─── */
-.methodologyBadge {
+/* ─── Tipo badge — card header, anchored top-right over the photo ─── */
+.tipoBadge {
   position: absolute;
   top: 7px;
   right: 8px;
   z-index: 2;
 }
 
-.methodologyBadgeChip {
+.tipoBadgeChip {
   display: inline-flex;
   align-items: center;
   padding: 3px 8px;
@@ -142,81 +136,30 @@
   color: #fff;
 }
 
-.methodologyBadgeChip_Analitico {
+.tipoBadgeChip_Analitico {
   background: rgba(155, 89, 182, 0.9);
   box-shadow: 0 1px 5px rgba(155, 89, 182, 0.5);
 }
 
-.methodologyBadgeChip_Integrado {
-  background: rgba(22, 160, 133, 0.9);
-  box-shadow: 0 1px 5px rgba(22, 160, 133, 0.5);
+.tipoBadgeChip_Situacional {
+  background: rgba(77, 157, 224, 0.9);
+  box-shadow: 0 1px 5px rgba(77, 157, 224, 0.5);
 }
 
-.methodologyBadgeChip_Global {
+.tipoBadgeChip_Global {
   background: rgba(233, 30, 99, 0.9);
   box-shadow: 0 1px 5px rgba(233, 30, 99, 0.5);
 }
 
-.typeBadge {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 8px;
-  border-radius: 8px;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
-.typeBadge_Physical {
-  background: rgba(255, 124, 0, 0.9);
-  color: #fff;
-  box-shadow: 0 1px 5px rgba(255, 124, 0, 0.5);
-}
-
-.typeBadge_Technical {
-  background: rgba(77, 157, 224, 0.9);
-  color: #fff;
-  box-shadow: 0 1px 5px rgba(77, 157, 224, 0.5);
-}
-
-.typeBadge_Tactical {
-  background: rgba(39, 174, 96, 0.9);
-  color: #fff;
-  box-shadow: 0 1px 5px rgba(39, 174, 96, 0.5);
-}
-
-.typeBadge_Game {
-  background: rgba(230, 178, 33, 0.9);
-  color: #fff;
-  box-shadow: 0 1px 5px rgba(230, 178, 33, 0.5);
-}
-
-.typeBadge_Cognitive {
-  background: rgba(155, 89, 182, 0.9);
-  color: #fff;
-  box-shadow: 0 1px 5px rgba(155, 89, 182, 0.5);
-}
-
-.typeBadge_Psychological {
-  background: rgba(232, 67, 147, 0.9);
-  color: #fff;
-  box-shadow: 0 1px 5px rgba(232, 67, 147, 0.5);
-}
-
-.extraTypeChip {
+.associatedChip {
   height: 18px !important;
   font-size: 9px !important;
   font-weight: 700 !important;
   letter-spacing: 0.03em;
   text-transform: uppercase;
-  background: rgba(255, 255, 255, 0.85) !important;
-  color: #1c1c30 !important;
-}
-
-.extraTypeChip :global(.MuiChip-label) {
-  padding: 0 6px;
+  background: rgba(255, 152, 0, 0.18) !important;
+  color: #ffb74d !important;
+  border: 1px solid rgba(255, 152, 0, 0.4) !important;
 }
 
 /* ─── Body ─── */

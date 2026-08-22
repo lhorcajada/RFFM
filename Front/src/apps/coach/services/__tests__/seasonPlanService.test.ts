@@ -25,24 +25,13 @@ vi.mock("../gameModelService", () => ({
 import seasonPlanService from "../seasonPlanService";
 import type { SeasonPlan } from "../../types/seasonPlan";
 
-function microcicloAdnFields() {
-  return {
-    sesionASubprincipioIds: [],
-    sesionASubSubPrincipioIds: [],
-    sesionAHabilidades: [],
-    sesionBSubprincipioIds: [],
-    sesionBSubSubPrincipioIds: [],
-    sesionBHabilidades: [],
-  };
-}
-
 describe("seasonPlanService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   describe("getByTeamIdAndSeason", () => {
-    it("maps the nested API response into a SeasonPlan with client-side ids", async () => {
+    it("maps the nested API response into a SeasonPlan with client-side ids and Sessions per Microciclo", async () => {
       mockGet.mockResolvedValue({
         data: {
           id: "plan-1",
@@ -70,17 +59,18 @@ describe("seasonPlanService", () => {
                       weekLabel: "Semana 1 — Analítico",
                       startDate: "2026-09-01",
                       endDate: "2026-09-07",
-                      objetivoSesionA: "Objetivo A",
-                      objetivoSesionB: "Objetivo B",
-                      exerciseCount: 0,
-                      sesionASubprincipios: [
-                        { id: "sub-1", numero: "1.1", titulo: "Defensa organizada 1.1", gameMomentName: "Fase defensiva" },
+                      sessions: [
+                        {
+                          id: "sess-1",
+                          name: "Sesión 1",
+                          objetivoGeneral: "Objetivo general",
+                          date: "2026-09-02",
+                          exerciseCount: 3,
+                        },
                       ],
-                      sesionASubSubPrincipios: [{ id: "ssp-1", numero: "1.1.1", rol: "Central" }],
-                      sesionAHabilidades: ["Perfilamiento"],
-                      sesionBSubprincipios: [],
-                      sesionBSubSubPrincipios: [],
-                      sesionBHabilidades: [],
+                      subprincipiosObjetivo: [
+                        { id: "sub-1", numero: "1.1", titulo: "Defensa organizada", gameMomentName: "Fase defensiva" },
+                      ],
                     },
                   ],
                 },
@@ -101,16 +91,59 @@ describe("seasonPlanService", () => {
       expect(result?.macrociclos[0].mesociclos[0].gameZoneId).toBe(2);
       const microciclo = result?.macrociclos[0].mesociclos[0].microciclos[0];
       expect(microciclo?.apiId).toBe("micro-1");
-      expect(microciclo?.exerciseCount).toBe(0);
-      expect(microciclo?.sesionASubprincipios).toEqual([
-        { id: "sub-1", numero: "1.1", titulo: "Defensa organizada 1.1", gameMomentName: "Fase defensiva" },
+      expect(microciclo?.sessions).toEqual([
+        { id: "sess-1", name: "Sesión 1", objetivoGeneral: "Objetivo general", date: "2026-09-02", exerciseCount: 3 },
       ]);
-      expect(microciclo?.sesionASubSubPrincipios).toEqual([{ id: "ssp-1", numero: "1.1.1", rol: "Central" }]);
-      expect(microciclo?.sesionAHabilidades).toEqual(["Perfilamiento"]);
-      expect(microciclo?.sesionASubprincipioIds).toEqual(["sub-1"]);
-      expect(microciclo?.sesionASubSubPrincipioIds).toEqual(["ssp-1"]);
-      expect(microciclo?.sesionBSubprincipios).toEqual([]);
-      expect(microciclo?.sesionBSubprincipioIds).toEqual([]);
+      expect(microciclo?.subprincipiosObjetivo).toEqual([
+        { id: "sub-1", numero: "1.1", titulo: "Defensa organizada", gameMomentName: "Fase defensiva" },
+      ]);
+      expect(microciclo?.subprincipioObjetivoIds).toEqual(["sub-1"]);
+    });
+
+    it("maps an empty sessions array when the Microciclo has no linked sessions", async () => {
+      mockGet.mockResolvedValue({
+        data: {
+          id: "plan-1",
+          teamId: "team-1",
+          seasonId: "season-1",
+          macrociclos: [
+            {
+              id: "macro-1",
+              order: 1,
+              name: "Macrociclo 1",
+              startDate: "2026-09-01",
+              endDate: "2026-11-30",
+              mesociclos: [
+                {
+                  id: "meso-1",
+                  order: 1,
+                  name: "Mesociclo 1.1",
+                  startDate: "2026-09-01",
+                  endDate: "2026-09-21",
+                  gameZoneId: 2,
+                  microciclos: [
+                    {
+                      id: "micro-1",
+                      order: 1,
+                      weekLabel: "Semana 1",
+                      startDate: "2026-09-01",
+                      endDate: "2026-09-07",
+                      sessions: [],
+                      subprincipiosObjetivo: [],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      });
+
+      const result = await seasonPlanService.getByTeamIdAndSeason("team-1", "season-1");
+      const microciclo = result?.macrociclos[0].mesociclos[0].microciclos[0];
+      expect(microciclo?.sessions).toEqual([]);
+      expect(microciclo?.subprincipiosObjetivo).toEqual([]);
+      expect(microciclo?.subprincipioObjetivoIds).toEqual([]);
     });
 
     it("returns null when the API responds 404 (no plan yet for this team/season)", async () => {
@@ -130,7 +163,7 @@ describe("seasonPlanService", () => {
   });
 
   describe("create", () => {
-    it("POSTs a nested request built from the draft and returns the draft with the new id", async () => {
+    it("POSTs a nested request built from the draft (Microciclo without ADN/session fields) and returns the draft with the new id", async () => {
       mockPost.mockResolvedValue({ data: { id: "plan-new" } });
 
       const draft: SeasonPlan = {
@@ -159,10 +192,9 @@ describe("seasonPlanService", () => {
                     weekLabel: "Semana 1",
                     startDate: "2026-09-01",
                     endDate: "2026-09-07",
-                    objetivoSesionA: "A",
-                    objetivoSesionB: "B",
-                    exerciseCount: 0,
-                    ...microcicloAdnFields(),
+                    sessions: [],
+                    subprincipiosObjetivo: [],
+                    subprincipioObjetivoIds: ["sub-1", "sub-2"],
                   },
                 ],
               },
@@ -195,9 +227,7 @@ describe("seasonPlanService", () => {
                     weekLabel: "Semana 1",
                     startDate: "2026-09-01",
                     endDate: "2026-09-07",
-                    objetivoSesionA: "A",
-                    objetivoSesionB: "B",
-                    ...microcicloAdnFields(),
+                    subprincipioObjetivoIds: ["sub-1", "sub-2"],
                   },
                 ],
               },
@@ -206,66 +236,6 @@ describe("seasonPlanService", () => {
         ],
       });
       expect(result.id).toBe("plan-new");
-    });
-
-    it("incluye los enlaces ADN seleccionados por sesión en el request", async () => {
-      mockPost.mockResolvedValue({ data: { id: "plan-new" } });
-
-      const draft: SeasonPlan = {
-        id: "",
-        teamId: "team-1",
-        seasonId: "season-1",
-        macrociclos: [
-          {
-            id: -1,
-            order: 1,
-            name: "Macrociclo 1",
-            startDate: "2026-09-01",
-            endDate: "2026-11-30",
-            mesociclos: [
-              {
-                id: -2,
-                order: 1,
-                name: "Mesociclo 1.1",
-                startDate: "2026-09-01",
-                endDate: "2026-09-21",
-                gameZoneId: 2,
-                microciclos: [
-                  {
-                    id: -3,
-                    order: 1,
-                    weekLabel: "Semana 1",
-                    startDate: "2026-09-01",
-                    endDate: "2026-09-07",
-                    objetivoSesionA: "A",
-                    objetivoSesionB: "B",
-                    exerciseCount: 0,
-                    sesionASubprincipioIds: ["sub-1"],
-                    sesionASubSubPrincipioIds: ["ssp-1"],
-                    sesionAHabilidades: ["Perfilamiento"],
-                    sesionBSubprincipioIds: [],
-                    sesionBSubSubPrincipioIds: [],
-                    sesionBHabilidades: [],
-                    sesionASubprincipios: [],
-                    sesionASubSubPrincipios: [],
-                    sesionBSubprincipios: [],
-                    sesionBSubSubPrincipios: [],
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-      };
-
-      await seasonPlanService.create(draft);
-
-      const requestBody = mockPost.mock.calls[0][1];
-      const microcicloRequest = requestBody.macrociclos[0].mesociclos[0].microciclos[0];
-      expect(microcicloRequest.sesionASubprincipioIds).toEqual(["sub-1"]);
-      expect(microcicloRequest.sesionASubSubPrincipioIds).toEqual(["ssp-1"]);
-      expect(microcicloRequest.sesionAHabilidades).toEqual(["Perfilamiento"]);
-      expect(microcicloRequest.sesionBSubprincipioIds).toEqual([]);
     });
   });
 
@@ -303,6 +273,56 @@ describe("seasonPlanService", () => {
           },
         ],
       });
+    });
+
+    it("incluye subprincipioObjetivoIds por Microciclo en el payload de guardado", async () => {
+      mockPut.mockResolvedValue({});
+
+      const draft: SeasonPlan = {
+        id: "plan-1",
+        teamId: "team-1",
+        seasonId: "season-1",
+        macrociclos: [
+          {
+            id: 1,
+            apiId: "macro-1",
+            order: 1,
+            name: "Macrociclo 1",
+            startDate: "2026-09-01",
+            endDate: "2026-11-30",
+            mesociclos: [
+              {
+                id: 2,
+                apiId: "meso-1",
+                order: 1,
+                name: "Mesociclo 1.1",
+                startDate: "2026-09-01",
+                endDate: "2026-09-21",
+                gameZoneId: 2,
+                microciclos: [
+                  {
+                    id: 3,
+                    apiId: "micro-1",
+                    order: 1,
+                    weekLabel: "Semana 1",
+                    startDate: "2026-09-01",
+                    endDate: "2026-09-07",
+                    sessions: [],
+                    subprincipiosObjetivo: [],
+                    subprincipioObjetivoIds: ["sub-1"],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      };
+
+      await seasonPlanService.update(draft);
+
+      const requestBody = mockPut.mock.calls[0][1];
+      const microcicloRequest = requestBody.macrociclos[0].mesociclos[0].microciclos[0];
+      expect(microcicloRequest.subprincipioObjetivoIds).toEqual(["sub-1"]);
     });
   });
 

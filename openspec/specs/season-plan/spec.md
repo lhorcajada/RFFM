@@ -1,10 +1,13 @@
 # season-plan Specification
 
 ## Purpose
-TBD - created by archiving change 2026-08-11-add-coach-season-planning. Update Purpose after archive.
+TBD - created by archiving change 2026-08-11-add-coach-season-planning. Updated by archiving
+2026-08-21-session-exercise-plan-redesign.
+
 ## Requirements
+
 ### Requirement: Team has one season plan per season
-A `Team` SHALL have at most one `SeasonPlan` per `Season`, composed of an ordered, non-empty list of `Macrociclo`s. Each `Macrociclo` SHALL have an `Order`, `Name`, `StartDate`, `EndDate`, and an ordered list of `Mesociclo`s. Each `Mesociclo` SHALL have an `Order`, `Name`, `StartDate`, `EndDate`, a `GameZoneId` (referencing the existing field-zone catalog), and an ordered list of `Microciclo`s. Each `Microciclo` SHALL have an `Order`, `WeekLabel`, `StartDate`, `EndDate`, `ObjetivoSesionA`, and `ObjetivoSesionB`.
+A `Team` SHALL have at most one `SeasonPlan` per `Season`, composed of an ordered, non-empty list of `Macrociclo`s. Each `Macrociclo` SHALL have an `Order`, `Name`, `StartDate`, `EndDate`, and an ordered list of `Mesociclo`s. Each `Mesociclo` SHALL have an `Order`, `Name`, `StartDate`, `EndDate`, a `GameZoneId` (referencing the existing field-zone catalog), and an ordered list of `Microciclo`s. Each `Microciclo` SHALL have an `Order`, `WeekLabel`, `StartDate`, and `EndDate`.
 
 #### Scenario: Team with no season plan yet
 - **WHEN** a `Team` has never had a `SeasonPlan` saved for a given `Season`
@@ -27,7 +30,7 @@ Coach and Admin roles SHALL be able to create, edit (metadata and full tree, inc
 
 #### Scenario: Coach deletes the season plan
 - **WHEN** a Coach or Admin confirms deletion of a team's season plan
-- **THEN** the `SeasonPlan` and its full tree are removed, any `Exercise` previously linked to one of its `Microciclo`s has that link cleared (not deleted), and the team returns to "no season plan" state for that season
+- **THEN** the `SeasonPlan` and its full tree are removed, and any `TrainingSession` previously linked to one of its `Microciclo`s has that link cleared (not deleted)
 
 #### Scenario: Non-coach/admin cannot create, edit, or delete
 - **WHEN** a Player or FamilyMember accesses the Coach app's season plan area
@@ -55,45 +58,32 @@ The backend SHALL expose `GET /api/season-plans?teamId=&seasonId=`, `POST /api/s
 - **WHEN** `GET /api/season-plans?teamId=&seasonId=` is called for a team/season with no `SeasonPlan`
 - **THEN** the response is `204 No Content`
 
-#### Scenario: GET includes exercise coverage per Microciclo
+#### Scenario: GET includes session coverage per Microciclo
 - **WHEN** `GET /api/season-plans?teamId=&seasonId=` is called for a team/season with a `SeasonPlan`
-- **THEN** each `Microciclo` in the response includes an `ExerciseCount` reflecting how many `Exercise`s currently link to it (0 if none)
+- **THEN** each `Microciclo` in the response includes a `Sessions` list of `TrainingSession` summaries (`Id`, `Name`, `ObjetivoGeneral`, `Date`, `ExerciseCount`) linked to it, empty if none
 
 #### Scenario: POST rejects a duplicate plan
 - **WHEN** `POST /api/season-plans` is called for a Team+Season that already has a `SeasonPlan`
 - **THEN** the backend responds `409 Conflict` and no change is persisted
 
-### Requirement: Microciclo sessions link to concrete ADN targets
-Each `Microciclo` SHALL have two sessions (A: Defensa organizada + Transición defensa-ataque; B: Ataque organizado + Transición ataque-defensa), each optionally linked to specific `Subprincipio`s and `SubSubPrincipio`s from the team's current `GameModel`, plus a set of `Habilidad` names drawn from the closed 15-value vocabulary. Free-text objectives (`ObjetivoSesionA`/`ObjetivoSesionB`) remain and are not replaced by these links.
+### Requirement: Season plan associates sessions, not exercises
+A `Microciclo`'s coverage is determined by its linked `TrainingSession`s (via `TrainingSession.MicrocicloId`), not by any direct exercise link. Creating a session from a Microciclo card SHALL pre-fill that session's plan association.
 
-#### Scenario: Coach links a Subprincipio to a session
-- **WHEN** a Coach editing a Microciclo selects a `Subprincipio` from the team's `GameModel` for Sesión A
-- **THEN** that link is saved and shown alongside Sesión A's other content
-
-#### Scenario: Habilidad selection restricted to the closed vocabulary
-- **WHEN** a Coach selects Habilidades imprescindibles for a session
-- **THEN** only the 15-value closed vocabulary is offered, and any value outside it is rejected by the backend
-
-#### Scenario: Team with no GameModel yet
-- **WHEN** a Coach edits a Microciclo for a team with no `GameModel` for that season
-- **THEN** the Subprincipio/SubSubPrincipio pickers show an empty state directing the coach to build the ADN first, while the free-text objectives and Habilidad selection remain editable
-
-#### Scenario: Linked Subprincipio later removed from the GameModel
-- **WHEN** a `Subprincipio` referenced by a Microciclo session is removed from the team's `GameModel` (via a `GameModel` edit)
-- **THEN** the corresponding link is silently removed from the Microciclo, without affecting the rest of the Microciclo's content
-
-#### Scenario: Exercise creation shows the session's concrete targets
-- **WHEN** a Coach creates an exercise from a Microciclo's session
-- **THEN** the exercise form displays that session's linked Subprincipios, SubSubPrincipios, and Habilidades as read-only context
+#### Scenario: Creating a session from a Microciclo card
+- **WHEN** a Coach uses the "Crear sesión" action on a Microciclo card in the Planificación tab
+- **THEN** the created session is linked to that Microciclo (`MicrocicloId` set)
 
 ### Requirement: Season plan visibility in Coach app
-The Coach web app SHALL provide a "Planificación" tab (alongside "Ejercicios" and "Sesiones") showing the season plan tree with, per `Microciclo`, a visible indicator of whether it has any linked exercises.
+The Coach web app SHALL provide a "Planificación" tab as the **first** tab (before "Ejercicios" and "Sesiones"), showing the season plan tree with, per `Microciclo`, its linked sessions and a visible indicator of session coverage.
 
-#### Scenario: Microciclo with no linked exercises
-- **WHEN** the Planificación tab renders a `Microciclo` with `ExerciseCount = 0`
-- **THEN** it is shown with a distinct "sin ejercicios" indicator, visually distinguishable from covered weeks
+#### Scenario: Microciclo with no linked sessions
+- **WHEN** the Planificación tab renders a `Microciclo` with an empty `Sessions` list
+- **THEN** it is shown with a distinct "sin sesiones" indicator, visually distinguishable from covered weeks
 
-#### Scenario: Microciclo with linked exercises
-- **WHEN** the Planificación tab renders a `Microciclo` with `ExerciseCount > 0`
-- **THEN** it shows the count of linked exercises
+#### Scenario: Microciclo with linked sessions
+- **WHEN** the Planificación tab renders a `Microciclo` with one or more linked sessions
+- **THEN** it shows the list of sessions (name, date, exercise count) and a count of linked sessions
 
+#### Scenario: Planificación is the default landing tab
+- **WHEN** a Coach opens the Entrenamientos/Trainings area
+- **THEN** the Planificación tab is shown first and selected by default
