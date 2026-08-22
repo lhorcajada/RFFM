@@ -1,56 +1,42 @@
-# Plantilla de ejercicio — estructura estándar
+# Plantilla de ejercicio
 
-*Convenciones (Tipo de ejercicio, porteros, relación con Plantilla de sesión, referencia de variables tácticas): ver `Convenciones-Plantillas.md` en el Proyecto.*
+*Convenciones de fondo (qué es Analítico/Situacional/Global, cómo se diseñan los Niveles): siguen en `Convenciones-Plantillas.md`, sin cambios. Esta versión solo reduce el número de campos, no las reglas de contenido.*
 
 ---
 
-## Título del ejercicio
+## Título del ejercicio · Tipo: Analítico / Situacional / Global
 
-**Tipo de ejercicio:** Analítico / Situacional / Global
+**Objetivo:** una frase concreta de qué decisión o gesto se entrena hoy. *Si esta frase serviría sin cambiar una palabra para diez ejercicios distintos del mismo tema, no está lo bastante aterrizada — tiene que poder distinguirse de la semana pasada.*
 
-### Objetivo
-
-- **Objetivo general:**
-- **Objetivo por rol / equipo:**
+**Objetivo por rol** *(solo si hay roles distintos con objetivos distintos — si no, se omite)*
 
 ### Relación con el modelo de juego
 
-*Dejar en blanco si el ejercicio no pertenece al modelo (p. ej. trabajo físico).*
+*Dejar en blanco si el ejercicio no pertenece al modelo (ej. trabajo físico puro).*
 
-**Fase:**
-- Principio:
-- Subprincipio — **[FOCO / INTEGRADO]**
-  - Sub-subprincipio X.Y.Z — *Rol: descripción breve del gesto, tal como aparece en el modelo* — **[FOCO / INTEGRADO]**
-    - Habilidades imprescindibles:
+- **Fase — Principio — Subprincipio X.Y — Título del subprincipio** *(en negrita si es FOCO de la sesión, normal si es INTEGRADO)*
+  - X.Y.Z — Rol: acción tal como aparece en el modelo
+  - Habilidades imprescindibles: lista
 
-*(el número se mantiene para trazabilidad con el modelo, pero rol+descripción van siempre junto al número — así no hay que ir a buscarlo)*
+*(repetir el bloque si el ejercicio conecta más de una fase)*
 
-*(repetir el bloque Fase tantas veces como fases conecte el ejercicio)*
+### Niveles
 
-### Variables tácticas — cómo dificultar o facilitar
+*Mínimo 2, hasta 5 si las palancas reales lo permiten. Reglas completas en Convenciones-Plantillas.md — resumen: solo palancas estructurales (cantidad/tamaño/espacio), nunca una instrucción de comportamiento; ningún nivel con éxito garantizado.*
 
-*Solo las que de verdad cambian el gesto en este ejercicio concreto — no una lista a marcar entera. Por cada una, la palanca para subir o bajar la exigencia. Categorías nuevas libres (catálogo completo y a qué habilidad suele afectar cada una: ver Convenciones-Plantillas.md).*
-
-- **[Variable]:** más difícil → ... · más fácil → ...
+| Nivel | [Palanca 1] | [Palanca 2] |
+|---|---|---|
+| 1 | | |
+| 2 | | |
 
 ### Logística
 
-- **Tiempo / series / descanso:**
-- **Espacio:** (dimensiones exactas)
-- **Material:**
-- **Nº jugadores:**
-- **Porteros:** (si no participan, qué hacen en paralelo)
-- **Montaje:** (usa el fijo de la sesión / requiere ajuste — cuánto tarda)
-- **Rotación:**
-- **Cola de espera:**
-- **Si faltan jugadores:**
-- **Variante rápida:** *(solo si no hay Variables tácticas que ya lo cubran arriba — p. ej. ejercicios físicos sin relación con el modelo)*
+Tiempo · Material · Nº jugadores. *(una línea o dos, en prosa — no hace falta un campo por dato. El espacio y sus dimensiones ya quedan marcados en el Dibujo del ejercicio y en el Mapa de campo general de la sesión — no se repiten aquí en texto.)*
+
+**Porteros:** *(solo si el ejercicio los necesita o si hay que decir qué hacen en paralelo)*
 
 ### Ejecución
 
-- **Descripción:** *(el único campo abierto de verdad — todo el detalle que haga falta)*
-- **Dibujo:**
-- **Condiciones / reglas:**
-- **Puntos:**
-- **Comodines:**
-- **Posiciones:**
+**Dibujo:**
+
+**Descripción:** desarrollo completo del ejercicio — incluye aquí mismo las condiciones/reglas, el sistema de puntos, los comodines y las posiciones si hacen falta, como un único texto corrido, no campos separados.
