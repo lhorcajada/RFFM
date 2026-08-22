@@ -26,6 +26,12 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.UserClubs
             builder.Property(tp => tp.LeftDate)
                 .IsRequired(false);
 
+            builder.Property(tp => tp.LinkCode)
+                .IsRequired(false)
+                .HasMaxLength(ValidationConstants.PlayerLinkCodeLength);
+
+            builder.HasIndex(tp => tp.LinkCode);
+
             // Relación con Team
             builder.HasOne(tp => tp.Team)
                 .WithMany(t => t.Players)

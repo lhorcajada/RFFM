@@ -19,6 +19,7 @@
         public const string SeasonEndDateCannotBeInThePast = "Season end date cannot be in the past.";
         public const int TeamNameMaxLength = 500;
         public const int TeamJoinCodeLength = 8;
+        public const int PlayerLinkCodeLength = 8;
         public const int TechnicalNameMaxLength = 200;
         public const string TechnicalNameCannotBeNullEmpty = "Technical name cannot be null or empty.";
         public const string TechnicalNameCannotExceedMaxLength = "Technical name cannot exceed {0} characters.";

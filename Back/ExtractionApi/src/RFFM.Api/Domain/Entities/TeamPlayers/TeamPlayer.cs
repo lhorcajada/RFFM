@@ -26,6 +26,7 @@ namespace RFFM.Api.Domain.Entities.TeamPlayers
         public Player Player { get; set; } = null!;
         public string SeasonId { get; set; } = null!;
         public Season Season { get; set; } = null!;
+        public string? LinkCode { get; private set; }
 
         public int? Age { get; set; }
         public int? BirthYear { get; set; }
@@ -170,6 +171,12 @@ namespace RFFM.Api.Domain.Entities.TeamPlayers
             }
 
             FamilyMembers = list;
+        }
+
+        public string GenerateLinkCode()
+        {
+            LinkCode = Guid.NewGuid().ToString("N")[..ValidationConstants.PlayerLinkCodeLength].ToUpperInvariant();
+            return LinkCode;
         }
     }
 

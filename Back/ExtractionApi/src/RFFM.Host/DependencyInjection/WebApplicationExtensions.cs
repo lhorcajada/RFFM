@@ -496,6 +496,12 @@ namespace RFFM.Host.DependencyInjection
                         // can read it without a row in this table.
                         ("TeamRulesDocument", CoachFeatureRoutes.TeamRulesDocument, "Coach", 3, false),
                         ("TeamRulesDocument", CoachFeatureRoutes.TeamRulesDocument, "ClubDirector", 3, false),
+
+                        // TeamPlayerLinkRequests: ReadWrite for Coach/ClubDirector only — approving/rejecting
+                        // player-link requests and generating a TeamPlayer.LinkCode is a coach-management action,
+                        // same access pattern as ClubRegistrations.
+                        ("TeamPlayerLinkRequests", CoachFeatureRoutes.TeamPlayerLinkRequests, "Coach", 3, false),
+                        ("TeamPlayerLinkRequests", CoachFeatureRoutes.TeamPlayerLinkRequests, "ClubDirector", 3, false),
                     };
 
                     foreach (var (featureName, featureRoute, roleName, permTypeId, isEditable) in entries)

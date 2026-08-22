@@ -32,5 +32,6 @@ namespace RFFM.Api.Domain.Entities
         public const string ClubPlayers = "/coach/clubs/players";
         public const string ClubTeams = "/coach/clubs/teams";
         public const string ClubRegistrations = "/coach/clubs/registrations";
+        public const string TeamPlayerLinkRequests = "/coach/teams/player-link-requests";
     }
 }

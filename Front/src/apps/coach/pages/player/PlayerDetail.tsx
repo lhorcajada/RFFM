@@ -36,6 +36,7 @@ import Demarcations from "./components/Demarcations";
 import ContactInfo from "./components/ContactInfo";
 import PhysicalInfo from "./components/PhysicalInfo";
 import FamilyMembers from "./components/FamilyMembers";
+import PlayerLinkCode from "./components/PlayerLinkCode";
 import InjuryDialog from "./components/InjuryDialog";
 import InjuryHistoryPanel from "./components/InjuryHistoryPanel";
 import { usePlayerDetailData } from "./hooks/usePlayerDetailData";
@@ -197,6 +198,7 @@ export default function PlayerDetail() {
                   <Tab label="Contacto" />
                   <Tab label="Físico" />
                   <Tab label="Familia" />
+                  <Tab label="Vinculación" />
                   <Tab
                     label={
                       <Badge
@@ -340,7 +342,9 @@ export default function PlayerDetail() {
 
                 {activeTab === 3 && <FamilyMembers teamPlayer={teamPlayer} />}
 
-                {activeTab === 4 && (
+                {activeTab === 4 && <PlayerLinkCode teamPlayerId={teamPlayer.id} />}
+
+                {activeTab === 5 && (
                   <>
                     <div className={styles.injuryActions}>
                       {canEdit && (
@@ -365,7 +369,7 @@ export default function PlayerDetail() {
                   </>
                 )}
 
-                {activeTab === 5 && (
+                {activeTab === 6 && (
                   <div className={styles.statsTab}>
                     {loadingHistory && (
                       <div className={styles.statsLoading}>

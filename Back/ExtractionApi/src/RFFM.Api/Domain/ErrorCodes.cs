@@ -32,6 +32,10 @@ namespace RFFM.Api.Domain
         public const string LinkedPlayerRequired = "LinkedPlayerRequired";
         public const string LinkedPlayerNotInTeam = "LinkedPlayerNotInTeam";
         public const string LinkedPlayerAlreadyClaimed = "LinkedPlayerAlreadyClaimed";
+        public const string PlayerLinkCodeInvalid = "PlayerLinkCodeInvalid";
+        public const string LinkedPlayerRequestPending = "LinkedPlayerRequestPending";
+        public const string TeamPlayerLinkRequestNotFound = "TeamPlayerLinkRequestNotFound";
+        public const string TeamPlayerLinkRequestAlreadyDecided = "TeamPlayerLinkRequestAlreadyDecided";
         public const string ClubJoinRequestNotFound = "ClubJoinRequestNotFound";
         public const string ClubJoinRequestAlreadyDecided = "ClubJoinRequestAlreadyDecided";
         public const string ClubJoinRequestCancelForbidden = "ClubJoinRequestCancelForbidden";

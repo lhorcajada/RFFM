@@ -11,6 +11,14 @@ namespace RFFM.Api.Features.Scopes
         Task<ScopeAuthorizationResult> EnsureCreatorAsync(
             string userId, string scopeKind, string scopeId, CancellationToken cancellationToken);
 
+        /// <summary>
+        /// Like <see cref="EnsureCreatorAsync"/> but accepts ANY member of the scope (coach/director
+        /// with a UserTeam/UserClub row), not just the creator. Use for routine team-management actions
+        /// that aren't ownership/billing-sensitive (unlike club-join approval, invitation regeneration).
+        /// </summary>
+        Task<ScopeAuthorizationResult> EnsureMemberAsync(
+            string userId, string scopeKind, string scopeId, CancellationToken cancellationToken);
+
         Task<ActiveScopeInfo?> FindActiveScopeAsync(string userId, CancellationToken cancellationToken);
 
         Task<SubscriptionEvictionResult> EnsureSubscriptionActiveOrEvictAsync(
@@ -117,6 +125,84 @@ namespace RFFM.Api.Features.Scopes
                 Id = team.Id,
                 Name = team.Name,
                 ParentClubId = team.ClubId
+            });
+        }
+
+        public async Task<ScopeAuthorizationResult> EnsureMemberAsync(
+            string userId, string scopeKind, string scopeId, CancellationToken cancellationToken)
+        {
+            if (!ScopeKinds.IsValid(scopeKind) || string.IsNullOrEmpty(scopeId))
+            {
+                return ScopeAuthorizationResult.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Scope inválido",
+                    "El tipo o identificador de scope no es válido.");
+            }
+
+            if (scopeKind == ScopeKinds.Club)
+            {
+                var club = await _db.Clubs
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(c => c.Id == scopeId, cancellationToken);
+                if (club is null)
+                {
+                    return ScopeAuthorizationResult.Fail(
+                        StatusCodes.Status404NotFound,
+                        "Scope no encontrado",
+                        "No existe el club indicado.");
+                }
+
+                var isMember = await _db.UserClubs
+                    .AsNoTracking()
+                    .AnyAsync(uc => uc.ApplicationUserId == userId && uc.ClubId == scopeId, cancellationToken);
+                if (!isMember)
+                {
+                    return ScopeAuthorizationResult.Fail(
+                        StatusCodes.Status403Forbidden,
+                        "Acción no permitida",
+                        "No perteneces a este scope.");
+                }
+
+                return ScopeAuthorizationResult.Ok(new ScopeContext
+                {
+                    Kind = ScopeKinds.Club,
+                    Id = club.Id,
+                    Name = club.Name
+                });
+            }
+
+            var teamForMember = await _db.Teams
+                .AsNoTracking()
+                .FirstOrDefaultAsync(t => t.Id == scopeId, cancellationToken);
+            if (teamForMember is null)
+            {
+                return ScopeAuthorizationResult.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Scope no encontrado",
+                    "No existe el equipo indicado.");
+            }
+
+            var isTeamMember = await _db.UserTeams
+                .AsNoTracking()
+                .AnyAsync(ut => ut.ApplicationUserId == userId && ut.TeamId == scopeId, cancellationToken);
+            var isParentClubMember = await _db.UserClubs
+                .AsNoTracking()
+                .AnyAsync(uc => uc.ApplicationUserId == userId && uc.ClubId == teamForMember.ClubId, cancellationToken);
+
+            if (!isTeamMember && !isParentClubMember)
+            {
+                return ScopeAuthorizationResult.Fail(
+                    StatusCodes.Status403Forbidden,
+                    "Acción no permitida",
+                    "No perteneces a este scope.");
+            }
+
+            return ScopeAuthorizationResult.Ok(new ScopeContext
+            {
+                Kind = ScopeKinds.Team,
+                Id = teamForMember.Id,
+                Name = teamForMember.Name,
+                ParentClubId = teamForMember.ClubId
             });
         }
 

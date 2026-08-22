@@ -254,4 +254,14 @@ export async function dischargeActiveInjury(teamPlayerId: string): Promise<boole
   return result != null;
 }
 
-export default { getPlayersByTeam, addPlayerToTeam, getTeamPlayerById, updateTeamPlayer, getPlayerInjuries, createPlayerInjury, updatePlayerInjury, deletePlayerInjury, dischargeActiveInjury };
+export async function getTeamPlayerLinkCode(teamPlayerId: string): Promise<{ teamPlayerId: string; linkCode: string }> {
+  const res = await client.get(`/api/team-players/${encodeURIComponent(teamPlayerId)}/link-code`);
+  return res.data;
+}
+
+export async function regenerateTeamPlayerLinkCode(teamPlayerId: string): Promise<{ teamPlayerId: string; linkCode: string }> {
+  const res = await client.post(`/api/team-players/${encodeURIComponent(teamPlayerId)}/link-code/regenerate`);
+  return res.data;
+}
+
+export default { getPlayersByTeam, addPlayerToTeam, getTeamPlayerById, updateTeamPlayer, getPlayerInjuries, createPlayerInjury, updatePlayerInjury, deletePlayerInjury, dischargeActiveInjury, getTeamPlayerLinkCode, regenerateTeamPlayerLinkCode };
