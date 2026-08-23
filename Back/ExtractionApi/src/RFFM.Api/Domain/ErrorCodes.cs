@@ -99,5 +99,10 @@ namespace RFFM.Api.Domain
         public const string SeasonPlanNotFound = "SeasonPlanNotFound";
         public const string SeasonPlanAccessDenied = "SeasonPlanAccessDenied";
         public const string SeasonPlanAlreadyExists = "SeasonPlanAlreadyExists";
+
+        // Players (Features/Coaches/Players/Commands/UpdateTeamPlayer.cs) - openspec change
+        // player-self-edit-physical-family-contact: Player/FamilyMember callers may only edit
+        // their own linked TeamPlayer.
+        public const string TeamPlayerEditForbidden = "TeamPlayerEditForbidden";
     }
 }

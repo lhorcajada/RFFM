@@ -23,9 +23,11 @@ using RFFM.Api.Domain.Entities.Players;
 using RFFM.Api.Domain.Entities.Seasons;
 using RFFM.Api.Domain.Entities.TeamPlayers;
 using RFFM.Api.Domain.Models;
+using RFFM.Api.Domain.Services;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Features.Coaches.Players.Commands;
 using RFFM.Api.Infrastructure.Persistence;
+using RFFM.Api.Infrastructure.Services;
 using RFFM.Api.Tests.Fixtures;
 using Xunit;
 
@@ -103,6 +105,8 @@ namespace RFFM.Api.Tests.IntegrationTests
                         .ConfigureServices(services =>
                         {
                             services.AddRouting();
+                            services.AddHttpContextAccessor();
+                            services.AddScoped<ICurrentUserService, CurrentUserService>();
                             services.AddAuthentication(TestAuthHandler.SchemeName)
                                 .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(TestAuthHandler.SchemeName, _ => { });
                             services.AddAuthorization();

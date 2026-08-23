@@ -33,6 +33,7 @@
   "SkillNotFound": "The requested skill was not found.",
   "SkillAccessDenied": "You don't have access to this skill.",
   "TeamListAccessDenied": "You don't have access to this team list.",
+  "TeamPlayerEditForbidden": "You don't have permission to edit this player's profile.",
   "team_has_players": "You can't delete this team because it still has players assigned.",
   "NotActiveSeason": "There is no active season.",
   "season_has_related_data": "You can't delete this season because it has related data.",

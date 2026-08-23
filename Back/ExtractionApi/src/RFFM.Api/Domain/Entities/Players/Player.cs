@@ -12,6 +12,9 @@ namespace RFFM.Api.Domain.Entities.Players
         public string Alias { get; private set; } = null!;
         public DateTime? BirthDate { get; private set; }
         public string? Dni { get; private set; }
+        public string? Enfermedades { get; private set; }
+        public string? Alergias { get; private set; }
+        public string? Procedencia { get; private set; }
         public int? Age => CalculateAge();
         public int? BirthYear => CalculateBirthYear();
         public string? LastTeamName { get; set; } = null!;
@@ -33,6 +36,9 @@ namespace RFFM.Api.Domain.Entities.Players
            UpdateAlias(modelBase.Alias);
            UpdateBirthDate(modelBase.BirthDate);
            UpdateDni(modelBase.Dni);
+           UpdateEnfermedades(modelBase.Enfermedades);
+           UpdateAlergias(modelBase.Alergias);
+           UpdateProcedencia(modelBase.Procedencia);
            UpdateClubId(modelBase.ClubId);
            SetLastTeamName(modelBase.LastTeamName);
            SetLastTeamCategory(modelBase.LastTeamCategory);
@@ -95,6 +101,21 @@ namespace RFFM.Api.Domain.Entities.Players
         {
             ValidationPlayer.ValidateDni(dni);
             Dni = dni;
+        }
+        public void UpdateEnfermedades(string? enfermedades)
+        {
+            ValidationPlayer.ValidateEnfermedades(enfermedades);
+            Enfermedades = enfermedades;
+        }
+        public void UpdateAlergias(string? alergias)
+        {
+            ValidationPlayer.ValidateAlergias(alergias);
+            Alergias = alergias;
+        }
+        public void UpdateProcedencia(string? procedencia)
+        {
+            ValidationPlayer.ValidateProcedencia(procedencia);
+            Procedencia = procedencia;
         }
         public void UpdateClubId(string clubId)
         {

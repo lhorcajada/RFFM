@@ -49,6 +49,7 @@ export type FamilyResponse = {
   phone?: string | null;
   email?: string | null;
   familyMember?: string | null;
+  dni?: string | null;
 };
 
 export type InjuryRecord = {
@@ -172,19 +173,19 @@ export async function updateTeamPlayer(
       lastName?: string | null;
       alias?: string | null;
       urlPhoto?: string | null;
+      enfermedades?: string | null;
+      alergias?: string | null;
+      procedencia?: string | null;
     }>;
   }>
 ): Promise<TeamPlayerResponse | null> {
   if (!id) return null;
-  try {
-    const resp = await client.put<TeamPlayerResponse>(
-      `/api/catalog/teamplayer/${encodeURIComponent(id)}`,
-      payload
-    );
-    return resp.data ?? null;
-  } catch (e) {
-    return null;
-  }
+  const resp = await client.put<TeamPlayerResponse>(
+    `/api/catalog/teamplayer/${encodeURIComponent(id)}`,
+    payload,
+    { suppressErrorRedirect: true }
+  );
+  return resp.data ?? null;
 }
 
 export async function getPlayerInjuries(teamPlayerId: string): Promise<InjuryRecord[]> {

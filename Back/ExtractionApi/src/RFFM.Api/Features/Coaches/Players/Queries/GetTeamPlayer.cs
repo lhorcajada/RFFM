@@ -39,7 +39,7 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
         public record ContactInfoResponse(AddressResponse? Address, string? Phone, string? Email);
         public record PhysicalInfoResponse(decimal? Height, decimal? Weight, string? DominantFoot);
         public record DemarcationResponse(int? ActivePositionId, string? ActivePositionName, string[] PossibleDemarcations);
-        public record FamilyResponse(string? Name, string? Phone, string? Email, string? FamilyMember);
+        public record FamilyResponse(string? Name, string? Phone, string? Email, string? FamilyMember, string? Dni = null);
         public record InjuryInfoResponse(string Id, DateTime StartDate, string InjuryType, string? Description, string? EstimatedRecovery, DateTime? EndDate);
 
         public record TeamPlayerResponse(
@@ -86,6 +86,9 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                     LastName = item.Player.LastName,
                     BirthDate = item.Player.BirthDate,
                     Dni = item.Player.Dni,
+                    Enfermedades = item.Player.Enfermedades,
+                    Alergias = item.Player.Alergias,
+                    Procedencia = item.Player.Procedencia,
                     UrlPhoto = item.Player.UrlPhoto,
                     ClubId = item.Player.ClubId
                 };
@@ -121,7 +124,7 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
 
                 // family members mapping
                 var fams = (item.FamilyMembers ?? new List<Family>())
-                    .Select(f => new FamilyResponse(f.Name, f.Phone, f.Email, f.FamilyMember))
+                    .Select(f => new FamilyResponse(f.Name, f.Phone, f.Email, f.FamilyMember, f.Dni))
                     .ToArray();
 
                 // injury info — active injury (no EndDate)

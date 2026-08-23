@@ -15,7 +15,8 @@ interface UsePlayerDetailDataResult {
 
 export function usePlayerDetailData(
   id: string | undefined,
-  dominantFootMap: Record<string, number>
+  dominantFootMap: Record<string, number>,
+  familyMemberMap: Record<string, number> = {}
 ): UsePlayerDetailDataResult {
   const [teamPlayer, setTeamPlayer] = useState<any | null>(null);
   const [form, setForm] = useState<any>({});
@@ -53,16 +54,32 @@ export function usePlayerDetailData(
             dorsal: tp.dorsal ?? null,
             phone: tp.contactInfo?.phone ?? "",
             email: tp.contactInfo?.email ?? "",
+            street: tp.contactInfo?.address?.street ?? "",
+            city: tp.contactInfo?.address?.city ?? "",
+            postalCode: tp.contactInfo?.address?.postalCode ?? "",
+            province: tp.contactInfo?.address?.province ?? "",
+            country: tp.contactInfo?.address?.country ?? "",
+            procedencia: tp.player?.procedencia ?? "",
             height: tp.physicalInfo?.height ?? null,
             weight: tp.physicalInfo?.weight ?? null,
             dominantFoot: tp.physicalInfo?.dominantFoot ?? "",
             dominantFootId: tp.physicalInfo?.dominantFoot
               ? dominantFootMap[tp.physicalInfo?.dominantFoot] ?? null
               : null,
+            enfermedades: tp.player?.enfermedades ?? "",
+            alergias: tp.player?.alergias ?? "",
             activePositionName: tp.demarcation?.activePositionName ?? "",
             activePositionId: tp.demarcation?.activePositionId ?? null,
             possibleDemarcations: (tp.demarcation?.possibleDemarcations ?? []).join(", "),
             urlPhoto: tp.player?.urlPhoto ?? tp.player?.photoUrl ?? null,
+            familyMembers: (tp.familyMembers ?? []).map((f: any) => ({
+              name: f.name ?? "",
+              phone: f.phone ?? "",
+              email: f.email ?? "",
+              familyMember: f.familyMember ?? "",
+              familyMemberId: f.familyMember ? familyMemberMap[f.familyMember] ?? null : null,
+              dni: f.dni ?? "",
+            })),
           });
 
           const photoUrl = tp.player?.urlPhoto ?? tp.player?.photoUrl ?? null;
@@ -89,14 +106,23 @@ export function usePlayerDetailData(
           dorsal: null,
           phone: "",
           email: "",
+          street: "",
+          city: "",
+          postalCode: "",
+          province: "",
+          country: "",
+          procedencia: "",
           height: null,
           weight: null,
           dominantFoot: "",
           dominantFootId: null,
+          enfermedades: "",
+          alergias: "",
           activePositionName: "",
           activePositionId: null,
           possibleDemarcations: "",
           urlPhoto: p.urlPhoto ?? null,
+          familyMembers: [],
         });
 
         if (p.urlPhoto) {
@@ -125,7 +151,7 @@ export function usePlayerDetailData(
         }
       }
     };
-  }, [id, dominantFootMap]);
+  }, [id, dominantFootMap, familyMemberMap]);
 
   return {
     teamPlayer,

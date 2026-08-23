@@ -33,6 +33,7 @@
   "SkillNotFound": "No se encontró la habilidad solicitada.",
   "SkillAccessDenied": "No tienes acceso a esta habilidad.",
   "TeamListAccessDenied": "No tienes acceso a esta lista de equipos.",
+  "TeamPlayerEditForbidden": "No tienes permiso para editar esta ficha de jugador.",
   "team_has_players": "No puedes eliminar el equipo porque todavía tiene jugadores asignados.",
   "NotActiveSeason": "No hay ninguna temporada activa.",
   "season_has_related_data": "No puedes eliminar la temporada porque tiene datos relacionados.",

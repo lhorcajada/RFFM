@@ -154,9 +154,17 @@ namespace RFFM.Api.Domain.Entities.TeamPlayers
                 return;
             }
 
-            var list = new List<Family>();
-            foreach (var fm in familyMembers)
+            // When the incoming list has the same size as the current one, update each existing
+            // Family instance in place (by position) instead of replacing the collection. This
+            // preserves the owned-entity identity EF Core already tracks (shadow "Id" key), which
+            // a full replace with brand-new instances cannot do since those instances have no key
+            // assigned yet. Only editing existing family members is supported here (no add/remove).
+            var canUpdateInPlace = FamilyMembers.Count == familyMembers.Count;
+
+            var list = canUpdateInPlace ? FamilyMembers : new List<Family>();
+            for (var i = 0; i < familyMembers.Count; i++)
             {
+                var fm = familyMembers[i];
                 var address = new Address
                 {
                     Street = fm.Address?.Street,
@@ -167,7 +175,15 @@ namespace RFFM.Api.Domain.Entities.TeamPlayers
                 };
 
                 var familyMember = FamilyMember.FromId(fm.FamilyMemberId ?? 0);
-                list.Add(new Family(address, fm.Phone, fm.Email, fm.Name, familyMember?.Name));
+
+                if (canUpdateInPlace)
+                {
+                    list[i].UpdateDetails(address, fm.Phone, fm.Email, fm.Name, familyMember?.Name, fm.Dni);
+                }
+                else
+                {
+                    list.Add(new Family(address, fm.Phone, fm.Email, fm.Name, familyMember?.Name, fm.Dni));
+                }
             }
 
             FamilyMembers = list;

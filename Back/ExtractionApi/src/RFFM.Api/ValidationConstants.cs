@@ -43,6 +43,12 @@
         public const string PlayerDniCannotExceedMaxLength = "Player DNI cannot exceed {0} characters.";
         public const int PlayerDniMaxLength = 20;
         public const string PlayerDniMustBeValid = "Player DNI must be a valid format.";
+        public const int PlayerEnfermedadesMaxLength = 2000;
+        public const string PlayerEnfermedadesCannotExceedMaxLength = "Player illnesses notes cannot exceed {0} characters.";
+        public const int PlayerAlergiasMaxLength = 2000;
+        public const string PlayerAlergiasCannotExceedMaxLength = "Player allergies notes cannot exceed {0} characters.";
+        public const int PlayerProcedenciaMaxLength = 200;
+        public const string PlayerProcedenciaCannotExceedMaxLength = "Player provenance cannot exceed {0} characters.";
         public const int PlayTypeNameMaxLength = 250;
         public const int CategoryNameMaxLength = 500;
         public const int LeagueNameMaxLength = 500;

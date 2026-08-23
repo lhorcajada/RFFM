@@ -1,6 +1,14 @@
 import axios from "axios";
 import { coachAuthService } from "../../apps/coach/services/authService";
 
+// Extend the single Axios instance's config type so callers can opt a specific
+// request out of the global 500/network/timeout redirect (see gotoErrorPage below).
+declare module "axios" {
+  export interface AxiosRequestConfig {
+    suppressErrorRedirect?: boolean;
+  }
+}
+
 const BASE = (import.meta.env.VITE_API_BASE_URL || "/")
   .toString()
   .replace(/\/?$/, "/");
@@ -90,19 +98,21 @@ client.interceptors.response.use(
         }
         return Promise.reject(error);
       }
+      const suppressRedirect = error?.config?.suppressErrorRedirect === true;
+
       // network error (no response)
       if (!error?.response) {
         // axios uses code 'ECONNABORTED' for timeouts
         if (error?.code === "ECONNABORTED") {
-          gotoErrorPage("timeout");
+          if (!suppressRedirect) gotoErrorPage("timeout");
         } else {
-          gotoErrorPage("network");
+          if (!suppressRedirect) gotoErrorPage("network");
         }
         return Promise.reject(error);
       }
 
       if (status === 500) {
-        gotoErrorPage();
+        if (!suppressRedirect) gotoErrorPage();
         return Promise.reject(error);
       }
     } catch (e) {

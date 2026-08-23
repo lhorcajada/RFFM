@@ -50,20 +50,31 @@ export default function Demarcations({
       <div className={styles.sectionInner}>
         <h3>Demarcaciones</h3>
         {!editing && (
-          <>
-            <div className={styles.row}>
-              <div className={styles.label}>Activa</div>
-              <div className={styles.value}>{activeName ?? "-"}</div>
-            </div>
-            <div className={styles.row}>
-              <div className={styles.label}>Posibles</div>
-              <div className={styles.value}>
-                {(selected || []).length > 0
-                  ? (selected || []).join(", ")
-                  : "-"}
+          <div className={styles.infoGrid}>
+            <div className={styles.infoTile}>
+              <div className={styles.infoTileLabel}>Activa</div>
+              <div className={`${styles.infoTileValue} ${activeName ? "" : styles.infoTileValueEmpty}`}>
+                {activeName || "Sin asignar"}
               </div>
             </div>
-          </>
+            <div className={`${styles.infoTile} ${styles.infoTileWide}`}>
+              <div className={styles.infoTileLabel}>Posibles</div>
+              {(selected || []).length > 0 ? (
+                <div className={styles.infoChipRow}>
+                  {(selected || []).map((name) => (
+                    <span
+                      key={name}
+                      className={`${styles.infoChip} ${name === activeName ? styles.infoChipActive : ""}`}
+                    >
+                      {name}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <div className={`${styles.infoTileValue} ${styles.infoTileValueEmpty}`}>Sin datos</div>
+              )}
+            </div>
+          </div>
         )}
 
         {editing && (
