@@ -30,6 +30,7 @@ export interface SportEventResponse {
   localGoals?: string | null;
   visitorGoals?: string | null;
   selectedKitNumber?: number | null;
+  hasConvokedPlayers?: boolean | null;
 }
 
 export interface PagedSportEvents {

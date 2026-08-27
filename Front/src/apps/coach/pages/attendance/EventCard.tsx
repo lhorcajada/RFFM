@@ -170,6 +170,12 @@ export default function EventCard({ event, eventTypeName, onDeleted, onEdited }:
     .join(", ");
 
   const isMatch = (eventTypeName ?? "").toLowerCase().includes("partido");
+  const isTraining = (eventTypeName ?? "").toLowerCase().includes("entrenamiento");
+
+  const arrivalDate = parseDate(event.arrivalDate ?? event.arrival ?? undefined);
+  const arrivalTimeStr = arrivalDate
+    ? arrivalDate.toLocaleTimeString("es-ES", { timeStyle: "short" })
+    : "";
 
   // Match-specific derived data
   // isHomeMatch: true = user's team plays at home; false = away; null/undefined = unknown
@@ -256,7 +262,15 @@ export default function EventCard({ event, eventTypeName, onDeleted, onEdited }:
   );
 
   return (
-    <div className={`${styles.card} ${isMatch ? styles.cardMatch : ""}`}>
+    <div
+      className={`${styles.card} ${isMatch ? styles.cardMatch : ""} ${
+        isTraining
+          ? event.hasConvokedPlayers
+            ? styles.cardConvocationOpen
+            : styles.cardConvocationPending
+          : ""
+      }`}
+    >
       {/* ── MATCH HEADER ─────────────────────────────── */}
       {isMatch ? (
         <div className={styles.matchHeader}>
@@ -356,6 +370,34 @@ export default function EventCard({ event, eventTypeName, onDeleted, onEdited }:
               sx={{
                 backgroundColor: "rgba(13,71,161,0.45)",
                 color: "#90caf9",
+                fontWeight: 700,
+                fontSize: "0.68rem",
+                height: 20,
+              }}
+            />
+          </div>
+        )}
+        {isTraining && (
+          <div style={{ marginTop: 4, display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {arrivalTimeStr && (
+              <Chip
+                label={`Llegada ${arrivalTimeStr}`}
+                size="small"
+                sx={{
+                  backgroundColor: "rgba(255,193,7,0.22)",
+                  color: "#ffd54f",
+                  fontWeight: 700,
+                  fontSize: "0.7rem",
+                  height: 20,
+                }}
+              />
+            )}
+            <Chip
+              label={event.hasConvokedPlayers ? "Convocatoria abierta" : "Convocatoria sin iniciar"}
+              size="small"
+              sx={{
+                backgroundColor: event.hasConvokedPlayers ? "rgba(46,125,50,0.35)" : "rgba(120,130,150,0.3)",
+                color: event.hasConvokedPlayers ? "#a5d6a7" : "#cfd8dc",
                 fontWeight: 700,
                 fontSize: "0.68rem",
                 height: 20,

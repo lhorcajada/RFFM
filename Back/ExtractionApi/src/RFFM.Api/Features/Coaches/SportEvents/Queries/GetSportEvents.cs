@@ -70,6 +70,7 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Queries
             public string? LocalGoals { get; set; }
             public string? VisitorGoals { get; set; }
             public int? SelectedKitNumber { get; set; }
+            public bool HasConvokedPlayers { get; set; }
 
         };
 
@@ -135,7 +136,8 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Queries
                         TeamPhotoUrl = sportEvent.Team != null ? sportEvent.Team.UrlPhoto : null,
                         LocalGoals = sportEvent.LocalGoals,
                         VisitorGoals = sportEvent.VisitorGoals,
-                        SelectedKitNumber = sportEvent.SelectedKitNumber
+                        SelectedKitNumber = sportEvent.SelectedKitNumber,
+                        HasConvokedPlayers = _db.Convocations.Any(c => c.SportEventId == sportEvent.Id)
                     })
                     .ToArrayAsync(cancellationToken);
 

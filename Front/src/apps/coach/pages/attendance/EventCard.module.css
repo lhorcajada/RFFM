@@ -63,6 +63,26 @@
     0 1px 0 rgba(255, 255, 255, 0.12) inset;
 }
 
+/* Training card with open convocation gets green chrome border */
+.cardConvocationOpen {
+  box-shadow:
+    0 0 0 1px rgba(102, 187, 106, 0.55),
+    0 0 0 2px rgba(27, 94, 32, 0.28),
+    0 6px 24px rgba(0, 0, 0, 0.65),
+    0 1px 0 rgba(255, 255, 255, 0.09) inset,
+    0 -1px 0 rgba(0, 0, 0, 0.4) inset;
+}
+
+/* Training card with pending convocation gets neutral/grey chrome border */
+.cardConvocationPending {
+  box-shadow:
+    0 0 0 1px rgba(144, 164, 184, 0.4),
+    0 0 0 2px rgba(69, 90, 100, 0.22),
+    0 6px 24px rgba(0, 0, 0, 0.65),
+    0 1px 0 rgba(255, 255, 255, 0.09) inset,
+    0 -1px 0 rgba(0, 0, 0, 0.4) inset;
+}
+
 /* ===== Generic header band (coloured per event type) ===== */
 .header {
   position: relative;
