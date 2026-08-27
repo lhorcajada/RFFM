@@ -9,3 +9,6 @@ infra/terraform/terraform.tfvars
 infra/terraform/*.tfplan
 infra/terraform/tfplan.out
 infra/terraform/crash.log
+
+# Local Netlify folder
+.netlify

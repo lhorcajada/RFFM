@@ -4,8 +4,8 @@
 
 [build.environment]
   # IMPORTANT: Set these in Netlify UI (Site settings → Environment variables)
-  # For production, use the full Azure API URL:
-  # VITE_API_BASE_URL = "https://rffmapi-hgfbczfxe5d6b7d2.westeurope-01.azurewebsites.net/"
+  # For production, use the full API URL (Azure Container Apps):
+  # VITE_API_BASE_URL = "https://rffm-api.calmground-92cb0105.westeurope.azurecontainerapps.io/"
 
 [[redirects]]
   from = "/*"

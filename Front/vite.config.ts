@@ -15,7 +15,7 @@ export default defineConfig(async ({ command, mode }) => {
     env.VITE_API_PROXY_TARGET_DEV || "https://localhost:7287";
   const apiTargetProd =
     env.VITE_API_PROXY_TARGET_PROD ||
-    "https://rffmapi-hgfbczfxe5d6b7d2.westeurope-01.azurewebsites.net";
+    "https://rffm-api.calmground-92cb0105.westeurope.azurecontainerapps.io";
 
   const apiTargets: Record<string, string> = {
     development: apiTargetDev,
