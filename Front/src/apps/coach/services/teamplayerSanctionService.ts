@@ -62,4 +62,17 @@ export async function deletePlayerSanction(teamPlayerId: string, sanctionId: str
   }
 }
 
-export default { getPlayerSanctions, createPlayerSanction, updatePlayerSanction, deletePlayerSanction };
+export type TeamPlayerSanctions = { teamPlayerId: string; sanctions: SanctionRecord[] };
+
+export async function getTeamSanctions(teamId: string): Promise<TeamPlayerSanctions[]> {
+  try {
+    const resp = await client.get<{ teamPlayerId: string; sanctions: SanctionRecord[] }[]>(
+      `/api/catalog/team/${encodeURIComponent(teamId)}/sanctions`
+    );
+    return resp.data ?? [];
+  } catch {
+    return [];
+  }
+}
+
+export default { getPlayerSanctions, createPlayerSanction, updatePlayerSanction, deletePlayerSanction, getTeamSanctions };

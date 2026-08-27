@@ -31,7 +31,7 @@ import EmptyState from "../../../../shared/components/ui/EmptyState/EmptyState";
 import useTeamAndClub from "../../hooks/useTeamAndClub.tsx";
 import teamplayerService from "../../services/teamplayerService";
 import teamplayerSanctionService, {
-  getPlayerSanctions,
+  getTeamSanctions,
   createPlayerSanction,
   updatePlayerSanction,
 } from "../../services/teamplayerSanctionService";
@@ -69,19 +69,19 @@ export default function Sanctions() {
     let mounted = true;
     setLoading(true);
 
-    teamplayerService
-      .getPlayersByTeam(team.id)
-      .then(async (list) => {
+    Promise.all([teamplayerService.getPlayersByTeam(team.id), getTeamSanctions(team.id)])
+      .then(([list, teamSanctions]) => {
         if (!mounted) return;
         setPlayers(list);
-        const allRows: SanctionRow[] = [];
-        await Promise.all(
-          list.map(async (player) => {
-            const sanctions = await getPlayerSanctions(player.id);
-            for (const s of sanctions) allRows.push({ player, sanction: s });
-          })
+        const sanctionsByPlayer = new Map(
+          teamSanctions.map(({ teamPlayerId, sanctions }) => [teamPlayerId, sanctions])
         );
-        if (!mounted) return;
+        const allRows: SanctionRow[] = [];
+        for (const player of list) {
+          for (const sanction of sanctionsByPlayer.get(player.id) ?? []) {
+            allRows.push({ player, sanction });
+          }
+        }
         allRows.sort((a, b) => new Date(b.sanction.startDate).getTime() - new Date(a.sanction.startDate).getTime());
         setRows(allRows);
       })

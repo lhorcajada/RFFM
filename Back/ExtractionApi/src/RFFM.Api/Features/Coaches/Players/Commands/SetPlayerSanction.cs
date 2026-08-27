@@ -52,6 +52,28 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
             .Produces<SanctionRecordResponse[]>()
             .RequireAuthorization();
 
+            // GET all sanctions for every player of a team, in a single call
+            app.MapGet("/api/catalog/team/{teamId}/sanctions",
+                async (string teamId, AppDbContext db, CancellationToken ct) =>
+                {
+                    var sanctions = await db.TeamPlayerSanctions
+                        .AsNoTracking()
+                        .Where(s => s.TeamPlayer.TeamId == teamId)
+                        .OrderByDescending(s => s.StartDate)
+                        .ToListAsync(ct);
+
+                    var grouped = sanctions
+                        .GroupBy(s => s.TeamPlayerId)
+                        .Select(g => new TeamPlayerSanctionsResponse(g.Key, g.Select(ToResponse).ToArray()))
+                        .ToArray();
+
+                    return Results.Ok(grouped);
+                })
+            .WithName("GetTeamSanctions")
+            .WithTags(PlayerConstants.PlayerFeature)
+            .Produces<TeamPlayerSanctionsResponse[]>()
+            .RequireAuthorization();
+
             // POST create sanction
             app.MapPost("/api/catalog/teamplayer/{id}/sanctions",
                 [Authorize(Roles = "Coach,Administrator")]
@@ -131,5 +153,6 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
         public record SanctionCreateRequest(string Category, DateTime StartDate, string SanctionType, string? Description, string? EstimatedEnd);
         public record SanctionUpdateRequest(string Category, DateTime StartDate, string SanctionType, string? Description, string? EstimatedEnd, DateTime? EndDate);
         public record SanctionRecordResponse(string Id, string Category, DateTime StartDate, string SanctionType, string? Description, string? EstimatedEnd, DateTime? EndDate);
+        public record TeamPlayerSanctionsResponse(string TeamPlayerId, SanctionRecordResponse[] Sanctions);
     }
 }
