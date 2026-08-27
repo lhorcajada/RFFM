@@ -26,8 +26,8 @@ type Props = {
 
 const STATUS_LABELS: Record<string, string> = {
   Pending: "Pendiente",
-  Accepted: "Aceptado",
-  Deconvoke: "Rechazado",
+  Accepted: "Aceptar",
+  Deconvoke: "Rechazar",
 };
 
 const SELECTABLE_STATUSES = ["Accepted", "Deconvoke"];
