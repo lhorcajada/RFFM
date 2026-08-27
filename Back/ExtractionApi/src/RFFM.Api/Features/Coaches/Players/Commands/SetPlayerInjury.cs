@@ -40,6 +40,28 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
             .Produces<InjuryRecordResponse[]>()
             .RequireAuthorization();
 
+            // GET all injuries for every player of a team, in a single call
+            app.MapGet("/api/catalog/team/{teamId}/injuries",
+                async (string teamId, AppDbContext db, CancellationToken ct) =>
+                {
+                    var injuries = await db.TeamPlayerInjuries
+                        .AsNoTracking()
+                        .Where(i => i.TeamPlayer.TeamId == teamId)
+                        .OrderByDescending(i => i.StartDate)
+                        .ToListAsync(ct);
+
+                    var grouped = injuries
+                        .GroupBy(i => i.TeamPlayerId)
+                        .Select(g => new TeamPlayerInjuriesResponse(g.Key, g.Select(ToResponse).ToArray()))
+                        .ToArray();
+
+                    return Results.Ok(grouped);
+                })
+            .WithName("GetTeamInjuries")
+            .WithTags(PlayerConstants.PlayerFeature)
+            .Produces<TeamPlayerInjuriesResponse[]>()
+            .RequireAuthorization();
+
             // POST create injury
             app.MapPost("/api/catalog/teamplayer/{id}/injuries",
                 [Authorize(Roles = "Coach,Administrator")]
@@ -107,6 +129,7 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
         public record InjuryCreateRequest(DateTime StartDate, string InjuryType, string? Description, string? EstimatedRecovery);
         public record InjuryUpdateRequest(DateTime StartDate, string InjuryType, string? Description, string? EstimatedRecovery, DateTime? EndDate);
         public record InjuryRecordResponse(string Id, DateTime StartDate, string InjuryType, string? Description, string? EstimatedRecovery, DateTime? EndDate);
+        public record TeamPlayerInjuriesResponse(string TeamPlayerId, InjuryRecordResponse[] Injuries);
     }
 }
 

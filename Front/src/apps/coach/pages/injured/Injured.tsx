@@ -31,7 +31,7 @@ import useTeamAndClub from "../../hooks/useTeamAndClub.tsx";
 import useTeamDashboardBack from "../../hooks/useTeamDashboardBack";
 import teamplayerService, {
   createPlayerInjury,
-  getPlayerInjuries,
+  getTeamInjuries,
   updatePlayerInjury,
 } from "../../services/teamplayerService";
 import type { InjuryRecord, PlayerResponse } from "../../services/teamplayerService";
@@ -73,21 +73,19 @@ export default function Injured() {
     let mounted = true;
     setLoading(true);
 
-    teamplayerService
-      .getPlayersByTeam(team.id)
-      .then(async (list) => {
+    Promise.all([teamplayerService.getPlayersByTeam(team.id), getTeamInjuries(team.id)])
+      .then(([list, teamInjuries]) => {
         if (!mounted) return;
         setPlayers(list);
-        const allRows: InjuryRow[] = [];
-        await Promise.all(
-          list.map(async (player) => {
-            const injuries = await getPlayerInjuries(player.id);
-            for (const injury of injuries) {
-              allRows.push({ player, injury });
-            }
-          })
+        const injuriesByPlayer = new Map(
+          teamInjuries.map(({ teamPlayerId, injuries }) => [teamPlayerId, injuries])
         );
-        if (!mounted) return;
+        const allRows: InjuryRow[] = [];
+        for (const player of list) {
+          for (const injury of injuriesByPlayer.get(player.id) ?? []) {
+            allRows.push({ player, injury });
+          }
+        }
         allRows.sort(
           (a, b) =>
             new Date(b.injury.startDate).getTime() -

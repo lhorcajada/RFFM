@@ -199,6 +199,19 @@ export async function getPlayerInjuries(teamPlayerId: string): Promise<InjuryRec
   }
 }
 
+export type TeamPlayerInjuries = { teamPlayerId: string; injuries: InjuryRecord[] };
+
+export async function getTeamInjuries(teamId: string): Promise<TeamPlayerInjuries[]> {
+  try {
+    const resp = await client.get<{ teamPlayerId: string; injuries: InjuryRecord[] }[]>(
+      `/api/catalog/team/${encodeURIComponent(teamId)}/injuries`
+    );
+    return resp.data ?? [];
+  } catch {
+    return [];
+  }
+}
+
 export async function createPlayerInjury(
   teamPlayerId: string,
   payload: { startDate: string; injuryType: string; description?: string | null; estimatedRecovery?: string | null }
