@@ -11,6 +11,7 @@ import { useState, useMemo } from "react";
 
 import useConvocations from "./hooks/useConvocations";
 import useTeamDashboardBack from "../../hooks/useTeamDashboardBack";
+import { coachAuthService } from "../../services/authService";
 import MatchCard from "./components/MatchCard";
 import AgendaList from "./components/AgendaList";
 import { DAYS_ES, MONTHS_ES, buildCalendarGrid, toDateKey } from "./helpers/convocationUtils";
@@ -83,6 +84,15 @@ export default function Convocations() {
 
   const isLoadingAny = settingsLoading || loading;
 
+  const roles = coachAuthService.getRoles();
+  const isPlayerFamilyOrFollower =
+    (roles.includes("Player") ||
+      roles.includes("FamilyPlayer") ||
+      roles.includes("FamilyMember") ||
+      roles.includes("Follower")) &&
+    !roles.includes("Coach") &&
+    !roles.includes("Administrator");
+
   return (
     <BaseLayout hideFooterMenu>
       <ContentLayout
@@ -90,16 +100,18 @@ export default function Convocations() {
         subtitle="Calendario de partidos"
         actionBar={
           <>
-            <Button
-              startIcon={syncing ? <CircularProgress size={16} color="inherit" /> : <SyncIcon />}
-              onClick={handleSyncCalendar}
-              variant="contained"
-              size="small"
-              disabled={syncing || !federationTeamId}
-              title={!federationTeamId ? "Configura tu equipo en Federación para poder generar el calendario" : undefined}
-            >
-              Generar calendario
-            </Button>
+            {!isPlayerFamilyOrFollower && (
+              <Button
+                startIcon={syncing ? <CircularProgress size={16} color="inherit" /> : <SyncIcon />}
+                onClick={handleSyncCalendar}
+                variant="contained"
+                size="small"
+                disabled={syncing || !federationTeamId}
+                title={!federationTeamId ? "Configura tu equipo en Federación para poder generar el calendario" : undefined}
+              >
+                Generar calendario
+              </Button>
+            )}
             <Button
               startIcon={<ArrowBackIcon />}
               onClick={() => goToTeamDashboard()}
