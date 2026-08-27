@@ -83,7 +83,7 @@ export default function AppHeader({ title }: AppHeaderProps) {
 
   const { isAuthValid } = useAuthToken();
 
-  const displayTitle = title ?? "Futbol Base";
+  const displayTitle = title ?? "FUTBOL BASE";
 
   const appBarRef = useRef<HTMLDivElement | null>(null);
 

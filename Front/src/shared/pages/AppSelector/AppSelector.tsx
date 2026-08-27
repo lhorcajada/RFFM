@@ -74,7 +74,7 @@ export default function AppSelector() {
   }, []);
 
   return (
-    <BaseLayout appTitle="Futbol Base" hideFooterMenu>
+    <BaseLayout hideFooterMenu>
       <div className={styles.wrapper}>
         <div className={styles.container}>
           <ContentLayout

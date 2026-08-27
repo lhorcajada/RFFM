@@ -30,7 +30,7 @@ const ResetPassword: React.FC = () => {
 
   if (!token) {
     return (
-      <BaseLayout appTitle="Futbol Base">
+      <BaseLayout>
         <div className={styles.container}>
           <Paper className={styles.paper} elevation={3}>
             <Alert severity="error">Token de reseteo no válido.</Alert>
@@ -86,7 +86,7 @@ const ResetPassword: React.FC = () => {
   };
 
   return (
-    <BaseLayout appTitle="Futbol Base">
+    <BaseLayout>
       <div className={styles.container}>
         <Paper className={styles.paper} elevation={3}>
           <div className={styles.title}>

@@ -24,14 +24,8 @@
   flex-shrink: 0;
 }
 
-/* When screen is small, hide the app name by default so it doesn't crowd the header.
-   If the component receives an explicit title, it adds `hasAppTitle` to force display. */
 @media (max-width: 420px) {
   .appName {
-    display: none;
-  }
-  .hasAppTitle {
-    display: block;
     font-size: 0.95rem;
     margin-left: 6px;
     white-space: normal; /* allow wrapping */

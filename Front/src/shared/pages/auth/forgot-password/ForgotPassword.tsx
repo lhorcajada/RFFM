@@ -51,7 +51,7 @@ const ForgotPassword: React.FC = () => {
   };
 
   return (
-    <BaseLayout appTitle="Futbol Base">
+    <BaseLayout>
       <div className={styles.container}>
         <Paper className={styles.paper} elevation={3}>
           <div className={styles.title}>

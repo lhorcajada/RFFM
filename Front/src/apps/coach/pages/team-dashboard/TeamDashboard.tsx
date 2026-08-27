@@ -15,7 +15,7 @@ export default function TeamDashboard() {
   const selectedSeason = "";
 
   return (
-    <BaseLayout appTitle="Futbol Base - Entrenadores" hideFooterMenu>
+    <BaseLayout hideFooterMenu>
       <ContentLayout
         title={teamTitleNode ?? "Dashboard de equipo"}
         subtitle={clubSubtitleNode ?? "Acciones rápidas del equipo seleccionado"}

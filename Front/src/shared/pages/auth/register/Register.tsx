@@ -233,7 +233,7 @@ const Register: React.FC = () => {
   };
 
   return (
-    <BaseLayout appTitle="Futbol Base" hideFooterMenu>
+    <BaseLayout hideFooterMenu>
       <div className={styles.container}>
         <Paper className={styles.paper} elevation={3}>
           <div className={styles.title}>

@@ -15,7 +15,7 @@ export default function CoachDashboard() {
   const { isPlayer } = usePlayerAutoLoad();
 
   return (
-    <BaseLayout appTitle="Futbol Base - Entrenadores" hideFooterMenu>
+    <BaseLayout hideFooterMenu>
       <ContentLayout
         title={teamTitleNode ?? "Panel de Control de entrenador"}
         subtitle={clubSubtitleNode ?? "Gestión y herramientas para entrenadores"}

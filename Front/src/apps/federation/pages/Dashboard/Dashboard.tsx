@@ -26,7 +26,7 @@ export default function Dashboard(): JSX.Element {
   }, [navigate]);
 
   return (
-    <BaseLayout appTitle="Futbol Base - Federación de Fútbol de Madrid ">
+    <BaseLayout>
       <ContentLayout
         title="Panel de Control"
         subtitle="Resumen y accesos rápidos"

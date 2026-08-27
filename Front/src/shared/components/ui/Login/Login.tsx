@@ -135,7 +135,7 @@ const SharedLogin: React.FC<SharedLoginProps> = ({ redirectTo }) => {
   };
 
   return (
-    <BaseLayout appTitle="Futbol Base" hideFooterMenu>
+    <BaseLayout hideFooterMenu>
       <Box className={styles.centerWrap}>
         <Paper className={styles.paper} elevation={3}>
           <div className={styles.title}>
