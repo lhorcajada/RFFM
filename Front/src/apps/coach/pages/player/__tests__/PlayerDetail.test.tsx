@@ -31,13 +31,22 @@ const mockTeamPlayer = {
   dorsal: 9,
   player: { name: "Juan", lastName: "Pérez", alias: "Juanito" },
   demarcation: { activePositionName: "Delantero" },
+  familyMembers: [
+    { name: "Ana", phone: "111", email: "ana@test.com", familyMember: "Mother" },
+  ],
+};
+
+const mockForm = {
+  familyMembers: [
+    { name: "Ana", phone: "111", email: "ana@test.com", familyMemberId: 1 },
+  ],
 };
 
 vi.mock("../hooks/usePlayerDetailData", () => ({
   usePlayerDetailData: () => ({
     teamPlayer: mockTeamPlayer,
     setTeamPlayer: vi.fn(),
-    form: {},
+    form: mockForm,
     setForm: vi.fn(),
     photo: null,
     setPhoto: vi.fn(),
@@ -86,40 +95,38 @@ describe("PlayerDetail — visibilidad de edición según rol", () => {
     vi.clearAllMocks();
   });
 
-  it("no muestra Editar ni Guardar para el rol Player", () => {
+  it("muestra Editar para el rol Player (edición restringida)", () => {
     mockUsePermissions.mockReturnValue({ roles: ["Player"], loading: false });
 
     renderPage();
 
-    expect(screen.queryByRole("button", { name: /^editar$/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /guardar/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^editar$/i })).toBeInTheDocument();
   });
 
-  it("no muestra Editar ni Guardar para el rol FamilyMember", () => {
+  it("muestra Editar para el rol FamilyMember (edición restringida)", () => {
     mockUsePermissions.mockReturnValue({ roles: ["FamilyMember"], loading: false });
 
     renderPage();
 
-    expect(screen.queryByRole("button", { name: /^editar$/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /guardar/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^editar$/i })).toBeInTheDocument();
   });
 
-  it("no permite modo edición para Player aunque se navegue con location.state.editing=true", () => {
+  it("permite el modo edición para Player cuando se navega con location.state.editing=true", () => {
     mockUsePermissions.mockReturnValue({ roles: ["Player"], loading: false });
 
     renderPage({ editing: true });
 
-    expect(screen.queryByRole("button", { name: /guardar/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /cancelar/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /guardar/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /cancelar/i })).toBeInTheDocument();
   });
 
-  it("no permite modo edición para FamilyMember aunque se navegue con location.state.editing=true", () => {
+  it("permite el modo edición para FamilyMember cuando se navega con location.state.editing=true", () => {
     mockUsePermissions.mockReturnValue({ roles: ["FamilyMember"], loading: false });
 
     renderPage({ editing: true });
 
-    expect(screen.queryByRole("button", { name: /guardar/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /cancelar/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /guardar/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /cancelar/i })).toBeInTheDocument();
   });
 
   it("muestra Editar para el rol Coach y al pulsarlo aparece Guardar", async () => {
@@ -198,5 +205,112 @@ describe("PlayerDetail — visibilidad de 'Registrar lesión' según rol", () =>
     expect(
       screen.getByRole("button", { name: /registrar lesión/i }),
     ).toBeInTheDocument();
+  });
+});
+
+describe("PlayerDetail — edición restringida por pestaña (Player/FamilyMember)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("no muestra controles de edición en Demarcación para el rol Player, aunque esté en modo edición", () => {
+    mockUsePermissions.mockReturnValue({ roles: ["Player"], loading: false });
+
+    renderPage({ editing: true });
+
+    // El tab activo por defecto es Demarcación (0).
+    expect(screen.queryByLabelText(/posibles demarcaciones/i)).not.toBeInTheDocument();
+  });
+
+  it("muestra el formulario de Contacto para el rol Player en modo edición", async () => {
+    mockUsePermissions.mockReturnValue({ roles: ["Player"], loading: false });
+
+    renderPage({ editing: true });
+
+    const { default: userEvent } = await import("@testing-library/user-event");
+    await userEvent.click(screen.getByRole("tab", { name: /contacto/i }));
+
+    expect(screen.getByLabelText(/teléfono/i)).toBeInTheDocument();
+  });
+
+  it("muestra los campos de dirección (Calle, Ciudad, Código Postal) en Contacto en modo edición", async () => {
+    mockUsePermissions.mockReturnValue({ roles: ["Player"], loading: false });
+
+    renderPage({ editing: true });
+
+    const { default: userEvent } = await import("@testing-library/user-event");
+    await userEvent.click(screen.getByRole("tab", { name: /contacto/i }));
+
+    expect(screen.getByLabelText(/^calle$/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^ciudad$/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/código postal/i)).toBeInTheDocument();
+  });
+
+  it("muestra los campos de Enfermedades y Alergias en Físico en modo edición", async () => {
+    mockUsePermissions.mockReturnValue({ roles: ["Player"], loading: false });
+
+    renderPage({ editing: true });
+
+    const { default: userEvent } = await import("@testing-library/user-event");
+    await userEvent.click(screen.getByRole("tab", { name: /físico/i }));
+
+    expect(screen.getByLabelText(/^enfermedades$/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^alergias$/i)).toBeInTheDocument();
+  });
+
+  it("muestra el campo Procedencia en Contacto en modo edición", async () => {
+    mockUsePermissions.mockReturnValue({ roles: ["Player"], loading: false });
+
+    renderPage({ editing: true });
+
+    const { default: userEvent } = await import("@testing-library/user-event");
+    await userEvent.click(screen.getByRole("tab", { name: /contacto/i }));
+
+    expect(screen.getByLabelText(/^procedencia$/i)).toBeInTheDocument();
+  });
+
+  it("muestra el formulario de Físico para el rol Player en modo edición", async () => {
+    mockUsePermissions.mockReturnValue({ roles: ["Player"], loading: false });
+
+    renderPage({ editing: true });
+
+    const { default: userEvent } = await import("@testing-library/user-event");
+    await userEvent.click(screen.getByRole("tab", { name: /físico/i }));
+
+    expect(screen.getByLabelText(/altura/i)).toBeInTheDocument();
+  });
+
+  it("muestra el formulario de edición de Familia para el rol Player en modo edición", async () => {
+    mockUsePermissions.mockReturnValue({ roles: ["Player"], loading: false });
+
+    renderPage({ editing: true });
+
+    const { default: userEvent } = await import("@testing-library/user-event");
+    await userEvent.click(screen.getByRole("tab", { name: /familia/i }));
+
+    expect(screen.getByDisplayValue("Ana")).toBeInTheDocument();
+  });
+
+  it("muestra el formulario de edición de Familia para el rol Coach en modo edición (nuevo, sin regresión)", async () => {
+    mockUsePermissions.mockReturnValue({ roles: ["Coach"], loading: false });
+
+    renderPage();
+
+    const { default: userEvent } = await import("@testing-library/user-event");
+    await userEvent.click(screen.getByRole("button", { name: /^editar$/i }));
+    await userEvent.click(screen.getByRole("tab", { name: /familia/i }));
+
+    expect(screen.getByDisplayValue("Ana")).toBeInTheDocument();
+  });
+
+  it("muestra controles de edición en Demarcación para el rol Coach en modo edición (sin regresión)", async () => {
+    mockUsePermissions.mockReturnValue({ roles: ["Coach"], loading: false });
+
+    renderPage();
+
+    const { default: userEvent } = await import("@testing-library/user-event");
+    await userEvent.click(screen.getByRole("button", { name: /^editar$/i }));
+
+    expect(screen.getByLabelText(/posibles demarcaciones/i)).toBeInTheDocument();
   });
 });

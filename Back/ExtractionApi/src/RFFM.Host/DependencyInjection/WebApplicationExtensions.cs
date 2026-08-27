@@ -236,24 +236,6 @@ namespace RFFM.Host.DependencyInjection
             }
         }
 
-        public static async Task SeedExerciseTypesAsync(this WebApplication app)
-        {
-            using var scope = app.Services.CreateScope();
-            var logger = scope.ServiceProvider.GetService<ILogger<WebApplication>>();
-
-            try
-            {
-                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-                logger?.LogInformation("Seeding exercise types if not present...");
-                await RFFM.Api.Infrastructure.Persistence.Seed.ExerciseTypesSeeder.SeedAsync(db);
-                logger?.LogInformation("✓ Exercise types seeding finished");
-            }
-            catch (Exception ex)
-            {
-                logger?.LogError(ex, "Error while seeding exercise types");
-            }
-        }
-
         public static async Task SeedClubKitsAsync(this WebApplication app)
         {
             using var scope = app.Services.CreateScope();
@@ -287,6 +269,65 @@ namespace RFFM.Host.DependencyInjection
             catch (Exception ex)
             {
                 logger?.LogError(ex, "Error while seeding payment plans");
+            }
+        }
+
+        /// <summary>
+        /// Team+Season the "Plan de Temporada" (Cadete, 2ª División) belongs to — see
+        /// <c>SeasonPlanImporter</c> and the season-plan change's design.md Decision 5.
+        /// </summary>
+        private const string SeasonPlanTeamId = "db380999-9dc8-47d9-8bc5-f90145543ca5";
+        private const string SeasonPlanSeasonId = "819e69cd-a1f3-4705-963f-3a8bc6eb446c";
+
+        public static async Task SeedSeasonPlanAsync(this WebApplication app)
+        {
+            using var scope = app.Services.CreateScope();
+            var logger = scope.ServiceProvider.GetService<ILogger<WebApplication>>();
+
+            try
+            {
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                logger?.LogInformation("Updating season plan (Cadete, 2ª División) from hardcoded importer data...");
+                var importer = new RFFM.Api.Infrastructure.Services.SeasonPlanImporter(db);
+                await importer.ImportAsync(SeasonPlanTeamId, SeasonPlanSeasonId);
+                logger?.LogInformation("✓ Season plan update finished");
+            }
+            catch (Exception ex)
+            {
+                logger?.LogError(ex, "Error while updating season plan");
+            }
+        }
+
+        /// <summary>
+        /// Rebuilds the example "Sesión 1" (docs/game-model/Ejemplo-Sesion.md) for the same
+        /// hardcoded team/season as <see cref="SeedSeasonPlanAsync"/> — see
+        /// <c>RFFM.Api.Infrastructure.Persistence.Seed.ExampleSessionSeeder</c> and the
+        /// `session-exercise-plan-redesign` change's design.md §3. Requires that team to already
+        /// have a GameModel imported (via the one-off <c>GameModelSeeder</c>) — logs and
+        /// continues rather than failing startup if the ADN nodes it needs aren't there yet.
+        /// </summary>
+        public static async Task SeedExampleSessionAsync(this WebApplication app)
+        {
+            using var scope = app.Services.CreateScope();
+            var logger = scope.ServiceProvider.GetService<ILogger<WebApplication>>();
+
+            try
+            {
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                var team = await db.Teams.FirstOrDefaultAsync(t => t.Id == SeasonPlanTeamId);
+                if (team is null)
+                {
+                    logger?.LogInformation("Skipping example session seeding: team {TeamId} does not exist yet.", SeasonPlanTeamId);
+                    return;
+                }
+
+                logger?.LogInformation("Seeding example session (Sesión 1) from Ejemplo-Sesion.md...");
+                await RFFM.Api.Infrastructure.Persistence.Seed.ExampleSessionSeeder.SeedAsync(db, team.ClubId, SeasonPlanTeamId, SeasonPlanSeasonId);
+                logger?.LogInformation("✓ Example session seeding finished");
+            }
+            catch (Exception ex)
+            {
+                logger?.LogError(ex, "Error while seeding example session");
             }
         }
 
@@ -382,6 +423,7 @@ namespace RFFM.Host.DependencyInjection
                         ("Rivals", CoachFeatureRoutes.Rivals, "Coach", 3, false),
                         ("Trainings", CoachFeatureRoutes.Trainings, "Coach", 3, false),
                         ("GameModel", CoachFeatureRoutes.GameModel, "Coach", 3, false),
+                        ("SeasonPlan", CoachFeatureRoutes.SeasonPlan, "Coach", 3, false),
                         ("SeasonAccess", CoachFeatureRoutes.SeasonAccess, "Coach", 3, false),
                         ("Settings", CoachFeatureRoutes.Settings, "Coach", 3, false),
                         ("ClubPlayers", CoachFeatureRoutes.ClubPlayers, "Coach", 3, false),
@@ -399,6 +441,7 @@ namespace RFFM.Host.DependencyInjection
                         ("Rivals", CoachFeatureRoutes.Rivals, "ClubDirector", 3, false),
                         ("Trainings", CoachFeatureRoutes.Trainings, "ClubDirector", 3, false),
                         ("GameModel", CoachFeatureRoutes.GameModel, "ClubDirector", 3, false),
+                        ("SeasonPlan", CoachFeatureRoutes.SeasonPlan, "ClubDirector", 3, false),
                         ("SeasonAccess", CoachFeatureRoutes.SeasonAccess, "ClubDirector", 3, false),
                         ("Settings", CoachFeatureRoutes.Settings, "ClubDirector", 3, false),
                         ("ClubPlayers", CoachFeatureRoutes.ClubPlayers, "ClubDirector", 3, false),
@@ -453,6 +496,12 @@ namespace RFFM.Host.DependencyInjection
                         // can read it without a row in this table.
                         ("TeamRulesDocument", CoachFeatureRoutes.TeamRulesDocument, "Coach", 3, false),
                         ("TeamRulesDocument", CoachFeatureRoutes.TeamRulesDocument, "ClubDirector", 3, false),
+
+                        // TeamPlayerLinkRequests: ReadWrite for Coach/ClubDirector only — approving/rejecting
+                        // player-link requests and generating a TeamPlayer.LinkCode is a coach-management action,
+                        // same access pattern as ClubRegistrations.
+                        ("TeamPlayerLinkRequests", CoachFeatureRoutes.TeamPlayerLinkRequests, "Coach", 3, false),
+                        ("TeamPlayerLinkRequests", CoachFeatureRoutes.TeamPlayerLinkRequests, "ClubDirector", 3, false),
                     };
 
                     foreach (var (featureName, featureRoute, roleName, permTypeId, isEditable) in entries)

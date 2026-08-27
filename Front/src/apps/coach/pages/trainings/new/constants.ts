@@ -1,4 +1,4 @@
-import type { CreateExerciseRequest, ExerciseMethodology, ExerciseSection, ExerciseType } from "../../../types/training";
+import type { CreateExerciseRequest, ExerciseTipo } from "../../../types/training";
 import type { LineColorOption, LineKindOption, MaterialTemplate, PetoOption, SpaceKind, SpaceTemplate, TextStyle } from "./types";
 
 export const HALF_FIELD_LENGTH_METERS = 52.5;
@@ -55,24 +55,9 @@ export const LINE_KIND_OPTIONS: LineKindOption[] = [
   { kind: "free", label: "Libre" },
 ];
 
-export const typeOptions: { value: ExerciseType; label: string }[] = [
-  { value: "Physical", label: "Fisico" },
-  { value: "Technical", label: "Tecnico" },
-  { value: "Tactical", label: "Tactico" },
-  { value: "Game", label: "Juego" },
-  { value: "Cognitive", label: "Cognitivo" },
-  { value: "Psychological", label: "Psicologico" },
-];
-
-export const sectionOptions: { value: ExerciseSection; label: string }[] = [
-  { value: "Calentamiento", label: "Calentamiento" },
-  { value: "Principal", label: "Principal" },
-  { value: "VueltaALaCalma", label: "Vuelta a la Calma" },
-];
-
-export const methodologyOptions: { value: ExerciseMethodology; label: string }[] = [
+export const tipoOptions: { value: ExerciseTipo; label: string }[] = [
   { value: "Analitico", label: "Analítico" },
-  { value: "Integrado", label: "Integrado" },
+  { value: "Situacional", label: "Situacional" },
   { value: "Global", label: "Global" },
 ];
 
@@ -99,19 +84,21 @@ export const anonymousChapaOptions: PetoOption[] = [
 export const emptyExercise: CreateExerciseRequest = {
   clubId: "",
   name: "",
-  description: "",
-  types: ["Tactical"],
-  section: "Principal",
-  methodology: "Integrado",
-  durationTotal: 15,
-  playersNumber: 10,
-  goalPeekersNumber: 1,
-  fieldSpace: "",
-  touchesNumber: 0,
-  wildCards: 0,
-  series: 0,
-  durationSeries: 0,
-  restSeries: 0,
+  tipo: "Situacional",
+  objetivo: "",
+  objetivoPorRol: null,
+  modelRelations: [],
+  nivelesColumnas: ["Palanca 1"],
+  niveles: [
+    { nivel: 1, valores: {} },
+    { nivel: 2, valores: {} },
+  ],
+  logistica: "",
+  durationMinutes: null,
+  porteros: null,
+  dibujo: null,
+  descripcion: "",
+  boardStateJson: null,
 };
 
 export const TEXT_FONT_OPTIONS = [

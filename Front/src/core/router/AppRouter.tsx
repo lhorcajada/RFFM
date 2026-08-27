@@ -4,6 +4,7 @@ import { coachAuthService } from "../../apps/coach/services/authService";
 import { CircularProgress, Box } from "@mui/material";
 import { CoachAuthProvider } from "../../apps/coach/context/CoachAuthContext";
 import RequireAuth from "./RequireAuth";
+import { isPublicAuthRoute } from "./publicRoutes";
 
 const FederationApp = lazy(() => import("../../apps/federation/routes"));
 const CoachApp = lazy(() => import("../../apps/coach/routes"));
@@ -29,6 +30,9 @@ const ScopeMembers = lazy(
 const ClubJoinRequests = lazy(
   () => import("../../shared/pages/ClubJoinRequests/ClubJoinRequests")
 );
+const TeamPlayerLinkRequests = lazy(
+  () => import("../../shared/pages/TeamPlayerLinkRequests/TeamPlayerLinkRequests")
+);
 
 function LoadingFallback() {
   return (
@@ -51,6 +55,10 @@ export default function AppRouter() {
     React.useEffect(() => {
       function handleAuthCheck() {
         try {
+          // Being unauthenticated is the expected state on public/anonymous pages
+          // (e.g. mid-registration) — don't force a redirect to /login from there,
+          // it would silently discard whatever the user was filling in.
+          if (isPublicAuthRoute(window.location.pathname)) return;
           if (!coachAuthService.isAuthenticated()) {
             try {
               coachAuthService.logout();
@@ -171,6 +179,14 @@ export default function AppRouter() {
           element={
             <RequireAuth>
               <ClubJoinRequests />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/team-player-link-requests"
+          element={
+            <RequireAuth>
+              <TeamPlayerLinkRequests />
             </RequireAuth>
           }
         />

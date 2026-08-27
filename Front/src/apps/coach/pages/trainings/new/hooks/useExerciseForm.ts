@@ -2,15 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { NavigateFunction } from "react-router-dom";
 import { client } from "../../../../../../core/api/client";
 import trainingService from "../../../../services/trainingService";
-import type {
-  CreateExerciseRequest,
-  Exercise,
-  ExerciseCondition,
-  ExerciseMethodology,
-  ExerciseSection,
-  UpdateExerciseRequest,
-  ExerciseType,
-} from "../../../../types/training";
+import type { CreateExerciseRequest, Exercise, ExerciseTipo, UpdateExerciseRequest } from "../../../../types/training";
 import { emptyExercise } from "../constants";
 
 interface UseExerciseFormParams {
@@ -29,39 +21,32 @@ export function useExerciseForm({ clubId, navigate, returnTo, getBoardStateJson 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [conditions, setConditions] = useState<ExerciseCondition[]>([]);
-  const [conditionInput, setConditionInput] = useState("");
-  const [editingCondition, setEditingCondition] = useState<{
-    id: string;
-    text: string;
-  } | null>(null);
-  const [savingCondition, setSavingCondition] = useState(false);
   const [savedExerciseId, setSavedExerciseId] = useState<string | null>(null);
 
   const applyExercise = async (exercise: Exercise, asCopy: boolean) => {
     setForm({
       clubId,
       name: exercise.name,
-      description: exercise.description,
-      types: exercise.types,
-      section: exercise.section,
-      methodology: exercise.methodology,
-      durationTotal: exercise.durationTotal,
-      playersNumber: exercise.playersNumber,
-      goalPeekersNumber: exercise.goalPeekersNumber,
-      fieldSpace: exercise.fieldSpace,
+      tipo: exercise.tipo,
+      objetivo: exercise.objetivo,
+      objetivoPorRol: exercise.objetivoPorRol ?? null,
+      modelRelations: (exercise.modelRelations ?? []).map((r) => ({
+        subprincipioId: r.subprincipioId,
+        isFoco: r.isFoco,
+        habilidadesImprescindibles: r.habilidadesImprescindibles ?? [],
+        items: (r.items ?? []).map((it) => ({ subSubPrincipioId: it.subSubPrincipioId, isFoco: it.isFoco })),
+      })),
+      nivelesColumnas: exercise.nivelesColumnas ?? [],
+      niveles: exercise.niveles ?? [],
+      logistica: exercise.logistica,
+      durationMinutes: exercise.durationMinutes ?? null,
+      porteros: exercise.porteros ?? null,
+      dibujo: exercise.dibujo ?? null,
+      descripcion: exercise.descripcion,
       boardStateJson: exercise.boardStateJson ?? null,
-      touchesNumber: exercise.touchesNumber ?? 0,
-      wildCards: exercise.wildCards ?? 0,
-      series: exercise.series ?? 0,
-      durationSeries: exercise.durationSeries ?? 0,
-      restSeries: exercise.restSeries ?? 0,
     });
 
     setSavedExerciseId(asCopy ? null : exercise.id);
-    setConditions(exercise.conditions ?? []);
-    setConditionInput("");
-    setEditingCondition(null);
     setPendingFile(null);
 
     if (previewUrl?.startsWith("blob:")) {
@@ -101,6 +86,7 @@ export function useExerciseForm({ clubId, navigate, returnTo, getBoardStateJson 
 
   useEffect(() => {
     setForm({ ...emptyExercise, clubId });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clubId]);
 
   const loadExercise = (exercise: Exercise) => void applyExercise(exercise, false);
@@ -132,17 +118,29 @@ export function useExerciseForm({ clubId, navigate, returnTo, getBoardStateJson 
 
   const handleCancel = () => navigate(returnTo, { replace: true });
 
+  /** Mirrors the backend's invariants client-side so the coach gets an inline error instead
+   * of a 400 round-trip for the common cases (design.md Frontend §4). Returns the first
+   * validation error message, or null when the form is valid. */
+  const validate = (): string | null => {
+    if (!form.name.trim()) return "El nombre es obligatorio.";
+    if (!form.objetivo.trim()) return "El objetivo es obligatorio.";
+    if (!form.logistica.trim()) return "La logística es obligatoria.";
+    if (!form.descripcion.trim()) return "La descripción es obligatoria.";
+    if (form.niveles.length < 2 || form.niveles.length > 5) return "Los niveles deben tener entre 2 y 5 filas.";
+    const relationWithoutSubprincipio = form.modelRelations.find((r) => !r.subprincipioId);
+    if (relationWithoutSubprincipio) return "Cada vínculo con el modelo requiere un Subprincipio.";
+    return null;
+  };
+
   const handleSave = async () => {
     if (!clubId) {
       setError("No se ha encontrado el club para crear el ejercicio.");
       return;
     }
-    if (!form.name.trim()) {
-      setError("El nombre es obligatorio.");
-      return;
-    }
-    if (form.types.length === 0) {
-      setError("Selecciona al menos un tipo.");
+
+    const validationError = validate();
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
@@ -156,7 +154,7 @@ export function useExerciseForm({ clubId, navigate, returnTo, getBoardStateJson 
       if (exerciseId) {
         const { clubId: _c, ...update }: CreateExerciseRequest = form;
         await trainingService.updateExercise(exerciseId, {
-          ...update,
+          ...(update as UpdateExerciseRequest),
           boardStateJson,
         });
       } else {
@@ -182,46 +180,6 @@ export function useExerciseForm({ clubId, navigate, returnTo, getBoardStateJson 
     }
   };
 
-  const handleAddCondition = async () => {
-    const text = conditionInput.trim();
-    if (!text || !savedExerciseId) return;
-    setSavingCondition(true);
-    try {
-      const added = await trainingService.createCondition(savedExerciseId, text);
-      setConditions((prev) => [...prev, added]);
-      setConditionInput("");
-    } finally {
-      setSavingCondition(false);
-    }
-  };
-
-  const handleSaveEditCondition = async () => {
-    if (!editingCondition) return;
-    const text = editingCondition.text.trim();
-    if (!text) return;
-    setSavingCondition(true);
-    try {
-      const updated = await trainingService.updateCondition(editingCondition.id, text);
-      setConditions((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
-      setEditingCondition(null);
-    } finally {
-      setSavingCondition(false);
-    }
-  };
-
-  const handleDeleteCondition = async (conditionId: string) => {
-    setSavingCondition(true);
-    try {
-      await trainingService.deleteCondition(conditionId);
-      setConditions((prev) => prev.filter((c) => c.id !== conditionId));
-    } finally {
-      setSavingCondition(false);
-    }
-  };
-
-  const isPhysical = form.types.includes("Physical");
-  const isTechTac = form.types.includes("Technical") || form.types.includes("Tactical");
-
   return {
     form,
     setField,
@@ -232,26 +190,15 @@ export function useExerciseForm({ clubId, navigate, returnTo, getBoardStateJson 
     fileInputRef,
     loadExercise,
     loadExerciseAsCopy,
-    conditions,
-    conditionInput,
-    setConditionInput,
-    editingCondition,
-    setEditingCondition,
-    savingCondition,
     savedExerciseId,
     handleFileChange,
     handleRemoveMedia,
     handleCancel,
     handleSave,
-    handleAddCondition,
-    handleSaveEditCondition,
-    handleDeleteCondition,
-    isPhysical,
-    isTechTac,
   };
 }
 
 export type ExerciseFormState = ReturnType<typeof useExerciseForm>;
 
 // Re-export types consumed by the form panel
-export type { ExerciseSection, ExerciseType, ExerciseMethodology };
+export type { ExerciseTipo };

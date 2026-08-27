@@ -1,10 +1,26 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Microsoft.EntityFrameworkCore.ValueGeneration;
 using RFFM.Api.Domain.Entities.PlayerFeet;
 using RFFM.Api.Domain.Entities.TeamPlayers;
 
 namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.UserClubs
 {
+    /// <summary>
+    /// Generates a GUID-based string for shadow "Id" key properties on owned entity types
+    /// that (unlike <see cref="RFFM.Api.Domain.BaseEntity"/>) have no CLR Id property to
+    /// initialize eagerly. EF Core only auto-generates values by convention for numeric/Guid
+    /// keys, never for string keys, so this is required for the "TeamPlayerFamilies" owned
+    /// collection below to be insertable at all.
+    /// </summary>
+    internal class GuidStringValueGenerator : ValueGenerator<string>
+    {
+        public override string Next(EntityEntry entry) => Guid.NewGuid().ToString();
+
+        public override bool GeneratesTemporaryValues => false;
+    }
+
     internal class TeamPlayerEntityConfiguration : IEntityTypeConfiguration<TeamPlayer>
     {
         public void Configure(EntityTypeBuilder<TeamPlayer> builder)
@@ -25,6 +41,12 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.UserClubs
 
             builder.Property(tp => tp.LeftDate)
                 .IsRequired(false);
+
+            builder.Property(tp => tp.LinkCode)
+                .IsRequired(false)
+                .HasMaxLength(ValidationConstants.PlayerLinkCodeLength);
+
+            builder.HasIndex(tp => tp.LinkCode);
 
             // Relación con Team
             builder.HasOne(tp => tp.Team)
@@ -126,7 +148,9 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.UserClubs
                 family.ToTable("TeamPlayerFamilies");
 
                 // Shadow primary key for the owned entity
-                family.Property<string>("Id");
+                family.Property<string>("Id")
+                    .ValueGeneratedOnAdd()
+                    .HasValueGenerator<GuidStringValueGenerator>();
                 family.HasKey("Id");
 
                 family.Property(f => f.Phone)
@@ -143,6 +167,10 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.UserClubs
 
                 family.Property(f => f.FamilyMember)
                     .HasMaxLength(50)
+                    .IsRequired(false);
+
+                family.Property(f => f.Dni)
+                    .HasMaxLength(20)
                     .IsRequired(false);
 
                 // FK back to TeamPlayer (owner)

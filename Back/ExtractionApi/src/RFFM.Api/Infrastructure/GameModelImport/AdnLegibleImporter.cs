@@ -444,7 +444,7 @@ namespace RFFM.Api.Infrastructure.GameModelImport
         private static void ValidateHabilidadVocabulary(string nombre, string sourceLine)
         {
             if (!Habilidad.Vocabulary.Contains(nombre))
-                throw new GameModelImportException($"'{nombre}' is not in the 14-value Habilidad closed vocabulary (spec §4): '{sourceLine}'");
+                throw new GameModelImportException($"'{nombre}' is not in the 15-value Habilidad closed vocabulary (spec §4): '{sourceLine}'");
         }
 
         /// <summary>Second pass per spec §8: resolves "(misma que X.Y.Z)" references against keys

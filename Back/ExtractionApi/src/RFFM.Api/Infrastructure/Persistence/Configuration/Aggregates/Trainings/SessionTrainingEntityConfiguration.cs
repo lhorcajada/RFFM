@@ -1,5 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using RFFM.Api.Domain.Aggregates.SeasonPlans;
 using RFFM.Api.Domain.Aggregates.Training;
 
 namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.Trainings
@@ -35,6 +36,18 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.Trainings
                 .IsRequired(false)
                 .HasMaxLength(ValidationConstants.SessionTrainingUrlImageMaxLength);
 
+            builder.Property(st => st.ObjetivoGeneral)
+                .IsRequired(false)
+                .HasMaxLength(ValidationConstants.SessionTrainingObjetivoGeneralMaxLength);
+
+            builder.Property(st => st.MapaCampoTexto)
+                .IsRequired(false)
+                .HasMaxLength(ValidationConstants.SessionTrainingMapaCampoTextoMaxLength);
+
+            builder.Property(st => st.MicrocicloId)
+                .IsRequired(false)
+                .HasMaxLength(36);
+
             builder.HasOne(st => st.Team)
                 .WithMany(t => t.Trainings)
                 .HasForeignKey(st => st.TeamId);
@@ -44,9 +57,18 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.Trainings
                 .HasForeignKey(st => st.SportEventId)
                 .IsRequired(false);
 
-            builder.HasMany(st => st.Tasks)
-                .WithOne(tt => tt.TrainingSession)
-                .HasForeignKey(tt => tt.SessionTrainingId);
+            // Optional, explicit association to a plan week. Same FK-on-the-child convention
+            // used elsewhere (was TaskTrainingBase.MicrocicloId). SetNull: deleting a
+            // SeasonPlan/Microciclo preserves the session, only clears its plan link.
+            builder.HasOne<Microciclo>()
+                .WithMany()
+                .HasForeignKey(st => st.MicrocicloId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            builder.HasMany(st => st.Blocks)
+                .WithOne()
+                .HasForeignKey(b => b.TrainingSessionId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

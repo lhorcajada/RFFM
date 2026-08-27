@@ -1,4 +1,4 @@
-name: CD - ExtractionApi Deploy to ACR
+name: CD - ExtractionApi Deploy to Azure Container Apps
 
 on:
   workflow_run:
@@ -8,13 +8,22 @@ on:
   workflow_dispatch:
 
 env:
-  ACR_REPOSITORY: rffm-api
+  IMAGE_NAME: ghcr.io/lhorcajada/rffm-api
   WORKING_DIRECTORY: ./Back/ExtractionApi
+  RESOURCE_GROUP: CoachResources
+  CONTAINER_APP_NAME: rffm-api
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
 
 jobs:
-  build-and-push-acr:
+  build-and-push-ghcr:
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    outputs:
+      image_tag: ${{ steps.commit.outputs.sha }}
 
     steps:
       - name: Checkout code
@@ -34,21 +43,19 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Log in to Azure Container Registry
+      - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
-          registry: ${{ secrets.ACR_LOGIN_SERVER }}
-          username: ${{ secrets.ACR_USERNAME }}
-          password: ${{ secrets.ACR_PASSWORD }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract metadata (tags, labels)
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ secrets.ACR_LOGIN_SERVER }}/${{ env.ACR_REPOSITORY }}
+          images: ${{ env.IMAGE_NAME }}
           tags: |
-            type=ref,event=branch
-            type=sha,prefix={{branch}}-
             type=raw,value=latest,enable={{is_default_branch}}
             type=raw,value=${{ steps.commit.outputs.sha }}
 
@@ -65,70 +72,38 @@ jobs:
           build-args: |
             BUILD_CONFIGURATION=Release
 
-      - name: Output pushed images
-        run: |
-          echo "✅ Successfully pushed images:"
-          echo "${{ steps.meta.outputs.tags }}"
-          echo ""
-          echo "🔍 Image digest: ${{ steps.meta.outputs.digest }}"
-          echo ""
-          echo "🚀 Primary image:"
-          echo "${{ secrets.ACR_LOGIN_SERVER }}/${{ env.ACR_REPOSITORY }}:${{ steps.commit.outputs.sha }}"
+  deploy-container-app:
+    runs-on: ubuntu-latest
+    needs: build-and-push-ghcr
 
-      - name: Create deployment artifact
-        run: |
-          echo "Image: ${{ secrets.ACR_LOGIN_SERVER }}/${{ env.ACR_REPOSITORY }}:${{ steps.commit.outputs.sha }}" > deployment-info.txt
-          echo "Branch: ${{ github.ref_name }}" >> deployment-info.txt
-          echo "Commit: ${{ steps.commit.outputs.sha }}" >> deployment-info.txt
-          echo "Build Date: $(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> deployment-info.txt
-
-      - name: Upload deployment artifact
-        uses: actions/upload-artifact@v4
+    steps:
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
         with:
-          name: deployment-info
-          path: deployment-info.txt
-          retention-days: 30
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Update Container App image
+        run: |
+          az containerapp update \
+            --name ${{ env.CONTAINER_APP_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --image ${{ env.IMAGE_NAME }}:${{ needs.build-and-push-ghcr.outputs.image_tag }}
+
+      - name: Output deployed image
+        run: |
+          echo "✅ Deployed image: ${{ env.IMAGE_NAME }}:${{ needs.build-and-push-ghcr.outputs.image_tag }}"
 
 # NOTE:
-# Repository Secrets Required:
-# ============================
-# Add the following secrets in GitHub (Settings -> Secrets and variables -> Actions):
+# Repository secrets required (already set via `gh secret set`):
+# - AZURE_CLIENT_ID / AZURE_TENANT_ID / AZURE_SUBSCRIPTION_ID: OIDC federated identity
+#   (App registration "github-rffm-api-cd", federated credential trusts
+#   repo:lhorcajada/RFFM:ref:refs/heads/main, Contributor role scoped to the
+#   CoachResources resource group only)
+# - GHCR_PAT: GitHub PAT with read:packages, used by the Container App itself
+#   (via Terraform) to pull the private image - NOT used by this workflow
 #
-# 1. ACR_LOGIN_SERVER
-#    Example: rffmregistry-beg6cuaaa6ase9fk.azurecr.io
-#    Location: Azure Portal -> Container Registry -> Overview -> Login server
-#
-# 2. ACR_USERNAME
-#    Example: rffmregistry
-#    Location: Azure Portal -> Container Registry -> Access keys -> Username
-#
-# 3. ACR_PASSWORD
-#    Location: Azure Portal -> Container Registry -> Access keys -> Password
-#    ⚠️ IMPORTANT: Enable "Admin user" in Access keys first
-#
-# Azure Web App Configuration:
-# ===========================
-# After pushing the image, configure your Azure Web App:
-# 1. Go to: Azure Portal -> App Service -> Your Web App
-# 2. Navigate to: Deployment Center -> Settings
-# 3. Configure:
-#    - Registry source: Azure Container Registry
-#    - Registry: rffmregistry
-#    - Image: rffm-api
-#    - Tag: latest (or specific SHA)
-# 4. Enable: Continuous deployment (webhook)
-# 5. Save configuration
-#
-# Environment Variables in Azure:
-# ==============================
-# Configure in: App Service -> Configuration -> Application settings
-# - Jwt__Key
-# - Jwt__Issuer
-# - Jwt__Audience
-# - Authentication__FrontendSecret
-# - ConnectionStrings__CatalogConnection
-# - ConnectionStrings__FederationConnection
-# - ConnectionStrings__AzureBlobStorage
-# - FrontUrlBase
-# - Cors__AllowedOrigins__0
-# - Cors__AllowedOrigins__1
+# Infrastructure (Container Apps Environment, Log Analytics, Container App) is
+# provisioned separately via infra/terraform/ (see infra/terraform/README.md).
+# This workflow only builds/pushes the image and updates the running revision.

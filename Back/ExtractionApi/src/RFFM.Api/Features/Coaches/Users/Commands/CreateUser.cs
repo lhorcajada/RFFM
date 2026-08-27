@@ -47,6 +47,7 @@ namespace RFFM.Api.Features.Coaches.Users.Commands
             public string? ClubInvitationCode { get; set; }
             public string? TeamInvitationCode { get; set; }
             public string? TeamPlayerId { get; set; }
+            public string? PlayerLinkCode { get; set; }
 
             public string PrefixCacheKey => UserConstants.CachePrefix;
         }
@@ -120,6 +121,7 @@ namespace RFFM.Api.Features.Coaches.Users.Commands
                 Team? team = null;
                 TeamRosterQueries.RosterPlayer[]? roster = null;
                 Membership? membership = null;
+                bool playerLinkCodeMatched = false;
 
                 if (IsClubDirector(accountType))
                 {
@@ -174,6 +176,41 @@ namespace RFFM.Api.Features.Coaches.Users.Commands
                             Extensions = { ["code"] = ErrorCodes.LinkedPlayerAlreadyClaimed }
                         });
                     }
+
+                    if (wantedMembership.Key == Membership.Player.Key)
+                    {
+                        var alreadyPending = await _db.TeamPlayerLinkRequests.AsNoTracking().AnyAsync(r =>
+                            r.TeamPlayerId == request.TeamPlayerId
+                            && r.MembershipId == Membership.Player.Id
+                            && r.Status == TeamPlayerLinkRequestStatus.Pending, cancellationToken);
+                        if (alreadyPending)
+                        {
+                            return Results.Conflict(new ProblemDetails
+                            {
+                                Status = StatusCodes.Status409Conflict,
+                                Title = "Solicitud ya en curso",
+                                Detail = "Ya hay una solicitud pendiente para vincularse a este jugador.",
+                                Extensions = { ["code"] = ErrorCodes.LinkedPlayerRequestPending }
+                            });
+                        }
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(request.PlayerLinkCode))
+                    {
+                        var normalizedPlayerCode = request.PlayerLinkCode.Trim().ToUpperInvariant();
+                        var teamPlayerEntity = await _db.TeamPlayers.AsNoTracking()
+                            .FirstOrDefaultAsync(tp => tp.Id == request.TeamPlayerId, cancellationToken);
+                        if (teamPlayerEntity?.LinkCode is null || teamPlayerEntity.LinkCode.ToUpperInvariant() != normalizedPlayerCode)
+                        {
+                            return Results.BadRequest(new ProblemDetails
+                            {
+                                Title = "Código de jugador inválido",
+                                Detail = "El código introducido no corresponde a este jugador.",
+                                Extensions = { ["code"] = ErrorCodes.PlayerLinkCodeInvalid }
+                            });
+                        }
+                        playerLinkCodeMatched = true;
+                    }
                 }
                 // Fan: no pre-checks.
 
@@ -214,6 +251,7 @@ namespace RFFM.Api.Features.Coaches.Users.Commands
 
                 var identityRoleName = accountType; // AppRoles names match AccountType strings 1:1 (validated above)
                 ClubJoinRequest? pendingJoinRequest = null;
+                TeamPlayerLinkRequest? pendingLinkRequest = null;
 
                 var strategy = _db.Database.CreateExecutionStrategy();
                 await strategy.ExecuteAsync(async () =>
@@ -235,23 +273,33 @@ namespace RFFM.Api.Features.Coaches.Users.Commands
                     {
                         _db.UserClubs.Add(new UserClub(user.Id, club.Id, membership.Id));
                     }
-                    else if (team is not null && membership is not null) // Player/FamilyMember
+                    else if (team is not null && membership is not null && playerLinkCodeMatched) // Player/FamilyMember con código correcto
                     {
                         var userTeam = new UserTeam(user.Id, team.Id, membership.Id);
                         userTeam.LinkPlayer(request.TeamPlayerId!);
                         _db.UserTeams.Add(userTeam);
+                    }
+                    else if (team is not null && membership is not null) // Player/FamilyMember sin código válido -> pendiente
+                    {
+                        pendingLinkRequest = TeamPlayerLinkRequest.Create(user.Id, team.Id, request.TeamPlayerId!, membership.Id);
+                        _db.TeamPlayerLinkRequests.Add(pendingLinkRequest);
                     }
 
                     await _db.SaveChangesAsync(cancellationToken);
                     await transaction.CommitAsync(cancellationToken);
                 });
 
-                if (pendingJoinRequest is null) // ClubDirector, ClubMember, Player/FamilyMember, Coach-no-code, Fan
+                if (pendingJoinRequest is null && pendingLinkRequest is null)
                 {
                     await EnsureIdentityRoleAsync(user, identityRoleName);
                 }
 
                 // 4. Best-effort, non-security side effects OUTSIDE the transaction (unchanged pattern).
+                if (team is not null && pendingLinkRequest is null && (IsPlayer(accountType) || IsFamilyMember(accountType)))
+                {
+                    await SaveUserProfileAsync(user.Id, identityRoleName, request.TeamPlayerId!, team.Id, cancellationToken);
+                }
+
                 Subscription? subscription = null;
                 var grantsTrial = IsClubDirector(accountType) || (IsCoach(accountType) && string.IsNullOrWhiteSpace(request.ClubInvitationCode));
                 if (grantsTrial)
@@ -266,20 +314,30 @@ namespace RFFM.Api.Features.Coaches.Users.Commands
                     await NotifyClubCreatorOfPendingRequestAsync(pendingJoinRequest, cancellationToken); // best-effort
                 }
 
+                if (pendingLinkRequest is not null)
+                {
+                    await NotifyTeamCreatorOfPendingLinkRequestAsync(pendingLinkRequest, cancellationToken);
+                }
+
                 var roles = await _userManager.GetRolesAsync(user);
 
                 return Results.Ok(new RegisterAccountResponse
                 {
                     UserId = user.Id,
                     Roles = roles.ToArray(),
-                    Status = pendingJoinRequest is not null ? RegistrationStatus.PendingClubApproval : RegistrationStatus.Active,
+                    Status = pendingJoinRequest is not null
+                        ? RegistrationStatus.PendingClubApproval
+                        : pendingLinkRequest is not null
+                            ? RegistrationStatus.PendingPlayerLinkApproval
+                            : RegistrationStatus.Active,
                     Subscription = subscription is null ? null : new SubscriptionDto
                     {
                         Plan = "Free",
                         Status = subscription.Status.ToString(),
                         EndDate = subscription.EndDate
                     },
-                    ClubJoinRequestId = pendingJoinRequest?.Id
+                    ClubJoinRequestId = pendingJoinRequest?.Id,
+                    TeamPlayerLinkRequestId = pendingLinkRequest?.Id
                 });
             }
 
@@ -373,6 +431,81 @@ namespace RFFM.Api.Features.Coaches.Users.Commands
                 catch (Exception ex)
                 {
                     _logger.LogWarning(ex, "CreateUser: could not send club join request notification for request {RequestId}", joinRequest.Id);
+                }
+            }
+
+            private async Task NotifyTeamCreatorOfPendingLinkRequestAsync(TeamPlayerLinkRequest linkRequest, CancellationToken cancellationToken)
+            {
+                try
+                {
+                    var creator = await _db.UserTeams
+                        .AsNoTracking()
+                        .Where(ut => ut.TeamId == linkRequest.TeamId && ut.IsCreator)
+                        .Select(ut => ut.ApplicationUserId)
+                        .FirstOrDefaultAsync(cancellationToken);
+
+                    if (string.IsNullOrEmpty(creator))
+                    {
+                        var team = await _db.Teams.AsNoTracking().FirstOrDefaultAsync(t => t.Id == linkRequest.TeamId, cancellationToken);
+                        if (team is not null)
+                        {
+                            creator = await _db.UserClubs
+                                .AsNoTracking()
+                                .Where(uc => uc.ClubId == team.ClubId && uc.IsCreator)
+                                .Select(uc => uc.ApplicationUserId)
+                                .FirstOrDefaultAsync(cancellationToken);
+                        }
+                    }
+
+                    if (string.IsNullOrEmpty(creator)) return;
+
+                    var creatorUser = await _userManager.FindByIdAsync(creator);
+                    if (creatorUser?.Email == null) return;
+
+                    var applicant = await _userManager.FindByIdAsync(linkRequest.ApplicationUserId);
+                    var teamPlayer = await _db.TeamPlayers.AsNoTracking()
+                        .Include(tp => tp.Player)
+                        .FirstOrDefaultAsync(tp => tp.Id == linkRequest.TeamPlayerId, cancellationToken);
+
+                    if (applicant == null || teamPlayer == null) return;
+
+                    var placeholders = new Dictionary<string, string>
+                    {
+                        ["CoachName"] = creatorUser.UserName ?? string.Empty,
+                        ["ApplicantAlias"] = applicant.UserName ?? string.Empty,
+                        ["PlayerName"] = $"{teamPlayer.Player.Name} {teamPlayer.Player.LastName}".Trim()
+                    };
+
+                    var subject = "Nueva solicitud de vinculación a jugador - Futbol Base";
+                    await _emailService.SendEmailAsync(creatorUser.Email, subject, "TeamPlayerLinkRequestReceivedTemplate", placeholders);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "CreateUser: could not send team player link request notification for request {RequestId}", linkRequest.Id);
+                }
+            }
+
+            private async Task SaveUserProfileAsync(string userId, string roleName, string playerId, string teamId, CancellationToken ct)
+            {
+                try
+                {
+                    var existing = await _db.UserProfiles
+                        .FirstOrDefaultAsync(p => p.ApplicationUserId == userId, ct);
+
+                    if (existing is null)
+                    {
+                        _db.UserProfiles.Add(new UserProfile(userId, roleName, playerId, teamId));
+                    }
+                    else
+                    {
+                        existing.Update(roleName, playerId, teamId);
+                    }
+
+                    await _db.SaveChangesAsync(ct);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "CreateUser: could not save UserProfile for user {UserId}", userId);
                 }
             }
 
@@ -506,7 +639,7 @@ namespace RFFM.Api.Features.Coaches.Users.Commands
         }
     }
 
-    public enum RegistrationStatus { Active, PendingClubApproval }
+    public enum RegistrationStatus { Active, PendingClubApproval, PendingPlayerLinkApproval }
 
     public class RegisterAccountResponse
     {
@@ -515,6 +648,7 @@ namespace RFFM.Api.Features.Coaches.Users.Commands
         public RegistrationStatus Status { get; set; }
         public SubscriptionDto? Subscription { get; set; }
         public string? ClubJoinRequestId { get; set; }
+        public string? TeamPlayerLinkRequestId { get; set; }
     }
 
     public class SubscriptionDto

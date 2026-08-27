@@ -1,0 +1,10 @@
+# Copy to terraform.tfvars (gitignored) and fill in real values before running `terraform apply`.
+# Non-sensitive values already have sane defaults in variables.tf and can be omitted.
+
+subscription_id       = "<azure-subscription-id>"
+ghcr_pat              = "<github-pat-with-read:packages-scope>"
+jwt_key               = "<jwt-signing-key>"
+frontend_secret       = "<frontend-shared-secret>"
+db_connection_string  = "<postgres-connection-string>"
+smtp_password         = "<smtp-app-password>"
+supabase_service_key  = "<supabase-service-role-key>"

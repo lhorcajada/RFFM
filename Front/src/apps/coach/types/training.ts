@@ -1,63 +1,102 @@
-export type ExerciseType =
-  | "Physical"
-  | "Technical"
-  | "Tactical"
-  | "Game"
-  | "Cognitive"
-  | "Psychological";
-export type ExerciseSection = "Calentamiento" | "Principal" | "VueltaALaCalma";
-export type ExerciseMethodology = "Analitico" | "Integrado" | "Global";
+// Exercise ("Ejercicio") and TrainingSession ("Sesión") types, mirroring the backend's
+// reduced-template model (docs/game-model/Plantilla-Ejercicio.md,
+// docs/game-model/Plantilla-Sesion.md). See openspec/changes/session-exercise-plan-redesign.
 
-export interface ExerciseCondition {
+export type ExerciseTipo = "Analitico" | "Situacional" | "Global";
+
+export interface ExerciseLevelRow {
+  nivel: number;
+  valores: Record<string, string>;
+}
+
+/** Denormalized display fields for an ExerciseModelRelationItem — read-side only. */
+export interface ExerciseModelRelationItem {
   id: string;
-  text: string;
-  order: number;
+  subSubPrincipioId: string;
+  subSubPrincipioNumero?: string | null;
+  subSubPrincipioRol?: string | null;
+  isFoco: boolean;
+}
+export type ExerciseModelRelationItemRequest = Pick<ExerciseModelRelationItem, "subSubPrincipioId" | "isFoco">;
+
+/** Denormalized display fields for an ExerciseModelRelation — read-side only. */
+export interface ExerciseModelRelation {
+  id: string;
+  subprincipioId: string;
+  subprincipioNumero?: string | null;
+  subprincipioTitulo?: string | null;
+  isFoco: boolean;
+  habilidadesImprescindibles: string[];
+  items: ExerciseModelRelationItem[];
+}
+export interface ExerciseModelRelationRequest {
+  subprincipioId: string;
+  isFoco: boolean;
+  habilidadesImprescindibles: string[];
+  items: ExerciseModelRelationItemRequest[];
 }
 
 export interface Exercise {
   id: string;
   name: string;
-  description: string;
-  types: ExerciseType[];
-  section: ExerciseSection;
-  methodology: ExerciseMethodology;
-  durationTotal: number;
-  playersNumber: number;
-  goalPeekersNumber: number;
-  fieldSpace: string;
+  tipo: ExerciseTipo;
+  objetivo: string;
+  objetivoPorRol?: string | null;
+  modelRelations: ExerciseModelRelation[];
+  nivelesColumnas: string[];
+  niveles: ExerciseLevelRow[];
+  logistica: string;
+  durationMinutes?: number | null;
+  porteros?: string | null;
+  dibujo?: string | null;
+  descripcion: string;
   urlImage?: string | null;
   boardStateJson?: string | null;
-  conditions: ExerciseCondition[];
-  // Type-specific (only present from list endpoint now)
-  series?: number;
-  durationSeries?: number;
-  restSeries?: number;
-  touchesNumber?: number;
-  wildCards?: number;
+  /** True when `modelRelations.length > 0` (also sent directly by the API). */
+  isAssociatedToGameModel: boolean;
 }
 
 export interface CreateExerciseRequest {
   clubId: string;
   name: string;
-  description: string;
-  types: ExerciseType[];
-  section: ExerciseSection;
-  methodology: ExerciseMethodology;
-  durationTotal: number;
-  playersNumber: number;
-  goalPeekersNumber: number;
-  fieldSpace: string;
+  tipo: ExerciseTipo;
+  objetivo: string;
+  objetivoPorRol?: string | null;
+  modelRelations: ExerciseModelRelationRequest[];
+  nivelesColumnas: string[];
+  niveles: ExerciseLevelRow[];
+  logistica: string;
+  durationMinutes?: number | null;
+  porteros?: string | null;
+  dibujo?: string | null;
+  descripcion: string;
   boardStateJson?: string | null;
-  // Physical
-  series?: number;
-  durationSeries?: number;
-  restSeries?: number;
-  // Technical/Tactical
-  touchesNumber?: number;
-  wildCards?: number;
 }
-
 export type UpdateExerciseRequest = Omit<CreateExerciseRequest, "clubId">;
+
+export interface SessionBlockExercise {
+  id: string;
+  exerciseId: string;
+  position: number;
+  exerciseName?: string;
+  exerciseTipo?: ExerciseTipo;
+  exerciseObjetivo?: string;
+  exerciseDurationMinutes?: number | null;
+  exerciseUrlImage?: string | null;
+}
+export type SessionBlockExerciseRequest = Pick<SessionBlockExercise, "exerciseId" | "position">;
+
+export interface SessionBlock {
+  id: string;
+  order: number;
+  nombre: string;
+  comoConectaConAnterior: string;
+  rotacionEntreEjercicios?: string | null;
+  exercises: SessionBlockExercise[];
+}
+export type SessionBlockRequest = Omit<SessionBlock, "id" | "exercises"> & {
+  exercises: SessionBlockExerciseRequest[];
+};
 
 export interface TrainingSession {
   id: string;
@@ -69,42 +108,18 @@ export interface TrainingSession {
   location?: string | null;
   sportEventId?: string | null;
   sportEventName?: string | null;
+  microcicloId?: string | null;
+  microcicloWeekLabel?: string | null;
+  /** True when `microcicloId != null`. */
+  isAssociatedToPlan: boolean;
   exerciseCount: number;
 }
 
-export interface SessionExerciseItem {
-  taskTrainingId: string;
-  order: number;
-  exerciseId: string;
-  name: string;
-  description: string;
-  types: ExerciseType[];
-  section: ExerciseSection;
-  durationTotal: number;
-  playersNumber: number;
-  goalPeekersNumber: number;
-  fieldSpace: string;
+export interface TrainingSessionDetail extends Omit<TrainingSession, "exerciseCount"> {
+  objetivoGeneral?: string | null;
+  mapaCampoTexto?: string | null;
   urlImage?: string | null;
-  boardStateJson?: string | null;
-  conditions: ExerciseCondition[];
-}
-
-export interface TrainingSessionDetail {
-  id: string;
-  name: string;
-  description: string;
-  date: string;
-  startTime: string;
-  endTime?: string | null;
-  location?: string | null;
-  sportEventId?: string | null;
-  sportEventName?: string | null;
-  exercises: SessionExerciseItem[];
-}
-
-export interface SessionExerciseEntry {
-  exerciseId: string;
-  section: ExerciseSection;
+  blocks: SessionBlock[];
 }
 
 export interface CreateSessionRequest {
@@ -116,7 +131,9 @@ export interface CreateSessionRequest {
   endTime?: string | null;
   location?: string | null;
   sportEventId?: string | null;
-  exercises: SessionExerciseEntry[];
+  microcicloId?: string | null;
+  objetivoGeneral?: string | null;
+  mapaCampoTexto?: string | null;
+  blocks: SessionBlockRequest[];
 }
-
 export type UpdateSessionRequest = Omit<CreateSessionRequest, "teamId">;

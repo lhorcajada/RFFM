@@ -3,12 +3,18 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using RFFM.Api.Domain;
 using RFFM.Api.Domain.Aggregates.UserClubs;
 using RFFM.Api.Domain.Entities;
+using RFFM.Api.Domain.Entities.Competitions;
+using RFFM.Api.Domain.Entities.Players;
+using RFFM.Api.Domain.Entities.Seasons;
+using RFFM.Api.Domain.Entities.TeamPlayers;
+using RFFM.Api.Domain.Models;
 using RFFM.Api.Features.Coaches.Auth;
 using RFFM.Api.Features.Coaches.Users.Commands;
 using RFFM.Api.Infrastructure.Services.Email;
@@ -367,6 +373,457 @@ namespace RFFM.Api.Tests.UnitTests
             Assert.Equal(RegistrationStatus.Active, okResult.Value.Status);
             Assert.Null(okResult.Value.ClubJoinRequestId);
             Assert.Contains(AppRoles.Fan.Name, okResult.Value.Roles);
+        }
+
+        [Fact]
+        public async Task Handle_FamilyMember_WithValidInvitationAndTeamPlayer_CreatesUserProfileSoLoginDoesNotReAskForPlayer()
+        {
+            // Regression test: registering as FamilyMember must persist the chosen player/team
+            // into UserProfile immediately, mirroring VerifyPlayerIdentity's SaveUserProfileAsync,
+            // so GET /api/users/me/profile (consulted by the frontend right after login) already
+            // has it and the app never re-prompts for player selection post-registration.
+
+            // Arrange
+            await using var setupDb = _fixture.CreateDbContext();
+
+            var club = Club.Create($"FamilyMember Test Club {Guid.NewGuid():N}", 1);
+            setupDb.Clubs.Add(club);
+            await setupDb.SaveChangesAsync();
+
+            var season = Season.Create(
+                $"Season {Guid.NewGuid():N}",
+                DateTime.UtcNow,
+                DateTime.UtcNow.AddMonths(9),
+                isActive: true,
+                club: club);
+            setupDb.Seasons.Add(season);
+            await setupDb.SaveChangesAsync();
+
+            var team = new Team(new TeamModelBase
+            {
+                Name = "FamilyMember Test Team",
+                CategoryId = Category.NationalCategory.Id,
+                ClubId = club.Id,
+                SeasonId = season.Id
+            });
+            setupDb.Teams.Add(team);
+            await setupDb.SaveChangesAsync();
+
+            var player = Player.Create(new PlayerModelBase
+            {
+                Name = "Hijo",
+                LastName = "DePrueba",
+                Alias = "hijo",
+                ClubId = club.Id
+            });
+            setupDb.Players.Add(player);
+            await setupDb.SaveChangesAsync();
+
+            var teamPlayer = TeamPlayer.Create(new TeamPlayerModel
+            {
+                PlayerId = player.Id,
+                TeamId = team.Id,
+                SeasonId = season.Id,
+                JoinedDate = DateTime.UtcNow,
+                FamilyMembers = new List<FamilyModel>()
+            });
+            setupDb.TeamPlayers.Add(teamPlayer);
+            await setupDb.SaveChangesAsync();
+
+            // Generate link code and persist it
+            teamPlayer.GenerateLinkCode();
+            await setupDb.SaveChangesAsync();
+
+            var userManagerMock = MockUserManager();
+            userManagerMock
+                .Setup(m => m.FindByNameAsync(It.IsAny<string>()))
+                .ReturnsAsync((IdentityUser?)null);
+            userManagerMock
+                .Setup(m => m.FindByEmailAsync(It.IsAny<string>()))
+                .ReturnsAsync((IdentityUser?)null);
+
+            IdentityUser? createdUser = null;
+            userManagerMock
+                .Setup(m => m.CreateAsync(It.IsAny<IdentityUser>(), It.IsAny<string>()))
+                .Callback<IdentityUser, string>((u, _) => createdUser = u)
+                .ReturnsAsync(IdentityResult.Success);
+            userManagerMock
+                .Setup(m => m.GetRolesAsync(It.IsAny<IdentityUser>()))
+                .ReturnsAsync(new List<string> { AppRoles.FamilyMember.Name });
+
+            var roleManagerMock = MockRoleManager();
+            roleManagerMock
+                .Setup(m => m.RoleExistsAsync(It.IsAny<string>()))
+                .ReturnsAsync(true);
+
+            var configuration = new ConfigurationBuilder().Build();
+            var db = _fixture.CreateDbContext();
+            var emailService = new EmailService(configuration, null!);
+            var logger = NullLogger<CreateUser.Handler>.Instance;
+
+            var handler = new CreateUser.Handler(
+                userManagerMock.Object,
+                roleManagerMock.Object,
+                emailService,
+                configuration,
+                db,
+                logger);
+
+            var command = new CreateUser.Command
+            {
+                Alias = $"family{Guid.NewGuid():N}"[..15],
+                Email = "family@rffm.test",
+                Password = "S3cure!Pass",
+                AccountType = AppRoles.FamilyMember.Name,
+                TeamInvitationCode = team.JoinCode,
+                TeamPlayerId = teamPlayer.Id,
+                PlayerLinkCode = teamPlayer.LinkCode
+            };
+
+            // Act
+            var result = await handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            var okResult = Assert.IsAssignableFrom<Ok<RegisterAccountResponse>>(result);
+            Assert.NotNull(okResult.Value);
+            Assert.Equal(RegistrationStatus.Active, okResult.Value.Status);
+            Assert.NotNull(createdUser);
+
+            await using var assertDb = _fixture.CreateDbContext();
+            var profile = await assertDb.UserProfiles
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.ApplicationUserId == createdUser!.Id);
+
+            Assert.NotNull(profile);
+            Assert.Equal(AppRoles.FamilyMember.Name, profile!.RoleName);
+            Assert.Equal(teamPlayer.Id, profile.PlayerId);
+            Assert.Equal(team.Id, profile.TeamId);
+        }
+
+        [Fact]
+        public async Task Handle_FamilyMember_WithoutPlayerLinkCode_CreatesPendingLinkRequest_AndDoesNotCreateUserTeamOrProfile()
+        {
+            // Regression test: registering as FamilyMember WITHOUT a link code must create a
+            // pending TeamPlayerLinkRequest and NOT create UserTeam or UserProfile.
+
+            // Arrange
+            await using var setupDb = _fixture.CreateDbContext();
+
+            var club = Club.Create($"FamilyMember No Code Test Club {Guid.NewGuid():N}", 1);
+            setupDb.Clubs.Add(club);
+            await setupDb.SaveChangesAsync();
+
+            var season = Season.Create(
+                $"Season {Guid.NewGuid():N}",
+                DateTime.UtcNow,
+                DateTime.UtcNow.AddMonths(9),
+                isActive: true,
+                club: club);
+            setupDb.Seasons.Add(season);
+            await setupDb.SaveChangesAsync();
+
+            var team = new Team(new TeamModelBase
+            {
+                Name = "FamilyMember No Code Test Team",
+                CategoryId = Category.NationalCategory.Id,
+                ClubId = club.Id,
+                SeasonId = season.Id
+            });
+            setupDb.Teams.Add(team);
+            await setupDb.SaveChangesAsync();
+
+            var player = Player.Create(new PlayerModelBase
+            {
+                Name = "TestPlayer",
+                LastName = "NoCode",
+                Alias = "testnocode",
+                ClubId = club.Id
+            });
+            setupDb.Players.Add(player);
+            await setupDb.SaveChangesAsync();
+
+            var teamPlayer = TeamPlayer.Create(new TeamPlayerModel
+            {
+                PlayerId = player.Id,
+                TeamId = team.Id,
+                SeasonId = season.Id,
+                JoinedDate = DateTime.UtcNow,
+                FamilyMembers = new List<FamilyModel>()
+            });
+            setupDb.TeamPlayers.Add(teamPlayer);
+            await setupDb.SaveChangesAsync();
+
+            var userManagerMock = MockUserManager();
+            userManagerMock
+                .Setup(m => m.FindByNameAsync(It.IsAny<string>()))
+                .ReturnsAsync((IdentityUser?)null);
+            userManagerMock
+                .Setup(m => m.FindByEmailAsync(It.IsAny<string>()))
+                .ReturnsAsync((IdentityUser?)null);
+
+            IdentityUser? createdUser = null;
+            userManagerMock
+                .Setup(m => m.CreateAsync(It.IsAny<IdentityUser>(), It.IsAny<string>()))
+                .Callback<IdentityUser, string>((u, _) => createdUser = u)
+                .ReturnsAsync(IdentityResult.Success);
+            userManagerMock
+                .Setup(m => m.GetRolesAsync(It.IsAny<IdentityUser>()))
+                .ReturnsAsync(new List<string> { AppRoles.FamilyMember.Name });
+
+            var roleManagerMock = MockRoleManager();
+            roleManagerMock
+                .Setup(m => m.RoleExistsAsync(It.IsAny<string>()))
+                .ReturnsAsync(true);
+
+            var configuration = new ConfigurationBuilder().Build();
+            var db = _fixture.CreateDbContext();
+            var emailService = new EmailService(configuration, null!);
+            var logger = NullLogger<CreateUser.Handler>.Instance;
+
+            var handler = new CreateUser.Handler(
+                userManagerMock.Object,
+                roleManagerMock.Object,
+                emailService,
+                configuration,
+                db,
+                logger);
+
+            var command = new CreateUser.Command
+            {
+                Alias = $"familynocode{Guid.NewGuid():N}"[..15],
+                Email = "familynocode@rffm.test",
+                Password = "S3cure!Pass",
+                AccountType = AppRoles.FamilyMember.Name,
+                TeamInvitationCode = team.JoinCode,
+                TeamPlayerId = teamPlayer.Id
+                // NO PlayerLinkCode
+            };
+
+            // Act
+            var result = await handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            var okResult = Assert.IsAssignableFrom<Ok<RegisterAccountResponse>>(result);
+            Assert.NotNull(okResult.Value);
+            Assert.Equal(RegistrationStatus.PendingPlayerLinkApproval, okResult.Value.Status);
+            Assert.NotNull(okResult.Value.TeamPlayerLinkRequestId);
+            Assert.NotNull(createdUser);
+
+            await using var assertDb = _fixture.CreateDbContext();
+
+            // Should NOT have UserTeam
+            var userTeam = await assertDb.UserTeams
+                .AsNoTracking()
+                .FirstOrDefaultAsync(ut => ut.ApplicationUserId == createdUser!.Id);
+            Assert.Null(userTeam);
+
+            // Should NOT have UserProfile
+            var profile = await assertDb.UserProfiles
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.ApplicationUserId == createdUser!.Id);
+            Assert.Null(profile);
+
+            // Should have TeamPlayerLinkRequest Pending
+            var linkRequest = await assertDb.TeamPlayerLinkRequests
+                .AsNoTracking()
+                .FirstOrDefaultAsync(r => r.Id == okResult.Value.TeamPlayerLinkRequestId);
+            Assert.NotNull(linkRequest);
+            Assert.Equal(TeamPlayerLinkRequestStatus.Pending, linkRequest.Status);
+            Assert.Equal(teamPlayer.Id, linkRequest.TeamPlayerId);
+            Assert.Equal(Membership.FamilyPlayer.Id, linkRequest.MembershipId);
+        }
+
+        [Fact]
+        public async Task Handle_Player_WithWrongPlayerLinkCode_ReturnsBadRequestWithPlayerLinkCodeInvalidCode()
+        {
+            // Test that providing an incorrect player link code returns 400 with PlayerLinkCodeInvalid.
+
+            // Arrange
+            await using var setupDb = _fixture.CreateDbContext();
+
+            var club = Club.Create($"Player Wrong Code Test Club {Guid.NewGuid():N}", 1);
+            setupDb.Clubs.Add(club);
+            await setupDb.SaveChangesAsync();
+
+            var season = Season.Create(
+                $"Season {Guid.NewGuid():N}",
+                DateTime.UtcNow,
+                DateTime.UtcNow.AddMonths(9),
+                isActive: true,
+                club: club);
+            setupDb.Seasons.Add(season);
+            await setupDb.SaveChangesAsync();
+
+            var team = new Team(new TeamModelBase
+            {
+                Name = "Player Wrong Code Test Team",
+                CategoryId = Category.NationalCategory.Id,
+                ClubId = club.Id,
+                SeasonId = season.Id
+            });
+            setupDb.Teams.Add(team);
+            await setupDb.SaveChangesAsync();
+
+            var player = Player.Create(new PlayerModelBase
+            {
+                Name = "TestPlayer",
+                LastName = "WrongCode",
+                Alias = "testwrongcode",
+                ClubId = club.Id
+            });
+            setupDb.Players.Add(player);
+            await setupDb.SaveChangesAsync();
+
+            var teamPlayer = TeamPlayer.Create(new TeamPlayerModel
+            {
+                PlayerId = player.Id,
+                TeamId = team.Id,
+                SeasonId = season.Id,
+                JoinedDate = DateTime.UtcNow,
+                FamilyMembers = new List<FamilyModel>()
+            });
+            setupDb.TeamPlayers.Add(teamPlayer);
+            await setupDb.SaveChangesAsync();
+
+            var userManagerMock = MockUserManager();
+            userManagerMock
+                .Setup(m => m.FindByNameAsync(It.IsAny<string>()))
+                .ReturnsAsync((IdentityUser?)null);
+            userManagerMock
+                .Setup(m => m.FindByEmailAsync(It.IsAny<string>()))
+                .ReturnsAsync((IdentityUser?)null);
+
+            var configuration = new ConfigurationBuilder().Build();
+            var db = _fixture.CreateDbContext();
+            var emailService = new EmailService(configuration, null!);
+            var logger = NullLogger<CreateUser.Handler>.Instance;
+
+            var handler = new CreateUser.Handler(
+                userManagerMock.Object,
+                MockRoleManager().Object,
+                emailService,
+                configuration,
+                db,
+                logger);
+
+            var command = new CreateUser.Command
+            {
+                Alias = $"playerwrongcode{Guid.NewGuid():N}"[..15],
+                Email = "playerwrongcode@rffm.test",
+                Password = "S3cure!Pass",
+                AccountType = AppRoles.Player.Name,
+                TeamInvitationCode = team.JoinCode,
+                TeamPlayerId = teamPlayer.Id,
+                PlayerLinkCode = "WRONGCOD"
+            };
+
+            // Act
+            var result = await handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            var badRequest = Assert.IsAssignableFrom<BadRequest<ProblemDetails>>(result);
+            Assert.NotNull(badRequest.Value);
+            Assert.Equal(ErrorCodes.PlayerLinkCodeInvalid, badRequest.Value.Extensions["code"]);
+        }
+
+        [Fact]
+        public async Task Handle_Player_WithExistingPendingRequestForSameTeamPlayer_ReturnsConflictWithLinkedPlayerRequestPendingCode()
+        {
+            // Test that attempting to register as Player when a pending request already exists
+            // for that TeamPlayer returns 409 with LinkedPlayerRequestPending.
+
+            // Arrange
+            await using var setupDb = _fixture.CreateDbContext();
+
+            var club = Club.Create($"Player Pending Conflict Test Club {Guid.NewGuid():N}", 1);
+            setupDb.Clubs.Add(club);
+            await setupDb.SaveChangesAsync();
+
+            var season = Season.Create(
+                $"Season {Guid.NewGuid():N}",
+                DateTime.UtcNow,
+                DateTime.UtcNow.AddMonths(9),
+                isActive: true,
+                club: club);
+            setupDb.Seasons.Add(season);
+            await setupDb.SaveChangesAsync();
+
+            var team = new Team(new TeamModelBase
+            {
+                Name = "Player Pending Conflict Test Team",
+                CategoryId = Category.NationalCategory.Id,
+                ClubId = club.Id,
+                SeasonId = season.Id
+            });
+            setupDb.Teams.Add(team);
+            await setupDb.SaveChangesAsync();
+
+            var player = Player.Create(new PlayerModelBase
+            {
+                Name = "TestPlayer",
+                LastName = "PendingConflict",
+                Alias = "testpendingconflict",
+                ClubId = club.Id
+            });
+            setupDb.Players.Add(player);
+            await setupDb.SaveChangesAsync();
+
+            var teamPlayer = TeamPlayer.Create(new TeamPlayerModel
+            {
+                PlayerId = player.Id,
+                TeamId = team.Id,
+                SeasonId = season.Id,
+                JoinedDate = DateTime.UtcNow,
+                FamilyMembers = new List<FamilyModel>()
+            });
+            setupDb.TeamPlayers.Add(teamPlayer);
+            await setupDb.SaveChangesAsync();
+
+            // Create a pending TeamPlayerLinkRequest for this TeamPlayer/Player combo
+            var firstUserId = Guid.NewGuid().ToString();
+            var pendingRequest = TeamPlayerLinkRequest.Create(firstUserId, team.Id, teamPlayer.Id, Membership.Player.Id);
+            setupDb.TeamPlayerLinkRequests.Add(pendingRequest);
+            await setupDb.SaveChangesAsync();
+
+            var userManagerMock = MockUserManager();
+            userManagerMock
+                .Setup(m => m.FindByNameAsync(It.IsAny<string>()))
+                .ReturnsAsync((IdentityUser?)null);
+            userManagerMock
+                .Setup(m => m.FindByEmailAsync(It.IsAny<string>()))
+                .ReturnsAsync((IdentityUser?)null);
+
+            var configuration = new ConfigurationBuilder().Build();
+            var db = _fixture.CreateDbContext();
+            var emailService = new EmailService(configuration, null!);
+            var logger = NullLogger<CreateUser.Handler>.Instance;
+
+            var handler = new CreateUser.Handler(
+                userManagerMock.Object,
+                MockRoleManager().Object,
+                emailService,
+                configuration,
+                db,
+                logger);
+
+            var command = new CreateUser.Command
+            {
+                Alias = $"playerconflict{Guid.NewGuid():N}"[..15],
+                Email = "playerconflict@rffm.test",
+                Password = "S3cure!Pass",
+                AccountType = AppRoles.Player.Name,
+                TeamInvitationCode = team.JoinCode,
+                TeamPlayerId = teamPlayer.Id
+                // No PlayerLinkCode; this will try to create another pending request
+            };
+
+            // Act
+            var result = await handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            var conflict = Assert.IsAssignableFrom<Conflict<ProblemDetails>>(result);
+            Assert.NotNull(conflict.Value);
+            Assert.Equal(ErrorCodes.LinkedPlayerRequestPending, conflict.Value.Extensions["code"]);
         }
 
         private static Mock<UserManager<IdentityUser>> MockUserManager()

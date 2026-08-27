@@ -268,7 +268,7 @@ namespace RFFM.Api.Features.Coaches.GameModels.Commands
         {
             RuleFor(x => x.Nombre)
                 .Must(n => Habilidad.Vocabulary.Contains(n))
-                .WithMessage("Nombre must be one of the 14-value Habilidad closed vocabulary.");
+                .WithMessage("Nombre must be one of the 15-value Habilidad closed vocabulary.");
         }
     }
 

@@ -9,12 +9,24 @@ import type {
   UpdateSessionRequest,
 } from "../types/training";
 
+/** True when the API error's ProblemDetails `code` extension matches. Domain errors are
+ * always mapped to 400 by the backend's `AddCustomProblemDetails` — the `code` field, not the
+ * status, is what identifies the specific failure. */
+export function hasErrorCode(error: unknown, code: string): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "response" in error &&
+    (error as { response?: { data?: { code?: string } } }).response?.data?.code === code
+  );
+}
+
 const trainingService = {
   // ── Exercises ─────────────────────────────────────────────────────────
 
-  async getExercises(clubId: string, opts?: { methodology?: string | null }): Promise<Exercise[]> {
+  async getExercises(clubId: string, opts?: { tipo?: string | null }): Promise<Exercise[]> {
     const params: Record<string, string> = { clubId };
-    if (opts?.methodology) params.methodology = opts.methodology;
+    if (opts?.tipo) params.tipo = opts.tipo;
     const res = await client.get<Exercise[]>("/api/trainings/exercises", { params });
     return res.data;
   },
@@ -46,20 +58,6 @@ const trainingService = {
       { headers: { "Content-Type": "multipart/form-data" } }
     );
     return res.data;
-  },
-
-  async createCondition(exerciseId: string, text: string): Promise<{ id: string; text: string; order: number }> {
-    const res = await client.post(`/api/trainings/exercises/${exerciseId}/conditions`, { text });
-    return res.data;
-  },
-
-  async updateCondition(conditionId: string, text: string): Promise<{ id: string; text: string; order: number }> {
-    const res = await client.put(`/api/trainings/exercises/conditions/${conditionId}`, { text });
-    return res.data;
-  },
-
-  async deleteCondition(conditionId: string): Promise<void> {
-    await client.delete(`/api/trainings/exercises/conditions/${conditionId}`);
   },
 
   // ── Sessions ──────────────────────────────────────────────────────────

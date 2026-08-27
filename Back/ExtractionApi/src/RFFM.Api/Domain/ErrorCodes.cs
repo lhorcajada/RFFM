@@ -32,6 +32,10 @@ namespace RFFM.Api.Domain
         public const string LinkedPlayerRequired = "LinkedPlayerRequired";
         public const string LinkedPlayerNotInTeam = "LinkedPlayerNotInTeam";
         public const string LinkedPlayerAlreadyClaimed = "LinkedPlayerAlreadyClaimed";
+        public const string PlayerLinkCodeInvalid = "PlayerLinkCodeInvalid";
+        public const string LinkedPlayerRequestPending = "LinkedPlayerRequestPending";
+        public const string TeamPlayerLinkRequestNotFound = "TeamPlayerLinkRequestNotFound";
+        public const string TeamPlayerLinkRequestAlreadyDecided = "TeamPlayerLinkRequestAlreadyDecided";
         public const string ClubJoinRequestNotFound = "ClubJoinRequestNotFound";
         public const string ClubJoinRequestAlreadyDecided = "ClubJoinRequestAlreadyDecided";
         public const string ClubJoinRequestCancelForbidden = "ClubJoinRequestCancelForbidden";
@@ -51,10 +55,11 @@ namespace RFFM.Api.Domain
         public const string ExerciseNotFound = "ExerciseNotFound";
         public const string ExerciseAccessDenied = "ExerciseAccessDenied";
         public const string ClubAccessDenied = "ClubAccessDenied";
+        public const string ExerciseInUseBySession = "ExerciseInUseBySession";
 
-        // Exercise Conditions (Features/Coaches/Trainings/Exercises/ExerciseConditionsCrud.cs)
-        public const string ExerciseConditionNotFound = "ExerciseConditionNotFound";
-        public const string ExerciseConditionAccessDenied = "ExerciseConditionAccessDenied";
+        // Training Sessions (Features/Coaches/Trainings/Sessions) - Microciclo/plan association
+        public const string MicrocicloTeamMismatch = "MicrocicloTeamMismatch";
+        public const string MicrocicloNotFound = "MicrocicloNotFound";
 
         // Game Models (Features/Coaches/GameModels)
         public const string GameModelNotFound = "GameModelNotFound";
@@ -89,5 +94,15 @@ namespace RFFM.Api.Domain
 
         // Push Notifications (Features/Mobile/PushNotifications)
         public const string PushTokenNotFound = "PushTokenNotFound";
+
+        // Season Plans (Features/Coaches/SeasonPlans)
+        public const string SeasonPlanNotFound = "SeasonPlanNotFound";
+        public const string SeasonPlanAccessDenied = "SeasonPlanAccessDenied";
+        public const string SeasonPlanAlreadyExists = "SeasonPlanAlreadyExists";
+
+        // Players (Features/Coaches/Players/Commands/UpdateTeamPlayer.cs) - openspec change
+        // player-self-edit-physical-family-contact: Player/FamilyMember callers may only edit
+        // their own linked TeamPlayer.
+        public const string TeamPlayerEditForbidden = "TeamPlayerEditForbidden";
     }
 }

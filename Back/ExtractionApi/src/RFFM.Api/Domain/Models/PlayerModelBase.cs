@@ -14,6 +14,9 @@
         public string? UrlPhoto { get; set; }
         public DateTime? BirthDate { get; set; }
         public string? Dni { get; set; }
+        public string? Enfermedades { get; set; }
+        public string? Alergias { get; set; }
+        public string? Procedencia { get; set; }
         public string ClubId { get; set; } = null!;
         public int? Age { get; set; }
         public int? BirthYear { get; set; }

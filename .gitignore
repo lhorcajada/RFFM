@@ -1,0 +1,11 @@
+# Datos personales/de salud de jugadores (menores) - nunca deben entrar en el repositorio
+docs/jugadores/
+
+# Terraform - state y variables con secretos nunca se comitean
+infra/terraform/.terraform/
+infra/terraform/*.tfstate
+infra/terraform/*.tfstate.*
+infra/terraform/terraform.tfvars
+infra/terraform/*.tfplan
+infra/terraform/tfplan.out
+infra/terraform/crash.log

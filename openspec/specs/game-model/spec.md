@@ -4,7 +4,7 @@
 TBD - created by archiving change move-game-scenario. Update Purpose after archive.
 ## Requirements
 ### Requirement: Game model follows the ADN hierarchy
-The system SHALL model a `GameModel`'s content as `Fase (GameMoment) → Principio (GamePrinciple) → Subprincipio → (Zona, 0..N) → SubSubPrincipio → Habilidad`, where a `Subprincipio`'s `SubSubPrincipio`s hang either directly off it or off one of its `Zona`s, never both. A `Nota` MAY be anchored to a `Principio`, `Subprincipio`, `Zona`, or `SubSubPrincipio`. The "Balón parado" `Fase` instead holds a flat list of `SetPieceRule`s with no Principio/Subprincipio/Zona nesting. `Habilidad.Nombre` SHALL be restricted to the fixed 14-value vocabulary defined in `docs/game-model/ADN-modelo-de-juego-especificacion-tecnica.md` §4; any other value is rejected.
+The system SHALL model a `GameModel`'s content as `Fase (GameMoment) → Principio (GamePrinciple) → Subprincipio → (Zona, 0..N) → SubSubPrincipio → Habilidad`, where a `Subprincipio`'s `SubSubPrincipio`s hang either directly off it or off one of its `Zona`s, never both. A `Nota` MAY be anchored to a `Principio`, `Subprincipio`, `Zona`, or `SubSubPrincipio`. The "Balón parado" `Fase` instead holds a flat list of `SetPieceRule`s with no Principio/Subprincipio/Zona nesting. `Habilidad.Nombre` SHALL be restricted to the fixed **15-value** vocabulary defined in `docs/game-model/ADN-modelo-de-juego-especificacion-tecnica.md` §4; any other value is rejected.
 
 #### Scenario: SubSubPrincipio hangs off a Zona when the Subprincipio varies by zone
 - **WHEN** a Coach adds a `SubSubPrincipio` under a `Zona` that belongs to a `Subprincipio`
@@ -15,7 +15,7 @@ The system SHALL model a `GameModel`'s content as `Fase (GameMoment) → Princip
 - **THEN** the `SubSubPrincipio` is persisted anchored directly to that `Subprincipio`
 
 #### Scenario: Habilidad name outside the closed vocabulary is rejected
-- **WHEN** a Coach (or the markdown importer) attempts to save a `Habilidad` with a `Nombre` not in the 14-value vocabulary
+- **WHEN** a Coach (or the markdown importer) attempts to save a `Habilidad` with a `Nombre` not in the 15-value vocabulary
 - **THEN** the save is rejected with a validation error and no `Habilidad` is created
 
 #### Scenario: Balón parado phase holds flat SetPieceRules
@@ -45,7 +45,7 @@ The system SHALL provide a markdown importer that parses `docs/game-model/ADN-Mo
 - **THEN** the importer rejects it (or marks it pending) rather than forcing it into an incorrect catalog zone
 
 #### Scenario: Habilidad name outside the vocabulary during import is rejected
-- **WHEN** the legible document contains a Habilidad name not in the 14-value closed vocabulary
+- **WHEN** the legible document contains a Habilidad name not in the 15-value closed vocabulary
 - **THEN** the importer rejects that entry rather than silently creating a new habilidad
 
 ### Requirement: Game-model read views reproduce the legible document's structure
@@ -54,15 +54,4 @@ The Coach app's read and print views of a `GameModel` SHALL present the ADN tree
 #### Scenario: Read view mirrors the legible document's nesting
 - **WHEN** a Coach opens a game model for a Fase with several numbered Principios and Subprincipios
 - **THEN** the read view renders them in the same numbered, nested order as the legible document, including Zona blocks and Notas at their anchored level
-
-### Requirement: Exercises and training sessions are independent of the game model
-The system SHALL NOT link `Exercise`/`TaskTrainingBase` or `TrainingSession` records to any game-model entity. No exercise or session creation/edit flow SHALL reference a Principio, Subprincipio, Zona, SubSubPrincipio, or Habilidad.
-
-#### Scenario: Creating an exercise has no game-model field
-- **WHEN** a Coach creates or edits an exercise
-- **THEN** the form has no field to select a Subprincipio, Zona, SubSubPrincipio, or Habilidad, and the saved exercise carries no such reference
-
-#### Scenario: Creating a session has no game-model field
-- **WHEN** a Coach creates or edits a training session
-- **THEN** the form has no field to select a Subprincipio, and the saved session carries no such reference
 

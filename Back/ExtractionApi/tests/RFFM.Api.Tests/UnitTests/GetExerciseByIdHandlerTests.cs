@@ -1,14 +1,12 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using RFFM.Api.Domain.Aggregates.UserClubs;
 using RFFM.Api.Domain.Models;
 using RFFM.Api.Features.Coaches.Trainings.Exercises;
 using RFFM.Api.Infrastructure.Persistence;
-using RFFM.Api.Infrastructure.Persistence.Seed;
 using RFFM.Api.Tests.Fixtures;
 using Xunit;
 
@@ -26,8 +24,6 @@ namespace RFFM.Api.Tests.UnitTests
 
         private static async Task<(string UserId, string ClubId, Club Club)> SeedClubAsync(AppDbContext db)
         {
-            await ExerciseTypesSeeder.SeedAsync(db);
-
             var club = Club.Create($"GetExerciseById Test Club {Guid.NewGuid():N}", 1);
             db.Clubs.Add(club);
             await db.SaveChangesAsync();
@@ -39,56 +35,44 @@ namespace RFFM.Api.Tests.UnitTests
             return (userId, club.Id, club);
         }
 
-        private static CreateExerciseCommand CreateCommand(string clubId, string userId, List<string> types) => new(
-            clubId, "Ejercicio de prueba", "Descripción", types,
-            10, 8, 0, "Media cancha",
-            Section: "Principal",
-            Methodology: "Integrado",
-            BoardStateJson: null,
-            Series: null, DurationSeries: null, RestSeries: null,
-            TouchesNumber: null, WildCards: null)
+        private static List<NivelRowRequest> TwoLevels() => new()
+        {
+            new NivelRowRequest(1, new Dictionary<string, string>()),
+            new NivelRowRequest(2, new Dictionary<string, string>()),
+        };
+
+        private static CreateExerciseCommand CreateCommand(string clubId, string userId) => new(
+            clubId, "Ejercicio de prueba", "Global", "Objetivo", "Objetivo por rol", "Logistica", 15, "Porteros",
+            "(pendiente)", "Descripcion", new List<string>(), TwoLevels(), null, null)
         { UserId = userId };
 
         [Fact]
-        public async Task Handle_ReturnsTypesAssignedToExercise()
+        public async Task Handle_ReturnsFullExerciseFields()
         {
             await using var seedDb = _fixture.CreateDbContext();
             var (userId, clubId, _) = await SeedClubAsync(seedDb);
 
             await using var createDb = _fixture.CreateDbContext();
-            var createHandler = new CreateExerciseHandler(createDb);
-            var exerciseId = await createHandler.Handle(
-                CreateCommand(clubId, userId, new List<string> { "Technical", "Tactical" }),
-                CancellationToken.None);
+            var exerciseId = await new CreateExerciseHandler(createDb).Handle(CreateCommand(clubId, userId), CancellationToken.None);
 
             await using var queryDb = _fixture.CreateDbContext();
-            var handler = new GetExerciseByIdHandler(queryDb);
-            var result = await handler.Handle(new GetExerciseByIdQuery(exerciseId, userId), CancellationToken.None);
+            var result = await new GetExerciseByIdHandler(queryDb).Handle(new GetExerciseByIdQuery(exerciseId, userId), CancellationToken.None);
 
             Assert.NotNull(result);
-            Assert.Equal(2, result!.Types.Count());
-            Assert.Contains("Technical", result.Types);
-            Assert.Contains("Tactical", result.Types);
+            Assert.Equal("Global", result!.Tipo);
+            Assert.Equal("Objetivo por rol", result.ObjetivoPorRol);
+            Assert.Equal(15, result.DurationMinutes);
+            Assert.Equal("Porteros", result.Porteros);
+            Assert.Equal("(pendiente)", result.Dibujo);
         }
 
         [Fact]
-        public async Task Handle_ReturnsMethodology()
+        public async Task Handle_ForNonExistentId_ReturnsNull()
         {
-            await using var seedDb = _fixture.CreateDbContext();
-            var (userId, clubId, _) = await SeedClubAsync(seedDb);
+            await using var db = _fixture.CreateDbContext();
+            var result = await new GetExerciseByIdHandler(db).Handle(new GetExerciseByIdQuery("does-not-exist", "user-1"), CancellationToken.None);
 
-            await using var createDb = _fixture.CreateDbContext();
-            var createHandler = new CreateExerciseHandler(createDb);
-            var exerciseId = await createHandler.Handle(
-                CreateCommand(clubId, userId, new List<string> { "Physical" }) with { Methodology = "Global" },
-                CancellationToken.None);
-
-            await using var queryDb = _fixture.CreateDbContext();
-            var handler = new GetExerciseByIdHandler(queryDb);
-            var result = await handler.Handle(new GetExerciseByIdQuery(exerciseId, userId), CancellationToken.None);
-
-            Assert.NotNull(result);
-            Assert.Equal("Global", result!.Methodology);
+            Assert.Null(result);
         }
     }
 }

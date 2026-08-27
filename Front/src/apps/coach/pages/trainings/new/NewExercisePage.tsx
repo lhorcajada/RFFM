@@ -96,7 +96,7 @@ export default function NewExercisePage() {
           <Box className={styles.pitchArea}>
             <TacticalField halfPitchRef={halfPitchRef} board={board} />
           </Box>
-          <ExerciseFormPanel panelVisible={panelVisible} form={exerciseForm} />
+          <ExerciseFormPanel panelVisible={panelVisible} form={exerciseForm} teamId={teamId} />
         </Box>
 
         {board.showChapas && <ChapasStrip board={board} />}

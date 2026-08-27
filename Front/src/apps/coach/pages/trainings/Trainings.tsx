@@ -30,14 +30,16 @@ import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import useTeamAndClub from "../../hooks/useTeamAndClub";
 import useTeamDashboardBack from "../../hooks/useTeamDashboardBack";
-import trainingService from "../../services/trainingService";
-import type { Exercise, ExerciseMethodology, TrainingSession } from "../../types/training";
-import { TYPE_LABELS } from "./exerciseTypeLabels";
-import { methodologyOptions } from "./new/constants";
+import trainingService, { hasErrorCode } from "../../services/trainingService";
+import seasonPlanService from "../../services/seasonPlanService";
+import gameModelService from "../../services/gameModelService";
+import seasonService from "../../services/seasonService";
+import type { Exercise, ExerciseTipo, TrainingSession } from "../../types/training";
+import type { AdnOptions, GameZoneCatalogItem, SeasonPlan } from "../../types/seasonPlan";
+import { tipoOptions } from "./new/constants";
 import ExerciseCromo from "./components/ExerciseCromo";
-import SessionDialog from "./components/SessionDialog";
-import type { TacticalBoardSnapshot } from "./new/types";
-import { getDimensionsPercent, getShapeVertices } from "./new/helpers/spaceGeometry";
+import SeasonPlanView from "./season-plan/SeasonPlanView";
+import SeasonPlanEditor from "./season-plan/SeasonPlanEditor";
 import styles from "./Trainings.module.css";
 import { client } from "../../../../core/api/client";
 
@@ -63,75 +65,6 @@ function escapeHtml(value: string) {
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;");
-}
-
-function parseBoardSnapshot(boardStateJson?: string | null): TacticalBoardSnapshot | null {
-  if (!boardStateJson) return null;
-  try {
-    return JSON.parse(boardStateJson) as TacticalBoardSnapshot;
-  } catch {
-    return null;
-  }
-}
-
-function buildSnapshotSvg(snapshot: TacticalBoardSnapshot): string {
-  const spaces = snapshot.placedSpaces ?? [];
-  const materials = snapshot.placedMaterials ?? [];
-  const lines = snapshot.placedLines ?? [];
-  const chapas = Object.entries(snapshot.placedChapas ?? {});
-
-  const lineMarkup = lines
-    .map((line) => {
-      const length = Math.max(1, Math.hypot(line.x2 - line.x1, line.y2 - line.y1));
-      const angle = Math.atan2(line.y2 - line.y1, line.x2 - line.x1) * (180 / Math.PI);
-      return `<div style="position:absolute;left:${line.x1}%;top:${line.y1}%;width:${length}%;height:2px;transform:rotate(${angle}deg);transform-origin:0 50%;background:${line.color};opacity:0.95;"></div>`;
-    })
-    .join("");
-
-  const spaceMarkup = spaces
-    .map((space) => {
-      const size = getDimensionsPercent(space.kind, space.scaleX, space.scaleY);
-      const vertices = getShapeVertices(space.kind).map((v) => `${v.x},${v.y}`).join(" ");
-      const color = space.color ?? "#4d9de0";
-      const common = `position:absolute;left:${space.x}%;top:${space.y}%;width:${size.width}%;height:${size.height}%;transform:translate(-50%,-50%) rotate(${space.rotation}deg);transform-origin:center center;`;
-      if (space.kind === "circle") {
-        return `<svg viewBox="0 0 100 100" preserveAspectRatio="none" style="${common}"><circle cx="50" cy="50" r="50" fill="${color}" fill-opacity="0.25" stroke="${color}" stroke-width="2" vector-effect="non-scaling-stroke"></circle></svg>`;
-      }
-      return `<svg viewBox="0 0 100 100" preserveAspectRatio="none" style="${common}"><polygon points="${vertices}" fill="${color}" fill-opacity="0.25" stroke="${color}" stroke-width="2" vector-effect="non-scaling-stroke"></polygon></svg>`;
-    })
-    .join("");
-
-  const materialMarkup = materials
-    .map((material) => {
-      const size = 4.5 * Math.max(material.scaleX ?? 1, material.scaleY ?? 1);
-      return `<div style="position:absolute;left:${material.x}%;top:${material.y}%;width:${size}%;height:${size}%;transform:translate(-50%,-50%) rotate(${material.rotation}deg);border-radius:50%;background:linear-gradient(160deg,#f5f5f5 0%,#8c8c8c 100%);box-shadow:0 0 0 1px rgba(255,255,255,.3);"></div>`;
-    })
-    .join("");
-
-  const chapaMarkup = chapas
-    .map(([id, chapa], index) => {
-      const color = chapa.anonymous ? `hsl(${(index * 47) % 360} 75% 46%)` : "#4d9de0";
-      const background = chapa.anonymous
-        ? `linear-gradient(160deg, hsl(${(index * 47) % 360} 75% 58%) 0%, hsl(${(index * 47) % 360} 75% 36%) 100%)`
-        : `linear-gradient(160deg, ${color} 0%, #245f94 100%)`;
-      const size = Math.max(6, 5.8 * (chapa.scaleX ?? 1));
-      return `<div title="${escapeHtml(id)}" style="position:absolute;left:${chapa.x}%;top:${chapa.y}%;width:${size}%;aspect-ratio:1 / 1;transform:translate(-50%,-50%) rotate(${chapa.rotation ?? 0}deg);border-radius:50%;background:${background};box-shadow:inset 0 0 0 1px rgba(255,255,255,.2),0 1px 3px rgba(0,0,0,.35);"></div>`;
-    })
-    .join("");
-
-  return `
-    <div style="position:relative;width:100%;aspect-ratio:16 / 9;border-radius:18px;overflow:hidden;background:linear-gradient(180deg,#2f7b43 0%,#28683a 100%);box-shadow:inset 0 0 0 2px rgba(255,255,255,.14),inset 0 0 0 6px rgba(14,40,22,.5);">
-      <div style="position:absolute;inset:8px;border:1px solid rgba(245,255,247,.8);border-radius:12px;"></div>
-      <div style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(245,255,247,.72);"></div>
-      <div style="position:absolute;left:50%;top:50%;width:22%;height:22%;transform:translate(-50%,-50%);border-radius:50%;border:1px solid rgba(245,255,247,.72);"></div>
-      <div style="position:absolute;left:0;top:28%;width:18%;height:44%;border:1px solid rgba(245,255,247,.72);border-left:none;"></div>
-      <div style="position:absolute;left:0;top:37%;width:9%;height:26%;border:1px solid rgba(245,255,247,.72);border-left:none;"></div>
-      ${lineMarkup}
-      ${spaceMarkup}
-      ${materialMarkup}
-      ${chapaMarkup}
-    </div>
-  `;
 }
 
 async function waitForPrintWindowReady(printWindow: Window) {
@@ -171,14 +104,6 @@ async function waitForPrintWindowReady(printWindow: Window) {
 }
 
 async function printExercise(exercise: Exercise) {
-  const snapshot = parseBoardSnapshot(exercise.boardStateJson);
-  const snapshotHtml = snapshot ? buildSnapshotSvg(snapshot) : "";
-  const conditionsHtml = exercise.conditions?.length
-    ? `<div class="section"><h3>Condiciones</h3><ul>${exercise.conditions
-        .map((condition) => `<li>${escapeHtml(condition.text)}</li>`)
-        .join("")}</ul></div>`
-    : "";
-
   const html = `<!doctype html>
   <html lang="es">
     <head>
@@ -196,12 +121,6 @@ async function printExercise(exercise: Exercise) {
         .pill { display: inline-flex; align-items: center; border: 1px solid #c9d8e6; border-radius: 999px; padding: 4px 10px; background: #f6f9fc; }
         .section h3 { margin: 0 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; }
         .section p, .section li { margin: 0; font-size: 13px; line-height: 1.45; }
-        .section ul { margin: 0; padding-left: 18px; }
-        .boardWrap { border: 1px solid #c9d8e6; border-radius: 14px; padding: 10px; }
-        .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-        .stat { border: 1px solid #d9e4ee; border-radius: 10px; padding: 8px 10px; background: #f8fbfe; }
-        .statValue { display: block; font-size: 20px; font-weight: 700; line-height: 1; }
-        .statLabel { display: block; margin-top: 3px; font-size: 11px; color: #5a6f85; text-transform: uppercase; letter-spacing: .04em; }
         img { display: block; width: 100%; border-radius: 14px; border: 1px solid #c9d8e6; }
         @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
       </style>
@@ -212,22 +131,17 @@ async function printExercise(exercise: Exercise) {
           <div>
             <h1 class="title">${escapeHtml(exercise.name)}</h1>
             <div class="meta">
-              <span class="pill">${escapeHtml(exercise.types.map((t) => TYPE_LABELS[t] ?? t).join(", "))}</span>
-              <span class="pill">${escapeHtml(exercise.section)}</span>
+              <span class="pill">${escapeHtml(exercise.tipo)}</span>
+              ${typeof exercise.durationMinutes === "number" ? `<span class="pill">${exercise.durationMinutes} min</span>` : ""}
             </div>
-          </div>
-          <div class="stats" style="min-width: 280px; max-width: 320px;">
-            <div class="stat"><span class="statValue">${exercise.durationTotal}</span><span class="statLabel">min</span></div>
-            <div class="stat"><span class="statValue">${exercise.playersNumber}</span><span class="statLabel">jug.</span></div>
-            <div class="stat"><span class="statValue">${exercise.goalPeekersNumber}</span><span class="statLabel">port.</span></div>
           </div>
         </div>
 
-        ${exercise.description ? `<div class="section"><h3>Descripción</h3><p>${escapeHtml(exercise.description)}</p></div>` : ""}
+        <div class="section"><h3>Objetivo</h3><p>${escapeHtml(exercise.objetivo)}</p></div>
+        <div class="section"><h3>Logística</h3><p>${escapeHtml(exercise.logistica)}</p></div>
+        ${exercise.descripcion ? `<div class="section"><h3>Descripción</h3><p>${escapeHtml(exercise.descripcion)}</p></div>` : ""}
 
-        ${exercise.urlImage ? `<div class="boardWrap"><img src="${escapeHtml(mediaUrl(exercise.urlImage))}" alt="${escapeHtml(exercise.name)}" /></div>` : snapshotHtml ? `<div class="boardWrap">${snapshotHtml}</div>` : ""}
-
-        ${conditionsHtml}
+        ${exercise.urlImage ? `<div><img src="${escapeHtml(mediaUrl(exercise.urlImage))}" alt="${escapeHtml(exercise.name)}" /></div>` : ""}
       </div>
     </body>
   </html>`;
@@ -260,6 +174,8 @@ export default function Trainings() {
   const params = new URLSearchParams(location.search);
   const teamId = params.get("teamId") ?? "";
 
+  // Tab order: Planificación(0) / Ejercicios(1) / Sesiones(2) — Planificación is first
+  // (req #4 of the session-exercise-plan-redesign change).
   const [tab, setTab] = useState(0);
 
   // ── Exercises state ──────────────────────────────────────────────
@@ -267,15 +183,26 @@ export default function Trainings() {
   const [loadingEx, setLoadingEx] = useState(false);
   const [deleteExId, setDeleteExId] = useState<string | null>(null);
   const [deletingEx, setDeletingEx] = useState(false);
-  const [methodologyFilter, setMethodologyFilter] = useState<ExerciseMethodology | "">("");
+  const [deleteExError, setDeleteExError] = useState<string | null>(null);
+  const [tipoFilter, setTipoFilter] = useState<ExerciseTipo | "">("");
 
   // ── Sessions state ───────────────────────────────────────────────
   const [sessions, setSessions] = useState<TrainingSession[]>([]);
   const [loadingSess, setLoadingSess] = useState(false);
-  const [sessDialogOpen, setSessDialogOpen] = useState(false);
-  const [editSession, setEditSession] = useState<TrainingSession | null>(null);
   const [deleteSessId, setDeleteSessId] = useState<string | null>(null);
   const [deletingSess, setDeletingSess] = useState(false);
+
+  // ── Season plan state ────────────────────────────────────────────
+  const [seasonId, setSeasonId] = useState("");
+  const [seasonName, setSeasonName] = useState("");
+  const [seasonPlan, setSeasonPlan] = useState<SeasonPlan | null>(null);
+  const [loadingPlan, setLoadingPlan] = useState(false);
+  const [zones, setZones] = useState<GameZoneCatalogItem[]>([]);
+  const [adnOptions, setAdnOptions] = useState<AdnOptions>({ subprincipios: [], subSubPrincipios: [] });
+  const [planEditing, setPlanEditing] = useState(false);
+  const [savingPlan, setSavingPlan] = useState(false);
+  const [deletePlanOpen, setDeletePlanOpen] = useState(false);
+  const [deletingPlan, setDeletingPlan] = useState(false);
 
   const clubId = team?.club?.id ?? "";
 
@@ -283,13 +210,11 @@ export default function Trainings() {
   useEffect(() => {
     if (!clubId) return;
     setLoadingEx(true);
-    trainingService.getExercises(clubId, {
-      methodology: methodologyFilter || undefined,
-    })
+    trainingService.getExercises(clubId, { tipo: tipoFilter || undefined })
       .then(setExercises)
       .catch(() => setExercises([]))
       .finally(() => setLoadingEx(false));
-  }, [clubId, methodologyFilter]);
+  }, [clubId, tipoFilter]);
 
   // Load sessions
   useEffect(() => {
@@ -304,9 +229,7 @@ export default function Trainings() {
   const refreshExercises = () => {
     if (!clubId) return;
     setLoadingEx(true);
-    trainingService.getExercises(clubId, {
-      methodology: methodologyFilter || undefined,
-    })
+    trainingService.getExercises(clubId, { tipo: tipoFilter || undefined })
       .then(setExercises)
       .finally(() => setLoadingEx(false));
   };
@@ -319,6 +242,45 @@ export default function Trainings() {
       .finally(() => setLoadingSess(false));
   };
 
+  // Load the club's active season once (SeasonPlan.SeasonId is a real FK to Season).
+  useEffect(() => {
+    let mounted = true;
+    seasonService.getActiveSeason().then((active) => {
+      if (mounted) {
+        setSeasonId(active?.id ?? "");
+        setSeasonName(active?.name ?? active?.id ?? "");
+      }
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [clubId]);
+
+  const refreshSeasonPlan = () => {
+    if (!teamId || !seasonId) return;
+    setLoadingPlan(true);
+    seasonPlanService
+      .getByTeamIdAndSeason(teamId, seasonId)
+      .then(setSeasonPlan)
+      .catch(() => setSeasonPlan(null))
+      .finally(() => setLoadingPlan(false));
+  };
+
+  // Load season plan + zone catalog + ADN options (for the Microciclo Subprincipio-objetivo
+  // picker) when the Planificación tab (now tab 0) is opened
+  useEffect(() => {
+    if (tab !== 0 || !teamId || !seasonId) return;
+    refreshSeasonPlan();
+    gameModelService.getZones().then(setZones).catch(() => setZones([]));
+    if (seasonName) {
+      seasonPlanService
+        .getAdnOptions(teamId, seasonName)
+        .then(setAdnOptions)
+        .catch(() => setAdnOptions({ subprincipios: [], subSubPrincipios: [] }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, teamId, seasonId, seasonName]);
+
   const goToExercisePage = (exerciseId?: string) => {
     if (!clubId) return;
 
@@ -330,6 +292,41 @@ export default function Trainings() {
     navigate(`/coach/trainings/new-exercise?${createParams.toString()}`, {
       state: { returnTo: `/coach/trainings${location.search}` },
     });
+  };
+
+  const goToSessionPage = (sessionId?: string, microcicloId?: string) => {
+    const createParams = new URLSearchParams();
+    createParams.set("clubId", clubId);
+    if (teamId) createParams.set("teamId", teamId);
+    if (sessionId) createParams.set("sessionId", sessionId);
+    if (microcicloId) createParams.set("microcicloId", microcicloId);
+
+    navigate(`/coach/trainings/new-session?${createParams.toString()}`, {
+      state: { returnTo: `/coach/trainings${location.search}` },
+    });
+  };
+
+  const handleSavePlan = async (draft: SeasonPlan) => {
+    setSavingPlan(true);
+    try {
+      const saved = draft.id ? await seasonPlanService.update(draft) : await seasonPlanService.create(draft);
+      setSeasonPlan(saved);
+      setPlanEditing(false);
+    } finally {
+      setSavingPlan(false);
+    }
+  };
+
+  const handleDeletePlan = async () => {
+    if (!seasonPlan?.id) return;
+    setDeletingPlan(true);
+    try {
+      await seasonPlanService.remove(seasonPlan.id);
+      setSeasonPlan(null);
+      setDeletePlanOpen(false);
+    } finally {
+      setDeletingPlan(false);
+    }
   };
 
   const duplicateExercise = (exerciseId: string) => {
@@ -348,10 +345,17 @@ export default function Trainings() {
   const handleDeleteExercise = async () => {
     if (!deleteExId) return;
     setDeletingEx(true);
+    setDeleteExError(null);
     try {
       await trainingService.deleteExercise(deleteExId);
       setDeleteExId(null);
       refreshExercises();
+    } catch (error) {
+      if (hasErrorCode(error, "ExerciseInUseBySession")) {
+        setDeleteExError("No se puede eliminar: está en uso en una sesión.");
+      } else {
+        setDeleteExError("Error al eliminar el ejercicio.");
+      }
     } finally {
       setDeletingEx(false);
     }
@@ -384,7 +388,7 @@ export default function Trainings() {
             >
               Volver
             </Button>
-            {tab === 0 && (
+            {tab === 1 && (
               <Button
                 size="small"
                 startIcon={<AddIcon />}
@@ -396,17 +400,42 @@ export default function Trainings() {
                 Nuevo ejercicio
               </Button>
             )}
-            {tab === 1 && (
+            {tab === 2 && (
               <Button
                 size="small"
                 startIcon={<AddIcon />}
                 variant="contained"
                 className={styles.addBtn}
-                onClick={() => { setEditSession(null); setSessDialogOpen(true); }}
+                onClick={() => goToSessionPage()}
                 disabled={!teamId || !clubId}
               >
                 Nueva sesión
               </Button>
+            )}
+            {tab === 0 && !planEditing && (
+              <>
+                <Button
+                  size="small"
+                  startIcon={<AddIcon />}
+                  variant="contained"
+                  className={styles.addBtn}
+                  onClick={() => setPlanEditing(true)}
+                  disabled={!teamId || !seasonId}
+                >
+                  {seasonPlan ? "Editar planificación" : "Nueva planificación"}
+                </Button>
+                {seasonPlan && (
+                  <Button
+                    size="small"
+                    startIcon={<DeleteOutlineIcon />}
+                    variant="outlined"
+                    color="error"
+                    onClick={() => setDeletePlanOpen(true)}
+                  >
+                    Eliminar planificación
+                  </Button>
+                )}
+              </>
             )}
           </Stack>
         }
@@ -417,24 +446,49 @@ export default function Trainings() {
             onChange={(_, v) => setTab(v)}
             className={styles.tabs}
           >
+            <Tab label="Planificación" />
             <Tab label="Ejercicios" />
             <Tab label="Sesiones" />
           </Tabs>
 
-          {/* ── Exercises tab ──────────────────────────────────── */}
+          {/* ── Planificación tab ─────────────────────────────── */}
           {tab === 0 && (
+            <Box>
+              {planEditing ? (
+                <SeasonPlanEditor
+                  draft={seasonPlan ?? { id: "", teamId, seasonId, macrociclos: [] }}
+                  zones={zones}
+                  adnOptions={adnOptions}
+                  saving={savingPlan}
+                  onSave={handleSavePlan}
+                  onCancel={() => setPlanEditing(false)}
+                />
+              ) : (
+                <SeasonPlanView
+                  plan={seasonPlan}
+                  loading={loadingPlan}
+                  onCreatePlan={() => setPlanEditing(true)}
+                  onCreateSession={(microcicloId) => goToSessionPage(undefined, microcicloId)}
+                  onOpenSession={(sessionId) => goToSessionPage(sessionId)}
+                />
+              )}
+            </Box>
+          )}
+
+          {/* ── Exercises tab ──────────────────────────────────── */}
+          {tab === 1 && (
             <Box>
               <Box className={styles.toolbarRow}>
                 <FormControl size="small" sx={{ minWidth: 160 }}>
-                  <InputLabel id="methodology-filter-label">Metodologia</InputLabel>
+                  <InputLabel id="tipo-filter-label">Tipo</InputLabel>
                   <Select
-                    labelId="methodology-filter-label"
-                    label="Metodologia"
-                    value={methodologyFilter}
-                    onChange={(e) => setMethodologyFilter(e.target.value as ExerciseMethodology | "")}
+                    labelId="tipo-filter-label"
+                    label="Tipo"
+                    value={tipoFilter}
+                    onChange={(e) => setTipoFilter(e.target.value as ExerciseTipo | "")}
                   >
-                    <MenuItem value="">Todas</MenuItem>
-                    {methodologyOptions.map((o) => (
+                    <MenuItem value="">Todos</MenuItem>
+                    {tipoOptions.map((o) => (
                       <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>
                     ))}
                   </Select>
@@ -466,9 +520,8 @@ export default function Trainings() {
           )}
 
           {/* ── Sessions tab ───────────────────────────────────── */}
-          {tab === 1 && (
+          {tab === 2 && (
             <Box>
-
               {loadingSess ? (
                 <Box className={styles.loadingBox}><CircularProgress size={32} /></Box>
               ) : sessions.length === 0 ? (
@@ -494,12 +547,21 @@ export default function Trainings() {
                       {sess.sportEventName && (
                         <Chip label={sess.sportEventName} size="small" className={styles.sspChip} />
                       )}
+                      {sess.isAssociatedToPlan ? (
+                        <Chip
+                          label={sess.microcicloWeekLabel ?? "Plan"}
+                          size="small"
+                          className={styles.planLinkedChip}
+                        />
+                      ) : (
+                        <Chip label="Independiente" size="small" className={styles.independentChip} />
+                      )}
                     </Box>
                   </Box>
                   <Box className={styles.sessionActions}>
                     <Tooltip title="Editar">
                       <IconButton size="small" className={styles.iconBtn}
-                        onClick={() => { setEditSession(sess); setSessDialogOpen(true); }}>
+                        onClick={() => goToSessionPage(sess.id)}>
                         <EditIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
@@ -516,27 +578,17 @@ export default function Trainings() {
           )}
         </Box>
 
-        {/* ── Session dialog ────────────────────────────────────── */}
-        <SessionDialog
-          open={sessDialogOpen}
-          teamId={teamId}
-          clubId={clubId}
-          session={editSession}
-          onClose={() => setSessDialogOpen(false)}
-          onSaved={() => { setSessDialogOpen(false); refreshSessions(); }}
-        />
-
         {/* ── Delete exercise confirmation ──────────────────────── */}
-        <Dialog open={!!deleteExId} onClose={() => setDeleteExId(null)}
+        <Dialog open={!!deleteExId} onClose={() => { setDeleteExId(null); setDeleteExError(null); }}
           PaperProps={{ sx: { bgcolor: "#07071a", border: "1px solid rgba(77,157,224,.25)" } }}>
           <DialogTitle sx={{ color: "#4d9de0" }}>Eliminar ejercicio</DialogTitle>
           <DialogContent>
             <DialogContentText sx={{ color: "#e8e8e8" }}>
-              ¿Seguro que quieres eliminar este ejercicio? Esta acción no se puede deshacer.
+              {deleteExError ?? "¿Seguro que quieres eliminar este ejercicio? Esta acción no se puede deshacer."}
             </DialogContentText>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setDeleteExId(null)} sx={{ color: "rgba(212, 212, 212, .6)" }}>
+            <Button onClick={() => { setDeleteExId(null); setDeleteExError(null); }} sx={{ color: "rgba(212, 212, 212, .6)" }}>
               Cancelar
             </Button>
             <Button onClick={handleDeleteExercise} disabled={deletingEx} variant="contained"
@@ -565,8 +617,28 @@ export default function Trainings() {
             </Button>
           </DialogActions>
         </Dialog>
+
+        {/* ── Delete season plan confirmation ───────────────────── */}
+        <Dialog open={deletePlanOpen} onClose={() => setDeletePlanOpen(false)}
+          PaperProps={{ sx: { bgcolor: "#07071a", border: "1px solid rgba(77,157,224,.25)" } }}>
+          <DialogTitle sx={{ color: "#4d9de0" }}>Eliminar planificación</DialogTitle>
+          <DialogContent>
+            <DialogContentText sx={{ color: "#e8e8e8" }}>
+              ¿Seguro que quieres eliminar la planificación de temporada? Las sesiones enlazadas
+              a sus microciclos no se eliminarán, pero perderán ese enlace.
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setDeletePlanOpen(false)} sx={{ color: "rgba(212, 212, 212, .6)" }}>
+              Cancelar
+            </Button>
+            <Button onClick={handleDeletePlan} disabled={deletingPlan} variant="contained"
+              sx={{ bgcolor: "#c0392b", "&:hover": { bgcolor: "#e74c3c" } }}>
+              {deletingPlan ? <CircularProgress size={16} /> : "Eliminar"}
+            </Button>
+          </DialogActions>
+        </Dialog>
       </ContentLayout>
     </BaseLayout>
   );
 }
-

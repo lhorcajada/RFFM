@@ -61,6 +61,12 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
             if (!hasAccess)
                 throw new DomainException("Ejercicios", "No tienes acceso a este ejercicio.", ErrorCodes.ExerciseAccessDenied);
 
+            var isInUse = await _db.Set<Domain.Aggregates.Training.SessionBlockExercise>()
+                .AnyAsync(sbe => sbe.TaskTrainingBaseId == request.Id, ct);
+            if (isInUse)
+                throw new DomainException("Ejercicios",
+                    "No se puede eliminar: este ejercicio está en uso en una sesión.", ErrorCodes.ExerciseInUseBySession);
+
             _db.TaskTrainingBases.Remove(exercise);
             await _db.SaveChangesAsync(ct);
             return Unit.Value;

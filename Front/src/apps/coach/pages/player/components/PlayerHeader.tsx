@@ -66,7 +66,7 @@ export default function PlayerHeader({
             " " +
             (teamPlayer.player?.lastName ?? "")
           ) : (
-            <div style={{ display: "flex", gap: 8 }}>
+            <div className={styles.nameEditRow}>
               <TextField
                 size="small"
                 label="Nombre"

@@ -25,11 +25,13 @@ namespace RFFM.Api.Domain.Entities
         public const string Rivals = "/coach/rivals";
         public const string Trainings = "/coach/trainings";
         public const string GameModel = "/coach/game-model";
+        public const string SeasonPlan = "/coach/season-plan";
         public const string SeasonAccess = "/coach/season-access";
         public const string Settings = "/coach/settings";
         public const string ClubManagement = "/coach/clubs";
         public const string ClubPlayers = "/coach/clubs/players";
         public const string ClubTeams = "/coach/clubs/teams";
         public const string ClubRegistrations = "/coach/clubs/registrations";
+        public const string TeamPlayerLinkRequests = "/coach/teams/player-link-requests";
     }
 }

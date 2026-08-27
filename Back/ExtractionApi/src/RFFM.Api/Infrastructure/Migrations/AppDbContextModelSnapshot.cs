@@ -861,6 +861,158 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.ToTable("Zonas", "app");
                 });
 
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.SeasonPlans.Macrociclo", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<DateOnly>("EndDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SeasonPlanId")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<DateOnly>("StartDate")
+                        .HasColumnType("date");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SeasonPlanId");
+
+                    b.ToTable("Macrociclos", "app");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.SeasonPlans.Mesociclo", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<DateOnly>("EndDate")
+                        .HasColumnType("date");
+
+                    b.Property<int>("GameZoneId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("MacrocicloId")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("integer");
+
+                    b.Property<DateOnly>("StartDate")
+                        .HasColumnType("date");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GameZoneId");
+
+                    b.HasIndex("MacrocicloId");
+
+                    b.ToTable("Mesociclos", "app");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.SeasonPlans.Microciclo", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<DateOnly>("EndDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("MesocicloId")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("integer");
+
+                    b.Property<DateOnly>("StartDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("WeekLabel")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MesocicloId");
+
+                    b.ToTable("Microciclos", "app");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.SeasonPlans.MicrocicloSubprincipioObjetivo", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<string>("MicrocicloId")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<string>("SubprincipioId")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MicrocicloId");
+
+                    b.HasIndex("SubprincipioId");
+
+                    b.ToTable("MicrocicloSubprincipiosObjetivo", "app");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.SeasonPlans.SeasonPlan", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<string>("SeasonId")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<string>("TeamId")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SeasonId");
+
+                    b.HasIndex("TeamId", "SeasonId")
+                        .IsUnique();
+
+                    b.ToTable("SeasonPlans", "app");
+                });
+
             modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Technicals.Technical", b =>
                 {
                     b.Property<string>("Id")
@@ -969,12 +1121,7 @@ namespace RFFM.Api.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
-                    b.Property<string>("TaskTrainingBaseId")
-                        .HasColumnType("text");
-
                     b.HasKey("Id");
-
-                    b.HasIndex("TaskTrainingBaseId");
 
                     b.ToTable("Materials", "app");
 
@@ -1061,64 +1208,51 @@ namespace RFFM.Api.Infrastructure.Migrations
                         });
                 });
 
-            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Training.TasksTraining.ExerciseCondition", b =>
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Training.SessionBlock", b =>
                 {
                     b.Property<string>("Id")
                         .HasMaxLength(36)
                         .HasColumnType("character varying(36)");
 
+                    b.Property<string>("ComoConectaConAnterior")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
                     b.Property<int>("Order")
                         .HasColumnType("integer");
 
-                    b.Property<string>("TaskTrainingBaseId")
+                    b.Property<string>("RotacionEntreEjercicios")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("TrainingSessionId")
                         .IsRequired()
                         .HasMaxLength(36)
                         .HasColumnType("character varying(36)");
 
-                    b.Property<string>("Text")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
                     b.HasKey("Id");
 
-                    b.HasIndex("TaskTrainingBaseId");
+                    b.HasIndex("TrainingSessionId");
 
-                    b.ToTable("ExerciseConditions", "app");
+                    b.ToTable("SessionBlocks", "app");
                 });
 
-            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Training.TasksTraining.ExerciseType", b =>
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Training.SessionBlockExercise", b =>
                 {
                     b.Property<string>("Id")
-                        .HasColumnType("text");
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
 
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Name")
-                        .IsUnique();
-
-                    b.ToTable("ExerciseTypes", "app");
-                });
-
-            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Training.TasksTraining.TaskTraining", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("text");
-
-                    b.Property<int>("Order")
+                    b.Property<int>("Position")
                         .HasColumnType("integer");
 
-                    b.Property<string>("Section")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("SessionTrainingId")
+                    b.Property<string>("SessionBlockId")
                         .IsRequired()
                         .HasMaxLength(36)
                         .HasColumnType("character varying(36)");
@@ -1130,11 +1264,71 @@ namespace RFFM.Api.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("SessionTrainingId");
+                    b.HasIndex("SessionBlockId");
 
                     b.HasIndex("TaskTrainingBaseId");
 
-                    b.ToTable("TaskTrainings", "app");
+                    b.ToTable("SessionBlockExercises", "app");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Training.TasksTraining.ExerciseModelRelation", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<string>("HabilidadesImprescindibles")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<bool>("IsFoco")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("SubprincipioId")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<string>("TaskTrainingBaseId")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SubprincipioId");
+
+                    b.HasIndex("TaskTrainingBaseId");
+
+                    b.ToTable("ExerciseModelRelations", "app");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Training.TasksTraining.ExerciseModelRelationItem", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<string>("ExerciseModelRelationId")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<bool>("IsFoco")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("SubSubPrincipioId")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExerciseModelRelationId");
+
+                    b.HasIndex("SubSubPrincipioId");
+
+                    b.ToTable("ExerciseModelRelationItems", "app");
                 });
 
             modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Training.TasksTraining.TaskTrainingBase", b =>
@@ -1150,87 +1344,62 @@ namespace RFFM.Api.Infrastructure.Migrations
                         .HasMaxLength(36)
                         .HasColumnType("character varying(36)");
 
-                    b.Property<string>("Description")
+                    b.Property<string>("Descripcion")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Dibujo")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int?>("DurationMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Logistica")
                         .IsRequired()
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
-
-                    b.Property<int>("DurationSeries")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("DurationTotal")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("FieldSpace")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<int>("GoalPeekersNumber")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Methodology")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
-                    b.Property<int>("PlayersNumber")
-                        .HasColumnType("integer");
+                    b.Property<string>("Niveles")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
 
-                    b.Property<int>("Points")
-                        .HasColumnType("integer");
+                    b.Property<string>("NivelesColumnas")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
 
-                    b.Property<int>("RestSeries")
-                        .HasColumnType("integer");
+                    b.Property<string>("Objetivo")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
 
-                    b.Property<string>("Section")
+                    b.Property<string>("ObjetivoPorRol")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("Porteros")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("Tipo")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
-                    b.Property<int>("Series")
-                        .HasColumnType("integer");
-
-                    b.Property<TimeSpan>("Time")
-                        .HasColumnType("interval");
-
-                    b.Property<int>("TouchesNumber")
-                        .HasColumnType("integer");
-
                     b.Property<string>("UrlImage")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
-
-                    b.Property<int>("WildCards")
-                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
                     b.HasIndex("ClubId");
 
                     b.ToTable("TaskTrainingBases", "app");
-                });
-
-            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Training.TasksTraining.TaskTrainingType", b =>
-                {
-                    b.Property<string>("TaskTrainingBaseId")
-                        .HasMaxLength(36)
-                        .HasColumnType("character varying(36)");
-
-                    b.Property<string>("ExerciseTypeId")
-                        .HasMaxLength(36)
-                        .HasColumnType("character varying(36)");
-
-                    b.HasKey("TaskTrainingBaseId", "ExerciseTypeId");
-
-                    b.HasIndex("ExerciseTypeId");
-
-                    b.ToTable("TaskTrainingTypes", "app");
                 });
 
             modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Training.TechnicalGoalsEnum", b =>
@@ -1356,10 +1525,22 @@ namespace RFFM.Api.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<string>("MapaCampoTexto")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("MicrocicloId")
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
+
+                    b.Property<string>("ObjetivoGeneral")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
 
                     b.Property<string>("SportEventId")
                         .HasColumnType("text");
@@ -1376,6 +1557,8 @@ namespace RFFM.Api.Infrastructure.Migrations
                         .HasColumnType("character varying(500)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("MicrocicloId");
 
                     b.HasIndex("SportEventId");
 
@@ -1611,6 +1794,53 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.HasIndex("SeasonId");
 
                     b.ToTable("Teams", "app");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.UserClubs.TeamPlayerLinkRequest", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ApplicationUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<DateTime?>("DecidedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DecidedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<int>("MembershipId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("RequestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TeamId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("TeamPlayerId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApplicationUserId");
+
+                    b.HasIndex("MembershipId");
+
+                    b.HasIndex("TeamPlayerId");
+
+                    b.HasIndex("TeamId", "Status");
+
+                    b.ToTable("TeamPlayerLinkRequests", "app");
                 });
 
             modelBuilder.Entity("RFFM.Api.Domain.Aggregates.UserClubs.TeamRule", b =>
@@ -4032,6 +4262,10 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.Property<string>("Id")
                         .HasColumnType("text");
 
+                    b.Property<string>("Alergias")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
                     b.Property<string>("Alias")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -4047,6 +4281,10 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.Property<string>("Dni")
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Enfermedades")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
 
                     b.Property<string>("LastName")
                         .HasMaxLength(2000)
@@ -4064,6 +4302,10 @@ namespace RFFM.Api.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Procedencia")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<string>("UrlPhoto")
                         .HasMaxLength(500)
@@ -4482,6 +4724,10 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.Property<DateTime?>("LeftDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("LinkCode")
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)");
+
                     b.Property<string>("PlayerId")
                         .IsRequired()
                         .HasColumnType("text");
@@ -4501,6 +4747,8 @@ namespace RFFM.Api.Infrastructure.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("LinkCode");
 
                     b.HasIndex("PlayerId");
 
@@ -5041,6 +5289,63 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.Navigation("Subprincipio");
                 });
 
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.SeasonPlans.Macrociclo", b =>
+                {
+                    b.HasOne("RFFM.Api.Domain.Aggregates.SeasonPlans.SeasonPlan", null)
+                        .WithMany("Macrociclos")
+                        .HasForeignKey("SeasonPlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.SeasonPlans.Mesociclo", b =>
+                {
+                    b.HasOne("RFFM.Api.Domain.Aggregates.GameModels.GameZone", null)
+                        .WithMany()
+                        .HasForeignKey("GameZoneId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RFFM.Api.Domain.Aggregates.SeasonPlans.Macrociclo", null)
+                        .WithMany("Mesociclos")
+                        .HasForeignKey("MacrocicloId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.SeasonPlans.Microciclo", b =>
+                {
+                    b.HasOne("RFFM.Api.Domain.Aggregates.SeasonPlans.Mesociclo", null)
+                        .WithMany("Microciclos")
+                        .HasForeignKey("MesocicloId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.SeasonPlans.MicrocicloSubprincipioObjetivo", b =>
+                {
+                    b.HasOne("RFFM.Api.Domain.Aggregates.SeasonPlans.Microciclo", null)
+                        .WithMany("SubprincipiosObjetivo")
+                        .HasForeignKey("MicrocicloId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("RFFM.Api.Domain.Aggregates.GameModels.Subprincipio", null)
+                        .WithMany()
+                        .HasForeignKey("SubprincipioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.SeasonPlans.SeasonPlan", b =>
+                {
+                    b.HasOne("RFFM.Api.Domain.Entities.Seasons.Season", null)
+                        .WithMany()
+                        .HasForeignKey("SeasonId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Technicals.Technical", b =>
                 {
                     b.HasOne("RFFM.Api.Domain.Aggregates.Technicals.TechnicalType", "TechnicalType")
@@ -5052,41 +5357,60 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.Navigation("TechnicalType");
                 });
 
-            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Training.MaterialsEnum", b =>
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Training.SessionBlock", b =>
                 {
-                    b.HasOne("RFFM.Api.Domain.Aggregates.Training.TasksTraining.TaskTrainingBase", null)
-                        .WithMany("Material")
-                        .HasForeignKey("TaskTrainingBaseId");
+                    b.HasOne("RFFM.Api.Domain.Aggregates.Training.TrainingSession", null)
+                        .WithMany("Blocks")
+                        .HasForeignKey("TrainingSessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
-            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Training.TasksTraining.ExerciseCondition", b =>
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Training.SessionBlockExercise", b =>
                 {
-                    b.HasOne("RFFM.Api.Domain.Aggregates.Training.TasksTraining.TaskTrainingBase", "TaskTrainingBase")
-                        .WithMany("Conditions")
-                        .HasForeignKey("TaskTrainingBaseId")
+                    b.HasOne("RFFM.Api.Domain.Aggregates.Training.SessionBlock", null)
+                        .WithMany("Exercises")
+                        .HasForeignKey("SessionBlockId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("TaskTrainingBase");
-                });
-
-            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Training.TasksTraining.TaskTraining", b =>
-                {
-                    b.HasOne("RFFM.Api.Domain.Aggregates.Training.TrainingSession", "TrainingSession")
-                        .WithMany("Tasks")
-                        .HasForeignKey("SessionTrainingId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("RFFM.Api.Domain.Aggregates.Training.TasksTraining.TaskTrainingBase", "Task")
+                    b.HasOne("RFFM.Api.Domain.Aggregates.Training.TasksTraining.TaskTrainingBase", "Exercise")
                         .WithMany()
                         .HasForeignKey("TaskTrainingBaseId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("Task");
+                    b.Navigation("Exercise");
+                });
 
-                    b.Navigation("TrainingSession");
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Training.TasksTraining.ExerciseModelRelation", b =>
+                {
+                    b.HasOne("RFFM.Api.Domain.Aggregates.GameModels.Subprincipio", null)
+                        .WithMany()
+                        .HasForeignKey("SubprincipioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("RFFM.Api.Domain.Aggregates.Training.TasksTraining.TaskTrainingBase", null)
+                        .WithMany("ModelRelations")
+                        .HasForeignKey("TaskTrainingBaseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Training.TasksTraining.ExerciseModelRelationItem", b =>
+                {
+                    b.HasOne("RFFM.Api.Domain.Aggregates.Training.TasksTraining.ExerciseModelRelation", null)
+                        .WithMany("Items")
+                        .HasForeignKey("ExerciseModelRelationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("RFFM.Api.Domain.Aggregates.GameModels.SubSubPrincipio", null)
+                        .WithMany()
+                        .HasForeignKey("SubSubPrincipioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Training.TasksTraining.TaskTrainingBase", b =>
@@ -5098,25 +5422,6 @@ namespace RFFM.Api.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Club");
-                });
-
-            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Training.TasksTraining.TaskTrainingType", b =>
-                {
-                    b.HasOne("RFFM.Api.Domain.Aggregates.Training.TasksTraining.ExerciseType", "ExerciseType")
-                        .WithMany()
-                        .HasForeignKey("ExerciseTypeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("RFFM.Api.Domain.Aggregates.Training.TasksTraining.TaskTrainingBase", "TaskTrainingBase")
-                        .WithMany("Types")
-                        .HasForeignKey("TaskTrainingBaseId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ExerciseType");
-
-                    b.Navigation("TaskTrainingBase");
                 });
 
             modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Training.TrainingPointsReport", b =>
@@ -5140,6 +5445,11 @@ namespace RFFM.Api.Infrastructure.Migrations
 
             modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Training.TrainingSession", b =>
                 {
+                    b.HasOne("RFFM.Api.Domain.Aggregates.SeasonPlans.Microciclo", null)
+                        .WithMany()
+                        .HasForeignKey("MicrocicloId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("RFFM.Api.Domain.Aggregates.Assistances.SportEvent", "SportEvent")
                         .WithMany()
                         .HasForeignKey("SportEventId");
@@ -5235,6 +5545,33 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.Navigation("League");
 
                     b.Navigation("Season");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.UserClubs.TeamPlayerLinkRequest", b =>
+                {
+                    b.HasOne("RFFM.Api.Domain.Aggregates.UserClubs.Membership", "Membership")
+                        .WithMany()
+                        .HasForeignKey("MembershipId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("RFFM.Api.Domain.Aggregates.UserClubs.Team", "Team")
+                        .WithMany()
+                        .HasForeignKey("TeamId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("RFFM.Api.Domain.Entities.TeamPlayers.TeamPlayer", "TeamPlayer")
+                        .WithMany()
+                        .HasForeignKey("TeamPlayerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Membership");
+
+                    b.Navigation("Team");
+
+                    b.Navigation("TeamPlayer");
                 });
 
             modelBuilder.Entity("RFFM.Api.Domain.Aggregates.UserClubs.TeamRule", b =>
@@ -5440,7 +5777,12 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.OwnsMany("RFFM.Api.Domain.ValueObjects.Family", "FamilyMembers", b1 =>
                         {
                             b1.Property<string>("Id")
+                                .ValueGeneratedOnAdd()
                                 .HasColumnType("text");
+
+                            b1.Property<string>("Dni")
+                                .HasMaxLength(20)
+                                .HasColumnType("character varying(20)");
 
                             b1.Property<string>("Email")
                                 .HasMaxLength(255)
@@ -5732,18 +6074,44 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.Navigation("SubSubPrincipios");
                 });
 
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.SeasonPlans.Macrociclo", b =>
+                {
+                    b.Navigation("Mesociclos");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.SeasonPlans.Mesociclo", b =>
+                {
+                    b.Navigation("Microciclos");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.SeasonPlans.Microciclo", b =>
+                {
+                    b.Navigation("SubprincipiosObjetivo");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.SeasonPlans.SeasonPlan", b =>
+                {
+                    b.Navigation("Macrociclos");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Training.SessionBlock", b =>
+                {
+                    b.Navigation("Exercises");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Training.TasksTraining.ExerciseModelRelation", b =>
+                {
+                    b.Navigation("Items");
+                });
+
             modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Training.TasksTraining.TaskTrainingBase", b =>
                 {
-                    b.Navigation("Conditions");
-
-                    b.Navigation("Material");
-
-                    b.Navigation("Types");
+                    b.Navigation("ModelRelations");
                 });
 
             modelBuilder.Entity("RFFM.Api.Domain.Aggregates.Training.TrainingSession", b =>
                 {
-                    b.Navigation("Tasks");
+                    b.Navigation("Blocks");
                 });
 
             modelBuilder.Entity("RFFM.Api.Domain.Aggregates.UserClubs.Club", b =>

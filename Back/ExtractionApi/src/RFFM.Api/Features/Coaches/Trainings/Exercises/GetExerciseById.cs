@@ -53,9 +53,9 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         public async ValueTask<ExerciseListItem?> Handle(GetExerciseByIdQuery request, CancellationToken ct = default)
         {
             var exercise = await _db.TaskTrainingBases
-                .Include(tb => tb.Types)
-                    .ThenInclude(t => t.ExerciseType)
-                .Include(tb => tb.Conditions)
+                .Include(tb => tb.ModelRelations)
+                    .ThenInclude(r => r.Items)
+                .AsSplitQuery()
                 .FirstOrDefaultAsync(tb => tb.Id == request.ExerciseId, ct);
 
             if (exercise is null)
@@ -67,21 +67,9 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
             if (!hasAccess)
                 throw new DomainException("Ejercicios", "No tienes acceso a este ejercicio.", ErrorCodes.ExerciseAccessDenied);
 
-            return new ExerciseListItem(
-                exercise.Id,
-                exercise.Name,
-                exercise.Description,
-                exercise.Types.Select(t => t.ExerciseType.Name),
-                exercise.Section,
-                exercise.Methodology,
-                exercise.DurationTotal,
-                exercise.PlayersNumber,
-                exercise.GoalPeekersNumber,
-                exercise.FieldSpace,
-                exercise.UrlImage,
-                exercise.BoardStateJson,
-                exercise.Conditions.OrderBy(c => c.Order).Select(c => new ConditionDto(c.Id, c.Text, c.Order))
-            );
+            var relationSummaries = await ExerciseModelRelationResolver.ResolveAsync(_db, exercise.ModelRelations, ct);
+
+            return ExerciseListItem.From(exercise, relationSummaries);
         }
     }
 }

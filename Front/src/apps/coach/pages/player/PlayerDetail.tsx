@@ -36,6 +36,8 @@ import Demarcations from "./components/Demarcations";
 import ContactInfo from "./components/ContactInfo";
 import PhysicalInfo from "./components/PhysicalInfo";
 import FamilyMembers from "./components/FamilyMembers";
+import FamilyMembersEdit from "./components/FamilyMembersEdit";
+import PlayerLinkCode from "./components/PlayerLinkCode";
 import InjuryDialog from "./components/InjuryDialog";
 import InjuryHistoryPanel from "./components/InjuryHistoryPanel";
 import { usePlayerDetailData } from "./hooks/usePlayerDetailData";
@@ -54,6 +56,11 @@ const DOMINANT_FOOT_ID_TO_NAME: Record<number, string> = {
   3: "Ambidiestro",
 };
 
+const FAMILY_MEMBER_MAP: Record<string, number> = {
+  Mother: 1,
+  Father: 2,
+};
+
 export default function PlayerDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -61,7 +68,9 @@ export default function PlayerDetail() {
   const { teamTitleNode } = useTeamAndClub();
   const locationState = location.state as { editing?: boolean; from?: string; fromState?: unknown } | null;
   const { roles, loading: loadingPermissions } = usePermissions();
-  const canEdit = roles.includes("Coach") || roles.includes("Administrator");
+  const canEditFull = roles.includes("Coach") || roles.includes("Administrator");
+  const canEditRestricted = roles.includes("Player") || roles.includes("FamilyMember");
+  const canEdit = canEditFull || canEditRestricted;
   const [editing, setEditingState] = useState(locationState?.editing === true);
   const setEditing: typeof setEditingState = (value) => {
     setEditingState((prev) => {
@@ -98,7 +107,7 @@ export default function PlayerDetail() {
     photo,
     setPhoto,
     demarcationOptions,
-  } = usePlayerDetailData(id, DOMINANT_FOOT_MAP);
+  } = usePlayerDetailData(id, DOMINANT_FOOT_MAP, FAMILY_MEMBER_MAP);
 
   const notify = useCallback((message: string, severity: "success" | "error") => {
     setSnackbarMessage(message);
@@ -123,7 +132,7 @@ export default function PlayerDetail() {
         title={teamTitleNode}
         subtitle={"Ficha detallada del jugador"}
         actionBar={
-          <Stack direction="row" spacing={1} alignItems="center">
+          <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: "wrap", rowGap: 1 }}>
             <Button
               startIcon={<ArrowBackIcon />}
               onClick={() => handleBack()}
@@ -197,6 +206,7 @@ export default function PlayerDetail() {
                   <Tab label="Contacto" />
                   <Tab label="Físico" />
                   <Tab label="Familia" />
+                  <Tab label="Vinculación" />
                   <Tab
                     label={
                       <Badge
@@ -219,7 +229,7 @@ export default function PlayerDetail() {
                 {activeTab === 0 && (
                   <Demarcations
                     teamPlayer={teamPlayer}
-                    editing={editing}
+                    editing={editing && canEditFull}
                     value={(form.possibleDemarcations ?? "")
                       .split(",")
                       .map((s: string) => s.trim())
@@ -265,6 +275,39 @@ export default function PlayerDetail() {
                           fullWidth
                           value={form.email ?? ""}
                           onChange={(e) => setForm({ ...form, email: e.target.value })}
+                        />
+                        <div style={{ height: 8 }} />
+                        <TextField
+                          label="Calle"
+                          size="small"
+                          fullWidth
+                          value={form.street ?? ""}
+                          onChange={(e) => setForm({ ...form, street: e.target.value })}
+                        />
+                        <div style={{ height: 8 }} />
+                        <Stack direction="row" spacing={1}>
+                          <TextField
+                            label="Ciudad"
+                            size="small"
+                            fullWidth
+                            value={form.city ?? ""}
+                            onChange={(e) => setForm({ ...form, city: e.target.value })}
+                          />
+                          <TextField
+                            label="Código postal"
+                            size="small"
+                            fullWidth
+                            value={form.postalCode ?? ""}
+                            onChange={(e) => setForm({ ...form, postalCode: e.target.value })}
+                          />
+                        </Stack>
+                        <div style={{ height: 8 }} />
+                        <TextField
+                          label="Procedencia"
+                          size="small"
+                          fullWidth
+                          value={form.procedencia ?? ""}
+                          onChange={(e) => setForm({ ...form, procedencia: e.target.value })}
                         />
                       </div>
                     </div>
@@ -333,17 +376,45 @@ export default function PlayerDetail() {
                             <MenuItem value={3}>Ambidiestro</MenuItem>
                           </Select>
                         </FormControl>
+                        <div style={{ height: 8 }} />
+                        <TextField
+                          label="Enfermedades"
+                          size="small"
+                          fullWidth
+                          multiline
+                          minRows={2}
+                          value={form.enfermedades ?? ""}
+                          onChange={(e) => setForm({ ...form, enfermedades: e.target.value })}
+                        />
+                        <div style={{ height: 8 }} />
+                        <TextField
+                          label="Alergias"
+                          size="small"
+                          fullWidth
+                          multiline
+                          minRows={2}
+                          value={form.alergias ?? ""}
+                          onChange={(e) => setForm({ ...form, alergias: e.target.value })}
+                        />
                       </div>
                     </div>
                   )
                 )}
 
-                {activeTab === 3 && <FamilyMembers teamPlayer={teamPlayer} />}
+                {activeTab === 3 && (
+                  !editing ? (
+                    <FamilyMembers teamPlayer={teamPlayer} />
+                  ) : (
+                    <FamilyMembersEdit form={form} setForm={setForm} />
+                  )
+                )}
 
-                {activeTab === 4 && (
+                {activeTab === 4 && <PlayerLinkCode teamPlayerId={teamPlayer.id} />}
+
+                {activeTab === 5 && (
                   <>
                     <div className={styles.injuryActions}>
-                      {canEdit && (
+                      {canEditFull && (
                         <Button
                           startIcon={<MedicalServicesIcon />}
                           onClick={() => setInjuryCreateOpen(true)}
@@ -365,7 +436,7 @@ export default function PlayerDetail() {
                   </>
                 )}
 
-                {activeTab === 5 && (
+                {activeTab === 6 && (
                   <div className={styles.statsTab}>
                     {loadingHistory && (
                       <div className={styles.statsLoading}>

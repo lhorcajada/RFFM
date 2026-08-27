@@ -1,0 +1,112 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.title {
+  font-size: 0.78rem !important;
+  font-weight: 700 !important;
+  color: #a8d4f5 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.noGameModelHint {
+  font-size: 0.72rem !important;
+  color: rgba(255, 193, 7, 0.85) !important;
+  font-style: italic;
+}
+
+.noGameModelLink {
+  color: #4d9de0 !important;
+}
+
+.relationCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid rgba(77, 157, 224, 0.22);
+  border-radius: 8px;
+  background: rgba(12, 22, 42, 0.4);
+}
+
+.relationHeader {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.subprincipioPicker {
+  flex: 1.5;
+  min-width: 0;
+}
+
+.subprincipioPicker :global(.MuiInputBase-root),
+.itemPicker :global(.MuiInputBase-root) {
+  color: #e8e8e8 !important;
+}
+
+.subprincipioPicker :global(.MuiInputLabel-root),
+.itemPicker :global(.MuiInputLabel-root) {
+  color: rgba(212, 212, 212, 0.62) !important;
+}
+
+.subprincipioPicker :global(.MuiOutlinedInput-notchedOutline),
+.itemPicker :global(.MuiOutlinedInput-notchedOutline) {
+  border-color: rgba(77, 157, 224, 0.3) !important;
+}
+
+.itemRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-left: 12px;
+}
+
+.itemPicker {
+  flex: 1.5;
+  min-width: 0;
+}
+
+.addItemBtn {
+  align-self: flex-start;
+  margin-left: 12px;
+  color: #4d9de0 !important;
+  font-size: 0.72rem !important;
+}
+
+.focoToggle {
+  flex-shrink: 0;
+}
+
+.focoToggleBtn {
+  font-size: 0.65rem !important;
+  padding: 4px 8px !important;
+  color: rgba(212, 212, 212, 0.7) !important;
+  border-color: rgba(77, 157, 224, 0.3) !important;
+}
+
+.focoToggleBtn.Mui-selected {
+  background-color: rgba(77, 157, 224, 0.2) !important;
+  color: #4d9de0 !important;
+}
+
+.addLinkBtn {
+  align-self: flex-start;
+  color: #4d9de0 !important;
+}
+
+.habilidadesPicker :global(.MuiInputBase-root) {
+  color: #e8e8e8 !important;
+}
+
+.habilidadesPicker :global(.MuiInputLabel-root) {
+  color: rgba(212, 212, 212, 0.62) !important;
+}
+
+.habilidadesPicker :global(.MuiOutlinedInput-notchedOutline) {
+  border-color: rgba(77, 157, 224, 0.3) !important;
+}

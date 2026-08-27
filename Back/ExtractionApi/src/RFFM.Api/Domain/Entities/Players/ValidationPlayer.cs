@@ -56,6 +56,36 @@
 
         }
 
+        internal static void ValidateEnfermedades(string? enfermedades)
+        {
+            if (enfermedades is { Length: > ValidationConstants.PlayerEnfermedadesMaxLength })
+            {
+                throw new ArgumentOutOfRangeException(nameof(enfermedades),
+                    string.Format(ValidationConstants.PlayerEnfermedadesCannotExceedMaxLength,
+                        ValidationConstants.PlayerEnfermedadesMaxLength));
+            }
+        }
+
+        internal static void ValidateAlergias(string? alergias)
+        {
+            if (alergias is { Length: > ValidationConstants.PlayerAlergiasMaxLength })
+            {
+                throw new ArgumentOutOfRangeException(nameof(alergias),
+                    string.Format(ValidationConstants.PlayerAlergiasCannotExceedMaxLength,
+                        ValidationConstants.PlayerAlergiasMaxLength));
+            }
+        }
+
+        internal static void ValidateProcedencia(string? procedencia)
+        {
+            if (procedencia is { Length: > ValidationConstants.PlayerProcedenciaMaxLength })
+            {
+                throw new ArgumentOutOfRangeException(nameof(procedencia),
+                    string.Format(ValidationConstants.PlayerProcedenciaCannotExceedMaxLength,
+                        ValidationConstants.PlayerProcedenciaMaxLength));
+            }
+        }
+
         internal static void ValidateLastName(string? lastName)
         {
             if(string.IsNullOrEmpty(lastName))

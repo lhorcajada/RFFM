@@ -1,6 +1,15 @@
-import { render, screen, within } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import type { ReactElement } from "react";
+import { render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
+
+vi.mock("../../../../../services/gameModelService", () => ({
+  default: { getAdnOptions: vi.fn().mockResolvedValue({ subprincipios: [], subSubPrincipios: [] }) },
+}));
+vi.mock("../../../../../services/seasonService", () => ({
+  default: { getActiveSeason: vi.fn().mockResolvedValue({ id: "season-1" }) },
+}));
+
 import ExerciseFormPanel from "../ExerciseFormPanel";
 import { emptyExercise } from "../../constants";
 import type { ExerciseFormState } from "../../hooks/useExerciseForm";
@@ -16,79 +25,63 @@ function buildFormState(overrides: Partial<ExerciseFormState> = {}): ExerciseFor
     fileInputRef: { current: null },
     loadExercise: vi.fn(),
     loadExerciseAsCopy: vi.fn(),
-    conditions: [],
-    conditionInput: "",
-    setConditionInput: vi.fn(),
-    editingCondition: null,
-    setEditingCondition: vi.fn(),
-    savingCondition: false,
     savedExerciseId: null,
     handleFileChange: vi.fn(),
     handleRemoveMedia: vi.fn(),
     handleCancel: vi.fn(),
     handleSave: vi.fn(),
-    handleAddCondition: vi.fn(),
-    handleSaveEditCondition: vi.fn(),
-    handleDeleteCondition: vi.fn(),
-    isPhysical: false,
-    isTechTac: true,
     ...overrides,
   } as ExerciseFormState;
 }
 
-describe("ExerciseFormPanel — sin campos de vinculación al modelo de juego", () => {
-  it("no renderiza ningún selector 'Vinculado a' ni campo de habilidades asociadas", () => {
-    render(<ExerciseFormPanel panelVisible form={buildFormState()} />);
+function renderPanel(ui: ReactElement) {
+  return render(<MemoryRouter>{ui}</MemoryRouter>);
+}
 
-    expect(screen.queryByRole("combobox", { name: /vinculado a/i })).not.toBeInTheDocument();
-    expect(screen.queryByText(/habilidades asociadas/i)).not.toBeInTheDocument();
-  });
-});
+describe("ExerciseFormPanel — campos del template reducido", () => {
+  it("renderiza Título, Tipo, Objetivo, Objetivo por rol, Logística, Duración, Porteros, Dibujo y Descripción", () => {
+    renderPanel(<ExerciseFormPanel panelVisible form={buildFormState()} />);
 
-describe("ExerciseFormPanel — selector de tipo multi-selección", () => {
-  it("renderiza un chip por cada tipo seleccionado en el select de Tipo", () => {
-    render(
-      <ExerciseFormPanel
-        panelVisible
-        form={buildFormState({ form: { ...emptyExercise, types: ["Physical", "Game"] } })}
-      />
-    );
-
-    const select = screen.getByRole("combobox", { name: /tipo/i });
-    expect(within(select).getByText("Fisico")).toBeInTheDocument();
-    expect(within(select).getByText("Juego")).toBeInTheDocument();
+    expect(screen.getByLabelText("Título")).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: /tipo/i })).toBeInTheDocument();
+    expect(screen.getByLabelText("Objetivo")).toBeInTheDocument();
+    expect(screen.getByLabelText(/objetivo por rol/i)).toBeInTheDocument();
+    expect(screen.getByLabelText("Logística")).toBeInTheDocument();
+    expect(screen.getByLabelText(/duración/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/porteros/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/dibujo/i)).toBeInTheDocument();
+    expect(screen.getByLabelText("Descripción")).toBeInTheDocument();
   });
 
-  it("muestra ambos bloques de campos (Series y Toques) cuando isPhysical e isTechTac son true a la vez", () => {
-    render(
-      <ExerciseFormPanel
-        panelVisible
-        form={buildFormState({
-          form: { ...emptyExercise, types: ["Physical", "Technical"] },
-          isPhysical: true,
-          isTechTac: true,
-        })}
-      />
-    );
+  it("renderiza la sección de relación con el modelo de juego", () => {
+    renderPanel(<ExerciseFormPanel panelVisible form={buildFormState()} />);
 
-    expect(screen.getByLabelText("Series")).toBeInTheDocument();
-    expect(screen.getByLabelText("Toques")).toBeInTheDocument();
+    expect(screen.getByText(/relación con el modelo de juego/i)).toBeInTheDocument();
   });
 
-  it("llama a setField con el nuevo array de tipos al seleccionar una opción", async () => {
+  it("renderiza el editor de Niveles", () => {
+    renderPanel(<ExerciseFormPanel panelVisible form={buildFormState()} />);
+
+    expect(screen.getByText(/niveles/i)).toBeInTheDocument();
+  });
+
+  it("no renderiza ninguna sección de Condiciones (eliminada — pasa a formar parte de la Descripción)", () => {
+    renderPanel(<ExerciseFormPanel panelVisible form={buildFormState()} />);
+
+    expect(screen.queryByText(/condiciones/i)).not.toBeInTheDocument();
+  });
+
+  it("llama a setField con el tipo elegido al cambiar el selector de Tipo", async () => {
     const setField = vi.fn();
-    render(
-      <ExerciseFormPanel
-        panelVisible
-        form={buildFormState({ form: { ...emptyExercise, types: ["Tactical"] }, setField })}
-      />
-    );
+    const { default: userEvent } = await import("@testing-library/user-event");
+    renderPanel(<ExerciseFormPanel panelVisible form={buildFormState({ setField })} />);
 
     const select = screen.getByRole("combobox", { name: /tipo/i });
     await userEvent.click(select);
     const listbox = screen.getByRole("listbox");
-    await userEvent.click(within(listbox).getByText("Cognitivo"));
+    await userEvent.click((await screen.findAllByText("Global"))[0]);
 
-    expect(setField).toHaveBeenCalledWith("types", ["Tactical", "Cognitive"]);
+    expect(setField).toHaveBeenCalledWith("tipo", "Global");
+    void listbox;
   });
 });

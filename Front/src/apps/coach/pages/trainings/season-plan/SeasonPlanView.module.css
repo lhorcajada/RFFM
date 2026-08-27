@@ -1,0 +1,201 @@
+.loadingBox {
+  display: flex;
+  justify-content: center;
+  padding: 40px 0;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 40px 0;
+}
+
+.emptyText {
+  font-size: 0.9rem !important;
+  color: rgba(212, 212, 212, 0.6) !important;
+  text-align: center;
+}
+
+.createBtn {
+  background-color: #4d9de0 !important;
+  color: #0d0d1f !important;
+}
+
+.tree {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.accordion {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid rgba(77, 157, 224, 0.15) !important;
+  border-radius: 8px !important;
+}
+
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.macrocicloTitle {
+  font-size: 1rem !important;
+  font-weight: 700 !important;
+  color: #4d9de0 !important;
+}
+
+.mesocicloTitle {
+  font-size: 0.9rem !important;
+  font-weight: 600 !important;
+  color: #a8d4f5 !important;
+  flex: 1;
+}
+
+.zoneChip {
+  background-color: rgba(156, 220, 254, 0.1) !important;
+  color: #a8d4f5 !important;
+  border: 1px solid rgba(156, 220, 254, 0.25) !important;
+  font-size: 0.7rem !important;
+  height: 20px !important;
+  margin-right: 8px;
+}
+
+.microcicloCard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(77, 157, 224, 0.1);
+  border-radius: 6px;
+  padding: 8px 12px;
+}
+
+.microcicloRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.sessionsList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(77, 157, 224, 0.08);
+}
+
+.sessionRow {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.02);
+  cursor: pointer;
+}
+
+.sessionRow:hover {
+  background: rgba(77, 157, 224, 0.08);
+}
+
+.sessionRowName {
+  font-size: 0.8rem !important;
+  font-weight: 600 !important;
+  color: #e8e8e8 !important;
+}
+
+.sessionRowMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sessionRowDate {
+  font-size: 0.7rem !important;
+  color: rgba(212, 212, 212, 0.55) !important;
+}
+
+.sessionRowObjective {
+  font-size: 0.72rem !important;
+  color: rgba(212, 212, 212, 0.7) !important;
+}
+
+.sessionLabel {
+  font-size: 0.68rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(168, 212, 245, 0.75) !important;
+}
+
+.sessionObjective {
+  font-size: 0.78rem !important;
+  color: rgba(212, 212, 212, 0.78) !important;
+}
+
+.adnChipsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.adnChip {
+  background-color: rgba(77, 157, 224, 0.12) !important;
+  color: #a8d4f5 !important;
+  border: 1px solid rgba(77, 157, 224, 0.3) !important;
+  font-size: 0.68rem !important;
+  height: 20px !important;
+}
+
+.habilidadChip {
+  background-color: rgba(46, 204, 113, 0.12) !important;
+  color: #7fe0a8 !important;
+  border: 1px solid rgba(46, 204, 113, 0.3) !important;
+  font-size: 0.68rem !important;
+  height: 20px !important;
+}
+
+.microcicloInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.microcicloLabel {
+  font-size: 0.85rem !important;
+  font-weight: 600 !important;
+  color: #e8e8e8 !important;
+}
+
+.microcicloDates {
+  font-size: 0.72rem !important;
+  color: rgba(212, 212, 212, 0.55) !important;
+}
+
+.coverageChip {
+  font-size: 0.68rem !important;
+  height: 20px !important;
+}
+
+.targetSubprincipiosRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-top: 4px;
+  padding-bottom: 2px;
+}
+
+.targetSubprincipioChip {
+  background-color: rgba(155, 89, 182, 0.15) !important;
+  color: #c79ee6 !important;
+  border: 1px solid rgba(155, 89, 182, 0.4) !important;
+  font-size: 0.68rem !important;
+  height: 20px !important;
+}

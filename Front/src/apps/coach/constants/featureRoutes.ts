@@ -21,6 +21,7 @@ export const COACH_FEATURE_ROUTES = {
   Rivals: "/coach/rivals",
   Trainings: "/coach/trainings",
   GameModel: "/coach/game-model",
+  SeasonPlan: "/coach/season-plan",
   SeasonAccess: "/coach/season-access",
   Settings: "/coach/settings",
   ClubManagement: "/coach/clubs",

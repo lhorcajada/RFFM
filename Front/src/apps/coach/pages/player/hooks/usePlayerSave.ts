@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import type { DemarcationOption } from "../../../services/demarcationService";
 import teamplayerService from "../../../services/teamplayerService";
+import { mapApiErrorToMessage } from "../../../../../shared/utils/errorMessages";
 
 interface UsePlayerSaveParams {
   teamPlayer: any | null;
@@ -54,6 +55,9 @@ export function usePlayerSave({
           lastName: form.lastName ?? null,
           alias: form.alias ?? null,
           urlPhoto: form.urlPhoto ?? null,
+          enfermedades: form.enfermedades ?? null,
+          alergias: form.alergias ?? null,
+          procedencia: form.procedencia ?? null,
         },
         demarcation: {
           activePositionId: form.activePositionId ?? null,
@@ -63,6 +67,13 @@ export function usePlayerSave({
         contactInfo: {
           phone: form.phone ?? null,
           email: form.email ?? null,
+          address: {
+            street: form.street ?? null,
+            city: form.city ?? null,
+            postalCode: form.postalCode ?? null,
+            province: form.province ?? null,
+            country: form.country ?? null,
+          },
         },
         physicalInfo: {
           height: parseNumber(form.height),
@@ -70,6 +81,15 @@ export function usePlayerSave({
           dominantFoot: form.dominantFoot ?? null,
           dominantFootId: form.dominantFootId ?? null,
         },
+        familyMembers: (form.familyMembers ?? [])
+          .filter((f: any) => f.name || f.phone || f.email || f.familyMemberId || f.dni)
+          .map((f: any) => ({
+            name: f.name ?? null,
+            phone: f.phone ?? null,
+            email: f.email ?? null,
+            familyMemberId: f.familyMemberId ?? null,
+            dni: f.dni ?? null,
+          })),
       };
 
       const updated = await teamplayerService.updateTeamPlayer(teamPlayer.id, payload);
@@ -80,8 +100,8 @@ export function usePlayerSave({
       } else {
         notify("No se pudo guardar el jugador.", "error");
       }
-    } catch {
-      notify("Error al guardar. Inténtelo de nuevo.", "error");
+    } catch (e) {
+      notify(mapApiErrorToMessage(e), "error");
     } finally {
       setSaving(false);
     }

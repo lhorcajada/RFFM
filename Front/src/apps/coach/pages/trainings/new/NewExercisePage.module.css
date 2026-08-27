@@ -28,6 +28,56 @@
   overflow: hidden;
 }
 
+.microcicloBanner {
+  padding: 6px 14px;
+  background: rgba(77, 157, 224, 0.1);
+  border-bottom: 1px solid rgba(77, 157, 224, 0.22);
+}
+
+.microcicloBannerText {
+  font-size: 0.78rem !important;
+  color: #a8d4f5 !important;
+}
+
+.microcicloBannerSession {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.microcicloBannerSessionLabel {
+  font-size: 0.66rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(168, 212, 245, 0.7) !important;
+  flex: 0 0 auto;
+}
+
+.microcicloBannerChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.microcicloBannerChip {
+  background-color: rgba(77, 157, 224, 0.12) !important;
+  color: #a8d4f5 !important;
+  border: 1px solid rgba(77, 157, 224, 0.3) !important;
+  font-size: 0.66rem !important;
+  height: 20px !important;
+}
+
+.microcicloBannerHabilidadChip {
+  background-color: rgba(46, 204, 113, 0.12) !important;
+  color: #7fe0a8 !important;
+  border: 1px solid rgba(46, 204, 113, 0.3) !important;
+  font-size: 0.66rem !important;
+  height: 20px !important;
+}
+
 .pitchArea {
   flex: 1;
   min-width: 0;
@@ -235,7 +285,7 @@
 }
 
 .formPanel {
-  width: min(430px, 38vw);
+  width: min(720px, 55vw);
   max-width: 100%;
   height: 100%;
   background: rgba(7, 7, 26, 0.96);
@@ -246,6 +296,22 @@
   display: flex;
   flex-direction: column;
   z-index: 4;
+}
+
+.panelBodyGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 16px;
+}
+
+.fullWidthRow {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 768px) {
+  .panelBodyGrid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .formPanelVisible {
@@ -1269,7 +1335,7 @@
     right: 0;
     top: 0;
     bottom: 0;
-    width: min(460px, 86vw);
+    width: min(680px, 92vw);
     box-shadow: -10px 0 30px rgba(0, 0, 0, 0.45);
   }
 
