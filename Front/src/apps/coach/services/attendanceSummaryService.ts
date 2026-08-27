@@ -40,4 +40,20 @@ export async function getTrainingAttendanceSummary(
   return resp.data;
 }
 
-export default { getTrainingAttendanceSummary };
+export type TeamConvocationRow = {
+  eventId: string;
+  convocationId: string;
+  teamPlayerId: string;
+  playerId?: string | null;
+  alias: string;
+  statusId?: number | null;
+  excuseTypeId?: number | null;
+  assistanceTypeId?: number | null;
+};
+
+export async function getTeamConvocationsSummary(teamId: string): Promise<TeamConvocationRow[]> {
+  const resp = await client.get<TeamConvocationRow[]>(`/api/attendance/team-convocations/${teamId}`);
+  return resp.data;
+}
+
+export default { getTrainingAttendanceSummary, getTeamConvocationsSummary };

@@ -1,7 +1,7 @@
 import { SyntheticEvent, useEffect, useMemo, useState } from "react";
 import { Box, CircularProgress, Tab, Tabs, Typography } from "@mui/material";
 import EmptyState from "../../../../../../shared/components/ui/EmptyState/EmptyState";
-import convocationService from "../../../../services/convocationService";
+import type { ConvocationItem } from "../../../../services/convocationService";
 import convocationStatusService from "../../../../services/convocationStatusService";
 import assistanceTypeService from "../../../../services/assistanceTypeService";
 import attendanceSummaryService from "../../../../services/attendanceSummaryService";
@@ -153,12 +153,25 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
           other: { ...EMPTY_SUMMARY },
         };
 
-        const eventsWithConvocations = await Promise.all(
-          allEvents.map(async (event) => {
-            const convocations = await convocationService.getConvocations(event.id);
-            return { event, convocations };
-          })
-        );
+        const teamConvocations = await attendanceSummaryService.getTeamConvocationsSummary(teamId);
+        const convocationsByEventId = new Map<string, ConvocationItem[]>();
+        teamConvocations.forEach((row) => {
+          const item: ConvocationItem = {
+            id: row.convocationId,
+            player: { id: row.teamPlayerId, playerId: row.playerId ?? undefined, alias: row.alias },
+            status: row.statusId ?? 1,
+            excuseTypeId: row.excuseTypeId,
+            assistanceTypeId: row.assistanceTypeId,
+          };
+          const list = convocationsByEventId.get(row.eventId) ?? [];
+          list.push(item);
+          convocationsByEventId.set(row.eventId, list);
+        });
+
+        const eventsWithConvocations = allEvents.map((event) => ({
+          event,
+          convocations: convocationsByEventId.get(event.id) ?? [],
+        }));
 
         eventsWithConvocations.forEach(({ event, convocations }) => {
           const accepted = convocations.filter((c) => acceptedSet.has(c.status));
@@ -211,17 +224,10 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
             return ad.localeCompare(bd);
           });
 
-        const matchLineups = await Promise.all(
-          officialMatchEvents.map(async ({ event }) => {
-            try {
-              return { eventId: event.id, lineup: await getIdealLineup(teamId, event.id) };
-            } catch {
-              return { eventId: event.id, lineup: null };
-            }
-          })
+        const teamLineup = await getIdealLineup(teamId, seasonId).catch(() => null);
+        const lineupByEventId = new Map(
+          officialMatchEvents.map(({ event }) => [event.id, teamLineup])
         );
-
-        const lineupByEventId = new Map(matchLineups.map((item) => [item.eventId, item.lineup]));
         const officialMatchColumns: MatchAttendanceColumn[] = officialMatchEvents.map(({ event }, index) => ({
           eventId: event.id,
           label: formatMatchLabel(index, event),
