@@ -11,23 +11,16 @@ import sportEventService, {
 } from "../../services/sportEventService";
 import EventCard from "./EventCard";
 import sportEventTypeService from "../../services/sportEventTypeService";
+import seasonService, {
+  COACH_ACTIVE_SEASON_CHANGED_EVENT,
+  Season,
+} from "../../services/seasonService";
 import EmptyState from "../../../../shared/components/ui/EmptyState/EmptyState";
 import { coachAuthService } from "../../services/authService";
 import styles from "./Attendance.module.css";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { TextField, FormControlLabel, Switch } from "@mui/material";
-
-function getWeekBounds(): { start: string; end: string } {
-  const today = new Date();
-  const dow = today.getDay(); // 0=Sunday, 1=Monday, ..., 6=Saturday
-  const diffToMonday = dow === 0 ? -6 : 1 - dow;
-  const monday = new Date(today);
-  monday.setDate(today.getDate() + diffToMonday);
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 6);
-  const fmt = (d: Date) => d.toISOString().split("T")[0];
-  return { start: fmt(monday), end: fmt(sunday) };
-}
+import { getDefaultAttendanceDateRange } from "./attendanceUtils";
 
 export default function Attendance() {
   const goToTeamDashboard = useTeamDashboardBack();
@@ -50,20 +43,36 @@ export default function Attendance() {
   const [totalPages, setTotalPages] = useState(1);
   const [eventTypeMap, setEventTypeMap] = useState<Record<number, string>>({});
   const FILTER_KEY = "attendance_filter";
+  const [activeSeason, setActiveSeason] = useState<Season | null>(null);
   const [startDate, setStartDate] = useState<string | null>(() => {
     try {
       const saved = sessionStorage.getItem(FILTER_KEY);
-      if (saved) return JSON.parse(saved).startDate ?? getWeekBounds().start;
+      const parsed = saved ? JSON.parse(saved) : null;
+      if (parsed?.startDate != null) return parsed.startDate;
     } catch { /* ignore */ }
-    return getWeekBounds().start;
+    return getDefaultAttendanceDateRange(null).start;
   });
   const [endDate, setEndDate] = useState<string | null>(() => {
     try {
       const saved = sessionStorage.getItem(FILTER_KEY);
-      if (saved) return JSON.parse(saved).endDate ?? getWeekBounds().end;
+      const parsed = saved ? JSON.parse(saved) : null;
+      if (parsed?.endDate != null) return parsed.endDate;
     } catch { /* ignore */ }
-    return getWeekBounds().end;
+    return getDefaultAttendanceDateRange(null).end;
   });
+  const [hasSavedDateFilter] = useState<boolean>(() => {
+    try {
+      const saved = sessionStorage.getItem(FILTER_KEY);
+      const parsed = saved ? JSON.parse(saved) : null;
+      return parsed?.startDate != null || parsed?.endDate != null;
+    } catch {
+      return false;
+    }
+  });
+  // Tracks whether the user has an explicit date range (persisted from a previous
+  // search, or edited in this session) that should not be overwritten when the
+  // active season changes.
+  const userModifiedDatesRef = useRef<boolean>(hasSavedDateFilter);
   const [descending, setDescending] = useState<boolean>(() => {
     try {
       const saved = sessionStorage.getItem(FILTER_KEY);
@@ -95,6 +104,31 @@ export default function Attendance() {
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    seasonService.getActiveSeason().then((season) => {
+      if (mounted) setActiveSeason(season);
+    });
+    function onActiveSeasonChanged(event: Event) {
+      const detail = (event as CustomEvent<{ season: Season | null }>).detail;
+      setActiveSeason(detail?.season ?? null);
+    }
+    window.addEventListener(COACH_ACTIVE_SEASON_CHANGED_EVENT, onActiveSeasonChanged);
+    return () => {
+      mounted = false;
+      window.removeEventListener(COACH_ACTIVE_SEASON_CHANGED_EVENT, onActiveSeasonChanged);
+    };
+  }, []);
+
+  // Recalculate the default date range whenever the active season changes,
+  // unless the user already has an explicit (persisted or manually edited) range.
+  useEffect(() => {
+    if (userModifiedDatesRef.current) return;
+    const defaults = getDefaultAttendanceDateRange(activeSeason?.endDate ?? null);
+    setStartDate(defaults.start);
+    setEndDate(defaults.end);
+  }, [activeSeason]);
 
   useEffect(() => {
     let mounted = true;
@@ -141,7 +175,8 @@ export default function Attendance() {
   }
 
   function onReset() {
-    const { start, end } = getWeekBounds();
+    userModifiedDatesRef.current = false;
+    const { start, end } = getDefaultAttendanceDateRange(activeSeason?.endDate ?? null);
     setStartDate(start);
     setEndDate(end);
     setDescending(false);
@@ -195,7 +230,10 @@ export default function Attendance() {
               size="small"
               InputLabelProps={{ shrink: true }}
               value={startDate ?? ""}
-              onChange={(e) => setStartDate(e.target.value || null)}
+              onChange={(e) => {
+                userModifiedDatesRef.current = true;
+                setStartDate(e.target.value || null);
+              }}
               sx={{ flex: { xs: "1 1 45%", sm: "0 0 auto" } }}
             />
             <TextField
@@ -204,7 +242,10 @@ export default function Attendance() {
               size="small"
               InputLabelProps={{ shrink: true }}
               value={endDate ?? ""}
-              onChange={(e) => setEndDate(e.target.value || null)}
+              onChange={(e) => {
+                userModifiedDatesRef.current = true;
+                setEndDate(e.target.value || null);
+              }}
               sx={{ flex: { xs: "1 1 45%", sm: "0 0 auto" } }}
             />
             <FormControlLabel
