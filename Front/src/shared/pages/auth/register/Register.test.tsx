@@ -19,6 +19,10 @@ vi.mock("../../../services/invitations/invitationsApi", () => ({
   invitationsApi: { previewClubCode: vi.fn(), previewTeamCode: vi.fn() },
 }));
 
+// JSDOM does not implement scrollIntoView; stub it globally so any error-path
+// call in production code does not throw during unrelated tests.
+Element.prototype.scrollIntoView = vi.fn();
+
 function fillBaseFields() {
   fireEvent.change(screen.getByLabelText(/Correo Electrónico/i), {
     target: { value: "user@test.com" },
@@ -167,6 +171,25 @@ describe("Register — Player/FamilyMember player link code flow", () => {
 
     expect(screen.getByLabelText(/Código del jugador/i)).toBeEnabled();
     expect(screen.getByRole("button", { name: /Registrarse/i })).toBeEnabled();
+  });
+
+  it("Player: scrolls the title into view when submit fails, so the error alert is visible", async () => {
+    vi.mocked(coachAuthService.registerPayingAccount).mockRejectedValue({
+      response: { data: { code: "PlayerLinkCodeInvalid" } },
+    });
+    const scrollIntoViewSpy = vi.spyOn(Element.prototype, "scrollIntoView");
+
+    renderRegister();
+    fillBaseFields();
+    fireEvent.click(screen.getByLabelText("Jugador"));
+    fireEvent.change(screen.getByLabelText(/Código del jugador/i), {
+      target: { value: "BADCODE" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Registrarse/i }));
+
+    await waitFor(() => {
+      expect(scrollIntoViewSpy).toHaveBeenCalledWith({ behavior: "smooth", block: "start" });
+    });
   });
 
   it("Player: allows a second retry after a second PlayerLinkCodeInvalid rejection", async () => {

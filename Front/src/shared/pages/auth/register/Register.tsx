@@ -1,4 +1,4 @@
-import React, { useReducer } from "react";
+import React, { useReducer, useRef } from "react";
 import {
   Box,
   Button,
@@ -169,6 +169,7 @@ function isFan(role: UserType | ""): boolean {
 const Register: React.FC = () => {
   const [state, dispatch] = useReducer(reducer, initialState);
   const navigate = useNavigate();
+  const titleRef = useRef<HTMLDivElement>(null);
 
   const canSubmit =
     !!state.alias.trim() && !!state.email.trim() && !!state.password.trim() && !!state.role &&
@@ -229,6 +230,7 @@ const Register: React.FC = () => {
       }
       const errorMessage = mapApiErrorToMessage(error);
       dispatch({ type: "SUBMIT_ERROR", message: errorMessage });
+      titleRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
 
@@ -236,7 +238,7 @@ const Register: React.FC = () => {
     <BaseLayout hideFooterMenu>
       <div className={styles.container}>
         <Paper className={styles.paper} elevation={3}>
-          <div className={styles.title}>
+          <div className={styles.title} ref={titleRef}>
             <Typography variant="h4" component="h1" sx={{ mb: 3 }}>
               Registrarse
             </Typography>
