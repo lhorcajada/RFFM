@@ -24,4 +24,8 @@
     <ProjectReference Include="..\RFFM.Api\RFFM.Api.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="RFFM.Api.Tests" />
+  </ItemGroup>
+
 </Project>

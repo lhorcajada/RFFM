@@ -462,10 +462,17 @@ namespace RFFM.Host.DependencyInjection
                         ("Lottery", CoachFeatureRoutes.Lottery, "Player", 1, false),
                         ("News", CoachFeatureRoutes.News, "Player", 1, false),
 
-                        // FamilyMember: Read-only on the 4 approved features (Squad, Events, Convocations, News)
+                        // FamilyMember: Read-only on the same 8 dashboard features as Player — a family
+                        // member must see exactly what the player they're linked to sees (bug: this
+                        // list previously had only 4 of the 8 rows, hiding Injured/Sanctions/Lottery/
+                        // AttendanceSummary from FamilyMember accounts).
                         ("Squad", CoachFeatureRoutes.Squad, "FamilyMember", 1, false),
                         ("Events", CoachFeatureRoutes.Events, "FamilyMember", 1, false),
+                        ("AttendanceSummary", CoachFeatureRoutes.AttendanceSummary, "FamilyMember", 1, false),
                         ("Convocations", CoachFeatureRoutes.Convocations, "FamilyMember", 1, false),
+                        ("Injured", CoachFeatureRoutes.Injured, "FamilyMember", 1, false),
+                        ("Sanctions", CoachFeatureRoutes.Sanctions, "FamilyMember", 1, false),
+                        ("Lottery", CoachFeatureRoutes.Lottery, "FamilyMember", 1, false),
                         ("News", CoachFeatureRoutes.News, "FamilyMember", 1, false),
 
                         // AttendanceConfirmation: ReadWrite for Player and FamilyMember

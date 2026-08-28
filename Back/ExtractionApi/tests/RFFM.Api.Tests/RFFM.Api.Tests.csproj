@@ -24,5 +24,6 @@
 
   <ItemGroup>
     <ProjectReference Include="../../src/RFFM.Api/RFFM.Api.csproj" />
+    <ProjectReference Include="../../src/RFFM.Host/RFFM.Host.csproj" />
   </ItemGroup>
 </Project>
