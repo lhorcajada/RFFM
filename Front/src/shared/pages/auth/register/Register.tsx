@@ -328,21 +328,6 @@ const Register: React.FC = () => {
                     onAccept={() => dispatch({ type: "ACCEPT_TRIAL" })}
                   />
                 )}
-
-                {state.coachHasClubCode === true && (
-                  <InvitationCodeField
-                    kind="club"
-                    membershipKind="Coach"
-                    value={state.invitationCode}
-                    onChange={(value) => dispatch({ type: "SET_INVITATION_CODE", value })}
-                    onValid={(response) =>
-                      dispatch({ type: "SET_CODE_VALIDATION", value: { status: "valid", club: response as any } })
-                    }
-                    onInvalid={() =>
-                      dispatch({ type: "SET_CODE_VALIDATION", value: { status: "invalid", errorCode: "" } })
-                    }
-                  />
-                )}
               </>
             )}
 

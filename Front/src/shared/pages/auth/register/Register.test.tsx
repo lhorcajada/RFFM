@@ -63,6 +63,15 @@ describe("Register — role gating", () => {
     expect(screen.getByRole("button", { name: /Registrarse/i })).toBeEnabled();
   });
 
+  it("Coach with club code: renders only one invitation code field, not two", () => {
+    renderRegister();
+    fillBaseFields();
+    fireEvent.click(screen.getByLabelText("Entrenador"));
+    fireEvent.click(screen.getByLabelText("Sí"));
+
+    expect(screen.getAllByLabelText(/código de invitación de club/i)).toHaveLength(1);
+  });
+
   it("ClubDirector: opens TrialConfirmDialog; cancel resets role and keeps submit disabled", () => {
     renderRegister();
     fillBaseFields();
