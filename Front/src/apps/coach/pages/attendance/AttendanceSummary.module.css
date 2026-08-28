@@ -297,6 +297,18 @@
   font-weight: 700 !important;
 }
 
+.trainingCardIdentity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.trainingCardAvatar {
+  width: 40px !important;
+  height: 40px !important;
+}
+
 .trainingMetrics {
   display: flex;
   flex-wrap: wrap;

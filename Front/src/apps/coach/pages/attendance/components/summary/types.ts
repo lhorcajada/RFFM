@@ -21,7 +21,9 @@ export type PlayerAbsenceDetail = {
 
 export type PlayerTrainingSummary = {
   playerId: string;
+  teamPlayerId: string;
   playerName: string;
+  photoUrl?: string | null;
   totalTrainings: number;
   attendedTrainings: number;
   absentTrainings: number;

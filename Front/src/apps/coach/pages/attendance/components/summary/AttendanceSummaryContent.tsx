@@ -9,6 +9,9 @@ import { getIdealLineup } from "../../../../services/idealLineupService";
 import sportEventService, { type SportEventResponse } from "../../../../services/sportEventService";
 import sportEventTypeService from "../../../../services/sportEventTypeService";
 import teamplayerService from "../../../../services/teamplayerService";
+import playerService from "../../../../services/playerService";
+import { getMyProfile } from "../../../../services/coachApi";
+import { coachAuthService } from "../../../../services/authService";
 import AttendanceDashboardTab from "./AttendanceDashboardTab";
 import AttendanceMatchesTab from "./AttendanceMatchesTab";
 import AttendanceTrainingsTab from "./AttendanceTrainingsTab";
@@ -82,6 +85,14 @@ interface Props {
 }
 
 export default function AttendanceSummaryContent({ teamId }: Props) {
+  const roles = useMemo(
+    () => coachAuthService.getRoles().map((role) => role.toLowerCase()),
+    []
+  );
+  const isPlayerOrFamily =
+    roles.includes("player") ||
+    roles.includes("familyplayer") ||
+    roles.includes("familymember");
   const [tab, setTab] = useState<TabValue>("dashboard");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -100,6 +111,7 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
 
   useEffect(() => {
     let mounted = true;
+    const createdPhotoUrls: string[] = [];
 
     async function loadData() {
       setLoading(true);
@@ -189,11 +201,33 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
           if (kind === "other") nextSummary.other = addSummary(nextSummary.other, eventSummary);
         });
 
+        const photoByKey: Record<string, string | null> = {};
+        await Promise.all(
+          teamPlayers.map(async (player) => {
+            try {
+              const photoField = player.urlPhoto ?? null;
+              const resolved = photoField ? await playerService.fetchPlayerPhoto(photoField) : null;
+              if (resolved) createdPhotoUrls.push(resolved);
+              if (player.id) photoByKey[player.id] = resolved;
+              if (player.playerId) photoByKey[player.playerId] = resolved;
+            } catch {
+              if (player.id) photoByKey[player.id] = null;
+              if (player.playerId) photoByKey[player.playerId] = null;
+            }
+          })
+        );
+
+        const associatedPlayerId = isPlayerOrFamily
+          ? (await getMyProfile().catch(() => null))?.playerId ?? null
+          : null;
+
         const seasonId = new URLSearchParams(window.location.search).get("seasonId");
         const trainingSummary = await attendanceSummaryService.getTrainingAttendanceSummary(teamId, seasonId);
         const nextRows: PlayerTrainingSummary[] = trainingSummary.players.map((player) => ({
           playerId: player.playerId ?? player.teamPlayerId,
+          teamPlayerId: player.teamPlayerId,
           playerName: player.playerName,
+          photoUrl: photoByKey[player.teamPlayerId] ?? (player.playerId ? photoByKey[player.playerId] : null) ?? null,
           totalTrainings: player.totalTrainings,
           attendedTrainings: player.attendedTrainings,
           absentTrainings: player.absentTrainings,
@@ -205,6 +239,16 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
             reason: absence.reason,
           })),
         }));
+
+        if (associatedPlayerId) {
+          const associatedIndex = nextRows.findIndex(
+            (row) => row.playerId === associatedPlayerId || row.teamPlayerId === associatedPlayerId
+          );
+          if (associatedIndex > 0) {
+            const [associatedRow] = nextRows.splice(associatedIndex, 1);
+            nextRows.unshift(associatedRow);
+          }
+        }
 
         // Overwrite training summary with accurate data from the dedicated endpoint
         // (convocation assistanceTypeId is not filled for training events)
@@ -358,6 +402,13 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
 
     return () => {
       mounted = false;
+      createdPhotoUrls.forEach((url) => {
+        try {
+          URL.revokeObjectURL(url);
+        } catch {
+          // ignore
+        }
+      });
     };
   }, [teamId, refreshKey]);
 

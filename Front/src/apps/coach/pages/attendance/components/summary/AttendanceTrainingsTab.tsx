@@ -2,21 +2,32 @@ import {
   Accordion,
   AccordionDetails,
   AccordionSummary,
+  Avatar,
   Box,
   Button,
   Chip,
   Typography,
 } from "@mui/material";
 import DownloadIcon from "@mui/icons-material/Download";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import EmptyState from "../../../../../../shared/components/ui/EmptyState/EmptyState";
 import styles from "../../AttendanceSummary.module.css";
 import type { PlayerTrainingSummary } from "./types";
 import { exportTrainingAttendanceToExcel } from "./trainingAttendanceExcel";
+import { coachAuthService } from "../../../../services/authService";
 
 interface Props {
   rows: PlayerTrainingSummary[];
+}
+
+function playerInitials(name: string): string {
+  return name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join("");
 }
 
 function formatDate(value: string | null): string {
@@ -32,6 +43,13 @@ function formatDate(value: string | null): string {
 
 export default function AttendanceTrainingsTab({ rows }: Props) {
   const [exportingExcel, setExportingExcel] = useState(false);
+  const roles = useMemo(
+    () => coachAuthService.getRoles().map((role) => role.toLowerCase()),
+    []
+  );
+  const canExportExcel = !roles.some((role) =>
+    ["player", "familyplayer", "familymember"].includes(role)
+  );
 
   if (rows.length === 0) {
     return (
@@ -44,23 +62,25 @@ export default function AttendanceTrainingsTab({ rows }: Props) {
 
   return (
     <Box>
-      <Box className={styles.trainingToolbar}>
-        <Button
-          variant="contained"
-          startIcon={<DownloadIcon />}
-          disabled={exportingExcel}
-          onClick={async () => {
-            try {
-              setExportingExcel(true);
-              await exportTrainingAttendanceToExcel(rows);
-            } finally {
-              setExportingExcel(false);
-            }
-          }}
-        >
-          {exportingExcel ? "Generando Excel..." : "Exportar Excel"}
-        </Button>
-      </Box>
+      {canExportExcel && (
+        <Box className={styles.trainingToolbar}>
+          <Button
+            variant="contained"
+            startIcon={<DownloadIcon />}
+            disabled={exportingExcel}
+            onClick={async () => {
+              try {
+                setExportingExcel(true);
+                await exportTrainingAttendanceToExcel(rows);
+              } finally {
+                setExportingExcel(false);
+              }
+            }}
+          >
+            {exportingExcel ? "Generando Excel..." : "Exportar Excel"}
+          </Button>
+        </Box>
+      )}
 
       <Box className={styles.trainingCardsGrid}>
         {rows.map((row) => {
@@ -70,7 +90,14 @@ export default function AttendanceTrainingsTab({ rows }: Props) {
             <Accordion key={row.playerId} className={styles.trainingCard} disableGutters elevation={0}>
               <AccordionSummary expandIcon={<ExpandMoreIcon />} className={styles.trainingCardSummary}>
                 <Box className={styles.trainingCardHeader}>
-                  <Box>
+                  <Box className={styles.trainingCardIdentity}>
+                    <Avatar
+                      src={row.photoUrl ?? undefined}
+                      alt={row.playerName}
+                      className={styles.trainingCardAvatar}
+                    >
+                      {playerInitials(row.playerName)}
+                    </Avatar>
                     <Typography variant="subtitle1" className={styles.playerName}>
                       {row.playerName}
                     </Typography>
