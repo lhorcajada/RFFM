@@ -84,6 +84,21 @@ namespace RFFM.Api.Features.Coaches.Convocations
                     {
                         throw new ForbiddenAccessException("No autorizado para responder la convocatoria de otro jugador.");
                     }
+
+                    // Player/FamilyMember may reactivate their own player's Deconvoked convocation
+                    // (back to Pending/Accepted) only when the event is a training session. This is
+                    // an allow-list check (== TrainingId), so it blocks Match, FriendlyMatch,
+                    // Meeting, AccessTrials, Tournament, and any future SportEventType by
+                    // construction, without needing to enumerate them.
+                    var isReactivatingFromDeconvoke = conv.ConvocationStatusId == ConvocationStatus.FromName("Deconvoke").Id;
+                    var targetIsPendingOrAccepted = request.NewStatusId == ConvocationStatus.FromName("Pending").Id
+                        || request.NewStatusId == ConvocationStatus.FromName("Accepted").Id;
+                    var isTrainingEvent = conv.SportEvent.EventTypeId == SportEventType.TrainingId;
+
+                    if (isReactivatingFromDeconvoke && targetIsPendingOrAccepted && !isTrainingEvent)
+                    {
+                        throw new ForbiddenAccessException("Solo se puede reactivar una convocatoria desconvocada en eventos de tipo entrenamiento.");
+                    }
                 }
 
                 // Validate status

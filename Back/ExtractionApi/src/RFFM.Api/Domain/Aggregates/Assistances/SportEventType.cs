@@ -7,6 +7,7 @@
         private static readonly SportEventType Meeting = new SportEventType(3, "Reunión");
         private static readonly SportEventType FriendlyMatch = new SportEventType(4, "Amistoso");
         private static readonly SportEventType AccessTrials = new SportEventType(5, "Pruebas de acceso");
+        private static readonly SportEventType Tournament = new SportEventType(6, "Torneo");
 
 
         public int Id { get; private set; }
@@ -17,7 +18,9 @@
             Name = name;
         }
 
-        public static IEnumerable<SportEventType> List() => new[] { Match, Training, Meeting, FriendlyMatch, AccessTrials };
+        public static int TrainingId => Training.Id;
+
+        public static IEnumerable<SportEventType> List() => new[] { Match, Training, Meeting, FriendlyMatch, AccessTrials, Tournament };
 
         public static SportEventType FromName(string name)
         {

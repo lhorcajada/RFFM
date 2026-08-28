@@ -54,7 +54,11 @@ namespace RFFM.Api.Tests.UnitTests
             return mock;
         }
 
-        private async Task<(string EventId, string TeamPlayerId, string ConvocationId)> SeedConvocationAsync(AppDbContext db)
+        private Task<(string EventId, string TeamPlayerId, string ConvocationId)> SeedConvocationAsync(AppDbContext db)
+            => SeedConvocationAsync(db, eventTypeId: 2, convocationStatusId: 1);
+
+        private async Task<(string EventId, string TeamPlayerId, string ConvocationId)> SeedConvocationAsync(
+            AppDbContext db, int eventTypeId, int convocationStatusId)
         {
             var club = Club.Create($"Convocation Auth Test Club {Guid.NewGuid():N}", 1);
             db.Clubs.Add(club);
@@ -106,7 +110,7 @@ namespace RFFM.Api.Tests.UnitTests
                 DateTime.UtcNow.AddDays(1),
                 DateTime.UtcNow.AddDays(1),
                 null, null, null, null,
-                2, team.Id, null);
+                eventTypeId, team.Id, null);
             db.SportEvents.Add(sportEvent);
             await db.SaveChangesAsync();
 
@@ -116,7 +120,7 @@ namespace RFFM.Api.Tests.UnitTests
                 TeamPlayerId = teamPlayer.Id,
                 AssistanceTypeId = null,
                 ResponseDateTime = DateTime.UtcNow,
-                ConvocationStatusId = 1,
+                ConvocationStatusId = convocationStatusId,
                 ExcuseTypeId = null
             });
             db.Convocations.Add(convocation);
@@ -330,6 +334,195 @@ namespace RFFM.Api.Tests.UnitTests
 
             var updated = await db.Convocations.AsNoTracking().FirstAsync(c => c.Id == convocationId);
             Assert.Equal(2, updated.ConvocationStatusId);
+        }
+
+        [Fact]
+        public async Task PlayerReactivatesDeconvokedConvocation_OnTrainingEvent_Succeeds()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (eventId, teamPlayerId, convocationId) = await SeedConvocationAsync(db, eventTypeId: 2, convocationStatusId: 5);
+
+            var userId = $"player-{Guid.NewGuid():N}";
+            db.UserProfiles.Add(new UserProfile(userId, "Player", teamPlayerId, null));
+            await db.SaveChangesAsync();
+
+            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(userId, "Player").Object);
+            var request = new UpdateConvocationStatus.UpdateStatusRequest
+            {
+                EventId = eventId,
+                ConvocationId = convocationId,
+                NewStatusId = 2
+            };
+
+            await handler.Handle(request, CancellationToken.None);
+
+            var updated = await db.Convocations.AsNoTracking().FirstAsync(c => c.Id == convocationId);
+            Assert.Equal(2, updated.ConvocationStatusId);
+        }
+
+        [Fact]
+        public async Task FamilyMemberReactivatesDeconvokedConvocation_OnTrainingEvent_Succeeds()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (eventId, teamPlayerId, convocationId) = await SeedConvocationAsync(db, eventTypeId: 2, convocationStatusId: 5);
+
+            var userId = $"family-{Guid.NewGuid():N}";
+            db.UserProfiles.Add(new UserProfile(userId, "FamilyMember", teamPlayerId, null));
+            await db.SaveChangesAsync();
+
+            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(userId, "FamilyMember").Object);
+            var request = new UpdateConvocationStatus.UpdateStatusRequest
+            {
+                EventId = eventId,
+                ConvocationId = convocationId,
+                NewStatusId = 1
+            };
+
+            await handler.Handle(request, CancellationToken.None);
+
+            var updated = await db.Convocations.AsNoTracking().FirstAsync(c => c.Id == convocationId);
+            Assert.Equal(1, updated.ConvocationStatusId);
+        }
+
+        [Fact]
+        public async Task PlayerReactivatesDeconvokedConvocation_OnMatchEvent_ThrowsForbiddenAccessException()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (eventId, teamPlayerId, convocationId) = await SeedConvocationAsync(db, eventTypeId: 1, convocationStatusId: 5);
+
+            var userId = $"player-{Guid.NewGuid():N}";
+            db.UserProfiles.Add(new UserProfile(userId, "Player", teamPlayerId, null));
+            await db.SaveChangesAsync();
+
+            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(userId, "Player").Object);
+            var request = new UpdateConvocationStatus.UpdateStatusRequest
+            {
+                EventId = eventId,
+                ConvocationId = convocationId,
+                NewStatusId = 2
+            };
+
+            await Assert.ThrowsAsync<ForbiddenAccessException>(
+                async () => await handler.Handle(request, CancellationToken.None));
+
+            var untouched = await db.Convocations.AsNoTracking().FirstAsync(c => c.Id == convocationId);
+            Assert.Equal(5, untouched.ConvocationStatusId);
+        }
+
+        [Fact]
+        public async Task FamilyMemberReactivatesDeconvokedConvocation_OnFriendlyMatchEvent_ThrowsForbiddenAccessException()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (eventId, teamPlayerId, convocationId) = await SeedConvocationAsync(db, eventTypeId: 4, convocationStatusId: 5);
+
+            var userId = $"family-{Guid.NewGuid():N}";
+            db.UserProfiles.Add(new UserProfile(userId, "FamilyMember", teamPlayerId, null));
+            await db.SaveChangesAsync();
+
+            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(userId, "FamilyMember").Object);
+            var request = new UpdateConvocationStatus.UpdateStatusRequest
+            {
+                EventId = eventId,
+                ConvocationId = convocationId,
+                NewStatusId = 1
+            };
+
+            await Assert.ThrowsAsync<ForbiddenAccessException>(
+                async () => await handler.Handle(request, CancellationToken.None));
+
+            var untouched = await db.Convocations.AsNoTracking().FirstAsync(c => c.Id == convocationId);
+            Assert.Equal(5, untouched.ConvocationStatusId);
+        }
+
+        [Fact]
+        public async Task PlayerReactivatesDeconvokedConvocation_OnTournamentEvent_ThrowsForbiddenAccessException()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (eventId, teamPlayerId, convocationId) = await SeedConvocationAsync(db, eventTypeId: 6, convocationStatusId: 5);
+
+            var userId = $"player-{Guid.NewGuid():N}";
+            db.UserProfiles.Add(new UserProfile(userId, "Player", teamPlayerId, null));
+            await db.SaveChangesAsync();
+
+            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(userId, "Player").Object);
+            var request = new UpdateConvocationStatus.UpdateStatusRequest
+            {
+                EventId = eventId,
+                ConvocationId = convocationId,
+                NewStatusId = 2
+            };
+
+            await Assert.ThrowsAsync<ForbiddenAccessException>(
+                async () => await handler.Handle(request, CancellationToken.None));
+
+            var untouched = await db.Convocations.AsNoTracking().FirstAsync(c => c.Id == convocationId);
+            Assert.Equal(5, untouched.ConvocationStatusId);
+        }
+
+        [Fact]
+        public async Task CoachReactivatesDeconvokedConvocation_OnMatchEvent_Succeeds()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (eventId, _, convocationId) = await SeedConvocationAsync(db, eventTypeId: 1, convocationStatusId: 5);
+
+            var coachId = $"coach-{Guid.NewGuid():N}";
+            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(coachId, "Coach").Object);
+            var request = new UpdateConvocationStatus.UpdateStatusRequest
+            {
+                EventId = eventId,
+                ConvocationId = convocationId,
+                NewStatusId = 2
+            };
+
+            await handler.Handle(request, CancellationToken.None);
+
+            var updated = await db.Convocations.AsNoTracking().FirstAsync(c => c.Id == convocationId);
+            Assert.Equal(2, updated.ConvocationStatusId);
+        }
+
+        [Fact]
+        public async Task AdministratorReactivatesDeconvokedConvocation_OnMatchEvent_Succeeds()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (eventId, _, convocationId) = await SeedConvocationAsync(db, eventTypeId: 1, convocationStatusId: 5);
+
+            var adminId = $"admin-{Guid.NewGuid():N}";
+            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(adminId, "Administrator").Object);
+            var request = new UpdateConvocationStatus.UpdateStatusRequest
+            {
+                EventId = eventId,
+                ConvocationId = convocationId,
+                NewStatusId = 2
+            };
+
+            await handler.Handle(request, CancellationToken.None);
+
+            var updated = await db.Convocations.AsNoTracking().FirstAsync(c => c.Id == convocationId);
+            Assert.Equal(2, updated.ConvocationStatusId);
+        }
+
+        [Fact]
+        public async Task PlayerDeclinesOwnPendingConvocation_OnMatchEvent_Succeeds()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (eventId, teamPlayerId, convocationId) = await SeedConvocationAsync(db, eventTypeId: 1, convocationStatusId: 1);
+
+            var userId = $"player-{Guid.NewGuid():N}";
+            db.UserProfiles.Add(new UserProfile(userId, "Player", teamPlayerId, null));
+            await db.SaveChangesAsync();
+
+            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(userId, "Player").Object);
+            var request = new UpdateConvocationStatus.UpdateStatusRequest
+            {
+                EventId = eventId,
+                ConvocationId = convocationId,
+                NewStatusId = 5
+            };
+
+            await handler.Handle(request, CancellationToken.None);
+
+            var updated = await db.Convocations.AsNoTracking().FirstAsync(c => c.Id == convocationId);
+            Assert.Equal(5, updated.ConvocationStatusId);
         }
     }
 }
