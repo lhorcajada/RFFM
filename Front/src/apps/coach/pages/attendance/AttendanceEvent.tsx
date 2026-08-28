@@ -327,6 +327,7 @@ export default function AttendanceEvent() {
                       event.startTime ?? event.start ?? event.eveDateTime
                     }
                     isMatch={eventTypeName?.toLowerCase().includes("partido") ?? false}
+                    isTraining={eventTypeName?.toLowerCase().includes("entrenamiento") ?? false}
                   />
                 </React.Suspense>
               )}

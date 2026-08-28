@@ -21,7 +21,12 @@ import ConvocationCard from "./components/ConvocationCard";
 import DeconvokeDialog from "./components/DeconvokeDialog";
 import CollapsibleGroup from "./components/CollapsibleGroup";
 
-type Props = { eventId: string; eventStart?: string | null; isMatch?: boolean };
+type Props = {
+  eventId: string;
+  eventStart?: string | null;
+  isMatch?: boolean;
+  isTraining?: boolean;
+};
 
 type GroupKey = "waiting" | "pending" | "accepted" | "desconvocados";
 
@@ -58,7 +63,7 @@ function statusNameMap(id: number, statuses: { id: number; name: string }[]) {
   return m[s.name] ?? s.name;
 }
 
-export default function AttendanceTabs({ eventId, eventStart, isMatch }: Props) {
+export default function AttendanceTabs({ eventId, eventStart, isMatch, isTraining }: Props) {
   const [tab, setTab] = useState(0);
   const [players, setPlayers] = useState<PlayerSimple[]>([]);
   const [convocations, setConvocations] = useState<ConvocationItem[]>([]);
@@ -86,6 +91,13 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch }: Props) 
     // After the event date, admins and coaches can still edit
     return coachAuthService.hasRole("Coach");
   }, [eventStart]);
+
+  // Player/FamilyMember may only move their own player out of "Desconvocado"
+  // (back to Pendiente/Aceptada) when the event is a Training session — the
+  // backend enforces this with a 403 (see handleChangeStatus below); this is
+  // the client-side mirror that decides whether to render the control at all.
+  // Coach/Administrator remain unrestricted on any event type.
+  const canReactivateFromDeconvoke = !isPlayerOrFamily || !!isTraining;
 
   useEffect(() => {
     if (!isPlayerOrFamily) {
@@ -311,7 +323,15 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch }: Props) 
       const convs = await convocationService.getConvocations(eventId);
       setConvocations(convs);
     } catch (e: any) {
-      alert(e?.message ?? "Error al actualizar estado");
+      // Defense in depth: even if the UI hid/showed this control incorrectly,
+      // surface the backend's own reason (e.g. the 403 thrown for a
+      // Player/FamilyMember reactivation attempt on a non-training event)
+      // instead of a generic message.
+      alert(
+        e?.response?.data?.detail ??
+          e?.message ??
+          "Error al actualizar estado"
+      );
     }
   };
 
@@ -398,6 +418,12 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch }: Props) 
               if (filtered.length === 0 && injuredNoConv.length === 0)
                 return <EmptyState description="No hay convocados aún." />;
 
+              const canEditThisConvocationFor = (c: ConvocationItem) =>
+                !isPlayerOrFamily ||
+                (associatedPlayerId != null &&
+                  (((c.player as any).playerId != null && String((c.player as any).playerId) === String(associatedPlayerId)) ||
+                    ((c.player as any).id != null && String((c.player as any).id) === String(associatedPlayerId))));
+
               const renderDeconvokedCard = (c: ConvocationItem) => (
                 <ConvocationCard
                   key={c.id}
@@ -411,6 +437,9 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch }: Props) 
                   statuses={statuses}
                   excuseTypes={excuseTypes}
                   canEdit={canEdit}
+                  canEditThisConvocation={canEditThisConvocationFor(c)}
+                  hideWaitingListButton={isPlayerOrFamily}
+                  canReactivateFromDeconvoke={canReactivateFromDeconvoke}
                   onChangeStatus={handleChangeStatus}
                   onDelete={(cv) => {
                     if (!canEdit) return alert("No se puede editar: el evento ya ha comenzado.");
@@ -472,11 +501,7 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch }: Props) 
                   String((c.player as any).id) === String(associatedPlayerId));
 
               const renderCard = (c: ConvocationItem, highlightAssoc = false) => {
-                const canEditThisConvocation =
-                  !isPlayerOrFamily ||
-                  (associatedPlayerId != null &&
-                    (((c.player as any).playerId != null && String((c.player as any).playerId) === String(associatedPlayerId)) ||
-                      ((c.player as any).id != null && String((c.player as any).id) === String(associatedPlayerId))));
+                const canEditThisConvocation = canEditThisConvocationFor(c);
                 return (
                 <ConvocationCard
                   key={c.id}
@@ -493,6 +518,7 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch }: Props) 
                   canEditThisConvocation={canEditThisConvocation}
                   viewablePlayerId={null}
                   hideWaitingListButton={isPlayerOrFamily}
+                  canReactivateFromDeconvoke={canReactivateFromDeconvoke}
                   onChangeStatus={handleChangeStatus}
                   onDelete={(cv) => {
                     if (!canEdit)
