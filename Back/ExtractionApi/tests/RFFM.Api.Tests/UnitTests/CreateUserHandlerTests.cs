@@ -475,8 +475,6 @@ namespace RFFM.Api.Tests.UnitTests
                 Email = "family@rffm.test",
                 Password = "S3cure!Pass",
                 AccountType = AppRoles.FamilyMember.Name,
-                TeamInvitationCode = team.JoinCode,
-                TeamPlayerId = teamPlayer.Id,
                 PlayerLinkCode = teamPlayer.LinkCode
             };
 
@@ -501,15 +499,61 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
-        public async Task Handle_FamilyMember_WithoutPlayerLinkCode_CreatesPendingLinkRequest_AndDoesNotCreateUserTeamOrProfile()
+        public async Task Handle_Player_WithNonExistentLinkCode_ReturnsBadRequestWithPlayerLinkCodeInvalidCode()
         {
-            // Regression test: registering as FamilyMember WITHOUT a link code must create a
-            // pending TeamPlayerLinkRequest and NOT create UserTeam or UserProfile.
+            // Test that providing a code that matches no TeamPlayer returns 400 with PlayerLinkCodeInvalid.
+
+            // Arrange
+            var userManagerMock = MockUserManager();
+            userManagerMock
+                .Setup(m => m.FindByNameAsync(It.IsAny<string>()))
+                .ReturnsAsync((IdentityUser?)null);
+            userManagerMock
+                .Setup(m => m.FindByEmailAsync(It.IsAny<string>()))
+                .ReturnsAsync((IdentityUser?)null);
+
+            var configuration = new ConfigurationBuilder().Build();
+            var db = _fixture.CreateDbContext();
+            var emailService = new EmailService(configuration, null!);
+            var logger = NullLogger<CreateUser.Handler>.Instance;
+
+            var handler = new CreateUser.Handler(
+                userManagerMock.Object,
+                MockRoleManager().Object,
+                emailService,
+                configuration,
+                db,
+                logger);
+
+            var command = new CreateUser.Command
+            {
+                Alias = $"playernocode{Guid.NewGuid():N}"[..15],
+                Email = "playernocode@rffm.test",
+                Password = "S3cure!Pass",
+                AccountType = AppRoles.Player.Name,
+                PlayerLinkCode = "NONEXIST"
+            };
+
+            // Act
+            var result = await handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            var badRequest = Assert.IsAssignableFrom<BadRequest<ProblemDetails>>(result);
+            Assert.NotNull(badRequest.Value);
+            Assert.Equal(ErrorCodes.PlayerLinkCodeInvalid, badRequest.Value.Extensions["code"]);
+        }
+
+        [Fact]
+        public async Task Handle_Player_WithValidLinkCode_LinksInstantlyAndUpdatesTeamPlayerContactEmail()
+        {
+            // Registering as Player with a valid link code must link the UserTeam instantly
+            // (no pending approval) and update the TeamPlayer's contact email, preserving
+            // Address/Phone already on file.
 
             // Arrange
             await using var setupDb = _fixture.CreateDbContext();
 
-            var club = Club.Create($"FamilyMember No Code Test Club {Guid.NewGuid():N}", 1);
+            var club = Club.Create($"Player Valid Code Test Club {Guid.NewGuid():N}", 1);
             setupDb.Clubs.Add(club);
             await setupDb.SaveChangesAsync();
 
@@ -524,7 +568,7 @@ namespace RFFM.Api.Tests.UnitTests
 
             var team = new Team(new TeamModelBase
             {
-                Name = "FamilyMember No Code Test Team",
+                Name = "Player Valid Code Test Team",
                 CategoryId = Category.NationalCategory.Id,
                 ClubId = club.Id,
                 SeasonId = season.Id
@@ -535,8 +579,134 @@ namespace RFFM.Api.Tests.UnitTests
             var player = Player.Create(new PlayerModelBase
             {
                 Name = "TestPlayer",
-                LastName = "NoCode",
-                Alias = "testnocode",
+                LastName = "ValidCode",
+                Alias = "testvalidcode",
+                ClubId = club.Id
+            });
+            setupDb.Players.Add(player);
+            await setupDb.SaveChangesAsync();
+
+            var teamPlayer = TeamPlayer.Create(new TeamPlayerModel
+            {
+                PlayerId = player.Id,
+                TeamId = team.Id,
+                SeasonId = season.Id,
+                JoinedDate = DateTime.UtcNow,
+                ContactInfo = new ContactModel { Phone = "600111222", Address = new AddressModel { Street = "Calle Existente", City = "Sevilla" } },
+                FamilyMembers = new List<FamilyModel>()
+            });
+            setupDb.TeamPlayers.Add(teamPlayer);
+            await setupDb.SaveChangesAsync();
+
+            teamPlayer.GenerateLinkCode();
+            await setupDb.SaveChangesAsync();
+
+            var userManagerMock = MockUserManager();
+            userManagerMock
+                .Setup(m => m.FindByNameAsync(It.IsAny<string>()))
+                .ReturnsAsync((IdentityUser?)null);
+            userManagerMock
+                .Setup(m => m.FindByEmailAsync(It.IsAny<string>()))
+                .ReturnsAsync((IdentityUser?)null);
+
+            IdentityUser? createdUser = null;
+            userManagerMock
+                .Setup(m => m.CreateAsync(It.IsAny<IdentityUser>(), It.IsAny<string>()))
+                .Callback<IdentityUser, string>((u, _) => createdUser = u)
+                .ReturnsAsync(IdentityResult.Success);
+            userManagerMock
+                .Setup(m => m.GetRolesAsync(It.IsAny<IdentityUser>()))
+                .ReturnsAsync(new List<string> { AppRoles.Player.Name });
+
+            var roleManagerMock = MockRoleManager();
+            roleManagerMock
+                .Setup(m => m.RoleExistsAsync(It.IsAny<string>()))
+                .ReturnsAsync(true);
+
+            var configuration = new ConfigurationBuilder().Build();
+            var db = _fixture.CreateDbContext();
+            var emailService = new EmailService(configuration, null!);
+            var logger = NullLogger<CreateUser.Handler>.Instance;
+
+            var handler = new CreateUser.Handler(
+                userManagerMock.Object,
+                roleManagerMock.Object,
+                emailService,
+                configuration,
+                db,
+                logger);
+
+            var command = new CreateUser.Command
+            {
+                Alias = $"playervalidcode{Guid.NewGuid():N}"[..15],
+                Email = "playervalidcode@rffm.test",
+                Password = "S3cure!Pass",
+                AccountType = AppRoles.Player.Name,
+                PlayerLinkCode = teamPlayer.LinkCode
+            };
+
+            // Act
+            var result = await handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            var okResult = Assert.IsAssignableFrom<Ok<RegisterAccountResponse>>(result);
+            Assert.NotNull(okResult.Value);
+            Assert.Equal(RegistrationStatus.Active, okResult.Value.Status);
+            Assert.NotNull(createdUser);
+
+            await using var assertDb = _fixture.CreateDbContext();
+
+            var userTeam = await assertDb.UserTeams
+                .AsNoTracking()
+                .FirstOrDefaultAsync(ut => ut.ApplicationUserId == createdUser!.Id);
+            Assert.NotNull(userTeam);
+            Assert.Equal(teamPlayer.Id, userTeam!.LinkedTeamPlayerId);
+
+            var reloadedTeamPlayer = await assertDb.TeamPlayers
+                .AsNoTracking()
+                .FirstAsync(tp => tp.Id == teamPlayer.Id);
+            Assert.Equal(command.Email, reloadedTeamPlayer.ContactInfo!.Email);
+            Assert.Equal("600111222", reloadedTeamPlayer.ContactInfo!.Phone);
+            Assert.Equal("Calle Existente", reloadedTeamPlayer.ContactInfo!.Address!.Street);
+        }
+
+        [Fact]
+        public async Task Handle_Player_WithLinkCodeAlreadyClaimed_ReturnsConflictWithLinkedPlayerAlreadyClaimedCode()
+        {
+            // A second Player registration against the same LinkCode must be rejected: only one
+            // Player account can be linked to a given TeamPlayer.
+
+            // Arrange
+            await using var setupDb = _fixture.CreateDbContext();
+
+            var club = Club.Create($"Player Already Claimed Test Club {Guid.NewGuid():N}", 1);
+            setupDb.Clubs.Add(club);
+            await setupDb.SaveChangesAsync();
+
+            var season = Season.Create(
+                $"Season {Guid.NewGuid():N}",
+                DateTime.UtcNow,
+                DateTime.UtcNow.AddMonths(9),
+                isActive: true,
+                club: club);
+            setupDb.Seasons.Add(season);
+            await setupDb.SaveChangesAsync();
+
+            var team = new Team(new TeamModelBase
+            {
+                Name = "Player Already Claimed Test Team",
+                CategoryId = Category.NationalCategory.Id,
+                ClubId = club.Id,
+                SeasonId = season.Id
+            });
+            setupDb.Teams.Add(team);
+            await setupDb.SaveChangesAsync();
+
+            var player = Player.Create(new PlayerModelBase
+            {
+                Name = "TestPlayer",
+                LastName = "AlreadyClaimed",
+                Alias = "testalreadyclaimed",
                 ClubId = club.Id
             });
             setupDb.Players.Add(player);
@@ -551,6 +721,217 @@ namespace RFFM.Api.Tests.UnitTests
                 FamilyMembers = new List<FamilyModel>()
             });
             setupDb.TeamPlayers.Add(teamPlayer);
+            await setupDb.SaveChangesAsync();
+
+            teamPlayer.GenerateLinkCode();
+            await setupDb.SaveChangesAsync();
+
+            var firstUserTeam = new UserTeam(Guid.NewGuid().ToString(), team.Id, Membership.Player.Id);
+            firstUserTeam.LinkPlayer(teamPlayer.Id);
+            setupDb.UserTeams.Add(firstUserTeam);
+            await setupDb.SaveChangesAsync();
+
+            var userManagerMock = MockUserManager();
+            userManagerMock
+                .Setup(m => m.FindByNameAsync(It.IsAny<string>()))
+                .ReturnsAsync((IdentityUser?)null);
+            userManagerMock
+                .Setup(m => m.FindByEmailAsync(It.IsAny<string>()))
+                .ReturnsAsync((IdentityUser?)null);
+
+            var configuration = new ConfigurationBuilder().Build();
+            var db = _fixture.CreateDbContext();
+            var emailService = new EmailService(configuration, null!);
+            var logger = NullLogger<CreateUser.Handler>.Instance;
+
+            var handler = new CreateUser.Handler(
+                userManagerMock.Object,
+                MockRoleManager().Object,
+                emailService,
+                configuration,
+                db,
+                logger);
+
+            var command = new CreateUser.Command
+            {
+                Alias = $"playersecond{Guid.NewGuid():N}"[..15],
+                Email = "playersecond@rffm.test",
+                Password = "S3cure!Pass",
+                AccountType = AppRoles.Player.Name,
+                PlayerLinkCode = teamPlayer.LinkCode
+            };
+
+            // Act
+            var result = await handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            var conflict = Assert.IsAssignableFrom<Conflict<ProblemDetails>>(result);
+            Assert.NotNull(conflict.Value);
+            Assert.Equal(ErrorCodes.LinkedPlayerAlreadyClaimed, conflict.Value.Extensions["code"]);
+        }
+
+        [Fact]
+        public async Task Handle_FamilyMember_WithNewEmail_AddsFamilyMemberEntry()
+        {
+            // Arrange
+            await using var setupDb = _fixture.CreateDbContext();
+
+            var club = Club.Create($"FamilyMember New Email Test Club {Guid.NewGuid():N}", 1);
+            setupDb.Clubs.Add(club);
+            await setupDb.SaveChangesAsync();
+
+            var season = Season.Create(
+                $"Season {Guid.NewGuid():N}",
+                DateTime.UtcNow,
+                DateTime.UtcNow.AddMonths(9),
+                isActive: true,
+                club: club);
+            setupDb.Seasons.Add(season);
+            await setupDb.SaveChangesAsync();
+
+            var team = new Team(new TeamModelBase
+            {
+                Name = "FamilyMember New Email Test Team",
+                CategoryId = Category.NationalCategory.Id,
+                ClubId = club.Id,
+                SeasonId = season.Id
+            });
+            setupDb.Teams.Add(team);
+            await setupDb.SaveChangesAsync();
+
+            var player = Player.Create(new PlayerModelBase
+            {
+                Name = "TestPlayer",
+                LastName = "NewEmail",
+                Alias = "testnewemail",
+                ClubId = club.Id
+            });
+            setupDb.Players.Add(player);
+            await setupDb.SaveChangesAsync();
+
+            var teamPlayer = TeamPlayer.Create(new TeamPlayerModel
+            {
+                PlayerId = player.Id,
+                TeamId = team.Id,
+                SeasonId = season.Id,
+                JoinedDate = DateTime.UtcNow,
+                FamilyMembers = new List<FamilyModel>()
+            });
+            setupDb.TeamPlayers.Add(teamPlayer);
+            await setupDb.SaveChangesAsync();
+
+            teamPlayer.GenerateLinkCode();
+            await setupDb.SaveChangesAsync();
+
+            var userManagerMock = MockUserManager();
+            userManagerMock
+                .Setup(m => m.FindByNameAsync(It.IsAny<string>()))
+                .ReturnsAsync((IdentityUser?)null);
+            userManagerMock
+                .Setup(m => m.FindByEmailAsync(It.IsAny<string>()))
+                .ReturnsAsync((IdentityUser?)null);
+            userManagerMock
+                .Setup(m => m.CreateAsync(It.IsAny<IdentityUser>(), It.IsAny<string>()))
+                .ReturnsAsync(IdentityResult.Success);
+            userManagerMock
+                .Setup(m => m.GetRolesAsync(It.IsAny<IdentityUser>()))
+                .ReturnsAsync(new List<string> { AppRoles.FamilyMember.Name });
+
+            var roleManagerMock = MockRoleManager();
+            roleManagerMock
+                .Setup(m => m.RoleExistsAsync(It.IsAny<string>()))
+                .ReturnsAsync(true);
+
+            var configuration = new ConfigurationBuilder().Build();
+            var db = _fixture.CreateDbContext();
+            var emailService = new EmailService(configuration, null!);
+            var logger = NullLogger<CreateUser.Handler>.Instance;
+
+            var handler = new CreateUser.Handler(
+                userManagerMock.Object,
+                roleManagerMock.Object,
+                emailService,
+                configuration,
+                db,
+                logger);
+
+            var command = new CreateUser.Command
+            {
+                Alias = $"familynewemail{Guid.NewGuid():N}"[..15],
+                Email = "familynewemail@rffm.test",
+                Password = "S3cure!Pass",
+                AccountType = AppRoles.FamilyMember.Name,
+                PlayerLinkCode = teamPlayer.LinkCode
+            };
+
+            // Act
+            var result = await handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            var okResult = Assert.IsAssignableFrom<Ok<RegisterAccountResponse>>(result);
+            Assert.NotNull(okResult.Value);
+            Assert.Equal(RegistrationStatus.Active, okResult.Value.Status);
+
+            await using var assertDb = _fixture.CreateDbContext();
+            var reloadedTeamPlayer = await assertDb.TeamPlayers
+                .AsNoTracking()
+                .FirstAsync(tp => tp.Id == teamPlayer.Id);
+            Assert.Contains(reloadedTeamPlayer.FamilyMembers, f => f.Email == command.Email);
+        }
+
+        [Fact]
+        public async Task Handle_FamilyMember_WithEmailAlreadyInFamilyMembers_DoesNotDuplicate_ButStillLinksUser()
+        {
+            // Arrange
+            await using var setupDb = _fixture.CreateDbContext();
+
+            var club = Club.Create($"FamilyMember Existing Email Test Club {Guid.NewGuid():N}", 1);
+            setupDb.Clubs.Add(club);
+            await setupDb.SaveChangesAsync();
+
+            var season = Season.Create(
+                $"Season {Guid.NewGuid():N}",
+                DateTime.UtcNow,
+                DateTime.UtcNow.AddMonths(9),
+                isActive: true,
+                club: club);
+            setupDb.Seasons.Add(season);
+            await setupDb.SaveChangesAsync();
+
+            var team = new Team(new TeamModelBase
+            {
+                Name = "FamilyMember Existing Email Test Team",
+                CategoryId = Category.NationalCategory.Id,
+                ClubId = club.Id,
+                SeasonId = season.Id
+            });
+            setupDb.Teams.Add(team);
+            await setupDb.SaveChangesAsync();
+
+            var player = Player.Create(new PlayerModelBase
+            {
+                Name = "TestPlayer",
+                LastName = "ExistingEmail",
+                Alias = "testexistingemail",
+                ClubId = club.Id
+            });
+            setupDb.Players.Add(player);
+            await setupDb.SaveChangesAsync();
+
+            const string existingFamilyEmail = "family-existing@rffm.test";
+            var teamPlayer = TeamPlayer.Create(new TeamPlayerModel
+            {
+                PlayerId = player.Id,
+                TeamId = team.Id,
+                SeasonId = season.Id,
+                JoinedDate = DateTime.UtcNow,
+                FamilyMembers = new List<FamilyModel>()
+            });
+            setupDb.TeamPlayers.Add(teamPlayer);
+            await setupDb.SaveChangesAsync();
+
+            teamPlayer.AddFamilyMemberEmailIfMissing(existingFamilyEmail);
+            teamPlayer.GenerateLinkCode();
             await setupDb.SaveChangesAsync();
 
             var userManagerMock = MockUserManager();
@@ -590,13 +971,11 @@ namespace RFFM.Api.Tests.UnitTests
 
             var command = new CreateUser.Command
             {
-                Alias = $"familynocode{Guid.NewGuid():N}"[..15],
-                Email = "familynocode@rffm.test",
+                Alias = $"familyexistingemail{Guid.NewGuid():N}"[..15],
+                Email = existingFamilyEmail,
                 Password = "S3cure!Pass",
                 AccountType = AppRoles.FamilyMember.Name,
-                TeamInvitationCode = team.JoinCode,
-                TeamPlayerId = teamPlayer.Id
-                // NO PlayerLinkCode
+                PlayerLinkCode = teamPlayer.LinkCode
             };
 
             // Act
@@ -605,43 +984,29 @@ namespace RFFM.Api.Tests.UnitTests
             // Assert
             var okResult = Assert.IsAssignableFrom<Ok<RegisterAccountResponse>>(result);
             Assert.NotNull(okResult.Value);
-            Assert.Equal(RegistrationStatus.PendingPlayerLinkApproval, okResult.Value.Status);
-            Assert.NotNull(okResult.Value.TeamPlayerLinkRequestId);
+            Assert.Equal(RegistrationStatus.Active, okResult.Value.Status);
             Assert.NotNull(createdUser);
 
             await using var assertDb = _fixture.CreateDbContext();
 
-            // Should NOT have UserTeam
+            var reloadedTeamPlayer = await assertDb.TeamPlayers
+                .AsNoTracking()
+                .FirstAsync(tp => tp.Id == teamPlayer.Id);
+            Assert.Single(reloadedTeamPlayer.FamilyMembers);
+
             var userTeam = await assertDb.UserTeams
                 .AsNoTracking()
                 .FirstOrDefaultAsync(ut => ut.ApplicationUserId == createdUser!.Id);
-            Assert.Null(userTeam);
-
-            // Should NOT have UserProfile
-            var profile = await assertDb.UserProfiles
-                .AsNoTracking()
-                .FirstOrDefaultAsync(p => p.ApplicationUserId == createdUser!.Id);
-            Assert.Null(profile);
-
-            // Should have TeamPlayerLinkRequest Pending
-            var linkRequest = await assertDb.TeamPlayerLinkRequests
-                .AsNoTracking()
-                .FirstOrDefaultAsync(r => r.Id == okResult.Value.TeamPlayerLinkRequestId);
-            Assert.NotNull(linkRequest);
-            Assert.Equal(TeamPlayerLinkRequestStatus.Pending, linkRequest.Status);
-            Assert.Equal(teamPlayer.Id, linkRequest.TeamPlayerId);
-            Assert.Equal(Membership.FamilyPlayer.Id, linkRequest.MembershipId);
+            Assert.NotNull(userTeam);
         }
 
         [Fact]
-        public async Task Handle_Player_WithWrongPlayerLinkCode_ReturnsBadRequestWithPlayerLinkCodeInvalidCode()
+        public async Task Handle_MultipleFamilyMembers_ForSameTeamPlayer_AllLinkSuccessfully()
         {
-            // Test that providing an incorrect player link code returns 400 with PlayerLinkCodeInvalid.
-
             // Arrange
             await using var setupDb = _fixture.CreateDbContext();
 
-            var club = Club.Create($"Player Wrong Code Test Club {Guid.NewGuid():N}", 1);
+            var club = Club.Create($"Multiple FamilyMembers Test Club {Guid.NewGuid():N}", 1);
             setupDb.Clubs.Add(club);
             await setupDb.SaveChangesAsync();
 
@@ -656,7 +1021,7 @@ namespace RFFM.Api.Tests.UnitTests
 
             var team = new Team(new TeamModelBase
             {
-                Name = "Player Wrong Code Test Team",
+                Name = "Multiple FamilyMembers Test Team",
                 CategoryId = Category.NationalCategory.Id,
                 ClubId = club.Id,
                 SeasonId = season.Id
@@ -667,8 +1032,8 @@ namespace RFFM.Api.Tests.UnitTests
             var player = Player.Create(new PlayerModelBase
             {
                 Name = "TestPlayer",
-                LastName = "WrongCode",
-                Alias = "testwrongcode",
+                LastName = "MultipleFamily",
+                Alias = "testmultiplefamily",
                 ClubId = club.Id
             });
             setupDb.Players.Add(player);
@@ -685,145 +1050,70 @@ namespace RFFM.Api.Tests.UnitTests
             setupDb.TeamPlayers.Add(teamPlayer);
             await setupDb.SaveChangesAsync();
 
-            var userManagerMock = MockUserManager();
-            userManagerMock
-                .Setup(m => m.FindByNameAsync(It.IsAny<string>()))
-                .ReturnsAsync((IdentityUser?)null);
-            userManagerMock
-                .Setup(m => m.FindByEmailAsync(It.IsAny<string>()))
-                .ReturnsAsync((IdentityUser?)null);
+            teamPlayer.GenerateLinkCode();
+            await setupDb.SaveChangesAsync();
 
             var configuration = new ConfigurationBuilder().Build();
-            var db = _fixture.CreateDbContext();
             var emailService = new EmailService(configuration, null!);
             var logger = NullLogger<CreateUser.Handler>.Instance;
 
-            var handler = new CreateUser.Handler(
-                userManagerMock.Object,
-                MockRoleManager().Object,
-                emailService,
-                configuration,
-                db,
-                logger);
-
-            var command = new CreateUser.Command
+            async Task<IResult> RegisterFamilyMemberAsync(string alias, string email)
             {
-                Alias = $"playerwrongcode{Guid.NewGuid():N}"[..15],
-                Email = "playerwrongcode@rffm.test",
-                Password = "S3cure!Pass",
-                AccountType = AppRoles.Player.Name,
-                TeamInvitationCode = team.JoinCode,
-                TeamPlayerId = teamPlayer.Id,
-                PlayerLinkCode = "WRONGCOD"
-            };
+                var userManagerMock = MockUserManager();
+                userManagerMock
+                    .Setup(m => m.FindByNameAsync(It.IsAny<string>()))
+                    .ReturnsAsync((IdentityUser?)null);
+                userManagerMock
+                    .Setup(m => m.FindByEmailAsync(It.IsAny<string>()))
+                    .ReturnsAsync((IdentityUser?)null);
+                userManagerMock
+                    .Setup(m => m.CreateAsync(It.IsAny<IdentityUser>(), It.IsAny<string>()))
+                    .ReturnsAsync(IdentityResult.Success);
+                userManagerMock
+                    .Setup(m => m.GetRolesAsync(It.IsAny<IdentityUser>()))
+                    .ReturnsAsync(new List<string> { AppRoles.FamilyMember.Name });
+
+                var roleManagerMock = MockRoleManager();
+                roleManagerMock
+                    .Setup(m => m.RoleExistsAsync(It.IsAny<string>()))
+                    .ReturnsAsync(true);
+
+                var db = _fixture.CreateDbContext();
+                var handler = new CreateUser.Handler(
+                    userManagerMock.Object,
+                    roleManagerMock.Object,
+                    emailService,
+                    configuration,
+                    db,
+                    logger);
+
+                var command = new CreateUser.Command
+                {
+                    Alias = alias,
+                    Email = email,
+                    Password = "S3cure!Pass",
+                    AccountType = AppRoles.FamilyMember.Name,
+                    PlayerLinkCode = teamPlayer.LinkCode
+                };
+
+                return await handler.Handle(command, CancellationToken.None);
+            }
 
             // Act
-            var result = await handler.Handle(command, CancellationToken.None);
+            var firstResult = await RegisterFamilyMemberAsync($"family1{Guid.NewGuid():N}"[..15], "family1@rffm.test");
+            var secondResult = await RegisterFamilyMemberAsync($"family2{Guid.NewGuid():N}"[..15], "family2@rffm.test");
 
             // Assert
-            var badRequest = Assert.IsAssignableFrom<BadRequest<ProblemDetails>>(result);
-            Assert.NotNull(badRequest.Value);
-            Assert.Equal(ErrorCodes.PlayerLinkCodeInvalid, badRequest.Value.Extensions["code"]);
-        }
+            var firstOk = Assert.IsAssignableFrom<Ok<RegisterAccountResponse>>(firstResult);
+            var secondOk = Assert.IsAssignableFrom<Ok<RegisterAccountResponse>>(secondResult);
+            Assert.Equal(RegistrationStatus.Active, firstOk.Value!.Status);
+            Assert.Equal(RegistrationStatus.Active, secondOk.Value!.Status);
 
-        [Fact]
-        public async Task Handle_Player_WithExistingPendingRequestForSameTeamPlayer_ReturnsConflictWithLinkedPlayerRequestPendingCode()
-        {
-            // Test that attempting to register as Player when a pending request already exists
-            // for that TeamPlayer returns 409 with LinkedPlayerRequestPending.
-
-            // Arrange
-            await using var setupDb = _fixture.CreateDbContext();
-
-            var club = Club.Create($"Player Pending Conflict Test Club {Guid.NewGuid():N}", 1);
-            setupDb.Clubs.Add(club);
-            await setupDb.SaveChangesAsync();
-
-            var season = Season.Create(
-                $"Season {Guid.NewGuid():N}",
-                DateTime.UtcNow,
-                DateTime.UtcNow.AddMonths(9),
-                isActive: true,
-                club: club);
-            setupDb.Seasons.Add(season);
-            await setupDb.SaveChangesAsync();
-
-            var team = new Team(new TeamModelBase
-            {
-                Name = "Player Pending Conflict Test Team",
-                CategoryId = Category.NationalCategory.Id,
-                ClubId = club.Id,
-                SeasonId = season.Id
-            });
-            setupDb.Teams.Add(team);
-            await setupDb.SaveChangesAsync();
-
-            var player = Player.Create(new PlayerModelBase
-            {
-                Name = "TestPlayer",
-                LastName = "PendingConflict",
-                Alias = "testpendingconflict",
-                ClubId = club.Id
-            });
-            setupDb.Players.Add(player);
-            await setupDb.SaveChangesAsync();
-
-            var teamPlayer = TeamPlayer.Create(new TeamPlayerModel
-            {
-                PlayerId = player.Id,
-                TeamId = team.Id,
-                SeasonId = season.Id,
-                JoinedDate = DateTime.UtcNow,
-                FamilyMembers = new List<FamilyModel>()
-            });
-            setupDb.TeamPlayers.Add(teamPlayer);
-            await setupDb.SaveChangesAsync();
-
-            // Create a pending TeamPlayerLinkRequest for this TeamPlayer/Player combo
-            var firstUserId = Guid.NewGuid().ToString();
-            var pendingRequest = TeamPlayerLinkRequest.Create(firstUserId, team.Id, teamPlayer.Id, Membership.Player.Id);
-            setupDb.TeamPlayerLinkRequests.Add(pendingRequest);
-            await setupDb.SaveChangesAsync();
-
-            var userManagerMock = MockUserManager();
-            userManagerMock
-                .Setup(m => m.FindByNameAsync(It.IsAny<string>()))
-                .ReturnsAsync((IdentityUser?)null);
-            userManagerMock
-                .Setup(m => m.FindByEmailAsync(It.IsAny<string>()))
-                .ReturnsAsync((IdentityUser?)null);
-
-            var configuration = new ConfigurationBuilder().Build();
-            var db = _fixture.CreateDbContext();
-            var emailService = new EmailService(configuration, null!);
-            var logger = NullLogger<CreateUser.Handler>.Instance;
-
-            var handler = new CreateUser.Handler(
-                userManagerMock.Object,
-                MockRoleManager().Object,
-                emailService,
-                configuration,
-                db,
-                logger);
-
-            var command = new CreateUser.Command
-            {
-                Alias = $"playerconflict{Guid.NewGuid():N}"[..15],
-                Email = "playerconflict@rffm.test",
-                Password = "S3cure!Pass",
-                AccountType = AppRoles.Player.Name,
-                TeamInvitationCode = team.JoinCode,
-                TeamPlayerId = teamPlayer.Id
-                // No PlayerLinkCode; this will try to create another pending request
-            };
-
-            // Act
-            var result = await handler.Handle(command, CancellationToken.None);
-
-            // Assert
-            var conflict = Assert.IsAssignableFrom<Conflict<ProblemDetails>>(result);
-            Assert.NotNull(conflict.Value);
-            Assert.Equal(ErrorCodes.LinkedPlayerRequestPending, conflict.Value.Extensions["code"]);
+            await using var assertDb = _fixture.CreateDbContext();
+            var userTeamsCount = await assertDb.UserTeams
+                .AsNoTracking()
+                .CountAsync(ut => ut.LinkedTeamPlayerId == teamPlayer.Id && ut.RoleId == Membership.FamilyPlayer.Id);
+            Assert.Equal(2, userTeamsCount);
         }
 
         private static Mock<UserManager<IdentityUser>> MockUserManager()

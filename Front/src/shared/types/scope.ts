@@ -31,8 +31,6 @@ export interface RegisterPayingAccountPayload {
   accountType: string;
   trialAccepted?: boolean;
   clubInvitationCode?: string;
-  teamInvitationCode?: string;
-  teamPlayerId?: string;
   playerLinkCode?: string;
 }
 
@@ -101,7 +99,7 @@ export interface LeaveScopeResponse {
   leftScope: ActiveScope;
 }
 
-export type RegistrationStatus = "Active" | "PendingClubApproval" | "PendingPlayerLinkApproval";
+export type RegistrationStatus = "Active" | "PendingClubApproval";
 
 export interface RegisterPayingAccountResponse {
   userId: string;
@@ -109,7 +107,6 @@ export interface RegisterPayingAccountResponse {
   status: RegistrationStatus;
   subscription: { plan: string; status: string; endDate: string } | null;
   clubJoinRequestId: string | null;
-  teamPlayerLinkRequestId: string | null;
 }
 
 export type ClubJoinRequestStatus = "Pending" | "Approved" | "Rejected" | "Cancelled";
@@ -120,22 +117,6 @@ export interface ClubJoinRequestDto {
   email: string;
   requestedAt: string;
   status: ClubJoinRequestStatus;
-  decidedAt: string | null;
-  decidedByAlias: string | null;
-}
-
-export type TeamPlayerLinkRequestStatus = "Pending" | "Approved" | "Rejected" | "Cancelled";
-
-export interface TeamPlayerLinkRequestDto {
-  id: string;
-  applicationUserId: string;
-  applicantAlias: string | null;
-  applicantEmail: string | null;
-  teamPlayerId: string;
-  playerName: string;
-  membershipKey: "Player" | "FamilyPlayer";
-  status: TeamPlayerLinkRequestStatus;
-  requestedAt: string;
   decidedAt: string | null;
   decidedByAlias: string | null;
 }

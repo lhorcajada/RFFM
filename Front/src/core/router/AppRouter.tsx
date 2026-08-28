@@ -30,9 +30,6 @@ const ScopeMembers = lazy(
 const ClubJoinRequests = lazy(
   () => import("../../shared/pages/ClubJoinRequests/ClubJoinRequests")
 );
-const TeamPlayerLinkRequests = lazy(
-  () => import("../../shared/pages/TeamPlayerLinkRequests/TeamPlayerLinkRequests")
-);
 
 function LoadingFallback() {
   return (
@@ -179,14 +176,6 @@ export default function AppRouter() {
           element={
             <RequireAuth>
               <ClubJoinRequests />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/team-player-link-requests"
-          element={
-            <RequireAuth>
-              <TeamPlayerLinkRequests />
             </RequireAuth>
           }
         />

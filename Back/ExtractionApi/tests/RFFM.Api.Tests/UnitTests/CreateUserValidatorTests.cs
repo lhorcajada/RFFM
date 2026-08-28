@@ -254,7 +254,7 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
-        public void Validate_Player_WithoutTeamCode_ShouldFail()
+        public void Validate_Player_WithoutPlayerLinkCode_ShouldFail()
         {
             // Arrange
             var command = new CreateUser.Command
@@ -270,11 +270,11 @@ namespace RFFM.Api.Tests.UnitTests
 
             // Assert
             Assert.False(result.IsValid);
-            Assert.Contains(result.Errors, e => e.PropertyName == "TeamInvitationCode");
+            Assert.Contains(result.Errors, e => e.PropertyName == "PlayerLinkCode");
         }
 
         [Fact]
-        public void Validate_Player_WithoutTeamPlayerId_ShouldFail()
+        public void Validate_Player_WithPlayerLinkCode_ShouldSucceed()
         {
             // Arrange
             var command = new CreateUser.Command
@@ -283,29 +283,7 @@ namespace RFFM.Api.Tests.UnitTests
                 Email = "player@example.com",
                 Password = "Pass123!",
                 AccountType = "Player",
-                TeamInvitationCode = "TEAMCODE"
-            };
-
-            // Act
-            var result = _validator.Validate(command);
-
-            // Assert
-            Assert.False(result.IsValid);
-            Assert.Contains(result.Errors, e => e.PropertyName == "TeamPlayerId");
-        }
-
-        [Fact]
-        public void Validate_Player_WithBothTeamCodeAndTeamPlayerId_ShouldSucceed()
-        {
-            // Arrange
-            var command = new CreateUser.Command
-            {
-                Alias = "player",
-                Email = "player@example.com",
-                Password = "Pass123!",
-                AccountType = "Player",
-                TeamInvitationCode = "TEAMCODE",
-                TeamPlayerId = "tp-123"
+                PlayerLinkCode = "ABC123"
             };
 
             // Act
@@ -316,7 +294,7 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
-        public void Validate_FamilyMember_RequiresBothTeamCodeAndTeamPlayerId()
+        public void Validate_FamilyMember_WithoutPlayerLinkCode_ShouldFail()
         {
             // Arrange
             var command = new CreateUser.Command
@@ -324,8 +302,7 @@ namespace RFFM.Api.Tests.UnitTests
                 Alias = "family",
                 Email = "family@example.com",
                 Password = "Pass123!",
-                AccountType = "FamilyMember",
-                TeamInvitationCode = "TEAMCODE"
+                AccountType = "FamilyMember"
             };
 
             // Act
@@ -333,11 +310,11 @@ namespace RFFM.Api.Tests.UnitTests
 
             // Assert
             Assert.False(result.IsValid);
-            Assert.Contains(result.Errors, e => e.PropertyName == "TeamPlayerId");
+            Assert.Contains(result.Errors, e => e.PropertyName == "PlayerLinkCode");
         }
 
         [Fact]
-        public void Validate_FamilyMember_WithBothTeamCodeAndTeamPlayerId_ShouldSucceed()
+        public void Validate_FamilyMember_WithPlayerLinkCode_ShouldSucceed()
         {
             // Arrange
             var command = new CreateUser.Command
@@ -346,8 +323,7 @@ namespace RFFM.Api.Tests.UnitTests
                 Email = "family@example.com",
                 Password = "Pass123!",
                 AccountType = "FamilyMember",
-                TeamInvitationCode = "TEAMCODE",
-                TeamPlayerId = "tp-456"
+                PlayerLinkCode = "ABC456"
             };
 
             // Act

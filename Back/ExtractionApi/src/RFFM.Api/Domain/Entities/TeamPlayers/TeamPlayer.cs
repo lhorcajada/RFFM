@@ -194,6 +194,40 @@ namespace RFFM.Api.Domain.Entities.TeamPlayers
             LinkCode = Guid.NewGuid().ToString("N")[..ValidationConstants.PlayerLinkCodeLength].ToUpperInvariant();
             return LinkCode;
         }
+
+        public void UpdateContactEmail(string email)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+                return;
+            var current = ContactInfo;
+            // Copy the existing Address into a brand-new instance instead of reusing the
+            // reference: Address is an owned type nested inside ContactInfo (itself owned in
+            // its own table), and EF Core's change tracker identifies owned instances by
+            // reference. Reusing the same Address reference under a new ContactInfo instance
+            // (a different owner) loses track of it instead of persisting it under the new row.
+            var address = current?.Address is null
+                ? null
+                : new Address
+                {
+                    Street = current.Address.Street,
+                    City = current.Address.City,
+                    Province = current.Address.Province,
+                    PostalCode = current.Address.PostalCode,
+                    Country = current.Address.Country
+                };
+            ContactInfo = new PlayerContactInfo(address, current?.Phone, email);
+        }
+
+        public bool AddFamilyMemberEmailIfMissing(string email)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+                return false;
+            var exists = FamilyMembers.Any(f => string.Equals(f.Email, email, StringComparison.OrdinalIgnoreCase));
+            if (exists)
+                return false;
+            FamilyMembers.Add(new Family(address: null, phone: null, email: email, name: null, familyMember: null));
+            return true;
+        }
     }
 
 }

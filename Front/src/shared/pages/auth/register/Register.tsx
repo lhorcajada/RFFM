@@ -21,7 +21,6 @@ import BaseLayout from "../../../components/ui/BaseLayout/BaseLayout";
 import TrialConfirmDialog from "../../../components/TrialConfirmDialog";
 import RoleSelector from "./components/RoleSelector";
 import InvitationCodeField from "./components/InvitationCodeField";
-import TeamPlayerPicker from "./components/TeamPlayerPicker";
 import PendingClubApprovalNotice from "./components/PendingClubApprovalNotice";
 import type { UserType } from "../../../constants/userTypes";
 import type {
@@ -47,12 +46,13 @@ interface RegisterFormState {
   coachHasClubCode: boolean | null;
   invitationCode: string;
   codeValidation: CodeValidationState;
-  selectedTeamPlayerId: string | null;
   playerLinkCode: string;
+  playerLinkCodeAttempts: number;
+  playerLinkCodeLocked: boolean;
   isSubmitting: boolean;
   formError: string;
   successMessage: string;
-  pendingReason: "club" | "playerLink" | null;
+  pendingReason: "club" | null;
 }
 
 const initialState: RegisterFormState = {
@@ -65,8 +65,9 @@ const initialState: RegisterFormState = {
   coachHasClubCode: null,
   invitationCode: "",
   codeValidation: { status: "idle" },
-  selectedTeamPlayerId: null,
   playerLinkCode: "",
+  playerLinkCodeAttempts: 0,
+  playerLinkCodeLocked: false,
   isSubmitting: false,
   formError: "",
   successMessage: "",
@@ -82,12 +83,12 @@ type Action =
   | { type: "SET_COACH_HAS_CLUB_CODE"; value: boolean }
   | { type: "SET_INVITATION_CODE"; value: string }
   | { type: "SET_CODE_VALIDATION"; value: CodeValidationState }
-  | { type: "SET_SELECTED_TEAM_PLAYER"; value: string }
   | { type: "SET_PLAYER_LINK_CODE"; value: string }
+  | { type: "PLAYER_LINK_CODE_FAILED" }
   | { type: "SUBMIT_START" }
   | { type: "SUBMIT_ERROR"; message: string }
   | { type: "SUBMIT_SUCCESS_ACTIVE" }
-  | { type: "SUBMIT_SUCCESS_PENDING"; reason: "club" | "playerLink" };
+  | { type: "SUBMIT_SUCCESS_PENDING"; reason: "club" };
 
 function reducer(state: RegisterFormState, action: Action): RegisterFormState {
   switch (action.type) {
@@ -126,10 +127,12 @@ function reducer(state: RegisterFormState, action: Action): RegisterFormState {
       return { ...state, invitationCode: action.value, codeValidation: { status: "idle" } };
     case "SET_CODE_VALIDATION":
       return { ...state, codeValidation: action.value };
-    case "SET_SELECTED_TEAM_PLAYER":
-      return { ...state, selectedTeamPlayerId: action.value };
     case "SET_PLAYER_LINK_CODE":
       return { ...state, playerLinkCode: action.value };
+    case "PLAYER_LINK_CODE_FAILED": {
+      const attempts = state.playerLinkCodeAttempts + 1;
+      return { ...state, playerLinkCodeAttempts: attempts, playerLinkCodeLocked: attempts >= 3 };
+    }
     case "SUBMIT_START":
       return { ...state, isSubmitting: true, formError: "" };
     case "SUBMIT_ERROR":
@@ -174,7 +177,7 @@ const Register: React.FC = () => {
       (state.role === "Coach" && state.coachHasClubCode === false && state.trialAccepted) ||
       (state.role === "Coach" && state.coachHasClubCode === true && state.codeValidation.status === "valid") ||
       (isClubCodeRole(state.role) && state.codeValidation.status === "valid") ||
-      (isTeamCodeRole(state.role) && state.codeValidation.status === "valid" && !!state.selectedTeamPlayerId));
+      (isTeamCodeRole(state.role) && !!state.playerLinkCode.trim() && !state.playerLinkCodeLocked));
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -200,11 +203,7 @@ const Register: React.FC = () => {
       }
 
       if (isTeamCodeRole(state.role)) {
-        payload.teamInvitationCode = state.invitationCode;
-        payload.teamPlayerId = state.selectedTeamPlayerId || undefined;
-        if (state.playerLinkCode.trim()) {
-          payload.playerLinkCode = state.playerLinkCode.trim();
-        }
+        payload.playerLinkCode = state.playerLinkCode.trim();
       }
 
       const result: RegisterPayingAccountResponse =
@@ -218,8 +217,6 @@ const Register: React.FC = () => {
 
       if (result.status === "PendingClubApproval") {
         dispatch({ type: "SUBMIT_SUCCESS_PENDING", reason: "club" });
-      } else if (result.status === "PendingPlayerLinkApproval") {
-        dispatch({ type: "SUBMIT_SUCCESS_PENDING", reason: "playerLink" });
       } else {
         dispatch({ type: "SUBMIT_SUCCESS_ACTIVE" });
         setTimeout(() => {
@@ -227,6 +224,9 @@ const Register: React.FC = () => {
         }, 2000);
       }
     } catch (error: any) {
+      if (isTeamCodeRole(state.role) && error?.response?.data?.code === "PlayerLinkCodeInvalid") {
+        dispatch({ type: "PLAYER_LINK_CODE_FAILED" });
+      }
       const errorMessage = mapApiErrorToMessage(error);
       dispatch({ type: "SUBMIT_ERROR", message: errorMessage });
     }
@@ -247,7 +247,7 @@ const Register: React.FC = () => {
             </Alert>
           )}
           {state.pendingReason ? (
-            <PendingClubApprovalNotice kind={state.pendingReason} />
+            <PendingClubApprovalNotice />
           ) : state.successMessage ? (
             <Alert severity="success" sx={{ mb: 3 }}>
               {state.successMessage}
@@ -359,41 +359,22 @@ const Register: React.FC = () => {
               />
             )}
 
-            {(isTeamCodeRole(state.role)) && (
-              <>
-                <InvitationCodeField
-                  kind="team"
-                  membershipKind={state.role === "Player" ? "Player" : "FamilyPlayer"}
-                  value={state.invitationCode}
-                  onChange={(value) => dispatch({ type: "SET_INVITATION_CODE", value })}
-                  onValid={(response) =>
-                    dispatch({ type: "SET_CODE_VALIDATION", value: { status: "valid", team: response as any } })
-                  }
-                  onInvalid={() =>
-                    dispatch({ type: "SET_CODE_VALIDATION", value: { status: "invalid", errorCode: "" } })
-                  }
-                />
-                {state.codeValidation.status === "valid" && state.codeValidation.team && (
-                  <>
-                    <TeamPlayerPicker
-                      players={state.codeValidation.team.players}
-                      role={state.role}
-                      selectedId={state.selectedTeamPlayerId}
-                      onSelect={(teamPlayerId) =>
-                        dispatch({ type: "SET_SELECTED_TEAM_PLAYER", value: teamPlayerId })
-                      }
-                    />
-                    <TextField
-                      label="Código del jugador (opcional)"
-                      variant="outlined"
-                      fullWidth
-                      helperText="Si el entrenador te ha dado un código para este jugador, introdúcelo para vincularte al instante. Si no lo tienes, tu solicitud quedará pendiente de aprobación."
-                      value={state.playerLinkCode}
-                      onChange={(e) => dispatch({ type: "SET_PLAYER_LINK_CODE", value: e.target.value })}
-                    />
-                  </>
-                )}
-              </>
+            {isTeamCodeRole(state.role) && (
+              <TextField
+                label="Código del jugador"
+                variant="outlined"
+                fullWidth
+                required
+                helperText={
+                  state.playerLinkCodeLocked
+                    ? "Has alcanzado el número máximo de intentos. Contacta con tu entrenador para obtener el código correcto."
+                    : "Introduce el código que te ha dado tu entrenador para este jugador."
+                }
+                error={!!state.playerLinkCodeLocked}
+                disabled={state.playerLinkCodeLocked}
+                value={state.playerLinkCode}
+                onChange={(e) => dispatch({ type: "SET_PLAYER_LINK_CODE", value: e.target.value })}
+              />
             )}
 
             <Button

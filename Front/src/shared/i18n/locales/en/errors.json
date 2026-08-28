@@ -15,6 +15,7 @@
   "LinkedPlayerRequired": "You must select a player from the list.",
   "LinkedPlayerNotInTeam": "The selected player does not belong to this team.",
   "LinkedPlayerAlreadyClaimed": "That player already has a linked account.",
+  "PlayerLinkCodeInvalid": "The code you entered does not match any player.",
   "ClubJoinRequestNotFound": "The requested join request was not found.",
   "ClubJoinRequestAlreadyDecided": "This request has already been decided.",
   "ClubJoinRequestCancelForbidden": "Only the requester can cancel this request.",

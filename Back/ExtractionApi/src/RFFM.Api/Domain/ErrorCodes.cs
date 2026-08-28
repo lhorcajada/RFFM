@@ -30,11 +30,12 @@ namespace RFFM.Api.Domain
         public const string TeamInvitationCodeInvalid = "TeamInvitationCodeInvalid";
         public const string TeamInvitationCodeNotAllowedForRole = "TeamInvitationCodeNotAllowedForRole";
         public const string LinkedPlayerRequired = "LinkedPlayerRequired";
-        public const string LinkedPlayerNotInTeam = "LinkedPlayerNotInTeam";
         public const string LinkedPlayerAlreadyClaimed = "LinkedPlayerAlreadyClaimed";
         public const string PlayerLinkCodeInvalid = "PlayerLinkCodeInvalid";
-        public const string LinkedPlayerRequestPending = "LinkedPlayerRequestPending";
-        public const string TeamPlayerLinkRequestNotFound = "TeamPlayerLinkRequestNotFound";
+        // TeamPlayerLinkRequestAlreadyDecided is retained: still used by the kept domain entity
+        // Domain/Aggregates/UserClubs/TeamPlayerLinkRequest.cs (EnsurePending) even though the
+        // manual-approval feature (Approve/Reject/GetTeamPlayerLinkRequests) that used to be its
+        // only other consumer was removed by openspec change simplify-player-family-registration.
         public const string TeamPlayerLinkRequestAlreadyDecided = "TeamPlayerLinkRequestAlreadyDecided";
         public const string ClubJoinRequestNotFound = "ClubJoinRequestNotFound";
         public const string ClubJoinRequestAlreadyDecided = "ClubJoinRequestAlreadyDecided";

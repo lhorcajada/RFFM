@@ -210,17 +210,6 @@ export default function ScopeMembers(): JSX.Element {
                     </Button>
                   </Badge>
                 )}
-                {scopeKind === "team" && (
-                  <Button
-                    variant="outlined"
-                    color="primary"
-                    component={RouterLink}
-                    to={`/team-player-link-requests?teamId=${encodeURIComponent(scopeId)}`}
-                    startIcon={<GroupAddIcon />}
-                  >
-                    Solicitudes de vinculación a jugadores
-                  </Button>
-                )}
               </Box>
             </Paper>
 
