@@ -153,6 +153,7 @@ namespace RFFM.Api.DependencyInjection
             services.AddScoped<IFederationSettingService, FederationSettingService>();
             services.AddScoped<RFFM.Api.Features.Scopes.IScopeAuthorizationService, RFFM.Api.Features.Scopes.ScopeAuthorizationService>();
             services.AddScoped<RFFM.Api.Domain.Services.IClubSeatBillingService, RFFM.Api.Domain.Services.ClubSeatBillingService>();
+            services.AddScoped<RFFM.Api.Domain.Services.IClubJoinRequestApprovalService, RFFM.Api.Domain.Services.ClubJoinRequestApprovalService>();
             services.AddMemoryCache();
             // PDF generators
             services.AddSingleton<SeasonPrepPdfGenerator>();

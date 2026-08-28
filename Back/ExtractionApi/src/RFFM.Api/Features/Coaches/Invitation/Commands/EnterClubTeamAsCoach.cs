@@ -52,11 +52,13 @@ namespace RFFM.Api.Features.Coaches.Invitation.Commands
         {
             private readonly AppDbContext _db;
             private readonly ICurrentUserService _currentUser;
+            private readonly IClubJoinRequestApprovalService _approvalService;
 
-            public Handler(AppDbContext db, ICurrentUserService currentUser)
+            public Handler(AppDbContext db, ICurrentUserService currentUser, IClubJoinRequestApprovalService approvalService)
             {
                 _db = db;
                 _currentUser = currentUser;
+                _approvalService = approvalService;
             }
 
             public async ValueTask<IResult> Handle(Command request, CancellationToken cancellationToken = default)
@@ -88,10 +90,28 @@ namespace RFFM.Api.Features.Coaches.Invitation.Commands
 
                 if (!hasClubAccess)
                 {
-                    return Results.Problem(
-                        statusCode: StatusCodes.Status403Forbidden,
-                        title: "Acceso denegado",
-                        detail: "Este código pertenece a un equipo de otro club.");
+                    // The applicant may not have an approved UserClub yet -- club registration
+                    // (CreateUser) leaves a Pending ClubJoinRequest until a club admin approves
+                    // it manually. Possessing a valid team join code for that same club is
+                    // treated as proof of membership on its own: auto-approve the pending
+                    // request here (same effect as ApproveClubJoinRequestHandler, decided by the
+                    // applicant themselves) instead of forcing them through a separate admin
+                    // approval step. See openspec/changes/coach-club-code-team-entry.
+                    var pendingRequest = await _db.ClubJoinRequests
+                        .FirstOrDefaultAsync(r => r.ApplicationUserId == userId && r.ClubId == team.ClubId &&
+                            r.Status == ClubJoinRequestStatus.Pending &&
+                            (r.MembershipId == Membership.Coach.Id || r.MembershipId == Membership.Directive.Id),
+                            cancellationToken);
+
+                    if (pendingRequest is null)
+                    {
+                        return Results.Problem(
+                            statusCode: StatusCodes.Status403Forbidden,
+                            title: "Acceso denegado",
+                            detail: "Este código pertenece a un equipo de otro club.");
+                    }
+
+                    await _approvalService.ApproveAsync(pendingRequest, userId, cancellationToken);
                 }
 
                 var config = await _db.Set<ConfigurationCoach>()
