@@ -3,8 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { useCoachTrial } from "./useCoachTrial";
 import type { UserType } from "../components/UserTypeDialog";
 import teamService, { type PlayerForSelection } from "../../../../apps/coach/services/teamService";
+import configurationCoachService from "../../../../apps/coach/services/configurationCoachService";
 import { coachAuthService } from "../../../../apps/coach/services/authService";
 import { invitationsApi } from "../../../services/invitations/invitationsApi";
+
+// Internal-only selection kind used to gate the "enter a club team by code" branch below.
+// Not part of the public UserType union offered by UserTypeDialog.
+type InternalSelectionType = UserType | "CoachClubTeam";
 
 export function useTeamAppEntry() {
   const navigate = useNavigate();
@@ -22,7 +27,7 @@ export function useTeamAppEntry() {
   }>({ title: "", description: "", label: "" });
   const [codeDialogLoading, setCodeDialogLoading] = React.useState(false);
   const [codeDialogError, setCodeDialogError] = React.useState<string | null>(null);
-  const [selectedUserType, setSelectedUserType] = React.useState<UserType | null>(null);
+  const [selectedUserType, setSelectedUserType] = React.useState<InternalSelectionType | null>(null);
   const [validatedTeam, setValidatedTeam] = React.useState<{ teamId: string; teamName: string } | null>(null);
   const [players, setPlayers] = React.useState<PlayerForSelection[]>([]);
   const [playersLoading, setPlayersLoading] = React.useState(false);
@@ -34,9 +39,20 @@ export function useTeamAppEntry() {
     setChangeRoleOpen(true);
   }
 
-  function handleKeepRole() {
+  async function handleKeepRole() {
     setChangeRoleOpen(false);
-    navigate("/coach/dashboard");
+    const current = await configurationCoachService.getCurrent();
+    if (current?.preferredTeamId) {
+      navigate("/coach/dashboard");
+      return;
+    }
+    setSelectedUserType("CoachClubTeam");
+    setCodeDialogConfig({
+      title: "Código de equipo",
+      description: "Introduce el código de equipo que te ha proporcionado tu club.",
+      label: "Código de equipo",
+    });
+    setCodeDialogOpen(true);
   }
 
   function handleChangeRole() {
@@ -121,6 +137,13 @@ export function useTeamAppEntry() {
         }
         setCodeDialogOpen(false);
         navigate("/coach/dashboard");
+        return;
+      }
+
+      if (selectedUserType === "CoachClubTeam") {
+        const result = await teamService.enterClubTeamByCode(code);
+        setCodeDialogOpen(false);
+        navigate(`/coach/dashboard?teamId=${result.teamId}`);
         return;
       }
 

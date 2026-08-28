@@ -152,6 +152,16 @@ export async function validateTeamCode(
   return resp.data;
 }
 
+export async function enterClubTeamByCode(
+  code: string
+): Promise<{ teamId: string; teamName: string }> {
+  const resp = await client.post<{ teamId: string; teamName: string }>(
+    `/api/invitations/team/enter-as-coach`,
+    { code: code.trim().toUpperCase() }
+  );
+  return resp.data;
+}
+
 export async function verifyPlayerIdentity(
   teamId: string,
   nameOrPlayerId: string,
@@ -212,6 +222,7 @@ export default {
   deleteTeam,
   updateTeam,
   validateTeamCode,
+  enterClubTeamByCode,
   verifyPlayerIdentity,
   setSeasonPreferredTeam,
   getTeamPlayersForSelection,
