@@ -52,7 +52,9 @@ describe("Register — role gating", () => {
     vi.mocked(invitationsApi.previewTeamCode).mockReset();
   });
 
-  it("Fan: enables submit with just alias/email/password, no dialog, no code field", () => {
+  // Rol "Seguidor" (Fan) oculto temporalmente en RoleSelector — se reactivará
+  // cuando el rol vuelva a estar disponible en el selector de tipo de cuenta.
+  it.skip("Fan: enables submit with just alias/email/password, no dialog, no code field", () => {
     renderRegister();
     fillBaseFields();
     fireEvent.click(screen.getByLabelText("Seguidor"));
@@ -72,7 +74,9 @@ describe("Register — role gating", () => {
     expect(screen.getAllByLabelText(/código de invitación de club/i)).toHaveLength(1);
   });
 
-  it("ClubDirector: opens TrialConfirmDialog; cancel resets role and keeps submit disabled", () => {
+  // Rol "Directivo de club" (ClubDirector) oculto temporalmente en RoleSelector
+  // — se reactivará cuando el rol vuelva a estar disponible en el selector.
+  it.skip("ClubDirector: opens TrialConfirmDialog; cancel resets role and keeps submit disabled", () => {
     renderRegister();
     fillBaseFields();
     fireEvent.click(screen.getByLabelText("Directivo de club"));
@@ -81,7 +85,9 @@ describe("Register — role gating", () => {
     expect(screen.getByRole("button", { name: /Registrarse/i })).toBeDisabled();
   });
 
-  it("ClubDirector: accepting the trial closes the dialog and enables submit", async () => {
+  // Rol "Directivo de club" (ClubDirector) oculto temporalmente en RoleSelector
+  // — se reactivará cuando el rol vuelva a estar disponible en el selector.
+  it.skip("ClubDirector: accepting the trial closes the dialog and enables submit", async () => {
     renderRegister();
     fillBaseFields();
     fireEvent.click(screen.getByLabelText("Directivo de club"));

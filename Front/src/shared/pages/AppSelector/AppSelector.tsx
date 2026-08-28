@@ -30,7 +30,6 @@ export default function AppSelector() {
   const location = useLocation();
   const {
     changeRoleOpen,
-    openChangeRoleDialog,
     handleKeepRole,
     handleChangeRole,
     userTypeOpen,
@@ -114,7 +113,9 @@ export default function AppSelector() {
                     coachAuthService.hasRole("Administrator") ||
                     coachAuthService.hasRole("Coach")
                   ) {
-                    openChangeRoleDialog();
+                    // El cambio de rol al entrar en "Mi equipo" está oculto
+                    // temporalmente: se reactivará en una próxima versión.
+                    handleKeepRole();
                     return;
                   }
                   if (
