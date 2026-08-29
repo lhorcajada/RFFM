@@ -621,7 +621,7 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isTrainin
             <div className={`${styles.listGroupHeader} ${styles.listGroupHeaderBlue}`} style={{ marginBottom: 8 }}>
               <span>Asistencia</span>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                {canEdit && (() => {
+                {canEdit && !isPlayerOrFamily && (() => {
                   const acceptedId = statuses.find((s) => s.name === "Accepted")?.id;
                   const notAttending = convocations.filter(
                     (c) => c.status === acceptedId && c.assistanceTypeId !== 1
