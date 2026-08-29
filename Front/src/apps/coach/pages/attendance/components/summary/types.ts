@@ -2,7 +2,6 @@ export type Summary = {
   events: number;
   attend: number;
   absent: number;
-  pending: number;
 };
 
 export type SummaryByType = {
@@ -27,7 +26,6 @@ export type PlayerTrainingSummary = {
   totalTrainings: number;
   attendedTrainings: number;
   absentTrainings: number;
-  pendingTrainings: number;
   absences: PlayerAbsenceDetail[];
 };
 

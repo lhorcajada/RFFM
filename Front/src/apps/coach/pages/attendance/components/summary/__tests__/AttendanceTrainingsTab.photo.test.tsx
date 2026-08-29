@@ -20,7 +20,6 @@ function makeRow(overrides: Partial<PlayerTrainingSummary>): PlayerTrainingSumma
     totalTrainings: 3,
     attendedTrainings: 2,
     absentTrainings: 1,
-    pendingTrainings: 0,
     absences: [],
     ...overrides,
   };

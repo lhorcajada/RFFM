@@ -30,6 +30,11 @@ function playerInitials(name: string): string {
     .join("");
 }
 
+function attendanceRate(row: PlayerTrainingSummary): number {
+  if (row.totalTrainings === 0) return 0;
+  return Math.round((row.attendedTrainings / row.totalTrainings) * 100);
+}
+
 function formatDate(value: string | null): string {
   if (!value) return "Fecha no disponible";
   const date = new Date(value);
@@ -104,10 +109,10 @@ export default function AttendanceTrainingsTab({ rows }: Props) {
                   </Box>
 
                   <Box className={styles.trainingMetrics}>
-                    <Chip label={`${row.totalTrainings} totales`} size="small" className={styles.metricChip} />
+                    <Chip label={`${row.totalTrainings} posibles`} size="small" className={styles.metricChip} />
                     <Chip label={`${row.attendedTrainings} asistidos`} size="small" className={styles.metricChipSuccess} />
                     <Chip label={`${row.absentTrainings} no asistidos`} size="small" className={styles.metricChipWarn} />
-                    <Chip label={`${row.pendingTrainings} pendientes`} size="small" className={styles.metricChipMuted} />
+                    <Chip label={`${attendanceRate(row)}% asistencia`} size="small" className={styles.metricChipSuccess} />
                   </Box>
                 </Box>
               </AccordionSummary>

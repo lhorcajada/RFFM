@@ -48,36 +48,34 @@ export async function exportTrainingAttendanceToExcel(
     { key: "totalTrainings", width: 12 },
     { key: "attendedTrainings", width: 12 },
     { key: "absentTrainings", width: 14 },
-    { key: "pendingTrainings", width: 12 },
     { key: "attendanceRate", width: 14 },
   ];
-  const headers = ["Jugador", "Totales", "Asistidos", "No asistidos", "Pendientes", "% Asistencia"];
+  const headers = ["Jugador", "Posibles", "Asistidos", "No asistidos", "% Asistencia"];
 
   const titleColor = "FF1F4E79";
   const accentGreen = "FF4CAF50";
   const accentOrange = "FFFF9800";
   const accentRed = "FFF44336";
-  const accentGray = "FF9E9E9E";
   const surfaceLight = "FFF2F7FC";
   const surfaceWhite = "FFFFFFFF";
   const textDark = "FF1F1F1F";
   const textLight = "FFFFFFFF";
 
-  sheet.mergeCells("A1:F1");
+  sheet.mergeCells("A1:E1");
   const titleCell = sheet.getCell("A1");
   titleCell.value = `Informe de entrenamientos${teamName ? ` - ${teamName}` : ""}`;
   titleCell.font = { bold: true, size: 16, color: { argb: textLight } };
   titleCell.alignment = { vertical: "middle", horizontal: "left" };
   applyFill(titleCell, titleColor);
 
-  sheet.mergeCells("A2:F2");
+  sheet.mergeCells("A2:E2");
   const subtitleCell = sheet.getCell("A2");
   subtitleCell.value = `Generado el ${formatGeneratedAt(new Date())}`;
   subtitleCell.font = { size: 10, color: { argb: textLight } };
   subtitleCell.alignment = { vertical: "middle", horizontal: "left" };
   applyFill(subtitleCell, titleColor);
 
-  sheet.mergeCells("A3:F3");
+  sheet.mergeCells("A3:E3");
   const infoCell = sheet.getCell("A3");
   infoCell.value = "Resumen por jugador. El detalle de las no asistencias no se incluye en este informe.";
   infoCell.font = { italic: true, size: 10, color: { argb: textLight } };
@@ -86,7 +84,7 @@ export async function exportTrainingAttendanceToExcel(
 
   const headerRow = sheet.getRow(4);
   headerRow.height = 24;
-  const headerColors = [titleColor, accentGreen, accentGreen, accentOrange, accentGray, accentRed];
+  const headerColors = [titleColor, accentGreen, accentGreen, accentOrange, accentRed];
   headers.forEach((header, index) => {
     const cell = headerRow.getCell(index + 1);
     cell.value = header;
@@ -107,7 +105,6 @@ export async function exportTrainingAttendanceToExcel(
       totalTrainings: row.totalTrainings,
       attendedTrainings: row.attendedTrainings,
       absentTrainings: row.absentTrainings,
-      pendingTrainings: row.pendingTrainings,
       attendanceRate: `${Math.round(toPercent(row.attendedTrainings, row.totalTrainings) * 100)}%`,
     });
 
@@ -131,7 +128,7 @@ export async function exportTrainingAttendanceToExcel(
   });
 
   sheet.getRow(4).font = { bold: true, color: { argb: textLight } };
-  sheet.autoFilter = { from: { row: 4, column: 1 }, to: { row: 4, column: 6 } };
+  sheet.autoFilter = { from: { row: 4, column: 1 }, to: { row: 4, column: 5 } };
 
   const fileName = sanitizeFileName(`informe_entrenamientos${teamName ? `_${teamName}` : ""}.xlsx`);
   const buffer = await workbook.xlsx.writeBuffer();

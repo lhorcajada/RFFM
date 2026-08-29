@@ -20,7 +20,6 @@ const rows: PlayerTrainingSummary[] = [
     totalTrainings: 3,
     attendedTrainings: 2,
     absentTrainings: 1,
-    pendingTrainings: 0,
     absences: [],
   },
 ];

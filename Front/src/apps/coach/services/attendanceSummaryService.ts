@@ -16,7 +16,6 @@ export type TrainingAttendancePlayerSummary = {
   totalTrainings: number;
   attendedTrainings: number;
   absentTrainings: number;
-  pendingTrainings: number;
   absences: TrainingAbsenceDetail[];
 };
 

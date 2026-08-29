@@ -37,7 +37,6 @@ vi.mock("../../../../../services/attendanceSummaryService", () => ({
           totalTrainings: 1,
           attendedTrainings: 1,
           absentTrainings: 0,
-          pendingTrainings: 0,
           absences: [],
         },
         {
@@ -47,7 +46,6 @@ vi.mock("../../../../../services/attendanceSummaryService", () => ({
           totalTrainings: 1,
           attendedTrainings: 0,
           absentTrainings: 1,
-          pendingTrainings: 0,
           absences: [],
         },
       ],

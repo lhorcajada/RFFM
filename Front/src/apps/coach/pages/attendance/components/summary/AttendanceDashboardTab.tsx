@@ -6,7 +6,7 @@ import styles from "../../AttendanceSummary.module.css";
 import type { Summary, SummaryByType } from "./types";
 
 function rate(summary: Summary): number {
-  const total = summary.attend + summary.absent + summary.pending;
+  const total = summary.attend + summary.absent;
   if (total === 0) return 0;
   return Math.round((summary.attend / total) * 100);
 }
@@ -67,10 +67,6 @@ export default function AttendanceDashboardTab({ summary }: Props) {
             <div className={styles.metricItem}>
               <span className={styles.metricItemLabel}>No asisten</span>
               <strong>{card.data.absent}</strong>
-            </div>
-            <div className={styles.metricItem}>
-              <span className={styles.metricItemLabel}>Pendientes</span>
-              <strong>{card.data.pending}</strong>
             </div>
           </div>
         </article>

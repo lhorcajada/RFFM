@@ -55,7 +55,6 @@ namespace RFFM.Api.Features.Coaches.Assistances.Queries
             int TotalTrainings,
             int AttendedTrainings,
             int AbsentTrainings,
-            int PendingTrainings,
             AbsenceDetail[] Absences);
 
         public record AbsenceDetail(
@@ -144,7 +143,12 @@ namespace RFFM.Api.Features.Coaches.Assistances.Queries
                         .ToList();
 
                     var absent = absentConvs.Count;
-                    var pending = Math.Max(0, totalTrainingEvents - attended - absent);
+
+                    // "Total possible trainings" for this player: trainings where a real outcome
+                    // is known (attended or absent), not every training the team ever scheduled —
+                    // trainings with no recorded outcome (never convoked, or still pending) don't
+                    // count toward the denominator of the player's attendance rate.
+                    var totalPossibleTrainings = attended + absent;
 
                     var absences = absentConvs
                         .Select(c =>
@@ -177,10 +181,9 @@ namespace RFFM.Api.Features.Coaches.Assistances.Queries
                         player.Id,
                         player.PlayerId,
                         string.IsNullOrWhiteSpace(displayName) ? "Jugador" : displayName,
-                        totalTrainingEvents,
+                        totalPossibleTrainings,
                         attended,
                         absent,
-                        pending,
                         absences));
                 }
 

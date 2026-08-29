@@ -26,14 +26,13 @@ import styles from "../../AttendanceSummary.module.css";
 
 type TabValue = "dashboard" | "trainings" | "matches";
 
-const EMPTY_SUMMARY: Summary = { events: 0, attend: 0, absent: 0, pending: 0 };
+const EMPTY_SUMMARY: Summary = { events: 0, attend: 0, absent: 0 };
 
 function addSummary(base: Summary, partial: Summary): Summary {
   return {
     events: base.events + partial.events,
     attend: base.attend + partial.attend,
     absent: base.absent + partial.absent,
-    pending: base.pending + partial.pending,
   };
 }
 
@@ -191,7 +190,6 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
             events: 1,
             attend: accepted.filter((c) => isAttendById(c.assistanceTypeId)).length,
             absent: accepted.filter((c) => isAbsentById(c.assistanceTypeId)).length,
-            pending: accepted.filter((c) => !c.assistanceTypeId).length,
           };
 
           const kind = classifyEventType(getEventTypeName(event, typeMap));
@@ -231,7 +229,6 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
           totalTrainings: player.totalTrainings,
           attendedTrainings: player.attendedTrainings,
           absentTrainings: player.absentTrainings,
-          pendingTrainings: player.pendingTrainings,
           absences: player.absences.map((absence) => ({
             eventId: absence.eventId,
             eventTitle: absence.eventTitle,
@@ -256,7 +253,6 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
           events: trainingSummary.totalTrainingEvents,
           attend: trainingSummary.players.reduce((sum, p) => sum + p.attendedTrainings, 0),
           absent: trainingSummary.players.reduce((sum, p) => sum + p.absentTrainings, 0),
-          pending: trainingSummary.players.reduce((sum, p) => sum + p.pendingTrainings, 0),
         };
 
         const officialMatchEvents = eventsWithConvocations
