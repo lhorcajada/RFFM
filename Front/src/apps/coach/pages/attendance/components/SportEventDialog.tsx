@@ -24,7 +24,10 @@ import sportEventTypeService, {
   SportEventType,
 } from "../../../services/sportEventTypeService";
 import rivalService, { Rival } from "../../../services/rivalService";
+import FileImagePicker from "../../../../../shared/components/ui/FileImagePicker/FileImagePicker";
 import styles from "./SportEventDialog.module.css";
+
+type RivalMode = "none" | "existing" | "new";
 
 interface Props {
   open: boolean;
@@ -65,7 +68,11 @@ export default function SportEventDialog({
   const [location, setLocation] = useState("");
   const [description, setDescription] = useState("");
 
+  const [rivalMode, setRivalMode] = useState<RivalMode>("none");
   const [rivalId, setRivalId] = useState<string>("");
+  const [newRivalName, setNewRivalName] = useState("");
+  const [newRivalPhotoFile, setNewRivalPhotoFile] = useState<File | null>(null);
+  const [newRivalCategory, setNewRivalCategory] = useState("");
   const [isHomeMatch, setIsHomeMatch] = useState<boolean>(true);
 
   const [isRecurring, setIsRecurring] = useState(false);
@@ -120,35 +127,39 @@ export default function SportEventDialog({
       setLocation(event.location ?? "");
       setDescription(event.description ?? "");
       setRivalId(event.rivalId ?? "");
+      setRivalMode(event.rivalId ? "existing" : "none");
       setIsHomeMatch(event.isHomeMatch !== false);
     } else {
       setName("");
       setEventTypeId("");
-      // Default to today at 10:00
-      const now = new Date();
-      const pad = (n: number) => String(n).padStart(2, "0");
-      setEveDateTime(
-        `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T10:00`
-      );
+      // No default date/time — the event can be scheduled later
+      setEveDateTime("");
       setEndTime("");
       setLocation("");
       setDescription("");
       setRivalId("");
+      setRivalMode("none");
       setIsHomeMatch(true);
     }
+    setNewRivalName("");
+    setNewRivalPhotoFile(null);
+    setNewRivalCategory("");
     setIsRecurring(false);
     setRecurrenceFrequency("weekly");
     setRecurrenceEndDate("");
     setError(null);
   }, [open, event]);
 
+  // Recurrence needs an anchor date — turn it off if the date is cleared
+  useEffect(() => {
+    if (!eveDateTime && isRecurring) {
+      setIsRecurring(false);
+    }
+  }, [eveDateTime, isRecurring]);
+
   const handleSave = async () => {
     if (!name.trim()) {
       setError("El nombre es obligatorio.");
-      return;
-    }
-    if (!eveDateTime) {
-      setError("La fecha/hora del evento es obligatoria.");
       return;
     }
     if (!eventTypeId) {
@@ -156,6 +167,10 @@ export default function SportEventDialog({
       return;
     }
     if (isRecurring) {
+      if (!eveDateTime) {
+        setError("La recurrencia requiere una fecha de evento.");
+        return;
+      }
       if (!recurrenceEndDate) {
         setError("La fecha final de la recurrencia es obligatoria.");
         return;
@@ -168,19 +183,38 @@ export default function SportEventDialog({
         return;
       }
     }
+    if (isMatchType && rivalMode === "new" && !newRivalName.trim()) {
+      setError("El nombre del rival nuevo es obligatorio.");
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
+      let newRivalUrlPhoto: string | null = null;
+      if (isMatchType && rivalMode === "new" && newRivalPhotoFile) {
+        const uploadResp = await rivalService.uploadRivalPhoto(newRivalPhotoFile);
+        newRivalUrlPhoto =
+          uploadResp?.Url ?? uploadResp?.url ?? uploadResp?.UrlPhoto ?? null;
+      }
+
       const payload: SportEventPayload = {
         name: name.trim(),
-        eveDateTime: toUtcIso(eveDateTime),
-        startTime: toUtcIso(eveDateTime),
+        eveDateTime: eveDateTime ? toUtcIso(eveDateTime) : null,
+        startTime: eveDateTime ? toUtcIso(eveDateTime) : null,
         endTime: endTime ? toUtcIso(endTime) : null,
         location: location || null,
         description: description || null,
         eventTypeId: Number(eventTypeId),
         teamId,
-        rivalId: isMatchType ? (rivalId || null) : null,
+        rivalId: isMatchType && rivalMode === "existing" ? rivalId || null : null,
+        newRival:
+          isMatchType && rivalMode === "new"
+            ? {
+                name: newRivalName.trim(),
+                urlPhoto: newRivalUrlPhoto,
+                category: newRivalCategory.trim() || null,
+              }
+            : null,
         isHomeMatch: isMatchType ? isHomeMatch : undefined,
         recurrence: isRecurring
           ? { frequency: recurrenceFrequency, endDate: recurrenceEndDate }
@@ -247,7 +281,7 @@ export default function SportEventDialog({
           </Select>
         </FormControl>
         <TextField
-          label="Fecha y hora"
+          label="Fecha y hora (opcional)"
           type="datetime-local"
           fullWidth
           size="small"
@@ -255,7 +289,7 @@ export default function SportEventDialog({
           value={eveDateTime}
           onChange={(e) => setEveDateTime(e.target.value)}
           sx={{ mb: 2 }}
-          required
+          helperText="Puedes dejarla en blanco y completarla más adelante editando el evento."
         />
         <TextField
           label="Hora de fin (opcional)"
@@ -272,12 +306,18 @@ export default function SportEventDialog({
             <Checkbox
               checked={isRecurring}
               onChange={(e) => setIsRecurring(e.target.checked)}
+              disabled={!eveDateTime}
               size="small"
             />
           }
           label="¿Es recurrente?"
-          sx={{ mb: 1 }}
+          sx={{ mb: !eveDateTime ? 0 : 1 }}
         />
+        {!eveDateTime && (
+          <div className={styles.hint}>
+            Añade una fecha para poder configurar la recurrencia.
+          </div>
+        )}
         {isRecurring && (
           <>
             <FormControl fullWidth size="small" sx={{ mb: 2 }}>
@@ -311,29 +351,77 @@ export default function SportEventDialog({
           </>
         )}
         {isMatchType && (
-          <FormControl fullWidth size="small" sx={{ mb: 2 }}>
-            <InputLabel id="rival-label">Rival (opcional)</InputLabel>
-            <Select
-              labelId="rival-label"
-              label="Rival (opcional)"
-              value={rivalId}
-              onChange={(e) => setRivalId(e.target.value as string)}
-              disabled={loadingRivals}
-            >
-              <MenuItem value="">— Sin rival —</MenuItem>
-              {loadingRivals ? (
-                <MenuItem disabled>
-                  <CircularProgress size={16} sx={{ mr: 1 }} /> Cargando...
-                </MenuItem>
-              ) : (
-                rivals.map((r) => (
-                  <MenuItem key={r.id} value={r.id}>
-                    {r.name}
-                  </MenuItem>
-                ))
-              )}
-            </Select>
-          </FormControl>
+          <>
+            <FormControl sx={{ mb: 1 }} fullWidth>
+              <RadioGroup
+                row
+                value={rivalMode}
+                onChange={(e) => setRivalMode(e.target.value as RivalMode)}
+              >
+                <FormControlLabel value="none" control={<Radio size="small" />} label="Sin rival" />
+                <FormControlLabel
+                  value="existing"
+                  control={<Radio size="small" />}
+                  label="Rival existente"
+                />
+                <FormControlLabel value="new" control={<Radio size="small" />} label="Rival nuevo" />
+              </RadioGroup>
+            </FormControl>
+            {rivalMode === "existing" && (
+              <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+                <InputLabel id="rival-label">Rival</InputLabel>
+                <Select
+                  labelId="rival-label"
+                  label="Rival"
+                  value={rivalId}
+                  onChange={(e) => setRivalId(e.target.value as string)}
+                  disabled={loadingRivals}
+                >
+                  <MenuItem value="">— Sin rival —</MenuItem>
+                  {loadingRivals ? (
+                    <MenuItem disabled>
+                      <CircularProgress size={16} sx={{ mr: 1 }} /> Cargando...
+                    </MenuItem>
+                  ) : (
+                    rivals.map((r) => (
+                      <MenuItem key={r.id} value={r.id}>
+                        {r.name}
+                      </MenuItem>
+                    ))
+                  )}
+                </Select>
+              </FormControl>
+            )}
+            {rivalMode === "new" && (
+              <>
+                <TextField
+                  label="Nombre del rival"
+                  fullWidth
+                  size="small"
+                  value={newRivalName}
+                  onChange={(e) => setNewRivalName(e.target.value)}
+                  sx={{ mb: 2 }}
+                  required
+                />
+                <div className={styles.rivalPhotoField}>
+                  <FileImagePicker
+                    id="new-rival-photo"
+                    label="Escudo/foto del rival (opcional)"
+                    file={newRivalPhotoFile}
+                    onChange={setNewRivalPhotoFile}
+                  />
+                </div>
+                <TextField
+                  label="Categoría del rival (opcional)"
+                  fullWidth
+                  size="small"
+                  value={newRivalCategory}
+                  onChange={(e) => setNewRivalCategory(e.target.value)}
+                  sx={{ mb: 2 }}
+                />
+              </>
+            )}
+          </>
         )}
         {isMatchType && (
           <FormControl sx={{ mb: 2 }} fullWidth>

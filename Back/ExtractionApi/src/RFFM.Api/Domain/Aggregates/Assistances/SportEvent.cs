@@ -7,8 +7,8 @@ namespace RFFM.Api.Domain.Aggregates.Assistances
     public class SportEvent : BaseEntity
     {
         public string Name { get; set; } = null!;
-        public DateTime EveDateTime { get; set; }
-        public DateTime StartTime { get; set; }
+        public DateTime? EveDateTime { get; set; }
+        public DateTime? StartTime { get; set; }
         public DateTime? EndTime { get; set; }
         public DateTime? ArrivalDate { get; set; }
         public string? Location { get; set; } = null!;
@@ -59,7 +59,7 @@ namespace RFFM.Api.Domain.Aggregates.Assistances
         /// Use this when dates may be in the past (e.g. registering historical events).
         /// </summary>
         public static SportEvent CreateNew(
-            string name, DateTime eveDateTime, DateTime startTime, DateTime? endTime,
+            string name, DateTime? eveDateTime, DateTime? startTime, DateTime? endTime,
             DateTime? arrivalDate, string? location, string? description,
             int eventTypeId, string teamId, string? rivalId,
             bool isHomeMatch = true, string? codActa = null,
@@ -92,31 +92,40 @@ namespace RFFM.Api.Domain.Aggregates.Assistances
                 throw new ArgumentException($"El nombre no puede tener más de {ValidationAssistancesConstants.MaxNameLength} caracteres");
             Name = name;
         }
-        public void SetEveDateTime(DateTime eveDateTime)
+        public void SetEveDateTime(DateTime? eveDateTime)
         {
-            if (eveDateTime == default)
-                throw new ArgumentException("La fecha del evento no puede estar vacía");
-            if (eveDateTime < DateTime.UtcNow)
-                throw new ArgumentException("La fecha del evento no puede ser anterior a la fecha actual");
+            if (eveDateTime.HasValue)
+            {
+                if (eveDateTime.Value == default)
+                    throw new ArgumentException("La fecha del evento no puede estar vacía");
+                if (eveDateTime.Value < DateTime.UtcNow)
+                    throw new ArgumentException("La fecha del evento no puede ser anterior a la fecha actual");
+            }
 
             EveDateTime = eveDateTime;
         }
-        public void SetStartTime(DateTime startTime)
+        public void SetStartTime(DateTime? startTime)
         {
-            if (startTime == default)
-                throw new ArgumentException("La hora de inicio no puede estar vacía");
-            if (startTime < DateTime.UtcNow)
-                throw new ArgumentException("La hora de inicio no puede ser anterior a la hora actual");
-            if (EndTime != null && startTime >= EndTime)
-                throw new ArgumentException("La hora de inicio no puede ser posterior o igual a la hora de fin");
+            if (startTime.HasValue)
+            {
+                if (startTime.Value == default)
+                    throw new ArgumentException("La hora de inicio no puede estar vacía");
+                if (startTime.Value < DateTime.UtcNow)
+                    throw new ArgumentException("La hora de inicio no puede ser anterior a la hora actual");
+                if (EndTime.HasValue && startTime.Value >= EndTime.Value)
+                    throw new ArgumentException("La hora de inicio no puede ser posterior o igual a la hora de fin");
+            }
             StartTime = startTime;
         }
         public void SetEndTime(DateTime? endTime)
         {
-            if (endTime != null && endTime < DateTime.UtcNow)
-                throw new ArgumentException("La hora de fin no puede ser anterior a la hora actual");
-            if (StartTime != default && endTime <= StartTime)
-                throw new ArgumentException("La hora de fin no puede ser anterior o igual a la hora de inicio");
+            if (endTime.HasValue)
+            {
+                if (endTime.Value < DateTime.UtcNow)
+                    throw new ArgumentException("La hora de fin no puede ser anterior a la hora actual");
+                if (StartTime.HasValue && endTime.Value <= StartTime.Value)
+                    throw new ArgumentException("La hora de fin no puede ser anterior o igual a la hora de inicio");
+            }
             EndTime = endTime;
         }
         public void SetArrivalDate(DateTime arrivalDate)

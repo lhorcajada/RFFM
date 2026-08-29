@@ -110,9 +110,15 @@ export interface SportEventRecurrencePayload {
   endDate: string; // yyyy-MM-dd
 }
 
+export interface NewRivalPayload {
+  name: string;
+  urlPhoto?: string | null;
+  category?: string | null;
+}
+
 export interface SportEventPayload {
   name: string;
-  eveDateTime: string; // ISO
+  eveDateTime?: string | null; // ISO — optional, event can be scheduled later
   startTime?: string | null;
   endTime?: string | null;
   arrivalDate?: string | null;
@@ -121,6 +127,7 @@ export interface SportEventPayload {
   eventTypeId: number;
   teamId: string;
   rivalId?: string | null;
+  newRival?: NewRivalPayload | null;
   isHomeMatch?: boolean | null;
   codActa?: string | null;
   recurrence?: SportEventRecurrencePayload | null;

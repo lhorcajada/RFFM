@@ -67,7 +67,7 @@ namespace RFFM.Api.Tests.IntegrationTests
 
             var frequency = RecurrenceFrequency.FromCode("weekly");
             var endDate = new DateTime(2026, 8, 24, 0, 0, 0, DateTimeKind.Utc);
-            var dates = RecurrenceScheduler.GenerateDates(master.EveDateTime, frequency, endDate);
+            var dates = RecurrenceScheduler.GenerateDates(master.EveDateTime!.Value, frequency, endDate);
             var recurrence = EventRecurrence.Create(frequency, endDate, master.Id, dates.Count);
 
             var instances = dates.Skip(1)

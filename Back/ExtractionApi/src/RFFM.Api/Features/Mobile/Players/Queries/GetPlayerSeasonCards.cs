@@ -71,7 +71,7 @@ namespace RFFM.Api.Features.Mobile.Players.Queries
 
         public record DemarcationDto(int Id, string Name, string Code);
 
-        private record MatchEventProjection(string Id, DateTime EveDateTime);
+        private record MatchEventProjection(string Id, DateTime? EveDateTime);
 
         private record TeamPlayerProjection(
             string Id,

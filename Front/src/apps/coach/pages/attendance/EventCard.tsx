@@ -155,7 +155,7 @@ export default function EventCard({ event, eventTypeName, onDeleted, onEdited }:
   const startDate = parseDate(rawStart ?? undefined);
   const startDateStr = startDate
     ? startDate.toLocaleDateString("es-ES", { dateStyle: "medium" })
-    : "Fecha no disponible";
+    : "Por confirmar";
   const weekday = startDate
     ? startDate.toLocaleDateString("es-ES", { weekday: "long" })
     : null;

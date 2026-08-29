@@ -256,7 +256,7 @@ export default function AttendanceEvent() {
                           ? d.toLocaleDateString(undefined, {
                               dateStyle: "long",
                             })
-                          : "-";
+                          : "Por confirmar";
                         const eEnd = parseDate(
                           event.end ?? event.endTime ?? undefined
                         );

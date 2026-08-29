@@ -53,7 +53,7 @@ namespace RFFM.Api.Features.Coaches.Convocations
                 if (sportEvent == null) return Array.Empty<EventPlayerResponse>();
 
                 var teamId = sportEvent.TeamId;
-                var eventDate = sportEvent.EveDateTime.Date;
+                var eventDate = sportEvent.EveDateTime?.Date ?? DateTime.UtcNow.Date;
 
                 // get team players not yet convocated for this event
                 var convocatedIds = await _db.Convocations

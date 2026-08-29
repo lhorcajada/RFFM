@@ -1,11 +1,14 @@
 using System.Linq;
+using EasyCaching.Core;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using RFFM.Api.Common.Behaviors;
 using RFFM.Api.Domain.Aggregates.Assistances;
+using RFFM.Api.Domain.Entities;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Features.Coaches.SportEvents.Queries;
 using RFFM.Api.Features.Mobile.PushNotifications;
@@ -18,8 +21,16 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
         public void AddRoutes(IEndpointRouteBuilder app)
         {
             app.MapPost("/api/sport-events",
-                    async (CreateSportEventRequest req, AppDbContext db, IPushNotificationDispatcher dispatcher, CancellationToken cancellationToken) =>
+                    async (CreateSportEventRequest req, AppDbContext db, IPushNotificationDispatcher dispatcher,
+                           FluentValidation.IValidator<CreateSportEventRequest> validator, IEasyCachingProviderFactory cachingFactory,
+                           CancellationToken cancellationToken) =>
                     {
+                        var validationResult = await validator.ValidateAsync(req, cancellationToken);
+                        if (!validationResult.IsValid)
+                        {
+                            return Results.ValidationProblem(validationResult.ToDictionary());
+                        }
+
                         var resolvedTeamId = await db.Teams
                             .Where(t => t.Id.Trim() == req.TeamId.Trim())
                             .Select(t => t.Id)
@@ -30,15 +41,35 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
                             return Results.BadRequest($"El equipo '{req.TeamId}' no existe.");
                         }
 
-                        var resolvedRivalId = req.RivalId != null
-                            ? (await db.Rivals.Select(r => r.Id).ToListAsync(cancellationToken))
-                                .FirstOrDefault(id => id.Trim() == req.RivalId.Trim()) ?? req.RivalId
-                            : null;
+                        string? resolvedRivalId;
+                        if (req.NewRival is not null)
+                        {
+                            var rival = new Rival(req.NewRival.Name, req.NewRival.UrlPhoto, req.NewRival.Category);
+                            db.Rivals.Add(rival);
+                            resolvedRivalId = rival.Id;
+                        }
+                        else if (req.RivalId is not null)
+                        {
+                            resolvedRivalId = (await db.Rivals.Select(r => r.Id).ToListAsync(cancellationToken))
+                                .FirstOrDefault(id => id.Trim() == req.RivalId.Trim()) ?? req.RivalId;
+                        }
+                        else
+                        {
+                            resolvedRivalId = null;
+                        }
+
+                        var eveDateTimeUtc = req.EveDateTime.HasValue
+                            ? DateTime.SpecifyKind(req.EveDateTime.Value, DateTimeKind.Utc)
+                            : (DateTime?)null;
+                        var startTimeSourceUtc = req.StartTime ?? req.EveDateTime;
+                        var startTimeUtc = startTimeSourceUtc.HasValue
+                            ? DateTime.SpecifyKind(startTimeSourceUtc.Value, DateTimeKind.Utc)
+                            : (DateTime?)null;
 
                         var ev = SportEvent.CreateNew(
                             req.Name,
-                            DateTime.SpecifyKind(req.EveDateTime, DateTimeKind.Utc),
-                            DateTime.SpecifyKind(req.StartTime ?? req.EveDateTime, DateTimeKind.Utc),
+                            eveDateTimeUtc,
+                            startTimeUtc,
                             req.EndTime.HasValue ? DateTime.SpecifyKind(req.EndTime.Value, DateTimeKind.Utc) : null,
                             req.ArrivalDate.HasValue ? DateTime.SpecifyKind(req.ArrivalDate.Value, DateTimeKind.Utc) : null,
                             req.Location,
@@ -61,19 +92,31 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
                         db.SportEvents.Add(ev);
                         await db.SaveChangesAsync(cancellationToken);
 
+                        if (req.NewRival is not null)
+                        {
+                            var cache = cachingFactory.GetCachingProvider(Cache.CacheDefaultName);
+                            await cache.RemoveAsync("Rivals", cancellationToken);
+                        }
+
                         if (req.Recurrence is not null)
                         {
+                            // CreateSportEventValidator requires EveDateTime whenever Recurrence is
+                            // present, so this is guaranteed non-null here — the exception below
+                            // documents that invariant rather than silently trusting a `.Value`.
+                            var anchorEveDateTime = ev.EveDateTime
+                                ?? throw new InvalidOperationException("Recurrence sin EveDateTime tras validación");
+
                             var frequency = RecurrenceFrequency.FromCode(req.Recurrence.Frequency);
                             var endDateUtc = DateTime.SpecifyKind(req.Recurrence.EndDate, DateTimeKind.Utc);
-                            var dates = RecurrenceScheduler.GenerateDates(ev.EveDateTime, frequency, endDateUtc);
+                            var dates = RecurrenceScheduler.GenerateDates(anchorEveDateTime, frequency, endDateUtc);
 
                             recurrence = EventRecurrence.Create(frequency, endDateUtc, ev.Id, dates.Count);
                             ev.RecurrenceId = recurrence.Id;
                             ev.IsRecurrenceMaster = true;
 
-                            var startOffset = ev.StartTime - ev.EveDateTime;
-                            var endOffset = ev.EndTime.HasValue ? ev.EndTime.Value - ev.EveDateTime : (TimeSpan?)null;
-                            var arrivalOffset = ev.ArrivalDate.HasValue ? ev.ArrivalDate.Value - ev.EveDateTime : (TimeSpan?)null;
+                            var startOffset = (ev.StartTime ?? anchorEveDateTime) - anchorEveDateTime;
+                            var endOffset = ev.EndTime.HasValue ? ev.EndTime.Value - anchorEveDateTime : (TimeSpan?)null;
+                            var arrivalOffset = ev.ArrivalDate.HasValue ? ev.ArrivalDate.Value - anchorEveDateTime : (TimeSpan?)null;
 
                             instances = dates.Skip(1)
                                 .Select(d => SportEvent.CreateNew(
@@ -117,7 +160,7 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
 
     public record CreateSportEventRequest(
         string Name,
-        DateTime EveDateTime,
+        DateTime? EveDateTime,
         DateTime? StartTime,
         DateTime? EndTime,
         DateTime? ArrivalDate,
@@ -128,12 +171,19 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
         string? RivalId,
         bool? IsHomeMatch,
         string? CodActa,
-        RecurrenceRequest? Recurrence = null
+        RecurrenceRequest? Recurrence = null,
+        NewRivalRequest? NewRival = null
     );
 
     public record RecurrenceRequest(
         string Frequency,
         DateTime EndDate
+    );
+
+    public record NewRivalRequest(
+        string Name,
+        string? UrlPhoto,
+        string? Category
     );
 
     public class CreateSportEventValidator : AbstractValidator<CreateSportEventRequest>
@@ -144,14 +194,32 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
             RuleFor(x => x.TeamId).NotEmpty();
             RuleFor(x => x.EventTypeId).GreaterThan(0);
 
+            RuleFor(x => x)
+                .Must(x => x.RivalId is null || x.NewRival is null)
+                .WithMessage("No se puede indicar un rival existente y uno nuevo a la vez");
+
+            When(x => x.NewRival is not null, () =>
+            {
+                RuleFor(x => x.NewRival!.Name).NotEmpty().MaximumLength(100);
+                RuleFor(x => x.NewRival!.Category).MaximumLength(50);
+                RuleFor(x => x.NewRival!.UrlPhoto).MaximumLength(256);
+            });
+
             When(x => x.Recurrence is not null, () =>
             {
                 RuleFor(x => x.Recurrence!.Frequency)
                     .Must(f => RecurrenceFrequency.IsValidCode(f))
                     .WithMessage("La frecuencia debe ser 'daily', 'weekly' o 'monthly'");
 
+                RuleFor(x => x.EveDateTime)
+                    .NotNull()
+                    .WithMessage("La recurrencia requiere una fecha de evento");
+            });
+
+            When(x => x.Recurrence is not null && x.EveDateTime.HasValue, () =>
+            {
                 RuleFor(x => x.Recurrence!.EndDate)
-                    .GreaterThan(x => x.EveDateTime)
+                    .GreaterThan(x => x.EveDateTime!.Value)
                     .WithMessage("La fecha final de la recurrencia debe ser posterior a la fecha del evento");
 
                 RuleFor(x => x)
@@ -168,7 +236,7 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
                 return true;
             }
             var frequency = RecurrenceFrequency.FromCode(request.Recurrence.Frequency);
-            var dates = RecurrenceScheduler.GenerateDates(request.EveDateTime, frequency, request.Recurrence.EndDate);
+            var dates = RecurrenceScheduler.GenerateDates(request.EveDateTime!.Value, frequency, request.Recurrence.EndDate);
             return dates.Count <= RecurrenceConstants.MaxInstances;
         }
     }
@@ -176,8 +244,8 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
     public record SportEventSaveResponse(
         string Id,
         string Name,
-        DateTime EveDateTime,
-        DateTime StartTime,
+        DateTime? EveDateTime,
+        DateTime? StartTime,
         DateTime? EndTime,
         DateTime? ArrivalDate,
         string? Location,

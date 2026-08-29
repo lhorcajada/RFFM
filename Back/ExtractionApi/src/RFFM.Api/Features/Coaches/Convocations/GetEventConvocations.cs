@@ -71,7 +71,7 @@ namespace RFFM.Api.Features.Coaches.Convocations
 
                 var sportEvent = await _db.SportEvents.AsNoTracking()
                     .FirstOrDefaultAsync(se => se.Id == request.EventId, cancellationToken);
-                var eventDate = sportEvent?.EveDateTime.Date ?? DateTime.UtcNow.Date;
+                var eventDate = sportEvent?.EveDateTime?.Date ?? DateTime.UtcNow.Date;
 
                 var result = convocationsRaw.Select(c => new ConvocationResponse(
                     c.Id,

@@ -52,8 +52,8 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Queries
         {
             public string Id { get; set; } = null!;
             public string Name { get; set; } = null!;
-            public DateTime EveDateTime { get; set; }
-            public DateTime StartTime { get; set; }
+            public DateTime? EveDateTime { get; set; }
+            public DateTime? StartTime { get; set; }
             public DateTime? EndTime { get; set; }
             public DateTime? ArrivalDate { get; set; }
             public string? Location { get; set; }

@@ -16,10 +16,10 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.Assistanc
                 .HasMaxLength(ValidationAssistancesConstants.MaxNameLength);
 
             builder.Property(se => se.EveDateTime)
-                .IsRequired();
+                .IsRequired(false);
 
             builder.Property(se => se.StartTime)
-                .IsRequired();
+                .IsRequired(false);
 
             builder.Property(se => se.EndTime)
                 .IsRequired(false);

@@ -29,9 +29,13 @@ vi.mock("../../../../services/sportEventTypeService", () => ({
   },
 }));
 
+const uploadRivalPhotoMock = vi.fn();
+const getRivalsMock = vi.fn(() => Promise.resolve([]));
+
 vi.mock("../../../../services/rivalService", () => ({
   default: {
-    getRivals: () => Promise.resolve([]),
+    getRivals: (...args: unknown[]) => getRivalsMock(...args),
+    uploadRivalPhoto: (...args: unknown[]) => uploadRivalPhotoMock(...args),
   },
 }));
 
@@ -70,6 +74,10 @@ describe("SportEventDialog - recurring events", () => {
       <SportEventDialog open={true} teamId="team-1" onClose={vi.fn()} onSaved={vi.fn()} />
     );
 
+    // The recurrence checkbox is disabled until a date is set
+    const dateField = screen.getByLabelText(/fecha y hora/i) as HTMLInputElement;
+    await userEvent.type(dateField, "2026-08-01T18:00");
+
     const checkbox = await screen.findByRole("checkbox", { name: /es recurrente/i });
     expect(screen.queryByLabelText(/frecuencia/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/fecha final de la recurrencia/i)).not.toBeInTheDocument();
@@ -78,7 +86,7 @@ describe("SportEventDialog - recurring events", () => {
 
     expect(await screen.findByLabelText(/frecuencia/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/fecha final de la recurrencia/i)).toBeInTheDocument();
-  });
+  }, 15000);
 
   it("submits without a recurrence block when the checkbox is unchecked", async () => {
     createSportEventMock.mockResolvedValue({ id: "evt-1" });
@@ -177,5 +185,236 @@ describe("SportEventDialog - recurring events", () => {
     expect(
       await screen.findByText(/no puede generar más de 52 eventos/i)
     ).toBeInTheDocument();
+  }, 15000);
+});
+
+describe("SportEventDialog - fecha/hora/lugar opcionales", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  async function fillNameAndType(typeName: string) {
+    await userEvent.type(screen.getByLabelText(/nombre/i), "Evento sin fecha");
+    const typeSelect = screen.getByLabelText(/tipo de evento/i);
+    await userEvent.click(typeSelect);
+    const option = await screen.findByRole("option", { name: typeName });
+    await userEvent.click(option);
+  }
+
+  it("permite crear un evento sin fecha, hora ni lugar", async () => {
+    createSportEventMock.mockResolvedValue({ id: "evt-1" });
+    render(
+      <SportEventDialog open={true} teamId="team-1" onClose={vi.fn()} onSaved={vi.fn()} />
+    );
+
+    await fillNameAndType("Entrenamiento");
+    await userEvent.click(screen.getByRole("button", { name: /crear/i }));
+
+    await waitFor(() => expect(createSportEventMock).toHaveBeenCalledTimes(1));
+    const payload = createSportEventMock.mock.calls[0][0];
+    expect(payload.eveDateTime).toBeNull();
+    expect(payload.startTime).toBeNull();
+    expect(payload.location).toBeNull();
+  }, 15000);
+
+  it("deshabilita la casilla de recurrencia cuando no hay fecha", async () => {
+    render(
+      <SportEventDialog open={true} teamId="team-1" onClose={vi.fn()} onSaved={vi.fn()} />
+    );
+
+    const checkbox = await screen.findByRole("checkbox", { name: /es recurrente/i });
+    expect(checkbox).toBeDisabled();
+    expect(
+      screen.getByText(/añade una fecha para poder configurar la recurrencia/i)
+    ).toBeInTheDocument();
+  });
+
+  it("habilita la casilla de recurrencia al introducir una fecha", async () => {
+    render(
+      <SportEventDialog open={true} teamId="team-1" onClose={vi.fn()} onSaved={vi.fn()} />
+    );
+
+    const dateField = screen.getByLabelText(/fecha y hora/i) as HTMLInputElement;
+    await userEvent.type(dateField, "2026-08-01T18:00");
+
+    const checkbox = await screen.findByRole("checkbox", { name: /es recurrente/i });
+    expect(checkbox).toBeEnabled();
+  });
+});
+
+describe("SportEventDialog - rival inline", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  async function fillMatchForm() {
+    await userEvent.type(screen.getByLabelText(/nombre/i), "Partido jornada 1");
+    const typeSelect = screen.getByLabelText(/tipo de evento/i);
+    await userEvent.click(typeSelect);
+    const option = await screen.findByRole("option", { name: "Partido" });
+    await userEvent.click(option);
+  }
+
+  it("no muestra el selector de rival para tipos que no son partido", async () => {
+    render(
+      <SportEventDialog open={true} teamId="team-1" onClose={vi.fn()} onSaved={vi.fn()} />
+    );
+    await userEvent.type(screen.getByLabelText(/nombre/i), "Entreno");
+    const typeSelect = screen.getByLabelText(/tipo de evento/i);
+    await userEvent.click(typeSelect);
+    const option = await screen.findByRole("option", { name: "Entrenamiento" });
+    await userEvent.click(option);
+
+    expect(screen.queryByText(/rival existente/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/rival nuevo/i)).not.toBeInTheDocument();
+  });
+
+  it("son mutuamente excluyentes el modo rival existente y rival nuevo", async () => {
+    render(
+      <SportEventDialog open={true} teamId="team-1" onClose={vi.fn()} onSaved={vi.fn()} />
+    );
+    await fillMatchForm();
+
+    await userEvent.click(await screen.findByRole("radio", { name: /rival nuevo/i }));
+    expect(await screen.findByLabelText(/nombre del rival/i)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/^rival$/i)).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("radio", { name: /rival existente/i }));
+    expect(screen.queryByLabelText(/nombre del rival/i)).not.toBeInTheDocument();
+    expect(await screen.findByLabelText(/^rival$/i)).toBeInTheDocument();
+  }, 15000);
+
+  it("crea un rival nuevo inline y lo envía en el payload como newRival", async () => {
+    createSportEventMock.mockResolvedValue({ id: "evt-1" });
+    render(
+      <SportEventDialog open={true} teamId="team-1" onClose={vi.fn()} onSaved={vi.fn()} />
+    );
+    await fillMatchForm();
+
+    await userEvent.click(await screen.findByRole("radio", { name: /rival nuevo/i }));
+    await userEvent.type(screen.getByLabelText(/nombre del rival/i), "CD Nuevo Rival");
+    await userEvent.type(
+      screen.getByLabelText(/categoría del rival/i),
+      "Alevín"
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /crear/i }));
+
+    await waitFor(() => expect(createSportEventMock).toHaveBeenCalledTimes(1));
+    const payload = createSportEventMock.mock.calls[0][0];
+    expect(payload.rivalId).toBeNull();
+    expect(payload.newRival).toEqual({
+      name: "CD Nuevo Rival",
+      urlPhoto: null,
+      category: "Alevín",
+    });
+  }, 15000);
+
+  it("sube la foto del rival nuevo antes de crear el evento y usa la URL devuelta", async () => {
+    uploadRivalPhotoMock.mockResolvedValue({ Url: "https://cdn.example.com/escudo.png" });
+    createSportEventMock.mockResolvedValue({ id: "evt-1" });
+    render(
+      <SportEventDialog open={true} teamId="team-1" onClose={vi.fn()} onSaved={vi.fn()} />
+    );
+    await fillMatchForm();
+
+    await userEvent.click(await screen.findByRole("radio", { name: /rival nuevo/i }));
+    await userEvent.type(screen.getByLabelText(/nombre del rival/i), "CD Nuevo Rival");
+
+    const photoInput = screen.getByLabelText(
+      /escudo\/foto del rival/i
+    ) as HTMLInputElement;
+    const photoFile = new File(["escudo"], "escudo.png", { type: "image/png" });
+    await userEvent.upload(photoInput, photoFile);
+
+    await userEvent.click(screen.getByRole("button", { name: /crear/i }));
+
+    await waitFor(() => expect(uploadRivalPhotoMock).toHaveBeenCalledWith(photoFile));
+    await waitFor(() => expect(createSportEventMock).toHaveBeenCalledTimes(1));
+    const payload = createSportEventMock.mock.calls[0][0];
+    expect(payload.newRival).toEqual({
+      name: "CD Nuevo Rival",
+      urlPhoto: "https://cdn.example.com/escudo.png",
+      category: null,
+    });
+  }, 15000);
+
+  it("no sube ninguna foto ni llama a uploadRivalPhoto si no se selecciona archivo", async () => {
+    createSportEventMock.mockResolvedValue({ id: "evt-1" });
+    render(
+      <SportEventDialog open={true} teamId="team-1" onClose={vi.fn()} onSaved={vi.fn()} />
+    );
+    await fillMatchForm();
+
+    await userEvent.click(await screen.findByRole("radio", { name: /rival nuevo/i }));
+    await userEvent.type(screen.getByLabelText(/nombre del rival/i), "CD Nuevo Rival");
+
+    await userEvent.click(screen.getByRole("button", { name: /crear/i }));
+
+    await waitFor(() => expect(createSportEventMock).toHaveBeenCalledTimes(1));
+    expect(uploadRivalPhotoMock).not.toHaveBeenCalled();
+    const payload = createSportEventMock.mock.calls[0][0];
+    expect(payload.newRival.urlPhoto).toBeNull();
+  }, 15000);
+
+  it("muestra un error de validación si el modo rival nuevo no tiene nombre", async () => {
+    render(
+      <SportEventDialog open={true} teamId="team-1" onClose={vi.fn()} onSaved={vi.fn()} />
+    );
+    await fillMatchForm();
+
+    await userEvent.click(await screen.findByRole("radio", { name: /rival nuevo/i }));
+    await userEvent.click(screen.getByRole("button", { name: /crear/i }));
+
+    expect(
+      await screen.findByText(/el nombre del rival nuevo es obligatorio/i)
+    ).toBeInTheDocument();
+    expect(createSportEventMock).not.toHaveBeenCalled();
+  }, 15000);
+
+  it("permite guardar un partido sin seleccionar ningún rival", async () => {
+    createSportEventMock.mockResolvedValue({ id: "evt-1" });
+    render(
+      <SportEventDialog open={true} teamId="team-1" onClose={vi.fn()} onSaved={vi.fn()} />
+    );
+    await fillMatchForm();
+
+    await userEvent.click(screen.getByRole("button", { name: /crear/i }));
+
+    await waitFor(() => expect(createSportEventMock).toHaveBeenCalledTimes(1));
+    const payload = createSportEventMock.mock.calls[0][0];
+    expect(payload.rivalId).toBeNull();
+    expect(payload.newRival).toBeNull();
+  }, 15000);
+
+  it("precarga el rival guardado al editar un partido existente", async () => {
+    getRivalsMock.mockResolvedValue([
+      { id: "rival-1", name: "CD Rival" },
+      { id: "rival-2", name: "CD Otro" },
+    ]);
+
+    render(
+      <SportEventDialog
+        open={true}
+        teamId="team-1"
+        event={{
+          id: "evt-1",
+          title: "Partido jornada 1",
+          name: "Partido jornada 1",
+          eventTypeId: 2,
+          rivalId: "rival-1",
+          teamId: "team-1",
+        }}
+        onClose={vi.fn()}
+        onSaved={vi.fn()}
+      />
+    );
+
+    expect(
+      await screen.findByRole("radio", { name: /rival existente/i })
+    ).toBeChecked();
+
+    const rivalSelect = await screen.findByLabelText(/^rival$/i);
+    await waitFor(() => expect(rivalSelect).toHaveTextContent("CD Rival"));
   }, 15000);
 });

@@ -24,3 +24,14 @@
   color: #f44336;
   font-size: 0.875rem;
 }
+
+.hint {
+  margin-top: -8px;
+  margin-bottom: 12px;
+  color: rgba(232, 232, 232, 0.6);
+  font-size: 0.75rem;
+}
+
+.rivalPhotoField {
+  margin-bottom: 16px;
+}

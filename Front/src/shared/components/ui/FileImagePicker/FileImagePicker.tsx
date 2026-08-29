@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import styles from "./FileImagePicker.module.css";
 
 export default function FileImagePicker({
@@ -19,6 +19,8 @@ export default function FileImagePicker({
   previewHeight?: number;
 }) {
   const [preview, setPreview] = React.useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragCounter = useRef(0);
 
   useEffect(() => {
     if (!file) {
@@ -30,9 +32,45 @@ export default function FileImagePicker({
     return () => URL.revokeObjectURL(url);
   }, [file]);
 
+  const handleDragEnter = (ev: React.DragEvent<HTMLDivElement>) => {
+    ev.preventDefault();
+    dragCounter.current += 1;
+    if (ev.dataTransfer.types.includes("Files")) {
+      setIsDragging(true);
+    }
+  };
+
+  const handleDragOver = (ev: React.DragEvent<HTMLDivElement>) => {
+    ev.preventDefault();
+  };
+
+  const handleDragLeave = (ev: React.DragEvent<HTMLDivElement>) => {
+    ev.preventDefault();
+    dragCounter.current = Math.max(0, dragCounter.current - 1);
+    if (dragCounter.current === 0) {
+      setIsDragging(false);
+    }
+  };
+
+  const handleDrop = (ev: React.DragEvent<HTMLDivElement>) => {
+    ev.preventDefault();
+    dragCounter.current = 0;
+    setIsDragging(false);
+    const droppedFile = ev.dataTransfer.files?.[0] ?? null;
+    if (droppedFile) {
+      onChange?.(droppedFile);
+    }
+  };
+
   return (
     <div className={styles.emblemRow}>
-      <div>
+      <div
+        className={`${styles.dropzone} ${isDragging ? styles.dropzoneActive : ""}`}
+        onDragEnter={handleDragEnter}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
         <label htmlFor={id} className={styles.fileInputLabel}>
           {label ?? "Seleccionar imagen"}
         </label>
@@ -45,6 +83,7 @@ export default function FileImagePicker({
             onChange?.(ev.target.files ? ev.target.files[0] : null)
           }
         />
+        <div className={styles.dropHint}>o arrastra una imagen aquí</div>
       </div>
       <div>
         {preview ? (

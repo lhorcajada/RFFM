@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using RFFM.Api.Common.Behaviors;
 using RFFM.Api.Domain.Aggregates.UserClubs;
 using RFFM.Api.Domain.Entities.Competitions;
 using RFFM.Api.Domain.Entities.Seasons;
@@ -77,6 +78,8 @@ namespace RFFM.Api.Tests.IntegrationTests
                                 });
                             });
                             services.AddSingleton<IPushNotificationDispatcher>(spy);
+                            services.AddScoped<FluentValidation.IValidator<CreateSportEventRequest>, CreateSportEventValidator>();
+                            services.AddEasyCaching(options => { options.UseInMemory(Cache.CacheDefaultName); });
                         })
                         .Configure(app =>
                         {

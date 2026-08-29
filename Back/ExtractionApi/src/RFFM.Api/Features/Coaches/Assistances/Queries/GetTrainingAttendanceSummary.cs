@@ -65,7 +65,7 @@ namespace RFFM.Api.Features.Coaches.Assistances.Queries
             int? ExcuseTypeId,
             string Reason);
 
-        private record TrainingEventProjection(string Id, string Name, DateTime EveDateTime);
+        private record TrainingEventProjection(string Id, string Name, DateTime? EveDateTime);
         private record PlayerProjection(string Id, string? PlayerId, string Alias, string Name, string? LastName);
         private record ConvocationProjection(string TeamPlayerId, string SportEventId, int? AssistanceTypeId, int? ExcuseTypeId, int? ConvocationStatusId);
 

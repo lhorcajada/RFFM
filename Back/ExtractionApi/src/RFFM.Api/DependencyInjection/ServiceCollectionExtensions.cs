@@ -63,6 +63,13 @@ namespace RFFM.Api.DependencyInjection
             services.AddScoped<FluentValidation.IValidator<RFFM.Api.Features.Mobile.PushNotifications.UnregisterPushToken.UnregisterPushTokenCommand>, RFFM.Api.Features.Mobile.PushNotifications.UnregisterPushToken.Validator>();
             services.AddScoped<FluentValidation.IValidator<RFFM.Api.Features.Mobile.PushNotifications.UpdatePushPreferences.UpdatePushPreferencesCommand>, RFFM.Api.Features.Mobile.PushNotifications.UpdatePushPreferences.Validator>();
 
+            // CreateSportEvent is a raw Minimal API request (not a Mediator ICommand), so
+            // ValidationBehavior never runs for it — CreateSportEventValidator previously
+            // existed but was never invoked anywhere except tests. Registered explicitly here
+            // (same manual pattern as above) so the endpoint can resolve it and actually enforce
+            // its rules (see nullable-event-datetime-and-inline-rival design.md §5).
+            services.AddScoped<FluentValidation.IValidator<RFFM.Api.Features.Coaches.SportEvents.Commands.CreateSportEventRequest>, RFFM.Api.Features.Coaches.SportEvents.Commands.CreateSportEventValidator>();
+
             // Email template service requires a template path; allow configuration override
             var templatePath = Path.Combine(Directory.GetParent(Directory.GetCurrentDirectory()).FullName,
                 "RFFM.Api", "Infrastructure", "Services", "Email", "Templates");
