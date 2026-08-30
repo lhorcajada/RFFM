@@ -38,6 +38,7 @@ const GameModel = lazy(() => import("./pages/game-model/GameModel"));
 const GameModelCreate = lazy(() => import("./pages/game-model/GameModelCreate"));
 const TeamRules = lazy(() => import("./pages/team-rules/TeamRules"));
 const TeamRulesEdit = lazy(() => import("./pages/team-rules/TeamRulesEdit"));
+const TeamUsers = lazy(() => import("./pages/team-users/TeamUsers"));
 const Sanctions = lazy(() => import("./pages/sanctions/Sanctions"));
 const Lottery = lazy(() => import("./pages/lottery/Lottery"));
 const Rivals = lazy(() => import("./pages/rivals/Rivals"));
@@ -89,6 +90,7 @@ function CoachRoutesContent() {
             />
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="team-dashboard" element={<TeamDashboard />} />
+            <Route path="team-users" element={<TeamUsers />} />
             <Route
               path="settings"
               element={

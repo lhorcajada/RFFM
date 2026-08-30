@@ -1,4 +1,5 @@
 import GroupIcon from "@mui/icons-material/Group";
+import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import EventIcon from "@mui/icons-material/Event";
 import SummarizeIcon from "@mui/icons-material/Summarize";
@@ -26,6 +27,7 @@ interface TeamDashboardCardsProps {
 export default function TeamDashboardCards({
   team,
   selectedSeason,
+  isPlayer,
 }: TeamDashboardCardsProps) {
   const seasonParam = selectedSeason ? `?seasonId=${selectedSeason}` : "";
   const seasonSuffix = selectedSeason ? `&seasonId=${selectedSeason}` : "";
@@ -34,6 +36,14 @@ export default function TeamDashboardCards({
 
   return (
     <div className={styles.cards}>
+      {!isPlayer && (
+        <DashboardCard
+          title="Gestión de usuarios"
+          description="Administra las cuentas del equipo."
+          icon={<ManageAccountsIcon style={{ fontSize: 40 }} />}
+          to={team?.id ? `/coach/team-users?teamId=${team.id}` : "/coach/team-users"}
+        />
+      )}
       {hasFeatureAccess(COACH_FEATURE_ROUTES.Squad) && (
         <DashboardCard
           title="Plantilla"
