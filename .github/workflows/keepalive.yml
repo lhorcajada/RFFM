@@ -3,7 +3,7 @@ name: Keep API Alive
 on:
   schedule:
     # Cada 3 minutos. Ajusta según el timeout de scale-to-zero de tu Container App.
-    - cron: '*/3 * * * *'
+    - cron: '*/5 * * * *'
   workflow_dispatch: {} # permite lanzarlo manualmente desde la pestaña Actions
 
 jobs:
