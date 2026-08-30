@@ -23,6 +23,8 @@ import EditNoteIcon from "@mui/icons-material/EditNote";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
+import { usePermissions } from "../../../../shared/hooks/usePermissions";
+import { COACH_FEATURE_ROUTES } from "../../constants/featureRoutes";
 import useTeamAndClub from "../../hooks/useTeamAndClub";
 import useTeamDashboardBack from "../../hooks/useTeamDashboardBack";
 import gameModelService from "../../services/gameModelService";
@@ -36,6 +38,13 @@ export default function GameModel() {
   const location = useLocation();
   const { team, teamTitleNode } = useTeamAndClub();
   const goToTeamDashboard = useTeamDashboardBack();
+  const { featurePermissions, roles } = usePermissions();
+
+  const canEdit =
+    roles.includes("Administrator") ||
+    featurePermissions.some(
+      (p) => p.featureRoute === COACH_FEATURE_ROUTES.GameModel && p.permissionType === "ReadWrite"
+    );
 
   const [availableSeasons, setAvailableSeasons] = useState<string[]>([]);
   const [selectedSeason, setSelectedSeason] = useState<string>("");
@@ -184,7 +193,7 @@ export default function GameModel() {
             <Button startIcon={<ArrowBackIcon />} onClick={() => goToTeamDashboard()} variant="outlined" size="small">
               Volver
             </Button>
-            {!loading && (
+            {canEdit && !loading && (
               <Button
                 startIcon={<AddCircleOutlineIcon />}
                 onClick={handleOpenNewSeasonDialog}
@@ -195,7 +204,7 @@ export default function GameModel() {
                 Nuevo Modelo
               </Button>
             )}
-            {gameModel && (
+            {canEdit && gameModel && (
               <Button
                 startIcon={<DeleteOutlineIcon />}
                 onClick={() => setDeleteDialogOpen(true)}
@@ -206,7 +215,7 @@ export default function GameModel() {
                 Eliminar Modelo
               </Button>
             )}
-            {gameModel && (
+            {canEdit && gameModel && (
               <Button
                 startIcon={<EditNoteIcon />}
                 onClick={() =>
@@ -235,7 +244,14 @@ export default function GameModel() {
         ) : !gameModel ? (
           <Box className={styles.emptyState}>
             <Typography className={styles.emptyStateText}>
-              No hay modelo de juego creado para este equipo. Usa el botón <strong>Nuevo Modelo</strong> para empezar.
+              {canEdit ? (
+                <>
+                  No hay modelo de juego creado para este equipo. Usa el botón <strong>Nuevo Modelo</strong> para
+                  empezar.
+                </>
+              ) : (
+                "No hay modelo de juego creado para este equipo."
+              )}
             </Typography>
           </Box>
         ) : (

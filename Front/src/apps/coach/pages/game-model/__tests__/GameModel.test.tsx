@@ -48,6 +48,19 @@ vi.mock("../../../services/seasonService", () => ({
   },
 }));
 
+let mockFeaturePermissions: { featureRoute: string; permissionType: string }[] = [
+  { featureRoute: "/coach/game-model", permissionType: "ReadWrite" },
+];
+let mockRoles: string[] = ["Coach"];
+vi.mock("../../../../../shared/hooks/usePermissions", () => ({
+  usePermissions: () => ({
+    loading: false,
+    roles: mockRoles,
+    featurePermissions: mockFeaturePermissions,
+    hasFeatureAccess: vi.fn(() => true),
+  }),
+}));
+
 import GameModel from "../GameModel";
 
 function buildModel(): GameModelType {
@@ -75,6 +88,8 @@ function buildModel(): GameModelType {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockRoles = ["Coach"];
+  mockFeaturePermissions = [{ featureRoute: "/coach/game-model", permissionType: "ReadWrite" }];
 });
 
 describe("GameModel page", () => {
@@ -105,5 +120,40 @@ describe("GameModel page", () => {
     await waitFor(() => expect(mockGetByTeamIdAndSeason).toHaveBeenCalledWith("team-1", "2025/2026"));
     expect(await screen.findByText("Modelo de Juego 2025/2026")).toBeInTheDocument();
     expect(screen.getAllByRole("heading", { level: 2, name: "Defensa Organizada" }).length).toBeGreaterThan(0);
+  });
+
+  it("muestra los controles de edición cuando el usuario tiene permiso ReadWrite", async () => {
+    mockFeaturePermissions = [{ featureRoute: "/coach/game-model", permissionType: "ReadWrite" }];
+    mockGetSeasonsByTeamId.mockResolvedValue(["2025/2026"]);
+    mockGetByTeamIdAndSeason.mockResolvedValue(buildModel());
+
+    render(
+      <MemoryRouter>
+        <GameModel />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText("Modelo de Juego 2025/2026")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /nuevo modelo/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /editar modelo/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /eliminar modelo/i })).toBeInTheDocument();
+  });
+
+  it("oculta los controles de edición cuando el usuario solo tiene permiso de lectura", async () => {
+    mockFeaturePermissions = [{ featureRoute: "/coach/game-model", permissionType: "Read" }];
+    mockGetSeasonsByTeamId.mockResolvedValue(["2025/2026"]);
+    mockGetByTeamIdAndSeason.mockResolvedValue(buildModel());
+
+    render(
+      <MemoryRouter>
+        <GameModel />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText("Modelo de Juego 2025/2026")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /nuevo modelo/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /editar modelo/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /eliminar modelo/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /imprimir pdf/i })).toBeInTheDocument();
   });
 });

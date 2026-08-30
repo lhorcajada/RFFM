@@ -461,6 +461,8 @@ namespace RFFM.Host.DependencyInjection
                         ("Sanctions", CoachFeatureRoutes.Sanctions, "Player", 1, false),
                         ("Lottery", CoachFeatureRoutes.Lottery, "Player", 1, false),
                         ("News", CoachFeatureRoutes.News, "Player", 1, false),
+                        ("GameModel", CoachFeatureRoutes.GameModel, "Player", 1, false),
+                        ("TeamRulesDocument", CoachFeatureRoutes.TeamRulesDocument, "Player", 1, false),
 
                         // FamilyMember: Read-only on the same 8 dashboard features as Player — a family
                         // member must see exactly what the player they're linked to sees (bug: this
@@ -474,6 +476,8 @@ namespace RFFM.Host.DependencyInjection
                         ("Sanctions", CoachFeatureRoutes.Sanctions, "FamilyMember", 1, false),
                         ("Lottery", CoachFeatureRoutes.Lottery, "FamilyMember", 1, false),
                         ("News", CoachFeatureRoutes.News, "FamilyMember", 1, false),
+                        ("GameModel", CoachFeatureRoutes.GameModel, "FamilyMember", 1, false),
+                        ("TeamRulesDocument", CoachFeatureRoutes.TeamRulesDocument, "FamilyMember", 1, false),
 
                         // AttendanceConfirmation: ReadWrite for Player and FamilyMember
                         ("AttendanceConfirmation", CoachFeatureRoutes.AttendanceConfirmation, "Player", 3, false),
@@ -497,10 +501,11 @@ namespace RFFM.Host.DependencyInjection
                         ("CompetitionData", CoachFeatureRoutes.CompetitionData, "FamilyMember", 1, false),
                         ("CompetitionData", CoachFeatureRoutes.CompetitionData, "Coach", 1, false),
 
-                        // TeamRulesDocument: ReadWrite for Coach/ClubDirector only — uploading/replacing
-                        // the team's rules PDF. The GET endpoint only carries IRequireTeamMembership (not
-                        // IRequireFeaturePermission), so every team role (including Player/FamilyMember)
-                        // can read it without a row in this table.
+                        // TeamRulesDocument: ReadWrite for Coach/ClubDirector (uploading/replacing the
+                        // team's rules PDF). The GET endpoint only carries IRequireTeamMembership (not
+                        // IRequireFeaturePermission), so every team role can already read it server-side —
+                        // the Read-only rows for Player/FamilyMember above exist purely so the frontend
+                        // dashboard card (gated by hasFeatureAccess) becomes visible to them.
                         ("TeamRulesDocument", CoachFeatureRoutes.TeamRulesDocument, "Coach", 3, false),
                         ("TeamRulesDocument", CoachFeatureRoutes.TeamRulesDocument, "ClubDirector", 3, false),
 
