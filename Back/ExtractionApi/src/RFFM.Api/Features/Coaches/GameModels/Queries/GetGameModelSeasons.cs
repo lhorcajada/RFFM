@@ -52,11 +52,14 @@ namespace RFFM.Api.Features.Coaches.GameModels.Queries
 
             public async ValueTask<string[]> Handle(SeasonsQuery request, CancellationToken cancellationToken = default)
             {
-                var hasAccess = await _db.UserClubs
+                var hasClubAccess = await _db.UserClubs
                     .Join(_db.Teams, uc => uc.ClubId, t => t.ClubId, (uc, t) => new { uc, t })
                     .AnyAsync(x => x.uc.ApplicationUserId == request.UserId && x.t.Id == request.TeamId, cancellationToken);
 
-                if (!hasAccess)
+                var hasTeamAccess = hasClubAccess || await _db.UserTeams
+                    .AnyAsync(ut => ut.ApplicationUserId == request.UserId && ut.TeamId == request.TeamId, cancellationToken);
+
+                if (!hasTeamAccess)
                     throw new DomainException("Modelo de Juego", "No tienes acceso a este equipo.", ErrorCodes.TeamAccessDenied);
 
                 return await _db.GameModels
