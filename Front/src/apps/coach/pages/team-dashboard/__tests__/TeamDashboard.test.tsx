@@ -142,7 +142,7 @@ describe("TeamDashboard — A la vista section", () => {
     expect(container.contains(paddedAncestor)).toBe(true);
   });
 
-  it("renders both widgets as direct siblings inside the same widgetsContainer (the row-layout-on-desktop target)", () => {
+  it("renders both widgets and the tiles as direct siblings inside the same dashboardGrid (so they flow through the same rows)", () => {
     render(
       <MemoryRouter>
         <TeamDashboard />
@@ -151,19 +151,21 @@ describe("TeamDashboard — A la vista section", () => {
 
     const eventsWidget = screen.getByText("upcoming-events-widget");
     const newsWidget = screen.getByText("news-widget");
-    const widgetsContainer = eventsWidget.closest('[class*="widgetsContainer"]');
+    const cards = screen.getByText("TeamDashboardCards");
+    const dashboardGrid = eventsWidget.closest('[class*="dashboardGrid"]');
 
-    expect(widgetsContainer).not.toBeNull();
-    // Both widgets must be direct children — the desktop row layout (>0
-    // 769px) applies `flex-direction: row` to widgetsContainer's direct
-    // children, so it only takes effect if they're actually siblings there,
-    // not nested deeper.
-    expect(Array.from(widgetsContainer!.children)).toEqual(
+    expect(dashboardGrid).not.toBeNull();
+    // All three must be direct children — the shared grid (desktop: 4
+    // columns, mobile: 2) only lands each in its own cell if they're
+    // actually siblings there, not nested inside another wrapper.
+    expect(Array.from(dashboardGrid!.children)).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ textContent: "upcoming-events-widget" }),
         expect.objectContaining({ textContent: "news-widget" }),
+        expect.objectContaining({ textContent: "TeamDashboardCards" }),
       ])
     );
-    expect(widgetsContainer!.contains(newsWidget)).toBe(true);
+    expect(dashboardGrid!.contains(newsWidget)).toBe(true);
+    expect(dashboardGrid!.contains(cards)).toBe(true);
   });
 });

@@ -50,7 +50,7 @@ export default function NewsWidget() {
       <h3 className={styles.title}>Últimas noticias</h3>
       <Carousel ariaLabel="Últimas noticias" autoAdvanceMs={AUTO_ADVANCE_MS}>
         {items.map((item) => (
-          <NewsListCard key={item.id} item={item} />
+          <NewsListCard key={item.id} item={item} compact />
         ))}
       </Carousel>
     </div>

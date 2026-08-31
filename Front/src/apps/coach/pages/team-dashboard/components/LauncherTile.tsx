@@ -4,25 +4,25 @@ import styles from "./LauncherTile.module.css";
 
 interface LauncherTileProps {
   title: string;
-  icon: ReactNode;
+  illustration: ReactNode;
+  gradient: string;
   to: string;
 }
 
 /**
- * Compact "app launcher" style tile — icon + short label only, no
- * description. Used by TeamDashboardCards for the quick-access grid, which
- * sits below the "A la vista" widgets and shouldn't compete visually with
- * them. Mirrors DashboardCard's FC26 visual language (dark background,
- * accent stripe/corner via the shared --rffm-dash-* tokens) but in a denser,
- * icon-forward layout — kept as its own component instead of a DashboardCard
- * variant because the two layouts (left-aligned icon+title+description vs.
- * centered icon+label-only) differ enough that forcing one component to
- * serve both would need a pile of conditional styling for little reuse.
+ * "App launcher" tile — a small illustrated cover (gradient + composed SVG
+ * scene, mirrors EventCard's generic header) over a label. Fixed to the same
+ * 220px height as the compact EventCard/NewsListCard used by the widgets
+ * above it, so the whole team dashboard (widgets + quick-access grid) reads
+ * as one uniform card size.
  */
-export default function LauncherTile({ title, icon, to }: LauncherTileProps) {
+export default function LauncherTile({ title, illustration, gradient, to }: LauncherTileProps) {
   return (
     <Link to={to} className={styles.tile} aria-label={title}>
-      <span className={styles.iconWrap}>{icon}</span>
+      <div className={styles.cover} style={{ background: gradient }}>
+        <div className={styles.coverShine} />
+        <div className={styles.illustration}>{illustration}</div>
+      </div>
       <span className={styles.label}>{title}</span>
     </Link>
   );

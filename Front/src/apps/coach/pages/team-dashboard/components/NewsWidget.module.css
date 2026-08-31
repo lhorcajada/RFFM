@@ -1,24 +1,40 @@
+/* FC26 tile look — matches LauncherTile/DashboardCard so the widget and the
+   quick-access grid below it read as the same visual family instead of two
+   different card languages. */
 .container {
-  margin-bottom: 24px;
-  padding: 16px;
-  background: linear-gradient(160deg, #22223a 0%, #14142b 45%, #1c1c34 100%);
-  border-radius: 12px;
-  border: 1px solid rgba(120, 155, 230, 0.3);
-  /* No explicit height: with the cross-size left "auto", the parent's
-     align-items: stretch (TeamDashboard.module.css's .widgetsContainer,
-     desktop/tablet only) grows this widget to match the row's tallest
-     sibling ("Próximos eventos", whose EventCard is naturally taller).
-     Setting height: 100% here instead breaks that — a definite percentage
-     height opts the item OUT of stretch sizing, so it keeps its own
-     shorter natural content height. On mobile (.widgetsContainer stacked)
-     this has no visible effect either way. */
+  position: relative;
+  /* Natural (auto) height, like UpcomingEventsWidget's own .container — see
+     that file's comment. This widget usually has less content than
+     "Próximos eventos", so in practice it stretches to match that card's
+     row via TeamDashboard.module.css's shared grid (align-items: stretch is
+     the grid default), rather than driving the row height itself. */
+  padding: 14px 16px;
+  background: var(--rffm-dash-card-bg, #081628);
+  clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 0 100%);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-left: 3px solid var(--rffm-dash-accent, #00e5ff);
   display: flex;
   flex-direction: column;
 }
 
+/* Diagonal accent corner fill — matches the clip chamfer shape */
+.container::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 20px;
+  height: 20px;
+  background: var(--rffm-dash-accent, #00e5ff);
+  clip-path: polygon(0 0, 100% 100%, 100% 0);
+  opacity: 0.35;
+  pointer-events: none;
+}
+
 .title {
-  margin: 0 0 16px 0;
-  font-size: 18px;
+  flex-shrink: 0;
+  margin: 0 0 10px 0;
+  font-size: 15px;
   font-weight: 600;
   color: #ffffff;
 }

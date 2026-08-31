@@ -72,3 +72,28 @@
      it. */
   margin-top: auto;
 }
+
+/* ===== Compact mode — dashboard widget (NewsWidget) =====
+   Used only inside NewsWidget.module.css's `.container`, which stretches to
+   match "Próximos eventos"'s row in TeamDashboard.module.css's shared grid
+   (see that file's comment) — this card (`.card`'s own `height: 100%`,
+   Carousel's `.slide > *` chain) fills whatever that stretched height turns
+   out to be. Overrides the default 16:9 image band with a shorter
+   fixed-height cover so there's always room left to show the subtitle
+   (the news body/summary), not just the title and date. */
+.compact .image {
+  aspect-ratio: auto;
+  height: 72px;
+  object-fit: cover;
+}
+
+.compact .content {
+  padding: 10px 12px;
+}
+
+.compact .subtitle {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

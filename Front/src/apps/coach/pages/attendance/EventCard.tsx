@@ -277,7 +277,7 @@ export default function EventCard({ event, eventTypeName, onDeleted, onEdited, a
 
   return (
     <div
-      className={`${styles.card} ${isMatch ? styles.cardMatch : ""} ${
+      className={`${styles.card} ${compact ? styles.compact : ""} ${isMatch ? styles.cardMatch : ""} ${
         isTraining
           ? event.hasConvokedPlayers
             ? styles.cardConvocationOpen

@@ -5,35 +5,40 @@
   padding-bottom: 24px;
 }
 
-.widgetsContainer {
+/* One shared grid for every card on the page — "Próximos eventos" and
+   "Últimas noticias" (UpcomingEventsWidget/NewsWidget) are just two more
+   cards flowing in the same rows as the LauncherTile quick-access grid
+   (TeamDashboardCards, which renders a flat list of tiles with no grid
+   wrapper of its own — see its own comment), not a separate section above
+   it.
+
+   Every row gets the same 270px floor via grid-auto-rows, and LauncherTile
+   /NewsListCard fill it with height: 100%. UpcomingEventsWidget (usually
+   the card with the most content — event title, meta, badges) is left at
+   its natural `auto` height instead of being squeezed to fit a fixed box,
+   so its content is never clipped; the `auto` half of minmax() lets its
+   row (and everything sharing it) grow taller together if it ever needs
+   more than the 270px floor, rather than guessing a single "correct" pixel
+   value that could clip content again later. */
+.dashboardGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-auto-rows: minmax(270px, auto);
+  gap: 12px;
   margin-bottom: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
 }
 
-/* Side-by-side on desktop/tablet — same 769px breakpoint already used for
-   the carousel's own desktop card-width cap (Carousel.module.css), so both
-   changes agree on where "desktop" starts. Stays stacked (column, full
-   width) below that, unchanged. */
 @media (min-width: 769px) {
-  .widgetsContainer {
-    flex-direction: row;
-    /* stretch (not flex-start): "Próximos eventos" (EventCard, fixed
-       320px-tall card) is naturally taller than "Últimas noticias"
-       (NewsListCard, ~image + two text lines). Stretching both columns to
-       the row's tallest child keeps the two widget backgrounds/borders
-       level instead of the shorter one trailing off early. */
-    align-items: stretch;
+  .dashboardGrid {
+    grid-template-columns: repeat(4, 1fr);
     gap: 16px;
   }
+}
 
-  .widgetsContainer > * {
-    flex: 1 1 0;
-    /* Let each widget (and its Carousel) shrink below its content's natural
-       width instead of overflowing the row — flex items default to
-       min-width: auto, which would otherwise force each column as wide as
-       the widest slide. */
-    min-width: 0;
-  }
+.dashboardGrid > * {
+  /* Let each card (and, for the widgets, their Carousel) shrink below its
+     content's natural width instead of overflowing its column — grid items
+     default to min-width: auto, which would otherwise force the column
+     wider than 1fr to fit the widest content. */
+  min-width: 0;
 }

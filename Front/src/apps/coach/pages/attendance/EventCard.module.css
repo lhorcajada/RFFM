@@ -396,6 +396,65 @@
   z-index: 2;
 }
 
+/* ===== Compact mode — dashboard widget (UpcomingEventsWidget) =====
+   Read-only preview of the same card used in the Attendance list, just
+   without the actions footer/dialogs — height is left at its natural
+   `auto` (overriding the base .card's fixed 320px) instead of forced into
+   a fixed box, so all of the event's content (badges, chips, location...)
+   stays visible instead of being clipped. UpcomingEventsWidget.module.css's
+   `.container` is itself `auto`-height for the same reason, and
+   TeamDashboard.module.css's shared grid row grows to match this card when
+   it needs more than the grid's 270px floor. */
+.compact {
+  height: auto;
+}
+
+.compact .header,
+.compact .matchHeader {
+  height: 76px;
+}
+
+.compact .avatar {
+  font-size: 1.7rem;
+}
+
+.compact .matchShield,
+.compact .matchShieldPlaceholder {
+  width: 30px;
+  height: 30px;
+}
+
+.compact .matchTeamName {
+  font-size: 0.6rem;
+}
+
+.compact .matchTeamBlock {
+  padding-top: 10px;
+  gap: 4px;
+}
+
+.compact .matchCenter {
+  padding-top: 8px;
+}
+
+.compact .matchScore {
+  font-size: 1.15rem;
+}
+
+.compact .matchVs {
+  font-size: 0.95rem;
+}
+
+.compact .homeBadge {
+  font-size: 0.54rem;
+  bottom: 4px;
+}
+
+.compact .body {
+  padding: 8px 12px 8px;
+  gap: 4px;
+}
+
 /* ===== Responsive — narrower viewport ===== */
 @media (max-width: 480px) {
   .card {
@@ -426,6 +485,17 @@
   }
   .matchVs {
     font-size: 1.1rem;
+  }
+
+  .compact {
+    height: auto;
+  }
+  .compact .header,
+  .compact .matchHeader {
+    height: 50px;
+  }
+  .compact .avatar {
+    font-size: 1.3rem;
   }
 }
 
