@@ -456,6 +456,10 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isTrainin
                     if (!canEdit) return alert("No se puede editar: el evento ya ha comenzado.");
                     setDeconvokeDialog({ open: true, conv: cv });
                   }}
+                  onEditReason={(cv) => {
+                    if (!canEdit) return alert("No se puede editar: el evento ya ha comenzado.");
+                    setDeconvokeDialog({ open: true, conv: cv });
+                  }}
                   onMoveToWaiting={(cv) => handleMoveToWaiting(cv.id)}
                 />
               );
@@ -532,6 +536,13 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isTrainin
                   canReactivateFromDeconvoke={canReactivateFromDeconvoke}
                   onChangeStatus={handleChangeStatus}
                   onDelete={(cv) => {
+                    if (!canEdit)
+                      return alert(
+                        "No se puede editar: el evento ya ha comenzado."
+                      );
+                    setDeconvokeDialog({ open: true, conv: cv });
+                  }}
+                  onEditReason={(cv) => {
                     if (!canEdit)
                       return alert(
                         "No se puede editar: el evento ya ha comenzado."
@@ -834,8 +845,27 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isTrainin
         onClose={() => setDeconvokeDialog({ open: false })}
         excuseTypes={excuseTypes}
         hideTechnical={(!isMatch && !!deconvokeDialog.waitingPlayerId) || (isPlayerOrFamily && !!deconvokeDialog.conv)}
-        confirmLabel={deconvokeDialog.waitingPlayerId ? "Rechazar" : "Desconvocar"}
-        title={deconvokeDialog.waitingPlayerId ? "Motivo del rechazo" : undefined}
+        confirmLabel={
+          deconvokeDialog.waitingPlayerId
+            ? "Rechazar"
+            : deconvokeDialog.conv?.status === deconvokeStatusId
+            ? "Guardar"
+            : "Desconvocar"
+        }
+        title={
+          deconvokeDialog.waitingPlayerId
+            ? "Motivo del rechazo"
+            : deconvokeDialog.conv?.status === deconvokeStatusId
+            ? "Editar motivo de desconvocatoria"
+            : undefined
+        }
+        initialValue={
+          deconvokeDialog.conv && deconvokeDialog.conv.status === deconvokeStatusId
+            ? deconvokeDialog.conv.excuseTypeId
+              ? String(deconvokeDialog.conv.excuseTypeId)
+              : "technical"
+            : undefined
+        }
         onConfirm={async (reason) => {
           const excuseTypeId = reason === "technical" ? null : Number(reason);
           try {

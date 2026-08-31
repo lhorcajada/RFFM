@@ -19,6 +19,8 @@ type Props = {
   hideTechnical?: boolean;
   title?: string;
   confirmLabel?: string;
+  /** Preselects an option (excuse type id as string, or "technical") when the dialog opens. */
+  initialValue?: string;
 };
 
 const TECHNICAL_NAMES = ["decisión técnica", "decision tecnica", "technical decision"];
@@ -30,12 +32,12 @@ const ALL_OPTIONS = (excuseTypes: ExcuseType[], hideTechnical?: boolean) => [
     .map((ex) => ({ value: String(ex.id), label: ex.name, justified: ex.justified ?? false })),
 ];
 
-export default function DeconvokeDialog({ open, onClose, excuseTypes, onConfirm, hideTechnical, title, confirmLabel }: Props) {
-  const [value, setValue] = React.useState<string>("");
+export default function DeconvokeDialog({ open, onClose, excuseTypes, onConfirm, hideTechnical, title, confirmLabel, initialValue }: Props) {
+  const [value, setValue] = React.useState<string>(initialValue ?? "");
 
   React.useEffect(() => {
-    if (!open) setValue("");
-  }, [open]);
+    setValue(open ? initialValue ?? "" : "");
+  }, [open, initialValue]);
 
   const options = ALL_OPTIONS(excuseTypes, hideTechnical);
 

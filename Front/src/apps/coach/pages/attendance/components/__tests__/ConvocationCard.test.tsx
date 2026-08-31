@@ -157,3 +157,83 @@ describe("ConvocationCard - reactivación de una convocatoria desconvocada", () 
     expect(screen.queryByRole("button", { name: /Lista de espera/i })).not.toBeInTheDocument();
   });
 });
+
+describe("ConvocationCard - edición del motivo de desconvocatoria", () => {
+  it("muestra el botón 'Editar motivo' para una convocatoria desconvocada cuando canEditThisConvocation es verdadero", () => {
+    render(
+      <MemoryRouter>
+        <ConvocationCard
+          conv={deconvokedConv()}
+          statuses={statuses}
+          excuseTypes={[]}
+          canEdit={true}
+          canEditThisConvocation={true}
+          onChangeStatus={vi.fn()}
+          onDelete={vi.fn()}
+          onEditReason={vi.fn()}
+        />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByRole("button", { name: /Editar motivo/i })).toBeInTheDocument();
+  });
+
+  it("no muestra el botón 'Editar motivo' cuando canEditThisConvocation es falso", () => {
+    render(
+      <MemoryRouter>
+        <ConvocationCard
+          conv={deconvokedConv()}
+          statuses={statuses}
+          excuseTypes={[]}
+          canEdit={true}
+          canEditThisConvocation={false}
+          onChangeStatus={vi.fn()}
+          onDelete={vi.fn()}
+          onEditReason={vi.fn()}
+        />
+      </MemoryRouter>
+    );
+
+    expect(screen.queryByRole("button", { name: /Editar motivo/i })).not.toBeInTheDocument();
+  });
+
+  it("no muestra el botón 'Editar motivo' cuando no se proporciona onEditReason", () => {
+    render(
+      <MemoryRouter>
+        <ConvocationCard
+          conv={deconvokedConv()}
+          statuses={statuses}
+          excuseTypes={[]}
+          canEdit={true}
+          canEditThisConvocation={true}
+          onChangeStatus={vi.fn()}
+          onDelete={vi.fn()}
+        />
+      </MemoryRouter>
+    );
+
+    expect(screen.queryByRole("button", { name: /Editar motivo/i })).not.toBeInTheDocument();
+  });
+
+  it("llama a onEditReason con la convocatoria al pulsar 'Editar motivo'", async () => {
+    const onEditReason = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <ConvocationCard
+          conv={deconvokedConv({ excuseTypeId: 5 })}
+          statuses={statuses}
+          excuseTypes={[{ id: 5, name: "Lesión" }]}
+          canEdit={true}
+          canEditThisConvocation={true}
+          onChangeStatus={vi.fn()}
+          onDelete={vi.fn()}
+          onEditReason={onEditReason}
+        />
+      </MemoryRouter>
+    );
+
+    await user.click(screen.getByRole("button", { name: /Editar motivo/i }));
+    expect(onEditReason).toHaveBeenCalledWith(deconvokedConv({ excuseTypeId: 5 }));
+  });
+});

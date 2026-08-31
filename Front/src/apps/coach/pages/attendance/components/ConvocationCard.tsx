@@ -31,6 +31,12 @@ type Props = {
   ) => void;
   onDelete: (conv: ConvocationItem) => void;
   onMoveToWaiting?: (conv: ConvocationItem) => void;
+  /**
+   * Opens the reason dialog to change the excuse reason of an already
+   * Deconvoked convocation. Only rendered when the caller both provides this
+   * handler and the current user can edit this convocation.
+   */
+  onEditReason?: (conv: ConvocationItem) => void;
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -69,6 +75,7 @@ export default function ConvocationCard({
   onChangeStatus,
   onDelete,
   onMoveToWaiting,
+  onEditReason,
 }: Props) {
   const p = conv.player as any;
   const statusName = statuses.find((s) => s.id === conv.status)?.name ?? "";
@@ -197,6 +204,14 @@ export default function ConvocationCard({
                       {excuseLabel}
                     </span>
                   </div>
+                )}
+                {onEditReason && canDoAction && (
+                  <button
+                    className={`${styles.optionBtn} ${styles.optionBtnGray}`}
+                    onClick={() => onEditReason(conv)}
+                  >
+                    ✎ Editar motivo
+                  </button>
                 )}
                 {showReactivateControls && (
                   <div className={styles.optionGroup}>
