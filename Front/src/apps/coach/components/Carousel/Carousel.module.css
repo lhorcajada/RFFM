@@ -61,9 +61,15 @@
    ~250-260px) since these carousel cards carry more content (badges,
    actions) than either — not an arbitrary new value picked in isolation. */
 @media (min-width: 769px) {
+  /* .slide is flex-direction: column (base rule, so .slide > * can grow to
+     the slide's full height on mobile too) — its main axis is vertical, so
+     centering the capped-width card horizontally means aligning the CROSS
+     axis (align-items), not justify-content (which centers main-axis /
+     vertical space that .slide > *'s flex: 1 already fully occupies).
+     justify-content: center here was a no-op, which is why cards rendered
+     flush left instead of centered. */
   .slide {
-    display: flex;
-    justify-content: center;
+    align-items: center;
   }
 
   .slide > * {

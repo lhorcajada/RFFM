@@ -5,12 +5,17 @@
 
 .coverImage {
   width: 100%;
-  /* Fixed aspect ratio + object-fit: cover so the source image is cropped
-     to fill, never stretched/warped regardless of its native dimensions. */
+  /* aspect-ratio is set inline once the image loads, matching its natural
+     dimensions, so the photo displays whole with no crop; this 16/9 is only
+     the placeholder shape before that measurement lands. object-fit: contain
+     plus a background lets a portrait image fit height-first without losing
+     its sides. */
   aspect-ratio: 16 / 9;
-  object-fit: cover;
+  max-height: 65vh;
+  object-fit: contain;
+  background: var(--rffm-hero-surface, #15182c);
   display: block;
-  margin-bottom: 16px;
+  margin: 0 auto 16px;
   border-radius: 8px;
 }
 

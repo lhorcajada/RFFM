@@ -4,16 +4,16 @@
   background: linear-gradient(160deg, #22223a 0%, #14142b 45%, #1c1c34 100%);
   border-radius: 12px;
   border: 1px solid rgba(120, 155, 230, 0.3);
-  /* Fill the stretched column height (TeamDashboard.module.css's
-     .widgetsContainer, desktop/tablet only) — this widget's content
-     (NewsListCard) is naturally shorter than the sibling "Próximos
-     eventos" widget's fixed-height EventCard, so without this the two
-     widget backgrounds would end at different heights in the row. On
-     mobile (.widgetsContainer stacked, height: auto) this has no visible
-     effect. */
+  /* No explicit height: with the cross-size left "auto", the parent's
+     align-items: stretch (TeamDashboard.module.css's .widgetsContainer,
+     desktop/tablet only) grows this widget to match the row's tallest
+     sibling ("Próximos eventos", whose EventCard is naturally taller).
+     Setting height: 100% here instead breaks that — a definite percentage
+     height opts the item OUT of stretch sizing, so it keeps its own
+     shorter natural content height. On mobile (.widgetsContainer stacked)
+     this has no visible effect either way. */
   display: flex;
   flex-direction: column;
-  height: 100%;
 }
 
 .title {

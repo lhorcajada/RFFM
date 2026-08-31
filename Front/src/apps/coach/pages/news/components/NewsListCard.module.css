@@ -26,14 +26,17 @@
 
 .image {
   width: 100%;
-  /* Fixed aspect ratio + object-fit: cover so the source image is cropped
-     to fill, never stretched — adapts cleanly to the card's own width
-     instead of a fixed px height that would look off once the card's
-     width changes (e.g. inside the carousel's desktop max-width).
+  /* Fixed aspect ratio keeps every card the same height in the grid
+     regardless of the source image's own proportions — adapts cleanly to
+     the card's own width instead of a fixed px height that would look off
+     once the card's width changes (e.g. inside the carousel's desktop
+     max-width). object-fit: contain + a background letterboxes portrait or
+     poster-style covers instead of cropping their text/content away.
      flex-shrink: 0 keeps this fixed-ratio block from being squashed once
      `.card` stretches taller than its natural content. */
   aspect-ratio: 16 / 9;
-  object-fit: cover;
+  object-fit: contain;
+  background: var(--rffm-hero-surface, #15182c);
   display: block;
   flex-shrink: 0;
 }

@@ -139,6 +139,7 @@ const coachTheme = createTheme({
           "--rffm-primary": "#4d9de0",
           "--rffm-secondary": "#4ec9b0",
           "--rffm-coach-dialog-text": "#e8e8e8",
+          "--rffm-text-primary": "#e8e8e8",
           /* FC26 dashboard card vars */
           "--rffm-dash-card-bg": "#111128",
           "--rffm-dash-accent": "#4d9de0",

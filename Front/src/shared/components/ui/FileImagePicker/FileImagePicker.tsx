@@ -9,6 +9,7 @@ export default function FileImagePicker({
   onChange,
   previewWidth = 72,
   previewHeight = 90,
+  previewFit = "cover",
 }: {
   id: string;
   label?: string;
@@ -17,6 +18,8 @@ export default function FileImagePicker({
   onChange?: (f: File | null) => void;
   previewWidth?: number;
   previewHeight?: number;
+  /** "cover" crops to fill (club emblems); "contain" shows the whole photo, letterboxed. */
+  previewFit?: "cover" | "contain";
 }) {
   const [preview, setPreview] = React.useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -88,11 +91,12 @@ export default function FileImagePicker({
       <div>
         {preview ? (
           <div
-            className={styles.shieldPreview}
+            className={`${styles.shieldPreview} ${previewFit === "contain" ? styles.shieldPreviewContain : ""}`}
             style={{
               width: previewWidth,
               height: previewHeight,
               backgroundImage: `url(${preview})`,
+              backgroundSize: previewFit,
             }}
           />
         ) : (

@@ -10,6 +10,7 @@ import {
 } from "@mui/material";
 import FileImagePicker from "../../../../../shared/components/ui/FileImagePicker/FileImagePicker";
 import newsService, { type NewsDetailDto, type NewsPayload } from "../../../services/newsService";
+import { useCoverImageUrl } from "../../../hooks/useCoverImageUrl";
 import styles from "./NewsFormDialog.module.css";
 
 interface Props {
@@ -36,6 +37,7 @@ export default function NewsFormDialog({ open, initialValue, onClose, onSaved }:
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
+  const existingCoverImageSrc = useCoverImageUrl(!file ? coverImageUrl : null);
 
   useEffect(() => {
     if (!open) return;
@@ -136,12 +138,24 @@ export default function NewsFormDialog({ open, initialValue, onClose, onSaved }:
           margin="normal"
           InputLabelProps={{ shrink: true }}
         />
-        <FileImagePicker
-          id="news-cover-image"
-          label="Imagen de portada"
-          file={file}
-          onChange={handleFileChange}
-        />
+        <div className={styles.coverImageSection}>
+          {existingCoverImageSrc && !file && (
+            <img
+              src={existingCoverImageSrc}
+              alt="Portada actual"
+              className={styles.coverPreview}
+            />
+          )}
+          <FileImagePicker
+            id="news-cover-image"
+            label={existingCoverImageSrc ? "Cambiar imagen de portada" : "Imagen de portada"}
+            file={file}
+            onChange={handleFileChange}
+            previewWidth={144}
+            previewHeight={81}
+            previewFit="contain"
+          />
+        </div>
         {uploading && <CircularProgress size={20} />}
         {errors.coverImageUrl && (
           <p className={styles.errorText}>{errors.coverImageUrl}</p>

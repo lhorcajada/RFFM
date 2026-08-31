@@ -14,6 +14,7 @@ export default function NewsDetail() {
   const [news, setNews] = useState<NewsDetailDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [coverAspectRatio, setCoverAspectRatio] = useState<string | undefined>(undefined);
   const coverImageSrc = useCoverImageUrl(news?.coverImageUrl);
 
   useEffect(() => {
@@ -49,9 +50,20 @@ export default function NewsDetail() {
           </Button>
         }
       >
-        <Box sx={{ p: 3 }}>
+        <Box sx={{ p: 3 }} className={styles.container}>
           {coverImageSrc && (
-            <img src={coverImageSrc} alt={news.title} className={styles.coverImage} />
+            <img
+              src={coverImageSrc}
+              alt={news.title}
+              className={styles.coverImage}
+              style={coverAspectRatio ? { aspectRatio: coverAspectRatio } : undefined}
+              onLoad={(e) => {
+                const { naturalWidth, naturalHeight } = e.currentTarget;
+                if (naturalWidth && naturalHeight) {
+                  setCoverAspectRatio(`${naturalWidth} / ${naturalHeight}`);
+                }
+              }}
+            />
           )}
           <p className={styles.date}>{new Date(news.newsDate).toLocaleDateString("es-ES", { dateStyle: "medium" })}</p>
           <div className={styles.body}>{news.body}</div>
