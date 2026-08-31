@@ -226,7 +226,7 @@ export default function EventCard({ event, eventTypeName, onDeleted, onEdited, a
 
   const actions = (
     <div className={styles.actions}>
-      {isMatch ? (
+      {isMatch && !isPlayer ? (
         <Tooltip title="Ir al partido">
           <IconButton
             size="small"

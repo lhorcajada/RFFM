@@ -219,6 +219,7 @@ export default function Convocations() {
               return y === year && mo - 1 === month;
             })}
             onNavigate={handleMatchClick}
+            isPlayer={isPlayer}
           />
         )}
         </div>

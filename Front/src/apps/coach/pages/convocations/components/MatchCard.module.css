@@ -4,6 +4,10 @@
   /* placeholder for component-scoped overrides */
 }
 
+.nonInteractive {
+  cursor: default;
+}
+
 /* ─── Match category indicator (League / Friendly / Tournament) ───────── */
 .categoryChip {
   position: absolute;

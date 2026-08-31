@@ -31,6 +31,7 @@ export default function MatchCard({ match, onNavigate, attendanceSummary, isPlay
   const CategoryIcon = categoryMeta?.icon;
   const cardClass = [
     convStyles.matchCard,
+    isPlayer ? localStyles.nonInteractive : "",
     result === "won"  ? convStyles.matchCardWon  : "",
     result === "draw" ? convStyles.matchCardDraw : "",
     result === "lost" ? convStyles.matchCardLost : "",
@@ -53,10 +54,12 @@ export default function MatchCard({ match, onNavigate, attendanceSummary, isPlay
   return (
     <div
       className={cardClass}
-      onClick={() => onNavigate(match)}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => { if ((e as any).key === "Enter") onNavigate(match); }}
+      onClick={isPlayer ? undefined : () => onNavigate(match)}
+      role={isPlayer ? undefined : "button"}
+      tabIndex={isPlayer ? undefined : 0}
+      onKeyDown={isPlayer ? undefined : (event: KeyboardEvent<HTMLDivElement>) => {
+        if (event.key === "Enter") onNavigate(match);
+      }}
     >
       {categoryMeta && CategoryIcon && (
         <span

@@ -207,7 +207,10 @@ function CoachRoutesContent() {
             <Route
               path="convocations/match"
               element={
-                <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.Convocations}>
+                <RequireFeaturePermission
+                  featureRoute={COACH_FEATURE_ROUTES.Convocations}
+                  allowPlayerAccess={false}
+                >
                   <ConvocationMatchDetail />
                 </RequireFeaturePermission>
               }

@@ -2,10 +2,12 @@ import React, { useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { Box, CircularProgress } from "@mui/material";
 import { usePermissions } from "../../../shared/hooks/usePermissions";
+import { useIsPlayerRole } from "../hooks/useIsPlayerRole";
 
 interface RequireFeaturePermissionProps {
   featureRoute: string;
   children: React.ReactNode;
+  allowPlayerAccess?: boolean;
   /** Where to redirect when access is denied. Defaults to the general Coach dashboard. */
   redirectTo?: string;
 }
@@ -19,10 +21,12 @@ interface RequireFeaturePermissionProps {
 export const RequireFeaturePermission: React.FC<RequireFeaturePermissionProps> = ({
   featureRoute,
   children,
+  allowPlayerAccess = true,
   redirectTo = "/coach/dashboard",
 }) => {
   const { loading, hasFeatureAccess } = usePermissions();
-  const allowed = hasFeatureAccess(featureRoute);
+  const isPlayer = useIsPlayerRole();
+  const allowed = hasFeatureAccess(featureRoute) && (allowPlayerAccess || !isPlayer);
 
   useEffect(() => {
     if (!loading && !allowed) {

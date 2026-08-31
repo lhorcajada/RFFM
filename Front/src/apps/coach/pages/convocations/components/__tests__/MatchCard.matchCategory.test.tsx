@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { describe, it, expect } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import MatchCard from "../MatchCard";
 import type { NormalizedMatch } from "../../types";
@@ -33,6 +33,22 @@ function renderCard(match: NormalizedMatch) {
 }
 
 describe("MatchCard - indicador de categoría de partido", () => {
+  it("no permite navegar al partido a jugadores o familiares", () => {
+    const onNavigate = vi.fn();
+    const { container } = render(
+      <MemoryRouter>
+        <MatchCard match={baseMatch()} onNavigate={onNavigate} isPlayer />
+      </MemoryRouter>
+    );
+    const card = container.firstElementChild;
+
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    expect(card).not.toHaveAttribute("tabindex");
+    fireEvent.click(card as Element);
+    fireEvent.keyDown(card as Element, { key: "Enter" });
+    expect(onNavigate).not.toHaveBeenCalled();
+  });
+
   it("muestra la etiqueta Liga para un partido de liga", () => {
     renderCard(baseMatch({ matchCategory: "League" }));
     expect(screen.getByText(/liga/i)).toBeInTheDocument();

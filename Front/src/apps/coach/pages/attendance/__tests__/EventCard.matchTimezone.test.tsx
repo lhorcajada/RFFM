@@ -41,6 +41,17 @@ function baseEvent(overrides: Partial<SportEventResponse> = {}): SportEventRespo
 }
 
 describe("EventCard - toMatchState convierte la hora UTC a hora local", () => {
+  it("no permite al jugador o familiar abrir el detalle del partido desde el calendario", () => {
+    render(
+      <MemoryRouter initialEntries={["/coach/attendance?teamId=team-1"]}>
+        <EventCard event={baseEvent()} eventTypeName="Partido" isPlayer />
+      </MemoryRouter>
+    );
+
+    expect(screen.queryByRole("button", { name: /ir al partido/i })).not.toBeInTheDocument();
+    expect(navigateMock).not.toHaveBeenCalled();
+  });
+
   it("navega con la hora del partido convertida a la hora local (Europe/Madrid, CEST +2)", () => {
     // 2026-08-31T18:00:00Z en UTC corresponde a las 20:00 en Europe/Madrid (CEST, verano, +2h)
     const event = baseEvent({ eveDateTime: "2026-08-31T18:00:00Z", startTime: "2026-08-31T18:00:00Z" });

@@ -3,8 +3,8 @@ import MatchCard from "./MatchCard";
 import convStyles from "../Convocations.module.css";
 import localStyles from "./AgendaList.module.css";
 
-export default function AgendaList({ matches, onNavigate }:
-  { matches: NormalizedMatch[]; onNavigate: (m: NormalizedMatch) => void }) {
+export default function AgendaList({ matches, onNavigate, isPlayer }:
+  { matches: NormalizedMatch[]; onNavigate: (m: NormalizedMatch) => void; isPlayer?: boolean }) {
   const sorted = [...matches].sort((a, b) => a.date.localeCompare(b.date));
   if (sorted.length === 0) return null;
 
@@ -27,7 +27,7 @@ export default function AgendaList({ matches, onNavigate }:
         <div key={date} className={convStyles.agendaGroup}>
           <div className={convStyles.agendaDateLabel}>{formatDate(date)}</div>
           {items.map((match, i) => (
-            <MatchCard key={i} match={match} onNavigate={onNavigate} />
+            <MatchCard key={i} match={match} onNavigate={onNavigate} isPlayer={isPlayer} />
           ))}
         </div>
       ))}
