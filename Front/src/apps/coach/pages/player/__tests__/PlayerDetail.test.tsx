@@ -32,15 +32,11 @@ const mockTeamPlayer = {
   player: { name: "Juan", lastName: "Pérez", alias: "Juanito" },
   demarcation: { activePositionName: "Delantero" },
   familyMembers: [
-    { name: "Ana", phone: "111", email: "ana@test.com", familyMember: "Mother" },
+    { id: "fm-1", name: "Ana", lastName: "García", phone: "111", email: "ana@test.com", familyMember: "Mother" },
   ],
 };
 
-const mockForm = {
-  familyMembers: [
-    { name: "Ana", phone: "111", email: "ana@test.com", familyMemberId: 1 },
-  ],
-};
+const mockForm = {};
 
 vi.mock("../hooks/usePlayerDetailData", () => ({
   usePlayerDetailData: () => ({
@@ -288,7 +284,7 @@ describe("PlayerDetail — edición restringida por pestaña (Player/FamilyMembe
     const { default: userEvent } = await import("@testing-library/user-event");
     await userEvent.click(screen.getByRole("tab", { name: /familia/i }));
 
-    expect(screen.getByDisplayValue("Ana")).toBeInTheDocument();
+    expect(screen.getByText("Ana García")).toBeInTheDocument();
   });
 
   it("muestra el formulario de edición de Familia para el rol Coach en modo edición (nuevo, sin regresión)", async () => {
@@ -300,7 +296,7 @@ describe("PlayerDetail — edición restringida por pestaña (Player/FamilyMembe
     await userEvent.click(screen.getByRole("button", { name: /^editar$/i }));
     await userEvent.click(screen.getByRole("tab", { name: /familia/i }));
 
-    expect(screen.getByDisplayValue("Ana")).toBeInTheDocument();
+    expect(screen.getByText("Ana García")).toBeInTheDocument();
   });
 
   it("muestra controles de edición en Demarcación para el rol Coach en modo edición (sin regresión)", async () => {

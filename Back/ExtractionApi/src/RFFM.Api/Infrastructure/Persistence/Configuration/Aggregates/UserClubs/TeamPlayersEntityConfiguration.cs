@@ -1,26 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using Microsoft.EntityFrameworkCore.ValueGeneration;
 using RFFM.Api.Domain.Entities.PlayerFeet;
 using RFFM.Api.Domain.Entities.TeamPlayers;
 
 namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.UserClubs
 {
-    /// <summary>
-    /// Generates a GUID-based string for shadow "Id" key properties on owned entity types
-    /// that (unlike <see cref="RFFM.Api.Domain.BaseEntity"/>) have no CLR Id property to
-    /// initialize eagerly. EF Core only auto-generates values by convention for numeric/Guid
-    /// keys, never for string keys, so this is required for the "TeamPlayerFamilies" owned
-    /// collection below to be insertable at all.
-    /// </summary>
-    internal class GuidStringValueGenerator : ValueGenerator<string>
-    {
-        public override string Next(EntityEntry entry) => Guid.NewGuid().ToString();
-
-        public override bool GeneratesTemporaryValues => false;
-    }
-
     internal class TeamPlayerEntityConfiguration : IEntityTypeConfiguration<TeamPlayer>
     {
         public void Configure(EntityTypeBuilder<TeamPlayer> builder)
@@ -142,69 +126,10 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.UserClubs
                 });
             
 
-            // Configuración de FamilyMembers como colección owned
-            builder.OwnsMany(tp => tp.FamilyMembers, family =>
-            {
-                family.ToTable("TeamPlayerFamilies");
-
-                // Shadow primary key for the owned entity
-                family.Property<string>("Id")
-                    .ValueGeneratedOnAdd()
-                    .HasValueGenerator<GuidStringValueGenerator>();
-                family.HasKey("Id");
-
-                family.Property(f => f.Phone)
-                    .HasMaxLength(15)
-                    .IsRequired(false);
-
-                family.Property(f => f.Email)
-                    .HasMaxLength(255)
-                    .IsRequired(false);
-
-                family.Property(f => f.Name)
-                    .HasMaxLength(100)
-                    .IsRequired(false);
-
-                family.Property(f => f.FamilyMember)
-                    .HasMaxLength(50)
-                    .IsRequired(false);
-
-                family.Property(f => f.Dni)
-                    .HasMaxLength(20)
-                    .IsRequired(false);
-
-                // FK back to TeamPlayer (owner)
-                family.WithOwner().HasForeignKey("TeamPlayerId");
-
-                // Configuración de Address dentro de FamilyMembers
-                family.OwnsOne(f => f.Address, address =>
-                {
-                    address.Property<string>("Id");
-
-                    address.Property(a => a.Street)
-                        .HasMaxLength(200)
-                        .IsRequired(false);
-
-                    address.Property(a => a.City)
-                        .HasMaxLength(100)
-                        .IsRequired(false);
-
-                    address.Property(a => a.Province)
-                        .HasMaxLength(100)
-                        .IsRequired(false);
-
-                    address.Property(a => a.PostalCode)
-                        .HasMaxLength(20)
-                        .IsRequired(false);
-
-                    address.Property(a => a.Country)
-                        .HasMaxLength(100)
-                        .IsRequired(false);
-
-                    address.WithOwner();
-                });
-            });
-
+            // FamilyMembers is now a first-level entity (TeamPlayerFamilyMember), configured in
+            // its own IEntityTypeConfiguration -- see
+            // TeamPlayerFamilyMemberEntityConfiguration.cs (openspec change
+            // player-family-members-crud).
         }
     }
 }

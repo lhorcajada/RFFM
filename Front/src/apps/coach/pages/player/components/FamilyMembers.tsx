@@ -10,7 +10,14 @@ type Props = { teamPlayer: TeamPlayerResponse };
 const FAMILY_MEMBER_LABEL: Record<string, string> = {
   Mother: "Madre",
   Father: "Padre",
+  LegalGuardian: "Tutor legal",
+  Other: "Otro",
 };
+
+function fullName(f: { name?: string | null; lastName?: string | null }) {
+  const parts = [f.name, f.lastName].filter((p): p is string => Boolean(p && p.trim()));
+  return parts.length > 0 ? parts.join(" ") : "Sin nombre";
+}
 
 function initials(name?: string | null) {
   const trimmed = (name ?? "").trim();
@@ -29,11 +36,11 @@ export default function FamilyMembers({ teamPlayer }: Props) {
       <div className={styles.sectionInner}>
         <h3>Familiares</h3>
         {members.length > 0 ? (
-          members.map((f: any, i: number) => (
-            <div key={i} className={styles.memberCard}>
+          members.map((f, i) => (
+            <div key={f.id ?? i} className={styles.memberCard}>
               <div className={styles.memberHeader}>
-                <div className={styles.memberAvatar}>{initials(f.name)}</div>
-                <div className={styles.memberName}>{f.name ?? "Sin nombre"}</div>
+                <div className={styles.memberAvatar}>{initials([f.name, f.lastName].filter(Boolean).join(" "))}</div>
+                <div className={styles.memberName}>{fullName(f)}</div>
                 {f.familyMember && (
                   <div className={styles.memberRoleBadge}>
                     {FAMILY_MEMBER_LABEL[f.familyMember] ?? f.familyMember}

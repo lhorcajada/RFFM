@@ -17,7 +17,7 @@ namespace RFFM.Api.Domain.Entities.TeamPlayers
         public Dorsal? Dorsal { get; set; }
         public PhysicalAttributes? PhysicalInfo { get; set; }
 
-        public List<Family> FamilyMembers { get; set; } = new();
+        public List<TeamPlayerFamilyMember> FamilyMembers { get; private set; } = new();
         public Demarcation? Demarcation { get; set; } = null!;
         public ICollection<TeamPlayerInjury> Injuries { get; private set; } = new List<TeamPlayerInjury>();
         public ICollection<TeamPlayerSanction> Sanctions { get; private set; } = new List<TeamPlayerSanction>();
@@ -150,18 +150,19 @@ namespace RFFM.Api.Domain.Entities.TeamPlayers
         {
             if (familyMembers == null || familyMembers.Count == 0)
             {
-                FamilyMembers = new List<Family>();
+                FamilyMembers = new List<TeamPlayerFamilyMember>();
                 return;
             }
 
             // When the incoming list has the same size as the current one, update each existing
-            // Family instance in place (by position) instead of replacing the collection. This
-            // preserves the owned-entity identity EF Core already tracks (shadow "Id" key), which
-            // a full replace with brand-new instances cannot do since those instances have no key
-            // assigned yet. Only editing existing family members is supported here (no add/remove).
+            // TeamPlayerFamilyMember instance in place (by position) instead of replacing the
+            // collection, so unrelated data (this family member's own Id) doesn't churn. When the
+            // size differs, the collection is replaced: EF Core deletes the orphaned rows (the
+            // TeamPlayerId FK is required) and inserts the new ones on SaveChanges, since this is
+            // now a real entity/DbSet (no owned-collection identity concerns).
             var canUpdateInPlace = FamilyMembers.Count == familyMembers.Count;
 
-            var list = canUpdateInPlace ? FamilyMembers : new List<Family>();
+            var list = canUpdateInPlace ? FamilyMembers : new List<TeamPlayerFamilyMember>();
             for (var i = 0; i < familyMembers.Count; i++)
             {
                 var fm = familyMembers[i];
@@ -178,11 +179,11 @@ namespace RFFM.Api.Domain.Entities.TeamPlayers
 
                 if (canUpdateInPlace)
                 {
-                    list[i].UpdateDetails(address, fm.Phone, fm.Email, fm.Name, familyMember?.Name, fm.Dni);
+                    list[i].UpdateDetails(fm.Name, fm.LastName, fm.Phone, fm.Email, fm.Dni, familyMember?.Name, address);
                 }
                 else
                 {
-                    list.Add(new Family(address, fm.Phone, fm.Email, fm.Name, familyMember?.Name, fm.Dni));
+                    list.Add(TeamPlayerFamilyMember.Create(Id, fm.Name, fm.LastName, fm.Phone, fm.Email, fm.Dni, familyMember?.Name, address));
                 }
             }
 
@@ -225,7 +226,7 @@ namespace RFFM.Api.Domain.Entities.TeamPlayers
             var exists = FamilyMembers.Any(f => string.Equals(f.Email, email, StringComparison.OrdinalIgnoreCase));
             if (exists)
                 return false;
-            FamilyMembers.Add(new Family(address: null, phone: null, email: email, name: null, familyMember: null));
+            FamilyMembers.Add(TeamPlayerFamilyMember.Create(Id, name: null, lastName: null, phone: null, email: email, dni: null, familyMember: null));
             return true;
         }
     }

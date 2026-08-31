@@ -39,7 +39,7 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
         public record ContactInfoResponse(AddressResponse? Address, string? Phone, string? Email);
         public record PhysicalInfoResponse(decimal? Height, decimal? Weight, string? DominantFoot);
         public record DemarcationResponse(int? ActivePositionId, string? ActivePositionName, string[] PossibleDemarcations);
-        public record FamilyResponse(string? Name, string? Phone, string? Email, string? FamilyMember, string? Dni = null);
+        public record FamilyResponse(string Id, string? Name, string? LastName, string? Phone, string? Email, string? FamilyMember, string? Dni = null);
         public record InjuryInfoResponse(string Id, DateTime StartDate, string InjuryType, string? Description, string? EstimatedRecovery, DateTime? EndDate);
 
         public record TeamPlayerResponse(
@@ -72,6 +72,7 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                     .AsNoTracking()
                     .Include(tp => tp.Player)
                     .Include(tp => tp.Injuries)
+                    .Include(tp => tp.FamilyMembers)
                     .FirstOrDefaultAsync(tp => tp.Id == request.TeamPlayerId, cancellationToken);
 
                 if (item == null)
@@ -123,8 +124,8 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                 }
 
                 // family members mapping
-                var fams = (item.FamilyMembers ?? new List<Family>())
-                    .Select(f => new FamilyResponse(f.Name, f.Phone, f.Email, f.FamilyMember, f.Dni))
+                var fams = (item.FamilyMembers ?? new List<Domain.Entities.TeamPlayers.TeamPlayerFamilyMember>())
+                    .Select(f => new FamilyResponse(f.Id, f.Name, f.LastName, f.Phone, f.Email, f.FamilyMember, f.Dni))
                     .ToArray();
 
                 // injury info — active injury (no EndDate)

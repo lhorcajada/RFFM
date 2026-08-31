@@ -255,7 +255,14 @@ namespace RFFM.Api.Features.Coaches.Users.Commands
                         }
                         else if (IsFamilyMember(accountType))
                         {
-                            var trackedTeamPlayer = await _db.TeamPlayers.FirstAsync(tp => tp.Id == resolvedTeamPlayerId, cancellationToken);
+                            // FamilyMembers is a first-level entity/DbSet now (openspec change
+                            // player-family-members-crud), no longer an EF Core owned collection
+                            // that auto-loads regardless of Include -- without this Include,
+                            // AddFamilyMemberEmailIfMissing sees an empty in-memory list and adds
+                            // a duplicate row for an email that already exists in the DB.
+                            var trackedTeamPlayer = await _db.TeamPlayers
+                                .Include(tp => tp.FamilyMembers)
+                                .FirstAsync(tp => tp.Id == resolvedTeamPlayerId, cancellationToken);
                             trackedTeamPlayer.AddFamilyMemberEmailIfMissing(request.Email);
                         }
                     }

@@ -72,14 +72,6 @@ export function usePlayerDetailData(
             activePositionId: tp.demarcation?.activePositionId ?? null,
             possibleDemarcations: (tp.demarcation?.possibleDemarcations ?? []).join(", "),
             urlPhoto: tp.player?.urlPhoto ?? tp.player?.photoUrl ?? null,
-            familyMembers: (tp.familyMembers ?? []).map((f: any) => ({
-              name: f.name ?? "",
-              phone: f.phone ?? "",
-              email: f.email ?? "",
-              familyMember: f.familyMember ?? "",
-              familyMemberId: f.familyMember ? familyMemberMap[f.familyMember] ?? null : null,
-              dni: f.dni ?? "",
-            })),
           });
 
           const photoUrl = tp.player?.urlPhoto ?? tp.player?.photoUrl ?? null;
@@ -122,7 +114,6 @@ export function usePlayerDetailData(
           activePositionId: null,
           possibleDemarcations: "",
           urlPhoto: p.urlPhoto ?? null,
-          familyMembers: [],
         });
 
         if (p.urlPhoto) {

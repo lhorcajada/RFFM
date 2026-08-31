@@ -875,6 +875,7 @@ namespace RFFM.Api.Tests.UnitTests
             await using var assertDb = _fixture.CreateDbContext();
             var reloadedTeamPlayer = await assertDb.TeamPlayers
                 .AsNoTracking()
+                .Include(tp => tp.FamilyMembers)
                 .FirstAsync(tp => tp.Id == teamPlayer.Id);
             Assert.Contains(reloadedTeamPlayer.FamilyMembers, f => f.Email == command.Email);
         }
@@ -991,6 +992,7 @@ namespace RFFM.Api.Tests.UnitTests
 
             var reloadedTeamPlayer = await assertDb.TeamPlayers
                 .AsNoTracking()
+                .Include(tp => tp.FamilyMembers)
                 .FirstAsync(tp => tp.Id == teamPlayer.Id);
             Assert.Single(reloadedTeamPlayer.FamilyMembers);
 

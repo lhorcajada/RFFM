@@ -6,6 +6,10 @@
 
         public static readonly FamilyMember Father = new FamilyMember(2, "Father");
 
+        public static readonly FamilyMember LegalGuardian = new FamilyMember(3, "LegalGuardian");
+
+        public static readonly FamilyMember Other = new FamilyMember(4, "Other");
+
         public int Id { get; }
         public string Name { get; }
 
@@ -16,7 +20,7 @@
         }
 
         public static IEnumerable<FamilyMember> List() =>
-            new[] { Mother, Father };
+            new[] { Mother, Father, LegalGuardian, Other };
 
         public static FamilyMember? FromId(int id)
         {

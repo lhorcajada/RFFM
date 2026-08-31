@@ -405,7 +405,13 @@ export default function PlayerDetail() {
                   !editing ? (
                     <FamilyMembers teamPlayer={teamPlayer} />
                   ) : (
-                    <FamilyMembersEdit form={form} setForm={setForm} />
+                    <FamilyMembersEdit
+                      teamPlayerId={teamPlayer.id}
+                      familyMembers={teamPlayer.familyMembers ?? []}
+                      onFamilyMembersChange={(next) =>
+                        setTeamPlayer({ ...teamPlayer, familyMembers: next })
+                      }
+                    />
                   )
                 )}
 

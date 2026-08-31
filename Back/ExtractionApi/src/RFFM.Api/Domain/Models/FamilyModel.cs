@@ -6,6 +6,7 @@
         public string? Phone { get; set; } = null!;
         public string? Email { get; set; } = null!;
         public string? Name { get; set; } = null!;
+        public string? LastName { get; set; }
         public int? FamilyMemberId { get; set; }
         public string? Dni { get; set; }
     }

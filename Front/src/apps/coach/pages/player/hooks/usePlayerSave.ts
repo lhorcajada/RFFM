@@ -81,15 +81,11 @@ export function usePlayerSave({
           dominantFoot: form.dominantFoot ?? null,
           dominantFootId: form.dominantFootId ?? null,
         },
-        familyMembers: (form.familyMembers ?? [])
-          .filter((f: any) => f.name || f.phone || f.email || f.familyMemberId || f.dni)
-          .map((f: any) => ({
-            name: f.name ?? null,
-            phone: f.phone ?? null,
-            email: f.email ?? null,
-            familyMemberId: f.familyMemberId ?? null,
-            dni: f.dni ?? null,
-          })),
+        // Family members are created/deleted individually via
+        // createFamilyMember/deleteFamilyMember (FamilyMembersEdit.tsx), never via
+        // this bulk PUT: UpdateTeamPlayer.SetFamily replaces the whole collection
+        // without stable Ids, which would silently wipe out members added/removed
+        // through the dedicated endpoints.
       };
 
       const updated = await teamplayerService.updateTeamPlayer(teamPlayer.id, payload);

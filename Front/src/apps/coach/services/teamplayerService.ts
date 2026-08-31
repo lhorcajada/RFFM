@@ -45,7 +45,9 @@ export type DemarcationResponse = {
 };
 
 export type FamilyResponse = {
+  id: string;
   name?: string | null;
+  lastName?: string | null;
   phone?: string | null;
   email?: string | null;
   familyMember?: string | null;
@@ -268,6 +270,32 @@ export async function dischargeActiveInjury(teamPlayerId: string): Promise<boole
   return result != null;
 }
 
+export type CreateFamilyMemberPayload = {
+  name: string;
+  lastName: string;
+  familyMemberId: number;
+  phone?: string | null;
+  email?: string | null;
+  dni?: string | null;
+};
+
+export async function createFamilyMember(
+  teamPlayerId: string,
+  payload: CreateFamilyMemberPayload
+): Promise<FamilyResponse> {
+  const resp = await client.post<FamilyResponse>(
+    `/api/catalog/teamplayer/${encodeURIComponent(teamPlayerId)}/family-members`,
+    payload
+  );
+  return resp.data;
+}
+
+export async function deleteFamilyMember(teamPlayerId: string, familyMemberId: string): Promise<void> {
+  await client.delete(
+    `/api/catalog/teamplayer/${encodeURIComponent(teamPlayerId)}/family-members/${encodeURIComponent(familyMemberId)}`
+  );
+}
+
 export async function getTeamPlayerLinkCode(teamPlayerId: string): Promise<{ teamPlayerId: string; linkCode: string }> {
   const res = await client.get(`/api/team-players/${encodeURIComponent(teamPlayerId)}/link-code`);
   return res.data;
@@ -278,4 +306,4 @@ export async function regenerateTeamPlayerLinkCode(teamPlayerId: string): Promis
   return res.data;
 }
 
-export default { getPlayersByTeam, addPlayerToTeam, getTeamPlayerById, updateTeamPlayer, getPlayerInjuries, createPlayerInjury, updatePlayerInjury, deletePlayerInjury, dischargeActiveInjury, getTeamPlayerLinkCode, regenerateTeamPlayerLinkCode };
+export default { getPlayersByTeam, addPlayerToTeam, getTeamPlayerById, updateTeamPlayer, getPlayerInjuries, createPlayerInjury, updatePlayerInjury, deletePlayerInjury, dischargeActiveInjury, createFamilyMember, deleteFamilyMember, getTeamPlayerLinkCode, regenerateTeamPlayerLinkCode };

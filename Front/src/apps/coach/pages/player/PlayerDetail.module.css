@@ -255,6 +255,13 @@
   }
 }
 
+.memberFormActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
 /* ─── Tarjetas de información (Contacto, Físico, Demarcación — lectura) ─── */
 .infoGrid {
   display: grid;

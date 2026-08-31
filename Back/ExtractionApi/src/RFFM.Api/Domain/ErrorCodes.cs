@@ -106,5 +106,11 @@ namespace RFFM.Api.Domain
         // player-self-edit-physical-family-contact: Player/FamilyMember callers may only edit
         // their own linked TeamPlayer.
         public const string TeamPlayerEditForbidden = "TeamPlayerEditForbidden";
+
+        // Family members (Features/Coaches/Players/Commands/CreateFamilyMember.cs,
+        // DeleteFamilyMember.cs) - openspec change player-family-members-crud.
+        public const string TeamPlayerNotFound = "TeamPlayerNotFound";
+        public const string FamilyMemberNotFound = "FamilyMemberNotFound";
+        public const string FamilyMemberRelationUnknown = "FamilyMemberRelationUnknown";
     }
 }

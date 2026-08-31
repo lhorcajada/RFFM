@@ -241,7 +241,7 @@ namespace RFFM.Api.Tests.IntegrationTests
                 Demarcation: new UpdateTeamPlayer.DemarcationRequest(1, new[] { 1, 2 }),
                 ContactInfo: new UpdateTeamPlayer.ContactRequest("600000000", "coach-edit@example.com"),
                 PhysicalInfo: new UpdateTeamPlayer.PhysicalRequest(180.5m, 75.2m, 1),
-                FamilyMembers: new[] { new UpdateTeamPlayer.FamilyRequest("Mom", "622222222", "mom@example.com", 1, "52378762B") });
+                FamilyMembers: new[] { new UpdateTeamPlayer.FamilyRequest("Mom", "622222222", "mom@example.com", 1, "52378762B", "Smith") });
 
             var response = await client.SendAsync(BuildUpdateRequest(teamPlayerId, body, "Coach"));
 
@@ -259,6 +259,8 @@ namespace RFFM.Api.Tests.IntegrationTests
             Assert.Equal("Frutos secos", resp.Player.Alergias);
             Assert.Equal("ADC Brunete", resp.Player.Procedencia);
             Assert.Equal("52378762B", resp.FamilyMembers.Single().Dni);
+            Assert.False(string.IsNullOrWhiteSpace(resp.FamilyMembers.Single().Id));
+            Assert.Equal("Smith", resp.FamilyMembers.Single().LastName);
         }
 
         [Fact]
@@ -279,7 +281,7 @@ namespace RFFM.Api.Tests.IntegrationTests
                 Demarcation: new UpdateTeamPlayer.DemarcationRequest(1, new[] { 1, 2 }),
                 ContactInfo: new UpdateTeamPlayer.ContactRequest("611111111", "player-edit@example.com"),
                 PhysicalInfo: new UpdateTeamPlayer.PhysicalRequest(175m, 70m, 2),
-                FamilyMembers: new[] { new UpdateTeamPlayer.FamilyRequest("Mom", "622222222", "mom@example.com", 1, "52378762B") });
+                FamilyMembers: new[] { new UpdateTeamPlayer.FamilyRequest("Mom", "622222222", "mom@example.com", 1, "52378762B", "Smith") });
 
             var response = await client.SendAsync(BuildUpdateRequest(teamPlayerId, body, "Player", applicationUserId));
 
@@ -296,6 +298,8 @@ namespace RFFM.Api.Tests.IntegrationTests
             Assert.Single(resp.FamilyMembers);
             Assert.Equal("Mom", resp.FamilyMembers[0].Name);
             Assert.Equal("52378762B", resp.FamilyMembers[0].Dni);
+            Assert.False(string.IsNullOrWhiteSpace(resp.FamilyMembers[0].Id));
+            Assert.Equal("Smith", resp.FamilyMembers[0].LastName);
             Assert.Equal("Asma", resp.Player.Enfermedades);
             Assert.Equal("Frutos secos", resp.Player.Alergias);
             Assert.Equal("ADC Brunete", resp.Player.Procedencia);

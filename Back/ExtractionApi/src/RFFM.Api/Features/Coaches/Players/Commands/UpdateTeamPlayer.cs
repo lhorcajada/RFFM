@@ -158,7 +158,7 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
                         // family members
                         if (req.FamilyMembers != null)
                         {
-                            item.SetFamily(req.FamilyMembers.Select(f => new FamilyModel { Name = f.Name, Phone = f.Phone, Email = f.Email, FamilyMemberId = f.FamilyMemberId, Dni = f.Dni }).ToList());
+                            item.SetFamily(req.FamilyMembers.Select(f => new FamilyModel { Name = f.Name, LastName = f.LastName, Phone = f.Phone, Email = f.Email, FamilyMemberId = f.FamilyMemberId, Dni = f.Dni }).ToList());
                         }
 
                         await db.SaveChangesAsync(cancellationToken);
@@ -206,8 +206,8 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
                             phys = new PhysicalInfoResponse(item.PhysicalInfo.Height, item.PhysicalInfo.Weight, foot?.Name);
                         }
 
-                        var fams = (item.FamilyMembers ?? new List<Family>())
-                            .Select(f => new FamilyResponse(f.Name, f.Phone, f.Email, f.FamilyMember, f.Dni))
+                        var fams = (item.FamilyMembers ?? new List<Domain.Entities.TeamPlayers.TeamPlayerFamilyMember>())
+                            .Select(f => new FamilyResponse(f.Id, f.Name, f.LastName, f.Phone, f.Email, f.FamilyMember, f.Dni))
                             .ToArray();
 
                         InjuryInfoResponse? injuryResp = item.Injuries is { } injuries
@@ -257,14 +257,14 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
         public record AddressRequest(string? Street, string? City, string? Province, string? PostalCode, string? Country);
         public record ContactRequest(string? Phone, string? Email, AddressRequest? Address = null);
         public record PhysicalRequest(decimal? Height, decimal? Weight, int? DominantFootId);
-        public record FamilyRequest(string? Name, string? Phone, string? Email, int? FamilyMemberId, string? Dni = null);
+        public record FamilyRequest(string? Name, string? Phone, string? Email, int? FamilyMemberId, string? Dni = null, string? LastName = null);
 
         // Response types reused from GetTeamPlayer
         public record AddressResponse(string? Street, string? City, string? Province, string? PostalCode, string? Country);
         public record ContactInfoResponse(AddressResponse? Address, string? Phone, string? Email);
         public record PhysicalInfoResponse(decimal? Height, decimal? Weight, string? DominantFoot);
         public record DemarcationResponse(int? ActivePositionId, string? ActivePositionName, string[] PossibleDemarcations);
-        public record FamilyResponse(string? Name, string? Phone, string? Email, string? FamilyMember, string? Dni = null);
+        public record FamilyResponse(string Id, string? Name, string? LastName, string? Phone, string? Email, string? FamilyMember, string? Dni = null);
         public record InjuryInfoResponse(string Id, DateTime StartDate, string InjuryType, string? Description, string? EstimatedRecovery, DateTime? EndDate);
 
         public record TeamPlayerResponse(
