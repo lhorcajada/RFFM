@@ -12,3 +12,4 @@ infra/terraform/crash.log
 
 # Local Netlify folder
 .netlify
+exports/
