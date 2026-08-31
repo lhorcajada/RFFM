@@ -31,8 +31,11 @@ function toMatchState(ev: SportEventResponse): MatchState {
 
   let time = "";
   if (raw && raw.includes("T")) {
-    const part = raw.split("T")[1]?.substring(0, 5) ?? "";
-    if (part !== "00:00") time = part;
+    const rawDate = new Date(raw);
+    if (!isNaN(rawDate.getTime())) {
+      const part = rawDate.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+      if (part !== "00:00") time = part;
+    }
   }
 
   const isHomeMatch = ev.isHomeMatch !== false;

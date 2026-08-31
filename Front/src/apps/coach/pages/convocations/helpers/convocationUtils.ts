@@ -34,8 +34,11 @@ export function normalizeFromSportEvent(ev: SportEventResponse): NormalizedMatch
   const rawTime = ev.startTime ?? ev.eveDateTime ?? null;
   let time = "";
   if (rawTime && String(rawTime).includes("T")) {
-    const timePart = String(rawTime).split("T")[1]?.substring(0, 5) ?? "";
-    if (timePart !== "00:00") time = timePart;
+    const rawDate = new Date(String(rawTime));
+    if (!isNaN(rawDate.getTime())) {
+      const timePart = rawDate.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+      if (timePart !== "00:00") time = timePart;
+    }
   }
 
   const now = new Date();
