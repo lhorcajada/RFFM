@@ -13,6 +13,7 @@ export type NormalizedMatch = {
   field: string;
   codacta: string | null;
   selectedKitNumber: number | null;
+  eventId?: string;
 };
 
 export type MatchResult = "won" | "draw" | "lost" | "played" | null;

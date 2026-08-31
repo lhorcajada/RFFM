@@ -1,0 +1,26 @@
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.coverImage {
+  width: 100%;
+  /* Fixed aspect ratio + object-fit: cover so the source image is cropped
+     to fill, never stretched/warped regardless of its native dimensions. */
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  display: block;
+  margin-bottom: 16px;
+  border-radius: 8px;
+}
+
+.date {
+  margin-bottom: 16px;
+  color: #90a4ae;
+  font-size: 14px;
+}
+
+.body {
+  line-height: 1.6;
+  color: #e0e0e0;
+}

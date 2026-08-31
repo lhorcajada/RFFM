@@ -1,0 +1,38 @@
+.container {
+  margin-bottom: 24px;
+  padding: 16px;
+  background: linear-gradient(160deg, #22223a 0%, #14142b 45%, #1c1c34 100%);
+  border-radius: 12px;
+  border: 1px solid rgba(120, 155, 230, 0.3);
+  /* Fill the stretched column height (TeamDashboard.module.css's
+     .widgetsContainer, desktop/tablet only) — this widget's content
+     (NewsListCard) is naturally shorter than the sibling "Próximos
+     eventos" widget's fixed-height EventCard, so without this the two
+     widget backgrounds would end at different heights in the row. On
+     mobile (.widgetsContainer stacked, height: auto) this has no visible
+     effect. */
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.title {
+  margin: 0 0 16px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.loadingContainer {
+  display: flex;
+  justify-content: center;
+  padding: 24px;
+}
+
+.emptyState {
+  text-align: center;
+  color: #90a4ae;
+  font-size: 14px;
+  padding: 16px;
+  margin: 0;
+}

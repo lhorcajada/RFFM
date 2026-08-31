@@ -11,7 +11,7 @@ using RFFM.Api.Infrastructure.Persistence;
 namespace RFFM.Api.Features.Coaches.News
 {
     /// <summary>
-    /// GET /api/coach/news?pageNumber=&amp;pageSize= — published-only, sorted NewsDate ASC,
+    /// GET /api/coach/news?pageNumber=&amp;pageSize=&amp;descending= — published-only, sorted NewsDate ASC/DESC,
     /// open to any authenticated role. Cached (never contains drafts, so caching is safe across
     /// all roles).
     /// </summary>
@@ -20,9 +20,9 @@ namespace RFFM.Api.Features.Coaches.News
         public void AddRoutes(IEndpointRouteBuilder app)
         {
             app.MapGet("/api/coach/news",
-                    async (int pageNumber, int pageSize, IMediator mediator, CancellationToken ct) =>
+                    async (int pageNumber, int pageSize, bool descending, IMediator mediator, CancellationToken ct) =>
                     {
-                        var result = await mediator.Send(new GetNewsQuery(pageNumber, pageSize), ct);
+                        var result = await mediator.Send(new GetNewsQuery(pageNumber, pageSize, descending), ct);
                         return Results.Ok(result);
                     })
                 .WithName(nameof(GetNews))
@@ -32,9 +32,9 @@ namespace RFFM.Api.Features.Coaches.News
         }
     }
 
-    public record GetNewsQuery(int PageNumber, int PageSize) : IRequest<NewsSummaryResponse[]>, ICacheRequest
+    public record GetNewsQuery(int PageNumber, int PageSize, bool Descending = false) : IRequest<NewsSummaryResponse[]>, ICacheRequest
     {
-        public string CacheKey => $"{NewsConstants.PublishedListCachePrefix}{PageNumber}:{PageSize}";
+        public string CacheKey => $"{NewsConstants.PublishedListCachePrefix}{PageNumber}:{PageSize}:{Descending}";
         public DateTime? AbsoluteExpirationRelativeToNow => null;
     }
 
@@ -63,8 +63,11 @@ namespace RFFM.Api.Features.Coaches.News
                 // ignore if no http context available (e.g. unit tests calling the handler directly)
             }
 
-            var items = await query
-                .OrderBy(n => n.NewsDate)
+            var ordered = request.Descending
+                ? query.OrderByDescending(n => n.NewsDate)
+                : query.OrderBy(n => n.NewsDate);
+
+            var items = await ordered
                 .Skip((request.PageNumber - 1) * request.PageSize)
                 .Take(request.PageSize)
                 .Select(n => new NewsSummaryResponse(n.Id, n.Title, n.Subtitle, n.CoverImageUrl, n.Status.Name, n.PublishedAt, n.NewsDate))

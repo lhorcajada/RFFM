@@ -56,6 +56,7 @@ export function normalizeFromSportEvent(ev: SportEventResponse): NormalizedMatch
     field: ev.location ?? "",
     codacta: ev.codActa ?? null,
     selectedKitNumber: ev.selectedKitNumber ?? null,
+    eventId: ev.id,
   };
 }
 

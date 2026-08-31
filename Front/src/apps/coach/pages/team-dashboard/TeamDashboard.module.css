@@ -1,0 +1,39 @@
+/* Extra bottom space so the last dashboard card isn't hidden behind the
+   fixed BottomNavigation/footer on mobile — same 24px value already used
+   elsewhere for this purpose (see Clubs.module.css's `.wrapper`). */
+.pageContent {
+  padding-bottom: 24px;
+}
+
+.widgetsContainer {
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* Side-by-side on desktop/tablet — same 769px breakpoint already used for
+   the carousel's own desktop card-width cap (Carousel.module.css), so both
+   changes agree on where "desktop" starts. Stays stacked (column, full
+   width) below that, unchanged. */
+@media (min-width: 769px) {
+  .widgetsContainer {
+    flex-direction: row;
+    /* stretch (not flex-start): "Próximos eventos" (EventCard, fixed
+       320px-tall card) is naturally taller than "Últimas noticias"
+       (NewsListCard, ~image + two text lines). Stretching both columns to
+       the row's tallest child keeps the two widget backgrounds/borders
+       level instead of the shorter one trailing off early. */
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  .widgetsContainer > * {
+    flex: 1 1 0;
+    /* Let each widget (and its Carousel) shrink below its content's natural
+       width instead of overflowing the row — flex items default to
+       min-width: auto, which would otherwise force each column as wide as
+       the widest slide. */
+    min-width: 0;
+  }
+}

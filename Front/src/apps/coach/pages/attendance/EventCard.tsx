@@ -20,6 +20,8 @@ import { SportEventResponse } from "../../services/sportEventService";
 import { deleteSportEvent } from "../../services/sportEventService";
 import SportEventDialog from "./components/SportEventDialog";
 import { coachAuthService } from "../../services/authService";
+import { EventAttendanceBadges } from "../../components/EventAttendanceBadges/EventAttendanceBadges";
+import type { EventAttendanceSummaryDto } from "../../services/eventAttendanceSummaryService";
 import type { MatchState } from "../convocations/components/convocationMatchDetail.types";
 
 /** Build a MatchState (expected by ConvocationMatchDetail) from a SportEventResponse */
@@ -59,6 +61,18 @@ interface Props {
   eventTypeName?: string | undefined | null;
   onDeleted?: () => void;
   onEdited?: () => void;
+  attendanceSummary?: EventAttendanceSummaryDto;
+  isPlayer?: boolean;
+  /**
+   * Read-only mode for contexts that only show the card (e.g. the dashboard's
+   * "Próximos eventos" widget), not the full Attendance list. Hides the
+   * Asistencias/Editar/Eliminar/"Ir al partido" action icons and both
+   * dialogs — the "Asistencias" button's `navigate(String(event.id))` is a
+   * *relative* navigation that only resolves correctly when EventCard is
+   * mounted under `/coach/attendance`; anywhere else it would navigate to
+   * the wrong route. Edit/delete also don't belong in a compact preview.
+   */
+  compact?: boolean;
 }
 
 function getEventAvatar(eventTypeName?: string | null): { emoji: string; gradient: string } {
@@ -141,7 +155,7 @@ function parseDate(input?: string | number | null): Date | null {
   return null;
 }
 
-export default function EventCard({ event, eventTypeName, onDeleted, onEdited }: Props) {
+export default function EventCard({ event, eventTypeName, onDeleted, onEdited, attendanceSummary, isPlayer, compact }: Props) {
   const navigate = useNavigate();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -405,11 +419,12 @@ export default function EventCard({ event, eventTypeName, onDeleted, onEdited }:
             />
           </div>
         )}
+        <EventAttendanceBadges summary={attendanceSummary} isPlayer={!!isPlayer} />
       </div>
 
-      {actions}
+      {!compact && actions}
 
-      {canEditEvent && (
+      {!compact && canEditEvent && (
         <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
           <DialogTitle>Eliminar evento</DialogTitle>
           <DialogContent>
@@ -443,7 +458,7 @@ export default function EventCard({ event, eventTypeName, onDeleted, onEdited }:
           </DialogActions>
         </Dialog>
       )}
-      {event.teamId && canEditEvent && (
+      {!compact && event.teamId && canEditEvent && (
         <SportEventDialog
           open={editOpen}
           teamId={event.teamId}

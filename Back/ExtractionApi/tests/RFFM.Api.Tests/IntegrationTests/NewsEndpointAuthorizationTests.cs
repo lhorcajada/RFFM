@@ -429,7 +429,7 @@ namespace RFFM.Api.Tests.IntegrationTests
             var (host, client) = await StartHostAsync(new GetNews());
             using var _ = host;
 
-            var request = new HttpRequestMessage(HttpMethod.Get, "/api/coach/news?pageNumber=1&pageSize=20");
+            var request = new HttpRequestMessage(HttpMethod.Get, "/api/coach/news?pageNumber=1&pageSize=20&descending=false");
             request.Headers.Add("X-Test-Role", "FamilyMember");
 
             var response = await client.SendAsync(request);

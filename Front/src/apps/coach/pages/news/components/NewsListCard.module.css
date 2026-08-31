@@ -1,0 +1,71 @@
+.card {
+  /* flex column + height: 100% so this card fills a stretched parent (the
+     dashboard's Carousel slide, TeamDashboard.module.css's
+     .widgetsContainer stretch — see Carousel.module.css's ".slide > *")
+     instead of sizing only to its own content and leaving empty track
+     space below it. In non-stretched contexts (News.tsx's plain grid, a
+     grid item's own box already stretches to the row by default) this is
+     a no-op change in effect. */
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  text-decoration: none;
+  color: inherit;
+  background: rgba(30, 30, 50, 0.6);
+  border: 1px solid rgba(120, 155, 230, 0.2);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.card:hover {
+  background: rgba(50, 70, 120, 0.4);
+  border-color: rgba(120, 155, 230, 0.4);
+  transform: translateY(-2px);
+}
+
+.image {
+  width: 100%;
+  /* Fixed aspect ratio + object-fit: cover so the source image is cropped
+     to fill, never stretched — adapts cleanly to the card's own width
+     instead of a fixed px height that would look off once the card's
+     width changes (e.g. inside the carousel's desktop max-width).
+     flex-shrink: 0 keeps this fixed-ratio block from being squashed once
+     `.card` stretches taller than its natural content. */
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  display: block;
+  flex-shrink: 0;
+}
+
+.content {
+  padding: 12px;
+  /* Grow to absorb any extra height from a stretched `.card` (see .card's
+     comment) so the date line settles at the bottom instead of the title/
+     subtitle floating with a large empty gap below the date. */
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.title {
+  margin: 0 0 4px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.subtitle {
+  margin: 0 0 8px 0;
+  font-size: 12px;
+  color: #b0bec5;
+}
+
+.date {
+  font-size: 11px;
+  color: #90a4ae;
+  /* Push to the bottom of `.content` (flex column) so a stretched card's
+     extra height shows as breathing room above the date, not a gap below
+     it. */
+  margin-top: auto;
+}

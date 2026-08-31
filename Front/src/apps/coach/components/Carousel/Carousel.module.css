@@ -1,0 +1,117 @@
+.root {
+  position: relative;
+  /* Grow to fill whatever vertical space the parent widget container has
+     available (see UpcomingEventsWidget/NewsWidget .container's
+     height: 100% + flex column) so both dashboard widgets' carousels — and
+     therefore their card content — stretch to the same row height on
+     desktop/tablet, instead of each carousel sizing only to its own
+     shortest/tallest slide. flex: 1 is a no-op when the parent isn't a
+     flex container (e.g. any future non-stretched usage), so this is safe
+     for both current call sites. */
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.viewport {
+  overflow: hidden;
+  width: 100%;
+  flex: 1;
+}
+
+.track {
+  display: flex;
+  transition: transform 0.35s ease;
+  will-change: transform;
+  touch-action: pan-y;
+  height: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .track {
+    transition: none;
+  }
+}
+
+.slide {
+  flex: 0 0 100%;
+  min-width: 100%;
+  box-sizing: border-box;
+  /* Stretch each slide's single child (EventCard's wrapper / NewsListCard)
+     to the full slide height so a shorter card (e.g. NewsListCard) grows
+     to match a taller sibling column instead of leaving empty track space
+     below it. */
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.slide > * {
+  flex: 1;
+}
+
+/* On desktop-sized viewports a single slide stretched to the full widget
+   width looks oversized/distorted next to the rest of the dashboard's
+   cards. Cap and center the slide's content instead of showing more than
+   one card at a time — simpler than a multi-visible-card carousel and
+   still lets the user browse via arrows/dots/swipe. 360px sits between
+   DashboardCard's plain nav cards (~220px, see Dashboard.module.css's
+   grid) and this app's richer content cards (Clubs/News list cards run
+   ~250-260px) since these carousel cards carry more content (badges,
+   actions) than either — not an arbitrary new value picked in isolation. */
+@media (min-width: 769px) {
+  .slide {
+    display: flex;
+    justify-content: center;
+  }
+
+  .slide > * {
+    width: 100%;
+    max-width: 360px;
+  }
+}
+
+.arrow {
+  position: absolute;
+  top: 40%;
+  transform: translateY(-50%);
+  z-index: 2;
+  background: rgba(20, 20, 40, 0.55) !important;
+  color: #ffffff !important;
+}
+
+.arrow:hover {
+  background: rgba(20, 20, 40, 0.8) !important;
+}
+
+.arrowPrev {
+  left: -4px;
+}
+
+.arrowNext {
+  right: -4px;
+}
+
+.dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+}
+
+.dotActive {
+  background: #ffffff;
+  width: 18px;
+  border-radius: 4px;
+}

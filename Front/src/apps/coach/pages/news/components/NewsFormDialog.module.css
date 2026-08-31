@@ -1,0 +1,11 @@
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.errorText {
+  color: #f44336;
+  font-size: 12px;
+  margin: 4px 0 0;
+}

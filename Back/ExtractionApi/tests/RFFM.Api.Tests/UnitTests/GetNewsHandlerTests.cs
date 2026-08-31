@@ -137,5 +137,64 @@ namespace RFFM.Api.Tests.UnitTests
             var result3 = await handler.Handle(query3, CancellationToken.None);
             Assert.Single(result3);
         }
+
+        [Fact]
+        public async Task Handle_DescendingTrue_OrdersByNewsDateDescending()
+        {
+            await ClearNewsTableAsync();
+            await using var seedDb = _fixture.CreateDbContext();
+
+            var news1 = NewsItem.Create("News 1", "Sub 1", "Body 1", "https://example.com/1.jpg", NewsStatus.Published, new DateTime(2026, 8, 1, 0, 0, 0, DateTimeKind.Utc));
+            seedDb.News.Add(news1);
+            await seedDb.SaveChangesAsync();
+
+            var news2 = NewsItem.Create("News 2", "Sub 2", "Body 2", "https://example.com/2.jpg", NewsStatus.Published, new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc));
+            seedDb.News.Add(news2);
+            await seedDb.SaveChangesAsync();
+
+            await using var db = _fixture.CreateDbContext();
+            var handler = new GetNewsHandler(db, null!);
+            var query = new GetNewsQuery(1, 20, Descending: true);
+
+            var result = await handler.Handle(query, CancellationToken.None);
+
+            Assert.Equal(2, result.Length);
+            Assert.Equal("News 2", result[0].Title);
+            Assert.Equal("News 1", result[1].Title);
+        }
+
+        [Fact]
+        public async Task Handle_DescendingFalseOrOmitted_MatchesTodaysAscendingBehavior()
+        {
+            await ClearNewsTableAsync();
+            await using var seedDb = _fixture.CreateDbContext();
+
+            var news1 = NewsItem.Create("News 1", "Sub 1", "Body 1", "https://example.com/1.jpg", NewsStatus.Published, new DateTime(2026, 8, 1, 0, 0, 0, DateTimeKind.Utc));
+            seedDb.News.Add(news1);
+            await seedDb.SaveChangesAsync();
+
+            var news2 = NewsItem.Create("News 2", "Sub 2", "Body 2", "https://example.com/2.jpg", NewsStatus.Published, new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc));
+            seedDb.News.Add(news2);
+            await seedDb.SaveChangesAsync();
+
+            await using var db = _fixture.CreateDbContext();
+            var handler = new GetNewsHandler(db, null!);
+            var query = new GetNewsQuery(1, 20, Descending: false);
+
+            var result = await handler.Handle(query, CancellationToken.None);
+
+            Assert.Equal(2, result.Length);
+            Assert.Equal("News 1", result[0].Title);
+            Assert.Equal("News 2", result[1].Title);
+        }
+
+        [Fact]
+        public void Handle_AscendingAndDescendingCacheKeysDiffer()
+        {
+            var queryAsc = new GetNewsQuery(1, 3, Descending: false);
+            var queryDesc = new GetNewsQuery(1, 3, Descending: true);
+
+            Assert.NotEqual(queryAsc.CacheKey, queryDesc.CacheKey);
+        }
     }
 }

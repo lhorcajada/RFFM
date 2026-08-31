@@ -33,6 +33,14 @@ vi.mock("../../../hooks/useTeamDashboardBack", () => ({
   default: () => mockGoToTeamDashboard,
 }));
 
+vi.mock("../../Dashboard/hooks/usePlayerAutoLoad", () => ({
+  usePlayerAutoLoad: vi.fn(() => ({ isPlayer: false })),
+}));
+
+vi.mock("../../../hooks/useEventAttendanceSummaries", () => ({
+  default: vi.fn(() => ({ summaries: {}, loading: false, error: null, refetch: vi.fn() })),
+}));
+
 const getSportEventsMock = vi.fn();
 vi.mock("../../../services/sportEventService", () => ({
   default: {
@@ -54,6 +62,7 @@ vi.mock("../../../services/sportEventTypeService", () => ({
 vi.mock("../../../services/authService", () => ({
   coachAuthService: {
     hasRole: vi.fn().mockReturnValue(false),
+    getRoles: vi.fn().mockReturnValue([]),
   },
 }));
 

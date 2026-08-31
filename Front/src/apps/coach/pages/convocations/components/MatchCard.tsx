@@ -1,11 +1,19 @@
 import type { KeyboardEvent } from "react";
 import type { NormalizedMatch } from "../types";
+import type { EventAttendanceSummaryDto } from "../../../services/eventAttendanceSummaryService";
 import { getMatchResult } from "../helpers/convocationUtils";
+import { EventAttendanceBadges } from "../../../components/EventAttendanceBadges/EventAttendanceBadges";
 import convStyles from "../Convocations.module.css";
 import localStyles from "./MatchCard.module.css";
 
-export default function MatchCard({ match, onNavigate }:
-  { match: NormalizedMatch; onNavigate: (m: NormalizedMatch) => void }) {
+interface Props {
+  match: NormalizedMatch;
+  onNavigate: (m: NormalizedMatch) => void;
+  attendanceSummary?: EventAttendanceSummaryDto;
+  isPlayer?: boolean;
+}
+
+export default function MatchCard({ match, onNavigate, attendanceSummary, isPlayer }: Props) {
   const result = getMatchResult(match);
   const cardClass = [
     convStyles.matchCard,
@@ -88,6 +96,9 @@ export default function MatchCard({ match, onNavigate }:
 
       {match.field && (
         <div className={convStyles.matchField}>{match.field}</div>
+      )}
+      {match.eventId && attendanceSummary && (
+        <EventAttendanceBadges summary={attendanceSummary} isPlayer={!!isPlayer} />
       )}
     </div>
   );

@@ -1,0 +1,51 @@
+.container {
+  margin-bottom: 24px;
+  padding: 16px;
+  background: linear-gradient(160deg, #22223a 0%, #14142b 45%, #1c1c34 100%);
+  border-radius: 12px;
+  border: 1px solid rgba(120, 155, 230, 0.3);
+  /* Fill the stretched column height (TeamDashboard.module.css's
+     .widgetsContainer, desktop/tablet only) so this widget's background
+     matches the sibling News widget's height instead of stopping at its
+     own natural content height. On mobile (.widgetsContainer stacked,
+     height: auto) this has no visible effect. */
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.title {
+  margin: 0 0 16px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.eventCardWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* EventCard (reused from the Attendance list, compact mode) owns all card
+   visuals now — this link is just a transparent click target around it. */
+.eventCardLink {
+  display: block;
+  width: 100%;
+  text-decoration: none;
+  color: inherit;
+}
+
+.loadingContainer {
+  display: flex;
+  justify-content: center;
+  padding: 24px;
+}
+
+.emptyState {
+  text-align: center;
+  color: #90a4ae;
+  font-size: 14px;
+  padding: 16px;
+  margin: 0;
+}

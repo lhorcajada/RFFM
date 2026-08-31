@@ -20,6 +20,7 @@ const TeamDashboard = lazy(() => import("./pages/team-dashboard/TeamDashboard"))
 // Feature pages for Coach app
 const Settings = lazy(() => import("./pages/settings/Settings"));
 const News = lazy(() => import("./pages/news/News"));
+const NewsDetail = lazy(() => import("./pages/news/NewsDetail"));
 const Squad = lazy(() => import("./pages/squad/Squad"));
 const NewPlayer = lazy(() => import("./pages/squad/new/NewPlayer"));
 const PlayersClub = lazy(() => import("./pages/squad/PlayersClub/PlayersClub"));
@@ -104,6 +105,14 @@ function CoachRoutesContent() {
               element={
                 <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.News}>
                   <News />
+                </RequireFeaturePermission>
+              }
+            />
+            <Route
+              path="news/:id"
+              element={
+                <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.News}>
+                  <NewsDetail />
                 </RequireFeaturePermission>
               }
             />

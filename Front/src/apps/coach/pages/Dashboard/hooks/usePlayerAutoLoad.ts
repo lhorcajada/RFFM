@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { coachAuthService } from "../../../services/authService";
 import { getMyProfile } from "../../../services/coachApi";
+import { computeIsPlayerRole } from "../../../hooks/isPlayerRole";
 
 /**
  * Detects if the current user is a player or family member without coach/admin access
@@ -14,12 +15,7 @@ export function usePlayerAutoLoad() {
 
   useEffect(() => {
     const roles = coachAuthService.getRoles();
-    const isPlayerRole =
-      (roles.includes("Player") ||
-        roles.includes("FamilyPlayer") ||
-        roles.includes("FamilyMember")) &&
-      !roles.includes("Administrator") &&
-      !roles.includes("Coach");
+    const isPlayerRole = computeIsPlayerRole(roles);
 
     setIsPlayer(isPlayerRole);
 

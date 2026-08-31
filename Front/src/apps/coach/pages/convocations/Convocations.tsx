@@ -11,6 +11,8 @@ import { useState, useMemo } from "react";
 
 import useConvocations from "./hooks/useConvocations";
 import useTeamDashboardBack from "../../hooks/useTeamDashboardBack";
+import { useIsPlayerRole } from "../../hooks/useIsPlayerRole";
+import useEventAttendanceSummaries from "../../hooks/useEventAttendanceSummaries";
 import { coachAuthService } from "../../services/authService";
 import MatchCard from "./components/MatchCard";
 import AgendaList from "./components/AgendaList";
@@ -25,6 +27,7 @@ export default function Convocations() {
   const navigate = useNavigate();
   const location = useLocation();
   const goToTeamDashboard = useTeamDashboardBack();
+  const isPlayer = useIsPlayerRole();
   const urlParams = new URLSearchParams(location.search);
   const teamId = urlParams.get("teamId") ?? "";
 
@@ -54,6 +57,13 @@ export default function Convocations() {
     }
     return map;
   }, [matches]);
+
+  // Build eventIds for attendance summaries
+  const eventIds = useMemo(() =>
+    matches.map((m) => m.eventId).filter((id): id is string => !!id),
+    [matches]
+  );
+  const { summaries } = useEventAttendanceSummaries(teamId || undefined, eventIds);
 
   // Calendar grid for current month
   const calendarGrid = useMemo(() => buildCalendarGrid(year, month), [year, month]);
@@ -183,7 +193,13 @@ export default function Convocations() {
                   </span>
                   {/* Desktop: full FC26 cards */}
                   {dayMatches.map((match, mi) => (
-                    <MatchCard key={mi} match={match} onNavigate={handleMatchClick} />
+                    <MatchCard
+                      key={mi}
+                      match={match}
+                      onNavigate={handleMatchClick}
+                      attendanceSummary={match.eventId ? summaries[match.eventId] : undefined}
+                      isPlayer={isPlayer}
+                    />
                   ))}
                   {/* Mobile: dot indicator */}
                   {dayMatches.length > 0 && (

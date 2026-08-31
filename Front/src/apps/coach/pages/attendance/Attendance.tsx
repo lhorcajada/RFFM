@@ -6,6 +6,8 @@ import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import useTeamAndClub from "../../hooks/useTeamAndClub";
 import useTeamDashboardBack from "../../hooks/useTeamDashboardBack";
+import { useIsPlayerRole } from "../../hooks/useIsPlayerRole";
+import useEventAttendanceSummaries from "../../hooks/useEventAttendanceSummaries";
 import sportEventService, {
   SportEventResponse,
 } from "../../services/sportEventService";
@@ -30,6 +32,7 @@ export default function Attendance() {
     clubSubtitleNode,
     loading: teamLoading,
   } = useTeamAndClub();
+  const isPlayer = useIsPlayerRole();
   const [loading, setLoading] = useState(false);
   const [events, setEvents] = useState<SportEventResponse[]>([]);
   const [page, setPage] = useState(() => {
@@ -87,6 +90,7 @@ export default function Attendance() {
     coachAuthService.hasRole("Coach") ||
     coachAuthService.hasRole("ClubDirector") ||
     coachAuthService.hasRole("ClubMember");
+  const { summaries } = useEventAttendanceSummaries(team?.id, events.map((e) => e.id));
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -292,6 +296,8 @@ export default function Attendance() {
                     }
                     onDeleted={() => setSearchTrigger((s) => s + 1)}
                     onEdited={() => setSearchTrigger((s) => s + 1)}
+                    attendanceSummary={summaries[e.id]}
+                    isPlayer={isPlayer}
                   />
                 </div>
               ))}

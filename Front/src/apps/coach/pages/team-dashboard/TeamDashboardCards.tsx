@@ -12,11 +12,11 @@ import RuleIcon from "@mui/icons-material/Rule";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import FlagIcon from "@mui/icons-material/Flag";
 import NewspaperIcon from "@mui/icons-material/Newspaper";
-import DashboardCard from "../../../../shared/components/ui/DashboardCard/DashboardCard";
+import LauncherTile from "./components/LauncherTile";
 import type { TeamResponse } from "../../services/teamService";
 import { usePermissions } from "../../../../shared/hooks/usePermissions";
 import { COACH_FEATURE_ROUTES } from "../../constants/featureRoutes";
-import styles from "../Dashboard/Dashboard.module.css";
+import styles from "./TeamDashboardCards.module.css";
 
 interface TeamDashboardCardsProps {
   team: TeamResponse | null;
@@ -35,20 +35,18 @@ export default function TeamDashboardCards({
   const { hasFeatureAccess } = usePermissions();
 
   return (
-    <div className={styles.cards}>
+    <div className={styles.grid}>
       {!isPlayer && (
-        <DashboardCard
+        <LauncherTile
           title="Gestión de usuarios"
-          description="Administra las cuentas del equipo."
-          icon={<ManageAccountsIcon style={{ fontSize: 40 }} />}
+          icon={<ManageAccountsIcon />}
           to={team?.id ? `/coach/team-users?teamId=${team.id}` : "/coach/team-users"}
         />
       )}
       {hasFeatureAccess(COACH_FEATURE_ROUTES.Squad) && (
-        <DashboardCard
+        <LauncherTile
           title="Plantilla"
-          description="Gestión de jugadores."
-          icon={<GroupIcon style={{ fontSize: 40 }} />}
+          icon={<GroupIcon />}
           to={
             team?.id
               ? `/coach/squad?teamId=${team.id}${seasonSuffix}`
@@ -57,10 +55,9 @@ export default function TeamDashboardCards({
         />
       )}
       {hasFeatureAccess(COACH_FEATURE_ROUTES.Events) && (
-        <DashboardCard
+        <LauncherTile
           title="Eventos"
-          description="Eventos deportivos del equipo."
-          icon={<AssignmentIcon style={{ fontSize: 40 }} />}
+          icon={<AssignmentIcon />}
           to={
             team?.id
               ? `/coach/attendance?teamId=${team.id}${seasonSuffix}`
@@ -69,10 +66,9 @@ export default function TeamDashboardCards({
         />
       )}
       {hasFeatureAccess(COACH_FEATURE_ROUTES.AttendanceSummary) && (
-        <DashboardCard
+        <LauncherTile
           title="Resumen de asistencias"
-          description="Resumen global de asistencias a entrenamientos y partidos."
-          icon={<SummarizeIcon style={{ fontSize: 40 }} />}
+          icon={<SummarizeIcon />}
           to={
             team?.id
               ? `/coach/attendance/summary?teamId=${team.id}${seasonSuffix}`
@@ -81,82 +77,60 @@ export default function TeamDashboardCards({
         />
       )}
       {hasFeatureAccess(COACH_FEATURE_ROUTES.Convocations) && (
-        <DashboardCard
+        <LauncherTile
           title="Partidos"
-          description="Gestión de convocatorias."
-          icon={<EventIcon style={{ fontSize: 40 }} />}
+          icon={<EventIcon />}
           to={team?.id ? `/coach/convocations?teamId=${team.id}` : "/coach/convocations"}
         />
       )}
       {hasFeatureAccess(COACH_FEATURE_ROUTES.Rivals) && (
-        <DashboardCard
-          title="Rivales"
-          description="Añadir y gestionar rivales."
-          icon={<FlagIcon style={{ fontSize: 40 }} />}
-          to="/coach/rivals"
-        />
+        <LauncherTile title="Rivales" icon={<FlagIcon />} to="/coach/rivals" />
       )}
       {hasFeatureAccess(COACH_FEATURE_ROUTES.Trainings) && (
-        <DashboardCard
+        <LauncherTile
           title="Entrenamientos"
-          description="Planificación de entrenamientos."
-          icon={<FitnessCenterIcon style={{ fontSize: 40 }} />}
+          icon={<FitnessCenterIcon />}
           to={team?.id ? `/coach/trainings?teamId=${team.id}` : "/coach/trainings"}
         />
       )}
       {hasFeatureAccess(COACH_FEATURE_ROUTES.Injured) && (
-        <DashboardCard
+        <LauncherTile
           title="Lesionados"
-          description="Control de lesionados."
-          icon={<LocalHospitalIcon style={{ fontSize: 40 }} />}
+          icon={<LocalHospitalIcon />}
           to={team?.id ? `/coach/injured?teamId=${team.id}` : "/coach/injured"}
         />
       )}
       {hasFeatureAccess(COACH_FEATURE_ROUTES.GameModel) && (
-        <DashboardCard
+        <LauncherTile
           title="Modelo de Juego"
-          description="Estrategia y tácticas."
-          icon={<TimelineIcon style={{ fontSize: 40 }} />}
+          icon={<TimelineIcon />}
           to={team?.id ? `/coach/game-model?teamId=${team.id}` : "/coach/game-model"}
         />
       )}
       {hasFeatureAccess(COACH_FEATURE_ROUTES.TeamRulesDocument) && (
-        <DashboardCard
+        <LauncherTile
           title="Normas del Equipo"
-          description="Normas de convivencia y disciplina."
-          icon={<RuleIcon style={{ fontSize: 40 }} />}
+          icon={<RuleIcon />}
           to={team?.id ? `/coach/team-rules?teamId=${team.id}` : "/coach/team-rules"}
         />
       )}
       {hasFeatureAccess(COACH_FEATURE_ROUTES.Sanctions) && (
-        <DashboardCard
+        <LauncherTile
           title="Sanciones"
-          description="Registro de sanciones."
-          icon={<GavelIcon style={{ fontSize: 40 }} />}
+          icon={<GavelIcon />}
           to={team?.id ? `/coach/sanctions?teamId=${team.id}` : "/coach/sanctions"}
         />
       )}
       {hasFeatureAccess(COACH_FEATURE_ROUTES.Lottery) && (
-        <DashboardCard
-          title="Lotería"
-          description="Sistema de lotería."
-          icon={<CasinoIcon style={{ fontSize: 40 }} />}
-          to="/coach/lottery"
-        />
+        <LauncherTile title="Lotería" icon={<CasinoIcon />} to="/coach/lottery" />
       )}
       {hasFeatureAccess(COACH_FEATURE_ROUTES.News) && (
-        <DashboardCard
-          title="Noticias"
-          description="Últimas noticias y comunicados."
-          icon={<NewspaperIcon style={{ fontSize: 40 }} />}
-          to="/coach/news"
-        />
+        <LauncherTile title="Noticias" icon={<NewspaperIcon />} to="/coach/news" />
       )}
       {hasFeatureAccess(COACH_FEATURE_ROUTES.SeasonAccess) && (
-        <DashboardCard
+        <LauncherTile
           title="Pruebas de acceso"
-          description="Temporada que viene."
-          icon={<CalendarMonthIcon style={{ fontSize: 40 }} />}
+          icon={<CalendarMonthIcon />}
           to="/coach/season-access"
         />
       )}

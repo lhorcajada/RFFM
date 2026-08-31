@@ -3,10 +3,14 @@ import { Button } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
+import ErrorBoundary from "../../../../shared/components/ui/ErrorBoundary/ErrorBoundary";
 import useTeamAndClub from "../../hooks/useTeamAndClub";
 import { usePlayerAutoLoad } from "../Dashboard/hooks/usePlayerAutoLoad";
 import TeamDashboardCards from "./TeamDashboardCards";
+import UpcomingEventsWidget from "./components/UpcomingEventsWidget";
+import NewsWidget from "./components/NewsWidget";
 import styles from "../Dashboard/Dashboard.module.css";
+import teamDashboardStyles from "./TeamDashboard.module.css";
 
 export default function TeamDashboard() {
   const navigate = useNavigate();
@@ -32,7 +36,19 @@ export default function TeamDashboard() {
           </div>
         }
       >
-        <TeamDashboardCards team={team} selectedSeason={selectedSeason} isPlayer={isPlayer} />
+        <div className={teamDashboardStyles.pageContent}>
+          <div className={teamDashboardStyles.widgetsContainer}>
+            <ErrorBoundary>
+              <UpcomingEventsWidget team={team} isPlayer={isPlayer} />
+            </ErrorBoundary>
+            <ErrorBoundary>
+              <NewsWidget />
+            </ErrorBoundary>
+          </div>
+          <ErrorBoundary>
+            <TeamDashboardCards team={team} selectedSeason={selectedSeason} isPlayer={isPlayer} />
+          </ErrorBoundary>
+        </div>
       </ContentLayout>
     </BaseLayout>
   );

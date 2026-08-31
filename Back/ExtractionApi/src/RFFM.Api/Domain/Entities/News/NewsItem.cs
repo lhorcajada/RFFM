@@ -74,5 +74,15 @@ namespace RFFM.Api.Domain.Entities.News
             PublishedAt = DateTime.UtcNow;
             UpdatedAt = DateTime.UtcNow;
         }
+
+        public void Unpublish()
+        {
+            if (Status != NewsStatus.Published)
+                throw new RFFM.Api.Domain.ConflictException("La noticia ya está en borrador.", RFFM.Api.Domain.ErrorCodes.NewsNotPublished);
+
+            Status = NewsStatus.Draft;
+            PublishedAt = null;
+            UpdatedAt = DateTime.UtcNow;
+        }
     }
 }

@@ -11,6 +11,7 @@ export const COACH_FEATURE_ROUTES = {
   Squad: "/coach/squad",
   Events: "/coach/attendance",
   AttendanceSummary: "/coach/attendance/summary",
+  AttendanceConfirmation: "/mobile/attendance",
   Convocations: "/coach/convocations",
   Injured: "/coach/injured",
   Sanctions: "/coach/sanctions",

@@ -49,6 +49,14 @@ vi.mock("../TeamDashboardCards", () => ({
   default: () => <div>TeamDashboardCards</div>,
 }));
 
+vi.mock("../components/UpcomingEventsWidget", () => ({
+  default: () => <div>upcoming-events-widget</div>,
+}));
+
+vi.mock("../components/NewsWidget", () => ({
+  default: () => <div>news-widget</div>,
+}));
+
 import TeamDashboard from "../TeamDashboard";
 
 describe("TeamDashboard back button", () => {
@@ -90,5 +98,72 @@ describe("TeamDashboard back button", () => {
     await user.click(button);
 
     expect(mockNavigate).toHaveBeenCalledWith("/coach/dashboard");
+  });
+});
+
+describe("TeamDashboard — A la vista section", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockUsePlayerAutoLoad.mockReturnValue({ isPlayer: false });
+  });
+
+  it("renders the upcoming-events and news widgets above the dashboard cards", () => {
+    render(
+      <MemoryRouter>
+        <TeamDashboard />
+      </MemoryRouter>
+    );
+
+    const widgetOrder = screen.getAllByText(
+      /upcoming-events-widget|news-widget|TeamDashboardCards/
+    );
+    const texts = widgetOrder.map((el) => el.textContent);
+
+    expect(texts.indexOf("upcoming-events-widget")).toBeLessThan(
+      texts.indexOf("TeamDashboardCards")
+    );
+    expect(texts.indexOf("news-widget")).toBeLessThan(texts.indexOf("TeamDashboardCards"));
+  });
+
+  it("wraps the page content in a bottom-padded container so the last card isn't hidden behind the footer", () => {
+    const { container } = render(
+      <MemoryRouter>
+        <TeamDashboard />
+      </MemoryRouter>
+    );
+
+    // TeamDashboardCards is the last item rendered — it must sit inside a
+    // container that reserves extra bottom space (mirrors the pattern
+    // already used elsewhere, e.g. Clubs.module.css's `.wrapper`), not flush
+    // against the end of the scroll area.
+    const cards = screen.getByText("TeamDashboardCards");
+    const paddedAncestor = cards.closest('[class*="pageContent"]');
+    expect(paddedAncestor).not.toBeNull();
+    expect(container.contains(paddedAncestor)).toBe(true);
+  });
+
+  it("renders both widgets as direct siblings inside the same widgetsContainer (the row-layout-on-desktop target)", () => {
+    render(
+      <MemoryRouter>
+        <TeamDashboard />
+      </MemoryRouter>
+    );
+
+    const eventsWidget = screen.getByText("upcoming-events-widget");
+    const newsWidget = screen.getByText("news-widget");
+    const widgetsContainer = eventsWidget.closest('[class*="widgetsContainer"]');
+
+    expect(widgetsContainer).not.toBeNull();
+    // Both widgets must be direct children — the desktop row layout (>0
+    // 769px) applies `flex-direction: row` to widgetsContainer's direct
+    // children, so it only takes effect if they're actually siblings there,
+    // not nested deeper.
+    expect(Array.from(widgetsContainer!.children)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ textContent: "upcoming-events-widget" }),
+        expect.objectContaining({ textContent: "news-widget" }),
+      ])
+    );
+    expect(widgetsContainer!.contains(newsWidget)).toBe(true);
   });
 });
