@@ -99,6 +99,14 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isTrainin
   // Coach/Administrator remain unrestricted on any event type.
   const canReactivateFromDeconvoke = !isPlayerOrFamily || !!isTraining;
 
+  // Player/FamilyMember/FamilyPlayer must never see the "Asistencia" tab nor
+  // its content (attendance marking is a coach-only action). Defense in
+  // depth: even if `tab` state were somehow forced to 1, the content below
+  // is gated on `!isPlayerOrFamily` as well.
+  useEffect(() => {
+    if (isPlayerOrFamily && tab === 1) setTab(0);
+  }, [isPlayerOrFamily, tab]);
+
   useEffect(() => {
     if (!isPlayerOrFamily) {
       setAssociatedPlayerId(null);
@@ -365,7 +373,10 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isTrainin
     <div>
       <Tabs value={tab} onChange={(_, v) => setTab(v)}>
         <Tab label="Convocatoria" />
-        <Tab label="Asistencia" />
+        {/* Marking attendance is exclusively the coach's responsibility on
+            event day — Player/FamilyPlayer/FamilyMember must never see or
+            reach this tab (see AttendanceTabsAsistenciaTabVisibility.test.tsx). */}
+        {!isPlayerOrFamily && <Tab label="Asistencia" />}
       </Tabs>
 
       {tab === 0 && (
@@ -615,7 +626,7 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isTrainin
         </Box>
       )}
 
-      {tab === 1 && (
+      {tab === 1 && !isPlayerOrFamily && (
         <Box className={styles.page}>
           <div style={{ width: "100%" }}>
             <div className={`${styles.listGroupHeader} ${styles.listGroupHeaderBlue}`} style={{ marginBottom: 8 }}>

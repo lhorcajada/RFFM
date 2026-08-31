@@ -1,6 +1,5 @@
 import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -44,15 +43,13 @@ vi.mock("../../../services/excuseTypeService", () => ({
   },
 }));
 
-const updateConvocationAssistanceMock = vi.fn();
 vi.mock("../../../services/assistanceTypeService", () => ({
   default: {
     getAssistanceTypes: vi.fn().mockResolvedValue([
       { id: 1, name: "Asiste" },
       { id: 2, name: "No asiste" },
     ]),
-    updateConvocationAssistance: (...args: unknown[]) =>
-      updateConvocationAssistanceMock(...args),
+    updateConvocationAssistance: vi.fn(),
   },
 }));
 
@@ -85,14 +82,14 @@ function buildAcceptedConvocations() {
   ];
 }
 
-describe("AttendanceTabs - 'Todos asisten' button visibility by role", () => {
+describe("AttendanceTabs - 'Asistencia' tab visibility by role", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     getEventPlayersMock.mockResolvedValue([]);
     getConvocationsMock.mockResolvedValue(buildAcceptedConvocations());
   });
 
-  it("shows 'Todos asisten' for a coach", async () => {
+  it("shows the 'Asistencia' tab for a coach", async () => {
     rolesMock = ["Coach"];
     hasRoleMock.mockImplementation((role: string) => role === "Coach");
 
@@ -102,14 +99,14 @@ describe("AttendanceTabs - 'Todos asisten' button visibility by role", () => {
       </MemoryRouter>
     );
 
-    await userEvent.click(await screen.findByRole("tab", { name: /asistencia/i }));
+    await waitFor(() => expect(getConvocationsMock).toHaveBeenCalled());
 
     expect(
-      await screen.findByRole("button", { name: /todos asisten/i })
+      await screen.findByRole("tab", { name: /asistencia/i })
     ).toBeInTheDocument();
   });
 
-  it("hides 'Todos asisten' for a player (the 'Asistencia' tab itself is not shown)", async () => {
+  it("hides the 'Asistencia' tab for a player", async () => {
     rolesMock = ["Player"];
     hasRoleMock.mockImplementation((role: string) => role === "Player");
 
@@ -121,17 +118,12 @@ describe("AttendanceTabs - 'Todos asisten' button visibility by role", () => {
 
     await waitFor(() => expect(getConvocationsMock).toHaveBeenCalled());
 
-    // Player/FamilyMember/FamilyPlayer never see the "Asistencia" tab at all
-    // (see AttendanceTabsAsistenciaTabVisibility.test.tsx) so there is
-    // nothing to click into, and the attendance-marking action is
-    // unreachable by construction.
-    expect(screen.queryByRole("tab", { name: /asistencia/i })).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: /todos asisten/i })
+      screen.queryByRole("tab", { name: /asistencia/i })
     ).not.toBeInTheDocument();
   });
 
-  it("hides 'Todos asisten' for a family member (the 'Asistencia' tab itself is not shown)", async () => {
+  it("hides the 'Asistencia' tab for a family member", async () => {
     rolesMock = ["FamilyMember"];
     hasRoleMock.mockImplementation((role: string) => role === "FamilyMember");
 
@@ -143,9 +135,43 @@ describe("AttendanceTabs - 'Todos asisten' button visibility by role", () => {
 
     await waitFor(() => expect(getConvocationsMock).toHaveBeenCalled());
 
-    expect(screen.queryByRole("tab", { name: /asistencia/i })).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: /todos asisten/i })
+      screen.queryByRole("tab", { name: /asistencia/i })
     ).not.toBeInTheDocument();
+  });
+
+  it("hides the 'Asistencia' tab for a family player", async () => {
+    rolesMock = ["FamilyPlayer"];
+    hasRoleMock.mockImplementation((role: string) => role === "FamilyPlayer");
+
+    render(
+      <MemoryRouter>
+        <AttendanceTabs eventId="event-1" eventStart={null} isMatch={false} />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => expect(getConvocationsMock).toHaveBeenCalled());
+
+    expect(
+      screen.queryByRole("tab", { name: /asistencia/i })
+    ).not.toBeInTheDocument();
+  });
+
+  it("never renders the assistance content (attendance action buttons) for a player even if the tab index is forced to 1", async () => {
+    rolesMock = ["Player"];
+    hasRoleMock.mockImplementation((role: string) => role === "Player");
+
+    render(
+      <MemoryRouter>
+        <AttendanceTabs eventId="event-1" eventStart={null} isMatch={false} />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => expect(getConvocationsMock).toHaveBeenCalled());
+
+    // The assistance marking options ("Sin indicar", assistance type buttons) must never
+    // be reachable by a player/family user, regardless of any residual tab state.
+    expect(screen.queryByRole("button", { name: /^sin indicar$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^asiste$/i })).not.toBeInTheDocument();
   });
 });
