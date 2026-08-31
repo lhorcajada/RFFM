@@ -9,6 +9,7 @@ import { getIdealLineup } from "../../../../services/idealLineupService";
 import sportEventService, { type SportEventResponse } from "../../../../services/sportEventService";
 import sportEventTypeService from "../../../../services/sportEventTypeService";
 import teamplayerService from "../../../../services/teamplayerService";
+import seasonService from "../../../../services/seasonService";
 import playerService from "../../../../services/playerService";
 import { getMyProfile } from "../../../../services/coachApi";
 import { coachAuthService } from "../../../../services/authService";
@@ -117,11 +118,28 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
       setError(null);
 
       try {
+        const activeSeason = await seasonService.getActiveSeason();
+        if (!activeSeason) {
+          if (mounted) {
+            setSummary({
+              total: { ...EMPTY_SUMMARY },
+              training: { ...EMPTY_SUMMARY },
+              match: { ...EMPTY_SUMMARY },
+              other: { ...EMPTY_SUMMARY },
+            });
+            setTrainingRows([]);
+            setMatchColumns([]);
+            setMatchRows([]);
+          }
+          return;
+        }
+
+        const seasonId = activeSeason.id;
         const [eventTypes, statuses, assistanceTypes, teamPlayers] = await Promise.all([
           sportEventTypeService.getSportEventTypes(),
           convocationStatusService.getConvocationStatuses(),
           assistanceTypeService.getAssistanceTypes(),
-          teamplayerService.getPlayersByTeam(teamId),
+          teamplayerService.getPlayersByTeam(teamId, seasonId),
         ]);
 
         const typeMap: Record<number, string> = {};
@@ -131,6 +149,11 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
 
         const acceptedIds = statuses.filter((s) => /accepted|acept/i.test(s.name)).map((s) => s.id);
         const acceptedSet = new Set<number>(acceptedIds.length > 0 ? acceptedIds : [2]);
+        const absenceStatusSet = new Set(
+          statuses
+            .filter((status) => /justified|justific|deconvoke|desconvoc/i.test(status.name))
+            .map((status) => status.id)
+        );
 
         const assistanceNameMap = new Map<number, string>();
         assistanceTypes.forEach((a) => assistanceNameMap.set(a.id, a.name));
@@ -151,7 +174,14 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
         const allEvents: SportEventResponse[] = [];
 
         do {
-          const resp = await sportEventService.getSportEvents(teamId, page, pageSize, null, null, true);
+          const resp = await sportEventService.getSportEvents(
+            teamId,
+            page,
+            pageSize,
+            activeSeason.startDate,
+            activeSeason.endDate,
+            true
+          );
           allEvents.push(...(resp.items ?? []));
           totalPages = Math.max(totalPages, resp.totalPages ?? 1);
           page += 1;
@@ -219,23 +249,41 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
           ? (await getMyProfile().catch(() => null))?.playerId ?? null
           : null;
 
-        const seasonId = new URLSearchParams(window.location.search).get("seasonId");
         const trainingSummary = await attendanceSummaryService.getTrainingAttendanceSummary(teamId, seasonId);
-        const nextRows: PlayerTrainingSummary[] = trainingSummary.players.map((player) => ({
-          playerId: player.playerId ?? player.teamPlayerId,
-          teamPlayerId: player.teamPlayerId,
-          playerName: player.playerName,
-          photoUrl: photoByKey[player.teamPlayerId] ?? (player.playerId ? photoByKey[player.playerId] : null) ?? null,
-          totalTrainings: player.totalTrainings,
-          attendedTrainings: player.attendedTrainings,
-          absentTrainings: player.absentTrainings,
-          absences: player.absences.map((absence) => ({
-            eventId: absence.eventId,
-            eventTitle: absence.eventTitle,
-            date: absence.date,
-            reason: absence.reason,
-          })),
-        }));
+        const activeTrainingEventIds = new Set(
+          allEvents
+            .filter((event) => classifyEventType(getEventTypeName(event, typeMap)) === "training")
+            .map((event) => event.id)
+        );
+        const nextRows: PlayerTrainingSummary[] = trainingSummary.players.map((player) => {
+          const playerConvocations = teamConvocations.filter(
+            (row) => row.teamPlayerId === player.teamPlayerId && activeTrainingEventIds.has(row.eventId)
+          );
+          const attendedTrainings = playerConvocations.filter((row) => isAttendById(row.assistanceTypeId)).length;
+          const absentTrainings = playerConvocations.filter(
+            (row) =>
+              isAbsentById(row.assistanceTypeId) ||
+              (row.assistanceTypeId == null && row.statusId != null && absenceStatusSet.has(row.statusId))
+          ).length;
+
+          return {
+            playerId: player.playerId ?? player.teamPlayerId,
+            teamPlayerId: player.teamPlayerId,
+            playerName: player.playerName,
+            photoUrl: photoByKey[player.teamPlayerId] ?? (player.playerId ? photoByKey[player.playerId] : null) ?? null,
+            totalTrainings: attendedTrainings + absentTrainings,
+            attendedTrainings,
+            absentTrainings,
+            absences: player.absences
+              .filter((absence) => activeTrainingEventIds.has(absence.eventId))
+              .map((absence) => ({
+                eventId: absence.eventId,
+                eventTitle: absence.eventTitle,
+                date: absence.date,
+                reason: absence.reason,
+              })),
+          };
+        });
 
         if (associatedPlayerId) {
           const associatedIndex = nextRows.findIndex(
@@ -247,12 +295,11 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
           }
         }
 
-        // Overwrite training summary with accurate data from the dedicated endpoint
-        // (convocation assistanceTypeId is not filled for training events)
+        // Keep training totals aligned with the active-season events already loaded above.
         nextSummary.training = {
-          events: trainingSummary.totalTrainingEvents,
-          attend: trainingSummary.players.reduce((sum, p) => sum + p.attendedTrainings, 0),
-          absent: trainingSummary.players.reduce((sum, p) => sum + p.absentTrainings, 0),
+          events: activeTrainingEventIds.size,
+          attend: nextRows.reduce((sum, player) => sum + player.attendedTrainings, 0),
+          absent: nextRows.reduce((sum, player) => sum + player.absentTrainings, 0),
         };
 
         const officialMatchEvents = eventsWithConvocations
