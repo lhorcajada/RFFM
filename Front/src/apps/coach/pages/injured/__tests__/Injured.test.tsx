@@ -46,6 +46,17 @@ vi.mock("../../../services/teamplayerService", () => ({
   updatePlayerInjury: vi.fn(),
 }));
 
+let rolesMock: string[] = ["Coach"];
+vi.mock("../../../services/authService", () => ({
+  coachAuthService: {
+    getRoles: () => rolesMock,
+    hasRole: (role: string) => rolesMock.includes(role),
+    hasPermission: vi.fn().mockReturnValue(true),
+    getToken: vi.fn().mockReturnValue("fake-token"),
+    isAuthenticated: vi.fn().mockReturnValue(true),
+  },
+}));
+
 import Injured from "../Injured";
 
 function renderPage() {
@@ -59,6 +70,7 @@ function renderPage() {
 describe("Injured", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    rolesMock = ["Coach"];
   });
 
   it("obtiene las lesiones de todo el equipo con una única llamada, no una por jugador", async () => {
@@ -99,5 +111,87 @@ describe("Injured", () => {
     await waitFor(() =>
       expect(screen.getByText(/Sin lesiones registradas/i)).toBeInTheDocument()
     );
+  });
+});
+
+describe("Injured - action visibility by role", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockGetPlayersByTeam.mockResolvedValue([
+      { id: "tp-1", name: "Ana", lastName: "García", alias: "ana" },
+    ]);
+    mockGetTeamInjuries.mockResolvedValue([
+      {
+        teamPlayerId: "tp-1",
+        injuries: [
+          {
+            id: "inj-1",
+            startDate: "2026-01-01T00:00:00Z",
+            injuryType: "Rotura fibrilar",
+            endDate: null,
+          },
+        ],
+      },
+    ]);
+  });
+
+  it("shows 'Añadir lesión', 'Editar' and 'Dar de alta' actions for a coach", async () => {
+    rolesMock = ["Coach"];
+
+    renderPage();
+
+    await waitFor(() => expect(mockGetTeamInjuries).toHaveBeenCalled());
+    await screen.findByText("Rotura fibrilar");
+
+    expect(
+      await screen.findByRole("button", { name: /añadir lesión/i })
+    ).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /^editar$/i })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /dar de alta/i })).toBeInTheDocument();
+  });
+
+  it("hides injury management actions for a player", async () => {
+    rolesMock = ["Player"];
+
+    renderPage();
+
+    await waitFor(() => expect(mockGetTeamInjuries).toHaveBeenCalled());
+    await screen.findByText("Rotura fibrilar");
+
+    expect(
+      screen.queryByRole("button", { name: /añadir lesión/i })
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^editar$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /dar de alta/i })).not.toBeInTheDocument();
+  });
+
+  it("hides injury management actions for a family member", async () => {
+    rolesMock = ["FamilyMember"];
+
+    renderPage();
+
+    await waitFor(() => expect(mockGetTeamInjuries).toHaveBeenCalled());
+    await screen.findByText("Rotura fibrilar");
+
+    expect(
+      screen.queryByRole("button", { name: /añadir lesión/i })
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^editar$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /dar de alta/i })).not.toBeInTheDocument();
+  });
+
+  it("hides injury management actions for a family player", async () => {
+    rolesMock = ["FamilyPlayer"];
+
+    renderPage();
+
+    await waitFor(() => expect(mockGetTeamInjuries).toHaveBeenCalled());
+    await screen.findByText("Rotura fibrilar");
+
+    expect(
+      screen.queryByRole("button", { name: /añadir lesión/i })
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^editar$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /dar de alta/i })).not.toBeInTheDocument();
   });
 });

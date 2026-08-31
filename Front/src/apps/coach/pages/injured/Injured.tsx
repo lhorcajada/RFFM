@@ -36,6 +36,7 @@ import teamplayerService, {
 } from "../../services/teamplayerService";
 import type { InjuryRecord, PlayerResponse } from "../../services/teamplayerService";
 import InjuryDialog from "../player/components/InjuryDialog";
+import { coachAuthService } from "../../services/authService";
 import styles from "./Injured.module.css";
 
 type InjuryRow = {
@@ -46,6 +47,12 @@ type InjuryRow = {
 export default function Injured() {
   const goToTeamDashboard = useTeamDashboardBack();
   const { team, teamTitleNode } = useTeamAndClub();
+
+  const _roles = coachAuthService.getRoles();
+  const isPlayerOrFamily =
+    (_roles.includes("Player") || _roles.includes("FamilyPlayer") || _roles.includes("FamilyMember")) &&
+    !_roles.includes("Coach") &&
+    !_roles.includes("Administrator");
 
   const [players, setPlayers] = useState<PlayerResponse[]>([]);
   const [rows, setRows] = useState<InjuryRow[]>([]);
@@ -113,6 +120,7 @@ export default function Injured() {
   }
 
   async function handleAddSave() {
+    if (isPlayerOrFamily) return;
     if (!addPlayer || !addInjuryType.trim() || !addStartDate) return;
     setAddSaving(true);
     const result = await createPlayerInjury(addPlayer.id, {
@@ -140,6 +148,7 @@ export default function Injured() {
     estimatedRecovery?: string | null;
     endDate?: string | null;
   }) {
+    if (isPlayerOrFamily) return;
     if (!editRow) return;
     setEditSaving(true);
     await updatePlayerInjury(editRow.player.id, editRow.injury.id, {
@@ -152,6 +161,7 @@ export default function Injured() {
   }
 
   async function handleDischarge(row: InjuryRow) {
+    if (isPlayerOrFamily) return;
     const name =
       ((row.player.name ?? "") + " " + (row.player.lastName ?? "")).trim() ||
       row.player.alias;
@@ -176,16 +186,18 @@ export default function Injured() {
         subtitle={teamTitleNode ?? "Histórico de lesiones de la plantilla"}
         actionBar={
           <Stack direction="row" spacing={1} alignItems="center">
-            <Button
-              startIcon={<AddIcon />}
-              onClick={openAdd}
-              variant="contained"
-              size="small"
-              color="warning"
-              disabled={players.length === 0}
-            >
-              Añadir lesión
-            </Button>
+            {!isPlayerOrFamily && (
+              <Button
+                startIcon={<AddIcon />}
+                onClick={openAdd}
+                variant="contained"
+                size="small"
+                color="warning"
+                disabled={players.length === 0}
+              >
+                Añadir lesión
+              </Button>
+            )}
             <Button
               startIcon={<ArrowBackIcon />}
               onClick={() => goToTeamDashboard()}
@@ -272,15 +284,17 @@ export default function Injured() {
                       </TableCell>
                       <TableCell align="right">
                         <div className={styles.actions}>
-                          <Tooltip title="Editar">
-                            <IconButton
-                              size="small"
-                              onClick={() => openEdit({ player, injury })}
-                            >
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          {isActive && (
+                          {!isPlayerOrFamily && (
+                            <Tooltip title="Editar">
+                              <IconButton
+                                size="small"
+                                onClick={() => openEdit({ player, injury })}
+                              >
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                          {!isPlayerOrFamily && isActive && (
                             <Tooltip title="Dar de alta">
                               <IconButton
                                 size="small"

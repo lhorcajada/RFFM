@@ -37,6 +37,7 @@ import teamplayerSanctionService, {
 } from "../../services/teamplayerSanctionService";
 import type { PlayerResponse } from "../../services/teamplayerService";
 import type { SanctionRecord } from "../../services/teamplayerSanctionService";
+import { coachAuthService } from "../../services/authService";
 import styles from "./Sanctions.module.css";
 
 type SanctionRow = { player: PlayerResponse; sanction: SanctionRecord };
@@ -44,6 +45,12 @@ type SanctionRow = { player: PlayerResponse; sanction: SanctionRecord };
 export default function Sanctions() {
   const navigate = useNavigate();
   const { team, teamTitleNode } = useTeamAndClub();
+
+  const _roles = coachAuthService.getRoles();
+  const isPlayerOrFamily =
+    (_roles.includes("Player") || _roles.includes("FamilyPlayer") || _roles.includes("FamilyMember")) &&
+    !_roles.includes("Coach") &&
+    !_roles.includes("Administrator");
 
   const [players, setPlayers] = useState<PlayerResponse[]>([]);
   const [rows, setRows] = useState<SanctionRow[]>([]);
@@ -105,6 +112,7 @@ export default function Sanctions() {
   }
 
   async function handleAddSave() {
+    if (isPlayerOrFamily) return;
     if (!addPlayer || !addSanctionType.trim() || !addStartDate) return;
     setAddSaving(true);
     const result = await createPlayerSanction(addPlayer.id, {
@@ -126,6 +134,7 @@ export default function Sanctions() {
   }
 
   async function handleEditSave(data: { startDate: string; sanctionType: string; description?: string | null; estimatedEnd?: string | null; endDate?: string | null }) {
+    if (isPlayerOrFamily) return;
     if (!editRow) return;
     setEditSaving(true);
     await updatePlayerSanction(editRow.player.id, editRow.sanction.id, { ...data, endDate: data.endDate || null });
@@ -135,6 +144,7 @@ export default function Sanctions() {
   }
 
   async function handleLift(row: SanctionRow) {
+    if (isPlayerOrFamily) return;
     const name = ((row.player.name ?? "") + " " + (row.player.lastName ?? "")).trim() || row.player.alias;
     if (!confirm(`¿Levantar sanción a ${name}?`)) return;
     await updatePlayerSanction(row.player.id, row.sanction.id, {
@@ -156,9 +166,11 @@ export default function Sanctions() {
         subtitle={teamTitleNode ?? "Registro de sanciones a jugadores"}
         actionBar={
           <Stack direction="row" spacing={1} alignItems="center">
-            <Button startIcon={<AddIcon />} onClick={openAdd} variant="contained" size="small" color="warning" disabled={players.length === 0}>
-              Añadir sanción
-            </Button>
+            {!isPlayerOrFamily && (
+              <Button startIcon={<AddIcon />} onClick={openAdd} variant="contained" size="small" color="warning" disabled={players.length === 0}>
+                Añadir sanción
+              </Button>
+            )}
             <Button startIcon={<ArrowBackIcon />} onClick={() => navigate("/coach/dashboard")} variant="outlined" size="small">
               Volver
             </Button>
@@ -208,12 +220,14 @@ export default function Sanctions() {
                       <TableCell>{isActive ? <Chip label="Activa" color="error" size="small" /> : <Chip label="Cumplida" color="success" size="small" variant="outlined" />}</TableCell>
                       <TableCell align="right">
                         <div className={styles.actions}>
-                          <Tooltip title="Editar">
-                            <IconButton size="small" onClick={() => openEdit({ player, sanction })}>
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          {isActive && (
+                          {!isPlayerOrFamily && (
+                            <Tooltip title="Editar">
+                              <IconButton size="small" onClick={() => openEdit({ player, sanction })}>
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                          {!isPlayerOrFamily && isActive && (
                             <Tooltip title="Levantar sanción">
                               <IconButton size="small" color="success" onClick={() => handleLift({ player, sanction })}>
                                 <CheckCircleIcon fontSize="small" />
