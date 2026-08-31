@@ -1,5 +1,7 @@
 import client from "../../../core/api/client";
 
+export type MatchCategory = "League" | "Friendly" | "Tournament" | null;
+
 export interface SportEventResponse {
   id: string;
   title: string;
@@ -11,6 +13,8 @@ export interface SportEventResponse {
   end?: string | null; // ISO date
   eventType?: string | null;
   eventTypeId?: number | null;
+  // Stable, backend-computed match category — replaces client-side name/id matching
+  matchCategory?: MatchCategory;
   location?: string | null;
   // Additional fields that backend may provide
   name?: string | null;
@@ -166,6 +170,10 @@ export interface SyncCalendarPayload {
   teamId: string;
   matches: SyncMatchItem[];
   myTeamShieldUrl?: string | null;
+  // Optional bulk-upsert arrays — same item shape as `matches`, idempotently
+  // upserted as EventTypeId 4 (Friendly) / 6 (Tournament) respectively.
+  friendlies?: SyncMatchItem[];
+  tournaments?: SyncMatchItem[];
 }
 
 export interface SyncCalendarResult {

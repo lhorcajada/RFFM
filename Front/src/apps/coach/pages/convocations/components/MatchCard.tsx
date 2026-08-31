@@ -1,4 +1,7 @@
 import type { KeyboardEvent } from "react";
+import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
+import HandshakeIcon from "@mui/icons-material/Handshake";
+import SportsSoccerIcon from "@mui/icons-material/SportsSoccer";
 import type { NormalizedMatch } from "../types";
 import type { EventAttendanceSummaryDto } from "../../../services/eventAttendanceSummaryService";
 import { getMatchResult } from "../helpers/convocationUtils";
@@ -13,8 +16,19 @@ interface Props {
   isPlayer?: boolean;
 }
 
+const CATEGORY_META: Record<
+  "League" | "Friendly" | "Tournament",
+  { label: string; className: string; icon: typeof SportsSoccerIcon }
+> = {
+  League: { label: "Liga", className: "categoryChipLeague", icon: SportsSoccerIcon },
+  Friendly: { label: "Amistoso", className: "categoryChipFriendly", icon: HandshakeIcon },
+  Tournament: { label: "Torneo", className: "categoryChipTournament", icon: EmojiEventsIcon },
+};
+
 export default function MatchCard({ match, onNavigate, attendanceSummary, isPlayer }: Props) {
   const result = getMatchResult(match);
+  const categoryMeta = match.matchCategory ? CATEGORY_META[match.matchCategory] : null;
+  const CategoryIcon = categoryMeta?.icon;
   const cardClass = [
     convStyles.matchCard,
     result === "won"  ? convStyles.matchCardWon  : "",
@@ -44,6 +58,15 @@ export default function MatchCard({ match, onNavigate, attendanceSummary, isPlay
       tabIndex={0}
       onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => { if ((e as any).key === "Enter") onNavigate(match); }}
     >
+      {categoryMeta && CategoryIcon && (
+        <span
+          className={`${localStyles.categoryChip} ${localStyles[categoryMeta.className] ?? ""}`}
+        >
+          <CategoryIcon className={localStyles.categoryChipIcon} />
+          {categoryMeta.label}
+        </span>
+      )}
+
       <div className={convStyles.matchCardInner}>
         <div className={convStyles.matchTeamBlock}>
           {match.localTeamShield ? (

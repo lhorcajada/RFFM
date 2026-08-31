@@ -76,9 +76,12 @@ export function useConvocations(teamId?: string) {
         if (pageNumber > MAX_PAGES) break;
       }
       if (!mountedRef.current) return;
-      const matchEvents = allItems.filter(
-        (ev) => (ev.eventTypeId ?? 0) === 1 || (ev.eventType ?? "").toLowerCase().includes("partido")
-      );
+      const matchEvents = allItems.filter((ev) => {
+        // Prefer the backend-computed, stable category — falls back to the
+        // legacy eventTypeId/name heuristic for responses that predate it.
+        if (ev.matchCategory) return true;
+        return (ev.eventTypeId ?? 0) === 1 || (ev.eventType ?? "").toLowerCase().includes("partido");
+      });
       setMatches(matchEvents.map(normalizeFromSportEvent));
     } catch (e) {
       if (mountedRef.current) setError("No se pudo cargar el calendario de partidos.");

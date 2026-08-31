@@ -1,3 +1,5 @@
+export type MatchCategory = "League" | "Friendly" | "Tournament" | null;
+
 export type NormalizedMatch = {
   date: string; // "YYYY-MM-DD"
   time: string;
@@ -14,6 +16,8 @@ export type NormalizedMatch = {
   codacta: string | null;
   selectedKitNumber: number | null;
   eventId?: string;
+  /** Backend-computed category — "League" | "Friendly" | "Tournament" | null (non-match event) */
+  matchCategory?: MatchCategory;
 };
 
 export type MatchResult = "won" | "draw" | "lost" | "played" | null;
