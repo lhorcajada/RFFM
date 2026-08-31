@@ -21,13 +21,16 @@ function cellLabel(state: PlayerMatchSummary["cells"][number]["state"]): string 
   }
 }
 
-function cellTitle(state: PlayerMatchSummary["cells"][number]["state"]): string {
-  switch (state) {
-    case "starter": return "Titular";
-    case "called": return "Convocado";
-    case "notCalled": return "Desconvocado";
-    default: return "No convocado";
-  }
+function cellTitle(state: PlayerMatchSummary["cells"][number]["state"], minutesPlayed: number | null): string {
+  const base = (() => {
+    switch (state) {
+      case "starter": return "Titular";
+      case "called": return "Convocado";
+      case "notCalled": return "Desconvocado";
+      default: return "No convocado";
+    }
+  })();
+  return minutesPlayed != null ? `${base} (${minutesPlayed}')` : base;
 }
 
 function formatHeader(column: MatchAttendanceColumn): string {
@@ -51,7 +54,7 @@ export default function AttendanceMatchesTab({ rows, columns, onRefresh, loading
     return (
       <EmptyState
         title="Sin datos de partidos"
-        description="No hay partidos oficiales con convocatorias para mostrar en este resumen."
+        description="No hay partidos con convocatorias para mostrar en este resumen."
       />
     );
   }
@@ -60,7 +63,7 @@ export default function AttendanceMatchesTab({ rows, columns, onRefresh, loading
     <Box>
       <Box className={styles.matchToolbar}>
         <Typography variant="body2" className={styles.matchToolbarDesc}>
-          Se muestran solo partidos oficiales. Los amistosos quedan fuera de convocatorias y titularidades.
+          Se muestran los partidos oficiales y también los amistosos, identificados con la etiqueta "Amistoso".
         </Typography>
         <Box className={styles.matchToolbarRight}>
           <Chip size="small" label={`${columns.length} jornadas`} />
@@ -81,7 +84,12 @@ export default function AttendanceMatchesTab({ rows, columns, onRefresh, loading
               <TableCell className={`${styles.matchStickyCell} ${styles.matchHeaderCell}`}>Jugador</TableCell>
               {columns.map((column) => (
                 <TableCell key={column.eventId} className={styles.matchHeaderCell} align="center">
-                  <span className={styles.matchHeaderText}>{formatHeader(column)}</span>
+                  <span className={styles.matchHeaderText}>
+                    {formatHeader(column)}
+                    {column.isFriendly && (
+                      <Chip size="small" label="Amistoso" className={styles.matchFriendlyChip} />
+                    )}
+                  </span>
                 </TableCell>
               ))}
               <TableCell className={styles.matchHeaderCell} align="center">Totales</TableCell>
@@ -108,10 +116,16 @@ export default function AttendanceMatchesTab({ rows, columns, onRefresh, loading
                 {columns.map((column) => {
                   const cell = row.cells.find((item) => item.eventId === column.eventId);
                   const state = cell?.state ?? "absent";
+                  const minutesPlayed = cell?.minutesPlayed ?? null;
                   return (
                     <TableCell key={`${row.playerId}-${column.eventId}`} align="center">
-                      <span className={`${styles.matchCell} ${stateClassMap[state]}`} title={cellTitle(state)}>
-                        {cellLabel(state)}
+                      <span className={styles.matchCellWrap} title={cellTitle(state, minutesPlayed)}>
+                        <span className={`${styles.matchCell} ${stateClassMap[state]}`}>
+                          {cellLabel(state)}
+                        </span>
+                        {minutesPlayed != null && (
+                          <span className={styles.matchCellMinutes}>{minutesPlayed}'</span>
+                        )}
                       </span>
                     </TableCell>
                   );
@@ -120,6 +134,11 @@ export default function AttendanceMatchesTab({ rows, columns, onRefresh, loading
                   <Box className={styles.matchTotalsChips}>
                     <Chip size="small" className={styles.matchMetricChip} label={`${row.totalMatches} partidos`} />
                     <Chip size="small" className={styles.matchMetricChipMuted} label={`${row.notCalledMatches} no conv.`} />
+                    <Chip
+                      size="small"
+                      className={styles.matchMetricChipInfo}
+                      label={`${row.seasonMinutesPlayed ?? 0} min temporada`}
+                    />
                   </Box>
                 </TableCell>
               </TableRow>

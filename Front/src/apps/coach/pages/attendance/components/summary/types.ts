@@ -36,6 +36,7 @@ export type MatchAttendanceCell = {
   state: MatchAttendanceCellState;
   wasCalled: boolean;
   wasStarter: boolean;
+  minutesPlayed: number | null;
 };
 
 export type MatchAttendanceColumn = {
@@ -43,6 +44,7 @@ export type MatchAttendanceColumn = {
   label: string;
   date: string | null;
   rival: string | null;
+  isFriendly: boolean;
 };
 
 export type PlayerMatchSummary = {
@@ -52,5 +54,6 @@ export type PlayerMatchSummary = {
   calledMatches: number;
   startedMatches: number;
   notCalledMatches: number;
+  seasonMinutesPlayed: number;
   cells: MatchAttendanceCell[];
 };

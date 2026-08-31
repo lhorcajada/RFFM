@@ -10,6 +10,7 @@ import sportEventService, { type SportEventResponse } from "../../../../services
 import sportEventTypeService from "../../../../services/sportEventTypeService";
 import teamplayerService from "../../../../services/teamplayerService";
 import seasonService from "../../../../services/seasonService";
+import liveMatchService from "../../../../services/liveMatchService";
 import playerService from "../../../../services/playerService";
 import { getMyProfile } from "../../../../services/coachApi";
 import { coachAuthService } from "../../../../services/authService";
@@ -45,6 +46,7 @@ function classifyEventType(name: string | null | undefined): "training" | "match
 }
 
 function isFriendlyEvent(event: SportEventResponse): boolean {
+  if (event.matchCategory) return event.matchCategory === "Friendly";
   const eventType = (event.eventType ?? "").toLowerCase();
   const title = (event.title ?? event.name ?? "").toLowerCase();
   return /amist|friendly/.test(eventType) || /amist|friendly/.test(title);
@@ -135,12 +137,22 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
         }
 
         const seasonId = activeSeason.id;
-        const [eventTypes, statuses, assistanceTypes, teamPlayers] = await Promise.all([
-          sportEventTypeService.getSportEventTypes(),
-          convocationStatusService.getConvocationStatuses(),
-          assistanceTypeService.getAssistanceTypes(),
-          teamplayerService.getPlayersByTeam(teamId, seasonId),
-        ]);
+        const [eventTypes, statuses, assistanceTypes, teamPlayers, matchMinutesRows, seasonMinutesMap] =
+          await Promise.all([
+            sportEventTypeService.getSportEventTypes(),
+            convocationStatusService.getConvocationStatuses(),
+            assistanceTypeService.getAssistanceTypes(),
+            teamplayerService.getPlayersByTeam(teamId, seasonId),
+            liveMatchService.getMatchMinutes(teamId),
+            liveMatchService.getSeasonPlayerMinutes(teamId, seasonId),
+          ]);
+
+        const minutesByEventAndPlayer = new Map<string, number>();
+        matchMinutesRows.forEach((row) => {
+          minutesByEventAndPlayer.set(`${row.eventId}__${row.teamPlayerId}`, row.minutesPlayed);
+        });
+        const getMinutesPlayed = (eventId: string, playerId: string, wasCalled: boolean): number | null =>
+          wasCalled ? minutesByEventAndPlayer.get(`${eventId}__${playerId}`) ?? 0 : null;
 
         const typeMap: Record<number, string> = {};
         eventTypes.forEach((t) => {
@@ -303,7 +315,7 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
         };
 
         const officialMatchEvents = eventsWithConvocations
-          .filter(({ event }) => classifyEventType(getEventTypeName(event, typeMap)) === "match" && !isFriendlyEvent(event))
+          .filter(({ event }) => classifyEventType(getEventTypeName(event, typeMap)) === "match")
           .map(({ event, convocations }) => ({ event, convocations }))
           .sort((a, b) => {
             const ad = getEventDate(a.event) ?? "";
@@ -320,6 +332,7 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
           label: formatMatchLabel(index, event),
           date: getEventDate(event),
           rival: event.rivalName ?? event.rival ?? event.name ?? null,
+          isFriendly: isFriendlyEvent(event),
         }));
 
         const playerMap = new Map<string, PlayerMatchSummary & { seen: Set<string> }>();
@@ -361,7 +374,13 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
             const state = wasStarter ? "starter" : wasCalled ? "called" : "notCalled";
             existing.playerName = playerName;
             existing.seen.add(event.id);
-            existing.cells.push({ eventId: event.id, state, wasCalled, wasStarter });
+            existing.cells.push({
+              eventId: event.id,
+              state,
+              wasCalled,
+              wasStarter,
+              minutesPlayed: getMinutesPlayed(event.id, playerId, wasCalled),
+            });
             if (wasCalled) existing.calledMatches += 1;
             if (wasStarter) existing.startedMatches += 1;
             if (!wasCalled) existing.notCalledMatches += 1;
@@ -381,7 +400,13 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
             };
             if (!playerMap.has(playerId)) playerMap.set(playerId, existing);
             if (!existing.seen.has(event.id)) {
-              existing.cells.push({ eventId: event.id, state: "starter", wasCalled: true, wasStarter: true });
+              existing.cells.push({
+                eventId: event.id,
+                state: "starter",
+                wasCalled: true,
+                wasStarter: true,
+                minutesPlayed: getMinutesPlayed(event.id, playerId, true),
+              });
               existing.calledMatches += 1;
               existing.startedMatches += 1;
               existing.seen.add(event.id);
@@ -404,7 +429,13 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
             if (!existing.seen.has(event.id)) {
               const wasCalled = acceptedSet.has(conv.status);
               const wasStarter = wasCalled && starterIds.has(playerId);
-              existing.cells.push({ eventId: event.id, state: wasCalled ? (wasStarter ? "starter" : "called") : "notCalled", wasCalled, wasStarter });
+              existing.cells.push({
+                eventId: event.id,
+                state: wasCalled ? (wasStarter ? "starter" : "called") : "notCalled",
+                wasCalled,
+                wasStarter,
+                minutesPlayed: getMinutesPlayed(event.id, playerId, wasCalled),
+              });
               if (wasCalled) existing.calledMatches += 1;
               if (wasStarter) existing.startedMatches += 1;
               if (!wasCalled) existing.notCalledMatches += 1;
@@ -421,9 +452,18 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
             calledMatches: player.calledMatches,
             startedMatches: player.startedMatches,
             notCalledMatches: player.notCalledMatches,
+            seasonMinutesPlayed: seasonMinutesMap[player.playerId] ?? 0,
             cells: officialMatchColumns.map((column) => {
               const cell = player.cells.find((item) => item.eventId === column.eventId);
-              return cell ?? { eventId: column.eventId, state: "absent" as const, wasCalled: false, wasStarter: false };
+              return (
+                cell ?? {
+                  eventId: column.eventId,
+                  state: "absent" as const,
+                  wasCalled: false,
+                  wasStarter: false,
+                  minutesPlayed: null,
+                }
+              );
             }),
           }))
           .sort((a, b) => b.startedMatches - a.startedMatches || b.calledMatches - a.calledMatches || a.playerName.localeCompare(b.playerName));

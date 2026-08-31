@@ -78,6 +78,24 @@ export async function getSeasonPlayerMinutes(
   }
 }
 
+export type MatchMinutesRow = {
+  eventId: string;
+  teamPlayerId: string;
+  minutesPlayed: number;
+};
+
+/**
+ * Returns minutes played per (event, teamPlayer) for every finished match of the team.
+ */
+export async function getMatchMinutes(teamId: string): Promise<MatchMinutesRow[]> {
+  try {
+    const resp = await client.get(`/api/catalog/team/${teamId}/match-minutes`);
+    return resp.data ?? [];
+  } catch {
+    return [];
+  }
+}
+
 /**
  * Deletes all match participation records for a given event + team (undoes a saved match).
  */
@@ -125,6 +143,7 @@ export default {
   saveMatchParticipation,
   getMatchParticipation,
   getSeasonPlayerMinutes,
+  getMatchMinutes,
   deleteMatchParticipation,
   getSeasonPlayerStats,
   getPlayerMatchHistory,
