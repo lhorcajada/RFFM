@@ -67,134 +67,147 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
                             .GroupBy(r => r.Name.Trim().ToLowerInvariant())
                             .ToDictionary(g => g.Key, g => g.First());
 
-                        foreach (var match in req.Matches)
+                        async Task ProcessItemsAsync(SyncMatchItem[] items, int eventTypeId)
                         {
-                          try
-                          {
-                            // ── 1. Resolve or create rival ──────────────────────────────────
-                            // Truncate to 100 chars to satisfy domain constraint
-                            var rivalNameSafe = (match.RivalName ?? "Rival desconocido").Trim();
-                            if (rivalNameSafe.Length > 100) rivalNameSafe = rivalNameSafe[..100];
-
-                            var normalizedName = rivalNameSafe.ToLowerInvariant();
-                            if (!rivalsByName.TryGetValue(normalizedName, out var rival))
+                            foreach (var match in items)
                             {
-                                rival = new Rival(rivalNameSafe, null, null);
-                                db.Rivals.Add(rival);
-                                rivalsByName[normalizedName] = rival;
-                                allRivals.Add(rival);
-                            }
+                              try
+                              {
+                                // ── 1. Resolve or create rival ──────────────────────────────────
+                                // Truncate to 100 chars to satisfy domain constraint
+                                var rivalNameSafe = (match.RivalName ?? "Rival desconocido").Trim();
+                                if (rivalNameSafe.Length > 100) rivalNameSafe = rivalNameSafe[..100];
 
-                            // ── 2. Download and store rival shield if needed ─────────────────
-                            if (!string.IsNullOrEmpty(match.RivalShieldUrl)
-                                && string.IsNullOrEmpty(rival.UrlPhoto))
-                            {
-                                // Default to the external URL immediately (works even without Supabase bucket)
-                                rival.SetUrlPhoto(match.RivalShieldUrl);
-                                try
+                                var normalizedName = rivalNameSafe.ToLowerInvariant();
+                                if (!rivalsByName.TryGetValue(normalizedName, out var rival))
                                 {
-                                    var download = await storage.DownloadAsync(match.RivalShieldUrl, cancellationToken);
-                                    if (download.HasValue)
+                                    rival = new Rival(rivalNameSafe, null, null);
+                                    db.Rivals.Add(rival);
+                                    rivalsByName[normalizedName] = rival;
+                                    allRivals.Add(rival);
+                                }
+
+                                // ── 2. Download and store rival shield if needed ─────────────────
+                                if (!string.IsNullOrEmpty(match.RivalShieldUrl)
+                                    && string.IsNullOrEmpty(rival.UrlPhoto))
+                                {
+                                    // Default to the external URL immediately (works even without Supabase bucket)
+                                    rival.SetUrlPhoto(match.RivalShieldUrl);
+                                    try
                                     {
-                                        var ext = GetImageExtension(download.Value.ContentType);
-                                        var fileName = $"{Guid.NewGuid()}{ext}";
-                                        var storedUrl = await storage.UploadBytesAsync(
-                                            RivalsContainerName, fileName,
-                                            download.Value.Content, download.Value.ContentType,
-                                            cancellationToken);
-                                        rival.SetUrlPhoto(storedUrl);
+                                        var download = await storage.DownloadAsync(match.RivalShieldUrl, cancellationToken);
+                                        if (download.HasValue)
+                                        {
+                                            var ext = GetImageExtension(download.Value.ContentType);
+                                            var fileName = $"{Guid.NewGuid()}{ext}";
+                                            var storedUrl = await storage.UploadBytesAsync(
+                                                RivalsContainerName, fileName,
+                                                download.Value.Content, download.Value.ContentType,
+                                                cancellationToken);
+                                            rival.SetUrlPhoto(storedUrl);
+                                        }
+                                    }
+                                    catch
+                                    {
+                                        // Supabase upload failed; keep the external URL as fallback
                                     }
                                 }
-                                catch
+
+                                // Save rival changes (new or photo updated) before linking
+                                await db.SaveChangesAsync(cancellationToken);
+
+                                // ── 3. Find existing sport event ─────────────────────────────────
+                                var matchDateUtc = DateTime.SpecifyKind(match.MatchDate.Date, DateTimeKind.Utc);
+                                var nextDayUtc = matchDateUtc.AddDays(1);
+
+                                SportEvent? existing = null;
+
+                                // Prefer matching by CodActa if provided
+                                if (!string.IsNullOrEmpty(match.CodActa))
                                 {
-                                    // Supabase upload failed; keep the external URL as fallback
+                                    existing = await db.SportEvents
+                                        .FirstOrDefaultAsync(e =>
+                                            e.TeamId == req.TeamId &&
+                                            e.CodActa == match.CodActa,
+                                            cancellationToken);
                                 }
+
+                                // Fallback: match by teamId + eventType + date (date-only window)
+                                if (existing is null)
+                                {
+                                    existing = await db.SportEvents
+                                        .FirstOrDefaultAsync(e =>
+                                            e.TeamId == req.TeamId &&
+                                            e.EveDateTime >= matchDateUtc &&
+                                            e.EveDateTime < nextDayUtc &&
+                                            e.EventTypeId == eventTypeId,
+                                            cancellationToken);
+                                }
+
+                                // ── 4. Build combined date+time ──────────────────────────────────
+                                var eveDateTime = BuildMatchDateTime(match.MatchDate, match.MatchTime);
+
+                                var name = BuildMatchName(match.IsHomeMatch, rivalNameSafe);
+
+                                // ── 5. Create or update ──────────────────────────────────────────
+                                if (existing is not null)
+                                {
+                                    existing.Name = name;
+                                    existing.EveDateTime = eveDateTime;
+                                    existing.StartTime = eveDateTime;
+                                    existing.Location = match.Field;
+                                    existing.RivalId = rival.Id;
+                                    existing.IsHomeMatch = match.IsHomeMatch;
+                                    existing.CodActa = match.CodActa;
+                                    if (!string.IsNullOrEmpty(match.LocalGoals)) existing.LocalGoals = match.LocalGoals;
+                                    if (!string.IsNullOrEmpty(match.VisitorGoals)) existing.VisitorGoals = match.VisitorGoals;
+
+                                    updated++;
+                                    savedEvents.Add(new SportEventSaveResponse(
+                                        existing.Id, existing.Name, existing.EveDateTime, existing.StartTime,
+                                        existing.EndTime, existing.ArrivalDate, existing.Location, existing.Description,
+                                        existing.EventTypeId, existing.TeamId, existing.RivalId,
+                                        existing.IsHomeMatch, existing.CodActa, existing.RecurrenceId, existing.IsRecurrenceMaster, null));
+                                }
+                                else
+                                {
+                                    var newEvent = SportEvent.CreateNew(
+                                        name, eveDateTime, eveDateTime, null, null,
+                                        match.Field, null,
+                                        eventTypeId,
+                                        req.TeamId, rival.Id,
+                                        match.IsHomeMatch, match.CodActa,
+                                        match.LocalGoals, match.VisitorGoals);
+
+                                    db.SportEvents.Add(newEvent);
+                                    created++;
+                                    savedEvents.Add(new SportEventSaveResponse(
+                                        newEvent.Id, newEvent.Name, newEvent.EveDateTime, newEvent.StartTime,
+                                        newEvent.EndTime, newEvent.ArrivalDate, newEvent.Location, newEvent.Description,
+                                        newEvent.EventTypeId, newEvent.TeamId, newEvent.RivalId,
+                                        newEvent.IsHomeMatch, newEvent.CodActa, newEvent.RecurrenceId, newEvent.IsRecurrenceMaster, null));
+                                }
+
+                                await db.SaveChangesAsync(cancellationToken);
+                              }
+                              catch
+                              {
+                                  // This item failed; continue with the rest
+                                  failed++;
+                                  // Detach any tracked entities that may be in an invalid state
+                                  db.ChangeTracker.Clear();
+                              }
                             }
+                        }
 
-                            // Save rival changes (new or photo updated) before linking
-                            await db.SaveChangesAsync(cancellationToken);
-
-                            // ── 3. Find existing sport event ─────────────────────────────────
-                            var matchDateUtc = DateTime.SpecifyKind(match.MatchDate.Date, DateTimeKind.Utc);
-                            var nextDayUtc = matchDateUtc.AddDays(1);
-
-                            SportEvent? existing = null;
-
-                            // Prefer matching by CodActa if provided
-                            if (!string.IsNullOrEmpty(match.CodActa))
-                            {
-                                existing = await db.SportEvents
-                                    .FirstOrDefaultAsync(e =>
-                                        e.TeamId == req.TeamId &&
-                                        e.CodActa == match.CodActa,
-                                        cancellationToken);
-                            }
-
-                            // Fallback: match by teamId + date (date-only window)
-                            if (existing is null)
-                            {
-                                existing = await db.SportEvents
-                                    .FirstOrDefaultAsync(e =>
-                                        e.TeamId == req.TeamId &&
-                                        e.EveDateTime >= matchDateUtc &&
-                                        e.EveDateTime < nextDayUtc &&
-                                        e.EventTypeId == SportEventsConstants.MatchEventTypeId,
-                                        cancellationToken);
-                            }
-
-                            // ── 4. Build combined date+time ──────────────────────────────────
-                            var eveDateTime = BuildMatchDateTime(match.MatchDate, match.MatchTime);
-
-                            var name = BuildMatchName(match.IsHomeMatch, rivalNameSafe);
-
-                            // ── 5. Create or update ──────────────────────────────────────────
-                            if (existing is not null)
-                            {
-                                existing.Name = name;
-                                existing.EveDateTime = eveDateTime;
-                                existing.StartTime = eveDateTime;
-                                existing.Location = match.Field;
-                                existing.RivalId = rival.Id;
-                                existing.IsHomeMatch = match.IsHomeMatch;
-                                existing.CodActa = match.CodActa;
-                                if (!string.IsNullOrEmpty(match.LocalGoals)) existing.LocalGoals = match.LocalGoals;
-                                if (!string.IsNullOrEmpty(match.VisitorGoals)) existing.VisitorGoals = match.VisitorGoals;
-
-                                updated++;
-                                savedEvents.Add(new SportEventSaveResponse(
-                                    existing.Id, existing.Name, existing.EveDateTime, existing.StartTime,
-                                    existing.EndTime, existing.ArrivalDate, existing.Location, existing.Description,
-                                    existing.EventTypeId, existing.TeamId, existing.RivalId,
-                                    existing.IsHomeMatch, existing.CodActa, existing.RecurrenceId, existing.IsRecurrenceMaster, null));
-                            }
-                            else
-                            {
-                                var newEvent = SportEvent.CreateNew(
-                                    name, eveDateTime, eveDateTime, null, null,
-                                    match.Field, null,
-                                    SportEventsConstants.MatchEventTypeId,
-                                    req.TeamId, rival.Id,
-                                    match.IsHomeMatch, match.CodActa,
-                                    match.LocalGoals, match.VisitorGoals);
-
-                                db.SportEvents.Add(newEvent);
-                                created++;
-                                savedEvents.Add(new SportEventSaveResponse(
-                                    newEvent.Id, newEvent.Name, newEvent.EveDateTime, newEvent.StartTime,
-                                    newEvent.EndTime, newEvent.ArrivalDate, newEvent.Location, newEvent.Description,
-                                    newEvent.EventTypeId, newEvent.TeamId, newEvent.RivalId,
-                                    newEvent.IsHomeMatch, newEvent.CodActa, newEvent.RecurrenceId, newEvent.IsRecurrenceMaster, null));
-                            }
-
-                            await db.SaveChangesAsync(cancellationToken);
-                          }
-                          catch
-                          {
-                              // This match failed; continue with the rest
-                              failed++;
-                              // Detach any tracked entities that may be in an invalid state
-                              db.ChangeTracker.Clear();
-                          }
+                        await ProcessItemsAsync(req.Matches, SportEventsConstants.MatchEventTypeId);
+                        if (req.Friendlies is { Length: > 0 })
+                        {
+                            await ProcessItemsAsync(req.Friendlies, SportEventsConstants.FriendlyEventTypeId);
+                        }
+                        if (req.Tournaments is { Length: > 0 })
+                        {
+                            await ProcessItemsAsync(req.Tournaments, SportEventsConstants.TournamentEventTypeId);
                         }
 
                         // Invalidate rivals cache after potential creates/updates
@@ -239,7 +252,11 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
     public record SyncCalendarRequest(
         string TeamId,
         SyncMatchItem[] Matches,
-        string? MyTeamShieldUrl
+        string? MyTeamShieldUrl,
+        /// <summary>Friendly ("Amistoso") fixtures to upsert as EventTypeId=4, same item shape as Matches.</summary>
+        SyncMatchItem[]? Friendlies = null,
+        /// <summary>Tournament ("Torneo") fixtures to upsert as EventTypeId=6, same item shape as Matches.</summary>
+        SyncMatchItem[]? Tournaments = null
     );
 
     public record SyncMatchItem(
@@ -263,6 +280,22 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
             RuleForEach(x => x.Matches).ChildRules(m =>
             {
                 m.RuleFor(x => x.RivalName).NotEmpty().MaximumLength(100);
+            });
+
+            When(x => x.Friendlies is not null, () =>
+            {
+                RuleForEach(x => x.Friendlies).ChildRules(m =>
+                {
+                    m.RuleFor(x => x.RivalName).NotEmpty().MaximumLength(100);
+                });
+            });
+
+            When(x => x.Tournaments is not null, () =>
+            {
+                RuleForEach(x => x.Tournaments).ChildRules(m =>
+                {
+                    m.RuleFor(x => x.RivalName).NotEmpty().MaximumLength(100);
+                });
             });
         }
     }

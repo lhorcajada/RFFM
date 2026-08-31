@@ -71,6 +71,8 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Queries
             public string? VisitorGoals { get; set; }
             public int? SelectedKitNumber { get; set; }
             public bool HasConvokedPlayers { get; set; }
+            /// <summary>"League" | "Friendly" | "Tournament" | null, derived from EventTypeId.</summary>
+            public string? MatchCategory { get; set; }
 
         };
 
@@ -137,7 +139,11 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Queries
                         LocalGoals = sportEvent.LocalGoals,
                         VisitorGoals = sportEvent.VisitorGoals,
                         SelectedKitNumber = sportEvent.SelectedKitNumber,
-                        HasConvokedPlayers = _db.Convocations.Any(c => c.SportEventId == sportEvent.Id)
+                        HasConvokedPlayers = _db.Convocations.Any(c => c.SportEventId == sportEvent.Id),
+                        MatchCategory = sportEvent.EventTypeId == SportEventsConstants.MatchEventTypeId ? "League"
+                            : sportEvent.EventTypeId == SportEventsConstants.FriendlyEventTypeId ? "Friendly"
+                            : sportEvent.EventTypeId == SportEventsConstants.TournamentEventTypeId ? "Tournament"
+                            : (string?)null
                     })
                     .ToArrayAsync(cancellationToken);
 

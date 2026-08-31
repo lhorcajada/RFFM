@@ -28,7 +28,7 @@ namespace RFFM.Api.Tests.UnitTests
             _fixture = fixture;
         }
 
-        private async Task<(string TeamId, string EventId)> SeedSportEventAsync(AppDbContext db, bool withConvocation)
+        private async Task<(string TeamId, string EventId)> SeedSportEventAsync(AppDbContext db, bool withConvocation, int eventTypeId = 2)
         {
             var club = Club.Create($"GetSportEvents Test Club {Guid.NewGuid():N}", 1);
             db.Clubs.Add(club);
@@ -58,7 +58,7 @@ namespace RFFM.Api.Tests.UnitTests
                 DateTime.UtcNow.AddDays(1),
                 DateTime.UtcNow.AddDays(1),
                 null, null, null, null,
-                2, team.Id, null);
+                eventTypeId, team.Id, null);
             db.SportEvents.Add(sportEvent);
             await db.SaveChangesAsync();
 
@@ -140,6 +140,86 @@ namespace RFFM.Api.Tests.UnitTests
 
             var response = result.Single(e => e.Id == eventId);
             Assert.False(response.HasConvokedPlayers);
+        }
+
+        [Fact]
+        public async Task Handle_LeagueMatchEvent_ReturnsMatchCategoryLeague()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (teamId, eventId) = await SeedSportEventAsync(seedDb, withConvocation: false, eventTypeId: 1);
+
+            await using var db = _fixture.CreateDbContext();
+            var handler = new GetSportEvents.GetSportEventsRequestHandler(db, new HttpContextAccessor());
+
+            var result = await handler.Handle(new GetSportEvents.SportEventsQuery
+            {
+                TeamId = teamId,
+                PageNumber = 1,
+                PageSize = 10
+            }, CancellationToken.None);
+
+            var response = result.Single(e => e.Id == eventId);
+            Assert.Equal("League", response.MatchCategory);
+        }
+
+        [Fact]
+        public async Task Handle_FriendlyMatchEvent_ReturnsMatchCategoryFriendly()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (teamId, eventId) = await SeedSportEventAsync(seedDb, withConvocation: false, eventTypeId: 4);
+
+            await using var db = _fixture.CreateDbContext();
+            var handler = new GetSportEvents.GetSportEventsRequestHandler(db, new HttpContextAccessor());
+
+            var result = await handler.Handle(new GetSportEvents.SportEventsQuery
+            {
+                TeamId = teamId,
+                PageNumber = 1,
+                PageSize = 10
+            }, CancellationToken.None);
+
+            var response = result.Single(e => e.Id == eventId);
+            Assert.Equal("Friendly", response.MatchCategory);
+        }
+
+        [Fact]
+        public async Task Handle_TournamentEvent_ReturnsMatchCategoryTournament()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (teamId, eventId) = await SeedSportEventAsync(seedDb, withConvocation: false, eventTypeId: 6);
+
+            await using var db = _fixture.CreateDbContext();
+            var handler = new GetSportEvents.GetSportEventsRequestHandler(db, new HttpContextAccessor());
+
+            var result = await handler.Handle(new GetSportEvents.SportEventsQuery
+            {
+                TeamId = teamId,
+                PageNumber = 1,
+                PageSize = 10
+            }, CancellationToken.None);
+
+            var response = result.Single(e => e.Id == eventId);
+            Assert.Equal("Tournament", response.MatchCategory);
+        }
+
+        [Fact]
+        public async Task Handle_TrainingEvent_ReturnsMatchCategoryNull()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (teamId, eventId) = await SeedSportEventAsync(seedDb, withConvocation: false);
+
+            await using var db = _fixture.CreateDbContext();
+            var handler = new GetSportEvents.GetSportEventsRequestHandler(db, new HttpContextAccessor());
+
+            var result = await handler.Handle(new GetSportEvents.SportEventsQuery
+            {
+                TeamId = teamId,
+                PageNumber = 1,
+                PageSize = 10
+            }, CancellationToken.None);
+
+            var response = result.Single(e => e.Id == eventId);
+            Assert.Null(response.MatchCategory);
         }
     }
 }
