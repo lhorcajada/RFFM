@@ -3,10 +3,12 @@
   gap: 6px;
   flex-wrap: wrap;
   margin-top: 4px;
+  flex-shrink: 0;
 }
 
 .playerContainer {
   display: flex;
   gap: 6px;
   margin-top: 4px;
+  flex-shrink: 0;
 }

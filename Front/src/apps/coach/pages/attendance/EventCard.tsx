@@ -98,6 +98,18 @@ function getEventAvatar(eventTypeName?: string | null): { emoji: string; gradien
   };
 }
 
+/** CSS module modifier class for the vertical type sidebar, mirroring
+ * getEventAvatar's classification but adding a dedicated color for matches
+ * (getEventAvatar has no "partido" case since it only backs the generic,
+ * non-match header). */
+function getTypeSidebarModifier(eventTypeName: string, isMatch: boolean): string {
+  const name = eventTypeName.toLowerCase();
+  if (isMatch) return styles.typeSidebarMatch;
+  if (name.includes("entrenamiento")) return styles.typeSidebarTraining;
+  if (name.includes("torneo") || name.includes("competici")) return styles.typeSidebarTournament;
+  return styles.typeSidebarDefault;
+}
+
 type MatchResult = "won" | "draw" | "lost" | null;
 function getMatchResult(event: SportEventResponse): MatchResult {
   const lg = event.localGoals;
@@ -288,51 +300,67 @@ export default function EventCard({ event, eventTypeName, onDeleted, onEdited, a
           : ""
       }`}
     >
+      {/* ── TYPE SIDEBAR ─────────────────────────────── — a full-height
+          coloured strip on the card's left edge with the event type name
+          written vertically, so it reads like a book-spine label. Lives
+          outside the header (as a sibling, not nested in it) so it never
+          competes with header content for height, and is identical in the
+          compact (dashboard) and non-compact (Eventos) cards. */}
+      {eventTypeName && (
+        <div className={`${styles.typeSidebar} ${getTypeSidebarModifier(eventTypeName, isMatch)}`}>
+          <span className={styles.typeSidebarLabel}>{eventTypeName}</span>
+        </div>
+      )}
+      <div className={styles.cardContent}>
       {/* ── MATCH HEADER ─────────────────────────────── */}
       {isMatch ? (
         <div className={styles.matchHeader}>
           <div className={styles.matchHeaderShine} />
-          {/* Home/Away badge */}
-          {isHome && <span className={styles.homeBadge}>🏠 Local</span>}
-          {isAway && <span className={`${styles.homeBadge} ${styles.awayBadge}`}>✈️ Visitante</span>}
-          <div className={styles.matchTeamBlock}>
-            <ShieldImg src={leftShield} alt={leftTeamName} />
-            <span className={styles.matchTeamName} title={leftTeamName}>
-              {leftTeamName || (isAway ? "Rival" : "Mi equipo")}
-            </span>
+          {/* Home/Away badge — its own thin top row, right-aligned. */}
+          <div className={styles.matchTopBar}>
+            {isHome && <span className={styles.homeBadge}>🏠 Local</span>}
+            {isAway && <span className={`${styles.homeBadge} ${styles.awayBadge}`}>✈️ Visitante</span>}
           </div>
-          <div className={styles.matchCenter}>
-            {hasScore ? (
-              <span className={styles.matchScore}>
-                {leftGoals}
-                <span className={styles.matchScoreDash}>-</span>
-                {rightGoals}
+          <div className={styles.matchTeamsRow}>
+            <div className={styles.matchTeamBlock}>
+              <ShieldImg src={leftShield} alt={leftTeamName} />
+              <span className={styles.matchTeamName} title={leftTeamName}>
+                {leftTeamName || (isAway ? "Rival" : "Mi equipo")}
               </span>
-            ) : (
-              <>
-                <span className={styles.matchVs}>vs</span>
-                {startTimeStr && (
-                  <span className={styles.matchKickoff}>{startTimeStr}</span>
-                )}
-              </>
-            )}
-            {resultLabel && (
-              <span
-                className={`${styles.matchResultBadge} ${
-                  matchResult === "won" ? styles.resultWon :
-                  matchResult === "draw" ? styles.resultDraw :
-                  styles.resultLost
-                }`}
-              >
-                {resultLabel}
+            </div>
+            <div className={styles.matchCenter}>
+              {hasScore ? (
+                <span className={styles.matchScore}>
+                  {leftGoals}
+                  <span className={styles.matchScoreDash}>-</span>
+                  {rightGoals}
+                </span>
+              ) : (
+                <>
+                  <span className={styles.matchVs}>vs</span>
+                  {startTimeStr && (
+                    <span className={styles.matchKickoff}>{startTimeStr}</span>
+                  )}
+                </>
+              )}
+              {resultLabel && (
+                <span
+                  className={`${styles.matchResultBadge} ${
+                    matchResult === "won" ? styles.resultWon :
+                    matchResult === "draw" ? styles.resultDraw :
+                    styles.resultLost
+                  }`}
+                >
+                  {resultLabel}
+                </span>
+              )}
+            </div>
+            <div className={`${styles.matchTeamBlock} ${styles.matchTeamRight}`}>
+              <ShieldImg src={rightShield} alt={rightTeamName} />
+              <span className={styles.matchTeamName} title={rightTeamName}>
+                {rightTeamName || (isAway ? "Mi equipo" : "Rival")}
               </span>
-            )}
-          </div>
-          <div className={`${styles.matchTeamBlock} ${styles.matchTeamRight}`}>
-            <ShieldImg src={rightShield} alt={rightTeamName} />
-            <span className={styles.matchTeamName} title={rightTeamName}>
-              {rightTeamName || (isAway ? "Mi equipo" : "Rival")}
-            </span>
+            </div>
           </div>
         </div>
       ) : (
@@ -340,20 +368,6 @@ export default function EventCard({ event, eventTypeName, onDeleted, onEdited, a
         <div className={styles.header} style={{ background: avatar.gradient }}>
           <div className={styles.headerShine} />
           <div className={styles.avatar}>{avatar.emoji}</div>
-          {eventTypeName && (
-            <Chip
-              label={eventTypeName}
-              size="small"
-              sx={{
-                backgroundColor: "rgba(255,255,255,0.18)",
-                color: "#fff",
-                fontWeight: 700,
-                fontSize: "0.7rem",
-                height: 22,
-                backdropFilter: "blur(4px)",
-              }}
-            />
-          )}
         </div>
       )}
 
@@ -379,23 +393,24 @@ export default function EventCard({ event, eventTypeName, onDeleted, onEdited, a
         {event.name && event.name !== event.title && (
           <div className={styles.eventName} title={event.name}>{event.name}</div>
         )}
-        {isMatch && (
-          <div style={{ marginTop: 4 }}>
-            <Chip
-              label="Partido"
-              size="small"
-              sx={{
-                backgroundColor: "rgba(13,71,161,0.45)",
-                color: "#90caf9",
-                fontWeight: 700,
-                fontSize: "0.68rem",
-                height: 20,
-              }}
-            />
-          </div>
+        {event.description && (
+          <div className={styles.description} title={event.description}>{event.description}</div>
         )}
-        {isTraining && (
-          <div style={{ marginTop: 4, display: "flex", gap: 6, flexWrap: "wrap" }}>
+        {(isMatch || arrivalTimeStr || isTraining) && (
+          <div className={styles.chipsRow}>
+            {isMatch && (
+              <Chip
+                label="Partido"
+                size="small"
+                sx={{
+                  backgroundColor: "rgba(13,71,161,0.45)",
+                  color: "#90caf9",
+                  fontWeight: 700,
+                  fontSize: "0.68rem",
+                  height: 20,
+                }}
+              />
+            )}
             {arrivalTimeStr && (
               <Chip
                 label={`Llegada ${arrivalTimeStr}`}
@@ -409,23 +424,26 @@ export default function EventCard({ event, eventTypeName, onDeleted, onEdited, a
                 }}
               />
             )}
-            <Chip
-              label={event.hasConvokedPlayers ? "Convocatoria abierta" : "Convocatoria sin iniciar"}
-              size="small"
-              sx={{
-                backgroundColor: event.hasConvokedPlayers ? "rgba(46,125,50,0.35)" : "rgba(120,130,150,0.3)",
-                color: event.hasConvokedPlayers ? "#a5d6a7" : "#cfd8dc",
-                fontWeight: 700,
-                fontSize: "0.68rem",
-                height: 20,
-              }}
-            />
+            {isTraining && (
+              <Chip
+                label={event.hasConvokedPlayers ? "Convocatoria abierta" : "Convocatoria sin iniciar"}
+                size="small"
+                sx={{
+                  backgroundColor: event.hasConvokedPlayers ? "rgba(46,125,50,0.35)" : "rgba(120,130,150,0.3)",
+                  color: event.hasConvokedPlayers ? "#a5d6a7" : "#cfd8dc",
+                  fontWeight: 700,
+                  fontSize: "0.68rem",
+                  height: 20,
+                }}
+              />
+            )}
           </div>
         )}
         <EventAttendanceBadges summary={attendanceSummary} isPlayer={!!isPlayer} />
       </div>
 
       {!compact && actions}
+      </div>
 
       {!compact && canEditEvent && (
         <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>

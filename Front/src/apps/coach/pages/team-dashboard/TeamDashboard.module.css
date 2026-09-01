@@ -42,3 +42,23 @@
      wider than 1fr to fit the widest content. */
   min-width: 0;
 }
+
+/* "Próximos eventos" and "Últimas noticias" — always the first two direct
+   children of .dashboardGrid (see TeamDashboard.tsx) — get their own
+   full-width row on mobile (2-column grid) instead of sharing a row half
+   each; they carry more content than a LauncherTile and read better at full
+   width on a narrow screen. Targeted by position rather than a wrapper div
+   so they stay direct grid children (TeamDashboard.test.tsx asserts this).
+   Reset to the normal grid flow on desktop (4 columns), where sharing a row
+   is fine. */
+.dashboardGrid > *:nth-child(1),
+.dashboardGrid > *:nth-child(2) {
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 769px) {
+  .dashboardGrid > *:nth-child(1),
+  .dashboardGrid > *:nth-child(2) {
+    grid-column: auto;
+  }
+}

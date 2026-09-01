@@ -81,4 +81,27 @@ describe("EventCard - attendance badges", () => {
     // Should not have the badge
     expect(screen.queryByText(/Convocados/i)).not.toBeInTheDocument();
   });
+
+  it("keeps every chip in the DOM at once for a match with arrival time and a full attendance summary (no chip dropped while reorganizing the layout)", () => {
+    const event = baseEvent({
+      title: "Partido vs Rival",
+      isHomeMatch: true,
+      arrivalDate: "2026-09-01T17:00:00",
+      localGoals: "2",
+      visitorGoals: "1",
+    });
+    const summary = baseSummary();
+
+    renderCard(event, "Partido", summary, false);
+
+    // "Partido" now appears twice — the lateralized header type tag and the
+    // body's chipsRow chip — so assert on count rather than a single match.
+    expect(screen.getAllByText("Partido").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText(/Llegada 17:00/)).toBeInTheDocument();
+    expect(screen.getByText(/Convocados.*10/i)).toBeInTheDocument();
+    expect(screen.getByText(/Van.*7/i)).toBeInTheDocument();
+    expect(screen.getByText(/Pendientes.*2/i)).toBeInTheDocument();
+    expect(screen.getByText(/No van.*1/i)).toBeInTheDocument();
+    expect(screen.getByText("70%")).toBeInTheDocument();
+  });
 });

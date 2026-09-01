@@ -69,12 +69,19 @@ describe("EventCard - badges de Entrenamiento", () => {
     expect(container.querySelector(`.${styles.card}`)).toHaveClass(styles.cardConvocationPending);
   });
 
-  it("no muestra ninguno de los dos chips en tarjetas de Partido/Torneo aunque hasConvokedPlayers sea true", () => {
+  it("muestra el chip de Llegada en tarjetas de Partido, pero no los chips de Convocatoria (solo Entrenamiento)", () => {
     const event = baseEvent({ hasConvokedPlayers: true, arrivalDate: "2026-09-01T17:30:00" });
     renderCard(event, "Partido");
 
-    expect(screen.queryByText(/Llegada/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Llegada 17:30/)).toBeInTheDocument();
     expect(screen.queryByText("Convocatoria abierta")).not.toBeInTheDocument();
     expect(screen.queryByText("Convocatoria sin iniciar")).not.toBeInTheDocument();
+  });
+
+  it("muestra el chip de Llegada para cualquier tipo de evento (p.ej. Torneo) cuando hay arrivalDate", () => {
+    const event = baseEvent({ arrivalDate: "2026-09-01T09:15:00" });
+    renderCard(event, "Torneo");
+
+    expect(screen.getByText(/Llegada 9:15/)).toBeInTheDocument();
   });
 });
