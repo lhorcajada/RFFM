@@ -153,6 +153,18 @@ resource "azurerm_container_app" "api" {
           value = env.value
         }
       }
+
+      # Cold start (scale-to-zero) runs EF migrations + several seeds before Kestrel
+      # starts listening, which can take longer than the default startup probe budget.
+      # Give it a generous window via /liveness instead of failing on the default TCP probe.
+      startup_probe {
+        transport               = "HTTP"
+        port                    = 8080
+        path                    = "/liveness"
+        interval_seconds        = 10
+        timeout                 = 3
+        failure_count_threshold = 10
+      }
     }
   }
 
