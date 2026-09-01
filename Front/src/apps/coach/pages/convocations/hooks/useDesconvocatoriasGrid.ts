@@ -4,6 +4,7 @@ import convocationStatusService, {
   type ConvocationStatus,
 } from "../../../services/convocationStatusService";
 import excuseTypeService, { type ExcuseType } from "../../../services/excuseTypeService";
+import seasonService from "../../../services/seasonService";
 import sportEventService from "../../../services/sportEventService";
 import sportEventTypeService from "../../../services/sportEventTypeService";
 import teamplayerService, { type PlayerResponse } from "../../../services/teamplayerService";
@@ -40,7 +41,7 @@ export type DesconvocatoriasGridReturn = {
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
-export function useDesconvocatoriasGrid(teamId: string): DesconvocatoriasGridReturn {
+export function useDesconvocatoriasGrid(teamId: string, enabled: boolean = true): DesconvocatoriasGridReturn {
   const [matchColumns, setMatchColumns] = useState<MatchColumn[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(false);
   const [gridData, setGridData] = useState<Map<string, Map<string, GridCell>>>(new Map());
@@ -68,7 +69,7 @@ export function useDesconvocatoriasGrid(teamId: string): DesconvocatoriasGridRet
 
   // ── Load past matches + convocations ─────────────────────────────────────
   useEffect(() => {
-    if (!teamId) return;
+    if (!teamId || !enabled) return;
     let mounted = true;
     setLoadingEvents(true);
 
@@ -87,8 +88,16 @@ export function useDesconvocatoriasGrid(teamId: string): DesconvocatoriasGridRet
           /* fall back to name-based check */
         }
 
+        const activeSeason = await seasonService.getActiveSeason().catch(() => null);
         const today = new Date().toISOString().split("T")[0];
-        const resp = await sportEventService.getSportEvents(teamId, 1, 200, undefined, today, true);
+        const resp = await sportEventService.getSportEvents(
+          teamId,
+          1,
+          200,
+          activeSeason?.startDate ?? undefined,
+          today,
+          true
+        );
 
         const matchEvents = resp.items.filter((ev) => {
           const typeId = ev.eventTypeId;
@@ -219,7 +228,7 @@ export function useDesconvocatoriasGrid(teamId: string): DesconvocatoriasGridRet
     return () => {
       mounted = false;
     };
-  }, [teamId]);
+  }, [teamId, enabled]);
 
   // ── Enrich cell labels once catalogs arrive ──────────────────────────────
   const statusMap = useMemo(() => {

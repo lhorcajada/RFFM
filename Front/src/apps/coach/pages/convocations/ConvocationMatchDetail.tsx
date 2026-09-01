@@ -59,6 +59,13 @@ export default function ConvocationMatchDetail() {
   }, [teamId]);
 
   const [tab, setTab] = useState(1);
+  // Desconvocatorias (0) y Convocatoria (2) son las únicas pestañas que necesitan el grid
+  // histórico de convocatorias; una vez visitadas, se mantiene cargado al cambiar de pestaña.
+  const needsGridData = tab === 0 || tab === 2;
+  const [gridEnabled, setGridEnabled] = useState(needsGridData);
+  useEffect(() => {
+    if (needsGridData) setGridEnabled(true);
+  }, [needsGridData]);
   const lineupRef = useRef<IdealLineupHandle>(null);
   const [lineupSaving, setLineupSaving] = useState(false);
 
@@ -127,7 +134,7 @@ export default function ConvocationMatchDetail() {
 
   // Data hooks
   const convocation = useConvocationManagement(teamId, match?.date);
-  const grid = useDesconvocatoriasGrid(teamId);
+  const grid = useDesconvocatoriasGrid(teamId, gridEnabled);
 
   const {
     seasonEvents,
