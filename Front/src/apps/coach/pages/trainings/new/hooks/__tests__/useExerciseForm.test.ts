@@ -132,6 +132,62 @@ describe("useExerciseForm — validación al guardar", () => {
     });
     expect(result.current.error).toBeNull();
   });
+
+  it("emite una notificación de éxito al guardar correctamente", async () => {
+    const trainingService = (await import("../../../../../services/trainingService")).default;
+    (trainingService.createExercise as ReturnType<typeof vi.fn>).mockResolvedValue({ id: "ex-new" });
+    const { result } = renderHook(() =>
+      useExerciseForm({ clubId: "club-1", navigate, returnTo: "/coach/trainings" })
+    );
+
+    const onSnackbar = vi.fn();
+    window.addEventListener("rffm.show_snackbar", onSnackbar);
+
+    act(() => result.current.setField("name", "Ejercicio completo"));
+    act(() => result.current.setField("objetivo", "Objetivo claro"));
+    act(() => result.current.setField("logistica", "12 min, 20 jugadores"));
+    act(() => result.current.setField("descripcion", "Desarrollo completo"));
+
+    await act(async () => {
+      await result.current.handleSave();
+    });
+
+    expect(onSnackbar).toHaveBeenCalledTimes(1);
+    expect((onSnackbar.mock.calls[0][0] as CustomEvent).detail).toEqual({
+      message: "Ejercicio guardado",
+      severity: "success",
+    });
+
+    window.removeEventListener("rffm.show_snackbar", onSnackbar);
+  });
+
+  it("emite una notificación de error cuando el guardado falla", async () => {
+    const trainingService = (await import("../../../../../services/trainingService")).default;
+    (trainingService.createExercise as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("network error"));
+    const { result } = renderHook(() =>
+      useExerciseForm({ clubId: "club-1", navigate, returnTo: "/coach/trainings" })
+    );
+
+    const onSnackbar = vi.fn();
+    window.addEventListener("rffm.show_snackbar", onSnackbar);
+
+    act(() => result.current.setField("name", "Ejercicio completo"));
+    act(() => result.current.setField("objetivo", "Objetivo claro"));
+    act(() => result.current.setField("logistica", "12 min, 20 jugadores"));
+    act(() => result.current.setField("descripcion", "Desarrollo completo"));
+
+    await act(async () => {
+      await result.current.handleSave();
+    });
+
+    expect(onSnackbar).toHaveBeenCalledTimes(1);
+    expect((onSnackbar.mock.calls[0][0] as CustomEvent).detail).toEqual({
+      message: "Error al guardar el ejercicio",
+      severity: "error",
+    });
+
+    window.removeEventListener("rffm.show_snackbar", onSnackbar);
+  });
 });
 
 describe("useExerciseForm — carga de ejercicio existente", () => {

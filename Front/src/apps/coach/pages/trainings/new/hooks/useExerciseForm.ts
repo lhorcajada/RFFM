@@ -167,14 +167,24 @@ export function useExerciseForm({ clubId, navigate, returnTo, getBoardStateJson 
         if (pendingFile) {
           await trainingService.uploadExerciseMedia(created.id, pendingFile);
         }
+        window.dispatchEvent(
+          new CustomEvent("rffm.show_snackbar", { detail: { message: "Ejercicio guardado", severity: "success" } }),
+        );
         return;
       }
 
       if (pendingFile) {
         await trainingService.uploadExerciseMedia(exerciseId, pendingFile);
       }
+
+      window.dispatchEvent(
+        new CustomEvent("rffm.show_snackbar", { detail: { message: "Ejercicio guardado", severity: "success" } }),
+      );
     } catch {
       setError("Error al guardar el ejercicio.");
+      window.dispatchEvent(
+        new CustomEvent("rffm.show_snackbar", { detail: { message: "Error al guardar el ejercicio", severity: "error" } }),
+      );
     } finally {
       setSaving(false);
     }
