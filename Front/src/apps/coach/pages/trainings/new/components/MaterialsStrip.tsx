@@ -58,6 +58,8 @@ export default function MaterialsStrip({ board }: MaterialsStripProps) {
               <Box className={styles.materialGoalCrossbar} />
               <Box className={styles.materialGoalNet} />
             </Box>
+          ) : material.key === "escalera" ? (
+            <Box className={styles.materialLadderIcon} />
           ) : (
             <Typography className={styles.materialIcon}>?</Typography>
           )}

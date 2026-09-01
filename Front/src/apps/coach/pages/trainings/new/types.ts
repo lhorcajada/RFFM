@@ -26,7 +26,8 @@ export type MaterialKind =
   | "aros"
   | "miniporterias"
   | "picas"
-  | "porterias-f11";
+  | "porterias-f11"
+  | "escalera";
 
 export interface MaterialTemplate {
   key: MaterialKind;

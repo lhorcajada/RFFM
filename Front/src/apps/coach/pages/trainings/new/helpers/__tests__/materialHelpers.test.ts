@@ -12,4 +12,10 @@ describe("getMaterialSizePercent", () => {
     // compensates for that, i.e. equals FIELD_WIDTH_METERS/HALF_FIELD_LENGTH_METERS.
     expect(width / height).toBeCloseTo(FIELD_WIDTH_METERS / HALF_FIELD_LENGTH_METERS, 3);
   });
+
+  it("escalera: renders as an elongated shape (wider than tall)", () => {
+    const { width, height } = getMaterialSizePercent("escalera");
+
+    expect(width).toBeGreaterThan(height);
+  });
 });

@@ -19,6 +19,8 @@ export const getMaterialSizePercent = (kind: MaterialKind) => {
       return { width: 1.8, height: 6.8 };
     case "porterias-f11":
       return { width: 11, height: 6.5 };
+    case "escalera":
+      return { width: 9, height: 3 };
     default:
       return { width: 3, height: 3 };
   }

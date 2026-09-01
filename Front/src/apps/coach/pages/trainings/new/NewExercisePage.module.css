@@ -864,6 +864,22 @@
   height: 20px;
 }
 
+.materialLadderIcon {
+  position: relative;
+  width: 36px;
+  height: 16px;
+  border-top: 2px solid #f0f7ff;
+  border-bottom: 2px solid #f0f7ff;
+  border-radius: 2px;
+  background-image: repeating-linear-gradient(
+    90deg,
+    #f1c40f 0,
+    #f1c40f 2px,
+    transparent 2px,
+    transparent 8px
+  );
+}
+
 .materialVallaLegLeft,
 .materialVallaLegRight {
   position: absolute;
@@ -1061,6 +1077,20 @@
 
 .materialGlyphpicas {
   position: relative;
+}
+
+.materialGlyphescalera {
+  position: relative;
+  border-top: 3px solid #f0f7ff;
+  border-bottom: 3px solid #f0f7ff;
+  border-radius: 2px;
+  background-image: repeating-linear-gradient(
+    90deg,
+    #f1c40f 0,
+    #f1c40f 3px,
+    transparent 3px,
+    transparent 16px
+  );
 }
 
 .materialRotateBtn {

@@ -42,6 +42,7 @@ export const MATERIAL_OPTIONS: MaterialTemplate[] = [
   { key: "miniporterias", label: "Miniporterias" },
   { key: "picas", label: "Picas" },
   { key: "porterias-f11", label: "Porterias de F11" },
+  { key: "escalera", label: "Escalera de coordinacion" },
 ];
 
 export const LINE_COLORS: LineColorOption[] = [
