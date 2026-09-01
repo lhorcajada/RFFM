@@ -91,6 +91,7 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
     removePlacedChapa,
     placedSpaces,
     draggingSpaceId,
+    resizingSpaceId,
     handlePlacedSpaceDragStart,
     handlePlacedSpaceDragEnd,
     handleResizeStart,
@@ -411,6 +412,7 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
               style={{ transform: `rotate(${space.rotation}deg)` }}
             >
               {!space.locked &&
+                activeSpaceId === space.id &&
                 (["n", "s", "e", "w", "ne", "nw", "se", "sw"] as ResizeHandle[]).map((handle) => (
                   <button
                     key={`${space.id}-handle-${handle}`}
@@ -440,26 +442,27 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
                 )}
               </svg>
 
-              {space.kind === "circle" ? (
-                <span className={styles.spaceDistance} style={{ left: "50%", top: "12%" }}>
-                  D {formatMeters(sideLengths[0])} x {formatMeters(sideLengths[1])} m
-                </span>
-              ) : (
-                vertices.map((vertex, idx) => {
-                  const next = vertices[(idx + 1) % vertices.length];
-                  const midX = (vertex.x + next.x) / 2;
-                  const midY = (vertex.y + next.y) / 2;
-                  return (
-                    <span
-                      key={`${space.id}-distance-${idx}`}
-                      className={styles.spaceDistance}
-                      style={{ left: `${midX}%`, top: `${midY}%` }}
-                    >
-                      {formatMeters(sideLengths[idx])} m
-                    </span>
-                  );
-                })
-              )}
+              {resizingSpaceId === space.id &&
+                (space.kind === "circle" ? (
+                  <span className={styles.spaceDistance} style={{ left: "50%", top: "12%" }}>
+                    D {formatMeters(sideLengths[0])} x {formatMeters(sideLengths[1])} m
+                  </span>
+                ) : (
+                  vertices.map((vertex, idx) => {
+                    const next = vertices[(idx + 1) % vertices.length];
+                    const midX = (vertex.x + next.x) / 2;
+                    const midY = (vertex.y + next.y) / 2;
+                    return (
+                      <span
+                        key={`${space.id}-distance-${idx}`}
+                        className={styles.spaceDistance}
+                        style={{ left: `${midX}%`, top: `${midY}%` }}
+                      >
+                        {formatMeters(sideLengths[idx])} m
+                      </span>
+                    );
+                  })
+                ))}
             </Box>
 
             {activeSpaceId === space.id && (

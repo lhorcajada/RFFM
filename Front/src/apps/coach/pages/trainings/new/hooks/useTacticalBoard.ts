@@ -1725,6 +1725,7 @@ export function useTacticalBoard(
     // Spaces
     placedSpaces,
     draggingSpaceId,
+    resizingSpaceId: resizeSession?.spaceId ?? null,
     handleSpaceTemplateDragStart,
     handleSpaceDragEnd,
     handlePlacedSpaceDragStart,
