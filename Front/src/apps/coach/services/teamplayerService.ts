@@ -296,6 +296,18 @@ export async function deleteFamilyMember(teamPlayerId: string, familyMemberId: s
   );
 }
 
+export async function updateFamilyMember(
+  teamPlayerId: string,
+  familyMemberId: string,
+  payload: CreateFamilyMemberPayload
+): Promise<FamilyResponse> {
+  const resp = await client.put<FamilyResponse>(
+    `/api/catalog/teamplayer/${encodeURIComponent(teamPlayerId)}/family-members/${encodeURIComponent(familyMemberId)}`,
+    payload
+  );
+  return resp.data;
+}
+
 export async function getTeamPlayerLinkCode(teamPlayerId: string): Promise<{ teamPlayerId: string; linkCode: string }> {
   const res = await client.get(`/api/team-players/${encodeURIComponent(teamPlayerId)}/link-code`);
   return res.data;
@@ -306,4 +318,4 @@ export async function regenerateTeamPlayerLinkCode(teamPlayerId: string): Promis
   return res.data;
 }
 
-export default { getPlayersByTeam, addPlayerToTeam, getTeamPlayerById, updateTeamPlayer, getPlayerInjuries, createPlayerInjury, updatePlayerInjury, deletePlayerInjury, dischargeActiveInjury, createFamilyMember, deleteFamilyMember, getTeamPlayerLinkCode, regenerateTeamPlayerLinkCode };
+export default { getPlayersByTeam, addPlayerToTeam, getTeamPlayerById, updateTeamPlayer, getPlayerInjuries, createPlayerInjury, updatePlayerInjury, deletePlayerInjury, dischargeActiveInjury, createFamilyMember, deleteFamilyMember, updateFamilyMember, getTeamPlayerLinkCode, regenerateTeamPlayerLinkCode };

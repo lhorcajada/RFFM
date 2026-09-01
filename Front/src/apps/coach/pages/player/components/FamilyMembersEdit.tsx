@@ -11,6 +11,7 @@ import {
   TextField,
 } from "@mui/material";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import PhoneIcon from "@mui/icons-material/Phone";
 import EmailIcon from "@mui/icons-material/Email";
 import BadgeIcon from "@mui/icons-material/Badge";
@@ -20,6 +21,7 @@ import { mapApiErrorToMessage } from "../../../../../shared/utils/errorMessages"
 import {
   createFamilyMember,
   deleteFamilyMember,
+  updateFamilyMember,
   type FamilyResponse,
 } from "../../../services/teamplayerService";
 
@@ -41,6 +43,13 @@ const FAMILY_MEMBER_LABEL: Record<string, string> = {
   Father: "Padre",
   LegalGuardian: "Tutor legal",
   Other: "Otro",
+};
+
+const FAMILY_MEMBER_NAME_TO_ID: Record<string, number> = {
+  Mother: 1,
+  Father: 2,
+  LegalGuardian: 3,
+  Other: 4,
 };
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -81,6 +90,7 @@ function initials(member: FamilyResponse) {
 
 export default function FamilyMembersEdit({ teamPlayerId, familyMembers, onFamilyMembersChange }: Props) {
   const [adding, setAdding] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
   const [errors, setErrors] = useState<DraftErrors>({});
   const [saving, setSaving] = useState(false);
@@ -91,14 +101,31 @@ export default function FamilyMembersEdit({ teamPlayerId, familyMembers, onFamil
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const openAddForm = () => {
+    setEditingId(null);
     setDraft(EMPTY_DRAFT);
     setErrors({});
     setSaveError(null);
     setAdding(true);
   };
 
+  const openEditForm = (member: FamilyResponse) => {
+    setAdding(false);
+    setDraft({
+      name: member.name ?? "",
+      lastName: member.lastName ?? "",
+      familyMemberId: member.familyMember ? FAMILY_MEMBER_NAME_TO_ID[member.familyMember] ?? null : null,
+      phone: member.phone ?? "",
+      email: member.email ?? "",
+      dni: member.dni ?? "",
+    });
+    setErrors({});
+    setSaveError(null);
+    setEditingId(member.id);
+  };
+
   const closeAddForm = () => {
     setAdding(false);
+    setEditingId(null);
     setDraft(EMPTY_DRAFT);
     setErrors({});
     setSaveError(null);
@@ -120,18 +147,25 @@ export default function FamilyMembersEdit({ teamPlayerId, familyMembers, onFamil
     setErrors(validationErrors);
     if (Object.keys(validationErrors).length > 0) return;
 
+    const payload = {
+      name: draft.name.trim(),
+      lastName: draft.lastName.trim(),
+      familyMemberId: draft.familyMemberId as number,
+      phone: draft.phone.trim() || null,
+      email: draft.email.trim() || null,
+      dni: draft.dni.trim() || null,
+    };
+
     setSaving(true);
     setSaveError(null);
     try {
-      const created = await createFamilyMember(teamPlayerId, {
-        name: draft.name.trim(),
-        lastName: draft.lastName.trim(),
-        familyMemberId: draft.familyMemberId as number,
-        phone: draft.phone.trim() || null,
-        email: draft.email.trim() || null,
-        dni: draft.dni.trim() || null,
-      });
-      onFamilyMembersChange([...familyMembers, created]);
+      if (editingId) {
+        const updated = await updateFamilyMember(teamPlayerId, editingId, payload);
+        onFamilyMembersChange(familyMembers.map((m) => (m.id === editingId ? updated : m)));
+      } else {
+        const created = await createFamilyMember(teamPlayerId, payload);
+        onFamilyMembersChange([...familyMembers, created]);
+      }
       closeAddForm();
     } catch (e) {
       setSaveError(mapApiErrorToMessage(e));
@@ -160,53 +194,8 @@ export default function FamilyMembersEdit({ teamPlayerId, familyMembers, onFamil
     setDeleteError(null);
   };
 
-  return (
-    <div className={styles.card}>
-      <div className={styles.sectionInner}>
-        <h3>Familiares</h3>
-        {familyMembers.map((member) => (
-          <div key={member.id} className={styles.memberCard}>
-            <div className={styles.memberHeader}>
-              <div className={styles.memberAvatar}>{initials(member)}</div>
-              <div className={styles.memberName}>{fullName(member)}</div>
-              {member.familyMember && (
-                <div className={styles.memberRoleBadge}>
-                  {FAMILY_MEMBER_LABEL[member.familyMember] ?? member.familyMember}
-                </div>
-              )}
-              <IconButton
-                aria-label={`Eliminar familiar ${fullName(member)}`}
-                size="small"
-                onClick={() => {
-                  setDeleteCandidate(member);
-                  setDeleteError(null);
-                }}
-              >
-                <DeleteOutlineIcon fontSize="small" />
-              </IconButton>
-            </div>
-            <div className={styles.memberMetaRow}>
-              {member.phone && (
-                <span className={styles.memberMetaItem}>
-                  <PhoneIcon fontSize="inherit" /> {member.phone}
-                </span>
-              )}
-              {member.email && (
-                <span className={styles.memberMetaItem}>
-                  <EmailIcon fontSize="inherit" /> {member.email}
-                </span>
-              )}
-              {member.dni && (
-                <span className={styles.memberMetaItem}>
-                  <BadgeIcon fontSize="inherit" /> {member.dni}
-                </span>
-              )}
-            </div>
-          </div>
-        ))}
-
-        {adding && (
-          <div className={styles.memberCard}>
+  const renderFormCard = () => (
+    <div className={styles.memberCard}>
             <div className={styles.memberFormGrid}>
               <TextField
                 label="Nombre"
@@ -289,10 +278,68 @@ export default function FamilyMembersEdit({ teamPlayerId, familyMembers, onFamil
                 Guardar
               </Button>
             </div>
-          </div>
+    </div>
+  );
+
+  return (
+    <div className={styles.card}>
+      <div className={styles.sectionInner}>
+        <h3>Familiares</h3>
+        {familyMembers.map((member) =>
+          editingId === member.id ? (
+            <React.Fragment key={member.id}>{renderFormCard()}</React.Fragment>
+          ) : (
+            <div key={member.id} className={styles.memberCard}>
+              <div className={styles.memberHeader}>
+                <div className={styles.memberAvatar}>{initials(member)}</div>
+                <div className={styles.memberName}>{fullName(member)}</div>
+                {member.familyMember && (
+                  <div className={styles.memberRoleBadge}>
+                    {FAMILY_MEMBER_LABEL[member.familyMember] ?? member.familyMember}
+                  </div>
+                )}
+                <IconButton
+                  aria-label={`Editar familiar ${fullName(member)}`}
+                  size="small"
+                  onClick={() => openEditForm(member)}
+                >
+                  <EditOutlinedIcon fontSize="small" />
+                </IconButton>
+                <IconButton
+                  aria-label={`Eliminar familiar ${fullName(member)}`}
+                  size="small"
+                  onClick={() => {
+                    setDeleteCandidate(member);
+                    setDeleteError(null);
+                  }}
+                >
+                  <DeleteOutlineIcon fontSize="small" />
+                </IconButton>
+              </div>
+              <div className={styles.memberMetaRow}>
+                {member.phone && (
+                  <span className={styles.memberMetaItem}>
+                    <PhoneIcon fontSize="inherit" /> {member.phone}
+                  </span>
+                )}
+                {member.email && (
+                  <span className={styles.memberMetaItem}>
+                    <EmailIcon fontSize="inherit" /> {member.email}
+                  </span>
+                )}
+                {member.dni && (
+                  <span className={styles.memberMetaItem}>
+                    <BadgeIcon fontSize="inherit" /> {member.dni}
+                  </span>
+                )}
+              </div>
+            </div>
+          )
         )}
 
-        {!adding && (
+        {adding && renderFormCard()}
+
+        {!adding && !editingId && (
           <Button
             onClick={openAddForm}
             variant="outlined"

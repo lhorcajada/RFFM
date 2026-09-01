@@ -133,6 +133,7 @@ namespace RFFM.Api.Tests.IntegrationTests
                             services.AddEasyCaching(options => { options.UseInMemory(Cache.CacheDefaultName); });
 
                             services.AddScoped<IValidator<CreateFamilyMember.CreateFamilyMemberCommand>, CreateFamilyMember.Validator>();
+                            services.AddScoped<IValidator<UpdateFamilyMember.UpdateFamilyMemberCommand>, UpdateFamilyMember.Validator>();
                         })
                         .Configure(app =>
                         {
@@ -422,6 +423,131 @@ namespace RFFM.Api.Tests.IntegrationTests
             await using var verifyDb = _fixture.CreateDbContext();
             var stillExists = await verifyDb.TeamPlayerFamilyMembers.AnyAsync(f => f.Id == familyMemberOfOther);
             Assert.True(stillExists);
+        }
+
+        // ── PUT /api/catalog/teamplayer/{id}/family-members/{familyMemberId} ─────
+
+        private static UpdateFamilyMember.UpdateFamilyMemberRequest ValidUpdateRequest(int familyMemberId = 2) =>
+            new("Janet", "Doe-Smith", familyMemberId, "600999888", "janet@rffm.test", "87654321B");
+
+        [Theory]
+        [InlineData("Player")]
+        [InlineData("FamilyMember")]
+        public async Task UpdateFamilyMember_WithDisallowedRole_ReturnsForbidden(string role)
+        {
+            var teamPlayerId = await CreateTeamPlayerAsync();
+            var familyMemberId = await CreateFamilyMemberAsync(teamPlayerId);
+            var (host, client) = await StartHostAsync(new UpdateFamilyMember());
+            using var _ = host;
+
+            var request = new HttpRequestMessage(HttpMethod.Put, $"/api/catalog/teamplayer/{teamPlayerId}/family-members/{familyMemberId}")
+            {
+                Content = JsonContent.Create(ValidUpdateRequest())
+            };
+            request.Headers.Add("X-Test-Role", role);
+
+            var response = await client.SendAsync(request);
+
+            Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task UpdateFamilyMember_WithCoachRoleAndValidData_UpdatesSuccessfully()
+        {
+            var teamPlayerId = await CreateTeamPlayerAsync();
+            var familyMemberId = await CreateFamilyMemberAsync(teamPlayerId);
+            var (host, client) = await StartHostAsync(new UpdateFamilyMember());
+            using var _ = host;
+
+            var request = new HttpRequestMessage(HttpMethod.Put, $"/api/catalog/teamplayer/{teamPlayerId}/family-members/{familyMemberId}")
+            {
+                Content = JsonContent.Create(ValidUpdateRequest())
+            };
+            request.Headers.Add("X-Test-Role", "Coach");
+
+            var response = await client.SendAsync(request);
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var body = await response.Content.ReadFromJsonAsync<CreateFamilyMember.FamilyMemberResponse>();
+            Assert.NotNull(body);
+            Assert.Equal(familyMemberId, body!.Id);
+            Assert.Equal("Janet", body.Name);
+            Assert.Equal("Doe-Smith", body.LastName);
+            Assert.Equal("Father", body.FamilyMember);
+            Assert.Equal("87654321B", body.Dni);
+
+            await using var verifyDb = _fixture.CreateDbContext();
+            var persisted = await verifyDb.TeamPlayerFamilyMembers.SingleAsync(f => f.Id == familyMemberId);
+            Assert.Equal(teamPlayerId, persisted.TeamPlayerId);
+            Assert.Equal("Janet", persisted.Name);
+            Assert.Equal("600999888", persisted.Phone);
+        }
+
+        [Theory]
+        [InlineData(null, "Doe", 1, "jane@rffm.test", "600123456")]
+        [InlineData("Jane", null, 1, "jane@rffm.test", "600123456")]
+        [InlineData("Jane", "Doe", 1, "not-an-email", "600123456")]
+        [InlineData("Jane", "Doe", 1, "jane@rffm.test", "abc")]
+        [InlineData("Jane", "Doe", 99, "jane@rffm.test", "600123456")]
+        public async Task UpdateFamilyMember_WithInvalidData_ReturnsBadRequest(
+            string? name, string? lastName, int familyMemberId, string? email, string? phone)
+        {
+            var teamPlayerId = await CreateTeamPlayerAsync();
+            var existingFamilyMemberId = await CreateFamilyMemberAsync(teamPlayerId);
+            var (host, client) = await StartHostAsync(new UpdateFamilyMember());
+            using var _ = host;
+
+            var request = new HttpRequestMessage(HttpMethod.Put, $"/api/catalog/teamplayer/{teamPlayerId}/family-members/{existingFamilyMemberId}")
+            {
+                Content = JsonContent.Create(new UpdateFamilyMember.UpdateFamilyMemberRequest(name, lastName, familyMemberId, phone, email, null))
+            };
+            request.Headers.Add("X-Test-Role", "Coach");
+
+            var response = await client.SendAsync(request);
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task UpdateFamilyMember_ForNonExistentFamilyMember_ReturnsNotFound()
+        {
+            var teamPlayerId = await CreateTeamPlayerAsync();
+            var (host, client) = await StartHostAsync(new UpdateFamilyMember());
+            using var _ = host;
+
+            var request = new HttpRequestMessage(HttpMethod.Put, $"/api/catalog/teamplayer/{teamPlayerId}/family-members/does-not-exist")
+            {
+                Content = JsonContent.Create(ValidUpdateRequest())
+            };
+            request.Headers.Add("X-Test-Role", "Coach");
+
+            var response = await client.SendAsync(request);
+
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task UpdateFamilyMember_BelongingToAnotherTeamPlayer_ReturnsNotFound()
+        {
+            var teamPlayerId = await CreateTeamPlayerAsync();
+            var otherTeamPlayerId = await CreateTeamPlayerAsync();
+            var familyMemberOfOther = await CreateFamilyMemberAsync(otherTeamPlayerId);
+            var (host, client) = await StartHostAsync(new UpdateFamilyMember());
+            using var _ = host;
+
+            var request = new HttpRequestMessage(HttpMethod.Put, $"/api/catalog/teamplayer/{teamPlayerId}/family-members/{familyMemberOfOther}")
+            {
+                Content = JsonContent.Create(ValidUpdateRequest())
+            };
+            request.Headers.Add("X-Test-Role", "Coach");
+
+            var response = await client.SendAsync(request);
+
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+
+            await using var verifyDb = _fixture.CreateDbContext();
+            var untouched = await verifyDb.TeamPlayerFamilyMembers.SingleAsync(f => f.Id == familyMemberOfOther);
+            Assert.Equal("Jane", untouched.Name);
         }
     }
 }

@@ -8,6 +8,7 @@ import * as teamplayerService from "../../../../services/teamplayerService";
 vi.mock("../../../../services/teamplayerService", () => ({
   createFamilyMember: vi.fn(),
   deleteFamilyMember: vi.fn(),
+  updateFamilyMember: vi.fn(),
 }));
 
 describe("FamilyMembersEdit", () => {
@@ -278,5 +279,94 @@ describe("FamilyMembersEdit", () => {
     );
 
     expect(screen.queryByRole("button", { name: /eliminar familiar/i })).not.toBeInTheDocument();
+  });
+
+  it("cada tarjeta de familiar ya guardado ofrece un botón Editar", () => {
+    render(
+      <FamilyMembersEdit teamPlayerId="tp-1" familyMembers={baseMembers} onFamilyMembersChange={vi.fn()} />
+    );
+
+    expect(screen.getByRole("button", { name: /editar familiar/i })).toBeInTheDocument();
+  });
+
+  it("al pulsar Editar abre el formulario precargado con los datos del familiar", async () => {
+    render(
+      <FamilyMembersEdit teamPlayerId="tp-1" familyMembers={baseMembers} onFamilyMembersChange={vi.fn()} />
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /editar familiar/i }));
+
+    expect(screen.getByLabelText(/^nombre$/i)).toHaveValue("Ana");
+    expect(screen.getByLabelText(/^apellidos$/i)).toHaveValue("García");
+    expect(screen.getByLabelText(/^teléfono$/i)).toHaveValue("111");
+    expect(screen.getByLabelText(/^email$/i)).toHaveValue("ana@test.com");
+  });
+
+  it("guardar la edición llama a updateFamilyMember y sustituye el familiar en la lista", async () => {
+    const updated = {
+      id: "fm-1",
+      name: "Ana",
+      lastName: "García Nuevo",
+      phone: "222",
+      email: "ana@test.com",
+      familyMember: "Mother",
+      dni: "",
+    };
+    vi.mocked(teamplayerService.updateFamilyMember).mockResolvedValueOnce(updated);
+    const onFamilyMembersChange = vi.fn();
+
+    render(
+      <FamilyMembersEdit
+        teamPlayerId="tp-1"
+        familyMembers={baseMembers}
+        onFamilyMembersChange={onFamilyMembersChange}
+      />
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /editar familiar/i }));
+    const lastNameInput = screen.getByLabelText(/^apellidos$/i);
+    await userEvent.clear(lastNameInput);
+    await userEvent.type(lastNameInput, "García Nuevo");
+    const phoneInput = screen.getByLabelText(/^teléfono$/i);
+    await userEvent.clear(phoneInput);
+    await userEvent.type(phoneInput, "222");
+
+    await userEvent.click(screen.getByRole("button", { name: /^guardar$/i }));
+
+    await waitFor(() => {
+      expect(teamplayerService.updateFamilyMember).toHaveBeenCalledWith("tp-1", "fm-1", {
+        name: "Ana",
+        lastName: "García Nuevo",
+        familyMemberId: 1,
+        phone: "222",
+        email: "ana@test.com",
+        dni: null,
+      });
+    });
+    expect(onFamilyMembersChange).toHaveBeenCalledWith([updated]);
+    expect(teamplayerService.createFamilyMember).not.toHaveBeenCalled();
+    expect(screen.queryByLabelText(/^nombre$/i)).not.toBeInTheDocument();
+  });
+
+  it("muestra un error y mantiene el formulario abierto si el servicio falla al editar", async () => {
+    vi.mocked(teamplayerService.updateFamilyMember).mockRejectedValueOnce({
+      response: { data: { detail: "No se pudo actualizar el familiar" } },
+    });
+    const onFamilyMembersChange = vi.fn();
+
+    render(
+      <FamilyMembersEdit
+        teamPlayerId="tp-1"
+        familyMembers={baseMembers}
+        onFamilyMembersChange={onFamilyMembersChange}
+      />
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /editar familiar/i }));
+    await userEvent.click(screen.getByRole("button", { name: /^guardar$/i }));
+
+    expect(await screen.findByText(/no se pudo actualizar el familiar/i)).toBeInTheDocument();
+    expect(onFamilyMembersChange).not.toHaveBeenCalled();
+    expect(screen.getByLabelText(/^nombre$/i)).toBeInTheDocument();
   });
 });
