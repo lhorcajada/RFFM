@@ -3,6 +3,16 @@ import type { LineColorOption, LineKindOption, MaterialTemplate, PetoOption, Spa
 
 export const HALF_FIELD_LENGTH_METERS = 52.5;
 export const FIELD_WIDTH_METERS = 68;
+export const FULL_FIELD_LENGTH_METERS = HALF_FIELD_LENGTH_METERS * 2;
+
+// Fútbol 7 pitch, marked crosswise within each F11 half (goals facing the F11
+// touchlines), standard RFEF-common sizing.
+export const F7_LENGTH_METERS = 60;
+export const F7_WIDTH_METERS = 40;
+export const F7_GOAL_WIDTH_METERS = 6;
+export const F7_GOAL_DEPTH_METERS = 2;
+export const F7_GOAL_AREA_WIDTH_METERS = 13;
+export const F7_GOAL_AREA_DEPTH_METERS = 5;
 
 export const REGULAR_POLYGON_SIDES: Partial<Record<SpaceKind, number>> = {
   triangle: 3,

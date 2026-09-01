@@ -1,5 +1,6 @@
 ﻿import { useEffect, useRef, useState } from "react";
-import { Box, Button, CircularProgress } from "@mui/material";
+import { Box, Button, CircularProgress, useTheme } from "@mui/material";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SaveIcon from "@mui/icons-material/Save";
 import SportsSoccerIcon from "@mui/icons-material/SportsSoccer";
@@ -13,6 +14,8 @@ import ChapasStrip from "./components/ChapasStrip";
 import ExerciseFormPanel from "./components/ExerciseFormPanel";
 import LinesStrip from "./components/LinesStrip";
 import MaterialsStrip from "./components/MaterialsStrip";
+import MobileEditorBlocked from "./components/MobileEditorBlocked";
+import PitchMarkings from "./components/PitchMarkings";
 import SpacesStrip from "./components/SpacesStrip";
 import TextsStrip from "./components/TextsStrip";
 import TacticalField from "./components/TacticalField";
@@ -67,6 +70,17 @@ export default function NewExercisePage() {
   const [panelVisible, setPanelVisible] = useState(false);
   useEffect(() => { setPanelVisible(true); }, []);
 
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down(700));
+
+  if (isMobile) {
+    return (
+      <BaseLayout hideFooterMenu>
+        <MobileEditorBlocked onBack={exerciseForm.handleCancel} />
+      </BaseLayout>
+    );
+  }
+
   return (
     <BaseLayout hideFooterMenu>
       <Box className={styles.page}>
@@ -94,7 +108,12 @@ export default function NewExercisePage() {
 
         <Box className={styles.workspace}>
           <Box className={styles.pitchArea}>
-            <TacticalField halfPitchRef={halfPitchRef} board={board} />
+            <Box className={styles.fullPitch}>
+              <Box className={styles.mirrorHalf} aria-hidden="true">
+                <PitchMarkings />
+              </Box>
+              <TacticalField halfPitchRef={halfPitchRef} board={board} />
+            </Box>
           </Box>
           <ExerciseFormPanel panelVisible={panelVisible} form={exerciseForm} teamId={teamId} />
         </Box>

@@ -1,0 +1,38 @@
+.wrap {
+  height: 100%;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 32px 24px;
+  text-align: center;
+  background:
+    radial-gradient(circle at 10% 0%, rgba(77, 157, 224, 0.18), transparent 42%),
+    radial-gradient(circle at 90% 100%, rgba(46, 204, 113, 0.12), transparent 38%),
+    linear-gradient(180deg, #030511 0%, #05091a 100%);
+}
+
+.icon {
+  font-size: 2.6rem !important;
+  color: #4d9de0;
+}
+
+.title {
+  font-size: 1.05rem !important;
+  font-weight: 700 !important;
+  color: #e8e8e8 !important;
+}
+
+.text {
+  max-width: 320px;
+  font-size: 0.85rem !important;
+  color: rgba(212, 212, 212, 0.72) !important;
+}
+
+.backBtn {
+  margin-top: 8px !important;
+  border-color: rgba(77, 157, 224, 0.45) !important;
+  color: #d5ebfb !important;
+}

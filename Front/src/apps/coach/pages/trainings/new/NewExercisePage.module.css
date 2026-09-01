@@ -82,23 +82,37 @@
   flex: 1;
   min-width: 0;
   padding: 12px;
-  padding-bottom: 72px;
   display: flex;
   align-items: center;
   justify-content: center;
-  --pitch-ppm: 10;
+  /* High enough that the nominal px/meter size is never the binding term in
+     .halfPitch's width min() — the available width/height of .pitchArea
+     govern the size instead, so the field fills the screen on desktop/tablet
+     instead of being capped at a small fixed size. */
+  --pitch-ppm: 40;
   container-type: size;
 }
 
-.halfPitch {
+.fullPitch {
   position: relative;
+  display: flex;
   /* Capped by (in order): --pitch-ppm's nominal size, available width, and
      available height (via container query units) — whichever is smallest —
      so the pitch always fits fully on screen instead of overflowing
-     vertically when there's more horizontal room than vertical. */
-  width: min(100%, calc(52.5px * var(--pitch-ppm)), calc(100cqh * 52.5 / 68));
-  aspect-ratio: 52.5 / 68;
+     vertically when there's more horizontal room than vertical. Sized on
+     the FULL pitch length (105m = both halves) so each 50%-width half below
+     renders at the correct 52.5x68m proportions. */
+  width: min(100%, calc(105px * var(--pitch-ppm)), calc(100cqh * 105 / 68));
+  aspect-ratio: 105 / 68;
   border-radius: 14px;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.24);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07), 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+
+.halfPitch,
+.mirrorHalf {
+  position: relative;
   overflow: hidden;
   background: linear-gradient(
     90deg,
@@ -110,13 +124,28 @@
     #1d8a32 85%,
     #1a7a2e 100%
   );
-  border: 2px solid rgba(255, 255, 255, 0.24);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07), 0 10px 30px rgba(0, 0, 0, 0.45);
   --touchline-band: 8%;
   --goal-back-band: 10%;
 }
 
-.halfPitch::before {
+.halfPitch {
+  width: 50%;
+  height: 100%;
+}
+
+.mirrorHalf {
+  /* A horizontally-flipped duplicate of the real half: its midline lands
+     adjacent to the real half's midline (forming one continuous halfway
+     line at the pitch's true center) and its goal ends up at the outer
+     edge — the far goal of the full pitch. Purely decorative background. */
+  width: 50%;
+  height: 100%;
+  transform: scaleX(-1);
+  pointer-events: none;
+}
+
+.halfPitch::before,
+.mirrorHalf::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -281,6 +310,123 @@
   height: 10.765%;
   border: 2px solid rgba(255, 255, 255, 0.74);
   border-left: none;
+  pointer-events: none;
+}
+
+/* ─── Fútbol 7 overlay, marked crosswise in each F11 half ──────────────────
+   The F7 goal-to-goal axis runs along the F11 width axis, stretched to the
+   full playable width so the F7 goals sit exactly on the F11
+   touchlines/bandas (not just near them) — this is the constrained
+   dimension, so it takes priority over the F7's own nominal 60m length. The
+   F7 touchline axis (40m) runs along the F11 half-length axis, centered
+   with its official size. All F7 markings are blue.
+
+   Percentages must be measured against the true PLAYABLE span between the
+   bands (84% of height between the two --touchline-band's, 90% of width
+   between the midline and --goal-back-band), not the full 0–100% container,
+   or the pitch overflows past the real touchlines/goal line. */
+.f7Pitch {
+  position: absolute;
+  /* Touches both touchlines exactly: top = --touchline-band, height = the
+     full playable span (100% - 2 * --touchline-band). */
+  top: var(--touchline-band);
+  height: calc(100% - (2 * var(--touchline-band)));
+  /* left = half the (52.5m - 40m) margin, expressed over the 90% playable
+     width (0% to 100%-goal-back-band) */
+  left: 10.714%;
+  /* 40m touchline-to-touchline, over the 90% playable width */
+  width: 68.571%;
+  border: 2px solid #44c8ff;
+  pointer-events: none;
+}
+
+/* F7 goal area (for goal kicks), 5m deep x 13m wide from each goal line.
+   Percentages are relative to .f7Pitch's own box (40x60m). */
+.f7AreaTop {
+  position: absolute;
+  top: 0;
+  left: 33.75%;
+  width: 32.5%;
+  height: 8.333%;
+  border: 2px solid #44c8ff;
+  pointer-events: none;
+}
+
+.f7AreaBottom {
+  position: absolute;
+  bottom: 0;
+  left: 33.75%;
+  width: 32.5%;
+  height: 8.333%;
+  border: 2px solid #44c8ff;
+  pointer-events: none;
+}
+
+/* 6x2m, protruding outward from the F7 goal line, same convention as
+   .goalFrame protruding beyond .goalLine. */
+.f7GoalTop {
+  position: absolute;
+  top: -3.333%;
+  left: 42.5%;
+  width: 15%;
+  height: 3.333%;
+  border: 2px solid #44c8ff;
+  border-bottom: none;
+  pointer-events: none;
+}
+
+.f7GoalBottom {
+  position: absolute;
+  bottom: -3.333%;
+  left: 42.5%;
+  width: 15%;
+  height: 3.333%;
+  border: 2px solid #44c8ff;
+  border-top: none;
+  pointer-events: none;
+}
+
+.f7CenterPoint {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: #44c8ff;
+  pointer-events: none;
+}
+
+/* "Fuera de juego" (offside) line: a continuous line from the F11 penalty
+   area's corner across to the F7 pitch's own far side (away from the goal,
+   opposite the near side where the penalty area sits) — not toward the
+   goal/touchline. Positioned relative to the half container (not
+   .f7Pitch's local box): right-anchored at the penalty area's own
+   x-position (so it starts exactly at that corner even if .penaltyArea's
+   size changes) and left-anchored at .f7Pitch's own left edge. */
+.f7OffsideLineTop {
+  position: absolute;
+  /* Penalty area's top corner: 50% - 59.294%/2 */
+  top: 20.353%;
+  height: 2px;
+  /* .f7Pitch's own left edge */
+  left: 10.714%;
+  /* Penalty area's left edge: 100% - --goal-back-band - 31.429% */
+  right: calc(var(--goal-back-band) + 31.429%);
+  background: #44c8ff;
+  pointer-events: none;
+}
+
+.f7OffsideLineBottom {
+  position: absolute;
+  /* Penalty area's bottom corner: 50% + 59.294%/2, expressed from the
+     container bottom (100% - 79.647%) */
+  bottom: 20.353%;
+  height: 2px;
+  left: 10.714%;
+  right: calc(var(--goal-back-band) + 31.429%);
+  background: #44c8ff;
   pointer-events: none;
 }
 
@@ -1326,10 +1472,6 @@
 }
 
 @media (max-width: 980px) {
-  .pitchArea {
-    --pitch-ppm: 5;
-  }
-
   .formPanel {
     position: absolute;
     right: 0;

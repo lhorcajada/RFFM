@@ -6,6 +6,7 @@ import { getMaterialSizePercent, getChapaSizePercent } from "../helpers/material
 import { getDimensionsPercent, formatMeters, getSideLengthsMeters, getShapeVertices } from "../helpers/spaceGeometry";
 import type { TacticalBoardState } from "../hooks/useTacticalBoard";
 import styles from "../NewExercisePage.module.css";
+import PitchMarkings from "./PitchMarkings";
 import PlacedObjectControls from "./PlacedObjectControls";
 import type { ResizeHandle, SpacePosition } from "../types";
 
@@ -251,20 +252,7 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
         handleTextFieldClick(e);
       }}
     >
-      <Box className={styles.terrainBandTop} />
-      <Box className={styles.terrainBandBottom} />
-      <Box className={styles.terrainGoalBack} />
-      <Box className={styles.touchLineTop} />
-      <Box className={styles.touchLineBottom} />
-      <Box className={styles.midLine} />
-      <Box className={styles.goalLine} />
-      <Box className={styles.centerCircle} />
-      <Box className={styles.penaltyArea} />
-      <Box className={styles.goalArea} />
-      <Box className={styles.penaltySpot} />
-      <Box className={styles.penaltyArc} />
-      <Box className={styles.goalMouth} />
-      <Box className={styles.goalFrame} />
+      <PitchMarkings />
 
       {Object.entries(placedChapas).map(([playerId, pos], idx) => {
         const player = playersById.get(playerId);
