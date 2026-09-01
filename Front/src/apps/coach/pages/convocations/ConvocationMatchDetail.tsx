@@ -66,6 +66,13 @@ export default function ConvocationMatchDetail() {
   useEffect(() => {
     if (needsGridData) setGridEnabled(true);
   }, [needsGridData]);
+  // La propuesta de convocatoria (temporada, lesiones, starts, entrenos) solo la usa
+  // la pestaña Convocatoria; se activa la primera vez que se visita y se mantiene.
+  const needsProposalData = tab === 2;
+  const [proposalEnabled, setProposalEnabled] = useState(needsProposalData);
+  useEffect(() => {
+    if (needsProposalData) setProposalEnabled(true);
+  }, [needsProposalData]);
   const lineupRef = useRef<IdealLineupHandle>(null);
   const [lineupSaving, setLineupSaving] = useState(false);
 
@@ -144,7 +151,7 @@ export default function ConvocationMatchDetail() {
     weekTrainingStatsMap,
     weekTrainingCount,
     loadingProposalContext,
-  } = useConvocationMatchContext(teamId, match?.date, seasonId, convocation.players);
+  } = useConvocationMatchContext(teamId, match?.date, seasonId, convocation.players, proposalEnabled);
 
   const {
     playerStreaks,

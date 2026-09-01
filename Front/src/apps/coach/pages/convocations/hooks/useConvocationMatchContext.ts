@@ -3,7 +3,7 @@ import { getSeasonPlayerStats } from "../../../services/liveMatchService";
 import { getSettingsForUser } from "../../../../federation/services/federationApi";
 import federationService from "../../../services/federationService";
 import attendanceSummaryService from "../../../services/attendanceSummaryService";
-import { getPlayerInjuries, getPlayersByTeam, type PlayerResponse } from "../../../services/teamplayerService";
+import { getTeamInjuries, getPlayersByTeam, type PlayerResponse } from "../../../services/teamplayerService";
 import sportEventTypeService from "../../../services/sportEventTypeService";
 import convocationService from "../../../services/convocationService";
 import type { SportEventResponse } from "../../../services/sportEventService";
@@ -34,6 +34,7 @@ export function useConvocationMatchContext(
   matchDate: string | undefined,
   seasonId: string | null,
   convocationPlayers: PlayerResponse[],
+  enabled: boolean = true,
 ): ConvocationMatchContext {
   const [seasonEvents, setSeasonEvents] = useState<SportEventResponse[]>([]);
   const [seasonStats, setSeasonStats] = useState<SeasonPlayerStats[]>([]);
@@ -44,7 +45,7 @@ export function useConvocationMatchContext(
   const [loadingProposalContext, setLoadingProposalContext] = useState(false);
 
   useEffect(() => {
-    if (!teamId || !matchDate) {
+    if (!teamId || !matchDate || !enabled) {
       setSeasonEvents([]);
       setSeasonStats([]);
       setGridStartsCountMap(new Map());
@@ -325,35 +326,35 @@ export function useConvocationMatchContext(
     return () => {
       mounted = false;
     };
-  }, [teamId, matchDate, seasonId, convocationPlayers]);
+  }, [teamId, matchDate, seasonId, convocationPlayers, enabled]);
 
   useEffect(() => {
-    if (convocationPlayers.length === 0) {
+    if (!teamId || !enabled || convocationPlayers.length === 0) {
       setLastInjuryEndMap(new Map());
       return;
     }
     let mounted = true;
     (async () => {
-      const map = new Map<string, string | null>();
-      await Promise.all(
-        convocationPlayers.map(async (p) => {
-          try {
-            const injuries = await getPlayerInjuries(p.id);
-            const latestEnded = injuries
-              .filter((inj) => !!inj.endDate)
-              .sort((a, b) => String(b.endDate).localeCompare(String(a.endDate)))[0]?.endDate ?? null;
-            map.set(p.id, latestEnded);
-          } catch {
-            map.set(p.id, null);
-          }
-        }),
-      );
-      if (mounted) setLastInjuryEndMap(map);
+      try {
+        const teamInjuries = await getTeamInjuries(teamId);
+        const injuriesByPlayer = new Map(teamInjuries.map((t) => [t.teamPlayerId, t.injuries]));
+        const map = new Map<string, string | null>();
+        for (const p of convocationPlayers) {
+          const injuries = injuriesByPlayer.get(p.id) ?? [];
+          const latestEnded = injuries
+            .filter((inj) => !!inj.endDate)
+            .sort((a, b) => String(b.endDate).localeCompare(String(a.endDate)))[0]?.endDate ?? null;
+          map.set(p.id, latestEnded);
+        }
+        if (mounted) setLastInjuryEndMap(map);
+      } catch {
+        if (mounted) setLastInjuryEndMap(new Map());
+      }
     })();
     return () => {
       mounted = false;
     };
-  }, [convocationPlayers]);
+  }, [teamId, convocationPlayers, enabled]);
 
   return {
     seasonEvents,
