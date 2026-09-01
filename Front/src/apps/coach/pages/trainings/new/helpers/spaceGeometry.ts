@@ -10,12 +10,12 @@ export const formatMeters = (value: number) => {
 };
 
 export const getBaseDimensionsMeters = (kind: SpaceKind) => {
-  if (kind === "rectangle") return { width: 2, height: 1 };
-  if (kind === "square") return { width: 1, height: 1 };
-  if (kind === "circle") return { width: 1, height: 1 };
+  if (kind === "rectangle") return { width: 20, height: 10 };
+  if (kind === "square") return { width: 10, height: 10 };
+  if (kind === "circle") return { width: 10, height: 10 };
 
   const sides = REGULAR_POLYGON_SIDES[kind] ?? 3;
-  const sideMeters = 1;
+  const sideMeters = 10;
   const diameter = sideMeters / Math.sin(Math.PI / sides);
   return { width: diameter, height: diameter };
 };
