@@ -10,11 +10,16 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping liveness endpoint
+      - name: Wake up and ping liveness endpoint
         run: |
           URL="https://rffm-api.calmground-92cb0105.westeurope.azurecontainerapps.io/liveness"
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "$URL")
-          echo "Liveness check -> HTTP $STATUS"
-          if [ "$STATUS" -lt 200 ] || [ "$STATUS" -ge 400 ]; then
-            echo "::warning::Liveness check falló con status $STATUS"
-          fi
+          for attempt in 1 2 3 4 5; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 60 "$URL" || echo "000")
+            echo "Intento $attempt -> HTTP $STATUS"
+            if [ "$STATUS" -ge 200 ] && [ "$STATUS" -lt 400 ]; then
+              echo "Servicio despierto."
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::warning::No se pudo despertar el servicio tras varios intentos (último status: $STATUS)"
