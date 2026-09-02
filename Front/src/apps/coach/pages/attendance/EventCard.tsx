@@ -393,7 +393,20 @@ export default function EventCard({ event, eventTypeName, onDeleted, onEdited, a
         </div>
         {event.location && (
           <div className={styles.location} title={event.location}>
-            📍 {event.location}
+            📍{" "}
+            {event.locationMapUrl ? (
+              <a
+                className={styles.locationLink}
+                href={event.locationMapUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {event.location}
+              </a>
+            ) : (
+              event.location
+            )}
           </div>
         )}
         {!isMatch && event.rivalName && (

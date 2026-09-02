@@ -66,6 +66,7 @@ export default function SportEventDialog({
   const [eveDateTime, setEveDateTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [location, setLocation] = useState("");
+  const [locationMapUrl, setLocationMapUrl] = useState("");
   const [description, setDescription] = useState("");
 
   const [rivalMode, setRivalMode] = useState<RivalMode>("none");
@@ -125,6 +126,7 @@ export default function SportEventDialog({
       setEveDateTime(toLocalDateTimeInput(rawStart));
       setEndTime(toLocalDateTimeInput(event.endTime));
       setLocation(event.location ?? "");
+      setLocationMapUrl(event.locationMapUrl ?? "");
       setDescription(event.description ?? "");
       setRivalId(event.rivalId ?? "");
       setRivalMode(event.rivalId ? "existing" : "none");
@@ -136,6 +138,7 @@ export default function SportEventDialog({
       setEveDateTime("");
       setEndTime("");
       setLocation("");
+      setLocationMapUrl("");
       setDescription("");
       setRivalId("");
       setRivalMode("none");
@@ -187,6 +190,16 @@ export default function SportEventDialog({
       setError("El nombre del rival nuevo es obligatorio.");
       return;
     }
+    if (locationMapUrl.trim()) {
+      try {
+        new URL(locationMapUrl.trim());
+      } catch {
+        setError(
+          "El enlace de ubicación debe ser una URL válida (debe empezar por http:// o https://)."
+        );
+        return;
+      }
+    }
     setSaving(true);
     setError(null);
     try {
@@ -203,6 +216,7 @@ export default function SportEventDialog({
         startTime: eveDateTime ? toUtcIso(eveDateTime) : null,
         endTime: endTime ? toUtcIso(endTime) : null,
         location: location || null,
+        locationMapUrl: locationMapUrl.trim() || null,
         description: description || null,
         eventTypeId: Number(eventTypeId),
         teamId,
@@ -442,6 +456,16 @@ export default function SportEventDialog({
           value={location}
           onChange={(e) => setLocation(e.target.value)}
           sx={{ mb: 2 }}
+        />
+        <TextField
+          label="Enlace de Google Maps (opcional)"
+          type="url"
+          fullWidth
+          size="small"
+          value={locationMapUrl}
+          onChange={(e) => setLocationMapUrl(e.target.value)}
+          sx={{ mb: 2 }}
+          placeholder="https://maps.google.com/..."
         />
         <TextField
           label="Descripción (opcional)"

@@ -298,7 +298,24 @@ export default function AttendanceEvent() {
 
                   <div className={styles.infoRow}>
                     <div className={styles.label}>Lugar</div>
-                    <div className={styles.value}>{event.location ?? "-"}</div>
+                    <div className={styles.value}>
+                      {event.location ? (
+                        event.locationMapUrl ? (
+                          <a
+                            className={styles.valueLink}
+                            href={event.locationMapUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            {event.location}
+                          </a>
+                        ) : (
+                          event.location
+                        )
+                      ) : (
+                        "-"
+                      )}
+                    </div>
                   </div>
 
                   {(() => {

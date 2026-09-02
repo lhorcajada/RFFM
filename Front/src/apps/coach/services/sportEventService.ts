@@ -16,6 +16,7 @@ export interface SportEventResponse {
   // Stable, backend-computed match category — replaces client-side name/id matching
   matchCategory?: MatchCategory;
   location?: string | null;
+  locationMapUrl?: string | null;
   // Additional fields that backend may provide
   name?: string | null;
   rival?: string | null;
@@ -127,6 +128,7 @@ export interface SportEventPayload {
   endTime?: string | null;
   arrivalDate?: string | null;
   location?: string | null;
+  locationMapUrl?: string | null;
   description?: string | null;
   eventTypeId: number;
   teamId: string;

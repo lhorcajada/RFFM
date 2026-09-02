@@ -418,3 +418,92 @@ describe("SportEventDialog - rival inline", () => {
     await waitFor(() => expect(rivalSelect).toHaveTextContent("CD Rival"));
   }, 15000);
 });
+
+describe("SportEventDialog - enlace de Google Maps", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  async function fillMinimumValidForm() {
+    await userEvent.type(screen.getByLabelText(/nombre/i), "Entrenamiento semanal");
+
+    const typeSelect = screen.getByLabelText(/tipo de evento/i);
+    await userEvent.click(typeSelect);
+    const option = await screen.findByRole("option", { name: "Entrenamiento" });
+    await userEvent.click(option);
+  }
+
+  it("muestra el campo de enlace de Google Maps", async () => {
+    render(
+      <SportEventDialog open={true} teamId="team-1" onClose={vi.fn()} onSaved={vi.fn()} />
+    );
+
+    expect(
+      await screen.findByLabelText(/enlace de google maps/i)
+    ).toBeInTheDocument();
+  });
+
+  it("muestra un error de validación y no guarda si la URL no es válida", async () => {
+    render(
+      <SportEventDialog open={true} teamId="team-1" onClose={vi.fn()} onSaved={vi.fn()} />
+    );
+    await fillMinimumValidForm();
+
+    await userEvent.type(
+      screen.getByLabelText(/enlace de google maps/i),
+      "esto no es una url"
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /crear/i }));
+
+    expect(
+      await screen.findByText(/el enlace de ubicación debe ser una url válida/i)
+    ).toBeInTheDocument();
+    expect(createSportEventMock).not.toHaveBeenCalled();
+    expect(updateSportEventMock).not.toHaveBeenCalled();
+  }, 15000);
+
+  it("incluye locationMapUrl en el payload cuando la URL es válida", async () => {
+    createSportEventMock.mockResolvedValue({ id: "evt-1" });
+    render(
+      <SportEventDialog open={true} teamId="team-1" onClose={vi.fn()} onSaved={vi.fn()} />
+    );
+    await fillMinimumValidForm();
+
+    await userEvent.type(
+      screen.getByLabelText(/enlace de google maps/i),
+      "https://maps.google.com/?q=Campo+Municipal"
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /crear/i }));
+
+    await waitFor(() => expect(createSportEventMock).toHaveBeenCalledTimes(1));
+    const payload = createSportEventMock.mock.calls[0][0];
+    expect(payload.locationMapUrl).toBe("https://maps.google.com/?q=Campo+Municipal");
+  }, 30000);
+
+  it("precarga el campo con el locationMapUrl existente al editar un evento", async () => {
+    render(
+      <SportEventDialog
+        open={true}
+        teamId="team-1"
+        event={{
+          id: "evt-1",
+          title: "Entreno semanal",
+          name: "Entreno semanal",
+          eventTypeId: 1,
+          teamId: "team-1",
+          location: "Campo Municipal Norte",
+          locationMapUrl: "https://maps.google.com/?q=Campo+Municipal+Norte",
+        }}
+        onClose={vi.fn()}
+        onSaved={vi.fn()}
+      />
+    );
+
+    const field = (await screen.findByLabelText(
+      /enlace de google maps/i
+    )) as HTMLInputElement;
+    expect(field.value).toBe("https://maps.google.com/?q=Campo+Municipal+Norte");
+  });
+});

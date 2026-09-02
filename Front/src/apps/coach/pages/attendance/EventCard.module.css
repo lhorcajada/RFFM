@@ -460,6 +460,23 @@
   flex-shrink: 0;
 }
 
+/* Google Maps link inside .location — the card body background is a fixed
+   dark chrome gradient (see .card) regardless of event type, so a single
+   fixed color pair is enough; explicit :visited override because the
+   browser default visited-purple has poor contrast on this background. */
+.locationLink,
+.locationLink:visited {
+  color: #8ecbff;
+  text-decoration: underline;
+  text-decoration-color: rgba(142, 203, 255, 0.55);
+}
+
+.locationLink:hover,
+.locationLink:focus-visible {
+  color: #b7ddff;
+  text-decoration-color: rgba(183, 221, 255, 0.85);
+}
+
 .rival {
   font-size: 0.82rem;
   color: rgba(170, 185, 220, 0.85);

@@ -166,6 +166,23 @@
   font-size: 0.95rem;
   flex: 1 1 auto;
 }
+
+/* Google Maps link inside .value (Lugar row) — .infoContainer's background
+   is a fixed var(--rffm-card-bg), not per-event-type, so one fixed color
+   pair is enough; explicit :visited override because the browser default
+   visited-purple has poor contrast on this dark background. */
+.valueLink,
+.valueLink:visited {
+  color: #8ecbff;
+  text-decoration: underline;
+  text-decoration-color: rgba(142, 203, 255, 0.55);
+}
+
+.valueLink:hover,
+.valueLink:focus-visible {
+  color: #b7ddff;
+  text-decoration-color: rgba(183, 221, 255, 0.85);
+}
 .fullWidth {
   grid-column: 1 / -1;
 }
