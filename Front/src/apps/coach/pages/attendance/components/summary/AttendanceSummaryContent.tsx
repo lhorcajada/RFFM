@@ -17,6 +17,7 @@ import liveMatchService from "../../../../services/liveMatchService";
 import playerService from "../../../../services/playerService";
 import { getMyProfile } from "../../../../services/coachApi";
 import { coachAuthService } from "../../../../services/authService";
+import { CALLED_STATUS_IDS } from "../../../convocations/components/convocationMatchDetail.types";
 import AttendanceDashboardTab from "./AttendanceDashboardTab";
 import AttendanceMatchesTab from "./AttendanceMatchesTab";
 import AttendanceTrainingsTab from "./AttendanceTrainingsTab";
@@ -415,7 +416,11 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
               seen: new Set<string>(),
             };
             if (!playerMap.has(playerId)) playerMap.set(playerId, existing);
-            const wasCalled = acceptedSet.has(conv.status);
+            // A match convocation counts as "called" while Pending (awaiting the
+            // player's acceptance) or Accepted — only an explicit Deconvoke means
+            // the player is genuinely not called. This differs from `acceptedSet`
+            // above, which is scoped to real post-event attendance for the Dashboard tab.
+            const wasCalled = CALLED_STATUS_IDS.has(conv.status);
             const wasStarter = wasCalled && starterIds.has(playerId);
             const state = wasStarter ? "starter" : wasCalled ? "called" : "notCalled";
             existing.playerName = playerName;
@@ -473,7 +478,7 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
             };
             if (!playerMap.has(playerId)) playerMap.set(playerId, existing);
             if (!existing.seen.has(event.id)) {
-              const wasCalled = acceptedSet.has(conv.status);
+              const wasCalled = CALLED_STATUS_IDS.has(conv.status);
               const wasStarter = wasCalled && starterIds.has(playerId);
               existing.cells.push({
                 eventId: event.id,

@@ -255,4 +255,34 @@ describe("AttendanceSummaryContent — partidos amistosos y minutos", () => {
     expect(screen.queryByText(/amistosos/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Torneo/)).not.toBeInTheDocument();
   });
+
+  it("muestra Convocado (no Desconvocado) para un jugador convocado que aún no ha aceptado (statusId Pending)", async () => {
+    // Regression: a convocation with status "Pending" (id 1) means the player
+    // WAS called up by the coach and simply hasn't confirmed acceptance yet —
+    // it must not be conflated with "Deconvoke" (id 5), which is the only
+    // status that means the player is genuinely not called.
+    getTeamConvocationsSummaryMock.mockResolvedValue([
+      {
+        eventId: "event-1",
+        convocationId: "c1",
+        teamPlayerId: "tp-1",
+        playerId: "p-1",
+        alias: "J1",
+        statusId: 1,
+        assistanceTypeId: null,
+        excuseTypeId: null,
+      },
+    ]);
+
+    render(<AttendanceSummaryContent teamId="team-1" />);
+
+    const matchesTab = await screen.findByRole("tab", { name: /partidos/i });
+    matchesTab.click();
+
+    const cardToggle = await screen.findByRole("button", { name: /J1/i });
+    cardToggle.click();
+
+    expect(await screen.findByText("Convocado")).toBeInTheDocument();
+    expect(screen.queryByText("Desconvocado")).not.toBeInTheDocument();
+  });
 });
