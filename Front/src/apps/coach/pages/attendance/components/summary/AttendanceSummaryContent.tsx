@@ -66,6 +66,14 @@ function getEventDate(event: SportEventResponse): string | null {
   return event.startTime ?? event.eveDateTime ?? event.start ?? null;
 }
 
+function isEventFinished(event: SportEventResponse): boolean {
+  const raw = getEventDate(event);
+  if (!raw) return false;
+  const date = new Date(raw);
+  if (isNaN(date.getTime())) return false;
+  return date.getTime() < Date.now();
+}
+
 function normalizeText(value: string | null | undefined): string {
   return (value ?? "").trim().toLowerCase();
 }
@@ -226,20 +234,22 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
           convocations: convocationsByEventId.get(event.id) ?? [],
         }));
 
-        eventsWithConvocations.forEach(({ event, convocations }) => {
-          const accepted = convocations.filter((c) => acceptedSet.has(c.status));
-          const eventSummary: Summary = {
-            events: 1,
-            attend: accepted.filter((c) => isAttendById(c.assistanceTypeId)).length,
-            absent: accepted.filter((c) => isAbsentById(c.assistanceTypeId)).length,
-          };
+        eventsWithConvocations
+          .filter(({ event }) => isEventFinished(event))
+          .forEach(({ event, convocations }) => {
+            const accepted = convocations.filter((c) => acceptedSet.has(c.status));
+            const eventSummary: Summary = {
+              events: 1,
+              attend: accepted.filter((c) => isAttendById(c.assistanceTypeId)).length,
+              absent: accepted.filter((c) => isAbsentById(c.assistanceTypeId)).length,
+            };
 
-          const kind = classifyEventType(getEventTypeName(event, typeMap));
-          nextSummary.total = addSummary(nextSummary.total, eventSummary);
-          if (kind === "training") nextSummary.training = addSummary(nextSummary.training, eventSummary);
-          if (kind === "match" && !isFriendlyEvent(event)) nextSummary.match = addSummary(nextSummary.match, eventSummary);
-          if (kind === "other") nextSummary.other = addSummary(nextSummary.other, eventSummary);
-        });
+            const kind = classifyEventType(getEventTypeName(event, typeMap));
+            nextSummary.total = addSummary(nextSummary.total, eventSummary);
+            if (kind === "training") nextSummary.training = addSummary(nextSummary.training, eventSummary);
+            if (kind === "match" && !isFriendlyEvent(event)) nextSummary.match = addSummary(nextSummary.match, eventSummary);
+            if (kind === "other") nextSummary.other = addSummary(nextSummary.other, eventSummary);
+          });
 
         const photoByKey: Record<string, string | null> = {};
         await Promise.all(
@@ -265,6 +275,7 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
         const activeTrainingEventIds = new Set(
           allEvents
             .filter((event) => classifyEventType(getEventTypeName(event, typeMap)) === "training")
+            .filter((event) => isEventFinished(event))
             .map((event) => event.id)
         );
         const nextRows: PlayerTrainingSummary[] = trainingSummary.players.map((player) => {
