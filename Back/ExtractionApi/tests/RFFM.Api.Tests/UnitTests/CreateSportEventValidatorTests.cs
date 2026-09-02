@@ -137,5 +137,30 @@ namespace RFFM.Api.Tests.UnitTests
             var result = _validator.Validate(request);
             Assert.True(result.IsValid);
         }
+
+        [Fact]
+        public void Validate_WithValidLocationMapUrl_Succeeds()
+        {
+            var request = BaseRequest(null) with { LocationMapUrl = "https://maps.google.com/?q=Campo+Municipal+Norte" };
+            var result = _validator.Validate(request);
+            Assert.True(result.IsValid);
+        }
+
+        [Fact]
+        public void Validate_WithMalformedLocationMapUrl_Fails()
+        {
+            var request = BaseRequest(null) with { LocationMapUrl = "not a url" };
+            var result = _validator.Validate(request);
+            Assert.False(result.IsValid);
+            Assert.Contains(result.Errors, e => e.PropertyName == nameof(CreateSportEventRequest.LocationMapUrl));
+        }
+
+        [Fact]
+        public void Validate_WithNullLocationMapUrl_Succeeds()
+        {
+            var request = BaseRequest(null) with { LocationMapUrl = null };
+            var result = _validator.Validate(request);
+            Assert.True(result.IsValid);
+        }
     }
 }

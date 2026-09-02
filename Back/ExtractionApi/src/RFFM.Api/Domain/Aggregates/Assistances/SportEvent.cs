@@ -12,6 +12,7 @@ namespace RFFM.Api.Domain.Aggregates.Assistances
         public DateTime? EndTime { get; set; }
         public DateTime? ArrivalDate { get; set; }
         public string? Location { get; set; } = null!;
+        public string? LocationMapUrl { get; set; }
         public string? Description { get; set; } = null!;
         public int EventTypeId { get; set; }
         public string TeamId { get; set; } = null!;
@@ -63,7 +64,8 @@ namespace RFFM.Api.Domain.Aggregates.Assistances
             DateTime? arrivalDate, string? location, string? description,
             int eventTypeId, string teamId, string? rivalId,
             bool isHomeMatch = true, string? codActa = null,
-            string? localGoals = null, string? visitorGoals = null)
+            string? localGoals = null, string? visitorGoals = null,
+            string? locationMapUrl = null)
         {
             return new SportEvent
             {
@@ -73,6 +75,7 @@ namespace RFFM.Api.Domain.Aggregates.Assistances
                 EndTime = endTime,
                 ArrivalDate = arrivalDate,
                 Location = location,
+                LocationMapUrl = locationMapUrl,
                 Description = description,
                 EventTypeId = eventTypeId,
                 TeamId = teamId,
@@ -141,6 +144,20 @@ namespace RFFM.Api.Domain.Aggregates.Assistances
             if (!string.IsNullOrEmpty(location) && location.Length > ValidationAssistancesConstants.MaxLocationLength)
                 throw new ArgumentException($"La ubicación no puede tener más de {ValidationAssistancesConstants.MaxLocationLength} caracteres");
             Location = location;
+        }
+
+        public void SetLocationMapUrl(string? locationMapUrl)
+        {
+            if (string.IsNullOrEmpty(locationMapUrl))
+            {
+                LocationMapUrl = null;
+                return;
+            }
+            if (locationMapUrl.Length > ValidationAssistancesConstants.MaxLocationMapUrlLength)
+                throw new ArgumentException($"El enlace de ubicación no puede tener más de {ValidationAssistancesConstants.MaxLocationMapUrlLength} caracteres");
+            if (!Uri.TryCreate(locationMapUrl, UriKind.Absolute, out var uri) || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+                throw new ArgumentException("El enlace de ubicación debe ser una URL http(s) válida");
+            LocationMapUrl = locationMapUrl;
         }
 
         public void SetDescription(string? description)

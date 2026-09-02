@@ -171,7 +171,7 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
                                     updated++;
                                     savedEvents.Add(new SportEventSaveResponse(
                                         existing.Id, existing.Name, existing.EveDateTime, existing.StartTime,
-                                        existing.EndTime, existing.ArrivalDate, existing.Location, existing.Description,
+                                        existing.EndTime, existing.ArrivalDate, existing.Location, existing.LocationMapUrl, existing.Description,
                                         existing.EventTypeId, existing.TeamId, existing.RivalId,
                                         existing.IsHomeMatch, existing.CodActa, existing.RecurrenceId, existing.IsRecurrenceMaster, null));
                                 }
@@ -189,7 +189,7 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
                                     created++;
                                     savedEvents.Add(new SportEventSaveResponse(
                                         newEvent.Id, newEvent.Name, newEvent.EveDateTime, newEvent.StartTime,
-                                        newEvent.EndTime, newEvent.ArrivalDate, newEvent.Location, newEvent.Description,
+                                        newEvent.EndTime, newEvent.ArrivalDate, newEvent.Location, newEvent.LocationMapUrl, newEvent.Description,
                                         newEvent.EventTypeId, newEvent.TeamId, newEvent.RivalId,
                                         newEvent.IsHomeMatch, newEvent.CodActa, newEvent.RecurrenceId, newEvent.IsRecurrenceMaster, null));
                                 }

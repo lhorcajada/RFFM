@@ -78,7 +78,10 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
                             resolvedTeamId,
                             resolvedRivalId,
                             req.IsHomeMatch ?? true,
-                            req.CodActa
+                            req.CodActa,
+                            localGoals: null,
+                            visitorGoals: null,
+                            locationMapUrl: req.LocationMapUrl
                         );
 
                         EventRecurrence? recurrence = null;
@@ -131,7 +134,10 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
                                     ev.TeamId,
                                     ev.RivalId,
                                     ev.IsHomeMatch,
-                                    null // CodActa is match-specific, never copied to generated instances
+                                    null, // CodActa is match-specific, never copied to generated instances
+                                    localGoals: null,
+                                    visitorGoals: null,
+                                    locationMapUrl: ev.LocationMapUrl
                                 ))
                                 .ToArray();
 
@@ -149,7 +155,7 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
                         // instance, to avoid notification spam for a long recurring series.
                         await dispatcher.DispatchCalendarChangedAsync(ev.Id, ev.TeamId, cancellationToken);
 
-                        return Results.Ok(new SportEventSaveResponse(ev.Id, ev.Name, ev.EveDateTime, ev.StartTime, ev.EndTime, ev.ArrivalDate, ev.Location, ev.Description, ev.EventTypeId, ev.TeamId, ev.RivalId, ev.IsHomeMatch, ev.CodActa, ev.RecurrenceId, ev.IsRecurrenceMaster, recurrence?.InstanceCount));
+                        return Results.Ok(new SportEventSaveResponse(ev.Id, ev.Name, ev.EveDateTime, ev.StartTime, ev.EndTime, ev.ArrivalDate, ev.Location, ev.LocationMapUrl, ev.Description, ev.EventTypeId, ev.TeamId, ev.RivalId, ev.IsHomeMatch, ev.CodActa, ev.RecurrenceId, ev.IsRecurrenceMaster, recurrence?.InstanceCount));
                     })
                 .WithName(nameof(CreateSportEvent))
                 .WithTags(SportEventsConstants.SportEventsFeature)
@@ -172,7 +178,8 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
         bool? IsHomeMatch,
         string? CodActa,
         RecurrenceRequest? Recurrence = null,
-        NewRivalRequest? NewRival = null
+        NewRivalRequest? NewRival = null,
+        string? LocationMapUrl = null
     );
 
     public record RecurrenceRequest(
@@ -193,6 +200,11 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
             RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
             RuleFor(x => x.TeamId).NotEmpty();
             RuleFor(x => x.EventTypeId).GreaterThan(0);
+
+            RuleFor(x => x.LocationMapUrl)
+                .Must(BeAWellFormedHttpUrl)
+                .WithMessage("El enlace de ubicación debe ser una URL http(s) válida")
+                .When(x => !string.IsNullOrEmpty(x.LocationMapUrl));
 
             RuleFor(x => x)
                 .Must(x => x.RivalId is null || x.NewRival is null)
@@ -228,6 +240,10 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
             });
         }
 
+        private static bool BeAWellFormedHttpUrl(string? url) =>
+            Uri.TryCreate(url, UriKind.Absolute, out var uri) &&
+            (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
+
         private static bool BeWithinInstanceCap(CreateSportEventRequest request)
         {
             if (!RecurrenceFrequency.IsValidCode(request.Recurrence!.Frequency))
@@ -249,6 +265,7 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
         DateTime? EndTime,
         DateTime? ArrivalDate,
         string? Location,
+        string? LocationMapUrl,
         string? Description,
         int EventTypeId,
         string TeamId,

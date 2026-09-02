@@ -43,6 +43,7 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Queries
             public DateTime? EndTime { get; set; }
             public DateTime? ArrivalDate { get; set; }
             public string? Location { get; set; }
+            public string? LocationMapUrl { get; set; }
             public string? Description { get; set; }
             public int EventTypeId { get; set; }
             public string TeamId { get; set; } = null!;
@@ -80,6 +81,7 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Queries
                     EndTime = sportEvent.EndTime,
                     ArrivalDate = sportEvent.ArrivalDate,
                     Location = sportEvent.Location,
+                    LocationMapUrl = sportEvent.LocationMapUrl,
                     Description = sportEvent.Description,
                     EventTypeId = sportEvent.EventTypeId,
                     TeamId = sportEvent.TeamId,

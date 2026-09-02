@@ -173,6 +173,7 @@ namespace RFFM.Api.Tests.IntegrationTests
                 EndTime: null,
                 ArrivalDate: null,
                 Location: null,
+                LocationMapUrl: null,
                 Description: null,
                 EventTypeId: 2,
                 RivalId: null,

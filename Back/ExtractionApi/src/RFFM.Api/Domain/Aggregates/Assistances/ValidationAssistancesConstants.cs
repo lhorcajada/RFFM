@@ -5,5 +5,6 @@
         public const int MaxNameLength = 256;
         public const int MaxLocationLength = 512;
         public const int MaxDescriptionLength = 2048;
+        public const int MaxLocationMapUrlLength = 2048;
     }
 }

@@ -31,6 +31,10 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.Assistanc
                 .IsRequired(false)
                 .HasMaxLength(ValidationAssistancesConstants.MaxLocationLength);
 
+            builder.Property(se => se.LocationMapUrl)
+                .IsRequired(false)
+                .HasMaxLength(ValidationAssistancesConstants.MaxLocationMapUrlLength);
+
             builder.Property(se => se.Description)
                 .IsRequired(false)
                 .HasMaxLength(ValidationAssistancesConstants.MaxDescriptionLength);

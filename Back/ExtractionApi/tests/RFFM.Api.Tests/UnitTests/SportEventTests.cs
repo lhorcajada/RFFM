@@ -116,5 +116,89 @@ namespace RFFM.Api.Tests.UnitTests
             Assert.Null(ev.EveDateTime);
             Assert.Null(ev.StartTime);
         }
+
+        [Fact]
+        public void SetLocationMapUrl_WithValidHttpsUrl_SetsValue()
+        {
+            var ev = NewBaseEvent();
+            ev.SetLocationMapUrl("https://maps.google.com/?q=Campo+Municipal+Norte");
+            Assert.Equal("https://maps.google.com/?q=Campo+Municipal+Norte", ev.LocationMapUrl);
+        }
+
+        [Fact]
+        public void SetLocationMapUrl_WithValidHttpUrl_SetsValue()
+        {
+            var ev = NewBaseEvent();
+            ev.SetLocationMapUrl("http://maps.google.com/?q=Campo");
+            Assert.Equal("http://maps.google.com/?q=Campo", ev.LocationMapUrl);
+        }
+
+        [Fact]
+        public void SetLocationMapUrl_WithNull_ClearsValue()
+        {
+            var ev = NewBaseEvent();
+            ev.SetLocationMapUrl("https://maps.google.com/?q=Campo");
+            ev.SetLocationMapUrl(null);
+            Assert.Null(ev.LocationMapUrl);
+        }
+
+        [Fact]
+        public void SetLocationMapUrl_WithEmptyString_ClearsValue()
+        {
+            var ev = NewBaseEvent();
+            ev.SetLocationMapUrl("https://maps.google.com/?q=Campo");
+            ev.SetLocationMapUrl(string.Empty);
+            Assert.Null(ev.LocationMapUrl);
+        }
+
+        [Fact]
+        public void SetLocationMapUrl_WithNonUrlString_Throws()
+        {
+            var ev = NewBaseEvent();
+            Assert.Throws<ArgumentException>(() => ev.SetLocationMapUrl("not a url"));
+        }
+
+        [Fact]
+        public void SetLocationMapUrl_WithRelativeUrl_Throws()
+        {
+            var ev = NewBaseEvent();
+            Assert.Throws<ArgumentException>(() => ev.SetLocationMapUrl("/relative/path"));
+        }
+
+        [Fact]
+        public void SetLocationMapUrl_WithNonHttpScheme_Throws()
+        {
+            var ev = NewBaseEvent();
+            Assert.Throws<ArgumentException>(() => ev.SetLocationMapUrl("ftp://maps.google.com/?q=Campo"));
+        }
+
+        [Fact]
+        public void SetLocationMapUrl_LongerThanMax_Throws()
+        {
+            var ev = NewBaseEvent();
+            var tooLong = "https://maps.google.com/?q=" + new string('a', ValidationAssistancesConstants.MaxLocationMapUrlLength);
+            Assert.Throws<ArgumentException>(() => ev.SetLocationMapUrl(tooLong));
+        }
+
+        [Fact]
+        public void CreateNew_WithLocationMapUrl_SetsValue()
+        {
+            var ev = SportEvent.CreateNew(
+                "Entrenamiento",
+                DateTime.UtcNow.AddDays(1),
+                DateTime.UtcNow.AddDays(1),
+                null, null, "Campo Municipal Norte", null,
+                2, "team-1", null,
+                locationMapUrl: "https://maps.google.com/?q=Campo+Municipal+Norte");
+
+            Assert.Equal("https://maps.google.com/?q=Campo+Municipal+Norte", ev.LocationMapUrl);
+        }
+
+        [Fact]
+        public void CreateNew_WithoutLocationMapUrl_DefaultsToNull()
+        {
+            var ev = NewBaseEvent();
+            Assert.Null(ev.LocationMapUrl);
+        }
     }
 }
