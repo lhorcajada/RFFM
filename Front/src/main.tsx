@@ -9,6 +9,7 @@ import gameTheme from "./apps/federation/muiGameTheme";
 import devTheme from "./apps/federation/muiDevTheme";
 import { BrowserRouter } from "react-router-dom";
 import { UserProvider } from "./shared/context/UserContext";
+import { RffmSeasonProvider } from "./shared/context/RffmSeasonContext";
 
 // Polyfill Node-style `global` for browser/worker contexts.
 // Some CJS bundles still read `global` and fail if it is missing.
@@ -29,7 +30,9 @@ createRoot(document.getElementById("root")!).render(
       <CssBaseline />
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <UserProvider>
-          <App />
+          <RffmSeasonProvider>
+            <App />
+          </RffmSeasonProvider>
         </UserProvider>
       </BrowserRouter>
     </ThemeProvider>

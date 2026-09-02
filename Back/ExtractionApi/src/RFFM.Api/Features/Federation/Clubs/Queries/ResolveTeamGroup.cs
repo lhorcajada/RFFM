@@ -115,7 +115,7 @@ namespace RFFM.Api.Features.Federation.Clubs.Queries
                 return null;
 
             // Retrieve competition name from the competition list
-            var competitions = await competitionService.GetCompetitionsAsync(cancellationToken);
+            var competitions = await competitionService.GetCompetitionsAsync(cancellationToken: cancellationToken);
             var comp = competitions.FirstOrDefault(c => c.CompetitionId == competitionId);
 
             return new TeamGroupResponse(

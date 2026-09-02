@@ -2,6 +2,12 @@
   --gap: 8px;
 }
 
+.rffmSeasonRow {
+  margin-top: 12px;
+  margin-bottom: 4px;
+  max-width: 220px;
+}
+
 .topBox {
   margin-top: 0;
   margin-bottom: 0;

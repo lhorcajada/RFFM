@@ -1,6 +1,8 @@
+using Microsoft.Extensions.Options;
 using RFFM.Api.Features.Federation.Competitions.Models;
 using RFFM.Api.Features.Federation.Competitions.Models.ApiRffm;
 using RFFM.Api.Infrastructure.Helpers;
+using RFFM.Api.Infrastructure.Options;
 using System.Text.Json;
 using static RFFM.Api.Features.Federation.Competitions.Queries.GetScores;
 
@@ -8,7 +10,7 @@ namespace RFFM.Api.Features.Federation.Competitions.Services
 {
     public interface ICompetitionService
     {
-        Task<ResponseCompetition[]> GetCompetitionsAsync(CancellationToken cancellationToken = default);
+        Task<ResponseCompetition[]> GetCompetitionsAsync(int? temporada = null, CancellationToken cancellationToken = default);
         Task<ResponseGroup[]> GetGroupsAsync(string competitionId, CancellationToken cancellationToken = default);
 
         Task<ResponseScores[]> GetScoresAsync(string competitionId, string groupId,
@@ -26,22 +28,25 @@ namespace RFFM.Api.Features.Federation.Competitions.Services
         private readonly HttpClient _http;
         private readonly HtmlFetcher _fetcher;
         private readonly IMatchDayService _matchDayService;
+        private readonly IOptions<RffmOptions> _rffmOptions;
         private const string CompetitionsUrl = "https://www.rffm.es/api/competitions";
         private const string GroupsUrl = "https://www.rffm.es/api/groups";
         private const string ScoresUrl = "https://www.rffm.es/api/scorers";
         private const string StandingsUrl = "https://www.rffm.es/api/standings";
 
-        public CompetitionService(HttpClient http, IMatchDayService matchDayService)
+        public CompetitionService(HttpClient http, IMatchDayService matchDayService, IOptions<RffmOptions> rffmOptions)
         {
             _http = http;
             _matchDayService = matchDayService;
+            _rffmOptions = rffmOptions;
             _http.DefaultRequestHeaders.UserAgent.ParseAdd("RFFM.Extractor/1.0");
             _fetcher = new HtmlFetcher(http);
         }
 
-        public async Task<ResponseCompetition[]> GetCompetitionsAsync(CancellationToken cancellationToken = default)
+        public async Task<ResponseCompetition[]> GetCompetitionsAsync(int? temporada = null, CancellationToken cancellationToken = default)
         {
-            var competitionsUrl = $"{CompetitionsUrl}?temporada=21&tipojuego=1";
+            var resolvedTemporada = temporada ?? _rffmOptions.Value.CurrentSeasonId;
+            var competitionsUrl = $"{CompetitionsUrl}?temporada={resolvedTemporada}&tipojuego=1";
             var content = await _fetcher.FetchAsync(competitionsUrl, cancellationToken).ConfigureAwait(false);
             if (string.IsNullOrWhiteSpace(content))
                 return [];

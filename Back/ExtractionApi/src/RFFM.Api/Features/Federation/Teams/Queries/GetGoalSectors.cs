@@ -61,7 +61,7 @@ namespace RFFM.Api.Features.Federation.Teams.Queries
                 var teamCode2 = request.TeamCodesToCompare[1].ToString(CultureInfo.InvariantCulture);
 
                 // Obtain match duration (MatchTime property)
-                var competitions = await _competitionService.GetCompetitionsAsync(cancellationToken);
+                var competitions = await _competitionService.GetCompetitionsAsync(cancellationToken: cancellationToken);
                 var matchTime = competitions
                     .FirstOrDefault(c => c.CompetitionId == request.CompetitionId)?.MatchTime ?? 90;
 

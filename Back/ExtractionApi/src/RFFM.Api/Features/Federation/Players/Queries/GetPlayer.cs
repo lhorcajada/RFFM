@@ -3,9 +3,11 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Options;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Features.Federation.Players.Models;
 using RFFM.Api.Features.Federation.Players.Services;
+using RFFM.Api.Infrastructure.Options;
 
 namespace RFFM.Api.Features.Federation.Players.Queries
 {
@@ -14,10 +16,10 @@ namespace RFFM.Api.Features.Federation.Players.Queries
         public void AddRoutes(IEndpointRouteBuilder app)
         {
             app.MapGet("/players/{id}",
-                    async (string id, [FromQuery] string? seasonId, IMediator mediator, CancellationToken cancellationToken) =>
+                    async (string id, [FromQuery] string? seasonId, IMediator mediator, IOptions<RffmOptions> rffmOptions, CancellationToken cancellationToken) =>
                     {
-                        // Si no se proporciona temporada, usar la actual (21 para 2025-2026)
-                        var season = seasonId ?? "21";
+                        // Si no se proporciona temporada, usar la configurada en Rffm:CurrentSeasonId
+                        var season = seasonId ?? rffmOptions.Value.CurrentSeasonId.ToString();
                         var request = new PlayerQueryApp(id, int.Parse(season));
 
                         var response = await mediator.Send(request, cancellationToken);

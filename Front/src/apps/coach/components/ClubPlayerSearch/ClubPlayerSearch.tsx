@@ -30,6 +30,8 @@ import {
 } from "../../pages/season-access/helpers/seasonAccess.helpers";
 import TeamPlayersList from "../TeamPlayersList/TeamPlayersList";
 import type { PlayerResponse } from "../../services/teamplayerService";
+import RffmSeasonSelector from "../../../../shared/components/ui/RffmSeasonSelector/RffmSeasonSelector";
+import { useRffmSeason } from "../../../../shared/context/RffmSeasonContext";
 import styles from "./ClubPlayerSearch.module.css";
 
 type TeamWithCategory = ClubTeam & {
@@ -111,6 +113,7 @@ export default function ClubPlayerSearch({
   const [teamsLoading, setTeamsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [selectorsOpen, setSelectorsOpen] = React.useState(false);
+  const { seasonId: rffmSeasonId } = useRffmSeason();
 
   const selectedCategoryKey = selectedCategory || null;
   const selectedSeason = React.useMemo(
@@ -225,7 +228,10 @@ export default function ClubPlayerSearch({
       setError(null);
 
       try {
-        const clubTeams = await federationClubService.getClubTeams(federationClub.clubCode);
+        const clubTeams = await federationClubService.getClubTeams(
+          federationClub.clubCode,
+          rffmSeasonId ?? undefined,
+        );
         if (!mounted) return;
 
         const normalizedTeams = clubTeams
@@ -252,7 +258,7 @@ export default function ClubPlayerSearch({
     return () => {
       mounted = false;
     };
-  }, [federationClub, selectedCategoryKey, selectedSeasonId]);
+  }, [federationClub, selectedCategoryKey, selectedSeasonId, rffmSeasonId]);
 
   React.useEffect(() => {
     if (selectedTeamCode && !groups.some((group) => group.teams.some((team) => team.teamCode === selectedTeamCode))) {
@@ -339,6 +345,8 @@ export default function ClubPlayerSearch({
                     ))}
                   </Select>
                 </FormControl>
+
+                <RffmSeasonSelector />
 
                 <FormControl fullWidth size="small" disabled={!selectedSeasonId}>
                   <InputLabel id="club-player-category-label">Categoría</InputLabel>

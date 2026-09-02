@@ -16,8 +16,10 @@ using RFFM.Api.Infrastructure.Services;
 using RFFM.Api.Features.Federation.Competitions.Services;
 using RFFM.Api.Features.Federation.Clubs.Services;
 using RFFM.Api.Features.Federation.Players.Services;
+using RFFM.Api.Features.Federation.Seasons.Services;
 using RFFM.Api.Features.Federation.Settings.Services;
 using RFFM.Api.Features.Federation.Teams.Services;
+using RFFM.Api.Infrastructure.Options;
 using RFFM.Api.Infrastructure.Persistence;
 using RFFM.Api.Infrastructure.Services.Email;
 using RFFM.Api.Services.Export;
@@ -42,6 +44,7 @@ namespace RFFM.Api.DependencyInjection
 
             //services.AddIntegrationEvents();
             services.AddHttpClient();
+            services.Configure<RffmOptions>(configuration.GetSection("Rffm"));
             // Allow handlers to access HttpContext when needed
             services.AddHttpContextAccessor();
 
@@ -158,6 +161,7 @@ namespace RFFM.Api.DependencyInjection
             services.AddScoped<ISectorFactory, SectorFactory>();
             services.AddScoped<IGoalSectorsAggregator, GoalSectorsAggregator>();
             services.AddScoped<IFederationSettingService, FederationSettingService>();
+            services.AddScoped<IRffmSeasonPreferenceService, RffmSeasonPreferenceService>();
             services.AddScoped<RFFM.Api.Features.Scopes.IScopeAuthorizationService, RFFM.Api.Features.Scopes.ScopeAuthorizationService>();
             services.AddScoped<RFFM.Api.Domain.Services.IClubSeatBillingService, RFFM.Api.Domain.Services.ClubSeatBillingService>();
             services.AddScoped<RFFM.Api.Domain.Services.IClubJoinRequestApprovalService, RFFM.Api.Domain.Services.ClubJoinRequestApprovalService>();

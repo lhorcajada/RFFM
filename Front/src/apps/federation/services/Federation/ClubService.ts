@@ -25,16 +25,26 @@ export interface TeamGroupInfo {
 }
 
 export class ClubService {
-  async searchClubs(search: string, codclub?: string): Promise<ClubDirectoryItem[]> {
+  async searchClubs(
+    search: string,
+    codclub?: string,
+    temporada?: number,
+  ): Promise<ClubDirectoryItem[]> {
     const params: Record<string, string> = {};
     if (search) params.search = search;
     if (codclub) params.codclub = codclub;
+    if (temporada != null) params.temporada = String(temporada);
     const res = await client.get("clubs/search", { params });
     return res.data as ClubDirectoryItem[];
   }
 
-  async getClubTeams(clubCode: string): Promise<ClubTeam[]> {
-    const res = await client.get(`clubs/${encodeURIComponent(clubCode)}/teams`);
+  async getClubTeams(clubCode: string, temporada?: number): Promise<ClubTeam[]> {
+    const params: Record<string, string> = {};
+    if (temporada != null) params.temporada = String(temporada);
+    const res = await client.get(
+      `clubs/${encodeURIComponent(clubCode)}/teams`,
+      { params },
+    );
     return res.data as ClubTeam[];
   }
 

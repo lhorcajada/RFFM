@@ -16,6 +16,7 @@ import type { FederationPlayer } from "../../../types/federationPlayer";
 import { getPlayer } from "../../../services/api";
 import { fetchImage } from "../../../../../shared/services/imageService";
 import AvatarWithUrl from "../../../../../shared/components/ui/AvatarWithUrl/AvatarWithUrl";
+import { useRffmSeason } from "../../../../../shared/context/RffmSeasonContext";
 
 type Props = {
   open: boolean;
@@ -151,7 +152,8 @@ export default function PlayerQuickViewDialog({
   onClose,
 }: Props) {
   const code = useMemo(() => (playerCode ?? "").trim(), [playerCode]);
-  const effectiveSeasonId = seasonId ?? "21";
+  const { seasonId: rffmSeasonId } = useRffmSeason();
+  const effectiveSeasonId = seasonId ?? String(rffmSeasonId ?? "");
 
   const [loading, setLoading] = useState(false);
   const [player, setPlayer] = useState<FederationPlayer | null>(null);

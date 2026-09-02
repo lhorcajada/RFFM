@@ -4,11 +4,13 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Options;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Features.Federation.Competitions.Queries.GetCalendar.Responses;
 using RFFM.Api.Features.Federation.Competitions.Services;
 using RFFM.Api.Features.Federation.Teams.Models;
 using RFFM.Api.Features.Federation.Teams.Services;
+using RFFM.Api.Infrastructure.Options;
 
 namespace RFFM.Api.Features.Federation.Teams.Queries
 {
@@ -16,12 +18,12 @@ namespace RFFM.Api.Features.Federation.Teams.Queries
     {
         public void AddRoutes(IEndpointRouteBuilder app)
         {
-            app.MapGet("/teams/{teamId}/callups", async (IMediator mediator, CancellationToken cancellationToken, string teamId, string seasonId = "21", int competitionId = 25255269, int groupId = 25255283) =>
+            app.MapGet("/teams/{teamId}/callups", async (IMediator mediator, IOptions<RffmOptions> rffmOptions, CancellationToken cancellationToken, string teamId, string? seasonId = null, int competitionId = 25255269, int groupId = 25255283) =>
             {
-                // seasonId, competitionId and groupId are required as per request
-                if (string.IsNullOrWhiteSpace(seasonId)) return Results.BadRequest("seasonId is required");
+                // Si no se proporciona temporada, usar la configurada en Rffm:CurrentSeasonId
+                var resolvedSeasonId = seasonId ?? rffmOptions.Value.CurrentSeasonId.ToString();
 
-                var request = new QueryApp(teamId, seasonId, competitionId, groupId);
+                var request = new QueryApp(teamId, resolvedSeasonId, competitionId, groupId, rffmOptions.Value.CurrentSeasonId);
                 var response = await mediator.Send(request, cancellationToken);
                 return Results.Ok(response);
             })
@@ -31,7 +33,7 @@ namespace RFFM.Api.Features.Federation.Teams.Queries
             .Produces<ProblemDetails>(StatusCodes.Status400BadRequest);
         }
 
-        public record QueryApp(string TeamId, string SeasonId, int CompetitionId, int GroupId) : Common.IQueryApp<List<PlayerCallupsResponse>>;
+        public record QueryApp(string TeamId, string SeasonId, int CompetitionId, int GroupId, int FallbackSeasonId) : Common.IQueryApp<List<PlayerCallupsResponse>>;
 
         public class RequestHandler(
             ICalendarService calendarService,
@@ -184,7 +186,7 @@ namespace RFFM.Api.Features.Federation.Teams.Queries
                                             return await actaService.GetMatchFromActaAsync(code, temporada, request.CompetitionId, request.GroupId, cancellationToken);
                                         }
 
-                                        return await actaService.GetMatchFromActaAsync(code, 0, request.CompetitionId, request.GroupId, cancellationToken);
+                                        return await actaService.GetMatchFromActaAsync(code, request.FallbackSeasonId, request.CompetitionId, request.GroupId, cancellationToken);
                                     });
                                 }
                                 catch

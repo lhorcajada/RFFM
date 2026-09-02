@@ -32,6 +32,7 @@ import styles from "./Settings.module.css";
 import SavedConfigs from "../../../../shared/components/ui/SavedConfigs/SavedConfigs";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import ClubSearchSection from "./ClubSearchSection";
+import RffmSeasonSelector from "../../../../shared/components/ui/RffmSeasonSelector/RffmSeasonSelector";
 import {
   settingsService,
   getSettingsForUser,
@@ -294,6 +295,9 @@ export default function Settings(): JSX.Element {
             <Typography variant="subtitle1">
               O busca directamente por club
             </Typography>
+            <Box className={styles.rffmSeasonRow}>
+              <RffmSeasonSelector />
+            </Box>
             <ClubSearchSection
               onTeamResolved={({ competition, group, team }) => {
                 setSelectedCompetition(competition);

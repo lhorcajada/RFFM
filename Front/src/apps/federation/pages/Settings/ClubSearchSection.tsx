@@ -15,6 +15,7 @@ import {
   type ClubTeam,
   type TeamGroupInfo,
 } from "../../services/Federation/ClubService";
+import { useRffmSeason } from "../../../../shared/context/RffmSeasonContext";
 import styles from "./ClubSearchSection.module.css";
 
 interface SelectedInfo {
@@ -28,6 +29,7 @@ interface Props {
 }
 
 export default function ClubSearchSection({ onTeamResolved }: Props) {
+  const { seasonId } = useRffmSeason();
   const [searchInput, setSearchInput] = useState("");
   const [clubs, setClubs] = useState<ClubDirectoryItem[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -61,7 +63,11 @@ export default function ClubSearchSection({ onTeamResolved }: Props) {
     setResolveError(null);
 
     try {
-      const results = await clubService.searchClubs(query);
+      const results = await clubService.searchClubs(
+        query,
+        undefined,
+        seasonId ?? undefined,
+      );
       setClubs(results);
     } catch {
       setClubs([]);
@@ -69,7 +75,7 @@ export default function ClubSearchSection({ onTeamResolved }: Props) {
       setSearchLoading(false);
       setSearchDone(true);
     }
-  }, [searchInput]);
+  }, [searchInput, seasonId]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") handleSearch();
@@ -84,7 +90,10 @@ export default function ClubSearchSection({ onTeamResolved }: Props) {
     setTeamsLoading(true);
 
     try {
-      const result = await clubService.getClubTeams(club.clubCode);
+      const result = await clubService.getClubTeams(
+        club.clubCode,
+        seasonId ?? undefined,
+      );
       // Sort by categoryDescription
       const sorted = [...result].sort((a, b) =>
         a.categoryDescription.localeCompare(b.categoryDescription, "es"),
@@ -95,7 +104,7 @@ export default function ClubSearchSection({ onTeamResolved }: Props) {
     } finally {
       setTeamsLoading(false);
     }
-  }, []);
+  }, [seasonId]);
 
   const handleTeamChange = useCallback(
     async (teamCode: string) => {

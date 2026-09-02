@@ -5,10 +5,12 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Options;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Features.Federation.Clubs.Models;
 using RFFM.Api.Features.Federation.Clubs.Services;
 using RFFM.Api.Features.Federation.Competitions.Services;
+using RFFM.Api.Infrastructure.Options;
 
 namespace RFFM.Api.Features.Federation.Clubs.Queries
 {
@@ -22,24 +24,28 @@ namespace RFFM.Api.Features.Federation.Clubs.Queries
                         IClubDirectoryService clubDirectoryService,
                         ICompetitionService competitionService,
                         IMemoryCache cache,
-                        CancellationToken cancellationToken) =>
+                        IOptions<RffmOptions> rffmOptions,
+                        CancellationToken cancellationToken,
+                        int? temporada) =>
                     {
                         var normalizedClubCode = (clubCode ?? string.Empty).Trim();
                         if (string.IsNullOrWhiteSpace(normalizedClubCode))
                             return Results.BadRequest("clubCode es obligatorio");
 
-                        var teamsCacheKey = $"clubs_{normalizedClubCode}_teams";
+                        var resolvedTemporada = temporada ?? rffmOptions.Value.CurrentSeasonId;
+
+                        var teamsCacheKey = $"clubs_{normalizedClubCode}_teams_{resolvedTemporada}";
                         var teams = await cache.GetOrCreateAsync(teamsCacheKey, async entry =>
                         {
                             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
-                            return await clubDirectoryService.GetClubTeamsAsync(normalizedClubCode, cancellationToken);
+                            return await clubDirectoryService.GetClubTeamsAsync(normalizedClubCode, resolvedTemporada, cancellationToken);
                         });
 
-                        var competitionsCacheKey = "competitions_all";
+                        var competitionsCacheKey = $"competitions_all_{resolvedTemporada}";
                         var competitions = await cache.GetOrCreateAsync(competitionsCacheKey, async entry =>
                         {
                             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
-                            return await competitionService.GetCompetitionsAsync(cancellationToken);
+                            return await competitionService.GetCompetitionsAsync(resolvedTemporada, cancellationToken);
                         });
 
                         var competitionLookup = (competitions ?? Array.Empty<ResponseCompetition>())

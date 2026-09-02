@@ -7,9 +7,9 @@ namespace RFFM.Api.Features.Federation.Clubs.Services
 {
     public interface IClubDirectoryService
     {
-        Task<IReadOnlyList<ClubDirectoryItem>> SearchAsync(string? search, string? codclub, CancellationToken cancellationToken = default);
+        Task<IReadOnlyList<ClubDirectoryItem>> SearchAsync(string? search, string? codclub, int? temporada = null, CancellationToken cancellationToken = default);
 
-        Task<IReadOnlyList<ClubTeamDirectoryItem>> GetClubTeamsAsync(string clubCode, CancellationToken cancellationToken = default);
+        Task<IReadOnlyList<ClubTeamDirectoryItem>> GetClubTeamsAsync(string clubCode, int? temporada = null, CancellationToken cancellationToken = default);
     }
 
     public class ClubDirectoryService : IClubDirectoryService
@@ -22,9 +22,9 @@ namespace RFFM.Api.Features.Federation.Clubs.Services
             _fetcher = new HtmlFetcher(http);
         }
 
-        public async Task<IReadOnlyList<ClubDirectoryItem>> SearchAsync(string? search, string? codclub, CancellationToken cancellationToken = default)
+        public async Task<IReadOnlyList<ClubDirectoryItem>> SearchAsync(string? search, string? codclub, int? temporada = null, CancellationToken cancellationToken = default)
         {
-            var url = BuildUrl(search, codclub);
+            var url = BuildUrl(search, codclub, temporada);
 
             var content = await _fetcher.FetchAsync(url, cancellationToken).ConfigureAwait(false);
             if (string.IsNullOrWhiteSpace(content))
@@ -62,13 +62,20 @@ namespace RFFM.Api.Features.Federation.Clubs.Services
             }
         }
 
-        public async Task<IReadOnlyList<ClubTeamDirectoryItem>> GetClubTeamsAsync(string clubCode, CancellationToken cancellationToken = default)
+        public async Task<IReadOnlyList<ClubTeamDirectoryItem>> GetClubTeamsAsync(string clubCode, int? temporada = null, CancellationToken cancellationToken = default)
         {
             var normalizedClubCode = (clubCode ?? string.Empty).Trim();
             if (string.IsNullOrWhiteSpace(normalizedClubCode))
                 return Array.Empty<ClubTeamDirectoryItem>();
 
-            var url = $"https://www.rffm.es/fichaclub/{Uri.EscapeDataString(normalizedClubCode)}";
+            // NOTE: it is unverified whether the live rffm.es "fichaclub" page actually honors
+            // a "temporada" query parameter (this environment could not reach the live site to
+            // confirm). We send it anyway on the assumption it mirrors "acta-partido"/"fichajugador"
+            // (no harm if ignored); the caller (FederationGetClubTeams) still narrows results to the
+            // requested season via the CompetitionService.GetCompetitionsAsync(temporada) join, so
+            // correctness does not depend on this parameter being honored here.
+            var url = $"https://www.rffm.es/fichaclub/{Uri.EscapeDataString(normalizedClubCode)}"
+                + (temporada.HasValue ? $"?temporada={temporada.Value}" : string.Empty);
             var content = await _fetcher.FetchAsync(url, cancellationToken).ConfigureAwait(false);
             if (string.IsNullOrWhiteSpace(content))
                 return Array.Empty<ClubTeamDirectoryItem>();
@@ -108,12 +115,19 @@ namespace RFFM.Api.Features.Federation.Clubs.Services
             }
         }
 
-        private static string BuildUrl(string? search, string? codclub)
+        private static string BuildUrl(string? search, string? codclub, int? temporada)
         {
             var codclubValue = codclub ?? string.Empty;
             var searchValue = search ?? string.Empty;
 
-            return $"https://www.rffm.es/competicion/clubes?codclub={Uri.EscapeDataString(codclubValue)}&search={Uri.EscapeDataString(searchValue)}";
+            var url = $"https://www.rffm.es/competicion/clubes?codclub={Uri.EscapeDataString(codclubValue)}&search={Uri.EscapeDataString(searchValue)}";
+
+            // NOTE: same caveat as GetClubTeamsAsync above — unverified live support for
+            // "temporada" on this endpoint from this environment; sent defensively regardless.
+            if (temporada.HasValue)
+                url += $"&temporada={temporada.Value}";
+
+            return url;
         }
 
         private static string? TryExtractNextDataJson(string html)

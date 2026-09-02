@@ -39,7 +39,7 @@ namespace RFFM.Api.Features.Federation.Competitions.Queries
 
             public async ValueTask<ResponseCompetition[]> Handle(QueryApp request, CancellationToken cancellationToken)
             {
-                var comps = await _competitionService.GetCompetitionsAsync(cancellationToken).ConfigureAwait(false);
+                var comps = await _competitionService.GetCompetitionsAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
                 if (comps == null || comps.Length ==0)
                     return Array.Empty<ResponseCompetition>();
 

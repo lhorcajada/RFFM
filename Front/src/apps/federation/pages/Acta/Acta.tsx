@@ -19,10 +19,12 @@ import FieldInfo from "../../components/acta/FieldInfo/FieldInfo";
 import { useNavigate } from "react-router-dom";
 import Button from "@mui/material/Button";
 import PlayerQuickViewDialog from "../../components/players/PlayerQuickViewDialog/PlayerQuickViewDialog";
+import { useRffmSeason } from "../../../../shared/context/RffmSeasonContext";
 
 export default function Acta(): JSX.Element {
   const { codacta } = useParams();
   const navigate = useNavigate();
+  const { seasonId: rffmSeasonId } = useRffmSeason();
   const [acta, setActa] = useState<ActaType | null>(null);
   const [loading, setLoading] = useState(false);
   const [playerPopup, setPlayerPopup] = useState<{
@@ -66,7 +68,7 @@ export default function Acta(): JSX.Element {
         }
 
         const r = await getActa(codacta, {
-          temporada: "21",
+          temporada: String(rffmSeasonId ?? ""),
           competicion,
           grupo,
         });
@@ -77,7 +79,7 @@ export default function Acta(): JSX.Element {
         setLoading(false);
       }
     })();
-  }, [codacta]);
+  }, [codacta, rffmSeasonId]);
 
   if (loading)
     return (
@@ -223,7 +225,7 @@ export default function Acta(): JSX.Element {
         open={playerPopup.open}
         playerCode={playerPopup.code}
         playerName={playerPopup.name}
-        seasonId="21"
+        seasonId={rffmSeasonId != null ? String(rffmSeasonId) : undefined}
         onClose={() => setPlayerPopup({ open: false, code: null, name: null })}
       />
     </ContentLayout>

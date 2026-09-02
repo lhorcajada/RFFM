@@ -78,6 +78,21 @@ namespace RFFM.Api.Tests.Fixtures
 
             await using var identityDb = new IdentityDbContext(identityDbOptions);
             await identityDb.Database.MigrateAsync();
+
+            // Also migrate FederationDbContext
+            var federationDbOptions = new DbContextOptionsBuilder<FederationDbContext>()
+                .UseNpgsql(ConnectionString, npgsql =>
+                {
+                    npgsql.EnableRetryOnFailure(
+                        maxRetryCount: 5,
+                        maxRetryDelay: TimeSpan.FromSeconds(30),
+                        errorCodesToAdd: null);
+                    npgsql.MigrationsHistoryTable("__EFMigrationsHistory", "federation");
+                })
+                .Options;
+
+            await using var federationDb = new FederationDbContext(federationDbOptions);
+            await federationDb.Database.MigrateAsync();
         }
 
         public async Task DisposeAsync()
@@ -118,6 +133,22 @@ namespace RFFM.Api.Tests.Fixtures
                 .Options;
 
             return new IdentityDbContext(options);
+        }
+
+        public FederationDbContext CreateFederationDbContext()
+        {
+            var options = new DbContextOptionsBuilder<FederationDbContext>()
+                .UseNpgsql(ConnectionString, npgsql =>
+                {
+                    npgsql.EnableRetryOnFailure(
+                        maxRetryCount: 5,
+                        maxRetryDelay: TimeSpan.FromSeconds(30),
+                        errorCodesToAdd: null);
+                    npgsql.MigrationsHistoryTable("__EFMigrationsHistory", "federation");
+                })
+                .Options;
+
+            return new FederationDbContext(options);
         }
     }
 
