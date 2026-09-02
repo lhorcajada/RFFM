@@ -162,6 +162,12 @@ export function useLiveMatch(
   const totalSecondsRef = useRef(0);
   const eventIdRef = useRef<string | null>(null);
   const teamIdRef = useRef(teamId);
+  // Wall-clock anchor for the currently running segment (first/second half).
+  // Elapsed time is always derived from real time (Date.now()) rather than
+  // accumulated tick-by-tick, so it can never drift or "freeze" regardless
+  // of tab throttling, batching, or how long the screen was left unmounted.
+  const runAnchorEpochRef = useRef<number | null>(null);
+  const runBaselineSecondsRef = useRef(0);
 
   // Sync refs
   slotsRef.current = slots;
@@ -212,12 +218,25 @@ export function useLiveMatch(
     return result;
   }, [playerStates, currentMinute]);
 
+  // ── Wall-clock elapsed time ───────────────────────────────────────────────
+
+  /** Always-accurate elapsed seconds, computed from the real-time anchor. */
+  const computeCurrentTotalSeconds = useCallback((): number => {
+    const running =
+      matchPhaseRef.current === "firstHalf" || matchPhaseRef.current === "secondHalf";
+    if (!running || runAnchorEpochRef.current === null) return totalSecondsRef.current;
+    const elapsedSinceAnchor = Math.floor((Date.now() - runAnchorEpochRef.current) / 1000);
+    return Math.min(7200, runBaselineSecondsRef.current + Math.max(0, elapsedSinceAnchor));
+  }, []);
+
   // ── Timer interval ────────────────────────────────────────────────────────
+  // The interval only re-renders the clock; the actual value always comes
+  // from computeCurrentTotalSeconds(), never from a simple prev+1 increment.
 
   useEffect(() => {
     if (isRunning) {
       intervalRef.current = setInterval(() => {
-        setTotalSeconds((prev) => Math.min(7200, prev + 1));
+        setTotalSeconds(computeCurrentTotalSeconds());
       }, 1000);
     } else {
       if (intervalRef.current) {
@@ -231,7 +250,7 @@ export function useLiveMatch(
         intervalRef.current = null;
       }
     };
-  }, [isRunning]);
+  }, [isRunning, computeCurrentTotalSeconds]);
 
   // ── Backup on page leave ──────────────────────────────────────────────────
 
@@ -245,7 +264,7 @@ export function useLiveMatch(
       teamId: teamIdRef.current,
       savedAt: new Date().toISOString(),
       matchPhase: phase,
-      totalSeconds: totalSecondsRef.current,
+      totalSeconds: computeCurrentTotalSeconds(),
       half: halfRef.current,
       isHalftime: isHalftimeRef.current,
       halfDuration: halfDurationRef.current,
@@ -259,7 +278,7 @@ export function useLiveMatch(
       scoreVisitor: scoreVisitorRef.current,
     };
     saveLiveMatchBackup(eid, backupData);
-  }, []);
+  }, [computeCurrentTotalSeconds]);
 
   useEffect(() => {
     const handleBeforeUnload = () => writeBackup();
@@ -273,6 +292,33 @@ export function useLiveMatch(
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [writeBackup]);
+
+  // Persist immediately on unmount too — covers in-app (SPA) navigation away
+  // from this screen, which fires neither beforeunload nor visibilitychange.
+  useEffect(() => {
+    return () => writeBackup();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Persist as soon as a meaningful phase transition happens (start match,
+  // end/start half, end match) instead of waiting for an unload-type event —
+  // this is what makes the start timestamp durable even if the browser/tab
+  // is killed abruptly (common on mobile) before any unload event fires.
+  useEffect(() => {
+    writeBackup();
+  }, [matchPhase, half, isHalftime, writeBackup]);
+
+  // Periodic autosave while the clock is running, as a safety net against
+  // any termination that skips beforeunload/visibilitychange entirely.
+  // Safe to run on a plain interval: writeBackup() computes the elapsed
+  // time from the wall-clock anchor at call time, so it is never stale.
+  useEffect(() => {
+    if (!isRunning) return;
+    const AUTOSAVE_INTERVAL_MS = 5000;
+    const id = setInterval(() => writeBackup(), AUTOSAVE_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [isRunning, writeBackup]);
+
   // ── Load saved participation on mount (re-entry detection) ─────────────────
 
   useEffect(() => {
@@ -328,6 +374,12 @@ export function useLiveMatch(
     const isOver = restoredSeconds >= maxSeconds && b.half === 2;
 
     const restoredPhase: LiveMatchPhase = isOver ? "finished" : b.matchPhase;
+    const restoredIsRunning = restoredPhase === "firstHalf" || restoredPhase === "secondHalf";
+
+    // Re-anchor the wall-clock timer so it keeps counting forward correctly
+    // from this moment, instead of resuming from a stale accumulated value.
+    runAnchorEpochRef.current = restoredIsRunning ? now : null;
+    runBaselineSecondsRef.current = restoredSeconds;
 
     initialSlotsRef.current = { ...b.initialSlots };
     setInitialSlotsSnapshot({ ...b.initialSlots });
@@ -372,6 +424,8 @@ export function useLiveMatch(
   const initMatch = useCallback((initialSlots: Record<number, string | null>) => {
     initialSlotsRef.current = { ...initialSlots };
     setInitialSlotsSnapshot({ ...initialSlots });
+    runAnchorEpochRef.current = null;
+    runBaselineSecondsRef.current = 0;
     setTotalSeconds(0);
     setHalf(1);
     setIsHalftime(false);
@@ -398,29 +452,43 @@ export function useLiveMatch(
 
     switch (action) {
       case "startMatch":
+        runAnchorEpochRef.current = Date.now();
+        runBaselineSecondsRef.current = 0;
         setMatchPhase("firstHalf");
         // Re-init player states from minute 0
         setPlayerStates(buildInitialPlayerStates(initialSlotsRef.current, 0));
         break;
 
-      case "endFirstHalf":
+      case "endFirstHalf": {
+        // Freeze the wall-clock timer at its current real value
+        const frozenSeconds = computeCurrentTotalSeconds();
+        runAnchorEpochRef.current = null;
+        runBaselineSecondsRef.current = frozenSeconds;
+        setTotalSeconds(frozenSeconds);
         setMatchPhase("halftime");
         setIsHalftime(true);
         setHalf(1); // stay on half 1 until second half starts
         break;
+      }
 
       case "startSecondHalf":
+        runAnchorEpochRef.current = Date.now();
+        runBaselineSecondsRef.current = totalSecondsRef.current;
         setMatchPhase("secondHalf");
         setIsHalftime(false);
         setHalf(2);
         break;
 
-      case "endMatch":
+      case "endMatch": {
+        const frozenSeconds = computeCurrentTotalSeconds();
+        runAnchorEpochRef.current = null;
+        runBaselineSecondsRef.current = frozenSeconds;
+        setTotalSeconds(frozenSeconds);
         setMatchPhase("finished");
         setIsHalftime(false);
         // Freeze all playerStates: anyone still on field gets their minutes locked
         setPlayerStates((prev) => {
-          const minute = currentMinuteRef.current;
+          const minute = Math.floor(frozenSeconds / 60);
           const updated: Record<string, SimulationPlayerState> = {};
           for (const [pid, state] of Object.entries(prev)) {
             if (state.isOnField) {
@@ -436,8 +504,13 @@ export function useLiveMatch(
           }
           return updated;
         });
-        // Do NOT auto-save — user must confirm explicitly via requestSave()
+        // Clear the running-match backup immediately so no "ghost" timer
+        // reappears on a future visit — participation data (if the user
+        // chooses to save it) is persisted separately via requestSave().
+        if (eventIdRef.current) clearLiveMatchBackup(eventIdRef.current);
+        // Do NOT auto-save participation — user must confirm explicitly via requestSave()
         break;
+      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingAction]);
