@@ -41,6 +41,12 @@
   "ClubNotExist": "El club indicado no existe.",
   "club_quota_exceeded": "Has alcanzado el número máximo de clubes que puedes crear (3).",
   "user_not_found": "No se encontró el usuario indicado.",
+  "FamilyMemberNotFound": "No se encontró el familiar indicado.",
+  "FamilyMemberEmailRequired": "El familiar necesita un email guardado para poder registrarse.",
+  "FamilyMemberAccountAlreadyLinked": "Este familiar ya tiene una cuenta vinculada.",
+  "FamilyMemberAccountRequestAlreadyPending": "Ya hay una solicitud de registro pendiente para este familiar.",
+  "FamilyMemberAccountRequestNotFound": "No se encontró la solicitud de registro indicada.",
+  "FamilyMemberAccountRequestAlreadyDecided": "Esta solicitud de registro ya ha sido resuelta.",
 
   "LoginEmptyUserOrPass": "Debes indicar usuario y contraseña.",
   "LoginUserNotRegistered": "El usuario no está registrado. Por favor, verifica tu nombre de usuario o regístrate.",

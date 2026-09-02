@@ -3,9 +3,13 @@ import PhoneIcon from "@mui/icons-material/Phone";
 import EmailIcon from "@mui/icons-material/Email";
 import BadgeIcon from "@mui/icons-material/Badge";
 import styles from "../PlayerDetail.module.css";
-import { TeamPlayerResponse } from "../../../services/teamplayerService";
+import { FamilyResponse, TeamPlayerResponse } from "../../../services/teamplayerService";
+import FamilyMemberAccountStatus from "./FamilyMemberAccountStatus";
 
-type Props = { teamPlayer: TeamPlayerResponse };
+type Props = {
+  teamPlayer: TeamPlayerResponse;
+  onFamilyMembersChange: (next: FamilyResponse[]) => void;
+};
 
 const FAMILY_MEMBER_LABEL: Record<string, string> = {
   Mother: "Madre",
@@ -28,8 +32,15 @@ function initials(name?: string | null) {
   return (first + second).toUpperCase();
 }
 
-export default function FamilyMembers({ teamPlayer }: Props) {
+export default function FamilyMembers({ teamPlayer, onFamilyMembersChange }: Props) {
   const members = teamPlayer.familyMembers ?? [];
+  const playerName = teamPlayer.player?.name ?? "";
+
+  function handleStatusChange(familyMemberId: string, status: string) {
+    onFamilyMembersChange(
+      members.map((m) => (m.id === familyMemberId ? { ...m, registrationStatus: status } : m))
+    );
+  }
 
   return (
     <div className={styles.card}>
@@ -64,6 +75,11 @@ export default function FamilyMembers({ teamPlayer }: Props) {
                   </span>
                 )}
               </div>
+              <FamilyMemberAccountStatus
+                familyMember={f}
+                playerName={playerName}
+                onStatusChange={handleStatusChange}
+              />
             </div>
           ))
         ) : (

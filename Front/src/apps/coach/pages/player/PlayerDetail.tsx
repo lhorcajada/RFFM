@@ -403,7 +403,12 @@ export default function PlayerDetail() {
 
                 {activeTab === 3 && (
                   !editing ? (
-                    <FamilyMembers teamPlayer={teamPlayer} />
+                    <FamilyMembers
+                      teamPlayer={teamPlayer}
+                      onFamilyMembersChange={(next) =>
+                        setTeamPlayer({ ...teamPlayer, familyMembers: next })
+                      }
+                    />
                   ) : (
                     <FamilyMembersEdit
                       teamPlayerId={teamPlayer.id}

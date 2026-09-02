@@ -52,6 +52,7 @@ export type FamilyResponse = {
   email?: string | null;
   familyMember?: string | null;
   dni?: string | null;
+  registrationStatus?: string | null;
 };
 
 export type InjuryRecord = {
@@ -318,4 +319,30 @@ export async function regenerateTeamPlayerLinkCode(teamPlayerId: string): Promis
   return res.data;
 }
 
-export default { getPlayersByTeam, addPlayerToTeam, getTeamPlayerById, updateTeamPlayer, getPlayerInjuries, createPlayerInjury, updatePlayerInjury, deletePlayerInjury, dischargeActiveInjury, createFamilyMember, deleteFamilyMember, updateFamilyMember, getTeamPlayerLinkCode, regenerateTeamPlayerLinkCode };
+export type RegisterFamilyMemberAccountResponse = {
+  requestId: string;
+  alias: string;
+  password: string;
+  familyMemberName: string;
+  playerName: string;
+  status: string;
+};
+
+export async function registerFamilyMemberAccount(
+  familyMemberId: string
+): Promise<RegisterFamilyMemberAccountResponse> {
+  const res = await client.post<RegisterFamilyMemberAccountResponse>(
+    `/api/family-members/${encodeURIComponent(familyMemberId)}/register`
+  );
+  return res.data;
+}
+
+export async function approveFamilyMemberAccountRequest(requestId: string): Promise<void> {
+  await client.post(`/api/family-members/account-requests/${encodeURIComponent(requestId)}/approve`);
+}
+
+export async function rejectFamilyMemberAccountRequest(requestId: string): Promise<void> {
+  await client.post(`/api/family-members/account-requests/${encodeURIComponent(requestId)}/reject`);
+}
+
+export default { getPlayersByTeam, addPlayerToTeam, getTeamPlayerById, updateTeamPlayer, getPlayerInjuries, createPlayerInjury, updatePlayerInjury, deletePlayerInjury, dischargeActiveInjury, createFamilyMember, deleteFamilyMember, updateFamilyMember, getTeamPlayerLinkCode, regenerateTeamPlayerLinkCode, registerFamilyMemberAccount, approveFamilyMemberAccountRequest, rejectFamilyMemberAccountRequest };
