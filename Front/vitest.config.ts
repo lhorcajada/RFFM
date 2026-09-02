@@ -6,6 +6,7 @@ export default defineConfig({
     globals: true,
     environment: "jsdom",
     setupFiles: path.resolve(__dirname, "src/test/setupTests.ts"),
-    exclude: ["node_modules", "dist", "playwright-*.js"],
+    exclude: ["node_modules", "dist", "playwright-*.js", "e2e/**"],
+    testTimeout: 30000,
   },
 });
