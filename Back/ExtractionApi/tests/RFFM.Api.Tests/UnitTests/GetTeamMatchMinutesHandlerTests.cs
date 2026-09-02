@@ -104,14 +104,15 @@ namespace RFFM.Api.Tests.UnitTests
             string teamId,
             string teamPlayerId,
             int minutesPlayed,
-            string matchPhase)
+            string matchPhase,
+            bool isStarter = true)
         {
             var participation = MatchParticipation.Create(
                 eventId,
                 teamId,
                 teamPlayerId,
                 minutesPlayed,
-                isStarter: true,
+                isStarter: isStarter,
                 enteredAtMinute: 0,
                 exitedAtMinute: null,
                 scoreLocal: 0,
@@ -149,6 +150,28 @@ namespace RFFM.Api.Tests.UnitTests
             Assert.Contains(result, r => r.EventId == eventOne && r.TeamPlayerId == playerOne && r.MinutesPlayed == 90);
             Assert.Contains(result, r => r.EventId == eventOne && r.TeamPlayerId == playerTwo && r.MinutesPlayed == 45);
             Assert.Contains(result, r => r.EventId == eventTwo && r.TeamPlayerId == playerOne && r.MinutesPlayed == 60);
+        }
+
+        [Fact]
+        public async Task Handle_TeamWithStartersAndNonStarters_ReturnsIsStarterPerParticipation()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (teamId, seasonId, clubId) = await SeedTeamAsync(seedDb);
+
+            var eventId = await SeedEventAsync(seedDb, teamId, "Partido 1");
+            var starterPlayer = await SeedTeamPlayerAsync(seedDb, teamId, seasonId, clubId);
+            var substitutePlayer = await SeedTeamPlayerAsync(seedDb, teamId, seasonId, clubId);
+
+            await SeedParticipationAsync(seedDb, eventId, teamId, starterPlayer, 90, "finished", isStarter: true);
+            await SeedParticipationAsync(seedDb, eventId, teamId, substitutePlayer, 20, "finished", isStarter: false);
+
+            await using var db = _fixture.CreateDbContext();
+            var handler = new GetTeamMatchMinutes.Handler(db);
+
+            var result = await handler.Handle(new GetTeamMatchMinutes.Query { TeamId = teamId }, CancellationToken.None);
+
+            Assert.Contains(result, r => r.TeamPlayerId == starterPlayer && r.IsStarter);
+            Assert.Contains(result, r => r.TeamPlayerId == substitutePlayer && !r.IsStarter);
         }
 
         [Fact]

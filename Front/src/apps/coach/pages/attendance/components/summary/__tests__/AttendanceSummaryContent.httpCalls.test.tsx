@@ -116,18 +116,18 @@ describe("AttendanceSummaryContent - número de llamadas HTTP", () => {
     expect(getTeamConvocationsSummaryMock).toHaveBeenCalledWith("team-1");
   });
 
-  it("llama a getIdealLineup una sola vez aunque haya varios partidos oficiales", async () => {
+  it("no llama a getIdealLineup — la titularidad del partido sale de getMatchMinutes (IsStarter real), no de la alineación ideal", async () => {
     render(<AttendanceSummaryContent teamId="team-1" />);
 
-    await waitFor(() => expect(getIdealLineupMock).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(getTeamConvocationsSummaryMock).toHaveBeenCalledTimes(1));
 
-    expect(getIdealLineupMock).toHaveBeenCalledTimes(1);
+    expect(getIdealLineupMock).not.toHaveBeenCalled();
   });
 
   it("usa la temporada activa en dashboard, entrenamientos y partidos", async () => {
     render(<AttendanceSummaryContent teamId="team-1" />);
 
-    await waitFor(() => expect(getIdealLineupMock).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(getTeamConvocationsSummaryMock).toHaveBeenCalledTimes(1));
 
     expect(getSportEventsMock).toHaveBeenCalledWith(
       "team-1",
@@ -139,7 +139,6 @@ describe("AttendanceSummaryContent - número de llamadas HTTP", () => {
     );
     expect(getPlayersByTeamMock).toHaveBeenCalledWith("team-1", "active-season");
     expect(getTrainingAttendanceSummaryMock).toHaveBeenCalledWith("team-1", "active-season");
-    expect(getIdealLineupMock).toHaveBeenCalledWith("team-1", "active-season");
   });
 
   it("excluye de entrenamientos los agregados de eventos ajenos a la temporada activa", async () => {

@@ -634,6 +634,67 @@ export default function PartidoEnDirectoTab({
         />
       </div>
 
+      {/* Manual edit button and explicit save button — only after match ends.
+          Placed right after the timer, not at the bottom, so they're visible
+          without scrolling past the field/bench once the match is finished. */}
+      {live.matchPhase === "finished" && (
+        <div className={styles.postMatchActions}>
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<EditIcon />}
+            onClick={() => setManualEditOpen(true)}
+          >
+            Edición manual de minutos
+          </Button>
+          {!live.hasSavedData && (
+            <Button
+              variant="contained"
+              color="success"
+              size="small"
+              startIcon={live.isSaving ? <CircularProgress size={14} color="inherit" /> : <SaveIcon />}
+              disabled={live.isSaving}
+              onClick={live.requestSave}
+            >
+              Guardar datos del partido
+            </Button>
+          )}
+        </div>
+      )}
+
+      {/* Read-only saved data summary */}
+      {live.hasSavedData && live.savedParticipationData && (
+        <div className={styles.savedDataBanner}>
+          <div className={styles.savedDataHeader}>
+            <span className={styles.savedDataTitle}>✅ Partido guardado</span>
+            <span className={styles.savedDataScore}>
+              {localTeamName} <strong>{live.savedParticipationData.scoreLocal}</strong>
+              {" : "}
+              <strong>{live.savedParticipationData.scoreVisitor}</strong> {visitorTeamName}
+            </span>
+          </div>
+          <GoalTimeline
+            goals={(() => {
+              try { return JSON.parse(live.savedParticipationData.goalsJson ?? "[]"); }
+              catch { return []; }
+            })()}
+            onRemoveGoal={() => {}}
+            readOnly
+          />
+          <Button
+            variant="outlined"
+            color="error"
+            size="small"
+            startIcon={live.isDeleting ? <CircularProgress size={14} color="inherit" /> : <DeleteOutlineIcon />}
+            disabled={live.isDeleting}
+            onClick={() => setDeleteConfirmOpen(true)}
+            sx={{ mt: 1 }}
+          >
+            Eliminar datos del partido
+          </Button>
+        </div>
+      )}
+
       {/* Rating bar */}
       {(fieldCompAvg !== null || benchCompAvg !== null) && (
         <div className={simStyles.ratingBar}>
@@ -694,65 +755,6 @@ export default function PartidoEnDirectoTab({
           halfDuration={live.halfDuration}
           playersById={playersById}
         />
-      )}
-
-      {/* Manual edit button and explicit save button — only after match ends */}
-      {live.matchPhase === "finished" && (
-        <div className={styles.postMatchActions}>
-          <Button
-            variant="outlined"
-            size="small"
-            startIcon={<EditIcon />}
-            onClick={() => setManualEditOpen(true)}
-          >
-            Edición manual de minutos
-          </Button>
-          {!live.hasSavedData && (
-            <Button
-              variant="contained"
-              color="success"
-              size="small"
-              startIcon={live.isSaving ? <CircularProgress size={14} color="inherit" /> : <SaveIcon />}
-              disabled={live.isSaving}
-              onClick={live.requestSave}
-            >
-              Guardar datos del partido
-            </Button>
-          )}
-        </div>
-      )}
-
-      {/* Read-only saved data summary */}
-      {live.hasSavedData && live.savedParticipationData && (
-        <div className={styles.savedDataBanner}>
-          <div className={styles.savedDataHeader}>
-            <span className={styles.savedDataTitle}>✅ Partido guardado</span>
-            <span className={styles.savedDataScore}>
-              {localTeamName} <strong>{live.savedParticipationData.scoreLocal}</strong>
-              {" : "}
-              <strong>{live.savedParticipationData.scoreVisitor}</strong> {visitorTeamName}
-            </span>
-          </div>
-          <GoalTimeline
-            goals={(() => {
-              try { return JSON.parse(live.savedParticipationData.goalsJson ?? "[]"); }
-              catch { return []; }
-            })()}
-            onRemoveGoal={() => {}}
-            readOnly
-          />
-          <Button
-            variant="outlined"
-            color="error"
-            size="small"
-            startIcon={live.isDeleting ? <CircularProgress size={14} color="inherit" /> : <DeleteOutlineIcon />}
-            disabled={live.isDeleting}
-            onClick={() => setDeleteConfirmOpen(true)}
-            sx={{ mt: 1 }}
-          >
-            Eliminar datos del partido
-          </Button>
-        </div>
       )}
 
       {/* Save confirmation dialog */}

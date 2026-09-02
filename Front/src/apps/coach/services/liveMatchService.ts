@@ -82,6 +82,7 @@ export type MatchMinutesRow = {
   eventId: string;
   teamPlayerId: string;
   minutesPlayed: number;
+  isStarter: boolean;
 };
 
 /**

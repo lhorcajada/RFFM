@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../../../../services/convocationService", () => ({
@@ -284,5 +284,47 @@ describe("AttendanceSummaryContent — partidos amistosos y minutos", () => {
 
     expect(await screen.findByText("Convocado")).toBeInTheDocument();
     expect(screen.queryByText("Desconvocado")).not.toBeInTheDocument();
+  });
+
+  it("cuenta los partidos amistosos finalizados en la tarjeta Partidos del dashboard, no solo en Resumen global", async () => {
+    // Regression: with 1 official + 1 friendly finished match, both events must
+    // land in the "Partidos" dashboard tile — a friendly is still a match for
+    // this aggregate, only the Matches tab distinguishes J1 (liga) vs A1 (amistoso).
+    render(<AttendanceSummaryContent teamId="team-1" />);
+
+    const dashboardTab = await screen.findByRole("tab", { name: /dashboard/i });
+    dashboardTab.click();
+
+    const globalCard = (await screen.findByText("Resumen global")).closest("article") as HTMLElement;
+    const matchCard = screen.getByText("Partidos").closest("article") as HTMLElement;
+    const otherCard = screen.getByText("Otros eventos").closest("article") as HTMLElement;
+
+    await waitFor(() =>
+      expect(within(globalCard).getByText("Eventos").parentElement).toHaveTextContent("2")
+    );
+    expect(within(matchCard).getByText("Eventos").parentElement).toHaveTextContent("2");
+    expect(within(otherCard).getByText("Eventos").parentElement).toHaveTextContent("0");
+  });
+
+  it("usa la titularidad real del partido (isStarter) en vez de la alineación ideal del equipo", async () => {
+    // Regression: "Titular" must reflect what actually happened in this specific
+    // match (MatchParticipation.IsStarter, via getMatchMinutes), not a single
+    // team-wide "ideal lineup" applied identically to every match. The ideal
+    // lineup mock below intentionally has empty slots to prove it's no longer consulted.
+    getMatchMinutesMock.mockResolvedValue([
+      { eventId: "event-1", teamPlayerId: "tp-1", minutesPlayed: 90, isStarter: true },
+      { eventId: "event-2", teamPlayerId: "tp-1", minutesPlayed: 20, isStarter: false },
+    ]);
+
+    render(<AttendanceSummaryContent teamId="team-1" />);
+
+    const matchesTab = await screen.findByRole("tab", { name: /partidos/i });
+    matchesTab.click();
+
+    const cardToggle = await screen.findByRole("button", { name: /J1/i });
+    cardToggle.click();
+
+    expect(await screen.findByText("Titular")).toBeInTheDocument();
+    expect(screen.getByText("Convocado")).toBeInTheDocument();
   });
 });

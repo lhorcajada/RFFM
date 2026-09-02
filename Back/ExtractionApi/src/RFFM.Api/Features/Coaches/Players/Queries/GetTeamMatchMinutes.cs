@@ -12,8 +12,9 @@ using RFFM.Api.Infrastructure.Persistence;
 namespace RFFM.Api.Features.Coaches.Players.Queries
 {
     /// <summary>
-    /// Returns minutes played per player and per match (event) across all of a team's
-    /// finished matches in a single call, avoiding one HTTP round-trip per player.
+    /// Returns minutes played and starter status per player and per match (event)
+    /// across all of a team's finished matches in a single call, avoiding one HTTP
+    /// round-trip per player.
     /// </summary>
     public class GetTeamMatchMinutes : IFeatureModule
     {
@@ -44,7 +45,7 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
             public string RequiredPermission => "Read";
         }
 
-        public record MatchMinutesRow(string EventId, string TeamPlayerId, int MinutesPlayed);
+        public record MatchMinutesRow(string EventId, string TeamPlayerId, int MinutesPlayed, bool IsStarter);
 
         // ─── Handler ──────────────────────────────────────────────────────────
 
@@ -59,7 +60,7 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                 return await _db.MatchParticipations
                     .AsNoTracking()
                     .Where(mp => mp.TeamId == request.TeamId && mp.MatchPhase == "finished")
-                    .Select(mp => new MatchMinutesRow(mp.EventId, mp.TeamPlayerId, mp.MinutesPlayed))
+                    .Select(mp => new MatchMinutesRow(mp.EventId, mp.TeamPlayerId, mp.MinutesPlayed, mp.IsStarter))
                     .ToArrayAsync(cancellationToken);
             }
         }

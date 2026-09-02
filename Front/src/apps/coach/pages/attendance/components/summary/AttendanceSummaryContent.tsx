@@ -8,7 +8,6 @@ import type { ConvocationItem } from "../../../../services/convocationService";
 import convocationStatusService from "../../../../services/convocationStatusService";
 import assistanceTypeService from "../../../../services/assistanceTypeService";
 import attendanceSummaryService from "../../../../services/attendanceSummaryService";
-import { getIdealLineup } from "../../../../services/idealLineupService";
 import sportEventService, { type SportEventResponse } from "../../../../services/sportEventService";
 import sportEventTypeService from "../../../../services/sportEventTypeService";
 import teamplayerService from "../../../../services/teamplayerService";
@@ -160,8 +159,14 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
           ]);
 
         const minutesByEventAndPlayer = new Map<string, number>();
+        const starterIdsByEvent = new Map<string, Set<string>>();
         matchMinutesRows.forEach((row) => {
           minutesByEventAndPlayer.set(`${row.eventId}__${row.teamPlayerId}`, row.minutesPlayed);
+          if (row.isStarter) {
+            const set = starterIdsByEvent.get(row.eventId) ?? new Set<string>();
+            set.add(row.teamPlayerId);
+            starterIdsByEvent.set(row.eventId, set);
+          }
         });
         const getMinutesPlayed = (eventId: string, playerId: string, wasCalled: boolean): number | null =>
           wasCalled ? minutesByEventAndPlayer.get(`${eventId}__${playerId}`) ?? 0 : null;
@@ -251,7 +256,9 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
             const kind = classifyEventType(getEventTypeName(event, typeMap));
             nextSummary.total = addSummary(nextSummary.total, eventSummary);
             if (kind === "training") nextSummary.training = addSummary(nextSummary.training, eventSummary);
-            if (kind === "match" && !isFriendlyEvent(event)) nextSummary.match = addSummary(nextSummary.match, eventSummary);
+            // A friendly is still a match for this dashboard aggregate — only the
+            // Matches tab distinguishes official (J1) vs friendly (A1) jornadas.
+            if (kind === "match") nextSummary.match = addSummary(nextSummary.match, eventSummary);
             if (kind === "other") nextSummary.other = addSummary(nextSummary.other, eventSummary);
           });
 
@@ -361,10 +368,6 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
             return ad.localeCompare(bd);
           });
 
-        const teamLineup = await getIdealLineup(teamId, seasonId).catch(() => null);
-        const lineupByEventId = new Map(
-          officialMatchEvents.map(({ event }) => [event.id, teamLineup])
-        );
         // League matchdays are numbered "J1, J2, ..." and friendlies "A1, A2, ...",
         // each sequence counted independently (in chronological order) so a friendly
         // played between J3 and J4 doesn't get mislabeled as if it were a matchday.
@@ -397,8 +400,10 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
           });
         });
         officialMatchEvents.forEach(({ event, convocations }) => {
-          const lineup = lineupByEventId.get(event.id);
-          const starterIds = new Set<string>((lineup?.slots ?? []).filter((slot) => slot.teamPlayerId).map((slot) => slot.teamPlayerId as string));
+          // Real per-match starter status, from MatchParticipation.IsStarter (recorded when
+          // the live match is saved as finished) — not a single team-wide "ideal lineup"
+          // applied uniformly to every match.
+          const starterIds = starterIdsByEvent.get(event.id) ?? new Set<string>();
           const convocationMap = new Map(convocations.map((c) => [c.player.id ?? c.player.playerId ?? "", c]));
 
           convocations.forEach((conv) => {
