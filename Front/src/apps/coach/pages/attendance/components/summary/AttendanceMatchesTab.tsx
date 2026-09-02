@@ -4,6 +4,7 @@ import {
   AccordionSummary,
   Avatar,
   Box,
+  Button,
   Chip,
   CircularProgress,
   IconButton,
@@ -11,10 +12,14 @@ import {
   Typography,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
 import RefreshIcon from "@mui/icons-material/Refresh";
+import { useMemo, useState } from "react";
 import EmptyState from "../../../../../../shared/components/ui/EmptyState/EmptyState";
 import styles from "../../AttendanceSummary.module.css";
 import type { MatchAttendanceColumn, PlayerMatchSummary } from "./types";
+import { exportMatchesFullPdf, exportMatchesSummaryPdf } from "./matchAttendancePdfExport";
+import { coachAuthService } from "../../../../services/authService";
 
 interface Props {
   rows: PlayerMatchSummary[];
@@ -99,6 +104,16 @@ function findCell(row: PlayerMatchSummary, column: MatchAttendanceColumn) {
 const FORM_STRIP_MAX_MATCHES = 5;
 
 export default function AttendanceMatchesTab({ rows, columns, onRefresh, loading }: Props) {
+  const [exportingSummary, setExportingSummary] = useState(false);
+  const [exportingFull, setExportingFull] = useState(false);
+  const roles = useMemo(
+    () => coachAuthService.getRoles().map((role) => role.toLowerCase()),
+    []
+  );
+  const canExportPdf = !roles.some((role) =>
+    ["player", "familyplayer", "familymember"].includes(role)
+  );
+
   if (columns.length === 0 || rows.length === 0) {
     return (
       <EmptyState
@@ -116,6 +131,42 @@ export default function AttendanceMatchesTab({ rows, columns, onRefresh, loading
   return (
     <Box>
       <Box className={styles.matchToolbar}>
+        {canExportPdf && (
+          <Box className={styles.matchToolbarButtons}>
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<PictureAsPdfOutlinedIcon />}
+              disabled={exportingSummary}
+              onClick={async () => {
+                try {
+                  setExportingSummary(true);
+                  await exportMatchesSummaryPdf(rows, columns);
+                } finally {
+                  setExportingSummary(false);
+                }
+              }}
+            >
+              {exportingSummary ? "Generando PDF..." : "Exportar resumen"}
+            </Button>
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<PictureAsPdfOutlinedIcon />}
+              disabled={exportingFull}
+              onClick={async () => {
+                try {
+                  setExportingFull(true);
+                  await exportMatchesFullPdf(rows, columns);
+                } finally {
+                  setExportingFull(false);
+                }
+              }}
+            >
+              {exportingFull ? "Generando PDF..." : "Exportar completo"}
+            </Button>
+          </Box>
+        )}
         <Box className={styles.matchToolbarRight}>
           <Chip size="small" label={`${leagueColumnsCount} jornadas`} />
           {friendlyColumnsCount > 0 && (

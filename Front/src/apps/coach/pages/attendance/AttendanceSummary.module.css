@@ -93,17 +93,24 @@
 
 .matchToolbar {
   display: flex;
-  justify-content: flex-end;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
   margin-bottom: 12px;
 }
 
+.matchToolbarButtons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .matchToolbarRight {
   display: flex;
   align-items: center;
   gap: 8px;
+  margin-left: auto;
 }
 
 .matchCardsGrid {
@@ -371,6 +378,24 @@
 
   .trainingToolbar :global(.MuiButton-root) {
     width: 100%;
+  }
+
+  .matchToolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .matchToolbarButtons {
+    width: 100%;
+  }
+
+  .matchToolbarButtons :global(.MuiButton-root) {
+    flex: 1 1 auto;
+  }
+
+  .matchToolbarRight {
+    margin-left: 0;
+    justify-content: flex-end;
   }
 
   .trainingCardsGrid {
