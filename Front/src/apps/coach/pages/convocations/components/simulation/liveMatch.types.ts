@@ -23,6 +23,40 @@ export interface GoalEvent {
   isOwnTeam: boolean;
   /** Scoreline after this goal */
   scoreAtMoment: { local: number; visitor: number };
+  /** Pitch cell the goal was scored from; null if not recorded (legacy goals) */
+  pitchZone: { col: number; row: number } | null;
+  /** Body part used to score; null if not recorded (legacy goals) */
+  bodyPart: "head" | "foot" | null;
+}
+
+/** A card (amonestación) event recorded during the match */
+export interface CardEvent {
+  id: string;
+  /** Match minute when the card was shown */
+  minute: number;
+  /** Match half (1st or 2nd) — no extra time/penalties support */
+  half: 1 | 2;
+  cardType: "yellow" | "red";
+  /** Own-team player, or null for a rival card */
+  teamPlayerId: string | null;
+  playerName: string | null;
+  /** True when the card was shown to a rival player */
+  isRivalPlayer: boolean;
+  /** Free-text shirt number, only meaningful when isRivalPlayer is true */
+  rivalDorsal: number | null;
+}
+
+/** A mid-match tactical formation change */
+export interface FormationChangeEvent {
+  id: string;
+  /** Match minute when the formation was changed */
+  minute: number;
+  half: 1 | 2;
+  formationId: string;
+  /** Snapshot of the formation name at change time, so history survives renames */
+  formationName: string;
+  /** Full slot map immediately after the change */
+  slotsAfter: Record<number, string | null>;
 }
 
 /** Per-player competitiveness snapshot captured when a window is committed */
@@ -51,6 +85,8 @@ export interface LiveMatchBackup {
   playerStates: Record<string, SimulationPlayerState>;
   windows: SubstitutionWindow[];
   goals: GoalEvent[];
+  cards: CardEvent[];
+  formationChanges: FormationChangeEvent[];
   ratingSnapshots: WindowRatingSnapshot[];
   scoreLocal: number;
   scoreVisitor: number;
@@ -79,6 +115,10 @@ export interface LiveMatchParticipationPayload {
   ratingSnapshotsJson: string;
   /** Serialised goal events */
   goalsJson: string;
+  /** Serialised card events */
+  cardsJson: string;
+  /** Serialised formation-change events */
+  formationChangesJson: string;
 }
 
 // ─── Season & history stats ────────────────────────────────────────────────────

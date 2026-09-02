@@ -39,12 +39,12 @@
   position: relative;
 }
 
-.entryOwn {
-  background: rgba(251, 146, 60, 0.08);
-  border: 1px solid rgba(251, 146, 60, 0.2);
+.entryYellow {
+  background: rgba(250, 204, 21, 0.08);
+  border: 1px solid rgba(250, 204, 21, 0.2);
 }
 
-.entryRival {
+.entryRed {
   background: rgba(248, 113, 113, 0.08);
   border: 1px solid rgba(248, 113, 113, 0.2);
 }
@@ -57,27 +57,12 @@
   font-family: monospace;
 }
 
-.result {
-  font-weight: 900;
-  font-size: 0.8rem;
-  color: #fff;
-  font-family: monospace;
-  min-width: 30px;
-}
-
-.scorer {
+.player {
   flex: 1;
   color: rgba(255, 255, 255, 0.85);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.zoneBadge {
-  font-size: 0.68rem;
-  color: rgba(255, 255, 255, 0.5);
-  white-space: nowrap;
-  flex-shrink: 0;
 }
 
 .removeBtn {

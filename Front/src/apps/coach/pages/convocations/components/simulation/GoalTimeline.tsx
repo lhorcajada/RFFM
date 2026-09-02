@@ -54,6 +54,15 @@ export default function GoalTimeline({ goals, onRemoveGoal, readOnly = false }: 
                 : goal.scorerName ?? "Jugador rival"}
             </span>
 
+            {goal.pitchZone != null && goal.bodyPart != null && (
+              <span
+                className={styles.zoneBadge}
+                title={goal.bodyPart === "head" ? "Cabeza" : "Pie"}
+              >
+                {goal.bodyPart === "head" ? "🤕" : "🦶"} ({goal.pitchZone.col},{goal.pitchZone.row})
+              </span>
+            )}
+
             <button
               className={styles.removeBtn}
               title="Eliminar gol"

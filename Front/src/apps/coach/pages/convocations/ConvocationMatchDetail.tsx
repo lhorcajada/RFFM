@@ -13,6 +13,7 @@ import SaveIcon from "@mui/icons-material/Save";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import configurationCoachService from "../../services/configurationCoachService";
+import { getSportEventById } from "../../services/sportEventService";
 import type { IdealLineupHandle } from "../squad/components/IdealLineup";
 import ConvocationTab from "./components/ConvocationTab";
 import DesconvocatoriasTab from "./components/DesconvocatoriasTab";
@@ -139,8 +140,25 @@ export default function ConvocationMatchDetail() {
     return () => { mounted = false; };
   }, [teamId]);
 
+  // Sport event category — used to enable unlimited substitution windows on friendlies
+  const [isFriendly, setIsFriendly] = useState(false);
+
   // Data hooks
   const convocation = useConvocationManagement(teamId, match?.date);
+
+  useEffect(() => {
+    if (!convocation.mgmtEventId) return;
+    let mounted = true;
+    getSportEventById(convocation.mgmtEventId)
+      .then((event) => {
+        if (!mounted) return;
+        setIsFriendly(event?.matchCategory === "Friendly");
+      })
+      .catch(() => {});
+    return () => {
+      mounted = false;
+    };
+  }, [convocation.mgmtEventId]);
   const grid = useDesconvocatoriasGrid(teamId, gridEnabled);
 
   const {
@@ -377,6 +395,7 @@ export default function ConvocationMatchDetail() {
             visitorTeamName={match?.visitorTeamName ?? "Visitante"}
             visitorTeamShield={match?.visitorTeamShield ?? null}
             isHomeTeam={match?.isHomeTeam ?? true}
+            isFriendly={isFriendly}
           />
         )}
 

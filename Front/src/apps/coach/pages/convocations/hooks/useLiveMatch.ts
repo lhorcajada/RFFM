@@ -6,6 +6,8 @@ import type {
 } from "../components/simulation/simulation.types";
 import type {
   GoalEvent,
+  CardEvent,
+  FormationChangeEvent,
   LiveMatchBackup,
   LiveMatchPhase,
   WindowRatingSnapshot,
@@ -54,6 +56,12 @@ export interface UseLiveMatchReturn {
   goals: GoalEvent[];
   scoreLocal: number;
   scoreVisitor: number;
+  // Cards
+  cards: CardEvent[];
+  // Formation changes
+  formationChanges: FormationChangeEvent[];
+  // Unlimited substitution windows (friendlies)
+  unlimitedWindows: boolean;
   // Rating snapshots
   ratingSnapshots: WindowRatingSnapshot[];
   // Pending confirmation
@@ -78,13 +86,39 @@ export interface UseLiveMatchReturn {
   initMatch: (initialSlots: Record<number, string | null>) => void;
   confirmAction: () => void;
   cancelAction: () => void;
-  addGoal: (scorerId: string | null, scorerName: string | null, scorerDorsal: number | null, isOwnTeam: boolean) => void;
+  addGoal: (
+    scorerId: string | null,
+    scorerName: string | null,
+    scorerDorsal: number | null,
+    isOwnTeam: boolean,
+    pitchZone?: { col: number; row: number } | null,
+    bodyPart?: "head" | "foot" | null,
+  ) => void;
   removeGoal: (goalId: string) => void;
+  addCard: (
+    teamPlayerId: string | null,
+    playerName: string | null,
+    isRivalPlayer: boolean,
+    rivalDorsal: number | null,
+    cardType: "yellow" | "red",
+  ) => void;
+  removeCard: (cardId: string) => void;
+  changeFormation: (
+    formationId: string,
+    formationName: string,
+    newSlots: Record<number, string | null>,
+  ) => void;
   startPrepare: () => void;
   cancelPrepare: () => void;
   movePreparePlayer: (draggedId: string, fromSlotIndex: number | null, targetSlotIndex: number) => void;
   movePreparePlayerToBench: (draggedId: string, fromSlotIndex: number) => void;
   commitWindow: (ratingsByPlayerId: Record<string, number | null>) => void;
+  /**
+   * Swaps two on-field players' positions directly, without opening a
+   * substitution window — no bench player is involved, so it doesn't count
+   * as a substitution and requires no "preparar cambio" step.
+   */
+  repositionPlayer: (fromSlotIndex: number, toSlotIndex: number) => void;
   dismissConfirmation: () => void;
   dismissSaveError: () => void;
   acceptBackup: () => void;
@@ -98,13 +132,20 @@ export type PendingAction =
   | "endMatch"
   | null;
 
+export interface UseLiveMatchOptions {
+  /** When true (friendly matches), the substitution-window quota is not enforced */
+  unlimitedWindows?: boolean;
+}
+
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
 export function useLiveMatch(
   eventId: string | null,
   teamId: string,
   isHomeTeam = true,
+  options: UseLiveMatchOptions = {},
 ): UseLiveMatchReturn {
+  const { unlimitedWindows = false } = options;
   // ── Phase & timer ────────────────────────────────────────────────────────
   const [matchPhase, setMatchPhase] = useState<LiveMatchPhase>("preMatch");
   const [totalSeconds, setTotalSeconds] = useState(0);
@@ -127,6 +168,12 @@ export function useLiveMatch(
   const [scoreLocal, setScoreLocal] = useState(0);
   const [scoreVisitor, setScoreVisitor] = useState(0);
 
+  // ── Cards ─────────────────────────────────────────────────────────────────
+  const [cards, setCards] = useState<CardEvent[]>([]);
+
+  // ── Formation changes ────────────────────────────────────────────────────
+  const [formationChanges, setFormationChanges] = useState<FormationChangeEvent[]>([]);
+
   // ── Rating snapshots ─────────────────────────────────────────────────────
   const [ratingSnapshots, setRatingSnapshots] = useState<WindowRatingSnapshot[]>([]);
 
@@ -148,6 +195,7 @@ export function useLiveMatch(
   const playerStatesRef = useRef<Record<string, SimulationPlayerState>>({});
   const windowsRef = useRef<SubstitutionWindow[]>([]);
   const prepareSlotsRef = useRef<Record<number, string | null>>({});
+  const prepareModeRef = useRef(false);
   const initialSlotsRef = useRef<Record<number, string | null>>({});
   const currentMinuteRef = useRef(0);
   const halfRef = useRef<1 | 2>(1);
@@ -157,6 +205,8 @@ export function useLiveMatch(
   const goalsRef = useRef<GoalEvent[]>([]);
   const scoreLocalRef = useRef(0);
   const scoreVisitorRef = useRef(0);
+  const cardsRef = useRef<CardEvent[]>([]);
+  const formationChangesRef = useRef<FormationChangeEvent[]>([]);
   const ratingSnapshotsRef = useRef<WindowRatingSnapshot[]>([]);
   const halfDurationRef = useRef(45);
   const totalSecondsRef = useRef(0);
@@ -174,12 +224,15 @@ export function useLiveMatch(
   playerStatesRef.current = playerStates;
   windowsRef.current = windows;
   prepareSlotsRef.current = prepareSlotsPreview;
+  prepareModeRef.current = prepareMode;
   halfRef.current = half;
   isHalftimeRef.current = isHalftime;
   matchPhaseRef.current = matchPhase;
   goalsRef.current = goals;
   scoreLocalRef.current = scoreLocal;
   scoreVisitorRef.current = scoreVisitor;
+  cardsRef.current = cards;
+  formationChangesRef.current = formationChanges;
   ratingSnapshotsRef.current = ratingSnapshots;
   halfDurationRef.current = halfDuration;
   totalSecondsRef.current = totalSeconds;
@@ -203,6 +256,7 @@ export function useLiveMatch(
       matchPhase === "secondHalf" ||
       matchPhase === "halftime") &&
     (isHalftime ||
+      unlimitedWindows ||
       (windowsTotal < MAX_TOTAL_WINDOWS &&
         (half === 1 || windowsInSecondHalf < MAX_SECOND_HALF_WINDOWS)));
 
@@ -273,6 +327,8 @@ export function useLiveMatch(
       playerStates: { ...playerStatesRef.current },
       windows: [...windowsRef.current],
       goals: [...goalsRef.current],
+      cards: [...cardsRef.current],
+      formationChanges: [...formationChangesRef.current],
       ratingSnapshots: [...ratingSnapshotsRef.current],
       scoreLocal: scoreLocalRef.current,
       scoreVisitor: scoreVisitorRef.current,
@@ -362,6 +418,54 @@ export function useLiveMatch(
     return states;
   }
 
+  /**
+   * Shared leaving/entering diff + player-state remapping logic, used by both
+   * `commitWindow` (substitutions) and `changeFormation` (mid-match tactical
+   * changes) so the accumulated-minutes bookkeeping is not duplicated.
+   */
+  function applySlotChange(
+    currentSlots: Record<number, string | null>,
+    newSlots: Record<number, string | null>,
+    prevPlayerStates: Record<string, SimulationPlayerState>,
+    minute: number,
+  ): {
+    nextPlayerStates: Record<string, SimulationPlayerState>;
+    leaving: string[];
+    entering: string[];
+  } {
+    const currentOnField = new Set(Object.values(currentSlots).filter(Boolean) as string[]);
+    const newOnField = new Set(Object.values(newSlots).filter(Boolean) as string[]);
+    const leaving = [...currentOnField].filter((pid) => !newOnField.has(pid));
+    const entering = [...newOnField].filter((pid) => !currentOnField.has(pid));
+
+    const nextPlayerStates = { ...prevPlayerStates };
+    for (const pid of leaving) {
+      const state = nextPlayerStates[pid];
+      if (state) {
+        nextPlayerStates[pid] = {
+          ...state,
+          accumulatedMinutes:
+            state.accumulatedMinutes + Math.max(0, minute - state.minuteEntered),
+          isOnField: false,
+          slotIndex: null,
+        };
+      }
+    }
+    for (const pid of entering) {
+      const entry = Object.entries(newSlots).find(([, p]) => p === pid);
+      const targetSlotIdx = entry ? parseInt(entry[0]) : null;
+      nextPlayerStates[pid] = {
+        playerId: pid,
+        slotIndex: targetSlotIdx,
+        minuteEntered: minute,
+        accumulatedMinutes: nextPlayerStates[pid]?.accumulatedMinutes ?? 0,
+        isOnField: true,
+      };
+    }
+
+    return { nextPlayerStates, leaving, entering };
+  }
+
   function restoreFromBackup(b: LiveMatchBackup) {
     // Compute elapsed seconds since backup was saved
     const savedAt = new Date(b.savedAt).getTime();
@@ -393,6 +497,8 @@ export function useLiveMatch(
     );
     setWindows([...b.windows]);
     setGoals([...b.goals]);
+    setCards([...(b.cards ?? [])]);
+    setFormationChanges([...(b.formationChanges ?? [])]);
     setRatingSnapshots([...b.ratingSnapshots]);
     setScoreLocal(b.scoreLocal);
     setScoreVisitor(b.scoreVisitor);
@@ -434,6 +540,8 @@ export function useLiveMatch(
     setPlayerStates(buildInitialPlayerStates(initialSlots));
     setWindows([]);
     setGoals([]);
+    setCards([]);
+    setFormationChanges([]);
     setRatingSnapshots([]);
     setScoreLocal(0);
     setScoreVisitor(0);
@@ -558,6 +666,8 @@ export function useLiveMatch(
         substitutionWindowsJson: JSON.stringify(windowsRef.current),
         ratingSnapshotsJson: JSON.stringify(ratingSnapshotsRef.current),
         goalsJson: JSON.stringify(goalsRef.current),
+        cardsJson: JSON.stringify(cardsRef.current),
+        formationChangesJson: JSON.stringify(formationChangesRef.current),
       };
 
       await saveMatchParticipation(eid, payload);
@@ -609,6 +719,8 @@ export function useLiveMatch(
       scorerName: string | null,
       scorerDorsal: number | null,
       isOwnTeam: boolean,
+      pitchZone: { col: number; row: number } | null = null,
+      bodyPart: "head" | "foot" | null = null,
     ) => {
       const minute = currentMinuteRef.current;
       // isOwnTeam=true means goal for the user's team.
@@ -624,6 +736,8 @@ export function useLiveMatch(
         scorerDorsal,
         isOwnTeam,
         scoreAtMoment: { local: newLocal, visitor: newVisitor },
+        pitchZone,
+        bodyPart,
       };
       setGoals((prev) => [...prev, goal]);
       if (localScores) setScoreLocal(newLocal);
@@ -654,6 +768,72 @@ export function useLiveMatch(
       });
     });
   }, [isHomeTeam]);
+
+  // ── Cards ─────────────────────────────────────────────────────────────────
+
+  const addCard = useCallback(
+    (
+      teamPlayerId: string | null,
+      playerName: string | null,
+      isRivalPlayer: boolean,
+      rivalDorsal: number | null,
+      cardType: "yellow" | "red",
+    ) => {
+      const card: CardEvent = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        minute: currentMinuteRef.current,
+        half: halfRef.current,
+        cardType,
+        teamPlayerId,
+        playerName,
+        isRivalPlayer,
+        rivalDorsal,
+      };
+      setCards((prev) => [...prev, card]);
+    },
+    [],
+  );
+
+  const removeCard = useCallback((cardId: string) => {
+    setCards((prev) => prev.filter((c) => c.id !== cardId));
+  }, []);
+
+  // ── Mid-match formation change ───────────────────────────────────────────
+
+  const changeFormation = useCallback(
+    (formationId: string, formationName: string, newSlots: Record<number, string | null>) => {
+      const minute = currentMinuteRef.current;
+      const { nextPlayerStates } = applySlotChange(
+        slotsRef.current,
+        newSlots,
+        playerStatesRef.current,
+        minute,
+      );
+      // Unlike a substitution window, a formation change can also reposition
+      // players who remain on the field into a different slot index.
+      for (const [slotIdxStr, pid] of Object.entries(newSlots)) {
+        if (!pid) continue;
+        const state = nextPlayerStates[pid];
+        if (state?.isOnField) {
+          nextPlayerStates[pid] = { ...state, slotIndex: parseInt(slotIdxStr) };
+        }
+      }
+
+      const change: FormationChangeEvent = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        minute,
+        half: halfRef.current,
+        formationId,
+        formationName,
+        slotsAfter: { ...newSlots },
+      };
+
+      setFormationChanges((prev) => [...prev, change]);
+      setSlots({ ...newSlots });
+      setPlayerStates(nextPlayerStates);
+    },
+    [],
+  );
 
   // ── Substitution window logic (mirrors useMatchSimulation) ────────────────
 
@@ -697,10 +877,12 @@ export function useLiveMatch(
     const prevWindows = windowsRef.current;
     const prevPlayerStates = playerStatesRef.current;
 
-    const currentOnField = new Set(Object.values(currentSlots).filter(Boolean) as string[]);
-    const newOnField = new Set(Object.values(newSlots).filter(Boolean) as string[]);
-    const leaving = [...currentOnField].filter((pid) => !newOnField.has(pid));
-    const entering = [...newOnField].filter((pid) => !currentOnField.has(pid));
+    const { nextPlayerStates, leaving, entering } = applySlotChange(
+      currentSlots,
+      newSlots,
+      prevPlayerStates,
+      minute,
+    );
 
     const swaps: SubstitutionSwap[] = entering.map((inPid, i) => {
       const entry = Object.entries(newSlots).find(([, pid]) => pid === inPid)!;
@@ -731,32 +913,6 @@ export function useLiveMatch(
       ratings: { ...ratingsByPlayerId },
     };
 
-    // Update player states
-    const nextPlayerStates = { ...prevPlayerStates };
-    for (const pid of leaving) {
-      const state = nextPlayerStates[pid];
-      if (state) {
-        nextPlayerStates[pid] = {
-          ...state,
-          accumulatedMinutes:
-            state.accumulatedMinutes + Math.max(0, minute - state.minuteEntered),
-          isOnField: false,
-          slotIndex: null,
-        };
-      }
-    }
-    for (const pid of entering) {
-      const entry = Object.entries(newSlots).find(([, p]) => p === pid);
-      const targetSlotIdx = entry ? parseInt(entry[0]) : null;
-      nextPlayerStates[pid] = {
-        playerId: pid,
-        slotIndex: targetSlotIdx,
-        minuteEntered: minute,
-        accumulatedMinutes: nextPlayerStates[pid]?.accumulatedMinutes ?? 0,
-        isOnField: true,
-      };
-    }
-
     wasRunningRef.current = matchPhaseRef.current === "firstHalf" || matchPhaseRef.current === "secondHalf";
 
     setPlayerStates(nextPlayerStates);
@@ -766,6 +922,32 @@ export function useLiveMatch(
     setPrepareMode(false);
     setPrepareSlotsPreview({});
     setLastCommittedWindow(newWindow);
+  }, []);
+
+  const repositionPlayer = useCallback((fromSlotIndex: number, toSlotIndex: number) => {
+    if (fromSlotIndex === toSlotIndex) return;
+    // Only meaningful outside prepare mode — a real substitution (bench involved)
+    // must still go through startPrepare/commitWindow.
+    if (prepareModeRef.current) return;
+
+    const currentSlots = slotsRef.current;
+    const fromPlayerId = currentSlots[fromSlotIndex] ?? null;
+    const toPlayerId = currentSlots[toSlotIndex] ?? null;
+    if (!fromPlayerId && !toPlayerId) return;
+
+    const newSlots = { ...currentSlots, [fromSlotIndex]: toPlayerId, [toSlotIndex]: fromPlayerId };
+
+    setSlots(newSlots);
+    setPlayerStates((prev) => {
+      const next = { ...prev };
+      if (fromPlayerId && next[fromPlayerId]) {
+        next[fromPlayerId] = { ...next[fromPlayerId], slotIndex: toSlotIndex };
+      }
+      if (toPlayerId && next[toPlayerId]) {
+        next[toPlayerId] = { ...next[toPlayerId], slotIndex: fromSlotIndex };
+      }
+      return next;
+    });
   }, []);
 
   const dismissConfirmation = useCallback(() => {
@@ -818,6 +1000,9 @@ export function useLiveMatch(
     goals,
     scoreLocal,
     scoreVisitor,
+    cards,
+    formationChanges,
+    unlimitedWindows,
     ratingSnapshots,
     pendingAction,
     setPendingAction,
@@ -837,11 +1022,15 @@ export function useLiveMatch(
     cancelAction,
     addGoal,
     removeGoal,
+    addCard,
+    removeCard,
+    changeFormation,
     startPrepare,
     cancelPrepare,
     movePreparePlayer,
     movePreparePlayerToBench,
     commitWindow,
+    repositionPlayer,
     dismissConfirmation,
     dismissSaveError,
     acceptBackup,

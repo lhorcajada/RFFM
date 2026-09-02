@@ -19,6 +19,10 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
   Snackbar,
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
@@ -39,6 +43,7 @@ import LiveMatchManualEditDialog from "./simulation/LiveMatchManualEditDialog";
 import SimulationField from "./simulation/SimulationField";
 import SubstitutionWindowTracker from "./simulation/SubstitutionWindowTracker";
 import SubstitutionHistoryPanel from "./simulation/SubstitutionHistoryPanel";
+import CardsTimeline from "./simulation/CardsTimeline";
 import MatchCompetitivenessReport from "./simulation/MatchCompetitivenessReport";
 import type { SimSlotPlayer } from "./simulation/SimulationPlayerSlot";
 import type { SquadPlayer } from "../../squad/components/IdealLineup";
@@ -59,6 +64,8 @@ interface Props {
   visitorTeamShield?: string | null;
   /** true if the user's team is the local/home team */
   isHomeTeam?: boolean;
+  /** true when the sport event's match category is "Friendly" — disables the substitution-window quota */
+  isFriendly?: boolean;
 }
 
 // ─── Position grouping helper ─────────────────────────────────────────────────
@@ -229,6 +236,7 @@ export default function PartidoEnDirectoTab({
   visitorTeamName,
   visitorTeamShield,
   isHomeTeam = true,
+  isFriendly = false,
 }: Props) {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -240,8 +248,10 @@ export default function PartidoEnDirectoTab({
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   // Confirmation dialog for substitution window
   const [windowConfirmOpen, setWindowConfirmOpen] = useState(false);
+  // Confirmation dialog for mid-match formation change — holds the pending target formation id
+  const [pendingFormationId, setPendingFormationId] = useState<string | null>(null);
 
-  const live = useLiveMatch(eventId, teamId, isHomeTeam);
+  const live = useLiveMatch(eventId, teamId, isHomeTeam, { unlimitedWindows: isFriendly });
 
   // ── DnD sensors ──────────────────────────────────────────────────────────
   const sensors = useSensors(
@@ -386,21 +396,36 @@ export default function PartidoEnDirectoTab({
 
   function handleDragEnd({ active, over }: DragEndEvent) {
     setActiveDragId(null);
-    if (!live.prepareMode) return;
+    if (!over) return;
     const activeRaw = String(active.id ?? "");
     const draggedMatch = activeRaw.match(/^sim-player-(?:bench-|list-)?(.+)$/);
     const draggedId = draggedMatch ? draggedMatch[1] : activeRaw.replace(/^sim-player-/, "");
-    if (!over) return;
     const overId = over.id as string;
+
+    if (live.prepareMode) {
+      if (overId.startsWith("sim-slot-")) {
+        const targetSlotIndex = parseInt(overId.replace("sim-slot-", ""));
+        const fromEntry = Object.entries(live.prepareSlotsPreview).find(([, pid]) => pid === draggedId);
+        const fromSlotIndex = fromEntry ? parseInt(fromEntry[0]) : null;
+        if (fromSlotIndex === null && (live.prepareSlotsPreview[targetSlotIndex] ?? null) === null) return;
+        live.movePreparePlayer(draggedId, fromSlotIndex, targetSlotIndex);
+      } else if (overId === "sim-bench") {
+        const fromEntry = Object.entries(live.prepareSlotsPreview).find(([, pid]) => pid === draggedId);
+        if (fromEntry) live.movePreparePlayerToBench(draggedId, parseInt(fromEntry[0]));
+      }
+      return;
+    }
+
+    // Outside "preparar cambio": free repositioning of on-field players is
+    // always allowed (no substitution window needed) — only field-to-field
+    // swaps, never involving the bench (bringing a bench player on, or
+    // sending a field player off, still requires startPrepare/commitWindow).
     if (overId.startsWith("sim-slot-")) {
       const targetSlotIndex = parseInt(overId.replace("sim-slot-", ""));
-      const fromEntry = Object.entries(live.prepareSlotsPreview).find(([, pid]) => pid === draggedId);
-      const fromSlotIndex = fromEntry ? parseInt(fromEntry[0]) : null;
-      if (fromSlotIndex === null && (live.prepareSlotsPreview[targetSlotIndex] ?? null) === null) return;
-      live.movePreparePlayer(draggedId, fromSlotIndex, targetSlotIndex);
-    } else if (overId === "sim-bench") {
-      const fromEntry = Object.entries(live.prepareSlotsPreview).find(([, pid]) => pid === draggedId);
-      if (fromEntry) live.movePreparePlayerToBench(draggedId, parseInt(fromEntry[0]));
+      const fromEntry = Object.entries(live.slots).find(([, pid]) => pid === draggedId);
+      if (!fromEntry) return;
+      const fromSlotIndex = parseInt(fromEntry[0]);
+      live.repositionPlayer(fromSlotIndex, targetSlotIndex);
     }
   }
 
@@ -408,6 +433,35 @@ export default function PartidoEnDirectoTab({
   function handleCommitWindow() {
     live.commitWindow(currentFieldRatings);
     setWindowConfirmOpen(true);
+  }
+
+  // ── Mid-match formation change ───────────────────────────────────────────
+  const canChangeFormation = live.matchPhase !== "preMatch" && live.matchPhase !== "finished";
+  const pendingFormation = formations.find((f) => f.id === pendingFormationId) ?? null;
+
+  function handleFormationSelectChange(newFormationId: string) {
+    if (!newFormationId || newFormationId === formationId) return;
+    setPendingFormationId(newFormationId);
+  }
+
+  function handleCancelFormationChange() {
+    setPendingFormationId(null);
+  }
+
+  function handleConfirmFormationChange() {
+    if (!pendingFormation) {
+      setPendingFormationId(null);
+      return;
+    }
+    const newSlotDefs = FORMATION_POSITIONS[pendingFormation.name] ?? [];
+    const onFieldPlayerIds = Object.values(live.slots).filter(Boolean) as string[];
+    const newSlots: Record<number, string | null> = {};
+    newSlotDefs.forEach((slotDef, idx) => {
+      newSlots[slotDef.slotIndex] = onFieldPlayerIds[idx] ?? null;
+    });
+    live.changeFormation(pendingFormation.id, pendingFormation.name, newSlots);
+    setFormationId(pendingFormation.id);
+    setPendingFormationId(null);
   }
 
   // ── Manual edit save ─────────────────────────────────────────────────────
@@ -432,10 +486,12 @@ export default function PartidoEnDirectoTab({
       substitutionWindowsJson: JSON.stringify(live.windows),
       ratingSnapshotsJson: JSON.stringify(live.ratingSnapshots),
       goalsJson: JSON.stringify(live.goals),
+      cardsJson: JSON.stringify(live.cards),
+      formationChangesJson: JSON.stringify(live.formationChanges),
     };
 
     await saveMatchParticipation(eventId, payload);
-  }, [eventId, teamId, lineupPlayers, live.initialSlots, live.scoreLocal, live.scoreVisitor, live.windows, live.ratingSnapshots, live.goals]);
+  }, [eventId, teamId, lineupPlayers, live.initialSlots, live.scoreLocal, live.scoreVisitor, live.windows, live.ratingSnapshots, live.goals, live.cards, live.formationChanges]);
 
   // ── Effective minutes (manual override wins) ─────────────────────────────
   const effectiveMinutes = useMemo<Record<string, number>>(() => {
@@ -491,6 +547,7 @@ export default function PartidoEnDirectoTab({
         playersById={playersById}
         playerMinutes={effectiveMinutes}
         prepareMode={live.prepareMode}
+        freeRepositionEnabled={!live.prepareMode && live.matchPhase !== "finished"}
         scorerIds={scorerIds}
       />
       <div className={simStyles.rightColumn}>
@@ -602,10 +659,31 @@ export default function PartidoEnDirectoTab({
         fieldPlayers={fieldPlayers}
         isHomeTeam={isHomeTeam}
         onAddGoal={live.addGoal}
+        onAddCard={live.addCard}
       />
 
       {/* Goal timeline */}
       <GoalTimeline goals={live.goals} onRemoveGoal={live.removeGoal} />
+
+      {/* Card timeline */}
+      <CardsTimeline cards={live.cards} onRemoveCard={live.removeCard} />
+
+      {/* Mid-match formation change selector */}
+      {canChangeFormation && formations.length > 0 && (
+        <FormControl size="small" className={styles.formationSelect}>
+          <InputLabel id="live-formation-select-label">Esquema</InputLabel>
+          <Select
+            labelId="live-formation-select-label"
+            label="Esquema"
+            value={formationId}
+            onChange={(e) => handleFormationSelectChange(e.target.value as string)}
+          >
+            {formations.map((f) => (
+              <MenuItem key={f.id} value={f.id}>{f.name}</MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      )}
 
       {/* Timer + window tracker bar */}
       <div className={simStyles.topBar}>
@@ -679,6 +757,14 @@ export default function PartidoEnDirectoTab({
               catch { return []; }
             })()}
             onRemoveGoal={() => {}}
+            readOnly
+          />
+          <CardsTimeline
+            cards={(() => {
+              try { return JSON.parse(live.savedParticipationData.cardsJson ?? "[]"); }
+              catch { return []; }
+            })()}
+            onRemoveCard={() => {}}
             readOnly
           />
           <Button
@@ -831,6 +917,26 @@ export default function PartidoEnDirectoTab({
         <DialogActions sx={{ px: 2, pb: 2 }}>
           <Button onClick={() => { live.dismissConfirmation(); setWindowConfirmOpen(false); }} variant="contained" size="small">
             Cerrar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Formation change confirmation dialog */}
+      <Dialog
+        open={pendingFormationId !== null}
+        onClose={handleCancelFormationChange}
+        PaperProps={{ sx: { bgcolor: "#19192e", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 3, minWidth: 300 } }}
+      >
+        <DialogTitle sx={{ color: "#fff", fontSize: "0.95rem", fontWeight: 700 }}>
+          ¿Cambiar a esquema {pendingFormation?.name}?
+        </DialogTitle>
+        <DialogContent sx={{ color: "rgba(255,255,255,0.7)", fontSize: "0.88rem" }}>
+          Se guardará el historial de posiciones.
+        </DialogContent>
+        <DialogActions sx={{ px: 2, pb: 2 }}>
+          <Button onClick={handleCancelFormationChange} color="inherit" size="small">Cancelar</Button>
+          <Button onClick={handleConfirmFormationChange} variant="contained" color="success" size="small">
+            Confirmar
           </Button>
         </DialogActions>
       </Dialog>

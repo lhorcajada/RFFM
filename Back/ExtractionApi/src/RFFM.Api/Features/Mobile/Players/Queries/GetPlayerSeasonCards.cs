@@ -267,8 +267,10 @@ namespace RFFM.Api.Features.Mobile.Players.Queries
             }
 
             /// <summary>
-            /// Parses CardsJson (array of CardEvent { teamPlayerId, cardType }) and counts cards of the
-            /// given type attributed to teamPlayerId. Returns 0 for null/malformed JSON.
+            /// Parses CardsJson (array of CardEvent { id, minute, half, cardType, teamPlayerId,
+            /// playerName, isRivalPlayer, rivalDorsal }) and counts cards of the given type
+            /// attributed to teamPlayerId. Only teamPlayerId and cardType are read here; the
+            /// remaining properties are ignored. Returns 0 for null/malformed JSON.
             /// </summary>
             private static int CountCards(string? cardsJson, string teamPlayerId, string cardType)
             {

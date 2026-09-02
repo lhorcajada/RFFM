@@ -48,6 +48,8 @@ namespace RFFM.Api.Features.Coaches.Convocations
             string? SubstitutionWindowsJson,
             string? RatingSnapshotsJson,
             string? GoalsJson,
+            string? CardsJson,
+            string? FormationChangesJson,
             List<PlayerParticipationRecord> Players);
 
         public record PlayerParticipationRecord(
@@ -87,6 +89,8 @@ namespace RFFM.Api.Features.Coaches.Convocations
                     first.SubstitutionWindowsJson,
                     first.RatingSnapshotsJson,
                     first.GoalsJson,
+                    first.CardsJson,
+                    first.FormationChangesJson,
                     records.Select(r => new PlayerParticipationRecord(
                         r.TeamPlayerId,
                         r.MinutesPlayed,

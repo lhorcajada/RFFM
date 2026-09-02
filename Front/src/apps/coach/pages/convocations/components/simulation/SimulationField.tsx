@@ -11,6 +11,12 @@ interface SimulationFieldProps {
   playersById: Record<string, SimSlotPlayer>;
   playerMinutes: Record<string, number>;
   prepareMode: boolean;
+  /**
+   * When true (and not in prepareMode), on-field players can be dragged to
+   * swap positions with another on-field player, without opening a
+   * substitution window. Bench players remain non-interactive.
+   */
+  freeRepositionEnabled?: boolean;
   slotIdPrefix?: string;
   wrapperRef?: React.Ref<HTMLDivElement>;
   /** Optional set of teamPlayerIds that have scored — shows a goal badge on their avatar */
@@ -26,6 +32,7 @@ export default function SimulationField({
   playersById = {},
   playerMinutes = {},
   prepareMode,
+  freeRepositionEnabled = false,
   slotIdPrefix,
   scorerIds,
   activeTab,
@@ -96,6 +103,7 @@ export default function SimulationField({
               entering={entering}
               leaving={leaving}
               prepareMode={prepareMode}
+              freeRepositionEnabled={freeRepositionEnabled}
                 slotIdPrefix={slotIdPrefix}
               activeTab={activeTab}
               usedTabById={usedTabById}

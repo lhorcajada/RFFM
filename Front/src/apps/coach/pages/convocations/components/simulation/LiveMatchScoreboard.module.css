@@ -76,3 +76,27 @@
   text-transform: none !important;
   min-width: 0 !important;
 }
+
+.cardBtn {
+  flex-shrink: 0 !important;
+  font-size: 0.7rem !important;
+  padding: 2px 8px !important;
+  text-transform: none !important;
+  min-width: 0 !important;
+  width: 100%;
+  justify-content: center !important;
+}
+
+.goalDetailsForm {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.zoneLabel {
+  align-self: flex-start;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 8px 0 6px;
+}
