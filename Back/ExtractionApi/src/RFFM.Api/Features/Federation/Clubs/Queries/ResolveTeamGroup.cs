@@ -3,11 +3,13 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Options;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Features.Federation.Clubs;
 using RFFM.Api.Features.Federation.Competitions.Services;
 using RFFM.Api.Features.Federation.Players.Services;
 using RFFM.Api.Features.Federation.Teams.Services;
+using RFFM.Api.Infrastructure.Options;
 
 namespace RFFM.Api.Features.Federation.Clubs.Queries
 {
@@ -27,8 +29,6 @@ namespace RFFM.Api.Features.Federation.Clubs.Queries
     /// </summary>
     public class FederationResolveTeamGroup : IFeatureModule
     {
-        private const int DefaultSeasonId = 21; // 2025-2026
-
         public void AddRoutes(IEndpointRouteBuilder app)
         {
             app.MapGet("/clubs/{clubCode}/teams/{teamCode}/resolve-group",
@@ -39,6 +39,7 @@ namespace RFFM.Api.Features.Federation.Clubs.Queries
                         ITeamService teamService,
                         IPlayerService playerService,
                         ICompetitionService competitionService,
+                        IOptions<RffmOptions> rffmOptions,
                         IMemoryCache cache,
                         CancellationToken cancellationToken) =>
                     {
@@ -56,6 +57,7 @@ namespace RFFM.Api.Features.Federation.Clubs.Queries
                                 teamService,
                                 playerService,
                                 competitionService,
+                                rffmOptions,
                                 cancellationToken);
                         });
 
@@ -136,6 +138,7 @@ namespace RFFM.Api.Features.Federation.Clubs.Queries
             ITeamService teamService,
             IPlayerService playerService,
             ICompetitionService competitionService,
+            IOptions<RffmOptions> rffmOptions,
             CancellationToken cancellationToken)
         {
             var team = await teamService.GetTeamDetailsAsync(teamCode, cancellationToken);
@@ -157,7 +160,7 @@ namespace RFFM.Api.Features.Federation.Clubs.Queries
 
             // Call fichajugador to get competiciones_participa → codgrupo
             var player = await playerService.GetPlayerAsync(
-                firstPlayerCode, DefaultSeasonId, cancellationToken);
+                firstPlayerCode, rffmOptions.Value.CurrentSeasonId, cancellationToken);
 
             if (player is null || player.Competitions.Count == 0)
                 return null;
@@ -221,12 +224,13 @@ namespace RFFM.Api.Features.Federation.Clubs.Queries
         }
 
         // ── Orchestrator ────────────────────────────────────────────────────────
-        private static async Task<TeamGroupResponse?> ResolveGroupAsync(
+        internal static async Task<TeamGroupResponse?> ResolveGroupAsync(
             string teamCode,
             int? competitionId,
             ITeamService teamService,
             IPlayerService playerService,
             ICompetitionService competitionService,
+            IOptions<RffmOptions> rffmOptions,
             CancellationToken cancellationToken)
         {
             // Strategy A: classification scan (fast, no player needed)
@@ -242,7 +246,7 @@ namespace RFFM.Api.Features.Federation.Clubs.Queries
             // Strategy B/C: fichajugador path
             // B uses fichaequipo players; C falls back to competition scorers
             return await ResolveViaPlayerAsync(
-                teamCode, competitionId, teamService, playerService, competitionService, cancellationToken);
+                teamCode, competitionId, teamService, playerService, competitionService, rffmOptions, cancellationToken);
         }
 
         public record TeamGroupResponse(
