@@ -184,6 +184,12 @@ export class CalendarService {
       playType: coerce(finalParams.playType),
     };
 
+    // Never fall through to the backend's hardcoded-season default: without a
+    // resolved competition+group, GET /calendar now rejects the call (400) —
+    // but even before that, silently serving those fixed ids meant returning a
+    // stale season's fixtures (sometimes a different team's matches) here.
+    if (!safeParams.competition || !safeParams.group) return [];
+
     const cal = await this.getCalendar(safeParams);
     const rounds: any[] = [];
     if (!cal) return [];

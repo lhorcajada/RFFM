@@ -13,7 +13,12 @@ namespace RFFM.Api.Features.Federation.Competitions.Queries.GetCalendar
     {
         public void AddRoutes(IEndpointRouteBuilder app)
         {
-            app.MapGet("/calendar", async (IMediator mediator, CancellationToken cancellationToken, int season = 21, int competitionId = 25255269, int groupId = 25255283, int playType = 1) =>
+            // competitionId/groupId fully qualify a season on RFFM (each season has distinct
+            // ids) and are intentionally required, with no fallback: silently defaulting to a
+            // fixed pair of ids meant serving a stale, hardcoded season's fixtures — and
+            // sometimes a completely different team's matches — whenever a caller (e.g. the
+            // coach app's calendar sync) omitted them instead of resolving the current season.
+            app.MapGet("/calendar", async (IMediator mediator, CancellationToken cancellationToken, int competitionId, int groupId, int season = 21, int playType = 1) =>
             {
                 var request = new QueryAppCalendar(competitionId, groupId);
                 var response = await mediator.Send(request, cancellationToken);
