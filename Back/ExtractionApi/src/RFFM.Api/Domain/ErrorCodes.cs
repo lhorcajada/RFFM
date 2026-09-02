@@ -112,5 +112,12 @@ namespace RFFM.Api.Domain
         public const string TeamPlayerNotFound = "TeamPlayerNotFound";
         public const string FamilyMemberNotFound = "FamilyMemberNotFound";
         public const string FamilyMemberRelationUnknown = "FamilyMemberRelationUnknown";
+
+        // Family member accounts (Features/Coaches/FamilyMemberAccounts)
+        public const string FamilyMemberEmailRequired = "FamilyMemberEmailRequired";
+        public const string FamilyMemberAccountAlreadyLinked = "FamilyMemberAccountAlreadyLinked";
+        public const string FamilyMemberAccountRequestAlreadyPending = "FamilyMemberAccountRequestAlreadyPending";
+        public const string FamilyMemberAccountRequestNotFound = "FamilyMemberAccountRequestNotFound";
+        public const string FamilyMemberAccountRequestAlreadyDecided = "FamilyMemberAccountRequestAlreadyDecided";
     }
 }

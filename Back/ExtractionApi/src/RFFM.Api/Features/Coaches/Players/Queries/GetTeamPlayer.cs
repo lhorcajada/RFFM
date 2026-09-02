@@ -39,7 +39,7 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
         public record ContactInfoResponse(AddressResponse? Address, string? Phone, string? Email);
         public record PhysicalInfoResponse(decimal? Height, decimal? Weight, string? DominantFoot);
         public record DemarcationResponse(int? ActivePositionId, string? ActivePositionName, string[] PossibleDemarcations);
-        public record FamilyResponse(string Id, string? Name, string? LastName, string? Phone, string? Email, string? FamilyMember, string? Dni = null);
+        public record FamilyResponse(string Id, string? Name, string? LastName, string? Phone, string? Email, string? FamilyMember, string? Dni = null, string RegistrationStatus = "None");
         public record InjuryInfoResponse(string Id, DateTime StartDate, string InjuryType, string? Description, string? EstimatedRecovery, DateTime? EndDate);
 
         public record TeamPlayerResponse(
@@ -124,8 +124,19 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                 }
 
                 // family members mapping
-                var fams = (item.FamilyMembers ?? new List<Domain.Entities.TeamPlayers.TeamPlayerFamilyMember>())
-                    .Select(f => new FamilyResponse(f.Id, f.Name, f.LastName, f.Phone, f.Email, f.FamilyMember, f.Dni))
+                var familyMembersList = item.FamilyMembers ?? new List<Domain.Entities.TeamPlayers.TeamPlayerFamilyMember>();
+                var pendingFamilyMemberIds = await _db.FamilyMemberAccountRequests
+                    .AsNoTracking()
+                    .Where(r => r.TeamPlayerId == item.Id && r.Status == Domain.Entities.TeamPlayers.FamilyMemberAccountRequestStatus.Pending)
+                    .Select(r => r.TeamPlayerFamilyMemberId)
+                    .ToListAsync(cancellationToken);
+
+                var fams = familyMembersList
+                    .Select(f => new FamilyResponse(
+                        f.Id, f.Name, f.LastName, f.Phone, f.Email, f.FamilyMember, f.Dni,
+                        f.LinkedUserId is not null
+                            ? "Approved"
+                            : pendingFamilyMemberIds.Contains(f.Id) ? "Pending" : "None"))
                     .ToArray();
 
                 // injury info — active injury (no EndDate)

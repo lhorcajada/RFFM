@@ -109,6 +109,58 @@ namespace RFFM.Api.Tests.UnitTests
             Assert.Equal("Doe", family.LastName);
             Assert.Equal("Mother", family.FamilyMember);
             Assert.Equal("12345678A", family.Dni);
+            Assert.Equal("None", family.RegistrationStatus);
+        }
+
+        [Fact]
+        public async Task Handle_WithPendingAccountRequest_ReturnsPendingStatus()
+        {
+            var teamPlayerId = await CreateTeamPlayerAsync();
+            string familyMemberId;
+
+            await using (var seedDb = _fixture.CreateDbContext())
+            {
+                var familyMember = TeamPlayerFamilyMember.Create(
+                    teamPlayerId, "Jane", "Doe", "600123456", "jane@rffm.test", "12345678A", "Mother");
+                seedDb.TeamPlayerFamilyMembers.Add(familyMember);
+                await seedDb.SaveChangesAsync();
+                familyMemberId = familyMember.Id;
+
+                seedDb.FamilyMemberAccountRequests.Add(
+                    FamilyMemberAccountRequest.Create($"user-{Guid.NewGuid():N}", familyMemberId, teamPlayerId));
+                await seedDb.SaveChangesAsync();
+            }
+
+            await using var db = _fixture.CreateDbContext();
+            var handler = new GetTeamPlayer.RequestHandler(db);
+
+            var response = await handler.Handle(new GetTeamPlayer.TeamPlayerQuery { TeamPlayerId = teamPlayerId }, CancellationToken.None);
+
+            var family = Assert.Single(response.FamilyMembers);
+            Assert.Equal("Pending", family.RegistrationStatus);
+        }
+
+        [Fact]
+        public async Task Handle_WithLinkedUserId_ReturnsApprovedStatus()
+        {
+            var teamPlayerId = await CreateTeamPlayerAsync();
+
+            await using (var seedDb = _fixture.CreateDbContext())
+            {
+                var familyMember = TeamPlayerFamilyMember.Create(
+                    teamPlayerId, "Jane", "Doe", "600123456", "jane@rffm.test", "12345678A", "Mother");
+                familyMember.LinkAccount($"user-{Guid.NewGuid():N}");
+                seedDb.TeamPlayerFamilyMembers.Add(familyMember);
+                await seedDb.SaveChangesAsync();
+            }
+
+            await using var db = _fixture.CreateDbContext();
+            var handler = new GetTeamPlayer.RequestHandler(db);
+
+            var response = await handler.Handle(new GetTeamPlayer.TeamPlayerQuery { TeamPlayerId = teamPlayerId }, CancellationToken.None);
+
+            var family = Assert.Single(response.FamilyMembers);
+            Assert.Equal("Approved", family.RegistrationStatus);
         }
 
         [Fact]

@@ -23,6 +23,7 @@ namespace RFFM.Api.Domain.Entities.TeamPlayers
         public string? Dni { get; private set; }
         public string? FamilyMember { get; private set; }
         public Address? Address { get; private set; }
+        public string? LinkedUserId { get; private set; }
 
         public TeamPlayer TeamPlayer { get; private set; } = null!;
 
@@ -64,6 +65,13 @@ namespace RFFM.Api.Domain.Entities.TeamPlayers
             Dni = dni;
             FamilyMember = familyMember;
             Address = address;
+        }
+
+        public void LinkAccount(string userId)
+        {
+            if (string.IsNullOrWhiteSpace(userId))
+                throw new ArgumentException("El identificador de usuario es obligatorio.");
+            LinkedUserId = userId;
         }
     }
 }
