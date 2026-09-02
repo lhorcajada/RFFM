@@ -22,9 +22,19 @@ describe("normalizeFromSportEvent - conversión de hora UTC a hora local", () =>
     expect(result.time).toBe("20:00");
   });
 
-  it("no muestra hora cuando la hora local convertida es medianoche", () => {
+  it("muestra la hora aunque la conversión a hora local dé medianoche, si startTime es un valor real", () => {
     // 2026-08-31T22:00:00Z en UTC corresponde a las 00:00 del día siguiente en Europe/Madrid (CEST, +2h)
     const event = baseEvent({ eveDateTime: "2026-08-31T22:00:00Z", startTime: "2026-08-31T22:00:00Z" });
+
+    const result = normalizeFromSportEvent(event);
+
+    expect(result.time).toBe("00:00");
+  });
+
+  it("no muestra hora cuando el partido de liga aún no tiene horario publicado (startTime null)", () => {
+    // RFFM publica la fecha antes que la hora: eveDateTime lleva la fecha (medianoche UTC de
+    // marcador de posición), pero startTime es null hasta que se conoce la hora real.
+    const event = baseEvent({ eveDateTime: "2026-08-31T00:00:00Z", startTime: null });
 
     const result = normalizeFromSportEvent(event);
 

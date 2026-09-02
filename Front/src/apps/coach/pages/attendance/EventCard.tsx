@@ -23,18 +23,21 @@ import { coachAuthService } from "../../services/authService";
 import { EventAttendanceBadges } from "../../components/EventAttendanceBadges/EventAttendanceBadges";
 import type { EventAttendanceSummaryDto } from "../../services/eventAttendanceSummaryService";
 import type { MatchState } from "../convocations/components/convocationMatchDetail.types";
+import { resolveStorageUrl } from "../../../../shared/utils/resolveStorageUrl";
 
 /** Build a MatchState (expected by ConvocationMatchDetail) from a SportEventResponse */
 function toMatchState(ev: SportEventResponse): MatchState {
   const raw = ev.eveDateTime ?? ev.startTime ?? ev.start ?? null;
   const date = raw ? raw.trim().substring(0, 10) : "";
 
+  // Only ev.startTime carries a known kickoff time. Falling back to eveDateTime
+  // (the fixture date, always present even before RFFM publishes a time) would
+  // fabricate a fake local time out of the backend's UTC-midnight placeholder.
   let time = "";
-  if (raw && raw.includes("T")) {
-    const rawDate = new Date(raw);
+  if (ev.startTime && ev.startTime.includes("T")) {
+    const rawDate = new Date(ev.startTime);
     if (!isNaN(rawDate.getTime())) {
-      const part = rawDate.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
-      if (part !== "00:00") time = part;
+      time = rawDate.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
     }
   }
 
@@ -42,7 +45,7 @@ function toMatchState(ev: SportEventResponse): MatchState {
   const rivalName = ev.rivalName ?? ev.rival ?? "";
   const rivalShield = ev.rivalPhotoUrl ?? "";
   const myTeamName = ev.teamName ?? "";
-  const myTeamShield = ev.teamPhotoUrl ?? "";
+  const myTeamShield = resolveStorageUrl(ev.teamPhotoUrl);
 
   return {
     date,
@@ -211,7 +214,7 @@ export default function EventCard({ event, eventTypeName, onDeleted, onEdited, a
   const isHome = event.isHomeMatch === true;
   const isAway = event.isHomeMatch === false;
   const myTeamName = event.teamName ?? "";
-  const myTeamShield = event.teamPhotoUrl ?? "";
+  const myTeamShield = resolveStorageUrl(event.teamPhotoUrl);
   const rivalName = event.rivalName ?? "";
   const rivalShield = event.rivalPhotoUrl ?? "";
   const hasScore =
@@ -227,6 +230,14 @@ export default function EventCard({ event, eventTypeName, onDeleted, onEdited, a
   // localGoals always belongs to the left team, visitorGoals to the right
   const leftGoals = event.localGoals;
   const rightGoals = event.visitorGoals;
+
+  // Kickoff time, matches-only: unlike trainings/other events, a league match's
+  // eveDateTime may just be RFFM's placeholder date before the kickoff time is
+  // published — only event.startTime being set means a real, known time.
+  const kickoffTimeStr =
+    isMatch && event.startTime
+      ? (parseDate(event.startTime)?.toLocaleTimeString("es-ES", { timeStyle: "short" }) ?? "")
+      : "";
 
   const matchResult = isMatch ? getMatchResult(event) : null;
   const resultLabel =
@@ -338,8 +349,8 @@ export default function EventCard({ event, eventTypeName, onDeleted, onEdited, a
               ) : (
                 <>
                   <span className={styles.matchVs}>vs</span>
-                  {startTimeStr && (
-                    <span className={styles.matchKickoff}>{startTimeStr}</span>
+                  {kickoffTimeStr && (
+                    <span className={styles.matchKickoff}>{kickoffTimeStr}</span>
                   )}
                 </>
               )}

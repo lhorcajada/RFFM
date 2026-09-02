@@ -154,6 +154,73 @@ namespace RFFM.Api.Tests.IntegrationTests
         }
 
         [Fact]
+        public async Task Sync_MatchWithoutTime_CreatesEventWithNullStartTime()
+        {
+            var team = await SeedTeamAsync();
+            var (host, client) = await StartHostAsync();
+            using var _ = host;
+
+            var matchItem = new SyncMatchItem(
+                RivalName: "CD Liga Sin Hora",
+                RivalShieldUrl: null,
+                MatchDate: DateTime.UtcNow.Date.AddDays(7),
+                MatchTime: null,
+                Field: "Campo Municipal",
+                IsHomeMatch: true,
+                CodActa: "ACTA-SIN-HORA",
+                LocalGoals: null,
+                VisitorGoals: null);
+
+            var request = new SyncCalendarRequest(team.Id, new[] { matchItem }, null);
+
+            var response = await client.PostAsJsonAsync("/api/sport-events/sync-calendar", request);
+            response.EnsureSuccessStatusCode();
+            var result = await response.Content.ReadFromJsonAsync<SyncCalendarResponse>();
+
+            Assert.Equal(1, result!.Created);
+            Assert.NotNull(result.Events[0].EveDateTime);
+            Assert.Null(result.Events[0].StartTime);
+
+            await using var readDb = _fixture.CreateDbContext();
+            var stored = await readDb.SportEvents.SingleAsync(e => e.TeamId == team.Id);
+            Assert.Null(stored.StartTime);
+        }
+
+        [Fact]
+        public async Task Sync_MatchTimeLaterRemovedByFederation_ClearsPreviouslyStoredStartTime()
+        {
+            var team = await SeedTeamAsync();
+            var (host, client) = await StartHostAsync();
+            using var _ = host;
+
+            var withTime = new SyncMatchItem(
+                RivalName: "CD Liga Hora Retirada",
+                RivalShieldUrl: null,
+                MatchDate: DateTime.UtcNow.Date.AddDays(7),
+                MatchTime: "17:00",
+                Field: "Campo Municipal",
+                IsHomeMatch: true,
+                CodActa: "ACTA-HORA-RETIRADA",
+                LocalGoals: null,
+                VisitorGoals: null);
+
+            var firstResponse = await client.PostAsJsonAsync(
+                "/api/sport-events/sync-calendar",
+                new SyncCalendarRequest(team.Id, new[] { withTime }, null));
+            firstResponse.EnsureSuccessStatusCode();
+
+            var withoutTime = withTime with { MatchTime = null };
+            var secondResponse = await client.PostAsJsonAsync(
+                "/api/sport-events/sync-calendar",
+                new SyncCalendarRequest(team.Id, new[] { withoutTime }, null));
+            secondResponse.EnsureSuccessStatusCode();
+
+            await using var readDb = _fixture.CreateDbContext();
+            var stored = await readDb.SportEvents.SingleAsync(e => e.TeamId == team.Id);
+            Assert.Null(stored.StartTime);
+        }
+
+        [Fact]
         public async Task Sync_FriendlyItem_CreatesSportEventWithFriendlyEventType()
         {
             var team = await SeedTeamAsync();

@@ -1,5 +1,6 @@
 import type { SportEventResponse } from "../../../services/sportEventService";
 import type { NormalizedMatch, MatchResult } from "../types";
+import { resolveStorageUrl } from "../../../../../shared/utils/resolveStorageUrl";
 
 export const DAYS_ES = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 export const MONTHS_ES = [
@@ -24,20 +25,23 @@ export function normalizeFromSportEvent(ev: SportEventResponse): NormalizedMatch
   const rivalName = ev.rivalName ?? ev.rival ?? "";
   const rivalPhoto = ev.rivalPhotoUrl ?? "";
   const myTeamName = ev.teamName ?? "";
-  const myTeamPhoto = ev.teamPhotoUrl ?? "";
+  const myTeamPhoto = resolveStorageUrl(ev.teamPhotoUrl);
 
   const localTeamName = isHomeMatch ? myTeamName : rivalName;
   const localTeamShield = isHomeMatch ? myTeamPhoto : rivalPhoto;
   const visitorTeamName = isHomeMatch ? rivalName : myTeamName;
   const visitorTeamShield = isHomeMatch ? rivalPhoto : myTeamPhoto;
 
-  const rawTime = ev.startTime ?? ev.eveDateTime ?? null;
+  // Only ev.startTime carries a real, known kickoff time. Falling back to
+  // eveDateTime (the fixture date, always present even before RFFM publishes
+  // a time) would fabricate a fake "01:00"/"02:00" local time out of the
+  // backend's UTC-midnight date placeholder.
+  const rawTime = ev.startTime ?? null;
   let time = "";
   if (rawTime && String(rawTime).includes("T")) {
     const rawDate = new Date(String(rawTime));
     if (!isNaN(rawDate.getTime())) {
-      const timePart = rawDate.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
-      if (timePart !== "00:00") time = timePart;
+      time = rawDate.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
     }
   }
 

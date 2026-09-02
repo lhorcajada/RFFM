@@ -145,7 +145,13 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
                                 }
 
                                 // ── 4. Build combined date+time ──────────────────────────────────
+                                // RFFM publishes the fixture date well before the kickoff time is
+                                // known; when MatchTime is missing/unparseable, EveDateTime keeps
+                                // the date (needed for calendar placement) but StartTime stays null
+                                // so the UI doesn't render a fabricated "00:00 UTC" kickoff.
+                                var hasKnownTime = HasKnownTime(match.MatchTime);
                                 var eveDateTime = BuildMatchDateTime(match.MatchDate, match.MatchTime);
+                                var startTime = hasKnownTime ? eveDateTime : (DateTime?)null;
 
                                 var name = BuildMatchName(match.IsHomeMatch, rivalNameSafe);
 
@@ -154,7 +160,7 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
                                 {
                                     existing.Name = name;
                                     existing.EveDateTime = eveDateTime;
-                                    existing.StartTime = eveDateTime;
+                                    existing.StartTime = startTime;
                                     existing.Location = match.Field;
                                     existing.RivalId = rival.Id;
                                     existing.IsHomeMatch = match.IsHomeMatch;
@@ -172,7 +178,7 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
                                 else
                                 {
                                     var newEvent = SportEvent.CreateNew(
-                                        name, eveDateTime, eveDateTime, null, null,
+                                        name, eveDateTime, startTime, null, null,
                                         match.Field, null,
                                         eventTypeId,
                                         req.TeamId, rival.Id,
@@ -221,6 +227,9 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
                 .Produces<SyncCalendarResponse>()
                 .Produces(StatusCodes.Status400BadRequest);
         }
+
+        private static bool HasKnownTime(string? matchTime)
+            => !string.IsNullOrWhiteSpace(matchTime) && TimeSpan.TryParse(matchTime, out _);
 
         private static DateTime BuildMatchDateTime(DateTime matchDate, string? matchTime)
         {

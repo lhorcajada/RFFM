@@ -25,7 +25,11 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
                     })
                 .WithName(nameof(GetTeamPhoto))
                 .WithTags(TeamConstants.TeamFeature)
-                .RequireAuthorization()
+                // Anonymous on purpose: a plain <img src> (match cards, event lists…) can't
+                // attach an Authorization header, and this is the only way to render a team
+                // shield stored via LocalStorageService, whose upload returns a bare
+                // "{bucket}/{file}" relative path instead of a public URL. Same trust level
+                // as rival shields, which are already unauthenticated RFFM/Supabase URLs.
                 .Produces(StatusCodes.Status200OK)
                 .Produces(StatusCodes.Status404NotFound);
         }

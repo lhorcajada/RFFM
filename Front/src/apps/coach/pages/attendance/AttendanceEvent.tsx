@@ -17,20 +17,26 @@ import { getEventTypeColor } from "./attendanceUtils";
 import styles from "./AttendanceEvent.module.css";
 import AttendanceTabs from "./AttendanceTabs";
 import type { MatchState } from "../convocations/components/convocationMatchDetail.types";
+import { resolveStorageUrl } from "../../../../shared/utils/resolveStorageUrl";
 
 function toMatchState(ev: SportEventResponse): MatchState {
   const raw = ev.eveDateTime ?? ev.startTime ?? ev.start ?? null;
   const date = raw ? raw.trim().substring(0, 10) : "";
+  // Only ev.startTime carries a known kickoff time. Falling back to eveDateTime
+  // (the fixture date, always present even before RFFM publishes a time) would
+  // fabricate a fake local time out of the backend's UTC-midnight placeholder.
   let time = "";
-  if (raw && raw.includes("T")) {
-    const part = raw.split("T")[1]?.substring(0, 5) ?? "";
-    if (part !== "00:00") time = part;
+  if (ev.startTime && ev.startTime.includes("T")) {
+    const rawDate = new Date(ev.startTime);
+    if (!isNaN(rawDate.getTime())) {
+      time = rawDate.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+    }
   }
   const isHomeMatch = ev.isHomeMatch !== false;
   const rivalName = ev.rivalName ?? ev.rival ?? "";
   const rivalShield = ev.rivalPhotoUrl ?? "";
   const myTeamName = ev.teamName ?? "";
-  const myTeamShield = ev.teamPhotoUrl ?? "";
+  const myTeamShield = resolveStorageUrl(ev.teamPhotoUrl);
   return {
     date,
     time,
@@ -241,14 +247,19 @@ export default function AttendanceEvent() {
                     <div className={styles.label}>Fecha / Horas</div>
                     <div className={styles.value}>
                       {(() => {
+                        // Date can come from eveDateTime (always present, even
+                        // before RFFM publishes a kickoff time); the start time
+                        // must come strictly from startTime, or it would show a
+                        // fabricated time built from eveDateTime's placeholder.
                         const d = parseDate(
                           event.startTime ??
                             event.start ??
                             event.eveDateTime ??
                             undefined
                         );
-                        const start = d
-                          ? d.toLocaleTimeString(undefined, {
+                        const dTime = parseDate(event.startTime ?? undefined);
+                        const start = dTime
+                          ? dTime.toLocaleTimeString(undefined, {
                               timeStyle: "short",
                             })
                           : "-";
