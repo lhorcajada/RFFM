@@ -83,12 +83,13 @@ vi.mock("../../../../../services/sportEventService", () => ({
   getSportEvents: vi.fn(),
 }));
 
+const getPlayersByTeamMock = vi.fn().mockResolvedValue([
+  { id: "tp-1", playerId: "p-1", name: "Jugador", lastName: "Uno", alias: "J1", urlPhoto: "photo-1.jpg", dorsal: 9 },
+  { id: "tp-2", playerId: "p-2", name: "Jugador", lastName: "Dos", alias: "J2", urlPhoto: null, dorsal: 2 },
+]);
 vi.mock("../../../../../services/teamplayerService", () => ({
   default: {
-    getPlayersByTeam: vi.fn().mockResolvedValue([
-      { id: "tp-1", playerId: "p-1", name: "Jugador", lastName: "Uno", alias: "J1", urlPhoto: "photo-1.jpg" },
-      { id: "tp-2", playerId: "p-2", name: "Jugador", lastName: "Dos", alias: "J2", urlPhoto: null },
-    ]),
+    getPlayersByTeam: (...args: unknown[]) => getPlayersByTeamMock(...args),
   },
 }));
 
@@ -149,5 +150,23 @@ describe("AttendanceSummaryContent — foto y orden del jugador asociado (entren
       return names;
     });
     expect(cards[0]).toHaveTextContent("Jugador Dos");
+  });
+
+  it("ordena las tarjetas por dorsal ascendente", async () => {
+    getRolesMock.mockReturnValue(["Coach"]);
+    getMyProfileMock.mockResolvedValue(null);
+    renderTrainingsTab();
+
+    await waitFor(() => expect(screen.getByRole("tab", { name: /entrenamientos/i })).toBeInTheDocument());
+    screen.getByRole("tab", { name: /entrenamientos/i }).click();
+
+    // tp-2 has dorsal 2, tp-1 has dorsal 9 — Jugador Dos must come first.
+    const cards = await waitFor(() => {
+      const names = screen.getAllByText(/Jugador (Uno|Dos)/);
+      expect(names.length).toBe(2);
+      return names;
+    });
+    expect(cards[0]).toHaveTextContent("Jugador Dos");
+    expect(cards[1]).toHaveTextContent("Jugador Uno");
   });
 });

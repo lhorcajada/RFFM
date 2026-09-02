@@ -21,6 +21,11 @@ interface Props {
   rows: PlayerTrainingSummary[];
 }
 
+function isGoalkeeperPosition(position?: string | null): boolean {
+  const p = (position ?? "").toLowerCase();
+  return p.includes("portero") || p.includes("keeper") || p.includes("arquero");
+}
+
 function playerInitials(name: string): string {
   return name
     .trim()
@@ -96,13 +101,29 @@ export default function AttendanceTrainingsTab({ rows }: Props) {
               <AccordionSummary expandIcon={<ExpandMoreIcon />} className={styles.trainingCardSummary}>
                 <Box className={styles.trainingCardHeader}>
                   <Box className={styles.trainingCardIdentity}>
-                    <Avatar
-                      src={row.photoUrl ?? undefined}
-                      alt={row.playerName}
-                      className={styles.trainingCardAvatar}
-                    >
-                      {playerInitials(row.playerName)}
-                    </Avatar>
+                    <Box className={styles.matchCardAvatarWrap}>
+                      <Avatar
+                        src={row.photoUrl ?? undefined}
+                        alt={row.playerName}
+                        className={styles.trainingCardAvatar}
+                      >
+                        {playerInitials(row.playerName)}
+                      </Avatar>
+                      {row.dorsal != null && (
+                        <span className={styles.matchDorsalBadge} title={`Dorsal ${row.dorsal}`}>
+                          <svg
+                            viewBox="0 0 24 24"
+                            className={`${styles.matchDorsalJersey} ${
+                              isGoalkeeperPosition(row.position) ? styles.matchDorsalJerseyKeeper : ""
+                            }`}
+                            aria-hidden="true"
+                          >
+                            <path d="M8.5 2 L4 4.5 L2 8 L4.5 9.8 L6 8 L6 21 L18 21 L18 8 L19.5 9.8 L22 8 L20 4.5 L15.5 2 C15.5 3.4 13.9 4.5 12 4.5 C10.1 4.5 8.5 3.4 8.5 2 Z" />
+                          </svg>
+                          <span className={styles.matchDorsalNumber}>{row.dorsal}</span>
+                        </span>
+                      )}
+                    </Box>
                     <Typography variant="subtitle1" className={styles.playerName}>
                       {row.playerName}
                     </Typography>

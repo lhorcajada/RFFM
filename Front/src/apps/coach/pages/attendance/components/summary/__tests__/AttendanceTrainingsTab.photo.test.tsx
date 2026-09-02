@@ -42,4 +42,24 @@ describe("AttendanceTrainingsTab — foto del jugador", () => {
 
     expect(screen.getByText("AG")).toBeInTheDocument();
   });
+
+  it("muestra la camiseta azul con el dorsal para un jugador de campo", () => {
+    render(<AttendanceTrainingsTab rows={[makeRow({ dorsal: 4, position: "Defensa" })]} />);
+
+    const jersey = screen.getByTitle("Dorsal 4").querySelector("svg");
+    expect(jersey?.getAttribute("class")).not.toMatch(/matchDorsalJerseyKeeper/);
+  });
+
+  it("muestra la camiseta roja con el dorsal para un portero", () => {
+    render(<AttendanceTrainingsTab rows={[makeRow({ dorsal: 1, position: "Portero" })]} />);
+
+    const jersey = screen.getByTitle("Dorsal 1").querySelector("svg");
+    expect(jersey?.getAttribute("class")).toMatch(/matchDorsalJerseyKeeper/);
+  });
+
+  it("no muestra insignia de dorsal cuando no está disponible", () => {
+    render(<AttendanceTrainingsTab rows={[makeRow({ dorsal: null })]} />);
+
+    expect(screen.queryByTitle(/^Dorsal/)).not.toBeInTheDocument();
+  });
 });

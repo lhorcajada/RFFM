@@ -89,6 +89,36 @@ function makeMatchEvent(id: string, opts: { friendly?: boolean } = {}) {
   };
 }
 
+// Mirrors the real backend: friendly events come back with their own event-type name
+// ("Amistoso", seeded as SportEventType.Id=4) rather than reusing "Partido"/eventTypeId 1.
+function makeRealisticFriendlyEvent(id: string, date = "2026-01-08T10:00:00Z") {
+  return {
+    id,
+    name: `Amistoso ${id}`,
+    title: `Amistoso ${id}`,
+    eventType: "Amistoso",
+    eventTypeId: 4,
+    startTime: date,
+    rivalName: "Rival amistoso",
+    matchCategory: "Friendly",
+  };
+}
+
+// Mirrors the real backend: tournaments ("Torneo", seeded as SportEventType.Id=6)
+// are not counted yet — support for them is not built into the attendance summary.
+function makeRealisticTournamentEvent(id: string) {
+  return {
+    id,
+    name: `Torneo ${id}`,
+    title: `Torneo ${id}`,
+    eventType: "Torneo",
+    eventTypeId: 6,
+    startTime: "2026-01-15T10:00:00Z",
+    rivalName: "Rival torneo",
+    matchCategory: "Tournament",
+  };
+}
+
 describe("AttendanceSummaryContent — partidos amistosos y minutos", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -139,7 +169,10 @@ describe("AttendanceSummaryContent — partidos amistosos y minutos", () => {
     const matchesTab = await screen.findByRole("tab", { name: /partidos/i });
     matchesTab.click();
 
-    expect(await screen.findByText("2 jornadas")).toBeInTheDocument();
+    // League matches and friendlies are counted (and numbered) independently:
+    // 1 jornada de liga + 1 amistoso, not "2 jornadas".
+    expect(await screen.findByText("1 jornadas")).toBeInTheDocument();
+    expect(screen.getByText("1 amistosos")).toBeInTheDocument();
     expect(screen.getByText("Amistoso")).toBeInTheDocument();
   });
 
@@ -152,5 +185,74 @@ describe("AttendanceSummaryContent — partidos amistosos y minutos", () => {
     await waitFor(() => expect(screen.getByText("90'")).toBeInTheDocument());
     expect(screen.getByText("45'")).toBeInTheDocument();
     expect(screen.getByText(/315/)).toBeInTheDocument();
+  });
+
+  it("incluye un partido amistoso con el nombre de tipo real del backend (Amistoso, no Partido)", async () => {
+    // Regression test: the backend seeds the friendly SportEventType as "Amistoso"
+    // (eventTypeId 4), not as a variant of "Partido". classifyEventType() must
+    // recognize this type name as a match, or the event never reaches the
+    // matches tab regardless of matchCategory.
+    getSportEventsMock.mockResolvedValue({
+      items: [makeMatchEvent("event-1"), makeRealisticFriendlyEvent("event-2")],
+      totalPages: 1,
+    });
+
+    render(<AttendanceSummaryContent teamId="team-1" />);
+
+    const matchesTab = await screen.findByRole("tab", { name: /partidos/i });
+    matchesTab.click();
+
+    expect(await screen.findByText("1 jornadas")).toBeInTheDocument();
+    expect(screen.getByText("1 amistosos")).toBeInTheDocument();
+    expect(screen.getByText("Amistoso")).toBeInTheDocument();
+  });
+
+  it("numera las jornadas de liga como J1, J2... y los amistosos como A1, A2... por separado", async () => {
+    // Use a player alias that can't collide with the "J1"/"A1" match labels under test.
+    getPlayersByTeamMock.mockResolvedValue([
+      { id: "tp-1", playerId: "p-1", name: "Estrella", lastName: "Once", alias: "Estrella Once" },
+    ]);
+    getSportEventsMock.mockResolvedValue({
+      items: [
+        makeMatchEvent("league-1"),
+        makeRealisticFriendlyEvent("friendly-1", "2026-01-05T10:00:00Z"),
+        { ...makeMatchEvent("league-2"), startTime: "2026-01-10T10:00:00Z" },
+      ],
+      totalPages: 1,
+    });
+    getTeamConvocationsSummaryMock.mockResolvedValue([
+      { eventId: "league-1", convocationId: "c1", teamPlayerId: "tp-1", playerId: "p-1", alias: "Estrella Once", statusId: 2, assistanceTypeId: null, excuseTypeId: null },
+      { eventId: "friendly-1", convocationId: "c2", teamPlayerId: "tp-1", playerId: "p-1", alias: "Estrella Once", statusId: 2, assistanceTypeId: null, excuseTypeId: null },
+      { eventId: "league-2", convocationId: "c3", teamPlayerId: "tp-1", playerId: "p-1", alias: "Estrella Once", statusId: 2, assistanceTypeId: null, excuseTypeId: null },
+    ]);
+
+    render(<AttendanceSummaryContent teamId="team-1" />);
+
+    const matchesTab = await screen.findByRole("tab", { name: /partidos/i });
+    matchesTab.click();
+
+    // Expand the player's card to see the per-match detail labels.
+    const cardToggle = await screen.findByRole("button", { name: /Estrella Once/i });
+    cardToggle.click();
+
+    expect(await screen.findByText(/^J1/)).toBeInTheDocument();
+    expect(screen.getByText(/^J2/)).toBeInTheDocument();
+    expect(screen.getByText(/^A1/)).toBeInTheDocument();
+  });
+
+  it("no cuenta los torneos todavía (soporte pendiente)", async () => {
+    getSportEventsMock.mockResolvedValue({
+      items: [makeMatchEvent("event-1"), makeRealisticTournamentEvent("event-2")],
+      totalPages: 1,
+    });
+
+    render(<AttendanceSummaryContent teamId="team-1" />);
+
+    const matchesTab = await screen.findByRole("tab", { name: /partidos/i });
+    matchesTab.click();
+
+    expect(await screen.findByText("1 jornadas")).toBeInTheDocument();
+    expect(screen.queryByText(/amistosos/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Torneo/)).not.toBeInTheDocument();
   });
 });

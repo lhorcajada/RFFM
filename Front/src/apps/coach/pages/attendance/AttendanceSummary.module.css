@@ -93,15 +93,11 @@
 
 .matchToolbar {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
   margin-bottom: 12px;
-}
-
-.matchToolbarDesc {
-  opacity: 0.75;
 }
 
 .matchToolbarRight {
@@ -110,81 +106,196 @@
   gap: 8px;
 }
 
-.matchRowClickable {
-  cursor: pointer;
+.matchCardsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  gap: 12px;
+  align-items: start;
 }
 
-.matchPlayerChips {
+.matchCardSummaryContent {
   display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  margin-top: 6px;
-}
-
-.matchTotalsChips {
-  display: inline-flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-
-.matchTableContainer {
-  overflow: auto;
-  /* header (64) + footer (64) + pageheader+actionbar+padding+tabs+inforow ≈ 290px */
-  max-height: calc(100vh - var(--rffm-header-h) - var(--rffm-footer-h) - 290px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.04);
-}
-
-.matchTable {
-  min-width: max-content;
-}
-
-/* reduce padding on non-sticky data cells */
-.matchTable td:not(.matchStickyCell),
-.matchTable th:not(.matchStickyCell) {
-  padding-left: 2px !important;
-  padding-right: 2px !important;
-}
-
-.matchHeaderCell {
-  background: rgba(16, 22, 32, 0.98) !important;
-  color: rgba(255, 255, 255, 0.9) !important;
-  font-weight: 700 !important;
-  white-space: nowrap;
-  padding: 6px 2px !important;
-}
-
-.matchHeaderText {
-  display: inline-flex;
   flex-direction: column;
-  gap: 2px;
-  white-space: pre-line;
-  line-height: 1.15;
+  width: 100%;
+  gap: 10px;
+}
+
+.matchCardIdentity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   min-width: 0;
 }
 
-.matchStickyCell {
-  position: sticky;
-  left: 0;
-  z-index: 2;
-  min-width: 210px;
-  background: rgba(12, 18, 26, 0.98) !important;
-  box-shadow: 12px 0 16px rgba(0, 0, 0, 0.12);
+.matchCardAvatar {
+  width: 40px !important;
+  height: 40px !important;
+  flex: 0 0 auto;
 }
 
-/* name header cell: not sticky-left itself but sits right of the checkbox sticky cell */
-.matchNameHeaderCell {
-  left: 40px; /* width of the checkbox cell */
+.matchCardAvatarWrap {
+  position: relative;
+  flex: 0 0 auto;
+  display: inline-flex;
 }
 
-.matchStickyCell.matchHeaderCell {
-  z-index: 4 !important;
+.matchCardIdentityText {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
 }
 
-.matchPlayerName {
+.matchDorsalBadge {
+  position: absolute;
+  top: -5px;
+  right: -7px;
+  width: 19px;
+  height: 19px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.matchDorsalJersey {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  fill: #2f6fed;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.55));
+}
+
+.matchDorsalJerseyKeeper {
+  fill: #e5393e;
+}
+
+.matchDorsalNumber {
+  position: relative;
+  font-size: 0.52rem;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1;
+  margin-top: 2px;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.5);
+}
+
+.matchCardStatsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.matchFormStripHint {
+  font-size: 0.62rem;
+  opacity: 0.6;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.matchFormStrip {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.matchDetailList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.matchDetailRow {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.matchDetailMain {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.matchDetailLabel {
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.matchDetailMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  opacity: 0.75;
+}
+
+.matchDetailMinutes {
+  opacity: 0.85;
+  white-space: nowrap;
+}
+
+.matchStateBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.75rem;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.matchStateBadgeStarter {
+  background: rgba(76, 175, 80, 0.2);
+  color: #8ff09c;
+  border-color: rgba(76, 175, 80, 0.4);
+}
+
+.matchStateBadgeCalled {
+  background: rgba(255, 152, 0, 0.2);
+  color: #ffcc80;
+  border-color: rgba(255, 152, 0, 0.35);
+}
+
+.matchStateBadgeNotCalled {
+  background: rgba(240, 100, 100, 0.18);
+  color: #ff9b9b;
+  border-color: rgba(240, 100, 100, 0.35);
+}
+
+.matchStateBadgeAbsent {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.45);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.matchFriendlyTag {
+  height: 20px !important;
+  font-size: 0.68rem !important;
   font-weight: 700 !important;
+  background: rgba(255, 152, 0, 0.22) !important;
+  color: #ffcc80 !important;
+}
+
+.matchFriendlyTag :global(.MuiChip-label) {
+  padding: 0 8px !important;
 }
 
 .matchCell {
@@ -241,31 +352,6 @@
   background: rgba(33, 150, 243, 0.18) !important;
 }
 
-.matchFriendlyChip {
-  height: 18px !important;
-  font-size: 0.62rem !important;
-  font-weight: 700 !important;
-  background: rgba(255, 152, 0, 0.22) !important;
-  color: #ffcc80 !important;
-}
-
-.matchFriendlyChip :global(.MuiChip-label) {
-  padding: 0 6px !important;
-}
-
-.matchCellWrap {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1px;
-}
-
-.matchCellMinutes {
-  font-size: 0.62rem;
-  opacity: 0.75;
-  line-height: 1;
-}
-
 .trainingToolbar {
   display: flex;
   justify-content: flex-end;
@@ -289,6 +375,28 @@
 
   .trainingCardsGrid {
     grid-template-columns: 1fr;
+  }
+
+  .matchCardsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .matchDetailRow {
+    grid-template-columns: 1fr;
+    justify-items: flex-start;
+  }
+
+  .matchCardAvatar {
+    width: 34px !important;
+    height: 34px !important;
+  }
+
+  .matchCardStatsRow {
+    gap: 6px;
+  }
+
+  .matchFormStrip {
+    gap: 3px;
   }
 }
 

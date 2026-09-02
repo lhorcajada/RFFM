@@ -23,6 +23,8 @@ export type PlayerTrainingSummary = {
   teamPlayerId: string;
   playerName: string;
   photoUrl?: string | null;
+  dorsal?: number | null;
+  position?: string | null;
   totalTrainings: number;
   attendedTrainings: number;
   absentTrainings: number;
@@ -50,6 +52,9 @@ export type MatchAttendanceColumn = {
 export type PlayerMatchSummary = {
   playerId: string;
   playerName: string;
+  photoUrl?: string | null;
+  dorsal?: number | null;
+  position?: string | null;
   totalMatches: number;
   calledMatches: number;
   startedMatches: number;

@@ -1,5 +1,8 @@
 import { SyntheticEvent, useEffect, useMemo, useState } from "react";
-import { Box, CircularProgress, Tab, Tabs, Typography } from "@mui/material";
+import { Box, CircularProgress, Tab, Tabs, Tooltip, Typography } from "@mui/material";
+import SpaceDashboardOutlinedIcon from "@mui/icons-material/SpaceDashboardOutlined";
+import FitnessCenterIcon from "@mui/icons-material/FitnessCenter";
+import SportsSoccerIcon from "@mui/icons-material/SportsSoccer";
 import EmptyState from "../../../../../../shared/components/ui/EmptyState/EmptyState";
 import type { ConvocationItem } from "../../../../services/convocationService";
 import convocationStatusService from "../../../../services/convocationStatusService";
@@ -41,7 +44,11 @@ function addSummary(base: Summary, partial: Summary): Summary {
 function classifyEventType(name: string | null | undefined): "training" | "match" | "other" {
   const value = (name ?? "").toLowerCase();
   if (/entren|training/.test(value)) return "training";
-  if (/partido|match|jornada/.test(value)) return "match";
+  // Tournaments ("Torneo") are not counted yet — that event type is not fully
+  // supported in the attendance summary yet, so it deliberately falls through
+  // to "other" here (excluded from both the dashboard match totals and the
+  // matches tab) until tournament support is added.
+  if (/partido|match|jornada|amistoso|friendly/.test(value)) return "match";
   return "other";
 }
 
@@ -50,10 +57,6 @@ function isFriendlyEvent(event: SportEventResponse): boolean {
   const eventType = (event.eventType ?? "").toLowerCase();
   const title = (event.title ?? event.name ?? "").toLowerCase();
   return /amist|friendly/.test(eventType) || /amist|friendly/.test(title);
-}
-
-function formatMatchLabel(index: number, _event: SportEventResponse): string {
-  return `J${index + 1}`;
 }
 
 function getEventTypeName(event: SportEventResponse, typeMap: Record<number, string>): string {
@@ -267,8 +270,22 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
           })
         );
 
+        const dorsalByKey: Record<string, number | null> = {};
+        const positionByKey: Record<string, string | null> = {};
+        teamPlayers.forEach((player) => {
+          const dorsal = player.dorsal ?? null;
+          const position = player.position ?? null;
+          if (player.id) dorsalByKey[player.id] = dorsal;
+          if (player.playerId) dorsalByKey[player.playerId] = dorsal;
+          if (player.id) positionByKey[player.id] = position;
+          if (player.playerId) positionByKey[player.playerId] = position;
+        });
+
         const associatedPlayerId = isPlayerOrFamily
           ? (await getMyProfile().catch(() => null))?.playerId ?? null
+          : null;
+        const associatedTeamPlayerId = associatedPlayerId
+          ? teamPlayers.find((player) => player.playerId === associatedPlayerId)?.id ?? null
           : null;
 
         const trainingSummary = await attendanceSummaryService.getTrainingAttendanceSummary(teamId, seasonId);
@@ -294,6 +311,8 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
             teamPlayerId: player.teamPlayerId,
             playerName: player.playerName,
             photoUrl: photoByKey[player.teamPlayerId] ?? (player.playerId ? photoByKey[player.playerId] : null) ?? null,
+            dorsal: dorsalByKey[player.teamPlayerId] ?? (player.playerId ? dorsalByKey[player.playerId] : null) ?? null,
+            position: positionByKey[player.teamPlayerId] ?? (player.playerId ? positionByKey[player.playerId] : null) ?? null,
             totalTrainings: attendedTrainings + absentTrainings,
             attendedTrainings,
             absentTrainings,
@@ -306,6 +325,13 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
                 reason: absence.reason,
               })),
           };
+        });
+
+        nextRows.sort((a, b) => {
+          if (a.dorsal != null && b.dorsal != null) return a.dorsal - b.dorsal;
+          if (a.dorsal != null) return -1;
+          if (b.dorsal != null) return 1;
+          return a.playerName.localeCompare(b.playerName);
         });
 
         if (associatedPlayerId) {
@@ -338,13 +364,22 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
         const lineupByEventId = new Map(
           officialMatchEvents.map(({ event }) => [event.id, teamLineup])
         );
-        const officialMatchColumns: MatchAttendanceColumn[] = officialMatchEvents.map(({ event }, index) => ({
-          eventId: event.id,
-          label: formatMatchLabel(index, event),
-          date: getEventDate(event),
-          rival: event.rivalName ?? event.rival ?? event.name ?? null,
-          isFriendly: isFriendlyEvent(event),
-        }));
+        // League matchdays are numbered "J1, J2, ..." and friendlies "A1, A2, ...",
+        // each sequence counted independently (in chronological order) so a friendly
+        // played between J3 and J4 doesn't get mislabeled as if it were a matchday.
+        let leagueMatchIndex = 0;
+        let friendlyMatchIndex = 0;
+        const officialMatchColumns: MatchAttendanceColumn[] = officialMatchEvents.map(({ event }) => {
+          const friendly = isFriendlyEvent(event);
+          const label = friendly ? `A${++friendlyMatchIndex}` : `J${++leagueMatchIndex}`;
+          return {
+            eventId: event.id,
+            label,
+            date: getEventDate(event),
+            rival: event.rivalName ?? event.rival ?? event.name ?? null,
+            isFriendly: friendly,
+          };
+        });
 
         const playerMap = new Map<string, PlayerMatchSummary & { seen: Set<string> }>();
         teamPlayers.forEach((player) => {
@@ -459,6 +494,9 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
           .map((player) => ({
             playerId: player.playerId,
             playerName: player.playerName,
+            photoUrl: photoByKey[player.playerId] ?? null,
+            dorsal: dorsalByKey[player.playerId] ?? null,
+            position: positionByKey[player.playerId] ?? null,
             totalMatches: officialMatchEvents.length,
             calledMatches: player.calledMatches,
             startedMatches: player.startedMatches,
@@ -477,7 +515,22 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
               );
             }),
           }))
-          .sort((a, b) => b.startedMatches - a.startedMatches || b.calledMatches - a.calledMatches || a.playerName.localeCompare(b.playerName));
+          .sort((a, b) => {
+            if (a.dorsal != null && b.dorsal != null) return a.dorsal - b.dorsal;
+            if (a.dorsal != null) return -1;
+            if (b.dorsal != null) return 1;
+            return a.playerName.localeCompare(b.playerName);
+          });
+
+        if (associatedPlayerId || associatedTeamPlayerId) {
+          const associatedIndex = nextMatchRows.findIndex(
+            (row) => row.playerId === associatedPlayerId || row.playerId === associatedTeamPlayerId
+          );
+          if (associatedIndex > 0) {
+            const [associatedRow] = nextMatchRows.splice(associatedIndex, 1);
+            nextMatchRows.unshift(associatedRow);
+          }
+        }
 
         if (mounted) {
           setSummary(nextSummary);
@@ -527,10 +580,34 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
 
   return (
     <Box>
-      <Tabs value={tab} onChange={handleTabChange} className={styles.tabs}>
-        <Tab value="dashboard" label="Dashboard" />
-        <Tab value="trainings" label="Entrenamientos" />
-        <Tab value="matches" label="Partidos" />
+      <Tabs value={tab} onChange={handleTabChange} className={styles.tabs} variant="fullWidth">
+        <Tab
+          value="dashboard"
+          aria-label="Dashboard"
+          icon={
+            <Tooltip title="Dashboard">
+              <SpaceDashboardOutlinedIcon fontSize="small" />
+            </Tooltip>
+          }
+        />
+        <Tab
+          value="trainings"
+          aria-label="Entrenamientos"
+          icon={
+            <Tooltip title="Entrenamientos">
+              <FitnessCenterIcon fontSize="small" />
+            </Tooltip>
+          }
+        />
+        <Tab
+          value="matches"
+          aria-label="Partidos"
+          icon={
+            <Tooltip title="Partidos">
+              <SportsSoccerIcon fontSize="small" />
+            </Tooltip>
+          }
+        />
       </Tabs>
 
       <div className={styles.tabPanel}>
