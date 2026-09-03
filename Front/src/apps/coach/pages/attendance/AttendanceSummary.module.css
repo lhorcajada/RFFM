@@ -281,16 +281,39 @@
   border-color: rgba(255, 152, 0, 0.35);
 }
 
-.matchStateBadgeNotCalled {
+.matchStateBadgeTechnicalDecision {
   background: rgba(240, 100, 100, 0.18);
   color: #ff9b9b;
   border-color: rgba(240, 100, 100, 0.35);
+}
+
+.matchStateBadgeUnavailable {
+  background: rgba(96, 125, 139, 0.22);
+  color: #b0c4cc;
+  border-color: rgba(96, 125, 139, 0.4);
+}
+
+.matchStateBadgeInjury {
+  background: rgba(156, 39, 176, 0.2);
+  color: #ce93d8;
+  border-color: rgba(156, 39, 176, 0.4);
+}
+
+.matchStateBadgeIllness {
+  background: rgba(255, 179, 0, 0.2);
+  color: #ffd54f;
+  border-color: rgba(255, 179, 0, 0.4);
 }
 
 .matchStateBadgeAbsent {
   background: rgba(255, 255, 255, 0.06);
   color: rgba(255, 255, 255, 0.45);
   border-color: rgba(255, 255, 255, 0.08);
+}
+
+.matchStateBadgeAbbrev {
+  margin-right: 4px;
+  opacity: 0.9;
 }
 
 .matchFriendlyTag {
@@ -329,10 +352,28 @@
   border-color: rgba(255, 152, 0, 0.35);
 }
 
-.matchCellNotCalled {
+.matchCellTechnicalDecision {
   background: rgba(240, 100, 100, 0.18);
   color: #ff9b9b;
   border-color: rgba(240, 100, 100, 0.35);
+}
+
+.matchCellUnavailable {
+  background: rgba(96, 125, 139, 0.22);
+  color: #b0c4cc;
+  border-color: rgba(96, 125, 139, 0.4);
+}
+
+.matchCellInjury {
+  background: rgba(156, 39, 176, 0.2);
+  color: #ce93d8;
+  border-color: rgba(156, 39, 176, 0.4);
+}
+
+.matchCellIllness {
+  background: rgba(255, 179, 0, 0.2);
+  color: #ffd54f;
+  border-color: rgba(255, 179, 0, 0.4);
 }
 
 .matchCellAbsent {
@@ -357,6 +398,55 @@
 
 .matchMetricChipInfo {
   background: rgba(33, 150, 243, 0.18) !important;
+}
+
+.matchMetricChipTechnical,
+.matchMetricChipUnavailable,
+.matchMetricChipInjury,
+.matchMetricChipIllness {
+  font-weight: 600 !important;
+}
+
+.matchMetricChipTechnical {
+  background: rgba(240, 100, 100, 0.18) !important;
+}
+
+.matchMetricChipUnavailable {
+  background: rgba(96, 125, 139, 0.22) !important;
+}
+
+.matchMetricChipInjury {
+  background: rgba(156, 39, 176, 0.2) !important;
+}
+
+.matchMetricChipIllness {
+  background: rgba(255, 179, 0, 0.2) !important;
+}
+
+.matchLegend {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  opacity: 0.85;
+}
+
+.matchLegendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.matchLegendSwatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  border-width: 1px;
+  border-style: solid;
 }
 
 .trainingToolbar {

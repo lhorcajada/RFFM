@@ -74,6 +74,13 @@ vi.mock("../../../../../services/liveMatchService", () => ({
   getSeasonPlayerMinutes: (...args: unknown[]) => getSeasonPlayerMinutesMock(...args),
 }));
 
+const excuseTypeServiceGetExcuseTypesMock = vi.fn();
+vi.mock("../../../../../services/excuseTypeService", () => ({
+  default: {
+    getExcuseTypes: (...args: unknown[]) => excuseTypeServiceGetExcuseTypesMock(...args),
+  },
+}));
+
 import AttendanceSummaryContent from "../AttendanceSummaryContent";
 
 function makeMatchEvent(id: string, opts: { friendly?: boolean } = {}) {
@@ -161,6 +168,7 @@ describe("AttendanceSummaryContent — partidos amistosos y minutos", () => {
       { eventId: "event-2", teamPlayerId: "tp-1", minutesPlayed: 45 },
     ]);
     getSeasonPlayerMinutesMock.mockResolvedValue({ "tp-1": 315 });
+    excuseTypeServiceGetExcuseTypesMock.mockResolvedValue([]);
   });
 
   it("incluye la jornada amistosa en la pestaña de partidos junto a la oficial", async () => {
@@ -326,5 +334,58 @@ describe("AttendanceSummaryContent — partidos amistosos y minutos", () => {
 
     expect(await screen.findByText("Titular")).toBeInTheDocument();
     expect(screen.getByText("Convocado")).toBeInTheDocument();
+  });
+
+  it("clasifica una desconvocatoria con excuseTypeId de lesión como Lesión (letra L) en el detalle", async () => {
+    excuseTypeServiceGetExcuseTypesMock.mockResolvedValue([
+      { id: 10, name: "Lesión", justified: true },
+    ]);
+    getTeamConvocationsSummaryMock.mockResolvedValue([
+      {
+        eventId: "event-1",
+        convocationId: "c1",
+        teamPlayerId: "tp-1",
+        playerId: "p-1",
+        alias: "J1",
+        statusId: 5,
+        assistanceTypeId: null,
+        excuseTypeId: 10,
+      },
+    ]);
+
+    render(<AttendanceSummaryContent teamId="team-1" />);
+
+    const matchesTab = await screen.findByRole("tab", { name: /partidos/i });
+    matchesTab.click();
+
+    const cardToggle = await screen.findByRole("button", { name: /J1/i });
+    cardToggle.click();
+
+    expect(await screen.findByText("Lesión")).toBeInTheDocument();
+  });
+
+  it("clasifica una desconvocatoria sin excuseTypeId como decisión técnica (comportamiento previo)", async () => {
+    getTeamConvocationsSummaryMock.mockResolvedValue([
+      {
+        eventId: "event-1",
+        convocationId: "c1",
+        teamPlayerId: "tp-1",
+        playerId: "p-1",
+        alias: "J1",
+        statusId: 5,
+        assistanceTypeId: null,
+        excuseTypeId: null,
+      },
+    ]);
+
+    render(<AttendanceSummaryContent teamId="team-1" />);
+
+    const matchesTab = await screen.findByRole("tab", { name: /partidos/i });
+    matchesTab.click();
+
+    const cardToggle = await screen.findByRole("button", { name: /J1/i });
+    cardToggle.click();
+
+    expect(await screen.findByText("Decisión técnica")).toBeInTheDocument();
   });
 });

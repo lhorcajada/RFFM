@@ -16,7 +16,10 @@ import liveMatchService from "../../../../services/liveMatchService";
 import playerService from "../../../../services/playerService";
 import { getMyProfile } from "../../../../services/coachApi";
 import { coachAuthService } from "../../../../services/authService";
+import excuseTypeService from "../../../../services/excuseTypeService";
 import { CALLED_STATUS_IDS } from "../../../convocations/components/convocationMatchDetail.types";
+import { classifyNotCalledState } from "./matchAttendanceState";
+import type { MatchAttendanceCellState } from "./types";
 import AttendanceDashboardTab from "./AttendanceDashboardTab";
 import AttendanceMatchesTab from "./AttendanceMatchesTab";
 import AttendanceTrainingsTab from "./AttendanceTrainingsTab";
@@ -148,7 +151,7 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
         }
 
         const seasonId = activeSeason.id;
-        const [eventTypes, statuses, assistanceTypes, teamPlayers, matchMinutesRows, seasonMinutesMap] =
+        const [eventTypes, statuses, assistanceTypes, teamPlayers, matchMinutesRows, seasonMinutesMap, excuseTypes] =
           await Promise.all([
             sportEventTypeService.getSportEventTypes(),
             convocationStatusService.getConvocationStatuses(),
@@ -156,7 +159,11 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
             teamplayerService.getPlayersByTeam(teamId, seasonId),
             liveMatchService.getMatchMinutes(teamId),
             liveMatchService.getSeasonPlayerMinutes(teamId, seasonId),
+            excuseTypeService.getExcuseTypes(),
           ]);
+        const excuseTypesById = new Map(excuseTypes.map((e) => [e.id, e]));
+        const getNotCalledState = (excuseTypeId: number | null | undefined) =>
+          classifyNotCalledState(excuseTypeId, excuseTypesById);
 
         const minutesByEventAndPlayer = new Map<string, number>();
         const starterIdsByEvent = new Map<string, Set<string>>();
@@ -385,19 +392,45 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
           };
         });
 
+        const createEmptyMatchSummary = (
+          playerId: string,
+          playerName: string
+        ): PlayerMatchSummary & { seen: Set<string> } => ({
+          playerId,
+          playerName,
+          totalMatches: officialMatchEvents.length,
+          calledMatches: 0,
+          startedMatches: 0,
+          notCalledMatches: 0,
+          technicalDecisionMatches: 0,
+          unavailableMatches: 0,
+          injuryMatches: 0,
+          illnessMatches: 0,
+          seasonMinutesPlayed: 0,
+          cells: [],
+          seen: new Set<string>(),
+        });
+
+        const bumpNotCalledBreakdown = (
+          player: PlayerMatchSummary,
+          state: Exclude<MatchAttendanceCellState, "starter" | "called" | "absent">
+        ) => {
+          if (state === "technicalDecision") player.technicalDecisionMatches += 1;
+          if (state === "unavailable") player.unavailableMatches += 1;
+          if (state === "injury") player.injuryMatches += 1;
+          if (state === "illness") player.illnessMatches += 1;
+        };
+
         const playerMap = new Map<string, PlayerMatchSummary & { seen: Set<string> }>();
         teamPlayers.forEach((player) => {
           const playerId = player.id;
-          playerMap.set(playerId, {
+          playerMap.set(
             playerId,
-            playerName: (player.alias?.trim() || `${player.name} ${player.lastName ?? ""}`.trim() || "Jugador"),
-            totalMatches: officialMatchEvents.length,
-            calledMatches: 0,
-            startedMatches: 0,
-            notCalledMatches: 0,
-            cells: [],
-            seen: new Set<string>(),
-          });
+            createEmptyMatchSummary(
+              playerId,
+              player.alias?.trim() || `${player.name} ${player.lastName ?? ""}`.trim() || "Jugador"
+            )
+          );
         });
         officialMatchEvents.forEach(({ event, convocations }) => {
           // Real per-match starter status, from MatchParticipation.IsStarter (recorded when
@@ -410,16 +443,7 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
             const playerId = conv.player.id ?? conv.player.playerId ?? "";
             if (!playerId) return;
             const playerName = conv.player.alias ?? conv.player.playerId ?? "Jugador";
-            const existing = playerMap.get(playerId) ?? {
-              playerId,
-              playerName,
-              totalMatches: officialMatchEvents.length,
-              calledMatches: 0,
-              startedMatches: 0,
-              notCalledMatches: 0,
-              cells: [],
-              seen: new Set<string>(),
-            };
+            const existing = playerMap.get(playerId) ?? createEmptyMatchSummary(playerId, playerName);
             if (!playerMap.has(playerId)) playerMap.set(playerId, existing);
             // A match convocation counts as "called" while Pending (awaiting the
             // player's acceptance) or Accepted — only an explicit Deconvoke means
@@ -427,7 +451,11 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
             // above, which is scoped to real post-event attendance for the Dashboard tab.
             const wasCalled = CALLED_STATUS_IDS.has(conv.status);
             const wasStarter = wasCalled && starterIds.has(playerId);
-            const state = wasStarter ? "starter" : wasCalled ? "called" : "notCalled";
+            const state: MatchAttendanceCellState = wasStarter
+              ? "starter"
+              : wasCalled
+              ? "called"
+              : getNotCalledState(conv.excuseTypeId);
             existing.playerName = playerName;
             existing.seen.add(event.id);
             existing.cells.push({
@@ -439,21 +467,15 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
             });
             if (wasCalled) existing.calledMatches += 1;
             if (wasStarter) existing.startedMatches += 1;
-            if (!wasCalled) existing.notCalledMatches += 1;
+            if (!wasCalled) {
+              existing.notCalledMatches += 1;
+              bumpNotCalledBreakdown(existing, state as Exclude<MatchAttendanceCellState, "starter" | "called" | "absent">);
+            }
           });
 
           starterIds.forEach((playerId) => {
             if (!playerId) return;
-            const existing = playerMap.get(playerId) ?? {
-              playerId,
-              playerName: playerId,
-              totalMatches: officialMatchEvents.length,
-              calledMatches: 0,
-              startedMatches: 0,
-              notCalledMatches: 0,
-              cells: [],
-              seen: new Set<string>(),
-            };
+            const existing = playerMap.get(playerId) ?? createEmptyMatchSummary(playerId, playerId);
             if (!playerMap.has(playerId)) playerMap.set(playerId, existing);
             if (!existing.seen.has(event.id)) {
               existing.cells.push({
@@ -471,30 +493,31 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
 
           convocationMap.forEach((conv, playerId) => {
             if (!playerId) return;
-            const existing = playerMap.get(playerId) ?? {
-              playerId,
-              playerName: conv.player.alias ?? conv.player.playerId ?? "Jugador",
-              totalMatches: officialMatchEvents.length,
-              calledMatches: 0,
-              startedMatches: 0,
-              notCalledMatches: 0,
-              cells: [],
-              seen: new Set<string>(),
-            };
+            const existing =
+              playerMap.get(playerId) ??
+              createEmptyMatchSummary(playerId, conv.player.alias ?? conv.player.playerId ?? "Jugador");
             if (!playerMap.has(playerId)) playerMap.set(playerId, existing);
             if (!existing.seen.has(event.id)) {
               const wasCalled = CALLED_STATUS_IDS.has(conv.status);
               const wasStarter = wasCalled && starterIds.has(playerId);
+              const state: MatchAttendanceCellState = wasCalled
+                ? wasStarter
+                  ? "starter"
+                  : "called"
+                : getNotCalledState(conv.excuseTypeId);
               existing.cells.push({
                 eventId: event.id,
-                state: wasCalled ? (wasStarter ? "starter" : "called") : "notCalled",
+                state,
                 wasCalled,
                 wasStarter,
                 minutesPlayed: getMinutesPlayed(event.id, playerId, wasCalled),
               });
               if (wasCalled) existing.calledMatches += 1;
               if (wasStarter) existing.startedMatches += 1;
-              if (!wasCalled) existing.notCalledMatches += 1;
+              if (!wasCalled) {
+                existing.notCalledMatches += 1;
+                bumpNotCalledBreakdown(existing, state as Exclude<MatchAttendanceCellState, "starter" | "called" | "absent">);
+              }
               existing.seen.add(event.id);
             }
           });
@@ -511,6 +534,10 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
             calledMatches: player.calledMatches,
             startedMatches: player.startedMatches,
             notCalledMatches: player.notCalledMatches,
+            technicalDecisionMatches: player.technicalDecisionMatches,
+            unavailableMatches: player.unavailableMatches,
+            injuryMatches: player.injuryMatches,
+            illnessMatches: player.illnessMatches,
             seasonMinutesPlayed: seasonMinutesMap[player.playerId] ?? 0,
             cells: officialMatchColumns.map((column) => {
               const cell = player.cells.find((item) => item.eventId === column.eventId);

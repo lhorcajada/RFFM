@@ -94,6 +94,12 @@ vi.mock("../../../../../services/authService", () => ({
 
 const getTeamConvocationsSummaryMock = vi.fn();
 
+vi.mock("../../../../../services/excuseTypeService", () => ({
+  default: {
+    getExcuseTypes: vi.fn().mockResolvedValue([]),
+  },
+}));
+
 import AttendanceSummaryContent from "../AttendanceSummaryContent";
 
 function makeMatchEvent(id: string, date = "2026-01-01T10:00:00Z") {

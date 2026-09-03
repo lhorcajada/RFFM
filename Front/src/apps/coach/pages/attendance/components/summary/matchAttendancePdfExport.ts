@@ -1,5 +1,6 @@
 import jsPDF from "jspdf";
 import type { MatchAttendanceCellState, MatchAttendanceColumn, PlayerMatchSummary } from "./types";
+import { MATCH_STATE_ABBREV, MATCH_STATE_LABELS, MATCH_STATE_RGB } from "./matchAttendanceState";
 
 // Same cap the collapsed card's form strip uses on screen — "Exportar resumen"
 // mirrors exactly what the collapsed card shows, so it keeps the same limit.
@@ -23,30 +24,26 @@ function isColumnPlayed(column: MatchAttendanceColumn): boolean {
 }
 
 function stateLabel(state: MatchAttendanceCellState): string {
-  switch (state) {
-    case "starter": return "Titular";
-    case "called": return "Convocado";
-    case "notCalled": return "Desconvocado";
-    default: return "No convocado";
-  }
+  return MATCH_STATE_LABELS[state];
 }
 
 function stateAbbrev(state: MatchAttendanceCellState): string {
-  switch (state) {
-    case "starter": return "T";
-    case "called": return "C";
-    case "notCalled": return "D";
-    default: return "-";
-  }
+  return MATCH_STATE_ABBREV[state];
 }
 
 function stateRgb(state: MatchAttendanceCellState): [number, number, number] {
-  switch (state) {
-    case "starter": return [46, 125, 50];
-    case "called": return [21, 101, 192];
-    case "notCalled": return [230, 81, 0];
-    default: return [150, 150, 150];
-  }
+  return MATCH_STATE_RGB[state];
+}
+
+// Breakdown of "not called up" matches by reason, in legend order, each rendered as its
+// own "N motivo" segment — a match summary text segment is omitted entirely when count is 0.
+function notCalledBreakdownSegments(row: PlayerMatchSummary): string[] {
+  const segments: string[] = [];
+  if (row.technicalDecisionMatches > 0) segments.push(`${row.technicalDecisionMatches} técnica`);
+  if (row.unavailableMatches > 0) segments.push(`${row.unavailableMatches} no disp.`);
+  if (row.injuryMatches > 0) segments.push(`${row.injuryMatches} lesión`);
+  if (row.illnessMatches > 0) segments.push(`${row.illnessMatches} enferm.`);
+  return segments;
 }
 
 function findCell(row: PlayerMatchSummary, column: MatchAttendanceColumn) {
@@ -140,7 +137,13 @@ function drawPlayerHeaderRow(doc: jsPDF, row: PlayerMatchSummary, y: number, wid
   doc.setTextColor(30, 30, 30);
   doc.text(row.playerName, x, y + PLAYER_HEADER_H - 6.5);
 
-  const summary = `${row.totalMatches} partidos · ${row.startedMatches} tit. · ${row.notCalledMatches} no conv. · ${row.seasonMinutesPlayed ?? 0} min temporada`;
+  const summaryParts = [
+    `${row.totalMatches} partidos`,
+    `${row.startedMatches} tit.`,
+    ...notCalledBreakdownSegments(row),
+    `${row.seasonMinutesPlayed ?? 0} min temporada`,
+  ];
+  const summary = summaryParts.join(" · ");
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7);
   doc.setTextColor(90, 90, 90);

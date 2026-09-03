@@ -17,7 +17,8 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import { useMemo, useState } from "react";
 import EmptyState from "../../../../../../shared/components/ui/EmptyState/EmptyState";
 import styles from "../../AttendanceSummary.module.css";
-import type { MatchAttendanceColumn, PlayerMatchSummary } from "./types";
+import type { MatchAttendanceCellState, MatchAttendanceColumn, PlayerMatchSummary } from "./types";
+import { MATCH_LEGEND_STATES, MATCH_STATE_ABBREV, MATCH_STATE_LABELS } from "./matchAttendanceState";
 import { exportMatchesFullPdf, exportMatchesSummaryPdf } from "./matchAttendancePdfExport";
 import { coachAuthService } from "../../../../services/authService";
 
@@ -28,25 +29,15 @@ interface Props {
   loading?: boolean;
 }
 
-function cellLabel(state: PlayerMatchSummary["cells"][number]["state"]): string {
-  switch (state) {
-    case "starter": return "T";
-    case "called": return "C";
-    case "notCalled": return "D";
-    default: return "—";
-  }
+function cellLabel(state: MatchAttendanceCellState): string {
+  return MATCH_STATE_ABBREV[state];
 }
 
-function stateLabel(state: PlayerMatchSummary["cells"][number]["state"]): string {
-  switch (state) {
-    case "starter": return "Titular";
-    case "called": return "Convocado";
-    case "notCalled": return "Desconvocado";
-    default: return "No convocado";
-  }
+function stateLabel(state: MatchAttendanceCellState): string {
+  return MATCH_STATE_LABELS[state];
 }
 
-function cellTitle(state: PlayerMatchSummary["cells"][number]["state"], minutesPlayed: number | null): string {
+function cellTitle(state: MatchAttendanceCellState, minutesPlayed: number | null): string {
   const base = stateLabel(state);
   return minutesPlayed != null ? `${base} (${minutesPlayed}')` : base;
 }
@@ -62,19 +53,25 @@ function formatDate(value: string | null): string {
   }).format(date);
 }
 
-const stateClassMap = {
+const stateClassMap: Record<MatchAttendanceCellState, string> = {
   starter: styles.matchCellStarter,
   called: styles.matchCellCalled,
-  notCalled: styles.matchCellNotCalled,
+  technicalDecision: styles.matchCellTechnicalDecision,
+  unavailable: styles.matchCellUnavailable,
+  injury: styles.matchCellInjury,
+  illness: styles.matchCellIllness,
   absent: styles.matchCellAbsent,
-} as const;
+};
 
-const stateBadgeClassMap = {
+const stateBadgeClassMap: Record<MatchAttendanceCellState, string> = {
   starter: styles.matchStateBadgeStarter,
   called: styles.matchStateBadgeCalled,
-  notCalled: styles.matchStateBadgeNotCalled,
+  technicalDecision: styles.matchStateBadgeTechnicalDecision,
+  unavailable: styles.matchStateBadgeUnavailable,
+  injury: styles.matchStateBadgeInjury,
+  illness: styles.matchStateBadgeIllness,
   absent: styles.matchStateBadgeAbsent,
-} as const;
+};
 
 function isGoalkeeperPosition(position?: string | null): boolean {
   const p = (position ?? "").toLowerCase();
@@ -192,6 +189,15 @@ export default function AttendanceMatchesTab({ rows, columns, onRefresh, loading
         </Box>
       </Box>
 
+      <Box className={styles.matchLegend} aria-label="Leyenda de estados de convocatoria">
+        {MATCH_LEGEND_STATES.map((state) => (
+          <span key={state} className={styles.matchLegendItem}>
+            <span aria-hidden="true" className={`${styles.matchLegendSwatch} ${stateClassMap[state]}`} />
+            <span>{`${MATCH_STATE_ABBREV[state]} · ${MATCH_STATE_LABELS[state]}`}</span>
+          </span>
+        ))}
+      </Box>
+
       <Box className={styles.matchCardsGrid}>
         {rows.map((row) => (
           <Accordion key={row.playerId} className={styles.trainingCard} disableGutters elevation={0}>
@@ -231,7 +237,34 @@ export default function AttendanceMatchesTab({ rows, columns, onRefresh, loading
                 <Box className={styles.matchCardStatsRow}>
                   <Chip size="small" className={styles.matchMetricChip} label={`${row.totalMatches} partidos`} />
                   <Chip size="small" className={styles.matchMetricChipSuccess} label={`${row.startedMatches} tit.`} />
-                  <Chip size="small" className={styles.matchMetricChipMuted} label={`${row.notCalledMatches} no conv.`} />
+                  {row.technicalDecisionMatches > 0 && (
+                    <Chip
+                      size="small"
+                      className={styles.matchMetricChipTechnical}
+                      label={`${row.technicalDecisionMatches} técnica`}
+                    />
+                  )}
+                  {row.unavailableMatches > 0 && (
+                    <Chip
+                      size="small"
+                      className={styles.matchMetricChipUnavailable}
+                      label={`${row.unavailableMatches} no disp.`}
+                    />
+                  )}
+                  {row.injuryMatches > 0 && (
+                    <Chip
+                      size="small"
+                      className={styles.matchMetricChipInjury}
+                      label={`${row.injuryMatches} lesión`}
+                    />
+                  )}
+                  {row.illnessMatches > 0 && (
+                    <Chip
+                      size="small"
+                      className={styles.matchMetricChipIllness}
+                      label={`${row.illnessMatches} enferm.`}
+                    />
+                  )}
                   <Chip
                     size="small"
                     className={styles.matchMetricChipInfo}
@@ -278,7 +311,8 @@ export default function AttendanceMatchesTab({ rows, columns, onRefresh, loading
                         </Box>
                       </Box>
                       <span className={`${styles.matchStateBadge} ${stateBadgeClassMap[state]}`}>
-                        {stateLabel(state)}
+                        <span className={styles.matchStateBadgeAbbrev}>{cellLabel(state)}</span>
+                        <span>{stateLabel(state)}</span>
                       </span>
                       {minutesPlayed != null && (
                         <Typography variant="body2" className={styles.matchDetailMinutes}>

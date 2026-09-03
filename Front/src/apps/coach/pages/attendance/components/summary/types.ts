@@ -31,7 +31,17 @@ export type PlayerTrainingSummary = {
   absences: PlayerAbsenceDetail[];
 };
 
-export type MatchAttendanceCellState = "starter" | "called" | "notCalled" | "absent";
+// "technicalDecision" | "unavailable" | "injury" | "illness" are the four sub-states of
+// "not called up", classified from the convocation's excuseTypeId (see matchAttendanceState.ts).
+// "absent" means there is no convocation record at all for that player/event.
+export type MatchAttendanceCellState =
+  | "starter"
+  | "called"
+  | "technicalDecision"
+  | "unavailable"
+  | "injury"
+  | "illness"
+  | "absent";
 
 export type MatchAttendanceCell = {
   eventId: string;
@@ -58,7 +68,12 @@ export type PlayerMatchSummary = {
   totalMatches: number;
   calledMatches: number;
   startedMatches: number;
+  /** Total not-called matches, i.e. technicalDecisionMatches + unavailableMatches + injuryMatches + illnessMatches. */
   notCalledMatches: number;
+  technicalDecisionMatches: number;
+  unavailableMatches: number;
+  injuryMatches: number;
+  illnessMatches: number;
   seasonMinutesPlayed: number;
   cells: MatchAttendanceCell[];
 };

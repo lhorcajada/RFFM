@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import AttendanceMatchesTab from "../AttendanceMatchesTab";
@@ -29,10 +29,14 @@ function makeRow(overrides: Partial<PlayerMatchSummary> = {}): PlayerMatchSummar
     calledMatches: 1,
     startedMatches: 1,
     notCalledMatches: 1,
+    technicalDecisionMatches: 1,
+    unavailableMatches: 0,
+    injuryMatches: 0,
+    illnessMatches: 0,
     seasonMinutesPlayed: 245,
     cells: [
       { eventId: "event-1", state: "starter", wasCalled: true, wasStarter: true, minutesPlayed: 78 },
-      { eventId: "event-2", state: "notCalled", wasCalled: false, wasStarter: false, minutesPlayed: null },
+      { eventId: "event-2", state: "technicalDecision", wasCalled: false, wasStarter: false, minutesPlayed: null },
     ],
     ...overrides,
   };
@@ -61,7 +65,7 @@ describe("AttendanceMatchesTab — minutos y amistosos", () => {
     const row = makeRow({
       cells: [
         { eventId: "event-1", state: "called", wasCalled: true, wasStarter: false, minutesPlayed: 0 },
-        { eventId: "event-2", state: "notCalled", wasCalled: false, wasStarter: false, minutesPlayed: null },
+        { eventId: "event-2", state: "technicalDecision", wasCalled: false, wasStarter: false, minutesPlayed: null },
       ],
     });
     render(<AttendanceMatchesTab rows={[row]} columns={[officialColumn, friendlyColumn]} />);
@@ -142,8 +146,31 @@ describe("AttendanceMatchesTab — resumen de tarjeta colapsada", () => {
 
     expect(screen.getByText("2 partidos")).toBeInTheDocument();
     expect(screen.getByText("1 tit.")).toBeInTheDocument();
-    expect(screen.getByText("1 no conv.")).toBeInTheDocument();
+    expect(screen.getByText("1 técnica")).toBeInTheDocument();
     expect(screen.getByText("245 min temporada")).toBeInTheDocument();
+  });
+
+  it("no muestra chips de motivo de desconvocatoria cuando su contador es 0", () => {
+    render(<AttendanceMatchesTab rows={[makeRow()]} columns={[officialColumn, friendlyColumn]} />);
+
+    expect(screen.queryByText(/^\d+ no disp\.$/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^\d+ lesión$/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^\d+ enferm\.$/)).not.toBeInTheDocument();
+  });
+
+  it("muestra un chip por cada motivo de desconvocatoria con contador > 0", () => {
+    const row = makeRow({
+      technicalDecisionMatches: 1,
+      unavailableMatches: 2,
+      injuryMatches: 1,
+      illnessMatches: 3,
+    });
+    render(<AttendanceMatchesTab rows={[row]} columns={[officialColumn, friendlyColumn]} />);
+
+    expect(screen.getByText("1 técnica")).toBeInTheDocument();
+    expect(screen.getByText("2 no disp.")).toBeInTheDocument();
+    expect(screen.getByText("1 lesión")).toBeInTheDocument();
+    expect(screen.getByText("3 enferm.")).toBeInTheDocument();
   });
 
   it("muestra una tira de forma con un indicador por cada jornada, sin expandir la tarjeta", () => {
@@ -154,7 +181,7 @@ describe("AttendanceMatchesTab — resumen de tarjeta colapsada", () => {
     const summary = container.querySelector('[role="button"]') as HTMLElement;
     expect(summary).toBeInTheDocument();
     const formStripBadges = summary.querySelectorAll(
-      '[class*="matchCellStarter"], [class*="matchCellCalled"], [class*="matchCellNotCalled"], [class*="matchCellAbsent"]'
+      '[class*="matchCellStarter"], [class*="matchCellCalled"], [class*="matchCellTechnicalDecision"], [class*="matchCellAbsent"]'
     );
     expect(formStripBadges).toHaveLength(2);
   });
@@ -237,7 +264,7 @@ describe("AttendanceMatchesTab — resumen de tarjeta colapsada", () => {
 
       const summary = container.querySelector('[role="button"]') as HTMLElement;
       const formStripBadges = summary.querySelectorAll(
-        '[class*="matchCellStarter"], [class*="matchCellCalled"], [class*="matchCellNotCalled"], [class*="matchCellAbsent"]'
+        '[class*="matchCellStarter"], [class*="matchCellCalled"], [class*="matchCellTechnicalDecision"], [class*="matchCellAbsent"]'
       );
       // Only one match has actually been played — the strip should show just that one,
       // not five badges pulled from the end of the full (mostly-future) schedule.
@@ -353,5 +380,98 @@ describe("AttendanceMatchesTab — sin scroll horizontal", () => {
     const { container } = render(<AttendanceMatchesTab rows={[row]} columns={manyColumns} />);
 
     expect(container.querySelectorAll("table")).toHaveLength(0);
+  });
+});
+
+describe("AttendanceMatchesTab — nuevos estados de desconvocatoria (letras)", () => {
+  it("muestra la letra ND en la tira compacta para un jugador no disponible", () => {
+    const row = makeRow({
+      cells: [
+        { eventId: "event-1", state: "starter", wasCalled: true, wasStarter: true, minutesPlayed: 78 },
+        { eventId: "event-2", state: "unavailable", wasCalled: false, wasStarter: false, minutesPlayed: null },
+      ],
+    });
+    const { container } = render(<AttendanceMatchesTab rows={[row]} columns={[officialColumn, friendlyColumn]} />);
+
+    const summary = container.querySelector('[role="button"]') as HTMLElement;
+    expect(within(summary).getByText("ND")).toBeInTheDocument();
+  });
+
+  it("muestra la letra L en la tira compacta para un jugador lesionado", () => {
+    const row = makeRow({
+      cells: [
+        { eventId: "event-1", state: "starter", wasCalled: true, wasStarter: true, minutesPlayed: 78 },
+        { eventId: "event-2", state: "injury", wasCalled: false, wasStarter: false, minutesPlayed: null },
+      ],
+    });
+    const { container } = render(<AttendanceMatchesTab rows={[row]} columns={[officialColumn, friendlyColumn]} />);
+
+    const summary = container.querySelector('[role="button"]') as HTMLElement;
+    expect(within(summary).getByText("L")).toBeInTheDocument();
+  });
+
+  it("muestra la letra E en la tira compacta para un jugador enfermo", () => {
+    const row = makeRow({
+      cells: [
+        { eventId: "event-1", state: "starter", wasCalled: true, wasStarter: true, minutesPlayed: 78 },
+        { eventId: "event-2", state: "illness", wasCalled: false, wasStarter: false, minutesPlayed: null },
+      ],
+    });
+    const { container } = render(<AttendanceMatchesTab rows={[row]} columns={[officialColumn, friendlyColumn]} />);
+
+    const summary = container.querySelector('[role="button"]') as HTMLElement;
+    expect(within(summary).getByText("E")).toBeInTheDocument();
+  });
+
+  it("muestra la letra D en la tira compacta para una decisión técnica (comportamiento previo)", () => {
+    const { container } = render(<AttendanceMatchesTab rows={[makeRow()]} columns={[officialColumn, friendlyColumn]} />);
+
+    const summary = container.querySelector('[role="button"]') as HTMLElement;
+    expect(within(summary).getByText("D")).toBeInTheDocument();
+  });
+});
+
+describe("AttendanceMatchesTab — badge del detalle expandido", () => {
+  it("muestra la letra y el texto completo juntos en la fila de detalle de un jugador titular", async () => {
+    const { container } = render(
+      <AttendanceMatchesTab rows={[makeRow()]} columns={[officialColumn, friendlyColumn]} />
+    );
+
+    await expandCard("Jugador Uno");
+
+    const detailList = container.querySelector('[class*="matchDetailList"]') as HTMLElement;
+    expect(within(detailList).getByText("T")).toBeInTheDocument();
+    expect(within(detailList).getByText("Titular")).toBeInTheDocument();
+  });
+
+  it("muestra el texto completo del motivo de desconvocatoria en el detalle expandido", async () => {
+    const row = makeRow({
+      cells: [
+        { eventId: "event-1", state: "starter", wasCalled: true, wasStarter: true, minutesPlayed: 78 },
+        { eventId: "event-2", state: "injury", wasCalled: false, wasStarter: false, minutesPlayed: null },
+      ],
+    });
+    const { container } = render(
+      <AttendanceMatchesTab rows={[row]} columns={[officialColumn, friendlyColumn]} />
+    );
+
+    await expandCard("Jugador Uno");
+
+    const detailList = container.querySelector('[class*="matchDetailList"]') as HTMLElement;
+    expect(within(detailList).getByText("L")).toBeInTheDocument();
+    expect(within(detailList).getByText("Lesión")).toBeInTheDocument();
+  });
+});
+
+describe("AttendanceMatchesTab — leyenda de estados", () => {
+  it("muestra una leyenda visible con las 6 letras y su significado", () => {
+    render(<AttendanceMatchesTab rows={[makeRow()]} columns={[officialColumn, friendlyColumn]} />);
+
+    expect(screen.getByText(/T\s*(·|=)\s*Titular/)).toBeInTheDocument();
+    expect(screen.getByText(/C\s*(·|=)\s*Convocado/)).toBeInTheDocument();
+    expect(screen.getByText(/D\s*(·|=)\s*Decisión técnica/)).toBeInTheDocument();
+    expect(screen.getByText(/ND\s*(·|=)\s*No disponible/)).toBeInTheDocument();
+    expect(screen.getByText(/L\s*(·|=)\s*Lesión/)).toBeInTheDocument();
+    expect(screen.getByText(/E\s*(·|=)\s*Enfermedad/)).toBeInTheDocument();
   });
 });

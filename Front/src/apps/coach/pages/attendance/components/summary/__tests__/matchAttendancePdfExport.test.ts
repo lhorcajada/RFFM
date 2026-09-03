@@ -66,10 +66,14 @@ function makeRow(overrides: Partial<PlayerMatchSummary> = {}): PlayerMatchSummar
     calledMatches: 1,
     startedMatches: 1,
     notCalledMatches: 1,
+    technicalDecisionMatches: 1,
+    unavailableMatches: 0,
+    injuryMatches: 0,
+    illnessMatches: 0,
     seasonMinutesPlayed: 245,
     cells: [
       { eventId: "event-1", state: "starter", wasCalled: true, wasStarter: true, minutesPlayed: 78 },
-      { eventId: "event-2", state: "notCalled", wasCalled: false, wasStarter: false, minutesPlayed: null },
+      { eventId: "event-2", state: "technicalDecision", wasCalled: false, wasStarter: false, minutesPlayed: null },
     ],
     ...overrides,
   };
@@ -142,7 +146,15 @@ describe("exportMatchesSummaryPdf", () => {
 
   it("incluye los datos agregados de cada jugador", async () => {
     await exportMatchesSummaryPdf(
-      [makeRow({ totalMatches: 7, startedMatches: 4, notCalledMatches: 2, seasonMinutesPlayed: 333 })],
+      [
+        makeRow({
+          totalMatches: 7,
+          startedMatches: 4,
+          notCalledMatches: 2,
+          technicalDecisionMatches: 2,
+          seasonMinutesPlayed: 333,
+        }),
+      ],
       [officialColumn, friendlyColumn]
     );
 
@@ -152,9 +164,42 @@ describe("exportMatchesSummaryPdf", () => {
     expect(joined).toMatch(/2/);
     expect(joined).toMatch(/333/);
   });
+
+  it("desglosa el motivo de no convocado en el resumen agregado, omitiendo los motivos con contador 0", async () => {
+    await exportMatchesSummaryPdf(
+      [
+        makeRow({
+          technicalDecisionMatches: 1,
+          unavailableMatches: 0,
+          injuryMatches: 2,
+          illnessMatches: 0,
+        }),
+      ],
+      [officialColumn, friendlyColumn]
+    );
+
+    const joined = capturedTexts.join(" | ");
+    expect(joined).toMatch(/1 técnica/);
+    expect(joined).toMatch(/2 lesión/);
+    expect(joined).not.toMatch(/no disp\./);
+    expect(joined).not.toMatch(/enferm\./);
+  });
 });
 
 describe("exportMatchesFullPdf", () => {
+  it("incluye el texto completo del motivo de desconvocatoria (lesión, enfermedad, no disponible) en el detalle", async () => {
+    const row = makeRow({
+      cells: [
+        { eventId: "event-1", state: "injury", wasCalled: false, wasStarter: false, minutesPlayed: null },
+        { eventId: "event-2", state: "illness", wasCalled: false, wasStarter: false, minutesPlayed: null },
+      ],
+    });
+    await exportMatchesFullPdf([row], [officialColumn, friendlyColumn]);
+
+    expect(capturedTexts).toContain("Lesión");
+    expect(capturedTexts).toContain("Enfermedad");
+  });
+
   it("incluye jornada, rival, estado y minutos del detalle de cada partido", async () => {
     await exportMatchesFullPdf([makeRow()], [officialColumn, friendlyColumn]);
 

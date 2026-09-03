@@ -67,6 +67,12 @@ vi.mock("../../../../../services/seasonService", () => ({
   },
 }));
 
+vi.mock("../../../../../services/excuseTypeService", () => ({
+  default: {
+    getExcuseTypes: vi.fn().mockResolvedValue([]),
+  },
+}));
+
 import AttendanceSummaryContent from "../AttendanceSummaryContent";
 
 function makeMatchEvent(id: string) {

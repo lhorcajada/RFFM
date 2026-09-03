@@ -112,6 +112,12 @@ vi.mock("../../../../../services/authService", () => ({
   },
 }));
 
+vi.mock("../../../../../services/excuseTypeService", () => ({
+  default: {
+    getExcuseTypes: vi.fn().mockResolvedValue([]),
+  },
+}));
+
 import AttendanceSummaryContent from "../AttendanceSummaryContent";
 
 function renderTrainingsTab() {
