@@ -41,14 +41,7 @@ import ExerciseCromo from "./components/ExerciseCromo";
 import SeasonPlanView from "./season-plan/SeasonPlanView";
 import SeasonPlanEditor from "./season-plan/SeasonPlanEditor";
 import styles from "./Trainings.module.css";
-import { client } from "../../../../core/api/client";
-
-const API_BASE = (client.defaults.baseURL ?? "/").replace(/\/$/, "");
-function mediaUrl(urlImage: string) {
-  if (!urlImage) return urlImage;
-  if (urlImage.startsWith("http://") || urlImage.startsWith("https://")) return urlImage;
-  return `${API_BASE}/api/local-storage/${urlImage}`;
-}
+import { buildExercisePrintHtml } from "./exercisePrint";
 
 function formatDate(iso: string) {
   const d = new Date(iso);
@@ -57,14 +50,6 @@ function formatDate(iso: string) {
 
 function formatTime(t: string) {
   return t ? t.slice(0, 5) : "";
-}
-
-function escapeHtml(value: string) {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
 }
 
 async function waitForPrintWindowReady(printWindow: Window) {
@@ -103,48 +88,8 @@ async function waitForPrintWindowReady(printWindow: Window) {
   });
 }
 
-async function printExercise(exercise: Exercise) {
-  const html = `<!doctype html>
-  <html lang="es">
-    <head>
-      <meta charset="utf-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1" />
-      <title>${escapeHtml(exercise.name)} - PDF</title>
-      <style>
-        @page { size: A4; margin: 12mm; }
-        * { box-sizing: border-box; }
-        body { margin: 0; font-family: Arial, Helvetica, sans-serif; color: #102133; background: #fff; }
-        .sheet { display: flex; flex-direction: column; gap: 14px; }
-        .header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
-        .title { margin: 0; font-size: 24px; line-height: 1.1; }
-        .meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; font-size: 12px; color: #38506b; }
-        .pill { display: inline-flex; align-items: center; border: 1px solid #c9d8e6; border-radius: 999px; padding: 4px 10px; background: #f6f9fc; }
-        .section h3 { margin: 0 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; }
-        .section p, .section li { margin: 0; font-size: 13px; line-height: 1.45; }
-        img { display: block; width: 100%; border-radius: 14px; border: 1px solid #c9d8e6; }
-        @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
-      </style>
-    </head>
-    <body>
-      <div class="sheet">
-        <div class="header">
-          <div>
-            <h1 class="title">${escapeHtml(exercise.name)}</h1>
-            <div class="meta">
-              <span class="pill">${escapeHtml(exercise.tipo)}</span>
-              ${typeof exercise.durationMinutes === "number" ? `<span class="pill">${exercise.durationMinutes} min</span>` : ""}
-            </div>
-          </div>
-        </div>
-
-        <div class="section"><h3>Objetivo</h3><p>${escapeHtml(exercise.objetivo)}</p></div>
-        <div class="section"><h3>Logística</h3><p>${escapeHtml(exercise.logistica)}</p></div>
-        ${exercise.descripcion ? `<div class="section"><h3>Descripción</h3><p>${escapeHtml(exercise.descripcion)}</p></div>` : ""}
-
-        ${exercise.urlImage ? `<div><img src="${escapeHtml(mediaUrl(exercise.urlImage))}" alt="${escapeHtml(exercise.name)}" /></div>` : ""}
-      </div>
-    </body>
-  </html>`;
+async function printExercise(exercise: Exercise, boardDrawingHtml?: string) {
+  const html = buildExercisePrintHtml(exercise, boardDrawingHtml);
 
   const printWindow = window.open("", "_blank", "width=980,height=1200");
   if (!printWindow) return;
@@ -510,7 +455,7 @@ export default function Trainings() {
                       teamId={teamId}
                       onEdit={() => goToExercisePage(ex.id)}
                       onDuplicate={() => duplicateExercise(ex.id)}
-                      onPrint={() => printExercise(ex)}
+                      onPrint={(boardDrawingHtml) => printExercise(ex, boardDrawingHtml)}
                       onDelete={() => setDeleteExId(ex.id)}
                     />
                   ))}

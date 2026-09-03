@@ -21,9 +21,18 @@ export function hasBoardObjects(snapshot: TacticalBoardSnapshot | null): boolean
     Object.keys(snapshot.placedChapas ?? {}).length > 0 ||
     (snapshot.placedSpaces?.length ?? 0) > 0 ||
     (snapshot.placedMaterials?.length ?? 0) > 0 ||
-    (snapshot.placedLines?.length ?? 0) > 0
+    (snapshot.placedLines?.length ?? 0) > 0 ||
+    (snapshot.placedTexts?.length ?? 0) > 0
   );
 }
+
+/** The board editor stores each placed text's `fontSize` in raw px, calibrated to
+ * whatever width the full-size editor pitch happened to render at (it isn't
+ * normalized like chapa/material sizes, which are hand-tuned percentages —
+ * see materialHelpers.ts). This reference width is an approximation of that
+ * editor width, used only to scale text labels down proportionally for this
+ * thumbnail preview. */
+const REFERENCE_EDITOR_HALF_PITCH_WIDTH_PX = 700;
 
 type Props = {
   snapshot: TacticalBoardSnapshot;
@@ -41,6 +50,7 @@ export default function TacticalBoardSnapshotPreview({ snapshot, teamId }: Props
   const spaces = snapshot.placedSpaces ?? [];
   const materials = snapshot.placedMaterials ?? [];
   const lines = snapshot.placedLines ?? [];
+  const texts = snapshot.placedTexts ?? [];
 
   return (
     <div className={styles.board} aria-label="Vista previa de la pizarra">
@@ -223,6 +233,26 @@ export default function TacticalBoardSnapshotPreview({ snapshot, teamId }: Props
             </div>
           );
         })}
+
+        {/* ── Placed texts (labels written on the pitch in the board editor) ── */}
+        {texts.map((text) => (
+          <div
+            key={text.id}
+            className={styles.placedText}
+            style={{
+              left: `${text.x}%`,
+              top: `${text.y}%`,
+              transform: `translate(-50%, -50%) rotate(${text.rotation}deg)`,
+              fontFamily: text.fontFamily,
+              fontSize: `${((text.fontSize * text.scaleX) / REFERENCE_EDITOR_HALF_PITCH_WIDTH_PX) * 100}cqw`,
+              fontWeight: text.bold ? 700 : 400,
+              fontStyle: text.italic ? "italic" : "normal",
+              color: text.color,
+            }}
+          >
+            {text.text}
+          </div>
+        ))}
       </div>
     </div>
   );

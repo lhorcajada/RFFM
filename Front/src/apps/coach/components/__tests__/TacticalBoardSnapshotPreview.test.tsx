@@ -42,6 +42,56 @@ describe("TacticalBoardSnapshotPreview", () => {
     expect(hasBoardObjects({ ...emptySnapshot(), placedLines: [{ id: "l1", kind: "straight", color: "#fff", x1: 0, y1: 0, x2: 1, y2: 1 }] })).toBe(true);
   });
 
+  it("hasBoardObjects reports true when the drawing only has placed texts (no chapas/lines/spaces/materials)", () => {
+    expect(
+      hasBoardObjects({
+        ...emptySnapshot(),
+        placedTexts: [
+          {
+            id: "t1",
+            text: "Presión",
+            x: 30,
+            y: 30,
+            rotation: 0,
+            scaleX: 1,
+            scaleY: 1,
+            locked: false,
+            fontFamily: "Arial",
+            fontSize: 16,
+            bold: false,
+            italic: false,
+            color: "#ffffff",
+          },
+        ],
+      }),
+    ).toBe(true);
+  });
+
+  it("renders placed text labels created in the board editor", () => {
+    const snapshot: TacticalBoardSnapshot = {
+      ...emptySnapshot(),
+      placedTexts: [
+        {
+          id: "t1",
+          text: "Presión alta",
+          x: 30,
+          y: 30,
+          rotation: 0,
+          scaleX: 1,
+          scaleY: 1,
+          locked: false,
+          fontFamily: "Arial",
+          fontSize: 16,
+          bold: true,
+          italic: false,
+          color: "#ffffff",
+        },
+      ],
+    };
+    render(<TacticalBoardSnapshotPreview snapshot={snapshot} />);
+    expect(screen.getByText("Presión alta")).toBeInTheDocument();
+  });
+
   it("renders the real field silhouette (half pitch with goal), not a generic full-field box", () => {
     const { container } = render(<TacticalBoardSnapshotPreview snapshot={emptySnapshot()} />);
     expect(container.querySelector(`.${styles.terrainBandTop}`)).toBeInTheDocument();

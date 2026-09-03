@@ -23,6 +23,10 @@
   width: min(100%, calc(100cqh * 52.5 / 68));
   aspect-ratio: 52.5 / 68;
   overflow: hidden;
+  /* Own container-query context so descendants (placedText's cqw font-size)
+     scale against the pitch's actual rendered width, not the outer .board
+     wrapper (which can be wider than the pitch when the card isn't 52.5:68). */
+  container-type: size;
   background: linear-gradient(
     90deg,
     #1a7a2e 0%,
@@ -431,6 +435,17 @@
   line-height: 1;
   font-weight: 800;
   letter-spacing: 0.02em;
+}
+
+/* ── Placed texts (labels written on the pitch in the board editor) ── */
+
+.placedText {
+  position: absolute;
+  z-index: 7;
+  white-space: nowrap;
+  line-height: 1.1;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
+  pointer-events: none;
 }
 
 .chapaAliasOutside {
