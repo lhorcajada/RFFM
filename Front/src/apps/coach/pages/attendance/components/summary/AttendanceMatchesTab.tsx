@@ -103,6 +103,15 @@ function findCell(row: PlayerMatchSummary, column: MatchAttendanceColumn) {
 // `columns` arrives already in chronological order, so the last N are the most recent.
 const FORM_STRIP_MAX_MATCHES = 5;
 
+// `columns` covers the whole season, including matches not played yet — taking a
+// plain slice(-N) would pull from the end of the schedule (future fixtures) rather
+// than the most recently played ones, especially early in the season.
+function isColumnPlayed(column: MatchAttendanceColumn): boolean {
+  if (!column.date) return false;
+  const date = new Date(column.date);
+  return !Number.isNaN(date.getTime()) && date.getTime() <= Date.now();
+}
+
 export default function AttendanceMatchesTab({ rows, columns, onRefresh, loading }: Props) {
   const [exportingSummary, setExportingSummary] = useState(false);
   const [exportingFull, setExportingFull] = useState(false);
@@ -123,8 +132,9 @@ export default function AttendanceMatchesTab({ rows, columns, onRefresh, loading
     );
   }
 
-  const formStripColumns = columns.slice(-FORM_STRIP_MAX_MATCHES);
-  const formStripOmittedCount = columns.length - formStripColumns.length;
+  const playedColumns = columns.filter(isColumnPlayed);
+  const formStripColumns = playedColumns.slice(-FORM_STRIP_MAX_MATCHES);
+  const formStripOmittedCount = playedColumns.length - formStripColumns.length;
   const leagueColumnsCount = columns.filter((column) => !column.isFriendly).length;
   const friendlyColumnsCount = columns.length - leagueColumnsCount;
 

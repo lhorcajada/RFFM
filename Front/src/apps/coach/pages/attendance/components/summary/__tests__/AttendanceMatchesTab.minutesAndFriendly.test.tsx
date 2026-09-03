@@ -1,7 +1,7 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import AttendanceMatchesTab from "../AttendanceMatchesTab";
 import type { MatchAttendanceColumn, PlayerMatchSummary } from "../types";
 
@@ -196,6 +196,54 @@ describe("AttendanceMatchesTab — resumen de tarjeta colapsada", () => {
       "Convocado (70')",
       "Convocado (80')",
     ]);
+  });
+
+  describe("con partidos futuros programados en el calendario", () => {
+    beforeEach(() => {
+      // A season with 29 scheduled matches (26 liga + 3 amistosos) where only
+      // the very first one has actually been played — mirrors early-season data.
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2026-09-03T12:00:00Z"));
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("la tira de forma solo cuenta partidos ya jugados, no descarta el único jugado por partidos futuros", () => {
+      const playedColumn: MatchAttendanceColumn = {
+        eventId: "played-1",
+        label: "A1",
+        date: "2026-09-02T10:00:00Z", // in the past relative to the mocked "now"
+        rival: "Rival jugado",
+        isFriendly: true,
+      };
+      const futureColumns: MatchAttendanceColumn[] = Array.from({ length: 28 }, (_, index) => ({
+        eventId: `future-${index}`,
+        label: `J${index + 1}`,
+        date: `2026-10-${String((index % 28) + 1).padStart(2, "0")}T10:00:00Z`, // in the future
+        rival: `Rival ${index + 1}`,
+        isFriendly: false,
+      }));
+      const columns = [playedColumn, ...futureColumns];
+      const row = makeRow({
+        totalMatches: columns.length,
+        cells: [
+          { eventId: "played-1", state: "starter", wasCalled: true, wasStarter: true, minutesPlayed: 5 },
+        ],
+      });
+
+      const { container } = render(<AttendanceMatchesTab rows={[row]} columns={columns} />);
+
+      const summary = container.querySelector('[role="button"]') as HTMLElement;
+      const formStripBadges = summary.querySelectorAll(
+        '[class*="matchCellStarter"], [class*="matchCellCalled"], [class*="matchCellNotCalled"], [class*="matchCellAbsent"]'
+      );
+      // Only one match has actually been played — the strip should show just that one,
+      // not five badges pulled from the end of the full (mostly-future) schedule.
+      expect(formStripBadges).toHaveLength(1);
+      expect(formStripBadges[0].getAttribute("title")).toBe("Titular (5')");
+    });
   });
 });
 
