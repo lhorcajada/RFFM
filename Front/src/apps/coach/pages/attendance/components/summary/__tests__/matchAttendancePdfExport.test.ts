@@ -104,6 +104,42 @@ describe("exportMatchesSummaryPdf", () => {
     expect(capturedFileNames[0]).toMatch(/^resumen_partidos/);
   });
 
+  it("la tira de forma solo cuenta partidos ya jugados, no los últimos del calendario completo", async () => {
+    // Same bug as the on-screen card: `columns` covers the whole season, including
+    // future fixtures. A plain slice(-5) would pull from the tail of the schedule
+    // (all future) instead of the most recently played matches.
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-03T12:00:00Z"));
+    try {
+      const playedColumn: MatchAttendanceColumn = {
+        eventId: "played-1",
+        label: "A1",
+        date: "2026-09-02T10:00:00Z",
+        rival: "Rival jugado",
+        isFriendly: true,
+      };
+      const futureColumns: MatchAttendanceColumn[] = Array.from({ length: 6 }, (_, index) => ({
+        eventId: `future-${index}`,
+        label: `J${index + 1}`,
+        date: `2026-10-${String(index + 1).padStart(2, "0")}T10:00:00Z`,
+        rival: `Rival ${index + 1}`,
+        isFriendly: false,
+      }));
+      const row = makeRow({
+        totalMatches: 7,
+        cells: [
+          { eventId: "played-1", state: "starter", wasCalled: true, wasStarter: true, minutesPlayed: 5 },
+        ],
+      });
+
+      await exportMatchesSummaryPdf([row], [playedColumn, ...futureColumns]);
+
+      expect(capturedTexts.filter((t) => t === "T")).toHaveLength(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("incluye los datos agregados de cada jugador", async () => {
     await exportMatchesSummaryPdf(
       [makeRow({ totalMatches: 7, startedMatches: 4, notCalledMatches: 2, seasonMinutesPlayed: 333 })],
@@ -177,6 +213,40 @@ describe("exportMatchesFullPdf", () => {
     const indices = ["Zutano", "Alfonso", "Benito"].map((name) => capturedTexts.indexOf(name));
     expect(indices[0]).toBeLessThan(indices[1]);
     expect(indices[1]).toBeLessThan(indices[2]);
+  });
+
+  it("no incluye partidos futuros (aún no jugados) en el detalle", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-03T12:00:00Z"));
+    try {
+      const playedColumn: MatchAttendanceColumn = {
+        eventId: "played-1",
+        label: "A1",
+        date: "2026-09-02T10:00:00Z",
+        rival: "Rival jugado",
+        isFriendly: true,
+      };
+      const futureColumn: MatchAttendanceColumn = {
+        eventId: "future-1",
+        label: "J1",
+        date: "2026-10-01T10:00:00Z",
+        rival: "Rival futuro",
+        isFriendly: false,
+      };
+      const row = makeRow({
+        totalMatches: 2,
+        cells: [
+          { eventId: "played-1", state: "starter", wasCalled: true, wasStarter: true, minutesPlayed: 5 },
+        ],
+      });
+
+      await exportMatchesFullPdf([row], [playedColumn, futureColumn]);
+
+      expect(capturedTexts.join(" | ")).toContain("Rival jugado");
+      expect(capturedTexts.join(" | ")).not.toContain("Rival futuro");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("guarda el PDF con un nombre de archivo que empieza por partidos_completo", async () => {

@@ -13,6 +13,15 @@ function isGoalkeeperPosition(position?: string | null): boolean {
   return p.includes("portero") || p.includes("keeper") || p.includes("arquero");
 }
 
+// `columns` covers the whole season, including matches not played yet — taking a
+// plain slice(-N) would pull from the end of the schedule (future fixtures) rather
+// than the most recently played ones, especially early in the season.
+function isColumnPlayed(column: MatchAttendanceColumn): boolean {
+  if (!column.date) return false;
+  const date = new Date(column.date);
+  return !Number.isNaN(date.getTime()) && date.getTime() <= Date.now();
+}
+
 function stateLabel(state: MatchAttendanceCellState): string {
   switch (state) {
     case "starter": return "Titular";
@@ -152,7 +161,7 @@ function drawFormStrip(
   y: number,
   width: number,
 ): number {
-  const stripColumns = columns.slice(-FORM_STRIP_MAX_MATCHES);
+  const stripColumns = columns.filter(isColumnPlayed).slice(-FORM_STRIP_MAX_MATCHES);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(6.5);
   doc.setTextColor(110, 110, 110);
@@ -294,6 +303,7 @@ export async function exportMatchesFullPdf(
   const W = doc.internal.pageSize.getWidth();
   const width = W - 2 * MH;
   const title = "Partidos — informe completo";
+  const playedColumns = columns.filter(isColumnPlayed);
 
   let y = drawPageHeader(doc, title, teamName);
 
@@ -303,7 +313,7 @@ export async function exportMatchesFullPdf(
     y = drawPlayerHeaderRow(doc, row, y, width);
 
     let rowIndex = 0;
-    for (const column of columns) {
+    for (const column of playedColumns) {
       y = ensureSpace(doc, y, DETAIL_ROW_H, title, teamName);
       y = drawMatchDetailRow(doc, row, column, y, width, rowIndex);
       rowIndex++;
