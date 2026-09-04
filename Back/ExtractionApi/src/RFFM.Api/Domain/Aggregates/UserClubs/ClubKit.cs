@@ -38,5 +38,12 @@ namespace RFFM.Api.Domain.Aggregates.UserClubs
                 SocksColor = socksColor,
             };
         }
+
+        public void UpdateColors(string shirtColor, string shortsColor, string socksColor)
+        {
+            ShirtColor = shirtColor;
+            ShortsColor = shortsColor;
+            SocksColor = socksColor;
+        }
     }
 }

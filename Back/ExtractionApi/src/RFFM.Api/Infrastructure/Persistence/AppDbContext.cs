@@ -106,6 +106,9 @@ namespace RFFM.Api.Infrastructure.Persistence
         public DbSet<TeamRulesSet> TeamRulesSets { get; set; }
         public DbSet<TeamRule> TeamRules { get; set; }
 
+        // Team convocation notes
+        public DbSet<TeamNote> TeamNotes { get; set; }
+
         // Game Model
         public DbSet<GameModel> GameModels { get; set; }
         public DbSet<GameMoment> GameMoments { get; set; }
