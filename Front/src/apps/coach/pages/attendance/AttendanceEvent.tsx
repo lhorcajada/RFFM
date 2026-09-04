@@ -13,9 +13,12 @@ import clubService from "../../services/clubService";
 import { Box, Button, CircularProgress, Chip } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SportsSoccerIcon from "@mui/icons-material/SportsSoccer";
+import EditIcon from "@mui/icons-material/Edit";
 import { getEventTypeColor } from "./attendanceUtils";
 import styles from "./AttendanceEvent.module.css";
 import AttendanceTabs from "./AttendanceTabs";
+import SportEventDialog from "./components/SportEventDialog";
+import { coachAuthService } from "../../services/authService";
 import type { MatchState } from "../convocations/components/convocationMatchDetail.types";
 import { resolveStorageUrl } from "../../../../shared/utils/resolveStorageUrl";
 
@@ -76,6 +79,12 @@ export default function AttendanceEvent() {
   const [loading, setLoading] = useState(true);
   const [event, setEvent] = useState<SportEventResponse | null>(null);
   const [eventTypeName, setEventTypeName] = useState<string | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const canEditEvent =
+    coachAuthService.hasRole("Administrator") ||
+    coachAuthService.hasRole("Coach") ||
+    coachAuthService.hasRole("ClubDirector") ||
+    coachAuthService.hasRole("ClubMember");
 
   useEffect(() => {
     let mounted = true;
@@ -201,6 +210,16 @@ export default function AttendanceEvent() {
               >
                 Volver
               </Button>
+              {event && canEditEvent && (
+                <Button
+                  startIcon={<EditIcon />}
+                  variant="outlined"
+                  size="small"
+                  onClick={() => setEditOpen(true)}
+                >
+                  Editar
+                </Button>
+              )}
               {event && /part|amist/i.test(eventTypeName ?? "") && (
                 <Button
                   startIcon={<SportsSoccerIcon />}
@@ -370,6 +389,18 @@ export default function AttendanceEvent() {
           )}
         </Box>
       </ContentLayout>
+      {event?.teamId && canEditEvent && (
+        <SportEventDialog
+          open={editOpen}
+          teamId={event.teamId}
+          event={event}
+          onClose={() => setEditOpen(false)}
+          onSaved={(updated) => {
+            setEditOpen(false);
+            if (updated) setEvent(updated);
+          }}
+        />
+      )}
     </BaseLayout>
   );
 }
