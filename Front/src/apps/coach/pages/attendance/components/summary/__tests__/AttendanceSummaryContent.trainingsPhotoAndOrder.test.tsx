@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../../../../services/convocationService", () => ({
@@ -19,9 +19,12 @@ vi.mock("../../../../../services/convocationStatusService", () => ({
   },
 }));
 
+const getAssistanceTypesMock = vi.fn().mockResolvedValue([]);
+const getTeamConvocationsSummaryMock = vi.fn().mockResolvedValue([]);
+
 vi.mock("../../../../../services/assistanceTypeService", () => ({
   default: {
-    getAssistanceTypes: vi.fn().mockResolvedValue([]),
+    getAssistanceTypes: (...args: unknown[]) => getAssistanceTypesMock(...args),
   },
 }));
 
@@ -50,7 +53,7 @@ vi.mock("../../../../../services/attendanceSummaryService", () => ({
         },
       ],
     }),
-    getTeamConvocationsSummary: vi.fn().mockResolvedValue([]),
+    getTeamConvocationsSummary: (...args: unknown[]) => getTeamConvocationsSummaryMock(...args),
   },
 }));
 
@@ -174,5 +177,57 @@ describe("AttendanceSummaryContent — foto y orden del jugador asociado (entren
     });
     expect(cards[0]).toHaveTextContent("Jugador Dos");
     expect(cards[1]).toHaveTextContent("Jugador Uno");
+  });
+
+  it("el Resumen global coincide con la tarjeta de Entrenamientos cuando es el único tipo de evento", async () => {
+    // Regression: nextSummary.total was accumulated in a first pass that only
+    // evaluates convocations whose status literally matches "Accepted"
+    // (acceptedSet), before nextSummary.training gets recalculated (and
+    // overwritten) from a second pass over ALL convocations for the event,
+    // regardless of status — the recalculated, more-correct training numbers
+    // never fed back into total. Here both players have a convocation with a
+    // non-"Accepted" status (id 1, not in the mocked status catalog below) so
+    // the first pass excludes them entirely (0/0), while the second pass still
+    // classifies them as attend/absent via assistanceTypeId — exposing exactly
+    // the mismatch the user reported (dashboard total didn't match the tile).
+    getRolesMock.mockReturnValue(["Coach"]);
+    getMyProfileMock.mockResolvedValue(null);
+    getAssistanceTypesMock.mockResolvedValue([
+      { id: 10, name: "Asistencia" },
+      { id: 20, name: "No asistencia" },
+    ]);
+    getTeamConvocationsSummaryMock.mockResolvedValue([
+      {
+        eventId: "event-1",
+        convocationId: "c1",
+        teamPlayerId: "tp-1",
+        playerId: "p-1",
+        alias: "J1",
+        statusId: 1,
+        assistanceTypeId: 10,
+        excuseTypeId: null,
+      },
+      {
+        eventId: "event-1",
+        convocationId: "c2",
+        teamPlayerId: "tp-2",
+        playerId: "p-2",
+        alias: "J2",
+        statusId: 1,
+        assistanceTypeId: 20,
+        excuseTypeId: null,
+      },
+    ]);
+    render(<AttendanceSummaryContent teamId="team-1" />);
+
+    const globalCard = (await screen.findByText("Resumen global")).closest("article") as HTMLElement;
+    const trainingCard = screen.getByText("Entrenamientos").closest("article") as HTMLElement;
+
+    await waitFor(() =>
+      expect(within(trainingCard).getByText("Asisten").parentElement).toHaveTextContent("1")
+    );
+    expect(within(trainingCard).getByText("No asisten").parentElement).toHaveTextContent("1");
+    expect(within(globalCard).getByText("Asisten").parentElement).toHaveTextContent("1");
+    expect(within(globalCard).getByText("No asisten").parentElement).toHaveTextContent("1");
   });
 });

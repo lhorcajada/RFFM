@@ -261,7 +261,8 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
             };
 
             const kind = classifyEventType(getEventTypeName(event, typeMap));
-            nextSummary.total = addSummary(nextSummary.total, eventSummary);
+            // total is derived from training/match/other after all three are finalized (see below) —
+            // training in particular gets recalculated later, so it's never accumulated here.
             if (kind === "training") nextSummary.training = addSummary(nextSummary.training, eventSummary);
             // A friendly is still a match for this dashboard aggregate — only the
             // Matches tab distinguishes official (J1) vs friendly (A1) jornadas.
@@ -568,6 +569,15 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
             nextMatchRows.unshift(associatedRow);
           }
         }
+
+        // Total is always the sum of the three tiles below, computed last so it can never
+        // drift from them — training in particular gets recalculated above (a richer,
+        // more accurate pass over all convocations for the event) after total's own
+        // first pass already ran, so total must be derived, not accumulated independently.
+        nextSummary.total = addSummary(
+          addSummary(nextSummary.training, nextSummary.match),
+          nextSummary.other
+        );
 
         if (mounted) {
           setSummary(nextSummary);
