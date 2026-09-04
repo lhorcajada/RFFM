@@ -67,6 +67,30 @@ export default function NewsDetail() {
           )}
           <p className={styles.date}>{new Date(news.newsDate).toLocaleDateString("es-ES", { dateStyle: "medium" })}</p>
           <div className={styles.body}>{news.body}</div>
+
+          {news.linkType === "MatchConvocation" && news.linkedEventId && (
+            <Button
+              variant="outlined"
+              onClick={() =>
+                navigate(`/coach/attendance/${news.linkedEventId}?viewConvocation=1`)
+              }
+              sx={{ mt: 2 }}
+            >
+              Ver convocatoria
+            </Button>
+          )}
+
+          {news.linkType === "External" && news.linkUrl && (
+            <a
+              href={news.linkUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.valueLink}
+              style={{ display: "inline-block", marginTop: "16px" }}
+            >
+              Ver enlace
+            </a>
+          )}
         </Box>
       </ContentLayout>
     </BaseLayout>

@@ -122,5 +122,84 @@ namespace RFFM.Api.Tests.UnitTests
             Assert.Equal(DateTimeKind.Utc, news.NewsDate.Kind);
             Assert.Equal(new DateTime(2026, 8, 15, 0, 0, 0, DateTimeKind.Utc), news.NewsDate);
         }
+
+        // Link type tests
+        [Fact]
+        public async Task Handle_WithLinkTypeNone_PersistsLinkFieldsAsNull()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var handler = new CreateNewsHandler(db);
+            var command = new CreateNewsCommand(
+                Title: "Link None News",
+                Subtitle: "Subtitle",
+                Body: "Body",
+                CoverImageUrl: "https://example.com/image.jpg",
+                Status: "Draft",
+                NewsDate: new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc),
+                LinkType: "None"
+            );
+
+            var newsId = await handler.Handle(command, CancellationToken.None);
+
+            await using var verifyDb = _fixture.CreateDbContext();
+            var news = await verifyDb.News.SingleAsync(n => n.Id == newsId);
+            Assert.Equal(NewsLinkType.None, news.LinkType);
+            Assert.Null(news.LinkedEventId);
+            Assert.Null(news.LinkedTeamId);
+            Assert.Null(news.LinkUrl);
+        }
+
+        [Fact]
+        public async Task Handle_WithMatchConvocation_PersistsEventAndTeamIds()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var handler = new CreateNewsHandler(db);
+            var command = new CreateNewsCommand(
+                Title: "Match News",
+                Subtitle: "Subtitle",
+                Body: "Body",
+                CoverImageUrl: "https://example.com/image.jpg",
+                Status: "Draft",
+                NewsDate: new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc),
+                LinkType: "MatchConvocation",
+                LinkedEventId: "event-123",
+                LinkedTeamId: "team-456"
+            );
+
+            var newsId = await handler.Handle(command, CancellationToken.None);
+
+            await using var verifyDb = _fixture.CreateDbContext();
+            var news = await verifyDb.News.SingleAsync(n => n.Id == newsId);
+            Assert.Equal(NewsLinkType.MatchConvocation, news.LinkType);
+            Assert.Equal("event-123", news.LinkedEventId);
+            Assert.Equal("team-456", news.LinkedTeamId);
+            Assert.Null(news.LinkUrl);
+        }
+
+        [Fact]
+        public async Task Handle_WithExternal_PersistsUrl()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var handler = new CreateNewsHandler(db);
+            var command = new CreateNewsCommand(
+                Title: "External Link News",
+                Subtitle: "Subtitle",
+                Body: "Body",
+                CoverImageUrl: "https://example.com/image.jpg",
+                Status: "Draft",
+                NewsDate: new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc),
+                LinkType: "External",
+                LinkUrl: "https://maps.google.com/place/abc"
+            );
+
+            var newsId = await handler.Handle(command, CancellationToken.None);
+
+            await using var verifyDb = _fixture.CreateDbContext();
+            var news = await verifyDb.News.SingleAsync(n => n.Id == newsId);
+            Assert.Equal(NewsLinkType.External, news.LinkType);
+            Assert.Null(news.LinkedEventId);
+            Assert.Null(news.LinkedTeamId);
+            Assert.Equal("https://maps.google.com/place/abc", news.LinkUrl);
+        }
     }
 }

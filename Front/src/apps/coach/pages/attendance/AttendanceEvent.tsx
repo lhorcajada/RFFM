@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import {
@@ -46,6 +46,7 @@ function parseDate(input?: string | null): Date | null {
 export default function AttendanceEvent() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [event, setEvent] = useState<SportEventResponse | null>(null);
   const [eventTypeName, setEventTypeName] = useState<string | null>(null);
@@ -66,6 +67,14 @@ export default function AttendanceEvent() {
   const convocation = useConvocationManagement(event?.teamId ?? "", matchState?.date);
   const convocationConfirmed =
     convocation.mgmtCalled.length > 0 && convocation.mgmtPending.length === 0;
+
+  // Deep link from elsewhere in the app (e.g. a news item linked to this match) — opens the
+  // same popup the "Ver convocatoria" button opens, once the data it needs is ready.
+  useEffect(() => {
+    if (searchParams.get("viewConvocation") === "1" && isMatchOrFriendly && convocationConfirmed) {
+      setViewConvocationOpen(true);
+    }
+  }, [searchParams, isMatchOrFriendly, convocationConfirmed]);
 
   useEffect(() => {
     const teamId = event?.teamId;

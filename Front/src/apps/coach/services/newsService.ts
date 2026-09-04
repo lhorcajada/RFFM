@@ -10,6 +10,10 @@ export type NewsSummaryDto = {
   status: NewsStatusValue;
   publishedAt: string | null;
   newsDate: string;
+  linkType: "None" | "MatchConvocation" | "External";
+  linkedEventId: string | null;
+  linkedTeamId: string | null;
+  linkUrl: string | null;
 };
 
 export type NewsDetailDto = NewsSummaryDto & {
@@ -24,6 +28,10 @@ export type NewsPayload = {
   body: string;
   coverImageUrl: string;
   newsDate: string;
+  linkType: "None" | "MatchConvocation" | "External";
+  linkedEventId: string | null;
+  linkedTeamId: string | null;
+  linkUrl: string | null;
 };
 
 export async function getNews(
@@ -66,6 +74,10 @@ export async function createNews(
     CoverImageUrl: payload.coverImageUrl,
     Status: payload.status,
     NewsDate: payload.newsDate,
+    LinkType: payload.linkType,
+    LinkedEventId: payload.linkedEventId,
+    LinkedTeamId: payload.linkedTeamId,
+    LinkUrl: payload.linkUrl,
   });
   return resp.data;
 }
@@ -77,6 +89,10 @@ export async function updateNews(id: string, payload: NewsPayload): Promise<void
     Body: payload.body,
     CoverImageUrl: payload.coverImageUrl,
     NewsDate: payload.newsDate,
+    LinkType: payload.linkType,
+    LinkedEventId: payload.linkedEventId,
+    LinkedTeamId: payload.linkedTeamId,
+    LinkUrl: payload.linkUrl,
   });
 }
 

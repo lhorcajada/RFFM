@@ -59,7 +59,8 @@ namespace RFFM.Api.Features.Coaches.News
 
             return new NewsDetailResponse(
                 news.Id, news.Title, news.Subtitle, news.Body, news.CoverImageUrl,
-                news.Status.Name, news.PublishedAt, news.NewsDate, news.CreatedAt, news.UpdatedAt);
+                news.Status.Name, news.PublishedAt, news.NewsDate, news.CreatedAt, news.UpdatedAt,
+                news.LinkType.Name, news.LinkedEventId, news.LinkedTeamId, news.LinkUrl);
         }
     }
 }

@@ -11,11 +11,34 @@ namespace RFFM.Api.Domain.Entities.News
         public DateTime NewsDate { get; private set; }
         public DateTime CreatedAt { get; private set; }
         public DateTime UpdatedAt { get; private set; }
+        public NewsLinkType LinkType { get; private set; } = NewsLinkType.None;
+        public string? LinkedEventId { get; private set; }
+        public string? LinkedTeamId { get; private set; }
+        public string? LinkUrl { get; private set; }
 
         private NewsItem() { }
 
-        public static NewsItem Create(string title, string subtitle, string body, string coverImageUrl, NewsStatus status, DateTime newsDate)
+        private static void ValidateLink(NewsLinkType linkType, string? linkedEventId, string? linkedTeamId, string? linkUrl)
         {
+            if (linkType == NewsLinkType.MatchConvocation)
+            {
+                if (string.IsNullOrWhiteSpace(linkedEventId) || string.IsNullOrWhiteSpace(linkedTeamId))
+                    throw new ArgumentException("El partido enlazado es obligatorio para este tipo de enlace.");
+            }
+            else if (linkType == NewsLinkType.External)
+            {
+                if (string.IsNullOrWhiteSpace(linkUrl))
+                    throw new ArgumentException("La URL es obligatoria para este tipo de enlace.");
+            }
+        }
+
+        public static NewsItem Create(
+            string title, string subtitle, string body, string coverImageUrl, NewsStatus status, DateTime newsDate,
+            NewsLinkType linkType = null!, string? linkedEventId = null, string? linkedTeamId = null, string? linkUrl = null)
+        {
+            // Handle backward compatibility: if linkType is null, default to None
+            linkType = linkType ?? NewsLinkType.None;
+
             if (string.IsNullOrWhiteSpace(title))
                 throw new ArgumentException("El título es obligatorio.");
             if (string.IsNullOrWhiteSpace(subtitle))
@@ -29,6 +52,8 @@ namespace RFFM.Api.Domain.Entities.News
             if (newsDate == default)
                 throw new ArgumentException("La fecha de la noticia es obligatoria.");
 
+            ValidateLink(linkType, linkedEventId, linkedTeamId, linkUrl);
+
             var now = DateTime.UtcNow;
             return new NewsItem
             {
@@ -40,12 +65,21 @@ namespace RFFM.Api.Domain.Entities.News
                 PublishedAt = status == NewsStatus.Published ? now : null,
                 NewsDate = DateTime.SpecifyKind(newsDate.Date, DateTimeKind.Utc),
                 CreatedAt = now,
-                UpdatedAt = now
+                UpdatedAt = now,
+                LinkType = linkType,
+                LinkedEventId = linkedEventId?.Trim(),
+                LinkedTeamId = linkedTeamId?.Trim(),
+                LinkUrl = linkUrl?.Trim()
             };
         }
 
-        public void UpdateContent(string title, string subtitle, string body, string coverImageUrl, DateTime newsDate)
+        public void UpdateContent(
+            string title, string subtitle, string body, string coverImageUrl, DateTime newsDate,
+            NewsLinkType linkType = null!, string? linkedEventId = null, string? linkedTeamId = null, string? linkUrl = null)
         {
+            // Handle backward compatibility: if linkType is null, default to None
+            linkType = linkType ?? NewsLinkType.None;
+
             if (string.IsNullOrWhiteSpace(title))
                 throw new ArgumentException("El título es obligatorio.");
             if (string.IsNullOrWhiteSpace(subtitle))
@@ -57,11 +91,17 @@ namespace RFFM.Api.Domain.Entities.News
             if (newsDate == default)
                 throw new ArgumentException("La fecha de la noticia es obligatoria.");
 
+            ValidateLink(linkType, linkedEventId, linkedTeamId, linkUrl);
+
             Title = title.Trim();
             Subtitle = subtitle.Trim();
             Body = body;
             CoverImageUrl = coverImageUrl;
             NewsDate = DateTime.SpecifyKind(newsDate.Date, DateTimeKind.Utc);
+            LinkType = linkType;
+            LinkedEventId = linkedEventId?.Trim();
+            LinkedTeamId = linkedTeamId?.Trim();
+            LinkUrl = linkUrl?.Trim();
             UpdatedAt = DateTime.UtcNow;
         }
 

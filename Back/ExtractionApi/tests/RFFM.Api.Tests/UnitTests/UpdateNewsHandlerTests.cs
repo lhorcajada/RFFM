@@ -139,5 +139,99 @@ namespace RFFM.Api.Tests.UnitTests
             );
             Assert.Equal(ErrorCodes.NewsNotFound, exception.Code);
         }
+
+        // Link type tests
+        [Fact]
+        public async Task Handle_WithMatchConvocation_PersistsEventAndTeamIds()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var news = await CreateTestNewsAsync(seedDb, NewsStatus.Draft);
+
+            await using var db = _fixture.CreateDbContext();
+            var handler = new UpdateNewsHandler(db);
+            var command = new UpdateNewsCommand(
+                Title: "Updated Title",
+                Subtitle: "Updated Subtitle",
+                Body: "Updated Body",
+                CoverImageUrl: "https://example.com/updated.jpg",
+                NewsDate: new DateTime(2026, 10, 15, 0, 0, 0, DateTimeKind.Utc),
+                LinkType: "MatchConvocation",
+                LinkedEventId: "event-123",
+                LinkedTeamId: "team-456"
+            )
+            { Id = news.Id };
+
+            await handler.Handle(command, CancellationToken.None);
+
+            await using var verifyDb = _fixture.CreateDbContext();
+            var updated = await verifyDb.News.SingleAsync(n => n.Id == news.Id);
+            Assert.Equal(NewsLinkType.MatchConvocation, updated.LinkType);
+            Assert.Equal("event-123", updated.LinkedEventId);
+            Assert.Equal("team-456", updated.LinkedTeamId);
+            Assert.Null(updated.LinkUrl);
+        }
+
+        [Fact]
+        public async Task Handle_WithExternal_PersistsUrl()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var news = await CreateTestNewsAsync(seedDb, NewsStatus.Draft);
+
+            await using var db = _fixture.CreateDbContext();
+            var handler = new UpdateNewsHandler(db);
+            var command = new UpdateNewsCommand(
+                Title: "Updated Title",
+                Subtitle: "Updated Subtitle",
+                Body: "Updated Body",
+                CoverImageUrl: "https://example.com/updated.jpg",
+                NewsDate: new DateTime(2026, 10, 15, 0, 0, 0, DateTimeKind.Utc),
+                LinkType: "External",
+                LinkUrl: "https://maps.google.com/place/xyz"
+            )
+            { Id = news.Id };
+
+            await handler.Handle(command, CancellationToken.None);
+
+            await using var verifyDb = _fixture.CreateDbContext();
+            var updated = await verifyDb.News.SingleAsync(n => n.Id == news.Id);
+            Assert.Equal(NewsLinkType.External, updated.LinkType);
+            Assert.Null(updated.LinkedEventId);
+            Assert.Null(updated.LinkedTeamId);
+            Assert.Equal("https://maps.google.com/place/xyz", updated.LinkUrl);
+        }
+
+        [Fact]
+        public async Task Handle_ChangingFromExternalToNone_ClearsLinkUrl()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var news = NewsItem.Create(
+                "Original Title", "Original Subtitle", "Original Body", "https://example.com/original.jpg",
+                NewsStatus.Draft, new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc),
+                NewsLinkType.External, null, null, "https://maps.google.com/old"
+            );
+            seedDb.News.Add(news);
+            await seedDb.SaveChangesAsync();
+
+            await using var db = _fixture.CreateDbContext();
+            var handler = new UpdateNewsHandler(db);
+            var command = new UpdateNewsCommand(
+                Title: "Updated Title",
+                Subtitle: "Updated Subtitle",
+                Body: "Updated Body",
+                CoverImageUrl: "https://example.com/updated.jpg",
+                NewsDate: new DateTime(2026, 10, 15, 0, 0, 0, DateTimeKind.Utc),
+                LinkType: "None"
+            )
+            { Id = news.Id };
+
+            await handler.Handle(command, CancellationToken.None);
+
+            await using var verifyDb = _fixture.CreateDbContext();
+            var updated = await verifyDb.News.SingleAsync(n => n.Id == news.Id);
+            Assert.Equal(NewsLinkType.None, updated.LinkType);
+            Assert.Null(updated.LinkedEventId);
+            Assert.Null(updated.LinkedTeamId);
+            Assert.Null(updated.LinkUrl);
+        }
     }
 }

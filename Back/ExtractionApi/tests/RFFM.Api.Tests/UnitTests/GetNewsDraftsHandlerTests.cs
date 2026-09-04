@@ -96,5 +96,58 @@ namespace RFFM.Api.Tests.UnitTests
             Assert.Equal("Draft 2", result[0].Title);
             Assert.Equal("Draft 1", result[1].Title);
         }
+
+        // Link type tests
+        [Fact]
+        public async Task Handle_WithMatchConvocation_ReturnsEventAndTeamIds()
+        {
+            await ClearNewsTableAsync();
+            await using var seedDb = _fixture.CreateDbContext();
+            var news = NewsItem.Create(
+                "Title", "Sub", "Body", "https://example.com/image.jpg", NewsStatus.Draft,
+                new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc),
+                NewsLinkType.MatchConvocation, "event-123", "team-456", null
+            );
+            seedDb.News.Add(news);
+            await seedDb.SaveChangesAsync();
+
+            await using var db = _fixture.CreateDbContext();
+            var handler = new GetNewsDraftsHandler(db, null!);
+            var query = new GetNewsDraftsQuery(1, 20);
+
+            var result = await handler.Handle(query, CancellationToken.None);
+
+            Assert.Single(result);
+            Assert.Equal("MatchConvocation", result[0].LinkType);
+            Assert.Equal("event-123", result[0].LinkedEventId);
+            Assert.Equal("team-456", result[0].LinkedTeamId);
+            Assert.Null(result[0].LinkUrl);
+        }
+
+        [Fact]
+        public async Task Handle_WithExternal_ReturnsUrl()
+        {
+            await ClearNewsTableAsync();
+            await using var seedDb = _fixture.CreateDbContext();
+            var news = NewsItem.Create(
+                "Title", "Sub", "Body", "https://example.com/image.jpg", NewsStatus.Draft,
+                new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc),
+                NewsLinkType.External, null, null, "https://maps.google.com/abc"
+            );
+            seedDb.News.Add(news);
+            await seedDb.SaveChangesAsync();
+
+            await using var db = _fixture.CreateDbContext();
+            var handler = new GetNewsDraftsHandler(db, null!);
+            var query = new GetNewsDraftsQuery(1, 20);
+
+            var result = await handler.Handle(query, CancellationToken.None);
+
+            Assert.Single(result);
+            Assert.Equal("External", result[0].LinkType);
+            Assert.Null(result[0].LinkedEventId);
+            Assert.Null(result[0].LinkedTeamId);
+            Assert.Equal("https://maps.google.com/abc", result[0].LinkUrl);
+        }
     }
 }

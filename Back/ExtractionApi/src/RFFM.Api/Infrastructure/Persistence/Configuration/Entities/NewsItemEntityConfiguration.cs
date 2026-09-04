@@ -21,6 +21,10 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Entities
             builder.Property(n => n.NewsDate).IsRequired();
             builder.Property(n => n.CreatedAt).IsRequired();
             builder.Property(n => n.UpdatedAt).IsRequired();
+            builder.Property(n => n.LinkType).IsRequired();
+            builder.Property(n => n.LinkedEventId).HasMaxLength(50).IsRequired(false);
+            builder.Property(n => n.LinkedTeamId).HasMaxLength(50).IsRequired(false);
+            builder.Property(n => n.LinkUrl).HasMaxLength(2000).IsRequired(false);
 
             builder.HasIndex(n => new { n.Status, n.PublishedAt });
         }

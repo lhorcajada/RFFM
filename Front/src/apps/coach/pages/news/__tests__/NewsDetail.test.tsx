@@ -42,6 +42,7 @@ function renderAt(id: string) {
       <Routes>
         <Route path="/coach/news/:id" element={<NewsDetail />} />
         <Route path="/coach/news" element={<div>lista de noticias</div>} />
+        <Route path="/coach/attendance/:eventId" element={<div>popup de convocatoria</div>} />
       </Routes>
     </MemoryRouter>
   );
@@ -95,6 +96,10 @@ describe("NewsDetail", () => {
       newsDate: "2026-08-01T00:00:00Z",
       createdAt: "2026-08-01T00:00:00Z",
       updatedAt: "2026-08-01T00:00:00Z",
+      linkType: "None",
+      linkedEventId: null,
+      linkedTeamId: null,
+      linkUrl: null,
     });
 
     const { default: userEvent } = await import("@testing-library/user-event");
@@ -104,5 +109,82 @@ describe("NewsDetail", () => {
     await userEvent.click(screen.getByRole("button", { name: /volver a noticias/i }));
 
     expect(await screen.findByText("lista de noticias")).toBeInTheDocument();
+  });
+
+  it("renders 'Ver convocatoria' button for MatchConvocation link type", async () => {
+    vi.mocked(newsService.getNewsById).mockResolvedValue({
+      id: "n1",
+      title: "Título",
+      subtitle: "Sub",
+      body: "Cuerpo",
+      coverImageUrl: "",
+      status: "Published",
+      publishedAt: "2026-08-01T00:00:00Z",
+      newsDate: "2026-08-01T00:00:00Z",
+      createdAt: "2026-08-01T00:00:00Z",
+      updatedAt: "2026-08-01T00:00:00Z",
+      linkType: "MatchConvocation",
+      linkedEventId: "event-123",
+      linkedTeamId: "team-456",
+      linkUrl: null,
+    });
+
+    const { default: userEvent } = await import("@testing-library/user-event");
+    renderAt("n1");
+
+    const button = await screen.findByRole("button", { name: /ver convocatoria/i });
+    await userEvent.click(button);
+
+    expect(await screen.findByText("popup de convocatoria")).toBeInTheDocument();
+  });
+
+  it("renders external link for External link type", async () => {
+    vi.mocked(newsService.getNewsById).mockResolvedValue({
+      id: "n1",
+      title: "Título",
+      subtitle: "Sub",
+      body: "Cuerpo",
+      coverImageUrl: "",
+      status: "Published",
+      publishedAt: "2026-08-01T00:00:00Z",
+      newsDate: "2026-08-01T00:00:00Z",
+      createdAt: "2026-08-01T00:00:00Z",
+      updatedAt: "2026-08-01T00:00:00Z",
+      linkType: "External",
+      linkedEventId: null,
+      linkedTeamId: null,
+      linkUrl: "https://maps.google.com/place/abc",
+    });
+
+    renderAt("n1");
+
+    const link = await screen.findByRole("link", { name: /ver enlace/i });
+    expect(link).toHaveAttribute("href", "https://maps.google.com/place/abc");
+    expect(link).toHaveAttribute("target", "_blank");
+  });
+
+  it("does not render link buttons for None link type", async () => {
+    vi.mocked(newsService.getNewsById).mockResolvedValue({
+      id: "n1",
+      title: "Título",
+      subtitle: "Sub",
+      body: "Cuerpo",
+      coverImageUrl: "",
+      status: "Published",
+      publishedAt: "2026-08-01T00:00:00Z",
+      newsDate: "2026-08-01T00:00:00Z",
+      createdAt: "2026-08-01T00:00:00Z",
+      updatedAt: "2026-08-01T00:00:00Z",
+      linkType: "None",
+      linkedEventId: null,
+      linkedTeamId: null,
+      linkUrl: null,
+    });
+
+    renderAt("n1");
+
+    await screen.findByText("Cuerpo");
+    expect(screen.queryByRole("button", { name: /ver convocatoria/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /ver enlace/i })).not.toBeInTheDocument();
   });
 });

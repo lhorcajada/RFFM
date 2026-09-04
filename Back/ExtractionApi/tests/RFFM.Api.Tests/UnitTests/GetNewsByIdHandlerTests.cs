@@ -157,5 +157,90 @@ namespace RFFM.Api.Tests.UnitTests
 
             Assert.Null(result);
         }
+
+        // Link type tests
+        [Fact]
+        public async Task Handle_WithLinkTypeNone_ReturnsNullLinkFields()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var news = NewsItem.Create(
+                "Title", "Sub", "Body", "https://example.com/image.jpg", NewsStatus.Published,
+                new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc),
+                NewsLinkType.None, null, null, null
+            );
+            seedDb.News.Add(news);
+            await seedDb.SaveChangesAsync();
+
+            var mockCurrentUser = new Mock<ICurrentUserService>();
+            mockCurrentUser.Setup(x => x.Roles).Returns(new[] { "FamilyMember" });
+
+            await using var db = _fixture.CreateDbContext();
+            var handler = new GetNewsByIdHandler(db, mockCurrentUser.Object);
+            var query = new GetNewsByIdQuery(news.Id);
+
+            var result = await handler.Handle(query, CancellationToken.None);
+
+            Assert.NotNull(result);
+            Assert.Equal("None", result.LinkType);
+            Assert.Null(result.LinkedEventId);
+            Assert.Null(result.LinkedTeamId);
+            Assert.Null(result.LinkUrl);
+        }
+
+        [Fact]
+        public async Task Handle_WithMatchConvocation_ReturnsEventAndTeamIds()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var news = NewsItem.Create(
+                "Title", "Sub", "Body", "https://example.com/image.jpg", NewsStatus.Published,
+                new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc),
+                NewsLinkType.MatchConvocation, "event-123", "team-456", null
+            );
+            seedDb.News.Add(news);
+            await seedDb.SaveChangesAsync();
+
+            var mockCurrentUser = new Mock<ICurrentUserService>();
+            mockCurrentUser.Setup(x => x.Roles).Returns(new[] { "FamilyMember" });
+
+            await using var db = _fixture.CreateDbContext();
+            var handler = new GetNewsByIdHandler(db, mockCurrentUser.Object);
+            var query = new GetNewsByIdQuery(news.Id);
+
+            var result = await handler.Handle(query, CancellationToken.None);
+
+            Assert.NotNull(result);
+            Assert.Equal("MatchConvocation", result.LinkType);
+            Assert.Equal("event-123", result.LinkedEventId);
+            Assert.Equal("team-456", result.LinkedTeamId);
+            Assert.Null(result.LinkUrl);
+        }
+
+        [Fact]
+        public async Task Handle_WithExternal_ReturnsUrl()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var news = NewsItem.Create(
+                "Title", "Sub", "Body", "https://example.com/image.jpg", NewsStatus.Published,
+                new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc),
+                NewsLinkType.External, null, null, "https://maps.google.com/abc"
+            );
+            seedDb.News.Add(news);
+            await seedDb.SaveChangesAsync();
+
+            var mockCurrentUser = new Mock<ICurrentUserService>();
+            mockCurrentUser.Setup(x => x.Roles).Returns(new[] { "FamilyMember" });
+
+            await using var db = _fixture.CreateDbContext();
+            var handler = new GetNewsByIdHandler(db, mockCurrentUser.Object);
+            var query = new GetNewsByIdQuery(news.Id);
+
+            var result = await handler.Handle(query, CancellationToken.None);
+
+            Assert.NotNull(result);
+            Assert.Equal("External", result.LinkType);
+            Assert.Null(result.LinkedEventId);
+            Assert.Null(result.LinkedTeamId);
+            Assert.Equal("https://maps.google.com/abc", result.LinkUrl);
+        }
     }
 }

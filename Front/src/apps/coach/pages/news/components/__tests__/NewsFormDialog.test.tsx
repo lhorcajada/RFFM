@@ -10,11 +10,34 @@ vi.mock("../../../../services/newsService", () => ({
   },
 }));
 
+vi.mock("../../../../services/sportEventService", () => ({
+  getSportEvents: vi.fn(),
+}));
+
+vi.mock("../../../Dashboard/hooks/useUserTeams", () => ({
+  useUserTeams: vi.fn(),
+}));
+
 import newsService from "../../../../services/newsService";
+import { getSportEvents } from "../../../../services/sportEventService";
+import { useUserTeams } from "../../../Dashboard/hooks/useUserTeams";
 
 describe("NewsFormDialog", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(useUserTeams).mockReturnValue({
+      teams: [
+        {
+          id: "team-1",
+          name: "Alevín A",
+          category: { id: 1, name: "Alevín" },
+          league: {},
+          club: { id: "club-1", name: "Club X", country: { id: 1, name: "España", code: "ES" } },
+        } as any,
+      ],
+      loading: false,
+      error: null,
+    });
   });
 
   it("shows validation errors when required fields are empty", async () => {
@@ -120,5 +143,112 @@ describe("NewsFormDialog", () => {
         expect.objectContaining({ coverImageUrl: "https://example.com/uploaded.jpg" })
       )
     );
+  });
+
+  // Link type tests
+  it("default state has 'Ninguno' selected and sends null link fields", async () => {
+    vi.mocked(newsService.createNews).mockResolvedValue({ id: "n1" });
+    vi.mocked(newsService.uploadNewsImage).mockResolvedValue("https://example.com/img.jpg");
+
+    render(<NewsFormDialog open onClose={vi.fn()} onSaved={vi.fn()} />);
+
+    fireEvent.change(screen.getByLabelText(/^título$/i), { target: { value: "T" } });
+    fireEvent.change(screen.getByLabelText(/subtítulo/i), { target: { value: "S" } });
+    fireEvent.change(screen.getByLabelText(/cuerpo|contenido/i), { target: { value: "B" } });
+    fireEvent.change(screen.getByLabelText(/fecha/i), { target: { value: "2026-09-01" } });
+
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(["x"], "cover.jpg", { type: "image/jpeg" });
+    fireEvent.change(fileInput, { target: { files: [file] } });
+
+    await waitFor(() => expect(newsService.uploadNewsImage).toHaveBeenCalled());
+
+    fireEvent.click(screen.getByRole("button", { name: /guardar/i }));
+
+    await waitFor(() =>
+      expect(newsService.createNews).toHaveBeenCalledWith(
+        expect.objectContaining({
+          linkType: "None",
+          linkedEventId: null,
+          linkedTeamId: null,
+          linkUrl: null,
+        })
+      )
+    );
+  });
+
+  it("selecting 'Convocatoria de partido' lists the coach's teams and, after picking one, only its League/Friendly/Tournament matches (not trainings), labeled with category, date and rival", async () => {
+    vi.mocked(newsService.createNews).mockResolvedValue({ id: "n1" });
+    vi.mocked(newsService.uploadNewsImage).mockResolvedValue("https://example.com/img.jpg");
+    vi.mocked(getSportEvents).mockResolvedValue({
+      items: [
+        {
+          id: "event-1",
+          title: "Jornada 3",
+          matchCategory: "League",
+          rivalName: "Rival FC",
+          eveDateTime: "2026-09-07T00:00:00Z",
+        } as any,
+        {
+          id: "training-1",
+          title: "Entrenamiento martes",
+          matchCategory: null,
+          eventTypeId: 2,
+          eventType: "Entrenamiento",
+        } as any,
+      ],
+      pageNumber: 1,
+      pageSize: 10,
+      totalItems: 2,
+      totalPages: 1,
+    } as any);
+
+    render(<NewsFormDialog open onClose={vi.fn()} onSaved={vi.fn()} />);
+
+    fireEvent.change(screen.getByLabelText(/^título$/i), { target: { value: "T" } });
+    fireEvent.change(screen.getByLabelText(/subtítulo/i), { target: { value: "S" } });
+    fireEvent.change(screen.getByLabelText(/cuerpo|contenido/i), { target: { value: "B" } });
+    fireEvent.change(screen.getByLabelText(/fecha/i), { target: { value: "2026-09-01" } });
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(fileInput, {
+      target: { files: [new File(["x"], "cover.jpg", { type: "image/jpeg" })] },
+    });
+    await waitFor(() => expect(newsService.uploadNewsImage).toHaveBeenCalled());
+
+    fireEvent.mouseDown(screen.getByLabelText(/^enlace$/i));
+    fireEvent.click(await screen.findByRole("option", { name: /convocatoria de partido/i }));
+
+    fireEvent.mouseDown(screen.getByLabelText(/^equipo$/i));
+    fireEvent.click(await screen.findByRole("option", { name: "Alevín A" }));
+
+    await waitFor(() => expect(getSportEvents).toHaveBeenCalledWith("team-1", 1, 200));
+
+    fireEvent.mouseDown(screen.getByLabelText(/^partido$/i));
+    expect(screen.queryByRole("option", { name: /entrenamiento/i })).not.toBeInTheDocument();
+    fireEvent.click(await screen.findByRole("option", { name: /liga.*rival fc/i }));
+
+    fireEvent.click(screen.getByRole("button", { name: /guardar/i }));
+
+    await waitFor(() =>
+      expect(newsService.createNews).toHaveBeenCalledWith(
+        expect.objectContaining({
+          linkType: "MatchConvocation",
+          linkedTeamId: "team-1",
+          linkedEventId: "event-1",
+        })
+      )
+    );
+  });
+
+  it("requires both a team and a match before submit when linking to a convocation", async () => {
+    render(<NewsFormDialog open onClose={vi.fn()} onSaved={vi.fn()} />);
+
+    fireEvent.mouseDown(screen.getByLabelText(/^enlace$/i));
+    fireEvent.click(await screen.findByRole("option", { name: /convocatoria de partido/i }));
+
+    fireEvent.click(screen.getByRole("button", { name: /guardar/i }));
+
+    expect(await screen.findByText(/selecciona un equipo/i)).toBeInTheDocument();
+    expect(newsService.createNews).not.toHaveBeenCalled();
   });
 });

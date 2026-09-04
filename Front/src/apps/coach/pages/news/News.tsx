@@ -58,9 +58,12 @@ export default function News() {
     }
   }, [isCoach, tab, loadDrafts]);
 
+  // Publishing/unpublishing/deleting can move an item between the Publicadas and
+  // Borradores tabs, so both lists are refetched — not just the active tab — otherwise
+  // switching tabs shows stale data until a full page reload.
   const refetchActiveTab = () => {
-    if (tab === "drafts") loadDrafts();
-    else loadPublished();
+    loadPublished();
+    if (isCoach) loadDrafts();
   };
 
   const openCreateForm = () => {

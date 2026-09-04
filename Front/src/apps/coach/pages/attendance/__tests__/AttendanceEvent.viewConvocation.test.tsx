@@ -97,9 +97,9 @@ vi.mock("../../convocations/components/ConvocationDetailsDialog", () => ({
 
 import AttendanceEvent from "../AttendanceEvent";
 
-function renderPage() {
+function renderPage(initialEntry = "/coach/attendance/event-1") {
   return render(
-    <MemoryRouter initialEntries={["/coach/attendance/event-1"]}>
+    <MemoryRouter initialEntries={[initialEntry]}>
       <Routes>
         <Route path="/coach/attendance/:id" element={<AttendanceEvent />} />
       </Routes>
@@ -203,5 +203,36 @@ describe("AttendanceEvent - botón Ver convocatoria", () => {
     await user.click(btn);
 
     expect(await screen.findByTestId("convocation-details-dialog")).toBeInTheDocument();
+  });
+
+  it("opens the convocation dialog automatically when navigated to with ?viewConvocation=1 (e.g. from a linked news item)", async () => {
+    getSportEventByIdMock.mockResolvedValue({
+      id: "event-1",
+      title: "Partido vs Rival",
+      teamId: "team-1",
+      eventType: "Partidos",
+    });
+    convocationMock.mgmtCalled = ["p1"];
+    convocationMock.mgmtPending = [];
+
+    renderPage("/coach/attendance/event-1?viewConvocation=1");
+
+    expect(await screen.findByTestId("convocation-details-dialog")).toBeInTheDocument();
+  });
+
+  it("does not auto-open the convocation dialog without the ?viewConvocation=1 query param", async () => {
+    getSportEventByIdMock.mockResolvedValue({
+      id: "event-1",
+      title: "Partido vs Rival",
+      teamId: "team-1",
+      eventType: "Partidos",
+    });
+    convocationMock.mgmtCalled = ["p1"];
+    convocationMock.mgmtPending = [];
+
+    renderPage();
+
+    await screen.findByRole("button", { name: /ver convocatoria/i });
+    expect(screen.queryByTestId("convocation-details-dialog")).not.toBeInTheDocument();
   });
 });

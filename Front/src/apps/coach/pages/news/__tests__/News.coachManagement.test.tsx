@@ -113,6 +113,33 @@ describe("News page — Coach/Administrator management", () => {
     expect(screen.getByRole("button", { name: /^publicar$/i })).toBeInTheDocument();
   });
 
+  it("publishing a draft immediately refreshes the Publicadas tab too, without a page reload", async () => {
+    vi.mocked(newsService.publishNews).mockResolvedValue({ ...draftItem, status: "Published" } as any);
+
+    render(
+      <MemoryRouter>
+        <News />
+      </MemoryRouter>
+    );
+    await screen.findByText("Noticia publicada");
+    fireEvent.click(screen.getByRole("tab", { name: /borradores/i }));
+    await screen.findByText("Borrador");
+
+    // After publishing, the backend would now return the item in the published list too.
+    vi.mocked(newsService.getNews).mockResolvedValue([
+      publishedItem,
+      { ...draftItem, status: "Published" as const },
+    ]);
+    vi.mocked(newsService.getNewsDrafts).mockResolvedValue([]);
+
+    fireEvent.click(screen.getByRole("button", { name: /^publicar$/i }));
+    await waitFor(() => expect(newsService.publishNews).toHaveBeenCalledWith("n2"));
+
+    fireEvent.click(screen.getByRole("tab", { name: /publicadas/i }));
+
+    expect(await screen.findByText("Borrador")).toBeInTheDocument();
+  });
+
   it("deleting a news item opens a confirmation dialog and calls deleteNews on confirm", async () => {
     vi.mocked(newsService.deleteNews).mockResolvedValue(undefined);
     render(

@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Common.Behaviors;
 using RFFM.Api.Domain;
+using RFFM.Api.Domain.Entities.News;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
 
@@ -34,7 +35,9 @@ namespace RFFM.Api.Features.Coaches.News
         }
     }
 
-    public record UpdateNewsCommand(string Title, string Subtitle, string Body, string CoverImageUrl, DateTime NewsDate)
+    public record UpdateNewsCommand(
+        string Title, string Subtitle, string Body, string CoverImageUrl, DateTime NewsDate,
+        string LinkType = "None", string? LinkedEventId = null, string? LinkedTeamId = null, string? LinkUrl = null)
         : IRequest<Unit>, IInvalidateCacheRequest
     {
         public string Id { get; init; } = string.Empty;
@@ -52,7 +55,10 @@ namespace RFFM.Api.Features.Coaches.News
             if (news is null)
                 throw new NotFoundException("Noticia no encontrada.", ErrorCodes.NewsNotFound);
 
-            news.UpdateContent(request.Title, request.Subtitle, request.Body, request.CoverImageUrl, request.NewsDate);
+            NewsLinkType.TryParseName(request.LinkType, out var linkType);
+            news.UpdateContent(
+                request.Title, request.Subtitle, request.Body, request.CoverImageUrl, request.NewsDate,
+                linkType!, request.LinkedEventId, request.LinkedTeamId, request.LinkUrl);
             await _db.SaveChangesAsync(ct);
             return Unit.Value;
         }
@@ -67,6 +73,25 @@ namespace RFFM.Api.Features.Coaches.News
             RuleFor(x => x.Body).NotEmpty();
             RuleFor(x => x.CoverImageUrl).NotEmpty();
             RuleFor(x => x.NewsDate).NotEmpty();
+
+            RuleFor(x => x.LinkType)
+                .Must(t => t is "None" or "MatchConvocation" or "External")
+                .WithMessage("LinkType must be None, MatchConvocation or External.");
+
+            When(x => x.LinkType == "MatchConvocation", () =>
+            {
+                RuleFor(x => x.LinkedEventId).NotEmpty();
+                RuleFor(x => x.LinkedTeamId).NotEmpty();
+            });
+
+            When(x => x.LinkType == "External", () =>
+            {
+                RuleFor(x => x.LinkUrl)
+                    .NotEmpty()
+                    .Must(u => Uri.TryCreate(u, UriKind.Absolute, out var uri)
+                        && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps))
+                    .WithMessage("La URL debe ser una dirección http(s) válida.");
+            });
         }
     }
 }

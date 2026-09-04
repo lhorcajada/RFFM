@@ -7,11 +7,37 @@ import {
   Button,
   TextField,
   CircularProgress,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
 } from "@mui/material";
 import FileImagePicker from "../../../../../shared/components/ui/FileImagePicker/FileImagePicker";
 import newsService, { type NewsDetailDto, type NewsPayload } from "../../../services/newsService";
 import { useCoverImageUrl } from "../../../hooks/useCoverImageUrl";
+import { getSportEvents, type SportEventResponse } from "../../../services/sportEventService";
+import { useUserTeams } from "../../Dashboard/hooks/useUserTeams";
+import { normalizeDateStr } from "../../convocations/helpers/convocationUtils";
 import styles from "./NewsFormDialog.module.css";
+
+const MATCH_CATEGORY_LABEL: Record<string, string> = {
+  League: "Liga",
+  Friendly: "Amistoso",
+  Tournament: "Torneo",
+};
+
+function isMatchEvent(event: SportEventResponse): boolean {
+  if (event.matchCategory) return true;
+  return (event.eventTypeId ?? 0) === 1 || (event.eventType ?? "").toLowerCase().includes("partido");
+}
+
+function matchOptionLabel(event: SportEventResponse): string {
+  const category = event.matchCategory ? MATCH_CATEGORY_LABEL[event.matchCategory] : null;
+  const dateStr = normalizeDateStr(event.eveDateTime ?? event.start ?? null);
+  const date = dateStr ? new Date(dateStr).toLocaleDateString("es-ES", { dateStyle: "medium" }) : null;
+  const rival = event.rivalName ?? event.rival ?? null;
+  return [category, date, rival ? `vs ${rival}` : null].filter(Boolean).join(" · ") || `Evento ${event.id}`;
+}
 
 interface Props {
   open: boolean;
@@ -37,6 +63,13 @@ export default function NewsFormDialog({ open, initialValue, onClose, onSaved }:
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
+  const [linkType, setLinkType] = useState<"None" | "MatchConvocation" | "External">("None");
+  const [linkedTeamId, setLinkedTeamId] = useState<string | null>(null);
+  const [linkedEventId, setLinkedEventId] = useState<string | null>(null);
+  const [linkUrl, setLinkUrl] = useState<string | null>(null);
+  const { teams } = useUserTeams();
+  const [sportEvents, setSportEvents] = useState<SportEventResponse[]>([]);
+  const [loadingEvents, setLoadingEvents] = useState(false);
   const existingCoverImageSrc = useCoverImageUrl(!file ? coverImageUrl : null);
 
   useEffect(() => {
@@ -48,7 +81,21 @@ export default function NewsFormDialog({ open, initialValue, onClose, onSaved }:
     setCoverImageUrl(initialValue?.coverImageUrl ?? "");
     setFile(null);
     setErrors({});
+    setLinkType(initialValue?.linkType ?? "None");
+    setLinkedTeamId(initialValue?.linkedTeamId ?? null);
+    setLinkedEventId(initialValue?.linkedEventId ?? null);
+    setLinkUrl(initialValue?.linkUrl ?? null);
+    setSportEvents([]);
   }, [open, initialValue]);
+
+  useEffect(() => {
+    if (linkType === "MatchConvocation" && linkedTeamId) {
+      setLoadingEvents(true);
+      getSportEvents(linkedTeamId, 1, 200)
+        .then((paged) => setSportEvents(paged.items.filter(isMatchEvent)))
+        .finally(() => setLoadingEvents(false));
+    }
+  }, [linkType, linkedTeamId]);
 
   const handleFileChange = async (selected: File | null) => {
     setFile(selected);
@@ -69,6 +116,25 @@ export default function NewsFormDialog({ open, initialValue, onClose, onSaved }:
     if (!body.trim()) nextErrors.body = "El cuerpo es obligatorio.";
     if (!coverImageUrl.trim()) nextErrors.coverImageUrl = "La imagen de portada es obligatoria.";
     if (!newsDate.trim()) nextErrors.newsDate = "La fecha es obligatoria.";
+
+    if (linkType === "MatchConvocation") {
+      if (!linkedTeamId) nextErrors.linkedTeamId = "Selecciona un equipo.";
+      if (!linkedEventId) nextErrors.linkedEventId = "Selecciona un partido.";
+    } else if (linkType === "External") {
+      if (!linkUrl?.trim()) {
+        nextErrors.linkUrl = "La URL es obligatoria.";
+      } else {
+        try {
+          const url = new URL(linkUrl);
+          if (!["http:", "https:"].includes(url.protocol)) {
+            nextErrors.linkUrl = "La URL debe ser http(s).";
+          }
+        } catch {
+          nextErrors.linkUrl = "La URL no es válida.";
+        }
+      }
+    }
+
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   };
@@ -76,7 +142,17 @@ export default function NewsFormDialog({ open, initialValue, onClose, onSaved }:
   const handleSubmit = async () => {
     if (!validate()) return;
 
-    const payload: NewsPayload = { title, subtitle, body, coverImageUrl, newsDate };
+    const payload: NewsPayload = {
+      title,
+      subtitle,
+      body,
+      coverImageUrl,
+      newsDate,
+      linkType,
+      linkedEventId,
+      linkedTeamId,
+      linkUrl,
+    };
     setSaving(true);
     try {
       if (initialValue) {
@@ -159,6 +235,88 @@ export default function NewsFormDialog({ open, initialValue, onClose, onSaved }:
         {uploading && <CircularProgress size={20} />}
         {errors.coverImageUrl && (
           <p className={styles.errorText}>{errors.coverImageUrl}</p>
+        )}
+
+        <FormControl fullWidth margin="normal">
+          <InputLabel id="link-type-label">Enlace</InputLabel>
+          <Select
+            labelId="link-type-label"
+            id="link-type"
+            value={linkType}
+            label="Enlace"
+            onChange={(e) => {
+              setLinkType(e.target.value as "None" | "MatchConvocation" | "External");
+              if (e.target.value === "None") {
+                setLinkedTeamId(null);
+                setLinkedEventId(null);
+                setLinkUrl(null);
+              }
+            }}
+          >
+            <MenuItem value="None">Ninguno</MenuItem>
+            <MenuItem value="MatchConvocation">Convocatoria de partido</MenuItem>
+            <MenuItem value="External">Enlace externo</MenuItem>
+          </Select>
+        </FormControl>
+
+        {linkType === "MatchConvocation" && (
+          <>
+            <FormControl fullWidth margin="normal" error={!!errors.linkedTeamId}>
+              <InputLabel id="team-label">Equipo</InputLabel>
+              <Select
+                labelId="team-label"
+                id="team"
+                value={linkedTeamId || ""}
+                label="Equipo"
+                onChange={(e) => {
+                  setLinkedTeamId(e.target.value || null);
+                  setLinkedEventId(null);
+                  setSportEvents([]);
+                }}
+              >
+                <MenuItem value="">Selecciona un equipo</MenuItem>
+                {teams.map((team) => (
+                  <MenuItem key={team.id} value={team.id}>
+                    {team.name}
+                  </MenuItem>
+                ))}
+              </Select>
+              {errors.linkedTeamId && <p className={styles.errorText}>{errors.linkedTeamId}</p>}
+            </FormControl>
+
+            <FormControl fullWidth margin="normal" error={!!errors.linkedEventId} disabled={!linkedTeamId || loadingEvents}>
+              <InputLabel id="event-label">Partido</InputLabel>
+              <Select
+                labelId="event-label"
+                id="event"
+                value={linkedEventId || ""}
+                label="Partido"
+                onChange={(e) => setLinkedEventId(e.target.value || null)}
+              >
+                <MenuItem value="">Selecciona un partido</MenuItem>
+                {sportEvents.map((event) => (
+                  <MenuItem key={event.id} value={event.id}>
+                    {matchOptionLabel(event)}
+                  </MenuItem>
+                ))}
+              </Select>
+              {errors.linkedEventId && <p className={styles.errorText}>{errors.linkedEventId}</p>}
+            </FormControl>
+          </>
+        )}
+
+        {linkType === "External" && (
+          <TextField
+            id="link-url"
+            label="URL"
+            value={linkUrl || ""}
+            onChange={(e) => setLinkUrl(e.target.value || null)}
+            error={!!errors.linkUrl}
+            helperText={errors.linkUrl}
+            fullWidth
+            margin="normal"
+            placeholder="https://..."
+          />
         )}
       </DialogContent>
       <DialogActions>

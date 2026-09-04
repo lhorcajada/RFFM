@@ -70,7 +70,9 @@ namespace RFFM.Api.Features.Coaches.News
             var items = await ordered
                 .Skip((request.PageNumber - 1) * request.PageSize)
                 .Take(request.PageSize)
-                .Select(n => new NewsSummaryResponse(n.Id, n.Title, n.Subtitle, n.CoverImageUrl, n.Status.Name, n.PublishedAt, n.NewsDate))
+                .Select(n => new NewsSummaryResponse(
+                    n.Id, n.Title, n.Subtitle, n.CoverImageUrl, n.Status.Name, n.PublishedAt, n.NewsDate,
+                    n.LinkType.Name, n.LinkedEventId, n.LinkedTeamId, n.LinkUrl))
                 .ToArrayAsync(ct);
 
             return items;
@@ -78,8 +80,11 @@ namespace RFFM.Api.Features.Coaches.News
     }
 }
 
-public record NewsSummaryResponse(string Id, string Title, string Subtitle, string CoverImageUrl, string Status, DateTime? PublishedAt, DateTime NewsDate);
+public record NewsSummaryResponse(
+    string Id, string Title, string Subtitle, string CoverImageUrl, string Status, DateTime? PublishedAt, DateTime NewsDate,
+    string LinkType, string? LinkedEventId, string? LinkedTeamId, string? LinkUrl);
 
 public record NewsDetailResponse(
     string Id, string Title, string Subtitle, string Body, string CoverImageUrl,
-    string Status, DateTime? PublishedAt, DateTime NewsDate, DateTime CreatedAt, DateTime UpdatedAt);
+    string Status, DateTime? PublishedAt, DateTime NewsDate, DateTime CreatedAt, DateTime UpdatedAt,
+    string LinkType, string? LinkedEventId, string? LinkedTeamId, string? LinkUrl);

@@ -60,7 +60,9 @@ namespace RFFM.Api.Features.Coaches.News
                 .OrderByDescending(n => n.CreatedAt)
                 .Skip((request.PageNumber - 1) * request.PageSize)
                 .Take(request.PageSize)
-                .Select(n => new NewsSummaryResponse(n.Id, n.Title, n.Subtitle, n.CoverImageUrl, n.Status.Name, n.PublishedAt, n.NewsDate))
+                .Select(n => new NewsSummaryResponse(
+                    n.Id, n.Title, n.Subtitle, n.CoverImageUrl, n.Status.Name, n.PublishedAt, n.NewsDate,
+                    n.LinkType.Name, n.LinkedEventId, n.LinkedTeamId, n.LinkUrl))
                 .ToArrayAsync(ct);
 
             return items;

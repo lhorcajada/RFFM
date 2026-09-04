@@ -32,7 +32,9 @@ namespace RFFM.Api.Features.Coaches.News
         }
     }
 
-    public record CreateNewsCommand(string Title, string Subtitle, string Body, string CoverImageUrl, string Status, DateTime NewsDate)
+    public record CreateNewsCommand(
+        string Title, string Subtitle, string Body, string CoverImageUrl, string Status, DateTime NewsDate,
+        string LinkType = "None", string? LinkedEventId = null, string? LinkedTeamId = null, string? LinkUrl = null)
         : IRequest<string>, IInvalidateCacheRequest
     {
         public string PrefixCacheKey => NewsConstants.PublishedListCachePrefix;
@@ -46,7 +48,10 @@ namespace RFFM.Api.Features.Coaches.News
         public async ValueTask<string> Handle(CreateNewsCommand request, CancellationToken ct = default)
         {
             NewsStatus.TryParseName(request.Status, out var status);
-            var news = NewsItem.Create(request.Title, request.Subtitle, request.Body, request.CoverImageUrl, status!, request.NewsDate);
+            NewsLinkType.TryParseName(request.LinkType, out var linkType);
+            var news = NewsItem.Create(
+                request.Title, request.Subtitle, request.Body, request.CoverImageUrl, status!, request.NewsDate,
+                linkType!, request.LinkedEventId, request.LinkedTeamId, request.LinkUrl);
 
             await _db.News.AddAsync(news, ct);
             await _db.SaveChangesAsync(ct);
@@ -66,6 +71,25 @@ namespace RFFM.Api.Features.Coaches.News
             RuleFor(x => x.Status)
                 .Must(s => s is "Draft" or "Published")
                 .WithMessage("Status must be Draft or Published.");
+
+            RuleFor(x => x.LinkType)
+                .Must(t => t is "None" or "MatchConvocation" or "External")
+                .WithMessage("LinkType must be None, MatchConvocation or External.");
+
+            When(x => x.LinkType == "MatchConvocation", () =>
+            {
+                RuleFor(x => x.LinkedEventId).NotEmpty();
+                RuleFor(x => x.LinkedTeamId).NotEmpty();
+            });
+
+            When(x => x.LinkType == "External", () =>
+            {
+                RuleFor(x => x.LinkUrl)
+                    .NotEmpty()
+                    .Must(u => Uri.TryCreate(u, UriKind.Absolute, out var uri)
+                        && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps))
+                    .WithMessage("La URL debe ser una dirección http(s) válida.");
+            });
         }
     }
 }
