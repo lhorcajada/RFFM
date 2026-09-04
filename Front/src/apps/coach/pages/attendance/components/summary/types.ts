@@ -11,6 +11,33 @@ export type SummaryByType = {
   other: Summary;
 };
 
+export type EventAttendancePoint = {
+  eventId: string;
+  /** Short axis label, e.g. "J3", "A1", "E12", "R1". */
+  label: string;
+  date: string | null;
+  /** Full name shown in tooltip/table, e.g. "J3 · vs Parla", "Entrenamiento 12". */
+  title: string;
+  /** Convocations counted for this event (attend + absent). */
+  total: number;
+  attend: number;
+  absent: number;
+};
+
+export type CategoryAttendance = {
+  /** Unchanged aggregate, still used for the card's headline %. */
+  summary: Summary;
+  /** Chronological order, oldest first — windowing takes the last N. */
+  events: EventAttendancePoint[];
+};
+
+export type DashboardData = {
+  total: Summary;
+  training: CategoryAttendance;
+  match: CategoryAttendance;
+  other: CategoryAttendance;
+};
+
 export type PlayerAbsenceDetail = {
   eventId: string;
   eventTitle: string;

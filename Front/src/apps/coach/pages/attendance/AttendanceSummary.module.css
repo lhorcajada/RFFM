@@ -18,6 +18,7 @@
 }
 
 .card {
+  min-width: 0;
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 14px;
   background: linear-gradient(165deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
@@ -644,4 +645,130 @@
 
 .absenceEvent {
   opacity: 0.78;
+}
+
+/* --- Per-event attendance chart (Dashboard tab) --- */
+
+:global(:root) {
+  --chart-training: #3987e5;
+  --chart-match: #199e70;
+  --chart-other: #9085e9;
+}
+
+.chartHeaderAggregate {
+  margin-left: auto;
+  font-size: 1.1rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.chartBody {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.chartPagerRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.chartWindowLabel {
+  opacity: 0.75;
+  font-size: 0.82rem;
+  min-width: 84px;
+  text-align: center;
+}
+
+.chartSvgWrap {
+  position: relative;
+}
+
+.chartSvg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.chartGridline {
+  stroke: rgba(255, 255, 255, 0.12);
+  stroke-width: 1;
+}
+
+.chartAxisLine {
+  stroke: rgba(255, 255, 255, 0.28);
+  stroke-width: 1;
+}
+
+.chartBarGroup {
+  cursor: pointer;
+  outline: none;
+}
+
+.chartBarGroup:focus .chartBar,
+.chartBarGroup:hover .chartBar {
+  opacity: 0.85;
+}
+
+.chartBar {
+  transition: opacity 0.15s ease;
+}
+
+.chartBarLabel {
+  fill: rgba(255, 255, 255, 0.75);
+  font-size: 7px;
+}
+
+.chartTooltip {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, -100%);
+  background: rgba(10, 10, 20, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 0.78rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.chartTooltipTitle {
+  font-weight: 700;
+}
+
+.chartTableToggle {
+  align-self: flex-start;
+}
+
+.chartTableScroll {
+  width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.chartTable {
+  width: 100%;
+  min-width: 420px;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.chartTable th,
+.chartTable td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 6px 8px;
+  text-align: left;
+}
+
+.chartTable th {
+  opacity: 0.75;
+  font-weight: 600;
 }

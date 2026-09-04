@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { render, screen, waitFor, within, fireEvent } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../../../../services/convocationService", () => ({
@@ -285,10 +285,14 @@ describe("AttendanceSummaryContent — partidos amistosos y minutos", () => {
     render(<AttendanceSummaryContent teamId="team-1" />);
 
     const matchesTab = await screen.findByRole("tab", { name: /partidos/i });
-    matchesTab.click();
+    // fireEvent (act-wrapped) instead of a raw .click(): the Dashboard tab's chart bars
+    // are also role="button" and may momentarily share an accessible name with this
+    // player card ("J1") while the tab switch is still in flight — act-wrapping ensures
+    // the Dashboard tab has actually unmounted before the next query runs.
+    fireEvent.click(matchesTab);
 
     const cardToggle = await screen.findByRole("button", { name: /J1/i });
-    cardToggle.click();
+    fireEvent.click(cardToggle);
 
     expect(await screen.findByText("Convocado")).toBeInTheDocument();
     expect(screen.queryByText("Desconvocado")).not.toBeInTheDocument();
@@ -310,8 +314,16 @@ describe("AttendanceSummaryContent — partidos amistosos y minutos", () => {
     await waitFor(() =>
       expect(within(globalCard).getByText("Eventos").parentElement).toHaveTextContent("2")
     );
-    expect(within(matchCard).getByText("Eventos").parentElement).toHaveTextContent("2");
-    expect(within(otherCard).getByText("Eventos").parentElement).toHaveTextContent("0");
+
+    // Partidos card no longer shows a raw "Eventos" total — it's now a per-event chart
+    // (dashboard-per-event-attendance-charts change). Verify both finished matches (the
+    // official one and the friendly) show up as rows in its "Ver como tabla" breakdown.
+    fireEvent.click(within(matchCard).getByRole("button", { name: /ver como tabla/i }));
+    const matchTable = within(matchCard).getByRole("table");
+    expect(within(matchTable).getAllByRole("row").length).toBe(2 + 1); // header + 2 events
+
+    // Otros eventos has zero finished events -> empty state, not an empty chart.
+    expect(within(otherCard).getByText(/sin datos de otros eventos/i)).toBeInTheDocument();
   });
 
   it("usa la titularidad real del partido (isStarter) en vez de la alineación ideal del equipo", async () => {
@@ -327,10 +339,10 @@ describe("AttendanceSummaryContent — partidos amistosos y minutos", () => {
     render(<AttendanceSummaryContent teamId="team-1" />);
 
     const matchesTab = await screen.findByRole("tab", { name: /partidos/i });
-    matchesTab.click();
+    fireEvent.click(matchesTab);
 
     const cardToggle = await screen.findByRole("button", { name: /J1/i });
-    cardToggle.click();
+    fireEvent.click(cardToggle);
 
     expect(await screen.findByText("Titular")).toBeInTheDocument();
     expect(screen.getByText("Convocado")).toBeInTheDocument();
@@ -356,10 +368,10 @@ describe("AttendanceSummaryContent — partidos amistosos y minutos", () => {
     render(<AttendanceSummaryContent teamId="team-1" />);
 
     const matchesTab = await screen.findByRole("tab", { name: /partidos/i });
-    matchesTab.click();
+    fireEvent.click(matchesTab);
 
     const cardToggle = await screen.findByRole("button", { name: /J1/i });
-    cardToggle.click();
+    fireEvent.click(cardToggle);
 
     expect(await screen.findByText("Lesión")).toBeInTheDocument();
   });
@@ -381,10 +393,10 @@ describe("AttendanceSummaryContent — partidos amistosos y minutos", () => {
     render(<AttendanceSummaryContent teamId="team-1" />);
 
     const matchesTab = await screen.findByRole("tab", { name: /partidos/i });
-    matchesTab.click();
+    fireEvent.click(matchesTab);
 
     const cardToggle = await screen.findByRole("button", { name: /J1/i });
-    cardToggle.click();
+    fireEvent.click(cardToggle);
 
     expect(await screen.findByText("Decisión técnica")).toBeInTheDocument();
   });

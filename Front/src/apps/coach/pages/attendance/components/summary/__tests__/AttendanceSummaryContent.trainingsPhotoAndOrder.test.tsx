@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { render, screen, waitFor, within, fireEvent } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../../../../services/convocationService", () => ({
@@ -224,10 +224,19 @@ describe("AttendanceSummaryContent — foto y orden del jugador asociado (entren
     const trainingCard = screen.getByText("Entrenamientos").closest("article") as HTMLElement;
 
     await waitFor(() =>
-      expect(within(trainingCard).getByText("Asisten").parentElement).toHaveTextContent("1")
+      expect(within(globalCard).getByText("Asisten").parentElement).toHaveTextContent("1")
     );
-    expect(within(trainingCard).getByText("No asisten").parentElement).toHaveTextContent("1");
-    expect(within(globalCard).getByText("Asisten").parentElement).toHaveTextContent("1");
     expect(within(globalCard).getByText("No asisten").parentElement).toHaveTextContent("1");
+
+    // Training's card no longer shows raw Eventos/Asisten/No asisten totals directly —
+    // it's now a per-event chart with the aggregate % in the header (dashboard-per-event-
+    // attendance-charts change). Verify the same numbers via the header % and the
+    // "Ver como tabla" breakdown, built with training's own richer classifier.
+    expect(within(trainingCard).getByText("50%")).toBeInTheDocument();
+    fireEvent.click(within(trainingCard).getByRole("button", { name: /ver como tabla/i }));
+    const row = within(trainingCard).getByRole("row", { name: /entreno 1/i });
+    const cells = within(row).getAllByRole("cell");
+    expect(cells[2]).toHaveTextContent("1");
+    expect(cells[3]).toHaveTextContent("1");
   });
 });

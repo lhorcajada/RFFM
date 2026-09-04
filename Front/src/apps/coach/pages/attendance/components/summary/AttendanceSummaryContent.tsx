@@ -24,6 +24,8 @@ import AttendanceDashboardTab from "./AttendanceDashboardTab";
 import AttendanceMatchesTab from "./AttendanceMatchesTab";
 import AttendanceTrainingsTab from "./AttendanceTrainingsTab";
 import type {
+  DashboardData,
+  EventAttendancePoint,
   MatchAttendanceColumn,
   PlayerMatchSummary,
   PlayerTrainingSummary,
@@ -35,6 +37,12 @@ import styles from "../../AttendanceSummary.module.css";
 type TabValue = "dashboard" | "trainings" | "matches";
 
 const EMPTY_SUMMARY: Summary = { events: 0, attend: 0, absent: 0 };
+const EMPTY_DASHBOARD: DashboardData = {
+  total: { ...EMPTY_SUMMARY },
+  training: { summary: { ...EMPTY_SUMMARY }, events: [] },
+  match: { summary: { ...EMPTY_SUMMARY }, events: [] },
+  other: { summary: { ...EMPTY_SUMMARY }, events: [] },
+};
 
 function addSummary(base: Summary, partial: Summary): Summary {
   return {
@@ -113,12 +121,7 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [summary, setSummary] = useState<SummaryByType>({
-    total: { ...EMPTY_SUMMARY },
-    training: { ...EMPTY_SUMMARY },
-    match: { ...EMPTY_SUMMARY },
-    other: { ...EMPTY_SUMMARY },
-  });
+  const [dashboard, setDashboard] = useState<DashboardData>(EMPTY_DASHBOARD);
   const [trainingRows, setTrainingRows] = useState<PlayerTrainingSummary[]>([]);
   const [matchColumns, setMatchColumns] = useState<MatchAttendanceColumn[]>([]);
   const [matchRows, setMatchRows] = useState<PlayerMatchSummary[]>([]);
@@ -137,12 +140,7 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
         const activeSeason = await seasonService.getActiveSeason();
         if (!activeSeason) {
           if (mounted) {
-            setSummary({
-              total: { ...EMPTY_SUMMARY },
-              training: { ...EMPTY_SUMMARY },
-              match: { ...EMPTY_SUMMARY },
-              other: { ...EMPTY_SUMMARY },
-            });
+            setDashboard(EMPTY_DASHBOARD);
             setTrainingRows([]);
             setMatchColumns([]);
             setMatchRows([]);
@@ -250,6 +248,14 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
           convocations: convocationsByEventId.get(event.id) ?? [],
         }));
 
+        // Per-event breakdown for the Dashboard tab's charts. Match/Other keep the same
+        // eventSummary already computed here (just collected instead of discarded);
+        // Training's own per-event points are built later with its richer classifier
+        // (see trainingEvents below) so they stay consistent with nextSummary.training,
+        // which is also recalculated later from that richer classifier.
+        const matchEventsRaw: { event: SportEventResponse; eventSummary: Summary }[] = [];
+        const otherEventsRaw: { event: SportEventResponse; eventSummary: Summary }[] = [];
+
         eventsWithConvocations
           .filter(({ event }) => isEventFinished(event))
           .forEach(({ event, convocations }) => {
@@ -266,8 +272,14 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
             if (kind === "training") nextSummary.training = addSummary(nextSummary.training, eventSummary);
             // A friendly is still a match for this dashboard aggregate — only the
             // Matches tab distinguishes official (J1) vs friendly (A1) jornadas.
-            if (kind === "match") nextSummary.match = addSummary(nextSummary.match, eventSummary);
-            if (kind === "other") nextSummary.other = addSummary(nextSummary.other, eventSummary);
+            if (kind === "match") {
+              nextSummary.match = addSummary(nextSummary.match, eventSummary);
+              matchEventsRaw.push({ event, eventSummary });
+            }
+            if (kind === "other") {
+              nextSummary.other = addSummary(nextSummary.other, eventSummary);
+              otherEventsRaw.push({ event, eventSummary });
+            }
           });
 
         const photoByKey: Record<string, string | null> = {};
@@ -367,6 +379,33 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
           absent: nextRows.reduce((sum, player) => sum + player.absentTrainings, 0),
         };
 
+        // Per-event breakdown for Entrenamientos, built with training's own richer
+        // classifier (isAttendById/isAbsentById + the justified-absence fallback) applied
+        // per event instead of per player — the exact same predicate `nextRows` used above,
+        // so sum(trainingEvents.attend/absent) always equals nextSummary.training's totals.
+        const trainingEvents: EventAttendancePoint[] = Array.from(activeTrainingEventIds)
+          .map((eventId) => allEvents.find((event) => event.id === eventId))
+          .filter((event): event is SportEventResponse => event != null)
+          .sort((a, b) => (getEventDate(a) ?? "").localeCompare(getEventDate(b) ?? ""))
+          .map((event, index) => {
+            const eventConvocations = teamConvocations.filter((row) => row.eventId === event.id);
+            const attend = eventConvocations.filter((row) => isAttendById(row.assistanceTypeId)).length;
+            const absent = eventConvocations.filter(
+              (row) =>
+                isAbsentById(row.assistanceTypeId) ||
+                (row.assistanceTypeId == null && row.statusId != null && absenceStatusSet.has(row.statusId))
+            ).length;
+            return {
+              eventId: event.id,
+              label: `E${index + 1}`,
+              date: getEventDate(event),
+              title: event.title ?? event.name ?? "Entrenamiento",
+              total: attend + absent,
+              attend,
+              absent,
+            };
+          });
+
         const officialMatchEvents = eventsWithConvocations
           .filter(({ event }) => classifyEventType(getEventTypeName(event, typeMap)) === "match")
           .map(({ event, convocations }) => ({ event, convocations }))
@@ -392,6 +431,41 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
             isFriendly: friendly,
           };
         });
+
+        // Per-event breakdown for Partidos, reusing the J/A labels already computed above
+        // for the Matches tab (matchEventsRaw is already scoped to finished matches only).
+        const matchColumnByEventId = new Map(officialMatchColumns.map((column) => [column.eventId, column]));
+        const matchEvents: EventAttendancePoint[] = matchEventsRaw
+          .map(({ event, eventSummary }) => {
+            const column = matchColumnByEventId.get(event.id);
+            const label = column?.label ?? "?";
+            const rival = column?.rival ?? event.rivalName ?? event.rival ?? null;
+            return {
+              eventId: event.id,
+              label,
+              date: getEventDate(event),
+              title: rival ? `${label} · vs ${rival}` : label,
+              total: eventSummary.attend + eventSummary.absent,
+              attend: eventSummary.attend,
+              absent: eventSummary.absent,
+            };
+          })
+          .sort((a, b) => (a.date ?? "").localeCompare(b.date ?? ""));
+
+        // Per-event breakdown for Otros eventos, simple sequential "R{n}" labeling
+        // (no J/A-style numbering convention applies to this catch-all category).
+        const otherEvents: EventAttendancePoint[] = otherEventsRaw
+          .slice()
+          .sort((a, b) => (getEventDate(a.event) ?? "").localeCompare(getEventDate(b.event) ?? ""))
+          .map(({ event, eventSummary }, index) => ({
+            eventId: event.id,
+            label: `R${index + 1}`,
+            date: getEventDate(event),
+            title: event.title ?? event.name ?? "Evento",
+            total: eventSummary.attend + eventSummary.absent,
+            attend: eventSummary.attend,
+            absent: eventSummary.absent,
+          }));
 
         const createEmptyMatchSummary = (
           playerId: string,
@@ -579,8 +653,15 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
           nextSummary.other
         );
 
+        const nextDashboard: DashboardData = {
+          total: nextSummary.total,
+          training: { summary: nextSummary.training, events: trainingEvents },
+          match: { summary: nextSummary.match, events: matchEvents },
+          other: { summary: nextSummary.other, events: otherEvents },
+        };
+
         if (mounted) {
-          setSummary(nextSummary);
+          setDashboard(nextDashboard);
           setTrainingRows(nextRows);
           setMatchColumns(officialMatchColumns);
           setMatchRows(nextMatchRows);
@@ -606,7 +687,7 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
     };
   }, [teamId, refreshKey]);
 
-  const hasAnyData = useMemo(() => summary.total.events > 0, [summary.total.events]);
+  const hasAnyData = useMemo(() => dashboard.total.events > 0, [dashboard.total.events]);
 
   const handleTabChange = (_event: SyntheticEvent, value: TabValue) => {
     setTab(value);
@@ -658,7 +739,7 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
       </Tabs>
 
       <div className={styles.tabPanel}>
-        {tab === "dashboard" && <AttendanceDashboardTab summary={summary} />}
+        {tab === "dashboard" && <AttendanceDashboardTab data={dashboard} />}
         {tab === "trainings" && <AttendanceTrainingsTab rows={trainingRows} />}
         {tab === "matches" && <AttendanceMatchesTab rows={matchRows} columns={matchColumns} onRefresh={handleRefresh} loading={loading} />}
       </div>
