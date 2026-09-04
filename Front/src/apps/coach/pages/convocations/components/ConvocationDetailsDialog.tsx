@@ -117,9 +117,29 @@ export default function ConvocationDetailsDialog({
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle className={styles.header}>
-        <span className={styles.matchTitle}>
-          {match?.localTeamName ?? "—"} vs {match?.visitorTeamName ?? "—"}
-        </span>
+        <span className={styles.convocationLabel}>Convocatoria</span>
+        <div className={styles.matchInfoRow}>
+          <div className={styles.matchTeamBlock}>
+            {match?.localTeamShield && (
+              <img src={match.localTeamShield} alt="" className={styles.matchShield} />
+            )}
+            <span className={styles.matchTeamName}>{match?.localTeamName ?? "—"}</span>
+          </div>
+          <span className={styles.matchTime}>{match?.time || "--:--"}</span>
+          <div className={`${styles.matchTeamBlock} ${styles.matchTeamBlockVisitor}`}>
+            <span className={styles.matchTeamName}>{match?.visitorTeamName ?? "—"}</span>
+            {match?.visitorTeamShield && (
+              <img src={match.visitorTeamShield} alt="" className={styles.matchShield} />
+            )}
+          </div>
+        </div>
+        {(match?.date || match?.field) && (
+          <div className={styles.matchMeta}>
+            {summary.dateES && <span className={styles.matchDateLabel}>{summary.dateES}</span>}
+            {summary.dateES && match?.field && <span className={styles.matchMetaSep}>·</span>}
+            {match?.field && <span className={styles.matchField}>{match.field}</span>}
+          </div>
+        )}
         <IconButton
           aria-label="Cerrar"
           onClick={onClose}
@@ -129,20 +149,8 @@ export default function ConvocationDetailsDialog({
         </IconButton>
       </DialogTitle>
       <DialogContent dividers>
-        {(summary.dateES || match?.time || summary.arrival || match?.field) && (
+        {(summary.arrival || match?.field) && (
           <div className={styles.section}>
-            {summary.dateES && (
-              <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>Fecha:</span>
-                <span>{summary.dateES}</span>
-              </div>
-            )}
-            {match?.time && (
-              <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>Hora del partido:</span>
-                <span>{match.time}</span>
-              </div>
-            )}
             {summary.arrival && (
               <div className={styles.infoRow}>
                 <span className={styles.infoLabel}>Hora de llegada:</span>

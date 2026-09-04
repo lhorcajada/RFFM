@@ -24,7 +24,7 @@ export function normalizeFromSportEvent(ev: SportEventResponse): NormalizedMatch
   const dateStr = normalizeDateStr(ev.eveDateTime ?? ev.start ?? null);
   const isHomeMatch = ev.isHomeMatch !== false;
   const rivalName = ev.rivalName ?? ev.rival ?? "";
-  const rivalPhoto = ev.rivalPhotoUrl ?? "";
+  const rivalPhoto = resolveStorageUrl(ev.rivalPhotoUrl);
   const myTeamName = ev.teamName ?? "";
   const myTeamPhoto = resolveStorageUrl(ev.teamPhotoUrl);
 
@@ -90,7 +90,7 @@ export function toMatchState(ev: SportEventResponse): MatchState {
 
   const isHomeMatch = ev.isHomeMatch !== false;
   const rivalName = ev.rivalName ?? ev.rival ?? "";
-  const rivalShield = ev.rivalPhotoUrl ?? "";
+  const rivalShield = resolveStorageUrl(ev.rivalPhotoUrl);
   const myTeamName = ev.teamName ?? "";
   const myTeamShield = resolveStorageUrl(ev.teamPhotoUrl);
 

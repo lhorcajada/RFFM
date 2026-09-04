@@ -4,10 +4,98 @@
   gap: 4px;
 }
 
-.matchTitle {
+.convocationLabel {
+  display: block;
+  text-align: center;
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: -0.3px;
+  background: linear-gradient(135deg, #00a0c8 0%, #0078b4 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.matchInfoRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.matchTeamBlock {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.matchTeamBlockVisitor {
+  justify-content: flex-start;
+}
+
+.matchShield {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  object-fit: contain;
+  border-radius: 50%;
+  background: #fff;
+  padding: 2px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+}
+
+.matchTeamName {
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.matchTime {
   font-size: 1.1rem;
   font-weight: 800;
-  color: #ff9800;
+  letter-spacing: 1.5px;
+  line-height: 1;
+  flex-shrink: 0;
+  color: #fff;
+  -webkit-text-fill-color: #fff;
+}
+
+.matchMeta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.matchDateLabel {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+.matchMetaSep {
+  font-size: 0.68rem;
+  opacity: 0.4;
+}
+
+.matchField {
+  font-size: 0.68rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
 }
 
 .infoRow {

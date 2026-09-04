@@ -179,7 +179,7 @@ export default function EventCard({ event, eventTypeName, onDeleted, onEdited, a
   const myTeamName = event.teamName ?? "";
   const myTeamShield = resolveStorageUrl(event.teamPhotoUrl);
   const rivalName = event.rivalName ?? "";
-  const rivalShield = event.rivalPhotoUrl ?? "";
+  const rivalShield = resolveStorageUrl(event.rivalPhotoUrl);
   const hasScore =
     event.localGoals != null && event.localGoals !== "" &&
     event.visitorGoals != null && event.visitorGoals !== "";

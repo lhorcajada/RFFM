@@ -82,6 +82,28 @@ describe("ConvocationDetailsDialog", () => {
     expect(screen.getByText(/Luis García|Luis/)).toBeInTheDocument();
   });
 
+  it("muestra los escudos de los equipos junto al nombre y la hora, cuando tienen URL", () => {
+    const matchWithShields: MatchState = {
+      ...match,
+      localTeamShield: "https://example.com/rivas.png",
+      visitorTeamShield: "https://example.com/getafe.png",
+    };
+
+    render(<ConvocationDetailsDialog {...baseProps} match={matchWithShields} canCopyToWhatsApp={false} />);
+
+    const shieldSrcs = Array.from(document.querySelectorAll("img")).map((img) => img.src);
+    expect(shieldSrcs).toContain("https://example.com/rivas.png");
+    expect(shieldSrcs).toContain("https://example.com/getafe.png");
+    expect(screen.getByText("17:00")).toBeInTheDocument();
+  });
+
+  it("no rompe cuando los equipos no tienen escudo", () => {
+    render(<ConvocationDetailsDialog {...baseProps} canCopyToWhatsApp={false} />);
+
+    expect(document.querySelectorAll("img")).toHaveLength(0);
+    expect(screen.getByText(/CD Rivas/)).toBeInTheDocument();
+  });
+
   it("no renderiza nada cuando está cerrado", () => {
     render(<ConvocationDetailsDialog {...baseProps} open={false} canCopyToWhatsApp={true} />);
 
