@@ -65,7 +65,9 @@ describe("EventCard - toMatchState convierte la hora UTC a hora local", () => {
     fireEvent.click(screen.getByRole("button", { name: /ir al partido/i }));
 
     expect(navigateMock).toHaveBeenCalledTimes(1);
-    const [, options] = navigateMock.mock.calls[0];
+    const [url, options] = navigateMock.mock.calls[0];
+    expect(url).toBe("/coach/convocations/match?teamId=team-1&eventId=event-1");
     expect(options.state.match.time).toBe("20:00");
+    expect(options.state.match.eventId).toBe("event-1");
   });
 });

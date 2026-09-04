@@ -1,0 +1,131 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 8px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--rffm-text-secondary, #aaa);
+  /* The panel header (ConvocationMatchHeader → PageHeader .title) sets
+     -webkit-text-fill-color: transparent for its gradient title text, and that property
+     inherits to every descendant in WebKit/Blink browsers regardless of `color` — reset it
+     here so this label's actual color shows instead of being invisible. */
+  -webkit-text-fill-color: var(--rffm-text-secondary, #aaa);
+  text-align: center;
+}
+
+.kitsRow {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+  width: 100%;
+}
+
+.kitBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 160px;
+}
+
+.kitBlockHeader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.kitPreviewRow {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+
+.kitBlockLabel {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--rffm-accent, #ff6600);
+  -webkit-text-fill-color: var(--rffm-accent, #ff6600);
+}
+
+.colorPicker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.colorPickerLabel {
+  font-size: 10px;
+  color: var(--rffm-text-secondary, #aaa);
+  -webkit-text-fill-color: var(--rffm-text-secondary, #aaa);
+}
+
+.swatchRow {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+  max-width: 200px;
+}
+
+.swatch {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  cursor: pointer;
+  padding: 0;
+}
+
+.swatch:not(:disabled):hover {
+  border-color: rgba(255, 255, 255, 0.6);
+}
+
+.swatch:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.swatchSelected {
+  border-color: var(--rffm-accent, #ff6600);
+  box-shadow: 0 0 0 2px rgba(255, 102, 0, 0.4);
+}
+
+.error {
+  font-size: 11px;
+  color: #ff6b6b;
+  -webkit-text-fill-color: #ff6b6b;
+  text-align: center;
+}
+
+.saveBtn {
+  background: var(--rffm-accent, #ff6600);
+  color: #fff;
+  /* Reset the inherited transparent -webkit-text-fill-color from PageHeader's gradient
+     title (see .title above) — without this the button text is invisible in Chrome/Edge/
+     Safari even though `color: #fff` is set, since -webkit-text-fill-color wins there. */
+  -webkit-text-fill-color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.saveBtn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}

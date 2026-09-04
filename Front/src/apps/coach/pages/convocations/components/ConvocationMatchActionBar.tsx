@@ -2,9 +2,7 @@ import { Button, CircularProgress } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
-import WhatsAppIcon from "@mui/icons-material/WhatsApp";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import CheckIcon from "@mui/icons-material/Check";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 
 type Props = {
   teamId: string;
@@ -12,14 +10,14 @@ type Props = {
   eventId: string | null;
   lineupPlayersCount: number;
   printing: boolean;
-  whatsappCopying: boolean;
-  whatsappCopied: boolean;
+  /** true once every called-up player has confirmed their convocation (no one left pending) */
+  convocationConfirmed: boolean;
   onBack: () => void;
   onOpenEvent: () => void;
   onSaveConvocation: () => void;
   onSaveLineup: () => void;
   onPrint: () => void;
-  onWhatsAppCopy: () => void;
+  onViewConvocation: () => void;
 };
 
 export default function ConvocationMatchActionBar({
@@ -28,14 +26,13 @@ export default function ConvocationMatchActionBar({
   eventId,
   lineupPlayersCount,
   printing,
-  whatsappCopying,
-  whatsappCopied,
+  convocationConfirmed,
   onBack,
   onOpenEvent,
   onSaveConvocation,
   onSaveLineup,
   onPrint,
-  onWhatsAppCopy,
+  onViewConvocation,
 }: Props) {
   return (
     <>
@@ -68,38 +65,14 @@ export default function ConvocationMatchActionBar({
           PDF
         </Button>
       )}
-      {eventId && (
+      {eventId && convocationConfirmed && (
         <Button
+          startIcon={<VisibilityIcon />}
           variant="outlined"
           size="small"
-          startIcon={
-            whatsappCopying ? (
-              <CircularProgress size={14} color="inherit" />
-            ) : whatsappCopied ? (
-              <CheckIcon />
-            ) : (
-              <WhatsAppIcon />
-            )
-          }
-          disabled={whatsappCopying}
-          onClick={onWhatsAppCopy}
-          sx={{
-            borderColor: whatsappCopied ? "#4caf50" : "#25D366",
-            color: whatsappCopied ? "#4caf50" : "#25D366",
-            "&:hover": {
-              borderColor: whatsappCopied ? "#4caf50" : "#25D366",
-              backgroundColor: "rgba(37,211,102,0.08)",
-            },
-          }}
+          onClick={onViewConvocation}
         >
-          {whatsappCopied ? (
-            <>
-              <ContentCopyIcon sx={{ fontSize: 14, mr: 0.5 }} />
-              ¡Copiado!
-            </>
-          ) : (
-            "WhatsApp"
-          )}
+          Ver convocatoria
         </Button>
       )}
     </>

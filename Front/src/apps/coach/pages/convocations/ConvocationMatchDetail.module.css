@@ -116,3 +116,72 @@
   text-overflow: ellipsis;
   max-width: 160px;
 }
+
+/* ─── Header actions row: kit summary + popup toggles ───── */
+
+.headerActionsRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.kitSummary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  padding: 2px 10px 2px 4px;
+}
+
+.kitSummaryLabel {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.85);
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.85);
+}
+
+/* ─── Collapsible kit panel ─────────────────────────────── */
+
+.kitPanelToggle {
+  margin-top: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  color: var(--rffm-accent, #ff9800);
+  /* Reset the transparent -webkit-text-fill-color inherited from PageHeader's gradient
+     title (.titleWrap sits inside it) — otherwise this label is invisible in WebKit/Blink
+     browsers despite `color` being set. */
+  -webkit-text-fill-color: var(--rffm-accent, #ff9800);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 4px 14px;
+  cursor: pointer;
+}
+
+.kitPanelToggle:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.kitPanel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-top: 4px;
+}
+
+/* ─── Loading state while re-fetching the match after F5 ───── */
+
+.matchLoadingWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 0;
+}

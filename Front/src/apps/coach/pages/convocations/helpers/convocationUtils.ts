@@ -1,5 +1,6 @@
 import type { SportEventResponse } from "../../../services/sportEventService";
 import type { NormalizedMatch, MatchResult } from "../types";
+import type { MatchState } from "../components/convocationMatchDetail.types";
 import { resolveStorageUrl } from "../../../../../shared/utils/resolveStorageUrl";
 
 export const DAYS_ES = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
@@ -63,8 +64,50 @@ export function normalizeFromSportEvent(ev: SportEventResponse): NormalizedMatch
     field: ev.location ?? "",
     codacta: ev.codActa ?? null,
     selectedKitNumber: ev.selectedKitNumber ?? null,
+    locationMapUrl: ev.locationMapUrl ?? null,
     eventId: ev.id,
     matchCategory: ev.matchCategory ?? null,
+  };
+}
+
+/** Build a MatchState (expected by ConvocationMatchDetail) from a SportEventResponse.
+ *  Shared by every screen that navigates to /coach/convocations/match — and by
+ *  ConvocationMatchDetail itself when it has to re-fetch the match on F5. */
+export function toMatchState(ev: SportEventResponse): MatchState {
+  const raw = ev.eveDateTime ?? ev.startTime ?? ev.start ?? null;
+  const date = raw ? raw.trim().substring(0, 10) : "";
+
+  // Only ev.startTime carries a known kickoff time. Falling back to eveDateTime
+  // (the fixture date, always present even before RFFM publishes a time) would
+  // fabricate a fake local time out of the backend's UTC-midnight placeholder.
+  let time = "";
+  if (ev.startTime && ev.startTime.includes("T")) {
+    const rawDate = new Date(ev.startTime);
+    if (!isNaN(rawDate.getTime())) {
+      time = rawDate.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+    }
+  }
+
+  const isHomeMatch = ev.isHomeMatch !== false;
+  const rivalName = ev.rivalName ?? ev.rival ?? "";
+  const rivalShield = ev.rivalPhotoUrl ?? "";
+  const myTeamName = ev.teamName ?? "";
+  const myTeamShield = resolveStorageUrl(ev.teamPhotoUrl);
+
+  return {
+    date,
+    time,
+    localTeamName: isHomeMatch ? myTeamName : rivalName,
+    localTeamShield: isHomeMatch ? myTeamShield : rivalShield,
+    visitorTeamName: isHomeMatch ? rivalName : myTeamName,
+    visitorTeamShield: isHomeMatch ? rivalShield : myTeamShield,
+    isFinished: raw ? new Date(raw) < new Date() : false,
+    isHomeTeam: isHomeMatch,
+    field: ev.location ?? "",
+    codacta: ev.codActa ?? null,
+    selectedKitNumber: ev.selectedKitNumber ?? null,
+    locationMapUrl: ev.locationMapUrl ?? null,
+    eventId: ev.id ?? null,
   };
 }
 
@@ -125,6 +168,7 @@ export function normalizeRawMatch(
       field: (m.field ?? "") as string,
       codacta,
       selectedKitNumber: null,
+      locationMapUrl: null,
     };
   }
 
@@ -146,6 +190,7 @@ export function normalizeRawMatch(
     field: (m.campo ?? "") as string,
     codacta,
     selectedKitNumber: null,
+    locationMapUrl: null,
   };
 }
 

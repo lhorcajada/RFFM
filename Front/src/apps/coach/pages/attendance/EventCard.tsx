@@ -22,45 +22,8 @@ import SportEventDialog from "./components/SportEventDialog";
 import { coachAuthService } from "../../services/authService";
 import { EventAttendanceBadges } from "../../components/EventAttendanceBadges/EventAttendanceBadges";
 import type { EventAttendanceSummaryDto } from "../../services/eventAttendanceSummaryService";
-import type { MatchState } from "../convocations/components/convocationMatchDetail.types";
 import { resolveStorageUrl } from "../../../../shared/utils/resolveStorageUrl";
-
-/** Build a MatchState (expected by ConvocationMatchDetail) from a SportEventResponse */
-function toMatchState(ev: SportEventResponse): MatchState {
-  const raw = ev.eveDateTime ?? ev.startTime ?? ev.start ?? null;
-  const date = raw ? raw.trim().substring(0, 10) : "";
-
-  // Only ev.startTime carries a known kickoff time. Falling back to eveDateTime
-  // (the fixture date, always present even before RFFM publishes a time) would
-  // fabricate a fake local time out of the backend's UTC-midnight placeholder.
-  let time = "";
-  if (ev.startTime && ev.startTime.includes("T")) {
-    const rawDate = new Date(ev.startTime);
-    if (!isNaN(rawDate.getTime())) {
-      time = rawDate.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
-    }
-  }
-
-  const isHomeMatch = ev.isHomeMatch !== false;
-  const rivalName = ev.rivalName ?? ev.rival ?? "";
-  const rivalShield = ev.rivalPhotoUrl ?? "";
-  const myTeamName = ev.teamName ?? "";
-  const myTeamShield = resolveStorageUrl(ev.teamPhotoUrl);
-
-  return {
-    date,
-    time,
-    localTeamName: isHomeMatch ? myTeamName : rivalName,
-    localTeamShield: isHomeMatch ? myTeamShield : rivalShield,
-    visitorTeamName: isHomeMatch ? rivalName : myTeamName,
-    visitorTeamShield: isHomeMatch ? rivalShield : myTeamShield,
-    isFinished: raw ? new Date(raw) < new Date() : false,
-    isHomeTeam: isHomeMatch,
-    field: ev.location ?? "",
-    codacta: ev.codActa ?? null,
-    selectedKitNumber: ev.selectedKitNumber ?? null,
-  };
-}
+import { toMatchState } from "../convocations/helpers/convocationUtils";
 
 interface Props {
   event: SportEventResponse;
@@ -255,7 +218,11 @@ export default function EventCard({ event, eventTypeName, onDeleted, onEdited, a
             size="small"
             onClick={() => {
               const teamIdParam = encodeURIComponent(String(event.teamId ?? ""));
-              navigate(`/coach/convocations/match?teamId=${teamIdParam}`, { state: { match: toMatchState(event) } });
+              const eventIdParam = encodeURIComponent(String(event.id));
+              navigate(
+                `/coach/convocations/match?teamId=${teamIdParam}&eventId=${eventIdParam}`,
+                { state: { match: toMatchState(event) } },
+              );
             }}
             aria-label={`Ir al partido ${event.title}`}
             sx={{ color: "rgba(180,195,240,0.85)" }}

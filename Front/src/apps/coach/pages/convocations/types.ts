@@ -15,6 +15,9 @@ export type NormalizedMatch = {
   field: string;
   codacta: string | null;
   selectedKitNumber: number | null;
+  /** Google Maps (or similar) URL for the venue, when known. Null when not available —
+   *  consumers should fall back to a search-based maps link. */
+  locationMapUrl: string | null;
   eventId?: string;
   /** Backend-computed category — "League" | "Friendly" | "Tournament" | null (non-match event) */
   matchCategory?: MatchCategory;

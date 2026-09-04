@@ -139,6 +139,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 8px;
   width: 100%;
 }
@@ -149,7 +150,23 @@
 .actionRight {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 8px;
+}
+.actionRight :global(.MuiButton-root) {
+  white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  .actionRight {
+    gap: 6px;
+  }
+  .actionRight :global(.MuiButton-root) {
+    padding-left: 8px;
+    padding-right: 8px;
+    font-size: 0.75rem;
+  }
 }
 .infoRow {
   display: flex;

@@ -6,6 +6,12 @@ import type { ExcuseType } from "../../../services/excuseTypeService";
 import type { ClubKit } from "../../../services/kitService";
 import type { MatchState } from "./convocationMatchDetail.types";
 import type { DeconvokeProposal } from "../utils/deconvokeProposal";
+import {
+  formatDateES,
+  getExcuseLabel,
+  playerDisplayName,
+  buildConvocationSummary,
+} from "../utils/convocationSummary";
 import styles from "./ConvocatoriaPrint.module.css";
 
 // How many cromos fit in one row inside the 794px container
@@ -24,9 +30,6 @@ function chunk<T>(arr: T[], size: number): T[][] {
 export type ConvocatoriaPrintHandle = {
   print: () => Promise<void>;
   printProposal: () => Promise<void>;
-  /** Generates a WhatsApp-ready text and copies it to the clipboard.
-   *  Returns true on success, false if clipboard access was denied. */
-  copyForWhatsApp: () => Promise<boolean>;
 };
 
 // ─── Props ─────────────────────────────────────────────────────────────────────
@@ -43,86 +46,6 @@ type Props = {
   kits: ClubKit[];
   selectedKitNumber: number | null;
 };
-
-// ─── Helpers ───────────────────────────────────────────────────────────────────
-
-const DAYS_ES = [
-  "Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado",
-];
-const MONTHS_ES = [
-  "enero", "febrero", "marzo", "abril", "mayo", "junio",
-  "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
-];
-
-function formatDateES(dateStr: string): string {
-  if (!dateStr) return "";
-  const [year, month, day] = dateStr.split("-").map(Number);
-  const d = new Date(year, month - 1, day);
-  return `${DAYS_ES[d.getDay()]}, ${day} de ${MONTHS_ES[d.getMonth()]} de ${year}`;
-}
-
-function arrivalTime(time: string): string {
-  if (!time || !time.includes(":")) return "";
-  const [hStr, mStr] = time.split(":");
-  let h = parseInt(hStr, 10) - 1;
-  const m = parseInt(mStr, 10);
-  if (h < 0) h = 23;
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-}
-
-function positionOrder(pos: string | null | undefined): number {
-  const p = (pos ?? "").toLowerCase();
-  if (p.includes("portero") || p.includes("keeper") || p.includes("arquero")) return 0;
-  if (
-    p.includes("defensa") || p.includes("central") ||
-    p.includes("lateral") || p.includes("libero") || p.includes("stopper")
-  ) return 1;
-  if (
-    p.includes("centrocampista") || p.includes("medio") ||
-    p.includes("pivote") || p.includes("interior") || p.includes("volante")
-  ) return 2;
-  if (
-    p.includes("delantero") || p.includes("extremo") ||
-    p.includes("punta") || p.includes("ariete") || p.includes("winger")
-  ) return 3;
-  return 4;
-}
-
-const POSITION_LABELS: Record<number, string> = {
-  0: "Porteros",
-  1: "Defensas",
-  2: "Medios",
-  3: "Delanteros",
-  4: "Sin posición",
-};
-
-const EXCUSE_LABELS_ES: Record<string, string> = {
-  Injury: "Lesión",
-  Study: "Estudios",
-  Ill: "Enfermedad",
-  "Family Problem": "Problema familiar",
-  "Family Event": "Evento familiar",
-  "Birthday Event": "Cumpleaños",
-};
-
-function localizeExcuse(name: string): string {
-  return EXCUSE_LABELS_ES[name] ?? name;
-}
-
-function getExcuseLabel(
-  excuseId: number | null | undefined,
-  excuseTypes: ExcuseType[],
-): string {
-  if (excuseId == null) return "Decisión técnica";
-  const et = excuseTypes.find((e) => e.id === excuseId);
-  return et ? localizeExcuse(et.name) : "Causa desconocida";
-}
-
-function playerDisplayName(p: PlayerResponse): string {
-  // Alias (apodo) takes priority
-  if (p.alias?.trim()) return p.alias.trim();
-  return ((p.name ?? "") + " " + (p.lastName ?? "")).trim() || "Jugador";
-}
 
 // ─── Sub-renders (inline styles for html2canvas compatibility) ─────────────────
 
@@ -834,131 +757,33 @@ const ConvocatoriaPrint = forwardRef<ConvocatoriaPrintHandle, Props>(
         const dateStr = (match?.date ?? "").replace(/-/g, "");
         pdf.save(`Propuesta_Desconvocatoria_${safeLocal}_vs_${safeVisitor}_${dateStr}.pdf`);
       },
-
-      copyForWhatsApp: async () => {
-        // ── Re-derive data (closure captures latest props) ──────────────────
-        const _uniqueNotCalledIds = [...new Set(notCalledIds)];
-        const _calledPlayers = calledIds
-          .map((id) => players.find((p) => p.id === id))
-          .filter(Boolean) as PlayerResponse[];
-        const _notCalledPlayers = _uniqueNotCalledIds
-          .map((id) => players.find((p) => p.id === id))
-          .filter(Boolean) as PlayerResponse[];
-
-        const _groups = new Map<number, PlayerResponse[]>();
-        for (const p of _calledPlayers) {
-          const order = positionOrder(p.position);
-          if (!_groups.has(order)) _groups.set(order, []);
-          _groups.get(order)!.push(p);
-        }
-        const _sortedGroups = Array.from(_groups.entries()).sort(([a], [b]) => a - b);
-        const _selectedKit = kits.find((k) => k.kitNumber === selectedKitNumber);
-        const _otherKit = kits.find((k) => k.kitNumber !== selectedKitNumber);
-        const _arrival = match ? arrivalTime(match.time) : "";
-        const _dateES = match ? formatDateES(match.date) : "";
-
-        const POSITION_EMOJIS: Record<number, string> = {
-          0: "🧤",
-          1: "🛡️",
-          2: "⚙️",
-          3: "⚡",
-          4: "👤",
-        };
-
-        const lines: string[] = [];
-        lines.push("⚽ *CONVOCATORIA* ⚽");
-        lines.push("");
-
-        if (match) {
-          lines.push(`🆚 *${match.localTeamName} vs ${match.visitorTeamName}*`);
-          if (_dateES) lines.push(`📅 ${_dateES}`);
-          if (match.time) lines.push(`⏰ Hora del partido: *${match.time}*`);
-          if (_arrival) lines.push(`🕐 Hora de llegada: *${_arrival}*`);
-          if (match.field) {
-            lines.push(`📍 Campo: ${match.field}`);
-            const mapsUrl = `https://maps.google.com/?q=${encodeURIComponent(match.field)}`;
-            lines.push(`🗺️ ${mapsUrl}`);
-          }
-        }
-
-        if (_selectedKit) {
-          const kitName = _selectedKit.kitNumber === 1 ? "1ª Equipación" : "2ª Equipación";
-          lines.push("");
-          lines.push(`👕 *Equipación: ${kitName}*`);
-          if (_otherKit) {
-            const other = _otherKit.kitNumber === 1 ? "primera" : "segunda";
-            lines.push(`⚠️ Traed también la ${other} equipación`);
-          }
-          lines.push("🧤 *Porteros:* traed las dos equipaciones de portero");
-        }
-
-        lines.push("");
-        lines.push("━━━━━━━━━━━━━━━━━━━━━━");
-        lines.push(`✅ *CONVOCADOS (${calledIds.length})*`);
-
-        for (const [order, groupPlayers] of _sortedGroups) {
-          lines.push("");
-          lines.push(`${POSITION_EMOJIS[order] ?? "👤"} *${POSITION_LABELS[order]}:*`);
-          for (const p of groupPlayers) {
-            const name = playerDisplayName(p);
-            const dorsal = p.dorsal != null ? ` (Nº ${p.dorsal})` : "";
-            lines.push(`• ${name}${dorsal}`);
-          }
-        }
-
-        if (_notCalledPlayers.length > 0) {
-          lines.push("");
-          lines.push("━━━━━━━━━━━━━━━━━━━━━━");
-          lines.push(`❌ *DESCONVOCADOS (${_uniqueNotCalledIds.length})*`);
-          for (const p of _notCalledPlayers) {
-            const label = getExcuseLabel(excuseMap[p.id], excuseTypes);
-            lines.push(`• ${playerDisplayName(p)} — ${label}`);
-          }
-        }
-
-        const text = lines.join("\n");
-        try {
-          await navigator.clipboard.writeText(text);
-          return true;
-        } catch {
-          return false;
-        }
-      },
     }));
 
     // ── Derived data ──────────────────────────────────────────────────────────
 
-    const calledPlayers = calledIds
-      .map((id) => players.find((p) => p.id === id))
-      .filter(Boolean) as PlayerResponse[];
-
-    // Deduplicate notCalledIds — the hook can push the same id more than once
-    const uniqueNotCalledIds = [...new Set(notCalledIds)];
-    const notCalledPlayers = uniqueNotCalledIds
-      .map((id) => players.find((p) => p.id === id))
-      .filter(Boolean) as PlayerResponse[];
-
-    // Group called players by position
-    const groups = new Map<number, PlayerResponse[]>();
-    for (const p of calledPlayers) {
-      const order = positionOrder(p.position);
-      if (!groups.has(order)) groups.set(order, []);
-      groups.get(order)!.push(p);
-    }
-    const sortedGroups = Array.from(groups.entries()).sort(([a], [b]) => a - b);
-
-    // Kit helpers
-    const selectedKit = kits.find((k) => k.kitNumber === selectedKitNumber);
-    const otherKit = kits.find((k) => k.kitNumber !== selectedKitNumber);
-
-    const arrival = match ? arrivalTime(match.time) : "";
-    const dateES = match ? formatDateES(match.date) : "";
-    const totalCalled = calledIds.length;
-    const totalNotCalled = uniqueNotCalledIds.length;
-    const totalPlayers = players.length;
+    const {
+      calledPlayers,
+      notCalledPlayers,
+      uniqueNotCalledIds,
+      selectedKit,
+      otherKit,
+      arrival,
+      dateES,
+      totalCalled,
+      totalNotCalled,
+      totalPlayers,
+      technicalNotCalledCount,
+      nonTechnicalNotCalledCount,
+    } = buildConvocationSummary({
+      match,
+      calledIds,
+      notCalledIds,
+      players,
+      excuseMap,
+      kits,
+      selectedKitNumber,
+    });
     const proposalCount = totalNotCalled;
-    const technicalNotCalledCount = uniqueNotCalledIds.filter((id) => (excuseMap[id] == null)).length;
-    const nonTechnicalNotCalledCount = totalNotCalled - technicalNotCalledCount;
 
     // ── Section card base style ─────────────────────────────────────────────
 
@@ -1106,34 +931,26 @@ const ConvocatoriaPrint = forwardRef<ConvocatoriaPrintHandle, Props>(
           <div style={{ ...card, marginBottom: 0 }}>
             <SectionTitle title={`Listado de convocados (${calledIds.length})`} color="#4ec9b0" />
             <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.45)", marginTop: "6px" }}>
-              Relación nominal de jugadores convocados, agrupada por posición para facilitar la lectura en formato impreso.
+              Relación nominal de jugadores convocados, ordenada por dorsal para facilitar la lectura en formato impreso.
             </div>
 
-            {sortedGroups.length === 0 ? (
+            {calledPlayers.length === 0 ? (
               <p style={{ color: "rgba(255,255,255,0.4)", fontSize: "13px", margin: "10px 0 0" }}>
                 Sin jugadores convocados
               </p>
             ) : (
               <div style={{ marginTop: "14px" }}>
-                {sortedGroups.map(([order, groupPlayers]) => {
-                  const rows = groupPlayers.map((p) => {
-                    const row: string[] = [];
-                    row.push(playerDisplayName(p));
-                    row.push(p.dorsal != null ? String(p.dorsal) : "—");
-                    row.push(p.position ?? "Sin posición");
-                    row.push(photos[p.id] ? "Sí" : "No");
-                    return row;
-                  });
-                  return (
-                    <ReportTable
-                      key={order}
-                      title={`${POSITION_LABELS[order]} (${groupPlayers.length})`}
-                      columns={["Jugador", "Dorsal", "Posición", "Foto"]}
-                      rows={rows}
-                      accent="#4ec9b0"
-                    />
-                  );
-                })}
+                <ReportTable
+                  title={`Convocados (${calledPlayers.length})`}
+                  columns={["Jugador", "Dorsal", "Posición", "Foto"]}
+                  rows={calledPlayers.map((p) => [
+                    playerDisplayName(p),
+                    p.dorsal != null ? String(p.dorsal) : "—",
+                    p.position ?? "Sin posición",
+                    photos[p.id] ? "Sí" : "No",
+                  ])}
+                  accent="#4ec9b0"
+                />
               </div>
             )}
           </div>

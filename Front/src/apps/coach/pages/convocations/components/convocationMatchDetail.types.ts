@@ -13,6 +13,12 @@ export type MatchState = {
   codacta: string | null;
   /** Kit number selected for this match (1 = primera, 2 = segunda, null = no selected). */
   selectedKitNumber: number | null;
+  /** Google Maps (or similar) URL for the venue, when known. Null when the event has no
+   *  configured map link — consumers should fall back to a search-based maps link. */
+  locationMapUrl: string | null;
+  /** Internal sport event id — lets the match detail screen re-fetch this match from the
+   *  backend on a hard refresh (F5) or direct URL navigation, when router state is lost. */
+  eventId: string | null;
 };
 
 /** One cell in the desconvocatorias grid */

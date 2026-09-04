@@ -85,8 +85,11 @@ export default function Convocations() {
         navigate(`/federation/acta/${encodeURIComponent(match.codacta)}`);
       }
     } else {
-      const qs = teamId ? `?teamId=${encodeURIComponent(teamId)}` : "";
-      navigate(`/coach/convocations/match${qs}`, {
+      const params = new URLSearchParams();
+      if (teamId) params.set("teamId", teamId);
+      if (match.eventId) params.set("eventId", match.eventId);
+      const qs = params.toString();
+      navigate(`/coach/convocations/match${qs ? `?${qs}` : ""}`, {
         state: { match },
       });
     }

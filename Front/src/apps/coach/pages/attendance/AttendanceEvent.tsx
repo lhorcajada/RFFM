@@ -14,46 +14,16 @@ import { Box, Button, CircularProgress, Chip } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SportsSoccerIcon from "@mui/icons-material/SportsSoccer";
 import EditIcon from "@mui/icons-material/Edit";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 import { getEventTypeColor } from "./attendanceUtils";
 import styles from "./AttendanceEvent.module.css";
 import AttendanceTabs from "./AttendanceTabs";
 import SportEventDialog from "./components/SportEventDialog";
 import { coachAuthService } from "../../services/authService";
-import type { MatchState } from "../convocations/components/convocationMatchDetail.types";
-import { resolveStorageUrl } from "../../../../shared/utils/resolveStorageUrl";
-
-function toMatchState(ev: SportEventResponse): MatchState {
-  const raw = ev.eveDateTime ?? ev.startTime ?? ev.start ?? null;
-  const date = raw ? raw.trim().substring(0, 10) : "";
-  // Only ev.startTime carries a known kickoff time. Falling back to eveDateTime
-  // (the fixture date, always present even before RFFM publishes a time) would
-  // fabricate a fake local time out of the backend's UTC-midnight placeholder.
-  let time = "";
-  if (ev.startTime && ev.startTime.includes("T")) {
-    const rawDate = new Date(ev.startTime);
-    if (!isNaN(rawDate.getTime())) {
-      time = rawDate.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
-    }
-  }
-  const isHomeMatch = ev.isHomeMatch !== false;
-  const rivalName = ev.rivalName ?? ev.rival ?? "";
-  const rivalShield = ev.rivalPhotoUrl ?? "";
-  const myTeamName = ev.teamName ?? "";
-  const myTeamShield = resolveStorageUrl(ev.teamPhotoUrl);
-  return {
-    date,
-    time,
-    localTeamName: isHomeMatch ? myTeamName : rivalName,
-    localTeamShield: isHomeMatch ? myTeamShield : rivalShield,
-    visitorTeamName: isHomeMatch ? rivalName : myTeamName,
-    visitorTeamShield: isHomeMatch ? rivalShield : myTeamShield,
-    isFinished: raw ? new Date(raw) < new Date() : false,
-    isHomeTeam: isHomeMatch,
-    field: ev.location ?? "",
-    codacta: ev.codActa ?? null,
-    selectedKitNumber: ev.selectedKitNumber ?? null,
-  };
-}
+import { useConvocationManagement } from "../convocations/hooks/useConvocationManagement";
+import ConvocationDetailsDialog from "../convocations/components/ConvocationDetailsDialog";
+import { getTeamKits, type ClubKit } from "../../services/kitService";
+import { toMatchState } from "../convocations/helpers/convocationUtils";
 
 function parseDate(input?: string | null): Date | null {
   if (!input) return null;
@@ -80,11 +50,36 @@ export default function AttendanceEvent() {
   const [event, setEvent] = useState<SportEventResponse | null>(null);
   const [eventTypeName, setEventTypeName] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
+  const [viewConvocationOpen, setViewConvocationOpen] = useState(false);
+  const [kits, setKits] = useState<ClubKit[]>([]);
   const canEditEvent =
     coachAuthService.hasRole("Administrator") ||
     coachAuthService.hasRole("Coach") ||
     coachAuthService.hasRole("ClubDirector") ||
     coachAuthService.hasRole("ClubMember");
+
+  const isMatchOrFriendly = /part|amist/i.test(eventTypeName ?? "");
+  const matchState = event ? toMatchState(event) : null;
+
+  // "Ver convocatoria" — read-only convocation data for this event's team/date, shared with
+  // the Coach-only ConvocationMatchDetail screen via the same hook so the two never drift.
+  const convocation = useConvocationManagement(event?.teamId ?? "", matchState?.date);
+  const convocationConfirmed =
+    convocation.mgmtCalled.length > 0 && convocation.mgmtPending.length === 0;
+
+  useEffect(() => {
+    const teamId = event?.teamId;
+    if (!teamId) return;
+    let mounted = true;
+    getTeamKits(teamId)
+      .then((data) => {
+        if (mounted) setKits(data);
+      })
+      .catch(() => {});
+    return () => {
+      mounted = false;
+    };
+  }, [event?.teamId]);
 
   useEffect(() => {
     let mounted = true;
@@ -220,17 +215,31 @@ export default function AttendanceEvent() {
                   Editar
                 </Button>
               )}
-              {event && /part|amist/i.test(eventTypeName ?? "") && (
+              {event && isMatchOrFriendly && (
                 <Button
                   startIcon={<SportsSoccerIcon />}
                   variant="contained"
                   size="small"
                   onClick={() => {
                     const teamIdParam = encodeURIComponent(String(event.teamId ?? ""));
-                    navigate(`/coach/convocations/match?teamId=${teamIdParam}`, { state: { match: toMatchState(event) } });
+                    const eventIdParam = encodeURIComponent(String(event.id));
+                    navigate(
+                      `/coach/convocations/match?teamId=${teamIdParam}&eventId=${eventIdParam}`,
+                      { state: { match: toMatchState(event) } },
+                    );
                   }}
                 >
                   Ir al partido
+                </Button>
+              )}
+              {event && isMatchOrFriendly && convocationConfirmed && (
+                <Button
+                  startIcon={<VisibilityIcon />}
+                  variant="outlined"
+                  size="small"
+                  onClick={() => setViewConvocationOpen(true)}
+                >
+                  Ver convocatoria
                 </Button>
               )}
             </div>
@@ -337,19 +346,14 @@ export default function AttendanceEvent() {
                     </div>
                   </div>
 
-                  {(() => {
-                    const name = eventTypeName ?? "";
-                    const isMatchOrFriendly = /part|amist/i.test(name);
-                    if (!isMatchOrFriendly) return null;
-                    return (
-                      <div className={styles.infoRow}>
-                        <div className={styles.label}>Rival</div>
-                        <div className={styles.value}>
-                          {event.rivalName ?? ""}
-                        </div>
+                  {isMatchOrFriendly && (
+                    <div className={styles.infoRow}>
+                      <div className={styles.label}>Rival</div>
+                      <div className={styles.value}>
+                        {event.rivalName ?? ""}
                       </div>
-                    );
-                  })()}
+                    </div>
+                  )}
 
                   {event.description ? (
                     <div className={`${styles.infoRow} ${styles.fullWidth}`}>
@@ -399,6 +403,23 @@ export default function AttendanceEvent() {
             setEditOpen(false);
             if (updated) setEvent(updated);
           }}
+        />
+      )}
+      {event && isMatchOrFriendly && (
+        <ConvocationDetailsDialog
+          open={viewConvocationOpen}
+          onClose={() => setViewConvocationOpen(false)}
+          match={matchState}
+          calledIds={convocation.mgmtCalled}
+          notCalledIds={convocation.mgmtNotCalled}
+          players={convocation.players}
+          photos={convocation.mgmtPhotos}
+          excuseMap={convocation.mgmtExcuseMap}
+          excuseTypes={convocation.excuseTypes}
+          kits={kits}
+          selectedKitNumber={matchState?.selectedKitNumber ?? null}
+          teamId={event?.teamId ?? ""}
+          canCopyToWhatsApp={coachAuthService.hasRole("Coach")}
         />
       )}
     </BaseLayout>

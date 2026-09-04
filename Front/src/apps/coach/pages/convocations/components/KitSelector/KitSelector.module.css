@@ -38,9 +38,13 @@
   font-size: 10px;
   font-weight: 600;
   color: var(--rffm-text-secondary, #aaa);
+  /* Reset the transparent -webkit-text-fill-color inherited from PageHeader's gradient
+     title — see ClubKitEditor.module.css .title for the full explanation. */
+  -webkit-text-fill-color: var(--rffm-text-secondary, #aaa);
   line-height: 1;
 }
 
 .kitBtn.selected .kitLabel {
   color: var(--rffm-accent, #ff6600);
+  -webkit-text-fill-color: var(--rffm-accent, #ff6600);
 }

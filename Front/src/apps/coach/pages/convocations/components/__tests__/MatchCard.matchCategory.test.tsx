@@ -19,6 +19,7 @@ function baseMatch(overrides: Partial<NormalizedMatch> = {}): NormalizedMatch {
     field: "Field 1",
     codacta: null,
     selectedKitNumber: null,
+    locationMapUrl: null,
     matchCategory: null,
     ...overrides,
   };

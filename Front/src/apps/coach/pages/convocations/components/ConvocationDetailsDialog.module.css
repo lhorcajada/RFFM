@@ -1,0 +1,169 @@
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.matchTitle {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #ff9800;
+}
+
+.infoRow {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.infoLabel {
+  color: rgba(255, 255, 255, 0.45);
+  min-width: 120px;
+}
+
+.section {
+  margin-top: 18px;
+}
+
+.sectionTitle {
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  margin-bottom: 10px;
+}
+
+.calledSectionTitle {
+  color: #4ec9b0;
+  border-bottom-color: rgba(78, 201, 176, 0.3);
+}
+
+.notCalledSectionTitle {
+  color: #f06464;
+  border-bottom-color: rgba(240, 100, 100, 0.3);
+}
+
+.locationLink {
+  color: #ff9800;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.locationLink:hover {
+  text-decoration: underline;
+}
+
+.playerCard {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 6px;
+}
+
+.playerCardNotCalled {
+  border-color: rgba(240, 100, 100, 0.25);
+}
+
+.playerName {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #e8e8e8;
+  flex: 1;
+}
+
+.playerDorsal {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.playerExcuse {
+  font-size: 0.75rem;
+  color: #f06464;
+  font-weight: 600;
+}
+
+.emptyText {
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.kitsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.kitCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex: 1 1 140px;
+  min-width: 140px;
+  padding: 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: center;
+}
+
+.kitCardSelected {
+  border-color: rgba(76, 201, 176, 0.5);
+  background: rgba(78, 201, 176, 0.08);
+}
+
+.kitCardLabel {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #e8e8e8;
+}
+
+.kitCardColors {
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.kitCardTagSelected {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #4ec9b0;
+}
+
+.kitCardTagOther {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: rgba(255, 152, 0, 0.85);
+}
+
+.notesList {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.kitNote {
+  font-size: 0.82rem;
+  color: #ff9800;
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 152, 0, 0.08);
+  border: 1px solid rgba(255, 152, 0, 0.25);
+}

@@ -21,7 +21,9 @@ import AlineacionTab from "./components/AlineacionTab";
 import SimulacionTab from "./components/SimulacionTab";
 import PartidoEnDirectoTab from "./components/PartidoEnDirectoTab";
 import ConvocatoriaPrint, { type ConvocatoriaPrintHandle } from "./components/ConvocatoriaPrint";
+import ConvocationDetailsDialog from "./components/ConvocationDetailsDialog";
 import type { MatchState } from "./components/convocationMatchDetail.types";
+import { coachAuthService } from "../../services/authService";
 import { useConvocationManagement } from "./hooks/useConvocationManagement";
 import { useDesconvocatoriasGrid } from "./hooks/useDesconvocatoriasGrid";
 import { useConvocationMatchContext } from "./hooks/useConvocationMatchContext";
@@ -29,6 +31,7 @@ import { useConvocationPlayerViews } from "./hooks/useConvocationPlayerViews";
 import { useConvocationProposal } from "./hooks/useConvocationProposal";
 import type { ClubKit } from "../../services/kitService";
 import { getTeamKits, updateEventKit } from "../../services/kitService";
+import { toMatchState } from "./helpers/convocationUtils";
 import styles from "./ConvocationMatchDetail.module.css";
 import ConvocationMatchHeader from "./components/ConvocationMatchHeader";
 import ConvocationMatchActionBar from "./components/ConvocationMatchActionBar";
@@ -37,12 +40,41 @@ import ConvocationDeconvokeDialog from "./components/ConvocationDeconvokeDialog"
 export default function ConvocationMatchDetail() {
   const navigate = useNavigate();
   const location = useLocation();
-  const match = (location.state as { match?: MatchState } | null)?.match ?? null;
+  const stateMatch = (location.state as { match?: MatchState } | null)?.match ?? null;
 
   // Team ID  from URL or fallback to coach configuration
   const params = new URLSearchParams(location.search);
   const [teamId, setTeamId] = useState(params.get("teamId") ?? "");
   const seasonId = params.get("seasonId");
+  const eventIdParam = params.get("eventId");
+
+  // Fast path: router state carries the match (normal in-app navigation). Slow path: state
+  // was lost (F5 reload / direct URL navigation) but the URL still carries ?eventId= — fetch
+  // the match fresh from the backend so the screen survives a refresh.
+  const [match, setMatch] = useState<MatchState | null>(stateMatch);
+  const [matchLoading, setMatchLoading] = useState(!stateMatch && !!eventIdParam);
+
+  useEffect(() => {
+    if (stateMatch || !eventIdParam) return;
+    let mounted = true;
+    setMatchLoading(true);
+    getSportEventById(eventIdParam)
+      .then((event) => {
+        if (!mounted) return;
+        setMatch(event ? toMatchState(event) : null);
+      })
+      .catch(() => {
+        if (mounted) setMatch(null);
+      })
+      .finally(() => {
+        if (mounted) setMatchLoading(false);
+      });
+    return () => {
+      mounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eventIdParam]);
+
   useEffect(() => {
     if (teamId) return;
     let mounted = true;
@@ -109,22 +141,8 @@ export default function ConvocationMatchDetail() {
     }
   }, [printing]);
 
-  // WhatsApp copy
-  const [whatsappCopied, setWhatsappCopied] = useState(false);
-  const [whatsappCopying, setWhatsappCopying] = useState(false);
-  const handleWhatsAppCopy = useCallback(async () => {
-    if (whatsappCopying) return;
-    setWhatsappCopying(true);
-    try {
-      const ok = await printRef.current?.copyForWhatsApp();
-      if (ok) {
-        setWhatsappCopied(true);
-        setTimeout(() => setWhatsappCopied(false), 2500);
-      }
-    } finally {
-      setWhatsappCopying(false);
-    }
-  }, [whatsappCopying]);
+  // "Ver convocatoria" dialog
+  const [viewConvocationOpen, setViewConvocationOpen] = useState(false);
 
   // Kit state
   const [kits, setKits] = useState<ClubKit[]>([]);
@@ -153,6 +171,10 @@ export default function ConvocationMatchDetail() {
       .then((event) => {
         if (!mounted) return;
         setIsFriendly(event?.matchCategory === "Friendly");
+        // `match.selectedKitNumber` is only a snapshot taken when this page was navigated
+        // to (router state) — refresh it from the server so a kit saved in a previous
+        // visit isn't lost when the page is re-entered.
+        setSelectedKitNumber(event?.selectedKitNumber ?? null);
       })
       .catch(() => {});
     return () => {
@@ -208,6 +230,9 @@ export default function ConvocationMatchDetail() {
     }
   }, [convocation.mgmtEventId, kitUpdating]);
 
+  // Confirmed by all: every called-up player has accepted (none left in "pending")
+  const convocationConfirmed = convocation.mgmtCalled.length > 0 && convocation.mgmtPending.length === 0;
+
   const proposalRivalName = useMemo(() => {
     if (!match) return null;
     return match.isHomeTeam ? match.visitorTeamName : match.localTeamName;
@@ -245,12 +270,26 @@ export default function ConvocationMatchDetail() {
   const matchTitle = (
     <ConvocationMatchHeader
       match={match}
+      teamId={teamId}
       kits={kits}
       selectedKitNumber={selectedKitNumber}
       onSelectKit={handleKitSelect}
+      onKitsSaved={setKits}
       disabled={kitUpdating || !convocation.mgmtEventId}
     />
   );
+
+  if (matchLoading) {
+    return (
+      <BaseLayout hideFooterMenu>
+        <ContentLayout title="Cargando partido...">
+          <div className={styles.matchLoadingWrapper}>
+            <CircularProgress />
+          </div>
+        </ContentLayout>
+      </BaseLayout>
+    );
+  }
 
   return (
     <BaseLayout hideFooterMenu>
@@ -263,14 +302,13 @@ export default function ConvocationMatchDetail() {
             eventId={convocation.mgmtEventId}
             lineupPlayersCount={lineupPlayers.length}
             printing={printing}
-            whatsappCopying={whatsappCopying}
-            whatsappCopied={whatsappCopied}
+            convocationConfirmed={convocationConfirmed}
             onBack={() => navigate(`/coach/convocations${teamId ? `?teamId=${teamId}` : ""}`)}
             onOpenEvent={() => navigate(`/coach/attendance/${convocation.mgmtEventId}`)}
             onSaveConvocation={convocation.handleSave}
             onSaveLineup={() => lineupRef.current?.save()}
             onPrint={handlePrint}
-            onWhatsAppCopy={handleWhatsAppCopy}
+            onViewConvocation={() => setViewConvocationOpen(true)}
           />
         }
       >
@@ -407,6 +445,23 @@ export default function ConvocationMatchDetail() {
           onClose={() => setPendingDeconvokeId(null)}
           onChange={(value) => setPendingDeconvokeExcuse(value)}
           onConfirm={handleDeconvokeConfirm}
+        />
+
+        {/* "Ver convocatoria" dialog — on-screen version of the WhatsApp export */}
+        <ConvocationDetailsDialog
+          open={viewConvocationOpen}
+          onClose={() => setViewConvocationOpen(false)}
+          match={match}
+          calledIds={convocation.mgmtCalled}
+          notCalledIds={convocation.mgmtNotCalled}
+          players={convocation.players}
+          photos={convocation.mgmtPhotos}
+          excuseMap={convocation.mgmtExcuseMap}
+          excuseTypes={convocation.excuseTypes}
+          kits={kits}
+          selectedKitNumber={selectedKitNumber}
+          teamId={teamId}
+          canCopyToWhatsApp={coachAuthService.hasRole("Coach")}
         />
 
         {/* PDF print container — off-screen, captured by html2canvas */}
