@@ -1,5 +1,6 @@
 #nullable enable
 using Microsoft.EntityFrameworkCore;
+using RFFM.Api.Domain.Aggregates.Assistances;
 using RFFM.Api.Domain.Aggregates.UserClubs;
 using RFFM.Api.Domain.Entities.Competitions;
 using RFFM.Api.Domain.Entities.Players;
@@ -72,6 +73,20 @@ namespace RFFM.Api.Tests.UnitTests
             await db.SaveChangesAsync();
 
             return (team.Id, teamPlayer.Id);
+        }
+
+        private async Task<string> SeedSportEventAsync(AppDbContext db, string teamId, int eventTypeId = 4)
+        {
+            var sportEvent = SportEvent.CreateNew(
+                "Amistoso",
+                DateTime.UtcNow.AddDays(-1),
+                DateTime.UtcNow.AddDays(-1),
+                null, null, null, null,
+                eventTypeId, teamId, null,
+                isHomeMatch: true);
+            db.SportEvents.Add(sportEvent);
+            await db.SaveChangesAsync();
+            return sportEvent.Id;
         }
 
         [Fact]
@@ -188,6 +203,68 @@ namespace RFFM.Api.Tests.UnitTests
             Assert.NotNull(saved);
             Assert.Equal(cardsJson, saved!.CardsJson);
             Assert.Equal(90, saved.MinutesPlayed);
+        }
+
+        [Fact]
+        public async Task Handle_WithFinishedPhase_UpdatesSportEventGoalsForCalendarDisplay()
+        {
+            // Arrange
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, teamPlayerId) = await SeedTeamAndPlayerAsync(db);
+            var eventId = await SeedSportEventAsync(db, teamId);
+
+            var handler = new SaveMatchParticipation.Handler(db);
+            var request = new SaveMatchParticipation.SaveMatchParticipationRequest
+            {
+                EventId = eventId,
+                TeamId = teamId,
+                ScoreLocal = 3,
+                ScoreVisitor = 1,
+                MatchPhase = "finished",
+                Players = new List<SaveMatchParticipation.PlayerParticipationDto>
+                {
+                    new(teamPlayerId, 90, true, 0, null)
+                }
+            };
+
+            // Act
+            await handler.Handle(request, CancellationToken.None);
+
+            // Assert
+            var sportEvent = await db.SportEvents.AsNoTracking().FirstAsync(se => se.Id == eventId);
+            Assert.Equal("3", sportEvent.LocalGoals);
+            Assert.Equal("1", sportEvent.VisitorGoals);
+        }
+
+        [Fact]
+        public async Task Handle_WithNonFinishedPhase_DoesNotUpdateSportEventGoals()
+        {
+            // Arrange
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, teamPlayerId) = await SeedTeamAndPlayerAsync(db);
+            var eventId = await SeedSportEventAsync(db, teamId);
+
+            var handler = new SaveMatchParticipation.Handler(db);
+            var request = new SaveMatchParticipation.SaveMatchParticipationRequest
+            {
+                EventId = eventId,
+                TeamId = teamId,
+                ScoreLocal = 2,
+                ScoreVisitor = 0,
+                MatchPhase = "firstHalf",
+                Players = new List<SaveMatchParticipation.PlayerParticipationDto>
+                {
+                    new(teamPlayerId, 30, true, 0, null)
+                }
+            };
+
+            // Act
+            await handler.Handle(request, CancellationToken.None);
+
+            // Assert
+            var sportEvent = await db.SportEvents.AsNoTracking().FirstAsync(se => se.Id == eventId);
+            Assert.Null(sportEvent.LocalGoals);
+            Assert.Null(sportEvent.VisitorGoals);
         }
     }
 }

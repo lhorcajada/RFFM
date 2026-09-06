@@ -116,6 +116,17 @@ namespace RFFM.Api.Features.Coaches.Convocations
                     }
                 }
 
+                if (request.MatchPhase == "finished")
+                {
+                    var sportEvent = await _db.SportEvents
+                        .FirstOrDefaultAsync(se => se.Id == request.EventId, cancellationToken);
+                    if (sportEvent is not null)
+                    {
+                        sportEvent.LocalGoals = request.ScoreLocal.ToString();
+                        sportEvent.VisitorGoals = request.ScoreVisitor.ToString();
+                    }
+                }
+
                 await _db.SaveChangesAsync(cancellationToken);
                 return Unit.Value;
             }

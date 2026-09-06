@@ -57,6 +57,14 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
             var eventId = ev.Id;
             var teamId = ev.TeamId;
 
+            // Remove saved live-match data (minutes, goals, cards) tied to this event so
+            // player stats stop counting a match that no longer exists on the calendar.
+            var participations = await _db.MatchParticipations
+                .Where(mp => mp.EventId == eventId)
+                .ToListAsync(cancellationToken);
+            if (participations.Count > 0)
+                _db.MatchParticipations.RemoveRange(participations);
+
             _db.SportEvents.Remove(ev);
             await _db.SaveChangesAsync(cancellationToken);
 

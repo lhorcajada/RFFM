@@ -8,7 +8,9 @@ using Moq;
 using RFFM.Api.Domain.Aggregates.Assistances;
 using RFFM.Api.Domain.Aggregates.UserClubs;
 using RFFM.Api.Domain.Entities.Competitions;
+using RFFM.Api.Domain.Entities.Players;
 using RFFM.Api.Domain.Entities.Seasons;
+using RFFM.Api.Domain.Entities.TeamPlayers;
 using RFFM.Api.Domain.Models;
 using RFFM.Api.Features.Coaches.SportEvents.Commands;
 using RFFM.Api.Features.Mobile.PushNotifications;
@@ -38,6 +40,12 @@ namespace RFFM.Api.Tests.UnitTests
 
         private async Task<SportEvent> SeedSportEventAsync(AppDbContext db)
         {
+            var (ev, _, _) = await SeedSportEventWithTeamAsync(db);
+            return ev;
+        }
+
+        private async Task<(SportEvent Event, string ClubId, string SeasonId)> SeedSportEventWithTeamAsync(AppDbContext db)
+        {
             var club = Club.Create($"Delete Push Test Club {Guid.NewGuid():N}", 1);
             db.Clubs.Add(club);
             await db.SaveChangesAsync();
@@ -65,7 +73,7 @@ namespace RFFM.Api.Tests.UnitTests
             db.SportEvents.Add(ev);
             await db.SaveChangesAsync();
 
-            return ev;
+            return (ev, club.Id, season.Id);
         }
 
         [Fact]
@@ -84,6 +92,53 @@ namespace RFFM.Api.Tests.UnitTests
             Assert.False(stillExists);
 
             dispatcherMock.Verify(d => d.DispatchCalendarChangedAsync(ev.Id, ev.TeamId, It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task Handle_DeletesEvent_AlsoRemovesItsMatchParticipations()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (ev, clubId, seasonId) = await SeedSportEventWithTeamAsync(seedDb);
+
+            var player = Player.Create(new PlayerModelBase
+            {
+                Name = "Test",
+                LastName = "Player",
+                Alias = $"testplayer-{Guid.NewGuid():N}",
+                ClubId = clubId
+            });
+            seedDb.Players.Add(player);
+            await seedDb.SaveChangesAsync();
+
+            var teamPlayer = TeamPlayer.Create(new TeamPlayerModel
+            {
+                PlayerId = player.Id,
+                TeamId = ev.TeamId,
+                SeasonId = seasonId,
+                JoinedDate = DateTime.UtcNow,
+                Dorsal = null,
+                FamilyMembers = new List<FamilyModel>()
+            });
+            seedDb.TeamPlayers.Add(teamPlayer);
+            await seedDb.SaveChangesAsync();
+
+            var participation = Domain.Entities.TeamPlayers.MatchParticipation.Create(
+                ev.Id, ev.TeamId, teamPlayer.Id, 90, true, 0, null,
+                1, 0, "finished", null, null, null, null, null);
+            seedDb.MatchParticipations.Add(participation);
+            await seedDb.SaveChangesAsync();
+
+            await using var db = _fixture.CreateDbContext();
+            var dispatcherMock = MockDispatcher();
+            var handler = new DeleteSportEventHandler(db, dispatcherMock.Object);
+
+            await handler.Handle(new DeleteSportEventCommand { SportEventId = ev.Id }, CancellationToken.None);
+
+            var remainingParticipations = await db.MatchParticipations
+                .AsNoTracking()
+                .Where(mp => mp.EventId == ev.Id)
+                .ToListAsync();
+            Assert.Empty(remainingParticipations);
         }
 
         [Fact]
