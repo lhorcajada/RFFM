@@ -90,7 +90,11 @@ vi.mock("../hooks/useConvocationProposal", () => ({
 vi.mock("../components/ConvocationTab", () => ({ default: () => null }));
 vi.mock("../components/DesconvocatoriasTab", () => ({ default: () => null }));
 vi.mock("../components/AlineacionTab", () => ({ default: () => null }));
-vi.mock("../components/SimulacionTab", () => ({ default: () => null }));
+vi.mock("../components/SimulacionTab", () => ({
+  default: (props: { isFriendly?: boolean }) => (
+    <div data-testid="simulacion-tab" data-friendly={String(!!props.isFriendly)} />
+  ),
+}));
 vi.mock("../components/ConvocatoriaPrint", () => ({ default: React.forwardRef(() => null) }));
 vi.mock("../components/ConvocationMatchHeader", () => ({ default: () => null }));
 vi.mock("../components/ConvocationMatchActionBar", () => ({ default: () => null }));
@@ -139,6 +143,28 @@ describe("ConvocationMatchDetail - threading isFriendly into the live tracker", 
 
     await waitFor(() =>
       expect(screen.getByTestId("partido-en-directo")).toHaveAttribute("data-friendly", "false"),
+    );
+  });
+
+  it("passes isFriendly=true to SimulacionTab when matchCategory is Friendly", async () => {
+    getSportEventByIdMock.mockResolvedValue({ id: "event-1", matchCategory: "Friendly" });
+    renderPage();
+
+    await userEvent.click(screen.getByText("Simular Partido"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("simulacion-tab")).toHaveAttribute("data-friendly", "true"),
+    );
+  });
+
+  it("passes isFriendly=false to SimulacionTab when matchCategory is not Friendly", async () => {
+    getSportEventByIdMock.mockResolvedValue({ id: "event-1", matchCategory: "League" });
+    renderPage();
+
+    await userEvent.click(screen.getByText("Simular Partido"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("simulacion-tab")).toHaveAttribute("data-friendly", "false"),
     );
   });
 });

@@ -47,6 +47,8 @@ interface Props {
   teamId: string;
   eventId: string | null;
   lineupPlayers: SquadPlayer[];
+  /** When true (friendly matches), substitution-window quotas are not enforced */
+  isFriendly?: boolean;
 }
 
 // ─── Position grouping helper ─────────────────────────────────────────────────
@@ -221,7 +223,7 @@ function DroppableBench({ children }: { children: React.ReactNode }) {
 
 // ─── Main component ─────────────────────────────────────────────────────────
 
-export default function SimulacionTab({ teamId, eventId, lineupPlayers }: Props) {
+export default function SimulacionTab({ teamId, eventId, lineupPlayers, isFriendly = false }: Props) {
   const [loading, setLoading] = useState(true);
   const [formations, setFormations] = useState<Formation[]>([]);
   const [formationId, setFormationId] = useState<string>("");
@@ -230,7 +232,7 @@ export default function SimulacionTab({ teamId, eventId, lineupPlayers }: Props)
   const [savedSims, setSavedSims] = useState<MatchSimulation[]>([]);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
 
-  const sim = useMatchSimulation();
+  const sim = useMatchSimulation({ enableWindowLimits: !isFriendly });
 
   // ─── DnD sensors ──────────────────────────────────────────────────────────
 
@@ -608,6 +610,7 @@ export default function SimulacionTab({ teamId, eventId, lineupPlayers }: Props)
           canOpenWindow={sim.canOpenWindow}
           half={sim.half}
           prepareMode={sim.prepareMode}
+          unlimitedWindows={isFriendly}
           onPrepare={sim.startPrepare}
           onCancel={sim.cancelPrepare}
           onCommit={sim.commitWindow}

@@ -419,6 +419,7 @@ export default function ConvocationMatchDetail() {
             teamId={teamId}
             eventId={convocation.mgmtEventId}
             lineupPlayers={lineupPlayers}
+            isFriendly={isFriendly}
           />
         )}
 

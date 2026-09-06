@@ -724,6 +724,7 @@ export default function PartidoEnDirectoTab({
           canOpenWindow={live.canOpenWindow}
           half={live.half}
           prepareMode={live.prepareMode}
+          unlimitedWindows={live.unlimitedWindows}
           onPrepare={live.startPrepare}
           onCancel={live.cancelPrepare}
           onCommit={handleCommitWindow}
@@ -741,7 +742,7 @@ export default function PartidoEnDirectoTab({
             startIcon={<EditIcon />}
             onClick={() => setManualEditOpen(true)}
           >
-            Edición manual de minutos
+            Edición manual del partido
           </Button>
           {!live.hasSavedData && (
             <Button
