@@ -174,7 +174,7 @@ describe("PartidoEnDirectoTab - manual edit with saved data", () => {
 
     // Wait for the component to render and mount
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /edición manual de minutos/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /edición manual del partido/i })).toBeInTheDocument();
     });
 
     // The component should have seeded the minutes from saved data
@@ -217,10 +217,10 @@ describe("PartidoEnDirectoTab - manual edit with saved data", () => {
     renderTab();
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /edición manual de minutos/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /edición manual del partido/i })).toBeInTheDocument();
     });
 
     // The manual edit button should be visible
-    expect(screen.getByRole("button", { name: /edición manual de minutos/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /edición manual del partido/i })).toBeInTheDocument();
   });
 });

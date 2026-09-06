@@ -56,6 +56,33 @@
   align-items: center;
 }
 
+.sectionHeaderActions {
+  display: flex;
+  gap: 8px;
+}
+
+.scoreRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.scoreTeamName {
+  flex: 1;
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.85);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.scoreSep {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.5);
+}
+
 .itemsList {
   display: flex;
   flex-direction: column;

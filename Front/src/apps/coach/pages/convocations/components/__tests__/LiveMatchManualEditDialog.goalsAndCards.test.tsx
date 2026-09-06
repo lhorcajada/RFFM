@@ -42,6 +42,11 @@ describe("LiveMatchManualEditDialog - goals and cards", () => {
         lineupPlayers={mockLineupPlayers}
         currentMinutes={{ p1: 90, p2: 45 }}
         onSaveMinutes={vi.fn()}
+        localTeamName="Local FC"
+        visitorTeamName="Visitor FC"
+        scoreLocal={0}
+        scoreVisitor={0}
+        onSetScore={vi.fn()}
         goals={[]}
         onAddGoal={vi.fn()}
         onUpdateGoal={vi.fn()}
@@ -64,6 +69,11 @@ describe("LiveMatchManualEditDialog - goals and cards", () => {
         lineupPlayers={mockLineupPlayers}
         currentMinutes={{ p1: 90, p2: 45 }}
         onSaveMinutes={vi.fn()}
+        localTeamName="Local FC"
+        visitorTeamName="Visitor FC"
+        scoreLocal={0}
+        scoreVisitor={0}
+        onSetScore={vi.fn()}
         goals={[mockGoal]}
         onAddGoal={vi.fn()}
         onUpdateGoal={vi.fn()}
@@ -89,6 +99,11 @@ describe("LiveMatchManualEditDialog - goals and cards", () => {
         lineupPlayers={mockLineupPlayers}
         currentMinutes={{ p1: 90, p2: 45 }}
         onSaveMinutes={vi.fn()}
+        localTeamName="Local FC"
+        visitorTeamName="Visitor FC"
+        scoreLocal={0}
+        scoreVisitor={0}
+        onSetScore={vi.fn()}
         goals={[]}
         onAddGoal={vi.fn()}
         onUpdateGoal={vi.fn()}
@@ -113,6 +128,11 @@ describe("LiveMatchManualEditDialog - goals and cards", () => {
         lineupPlayers={mockLineupPlayers}
         currentMinutes={{ p1: 90, p2: 45 }}
         onSaveMinutes={vi.fn()}
+        localTeamName="Local FC"
+        visitorTeamName="Visitor FC"
+        scoreLocal={0}
+        scoreVisitor={0}
+        onSetScore={vi.fn()}
         goals={[]}
         onAddGoal={vi.fn()}
         onUpdateGoal={vi.fn()}
@@ -135,6 +155,11 @@ describe("LiveMatchManualEditDialog - goals and cards", () => {
         lineupPlayers={mockLineupPlayers}
         currentMinutes={{ p1: 90, p2: 45 }}
         onSaveMinutes={vi.fn()}
+        localTeamName="Local FC"
+        visitorTeamName="Visitor FC"
+        scoreLocal={0}
+        scoreVisitor={0}
+        onSetScore={vi.fn()}
         goals={[]}
         onAddGoal={vi.fn()}
         onUpdateGoal={vi.fn()}
@@ -149,7 +174,7 @@ describe("LiveMatchManualEditDialog - goals and cards", () => {
     expect(screen.getByText(/No hay tarjetas registradas/i)).toBeInTheDocument();
   });
 
-  it("clicking 'Añadir gol' button opens the goal dialog", async () => {
+  it("clicking 'Gol propio' button opens the goal dialog", async () => {
     const user = userEvent.setup();
     render(
       <LiveMatchManualEditDialog
@@ -158,6 +183,11 @@ describe("LiveMatchManualEditDialog - goals and cards", () => {
         lineupPlayers={mockLineupPlayers}
         currentMinutes={{ p1: 90, p2: 45 }}
         onSaveMinutes={vi.fn()}
+        localTeamName="Local FC"
+        visitorTeamName="Visitor FC"
+        scoreLocal={0}
+        scoreVisitor={0}
+        onSetScore={vi.fn()}
         goals={[]}
         onAddGoal={vi.fn()}
         onUpdateGoal={vi.fn()}
@@ -169,7 +199,7 @@ describe("LiveMatchManualEditDialog - goals and cards", () => {
       />
     );
 
-    const addGoalButton = screen.getByRole("button", { name: /Añadir gol/i });
+    const addGoalButton = screen.getByRole("button", { name: /Gol propio/i });
     await user.click(addGoalButton);
 
     // Goal dialog should render
@@ -187,6 +217,11 @@ describe("LiveMatchManualEditDialog - goals and cards", () => {
         lineupPlayers={mockLineupPlayers}
         currentMinutes={{ p1: 90, p2: 45 }}
         onSaveMinutes={vi.fn()}
+        localTeamName="Local FC"
+        visitorTeamName="Visitor FC"
+        scoreLocal={0}
+        scoreVisitor={0}
+        onSetScore={vi.fn()}
         goals={[]}
         onAddGoal={vi.fn()}
         onUpdateGoal={vi.fn()}
@@ -217,6 +252,11 @@ describe("LiveMatchManualEditDialog - goals and cards", () => {
         lineupPlayers={mockLineupPlayers}
         currentMinutes={{ p1: 90, p2: 45 }}
         onSaveMinutes={vi.fn()}
+        localTeamName="Local FC"
+        visitorTeamName="Visitor FC"
+        scoreLocal={0}
+        scoreVisitor={0}
+        onSetScore={vi.fn()}
         goals={[mockGoal]}
         onAddGoal={vi.fn()}
         onUpdateGoal={vi.fn()}
@@ -246,6 +286,11 @@ describe("LiveMatchManualEditDialog - goals and cards", () => {
         lineupPlayers={mockLineupPlayers}
         currentMinutes={{ p1: 90, p2: 45 }}
         onSaveMinutes={vi.fn()}
+        localTeamName="Local FC"
+        visitorTeamName="Visitor FC"
+        scoreLocal={0}
+        scoreVisitor={0}
+        onSetScore={vi.fn()}
         goals={[]}
         onAddGoal={vi.fn()}
         onUpdateGoal={vi.fn()}
@@ -263,5 +308,81 @@ describe("LiveMatchManualEditDialog - goals and cards", () => {
       await user.click(deleteButtons[0] as HTMLElement);
       expect(onRemoveCard).toHaveBeenCalledWith("card-1");
     }
+  });
+
+  it("clicking 'Gol rival' button opens the goal dialog for the rival team", async () => {
+    const user = userEvent.setup();
+    render(
+      <LiveMatchManualEditDialog
+        open
+        onClose={vi.fn()}
+        lineupPlayers={mockLineupPlayers}
+        currentMinutes={{ p1: 90, p2: 45 }}
+        onSaveMinutes={vi.fn()}
+        localTeamName="Local FC"
+        visitorTeamName="Visitor FC"
+        scoreLocal={0}
+        scoreVisitor={0}
+        onSetScore={vi.fn()}
+        goals={[]}
+        onAddGoal={vi.fn()}
+        onUpdateGoal={vi.fn()}
+        onRemoveGoal={vi.fn()}
+        cards={[]}
+        onAddCard={vi.fn()}
+        onUpdateCard={vi.fn()}
+        onRemoveCard={vi.fn()}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: /Gol rival/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Gol del rival/i)).toBeInTheDocument();
+    });
+  });
+
+  it("shows a Resultado section pre-filled with the current score and saves it with the rest on Guardar", async () => {
+    const user = userEvent.setup();
+    const onSetScore = vi.fn();
+    const onSaveMinutes = vi.fn();
+    render(
+      <LiveMatchManualEditDialog
+        open
+        onClose={vi.fn()}
+        lineupPlayers={mockLineupPlayers}
+        currentMinutes={{ p1: 90, p2: 45 }}
+        onSaveMinutes={onSaveMinutes}
+        localTeamName="Local FC"
+        visitorTeamName="Visitor FC"
+        scoreLocal={2}
+        scoreVisitor={1}
+        onSetScore={onSetScore}
+        goals={[]}
+        onAddGoal={vi.fn()}
+        onUpdateGoal={vi.fn()}
+        onRemoveGoal={vi.fn()}
+        cards={[]}
+        onAddCard={vi.fn()}
+        onUpdateCard={vi.fn()}
+        onRemoveCard={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText(/Resultado/i)).toBeInTheDocument();
+    const scoreInputs = screen.getAllByRole("spinbutton").filter((el) => {
+      const value = (el as HTMLInputElement).value;
+      return value === "2" || value === "1";
+    });
+    expect(scoreInputs.length).toBeGreaterThanOrEqual(2);
+
+    const visitorScoreInput = scoreInputs.find((el) => (el as HTMLInputElement).value === "1") as HTMLInputElement;
+    await user.clear(visitorScoreInput);
+    await user.type(visitorScoreInput, "3");
+
+    await user.click(screen.getByRole("button", { name: /Guardar/i }));
+
+    expect(onSetScore).toHaveBeenCalledWith(2, 3);
+    expect(onSaveMinutes).toHaveBeenCalled();
   });
 });

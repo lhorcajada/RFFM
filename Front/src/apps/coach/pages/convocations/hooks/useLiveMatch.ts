@@ -68,6 +68,9 @@ export interface UseLiveMatchReturn {
   goals: GoalEvent[];
   scoreLocal: number;
   scoreVisitor: number;
+  /** Sets the final result directly, independent of the goals list (used when the
+   * coach knows the score but not who scored or at what minute) */
+  setScore: (scoreLocal: number, scoreVisitor: number) => void;
   // Cards
   cards: CardEvent[];
   // Formation changes
@@ -745,6 +748,31 @@ export function useLiveMatch(
       await deleteMatchParticipation(eid, tid);
       setHasSavedData(false);
       setSavedParticipationData(null);
+      savedParticipationRef.current = null;
+      clearLiveMatchBackup(eid);
+
+      // Reset the whole live-match state to a fresh pre-match state — same as
+      // if the page had been reloaded with no saved data and no backup.
+      const initialSlots = initialSlotsRef.current;
+      runAnchorEpochRef.current = null;
+      runBaselineSecondsRef.current = 0;
+      setTotalSeconds(0);
+      setHalf(1);
+      setIsHalftime(false);
+      setSlots({ ...initialSlots });
+      setPlayerStates(buildInitialPlayerStates(initialSlots));
+      setPrepareMode(false);
+      setPrepareSlotsPreview({});
+      setLastCommittedWindow(null);
+      setMatchPhase("preMatch");
+      setGoals([]);
+      setCards([]);
+      setWindows([]);
+      setFormationChanges([]);
+      setRatingSnapshots([]);
+      setScoreLocal(0);
+      setScoreVisitor(0);
+      setSaveError(null);
     } finally {
       setIsDeleting(false);
     }
@@ -786,6 +814,11 @@ export function useLiveMatch(
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [isHomeTeam],
   );
+
+  const setScore = useCallback((newScoreLocal: number, newScoreVisitor: number) => {
+    setScoreLocal(Math.max(0, Math.round(newScoreLocal)));
+    setScoreVisitor(Math.max(0, Math.round(newScoreVisitor)));
+  }, []);
 
   const removeGoal = useCallback((goalId: string) => {
     setGoals((prev) => {
@@ -1087,6 +1120,7 @@ export function useLiveMatch(
     goals,
     scoreLocal,
     scoreVisitor,
+    setScore,
     cards,
     formationChanges,
     unlimitedWindows,

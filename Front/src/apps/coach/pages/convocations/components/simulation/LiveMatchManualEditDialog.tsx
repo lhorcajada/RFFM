@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Button,
   Dialog,
@@ -32,6 +32,13 @@ interface LiveMatchManualEditDialogProps {
   /** Initial minutes per teamPlayerId */
   currentMinutes: Record<string, number>;
   onSaveMinutes: (overrides: Record<string, number>) => void;
+  localTeamName: string;
+  visitorTeamName: string;
+  scoreLocal: number;
+  scoreVisitor: number;
+  /** Sets the final result directly, independent of the goals list (used when the
+   * coach knows the score but not who scored or at what minute) */
+  onSetScore: (scoreLocal: number, scoreVisitor: number) => void;
   goals: GoalEvent[];
   onAddGoal: (payload: GoalEventSubmitPayload, minute: number) => void;
   onUpdateGoal: (goalId: string, payload: GoalEventSubmitPayload, minute: number) => void;
@@ -48,6 +55,11 @@ export default function LiveMatchManualEditDialog({
   lineupPlayers,
   currentMinutes,
   onSaveMinutes,
+  localTeamName,
+  visitorTeamName,
+  scoreLocal,
+  scoreVisitor,
+  onSetScore,
   goals,
   onAddGoal,
   onUpdateGoal,
@@ -61,13 +73,25 @@ export default function LiveMatchManualEditDialog({
     Object.fromEntries(lineupPlayers.map((p) => [p.id, String(currentMinutes[p.id] ?? 0)])),
   );
   const [error, setError] = useState<string | null>(null);
+  const [scoreLocalInput, setScoreLocalInput] = useState(String(scoreLocal));
+  const [scoreVisitorInput, setScoreVisitorInput] = useState(String(scoreVisitor));
+
+  // Re-sync the form with the latest minutes/score every time the dialog is
+  // opened, so it reflects previously saved data instead of a stale first-mount snapshot.
+  useEffect(() => {
+    if (!open) return;
+    setValues(Object.fromEntries(lineupPlayers.map((p) => [p.id, String(currentMinutes[p.id] ?? 0)])));
+    setScoreLocalInput(String(scoreLocal));
+    setScoreVisitorInput(String(scoreVisitor));
+    setError(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   // Goal dialog state
   const [goalDialogOpen, setGoalDialogOpen] = useState(false);
   const [goalDialogMode, setGoalDialogMode] = useState<"add" | "edit">("add");
   const [goalDialogIsOwnTeam, setGoalDialogIsOwnTeam] = useState(true);
   const [editingGoalId, setEditingGoalId] = useState<string | null>(null);
-  const [goalMinute, setGoalMinute] = useState<string>("0");
   const [goalInitialValue, setGoalInitialValue] = useState<GoalEventSubmitPayload | undefined>();
 
   // Card dialog state
@@ -101,7 +125,14 @@ export default function LiveMatchManualEditDialog({
       }
       overrides[pid] = parsed;
     }
+    const parsedScoreLocal = parseInt(scoreLocalInput, 10);
+    const parsedScoreVisitor = parseInt(scoreVisitorInput, 10);
+    if (isNaN(parsedScoreLocal) || parsedScoreLocal < 0 || isNaN(parsedScoreVisitor) || parsedScoreVisitor < 0) {
+      setError("Revisa el resultado introducido (deben ser números iguales o mayores a 0).");
+      return;
+    }
     onSaveMinutes(overrides);
+    onSetScore(parsedScoreLocal, parsedScoreVisitor);
     onClose();
   }
 
@@ -109,7 +140,6 @@ export default function LiveMatchManualEditDialog({
   function openAddGoalDialog(isOwnTeam: boolean) {
     setGoalDialogMode("add");
     setGoalDialogIsOwnTeam(isOwnTeam);
-    setGoalMinute("0");
     setGoalInitialValue(undefined);
     setEditingGoalId(null);
     setGoalDialogOpen(true);
@@ -118,25 +148,19 @@ export default function LiveMatchManualEditDialog({
   function openEditGoalDialog(goal: GoalEvent) {
     setGoalDialogMode("edit");
     setGoalDialogIsOwnTeam(goal.isOwnTeam);
-    setGoalMinute(goal.minute.toString());
     setGoalInitialValue(goal);
     setEditingGoalId(goal.id);
     setGoalDialogOpen(true);
   }
 
   function handleGoalSubmit(payload: GoalEventSubmitPayload) {
-    const parsed = parseInt(goalMinute, 10);
-    if (isNaN(parsed) || parsed < 0 || parsed > 200) {
-      setError("Revisa los minutos introducidos (deben ser números entre 0 y 200).");
-      return;
-    }
     setGoalDialogOpen(false);
     setError(null);
 
     if (goalDialogMode === "add") {
-      onAddGoal(payload, parsed);
+      onAddGoal(payload, payload.minute);
     } else if (editingGoalId) {
-      onUpdateGoal(editingGoalId, payload, parsed);
+      onUpdateGoal(editingGoalId, payload, payload.minute);
     }
   }
 
@@ -196,6 +220,41 @@ export default function LiveMatchManualEditDialog({
           </Alert>
         )}
 
+        {/* Result section — lets the coach set the final score directly,
+            without needing to know who scored or at what minute. */}
+        <div>
+          <div className={styles.sectionTitle}>Resultado</div>
+          <div className={styles.scoreRow}>
+            <span className={styles.scoreTeamName}>{localTeamName}</span>
+            <TextField
+              size="small"
+              type="number"
+              inputProps={{ min: 0, step: 1 }}
+              value={scoreLocalInput}
+              onChange={(e) => setScoreLocalInput(e.target.value)}
+              sx={{
+                width: 70,
+                "& .MuiInputBase-input": { color: "#fff", textAlign: "center" },
+                "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(255,255,255,0.2)" },
+              }}
+            />
+            <span className={styles.scoreSep}>-</span>
+            <TextField
+              size="small"
+              type="number"
+              inputProps={{ min: 0, step: 1 }}
+              value={scoreVisitorInput}
+              onChange={(e) => setScoreVisitorInput(e.target.value)}
+              sx={{
+                width: 70,
+                "& .MuiInputBase-input": { color: "#fff", textAlign: "center" },
+                "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(255,255,255,0.2)" },
+              }}
+            />
+            <span className={styles.scoreTeamName}>{visitorTeamName}</span>
+          </div>
+        </div>
+
         {/* Minutes section */}
         <div>
           <div className={styles.sectionTitle}>Minutos</div>
@@ -231,14 +290,25 @@ export default function LiveMatchManualEditDialog({
         <div className={styles.section}>
           <div className={styles.sectionHeader}>
             <div className={styles.sectionTitle}>Goles ({goals.length})</div>
-            <Button
-              size="small"
-              variant="outlined"
-              startIcon={<AddIcon sx={{ fontSize: 16 }} />}
-              onClick={() => openAddGoalDialog(true)}
-            >
-              Añadir gol
-            </Button>
+            <div className={styles.sectionHeaderActions}>
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<AddIcon sx={{ fontSize: 16 }} />}
+                onClick={() => openAddGoalDialog(true)}
+              >
+                Gol propio
+              </Button>
+              <Button
+                size="small"
+                variant="outlined"
+                color="error"
+                startIcon={<AddIcon sx={{ fontSize: 16 }} />}
+                onClick={() => openAddGoalDialog(false)}
+              >
+                Gol rival
+              </Button>
+            </div>
           </div>
           <div className={styles.itemsList}>
             {goals.map((goal) => (

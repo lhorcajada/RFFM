@@ -52,6 +52,7 @@ describe("LiveMatchScoreboard - goal dialog rework", () => {
       false,
       { col: 0, row: 0 },
       "head",
+      0,
     );
   });
 
@@ -74,6 +75,38 @@ describe("LiveMatchScoreboard - goal dialog rework", () => {
       true,
       { col: 3, row: 0 },
       "foot",
+      0,
     );
+  });
+
+  it("pre-fills the goal minute with the current match minute and lets the coach adjust it", async () => {
+    const onAddGoal = vi.fn();
+    render(
+      <LiveMatchScoreboard
+        localTeamName="Local FC"
+        visitorTeamName="Visitor FC"
+        scoreLocal={0}
+        scoreVisitor={0}
+        matchPhase="firstHalf"
+        fieldPlayers={fieldPlayers}
+        isHomeTeam={true}
+        currentMinute={37}
+        onAddGoal={onAddGoal}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /gol rival/i }));
+
+    const minuteInput = screen.getByLabelText(/minuto/i) as HTMLInputElement;
+    expect(minuteInput.value).toBe("37");
+
+    await userEvent.clear(minuteInput);
+    await userEvent.type(minuteInput, "40");
+
+    const dorsalInput = screen.getByLabelText(/dorsal/i);
+    await userEvent.type(dorsalInput, "9");
+    await userEvent.click(screen.getByRole("button", { name: /confirmar/i }));
+
+    expect(onAddGoal).toHaveBeenCalledWith(null, null, 9, false, null, null, 40);
   });
 });

@@ -23,6 +23,8 @@ export interface GoalEventSubmitPayload {
   isOwnTeam: boolean;
   pitchZone: { col: number; row: number } | null;
   bodyPart: "head" | "foot" | null;
+  /** Match minute the goal is registered at; user-editable */
+  minute: number;
 }
 
 interface GoalEventDialogProps {
@@ -34,6 +36,8 @@ interface GoalEventDialogProps {
   onSubmit: (payload: GoalEventSubmitPayload) => void;
   /** Pre-filled values when editing an existing goal; omitted when adding a new one */
   initialValue?: GoalEventSubmitPayload;
+  /** Minute to pre-fill the minute field with when adding a new goal (e.g. the live match clock) */
+  defaultMinute?: number;
 }
 
 export default function GoalEventDialog({
@@ -43,11 +47,13 @@ export default function GoalEventDialog({
   onClose,
   onSubmit,
   initialValue,
+  defaultMinute = 0,
 }: GoalEventDialogProps) {
   const [selectedScorer, setSelectedScorer] = useState<SimSlotPlayer | null>(null);
   const [rivalDorsal, setRivalDorsal] = useState("");
   const [pitchZone, setPitchZone] = useState<{ col: number; row: number } | null>(null);
   const [bodyPart, setBodyPart] = useState<"head" | "foot" | null>(null);
+  const [minute, setMinute] = useState(String(defaultMinute));
 
   // Reset or pre-fill state when dialog opens with initialValue
   useEffect(() => {
@@ -62,14 +68,21 @@ export default function GoalEventDialog({
       setRivalDorsal(initialValue.scorerDorsal?.toString() ?? "");
       setPitchZone(initialValue.pitchZone);
       setBodyPart(initialValue.bodyPart);
+      setMinute(String(initialValue.minute));
     } else {
       // Add mode: reset
       setSelectedScorer(null);
       setRivalDorsal("");
       setPitchZone(null);
       setBodyPart(null);
+      setMinute(String(defaultMinute));
     }
-  }, [open, initialValue, players]);
+  }, [open, initialValue, players, defaultMinute]);
+
+  function parsedMinute(): number {
+    const parsed = parseInt(minute, 10);
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+  }
 
   function handleClose() {
     onClose();
@@ -86,6 +99,7 @@ export default function GoalEventDialog({
         isOwnTeam: false,
         pitchZone: null,
         bodyPart: null,
+        minute: parsedMinute(),
       });
       return;
     }
@@ -102,6 +116,7 @@ export default function GoalEventDialog({
         isOwnTeam: true,
         pitchZone,
         bodyPart,
+        minute: parsedMinute(),
       });
     } else {
       const parsedDorsal = rivalDorsal.trim() ? Number(rivalDorsal.trim()) : null;
@@ -112,6 +127,7 @@ export default function GoalEventDialog({
         isOwnTeam: false,
         pitchZone,
         bodyPart,
+        minute: parsedMinute(),
       });
     }
   }
@@ -162,6 +178,18 @@ export default function GoalEventDialog({
 
         {showDetailsStep && (
           <div className={styles.goalDetailsForm}>
+            <TextField
+              label="Minuto"
+              type="number"
+              size="small"
+              value={minute}
+              onChange={(e) => setMinute(e.target.value)}
+              fullWidth
+              sx={{ mb: 2 }}
+              InputLabelProps={{ sx: { color: "rgba(255,255,255,0.6)" } }}
+              inputProps={{ min: 0, max: 200, step: 1, style: { color: "#fff" } }}
+            />
+
             {!isOwnTeam && (
               <TextField
                 label="Dorsal"

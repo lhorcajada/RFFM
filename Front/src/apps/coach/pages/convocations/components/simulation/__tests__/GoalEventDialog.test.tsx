@@ -140,6 +140,7 @@ describe("GoalEventDialog", () => {
           isOwnTeam: true,
           pitchZone: { col: 1, row: 2 },
           bodyPart: "head",
+          minute: 25,
         }}
       />
     );
@@ -159,7 +160,37 @@ describe("GoalEventDialog", () => {
         scorerDorsal: 9,
         bodyPart: "head",
         pitchZone: { col: 1, row: 2 },
+        minute: 25,
       })
+    );
+  });
+
+  it("shows an editable minute field pre-filled with defaultMinute and includes it in the submitted payload", async () => {
+    const onSubmit = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <GoalEventDialog
+        open
+        players={mockPlayers}
+        isOwnTeam={true}
+        onClose={vi.fn()}
+        onSubmit={onSubmit}
+        defaultMinute={42}
+      />
+    );
+
+    await user.click(screen.getByText(/Player One/i));
+
+    const minuteInput = await screen.findByLabelText(/Minuto/i);
+    expect((minuteInput as HTMLInputElement).value).toBe("42");
+
+    await user.clear(minuteInput);
+    await user.type(minuteInput, "55");
+
+    await user.click(screen.getByRole("button", { name: /Confirmar/i }));
+
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ scorerId: "p1", minute: 55 })
     );
   });
 

@@ -22,6 +22,8 @@ interface LiveMatchScoreboardProps {
   fieldPlayers: SimSlotPlayer[];
   /** true if the user's team is the local/home team; defaults to true */
   isHomeTeam?: boolean;
+  /** Current match minute, used to pre-fill (and let the coach adjust) the goal's minute */
+  currentMinute?: number;
   onAddGoal: (
     scorerId: string | null,
     scorerName: string | null,
@@ -29,6 +31,7 @@ interface LiveMatchScoreboardProps {
     isOwnTeam: boolean,
     pitchZone: { col: number; row: number } | null,
     bodyPart: "head" | "foot" | null,
+    minute?: number,
   ) => void;
   /** Optional — enables the "Tarjeta" button when provided */
   onAddCard?: (
@@ -50,6 +53,7 @@ export default function LiveMatchScoreboard({
   matchPhase,
   fieldPlayers,
   isHomeTeam = true,
+  currentMinute = 0,
   onAddGoal,
   onAddCard,
 }: LiveMatchScoreboardProps) {
@@ -76,6 +80,7 @@ export default function LiveMatchScoreboard({
       payload.isOwnTeam,
       payload.pitchZone,
       payload.bodyPart,
+      payload.minute,
     );
   }
 
@@ -168,6 +173,7 @@ export default function LiveMatchScoreboard({
         isOwnTeam={pendingIsOwnGoal}
         onClose={() => setGoalDialogOpen(false)}
         onSubmit={handleGoalSubmit}
+        defaultMinute={currentMinute}
       />
 
       {/* Card registration dialog */}

@@ -676,6 +676,7 @@ export default function PartidoEnDirectoTab({
         matchPhase={live.matchPhase}
         fieldPlayers={fieldPlayers}
         isHomeTeam={isHomeTeam}
+        currentMinute={live.currentMinute}
         onAddGoal={live.addGoal}
         onAddCard={live.addCard}
       />
@@ -967,6 +968,11 @@ export default function PartidoEnDirectoTab({
         lineupPlayers={lineupPlayers}
         currentMinutes={effectiveMinutes}
         onSaveMinutes={handleManualSave}
+        localTeamName={localTeamName}
+        visitorTeamName={visitorTeamName}
+        scoreLocal={live.scoreLocal}
+        scoreVisitor={live.scoreVisitor}
+        onSetScore={live.setScore}
         goals={live.goals}
         onAddGoal={(payload, minute) =>
           live.addGoal(
