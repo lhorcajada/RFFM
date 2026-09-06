@@ -24,7 +24,7 @@ namespace RFFM.Api.Tests.UnitTests
             _fixture = fixture;
         }
 
-        private async Task<string> SeedSportEventAsync(AppDbContext db, int? selectedKitNumber)
+        private async Task<string> SeedSportEventAsync(AppDbContext db, int? selectedKitNumber, int eventTypeId = 2)
         {
             var club = Club.Create($"GetSportEventItem Test Club {Guid.NewGuid():N}", 1);
             db.Clubs.Add(club);
@@ -54,7 +54,7 @@ namespace RFFM.Api.Tests.UnitTests
                 DateTime.UtcNow.AddDays(1),
                 DateTime.UtcNow.AddDays(1),
                 null, null, null, null,
-                2, team.Id, null);
+                eventTypeId, team.Id, null);
             sportEvent.SetSelectedKit(selectedKitNumber);
             db.SportEvents.Add(sportEvent);
             await db.SaveChangesAsync();
@@ -86,6 +86,23 @@ namespace RFFM.Api.Tests.UnitTests
 
             Assert.NotNull(result);
             Assert.Null(result!.SelectedKitNumber);
+        }
+
+        [Theory]
+        [InlineData(1, "League")]
+        [InlineData(4, "Friendly")]
+        [InlineData(6, "Tournament")]
+        [InlineData(2, null)]
+        public async Task Handle_ReturnsMatchCategory_DerivedFromEventTypeId(int eventTypeId, string? expectedCategory)
+        {
+            await using var db = _fixture.CreateDbContext();
+            var eventId = await SeedSportEventAsync(db, selectedKitNumber: null, eventTypeId: eventTypeId);
+
+            var handler = new GetSportEventItem.GetSportEventItemRequestHandler(db);
+            var result = await handler.Handle(new GetSportEventItem.SportEventItemQuery { Id = eventId }, CancellationToken.None);
+
+            Assert.NotNull(result);
+            Assert.Equal(expectedCategory, result!.MatchCategory);
         }
     }
 }

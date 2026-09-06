@@ -57,6 +57,8 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Queries
             public string? LocalGoals { get; set; }
             public string? VisitorGoals { get; set; }
             public int? SelectedKitNumber { get; set; }
+            /// <summary>"League" | "Friendly" | "Tournament" | null, derived from EventTypeId.</summary>
+            public string? MatchCategory { get; set; }
         };
 
         public class GetSportEventItemRequestHandler : IRequestHandler<SportEventItemQuery, SportEventItemResponse?>
@@ -95,7 +97,11 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Queries
                     TeamPhotoUrl = sportEvent.Team?.UrlPhoto,
                     LocalGoals = sportEvent.LocalGoals,
                     VisitorGoals = sportEvent.VisitorGoals,
-                    SelectedKitNumber = sportEvent.SelectedKitNumber
+                    SelectedKitNumber = sportEvent.SelectedKitNumber,
+                    MatchCategory = sportEvent.EventTypeId == SportEventsConstants.MatchEventTypeId ? "League"
+                        : sportEvent.EventTypeId == SportEventsConstants.FriendlyEventTypeId ? "Friendly"
+                        : sportEvent.EventTypeId == SportEventsConstants.TournamentEventTypeId ? "Tournament"
+                        : (string?)null
                 };
             }
         }
