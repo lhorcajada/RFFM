@@ -36,3 +36,70 @@
   font-size: 0.72rem;
   color: rgba(255, 255, 255, 0.4);
 }
+
+.sectionTitle {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #fb923c;
+  margin-bottom: 12px;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.itemsList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: rgba(251, 146, 60, 0.05);
+  border: 1px solid rgba(251, 146, 60, 0.2);
+  border-radius: 6px;
+}
+
+.itemContent {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.itemMinute {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #fb923c;
+  min-width: 28px;
+}
+
+.itemText {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.itemActions {
+  display: flex;
+  gap: 4px;
+}
+
+.emptyMessage {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.4);
+  text-align: center;
+  padding: 16px 8px;
+  font-style: italic;
+}

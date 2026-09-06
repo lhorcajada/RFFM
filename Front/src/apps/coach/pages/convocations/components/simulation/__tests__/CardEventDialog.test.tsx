@@ -44,4 +44,78 @@ describe("CardEventDialog", () => {
       cardType: "red",
     });
   });
+
+  it("pre-fills from initialValue when provided (edit mode for own player)", async () => {
+    const onSubmit = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <CardEventDialog
+        open
+        players={players}
+        onClose={vi.fn()}
+        onSubmit={onSubmit}
+        initialValue={{
+          teamPlayerId: "p1",
+          playerName: "Jugador Uno",
+          isRivalPlayer: false,
+          rivalDorsal: null,
+          cardType: "yellow",
+        }}
+      />
+    );
+
+    // The card type should be pre-selected (amarilla button should be active)
+    const amarillaButton = screen.getByRole("button", { name: /amarilla/i });
+    expect(amarillaButton).toHaveAttribute("aria-pressed", "true");
+
+    // Submit should work with pre-filled values
+    await user.click(screen.getByRole("button", { name: /guardar|confirmar/i }));
+
+    expect(onSubmit).toHaveBeenCalledWith({
+      teamPlayerId: "p1",
+      playerName: "Jugador Uno",
+      isRivalPlayer: false,
+      rivalDorsal: null,
+      cardType: "yellow",
+    });
+  });
+
+  it("pre-fills from initialValue when provided (edit mode for rival)", async () => {
+    const onSubmit = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <CardEventDialog
+        open
+        players={players}
+        onClose={vi.fn()}
+        onSubmit={onSubmit}
+        initialValue={{
+          teamPlayerId: null,
+          playerName: null,
+          isRivalPlayer: true,
+          rivalDorsal: 5,
+          cardType: "red",
+        }}
+      />
+    );
+
+    // The dorsal should be pre-filled
+    const dorsalInput = screen.getByLabelText(/dorsal/i) as HTMLInputElement;
+    expect(dorsalInput.value).toBe("5");
+
+    // The card type should be pre-selected (roja button should be active)
+    const rojaButton = screen.getByRole("button", { name: /roja/i });
+    expect(rojaButton).toHaveAttribute("aria-pressed", "true");
+
+    // Submit should work with pre-filled values
+    await user.click(screen.getByRole("button", { name: /guardar|confirmar/i }));
+
+    expect(onSubmit).toHaveBeenCalledWith({
+      teamPlayerId: null,
+      playerName: null,
+      isRivalPlayer: true,
+      rivalDorsal: 5,
+      cardType: "red",
+    });
+  });
 });

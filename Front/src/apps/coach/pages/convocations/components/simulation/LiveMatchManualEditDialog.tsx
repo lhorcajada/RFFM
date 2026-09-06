@@ -7,9 +7,18 @@ import {
   DialogTitle,
   TextField,
   Alert,
+  IconButton,
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import AddIcon from "@mui/icons-material/Add";
 import type { SquadPlayer } from "../../../squad/components/IdealLineup";
+import type { GoalEvent, CardEvent } from "./liveMatch.types";
+import type { SimSlotPlayer } from "./SimulationPlayerSlot";
+import type { GoalEventSubmitPayload } from "./GoalEventDialog";
+import type { CardEventSubmitPayload } from "./CardEventDialog";
+import GoalEventDialog from "./GoalEventDialog";
+import CardEventDialog from "./CardEventDialog";
 import styles from "./LiveMatchManualEditDialog.module.css";
 
 interface ManualMinutes {
@@ -22,7 +31,15 @@ interface LiveMatchManualEditDialogProps {
   lineupPlayers: SquadPlayer[];
   /** Initial minutes per teamPlayerId */
   currentMinutes: Record<string, number>;
-  onSave: (overrides: Record<string, number>) => void;
+  onSaveMinutes: (overrides: Record<string, number>) => void;
+  goals: GoalEvent[];
+  onAddGoal: (payload: GoalEventSubmitPayload, minute: number) => void;
+  onUpdateGoal: (goalId: string, payload: GoalEventSubmitPayload, minute: number) => void;
+  onRemoveGoal: (goalId: string) => void;
+  cards: CardEvent[];
+  onAddCard: (payload: CardEventSubmitPayload, minute: number, half: 1 | 2) => void;
+  onUpdateCard: (cardId: string, payload: CardEventSubmitPayload, minute: number, half: 1 | 2) => void;
+  onRemoveCard: (cardId: string) => void;
 }
 
 export default function LiveMatchManualEditDialog({
@@ -30,12 +47,44 @@ export default function LiveMatchManualEditDialog({
   onClose,
   lineupPlayers,
   currentMinutes,
-  onSave,
+  onSaveMinutes,
+  goals,
+  onAddGoal,
+  onUpdateGoal,
+  onRemoveGoal,
+  cards,
+  onAddCard,
+  onUpdateCard,
+  onRemoveCard,
 }: LiveMatchManualEditDialogProps) {
   const [values, setValues] = useState<ManualMinutes>(() =>
     Object.fromEntries(lineupPlayers.map((p) => [p.id, String(currentMinutes[p.id] ?? 0)])),
   );
   const [error, setError] = useState<string | null>(null);
+
+  // Goal dialog state
+  const [goalDialogOpen, setGoalDialogOpen] = useState(false);
+  const [goalDialogMode, setGoalDialogMode] = useState<"add" | "edit">("add");
+  const [goalDialogIsOwnTeam, setGoalDialogIsOwnTeam] = useState(true);
+  const [editingGoalId, setEditingGoalId] = useState<string | null>(null);
+  const [goalMinute, setGoalMinute] = useState<string>("0");
+  const [goalInitialValue, setGoalInitialValue] = useState<GoalEventSubmitPayload | undefined>();
+
+  // Card dialog state
+  const [cardDialogOpen, setCardDialogOpen] = useState(false);
+  const [cardDialogMode, setCardDialogMode] = useState<"add" | "edit">("add");
+  const [editingCardId, setEditingCardId] = useState<string | null>(null);
+  const [cardMinute, setCardMinute] = useState<string>("0");
+  const [cardHalf, setCardHalf] = useState<1 | 2>(1);
+  const [cardInitialValue, setCardInitialValue] = useState<CardEventSubmitPayload | undefined>();
+
+  // Convert lineupPlayers to SimSlotPlayer[] for dialogs
+  const simPlayers: SimSlotPlayer[] = lineupPlayers.map((p) => ({
+    teamPlayerId: p.id,
+    displayName: p.displayName,
+    alias: p.alias,
+    dorsal: p.dorsal,
+  }));
 
   function handleChange(playerId: string, raw: string) {
     setValues((prev) => ({ ...prev, [playerId]: raw }));
@@ -52,8 +101,78 @@ export default function LiveMatchManualEditDialog({
       }
       overrides[pid] = parsed;
     }
-    onSave(overrides);
+    onSaveMinutes(overrides);
     onClose();
+  }
+
+  // Goal handlers
+  function openAddGoalDialog(isOwnTeam: boolean) {
+    setGoalDialogMode("add");
+    setGoalDialogIsOwnTeam(isOwnTeam);
+    setGoalMinute("0");
+    setGoalInitialValue(undefined);
+    setEditingGoalId(null);
+    setGoalDialogOpen(true);
+  }
+
+  function openEditGoalDialog(goal: GoalEvent) {
+    setGoalDialogMode("edit");
+    setGoalDialogIsOwnTeam(goal.isOwnTeam);
+    setGoalMinute(goal.minute.toString());
+    setGoalInitialValue(goal);
+    setEditingGoalId(goal.id);
+    setGoalDialogOpen(true);
+  }
+
+  function handleGoalSubmit(payload: GoalEventSubmitPayload) {
+    const parsed = parseInt(goalMinute, 10);
+    if (isNaN(parsed) || parsed < 0 || parsed > 200) {
+      setError("Revisa los minutos introducidos (deben ser números entre 0 y 200).");
+      return;
+    }
+    setGoalDialogOpen(false);
+    setError(null);
+
+    if (goalDialogMode === "add") {
+      onAddGoal(payload, parsed);
+    } else if (editingGoalId) {
+      onUpdateGoal(editingGoalId, payload, parsed);
+    }
+  }
+
+  // Card handlers
+  function openAddCardDialog() {
+    setCardDialogMode("add");
+    setCardMinute("0");
+    setCardHalf(1);
+    setCardInitialValue(undefined);
+    setEditingCardId(null);
+    setCardDialogOpen(true);
+  }
+
+  function openEditCardDialog(card: CardEvent) {
+    setCardDialogMode("edit");
+    setCardMinute(card.minute.toString());
+    setCardHalf(card.half);
+    setCardInitialValue(card);
+    setEditingCardId(card.id);
+    setCardDialogOpen(true);
+  }
+
+  function handleCardSubmit(payload: CardEventSubmitPayload) {
+    const parsed = parseInt(cardMinute, 10);
+    if (isNaN(parsed) || parsed < 0 || parsed > 200) {
+      setError("Revisa los minutos introducidos (deben ser números entre 0 y 200).");
+      return;
+    }
+    setCardDialogOpen(false);
+    setError(null);
+
+    if (cardDialogMode === "add") {
+      onAddCard(payload, parsed, cardHalf);
+    } else if (editingCardId) {
+      onUpdateCard(editingCardId, payload, parsed, cardHalf);
+    }
   }
 
   return (
@@ -68,41 +187,156 @@ export default function LiveMatchManualEditDialog({
         sx={{ color: "#fff", fontSize: "0.95rem", fontWeight: 700, display: "flex", alignItems: "center", gap: 1 }}
       >
         <EditIcon sx={{ fontSize: 18, color: "#fb923c" }} />
-        Edición manual de minutos
+        Edición manual del partido
       </DialogTitle>
-      <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
         {error && (
           <Alert severity="error" sx={{ mb: 1 }}>
             {error}
           </Alert>
         )}
-        <div className={styles.grid}>
-          {lineupPlayers.map((p) => {
-            const name = p.alias?.trim() || p.displayName.split(" ").slice(0, 2).join(" ");
-            return (
-              <div key={p.id} className={styles.row}>
-                {p.dorsal != null && (
-                  <span className={styles.dorsal}>{p.dorsal}</span>
-                )}
-                <span className={styles.name}>{name}</span>
-                <TextField
-                  size="small"
-                  type="number"
-                  inputProps={{ min: 0, max: 200, step: 1 }}
-                  value={values[p.id] ?? "0"}
-                  onChange={(e) => handleChange(p.id, e.target.value)}
-                  sx={{
-                    width: 80,
-                    "& .MuiInputBase-input": { color: "#fff", textAlign: "center" },
-                    "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(255,255,255,0.2)" },
-                  }}
-                />
-                <span className={styles.minLabel}>min</span>
+
+        {/* Minutes section */}
+        <div>
+          <div className={styles.sectionTitle}>Minutos</div>
+          <div className={styles.grid}>
+            {lineupPlayers.map((p) => {
+              const name = p.alias?.trim() || p.displayName.split(" ").slice(0, 2).join(" ");
+              return (
+                <div key={p.id} className={styles.row}>
+                  {p.dorsal != null && (
+                    <span className={styles.dorsal}>{p.dorsal}</span>
+                  )}
+                  <span className={styles.name}>{name}</span>
+                  <TextField
+                    size="small"
+                    type="number"
+                    inputProps={{ min: 0, max: 200, step: 1 }}
+                    value={values[p.id] ?? "0"}
+                    onChange={(e) => handleChange(p.id, e.target.value)}
+                    sx={{
+                      width: 80,
+                      "& .MuiInputBase-input": { color: "#fff", textAlign: "center" },
+                      "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(255,255,255,0.2)" },
+                    }}
+                  />
+                  <span className={styles.minLabel}>min</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Goals section */}
+        <div className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <div className={styles.sectionTitle}>Goles ({goals.length})</div>
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<AddIcon sx={{ fontSize: 16 }} />}
+              onClick={() => openAddGoalDialog(true)}
+            >
+              Añadir gol
+            </Button>
+          </div>
+          <div className={styles.itemsList}>
+            {goals.map((goal) => (
+              <div key={goal.id} className={styles.item}>
+                <div className={styles.itemContent}>
+                  <span className={styles.itemMinute}>{goal.minute}'</span>
+                  <span className={styles.itemText}>
+                    {goal.scorerName || "Rival"}
+                  </span>
+                </div>
+                <div className={styles.itemActions}>
+                  <IconButton
+                    size="small"
+                    onClick={() => openEditGoalDialog(goal)}
+                    sx={{ color: "#fb923c" }}
+                  >
+                    <EditIcon sx={{ fontSize: 16 }} />
+                  </IconButton>
+                  <IconButton
+                    size="small"
+                    onClick={() => onRemoveGoal(goal.id)}
+                    sx={{ color: "#ef4444" }}
+                  >
+                    <DeleteIcon sx={{ fontSize: 16 }} />
+                  </IconButton>
+                </div>
               </div>
-            );
-          })}
+            ))}
+            {goals.length === 0 && (
+              <div className={styles.emptyMessage}>No hay goles registrados</div>
+            )}
+          </div>
+        </div>
+
+        {/* Cards section */}
+        <div className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <div className={styles.sectionTitle}>Tarjetas ({cards.length})</div>
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<AddIcon sx={{ fontSize: 16 }} />}
+              onClick={openAddCardDialog}
+            >
+              Añadir tarjeta
+            </Button>
+          </div>
+          <div className={styles.itemsList}>
+            {cards.map((card) => (
+              <div key={card.id} className={styles.item}>
+                <div className={styles.itemContent}>
+                  <span className={styles.itemMinute}>{card.minute}'</span>
+                  <span className={styles.itemText}>
+                    {card.playerName || "Rival"} - {card.cardType === "yellow" ? "Amarilla" : "Roja"}
+                  </span>
+                </div>
+                <div className={styles.itemActions}>
+                  <IconButton
+                    size="small"
+                    onClick={() => openEditCardDialog(card)}
+                    sx={{ color: "#fb923c" }}
+                  >
+                    <EditIcon sx={{ fontSize: 16 }} />
+                  </IconButton>
+                  <IconButton
+                    size="small"
+                    onClick={() => onRemoveCard(card.id)}
+                    sx={{ color: "#ef4444" }}
+                  >
+                    <DeleteIcon sx={{ fontSize: 16 }} />
+                  </IconButton>
+                </div>
+              </div>
+            ))}
+            {cards.length === 0 && (
+              <div className={styles.emptyMessage}>No hay tarjetas registradas</div>
+            )}
+          </div>
         </div>
       </DialogContent>
+
+      <GoalEventDialog
+        open={goalDialogOpen}
+        players={simPlayers}
+        isOwnTeam={goalDialogIsOwnTeam}
+        onClose={() => setGoalDialogOpen(false)}
+        onSubmit={handleGoalSubmit}
+        initialValue={goalDialogMode === "edit" ? goalInitialValue : undefined}
+      />
+
+      <CardEventDialog
+        open={cardDialogOpen}
+        players={simPlayers}
+        onClose={() => setCardDialogOpen(false)}
+        onSubmit={handleCardSubmit}
+        initialValue={cardDialogMode === "edit" ? cardInitialValue : undefined}
+      />
+
       <DialogActions sx={{ px: 2, pb: 2, gap: 1 }}>
         <Button onClick={onClose} color="inherit" size="small">
           Cancelar

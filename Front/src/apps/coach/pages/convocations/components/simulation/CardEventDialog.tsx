@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Button,
   Dialog,
@@ -29,13 +29,47 @@ interface CardEventDialogProps {
   players: SimSlotPlayer[];
   onClose: () => void;
   onSubmit: (payload: CardEventSubmitPayload) => void;
+  /** Pre-filled values when editing an existing card; omitted when adding a new one */
+  initialValue?: CardEventSubmitPayload;
 }
 
-export default function CardEventDialog({ open, players, onClose, onSubmit }: CardEventDialogProps) {
+export default function CardEventDialog({
+  open,
+  players,
+  onClose,
+  onSubmit,
+  initialValue,
+}: CardEventDialogProps) {
   const [selectedPlayer, setSelectedPlayer] = useState<SimSlotPlayer | null>(null);
   const [isRival, setIsRival] = useState(false);
   const [rivalDorsal, setRivalDorsal] = useState("");
   const [cardType, setCardType] = useState<"yellow" | "red" | null>(null);
+
+  // Reset or pre-fill state when dialog opens with initialValue
+  useEffect(() => {
+    if (!open) return;
+
+    if (initialValue) {
+      // Edit mode: pre-fill from initialValue
+      if (initialValue.isRivalPlayer) {
+        setSelectedPlayer(null);
+        setIsRival(true);
+        setRivalDorsal(initialValue.rivalDorsal?.toString() ?? "");
+      } else if (initialValue.teamPlayerId) {
+        const player = players.find((p) => p.teamPlayerId === initialValue.teamPlayerId);
+        if (player) setSelectedPlayer(player);
+        setIsRival(false);
+        setRivalDorsal("");
+      }
+      setCardType(initialValue.cardType);
+    } else {
+      // Add mode: reset
+      setSelectedPlayer(null);
+      setIsRival(false);
+      setRivalDorsal("");
+      setCardType(null);
+    }
+  }, [open, initialValue, players]);
 
   function reset() {
     setSelectedPlayer(null);

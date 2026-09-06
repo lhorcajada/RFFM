@@ -464,15 +464,33 @@ export default function PartidoEnDirectoTab({
     setPendingFormationId(null);
   }
 
+  // ── Seed manual minute overrides from saved data ──────────────────────────
+  useEffect(() => {
+    if (!live.savedParticipationData) return;
+    setManualMinuteOverrides((prev) => {
+      if (Object.keys(prev).length > 0) return prev;
+      const seeded: Record<string, number> = {};
+      for (const p of live.savedParticipationData!.players) {
+        seeded[p.teamPlayerId] = p.minutesPlayed;
+      }
+      return seeded;
+    });
+  }, [live.savedParticipationData]);
+
   // ── Manual edit save ─────────────────────────────────────────────────────
   const handleManualSave = useCallback(async (overrides: Record<string, number>) => {
     setManualMinuteOverrides(overrides);
     if (!eventId) return;
 
+    const savedStarterById = new Map(
+      (live.savedParticipationData?.players ?? []).map((p) => [p.teamPlayerId, p.isStarter]),
+    );
     const players: PlayerParticipationDto[] = lineupPlayers.map((p) => ({
       teamPlayerId: p.id,
       minutesPlayed: overrides[p.id] ?? 0,
-      isStarter: Object.values(live.initialSlots).includes(p.id),
+      isStarter: savedStarterById.has(p.id)
+        ? savedStarterById.get(p.id)!
+        : Object.values(live.initialSlots).includes(p.id),
       enteredAtMinute: null,
       exitedAtMinute: null,
     }));
@@ -491,7 +509,7 @@ export default function PartidoEnDirectoTab({
     };
 
     await saveMatchParticipation(eventId, payload);
-  }, [eventId, teamId, lineupPlayers, live.initialSlots, live.scoreLocal, live.scoreVisitor, live.windows, live.ratingSnapshots, live.goals, live.cards, live.formationChanges]);
+  }, [eventId, teamId, lineupPlayers, live.initialSlots, live.scoreLocal, live.scoreVisitor, live.windows, live.ratingSnapshots, live.goals, live.cards, live.formationChanges, live.savedParticipationData]);
 
   // ── Effective minutes (manual override wins) ─────────────────────────────
   const effectiveMinutes = useMemo<Record<string, number>>(() => {
@@ -947,7 +965,39 @@ export default function PartidoEnDirectoTab({
         onClose={() => setManualEditOpen(false)}
         lineupPlayers={lineupPlayers}
         currentMinutes={effectiveMinutes}
-        onSave={handleManualSave}
+        onSaveMinutes={handleManualSave}
+        goals={live.goals}
+        onAddGoal={(payload, minute) =>
+          live.addGoal(
+            payload.scorerId,
+            payload.scorerName,
+            payload.scorerDorsal,
+            payload.isOwnTeam,
+            payload.pitchZone,
+            payload.bodyPart,
+            minute
+          )
+        }
+        onUpdateGoal={(id, payload, minute) =>
+          live.updateGoal(id, { ...payload, minute })
+        }
+        onRemoveGoal={live.removeGoal}
+        cards={live.cards}
+        onAddCard={(payload, minute, half) =>
+          live.addCard(
+            payload.teamPlayerId,
+            payload.playerName,
+            payload.isRivalPlayer,
+            payload.rivalDorsal,
+            payload.cardType,
+            minute,
+            half
+          )
+        }
+        onUpdateCard={(id, payload, minute, half) =>
+          live.updateCard(id, { ...payload, minute, half })
+        }
+        onRemoveCard={live.removeCard}
       />
 
       {/* Error snackbar */}

@@ -26,6 +26,18 @@ import {
 export const MAX_TOTAL_WINDOWS = 4;
 export const MAX_SECOND_HALF_WINDOWS = 3;
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function parseJsonArray<T>(json: string | undefined, fallback: T[]): T[] {
+  if (!json) return fallback;
+  try {
+    const parsed = JSON.parse(json);
+    return Array.isArray(parsed) ? (parsed as T[]) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 // ─── Public interface ────────────────────────────────────────────────────────
 
 export interface UseLiveMatchReturn {
@@ -93,16 +105,21 @@ export interface UseLiveMatchReturn {
     isOwnTeam: boolean,
     pitchZone?: { col: number; row: number } | null,
     bodyPart?: "head" | "foot" | null,
+    minute?: number,
   ) => void;
   removeGoal: (goalId: string) => void;
+  updateGoal: (goalId: string, patch: Partial<Omit<GoalEvent, "id">>) => void;
   addCard: (
     teamPlayerId: string | null,
     playerName: string | null,
     isRivalPlayer: boolean,
     rivalDorsal: number | null,
     cardType: "yellow" | "red",
+    minute?: number,
+    half?: 1 | 2,
   ) => void;
   removeCard: (cardId: string) => void;
+  updateCard: (cardId: string, patch: Partial<Omit<CardEvent, "id">>) => void;
   changeFormation: (
     formationId: string,
     formationName: string,
@@ -218,6 +235,9 @@ export function useLiveMatch(
   // of tab throttling, batching, or how long the screen was left unmounted.
   const runAnchorEpochRef = useRef<number | null>(null);
   const runBaselineSecondsRef = useRef(0);
+  // Track the latest saved participation data so both call sites (mount effect +
+  // initMatch) can access it synchronously and coordinate hydration
+  const savedParticipationRef = useRef<LiveMatchParticipationPayload | null>(null);
 
   // Sync refs
   slotsRef.current = slots;
@@ -383,8 +403,10 @@ export function useLiveMatch(
     getMatchParticipation(eventId).then((data) => {
       if (!mounted) return;
       if (data && data.matchPhase === "finished") {
+        savedParticipationRef.current = data;
         setHasSavedData(true);
         setSavedParticipationData(data);
+        hydrateFromSavedParticipation(data);
       }
     }).catch(() => {});
     return () => { mounted = false; };
@@ -525,6 +547,19 @@ export function useLiveMatch(
     return updated;
   }
 
+  // ── Hydration from saved participation ────────────────────────────────────
+
+  function hydrateFromSavedParticipation(data: LiveMatchParticipationPayload) {
+    setMatchPhase("finished");
+    setScoreLocal(data.scoreLocal);
+    setScoreVisitor(data.scoreVisitor);
+    setGoals(parseJsonArray<GoalEvent>(data.goalsJson, []));
+    setCards(parseJsonArray<CardEvent>(data.cardsJson, []));
+    setWindows(parseJsonArray<SubstitutionWindow>(data.substitutionWindowsJson, []));
+    setFormationChanges(parseJsonArray<FormationChangeEvent>(data.formationChangesJson, []));
+    setRatingSnapshots(parseJsonArray<WindowRatingSnapshot>(data.ratingSnapshotsJson, []));
+  }
+
   // ── initMatch ─────────────────────────────────────────────────────────────
 
   const initMatch = useCallback((initialSlots: Record<number, string | null>) => {
@@ -535,21 +570,25 @@ export function useLiveMatch(
     setTotalSeconds(0);
     setHalf(1);
     setIsHalftime(false);
-    setMatchPhase("preMatch");
     setSlots({ ...initialSlots });
     setPlayerStates(buildInitialPlayerStates(initialSlots));
-    setWindows([]);
-    setGoals([]);
-    setCards([]);
-    setFormationChanges([]);
-    setRatingSnapshots([]);
-    setScoreLocal(0);
-    setScoreVisitor(0);
     setPrepareMode(false);
     setPrepareSlotsPreview({});
     setLastCommittedWindow(null);
     setInitialized(true);
     setSaveError(null);
+    if (savedParticipationRef.current) {
+      hydrateFromSavedParticipation(savedParticipationRef.current);
+    } else {
+      setMatchPhase("preMatch");
+      setGoals([]);
+      setCards([]);
+      setWindows([]);
+      setFormationChanges([]);
+      setRatingSnapshots([]);
+      setScoreLocal(0);
+      setScoreVisitor(0);
+    }
   }, []);
 
   // ── Confirmation flow ─────────────────────────────────────────────────────
@@ -721,8 +760,9 @@ export function useLiveMatch(
       isOwnTeam: boolean,
       pitchZone: { col: number; row: number } | null = null,
       bodyPart: "head" | "foot" | null = null,
+      minute?: number,
     ) => {
-      const minute = currentMinuteRef.current;
+      const goalMinute = minute ?? currentMinuteRef.current;
       // isOwnTeam=true means goal for the user's team.
       // isHomeTeam determines whether our team is LOCAL or VISITOR.
       const localScores = isOwnTeam ? isHomeTeam : !isHomeTeam;
@@ -730,7 +770,7 @@ export function useLiveMatch(
       const newVisitor = !localScores ? scoreVisitorRef.current + 1 : scoreVisitorRef.current;
       const goal: GoalEvent = {
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-        minute,
+        minute: goalMinute,
         scorerId,
         scorerName,
         scorerDorsal,
@@ -769,6 +809,39 @@ export function useLiveMatch(
     });
   }, [isHomeTeam]);
 
+  const updateGoal = useCallback((goalId: string, patch: Partial<Omit<GoalEvent, "id">>) => {
+    setGoals((prev) => {
+      const idx = prev.findIndex((g) => g.id === goalId);
+      if (idx === -1) return prev;
+
+      const oldGoal = prev[idx];
+      const newGoal = { ...oldGoal, ...patch };
+      const next = prev.map((g, i) => (i === idx ? newGoal : g));
+
+      // Recompute scores if isOwnTeam changed
+      if (oldGoal.isOwnTeam !== newGoal.isOwnTeam) {
+        const oldLocal = oldGoal.isOwnTeam ? isHomeTeam : !isHomeTeam;
+        const newLocal = newGoal.isOwnTeam ? isHomeTeam : !isHomeTeam;
+
+        if (oldLocal) setScoreLocal((s) => Math.max(0, s - 1));
+        else setScoreVisitor((s) => Math.max(0, s - 1));
+
+        if (newLocal) setScoreLocal((s) => s + 1);
+        else setScoreVisitor((s) => s + 1);
+      }
+
+      // Recompute scoreAtMoment for all goals
+      let loc = 0;
+      let vis = 0;
+      return next.map((g) => {
+        const gLocal = g.isOwnTeam ? isHomeTeam : !isHomeTeam;
+        if (gLocal) loc++;
+        else vis++;
+        return { ...g, scoreAtMoment: { local: loc, visitor: vis } };
+      });
+    });
+  }, [isHomeTeam]);
+
   // ── Cards ─────────────────────────────────────────────────────────────────
 
   const addCard = useCallback(
@@ -778,11 +851,15 @@ export function useLiveMatch(
       isRivalPlayer: boolean,
       rivalDorsal: number | null,
       cardType: "yellow" | "red",
+      minute?: number,
+      half?: 1 | 2,
     ) => {
+      const cardMinute = minute ?? currentMinuteRef.current;
+      const cardHalf = half ?? halfRef.current;
       const card: CardEvent = {
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-        minute: currentMinuteRef.current,
-        half: halfRef.current,
+        minute: cardMinute,
+        half: cardHalf,
         cardType,
         teamPlayerId,
         playerName,
@@ -796,6 +873,16 @@ export function useLiveMatch(
 
   const removeCard = useCallback((cardId: string) => {
     setCards((prev) => prev.filter((c) => c.id !== cardId));
+  }, []);
+
+  const updateCard = useCallback((cardId: string, patch: Partial<Omit<CardEvent, "id">>) => {
+    setCards((prev) => {
+      const idx = prev.findIndex((c) => c.id === cardId);
+      if (idx === -1) return prev;
+      const oldCard = prev[idx];
+      const newCard = { ...oldCard, ...patch };
+      return prev.map((c, i) => (i === idx ? newCard : c));
+    });
   }, []);
 
   // ── Mid-match formation change ───────────────────────────────────────────
@@ -1022,8 +1109,10 @@ export function useLiveMatch(
     cancelAction,
     addGoal,
     removeGoal,
+    updateGoal,
     addCard,
     removeCard,
+    updateCard,
     changeFormation,
     startPrepare,
     cancelPrepare,
