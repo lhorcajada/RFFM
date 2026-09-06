@@ -76,6 +76,7 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
   transition: border-color 0.15s, box-shadow 0.15s;
   position: relative;
+  touch-action: none;
 }
 
 /* Clip only the photo/initials, not the absolute badges */
