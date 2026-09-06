@@ -80,19 +80,13 @@ export default function Convocations() {
   };
 
   const handleMatchClick = (match: NormalizedMatch) => {
-    if (match.isFinished) {
-      if (match.codacta) {
-        navigate(`/federation/acta/${encodeURIComponent(match.codacta)}`);
-      }
-    } else {
-      const params = new URLSearchParams();
-      if (teamId) params.set("teamId", teamId);
-      if (match.eventId) params.set("eventId", match.eventId);
-      const qs = params.toString();
-      navigate(`/coach/convocations/match${qs ? `?${qs}` : ""}`, {
-        state: { match },
-      });
-    }
+    const params = new URLSearchParams();
+    if (teamId) params.set("teamId", teamId);
+    if (match.eventId) params.set("eventId", match.eventId);
+    const qs = params.toString();
+    navigate(`/coach/convocations/match${qs ? `?${qs}` : ""}`, {
+      state: { match },
+    });
   };
 
   const isLoadingAny = settingsLoading || loading;
