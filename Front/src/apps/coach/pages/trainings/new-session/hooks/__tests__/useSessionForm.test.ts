@@ -58,8 +58,9 @@ describe("useSessionForm — validación al guardar", () => {
     expect(trainingService.createSession).not.toHaveBeenCalled();
   });
 
-  it("bloquea el guardado cuando no hay ningún bloque", async () => {
+  it("guarda correctamente una sesión con fecha pero sin ningún bloque", async () => {
     const trainingService = (await import("../../../../../services/trainingService")).default;
+    (trainingService.createSession as ReturnType<typeof vi.fn>).mockResolvedValue({ id: "sess-new" });
     const { result } = renderHook(() =>
       useSessionForm({ teamId: "team-1", navigate, returnTo: "/coach/trainings" })
     );
@@ -71,8 +72,10 @@ describe("useSessionForm — validación al guardar", () => {
       await result.current.handleSave();
     });
 
-    expect(result.current.error).toMatch(/bloque/i);
-    expect(trainingService.createSession).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(trainingService.createSession).toHaveBeenCalled();
+    });
+    expect(result.current.error).toBeNull();
   });
 
   it("guarda correctamente sin microcicloId (sesión independiente del plan)", async () => {
@@ -121,11 +124,40 @@ describe("useSessionForm — validación al guardar", () => {
     expect(result.current.error).toBeNull();
   });
 
-  it("bloquea el guardado cuando hay fecha pero no hay bloques (sesión programada debe estar lista)", async () => {
+  it("guarda correctamente un bloque sin ningún ejercicio (sin exigencia mínima de contenido)", async () => {
     const trainingService = (await import("../../../../../services/trainingService")).default;
+    (trainingService.createSession as ReturnType<typeof vi.fn>).mockResolvedValue({ id: "sess-new" });
     const { result } = renderHook(() =>
       useSessionForm({ teamId: "team-1", navigate, returnTo: "/coach/trainings" })
     );
+
+    act(() => result.current.setField("name", "Sesión 1"));
+    act(() => result.current.setField("date", "2026-09-01"));
+    act(() =>
+      result.current.setField("blocks", [
+        { order: 1, nombre: "Bloque 1", comoConectaConAnterior: "Primer bloque", rotacionEntreEjercicios: null, exercises: [] },
+      ])
+    );
+
+    await act(async () => {
+      await result.current.handleSave();
+    });
+
+    await waitFor(() => {
+      expect(trainingService.createSession).toHaveBeenCalled();
+    });
+    expect(result.current.error).toBeNull();
+  });
+
+  it("emite una notificación de éxito al guardar correctamente", async () => {
+    const trainingService = (await import("../../../../../services/trainingService")).default;
+    (trainingService.createSession as ReturnType<typeof vi.fn>).mockResolvedValue({ id: "sess-new" });
+    const { result } = renderHook(() =>
+      useSessionForm({ teamId: "team-1", navigate, returnTo: "/coach/trainings" })
+    );
+
+    const onSnackbar = vi.fn();
+    window.addEventListener("rffm.show_snackbar", onSnackbar);
 
     act(() => result.current.setField("name", "Sesión 1"));
     act(() => result.current.setField("date", "2026-09-01"));
@@ -134,8 +166,40 @@ describe("useSessionForm — validación al guardar", () => {
       await result.current.handleSave();
     });
 
-    expect(result.current.error).toMatch(/bloque/i);
-    expect(trainingService.createSession).not.toHaveBeenCalled();
+    expect(onSnackbar).toHaveBeenCalledTimes(1);
+    expect((onSnackbar.mock.calls[0][0] as CustomEvent).detail).toEqual({
+      message: "Sesión guardada correctamente",
+      severity: "success",
+    });
+
+    window.removeEventListener("rffm.show_snackbar", onSnackbar);
+  });
+
+  it("emite una notificación de error cuando el guardado falla", async () => {
+    const trainingService = (await import("../../../../../services/trainingService")).default;
+    (trainingService.createSession as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("network error"));
+    const { result } = renderHook(() =>
+      useSessionForm({ teamId: "team-1", navigate, returnTo: "/coach/trainings" })
+    );
+
+    const onSnackbar = vi.fn();
+    window.addEventListener("rffm.show_snackbar", onSnackbar);
+
+    act(() => result.current.setField("name", "Sesión 1"));
+    act(() => result.current.setField("date", "2026-09-01"));
+
+    await act(async () => {
+      await result.current.handleSave();
+    });
+
+    expect(onSnackbar).toHaveBeenCalledTimes(1);
+    expect((onSnackbar.mock.calls[0][0] as CustomEvent).detail).toEqual({
+      message: "Error al guardar la sesión.",
+      severity: "error",
+    });
+    expect(result.current.error).toBe("Error al guardar la sesión.");
+
+    window.removeEventListener("rffm.show_snackbar", onSnackbar);
   });
 });
 

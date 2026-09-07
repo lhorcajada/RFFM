@@ -72,16 +72,11 @@ export function useSessionForm({ teamId, navigate, returnTo, microcicloId }: Use
 
   const validate = (): string | null => {
     if (!form.name.trim()) return "El nombre es obligatorio.";
-    // A session with no Date ("unscheduled", content-first) may be saved with only
-    // targetSubSubPrincipioIds — no blocks required. Once scheduled (Date set), it must be
-    // calendar-ready: at least one block. Mirrors the backend's conditional NotEmpty rule
-    // (design.md Decision 3.1 of `season-plan-content-board`).
-    if (form.date && form.blocks.length === 0) return "Una sesión debe tener al menos un bloque.";
+    // A session may be saved with no blocks, and a block may be saved with no exercises —
+    // there is no minimum content requirement, regardless of whether the session has a Date.
     const blockWithoutConnection = form.blocks.find((b) => !b.comoConectaConAnterior.trim());
     if (blockWithoutConnection)
       return "Todo bloque debe indicar cómo conecta con el anterior, incluso el primero.";
-    const blockWithoutExercises = form.blocks.find((b) => b.exercises.length === 0);
-    if (blockWithoutExercises) return "Un bloque debe tener al menos un ejercicio.";
     return null;
   };
 
@@ -103,8 +98,14 @@ export function useSessionForm({ teamId, navigate, returnTo, microcicloId }: Use
         const created = await trainingService.createSession(form);
         setSavedSessionId(created.id);
       }
+      window.dispatchEvent(
+        new CustomEvent("rffm.show_snackbar", { detail: { message: "Sesión guardada correctamente", severity: "success" } }),
+      );
     } catch {
       setError("Error al guardar la sesión.");
+      window.dispatchEvent(
+        new CustomEvent("rffm.show_snackbar", { detail: { message: "Error al guardar la sesión.", severity: "error" } }),
+      );
     } finally {
       setSaving(false);
     }
