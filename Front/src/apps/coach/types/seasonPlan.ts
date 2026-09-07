@@ -2,7 +2,10 @@
 // One SeasonPlan per Team+Season, edited as a whole (full-aggregate CRUD), mirroring
 // the GameModel tree shape. See openspec/changes/2026-08-11-add-coach-season-planning and
 // openspec/changes/session-exercise-plan-redesign (Microciclo now links Sesiones, not
-// Sesión A/B ADN targets directly).
+// Sesión A/B ADN targets directly). See openspec/changes/season-plan-content-board for the
+// Microciclo weekly objective becoming a derived, read-only projection (Decision 4).
+
+import type { SessionTargetDetail } from "./training";
 
 /** Denormalized Subprincipio display fields — read-side only. */
 export interface AdnSubprincipioSummary {
@@ -44,7 +47,7 @@ export interface SessionSummary {
   id: string;
   name: string;
   objetivoGeneral?: string | null;
-  date: string;
+  date: string | null;
   exerciseCount: number;
 }
 
@@ -59,10 +62,11 @@ export interface Microciclo {
   endDate: string;
   /** TrainingSessions linked to this Microciclo — read side, populated from GetSeasonPlan. */
   sessions: SessionSummary[];
-  /** Denormalized target-Subprincipio summaries — read side, populated from GetSeasonPlan. */
-  subprincipiosObjetivo: AdnSubprincipioSummary[];
-  /** Selected Subprincipio ids — write side, sent on create/update (replace-wholesale). */
-  subprincipioObjetivoIds: string[];
+  /** Read-only, derived server-side from every *dated* TrainingSession's Targets whose Date
+   * falls inside this Microciclo's [startDate, endDate] range — no write side, no independent
+   * storage (design.md Decision 4 of `season-plan-content-board`; retires
+   * `subprincipiosObjetivo`/`subprincipioObjetivoIds` and the picker that wrote them). */
+  weeklyObjective: SessionTargetDetail[];
 }
 
 export interface Mesociclo {

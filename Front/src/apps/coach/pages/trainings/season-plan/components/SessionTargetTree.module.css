@@ -1,0 +1,125 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--rffm-coach-text-primary, #f0f0f0);
+}
+
+.empty {
+  font-size: 0.75rem;
+  color: var(--rffm-coach-text-secondary, #9a9a9a);
+  font-style: italic;
+}
+
+.fase {
+  border: 1px solid rgba(255, 122, 26, 0.25);
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+
+.faseTitle {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--rffm-coach-accent, #ff7a1a);
+  margin: 0 0 4px;
+}
+
+.principio {
+  margin: 0 0 6px;
+}
+
+.principio:last-child {
+  margin-bottom: 0;
+}
+
+.principioTitle {
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin: 0 0 3px;
+}
+
+.subprincipio {
+  margin: 0 0 4px 10px;
+}
+
+.subprincipio:last-child {
+  margin-bottom: 0;
+}
+
+.subprincipioTitle {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--rffm-coach-text-secondary, #b8b8b8);
+  margin: 0 0 2px;
+}
+
+.zona {
+  margin: 4px 0 4px 10px;
+  padding: 3px 6px;
+  border-left: 2px solid var(--rffm-coach-accent, #ff7a1a);
+  background: rgba(255, 122, 26, 0.1);
+  border-radius: 3px;
+}
+
+.zonaTitle {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--rffm-coach-text-primary, #f0f0f0);
+  margin: 0 0 2px;
+}
+
+.leaf {
+  margin: 0 0 3px 10px;
+}
+
+.leaf:last-child {
+  margin-bottom: 0;
+}
+
+.leafRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.leafTitle {
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.leafTexto {
+  font-size: 0.7rem;
+  color: var(--rffm-coach-text-secondary, #b8b8b8);
+  margin: 0 0 2px;
+  padding-left: 6px;
+  border-left: 2px solid var(--rffm-coach-accent, #ff7a1a);
+  line-height: 1.3;
+}
+
+.checkIcon {
+  flex-shrink: 0;
+  color: #4caf50;
+  font-size: 1rem !important;
+}
+
+.deleteButton {
+  flex-shrink: 0;
+  border: none;
+  background: none;
+  color: var(--rffm-coach-text-primary, #f0f0f0);
+  opacity: 0.7;
+  cursor: pointer;
+  padding: 2px 4px;
+  line-height: 1;
+}
+
+.deleteButton:hover {
+  opacity: 1;
+  color: var(--rffm-coach-accent, #ff7a1a);
+}

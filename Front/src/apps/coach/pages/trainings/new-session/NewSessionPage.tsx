@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Autocomplete, Box, Button, CircularProgress, TextField, Typography } from "@mui/material";
+import { Alert, Autocomplete, Box, Button, CircularProgress, TextField, Typography } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SaveIcon from "@mui/icons-material/Save";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -7,10 +7,32 @@ import BaseLayout from "../../../../../shared/components/ui/BaseLayout/BaseLayou
 import trainingService from "../../../services/trainingService";
 import seasonPlanService from "../../../services/seasonPlanService";
 import seasonService from "../../../services/seasonService";
+import type { SportEventResponse } from "../../../services/sportEventService";
+import { normalizeDateStr } from "../../convocations/helpers/convocationUtils";
 import type { SessionBlockRequest } from "../../../types/training";
 import SessionBlockEditor from "./components/SessionBlockEditor";
 import { useSessionForm } from "./hooks/useSessionForm";
+import { useDailySportEvents } from "./hooks/useDailySportEvents";
 import styles from "./NewSessionPage.module.css";
+
+const MATCH_CATEGORY_LABEL: Record<string, string> = {
+  League: "Liga",
+  Friendly: "Amistoso",
+  Tournament: "Torneo",
+};
+
+/** Human-readable label for a sport event in the "Evento deportivo" picker — mirrors
+ * `NewsFormDialog.tsx`'s `matchOptionLabel` so match events read the same way across the
+ * Coach app, but falls back to the event's own type/name for non-match events (trainings,
+ * meetings…) instead of assuming every sport event is a match. */
+function sportEventOptionLabel(event: SportEventResponse): string {
+  const category = event.matchCategory ? MATCH_CATEGORY_LABEL[event.matchCategory] : null;
+  const dateStr = normalizeDateStr(event.eveDateTime ?? event.start ?? null);
+  const date = dateStr ? new Date(dateStr).toLocaleDateString("es-ES", { dateStyle: "medium" }) : null;
+  const rival = event.rivalName ?? event.rival ?? null;
+  const fallbackLabel = category ?? event.eventType ?? event.name ?? event.title ?? null;
+  return [fallbackLabel, date, rival ? `vs ${rival}` : null].filter(Boolean).join(" · ") || `Evento ${event.id}`;
+}
 
 interface NavState {
   returnTo?: string;
@@ -78,6 +100,7 @@ export default function NewSessionPage() {
 
   const sessionForm = useSessionForm({ teamId, navigate, returnTo, microcicloId: microcicloIdParam });
   const microcicloOptions = useMicrocicloOptions(teamId);
+  const dailySportEvents = useDailySportEvents(teamId, sessionForm.form.date);
 
   // Restore an in-progress draft after returning from creating an exercise inline, and
   // append the newly created exercise (if any) to the block that requested it.
@@ -199,10 +222,10 @@ export default function NewSessionPage() {
 
           <Box className={styles.row}>
             <TextField
-              label="Fecha"
+              label="Fecha (opcional — déjala vacía para una sesión sin programar)"
               type="date"
-              value={sessionForm.form.date}
-              onChange={(e) => sessionForm.setField("date", e.target.value)}
+              value={sessionForm.form.date ?? ""}
+              onChange={(e) => sessionForm.setField("date", e.target.value || null)}
               size="small"
               InputLabelProps={{ shrink: true }}
               className={styles.dateField}
@@ -210,8 +233,8 @@ export default function NewSessionPage() {
             <TextField
               label="Inicio"
               type="time"
-              value={sessionForm.form.startTime}
-              onChange={(e) => sessionForm.setField("startTime", e.target.value)}
+              value={sessionForm.form.startTime ?? ""}
+              onChange={(e) => sessionForm.setField("startTime", e.target.value || null)}
               size="small"
               InputLabelProps={{ shrink: true }}
               className={styles.timeField}
@@ -235,14 +258,34 @@ export default function NewSessionPage() {
               size="small"
               className={styles.flex1}
             />
-            <TextField
-              label="Evento deportivo ID (opcional)"
-              value={sessionForm.form.sportEventId ?? ""}
-              onChange={(e) => sessionForm.setField("sportEventId", e.target.value || null)}
+            <Autocomplete<SportEventResponse, false>
               size="small"
+              options={dailySportEvents.events}
+              loading={dailySportEvents.loading}
+              disabled={!sessionForm.form.date}
+              getOptionLabel={sportEventOptionLabel}
+              isOptionEqualToValue={(a, b) => a.id === b.id}
+              value={dailySportEvents.events.find((e) => e.id === sessionForm.form.sportEventId) ?? null}
+              onChange={(_, value) => sessionForm.setField("sportEventId", value?.id ?? null)}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label={
+                    sessionForm.form.date
+                      ? "Evento deportivo (opcional)"
+                      : "Evento deportivo (elige antes una fecha)"
+                  }
+                />
+              )}
               className={styles.flex1}
             />
           </Box>
+
+          {sessionForm.form.date && !dailySportEvents.loading && dailySportEvents.events.length === 0 && (
+            <Alert severity="info" className={styles.field}>
+              No hay eventos deportivos para esta fecha.
+            </Alert>
+          )}
 
           <TextField
             label="Objetivo general (opcional)"

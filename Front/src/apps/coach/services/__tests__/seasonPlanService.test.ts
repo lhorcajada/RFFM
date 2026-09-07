@@ -68,8 +68,20 @@ describe("seasonPlanService", () => {
                           exerciseCount: 3,
                         },
                       ],
-                      subprincipiosObjetivo: [
-                        { id: "sub-1", numero: "1.1", titulo: "Defensa organizada", gameMomentName: "Fase defensiva" },
+                      weeklyObjective: [
+                        {
+                          subSubPrincipioId: "ssp-1",
+                          rol: "Central",
+                          numero: "1.1.1",
+                          subprincipioId: "sub-1",
+                          subprincipioTitulo: "Defensa organizada",
+                          zonaId: null,
+                          zonaLabel: null,
+                          principioId: "principle-1",
+                          principioTitulo: "Defensa organizada",
+                          gameMomentId: 1,
+                          gameMomentName: "Fase defensiva",
+                        },
                       ],
                     },
                   ],
@@ -94,10 +106,9 @@ describe("seasonPlanService", () => {
       expect(microciclo?.sessions).toEqual([
         { id: "sess-1", name: "Sesión 1", objetivoGeneral: "Objetivo general", date: "2026-09-02", exerciseCount: 3 },
       ]);
-      expect(microciclo?.subprincipiosObjetivo).toEqual([
-        { id: "sub-1", numero: "1.1", titulo: "Defensa organizada", gameMomentName: "Fase defensiva" },
+      expect(microciclo?.weeklyObjective).toEqual([
+        expect.objectContaining({ subSubPrincipioId: "ssp-1", subprincipioTitulo: "Defensa organizada" }),
       ]);
-      expect(microciclo?.subprincipioObjetivoIds).toEqual(["sub-1"]);
     });
 
     it("maps an empty sessions array when the Microciclo has no linked sessions", async () => {
@@ -129,7 +140,7 @@ describe("seasonPlanService", () => {
                       startDate: "2026-09-01",
                       endDate: "2026-09-07",
                       sessions: [],
-                      subprincipiosObjetivo: [],
+                      weeklyObjective: [],
                     },
                   ],
                 },
@@ -142,8 +153,7 @@ describe("seasonPlanService", () => {
       const result = await seasonPlanService.getByTeamIdAndSeason("team-1", "season-1");
       const microciclo = result?.macrociclos[0].mesociclos[0].microciclos[0];
       expect(microciclo?.sessions).toEqual([]);
-      expect(microciclo?.subprincipiosObjetivo).toEqual([]);
-      expect(microciclo?.subprincipioObjetivoIds).toEqual([]);
+      expect(microciclo?.weeklyObjective).toEqual([]);
     });
 
     it("returns null when the API responds 404 (no plan yet for this team/season)", async () => {
@@ -193,8 +203,7 @@ describe("seasonPlanService", () => {
                     startDate: "2026-09-01",
                     endDate: "2026-09-07",
                     sessions: [],
-                    subprincipiosObjetivo: [],
-                    subprincipioObjetivoIds: ["sub-1", "sub-2"],
+                    weeklyObjective: [],
                   },
                 ],
               },
@@ -227,7 +236,6 @@ describe("seasonPlanService", () => {
                     weekLabel: "Semana 1",
                     startDate: "2026-09-01",
                     endDate: "2026-09-07",
-                    subprincipioObjetivoIds: ["sub-1", "sub-2"],
                   },
                 ],
               },
@@ -275,7 +283,7 @@ describe("seasonPlanService", () => {
       });
     });
 
-    it("incluye subprincipioObjetivoIds por Microciclo en el payload de guardado", async () => {
+    it("no incluye weeklyObjective (derivado, sin lado de escritura) en el payload de Microciclo", async () => {
       mockPut.mockResolvedValue({});
 
       const draft: SeasonPlan = {
@@ -308,8 +316,7 @@ describe("seasonPlanService", () => {
                     startDate: "2026-09-01",
                     endDate: "2026-09-07",
                     sessions: [],
-                    subprincipiosObjetivo: [],
-                    subprincipioObjetivoIds: ["sub-1"],
+                    weeklyObjective: [],
                   },
                 ],
               },
@@ -322,7 +329,8 @@ describe("seasonPlanService", () => {
 
       const requestBody = mockPut.mock.calls[0][1];
       const microcicloRequest = requestBody.macrociclos[0].mesociclos[0].microciclos[0];
-      expect(microcicloRequest.subprincipioObjetivoIds).toEqual(["sub-1"]);
+      expect(microcicloRequest).not.toHaveProperty("weeklyObjective");
+      expect(microcicloRequest).not.toHaveProperty("subprincipioObjetivoIds");
     });
   });
 

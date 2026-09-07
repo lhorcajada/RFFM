@@ -84,6 +84,11 @@ const trainingService = {
   async deleteSession(id: string): Promise<void> {
     await client.delete(`/api/trainings/sessions/${id}`);
   },
+
+  async deleteSessions(ids: string[]): Promise<{ deletedCount: number }> {
+    const res = await client.post<{ deletedCount: number }>("/api/trainings/sessions/bulk-delete", { ids });
+    return res.data;
+  },
 };
 
 export default trainingService;

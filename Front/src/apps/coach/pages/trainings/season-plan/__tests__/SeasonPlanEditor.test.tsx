@@ -1,5 +1,5 @@
 import type { ReactElement } from "react";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
@@ -16,16 +16,6 @@ const zones = [
   { id: 3, name: "Creación Rival", order: 3 },
   { id: 4, name: "Finalización", order: 4 },
 ];
-
-const emptyAdnOptions = { subprincipios: [], subSubPrincipios: [] };
-
-const adnOptionsWithData = {
-  subprincipios: [
-    { id: "sub-1", numero: "1.1", titulo: "Defensa organizada", gameMomentName: "Fase defensiva" },
-    { id: "sub-2", numero: "2.1", titulo: "Ataque organizado", gameMomentName: "Fase ofensiva" },
-  ],
-  subSubPrincipios: [],
-};
 
 function emptyDraft(): SeasonPlan {
   return { id: "", teamId: "team-1", seasonId: "season-1", macrociclos: [] };
@@ -81,8 +71,7 @@ function draftWithMicrociclo(): SeasonPlan {
                 startDate: "2026-09-01",
                 endDate: "2026-09-07",
                 sessions: [],
-                subprincipiosObjetivo: [],
-                subprincipioObjetivoIds: [],
+                weeklyObjective: [],
               },
             ],
           },
@@ -94,7 +83,7 @@ function draftWithMicrociclo(): SeasonPlan {
 
 describe("SeasonPlanEditor — añadir / eliminar macrociclos", () => {
   it("empieza sin macrociclos y añade uno al pulsar 'Añadir macrociclo'", async () => {
-    renderWithRouter(<SeasonPlanEditor draft={emptyDraft()} zones={zones} adnOptions={emptyAdnOptions} saving={false} onSave={vi.fn()} onCancel={vi.fn()} />);
+    renderWithRouter(<SeasonPlanEditor draft={emptyDraft()} zones={zones} saving={false} onSave={vi.fn()} onCancel={vi.fn()} />);
 
     expect(screen.queryByLabelText(/nombre del macrociclo/i)).not.toBeInTheDocument();
 
@@ -105,7 +94,7 @@ describe("SeasonPlanEditor — añadir / eliminar macrociclos", () => {
 
   it("elimina un macrociclo existente al pulsar 'Eliminar macrociclo'", async () => {
     renderWithRouter(
-      <SeasonPlanEditor draft={draftWithOneMacrociclo()} zones={zones} adnOptions={emptyAdnOptions} saving={false} onSave={vi.fn()} onCancel={vi.fn()} />
+      <SeasonPlanEditor draft={draftWithOneMacrociclo()} zones={zones} saving={false} onSave={vi.fn()} onCancel={vi.fn()} />
     );
 
     expect(screen.getByDisplayValue("Macrociclo 1")).toBeInTheDocument();
@@ -117,7 +106,7 @@ describe("SeasonPlanEditor — añadir / eliminar macrociclos", () => {
 
   it("permite editar el nombre de un macrociclo", async () => {
     renderWithRouter(
-      <SeasonPlanEditor draft={draftWithOneMacrociclo()} zones={zones} adnOptions={emptyAdnOptions} saving={false} onSave={vi.fn()} onCancel={vi.fn()} />
+      <SeasonPlanEditor draft={draftWithOneMacrociclo()} zones={zones} saving={false} onSave={vi.fn()} onCancel={vi.fn()} />
     );
 
     const input = screen.getByDisplayValue("Macrociclo 1");
@@ -132,7 +121,7 @@ describe("SeasonPlanEditor — guardar", () => {
   it("llama a onSave con el draft actual al pulsar 'Guardar'", async () => {
     const onSave = vi.fn();
     renderWithRouter(
-      <SeasonPlanEditor draft={draftWithOneMacrociclo()} zones={zones} adnOptions={emptyAdnOptions} saving={false} onSave={onSave} onCancel={vi.fn()} />
+      <SeasonPlanEditor draft={draftWithOneMacrociclo()} zones={zones} saving={false} onSave={onSave} onCancel={vi.fn()} />
     );
 
     await userEvent.click(screen.getByRole("button", { name: /guardar/i }));
@@ -145,7 +134,7 @@ describe("SeasonPlanEditor — guardar", () => {
   it('llama a onCancel al pulsar "Cancelar"', async () => {
     const onCancel = vi.fn();
     renderWithRouter(
-      <SeasonPlanEditor draft={draftWithOneMacrociclo()} zones={zones} adnOptions={emptyAdnOptions} saving={false} onSave={vi.fn()} onCancel={onCancel} />
+      <SeasonPlanEditor draft={draftWithOneMacrociclo()} zones={zones} saving={false} onSave={vi.fn()} onCancel={onCancel} />
     );
 
     await userEvent.click(screen.getByRole("button", { name: /cancelar/i }));
@@ -158,7 +147,7 @@ describe("SeasonPlanEditor — microciclo simplificado", () => {
   it("edita Semana/Inicio/Fin de un microciclo y los persiste al guardar (sin campos ADN)", async () => {
     const onSave = vi.fn();
     renderWithRouter(
-      <SeasonPlanEditor draft={draftWithMicrociclo()} zones={zones} adnOptions={emptyAdnOptions} saving={false} onSave={onSave} onCancel={vi.fn()} />
+      <SeasonPlanEditor draft={draftWithMicrociclo()} zones={zones} saving={false} onSave={onSave} onCancel={vi.fn()} />
     );
 
     await userEvent.click(screen.getByRole("button", { name: /mesociclo 1\.1/i }));
@@ -186,7 +175,7 @@ describe("SeasonPlanEditor — microciclo simplificado", () => {
 
   it("no renderiza ningún selector de SubSubPrincipio/Habilidad ni las secciones Sesión A/B (eliminadas)", async () => {
     renderWithRouter(
-      <SeasonPlanEditor draft={draftWithMicrociclo()} zones={zones} adnOptions={emptyAdnOptions} saving={false} onSave={vi.fn()} onCancel={vi.fn()} />
+      <SeasonPlanEditor draft={draftWithMicrociclo()} zones={zones} saving={false} onSave={vi.fn()} onCancel={vi.fn()} />
     );
 
     await userEvent.click(screen.getByRole("button", { name: /mesociclo 1\.1/i }));
@@ -197,61 +186,15 @@ describe("SeasonPlanEditor — microciclo simplificado", () => {
   });
 });
 
-describe("SeasonPlanEditor — picker de Subprincipios objetivo del Microciclo", () => {
-  it("renderiza el picker con las opciones de adnOptions.subprincipios", async () => {
+describe("SeasonPlanEditor — objetivo semanal retirado del editor (design.md F8)", () => {
+  it("no renderiza ningún picker de Subprincipios objetivo (retirado: derivado de las sesiones)", async () => {
     renderWithRouter(
-      <SeasonPlanEditor draft={draftWithMicrociclo()} zones={zones} adnOptions={adnOptionsWithData} saving={false} onSave={vi.fn()} onCancel={vi.fn()} />
+      <SeasonPlanEditor draft={draftWithMicrociclo()} zones={zones} saving={false} onSave={vi.fn()} onCancel={vi.fn()} />
     );
 
     await userEvent.click(screen.getByRole("button", { name: /mesociclo 1\.1/i }));
 
-    const picker = screen.getByRole("combobox", { name: /subprincipios objetivo/i });
-    await userEvent.click(picker);
-    const listbox = screen.getByRole("listbox");
-    expect(within(listbox).getByText(/1\.1.*Defensa organizada/)).toBeInTheDocument();
-    expect(within(listbox).getByText(/2\.1.*Ataque organizado/)).toBeInTheDocument();
-  });
-
-  it("seleccionar un Subprincipio actualiza subprincipioObjetivoIds y se incluye en el payload de onSave", async () => {
-    const onSave = vi.fn();
-    renderWithRouter(
-      <SeasonPlanEditor draft={draftWithMicrociclo()} zones={zones} adnOptions={adnOptionsWithData} saving={false} onSave={onSave} onCancel={vi.fn()} />
-    );
-
-    await userEvent.click(screen.getByRole("button", { name: /mesociclo 1\.1/i }));
-
-    const picker = screen.getByRole("combobox", { name: /subprincipios objetivo/i });
-    await userEvent.click(picker);
-    const listbox = screen.getByRole("listbox");
-    await userEvent.click(within(listbox).getByText(/1\.1.*Defensa organizada/));
-
-    await userEvent.click(screen.getByRole("button", { name: /guardar/i }));
-
-    expect(onSave).toHaveBeenCalledWith(
-      expect.objectContaining({
-        macrociclos: [
-          expect.objectContaining({
-            mesociclos: [
-              expect.objectContaining({
-                microciclos: [expect.objectContaining({ subprincipioObjetivoIds: ["sub-1"] })],
-              }),
-            ],
-          }),
-        ],
-      })
-    );
-  });
-
-  it("deshabilita el picker y muestra la pista de 'Modelo ADN' cuando el equipo no tiene GameModel, sin bloquear Semana/Inicio/Fin", async () => {
-    renderWithRouter(
-      <SeasonPlanEditor draft={draftWithMicrociclo()} zones={zones} adnOptions={emptyAdnOptions} saving={false} onSave={vi.fn()} onCancel={vi.fn()} />
-    );
-
-    await userEvent.click(screen.getByRole("button", { name: /mesociclo 1\.1/i }));
-
-    expect(screen.getByText(/añade primero el/i)).toBeInTheDocument();
-    expect(screen.getByText(/modelo adn/i)).toBeInTheDocument();
-    expect(screen.getByRole("combobox", { name: /subprincipios objetivo/i })).toBeDisabled();
-    expect(screen.getByDisplayValue("Semana 1")).not.toBeDisabled();
+    expect(screen.queryByRole("combobox", { name: /subprincipios objetivo/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/añade primero el/i)).not.toBeInTheDocument();
   });
 });

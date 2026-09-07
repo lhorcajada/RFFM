@@ -1,0 +1,35 @@
+.card {
+  background: var(--rffm-coach-card-bg, #1a1a2e);
+  border: 1px solid rgba(255, 122, 26, 0.25);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cardOver {
+  border-color: var(--rffm-coach-accent, #ff7a1a);
+  box-shadow: 0 0 0 2px rgba(255, 122, 26, 0.35);
+}
+
+.headerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.nameField {
+  flex: 1;
+}
+
+.targetsBox {
+  min-height: 28px;
+}
+
+.actionsRow {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}

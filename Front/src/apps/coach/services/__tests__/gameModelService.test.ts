@@ -104,3 +104,44 @@ describe("gameModelService.getAdnOptions", () => {
     await expect(gameModelService.getAdnOptions("team-1", "2026-2027")).rejects.toBe(error);
   });
 });
+
+describe("gameModelService.getAdnCoverage", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("llama a GET /api/game-models/adn-coverage con teamId y season, y devuelve el shape mapeado", async () => {
+    mockGet.mockResolvedValue({
+      data: {
+        subSubPrincipios: [
+          {
+            subSubPrincipioId: "ssp-1",
+            isUsed: true,
+            sessions: [{ sessionId: "sess-1", sessionName: "Sesión 1", date: "2026-09-09T00:00:00" }],
+          },
+        ],
+        zonas: [{ zonaId: "zona-1", status: "in-progress" }],
+        subprincipios: [{ subprincipioId: "sub-1", status: "completed" }],
+        principios: [{ principioId: "principle-1", status: "not-started" }],
+      },
+    });
+
+    const result = await gameModelService.getAdnCoverage("team-1", "2026-2027");
+
+    expect(mockGet).toHaveBeenCalledWith("/api/game-models/adn-coverage", {
+      params: { teamId: "team-1", season: "2026-2027" },
+    });
+    expect(result).toEqual({
+      subSubPrincipios: [
+        {
+          subSubPrincipioId: "ssp-1",
+          isUsed: true,
+          sessions: [{ sessionId: "sess-1", sessionName: "Sesión 1", date: "2026-09-09T00:00:00" }],
+        },
+      ],
+      zonas: [{ zonaId: "zona-1", status: "in-progress" }],
+      subprincipios: [{ subprincipioId: "sub-1", status: "completed" }],
+      principios: [{ principioId: "principle-1", status: "not-started" }],
+    });
+  });
+});

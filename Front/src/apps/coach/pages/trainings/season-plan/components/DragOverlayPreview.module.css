@@ -1,0 +1,31 @@
+.overlay {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  max-width: 280px;
+  background: var(--rffm-coach-card-bg, #1a1a2e);
+  border: 1px solid var(--rffm-coach-accent, #ff7a1a);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--rffm-coach-text-secondary, #b8b8b8);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.segment {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.segmentLast {
+  color: var(--rffm-coach-text-primary, #f0f0f0);
+  font-weight: 700;
+}
+
+.separator {
+  font-size: 0.9rem !important;
+  color: var(--rffm-coach-text-secondary, #b8b8b8);
+}

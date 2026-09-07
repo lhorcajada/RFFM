@@ -9,8 +9,8 @@ import type {
   Subprincipio,
   Zona,
 } from "../../../types/gameModel";
-import { NOTA_TIPO_LABELS, SET_PIECE_SUBTYPE_LABELS, ZONE_KEY_OPTIONS } from "../../../types/gameModel";
-import { compareNumero } from "./gameModelOrder";
+import { NOTA_TIPO_LABELS, SET_PIECE_SUBTYPE_LABELS } from "../../../types/gameModel";
+import { compareNumero, zonaHeading } from "./gameModelOrder";
 import styles from "./GameModelTree.module.css";
 
 interface Props {
@@ -19,16 +19,8 @@ interface Props {
   print?: boolean;
 }
 
-const ZONE_LABEL_BY_KEY = Object.fromEntries(ZONE_KEY_OPTIONS.map((z) => [z.key, z.label]));
-
 function sortByNumero<T extends { numero: string }>(items: T[]): T[] {
   return [...items].sort((a, b) => compareNumero(a.numero, b.numero));
-}
-
-function zonaHeading(zona: Zona): string {
-  if (zona.label) return zona.label;
-  if (zona.zoneKeys.includes("compuesta") && zona.zonaTexto) return zona.zonaTexto;
-  return zona.zoneKeys.map((k) => ZONE_LABEL_BY_KEY[k] ?? k).join(" / ");
 }
 
 function NotaCallout({ nota }: { nota: Nota }) {

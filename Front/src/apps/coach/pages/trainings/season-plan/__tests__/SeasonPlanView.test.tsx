@@ -35,8 +35,7 @@ function buildPlan(overrides: Partial<SeasonPlan> = {}): SeasonPlan {
                 startDate: "2026-09-01",
                 endDate: "2026-09-07",
                 sessions: [],
-                subprincipiosObjetivo: [],
-                subprincipioObjetivoIds: [],
+                weeklyObjective: [],
               },
               {
                 id: 4,
@@ -54,11 +53,34 @@ function buildPlan(overrides: Partial<SeasonPlan> = {}): SeasonPlan {
                     exerciseCount: 3,
                   },
                 ],
-                subprincipiosObjetivo: [
-                  { id: "sub-1", numero: "1.1", titulo: "Defensa organizada", gameMomentName: "Fase defensiva" },
-                  { id: "sub-2", numero: "3.1", titulo: "Transición defensa-ataque", gameMomentName: "Fase de transición" },
+                weeklyObjective: [
+                  {
+                    subSubPrincipioId: "ssp-1",
+                    rol: "Central",
+                    numero: "1.1.1",
+                    subprincipioId: "sub-1",
+                    subprincipioTitulo: "Defensa organizada",
+                    zonaId: null,
+                    zonaLabel: null,
+                    principioId: "principle-1",
+                    principioTitulo: "Defensa organizada",
+                    gameMomentId: 1,
+                    gameMomentName: "Fase defensiva",
+                  },
+                  {
+                    subSubPrincipioId: "ssp-2",
+                    rol: "Lateral",
+                    numero: "3.1.1",
+                    subprincipioId: "sub-2",
+                    subprincipioTitulo: "Transición defensa-ataque",
+                    zonaId: null,
+                    zonaLabel: null,
+                    principioId: "principle-2",
+                    principioTitulo: "Transición defensa-ataque",
+                    gameMomentId: 3,
+                    gameMomentName: "Fase de transición",
+                  },
                 ],
-                subprincipioObjetivoIds: ["sub-1", "sub-2"],
               },
             ],
           },
@@ -136,17 +158,17 @@ describe("SeasonPlanView — sesiones vinculadas por microciclo", () => {
   });
 });
 
-describe("SeasonPlanView — Subprincipios objetivo por microciclo", () => {
-  it("renderiza un chip por cada Subprincipio objetivo (Numero · Titulo)", () => {
+describe("SeasonPlanView — objetivo semanal derivado por microciclo (design.md F7/F8)", () => {
+  it("renderiza un chip por cada Subprincipio del objetivo semanal (Numero · Titulo (n))", () => {
     render(
       <SeasonPlanView plan={buildPlan()} loading={false} onCreatePlan={vi.fn()} onCreateSession={vi.fn()} />
     );
 
-    expect(screen.getByText(/1\.1.*Defensa organizada/)).toBeInTheDocument();
-    expect(screen.getByText(/3\.1.*Transición defensa-ataque/)).toBeInTheDocument();
+    expect(screen.getByText(/1\.1.*Defensa organizada.*\(1\)/)).toBeInTheDocument();
+    expect(screen.getByText(/3\.1.*Transición defensa-ataque.*\(1\)/)).toBeInTheDocument();
   });
 
-  it("no renderiza la fila de chips de Subprincipios objetivo cuando la lista está vacía", () => {
+  it("no renderiza la fila de chips de objetivo semanal cuando la lista está vacía", () => {
     render(
       <SeasonPlanView plan={buildPlan()} loading={false} onCreatePlan={vi.fn()} onCreateSession={vi.fn()} />
     );
@@ -155,12 +177,12 @@ describe("SeasonPlanView — Subprincipios objetivo por microciclo", () => {
     expect(within(weekOneRow).queryByText(/Defensa organizada/)).not.toBeInTheDocument();
   });
 
-  it("usa una clase distinta de coverageChip para el chip de Subprincipio objetivo", () => {
+  it("usa una clase distinta de coverageChip para el chip de objetivo semanal", () => {
     const { container } = render(
       <SeasonPlanView plan={buildPlan()} loading={false} onCreatePlan={vi.fn()} onCreateSession={vi.fn()} />
     );
 
-    const chip = screen.getByText(/1\.1.*Defensa organizada/).closest(".MuiChip-root");
+    const chip = screen.getByText(/1\.1.*Defensa organizada.*\(1\)/).closest(".MuiChip-root");
     expect(chip?.className).not.toMatch(/coverageChip/);
     expect(container.querySelector('[class*="targetSubprincipioChip"]')).toBeInTheDocument();
   });

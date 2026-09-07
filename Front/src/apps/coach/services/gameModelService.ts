@@ -12,6 +12,7 @@ import type {
   OpenIssue,
 } from "../types/gameModel";
 import type { AdnOptions, AdnSubSubPrincipioOption } from "../types/seasonPlan";
+import type { AdnCoverage } from "../types/adnCoverage";
 
 // ── API response types (nested structure from backend — camelCase over the wire) ──
 
@@ -423,6 +424,17 @@ const gameModelService = {
       if (isNotFound(error)) return { subprincipios: [], subSubPrincipios: [] };
       throw error;
     }
+  },
+
+  /** Per-node coverage (Subprincipio/Principio "covered") and per-Sub-subprincipio usage
+   * (which sessions target it) for the content-board's left panel — design.md Decision 5 of
+   * `season-plan-content-board`. Response shape is already camelCase-flat, no nested mapping
+   * needed (unlike GameModel's nested tree). */
+  async getAdnCoverage(teamId: string, season: string): Promise<AdnCoverage> {
+    const res = await client.get<AdnCoverage>("/api/game-models/adn-coverage", {
+      params: { teamId, season },
+    });
+    return res.data;
   },
 };
 

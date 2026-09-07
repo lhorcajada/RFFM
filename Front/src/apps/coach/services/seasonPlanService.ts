@@ -1,6 +1,7 @@
 import { client } from "../../../core/api/client";
 import gameModelService from "./gameModelService";
 import type { AdnOptions, Macrociclo, Mesociclo, Microciclo, SeasonPlan } from "../types/seasonPlan";
+import type { SessionTargetDetail } from "../types/training";
 
 // ── API response types (nested structure from backend — camelCase over the wire) ──
 
@@ -8,15 +9,8 @@ interface ApiSessionSummary {
   id: string;
   name: string;
   objetivoGeneral?: string | null;
-  date: string;
+  date: string | null;
   exerciseCount: number;
-}
-
-interface ApiAdnSubprincipioSummary {
-  id: string;
-  numero: string;
-  titulo: string;
-  gameMomentName: string;
 }
 
 interface ApiMicrociclo {
@@ -26,7 +20,7 @@ interface ApiMicrociclo {
   startDate: string;
   endDate: string;
   sessions: ApiSessionSummary[];
-  subprincipiosObjetivo: ApiAdnSubprincipioSummary[];
+  weeklyObjective: SessionTargetDetail[];
 }
 
 interface ApiMesociclo {
@@ -71,17 +65,7 @@ function mapSessionSummary(s: ApiSessionSummary) {
   };
 }
 
-function mapAdnSubprincipioSummary(s: ApiAdnSubprincipioSummary) {
-  return {
-    id: s.id,
-    numero: s.numero,
-    titulo: s.titulo,
-    gameMomentName: s.gameMomentName,
-  };
-}
-
 function mapMicrociclo(m: ApiMicrociclo): Microciclo {
-  const subprincipiosObjetivo = (m.subprincipiosObjetivo ?? []).map(mapAdnSubprincipioSummary);
   return {
     id: nextKey(),
     apiId: m.id,
@@ -90,8 +74,7 @@ function mapMicrociclo(m: ApiMicrociclo): Microciclo {
     startDate: m.startDate,
     endDate: m.endDate,
     sessions: (m.sessions ?? []).map(mapSessionSummary),
-    subprincipiosObjetivo,
-    subprincipioObjetivoIds: subprincipiosObjetivo.map((s) => s.id),
+    weeklyObjective: m.weeklyObjective ?? [],
   };
 }
 
@@ -137,7 +120,6 @@ function mapMicrocicloCreateRequest(m: Microciclo) {
     weekLabel: m.weekLabel,
     startDate: m.startDate,
     endDate: m.endDate,
-    subprincipioObjetivoIds: m.subprincipioObjetivoIds,
   };
 }
 
@@ -168,7 +150,6 @@ function mapMicrocicloUpdateRequest(m: Microciclo) {
     weekLabel: m.weekLabel,
     startDate: m.startDate,
     endDate: m.endDate,
-    subprincipioObjetivoIds: m.subprincipioObjetivoIds,
   };
 }
 

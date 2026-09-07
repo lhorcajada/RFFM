@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { NavigateFunction } from "react-router-dom";
 import trainingService from "../../../../services/trainingService";
+import { summarizeTargetsForObjetivo } from "../../season-plan/components/targetTreeGrouping";
 import type { CreateSessionRequest, TrainingSessionDetail, UpdateSessionRequest } from "../../../../types/training";
 
 interface UseSessionFormParams {
@@ -15,8 +16,8 @@ function emptySession(teamId: string, microcicloId?: string | null): CreateSessi
     teamId,
     name: "",
     description: "",
-    date: "",
-    startTime: "10:00",
+    date: null,
+    startTime: null,
     endTime: null,
     location: null,
     sportEventId: null,
@@ -24,6 +25,7 @@ function emptySession(teamId: string, microcicloId?: string | null): CreateSessi
     objetivoGeneral: null,
     mapaCampoTexto: null,
     blocks: [],
+    targetSubSubPrincipioIds: [],
   };
 }
 
@@ -37,6 +39,11 @@ export function useSessionForm({ teamId, navigate, returnTo, microcicloId }: Use
     setForm((prev) => ({ ...prev, [field]: value }));
 
   const loadSession = (session: TrainingSessionDetail) => {
+    // Auto-fill "Objetivo general" from the session's already-assigned targets (content
+    // board) only when it's still empty — never overwrite an existing value (e.g. imported
+    // historical text). See openspec/changes/season-plan-content-board follow-up request.
+    const objetivoGeneral = session.objetivoGeneral ?? summarizeTargetsForObjetivo(session.targets) ?? null;
+
     setForm({
       teamId,
       name: session.name,
@@ -47,7 +54,7 @@ export function useSessionForm({ teamId, navigate, returnTo, microcicloId }: Use
       location: session.location ?? null,
       sportEventId: session.sportEventId ?? null,
       microcicloId: session.microcicloId ?? null,
-      objetivoGeneral: session.objetivoGeneral ?? null,
+      objetivoGeneral: objetivoGeneral || null,
       mapaCampoTexto: session.mapaCampoTexto ?? null,
       blocks: session.blocks.map((b) => ({
         order: b.order,
@@ -56,6 +63,7 @@ export function useSessionForm({ teamId, navigate, returnTo, microcicloId }: Use
         rotacionEntreEjercicios: b.rotacionEntreEjercicios ?? null,
         exercises: b.exercises.map((e) => ({ exerciseId: e.exerciseId, position: e.position })),
       })),
+      targetSubSubPrincipioIds: session.targets.map((t) => t.subSubPrincipioId),
     });
     setSavedSessionId(session.id);
   };
@@ -64,8 +72,11 @@ export function useSessionForm({ teamId, navigate, returnTo, microcicloId }: Use
 
   const validate = (): string | null => {
     if (!form.name.trim()) return "El nombre es obligatorio.";
-    if (!form.date) return "La fecha es obligatoria.";
-    if (form.blocks.length === 0) return "Una sesión debe tener al menos un bloque.";
+    // A session with no Date ("unscheduled", content-first) may be saved with only
+    // targetSubSubPrincipioIds — no blocks required. Once scheduled (Date set), it must be
+    // calendar-ready: at least one block. Mirrors the backend's conditional NotEmpty rule
+    // (design.md Decision 3.1 of `season-plan-content-board`).
+    if (form.date && form.blocks.length === 0) return "Una sesión debe tener al menos un bloque.";
     const blockWithoutConnection = form.blocks.find((b) => !b.comoConectaConAnterior.trim());
     if (blockWithoutConnection)
       return "Todo bloque debe indicar cómo conecta con el anterior, incluso el primero.";

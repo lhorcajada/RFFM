@@ -13,7 +13,7 @@ interface SeasonPlanViewProps {
   onOpenSession?: (sessionId: string) => void;
 }
 
-function formatDate(iso: string) {
+function formatDate(iso: string | null) {
   if (!iso) return "";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
@@ -40,6 +40,25 @@ function SessionRow({ session, onOpen }: { session: SessionSummary; onOpen?: (id
   );
 }
 
+/** Groups the flat weekly-objective target list (one row per Sub-subprincipio) by Subprincipio
+ * for display, per design.md F8's chip label `${numero} · ${titulo} (${count})`. */
+function groupWeeklyObjectiveBySubprincipio(targets: Microciclo["weeklyObjective"]) {
+  const bySubprincipio = new Map<string, { numero: string; titulo: string; count: number }>();
+  for (const target of targets) {
+    const existing = bySubprincipio.get(target.subprincipioId);
+    if (existing) {
+      existing.count += 1;
+    } else {
+      bySubprincipio.set(target.subprincipioId, {
+        numero: target.numero.split(".").slice(0, 2).join(".") || target.numero,
+        titulo: target.subprincipioTitulo,
+        count: 1,
+      });
+    }
+  }
+  return Array.from(bySubprincipio.entries()).map(([subprincipioId, v]) => ({ subprincipioId, ...v }));
+}
+
 function MicrocicloRow({
   microciclo,
   onCreateSession,
@@ -50,7 +69,8 @@ function MicrocicloRow({
   onOpenSession?: (id: string) => void;
 }) {
   const hasSessions = microciclo.sessions.length > 0;
-  const hasTargetSubprincipios = microciclo.subprincipiosObjetivo.length > 0;
+  const weeklyObjectiveBySubprincipio = groupWeeklyObjectiveBySubprincipio(microciclo.weeklyObjective);
+  const hasWeeklyObjective = weeklyObjectiveBySubprincipio.length > 0;
 
   return (
     <Box className={styles.microcicloCard} data-testid={`microciclo-row-${microciclo.id}`}>
@@ -77,12 +97,12 @@ function MicrocicloRow({
           Crear sesión
         </Button>
       </Box>
-      {hasTargetSubprincipios && (
+      {hasWeeklyObjective && (
         <Box className={styles.targetSubprincipiosRow}>
-          {microciclo.subprincipiosObjetivo.map((s) => (
+          {weeklyObjectiveBySubprincipio.map((s) => (
             <Chip
-              key={s.id}
-              label={`${s.numero} · ${s.titulo}`}
+              key={s.subprincipioId}
+              label={`${s.numero} · ${s.titulo} (${s.count})`}
               size="small"
               className={styles.targetSubprincipioChip}
             />

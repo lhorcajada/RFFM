@@ -98,12 +98,32 @@ export type SessionBlockRequest = Omit<SessionBlock, "id" | "exercises"> & {
   exercises: SessionBlockExerciseRequest[];
 };
 
+/** One Sub-subprincipio targeted by a TrainingSession, full ADN breadcrumb inlined (Fase ›
+ * Principio › Subprincipio › Zona › Rol) so a target chip never needs a second lookup against
+ * the GameModel tree. Mirrors the backend's `SessionTargetDetail` record exactly (see
+ * `Back/ExtractionApi/.../Trainings/Sessions/GetSession.cs`). */
+export interface SessionTargetDetail {
+  subSubPrincipioId: string;
+  rol: string;
+  numero: string;
+  subprincipioId: string;
+  subprincipioTitulo: string;
+  zonaId?: string | null;
+  zonaLabel?: string | null;
+  principioId: string;
+  principioTitulo: string;
+  gameMomentId: number;
+  gameMomentName: string;
+}
+
 export interface TrainingSession {
   id: string;
   name: string;
   description: string;
-  date: string;
-  startTime: string;
+  /** Nullable — an "unscheduled" (content-first) session has no date yet. */
+  date: string | null;
+  /** Nullable — an "unscheduled" session has no start time yet. */
+  startTime: string | null;
   endTime?: string | null;
   location?: string | null;
   sportEventId?: string | null;
@@ -113,6 +133,7 @@ export interface TrainingSession {
   /** True when `microcicloId != null`. */
   isAssociatedToPlan: boolean;
   exerciseCount: number;
+  targets: SessionTargetDetail[];
 }
 
 export interface TrainingSessionDetail extends Omit<TrainingSession, "exerciseCount"> {
@@ -126,8 +147,10 @@ export interface CreateSessionRequest {
   teamId: string;
   name: string;
   description: string;
-  date: string;
-  startTime: string;
+  /** Nullable — creating an unscheduled ("content-first") session sends `date: null`. */
+  date: string | null;
+  /** Nullable — see `date`. */
+  startTime: string | null;
   endTime?: string | null;
   location?: string | null;
   sportEventId?: string | null;
@@ -135,5 +158,6 @@ export interface CreateSessionRequest {
   objetivoGeneral?: string | null;
   mapaCampoTexto?: string | null;
   blocks: SessionBlockRequest[];
+  targetSubSubPrincipioIds: string[];
 }
 export type UpdateSessionRequest = Omit<CreateSessionRequest, "teamId">;
