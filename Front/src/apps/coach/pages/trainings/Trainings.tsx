@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   Box,
   Button,
+  Checkbox,
   Chip,
   CircularProgress,
   Dialog,
@@ -35,7 +36,7 @@ import seasonPlanService from "../../services/seasonPlanService";
 import gameModelService from "../../services/gameModelService";
 import seasonService from "../../services/seasonService";
 import type { Exercise, ExerciseTipo, TrainingSession } from "../../types/training";
-import type { AdnOptions, GameZoneCatalogItem, SeasonPlan } from "../../types/seasonPlan";
+import type { GameZoneCatalogItem, SeasonPlan } from "../../types/seasonPlan";
 import { tipoOptions } from "./new/constants";
 import ExerciseCromo from "./components/ExerciseCromo";
 import SeasonPlanView from "./season-plan/SeasonPlanView";
@@ -43,12 +44,13 @@ import SeasonPlanEditor from "./season-plan/SeasonPlanEditor";
 import styles from "./Trainings.module.css";
 import { buildExercisePrintHtml } from "./exercisePrint";
 
-function formatDate(iso: string) {
+function formatDate(iso: string | null) {
+  if (!iso) return "Sin fecha";
   const d = new Date(iso);
   return d.toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" });
 }
 
-function formatTime(t: string) {
+function formatTime(t: string | null | undefined) {
   return t ? t.slice(0, 5) : "";
 }
 
@@ -136,6 +138,9 @@ export default function Trainings() {
   const [loadingSess, setLoadingSess] = useState(false);
   const [deleteSessId, setDeleteSessId] = useState<string | null>(null);
   const [deletingSess, setDeletingSess] = useState(false);
+  const [selectedSessionIds, setSelectedSessionIds] = useState<string[]>([]);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [deletingSessBulk, setDeletingSessBulk] = useState(false);
 
   // ── Season plan state ────────────────────────────────────────────
   const [seasonId, setSeasonId] = useState("");
@@ -143,7 +148,6 @@ export default function Trainings() {
   const [seasonPlan, setSeasonPlan] = useState<SeasonPlan | null>(null);
   const [loadingPlan, setLoadingPlan] = useState(false);
   const [zones, setZones] = useState<GameZoneCatalogItem[]>([]);
-  const [adnOptions, setAdnOptions] = useState<AdnOptions>({ subprincipios: [], subSubPrincipios: [] });
   const [planEditing, setPlanEditing] = useState(false);
   const [savingPlan, setSavingPlan] = useState(false);
   const [deletePlanOpen, setDeletePlanOpen] = useState(false);
@@ -165,6 +169,7 @@ export default function Trainings() {
   useEffect(() => {
     if (!teamId) return;
     setLoadingSess(true);
+    setSelectedSessionIds([]);
     trainingService.getSessions(teamId)
       .then(setSessions)
       .catch(() => setSessions([]))
@@ -211,18 +216,11 @@ export default function Trainings() {
       .finally(() => setLoadingPlan(false));
   };
 
-  // Load season plan + zone catalog + ADN options (for the Microciclo Subprincipio-objetivo
-  // picker) when the Planificación tab (now tab 0) is opened
+  // Load season plan + zone catalog when the Planificación tab (now tab 0) is opened
   useEffect(() => {
     if (tab !== 0 || !teamId || !seasonId) return;
     refreshSeasonPlan();
     gameModelService.getZones().then(setZones).catch(() => setZones([]));
-    if (seasonName) {
-      seasonPlanService
-        .getAdnOptions(teamId, seasonName)
-        .then(setAdnOptions)
-        .catch(() => setAdnOptions({ subprincipios: [], subSubPrincipios: [] }));
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, teamId, seasonId, seasonName]);
 
@@ -318,6 +316,29 @@ export default function Trainings() {
     }
   };
 
+  const toggleSessionSelected = (sessionId: string) => {
+    setSelectedSessionIds((prev) =>
+      prev.includes(sessionId) ? prev.filter((id) => id !== sessionId) : [...prev, sessionId]
+    );
+  };
+
+  const toggleSelectAllSessions = () => {
+    setSelectedSessionIds((prev) => (prev.length === sessions.length ? [] : sessions.map((s) => s.id)));
+  };
+
+  const handleBulkDeleteSessions = async () => {
+    if (selectedSessionIds.length === 0) return;
+    setDeletingSessBulk(true);
+    try {
+      await trainingService.deleteSessions(selectedSessionIds);
+      setSelectedSessionIds([]);
+      setBulkDeleteOpen(false);
+      refreshSessions();
+    } finally {
+      setDeletingSessBulk(false);
+    }
+  };
+
   return (
     <BaseLayout hideFooterMenu>
       <ContentLayout
@@ -346,19 +367,41 @@ export default function Trainings() {
               </Button>
             )}
             {tab === 2 && (
-              <Button
-                size="small"
-                startIcon={<AddIcon />}
-                variant="contained"
-                className={styles.addBtn}
-                onClick={() => goToSessionPage()}
-                disabled={!teamId || !clubId}
-              >
-                Nueva sesión
-              </Button>
+              <>
+                {selectedSessionIds.length > 0 && (
+                  <Button
+                    size="small"
+                    startIcon={<DeleteOutlineIcon />}
+                    variant="outlined"
+                    color="error"
+                    onClick={() => setBulkDeleteOpen(true)}
+                  >
+                    {`Eliminar seleccionadas (${selectedSessionIds.length})`}
+                  </Button>
+                )}
+                <Button
+                  size="small"
+                  startIcon={<AddIcon />}
+                  variant="contained"
+                  className={styles.addBtn}
+                  onClick={() => goToSessionPage()}
+                  disabled={!teamId || !clubId}
+                >
+                  Nueva sesión
+                </Button>
+              </>
             )}
             {tab === 0 && !planEditing && (
               <>
+                <Button
+                  size="small"
+                  startIcon={<AddIcon />}
+                  variant="outlined"
+                  onClick={() => navigate(`/coach/trainings/content-board?clubId=${clubId}&teamId=${teamId}`)}
+                  disabled={!teamId}
+                >
+                  Planificar contenido
+                </Button>
                 <Button
                   size="small"
                   startIcon={<AddIcon />}
@@ -403,7 +446,6 @@ export default function Trainings() {
                 <SeasonPlanEditor
                   draft={seasonPlan ?? { id: "", teamId, seasonId, macrociclos: [] }}
                   zones={zones}
-                  adnOptions={adnOptions}
                   saving={savingPlan}
                   onSave={handleSavePlan}
                   onCancel={() => setPlanEditing(false)}
@@ -473,52 +515,72 @@ export default function Trainings() {
                 <Typography className={styles.emptyText}>
                   {teamId ? "No hay sesiones creadas aún." : "Selecciona un equipo para ver sesiones."}
                 </Typography>
-              ) : sessions.map(sess => (
-                <Box key={sess.id} className={styles.sessionCard}>
-                  <Box className={styles.sessionInfo}>
-                    <Typography className={styles.sessionName}>{sess.name}</Typography>
-                    <Typography className={styles.sessionDate}>{formatDate(sess.date)}</Typography>
-                    <Box className={styles.sessionMeta}>
-                      <Typography className={styles.sessionMetaText}>
-                        {formatTime(sess.startTime)}
-                        {sess.endTime ? ` – ${formatTime(sess.endTime)}` : ""}
-                        {sess.location ? ` · ${sess.location}` : ""}
-                      </Typography>
-                      <Chip
-                        label={`${sess.exerciseCount} ej.`}
+              ) : (
+                <>
+                  <Box className={styles.toolbarRow}>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <Checkbox
                         size="small"
-                        className={styles.countChip}
+                        checked={selectedSessionIds.length === sessions.length}
+                        indeterminate={selectedSessionIds.length > 0 && selectedSessionIds.length < sessions.length}
+                        onChange={toggleSelectAllSessions}
                       />
-                      {sess.sportEventName && (
-                        <Chip label={sess.sportEventName} size="small" className={styles.sspChip} />
-                      )}
-                      {sess.isAssociatedToPlan ? (
-                        <Chip
-                          label={sess.microcicloWeekLabel ?? "Plan"}
-                          size="small"
-                          className={styles.planLinkedChip}
-                        />
-                      ) : (
-                        <Chip label="Independiente" size="small" className={styles.independentChip} />
-                      )}
+                      <Typography className={styles.sessionMetaText}>Seleccionar todo</Typography>
+                    </Stack>
+                  </Box>
+                  {sessions.map(sess => (
+                    <Box key={sess.id} className={styles.sessionCard}>
+                      <Checkbox
+                        size="small"
+                        checked={selectedSessionIds.includes(sess.id)}
+                        onChange={() => toggleSessionSelected(sess.id)}
+                      />
+                      <Box className={styles.sessionInfo}>
+                        <Typography className={styles.sessionName}>{sess.name}</Typography>
+                        <Typography className={styles.sessionDate}>{formatDate(sess.date)}</Typography>
+                        <Box className={styles.sessionMeta}>
+                          <Typography className={styles.sessionMetaText}>
+                            {formatTime(sess.startTime)}
+                            {sess.endTime ? ` – ${formatTime(sess.endTime)}` : ""}
+                            {sess.location ? ` · ${sess.location}` : ""}
+                          </Typography>
+                          <Chip
+                            label={`${sess.exerciseCount} ej.`}
+                            size="small"
+                            className={styles.countChip}
+                          />
+                          {sess.sportEventName && (
+                            <Chip label={sess.sportEventName} size="small" className={styles.sspChip} />
+                          )}
+                          {sess.isAssociatedToPlan ? (
+                            <Chip
+                              label={sess.microcicloWeekLabel ?? "Plan"}
+                              size="small"
+                              className={styles.planLinkedChip}
+                            />
+                          ) : (
+                            <Chip label="Independiente" size="small" className={styles.independentChip} />
+                          )}
+                        </Box>
+                      </Box>
+                      <Box className={styles.sessionActions}>
+                        <Tooltip title="Editar">
+                          <IconButton size="small" className={styles.iconBtn}
+                            onClick={() => goToSessionPage(sess.id)}>
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Eliminar">
+                          <IconButton size="small" className={styles.deleteIconBtn}
+                            onClick={() => setDeleteSessId(sess.id)}>
+                            <DeleteOutlineIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
                     </Box>
-                  </Box>
-                  <Box className={styles.sessionActions}>
-                    <Tooltip title="Editar">
-                      <IconButton size="small" className={styles.iconBtn}
-                        onClick={() => goToSessionPage(sess.id)}>
-                        <EditIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Eliminar">
-                      <IconButton size="small" className={styles.deleteIconBtn}
-                        onClick={() => setDeleteSessId(sess.id)}>
-                        <DeleteOutlineIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  </Box>
-                </Box>
-              ))}
+                  ))}
+                </>
+              )}
             </Box>
           )}
         </Box>
@@ -559,6 +621,26 @@ export default function Trainings() {
             <Button onClick={handleDeleteSession} disabled={deletingSess} variant="contained"
               sx={{ bgcolor: "#c0392b", "&:hover": { bgcolor: "#e74c3c" } }}>
               {deletingSess ? <CircularProgress size={16} /> : "Eliminar"}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* ── Bulk delete sessions confirmation ─────────────────── */}
+        <Dialog open={bulkDeleteOpen} onClose={() => setBulkDeleteOpen(false)}
+          PaperProps={{ sx: { bgcolor: "#07071a", border: "1px solid rgba(77,157,224,.25)" } }}>
+          <DialogTitle sx={{ color: "#4d9de0" }}>Eliminar sesiones</DialogTitle>
+          <DialogContent>
+            <DialogContentText sx={{ color: "#e8e8e8" }}>
+              {`¿Seguro que quieres eliminar ${selectedSessionIds.length} sesión(es)? Esta acción no se puede deshacer.`}
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setBulkDeleteOpen(false)} sx={{ color: "rgba(212, 212, 212, .6)" }}>
+              Cancelar
+            </Button>
+            <Button onClick={handleBulkDeleteSessions} disabled={deletingSessBulk} variant="contained"
+              sx={{ bgcolor: "#c0392b", "&:hover": { bgcolor: "#e74c3c" } }}>
+              {deletingSessBulk ? <CircularProgress size={16} /> : "Eliminar"}
             </Button>
           </DialogActions>
         </Dialog>
