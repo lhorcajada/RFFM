@@ -264,6 +264,49 @@ describe("AttendanceSummaryContent — partidos amistosos y minutos", () => {
     expect(screen.queryByText(/Torneo/)).not.toBeInTheDocument();
   });
 
+  it("no cuenta partidos futuros (aún no finalizados) en el total de la pestaña Partidos", async () => {
+    // Regression: officialMatchEvents (unlike matchEventsRaw) was not filtered by
+    // isEventFinished, so a scheduled-but-not-yet-played league match inflated both
+    // the "jornadas" toolbar chip and each player's "totalMatches" card chip.
+    getSportEventsMock.mockResolvedValue({
+      items: [
+        makeMatchEvent("event-1"),
+        { ...makeMatchEvent("event-3"), startTime: "2099-01-01T10:00:00Z" },
+      ],
+      totalPages: 1,
+    });
+    getTeamConvocationsSummaryMock.mockResolvedValue([
+      {
+        eventId: "event-1",
+        convocationId: "c1",
+        teamPlayerId: "tp-1",
+        playerId: "p-1",
+        alias: "J1",
+        statusId: 2,
+        assistanceTypeId: null,
+        excuseTypeId: null,
+      },
+      {
+        eventId: "event-3",
+        convocationId: "c3",
+        teamPlayerId: "tp-1",
+        playerId: "p-1",
+        alias: "J1",
+        statusId: 2,
+        assistanceTypeId: null,
+        excuseTypeId: null,
+      },
+    ]);
+
+    render(<AttendanceSummaryContent teamId="team-1" />);
+
+    const matchesTab = await screen.findByRole("tab", { name: /partidos/i });
+    fireEvent.click(matchesTab);
+
+    expect(await screen.findByText("1 jornadas")).toBeInTheDocument();
+    expect(await screen.findByText("1 partidos")).toBeInTheDocument();
+  });
+
   it("muestra Convocado (no Desconvocado) para un jugador convocado que aún no ha aceptado (statusId Pending)", async () => {
     // Regression: a convocation with status "Pending" (id 1) means the player
     // WAS called up by the coach and simply hasn't confirmed acceptance yet —

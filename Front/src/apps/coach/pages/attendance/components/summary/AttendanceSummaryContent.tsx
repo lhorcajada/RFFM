@@ -408,6 +408,7 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
 
         const officialMatchEvents = eventsWithConvocations
           .filter(({ event }) => classifyEventType(getEventTypeName(event, typeMap)) === "match")
+          .filter(({ event }) => isEventFinished(event))
           .map(({ event, convocations }) => ({ event, convocations }))
           .sort((a, b) => {
             const ad = getEventDate(a.event) ?? "";
