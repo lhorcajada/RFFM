@@ -80,11 +80,18 @@ export default function GlobalSnackbar() {
       }}
       anchorOrigin={{ vertical: "top", horizontal: "right" }}
       TransitionComponent={TransitionDown}
+      // The Snackbar's anchoring root is a fixed-position box that keeps occupying its
+      // corner of the screen even while closed/invisible (MUI does not unmount it, it
+      // only hides the child transition). Several pages place real action buttons in
+      // that same corner (e.g. Guardar/Cancelar), so without this the closed toast
+      // silently swallows clicks meant for whatever sits underneath it. Only the visible
+      // Alert should be clickable — re-enabled below.
+      sx={{ pointerEvents: "none" }}
     >
       <Alert
         onClose={() => setOpen(false)}
         severity={severity}
-        sx={{ width: "100%" }}
+        sx={{ width: "100%", pointerEvents: "auto" }}
       >
         {message}
       </Alert>
