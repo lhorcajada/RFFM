@@ -3,9 +3,7 @@
 ## Purpose
 TBD - created by archiving change 2026-08-11-add-coach-season-planning. Updated by archiving
 2026-08-21-session-exercise-plan-redesign.
-
 ## Requirements
-
 ### Requirement: Team has one season plan per season
 A `Team` SHALL have at most one `SeasonPlan` per `Season`, composed of an ordered, non-empty list of `Macrociclo`s. Each `Macrociclo` SHALL have an `Order`, `Name`, `StartDate`, `EndDate`, and an ordered list of `Mesociclo`s. Each `Mesociclo` SHALL have an `Order`, `Name`, `StartDate`, `EndDate`, a `GameZoneId` (referencing the existing field-zone catalog), and an ordered list of `Microciclo`s. Each `Microciclo` SHALL have an `Order`, `WeekLabel`, `StartDate`, and `EndDate`.
 
@@ -67,11 +65,28 @@ The backend SHALL expose `GET /api/season-plans?teamId=&seasonId=`, `POST /api/s
 - **THEN** the backend responds `409 Conflict` and no change is persisted
 
 ### Requirement: Season plan associates sessions, not exercises
-A `Microciclo`'s coverage is determined by its linked `TrainingSession`s (via `TrainingSession.MicrocicloId`), not by any direct exercise link. Creating a session from a Microciclo card SHALL pre-fill that session's plan association.
+A `Microciclo`'s weekly objective SHALL be derived exclusively from its linked
+`TrainingSession`s — never an independently editable or stored field. Its coverage is
+determined by its linked `TrainingSession`s (via `TrainingSession.MicrocicloId`), not by any
+direct exercise link. Creating a session from a Microciclo card SHALL pre-fill that session's
+plan association. The weekly objective (the set of target `SubSubPrincipio`s worked that week)
+is the union of `TargetSubSubPrincipioIds` of `TrainingSession`s whose `Date` falls inside that
+`Microciclo`'s `StartDate`..`EndDate` range.
 
 #### Scenario: Creating a session from a Microciclo card
 - **WHEN** a Coach uses the "Crear sesión" action on a Microciclo card in the Planificación tab
 - **THEN** the created session is linked to that Microciclo (`MicrocicloId` set)
+
+#### Scenario: Weekly objective reflects dated sessions' targets
+- **WHEN** two sessions dated inside a Microciclo's range target three distinct
+  `SubSubPrincipio`s between them
+- **THEN** that Microciclo's weekly objective view shows the union of those three targets, with
+  no manual entry required
+
+#### Scenario: Unscheduled session targets do not appear in any weekly objective
+- **WHEN** a session has targets but no `Date`
+- **THEN** those targets do not appear in any Microciclo's weekly objective view until the
+  session is assigned a `Date` that falls inside that Microciclo's range
 
 ### Requirement: Season plan visibility in Coach app
 The Coach web app SHALL provide a "Planificación" tab as the **first** tab (before "Ejercicios" and "Sesiones"), showing the season plan tree with, per `Microciclo`, its linked sessions and a visible indicator of session coverage.
@@ -87,3 +102,4 @@ The Coach web app SHALL provide a "Planificación" tab as the **first** tab (bef
 #### Scenario: Planificación is the default landing tab
 - **WHEN** a Coach opens the Entrenamientos/Trainings area
 - **THEN** the Planificación tab is shown first and selected by default
+
