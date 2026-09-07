@@ -203,14 +203,9 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
             RuleFor(x => x.TeamId).NotEmpty();
             RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
 
-            // A session with no Date ("unscheduled", content-first) may be saved with only
-            // TargetSubSubPrincipioIds — no blocks required. Once scheduled (Date set), it must
-            // be calendar-ready: at least one block. design.md Decision 3.1.
-            When(x => x.Date is not null, () =>
-            {
-                RuleFor(x => x.Blocks).NotEmpty()
-                    .WithMessage("Una sesión debe tener al menos un bloque.");
-            });
+            // A session may be saved with no blocks at all, scheduled or not — content-first
+            // authoring is not required to be calendar-ready. Product decision 2026-09-07:
+            // removed the "at least one block when Date is set" requirement.
             RuleForEach(x => x.Blocks).SetValidator(new SessionBlockRequestValidator());
         }
     }
@@ -222,8 +217,6 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
             RuleFor(x => x.Nombre).NotEmpty().MaximumLength(200);
             RuleFor(x => x.ComoConectaConAnterior).NotEmpty()
                 .WithMessage("Todo bloque debe indicar cómo conecta con el anterior, incluso el primero.");
-            RuleFor(x => x.Exercises).NotEmpty()
-                .WithMessage("Un bloque debe tener al menos un ejercicio.");
         }
     }
 }

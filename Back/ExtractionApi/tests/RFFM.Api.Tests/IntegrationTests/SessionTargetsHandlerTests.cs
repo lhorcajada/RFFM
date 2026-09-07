@@ -256,15 +256,17 @@ namespace RFFM.Api.Tests.IntegrationTests
         }
 
         [Fact]
-        public void Validator_ScheduledSessionWithEmptyBlocks_IsInvalid()
+        public void Validator_ScheduledSessionWithEmptyBlocks_IsValid()
         {
+            // Product decision 2026-09-07: removed the "at least one block when scheduled"
+            // requirement — a scheduled session can be saved with no blocks.
             var command = new CreateSessionCommand(
                 "team-1", "Sesion", null, DateTime.UtcNow, TimeSpan.FromHours(18), null, null, null, null, null, null,
                 new List<SessionBlockRequest>());
 
             var result = new CreateSessionValidator().Validate(command);
 
-            Assert.False(result.IsValid);
+            Assert.True(result.IsValid);
         }
 
         [Fact]
@@ -280,15 +282,17 @@ namespace RFFM.Api.Tests.IntegrationTests
         }
 
         [Fact]
-        public void UpdateValidator_ScheduledSessionWithEmptyBlocks_IsInvalid()
+        public void UpdateValidator_ScheduledSessionWithEmptyBlocks_IsValid()
         {
+            // Product decision 2026-09-07: removed the "at least one block when scheduled"
+            // requirement — a scheduled session can be saved with no blocks.
             var command = new UpdateSessionCommand(
                 "session-1", "Sesion", null, DateTime.UtcNow, TimeSpan.FromHours(18), null, null, null, null, null, null,
                 new List<SessionBlockRequest>(), "user-1");
 
             var result = new UpdateSessionValidator().Validate(command);
 
-            Assert.False(result.IsValid);
+            Assert.True(result.IsValid);
         }
     }
 }

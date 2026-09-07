@@ -167,12 +167,7 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
             RuleFor(x => x.Id).NotEmpty();
             RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
 
-            // See CreateSessionValidator — same conditional rule (design.md Decision 3.1).
-            When(x => x.Date is not null, () =>
-            {
-                RuleFor(x => x.Blocks).NotEmpty()
-                    .WithMessage("Una sesión debe tener al menos un bloque.");
-            });
+            // See CreateSessionValidator — no minimum blocks/exercises requirement.
             RuleForEach(x => x.Blocks).SetValidator(new SessionBlockRequestValidator());
         }
     }

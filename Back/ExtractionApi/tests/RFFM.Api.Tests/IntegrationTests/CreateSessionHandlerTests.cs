@@ -178,8 +178,10 @@ namespace RFFM.Api.Tests.IntegrationTests
         }
 
         [Fact]
-        public void Validator_RejectsSessionWithNoBlocks()
+        public void Validator_AllowsSessionWithDateAndNoBlocks()
         {
+            // Product decision 2026-09-07: a scheduled session (Date set) no longer requires
+            // at least one block — sessions can be saved empty, scheduled or not.
             var command = new CreateSessionCommand(
                 "team-1", "Sesion 1", null, DateTime.UtcNow, TimeSpan.FromHours(18), null, null, null, null, null, null,
                 new List<SessionBlockRequest>());
@@ -187,12 +189,13 @@ namespace RFFM.Api.Tests.IntegrationTests
             var validator = new CreateSessionValidator();
             var result = validator.Validate(command);
 
-            Assert.False(result.IsValid);
+            Assert.True(result.IsValid);
         }
 
         [Fact]
-        public void Validator_RejectsBlockWithNoExercises()
+        public void Validator_AllowsBlockWithNoExercises()
         {
+            // Product decision 2026-09-07: a block no longer requires at least one exercise.
             var command = new CreateSessionCommand(
                 "team-1", "Sesion 1", null, DateTime.UtcNow, TimeSpan.FromHours(18), null, null, null, null, null, null,
                 new List<SessionBlockRequest>
@@ -203,7 +206,7 @@ namespace RFFM.Api.Tests.IntegrationTests
             var validator = new CreateSessionValidator();
             var result = validator.Validate(command);
 
-            Assert.False(result.IsValid);
+            Assert.True(result.IsValid);
         }
     }
 }

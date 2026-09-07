@@ -110,5 +110,39 @@ namespace RFFM.Api.Tests.IntegrationTests
             Assert.Equal(DateTimeKind.Utc, session.Date!.Value.Kind);
             Assert.Equal(new DateTime(2026, 9, 12, 0, 0, 0, DateTimeKind.Utc), session.Date);
         }
+
+        [Fact]
+        public void Validator_AllowsSessionWithDateAndNoBlocks()
+        {
+            // Product decision 2026-09-07: a scheduled session (Date set) no longer requires
+            // at least one block — sessions can be saved empty, scheduled or not.
+            var command = new UpdateSessionCommand(
+                "session-1", "Sesion 1", null, DateTime.UtcNow, TimeSpan.FromHours(18), null, null, null, null, null, null,
+                new List<SessionBlockRequest>(),
+                "user-1");
+
+            var validator = new UpdateSessionValidator();
+            var result = validator.Validate(command);
+
+            Assert.True(result.IsValid);
+        }
+
+        [Fact]
+        public void Validator_AllowsBlockWithNoExercises()
+        {
+            // Product decision 2026-09-07: a block no longer requires at least one exercise.
+            var command = new UpdateSessionCommand(
+                "session-1", "Sesion 1", null, DateTime.UtcNow, TimeSpan.FromHours(18), null, null, null, null, null, null,
+                new List<SessionBlockRequest>
+                {
+                    new(1, "Bloque 1", "Conecta.", null, new List<SessionBlockExerciseRequest>())
+                },
+                "user-1");
+
+            var validator = new UpdateSessionValidator();
+            var result = validator.Validate(command);
+
+            Assert.True(result.IsValid);
+        }
     }
 }
