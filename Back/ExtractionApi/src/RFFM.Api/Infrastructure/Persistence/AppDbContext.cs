@@ -59,6 +59,7 @@ namespace RFFM.Api.Infrastructure.Persistence
         public DbSet<TrainingSession> TrainingSessions { get; set; }
         public DbSet<SessionBlock> SessionBlocks { get; set; }
         public DbSet<SessionBlockExercise> SessionBlockExercises { get; set; }
+        public DbSet<TrainingSessionSubSubPrincipio> TrainingSessionSubSubPrincipios { get; set; }
         public DbSet<MaterialsEnum> Materials { get; set; }
         public DbSet<PointsTypeEnum> PointsTypes { get; set; }
         public DbSet<TrainingPointsReport> TrainingPointsReports { get; set; }
@@ -135,7 +136,6 @@ namespace RFFM.Api.Infrastructure.Persistence
         public DbSet<Macrociclo> Macrociclos { get; set; }
         public DbSet<Mesociclo> Mesociclos { get; set; }
         public DbSet<Microciclo> Microciclos { get; set; }
-        public DbSet<MicrocicloSubprincipioObjetivo> MicrocicloSubprincipiosObjetivo { get; set; }
 
         // News
         public DbSet<NewsItem> News { get; set; }

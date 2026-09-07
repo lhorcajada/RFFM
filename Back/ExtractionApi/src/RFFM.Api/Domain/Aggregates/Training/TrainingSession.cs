@@ -7,8 +7,12 @@ namespace RFFM.Api.Domain.Aggregates.Training
     {
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
-        public DateTime Date { get; set; }
-        public TimeSpan StartTime { get; set; }
+
+        /// <summary>Nullable since the `season-plan-content-board` change: a session may exist
+        /// unscheduled ("content-first" planning), carrying only its <see cref="Targets"/>,
+        /// before a Coach assigns it a date/time.</summary>
+        public DateTime? Date { get; set; }
+        public TimeSpan? StartTime { get; set; }
         public TimeSpan? EndTime { get; set; }
         public string Location { get; set; } = string.Empty;
         public string? SportEventId { get; set; }
@@ -29,5 +33,20 @@ namespace RFFM.Api.Domain.Aggregates.Training
         public Team Team { get; set; } = null!;
         public SportEvent? SportEvent { get; set; }
         public List<SessionBlock> Blocks { get; set; } = new();
+
+        /// <summary>Sub-subprincipio targets for content-first planning (season-plan-content-board
+        /// change) — repetition across sessions is explicitly allowed, no uniqueness constraint.
+        /// Built only via <see cref="ReplaceTargets"/>.</summary>
+        public List<TrainingSessionSubSubPrincipio> Targets { get; set; } = new();
+
+        /// <summary>Clears and rebuilds <see cref="Targets"/> wholesale — same "trust
+        /// server-derived state" approach used across this codebase (e.g.
+        /// <c>SessionBlock.ReplaceExercises</c>, <c>ExerciseModelRelation.ReplaceItems</c>).</summary>
+        public void ReplaceTargets(IEnumerable<string>? subSubPrincipioIds)
+        {
+            Targets.Clear();
+            foreach (var id in (subSubPrincipioIds ?? Enumerable.Empty<string>()).Distinct())
+                Targets.Add(new TrainingSessionSubSubPrincipio(Id, id));
+        }
     }
 }

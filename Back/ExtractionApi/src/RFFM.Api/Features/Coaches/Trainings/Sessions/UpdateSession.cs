@@ -32,7 +32,7 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
                         var command = new UpdateSessionCommand(
                             id, body.Name, body.Description, body.Date, body.StartTime, body.EndTime,
                             body.Location, body.SportEventId, body.MicrocicloId, body.ObjetivoGeneral,
-                            body.MapaCampoTexto, body.Blocks, userId);
+                            body.MapaCampoTexto, body.Blocks, userId, body.TargetSubSubPrincipioIds);
 
                         await mediator.Send(command, ct);
                         return Results.NoContent();
@@ -50,23 +50,8 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
     public record UpdateSessionBody(
         string Name,
         string? Description,
-        DateTime Date,
-        TimeSpan StartTime,
-        TimeSpan? EndTime,
-        string? Location,
-        string? SportEventId,
-        string? MicrocicloId,
-        string? ObjetivoGeneral,
-        string? MapaCampoTexto,
-        List<SessionBlockRequest> Blocks
-    );
-
-    public record UpdateSessionCommand(
-        string Id,
-        string Name,
-        string? Description,
-        DateTime Date,
-        TimeSpan StartTime,
+        DateTime? Date,
+        TimeSpan? StartTime,
         TimeSpan? EndTime,
         string? Location,
         string? SportEventId,
@@ -74,7 +59,24 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
         string? ObjetivoGeneral,
         string? MapaCampoTexto,
         List<SessionBlockRequest> Blocks,
-        string UserId
+        List<string>? TargetSubSubPrincipioIds = null
+    );
+
+    public record UpdateSessionCommand(
+        string Id,
+        string Name,
+        string? Description,
+        DateTime? Date,
+        TimeSpan? StartTime,
+        TimeSpan? EndTime,
+        string? Location,
+        string? SportEventId,
+        string? MicrocicloId,
+        string? ObjetivoGeneral,
+        string? MapaCampoTexto,
+        List<SessionBlockRequest> Blocks,
+        string UserId,
+        List<string>? TargetSubSubPrincipioIds = null
     ) : IRequest, IRequireFeaturePermission
     {
         public string FeatureRoute => CoachFeatureRoutes.Trainings;
@@ -91,6 +93,7 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
             var session = await _db.TrainingSessions
                 .Include(s => s.Blocks)
                     .ThenInclude(b => b.Exercises)
+                .Include(s => s.Targets)
                 .Include(s => s.Team)
                 .AsSplitQuery()
                 .FirstOrDefaultAsync(s => s.Id == request.Id, ct);
@@ -104,17 +107,31 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
             if (!hasAccess)
                 throw new DomainException("Sesiones", "No tienes acceso a esta sesión.", ErrorCodes.SessionAccessDenied);
 
-            if (request.MicrocicloId is not null)
-                await CreateSessionHandler.EnsureMicrocicloBelongsToTeam(_db, request.MicrocicloId, session.TeamId, ct);
+            var targetIds = request.TargetSubSubPrincipioIds ?? new List<string>();
+            if (targetIds.Count > 0)
+                await CreateSessionHandler.EnsureTargetsBelongToTeam(_db, targetIds, session.TeamId, ct);
+
+            // Npgsql requires DateTimeKind.Utc for "timestamp with time zone" columns;
+            // System.Text.Json deserializes offset-less dates as Unspecified. Same pattern
+            // as CreateSportEvent.
+            var dateUtc = request.Date.HasValue
+                ? DateTime.SpecifyKind(request.Date.Value, DateTimeKind.Utc)
+                : (DateTime?)null;
+
+            var microcicloId = request.MicrocicloId;
+            if (microcicloId is not null)
+                await CreateSessionHandler.EnsureMicrocicloBelongsToTeam(_db, microcicloId, session.TeamId, ct);
+            else if (dateUtc is not null)
+                microcicloId = await CreateSessionHandler.ResolveMicrocicloIdByDate(_db, dateUtc.Value, session.TeamId, ct);
 
             session.Name = request.Name.Trim();
             session.Description = request.Description ?? string.Empty;
-            session.Date = request.Date;
+            session.Date = dateUtc;
             session.StartTime = request.StartTime;
             session.EndTime = request.EndTime;
             session.Location = request.Location ?? string.Empty;
             session.SportEventId = request.SportEventId;
-            session.MicrocicloId = request.MicrocicloId;
+            session.MicrocicloId = microcicloId;
             session.ObjetivoGeneral = request.ObjetivoGeneral;
             session.MapaCampoTexto = request.MapaCampoTexto;
 
@@ -132,6 +149,12 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
                 session.Blocks.Add(block);
             }
 
+            // Replace targets wholesale — same contract as Blocks (design.md Decision 3:
+            // adding/removing a target is a full PUT with the session's complete target list).
+            _db.RemoveRange(session.Targets);
+            session.Targets.Clear();
+            session.ReplaceTargets(targetIds);
+
             await _db.SaveChangesAsync(ct);
             return Unit.Value;
         }
@@ -143,8 +166,13 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
         {
             RuleFor(x => x.Id).NotEmpty();
             RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
-            RuleFor(x => x.Blocks).NotEmpty()
-                .WithMessage("Una sesión debe tener al menos un bloque.");
+
+            // See CreateSessionValidator — same conditional rule (design.md Decision 3.1).
+            When(x => x.Date is not null, () =>
+            {
+                RuleFor(x => x.Blocks).NotEmpty()
+                    .WithMessage("Una sesión debe tener al menos un bloque.");
+            });
             RuleForEach(x => x.Blocks).SetValidator(new SessionBlockRequestValidator());
         }
     }

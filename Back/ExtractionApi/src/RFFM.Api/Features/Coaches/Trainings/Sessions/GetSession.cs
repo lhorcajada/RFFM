@@ -48,8 +48,8 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
         string Id,
         string Name,
         string Description,
-        DateTime Date,
-        TimeSpan StartTime,
+        DateTime? Date,
+        TimeSpan? StartTime,
         TimeSpan? EndTime,
         string? Location,
         string? SportEventId,
@@ -60,7 +60,25 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
         string? ObjetivoGeneral,
         string? MapaCampoTexto,
         string? UrlImage,
-        IEnumerable<SessionBlockDetail> Blocks);
+        IEnumerable<SessionBlockDetail> Blocks,
+        IEnumerable<SessionTargetDetail> Targets);
+
+    /// <summary>One Sub-subprincipio target of a <see cref="Domain.Aggregates.Training.TrainingSession"/>,
+    /// with its full ADN breadcrumb inlined (Fase › Principio › Subprincipio › Zona › Rol) so
+    /// callers never need a second lookup against <c>GetGameModel</c> to render a target chip's
+    /// text — design.md Decision 3 of `season-plan-content-board`.</summary>
+    public record SessionTargetDetail(
+        string SubSubPrincipioId,
+        string Rol,
+        string Numero,
+        string SubprincipioId,
+        string SubprincipioTitulo,
+        string? ZonaId,
+        string? ZonaLabel,
+        string PrincipioId,
+        string PrincipioTitulo,
+        int GameMomentId,
+        string GameMomentName);
 
     public record SessionBlockDetail(
         string Id,
@@ -95,6 +113,7 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
                 .Include(s => s.Blocks)
                     .ThenInclude(b => b.Exercises)
                         .ThenInclude(e => e.Exercise)
+                .Include(s => s.Targets)
                 .AsSplitQuery()
                 .FirstOrDefaultAsync(s => s.Id == request.Id, ct);
 
@@ -114,6 +133,9 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
                     .Where(m => m.Id == session.MicrocicloId)
                     .Select(m => m.WeekLabel)
                     .FirstOrDefaultAsync(ct);
+
+            var targetDetails = await SessionTargetDetailLookup.ResolveAsync(
+                _db, session.Targets.Select(t => t.SubSubPrincipioId), ct);
 
             return new SessionDetail(
                 session.Id,
@@ -140,8 +162,78 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
                             .Select(e => new SessionBlockExerciseDetail(
                                 e.Id, e.TaskTrainingBaseId, e.Position,
                                 e.Exercise.Name, e.Exercise.Tipo, e.Exercise.Objetivo,
-                                e.Exercise.DurationMinutes, e.Exercise.UrlImage))))
+                                e.Exercise.DurationMinutes, e.Exercise.UrlImage)))),
+                session.Targets
+                    .Select(t => targetDetails.GetValueOrDefault(t.SubSubPrincipioId))
+                    .Where(t => t is not null)!
             );
+        }
+    }
+
+    /// <summary>Resolves the full ADN breadcrumb (design.md Decision 3) for a set of
+    /// SubSubPrincipio ids, shared by <see cref="GetSessionHandler"/>,
+    /// <see cref="GetSessionsHandler"/> and <c>GetSeasonPlan</c>'s weekly-objective projection.
+    /// An id that no longer resolves (SubSubPrincipio removed from the GameModel after a
+    /// session targeted it — should not happen given the cascade FK, but tolerated defensively)
+    /// is simply absent from the result.</summary>
+    internal static class SessionTargetDetailLookup
+    {
+        public static async Task<IReadOnlyDictionary<string, SessionTargetDetail>> ResolveAsync(
+            AppDbContext db, IEnumerable<string> subSubPrincipioIds, CancellationToken ct)
+        {
+            var ids = subSubPrincipioIds.Distinct().ToList();
+            if (ids.Count == 0)
+                return new Dictionary<string, SessionTargetDetail>();
+
+            var rows = await db.SubSubPrincipios
+                .AsNoTracking()
+                .Where(ssp => ids.Contains(ssp.Id))
+                .Select(ssp => new
+                {
+                    ssp.Id,
+                    ssp.Rol,
+                    ssp.Numero,
+                    SubprincipioId = ssp.SubprincipioId ?? (ssp.Zona != null ? ssp.Zona.SubprincipioId : null),
+                    ZonaId = ssp.ZonaId,
+                    ZonaLabel = ssp.Zona != null ? (ssp.Zona.Label ?? ssp.Zona.ZoneKeysCsv) : null,
+                })
+                .ToListAsync(ct);
+
+            var subprincipioIds = rows
+                .Where(r => r.SubprincipioId is not null)
+                .Select(r => r.SubprincipioId!)
+                .Distinct()
+                .ToList();
+
+            var subprincipioInfos = await db.Subprincipios
+                .AsNoTracking()
+                .Where(sp => subprincipioIds.Contains(sp.Id))
+                .Select(sp => new
+                {
+                    sp.Id,
+                    sp.Titulo,
+                    PrincipioId = sp.GamePrincipleId,
+                    PrincipioTitulo = sp.GamePrinciple.Titulo,
+                    GameMomentId = sp.GamePrinciple.GameMomentId,
+                    GameMomentName = sp.GamePrinciple.GameMoment.Name,
+                })
+                .ToDictionaryAsync(x => x.Id, ct);
+
+            var result = new Dictionary<string, SessionTargetDetail>();
+            foreach (var row in rows)
+            {
+                if (row.SubprincipioId is null) continue;
+                if (!subprincipioInfos.TryGetValue(row.SubprincipioId, out var sp)) continue;
+
+                result[row.Id] = new SessionTargetDetail(
+                    row.Id, row.Rol, row.Numero,
+                    sp.Id, sp.Titulo,
+                    row.ZonaId, row.ZonaLabel,
+                    sp.PrincipioId, sp.PrincipioTitulo,
+                    sp.GameMomentId, sp.GameMomentName);
+            }
+
+            return result;
         }
     }
 }

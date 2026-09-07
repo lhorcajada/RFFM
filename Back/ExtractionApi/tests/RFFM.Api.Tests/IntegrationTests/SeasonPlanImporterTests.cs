@@ -1,5 +1,6 @@
 #nullable enable
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -64,9 +65,9 @@ namespace RFFM.Api.Tests.IntegrationTests
             return (team.Id, season.Id);
         }
 
-        /// <summary>Seeds a minimal GameModel with just Fase 1/2/3/4 Subprincipio "1.1" —
-        /// enough for the importer to resolve Semana 1-4's target Subprincipio (see
-        /// <c>TargetSubprincipiosPorSemana</c>).</summary>
+        /// <summary>Seeds a minimal GameModel with just Fase 1/2/3/4 Subprincipio "1.1" — used
+        /// to confirm the importer does not resolve any Sub-subprincipio targets from it, even
+        /// when a matching GameModel exists.</summary>
         private static async Task SeedGameModelWithSubprincipio11Async(AppDbContext db, string teamId)
         {
             var model = new GameModel(teamId, "Modelo de prueba", "2026-2027");
@@ -74,6 +75,8 @@ namespace RFFM.Api.Tests.IntegrationTests
             {
                 var principle = new GamePrinciple(model.Id, gameMomentId, $"p-{key}", 1, "Principio", "Texto");
                 var subprincipio = new Subprincipio(principle.Id, $"sub-{key}", "1.1", "Subprincipio 1.1", "Contexto");
+                var subSubPrincipio = new SubSubPrincipio($"ssp-{key}", "1.1.1", "Rol", "Texto", subprincipio.Id, null);
+                subprincipio.SubSubPrincipios.Add(subSubPrincipio);
                 principle.Subprincipios.Add(subprincipio);
                 model.Principles.Add(principle);
             }
@@ -211,7 +214,7 @@ namespace RFFM.Api.Tests.IntegrationTests
                 .ToListAsync();
 
             Assert.NotEmpty(abpSessions);
-            Assert.All(abpSessions, s => Assert.Equal(DayOfWeek.Thursday, s.Date.DayOfWeek));
+            Assert.All(abpSessions, s => Assert.Equal(DayOfWeek.Thursday, s.Date!.Value.DayOfWeek));
         }
 
         [Fact]
@@ -241,8 +244,13 @@ namespace RFFM.Api.Tests.IntegrationTests
         }
 
         [Fact]
-        public async Task ImportAsync_ResolvesTargetSubprincipioWhenGameModelExists()
+        public async Task ImportAsync_LeavesPrincipalSessionWithoutTargets_EvenWhenMatchingGameModelExists()
         {
+            // season-plan-content-board bug fix: the source document never recorded
+            // Sub-subprincipio-level intent, only Subprincipio-level — this importer must not
+            // fabricate that granularity by expanding every Sub-subprincipio under each week's
+            // Subprincipio, even when the target team happens to have a GameModel that would
+            // resolve.
             await using var seedDb = _fixture.CreateDbContext();
             var (teamId, seasonId) = await SeedTeamAsync(seedDb);
             await SeedGameModelWithSubprincipio11Async(seedDb, teamId);
@@ -252,17 +260,19 @@ namespace RFFM.Api.Tests.IntegrationTests
 
             await using var verifyDb = _fixture.CreateDbContext();
             var macrociclo1 = await verifyDb.Macrociclos
-                .Include(m => m.Mesociclos).ThenInclude(m => m.Microciclos).ThenInclude(m => m.SubprincipiosObjetivo)
+                .Include(m => m.Mesociclos).ThenInclude(m => m.Microciclos)
                 .SingleAsync(m => m.SeasonPlanId == planId && m.Order == 1);
             var semana1 = macrociclo1.Mesociclos.Single(m => m.Order == 1).Microciclos.Single(m => m.Order == 1);
 
-            // Semana 1 targets 4 distinct Subprincipio-node rows: Fase 1/2/3/4, each "1.1" —
-            // the seeded GameModel has one node per Fase, all sharing Numero "1.1".
-            Assert.Equal(4, semana1.SubprincipiosObjetivo.Count);
+            var principalSession = await verifyDb.TrainingSessions
+                .Include(s => s.Targets)
+                .SingleAsync(s => s.TeamId == teamId && s.MicrocicloId == semana1.Id && s.Name.EndsWith(" — Sesión principal"));
+
+            Assert.Empty(principalSession.Targets);
         }
 
         [Fact]
-        public async Task ImportAsync_SkipsUnresolvedTargetSubprincipio_WhenNoGameModel()
+        public async Task ImportAsync_LeavesPrincipalSessionWithoutTargets_WhenNoGameModel()
         {
             await using var seedDb = _fixture.CreateDbContext();
             var (teamId, seasonId) = await SeedTeamAsync(seedDb);
@@ -272,11 +282,59 @@ namespace RFFM.Api.Tests.IntegrationTests
 
             await using var verifyDb = _fixture.CreateDbContext();
             var macrociclo1 = await verifyDb.Macrociclos
-                .Include(m => m.Mesociclos).ThenInclude(m => m.Microciclos).ThenInclude(m => m.SubprincipiosObjetivo)
+                .Include(m => m.Mesociclos).ThenInclude(m => m.Microciclos)
                 .SingleAsync(m => m.SeasonPlanId == planId && m.Order == 1);
             var semana1 = macrociclo1.Mesociclos.Single(m => m.Order == 1).Microciclos.Single(m => m.Order == 1);
 
-            Assert.Empty(semana1.SubprincipiosObjetivo);
+            var principalSession = await verifyDb.TrainingSessions
+                .Include(s => s.Targets)
+                .SingleAsync(s => s.TeamId == teamId && s.MicrocicloId == semana1.Id && s.Name.EndsWith(" — Sesión principal"));
+
+            Assert.Empty(principalSession.Targets);
+        }
+
+        [Fact]
+        public async Task ImportAsync_RunTwice_ClearsPreviouslySetTargets()
+        {
+            // Regression test for the bug: an older importer revision expanded each week's
+            // target Subprincipio into every one of its Sub-subprincipios and set them as
+            // TrainingSession.Targets on the principal placeholder session. Simulate that
+            // contaminated state, then confirm the next ImportAsync run self-heals it to empty.
+            await using var seedDb = _fixture.CreateDbContext();
+            var (teamId, seasonId) = await SeedTeamAsync(seedDb);
+            await SeedGameModelWithSubprincipio11Async(seedDb, teamId);
+
+            await using var firstDb = _fixture.CreateDbContext();
+            var planId = await new SeasonPlanImporter(firstDb).ImportAsync(teamId, seasonId, CancellationToken.None);
+
+            await using (var contaminateDb = _fixture.CreateDbContext())
+            {
+                var macrociclo1 = await contaminateDb.Macrociclos
+                    .Include(m => m.Mesociclos).ThenInclude(m => m.Microciclos)
+                    .SingleAsync(m => m.SeasonPlanId == planId && m.Order == 1);
+                var semana1 = macrociclo1.Mesociclos.Single(m => m.Order == 1).Microciclos.Single(m => m.Order == 1);
+                var principalSession = await contaminateDb.TrainingSessions
+                    .Include(s => s.Targets)
+                    .SingleAsync(s => s.TeamId == teamId && s.MicrocicloId == semana1.Id && s.Name.EndsWith(" — Sesión principal"));
+
+                var subSubPrincipioId = await contaminateDb.SubSubPrincipios.Select(ssp => ssp.Id).FirstAsync();
+                principalSession.ReplaceTargets(new List<string> { subSubPrincipioId });
+                await contaminateDb.SaveChangesAsync();
+            }
+
+            await using var secondDb = _fixture.CreateDbContext();
+            await new SeasonPlanImporter(secondDb).ImportAsync(teamId, seasonId, CancellationToken.None);
+
+            await using var verifyDb = _fixture.CreateDbContext();
+            var verifyMacrociclo1 = await verifyDb.Macrociclos
+                .Include(m => m.Mesociclos).ThenInclude(m => m.Microciclos)
+                .SingleAsync(m => m.SeasonPlanId == planId && m.Order == 1);
+            var verifySemana1 = verifyMacrociclo1.Mesociclos.Single(m => m.Order == 1).Microciclos.Single(m => m.Order == 1);
+            var verifiedSession = await verifyDb.TrainingSessions
+                .Include(s => s.Targets)
+                .SingleAsync(s => s.TeamId == teamId && s.MicrocicloId == verifySemana1.Id && s.Name.EndsWith(" — Sesión principal"));
+
+            Assert.Empty(verifiedSession.Targets);
         }
     }
 }

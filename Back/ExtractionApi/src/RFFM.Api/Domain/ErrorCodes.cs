@@ -62,6 +62,10 @@ namespace RFFM.Api.Domain
         public const string MicrocicloTeamMismatch = "MicrocicloTeamMismatch";
         public const string MicrocicloNotFound = "MicrocicloNotFound";
 
+        // Training Sessions (Features/Coaches/Trainings/Sessions) - Sub-subprincipio session
+        // targets, openspec change season-plan-content-board.
+        public const string TargetNotFound = "TargetNotFound";
+
         // Game Models (Features/Coaches/GameModels)
         public const string GameModelNotFound = "GameModelNotFound";
         public const string GameModelAccessDenied = "GameModelAccessDenied";

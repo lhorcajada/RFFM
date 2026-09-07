@@ -76,17 +76,19 @@ namespace RFFM.Api.Tests.IntegrationTests
             return (userId, club.Id, team.Id, season.Id, microciclo.Id);
         }
 
-        private static async Task<(string SubprincipioId, string Numero, string Titulo, string GameMomentName)> SeedSubprincipioAsync(AppDbContext db, string teamId)
+        private static async Task<(string SubprincipioId, string SubSubPrincipioId, string Numero, string Titulo, string GameMomentName)> SeedSubprincipioAsync(AppDbContext db, string teamId)
         {
             var gameMoment = await db.GameMoments.AsNoTracking().FirstAsync();
             var model = new GameModel(teamId, "Modelo de prueba", "2026-2027");
             var principle = new GamePrinciple(model.Id, gameMoment.Id, key: $"principio-{Guid.NewGuid():N}", numero: 1, "Principio", "Texto");
             var subprincipio = new Subprincipio(principle.Id, $"sub-{Guid.NewGuid():N}", "1.1", "Subprincipio objetivo", "Contexto");
+            var subSubPrincipio = new SubSubPrincipio($"ssp-{Guid.NewGuid():N}", "1.1.1", "Rol", "Texto", subprincipio.Id, null);
+            subprincipio.SubSubPrincipios.Add(subSubPrincipio);
             principle.Subprincipios.Add(subprincipio);
             model.Principles.Add(principle);
             db.GameModels.Add(model);
             await db.SaveChangesAsync();
-            return (subprincipio.Id, subprincipio.Numero, subprincipio.Titulo, gameMoment.Name);
+            return (subprincipio.Id, subSubPrincipio.Id, subprincipio.Numero, subprincipio.Titulo, gameMoment.Name);
         }
 
         private static TaskTrainingBase NewExercise(string clubId, string name) => new()
@@ -194,16 +196,22 @@ namespace RFFM.Api.Tests.IntegrationTests
         }
 
         [Fact]
-        public async Task Handle_MicrocicloWithSubprincipioObjetivo_ResolvesDenormalizedSummary()
+        public async Task Handle_DatedSessionWithTargetInsideMicrocicloRange_ResolvesWeeklyObjective()
         {
+            // design.md Decision 4 of `season-plan-content-board`: the weekly objective is
+            // derived from every dated TrainingSession's Targets whose Date falls inside the
+            // Microciclo's [StartDate, EndDate] range — no longer a coach-editable field.
             await using var seedDb = _fixture.CreateDbContext();
             var (userId, _, teamId, seasonId, microcicloId) = await SeedPlanAsync(seedDb);
-            var (subprincipioId, numero, titulo, gameMomentName) = await SeedSubprincipioAsync(seedDb, teamId);
+            var (subprincipioId, subSubPrincipioId, _, titulo, gameMomentName) = await SeedSubprincipioAsync(seedDb, teamId);
 
-            await using var linkDb = _fixture.CreateDbContext();
-            var microciclo = await linkDb.Microciclos.SingleAsync(m => m.Id == microcicloId);
-            microciclo.ReplaceSubprincipiosObjetivo(new List<string> { subprincipioId });
-            await linkDb.SaveChangesAsync();
+            var session = new TrainingSession
+            {
+                Name = "Sesion con objetivo", TeamId = teamId, Date = new DateTime(2026, 9, 3, 0, 0, 0, DateTimeKind.Utc), MicrocicloId = microcicloId,
+            };
+            session.ReplaceTargets(new List<string> { subSubPrincipioId });
+            seedDb.TrainingSessions.Add(session);
+            await seedDb.SaveChangesAsync();
 
             await using var db = _fixture.CreateDbContext();
             var handler = new GetSeasonPlanFeature.Handler(db);
@@ -211,15 +219,16 @@ namespace RFFM.Api.Tests.IntegrationTests
             var result = await handler.Handle(new GetSeasonPlanFeature.SeasonPlanQuery(teamId, seasonId, userId), CancellationToken.None);
 
             var microcicloResponse = result!.Macrociclos.Single().Mesociclos.Single().Microciclos.Single();
-            var summary = Assert.Single(microcicloResponse.SubprincipiosObjetivo);
-            Assert.Equal(subprincipioId, summary.Id);
-            Assert.Equal(numero, summary.Numero);
-            Assert.Equal(titulo, summary.Titulo);
-            Assert.Equal(gameMomentName, summary.GameMomentName);
+            var target = Assert.Single(microcicloResponse.WeeklyObjective);
+            Assert.Equal(subSubPrincipioId, target.SubSubPrincipioId);
+            Assert.Equal(subprincipioId, target.SubprincipioId);
+            Assert.Equal("1.1.1", target.Numero);
+            Assert.Equal(titulo, target.SubprincipioTitulo);
+            Assert.Equal(gameMomentName, target.GameMomentName);
         }
 
         [Fact]
-        public async Task Handle_MicrocicloWithNoSubprincipioObjetivo_ReturnsEmptyNotNull()
+        public async Task Handle_MicrocicloWithNoSessionTargets_ReturnsEmptyWeeklyObjective()
         {
             await using var seedDb = _fixture.CreateDbContext();
             var (userId, _, teamId, seasonId, _) = await SeedPlanAsync(seedDb);
@@ -230,8 +239,31 @@ namespace RFFM.Api.Tests.IntegrationTests
             var result = await handler.Handle(new GetSeasonPlanFeature.SeasonPlanQuery(teamId, seasonId, userId), CancellationToken.None);
 
             var microcicloResponse = result!.Macrociclos.Single().Mesociclos.Single().Microciclos.Single();
-            Assert.NotNull(microcicloResponse.SubprincipiosObjetivo);
-            Assert.Empty(microcicloResponse.SubprincipiosObjetivo);
+            Assert.NotNull(microcicloResponse.WeeklyObjective);
+            Assert.Empty(microcicloResponse.WeeklyObjective);
+        }
+
+        [Fact]
+        public async Task Handle_UnscheduledSessionWithTarget_DoesNotAttachToAnyWeek()
+        {
+            // An unscheduled session's targets never attach to a specific week — only dated
+            // sessions feed the weekly objective (design.md Decision 4).
+            await using var seedDb = _fixture.CreateDbContext();
+            var (userId, _, teamId, seasonId, microcicloId) = await SeedPlanAsync(seedDb);
+            var (_, subSubPrincipioId, _, _, _) = await SeedSubprincipioAsync(seedDb, teamId);
+
+            var session = new TrainingSession { Name = "Sesion sin fecha", TeamId = teamId, Date = null, MicrocicloId = null };
+            session.ReplaceTargets(new List<string> { subSubPrincipioId });
+            seedDb.TrainingSessions.Add(session);
+            await seedDb.SaveChangesAsync();
+
+            await using var db = _fixture.CreateDbContext();
+            var handler = new GetSeasonPlanFeature.Handler(db);
+
+            var result = await handler.Handle(new GetSeasonPlanFeature.SeasonPlanQuery(teamId, seasonId, userId), CancellationToken.None);
+
+            var microcicloResponse = result!.Macrociclos.Single().Mesociclos.Single().Microciclos.Single();
+            Assert.Empty(microcicloResponse.WeeklyObjective);
         }
     }
 }

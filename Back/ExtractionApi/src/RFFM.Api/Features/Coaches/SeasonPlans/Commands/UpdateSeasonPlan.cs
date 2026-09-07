@@ -78,8 +78,7 @@ namespace RFFM.Api.Features.Coaches.SeasonPlans.Commands
         string? Id,
         string WeekLabel,
         DateOnly StartDate,
-        DateOnly EndDate,
-        List<string>? SubprincipioObjetivoIds = null);
+        DateOnly EndDate);
 
     // ── Handler ──────────────────────────────────────────────────────────────────
 
@@ -94,7 +93,6 @@ namespace RFFM.Api.Features.Coaches.SeasonPlans.Commands
                 .Include(sp => sp.Macrociclos)
                     .ThenInclude(m => m.Mesociclos)
                         .ThenInclude(m => m.Microciclos)
-                            .ThenInclude(m => m.SubprincipiosObjetivo)
                 .AsSplitQuery()
                 .FirstOrDefaultAsync(sp => sp.Id == request.Id, cancellationToken);
 
@@ -197,12 +195,10 @@ namespace RFFM.Api.Features.Coaches.SeasonPlans.Commands
                     existing.UpdateOrder(order);
                     existing.UpdateWeekLabel(mir.WeekLabel);
                     existing.Reschedule(mir.StartDate, mir.EndDate);
-                    existing.ReplaceSubprincipiosObjetivo(mir.SubprincipioObjetivoIds);
                 }
                 else
                 {
                     var newMicrociclo = new Microciclo(mesociclo.Id, order, mir.WeekLabel, mir.StartDate, mir.EndDate);
-                    newMicrociclo.ReplaceSubprincipiosObjetivo(mir.SubprincipioObjetivoIds);
                     mesociclo.Microciclos.Add(newMicrociclo);
                     matchedIds.Add(newMicrociclo.Id);
                 }
@@ -219,7 +215,6 @@ namespace RFFM.Api.Features.Coaches.SeasonPlans.Commands
             {
                 order++;
                 var newMicrociclo = new Microciclo(mesociclo.Id, order, mir.WeekLabel, mir.StartDate, mir.EndDate);
-                newMicrociclo.ReplaceSubprincipiosObjetivo(mir.SubprincipioObjetivoIds);
                 mesociclo.Microciclos.Add(newMicrociclo);
             }
             return mesociclo;
@@ -264,7 +259,6 @@ namespace RFFM.Api.Features.Coaches.SeasonPlans.Commands
         {
             RuleFor(x => x.WeekLabel).NotEmpty().MaximumLength(200);
             RuleFor(x => x.EndDate).GreaterThanOrEqualTo(x => x.StartDate);
-            RuleForEach(x => x.SubprincipioObjetivoIds).NotEmpty();
         }
     }
 }

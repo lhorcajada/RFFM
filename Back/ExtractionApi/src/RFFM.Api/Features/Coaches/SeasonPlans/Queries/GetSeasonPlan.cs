@@ -9,6 +9,7 @@ using RFFM.Api.Domain;
 using RFFM.Api.Domain.Aggregates.SeasonPlans;
 using RFFM.Api.Domain.Entities;
 using RFFM.Api.FeatureModules;
+using RFFM.Api.Features.Coaches.Trainings.Sessions;
 using RFFM.Api.Infrastructure.Persistence;
 
 namespace RFFM.Api.Features.Coaches.SeasonPlans.Queries
@@ -81,15 +82,11 @@ namespace RFFM.Api.Features.Coaches.SeasonPlans.Queries
             DateOnly StartDate,
             DateOnly EndDate,
             IEnumerable<SessionSummary> Sessions,
-            IEnumerable<SubprincipioSummary> SubprincipiosObjetivo);
+            IEnumerable<SessionTargetDetail> WeeklyObjective);
 
         /// <summary>Summary of a TrainingSession linked to a Microciclo, per specs/season-plan.md
         /// "GET includes session coverage per Microciclo".</summary>
-        public record SessionSummary(string Id, string Name, string? ObjetivoGeneral, DateTime Date, int ExerciseCount);
-
-        /// <summary>Denormalized display fields for a Subprincipio referenced as a Microciclo's
-        /// target ("SubprincipiosObjetivo"), per the `season-plan-target-subprincipios` change.</summary>
-        public record SubprincipioSummary(string Id, string Numero, string Titulo, string GameMomentName);
+        public record SessionSummary(string Id, string Name, string? ObjetivoGeneral, DateTime? Date, int ExerciseCount);
 
         // ── Handler ──────────────────────────────────────────────────────────────
 
@@ -111,7 +108,6 @@ namespace RFFM.Api.Features.Coaches.SeasonPlans.Queries
                     .Include(sp => sp.Macrociclos)
                         .ThenInclude(m => m.Mesociclos)
                             .ThenInclude(m => m.Microciclos)
-                                .ThenInclude(m => m.SubprincipiosObjetivo)
                     .AsSplitQuery()
                     .AsNoTracking()
                     .FirstOrDefaultAsync(sp => sp.TeamId == request.TeamId && sp.SeasonId == request.SeasonId, cancellationToken);
@@ -133,19 +129,34 @@ namespace RFFM.Api.Features.Coaches.SeasonPlans.Queries
                     .Where(s => s.MicrocicloId != null && microcicloIds.Contains(s.MicrocicloId!))
                     .ToListAsync(cancellationToken);
 
-                var subprincipioIds = plan.Macrociclos
+                // Weekly objective (design.md Decision 4 of `season-plan-content-board`): derived
+                // — not stored — from every *dated* TrainingSession of the team whose Date falls
+                // inside a Microciclo's [StartDate, EndDate] range, union of their Targets. An
+                // unscheduled session's targets never attach to a specific week.
+                var datedTeamSessions = await _db.TrainingSessions
+                    .Include(s => s.Targets)
+                    .AsNoTracking()
+                    .Where(s => s.TeamId == request.TeamId && s.Date != null)
+                    .ToListAsync(cancellationToken);
+
+                IEnumerable<string> WeeklyObjectiveTargetIds(Microciclo m)
+                {
+                    var rangeStart = m.StartDate.ToDateTime(TimeOnly.MinValue);
+                    var rangeEnd = m.EndDate.ToDateTime(TimeOnly.MaxValue);
+                    return datedTeamSessions
+                        .Where(s => s.Date!.Value >= rangeStart && s.Date.Value <= rangeEnd)
+                        .SelectMany(s => s.Targets)
+                        .Select(t => t.SubSubPrincipioId)
+                        .Distinct();
+                }
+
+                var allMicrociclos = plan.Macrociclos
                     .SelectMany(m => m.Mesociclos)
                     .SelectMany(m => m.Microciclos)
-                    .SelectMany(m => m.SubprincipiosObjetivo)
-                    .Select(s => s.SubprincipioId)
-                    .Distinct()
                     .ToList();
 
-                var subprincipioSummaries = await _db.Subprincipios
-                    .AsNoTracking()
-                    .Where(s => subprincipioIds.Contains(s.Id))
-                    .Select(s => new SubprincipioSummary(s.Id, s.Numero, s.Titulo, s.GamePrinciple.GameMoment.Name))
-                    .ToDictionaryAsync(s => s.Id, cancellationToken);
+                var allWeeklyTargetIds = allMicrociclos.SelectMany(WeeklyObjectiveTargetIds).Distinct();
+                var targetDetails = await SessionTargetDetailLookup.ResolveAsync(_db, allWeeklyTargetIds, cancellationToken);
 
                 IEnumerable<SessionSummary> ResolveSessions(string microcicloId) =>
                     sessions
@@ -154,13 +165,13 @@ namespace RFFM.Api.Features.Coaches.SeasonPlans.Queries
                             s.Id, s.Name, s.ObjetivoGeneral, s.Date,
                             s.Blocks.SelectMany(b => b.Exercises).Select(e => e.TaskTrainingBaseId).Distinct().Count()));
 
-                IEnumerable<SubprincipioSummary> ResolveSubprincipiosObjetivo(Microciclo m) =>
-                    m.SubprincipiosObjetivo
-                        .Select(s => subprincipioSummaries.GetValueOrDefault(s.SubprincipioId))
-                        .Where(s => s is not null)!;
+                IEnumerable<SessionTargetDetail> ResolveWeeklyObjective(Microciclo m) =>
+                    WeeklyObjectiveTargetIds(m)
+                        .Select(id => targetDetails.GetValueOrDefault(id))
+                        .Where(t => t is not null)!;
 
                 MicrocicloResponse MapMicrociclo(Microciclo m) => new(
-                    m.Id, m.Order, m.WeekLabel, m.StartDate, m.EndDate, ResolveSessions(m.Id), ResolveSubprincipiosObjetivo(m));
+                    m.Id, m.Order, m.WeekLabel, m.StartDate, m.EndDate, ResolveSessions(m.Id), ResolveWeeklyObjective(m));
 
                 MesocicloResponse MapMesociclo(Mesociclo m) => new(
                     m.Id, m.Order, m.Name, m.StartDate, m.EndDate, m.GameZoneId,

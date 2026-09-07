@@ -56,15 +56,16 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
         string TeamId,
         string Name,
         string? Description,
-        DateTime Date,
-        TimeSpan StartTime,
+        DateTime? Date,
+        TimeSpan? StartTime,
         TimeSpan? EndTime,
         string? Location,
         string? SportEventId,
         string? MicrocicloId,
         string? ObjetivoGeneral,
         string? MapaCampoTexto,
-        List<SessionBlockRequest> Blocks
+        List<SessionBlockRequest> Blocks,
+        List<string>? TargetSubSubPrincipioIds = null
     ) : IRequest<string>, IRequireFeaturePermission
     {
         public string UserId { get; init; } = string.Empty;
@@ -89,20 +90,34 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
             if (!hasAccess)
                 throw new DomainException("Sesiones", "No tienes acceso a este equipo.", ErrorCodes.TeamAccessDenied);
 
-            if (request.MicrocicloId is not null)
-                await EnsureMicrocicloBelongsToTeam(_db, request.MicrocicloId, request.TeamId, ct);
+            var targetIds = request.TargetSubSubPrincipioIds ?? new List<string>();
+            if (targetIds.Count > 0)
+                await EnsureTargetsBelongToTeam(_db, targetIds, request.TeamId, ct);
+
+            // Npgsql requires DateTimeKind.Utc for "timestamp with time zone" columns;
+            // System.Text.Json deserializes offset-less dates as Unspecified. Same pattern
+            // as CreateSportEvent.
+            var dateUtc = request.Date.HasValue
+                ? DateTime.SpecifyKind(request.Date.Value, DateTimeKind.Utc)
+                : (DateTime?)null;
+
+            var microcicloId = request.MicrocicloId;
+            if (microcicloId is not null)
+                await EnsureMicrocicloBelongsToTeam(_db, microcicloId, request.TeamId, ct);
+            else if (dateUtc is not null)
+                microcicloId = await ResolveMicrocicloIdByDate(_db, dateUtc.Value, request.TeamId, ct);
 
             var session = new TrainingSession
             {
                 Name = request.Name.Trim(),
                 Description = request.Description ?? string.Empty,
-                Date = request.Date,
+                Date = dateUtc,
                 StartTime = request.StartTime,
                 EndTime = request.EndTime,
                 Location = request.Location ?? string.Empty,
                 TeamId = request.TeamId,
                 SportEventId = request.SportEventId,
-                MicrocicloId = request.MicrocicloId,
+                MicrocicloId = microcicloId,
                 ObjetivoGeneral = request.ObjetivoGeneral,
                 MapaCampoTexto = request.MapaCampoTexto,
             };
@@ -115,9 +130,47 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
                 session.Blocks.Add(block);
             }
 
+            session.ReplaceTargets(targetIds);
+
             await _db.TrainingSessions.AddAsync(session, ct);
             await _db.SaveChangesAsync(ct);
             return session.Id;
+        }
+
+        /// <summary>Resolves the Microciclo whose date range contains <paramref name="date"/>
+        /// for the given team, or null if no SeasonPlan/Microciclo covers it — design.md
+        /// Decision 6. Never blocks scheduling a session on planning being incomplete.</summary>
+        internal static async Task<string?> ResolveMicrocicloIdByDate(AppDbContext db, DateTime date, string teamId, CancellationToken ct)
+        {
+            var dateOnly = DateOnly.FromDateTime(date);
+            return await db.Microciclos
+                .Where(m => m.StartDate <= dateOnly && m.EndDate >= dateOnly)
+                .Join(db.Mesociclos, m => m.MesocicloId, mes => mes.Id, (m, mes) => new { m, mes })
+                .Join(db.Macrociclos, x => x.mes.MacrocicloId, mac => mac.Id, (x, mac) => new { x.m, mac })
+                .Join(db.SeasonPlans, x => x.mac.SeasonPlanId, sp => sp.Id, (x, sp) => new { x.m, sp })
+                .Where(x => x.sp.TeamId == teamId)
+                .Select(x => x.m.Id)
+                .FirstOrDefaultAsync(ct);
+        }
+
+        /// <summary>Validates every target SubSubPrincipio id belongs to the team's GameModel —
+        /// same team-ownership guard as <see cref="EnsureMicrocicloBelongsToTeam"/>, design.md
+        /// Decision 3. Walks SubSubPrincipio → (Subprincipio direct | Zona → Subprincipio) →
+        /// GamePrincipio → GameModel.TeamId.</summary>
+        internal static async Task EnsureTargetsBelongToTeam(AppDbContext db, IEnumerable<string> subSubPrincipioIds, string teamId, CancellationToken ct)
+        {
+            var ids = subSubPrincipioIds.Distinct().ToList();
+
+            var validCount = await db.SubSubPrincipios
+                .Where(ssp => ids.Contains(ssp.Id))
+                .Where(ssp =>
+                    (ssp.SubprincipioId != null && ssp.Subprincipio!.GamePrinciple.GameModel.TeamId == teamId) ||
+                    (ssp.ZonaId != null && ssp.Zona!.Subprincipio.GamePrinciple.GameModel.TeamId == teamId))
+                .CountAsync(ct);
+
+            if (validCount != ids.Count)
+                throw new DomainException("Sesiones",
+                    "Uno o más objetivos no pertenecen al modelo de juego de este equipo.", ErrorCodes.TargetNotFound);
         }
 
         /// <summary>Validates a Microciclo exists and belongs to a SeasonPlan for the same Team
@@ -149,8 +202,15 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
         {
             RuleFor(x => x.TeamId).NotEmpty();
             RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
-            RuleFor(x => x.Blocks).NotEmpty()
-                .WithMessage("Una sesión debe tener al menos un bloque.");
+
+            // A session with no Date ("unscheduled", content-first) may be saved with only
+            // TargetSubSubPrincipioIds — no blocks required. Once scheduled (Date set), it must
+            // be calendar-ready: at least one block. design.md Decision 3.1.
+            When(x => x.Date is not null, () =>
+            {
+                RuleFor(x => x.Blocks).NotEmpty()
+                    .WithMessage("Una sesión debe tener al menos un bloque.");
+            });
             RuleForEach(x => x.Blocks).SetValidator(new SessionBlockRequestValidator());
         }
     }

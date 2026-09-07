@@ -46,8 +46,8 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
         string Id,
         string Name,
         string Description,
-        DateTime Date,
-        TimeSpan StartTime,
+        DateTime? Date,
+        TimeSpan? StartTime,
         TimeSpan? EndTime,
         string? Location,
         string? SportEventId,
@@ -55,7 +55,8 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
         int ExerciseCount,
         bool IsAssociatedToPlan,
         string? MicrocicloId,
-        string? MicrocicloWeekLabel);
+        string? MicrocicloWeekLabel,
+        IEnumerable<SessionTargetDetail> Targets);
 
     public class GetSessionsHandler : IRequestHandler<GetSessionsQuery, IEnumerable<SessionListItem>>
     {
@@ -75,9 +76,14 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
                 .Include(s => s.Blocks)
                     .ThenInclude(b => b.Exercises)
                 .Include(s => s.SportEvent)
+                .Include(s => s.Targets)
                 .AsSplitQuery()
                 .Where(s => s.TeamId == request.TeamId)
-                .OrderByDescending(s => s.Date)
+                // Unscheduled sessions (Date == null) sort first, then most-recent-dated first —
+                // keeps the content-board's unscheduled board sessions grouped predictably
+                // (design.md tasks.md 5.3) rather than relying on default null-ordering.
+                .OrderByDescending(s => s.Date == null)
+                .ThenByDescending(s => s.Date)
                 .ToListAsync(ct);
 
             var microcicloIds = sessions.Where(s => s.MicrocicloId != null).Select(s => s.MicrocicloId!).Distinct().ToList();
@@ -85,6 +91,9 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
                 .AsNoTracking()
                 .Where(m => microcicloIds.Contains(m.Id))
                 .ToDictionaryAsync(m => m.Id, m => m.WeekLabel, ct);
+
+            var targetDetails = await SessionTargetDetailLookup.ResolveAsync(
+                _db, sessions.SelectMany(s => s.Targets).Select(t => t.SubSubPrincipioId), ct);
 
             return sessions.Select(s => new SessionListItem(
                 s.Id,
@@ -99,7 +108,8 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
                 s.Blocks.SelectMany(b => b.Exercises).Select(e => e.TaskTrainingBaseId).Distinct().Count(),
                 s.MicrocicloId != null,
                 s.MicrocicloId,
-                s.MicrocicloId != null ? weekLabels.GetValueOrDefault(s.MicrocicloId) : null));
+                s.MicrocicloId != null ? weekLabels.GetValueOrDefault(s.MicrocicloId) : null,
+                s.Targets.Select(t => targetDetails.GetValueOrDefault(t.SubSubPrincipioId)).Where(t => t is not null)!));
         }
     }
 }

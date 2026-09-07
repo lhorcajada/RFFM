@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Domain.Aggregates.SeasonPlans;
 using RFFM.Api.Domain.Aggregates.Training;
 using RFFM.Api.Infrastructure.Persistence;
-using RFFM.Api.Infrastructure.Persistence.Seed;
 
 namespace RFFM.Api.Infrastructure.Services
 {
@@ -64,20 +63,17 @@ namespace RFFM.Api.Infrastructure.Services
     ///   dates. Macrociclo 3's EndDate is kept at the document's stated hito boundary (17 May)
     ///   even though only Microciclos 17–30 (through 14 Apr) are concretely modelled within it —
     ///   see the Microciclos-31+ note above.
-    /// - SubSubPrincipio-level links are not modelled for the season plan: only Subprincipio
-    ///   granularity is tracked as each week's target (see <c>TargetSubprincipiosPorSemana</c>
-    ///   and <see cref="Microciclo.SubprincipiosObjetivo"/>, added by the
-    ///   `season-plan-target-subprincipios` OpenSpec change) — reference-only intent, no
-    ///   FOCO/INTEGRADO, no Habilidades, resolved against the target team's GameModel at import
-    ///   time and silently skipped if that team doesn't have the node yet.
-    /// - Deviation from that change's own design.md §2: rather than adding the
-    ///   `(GameMomentId, Numero)` pairs as a new positional field on every one of the 30+
-    ///   hand-transcribed <c>MicrocicloData</c> literals below (high risk of corrupting the
-    ///   carefully-transcribed prose/date literals via ~30 near-identical multi-line edits),
-    ///   they're kept in a separate <c>TargetSubprincipiosPorSemana</c> dictionary keyed by the
-    ///   already-unique <c>WeekLabel</c> string each week already has. Functionally equivalent,
-    ///   safer to author correctly.
-    /// - Per that same change, this importer now also upserts two placeholder
+    /// - SubSubPrincipio-level targets are not populated by this importer: the source document
+    ///   (Plan-de-Temporada.docx) only ever recorded weekly intent at Subprincipio granularity,
+    ///   and no Sub-subprincipio was ever chosen for any week, so inventing one by expanding
+    ///   every Sub-subprincipio under each week's Subprincipio would fabricate coverage data
+    ///   that never existed. Each week's principal placeholder session is therefore upserted
+    ///   with an empty <see cref="Domain.Aggregates.Training.TrainingSession.Targets"/> list
+    ///   (see <see cref="ClearTargetSubSubPrincipiosAsync"/>, which also purges any targets a
+    ///   previous revision of this importer may have set on an existing session) — Coaches
+    ///   build up real Sub-subprincipio coverage from the season-plan content board going
+    ///   forward.
+    /// - Per the `season-plan-content-board` OpenSpec change, this importer now also upserts two placeholder
     ///   <see cref="TrainingSession"/>s per Microciclo (<c>MicrocicloId</c> set, zero
     ///   <c>SessionBlock</c>s): one principal session with no fixed day, one fixed to that
     ///   week's Thursday and labeled ABP (Acciones a Balón Parado) — see
@@ -93,62 +89,13 @@ namespace RFFM.Api.Infrastructure.Services
         private const int ZonaCreacionRival = 3;
         private const int ZonaFinalizacion = 4;
 
-        private const int FaseDefensaOrganizada = 1;
-        private const int FaseAtaqueOrganizado = 2;
-        private const int FaseTransicionDefensaAtaque = 3;
-        private const int FaseTransicionAtaqueDefensa = 4;
-
         private const string PrincipalSessionSuffix = " — Sesión principal";
         private const string AbpSessionSuffix = " — ABP (jueves)";
-
-        /// <summary>
-        /// Each week's target Subprincipios, keyed by the already-unique <c>WeekLabel</c> —
-        /// see the class doc-comment's "Deviation from design.md §2" note. Values are the
-        /// `(GameMomentId, Numero)` pairs already implied by that week's `ObjetivoSesionA`/
-        /// `ObjetivoSesionB` prose in the Build*Mesociclos methods below (same source document,
-        /// transcribed twice in two shapes rather than parsed out of the prose at runtime).
-        /// Weeks not present here (e.g. the Cierre block) have no concrete target subprincipio
-        /// in the source document.
-        /// </summary>
-        private static readonly Dictionary<string, (int GameMomentId, string Numero)[]> TargetSubprincipiosPorSemana = new()
-        {
-            ["Semana 1 — generación 1"] = new[] { (FaseDefensaOrganizada, "1.1"), (FaseTransicionDefensaAtaque, "1.1"), (FaseAtaqueOrganizado, "1.1"), (FaseTransicionAtaqueDefensa, "1.1") },
-            ["Semana 2 — generación 1"] = new[] { (FaseDefensaOrganizada, "1.1"), (FaseTransicionDefensaAtaque, "1.1"), (FaseAtaqueOrganizado, "1.1"), (FaseTransicionAtaqueDefensa, "1.1") },
-            ["Semana 3 — generación 1"] = new[] { (FaseDefensaOrganizada, "1.1"), (FaseTransicionDefensaAtaque, "1.1"), (FaseAtaqueOrganizado, "1.1"), (FaseTransicionAtaqueDefensa, "1.1") },
-            ["Semana 4 — generación 1"] = new[] { (FaseDefensaOrganizada, "1.1"), (FaseTransicionDefensaAtaque, "1.1"), (FaseAtaqueOrganizado, "1.1"), (FaseTransicionAtaqueDefensa, "1.1") },
-            ["Semana 5 — generación 2"] = new[] { (FaseDefensaOrganizada, "1.2"), (FaseTransicionDefensaAtaque, "2.1"), (FaseAtaqueOrganizado, "1.2"), (FaseTransicionAtaqueDefensa, "1.2") },
-            ["Semana 6 — generación 2"] = new[] { (FaseDefensaOrganizada, "1.2"), (FaseTransicionDefensaAtaque, "2.1"), (FaseAtaqueOrganizado, "1.2"), (FaseTransicionAtaqueDefensa, "1.2") },
-            ["Semana 7 — generación 3"] = new[] { (FaseDefensaOrganizada, "1.3"), (FaseTransicionDefensaAtaque, "2.2"), (FaseAtaqueOrganizado, "1.3"), (FaseTransicionAtaqueDefensa, "1.3") },
-            ["Semana 8 — generación 3"] = new[] { (FaseDefensaOrganizada, "1.3"), (FaseTransicionDefensaAtaque, "2.2"), (FaseAtaqueOrganizado, "1.3"), (FaseTransicionAtaqueDefensa, "1.3") },
-            ["Semana 9 — generación 4"] = new[] { (FaseDefensaOrganizada, "1.4"), (FaseTransicionDefensaAtaque, "2.3"), (FaseAtaqueOrganizado, "1.4"), (FaseTransicionAtaqueDefensa, "1.4") },
-            ["Semana 10 — generación 4"] = new[] { (FaseDefensaOrganizada, "1.4"), (FaseTransicionDefensaAtaque, "2.3"), (FaseAtaqueOrganizado, "1.4"), (FaseTransicionAtaqueDefensa, "1.4") },
-            ["Semana 11 — generación 4"] = new[] { (FaseDefensaOrganizada, "1.4"), (FaseTransicionDefensaAtaque, "2.3"), (FaseAtaqueOrganizado, "1.4"), (FaseTransicionAtaqueDefensa, "1.4") },
-            ["Semana 12 — generación 5"] = new[] { (FaseDefensaOrganizada, "1.5"), (FaseTransicionDefensaAtaque, "1.1"), (FaseAtaqueOrganizado, "1.5"), (FaseTransicionAtaqueDefensa, "1.1") },
-            ["Semana 13 — generación 5"] = new[] { (FaseDefensaOrganizada, "1.5"), (FaseTransicionDefensaAtaque, "1.1"), (FaseAtaqueOrganizado, "1.5"), (FaseTransicionAtaqueDefensa, "1.1") },
-            ["Semana 14 — generación 5"] = new[] { (FaseDefensaOrganizada, "1.5"), (FaseTransicionDefensaAtaque, "1.1"), (FaseAtaqueOrganizado, "1.5"), (FaseTransicionAtaqueDefensa, "1.1") },
-            ["Semana 15 — generación 5"] = new[] { (FaseDefensaOrganizada, "1.5"), (FaseTransicionDefensaAtaque, "1.1"), (FaseAtaqueOrganizado, "1.5"), (FaseTransicionAtaqueDefensa, "1.1") },
-            ["Semana 16 — generación 6"] = new[] { (FaseDefensaOrganizada, "1.6"), (FaseTransicionDefensaAtaque, "2.1"), (FaseAtaqueOrganizado, "1.6"), (FaseTransicionAtaqueDefensa, "1.2") },
-            ["Semana 17 — generación 6"] = new[] { (FaseDefensaOrganizada, "1.6"), (FaseTransicionDefensaAtaque, "2.1"), (FaseAtaqueOrganizado, "1.6"), (FaseTransicionAtaqueDefensa, "1.2") },
-            ["Semana 18 — generación 6"] = new[] { (FaseDefensaOrganizada, "1.6"), (FaseTransicionDefensaAtaque, "2.1"), (FaseAtaqueOrganizado, "1.6"), (FaseTransicionAtaqueDefensa, "1.2") },
-            ["Semana 19 — generación 7"] = new[] { (FaseDefensaOrganizada, "2.1"), (FaseTransicionDefensaAtaque, "2.2"), (FaseAtaqueOrganizado, "1.7"), (FaseTransicionAtaqueDefensa, "1.3") },
-            ["Semana 20 — generación 8"] = new[] { (FaseDefensaOrganizada, "2.2"), (FaseTransicionDefensaAtaque, "2.3"), (FaseAtaqueOrganizado, "2.1"), (FaseTransicionAtaqueDefensa, "1.4") },
-            ["Semana 21 — generación 8"] = new[] { (FaseDefensaOrganizada, "2.2"), (FaseTransicionDefensaAtaque, "2.3"), (FaseAtaqueOrganizado, "2.1"), (FaseTransicionAtaqueDefensa, "1.4") },
-            ["Semana 22 — generación 9"] = new[] { (FaseDefensaOrganizada, "2.3"), (FaseTransicionDefensaAtaque, "1.1"), (FaseAtaqueOrganizado, "2.2"), (FaseTransicionAtaqueDefensa, "1.1") },
-            ["Semana 23 — generación 9"] = new[] { (FaseDefensaOrganizada, "2.3"), (FaseTransicionDefensaAtaque, "1.1"), (FaseAtaqueOrganizado, "2.2"), (FaseTransicionAtaqueDefensa, "1.1") },
-            ["Semana 24 — generación 9"] = new[] { (FaseDefensaOrganizada, "2.3"), (FaseTransicionDefensaAtaque, "1.1"), (FaseAtaqueOrganizado, "2.2"), (FaseTransicionAtaqueDefensa, "1.1") },
-            ["Semana 25 — generación 9"] = new[] { (FaseDefensaOrganizada, "2.3"), (FaseTransicionDefensaAtaque, "1.1"), (FaseAtaqueOrganizado, "2.3"), (FaseTransicionAtaqueDefensa, "1.1") },
-            ["Semana 26 — generación 10"] = new[] { (FaseDefensaOrganizada, "2.4"), (FaseTransicionDefensaAtaque, "2.1"), (FaseAtaqueOrganizado, "2.3"), (FaseTransicionAtaqueDefensa, "1.2") },
-            ["Semana 27 — generación 10"] = new[] { (FaseDefensaOrganizada, "2.4"), (FaseTransicionDefensaAtaque, "2.1"), (FaseAtaqueOrganizado, "2.3"), (FaseTransicionAtaqueDefensa, "1.2") },
-            ["Semana 28 — generación 11"] = new[] { (FaseDefensaOrganizada, "2.5"), (FaseTransicionDefensaAtaque, "2.2"), (FaseAtaqueOrganizado, "1.1"), (FaseTransicionAtaqueDefensa, "1.3") },
-            ["Semana 29 — generación 12"] = new[] { (FaseDefensaOrganizada, "2.6"), (FaseTransicionDefensaAtaque, "2.3"), (FaseAtaqueOrganizado, "1.2"), (FaseTransicionAtaqueDefensa, "1.4") },
-            ["Semana 30 — generación 12"] = new[] { (FaseDefensaOrganizada, "2.6"), (FaseTransicionDefensaAtaque, "2.3"), (FaseAtaqueOrganizado, "1.2"), (FaseTransicionAtaqueDefensa, "1.4") },
-        };
 
         public async Task<string> ImportAsync(string teamId, string seasonId, CancellationToken ct = default)
         {
             var plan = await _db.SeasonPlans
                 .Include(sp => sp.Macrociclos).ThenInclude(m => m.Mesociclos).ThenInclude(m => m.Microciclos)
-                    .ThenInclude(m => m.SubprincipiosObjetivo)
                 .FirstOrDefaultAsync(sp => sp.TeamId == teamId && sp.SeasonId == seasonId, ct);
 
             if (plan is null)
@@ -449,31 +396,28 @@ namespace RFFM.Api.Infrastructure.Services
                 microciclo.Reschedule(data.StartDate, data.EndDate);
             }
 
-            await ResolveAndSetTargetSubprincipiosAsync(teamId, microciclo, data.WeekLabel, ct);
-            await UpsertPlaceholderSessionsAsync(teamId, microciclo, data.WeekLabel, ct);
+            // Placeholder sessions must exist first — any stale targets (below) are cleared on
+            // the principal placeholder session, since the retired Microciclo-level
+            // SubprincipiosObjetivo list no longer exists (season-plan-content-board change).
+            var principalSession = await UpsertPlaceholderSessionsAsync(teamId, microciclo, data.WeekLabel, ct);
+            ClearTargetSubSubPrincipios(principalSession);
         }
 
         /// <summary>
-        /// Resolves <see cref="TargetSubprincipiosPorSemana"/>'s pairs for this week against the
-        /// target team's GameModel and sets them on the Microciclo. A pair that doesn't resolve
-        /// (team has no GameModel yet, or lacks that specific node) is skipped, not an error —
-        /// same graceful degradation already established in <see cref="Seed.ExampleSessionSeeder"/>,
-        /// since this importer runs on every startup regardless of GameModel import status.
+        /// Ensures the week's principal placeholder session carries no Sub-subprincipio targets —
+        /// the source document never recorded that granularity, only Subprincipio-level intent
+        /// (see the class doc-comment), so this importer must not invent any. Also purges any
+        /// targets a previous revision of this importer set here (it used to expand each week's
+        /// Subprincipio into every one of its Sub-subprincipios), so the next startup after this
+        /// change self-heals any team/season this importer already ran against.
         /// </summary>
-        private async Task ResolveAndSetTargetSubprincipiosAsync(string teamId, Microciclo microciclo, string weekLabel, CancellationToken ct)
+        private void ClearTargetSubSubPrincipios(TrainingSession principalSession)
         {
-            if (!TargetSubprincipiosPorSemana.TryGetValue(weekLabel, out var pairs))
+            if (principalSession.Targets.Count == 0)
                 return;
 
-            var resolvedIds = new List<string>();
-            foreach (var (gameMomentId, numero) in pairs)
-            {
-                var subprincipioId = await AdnLookup.ResolveSubprincipioIdAsync(_db, teamId, gameMomentId, numero, ct);
-                if (subprincipioId is not null)
-                    resolvedIds.Add(subprincipioId);
-            }
-
-            microciclo.ReplaceSubprincipiosObjetivo(resolvedIds);
+            _db.RemoveRange(principalSession.Targets);
+            principalSession.Targets.Clear();
         }
 
         /// <summary>
@@ -484,19 +428,21 @@ namespace RFFM.Api.Infrastructure.Services
         /// future edit to the hand-transcribed <c>WeekLabel</c> text doesn't orphan the
         /// placeholder and create a duplicate on the next re-run.
         /// </summary>
-        private async Task UpsertPlaceholderSessionsAsync(string teamId, Microciclo microciclo, string weekLabel, CancellationToken ct)
+        private async Task<TrainingSession> UpsertPlaceholderSessionsAsync(string teamId, Microciclo microciclo, string weekLabel, CancellationToken ct)
         {
-            await UpsertPlaceholderSessionAsync(teamId, microciclo, weekLabel, PrincipalSessionSuffix,
+            var principal = await UpsertPlaceholderSessionAsync(teamId, microciclo, weekLabel, PrincipalSessionSuffix,
                 objetivoGeneral: null, onThursday: false, ct);
             await UpsertPlaceholderSessionAsync(teamId, microciclo, weekLabel, AbpSessionSuffix,
                 objetivoGeneral: "Sesión de Acciones a Balón Parado (ABP) de la semana — contenido pendiente.",
                 onThursday: true, ct);
+            return principal;
         }
 
-        private async Task UpsertPlaceholderSessionAsync(string teamId, Microciclo microciclo, string weekLabel,
+        private async Task<TrainingSession> UpsertPlaceholderSessionAsync(string teamId, Microciclo microciclo, string weekLabel,
             string suffix, string? objetivoGeneral, bool onThursday, CancellationToken ct)
         {
             var session = await _db.TrainingSessions
+                .Include(s => s.Targets)
                 .FirstOrDefaultAsync(s => s.TeamId == teamId && s.MicrocicloId == microciclo.Id && s.Name.EndsWith(suffix), ct);
 
             // Lands on the Thursday of the same 7-day span regardless of which weekday
@@ -521,6 +467,7 @@ namespace RFFM.Api.Infrastructure.Services
 
             session.Date = DateTime.SpecifyKind(date.ToDateTime(TimeOnly.MinValue), DateTimeKind.Utc);
             session.ObjetivoGeneral = objetivoGeneral;
+            return session;
         }
 
         private record MesocicloData(int Order, string Name, DateOnly StartDate, DateOnly EndDate, int GameZoneId, List<MicrocicloData> Microciclos);

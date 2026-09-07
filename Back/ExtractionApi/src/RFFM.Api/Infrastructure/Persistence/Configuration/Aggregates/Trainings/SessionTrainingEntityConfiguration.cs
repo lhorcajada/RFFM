@@ -20,10 +20,10 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.Trainings
                 .HasMaxLength(ValidationConstants.SessionTrainingDescriptionMaxLength);
 
             builder.Property(st => st.Date)
-                .IsRequired();
+                .IsRequired(false);
 
             builder.Property(st => st.StartTime)
-                .IsRequired();
+                .IsRequired(false);
 
             builder.Property(st => st.EndTime)
                 .IsRequired(false);
@@ -68,6 +68,11 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.Trainings
             builder.HasMany(st => st.Blocks)
                 .WithOne()
                 .HasForeignKey(b => b.TrainingSessionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.HasMany(st => st.Targets)
+                .WithOne()
+                .HasForeignKey(t => t.TrainingSessionId)
                 .OnDelete(DeleteBehavior.Cascade);
         }
     }

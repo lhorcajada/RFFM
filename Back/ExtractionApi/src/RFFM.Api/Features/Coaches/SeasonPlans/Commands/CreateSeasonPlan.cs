@@ -76,8 +76,7 @@ namespace RFFM.Api.Features.Coaches.SeasonPlans.Commands
         int Order,
         string WeekLabel,
         DateOnly StartDate,
-        DateOnly EndDate,
-        List<string>? SubprincipioObjetivoIds = null);
+        DateOnly EndDate);
 
     // ── Handler ──────────────────────────────────────────────────────────────────
 
@@ -133,12 +132,8 @@ namespace RFFM.Api.Features.Coaches.SeasonPlans.Commands
             return mesociclo;
         }
 
-        internal static Microciclo BuildMicrociclo(string mesocicloId, MicrocicloRequest mir)
-        {
-            var microciclo = new Microciclo(mesocicloId, mir.Order, mir.WeekLabel, mir.StartDate, mir.EndDate);
-            microciclo.ReplaceSubprincipiosObjetivo(mir.SubprincipioObjetivoIds);
-            return microciclo;
-        }
+        internal static Microciclo BuildMicrociclo(string mesocicloId, MicrocicloRequest mir) =>
+            new(mesocicloId, mir.Order, mir.WeekLabel, mir.StartDate, mir.EndDate);
     }
 
     // ── Validator ────────────────────────────────────────────────────────────────
@@ -180,7 +175,6 @@ namespace RFFM.Api.Features.Coaches.SeasonPlans.Commands
         {
             RuleFor(x => x.WeekLabel).NotEmpty().MaximumLength(200);
             RuleFor(x => x.EndDate).GreaterThanOrEqualTo(x => x.StartDate);
-            RuleForEach(x => x.SubprincipioObjetivoIds).NotEmpty();
         }
     }
 }

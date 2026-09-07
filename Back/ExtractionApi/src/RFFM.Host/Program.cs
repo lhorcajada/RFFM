@@ -47,13 +47,13 @@ await app.SeedClubKitsAsync();
 // Seed new roles and feature/page permissions
 await app.SeedPermissionsAsync();
 
-// Update the season plan (Cadete, 2ª División) from hardcoded importer data — safe to
-// re-run on every startup (upsert by Order).
-await app.SeedSeasonPlanAsync();
-
-// Rebuild the example session (Sesión 1) for the same team/season — safe to re-run
-// (upsert by Name); no-ops with a log line if the team's GameModel isn't imported yet.
-await app.SeedExampleSessionAsync();
+// Season plan demo seed (Cadete, 2ª División) — DISABLED. Re-running it on every startup
+// was regenerating demo season plan data and placeholder sessions for the fixed
+// SeasonPlanTeamId, which contaminated real coverage data being built in the content board
+// (see openspec/changes/season-plan-content-board/). The importer/functions below are kept
+// for manual/deliberate reimport if ever needed — just don't auto-invoke them at startup.
+// await app.SeedSeasonPlanAsync();
+// await app.SeedExampleSessionAsync();
 
 app.Run();
 

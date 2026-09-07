@@ -126,6 +126,41 @@ namespace RFFM.Api.Tests.IntegrationTests
             Assert.Equal(2, block.Exercises.Count);
         }
 
+        // Regression guard: the frontend sends Date as a bare "YYYY-MM-DD" string, which
+        // System.Text.Json deserializes with DateTimeKind.Unspecified. The handler must
+        // normalize it to Utc before it reaches Npgsql, or SaveChangesAsync throws because
+        // TrainingSession.Date is mapped as `timestamp with time zone` — mirrors
+        // CreateNewsHandlerTests.Handle_WithUnspecifiedKindNewsDate_PersistsAsUtc.
+        [Fact]
+        public async Task Handle_WithUnspecifiedKindDate_PersistsAsUtc()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (userId, clubId, teamId) = await SeedTeamAsync(seedDb);
+            var exerciseId = await SeedExerciseAsync(seedDb, clubId, "Ejercicio 1");
+
+            await using var db = _fixture.CreateDbContext();
+            var handler = new CreateSessionHandler(db);
+            var command = new CreateSessionCommand(
+                teamId, "Sesion con fecha sin Kind", null,
+                new DateTime(2026, 9, 10, 0, 0, 0, DateTimeKind.Unspecified),
+                TimeSpan.FromHours(18), null, null, null, null, null, null,
+                new List<SessionBlockRequest>
+                {
+                    new(1, "Bloque 1", "Primer bloque de la sesion.", null,
+                        new List<SessionBlockExerciseRequest> { new(exerciseId, 1) })
+                })
+            { UserId = userId };
+
+            var sessionId = await handler.Handle(command, CancellationToken.None);
+
+            await using var verifyDb = _fixture.CreateDbContext();
+            var session = await verifyDb.TrainingSessions.SingleAsync(s => s.Id == sessionId);
+
+            Assert.NotNull(session.Date);
+            Assert.Equal(DateTimeKind.Utc, session.Date!.Value.Kind);
+            Assert.Equal(new DateTime(2026, 9, 10, 0, 0, 0, DateTimeKind.Utc), session.Date);
+        }
+
         [Fact]
         public void Validator_RejectsBlockWithoutComoConectaConAnterior_EvenForFirstBlock()
         {
