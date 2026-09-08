@@ -11,6 +11,20 @@
   justify-content: flex-end;
 }
 
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sectionTitle {
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--rffm-coach-text-secondary, #9a9a9a);
+}
+
 .empty {
   color: var(--rffm-coach-text-secondary, #9a9a9a);
   font-style: italic;

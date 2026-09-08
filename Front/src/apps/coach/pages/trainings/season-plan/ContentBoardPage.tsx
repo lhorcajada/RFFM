@@ -29,10 +29,10 @@ interface DragPayload {
   targets: SessionTargetDetail[];
 }
 
-/** The content-board: a two-panel drag-and-drop screen — the team's ADN tree on the left,
- * unscheduled ("content-first") sessions on the right — for assigning ADN targets to sessions
- * before they're scheduled. Route target for `trainings/content-board` (design.md F1 of
- * `season-plan-content-board`). */
+/** The content-board: a two-panel drag-and-drop screen — the team's ADN tree on the left, all
+ * of the team's sessions (split into "Sin programar" / "Programadas") on the right — for
+ * assigning ADN targets to sessions whether or not they're scheduled yet. Route target for
+ * `trainings/content-board` (design.md F1 of `season-plan-content-board`). */
 export default function ContentBoardPage() {
   const navigate = useNavigate();
   const location = useLocation();

@@ -2,10 +2,21 @@ import { useState } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { Box, Button, IconButton, TextField, Tooltip } from "@mui/material";
 import EventIcon from "@mui/icons-material/Event";
+import EditIcon from "@mui/icons-material/Edit";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import type { TrainingSession } from "../../../types/training";
 import SessionTargetTree from "./SessionTargetTree";
 import styles from "./SessionCard.module.css";
+
+function formatDate(iso: string | null) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return d.toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+function formatTime(t: string | null | undefined) {
+  return t ? t.slice(0, 5) : "";
+}
 
 interface SessionCardProps {
   session: TrainingSession;
@@ -35,6 +46,7 @@ export default function SessionCard({
 }: SessionCardProps) {
   const { setNodeRef, isOver } = useDroppable({ id: `session-drop-${session.id}` });
   const [name, setName] = useState(session.name);
+  const isScheduled = session.date !== null;
 
   const commitRename = () => {
     const trimmed = name.trim();
@@ -63,6 +75,14 @@ export default function SessionCard({
         </Tooltip>
       </Box>
 
+      {isScheduled && (
+        <Box className={styles.dateRow} data-testid="session-card-date">
+          {formatDate(session.date)}
+          {session.startTime ? ` · ${formatTime(session.startTime)}` : ""}
+          {session.endTime ? ` – ${formatTime(session.endTime)}` : ""}
+        </Box>
+      )}
+
       <Box className={styles.targetsBox}>
         <SessionTargetTree
           targets={session.targets}
@@ -73,9 +93,15 @@ export default function SessionCard({
       </Box>
 
       <Box className={styles.actionsRow}>
-        <Button size="small" startIcon={<EventIcon />} variant="outlined" onClick={() => onAssignDate(session.id)}>
-          Asignar fecha
-        </Button>
+        {isScheduled ? (
+          <Button size="small" startIcon={<EditIcon />} variant="outlined" onClick={() => onAssignDate(session.id)}>
+            Editar sesión
+          </Button>
+        ) : (
+          <Button size="small" startIcon={<EventIcon />} variant="outlined" onClick={() => onAssignDate(session.id)}>
+            Asignar fecha
+          </Button>
+        )}
       </Box>
     </Box>
   );

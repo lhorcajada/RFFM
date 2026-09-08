@@ -24,6 +24,12 @@
   flex: 1;
 }
 
+.dateRow {
+  color: var(--rffm-coach-accent, #ff7a1a);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
 .targetsBox {
   min-height: 28px;
 }

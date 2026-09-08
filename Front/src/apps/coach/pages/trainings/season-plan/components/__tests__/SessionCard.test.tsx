@@ -106,6 +106,12 @@ describe("SessionCard — Asignar fecha / eliminar / renombrar", () => {
     expect(onAssignDate).toHaveBeenCalledWith("sess-1");
   });
 
+  it("una sesión sin fecha no muestra fecha alguna en la tarjeta", () => {
+    renderCard({ session: buildSession({ date: null }) });
+
+    expect(screen.queryByTestId("session-card-date")).not.toBeInTheDocument();
+  });
+
   it("el botón de eliminar sesión llama a onDelete con el id de la sesión", async () => {
     const onDelete = vi.fn();
     renderCard({ onDelete });
@@ -125,5 +131,33 @@ describe("SessionCard — Asignar fecha / eliminar / renombrar", () => {
     await userEvent.tab();
 
     expect(onRename).toHaveBeenCalledWith("sess-1", "Nuevo nombre");
+  });
+});
+
+describe("SessionCard — sesión ya programada", () => {
+  it("muestra la fecha y hora de la sesión cuando tiene fecha asignada", () => {
+    renderCard({
+      session: buildSession({ date: "2026-09-10", startTime: "18:30:00", endTime: "20:00:00" }),
+    });
+
+    const dateEl = screen.getByTestId("session-card-date");
+    expect(dateEl).toHaveTextContent(/10 sept/i);
+    expect(dateEl).toHaveTextContent("18:30");
+  });
+
+  it('sustituye el botón "Asignar fecha" por "Editar sesión" cuando la sesión ya tiene fecha', () => {
+    renderCard({ session: buildSession({ date: "2026-09-10" }) });
+
+    expect(screen.queryByRole("button", { name: /asignar fecha/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /editar sesión/i })).toBeInTheDocument();
+  });
+
+  it('pulsar "Editar sesión" llama a onAssignDate con el id de la sesión', async () => {
+    const onAssignDate = vi.fn();
+    renderCard({ session: buildSession({ date: "2026-09-10" }), onAssignDate });
+
+    await userEvent.click(screen.getByRole("button", { name: /editar sesión/i }));
+
+    expect(onAssignDate).toHaveBeenCalledWith("sess-1");
   });
 });

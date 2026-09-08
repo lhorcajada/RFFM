@@ -42,8 +42,8 @@ function renderPanel(props: Partial<React.ComponentProps<typeof SessionBoardPane
   );
 }
 
-describe("SessionBoardPanel — solo sesiones sin fecha", () => {
-  it("renderiza únicamente las sesiones con date === null", () => {
+describe("SessionBoardPanel — secciones Sin programar / Programadas", () => {
+  it("muestra las sesiones sin fecha en la sección «Sin programar» y las programadas en «Programadas»", () => {
     renderPanel({
       sessions: [
         buildSession({ id: "sess-1", name: "Sin programar", date: null }),
@@ -51,14 +51,42 @@ describe("SessionBoardPanel — solo sesiones sin fecha", () => {
       ],
     });
 
+    expect(screen.getByText("Sin programar", { selector: "h3,h2,h4,p,span" })).toBeInTheDocument();
+    expect(screen.getByText("Programadas", { selector: "h3,h2,h4,p,span" })).toBeInTheDocument();
     expect(screen.getByDisplayValue("Sin programar")).toBeInTheDocument();
-    expect(screen.queryByDisplayValue("Programada")).not.toBeInTheDocument();
+    expect(screen.getByDisplayValue("Programada")).toBeInTheDocument();
   });
 
-  it('muestra un mensaje vacío cuando no hay sesiones sin programar', () => {
+  it("ambas secciones son droppable (cada tarjeta expone su propio drop target)", () => {
+    renderPanel({
+      sessions: [
+        buildSession({ id: "sess-1", name: "Sin programar", date: null }),
+        buildSession({ id: "sess-2", name: "Programada", date: "2026-09-10" }),
+      ],
+    });
+
+    expect(screen.getByTestId("session-card-sess-1")).toBeInTheDocument();
+    expect(screen.getByTestId("session-card-sess-2")).toBeInTheDocument();
+  });
+
+  it('muestra un mensaje vacío en "Sin programar" cuando solo hay sesiones programadas', () => {
+    renderPanel({ sessions: [buildSession({ id: "sess-2", name: "Programada", date: "2026-09-10" })] });
+
+    expect(screen.getByText(/no hay sesiones sin programar/i)).toBeInTheDocument();
+    expect(screen.queryByText(/no hay sesiones programadas/i)).not.toBeInTheDocument();
+  });
+
+  it('muestra un mensaje vacío en "Programadas" cuando solo hay sesiones sin programar', () => {
+    renderPanel({ sessions: [buildSession({ id: "sess-1", name: "Sin programar", date: null })] });
+
+    expect(screen.getByText(/no hay sesiones programadas/i)).toBeInTheDocument();
+  });
+
+  it("muestra ambos mensajes vacíos cuando no hay ninguna sesión", () => {
     renderPanel({ sessions: [] });
 
     expect(screen.getByText(/no hay sesiones sin programar/i)).toBeInTheDocument();
+    expect(screen.getByText(/no hay sesiones programadas/i)).toBeInTheDocument();
   });
 });
 

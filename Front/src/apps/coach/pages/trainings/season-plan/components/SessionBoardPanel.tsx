@@ -19,9 +19,10 @@ interface SessionBoardPanelProps {
   onAssignDate: (sessionId: string) => void;
 }
 
-/** Right panel of the content-board: unscheduled sessions (`date === null`) as droppable cards,
- * plus "+ Nueva sesión" — design.md F2/F5 of `season-plan-content-board`. Scheduled sessions
- * stay off the board; they're managed from the Sesiones tab / Planificación tree instead. */
+/** Right panel of the content-board: sessions as droppable cards, split into "Sin programar"
+ * (`date === null`) and "Programadas" (`date !== null`) sections, plus "+ Nueva sesión" —
+ * design.md F2/F5 of `season-plan-content-board`. Scheduled sessions stay visible here too so
+ * assigning a date doesn't make a session appear to vanish from the board. */
 export default function SessionBoardPanel({
   sessions,
   textoMap,
@@ -33,6 +34,20 @@ export default function SessionBoardPanel({
   onAssignDate,
 }: SessionBoardPanelProps) {
   const unscheduled = sessions.filter((s) => s.date === null);
+  const scheduled = sessions.filter((s) => s.date !== null);
+
+  const renderCard = (session: TrainingSession) => (
+    <SessionCard
+      key={session.id}
+      session={session}
+      textoMap={textoMap}
+      completedSubSubPrincipioIds={completedSubSubPrincipioIds}
+      onRemoveTarget={onRemoveTarget}
+      onRename={onRename}
+      onDelete={onDelete}
+      onAssignDate={onAssignDate}
+    />
+  );
 
   return (
     <Box className={styles.root}>
@@ -42,22 +57,23 @@ export default function SessionBoardPanel({
         </Button>
       </Box>
 
-      {unscheduled.length === 0 ? (
-        <Typography className={styles.empty}>No hay sesiones sin programar.</Typography>
-      ) : (
-        unscheduled.map((session) => (
-          <SessionCard
-            key={session.id}
-            session={session}
-            textoMap={textoMap}
-            completedSubSubPrincipioIds={completedSubSubPrincipioIds}
-            onRemoveTarget={onRemoveTarget}
-            onRename={onRename}
-            onDelete={onDelete}
-            onAssignDate={onAssignDate}
-          />
-        ))
-      )}
+      <Box className={styles.section}>
+        <Typography className={styles.sectionTitle}>Sin programar</Typography>
+        {unscheduled.length === 0 ? (
+          <Typography className={styles.empty}>No hay sesiones sin programar.</Typography>
+        ) : (
+          unscheduled.map(renderCard)
+        )}
+      </Box>
+
+      <Box className={styles.section}>
+        <Typography className={styles.sectionTitle}>Programadas</Typography>
+        {scheduled.length === 0 ? (
+          <Typography className={styles.empty}>No hay sesiones programadas.</Typography>
+        ) : (
+          scheduled.map(renderCard)
+        )}
+      </Box>
     </Box>
   );
 }
