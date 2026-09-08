@@ -34,6 +34,15 @@ export function hasBoardObjects(snapshot: TacticalBoardSnapshot | null): boolean
  * thumbnail preview. */
 const REFERENCE_EDITOR_HALF_PITCH_WIDTH_PX = 700;
 
+export type PlayersById = Map<string, { alias?: string | null; dorsal?: number | null }>;
+
+type StaticProps = {
+  snapshot: TacticalBoardSnapshot;
+  /** Resolved roster (dorsal/alias) for placed chapas — pass an empty `Map` to fall back to
+   * anonymous-style dorsal/alias for every named chapa. */
+  playersById: PlayersById;
+};
+
 type Props = {
   snapshot: TacticalBoardSnapshot;
   /** Team whose roster should be used to resolve dorsal/alias for placed chapas. */
@@ -42,9 +51,12 @@ type Props = {
 
 const previewMarkerId = (color: string) => `preview-${getArrowMarkerId(color)}`;
 
-export default function TacticalBoardSnapshotPreview({ snapshot, teamId }: Props) {
-  const { playersById } = useTeamRoster(teamId);
-
+/** Pure presentational render of a tactical-board snapshot — no hooks, no data fetching.
+ * Renders solely from `snapshot` + an already-resolved `playersById` map, so it can be used
+ * both for the live, on-screen preview (via the default export below, which resolves the
+ * roster with `useTeamRoster`) and for server-side/offline HTML generation with
+ * `ReactDOMServer.renderToStaticMarkup` (see `sessionPrint.ts`), where no hook can run. */
+export function TacticalBoardSnapshotPreviewStatic({ snapshot, playersById }: StaticProps) {
   const chapas = Object.entries(snapshot.placedChapas ?? {});
   const chapaPetoById = snapshot.chapaPetoById ?? {};
   const spaces = snapshot.placedSpaces ?? [];
@@ -256,4 +268,12 @@ export default function TacticalBoardSnapshotPreview({ snapshot, teamId }: Props
       </div>
     </div>
   );
+}
+
+/** Live, on-screen tactical-board preview: resolves the team roster via `useTeamRoster`
+ * (shared cache across every preview on the page) and delegates the actual rendering to
+ * `TacticalBoardSnapshotPreviewStatic`. */
+export default function TacticalBoardSnapshotPreview({ snapshot, teamId }: Props) {
+  const { playersById } = useTeamRoster(teamId);
+  return <TacticalBoardSnapshotPreviewStatic snapshot={snapshot} playersById={playersById} />;
 }

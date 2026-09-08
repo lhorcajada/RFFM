@@ -17,7 +17,7 @@ export function escapeHtml(value: string): string {
     .replaceAll('"', "&quot;");
 }
 
-function buildModelRelationsHtml(exercise: Exercise): string {
+export function buildModelRelationsHtml(exercise: Exercise): string {
   if (exercise.modelRelations.length === 0) return "";
 
   const chips: string[] = [];
@@ -42,7 +42,7 @@ function buildModelRelationsHtml(exercise: Exercise): string {
   return `<div class="section"><h3>Asociado al modelo de juego</h3><div class="chips">${chips.join("")}</div></div>`;
 }
 
-function buildNivelesTableHtml(exercise: Exercise): string {
+export function buildNivelesTableHtml(exercise: Exercise): string {
   if (exercise.nivelesColumnas.length === 0) return "";
 
   const sortedNiveles = [...exercise.niveles].sort((a, b) => a.nivel - b.nivel);
@@ -59,7 +59,7 @@ function buildNivelesTableHtml(exercise: Exercise): string {
   return `<div class="section"><h3>Niveles</h3><table><thead><tr><th>Nivel</th>${headerCells}</tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
-function buildImageOrBoardHtml(exercise: Exercise, boardDrawingHtml?: string | null): string {
+export function buildImageOrBoardHtml(exercise: Exercise, boardDrawingHtml?: string | null): string {
   if (exercise.urlImage) {
     return `<div><img src="${escapeHtml(mediaUrl(exercise.urlImage))}" alt="${escapeHtml(exercise.name)}" /></div>`;
   }
