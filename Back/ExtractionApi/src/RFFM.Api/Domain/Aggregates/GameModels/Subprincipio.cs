@@ -2,8 +2,9 @@ namespace RFFM.Api.Domain.Aggregates.GameModels
 {
     /// <summary>
     /// A Subprincipio of the ADN hierarchy: "Subprincipio X.Y — Título." per the technical
-    /// import spec §1–§2. Its SubSubPrincipios hang either off its Zonas (if any) or directly
-    /// off it, never both (see spec §0).
+    /// import spec §1–§2. Its SubSubPrincipios may hang directly off it (general, apply
+    /// regardless of zone) and/or off its Zonas (zone-specific) — both can be non-empty at
+    /// once, e.g. Subprincipio 2.3 in the legible document.
     /// </summary>
     public class Subprincipio : BaseEntity
     {

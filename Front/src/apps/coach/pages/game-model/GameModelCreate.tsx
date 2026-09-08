@@ -58,12 +58,6 @@ function validateDraft(draft: GameModel): ValidationError[] {
       if (!sp.titulo.trim()) {
         errors.push({ path: spPath, message: "El título del subprincipio es obligatorio." });
       }
-      if (sp.zonas.length > 0 && sp.subSubPrincipios.length > 0) {
-        errors.push({
-          path: spPath,
-          message: "Un subprincipio no puede tener Zonas y sub-subprincipios directos a la vez.",
-        });
-      }
 
       const validateSsp = (sspPath: string, numero: string, rol: string, habilidades: { nombre: string }[]) => {
         if (!rol.trim()) {

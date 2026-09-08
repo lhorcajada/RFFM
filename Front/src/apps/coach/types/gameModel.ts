@@ -132,8 +132,8 @@ export interface Subprincipio {
   numero: string;
   titulo: string;
   texto: string;
-  /** Mutually exclusive with subSubPrincipios — a Subprincipio's children hang either off
-   * its Zonas (if any) or directly off it, never both. */
+  /** Zone-specific children; subSubPrincipios below are general ones that hang directly off
+   * this Subprincipio. Both can be non-empty at once (general + zone-specific). */
   zonas: Zona[];
   subSubPrincipios: SubSubPrincipio[];
   notas: Nota[];
