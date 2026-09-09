@@ -41,6 +41,20 @@ describe("PlayerFormBars — variant compact", () => {
     render(<PlayerFormBars variant="compact" readiness={90} fatigue={80} />);
     expect(screen.getByTestId("player-form-bar-c")).toHaveAttribute("data-tone", "low");
   });
+
+  it("con fullWidth, el contenedor usa la clase de ancho completo en vez del ancho fijo mínimo", () => {
+    const { container } = render(
+      <PlayerFormBars variant="compact" readiness={80} fatigue={30} fullWidth />,
+    );
+    const wrapper = container.firstElementChild as HTMLElement;
+    expect(wrapper.className).toMatch(/compactFullWidth/i);
+  });
+
+  it("sin fullWidth, el contenedor no usa la clase de ancho completo", () => {
+    const { container } = render(<PlayerFormBars variant="compact" readiness={80} fatigue={30} />);
+    const wrapper = container.firstElementChild as HTMLElement;
+    expect(wrapper.className).not.toMatch(/compactFullWidth/i);
+  });
 });
 
 describe("PlayerFormBars — variant full", () => {

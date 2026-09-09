@@ -18,6 +18,12 @@ type Props = {
   className?: string;
   /** Contenido opcional de tooltip para el segmento de Rodaje (p.ej. desglose entreno/partidos). */
   readinessTooltip?: ReactNode;
+  /**
+   * Solo aplica a `variant="compact"`. Por defecto ocupa un ancho mínimo fijo (pensado para
+   * los slots circulares de campo); con `fullWidth` estira las 3 barras a todo el ancho
+   * disponible del contenedor (tarjetas de plantilla con más espacio horizontal).
+   */
+  fullWidth?: boolean;
 };
 
 function formatValue(value: number | null): string {
@@ -35,6 +41,7 @@ export default function PlayerFormBars({
   variant = "compact",
   className,
   readinessTooltip,
+  fullWidth,
 }: Props) {
   if (readiness == null && fatigue == null) return null;
 
@@ -76,7 +83,9 @@ export default function PlayerFormBars({
   }
 
   return (
-    <div className={`${styles.compact} ${className ?? ""}`}>
+    <div
+      className={`${styles.compact} ${fullWidth ? styles.compactFullWidth : ""} ${className ?? ""}`}
+    >
       <CompactBar testId="player-form-bar-ef" letter="Ef" value={efValue} tone={efTone} />
       <CompactBar testId="player-form-bar-r" letter="R" value={readiness ?? null} tone={rTone} />
       <CompactBar testId="player-form-bar-c" letter="C" value={fatigueValue} tone={cTone} />

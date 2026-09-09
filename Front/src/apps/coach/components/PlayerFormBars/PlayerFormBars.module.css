@@ -8,6 +8,12 @@
   width: 34px;
 }
 
+/* Tarjetas con más espacio horizontal (p.ej. Plantilla) — las 3 barras ocupan todo el ancho
+   disponible en vez del ancho mínimo fijo pensado para los slots circulares de campo. */
+.compactFullWidth {
+  width: 100%;
+}
+
 .compactBar {
   display: flex;
   align-items: center;

@@ -232,7 +232,13 @@ export default function PlayerCromo({
           </div>
         )}
 
-        <PlayerFormBars variant={formVariant} readiness={readiness} fatigue={fatigue} className={styles.formBars} />
+        <PlayerFormBars
+          variant={formVariant}
+          readiness={readiness}
+          fatigue={fatigue}
+          fullWidth
+          className={styles.formBars}
+        />
 
         {showActions && (
           <div className={styles.cardActions}>
