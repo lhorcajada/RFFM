@@ -230,6 +230,15 @@
   z-index: 3;
 }
 
+/* Availability ("Disponibilidad") dot — bottom-center, next to Rodaje's dot */
+.availabilityDot {
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+}
+
 .usedBadgeSlot {
   position: absolute;
   bottom: -10px;

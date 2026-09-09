@@ -22,6 +22,9 @@ type ConvocationPlayersInput = {
         matchMinutesInWindow: number;
         matchMinutesExpected: number;
       } | null;
+      physicalFitness?: number | null;
+      fatigue?: number | null;
+      availability?: number | null;
     }
   >;
 };
@@ -94,6 +97,9 @@ export function useConvocationPlayerViews(input: ConvocationPlayersInput): Convo
         technicalTotal: playerTechnicalTotals.get(p.id) ?? null,
         readiness: readinessMap?.[p.id]?.readiness ?? null,
         readinessBreakdown: readinessMap?.[p.id]?.readinessBreakdown ?? null,
+        physicalFitness: readinessMap?.[p.id]?.physicalFitness ?? null,
+        fatigue: readinessMap?.[p.id]?.fatigue ?? null,
+        availability: readinessMap?.[p.id]?.availability ?? null,
       }));
   }, [players, mgmtNotCalled, mgmtPending, mgmtPhotos, mgmtRatings, playerStreaks, playerTechnicalTotals, readinessMap]);
 
@@ -113,6 +119,9 @@ export function useConvocationPlayerViews(input: ConvocationPlayersInput): Convo
         streakCount: playerStreaks.get(p.id) ?? null,
         technicalTotal: playerTechnicalTotals.get(p.id) ?? null,
         readiness: readinessMap?.[p.id]?.readiness ?? null,
+        physicalFitness: readinessMap?.[p.id]?.physicalFitness ?? null,
+        fatigue: readinessMap?.[p.id]?.fatigue ?? null,
+        availability: readinessMap?.[p.id]?.availability ?? null,
       }));
   }, [players, mgmtNotCalled, mgmtPhotos, mgmtRatings, playerStreaks, playerTechnicalTotals, readinessMap]);
 
@@ -132,6 +141,9 @@ export function useConvocationPlayerViews(input: ConvocationPlayersInput): Convo
         streakCount: playerStreaks.get(p.id) ?? null,
         technicalTotal: playerTechnicalTotals.get(p.id) ?? null,
         readiness: readinessMap?.[p.id]?.readiness ?? null,
+        physicalFitness: readinessMap?.[p.id]?.physicalFitness ?? null,
+        fatigue: readinessMap?.[p.id]?.fatigue ?? null,
+        availability: readinessMap?.[p.id]?.availability ?? null,
       }));
   }, [players, mgmtPending, mgmtPhotos, mgmtRatings, playerStreaks, playerTechnicalTotals, readinessMap]);
 

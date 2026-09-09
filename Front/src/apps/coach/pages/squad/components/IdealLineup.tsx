@@ -28,6 +28,7 @@ import { FORMATION_POSITIONS } from "../../../types/formation";
 import type { Formation } from "../../../types/formation";
 import FootballField from "./FootballField";
 import ReadinessBadge from "../../../components/ReadinessBadge/ReadinessBadge";
+import AvailabilityBadge from "../../../components/AvailabilityBadge/AvailabilityBadge";
 import styles from "./IdealLineup.module.css";
 
 // ─── Position grouping helpers ──────────────────────────────────────────
@@ -102,6 +103,12 @@ export interface SquadPlayer {
     matchMinutesInWindow: number;
     matchMinutesExpected: number;
   } | null;
+  /** Forma física (0-100), persistida. Independiente de Rodaje. */
+  physicalFitness?: number | null;
+  /** Cansancio (0-100), persistido. Independiente de Rodaje. */
+  fatigue?: number | null;
+  /** Disponibilidad = max(0, physicalFitness - fatigue). Se muestra de forma compacta; Forma física/Cansancio van en el tooltip. */
+  availability?: number | null;
 }
 
 export interface IdealLineupHandle {
@@ -200,6 +207,12 @@ export function DraggableListItem({ player, onDeconvoke }: { player: SquadPlayer
             </span>
           )}
           <ReadinessBadge value={player.readiness} dense />
+          <AvailabilityBadge
+            availability={player.availability}
+            physicalFitness={player.physicalFitness}
+            fatigue={player.fatigue}
+            dense
+          />
         </div>
         <div className={styles.playerActions}>
           <button
@@ -337,6 +350,9 @@ const IdealLineup = forwardRef<IdealLineupHandle, IdealLineupProps>(function Ide
       competitiveness: p.competitiveness,
       isInjured: p.isInjured,
       readiness: p.readiness,
+      physicalFitness: p.physicalFitness,
+      fatigue: p.fatigue,
+      availability: p.availability,
     }])),
     [players]
   );

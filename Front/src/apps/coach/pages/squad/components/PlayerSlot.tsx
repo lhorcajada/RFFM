@@ -1,6 +1,7 @@
 import { useDroppable, useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import ReadinessBadge from "../../../components/ReadinessBadge/ReadinessBadge";
+import AvailabilityBadge from "../../../components/AvailabilityBadge/AvailabilityBadge";
 import styles from "./PlayerSlot.module.css";
 
 interface SlotPlayer {
@@ -13,6 +14,8 @@ interface SlotPlayer {
   isInjured?: boolean;
   /** Rodaje (0-100), calculado a partir de asistencia y minutos recientes. */
   readiness?: number | null;
+  /** Disponibilidad (0-100) = max(0, Forma física - Cansancio). */
+  availability?: number | null;
 }
 
 interface PlayerSlotProps {
@@ -59,6 +62,7 @@ function DraggablePlayerCard({ player }: { player: SlotPlayer }) {
         <span className={styles.injuredDot} title="Lesionado">🩹</span>
       )}
       <ReadinessBadge value={player.readiness} variant="dot" className={styles.readinessDot} />
+      <AvailabilityBadge availability={player.availability} variant="dot" className={styles.availabilityDot} />
     </div>
   );
 }

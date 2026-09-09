@@ -97,13 +97,14 @@ const lineupPlayers: SquadPlayer[] = [
     dorsal: 12,
     position: "defensa",
     competitiveness: 6,
-    readiness: 88,
-    streakCount: 5,
+    availability: 33,
+    physicalFitness: 55,
+    fatigue: 22,
   },
 ];
 
-describe("PartidoEnDirectoTab - leyenda de rodaje y jornadas sin decisión técnica", () => {
-  it("muestra la leyenda de Rodaje y de jornadas sin decisión técnica en el banquillo", async () => {
+describe("PartidoEnDirectoTab - indicador de disponibilidad", () => {
+  it("muestra la disponibilidad del jugador en la tarjeta del banquillo", async () => {
     useLiveMatchMock.mockReturnValue(baseLiveReturn());
 
     render(
@@ -117,12 +118,27 @@ describe("PartidoEnDirectoTab - leyenda de rodaje y jornadas sin decisión técn
       />,
     );
 
-    await screen.findByText("Rodaje");
-    const readinessLegend = screen.getByLabelText("Leyenda de Rodaje");
-    expect(within(readinessLegend).getByText("≥80")).toBeInTheDocument();
-    expect(within(readinessLegend).getByText("50-79")).toBeInTheDocument();
-    expect(within(readinessLegend).getByText("<50")).toBeInTheDocument();
-    expect(within(readinessLegend).getByText("Sin datos")).toBeInTheDocument();
-    expect(screen.getByText("Jornadas sin decisión técnica")).toBeInTheDocument();
+    expect(await screen.findByText("33%")).toBeInTheDocument();
+  });
+
+  it("muestra la leyenda de Disponibilidad en el banquillo", async () => {
+    useLiveMatchMock.mockReturnValue(baseLiveReturn());
+
+    render(
+      <PartidoEnDirectoTab
+        teamId="team-1"
+        eventId="event-1"
+        lineupPlayers={lineupPlayers}
+        localTeamName="Local FC"
+        visitorTeamName="Visitor FC"
+        isHomeTeam
+      />,
+    );
+
+    await screen.findByText("33%");
+    const availabilityLegend = screen.getByLabelText("Leyenda de Disponibilidad");
+    expect(within(availabilityLegend).getByText("≥80")).toBeInTheDocument();
+    expect(within(availabilityLegend).getByText("50-79")).toBeInTheDocument();
+    expect(within(availabilityLegend).getByText("<50")).toBeInTheDocument();
   });
 });

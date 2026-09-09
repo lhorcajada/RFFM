@@ -45,6 +45,22 @@ function readinessColor(value: number): "success" | "warning" | "error" {
   return "error";
 }
 
+// Forma física y Disponibilidad: valores altos son buenos, mismo criterio que Rodaje
+// (verde >=80, ámbar 50-79, rojo <50).
+function highIsGoodColor(value: number): "success" | "warning" | "error" {
+  if (value >= 80) return "success";
+  if (value >= 50) return "warning";
+  return "error";
+}
+
+// Cansancio: valores altos son malos, criterio invertido respecto a Rodaje/Forma física
+// (rojo >=70, ámbar 40-69, verde <40).
+function fatigueColor(value: number): "success" | "warning" | "error" {
+  if (value >= 70) return "error";
+  if (value >= 40) return "warning";
+  return "success";
+}
+
 function compareValues(a: PlayerStatistics, b: PlayerStatistics, key: SortKey): number {
   const av = a[key];
   const bv = b[key];
@@ -213,6 +229,39 @@ export default function SquadStatistics({ players, loading, teamName }: Props) {
                     </div>
                   </Tooltip>
                 )}
+              </div>
+
+              <div className={styles.conditionRow}>
+                <div className={styles.conditionItem} data-testid={`fitness-cell-${player.teamPlayerId}`}>
+                  <span className={styles.conditionLabel}>Forma física</span>
+                  <LinearProgress
+                    variant="determinate"
+                    value={player.physicalFitness}
+                    color={highIsGoodColor(player.physicalFitness)}
+                    className={styles.progressBar}
+                  />
+                  <span className={styles.conditionValue}>{Math.round(player.physicalFitness)}%</span>
+                </div>
+                <div className={styles.conditionItem} data-testid={`fatigue-cell-${player.teamPlayerId}`}>
+                  <span className={styles.conditionLabel}>Cansancio</span>
+                  <LinearProgress
+                    variant="determinate"
+                    value={player.fatigue}
+                    color={fatigueColor(player.fatigue)}
+                    className={styles.progressBar}
+                  />
+                  <span className={styles.conditionValue}>{Math.round(player.fatigue)}%</span>
+                </div>
+                <div className={styles.conditionItem} data-testid={`availability-cell-${player.teamPlayerId}`}>
+                  <span className={styles.conditionLabel}>Disponibilidad</span>
+                  <LinearProgress
+                    variant="determinate"
+                    value={player.availability}
+                    color={highIsGoodColor(player.availability)}
+                    className={styles.progressBar}
+                  />
+                  <span className={styles.conditionValue}>{Math.round(player.availability)}%</span>
+                </div>
               </div>
 
               <div className={styles.statsRow}>

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { createRef } from "react";
 import AlineacionTab from "../AlineacionTab";
@@ -34,9 +34,10 @@ describe("AlineacionTab - leyenda de rodaje", () => {
     );
 
     expect(await screen.findByText("Rodaje")).toBeInTheDocument();
-    expect(screen.getByText("≥80")).toBeInTheDocument();
-    expect(screen.getByText("50-79")).toBeInTheDocument();
-    expect(screen.getByText("<50")).toBeInTheDocument();
-    expect(screen.getByText("Sin datos")).toBeInTheDocument();
+    const readinessLegend = screen.getByLabelText("Leyenda de Rodaje");
+    expect(within(readinessLegend).getByText("≥80")).toBeInTheDocument();
+    expect(within(readinessLegend).getByText("50-79")).toBeInTheDocument();
+    expect(within(readinessLegend).getByText("<50")).toBeInTheDocument();
+    expect(within(readinessLegend).getByText("Sin datos")).toBeInTheDocument();
   });
 });

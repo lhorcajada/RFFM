@@ -30,6 +30,12 @@ export type PlayerStatistics = {
   matchesPlayed: number;
   daysSinceLastInjury: number | null;
   lastInjuryDurationDays: number | null;
+  /** Forma física (0-100), persistida y actualizada de forma incremental. Siempre tiene valor. */
+  physicalFitness: number;
+  /** Cansancio (0-100), persistido y actualizado de forma incremental. Siempre tiene valor. */
+  fatigue: number;
+  /** Disponibilidad = max(0, physicalFitness - fatigue). Siempre tiene valor. */
+  availability: number;
   readiness: number | null;
   readinessBreakdown: ReadinessBreakdown | null;
 };

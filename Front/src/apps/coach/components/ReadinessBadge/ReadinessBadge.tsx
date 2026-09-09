@@ -1,4 +1,4 @@
-import styles from "./ReadinessBadge.module.css";
+import MetricBadge, { type MetricTier } from "../MetricBadge/MetricBadge";
 
 type Props = {
   /** Rodaje (0-100). `null`/`undefined` → no se renderiza nada. */
@@ -15,34 +15,26 @@ type Props = {
   className?: string;
 };
 
-function tierClass(value: number): string {
-  if (value >= 80) return styles.high;
-  if (value >= 50) return styles.mid;
-  return styles.low;
-}
+// Verde ≥80, ámbar 50-79, rojo <50 — mismo criterio que `SquadStatistics`.
+const READINESS_TIERS: MetricTier[] = [
+  { min: 80, tone: "high" },
+  { min: 50, tone: "mid" },
+  { min: -Infinity, tone: "low" },
+];
 
 /**
  * Indicador compacto de "Rodaje" para tarjetas de jugador.
- * Mismo criterio de color que `SquadStatistics`: verde ≥80, ámbar 50-79, rojo <50.
+ * Envuelve `MetricBadge` con los tramos de color y la etiqueta propios de Rodaje.
  */
 export default function ReadinessBadge({ value, dense, variant = "chip", className }: Props) {
-  if (value == null) return null;
-
-  if (variant === "dot") {
-    return (
-      <span
-        className={`${styles.dot} ${tierClass(value)} ${className ?? ""}`}
-        title={`Rodaje: ${Math.round(value)}%`}
-      />
-    );
-  }
-
   return (
-    <span
-      className={`${styles.badge} ${tierClass(value)} ${dense ? styles.dense : ""} ${className ?? ""}`}
-      title="Rodaje"
-    >
-      {Math.round(value)}%
-    </span>
+    <MetricBadge
+      value={value}
+      tiers={READINESS_TIERS}
+      label="Rodaje"
+      dense={dense}
+      variant={variant}
+      className={className}
+    />
   );
 }

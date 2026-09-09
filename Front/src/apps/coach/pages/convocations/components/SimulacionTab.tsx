@@ -41,6 +41,8 @@ import type { SimSlotPlayer } from "./simulation/SimulationPlayerSlot";
 import type { SquadPlayer } from "../../squad/components/IdealLineup";
 import ReadinessBadge from "../../../components/ReadinessBadge/ReadinessBadge";
 import ReadinessLegend from "../../../components/ReadinessLegend/ReadinessLegend";
+import AvailabilityBadge from "../../../components/AvailabilityBadge/AvailabilityBadge";
+import AvailabilityLegend from "../../../components/AvailabilityLegend/AvailabilityLegend";
 import { computeLiveReadiness } from "../utils/liveReadiness";
 import styles from "./SimulacionTab.module.css";
 
@@ -169,6 +171,12 @@ function BenchPlayerCard({
           )}
           <ReadinessBadge
             value={computeLiveReadiness(player.readinessBreakdown, minutesPlayed ?? 0)}
+            dense
+          />
+          <AvailabilityBadge
+            availability={player.availability}
+            physicalFitness={player.physicalFitness}
+            fatigue={player.fatigue}
             dense
           />
         </div>
@@ -319,6 +327,7 @@ export default function SimulacionTab({ teamId, eventId, lineupPlayers, isFriend
             competitiveness: p.competitiveness,
             readiness: p.readiness,
             readinessBreakdown: p.readinessBreakdown,
+            availability: p.availability,
           },
         ]),
       ),
@@ -557,6 +566,7 @@ export default function SimulacionTab({ teamId, eventId, lineupPlayers, isFriend
                   <span className={styles.benchStreakBadge} style={{ fontSize: "0.5rem" }}>⏱ N</span> Jornadas sin decisión técnica
                 </span>
                 <ReadinessLegend />
+                <AvailabilityLegend />
               </div>
               <div className={styles.benchZoneStatic}>
                 {benchPlayers.length === 0 ? (

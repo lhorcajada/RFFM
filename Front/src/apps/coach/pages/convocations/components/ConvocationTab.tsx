@@ -16,6 +16,7 @@ import type { PlayerResponse } from "../../../services/teamplayerService";
 import type { PlayerRating } from "../../../types/playerRating";
 import type { PlayerStatistics } from "../../../services/teamPlayerStatisticsService";
 import PlayerCromo from "../../squad/components/PlayerCromo";
+import AvailabilityLegend from "../../../components/AvailabilityLegend/AvailabilityLegend";
 import type { DropZone } from "./convocationMatchDetail.types";
 import type { DeconvokeProposal } from "../utils/deconvokeProposal";
 import { formatProposalFactorValue } from "../utils/deconvokeProposal";
@@ -88,8 +89,11 @@ type Props = {
   proposalLoading: boolean;
   onApplyProposal: (ids: string[]) => Promise<void>;
   onPrintProposal: () => Promise<void>;
-  /** Rodaje por teamPlayerId (best-effort, puede estar vacío mientras carga). */
-  readinessMap?: Record<string, Pick<PlayerStatistics, "readiness">>;
+  /** Rodaje/condición física por teamPlayerId (best-effort, puede estar vacío mientras carga). */
+  readinessMap?: Record<
+    string,
+    Pick<PlayerStatistics, "readiness" | "availability" | "physicalFitness" | "fatigue">
+  >;
 };
 
 const GROUPS = [
@@ -303,6 +307,7 @@ export default function ConvocationTab({
         >
           Proponer desconvocados
         </Button>
+        <AvailabilityLegend />
       </div>
 
       {showProposal && (
@@ -460,6 +465,9 @@ export default function ConvocationTab({
                             }
                             streakCount={playerStreaks?.get(playerId) ?? null}
                             readiness={readinessMap?.[playerId]?.readiness ?? null}
+                            availability={readinessMap?.[playerId]?.availability ?? null}
+                            physicalFitness={readinessMap?.[playerId]?.physicalFitness ?? null}
+                            fatigue={readinessMap?.[playerId]?.fatigue ?? null}
                           />
                           {excuseTypes.length > 0 && (
                             <FormControl
@@ -542,6 +550,9 @@ export default function ConvocationTab({
                             }
                             streakCount={playerStreaks?.get(playerId) ?? null}
                             readiness={readinessMap?.[playerId]?.readiness ?? null}
+                            availability={readinessMap?.[playerId]?.availability ?? null}
+                            physicalFitness={readinessMap?.[playerId]?.physicalFitness ?? null}
+                            fatigue={readinessMap?.[playerId]?.fatigue ?? null}
                           />
                         </div>
                       );

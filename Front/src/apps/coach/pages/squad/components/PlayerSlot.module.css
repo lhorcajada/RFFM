@@ -148,6 +148,14 @@
   z-index: 3;
 }
 
+/* Availability ("Disponibilidad") dot — top-right corner, alongside Rodaje's dot */
+.availabilityDot {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  z-index: 3;
+}
+
 /* Injured emoji indicator — top-right of the circle */
 .injuredDot {
   position: absolute;

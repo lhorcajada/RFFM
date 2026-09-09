@@ -11,6 +11,8 @@ interface FieldPlayer {
   competitiveness?: number | null;
   /** Rodaje (0-100), calculado a partir de asistencia y minutos recientes. */
   readiness?: number | null;
+  /** Disponibilidad (0-100) = max(0, Forma física - Cansancio). */
+  availability?: number | null;
 }
 
 interface FootballFieldProps {
@@ -72,6 +74,7 @@ export default function FootballField({ slotDefs, slots, playersById }: Football
                       dorsal: player.dorsal,
                       competitiveness: player.competitiveness,
                       readiness: player.readiness,
+                      availability: player.availability,
                     }
                   : null
               }
