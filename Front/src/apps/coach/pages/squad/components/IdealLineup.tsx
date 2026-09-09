@@ -27,6 +27,7 @@ import { getIdealLineup, saveIdealLineup } from "../../../services/idealLineupSe
 import { FORMATION_POSITIONS } from "../../../types/formation";
 import type { Formation } from "../../../types/formation";
 import FootballField from "./FootballField";
+import ReadinessBadge from "../../../components/ReadinessBadge/ReadinessBadge";
 import styles from "./IdealLineup.module.css";
 
 // ─── Position grouping helpers ──────────────────────────────────────────
@@ -93,6 +94,8 @@ export interface SquadPlayer {
   isInjured?: boolean;
   streakCount?: number | null;
   technicalTotal?: number | null;
+  /** Rodaje (0-100), calculado a partir de asistencia y minutos recientes. */
+  readiness?: number | null;
 }
 
 export interface IdealLineupHandle {
@@ -190,6 +193,7 @@ export function DraggableListItem({ player, onDeconvoke }: { player: SquadPlayer
               🚫 {player.technicalTotal}
             </span>
           )}
+          <ReadinessBadge value={player.readiness} dense />
         </div>
         <div className={styles.playerActions}>
           <button
@@ -326,6 +330,7 @@ const IdealLineup = forwardRef<IdealLineupHandle, IdealLineupProps>(function Ide
       dorsal: p.dorsal,
       competitiveness: p.competitiveness,
       isInjured: p.isInjured,
+      readiness: p.readiness,
     }])),
     [players]
   );

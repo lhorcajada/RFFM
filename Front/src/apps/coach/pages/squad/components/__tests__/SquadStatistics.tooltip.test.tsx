@@ -18,22 +18,22 @@ function buildPlayer(overrides: Partial<PlayerStatistics> = {}): PlayerStatistic
     matchesPlayed: 0,
     daysSinceLastInjury: null,
     lastInjuryDurationDays: null,
-    formStatus: 40,
-    formStatusBreakdown: null,
+    readiness: 40,
+    readinessBreakdown: null,
     ...overrides,
   };
 }
 
-describe("SquadStatistics — tooltip de estado de forma", () => {
-  it("muestra el motivo de una ausencia reciente al pasar el cursor por la barra de estado de forma", async () => {
+describe("SquadStatistics — tooltip de rodaje", () => {
+  it("muestra el motivo de una ausencia reciente al pasar el cursor por la barra de rodaje", async () => {
     render(
       <SquadStatistics
         players={[
           buildPlayer({
             teamPlayerId: "p1",
             displayName: "Jugador Lesionado",
-            formStatus: 40,
-            formStatusBreakdown: {
+            readiness: 40,
+            readinessBreakdown: {
               trainingComponent: 30,
               matchComponent: 60,
               trainingSessionsConsidered: 10,
@@ -50,9 +50,9 @@ describe("SquadStatistics — tooltip de estado de forma", () => {
       />,
     );
 
-    const formStatusCell = screen.getByTestId("form-status-cell-p1");
+    const readinessCell = screen.getByTestId("readiness-cell-p1");
 
-    fireEvent.mouseOver(formStatusCell);
+    fireEvent.mouseOver(readinessCell);
 
     await waitFor(() => {
       expect(screen.getByText(/Lesión/)).toBeInTheDocument();

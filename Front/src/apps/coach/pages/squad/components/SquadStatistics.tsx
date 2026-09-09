@@ -26,12 +26,12 @@ type Props = {
   teamName?: string;
 };
 
-type SortKey = "formStatus" | "dorsal" | "goals" | "yellowCards" | "redCards" | "minutesPlayed";
+type SortKey = "readiness" | "dorsal" | "goals" | "yellowCards" | "redCards" | "minutesPlayed";
 
 type SortDirection = "asc" | "desc";
 
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
-  { key: "formStatus", label: "Estado de forma" },
+  { key: "readiness", label: "Rodaje" },
   { key: "dorsal", label: "Dorsal" },
   { key: "goals", label: "Goles" },
   { key: "yellowCards", label: "Amarillas" },
@@ -39,7 +39,7 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: "minutesPlayed", label: "Minutos" },
 ];
 
-function formStatusColor(value: number): "success" | "warning" | "error" {
+function readinessColor(value: number): "success" | "warning" | "error" {
   if (value >= 80) return "success";
   if (value >= 50) return "warning";
   return "error";
@@ -64,7 +64,7 @@ function injuryLabel(player: PlayerStatistics): string | null {
 }
 
 export default function SquadStatistics({ players, loading, teamName }: Props) {
-  const [sortKey, setSortKey] = useState<SortKey>("formStatus");
+  const [sortKey, setSortKey] = useState<SortKey>("readiness");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [positionFilter, setPositionFilter] = useState<string>("");
 
@@ -183,8 +183,8 @@ export default function SquadStatistics({ players, loading, teamName }: Props) {
                 </div>
               </div>
 
-              <div className={styles.formStatusRow}>
-                {player.formStatus == null ? (
+              <div className={styles.readinessRow}>
+                {player.readiness == null ? (
                   <Typography variant="body2" color="text.secondary">
                     Sin datos
                   </Typography>
@@ -192,9 +192,9 @@ export default function SquadStatistics({ players, loading, teamName }: Props) {
                   <Tooltip
                     title={
                       <div>
-                        <div>Entreno: {Math.round(player.formStatusBreakdown?.trainingComponent ?? 0)}%</div>
-                        <div>Partidos: {Math.round(player.formStatusBreakdown?.matchComponent ?? 0)}%</div>
-                        {player.formStatusBreakdown?.recentAbsences.map((absence) => (
+                        <div>Entreno: {Math.round(player.readinessBreakdown?.trainingComponent ?? 0)}%</div>
+                        <div>Partidos: {Math.round(player.readinessBreakdown?.matchComponent ?? 0)}%</div>
+                        {player.readinessBreakdown?.recentAbsences.map((absence) => (
                           <div key={absence.eventId}>
                             {absence.date ? new Date(absence.date).toLocaleDateString("es-ES") : "—"} · {absence.reason} · {absence.pointsImpact}
                           </div>
@@ -202,14 +202,14 @@ export default function SquadStatistics({ players, loading, teamName }: Props) {
                       </div>
                     }
                   >
-                    <div className={styles.formStatusBar} data-testid={`form-status-cell-${player.teamPlayerId}`}>
+                    <div className={styles.readinessBar} data-testid={`readiness-cell-${player.teamPlayerId}`}>
                       <LinearProgress
                         variant="determinate"
-                        value={player.formStatus}
-                        color={formStatusColor(player.formStatus)}
+                        value={player.readiness}
+                        color={readinessColor(player.readiness)}
                         className={styles.progressBar}
                       />
-                      <span className={styles.formStatusValue}>{player.formStatus}%</span>
+                      <span className={styles.readinessValue}>{player.readiness}%</span>
                     </div>
                   </Tooltip>
                 )}

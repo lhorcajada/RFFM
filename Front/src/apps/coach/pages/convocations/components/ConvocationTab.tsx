@@ -14,6 +14,7 @@ import EmptyState from "../../../../../shared/components/ui/EmptyState/EmptyStat
 import type { ExcuseType } from "../../../services/excuseTypeService";
 import type { PlayerResponse } from "../../../services/teamplayerService";
 import type { PlayerRating } from "../../../types/playerRating";
+import type { PlayerStatistics } from "../../../services/teamPlayerStatisticsService";
 import PlayerCromo from "../../squad/components/PlayerCromo";
 import type { DropZone } from "./convocationMatchDetail.types";
 import type { DeconvokeProposal } from "../utils/deconvokeProposal";
@@ -87,6 +88,8 @@ type Props = {
   proposalLoading: boolean;
   onApplyProposal: (ids: string[]) => Promise<void>;
   onPrintProposal: () => Promise<void>;
+  /** Rodaje por teamPlayerId (best-effort, puede estar vacío mientras carga). */
+  readinessMap?: Record<string, Pick<PlayerStatistics, "readiness">>;
 };
 
 const GROUPS = [
@@ -135,6 +138,7 @@ export default function ConvocationTab({
   proposalLoading,
   onApplyProposal,
   onPrintProposal,
+  readinessMap,
 }: Props) {
   const [showProposal, setShowProposal] = useState(false);
   const [applyingProposal, setApplyingProposal] = useState(false);
@@ -455,6 +459,7 @@ export default function ConvocationTab({
                                 : null
                             }
                             streakCount={playerStreaks?.get(playerId) ?? null}
+                            readiness={readinessMap?.[playerId]?.readiness ?? null}
                           />
                           {excuseTypes.length > 0 && (
                             <FormControl
@@ -536,6 +541,7 @@ export default function ConvocationTab({
                                 : null
                             }
                             streakCount={playerStreaks?.get(playerId) ?? null}
+                            readiness={readinessMap?.[playerId]?.readiness ?? null}
                           />
                         </div>
                       );

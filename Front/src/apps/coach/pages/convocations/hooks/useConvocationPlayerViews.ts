@@ -12,6 +12,8 @@ type ConvocationPlayersInput = {
   mgmtRatings: Record<string, PlayerRating>;
   matchColumns: MatchColumn[];
   enrichedGrid: Map<string, Map<string, GridCell>>;
+  /** Rodaje por teamPlayerId (best-effort, puede estar vacío mientras carga). */
+  readinessMap?: Record<string, { readiness: number | null }>;
 };
 
 export type ConvocationPlayerViews = {
@@ -27,7 +29,7 @@ function buildDisplayName(player: PlayerResponse): string {
 }
 
 export function useConvocationPlayerViews(input: ConvocationPlayersInput): ConvocationPlayerViews {
-  const { players, mgmtNotCalled, mgmtPending, mgmtPhotos, mgmtRatings, matchColumns, enrichedGrid } = input;
+  const { players, mgmtNotCalled, mgmtPending, mgmtPhotos, mgmtRatings, matchColumns, enrichedGrid, readinessMap } = input;
 
   const playerStreaks = useMemo(() => {
     const result = new Map<string, number>();
@@ -80,8 +82,9 @@ export function useConvocationPlayerViews(input: ConvocationPlayersInput): Convo
         isInjured: false,
         streakCount: playerStreaks.get(p.id) ?? null,
         technicalTotal: playerTechnicalTotals.get(p.id) ?? null,
+        readiness: readinessMap?.[p.id]?.readiness ?? null,
       }));
-  }, [players, mgmtNotCalled, mgmtPending, mgmtPhotos, mgmtRatings, playerStreaks, playerTechnicalTotals]);
+  }, [players, mgmtNotCalled, mgmtPending, mgmtPhotos, mgmtRatings, playerStreaks, playerTechnicalTotals, readinessMap]);
 
   const notCalledPlayers = useMemo(() => {
     const notCalledSet = new Set(mgmtNotCalled);
@@ -98,8 +101,9 @@ export function useConvocationPlayerViews(input: ConvocationPlayersInput): Convo
         isInjured: p.isInjured ?? false,
         streakCount: playerStreaks.get(p.id) ?? null,
         technicalTotal: playerTechnicalTotals.get(p.id) ?? null,
+        readiness: readinessMap?.[p.id]?.readiness ?? null,
       }));
-  }, [players, mgmtNotCalled, mgmtPhotos, mgmtRatings, playerStreaks, playerTechnicalTotals]);
+  }, [players, mgmtNotCalled, mgmtPhotos, mgmtRatings, playerStreaks, playerTechnicalTotals, readinessMap]);
 
   const pendingPlayers = useMemo(() => {
     const pendingSet = new Set(mgmtPending);
@@ -116,8 +120,9 @@ export function useConvocationPlayerViews(input: ConvocationPlayersInput): Convo
         isInjured: false,
         streakCount: playerStreaks.get(p.id) ?? null,
         technicalTotal: playerTechnicalTotals.get(p.id) ?? null,
+        readiness: readinessMap?.[p.id]?.readiness ?? null,
       }));
-  }, [players, mgmtPending, mgmtPhotos, mgmtRatings, playerStreaks, playerTechnicalTotals]);
+  }, [players, mgmtPending, mgmtPhotos, mgmtRatings, playerStreaks, playerTechnicalTotals, readinessMap]);
 
   return {
     playerStreaks,

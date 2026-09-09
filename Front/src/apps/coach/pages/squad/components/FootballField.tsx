@@ -9,6 +9,8 @@ interface FieldPlayer {
   photoSrc?: string | null;
   dorsal?: number | null;
   competitiveness?: number | null;
+  /** Rodaje (0-100), calculado a partir de asistencia y minutos recientes. */
+  readiness?: number | null;
 }
 
 interface FootballFieldProps {
@@ -69,6 +71,7 @@ export default function FootballField({ slotDefs, slots, playersById }: Football
                       photoSrc: player.photoSrc,
                       dorsal: player.dorsal,
                       competitiveness: player.competitiveness,
+                      readiness: player.readiness,
                     }
                   : null
               }

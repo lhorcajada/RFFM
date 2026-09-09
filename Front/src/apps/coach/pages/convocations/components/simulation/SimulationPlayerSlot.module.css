@@ -222,6 +222,14 @@
   filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.7));
 }
 
+/* Readiness ("Rodaje") dot — bottom-left of the player card, the only free corner */
+.readinessDot {
+  position: absolute;
+  bottom: -2px;
+  left: -2px;
+  z-index: 3;
+}
+
 .usedBadgeSlot {
   position: absolute;
   bottom: -10px;

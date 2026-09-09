@@ -39,6 +39,8 @@ import SimulationConfig from "./simulation/SimulationConfig";
 import MatchCompetitivenessReport from "./simulation/MatchCompetitivenessReport";
 import type { SimSlotPlayer } from "./simulation/SimulationPlayerSlot";
 import type { SquadPlayer } from "../../squad/components/IdealLineup";
+import ReadinessBadge from "../../../components/ReadinessBadge/ReadinessBadge";
+import ReadinessLegend from "../../../components/ReadinessLegend/ReadinessLegend";
 import styles from "./SimulacionTab.module.css";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -164,6 +166,7 @@ function BenchPlayerCard({
               ⏱ {player.streakCount}
             </span>
           )}
+          <ReadinessBadge value={player.readiness} dense />
         </div>
         {!isLeaving ? (
           hasPlayed
@@ -310,6 +313,7 @@ export default function SimulacionTab({ teamId, eventId, lineupPlayers, isFriend
             photoSrc: p.photoSrc,
             dorsal: p.dorsal,
             competitiveness: p.competitiveness,
+            readiness: p.readiness,
           },
         ]),
       ),
@@ -544,6 +548,10 @@ export default function SimulacionTab({ teamId, eventId, lineupPlayers, isFriend
                 <span className={styles.legendItem}>
                   <span className={styles.benchMinTag} style={{ fontSize: "0.5rem" }}>0&apos;</span> Minutos
                 </span>
+                <span className={styles.legendItem}>
+                  <span className={styles.benchStreakBadge} style={{ fontSize: "0.5rem" }}>⏱ N</span> Jornadas sin decisión técnica
+                </span>
+                <ReadinessLegend />
               </div>
               <div className={styles.benchZoneStatic}>
                 {benchPlayers.length === 0 ? (

@@ -22,7 +22,7 @@ function safeFilename(name: string): string {
     .toLowerCase();
 }
 
-function formStatusLabel(value: number | null): string {
+function readinessLabel(value: number | null): string {
   return value == null ? "Sin datos" : `${value}%`;
 }
 
@@ -37,7 +37,7 @@ function truncate(doc: jsPDF, text: string, maxWidth: number): string {
 
 /**
  * Exports a plain table PDF (Dorsal, Jugador, Posición, Goles, Amarillas, Rojas,
- * Minutos, Estado de forma) with one row per player, paginating when the table
+ * Minutos, Rodaje) with one row per player, paginating when the table
  * overflows the page. Pagination logic mirrors squadPdfExport.ts's
  * drawSummaryPage BOTTOM_LIMIT check.
  */
@@ -72,7 +72,7 @@ export function exportSquadStatisticsPdf(players: PlayerStatistics[], teamName?:
     { label: "Amar.", w: 47, align: "center" as const, key: "yellowCards" as const },
     { label: "Rojas", w: 47, align: "center" as const, key: "redCards" as const },
     { label: "Minutos", w: 62, align: "center" as const, key: "minutesPlayed" as const },
-    { label: "Estado de forma", w: 72.28, align: "center" as const, key: "formStatus" as const },
+    { label: "Rodaje", w: 72.28, align: "center" as const, key: "readiness" as const },
   ];
 
   function drawTableHeader(yy: number): void {
@@ -111,7 +111,7 @@ export function exportSquadStatisticsPdf(players: PlayerStatistics[], teamName?:
       String(p.yellowCards),
       String(p.redCards),
       String(p.minutesPlayed),
-      formStatusLabel(p.formStatus),
+      readinessLabel(p.readiness),
     ];
 
     let cx = MH;

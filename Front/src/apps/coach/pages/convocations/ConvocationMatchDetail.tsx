@@ -14,6 +14,7 @@ import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import configurationCoachService from "../../services/configurationCoachService";
 import { getSportEventById } from "../../services/sportEventService";
+import { getTeamPlayerStatistics, type PlayerStatistics } from "../../services/teamPlayerStatisticsService";
 import type { IdealLineupHandle } from "../squad/components/IdealLineup";
 import ConvocationTab from "./components/ConvocationTab";
 import DesconvocatoriasTab from "./components/DesconvocatoriasTab";
@@ -161,6 +162,22 @@ export default function ConvocationMatchDetail() {
   // Sport event category — used to enable unlimited substitution windows on friendlies
   const [isFriendly, setIsFriendly] = useState(false);
 
+  // Rodaje por jugador (best-effort, no bloqueante) — compartido entre las 4 pestañas
+  const [readinessMap, setReadinessMap] = useState<Record<string, PlayerStatistics>>({});
+  useEffect(() => {
+    if (!teamId) return;
+    let mounted = true;
+    getTeamPlayerStatistics(teamId)
+      .then((stats) => {
+        if (!mounted) return;
+        const map: Record<string, PlayerStatistics> = {};
+        stats.forEach((s) => { map[s.teamPlayerId] = s; });
+        setReadinessMap(map);
+      })
+      .catch(() => {});
+    return () => { mounted = false; };
+  }, [teamId]);
+
   // Data hooks
   const convocation = useConvocationManagement(teamId, match?.date);
 
@@ -207,6 +224,7 @@ export default function ConvocationMatchDetail() {
     mgmtRatings: convocation.mgmtRatings,
     matchColumns: grid.matchColumns,
     enrichedGrid: grid.enrichedGrid,
+    readinessMap,
   });
 
   const handleDeconvokeConfirm = useCallback(async () => {
@@ -361,6 +379,7 @@ export default function ConvocationMatchDetail() {
             proposalLoading={loadingProposalContext || grid.isLoading || convocation.loadingPlayers}
             onApplyProposal={handleApplyProposal}
             onPrintProposal={handlePrintProposal}
+            readinessMap={readinessMap}
           />
         )}
 

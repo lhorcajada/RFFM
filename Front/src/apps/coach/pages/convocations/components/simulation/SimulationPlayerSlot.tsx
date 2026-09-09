@@ -1,5 +1,6 @@
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
+import ReadinessBadge from "../../../../components/ReadinessBadge/ReadinessBadge";
 import styles from "./SimulationPlayerSlot.module.css";
 
 export interface SimSlotPlayer {
@@ -9,6 +10,8 @@ export interface SimSlotPlayer {
   photoSrc?: string | null;
   dorsal?: number | null;
   competitiveness?: number | null;
+  /** Rodaje (0-100), calculado a partir de asistencia y minutos recientes. */
+  readiness?: number | null;
 }
 
 interface SimulationPlayerSlotProps {
@@ -97,6 +100,7 @@ function DraggablePrepareCard({
       {leaving && <span className={styles.leavingBadge}>SALE</span>}
       {hasGoals && <span className={styles.goalBadge}>⚽</span>}
       {usedElsewhere ? <span className={styles.usedBadgeSlot}>Equipo {usedTab! + 1}</span> : null}
+      <ReadinessBadge value={player.readiness} variant="dot" className={styles.readinessDot} />
     </div>
   );
 }
@@ -142,6 +146,7 @@ function DraggableStaticCard({ player, hasGoals, usedTab, usedElsewhere }: { pla
       )}
       {hasGoals && <span className={styles.goalBadge}>⚽</span>}
       {usedElsewhere ? <span className={styles.usedBadgeSlot}>Equipo {usedTab! + 1}</span> : null}
+      <ReadinessBadge value={player.readiness} variant="dot" className={styles.readinessDot} />
     </div>
   );
 }
@@ -175,6 +180,7 @@ function StaticCard({ player, hasGoals, usedTab, usedElsewhere }: { player: SimS
       )}
       {hasGoals && <span className={styles.goalBadge}>⚽</span>}
       {usedElsewhere ? <span className={styles.usedBadgeSlot}>Equipo {usedTab! + 1}</span> : null}
+      <ReadinessBadge value={player.readiness} variant="dot" className={styles.readinessDot} />
     </div>
   );
 }

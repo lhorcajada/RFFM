@@ -19,8 +19,8 @@ function buildPlayer(overrides: Partial<PlayerStatistics> = {}): PlayerStatistic
     matchesPlayed: 0,
     daysSinceLastInjury: null,
     lastInjuryDurationDays: null,
-    formStatus: 50,
-    formStatusBreakdown: null,
+    readiness: 50,
+    readinessBreakdown: null,
     ...overrides,
   };
 }
@@ -101,10 +101,10 @@ describe("SquadStatistics — tarjetas y filtros", () => {
     expect(screen.getByText("Defensa Uno")).toBeInTheDocument();
   });
 
-  it("muestra 'Sin datos' cuando el estado de forma es null", () => {
+  it("muestra 'Sin datos' cuando el rodaje es null", () => {
     render(
       <SquadStatistics
-        players={[buildPlayer({ teamPlayerId: "p1", displayName: "Nuevo Jugador", formStatus: null })]}
+        players={[buildPlayer({ teamPlayerId: "p1", displayName: "Nuevo Jugador", readiness: null })]}
         loading={false}
       />,
     );

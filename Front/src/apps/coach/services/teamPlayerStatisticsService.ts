@@ -7,7 +7,7 @@ export type RecentAbsence = {
   pointsImpact: number;
 };
 
-export type FormStatusBreakdown = {
+export type ReadinessBreakdown = {
   trainingComponent: number;
   matchComponent: number;
   trainingSessionsConsidered: number;
@@ -30,8 +30,8 @@ export type PlayerStatistics = {
   matchesPlayed: number;
   daysSinceLastInjury: number | null;
   lastInjuryDurationDays: number | null;
-  formStatus: number | null;
-  formStatusBreakdown: FormStatusBreakdown | null;
+  readiness: number | null;
+  readinessBreakdown: ReadinessBreakdown | null;
 };
 
 export async function getTeamPlayerStatistics(teamId: string): Promise<PlayerStatistics[]> {

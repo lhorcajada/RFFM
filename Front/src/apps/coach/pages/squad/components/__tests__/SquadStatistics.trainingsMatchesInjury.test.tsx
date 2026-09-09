@@ -18,8 +18,8 @@ function buildPlayer(overrides: Partial<PlayerStatistics> = {}): PlayerStatistic
     matchesPlayed: 0,
     daysSinceLastInjury: null,
     lastInjuryDurationDays: null,
-    formStatus: 50,
-    formStatusBreakdown: null,
+    readiness: 50,
+    readinessBreakdown: null,
     ...overrides,
   };
 }

@@ -5,6 +5,7 @@ import HistoryIcon from "@mui/icons-material/History";
 import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
 import avatarFallback from "../../../../../assets/avatar.svg";
 import type { SeasonPlayerStats } from "../../convocations/components/simulation/liveMatch.types";
+import ReadinessBadge from "../../../components/ReadinessBadge/ReadinessBadge";
 import styles from "./PlayerCromo.module.css";
 
 type RatingData = {
@@ -38,6 +39,8 @@ type Props = {
   seasonStats?: SeasonPlayerStats | null;
   /** Consecutive past matches since the last technical deconvocation. Shown as a small badge. */
   streakCount?: number | null;
+  /** Rodaje (0-100). Se muestra como un badge compacto. */
+  readiness?: number | null;
 };
 
 const STATS: { key: keyof RatingData; label: string }[] = [
@@ -89,6 +92,7 @@ export default function PlayerCromo({
   onClick,
   seasonStats,
   streakCount,
+  readiness,
 }: Props) {
   const resolvedName = alias?.trim() ? alias.trim() : displayName;
   const initial = resolvedName.trim().charAt(0).toUpperCase();
@@ -209,6 +213,8 @@ export default function PlayerCromo({
             {streakCount}
           </div>
         )}
+
+        <ReadinessBadge value={readiness} />
 
         {showActions && (
           <div className={styles.cardActions}>

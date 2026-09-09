@@ -4,6 +4,8 @@ import IdealLineup, {
   type IdealLineupHandle,
   type SquadPlayer,
 } from "../../squad/components/IdealLineup";
+import ReadinessBadge from "../../../components/ReadinessBadge/ReadinessBadge";
+import ReadinessLegend from "../../../components/ReadinessLegend/ReadinessLegend";
 import styles from "./AlineacionTab.module.css";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -70,6 +72,7 @@ export default function AlineacionTab({
                   <span className={styles.desconvocadosDorsal}>{p.dorsal}</span>
                 )}
                 <span className={styles.desconvocadosName}>{p.displayName}</span>
+                <ReadinessBadge value={p.readiness} dense />
                 {onAcceptPending && (
                   <button
                     type="button"
@@ -101,6 +104,7 @@ export default function AlineacionTab({
                   <span className={styles.desconvocadosDorsal}>{p.dorsal}</span>
                 )}
                 <span className={styles.desconvocadosName}>{p.displayName}</span>
+                <ReadinessBadge value={p.readiness} dense />
                 {p.isInjured && (
                   <span className={styles.desconvocadosInjuryTag} title="Lesionado">🏥</span>
                 )}
@@ -124,6 +128,9 @@ export default function AlineacionTab({
 
   return (
     <div className={styles.tabContent}>
+      <div className={styles.legendBar}>
+        <ReadinessLegend />
+      </div>
       <IdealLineup
         ref={lineupRef}
         players={lineupPlayers}

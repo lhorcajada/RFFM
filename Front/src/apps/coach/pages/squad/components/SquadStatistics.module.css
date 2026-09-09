@@ -107,12 +107,12 @@
   white-space: nowrap;
 }
 
-.formStatusRow {
+.readinessRow {
   padding-top: 6px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.formStatusBar {
+.readinessBar {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -125,7 +125,7 @@
   border-radius: 4px;
 }
 
-.formStatusValue {
+.readinessValue {
   font-size: 0.75rem;
   font-weight: 700;
   min-width: 32px;

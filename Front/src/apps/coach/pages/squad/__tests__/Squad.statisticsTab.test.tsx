@@ -106,7 +106,7 @@ vi.mock("../components/SquadStatistics", () => ({
       <table>
         <thead>
           <tr>
-            <th>Estado de forma</th>
+            <th>Rodaje</th>
           </tr>
         </thead>
       </table>
@@ -139,8 +139,8 @@ describe("Squad — pestaña Estadísticas", () => {
         yellowCards: 1,
         redCards: 0,
         minutesPlayed: 450,
-        formStatus: 82,
-        formStatusBreakdown: null,
+        readiness: 82,
+        readinessBreakdown: null,
       },
     ]);
   });
@@ -162,7 +162,7 @@ describe("Squad — pestaña Estadísticas", () => {
 
     await user.click(screen.getByRole("tab", { name: "Estadísticas" }));
 
-    expect(await screen.findByText("Estado de forma")).toBeInTheDocument();
+    expect(await screen.findByText("Rodaje")).toBeInTheDocument();
     expect(getTeamPlayerStatisticsMock).toHaveBeenCalledWith("team-1");
   });
 });
