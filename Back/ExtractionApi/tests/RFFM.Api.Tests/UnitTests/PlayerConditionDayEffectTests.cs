@@ -56,23 +56,23 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
-        public void InjuryAbsence_AppliesFitnessMinusFourAndFatigueMinusSix()
+        public void InjuryAbsence_AppliesFitnessMinusFourAndFatigueMinusFourPointSixFour()
         {
             var (fitnessDelta, fatigueDelta) = PlayerConditionDayEffect.Calculate(
                 new PlayerConditionDayEffect.DayEvent(PlayerConditionDayEffect.DayOutcome.InjuryAbsence));
 
             Assert.Equal(-4, fitnessDelta);
-            Assert.Equal(-2, fatigueDelta);
+            Assert.Equal(-4.64, fatigueDelta);
         }
 
         [Fact]
-        public void Rest_AppliesFitnessMinusTwoAndFatigueMinusSix()
+        public void Rest_AppliesFitnessMinusTwoAndFatigueMinusFourPointSixFour()
         {
             var (fitnessDelta, fatigueDelta) = PlayerConditionDayEffect.Calculate(
                 new PlayerConditionDayEffect.DayEvent(PlayerConditionDayEffect.DayOutcome.Rest));
 
             Assert.Equal(-2, fitnessDelta);
-            Assert.Equal(-2, fatigueDelta);
+            Assert.Equal(-4.64, fatigueDelta);
         }
 
         [Fact]
@@ -81,7 +81,24 @@ namespace RFFM.Api.Tests.UnitTests
             var (fitnessDelta, fatigueDelta) = PlayerConditionDayEffect.Calculate(default);
 
             Assert.Equal(-2, fitnessDelta);
-            Assert.Equal(-2, fatigueDelta);
+            Assert.Equal(-4.64, fatigueDelta);
+        }
+
+        [Fact]
+        public void ReferenceWeeklyLoad_TwoTrainingsAndOneSixtyMinuteMatch_FatigueStaysRoughlyFlat()
+        {
+            // 2 trainings + 1 match (60 min) + 4 rest days = one reference "plena forma" week.
+            // The whole point of calibrating RestFatigueDelta to this load is that a player who
+            // keeps this exact rhythm indefinitely should NOT see Cansancio climb to the 100
+            // cap — it should hover near where it started.
+            double fatigue = 0;
+            fatigue += PlayerConditionDayEffect.Calculate(new(PlayerConditionDayEffect.DayOutcome.Training)).FatigueDelta;
+            fatigue += PlayerConditionDayEffect.Calculate(new(PlayerConditionDayEffect.DayOutcome.Match, 60)).FatigueDelta;
+            fatigue += PlayerConditionDayEffect.Calculate(new(PlayerConditionDayEffect.DayOutcome.Training)).FatigueDelta;
+            for (var i = 0; i < 4; i++)
+                fatigue += PlayerConditionDayEffect.Calculate(new(PlayerConditionDayEffect.DayOutcome.Rest)).FatigueDelta;
+
+            Assert.InRange(fatigue, -1, 1);
         }
     }
 }

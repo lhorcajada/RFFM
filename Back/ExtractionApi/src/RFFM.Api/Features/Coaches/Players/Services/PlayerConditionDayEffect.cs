@@ -21,12 +21,18 @@ namespace RFFM.Api.Features.Coaches.Players.Services
         public const double FullMatchFatigueDelta = 10;
 
         public const double RestFitnessDelta = -2;
-        public const double RestFatigueDelta = -2; // bajado de -6: con 2-3 entrenos/semana el
-        // descanso recuperaba más rápido de lo que costaba entrenar y el cansancio caía a 0
-        // siempre entre sesiones — confirmado con el usuario (2026-09-09).
+
+        // Calibrado para que un jugador con la carga de referencia (2 entrenos + 1 partido de
+        // 60 min por semana, el mismo ritmo "plena forma" que usa PlayerReadinessCalculator)
+        // no suba de cansancio sin freno: 2*TrainingFatigueDelta + FullMatchFatigueDelta*60/70
+        // = 18.57/semana, repartido entre los 4 días de descanso de esa semana ⇒ -4.64/día.
+        // Con -2/día (valor anterior) esa carga sostenida subía el cansancio semana a semana
+        // hasta tocar el tope de 100 en ~7-8 semanas, arruinando Ef para el jugador más
+        // comprometido posible — confirmado con el usuario (2026-09-09).
+        public const double RestFatigueDelta = -4.64;
 
         public const double InjuryRestFitnessDelta = -4;
-        public const double InjuryRestFatigueDelta = -2; // igual que descanso normal
+        public const double InjuryRestFatigueDelta = -4.64; // igual que descanso normal
 
         public enum DayOutcome { Rest, InjuryAbsence, Training, Match }
 

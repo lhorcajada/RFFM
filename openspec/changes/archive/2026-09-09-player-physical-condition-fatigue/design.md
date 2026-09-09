@@ -299,6 +299,32 @@ de Rodaje, no a esas reglas de disciplina.
 Test de regresión:
 `GetTeamPlayerStatisticsHandlerTests.PlayerWithFriendlyMatchMinutes_CountsTowardReadinessMatchComponent`.
 
+## Addendum 5 — sin punto de equilibrio: la carga sostenida de referencia hacía subir el
+cansancio sin freno hasta el tope
+
+El usuario preguntó: "¿cuándo tendrá un jugador buen Ef si viene a entrenar a todo y juega
+todos los partidos ~60 min?". Con `RestFatigueDelta = -2` (Addendum 3), la respuesta era
+"nunca a partir de la semana 7-8": la ganancia semanal de Cansancio con la carga de referencia
+(2 entrenos + 1 partido de 60 min/semana, el mismo ritmo que `PlayerReadinessCalculator` usa
+como "plena forma") es `2×5 + 10×60/70 ≈ 18.57`, muy por encima de lo que recuperan los 4 días
+de descanso de esa semana (`4×-2 = -8`) — el Cansancio subía sin freno hasta tocar el tope de
+100, arruinando `Ef` justo para el jugador más comprometido posible.
+
+**Fix**: `RestFatigueDelta`/`InjuryRestFatigueDelta` pasan de -2 a **-4.64/día** — calibrado
+para que la ganancia semanal de la carga de referencia (`18.57`) se compense exactamente con
+la recuperación de los 4 días de descanso de esa semana (`4×-4.64 ≈ -18.57`). Confirmado con el
+usuario un objetivo de equilibrio de Cansancio ~40-45 para esa carga sostenida (2026-09-09).
+
+**Limitación conocida**: el modelo sigue siendo de deltas fijos por día (no hay decaimiento
+proporcional/exponencial), así que este "equilibrio" es aproximado — no es un atractor real,
+solo hace que la carga de referencia no diverja. Un jugador con más carga que la referencia
+seguirá subiendo de cansancio (correcto); uno con menos, seguirá bajando hacia 0 (correcto).
+
+**Nota de test**: `-4.64` no es representable exactamente en `double`, así que comparar el
+resultado acumulado día a día del servicio contra un cálculo independiente en el test con
+`Assert.Equal` sin tolerancia puede fallar por el último bit (orden de operaciones distinto) —
+usar `Assert.Equal(expected, actual, precision: 6)` en vez de igualdad exacta para estos casos.
+
 ## Non-goals reiterados
 - Sin reconstrucción retroactiva del historial completo de temporadas anteriores.
 - Sin correlación con riesgo de lesión.

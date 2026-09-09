@@ -185,8 +185,8 @@ namespace RFFM.Api.Tests.UnitTests
             var expectedFatigue = Math.Clamp(
                 fatigueAfterCheckpoint + PlayerConditionDayEffect.RestFatigueDelta + PlayerConditionDayEffect.TrainingFatigueDelta + PlayerConditionDayEffect.RestFatigueDelta,
                 0, 100);
-            Assert.Equal(expectedFitness, condition.PhysicalFitness);
-            Assert.Equal(expectedFatigue, condition.Fatigue);
+            Assert.Equal(expectedFitness, condition.PhysicalFitness, precision: 6);
+            Assert.Equal(expectedFatigue, condition.Fatigue, precision: 6);
         }
 
         [Fact]
