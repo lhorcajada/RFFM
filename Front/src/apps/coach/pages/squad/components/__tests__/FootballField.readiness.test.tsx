@@ -6,8 +6,8 @@ import type { FormationSlotDef } from "../../../types/formation";
 
 const slotDefs: FormationSlotDef[] = [{ slotIndex: 1, label: "GK", x: 12, y: 50 }];
 
-describe("FootballField - indicador de rodaje en jugadores de campo", () => {
-  it("muestra un punto de rodaje en el slot del jugador en el campo", () => {
+describe("FootballField - barras Ef/R/C en jugadores de campo", () => {
+  it("muestra las barras compactas Ef/R/C, con letra siempre visible, sobre el jugador en el campo", () => {
     render(
       <DndContext>
         <FootballField
@@ -19,16 +19,20 @@ describe("FootballField - indicador de rodaje en jugadores de campo", () => {
               displayName: "Jugador Uno",
               dorsal: 7,
               readiness: 72,
+              fatigue: 20,
             },
           }}
         />
       </DndContext>,
     );
 
-    expect(screen.getByTitle("Rodaje: 72%")).toBeInTheDocument();
+    // Ef = max(0, min(100, 72 - 20)) = 52
+    expect(screen.getByTestId("player-form-bar-ef")).toHaveTextContent("52%");
+    expect(screen.getByTestId("player-form-bar-r")).toHaveTextContent("72%");
+    expect(screen.getByTestId("player-form-bar-c")).toHaveTextContent("20%");
   });
 
-  it("no muestra el punto de rodaje cuando el jugador no tiene rodaje calculado", () => {
+  it("no muestra las barras cuando el jugador no tiene rodaje ni cansancio calculado", () => {
     render(
       <DndContext>
         <FootballField
@@ -40,12 +44,13 @@ describe("FootballField - indicador de rodaje en jugadores de campo", () => {
               displayName: "Jugador Uno",
               dorsal: 7,
               readiness: null,
+              fatigue: null,
             },
           }}
         />
       </DndContext>,
     );
 
-    expect(screen.queryByTitle(/Rodaje/)).not.toBeInTheDocument();
+    expect(screen.queryByTestId("player-form-bar-ef")).not.toBeInTheDocument();
   });
 });

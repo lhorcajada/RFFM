@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest";
 import { DndContext } from "@dnd-kit/core";
 import SimulationPlayerSlot from "../SimulationPlayerSlot";
 
-describe("SimulationPlayerSlot - indicador de rodaje en jugadores de campo", () => {
-  it("muestra un punto de rodaje en el slot del jugador en el campo", () => {
+describe("SimulationPlayerSlot - barras Ef/R/C en jugadores de campo", () => {
+  it("muestra las barras compactas Ef/R/C, con letra siempre visible, sobre el jugador del campo", () => {
     render(
       <DndContext>
         <SimulationPlayerSlot
@@ -18,15 +18,19 @@ describe("SimulationPlayerSlot - indicador de rodaje en jugadores de campo", () 
             displayName: "Jugador Uno",
             dorsal: 7,
             readiness: 30,
+            fatigue: 10,
           }}
         />
       </DndContext>,
     );
 
-    expect(screen.getByTitle("Rodaje: 30%")).toBeInTheDocument();
+    // Ef = max(0, min(100, 30 - 10)) = 20
+    expect(screen.getByTestId("player-form-bar-ef")).toHaveTextContent("20%");
+    expect(screen.getByTestId("player-form-bar-r")).toHaveTextContent("30%");
+    expect(screen.getByTestId("player-form-bar-c")).toHaveTextContent("10%");
   });
 
-  it("no muestra el punto de rodaje cuando el jugador no tiene rodaje calculado", () => {
+  it("no muestra las barras cuando el jugador no tiene rodaje ni cansancio calculado", () => {
     render(
       <DndContext>
         <SimulationPlayerSlot
@@ -40,11 +44,12 @@ describe("SimulationPlayerSlot - indicador de rodaje en jugadores de campo", () 
             displayName: "Jugador Uno",
             dorsal: 7,
             readiness: null,
+            fatigue: null,
           }}
         />
       </DndContext>,
     );
 
-    expect(screen.queryByTitle(/Rodaje/)).not.toBeInTheDocument();
+    expect(screen.queryByTestId("player-form-bar-ef")).not.toBeInTheDocument();
   });
 });

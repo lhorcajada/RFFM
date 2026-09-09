@@ -140,26 +140,8 @@
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.conditionItem {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.conditionLabel {
-  font-size: 9px;
-  opacity: 0.55;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  min-width: 62px;
-  flex-shrink: 0;
-}
-
-.conditionValue {
-  font-size: 0.7rem;
-  font-weight: 700;
-  min-width: 30px;
-  text-align: right;
+.legendRow {
+  padding-top: 2px;
 }
 
 .statsRow {

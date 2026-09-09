@@ -90,12 +90,22 @@
 
 .desconvocadosItem {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 12px;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 12px;
   font-size: 0.78rem;
   color: rgba(255, 255, 255, 0.75);
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.desconvocadosTopRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.desconvocadosFormBars {
+  width: 100%;
 }
 
 .desconvocadosItem:last-child {

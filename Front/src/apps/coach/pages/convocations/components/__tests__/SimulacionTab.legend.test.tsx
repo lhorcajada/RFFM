@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import SimulacionTab from "../SimulacionTab";
 import type { UseMatchSimulationReturn } from "../../hooks/useMatchSimulation";
 import type { SquadPlayer } from "../../../squad/components/IdealLineup";
@@ -80,18 +80,14 @@ const lineupPlayers: SquadPlayer[] = [
   { id: "p1", displayName: "Jugador Uno", dorsal: 7, position: "Delantero", readiness: 42, streakCount: 3 },
 ];
 
-describe("SimulacionTab - leyenda de rodaje y jornadas sin decisión técnica", () => {
-  it("muestra la leyenda de Rodaje y de jornadas sin decisión técnica en el banquillo", async () => {
+describe("SimulacionTab - leyenda única de Ef/Rodaje/Cansancio y de jornadas sin decisión técnica", () => {
+  it("muestra una única leyenda consolidada y la de jornadas sin decisión técnica en el banquillo", async () => {
     useMatchSimulationMock.mockReturnValue(baseSimReturn());
 
     render(<SimulacionTab teamId="team-1" eventId="event-1" lineupPlayers={lineupPlayers} />);
 
-    await screen.findByText("Rodaje");
-    const readinessLegend = screen.getByLabelText("Leyenda de Rodaje");
-    expect(within(readinessLegend).getByText("≥80")).toBeInTheDocument();
-    expect(within(readinessLegend).getByText("50-79")).toBeInTheDocument();
-    expect(within(readinessLegend).getByText("<50")).toBeInTheDocument();
-    expect(within(readinessLegend).getByText("Sin datos")).toBeInTheDocument();
+    const legends = await screen.findAllByLabelText("Leyenda de Ef, Rodaje y Cansancio");
+    expect(legends).toHaveLength(1);
     expect(screen.getByText("Jornadas sin decisión técnica")).toBeInTheDocument();
   });
 });

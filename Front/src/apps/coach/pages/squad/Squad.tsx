@@ -22,6 +22,7 @@ import { getSeasonPlayerStats } from "../../services/liveMatchService";
 import { getTeamPlayerStatistics } from "../../services/teamPlayerStatisticsService";
 import type { PlayerStatistics } from "../../services/teamPlayerStatisticsService";
 import SquadStatistics from "./components/SquadStatistics";
+import PlayerFormLegend from "../../components/PlayerFormLegend/PlayerFormLegend";
 import type { SeasonPlayerStats } from "../convocations/components/simulation/liveMatch.types";
 import type { PlayerRating } from "../../types/playerRating";
 import styles from "./Squad.module.css";
@@ -125,6 +126,12 @@ export default function Squad() {
   }
 
   const playersByPosition = useMemo(() => groupByPosition(players), [players]);
+
+  const playerStatsMap = useMemo(() => {
+    const map: Record<string, PlayerStatistics> = {};
+    playerStats.forEach((s) => { map[s.teamPlayerId] = s; });
+    return map;
+  }, [playerStats]);
 
   const ratingPlayers = useMemo(
     () =>
@@ -388,6 +395,8 @@ export default function Squad() {
                                 : null;
                             })()}
                             seasonStats={!isRestricted || (!loadingProfile && p.id === associatedTeamPlayerId) ? (seasonStats[p.id] ?? null) : null}
+                            readiness={playerStatsMap[p.id]?.readiness ?? null}
+                            fatigue={playerStatsMap[p.id]?.fatigue ?? null}
                             to={
                               isFan ? undefined :
                               isPlayerOrFamily && (loadingProfile || (associatedPlayerId && p.id !== associatedTeamPlayerId)) ? undefined :
@@ -402,6 +411,11 @@ export default function Squad() {
                   </div>
                 );
               })}
+            </div>
+          )}
+          {activeTab === 0 && !loadingPlayers && playersByPosition.length > 0 && (
+            <div className={styles.formLegendRow}>
+              <PlayerFormLegend />
             </div>
           )}
 

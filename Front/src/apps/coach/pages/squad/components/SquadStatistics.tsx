@@ -18,6 +18,8 @@ import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import type { PlayerStatistics } from "../../../services/teamPlayerStatisticsService";
 import { exportSquadStatisticsPdf } from "../squadStatsPdfExport";
+import PlayerFormBars from "../../../components/PlayerFormBars/PlayerFormBars";
+import PlayerFormLegend from "../../../components/PlayerFormLegend/PlayerFormLegend";
 import styles from "./SquadStatistics.module.css";
 
 type Props = {
@@ -43,22 +45,6 @@ function readinessColor(value: number): "success" | "warning" | "error" {
   if (value >= 80) return "success";
   if (value >= 50) return "warning";
   return "error";
-}
-
-// Forma física y Disponibilidad: valores altos son buenos, mismo criterio que Rodaje
-// (verde >=80, ámbar 50-79, rojo <50).
-function highIsGoodColor(value: number): "success" | "warning" | "error" {
-  if (value >= 80) return "success";
-  if (value >= 50) return "warning";
-  return "error";
-}
-
-// Cansancio: valores altos son malos, criterio invertido respecto a Rodaje/Forma física
-// (rojo >=70, ámbar 40-69, verde <40).
-function fatigueColor(value: number): "success" | "warning" | "error" {
-  if (value >= 70) return "error";
-  if (value >= 40) return "warning";
-  return "success";
 }
 
 function compareValues(a: PlayerStatistics, b: PlayerStatistics, key: SortKey): number {
@@ -180,6 +166,10 @@ export default function SquadStatistics({ players, loading, teamName }: Props) {
         </div>
       </div>
 
+      <div className={styles.legendRow}>
+        <PlayerFormLegend />
+      </div>
+
       <div className={styles.grid}>
         {filteredAndSorted.map((player) => {
           const injury = injuryLabel(player);
@@ -232,36 +222,7 @@ export default function SquadStatistics({ players, loading, teamName }: Props) {
               </div>
 
               <div className={styles.conditionRow}>
-                <div className={styles.conditionItem} data-testid={`fitness-cell-${player.teamPlayerId}`}>
-                  <span className={styles.conditionLabel}>Forma física</span>
-                  <LinearProgress
-                    variant="determinate"
-                    value={player.physicalFitness}
-                    color={highIsGoodColor(player.physicalFitness)}
-                    className={styles.progressBar}
-                  />
-                  <span className={styles.conditionValue}>{Math.round(player.physicalFitness)}%</span>
-                </div>
-                <div className={styles.conditionItem} data-testid={`fatigue-cell-${player.teamPlayerId}`}>
-                  <span className={styles.conditionLabel}>Cansancio</span>
-                  <LinearProgress
-                    variant="determinate"
-                    value={player.fatigue}
-                    color={fatigueColor(player.fatigue)}
-                    className={styles.progressBar}
-                  />
-                  <span className={styles.conditionValue}>{Math.round(player.fatigue)}%</span>
-                </div>
-                <div className={styles.conditionItem} data-testid={`availability-cell-${player.teamPlayerId}`}>
-                  <span className={styles.conditionLabel}>Disponibilidad</span>
-                  <LinearProgress
-                    variant="determinate"
-                    value={player.availability}
-                    color={highIsGoodColor(player.availability)}
-                    className={styles.progressBar}
-                  />
-                  <span className={styles.conditionValue}>{Math.round(player.availability)}%</span>
-                </div>
+                <PlayerFormBars variant="full" readiness={player.readiness} fatigue={player.fatigue} />
               </div>
 
               <div className={styles.statsRow}>

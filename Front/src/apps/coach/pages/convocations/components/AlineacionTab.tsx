@@ -4,10 +4,8 @@ import IdealLineup, {
   type IdealLineupHandle,
   type SquadPlayer,
 } from "../../squad/components/IdealLineup";
-import ReadinessBadge from "../../../components/ReadinessBadge/ReadinessBadge";
-import ReadinessLegend from "../../../components/ReadinessLegend/ReadinessLegend";
-import AvailabilityBadge from "../../../components/AvailabilityBadge/AvailabilityBadge";
-import AvailabilityLegend from "../../../components/AvailabilityLegend/AvailabilityLegend";
+import PlayerFormBars from "../../../components/PlayerFormBars/PlayerFormBars";
+import PlayerFormLegend from "../../../components/PlayerFormLegend/PlayerFormLegend";
 import styles from "./AlineacionTab.module.css";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -70,27 +68,28 @@ export default function AlineacionTab({
           <div className={styles.pendingList}>
             {pendingPlayers.map((p) => (
               <div key={p.id} className={styles.desconvocadosItem}>
-                {p.dorsal != null && (
-                  <span className={styles.desconvocadosDorsal}>{p.dorsal}</span>
-                )}
-                <span className={styles.desconvocadosName}>{p.displayName}</span>
-                <ReadinessBadge value={p.readiness} dense />
-                <AvailabilityBadge
-                  availability={p.availability}
-                  physicalFitness={p.physicalFitness}
+                <div className={styles.desconvocadosTopRow}>
+                  {p.dorsal != null && (
+                    <span className={styles.desconvocadosDorsal}>{p.dorsal}</span>
+                  )}
+                  <span className={styles.desconvocadosName}>{p.displayName}</span>
+                  {onAcceptPending && (
+                    <button
+                      type="button"
+                      className={styles.acceptPendingBtn}
+                      title="Aceptar convocatoria"
+                      onClick={() => onAcceptPending(p.id)}
+                    >
+                      ✓
+                    </button>
+                  )}
+                </div>
+                <PlayerFormBars
+                  variant="full"
+                  readiness={p.readiness}
                   fatigue={p.fatigue}
-                  dense
+                  className={styles.desconvocadosFormBars}
                 />
-                {onAcceptPending && (
-                  <button
-                    type="button"
-                    className={styles.acceptPendingBtn}
-                    title="Aceptar convocatoria"
-                    onClick={() => onAcceptPending(p.id)}
-                  >
-                    ✓
-                  </button>
-                )}
               </div>
             ))}
           </div>
@@ -108,30 +107,31 @@ export default function AlineacionTab({
           ) : (
             notCalledPlayers.map((p) => (
               <div key={p.id} className={styles.desconvocadosItem}>
-                {p.dorsal != null && (
-                  <span className={styles.desconvocadosDorsal}>{p.dorsal}</span>
-                )}
-                <span className={styles.desconvocadosName}>{p.displayName}</span>
-                <ReadinessBadge value={p.readiness} dense />
-                <AvailabilityBadge
-                  availability={p.availability}
-                  physicalFitness={p.physicalFitness}
+                <div className={styles.desconvocadosTopRow}>
+                  {p.dorsal != null && (
+                    <span className={styles.desconvocadosDorsal}>{p.dorsal}</span>
+                  )}
+                  <span className={styles.desconvocadosName}>{p.displayName}</span>
+                  {p.isInjured && (
+                    <span className={styles.desconvocadosInjuryTag} title="Lesionado">🏥</span>
+                  )}
+                  {!p.isInjured && onReconvoke && (
+                    <button
+                      type="button"
+                      className={styles.desconvocadosReconvokeBtn}
+                      title="Pasar al banquillo"
+                      onClick={() => onReconvoke(p.id)}
+                    >
+                      ↩
+                    </button>
+                  )}
+                </div>
+                <PlayerFormBars
+                  variant="full"
+                  readiness={p.readiness}
                   fatigue={p.fatigue}
-                  dense
+                  className={styles.desconvocadosFormBars}
                 />
-                {p.isInjured && (
-                  <span className={styles.desconvocadosInjuryTag} title="Lesionado">🏥</span>
-                )}
-                {!p.isInjured && onReconvoke && (
-                  <button
-                    type="button"
-                    className={styles.desconvocadosReconvokeBtn}
-                    title="Pasar al banquillo"
-                    onClick={() => onReconvoke(p.id)}
-                  >
-                    ↩
-                  </button>
-                )}
               </div>
             ))
           )}
@@ -143,8 +143,7 @@ export default function AlineacionTab({
   return (
     <div className={styles.tabContent}>
       <div className={styles.legendBar}>
-        <ReadinessLegend />
-        <AvailabilityLegend />
+        <PlayerFormLegend />
       </div>
       <IdealLineup
         ref={lineupRef}

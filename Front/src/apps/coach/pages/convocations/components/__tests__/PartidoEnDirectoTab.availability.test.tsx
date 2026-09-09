@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import PartidoEnDirectoTab from "../PartidoEnDirectoTab";
 import type { SquadPlayer } from "../../../squad/components/IdealLineup";
 
@@ -97,14 +97,17 @@ const lineupPlayers: SquadPlayer[] = [
     dorsal: 12,
     position: "defensa",
     competitiveness: 6,
-    availability: 33,
-    physicalFitness: 55,
+    readinessBreakdown: {
+      trainingComponent: 70,
+      matchMinutesInWindow: 0,
+      matchMinutesExpected: 0,
+    },
     fatigue: 22,
   },
 ];
 
-describe("PartidoEnDirectoTab - indicador de disponibilidad", () => {
-  it("muestra la disponibilidad del jugador en la tarjeta del banquillo", async () => {
+describe("PartidoEnDirectoTab - indicador Ef/Rodaje/Cansancio", () => {
+  it("muestra las barras Ef/R/C del jugador en la tarjeta del banquillo", async () => {
     useLiveMatchMock.mockReturnValue(baseLiveReturn());
 
     render(
@@ -118,10 +121,13 @@ describe("PartidoEnDirectoTab - indicador de disponibilidad", () => {
       />,
     );
 
-    expect(await screen.findByText("33%")).toBeInTheDocument();
+    // R (rodaje en vivo) = round(0.7 * 70 + 0.3 * 0) = 49; Ef = max(0, min(100, 49 - 22)) = 27
+    expect(await screen.findByText("27%")).toBeInTheDocument();
+    expect(screen.getByText("49%")).toBeInTheDocument();
+    expect(screen.getByText("22%")).toBeInTheDocument();
   });
 
-  it("muestra la leyenda de Disponibilidad en el banquillo", async () => {
+  it("muestra una única leyenda consolidada de Ef, Rodaje y Cansancio en el banquillo", async () => {
     useLiveMatchMock.mockReturnValue(baseLiveReturn());
 
     render(
@@ -135,10 +141,8 @@ describe("PartidoEnDirectoTab - indicador de disponibilidad", () => {
       />,
     );
 
-    await screen.findByText("33%");
-    const availabilityLegend = screen.getByLabelText("Leyenda de Disponibilidad");
-    expect(within(availabilityLegend).getByText("≥80")).toBeInTheDocument();
-    expect(within(availabilityLegend).getByText("50-79")).toBeInTheDocument();
-    expect(within(availabilityLegend).getByText("<50")).toBeInTheDocument();
+    await screen.findByText("27%");
+    const legends = screen.getAllByLabelText("Leyenda de Ef, Rodaje y Cansancio");
+    expect(legends).toHaveLength(1);
   });
 });

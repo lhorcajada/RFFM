@@ -5,8 +5,7 @@ import HistoryIcon from "@mui/icons-material/History";
 import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
 import avatarFallback from "../../../../../assets/avatar.svg";
 import type { SeasonPlayerStats } from "../../convocations/components/simulation/liveMatch.types";
-import ReadinessBadge from "../../../components/ReadinessBadge/ReadinessBadge";
-import AvailabilityBadge from "../../../components/AvailabilityBadge/AvailabilityBadge";
+import PlayerFormBars from "../../../components/PlayerFormBars/PlayerFormBars";
 import styles from "./PlayerCromo.module.css";
 
 type RatingData = {
@@ -40,12 +39,24 @@ type Props = {
   seasonStats?: SeasonPlayerStats | null;
   /** Consecutive past matches since the last technical deconvocation. Shown as a small badge. */
   streakCount?: number | null;
-  /** Rodaje (0-100). Se muestra como un badge compacto. */
+  /** Rodaje (0-100). Junto con `fatigue`, se muestra como barras Ef/R/C. */
   readiness?: number | null;
-  /** Disponibilidad = max(0, Forma física - Cansancio), 0-100. Se muestra como un badge compacto. */
-  availability?: number | null;
-  physicalFitness?: number | null;
+  /** Cansancio (0-100). Junto con `readiness`, se muestra como barras Ef/R/C. */
   fatigue?: number | null;
+  /**
+   * `compact` (por defecto): 3 barritas verticales pequeñas, para tarjetas de plantilla con
+   * espacio reducido. `full`: barras horizontales con etiqueta de texto completa delante de
+   * cada una, para la ficha de jugador en la pestaña Convocatoria (hay más espacio).
+   */
+  formVariant?: "compact" | "full";
+  /**
+   * @deprecated "Disponibilidad" quedó obsoleta (ver Addendum 3 de
+   * player-physical-condition-fatigue). No se usa para renderizar nada — se mantiene solo
+   * para no romper a los consumidores existentes que aún la pasan como prop.
+   */
+  availability?: number | null;
+  /** @deprecated "Forma física" ya no se muestra en la UI. Se mantiene solo por compatibilidad. */
+  physicalFitness?: number | null;
 };
 
 const STATS: { key: keyof RatingData; label: string }[] = [
@@ -98,9 +109,8 @@ export default function PlayerCromo({
   seasonStats,
   streakCount,
   readiness,
-  availability,
-  physicalFitness,
   fatigue,
+  formVariant = "compact",
 }: Props) {
   const resolvedName = alias?.trim() ? alias.trim() : displayName;
   const initial = resolvedName.trim().charAt(0).toUpperCase();
@@ -222,12 +232,7 @@ export default function PlayerCromo({
           </div>
         )}
 
-        <ReadinessBadge value={readiness} />
-        <AvailabilityBadge
-          availability={availability}
-          physicalFitness={physicalFitness}
-          fatigue={fatigue}
-        />
+        <PlayerFormBars variant={formVariant} readiness={readiness} fatigue={fatigue} className={styles.formBars} />
 
         {showActions && (
           <div className={styles.cardActions}>

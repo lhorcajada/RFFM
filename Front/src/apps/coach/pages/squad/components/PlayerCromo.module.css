@@ -329,6 +329,11 @@
   color: rgba(255, 255, 255, 0.2);
 }
 
+/* ─── Ef / Rodaje / Cansancio bars ─── */
+.formBars {
+  margin-top: 6px;
+}
+
 /* ─── Streak badge ─── */
 .streakBadge {
   display: inline-flex;

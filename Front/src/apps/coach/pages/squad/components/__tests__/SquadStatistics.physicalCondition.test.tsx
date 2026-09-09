@@ -27,17 +27,16 @@ function buildPlayer(overrides: Partial<PlayerStatistics> = {}): PlayerStatistic
   };
 }
 
-describe("SquadStatistics — Forma física, Cansancio y Disponibilidad", () => {
-  it("muestra las filas de Forma física, Cansancio y Disponibilidad con sus valores", () => {
+describe("SquadStatistics — Ef, Rodaje y Cansancio", () => {
+  it("muestra Ef (Rodaje - Cansancio), Rodaje y Cansancio con sus valores, ya no Forma física ni Disponibilidad", () => {
     render(
       <SquadStatistics
         players={[
           buildPlayer({
             teamPlayerId: "p1",
             displayName: "Jugador Uno",
-            physicalFitness: 64,
-            fatigue: 37,
-            availability: 27,
+            readiness: 70,
+            fatigue: 20,
           }),
         ]}
         loading={false}
@@ -45,35 +44,20 @@ describe("SquadStatistics — Forma física, Cansancio y Disponibilidad", () => 
     );
 
     const card = screen.getByTestId("squad-stat-card-p1");
-    expect(within(card).getByText("Forma física")).toBeInTheDocument();
-    expect(within(card).getByText("64%")).toBeInTheDocument();
+    expect(within(card).getByText("Ef")).toBeInTheDocument();
+    expect(within(card).getByText("Rodaje")).toBeInTheDocument();
     expect(within(card).getByText("Cansancio")).toBeInTheDocument();
-    expect(within(card).getByText("37%")).toBeInTheDocument();
-    expect(within(card).getByText("Disponibilidad")).toBeInTheDocument();
-    expect(within(card).getByText("27%")).toBeInTheDocument();
+    // Ef = max(0, min(100, 70 - 20)) = 50
+    expect(within(card).getByTestId("player-form-bar-ef")).toHaveTextContent("50%");
+    expect(within(card).getByTestId("player-form-bar-r")).toHaveTextContent("70%");
+    expect(within(card).getByTestId("player-form-bar-c")).toHaveTextContent("20%");
+
+    expect(within(card).queryByText("Forma física")).not.toBeInTheDocument();
+    expect(within(card).queryByText("Disponibilidad")).not.toBeInTheDocument();
   });
 
-  it("son estadísticas independientes de Rodaje: ambas conviven en la misma tarjeta", () => {
-    render(
-      <SquadStatistics
-        players={[
-          buildPlayer({
-            teamPlayerId: "p1",
-            displayName: "Jugador Uno",
-            readiness: 82,
-            physicalFitness: 64,
-            fatigue: 37,
-            availability: 27,
-          }),
-        ]}
-        loading={false}
-      />,
-    );
-
-    const card = screen.getByTestId("squad-stat-card-p1");
-    expect(within(card).getByText("82%")).toBeInTheDocument();
-    expect(within(card).getByText("64%")).toBeInTheDocument();
-    expect(within(card).getByText("37%")).toBeInTheDocument();
-    expect(within(card).getByText("27%")).toBeInTheDocument();
+  it("muestra la leyenda consolidada única de Ef/Rodaje/Cansancio en la pantalla", () => {
+    render(<SquadStatistics players={[buildPlayer()]} loading={false} />);
+    expect(screen.getByLabelText(/Leyenda de Ef, Rodaje y Cansancio/i)).toBeInTheDocument();
   });
 });

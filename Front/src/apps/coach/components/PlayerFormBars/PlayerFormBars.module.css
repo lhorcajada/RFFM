@@ -1,0 +1,181 @@
+/* ---------- compact (jugadores de campo, espacio muy reducido) ---------- */
+/* 3 barritas horizontales apiladas: letra | barra | valor, una fila por métrica. */
+
+.compact {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  width: 34px;
+}
+
+.compactBar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.compactTrack {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.15);
+  overflow: hidden;
+}
+
+.compactFill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.2s ease;
+}
+
+.compactFill[data-tone="high"] {
+  background: #22c55e;
+}
+
+.compactFill[data-tone="mid"] {
+  background: #fb923c;
+}
+
+.compactFill[data-tone="low"] {
+  background: #ef4444;
+}
+
+.compactFill[data-tone="none"] {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.compactValue {
+  font-size: 0.45rem;
+  font-weight: 700;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.85);
+  min-width: 14px;
+  text-align: right;
+}
+
+.compactLetter {
+  font-size: 0.45rem;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.6);
+  min-width: 10px;
+}
+
+/* ---------- full (banquillo / ficha de jugador) ---------- */
+
+.full {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+
+.fullEfRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fullEfLabel {
+  font-size: 0.8rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.85);
+  min-width: 20px;
+}
+
+.fullTrack {
+  flex: 1;
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.15);
+  overflow: hidden;
+}
+
+.fullFill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.2s ease;
+}
+
+.fullFill[data-tone="high"] {
+  background: #22c55e;
+}
+
+.fullFill[data-tone="mid"] {
+  background: #fb923c;
+}
+
+.fullFill[data-tone="low"] {
+  background: #ef4444;
+}
+
+.fullFill[data-tone="none"] {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.fullEfValue {
+  font-size: 0.8rem;
+  font-weight: 800;
+  min-width: 34px;
+  text-align: right;
+}
+
+.fullChildren {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-left: 16px;
+}
+
+.childRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.childLabel {
+  font-size: 0.62rem;
+  color: rgba(255, 255, 255, 0.6);
+  min-width: 62px;
+}
+
+.childTrack {
+  flex: 1;
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.childFill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.2s ease;
+}
+
+.childFill[data-tone="high"] {
+  background: #22c55e;
+}
+
+.childFill[data-tone="mid"] {
+  background: #fb923c;
+}
+
+.childFill[data-tone="low"] {
+  background: #ef4444;
+}
+
+.childFill[data-tone="none"] {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.childValue {
+  font-size: 0.62rem;
+  font-weight: 700;
+  min-width: 28px;
+  text-align: right;
+  color: rgba(255, 255, 255, 0.75);
+}

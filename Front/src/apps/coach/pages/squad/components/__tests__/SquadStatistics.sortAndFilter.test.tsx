@@ -112,6 +112,7 @@ describe("SquadStatistics — tarjetas y filtros", () => {
       />,
     );
 
-    expect(screen.getByText("Sin datos")).toBeInTheDocument();
+    const card = screen.getByTestId("squad-stat-card-p1");
+    expect(within(card).getByText("Sin datos")).toBeInTheDocument();
   });
 });

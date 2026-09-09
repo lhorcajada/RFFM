@@ -165,6 +165,10 @@
   gap: 3px;
 }
 
+.benchFormBars {
+  margin-top: 2px;
+}
+
 .benchCard.benchCardDragging {
   opacity: 0.4;
   cursor: grabbing;

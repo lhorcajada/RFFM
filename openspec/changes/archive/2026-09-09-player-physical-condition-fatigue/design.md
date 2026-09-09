@@ -226,6 +226,79 @@ Mismos sitios que Rodaje (confirmado por el usuario):
   antes de que el partido se guarde, ya que el cansancio real depende del cuerpo del jugador
   tras el esfuerzo, no de una proyección optimista a mitad de partido. Non-goal explícito.
 
+## Addendum 3 — rediseño visual: "Ef" (Rodaje − Cansancio), barras tipo FIFA, leyendas únicas
+
+Feedback del usuario tras ver la primera versión en pantalla:
+
+1. **"Disponibilidad" no se entiende sin explicación** y su fórmula (Forma física − Cansancio)
+   no es la que el usuario quiere transmitir. Se **redefine y renombra**: `Ef` ("Estado de
+   forma", el término futbolístico habitual) `= Rodaje − Cansancio` (clamped a ≥0; `null` si
+   `Rodaje` es `null`, ya que sin Rodaje no hay dato del que partir). **No se calcula en
+   backend** — se deriva en el frontend a partir de `readiness` y `fatigue`, que ya viajan en
+   la respuesta (`Math.max(0, Math.min(100, readiness - fatigue))`). Los campos de backend
+   `PhysicalFitness`/`Availability` **dejan de mostrarse en la UI** (se quedan calculados en el
+   backend, sin consumidor visual por ahora — no se borran por si una futura iteración los
+   retoma, pero no forman parte de esta pantalla).
+2. **Solo 3 indicadores visibles de ahora en adelante**: `Ef` (padre, derivado), `R` (Rodaje),
+   `C` (Cansancio) — "Forma física" deja de tener hueco propio en la UI.
+3. **Puntos de color en jugadores de campo → barras tipo FIFA con etiqueta de letra siempre
+   visible** (no tooltip): el punto de color dependía de `title`/hover, que no funciona en
+   tablet (sin cursor). Se sustituye por un indicador compacto de 3 barritas verticales
+   apiladas/lado a lado sobre cada jugador de campo, cada una con su letra (`Ef`/`R`/`C`)
+   siempre visible junto a la barra, coloreada por tramo (mismo criterio de color ya usado).
+4. **Tarjetas de banquillo**: mostrar el % de los tres, con jerarquía visual padre-hijo — `Ef`
+   más grande/destacado arriba, `R` y `C` más pequeños/indentados debajo, como si fueran hijos
+   de `Ef`.
+5. **Ficha de jugador en pestaña Convocatoria** (`ConvocationTab.tsx`, vía `PlayerCromo.tsx`):
+   barras horizontales con una etiqueta de texto delante de cada una (`"Ef"`, `"Rodaje"`,
+   `"Cansancio"`), no solo la letra — hay más espacio que en un slot de campo.
+6. **Leyendas: una sola, no repartidas**: hasta ahora había una leyenda de Rodaje y otra de
+   "jornadas sin decisión técnica" en sitios distintos de cada pestaña — se consolidan en **una
+   única leyenda por pantalla**, con las 3 entradas (`Ef`, `R`, `C`) más la de streak, en un
+   solo sitio visible (no una leyenda en el banquillo y otra distinta en el campo).
+7. **Alineación, Simulador y Partido en directo**: mismo tratamiento (barras en campo,
+   porcentajes padre-hijo en banquillo, leyenda única consolidada).
+8. **Plantilla** (`Squad.tsx` tab 0, tarjetas `PlayerCromo.tsx`): añadir también esta
+   información (Ef/R/C) a las tarjetas, no solo en la pestaña "Estadísticas".
+9. **Actualización en vivo**: `Ef`/`R` deben reflejar el transcurso de un partido/simulación en
+   curso — ya existe `computeLiveReadiness` para `R`; `Ef` en vivo se deriva como
+   `max(0, liveReadiness - fatigue)` (Cansancio no se recalcula en vivo minuto a minuto — su
+   actualización sigue siendo por día, vía `PlayerConditionRecalculationService`, que ya se
+   dispara en la siguiente lectura tras guardar un entrenamiento/partido; esto se documenta
+   como simplificación consciente, no un olvido). Fuera de partido/simulación (Alineación,
+   Convocatoria, Plantilla, Estadísticas), `Ef`/`R`/`C` muestran el valor ya calculado por el
+   backend sin recomputar nada en vivo.
+
+**Componentes nuevos/reestructurados**: `AvailabilityBadge`/`AvailabilityLegend` quedan
+obsoletos para esta pantalla (no se borran de golpe si otro sitio los usa, pero no se referencia
+más el concepto "Disponibilidad" en las pantallas de jugador) — se sustituyen por un componente
+de barras (`PlayerFormBars` o nombre equivalente) con variantes `compact` (campo, solo letras)
+y `full` (banquillo/ficha, etiqueta + barra + %), y una leyenda consolidada única
+(`PlayerFormLegend`) con las 3 entradas Ef/R/C (+ streak donde ya existía).
+
+## Addendum 4 — bug: los amistosos no contaban para el Rodaje (solo para el Cansancio)
+
+Bug real detectado en producción de datos de prueba (2026-09-09): un jugador que entrenó los 3
+entrenamientos de la ventana **y jugó un amistoso** ("Amistoso en Parla", domingo) mostraba un
+`Ef` (Rodaje − Cansancio) **peor** que un jugador con solo 1 entrenamiento.
+
+**Causa**: `GetTeamPlayerStatistics` filtraba el componente de partidos del Rodaje por
+`EventTypeId == SportEventType.FromName("Partido").Id`, excluyendo amistosos y torneos —
+mientras que `PlayerConditionRecalculationService` (Cansancio) **no** filtraba por tipo de
+evento, solo por `MatchPhase == "finished"`. Resultado: jugar el amistoso subía correctamente
+el Cansancio (esfuerzo físico real) pero no aportaba nada al Rodaje (crédito perdido),
+haciendo que `Ef` penalizara injustamente a quien sí jugó.
+
+**Fix**: se quita el filtro `EventTypeId == Partido` de la consulta de partidos-en-ventana del
+Rodaje — ahora cualquier `MatchParticipation` `finished` dentro de la ventana cuenta (Partido,
+Amistoso, Torneo), igual que ya hacía el cálculo de Cansancio. Los amistosos/torneos siguen
+excluidos donde corresponde por otras razones de negocio (contador cíclico de amarillas/
+sanciones automáticas, `GetSeasonPlayerStats`) — este cambio solo afecta al componente físico
+de Rodaje, no a esas reglas de disciplina.
+
+Test de regresión:
+`GetTeamPlayerStatisticsHandlerTests.PlayerWithFriendlyMatchMinutes_CountsTowardReadinessMatchComponent`.
+
 ## Non-goals reiterados
 - Sin reconstrucción retroactiva del historial completo de temporadas anteriores.
 - Sin correlación con riesgo de lesión.
@@ -236,8 +309,10 @@ Mismos sitios que Rodaje (confirmado por el usuario):
 - Valores de partida: Forma 30 / Cansancio 20.
 - Entrenamiento: Forma +3 / Cansancio +5.
 - Partido completo (referencia 70 min, proporcional a minutos reales): Forma +2 / Cansancio +10.
-- Descanso normal: Forma -2 / Cansancio -6 por día.
-- Ausencia por lesión: Forma -4 / Cansancio -6 por día (misma recuperación que descanso normal).
+- Descanso normal: Forma -2 / Cansancio -2 por día (bajado de -6 tras verlo en producción: con
+  2-3 entrenos/semana el descanso recuperaba más rápido de lo que costaba entrenar y el
+  Cansancio caía a 0 siempre entre sesiones — retunado 2026-09-09).
+- Ausencia por lesión: Forma -4 / Cansancio -2 por día (misma recuperación que descanso normal).
 - Modelo de cálculo: valor persistido, actualizado de forma incremental (elegido por el usuario
   explícitamente sobre la alternativa de recálculo derivado tipo Rodaje).
 - Indicador combinado Disponibilidad = Forma − Cansancio (clamped ≥0).

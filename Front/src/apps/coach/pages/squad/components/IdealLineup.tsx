@@ -27,8 +27,7 @@ import { getIdealLineup, saveIdealLineup } from "../../../services/idealLineupSe
 import { FORMATION_POSITIONS } from "../../../types/formation";
 import type { Formation } from "../../../types/formation";
 import FootballField from "./FootballField";
-import ReadinessBadge from "../../../components/ReadinessBadge/ReadinessBadge";
-import AvailabilityBadge from "../../../components/AvailabilityBadge/AvailabilityBadge";
+import PlayerFormBars from "../../../components/PlayerFormBars/PlayerFormBars";
 import styles from "./IdealLineup.module.css";
 
 // ─── Position grouping helpers ──────────────────────────────────────────
@@ -206,13 +205,6 @@ export function DraggableListItem({ player, onDeconvoke }: { player: SquadPlayer
               🚫 {player.technicalTotal}
             </span>
           )}
-          <ReadinessBadge value={player.readiness} dense />
-          <AvailabilityBadge
-            availability={player.availability}
-            physicalFitness={player.physicalFitness}
-            fatigue={player.fatigue}
-            dense
-          />
         </div>
         <div className={styles.playerActions}>
           <button
@@ -243,6 +235,12 @@ export function DraggableListItem({ player, onDeconvoke }: { player: SquadPlayer
           )}
         </div>
       </div>
+      <PlayerFormBars
+        variant="full"
+        readiness={player.readiness}
+        fatigue={player.fatigue}
+        className={styles.playerFormBars}
+      />
     </div>
   );
 }

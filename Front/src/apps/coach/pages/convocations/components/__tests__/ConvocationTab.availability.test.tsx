@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import ConvocationTab from "../ConvocationTab";
 import type { PlayerResponse } from "../../../../services/teamplayerService";
 import type { DeconvokeProposal } from "../../utils/deconvokeProposal";
@@ -23,8 +23,8 @@ const emptyProposal: DeconvokeProposal = {
   players: [],
 };
 
-describe("ConvocationTab - indicador de disponibilidad", () => {
-  it("muestra la disponibilidad del jugador convocado", () => {
+describe("ConvocationTab - indicador Ef/Rodaje/Cansancio", () => {
+  it("muestra las barras Ef/R/C del jugador convocado, con etiqueta de texto completa", () => {
     render(
       <ConvocationTab
         mgmtEventId="event-1"
@@ -57,10 +57,16 @@ describe("ConvocationTab - indicador de disponibilidad", () => {
       />,
     );
 
-    expect(screen.getByText("33%")).toBeInTheDocument();
+    // Ef = max(0, min(100, 65 - 22)) = 43
+    expect(screen.getByText("Ef")).toBeInTheDocument();
+    expect(screen.getByText("Rodaje")).toBeInTheDocument();
+    expect(screen.getAllByText("Cansancio").length).toBeGreaterThan(0);
+    expect(screen.getByText("43%")).toBeInTheDocument();
+    expect(screen.getByText("65%")).toBeInTheDocument();
+    expect(screen.getByText("22%")).toBeInTheDocument();
   });
 
-  it("muestra la leyenda de Disponibilidad", () => {
+  it("muestra una única leyenda consolidada de Ef, Rodaje y Cansancio", () => {
     render(
       <ConvocationTab
         mgmtEventId="event-1"
@@ -93,9 +99,7 @@ describe("ConvocationTab - indicador de disponibilidad", () => {
       />,
     );
 
-    const availabilityLegend = screen.getByLabelText("Leyenda de Disponibilidad");
-    expect(within(availabilityLegend).getByText("≥80")).toBeInTheDocument();
-    expect(within(availabilityLegend).getByText("50-79")).toBeInTheDocument();
-    expect(within(availabilityLegend).getByText("<50")).toBeInTheDocument();
+    const legends = screen.getAllByLabelText("Leyenda de Ef, Rodaje y Cansancio");
+    expect(legends).toHaveLength(1);
   });
 });

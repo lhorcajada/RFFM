@@ -1,7 +1,6 @@
 import { useDroppable, useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
-import ReadinessBadge from "../../../components/ReadinessBadge/ReadinessBadge";
-import AvailabilityBadge from "../../../components/AvailabilityBadge/AvailabilityBadge";
+import PlayerFormBars from "../../../components/PlayerFormBars/PlayerFormBars";
 import styles from "./PlayerSlot.module.css";
 
 interface SlotPlayer {
@@ -14,8 +13,8 @@ interface SlotPlayer {
   isInjured?: boolean;
   /** Rodaje (0-100), calculado a partir de asistencia y minutos recientes. */
   readiness?: number | null;
-  /** Disponibilidad (0-100) = max(0, Forma física - Cansancio). */
-  availability?: number | null;
+  /** Cansancio (0-100). Junto con `readiness`, se muestra como barras compactas Ef/R/C. */
+  fatigue?: number | null;
 }
 
 interface PlayerSlotProps {
@@ -61,8 +60,6 @@ function DraggablePlayerCard({ player }: { player: SlotPlayer }) {
       {player.isInjured && (
         <span className={styles.injuredDot} title="Lesionado">🩹</span>
       )}
-      <ReadinessBadge value={player.readiness} variant="dot" className={styles.readinessDot} />
-      <AvailabilityBadge availability={player.availability} variant="dot" className={styles.availabilityDot} />
     </div>
   );
 }
@@ -75,6 +72,14 @@ export default function PlayerSlot({ slotIndex, label, x, y, player }: PlayerSlo
       className={styles.slot}
       style={{ left: `${x}%`, top: `${y}%` }}
     >
+      {player && (
+        <PlayerFormBars
+          variant="compact"
+          readiness={player.readiness}
+          fatigue={player.fatigue}
+          className={styles.formBarsField}
+        />
+      )}
       <div
         ref={setNodeRef}
         className={`${styles.dropTarget} ${isOver ? styles.over : ""} ${player ? styles.occupied : ""}`}

@@ -39,10 +39,8 @@ import SimulationConfig from "./simulation/SimulationConfig";
 import MatchCompetitivenessReport from "./simulation/MatchCompetitivenessReport";
 import type { SimSlotPlayer } from "./simulation/SimulationPlayerSlot";
 import type { SquadPlayer } from "../../squad/components/IdealLineup";
-import ReadinessBadge from "../../../components/ReadinessBadge/ReadinessBadge";
-import ReadinessLegend from "../../../components/ReadinessLegend/ReadinessLegend";
-import AvailabilityBadge from "../../../components/AvailabilityBadge/AvailabilityBadge";
-import AvailabilityLegend from "../../../components/AvailabilityLegend/AvailabilityLegend";
+import PlayerFormBars from "../../../components/PlayerFormBars/PlayerFormBars";
+import PlayerFormLegend from "../../../components/PlayerFormLegend/PlayerFormLegend";
 import { computeLiveReadiness } from "../utils/liveReadiness";
 import styles from "./SimulacionTab.module.css";
 
@@ -169,16 +167,6 @@ function BenchPlayerCard({
               ⏱ {player.streakCount}
             </span>
           )}
-          <ReadinessBadge
-            value={computeLiveReadiness(player.readinessBreakdown, minutesPlayed ?? 0)}
-            dense
-          />
-          <AvailabilityBadge
-            availability={player.availability}
-            physicalFitness={player.physicalFitness}
-            fatigue={player.fatigue}
-            dense
-          />
         </div>
         {!isLeaving ? (
           hasPlayed
@@ -188,6 +176,12 @@ function BenchPlayerCard({
           <span className={styles.benchCardSaleBadge}>SALE</span>
         )}
       </div>
+      <PlayerFormBars
+        variant="full"
+        readiness={computeLiveReadiness(player.readinessBreakdown, minutesPlayed ?? 0)}
+        fatigue={player.fatigue}
+        className={styles.benchFormBars}
+      />
     </div>
   );
 }
@@ -327,7 +321,7 @@ export default function SimulacionTab({ teamId, eventId, lineupPlayers, isFriend
             competitiveness: p.competitiveness,
             readiness: p.readiness,
             readinessBreakdown: p.readinessBreakdown,
-            availability: p.availability,
+            fatigue: p.fatigue,
           },
         ]),
       ),
@@ -565,8 +559,7 @@ export default function SimulacionTab({ teamId, eventId, lineupPlayers, isFriend
                 <span className={styles.legendItem}>
                   <span className={styles.benchStreakBadge} style={{ fontSize: "0.5rem" }}>⏱ N</span> Jornadas sin decisión técnica
                 </span>
-                <ReadinessLegend />
-                <AvailabilityLegend />
+                <PlayerFormLegend />
               </div>
               <div className={styles.benchZoneStatic}>
                 {benchPlayers.length === 0 ? (

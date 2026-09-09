@@ -298,6 +298,10 @@
   gap: 3px;
 }
 
+.playerFormBars {
+  margin-top: 2px;
+}
+
 .playerActions {
   display: flex;
   flex-direction: column;

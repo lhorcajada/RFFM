@@ -222,21 +222,19 @@
   filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.7));
 }
 
-/* Readiness ("Rodaje") dot — bottom-left of the player card, the only free corner */
-.readinessDot {
+/* Ef/R/C compact bars — overlay absoluto sobre la parte inferior del retrato (como una
+   barra de vida), sin añadir alto al slot: si fueran flujo normal o se colocaran fuera
+   del círculo (arriba/abajo), añadirían alto a cada fila de la alineación y acabarían
+   pisando el tag de minutos de la fila de jugadores inmediatamente inferior. */
+.formBarsField {
   position: absolute;
-  bottom: -2px;
-  left: -2px;
-  z-index: 3;
-}
-
-/* Availability ("Disponibilidad") dot — bottom-center, next to Rodaje's dot */
-.availabilityDot {
-  position: absolute;
-  bottom: -2px;
+  bottom: 1px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 3;
+  z-index: 4;
+  background: rgba(13, 13, 30, 0.72);
+  border-radius: 4px;
+  padding: 1px 2px;
 }
 
 .usedBadgeSlot {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { createRef } from "react";
 import AlineacionTab from "../AlineacionTab";
@@ -15,11 +15,11 @@ vi.mock("../../../../services/idealLineupService", () => ({
 }));
 
 const lineupPlayers: SquadPlayer[] = [
-  { id: "p1", displayName: "Jugador Uno", dorsal: 7, position: "Delantero", readiness: 72 },
+  { id: "p1", displayName: "Jugador Uno", dorsal: 7, position: "Delantero", readiness: 72, fatigue: 20 },
 ];
 
-describe("AlineacionTab - leyenda de rodaje", () => {
-  it("muestra una leyenda visible explicando los colores de Rodaje", async () => {
+describe("AlineacionTab - leyenda única de Ef/Rodaje/Cansancio", () => {
+  it("muestra una única leyenda consolidada explicando los colores de Ef, Rodaje y Cansancio", async () => {
     const ref = createRef<IdealLineupHandle>();
     render(
       <MemoryRouter>
@@ -33,11 +33,7 @@ describe("AlineacionTab - leyenda de rodaje", () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText("Rodaje")).toBeInTheDocument();
-    const readinessLegend = screen.getByLabelText("Leyenda de Rodaje");
-    expect(within(readinessLegend).getByText("≥80")).toBeInTheDocument();
-    expect(within(readinessLegend).getByText("50-79")).toBeInTheDocument();
-    expect(within(readinessLegend).getByText("<50")).toBeInTheDocument();
-    expect(within(readinessLegend).getByText("Sin datos")).toBeInTheDocument();
+    const legends = await screen.findAllByLabelText("Leyenda de Ef, Rodaje y Cansancio");
+    expect(legends).toHaveLength(1);
   });
 });

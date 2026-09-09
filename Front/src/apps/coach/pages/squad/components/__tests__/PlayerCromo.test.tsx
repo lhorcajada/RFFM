@@ -61,4 +61,27 @@ describe("PlayerCromo", () => {
     const photo = screen.getByAltText("Juan Pérez García");
     expect(photo.getAttribute("src")).toBe("blob:http://localhost/photo123");
   });
+
+  it("muestra las barras compactas Ef/R/C cuando hay datos de rodaje y cansancio", () => {
+    render(
+      <MemoryRouter>
+        <PlayerCromo displayName="Juan Pérez García" readiness={70} fatigue={20} />
+      </MemoryRouter>
+    );
+
+    // Ef = max(0, min(100, 70 - 20)) = 50
+    expect(screen.getByTestId("player-form-bar-ef")).toHaveTextContent("50%");
+    expect(screen.getByTestId("player-form-bar-r")).toHaveTextContent("70%");
+    expect(screen.getByTestId("player-form-bar-c")).toHaveTextContent("20%");
+  });
+
+  it("no muestra las barras Ef/R/C cuando no hay datos de rodaje ni cansancio", () => {
+    render(
+      <MemoryRouter>
+        <PlayerCromo displayName="Juan Pérez García" />
+      </MemoryRouter>
+    );
+
+    expect(screen.queryByTestId("player-form-bar-ef")).not.toBeInTheDocument();
+  });
 });

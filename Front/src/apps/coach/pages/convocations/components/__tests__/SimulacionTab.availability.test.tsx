@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import SimulacionTab from "../SimulacionTab";
 import type { UseMatchSimulationReturn } from "../../hooks/useMatchSimulation";
 import type { SquadPlayer } from "../../../squad/components/IdealLineup";
@@ -82,30 +82,25 @@ const lineupPlayers: SquadPlayer[] = [
     displayName: "Jugador Uno",
     dorsal: 7,
     position: "Delantero",
-    availability: 33,
-    physicalFitness: 55,
-    fatigue: 22,
+    readiness: 60,
+    readinessBreakdown: {
+      trainingComponent: 70,
+      matchMinutesInWindow: 0,
+      matchMinutesExpected: 0,
+    },
+    fatigue: 27,
   },
 ];
 
-describe("SimulacionTab - indicador de disponibilidad", () => {
-  it("muestra la disponibilidad del jugador en la tarjeta del banquillo", async () => {
+describe("SimulacionTab - indicador Ef/Rodaje/Cansancio", () => {
+  it("muestra las barras Ef/R/C del jugador en la tarjeta del banquillo", async () => {
     useMatchSimulationMock.mockReturnValue(baseSimReturn());
 
     render(<SimulacionTab teamId="team-1" eventId="event-1" lineupPlayers={lineupPlayers} />);
 
-    expect(await screen.findByText("33%")).toBeInTheDocument();
-  });
-
-  it("muestra la leyenda de Disponibilidad en el banquillo", async () => {
-    useMatchSimulationMock.mockReturnValue(baseSimReturn());
-
-    render(<SimulacionTab teamId="team-1" eventId="event-1" lineupPlayers={lineupPlayers} />);
-
-    await screen.findByText("33%");
-    const availabilityLegend = screen.getByLabelText("Leyenda de Disponibilidad");
-    expect(within(availabilityLegend).getByText("≥80")).toBeInTheDocument();
-    expect(within(availabilityLegend).getByText("50-79")).toBeInTheDocument();
-    expect(within(availabilityLegend).getByText("<50")).toBeInTheDocument();
+    // R (rodaje en vivo) = round(0.7 * 70 + 0.3 * 0) = 49; Ef = max(0, min(100, 49 - 27)) = 22
+    expect(await screen.findByText("22%")).toBeInTheDocument();
+    expect(screen.getByText("49%")).toBeInTheDocument();
+    expect(screen.getByText("27%")).toBeInTheDocument();
   });
 });

@@ -6,8 +6,8 @@ import type { FormationSlotDef } from "../../../types/formation";
 
 const slotDefs: FormationSlotDef[] = [{ slotIndex: 1, label: "GK", x: 12, y: 50 }];
 
-describe("FootballField - indicador de disponibilidad en jugadores de campo", () => {
-  it("muestra un punto de disponibilidad en el slot del jugador en el campo", () => {
+describe("FootballField - letras Ef/R/C siempre visibles (sin depender de hover)", () => {
+  it("muestra las letras Ef, R y C directamente en el DOM, sin depender de un tooltip", () => {
     render(
       <DndContext>
         <FootballField
@@ -18,34 +18,16 @@ describe("FootballField - indicador de disponibilidad en jugadores de campo", ()
               teamPlayerId: "p1",
               displayName: "Jugador Uno",
               dorsal: 7,
-              availability: 45,
+              readiness: 45,
+              fatigue: 10,
             },
           }}
         />
       </DndContext>,
     );
 
-    expect(screen.getByTitle("Disponibilidad: 45%")).toBeInTheDocument();
-  });
-
-  it("no muestra el punto de disponibilidad cuando el jugador no la tiene calculada", () => {
-    render(
-      <DndContext>
-        <FootballField
-          slotDefs={slotDefs}
-          slots={{ 1: "p1" }}
-          playersById={{
-            p1: {
-              teamPlayerId: "p1",
-              displayName: "Jugador Uno",
-              dorsal: 7,
-              availability: null,
-            },
-          }}
-        />
-      </DndContext>,
-    );
-
-    expect(screen.queryByTitle(/Disponibilidad/)).not.toBeInTheDocument();
+    expect(screen.getByText("Ef")).toBeInTheDocument();
+    expect(screen.getByText("R")).toBeInTheDocument();
+    expect(screen.getByText("C")).toBeInTheDocument();
   });
 });
