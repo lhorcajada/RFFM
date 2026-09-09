@@ -3,13 +3,13 @@ using RFFM.Api.Domain.Aggregates.Assistances;
 namespace RFFM.Api.Features.Coaches.Players.Services
 {
     /// <summary>
-    /// Pure, side-effect-free calculator for a player's "Estado de forma" (0-100), derived from
+    /// Pure, side-effect-free calculator for a player's "Rodaje" (0-100), derived from
     /// recent training attendance (70% weight) and match minutes (30% weight) over a rolling
     /// 8-week window. No EF/DB access — the handler projects raw data into
     /// <see cref="TrainingOutcome"/>/minutes lists and calls <see cref="Calculate"/>.
     /// See openspec/changes/squad-statistics-form-status/design.md → Decisión 2.
     /// </summary>
-    public static class PlayerFormStatusCalculator
+    public static class PlayerReadinessCalculator
     {
         public const int WindowWeeks = 8;
         public const int BaselineTrainings = 16;   // sesiones convocadas para "plena forma"
@@ -23,7 +23,7 @@ namespace RFFM.Api.Features.Coaches.Players.Services
             int? AssistanceTypeId, int? ExcuseTypeId, int? ConvocationStatusId);
 
         public record Result(
-            int? FormStatus,
+            int? Readiness,
             double TrainingComponent,
             double MatchComponent,
             int SessionsConsidered,
@@ -52,7 +52,7 @@ namespace RFFM.Api.Features.Coaches.Players.Services
                 100d,
                 matchMinutes / (double)(BaselineMatches * ExpectedMinutesPerMatch) * 100d);
 
-            int? formStatus = sessionsConsidered == 0 && matchMinutes == 0
+            int? readiness = sessionsConsidered == 0 && matchMinutes == 0
                 ? null
                 : (int)Math.Round(TrainingWeight * trainingComponent + MatchWeight * matchComponent);
 
@@ -64,7 +64,7 @@ namespace RFFM.Api.Features.Coaches.Players.Services
                 .Take(10)
                 .ToArray();
 
-            return new Result(formStatus, trainingComponent, matchComponent, sessionsConsidered, matchMinutes, recentAbsences);
+            return new Result(readiness, trainingComponent, matchComponent, sessionsConsidered, matchMinutes, recentAbsences);
         }
 
         // Solo asistencia real (presente o tarde) suma al numerador de TrainingComponent — ver

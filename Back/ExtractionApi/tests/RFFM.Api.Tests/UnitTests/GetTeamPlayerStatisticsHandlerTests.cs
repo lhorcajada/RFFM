@@ -133,7 +133,7 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
-        public async Task PlayerWithOldAndRecentActivity_SeasonTotalsIncludeAll_FormStatusOnlyUsesWindow()
+        public async Task PlayerWithOldAndRecentActivity_SeasonTotalsIncludeAll_ReadinessOnlyUsesWindow()
         {
             // Arrange
             await using var db = _fixture.CreateDbContext();
@@ -159,8 +159,8 @@ namespace RFFM.Api.Tests.UnitTests
             var stats = Assert.Single(result, p => p.TeamPlayerId == teamPlayerId);
             Assert.Equal(1, stats.Goals);
             Assert.Equal(150, stats.MinutesPlayed);
-            Assert.NotNull(stats.FormStatusBreakdown);
-            Assert.Equal(60, stats.FormStatusBreakdown!.MatchMinutesInWindow);
+            Assert.NotNull(stats.ReadinessBreakdown);
+            Assert.Equal(60, stats.ReadinessBreakdown!.MatchMinutesInWindow);
         }
 
         [Fact]
@@ -189,7 +189,7 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
-        public async Task PlayerWithNoActivity_FormStatusIsNull_TotalsAreZero()
+        public async Task PlayerWithNoActivity_ReadinessIsNull_TotalsAreZero()
         {
             // Arrange
             await using var db = _fixture.CreateDbContext();
@@ -204,7 +204,7 @@ namespace RFFM.Api.Tests.UnitTests
 
             // Assert
             var stats = Assert.Single(result, p => p.TeamPlayerId == teamPlayerId);
-            Assert.Null(stats.FormStatus);
+            Assert.Null(stats.Readiness);
             Assert.Equal(0, stats.Goals);
             Assert.Equal(0, stats.YellowCards);
             Assert.Equal(0, stats.RedCards);
@@ -296,7 +296,7 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
-        public async Task TrainingsAttendedAndMatchesPlayed_ReflectFullSeasonHistory_NotJustFormStatusWindow()
+        public async Task TrainingsAttendedAndMatchesPlayed_ReflectFullSeasonHistory_NotJustReadinessWindow()
         {
             // Arrange
             await using var db = _fixture.CreateDbContext();

@@ -17,7 +17,7 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
 {
     /// <summary>
     /// Returns, per player on a team, season totals (goals/cards/minutes) plus a windowed
-    /// "Estado de forma" (0-100) built from recent training attendance and match minutes.
+    /// "Rodaje" (0-100) built from recent training attendance and match minutes.
     /// See openspec/changes/squad-statistics-form-status/design.md → Decisión 1 y 3.
     /// </summary>
     public class GetTeamPlayerStatistics : IFeatureModule
@@ -55,14 +55,14 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
             int MatchesPlayed,                      // histórico completo de temporada
             int? DaysSinceLastInjury,               // null si no ha tenido ninguna lesión esta temporada
             int? LastInjuryDurationDays,             // null si no ha tenido lesión, o si la más reciente sigue en curso
-            int? FormStatus,                       // 0-100, null = sin datos suficientes en la ventana
-            FormStatusBreakdownDto? FormStatusBreakdown);
+            int? Readiness,                        // 0-100, null = sin datos suficientes en la ventana
+            ReadinessBreakdownDto? ReadinessBreakdown);
 
-        public record FormStatusBreakdownDto(
+        public record ReadinessBreakdownDto(
             double TrainingComponent,              // 0-100
             double MatchComponent,                 // 0-100
             int TrainingSessionsConsidered,
-            int TrainingSessionsBaseline,          // = PlayerFormStatusCalculator.BaselineTrainings
+            int TrainingSessionsBaseline,          // = PlayerReadinessCalculator.BaselineTrainings
             int MatchMinutesInWindow,
             int MatchMinutesExpected,               // = BaselineMatches * ExpectedMinutesPerMatch
             RecentAbsenceDto[] RecentAbsences);
@@ -83,7 +83,7 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
         {
             public async ValueTask<List<PlayerStatisticsDto>> Handle(Query request, CancellationToken cancellationToken)
             {
-                var windowStart = DateTime.UtcNow.AddDays(-7 * PlayerFormStatusCalculator.WindowWeeks);
+                var windowStart = DateTime.UtcNow.AddDays(-7 * PlayerReadinessCalculator.WindowWeeks);
                 var trainingEventTypeId = SportEventType.FromName("Entrenamiento").Id;
                 var matchEventTypeId = SportEventType.FromName("Partido").Id;
 
@@ -189,7 +189,7 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                     playerTrainingConvocations ??= new List<Convocation>();
 
                     var trainingOutcomes = playerTrainingConvocations
-                        .Select(c => new PlayerFormStatusCalculator.TrainingOutcome(
+                        .Select(c => new PlayerReadinessCalculator.TrainingOutcome(
                             c.SportEventId,
                             trainingEventDateById.TryGetValue(c.SportEventId, out var date) ? date : null,
                             c.AssistanceTypeId,
@@ -200,7 +200,7 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                     matchMinutesInWindowByPlayer.TryGetValue(player.Id, out var matchMinutesInWindow);
                     matchMinutesInWindow ??= new List<int>();
 
-                    var formResult = PlayerFormStatusCalculator.Calculate(trainingOutcomes, matchMinutesInWindow);
+                    var readinessResult = PlayerReadinessCalculator.Calculate(trainingOutcomes, matchMinutesInWindow);
 
                     trainingsAttendedByPlayer.TryGetValue(player.Id, out var trainingsAttended);
                     var matchesPlayed = playerParticipations.Count;
@@ -223,14 +223,14 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                         ? player.Alias
                         : string.Join(" ", new[] { player.Name, player.LastName }.Where(s => !string.IsNullOrWhiteSpace(s))).Trim();
 
-                    var formStatusBreakdown = new FormStatusBreakdownDto(
-                        formResult.TrainingComponent,
-                        formResult.MatchComponent,
-                        formResult.SessionsConsidered,
-                        PlayerFormStatusCalculator.BaselineTrainings,
-                        formResult.MatchMinutesInWindow,
-                        PlayerFormStatusCalculator.BaselineMatches * PlayerFormStatusCalculator.ExpectedMinutesPerMatch,
-                        formResult.RecentAbsences
+                    var readinessBreakdown = new ReadinessBreakdownDto(
+                        readinessResult.TrainingComponent,
+                        readinessResult.MatchComponent,
+                        readinessResult.SessionsConsidered,
+                        PlayerReadinessCalculator.BaselineTrainings,
+                        readinessResult.MatchMinutesInWindow,
+                        PlayerReadinessCalculator.BaselineMatches * PlayerReadinessCalculator.ExpectedMinutesPerMatch,
+                        readinessResult.RecentAbsences
                             .Select(a => new RecentAbsenceDto(a.EventId, a.Date, a.Reason, a.PointsImpact))
                             .ToArray());
 
@@ -247,8 +247,8 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                         matchesPlayed,
                         daysSinceLastInjury,
                         lastInjuryDurationDays,
-                        formResult.FormStatus,
-                        formStatusBreakdown));
+                        readinessResult.Readiness,
+                        readinessBreakdown));
                 }
 
                 return result;

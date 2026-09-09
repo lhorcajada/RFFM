@@ -379,3 +379,11 @@ el anterior.
 - Penalización: lesión (alta) > injustificada > justificada media (todas iguales salvo
   lesión) > tarde (baja); decisión técnica del entrenador no penaliza.
 - Componente de partidos: minutos reales jugados, proporcional sobre un máximo esperado.
+
+## Nota posterior (2026-09-09)
+Esta métrica se renombró de "Estado de forma"/`FormStatus` a "Rodaje"/`Readiness` tras
+confirmar con el usuario que no representa condición física real, sino integración/rodaje
+reciente con el equipo (asistencia a entrenamientos + minutos de partido). El verdadero
+"Estado de forma" (condición física + cansancio) queda reservado para una spec futura
+totalmente distinta. Ver `PlayerReadinessCalculator` (antes `PlayerFormStatusCalculator`) en
+`Back/ExtractionApi/src/RFFM.Api/Features/Coaches/Players/Services/`.
