@@ -139,7 +139,7 @@ describe("Squad — pestaña Plantilla muestra Ef/R/C en las tarjetas", () => {
   it("pasa readiness/fatigue de cada jugador a su tarjeta y muestra las barras Ef/R/C", async () => {
     renderSquad();
 
-    expect(await screen.findByTestId("player-form-bar-ef")).toHaveTextContent("50%");
+    expect(await screen.findByTestId("player-form-bar-ef")).toHaveTextContent("63%");
     expect(screen.getByTestId("player-form-bar-r")).toHaveTextContent("70%");
     expect(screen.getByTestId("player-form-bar-c")).toHaveTextContent("20%");
   });

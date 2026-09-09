@@ -325,6 +325,22 @@ resultado acumulado día a día del servicio contra un cálculo independiente en
 `Assert.Equal` sin tolerancia puede fallar por el último bit (orden de operaciones distinto) —
 usar `Assert.Equal(expected, actual, precision: 6)` en vez de igualdad exacta para estos casos.
 
+## Addendum 6 — Ef pasa de resta directa a descuento proporcional (Rodaje pesa más)
+
+El usuario pidió que Rodaje pese más que Cansancio en `Ef` — una resta directa
+(`Rodaje − Cansancio`) da el mismo peso absoluto a ambos, así que un Cansancio muy alto podía
+anular por completo un buen Rodaje.
+
+**Fix**: `Ef = Rodaje × (1 − Cansancio / 200)` (calculado en frontend,
+`Front/src/apps/coach/utils/playerFormMetrics.ts` → `computeEf`). El Cansancio nunca descuenta
+más del 50% del Rodaje (a Cansancio=100, factor=0.5) — un jugador con buen Rodaje nunca cae a 0
+solo por estar cansado. Clamp defensivo a [0,100] se mantiene por si algún valor de entrada
+llega fuera de rango; en el uso normal (Rodaje y Cansancio ya vienen 0-100) el resultado ya cae
+dentro de ese rango sin necesidad del clamp.
+
+No requiere cambios en backend — `Ef` sigue siendo puramente derivado en el cliente a partir de
+`readiness`/`fatigue`.
+
 ## Non-goals reiterados
 - Sin reconstrucción retroactiva del historial completo de temporadas anteriores.
 - Sin correlación con riesgo de lesión.

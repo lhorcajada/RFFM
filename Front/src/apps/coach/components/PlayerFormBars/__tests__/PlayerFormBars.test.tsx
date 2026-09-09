@@ -12,8 +12,8 @@ describe("PlayerFormBars — variant compact", () => {
 
   it("muestra los valores numéricos siempre visibles como texto", () => {
     render(<PlayerFormBars variant="compact" readiness={80} fatigue={30} />);
-    // Ef = max(0, min(100, 80 - 30)) = 50
-    expect(screen.getByTestId("player-form-bar-ef")).toHaveTextContent("50");
+    // Ef = 80 * (1 - 30/200) = 68
+    expect(screen.getByTestId("player-form-bar-ef")).toHaveTextContent("68");
     expect(screen.getByTestId("player-form-bar-r")).toHaveTextContent("80");
     expect(screen.getByTestId("player-form-bar-c")).toHaveTextContent("30");
   });
@@ -49,7 +49,8 @@ describe("PlayerFormBars — variant full", () => {
     expect(screen.getByText("Ef")).toBeInTheDocument();
     expect(screen.getByText("Rodaje")).toBeInTheDocument();
     expect(screen.getByText("Cansancio")).toBeInTheDocument();
-    expect(screen.getByTestId("player-form-bar-ef")).toHaveTextContent("50%");
+    // Ef = 70 * (1 - 20/200) = 63
+    expect(screen.getByTestId("player-form-bar-ef")).toHaveTextContent("63%");
     expect(screen.getByTestId("player-form-bar-r")).toHaveTextContent("70%");
     expect(screen.getByTestId("player-form-bar-c")).toHaveTextContent("20%");
   });

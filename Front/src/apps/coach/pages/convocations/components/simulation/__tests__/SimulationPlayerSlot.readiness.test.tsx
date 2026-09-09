@@ -24,8 +24,8 @@ describe("SimulationPlayerSlot - barras Ef/R/C en jugadores de campo", () => {
       </DndContext>,
     );
 
-    // Ef = max(0, min(100, 30 - 10)) = 20
-    expect(screen.getByTestId("player-form-bar-ef")).toHaveTextContent("20%");
+    // Ef = 30 * (1 - 10/200) = 28.5 -> 29% redondeado
+    expect(screen.getByTestId("player-form-bar-ef")).toHaveTextContent("29%");
     expect(screen.getByTestId("player-form-bar-r")).toHaveTextContent("30%");
     expect(screen.getByTestId("player-form-bar-c")).toHaveTextContent("10%");
   });

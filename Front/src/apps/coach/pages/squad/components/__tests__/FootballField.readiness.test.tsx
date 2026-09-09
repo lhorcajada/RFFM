@@ -26,8 +26,8 @@ describe("FootballField - barras Ef/R/C en jugadores de campo", () => {
       </DndContext>,
     );
 
-    // Ef = max(0, min(100, 72 - 20)) = 52
-    expect(screen.getByTestId("player-form-bar-ef")).toHaveTextContent("52%");
+    // Ef = 72 * (1 - 20/200) = 64.8 -> 65% redondeado
+    expect(screen.getByTestId("player-form-bar-ef")).toHaveTextContent("65%");
     expect(screen.getByTestId("player-form-bar-r")).toHaveTextContent("72%");
     expect(screen.getByTestId("player-form-bar-c")).toHaveTextContent("20%");
   });

@@ -47,8 +47,8 @@ describe("SquadStatistics — Ef, Rodaje y Cansancio", () => {
     expect(within(card).getByText("Ef")).toBeInTheDocument();
     expect(within(card).getByText("Rodaje")).toBeInTheDocument();
     expect(within(card).getByText("Cansancio")).toBeInTheDocument();
-    // Ef = max(0, min(100, 70 - 20)) = 50
-    expect(within(card).getByTestId("player-form-bar-ef")).toHaveTextContent("50%");
+    // Ef = 70 * (1 - 20/200) = 63
+    expect(within(card).getByTestId("player-form-bar-ef")).toHaveTextContent("63%");
     expect(within(card).getByTestId("player-form-bar-r")).toHaveTextContent("70%");
     expect(within(card).getByTestId("player-form-bar-c")).toHaveTextContent("20%");
 

@@ -6,20 +6,24 @@ describe("computeEf", () => {
     expect(computeEf(null, 30)).toBeNull();
   });
 
-  it("calcula readiness - fatigue cuando ambos son válidos", () => {
-    expect(computeEf(80, 30)).toBe(50);
+  it("calcula readiness * (1 - fatigue/200), descuento proporcional no una resta directa", () => {
+    expect(computeEf(80, 30)).toBe(68); // 80 * (1 - 30/200) = 80 * 0.85
   });
 
-  it("nunca es negativo (clamp inferior a 0)", () => {
-    expect(computeEf(20, 80)).toBe(0);
+  it("el cansancio nunca resta más del 50% del rodaje, aunque esté al máximo", () => {
+    expect(computeEf(20, 100)).toBe(10); // 20 * (1 - 100/200) = 20 * 0.5
   });
 
-  it("nunca supera 100 (clamp superior)", () => {
+  it("un buen rodaje nunca cae a 0 solo por estar muy cansado", () => {
+    expect(computeEf(20, 80)).toBeGreaterThan(0);
+  });
+
+  it("nunca supera 100 (clamp superior defensivo)", () => {
     expect(computeEf(150, -50)).toBe(100);
   });
 
-  it("devuelve 0 cuando readiness y fatigue son iguales", () => {
-    expect(computeEf(40, 40)).toBe(0);
+  it("con readiness y fatigue iguales, el descuento es proporcional, no cero", () => {
+    expect(computeEf(40, 40)).toBe(32); // 40 * (1 - 40/200) = 40 * 0.8
   });
 });
 

@@ -69,8 +69,8 @@ describe("PlayerCromo", () => {
       </MemoryRouter>
     );
 
-    // Ef = max(0, min(100, 70 - 20)) = 50
-    expect(screen.getByTestId("player-form-bar-ef")).toHaveTextContent("50%");
+    // Ef = 70 * (1 - 20/200) = 63
+    expect(screen.getByTestId("player-form-bar-ef")).toHaveTextContent("63%");
     expect(screen.getByTestId("player-form-bar-r")).toHaveTextContent("70%");
     expect(screen.getByTestId("player-form-bar-c")).toHaveTextContent("20%");
   });
