@@ -19,6 +19,9 @@ import { dischargeActiveInjury } from "../../services/teamplayerService";
 import playerService from "../../services/playerService";
 import playerRatingService from "../../services/playerRatingService";
 import { getSeasonPlayerStats } from "../../services/liveMatchService";
+import { getTeamPlayerStatistics } from "../../services/teamPlayerStatisticsService";
+import type { PlayerStatistics } from "../../services/teamPlayerStatisticsService";
+import SquadStatistics from "./components/SquadStatistics";
 import type { SeasonPlayerStats } from "../convocations/components/simulation/liveMatch.types";
 import type { PlayerRating } from "../../types/playerRating";
 import styles from "./Squad.module.css";
@@ -76,8 +79,10 @@ export default function Squad() {
   const [playerPhotos, setPlayerPhotos] = useState<Record<string, string | null>>({});
   const [latestRatings, setLatestRatings] = useState<Record<string, PlayerRating>>({});
   const [seasonStats, setSeasonStats] = useState<Record<string, SeasonPlayerStats>>({});
+  const [playerStats, setPlayerStats] = useState<PlayerStatistics[]>([]);
   const [loadingRatings, setLoadingRatings] = useState(false);
   const [loadingPlayers, setLoadingPlayers] = useState(false);
+  const [loadingStats, setLoadingStats] = useState(false);
   const roles = useMemo(
     () => coachAuthService.getRoles().map((role) => role.toLowerCase()),
     []
@@ -209,6 +214,16 @@ export default function Squad() {
             setSeasonStats(map);
           })
           .catch(() => {});
+
+        // Load per-player statistics + form status (best-effort, non-blocking)
+        setLoadingStats(true);
+        getTeamPlayerStatistics(team.id)
+          .then((stats) => {
+            if (!mounted) return;
+            setPlayerStats(stats);
+          })
+          .catch(() => {})
+          .finally(() => { if (mounted) setLoadingStats(false); });
       }
     }
 
@@ -300,6 +315,7 @@ export default function Squad() {
           >
             <Tab label="Plantilla" />
             {!isFan && <Tab label="Valoraciones" />}
+            {!isFan && <Tab label="Estadísticas" />}
             {!isFan && !isPlayerOrFamily && <Tab label="Ranking" />}
             {!isFan && !isPlayerOrFamily && <Tab label="Alineación ideal" />}
           </Tabs>
@@ -413,7 +429,15 @@ export default function Squad() {
             />
           )}
 
-          {activeTab === 2 && !isFan && !isPlayerOrFamily && team && (
+          {activeTab === 2 && !isFan && team && (
+            <SquadStatistics
+              players={playerStats}
+              loading={loadingStats}
+              teamName={team.name}
+            />
+          )}
+
+          {activeTab === 3 && !isFan && !isPlayerOrFamily && team && (
             <SquadRanking
               teamId={team.id}
               players={ratingPlayers}
@@ -423,7 +447,7 @@ export default function Squad() {
             />
           )}
 
-          {activeTab === 3 && !isFan && !isPlayerOrFamily && team && (() => {
+          {activeTab === 4 && !isFan && !isPlayerOrFamily && team && (() => {
             const seasonId = new URLSearchParams(window.location.search).get("seasonId");
             const lineupPlayers = players.map((p, idx) => ({
               id: p.id ?? `${p.name ?? ""}-${idx}`,
