@@ -12,6 +12,12 @@ export interface SimSlotPlayer {
   competitiveness?: number | null;
   /** Rodaje (0-100), calculado a partir de asistencia y minutos recientes. */
   readiness?: number | null;
+  /** Desglose del cálculo de rodaje — usado para recalcularlo en vivo durante un partido/simulación en curso. */
+  readinessBreakdown?: {
+    trainingComponent: number;
+    matchMinutesInWindow: number;
+    matchMinutesExpected: number;
+  } | null;
 }
 
 interface SimulationPlayerSlotProps {

@@ -13,7 +13,17 @@ type ConvocationPlayersInput = {
   matchColumns: MatchColumn[];
   enrichedGrid: Map<string, Map<string, GridCell>>;
   /** Rodaje por teamPlayerId (best-effort, puede estar vacío mientras carga). */
-  readinessMap?: Record<string, { readiness: number | null }>;
+  readinessMap?: Record<
+    string,
+    {
+      readiness: number | null;
+      readinessBreakdown?: {
+        trainingComponent: number;
+        matchMinutesInWindow: number;
+        matchMinutesExpected: number;
+      } | null;
+    }
+  >;
 };
 
 export type ConvocationPlayerViews = {
@@ -83,6 +93,7 @@ export function useConvocationPlayerViews(input: ConvocationPlayersInput): Convo
         streakCount: playerStreaks.get(p.id) ?? null,
         technicalTotal: playerTechnicalTotals.get(p.id) ?? null,
         readiness: readinessMap?.[p.id]?.readiness ?? null,
+        readinessBreakdown: readinessMap?.[p.id]?.readinessBreakdown ?? null,
       }));
   }, [players, mgmtNotCalled, mgmtPending, mgmtPhotos, mgmtRatings, playerStreaks, playerTechnicalTotals, readinessMap]);
 

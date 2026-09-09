@@ -24,7 +24,7 @@ vi.mock("../../../../services/liveMatchService", () => ({
   deleteMatchParticipation: vi.fn().mockResolvedValue(undefined),
 }));
 
-function baseLiveReturn() {
+function baseLiveReturn(playerMinutes: Record<string, number>) {
   return {
     matchPhase: "firstHalf",
     currentMinute: 10,
@@ -35,7 +35,7 @@ function baseLiveReturn() {
     setHalfDuration: vi.fn(),
     slots: { 0: "p0" },
     playerStates: {},
-    playerMinutes: {},
+    playerMinutes,
     initialSlots: { 0: "p0" },
     initialized: true,
     windows: [],
@@ -90,6 +90,7 @@ vi.mock("../../hooks/useLiveMatch", () => ({
   useLiveMatch: (...args: unknown[]) => useLiveMatchMock(...args),
 }));
 
+// trainingComponent 80, matchMinutesInWindow 0 de 560 esperados -> readiness original = round(0.7*80) = 56
 const lineupPlayers: SquadPlayer[] = [
   { id: "p0", displayName: "Titular", dorsal: 1, position: "portero", competitiveness: 7 },
   {
@@ -98,18 +99,18 @@ const lineupPlayers: SquadPlayer[] = [
     dorsal: 12,
     position: "defensa",
     competitiveness: 6,
-    readiness: 88,
+    readiness: 56,
     readinessBreakdown: {
-      trainingComponent: 100,
-      matchMinutesInWindow: 336,
+      trainingComponent: 80,
+      matchMinutesInWindow: 0,
       matchMinutesExpected: 560,
     },
   },
 ];
 
-describe("PartidoEnDirectoTab - indicador de rodaje", () => {
-  it("muestra el rodaje del jugador en la tarjeta del banquillo", async () => {
-    useLiveMatchMock.mockReturnValue(baseLiveReturn());
+describe("PartidoEnDirectoTab - rodaje en vivo", () => {
+  it("sube el % de rodaje mostrado en la tarjeta del banquillo al acumular minutos en el partido en directo", async () => {
+    useLiveMatchMock.mockReturnValue(baseLiveReturn({ p1: 140 }));
 
     render(
       <PartidoEnDirectoTab
@@ -122,6 +123,25 @@ describe("PartidoEnDirectoTab - indicador de rodaje", () => {
       />,
     );
 
-    expect(await screen.findByText("88%")).toBeInTheDocument();
+    // matchComponent = 140/560*100 = 25; readiness = round(0.7*80 + 0.3*25) = round(56 + 7.5) = 64
+    expect(await screen.findByText("64%")).toBeInTheDocument();
+    expect(screen.queryByText("56%")).not.toBeInTheDocument();
+  });
+
+  it("con 0 minutos en el partido en directo, muestra el mismo % que el rodaje original", async () => {
+    useLiveMatchMock.mockReturnValue(baseLiveReturn({}));
+
+    render(
+      <PartidoEnDirectoTab
+        teamId="team-1"
+        eventId="event-1"
+        lineupPlayers={lineupPlayers}
+        localTeamName="Local FC"
+        visitorTeamName="Visitor FC"
+        isHomeTeam
+      />,
+    );
+
+    expect(await screen.findByText("56%")).toBeInTheDocument();
   });
 });

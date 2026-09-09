@@ -32,7 +32,7 @@ vi.mock("../../../../services/simulationService", () => ({
   deleteSimulation: vi.fn(),
 }));
 
-function baseSimReturn(): UseMatchSimulationReturn {
+function baseSimReturn(playerMinutes: Record<string, number>): UseMatchSimulationReturn {
   return {
     currentMinute: 0,
     currentSecond: 0,
@@ -41,7 +41,7 @@ function baseSimReturn(): UseMatchSimulationReturn {
     isHalftime: false,
     slots: {},
     playerStates: {},
-    playerMinutes: {},
+    playerMinutes,
     windows: [],
     prepareMode: false,
     prepareSlotsPreview: {},
@@ -76,6 +76,7 @@ function baseSimReturn(): UseMatchSimulationReturn {
   };
 }
 
+// trainingComponent 60, matchMinutesInWindow 0 de 560 esperados -> readiness original = round(0.7*60) = 42
 const lineupPlayers: SquadPlayer[] = [
   {
     id: "p1",
@@ -91,9 +92,19 @@ const lineupPlayers: SquadPlayer[] = [
   },
 ];
 
-describe("SimulacionTab - indicador de rodaje", () => {
-  it("muestra el rodaje del jugador en la tarjeta del banquillo", async () => {
-    useMatchSimulationMock.mockReturnValue(baseSimReturn());
+describe("SimulacionTab - rodaje en vivo", () => {
+  it("sube el % de rodaje mostrado en la tarjeta del banquillo al acumular minutos en la simulación en curso", async () => {
+    useMatchSimulationMock.mockReturnValue(baseSimReturn({ p1: 56 }));
+
+    render(<SimulacionTab teamId="team-1" eventId="event-1" lineupPlayers={lineupPlayers} />);
+
+    // matchComponent = 56/560*100 = 10; readiness = round(0.7*60 + 0.3*10) = 45
+    expect(await screen.findByText("45%")).toBeInTheDocument();
+    expect(screen.queryByText("42%")).not.toBeInTheDocument();
+  });
+
+  it("con 0 minutos en la simulación en curso, muestra el mismo % que el rodaje original", async () => {
+    useMatchSimulationMock.mockReturnValue(baseSimReturn({}));
 
     render(<SimulacionTab teamId="team-1" eventId="event-1" lineupPlayers={lineupPlayers} />);
 

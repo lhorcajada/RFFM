@@ -1,5 +1,6 @@
 import type { FormationSlotDef } from "../../../../types/formation";
 import SimulationPlayerSlot, { type SimSlotPlayer } from "./SimulationPlayerSlot";
+import { computeLiveReadiness } from "../../utils/liveReadiness";
 import styles from "./SimulationField.module.css";
 
 interface SimulationFieldProps {
@@ -86,8 +87,12 @@ export default function SimulationField({
 
         {slotDefs.map((def) => {
           const playerId = activeSlots[def.slotIndex] ?? null;
-          const player = playerId ? (playersById[playerId] ?? null) : null;
+          const staticPlayer = playerId ? (playersById[playerId] ?? null) : null;
           const minutes = playerId !== null ? (playerMinutes[playerId] ?? 0) : undefined;
+          const player =
+            staticPlayer && minutes !== undefined
+              ? { ...staticPlayer, readiness: computeLiveReadiness(staticPlayer.readinessBreakdown, minutes) }
+              : staticPlayer;
           const entering = playerId !== null && enteringIds.has(playerId);
           const leaving = playerId !== null && leavingIds.has(playerId);
 

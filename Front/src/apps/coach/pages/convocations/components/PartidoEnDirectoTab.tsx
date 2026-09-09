@@ -49,6 +49,7 @@ import type { SimSlotPlayer } from "./simulation/SimulationPlayerSlot";
 import type { SquadPlayer } from "../../squad/components/IdealLineup";
 import ReadinessBadge from "../../../components/ReadinessBadge/ReadinessBadge";
 import ReadinessLegend from "../../../components/ReadinessLegend/ReadinessLegend";
+import { computeLiveReadiness } from "../utils/liveReadiness";
 import { saveMatchParticipation } from "../../../services/liveMatchService";
 import type { LiveMatchParticipationPayload, PlayerParticipationDto } from "./simulation/liveMatch.types";
 import styles from "./PartidoEnDirectoTab.module.css";
@@ -182,7 +183,10 @@ function BenchPlayerCard({
               ⏱ {player.streakCount}
             </span>
           )}
-          <ReadinessBadge value={player.readiness} dense />
+          <ReadinessBadge
+            value={computeLiveReadiness(player.readinessBreakdown, minutesPlayed ?? 0)}
+            dense
+          />
         </div>
         {!isLeaving ? (
           hasPlayed
@@ -309,6 +313,7 @@ export default function PartidoEnDirectoTab({
             dorsal: p.dorsal,
             competitiveness: p.competitiveness,
             readiness: p.readiness,
+            readinessBreakdown: p.readinessBreakdown,
           },
         ]),
       ),
