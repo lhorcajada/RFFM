@@ -53,7 +53,7 @@ describe("SquadStatistics — tooltip de rodaje", () => {
       />,
     );
 
-    const readinessCell = screen.getByTestId("readiness-cell-p1");
+    const readinessCell = screen.getByTestId("player-form-bar-r");
 
     fireEvent.mouseOver(readinessCell);
 

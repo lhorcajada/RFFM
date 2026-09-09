@@ -82,6 +82,50 @@ describe("SquadStatistics — tarjetas y filtros", () => {
     expect(cardNamesInOrder()).toEqual(["Bajo Goles", "Medio Goles", "Alto Goles"]);
   });
 
+  it("ordena las tarjetas por Estado de forma (Ef = Rodaje - Cansancio)", async () => {
+    const user = userEvent.setup();
+    render(
+      <SquadStatistics
+        players={[
+          // Ef = 20 (readiness 40 - fatigue 20)
+          buildPlayer({ teamPlayerId: "p1", displayName: "Ef Bajo", readiness: 40, fatigue: 20 }),
+          // Ef = 70 (readiness 90 - fatigue 20)
+          buildPlayer({ teamPlayerId: "p2", displayName: "Ef Alto", readiness: 90, fatigue: 20 }),
+        ]}
+        loading={false}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /^estado de forma$/i }));
+
+    const directionButton = screen.getByRole("button", { name: /orden (ascendente|descendente)/i });
+    if (directionButton.getAttribute("aria-label")?.includes("ascendente")) {
+      await user.click(directionButton);
+    }
+    expect(cardNamesInOrder()).toEqual(["Ef Alto", "Ef Bajo"]);
+  });
+
+  it("ordena las tarjetas por Cansancio", async () => {
+    const user = userEvent.setup();
+    render(
+      <SquadStatistics
+        players={[
+          buildPlayer({ teamPlayerId: "p1", displayName: "Poco Cansado", fatigue: 10 }),
+          buildPlayer({ teamPlayerId: "p2", displayName: "Muy Cansado", fatigue: 80 }),
+        ]}
+        loading={false}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /^cansancio$/i }));
+
+    const directionButton = screen.getByRole("button", { name: /orden (ascendente|descendente)/i });
+    if (directionButton.getAttribute("aria-label")?.includes("ascendente")) {
+      await user.click(directionButton);
+    }
+    expect(cardNamesInOrder()).toEqual(["Muy Cansado", "Poco Cansado"]);
+  });
+
   it("filtra las tarjetas por posición seleccionada", async () => {
     const user = userEvent.setup();
     render(
@@ -104,7 +148,7 @@ describe("SquadStatistics — tarjetas y filtros", () => {
     expect(screen.getByText("Defensa Uno")).toBeInTheDocument();
   });
 
-  it("muestra 'Sin datos' cuando el rodaje es null", () => {
+  it("muestra '—' en Ef y Rodaje cuando el rodaje es null", () => {
     render(
       <SquadStatistics
         players={[buildPlayer({ teamPlayerId: "p1", displayName: "Nuevo Jugador", readiness: null })]}
@@ -113,6 +157,7 @@ describe("SquadStatistics — tarjetas y filtros", () => {
     );
 
     const card = screen.getByTestId("squad-stat-card-p1");
-    expect(within(card).getByText("Sin datos")).toBeInTheDocument();
+    expect(within(card).getByTestId("player-form-bar-ef")).toHaveTextContent("—");
+    expect(within(card).getByTestId("player-form-bar-r")).toHaveTextContent("—");
   });
 });

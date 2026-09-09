@@ -4,7 +4,6 @@ import {
   FormControl,
   IconButton,
   InputLabel,
-  LinearProgress,
   MenuItem,
   Select,
   Tooltip,
@@ -20,6 +19,7 @@ import type { PlayerStatistics } from "../../../services/teamPlayerStatisticsSer
 import { exportSquadStatisticsPdf } from "../squadStatsPdfExport";
 import PlayerFormBars from "../../../components/PlayerFormBars/PlayerFormBars";
 import PlayerFormLegend from "../../../components/PlayerFormLegend/PlayerFormLegend";
+import { computeEf } from "../../../utils/playerFormMetrics";
 import styles from "./SquadStatistics.module.css";
 
 type Props = {
@@ -28,12 +28,14 @@ type Props = {
   teamName?: string;
 };
 
-type SortKey = "readiness" | "dorsal" | "goals" | "yellowCards" | "redCards" | "minutesPlayed";
+type SortKey = "ef" | "readiness" | "fatigue" | "dorsal" | "goals" | "yellowCards" | "redCards" | "minutesPlayed";
 
 type SortDirection = "asc" | "desc";
 
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+  { key: "ef", label: "Estado de forma" },
   { key: "readiness", label: "Rodaje" },
+  { key: "fatigue", label: "Cansancio" },
   { key: "dorsal", label: "Dorsal" },
   { key: "goals", label: "Goles" },
   { key: "yellowCards", label: "Amarillas" },
@@ -41,15 +43,14 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: "minutesPlayed", label: "Minutos" },
 ];
 
-function readinessColor(value: number): "success" | "warning" | "error" {
-  if (value >= 80) return "success";
-  if (value >= 50) return "warning";
-  return "error";
+function sortValue(player: PlayerStatistics, key: SortKey): number | null {
+  if (key === "ef") return computeEf(player.readiness, player.fatigue);
+  return player[key] as number | null;
 }
 
 function compareValues(a: PlayerStatistics, b: PlayerStatistics, key: SortKey): number {
-  const av = a[key];
-  const bv = b[key];
+  const av = sortValue(a, key);
+  const bv = sortValue(b, key);
   if (av == null && bv == null) return 0;
   if (av == null) return -1;
   if (bv == null) return 1;
@@ -189,40 +190,25 @@ export default function SquadStatistics({ players, loading, teamName }: Props) {
                 </div>
               </div>
 
-              <div className={styles.readinessRow}>
-                {player.readiness == null ? (
-                  <Typography variant="body2" color="text.secondary">
-                    Sin datos
-                  </Typography>
-                ) : (
-                  <Tooltip
-                    title={
+              <div className={styles.conditionRow}>
+                <PlayerFormBars
+                  variant="full"
+                  readiness={player.readiness}
+                  fatigue={player.fatigue}
+                  readinessTooltip={
+                    player.readinessBreakdown && (
                       <div>
-                        <div>Entreno: {Math.round(player.readinessBreakdown?.trainingComponent ?? 0)}%</div>
-                        <div>Partidos: {Math.round(player.readinessBreakdown?.matchComponent ?? 0)}%</div>
-                        {player.readinessBreakdown?.recentAbsences.map((absence) => (
+                        <div>Entreno: {Math.round(player.readinessBreakdown.trainingComponent)}%</div>
+                        <div>Partidos: {Math.round(player.readinessBreakdown.matchComponent)}%</div>
+                        {player.readinessBreakdown.recentAbsences.map((absence) => (
                           <div key={absence.eventId}>
                             {absence.date ? new Date(absence.date).toLocaleDateString("es-ES") : "—"} · {absence.reason} · {absence.pointsImpact}
                           </div>
                         ))}
                       </div>
-                    }
-                  >
-                    <div className={styles.readinessBar} data-testid={`readiness-cell-${player.teamPlayerId}`}>
-                      <LinearProgress
-                        variant="determinate"
-                        value={player.readiness}
-                        color={readinessColor(player.readiness)}
-                        className={styles.progressBar}
-                      />
-                      <span className={styles.readinessValue}>{player.readiness}%</span>
-                    </div>
-                  </Tooltip>
-                )}
-              </div>
-
-              <div className={styles.conditionRow}>
-                <PlayerFormBars variant="full" readiness={player.readiness} fatigue={player.fatigue} />
+                    )
+                  }
+                />
               </div>
 
               <div className={styles.statsRow}>
