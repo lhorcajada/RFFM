@@ -62,7 +62,7 @@ namespace RFFM.Api.Features.Coaches.News
                 .Take(request.PageSize)
                 .Select(n => new NewsSummaryResponse(
                     n.Id, n.Title, n.Subtitle, n.CoverImageUrl, n.Status.Name, n.PublishedAt, n.NewsDate,
-                    n.LinkType.Name, n.LinkedEventId, n.LinkedTeamId, n.LinkUrl))
+                    n.LinkType.Name, n.LinkedEventId, n.LinkedTeamId, n.LinkUrl, n.Body))
                 .ToArrayAsync(ct);
 
             return items;

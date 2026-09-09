@@ -6,6 +6,7 @@ export type NewsSummaryDto = {
   id: string;
   title: string;
   subtitle: string;
+  body: string;
   coverImageUrl: string;
   status: NewsStatusValue;
   publishedAt: string | null;
@@ -17,7 +18,6 @@ export type NewsSummaryDto = {
 };
 
 export type NewsDetailDto = NewsSummaryDto & {
-  body: string;
   createdAt: string;
   updatedAt: string;
 };

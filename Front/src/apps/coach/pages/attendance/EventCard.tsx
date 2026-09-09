@@ -387,50 +387,58 @@ export default function EventCard({ event, eventTypeName, onDeleted, onEdited, a
         {event.description && (
           <div className={styles.description} title={event.description}>{event.description}</div>
         )}
-        {(isMatch || arrivalTimeStr || isTraining) && (
-          <div className={styles.chipsRow}>
-            {isMatch && (
-              <Chip
-                label="Partido"
-                size="small"
-                sx={{
-                  backgroundColor: "rgba(13,71,161,0.45)",
-                  color: "#90caf9",
-                  fontWeight: 700,
-                  fontSize: "0.68rem",
-                  height: 20,
-                }}
-              />
-            )}
-            {arrivalTimeStr && (
-              <Chip
-                label={`Llegada ${arrivalTimeStr}`}
-                size="small"
-                sx={{
-                  backgroundColor: "rgba(255,193,7,0.22)",
-                  color: "#ffd54f",
-                  fontWeight: 700,
-                  fontSize: "0.7rem",
-                  height: 20,
-                }}
-              />
-            )}
-            {isTraining && (
-              <Chip
-                label={event.hasConvokedPlayers ? "Convocatoria abierta" : "Convocatoria sin iniciar"}
-                size="small"
-                sx={{
-                  backgroundColor: event.hasConvokedPlayers ? "rgba(46,125,50,0.35)" : "rgba(120,130,150,0.3)",
-                  color: event.hasConvokedPlayers ? "#a5d6a7" : "#cfd8dc",
-                  fontWeight: 700,
-                  fontSize: "0.68rem",
-                  height: 20,
-                }}
-              />
-            )}
-          </div>
-        )}
-        <EventAttendanceBadges summary={attendanceSummary} isPlayer={!!isPlayer} />
+        {/* Tags (chipsRow + attendance badges) anchored to the card's bottom
+            edge via margin-top:auto on the wrapper — so they settle at the
+            bottom of the card instead of sitting right under the
+            description with blank space below, now that .compact cards
+            stretch to fill whatever height the dashboard row gives them
+            (see .compact's comment). */}
+        <div className={styles.bottomTags}>
+          {(isMatch || arrivalTimeStr || isTraining) && (
+            <div className={styles.chipsRow}>
+              {isMatch && (
+                <Chip
+                  label="Partido"
+                  size="small"
+                  sx={{
+                    backgroundColor: "rgba(13,71,161,0.45)",
+                    color: "#90caf9",
+                    fontWeight: 700,
+                    fontSize: "0.68rem",
+                    height: 20,
+                  }}
+                />
+              )}
+              {arrivalTimeStr && (
+                <Chip
+                  label={`Llegada ${arrivalTimeStr}`}
+                  size="small"
+                  sx={{
+                    backgroundColor: "rgba(255,193,7,0.22)",
+                    color: "#ffd54f",
+                    fontWeight: 700,
+                    fontSize: "0.7rem",
+                    height: 20,
+                  }}
+                />
+              )}
+              {isTraining && (
+                <Chip
+                  label={event.hasConvokedPlayers ? "Convocatoria abierta" : "Convocatoria sin iniciar"}
+                  size="small"
+                  sx={{
+                    backgroundColor: event.hasConvokedPlayers ? "rgba(46,125,50,0.35)" : "rgba(120,130,150,0.3)",
+                    color: event.hasConvokedPlayers ? "#a5d6a7" : "#cfd8dc",
+                    fontWeight: 700,
+                    fontSize: "0.68rem",
+                    height: 20,
+                  }}
+                />
+              )}
+            </div>
+          )}
+          <EventAttendanceBadges summary={attendanceSummary} isPlayer={!!isPlayer} />
+        </div>
       </div>
 
       {!compact && actions}

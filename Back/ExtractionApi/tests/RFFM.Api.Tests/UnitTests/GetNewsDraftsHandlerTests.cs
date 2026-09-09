@@ -149,5 +149,27 @@ namespace RFFM.Api.Tests.UnitTests
             Assert.Null(result[0].LinkedTeamId);
             Assert.Equal("https://maps.google.com/abc", result[0].LinkUrl);
         }
+
+        [Fact]
+        public async Task Handle_ReturnsBody()
+        {
+            await ClearNewsTableAsync();
+            await using var seedDb = _fixture.CreateDbContext();
+            var news = NewsItem.Create(
+                "Title", "Sub", "Cuerpo completo del borrador.", "https://example.com/image.jpg", NewsStatus.Draft,
+                new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc)
+            );
+            seedDb.News.Add(news);
+            await seedDb.SaveChangesAsync();
+
+            await using var db = _fixture.CreateDbContext();
+            var handler = new GetNewsDraftsHandler(db, null!);
+            var query = new GetNewsDraftsQuery(1, 20);
+
+            var result = await handler.Handle(query, CancellationToken.None);
+
+            Assert.Single(result);
+            Assert.Equal("Cuerpo completo del borrador.", result[0].Body);
+        }
     }
 }

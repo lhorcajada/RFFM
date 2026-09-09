@@ -46,12 +46,20 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
+  flex: 1;
 }
 
 /* EventCard (reused from the Attendance list, compact mode) owns all card
-   visuals now — this link is just a transparent click target around it. */
+   visuals now — this link is just a transparent click target around it.
+   flex:1 + column so EventCard (given height:100% by its own .compact rule)
+   actually fills whatever height the slide/wrapper ends up with, instead of
+   sizing to its own natural content and leaving blank space below when the
+   row is stretched taller than this card needs (e.g. by the "Últimas
+   noticias" widget sharing the same dashboard grid row). */
 .eventCardLink {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
   width: 100%;
   text-decoration: none;
   color: inherit;

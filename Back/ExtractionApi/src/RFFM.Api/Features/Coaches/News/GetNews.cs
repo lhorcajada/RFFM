@@ -72,7 +72,7 @@ namespace RFFM.Api.Features.Coaches.News
                 .Take(request.PageSize)
                 .Select(n => new NewsSummaryResponse(
                     n.Id, n.Title, n.Subtitle, n.CoverImageUrl, n.Status.Name, n.PublishedAt, n.NewsDate,
-                    n.LinkType.Name, n.LinkedEventId, n.LinkedTeamId, n.LinkUrl))
+                    n.LinkType.Name, n.LinkedEventId, n.LinkedTeamId, n.LinkUrl, n.Body))
                 .ToArrayAsync(ct);
 
             return items;
@@ -82,7 +82,7 @@ namespace RFFM.Api.Features.Coaches.News
 
 public record NewsSummaryResponse(
     string Id, string Title, string Subtitle, string CoverImageUrl, string Status, DateTime? PublishedAt, DateTime NewsDate,
-    string LinkType, string? LinkedEventId, string? LinkedTeamId, string? LinkUrl);
+    string LinkType, string? LinkedEventId, string? LinkedTeamId, string? LinkUrl, string Body);
 
 public record NewsDetailResponse(
     string Id, string Title, string Subtitle, string Body, string CoverImageUrl,

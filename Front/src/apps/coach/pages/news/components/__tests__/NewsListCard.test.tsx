@@ -14,6 +14,7 @@ const item: NewsSummaryDto = {
   id: "n1",
   title: "Nueva convocatoria",
   subtitle: "Detalles del próximo partido",
+  body: "Cuerpo largo de la noticia con más detalle.",
   coverImageUrl: "newsimages/cover.jpg",
   status: "Published",
   publishedAt: "2026-08-20T10:00:00Z",
@@ -24,11 +25,14 @@ const item: NewsSummaryDto = {
   linkUrl: null,
 };
 
-function renderCard(overrides: Partial<NewsSummaryDto> = {}) {
+function renderCard(overrides: Partial<NewsSummaryDto> = {}, compact = false) {
   return render(
     <MemoryRouter initialEntries={["/"]}>
       <Routes>
-        <Route path="/" element={<NewsListCard item={{ ...item, ...overrides }} />} />
+        <Route
+          path="/"
+          element={<NewsListCard item={{ ...item, ...overrides }} compact={compact} />}
+        />
         <Route path="/coach/news/:id" element={<div>detalle de noticia</div>} />
         <Route path="/coach/attendance/:id" element={<div>popup de convocatoria</div>} />
       </Routes>
@@ -106,5 +110,19 @@ describe("NewsListCard", () => {
     });
     expect(screen.queryByText("Convocatoria")).not.toBeInTheDocument();
     expect(screen.queryByText("Enlace")).not.toBeInTheDocument();
+  });
+
+  it("compact card renders body text and not subtitle text", () => {
+    renderCard({}, true);
+    expect(screen.getByText("Cuerpo largo de la noticia con más detalle.")).toBeInTheDocument();
+    expect(screen.queryByText("Detalles del próximo partido")).not.toBeInTheDocument();
+  });
+
+  it("non-compact card renders subtitle text and not body text", () => {
+    renderCard();
+    expect(screen.getByText("Detalles del próximo partido")).toBeInTheDocument();
+    expect(
+      screen.queryByText("Cuerpo largo de la noticia con más detalle.")
+    ).not.toBeInTheDocument();
   });
 });

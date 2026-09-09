@@ -47,7 +47,7 @@ export default function NewsListCard({ item, compact }: Props) {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
           <div style={{ flex: 1 }}>
             <h4 className={styles.title}>{item.title}</h4>
-            <p className={styles.subtitle}>{item.subtitle}</p>
+            <p className={styles.subtitle}>{compact ? item.body : item.subtitle}</p>
           </div>
           {item.linkType === "MatchConvocation" && item.linkedEventId && (
             <Chip

@@ -529,7 +529,18 @@
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
-  margin-top: 4px;
+  flex-shrink: 0;
+}
+
+/* Wraps chipsRow + EventAttendanceBadges and pins them to the bottom of the
+   card (margin-top:auto consumes whatever leftover vertical space .body has
+   once .compact stretches to fill a taller-than-natural row), instead of
+   them sitting right under .description with blank space below. */
+.bottomTags {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: auto;
   flex-shrink: 0;
 }
 
@@ -547,77 +558,90 @@
 
 /* ===== Compact mode — dashboard widget (UpcomingEventsWidget) =====
    Read-only preview of the same card used in the Attendance list, just
-   without the actions footer/dialogs — height is left at its natural
-   `auto` (overriding the base .card's fixed 320px) instead of forced into
-   a fixed box, so all of the event's content (badges, chips, location...)
-   stays visible instead of being clipped. UpcomingEventsWidget.module.css's
-   `.container` is itself `auto`-height for the same reason, and
-   TeamDashboard.module.css's shared grid row grows to match this card when
-   it needs more than the grid's 270px floor. */
+   without the actions footer/dialogs. `height: 100%` (not the base .card's
+   fixed 320px, and not `auto` either) so this card fills whatever height
+   `UpcomingEventsWidget.module.css`'s `.eventCardLink` (flex:1, itself
+   filling the Carousel slide) ends up with — including when that's taller
+   than this card's own natural content, e.g. when the "Últimas noticias"
+   widget sharing the same dashboard grid row is the one driving a taller
+   row. Never clips: `.eventCardLink`/the slide can only ever end up at
+   least as tall as this card's natural content in the first place, since
+   that content is one of the inputs to the grid row's own auto-sizing (see
+   `TeamDashboard.module.css`'s shared `.dashboardGrid` row comment) — 100%
+   here can only mean "at least natural size", never less.
+
+   Sizes here sit close to the non-compact values (not the original, more
+   aggressively shrunk ones) so this card reads with similar visual weight
+   to the dashboard's other widget card — the "Últimas noticias" NewsWidget
+   card, whose compact cover image/body preview were enlarged to occupy
+   about half the card. A tiny gap from the full size is kept only where the
+   compact card is visibly narrower (no actions footer competing for width),
+   not as an arbitrary shrink. */
 .compact {
-  height: auto;
+  height: 100%;
 }
 
 .compact .header {
-  height: 56px; /* shrunk from 88px — no top bar to make room for any more,
-                    the type tag lives in the sidebar now. */
+  height: 68px; /* close to the full 72px — no top bar to make room for any
+                    more, the type tag lives in the sidebar now. */
 }
 
 .compact .matchHeader {
-  height: 78px; /* shrunk from 88px — keeps the Home/Away top bar + team row. */
+  height: 92px; /* close to the full 100px — keeps the Home/Away top bar +
+                    team row comfortably sized. */
 }
 
 .compact .typeSidebar {
-  width: 22px;
+  width: 24px;
 }
 
 .compact .typeSidebarLabel {
-  font-size: 0.6rem;
+  font-size: 0.66rem;
 }
 
 .compact .avatar {
-  font-size: 1.7rem;
+  font-size: 2.4rem;
 }
 
 .compact .matchTopBar {
-  padding: 4px 6px 0;
-  min-height: 18px;
+  padding: 5px 7px 0;
+  min-height: 19px;
 }
 
 .compact .matchShield,
 .compact .matchShieldPlaceholder {
-  width: 30px;
-  height: 30px;
+  width: 40px;
+  height: 40px;
 }
 
 .compact .matchTeamName {
-  font-size: 0.6rem;
+  font-size: 0.65rem;
   -webkit-line-clamp: 2;
 }
 
 .compact .matchTeamBlock {
-  padding-top: 2px;
-  gap: 3px;
+  padding-top: 6px;
+  gap: 4px;
 }
 
 .compact .matchCenter {
-  padding-top: 0;
+  padding-top: 3px;
 }
 
 .compact .matchScore {
-  font-size: 1.15rem;
+  font-size: 1.5rem;
 }
 
 .compact .matchVs {
-  font-size: 0.95rem;
+  font-size: 1.15rem;
 }
 
 .compact .homeBadge {
-  font-size: 0.54rem;
+  font-size: 0.57rem;
 }
 
 .compact .body {
-  padding: 8px 12px 8px;
+  padding: 10px 14px 8px;
   gap: 4px;
 }
 
@@ -669,19 +693,19 @@
     height: auto;
   }
   .compact .header {
-    height: 44px; /* shrunk from 62px — no top bar */
+    height: 50px; /* close to the full 52px at this width — no top bar */
   }
   .compact .matchHeader {
-    height: 58px; /* shrunk from 62px */
+    height: 64px; /* close to the full 66px at this width */
   }
   .compact .typeSidebar {
-    width: 20px;
+    width: 21px;
   }
   .compact .typeSidebarLabel {
-    font-size: 0.56rem;
+    font-size: 0.58rem;
   }
   .compact .avatar {
-    font-size: 1.3rem;
+    font-size: 1.6rem;
   }
 }
 
