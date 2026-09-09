@@ -132,6 +132,28 @@ export interface SeasonPlayerStats {
   totalMatches: number;
 }
 
+/** One player swap within a substitution window record (match history endpoint) */
+export interface SubstitutionSwapRecord {
+  /** Player entering the field */
+  inPlayerId: string;
+  /** Player leaving the field (null if the target slot was empty) */
+  outPlayerId: string | null;
+  /** Field slot where the swap takes place */
+  slotIndex: number;
+}
+
+/** A substitution window as returned by the match history endpoint */
+export interface SubstitutionWindowRecord {
+  /** 1-based sequential index within the match */
+  windowIndex: number;
+  /** Match minute at which the window was confirmed */
+  minute: number;
+  /** Half in which the window occurred */
+  half: 1 | 2;
+  /** Individual player swaps performed in this window */
+  swaps: SubstitutionSwapRecord[];
+}
+
 /** Per-match participation record returned by the match history endpoint */
 export interface PlayerMatchRecord {
   eventId: string;
@@ -140,7 +162,18 @@ export interface PlayerMatchRecord {
   enteredAtMinute: number | null;
   exitedAtMinute: number | null;
   goalsScored: number;
+  /** Yellow cards received by this player in this match */
+  yellowCards: number;
+  /** Red cards received by this player in this match */
+  redCards: number;
+  /** Rival club name, null if not resolved */
+  rivalName: string | null;
+  eventTypeId: number;
+  eventTypeName: string;
+  /** Full list of substitution windows for the match (may include swaps of other players) */
+  substitutionWindows: SubstitutionWindowRecord[];
   scoreLocal: number;
   scoreVisitor: number;
-  savedAt: string; // ISO timestamp
+  /** Date of the match itself (SportEvent.eveDateTime), null if the event has no date */
+  matchDate: string | null;
 }

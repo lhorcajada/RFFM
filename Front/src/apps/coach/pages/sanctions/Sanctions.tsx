@@ -64,6 +64,7 @@ export default function Sanctions() {
   const [addSanctionType, setAddSanctionType] = useState("");
   const [addDescription, setAddDescription] = useState("");
   const [addEstimatedEnd, setAddEstimatedEnd] = useState("");
+  const [addFine, setAddFine] = useState("");
   const [addSaving, setAddSaving] = useState(false);
 
   // Edit dialog
@@ -108,6 +109,7 @@ export default function Sanctions() {
     setAddSanctionType("");
     setAddDescription("");
     setAddEstimatedEnd("");
+    setAddFine("");
     setAddOpen(true);
   }
 
@@ -120,6 +122,7 @@ export default function Sanctions() {
       sanctionType: addSanctionType,
       description: addDescription || null,
       estimatedEnd: addEstimatedEnd || null,
+      fine: addFine.trim() ? Number(addFine) : null,
     });
     setAddSaving(false);
     if (result) {
@@ -133,7 +136,7 @@ export default function Sanctions() {
     setEditOpen(true);
   }
 
-  async function handleEditSave(data: { startDate: string; sanctionType: string; description?: string | null; estimatedEnd?: string | null; endDate?: string | null }) {
+  async function handleEditSave(data: { startDate: string; sanctionType: string; description?: string | null; estimatedEnd?: string | null; endDate?: string | null; fine?: number | null }) {
     if (isPlayerOrFamily) return;
     if (!editRow) return;
     setEditSaving(true);
@@ -153,6 +156,7 @@ export default function Sanctions() {
       description: row.sanction.description,
       estimatedEnd: row.sanction.estimatedEnd,
       endDate: new Date().toISOString(),
+      fine: row.sanction.fine,
     });
     setRefreshKey((k) => k + 1);
   }
@@ -192,6 +196,7 @@ export default function Sanctions() {
                   <TableCell>Sanción</TableCell>
                   <TableCell>Inicio</TableCell>
                   <TableCell>Fin</TableCell>
+                  <TableCell>Multa</TableCell>
                   <TableCell>Estado</TableCell>
                   <TableCell align="right">Acciones</TableCell>
                 </TableRow>
@@ -208,7 +213,12 @@ export default function Sanctions() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2">{sanction.sanctionType}</Typography>
+                        <Stack direction="row" spacing={0.75} alignItems="center">
+                          <Typography variant="body2">{sanction.sanctionType}</Typography>
+                          {sanction.isAutomatic && (
+                            <Chip label="Automática" size="small" color="warning" variant="outlined" />
+                          )}
+                        </Stack>
                         {sanction.estimatedEnd && <Typography variant="caption" color="text.secondary">Fin estimado: {sanction.estimatedEnd}</Typography>}
                       </TableCell>
                       <TableCell>
@@ -216,6 +226,9 @@ export default function Sanctions() {
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2" color="text.secondary">{sanction.endDate ? new Date(sanction.endDate).toLocaleDateString("es-ES") : "—"}</Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" color="text.secondary">{sanction.fine != null ? `${sanction.fine} €` : "—"}</Typography>
                       </TableCell>
                       <TableCell>{isActive ? <Chip label="Activa" color="error" size="small" /> : <Chip label="Cumplida" color="success" size="small" variant="outlined" />}</TableCell>
                       <TableCell align="right">
@@ -255,6 +268,7 @@ export default function Sanctions() {
             <TextField label="Tipo de sanción" size="small" fullWidth value={addSanctionType} onChange={(e) => setAddSanctionType(e.target.value)} placeholder="Ej: Expulsión, sanción federativa..." required />
             <TextField label="Descripción" size="small" fullWidth multiline minRows={2} value={addDescription} onChange={(e) => setAddDescription(e.target.value)} placeholder="Motivo de la sanción" />
             <TextField label="Fin estimado" size="small" fullWidth value={addEstimatedEnd} onChange={(e) => setAddEstimatedEnd(e.target.value)} placeholder="Ej: 1 partido, 2 semanas" />
+            <TextField label="Multa (€)" type="number" size="small" fullWidth value={addFine} onChange={(e) => setAddFine(e.target.value)} inputProps={{ min: 0, step: 0.01 }} />
           </div>
         </DialogContent>
         <DialogActions>
@@ -269,15 +283,16 @@ export default function Sanctions() {
         <DialogContent>
           <div className={styles.addDialogFields}>
             <TextField label="Fecha inicio" type="date" size="small" fullWidth value={editRow?.sanction.startDate?.slice(0,10) ?? ""} onChange={(e) => setEditRow(r => r ? { ...r, sanction: { ...r.sanction, startDate: e.target.value } } : r)} InputLabelProps={{ shrink: true }} />
-            <TextField label="Tipo de sanción" size="small" fullWidth value={editRow?.sanction.sanctionType ?? ""} onChange={(e) => setEditRow(r => r ? { ...r, sanction: { ...r.sanction, sanctionType: e.target.value } } : r)} />
+            <TextField label="Tipo de sanción" size="small" fullWidth value={editRow?.sanction.sanctionType ?? ""} onChange={(e) => setEditRow(r => r ? { ...r, sanction: { ...r.sanction, sanctionType: e.target.value } } : r)} disabled={editRow?.sanction.isAutomatic} helperText={editRow?.sanction.isAutomatic ? "Generada automáticamente, no editable" : undefined} />
             <TextField label="Descripción" size="small" fullWidth multiline minRows={2} value={editRow?.sanction.description ?? ""} onChange={(e) => setEditRow(r => r ? { ...r, sanction: { ...r.sanction, description: e.target.value } } : r)} />
             <TextField label="Fin estimado" size="small" fullWidth value={editRow?.sanction.estimatedEnd ?? ""} onChange={(e) => setEditRow(r => r ? { ...r, sanction: { ...r.sanction, estimatedEnd: e.target.value } } : r)} />
+            <TextField label="Multa (€)" type="number" size="small" fullWidth value={editRow?.sanction.fine ?? ""} onChange={(e) => setEditRow(r => r ? { ...r, sanction: { ...r.sanction, fine: e.target.value === "" ? null : Number(e.target.value) } } : r)} inputProps={{ min: 0, step: 0.01 }} />
             <TextField label="Fecha fin" type="date" size="small" fullWidth value={editRow?.sanction.endDate ? editRow.sanction.endDate.slice(0,10) : ""} onChange={(e) => setEditRow(r => r ? { ...r, sanction: { ...r.sanction, endDate: e.target.value || null } } : r)} InputLabelProps={{ shrink: true }} helperText="Rellena para marcar la sanción como finalizada" />
           </div>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setEditOpen(false)} disabled={editSaving}>Cancelar</Button>
-          <Button variant="contained" onClick={() => handleEditSave({ startDate: editRow?.sanction.startDate ?? "", sanctionType: editRow?.sanction.sanctionType ?? "", description: editRow?.sanction.description ?? null, estimatedEnd: editRow?.sanction.estimatedEnd ?? null, endDate: editRow?.sanction.endDate ?? null })} disabled={editSaving}>Guardar</Button>
+          <Button variant="contained" onClick={() => handleEditSave({ startDate: editRow?.sanction.startDate ?? "", sanctionType: editRow?.sanction.sanctionType ?? "", description: editRow?.sanction.description ?? null, estimatedEnd: editRow?.sanction.estimatedEnd ?? null, endDate: editRow?.sanction.endDate ?? null, fine: editRow?.sanction.fine ?? null })} disabled={editSaving}>Guardar</Button>
         </DialogActions>
       </Dialog>
     </BaseLayout>

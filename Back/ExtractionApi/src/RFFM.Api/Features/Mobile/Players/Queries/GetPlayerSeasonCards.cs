@@ -8,6 +8,7 @@ using RFFM.Api.Domain.Aggregates.Assistances;
 using RFFM.Api.Domain.Entities;
 using RFFM.Api.Domain.Entities.Demarcations;
 using RFFM.Api.FeatureModules;
+using RFFM.Api.Features.Coaches.Players.Services;
 using RFFM.Api.Infrastructure.Persistence;
 using System.Text.Json;
 
@@ -177,8 +178,8 @@ namespace RFFM.Api.Features.Mobile.Players.Queries
                     var matchesPlayed = playerParticipations.Count;
                     var matchesStarted = playerParticipations.Count(mp => mp.IsStarter);
                     var goals = playerParticipations.Sum(mp => CountGoalsForPlayer(mp.GoalsJson, player.Id));
-                    var yellowCards = playerParticipations.Sum(mp => CountCards(mp.CardsJson, player.Id, "Yellow"));
-                    var redCards = playerParticipations.Sum(mp => CountCards(mp.CardsJson, player.Id, "Red"));
+                    var yellowCards = playerParticipations.Sum(mp => PlayerCardCountService.CountCards(mp.CardsJson, player.Id, "Yellow"));
+                    var redCards = playerParticipations.Sum(mp => PlayerCardCountService.CountCards(mp.CardsJson, player.Id, "Red"));
 
                     int matchesSinceLastDeconvocation;
                     if (lastDeconvocationDateByPlayer.TryGetValue(player.Id, out var lastDeconvocationDate))
@@ -257,41 +258,6 @@ namespace RFFM.Api.Features.Mobile.Players.Queries
 
                         if (isOwnTeam && scorerId == teamPlayerId)
                             count++;
-                    }
-                    return count;
-                }
-                catch
-                {
-                    return 0;
-                }
-            }
-
-            /// <summary>
-            /// Parses CardsJson (array of CardEvent { id, minute, half, cardType, teamPlayerId,
-            /// playerName, isRivalPlayer, rivalDorsal }) and counts cards of the given type
-            /// attributed to teamPlayerId. Only teamPlayerId and cardType are read here; the
-            /// remaining properties are ignored. Returns 0 for null/malformed JSON.
-            /// </summary>
-            private static int CountCards(string? cardsJson, string teamPlayerId, string cardType)
-            {
-                if (string.IsNullOrEmpty(cardsJson)) return 0;
-
-                try
-                {
-                    using var doc = JsonDocument.Parse(cardsJson);
-                    if (doc.RootElement.ValueKind != JsonValueKind.Array) return 0;
-
-                    int count = 0;
-                    foreach (var card in doc.RootElement.EnumerateArray())
-                    {
-                        var cardTeamPlayerId = card.TryGetProperty("teamPlayerId", out var idProp) ? idProp.GetString() : null;
-                        var cardTypeValue = card.TryGetProperty("cardType", out var typeProp) ? typeProp.GetString() : null;
-
-                        if (cardTeamPlayerId == teamPlayerId &&
-                            string.Equals(cardTypeValue, cardType, StringComparison.OrdinalIgnoreCase))
-                        {
-                            count++;
-                        }
                     }
                     return count;
                 }

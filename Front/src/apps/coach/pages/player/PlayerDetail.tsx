@@ -17,11 +17,6 @@ import {
   Tabs,
   Badge,
   CircularProgress,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import MedicalServicesIcon from "@mui/icons-material/MedicalServices";
@@ -43,6 +38,7 @@ import InjuryHistoryPanel from "./components/InjuryHistoryPanel";
 import { usePlayerDetailData } from "./hooks/usePlayerDetailData";
 import { usePlayerSave } from "./hooks/usePlayerSave";
 import { usePlayerMatchHistory } from "./hooks/usePlayerMatchHistory";
+import PlayerMatchHistoryTable from "./components/PlayerMatchHistoryTable";
 
 const DOMINANT_FOOT_MAP: Record<string, number> = {
   Zurdo: 1,
@@ -461,6 +457,8 @@ export default function PlayerDetail() {
                       const totalMinutes = matchHistory.reduce((s, r) => s + r.minutesPlayed, 0);
                       const totalGoals = matchHistory.reduce((s, r) => s + r.goalsScored, 0);
                       const totalStarts = matchHistory.filter((r) => r.isStarter).length;
+                      const totalYellowCards = matchHistory.reduce((s, r) => s + r.yellowCards, 0);
+                      const totalRedCards = matchHistory.reduce((s, r) => s + r.redCards, 0);
                       return (
                         <>
                           <div className={styles.statsTotals}>
@@ -480,47 +478,16 @@ export default function PlayerDetail() {
                               <span className={styles.statsTotalValue}>{matchHistory.length}</span>
                               <span className={styles.statsTotalLabel}>partidos</span>
                             </div>
+                            <div className={styles.statsTotalItem}>
+                              <span className={styles.statsTotalValue}>{totalYellowCards}</span>
+                              <span className={styles.statsTotalLabel}>amarillas</span>
+                            </div>
+                            <div className={styles.statsTotalItem}>
+                              <span className={styles.statsTotalValue}>{totalRedCards}</span>
+                              <span className={styles.statsTotalLabel}>rojas</span>
+                            </div>
                           </div>
-                          <div className={styles.statsTableWrapper}>
-                            <Table size="small">
-                              <TableHead>
-                                <TableRow>
-                                  <TableCell sx={{ color: "rgba(255,255,255,0.5)", fontSize: "0.75rem" }}>Fecha guardado</TableCell>
-                                  <TableCell sx={{ color: "rgba(255,255,255,0.5)", fontSize: "0.75rem" }}>Marcador</TableCell>
-                                  <TableCell sx={{ color: "rgba(255,255,255,0.5)", fontSize: "0.75rem" }}>Min</TableCell>
-                                  <TableCell sx={{ color: "rgba(255,255,255,0.5)", fontSize: "0.75rem" }}>Titular</TableCell>
-                                  <TableCell sx={{ color: "rgba(255,255,255,0.5)", fontSize: "0.75rem" }}>Entró</TableCell>
-                                  <TableCell sx={{ color: "rgba(255,255,255,0.5)", fontSize: "0.75rem" }}>Salió</TableCell>
-                                  <TableCell sx={{ color: "rgba(255,255,255,0.5)", fontSize: "0.75rem" }}>Goles</TableCell>
-                                </TableRow>
-                              </TableHead>
-                              <TableBody>
-                                {matchHistory.map((r) => (
-                                  <TableRow key={r.eventId}>
-                                    <TableCell sx={{ color: "rgba(255,255,255,0.75)", fontSize: "0.8rem" }}>
-                                      {new Date(r.savedAt).toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit", year: "2-digit" })}
-                                    </TableCell>
-                                    <TableCell sx={{ color: "rgba(255,255,255,0.75)", fontSize: "0.8rem" }}>
-                                      {r.scoreLocal}:{r.scoreVisitor}
-                                    </TableCell>
-                                    <TableCell sx={{ color: "rgba(255,255,255,0.75)", fontSize: "0.8rem" }}>{r.minutesPlayed}</TableCell>
-                                    <TableCell sx={{ color: r.isStarter ? "#22c55e" : "rgba(255,255,255,0.4)", fontSize: "0.8rem" }}>
-                                      {r.isStarter ? "Sí" : "No"}
-                                    </TableCell>
-                                    <TableCell sx={{ color: "rgba(255,255,255,0.75)", fontSize: "0.8rem" }}>
-                                      {r.enteredAtMinute != null ? `${r.enteredAtMinute}'` : "—"}
-                                    </TableCell>
-                                    <TableCell sx={{ color: "rgba(255,255,255,0.75)", fontSize: "0.8rem" }}>
-                                      {r.exitedAtMinute != null ? `${r.exitedAtMinute}'` : "—"}
-                                    </TableCell>
-                                    <TableCell sx={{ color: r.goalsScored > 0 ? "#fb923c" : "rgba(255,255,255,0.4)", fontSize: "0.8rem", fontWeight: r.goalsScored > 0 ? 700 : 400 }}>
-                                      {r.goalsScored}
-                                    </TableCell>
-                                  </TableRow>
-                                ))}
-                              </TableBody>
-                            </Table>
-                          </div>
+                          <PlayerMatchHistoryTable matchHistory={matchHistory} teamPlayerId={teamPlayer.id} />
                         </>
                       );
                     })()}

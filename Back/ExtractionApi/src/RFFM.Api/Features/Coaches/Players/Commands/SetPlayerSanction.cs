@@ -88,7 +88,7 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
                             ["category"] = new[] { $"Categoría de sanción desconocida: '{req.Category}'." }
                         });
 
-                    var sanction = TeamPlayerSanction.Create(id, category!, req.StartDate, req.SanctionType, req.Description, req.EstimatedEnd);
+                    var sanction = TeamPlayerSanction.Create(id, category!, req.StartDate, req.SanctionType, req.Description, req.EstimatedEnd, req.Fine);
                     db.TeamPlayerSanctions.Add(sanction);
                     await db.SaveChangesAsync(ct);
 
@@ -117,7 +117,7 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
                             ["category"] = new[] { $"Categoría de sanción desconocida: '{req.Category}'." }
                         });
 
-                    sanction.Update(category!, req.StartDate, req.SanctionType, req.Description, req.EstimatedEnd, req.EndDate);
+                    sanction.Update(category!, req.StartDate, req.SanctionType, req.Description, req.EstimatedEnd, req.EndDate, req.Fine);
                     await db.SaveChangesAsync(ct);
 
                     return Results.Ok(ToResponse(sanction));
@@ -148,11 +148,11 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
         }
 
         static SanctionRecordResponse ToResponse(TeamPlayerSanction s)
-            => new(s.Id, s.Category.Name, s.StartDate, s.SanctionType, s.Description, s.EstimatedEnd, s.EndDate);
+            => new(s.Id, s.Category.Name, s.StartDate, s.SanctionType, s.Description, s.EstimatedEnd, s.EndDate, s.IsAutomatic, s.Fine);
 
-        public record SanctionCreateRequest(string Category, DateTime StartDate, string SanctionType, string? Description, string? EstimatedEnd);
-        public record SanctionUpdateRequest(string Category, DateTime StartDate, string SanctionType, string? Description, string? EstimatedEnd, DateTime? EndDate);
-        public record SanctionRecordResponse(string Id, string Category, DateTime StartDate, string SanctionType, string? Description, string? EstimatedEnd, DateTime? EndDate);
+        public record SanctionCreateRequest(string Category, DateTime StartDate, string SanctionType, string? Description, string? EstimatedEnd, decimal? Fine = null);
+        public record SanctionUpdateRequest(string Category, DateTime StartDate, string SanctionType, string? Description, string? EstimatedEnd, DateTime? EndDate, decimal? Fine = null);
+        public record SanctionRecordResponse(string Id, string Category, DateTime StartDate, string SanctionType, string? Description, string? EstimatedEnd, DateTime? EndDate, bool IsAutomatic, decimal? Fine);
         public record TeamPlayerSanctionsResponse(string TeamPlayerId, SanctionRecordResponse[] Sanctions);
     }
 }

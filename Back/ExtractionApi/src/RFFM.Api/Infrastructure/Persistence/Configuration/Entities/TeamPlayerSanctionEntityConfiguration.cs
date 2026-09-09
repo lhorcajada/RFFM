@@ -19,9 +19,13 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Entities
             builder.Property(s => s.Description).HasMaxLength(1000).IsRequired(false);
             builder.Property(s => s.EstimatedEnd).HasMaxLength(200).IsRequired(false);
             builder.Property(s => s.EndDate).IsRequired(false);
+            builder.Property(s => s.IsAutomatic).IsRequired().HasDefaultValue(false);
+            builder.Property(s => s.Fine).HasColumnType("decimal(10,2)").IsRequired(false);
+            builder.Property(s => s.SourceEventId).HasMaxLength(450).IsRequired(false);
 
             builder.HasIndex(s => s.TeamPlayerId);
             builder.HasIndex(s => new { s.TeamPlayerId, s.EndDate });
+            builder.HasIndex(s => new { s.TeamPlayerId, s.IsAutomatic, s.EndDate });
 
             builder.HasOne(s => s.TeamPlayer)
                 .WithMany(tp => tp.Sanctions)

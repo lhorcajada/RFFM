@@ -68,6 +68,18 @@ namespace RFFM.Api.Features.Coaches.Convocations
                 var exists = await _db.Convocations.AnyAsync(c => c.SportEventId == request.EventId && c.TeamPlayerId == request.TeamPlayerId, cancellationToken);
                 if (exists) throw new ArgumentException("Player already convocated");
 
+                // Block convocation while the player has an active automatic sanction for a
+                // match later than the one that triggered it (design.md Decisión 4).
+                var activeSanction = await _db.TeamPlayerSanctions
+                    .Where(s => s.TeamPlayerId == request.TeamPlayerId && s.IsAutomatic && s.EndDate == null)
+                    .OrderByDescending(s => s.StartDate)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (activeSanction is not null && sportEvent.EveDateTime > activeSanction.StartDate)
+                    throw new ArgumentException(
+                        $"El jugador está sancionado ({activeSanction.SanctionType}) y no puede ser convocado " +
+                        "hasta que el entrenador levante la sanción.");
+
                 var model = new ConvocationModel
                 {
                     EventId = request.EventId,
@@ -97,7 +109,22 @@ namespace RFFM.Api.Features.Coaches.Convocations
 
                 var existing = await _db.Convocations.Where(c => c.SportEventId == request.EventId).Select(c => c.TeamPlayerId).ToListAsync(cancellationToken);
 
-                foreach (var tp in teamPlayers.Where(tp => !existing.Contains(tp.Id)))
+                // Players with an active automatic sanction (still open, later than the match
+                // that triggered it) are silently skipped from the bulk convocation, same as
+                // already-convocated players (design.md Decisión 4).
+                var activeSanctionsByPlayer = await _db.TeamPlayerSanctions
+                    .Where(s => s.IsAutomatic && s.EndDate == null && teamPlayers.Select(tp => tp.Id).Contains(s.TeamPlayerId))
+                    .OrderByDescending(s => s.StartDate)
+                    .ToListAsync(cancellationToken);
+                var latestActiveSanctionByPlayer = activeSanctionsByPlayer
+                    .GroupBy(s => s.TeamPlayerId)
+                    .ToDictionary(g => g.Key, g => g.First());
+
+                bool IsBlockedBySanction(string teamPlayerId) =>
+                    latestActiveSanctionByPlayer.TryGetValue(teamPlayerId, out var sanction) &&
+                    sportEvent.EveDateTime > sanction.StartDate;
+
+                foreach (var tp in teamPlayers.Where(tp => !existing.Contains(tp.Id) && !IsBlockedBySanction(tp.Id)))
                 {
                     var model = new ConvocationModel
                     {

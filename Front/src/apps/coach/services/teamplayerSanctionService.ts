@@ -7,6 +7,8 @@ export type SanctionRecord = {
   description?: string | null;
   estimatedEnd?: string | null;
   endDate?: string | null;
+  isAutomatic: boolean;
+  fine: number | null;
 };
 
 export async function getPlayerSanctions(teamPlayerId: string): Promise<SanctionRecord[]> {
@@ -22,7 +24,13 @@ export async function getPlayerSanctions(teamPlayerId: string): Promise<Sanction
 
 export async function createPlayerSanction(
   teamPlayerId: string,
-  payload: { startDate: string; sanctionType: string; description?: string | null; estimatedEnd?: string | null }
+  payload: {
+    startDate: string;
+    sanctionType: string;
+    description?: string | null;
+    estimatedEnd?: string | null;
+    fine?: number | null;
+  }
 ): Promise<SanctionRecord | null> {
   try {
     const resp = await client.post<SanctionRecord>(
@@ -38,7 +46,14 @@ export async function createPlayerSanction(
 export async function updatePlayerSanction(
   teamPlayerId: string,
   sanctionId: string,
-  payload: { startDate: string; sanctionType: string; description?: string | null; estimatedEnd?: string | null; endDate?: string | null }
+  payload: {
+    startDate: string;
+    sanctionType: string;
+    description?: string | null;
+    estimatedEnd?: string | null;
+    endDate?: string | null;
+    fine?: number | null;
+  }
 ): Promise<SanctionRecord | null> {
   try {
     const resp = await client.put<SanctionRecord>(

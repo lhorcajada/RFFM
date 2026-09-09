@@ -19,6 +19,18 @@ import {
   PENDING_STATUS_ID,
 } from "../components/convocationMatchDetail.types";
 
+// Surfaces a convocation error (e.g. the backend blocking a convocation for a sanctioned
+// player) via the existing cross-app snackbar event bus, instead of swallowing it.
+function emitConvocationBlockedError(err: unknown) {
+  const message =
+    (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
+    (err as { message?: string })?.message ??
+    "No se pudo completar la convocatoria.";
+  window.dispatchEvent(
+    new CustomEvent("rffm.show_snackbar", { detail: { message, severity: "error" } })
+  );
+}
+
 // Returns true only if the injury started strictly before the given event date (day-only comparison).
 // A player injured on the same day as the event is NOT considered injured for that event.
 function isInjuredBeforeDate(injuryStartDate: string | null | undefined, eventDate: string | undefined): boolean {
@@ -415,10 +427,11 @@ export function useConvocationManagement(
           await convocationService.updateConvocationStatus(mgmtEventId, convId, NOT_CALLED_STATUS_ID, excuseId);
         }
       }
-    } catch {
+    } catch (err) {
       setMgmtAvailable((prev) => (from === "available" ? [...prev, pid] : prev.filter((id) => id !== pid)));
       setMgmtCalled((prev) => (from === "called" ? [...prev, pid] : prev.filter((id) => id !== pid)));
       setMgmtNotCalled((prev) => (from === "notCalled" ? [...prev, pid] : prev.filter((id) => id !== pid)));
+      emitConvocationBlockedError(err);
     }
   }
 
@@ -494,6 +507,7 @@ export function useConvocationManagement(
       setMgmtSaveResult("success");
     } catch (err: any) {
       setMgmtSaveResult(err?.message ?? "error");
+      emitConvocationBlockedError(err);
     } finally {
       setMgmtSaving(false);
     }
@@ -520,9 +534,10 @@ export function useConvocationManagement(
       if (convId && resolvedExcuse) {
         await convocationService.updateConvocationStatus(mgmtEventId, convId, NOT_CALLED_STATUS_ID, resolvedExcuse);
       }
-    } catch {
+    } catch (err) {
       // rollback optimistic update
       setMgmtNotCalled((prev) => prev.filter((id) => id !== pid));
+      emitConvocationBlockedError(err);
     }
   }
 
