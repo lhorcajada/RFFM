@@ -21,6 +21,7 @@ namespace RFFM.Api.Tests.UnitTests
     {
         private readonly PostgresContainerFixture _fixture;
         private static readonly int MatchEventTypeId = SportEventType.FromName("Partido").Id;
+        private static readonly int FriendlyEventTypeId = SportEventType.FromName("Amistoso").Id;
         private static readonly int TrainingEventTypeId = SportEventType.FromName("Entrenamiento").Id;
 
         public GetTeamPlayerStatisticsHandlerTests(PostgresContainerFixture fixture)
@@ -162,6 +163,32 @@ namespace RFFM.Api.Tests.UnitTests
             Assert.Equal(150, stats.MinutesPlayed);
             Assert.NotNull(stats.ReadinessBreakdown);
             Assert.Equal(60, stats.ReadinessBreakdown!.MatchMinutesInWindow);
+        }
+
+        [Fact]
+        public async Task PlayerWithFriendlyMatchMinutes_CountsTowardReadinessMatchComponent()
+        {
+            // Regression: a friendly ("Amistoso") is real physical exertion and must count
+            // toward Rodaje's match component, even though it's excluded elsewhere (season
+            // discipline counters) as an official match. Before the fix, the windowed match
+            // query only looked at EventTypeId == Partido, silently dropping friendly minutes.
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, clubId, seasonId) = await SeedTeamAsync(db);
+            var teamPlayerId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "friendly-player");
+
+            var friendlyEventId = await SeedSportEventAsync(db, teamId, FriendlyEventTypeId, DateTime.UtcNow.AddDays(-2));
+            await SeedMatchParticipationAsync(db, friendlyEventId, teamId, teamPlayerId, minutesPlayed: 65);
+
+            var handler = new GetTeamPlayerStatistics.Handler(db, new PlayerConditionRecalculationService(db));
+            var query = new GetTeamPlayerStatistics.Query { TeamId = teamId };
+
+            // Act
+            var result = await handler.Handle(query, CancellationToken.None);
+
+            // Assert
+            var stats = Assert.Single(result, p => p.TeamPlayerId == teamPlayerId);
+            Assert.NotNull(stats.ReadinessBreakdown);
+            Assert.Equal(65, stats.ReadinessBreakdown!.MatchMinutesInWindow);
         }
 
         [Fact]

@@ -62,7 +62,7 @@ namespace RFFM.Api.Tests.UnitTests
                 new PlayerConditionDayEffect.DayEvent(PlayerConditionDayEffect.DayOutcome.InjuryAbsence));
 
             Assert.Equal(-4, fitnessDelta);
-            Assert.Equal(-6, fatigueDelta);
+            Assert.Equal(-2, fatigueDelta);
         }
 
         [Fact]
@@ -72,7 +72,7 @@ namespace RFFM.Api.Tests.UnitTests
                 new PlayerConditionDayEffect.DayEvent(PlayerConditionDayEffect.DayOutcome.Rest));
 
             Assert.Equal(-2, fitnessDelta);
-            Assert.Equal(-6, fatigueDelta);
+            Assert.Equal(-2, fatigueDelta);
         }
 
         [Fact]
@@ -81,7 +81,7 @@ namespace RFFM.Api.Tests.UnitTests
             var (fitnessDelta, fatigueDelta) = PlayerConditionDayEffect.Calculate(default);
 
             Assert.Equal(-2, fitnessDelta);
-            Assert.Equal(-6, fatigueDelta);
+            Assert.Equal(-2, fatigueDelta);
         }
     }
 }

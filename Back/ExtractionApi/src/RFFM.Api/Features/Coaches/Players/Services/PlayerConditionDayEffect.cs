@@ -21,10 +21,12 @@ namespace RFFM.Api.Features.Coaches.Players.Services
         public const double FullMatchFatigueDelta = 10;
 
         public const double RestFitnessDelta = -2;
-        public const double RestFatigueDelta = -6;
+        public const double RestFatigueDelta = -2; // bajado de -6: con 2-3 entrenos/semana el
+        // descanso recuperaba más rápido de lo que costaba entrenar y el cansancio caía a 0
+        // siempre entre sesiones — confirmado con el usuario (2026-09-09).
 
         public const double InjuryRestFitnessDelta = -4;
-        public const double InjuryRestFatigueDelta = -6; // igual que descanso normal
+        public const double InjuryRestFatigueDelta = -2; // igual que descanso normal
 
         public enum DayOutcome { Rest, InjuryAbsence, Training, Match }
 

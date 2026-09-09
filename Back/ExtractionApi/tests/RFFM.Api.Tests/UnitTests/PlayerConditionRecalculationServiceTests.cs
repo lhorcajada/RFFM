@@ -146,7 +146,7 @@ namespace RFFM.Api.Tests.UnitTests
             // Act
             var condition = await service.RecalculateAsync(teamPlayerId, asOfDate, CancellationToken.None);
 
-            // Assert: 5 days of rest (-2 fitness / -6 fatigue per day) from 30/20.
+            // Assert: 5 days of rest (RestFitnessDelta/RestFatigueDelta per day) from 30/20.
             var expectedFitness = Math.Clamp(PlayerConditionDayEffect.InitialFitness + 5 * PlayerConditionDayEffect.RestFitnessDelta, 0, 100);
             var expectedFatigue = Math.Clamp(PlayerConditionDayEffect.InitialFatigue + 5 * PlayerConditionDayEffect.RestFatigueDelta, 0, 100);
             Assert.Equal(expectedFitness, condition.PhysicalFitness);

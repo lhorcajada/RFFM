@@ -88,7 +88,6 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
             {
                 var windowStart = DateTime.UtcNow.AddDays(-7 * PlayerReadinessCalculator.WindowWeeks);
                 var trainingEventTypeId = SportEventType.FromName("Entrenamiento").Id;
-                var matchEventTypeId = SportEventType.FromName("Partido").Id;
 
                 var teamPlayers = await db.TeamPlayers
                     .AsNoTracking()
@@ -115,11 +114,13 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                     .GroupBy(mp => mp.TeamPlayerId)
                     .ToDictionary(g => g.Key, g => g.ToList());
 
-                // 8-week window for the match component of the form status.
+                // 8-week window for the match component of the form status. Any finished match
+                // participation counts here (Partido/Amistoso/Torneo) — a friendly still costs
+                // real physical effort even though it's excluded from official-match season
+                // stats/discipline counters elsewhere (GetSeasonPlayerStats, card suspensions).
                 var matchEventIdsInWindow = await db.SportEvents
                     .AsNoTracking()
-                    .Where(se => se.TeamId == request.TeamId && se.EventTypeId == matchEventTypeId
-                                 && se.EveDateTime >= windowStart)
+                    .Where(se => se.TeamId == request.TeamId && se.EveDateTime >= windowStart)
                     .Select(se => se.Id)
                     .ToListAsync(cancellationToken);
                 var matchEventIdsInWindowSet = matchEventIdsInWindow.ToHashSet();
