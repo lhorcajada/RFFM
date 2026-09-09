@@ -55,6 +55,9 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
             int MatchesPlayed,                      // histórico completo de temporada
             int? DaysSinceLastInjury,               // null si no ha tenido ninguna lesión esta temporada
             int? LastInjuryDurationDays,             // null si no ha tenido lesión, o si la más reciente sigue en curso
+            double PhysicalFitness,                 // 0-100, Forma física persistida (ver TeamPlayerCondition)
+            double Fatigue,                         // 0-100, Cansancio persistido
+            double Availability,                    // = max(0, PhysicalFitness - Fatigue)
             int? Readiness,                        // 0-100, null = sin datos suficientes en la ventana
             ReadinessBreakdownDto? ReadinessBreakdown);
 
@@ -79,7 +82,7 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
 
         // ─── Handler ──────────────────────────────────────────────────────────
 
-        public class Handler(AppDbContext db) : IRequestHandler<Query, List<PlayerStatisticsDto>>
+        public class Handler(AppDbContext db, PlayerConditionRecalculationService conditionService) : IRequestHandler<Query, List<PlayerStatisticsDto>>
         {
             public async ValueTask<List<PlayerStatisticsDto>> Handle(Query request, CancellationToken cancellationToken)
             {
@@ -215,6 +218,9 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                             : null;
                     }
 
+                    var condition = await conditionService.RecalculateAsync(player.Id, DateTime.UtcNow, cancellationToken);
+                    var availability = Math.Max(0, condition.PhysicalFitness - condition.Fatigue);
+
                     string? position = player.ActivePositionId != 0
                         ? DemarcationMaster.GetById(player.ActivePositionId)?.Name
                         : null;
@@ -247,6 +253,9 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                         matchesPlayed,
                         daysSinceLastInjury,
                         lastInjuryDurationDays,
+                        condition.PhysicalFitness,
+                        condition.Fatigue,
+                        availability,
                         readinessResult.Readiness,
                         readinessBreakdown));
                 }

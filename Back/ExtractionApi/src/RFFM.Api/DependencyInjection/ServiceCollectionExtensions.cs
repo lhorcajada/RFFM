@@ -148,6 +148,7 @@ namespace RFFM.Api.DependencyInjection
                 throw new InvalidOperationException("Supabase storage is required outside local development. Set Storage:UseLocal=true for local runs or provide Supabase configuration.");
             }
             services.AddScoped<RFFM.Api.Features.Coaches.Players.Services.IPlayerService, RFFM.Api.Features.Coaches.Players.Services.PlayerService>();
+            services.AddScoped<RFFM.Api.Features.Coaches.Players.Services.PlayerConditionRecalculationService>();
 
             services.AddScoped<ICompetitionService, CompetitionService>();
             services.AddScoped<ITeamService, TeamService>();
