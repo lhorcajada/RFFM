@@ -1,5 +1,6 @@
 ﻿import React from "react";
 import { Link } from "react-router-dom";
+import { Checkbox } from "@mui/material";
 import type { ConvocationItem } from "../../../services/convocationService";
 import styles from "../AttendanceTabs.module.css";
 import defaultAvatar from "../../../../../assets/avatar.svg";
@@ -37,6 +38,15 @@ type Props = {
    * handler and the current user can edit this convocation.
    */
   onEditReason?: (conv: ConvocationItem) => void;
+  /**
+   * Enables the bulk-selection checkbox used to pick pending convocations to
+   * notify via WhatsApp (only ever true for cards rendered inside the
+   * "Pendientes de aceptar" group). Every other call site omits it, which
+   * keeps the card fully backward compatible (no checkbox rendered).
+   */
+  selectable?: boolean;
+  selected?: boolean;
+  onToggleSelect?: (teamPlayerId: string) => void;
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -76,6 +86,9 @@ export default function ConvocationCard({
   onDelete,
   onMoveToWaiting,
   onEditReason,
+  selectable,
+  selected,
+  onToggleSelect,
 }: Props) {
   const p = conv.player as any;
   const statusName = statuses.find((s) => s.id === conv.status)?.name ?? "";
@@ -151,26 +164,37 @@ export default function ConvocationCard({
       : "Decisión técnica"
     : null;
 
+  const selectCheckbox = selectable && (
+    <Checkbox
+      className={styles.cromoSelectCheckbox}
+      size="small"
+      checked={!!selected}
+      onChange={() => onToggleSelect?.(p.id)}
+      inputProps={{ "aria-label": `Seleccionar a ${displayName} para notificar` }}
+    />
+  );
+
   return (
     <div className={styles.cardWrap}>
       <div className={`${styles.cromoCard}${highlighted ? " " + styles.cromoCardHighlighted : ""}`}>
-        {p.id && canViewDetail ? (
-          <Link to={`/coach/player/${p.id}`} className={styles.cromoPhotoLink}>
-            <div className={styles.cromoPhotoArea}>
+        <div className={styles.cromoPhotoArea}>
+          {p.id && canViewDetail ? (
+            <Link to={`/coach/player/${p.id}`} className={styles.cromoPhotoLink}>
               <img src={photo} alt={displayName} className={photo === defaultAvatar ? styles.cromoPhotoAvatar : styles.cromoPhoto} />
               <div className={styles.cromoGradient} />
               {hasDorsal && <div className={styles.cromoDorsalBadge}>{dorsalValue}</div>}
               <div className={`${styles.cromoStatusStripe} ${stripeClass}`} />
-            </div>
-          </Link>
-        ) : (
-          <div className={styles.cromoPhotoArea}>
-            <img src={photo} alt={displayName} className={photo === defaultAvatar ? styles.cromoPhotoAvatar : styles.cromoPhoto} />
-            <div className={styles.cromoGradient} />
-            {hasDorsal && <div className={styles.cromoDorsalBadge}>{dorsalValue}</div>}
-            <div className={`${styles.cromoStatusStripe} ${stripeClass}`} />
-          </div>
-        )}
+            </Link>
+          ) : (
+            <>
+              <img src={photo} alt={displayName} className={photo === defaultAvatar ? styles.cromoPhotoAvatar : styles.cromoPhoto} />
+              <div className={styles.cromoGradient} />
+              {hasDorsal && <div className={styles.cromoDorsalBadge}>{dorsalValue}</div>}
+              <div className={`${styles.cromoStatusStripe} ${stripeClass}`} />
+            </>
+          )}
+          {selectCheckbox}
+        </div>
         <div className={styles.cromoBody}>
           <div className={styles.cromoAccentLine} />
           <div className={styles.cromoName}>{displayName}</div>

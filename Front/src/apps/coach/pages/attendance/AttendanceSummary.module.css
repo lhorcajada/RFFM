@@ -258,6 +258,12 @@
   white-space: nowrap;
 }
 
+.matchDetailReasonIcon {
+  opacity: 0.6;
+  cursor: help;
+  flex-shrink: 0;
+}
+
 .matchStateBadge {
   display: inline-flex;
   align-items: center;

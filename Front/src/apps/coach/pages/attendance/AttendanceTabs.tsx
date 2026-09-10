@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Box, Button, Tabs, Tab } from "@mui/material";
+import { Box, Button, Checkbox, Tabs, Tab } from "@mui/material";
+import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import EmptyState from "../../../../shared/components/ui/EmptyState/EmptyState";
 import convocationService, {
   PlayerSimple,
@@ -20,12 +21,15 @@ import NotConvokedList from "./components/NotConvokedList";
 import ConvocationCard from "./components/ConvocationCard";
 import DeconvokeDialog from "./components/DeconvokeDialog";
 import CollapsibleGroup from "./components/CollapsibleGroup";
+import NotifyPendingConvocationDialog from "./components/NotifyPendingConvocationDialog";
+import type { PendingConfirmationEventSummary } from "./utils/pendingConfirmationWhatsApp";
 
 type Props = {
   eventId: string;
   eventStart?: string | null;
   isMatch?: boolean;
   isTraining?: boolean;
+  eventSummary?: PendingConfirmationEventSummary;
 };
 
 type GroupKey = "waiting" | "pending" | "accepted" | "desconvocados";
@@ -63,7 +67,7 @@ function statusNameMap(id: number, statuses: { id: number; name: string }[]) {
   return m[s.name] ?? s.name;
 }
 
-export default function AttendanceTabs({ eventId, eventStart, isMatch, isTraining }: Props) {
+export default function AttendanceTabs({ eventId, eventStart, isMatch, isTraining, eventSummary }: Props) {
   const [tab, setTab] = useState(0);
   const [players, setPlayers] = useState<PlayerSimple[]>([]);
   const [convocations, setConvocations] = useState<ConvocationItem[]>([]);
@@ -76,6 +80,23 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isTrainin
   const [assistanceTypes, setAssistanceTypes] = useState<AssistanceType[]>([]);
   const [acceptingAll, setAcceptingAll] = useState(false);
   const [settingAllAttends, setSettingAllAttends] = useState(false);
+  const [selectedPendingIds, setSelectedPendingIds] = useState<Set<string>>(new Set());
+  const [notifyDialogOpen, setNotifyDialogOpen] = useState(false);
+
+  // Selection is scoped to the current event — reset whenever the coach
+  // navigates to a different event's convocation screen.
+  useEffect(() => {
+    setSelectedPendingIds(new Set());
+  }, [eventId]);
+
+  const toggleSelectedPending = (teamPlayerId: string) => {
+    setSelectedPendingIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(teamPlayerId)) next.delete(teamPlayerId);
+      else next.add(teamPlayerId);
+      return next;
+    });
+  };
 
   const _roles = coachAuthService.getRoles();
   const isPlayerOrFamily =
@@ -247,6 +268,23 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isTrainin
     () => convocatedFiltered.filter((c) => c.status === pendingStatusId && !c.isInjured),
     [convocatedFiltered, pendingStatusId]
   );
+  const pendingTeamPlayerIds = useMemo(
+    () => pending.map((c) => c.player.id).filter((id): id is string => !!id),
+    [pending]
+  );
+  const allPendingSelected =
+    pendingTeamPlayerIds.length > 0 && pendingTeamPlayerIds.every((id) => selectedPendingIds.has(id));
+  const somePendingSelected = pendingTeamPlayerIds.some((id) => selectedPendingIds.has(id));
+
+  const toggleSelectAllPending = () => {
+    setSelectedPendingIds((prev) => {
+      if (pendingTeamPlayerIds.length > 0 && pendingTeamPlayerIds.every((id) => prev.has(id))) {
+        return new Set();
+      }
+      return new Set(pendingTeamPlayerIds);
+    });
+  };
+
   const injuredWithConv = useMemo(() => convocatedFiltered.filter((c) => c.isInjured), [convocatedFiltered]);
   const injuredNoConv: PlayerSimple[] = injuredWaiting;
   const declinedNonInjured = useMemo(
@@ -515,8 +553,9 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isTrainin
                 ((c.player as any).playerId === associatedPlayerId ||
                   String((c.player as any).id) === String(associatedPlayerId));
 
-              const renderCard = (c: ConvocationItem, highlightAssoc = false) => {
+              const renderCard = (c: ConvocationItem, highlightAssoc = false, selectableInPending = false) => {
                 const canEditThisConvocation = canEditThisConvocationFor(c);
+                const teamPlayerId = c.player?.id;
                 return (
                 <ConvocationCard
                   key={c.id}
@@ -534,6 +573,9 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isTrainin
                   viewablePlayerId={null}
                   hideWaitingListButton={isPlayerOrFamily}
                   canReactivateFromDeconvoke={canReactivateFromDeconvoke}
+                  selectable={selectableInPending && !isPlayerOrFamily && canEdit}
+                  selected={!!teamPlayerId && selectedPendingIds.has(teamPlayerId)}
+                  onToggleSelect={toggleSelectedPending}
                   onChangeStatus={handleChangeStatus}
                   onDelete={(cv) => {
                     if (!canEdit)
@@ -569,39 +611,59 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isTrainin
                       onToggle={() => toggleGroup("pending")}
                       headerExtra={
                         !isPlayerOrFamily &&
-                        canEdit &&
-                        (() => {
-                          const acceptedId = statuses.find((s) => s.name === "Accepted")?.id;
-                          if (!acceptedId) return null;
-                          return (
+                        canEdit && (
+                          <>
+                            <Checkbox
+                              size="small"
+                              checked={allPendingSelected}
+                              indeterminate={somePendingSelected && !allPendingSelected}
+                              onChange={toggleSelectAllPending}
+                              inputProps={{ "aria-label": "Seleccionar todos los pendientes" }}
+                            />
                             <Button
                               size="small"
                               variant="outlined"
-                              disabled={acceptingAll}
-                              onClick={async () => {
-                                setAcceptingAll(true);
-                                try {
-                                  await Promise.all(
-                                    pending.map((c) =>
-                                      convocationService.updateConvocationStatus(eventId, c.id, acceptedId, null)
-                                    )
-                                  );
-                                  const conv = await convocationService.getConvocations(eventId);
-                                  setConvocations(conv);
-                                } catch (err: any) {
-                                  alert(err?.message ?? "Error al aceptar convocados");
-                                } finally {
-                                  setAcceptingAll(false);
-                                }
-                              }}
+                              startIcon={<WhatsAppIcon />}
+                              disabled={selectedPendingIds.size === 0}
+                              onClick={() => setNotifyDialogOpen(true)}
+                              sx={{ borderColor: "#25D366", color: "#25D366" }}
                             >
-                              Aceptar todos
+                              Notificar por WhatsApp
                             </Button>
-                          );
-                        })()
+                            {(() => {
+                              const acceptedId = statuses.find((s) => s.name === "Accepted")?.id;
+                              if (!acceptedId) return null;
+                              return (
+                                <Button
+                                  size="small"
+                                  variant="outlined"
+                                  disabled={acceptingAll}
+                                  onClick={async () => {
+                                    setAcceptingAll(true);
+                                    try {
+                                      await Promise.all(
+                                        pending.map((c) =>
+                                          convocationService.updateConvocationStatus(eventId, c.id, acceptedId, null)
+                                        )
+                                      );
+                                      const conv = await convocationService.getConvocations(eventId);
+                                      setConvocations(conv);
+                                    } catch (err: any) {
+                                      alert(err?.message ?? "Error al aceptar convocados");
+                                    } finally {
+                                      setAcceptingAll(false);
+                                    }
+                                  }}
+                                >
+                                  Aceptar todos
+                                </Button>
+                              );
+                            })()}
+                          </>
+                        )
                       }
                     >
-                      <div className={styles.convocatedList}>{sortedPending.map((c) => renderCard(c, true))}</div>
+                      <div className={styles.convocatedList}>{sortedPending.map((c) => renderCard(c, true, true))}</div>
                     </CollapsibleGroup>
                   )}
                   {accepted.length > 0 && (
@@ -901,6 +963,14 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isTrainin
             alert(e?.message ?? "Error al desconvocar");
           }
         }}
+      />
+
+      <NotifyPendingConvocationDialog
+        open={notifyDialogOpen}
+        onClose={() => setNotifyDialogOpen(false)}
+        eventId={eventId}
+        teamPlayerIds={[...selectedPendingIds]}
+        eventSummary={eventSummary}
       />
     </div>
   );

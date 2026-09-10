@@ -18,6 +18,7 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import { getEventTypeColor } from "./attendanceUtils";
 import styles from "./AttendanceEvent.module.css";
 import AttendanceTabs from "./AttendanceTabs";
+import type { PendingConfirmationEventSummary } from "./utils/pendingConfirmationWhatsApp";
 import SportEventDialog from "./components/SportEventDialog";
 import { coachAuthService } from "../../services/authService";
 import { useConvocationManagement } from "../convocations/hooks/useConvocationManagement";
@@ -61,6 +62,26 @@ export default function AttendanceEvent() {
 
   const isMatchOrFriendly = /part|amist/i.test(eventTypeName ?? "");
   const matchState = event ? toMatchState(event) : null;
+
+  // Summary handed to AttendanceTabs (and from there to
+  // NotifyPendingConvocationDialog) for building the "Notificar por
+  // WhatsApp" message text — derived once here from data already fetched
+  // for this page's own header, rather than re-fetched by AttendanceTabs.
+  const pendingConfirmationEventSummary: PendingConfirmationEventSummary | undefined = event
+    ? {
+        eventTypeLabel: eventTypeName ?? event.name ?? event.title ?? "Evento",
+        rivalName: event.rivalName ?? null,
+        dateES: (() => {
+          const d = parseDate(event.startTime ?? event.start ?? event.eveDateTime ?? undefined);
+          return d ? d.toLocaleDateString(undefined, { dateStyle: "long" }) : "";
+        })(),
+        time: (() => {
+          const dTime = parseDate(event.startTime ?? undefined);
+          return dTime ? dTime.toLocaleTimeString(undefined, { timeStyle: "short" }) : null;
+        })(),
+        location: event.location ?? null,
+      }
+    : undefined;
 
   // "Ver convocatoria" — read-only convocation data for this event's team/date, shared with
   // the Coach-only ConvocationMatchDetail screen via the same hook so the two never drift.
@@ -388,6 +409,7 @@ export default function AttendanceEvent() {
                     }
                     isMatch={eventTypeName?.toLowerCase().includes("partido") ?? false}
                     isTraining={eventTypeName?.toLowerCase().includes("entrenamiento") ?? false}
+                    eventSummary={pendingConfirmationEventSummary}
                   />
                 </React.Suspense>
               )}
