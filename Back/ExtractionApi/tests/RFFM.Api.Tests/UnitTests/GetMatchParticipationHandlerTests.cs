@@ -117,5 +117,48 @@ namespace RFFM.Api.Tests.UnitTests
             Assert.Equal(cardsJson, response!.CardsJson);
             Assert.Equal(formationChangesJson, response.FormationChangesJson);
         }
+
+        [Fact]
+        public async Task Handle_AfterSettingMinutesReason_ReturnsReasonInPlayerRecord()
+        {
+            // Arrange
+            await using var db = _fixture.CreateDbContext();
+            var eventId = Guid.NewGuid().ToString();
+            var (teamId, teamPlayerId) = await SeedTeamAndPlayerAsync(db);
+
+            var saveHandler = new SaveMatchParticipation.Handler(db);
+            await saveHandler.Handle(new SaveMatchParticipation.SaveMatchParticipationRequest
+            {
+                EventId = eventId,
+                TeamId = teamId,
+                ScoreLocal = 1,
+                ScoreVisitor = 0,
+                MatchPhase = "finished",
+                Players = new List<SaveMatchParticipation.PlayerParticipationDto>
+                {
+                    new(teamPlayerId, 30, true, 0, 30)
+                }
+            }, CancellationToken.None);
+
+            var reasonHandler = new UpdateMatchParticipationReason.Handler(db);
+            await reasonHandler.Handle(new UpdateMatchParticipationReason.UpdateMatchParticipationReasonRequest
+            {
+                EventId = eventId,
+                TeamPlayerId = teamPlayerId,
+                Reason = "Rotación planificada de porteros"
+            }, CancellationToken.None);
+
+            var getHandler = new GetMatchParticipation.Handler(db);
+
+            // Act
+            var response = await getHandler.Handle(
+                new GetMatchParticipation.GetMatchParticipationQuery { EventId = eventId, TeamId = teamId },
+                CancellationToken.None);
+
+            // Assert
+            Assert.NotNull(response);
+            var playerRecord = Assert.Single(response!.Players);
+            Assert.Equal("Rotación planificada de porteros", playerRecord.MinutesReason);
+        }
     }
 }

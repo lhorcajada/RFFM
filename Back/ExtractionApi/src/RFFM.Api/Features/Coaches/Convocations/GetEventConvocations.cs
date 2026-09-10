@@ -36,7 +36,7 @@ namespace RFFM.Api.Features.Coaches.Convocations
             public string RequiredPermission => "Read";
         }
 
-        public record ConvocationResponse(string ConvocationId, string TeamPlayerId, string Alias, string? UrlPhoto, string? Position, string Status, int? StatusId, int? ExcuseTypeId, int? AssistanceTypeId, bool IsInjured, string? PlayerId);
+        public record ConvocationResponse(string ConvocationId, string TeamPlayerId, string Alias, string? UrlPhoto, string? Position, string Status, int? StatusId, int? ExcuseTypeId, int? AssistanceTypeId, bool IsInjured, string? PlayerId, string? MinutesReason);
 
         public class Handler : IRequestHandler<EventConvocationsQuery, ConvocationResponse[]>
         {
@@ -65,6 +65,7 @@ namespace RFFM.Api.Features.Coaches.Convocations
                         StatusId = c.ConvocationStatusId,
                         ExcuseTypeId = c.ExcuseTypeId,
                         AssistanceTypeId = c.AssistanceTypeId,
+                        MinutesReason = c.MinutesReason,
                         Injuries = c.Player.Injuries.Select(i => new { i.StartDate, i.EndDate }).ToList()
                     })
                     .ToArrayAsync(cancellationToken);
@@ -86,7 +87,8 @@ namespace RFFM.Api.Features.Coaches.Convocations
                     c.Injuries.Any(i =>
                         i.StartDate.Date <= eventDate &&
                         (i.EndDate == null || i.EndDate.Value.Date >= eventDate)),
-                    c.PlayerId
+                    c.PlayerId,
+                    c.MinutesReason
                 ))
                 .ToArray();
 

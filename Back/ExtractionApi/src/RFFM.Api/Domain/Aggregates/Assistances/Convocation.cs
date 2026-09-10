@@ -11,6 +11,7 @@ namespace RFFM.Api.Domain.Aggregates.Assistances
         public DateTime? ResponseDateTime { get; private set; }
         public int? ConvocationStatusId { get; private set; }
         public int? ExcuseTypeId { get; private set; }
+        public string? MinutesReason { get; private set; }
 
         public AssistanceType Type { get; private set; } = null!;
         public ConvocationStatus? Status { get; private set; } = null!;
@@ -71,6 +72,19 @@ namespace RFFM.Api.Domain.Aggregates.Assistances
             if (ExcuseTypeId != null && excuseTypeId < 0)
                 throw new ArgumentException("El tipo de excusa no puede ser negativo");
             ExcuseTypeId = excuseTypeId;
+        }
+
+        /// <summary>
+        /// Free-text reason explaining why this player is planned to play fewer minutes
+        /// than other convocated players. Optional; independent of AssistanceTypeId/
+        /// ExcuseTypeId (those model absence, not reduced participation). Blank/whitespace
+        /// clears the field.
+        /// </summary>
+        public void SetMinutesReason(string? minutesReason)
+        {
+            if (minutesReason != null && minutesReason.Length > 500)
+                throw new ArgumentException("El motivo no puede superar los 500 caracteres");
+            MinutesReason = string.IsNullOrWhiteSpace(minutesReason) ? null : minutesReason.Trim();
         }
     }
 }

@@ -51,6 +51,14 @@ namespace RFFM.Api.Domain.Entities.TeamPlayers
         /// <summary>Phase of the match when data was saved (e.g. "finished").</summary>
         public string MatchPhase { get; private set; } = "finished";
 
+        /// <summary>
+        /// Free-text reason explaining why this player played fewer minutes than other
+        /// participating players. Optional; set/cleared independently via
+        /// <see cref="SetMinutesReason"/>, never touched by <see cref="Update"/> so a
+        /// live-match re-save can never silently wipe it.
+        /// </summary>
+        public string? MinutesReason { get; private set; }
+
         public DateTime CreatedAt { get; private set; }
         public DateTime UpdatedAt { get; private set; }
 
@@ -122,6 +130,18 @@ namespace RFFM.Api.Domain.Entities.TeamPlayers
             GoalsJson = goalsJson;
             CardsJson = cardsJson;
             FormationChangesJson = formationChangesJson;
+            UpdatedAt = DateTime.UtcNow;
+        }
+
+        /// <summary>
+        /// Sets or clears (blank/whitespace/null) the free-text reason for reduced minutes.
+        /// Independent of <see cref="Update"/> so it survives live-match re-saves.
+        /// </summary>
+        public void SetMinutesReason(string? minutesReason)
+        {
+            if (minutesReason != null && minutesReason.Length > 500)
+                throw new ArgumentException("El motivo no puede superar los 500 caracteres");
+            MinutesReason = string.IsNullOrWhiteSpace(minutesReason) ? null : minutesReason.Trim();
             UpdatedAt = DateTime.UtcNow;
         }
     }

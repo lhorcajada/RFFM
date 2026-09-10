@@ -108,7 +108,7 @@ namespace RFFM.Api.Tests.UnitTests
 
         private async Task SeedMatchParticipationAsync(
             AppDbContext db, string eventId, string teamId, string teamPlayerId,
-            string? cardsJson = null, string? substitutionWindowsJson = null)
+            string? cardsJson = null, string? substitutionWindowsJson = null, string? minutesReason = null)
         {
             var participation = MatchParticipation.Create(
                 eventId, teamId, teamPlayerId,
@@ -120,6 +120,8 @@ namespace RFFM.Api.Tests.UnitTests
                 ratingSnapshotsJson: null,
                 goalsJson: null,
                 cardsJson: cardsJson);
+            if (minutesReason != null)
+                participation.SetMinutesReason(minutesReason);
             db.MatchParticipations.Add(participation);
             await db.SaveChangesAsync();
         }
@@ -227,6 +229,29 @@ namespace RFFM.Api.Tests.UnitTests
             // Assert
             var record = Assert.Single(result);
             Assert.Empty(record.SubstitutionWindows);
+        }
+
+        [Fact]
+        public async Task Handle_ParticipationWithMinutesReason_ReturnsReasonInRecord()
+        {
+            // Arrange
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, clubId, seasonId) = await SeedTeamAsync(db);
+            var teamPlayerId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "minutes-reason-player");
+            var rivalId = await SeedRivalAsync(db, "CD Rival 3");
+
+            var eventId = await SeedSportEventAsync(db, teamId, MatchEventTypeId, DateTime.UtcNow.AddDays(-2), rivalId);
+            await SeedMatchParticipationAsync(db, eventId, teamId, teamPlayerId, minutesReason: "Rotación planificada");
+
+            var handler = new GetPlayerMatchHistory.Handler(db);
+            var query = new GetPlayerMatchHistory.PlayerMatchHistoryQuery { TeamPlayerId = teamPlayerId };
+
+            // Act
+            var result = await handler.Handle(query, CancellationToken.None);
+
+            // Assert
+            var record = Assert.Single(result);
+            Assert.Equal("Rotación planificada", record.MinutesReason);
         }
     }
 }

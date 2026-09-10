@@ -105,7 +105,8 @@ namespace RFFM.Api.Tests.UnitTests
             string teamPlayerId,
             int minutesPlayed,
             string matchPhase,
-            bool isStarter = true)
+            bool isStarter = true,
+            string? minutesReason = null)
         {
             var participation = MatchParticipation.Create(
                 eventId,
@@ -121,6 +122,8 @@ namespace RFFM.Api.Tests.UnitTests
                 substitutionWindowsJson: null,
                 ratingSnapshotsJson: null,
                 goalsJson: null);
+            if (minutesReason != null)
+                participation.SetMinutesReason(minutesReason);
             db.MatchParticipations.Add(participation);
             await db.SaveChangesAsync();
         }
@@ -205,6 +208,47 @@ namespace RFFM.Api.Tests.UnitTests
             var result = await handler.Handle(new GetTeamMatchMinutes.Query { TeamId = teamId }, CancellationToken.None);
 
             Assert.Empty(result);
+        }
+
+        [Fact]
+        public async Task Handle_ParticipationWithMinutesReason_ReturnsReasonInRow()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (teamId, seasonId, clubId) = await SeedTeamAsync(seedDb);
+
+            var eventId = await SeedEventAsync(seedDb, teamId, "Partido con motivo");
+            var playerId = await SeedTeamPlayerAsync(seedDb, teamId, seasonId, clubId);
+
+            await SeedParticipationAsync(seedDb, eventId, teamId, playerId, 30, "finished",
+                minutesReason: "Portero suplente esta semana");
+
+            await using var db = _fixture.CreateDbContext();
+            var handler = new GetTeamMatchMinutes.Handler(db);
+
+            var result = await handler.Handle(new GetTeamMatchMinutes.Query { TeamId = teamId }, CancellationToken.None);
+
+            var row = Assert.Single(result);
+            Assert.Equal("Portero suplente esta semana", row.MinutesReason);
+        }
+
+        [Fact]
+        public async Task Handle_ParticipationWithoutMinutesReason_ReturnsNull()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (teamId, seasonId, clubId) = await SeedTeamAsync(seedDb);
+
+            var eventId = await SeedEventAsync(seedDb, teamId, "Partido sin motivo");
+            var playerId = await SeedTeamPlayerAsync(seedDb, teamId, seasonId, clubId);
+
+            await SeedParticipationAsync(seedDb, eventId, teamId, playerId, 90, "finished");
+
+            await using var db = _fixture.CreateDbContext();
+            var handler = new GetTeamMatchMinutes.Handler(db);
+
+            var result = await handler.Handle(new GetTeamMatchMinutes.Query { TeamId = teamId }, CancellationToken.None);
+
+            var row = Assert.Single(result);
+            Assert.Null(row.MinutesReason);
         }
     }
 }

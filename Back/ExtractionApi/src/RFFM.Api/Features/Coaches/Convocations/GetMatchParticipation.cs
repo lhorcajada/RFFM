@@ -57,7 +57,8 @@ namespace RFFM.Api.Features.Coaches.Convocations
             int MinutesPlayed,
             bool IsStarter,
             int? EnteredAtMinute,
-            int? ExitedAtMinute);
+            int? ExitedAtMinute,
+            string? MinutesReason);
 
         // ─── Handler ──────────────────────────────────────────────────────────
 
@@ -96,7 +97,8 @@ namespace RFFM.Api.Features.Coaches.Convocations
                         r.MinutesPlayed,
                         r.IsStarter,
                         r.EnteredAtMinute,
-                        r.ExitedAtMinute
+                        r.ExitedAtMinute,
+                        r.MinutesReason
                     )).ToList());
             }
         }

@@ -26,6 +26,9 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.Assistanc
 
             builder.Property(c => c.ResponseDateTime);
 
+            builder.Property(c => c.MinutesReason)
+                .HasMaxLength(500);
+
             builder.HasOne(c => c.Type)
                 .WithMany()
                 .HasForeignKey(c => c.AssistanceTypeId);

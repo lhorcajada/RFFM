@@ -45,7 +45,7 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
             public string RequiredPermission => "Read";
         }
 
-        public record MatchMinutesRow(string EventId, string TeamPlayerId, int MinutesPlayed, bool IsStarter);
+        public record MatchMinutesRow(string EventId, string TeamPlayerId, int MinutesPlayed, bool IsStarter, string? MinutesReason);
 
         // ─── Handler ──────────────────────────────────────────────────────────
 
@@ -60,7 +60,7 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                 return await _db.MatchParticipations
                     .AsNoTracking()
                     .Where(mp => mp.TeamId == request.TeamId && mp.MatchPhase == "finished")
-                    .Select(mp => new MatchMinutesRow(mp.EventId, mp.TeamPlayerId, mp.MinutesPlayed, mp.IsStarter))
+                    .Select(mp => new MatchMinutesRow(mp.EventId, mp.TeamPlayerId, mp.MinutesPlayed, mp.IsStarter, mp.MinutesReason))
                     .ToArrayAsync(cancellationToken);
             }
         }

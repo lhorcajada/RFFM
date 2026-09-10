@@ -55,7 +55,8 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
             List<SubstitutionWindowRecordDto> SubstitutionWindows,
             int ScoreLocal,
             int ScoreVisitor,
-            DateTime? MatchDate);
+            DateTime? MatchDate,
+            string? MinutesReason);
 
         public record SubstitutionWindowRecordDto(int WindowIndex, int Minute, int Half, List<SubstitutionSwapRecordDto> Swaps);
         public record SubstitutionSwapRecordDto(string InPlayerId, string? OutPlayerId, int SlotIndex);
@@ -108,7 +109,8 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                             ParseSubstitutionWindows(mp.SubstitutionWindowsJson),
                             mp.ScoreLocal,
                             mp.ScoreVisitor,
-                            sportEvent?.EveDateTime);
+                            sportEvent?.EveDateTime,
+                            mp.MinutesReason);
                     })
                     // Most recent match first; matches with no known date (shouldn't normally happen
                     // for a finished participation) sort last instead of first.
