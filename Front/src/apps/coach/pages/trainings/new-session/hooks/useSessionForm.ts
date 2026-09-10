@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { NavigateFunction } from "react-router-dom";
 import trainingService from "../../../../services/trainingService";
 import { summarizeTargetsForObjetivo } from "../../season-plan/components/targetTreeGrouping";
+import { normalizeDateStr } from "../../../convocations/helpers/convocationUtils";
 import type { CreateSessionRequest, TrainingSessionDetail, UpdateSessionRequest } from "../../../../types/training";
 
 interface UseSessionFormParams {
@@ -48,7 +49,7 @@ export function useSessionForm({ teamId, navigate, returnTo, microcicloId }: Use
       teamId,
       name: session.name,
       description: session.description,
-      date: session.date,
+      date: session.date ? normalizeDateStr(session.date) : null,
       startTime: session.startTime,
       endTime: session.endTime ?? null,
       location: session.location ?? null,

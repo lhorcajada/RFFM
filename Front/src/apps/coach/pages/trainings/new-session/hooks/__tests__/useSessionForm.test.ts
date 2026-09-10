@@ -255,6 +255,33 @@ describe("useSessionForm — targetSubSubPrincipioIds pasa intacto (design.md F9
     expect(result.current.form.targetSubSubPrincipioIds).toEqual(["ssp-1"]);
   });
 
+  it("loadSession() normaliza una fecha ISO completa (como la devuelve el backend) a 'YYYY-MM-DD' para el input de fecha", () => {
+    const { result } = renderHook(() =>
+      useSessionForm({ teamId: "team-1", navigate, returnTo: "/coach/trainings" })
+    );
+
+    act(() =>
+      result.current.loadSession({
+        id: "sess-1",
+        name: "Sesión 1",
+        description: "",
+        date: "2026-09-01T00:00:00Z",
+        startTime: null,
+        endTime: null,
+        location: null,
+        sportEventId: null,
+        microcicloId: null,
+        objetivoGeneral: null,
+        mapaCampoTexto: null,
+        urlImage: null,
+        blocks: [],
+        targets: [],
+      })
+    );
+
+    expect(result.current.form.date).toBe("2026-09-01");
+  });
+
   it("guardar tras asignar solo una fecha a una sesión ya cargada conserva sus targets (flujo 'Asignar fecha', design.md F9)", async () => {
     const trainingService = (await import("../../../../../services/trainingService")).default;
     (trainingService.updateSession as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
