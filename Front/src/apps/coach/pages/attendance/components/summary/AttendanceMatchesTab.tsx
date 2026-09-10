@@ -14,6 +14,7 @@ import {
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
 import RefreshIcon from "@mui/icons-material/Refresh";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { useMemo, useState } from "react";
 import EmptyState from "../../../../../../shared/components/ui/EmptyState/EmptyState";
 import styles from "../../AttendanceSummary.module.css";
@@ -92,6 +93,7 @@ function findCell(row: PlayerMatchSummary, column: MatchAttendanceColumn) {
   return {
     state: cell?.state ?? "absent",
     minutesPlayed: cell?.minutesPlayed ?? null,
+    minutesReason: cell?.minutesReason ?? null,
   } as const;
 }
 
@@ -295,7 +297,7 @@ export default function AttendanceMatchesTab({ rows, columns, onRefresh, loading
             <AccordionDetails className={styles.trainingCardDetails}>
               <Box className={styles.matchDetailList}>
                 {columns.map((column) => {
-                  const { state, minutesPlayed } = findCell(row, column);
+                  const { state, minutesPlayed, minutesReason } = findCell(row, column);
                   return (
                     <Box key={column.eventId} className={styles.matchDetailRow}>
                       <Box className={styles.matchDetailMain}>
@@ -318,6 +320,15 @@ export default function AttendanceMatchesTab({ rows, columns, onRefresh, loading
                         <Typography variant="body2" className={styles.matchDetailMinutes}>
                           {minutesPlayed}'
                         </Typography>
+                      )}
+                      {minutesReason != null && (
+                        <Tooltip title={minutesReason}>
+                          <InfoOutlinedIcon
+                            fontSize="small"
+                            className={styles.matchDetailReasonIcon}
+                            aria-label={`Motivo de minutos: ${minutesReason}`}
+                          />
+                        </Tooltip>
                       )}
                     </Box>
                   );

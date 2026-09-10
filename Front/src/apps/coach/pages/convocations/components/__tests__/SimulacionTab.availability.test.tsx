@@ -98,8 +98,9 @@ describe("SimulacionTab - indicador Ef/Rodaje/Cansancio", () => {
 
     render(<SimulacionTab teamId="team-1" eventId="event-1" lineupPlayers={lineupPlayers} />);
 
-    // R (rodaje en vivo) = round(0.7 * 70 + 0.3 * 0) = 49; Ef = max(0, min(100, 49 - 27)) = 22
-    expect(await screen.findByText("22%")).toBeInTheDocument();
+    // R (rodaje en vivo) = round(0.7 * 70 + 0.3 * 0) = 49;
+    // Ef = readiness * (1 - fatigue / 200) = 49 * (1 - 27 / 200) = 42.385 → 42
+    expect(await screen.findByText("42%")).toBeInTheDocument();
     expect(screen.getByText("49%")).toBeInTheDocument();
     expect(screen.getByText("27%")).toBeInTheDocument();
   });

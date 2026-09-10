@@ -164,9 +164,11 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
           classifyNotCalledState(excuseTypeId, excuseTypesById);
 
         const minutesByEventAndPlayer = new Map<string, number>();
+        const minutesReasonByEventAndPlayer = new Map<string, string | null>();
         const starterIdsByEvent = new Map<string, Set<string>>();
         matchMinutesRows.forEach((row) => {
           minutesByEventAndPlayer.set(`${row.eventId}__${row.teamPlayerId}`, row.minutesPlayed);
+          minutesReasonByEventAndPlayer.set(`${row.eventId}__${row.teamPlayerId}`, row.minutesReason ?? null);
           if (row.isStarter) {
             const set = starterIdsByEvent.get(row.eventId) ?? new Set<string>();
             set.add(row.teamPlayerId);
@@ -175,6 +177,8 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
         });
         const getMinutesPlayed = (eventId: string, playerId: string, wasCalled: boolean): number | null =>
           wasCalled ? minutesByEventAndPlayer.get(`${eventId}__${playerId}`) ?? 0 : null;
+        const getMinutesReason = (eventId: string, playerId: string, wasCalled: boolean): string | null =>
+          wasCalled ? minutesReasonByEventAndPlayer.get(`${eventId}__${playerId}`) ?? null : null;
 
         const typeMap: Record<number, string> = {};
         eventTypes.forEach((t) => {
@@ -540,6 +544,7 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
               wasCalled,
               wasStarter,
               minutesPlayed: getMinutesPlayed(event.id, playerId, wasCalled),
+              minutesReason: getMinutesReason(event.id, playerId, wasCalled),
             });
             if (wasCalled) existing.calledMatches += 1;
             if (wasStarter) existing.startedMatches += 1;
@@ -560,6 +565,7 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
                 wasCalled: true,
                 wasStarter: true,
                 minutesPlayed: getMinutesPlayed(event.id, playerId, true),
+                minutesReason: getMinutesReason(event.id, playerId, true),
               });
               existing.calledMatches += 1;
               existing.startedMatches += 1;
@@ -587,6 +593,7 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
                 wasCalled,
                 wasStarter,
                 minutesPlayed: getMinutesPlayed(event.id, playerId, wasCalled),
+                minutesReason: getMinutesReason(event.id, playerId, wasCalled),
               });
               if (wasCalled) existing.calledMatches += 1;
               if (wasStarter) existing.startedMatches += 1;
@@ -624,6 +631,7 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
                   wasCalled: false,
                   wasStarter: false,
                   minutesPlayed: null,
+                  minutesReason: null,
                 }
               );
             }),

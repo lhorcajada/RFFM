@@ -64,6 +64,8 @@ export type ConvocationManagementReturn = {
   mgmtRatings: Record<string, PlayerRating>;
   mgmtPhotos: Record<string, string | null>;
   mgmtExcuseMap: Record<string, number | null>;
+  /** playerId → pre-match minutes reason (null when unset) */
+  mgmtMinutesReasonMap: Record<string, string | null>;
   // Drag state
   mgmtDragPlayer: string | null;
   mgmtDragOver: DropZone | null;
@@ -82,6 +84,9 @@ export type ConvocationManagementReturn = {
   moveToNotCalled: (playerId: string, excuseId?: number | null) => Promise<void>;
   moveToAvailable: (playerId: string) => Promise<void>;
   acceptPending: (playerId: string) => Promise<void>;
+  /** Sets/clears the pre-match minutes reason for a player's convocation. Requires the
+   *  player to already have a saved convocation (i.e. mgmtConvMap[playerId] is set). */
+  saveMinutesReason: (playerId: string, reason: string | null) => Promise<void>;
 };
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
@@ -111,6 +116,7 @@ export function useConvocationManagement(
   const [mgmtRatings, setMgmtRatings] = useState<Record<string, PlayerRating>>({});
   const [mgmtPhotos, setMgmtPhotos] = useState<Record<string, string | null>>({});
   const [mgmtExcuseMap, setMgmtExcuseMap] = useState<Record<string, number | null>>({});
+  const [mgmtMinutesReasonMap, setMgmtMinutesReasonMap] = useState<Record<string, string | null>>({});
 
   // Drag state
   const [mgmtDragPlayer, setMgmtDragPlayer] = useState<string | null>(null);
@@ -251,9 +257,12 @@ export function useConvocationManagement(
         }
 
         const excuseInit: Record<string, number | null> = {};
+        const minutesReasonInit: Record<string, string | null> = {};
         for (const conv of convs) {
           const pid = conv.player.id ?? "";
-          if (pid && conv.excuseTypeId != null) excuseInit[pid] = conv.excuseTypeId;
+          if (!pid) continue;
+          if (conv.excuseTypeId != null) excuseInit[pid] = conv.excuseTypeId;
+          minutesReasonInit[pid] = conv.minutesReason ?? null;
         }
 
         // Injured players that have no excuse yet → default to "Injury" (id 1)
@@ -268,6 +277,7 @@ export function useConvocationManagement(
           setMgmtPending(pendingIds.filter((id) => !injuredCalledIds.has(id)));
           setMgmtAvailable(availableIds);
           setMgmtExcuseMap(excuseInit);
+          setMgmtMinutesReasonMap(minutesReasonInit);
         }
       } catch {
         if (mounted) {
@@ -579,6 +589,16 @@ export function useConvocationManagement(
     }
   }
 
+  async function saveMinutesReason(playerId: string, reason: string | null) {
+    if (!mgmtEventId) return;
+    const convId = mgmtConvMap[playerId];
+    if (!convId) {
+      throw new Error("No hay convocatoria guardada para este jugador todavía.");
+    }
+    await convocationService.updateConvocationMinutesReason(mgmtEventId, convId, reason);
+    setMgmtMinutesReasonMap((prev) => ({ ...prev, [playerId]: reason }));
+  }
+
   return {
     players,
     loadingPlayers,
@@ -594,6 +614,7 @@ export function useConvocationManagement(
     mgmtRatings,
     mgmtPhotos,
     mgmtExcuseMap,
+    mgmtMinutesReasonMap,
     mgmtDragPlayer,
     mgmtDragOver,
     mgmtSaving,
@@ -608,5 +629,6 @@ export function useConvocationManagement(
     moveToNotCalled,
     moveToAvailable,
     acceptPending,
+    saveMinutesReason,
   };
 }

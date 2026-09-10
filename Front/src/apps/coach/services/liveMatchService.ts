@@ -83,6 +83,8 @@ export type MatchMinutesRow = {
   teamPlayerId: string;
   minutesPlayed: number;
   isStarter: boolean;
+  /** Post-match free-text reason explaining reduced minutes; null when unset. */
+  minutesReason?: string | null;
 };
 
 /**
@@ -95,6 +97,21 @@ export async function getMatchMinutes(teamId: string): Promise<MatchMinutesRow[]
   } catch {
     return [];
   }
+}
+
+/**
+ * Sets or clears the post-match "minutes reason" free-text note on a single player's
+ * existing match participation row, without touching any other field (minutes played,
+ * starter status, cards, substitutions, etc.). Passing `null` (or an empty/blank string)
+ * clears the field. Requires a participation row to already exist for this
+ * (eventId, teamPlayerId) pair — the backend responds 404 otherwise.
+ */
+export async function updateMatchParticipationReason(
+  eventId: string,
+  teamPlayerId: string,
+  reason: string | null,
+): Promise<void> {
+  await client.put(`/api/events/${eventId}/match-participation/${teamPlayerId}/reason`, { reason });
 }
 
 /**
@@ -145,6 +162,7 @@ export default {
   getMatchParticipation,
   getSeasonPlayerMinutes,
   getMatchMinutes,
+  updateMatchParticipationReason,
   deleteMatchParticipation,
   getSeasonPlayerStats,
   getPlayerMatchHistory,

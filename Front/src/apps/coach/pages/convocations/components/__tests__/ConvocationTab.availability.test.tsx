@@ -57,11 +57,11 @@ describe("ConvocationTab - indicador Ef/Rodaje/Cansancio", () => {
       />,
     );
 
-    // Ef = max(0, min(100, 65 - 22)) = 43
+    // Ef = readiness * (1 - fatigue / 200) = 65 * (1 - 22 / 200) = 57.75 → 58
     expect(screen.getByText("Ef")).toBeInTheDocument();
     expect(screen.getByText("Rodaje")).toBeInTheDocument();
     expect(screen.getAllByText("Cansancio").length).toBeGreaterThan(0);
-    expect(screen.getByText("43%")).toBeInTheDocument();
+    expect(screen.getByText("58%")).toBeInTheDocument();
     expect(screen.getByText("65%")).toBeInTheDocument();
     expect(screen.getByText("22%")).toBeInTheDocument();
   });

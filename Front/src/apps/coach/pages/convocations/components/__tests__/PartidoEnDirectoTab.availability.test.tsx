@@ -121,8 +121,9 @@ describe("PartidoEnDirectoTab - indicador Ef/Rodaje/Cansancio", () => {
       />,
     );
 
-    // R (rodaje en vivo) = round(0.7 * 70 + 0.3 * 0) = 49; Ef = max(0, min(100, 49 - 22)) = 27
-    expect(await screen.findByText("27%")).toBeInTheDocument();
+    // R (rodaje en vivo) = round(0.7 * 70 + 0.3 * 0) = 49;
+    // Ef = readiness * (1 - fatigue / 200) = 49 * (1 - 22 / 200) = 43.61 → 44
+    expect(await screen.findByText("44%")).toBeInTheDocument();
     expect(screen.getByText("49%")).toBeInTheDocument();
     expect(screen.getByText("22%")).toBeInTheDocument();
   });
@@ -141,7 +142,7 @@ describe("PartidoEnDirectoTab - indicador Ef/Rodaje/Cansancio", () => {
       />,
     );
 
-    await screen.findByText("27%");
+    await screen.findByText("44%");
     const legends = screen.getAllByLabelText("Leyenda de Ef, Rodaje y Cansancio");
     expect(legends).toHaveLength(1);
   });

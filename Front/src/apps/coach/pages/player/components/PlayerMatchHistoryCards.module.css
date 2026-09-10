@@ -1,0 +1,171 @@
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.card {
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 14px 8px;
+}
+
+.headerMain {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rival {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--rffm-card-text, #e8e8e8);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.type {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--rffm-muted, #a59f9f);
+}
+
+.date {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--rffm-muted, #a59f9f);
+}
+
+.body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 0 14px 10px;
+}
+
+.scoreBlock {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.score {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--rffm-card-text, #e8e8e8);
+}
+
+.starterBadge {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  color: #22c55e;
+}
+
+.calledUpBadge {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--rffm-muted, #a59f9f);
+}
+
+.statsRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.statItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.statValue {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--rffm-card-text, #e8e8e8);
+}
+
+.statValueGoals {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fb923c;
+}
+
+.statValueMuted {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.statLabel {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--rffm-muted, #a59f9f);
+}
+
+.cardsCell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.footer {
+  display: flex;
+  justify-content: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.stintsWrapper {
+  padding: 8px 14px 12px;
+}
+
+.stintItem {
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.8rem;
+}
+
+.stintsEmpty {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.8rem;
+}
+
+@media (max-width: 480px) {
+  .header {
+    flex-direction: column;
+  }
+  .body {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .statsRow {
+    justify-content: space-between;
+  }
+}

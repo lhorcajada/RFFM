@@ -137,6 +137,7 @@ export default function AlineacionTab({
           )}
         </div>
       </div>
+
     </div>
   );
 

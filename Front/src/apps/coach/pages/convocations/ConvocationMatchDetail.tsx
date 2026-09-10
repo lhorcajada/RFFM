@@ -327,6 +327,12 @@ export default function ConvocationMatchDetail() {
             onSaveLineup={() => lineupRef.current?.save()}
             onPrint={handlePrint}
             onViewConvocation={() => setViewConvocationOpen(true)}
+            minutesReasonsPlayers={lineupPlayers.map((p) => ({
+              id: p.id,
+              label: p.alias?.trim() || p.displayName,
+              reason: convocation.mgmtMinutesReasonMap?.[p.id] ?? null,
+            }))}
+            onSaveMinutesReason={convocation.saveMinutesReason}
           />
         }
       >

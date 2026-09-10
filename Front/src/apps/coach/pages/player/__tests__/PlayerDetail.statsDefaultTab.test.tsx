@@ -24,7 +24,12 @@ vi.mock("../../../../../shared/components/ui/ContentLayout/ContentLayout", () =>
 }));
 
 vi.mock("../../../hooks/useTeamAndClub.tsx", () => ({
-  default: () => ({ teamTitleNode: "Equipo", clubSubtitleNode: null, loading: false }),
+  default: () => ({
+    team: { id: "team-1" },
+    teamTitleNode: "Equipo",
+    clubSubtitleNode: null,
+    loading: false,
+  }),
 }));
 
 const mockTeamPlayer = {
@@ -59,8 +64,8 @@ function buildRecord(overrides: Partial<PlayerMatchRecord> = {}): PlayerMatchRec
     enteredAtMinute: null,
     exitedAtMinute: null,
     goalsScored: 1,
-    yellowCards: 2,
-    redCards: 1,
+    yellowCards: 0,
+    redCards: 0,
     rivalName: "CD Rival",
     eventTypeId: 1,
     eventTypeName: "Partido",
@@ -72,32 +77,53 @@ function buildRecord(overrides: Partial<PlayerMatchRecord> = {}): PlayerMatchRec
   };
 }
 
+const loadHistoryMock = vi.fn();
 vi.mock("../hooks/usePlayerMatchHistory", () => ({
   usePlayerMatchHistory: () => ({
     matchHistory: [buildRecord()],
     loadingHistory: false,
-    loadHistory: vi.fn(),
+    loadHistory: loadHistoryMock,
   }),
 }));
 
+const loadSummaryMock = vi.fn();
 vi.mock("../hooks/usePlayerConvocationSummary", () => ({
   usePlayerConvocationSummary: () => ({
     summary: {
-      totalStarts: 5,
-      totalConvocations: 7,
+      totalStarts: 12,
+      totalConvocations: 15,
       lastDeconvokedMatch: null,
       lastJustifiedAbsenceMatch: null,
     },
     loadingSummary: false,
-    loadSummary: vi.fn(),
+    loadSummary: loadSummaryMock,
   }),
 }));
 
+const loadStatsMock = vi.fn();
 vi.mock("../hooks/usePlayerFormStats", () => ({
   usePlayerFormStats: () => ({
-    stats: null,
+    stats: {
+      teamPlayerId: "tp-1",
+      displayName: "Juan Pérez",
+      position: "Delantero",
+      dorsal: 9,
+      goals: 1,
+      yellowCards: 0,
+      redCards: 0,
+      minutesPlayed: 60,
+      trainingsAttended: 10,
+      matchesPlayed: 5,
+      daysSinceLastInjury: null,
+      lastInjuryDurationDays: null,
+      physicalFitness: 70,
+      fatigue: 20,
+      availability: 50,
+      readiness: 75,
+      readinessBreakdown: null,
+    },
     loadingStats: false,
-    loadStats: vi.fn(),
+    loadStats: loadStatsMock,
   }),
 }));
 
@@ -123,28 +149,56 @@ function renderPage() {
   );
 }
 
-describe("PlayerDetail — pestaña Estadísticas: amarillas/rojas y tabla de partidos", () => {
+describe("PlayerDetail — Estadísticas como pestaña por defecto", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUsePermissions.mockReturnValue({ roles: ["Coach"], loading: false });
   });
 
-  it("muestra los tiles de resumen 'amarillas' y 'rojas' con el acumulado del historial", async () => {
+  it("abre la pestaña Estadísticas por defecto al entrar en la ficha", () => {
     renderPage();
 
-    const { default: userEvent } = await import("@testing-library/user-event");
-    await userEvent.click(screen.getByRole("tab", { name: /estadísticas/i }));
-
-    expect(await screen.findByText("amarillas")).toBeInTheDocument();
-    expect(screen.getByText("rojas")).toBeInTheDocument();
+    const statsTab = screen.getByRole("tab", { name: /estadísticas/i });
+    expect(statsTab).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByText("CD Rival")).toBeInTheDocument();
   });
 
-  it("renderiza la tabla de historial de partidos con columna Rival", async () => {
+  it("carga el historial de partidos y el resumen de convocatorias sin necesidad de hacer click en la pestaña", () => {
+    renderPage();
+
+    expect(loadHistoryMock).toHaveBeenCalledWith("tp-1");
+    expect(loadSummaryMock).toHaveBeenCalledWith("tp-1");
+  });
+
+  it("carga las estadísticas de forma del jugador usando el teamId resuelto por useTeamAndClub", () => {
+    renderPage();
+
+    expect(loadStatsMock).toHaveBeenCalledWith("team-1", "tp-1");
+  });
+
+  it("muestra el resumen de titularidades y convocatorias en la pestaña por defecto", () => {
+    renderPage();
+
+    expect(screen.getByText("Titularidades")).toBeInTheDocument();
+    expect(screen.getByText("12")).toBeInTheDocument();
+    expect(screen.getByText("Convocatorias")).toBeInTheDocument();
+    expect(screen.getByText("15")).toBeInTheDocument();
+  });
+
+  it("muestra las barras de forma (Ef/Rodaje/Cansancio) del jugador en la pestaña Estadísticas", () => {
+    renderPage();
+
+    expect(screen.getByTestId("player-form-bar-ef")).toBeInTheDocument();
+    expect(screen.getByTestId("player-form-bar-r")).toBeInTheDocument();
+    expect(screen.getByTestId("player-form-bar-c")).toBeInTheDocument();
+  });
+
+  it("mantiene Demarcación como pestaña navegable tras el reordenamiento", async () => {
     renderPage();
 
     const { default: userEvent } = await import("@testing-library/user-event");
-    await userEvent.click(screen.getByRole("tab", { name: /estadísticas/i }));
+    await userEvent.click(screen.getByRole("tab", { name: /demarcación/i }));
 
-    expect(await screen.findByText("CD Rival")).toBeInTheDocument();
+    expect(screen.getByText("Delantero")).toBeInTheDocument();
   });
 });

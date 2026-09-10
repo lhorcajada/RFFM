@@ -50,8 +50,9 @@ import type { SquadPlayer } from "../../squad/components/IdealLineup";
 import PlayerFormBars from "../../../components/PlayerFormBars/PlayerFormBars";
 import PlayerFormLegend from "../../../components/PlayerFormLegend/PlayerFormLegend";
 import { computeLiveReadiness } from "../utils/liveReadiness";
-import { saveMatchParticipation } from "../../../services/liveMatchService";
+import { saveMatchParticipation, updateMatchParticipationReason } from "../../../services/liveMatchService";
 import type { LiveMatchParticipationPayload, PlayerParticipationDto } from "./simulation/liveMatch.types";
+import MinutesReasonEditor from "./MinutesReasonEditor";
 import styles from "./PartidoEnDirectoTab.module.css";
 import simStyles from "./SimulacionTab.module.css";
 
@@ -254,6 +255,7 @@ export default function PartidoEnDirectoTab({
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [manualEditOpen, setManualEditOpen] = useState(false);
   const [manualMinuteOverrides, setManualMinuteOverrides] = useState<Record<string, number>>({});
+  const [minutesReasons, setMinutesReasons] = useState<Record<string, string | null>>({});
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   // Confirmation dialog for substitution window
   const [windowConfirmOpen, setWindowConfirmOpen] = useState(false);
@@ -488,6 +490,29 @@ export default function PartidoEnDirectoTab({
       return seeded;
     });
   }, [live.savedParticipationData]);
+
+  // ── Seed minutes reasons from saved data ──────────────────────────────────
+  useEffect(() => {
+    if (!live.savedParticipationData) return;
+    setMinutesReasons((prev) => {
+      if (Object.keys(prev).length > 0) return prev;
+      const seeded: Record<string, string | null> = {};
+      for (const p of live.savedParticipationData!.players) {
+        seeded[p.teamPlayerId] = p.minutesReason ?? null;
+      }
+      return seeded;
+    });
+  }, [live.savedParticipationData]);
+
+  // ── Save a single player's post-match minutes reason ─────────────────────
+  const handleSaveMinutesReason = useCallback(
+    async (teamPlayerId: string, reason: string | null) => {
+      if (!eventId) return;
+      await updateMatchParticipationReason(eventId, teamPlayerId, reason);
+      setMinutesReasons((prev) => ({ ...prev, [teamPlayerId]: reason }));
+    },
+    [eventId],
+  );
 
   // ── Manual edit save ─────────────────────────────────────────────────────
   const handleManualSave = useCallback(async (overrides: Record<string, number>) => {
@@ -772,6 +797,19 @@ export default function PartidoEnDirectoTab({
             >
               Guardar datos del partido
             </Button>
+          )}
+          {live.hasSavedData && live.savedParticipationData && (
+            <MinutesReasonEditor
+              players={live.savedParticipationData.players.map((p) => {
+                const player = playersById[p.teamPlayerId];
+                return {
+                  id: p.teamPlayerId,
+                  label: player?.alias?.trim() || player?.displayName || p.teamPlayerId,
+                  reason: minutesReasons[p.teamPlayerId] ?? null,
+                };
+              })}
+              onSave={(playerId, reason) => handleSaveMinutesReason(playerId, reason)}
+            />
           )}
         </div>
       )}

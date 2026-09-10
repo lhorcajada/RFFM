@@ -79,6 +79,10 @@
   padding: 32px 0;
 }
 
+.statsFormRow {
+  margin-bottom: 16px;
+}
+
 .statsTotals {
   display: flex;
   gap: 20px;

@@ -1,0 +1,20 @@
+.triggerBtn {
+  gap: 6px;
+}
+
+.countBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  margin-left: 4px;
+  border-radius: 999px;
+  background: var(--rffm-accent, #ff6600);
+  color: #fff;
+  -webkit-text-fill-color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1;
+}

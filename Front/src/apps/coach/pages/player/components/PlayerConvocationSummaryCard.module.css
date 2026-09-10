@@ -1,0 +1,61 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  min-width: 0;
+}
+
+.tileValue {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #fb923c;
+  line-height: 1;
+}
+
+.tileLabel {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--rffm-muted, #a59f9f);
+}
+
+.absenceValue {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--rffm-card-text, #e8e8e8);
+  word-break: break-word;
+}
+
+.emptyValue {
+  font-size: 12px;
+  color: var(--rffm-muted, #a59f9f);
+  opacity: 0.8;
+}
+
+.emptyCard {
+  padding: 18px;
+  border-radius: 14px;
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  color: var(--rffm-muted, #a59f9f);
+  font-size: 13px;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 480px) {
+  .grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}

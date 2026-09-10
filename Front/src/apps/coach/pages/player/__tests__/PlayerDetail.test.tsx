@@ -62,6 +62,22 @@ vi.mock("../hooks/usePlayerMatchHistory", () => ({
   }),
 }));
 
+vi.mock("../hooks/usePlayerConvocationSummary", () => ({
+  usePlayerConvocationSummary: () => ({
+    summary: null,
+    loadingSummary: false,
+    loadSummary: vi.fn(),
+  }),
+}));
+
+vi.mock("../hooks/usePlayerFormStats", () => ({
+  usePlayerFormStats: () => ({
+    stats: null,
+    loadingStats: false,
+    loadStats: vi.fn(),
+  }),
+}));
+
 vi.mock("../../../services/teamplayerService", () => ({
   createPlayerInjury: vi.fn(),
   getPlayerInjuries: vi.fn().mockResolvedValue([]),
@@ -209,12 +225,14 @@ describe("PlayerDetail — edición restringida por pestaña (Player/FamilyMembe
     vi.clearAllMocks();
   });
 
-  it("no muestra controles de edición en Demarcación para el rol Player, aunque esté en modo edición", () => {
+  it("no muestra controles de edición en Demarcación para el rol Player, aunque esté en modo edición", async () => {
     mockUsePermissions.mockReturnValue({ roles: ["Player"], loading: false });
 
     renderPage({ editing: true });
 
-    // El tab activo por defecto es Demarcación (0).
+    const { default: userEvent } = await import("@testing-library/user-event");
+    await userEvent.click(screen.getByRole("tab", { name: /demarcación/i }));
+
     expect(screen.queryByLabelText(/posibles demarcaciones/i)).not.toBeInTheDocument();
   });
 
@@ -306,6 +324,7 @@ describe("PlayerDetail — edición restringida por pestaña (Player/FamilyMembe
 
     const { default: userEvent } = await import("@testing-library/user-event");
     await userEvent.click(screen.getByRole("button", { name: /^editar$/i }));
+    await userEvent.click(screen.getByRole("tab", { name: /demarcación/i }));
 
     expect(screen.getByLabelText(/posibles demarcaciones/i)).toBeInTheDocument();
   });

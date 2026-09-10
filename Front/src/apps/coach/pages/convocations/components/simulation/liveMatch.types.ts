@@ -101,6 +101,8 @@ export interface PlayerParticipationDto {
   isStarter: boolean;
   enteredAtMinute: number | null;
   exitedAtMinute: number | null;
+  /** Post-match free-text reason explaining reduced minutes; null/absent when unset. */
+  minutesReason?: string | null;
 }
 
 export interface LiveMatchParticipationPayload {
@@ -176,4 +178,6 @@ export interface PlayerMatchRecord {
   scoreVisitor: number;
   /** Date of the match itself (SportEvent.eveDateTime), null if the event has no date */
   matchDate: string | null;
+  /** Post-match free-text reason explaining reduced minutes; null when unset. */
+  minutesReason?: string | null;
 }

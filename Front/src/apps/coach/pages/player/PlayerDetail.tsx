@@ -38,7 +38,11 @@ import InjuryHistoryPanel from "./components/InjuryHistoryPanel";
 import { usePlayerDetailData } from "./hooks/usePlayerDetailData";
 import { usePlayerSave } from "./hooks/usePlayerSave";
 import { usePlayerMatchHistory } from "./hooks/usePlayerMatchHistory";
-import PlayerMatchHistoryTable from "./components/PlayerMatchHistoryTable";
+import { usePlayerConvocationSummary } from "./hooks/usePlayerConvocationSummary";
+import { usePlayerFormStats } from "./hooks/usePlayerFormStats";
+import PlayerMatchHistoryCards from "./components/PlayerMatchHistoryCards";
+import PlayerConvocationSummaryCard from "./components/PlayerConvocationSummaryCard";
+import PlayerFormBars from "../../components/PlayerFormBars/PlayerFormBars";
 
 const DOMINANT_FOOT_MAP: Record<string, number> = {
   Zurdo: 1,
@@ -61,7 +65,7 @@ export default function PlayerDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { teamTitleNode } = useTeamAndClub();
+  const { team, teamTitleNode } = useTeamAndClub();
   const locationState = location.state as { editing?: boolean; from?: string; fromState?: unknown } | null;
   const { roles, loading: loadingPermissions } = usePermissions();
   const canEditFull = roles.includes("Coach") || roles.includes("Administrator");
@@ -94,6 +98,7 @@ export default function PlayerDetail() {
   const [injuryCreateOpen, setInjuryCreateOpen] = useState(false);
   const [savingInjury, setSavingInjury] = useState(false);
   const [injuryRefreshKey, setInjuryRefreshKey] = useState(0);
+  // Estadísticas is tab 0 and opens by default when entering the player detail page.
   const [activeTab, setActiveTab] = useState(0);
   const {
     teamPlayer,
@@ -121,6 +126,18 @@ export default function PlayerDetail() {
   });
 
   const { matchHistory, loadingHistory, loadHistory } = usePlayerMatchHistory();
+  const { summary, loadingSummary, loadSummary } = usePlayerConvocationSummary();
+  const { stats, loadStats } = usePlayerFormStats();
+
+  // Estadísticas is the default tab, so its data loads on mount rather than on tab click.
+  useEffect(() => {
+    loadHistory(id);
+    loadSummary(id);
+  }, [id, loadHistory, loadSummary]);
+
+  useEffect(() => {
+    loadStats(team?.id, id);
+  }, [team?.id, id, loadStats]);
 
   return (
     <BaseLayout hideFooterMenu>
@@ -198,6 +215,7 @@ export default function PlayerDetail() {
                     "& .MuiTabs-indicator": { backgroundColor: "var(--rffm-accent, #f97316)" },
                   }}
                 >
+                  <Tab label="Estadísticas" />
                   <Tab label="Demarcación" />
                   <Tab label="Contacto" />
                   <Tab label="Físico" />
@@ -215,14 +233,11 @@ export default function PlayerDetail() {
                       </Badge>
                     }
                   />
-                  <Tab label="Estadísticas" onClick={() => {
-                    loadHistory(id);
-                  }} />
                 </Tabs>
               </div>
 
               <div className={styles.tabPanel}>
-                {activeTab === 0 && (
+                {activeTab === 1 && (
                   <Demarcations
                     teamPlayer={teamPlayer}
                     editing={editing && canEditFull}
@@ -250,7 +265,7 @@ export default function PlayerDetail() {
                   />
                 )}
 
-                {activeTab === 1 && (
+                {activeTab === 2 && (
                   !editing ? (
                     <ContactInfo teamPlayer={teamPlayer} />
                   ) : (
@@ -310,7 +325,7 @@ export default function PlayerDetail() {
                   )
                 )}
 
-                {activeTab === 2 && (
+                {activeTab === 3 && (
                   !editing ? (
                     <PhysicalInfo teamPlayer={teamPlayer} />
                   ) : (
@@ -397,7 +412,7 @@ export default function PlayerDetail() {
                   )
                 )}
 
-                {activeTab === 3 && (
+                {activeTab === 4 && (
                   !editing ? (
                     <FamilyMembers
                       teamPlayer={teamPlayer}
@@ -416,9 +431,9 @@ export default function PlayerDetail() {
                   )
                 )}
 
-                {activeTab === 4 && <PlayerLinkCode teamPlayerId={teamPlayer.id} />}
+                {activeTab === 5 && <PlayerLinkCode teamPlayerId={teamPlayer.id} />}
 
-                {activeTab === 5 && (
+                {activeTab === 6 && (
                   <>
                     <div className={styles.injuryActions}>
                       {canEditFull && (
@@ -443,8 +458,28 @@ export default function PlayerDetail() {
                   </>
                 )}
 
-                {activeTab === 6 && (
+                {activeTab === 0 && (
                   <div className={styles.statsTab}>
+                    {(stats?.readiness != null || stats?.fatigue != null) && (
+                      <div className={styles.statsFormRow}>
+                        <PlayerFormBars
+                          variant="full"
+                          readiness={stats?.readiness ?? null}
+                          fatigue={stats?.fatigue ?? null}
+                          readinessTooltip={
+                            stats?.readinessBreakdown && (
+                              <div>
+                                <div>Entreno: {Math.round(stats.readinessBreakdown.trainingComponent)}%</div>
+                                <div>Partidos: {Math.round(stats.readinessBreakdown.matchComponent)}%</div>
+                              </div>
+                            )
+                          }
+                        />
+                      </div>
+                    )}
+
+                    <PlayerConvocationSummaryCard summary={summary} loading={loadingSummary} />
+
                     {loadingHistory && (
                       <div className={styles.statsLoading}>
                         <CircularProgress size={24} />
@@ -487,7 +522,7 @@ export default function PlayerDetail() {
                               <span className={styles.statsTotalLabel}>rojas</span>
                             </div>
                           </div>
-                          <PlayerMatchHistoryTable matchHistory={matchHistory} teamPlayerId={teamPlayer.id} />
+                          <PlayerMatchHistoryCards matchHistory={matchHistory} teamPlayerId={teamPlayer.id} />
                         </>
                       );
                     })()}

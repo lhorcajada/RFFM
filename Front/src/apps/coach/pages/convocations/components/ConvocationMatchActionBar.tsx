@@ -3,6 +3,8 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import VisibilityIcon from "@mui/icons-material/Visibility";
+import MinutesReasonEditor from "./MinutesReasonEditor";
+import type { PlayerMinutesReason } from "./MinutesReasonsListDialog";
 
 type Props = {
   teamId: string;
@@ -18,6 +20,11 @@ type Props = {
   onSaveLineup: () => void;
   onPrint: () => void;
   onViewConvocation: () => void;
+  /** Pre-match minutes reasons for the "Alineación" tab (tab === 1). Optional — when omitted
+   *  (or when onSaveMinutesReason is not provided) the button is not shown. Purely additive,
+   *  never required to save the lineup. */
+  minutesReasonsPlayers?: PlayerMinutesReason[];
+  onSaveMinutesReason?: (playerId: string, reason: string | null) => Promise<void>;
 };
 
 export default function ConvocationMatchActionBar({
@@ -33,6 +40,8 @@ export default function ConvocationMatchActionBar({
   onSaveLineup,
   onPrint,
   onViewConvocation,
+  minutesReasonsPlayers,
+  onSaveMinutesReason,
 }: Props) {
   return (
     <>
@@ -53,6 +62,9 @@ export default function ConvocationMatchActionBar({
         <Button variant="contained" size="small" onClick={onSaveLineup}>
           Guardar
         </Button>
+      )}
+      {tab === 1 && onSaveMinutesReason && minutesReasonsPlayers && minutesReasonsPlayers.length > 0 && (
+        <MinutesReasonEditor players={minutesReasonsPlayers} onSave={onSaveMinutesReason} />
       )}
       {eventId && (
         <Button

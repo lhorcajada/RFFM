@@ -1,0 +1,79 @@
+.title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-right: 8px;
+}
+
+.closeIconBtn {
+  flex-shrink: 0;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(255, 102, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.rowLabel {
+  flex: 0 0 auto;
+  min-width: 120px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.rowReason {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.82rem;
+  opacity: 0.75;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.editIconBtn {
+  flex-shrink: 0;
+}
+
+.editRow {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.editRowLabel {
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.editRowActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.error {
+  font-size: 0.78rem;
+  color: #d32f2f;
+}
+
+.emptyText {
+  font-size: 0.85rem;
+  opacity: 0.6;
+}

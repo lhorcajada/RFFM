@@ -17,6 +17,8 @@ export type ConvocationItem = {
   excuseTypeId?: number | null;
   assistanceTypeId?: number | null;
   isInjured?: boolean;
+  /** Pre-match free-text reason explaining reduced/planned minutes; null when unset. */
+  minutesReason?: string | null;
 };
 
 export async function getEventPlayers(
@@ -57,6 +59,7 @@ export async function getConvocations(
     excuseTypeId: c.excuseTypeId,
     assistanceTypeId: c.assistanceTypeId,
     isInjured: c.isInjured ?? false,
+    minutesReason: c.minutesReason ?? null,
   }));
 }
 
@@ -97,6 +100,52 @@ export async function deleteConvocation(
   await client.delete(`/api/events/${eventId}/convocations/${convocationId}`);
 }
 
+/**
+ * Sets or clears the pre-match "minutes reason" free-text note on a convocation,
+ * independently of its status/assistance/excuse. Passing `null` (or an empty/blank
+ * string) clears the field.
+ */
+export async function updateConvocationMinutesReason(
+  eventId: string,
+  convocationId: string,
+  reason: string | null
+): Promise<void> {
+  await client.put(
+    `/api/events/${eventId}/convocations/${convocationId}/minutes-reason`,
+    { reason }
+  );
+}
+
+/** A match a player missed, with enough context to display it (rival, type, date). */
+export type PlayerAbsenceMatch = {
+  eventId: string;
+  matchDate: string | null;
+  rivalName: string | null;
+  eventTypeId: number;
+  eventTypeName: string | null;
+};
+
+/**
+ * Aggregate convocation/participation summary for one team player: how many matches they
+ * started, how many times they were called up in total, and the most recent match missed for
+ * each of the two distinct absence reasons (coach decision vs. player's own circumstances).
+ */
+export type PlayerConvocationSummary = {
+  totalStarts: number;
+  totalConvocations: number;
+  lastDeconvokedMatch: PlayerAbsenceMatch | null;
+  lastJustifiedAbsenceMatch: PlayerAbsenceMatch | null;
+};
+
+export async function getPlayerConvocationSummary(
+  teamPlayerId: string
+): Promise<PlayerConvocationSummary> {
+  const resp = await client.get<PlayerConvocationSummary>(
+    `/api/catalog/team-player/${teamPlayerId}/convocation-summary`
+  );
+  return resp.data;
+}
+
 export default {
   getEventPlayers,
   getConvocations,
@@ -104,4 +153,6 @@ export default {
   addConvocationsBulk,
   updateConvocationStatus,
   deleteConvocation,
+  updateConvocationMinutesReason,
+  getPlayerConvocationSummary,
 };

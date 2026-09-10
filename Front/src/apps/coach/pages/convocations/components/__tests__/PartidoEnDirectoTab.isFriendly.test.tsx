@@ -112,7 +112,7 @@ const lineupPlayers: SquadPlayer[] = Array.from({ length: 11 }, (_, i) => ({
 }));
 
 describe("PartidoEnDirectoTab - threading unlimitedWindows into SubstitutionWindowTracker", () => {
-  it("passes unlimitedWindows=true through to SubstitutionWindowTracker for friendly matches", () => {
+  it("passes unlimitedWindows=true through to SubstitutionWindowTracker for friendly matches", async () => {
     useLiveMatchMock.mockReturnValue(baseLiveReturn(true));
 
     render(
@@ -127,13 +127,13 @@ describe("PartidoEnDirectoTab - threading unlimitedWindows into SubstitutionWind
       />,
     );
 
-    expect(screen.getByTestId("substitution-window-tracker")).toHaveAttribute(
+    expect(await screen.findByTestId("substitution-window-tracker")).toHaveAttribute(
       "data-unlimited",
       "true",
     );
   });
 
-  it("passes unlimitedWindows=false through to SubstitutionWindowTracker for official matches", () => {
+  it("passes unlimitedWindows=false through to SubstitutionWindowTracker for official matches", async () => {
     useLiveMatchMock.mockReturnValue(baseLiveReturn(false));
 
     render(
@@ -147,7 +147,7 @@ describe("PartidoEnDirectoTab - threading unlimitedWindows into SubstitutionWind
       />,
     );
 
-    expect(screen.getByTestId("substitution-window-tracker")).toHaveAttribute(
+    expect(await screen.findByTestId("substitution-window-tracker")).toHaveAttribute(
       "data-unlimited",
       "false",
     );

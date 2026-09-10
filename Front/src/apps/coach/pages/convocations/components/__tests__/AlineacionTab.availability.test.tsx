@@ -39,8 +39,8 @@ describe("AlineacionTab - indicador Ef/Rodaje/Cansancio", () => {
     );
 
     expect(await screen.findByText("Jugador Dos")).toBeInTheDocument();
-    // Ef = max(0, min(100, 90 - 8)) = 82
-    expect(screen.getByText("82%")).toBeInTheDocument();
+    // Ef = readiness * (1 - fatigue / 200) = 90 * (1 - 8 / 200) = 86.4 → 86
+    expect(screen.getByText("86%")).toBeInTheDocument();
     expect(screen.getByText("90%")).toBeInTheDocument();
     expect(screen.getByText("8%")).toBeInTheDocument();
   });
@@ -59,7 +59,7 @@ describe("AlineacionTab - indicador Ef/Rodaje/Cansancio", () => {
       </MemoryRouter>,
     );
 
-    // Ef = max(0, min(100, 60 - 15)) = 45
-    expect(await screen.findByText("45%")).toBeInTheDocument();
+    // Ef = readiness * (1 - fatigue / 200) = 60 * (1 - 15 / 200) = 55.5 → 56
+    expect(await screen.findByText("56%")).toBeInTheDocument();
   });
 });

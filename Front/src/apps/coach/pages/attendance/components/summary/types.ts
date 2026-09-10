@@ -76,6 +76,8 @@ export type MatchAttendanceCell = {
   wasCalled: boolean;
   wasStarter: boolean;
   minutesPlayed: number | null;
+  /** Post-match free-text reason explaining reduced minutes, read-only here; null/absent when unset. */
+  minutesReason?: string | null;
 };
 
 export type MatchAttendanceColumn = {
