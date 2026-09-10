@@ -10,6 +10,7 @@ using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
 using RFFM.Api.Domain.ValueObjects.Player;
 using RFFM.Api.Domain.ValueObjects;
+using RFFM.Api.Features.Coaches.Players.Services;
 
 namespace RFFM.Api.Features.Coaches.Players.Queries
 {
@@ -134,9 +135,7 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                 var fams = familyMembersList
                     .Select(f => new FamilyResponse(
                         f.Id, f.Name, f.LastName, f.Phone, f.Email, f.FamilyMember, f.Dni,
-                        f.LinkedUserId is not null
-                            ? "Approved"
-                            : pendingFamilyMemberIds.Contains(f.Id) ? "Pending" : "None"))
+                        FamilyMemberRegistrationStatus.Resolve(f.LinkedUserId, pendingFamilyMemberIds.Contains(f.Id))))
                     .ToArray();
 
                 // injury info — active injury (no EndDate)
