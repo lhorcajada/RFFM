@@ -86,8 +86,9 @@ export default function AttendanceEvent() {
   // "Ver convocatoria" — read-only convocation data for this event's team/date, shared with
   // the Coach-only ConvocationMatchDetail screen via the same hook so the two never drift.
   const convocation = useConvocationManagement(event?.teamId ?? "", matchState?.date);
-  const convocationConfirmed =
-    convocation.mgmtCalled.length > 0 && convocation.mgmtPending.length === 0;
+  // At least one player called up — the convocation exists and can be viewed, even if some
+  // of them are still pending confirmation (those are shown tagged as such in the dialog).
+  const convocationConfirmed = convocation.mgmtCalled.length > 0;
 
   // Deep link from elsewhere in the app (e.g. a news item linked to this match) — opens the
   // same popup the "Ver convocatoria" button opens, once the data it needs is ready.
@@ -451,6 +452,7 @@ export default function AttendanceEvent() {
           selectedKitNumber={matchState?.selectedKitNumber ?? null}
           teamId={event?.teamId ?? ""}
           canCopyToWhatsApp={coachAuthService.hasRole("Coach")}
+          pendingIds={convocation.mgmtPending}
         />
       )}
     </BaseLayout>

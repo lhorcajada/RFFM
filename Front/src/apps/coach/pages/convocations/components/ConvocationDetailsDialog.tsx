@@ -46,6 +46,9 @@ type Props = {
   teamId: string;
   /** Only Coaches can copy the convocation text to WhatsApp from this dialog */
   canCopyToWhatsApp: boolean;
+  /** Called-up player ids that haven't accepted/rejected their convocation yet — shown with
+   *  a "Pendiente de aceptar" tag inside the "Convocados" list instead of being hidden. */
+  pendingIds?: string[];
 };
 
 export default function ConvocationDetailsDialog({
@@ -62,7 +65,9 @@ export default function ConvocationDetailsDialog({
   selectedKitNumber,
   teamId,
   canCopyToWhatsApp,
+  pendingIds = [],
 }: Props) {
+  const pendingIdSet = new Set(pendingIds);
   const [copying, setCopying] = useState(false);
   const [copied, setCopied] = useState(false);
   const [notes, setNotes] = useState<TeamNote[]>([]);
@@ -241,6 +246,9 @@ export default function ConvocationDetailsDialog({
                   {playerDisplayName(p).charAt(0)}
                 </Avatar>
                 <span className={styles.playerName}>{playerDisplayName(p)}</span>
+                {pendingIdSet.has(p.id) && (
+                  <span className={styles.playerPendingTag}>Pendiente de aceptar</span>
+                )}
                 {p.dorsal != null && (
                   <span className={styles.playerDorsal}>Nº {p.dorsal}</span>
                 )}

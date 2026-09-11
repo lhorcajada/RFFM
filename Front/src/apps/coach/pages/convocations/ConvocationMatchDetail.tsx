@@ -248,8 +248,9 @@ export default function ConvocationMatchDetail() {
     }
   }, [convocation.mgmtEventId, kitUpdating]);
 
-  // Confirmed by all: every called-up player has accepted (none left in "pending")
-  const convocationConfirmed = convocation.mgmtCalled.length > 0 && convocation.mgmtPending.length === 0;
+  // At least one player called up — the convocation exists and can be viewed, even if some
+  // of them are still pending confirmation (those are shown tagged as such in the dialog).
+  const convocationConfirmed = convocation.mgmtCalled.length > 0;
 
   const proposalRivalName = useMemo(() => {
     if (!match) return null;
@@ -488,6 +489,7 @@ export default function ConvocationMatchDetail() {
           selectedKitNumber={selectedKitNumber}
           teamId={teamId}
           canCopyToWhatsApp={coachAuthService.hasRole("Coach")}
+          pendingIds={convocation.mgmtPending}
         />
 
         {/* PDF print container — off-screen, captured by html2canvas */}

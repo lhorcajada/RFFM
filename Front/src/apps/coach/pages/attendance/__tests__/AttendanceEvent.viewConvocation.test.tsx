@@ -138,7 +138,7 @@ describe("AttendanceEvent - botón Ver convocatoria", () => {
     expect(await screen.findByRole("button", { name: /ver convocatoria/i })).toBeInTheDocument();
   });
 
-  it("no muestra el botón cuando quedan jugadores pendientes de confirmar", async () => {
+  it("muestra el botón aunque queden jugadores pendientes de confirmar, y se los pasa al diálogo", async () => {
     getSportEventByIdMock.mockResolvedValue({
       id: "event-1",
       title: "Partido vs Rival",
@@ -150,8 +150,10 @@ describe("AttendanceEvent - botón Ver convocatoria", () => {
 
     renderPage();
 
-    await screen.findByText("Partido vs Rival");
-    expect(screen.queryByRole("button", { name: /ver convocatoria/i })).not.toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /ver convocatoria/i })).toBeInTheDocument();
+    expect(convocationDetailsDialogSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ pendingIds: ["p2"] }),
+    );
   });
 
   it("no muestra el botón cuando no hay nadie convocado", async () => {
