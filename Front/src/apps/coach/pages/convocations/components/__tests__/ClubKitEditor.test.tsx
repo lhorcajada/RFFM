@@ -29,7 +29,7 @@ describe("ClubKitEditor", () => {
   it("llama a saveClubKits con el payload correcto (2 kits, incluyendo socksColor) al pulsar Guardar", async () => {
     const savedKits: ClubKit[] = [
       { kitNumber: 1, shirtColor: "#E53935", shortsColor: "#E53935", socksColor: "#E53935" },
-      { kitNumber: 2, shirtColor: "#1E88E5", shortsColor: "#1E88E5", socksColor: "#1E88E5" },
+      { kitNumber: 2, shirtColor: "#0D47A1", shortsColor: "#0D47A1", socksColor: "#0D47A1" },
     ];
     saveClubKitsMock.mockResolvedValue(savedKits);
     const onSaved = vi.fn();
@@ -58,7 +58,7 @@ describe("ClubKitEditor", () => {
 
     expect(saveClubKitsMock).toHaveBeenCalledWith("team-1", [
       { kitNumber: 1, shirtColor: "#E53935", shortsColor: "#E53935", socksColor: "#E53935" },
-      { kitNumber: 2, shirtColor: "#1E88E5", shortsColor: "#1E88E5", socksColor: "#1E88E5" },
+      { kitNumber: 2, shirtColor: "#0D47A1", shortsColor: "#0D47A1", socksColor: "#0D47A1" },
     ]);
 
     await waitFor(() => expect(onSaved).toHaveBeenCalledWith(savedKits));
@@ -112,7 +112,7 @@ describe("ClubKitEditor", () => {
   it("muestra una vista previa del color de pantalón y de medias, igual que la camiseta", () => {
     const initialKits: ClubKit[] = [
       { kitNumber: 1, shirtColor: "#E53935", shortsColor: "#43A047", socksColor: "#FDD835" },
-      { kitNumber: 2, shirtColor: "#1E88E5", shortsColor: "#8E24AA", socksColor: "#000000" },
+      { kitNumber: 2, shirtColor: "#0D47A1", shortsColor: "#8E24AA", socksColor: "#000000" },
     ];
 
     render(<ClubKitEditor teamId="team-1" onSaved={vi.fn()} initialKits={initialKits} />);

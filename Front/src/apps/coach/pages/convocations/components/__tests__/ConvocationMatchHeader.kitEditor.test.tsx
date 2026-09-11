@@ -31,7 +31,7 @@ const match: MatchState = {
 };
 
 const kits: ClubKit[] = [
-  { kitNumber: 1, shirtColor: "#1E88E5", shortsColor: "#1E88E5", socksColor: "#1E88E5" },
+  { kitNumber: 1, shirtColor: "#0D47A1", shortsColor: "#0D47A1", socksColor: "#0D47A1" },
   { kitNumber: 2, shirtColor: "#E53935", shortsColor: "#FFFFFF", socksColor: "#FFFFFF" },
 ];
 
@@ -154,7 +154,7 @@ describe("ConvocationMatchHeader — kit configuration", () => {
     const kitService = await import("../../../../services/kitService");
     const savedKits: ClubKit[] = [
       { kitNumber: 1, shirtColor: "#E53935", shortsColor: "#E53935", socksColor: "#E53935" },
-      { kitNumber: 2, shirtColor: "#1E88E5", shortsColor: "#1E88E5", socksColor: "#1E88E5" },
+      { kitNumber: 2, shirtColor: "#0D47A1", shortsColor: "#0D47A1", socksColor: "#0D47A1" },
     ];
     vi.spyOn(kitService, "saveClubKits").mockResolvedValue(savedKits);
     const onKitsSaved = vi.fn();

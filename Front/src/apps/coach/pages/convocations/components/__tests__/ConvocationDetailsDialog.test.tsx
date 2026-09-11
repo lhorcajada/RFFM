@@ -201,7 +201,7 @@ describe("ConvocationDetailsDialog", () => {
   it("muestra ambas equipaciones con sus colores y marca cuál se juega", () => {
     const kits = [
       { kitNumber: 1 as const, shirtColor: "#E53935", shortsColor: "#FFFFFF", socksColor: "#FFFFFF" },
-      { kitNumber: 2 as const, shirtColor: "#1E88E5", shortsColor: "#1E88E5", socksColor: "#1E88E5" },
+      { kitNumber: 2 as const, shirtColor: "#0D47A1", shortsColor: "#0D47A1", socksColor: "#0D47A1" },
     ];
     render(
       <ConvocationDetailsDialog
@@ -243,5 +243,28 @@ describe("ConvocationDetailsDialog", () => {
     const names = screen.getAllByText(/Uno Pérez|Diez García|Sin Dorsal/).map((el) => el.textContent);
     expect(names).toEqual(["Uno Pérez", "Diez García", "Sin Dorsal"]);
     expect(screen.queryByText(/porteros|defensas|delanteros|medios/i)).not.toBeInTheDocument();
+  });
+
+  it("marca como 'Pendiente de aceptar' a los convocados que aún no han confirmado", () => {
+    render(
+      <ConvocationDetailsDialog
+        {...baseProps}
+        calledIds={["p1", "p2"]}
+        pendingIds={["p2"]}
+        canCopyToWhatsApp={false}
+      />,
+    );
+
+    const luisCard = screen.getByText(/Luis García|Luis/).closest("div");
+    expect(luisCard).toHaveTextContent("Pendiente de aceptar");
+
+    const juanCard = screen.getByText(/Juan Pérez|Juan/).closest("div");
+    expect(juanCard).not.toHaveTextContent("Pendiente de aceptar");
+  });
+
+  it("no muestra ninguna etiqueta de pendiente cuando no se pasa pendingIds", () => {
+    render(<ConvocationDetailsDialog {...baseProps} calledIds={["p1", "p2"]} canCopyToWhatsApp={false} />);
+
+    expect(screen.queryByText(/pendiente de aceptar/i)).not.toBeInTheDocument();
   });
 });

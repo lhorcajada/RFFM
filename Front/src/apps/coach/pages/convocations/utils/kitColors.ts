@@ -3,14 +3,14 @@
  *  "Ver convocatoria" popup) so hex values and their Spanish names never drift apart. */
 export const KIT_COLOR_PALETTE: { name: string; hex: string }[] = [
   { name: "Rojo", hex: "#E53935" },
-  { name: "Azul", hex: "#1E88E5" },
+  { name: "Azul", hex: "#0D47A1" },
   { name: "Blanco", hex: "#FFFFFF" },
   { name: "Negro", hex: "#000000" },
   { name: "Amarillo", hex: "#FDD835" },
   { name: "Verde", hex: "#43A047" },
   { name: "Naranja", hex: "#FB8C00" },
   { name: "Morado", hex: "#8E24AA" },
-  { name: "Celeste", hex: "#29B6F6" },
+  { name: "Turquesa", hex: "#00BCD4" },
   { name: "Granate", hex: "#7B1E3A" },
 ];
 

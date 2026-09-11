@@ -41,7 +41,7 @@ function player(overrides: Partial<PlayerResponse> = {}): PlayerResponse {
 
 const kits: ClubKit[] = [
   { kitNumber: 1, shirtColor: "#E53935", shortsColor: "#FFFFFF", socksColor: "#FFFFFF" },
-  { kitNumber: 2, shirtColor: "#1E88E5", shortsColor: "#1E88E5", socksColor: "#1E88E5" },
+  { kitNumber: 2, shirtColor: "#0D47A1", shortsColor: "#0D47A1", socksColor: "#0D47A1" },
 ];
 
 describe("sortByDorsalAsc", () => {
