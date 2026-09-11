@@ -311,6 +311,16 @@
   white-space: nowrap;
 }
 
+/* ─── Sportive-sanction forced deconvocation badge ─── */
+
+.sanctionBadge {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  margin-right: 2px;
+  color: #ff4060;
+}
+
 .alreadyDeconvokedTag {
   display: inline-block;
   margin-top: 3px;

@@ -52,6 +52,7 @@ namespace RFFM.Api.DependencyInjection
             services.AddScoped<ITokenService, TokenService>();
             services.AddScoped<IInvitationService, InvitationService>();
             services.AddScoped<ICurrentUserService, CurrentUserService>();
+            services.AddScoped<RFFM.Api.Domain.Services.ISanctionConvocationEnforcementService, RFFM.Api.Domain.Services.SanctionConvocationEnforcementService>();
 
             // FluentValidation validators for the News feature (explicit registration — no
             // assembly-wide validator scan exists in this project; ValidationBehavior resolves

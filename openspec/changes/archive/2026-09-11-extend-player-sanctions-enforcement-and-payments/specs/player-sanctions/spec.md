@@ -1,30 +1,4 @@
-# player-sanctions Specification
-
-## Purpose
-TBD - created by archiving change add-player-sanctions. Update Purpose after archive.
-## Requirements
-### Requirement: List sanctions for a team player
-The system SHALL expose `GET /api/catalog/teamplayer/{id}/sanctions` returning all sanctions recorded for the given team player, ordered by `startDate` descending, accessible to any authenticated role. An optional `category` query parameter (`Competition` or `InternalDiscipline`) SHALL filter the results to that category only; an unrecognized value SHALL return `400` as a `ProblemDetails`. A non-existent team player id SHALL return `404`.
-
-#### Scenario: Coach lists all sanctions for a player
-- **WHEN** an authenticated Coach calls `GET /api/catalog/teamplayer/{id}/sanctions` for an existing team player with recorded sanctions
-- **THEN** the system returns `200 OK` with a JSON array of sanction records including each record's `category`
-
-#### Scenario: Filter by category
-- **WHEN** an authenticated user calls `GET /api/catalog/teamplayer/{id}/sanctions?category=Competition`
-- **THEN** the system returns `200 OK` with only sanctions whose `category` is `Competition`
-
-#### Scenario: Invalid category filter
-- **WHEN** an authenticated user calls `GET /api/catalog/teamplayer/{id}/sanctions?category=Unknown`
-- **THEN** the system returns `400` with a `ProblemDetails` body
-
-#### Scenario: Team player does not exist
-- **WHEN** any authenticated user calls `GET /api/catalog/teamplayer/{id}/sanctions` for a non-existent `id`
-- **THEN** the system returns `404`
-
-#### Scenario: Read access is open to every authenticated role
-- **WHEN** an authenticated user with the `Player` role calls `GET /api/catalog/teamplayer/{id}/sanctions`
-- **THEN** the system returns `200 OK` (read access is not restricted to Coach/Administrator)
+## MODIFIED Requirements
 
 ### Requirement: Create a sanction for a team player
 The system SHALL expose `POST /api/catalog/teamplayer/{id}/sanctions`, restricted to the `Coach` and `Administrator` roles, to create a new sanction record with a required `category` (`Competition` or `InternalDiscipline`), `startDate`, and `sanctionType`, and optional `description`, `estimatedEnd`, `fine` (a non-negative monetary amount), `amountPaid` (a non-negative monetary amount not exceeding `fine`), `sportivePunishmentType` (`Deconvocation` or `MinutesLimit`), `targetEventId` (required when `sportivePunishmentType` is set), and `minutesLimit` (required and positive when `sportivePunishmentType` is `MinutesLimit`; must be omitted otherwise). A missing/invalid `category`, missing `sanctionType`, non-existent team player, `amountPaid` greater than `fine`, a `sportivePunishmentType` without a `targetEventId`, or a `minutesLimit` supplied without `sportivePunishmentType: "MinutesLimit"` (or missing when it is) SHALL be rejected with `400` `ProblemDetails`/`ValidationProblem`. Manually created sanctions SHALL always have `isAutomatic: false`. The response SHALL include a derived `status` (`"Pending"` when `endDate` is null, `"Fulfilled"` otherwise) and a computed `pendingAmount` (`fine - amountPaid`, or `null` when `fine` is null).
@@ -149,6 +123,8 @@ The system SHALL expose `DELETE /api/catalog/teamplayer/{id}/sanctions/{sanction
 - **WHEN** an authenticated Coach DELETEs a non-existent `sanctionId` or `id`
 - **THEN** the system returns `404`
 
+## ADDED Requirements
+
 ### Requirement: Deconvocation-type sportive sanction forces the player's convocation
 When a sanction is created (or updated to newly target an event, per "Update a sanction") with `sportivePunishmentType: "Deconvocation"` and a `targetEventId` referencing an existing event, the system SHALL, in the same operation: (a) transition the `TeamPlayer`'s existing `Convocation` for `targetEventId` to `Deconvoke` with the "Sanción deportiva" excuse, overriding any current status/excuse, or, if no `Convocation` exists yet for that `TeamPlayer`/`targetEventId` pair, create one directly in `Deconvoke` status with the "Sanción deportiva" excuse; and (b) set the sanction's `endDate` to the current time, marking it `Fulfilled`. This forcing does not go through, and is not blocked by, the active-automatic-sanction check used when convocating a player through `POST /api/events/{eventId}/convocations` or its bulk variant.
 
@@ -228,4 +204,3 @@ The system SHALL expose `GET /api/events/{eventId}/sanctions/minute-limits`, acc
 #### Scenario: Event with no minute-limit sanctions returns an empty array
 - **WHEN** an authenticated user calls `GET /api/events/{eventId}/sanctions/minute-limits` for an event with no such sanctions
 - **THEN** the system returns `200 OK` with an empty array
-

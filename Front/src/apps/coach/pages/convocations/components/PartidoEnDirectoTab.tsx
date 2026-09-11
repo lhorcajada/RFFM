@@ -262,7 +262,10 @@ export default function PartidoEnDirectoTab({
   // Confirmation dialog for mid-match formation change — holds the pending target formation id
   const [pendingFormationId, setPendingFormationId] = useState<string | null>(null);
 
-  const live = useLiveMatch(eventId, teamId, isHomeTeam, { unlimitedWindows: isFriendly });
+  const live = useLiveMatch(eventId, teamId, isHomeTeam, {
+    unlimitedWindows: isFriendly,
+    players: lineupPlayers.map((p) => ({ id: p.id, displayName: p.displayName })),
+  });
 
   // ── DnD sensors ──────────────────────────────────────────────────────────
   const sensors = useSensors(

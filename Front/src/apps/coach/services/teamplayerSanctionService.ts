@@ -1,7 +1,12 @@
 import client from "../../../core/api/client";
 
+export type SanctionCategory = "Competition" | "InternalDiscipline";
+export type SportivePunishmentType = "Deconvocation" | "MinutesLimit";
+export type SanctionStatus = "Pending" | "Fulfilled";
+
 export type SanctionRecord = {
   id: string;
+  category?: SanctionCategory | null;
   startDate: string;
   sanctionType: string;
   description?: string | null;
@@ -9,6 +14,29 @@ export type SanctionRecord = {
   endDate?: string | null;
   isAutomatic: boolean;
   fine: number | null;
+  sportivePunishmentType?: SportivePunishmentType | null;
+  targetEventId?: string | null;
+  minutesLimit?: number | null;
+  amountPaid?: number | null;
+  pendingAmount?: number | null;
+  status?: SanctionStatus;
+};
+
+export type SanctionCreatePayload = {
+  category: SanctionCategory;
+  startDate: string;
+  sanctionType: string;
+  description?: string | null;
+  estimatedEnd?: string | null;
+  fine?: number | null;
+  amountPaid?: number | null;
+  sportivePunishmentType?: SportivePunishmentType | null;
+  targetEventId?: string | null;
+  minutesLimit?: number | null;
+};
+
+export type SanctionUpdatePayload = SanctionCreatePayload & {
+  endDate?: string | null;
 };
 
 export async function getPlayerSanctions(teamPlayerId: string): Promise<SanctionRecord[]> {
@@ -24,13 +52,7 @@ export async function getPlayerSanctions(teamPlayerId: string): Promise<Sanction
 
 export async function createPlayerSanction(
   teamPlayerId: string,
-  payload: {
-    startDate: string;
-    sanctionType: string;
-    description?: string | null;
-    estimatedEnd?: string | null;
-    fine?: number | null;
-  }
+  payload: SanctionCreatePayload
 ): Promise<SanctionRecord | null> {
   try {
     const resp = await client.post<SanctionRecord>(
@@ -46,14 +68,7 @@ export async function createPlayerSanction(
 export async function updatePlayerSanction(
   teamPlayerId: string,
   sanctionId: string,
-  payload: {
-    startDate: string;
-    sanctionType: string;
-    description?: string | null;
-    estimatedEnd?: string | null;
-    endDate?: string | null;
-    fine?: number | null;
-  }
+  payload: SanctionUpdatePayload
 ): Promise<SanctionRecord | null> {
   try {
     const resp = await client.put<SanctionRecord>(

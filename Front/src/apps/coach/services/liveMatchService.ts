@@ -126,6 +126,27 @@ export async function deleteMatchParticipation(
   });
 }
 
+export type MinuteLimitSanction = {
+  teamPlayerId: string;
+  sanctionId: string;
+  minutesLimit: number;
+};
+
+/**
+ * Returns every active (Pending) minutes-limit sportive sanction targeting the given event, so
+ * the live-match screen can warn the coach when a sanctioned player reaches their minute cap.
+ */
+export async function getEventMinuteLimitSanctions(
+  eventId: string,
+): Promise<MinuteLimitSanction[]> {
+  try {
+    const resp = await client.get(`/api/events/${eventId}/sanctions/minute-limits`);
+    return resp.data ?? [];
+  } catch {
+    return [];
+  }
+}
+
 /**
  * Returns aggregated season stats per player for the given team.
  */
@@ -166,4 +187,5 @@ export default {
   deleteMatchParticipation,
   getSeasonPlayerStats,
   getPlayerMatchHistory,
+  getEventMinuteLimitSanctions,
 };

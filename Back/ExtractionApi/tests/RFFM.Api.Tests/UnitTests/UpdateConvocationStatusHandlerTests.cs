@@ -143,7 +143,7 @@ namespace RFFM.Api.Tests.UnitTests
             db.UserProfiles.Add(new UserProfile(userId, "Player", teamPlayerId, null));
             await db.SaveChangesAsync();
 
-            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(userId, "Player").Object);
+            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(userId, "Player").Object, new RFFM.Api.Domain.Services.SanctionConvocationEnforcementService(db));
             var request = new UpdateConvocationStatus.UpdateStatusRequest
             {
                 EventId = eventId,
@@ -167,7 +167,7 @@ namespace RFFM.Api.Tests.UnitTests
             db.UserProfiles.Add(new UserProfile(userId, "Player", teamPlayerId, null));
             await db.SaveChangesAsync();
 
-            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(userId, "Player").Object);
+            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(userId, "Player").Object, new RFFM.Api.Domain.Services.SanctionConvocationEnforcementService(db));
             var request = new UpdateConvocationStatus.UpdateStatusRequest
             {
                 EventId = eventId,
@@ -191,7 +191,7 @@ namespace RFFM.Api.Tests.UnitTests
             db.UserProfiles.Add(new UserProfile(userId, "FamilyMember", teamPlayerId, null));
             await db.SaveChangesAsync();
 
-            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(userId, "FamilyMember").Object);
+            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(userId, "FamilyMember").Object, new RFFM.Api.Domain.Services.SanctionConvocationEnforcementService(db));
             var request = new UpdateConvocationStatus.UpdateStatusRequest
             {
                 EventId = eventId,
@@ -215,7 +215,7 @@ namespace RFFM.Api.Tests.UnitTests
             db.UserProfiles.Add(new UserProfile(userId, "FamilyMember", teamPlayerId, null));
             await db.SaveChangesAsync();
 
-            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(userId, "FamilyMember").Object);
+            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(userId, "FamilyMember").Object, new RFFM.Api.Domain.Services.SanctionConvocationEnforcementService(db));
             var request = new UpdateConvocationStatus.UpdateStatusRequest
             {
                 EventId = eventId,
@@ -240,7 +240,7 @@ namespace RFFM.Api.Tests.UnitTests
             db.UserProfiles.Add(new UserProfile(attackerId, "Player", "some-other-team-player-id", null));
             await db.SaveChangesAsync();
 
-            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(attackerId, "Player").Object);
+            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(attackerId, "Player").Object, new RFFM.Api.Domain.Services.SanctionConvocationEnforcementService(db));
             var request = new UpdateConvocationStatus.UpdateStatusRequest
             {
                 EventId = eventId,
@@ -265,7 +265,7 @@ namespace RFFM.Api.Tests.UnitTests
             db.UserProfiles.Add(new UserProfile(attackerId, "FamilyMember", "some-other-team-player-id", null));
             await db.SaveChangesAsync();
 
-            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(attackerId, "FamilyMember").Object);
+            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(attackerId, "FamilyMember").Object, new RFFM.Api.Domain.Services.SanctionConvocationEnforcementService(db));
             var request = new UpdateConvocationStatus.UpdateStatusRequest
             {
                 EventId = eventId,
@@ -286,7 +286,7 @@ namespace RFFM.Api.Tests.UnitTests
             var userId = $"noprofile-{Guid.NewGuid():N}";
             // No UserProfile row seeded for this user at all.
 
-            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(userId, "Player").Object);
+            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(userId, "Player").Object, new RFFM.Api.Domain.Services.SanctionConvocationEnforcementService(db));
             var request = new UpdateConvocationStatus.UpdateStatusRequest
             {
                 EventId = eventId,
@@ -305,7 +305,7 @@ namespace RFFM.Api.Tests.UnitTests
             var (eventId, _, convocationId) = await SeedConvocationAsync(db);
 
             var coachId = $"coach-{Guid.NewGuid():N}";
-            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(coachId, "Coach").Object);
+            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(coachId, "Coach").Object, new RFFM.Api.Domain.Services.SanctionConvocationEnforcementService(db));
             var request = new UpdateConvocationStatus.UpdateStatusRequest
             {
                 EventId = eventId,
@@ -326,7 +326,7 @@ namespace RFFM.Api.Tests.UnitTests
             var (eventId, _, convocationId) = await SeedConvocationAsync(db);
 
             var adminId = $"admin-{Guid.NewGuid():N}";
-            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(adminId, "Administrator").Object);
+            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(adminId, "Administrator").Object, new RFFM.Api.Domain.Services.SanctionConvocationEnforcementService(db));
             var request = new UpdateConvocationStatus.UpdateStatusRequest
             {
                 EventId = eventId,
@@ -350,7 +350,7 @@ namespace RFFM.Api.Tests.UnitTests
             db.UserProfiles.Add(new UserProfile(userId, "Player", teamPlayerId, null));
             await db.SaveChangesAsync();
 
-            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(userId, "Player").Object);
+            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(userId, "Player").Object, new RFFM.Api.Domain.Services.SanctionConvocationEnforcementService(db));
             var request = new UpdateConvocationStatus.UpdateStatusRequest
             {
                 EventId = eventId,
@@ -374,7 +374,7 @@ namespace RFFM.Api.Tests.UnitTests
             db.UserProfiles.Add(new UserProfile(userId, "FamilyMember", teamPlayerId, null));
             await db.SaveChangesAsync();
 
-            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(userId, "FamilyMember").Object);
+            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(userId, "FamilyMember").Object, new RFFM.Api.Domain.Services.SanctionConvocationEnforcementService(db));
             var request = new UpdateConvocationStatus.UpdateStatusRequest
             {
                 EventId = eventId,
@@ -398,7 +398,7 @@ namespace RFFM.Api.Tests.UnitTests
             db.UserProfiles.Add(new UserProfile(userId, "Player", teamPlayerId, null));
             await db.SaveChangesAsync();
 
-            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(userId, "Player").Object);
+            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(userId, "Player").Object, new RFFM.Api.Domain.Services.SanctionConvocationEnforcementService(db));
             var request = new UpdateConvocationStatus.UpdateStatusRequest
             {
                 EventId = eventId,
@@ -423,7 +423,7 @@ namespace RFFM.Api.Tests.UnitTests
             db.UserProfiles.Add(new UserProfile(userId, "FamilyMember", teamPlayerId, null));
             await db.SaveChangesAsync();
 
-            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(userId, "FamilyMember").Object);
+            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(userId, "FamilyMember").Object, new RFFM.Api.Domain.Services.SanctionConvocationEnforcementService(db));
             var request = new UpdateConvocationStatus.UpdateStatusRequest
             {
                 EventId = eventId,
@@ -448,7 +448,7 @@ namespace RFFM.Api.Tests.UnitTests
             db.UserProfiles.Add(new UserProfile(userId, "Player", teamPlayerId, null));
             await db.SaveChangesAsync();
 
-            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(userId, "Player").Object);
+            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(userId, "Player").Object, new RFFM.Api.Domain.Services.SanctionConvocationEnforcementService(db));
             var request = new UpdateConvocationStatus.UpdateStatusRequest
             {
                 EventId = eventId,
@@ -470,7 +470,7 @@ namespace RFFM.Api.Tests.UnitTests
             var (eventId, _, convocationId) = await SeedConvocationAsync(db, eventTypeId: 1, convocationStatusId: 5);
 
             var coachId = $"coach-{Guid.NewGuid():N}";
-            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(coachId, "Coach").Object);
+            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(coachId, "Coach").Object, new RFFM.Api.Domain.Services.SanctionConvocationEnforcementService(db));
             var request = new UpdateConvocationStatus.UpdateStatusRequest
             {
                 EventId = eventId,
@@ -491,7 +491,7 @@ namespace RFFM.Api.Tests.UnitTests
             var (eventId, _, convocationId) = await SeedConvocationAsync(db, eventTypeId: 1, convocationStatusId: 5);
 
             var adminId = $"admin-{Guid.NewGuid():N}";
-            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(adminId, "Administrator").Object);
+            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(adminId, "Administrator").Object, new RFFM.Api.Domain.Services.SanctionConvocationEnforcementService(db));
             var request = new UpdateConvocationStatus.UpdateStatusRequest
             {
                 EventId = eventId,
@@ -515,7 +515,7 @@ namespace RFFM.Api.Tests.UnitTests
             db.UserProfiles.Add(new UserProfile(userId, "Player", teamPlayerId, null));
             await db.SaveChangesAsync();
 
-            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(userId, "Player").Object);
+            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(userId, "Player").Object, new RFFM.Api.Domain.Services.SanctionConvocationEnforcementService(db));
             var request = new UpdateConvocationStatus.UpdateStatusRequest
             {
                 EventId = eventId,
@@ -540,7 +540,7 @@ namespace RFFM.Api.Tests.UnitTests
             db.UserProfiles.Add(new UserProfile(userId, "Player", teamPlayerId, null));
             await db.SaveChangesAsync();
 
-            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(userId, "Player").Object);
+            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(userId, "Player").Object, new RFFM.Api.Domain.Services.SanctionConvocationEnforcementService(db));
             var request = new UpdateConvocationStatus.UpdateStatusRequest
             {
                 EventId = eventId,
@@ -567,7 +567,7 @@ namespace RFFM.Api.Tests.UnitTests
             db.UserProfiles.Add(new UserProfile(userId, "FamilyMember", teamPlayerId, null));
             await db.SaveChangesAsync();
 
-            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(userId, "FamilyMember").Object);
+            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(userId, "FamilyMember").Object, new RFFM.Api.Domain.Services.SanctionConvocationEnforcementService(db));
             var request = new UpdateConvocationStatus.UpdateStatusRequest
             {
                 EventId = eventId,
@@ -594,7 +594,7 @@ namespace RFFM.Api.Tests.UnitTests
             db.UserProfiles.Add(new UserProfile(userId, "Player", teamPlayerId, null));
             await db.SaveChangesAsync();
 
-            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(userId, "Player").Object);
+            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(userId, "Player").Object, new RFFM.Api.Domain.Services.SanctionConvocationEnforcementService(db));
             var request = new UpdateConvocationStatus.UpdateStatusRequest
             {
                 EventId = eventId,
@@ -616,7 +616,7 @@ namespace RFFM.Api.Tests.UnitTests
                 db, eventTypeId: 1, convocationStatusId: 5, excuseTypeId: 7);
 
             var coachId = $"coach-{Guid.NewGuid():N}";
-            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(coachId, "Coach").Object);
+            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(coachId, "Coach").Object, new RFFM.Api.Domain.Services.SanctionConvocationEnforcementService(db));
             var request = new UpdateConvocationStatus.UpdateStatusRequest
             {
                 EventId = eventId,

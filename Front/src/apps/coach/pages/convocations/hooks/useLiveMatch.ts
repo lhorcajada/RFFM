@@ -21,6 +21,8 @@ import {
   saveMatchParticipation,
   getMatchParticipation,
   deleteMatchParticipation,
+  getEventMinuteLimitSanctions,
+  type MinuteLimitSanction,
 } from "../../../services/liveMatchService";
 
 export const MAX_TOTAL_WINDOWS = 4;
@@ -155,6 +157,9 @@ export type PendingAction =
 export interface UseLiveMatchOptions {
   /** When true (friendly matches), the substitution-window quota is not enforced */
   unlimitedWindows?: boolean;
+  /** Optional player id -> display name lookup, used only to name players in the
+   * minute-limit sanction warning (falls back to the raw teamPlayerId when omitted). */
+  players?: { id: string; displayName: string }[];
 }
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
@@ -165,7 +170,7 @@ export function useLiveMatch(
   isHomeTeam = true,
   options: UseLiveMatchOptions = {},
 ): UseLiveMatchReturn {
-  const { unlimitedWindows = false } = options;
+  const { unlimitedWindows = false, players: playersOption } = options;
   // ── Phase & timer ────────────────────────────────────────────────────────
   const [matchPhase, setMatchPhase] = useState<LiveMatchPhase>("preMatch");
   const [totalSeconds, setTotalSeconds] = useState(0);
@@ -208,6 +213,12 @@ export function useLiveMatch(
   const [isDeleting, setIsDeleting] = useState(false);
   // ── Backup ───────────────────────────────────────────────────────────────
   const [backup, setBackup] = useState<LiveMatchBackup | null>(null);
+
+  // ── Minute-limit sportive sanctions (warn the coach when a cap is reached) ──
+  const [minuteLimitSanctions, setMinuteLimitSanctions] = useState<MinuteLimitSanction[]>([]);
+  const notifiedMinuteLimitPlayersRef = useRef<Set<string>>(new Set());
+  const playersOptionRef = useRef(playersOption);
+  playersOptionRef.current = playersOption;
 
   // ── Stable refs ──────────────────────────────────────────────────────────
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -422,6 +433,54 @@ export function useLiveMatch(
     if (b) setBackup(b);
   }, [eventId]);
 
+  // ── Load active minute-limit sportive sanctions for this event ──────────
+  // Fetched once per event (design.md Decisión 9 — no polling, minutes are
+  // already tracked client-side and compared locally on every tick below).
+
+  useEffect(() => {
+    notifiedMinuteLimitPlayersRef.current = new Set();
+    if (!eventId) {
+      setMinuteLimitSanctions([]);
+      return;
+    }
+    let mounted = true;
+    getEventMinuteLimitSanctions(eventId)
+      .then((list) => {
+        if (mounted) setMinuteLimitSanctions(list);
+      })
+      .catch(() => {
+        if (mounted) setMinuteLimitSanctions([]);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [eventId]);
+
+  // ── Warn the coach when a sanctioned player reaches their minute cap ────
+
+  useEffect(() => {
+    if (minuteLimitSanctions.length === 0) return;
+    for (const sanction of minuteLimitSanctions) {
+      const minutesPlayed = playerMinutes[sanction.teamPlayerId];
+      if (minutesPlayed == null) continue;
+      if (minutesPlayed < sanction.minutesLimit) continue;
+      if (notifiedMinuteLimitPlayersRef.current.has(sanction.teamPlayerId)) continue;
+
+      notifiedMinuteLimitPlayersRef.current.add(sanction.teamPlayerId);
+      const playerName =
+        playersOptionRef.current?.find((p) => p.id === sanction.teamPlayerId)?.displayName ??
+        sanction.teamPlayerId;
+      window.dispatchEvent(
+        new CustomEvent("rffm.show_snackbar", {
+          detail: {
+            message: `${playerName} ha alcanzado su límite de minutos por sanción deportiva (${sanction.minutesLimit}'). Debe salir del terreno de juego.`,
+            severity: "warning",
+          },
+        }),
+      );
+    }
+  }, [playerMinutes, minuteLimitSanctions]);
+
   // ── Helpers ───────────────────────────────────────────────────────────────
 
   function buildInitialPlayerStates(
@@ -566,6 +625,7 @@ export function useLiveMatch(
   // ── initMatch ─────────────────────────────────────────────────────────────
 
   const initMatch = useCallback((initialSlots: Record<number, string | null>) => {
+    notifiedMinuteLimitPlayersRef.current = new Set();
     initialSlotsRef.current = { ...initialSlots };
     setInitialSlotsSnapshot({ ...initialSlots });
     runAnchorEpochRef.current = null;

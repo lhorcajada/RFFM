@@ -138,9 +138,42 @@ namespace RFFM.Api.Features.Coaches.Convocations
                 if (request.MatchPhase == "finished")
                 {
                     await DetectAndCreateAutomaticSanctionsAsync(request, cancellationToken);
+                    await DetectAndFulfillMinutesLimitSanctionsAsync(request, cancellationToken);
                 }
 
                 return Unit.Value;
+            }
+
+            /// <summary>
+            /// Detects, for every player of a finished event, whether a Pending MinutesLimit
+            /// sportive sanction targeting this exact event is respected (minutesPlayed &lt;=
+            /// minutesLimit) and, if so, marks it Fulfilled (design.md Decisión 4, tasks.md 4.10).
+            /// Runs even if the player wasn't convocated through the sanction-aware flow.
+            /// </summary>
+            private async Task DetectAndFulfillMinutesLimitSanctionsAsync(
+                SaveMatchParticipationRequest request, CancellationToken cancellationToken)
+            {
+                var fulfilledAny = false;
+
+                foreach (var dto in request.Players)
+                {
+                    var pending = await _db.TeamPlayerSanctions.FirstOrDefaultAsync(s =>
+                        s.TeamPlayerId == dto.TeamPlayerId &&
+                        s.TargetEventId == request.EventId &&
+                        s.SportivePunishmentType == SanctionSportivePunishmentType.MinutesLimit &&
+                        s.EndDate == null, cancellationToken);
+
+                    if (pending is not null && dto.MinutesPlayed <= pending.MinutesLimit)
+                    {
+                        pending.MarkFulfilled(DateTime.UtcNow);
+                        fulfilledAny = true;
+                    }
+                }
+
+                if (fulfilledAny)
+                {
+                    await _db.SaveChangesAsync(cancellationToken);
+                }
             }
 
             /// <summary>

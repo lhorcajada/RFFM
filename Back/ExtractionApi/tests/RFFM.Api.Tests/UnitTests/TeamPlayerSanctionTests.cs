@@ -82,5 +82,132 @@ namespace RFFM.Api.Tests.UnitTests
 
             Assert.NotNull(sanction.EndDate);
         }
+
+        // ── Sportive punishment / payment fields (extend-player-sanctions-enforcement-and-payments) ──
+
+        [Fact]
+        public void Create_MinutesLimit_RequiresTargetEventIdAndPositiveMinutesLimit()
+        {
+            Assert.Throws<ArgumentException>(() => TeamPlayerSanction.Create(
+                "team-player-1", SanctionCategory.Competition, DateTime.UtcNow, "Sanción", null, null,
+                sportivePunishmentType: SanctionSportivePunishmentType.MinutesLimit,
+                targetEventId: null, minutesLimit: 10));
+
+            Assert.Throws<ArgumentException>(() => TeamPlayerSanction.Create(
+                "team-player-1", SanctionCategory.Competition, DateTime.UtcNow, "Sanción", null, null,
+                sportivePunishmentType: SanctionSportivePunishmentType.MinutesLimit,
+                targetEventId: "event-1", minutesLimit: 0));
+
+            var sanction = TeamPlayerSanction.Create(
+                "team-player-1", SanctionCategory.Competition, DateTime.UtcNow, "Sanción", null, null,
+                sportivePunishmentType: SanctionSportivePunishmentType.MinutesLimit,
+                targetEventId: "event-1", minutesLimit: 10);
+
+            Assert.Equal(SanctionSportivePunishmentType.MinutesLimit, sanction.SportivePunishmentType);
+            Assert.Equal("event-1", sanction.TargetEventId);
+            Assert.Equal(10, sanction.MinutesLimit);
+        }
+
+        [Fact]
+        public void Create_Deconvocation_RequiresTargetEventIdAndRejectsMinutesLimit()
+        {
+            Assert.Throws<ArgumentException>(() => TeamPlayerSanction.Create(
+                "team-player-1", SanctionCategory.Competition, DateTime.UtcNow, "Sanción", null, null,
+                sportivePunishmentType: SanctionSportivePunishmentType.Deconvocation,
+                targetEventId: null));
+
+            Assert.Throws<ArgumentException>(() => TeamPlayerSanction.Create(
+                "team-player-1", SanctionCategory.Competition, DateTime.UtcNow, "Sanción", null, null,
+                sportivePunishmentType: SanctionSportivePunishmentType.Deconvocation,
+                targetEventId: "event-1", minutesLimit: 5));
+
+            var sanction = TeamPlayerSanction.Create(
+                "team-player-1", SanctionCategory.Competition, DateTime.UtcNow, "Sanción", null, null,
+                sportivePunishmentType: SanctionSportivePunishmentType.Deconvocation,
+                targetEventId: "event-1");
+
+            Assert.Equal(SanctionSportivePunishmentType.Deconvocation, sanction.SportivePunishmentType);
+            Assert.Equal("event-1", sanction.TargetEventId);
+            Assert.Null(sanction.MinutesLimit);
+        }
+
+        [Fact]
+        public void Create_NullSportivePunishmentType_RequiresTargetEventIdAndMinutesLimitBothNull()
+        {
+            Assert.Throws<ArgumentException>(() => TeamPlayerSanction.Create(
+                "team-player-1", SanctionCategory.Competition, DateTime.UtcNow, "Sanción", null, null,
+                sportivePunishmentType: null, targetEventId: "event-1"));
+
+            Assert.Throws<ArgumentException>(() => TeamPlayerSanction.Create(
+                "team-player-1", SanctionCategory.Competition, DateTime.UtcNow, "Sanción", null, null,
+                sportivePunishmentType: null, minutesLimit: 10));
+
+            var sanction = TeamPlayerSanction.Create(
+                "team-player-1", SanctionCategory.Competition, DateTime.UtcNow, "Sanción", null, null);
+
+            Assert.Null(sanction.SportivePunishmentType);
+            Assert.Null(sanction.TargetEventId);
+            Assert.Null(sanction.MinutesLimit);
+        }
+
+        [Fact]
+        public void Create_AmountPaid_MustBeNonNegative()
+        {
+            Assert.Throws<ArgumentException>(() => TeamPlayerSanction.Create(
+                "team-player-1", SanctionCategory.Competition, DateTime.UtcNow, "Sanción", null, null,
+                amountPaid: -1m));
+
+            var sanction = TeamPlayerSanction.Create(
+                "team-player-1", SanctionCategory.Competition, DateTime.UtcNow, "Sanción", null, null,
+                fine: 100m, amountPaid: 40m);
+
+            Assert.Equal(40m, sanction.AmountPaid);
+        }
+
+        [Fact]
+        public void MarkFulfilled_SetsEndDateAndLeavesOtherFieldsUntouched()
+        {
+            var sanction = TeamPlayerSanction.Create(
+                "team-player-1", SanctionCategory.Competition, DateTime.UtcNow, "Sanción", "desc", null, fine: 30m);
+
+            var at = DateTime.UtcNow;
+            sanction.MarkFulfilled(at);
+
+            Assert.Equal(at, sanction.EndDate);
+            Assert.Equal("desc", sanction.Description);
+            Assert.Equal(30m, sanction.Fine);
+        }
+
+        [Fact]
+        public void Reopen_SetsEndDateBackToNullAndLeavesOtherFieldsUntouched()
+        {
+            var sanction = TeamPlayerSanction.Create(
+                "team-player-1", SanctionCategory.Competition, DateTime.UtcNow, "Sanción", "desc", null, fine: 30m);
+            sanction.MarkFulfilled(DateTime.UtcNow);
+
+            sanction.Reopen();
+
+            Assert.Null(sanction.EndDate);
+            Assert.Equal("desc", sanction.Description);
+            Assert.Equal(30m, sanction.Fine);
+        }
+
+        [Fact]
+        public void Update_WithSportivePunishmentFields_PersistsThem()
+        {
+            var sanction = TeamPlayerSanction.Create(
+                "team-player-1", SanctionCategory.Competition, DateTime.UtcNow, "Sanción", null, null);
+
+            sanction.Update(
+                SanctionCategory.Competition, sanction.StartDate, "Sanción", null, null, null,
+                fine: 100m, amountPaid: 25m,
+                sportivePunishmentType: SanctionSportivePunishmentType.MinutesLimit,
+                targetEventId: "event-1", minutesLimit: 15);
+
+            Assert.Equal(SanctionSportivePunishmentType.MinutesLimit, sanction.SportivePunishmentType);
+            Assert.Equal("event-1", sanction.TargetEventId);
+            Assert.Equal(15, sanction.MinutesLimit);
+            Assert.Equal(25m, sanction.AmountPaid);
+        }
     }
 }

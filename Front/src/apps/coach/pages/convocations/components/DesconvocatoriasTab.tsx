@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { Button, CircularProgress } from "@mui/material";
 import { Tooltip } from "@mui/material";
 import PrintIcon from "@mui/icons-material/Print";
+import GavelIcon from "@mui/icons-material/Gavel";
 import EmptyState from "../../../../../shared/components/ui/EmptyState/EmptyState";
 import type { PlayerResponse } from "../../../services/teamplayerService";
 import type { GridCell, MatchColumn } from "./convocationMatchDetail.types";
@@ -25,7 +26,17 @@ const EXCUSE_TYPE_COLORS: Record<number, CauseColor> = {
   4: { bg: "rgba(201, 136, 245, 0.18)", text: "#c988f5" },  // Family Problem
   5: { bg: "rgba(95, 212, 168, 0.18)",  text: "#5fd4a8" },  // Family Event
   6: { bg: "rgba(245, 200, 66, 0.18)",  text: "#f5c842" },  // Birthday Event
+  8: { bg: "rgba(255, 64, 96, 0.2)",    text: "#ff4060" },  // Sanción deportiva (forced Deconvoke)
 };
+
+// excuseTypeId=8 ("Sanción deportiva") means the Deconvoke convocation was forced by a
+// Deconvocation-type sportive sanction (design.md Decisión 10) — same signal the backend
+// itself uses to recognize its own forced transition, no separate flag needed.
+const SANCTION_EXCUSE_TYPE_ID = 8;
+
+function isSportiveSanctionCell(cell: GridCell): boolean {
+  return cell.excuseTypeId === SANCTION_EXCUSE_TYPE_ID;
+}
 
 const FALLBACK_PALETTE: CauseColor[] = [
   { bg: "rgba(255, 100, 200, 0.18)", text: "#ff64c8" },
@@ -403,6 +414,15 @@ export default function DesconvocatoriasTab({
                         placement="top"
                       >
                         <span className={styles.cellContent} style={{ color: causeColor.text }}>
+                          {isSportiveSanctionCell(cell) && (
+                            <span
+                              className={styles.sanctionBadge}
+                              title="Desconvocado por sanción deportiva"
+                              aria-label="Desconvocado por sanción deportiva"
+                            >
+                              <GavelIcon sx={{ fontSize: 11 }} />
+                            </span>
+                          )}
                           {shortLabel}
                         </span>
                       </Tooltip>

@@ -101,6 +101,7 @@ namespace RFFM.Api.Tests.IntegrationTests
                                     npgsql.MigrationsHistoryTable("__EFMigrationsHistory", "app");
                                 });
                             });
+                            services.AddScoped<RFFM.Api.Domain.Services.ISanctionConvocationEnforcementService, RFFM.Api.Domain.Services.SanctionConvocationEnforcementService>();
                         })
                         .Configure(app =>
                         {

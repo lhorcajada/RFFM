@@ -96,7 +96,9 @@ describe("Sanctions — multa y sanción automática", () => {
 
     await waitFor(() => expect(getTeamSanctionsMock).toHaveBeenCalled());
     expect(await screen.findByText("Multa")).toBeInTheDocument();
-    expect(await screen.findByText("50 €")).toBeInTheDocument();
+    // "50 €" appears both in the Multa column and (with no amountPaid) in the
+    // Pendiente column, since pendingAmount defaults to the full fine.
+    expect((await screen.findAllByText("50 €")).length).toBeGreaterThanOrEqual(1);
   });
 
   it("muestra el chip 'Automática' junto al tipo de sanción cuando isAutomatic es true", async () => {
@@ -125,7 +127,7 @@ describe("Sanctions — multa y sanción automática", () => {
     const editButton = await screen.findByRole("button", { name: /^editar$/i });
     await userEvent.click(editButton);
 
-    const sanctionTypeField = await screen.findByLabelText(/tipo de sanción/i);
+    const sanctionTypeField = await screen.findByRole("textbox", { name: "Tipo de sanción" });
     expect(sanctionTypeField).toBeDisabled();
   });
 

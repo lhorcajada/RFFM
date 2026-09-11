@@ -9,6 +9,7 @@ using RFFM.Api.Domain.Services;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
 using RFFM.Api.Domain.Aggregates.Assistances;
+using RFFM.Api.Domain.Entities.TeamPlayers;
 using System.Linq;
 
 namespace RFFM.Api.Features.Coaches.Convocations
@@ -50,11 +51,13 @@ namespace RFFM.Api.Features.Coaches.Convocations
 
             private readonly AppDbContext _db;
             private readonly ICurrentUserService _currentUser;
+            private readonly ISanctionConvocationEnforcementService _enforcementService;
 
-            public Handler(AppDbContext db, ICurrentUserService currentUser)
+            public Handler(AppDbContext db, ICurrentUserService currentUser, ISanctionConvocationEnforcementService enforcementService)
             {
                 _db = db;
                 _currentUser = currentUser;
+                _enforcementService = enforcementService;
             }
 
             public async ValueTask<Unit> Handle(UpdateStatusRequest request, CancellationToken cancellationToken = default)
@@ -120,16 +123,50 @@ namespace RFFM.Api.Features.Coaches.Convocations
 
                 // Validate status
                 var status = ConvocationStatus.From(request.NewStatusId);
-                conv.SetConvocationStatusId(request.NewStatusId);
+                var wasDeconvoke = conv.ConvocationStatusId == ConvocationStatus.FromName("Deconvoke").Id;
+                var isNowDeconvoke = status.Name.Equals("Deconvoke", StringComparison.OrdinalIgnoreCase);
 
-                if (status.Name.Equals("Deconvoke", StringComparison.OrdinalIgnoreCase))
+                if (isNowDeconvoke)
                 {
-                    // Keep provided ExcuseTypeId; fall back to 'Decisión técnica' (id 7) if none supplied
-                    conv.SetExcuseTypeId(request.ExcuseTypeId ?? 7);
+                    // Keep provided ExcuseTypeId; fall back to 'Decisión técnica' (id 7) if none
+                    // supplied. Delegated to the shared enforcement service (design.md Decisión 4)
+                    // so both this manual path and the sanction-triggered path share one code path.
+                    await _enforcementService.ForceDeconvocationAsync(
+                        conv.TeamPlayerId, conv.SportEventId, request.ExcuseTypeId ?? 7, cancellationToken);
+
+                    // Defensive/legacy-data auto-fulfillment path (design.md Decisión 4): normally
+                    // a Deconvocation-type sanction already forced this transition at creation
+                    // time, but this covers sanctions created before this capability existed, or
+                    // whose forced convocation was later reverted by hand outside the delete/edit
+                    // flow.
+                    var pendingSportiveSanction = await _db.TeamPlayerSanctions.FirstOrDefaultAsync(s =>
+                        s.TeamPlayerId == conv.TeamPlayerId &&
+                        s.TargetEventId == conv.SportEventId &&
+                        s.SportivePunishmentType == SanctionSportivePunishmentType.Deconvocation &&
+                        s.EndDate == null, cancellationToken);
+                    if (pendingSportiveSanction is not null)
+                    {
+                        pendingSportiveSanction.MarkFulfilled(DateTime.UtcNow);
+                        conv.SetExcuseTypeId(ExcuseTypes.SportiveSanction.Id);
+                    }
                 }
                 else
                 {
+                    conv.SetConvocationStatusId(request.NewStatusId);
                     conv.SetExcuseTypeId(null);
+
+                    // Reverse coupling (design.md Decisión 11): reopen a Fulfilled Deconvocation
+                    // sanction whenever the convocation it forced is transitioned away from
+                    // Deconvoke through this normal endpoint. Allowed even for a past event.
+                    if (wasDeconvoke)
+                    {
+                        var fulfilledSanction = await _db.TeamPlayerSanctions.FirstOrDefaultAsync(s =>
+                            s.TeamPlayerId == conv.TeamPlayerId &&
+                            s.TargetEventId == conv.SportEventId &&
+                            s.SportivePunishmentType == SanctionSportivePunishmentType.Deconvocation &&
+                            s.EndDate != null, cancellationToken);
+                        fulfilledSanction?.Reopen();
+                    }
                 }
 
                 await _db.SaveChangesAsync(cancellationToken);
