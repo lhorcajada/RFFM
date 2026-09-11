@@ -34,6 +34,9 @@ type Props = {
 
 type GroupKey = "waiting" | "pending" | "accepted" | "desconvocados";
 
+// Matches RFFM.Api.Domain.Aggregates.Assistances.ExcuseTypes' "Decisión técnica" entry (id 7).
+const TECHNICAL_DECISION_EXCUSE_TYPE_ID = 7;
+
 // A player only ever belongs to one of the 4 groups. Used to resolve the
 // default expanded/collapsed state per group for Player/FamilyMember users.
 function matchesAssociatedPlayer(
@@ -118,7 +121,18 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isTrainin
   // backend enforces this with a 403 (see handleChangeStatus below); this is
   // the client-side mirror that decides whether to render the control at all.
   // Coach/Administrator remain unrestricted on any event type.
-  const canReactivateFromDeconvoke = !isPlayerOrFamily || !!isTraining;
+  const canReactivateFromDeconvokeByEventType = !isPlayerOrFamily || !!isTraining;
+
+  // A convocation deconvoked by the coach as "Decisión técnica" (excuseTypeId 7)
+  // is off-limits to Player/FamilyMember: they can neither change the reason
+  // ("Editar motivo") nor reactivate it, regardless of event type. The backend
+  // enforces this with a 403 (see UpdateConvocationStatus.Handler); this is the
+  // client-side mirror that decides whether to render the controls at all.
+  const isDeconvokedByTechnicalDecision = (c: ConvocationItem) =>
+    c.status === deconvokeStatusId && c.excuseTypeId === TECHNICAL_DECISION_EXCUSE_TYPE_ID;
+
+  const canPlayerOrFamilyModifyDeconvoke = (c: ConvocationItem) =>
+    !isPlayerOrFamily || !isDeconvokedByTechnicalDecision(c);
 
   // Player/FamilyMember/FamilyPlayer must never see the "Asistencia" tab nor
   // its content (attendance marking is a coach-only action). Defense in
@@ -488,16 +502,20 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isTrainin
                   canEdit={canEdit}
                   canEditThisConvocation={canEditThisConvocationFor(c)}
                   hideWaitingListButton={isPlayerOrFamily}
-                  canReactivateFromDeconvoke={canReactivateFromDeconvoke}
+                  canReactivateFromDeconvoke={canReactivateFromDeconvokeByEventType && canPlayerOrFamilyModifyDeconvoke(c)}
                   onChangeStatus={handleChangeStatus}
                   onDelete={(cv) => {
                     if (!canEdit) return alert("No se puede editar: el evento ya ha comenzado.");
                     setDeconvokeDialog({ open: true, conv: cv });
                   }}
-                  onEditReason={(cv) => {
-                    if (!canEdit) return alert("No se puede editar: el evento ya ha comenzado.");
-                    setDeconvokeDialog({ open: true, conv: cv });
-                  }}
+                  onEditReason={
+                    canPlayerOrFamilyModifyDeconvoke(c)
+                      ? (cv) => {
+                          if (!canEdit) return alert("No se puede editar: el evento ya ha comenzado.");
+                          setDeconvokeDialog({ open: true, conv: cv });
+                        }
+                      : undefined
+                  }
                   onMoveToWaiting={(cv) => handleMoveToWaiting(cv.id)}
                 />
               );
@@ -572,7 +590,7 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isTrainin
                   canEditThisConvocation={canEditThisConvocation}
                   viewablePlayerId={null}
                   hideWaitingListButton={isPlayerOrFamily}
-                  canReactivateFromDeconvoke={canReactivateFromDeconvoke}
+                  canReactivateFromDeconvoke={canReactivateFromDeconvokeByEventType && canPlayerOrFamilyModifyDeconvoke(c)}
                   selectable={selectableInPending && !isPlayerOrFamily && canEdit}
                   selected={!!teamPlayerId && selectedPendingIds.has(teamPlayerId)}
                   onToggleSelect={toggleSelectedPending}
@@ -584,13 +602,17 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isTrainin
                       );
                     setDeconvokeDialog({ open: true, conv: cv });
                   }}
-                  onEditReason={(cv) => {
-                    if (!canEdit)
-                      return alert(
-                        "No se puede editar: el evento ya ha comenzado."
-                      );
-                    setDeconvokeDialog({ open: true, conv: cv });
-                  }}
+                  onEditReason={
+                    canPlayerOrFamilyModifyDeconvoke(c)
+                      ? (cv) => {
+                          if (!canEdit)
+                            return alert(
+                              "No se puede editar: el evento ya ha comenzado."
+                            );
+                          setDeconvokeDialog({ open: true, conv: cv });
+                        }
+                      : undefined
+                  }
                   onMoveToWaiting={(cv) => handleMoveToWaiting(cv.id)}
                 />
                 );

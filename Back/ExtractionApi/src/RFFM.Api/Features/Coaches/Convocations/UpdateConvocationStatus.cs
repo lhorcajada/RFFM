@@ -43,6 +43,11 @@ namespace RFFM.Api.Features.Coaches.Convocations
 
         public class Handler : IRequestHandler<UpdateStatusRequest, Unit>
         {
+            // Deconvocations reasoned as "Decisión técnica" are a coach-only call: once a coach
+            // has set this reason, the associated Player/FamilyMember must not be able to change
+            // the reason nor the status (including reactivation), even on a training event.
+            private static readonly int TechnicalDecisionExcuseTypeId = ExcuseTypes.FromId(7)!.Id;
+
             private readonly AppDbContext _db;
             private readonly ICurrentUserService _currentUser;
 
@@ -83,6 +88,18 @@ namespace RFFM.Api.Features.Coaches.Convocations
                         !string.Equals(profile.PlayerId, conv.TeamPlayerId, StringComparison.OrdinalIgnoreCase))
                     {
                         throw new ForbiddenAccessException("No autorizado para responder la convocatoria de otro jugador.");
+                    }
+
+                    // A convocation deconvoked by the coach as "Decisión técnica" is off-limits to
+                    // Player/FamilyMember: they cannot change the reason nor the status (including
+                    // reactivation), regardless of event type.
+                    var isCurrentlyDeconvokedByTechnicalDecision =
+                        conv.ConvocationStatusId == ConvocationStatus.FromName("Deconvoke").Id
+                        && conv.ExcuseTypeId == TechnicalDecisionExcuseTypeId;
+
+                    if (isCurrentlyDeconvokedByTechnicalDecision)
+                    {
+                        throw new ForbiddenAccessException("No se puede modificar una desconvocatoria por decisión técnica.");
                     }
 
                     // Player/FamilyMember may reactivate their own player's Deconvoked convocation
