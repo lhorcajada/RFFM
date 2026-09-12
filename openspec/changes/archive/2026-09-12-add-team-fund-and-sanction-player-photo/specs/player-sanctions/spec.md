@@ -1,35 +1,4 @@
-# player-sanctions Specification
-
-## Purpose
-Manages disciplinary/economic sanctions recorded against a team player: CRUD over sanction
-records (competition or internal-discipline category, optional fine/payment tracking, optional
-sportive punishment enforcement via forced deconvocation or a per-match minutes cap), their
-automatic fulfillment when the enforced punishment is respected, and the sanctioned player's
-photo in the coach app's sanctions list. Recording or editing a sanction's `amountPaid` has a side
-effect on the separate `team-fund` capability's per-team balance.
-## Requirements
-### Requirement: List sanctions for a team player
-The system SHALL expose `GET /api/catalog/teamplayer/{id}/sanctions` returning all sanctions recorded for the given team player, ordered by `startDate` descending, accessible to any authenticated role. An optional `category` query parameter (`Competition` or `InternalDiscipline`) SHALL filter the results to that category only; an unrecognized value SHALL return `400` as a `ProblemDetails`. A non-existent team player id SHALL return `404`.
-
-#### Scenario: Coach lists all sanctions for a player
-- **WHEN** an authenticated Coach calls `GET /api/catalog/teamplayer/{id}/sanctions` for an existing team player with recorded sanctions
-- **THEN** the system returns `200 OK` with a JSON array of sanction records including each record's `category`
-
-#### Scenario: Filter by category
-- **WHEN** an authenticated user calls `GET /api/catalog/teamplayer/{id}/sanctions?category=Competition`
-- **THEN** the system returns `200 OK` with only sanctions whose `category` is `Competition`
-
-#### Scenario: Invalid category filter
-- **WHEN** an authenticated user calls `GET /api/catalog/teamplayer/{id}/sanctions?category=Unknown`
-- **THEN** the system returns `400` with a `ProblemDetails` body
-
-#### Scenario: Team player does not exist
-- **WHEN** any authenticated user calls `GET /api/catalog/teamplayer/{id}/sanctions` for a non-existent `id`
-- **THEN** the system returns `404`
-
-#### Scenario: Read access is open to every authenticated role
-- **WHEN** an authenticated user with the `Player` role calls `GET /api/catalog/teamplayer/{id}/sanctions`
-- **THEN** the system returns `200 OK` (read access is not restricted to Coach/Administrator)
+## MODIFIED Requirements
 
 ### Requirement: Create a sanction for a team player
 The system SHALL expose `POST /api/catalog/teamplayer/{id}/sanctions`, restricted to the `Coach` and `Administrator` roles, to create a new sanction record with a required `category` (`Competition` or `InternalDiscipline`), `startDate`, and `sanctionType`, and optional `description`, `estimatedEnd`, `fine` (a non-negative monetary amount), `amountPaid` (a non-negative monetary amount not exceeding `fine`), `sportivePunishmentType` (`Deconvocation` or `MinutesLimit`), `targetEventId` (required when `sportivePunishmentType` is set), and `minutesLimit` (required and positive when `sportivePunishmentType` is `MinutesLimit`; must be omitted otherwise). A missing/invalid `category`, missing `sanctionType`, non-existent team player, `amountPaid` greater than `fine`, a `sportivePunishmentType` without a `targetEventId`, or a `minutesLimit` supplied without `sportivePunishmentType: "MinutesLimit"` (or missing when it is) SHALL be rejected with `400` `ProblemDetails`/`ValidationProblem`. Manually created sanctions SHALL always have `isAutomatic: false`. The response SHALL include a derived `status` (`"Pending"` when `endDate` is null, `"Fulfilled"` otherwise) and a computed `pendingAmount` (`fine - amountPaid`, or `null` when `fine` is null). When `amountPaid` is a non-null, positive value, this SHALL also credit the team's fund balance (see the `team-fund` capability's "Recording a sanction payment credits the team fund").
@@ -166,85 +135,7 @@ The system SHALL expose `DELETE /api/catalog/teamplayer/{id}/sanctions/{sanction
 - **WHEN** an authenticated Coach DELETEs a `Pending` sanction that has a recorded `amountPaid` (a linked `TeamFundMovement`)
 - **THEN** the system returns `204 No Content`, the linked movement's `Amount` becomes `0`, and the team's fund balance decreases by the amount that had been recorded
 
-### Requirement: Deconvocation-type sportive sanction forces the player's convocation
-When a sanction is created (or updated to newly target an event, per "Update a sanction") with `sportivePunishmentType: "Deconvocation"` and a `targetEventId` referencing an existing event, the system SHALL, in the same operation: (a) transition the `TeamPlayer`'s existing `Convocation` for `targetEventId` to `Deconvoke` with the "Sanción deportiva" excuse, overriding any current status/excuse, or, if no `Convocation` exists yet for that `TeamPlayer`/`targetEventId` pair, create one directly in `Deconvoke` status with the "Sanción deportiva" excuse; and (b) set the sanction's `endDate` to the current time, marking it `Fulfilled`. This forcing does not go through, and is not blocked by, the active-automatic-sanction check used when convocating a player through `POST /api/events/{eventId}/convocations` or its bulk variant.
-
-#### Scenario: Creating a deconvocation sanction forces an existing convocation to Deconvoke
-- **WHEN** a Coach creates a `"Deconvocation"`-type sanction with a `targetEventId` for a `TeamPlayer` who already has a `Convocation` (in any status) for that event
-- **THEN** the system returns `201 Created` with the sanction's `status: "Fulfilled"`, and the player's convocation for `targetEventId` is now `Deconvoke` with excuse type "Sanción deportiva"
-
-#### Scenario: Creating a deconvocation sanction creates a convocation when none exists yet
-- **WHEN** a Coach creates a `"Deconvocation"`-type sanction with a `targetEventId` for a `TeamPlayer` who has no `Convocation` record yet for that event
-- **THEN** the system returns `201 Created` with the sanction's `status: "Fulfilled"`, and a new convocation is created for that player/event already in `Deconvoke` status with excuse type "Sanción deportiva"
-
-#### Scenario: A later bulk convocation call skips the forced-deconvoked player
-- **WHEN** a Coach triggers `POST /api/events/{eventId}/convocations/bulk` for an event where a player already has a convocation forced to `Deconvoke` by a sanction
-- **THEN** that player's convocation is left unchanged (already-convocated players are skipped, same as any other pre-existing convocation)
-
-### Requirement: Manual Deconvoke transition still auto-fulfills a matching pending sanction (defensive path)
-When a `Convocation`'s status is updated to `Deconvoke` via `PUT /api/events/{eventId}/convocations/{convocationId}/status`, the system SHALL check for a `Pending` sanction (`endDate` null) belonging to the same `TeamPlayer` with `sportivePunishmentType: "Deconvocation"` and `targetEventId` equal to the convocation's event. If found, the system SHALL set that sanction's `endDate` to the current time (marking it `Fulfilled`) and SHALL set the convocation's excuse type to the "Sanción deportiva" excuse, overriding any `excuseTypeId` supplied in the request. In normal operation this sanction would already have forced the transition at creation time (see "Deconvocation-type sportive sanction forces the player's convocation"); this check remains as a defensive/legacy-data path — e.g. for sanctions created before this capability existed, or where the forced convocation was later reverted by hand outside the delete/edit flow.
-
-#### Scenario: Deconvoking the player for the sanctioned event fulfills the sanction
-- **WHEN** a Coach sets a convocation's status to `Deconvoke` for a `TeamPlayer` who has a `Pending` `Deconvocation`-type sanction targeting that same event
-- **THEN** the system returns `200 OK`, the sanction's `endDate` becomes non-null (`status: "Fulfilled"`), and the convocation's excuse type is "Sanción deportiva"
-
-#### Scenario: Deconvoking for an unrelated event does not fulfill the sanction
-- **WHEN** a Coach sets a convocation's status to `Deconvoke` for a `TeamPlayer` who has a `Pending` `Deconvocation`-type sanction targeting a different event
-- **THEN** the sanction's `endDate` remains null (`status: "Pending"`)
-
-### Requirement: Manually reverting a forced convocation reopens the fulfilled sanction
-
-When a `Convocation`'s status is updated away from `Deconvoke` to any other status via `PUT /api/events/{eventId}/convocations/{convocationId}/status`, and the convocation's status was `Deconvoke` immediately before this update, the system SHALL check for a `Fulfilled` sanction (`endDate` non-null) belonging to the same `TeamPlayer` with `sportivePunishmentType: "Deconvocation"` and `targetEventId` equal to the convocation's event. If found, the system SHALL set that sanction's `endDate` back to `null`, reopening it to `status: "Pending"`. This applies regardless of whether the convocation's event date has already passed.
-
-#### Scenario: Reverting a sanction-forced deconvocation reopens the sanction
-
-- **WHEN** a Coach updates a convocation's status from `Deconvoke` to `Pending` (or `Accepted`, or `Justified`) for a `TeamPlayer` who has a `Fulfilled` `Deconvocation`-type sanction targeting that same event
-- **THEN** the system returns `200 OK` and the sanction's `endDate` becomes `null` (`status: "Pending"`)
-
-#### Scenario: Reverting an unrelated Deconvoke convocation does not reopen an unrelated sanction
-
-- **WHEN** a Coach updates a convocation's status from `Deconvoke` to `Pending` for a `TeamPlayer` who has no `Deconvocation`-type sanction targeting that event
-- **THEN** the update succeeds and no sanction is modified
-
-#### Scenario: Reopening a sanction is allowed even for a past event
-
-- **WHEN** a Coach updates a convocation's status away from `Deconvoke` for an event whose date has already passed, and a `Fulfilled` `Deconvocation`-type sanction targets that event for the same player
-- **THEN** the sanction is reopened to `status: "Pending"` the same as for a future event; the system does not reject the reopening on account of the event being in the past
-
-#### Scenario: Updating a convocation that is already not Deconvoke does not affect any sanction
-
-- **WHEN** a Coach updates a convocation's status from `Pending` to `Accepted` (i.e. the previous status was not `Deconvoke`)
-- **THEN** no `Deconvocation`-type sanction is checked or modified, regardless of whether one exists for that player/event
-
-### Requirement: Minutes-limit sportive sanction auto-fulfills when respected
-When `POST /api/events/{eventId}/match-participation` is saved with `matchPhase: "finished"`, the system SHALL check, for every player in the request, for a `Pending` sanction (`endDate` null) belonging to that `TeamPlayer` with `sportivePunishmentType: "MinutesLimit"` and `targetEventId` equal to the event. If found and the player's saved `minutesPlayed` for that event is less than or equal to the sanction's `minutesLimit`, the system SHALL set that sanction's `endDate` to the current time (marking it `Fulfilled`).
-
-#### Scenario: Playing within the minute cap fulfills the sanction
-- **WHEN** a finished match's participation is saved with a player's `minutesPlayed` less than or equal to their `Pending` `MinutesLimit` sanction's `minutesLimit` for that same event
-- **THEN** the sanction's `endDate` becomes non-null (`status: "Fulfilled"`)
-
-#### Scenario: Exceeding the minute cap does not fulfill the sanction
-- **WHEN** a finished match's participation is saved with a player's `minutesPlayed` greater than their `Pending` `MinutesLimit` sanction's `minutesLimit` for that same event
-- **THEN** the sanction's `endDate` remains null (`status: "Pending"`)
-
-#### Scenario: Minutes-limit fulfillment is scoped to the target event only
-- **WHEN** a finished match's participation is saved for an event that is not the sanction's `targetEventId`
-- **THEN** the sanction is unaffected regardless of `minutesPlayed`
-
-### Requirement: List active minute-limit sanctions for an event
-The system SHALL expose `GET /api/events/{eventId}/sanctions/minute-limits`, accessible to any authenticated role, returning every `Pending` `MinutesLimit`-type sanction whose `targetEventId` equals `eventId`, as a JSON array of `{ teamPlayerId, sanctionId, minutesLimit }`.
-
-#### Scenario: Coach fetches minute-limit sanctions before a live match
-- **WHEN** an authenticated Coach calls `GET /api/events/{eventId}/sanctions/minute-limits` for an event with two `Pending` `MinutesLimit` sanctions targeting it
-- **THEN** the system returns `200 OK` with both entries, each including `teamPlayerId` and `minutesLimit`
-
-#### Scenario: Fulfilled minute-limit sanctions are excluded
-- **WHEN** a `MinutesLimit` sanction targeting the event already has a non-null `endDate`
-- **THEN** it is not included in the response
-
-#### Scenario: Event with no minute-limit sanctions returns an empty array
-- **WHEN** an authenticated user calls `GET /api/events/{eventId}/sanctions/minute-limits` for an event with no such sanctions
-- **THEN** the system returns `200 OK` with an empty array
+## ADDED Requirements
 
 ### Requirement: Sanctioned player's photo shown in the sanctions list
 The sanctions list (`Sanctions.tsx`) SHALL show each sanctioned player's photo alongside their name, resolved the same way every other roster-like screen resolves a player photo (`PlayerResponse.urlPhoto` → `playerService.fetchPlayerPhoto()` → object-URL `<img>`), falling back to the shared default avatar when no photo is available or resolution fails.
@@ -256,4 +147,3 @@ The sanctions list (`Sanctions.tsx`) SHALL show each sanctioned player's photo a
 #### Scenario: Player without a photo shows the default avatar
 - **WHEN** a sanctioned player has no `urlPhoto`, or photo resolution fails
 - **THEN** the sanctions list renders the shared default avatar in place of the photo
-
