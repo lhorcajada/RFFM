@@ -140,7 +140,24 @@ Mobile/
 
 ---
 
-## 7 · Patrones prohibidos
+## 7 · Responsive obligatorio — prohibido usar tablas
+
+Aplica a **ambos** frontends (`Front/` y `Mobile/`):
+
+- Todo componente/pantalla nuevo debe ser **responsive por defecto**: usable y legible desde
+  móvil (~360-400px en `Front/`, cualquier tamaño de dispositivo en `Mobile/`) hasta escritorio.
+- **Prohibido usar `<table>`/`Table` de MUI** (o cualquier grid de columnas fijas) para mostrar
+  listados o datos tabulares en `Front/`. En `Mobile/` no existe el problema de `<table>` HTML,
+  pero aplica el mismo principio: nunca simular una tabla con columnas fijas que no quepan en
+  pantalla.
+- Usar en su lugar tarjetas (`Card`/`Paper` en Front; componentes de tarjeta propios en Mobile)
+  o layouts de tipo lista que se adapten de forma natural al ancho disponible.
+- Ver `[[feedback_ui_locale_and_mobile]]` (mobile-first con tarjetas, no tablas/grids),
+  `react.md` §4 y §10, y `react-native.md` §6.
+
+---
+
+## 8 · Patrones prohibidos
 
 | ❌ No hacer | ✅ Hacer en su lugar |
 |---|---|
@@ -151,3 +168,4 @@ Mobile/
 | Usar `any` en TypeScript | Tipar explícitamente; `unknown` + narrowing si el tipo es incierto |
 | Mezclar el tema Federación y Coach en un mismo `ThemeProvider` | Un `ThemeProvider` anidado por app, nunca aplanar temas |
 | Añadir lógica de negocio a un componente de pantalla/página | Extraerla a `services/`, hooks o al backend si corresponde |
+| Usar tablas (`<table>`/`Table` de MUI) o grids de columnas fijas para listados | Tarjetas o listas responsive que se adapten a móvil |

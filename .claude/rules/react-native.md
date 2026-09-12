@@ -95,6 +95,11 @@ Reglas obligatorias para toda generación y modificación de código en `Mobile/
   primero si ya existe un token equivalente.
 - Textos de usuario en español, igual que el resto de la app (`'Error al cargar las
   estadísticas'`, `'No hay información disponible'`…).
+- **Responsive obligatorio y prohibido simular tablas**: toda pantalla/componente nuevo debe
+  adaptarse a distintos tamaños de dispositivo (usar `Flexbox`, `%`, `Dimensions`/hooks
+  responsive en vez de anchos fijos en píxeles). No construir layouts tipo tabla con columnas
+  fijas para mostrar listados de datos — usar tarjetas (`FlatList` de tarjetas) o listas
+  verticales, igual que en `Front/` (ver `frontend-architecture.md` §7).
 
 ---
 
@@ -108,3 +113,4 @@ Reglas obligatorias para toda generación y modificación de código en `Mobile/
 | Crear una segunda instancia de Axios | Extender `src/api/client.ts` |
 | Hardcodear un color hex nuevo | Usar `coachColors` (`src/theme/colors.ts`) |
 | Dejar un `catch` vacío o sin mensaje de error en español | Setear `error` con fallback legible en español |
+| Simular una tabla con columnas fijas para listados | Tarjetas o listas verticales responsive |

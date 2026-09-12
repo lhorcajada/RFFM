@@ -55,7 +55,21 @@ Complementan `.github/instructions/copilot-instructions.md` (fuente de la verdad
 
 ---
 
-## 4. Estilos (estricto)
+## 4. Responsive obligatorio — prohibido usar tablas
+
+- Todo componente y página nuevos deben ser **responsive por defecto**: funcionar y verse
+  bien desde móvil (~360-400px) hasta escritorio, sin scroll horizontal no intencionado.
+- **Prohibido usar `<table>`/`<Table>` de MUI** (o cualquier grid/tabla que dependa de columnas
+  fijas) para mostrar listados o datos tabulares. En su lugar, usar tarjetas (`Card`/`Paper`)
+  apiladas o un layout de tipo lista, que se adaptan de forma natural a pantallas estrechas.
+- Antes de dar por terminado un componente, comprobar visualmente cómo se ve en un viewport
+  estrecho (móvil) además de en escritorio.
+- Ver también `frontend-architecture.md` §7 y `[[feedback_ui_locale_and_mobile]]` (mobile-first
+  con tarjetas, no tablas/grids).
+
+---
+
+## 5. Estilos (estricto)
 
 - **CSS Modules** para todo componente/página — nunca estilos globales fuera de
   `src/index.css`.
@@ -73,23 +87,23 @@ Complementan `.github/instructions/copilot-instructions.md` (fuente de la verdad
 
 ---
 
-## 5. Estado y datos
+## 6. Estado y datos
 
-### 5.1 Servicios
+### 6.1 Servicios
 - Toda llamada a la API vive en un `*Service.ts` bajo `apps/<app>/services/` o
   `shared/services/` — nunca `axios`/`api.get` directamente dentro de un componente de UI,
   salvo que se esté extendiendo un archivo que ya sigue ese patrón.
 - Un servicio agrupa las operaciones de un mismo recurso de dominio (`playerService.ts`,
   `clubService.ts`…) y exporta los tipos de request/response que consume.
 
-### 5.2 Contextos
+### 6.2 Contextos
 - `UserContext` (`src/shared/context/`) y `CoachAuthContext`
   (`src/apps/coach/context/`) son las fuentes de verdad de usuario/auth — no dupliques su
   estado en otro sitio.
 - Contextos nuevos solo cuando el estado realmente cruza más de 2-3 componentes no
   relacionados por props; si no, `useState`/`props` local es suficiente.
 
-### 5.3 Bus de eventos cross-app
+### 6.3 Bus de eventos cross-app
 - La comunicación entre Federación y Coach usa el bus de eventos del navegador, no props ni
   un store global:
   ```ts
@@ -99,14 +113,14 @@ Complementan `.github/instructions/copilot-instructions.md` (fuente de la verdad
 - No introducir Redux/Zustand/Context global nuevo para reemplazar este bus sin acuerdo
   explícito del usuario.
 
-### 5.4 Hooks personalizados
+### 6.4 Hooks personalizados
 - Viven en `hooks/` junto a la app o en `src/shared/hooks/` si son realmente transversales.
 - Un hook = una responsabilidad (`useTeamAndClub`, `usePermissions`…); no crear "hooks
   contenedor" que mezclen varias fuentes de datos sin relación.
 
 ---
 
-## 6. API y Auth
+## 7. API y Auth
 
 - Única instancia Axios: `src/core/api/client.ts`. Añadir headers/interceptores ahí, nunca
   crear `axios.create()` adicional.
@@ -119,7 +133,7 @@ Complementan `.github/instructions/copilot-instructions.md` (fuente de la verdad
 
 ---
 
-## 7. Convenciones generales de código
+## 8. Convenciones generales de código
 
 - Seguir siempre el patrón del archivo hermano más cercano antes de inventar uno nuevo.
 - Al mover/renombrar archivos, actualizar todos los imports afectados.
@@ -133,7 +147,7 @@ Complementan `.github/instructions/copilot-instructions.md` (fuente de la verdad
 
 ---
 
-## 8. Build y verificación
+## 9. Build y verificación
 
 ```bash
 cd Front
@@ -148,7 +162,7 @@ npx playwright test  # E2E
 
 ---
 
-## 9. Patrones prohibidos
+## 10. Patrones prohibidos
 
 | ❌ No hacer | ✅ Hacer en su lugar |
 |---|---|
@@ -160,3 +174,5 @@ npx playwright test  # E2E
 | Aplanar los temas de Federación y Coach | `ThemeProvider` anidado por app |
 | Store global nuevo para mensajería cross-app | Bus de eventos `window.dispatchEvent` existente |
 | Hardcodear colores/espaciados nuevos | Tema MUI o CSS custom properties de `:root` |
+| Usar `<table>`/`Table` de MUI para listados o datos | Tarjetas (`Card`/`Paper`) o lista responsive |
+| Diseñar un componente solo pensando en escritorio | Diseñar y probar mobile-first (~360-400px) |
