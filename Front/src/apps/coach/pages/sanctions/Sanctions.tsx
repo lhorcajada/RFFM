@@ -2,34 +2,21 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Autocomplete,
   Button,
-  Chip,
   CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   FormControl,
-  IconButton,
   InputLabel,
   MenuItem,
   Select,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   TextField,
-  Tooltip,
-  Typography,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import AddIcon from "@mui/icons-material/Add";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import DeleteIcon from "@mui/icons-material/Delete";
-import EditIcon from "@mui/icons-material/Edit";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import EmptyState from "../../../../shared/components/ui/EmptyState/EmptyState";
@@ -50,6 +37,8 @@ import type { PlayerResponse } from "../../services/teamplayerService";
 import { getSportEvents } from "../../services/sportEventService";
 import type { SportEventResponse } from "../../services/sportEventService";
 import { coachAuthService } from "../../services/authService";
+import { getMyProfile } from "../../services/coachApi";
+import SanctionCard from "./components/SanctionCard";
 import styles from "./Sanctions.module.css";
 
 type SanctionRow = { player: PlayerResponse; sanction: SanctionRecord };
@@ -98,6 +87,30 @@ export default function Sanctions() {
   const [events, setEvents] = useState<SportEventResponse[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+
+  const [myPlayerId, setMyPlayerId] = useState<string | null>(null);
+  const [filterMode, setFilterMode] = useState<"mine" | "all">("mine");
+
+  useEffect(() => {
+    if (!isPlayerOrFamily) return;
+    let mounted = true;
+    getMyProfile().then((profile) => {
+      if (mounted) setMyPlayerId(profile?.playerId ?? null);
+    });
+    return () => {
+      mounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // A "mine vs all" filter only makes sense once we know which player is "mine".
+  const canFilterMine = isPlayerOrFamily && !!myPlayerId;
+  const visibleRows = useMemo(() => {
+    if (canFilterMine && filterMode === "mine") {
+      return rows.filter((r) => r.player.id === myPlayerId);
+    }
+    return rows;
+  }, [rows, canFilterMine, filterMode, myPlayerId]);
 
   const eventsById = useMemo(() => new Map(events.map((e) => [e.id, e])), [events]);
 
@@ -301,7 +314,32 @@ export default function Sanctions() {
         title="Sanciones"
         subtitle={teamTitleNode ?? "Registro de sanciones a jugadores"}
         actionBar={
-          <Stack direction="row" spacing={1} alignItems="center">
+          <Stack
+            direction="row"
+            spacing={1}
+            useFlexGap
+            alignItems="center"
+            flexWrap="wrap"
+            rowGap={1}
+          >
+            {canFilterMine && (
+              <Stack direction="row" spacing={0.5} useFlexGap flexWrap="wrap">
+                <Button
+                  onClick={() => setFilterMode("mine")}
+                  variant={filterMode === "mine" ? "contained" : "outlined"}
+                  size="small"
+                >
+                  Mis sanciones
+                </Button>
+                <Button
+                  onClick={() => setFilterMode("all")}
+                  variant={filterMode === "all" ? "contained" : "outlined"}
+                  size="small"
+                >
+                  Todas las sanciones
+                </Button>
+              </Stack>
+            )}
             {!isPlayerOrFamily && (
               <Button startIcon={<AddIcon />} onClick={openAdd} variant="contained" size="small" color="warning" disabled={players.length === 0}>
                 Añadir sanción
@@ -317,118 +355,43 @@ export default function Sanctions() {
           <Stack alignItems="center" sx={{ py: 6 }}>
             <CircularProgress size={32} />
           </Stack>
-        ) : rows.length === 0 ? (
-          <EmptyState title="Sin sanciones" description="No hay sanciones registradas actualmente." />
+        ) : visibleRows.length === 0 ? (
+          <EmptyState
+            title="Sin sanciones"
+            description={
+              canFilterMine && filterMode === "mine"
+                ? "No tienes sanciones registradas actualmente."
+                : "No hay sanciones registradas actualmente."
+            }
+          />
         ) : (
-          <TableContainer className={styles.tableCard}>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Jugador</TableCell>
-                  <TableCell>Sanción</TableCell>
-                  <TableCell>Inicio</TableCell>
-                  <TableCell>Fin</TableCell>
-                  <TableCell>Multa</TableCell>
-                  <TableCell>Pagado</TableCell>
-                  <TableCell>Pendiente</TableCell>
-                  <TableCell>Estado</TableCell>
-                  <TableCell align="right">Acciones</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {rows.map(({ player, sanction }) => {
-                  const status = getStatus(sanction);
-                  const isPending = status === "Pending";
-                  const deletable = canDeleteSanction(sanction);
-                  const pendingAmount =
-                    sanction.pendingAmount != null
-                      ? sanction.pendingAmount
-                      : sanction.fine != null
-                        ? sanction.fine - (sanction.amountPaid ?? 0)
-                        : null;
-                  return (
-                    <TableRow key={sanction.id} hover>
-                      <TableCell>
-                        <div className={styles.playerCell}>
-                          <span className={styles.playerName}>{((player.name ?? "") + " " + (player.lastName ?? "")).trim() || player.alias}</span>
-                          {player.alias && <span className={styles.playerMeta}>{player.alias}{player.dorsal != null ? ` · #${player.dorsal}` : ""}</span>}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Stack direction="row" spacing={0.75} alignItems="center">
-                          <Typography variant="body2">{sanction.sanctionType}</Typography>
-                          {sanction.isAutomatic && (
-                            <Chip label="Automática" size="small" color="warning" variant="outlined" />
-                          )}
-                          {sanction.sportivePunishmentType === "Deconvocation" && (
-                            <Chip label="Desconvocatoria" size="small" color="error" variant="outlined" />
-                          )}
-                          {sanction.sportivePunishmentType === "MinutesLimit" && (
-                            <Chip
-                              label={`Máx. ${sanction.minutesLimit ?? "?"}'`}
-                              size="small"
-                              color="info"
-                              variant="outlined"
-                            />
-                          )}
-                        </Stack>
-                        {sanction.estimatedEnd && <Typography variant="caption" color="text.secondary">Fin estimado: {sanction.estimatedEnd}</Typography>}
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2">{new Date(sanction.startDate).toLocaleDateString("es-ES")}</Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" color="text.secondary">{sanction.endDate ? new Date(sanction.endDate).toLocaleDateString("es-ES") : "—"}</Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" color="text.secondary">{sanction.fine != null ? `${sanction.fine} €` : "—"}</Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" color="text.secondary">{sanction.amountPaid != null ? `${sanction.amountPaid} €` : "—"}</Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" color="text.secondary">{pendingAmount != null ? `${pendingAmount} €` : "—"}</Typography>
-                      </TableCell>
-                      <TableCell>{isPending ? <Chip label="Pendiente" color="error" size="small" /> : <Chip label="Cumplida" color="success" size="small" variant="outlined" />}</TableCell>
-                      <TableCell align="right">
-                        <div className={styles.actions}>
-                          {!isPlayerOrFamily && (
-                            <Tooltip title="Editar">
-                              <IconButton size="small" onClick={() => openEdit({ player, sanction })}>
-                                <EditIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                          )}
-                          {!isPlayerOrFamily && isPending && (
-                            <Tooltip title="Levantar sanción">
-                              <IconButton size="small" color="success" onClick={() => handleLift({ player, sanction })}>
-                                <CheckCircleIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                          )}
-                          {!isPlayerOrFamily && (
-                            <Tooltip title={deletable ? "Eliminar" : "No se puede eliminar una sanción ya cumplida"}>
-                              <span>
-                                <IconButton
-                                  size="small"
-                                  color="error"
-                                  disabled={!deletable}
-                                  onClick={() => handleDelete({ player, sanction })}
-                                  aria-label="Eliminar"
-                                >
-                                  <DeleteIcon fontSize="small" />
-                                </IconButton>
-                              </span>
-                            </Tooltip>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </TableContainer>
+          <Stack spacing={1.5} className={styles.cardList}>
+            {visibleRows.map(({ player, sanction }) => {
+              const status = getStatus(sanction);
+              const deletable = canDeleteSanction(sanction);
+              const pendingAmount =
+                sanction.pendingAmount != null
+                  ? sanction.pendingAmount
+                  : sanction.fine != null
+                    ? sanction.fine - (sanction.amountPaid ?? 0)
+                    : null;
+              return (
+                <SanctionCard
+                  key={sanction.id}
+                  player={player}
+                  sanction={sanction}
+                  status={status}
+                  pendingAmount={pendingAmount}
+                  showPlayerName={!canFilterMine || filterMode === "all"}
+                  canManage={!isPlayerOrFamily}
+                  canDelete={deletable}
+                  onEdit={() => openEdit({ player, sanction })}
+                  onLift={() => handleLift({ player, sanction })}
+                  onDelete={() => handleDelete({ player, sanction })}
+                />
+              );
+            })}
+          </Stack>
         )}
       </ContentLayout>
 

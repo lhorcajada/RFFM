@@ -1,0 +1,32 @@
+.card {
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: var(--rffm-card-bg, #1c1c30);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.playerName {
+  font-weight: 600;
+  color: var(--rffm-text, #f0f0f0);
+}
+
+.playerMeta {
+  font-weight: 400;
+  color: var(--rffm-muted, #a59f9f);
+  font-size: 0.85rem;
+}
+
+.typeRow {
+  margin-top: 2px;
+}
+
+.metaRow {
+  font-size: 0.85rem;
+  color: var(--rffm-muted, #a59f9f);
+  row-gap: 4px;
+}
+
+.fieldLabel {
+  font-weight: 600;
+  color: var(--rffm-text, #f0f0f0);
+}

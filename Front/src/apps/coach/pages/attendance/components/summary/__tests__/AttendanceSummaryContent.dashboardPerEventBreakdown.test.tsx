@@ -103,6 +103,24 @@ vi.mock("../../../../../services/teamplayerService", () => ({
   },
 }));
 
+const getActiveSeasonMock = vi.fn();
+vi.mock("../../../../../services/seasonService", () => ({
+  default: {
+    getActiveSeason: (...args: unknown[]) => getActiveSeasonMock(...args),
+  },
+}));
+
+const getMatchMinutesMock = vi.fn();
+const getSeasonPlayerMinutesMock = vi.fn();
+vi.mock("../../../../../services/liveMatchService", () => ({
+  default: {
+    getMatchMinutes: (...args: unknown[]) => getMatchMinutesMock(...args),
+    getSeasonPlayerMinutes: (...args: unknown[]) => getSeasonPlayerMinutesMock(...args),
+  },
+  getMatchMinutes: (...args: unknown[]) => getMatchMinutesMock(...args),
+  getSeasonPlayerMinutes: (...args: unknown[]) => getSeasonPlayerMinutesMock(...args),
+}));
+
 vi.mock("../../../../../services/playerService", () => ({
   default: {
     fetchPlayerPhoto: vi.fn().mockResolvedValue(null),
@@ -138,6 +156,13 @@ describe("AttendanceSummaryContent — desglose evento a evento del Dashboard (E
     ]);
     getRolesMock.mockReturnValue(["Coach"]);
     getMyProfileMock.mockResolvedValue(null);
+    getActiveSeasonMock.mockResolvedValue({
+      id: "active-season",
+      startDate: "2026-08-01T00:00:00Z",
+      endDate: "2027-06-30T23:59:59Z",
+    });
+    getMatchMinutesMock.mockResolvedValue([]);
+    getSeasonPlayerMinutesMock.mockResolvedValue({});
   });
 
   it(

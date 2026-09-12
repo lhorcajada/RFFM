@@ -5,12 +5,15 @@ import Typography from "@mui/material/Typography";
 import styles from "./AppHeader.module.css";
 import logo from "../../../../assets/logo.png";
 import Avatar from "@mui/material/Avatar";
+import Badge from "@mui/material/Badge";
+import GavelIcon from "@mui/icons-material/Gavel";
 import IconButton from "@mui/material/IconButton";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import Tooltip from "@mui/material/Tooltip";
 import { useUser } from "../../../context/UserContext";
 import useAuthToken from "../../../hooks/useAuthToken";
+import useMyPendingSanctionsCount from "../../../hooks/useMyPendingSanctionsCount";
 import { useNavigate } from "react-router-dom";
 import useRootClassObserver from "../../../hooks/useRootClassObserver";
 
@@ -82,6 +85,21 @@ export default function AppHeader({ title }: AppHeaderProps) {
   const initials = user ? user.username?.charAt(0).toUpperCase() : "";
 
   const { isAuthValid } = useAuthToken();
+  const pendingSanctions = useMyPendingSanctionsCount();
+  const pendingSanctionsLabel =
+    pendingSanctions.count > 0
+      ? `${pendingSanctions.count} ${
+          pendingSanctions.count === 1 ? "sanción pendiente" : "sanciones pendientes"
+        }`
+      : "Sanciones";
+
+  const handleOpenSanctions = () => {
+    navigate(
+      pendingSanctions.teamId
+        ? `/coach/sanctions?teamId=${pendingSanctions.teamId}`
+        : "/coach/sanctions"
+    );
+  };
 
   const displayTitle = title ?? "FUTBOL BASE";
 
@@ -141,6 +159,25 @@ export default function AppHeader({ title }: AppHeaderProps) {
         </div>
 
         <div className={styles.userBox}>
+          {pendingSanctions.visible && (
+            <Tooltip title={pendingSanctionsLabel}>
+              <IconButton
+                onClick={handleOpenSanctions}
+                size="small"
+                aria-label={pendingSanctionsLabel}
+              >
+                <Badge
+                  badgeContent={pendingSanctions.count}
+                  color="error"
+                  overlap="circular"
+                  max={9}
+                  invisible={pendingSanctions.count === 0}
+                >
+                  <GavelIcon className={styles.sanctionsIcon} />
+                </Badge>
+              </IconButton>
+            </Tooltip>
+          )}
           <IconButton
             onClick={handleOpen}
             size="small"

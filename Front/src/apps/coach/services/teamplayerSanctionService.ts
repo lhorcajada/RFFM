@@ -39,6 +39,20 @@ export type SanctionUpdatePayload = SanctionCreatePayload & {
   endDate?: string | null;
 };
 
+/** A sanction counts as pending when the sportive punishment hasn't been served yet
+ * (status/endDate) OR there is still an unpaid fine, whichever comes first. */
+export function isSanctionPending(sanction: SanctionRecord): boolean {
+  const notServed = sanction.status ? sanction.status !== "Fulfilled" : !sanction.endDate;
+  const pendingAmount =
+    sanction.pendingAmount ??
+    (sanction.fine != null ? sanction.fine - (sanction.amountPaid ?? 0) : null);
+  return notServed || (pendingAmount != null && pendingAmount > 0);
+}
+
+export function getPendingSanctionsCount(sanctions: SanctionRecord[]): number {
+  return sanctions.filter(isSanctionPending).length;
+}
+
 export async function getPlayerSanctions(teamPlayerId: string): Promise<SanctionRecord[]> {
   try {
     const resp = await client.get<SanctionRecord[]>(
@@ -105,4 +119,12 @@ export async function getTeamSanctions(teamId: string): Promise<TeamPlayerSancti
   }
 }
 
-export default { getPlayerSanctions, createPlayerSanction, updatePlayerSanction, deletePlayerSanction, getTeamSanctions };
+export default {
+  getPlayerSanctions,
+  createPlayerSanction,
+  updatePlayerSanction,
+  deletePlayerSanction,
+  getTeamSanctions,
+  isSanctionPending,
+  getPendingSanctionsCount,
+};

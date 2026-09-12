@@ -96,6 +96,10 @@
   outline-offset: 0px;
 }
 
+.sanctionsIcon {
+  font-size: 1.4rem;
+}
+
 /* Responsive tweaks for header spacing */
 @media (max-width: 420px) {
   .brandLogo {

@@ -96,6 +96,24 @@ vi.mock("../../../../../services/teamplayerService", () => ({
   },
 }));
 
+const getActiveSeasonMock = vi.fn();
+vi.mock("../../../../../services/seasonService", () => ({
+  default: {
+    getActiveSeason: (...args: unknown[]) => getActiveSeasonMock(...args),
+  },
+}));
+
+const getMatchMinutesMock = vi.fn();
+const getSeasonPlayerMinutesMock = vi.fn();
+vi.mock("../../../../../services/liveMatchService", () => ({
+  default: {
+    getMatchMinutes: (...args: unknown[]) => getMatchMinutesMock(...args),
+    getSeasonPlayerMinutes: (...args: unknown[]) => getSeasonPlayerMinutesMock(...args),
+  },
+  getMatchMinutes: (...args: unknown[]) => getMatchMinutesMock(...args),
+  getSeasonPlayerMinutes: (...args: unknown[]) => getSeasonPlayerMinutesMock(...args),
+}));
+
 const fetchPlayerPhotoMock = vi.fn();
 vi.mock("../../../../../services/playerService", () => ({
   default: {
@@ -131,6 +149,13 @@ describe("AttendanceSummaryContent — foto y orden del jugador asociado (entren
   beforeEach(() => {
     vi.clearAllMocks();
     fetchPlayerPhotoMock.mockResolvedValue("blob:mock-photo-1");
+    getActiveSeasonMock.mockResolvedValue({
+      id: "active-season",
+      startDate: "2026-08-01T00:00:00Z",
+      endDate: "2027-06-30T23:59:59Z",
+    });
+    getMatchMinutesMock.mockResolvedValue([]);
+    getSeasonPlayerMinutesMock.mockResolvedValue({});
   });
 
   it("asigna la foto de cada jugador a partir de teamplayerService", async () => {
