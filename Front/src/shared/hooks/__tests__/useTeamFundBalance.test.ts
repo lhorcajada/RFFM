@@ -79,4 +79,19 @@ describe("useTeamFundBalance", () => {
 
     await waitFor(() => expect(result.current.visible).toBe(false));
   });
+
+  it("refetches the balance when a rffm.team_fund_updated event is dispatched", async () => {
+    getMyProfileMock.mockResolvedValue({ roleName: "Player", teamId: "team-1" });
+    getTeamFundMock.mockResolvedValue({ teamId: "team-1", balance: 42, movements: [] });
+
+    const { result } = renderHook(() => useTeamFundBalance());
+
+    await waitFor(() => expect(result.current.balance).toBe(42));
+
+    getTeamFundMock.mockResolvedValue({ teamId: "team-1", balance: 99, movements: [] });
+    window.dispatchEvent(new CustomEvent("rffm.team_fund_updated"));
+
+    await waitFor(() => expect(result.current.balance).toBe(99));
+    expect(getTeamFundMock).toHaveBeenCalledTimes(2);
+  });
 });
