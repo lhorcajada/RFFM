@@ -4,6 +4,7 @@ using RFFM.Api.Domain.Aggregates.Training;
 using RFFM.Api.Domain.Entities.Competitions;
 using RFFM.Api.Domain.Entities.Seasons;
 using RFFM.Api.Domain.Entities.TeamPlayers;
+using RFFM.Api.Domain.Entities.Teams;
 using RFFM.Api.Domain.Models;
 
 namespace RFFM.Api.Domain.Aggregates.UserClubs
@@ -29,6 +30,7 @@ namespace RFFM.Api.Domain.Aggregates.UserClubs
         public List<TrainingSession> Trainings { get; set; } = null!;
         public List<TeamPlayer> Players { get; set; } = null!;
         public TeamRulesSet? RulesSet { get; private set; }
+        public ICollection<TeamFundMovement> TeamFundMovements { get; private set; } = new List<TeamFundMovement>();
         public Team() { }
         public Team(TeamModelBase model)
         {

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Domain.Aggregates.Assistances;
 using RFFM.Api.Domain.Entities.TeamPlayers;
+using RFFM.Api.Domain.Entities.Teams;
 using RFFM.Api.Domain.Services;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
@@ -84,8 +85,11 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
                 async (string id, SanctionCreateRequest req, AppDbContext db,
                     ISanctionConvocationEnforcementService enforcementService, CancellationToken ct) =>
                 {
-                    var exists = await db.TeamPlayers.AnyAsync(tp => tp.Id == id, ct);
-                    if (!exists) return Results.NotFound();
+                    var teamId = await db.TeamPlayers
+                        .Where(tp => tp.Id == id)
+                        .Select(tp => tp.TeamId)
+                        .FirstOrDefaultAsync(ct);
+                    if (teamId is null) return Results.NotFound();
 
                     if (!SanctionCategory.TryParseName(req.Category, out var category))
                         return Results.ValidationProblem(new Dictionary<string, string[]>
@@ -119,6 +123,14 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
                         await enforcementService.ForceDeconvocationAsync(
                             id, req.TargetEventId!, ExcuseTypes.SportiveSanction.Id, ct);
                         sanction.MarkFulfilled(DateTime.UtcNow);
+                    }
+
+                    // design.md Decisión 2: creating a sanction with a positive AmountPaid credits
+                    // the team fund via a linked TeamFundMovement row (at most one per sanction).
+                    if (req.AmountPaid is > 0m)
+                    {
+                        db.TeamFundMovements.Add(TeamFundMovement.Create(
+                            teamId, req.AmountPaid.Value, TeamFundMovementSource.SanctionPayment, sanction.Id));
                     }
 
                     await db.SaveChangesAsync(ct);
@@ -197,6 +209,27 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
                         sanction.MarkFulfilled(DateTime.UtcNow);
                     }
 
+                    // design.md Decisión 2: an edit to AmountPaid updates the sanction's single
+                    // linked TeamFundMovement in place (increase, decrease, or down to null/0),
+                    // rather than appending a new row.
+                    var newAmountPaid = req.AmountPaid ?? 0m;
+                    var existingMovement = await db.TeamFundMovements
+                        .FirstOrDefaultAsync(m => m.SourceSanctionId == sanction.Id, ct);
+                    if (existingMovement is not null)
+                    {
+                        if (existingMovement.Amount != newAmountPaid)
+                            existingMovement.AdjustAmount(newAmountPaid);
+                    }
+                    else if (newAmountPaid > 0m)
+                    {
+                        var teamId = await db.TeamPlayers
+                            .Where(tp => tp.Id == id)
+                            .Select(tp => tp.TeamId)
+                            .FirstAsync(ct);
+                        db.TeamFundMovements.Add(TeamFundMovement.Create(
+                            teamId, newAmountPaid, TeamFundMovementSource.SanctionPayment, sanction.Id));
+                    }
+
                     await db.SaveChangesAsync(ct);
 
                     return Results.Ok(ToResponse(sanction));
@@ -217,6 +250,12 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
                         .Include(s => s.TargetEvent)
                         .FirstOrDefaultAsync(s => s.Id == sanctionId && s.TeamPlayerId == id, ct);
                     if (sanction == null) return Results.NotFound();
+
+                    // design.md Decisión 2's Delete rule: deleting a sanction reverses its
+                    // recorded payment by zeroing out (not deleting) its linked TeamFundMovement.
+                    var linkedMovement = await db.TeamFundMovements
+                        .FirstOrDefaultAsync(m => m.SourceSanctionId == sanction.Id, ct);
+                    linkedMovement?.AdjustAmount(0m);
 
                     var isFulfilled = sanction.EndDate is not null;
                     if (isFulfilled)

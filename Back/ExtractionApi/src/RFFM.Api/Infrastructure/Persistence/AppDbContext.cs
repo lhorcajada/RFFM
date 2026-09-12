@@ -15,6 +15,7 @@ using RFFM.Api.Domain.Entities.Players;
 using RFFM.Api.Domain.Entities.Seasons;
 using RFFM.Api.Domain.Entities.Formations;
 using RFFM.Api.Domain.Entities.TeamPlayers;
+using RFFM.Api.Domain.Entities.Teams;
 using RFFM.Api.Domain.Entities.SeasonAccess;
 using RFFM.Api.Domain.Entities.News;
 using RFFM.Api.Domain.Entities.PushNotifications;
@@ -48,6 +49,7 @@ namespace RFFM.Api.Infrastructure.Persistence
         public DbSet<TeamPlayerInjury> TeamPlayerInjuries { get; set; }
         public DbSet<TeamPlayerCondition> TeamPlayerConditions { get; set; }
         public DbSet<TeamPlayerSanction> TeamPlayerSanctions { get; set; }
+        public DbSet<TeamFundMovement> TeamFundMovements { get; set; }
         public DbSet<TeamPlayerFamilyMember> TeamPlayerFamilyMembers { get; set; }
         public DbSet<AssistanceType> AssistanceTypes { get; set; }
         public DbSet<Convocation> Convocations { get; set; }
