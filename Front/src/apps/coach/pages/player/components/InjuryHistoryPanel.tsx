@@ -16,6 +16,7 @@ import {
 } from "../../../services/teamplayerService";
 import type { InjuryRecord } from "../../../services/teamplayerService";
 import InjuryDialog from "./InjuryDialog";
+import ConfirmDialog from "../../../../../shared/components/ui/ConfirmDialog/ConfirmDialog";
 import styles from "./InjuryHistoryPanel.module.css";
 
 type Props = {
@@ -34,6 +35,8 @@ export default function InjuryHistoryPanel({
   const [editTarget, setEditTarget] = useState<InjuryRecord | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<InjuryRecord | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -55,13 +58,24 @@ export default function InjuryHistoryPanel({
     setDialogOpen(true);
   }
 
-  async function handleDelete(record: InjuryRecord) {
-    if (!confirm(`¿Eliminar el registro de lesión "${record.injuryType}"?`)) return;
-    const ok = await deletePlayerInjury(teamPlayerId, record.id);
-    if (!ok) return;
-    const next = injuries.filter((i) => i.id !== record.id);
-    setInjuries(next);
-    notifyActiveChange(next);
+  function handleDelete(record: InjuryRecord) {
+    setDeleteTarget(record);
+  }
+
+  async function handleDeleteConfirmed() {
+    if (!deleteTarget) return;
+    const record = deleteTarget;
+    setDeleting(true);
+    try {
+      const ok = await deletePlayerInjury(teamPlayerId, record.id);
+      setDeleteTarget(null);
+      if (!ok) return;
+      const next = injuries.filter((i) => i.id !== record.id);
+      setInjuries(next);
+      notifyActiveChange(next);
+    } finally {
+      setDeleting(false);
+    }
   }
 
   async function handleDischarge(record: InjuryRecord) {
@@ -187,6 +201,20 @@ export default function InjuryHistoryPanel({
           setEditTarget(null);
         }}
         onSave={handleSave}
+      />
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Eliminar registro de lesión"
+        description={
+          deleteTarget
+            ? `¿Eliminar el registro de lesión "${deleteTarget.injuryType}"?`
+            : ""
+        }
+        confirmText="Eliminar"
+        processing={deleting}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={handleDeleteConfirmed}
       />
     </div>
   );

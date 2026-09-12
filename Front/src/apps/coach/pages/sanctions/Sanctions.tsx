@@ -14,12 +14,12 @@ import {
   Stack,
   TextField,
 } from "@mui/material";
-import { useNavigate } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import AddIcon from "@mui/icons-material/Add";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import EmptyState from "../../../../shared/components/ui/EmptyState/EmptyState";
+import ConfirmDialog from "../../../../shared/components/ui/ConfirmDialog/ConfirmDialog";
 import useTeamAndClub from "../../hooks/useTeamAndClub.tsx";
 import teamplayerService from "../../services/teamplayerService";
 import playerService from "../../services/playerService";
@@ -40,6 +40,8 @@ import type { SportEventResponse } from "../../services/sportEventService";
 import { coachAuthService } from "../../services/authService";
 import { getMyProfile } from "../../services/coachApi";
 import { getTeamFund } from "../../services/teamFundService";
+import { TEAM_FUND_UPDATED_EVENT } from "../../../../shared/hooks/useTeamFundBalance";
+import useTeamDashboardBack from "../../hooks/useTeamDashboardBack";
 import SanctionCard from "./components/SanctionCard";
 import SanctionsSummaryCards from "./components/SanctionsSummaryCards";
 import styles from "./Sanctions.module.css";
@@ -76,7 +78,7 @@ function eventLabel(ev: SportEventResponse): string {
 }
 
 export default function Sanctions() {
-  const navigate = useNavigate();
+  const goToTeamDashboard = useTeamDashboardBack();
   const { team, teamTitleNode } = useTeamAndClub();
 
   const _roles = coachAuthService.getRoles();
@@ -95,6 +97,11 @@ export default function Sanctions() {
 
   const [myPlayerId, setMyPlayerId] = useState<string | null>(null);
   const [filterMode, setFilterMode] = useState<"mine" | "all">("mine");
+
+  const [liftTarget, setLiftTarget] = useState<SanctionRow | null>(null);
+  const [liftProcessing, setLiftProcessing] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<SanctionRow | null>(null);
+  const [deleteProcessing, setDeleteProcessing] = useState(false);
 
   useEffect(() => {
     if (!isPlayerOrFamily) return;
@@ -266,6 +273,7 @@ export default function Sanctions() {
     if (result) {
       setAddOpen(false);
       setRefreshKey((k) => k + 1);
+      window.dispatchEvent(new CustomEvent(TEAM_FUND_UPDATED_EVENT));
     }
   }
 
@@ -302,43 +310,71 @@ export default function Sanctions() {
     setEditSaving(false);
     setEditOpen(false);
     setRefreshKey((k) => k + 1);
+    window.dispatchEvent(new CustomEvent(TEAM_FUND_UPDATED_EVENT));
   }
 
-  async function handleLift(row: SanctionRow) {
+  function handleLift(row: SanctionRow) {
     if (isPlayerOrFamily) return;
-    const name = ((row.player.name ?? "") + " " + (row.player.lastName ?? "")).trim() || row.player.alias;
-    if (!confirm(`¿Levantar sanción a ${name}?`)) return;
-    await updatePlayerSanction(row.player.id, row.sanction.id, {
-      category: row.sanction.category ?? "InternalDiscipline",
-      startDate: row.sanction.startDate,
-      sanctionType: row.sanction.sanctionType,
-      description: row.sanction.description,
-      estimatedEnd: row.sanction.estimatedEnd,
-      endDate: new Date().toISOString(),
-      fine: row.sanction.fine,
-      amountPaid: row.sanction.amountPaid ?? null,
-      sportivePunishmentType: row.sanction.sportivePunishmentType ?? null,
-      targetEventId: row.sanction.targetEventId ?? null,
-      minutesLimit: row.sanction.minutesLimit ?? null,
-    });
-    setRefreshKey((k) => k + 1);
+    setLiftTarget(row);
   }
 
-  async function handleDelete(row: SanctionRow) {
+  async function handleLiftConfirmed() {
+    if (!liftTarget) return;
+    const row = liftTarget;
+    setLiftProcessing(true);
+    try {
+      await updatePlayerSanction(row.player.id, row.sanction.id, {
+        category: row.sanction.category ?? "InternalDiscipline",
+        startDate: row.sanction.startDate,
+        sanctionType: row.sanction.sanctionType,
+        description: row.sanction.description,
+        estimatedEnd: row.sanction.estimatedEnd,
+        endDate: new Date().toISOString(),
+        fine: row.sanction.fine,
+        amountPaid: row.sanction.amountPaid ?? null,
+        sportivePunishmentType: row.sanction.sportivePunishmentType ?? null,
+        targetEventId: row.sanction.targetEventId ?? null,
+        minutesLimit: row.sanction.minutesLimit ?? null,
+      });
+      setLiftTarget(null);
+      setRefreshKey((k) => k + 1);
+      window.dispatchEvent(new CustomEvent(TEAM_FUND_UPDATED_EVENT));
+    } finally {
+      setLiftProcessing(false);
+    }
+  }
+
+  function handleDelete(row: SanctionRow) {
     if (isPlayerOrFamily) return;
     if (!canDeleteSanction(row.sanction)) return;
-    const name = ((row.player.name ?? "") + " " + (row.player.lastName ?? "")).trim() || row.player.alias;
-    if (!confirm(`¿Eliminar la sanción de ${name}?`)) return;
-    const ok = await deletePlayerSanction(row.player.id, row.sanction.id);
-    if (!ok) {
-      window.dispatchEvent(
-        new CustomEvent("rffm.show_snackbar", {
-          detail: { message: "No se puede eliminar una sanción ya cumplida.", severity: "error" },
-        })
-      );
-      return;
+    setDeleteTarget(row);
+  }
+
+  async function handleDeleteConfirmed() {
+    if (!deleteTarget) return;
+    const row = deleteTarget;
+    setDeleteProcessing(true);
+    try {
+      const ok = await deletePlayerSanction(row.player.id, row.sanction.id);
+      setDeleteTarget(null);
+      if (!ok) {
+        window.dispatchEvent(
+          new CustomEvent("rffm.show_snackbar", {
+            detail: { message: "No se puede eliminar una sanción ya cumplida.", severity: "error" },
+          })
+        );
+        return;
+      }
+      setRefreshKey((k) => k + 1);
+      window.dispatchEvent(new CustomEvent(TEAM_FUND_UPDATED_EVENT));
+    } finally {
+      setDeleteProcessing(false);
     }
-    setRefreshKey((k) => k + 1);
+  }
+
+  function rowDisplayName(row: SanctionRow | null): string {
+    if (!row) return "";
+    return ((row.player.name ?? "") + " " + (row.player.lastName ?? "")).trim() || row.player.alias;
   }
 
   const canAdd =
@@ -385,7 +421,7 @@ export default function Sanctions() {
                 Añadir sanción
               </Button>
             )}
-            <Button startIcon={<ArrowBackIcon />} onClick={() => navigate("/coach/dashboard")} variant="outlined" size="small">
+            <Button startIcon={<ArrowBackIcon />} onClick={() => goToTeamDashboard()} variant="outlined" size="small">
               Volver
             </Button>
           </Stack>
@@ -622,6 +658,26 @@ export default function Sanctions() {
           <Button variant="contained" onClick={() => handleEditSave({ startDate: editRow?.sanction.startDate ?? "", sanctionType: editRow?.sanction.sanctionType ?? "", description: editRow?.sanction.description ?? null, estimatedEnd: editRow?.sanction.estimatedEnd ?? null, endDate: editRow?.sanction.endDate ?? null, fine: editRow?.sanction.fine ?? null })} disabled={editSaving}>Guardar</Button>
         </DialogActions>
       </Dialog>
+
+      <ConfirmDialog
+        open={!!liftTarget}
+        title="Levantar sanción"
+        description={`¿Levantar sanción a ${rowDisplayName(liftTarget)}?`}
+        confirmText="Levantar"
+        processing={liftProcessing}
+        onCancel={() => setLiftTarget(null)}
+        onConfirm={handleLiftConfirmed}
+      />
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Eliminar sanción"
+        description={`¿Eliminar la sanción de ${rowDisplayName(deleteTarget)}?`}
+        confirmText="Eliminar"
+        processing={deleteProcessing}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={handleDeleteConfirmed}
+      />
     </BaseLayout>
   );
 }

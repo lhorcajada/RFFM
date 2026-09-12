@@ -37,6 +37,7 @@ import teamplayerService, {
 import type { InjuryRecord, PlayerResponse } from "../../services/teamplayerService";
 import InjuryDialog from "../player/components/InjuryDialog";
 import { coachAuthService } from "../../services/authService";
+import ConfirmDialog from "../../../../shared/components/ui/ConfirmDialog/ConfirmDialog";
 import styles from "./Injured.module.css";
 
 type InjuryRow = {
@@ -74,6 +75,9 @@ export default function Injured() {
   const [editOpen, setEditOpen] = useState(false);
   const [editRow, setEditRow] = useState<InjuryRow | null>(null);
   const [editSaving, setEditSaving] = useState(false);
+
+  const [dischargeTarget, setDischargeTarget] = useState<InjuryRow | null>(null);
+  const [dischargeProcessing, setDischargeProcessing] = useState(false);
 
   useEffect(() => {
     if (!team) return;
@@ -160,20 +164,36 @@ export default function Injured() {
     setRefreshKey((k) => k + 1);
   }
 
-  async function handleDischarge(row: InjuryRow) {
+  function handleDischarge(row: InjuryRow) {
     if (isPlayerOrFamily) return;
-    const name =
+    setDischargeTarget(row);
+  }
+
+  function dischargeTargetName(row: InjuryRow | null): string {
+    if (!row) return "";
+    return (
       ((row.player.name ?? "") + " " + (row.player.lastName ?? "")).trim() ||
-      row.player.alias;
-    if (!confirm(`¿Dar de alta a ${name}?`)) return;
-    await updatePlayerInjury(row.player.id, row.injury.id, {
-      startDate: row.injury.startDate,
-      injuryType: row.injury.injuryType,
-      description: row.injury.description,
-      estimatedRecovery: row.injury.estimatedRecovery,
-      endDate: new Date().toISOString(),
-    });
-    setRefreshKey((k) => k + 1);
+      row.player.alias
+    );
+  }
+
+  async function handleDischargeConfirmed() {
+    if (!dischargeTarget) return;
+    const row = dischargeTarget;
+    setDischargeProcessing(true);
+    try {
+      await updatePlayerInjury(row.player.id, row.injury.id, {
+        startDate: row.injury.startDate,
+        injuryType: row.injury.injuryType,
+        description: row.injury.description,
+        estimatedRecovery: row.injury.estimatedRecovery,
+        endDate: new Date().toISOString(),
+      });
+      setDischargeTarget(null);
+      setRefreshKey((k) => k + 1);
+    } finally {
+      setDischargeProcessing(false);
+    }
   }
 
   const canAdd =
@@ -398,6 +418,16 @@ export default function Injured() {
         saving={editSaving}
         onSave={handleEditSave}
         onClose={() => setEditOpen(false)}
+      />
+
+      <ConfirmDialog
+        open={!!dischargeTarget}
+        title="Dar de alta"
+        description={`¿Dar de alta a ${dischargeTargetName(dischargeTarget)}?`}
+        confirmText="Dar de alta"
+        processing={dischargeProcessing}
+        onCancel={() => setDischargeTarget(null)}
+        onConfirm={handleDischargeConfirmed}
       />
     </BaseLayout>
   );

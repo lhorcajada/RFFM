@@ -25,6 +25,7 @@ import useTeamDashboardBack from "../../hooks/useTeamDashboardBack";
 import { getRivals, createRival, updateRival, uploadRivalPhoto, Rival } from "../../services/rivalService";
 import ClubCromo from "./components/ClubCromo";
 import { clubService } from "../../../federation/services/Federation/ClubService";
+import ConfirmDialog from "../../../../shared/components/ui/ConfirmDialog/ConfirmDialog";
 import styles from "./Rivals.module.css";
 
 export default function Rivals() {
@@ -41,6 +42,8 @@ export default function Rivals() {
   const [clubs, setClubs] = useState<any[]>([]);
   const [clubTeamsMap, setClubTeamsMap] = useState<Record<string, any[]>>({});
   const [searchLoading, setSearchLoading] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     load();
@@ -157,10 +160,17 @@ export default function Rivals() {
     }
   }
 
-  async function handleDelete(r: any) {
+  function handleDelete(r: any) {
     const id = r?.id ?? r?.Id ?? null;
     if (!id) return;
-    if (!confirm(`¿Eliminar "${r?.name ?? r?.Name ?? ""}"? Esta acción no se puede deshacer.`)) return;
+    setDeleteTarget(r);
+  }
+
+  async function handleDeleteConfirmed() {
+    const r = deleteTarget;
+    const id = r?.id ?? r?.Id ?? null;
+    if (!id) return;
+    setDeleting(true);
     try {
       await (await import("../../services/rivalService")).deleteRival(id);
       // remove locally
@@ -169,6 +179,9 @@ export default function Rivals() {
     } catch (err: any) {
       const msg = err?.response?.data?.Message ?? err?.response?.data?.message ?? err?.message ?? "Error al eliminar rival";
       window.dispatchEvent(new CustomEvent("rffm.show_snackbar", { detail: { message: msg, severity: "error" } }));
+    } finally {
+      setDeleting(false);
+      setDeleteTarget(null);
     }
   }
 
@@ -333,6 +346,16 @@ export default function Rivals() {
             </Button>
           </DialogActions>
         </Dialog>
+
+        <ConfirmDialog
+          open={!!deleteTarget}
+          title="Eliminar rival"
+          description={`¿Eliminar "${deleteTarget?.name ?? deleteTarget?.Name ?? ""}"? Esta acción no se puede deshacer.`}
+          confirmText="Eliminar"
+          processing={deleting}
+          onCancel={() => setDeleteTarget(null)}
+          onConfirm={handleDeleteConfirmed}
+        />
       </ContentLayout>
     </BaseLayout>
   );

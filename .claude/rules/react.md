@@ -176,3 +176,15 @@ npx playwright test  # E2E
 | Hardcodear colores/espaciados nuevos | Tema MUI o CSS custom properties de `:root` |
 | Usar `<table>`/`Table` de MUI para listados o datos | Tarjetas (`Card`/`Paper`) o lista responsive |
 | Diseñar un componente solo pensando en escritorio | Diseñar y probar mobile-first (~360-400px) |
+| `window.confirm()` / `confirm()` / `alert()` / `prompt()` nativos del navegador | `shared/components/ui/ConfirmDialog/ConfirmDialog.tsx` para confirmaciones; el bus de eventos `rffm.show_snackbar` para avisos |
+
+### 10.1 Confirmaciones de usuario
+
+Ninguna acción destructiva o irreversible (eliminar, levantar una sanción, dar de alta, etc.)
+debe usar el `confirm()`/`window.confirm()` nativo del navegador — no es consistente con el
+resto de la UI (tema, idioma, estilo, accesibilidad) y no se puede testear de forma fiable con
+Testing Library. Usar siempre `ConfirmDialog` (`shared/components/ui/ConfirmDialog/ConfirmDialog.tsx`):
+estado `xxxTarget`/`xxxOpen` en el componente, `open`, `title`, `description`, `onCancel`,
+`onConfirm`, y `processing` mientras la operación está en curso — sigue el patrón ya usado en
+`News.tsx` (`deleteTarget`/`handleDeleteConfirmed`). Para notificar el resultado de una acción
+(éxito o error), usar el bus de eventos existente (`window.dispatchEvent(new CustomEvent("rffm.show_snackbar", { detail: { message, severity } }))`), nunca `alert()`.

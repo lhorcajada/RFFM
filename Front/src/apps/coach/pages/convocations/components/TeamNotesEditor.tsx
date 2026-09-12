@@ -9,6 +9,7 @@ import {
 } from "../../../services/teamNoteService";
 import type { TeamNote } from "../../../services/teamNoteService";
 import { coachAuthService } from "../../../services/authService";
+import ConfirmDialog from "../../../../../shared/components/ui/ConfirmDialog/ConfirmDialog";
 import styles from "./TeamNotesEditor.module.css";
 
 type Props = {
@@ -28,6 +29,9 @@ export default function TeamNotesEditor({ teamId }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
+
+  const [deleteTarget, setDeleteTarget] = useState<TeamNote | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!teamId) return;
@@ -90,14 +94,18 @@ export default function TeamNotesEditor({ teamId }: Props) {
     }
   };
 
-  const handleDelete = async (noteId: string) => {
-    if (!window.confirm("¿Eliminar esta nota?")) return;
+  const handleDeleteConfirmed = async () => {
+    if (!deleteTarget) return;
     setError(null);
+    setDeleting(true);
     try {
-      await deleteTeamNote(teamId, noteId);
-      setNotes((prev) => prev.filter((n) => n.id !== noteId));
+      await deleteTeamNote(teamId, deleteTarget.id);
+      setNotes((prev) => prev.filter((n) => n.id !== deleteTarget.id));
+      setDeleteTarget(null);
     } catch {
       setError("Error al eliminar la nota. Inténtalo de nuevo.");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -148,7 +156,7 @@ export default function TeamNotesEditor({ teamId }: Props) {
                         type="button"
                         className={styles.iconBtn}
                         aria-label="Eliminar nota"
-                        onClick={() => handleDelete(note.id)}
+                        onClick={() => setDeleteTarget(note)}
                       >
                         <DeleteOutlineIcon fontSize="small" />
                       </button>
@@ -182,6 +190,16 @@ export default function TeamNotesEditor({ teamId }: Props) {
           </button>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Eliminar nota"
+        description="¿Eliminar esta nota?"
+        confirmText="Eliminar"
+        processing={deleting}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={handleDeleteConfirmed}
+      />
     </div>
   );
 }

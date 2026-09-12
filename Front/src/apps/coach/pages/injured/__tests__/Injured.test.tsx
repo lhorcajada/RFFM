@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -36,6 +36,7 @@ vi.mock("../../../hooks/useTeamDashboardBack", () => ({
 
 const mockGetPlayersByTeam = vi.fn();
 const mockGetTeamInjuries = vi.fn();
+const mockUpdatePlayerInjury = vi.fn();
 vi.mock("../../../services/teamplayerService", () => ({
   default: {
     getPlayersByTeam: (...args: unknown[]) => mockGetPlayersByTeam(...args),
@@ -43,7 +44,7 @@ vi.mock("../../../services/teamplayerService", () => ({
   getPlayerInjuries: vi.fn(),
   getTeamInjuries: (...args: unknown[]) => mockGetTeamInjuries(...args),
   createPlayerInjury: vi.fn(),
-  updatePlayerInjury: vi.fn(),
+  updatePlayerInjury: (...args: unknown[]) => mockUpdatePlayerInjury(...args),
 }));
 
 let rolesMock: string[] = ["Coach"];
@@ -148,6 +149,47 @@ describe("Injured - action visibility by role", () => {
     ).toBeInTheDocument();
     expect(await screen.findByRole("button", { name: /^editar$/i })).toBeInTheDocument();
     expect(await screen.findByRole("button", { name: /dar de alta/i })).toBeInTheDocument();
+  });
+
+  it("dar de alta abre un ConfirmDialog y solo llama al servicio al confirmar", async () => {
+    const { default: userEvent } = await import("@testing-library/user-event");
+    rolesMock = ["Coach"];
+    mockUpdatePlayerInjury.mockResolvedValue({ id: "inj-1" });
+
+    renderPage();
+
+    await waitFor(() => expect(mockGetTeamInjuries).toHaveBeenCalled());
+    await screen.findByText("Rotura fibrilar");
+
+    await userEvent.click(await screen.findByRole("button", { name: /dar de alta/i }));
+
+    expect(await screen.findByText(/¿dar de alta a ana garcía\?/i)).toBeInTheDocument();
+    expect(mockUpdatePlayerInjury).not.toHaveBeenCalled();
+
+    const dialog = within(screen.getByRole("dialog"));
+    await userEvent.click(dialog.getByRole("button", { name: /^dar de alta$/i }));
+
+    await waitFor(() => expect(mockUpdatePlayerInjury).toHaveBeenCalledTimes(1));
+  });
+
+  it("cancelar el ConfirmDialog de dar de alta no llama al servicio", async () => {
+    const { default: userEvent } = await import("@testing-library/user-event");
+    rolesMock = ["Coach"];
+
+    renderPage();
+
+    await waitFor(() => expect(mockGetTeamInjuries).toHaveBeenCalled());
+    await screen.findByText("Rotura fibrilar");
+
+    await userEvent.click(await screen.findByRole("button", { name: /dar de alta/i }));
+    await screen.findByText(/¿dar de alta a ana garcía\?/i);
+
+    await userEvent.click(screen.getByRole("button", { name: /cancelar/i }));
+
+    await waitFor(() =>
+      expect(screen.queryByText(/¿dar de alta a ana garcía\?/i)).not.toBeInTheDocument()
+    );
+    expect(mockUpdatePlayerInjury).not.toHaveBeenCalled();
   });
 
   it("hides injury management actions for a player", async () => {

@@ -88,15 +88,19 @@ describe("TeamNotesEditor", () => {
     expect(await screen.findByText("Texto editado")).toBeInTheDocument();
   });
 
-  it("permite a un Coach eliminar una nota tras confirmar", async () => {
+  it("permite a un Coach eliminar una nota tras confirmar en el ConfirmDialog", async () => {
     hasRoleMock.mockReturnValue(true);
     deleteTeamNoteMock.mockResolvedValue(undefined);
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     render(<TeamNotesEditor teamId="team-1" />);
 
     await screen.findByText("Traed las dos equipaciones");
 
-    fireEvent.click(screen.getAllByRole("button", { name: /eliminar/i })[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: /eliminar nota/i })[0]);
+
+    expect(await screen.findByText("¿Eliminar esta nota?")).toBeInTheDocument();
+    expect(deleteTeamNoteMock).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: /^eliminar$/i }));
 
     await waitFor(() => expect(deleteTeamNoteMock).toHaveBeenCalledWith("team-1", "n1"));
     await waitFor(() =>
@@ -104,15 +108,20 @@ describe("TeamNotesEditor", () => {
     );
   });
 
-  it("no elimina la nota si el Coach cancela la confirmación", async () => {
+  it("no elimina la nota si el Coach cancela el ConfirmDialog", async () => {
     hasRoleMock.mockReturnValue(true);
-    vi.spyOn(window, "confirm").mockReturnValue(false);
     render(<TeamNotesEditor teamId="team-1" />);
 
     await screen.findByText("Traed las dos equipaciones");
 
-    fireEvent.click(screen.getAllByRole("button", { name: /eliminar/i })[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: /eliminar nota/i })[0]);
+    await screen.findByText("¿Eliminar esta nota?");
 
+    fireEvent.click(screen.getByRole("button", { name: /cancelar/i }));
+
+    await waitFor(() =>
+      expect(screen.queryByText("¿Eliminar esta nota?")).not.toBeInTheDocument(),
+    );
     expect(deleteTeamNoteMock).not.toHaveBeenCalled();
     expect(screen.getByText("Traed las dos equipaciones")).toBeInTheDocument();
   });
