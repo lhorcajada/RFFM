@@ -60,6 +60,16 @@ vi.mock("../../../services/coachApi", () => ({
   getMyProfile: vi.fn().mockResolvedValue(null),
 }));
 
+vi.mock("../../../services/teamFundService", () => ({
+  default: { getTeamFund: vi.fn().mockResolvedValue({ teamId: "team-1", balance: 0, movements: [] }) },
+  getTeamFund: vi.fn().mockResolvedValue({ teamId: "team-1", balance: 0, movements: [] }),
+}));
+
+vi.mock("../../../services/playerService", () => ({
+  default: { fetchPlayerPhoto: vi.fn().mockResolvedValue(null) },
+  fetchPlayerPhoto: vi.fn().mockResolvedValue(null),
+}));
+
 import Sanctions from "../Sanctions";
 
 const FUTURE_EVENT_ID = "event-future";

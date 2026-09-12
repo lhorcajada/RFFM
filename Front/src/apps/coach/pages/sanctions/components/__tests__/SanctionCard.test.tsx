@@ -120,4 +120,20 @@ describe("SanctionCard", () => {
     renderCard({ canManage: true, status: "Fulfilled", sanction: baseSanction({ endDate: "2026-02-01" }) });
     expect(screen.queryByRole("button", { name: /levantar sanción/i })).not.toBeInTheDocument();
   });
+
+  it("shows the player's resolved photo when photoSrc is provided", () => {
+    renderCard({ photoSrc: "blob:mock-photo-url" });
+    const img = screen.getByAltText("Juan Pérez") as HTMLImageElement;
+    expect(img.src).toContain("blob:mock-photo-url");
+  });
+
+  it("falls back to the default avatar when photoSrc is missing", () => {
+    renderCard({ photoSrc: undefined });
+    const withoutPhoto = screen.getByAltText("Juan Pérez") as HTMLImageElement;
+
+    renderCard({ photoSrc: "blob:mock-photo-url" });
+    const withPhoto = screen.getAllByAltText("Juan Pérez")[1] as HTMLImageElement;
+
+    expect(withoutPhoto.src).not.toEqual(withPhoto.src);
+  });
 });

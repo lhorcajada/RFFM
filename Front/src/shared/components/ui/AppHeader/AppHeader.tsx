@@ -7,6 +7,7 @@ import logo from "../../../../assets/logo.png";
 import Avatar from "@mui/material/Avatar";
 import Badge from "@mui/material/Badge";
 import GavelIcon from "@mui/icons-material/Gavel";
+import SavingsIcon from "@mui/icons-material/Savings";
 import IconButton from "@mui/material/IconButton";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
@@ -14,6 +15,7 @@ import Tooltip from "@mui/material/Tooltip";
 import { useUser } from "../../../context/UserContext";
 import useAuthToken from "../../../hooks/useAuthToken";
 import useMyPendingSanctionsCount from "../../../hooks/useMyPendingSanctionsCount";
+import useTeamFundBalance from "../../../hooks/useTeamFundBalance";
 import { useNavigate } from "react-router-dom";
 import useRootClassObserver from "../../../hooks/useRootClassObserver";
 
@@ -86,17 +88,27 @@ export default function AppHeader({ title }: AppHeaderProps) {
 
   const { isAuthValid } = useAuthToken();
   const pendingSanctions = useMyPendingSanctionsCount();
+  const teamFund = useTeamFundBalance();
   const pendingSanctionsLabel =
     pendingSanctions.count > 0
       ? `${pendingSanctions.count} ${
           pendingSanctions.count === 1 ? "sanción pendiente" : "sanciones pendientes"
         }`
       : "Sanciones";
+  const teamFundLabel = `${teamFund.balance} €`;
 
   const handleOpenSanctions = () => {
     navigate(
       pendingSanctions.teamId
         ? `/coach/sanctions?teamId=${pendingSanctions.teamId}`
+        : "/coach/sanctions"
+    );
+  };
+
+  const handleOpenTeamFund = () => {
+    navigate(
+      teamFund.teamId
+        ? `/coach/sanctions?teamId=${teamFund.teamId}`
         : "/coach/sanctions"
     );
   };
@@ -159,6 +171,19 @@ export default function AppHeader({ title }: AppHeaderProps) {
         </div>
 
         <div className={styles.userBox}>
+          {teamFund.visible && (
+            <IconButton
+              onClick={handleOpenTeamFund}
+              size="small"
+              aria-label={teamFundLabel}
+              className={styles.teamFundButton}
+            >
+              <SavingsIcon className={styles.teamFundIcon} color="success" />
+              <span className={styles.teamFundLabel} aria-hidden="true">
+                {teamFundLabel}
+              </span>
+            </IconButton>
+          )}
           {pendingSanctions.visible && (
             <Tooltip title={pendingSanctionsLabel}>
               <IconButton

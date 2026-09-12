@@ -1,0 +1,26 @@
+.summaryRow {
+  width: 100%;
+  margin-bottom: 4px;
+}
+
+.summaryCard {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--rffm-card-bg, #1c1c30);
+  border-color: rgba(255, 255, 255, 0.08);
+  flex: 1 1 160px;
+  min-width: 0;
+}
+
+.summaryLabel {
+  display: block;
+  color: var(--rffm-muted, #a59f9f);
+}
+
+.summaryValue {
+  font-weight: 700;
+  color: var(--rffm-text, #f0f0f0);
+}

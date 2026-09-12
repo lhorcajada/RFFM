@@ -6,6 +6,7 @@ import EuroIcon from "@mui/icons-material/Euro";
 import SportsSoccerIcon from "@mui/icons-material/SportsSoccer";
 import type { SanctionRecord } from "../../../services/teamplayerSanctionService";
 import type { PlayerResponse } from "../../../services/teamplayerService";
+import defaultAvatar from "../../../../../assets/avatar.svg";
 import styles from "./SanctionCard.module.css";
 
 export type SanctionCardProps = {
@@ -16,6 +17,9 @@ export type SanctionCardProps = {
   showPlayerName: boolean;
   canManage: boolean;
   canDelete: boolean;
+  /** Resolved object URL for the player's photo (see `playerService.fetchPlayerPhoto`),
+   * `null`/`undefined` falls back to the default avatar. */
+  photoSrc?: string | null;
   onEdit: () => void;
   onLift: () => void;
   onDelete: () => void;
@@ -29,6 +33,7 @@ export default function SanctionCard({
   showPlayerName,
   canManage,
   canDelete,
+  photoSrc,
   onEdit,
   onLift,
   onDelete,
@@ -38,12 +43,15 @@ export default function SanctionCard({
   const isSportive = !!sanction.sportivePunishmentType;
   const playerName =
     ((player.name ?? "") + " " + (player.lastName ?? "")).trim() || player.alias;
+  const photo = photoSrc ?? defaultAvatar;
 
   return (
     <Paper className={styles.card} variant="outlined">
       <Stack spacing={1}>
         <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
-          <div>
+          <Stack direction="row" spacing={1} alignItems="flex-start">
+            <img src={photo} alt={playerName} className={styles.playerAvatar} />
+            <div>
             {showPlayerName && (
               <Typography variant="subtitle2" className={styles.playerName}>
                 {playerName}
@@ -83,7 +91,8 @@ export default function SanctionCard({
                 />
               )}
             </Stack>
-          </div>
+            </div>
+          </Stack>
           {isPending ? (
             <Chip label="Pendiente" color="error" size="small" />
           ) : (

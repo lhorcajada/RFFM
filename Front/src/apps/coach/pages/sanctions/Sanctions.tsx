@@ -22,6 +22,7 @@ import ContentLayout from "../../../../shared/components/ui/ContentLayout/Conten
 import EmptyState from "../../../../shared/components/ui/EmptyState/EmptyState";
 import useTeamAndClub from "../../hooks/useTeamAndClub.tsx";
 import teamplayerService from "../../services/teamplayerService";
+import playerService from "../../services/playerService";
 import teamplayerSanctionService, {
   getTeamSanctions,
   createPlayerSanction,
@@ -38,7 +39,9 @@ import { getSportEvents } from "../../services/sportEventService";
 import type { SportEventResponse } from "../../services/sportEventService";
 import { coachAuthService } from "../../services/authService";
 import { getMyProfile } from "../../services/coachApi";
+import { getTeamFund } from "../../services/teamFundService";
 import SanctionCard from "./components/SanctionCard";
+import SanctionsSummaryCards from "./components/SanctionsSummaryCards";
 import styles from "./Sanctions.module.css";
 
 type SanctionRow = { player: PlayerResponse; sanction: SanctionRecord };
@@ -85,6 +88,8 @@ export default function Sanctions() {
   const [players, setPlayers] = useState<PlayerResponse[]>([]);
   const [rows, setRows] = useState<SanctionRow[]>([]);
   const [events, setEvents] = useState<SportEventResponse[]>([]);
+  const [fundBalance, setFundBalance] = useState<number | null>(null);
+  const [playerPhotos, setPlayerPhotos] = useState<Record<string, string | null>>({});
   const [loading, setLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -113,6 +118,26 @@ export default function Sanctions() {
   }, [rows, canFilterMine, filterMode, myPlayerId]);
 
   const eventsById = useMemo(() => new Map(events.map((e) => [e.id, e])), [events]);
+
+  /** Team-wide totals for the summary header, independent of the "mine/all" filter
+   * (design.md task 6.2 — Σ Fine / Σ PendingAmount across all rows). */
+  const totalFine = useMemo(
+    () => rows.reduce((sum, { sanction }) => sum + (sanction.fine ?? 0), 0),
+    [rows]
+  );
+  const totalPending = useMemo(
+    () =>
+      rows.reduce((sum, { sanction }) => {
+        const pending =
+          sanction.pendingAmount != null
+            ? sanction.pendingAmount
+            : sanction.fine != null
+              ? sanction.fine - (sanction.amountPaid ?? 0)
+              : null;
+        return sum + (pending ?? 0);
+      }, 0),
+    [rows]
+  );
 
   function isTargetEventInFuture(eventId: string | null | undefined): boolean {
     if (!eventId) return false;
@@ -161,11 +186,13 @@ export default function Sanctions() {
       teamplayerService.getPlayersByTeam(team.id),
       getTeamSanctions(team.id),
       getSportEvents(team.id, 1, 200, undefined, undefined, false).catch(() => ({ items: [] })),
+      getTeamFund(team.id).catch(() => null),
     ])
-      .then(([list, teamSanctions, sportEvents]) => {
+      .then(([list, teamSanctions, sportEvents, teamFund]) => {
         if (!mounted) return;
         setPlayers(list);
         setEvents(sportEvents.items ?? []);
+        setFundBalance(teamFund?.balance ?? null);
         const sanctionsByPlayer = new Map(
           teamSanctions.map(({ teamPlayerId, sanctions }) => [teamPlayerId, sanctions])
         );
@@ -177,9 +204,22 @@ export default function Sanctions() {
         }
         allRows.sort((a, b) => new Date(b.sanction.startDate).getTime() - new Date(a.sanction.startDate).getTime());
         setRows(allRows);
+
+        // Resolve each distinct player's photo once when the rows load (mirrors
+        // Squad.tsx's playerPhotos pattern — not per-render, to avoid refetching).
+        Promise.all(
+          list.map(async (p) => {
+            if (!p.urlPhoto) return [p.id, null] as const;
+            const obj = await playerService.fetchPlayerPhoto(p.urlPhoto);
+            return [p.id, obj] as const;
+          })
+        ).then((entries) => {
+          if (!mounted) return;
+          setPlayerPhotos(Object.fromEntries(entries));
+        });
       })
       .catch(() => {
-        if (mounted) { setPlayers([]); setRows([]); setEvents([]); }
+        if (mounted) { setPlayers([]); setRows([]); setEvents([]); setFundBalance(null); setPlayerPhotos({}); }
       })
       .finally(() => {
         if (mounted) setLoading(false);
@@ -351,6 +391,11 @@ export default function Sanctions() {
           </Stack>
         }
       >
+        <SanctionsSummaryCards
+          totalFine={totalFine}
+          totalPending={totalPending}
+          fundBalance={fundBalance}
+        />
         {loading ? (
           <Stack alignItems="center" sx={{ py: 6 }}>
             <CircularProgress size={32} />
@@ -382,6 +427,7 @@ export default function Sanctions() {
                   sanction={sanction}
                   status={status}
                   pendingAmount={pendingAmount}
+                  photoSrc={playerPhotos[player.id] ?? null}
                   showPlayerName={!canFilterMine || filterMode === "all"}
                   canManage={!isPlayerOrFamily}
                   canDelete={deletable}

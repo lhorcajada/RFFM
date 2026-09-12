@@ -5,6 +5,15 @@
   border-color: rgba(255, 255, 255, 0.08);
 }
 
+.playerAvatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.06);
+}
+
 .playerName {
   font-weight: 600;
   color: var(--rffm-text, #f0f0f0);
