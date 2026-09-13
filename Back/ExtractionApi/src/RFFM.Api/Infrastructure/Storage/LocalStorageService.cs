@@ -70,6 +70,7 @@ namespace RFFM.Api.Infrastructure.Storage
             ".gif" => "image/gif",
             ".webp" => "image/webp",
             ".svg" => "image/svg+xml",
+            ".pdf" => "application/pdf",
             _ => "application/octet-stream"
         };
     }

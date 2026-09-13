@@ -1,36 +1,22 @@
-.tableCard {
-  border-radius: 10px;
-  overflow: hidden;
+.tabsWrap {
+  margin-top: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   background: var(--rffm-card-bg, #1c1c30);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px 10px 0 0;
 }
 
-.playerCell {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+.tabPanel {
+  background: var(--rffm-card-bg, #1c1c30);
+  border-radius: 0 0 10px 10px;
+  padding: 16px;
+  min-height: 120px;
 }
 
-.playerName {
-  font-weight: 600;
-  font-size: 0.875rem;
-  color: var(--rffm-text, #f0f0f0);
-}
-
-.playerMeta {
-  font-size: 0.75rem;
-  color: var(--rffm-muted, #a59f9f);
-}
-
-.actions {
-  display: flex;
-  gap: 4px;
-  justify-content: flex-end;
-}
-
-.addDialogFields {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding-top: 8px;
+@media (max-width: 600px) {
+  .tabsWrap {
+    margin-top: 4px;
+  }
+  .tabPanel {
+    padding: 10px 10px 24px;
+  }
 }

@@ -1,0 +1,53 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.formatButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.editorCard,
+.readonlyCard {
+  border-radius: 10px;
+  padding: 16px;
+  background: var(--rffm-card-bg, #1c1c30);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--rffm-text, #f0f0f0);
+  min-height: 160px;
+}
+
+.readonlyCard {
+  opacity: 0.95;
+}
+
+.editorContent :global(.ProseMirror) {
+  outline: none;
+  min-height: 140px;
+}
+
+.editorContent :global(.ProseMirror p) {
+  margin: 0 0 8px;
+}
+
+.updatedAt {
+  display: block;
+  padding-bottom: 8px;
+}
+
+@media (max-width: 700px) {
+  .updatedAt {
+    padding-bottom: 24px;
+  }
+}

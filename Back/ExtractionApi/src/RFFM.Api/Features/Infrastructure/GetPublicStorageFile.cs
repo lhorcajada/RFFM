@@ -46,6 +46,7 @@ namespace RFFM.Api.Features.Infrastructure
                             : fullPath.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) || fullPath.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase) ? "image/jpeg"
                             : fullPath.EndsWith(".gif", StringComparison.OrdinalIgnoreCase) ? "image/gif"
                             : fullPath.EndsWith(".webp", StringComparison.OrdinalIgnoreCase) ? "image/webp"
+                            : fullPath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase) ? "application/pdf"
                             : "application/octet-stream";
 
                         return Results.File(bytes, contentType);

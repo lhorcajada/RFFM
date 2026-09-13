@@ -50,6 +50,8 @@ namespace RFFM.Api.Infrastructure.Persistence
         public DbSet<TeamPlayerCondition> TeamPlayerConditions { get; set; }
         public DbSet<TeamPlayerSanction> TeamPlayerSanctions { get; set; }
         public DbSet<TeamFundMovement> TeamFundMovements { get; set; }
+        public DbSet<TeamInjuryProtocol> TeamInjuryProtocols { get; set; }
+        public DbSet<TeamInjuryProtocolAttachment> TeamInjuryProtocolAttachments { get; set; }
         public DbSet<TeamPlayerFamilyMember> TeamPlayerFamilyMembers { get; set; }
         public DbSet<AssistanceType> AssistanceTypes { get; set; }
         public DbSet<Convocation> Convocations { get; set; }

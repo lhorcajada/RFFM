@@ -31,6 +31,7 @@ namespace RFFM.Api.Domain.Aggregates.UserClubs
         public List<TeamPlayer> Players { get; set; } = null!;
         public TeamRulesSet? RulesSet { get; private set; }
         public ICollection<TeamFundMovement> TeamFundMovements { get; private set; } = new List<TeamFundMovement>();
+        public TeamInjuryProtocol? InjuryProtocol { get; private set; }
         public Team() { }
         public Team(TeamModelBase model)
         {
