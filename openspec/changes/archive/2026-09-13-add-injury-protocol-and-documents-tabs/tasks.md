@@ -91,6 +91,26 @@
   Ajuste puramente visual/CSS, sin test automatizado posible (frontend-testing.md §2.4: no
   testear estilos) — pendiente de confirmación visual del usuario en móvil real.
 
+## Fix post-archivado: subida de PDF daba 500 en producción
+- [x] Causa raíz: en producción se usa `SupabaseStorageService` (no `LocalStorageService`), y el
+      SDK de Supabase Storage exige que el bucket exista de antemano — a diferencia del disco
+      local, no lo crea automáticamente. El bucket nuevo `injury-protocol-attachments` nunca se
+      creó en el proyecto de Supabase, así que `Upload(...)` lanzaba una excepción no capturada →
+      `500`. En local (`LocalStorageService`) funcionaba porque esa implementación sí crea el
+      directorio sobre la marcha.
+- [x] `Infrastructure/Storage/SupabaseStorageService.cs`: `UploadAsync`/`UploadBytesAsync` llaman
+      ahora a un nuevo `EnsureBucketExistsAsync` que comprueba el bucket con `GetBucket` y lo crea
+      con `CreateBucket(..., new BucketUpsertOptions { Public = true })` si no existe (ignorando
+      una posible carrera con otra petición concurrente). Autocorrectivo para cualquier bucket
+      nuevo futuro, no solo el de este feature.
+- **Verificación**: `dotnet build` OK, `dotnet test --filter "Storage|InjuryProtocol"` (31/31). No
+  se añadió test unitario dedicado a `SupabaseStorageService` — su único cliente (`Supabase.Client`)
+  no es mockeable sin infraestructura de integración real contra Supabase, y no existía ningún
+  test previo de este servicio en el repo (solo `StorageSelectionTests.cs`, que cubre la selección
+  de implementación por entorno, no el comportamiento de subida).
+- Pendiente: confirmar en producción que la subida de documentos ya funciona tras desplegar este
+  fix.
+
 ## Cierre
 - [x] `dotnet build && dotnet test` (backend completo afectado) — 1223/1225 (2 fallos preexistentes no relacionados, `AdnLegibleImporter`/`GameModelSeeder`).
 - [x] `npm run build && npm run test` (frontend completo afectado) — build OK, 295 archivos, 1519-1520 pasan / 3 skipped preexistentes (1 test de otra página flaky en la suite completa, verde en aislado).

@@ -19,6 +19,8 @@ namespace RFFM.Api.Infrastructure.Storage
             await file.CopyToAsync(ms, cancellationToken);
             var bytes = ms.ToArray();
 
+            await EnsureBucketExistsAsync(bucket);
+
             await _supabase.Storage
                 .From(bucket)
                 .Upload(bytes, filePath, new Supabase.Storage.FileOptions
@@ -32,6 +34,8 @@ namespace RFFM.Api.Infrastructure.Storage
 
         public async Task<string> UploadBytesAsync(string bucket, string filePath, byte[] content, string contentType, CancellationToken cancellationToken)
         {
+            await EnsureBucketExistsAsync(bucket);
+
             await _supabase.Storage
                 .From(bucket)
                 .Upload(content, filePath, new Supabase.Storage.FileOptions
@@ -41,6 +45,34 @@ namespace RFFM.Api.Infrastructure.Storage
                 });
 
             return _supabase.Storage.From(bucket).GetPublicUrl(filePath);
+        }
+
+        /// <summary>Supabase Storage buckets must exist before a file can be uploaded to them —
+        /// unlike LocalStorageService, the SDK doesn't create them on demand. Every bucket used so
+        /// far had been created manually in the Supabase dashboard ahead of time; the
+        /// injury-protocol-attachments bucket wasn't, which caused a 500 in production while local
+        /// dev (LocalStorageService) worked fine. This makes bucket creation self-healing instead
+        /// of relying on a manual dashboard step for every new feature.</summary>
+        private async Task EnsureBucketExistsAsync(string bucket)
+        {
+            try
+            {
+                var existing = await _supabase.Storage.GetBucket(bucket);
+                if (existing != null) return;
+            }
+            catch
+            {
+                // GetBucket throws when the bucket doesn't exist yet — fall through to create it.
+            }
+
+            try
+            {
+                await _supabase.Storage.CreateBucket(bucket, new Supabase.Storage.BucketUpsertOptions { Public = true });
+            }
+            catch
+            {
+                // Lost a race with a concurrent request creating the same bucket — safe to ignore.
+            }
         }
 
         public async Task<bool> DeleteAsync(string bucket, string filePath, CancellationToken cancellationToken)
