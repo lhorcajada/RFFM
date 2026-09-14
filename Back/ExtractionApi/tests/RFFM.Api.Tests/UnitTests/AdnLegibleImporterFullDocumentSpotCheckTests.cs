@@ -71,11 +71,10 @@ namespace RFFM.Api.Tests.UnitTests
 
             _output.WriteLine($"Principios: {result.Principios.Count}, Subprincipios: {subCount}, Zonas: {zonaCount}, SubSubPrincipios: {sspCount}, Habilidades: {habCount}, Notas: {result.Notas.Count}, SetPieceRules: {result.SetPieceRules.Count}, OpenIssues: {result.OpenIssues.Count}");
 
-            // Matches the doc's stated coverage (intro paragraph): 4 Fases with 2 Principios each
-            // (Defensa organizada, Transición defensa-ataque, Ataque organizado, Transición
-            // ataque-defensa) minus the one un-numbered/absent Principio in Transición
-            // ataque-defensa, plus the flat Balón parado section (no Principios there).
-            Assert.Equal(7, result.Principios.Count);
+            // Matches the doc's actual Principio count: Defensa organizada (2) + Transición
+            // defensa-ataque (2) + Ataque organizado (3) + Transición ataque-defensa (2) = 9.
+            // Balón parado (ABP) is a flat section with no Principios (becomes SetPieceRules).
+            Assert.Equal(9, result.Principios.Count);
             Assert.True(subCount > 0);
             Assert.True(zonaCount > 0);
             Assert.True(sspCount > 0);

@@ -24,8 +24,11 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.GameModel
                 .IsRequired()
                 .HasMaxLength(50);
 
-            builder.Property(x => x.Texto)
-                .HasMaxLength(4000);
+            // Unlike other GameModels Texto fields, a SetPieceRule's Texto can absorb an entire
+            // ABP subsection's nested prose (e.g. "Faltas" spans several Subprincipios/Zonas)
+            // rather than a single paragraph, so it is left unbounded (Postgres "text") instead
+            // of the usual 4000-char cap.
+            builder.Property(x => x.Texto);
 
             builder.HasIndex(x => new { x.GameModelId, x.Subtype })
                 .IsUnique();

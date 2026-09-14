@@ -69,7 +69,9 @@ namespace RFFM.Api.Tests.IntegrationTests
 
             await using var verifyDb = _fixture.CreateDbContext();
             var principleCount = await verifyDb.GamePrinciples.CountAsync(p => p.GameModelId == gameModelId1);
-            Assert.Equal(7, principleCount);
+            // Defensa organizada (2) + Transición defensa-ataque (2) + Ataque organizado (3) +
+            // Transición ataque-defensa (2) = 9. See AdnLegibleImporterFullDocumentSpotCheckTests.
+            Assert.Equal(9, principleCount);
 
             var subprincipioCount = await verifyDb.Subprincipios.CountAsync(sp => sp.GamePrinciple.GameModelId == gameModelId1);
             Assert.True(subprincipioCount > 0);

@@ -27,7 +27,7 @@ namespace RFFM.Api.Infrastructure.GameModelImport
         private static readonly Regex NotaRegex = new(@"^\*(.+)\*$", RegexOptions.Compiled);
         private static readonly Regex ImageRegex = new(@"^!\[.*\]\(.*\)\s*$", RegexOptions.Compiled);
         private static readonly Regex ZonaHeadingRegex = new(@"-\s+\*\*(Zona de .+?|Todas las zonas|[^*]*Zona[^*]*)\.\*\*\s*(.*)$", RegexOptions.Compiled);
-        private static readonly Regex SetPieceRuleRegex = new(@"^\*\*(.+?)\.\*\*\s*(.*)$", RegexOptions.Compiled);
+        private static readonly Regex SetPieceRuleRegex = new(@"^(?:\d+\.\s+)?\*\*(.+?)\.\*\*\s*(.*)$", RegexOptions.Compiled);
         private static readonly Regex OpenIssueRegex = new(@"^\d+\.\s+\*\*(.+?)\*\*\s*(.*)$", RegexOptions.Compiled);
 
         private static readonly Dictionary<string, string> SimpleZoneMap = new(StringComparer.OrdinalIgnoreCase)
@@ -43,6 +43,7 @@ namespace RFFM.Api.Infrastructure.GameModelImport
         private static readonly Dictionary<string, string> CompoundZoneMap = new(StringComparer.OrdinalIgnoreCase)
         {
             ["Zona de Creación Propia / Iniciación (bloque bajo)"] = "creacion-propia,iniciacion",
+            ["Zona de Creación Propia / Iniciación (bloque medio)"] = "creacion-propia,iniciacion",
             ["Zona de Finalización / Creación Rival / Creación Propia"] = "finalizacion,creacion-rival,creacion-propia",
             ["Zona de Iniciación y Zona de Creación Propia (campo propio)"] = "iniciacion,creacion-propia",
             ["Zona de Creación Propia y Zona de Creación Rival"] = "creacion-propia,creacion-rival",

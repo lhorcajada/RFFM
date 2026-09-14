@@ -154,6 +154,31 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
+        public void Parse_ZonaCreacionPropiaIniciacionBloqueMedio_ResolvesToBothZoneKeysWithoutLabel()
+        {
+            const string markdown = """
+                ## 3. Ataque organizado
+
+                1. **Progresar con balón.** Texto.
+
+                   - **Subprincipio 1.1 — Título.** Texto.
+
+                     - **Zona de Creación Propia / Iniciación (bloque medio).** Texto de la zona.
+
+                       - **Sub-subprincipio 1.1.1 — Delantero:** Texto.
+                         - Habilidad imprescindible — **Anticipación**: Descripcion. (Entrenable: Entrenable.)
+                """;
+
+            var importer = new AdnLegibleImporter();
+
+            var result = importer.Parse(markdown);
+
+            var zona = Assert.Single(result.Principios.Single().Subprincipios.Single().Zonas);
+            Assert.Equal("creacion-propia,iniciacion", zona.ZoneKeysCsv);
+            Assert.Null(zona.Label);
+        }
+
+        [Fact]
         public void Parse_ZonaFinalizacionYCreacionRival_ResolvesToBothZoneKeys()
         {
             const string markdown = """
@@ -319,6 +344,26 @@ namespace RFFM.Api.Tests.UnitTests
             var rule = Assert.Single(result.SetPieceRules);
             Assert.Equal("saque-centro", rule.Subtype);
             Assert.Equal("Saque hacia atrás con golpeo en largo a una banda.", rule.Texto);
+        }
+
+        [Fact]
+        public void Parse_NumberedListSetPieceHeading_ResolvesToSubtype()
+        {
+            // Real document format: "1. **Córners.**" (numbered list item), not "**Córners.**"
+            // directly — the importer must accept both.
+            const string markdown = """
+                ## 5. Balón parado (ABP)
+
+                1. **Penaltis.** Los lanzadores están prefijados; no se decide en el momento.
+                """;
+
+            var importer = new AdnLegibleImporter();
+
+            var result = importer.Parse(markdown);
+
+            var rule = Assert.Single(result.SetPieceRules);
+            Assert.Equal("penaltis", rule.Subtype);
+            Assert.Equal("Los lanzadores están prefijados; no se decide en el momento.", rule.Texto);
         }
 
         [Fact]
