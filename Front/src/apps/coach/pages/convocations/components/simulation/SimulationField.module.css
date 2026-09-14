@@ -130,3 +130,34 @@
   color: #ef4444;
   letter-spacing: 0.04em;
 }
+
+/* ── Móvil: campo rotado 90° (porterías arriba/abajo) ──────────────────────
+   Rotación puramente visual (CSS), sin tocar FORMATION_POSITIONS/FormationSlotDef
+   (compartidas con Plantilla y Preparación de temporada). .fieldWrapper pasa a
+   ser portrait (aspect-ratio invertido) y usa container query units (cqw/cqh)
+   para que .field, ANTES de rotar, tenga exactamente las proporciones apaisadas
+   correctas (100cqh de ancho = alto del wrapper, 100cqw de alto = ancho del
+   wrapper); al rotar 90°, su huella visual encaja exactamente en el wrapper
+   portrait. Ver design.md de coach-simulation-mobile-layout para el detalle
+   geométrico. Cada SimulationPlayerSlot se contra-rota -90° por separado
+   (SimulationPlayerSlot.module.css) para que su contenido se vea en pie. */
+@media (max-width: 780px) {
+  .fieldWrapper {
+    container-type: size;
+    width: min(92vw, 420px);
+    max-width: 420px;
+    min-width: 0;
+    aspect-ratio: 68 / 105;
+    margin: 0 auto;
+  }
+
+  .field {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100cqh;
+    height: 100cqw;
+    transform: translate(-50%, -50%) rotate(90deg);
+    transform-origin: center center;
+  }
+}

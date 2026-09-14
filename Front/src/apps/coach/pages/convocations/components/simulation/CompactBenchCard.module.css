@@ -15,3 +15,15 @@
 .dragHandle:active {
   cursor: grabbing;
 }
+
+/* ── Móvil: tarjeta más estrecha, a juego con el tamaño reducido de
+   SimulationPlayerSlot.module.css (.playerCard/.dropTarget a 44px en ese
+   breakpoint), para que un banquillo típico (5-9 jugadores) quepa sin scroll
+   interno en .sidePanel. ─────────────────────────────────────────────────── */
+@media (max-width: 780px) {
+  .wrapper {
+    width: 60px;
+    gap: 2px;
+    padding: 4px 2px;
+  }
+}

@@ -209,3 +209,30 @@
   z-index: 6;
   box-shadow: 0 2px 6px rgba(0,0,0,0.6);
 }
+
+/* ── Móvil: contra-rotación + tarjeta reducida ──────────────────────────────
+   .field (SimulationField.module.css) gira 90° como conjunto en móvil; cada
+   .slot se contra-rota -90° para que su contenido (foto, dorsal, nombre) se
+   pinte en pie — la rotación neta en pantalla es 0°, así que
+   getBoundingClientRect() (usado por dnd-kit para colisiones) sigue devolviendo
+   un rectángulo recto en la posición visual correcta, sin necesidad de tocar la
+   configuración de dnd-kit. El tamaño de tarjeta se reduce (52px → 44px) para
+   minimizar el apelotonamiento; CompactBenchCard reutiliza estas mismas clases,
+   así que el banquillo lateral se reduce a la vez (ver
+   CompactBenchCard.module.css para su .wrapper). */
+@media (max-width: 780px) {
+  .slot {
+    width: 60px;
+    transform: translate(-50%, -50%) rotate(-90deg);
+  }
+
+  .playerCard,
+  .dropTarget {
+    width: 44px;
+    height: 44px;
+  }
+
+  .playerName {
+    max-width: 60px;
+  }
+}

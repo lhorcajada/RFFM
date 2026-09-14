@@ -100,3 +100,37 @@
   color: rgba(255, 255, 255, 0.6);
   margin: 8px 0 6px;
 }
+
+/* ── Móvil: marcador compacto (menos padding, tipografía y escudos
+   reducidos) para no ocupar espacio vertical desproporcionado. ────────────── */
+@media (max-width: 780px) {
+  .root {
+    gap: 8px;
+    padding: 6px 10px;
+  }
+
+  .team {
+    gap: 5px;
+    min-width: 0;
+  }
+
+  .shield {
+    width: 20px;
+    height: 20px;
+    padding: 2px;
+  }
+
+  .teamName {
+    font-size: 0.68rem;
+    max-width: 72px;
+  }
+
+  .score {
+    font-size: 1.5rem;
+    min-width: 22px;
+  }
+
+  .scoreSep {
+    font-size: 1.3rem;
+  }
+}
