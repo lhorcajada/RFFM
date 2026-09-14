@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest";
 import { DndContext } from "@dnd-kit/core";
 import SimulationPlayerSlot from "../SimulationPlayerSlot";
 
-describe("SimulationPlayerSlot - barras Ef/R/C en jugadores de campo", () => {
-  it("muestra las barras compactas Ef/R/C, con letra siempre visible, sobre el jugador del campo", () => {
+describe("SimulationPlayerSlot - barras Ef/R/C ya no se muestran en la tarjeta de campo", () => {
+  it("no muestra las barras compactas Ef/R/C aunque el jugador tenga rodaje y cansancio calculados", () => {
     render(
       <DndContext>
         <SimulationPlayerSlot
@@ -24,10 +24,9 @@ describe("SimulationPlayerSlot - barras Ef/R/C en jugadores de campo", () => {
       </DndContext>,
     );
 
-    // Ef = 30 * (1 - 10/200) = 28.5 -> 29% redondeado
-    expect(screen.getByTestId("player-form-bar-ef")).toHaveTextContent("29%");
-    expect(screen.getByTestId("player-form-bar-r")).toHaveTextContent("30%");
-    expect(screen.getByTestId("player-form-bar-c")).toHaveTextContent("10%");
+    expect(screen.queryByTestId("player-form-bar-ef")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("player-form-bar-r")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("player-form-bar-c")).not.toBeInTheDocument();
   });
 
   it("no muestra las barras cuando el jugador no tiene rodaje ni cansancio calculado", () => {

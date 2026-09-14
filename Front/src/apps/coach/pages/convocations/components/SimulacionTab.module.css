@@ -42,18 +42,59 @@
   align-self: stretch;
 }
 
-/* ── Bench panel ─────────────────────────────────────────────────────────── */
+/* ── Bench panel (compact, draggable — same visual language as the field cards).
+   Much smaller now than the old rich-card panel, so it no longer needs to fill
+   the full stretched height of .rightColumn: it sizes to its own content, with
+   a modest max-height + internal scroll as a safety net for unusually long
+   benches, not tied to any viewport-width media query. ─────────────────────── */
 
 .sidePanel {
-  flex: 1 1 0;
-  min-height: 0;
+  flex: 0 0 auto;
   min-width: 0;
+  max-height: 220px;
+  overflow-y: auto;
+  background: linear-gradient(160deg, #19192e 0%, #0d0d1e 100%);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+}
+
+.compactBenchItems {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px;
+}
+
+/* ── Info lists row: "En el campo" + "Banquillo" (rich cards, read-only),
+   always visible, full width, below field + compact bench. ────────────────── */
+
+.infoListsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.onFieldPanel,
+.benchInfoPanel {
+  flex: 1 1 320px;
+  min-width: 280px;
+  min-height: 0;
   background: linear-gradient(160deg, #19192e 0%, #0d0d1e 100%);
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 14px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+}
+
+/* These two info panels grow with their content and rely on page scroll
+   rather than an internal max-height — they are informational, not the drag
+   target, so there is no need to keep them within a fixed viewport slice. */
+.onFieldPanel .benchZoneStatic,
+.benchInfoPanel .benchZoneStatic {
+  overflow-y: visible;
 }
 
 .panelHeader {
@@ -109,19 +150,6 @@
 }
 
 /* ── Bench player card ───────────────────────────────────────────────────── */
-
-.benchDragHandle {
-  cursor: grab;
-  touch-action: none;
-  user-select: none;
-  flex: 1 1 160px;
-  min-width: 160px;
-  max-width: 220px;
-}
-
-.benchDragHandle:active {
-  cursor: grabbing;
-}
 
 .benchCard {
   display: flex;
@@ -539,6 +567,10 @@
 }
 
 /* ── Responsive ─────────────────────────────────────────────────────────── */
+/* Field + compact bench stack into a single column below 780px — the info
+   lists row below already reflows on its own via flex-wrap, at any width, so
+   no dedicated tablet-range media query is needed anymore (the compact bench
+   is small enough that it no longer needs a special-cased layout). */
 
 @media (max-width: 780px) {
   .main {
@@ -552,7 +584,6 @@
   }
 
   .sidePanel {
-    flex: none;
     width: 100%;
   }
 }

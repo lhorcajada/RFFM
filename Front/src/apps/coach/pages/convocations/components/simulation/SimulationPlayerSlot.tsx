@@ -1,6 +1,5 @@
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
-import PlayerFormBars from "../../../../components/PlayerFormBars/PlayerFormBars";
 import styles from "./SimulationPlayerSlot.module.css";
 
 export interface SimSlotPlayer {
@@ -97,23 +96,10 @@ function DraggablePrepareCard({
       {player.dorsal != null && (
         <span className={styles.dorsalBadge}>{player.dorsal}</span>
       )}
-      {player.competitiveness != null && (
-        <span className={`${styles.compBadge} ${
-          player.competitiveness >= 8 ? styles.compTagHigh
-          : player.competitiveness >= 6 ? styles.compTagMid
-          : styles.compTagLow
-        }`}>{Math.round(player.competitiveness)}</span>
-      )}
       {entering && <span className={styles.enteringBadge}>ENTRA</span>}
       {leaving && <span className={styles.leavingBadge}>SALE</span>}
       {hasGoals && <span className={styles.goalBadge}>⚽</span>}
       {usedElsewhere ? <span className={styles.usedBadgeSlot}>Equipo {usedTab! + 1}</span> : null}
-      <PlayerFormBars
-        variant="compact"
-        readiness={player.readiness}
-        fatigue={player.fatigue}
-        className={styles.formBarsField}
-      />
     </div>
   );
 }
@@ -150,21 +136,8 @@ function DraggableStaticCard({ player, hasGoals, usedTab, usedElsewhere }: { pla
         )}
       </div>
       {player.dorsal != null && <span className={styles.dorsalBadge}>{player.dorsal}</span>}
-      {player.competitiveness != null && (
-        <span className={`${styles.compBadge} ${
-          player.competitiveness >= 8 ? styles.compTagHigh
-          : player.competitiveness >= 6 ? styles.compTagMid
-          : styles.compTagLow
-        }`}>{Math.round(player.competitiveness)}</span>
-      )}
       {hasGoals && <span className={styles.goalBadge}>⚽</span>}
       {usedElsewhere ? <span className={styles.usedBadgeSlot}>Equipo {usedTab! + 1}</span> : null}
-      <PlayerFormBars
-        variant="compact"
-        readiness={player.readiness}
-        fatigue={player.fatigue}
-        className={styles.formBarsField}
-      />
     </div>
   );
 }
@@ -189,21 +162,8 @@ function StaticCard({ player, hasGoals, usedTab, usedElsewhere }: { player: SimS
         )}
       </div>
       {player.dorsal != null && <span className={styles.dorsalBadge}>{player.dorsal}</span>}
-      {player.competitiveness != null && (
-        <span className={`${styles.compBadge} ${
-          player.competitiveness >= 8 ? styles.compTagHigh
-          : player.competitiveness >= 6 ? styles.compTagMid
-          : styles.compTagLow
-        }`}>{Math.round(player.competitiveness)}</span>
-      )}
       {hasGoals && <span className={styles.goalBadge}>⚽</span>}
       {usedElsewhere ? <span className={styles.usedBadgeSlot}>Equipo {usedTab! + 1}</span> : null}
-      <PlayerFormBars
-        variant="compact"
-        readiness={player.readiness}
-        fatigue={player.fatigue}
-        className={styles.formBarsField}
-      />
     </div>
   );
 }

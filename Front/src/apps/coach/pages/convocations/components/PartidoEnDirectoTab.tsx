@@ -9,8 +9,6 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import { useDraggable, useDroppable } from "@dnd-kit/core";
-import { CSS } from "@dnd-kit/utilities";
 import {
   Alert,
   Button,
@@ -47,9 +45,13 @@ import CardsTimeline from "./simulation/CardsTimeline";
 import MatchCompetitivenessReport from "./simulation/MatchCompetitivenessReport";
 import type { SimSlotPlayer } from "./simulation/SimulationPlayerSlot";
 import type { SquadPlayer } from "../../squad/components/IdealLineup";
-import PlayerFormBars from "../../../components/PlayerFormBars/PlayerFormBars";
 import PlayerFormLegend from "../../../components/PlayerFormLegend/PlayerFormLegend";
-import { computeLiveReadiness } from "../utils/liveReadiness";
+import {
+  BenchPlayerCard,
+  DroppableBench,
+  groupBenchPlayers,
+} from "./simulation/BenchPlayerCard";
+import { CompactBenchCard, DraggableCompactBenchCard } from "./simulation/CompactBenchCard";
 import { saveMatchParticipation, updateMatchParticipationReason } from "../../../services/liveMatchService";
 import type { LiveMatchParticipationPayload, PlayerParticipationDto } from "./simulation/liveMatch.types";
 import MinutesReasonEditor from "./MinutesReasonEditor";
@@ -70,169 +72,6 @@ interface Props {
   isHomeTeam?: boolean;
   /** true when the sport event's match category is "Friendly" — disables the substitution-window quota */
   isFriendly?: boolean;
-}
-
-// ─── Position grouping helper ─────────────────────────────────────────────────
-
-const BENCH_POSITION_GROUPS: { label: string; color: string; test: (p: string) => boolean }[] = [
-  { label: "Porteros",        color: "#f59e0b", test: (p) => p.includes("portero") || p.includes("keeper") || p.includes("arquero") },
-  { label: "Defensas",        color: "#3b82f6", test: (p) => p.includes("defensa") || p.includes("central") || p.includes("lateral") || p.includes("libero") || p.includes("stopper") },
-  { label: "Centrocampistas", color: "#10b981", test: (p) => p.includes("centrocampista") || p.includes("medio") || p.includes("pivote") || p.includes("interior") || p.includes("volante") },
-  { label: "Delanteros",      color: "#ef4444", test: (p) => p.includes("delantero") || p.includes("extremo") || p.includes("punta") || p.includes("ariete") || p.includes("winger") },
-];
-
-function flattenBenchPlayers(players: SquadPlayer[]): { player: SquadPlayer; color: string }[] {
-  const result: { player: SquadPlayer; color: string }[] = [];
-  for (const g of BENCH_POSITION_GROUPS) {
-    for (const p of players) {
-      if (g.test((p.position ?? "").toLowerCase())) {
-        result.push({ player: p, color: g.color });
-      }
-    }
-  }
-  const matched = new Set(result.map((r) => r.player.id));
-  for (const p of players) {
-    if (!matched.has(p.id)) result.push({ player: p, color: "#6b7280" });
-  }
-  return result;
-}
-
-function groupBenchPlayers(players: SquadPlayer[]) {
-  const groups = BENCH_POSITION_GROUPS.map((g) => ({ ...g, players: [] as SquadPlayer[] }));
-  const others: SquadPlayer[] = [];
-  for (const p of players) {
-    const lower = (p.position ?? "").toLowerCase();
-    const idx = BENCH_POSITION_GROUPS.findIndex((g) => g.test(lower));
-    if (idx >= 0) groups[idx].players.push(p);
-    else others.push(p);
-  }
-  if (others.length > 0) groups.push({ label: "Sin posición", color: "#6b7280", players: others, test: () => false });
-  return groups.filter((g) => g.players.length > 0);
-}
-
-// ─── Bench player card ────────────────────────────────────────────────────────
-
-function BenchPlayerCard({
-  player,
-  isDragActive,
-  isLeaving,
-  minutesPlayed,
-  hasPlayed,
-  groupColor,
-}: {
-  player: SquadPlayer;
-  isDragActive: boolean;
-  isLeaving: boolean;
-  minutesPlayed?: number;
-  hasPlayed?: boolean;
-  groupColor?: string;
-}) {
-  const initials = player.displayName
-    .split(" ")
-    .slice(0, 2)
-    .map((w) => w[0] ?? "")
-    .join("")
-    .toUpperCase();
-
-  return (
-    <div
-      className={`${simStyles.benchCard} ${isDragActive ? simStyles.benchCardDragging : ""} ${isLeaving ? simStyles.benchCardLeaving : ""}`}
-      style={groupColor && !isLeaving ? { borderLeftColor: groupColor, borderLeftWidth: 3 } : undefined}
-      title={player.displayName}
-    >
-      {/* Top row: info + photo */}
-      <div className={simStyles.benchCardTopRow}>
-        <div className={simStyles.benchCardInfo}>
-          <div className={simStyles.benchCardNameRow}>
-            {player.dorsal != null && (
-              <span className={simStyles.benchCardDorsal}>{player.dorsal}</span>
-            )}
-            <span className={simStyles.benchCardName}>
-              {player.alias?.trim() || player.displayName.split(" ").slice(0, 2).join(" ")}
-            </span>
-            {player.isInjured && <span title="Lesionado" style={{ fontSize: "0.7rem" }}>🩹</span>}
-          </div>
-          {player.position && (
-            <div className={simStyles.benchCardPosition}>{player.position}</div>
-          )}
-        </div>
-        {player.photoSrc ? (
-          <img src={player.photoSrc} alt={player.displayName} className={simStyles.benchCardAvatar} />
-        ) : (
-          <div className={simStyles.benchCardInitials}>{initials}</div>
-        )}
-      </div>
-
-      {/* Bottom row: badges + minutes/SALE */}
-      <div className={simStyles.benchCardBottomRow}>
-        <div className={simStyles.benchCardMetaRow}>
-          {player.competitiveness != null && (
-            <span
-              className={`${simStyles.benchCompTag} ${
-                player.competitiveness >= 8
-                  ? simStyles.benchCompHigh
-                  : player.competitiveness >= 6
-                    ? simStyles.benchCompMid
-                    : simStyles.benchCompLow
-              }`}
-            >
-              Comp.&nbsp;{Math.round(player.competitiveness)}
-            </span>
-          )}
-          {player.streakCount != null && (
-            <span className={simStyles.benchStreakBadge} title="Jornadas sin decisión técnica">
-              ⏱ {player.streakCount}
-            </span>
-          )}
-        </div>
-        {!isLeaving ? (
-          hasPlayed
-            ? <span className={simStyles.benchMinTag}>{minutesPlayed}&apos;</span>
-            : <span className={simStyles.benchNoPlayTag}>—</span>
-        ) : (
-          <span className={simStyles.benchCardSaleBadge}>SALE</span>
-        )}
-      </div>
-      <PlayerFormBars
-        variant="full"
-        readiness={computeLiveReadiness(player.readinessBreakdown, minutesPlayed ?? 0)}
-        fatigue={player.fatigue}
-        className={simStyles.benchFormBars}
-      />
-    </div>
-  );
-}
-function DraggableBenchCard({
-  player,
-  isLeaving,
-  minutesPlayed,
-  hasPlayed,
-  groupColor,
-}: {
-  player: SquadPlayer;
-  isLeaving: boolean;
-  minutesPlayed?: number;
-  hasPlayed?: boolean;
-  groupColor?: string;
-}) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: `sim-player-${player.id}`,
-  });
-  const style = { transform: CSS.Translate.toString(transform) };
-  return (
-    <div ref={setNodeRef} style={style} {...listeners} {...attributes} className={simStyles.benchDragHandle}>
-      <BenchPlayerCard player={player} isDragActive={isDragging} isLeaving={isLeaving} minutesPlayed={minutesPlayed} hasPlayed={hasPlayed} groupColor={groupColor} />
-    </div>
-  );
-}
-
-function DroppableBench({ children }: { children: React.ReactNode }) {
-  const { setNodeRef, isOver } = useDroppable({ id: "sim-bench" });
-  return (
-    <div ref={setNodeRef} className={`${simStyles.benchZone} ${isOver ? simStyles.benchZoneOver : ""}`}>
-      {children}
-    </div>
-  );
 }
 
 // ─── Main component ─────────────────────────────────────────────────────────
@@ -358,6 +197,13 @@ export default function PartidoEnDirectoTab({
     const onPreviewField = new Set(Object.values(live.prepareSlotsPreview).filter(Boolean) as string[]);
     return lineupPlayers.filter((p) => !onPreviewField.has(p.id));
   }, [lineupPlayers, live.prepareMode, live.prepareSlotsPreview, benchPlayers]);
+
+  // Players currently on the field (or on the prepare preview) — read-only "En el campo" list
+  const onFieldPlayers = useMemo(() => {
+    const activeSlots = live.prepareMode ? live.prepareSlotsPreview : live.slots;
+    const onFieldIds = new Set(Object.values(activeSlots).filter(Boolean) as string[]);
+    return lineupPlayers.filter((p) => onFieldIds.has(p.id));
+  }, [lineupPlayers, live.prepareMode, live.prepareSlotsPreview, live.slots]);
 
   // ── Players on field (for scoreboard scorer selection) ───────────────────
   const fieldPlayers = useMemo<SimSlotPlayer[]>(() => {
@@ -595,7 +441,14 @@ export default function PartidoEnDirectoTab({
     );
   }
 
-  // ── Field + bench content ─────────────────────────────────────────────────
+  // ── Field + compact bench content ─────────────────────────────────────────
+  // The side panel is now a compact, draggable bench (same visual language as
+  // the on-field cards) in every viewport size. The rich, read-only info
+  // panels ("En el campo" / "Banquillo") live in an always-visible block
+  // below (see infoLists).
+
+  const currentBenchPlayers = live.prepareMode ? prepareBenchPlayers : benchPlayers;
+
   const fieldAndPanel = (
     <div className={simStyles.main}>
       <SimulationField
@@ -612,88 +465,127 @@ export default function PartidoEnDirectoTab({
         <div className={simStyles.sidePanel}>
           <div className={simStyles.panelHeader}>
             {live.prepareMode ? "Disponibles para el cambio" : "Banquillo"}
-            <span className={simStyles.panelBadge}>
-              {live.prepareMode ? prepareBenchPlayers.length : benchPlayers.length}
-            </span>
+            <span className={simStyles.panelBadge}>{currentBenchPlayers.length}</span>
           </div>
-          {live.prepareMode ? (
+
+          {currentBenchPlayers.length === 0 ? (
+            <p className={simStyles.emptyBench}>
+              {live.prepareMode ? "Todos los jugadores están en el campo" : "No hay jugadores en el banquillo"}
+            </p>
+          ) : live.prepareMode ? (
             <DroppableBench>
-              {prepareBenchPlayers.length === 0 ? (
-                <p className={simStyles.emptyBench}>Todos los jugadores están en el campo</p>
-              ) : (
-                <div className={simStyles.benchPosGroupItems}>
-                  {groupBenchPlayers(prepareBenchPlayers).map((group) => (
-                    <Fragment key={group.label}>
-                      <div
-                        className={simStyles.benchGroupSeparator}
-                        style={{ borderLeftColor: group.color }}
-                      >
-                        <span className={simStyles.benchGroupSeparatorLabel}>{group.label}</span>
-                        <span className={simStyles.benchGroupSeparatorCount}>{group.players.length}</span>
-                      </div>
-                      {group.players.map((p) => (
-                        <DraggableBenchCard
-                          key={p.id}
-                          player={p}
-                          isLeaving={leavingIds.has(p.id)}
-                          minutesPlayed={effectiveMinutes[p.id] ?? 0}
-                          hasPlayed={(live.playerStates[p.id]?.accumulatedMinutes ?? 0) > 0 || live.playerStates[p.id]?.isOnField === true}
-                          groupColor={group.color}
-                        />
-                      ))}
-                    </Fragment>
-                  ))}
-                </div>
-              )}
+              <div className={simStyles.compactBenchItems}>
+                {currentBenchPlayers.map((p) => (
+                  <DraggableCompactBenchCard
+                    key={p.id}
+                    player={p}
+                    isLeaving={leavingIds.has(p.id)}
+                    minutesPlayed={effectiveMinutes[p.id] ?? 0}
+                  />
+                ))}
+              </div>
             </DroppableBench>
           ) : (
-            <>
-              <div className={simStyles.panelLegend}>
-                <span className={simStyles.legendItem}>
-                  <span className={`${simStyles.benchCompTag} ${simStyles.benchCompMid}`} style={{ fontSize: "0.5rem" }}>Comp.</span> Competitividad
-                </span>
-                <span className={simStyles.legendItem}>
-                  <span className={simStyles.benchMinTag} style={{ fontSize: "0.5rem" }}>0&apos;</span> Minutos
-                </span>
-                <span className={simStyles.legendItem}>
-                  <span className={simStyles.benchStreakBadge} style={{ fontSize: "0.5rem" }}>⏱ N</span> Jornadas sin decisión técnica
-                </span>
-                <PlayerFormLegend />
-              </div>
-              <div className={simStyles.benchZoneStatic}>
-                {benchPlayers.length === 0 ? (
-                  <p className={simStyles.emptyBench}>No hay jugadores en el banquillo</p>
-                ) : (
-                  <div className={simStyles.benchPosGroupItems}>
-                    {groupBenchPlayers(benchPlayers).map((group) => (
-                      <Fragment key={group.label}>
-                        <div
-                          className={simStyles.benchGroupSeparator}
-                          style={{ borderLeftColor: group.color }}
-                        >
-                          <span className={simStyles.benchGroupSeparatorLabel}>{group.label}</span>
-                          <span className={simStyles.benchGroupSeparatorCount}>{group.players.length}</span>
-                        </div>
-                        {group.players.map((p) => (
-                          <BenchPlayerCard
-                            key={p.id}
-                            player={p}
-                            isDragActive={false}
-                            isLeaving={false}
-                            minutesPlayed={effectiveMinutes[p.id] ?? 0}
-                            hasPlayed={(live.playerStates[p.id]?.accumulatedMinutes ?? 0) > 0}
-                            groupColor={group.color}
-                          />
-                        ))}
-                      </Fragment>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </>
+            <div className={simStyles.compactBenchItems}>
+              {currentBenchPlayers.map((p) => (
+                <CompactBenchCard
+                  key={p.id}
+                  player={p}
+                  isLeaving={false}
+                  minutesPlayed={effectiveMinutes[p.id] ?? 0}
+                />
+              ))}
+            </div>
           )}
         </div>
         <SubstitutionHistoryPanel windows={live.windows} playersById={playersById} />
+      </div>
+    </div>
+  );
+
+  // ── Info lists: rich, read-only "En el campo" + "Banquillo" — always
+  // visible, every viewport size, full width, below field + compact bench ──
+
+  const infoLists = (
+    <div className={simStyles.infoListsRow}>
+      <div className={simStyles.onFieldPanel}>
+        <div className={simStyles.panelHeader}>
+          En el campo
+          <span className={simStyles.panelBadge}>{onFieldPlayers.length}</span>
+        </div>
+        <div className={simStyles.benchZoneStatic}>
+          {onFieldPlayers.length === 0 ? (
+            <p className={simStyles.emptyBench}>No hay jugadores en el campo</p>
+          ) : (
+            <div className={simStyles.benchPosGroupItems}>
+              {groupBenchPlayers(onFieldPlayers).map((group) => (
+                <Fragment key={group.label}>
+                  <div className={simStyles.benchGroupSeparator} style={{ borderLeftColor: group.color }}>
+                    <span className={simStyles.benchGroupSeparatorLabel}>{group.label}</span>
+                    <span className={simStyles.benchGroupSeparatorCount}>{group.players.length}</span>
+                  </div>
+                  {group.players.map((p) => (
+                    <BenchPlayerCard
+                      key={p.id}
+                      player={p}
+                      isDragActive={false}
+                      isLeaving={false}
+                      minutesPlayed={effectiveMinutes[p.id] ?? 0}
+                      hasPlayed={(live.playerStates[p.id]?.accumulatedMinutes ?? 0) > 0 || live.playerStates[p.id]?.isOnField === true}
+                      groupColor={group.color}
+                    />
+                  ))}
+                </Fragment>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className={simStyles.benchInfoPanel}>
+        <div className={simStyles.panelHeader}>
+          Banquillo
+          <span className={simStyles.panelBadge}>{currentBenchPlayers.length}</span>
+        </div>
+        <div className={simStyles.panelLegend}>
+          <span className={simStyles.legendItem}>
+            <span className={`${simStyles.benchCompTag} ${simStyles.benchCompMid}`} style={{ fontSize: "0.5rem" }}>Comp.</span> Competitividad
+          </span>
+          <span className={simStyles.legendItem}>
+            <span className={simStyles.benchMinTag} style={{ fontSize: "0.5rem" }}>0&apos;</span> Minutos
+          </span>
+          <span className={simStyles.legendItem}>
+            <span className={simStyles.benchStreakBadge} style={{ fontSize: "0.5rem" }}>⏱ N</span> Jornadas sin decisión técnica
+          </span>
+          <PlayerFormLegend />
+        </div>
+        <div className={simStyles.benchZoneStatic}>
+          {currentBenchPlayers.length === 0 ? (
+            <p className={simStyles.emptyBench}>No hay jugadores en el banquillo</p>
+          ) : (
+            <div className={simStyles.benchPosGroupItems}>
+              {groupBenchPlayers(currentBenchPlayers).map((group) => (
+                <Fragment key={group.label}>
+                  <div className={simStyles.benchGroupSeparator} style={{ borderLeftColor: group.color }}>
+                    <span className={simStyles.benchGroupSeparatorLabel}>{group.label}</span>
+                    <span className={simStyles.benchGroupSeparatorCount}>{group.players.length}</span>
+                  </div>
+                  {group.players.map((p) => (
+                    <BenchPlayerCard
+                      key={p.id}
+                      player={p}
+                      isDragActive={false}
+                      isLeaving={live.prepareMode && leavingIds.has(p.id)}
+                      minutesPlayed={effectiveMinutes[p.id] ?? 0}
+                      hasPlayed={(live.playerStates[p.id]?.accumulatedMinutes ?? 0) > 0 || live.playerStates[p.id]?.isOnField === true}
+                      groupColor={group.color}
+                    />
+                  ))}
+                </Fragment>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -899,6 +791,9 @@ export default function PartidoEnDirectoTab({
           )}
         </DragOverlay>
       </DndContext>
+
+      {/* Info lists: rich, read-only "En el campo" + "Banquillo" — always visible */}
+      {infoLists}
 
       {/* Save state feedback */}
       {live.isSaving && (
