@@ -15,9 +15,10 @@ using Xunit;
 namespace RFFM.Api.Tests.UnitTests
 {
     /// <summary>
-    /// Covers GetPlayerConvocationSummary: aggregate starts/convocations totals plus the most
-    /// recent match the coach deconvoked the player from, and the most recent match the player
-    /// missed for personal reasons (Justified), for the player-statistics-tab redesign.
+    /// Covers GetPlayerConvocationSummary: aggregate starts/convocations totals (overall and
+    /// broken down by event type), the most recent match the coach deconvoked the player from
+    /// (with reason), and the most recent match the player was accepted into but missed
+    /// (AssistanceType Excused/UnexcusedAbsence, with reason when available).
     /// </summary>
     [Collection(PostgresCollection.Name)]
     public class GetPlayerConvocationSummaryHandlerTests
@@ -25,9 +26,11 @@ namespace RFFM.Api.Tests.UnitTests
         private readonly PostgresContainerFixture _fixture;
         private static readonly int MatchEventTypeId = SportEventType.FromName("Partido").Id;
         private static readonly int FriendlyEventTypeId = SportEventType.FromName("Amistoso").Id;
+        private static readonly int TrainingEventTypeId = SportEventType.FromName("Entrenamiento").Id;
         private static readonly int DeconvokeStatusId = ConvocationStatus.FromName("Deconvoke").Id;
-        private static readonly int JustifiedStatusId = ConvocationStatus.FromName("Justified").Id;
         private static readonly int AcceptedStatusId = ConvocationStatus.FromName("Accepted").Id;
+        private static readonly int ExcusedAbsenceTypeId = AssistanceType.ExcusedAbsence.Id;
+        private static readonly int UnexcusedAbsenceTypeId = AssistanceType.UnexcusedAbsence.Id;
 
         public GetPlayerConvocationSummaryHandlerTests(PostgresContainerFixture fixture)
         {
@@ -110,16 +113,17 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         private async Task<string> SeedConvocationAsync(
-            AppDbContext db, string eventId, string teamPlayerId, int convocationStatusId)
+            AppDbContext db, string eventId, string teamPlayerId, int convocationStatusId,
+            int? assistanceTypeId = null, int? excuseTypeId = null)
         {
             var convocation = Convocation.Create(new ConvocationModel
             {
                 EventId = eventId,
                 TeamPlayerId = teamPlayerId,
-                AssistanceTypeId = null,
+                AssistanceTypeId = assistanceTypeId,
                 ResponseDateTime = DateTime.UtcNow,
                 ConvocationStatusId = convocationStatusId,
-                ExcuseTypeId = null
+                ExcuseTypeId = excuseTypeId
             });
             db.Convocations.Add(convocation);
             await db.SaveChangesAsync();
@@ -180,7 +184,7 @@ namespace RFFM.Api.Tests.UnitTests
             await SeedConvocationAsync(db, event2, teamPlayerId, DeconvokeStatusId);
 
             var event3 = await SeedSportEventAsync(db, teamId, MatchEventTypeId, DateTime.UtcNow.AddDays(-10), rivalId);
-            await SeedConvocationAsync(db, event3, teamPlayerId, JustifiedStatusId);
+            await SeedConvocationAsync(db, event3, teamPlayerId, AcceptedStatusId, ExcusedAbsenceTypeId);
 
             var handler = new GetPlayerConvocationSummary.Handler(db);
             var result = await handler.Handle(
@@ -222,10 +226,10 @@ namespace RFFM.Api.Tests.UnitTests
             var newerDate = DateTime.UtcNow.AddDays(-3).Date;
 
             var olderEvent = await SeedSportEventAsync(db, teamId, MatchEventTypeId, olderDate, rivalIdOld);
-            await SeedConvocationAsync(db, olderEvent, teamPlayerId, DeconvokeStatusId);
+            await SeedConvocationAsync(db, olderEvent, teamPlayerId, DeconvokeStatusId, excuseTypeId: ExcuseTypes.SportiveSanction.Id);
 
             var newerEvent = await SeedSportEventAsync(db, teamId, FriendlyEventTypeId, newerDate, rivalIdNew);
-            await SeedConvocationAsync(db, newerEvent, teamPlayerId, DeconvokeStatusId);
+            await SeedConvocationAsync(db, newerEvent, teamPlayerId, DeconvokeStatusId, excuseTypeId: 1);
 
             var handler = new GetPlayerConvocationSummary.Handler(db);
             var result = await handler.Handle(
@@ -238,14 +242,15 @@ namespace RFFM.Api.Tests.UnitTests
             Assert.Equal("CD Rival New", result.LastDeconvokedMatch.RivalName);
             Assert.Equal(FriendlyEventTypeId, result.LastDeconvokedMatch.EventTypeId);
             Assert.Equal("Amistoso", result.LastDeconvokedMatch.EventTypeName);
+            Assert.Equal("Lesión", result.LastDeconvokedMatch.Reason);
         }
 
         [Fact]
-        public async Task Handle_NoJustifiedAbsences_ReturnsNullLastJustifiedAbsenceMatch()
+        public async Task Handle_NoAbsences_ReturnsNullLastAbsenceMatch()
         {
             await using var db = _fixture.CreateDbContext();
             var (teamId, clubId, seasonId) = await SeedTeamAsync(db);
-            var teamPlayerId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "no-justified-player");
+            var teamPlayerId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "no-absence-player");
             var rivalId = await SeedRivalAsync(db, "CD Rival None2");
 
             var event1 = await SeedSportEventAsync(db, teamId, MatchEventTypeId, DateTime.UtcNow.AddDays(-10), rivalId);
@@ -256,38 +261,94 @@ namespace RFFM.Api.Tests.UnitTests
                 new GetPlayerConvocationSummary.PlayerConvocationSummaryQuery { TeamPlayerId = teamPlayerId },
                 CancellationToken.None);
 
-            Assert.Null(result.LastJustifiedAbsenceMatch);
+            Assert.Null(result.LastAbsenceMatch);
         }
 
         [Fact]
-        public async Task Handle_TwoJustifiedAbsences_ReturnsMostRecentWithRivalAndEventType()
+        public async Task Handle_TwoExcusedAbsences_ReturnsMostRecentWithRivalEventTypeAndReason()
         {
             await using var db = _fixture.CreateDbContext();
             var (teamId, clubId, seasonId) = await SeedTeamAsync(db);
-            var teamPlayerId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "justified-player");
-            var rivalIdOld = await SeedRivalAsync(db, "CD Rival Justified Old");
-            var rivalIdNew = await SeedRivalAsync(db, "CD Rival Justified New");
+            var teamPlayerId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "absence-player");
+            var rivalIdOld = await SeedRivalAsync(db, "CD Rival Absence Old");
+            var rivalIdNew = await SeedRivalAsync(db, "CD Rival Absence New");
 
             var olderDate = DateTime.UtcNow.AddDays(-15).Date;
             var newerDate = DateTime.UtcNow.AddDays(-2).Date;
 
             var olderEvent = await SeedSportEventAsync(db, teamId, MatchEventTypeId, olderDate, rivalIdOld);
-            await SeedConvocationAsync(db, olderEvent, teamPlayerId, JustifiedStatusId);
+            await SeedConvocationAsync(db, olderEvent, teamPlayerId, AcceptedStatusId, ExcusedAbsenceTypeId, excuseTypeId: 3);
 
             var newerEvent = await SeedSportEventAsync(db, teamId, MatchEventTypeId, newerDate, rivalIdNew);
-            await SeedConvocationAsync(db, newerEvent, teamPlayerId, JustifiedStatusId);
+            await SeedConvocationAsync(db, newerEvent, teamPlayerId, AcceptedStatusId, ExcusedAbsenceTypeId, excuseTypeId: 3);
 
             var handler = new GetPlayerConvocationSummary.Handler(db);
             var result = await handler.Handle(
                 new GetPlayerConvocationSummary.PlayerConvocationSummaryQuery { TeamPlayerId = teamPlayerId },
                 CancellationToken.None);
 
-            Assert.NotNull(result.LastJustifiedAbsenceMatch);
-            Assert.Equal(newerEvent, result.LastJustifiedAbsenceMatch!.EventId);
-            Assert.Equal(newerDate, result.LastJustifiedAbsenceMatch.MatchDate);
-            Assert.Equal("CD Rival Justified New", result.LastJustifiedAbsenceMatch.RivalName);
-            Assert.Equal(MatchEventTypeId, result.LastJustifiedAbsenceMatch.EventTypeId);
-            Assert.Equal("Partido", result.LastJustifiedAbsenceMatch.EventTypeName);
+            Assert.NotNull(result.LastAbsenceMatch);
+            Assert.Equal(newerEvent, result.LastAbsenceMatch!.EventId);
+            Assert.Equal(newerDate, result.LastAbsenceMatch.MatchDate);
+            Assert.Equal("CD Rival Absence New", result.LastAbsenceMatch.RivalName);
+            Assert.Equal(MatchEventTypeId, result.LastAbsenceMatch.EventTypeId);
+            Assert.Equal("Partido", result.LastAbsenceMatch.EventTypeName);
+            Assert.Equal("Enfermedad", result.LastAbsenceMatch.Reason);
+        }
+
+        [Fact]
+        public async Task Handle_UnexcusedAbsenceWithoutReason_ReturnsNullReason()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, clubId, seasonId) = await SeedTeamAsync(db);
+            var teamPlayerId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "unexcused-player");
+            var rivalId = await SeedRivalAsync(db, "CD Rival Unexcused");
+
+            var eventDate = DateTime.UtcNow.AddDays(-4).Date;
+            var eventId = await SeedSportEventAsync(db, teamId, MatchEventTypeId, eventDate, rivalId);
+            await SeedConvocationAsync(db, eventId, teamPlayerId, AcceptedStatusId, UnexcusedAbsenceTypeId);
+
+            var handler = new GetPlayerConvocationSummary.Handler(db);
+            var result = await handler.Handle(
+                new GetPlayerConvocationSummary.PlayerConvocationSummaryQuery { TeamPlayerId = teamPlayerId },
+                CancellationToken.None);
+
+            Assert.NotNull(result.LastAbsenceMatch);
+            Assert.Null(result.LastAbsenceMatch!.Reason);
+        }
+
+        [Fact]
+        public async Task Handle_ConvocationsAcrossEventTypes_BreaksDownTotalsByTrainingFriendlyAndLeague()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, clubId, seasonId) = await SeedTeamAsync(db);
+            var teamPlayerId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "breakdown-player");
+            var rivalId = await SeedRivalAsync(db, "CD Rival Breakdown");
+
+            var training1 = await SeedSportEventAsync(db, teamId, TrainingEventTypeId, DateTime.UtcNow.AddDays(-30), null);
+            await SeedConvocationAsync(db, training1, teamPlayerId, AcceptedStatusId);
+            var training2 = await SeedSportEventAsync(db, teamId, TrainingEventTypeId, DateTime.UtcNow.AddDays(-29), null);
+            await SeedConvocationAsync(db, training2, teamPlayerId, AcceptedStatusId);
+
+            var friendly1 = await SeedSportEventAsync(db, teamId, FriendlyEventTypeId, DateTime.UtcNow.AddDays(-20), rivalId);
+            await SeedConvocationAsync(db, friendly1, teamPlayerId, AcceptedStatusId);
+
+            var league1 = await SeedSportEventAsync(db, teamId, MatchEventTypeId, DateTime.UtcNow.AddDays(-10), rivalId);
+            await SeedConvocationAsync(db, league1, teamPlayerId, AcceptedStatusId);
+            var league2 = await SeedSportEventAsync(db, teamId, MatchEventTypeId, DateTime.UtcNow.AddDays(-5), rivalId);
+            await SeedConvocationAsync(db, league2, teamPlayerId, AcceptedStatusId);
+            var league3 = await SeedSportEventAsync(db, teamId, MatchEventTypeId, DateTime.UtcNow.AddDays(-1), rivalId);
+            await SeedConvocationAsync(db, league3, teamPlayerId, AcceptedStatusId);
+
+            var handler = new GetPlayerConvocationSummary.Handler(db);
+            var result = await handler.Handle(
+                new GetPlayerConvocationSummary.PlayerConvocationSummaryQuery { TeamPlayerId = teamPlayerId },
+                CancellationToken.None);
+
+            Assert.Equal(6, result.TotalConvocations);
+            Assert.Equal(2, result.TotalTrainingConvocations);
+            Assert.Equal(1, result.TotalFriendlyConvocations);
+            Assert.Equal(3, result.TotalLeagueConvocations);
         }
 
         [Fact]
@@ -304,8 +365,11 @@ namespace RFFM.Api.Tests.UnitTests
 
             Assert.Equal(0, result.TotalStarts);
             Assert.Equal(0, result.TotalConvocations);
+            Assert.Equal(0, result.TotalTrainingConvocations);
+            Assert.Equal(0, result.TotalFriendlyConvocations);
+            Assert.Equal(0, result.TotalLeagueConvocations);
             Assert.Null(result.LastDeconvokedMatch);
-            Assert.Null(result.LastJustifiedAbsenceMatch);
+            Assert.Null(result.LastAbsenceMatch);
         }
     }
 }

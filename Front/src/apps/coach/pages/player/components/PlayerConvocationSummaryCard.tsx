@@ -28,9 +28,12 @@ function AbsenceTile({
     <div className={styles.tile}>
       <span className={styles.tileLabel}>{label}</span>
       {match ? (
-        <span className={styles.absenceValue}>
-          {match.rivalName ?? "—"} · {match.eventTypeName ?? "—"} · {formatAbsenceDate(match.matchDate)}
-        </span>
+        <>
+          <span className={styles.absenceValue}>
+            {match.rivalName ?? "—"} · {match.eventTypeName ?? "—"} · {formatAbsenceDate(match.matchDate)}
+          </span>
+          {match.reason && <span className={styles.absenceReason}>Motivo: {match.reason}</span>}
+        </>
       ) : (
         <span className={styles.emptyValue}>{emptyLabel}</span>
       )}
@@ -52,17 +55,25 @@ export default function PlayerConvocationSummaryCard({ summary, loading }: Props
         <span className={styles.tileLabel}>Titularidades</span>
       </div>
       <div className={styles.tile}>
-        <span className={styles.tileValue}>{summary.totalConvocations}</span>
-        <span className={styles.tileLabel}>Convocatorias</span>
+        <span className={styles.tileValue}>{summary.totalTrainingConvocations}</span>
+        <span className={styles.tileLabel}>Entrenamientos</span>
+      </div>
+      <div className={styles.tile}>
+        <span className={styles.tileValue}>{summary.totalFriendlyConvocations}</span>
+        <span className={styles.tileLabel}>Amistosos</span>
+      </div>
+      <div className={styles.tile}>
+        <span className={styles.tileValue}>{summary.totalLeagueConvocations}</span>
+        <span className={styles.tileLabel}>Liga</span>
       </div>
       <AbsenceTile
-        label="Última desconvocación"
+        label="Última desconvocatoria"
         match={summary.lastDeconvokedMatch}
-        emptyLabel="Sin desconvocaciones registradas"
+        emptyLabel="Sin desconvocatorias registradas"
       />
       <AbsenceTile
         label="Última ausencia"
-        match={summary.lastJustifiedAbsenceMatch}
+        match={summary.lastAbsenceMatch}
         emptyLabel="Sin ausencias registradas"
       />
     </div>

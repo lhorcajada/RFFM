@@ -116,25 +116,30 @@ export async function updateConvocationMinutesReason(
   );
 }
 
-/** A match a player missed, with enough context to display it (rival, type, date). */
+/** A match a player missed, with enough context to display it (rival, type, date, reason). */
 export type PlayerAbsenceMatch = {
   eventId: string;
   matchDate: string | null;
   rivalName: string | null;
   eventTypeId: number;
   eventTypeName: string | null;
+  reason: string | null;
 };
 
 /**
  * Aggregate convocation/participation summary for one team player: how many matches they
- * started, how many times they were called up in total, and the most recent match missed for
- * each of the two distinct absence reasons (coach decision vs. player's own circumstances).
+ * started, how many times they were called up in total (overall and broken down by event type),
+ * and the most recent match missed for each of the two distinct absence reasons (coach decision
+ * vs. player's own circumstances).
  */
 export type PlayerConvocationSummary = {
   totalStarts: number;
   totalConvocations: number;
+  totalTrainingConvocations: number;
+  totalFriendlyConvocations: number;
+  totalLeagueConvocations: number;
   lastDeconvokedMatch: PlayerAbsenceMatch | null;
-  lastJustifiedAbsenceMatch: PlayerAbsenceMatch | null;
+  lastAbsenceMatch: PlayerAbsenceMatch | null;
 };
 
 export async function getPlayerConvocationSummary(

@@ -38,6 +38,12 @@
   word-break: break-word;
 }
 
+.absenceReason {
+  font-size: 11px;
+  color: var(--rffm-muted, #a59f9f);
+  word-break: break-word;
+}
+
 .emptyValue {
   font-size: 12px;
   color: var(--rffm-muted, #a59f9f);

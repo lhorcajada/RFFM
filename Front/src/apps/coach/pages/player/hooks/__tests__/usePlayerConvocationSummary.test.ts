@@ -42,7 +42,7 @@ describe("usePlayerConvocationSummary", () => {
         totalStarts: 5,
         totalConvocations: 8,
         lastDeconvokedMatch: null,
-        lastJustifiedAbsenceMatch: null,
+        lastAbsenceMatch: null,
       });
     });
 
@@ -51,7 +51,7 @@ describe("usePlayerConvocationSummary", () => {
       totalStarts: 5,
       totalConvocations: 8,
       lastDeconvokedMatch: null,
-      lastJustifiedAbsenceMatch: null,
+      lastAbsenceMatch: null,
     });
   });
 
@@ -60,7 +60,7 @@ describe("usePlayerConvocationSummary", () => {
       totalStarts: 1,
       totalConvocations: 2,
       lastDeconvokedMatch: null,
-      lastJustifiedAbsenceMatch: null,
+      lastAbsenceMatch: null,
     });
 
     const { result } = renderHook(() => usePlayerConvocationSummary());

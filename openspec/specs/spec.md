@@ -341,6 +341,7 @@ dotnet run --project src/RFFM.Host
 
 ### Modified/Extended Capabilities
 - Invitaciones de club/equipo (`ValidateInvitationCode`, `ValidateTeamJoinCode`): Enhanced for registration flow; `Coach` now allowed for club-code path; team-code responses include player roster with uniqueness hints
+- `player-convocation-summary` (`GetPlayerConvocationSummary`, `PlayerConvocationSummaryCard`): totals broken down by event type (training/friendly/league), absence reasons surfaced via `ExcuseType`, "Última ausencia" now sourced from `AssistanceType` (Excused/UnexcusedAbsence) instead of the dead `ConvocationStatus.Justified`
 
 ---
 

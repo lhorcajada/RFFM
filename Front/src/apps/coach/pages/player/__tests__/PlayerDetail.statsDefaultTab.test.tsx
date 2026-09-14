@@ -92,8 +92,11 @@ vi.mock("../hooks/usePlayerConvocationSummary", () => ({
     summary: {
       totalStarts: 12,
       totalConvocations: 15,
+      totalTrainingConvocations: 9,
+      totalFriendlyConvocations: 2,
+      totalLeagueConvocations: 4,
       lastDeconvokedMatch: null,
-      lastJustifiedAbsenceMatch: null,
+      lastAbsenceMatch: null,
     },
     loadingSummary: false,
     loadSummary: loadSummaryMock,
@@ -176,13 +179,14 @@ describe("PlayerDetail — Estadísticas como pestaña por defecto", () => {
     expect(loadStatsMock).toHaveBeenCalledWith("team-1", "tp-1");
   });
 
-  it("muestra el resumen de titularidades y convocatorias en la pestaña por defecto", () => {
+  it("muestra el resumen de titularidades y convocatorias por tipo en la pestaña por defecto", () => {
     renderPage();
 
     expect(screen.getByText("Titularidades")).toBeInTheDocument();
     expect(screen.getByText("12")).toBeInTheDocument();
-    expect(screen.getByText("Convocatorias")).toBeInTheDocument();
-    expect(screen.getByText("15")).toBeInTheDocument();
+    expect(screen.getByText("Entrenamientos")).toBeInTheDocument();
+    expect(screen.getByText("Amistosos")).toBeInTheDocument();
+    expect(screen.getByText("Liga")).toBeInTheDocument();
   });
 
   it("muestra las barras de forma (Ef/Rodaje/Cansancio) del jugador en la pestaña Estadísticas", () => {

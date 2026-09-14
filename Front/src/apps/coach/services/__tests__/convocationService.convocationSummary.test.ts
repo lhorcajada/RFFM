@@ -20,14 +20,18 @@ describe("convocationService.getPlayerConvocationSummary", () => {
     const apiResponse = {
       totalStarts: 12,
       totalConvocations: 15,
+      totalTrainingConvocations: 9,
+      totalFriendlyConvocations: 2,
+      totalLeagueConvocations: 4,
       lastDeconvokedMatch: {
         eventId: "ev-1",
         matchDate: "2026-02-10T10:00:00Z",
         rivalName: "CD Rival",
         eventTypeId: 1,
         eventTypeName: "Partido",
+        reason: "Decisión técnica",
       },
-      lastJustifiedAbsenceMatch: null,
+      lastAbsenceMatch: null,
     };
     (client.get as any).mockResolvedValue({ data: apiResponse });
 
