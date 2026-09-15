@@ -175,6 +175,27 @@ describe("buildSessionPrintHtml", () => {
     expect(html).toContain("Anticipación");
   });
 
+  it("incluye la descripción del ejercicio cuando se provee su detalle", () => {
+    const session = buildSession({
+      blocks: [
+        {
+          id: "b1",
+          order: 1,
+          nombre: "Activación",
+          comoConectaConAnterior: "",
+          exercises: [{ id: "be1", exerciseId: "ex1", position: 1, exerciseName: "Rondo 4v2" }],
+        },
+      ],
+    });
+    const exercisesById = new Map([
+      ["ex1", buildExercise({ descripcion: "Cuatro jugadores forman un cuadrado con dos defensores dentro" })],
+    ]);
+
+    const html = buildSessionPrintHtml(session, exercisesById);
+
+    expect(html).toContain("Cuatro jugadores forman un cuadrado con dos defensores dentro");
+  });
+
   it("incluye la imagen del ejercicio cuando tiene urlImage", () => {
     const session = buildSession({
       blocks: [

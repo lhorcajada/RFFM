@@ -63,6 +63,7 @@ function buildExerciseDetailHtml(
   return `<li class="exercise-item">
     <h4>${escapeHtml(name)}${escapeHtml(meta)}</h4>
     ${exercise.objetivo ? `<p class="exercise-objetivo">${escapeHtml(exercise.objetivo)}</p>` : ""}
+    ${exercise.descripcion ? `<div class="section"><h3>Descripción</h3><p>${escapeHtml(exercise.descripcion)}</p></div>` : ""}
     ${buildModelRelationsHtml(exercise)}
     ${buildNivelesTableHtml(exercise)}
     ${buildImageOrBoardNoteHtml(exercise, playersById)}
