@@ -105,6 +105,27 @@ namespace RFFM.Api.Tests.UnitTests
             return mock.Object;
         }
 
+        /// <summary>
+        /// Default Identity mocks for tests that don't care about identity-role repair: reports
+        /// the role as already present so the handler's repair step is a no-op.
+        /// </summary>
+        private static Mock<UserManager<IdentityUser>> DefaultUserManager(string userId)
+        {
+            var mock = MockUserManager();
+            mock.Setup(m => m.FindByIdAsync(userId))
+                .ReturnsAsync(new IdentityUser { Id = userId, UserName = userId });
+            mock.Setup(m => m.IsInRoleAsync(It.IsAny<IdentityUser>(), It.IsAny<string>()))
+                .ReturnsAsync(true);
+            return mock;
+        }
+
+        private static Mock<RoleManager<IdentityRole>> DefaultRoleManager()
+        {
+            var mock = MockRoleManager();
+            mock.Setup(m => m.RoleExistsAsync(It.IsAny<string>())).ReturnsAsync(true);
+            return mock;
+        }
+
         private static async Task<Team> SeedTeamAsync(AppDbContext db, string clubName)
         {
             var club = Club.Create(clubName, SeededCountryId);
@@ -139,7 +160,10 @@ namespace RFFM.Api.Tests.UnitTests
             await using var db = _fixture.CreateDbContext();
             var userId = $"coach-{Guid.NewGuid():N}";
 
-            var handler = new EnterClubTeamAsCoach.Handler(db, CurrentUser(userId).Object, NeverCalledApprovalService());
+            var handler = new EnterClubTeamAsCoach.Handler(
+                db, CurrentUser(userId).Object, NeverCalledApprovalService(),
+                DefaultUserManager(userId).Object, DefaultRoleManager().Object,
+                NullLogger<EnterClubTeamAsCoach.Handler>.Instance);
             var command = new EnterClubTeamAsCoach.Command { Code = "ZZZZZZZZ" };
 
             var result = await handler.Handle(command, CancellationToken.None);
@@ -157,7 +181,10 @@ namespace RFFM.Api.Tests.UnitTests
             var userId = $"coach-{Guid.NewGuid():N}";
             // No UserClub row seeded for this user at all.
 
-            var handler = new EnterClubTeamAsCoach.Handler(db, CurrentUser(userId).Object, NeverCalledApprovalService());
+            var handler = new EnterClubTeamAsCoach.Handler(
+                db, CurrentUser(userId).Object, NeverCalledApprovalService(),
+                DefaultUserManager(userId).Object, DefaultRoleManager().Object,
+                NullLogger<EnterClubTeamAsCoach.Handler>.Instance);
             var command = new EnterClubTeamAsCoach.Command { Code = team.JoinCode };
 
             var result = await handler.Handle(command, CancellationToken.None);
@@ -179,7 +206,10 @@ namespace RFFM.Api.Tests.UnitTests
             db.UserClubs.Add(new UserClub(userId, team.ClubId, Membership.ClubMember.Id));
             await db.SaveChangesAsync();
 
-            var handler = new EnterClubTeamAsCoach.Handler(db, CurrentUser(userId).Object, NeverCalledApprovalService());
+            var handler = new EnterClubTeamAsCoach.Handler(
+                db, CurrentUser(userId).Object, NeverCalledApprovalService(),
+                DefaultUserManager(userId).Object, DefaultRoleManager().Object,
+                NullLogger<EnterClubTeamAsCoach.Handler>.Instance);
             var command = new EnterClubTeamAsCoach.Command { Code = team.JoinCode };
 
             var result = await handler.Handle(command, CancellationToken.None);
@@ -212,7 +242,10 @@ namespace RFFM.Api.Tests.UnitTests
             db.UserClubs.Add(new UserClub(userId, team.ClubId, Membership.Coach.Id));
             await db.SaveChangesAsync();
 
-            var handler = new EnterClubTeamAsCoach.Handler(db, CurrentUser(userId).Object, NeverCalledApprovalService());
+            var handler = new EnterClubTeamAsCoach.Handler(
+                db, CurrentUser(userId).Object, NeverCalledApprovalService(),
+                DefaultUserManager(userId).Object, DefaultRoleManager().Object,
+                NullLogger<EnterClubTeamAsCoach.Handler>.Instance);
             var command = new EnterClubTeamAsCoach.Command { Code = team.JoinCode };
 
             var result = await handler.Handle(command, CancellationToken.None);
@@ -226,6 +259,50 @@ namespace RFFM.Api.Tests.UnitTests
             Assert.Equal(team.ClubId, config.PreferredClubId);
         }
 
+        /// <summary>
+        /// Regression test: a coach who already has club-level UserClub access (Coach role)
+        /// but whose Identity role assignment silently failed at some point in the past (e.g. a
+        /// best-effort AddToRoleAsync that swallowed an exception) must have that role repaired
+        /// every time they re-enter a team by code -- not just the first time access is granted.
+        /// Without this repair the JWT keeps missing the "roles" claim forever, and every
+        /// protected endpoint keeps failing with "No se pudo determinar el rol del usuario."
+        /// </summary>
+        [Fact]
+        public async Task ValidCode_WithClubAccessButMissingIdentityRole_RepairsIdentityRole()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var team = await SeedTeamAsync(db, $"FC Missing Identity Role {Guid.NewGuid():N}");
+
+            var userId = $"coach-{Guid.NewGuid():N}";
+            db.UserClubs.Add(new UserClub(userId, team.ClubId, Membership.Coach.Id));
+            await db.SaveChangesAsync();
+
+            var userManagerMock = MockUserManager();
+            userManagerMock
+                .Setup(m => m.FindByIdAsync(userId))
+                .ReturnsAsync(new IdentityUser { Id = userId, UserName = userId });
+            userManagerMock
+                .Setup(m => m.IsInRoleAsync(It.IsAny<IdentityUser>(), It.IsAny<string>()))
+                .ReturnsAsync(false);
+
+            var roleManagerMock = MockRoleManager();
+            roleManagerMock
+                .Setup(m => m.RoleExistsAsync(It.IsAny<string>()))
+                .ReturnsAsync(true);
+
+            var handler = new EnterClubTeamAsCoach.Handler(
+                db, CurrentUser(userId).Object, NeverCalledApprovalService(),
+                userManagerMock.Object, roleManagerMock.Object,
+                NullLogger<EnterClubTeamAsCoach.Handler>.Instance);
+            var command = new EnterClubTeamAsCoach.Command { Code = team.JoinCode };
+
+            var result = await handler.Handle(command, CancellationToken.None);
+
+            Assert.IsAssignableFrom<IValueHttpResult<EnterClubTeamAsCoach.Response>>(result);
+
+            userManagerMock.Verify(m => m.AddToRoleAsync(It.IsAny<IdentityUser>(), AppRoles.Coach.Name), Times.Once);
+        }
+
         [Fact]
         public async Task ValidCode_WithDirectiveRoleInClub_ReturnsOk()
         {
@@ -236,7 +313,10 @@ namespace RFFM.Api.Tests.UnitTests
             db.UserClubs.Add(new UserClub(userId, team.ClubId, Membership.Directive.Id));
             await db.SaveChangesAsync();
 
-            var handler = new EnterClubTeamAsCoach.Handler(db, CurrentUser(userId).Object, NeverCalledApprovalService());
+            var handler = new EnterClubTeamAsCoach.Handler(
+                db, CurrentUser(userId).Object, NeverCalledApprovalService(),
+                DefaultUserManager(userId).Object, DefaultRoleManager().Object,
+                NullLogger<EnterClubTeamAsCoach.Handler>.Instance);
             var command = new EnterClubTeamAsCoach.Command { Code = team.JoinCode };
 
             var result = await handler.Handle(command, CancellationToken.None);
@@ -283,7 +363,10 @@ namespace RFFM.Api.Tests.UnitTests
             db.UserClubs.Add(new UserClub(userId, club.Id, Membership.Coach.Id));
             await db.SaveChangesAsync();
 
-            var handler = new EnterClubTeamAsCoach.Handler(db, CurrentUser(userId).Object, NeverCalledApprovalService());
+            var handler = new EnterClubTeamAsCoach.Handler(
+                db, CurrentUser(userId).Object, NeverCalledApprovalService(),
+                DefaultUserManager(userId).Object, DefaultRoleManager().Object,
+                NullLogger<EnterClubTeamAsCoach.Handler>.Instance);
 
             var firstResult = await handler.Handle(new EnterClubTeamAsCoach.Command { Code = teamA.JoinCode }, CancellationToken.None);
             Assert.IsAssignableFrom<IValueHttpResult<EnterClubTeamAsCoach.Response>>(firstResult);
@@ -309,7 +392,10 @@ namespace RFFM.Api.Tests.UnitTests
             await db.SaveChangesAsync();
 
             var approvalService = ApprovalService(db, userId, out var userManagerMock);
-            var handler = new EnterClubTeamAsCoach.Handler(db, CurrentUser(userId).Object, approvalService);
+            var handler = new EnterClubTeamAsCoach.Handler(
+                db, CurrentUser(userId).Object, approvalService,
+                DefaultUserManager(userId).Object, DefaultRoleManager().Object,
+                NullLogger<EnterClubTeamAsCoach.Handler>.Instance);
             var command = new EnterClubTeamAsCoach.Command { Code = team.JoinCode };
 
             var result = await handler.Handle(command, CancellationToken.None);
@@ -344,7 +430,10 @@ namespace RFFM.Api.Tests.UnitTests
             await db.SaveChangesAsync();
 
             var approvalService = ApprovalService(db, userId, out _);
-            var handler = new EnterClubTeamAsCoach.Handler(db, CurrentUser(userId).Object, approvalService);
+            var handler = new EnterClubTeamAsCoach.Handler(
+                db, CurrentUser(userId).Object, approvalService,
+                DefaultUserManager(userId).Object, DefaultRoleManager().Object,
+                NullLogger<EnterClubTeamAsCoach.Handler>.Instance);
             var command = new EnterClubTeamAsCoach.Command { Code = team.JoinCode };
 
             var result = await handler.Handle(command, CancellationToken.None);
@@ -369,7 +458,10 @@ namespace RFFM.Api.Tests.UnitTests
             var userId = $"coach-{Guid.NewGuid():N}";
             // No UserClub and no ClubJoinRequest seeded at all for this user/club.
 
-            var handler = new EnterClubTeamAsCoach.Handler(db, CurrentUser(userId).Object, NeverCalledApprovalService());
+            var handler = new EnterClubTeamAsCoach.Handler(
+                db, CurrentUser(userId).Object, NeverCalledApprovalService(),
+                DefaultUserManager(userId).Object, DefaultRoleManager().Object,
+                NullLogger<EnterClubTeamAsCoach.Handler>.Instance);
             var command = new EnterClubTeamAsCoach.Command { Code = team.JoinCode };
 
             var result = await handler.Handle(command, CancellationToken.None);
@@ -394,7 +486,10 @@ namespace RFFM.Api.Tests.UnitTests
             db.ClubJoinRequests.Add(ClubJoinRequest.Create(userId, otherClub.Id, Membership.Coach.Id));
             await db.SaveChangesAsync();
 
-            var handler = new EnterClubTeamAsCoach.Handler(db, CurrentUser(userId).Object, NeverCalledApprovalService());
+            var handler = new EnterClubTeamAsCoach.Handler(
+                db, CurrentUser(userId).Object, NeverCalledApprovalService(),
+                DefaultUserManager(userId).Object, DefaultRoleManager().Object,
+                NullLogger<EnterClubTeamAsCoach.Handler>.Instance);
             var command = new EnterClubTeamAsCoach.Command { Code = team.JoinCode };
 
             var result = await handler.Handle(command, CancellationToken.None);

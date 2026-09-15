@@ -2,13 +2,16 @@ using FluentValidation;
 using Mediator;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using RFFM.Api.Domain.Aggregates.UserClubs;
 using RFFM.Api.Domain.Entities.Coaches;
 using RFFM.Api.Domain.Services;
 using RFFM.Api.FeatureModules;
+using RFFM.Api.Features.Coaches.Invitation;
 using RFFM.Api.Infrastructure.Persistence;
 
 namespace RFFM.Api.Features.Coaches.Invitation.Commands
@@ -53,12 +56,24 @@ namespace RFFM.Api.Features.Coaches.Invitation.Commands
             private readonly AppDbContext _db;
             private readonly ICurrentUserService _currentUser;
             private readonly IClubJoinRequestApprovalService _approvalService;
+            private readonly UserManager<IdentityUser> _userManager;
+            private readonly RoleManager<IdentityRole> _roleManager;
+            private readonly ILogger<Handler> _logger;
 
-            public Handler(AppDbContext db, ICurrentUserService currentUser, IClubJoinRequestApprovalService approvalService)
+            public Handler(
+                AppDbContext db,
+                ICurrentUserService currentUser,
+                IClubJoinRequestApprovalService approvalService,
+                UserManager<IdentityUser> userManager,
+                RoleManager<IdentityRole> roleManager,
+                ILogger<Handler> logger)
             {
                 _db = db;
                 _currentUser = currentUser;
                 _approvalService = approvalService;
+                _userManager = userManager;
+                _roleManager = roleManager;
+                _logger = logger;
             }
 
             public async ValueTask<IResult> Handle(Command request, CancellationToken cancellationToken = default)
@@ -114,6 +129,22 @@ namespace RFFM.Api.Features.Coaches.Invitation.Commands
                     await _approvalService.ApproveAsync(pendingRequest, userId, cancellationToken);
                 }
 
+                // Repair the Identity role every time, not just when club access was newly
+                // granted above: if a past AddToRoleAsync silently failed (best-effort, see
+                // ClubJoinRequestApprovalService), a coach who already has UserClub access would
+                // otherwise never get their Identity role back, and every protected endpoint
+                // would keep failing with "No se pudo determinar el rol del usuario."
+                var membershipId = await _db.UserClubs
+                    .AsNoTracking()
+                    .Where(uc => uc.ApplicationUserId == userId && uc.ClubId == team.ClubId)
+                    .Select(uc => (int?)uc.RoleId)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (membershipId.HasValue)
+                {
+                    await EnsureIdentityRoleAsync(userId, Membership.GetById(membershipId.Value), cancellationToken);
+                }
+
                 var config = await _db.Set<ConfigurationCoach>()
                     .FirstOrDefaultAsync(c => c.CoachId == userId, cancellationToken);
 
@@ -135,6 +166,33 @@ namespace RFFM.Api.Features.Coaches.Invitation.Commands
                 await _db.SaveChangesAsync(cancellationToken);
 
                 return Results.Ok(new Response(team.Id, team.Name));
+            }
+
+            private async Task EnsureIdentityRoleAsync(string userId, Membership? membership, CancellationToken cancellationToken)
+            {
+                var roleName = MembershipIdentityRoles.ToIdentityRoleName(membership);
+                if (string.IsNullOrEmpty(roleName)) return;
+
+                try
+                {
+                    var user = await _userManager.FindByIdAsync(userId);
+                    if (user is null) return;
+
+                    if (!await _roleManager.RoleExistsAsync(roleName))
+                    {
+                        await _roleManager.CreateAsync(new IdentityRole(roleName));
+                    }
+
+                    if (!await _userManager.IsInRoleAsync(user, roleName))
+                    {
+                        await _userManager.AddToRoleAsync(user, roleName);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "EnterClubTeamAsCoach: could not repair Identity role {Role} for user {UserId}",
+                        roleName, userId);
+                }
             }
         }
 
