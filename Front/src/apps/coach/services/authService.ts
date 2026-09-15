@@ -32,6 +32,14 @@ function normalizeRole(role: string): string {
 export const coachAuthService = {
   login: async (token: string) => {
     const response = await client.post("/api/login", { token });
+    // A stale coach_roles cache from a previous session/account must not leak into this
+    // one: getRoles() merges it with the fresh JWT's roles, which can make hasRole() report
+    // access the current token doesn't actually grant.
+    try {
+      localStorage.removeItem("coach_roles");
+    } catch (e) {
+      // ignore
+    }
     return response.data;
   },
 
