@@ -200,4 +200,52 @@ describe("useLiveMatch - persistencia del cronómetro en localStorage", () => {
     expect(result.current.matchPhase).toBe("secondHalf");
     expect(result.current.currentMinute * 60 + result.current.currentSecond).toBeGreaterThanOrEqual(130);
   });
+
+  it("no fuerza el fin del partido al restaurar un backup cuya 2ª parte ya superó la duración configurada (pestaña en segundo plano)", () => {
+    // Backup saved during the 2nd half, well before the configured duration was reached,
+    // but the device was backgrounded long enough that wall-clock time now exceeds it.
+    const savedAt = new Date(Date.now() - 40 * 60 * 1000).toISOString(); // 40 min ago
+    localStorage.setItem(
+      BACKUP_KEY,
+      JSON.stringify({
+        eventId: EVENT_ID,
+        teamId: TEAM_ID,
+        savedAt,
+        matchPhase: "secondHalf",
+        totalSeconds: 50 * 60, // 50 min already elapsed when saved
+        half: 2,
+        isHalftime: false,
+        halfDuration: 45, // 2 x 45min = 90min => 50 + 40 = 90min, at/over the limit
+        slots: { 0: "p1" },
+        initialSlots: { 0: "p1" },
+        playerStates: {
+          p1: { playerId: "p1", slotIndex: 0, minuteEntered: 0, accumulatedMinutes: 0, isOnField: true },
+        },
+        windows: [],
+        goals: [],
+        ratingSnapshots: [],
+        scoreLocal: 0,
+        scoreVisitor: 0,
+      }),
+    );
+
+    const { result } = renderHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
+
+    expect(result.current.backup).not.toBeNull();
+
+    act(() => {
+      result.current.acceptBackup();
+    });
+
+    // The match must remain in progress — only the coach can end it explicitly.
+    expect(result.current.matchPhase).toBe("secondHalf");
+
+    // The clock must keep running from where it was restored.
+    const totalSecondsBefore = result.current.currentMinute * 60 + result.current.currentSecond;
+    act(() => {
+      vi.advanceTimersByTime(5000);
+    });
+    const totalSecondsAfter = result.current.currentMinute * 60 + result.current.currentSecond;
+    expect(totalSecondsAfter).toBeGreaterThan(totalSecondsBefore);
+  });
 });

@@ -557,11 +557,10 @@ export function useLiveMatch(
     const elapsedSec = Math.floor((now - savedAt) / 1000);
     const restoredSeconds = Math.min(7200, b.totalSeconds + elapsedSec);
 
-    // Determine if match would be over after adding elapsed time
-    const maxSeconds = b.halfDuration * 2 * 60;
-    const isOver = restoredSeconds >= maxSeconds && b.half === 2;
-
-    const restoredPhase: LiveMatchPhase = isOver ? "finished" : b.matchPhase;
+    // The match only ends when the coach explicitly confirms "Finalizar partido"
+    // (endMatch action) — never auto-finish just because wall-clock time elapsed
+    // while the tab was backgrounded/reloaded.
+    const restoredPhase: LiveMatchPhase = b.matchPhase;
     const restoredIsRunning = restoredPhase === "firstHalf" || restoredPhase === "secondHalf";
 
     // Re-anchor the wall-clock timer so it keeps counting forward correctly
