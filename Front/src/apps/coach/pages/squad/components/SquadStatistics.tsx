@@ -7,9 +7,6 @@ import {
   MenuItem,
   Select,
   Tooltip,
-  ToggleButton,
-  ToggleButtonGroup,
-  Typography,
 } from "@mui/material";
 import type { SelectChangeEvent } from "@mui/material";
 import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
@@ -82,8 +79,8 @@ export default function SquadStatistics({ players, loading, teamName }: Props) {
     return sorted;
   }, [players, positionFilter, sortKey, sortDirection]);
 
-  function handleSortKeyChange(_e: React.MouseEvent<HTMLElement>, value: SortKey | null) {
-    if (value) setSortKey(value);
+  function handleSortKeyChange(e: SelectChangeEvent) {
+    setSortKey(e.target.value as SortKey);
   }
 
   function handleToggleDirection() {
@@ -106,27 +103,32 @@ export default function SquadStatistics({ players, loading, teamName }: Props) {
     <div className={styles.container}>
       <div className={styles.toolbar}>
         <div className={styles.sortControl}>
-          <span className={styles.sortLabel}>Ordenar por:</span>
-          <div className={styles.sortToggleScroll}>
-            <ToggleButtonGroup
-              size="small"
-              exclusive
+          <FormControl size="small" className={styles.sortSelect}>
+            <InputLabel id="squad-statistics-sort-label">Ordenar por</InputLabel>
+            <Select
+              labelId="squad-statistics-sort-label"
+              label="Ordenar por"
               value={sortKey}
               onChange={handleSortKeyChange}
-              aria-label="Ordenar por"
             >
               {SORT_OPTIONS.map(({ key, label }) => (
-                <ToggleButton key={key} value={key}>
+                <MenuItem key={key} value={key}>
                   {label}
-                </ToggleButton>
+                </MenuItem>
               ))}
-            </ToggleButtonGroup>
-          </div>
+            </Select>
+          </FormControl>
           <Tooltip title={sortDirection === "asc" ? "Orden ascendente" : "Orden descendente"}>
             <IconButton
               size="small"
               onClick={handleToggleDirection}
               aria-label={sortDirection === "asc" ? "Orden ascendente" : "Orden descendente"}
+              sx={{
+                border: "1px solid",
+                borderColor: "rgba(255, 255, 255, 0.23)",
+                borderRadius: 1,
+                flexShrink: 0,
+              }}
             >
               {sortDirection === "asc" ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />}
             </IconButton>
@@ -134,7 +136,11 @@ export default function SquadStatistics({ players, loading, teamName }: Props) {
         </div>
 
         <div className={styles.toolbarRight}>
-          <FormControl size="small" className={styles.positionFilter}>
+          <FormControl
+            size="small"
+            className={styles.positionFilter}
+            sx={{ width: { xs: "100%", sm: 180 }, minWidth: 0 }}
+          >
             <InputLabel id="squad-statistics-position-filter-label">Posición</InputLabel>
             <Select
               labelId="squad-statistics-position-filter-label"
@@ -156,6 +162,7 @@ export default function SquadStatistics({ players, loading, teamName }: Props) {
             size="small"
             startIcon={<PictureAsPdfOutlinedIcon />}
             onClick={() => exportSquadStatisticsPdf(filteredAndSorted, teamName)}
+            sx={{ width: { xs: "100%", sm: "auto" }, whiteSpace: "nowrap" }}
           >
             Exportar PDF
           </Button>
@@ -249,9 +256,10 @@ export default function SquadStatistics({ players, loading, teamName }: Props) {
 
               {player.minutesPlayedPercentOfSeasonTotal != null && (
                 <div className={styles.minutesTargetBlock} data-testid="squad-stat-minutes-target">
-                  <span className={styles.minutesTargetTitle}>
-                    % de minutos jugados sobre los disputados por el equipo esta temporada (objetivo mínimo: {SEASON_MINUTES_TARGET_PERCENT}%)
-                  </span>
+                  <div className={styles.minutesTargetHeader}>
+                    <span className={styles.minutesTargetTitle}>% minutos jugados</span>
+                    <span className={styles.minutesTargetGoal}>objetivo mínimo: {SEASON_MINUTES_TARGET_PERCENT}%</span>
+                  </div>
                   <div className={styles.readinessBar}>
                     <div className={styles.progressBar}>
                       <div

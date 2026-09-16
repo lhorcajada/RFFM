@@ -90,10 +90,7 @@ type Props = {
   onApplyProposal: (ids: string[]) => Promise<void>;
   onPrintProposal: () => Promise<void>;
   /** Rodaje/condición física por teamPlayerId (best-effort, puede estar vacío mientras carga). */
-  readinessMap?: Record<
-    string,
-    Pick<PlayerStatistics, "readiness" | "availability" | "physicalFitness" | "fatigue">
-  >;
+  readinessMap?: Record<string, Pick<PlayerStatistics, "readiness" | "fatigue">>;
 };
 
 const GROUPS = [

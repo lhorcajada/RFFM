@@ -22,9 +22,7 @@ const OTHER_PLAYER = {
   league: { attended: 0, possible: 0, calledButAbsent: 0 },
   daysSinceLastInjury: null,
   lastInjuryDurationDays: null,
-  physicalFitness: 50,
   fatigue: 10,
-  availability: 40,
   readiness: 60,
   readinessBreakdown: null,
 };

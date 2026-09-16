@@ -20,9 +20,7 @@ function buildPlayer(overrides: Partial<PlayerStatistics> = {}): PlayerStatistic
     league: { attended: 0, possible: 0, calledButAbsent: 0 },
     daysSinceLastInjury: null,
     lastInjuryDurationDays: null,
-    physicalFitness: 60,
     fatigue: 20,
-    availability: 40,
     readiness: 50,
     readinessBreakdown: null,
     matchesAbsentAttributableToPlayer: 0,
@@ -70,8 +68,7 @@ describe("SquadStatistics — tarjetas y filtros", () => {
       />,
     );
 
-    const efButton = screen.getByRole("button", { name: /^estado de forma$/i });
-    expect(efButton).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("combobox", { name: /ordenar por/i })).toHaveTextContent("Estado de forma");
     expect(cardNamesInOrder()).toEqual(["Ef Alto", "Ef Bajo"]);
   });
 
@@ -88,7 +85,8 @@ describe("SquadStatistics — tarjetas y filtros", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: /^goles$/i }));
+    await user.click(screen.getByRole("combobox", { name: /ordenar por/i }));
+    await user.click(await screen.findByRole("option", { name: "Goles" }));
 
     const directionButton = screen.getByRole("button", { name: /orden (ascendente|descendente)/i });
 
@@ -116,7 +114,8 @@ describe("SquadStatistics — tarjetas y filtros", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: /^estado de forma$/i }));
+    await user.click(screen.getByRole("combobox", { name: /ordenar por/i }));
+    await user.click(await screen.findByRole("option", { name: "Estado de forma" }));
 
     const directionButton = screen.getByRole("button", { name: /orden (ascendente|descendente)/i });
     if (directionButton.getAttribute("aria-label")?.includes("ascendente")) {
@@ -137,7 +136,8 @@ describe("SquadStatistics — tarjetas y filtros", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: /^cansancio$/i }));
+    await user.click(screen.getByRole("combobox", { name: /ordenar por/i }));
+    await user.click(await screen.findByRole("option", { name: "Cansancio" }));
 
     const directionButton = screen.getByRole("button", { name: /orden (ascendente|descendente)/i });
     if (directionButton.getAttribute("aria-label")?.includes("ascendente")) {

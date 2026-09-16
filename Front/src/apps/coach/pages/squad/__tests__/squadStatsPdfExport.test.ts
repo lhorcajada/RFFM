@@ -54,9 +54,7 @@ function buildPlayer(overrides: Partial<PlayerStatistics> = {}): PlayerStatistic
     league: { attended: 10, possible: 12, calledButAbsent: 0 },
     daysSinceLastInjury: null,
     lastInjuryDurationDays: null,
-    physicalFitness: 64,
     fatigue: 37,
-    availability: 27,
     readiness: 82,
     readinessBreakdown: null,
     matchesAbsentAttributableToPlayer: 0,
@@ -84,15 +82,15 @@ describe("squadStatsPdfExport.exportSquadStatisticsPdf", () => {
     expect(saveMock).toHaveBeenCalledTimes(1);
   });
 
-  it("usa orientación landscape y dibuja una tarjeta por jugador con Forma física y Cansancio", () => {
-    exportSquadStatisticsPdf([buildPlayer({ physicalFitness: 64, fatigue: 37 })], "Alevín A");
+  it("usa orientación landscape y dibuja una tarjeta por jugador con EF/Rodaje/Cansancio, sin Forma física", () => {
+    exportSquadStatisticsPdf([buildPlayer({ fatigue: 37 })], "Alevín A");
 
     expect(jsPDF).toHaveBeenCalledWith(expect.objectContaining({ orientation: "landscape" }));
     expect(roundedRectMock).toHaveBeenCalledTimes(1);
 
     const texts = textMock.mock.calls.map((call) => call[0]);
-    expect(texts.some((t) => typeof t === "string" && t.includes("Forma física 64%"))).toBe(true);
     expect(texts.some((t) => typeof t === "string" && t.includes("Cansancio 37%"))).toBe(true);
+    expect(texts.some((t) => typeof t === "string" && t.includes("Forma física"))).toBe(false);
   });
 
   it("incluye Ausencias, ratios de Entrenamientos/Amistosos/Liga con su nota, y el objetivo de minutos de temporada", () => {
@@ -116,16 +114,16 @@ describe("squadStatsPdfExport.exportSquadStatisticsPdf", () => {
         (t) => typeof t === "string" && t.includes("Amistosos 0 de 2") && t.includes("No asistió a 2 partidos a los que fue convocado"),
       ),
     ).toBe(true);
-    expect(texts.some((t) => typeof t === "string" && t.includes("Minutos temporada: 22%") && t.includes("objetivo mínimo 30%"))).toBe(
-      true,
-    );
+    expect(
+      texts.some((t) => typeof t === "string" && t.includes("% minutos jugados: 22%") && t.includes("objetivo mínimo 30%")),
+    ).toBe(true);
   });
 
   it("no dibuja el bloque de objetivo de minutos cuando minutesPlayedPercentOfSeasonTotal es null", () => {
     exportSquadStatisticsPdf([buildPlayer({ minutesPlayedPercentOfSeasonTotal: null })], "Alevín A");
 
     const texts = textMock.mock.calls.map((call) => call[0]);
-    expect(texts.some((t) => typeof t === "string" && t.includes("Minutos temporada:"))).toBe(false);
+    expect(texts.some((t) => typeof t === "string" && t.includes("% minutos jugados:"))).toBe(false);
   });
 
   it("pagina cuando el contenido supera el alto disponible", () => {

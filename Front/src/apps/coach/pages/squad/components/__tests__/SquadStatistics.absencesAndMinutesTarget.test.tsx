@@ -19,9 +19,7 @@ function buildPlayer(overrides: Partial<PlayerStatistics> = {}): PlayerStatistic
     league: { attended: 0, possible: 0, calledButAbsent: 0 },
     daysSinceLastInjury: null,
     lastInjuryDurationDays: null,
-    physicalFitness: 60,
     fatigue: 20,
-    availability: 40,
     readiness: 50,
     readinessBreakdown: null,
     matchesAbsentAttributableToPlayer: 0,
@@ -70,16 +68,10 @@ describe("SquadStatistics — ausencias imputables y objetivo de minutos de temp
     const card = screen.getByTestId("squad-stat-card-p1");
     const block = within(card).getByTestId("squad-stat-minutes-target");
     expect(block).toBeInTheDocument();
-    expect(
-      within(block).getByText(/minutos jugados sobre los disputados por el equipo esta temporada/i),
-    ).toBeInTheDocument();
+    expect(within(block).getByText("% minutos jugados")).toBeInTheDocument();
     expect(within(block).getByText(/objetivo mínimo: 30%/i)).toBeInTheDocument();
     expect(within(block).getByText("43%")).toBeInTheDocument();
-    expect(
-      within(block).getByText(
-        /Ha dejado de jugar un 12% de esos minutos por faltar a 2 partidos por su cuenta/,
-      ),
-    ).toBeInTheDocument();
+    expect(within(block).getByText("Partidos no asistidos: 2")).toBeInTheDocument();
   });
 
   it("muestra un mensaje positivo cuando no hay ausencias propias del jugador", () => {
@@ -100,9 +92,7 @@ describe("SquadStatistics — ausencias imputables y objetivo de minutos de temp
 
     const card = screen.getByTestId("squad-stat-card-p1");
     const block = within(card).getByTestId("squad-stat-minutes-target");
-    expect(
-      within(block).getByText(/No ha faltado a ningún partido por su cuenta esta temporada\./),
-    ).toBeInTheDocument();
+    expect(within(block).getByText("Partidos no asistidos: 0")).toBeInTheDocument();
   });
 
   it("no muestra el bloque de objetivo de minutos cuando minutesPlayedPercentOfSeasonTotal es null (equipo no F11)", () => {

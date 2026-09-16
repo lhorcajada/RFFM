@@ -20,11 +20,5 @@ export function calledButAbsentLabel(calledButAbsent: number): string | null {
 }
 
 export function minutesTargetCaption(player: PlayerStatistics): string {
-  const matches = player.matchesAbsentAttributableToPlayer;
-  if (matches <= 0) {
-    return "No ha faltado a ningún partido por su cuenta esta temporada.";
-  }
-  const percent = Math.round(player.attributableAbsentMinutesPercentOfSeasonTotal ?? 0);
-  const matchesLabel = matches === 1 ? "1 partido" : `${matches} partidos`;
-  return `Ha dejado de jugar un ${percent}% de esos minutos por faltar a ${matchesLabel} por su cuenta (lesión, no presentarse, etc. — no cuenta si fue decisión del entrenador).`;
+  return `Partidos no asistidos: ${player.matchesAbsentAttributableToPlayer}`;
 }

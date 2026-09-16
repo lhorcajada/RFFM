@@ -3,6 +3,8 @@
   flex-direction: column;
   gap: 14px;
   padding-top: 8px;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .empty {
@@ -16,7 +18,7 @@
   gap: 12px;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
 }
 
 .sortControl {
@@ -26,14 +28,8 @@
   flex-wrap: wrap;
 }
 
-.sortLabel {
-  font-size: 0.75rem;
-  opacity: 0.6;
-  flex-shrink: 0;
-}
-
-.sortToggleScroll {
-  min-width: 0;
+.sortSelect {
+  min-width: 180px;
 }
 
 .toolbarRight {
@@ -162,10 +158,24 @@
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.minutesTargetHeader {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
 .minutesTargetTitle {
-  font-size: 10px;
-  opacity: 0.6;
+  font-size: 11px;
+  font-weight: 700;
   letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #f0f0f0;
+}
+
+.minutesTargetGoal {
+  font-size: 10px;
+  opacity: 0.55;
 }
 
 .minutesTargetBlock .readinessValue {
@@ -245,23 +255,31 @@
 
   .sortControl {
     flex-wrap: nowrap;
+    width: 100%;
+    min-width: 0;
   }
 
-  .sortToggleScroll {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+  .sortSelect {
+    flex: 1 1 auto;
+    min-width: 0;
+    width: auto;
   }
 
   .toolbarRight {
-    justify-content: space-between;
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    min-width: 0;
   }
 
   .toolbarRight > * {
-    flex: 1 1 120px;
+    flex: none;
+    width: 100%;
   }
 
   .positionFilter {
-    min-width: 120px;
+    min-width: 0;
+    width: 100%;
   }
 
   .grid {

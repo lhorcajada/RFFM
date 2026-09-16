@@ -31,9 +31,7 @@ describe("teamPlayerStatisticsService.getTeamPlayerStatistics", () => {
         league: { attended: 10, possible: 12, calledButAbsent: 0 },
         daysSinceLastInjury: 30,
         lastInjuryDurationDays: 12,
-        physicalFitness: 64,
         fatigue: 37,
-        availability: 27,
         readiness: 82,
         readinessBreakdown: {
           trainingComponent: 90,
@@ -66,9 +64,7 @@ describe("teamPlayerStatisticsService.getTeamPlayerStatistics", () => {
         league: { attended: 10, possible: 12, calledButAbsent: 0 },
         daysSinceLastInjury: 30,
         lastInjuryDurationDays: 12,
-        physicalFitness: 64,
         fatigue: 37,
-        availability: 27,
         readiness: 82,
         readinessBreakdown: {
           trainingComponent: 90,

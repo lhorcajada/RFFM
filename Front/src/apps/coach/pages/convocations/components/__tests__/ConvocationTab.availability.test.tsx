@@ -52,7 +52,7 @@ describe("ConvocationTab - indicador Ef/Rodaje/Cansancio", () => {
         onApplyProposal={async () => {}}
         onPrintProposal={async () => {}}
         readinessMap={{
-          p1: { readiness: 65, availability: 33, physicalFitness: 55, fatigue: 22 },
+          p1: { readiness: 65, fatigue: 22 },
         }}
       />,
     );
@@ -94,7 +94,7 @@ describe("ConvocationTab - indicador Ef/Rodaje/Cansancio", () => {
         onApplyProposal={async () => {}}
         onPrintProposal={async () => {}}
         readinessMap={{
-          p1: { readiness: 65, availability: 33, physicalFitness: 55, fatigue: 22 },
+          p1: { readiness: 65, fatigue: 22 },
         }}
       />,
     );

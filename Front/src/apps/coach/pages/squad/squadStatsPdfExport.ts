@@ -42,7 +42,7 @@ function buildCardLines(player: PlayerStatistics): CardLine[] {
   lines.push({ text: header, bold: true, size: 9 });
 
   lines.push({
-    text: `EF ${pct(ef)}   Rodaje ${pct(player.readiness)}   Cansancio ${pct(player.fatigue)}   Forma física ${pct(player.physicalFitness)}`,
+    text: `EF ${pct(ef)}   Rodaje ${pct(player.readiness)}   Cansancio ${pct(player.fatigue)}`,
     size: 7.5,
   });
 
@@ -72,7 +72,7 @@ function buildCardLines(player: PlayerStatistics): CardLine[] {
 
   if (player.minutesPlayedPercentOfSeasonTotal != null) {
     lines.push({
-      text: `Minutos temporada: ${pct(player.minutesPlayedPercentOfSeasonTotal)} (objetivo mínimo ${SEASON_MINUTES_TARGET_PERCENT}%)`,
+      text: `% minutos jugados: ${pct(player.minutesPlayedPercentOfSeasonTotal)} (objetivo mínimo ${SEASON_MINUTES_TARGET_PERCENT}%)`,
       size: 7.5,
       bold: true,
     });
@@ -116,7 +116,7 @@ function drawCard(doc: jsPDF, player: PlayerStatistics, x: number, y: number, w:
 
 /**
  * Exports a card-grid PDF (one block per player, mirroring the on-screen SquadStatistics
- * cards) — EF/Rodaje/Cansancio, Forma física, goles/tarjetas/minutos, ausencias imputables,
+ * cards) — EF/Rodaje/Cansancio, goles/tarjetas/minutos, ausencias imputables,
  * ratios de Entrenamientos/Amistosos/Liga con su nota de "convocado no asistió", el objetivo
  * de minutos de temporada (solo F11) y la línea de lesión — en vez de una tabla de una fila
  * por jugador, ya que esa información ya no cabe en una sola fila.
