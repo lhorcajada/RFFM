@@ -4,10 +4,9 @@
 .container {
   position: relative;
   /* Natural (auto) height, like UpcomingEventsWidget's own .container — see
-     that file's comment. This widget usually has less content than
-     "Próximos eventos", so in practice it stretches to match that card's
-     row via TeamDashboard.module.css's shared grid (align-items: stretch is
-     the grid default), rather than driving the row height itself. */
+     that file's comment. TeamDashboard.module.css's `.widgetsGrid` is a
+     plain flex column, so this card sizes to its own content instead of
+     stretching to match "Próximos eventos" above it. */
   padding: 14px 16px;
   background: var(--rffm-dash-card-bg, #081628);
   clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 0 100%);

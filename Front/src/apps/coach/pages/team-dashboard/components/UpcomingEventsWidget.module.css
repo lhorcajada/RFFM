@@ -7,10 +7,9 @@
      carries the most content of any card on the dashboard (event title,
      meta, badges/chips), so it must never be squeezed to fit a hardcoded
      pixel value that could clip that content. TeamDashboard.module.css's
-     shared .dashboardGrid row grows to match this card via its
-     `minmax(270px, auto)` row sizing, and LauncherTile/NewsListCard fill
-     that resulting row height in turn — so this card effectively sets the
-     height for the whole row instead of being forced to match it. */
+     `.widgetsGrid` is a plain flex column (no row-height floor), so this
+     card and NewsListCard below it each size to their own content, like a
+     newspaper sidebar. */
   padding: 14px 16px;
   background: var(--rffm-dash-card-bg, #081628);
   clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 0 100%);

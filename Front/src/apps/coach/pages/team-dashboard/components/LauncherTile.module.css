@@ -4,11 +4,12 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-  /* Fills whatever height TeamDashboard.module.css's .dashboardGrid row
-     gives it (the 270px floor normally, or taller if that row also holds
-     UpcomingEventsWidget and its content needs more) so every card on the
-     team dashboard shares one uniform size without a hardcoded pixel
-     value of its own. */
+  /* Fills whatever height TeamDashboard.module.css's .tilesGrid row ends up
+     with (auto-sized to the tallest tile sharing that row — CSS grid's
+     default `align-items: stretch`) so every tile in the same row shares a
+     uniform size without a hardcoded pixel value of its own, and without
+     forcing a header-only row (see TeamDashboardCards.module.css's
+     `.groupHeader`) to the same height. */
   height: 100%;
   box-sizing: border-box;
 
@@ -116,5 +117,25 @@
     padding: 5px 6px;
     font-size: 0.64rem;
     letter-spacing: 0.03em;
+  }
+}
+
+/* Desktop compact size — TeamDashboard.module.css's .tilesGrid groups these
+   into a dense grid (many per row) instead of each tile stretching to fill
+   a near-empty 270px-tall card. Shrinks the cover/illustration so the tile
+   reads as a small icon launcher rather than a mostly-empty card. */
+@media (min-width: 769px) {
+  .cover {
+    height: 64px;
+  }
+
+  .illustration {
+    width: 46%;
+    height: 46%;
+  }
+
+  .label {
+    font-size: 0.62rem;
+    padding: 5px 6px;
   }
 }

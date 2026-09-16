@@ -142,7 +142,7 @@ describe("TeamDashboard — A la vista section", () => {
     expect(container.contains(paddedAncestor)).toBe(true);
   });
 
-  it("renders both widgets and the tiles as direct siblings inside the same dashboardGrid (so they flow through the same rows)", () => {
+  it("renders the widgets as direct siblings inside their own widgetsGrid, separate from the tiles grid", () => {
     render(
       <MemoryRouter>
         <TeamDashboard />
@@ -152,20 +152,34 @@ describe("TeamDashboard — A la vista section", () => {
     const eventsWidget = screen.getByText("upcoming-events-widget");
     const newsWidget = screen.getByText("news-widget");
     const cards = screen.getByText("TeamDashboardCards");
-    const dashboardGrid = eventsWidget.closest('[class*="dashboardGrid"]');
+    const widgetsGrid = eventsWidget.closest('[class*="widgetsGrid"]');
 
-    expect(dashboardGrid).not.toBeNull();
-    // All three must be direct children — the shared grid (desktop: 4
-    // columns, mobile: 2) only lands each in its own cell if they're
-    // actually siblings there, not nested inside another wrapper.
-    expect(Array.from(dashboardGrid!.children)).toEqual(
+    expect(widgetsGrid).not.toBeNull();
+    // Both widgets must be direct children of their own grid — grouped
+    // together and kept apart from the quick-access tiles grid below, per
+    // the desktop redesign (tiles are grouped densely on their own; the
+    // widgets keep their own full-content row).
+    expect(Array.from(widgetsGrid!.children)).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ textContent: "upcoming-events-widget" }),
         expect.objectContaining({ textContent: "news-widget" }),
-        expect.objectContaining({ textContent: "TeamDashboardCards" }),
       ])
     );
-    expect(dashboardGrid!.contains(newsWidget)).toBe(true);
-    expect(dashboardGrid!.contains(cards)).toBe(true);
+    expect(widgetsGrid!.contains(newsWidget)).toBe(true);
+    expect(widgetsGrid!.contains(cards)).toBe(false);
+  });
+
+  it("renders the quick-access tiles inside their own tilesGrid, separate from the widgets", () => {
+    render(
+      <MemoryRouter>
+        <TeamDashboard />
+      </MemoryRouter>
+    );
+
+    const cards = screen.getByText("TeamDashboardCards");
+    const tilesGrid = cards.closest('[class*="tilesGrid"]');
+
+    expect(tilesGrid).not.toBeNull();
+    expect(tilesGrid!.contains(cards)).toBe(true);
   });
 });

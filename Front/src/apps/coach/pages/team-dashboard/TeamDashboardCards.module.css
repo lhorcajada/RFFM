@@ -1,0 +1,17 @@
+/* Section header ("Equipo", "Actividad"…) grouping the LauncherTiles below
+   it. Spans the full width of the parent `.tilesGrid`
+   (TeamDashboard.module.css) so it always starts a new row, on both the
+   mobile 2-column grid and the desktop dense grid. */
+.groupHeader {
+  grid-column: 1 / -1;
+  margin: 16px 0 0 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--rffm-dash-accent, #00e5ff);
+}
+
+.groupHeader:first-child {
+  margin-top: 0;
+}

@@ -37,16 +37,20 @@ export default function TeamDashboard() {
         }
       >
         <div className={teamDashboardStyles.pageContent}>
-          <div className={teamDashboardStyles.dashboardGrid}>
-            <ErrorBoundary>
-              <UpcomingEventsWidget team={team} isPlayer={isPlayer} />
-            </ErrorBoundary>
-            <ErrorBoundary>
-              <NewsWidget />
-            </ErrorBoundary>
-            <ErrorBoundary>
-              <TeamDashboardCards team={team} selectedSeason={selectedSeason} isPlayer={isPlayer} />
-            </ErrorBoundary>
+          <div className={teamDashboardStyles.layout}>
+            <div className={teamDashboardStyles.widgetsGrid}>
+              <ErrorBoundary>
+                <UpcomingEventsWidget team={team} isPlayer={isPlayer} />
+              </ErrorBoundary>
+              <ErrorBoundary>
+                <NewsWidget />
+              </ErrorBoundary>
+            </div>
+            <div className={teamDashboardStyles.tilesGrid}>
+              <ErrorBoundary>
+                <TeamDashboardCards team={team} selectedSeason={selectedSeason} isPlayer={isPlayer} />
+              </ErrorBoundary>
+            </div>
           </div>
         </div>
       </ContentLayout>
