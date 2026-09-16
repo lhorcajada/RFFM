@@ -210,12 +210,18 @@ export default function ConvocationMatchDetail() {
     loadingProposalContext,
   } = useConvocationMatchContext(teamId, match?.date, seasonId, convocation.players, proposalEnabled);
 
+  const excuseTypesById = useMemo(
+    () => new Map(convocation.excuseTypes.map((e) => [e.id, { name: e.name, justified: e.justified }])),
+    [convocation.excuseTypes],
+  );
+
   const {
     playerStreaks,
     playerTechnicalTotals,
     lineupPlayers,
     notCalledPlayers,
     pendingPlayers,
+    notAttendingPlayers,
   } = useConvocationPlayerViews({
     players: convocation.players,
     mgmtNotCalled: convocation.mgmtNotCalled,
@@ -225,6 +231,9 @@ export default function ConvocationMatchDetail() {
     matchColumns: grid.matchColumns,
     enrichedGrid: grid.enrichedGrid,
     readinessMap,
+    assistanceMap: convocation.mgmtAssistanceMap,
+    excuseMap: convocation.mgmtExcuseMap,
+    excuseTypesById,
   });
 
   const handleDeconvokeConfirm = useCallback(async () => {
@@ -427,9 +436,10 @@ export default function ConvocationMatchDetail() {
         {tab === 1 && (
           <AlineacionTab
             mgmtEventId={convocation.mgmtEventId}
-            lineupPlayers={lineupPlayers}
+            lineupPlayers={lineupPlayers.filter((p) => p.assistanceTypeId !== 2 && p.assistanceTypeId !== 3)}
             notCalledPlayers={notCalledPlayers}
             pendingPlayers={pendingPlayers}
+            notAttendingPlayers={notAttendingPlayers}
             lineupRef={lineupRef}
             teamId={teamId}
             onSavingChange={setLineupSaving}

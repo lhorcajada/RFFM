@@ -66,6 +66,13 @@ function injuryLabel(player: PlayerStatistics): string | null {
   return `Lesión: hace ${player.daysSinceLastInjury} días (${dur})`;
 }
 
+function calledButAbsentLabel(calledButAbsent: number): string | null {
+  if (calledButAbsent <= 0) return null;
+  return calledButAbsent === 1
+    ? "1 convocado, no asistió"
+    : `${calledButAbsent} convocados, no asistieron`;
+}
+
 export default function SquadStatistics({ players, loading, teamName }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>("readiness");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
@@ -229,12 +236,22 @@ export default function SquadStatistics({ players, loading, teamName }: Props) {
                   <span className={styles.statLabel}>Min.</span>
                 </div>
                 <div className={styles.statItem}>
-                  <span className={styles.statValue}>{player.trainingsAttended}</span>
-                  <span className={styles.statLabel}>Entren.</span>
+                  <span className={styles.statValue}>{player.trainings.attended} de {player.trainings.possible}</span>
+                  <span className={styles.statLabel}>Entrenamientos</span>
                 </div>
                 <div className={styles.statItem}>
-                  <span className={styles.statValue}>{player.matchesPlayed}</span>
-                  <span className={styles.statLabel}>Partidos</span>
+                  <span className={styles.statValue}>{player.friendlies.attended} de {player.friendlies.possible}</span>
+                  <span className={styles.statLabel}>Amistosos</span>
+                  {calledButAbsentLabel(player.friendlies.calledButAbsent) && (
+                    <span className={styles.statAbsentNote}>{calledButAbsentLabel(player.friendlies.calledButAbsent)}</span>
+                  )}
+                </div>
+                <div className={styles.statItem}>
+                  <span className={styles.statValue}>{player.league.attended} de {player.league.possible}</span>
+                  <span className={styles.statLabel}>Liga</span>
+                  {calledButAbsentLabel(player.league.calledButAbsent) && (
+                    <span className={styles.statAbsentNote}>{calledButAbsentLabel(player.league.calledButAbsent)}</span>
+                  )}
                 </div>
               </div>
 

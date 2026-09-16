@@ -64,6 +64,8 @@ export type ConvocationManagementReturn = {
   mgmtRatings: Record<string, PlayerRating>;
   mgmtPhotos: Record<string, string | null>;
   mgmtExcuseMap: Record<string, number | null>;
+  /** playerId → Convocation.AssistanceTypeId for the current event (null when unset) */
+  mgmtAssistanceMap: Record<string, number | null>;
   /** playerId → pre-match minutes reason (null when unset) */
   mgmtMinutesReasonMap: Record<string, string | null>;
   // Drag state
@@ -116,6 +118,7 @@ export function useConvocationManagement(
   const [mgmtRatings, setMgmtRatings] = useState<Record<string, PlayerRating>>({});
   const [mgmtPhotos, setMgmtPhotos] = useState<Record<string, string | null>>({});
   const [mgmtExcuseMap, setMgmtExcuseMap] = useState<Record<string, number | null>>({});
+  const [mgmtAssistanceMap, setMgmtAssistanceMap] = useState<Record<string, number | null>>({});
   const [mgmtMinutesReasonMap, setMgmtMinutesReasonMap] = useState<Record<string, string | null>>({});
 
   // Drag state
@@ -257,11 +260,13 @@ export function useConvocationManagement(
         }
 
         const excuseInit: Record<string, number | null> = {};
+        const assistanceInit: Record<string, number | null> = {};
         const minutesReasonInit: Record<string, string | null> = {};
         for (const conv of convs) {
           const pid = conv.player.id ?? "";
           if (!pid) continue;
           if (conv.excuseTypeId != null) excuseInit[pid] = conv.excuseTypeId;
+          assistanceInit[pid] = conv.assistanceTypeId ?? null;
           minutesReasonInit[pid] = conv.minutesReason ?? null;
         }
 
@@ -277,6 +282,7 @@ export function useConvocationManagement(
           setMgmtPending(pendingIds.filter((id) => !injuredCalledIds.has(id)));
           setMgmtAvailable(availableIds);
           setMgmtExcuseMap(excuseInit);
+          setMgmtAssistanceMap(assistanceInit);
           setMgmtMinutesReasonMap(minutesReasonInit);
         }
       } catch {
@@ -614,6 +620,7 @@ export function useConvocationManagement(
     mgmtRatings,
     mgmtPhotos,
     mgmtExcuseMap,
+    mgmtAssistanceMap,
     mgmtMinutesReasonMap,
     mgmtDragPlayer,
     mgmtDragOver,

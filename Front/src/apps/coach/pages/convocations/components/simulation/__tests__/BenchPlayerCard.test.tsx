@@ -60,7 +60,7 @@ describe("BenchPlayerCard - tarjeta rica de banquillo (contenido intacto)", () =
     expect(screen.queryByText("23'")).not.toBeInTheDocument();
   });
 
-  it("muestra un guion en el badge de minutos cuando el jugador no ha jugado", () => {
+  it("muestra un guion en el badge de minutos cuando el jugador no ha jugado y no tiene estado de asistencia", () => {
     const { container } = render(
       <BenchPlayerCard
         player={makePlayer()}
@@ -72,6 +72,64 @@ describe("BenchPlayerCard - tarjeta rica de banquillo (contenido intacto)", () =
     );
 
     expect(container.querySelector(".benchNoPlayTag, [class*='benchNoPlayTag']")).toHaveTextContent("—");
+  });
+});
+
+describe("BenchPlayerCard - badge de ausencia/tardanza en jugadores con 0 minutos", () => {
+  it("muestra 'No asistió' sin motivo para UnexcusedAbsence (id=3)", () => {
+    render(
+      <BenchPlayerCard
+        player={makePlayer({ assistanceTypeId: 3 })}
+        isDragActive={false}
+        isLeaving={false}
+        minutesPlayed={0}
+        hasPlayed={false}
+      />,
+    );
+
+    expect(screen.getByText("No asistió")).toBeInTheDocument();
+  });
+
+  it("muestra 'No asistió (justificado)' con el motivo para ExcusedAbsence (id=2)", () => {
+    render(
+      <BenchPlayerCard
+        player={makePlayer({ assistanceTypeId: 2, excuseReasonName: "Lesión" })}
+        isDragActive={false}
+        isLeaving={false}
+        minutesPlayed={0}
+        hasPlayed={false}
+      />,
+    );
+
+    expect(screen.getByText((_, el) => el?.textContent === "No asistió (justificado) · Lesión")).toBeInTheDocument();
+  });
+
+  it("muestra 'Llegó tarde' con el motivo para LateArrival (id=4)", () => {
+    render(
+      <BenchPlayerCard
+        player={makePlayer({ assistanceTypeId: 4, excuseReasonName: "Tráfico" })}
+        isDragActive={false}
+        isLeaving={false}
+        minutesPlayed={0}
+        hasPlayed={false}
+      />,
+    );
+
+    expect(screen.getByText((_, el) => el?.textContent === "Llegó tarde · Tráfico")).toBeInTheDocument();
+  });
+
+  it("muestra 'Llegó tarde' sin motivo cuando no hay excuseReasonName", () => {
+    render(
+      <BenchPlayerCard
+        player={makePlayer({ assistanceTypeId: 4 })}
+        isDragActive={false}
+        isLeaving={false}
+        minutesPlayed={0}
+        hasPlayed={false}
+      />,
+    );
+
+    expect(screen.getByText("Llegó tarde")).toBeInTheDocument();
   });
 });
 
@@ -106,6 +164,27 @@ describe("groupBenchPlayers", () => {
       "Centrocampistas",
       "Delanteros",
     ]);
+  });
+
+  it("separa a los jugadores que no asistieron (justificado o no) en un grupo 'No asisten' aparte de su posición", () => {
+    const players = [
+      makePlayer({ id: "gk", position: "Portero" }),
+      makePlayer({ id: "absent-unexcused", position: "Defensa central", assistanceTypeId: 3 }),
+      makePlayer({ id: "absent-excused", position: "Delantero", assistanceTypeId: 2 }),
+      makePlayer({ id: "late", position: "Centrocampista", assistanceTypeId: 4 }),
+    ];
+
+    const groups = groupBenchPlayers(players);
+    const noAsistenGroup = groups.find((g) => g.label === "No asisten");
+
+    expect(noAsistenGroup).toBeDefined();
+    expect(noAsistenGroup?.players.map((p) => p.id)).toEqual(
+      expect.arrayContaining(["absent-unexcused", "absent-excused"]),
+    );
+    // Late arrivals (id=4) did attend — they stay in their position group, not in "No asisten".
+    expect(noAsistenGroup?.players.map((p) => p.id)).not.toContain("late");
+    const centrocampistasGroup = groups.find((g) => g.label === "Centrocampistas");
+    expect(centrocampistasGroup?.players.map((p) => p.id)).toContain("late");
   });
 });
 

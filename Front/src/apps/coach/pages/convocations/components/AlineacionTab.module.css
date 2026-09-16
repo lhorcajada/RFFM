@@ -134,6 +134,12 @@
   font-size: 0.7rem;
 }
 
+.desconvocadosNotAttendingReason {
+  font-size: 0.68rem;
+  color: #f87171;
+  overflow-wrap: break-word;
+}
+
 .desconvocadosReconvokeBtn {
   flex-shrink: 0;
   display: flex;

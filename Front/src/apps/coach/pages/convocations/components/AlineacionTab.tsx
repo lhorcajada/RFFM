@@ -15,6 +15,8 @@ type Props = {
   lineupPlayers: SquadPlayer[];
   notCalledPlayers?: SquadPlayer[];
   pendingPlayers?: SquadPlayer[];
+  /** Accepted players who ended up not attending (excused or unexcused) — shown separately. */
+  notAttendingPlayers?: SquadPlayer[];
   lineupRef: RefObject<IdealLineupHandle | null>;
   teamId: string;
   onSavingChange: (saving: boolean) => void;
@@ -30,6 +32,7 @@ export default function AlineacionTab({
   lineupPlayers,
   notCalledPlayers = [],
   pendingPlayers = [],
+  notAttendingPlayers = [],
   lineupRef,
   teamId,
   onSavingChange,
@@ -136,6 +139,31 @@ export default function AlineacionTab({
             ))
           )}
         </div>
+
+        {notAttendingPlayers.length > 0 && (
+          <>
+            <div className={styles.desconvocadosHeader}>
+              <span>No asisten</span>
+              <span className={styles.desconvocadosBadge}>{notAttendingPlayers.length}</span>
+            </div>
+            <div className={styles.desconvocadosList}>
+              {notAttendingPlayers.map((p) => (
+                <div key={p.id} className={styles.desconvocadosItem}>
+                  <div className={styles.desconvocadosTopRow}>
+                    {p.dorsal != null && (
+                      <span className={styles.desconvocadosDorsal}>{p.dorsal}</span>
+                    )}
+                    <span className={styles.desconvocadosName}>{p.displayName}</span>
+                  </div>
+                  <div className={styles.desconvocadosNotAttendingReason}>
+                    {p.assistanceTypeId === 2 ? "No asistió (justificado)" : "No asistió"}
+                    {p.excuseReasonName ? ` · ${p.excuseReasonName}` : ""}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
     </div>

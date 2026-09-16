@@ -13,17 +13,37 @@ export const BENCH_POSITION_GROUPS: { label: string; color: string; test: (p: st
   { label: "Delanteros",      color: "#ef4444", test: (p) => p.includes("delantero") || p.includes("extremo") || p.includes("punta") || p.includes("ariete") || p.includes("winger") },
 ];
 
+// Players who were called up, accepted, and then did not attend (justified or not) — id 2
+// (ExcusedAbsence) or 3 (UnexcusedAbsence). LateArrival (id 4) attended, so it stays grouped by
+// position like any other bench player.
+const NOT_ATTENDING_ASSISTANCE_TYPE_IDS = new Set([2, 3]);
+
 export function groupBenchPlayers(players: SquadPlayer[]) {
+  const notAttending: SquadPlayer[] = [];
+  const attendingOrUnknown: SquadPlayer[] = [];
+  for (const p of players) {
+    if (p.assistanceTypeId != null && NOT_ATTENDING_ASSISTANCE_TYPE_IDS.has(p.assistanceTypeId)) {
+      notAttending.push(p);
+    } else {
+      attendingOrUnknown.push(p);
+    }
+  }
+
   const groups = BENCH_POSITION_GROUPS.map((g) => ({ ...g, players: [] as SquadPlayer[] }));
   const others: SquadPlayer[] = [];
-  for (const p of players) {
+  for (const p of attendingOrUnknown) {
     const lower = (p.position ?? "").toLowerCase();
     const idx = BENCH_POSITION_GROUPS.findIndex((g) => g.test(lower));
     if (idx >= 0) groups[idx].players.push(p);
     else others.push(p);
   }
   if (others.length > 0) groups.push({ label: "Sin posición", color: "#6b7280", players: others, test: () => false });
-  return groups.filter((g) => g.players.length > 0);
+
+  const result = groups.filter((g) => g.players.length > 0);
+  if (notAttending.length > 0) {
+    result.unshift({ label: "No asisten", color: "#f87171", players: notAttending, test: () => false });
+  }
+  return result;
 }
 
 // ─── Bench player card (draggable in prepare mode, static otherwise) ──────────
@@ -102,13 +122,26 @@ export function BenchPlayerCard({
           )}
         </div>
         {!isLeaving ? (
-          hasPlayed
-            ? <span className={styles.benchMinTag}>{minutesPlayed}&apos;</span>
-            : <span className={styles.benchNoPlayTag}>—</span>
+          hasPlayed ? (
+            <span className={styles.benchMinTag}>{minutesPlayed}&apos;</span>
+          ) : (
+            <span className={styles.benchNoPlayTag}>—</span>
+          )
         ) : (
           <span className={styles.benchCardSaleBadge}>SALE</span>
         )}
       </div>
+      {!isLeaving && !hasPlayed && (player.assistanceTypeId === 2 || player.assistanceTypeId === 3) && (
+        <div className={styles.benchAbsentTag}>
+          {player.assistanceTypeId === 2 ? "No asistió (justificado)" : "No asistió"}
+          {player.excuseReasonName ? ` · ${player.excuseReasonName}` : ""}
+        </div>
+      )}
+      {!isLeaving && !hasPlayed && player.assistanceTypeId === 4 && (
+        <div className={styles.benchLateTag}>
+          Llegó tarde{player.excuseReasonName ? ` · ${player.excuseReasonName}` : ""}
+        </div>
+      )}
       <PlayerFormBars
         variant="full"
         readiness={computeLiveReadiness(player.readinessBreakdown, minutesPlayed ?? 0)}

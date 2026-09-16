@@ -17,6 +17,13 @@ export type ReadinessBreakdown = {
   recentAbsences: RecentAbsence[];
 };
 
+export type AttendanceRatio = {
+  attended: number;
+  possible: number;
+  /** Convocado y aceptado, pero no asistió (justificado o no). Ya incluido en "possible", no en "attended". */
+  calledButAbsent: number;
+};
+
 export type PlayerStatistics = {
   teamPlayerId: string;
   displayName: string;
@@ -26,8 +33,9 @@ export type PlayerStatistics = {
   yellowCards: number;
   redCards: number;
   minutesPlayed: number;
-  trainingsAttended: number;
-  matchesPlayed: number;
+  trainings: AttendanceRatio;
+  friendlies: AttendanceRatio;
+  league: AttendanceRatio;
   daysSinceLastInjury: number | null;
   lastInjuryDurationDays: number | null;
   /** Forma física (0-100), persistida y actualizada de forma incremental. Siempre tiene valor. */

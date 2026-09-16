@@ -108,6 +108,12 @@ export interface SquadPlayer {
   fatigue?: number | null;
   /** Disponibilidad = max(0, physicalFitness - fatigue). Se muestra de forma compacta; Forma física/Cansancio van en el tooltip. */
   availability?: number | null;
+  /** Convocation.AssistanceTypeId para el evento actual (2=ExcusedAbsence, 3=UnexcusedAbsence, 4=LateArrival). */
+  assistanceTypeId?: number | null;
+  /** Convocation.ExcuseTypeId para el evento actual. */
+  excuseTypeId?: number | null;
+  /** Nombre resuelto del motivo de excusa (a partir de excuseTypeId). */
+  excuseReasonName?: string | null;
 }
 
 export interface IdealLineupHandle {

@@ -27,6 +27,12 @@ type ConvocationPlayersInput = {
       availability?: number | null;
     }
   >;
+  /** Convocation.AssistanceTypeId por teamPlayerId para el evento actual. */
+  assistanceMap?: Record<string, number | null>;
+  /** Convocation.ExcuseTypeId por teamPlayerId para el evento actual. */
+  excuseMap?: Record<string, number | null>;
+  /** Catálogo de tipos de excusa por id, para resolver el nombre del motivo. */
+  excuseTypesById?: ReadonlyMap<number, { name: string; justified?: boolean }>;
 };
 
 export type ConvocationPlayerViews = {
@@ -35,6 +41,8 @@ export type ConvocationPlayerViews = {
   lineupPlayers: SquadPlayer[];
   notCalledPlayers: SquadPlayer[];
   pendingPlayers: SquadPlayer[];
+  /** Subset of lineupPlayers who were accepted but did not attend (excused or unexcused). */
+  notAttendingPlayers: SquadPlayer[];
 };
 
 function buildDisplayName(player: PlayerResponse): string {
@@ -42,7 +50,10 @@ function buildDisplayName(player: PlayerResponse): string {
 }
 
 export function useConvocationPlayerViews(input: ConvocationPlayersInput): ConvocationPlayerViews {
-  const { players, mgmtNotCalled, mgmtPending, mgmtPhotos, mgmtRatings, matchColumns, enrichedGrid, readinessMap } = input;
+  const {
+    players, mgmtNotCalled, mgmtPending, mgmtPhotos, mgmtRatings, matchColumns, enrichedGrid, readinessMap,
+    assistanceMap, excuseMap, excuseTypesById,
+  } = input;
 
   const playerStreaks = useMemo(() => {
     const result = new Map<string, number>();
@@ -84,24 +95,33 @@ export function useConvocationPlayerViews(input: ConvocationPlayersInput): Convo
     const pendingSet = new Set(mgmtPending);
     return players
       .filter((p) => p.isInjured !== true && !notCalledSet.has(p.id) && !pendingSet.has(p.id))
-      .map((p) => ({
-        id: p.id,
-        displayName: buildDisplayName(p),
-        alias: p.alias ?? null,
-        photoSrc: mgmtPhotos[p.id] ?? null,
-        dorsal: p.dorsal ?? null,
-        position: p.position ?? null,
-        competitiveness: mgmtRatings[p.id]?.competitiveness ?? null,
-        isInjured: false,
-        streakCount: playerStreaks.get(p.id) ?? null,
-        technicalTotal: playerTechnicalTotals.get(p.id) ?? null,
-        readiness: readinessMap?.[p.id]?.readiness ?? null,
-        readinessBreakdown: readinessMap?.[p.id]?.readinessBreakdown ?? null,
-        physicalFitness: readinessMap?.[p.id]?.physicalFitness ?? null,
-        fatigue: readinessMap?.[p.id]?.fatigue ?? null,
-        availability: readinessMap?.[p.id]?.availability ?? null,
-      }));
-  }, [players, mgmtNotCalled, mgmtPending, mgmtPhotos, mgmtRatings, playerStreaks, playerTechnicalTotals, readinessMap]);
+      .map((p) => {
+        const excuseTypeId = excuseMap?.[p.id] ?? null;
+        return {
+          id: p.id,
+          displayName: buildDisplayName(p),
+          alias: p.alias ?? null,
+          photoSrc: mgmtPhotos[p.id] ?? null,
+          dorsal: p.dorsal ?? null,
+          position: p.position ?? null,
+          competitiveness: mgmtRatings[p.id]?.competitiveness ?? null,
+          isInjured: false,
+          streakCount: playerStreaks.get(p.id) ?? null,
+          technicalTotal: playerTechnicalTotals.get(p.id) ?? null,
+          readiness: readinessMap?.[p.id]?.readiness ?? null,
+          readinessBreakdown: readinessMap?.[p.id]?.readinessBreakdown ?? null,
+          physicalFitness: readinessMap?.[p.id]?.physicalFitness ?? null,
+          fatigue: readinessMap?.[p.id]?.fatigue ?? null,
+          availability: readinessMap?.[p.id]?.availability ?? null,
+          assistanceTypeId: assistanceMap?.[p.id] ?? null,
+          excuseTypeId,
+          excuseReasonName: excuseTypeId != null ? excuseTypesById?.get(excuseTypeId)?.name ?? null : null,
+        };
+      });
+  }, [
+    players, mgmtNotCalled, mgmtPending, mgmtPhotos, mgmtRatings, playerStreaks, playerTechnicalTotals, readinessMap,
+    assistanceMap, excuseMap, excuseTypesById,
+  ]);
 
   const notCalledPlayers = useMemo(() => {
     const notCalledSet = new Set(mgmtNotCalled);
@@ -147,11 +167,17 @@ export function useConvocationPlayerViews(input: ConvocationPlayersInput): Convo
       }));
   }, [players, mgmtPending, mgmtPhotos, mgmtRatings, playerStreaks, playerTechnicalTotals, readinessMap]);
 
+  const notAttendingPlayers = useMemo(
+    () => lineupPlayers.filter((p) => p.assistanceTypeId === 2 || p.assistanceTypeId === 3),
+    [lineupPlayers],
+  );
+
   return {
     playerStreaks,
     playerTechnicalTotals,
     lineupPlayers,
     notCalledPlayers,
     pendingPlayers,
+    notAttendingPlayers,
   };
 }
