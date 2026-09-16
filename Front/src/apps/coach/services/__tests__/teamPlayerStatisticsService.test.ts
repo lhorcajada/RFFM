@@ -46,6 +46,9 @@ describe("teamPlayerStatisticsService.getTeamPlayerStatistics", () => {
             { eventId: "ev-1", date: "2026-08-01T00:00:00Z", reason: "Enfermedad", pointsImpact: -55 },
           ],
         },
+        matchesAbsentAttributableToPlayer: 2,
+        minutesPlayedPercentOfSeasonTotal: 42.6,
+        attributableAbsentMinutesPercentOfSeasonTotal: 12.4,
       },
     ];
     const expected: PlayerStatistics[] = [
@@ -78,6 +81,9 @@ describe("teamPlayerStatisticsService.getTeamPlayerStatistics", () => {
             { eventId: "ev-1", date: "2026-08-01T00:00:00Z", reason: "Enfermedad", pointsImpact: -55 },
           ],
         },
+        matchesAbsentAttributableToPlayer: 2,
+        minutesPlayedPercentOfSeasonTotal: 42.6,
+        attributableAbsentMinutesPercentOfSeasonTotal: 12.4,
       },
     ];
     (client.get as any).mockResolvedValue({ data: apiResponse });

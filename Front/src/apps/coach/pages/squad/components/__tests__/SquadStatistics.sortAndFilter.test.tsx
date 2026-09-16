@@ -25,6 +25,9 @@ function buildPlayer(overrides: Partial<PlayerStatistics> = {}): PlayerStatistic
     availability: 40,
     readiness: 50,
     readinessBreakdown: null,
+    matchesAbsentAttributableToPlayer: 0,
+    minutesPlayedPercentOfSeasonTotal: null,
+    attributableAbsentMinutesPercentOfSeasonTotal: null,
     ...overrides,
   };
 }
@@ -54,6 +57,22 @@ describe("SquadStatistics — tarjetas y filtros", () => {
 
     const anaCard = screen.getByTestId("squad-stat-card-p2");
     expect(within(anaCard).getByText("Ana Ruiz")).toBeInTheDocument();
+  });
+
+  it("por defecto ordena las tarjetas por Estado de forma (ef) sin necesidad de seleccionar nada", () => {
+    render(
+      <SquadStatistics
+        players={[
+          buildPlayer({ teamPlayerId: "p1", displayName: "Ef Bajo", readiness: 40, fatigue: 20 }),
+          buildPlayer({ teamPlayerId: "p2", displayName: "Ef Alto", readiness: 90, fatigue: 20 }),
+        ]}
+        loading={false}
+      />,
+    );
+
+    const efButton = screen.getByRole("button", { name: /^estado de forma$/i });
+    expect(efButton).toHaveAttribute("aria-pressed", "true");
+    expect(cardNamesInOrder()).toEqual(["Ef Alto", "Ef Bajo"]);
   });
 
   it("ordena las tarjetas al elegir Goles en el selector de orden, descendente y luego ascendente", async () => {

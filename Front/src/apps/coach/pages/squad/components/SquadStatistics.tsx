@@ -16,7 +16,9 @@ import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import type { PlayerStatistics } from "../../../services/teamPlayerStatisticsService";
+import { SEASON_MINUTES_TARGET_PERCENT } from "../../../services/teamPlayerStatisticsService";
 import { exportSquadStatisticsPdf } from "../squadStatsPdfExport";
+import { calledButAbsentLabel, injuryLabel, minutesTargetCaption } from "../playerStatsText";
 import PlayerFormBars from "../../../components/PlayerFormBars/PlayerFormBars";
 import PlayerFormLegend from "../../../components/PlayerFormLegend/PlayerFormLegend";
 import { computeEf } from "../../../utils/playerFormMetrics";
@@ -57,24 +59,8 @@ function compareValues(a: PlayerStatistics, b: PlayerStatistics, key: SortKey): 
   return Number(av) - Number(bv);
 }
 
-function injuryLabel(player: PlayerStatistics): string | null {
-  if (player.daysSinceLastInjury == null) return null;
-  const dur =
-    player.lastInjuryDurationDays == null
-      ? "en curso"
-      : `${player.lastInjuryDurationDays} días de baja`;
-  return `Lesión: hace ${player.daysSinceLastInjury} días (${dur})`;
-}
-
-function calledButAbsentLabel(calledButAbsent: number): string | null {
-  if (calledButAbsent <= 0) return null;
-  return calledButAbsent === 1
-    ? "1 convocado, no asistió"
-    : `${calledButAbsent} convocados, no asistieron`;
-}
-
 export default function SquadStatistics({ players, loading, teamName }: Props) {
-  const [sortKey, setSortKey] = useState<SortKey>("readiness");
+  const [sortKey, setSortKey] = useState<SortKey>("ef");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [positionFilter, setPositionFilter] = useState<string>("");
 
@@ -121,19 +107,21 @@ export default function SquadStatistics({ players, loading, teamName }: Props) {
       <div className={styles.toolbar}>
         <div className={styles.sortControl}>
           <span className={styles.sortLabel}>Ordenar por:</span>
-          <ToggleButtonGroup
-            size="small"
-            exclusive
-            value={sortKey}
-            onChange={handleSortKeyChange}
-            aria-label="Ordenar por"
-          >
-            {SORT_OPTIONS.map(({ key, label }) => (
-              <ToggleButton key={key} value={key}>
-                {label}
-              </ToggleButton>
-            ))}
-          </ToggleButtonGroup>
+          <div className={styles.sortToggleScroll}>
+            <ToggleButtonGroup
+              size="small"
+              exclusive
+              value={sortKey}
+              onChange={handleSortKeyChange}
+              aria-label="Ordenar por"
+            >
+              {SORT_OPTIONS.map(({ key, label }) => (
+                <ToggleButton key={key} value={key}>
+                  {label}
+                </ToggleButton>
+              ))}
+            </ToggleButtonGroup>
+          </div>
           <Tooltip title={sortDirection === "asc" ? "Orden ascendente" : "Orden descendente"}>
             <IconButton
               size="small"
@@ -236,6 +224,10 @@ export default function SquadStatistics({ players, loading, teamName }: Props) {
                   <span className={styles.statLabel}>Min.</span>
                 </div>
                 <div className={styles.statItem}>
+                  <span className={styles.statValue}>{player.matchesAbsentAttributableToPlayer}</span>
+                  <span className={styles.statLabel}>Ausencias</span>
+                </div>
+                <div className={styles.statItem}>
                   <span className={styles.statValue}>{player.trainings.attended} de {player.trainings.possible}</span>
                   <span className={styles.statLabel}>Entrenamientos</span>
                 </div>
@@ -254,6 +246,30 @@ export default function SquadStatistics({ players, loading, teamName }: Props) {
                   )}
                 </div>
               </div>
+
+              {player.minutesPlayedPercentOfSeasonTotal != null && (
+                <div className={styles.minutesTargetBlock} data-testid="squad-stat-minutes-target">
+                  <span className={styles.minutesTargetTitle}>
+                    % de minutos jugados sobre los disputados por el equipo esta temporada (objetivo mínimo: {SEASON_MINUTES_TARGET_PERCENT}%)
+                  </span>
+                  <div className={styles.readinessBar}>
+                    <div className={styles.progressBar}>
+                      <div
+                        className={styles.progressBarFill}
+                        style={{ width: `${Math.min(100, Math.max(0, player.minutesPlayedPercentOfSeasonTotal))}%` }}
+                      />
+                      <div
+                        className={styles.progressBarTarget}
+                        style={{ left: `${SEASON_MINUTES_TARGET_PERCENT}%` }}
+                      />
+                    </div>
+                    <span className={styles.readinessValue}>
+                      {Math.round(player.minutesPlayedPercentOfSeasonTotal)}%
+                    </span>
+                  </div>
+                  <span className={styles.minutesTargetCaption}>{minutesTargetCaption(player)}</span>
+                </div>
+              )}
 
               {injury && <div className={styles.injuryLine}>{injury}</div>}
             </div>

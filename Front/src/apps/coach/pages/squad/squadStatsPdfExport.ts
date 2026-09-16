@@ -1,10 +1,16 @@
 import jsPDF from "jspdf";
 import type { PlayerStatistics } from "../../services/teamPlayerStatisticsService";
+import { SEASON_MINUTES_TARGET_PERCENT } from "../../services/teamPlayerStatisticsService";
+import { calledButAbsentLabel, injuryLabel, minutesTargetCaption } from "./playerStatsText";
+import { computeEf } from "../../utils/playerFormMetrics";
 
-const MH = 25; // horizontal margin (pts)
-const MV = 25; // vertical margin (pts)
-const HEADER_H = 15;
-const ROW_H = 12;
+const MH = 20; // horizontal page margin (pts)
+const MV = 20; // vertical page margin (pts)
+const COLUMNS = 2;
+const COLUMN_GAP = 12;
+const CARD_PADDING = 8;
+const LINE_H = 11;
+const CARD_GAP = 8;
 
 function todayStr(): string {
   return new Date().toLocaleDateString("es-ES", {
@@ -22,31 +28,107 @@ function safeFilename(name: string): string {
     .toLowerCase();
 }
 
-function readinessLabel(value: number | null): string {
-  return value == null ? "Sin datos" : `${value}%`;
+function pct(value: number | null): string {
+  return value == null ? "—" : `${Math.round(value)}%`;
 }
 
-function truncate(doc: jsPDF, text: string, maxWidth: number): string {
-  if (doc.getTextWidth(text) <= maxWidth) return text;
-  let cut = text;
-  while (cut.length > 1 && doc.getTextWidth(cut + "…") > maxWidth) {
-    cut = cut.slice(0, -1);
+type CardLine = { text: string; bold?: boolean; size?: number; color?: [number, number, number] };
+
+function buildCardLines(player: PlayerStatistics): CardLine[] {
+  const ef = computeEf(player.readiness, player.fatigue);
+  const lines: CardLine[] = [];
+
+  const header = `${player.dorsal ?? "—"}  ${player.displayName}${player.position ? ` · ${player.position}` : ""}`;
+  lines.push({ text: header, bold: true, size: 9 });
+
+  lines.push({
+    text: `EF ${pct(ef)}   Rodaje ${pct(player.readiness)}   Cansancio ${pct(player.fatigue)}   Forma física ${pct(player.physicalFitness)}`,
+    size: 7.5,
+  });
+
+  lines.push({
+    text: `Goles ${player.goals}   Amar. ${player.yellowCards}   Rojas ${player.redCards}   Min. ${player.minutesPlayed}   Ausencias ${player.matchesAbsentAttributableToPlayer}`,
+    size: 7.5,
+  });
+
+  lines.push({
+    text: `Entrenamientos ${player.trainings.attended} de ${player.trainings.possible}`,
+    size: 7.5,
+  });
+
+  const friendliesNote = calledButAbsentLabel(player.friendlies.calledButAbsent);
+  lines.push({
+    text: `Amistosos ${player.friendlies.attended} de ${player.friendlies.possible}${friendliesNote ? ` — ${friendliesNote}` : ""}`,
+    size: 7.5,
+    color: friendliesNote ? [178, 58, 58] : undefined,
+  });
+
+  const leagueNote = calledButAbsentLabel(player.league.calledButAbsent);
+  lines.push({
+    text: `Liga ${player.league.attended} de ${player.league.possible}${leagueNote ? ` — ${leagueNote}` : ""}`,
+    size: 7.5,
+    color: leagueNote ? [178, 58, 58] : undefined,
+  });
+
+  if (player.minutesPlayedPercentOfSeasonTotal != null) {
+    lines.push({
+      text: `Minutos temporada: ${pct(player.minutesPlayedPercentOfSeasonTotal)} (objetivo mínimo ${SEASON_MINUTES_TARGET_PERCENT}%)`,
+      size: 7.5,
+      bold: true,
+    });
+    lines.push({ text: minutesTargetCaption(player), size: 6.8, color: [110, 110, 110] });
   }
-  return cut + "…";
+
+  const injury = injuryLabel(player);
+  if (injury) {
+    lines.push({ text: injury, size: 7, color: [178, 58, 58] });
+  }
+
+  return lines;
+}
+
+function cardHeight(lines: CardLine[]): number {
+  return CARD_PADDING * 2 + lines.length * LINE_H;
+}
+
+function drawCard(doc: jsPDF, player: PlayerStatistics, x: number, y: number, w: number, h: number, rowIdx: number): void {
+  doc.setFillColor(rowIdx % 2 === 0 ? 250 : 255, rowIdx % 2 === 0 ? 250 : 255, rowIdx % 2 === 0 ? 251 : 255);
+  doc.setDrawColor(210, 210, 210);
+  doc.setLineWidth(0.4);
+  doc.roundedRect(x, y, w, h, 3, 3, "FD");
+
+  const lines = buildCardLines(player);
+  let ty = y + CARD_PADDING + 6;
+  const tx = x + CARD_PADDING;
+  const maxWidth = w - CARD_PADDING * 2;
+
+  for (const line of lines) {
+    doc.setFont("helvetica", line.bold ? "bold" : "normal");
+    doc.setFontSize(line.size ?? 7.5);
+    doc.setTextColor(...(line.color ?? [40, 40, 40]));
+    const wrapped = doc.splitTextToSize(line.text, maxWidth) as string[];
+    for (const wrappedLine of wrapped) {
+      doc.text(wrappedLine, tx, ty);
+      ty += LINE_H;
+    }
+  }
 }
 
 /**
- * Exports a plain table PDF (Dorsal, Jugador, Posición, Goles, Amarillas, Rojas,
- * Minutos, Rodaje) with one row per player, paginating when the table
- * overflows the page. Pagination logic mirrors squadPdfExport.ts's
- * drawSummaryPage BOTTOM_LIMIT check.
+ * Exports a card-grid PDF (one block per player, mirroring the on-screen SquadStatistics
+ * cards) — EF/Rodaje/Cansancio, Forma física, goles/tarjetas/minutos, ausencias imputables,
+ * ratios de Entrenamientos/Amistosos/Liga con su nota de "convocado no asistió", el objetivo
+ * de minutos de temporada (solo F11) y la línea de lesión — en vez de una tabla de una fila
+ * por jugador, ya que esa información ya no cabe en una sola fila.
  */
 export function exportSquadStatisticsPdf(players: PlayerStatistics[], teamName?: string): void {
-  const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
+  const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
   const W = doc.internal.pageSize.getWidth();
   const PAGE_H = doc.internal.pageSize.getHeight();
   const CW = W - 2 * MH;
-  const BOTTOM_LIMIT = PAGE_H - MV - 8;
+  const BOTTOM_LIMIT = PAGE_H - MV;
+  const cardW = (CW - COLUMN_GAP * (COLUMNS - 1)) / COLUMNS;
+
   let y = MV;
 
   doc.setFillColor(30, 30, 30);
@@ -62,76 +144,26 @@ export function exportSquadStatisticsPdf(players: PlayerStatistics[], teamName?:
   doc.setTextColor(110, 110, 110);
   const subtitle = teamName ? `${teamName}  ·  ${todayStr()}` : todayStr();
   doc.text(subtitle, W / 2, y + 8, { align: "center" });
-  y += 16;
+  y += 18;
 
-  const cols = [
-    { label: "D.", w: 30, align: "center" as const, key: "dorsal" as const },
-    { label: "Jugador", w: 150, align: "left" as const, key: "displayName" as const },
-    { label: "Posición", w: 90, align: "left" as const, key: "position" as const },
-    { label: "Goles", w: 47, align: "center" as const, key: "goals" as const },
-    { label: "Amar.", w: 47, align: "center" as const, key: "yellowCards" as const },
-    { label: "Rojas", w: 47, align: "center" as const, key: "redCards" as const },
-    { label: "Minutos", w: 62, align: "center" as const, key: "minutesPlayed" as const },
-    { label: "Rodaje", w: 72.28, align: "center" as const, key: "readiness" as const },
-  ];
+  let rowIdx = 0;
+  for (let i = 0; i < players.length; i += COLUMNS) {
+    const rowPlayers = players.slice(i, i + COLUMNS);
+    const rowH = Math.max(...rowPlayers.map((p) => cardHeight(buildCardLines(p))));
 
-  function drawTableHeader(yy: number): void {
-    doc.setFillColor(45, 45, 45);
-    doc.rect(MH, yy, CW, HEADER_H, "F");
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(7);
-    doc.setTextColor(255, 255, 255);
-    let cx = MH;
-    for (const col of cols) {
-      const tx = col.align === "center" ? cx + col.w / 2 : cx + 4;
-      doc.text(col.label, tx, yy + HEADER_H - 4, { align: col.align });
-      cx += col.w;
-    }
-  }
-
-  drawTableHeader(y);
-  y += HEADER_H;
-
-  players.forEach((p, rowIdx) => {
-    if (y + ROW_H > BOTTOM_LIMIT) {
+    if (y + rowH > BOTTOM_LIMIT) {
       doc.addPage();
       y = MV;
-      drawTableHeader(y);
-      y += HEADER_H;
     }
 
-    doc.setFillColor(rowIdx % 2 === 0 ? 251 : 255, rowIdx % 2 === 0 ? 251 : 255, rowIdx % 2 === 0 ? 251 : 255);
-    doc.rect(MH, y, CW, ROW_H, "F");
+    rowPlayers.forEach((player, colIdx) => {
+      const x = MH + colIdx * (cardW + COLUMN_GAP);
+      drawCard(doc, player, x, y, cardW, rowH, rowIdx);
+    });
 
-    const rowVals: string[] = [
-      p.dorsal != null ? String(p.dorsal) : "—",
-      p.displayName,
-      p.position ?? "—",
-      String(p.goals),
-      String(p.yellowCards),
-      String(p.redCards),
-      String(p.minutesPlayed),
-      readinessLabel(p.readiness),
-    ];
-
-    let cx = MH;
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.5);
-    doc.setTextColor(40, 40, 40);
-    for (let i = 0; i < cols.length; i++) {
-      const col = cols[i];
-      const display = truncate(doc, rowVals[i], col.w - 6);
-      const tx = col.align === "center" ? cx + col.w / 2 : cx + 4;
-      doc.text(display, tx, y + ROW_H - 3, { align: col.align });
-      cx += col.w;
-    }
-
-    doc.setDrawColor(220, 220, 220);
-    doc.setLineWidth(0.3);
-    doc.line(MH, y + ROW_H, MH + CW, y + ROW_H);
-
-    y += ROW_H;
-  });
+    y += rowH + CARD_GAP;
+    rowIdx++;
+  }
 
   const datePart = todayStr().replace(/\//g, "-");
   const namePart = teamName ? safeFilename(teamName) : "plantilla";

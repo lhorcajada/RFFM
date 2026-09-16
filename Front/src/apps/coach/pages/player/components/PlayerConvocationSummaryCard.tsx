@@ -1,4 +1,9 @@
-import type { PlayerAbsenceMatch, PlayerConvocationSummary } from "../../../services/convocationService";
+import type {
+  PlayerAbsenceMatch,
+  PlayerAttendanceRatio,
+  PlayerConvocationSummary,
+} from "../../../services/convocationService";
+import { calledButAbsentLabel } from "../../squad/playerStatsText";
 import styles from "./PlayerConvocationSummaryCard.module.css";
 
 type Props = {
@@ -13,6 +18,27 @@ function formatAbsenceDate(iso: string | null): string {
     month: "2-digit",
     year: "2-digit",
   });
+}
+
+function RatioTile({
+  label,
+  ratio,
+  showCalledButAbsent,
+}: {
+  label: string;
+  ratio: PlayerAttendanceRatio;
+  showCalledButAbsent: boolean;
+}) {
+  const note = showCalledButAbsent ? calledButAbsentLabel(ratio.calledButAbsent) : null;
+  return (
+    <div className={styles.tile}>
+      <span className={styles.tileValue}>
+        {ratio.attended} de {ratio.possible}
+      </span>
+      <span className={styles.tileLabel}>{label}</span>
+      {note && <span className={styles.tileNote}>{note}</span>}
+    </div>
+  );
 }
 
 function AbsenceTile({
@@ -54,18 +80,9 @@ export default function PlayerConvocationSummaryCard({ summary, loading }: Props
         <span className={styles.tileValue}>{summary.totalStarts}</span>
         <span className={styles.tileLabel}>Titularidades</span>
       </div>
-      <div className={styles.tile}>
-        <span className={styles.tileValue}>{summary.totalTrainingConvocations}</span>
-        <span className={styles.tileLabel}>Entrenamientos</span>
-      </div>
-      <div className={styles.tile}>
-        <span className={styles.tileValue}>{summary.totalFriendlyConvocations}</span>
-        <span className={styles.tileLabel}>Amistosos</span>
-      </div>
-      <div className={styles.tile}>
-        <span className={styles.tileValue}>{summary.totalLeagueConvocations}</span>
-        <span className={styles.tileLabel}>Liga</span>
-      </div>
+      <RatioTile label="Entrenamientos" ratio={summary.trainings} showCalledButAbsent={false} />
+      <RatioTile label="Amistosos" ratio={summary.friendlies} showCalledButAbsent />
+      <RatioTile label="Liga" ratio={summary.league} showCalledButAbsent />
       <AbsenceTile
         label="Última desconvocatoria"
         match={summary.lastDeconvokedMatch}

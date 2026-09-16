@@ -24,6 +24,9 @@ function buildPlayer(overrides: Partial<PlayerStatistics> = {}): PlayerStatistic
     availability: 40,
     readiness: 40,
     readinessBreakdown: null,
+    matchesAbsentAttributableToPlayer: 0,
+    minutesPlayedPercentOfSeasonTotal: null,
+    attributableAbsentMinutesPercentOfSeasonTotal: null,
     ...overrides,
   };
 }

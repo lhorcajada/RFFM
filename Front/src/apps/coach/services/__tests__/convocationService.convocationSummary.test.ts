@@ -19,10 +19,9 @@ describe("convocationService.getPlayerConvocationSummary", () => {
   it("hace GET a /api/catalog/team-player/{teamPlayerId}/convocation-summary y devuelve el resultado tal cual", async () => {
     const apiResponse = {
       totalStarts: 12,
-      totalConvocations: 15,
-      totalTrainingConvocations: 9,
-      totalFriendlyConvocations: 2,
-      totalLeagueConvocations: 4,
+      trainings: { attended: 9, possible: 10, calledButAbsent: 0 },
+      friendlies: { attended: 2, possible: 3, calledButAbsent: 1 },
+      league: { attended: 4, possible: 4, calledButAbsent: 0 },
       lastDeconvokedMatch: {
         eventId: "ev-1",
         matchDate: "2026-02-10T10:00:00Z",

@@ -84,10 +84,9 @@ vi.mock("../hooks/usePlayerConvocationSummary", () => ({
   usePlayerConvocationSummary: () => ({
     summary: {
       totalStarts: 5,
-      totalConvocations: 7,
-      totalTrainingConvocations: 4,
-      totalFriendlyConvocations: 1,
-      totalLeagueConvocations: 2,
+      trainings: { attended: 4, possible: 5, calledButAbsent: 0 },
+      friendlies: { attended: 1, possible: 2, calledButAbsent: 0 },
+      league: { attended: 2, possible: 3, calledButAbsent: 0 },
       lastDeconvokedMatch: null,
       lastAbsenceMatch: null,
     },

@@ -7,10 +7,9 @@ import type { PlayerConvocationSummary } from "../../../../services/convocationS
 function buildSummary(overrides: Partial<PlayerConvocationSummary> = {}): PlayerConvocationSummary {
   return {
     totalStarts: 12,
-    totalConvocations: 15,
-    totalTrainingConvocations: 8,
-    totalFriendlyConvocations: 3,
-    totalLeagueConvocations: 4,
+    trainings: { attended: 8, possible: 9, calledButAbsent: 0 },
+    friendlies: { attended: 3, possible: 4, calledButAbsent: 0 },
+    league: { attended: 4, possible: 5, calledButAbsent: 0 },
     lastDeconvokedMatch: null,
     lastAbsenceMatch: null,
     ...overrides,
@@ -18,18 +17,36 @@ function buildSummary(overrides: Partial<PlayerConvocationSummary> = {}): Player
 }
 
 describe("PlayerConvocationSummaryCard", () => {
-  it("muestra las titularidades y el desglose de convocatorias por tipo de evento", () => {
+  it("muestra las titularidades y el ratio de asistidos/finalizados por tipo de evento", () => {
     render(<PlayerConvocationSummaryCard summary={buildSummary()} loading={false} />);
 
     expect(screen.getByText("Titularidades")).toBeInTheDocument();
     expect(screen.getByText("12")).toBeInTheDocument();
 
     expect(screen.getByText("Entrenamientos")).toBeInTheDocument();
-    expect(screen.getByText("8")).toBeInTheDocument();
+    expect(screen.getByText("8 de 9")).toBeInTheDocument();
     expect(screen.getByText("Amistosos")).toBeInTheDocument();
-    expect(screen.getByText("3")).toBeInTheDocument();
+    expect(screen.getByText("3 de 4")).toBeInTheDocument();
     expect(screen.getByText("Liga")).toBeInTheDocument();
-    expect(screen.getByText("4")).toBeInTheDocument();
+    expect(screen.getByText("4 de 5")).toBeInTheDocument();
+  });
+
+  it("muestra la nota de convocado-no-asistió en Amistosos y Liga, pero no en Entrenamientos", () => {
+    render(
+      <PlayerConvocationSummaryCard
+        summary={buildSummary({
+          trainings: { attended: 5, possible: 9, calledButAbsent: 2 },
+          friendlies: { attended: 2, possible: 4, calledButAbsent: 1 },
+          league: { attended: 3, possible: 5, calledButAbsent: 2 },
+        })}
+        loading={false}
+      />,
+    );
+
+    expect(screen.getByText("No asistió a 1 partido al que fue convocado")).toBeInTheDocument();
+    expect(screen.getByText("No asistió a 2 partidos a los que fue convocado")).toBeInTheDocument();
+    // Trainings tile also has calledButAbsent=2, but its note must not be rendered.
+    expect(screen.getAllByText(/No asistió a \d+/)).toHaveLength(2);
   });
 
   it("muestra el placeholder cuando no hay desconvocatorias ni ausencias registradas", () => {

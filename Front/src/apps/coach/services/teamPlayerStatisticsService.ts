@@ -46,7 +46,16 @@ export type PlayerStatistics = {
   availability: number;
   readiness: number | null;
   readinessBreakdown: ReadinessBreakdown | null;
+  /** Partidos del equipo donde la ausencia es imputable al jugador. Siempre calculado. */
+  matchesAbsentAttributableToPlayer: number;
+  /** % de minutos jugados sobre el total posible de la temporada. `null` si el equipo no es F11. */
+  minutesPlayedPercentOfSeasonTotal: number | null;
+  /** % del total posible de temporada perdido por ausencias imputables al jugador. `null` si el equipo no es F11. */
+  attributableAbsentMinutesPercentOfSeasonTotal: number | null;
 };
+
+/** Objetivo de temporada: un jugador debe llegar al menos al 30% de los minutos totales del equipo. */
+export const SEASON_MINUTES_TARGET_PERCENT = 30;
 
 export async function getTeamPlayerStatistics(teamId: string): Promise<PlayerStatistics[]> {
   const resp = await client.get(`/api/catalog/team/${teamId}/player-stats`);

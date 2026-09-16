@@ -24,6 +24,9 @@ function buildPlayer(overrides: Partial<PlayerStatistics> = {}): PlayerStatistic
     availability: 40,
     readiness: 50,
     readinessBreakdown: null,
+    matchesAbsentAttributableToPlayer: 0,
+    minutesPlayedPercentOfSeasonTotal: null,
+    attributableAbsentMinutesPercentOfSeasonTotal: null,
     ...overrides,
   };
 }
@@ -68,7 +71,7 @@ describe("SquadStatistics — entrenamientos, partidos y lesión reciente", () =
     );
 
     const card = screen.getByTestId("squad-stat-card-p1");
-    const notAttendedTexts = within(card).getAllByText((_, el) => el?.textContent === "1 convocado, no asistió");
+    const notAttendedTexts = within(card).getAllByText((_, el) => el?.textContent === "No asistió a 1 partido al que fue convocado");
     // Only the "Amistosos" tile shows the note here — trainings never shows it, league's
     // calledButAbsent is 0 in this fixture so it shows nothing either.
     expect(notAttendedTexts).toHaveLength(1);
@@ -89,7 +92,7 @@ describe("SquadStatistics — entrenamientos, partidos y lesión reciente", () =
     );
 
     const card = screen.getByTestId("squad-stat-card-p1");
-    expect(within(card).queryByText(/convocado.*no asisti/)).not.toBeInTheDocument();
+    expect(within(card).queryByText(/No asistió a/)).not.toBeInTheDocument();
   });
 
   it("no muestra la línea de 'no asistió' cuando calledButAbsent es 0", () => {
@@ -101,7 +104,7 @@ describe("SquadStatistics — entrenamientos, partidos y lesión reciente", () =
     );
 
     const card = screen.getByTestId("squad-stat-card-p1");
-    expect(within(card).queryByText(/convocado, no asisti/)).not.toBeInTheDocument();
+    expect(within(card).queryByText(/No asistió a/)).not.toBeInTheDocument();
   });
 
   it("muestra la línea de lesión reciente con días de baja cuando la lesión ya ha terminado", () => {

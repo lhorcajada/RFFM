@@ -126,18 +126,25 @@ export type PlayerAbsenceMatch = {
   reason: string | null;
 };
 
+/** Attended vs. Possible (finished events of that type since the player joined the squad), plus
+ * how many of those the player was called up for but did not attend. */
+export type PlayerAttendanceRatio = {
+  attended: number;
+  possible: number;
+  calledButAbsent: number;
+};
+
 /**
  * Aggregate convocation/participation summary for one team player: how many matches they
- * started, how many times they were called up in total (overall and broken down by event type),
- * and the most recent match missed for each of the two distinct absence reasons (coach decision
- * vs. player's own circumstances).
+ * started, the attended/possible ratio per event type (trainings/friendlies/league), and the
+ * most recent match missed for each of the two distinct absence reasons (coach decision vs.
+ * player's own circumstances).
  */
 export type PlayerConvocationSummary = {
   totalStarts: number;
-  totalConvocations: number;
-  totalTrainingConvocations: number;
-  totalFriendlyConvocations: number;
-  totalLeagueConvocations: number;
+  trainings: PlayerAttendanceRatio;
+  friendlies: PlayerAttendanceRatio;
+  league: PlayerAttendanceRatio;
   lastDeconvokedMatch: PlayerAbsenceMatch | null;
   lastAbsenceMatch: PlayerAbsenceMatch | null;
 };
