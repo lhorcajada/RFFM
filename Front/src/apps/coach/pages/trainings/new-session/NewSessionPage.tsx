@@ -159,7 +159,6 @@ export default function NewSessionPage() {
       SESSION_DRAFT_STORAGE_PREFIX + key,
       JSON.stringify({ draft: sessionForm.form, pendingBlockIndex: blockIndex })
     );
-    setPendingBlockIndex(blockIndex);
 
     const createParams = new URLSearchParams();
     createParams.set("clubId", clubId);
