@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Common;
+using RFFM.Api.Domain.Entities.Competitions;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Features.Coaches.Countries.Queries;
 using RFFM.Api.Infrastructure.Persistence;
@@ -39,7 +40,8 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
             string? UrlPhoto,
             string? JoinCode,
             int? RffmCompetitionId,
-            int? RffmGroupId);
+            int? RffmGroupId,
+            int? StandardHalfDurationMinutes);
 
         public class TeamsRequestHandler : IRequestHandler<TeamQuery, TeamResponse?>
         {
@@ -63,6 +65,7 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
                         cancellationToken);
                 if (team == null)
                     return null;
+                var hasStandardDuration = MatchDurationMinutesByCategory.TryGetMinutes(team.CategoryId, out var standardMinutes);
                 return new TeamResponse(team.Id, team.Name,
                     new GetTeams.CategoryResponse(team.CategoryId, team.Category.Name),
                     new GetTeams.LeagueResponse(team.LeagueId, team.League?.Name, team.LeagueGroup),
@@ -72,7 +75,8 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
                     team.UrlPhoto,
                     team.JoinCode,
                     team.RffmCompetitionId,
-                    team.RffmGroupId);
+                    team.RffmGroupId,
+                    hasStandardDuration ? standardMinutes : null);
             }
         }
     }

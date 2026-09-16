@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+﻿import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import PartidoEnDirectoTab from "../PartidoEnDirectoTab";
 import type { SquadPlayer } from "../../../squad/components/IdealLineup";
@@ -7,6 +7,10 @@ const repositionPlayer = vi.fn();
 const movePreparePlayer = vi.fn();
 let capturedOnDragEnd: ((e: { active: { id: string }; over: { id: string } | null }) => void) | null =
   null;
+
+vi.mock("../../../../services/teamService", () => ({
+  getTeamById: vi.fn().mockResolvedValue(null),
+}));
 
 vi.mock("@dnd-kit/core", async () => {
   const actual = await vi.importActual<typeof import("@dnd-kit/core")>("@dnd-kit/core");

@@ -17,6 +17,7 @@ export type TeamResponse = {
   canEdit: boolean;
   rffmCompetitionId?: number | null;
   rffmGroupId?: number | null;
+  standardHalfDurationMinutes: number | null;
 };
 
 export async function getTeams(

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+﻿import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import PartidoEnDirectoTab from "../PartidoEnDirectoTab";
 import type { SquadPlayer } from "../../../squad/components/IdealLineup";
@@ -6,6 +6,10 @@ import type { SquadPlayer } from "../../../squad/components/IdealLineup";
 // New read-only "Banquillo" info panel (rich BenchPlayerCard), always visible
 // alongside the existing "En el campo" info panel — sibling of the compact,
 // draggable side panel. See SimulacionTab.benchInfoPanel.test.tsx.
+
+vi.mock("../../../../services/teamService", () => ({
+  getTeamById: vi.fn().mockResolvedValue(null),
+}));
 
 vi.mock("../../../../services/formationService", () => ({
   getFormations: vi.fn().mockResolvedValue([{ id: "f1", name: "4-4-2" }]),

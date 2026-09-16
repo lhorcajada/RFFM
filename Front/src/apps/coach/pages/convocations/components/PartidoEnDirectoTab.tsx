@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -30,6 +30,7 @@ import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import EmptyState from "../../../../../shared/components/ui/EmptyState/EmptyState";
 import { getIdealLineup } from "../../../services/idealLineupService";
 import { getFormations } from "../../../services/formationService";
+import { getTeamById, type TeamResponse } from "../../../services/teamService";
 import { FORMATION_POSITIONS } from "../../../types/formation";
 import type { Formation } from "../../../types/formation";
 import { useLiveMatch } from "../hooks/useLiveMatch";
@@ -100,11 +101,22 @@ export default function PartidoEnDirectoTab({
   const [windowConfirmOpen, setWindowConfirmOpen] = useState(false);
   // Confirmation dialog for mid-match formation change — holds the pending target formation id
   const [pendingFormationId, setPendingFormationId] = useState<string | null>(null);
+  const [team, setTeam] = useState<TeamResponse | null>(null);
 
   const live = useLiveMatch(eventId, teamId, isHomeTeam, {
     unlimitedWindows: isFriendly,
     players: lineupPlayers.map((p) => ({ id: p.id, displayName: p.displayName })),
   });
+
+  const halfDurationTouchedRef = useRef(false);
+
+  const handleHalfDurationChange = useCallback(
+    (minutes: number) => {
+      halfDurationTouchedRef.current = true;
+      live.setHalfDuration(minutes);
+    },
+    [live],
+  );
 
   // ── DnD sensors ──────────────────────────────────────────────────────────
   const sensors = useSensors(
@@ -144,6 +156,31 @@ export default function PartidoEnDirectoTab({
     return () => { mounted = false; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [teamId, eventId]);
+
+  // ── Load team (for the category's standard half duration) ────────────────
+  useEffect(() => {
+    if (!teamId) {
+      setTeam(null);
+      return;
+    }
+
+    let mounted = true;
+    getTeamById(teamId).then((t) => {
+      if (mounted) setTeam(t);
+    });
+
+    return () => { mounted = false; };
+  }, [teamId]);
+
+  // ── Apply the category's standard half duration as the default, unless
+  // the coach already edited it manually or the match already started ──────
+  useEffect(() => {
+    if (team?.standardHalfDurationMinutes == null) return;
+    if (halfDurationTouchedRef.current) return;
+    if (live.matchPhase !== "preMatch") return;
+    live.setHalfDuration(team.standardHalfDurationMinutes);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [team, live.matchPhase]);
 
   // ── Players lookup ───────────────────────────────────────────────────────
   const playersById = useMemo<Record<string, SimSlotPlayer>>(
@@ -649,7 +686,7 @@ export default function PartidoEnDirectoTab({
           half={live.half}
           isHalftime={live.isHalftime}
           halfDuration={live.halfDuration}
-          onHalfDurationChange={live.setHalfDuration}
+          onHalfDurationChange={handleHalfDurationChange}
           pendingAction={live.pendingAction}
           onRequestAction={live.setPendingAction}
           onConfirmAction={live.confirmAction}

@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -21,6 +21,7 @@ import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import EmptyState from "../../../../../shared/components/ui/EmptyState/EmptyState";
 import { getIdealLineup } from "../../../services/idealLineupService";
 import { getFormations } from "../../../services/formationService";
+import { getTeamById, type TeamResponse } from "../../../services/teamService";
 import {
   listSimulations,
   saveSimulation,
@@ -68,8 +69,19 @@ export default function SimulacionTab({ teamId, eventId, lineupPlayers, isFriend
   const [loadError, setLoadError] = useState(false);
   const [savedSims, setSavedSims] = useState<MatchSimulation[]>([]);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  const [team, setTeam] = useState<TeamResponse | null>(null);
 
   const sim = useMatchSimulation({ enableWindowLimits: !isFriendly });
+
+  const halfDurationTouchedRef = useRef(false);
+
+  const handleHalfDurationChange = useCallback(
+    (minutes: number) => {
+      halfDurationTouchedRef.current = true;
+      sim.setHalfDuration(minutes);
+    },
+    [sim],
+  );
 
   // ─── DnD sensors ──────────────────────────────────────────────────────────
 
@@ -121,6 +133,35 @@ export default function SimulacionTab({ teamId, eventId, lineupPlayers, isFriend
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [teamId, eventId]);
+
+  // ─── Load team (for the category's standard half duration) ────────────────
+
+  useEffect(() => {
+    if (!teamId) {
+      setTeam(null);
+      return;
+    }
+
+    let mounted = true;
+    getTeamById(teamId).then((t) => {
+      if (mounted) setTeam(t);
+    });
+
+    return () => {
+      mounted = false;
+    };
+  }, [teamId]);
+
+  // ─── Apply the category's standard half duration as the default, unless
+  // the coach already edited it manually or the match already started ──────
+
+  useEffect(() => {
+    if (team?.standardHalfDurationMinutes == null) return;
+    if (halfDurationTouchedRef.current) return;
+    if (sim.isRunning || sim.currentMinute !== 0) return;
+    sim.setHalfDuration(team.standardHalfDurationMinutes);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [team, sim.isRunning, sim.currentMinute]);
 
   // ─── Load saved simulations ────────────────────────────────────────────────
 
@@ -513,7 +554,7 @@ export default function SimulacionTab({ teamId, eventId, lineupPlayers, isFriend
         />
         <SimulationConfig
           halfDuration={sim.halfDuration}
-          onHalfDurationChange={sim.setHalfDuration}
+          onHalfDurationChange={handleHalfDurationChange}
         />
       </div>
 

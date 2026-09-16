@@ -1,10 +1,14 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+﻿import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import PartidoEnDirectoTab from "../PartidoEnDirectoTab";
 import type { SquadPlayer } from "../../../squad/components/IdealLineup";
 
 const changeFormation = vi.fn();
+
+vi.mock("../../../../services/teamService", () => ({
+  getTeamById: vi.fn().mockResolvedValue(null),
+}));
 
 vi.mock("../../../../services/formationService", () => ({
   getFormations: vi.fn().mockResolvedValue([

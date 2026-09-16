@@ -25,7 +25,8 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         // Same seeding pattern as UpdateTeamCompetitionHandlerTests.SeedTeamAsync.
-        private async Task<string> SeedTeamAsync(AppDbContext db, int? rffmCompetitionId = null, int? rffmGroupId = null)
+        private async Task<string> SeedTeamAsync(
+            AppDbContext db, int? rffmCompetitionId = null, int? rffmGroupId = null, int? categoryId = null)
         {
             var club = Club.Create($"GetTeam Test Club {Guid.NewGuid():N}", 1);
             db.Clubs.Add(club);
@@ -43,7 +44,7 @@ namespace RFFM.Api.Tests.UnitTests
             var team = new Team(new TeamModelBase
             {
                 Name = "GetTeam Test Team",
-                CategoryId = Category.NationalCategory.Id,
+                CategoryId = categoryId ?? Category.NationalCategory.Id,
                 ClubId = club.Id,
                 SeasonId = season.Id,
                 RffmCompetitionId = rffmCompetitionId,
@@ -91,6 +92,42 @@ namespace RFFM.Api.Tests.UnitTests
             Assert.NotNull(result);
             Assert.Null(result!.RffmCompetitionId);
             Assert.Null(result.RffmGroupId);
+        }
+
+        [Fact]
+        public async Task Handle_TeamWithF11Category_ReturnsStandardHalfDurationMinutes()
+        {
+            // Arrange
+            await using var db = _fixture.CreateDbContext();
+            var teamId = await SeedTeamAsync(db, categoryId: Category.U10.Id);
+
+            var handler = new TeamsRequestHandler(db);
+            var query = new TeamQuery(teamId, "any-user-id");
+
+            // Act
+            var result = await handler.Handle(query, CancellationToken.None);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal(30, result!.StandardHalfDurationMinutes);
+        }
+
+        [Fact]
+        public async Task Handle_TeamWithoutStandardDurationCategory_ReturnsNullStandardHalfDurationMinutes()
+        {
+            // Arrange
+            await using var db = _fixture.CreateDbContext();
+            var teamId = await SeedTeamAsync(db, categoryId: Category.NationalCategory.Id);
+
+            var handler = new TeamsRequestHandler(db);
+            var query = new TeamQuery(teamId, "any-user-id");
+
+            // Act
+            var result = await handler.Handle(query, CancellationToken.None);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Null(result!.StandardHalfDurationMinutes);
         }
     }
 }

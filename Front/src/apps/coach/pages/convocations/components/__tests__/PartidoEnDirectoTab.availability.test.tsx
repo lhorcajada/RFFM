@@ -1,9 +1,13 @@
-import { describe, it, expect, vi } from "vitest";
+﻿import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import PartidoEnDirectoTab from "../PartidoEnDirectoTab";
 import type { SquadPlayer } from "../../../squad/components/IdealLineup";
 
 const useLiveMatchMock = vi.fn();
+
+vi.mock("../../../../services/teamService", () => ({
+  getTeamById: vi.fn().mockResolvedValue(null),
+}));
 
 vi.mock("../../../../services/formationService", () => ({
   getFormations: vi.fn().mockResolvedValue([{ id: "f1", name: "4-4-2" }]),

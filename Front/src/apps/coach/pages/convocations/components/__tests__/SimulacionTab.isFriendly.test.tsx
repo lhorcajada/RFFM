@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+﻿import { describe, it, expect, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import SimulacionTab from "../SimulacionTab";
 import type { UseMatchSimulationReturn } from "../../hooks/useMatchSimulation";
@@ -6,6 +6,10 @@ import { getIdealLineup } from "../../../../services/idealLineupService";
 import { getFormations } from "../../../../services/formationService";
 
 const useMatchSimulationMock = vi.fn();
+
+vi.mock("../../../../services/teamService", () => ({
+  getTeamById: vi.fn().mockResolvedValue(null),
+}));
 
 vi.mock("../../hooks/useMatchSimulation", () => ({
   useMatchSimulation: (...args: unknown[]) => useMatchSimulationMock(...args),
