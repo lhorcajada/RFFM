@@ -152,7 +152,7 @@ namespace RFFM.Api.Tests.UnitTests
             var recentEventId = await SeedSportEventAsync(db, teamId, MatchEventTypeId, DateTime.UtcNow.AddDays(-7));
             await SeedMatchParticipationAsync(db, recentEventId, teamId, teamPlayerId, minutesPlayed: 60);
 
-            var handler = new GetTeamPlayerStatistics.Handler(db, new PlayerConditionRecalculationService(db));
+            var handler = new GetTeamPlayerStatistics.Handler(db);
             var query = new GetTeamPlayerStatistics.Query { TeamId = teamId };
 
             // Act
@@ -180,7 +180,7 @@ namespace RFFM.Api.Tests.UnitTests
             var friendlyEventId = await SeedSportEventAsync(db, teamId, FriendlyEventTypeId, DateTime.UtcNow.AddDays(-2));
             await SeedMatchParticipationAsync(db, friendlyEventId, teamId, teamPlayerId, minutesPlayed: 65);
 
-            var handler = new GetTeamPlayerStatistics.Handler(db, new PlayerConditionRecalculationService(db));
+            var handler = new GetTeamPlayerStatistics.Handler(db);
             var query = new GetTeamPlayerStatistics.Query { TeamId = teamId };
 
             // Act
@@ -205,7 +205,7 @@ namespace RFFM.Api.Tests.UnitTests
                              $"{{\"teamPlayerId\":\"{teamPlayerId}\",\"cardType\":\"Red\"}}]";
             await SeedMatchParticipationAsync(db, eventId, teamId, teamPlayerId, cardsJson: cardsJson);
 
-            var handler = new GetTeamPlayerStatistics.Handler(db, new PlayerConditionRecalculationService(db));
+            var handler = new GetTeamPlayerStatistics.Handler(db);
             var query = new GetTeamPlayerStatistics.Query { TeamId = teamId };
 
             // Act
@@ -225,7 +225,7 @@ namespace RFFM.Api.Tests.UnitTests
             var (teamId, clubId, seasonId) = await SeedTeamAsync(db);
             var teamPlayerId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "no-activity-player");
 
-            var handler = new GetTeamPlayerStatistics.Handler(db, new PlayerConditionRecalculationService(db));
+            var handler = new GetTeamPlayerStatistics.Handler(db);
             var query = new GetTeamPlayerStatistics.Query { TeamId = teamId };
 
             // Act
@@ -241,14 +241,14 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
-        public async Task NewPlayerWithNoActivity_PhysicalConditionDefaultsToInitialValues()
+        public async Task NewPlayerWithNoActivity_FatigueIsZero()
         {
             // Arrange
             await using var db = _fixture.CreateDbContext();
             var (teamId, clubId, seasonId) = await SeedTeamAsync(db);
-            var teamPlayerId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "condition-default-player");
+            var teamPlayerId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "fatigue-default-player");
 
-            var handler = new GetTeamPlayerStatistics.Handler(db, new PlayerConditionRecalculationService(db));
+            var handler = new GetTeamPlayerStatistics.Handler(db);
             var query = new GetTeamPlayerStatistics.Query { TeamId = teamId };
 
             // Act
@@ -256,27 +256,28 @@ namespace RFFM.Api.Tests.UnitTests
 
             // Assert
             var stats = Assert.Single(result, p => p.TeamPlayerId == teamPlayerId);
-            Assert.Equal(PlayerConditionDayEffect.InitialFitness, stats.PhysicalFitness);
-            Assert.Equal(PlayerConditionDayEffect.InitialFatigue, stats.Fatigue);
-            Assert.Equal(
-                PlayerConditionDayEffect.InitialFitness - PlayerConditionDayEffect.InitialFatigue,
-                stats.Availability);
+            Assert.Equal(0, stats.Fatigue);
         }
 
         [Fact]
-        public async Task Availability_IsNeverNegative_WhenFatigueExceedsPhysicalFitness()
+        public async Task Fatigue_EventsOutsideThe14DayLoadWindowDoNotCount()
         {
-            // Arrange
+            // Regression for the flat-window bug's data-loading side: a training attended
+            // outside the 14-day fatigue load window must not contribute at all, even though
+            // it's well within the 8-week Rodaje window used elsewhere by the same handler.
             await using var db = _fixture.CreateDbContext();
             var (teamId, clubId, seasonId) = await SeedTeamAsync(db);
-            var teamPlayerId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "high-fatigue-player");
+            var teamPlayerId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "fatigue-window-player");
 
-            var condition = TeamPlayerCondition.CreateInitial(teamPlayerId, DateTime.UtcNow.Date);
-            condition.Advance(fitnessDelta: 0, fatigueDelta: 100, newDate: DateTime.UtcNow.Date);
-            db.TeamPlayerConditions.Add(condition);
-            await db.SaveChangesAsync();
+            // Outside the 14-day fatigue load window (but inside the 8-week Rodaje window).
+            var oldTrainingId = await SeedSportEventAsync(db, teamId, TrainingEventTypeId, DateTime.UtcNow.AddDays(-20));
+            await SeedConvocationAsync(db, oldTrainingId, teamPlayerId, convocationStatusId: null, assistanceTypeId: AssistanceType.Attendance.Id);
 
-            var handler = new GetTeamPlayerStatistics.Handler(db, new PlayerConditionRecalculationService(db));
+            // Inside the load window, 2 days ago -> decay = 0.5 -> TrainingComponent = 25.
+            var recentTrainingId = await SeedSportEventAsync(db, teamId, TrainingEventTypeId, DateTime.UtcNow.AddDays(-2));
+            await SeedConvocationAsync(db, recentTrainingId, teamPlayerId, convocationStatusId: null, assistanceTypeId: AssistanceType.Attendance.Id);
+
+            var handler = new GetTeamPlayerStatistics.Handler(db);
             var query = new GetTeamPlayerStatistics.Query { TeamId = teamId };
 
             // Act
@@ -284,8 +285,72 @@ namespace RFFM.Api.Tests.UnitTests
 
             // Assert
             var stats = Assert.Single(result, p => p.TeamPlayerId == teamPlayerId);
-            Assert.True(stats.Fatigue > stats.PhysicalFitness);
-            Assert.Equal(0, stats.Availability);
+            // Only the -2 day training counts: TrainingComponent = 25 -> Fatigue = round(0.40 * 25) = 10.
+            Assert.Equal(10, stats.Fatigue);
+        }
+
+        [Fact]
+        public async Task Fatigue_RecencyDecayReducesScoreEvenWithAFullWeekOfCommitment()
+        {
+            // Regression for the real production bug ("Lucas"): a player with a full week of
+            // commitment (2 trainings + a full match), all within the load window, no longer
+            // pins Fatigue at 100 regardless of how many days ago each event happened.
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, clubId, seasonId) = await SeedTeamAsync(db);
+            var teamPlayerId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "fatigue-full-load-player");
+
+            var training1 = await SeedSportEventAsync(db, teamId, TrainingEventTypeId, DateTime.UtcNow.AddDays(-4));
+            await SeedConvocationAsync(db, training1, teamPlayerId, convocationStatusId: null, assistanceTypeId: AssistanceType.Attendance.Id);
+            var training2 = await SeedSportEventAsync(db, teamId, TrainingEventTypeId, DateTime.UtcNow.AddDays(-2));
+            await SeedConvocationAsync(db, training2, teamPlayerId, convocationStatusId: null, assistanceTypeId: AssistanceType.Attendance.Id);
+
+            var matchId = await SeedSportEventAsync(db, teamId, MatchEventTypeId, DateTime.UtcNow.AddDays(-1));
+            await SeedMatchParticipationAsync(db, matchId, teamId, teamPlayerId, minutesPlayed: 70);
+
+            var handler = new GetTeamPlayerStatistics.Handler(db);
+            var query = new GetTeamPlayerStatistics.Query { TeamId = teamId };
+
+            // Act
+            var result = await handler.Handle(query, CancellationToken.None);
+
+            // Assert
+            var stats = Assert.Single(result, p => p.TeamPlayerId == teamPlayerId);
+            // decay(4)=0.25, decay(2)=0.5 -> decayedTrainingCount=0.75 -> TrainingComponent=37.5
+            // decay(1)=0.7071 * 70 = 49.497 -> MatchComponent = 49.497/70*100 = 70.71
+            // Fatigue = round(0.40*37.5 + 0.60*70.71) = round(15 + 42.43) = 57
+            Assert.Equal(57, stats.Fatigue);
+            Assert.NotEqual(100, stats.Fatigue);
+        }
+
+        [Fact]
+        public async Task Fatigue_RealProductionCase_LucasRecoversFromPinnedOneHundredPercent()
+        {
+            // The exact case that exposed the bug: trained Thursday (6 days ago), played a 90'
+            // match Sunday (3 days ago), trained again Tuesday (1 day ago), evaluated today.
+            // Two rest days followed the match and one followed the last training, so Fatigue
+            // should read as partially recovered (~44%), not pinned at 100%.
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, clubId, seasonId) = await SeedTeamAsync(db);
+            var teamPlayerId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "fatigue-lucas-player");
+
+            var thursdayTrainingId = await SeedSportEventAsync(db, teamId, TrainingEventTypeId, DateTime.UtcNow.AddDays(-6));
+            await SeedConvocationAsync(db, thursdayTrainingId, teamPlayerId, convocationStatusId: null, assistanceTypeId: AssistanceType.Attendance.Id);
+
+            var sundayMatchId = await SeedSportEventAsync(db, teamId, MatchEventTypeId, DateTime.UtcNow.AddDays(-3));
+            await SeedMatchParticipationAsync(db, sundayMatchId, teamId, teamPlayerId, minutesPlayed: 90);
+
+            var tuesdayTrainingId = await SeedSportEventAsync(db, teamId, TrainingEventTypeId, DateTime.UtcNow.AddDays(-1));
+            await SeedConvocationAsync(db, tuesdayTrainingId, teamPlayerId, convocationStatusId: null, assistanceTypeId: AssistanceType.Attendance.Id);
+
+            var handler = new GetTeamPlayerStatistics.Handler(db);
+            var query = new GetTeamPlayerStatistics.Query { TeamId = teamId };
+
+            // Act
+            var result = await handler.Handle(query, CancellationToken.None);
+
+            // Assert
+            var stats = Assert.Single(result, p => p.TeamPlayerId == teamPlayerId);
+            Assert.Equal(44, stats.Fatigue);
         }
 
         private async Task SeedInjuryAsync(
@@ -314,7 +379,7 @@ namespace RFFM.Api.Tests.UnitTests
             var recentEnd = DateTime.UtcNow.AddDays(-10);
             await SeedInjuryAsync(db, teamPlayerId, recentStart, recentEnd);
 
-            var handler = new GetTeamPlayerStatistics.Handler(db, new PlayerConditionRecalculationService(db));
+            var handler = new GetTeamPlayerStatistics.Handler(db);
             var query = new GetTeamPlayerStatistics.Query { TeamId = teamId };
 
             // Act
@@ -339,7 +404,7 @@ namespace RFFM.Api.Tests.UnitTests
             var startDate = DateTime.UtcNow.AddDays(-15);
             await SeedInjuryAsync(db, teamPlayerId, startDate, endDate: null);
 
-            var handler = new GetTeamPlayerStatistics.Handler(db, new PlayerConditionRecalculationService(db));
+            var handler = new GetTeamPlayerStatistics.Handler(db);
             var query = new GetTeamPlayerStatistics.Query { TeamId = teamId };
 
             // Act
@@ -360,7 +425,7 @@ namespace RFFM.Api.Tests.UnitTests
             var (teamId, clubId, seasonId) = await SeedTeamAsync(db);
             var teamPlayerId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "no-injury-player");
 
-            var handler = new GetTeamPlayerStatistics.Handler(db, new PlayerConditionRecalculationService(db));
+            var handler = new GetTeamPlayerStatistics.Handler(db);
             var query = new GetTeamPlayerStatistics.Query { TeamId = teamId };
 
             // Act
@@ -404,7 +469,7 @@ namespace RFFM.Api.Tests.UnitTests
             var recentMatchEventId = await SeedSportEventAsync(db, teamId, MatchEventTypeId, baselineDate.AddDays(-3));
             await SeedMatchParticipationAsync(db, recentMatchEventId, teamId, teamPlayerId);
 
-            var handler = new GetTeamPlayerStatistics.Handler(db, new PlayerConditionRecalculationService(db));
+            var handler = new GetTeamPlayerStatistics.Handler(db);
             var query = new GetTeamPlayerStatistics.Query { TeamId = teamId };
 
             // Act
@@ -437,7 +502,7 @@ namespace RFFM.Api.Tests.UnitTests
             var futureTrainingId = await SeedSportEventAsync(db, teamId, TrainingEventTypeId, DateTime.UtcNow.AddDays(5));
             await SeedConvocationAsync(db, futureTrainingId, teamPlayerId, convocationStatusId: null, assistanceTypeId: AssistanceType.Attendance.Id);
 
-            var handler = new GetTeamPlayerStatistics.Handler(db, new PlayerConditionRecalculationService(db));
+            var handler = new GetTeamPlayerStatistics.Handler(db);
             var query = new GetTeamPlayerStatistics.Query { TeamId = teamId };
 
             // Act
@@ -490,7 +555,7 @@ namespace RFFM.Api.Tests.UnitTests
             var postJoinEventId = await SeedSportEventAsync(db, teamId, TrainingEventTypeId, baselineDate.AddDays(-5));
             await SeedConvocationAsync(db, postJoinEventId, teamPlayer.Id, convocationStatusId: null, assistanceTypeId: AssistanceType.Attendance.Id);
 
-            var handler = new GetTeamPlayerStatistics.Handler(db, new PlayerConditionRecalculationService(db));
+            var handler = new GetTeamPlayerStatistics.Handler(db);
             var query = new GetTeamPlayerStatistics.Query { TeamId = teamId };
 
             // Act
@@ -542,7 +607,7 @@ namespace RFFM.Api.Tests.UnitTests
             var l1 = await SeedSportEventAsync(db, teamId, MatchEventTypeId, baselineDate.AddDays(-5));
             await SeedMatchParticipationAsync(db, l1, teamId, teamPlayerId, minutesPlayed: 90);
 
-            var handler = new GetTeamPlayerStatistics.Handler(db, new PlayerConditionRecalculationService(db));
+            var handler = new GetTeamPlayerStatistics.Handler(db);
             var query = new GetTeamPlayerStatistics.Query { TeamId = teamId };
 
             // Act
@@ -581,7 +646,7 @@ namespace RFFM.Api.Tests.UnitTests
             await SeedConvocationAsync(db, f2, teamPlayerId, convocationStatusId: null, assistanceTypeId: AssistanceType.Attendance.Id);
             await SeedMatchParticipationAsync(db, f2, teamId, teamPlayerId, minutesPlayed: 45);
 
-            var handler = new GetTeamPlayerStatistics.Handler(db, new PlayerConditionRecalculationService(db));
+            var handler = new GetTeamPlayerStatistics.Handler(db);
             var query = new GetTeamPlayerStatistics.Query { TeamId = teamId };
 
             // Act
@@ -610,7 +675,7 @@ namespace RFFM.Api.Tests.UnitTests
             var friendlyEventId = await SeedSportEventAsync(db, teamId, FriendlyEventTypeId, DateTime.UtcNow.AddDays(-5));
             await SeedMatchParticipationAsync(db, friendlyEventId, teamId, teamPlayerId, minutesPlayed: 20);
 
-            var handler = new GetTeamPlayerStatistics.Handler(db, new PlayerConditionRecalculationService(db));
+            var handler = new GetTeamPlayerStatistics.Handler(db);
             var query = new GetTeamPlayerStatistics.Query { TeamId = teamId };
 
             // Act
@@ -646,7 +711,7 @@ namespace RFFM.Api.Tests.UnitTests
             var f2 = await SeedSportEventAsync(db, teamId, FriendlyEventTypeId, baselineDate.AddDays(-5));
             await SeedConvocationAsync(db, f2, teamPlayerId, convocationStatusId: null, assistanceTypeId: AssistanceType.ExcusedAbsence.Id);
 
-            var handler = new GetTeamPlayerStatistics.Handler(db, new PlayerConditionRecalculationService(db));
+            var handler = new GetTeamPlayerStatistics.Handler(db);
             var query = new GetTeamPlayerStatistics.Query { TeamId = teamId };
 
             var result = await handler.Handle(query, CancellationToken.None);
@@ -672,7 +737,7 @@ namespace RFFM.Api.Tests.UnitTests
             var matchEventId = await SeedSportEventAsync(db, teamId, MatchEventTypeId, DateTime.UtcNow.AddDays(-3));
             await SeedMatchParticipationAsync(db, matchEventId, teamId, teamPlayerId, minutesPlayed: 40);
 
-            var handler = new GetTeamPlayerStatistics.Handler(db, new PlayerConditionRecalculationService(db));
+            var handler = new GetTeamPlayerStatistics.Handler(db);
             var query = new GetTeamPlayerStatistics.Query { TeamId = teamId };
 
             // Act
@@ -717,7 +782,7 @@ namespace RFFM.Api.Tests.UnitTests
                 convocationStatusId: null,
                 assistanceTypeId: AssistanceType.UnexcusedAbsence.Id);
 
-            var handler = new GetTeamPlayerStatistics.Handler(db, new PlayerConditionRecalculationService(db));
+            var handler = new GetTeamPlayerStatistics.Handler(db);
             var query = new GetTeamPlayerStatistics.Query { TeamId = teamId };
 
             // Act

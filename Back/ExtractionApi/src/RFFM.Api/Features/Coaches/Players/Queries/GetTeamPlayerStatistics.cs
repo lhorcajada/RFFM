@@ -60,9 +60,7 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
             AttendanceRatioDto League,              // historico de temporada, ratio attended/possible
             int? DaysSinceLastInjury,               // null si no ha tenido ninguna lesión esta temporada
             int? LastInjuryDurationDays,             // null si no ha tenido lesión, o si la más reciente sigue en curso
-            double PhysicalFitness,                 // 0-100, Forma física persistida (ver TeamPlayerCondition)
-            double Fatigue,                         // 0-100, Cansancio persistido
-            double Availability,                    // = max(0, PhysicalFitness - Fatigue)
+            int Fatigue,                            // 0-100, Cansancio derivado con decaimiento por recencia (ver PlayerFatigueCalculator)
             int? Readiness,                        // 0-100, null = sin datos suficientes en la ventana
             ReadinessBreakdownDto? ReadinessBreakdown,
             int MatchesAbsentAttributableToPlayer,   // partidos/amistosos/torneos finalizados con ausencia imputable al jugador
@@ -92,11 +90,12 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
 
         // ─── Handler ──────────────────────────────────────────────────────────
 
-        public class Handler(AppDbContext db, PlayerConditionRecalculationService conditionService) : IRequestHandler<Query, List<PlayerStatisticsDto>>
+        public class Handler(AppDbContext db) : IRequestHandler<Query, List<PlayerStatisticsDto>>
         {
             public async ValueTask<List<PlayerStatisticsDto>> Handle(Query request, CancellationToken cancellationToken)
             {
                 var windowStart = DateTime.UtcNow.AddDays(-7 * PlayerReadinessCalculator.WindowWeeks);
+                var fatigueWindowStart = DateTime.UtcNow.AddDays(-PlayerFatigueCalculator.WindowDays);
                 var trainingEventTypeId = SportEventType.FromName("Entrenamiento").Id;
                 var leagueEventTypeId = SportEventsConstants.MatchEventTypeId;    // 1
                 var friendlyEventTypeId = SportEventsConstants.FriendlyEventTypeId; // 4
@@ -132,12 +131,13 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                 // participation counts here (Partido/Amistoso/Torneo) — a friendly still costs
                 // real physical effort even though it's excluded from official-match season
                 // stats/discipline counters elsewhere (GetSeasonPlayerStats, card suspensions).
-                var matchEventIdsInWindow = await db.SportEvents
+                var matchEventsInWindow = await db.SportEvents
                     .AsNoTracking()
                     .Where(se => se.TeamId == request.TeamId && se.EveDateTime >= windowStart)
-                    .Select(se => se.Id)
+                    .Select(se => new { se.Id, se.EveDateTime })
                     .ToListAsync(cancellationToken);
-                var matchEventIdsInWindowSet = matchEventIdsInWindow.ToHashSet();
+                var matchEventDateById = matchEventsInWindow.ToDictionary(e => e.Id, e => e.EveDateTime);
+                var matchEventIdsInWindowSet = matchEventDateById.Keys.ToHashSet();
 
                 var participationsInWindow = finishedParticipations
                     .Where(mp => matchEventIdsInWindowSet.Contains(mp.EventId))
@@ -163,6 +163,31 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                 var trainingConvocationsByPlayer = trainingConvocationsInWindow
                     .GroupBy(c => c.TeamPlayerId)
                     .ToDictionary(g => g.Key, g => g.ToList());
+
+                // Load window for Cansancio (PlayerFatigueCalculator.WindowDays, 14 days) —
+                // narrower than the 8-week Rodaje window above, so it is derived in-memory from
+                // the data already fetched for Rodaje (a strict superset) instead of issuing new
+                // DB queries. Unlike Rodaje, each event keeps its own "days ago" so
+                // PlayerFatigueCalculator can apply recency decay instead of a flat count.
+                var trainingsAttendedInFatigueWindowByPlayer = trainingConvocationsInWindow
+                    .Where(c => (c.AssistanceTypeId == AssistanceType.Attendance.Id || c.AssistanceTypeId == AssistanceType.LateArrival.Id)
+                                && trainingEventDateById.TryGetValue(c.SportEventId, out var date) && date >= fatigueWindowStart)
+                    .GroupBy(c => c.TeamPlayerId)
+                    .ToDictionary(
+                        g => g.Key,
+                        g => g.Select(c => c.SportEventId).Distinct()
+                            .Select(eventId => (int)(DateTime.UtcNow.Date - trainingEventDateById[eventId]!.Value.Date).TotalDays)
+                            .ToList());
+
+                var matchMinutesInFatigueWindowByPlayer = participationsInWindow
+                    .Where(mp => matchEventDateById.TryGetValue(mp.EventId, out var date) && date >= fatigueWindowStart)
+                    .GroupBy(mp => mp.TeamPlayerId)
+                    .ToDictionary(
+                        g => g.Key,
+                        g => g.Select(mp => (
+                                DaysAgo: (int)(DateTime.UtcNow.Date - matchEventDateById[mp.EventId]!.Value.Date).TotalDays,
+                                mp.MinutesPlayed))
+                            .ToList());
 
                 // Season totals (full history, not windowed) — attendance ratios per event type.
                 // Query for all finished events (EveDateTime < DateTime.UtcNow) of the three event types
@@ -383,8 +408,11 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                             : null;
                     }
 
-                    var condition = await conditionService.RecalculateAsync(player.Id, DateTime.UtcNow, cancellationToken);
-                    var availability = Math.Max(0, condition.PhysicalFitness - condition.Fatigue);
+                    trainingsAttendedInFatigueWindowByPlayer.TryGetValue(player.Id, out var trainingDaysAgoInFatigueWindow);
+                    trainingDaysAgoInFatigueWindow ??= new List<int>();
+                    matchMinutesInFatigueWindowByPlayer.TryGetValue(player.Id, out var matchesInFatigueWindow);
+                    matchesInFatigueWindow ??= new List<(int DaysAgo, int MinutesPlayed)>();
+                    var fatigueResult = PlayerFatigueCalculator.Calculate(trainingDaysAgoInFatigueWindow, matchesInFatigueWindow);
 
                     attributableAbsencesByPlayer.TryGetValue(player.Id, out var playerAttributableAbsenceEventIds);
                     playerAttributableAbsenceEventIds ??= new List<string>();
@@ -446,9 +474,7 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                         league,
                         daysSinceLastInjury,
                         lastInjuryDurationDays,
-                        condition.PhysicalFitness,
-                        condition.Fatigue,
-                        availability,
+                        fatigueResult.Fatigue,
                         readinessResult.Readiness,
                         readinessBreakdown,
                         matchesAbsentAttributableToPlayer,
