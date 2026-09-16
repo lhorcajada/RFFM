@@ -59,7 +59,8 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         private async Task<string> SeedTeamPlayerAsync(
-            AppDbContext db, string teamId, string clubId, string seasonId, string alias)
+            AppDbContext db, string teamId, string clubId, string seasonId, string alias,
+            DateTime? joinedDate = null)
         {
             var player = Player.Create(new PlayerModelBase
             {
@@ -76,7 +77,7 @@ namespace RFFM.Api.Tests.UnitTests
                 PlayerId = player.Id,
                 TeamId = teamId,
                 SeasonId = seasonId,
-                JoinedDate = DateTime.UtcNow,
+                JoinedDate = joinedDate ?? DateTime.UtcNow,
                 Dorsal = null,
                 FamilyMembers = new List<FamilyModel>()
             });
@@ -377,26 +378,30 @@ namespace RFFM.Api.Tests.UnitTests
             // Arrange
             await using var db = _fixture.CreateDbContext();
             var (teamId, clubId, seasonId) = await SeedTeamAsync(db);
-            var teamPlayerId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "full-history-player");
+
+            // Use fixed baseline to avoid timing issues
+            var baselineDate = new DateTime(2025, 1, 1, 12, 0, 0, DateTimeKind.Utc);
+            var teamPlayerId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "full-history-player",
+                joinedDate: baselineDate.AddYears(-1));
 
             // Training 10 weeks ago (outside the 8-week form-status window) — attended.
-            var oldTrainingEventId = await SeedSportEventAsync(db, teamId, TrainingEventTypeId, DateTime.UtcNow.AddDays(-70));
+            var oldTrainingEventId = await SeedSportEventAsync(db, teamId, TrainingEventTypeId, baselineDate.AddDays(-70));
             await SeedConvocationAsync(db, oldTrainingEventId, teamPlayerId, convocationStatusId: null, assistanceTypeId: AssistanceType.Attendance.Id);
 
             // Late arrival, also old — still counts as attended.
-            var oldTrainingEventId2 = await SeedSportEventAsync(db, teamId, TrainingEventTypeId, DateTime.UtcNow.AddDays(-63));
+            var oldTrainingEventId2 = await SeedSportEventAsync(db, teamId, TrainingEventTypeId, baselineDate.AddDays(-63));
             await SeedConvocationAsync(db, oldTrainingEventId2, teamPlayerId, convocationStatusId: null, assistanceTypeId: AssistanceType.LateArrival.Id);
 
             // Recent training within the window — attended.
-            var recentTrainingEventId = await SeedSportEventAsync(db, teamId, TrainingEventTypeId, DateTime.UtcNow.AddDays(-3));
+            var recentTrainingEventId = await SeedSportEventAsync(db, teamId, TrainingEventTypeId, baselineDate.AddDays(-3));
             await SeedConvocationAsync(db, recentTrainingEventId, teamPlayerId, convocationStatusId: null, assistanceTypeId: AssistanceType.Attendance.Id);
 
             // Match 10 weeks ago (outside the window) — finished.
-            var oldMatchEventId = await SeedSportEventAsync(db, teamId, MatchEventTypeId, DateTime.UtcNow.AddDays(-70));
+            var oldMatchEventId = await SeedSportEventAsync(db, teamId, MatchEventTypeId, baselineDate.AddDays(-70));
             await SeedMatchParticipationAsync(db, oldMatchEventId, teamId, teamPlayerId);
 
             // Match within the window — finished.
-            var recentMatchEventId = await SeedSportEventAsync(db, teamId, MatchEventTypeId, DateTime.UtcNow.AddDays(-3));
+            var recentMatchEventId = await SeedSportEventAsync(db, teamId, MatchEventTypeId, baselineDate.AddDays(-3));
             await SeedMatchParticipationAsync(db, recentMatchEventId, teamId, teamPlayerId);
 
             var handler = new GetTeamPlayerStatistics.Handler(db, new PlayerConditionRecalculationService(db));
@@ -407,8 +412,153 @@ namespace RFFM.Api.Tests.UnitTests
 
             // Assert
             var stats = Assert.Single(result, p => p.TeamPlayerId == teamPlayerId);
-            Assert.Equal(3, stats.TrainingsAttended);
-            Assert.Equal(2, stats.MatchesPlayed);
+            // 3 trainings attended (full season history, not just window)
+            Assert.Equal(3, stats.Trainings.Attended);
+            Assert.Equal(3, stats.Trainings.Possible);
+            // 2 league matches played (full season history)
+            Assert.Equal(2, stats.League.Attended);
+            Assert.Equal(2, stats.League.Possible);
+        }
+
+        [Fact]
+        public async Task AttendanceRatio_FinishedVsFutureEvents_OnlyFinishedCountTowardPossible()
+        {
+            // Arrange
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, clubId, seasonId) = await SeedTeamAsync(db);
+            var teamPlayerId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "finished-vs-future-player",
+                joinedDate: DateTime.UtcNow.AddYears(-1));
+
+            // Finished training (clearly in the past relative to real UtcNow) — attended
+            var finishedTrainingId = await SeedSportEventAsync(db, teamId, TrainingEventTypeId, DateTime.UtcNow.AddDays(-5));
+            await SeedConvocationAsync(db, finishedTrainingId, teamPlayerId, convocationStatusId: null, assistanceTypeId: AssistanceType.Attendance.Id);
+
+            // Future training (clearly in the future relative to real UtcNow) — should NOT count toward possible
+            var futureTrainingId = await SeedSportEventAsync(db, teamId, TrainingEventTypeId, DateTime.UtcNow.AddDays(5));
+            await SeedConvocationAsync(db, futureTrainingId, teamPlayerId, convocationStatusId: null, assistanceTypeId: AssistanceType.Attendance.Id);
+
+            var handler = new GetTeamPlayerStatistics.Handler(db, new PlayerConditionRecalculationService(db));
+            var query = new GetTeamPlayerStatistics.Query { TeamId = teamId };
+
+            // Act
+            var result = await handler.Handle(query, CancellationToken.None);
+
+            // Assert
+            var stats = Assert.Single(result, p => p.TeamPlayerId == teamPlayerId);
+            Assert.Equal(1, stats.Trainings.Attended);
+            Assert.Equal(1, stats.Trainings.Possible);  // only finished event counts
+        }
+
+        [Fact]
+        public async Task AttendanceRatio_PlayerJoinedAfterEvent_ExcludesPreJoinEventsFromPossible()
+        {
+            // Arrange
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, clubId, seasonId) = await SeedTeamAsync(db);
+
+            // Create player but don't use SeedTeamPlayerAsync — manually set JoinedDate to after first event
+            var player = Player.Create(new PlayerModelBase
+            {
+                Name = "Late",
+                LastName = "Joiner",
+                Alias = $"late-join-{Guid.NewGuid():N}",
+                ClubId = clubId
+            });
+            db.Players.Add(player);
+            await db.SaveChangesAsync();
+
+            // Use fixed baseline to avoid timing issues
+            var baselineDate = new DateTime(2025, 1, 1, 12, 0, 0, DateTimeKind.Utc);
+            var joinedDate = baselineDate.AddDays(-10);  // Will join after first event
+            var teamPlayer = TeamPlayer.Create(new TeamPlayerModel
+            {
+                PlayerId = player.Id,
+                TeamId = teamId,
+                SeasonId = seasonId,
+                JoinedDate = joinedDate,
+                Dorsal = null,
+                FamilyMembers = new List<FamilyModel>()
+            });
+            db.TeamPlayers.Add(teamPlayer);
+            await db.SaveChangesAsync();
+
+            // Event before player joined (20 days ago) — should NOT count toward possible
+            var preJoinEventId = await SeedSportEventAsync(db, teamId, TrainingEventTypeId, baselineDate.AddDays(-20));
+            await SeedConvocationAsync(db, preJoinEventId, teamPlayer.Id, convocationStatusId: null, assistanceTypeId: AssistanceType.Attendance.Id);
+
+            // Event after player joined (5 days ago) — should count toward possible
+            var postJoinEventId = await SeedSportEventAsync(db, teamId, TrainingEventTypeId, baselineDate.AddDays(-5));
+            await SeedConvocationAsync(db, postJoinEventId, teamPlayer.Id, convocationStatusId: null, assistanceTypeId: AssistanceType.Attendance.Id);
+
+            var handler = new GetTeamPlayerStatistics.Handler(db, new PlayerConditionRecalculationService(db));
+            var query = new GetTeamPlayerStatistics.Query { TeamId = teamId };
+
+            // Act
+            var result = await handler.Handle(query, CancellationToken.None);
+
+            // Assert
+            var stats = Assert.Single(result, p => p.TeamPlayerId == teamPlayer.Id);
+            Assert.Equal(1, stats.Trainings.Attended);
+            Assert.Equal(1, stats.Trainings.Possible);  // only post-join event counts
+        }
+
+        [Fact]
+        public async Task AttendanceRatio_ByEventType_TracksTrainigsFriendliesLeagueIndependently()
+        {
+            // Arrange
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, clubId, seasonId) = await SeedTeamAsync(db);
+
+            // Use fixed baseline to avoid timing issues
+            var baselineDate = new DateTime(2025, 1, 1, 12, 0, 0, DateTimeKind.Utc);
+            var teamPlayerId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "multi-event-player",
+                joinedDate: baselineDate.AddYears(-1));
+
+            // Trainings: 2 attended, 1 absent, 1 late = 2 attended, 4 possible
+            var t1 = await SeedSportEventAsync(db, teamId, TrainingEventTypeId, baselineDate.AddDays(-5));
+            await SeedConvocationAsync(db, t1, teamPlayerId, convocationStatusId: null, assistanceTypeId: AssistanceType.Attendance.Id);
+
+            var t2 = await SeedSportEventAsync(db, teamId, TrainingEventTypeId, baselineDate.AddDays(-4));
+            await SeedConvocationAsync(db, t2, teamPlayerId, convocationStatusId: null, assistanceTypeId: AssistanceType.LateArrival.Id);
+
+            var t3 = await SeedSportEventAsync(db, teamId, TrainingEventTypeId, baselineDate.AddDays(-3));
+            await SeedConvocationAsync(db, t3, teamPlayerId, convocationStatusId: null, assistanceTypeId: AssistanceType.ExcusedAbsence.Id);
+
+            var t4 = await SeedSportEventAsync(db, teamId, TrainingEventTypeId, baselineDate.AddDays(-2));
+            await SeedConvocationAsync(db, t4, teamPlayerId, convocationStatusId: null, assistanceTypeId: AssistanceType.UnexcusedAbsence.Id);
+
+            // Friendlies: 1 attended (via participation), 1 not called = 1 attended, 2 possible
+            var f1 = await SeedSportEventAsync(db, teamId, FriendlyEventTypeId, baselineDate.AddDays(-5));
+            await SeedMatchParticipationAsync(db, f1, teamId, teamPlayerId, minutesPlayed: 45);
+
+            var f2 = await SeedSportEventAsync(db, teamId, FriendlyEventTypeId, baselineDate.AddDays(-4));
+            // No convocation/participation for f2 = not called, still counts as possible
+
+            // Called up but absent for a friendly — counts as possible + calledButAbsent, not attended.
+            var f3 = await SeedSportEventAsync(db, teamId, FriendlyEventTypeId, baselineDate.AddDays(-3));
+            await SeedConvocationAsync(db, f3, teamPlayerId, convocationStatusId: null, assistanceTypeId: AssistanceType.UnexcusedAbsence.Id);
+
+            // League: 1 attended via participation = 1 attended, 1 possible
+            var l1 = await SeedSportEventAsync(db, teamId, MatchEventTypeId, baselineDate.AddDays(-5));
+            await SeedMatchParticipationAsync(db, l1, teamId, teamPlayerId, minutesPlayed: 90);
+
+            var handler = new GetTeamPlayerStatistics.Handler(db, new PlayerConditionRecalculationService(db));
+            var query = new GetTeamPlayerStatistics.Query { TeamId = teamId };
+
+            // Act
+            var result = await handler.Handle(query, CancellationToken.None);
+
+            // Assert
+            var stats = Assert.Single(result, p => p.TeamPlayerId == teamPlayerId);
+            Assert.Equal(2, stats.Trainings.Attended);
+            Assert.Equal(4, stats.Trainings.Possible);
+            Assert.Equal(2, stats.Trainings.CalledButAbsent);
+            Assert.Equal(1, stats.Friendlies.Attended);
+            Assert.Equal(3, stats.Friendlies.Possible);
+            Assert.Equal(1, stats.Friendlies.CalledButAbsent);
+            Assert.Equal(1, stats.League.Attended);
+            Assert.Equal(1, stats.League.Possible);
+            Assert.Equal(0, stats.League.CalledButAbsent);
         }
 
         [Fact]

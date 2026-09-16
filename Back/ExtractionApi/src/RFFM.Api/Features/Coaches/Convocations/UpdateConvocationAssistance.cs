@@ -62,8 +62,10 @@ namespace RFFM.Api.Features.Coaches.Convocations
 
                 conv.SetAssistanceTypeId(request.AssistanceTypeId.Value);
 
-                // ExcuseTypeId only applies when "No asiste con excusa" (id=2)
-                if (assistanceType.Id == 2)
+                // ExcuseTypeId applies to both "No asiste con excusa" (id=2) and "Llega tarde" (id=4)
+                var excuseAllowed = assistanceType.Id == 2 || assistanceType.Id == 4;
+
+                if (excuseAllowed)
                 {
                     if (request.ExcuseTypeId.HasValue)
                     {
