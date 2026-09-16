@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Common;
 using RFFM.Api.Domain.Aggregates.Assistances;
 using RFFM.Api.Domain.Entities;
+using RFFM.Api.Domain.Entities.Competitions;
 using RFFM.Api.Domain.Entities.Demarcations;
 using RFFM.Api.Domain.Entities.TeamPlayers;
 using RFFM.Api.FeatureModules;
@@ -63,7 +64,10 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
             double Fatigue,                         // 0-100, Cansancio persistido
             double Availability,                    // = max(0, PhysicalFitness - Fatigue)
             int? Readiness,                        // 0-100, null = sin datos suficientes en la ventana
-            ReadinessBreakdownDto? ReadinessBreakdown);
+            ReadinessBreakdownDto? ReadinessBreakdown,
+            int MatchesAbsentAttributableToPlayer,   // partidos/amistosos/torneos finalizados con ausencia imputable al jugador
+            double? MinutesPlayedPercentOfSeasonTotal,            // null si la categoría del equipo no es F11
+            double? AttributableAbsentMinutesPercentOfSeasonTotal); // null si la categoría del equipo no es F11
 
         public record ReadinessBreakdownDto(
             double TrainingComponent,              // 0-100
@@ -181,7 +185,7 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                 var convocationsForFinishedEvents = await db.Convocations
                     .AsNoTracking()
                     .Where(c => finishedEventIds.Contains(c.SportEventId))
-                    .Select(c => new { c.TeamPlayerId, c.SportEventId, c.AssistanceTypeId })
+                    .Select(c => new { c.TeamPlayerId, c.SportEventId, c.AssistanceTypeId, c.ConvocationStatusId, c.ExcuseTypeId })
                     .ToListAsync(cancellationToken);
 
                 var matchParticipationsForFinishedEvents = await db.MatchParticipations
@@ -190,21 +194,23 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                     .Select(mp => new { mp.TeamPlayerId, mp.EventId })
                     .ToListAsync(cancellationToken);
 
-                // Per-player list of (EventTypeId, EveDate) for events actually attended, so
-                // attendance can be bounded by JoinedDate/LeftDate the same way "possible" is
-                // (a convocation dated before a player joined the squad — e.g. a stale/migrated
-                // record — must not count as an attendance).
-                var attendedEventsByPlayer = new Dictionary<string, List<(int EventTypeId, DateTime EveDate)>>();
+                // Per-player set of distinct event ids actually attended, so attendance can be
+                // bounded by JoinedDate/LeftDate the same way "possible" is (a convocation dated
+                // before a player joined the squad — e.g. a stale/migrated record — must not
+                // count as an attendance). A HashSet<string> (not a list) is required here: a
+                // match event commonly has BOTH a Convocation (Attendance) row AND a
+                // MatchParticipation row, so without dedup by event id the same match would be
+                // counted twice ("Attended" could then exceed "Possible", e.g. "3 de 2").
+                var attendedEventsByPlayer = new Dictionary<string, HashSet<string>>();
 
                 void AddAttendedEvent(string teamPlayerId, string eventId)
                 {
-                    var evt = finishedEventById[eventId];
-                    if (!attendedEventsByPlayer.TryGetValue(teamPlayerId, out var list))
+                    if (!attendedEventsByPlayer.TryGetValue(teamPlayerId, out var set))
                     {
-                        list = new List<(int, DateTime)>();
-                        attendedEventsByPlayer[teamPlayerId] = list;
+                        set = new HashSet<string>();
+                        attendedEventsByPlayer[teamPlayerId] = set;
                     }
-                    list.Add((evt.EventTypeId, evt.EveDate));
+                    set.Add(eventId);
                 }
 
                 // Convocation-based attendance (trainings primarily)
@@ -220,10 +226,12 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                     AddAttendedEvent(part.TeamPlayerId, part.EventId);
                 }
 
-                // Per-player list of (EventTypeId, EveDate) for events the player was called up
-                // and accepted, but did not attend (excused or unexcused) — surfaced alongside
-                // the ratio so a low "attended/possible" number can be explained as "called up
-                // but absent" rather than "never called".
+                // Per-player list of (EventTypeId, EveDate) for events where the absence is
+                // attributable to the player (accepted then no-show, or deconvoked for a reason
+                // other than the coach's technical decision) — surfaced alongside the ratio so a
+                // low "attended/possible" number can be explained as "called up but absent"
+                // rather than "never called". Same definition as the season minutes-target's
+                // attributable-absence count below (AttributableAbsenceCalculator).
                 var absentEventsByPlayer = new Dictionary<string, List<(int EventTypeId, DateTime EveDate)>>();
 
                 void AddAbsentEvent(string teamPlayerId, string eventId)
@@ -238,10 +246,68 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                 }
 
                 foreach (var conv in convocationsForFinishedEvents
-                    .Where(c => c.AssistanceTypeId == AssistanceType.ExcusedAbsence.Id || c.AssistanceTypeId == AssistanceType.UnexcusedAbsence.Id))
+                    .Where(c => AttributableAbsenceCalculator.IsAttributableAbsence(c.AssistanceTypeId, c.ConvocationStatusId, c.ExcuseTypeId)))
                 {
                     AddAbsentEvent(conv.TeamPlayerId, conv.SportEventId);
                 }
+
+                // Season minutes-target: only computed for F11 categories (Juveniles/Cadetes/
+                // Infantiles/Alevines). See openspec/changes/squad-statistics-minutes-target-mobile-layout.
+                var teamCategoryId = await db.Teams
+                    .AsNoTracking()
+                    .Where(t => t.Id == request.TeamId)
+                    .Select(t => t.CategoryId)
+                    .SingleAsync(cancellationToken);
+                var hasStandardMinutes = MatchDurationMinutesByCategory.TryGetMinutes(teamCategoryId, out var standardMinutes);
+
+                var matchLikeEventTypeIds = new[]
+                {
+                    SportEventsConstants.MatchEventTypeId,
+                    SportEventsConstants.FriendlyEventTypeId,
+                    SportEventsConstants.TournamentEventTypeId
+                };
+
+                var matchLikeFinishedEventIds = await db.SportEvents
+                    .AsNoTracking()
+                    .Where(se => se.TeamId == request.TeamId
+                                 && se.EveDateTime != null && se.EveDateTime < DateTime.UtcNow
+                                 && matchLikeEventTypeIds.Contains(se.EventTypeId))
+                    .Select(se => se.Id)
+                    .ToListAsync(cancellationToken);
+                var matchLikeFinishedEventIdSet = matchLikeFinishedEventIds.ToHashSet();
+
+                // Per-event duration = the real registered duration (max minutes played among
+                // that event's finished participations) — always authoritative, whether shorter
+                // than the category standard (common in amistosos) or longer (prórroga/tiempo
+                // añadido). The category standard is only used to gate which teams get this
+                // stat at all (F11 categories); it never caps a real match's duration, otherwise
+                // a player's own minutes could exceed the capped total and push the percentage
+                // past 100%. Events with no recorded participation are skipped (nothing played yet).
+                var matchDurationByEventId = new Dictionary<string, int>();
+                int? seasonTotalPossibleMinutes = null;
+                if (hasStandardMinutes)
+                {
+                    seasonTotalPossibleMinutes = 0;
+                    foreach (var group in finishedParticipations
+                        .Where(mp => matchLikeFinishedEventIdSet.Contains(mp.EventId))
+                        .GroupBy(mp => mp.EventId))
+                    {
+                        var duration = group.Max(mp => mp.MinutesPlayed);
+                        matchDurationByEventId[group.Key] = duration;
+                        seasonTotalPossibleMinutes += duration;
+                    }
+                }
+
+                var matchLikeConvocations = await db.Convocations
+                    .AsNoTracking()
+                    .Where(c => matchLikeFinishedEventIds.Contains(c.SportEventId))
+                    .Select(c => new { c.TeamPlayerId, c.SportEventId, c.AssistanceTypeId, c.ConvocationStatusId, c.ExcuseTypeId })
+                    .ToListAsync(cancellationToken);
+
+                var attributableAbsencesByPlayer = matchLikeConvocations
+                    .Where(c => AttributableAbsenceCalculator.IsAttributableAbsence(c.AssistanceTypeId, c.ConvocationStatusId, c.ExcuseTypeId))
+                    .GroupBy(c => c.TeamPlayerId)
+                    .ToDictionary(g => g.Key, g => g.Select(c => c.SportEventId).ToList());
 
                 // Most recent injury per player (TeamPlayer is already scoped to this team+season).
                 var teamPlayerIds = teamPlayers.Select(tp => tp.Id).ToList();
@@ -287,10 +353,14 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                         && e.EveDate >= player.JoinedDate
                         && (player.LeftDate == null || e.EveDate <= player.LeftDate));
 
-                    int AttendedFor(int eventTypeId) => attendedEventsByPlayer.TryGetValue(player.Id, out var evs)
-                        ? evs.Count(e => e.EventTypeId == eventTypeId
-                            && e.EveDate >= player.JoinedDate
-                            && (player.LeftDate == null || e.EveDate <= player.LeftDate))
+                    int AttendedFor(int eventTypeId) => attendedEventsByPlayer.TryGetValue(player.Id, out var eventIds)
+                        ? eventIds.Count(eventId =>
+                        {
+                            var e = finishedEventById[eventId];
+                            return e.EventTypeId == eventTypeId
+                                && e.EveDate >= player.JoinedDate
+                                && (player.LeftDate == null || e.EveDate <= player.LeftDate);
+                        })
                         : 0;
 
                     int CalledButAbsentFor(int eventTypeId) => absentEventsByPlayer.TryGetValue(player.Id, out var evs)
@@ -315,6 +385,33 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
 
                     var condition = await conditionService.RecalculateAsync(player.Id, DateTime.UtcNow, cancellationToken);
                     var availability = Math.Max(0, condition.PhysicalFitness - condition.Fatigue);
+
+                    attributableAbsencesByPlayer.TryGetValue(player.Id, out var playerAttributableAbsenceEventIds);
+                    playerAttributableAbsenceEventIds ??= new List<string>();
+                    var matchesAbsentAttributableToPlayer = playerAttributableAbsenceEventIds.Count;
+
+                    double? minutesPlayedPercentOfSeasonTotal = null;
+                    double? attributableAbsentMinutesPercentOfSeasonTotal = null;
+                    if (hasStandardMinutes)
+                    {
+                        var attributableAbsentMinutes = playerAttributableAbsenceEventIds
+                            .Sum(eventId => matchDurationByEventId.TryGetValue(eventId, out var d) ? d : 0);
+
+                        // Numerator scoped to exactly the same event set as the denominator
+                        // (matchLikeFinishedEventIdSet), not the broader season-wide `minutesPlayed`
+                        // above (which also counts events outside that set, e.g. with EveDateTime
+                        // still null) — otherwise the percentage could mathematically exceed 100%.
+                        var minutesPlayedInSeasonTotalScope = playerParticipations
+                            .Where(mp => matchLikeFinishedEventIdSet.Contains(mp.EventId))
+                            .Sum(mp => mp.MinutesPlayed);
+
+                        minutesPlayedPercentOfSeasonTotal = seasonTotalPossibleMinutes is null or 0
+                            ? null
+                            : Math.Round(100.0 * minutesPlayedInSeasonTotalScope / seasonTotalPossibleMinutes.Value, 1);
+                        attributableAbsentMinutesPercentOfSeasonTotal = seasonTotalPossibleMinutes is null or 0
+                            ? null
+                            : Math.Round(100.0 * attributableAbsentMinutes / seasonTotalPossibleMinutes.Value, 1);
+                    }
 
                     string? position = player.ActivePositionId != 0
                         ? DemarcationMaster.GetById(player.ActivePositionId)?.Name
@@ -353,7 +450,10 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                         condition.Fatigue,
                         availability,
                         readinessResult.Readiness,
-                        readinessBreakdown));
+                        readinessBreakdown,
+                        matchesAbsentAttributableToPlayer,
+                        minutesPlayedPercentOfSeasonTotal,
+                        attributableAbsentMinutesPercentOfSeasonTotal));
                 }
 
                 return result;

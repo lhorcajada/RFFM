@@ -65,7 +65,8 @@ namespace RFFM.Api.Tests.UnitTests
             return (team.Id, club.Id, season.Id);
         }
 
-        private async Task<string> SeedTeamPlayerAsync(AppDbContext db, string teamId, string clubId, string seasonId, string alias)
+        private async Task<string> SeedTeamPlayerAsync(
+            AppDbContext db, string teamId, string clubId, string seasonId, string alias, DateTime? joinedDate = null)
         {
             var player = Player.Create(new PlayerModelBase
             {
@@ -82,7 +83,7 @@ namespace RFFM.Api.Tests.UnitTests
                 PlayerId = player.Id,
                 TeamId = teamId,
                 SeasonId = seasonId,
-                JoinedDate = DateTime.UtcNow,
+                JoinedDate = joinedDate ?? DateTime.UtcNow,
                 Dorsal = null,
                 FamilyMembers = new List<FamilyModel>()
             });
@@ -170,28 +171,61 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
-        public async Task Handle_CountsAllConvocationsRegardlessOfStatusOrMinutesPlayed()
+        public async Task Handle_LeagueRatio_TracksAttendedPossibleAndCalledButAbsent()
         {
             await using var db = _fixture.CreateDbContext();
             var (teamId, clubId, seasonId) = await SeedTeamAsync(db);
-            var teamPlayerId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "convocations-player");
+            var teamPlayerId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "convocations-player", joinedDate: DateTime.UtcNow.AddYears(-1));
             var rivalId = await SeedRivalAsync(db, "CD Rival Convocations");
 
+            // Attended (accepted + played the match)
             var event1 = await SeedSportEventAsync(db, teamId, MatchEventTypeId, DateTime.UtcNow.AddDays(-30), rivalId);
             await SeedConvocationAsync(db, event1, teamPlayerId, AcceptedStatusId);
+            await SeedMatchParticipationAsync(db, event1, teamId, teamPlayerId, isStarter: true, minutesPlayed: 90);
 
-            var event2 = await SeedSportEventAsync(db, teamId, MatchEventTypeId, DateTime.UtcNow.AddDays(-20), rivalId);
-            await SeedConvocationAsync(db, event2, teamPlayerId, DeconvokeStatusId);
+            // Deconvoked by the coach's technical decision — possible, not attended, NOT calledButAbsent.
+            var event2 = await SeedSportEventAsync(db, teamId, MatchEventTypeId, DateTime.UtcNow.AddDays(-25), rivalId);
+            await SeedConvocationAsync(db, event2, teamPlayerId, DeconvokeStatusId, excuseTypeId: ExcuseTypes.TechnicalDecision.Id);
 
-            var event3 = await SeedSportEventAsync(db, teamId, MatchEventTypeId, DateTime.UtcNow.AddDays(-10), rivalId);
-            await SeedConvocationAsync(db, event3, teamPlayerId, AcceptedStatusId, ExcusedAbsenceTypeId);
+            // Deconvoked for a non-technical reason (e.g. family event) — attributable to the
+            // player, so it DOES count toward calledButAbsent (regression: real data showed
+            // "1 convocado, no asistió" for two absent friendlies, missing this case).
+            var event3 = await SeedSportEventAsync(db, teamId, MatchEventTypeId, DateTime.UtcNow.AddDays(-20), rivalId);
+            await SeedConvocationAsync(db, event3, teamPlayerId, DeconvokeStatusId, excuseTypeId: ExcuseTypes.FamilyEvent.Id);
+
+            // Called up, accepted, but excused absence on the day — possible + calledButAbsent, not attended.
+            var event4 = await SeedSportEventAsync(db, teamId, MatchEventTypeId, DateTime.UtcNow.AddDays(-10), rivalId);
+            await SeedConvocationAsync(db, event4, teamPlayerId, AcceptedStatusId, ExcusedAbsenceTypeId);
 
             var handler = new GetPlayerConvocationSummary.Handler(db);
             var result = await handler.Handle(
                 new GetPlayerConvocationSummary.PlayerConvocationSummaryQuery { TeamPlayerId = teamPlayerId },
                 CancellationToken.None);
 
-            Assert.Equal(3, result.TotalConvocations);
+            Assert.Equal(1, result.League.Attended);
+            Assert.Equal(4, result.League.Possible);
+            Assert.Equal(2, result.League.CalledButAbsent);
+        }
+
+        [Fact]
+        public async Task Handle_MatchWithBothConvocationAndParticipation_CountsAttendanceOnce()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, clubId, seasonId) = await SeedTeamAsync(db);
+            var teamPlayerId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "double-counted-player", joinedDate: DateTime.UtcNow.AddYears(-1));
+            var rivalId = await SeedRivalAsync(db, "CD Rival Dedup");
+
+            var event1 = await SeedSportEventAsync(db, teamId, FriendlyEventTypeId, DateTime.UtcNow.AddDays(-10), rivalId);
+            await SeedConvocationAsync(db, event1, teamPlayerId, AcceptedStatusId);
+            await SeedMatchParticipationAsync(db, event1, teamId, teamPlayerId, isStarter: true, minutesPlayed: 45);
+
+            var handler = new GetPlayerConvocationSummary.Handler(db);
+            var result = await handler.Handle(
+                new GetPlayerConvocationSummary.PlayerConvocationSummaryQuery { TeamPlayerId = teamPlayerId },
+                CancellationToken.None);
+
+            Assert.Equal(1, result.Friendlies.Attended);
+            Assert.Equal(1, result.Friendlies.Possible);
         }
 
         [Fact]
@@ -318,37 +352,43 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
-        public async Task Handle_ConvocationsAcrossEventTypes_BreaksDownTotalsByTrainingFriendlyAndLeague()
+        public async Task Handle_ConvocationsAcrossEventTypes_BreaksDownRatiosByTrainingFriendlyAndLeague()
         {
             await using var db = _fixture.CreateDbContext();
             var (teamId, clubId, seasonId) = await SeedTeamAsync(db);
-            var teamPlayerId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "breakdown-player");
+            var teamPlayerId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "breakdown-player", joinedDate: DateTime.UtcNow.AddYears(-1));
             var rivalId = await SeedRivalAsync(db, "CD Rival Breakdown");
 
             var training1 = await SeedSportEventAsync(db, teamId, TrainingEventTypeId, DateTime.UtcNow.AddDays(-30), null);
-            await SeedConvocationAsync(db, training1, teamPlayerId, AcceptedStatusId);
+            await SeedConvocationAsync(db, training1, teamPlayerId, AcceptedStatusId, AssistanceType.Attendance.Id);
             var training2 = await SeedSportEventAsync(db, teamId, TrainingEventTypeId, DateTime.UtcNow.AddDays(-29), null);
-            await SeedConvocationAsync(db, training2, teamPlayerId, AcceptedStatusId);
+            await SeedConvocationAsync(db, training2, teamPlayerId, AcceptedStatusId, AssistanceType.Attendance.Id);
 
             var friendly1 = await SeedSportEventAsync(db, teamId, FriendlyEventTypeId, DateTime.UtcNow.AddDays(-20), rivalId);
             await SeedConvocationAsync(db, friendly1, teamPlayerId, AcceptedStatusId);
+            await SeedMatchParticipationAsync(db, friendly1, teamId, teamPlayerId, isStarter: true, minutesPlayed: 45);
 
             var league1 = await SeedSportEventAsync(db, teamId, MatchEventTypeId, DateTime.UtcNow.AddDays(-10), rivalId);
             await SeedConvocationAsync(db, league1, teamPlayerId, AcceptedStatusId);
+            await SeedMatchParticipationAsync(db, league1, teamId, teamPlayerId, isStarter: true, minutesPlayed: 90);
             var league2 = await SeedSportEventAsync(db, teamId, MatchEventTypeId, DateTime.UtcNow.AddDays(-5), rivalId);
             await SeedConvocationAsync(db, league2, teamPlayerId, AcceptedStatusId);
+            await SeedMatchParticipationAsync(db, league2, teamId, teamPlayerId, isStarter: true, minutesPlayed: 90);
             var league3 = await SeedSportEventAsync(db, teamId, MatchEventTypeId, DateTime.UtcNow.AddDays(-1), rivalId);
-            await SeedConvocationAsync(db, league3, teamPlayerId, AcceptedStatusId);
+            // league3: not called up at all — counts as "possible" only, not attended nor calledButAbsent.
 
             var handler = new GetPlayerConvocationSummary.Handler(db);
             var result = await handler.Handle(
                 new GetPlayerConvocationSummary.PlayerConvocationSummaryQuery { TeamPlayerId = teamPlayerId },
                 CancellationToken.None);
 
-            Assert.Equal(6, result.TotalConvocations);
-            Assert.Equal(2, result.TotalTrainingConvocations);
-            Assert.Equal(1, result.TotalFriendlyConvocations);
-            Assert.Equal(3, result.TotalLeagueConvocations);
+            Assert.Equal(2, result.Trainings.Attended);
+            Assert.Equal(2, result.Trainings.Possible);
+            Assert.Equal(1, result.Friendlies.Attended);
+            Assert.Equal(1, result.Friendlies.Possible);
+            Assert.Equal(2, result.League.Attended);
+            Assert.Equal(3, result.League.Possible);
+            Assert.Equal(0, result.League.CalledButAbsent);
         }
 
         [Fact]
@@ -364,10 +404,12 @@ namespace RFFM.Api.Tests.UnitTests
                 CancellationToken.None);
 
             Assert.Equal(0, result.TotalStarts);
-            Assert.Equal(0, result.TotalConvocations);
-            Assert.Equal(0, result.TotalTrainingConvocations);
-            Assert.Equal(0, result.TotalFriendlyConvocations);
-            Assert.Equal(0, result.TotalLeagueConvocations);
+            Assert.Equal(0, result.Trainings.Attended);
+            Assert.Equal(0, result.Trainings.Possible);
+            Assert.Equal(0, result.Friendlies.Attended);
+            Assert.Equal(0, result.Friendlies.Possible);
+            Assert.Equal(0, result.League.Attended);
+            Assert.Equal(0, result.League.Possible);
             Assert.Null(result.LastDeconvokedMatch);
             Assert.Null(result.LastAbsenceMatch);
         }

@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Domain.Aggregates.Assistances;
 using RFFM.Api.FeatureModules;
+using RFFM.Api.Features.Coaches.Players.Services;
 using RFFM.Api.Features.Coaches.SportEvents.Queries;
 using RFFM.Api.Infrastructure.Persistence;
 
@@ -49,12 +50,16 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
 
         public record PlayerConvocationSummaryDto(
             int TotalStarts,
-            int TotalConvocations,
-            int TotalTrainingConvocations,
-            int TotalFriendlyConvocations,
-            int TotalLeagueConvocations,
+            AttendanceRatioDto Trainings,
+            AttendanceRatioDto Friendlies,
+            AttendanceRatioDto League,
             PlayerAbsenceMatchDto? LastDeconvokedMatch,
             PlayerAbsenceMatchDto? LastAbsenceMatch);
+
+        /// <summary>Attended vs. Possible (finished events of that type since the player joined
+        /// the squad), plus how many of those the player was called up for but did not attend.
+        /// Same shape/semantics as GetTeamPlayerStatistics.AttendanceRatioDto.</summary>
+        public record AttendanceRatioDto(int Attended, int Possible, int CalledButAbsent);
 
         public record PlayerAbsenceMatchDto(
             string EventId,
@@ -84,20 +89,68 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                     .AsNoTracking()
                     .CountAsync(mp => mp.TeamPlayerId == request.TeamPlayerId && mp.MatchPhase == "finished" && mp.IsStarter, cancellationToken);
 
-                var countsByEventType = await _db.Convocations
+                var teamPlayer = await _db.TeamPlayers
                     .AsNoTracking()
-                    .Where(c => c.TeamPlayerId == request.TeamPlayerId)
-                    .GroupBy(c => c.SportEvent.EventTypeId)
-                    .Select(g => new { EventTypeId = g.Key, Count = g.Count() })
+                    .Where(tp => tp.Id == request.TeamPlayerId)
+                    .Select(tp => new { tp.TeamId, tp.JoinedDate, tp.LeftDate })
+                    .SingleAsync(cancellationToken);
+
+                var eventTypeIds = new[] { SportEventType.TrainingId, SportEventsConstants.FriendlyEventTypeId, SportEventsConstants.MatchEventTypeId };
+                var finishedEvents = await _db.SportEvents
+                    .AsNoTracking()
+                    .Where(se => se.TeamId == teamPlayer.TeamId
+                                 && se.EveDateTime != null && se.EveDateTime < DateTime.UtcNow
+                                 && eventTypeIds.Contains(se.EventTypeId))
+                    .Select(se => new { se.Id, se.EventTypeId, EveDate = se.EveDateTime!.Value })
+                    .ToListAsync(cancellationToken);
+                var finishedEventById = finishedEvents.ToDictionary(e => e.Id, e => e);
+                var finishedEventIds = finishedEvents.Select(e => e.Id).ToList();
+
+                var playerConvocations = await _db.Convocations
+                    .AsNoTracking()
+                    .Where(c => c.TeamPlayerId == request.TeamPlayerId && finishedEventIds.Contains(c.SportEventId))
+                    .Select(c => new { c.SportEventId, c.AssistanceTypeId, c.ConvocationStatusId, c.ExcuseTypeId })
                     .ToListAsync(cancellationToken);
 
-                int CountFor(int eventTypeId) =>
-                    countsByEventType.FirstOrDefault(x => x.EventTypeId == eventTypeId)?.Count ?? 0;
+                var playerParticipations = await _db.MatchParticipations
+                    .AsNoTracking()
+                    .Where(mp => mp.TeamPlayerId == request.TeamPlayerId && mp.MatchPhase == "finished" && finishedEventIds.Contains(mp.EventId))
+                    .Select(mp => mp.EventId)
+                    .ToListAsync(cancellationToken);
 
-                var totalConvocations = countsByEventType.Sum(x => x.Count);
-                var totalTrainingConvocations = CountFor(SportEventType.TrainingId);
-                var totalFriendlyConvocations = CountFor(SportEventsConstants.FriendlyEventTypeId);
-                var totalLeagueConvocations = CountFor(SportEventsConstants.MatchEventTypeId);
+                // Dedup by event id: a match commonly has BOTH a Convocation(Attendance) row and a
+                // MatchParticipation row for the same event — without this, "Attended" could exceed
+                // "Possible" (see GetTeamPlayerStatistics for the same fix, same root cause).
+                var attendedEventIds = playerConvocations
+                    .Where(c => c.AssistanceTypeId == AssistanceType.Attendance.Id || c.AssistanceTypeId == AssistanceType.LateArrival.Id)
+                    .Select(c => c.SportEventId)
+                    .Concat(playerParticipations)
+                    .ToHashSet();
+
+                // Same "attributable to the player" definition as GetTeamPlayerStatistics'
+                // season minutes-target: no-show on the day, OR deconvoked for a reason other
+                // than the coach's technical decision. Never convoked doesn't count.
+                var calledButAbsentEventIds = playerConvocations
+                    .Where(c => AttributableAbsenceCalculator.IsAttributableAbsence(c.AssistanceTypeId, c.ConvocationStatusId, c.ExcuseTypeId))
+                    .Select(c => c.SportEventId)
+                    .ToHashSet();
+
+                bool InPlayerWindow(DateTime eveDate) =>
+                    eveDate >= teamPlayer.JoinedDate && (teamPlayer.LeftDate == null || eveDate <= teamPlayer.LeftDate);
+
+                AttendanceRatioDto RatioFor(int eventTypeId)
+                {
+                    var possible = finishedEvents.Count(e => e.EventTypeId == eventTypeId && InPlayerWindow(e.EveDate));
+                    var attended = attendedEventIds.Count(id =>
+                        finishedEventById.TryGetValue(id, out var e) && e.EventTypeId == eventTypeId && InPlayerWindow(e.EveDate));
+                    var calledButAbsent = calledButAbsentEventIds.Count(id =>
+                        finishedEventById.TryGetValue(id, out var e) && e.EventTypeId == eventTypeId && InPlayerWindow(e.EveDate));
+                    return new AttendanceRatioDto(attended, possible, calledButAbsent);
+                }
+
+                var trainings = RatioFor(SportEventType.TrainingId);
+                var friendlies = RatioFor(SportEventsConstants.FriendlyEventTypeId);
+                var league = RatioFor(SportEventsConstants.MatchEventTypeId);
 
                 var lastDeconvokedMatch = await GetMostRecentAbsenceMatchAsync(
                     request.TeamPlayerId,
@@ -111,10 +164,9 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
 
                 return new PlayerConvocationSummaryDto(
                     totalStarts,
-                    totalConvocations,
-                    totalTrainingConvocations,
-                    totalFriendlyConvocations,
-                    totalLeagueConvocations,
+                    trainings,
+                    friendlies,
+                    league,
                     lastDeconvokedMatch,
                     lastAbsenceMatch);
             }

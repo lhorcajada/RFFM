@@ -6,9 +6,9 @@
         private static readonly ExcuseTypes Study = new ExcuseTypes(2, "Estudios", true);
         private static readonly ExcuseTypes Ill = new ExcuseTypes(3, "Enfermedad", true);
         private static readonly ExcuseTypes FamilyProblem = new ExcuseTypes(4, "Problema familiar", true);
-        private static readonly ExcuseTypes FamilyEvent = new ExcuseTypes(5, "Evento familiar", false);
+        public static readonly ExcuseTypes FamilyEvent = new ExcuseTypes(5, "Evento familiar", false);
         private static readonly ExcuseTypes BirthdayEvent = new ExcuseTypes(6, "Cumpleaños", false);
-        private static readonly ExcuseTypes TechnicalDecision = new ExcuseTypes(7, "Decisión técnica", false);
+        public static readonly ExcuseTypes TechnicalDecision = new ExcuseTypes(7, "Decisión técnica", false);
         public static readonly ExcuseTypes SportiveSanction = new ExcuseTypes(8, "Sanción deportiva", true);
 
         public int Id { get; private set; }
