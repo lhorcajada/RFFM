@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using RFFM.Api.Domain.Aggregates.UserClubs;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
 using System.Security.Claims;
@@ -34,7 +35,7 @@ namespace RFFM.Api.Features.Coaches.Users.Queries
 
     public record GetMyProfileQuery(string UserId) : IRequest<MyProfileResponse?>;
 
-    public record MyProfileResponse(string RoleName, string? PlayerId, string? TeamId);
+    public record MyProfileResponse(string RoleName, string? PlayerId, string? TeamId, string? TeamPlayerId);
 
     public class GetMyProfileHandler : IRequestHandler<GetMyProfileQuery, MyProfileResponse?>
     {
@@ -53,7 +54,15 @@ namespace RFFM.Api.Features.Coaches.Users.Queries
 
             if (profile is null) return null;
 
-            return new MyProfileResponse(profile.RoleName, profile.PlayerId, profile.TeamId);
+            string? teamPlayerId = null;
+            if (profile.TeamId is not null)
+            {
+                var userTeam = await _db.Set<UserTeam>().AsNoTracking()
+                    .FirstOrDefaultAsync(ut => ut.ApplicationUserId == request.UserId && ut.TeamId == profile.TeamId, cancellationToken);
+                teamPlayerId = userTeam?.LinkedTeamPlayerId;
+            }
+
+            return new MyProfileResponse(profile.RoleName, profile.PlayerId, profile.TeamId, teamPlayerId);
         }
     }
 }

@@ -77,5 +77,59 @@ namespace RFFM.Api.Tests.UnitTests
 
             Assert.True(hasAccess, $"FamilyMember should have a FeaturePermission row for '{featureName}', same as Player.");
         }
+
+        [Fact]
+        public async Task SeedPermissionsAsync_GivesPlayerAndFamilyMemberAccessToMyDocuments()
+        {
+            var builder = WebApplication.CreateBuilder();
+            builder.Services.AddDbContext<AppDbContext>(options =>
+                options.UseNpgsql(_fixture.ConnectionString, npgsql =>
+                    npgsql.MigrationsHistoryTable("__EFMigrationsHistory", "app")));
+            await using var app = builder.Build();
+
+            await app.SeedPermissionsAsync();
+
+            await using var db = _fixture.CreateDbContext();
+            Assert.True(await db.FeaturePermissions.AnyAsync(fp =>
+                fp.RoleName == "Player" && fp.FeatureRoute == CoachFeatureRoutes.MyDocuments));
+            Assert.True(await db.FeaturePermissions.AnyAsync(fp =>
+                fp.RoleName == "FamilyMember" && fp.FeatureRoute == CoachFeatureRoutes.MyDocuments));
+        }
+
+        [Fact]
+        public async Task SeedPermissionsAsync_GivesCoachAndClubDirectorAccessToPlayerDocuments()
+        {
+            var builder = WebApplication.CreateBuilder();
+            builder.Services.AddDbContext<AppDbContext>(options =>
+                options.UseNpgsql(_fixture.ConnectionString, npgsql =>
+                    npgsql.MigrationsHistoryTable("__EFMigrationsHistory", "app")));
+            await using var app = builder.Build();
+
+            await app.SeedPermissionsAsync();
+
+            await using var db = _fixture.CreateDbContext();
+            Assert.True(await db.FeaturePermissions.AnyAsync(fp =>
+                fp.RoleName == "Coach" && fp.FeatureRoute == CoachFeatureRoutes.PlayerDocuments));
+            Assert.True(await db.FeaturePermissions.AnyAsync(fp =>
+                fp.RoleName == "ClubDirector" && fp.FeatureRoute == CoachFeatureRoutes.PlayerDocuments));
+        }
+
+        [Fact]
+        public async Task SeedPermissionsAsync_DoesNotGivePlayerOrFamilyMemberAccessToPlayerDocuments()
+        {
+            var builder = WebApplication.CreateBuilder();
+            builder.Services.AddDbContext<AppDbContext>(options =>
+                options.UseNpgsql(_fixture.ConnectionString, npgsql =>
+                    npgsql.MigrationsHistoryTable("__EFMigrationsHistory", "app")));
+            await using var app = builder.Build();
+
+            await app.SeedPermissionsAsync();
+
+            await using var db = _fixture.CreateDbContext();
+            Assert.False(await db.FeaturePermissions.AnyAsync(fp =>
+                fp.RoleName == "Player" && fp.FeatureRoute == CoachFeatureRoutes.PlayerDocuments));
+            Assert.False(await db.FeaturePermissions.AnyAsync(fp =>
+                fp.RoleName == "FamilyMember" && fp.FeatureRoute == CoachFeatureRoutes.PlayerDocuments));
+        }
     }
 }

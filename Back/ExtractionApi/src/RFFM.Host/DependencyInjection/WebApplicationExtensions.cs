@@ -514,6 +514,16 @@ namespace RFFM.Host.DependencyInjection
                         // same access pattern as ClubRegistrations.
                         ("TeamPlayerLinkRequests", CoachFeatureRoutes.TeamPlayerLinkRequests, "Coach", 3, false),
                         ("TeamPlayerLinkRequests", CoachFeatureRoutes.TeamPlayerLinkRequests, "ClubDirector", 3, false),
+
+                        // PlayerDocuments (openspec change player-document-authorizations): self-service "my own
+                        // player" page for Player/FamilyMember; team-wide tracking page for Coach/ClubDirector. The
+                        // two routes are intentionally NOT cross-seeded (MyDocuments is not for Coach/ClubDirector,
+                        // PlayerDocuments is not for Player/FamilyMember).
+                        ("MyDocuments", CoachFeatureRoutes.MyDocuments, "Player", 3, false),
+                        ("MyDocuments", CoachFeatureRoutes.MyDocuments, "FamilyMember", 3, false),
+
+                        ("PlayerDocuments", CoachFeatureRoutes.PlayerDocuments, "Coach", 3, false),
+                        ("PlayerDocuments", CoachFeatureRoutes.PlayerDocuments, "ClubDirector", 3, false),
                     };
 
                     foreach (var (featureName, featureRoute, roleName, permTypeId, isEditable) in entries)

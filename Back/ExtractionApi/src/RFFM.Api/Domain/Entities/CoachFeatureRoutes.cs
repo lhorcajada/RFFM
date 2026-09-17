@@ -20,6 +20,7 @@ namespace RFFM.Api.Domain.Entities
         public const string PlayerSeasonCards = "/mobile/season-cards";
         public const string CompetitionData = "/mobile/competition-data";
         public const string TeamRulesDocument = "/mobile/team-rules";
+        public const string MyDocuments = "/coach/my-documents";
 
         // Blocked for Player
         public const string Rivals = "/coach/rivals";
@@ -33,5 +34,6 @@ namespace RFFM.Api.Domain.Entities
         public const string ClubTeams = "/coach/clubs/teams";
         public const string ClubRegistrations = "/coach/clubs/registrations";
         public const string TeamPlayerLinkRequests = "/coach/teams/player-link-requests";
+        public const string PlayerDocuments = "/coach/player-documents";
     }
 }

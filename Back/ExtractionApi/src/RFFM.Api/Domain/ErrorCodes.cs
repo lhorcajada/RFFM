@@ -123,5 +123,14 @@ namespace RFFM.Api.Domain
         public const string FamilyMemberAccountRequestAlreadyPending = "FamilyMemberAccountRequestAlreadyPending";
         public const string FamilyMemberAccountRequestNotFound = "FamilyMemberAccountRequestNotFound";
         public const string FamilyMemberAccountRequestAlreadyDecided = "FamilyMemberAccountRequestAlreadyDecided";
+
+        // Player document authorizations (Features/Coaches/PlayerDocuments/*) - openspec change
+        // player-document-authorizations.
+        public const string DocumentTypeNotFound = "DocumentTypeNotFound";
+        public const string PlayerDocumentAccessForbidden = "PlayerDocumentAccessForbidden";
+        public const string PlayerDocumentInvalidFile = "PlayerDocumentInvalidFile";
+        public const string PlayerDocumentFileTooLarge = "PlayerDocumentFileTooLarge";
+        public const string PlayerDocumentNotFound = "PlayerDocumentNotFound";
+        public const string PlayerDocumentNotDelivered = "PlayerDocumentNotDelivered";
     }
 }
