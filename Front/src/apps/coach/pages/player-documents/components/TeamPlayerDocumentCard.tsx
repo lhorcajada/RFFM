@@ -14,6 +14,7 @@ import {
   mapPlayerDocumentError,
   type TeamPlayerDocumentStatusResponse,
 } from "../../../services/playerDocumentService";
+import defaultAvatar from "../../../../../assets/avatar.svg";
 import styles from "./TeamPlayerDocumentCard.module.css";
 
 type Props = {
@@ -21,6 +22,7 @@ type Props = {
   documentTypeId: string;
   teamId: string;
   onChanged: () => void;
+  photoSrc?: string | null;
 };
 
 export default function TeamPlayerDocumentCard({
@@ -28,6 +30,7 @@ export default function TeamPlayerDocumentCard({
   documentTypeId,
   teamId,
   onChanged,
+  photoSrc,
 }: Props) {
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
@@ -37,6 +40,8 @@ export default function TeamPlayerDocumentCard({
 
   const hasFile = row.status !== "Pending";
   const isDelivered = row.status === "Delivered";
+  const displayName = row.alias || row.playerName;
+  const photo = photoSrc ?? defaultAvatar;
 
   function handleApprove() {
     setReviewMode("approve");
@@ -76,11 +81,14 @@ export default function TeamPlayerDocumentCard({
     <>
       <Card className={styles.card}>
         <div className={styles.header}>
-          <div>
-            <Typography variant="h6">{row.playerName}</Typography>
-            <Typography variant="caption" color="text.secondary">
-              {row.dorsal ?? "—"}
-            </Typography>
+          <div className={styles.identity}>
+            <img src={photo} alt={displayName} className={styles.avatar} />
+            <div>
+              <Typography variant="h6">{displayName}</Typography>
+              <Typography variant="caption" color="text.secondary">
+                {row.dorsal ?? "—"}
+              </Typography>
+            </div>
           </div>
           <PlayerDocumentStatusChip status={row.status} />
         </div>

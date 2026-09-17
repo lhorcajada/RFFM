@@ -27,6 +27,8 @@ export type TeamPlayerDocumentStatusResponse = {
   teamPlayerId: string;
   playerId: string;
   playerName: string;
+  alias: string;
+  urlPhoto: string | null;
   dorsal: number | null;
   status: PlayerDocumentStatus;
   uploadedAt: string | null;

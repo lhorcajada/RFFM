@@ -27,7 +27,7 @@ namespace RFFM.Api.Features.Coaches.PlayerDocuments
         public record TeamPlayerDocumentsStatusQuery(string TeamId, string DocumentTypeId) : IQueryApp<TeamPlayerDocumentStatusResponse[]>;
 
         public record TeamPlayerDocumentStatusResponse(
-            string TeamPlayerId, string PlayerId, string PlayerName, int? Dorsal,
+            string TeamPlayerId, string PlayerId, string PlayerName, string Alias, string? UrlPhoto, int? Dorsal,
             string Status, DateTime? UploadedAt, DateTime? ReviewedAt);
 
         public class Handler(AppDbContext db) : IRequestHandler<TeamPlayerDocumentsStatusQuery, TeamPlayerDocumentStatusResponse[]>
@@ -45,6 +45,8 @@ namespace RFFM.Api.Features.Coaches.PlayerDocuments
                         tp.Id,
                         tp.PlayerId,
                         Name = tp.Player.Name,
+                        Alias = tp.Player.Alias,
+                        UrlPhoto = tp.Player.UrlPhoto,
                         Dorsal = tp.Dorsal != null ? tp.Dorsal.Number : (int?)null
                     })
                     .ToListAsync(cancellationToken);
@@ -57,7 +59,7 @@ namespace RFFM.Api.Features.Coaches.PlayerDocuments
                 {
                     var doc = docs.FirstOrDefault(d => d.TeamPlayerId == r.Id);
                     return new TeamPlayerDocumentStatusResponse(
-                        r.Id, r.PlayerId, r.Name, r.Dorsal,
+                        r.Id, r.PlayerId, r.Name, r.Alias, r.UrlPhoto, r.Dorsal,
                         doc?.Status.Name ?? "Pending", doc?.UploadedAt, doc?.ReviewedAt);
                 }).ToArray();
             }

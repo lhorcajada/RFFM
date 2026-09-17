@@ -3,6 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import TeamPlayerDocumentCard from "../TeamPlayerDocumentCard";
 import type { TeamPlayerDocumentStatusResponse } from "../../../../services/playerDocumentService";
+import defaultAvatar from "../../../../../../assets/avatar.svg";
 
 const mockDeletePlayerDocument = vi.fn();
 
@@ -17,6 +18,8 @@ const pendingRow: TeamPlayerDocumentStatusResponse = {
   teamPlayerId: "tp1",
   playerId: "p1",
   playerName: "John Doe",
+  alias: "Johnny",
+  urlPhoto: null,
   dorsal: 10,
   status: "Pending",
   uploadedAt: null,
@@ -52,6 +55,39 @@ describe("TeamPlayerDocumentCard", () => {
     expect(screen.queryByRole("button", { name: "Aprobar" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Rechazar" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Eliminar documento" })).not.toBeInTheDocument();
+  });
+
+  it("shows the player's alias instead of their full name", () => {
+    render(
+      <TeamPlayerDocumentCard row={pendingRow} documentTypeId="dt1" teamId="t1" onChanged={mockOnChanged} />
+    );
+
+    expect(screen.getByText("Johnny")).toBeInTheDocument();
+    expect(screen.queryByText("John Doe")).not.toBeInTheDocument();
+  });
+
+  it("shows the player's photo when urlPhoto is set", () => {
+    render(
+      <TeamPlayerDocumentCard
+        row={{ ...pendingRow, urlPhoto: "https://example.com/photo.jpg" }}
+        documentTypeId="dt1"
+        teamId="t1"
+        onChanged={mockOnChanged}
+        photoSrc="blob:mock-photo"
+      />
+    );
+
+    const img = screen.getByAltText("Johnny") as HTMLImageElement;
+    expect(img.src).toBe("blob:mock-photo");
+  });
+
+  it("falls back to the default avatar when there is no photo", () => {
+    render(
+      <TeamPlayerDocumentCard row={pendingRow} documentTypeId="dt1" teamId="t1" onChanged={mockOnChanged} />
+    );
+
+    const img = screen.getByAltText("Johnny") as HTMLImageElement;
+    expect(img.src).toBe(defaultAvatar);
   });
 
   it("shows update, approve, reject and delete icon buttons when Delivered", () => {

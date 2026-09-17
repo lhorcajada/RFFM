@@ -12,6 +12,20 @@
   gap: 12px;
 }
 
+.identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
 .actions {
   display: flex;
   align-items: center;
