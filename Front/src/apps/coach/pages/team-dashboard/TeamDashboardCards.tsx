@@ -16,6 +16,7 @@ import {
   NewsIllustration,
   SeasonAccessIllustration,
 } from "./components/tileIllustrations";
+import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import type { TeamResponse } from "../../services/teamService";
 import { usePermissions } from "../../../../shared/hooks/usePermissions";
 import { COACH_FEATURE_ROUTES } from "../../constants/featureRoutes";
@@ -207,6 +208,30 @@ export default function TeamDashboardCards({
               illustration={<SanctionsIllustration />}
               gradient="linear-gradient(135deg, #7f0000 0%, #a30000 50%, #5c0000 100%)"
               to={team?.id ? `/coach/sanctions?teamId=${team.id}` : "/coach/sanctions"}
+            />
+          ),
+        },
+        {
+          key: "my-documents",
+          visible: isPlayer && hasFeatureAccess(COACH_FEATURE_ROUTES.MyDocuments),
+          node: (
+            <LauncherTile
+              title="Mis documentos"
+              illustration={<DescriptionOutlinedIcon sx={{ fontSize: 48 }} />}
+              gradient="linear-gradient(135deg, #1976d2 0%, #1e88e5 50%, #1565c0 100%)"
+              to="/coach/my-documents"
+            />
+          ),
+        },
+        {
+          key: "player-documents",
+          visible: !isPlayer && hasFeatureAccess(COACH_FEATURE_ROUTES.PlayerDocuments),
+          node: (
+            <LauncherTile
+              title="Documentos"
+              illustration={<DescriptionOutlinedIcon sx={{ fontSize: 48 }} />}
+              gradient="linear-gradient(135deg, #1976d2 0%, #1e88e5 50%, #1565c0 100%)"
+              to={team?.id ? `/coach/player-documents?teamId=${team.id}` : "/coach/player-documents"}
             />
           ),
         },

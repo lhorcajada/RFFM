@@ -50,6 +50,8 @@ const PlayerDetail = lazy(() => import("./pages/player/PlayerDetail"));
 const NewRatingPage = lazy(() => import("./pages/squad/rating/NewRatingPage"));
 const RatingHistoryPage = lazy(() => import("./pages/squad/rating/RatingHistoryPage"));
 const RatingEvolutionPage = lazy(() => import("./pages/squad/rating/RatingEvolutionPage"));
+const MyDocuments = lazy(() => import("./pages/my-documents/MyDocuments"));
+const PlayerDocumentsTracking = lazy(() => import("./pages/player-documents/PlayerDocumentsTracking"));
 
 function LoadingFallback() {
   return (
@@ -301,6 +303,25 @@ function CoachRoutesContent() {
               element={
                 <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.Sanctions}>
                   <Sanctions />
+                </RequireFeaturePermission>
+              }
+            />
+            <Route
+              path="my-documents"
+              element={
+                <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.MyDocuments}>
+                  <MyDocuments />
+                </RequireFeaturePermission>
+              }
+            />
+            <Route
+              path="player-documents"
+              element={
+                <RequireFeaturePermission
+                  featureRoute={COACH_FEATURE_ROUTES.PlayerDocuments}
+                  allowPlayerAccess={false}
+                >
+                  <PlayerDocumentsTracking />
                 </RequireFeaturePermission>
               }
             />

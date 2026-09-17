@@ -17,6 +17,7 @@ export const COACH_FEATURE_ROUTES = {
   Sanctions: "/coach/sanctions",
   Lottery: "/coach/lottery",
   News: "/coach/news",
+  MyDocuments: "/coach/my-documents",
 
   // Blocked for Player
   Rivals: "/coach/rivals",
@@ -29,6 +30,7 @@ export const COACH_FEATURE_ROUTES = {
   ClubPlayers: "/coach/clubs/players",
   ClubTeams: "/coach/clubs/teams",
   ClubRegistrations: "/coach/clubs/registrations",
+  PlayerDocuments: "/coach/player-documents",
 
   // Read for every team member (any authenticated role); ReadWrite for Coach/Admin
   TeamRulesDocument: "/mobile/team-rules",

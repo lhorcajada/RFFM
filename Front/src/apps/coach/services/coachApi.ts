@@ -9,6 +9,7 @@ export interface MyProfile {
   roleName: string;
   playerId?: string | null;
   teamId?: string | null;
+  teamPlayerId?: string | null;
 }
 
 export async function acquireCoachTrial(

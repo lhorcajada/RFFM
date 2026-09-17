@@ -1,0 +1,29 @@
+.filterSection {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.cardsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.statusGroup {
+  margin-bottom: 28px;
+}
+
+.statusGroupTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.statusGroupEmpty {
+  color: var(--rffm-text-secondary, #8a8a8a);
+  font-size: 0.85rem;
+}

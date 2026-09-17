@@ -1,0 +1,39 @@
+.card {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.titleSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.title {
+  margin: 0;
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.notice {
+  padding: 12px;
+  background-color: rgba(25, 103, 210, 0.1);
+  border-left: 4px solid rgb(25, 103, 210);
+  border-radius: 4px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
