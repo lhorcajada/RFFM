@@ -52,7 +52,7 @@ namespace RFFM.Api.Features.Coaches.PlayerDocuments
                 // PlayerDocumentsReportPdfGenerator groups rows by the raw English status codes
                 // ("Pending"/"Delivered"/"Approved"/"Rejected") and translates them itself — do not
                 // translate here, or the generator's grouping filter will never match any row.
-                var rows = statuses.Select(s => (s.PlayerName, s.Dorsal, s.Status)).ToList();
+                var rows = statuses.Select(s => (BuildFullName(s.PlayerName, s.PlayerLastName), s.Dorsal, s.Status)).ToList();
 
                 var pdf = pdfGenerator.GeneratePdf(team.Name, documentType.Name, team.Season?.Name ?? "N/A", rows);
 
@@ -62,6 +62,9 @@ namespace RFFM.Api.Features.Coaches.PlayerDocuments
 
                 return new ExportPdfResult(pdf, fileName, "application/pdf");
             }
+
+            internal static string BuildFullName(string name, string? lastName)
+                => string.IsNullOrWhiteSpace(lastName) ? name : $"{name} {lastName}";
         }
     }
 
