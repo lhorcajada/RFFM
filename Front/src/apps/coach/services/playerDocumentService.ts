@@ -106,6 +106,17 @@ export async function downloadTeamDocumentsReport(
   return resp.data as Blob;
 }
 
+export async function downloadTeamDocumentsZip(
+  teamId: string,
+  documentTypeId: string
+): Promise<Blob> {
+  const resp = await client.get(`/api/catalog/team/${encodeURIComponent(teamId)}/documents/zip`, {
+    params: { documentTypeId },
+    responseType: "blob",
+  });
+  return resp.data as Blob;
+}
+
 export type ErrorMessage = {
   message: string;
   severity: "error" | "warning";
@@ -160,5 +171,6 @@ export default {
   deletePlayerDocument,
   reviewPlayerDocument,
   downloadTeamDocumentsReport,
+  downloadTeamDocumentsZip,
   mapPlayerDocumentError,
 };

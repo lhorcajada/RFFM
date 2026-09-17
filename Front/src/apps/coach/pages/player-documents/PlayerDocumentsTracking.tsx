@@ -1,10 +1,23 @@
 import { useEffect, useState } from "react";
-import { CircularProgress, MenuItem, Select, Stack, Typography } from "@mui/material";
+import {
+  Button,
+  CircularProgress,
+  IconButton,
+  MenuItem,
+  Select,
+  Stack,
+  Tooltip,
+  Typography,
+  useTheme,
+} from "@mui/material";
+import useMediaQuery from "@mui/material/useMediaQuery";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import EmptyState from "../../../../shared/components/ui/EmptyState/EmptyState";
 import PlayerDocumentStatusChip from "../../../../shared/components/ui/PlayerDocumentStatusChip/PlayerDocumentStatusChip";
 import useTeamAndClub from "../../hooks/useTeamAndClub";
+import useTeamDashboardBack from "../../hooks/useTeamDashboardBack";
 import {
   getDocumentTypes,
   getTeamDocumentsStatus,
@@ -13,8 +26,10 @@ import {
   type PlayerDocumentStatus,
   type TeamPlayerDocumentStatusResponse,
 } from "../../services/playerDocumentService";
+import { fetchPlayerPhoto } from "../../services/playerService";
 import TeamPlayerDocumentCard from "./components/TeamPlayerDocumentCard";
 import DocumentReportButton from "./components/DocumentReportButton";
+import DocumentZipButton from "./components/DocumentZipButton";
 import styles from "./PlayerDocumentsTracking.module.css";
 
 const STATUS_GROUP_ORDER: PlayerDocumentStatus[] = ["Pending", "Delivered", "Approved", "Rejected"];
@@ -28,10 +43,14 @@ const STATUS_GROUP_LABELS: Record<PlayerDocumentStatus, string> = {
 
 export default function PlayerDocumentsTracking() {
   const { team } = useTeamAndClub();
+  const goToTeamDashboard = useTeamDashboardBack();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [loading, setLoading] = useState(true);
   const [documentTypes, setDocumentTypes] = useState<DocumentTypeResponse[]>([]);
   const [documentTypeId, setDocumentTypeId] = useState<string>("");
   const [documents, setDocuments] = useState<TeamPlayerDocumentStatusResponse[]>([]);
+  const [playerPhotos, setPlayerPhotos] = useState<Record<string, string | null>>({});
 
   async function load() {
     if (!team?.id) return;
@@ -60,6 +79,18 @@ export default function PlayerDocumentsTracking() {
     try {
       const docs = await getTeamDocumentsStatus(team.id, documentTypeId);
       setDocuments(docs);
+
+      const photos: Record<string, string | null> = {};
+      await Promise.all(
+        docs.map(async (doc) => {
+          if (!doc.urlPhoto) {
+            photos[doc.teamPlayerId] = null;
+            return;
+          }
+          photos[doc.teamPlayerId] = await fetchPlayerPhoto(doc.urlPhoto);
+        })
+      );
+      setPlayerPhotos(photos);
     } catch (err: any) {
       const code = err?.response?.data?.code;
       const error = mapPlayerDocumentError(code);
@@ -89,10 +120,38 @@ export default function PlayerDocumentsTracking() {
         actionBar={
           <Stack direction="row" spacing={1} alignItems="center">
             {documentTypeId && team?.id && (
-              <DocumentReportButton
-                teamId={team.id}
-                documentTypeId={documentTypeId}
-              />
+              <>
+                <DocumentReportButton
+                  teamId={team.id}
+                  documentTypeId={documentTypeId}
+                  iconOnly={isMobile}
+                />
+                <DocumentZipButton
+                  teamId={team.id}
+                  documentTypeId={documentTypeId}
+                  iconOnly={isMobile}
+                />
+              </>
+            )}
+            {isMobile ? (
+              <Tooltip title="Volver">
+                <IconButton
+                  color="primary"
+                  onClick={() => goToTeamDashboard()}
+                  aria-label="Volver"
+                >
+                  <ArrowBackIcon />
+                </IconButton>
+              </Tooltip>
+            ) : (
+              <Button
+                startIcon={<ArrowBackIcon />}
+                onClick={() => goToTeamDashboard()}
+                variant="outlined"
+                size="small"
+              >
+                Volver
+              </Button>
             )}
           </Stack>
         }
@@ -146,6 +205,7 @@ export default function PlayerDocumentsTracking() {
                         documentTypeId={documentTypeId}
                         teamId={team?.id || ""}
                         onChanged={loadDocuments}
+                        photoSrc={playerPhotos[doc.teamPlayerId] ?? null}
                       />
                     ))}
                   </div>

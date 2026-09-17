@@ -170,6 +170,7 @@ namespace RFFM.Api.DependencyInjection
             // PDF generators
             services.AddSingleton<SeasonPrepPdfGenerator>();
             services.AddSingleton<RFFM.Api.Services.Export.PlayerDocumentsReportPdfGenerator>();
+            services.AddSingleton<RFFM.Api.Services.Export.PlayerDocumentsZipBuilder>();
             return services;
         }
 
