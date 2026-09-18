@@ -399,6 +399,19 @@ export default function EventCard({ event, eventTypeName, onDeleted, onEdited, a
           {startTimeStr && !hasScore && !isMatch && (
             <span className={styles.metaTime}>{startTimeStr}</span>
           )}
+          {arrivalTimeStr && (
+            <Chip
+              label={`Llegada ${arrivalTimeStr}`}
+              size="small"
+              sx={{
+                backgroundColor: "rgba(255,193,7,0.22)",
+                color: "#ffd54f",
+                fontWeight: 700,
+                fontSize: "0.68rem",
+                height: 20,
+              }}
+            />
+          )}
         </div>
         {event.location && (
           <div className={styles.location} title={event.location}>
@@ -436,7 +449,7 @@ export default function EventCard({ event, eventTypeName, onDeleted, onEdited, a
             stretch to fill whatever height the dashboard row gives them
             (see .compact's comment). */}
         <div className={styles.bottomTags}>
-          {(isMatch || arrivalTimeStr || isTraining) && (
+          {(isMatch || isTraining) && (
             <div className={styles.chipsRow}>
               {isMatch && (
                 <Chip
@@ -447,19 +460,6 @@ export default function EventCard({ event, eventTypeName, onDeleted, onEdited, a
                     color: "#90caf9",
                     fontWeight: 700,
                     fontSize: "0.68rem",
-                    height: 20,
-                  }}
-                />
-              )}
-              {arrivalTimeStr && (
-                <Chip
-                  label={`Llegada ${arrivalTimeStr}`}
-                  size="small"
-                  sx={{
-                    backgroundColor: "rgba(255,193,7,0.22)",
-                    color: "#ffd54f",
-                    fontWeight: 700,
-                    fontSize: "0.7rem",
                     height: 20,
                   }}
                 />

@@ -84,4 +84,18 @@ describe("EventCard - badges de Entrenamiento", () => {
 
     expect(screen.getByText(/Llegada 9:15/)).toBeInTheDocument();
   });
+
+  it("muestra la hora de llegada junto a la fecha/hora del evento (metaRow), no en la fila de chips inferior", () => {
+    const { container } = renderCard(
+      baseEvent({ arrivalDate: "2026-09-01T17:30:00" }),
+      "Entrenamiento"
+    );
+
+    const metaRow = container.querySelector(`.${styles.metaRow}`);
+    const chipsRow = container.querySelector(`.${styles.chipsRow}`);
+    const arrivalChip = screen.getByText(/Llegada 17:30/);
+
+    expect(metaRow).toContainElement(arrivalChip);
+    expect(chipsRow).not.toContainElement(arrivalChip);
+  });
 });
