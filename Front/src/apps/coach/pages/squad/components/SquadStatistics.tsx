@@ -12,6 +12,7 @@ import type { SelectChangeEvent } from "@mui/material";
 import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import avatarFallback from "../../../../../assets/avatar.svg";
 import type { PlayerStatistics } from "../../../services/teamPlayerStatisticsService";
 import { SEASON_MINUTES_TARGET_PERCENT } from "../../../services/teamPlayerStatisticsService";
 import { exportSquadStatisticsPdf } from "../squadStatsPdfExport";
@@ -25,6 +26,7 @@ type Props = {
   players: PlayerStatistics[];
   loading: boolean;
   teamName?: string;
+  photoUrls?: Record<string, string | null>;
 };
 
 type SortKey = "ef" | "readiness" | "fatigue" | "dorsal" | "goals" | "yellowCards" | "redCards" | "minutesPlayed";
@@ -56,7 +58,7 @@ function compareValues(a: PlayerStatistics, b: PlayerStatistics, key: SortKey): 
   return Number(av) - Number(bv);
 }
 
-export default function SquadStatistics({ players, loading, teamName }: Props) {
+export default function SquadStatistics({ players, loading, teamName, photoUrls }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>("ef");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [positionFilter, setPositionFilter] = useState<string>("");
@@ -183,6 +185,11 @@ export default function SquadStatistics({ players, loading, teamName }: Props) {
               data-testid={`squad-stat-card-${player.teamPlayerId}`}
             >
               <div className={styles.cardHeader}>
+                <img
+                  src={photoUrls?.[player.teamPlayerId] ?? avatarFallback}
+                  alt={player.displayName}
+                  className={styles.avatar}
+                />
                 <span className={styles.dorsal}>{player.dorsal ?? "—"}</span>
                 <div className={styles.headerText}>
                   <span className={styles.name} data-testid="squad-stat-player-name">

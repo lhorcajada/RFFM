@@ -127,6 +127,16 @@ export default function Squad() {
 
   const playersByPosition = useMemo(() => groupByPosition(players), [players]);
 
+  const photoByTeamPlayerId = useMemo(() => {
+    const map: Record<string, string | null> = {};
+    players.forEach((p, idx) => {
+      if (!p.id) return;
+      const key = p.id ?? `${p.name ?? ""}-${p.lastName ?? ""}-${idx}`;
+      map[p.id] = playerPhotos[key] ?? null;
+    });
+    return map;
+  }, [players, playerPhotos]);
+
   const playerStatsMap = useMemo(() => {
     const map: Record<string, PlayerStatistics> = {};
     playerStats.forEach((s) => { map[s.teamPlayerId] = s; });
@@ -448,6 +458,7 @@ export default function Squad() {
               players={playerStats}
               loading={loadingStats}
               teamName={team.name}
+              photoUrls={photoByTeamPlayerId}
             />
           )}
 
