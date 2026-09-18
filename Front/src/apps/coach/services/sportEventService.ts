@@ -36,6 +36,7 @@ export interface SportEventResponse {
   visitorGoals?: string | null;
   selectedKitNumber?: number | null;
   hasConvokedPlayers?: boolean | null;
+  trainingTypes?: string[] | null;
 }
 
 export interface PagedSportEvents {
@@ -137,6 +138,7 @@ export interface SportEventPayload {
   isHomeMatch?: boolean | null;
   codActa?: string | null;
   recurrence?: SportEventRecurrencePayload | null;
+  trainingTypes?: string[] | null;
 }
 
 export async function createSportEvent(

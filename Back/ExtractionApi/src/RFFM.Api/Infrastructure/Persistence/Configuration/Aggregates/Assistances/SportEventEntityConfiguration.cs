@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using RFFM.Api.Domain.Aggregates.Assistances;
+using RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.Trainings;
 
 namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.Assistances
 {
@@ -74,6 +75,8 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.Assistanc
                 .WithMany(r => r.Events)
                 .HasForeignKey(se => se.RecurrenceId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            JsonColumns.ConfigureStringList(builder.Property(se => se.TrainingTypes));
         }
     }
 }

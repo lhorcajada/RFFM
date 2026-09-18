@@ -1,5 +1,6 @@
 #nullable enable
 using System;
+using System.Collections.Generic;
 using RFFM.Api.Features.Coaches.SportEvents.Commands;
 using Xunit;
 
@@ -43,6 +44,31 @@ namespace RFFM.Api.Tests.UnitTests
         public void Validate_WithNullLocationMapUrl_Succeeds()
         {
             var result = _validator.Validate(BaseRequest(null));
+            Assert.True(result.IsValid);
+        }
+
+        [Fact]
+        public void Validate_WithValidTrainingTypes_Succeeds()
+        {
+            var request = BaseRequest(null) with { TrainingTypes = new List<string> { "Fisico", "Tecnico", "Tactico" } };
+            var result = _validator.Validate(request);
+            Assert.True(result.IsValid);
+        }
+
+        [Fact]
+        public void Validate_WithInvalidTrainingTypeCode_Fails()
+        {
+            var request = BaseRequest(null) with { TrainingTypes = new List<string> { "Mental" } };
+            var result = _validator.Validate(request);
+            Assert.False(result.IsValid);
+            Assert.Contains(result.Errors, e => e.PropertyName.StartsWith(nameof(UpdateSportEventRequest.TrainingTypes)));
+        }
+
+        [Fact]
+        public void Validate_WithNullTrainingTypes_Succeeds()
+        {
+            var request = BaseRequest(null) with { TrainingTypes = null };
+            var result = _validator.Validate(request);
             Assert.True(result.IsValid);
         }
     }

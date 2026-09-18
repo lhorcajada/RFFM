@@ -24,7 +24,7 @@ namespace RFFM.Api.Tests.UnitTests
             _fixture = fixture;
         }
 
-        private async Task<string> SeedSportEventAsync(AppDbContext db, int? selectedKitNumber, int eventTypeId = 2)
+        private async Task<string> SeedSportEventAsync(AppDbContext db, int? selectedKitNumber, int eventTypeId = 2, System.Collections.Generic.List<string>? trainingTypes = null)
         {
             var club = Club.Create($"GetSportEventItem Test Club {Guid.NewGuid():N}", 1);
             db.Clubs.Add(club);
@@ -54,7 +54,8 @@ namespace RFFM.Api.Tests.UnitTests
                 DateTime.UtcNow.AddDays(1),
                 DateTime.UtcNow.AddDays(1),
                 null, null, null, null,
-                eventTypeId, team.Id, null);
+                eventTypeId, team.Id, null,
+                trainingTypes: trainingTypes);
             sportEvent.SetSelectedKit(selectedKitNumber);
             db.SportEvents.Add(sportEvent);
             await db.SaveChangesAsync();
@@ -103,6 +104,34 @@ namespace RFFM.Api.Tests.UnitTests
 
             Assert.NotNull(result);
             Assert.Equal(expectedCategory, result!.MatchCategory);
+        }
+
+        [Fact]
+        public async Task Handle_WithTrainingTypes_ReturnsThemInResponse()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var eventId = await SeedSportEventAsync(db, selectedKitNumber: null,
+                trainingTypes: new System.Collections.Generic.List<string> { "Tecnico" });
+
+            var handler = new GetSportEventItem.GetSportEventItemRequestHandler(db);
+            var result = await handler.Handle(new GetSportEventItem.SportEventItemQuery { Id = eventId }, CancellationToken.None);
+
+            Assert.NotNull(result);
+            Assert.Equal(new[] { "Tecnico" }, result!.TrainingTypes);
+        }
+
+        [Fact]
+        public async Task Handle_WithoutTrainingTypes_ReturnsEmptyList()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var eventId = await SeedSportEventAsync(db, selectedKitNumber: null);
+
+            var handler = new GetSportEventItem.GetSportEventItemRequestHandler(db);
+            var result = await handler.Handle(new GetSportEventItem.SportEventItemQuery { Id = eventId }, CancellationToken.None);
+
+            Assert.NotNull(result);
+            Assert.NotNull(result!.TrainingTypes);
+            Assert.Empty(result.TrainingTypes);
         }
     }
 }

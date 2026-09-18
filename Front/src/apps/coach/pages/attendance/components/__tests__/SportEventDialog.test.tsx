@@ -507,3 +507,140 @@ describe("SportEventDialog - enlace de Google Maps", () => {
     expect(field.value).toBe("https://maps.google.com/?q=Campo+Municipal+Norte");
   });
 });
+
+describe("SportEventDialog - hora de llegada y tipo de entrenamiento", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  async function fillNameAndType(typeName: string) {
+    await userEvent.type(screen.getByLabelText(/nombre/i), "Entrenamiento semanal");
+    const typeSelect = screen.getByLabelText(/tipo de evento/i);
+    await userEvent.click(typeSelect);
+    const option = await screen.findByRole("option", { name: typeName });
+    await userEvent.click(option);
+  }
+
+  it("deshabilita el campo de hora de llegada hasta que se indica una fecha de evento", async () => {
+    render(
+      <SportEventDialog open={true} teamId="team-1" onClose={vi.fn()} onSaved={vi.fn()} />
+    );
+
+    const arrivalField = await screen.findByLabelText(/hora de llegada/i);
+    expect(arrivalField).toBeDisabled();
+    expect(
+      screen.getByText(/añade una fecha del evento para poder indicar la hora de llegada/i)
+    ).toBeInTheDocument();
+
+    const dateField = screen.getByLabelText(/fecha y hora/i) as HTMLInputElement;
+    await userEvent.type(dateField, "2026-08-01T18:00");
+
+    expect(arrivalField).toBeEnabled();
+  });
+
+  it("incluye arrivalDate calculado en UTC en el payload al indicar hora de llegada y fecha", async () => {
+    createSportEventMock.mockResolvedValue({ id: "evt-1" });
+    render(
+      <SportEventDialog open={true} teamId="team-1" onClose={vi.fn()} onSaved={vi.fn()} />
+    );
+
+    await fillNameAndType("Entrenamiento");
+
+    const dateField = screen.getByLabelText(/fecha y hora/i) as HTMLInputElement;
+    await userEvent.type(dateField, "2026-08-01T18:00");
+
+    const arrivalField = screen.getByLabelText(/hora de llegada/i) as HTMLInputElement;
+    await userEvent.type(arrivalField, "17:30");
+
+    await userEvent.click(screen.getByRole("button", { name: /crear/i }));
+
+    await waitFor(() => expect(createSportEventMock).toHaveBeenCalledTimes(1));
+    const payload = createSportEventMock.mock.calls[0][0];
+    expect(payload.arrivalDate).toBe(new Date("2026-08-01T17:30").toISOString());
+  }, 15000);
+
+  it("envía arrivalDate como null cuando no se indica hora de llegada", async () => {
+    createSportEventMock.mockResolvedValue({ id: "evt-1" });
+    render(
+      <SportEventDialog open={true} teamId="team-1" onClose={vi.fn()} onSaved={vi.fn()} />
+    );
+
+    await fillNameAndType("Entrenamiento");
+    await userEvent.click(screen.getByRole("button", { name: /crear/i }));
+
+    await waitFor(() => expect(createSportEventMock).toHaveBeenCalledTimes(1));
+    const payload = createSportEventMock.mock.calls[0][0];
+    expect(payload.arrivalDate).toBeNull();
+  }, 15000);
+
+  it("no muestra el selector de tipo de entrenamiento para tipos que no son entrenamiento", async () => {
+    render(
+      <SportEventDialog open={true} teamId="team-1" onClose={vi.fn()} onSaved={vi.fn()} />
+    );
+    await userEvent.type(screen.getByLabelText(/nombre/i), "Partido jornada 1");
+    const typeSelect = screen.getByLabelText(/tipo de evento/i);
+    await userEvent.click(typeSelect);
+    const option = await screen.findByRole("option", { name: "Partido" });
+    await userEvent.click(option);
+
+    expect(screen.queryByLabelText(/tipo de entrenamiento/i)).not.toBeInTheDocument();
+  });
+
+  it("muestra el selector de tipo de entrenamiento para eventos de tipo entrenamiento", async () => {
+    render(
+      <SportEventDialog open={true} teamId="team-1" onClose={vi.fn()} onSaved={vi.fn()} />
+    );
+    await fillNameAndType("Entrenamiento");
+
+    expect(await screen.findByLabelText(/tipo de entrenamiento/i)).toBeInTheDocument();
+  });
+
+  it("incluye los códigos de tipo de entrenamiento seleccionados en el payload", async () => {
+    createSportEventMock.mockResolvedValue({ id: "evt-1" });
+    render(
+      <SportEventDialog open={true} teamId="team-1" onClose={vi.fn()} onSaved={vi.fn()} />
+    );
+    await fillNameAndType("Entrenamiento");
+
+    const trainingTypeSelect = await screen.findByLabelText(/tipo de entrenamiento/i);
+    await userEvent.click(trainingTypeSelect);
+    await userEvent.click(await screen.findByRole("option", { name: "Físico" }));
+    await userEvent.click(await screen.findByRole("option", { name: "Táctico" }));
+    await userEvent.keyboard("{Escape}");
+
+    await userEvent.click(screen.getByRole("button", { name: /crear/i }));
+
+    await waitFor(() => expect(createSportEventMock).toHaveBeenCalledTimes(1));
+    const payload = createSportEventMock.mock.calls[0][0];
+    expect(payload.trainingTypes).toEqual(["Fisico", "Tactico"]);
+  }, 15000);
+
+  it("precarga la hora de llegada y los tipos de entrenamiento al editar un entrenamiento existente", async () => {
+    render(
+      <SportEventDialog
+        open={true}
+        teamId="team-1"
+        event={{
+          id: "evt-1",
+          title: "Entreno semanal",
+          name: "Entreno semanal",
+          eventTypeId: 1,
+          teamId: "team-1",
+          eveDateTime: "2026-08-01T18:00:00Z",
+          arrivalDate: "2026-08-01T17:30:00",
+          trainingTypes: ["Fisico", "Tecnico"],
+        }}
+        onClose={vi.fn()}
+        onSaved={vi.fn()}
+      />
+    );
+
+    const arrivalField = (await screen.findByLabelText(
+      /hora de llegada/i
+    )) as HTMLInputElement;
+    await waitFor(() => expect(arrivalField.value).toBe("17:30"));
+
+    const trainingTypeSelect = await screen.findByLabelText(/tipo de entrenamiento/i);
+    await waitFor(() => expect(trainingTypeSelect).toHaveTextContent("Físico, Técnico"));
+  });
+});

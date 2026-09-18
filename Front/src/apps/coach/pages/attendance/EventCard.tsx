@@ -24,6 +24,7 @@ import { EventAttendanceBadges } from "../../components/EventAttendanceBadges/Ev
 import type { EventAttendanceSummaryDto } from "../../services/eventAttendanceSummaryService";
 import { resolveStorageUrl } from "../../../../shared/utils/resolveStorageUrl";
 import { toMatchState } from "../convocations/helpers/convocationUtils";
+import { TRAINING_TYPE_LABELS, TrainingTypeCode } from "./trainingTypes";
 
 interface Props {
   event: SportEventResponse;
@@ -62,6 +63,38 @@ function getEventAvatar(eventTypeName?: string | null): { emoji: string; gradien
     emoji: "📅",
     gradient: "linear-gradient(135deg, #37474f 0%, #455a64 50%, #2c3e50 100%)",
   };
+}
+
+const TRAINING_HEADER_ORDER: TrainingTypeCode[] = ["Fisico", "Tactico", "Tecnico"];
+
+const TRAINING_HEADER_GRADIENTS: Record<string, string> = {
+  Fisico: "linear-gradient(135deg, #e65100 0%, #f57c00 50%, #bf360c 100%)",
+  Tecnico: "linear-gradient(135deg, #01579b 0%, #0277bd 50%, #013a63 100%)",
+  Tactico: "linear-gradient(135deg, #4a148c 0%, #6a1b9a 50%, #38006b 100%)",
+  "Fisico+Tecnico": "linear-gradient(135deg, #004d40 0%, #00695c 50%, #00332c 100%)",
+  "Fisico+Tactico": "linear-gradient(135deg, #880e4f 0%, #ad1457 50%, #560027 100%)",
+  "Tactico+Tecnico": "linear-gradient(135deg, #1a237e 0%, #283593 50%, #0d1642 100%)",
+  "Fisico+Tactico+Tecnico": "linear-gradient(135deg, #827717 0%, #9e9d24 50%, #4f5b0a 100%)",
+};
+
+/** Derives the per-combination header gradient + corner tag label for a
+ * training event's `trainingTypes`. Returns null when there are no (valid)
+ * training types, so callers can fall back to the default green training
+ * gradient/no tag — keeping backward compatibility with trainings that
+ * predate this feature. */
+function getTrainingHeaderStyle(
+  trainingTypes: string[] | null | undefined
+): { gradient: string; label: string } | null {
+  if (!trainingTypes || trainingTypes.length === 0) return null;
+  const valid = TRAINING_HEADER_ORDER.filter((code) =>
+    trainingTypes.includes(code)
+  );
+  if (valid.length === 0) return null;
+  const key = valid.join("+");
+  const gradient = TRAINING_HEADER_GRADIENTS[key];
+  if (!gradient) return null;
+  const label = valid.map((code) => TRAINING_TYPE_LABELS[code]).join(" + ");
+  return { gradient, label };
 }
 
 /** CSS module modifier class for the vertical type sidebar, mirroring
@@ -209,6 +242,9 @@ export default function EventCard({ event, eventTypeName, onDeleted, onEdited, a
     matchResult === "lost" ? "Derrota" : null;
 
   const avatar = getEventAvatar(eventTypeName);
+  const trainingHeaderStyle = isTraining
+    ? getTrainingHeaderStyle(event.trainingTypes)
+    : null;
 
   const actions = (
     <div className={styles.actions}>
@@ -343,9 +379,15 @@ export default function EventCard({ event, eventTypeName, onDeleted, onEdited, a
         </div>
       ) : (
         /* ── GENERIC HEADER ──────────────────────────── */
-        <div className={styles.header} style={{ background: avatar.gradient }}>
+        <div
+          className={styles.header}
+          style={{ background: trainingHeaderStyle?.gradient ?? avatar.gradient }}
+        >
           <div className={styles.headerShine} />
           <div className={styles.avatar}>{avatar.emoji}</div>
+          {isTraining && trainingHeaderStyle && (
+            <span className={styles.headerTrainingTag}>{trainingHeaderStyle.label}</span>
+          )}
         </div>
       )}
 

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using RFFM.Api.Domain.Aggregates.Assistances;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Features.Coaches.SportEvents.Queries;
 using RFFM.Api.Features.Mobile.PushNotifications;
@@ -36,12 +37,13 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
                             : null;
                         ev.IsHomeMatch = req.IsHomeMatch ?? true;
                         ev.CodActa = req.CodActa;
+                        ev.TrainingTypes = req.TrainingTypes ?? new();
 
                         await db.SaveChangesAsync(cancellationToken);
 
                         await dispatcher.DispatchCalendarChangedAsync(ev.Id, ev.TeamId, cancellationToken);
 
-                        return Results.Ok(new SportEventSaveResponse(ev.Id, ev.Name, ev.EveDateTime, ev.StartTime, ev.EndTime, ev.ArrivalDate, ev.Location, ev.LocationMapUrl, ev.Description, ev.EventTypeId, ev.TeamId, ev.RivalId, ev.IsHomeMatch, ev.CodActa, ev.RecurrenceId, ev.IsRecurrenceMaster, null));
+                        return Results.Ok(new SportEventSaveResponse(ev.Id, ev.Name, ev.EveDateTime, ev.StartTime, ev.EndTime, ev.ArrivalDate, ev.Location, ev.LocationMapUrl, ev.Description, ev.EventTypeId, ev.TeamId, ev.RivalId, ev.IsHomeMatch, ev.CodActa, ev.RecurrenceId, ev.IsRecurrenceMaster, null, ev.TrainingTypes));
                     })
                 .WithName(nameof(UpdateSportEvent))
                 .WithTags(SportEventsConstants.SportEventsFeature)
@@ -62,7 +64,8 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
         int EventTypeId,
         string? RivalId,
         bool? IsHomeMatch,
-        string? CodActa
+        string? CodActa,
+        List<string>? TrainingTypes = null
     );
 
     public class UpdateSportEventValidator : AbstractValidator<UpdateSportEventRequest>
@@ -76,6 +79,11 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
                 .Must(BeAWellFormedHttpUrl)
                 .WithMessage("El enlace de ubicación debe ser una URL http(s) válida")
                 .When(x => !string.IsNullOrEmpty(x.LocationMapUrl));
+
+            RuleForEach(x => x.TrainingTypes)
+                .Must(TrainingType.IsValidCode)
+                .WithMessage("El tipo de entrenamiento debe ser 'Fisico', 'Tecnico' o 'Tactico'")
+                .When(x => x.TrainingTypes is not null);
         }
 
         private static bool BeAWellFormedHttpUrl(string? url) =>

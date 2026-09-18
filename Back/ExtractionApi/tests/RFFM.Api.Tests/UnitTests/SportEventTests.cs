@@ -1,5 +1,6 @@
 #nullable enable
 using System;
+using System.Collections.Generic;
 using RFFM.Api.Domain.Aggregates.Assistances;
 using Xunit;
 
@@ -199,6 +200,28 @@ namespace RFFM.Api.Tests.UnitTests
         {
             var ev = NewBaseEvent();
             Assert.Null(ev.LocationMapUrl);
+        }
+
+        [Fact]
+        public void CreateNew_WithTrainingTypes_SetsValue()
+        {
+            var ev = SportEvent.CreateNew(
+                "Entrenamiento",
+                DateTime.UtcNow.AddDays(1),
+                DateTime.UtcNow.AddDays(1),
+                null, null, null, null,
+                2, "team-1", null,
+                trainingTypes: new List<string> { "Fisico", "Tactico" });
+
+            Assert.Equal(new[] { "Fisico", "Tactico" }, ev.TrainingTypes);
+        }
+
+        [Fact]
+        public void CreateNew_WithoutTrainingTypes_DefaultsToEmptyList()
+        {
+            var ev = NewBaseEvent();
+            Assert.NotNull(ev.TrainingTypes);
+            Assert.Empty(ev.TrainingTypes);
         }
     }
 }

@@ -81,7 +81,8 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
                             req.CodActa,
                             localGoals: null,
                             visitorGoals: null,
-                            locationMapUrl: req.LocationMapUrl
+                            locationMapUrl: req.LocationMapUrl,
+                            trainingTypes: req.TrainingTypes
                         );
 
                         EventRecurrence? recurrence = null;
@@ -137,7 +138,8 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
                                     null, // CodActa is match-specific, never copied to generated instances
                                     localGoals: null,
                                     visitorGoals: null,
-                                    locationMapUrl: ev.LocationMapUrl
+                                    locationMapUrl: ev.LocationMapUrl,
+                                    trainingTypes: ev.TrainingTypes
                                 ))
                                 .ToArray();
 
@@ -155,7 +157,7 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
                         // instance, to avoid notification spam for a long recurring series.
                         await dispatcher.DispatchCalendarChangedAsync(ev.Id, ev.TeamId, cancellationToken);
 
-                        return Results.Ok(new SportEventSaveResponse(ev.Id, ev.Name, ev.EveDateTime, ev.StartTime, ev.EndTime, ev.ArrivalDate, ev.Location, ev.LocationMapUrl, ev.Description, ev.EventTypeId, ev.TeamId, ev.RivalId, ev.IsHomeMatch, ev.CodActa, ev.RecurrenceId, ev.IsRecurrenceMaster, recurrence?.InstanceCount));
+                        return Results.Ok(new SportEventSaveResponse(ev.Id, ev.Name, ev.EveDateTime, ev.StartTime, ev.EndTime, ev.ArrivalDate, ev.Location, ev.LocationMapUrl, ev.Description, ev.EventTypeId, ev.TeamId, ev.RivalId, ev.IsHomeMatch, ev.CodActa, ev.RecurrenceId, ev.IsRecurrenceMaster, recurrence?.InstanceCount, ev.TrainingTypes));
                     })
                 .WithName(nameof(CreateSportEvent))
                 .WithTags(SportEventsConstants.SportEventsFeature)
@@ -179,7 +181,8 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
         string? CodActa,
         RecurrenceRequest? Recurrence = null,
         NewRivalRequest? NewRival = null,
-        string? LocationMapUrl = null
+        string? LocationMapUrl = null,
+        List<string>? TrainingTypes = null
     );
 
     public record RecurrenceRequest(
@@ -205,6 +208,11 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
                 .Must(BeAWellFormedHttpUrl)
                 .WithMessage("El enlace de ubicación debe ser una URL http(s) válida")
                 .When(x => !string.IsNullOrEmpty(x.LocationMapUrl));
+
+            RuleForEach(x => x.TrainingTypes)
+                .Must(TrainingType.IsValidCode)
+                .WithMessage("El tipo de entrenamiento debe ser 'Fisico', 'Tecnico' o 'Tactico'")
+                .When(x => x.TrainingTypes is not null);
 
             RuleFor(x => x)
                 .Must(x => x.RivalId is null || x.NewRival is null)
@@ -274,6 +282,7 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
         string? CodActa,
         string? RecurrenceId,
         bool IsRecurrenceMaster,
-        int? RecurrenceInstanceCount
+        int? RecurrenceInstanceCount,
+        List<string> TrainingTypes
     );
 }

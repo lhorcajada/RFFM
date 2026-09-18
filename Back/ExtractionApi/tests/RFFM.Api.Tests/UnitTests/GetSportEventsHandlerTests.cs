@@ -28,7 +28,7 @@ namespace RFFM.Api.Tests.UnitTests
             _fixture = fixture;
         }
 
-        private async Task<(string TeamId, string EventId)> SeedSportEventAsync(AppDbContext db, bool withConvocation, int eventTypeId = 2)
+        private async Task<(string TeamId, string EventId)> SeedSportEventAsync(AppDbContext db, bool withConvocation, int eventTypeId = 2, System.Collections.Generic.List<string>? trainingTypes = null)
         {
             var club = Club.Create($"GetSportEvents Test Club {Guid.NewGuid():N}", 1);
             db.Clubs.Add(club);
@@ -58,7 +58,8 @@ namespace RFFM.Api.Tests.UnitTests
                 DateTime.UtcNow.AddDays(1),
                 DateTime.UtcNow.AddDays(1),
                 null, null, null, null,
-                eventTypeId, team.Id, null);
+                eventTypeId, team.Id, null,
+                trainingTypes: trainingTypes);
             db.SportEvents.Add(sportEvent);
             await db.SaveChangesAsync();
 
@@ -220,6 +221,48 @@ namespace RFFM.Api.Tests.UnitTests
 
             var response = result.Single(e => e.Id == eventId);
             Assert.Null(response.MatchCategory);
+        }
+
+        [Fact]
+        public async Task Handle_EventWithTrainingTypes_ReturnsThemInResponse()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (teamId, eventId) = await SeedSportEventAsync(seedDb, withConvocation: false,
+                trainingTypes: new System.Collections.Generic.List<string> { "Fisico", "Tactico" });
+
+            await using var db = _fixture.CreateDbContext();
+            var handler = new GetSportEvents.GetSportEventsRequestHandler(db, new HttpContextAccessor());
+
+            var result = await handler.Handle(new GetSportEvents.SportEventsQuery
+            {
+                TeamId = teamId,
+                PageNumber = 1,
+                PageSize = 10
+            }, CancellationToken.None);
+
+            var response = result.Single(e => e.Id == eventId);
+            Assert.Equal(new[] { "Fisico", "Tactico" }, response.TrainingTypes);
+        }
+
+        [Fact]
+        public async Task Handle_EventWithoutTrainingTypes_ReturnsEmptyList()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (teamId, eventId) = await SeedSportEventAsync(seedDb, withConvocation: false);
+
+            await using var db = _fixture.CreateDbContext();
+            var handler = new GetSportEvents.GetSportEventsRequestHandler(db, new HttpContextAccessor());
+
+            var result = await handler.Handle(new GetSportEvents.SportEventsQuery
+            {
+                TeamId = teamId,
+                PageNumber = 1,
+                PageSize = 10
+            }, CancellationToken.None);
+
+            var response = result.Single(e => e.Id == eventId);
+            Assert.NotNull(response.TrainingTypes);
+            Assert.Empty(response.TrainingTypes);
         }
     }
 }

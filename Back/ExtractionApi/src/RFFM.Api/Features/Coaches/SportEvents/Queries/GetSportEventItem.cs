@@ -59,6 +59,7 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Queries
             public int? SelectedKitNumber { get; set; }
             /// <summary>"League" | "Friendly" | "Tournament" | null, derived from EventTypeId.</summary>
             public string? MatchCategory { get; set; }
+            public List<string> TrainingTypes { get; set; } = new();
         };
 
         public class GetSportEventItemRequestHandler : IRequestHandler<SportEventItemQuery, SportEventItemResponse?>
@@ -101,7 +102,8 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Queries
                     MatchCategory = sportEvent.EventTypeId == SportEventsConstants.MatchEventTypeId ? "League"
                         : sportEvent.EventTypeId == SportEventsConstants.FriendlyEventTypeId ? "Friendly"
                         : sportEvent.EventTypeId == SportEventsConstants.TournamentEventTypeId ? "Tournament"
-                        : (string?)null
+                        : (string?)null,
+                    TrainingTypes = sportEvent.TrainingTypes ?? new()
                 };
             }
         }

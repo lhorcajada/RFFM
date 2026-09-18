@@ -26,6 +26,9 @@ namespace RFFM.Api.Domain.Aggregates.Assistances
         public string? RecurrenceId { get; set; }
         public bool IsRecurrenceMaster { get; set; }
         public EventRecurrence? Recurrence { get; set; }
+        /// <summary>Training type codes ("Fisico", "Tecnico", "Tactico"). Only semantically
+        /// meaningful when EventTypeId == SportEventType.TrainingId, but stored generically.</summary>
+        public List<string> TrainingTypes { get; set; } = new();
 
         public Team Team { get; set; } = null!;
         public Rival? Rival { get; set; } = null!;
@@ -65,7 +68,7 @@ namespace RFFM.Api.Domain.Aggregates.Assistances
             int eventTypeId, string teamId, string? rivalId,
             bool isHomeMatch = true, string? codActa = null,
             string? localGoals = null, string? visitorGoals = null,
-            string? locationMapUrl = null)
+            string? locationMapUrl = null, List<string>? trainingTypes = null)
         {
             return new SportEvent
             {
@@ -84,6 +87,7 @@ namespace RFFM.Api.Domain.Aggregates.Assistances
                 CodActa = codActa,
                 LocalGoals = localGoals,
                 VisitorGoals = visitorGoals,
+                TrainingTypes = trainingTypes ?? new(),
             };
         }
 

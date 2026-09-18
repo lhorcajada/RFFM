@@ -10,10 +10,12 @@ import {
   FormControl,
   FormControlLabel,
   InputLabel,
+  ListItemText,
   MenuItem,
   Radio,
   RadioGroup,
   Select,
+  SelectChangeEvent,
   TextField,
 } from "@mui/material";
 import sportEventService, {
@@ -25,6 +27,11 @@ import sportEventTypeService, {
 } from "../../../services/sportEventTypeService";
 import rivalService, { Rival } from "../../../services/rivalService";
 import FileImagePicker from "../../../../../shared/components/ui/FileImagePicker/FileImagePicker";
+import {
+  TRAINING_TYPE_CODES,
+  TRAINING_TYPE_LABELS,
+  TrainingTypeCode,
+} from "../trainingTypes";
 import styles from "./SportEventDialog.module.css";
 
 type RivalMode = "none" | "existing" | "new";
@@ -46,6 +53,15 @@ function toLocalDateTimeInput(iso?: string | null): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+function toLocalTimeInput(iso?: string | null): string {
+  if (!iso) return "";
+  // Convert ISO UTC string to local time input value (HH:MM)
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 function toUtcIso(localValue: string): string {
   if (!localValue) return "";
   // datetime-local input gives YYYY-MM-DDTHH:MM — treat as local time, convert to UTC ISO
@@ -65,6 +81,8 @@ export default function SportEventDialog({
   const [eventTypeId, setEventTypeId] = useState<number | "">("");
   const [eveDateTime, setEveDateTime] = useState("");
   const [endTime, setEndTime] = useState("");
+  const [arrivalTime, setArrivalTime] = useState("");
+  const [trainingTypes, setTrainingTypes] = useState<string[]>([]);
   const [location, setLocation] = useState("");
   const [locationMapUrl, setLocationMapUrl] = useState("");
   const [description, setDescription] = useState("");
@@ -98,6 +116,13 @@ export default function SportEventDialog({
         .includes(kw)
     );
 
+  const isTrainingType =
+    eventTypeId !== "" &&
+    eventTypes
+      .find((t) => t.id === eventTypeId)
+      ?.name.toLowerCase()
+      .includes("entrenamiento") === true;
+
   // Load event types and rivals once
   useEffect(() => {
     if (!open) return;
@@ -125,6 +150,8 @@ export default function SportEventDialog({
         event.startTime ?? event.eveDateTime ?? event.start ?? null;
       setEveDateTime(toLocalDateTimeInput(rawStart));
       setEndTime(toLocalDateTimeInput(event.endTime));
+      setArrivalTime(toLocalTimeInput(event.arrivalDate ?? event.arrival));
+      setTrainingTypes(event.trainingTypes ?? []);
       setLocation(event.location ?? "");
       setLocationMapUrl(event.locationMapUrl ?? "");
       setDescription(event.description ?? "");
@@ -137,6 +164,8 @@ export default function SportEventDialog({
       // No default date/time — the event can be scheduled later
       setEveDateTime("");
       setEndTime("");
+      setArrivalTime("");
+      setTrainingTypes([]);
       setLocation("");
       setLocationMapUrl("");
       setDescription("");
@@ -159,6 +188,28 @@ export default function SportEventDialog({
       setIsRecurring(false);
     }
   }, [eveDateTime, isRecurring]);
+
+  // Arrival time needs an anchor date — clear it if the date is cleared
+  useEffect(() => {
+    if (!eveDateTime && arrivalTime) {
+      setArrivalTime("");
+    }
+  }, [eveDateTime, arrivalTime]);
+
+  // Training types only apply to training events — clear them if the type changes
+  // away from training. Guarded on eventTypes being loaded so this doesn't wipe a
+  // prefilled edit before the async event-types fetch resolves and isTrainingType
+  // can be computed correctly.
+  useEffect(() => {
+    if (
+      eventTypes.length > 0 &&
+      eventTypeId !== "" &&
+      !isTrainingType &&
+      trainingTypes.length > 0
+    ) {
+      setTrainingTypes([]);
+    }
+  }, [eventTypes, eventTypeId, isTrainingType, trainingTypes]);
 
   const handleSave = async () => {
     if (!name.trim()) {
@@ -210,11 +261,18 @@ export default function SportEventDialog({
           uploadResp?.Url ?? uploadResp?.url ?? uploadResp?.UrlPhoto ?? null;
       }
 
+      const arrivalDate =
+        arrivalTime && eveDateTime
+          ? toUtcIso(`${eveDateTime.slice(0, 10)}T${arrivalTime}`)
+          : null;
+
       const payload: SportEventPayload = {
         name: name.trim(),
         eveDateTime: eveDateTime ? toUtcIso(eveDateTime) : null,
         startTime: eveDateTime ? toUtcIso(eveDateTime) : null,
         endTime: endTime ? toUtcIso(endTime) : null,
+        arrivalDate,
+        trainingTypes: isTrainingType ? trainingTypes : [],
         location: location || null,
         locationMapUrl: locationMapUrl.trim() || null,
         description: description || null,
@@ -315,6 +373,57 @@ export default function SportEventDialog({
           onChange={(e) => setEndTime(e.target.value)}
           sx={{ mb: 2 }}
         />
+        <TextField
+          label="Hora de llegada (opcional)"
+          type="time"
+          fullWidth
+          size="small"
+          InputLabelProps={{ shrink: true }}
+          value={arrivalTime}
+          onChange={(e) => setArrivalTime(e.target.value)}
+          disabled={!eveDateTime}
+          sx={{ mb: !eveDateTime ? 0 : 2 }}
+        />
+        {!eveDateTime && (
+          <div className={styles.hint}>
+            Añade una fecha del evento para poder indicar la hora de llegada.
+          </div>
+        )}
+        {isTrainingType && (
+          <FormControl fullWidth size="small" sx={{ mb: 2, mt: 2 }}>
+            <InputLabel id="training-type-label">
+              Tipo de entrenamiento (opcional)
+            </InputLabel>
+            <Select
+              labelId="training-type-label"
+              id="training-type-select"
+              label="Tipo de entrenamiento (opcional)"
+              multiple
+              value={trainingTypes}
+              onChange={(e: SelectChangeEvent<string[]>) => {
+                const value = e.target.value;
+                setTrainingTypes(
+                  typeof value === "string" ? value.split(",") : value
+                );
+              }}
+              renderValue={(selected) =>
+                (selected as string[])
+                  .map((c) => TRAINING_TYPE_LABELS[c as TrainingTypeCode])
+                  .join(", ")
+              }
+            >
+              {TRAINING_TYPE_CODES.map((code) => (
+                <MenuItem key={code} value={code}>
+                  <Checkbox
+                    size="small"
+                    checked={trainingTypes.includes(code)}
+                  />
+                  <ListItemText primary={TRAINING_TYPE_LABELS[code]} />
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        )}
         <FormControlLabel
           control={
             <Checkbox
