@@ -4,6 +4,7 @@ using RFFM.Api.Domain.Aggregates.Assistances;
 using RFFM.Api.Domain.Aggregates.UserClubs;
 using RFFM.Api.Domain.Entities.Competitions;
 using RFFM.Api.Domain.Entities.Players;
+using RFFM.Api.Domain.Entities;
 using RFFM.Api.Domain.Entities.Seasons;
 using RFFM.Api.Domain.Entities.TeamPlayers;
 using RFFM.Api.Domain.Models;
@@ -101,6 +102,52 @@ namespace RFFM.Api.Tests.UnitTests
 
             return (sportEvent.Id, teamPlayer.Id, convocation.Id);
         }
+
+        private static DateTime EventDay => DateTime.UtcNow.AddDays(1).Date;
+
+        private async Task<bool> IsInjuredAsync(
+            int injuryStartDaysFromEvent, int? injuryEndDaysFromEvent, int? minutesPlayed)
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (eventId, teamPlayerId, _) = await SeedConvocationAsync(db);
+            var teamId = (await db.SportEvents.AsNoTracking().FirstAsync(e => e.Id == eventId)).TeamId;
+
+            var injury = TeamPlayerInjury.Create(teamPlayerId, EventDay.AddDays(injuryStartDaysFromEvent).AddHours(20), "Esguince", null, null);
+            if (injuryEndDaysFromEvent != null)
+                injury.Update(injury.StartDate, "Esguince", null, null, EventDay.AddDays(injuryEndDaysFromEvent.Value).AddHours(20));
+            db.TeamPlayerInjuries.Add(injury);
+
+            if (minutesPlayed != null)
+                db.MatchParticipations.Add(MatchParticipation.Create(
+                    eventId, teamId, teamPlayerId, minutesPlayed.Value, true, 0, null, 0, 0, "finished", null, null, null));
+            await db.SaveChangesAsync();
+
+            var handler = new GetEventConvocations.Handler(db);
+            var result = await handler.Handle(
+                new GetEventConvocations.EventConvocationsQuery { EventId = eventId, TeamId = teamId },
+                CancellationToken.None);
+            return Assert.Single(result).IsInjured;
+        }
+
+        [Fact]
+        public async Task Handle_InjurySameDayAndPlayerPlayedMinutes_IsNotInjured()
+            => Assert.False(await IsInjuredAsync(0, null, 45));
+
+        [Fact]
+        public async Task Handle_InjurySameDayWithoutParticipation_IsInjured()
+            => Assert.True(await IsInjuredAsync(0, null, null));
+
+        [Fact]
+        public async Task Handle_InjurySameDayWithZeroMinutesParticipation_IsInjured()
+            => Assert.True(await IsInjuredAsync(0, null, 0));
+
+        [Fact]
+        public async Task Handle_InjuryFromPreviousDayStillActive_IsInjuredEvenWithParticipation()
+            => Assert.True(await IsInjuredAsync(-1, null, 45));
+
+        [Fact]
+        public async Task Handle_InjuryEndedBeforeEvent_IsNotInjured()
+            => Assert.False(await IsInjuredAsync(-5, -2, null));
 
         [Fact]
         public async Task Handle_ConvocationWithMinutesReason_ReturnsReasonInResponse()

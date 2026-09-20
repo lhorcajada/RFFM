@@ -74,6 +74,12 @@ namespace RFFM.Api.Features.Coaches.Convocations
                     .FirstOrDefaultAsync(se => se.Id == request.EventId, cancellationToken);
                 var eventDate = sportEvent?.EveDateTime?.Date ?? DateTime.UtcNow.Date;
 
+                // Jugadores que jugaron minutos en este partido (una sola query).
+                var playedTeamPlayerIds = (await _db.MatchParticipations.AsNoTracking()
+                    .Where(mp => mp.EventId == request.EventId && mp.MinutesPlayed > 0)
+                    .Select(mp => mp.TeamPlayerId)
+                    .ToListAsync(cancellationToken)).ToHashSet();
+
                 var result = convocationsRaw.Select(c => new ConvocationResponse(
                     c.Id,
                     c.TeamPlayerId,
@@ -84,8 +90,11 @@ namespace RFFM.Api.Features.Coaches.Convocations
                     c.StatusId,
                     c.ExcuseTypeId,
                     c.AssistanceTypeId,
+                    // Una lesión registrada el mismo día del partido no cuenta si el jugador jugó
+                    // minutos (se lesionó durante el partido y debe seguir en la alineación).
                     c.Injuries.Any(i =>
-                        i.StartDate.Date <= eventDate &&
+                        (i.StartDate.Date < eventDate ||
+                         (i.StartDate.Date == eventDate && !playedTeamPlayerIds.Contains(c.TeamPlayerId))) &&
                         (i.EndDate == null || i.EndDate.Value.Date >= eventDate)),
                     c.PlayerId,
                     c.MinutesReason
