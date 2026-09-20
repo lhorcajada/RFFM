@@ -45,12 +45,45 @@ namespace RFFM.Api.Features.Coaches.Players.Services
         public const double TrainingWeight = 0.40;
         public const double MatchWeight = 0.60;
 
+        // Pesos por tipo de entrenamiento para Cansancio: un entreno físico (series, sprints,
+        // resistencia) genera más fatiga muscular real que uno táctico (posicionamiento,
+        // intensidad media) o uno técnico (control/pase/finalización, intensidad baja-media).
+        // Técnico se separa claramente de Táctico porque el trabajo técnico puro suele ser el de
+        // menor exigencia física de los tres. Judgment call sin dato fisiológico exacto, igual
+        // que HalfLifeDays/TrainingWeight arriba — ver design.md (player-form-status-training-
+        // match-weighting) → Decisión 1. Sesión sin tipos marcados usa TrainingTypeWeighting.
+        // UntypedWeight (1.00), preservando el comportamiento pre-change.
+        private static readonly IReadOnlyDictionary<string, double> FatigueTrainingWeights = new Dictionary<string, double>
+        {
+            [Domain.Aggregates.Assistances.TrainingType.Fisico.Code] = 1.00,
+            [Domain.Aggregates.Assistances.TrainingType.Tactico.Code] = 0.70,
+            [Domain.Aggregates.Assistances.TrainingType.Tecnico.Code] = 0.40,
+        };
+
         public record Result(
             int Fatigue,                  // 0-100, always has a value (0 when no events)
             double TrainingComponent,     // 0-100
             double MatchComponent,        // 0-100
-            double DecayedTrainingCount,  // sum of Decay(daysAgo) over attended trainings
-            double DecayedMatchMinutes);  // sum of minutesPlayed * Decay(daysAgo) over matches
+            double DecayedTrainingCount,  // weighted sum of Decay(daysAgo) * training-type weight
+            double DecayedMatchMinutes,   // weighted sum of minutesPlayed * Decay(daysAgo) * match-type weight
+            // Decisión (transparency addendum, ver design.md → "Transparencia del desglose"):
+            // lista de CADA evento realmente considerado en la ventana, con su peso y aportación,
+            // para que el frontend pueda mostrar "16/09 · Físico · peso 1.00 → cuenta completo" en
+            // lugar del porcentaje agregado ilegible. Ordenada de más reciente a más antiguo.
+            ConsideredTraining[] ConsideredTrainings,
+            ConsideredMatch[] ConsideredMatches);
+
+        // EventDate es nullable porque SportEvent.EveDateTime lo es (evento sin fecha fijada
+        // todavía); un entreno/partido en esa situación nunca debería llegar aquí (el handler
+        // solo alimenta eventos con fecha dentro de la ventana), pero se mantiene nullable para
+        // no forzar una aserción que no aporta valor — el frontend simplemente no muestra fecha.
+        public record ConsideredTraining(
+            string EventId, DateTime? EventDate, IReadOnlyList<string> TrainingTypes,
+            int DaysAgo, double Decay, double TypeWeight, double Contribution);
+
+        public record ConsideredMatch(
+            string EventId, DateTime? EventDate, int EventTypeId, int MinutesPlayed,
+            int DaysAgo, double Decay, double TypeWeight, double EffectiveMinutes);
 
         /// <summary>
         /// Exponential recency decay: a fixed weight of 1 for an event happening "today"
@@ -59,18 +92,37 @@ namespace RFFM.Api.Features.Coaches.Players.Services
         private static double Decay(int daysAgo) => Math.Pow(0.5, daysAgo / HalfLifeDays);
 
         public static Result Calculate(
-            IReadOnlyList<int> trainingDaysAgo,
-            IReadOnlyList<(int DaysAgo, int MinutesPlayed)> matches)
+            IReadOnlyList<(string EventId, DateTime? EventDate, int DaysAgo, IReadOnlyList<string> TrainingTypes)> trainings,
+            IReadOnlyList<(string EventId, DateTime? EventDate, int DaysAgo, int MinutesPlayed, int EventTypeId)> matches)
         {
-            var decayedTrainingCount = trainingDaysAgo.Sum(Decay);
-            var decayedMatchMinutes = matches.Sum(m => m.MinutesPlayed * Decay(m.DaysAgo));
+            var consideredTrainings = trainings
+                .Select(t =>
+                {
+                    var decay = Decay(t.DaysAgo);
+                    var typeWeight = TrainingTypeWeighting.Weight(t.TrainingTypes, FatigueTrainingWeights);
+                    return new ConsideredTraining(t.EventId, t.EventDate, t.TrainingTypes, t.DaysAgo, decay, typeWeight, decay * typeWeight);
+                })
+                .OrderByDescending(c => c.EventDate)
+                .ToArray();
+            var decayedTrainingCount = consideredTrainings.Sum(c => c.Contribution);
+
+            var consideredMatches = matches
+                .Select(m =>
+                {
+                    var decay = Decay(m.DaysAgo);
+                    var typeWeight = MatchTypeWeighting.Weight(m.EventTypeId);
+                    return new ConsideredMatch(m.EventId, m.EventDate, m.EventTypeId, m.MinutesPlayed, m.DaysAgo, decay, typeWeight, m.MinutesPlayed * decay * typeWeight);
+                })
+                .OrderByDescending(c => c.EventDate)
+                .ToArray();
+            var decayedMatchMinutes = consideredMatches.Sum(c => c.EffectiveMinutes);
 
             var trainingComponent = Math.Min(100d, decayedTrainingCount / ReferenceTrainingsPerWindow * 100d);
             var matchComponent = Math.Min(100d, decayedMatchMinutes / ReferenceMatchMinutes * 100d);
 
             var fatigue = (int)Math.Round(TrainingWeight * trainingComponent + MatchWeight * matchComponent);
 
-            return new Result(fatigue, trainingComponent, matchComponent, decayedTrainingCount, decayedMatchMinutes);
+            return new Result(fatigue, trainingComponent, matchComponent, decayedTrainingCount, decayedMatchMinutes, consideredTrainings, consideredMatches);
         }
     }
 }

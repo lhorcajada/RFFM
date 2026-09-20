@@ -2,9 +2,9 @@ namespace RFFM.Api.Domain.Aggregates.Assistances
 {
     public class TrainingType
     {
-        private static readonly TrainingType Fisico = new TrainingType("Fisico", "Físico");
-        private static readonly TrainingType Tecnico = new TrainingType("Tecnico", "Técnico");
-        private static readonly TrainingType Tactico = new TrainingType("Tactico", "Táctico");
+        public static readonly TrainingType Fisico = new TrainingType("Fisico", "Físico");
+        public static readonly TrainingType Tecnico = new TrainingType("Tecnico", "Técnico");
+        public static readonly TrainingType Tactico = new TrainingType("Tactico", "Táctico");
 
         public string Code { get; private set; }
         public string Name { get; private set; }

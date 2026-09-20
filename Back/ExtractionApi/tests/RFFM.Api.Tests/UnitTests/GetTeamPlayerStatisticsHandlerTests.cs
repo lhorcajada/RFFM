@@ -89,14 +89,16 @@ namespace RFFM.Api.Tests.UnitTests
 
         // SportEvent.SetEveDateTime/SetStartTime reject past dates, so seed via CreateNew (bypasses
         // domain date validation) same as GetPlayerSeasonCardsHandlerTests.SeedSportEventAsync.
-        private async Task<string> SeedSportEventAsync(AppDbContext db, string teamId, int eventTypeId, DateTime eveDateTime)
+        // trainingTypes defaults to null (empty list) — retrocompat, peso neutro para las tres métricas.
+        private async Task<string> SeedSportEventAsync(AppDbContext db, string teamId, int eventTypeId, DateTime eveDateTime, List<string>? trainingTypes = null)
         {
             var sportEvent = SportEvent.CreateNew(
                 "PlayerStats Test Event",
                 eveDateTime,
                 eveDateTime,
                 null, null, null, null,
-                eventTypeId, teamId, null);
+                eventTypeId, teamId, null,
+                trainingTypes: trainingTypes);
             db.SportEvents.Add(sportEvent);
             await db.SaveChangesAsync();
             return sportEvent.Id;
@@ -173,6 +175,9 @@ namespace RFFM.Api.Tests.UnitTests
             // toward Rodaje's match component, even though it's excluded elsewhere (season
             // discipline counters) as an official match. Before the fix, the windowed match
             // query only looked at EventTypeId == Partido, silently dropping friendly minutes.
+            // MatchMinutesInWindow is now a weighted sum (MatchTypeWeighting, Decisión 2): a
+            // friendly counts at 70% of its real minutes, not 1:1 like a league match — 65 * 0.70
+            // = 45.5 -> truncated to 45 by the (int) cast in PlayerReadinessCalculator.Calculate.
             await using var db = _fixture.CreateDbContext();
             var (teamId, clubId, seasonId) = await SeedTeamAsync(db);
             var teamPlayerId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "friendly-player");
@@ -189,7 +194,7 @@ namespace RFFM.Api.Tests.UnitTests
             // Assert
             var stats = Assert.Single(result, p => p.TeamPlayerId == teamPlayerId);
             Assert.NotNull(stats.ReadinessBreakdown);
-            Assert.Equal(65, stats.ReadinessBreakdown!.MatchMinutesInWindow);
+            Assert.Equal(45, stats.ReadinessBreakdown!.MatchMinutesInWindow);
         }
 
         [Fact]
@@ -257,6 +262,43 @@ namespace RFFM.Api.Tests.UnitTests
             // Assert
             var stats = Assert.Single(result, p => p.TeamPlayerId == teamPlayerId);
             Assert.Equal(0, stats.Fatigue);
+            Assert.NotNull(stats.FatigueBreakdown);
+            Assert.Equal(0, stats.FatigueBreakdown.TrainingComponent);
+            Assert.Equal(0, stats.FatigueBreakdown.MatchComponent);
+        }
+
+        [Fact]
+        public async Task Fatigue_WithRecentTrainingAndMatch_BreakdownExposesComponentsAndDecayedRawValues()
+        {
+            // Same load as Fatigue_RecencyDecayReducesScoreEvenWithAFullWeekOfCommitment, but this
+            // test asserts on FatigueBreakdown directly so the frontend can explain the number.
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, clubId, seasonId) = await SeedTeamAsync(db);
+            var teamPlayerId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "fatigue-breakdown-player");
+
+            var training1 = await SeedSportEventAsync(db, teamId, TrainingEventTypeId, DateTime.UtcNow.AddDays(-4));
+            await SeedConvocationAsync(db, training1, teamPlayerId, convocationStatusId: null, assistanceTypeId: AssistanceType.Attendance.Id);
+            var training2 = await SeedSportEventAsync(db, teamId, TrainingEventTypeId, DateTime.UtcNow.AddDays(-2));
+            await SeedConvocationAsync(db, training2, teamPlayerId, convocationStatusId: null, assistanceTypeId: AssistanceType.Attendance.Id);
+
+            var matchId = await SeedSportEventAsync(db, teamId, MatchEventTypeId, DateTime.UtcNow.AddDays(-1));
+            await SeedMatchParticipationAsync(db, matchId, teamId, teamPlayerId, minutesPlayed: 70);
+
+            var handler = new GetTeamPlayerStatistics.Handler(db);
+            var query = new GetTeamPlayerStatistics.Query { TeamId = teamId };
+
+            // Act
+            var result = await handler.Handle(query, CancellationToken.None);
+
+            // Assert
+            var stats = Assert.Single(result, p => p.TeamPlayerId == teamPlayerId);
+            Assert.NotNull(stats.FatigueBreakdown);
+            // decay(4)=0.25, decay(2)=0.5 -> decayedTrainingCount=0.75 -> TrainingComponent=37.5
+            Assert.Equal(0.75, stats.FatigueBreakdown.DecayedTrainingCount, precision: 3);
+            Assert.Equal(37.5, stats.FatigueBreakdown.TrainingComponent, precision: 3);
+            // decay(1)=0.70711 * 70 = 49.4975 -> MatchComponent = 49.4975/70*100 = 70.7107
+            Assert.Equal(49.4975, stats.FatigueBreakdown.DecayedMatchMinutes, precision: 1);
+            Assert.Equal(70.7107, stats.FatigueBreakdown.MatchComponent, precision: 1);
         }
 
         [Fact]
@@ -808,6 +850,403 @@ namespace RFFM.Api.Tests.UnitTests
                 Assert.Null(stats.MinutesPlayedPercentOfSeasonTotal);
                 Assert.Null(stats.AttributableAbsentMinutesPercentOfSeasonTotal);
             }
+        }
+
+        [Fact]
+        public async Task FormStatus_PlayerWithNoActivity_IsNull()
+        {
+            // Arrange
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, clubId, seasonId) = await SeedTeamAsync(db);
+            var teamPlayerId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "form-status-no-activity");
+
+            var handler = new GetTeamPlayerStatistics.Handler(db);
+            var query = new GetTeamPlayerStatistics.Query { TeamId = teamId };
+
+            // Act
+            var result = await handler.Handle(query, CancellationToken.None);
+
+            // Assert
+            var stats = Assert.Single(result, p => p.TeamPlayerId == teamPlayerId);
+            Assert.Null(stats.FormStatus);
+            Assert.Null(stats.FormStatusBreakdown);
+        }
+
+        [Fact]
+        public async Task FormStatus_TrainsButNeverPlaysAndIsAbsentFromFriendlies_CannotExceedFiftyFive()
+        {
+            // Caso real "Zuri": 5 de 7 entrenos, 0 minutos, y 2 amistosos en los que fue convocado
+            // y luego deconvocado por un motivo que no es decision tecnica (falta imputable). Antes
+            // del cambio esos amistosos se excluian, el bloque de partidos quedaba vacio y se
+            // renormalizaba a los entrenos, dando ~92%.
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, clubId, seasonId) = await SeedTeamAsync(db, categoryId: Category.U14.Id);
+            var zuriId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "form-status-zuri", DateTime.UtcNow.AddDays(-60));
+
+            var attendedDays = new[] { 20, 23, 26, 29, 32 };
+            var missedDays = new[] { 21, 30 };
+            foreach (var days in attendedDays)
+            {
+                var trainingId = await SeedSportEventAsync(db, teamId, TrainingEventTypeId, DateTime.UtcNow.AddDays(-days), new List<string> { "Fisico" });
+                await SeedConvocationAsync(db, trainingId, zuriId, convocationStatusId: null, assistanceTypeId: AssistanceType.Attendance.Id);
+            }
+            foreach (var days in missedDays)
+            {
+                var trainingId = await SeedSportEventAsync(db, teamId, TrainingEventTypeId, DateTime.UtcNow.AddDays(-days), new List<string> { "Fisico" });
+                await SeedConvocationAsync(db, trainingId, zuriId, convocationStatusId: ConvocationStatus.FromName("Deconvoke").Id);
+            }
+            // Un compañero juega esos amistosos: el partido existe para el equipo (tiene participacion
+            // `finished`), y Zuri figura como convocado y luego deconvocado.
+            var teammateId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "form-status-zuri-teammate", DateTime.UtcNow.AddDays(-60));
+            foreach (var days in new[] { 22, 31 })
+            {
+                var friendlyId = await SeedSportEventAsync(db, teamId, FriendlyEventTypeId, DateTime.UtcNow.AddDays(-days));
+                await SeedMatchParticipationAsync(db, friendlyId, teamId, teammateId, minutesPlayed: 70);
+                await SeedConvocationAsync(db, friendlyId, zuriId, convocationStatusId: ConvocationStatus.FromName("Deconvoke").Id);
+            }
+
+            var result = await new GetTeamPlayerStatistics.Handler(db).Handle(new GetTeamPlayerStatistics.Query { TeamId = teamId }, CancellationToken.None);
+
+            var stats = Assert.Single(result, p => p.TeamPlayerId == zuriId);
+            Assert.NotNull(stats.FormStatus);
+            Assert.True(stats.FormStatus <= 55, $"Estado de forma esperado <= 55 y fue {stats.FormStatus}");
+            var breakdown = stats.FormStatusBreakdown!;
+            Assert.Equal(0, breakdown.MatchComponent);
+            Assert.Equal(0.45, breakdown.MatchWeightApplied, precision: 6);
+            Assert.All(breakdown.ConsideredMatches, m => Assert.Equal("Absent", m.Status));
+            Assert.Equal(2, breakdown.MatchesConsidered);
+            Assert.Equal(7, breakdown.TrainingSessionsOffered);
+            Assert.Equal(5, breakdown.TrainingSessionsAttended);
+        }
+
+        [Fact]
+        public async Task FormStatus_CadeteHealthyPlayerWithNoRecentFatigue_IsOneHundred_AndBreakdownExposesCategoryMinutes()
+        {
+            // Eventos entre 20 y 40 dias atras: dentro de la ventana de forma (42) pero fuera de la
+            // de Cansancio (14), asi que Fatigue = 0 y asistir a todo + jugar completo da 100.
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, clubId, seasonId) = await SeedTeamAsync(db, categoryId: Category.U14.Id);
+            var teamPlayerId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "form-status-high-player", DateTime.UtcNow.AddDays(-60));
+
+            // Volumen de referencia de entrenos (Decision 12): 12 sesiones asistidas; 2 partidos de 70' bastan.
+            foreach (var days in new[] { 19, 21, 23, 25, 27, 29, 31, 33, 35, 37, 39, 41 })
+            {
+                var trainingId = await SeedSportEventAsync(db, teamId, TrainingEventTypeId, DateTime.UtcNow.AddDays(-days), new List<string> { "Fisico" });
+                await SeedConvocationAsync(db, trainingId, teamPlayerId, convocationStatusId: null, assistanceTypeId: AssistanceType.Attendance.Id);
+            }
+
+            foreach (var days in new[] { 18, 22 })
+            {
+                var matchId = await SeedSportEventAsync(db, teamId, MatchEventTypeId, DateTime.UtcNow.AddDays(-days));
+                await SeedMatchParticipationAsync(db, matchId, teamId, teamPlayerId, minutesPlayed: 70);
+            }
+
+            var result = await new GetTeamPlayerStatistics.Handler(db).Handle(new GetTeamPlayerStatistics.Query { TeamId = teamId }, CancellationToken.None);
+
+            var stats = Assert.Single(result, p => p.TeamPlayerId == teamPlayerId);
+            Assert.Equal(0, stats.Fatigue);
+            Assert.Equal(100, stats.FormStatus);
+            var breakdown = stats.FormStatusBreakdown!;
+            Assert.Equal(70.0, breakdown.FullMatchMinutes, precision: 6);
+            Assert.Equal(80, breakdown.CategoryMatchMinutes);
+            Assert.Equal(0.875, breakdown.FullStimulusFraction, precision: 6);
+            Assert.Equal(42, breakdown.WindowDays);
+            Assert.Equal(7, breakdown.RecencyFullWeightDays);
+            Assert.Equal(14, breakdown.RecencyHalfLifeDays);
+            Assert.Equal(12, breakdown.TrainingSessionsOffered);
+            Assert.Equal(12, breakdown.TrainingSessionsAttended);
+            Assert.Equal(2, breakdown.MatchesConsidered);
+            Assert.Equal(12, breakdown.ReferenceTrainingSessions);
+            Assert.Equal(1.0, breakdown.TrainingVolumeFactor!.Value, precision: 6);
+            Assert.Equal(140, breakdown.MatchMinutesPlayedTotal);
+            Assert.Equal(160, breakdown.MatchMinutesPossibleTotal);
+        }
+
+        [Fact]
+        public async Task FormStatus_CategoryWithoutStandardDuration_IsNullEvenWithActivity()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, clubId, seasonId) = await SeedTeamAsync(db); // NationalCategory: sin duracion estandar
+            var teamPlayerId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "form-status-no-standard-category");
+            var trainingId = await SeedSportEventAsync(db, teamId, TrainingEventTypeId, DateTime.UtcNow.AddDays(-1), new List<string> { "Fisico" });
+            await SeedConvocationAsync(db, trainingId, teamPlayerId, convocationStatusId: null, assistanceTypeId: AssistanceType.Attendance.Id);
+
+            var result = await new GetTeamPlayerStatistics.Handler(db).Handle(new GetTeamPlayerStatistics.Query { TeamId = teamId }, CancellationToken.None);
+
+            var stats = Assert.Single(result, p => p.TeamPlayerId == teamPlayerId);
+            Assert.Null(stats.FormStatus);
+            Assert.Null(stats.FormStatusBreakdown);
+            Assert.NotNull(stats.Readiness);
+        }
+
+        [Fact]
+        public async Task FormStatus_BreakdownFatigueMatchesPlayerFatigue_AndScoreAppliesTheFactor()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, clubId, seasonId) = await SeedTeamAsync(db, categoryId: Category.U14.Id);
+            var teamPlayerId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "form-status-fatigue", DateTime.UtcNow.AddDays(-60));
+            foreach (var days in new[] { 1, 2, 3 })
+            {
+                var trainingId = await SeedSportEventAsync(db, teamId, TrainingEventTypeId, DateTime.UtcNow.AddDays(-days), new List<string> { "Fisico" });
+                await SeedConvocationAsync(db, trainingId, teamPlayerId, convocationStatusId: null, assistanceTypeId: AssistanceType.Attendance.Id);
+            }
+
+            var result = await new GetTeamPlayerStatistics.Handler(db).Handle(new GetTeamPlayerStatistics.Query { TeamId = teamId }, CancellationToken.None);
+
+            var stats = Assert.Single(result, p => p.TeamPlayerId == teamPlayerId);
+            Assert.True(stats.Fatigue > 0);
+            var breakdown = stats.FormStatusBreakdown!;
+            Assert.Equal(stats.Fatigue, breakdown.Fatigue);
+            Assert.Equal(1d - stats.Fatigue / 200d, breakdown.FatigueFactor, precision: 6);
+            // 3 sesiones asistidas de 12 de referencia: ratio 100 x volumen 0.25 = 25.
+            Assert.Equal(100, breakdown.TrainingRatioComponent!.Value, precision: 6);
+            Assert.Equal(0.25, breakdown.TrainingVolumeFactor!.Value, precision: 6);
+            Assert.Equal(25, breakdown.BaseScore, precision: 6);
+            Assert.Equal((int)Math.Round(25 * breakdown.FatigueFactor, MidpointRounding.AwayFromZero), stats.FormStatus);
+        }
+
+        [Fact]
+        public async Task FormStatus_OnlyTecnicoTrainingsAttended_UsesWeightFallback_AndVolumeFactorScalesThreeSessions()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, clubId, seasonId) = await SeedTeamAsync(db, categoryId: Category.U14.Id);
+            var teamPlayerId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "form-status-tecnico", DateTime.UtcNow.AddDays(-60));
+            foreach (var days in new[] { 20, 25, 30 })
+            {
+                var trainingId = await SeedSportEventAsync(db, teamId, TrainingEventTypeId, DateTime.UtcNow.AddDays(-days), new List<string> { "Tecnico" });
+                await SeedConvocationAsync(db, trainingId, teamPlayerId, convocationStatusId: null, assistanceTypeId: AssistanceType.Attendance.Id);
+            }
+
+            var result = await new GetTeamPlayerStatistics.Handler(db).Handle(new GetTeamPlayerStatistics.Query { TeamId = teamId }, CancellationToken.None);
+
+            var stats = Assert.Single(result, p => p.TeamPlayerId == teamPlayerId);
+            // Ratio 100 (fallback w = 1) x volumen 3/12 = 25.
+            Assert.Equal(25, stats.FormStatus);
+            Assert.True(stats.FormStatusBreakdown!.TrainingTypeWeightFallbackUsed);
+        }
+
+        [Fact]
+        public async Task FormStatus_PlayerAbsentFromTeamMatch_CountsRatioZero_AndNotConvokedMatchIsExcluded()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, clubId, seasonId) = await SeedTeamAsync(db, categoryId: Category.U14.Id);
+            var starterId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "form-status-starter", DateTime.UtcNow.AddDays(-60));
+            var absentId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "form-status-absent", DateTime.UtcNow.AddDays(-60));
+            var notConvokedId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "form-status-not-convoked", DateTime.UtcNow.AddDays(-60));
+
+            var matchId = await SeedSportEventAsync(db, teamId, MatchEventTypeId, DateTime.UtcNow.AddDays(-20));
+            await SeedMatchParticipationAsync(db, matchId, teamId, starterId, minutesPlayed: 70);
+            await SeedConvocationAsync(db, matchId, absentId, convocationStatusId: null, assistanceTypeId: AssistanceType.UnexcusedAbsence.Id);
+
+            // Un entreno para que el jugador no convocado a partido tenga desglose.
+            var trainingId = await SeedSportEventAsync(db, teamId, TrainingEventTypeId, DateTime.UtcNow.AddDays(-20), new List<string> { "Fisico" });
+            await SeedConvocationAsync(db, trainingId, notConvokedId, convocationStatusId: null, assistanceTypeId: AssistanceType.Attendance.Id);
+
+            var result = await new GetTeamPlayerStatistics.Handler(db).Handle(new GetTeamPlayerStatistics.Query { TeamId = teamId }, CancellationToken.None);
+
+            var absent = Assert.Single(result, p => p.TeamPlayerId == absentId);
+            var absentMatch = Assert.Single(absent.FormStatusBreakdown!.ConsideredMatches);
+            Assert.Equal(matchId, absentMatch.EventId);
+            Assert.Equal(0, absentMatch.Ratio);
+            Assert.Equal(0, absent.FormStatus);
+            Assert.Equal("Absent", absentMatch.Status);
+
+            var notConvoked = Assert.Single(result, p => p.TeamPlayerId == notConvokedId);
+            Assert.Equal(1, notConvoked.FormStatusBreakdown!.ExcludedMatches);
+            Assert.Empty(notConvoked.FormStatusBreakdown.ConsideredMatches);
+            // El equipo si jugo un partido en la ventana: no se renormaliza, el componente es 0.
+            Assert.Equal(0d, notConvoked.FormStatusBreakdown.MatchComponent);
+            Assert.Equal(0.55, notConvoked.FormStatusBreakdown.TrainingWeightApplied, precision: 6);
+            Assert.Equal(0.45, notConvoked.FormStatusBreakdown.MatchWeightApplied, precision: 6);
+        }
+
+        [Fact]
+        public async Task FormStatus_TrainsButDeconvokedFromFriendliesWithoutPlaying_IsCappedAtFiftyFive_AndFriendliesAreAbsent()
+        {
+            // Caso Zuri: 5/7 entrenos, 2 amistosos deconvocado sin asistencia, 0 minutos.
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, clubId, seasonId) = await SeedTeamAsync(db, categoryId: Category.U14.Id);
+            var zuriId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "form-status-zuri", DateTime.UtcNow.AddDays(-60));
+
+            var deconvokeId = ConvocationStatus.FromName("Deconvoke").Id;
+            var friendlyIds = new List<string>();
+            foreach (var days in new[] { 20, 27 })
+            {
+                var friendlyId = await SeedSportEventAsync(db, teamId, FriendlyEventTypeId, DateTime.UtcNow.AddDays(-days));
+                friendlyIds.Add(friendlyId);
+                await SeedConvocationAsync(db, friendlyId, zuriId, convocationStatusId: deconvokeId, assistanceTypeId: null);
+                await SeedMatchParticipationAsync(db, friendlyId, teamId, teamPlayerId: await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, $"form-status-zuri-mate-{days}", DateTime.UtcNow.AddDays(-60)), minutesPlayed: 70);
+            }
+
+            var trainingDays = new[] { 18, 21, 25, 28, 32, 35, 38 };
+            for (var i = 0; i < trainingDays.Length; i++)
+            {
+                var trainingId = await SeedSportEventAsync(db, teamId, TrainingEventTypeId, DateTime.UtcNow.AddDays(-trainingDays[i]), new List<string> { "Fisico" });
+                await SeedConvocationAsync(db, trainingId, zuriId, convocationStatusId: null,
+                    assistanceTypeId: i < 5 ? AssistanceType.Attendance.Id : AssistanceType.UnexcusedAbsence.Id);
+            }
+
+            var result = await new GetTeamPlayerStatistics.Handler(db).Handle(new GetTeamPlayerStatistics.Query { TeamId = teamId }, CancellationToken.None);
+
+            var stats = Assert.Single(result, p => p.TeamPlayerId == zuriId);
+            Assert.InRange(stats.FormStatus!.Value, 0, 55);
+            var breakdown = stats.FormStatusBreakdown!;
+            Assert.Equal(0d, breakdown.MatchComponent);
+            Assert.Equal(0.45, breakdown.MatchWeightApplied, precision: 6);
+            Assert.Equal(2, breakdown.ConsideredMatches.Length);
+            Assert.All(breakdown.ConsideredMatches, m => Assert.Equal("Absent", m.Status));
+        }
+
+        [Fact]
+        public async Task FormStatus_TrainingAbsence_ExposesReasonAndCountsZero()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, clubId, seasonId) = await SeedTeamAsync(db, categoryId: Category.U14.Id);
+            var teamPlayerId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "form-status-training-absence", DateTime.UtcNow.AddDays(-60));
+            var attendedId = await SeedSportEventAsync(db, teamId, TrainingEventTypeId, DateTime.UtcNow.AddDays(-20), new List<string> { "Fisico" });
+            await SeedConvocationAsync(db, attendedId, teamPlayerId, convocationStatusId: null, assistanceTypeId: AssistanceType.Attendance.Id);
+            var missedId = await SeedSportEventAsync(db, teamId, TrainingEventTypeId, DateTime.UtcNow.AddDays(-21), new List<string> { "Fisico" });
+            await SeedConvocationAsync(db, missedId, teamPlayerId, convocationStatusId: null, assistanceTypeId: AssistanceType.UnexcusedAbsence.Id);
+
+            var result = await new GetTeamPlayerStatistics.Handler(db).Handle(new GetTeamPlayerStatistics.Query { TeamId = teamId }, CancellationToken.None);
+
+            var breakdown = Assert.Single(result, p => p.TeamPlayerId == teamPlayerId).FormStatusBreakdown!;
+            Assert.Equal(2, breakdown.TrainingSessionsOffered);
+            Assert.Equal(1, breakdown.TrainingSessionsAttended);
+            var missed = Assert.Single(breakdown.ConsideredTrainings, t => !t.Attended);
+            Assert.Equal(missedId, missed.EventId);
+            Assert.False(string.IsNullOrWhiteSpace(missed.AbsenceReason));
+            Assert.Equal(0, missed.ReceivedLoad);
+        }
+
+        [Fact]
+        public async Task Fatigue_FisicoTraining_WeighsMoreThanTecnicoTraining_SameDaysAgo()
+        {
+            // Regression/end-to-end for training-type weighting reaching Cansancio via the
+            // handler's real EF projections (se.TrainingTypes), not just the pure calculator.
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, clubId, seasonId) = await SeedTeamAsync(db);
+            var fisicoPlayerId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "fatigue-fisico-player");
+            var tecnicoPlayerId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "fatigue-tecnico-player");
+
+            var fisicoTrainingId = await SeedSportEventAsync(db, teamId, TrainingEventTypeId, DateTime.UtcNow.AddDays(-1), new List<string> { "Fisico" });
+            await SeedConvocationAsync(db, fisicoTrainingId, fisicoPlayerId, convocationStatusId: null, assistanceTypeId: AssistanceType.Attendance.Id);
+
+            var tecnicoTrainingId = await SeedSportEventAsync(db, teamId, TrainingEventTypeId, DateTime.UtcNow.AddDays(-1), new List<string> { "Tecnico" });
+            await SeedConvocationAsync(db, tecnicoTrainingId, tecnicoPlayerId, convocationStatusId: null, assistanceTypeId: AssistanceType.Attendance.Id);
+
+            var handler = new GetTeamPlayerStatistics.Handler(db);
+            var query = new GetTeamPlayerStatistics.Query { TeamId = teamId };
+
+            // Act
+            var result = await handler.Handle(query, CancellationToken.None);
+
+            // Assert
+            var fisicoStats = Assert.Single(result, p => p.TeamPlayerId == fisicoPlayerId);
+            var tecnicoStats = Assert.Single(result, p => p.TeamPlayerId == tecnicoPlayerId);
+            Assert.True(fisicoStats.Fatigue > tecnicoStats.Fatigue);
+        }
+
+        [Fact]
+        public async Task Readiness_TacticoTraining_ContributesMoreThanTecnicoTraining_SameAttendance()
+        {
+            // End-to-end for training-type weighting reaching Rodaje via the handler's real EF
+            // projections (se.TrainingTypes).
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, clubId, seasonId) = await SeedTeamAsync(db);
+            var tacticoPlayerId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "readiness-tactico-player");
+            var tecnicoPlayerId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "readiness-tecnico-player");
+
+            var tacticoTrainingId = await SeedSportEventAsync(db, teamId, TrainingEventTypeId, DateTime.UtcNow.AddDays(-1), new List<string> { "Tactico" });
+            await SeedConvocationAsync(db, tacticoTrainingId, tacticoPlayerId, convocationStatusId: null, assistanceTypeId: AssistanceType.Attendance.Id);
+
+            var tecnicoTrainingId = await SeedSportEventAsync(db, teamId, TrainingEventTypeId, DateTime.UtcNow.AddDays(-1), new List<string> { "Tecnico" });
+            await SeedConvocationAsync(db, tecnicoTrainingId, tecnicoPlayerId, convocationStatusId: null, assistanceTypeId: AssistanceType.Attendance.Id);
+
+            var handler = new GetTeamPlayerStatistics.Handler(db);
+            var query = new GetTeamPlayerStatistics.Query { TeamId = teamId };
+
+            // Act
+            var result = await handler.Handle(query, CancellationToken.None);
+
+            // Assert
+            var tacticoStats = Assert.Single(result, p => p.TeamPlayerId == tacticoPlayerId);
+            var tecnicoStats = Assert.Single(result, p => p.TeamPlayerId == tecnicoPlayerId);
+            Assert.NotNull(tacticoStats.Readiness);
+            Assert.NotNull(tecnicoStats.Readiness);
+            Assert.True(tacticoStats.Readiness > tecnicoStats.Readiness);
+        }
+
+        [Fact]
+        public async Task ConsideredLists_ExposeEventIdDateWeightAndContribution_ForFatigueReadinessAndFormStatus()
+        {
+            // End-to-end transparency test: the coach cannot understand an aggregate percentage
+            // like "Entreno 19%" — this asserts the handler actually surfaces the per-event
+            // breakdown (weights + contributions) the frontend needs to render a readable table,
+            // for all three metrics at once, from real EF-seeded events (not the pure calculator).
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, clubId, seasonId) = await SeedTeamAsync(db, categoryId: Category.U14.Id);
+            var teamPlayerId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "considered-lists-player");
+
+            var trainingId = await SeedSportEventAsync(db, teamId, TrainingEventTypeId, DateTime.UtcNow.AddDays(-1), new List<string> { "Fisico" });
+            await SeedConvocationAsync(db, trainingId, teamPlayerId, convocationStatusId: null, assistanceTypeId: AssistanceType.Attendance.Id);
+
+            var friendlyId = await SeedSportEventAsync(db, teamId, FriendlyEventTypeId, DateTime.UtcNow.AddDays(-2));
+            await SeedMatchParticipationAsync(db, friendlyId, teamId, teamPlayerId, minutesPlayed: 70);
+
+            var handler = new GetTeamPlayerStatistics.Handler(db);
+            var query = new GetTeamPlayerStatistics.Query { TeamId = teamId };
+
+            // Act
+            var result = await handler.Handle(query, CancellationToken.None);
+
+            // Assert
+            var stats = Assert.Single(result, p => p.TeamPlayerId == teamPlayerId);
+
+            // Fatigue: training weighted 1.00 (Fisico), match weighted 0.70 (Amistoso).
+            Assert.NotNull(stats.FatigueBreakdown);
+            var fatigueTraining = Assert.Single(stats.FatigueBreakdown.ConsideredTrainings);
+            Assert.Equal(trainingId, fatigueTraining.EventId);
+            Assert.Equal(1, fatigueTraining.DaysAgo);
+            Assert.Equal(1.00, fatigueTraining.TypeWeight, precision: 3);
+            var fatigueMatch = Assert.Single(stats.FatigueBreakdown.ConsideredMatches);
+            Assert.Equal(friendlyId, fatigueMatch.EventId);
+            Assert.Equal(0.70, fatigueMatch.TypeWeight, precision: 3);
+            Assert.Equal(PlayerFatigueCalculator.TrainingWeight, stats.FatigueBreakdown.TrainingWeight);
+            Assert.Equal(PlayerFatigueCalculator.MatchWeight, stats.FatigueBreakdown.MatchWeight);
+
+            // Readiness: Fisico contributes with weight 0.30 for Rodaje.
+            Assert.NotNull(stats.ReadinessBreakdown);
+            var readinessTraining = Assert.Single(stats.ReadinessBreakdown!.ConsideredTrainings);
+            Assert.Equal(trainingId, readinessTraining.EventId);
+            Assert.True(readinessTraining.CountsTowardScore);
+            Assert.Equal(0.30, readinessTraining.TypeWeight, precision: 3);
+            Assert.Equal(30, readinessTraining.Contribution, precision: 3);
+            var readinessMatch = Assert.Single(stats.ReadinessBreakdown.ConsideredMatches);
+            Assert.Equal(friendlyId, readinessMatch.EventId);
+            Assert.Equal(0.70, readinessMatch.TypeWeight, precision: 3);
+            Assert.Equal(49, readinessMatch.EffectiveMinutes, precision: 3);
+            Assert.Equal(PlayerReadinessCalculator.TrainingWeight, stats.ReadinessBreakdown.TrainingWeight);
+            Assert.Equal(PlayerReadinessCalculator.MatchWeight, stats.ReadinessBreakdown.MatchWeight);
+
+            // Estado de forma: Fisico weighs 1.00; the match ratio is minutes / full-stimulus minutes
+            // (Cadete: 70) regardless of match type.
+            Assert.NotNull(stats.FormStatusBreakdown);
+            var formStatusTraining = Assert.Single(stats.FormStatusBreakdown!.ConsideredTrainings);
+            Assert.Equal(trainingId, formStatusTraining.EventId);
+            Assert.True(formStatusTraining.Attended);
+            Assert.Equal(1.00, formStatusTraining.TypeWeight, precision: 3);
+            Assert.Equal(1.00, formStatusTraining.RecencyWeight, precision: 3);
+            Assert.Equal(1.00, formStatusTraining.OfferedLoad, precision: 3);
+            Assert.Equal(1.00, formStatusTraining.ReceivedLoad, precision: 3);
+            var formStatusMatch = Assert.Single(stats.FormStatusBreakdown.ConsideredMatches);
+            Assert.Equal(friendlyId, formStatusMatch.EventId);
+            Assert.Equal(70, formStatusMatch.MinutesPlayed);
+            Assert.Equal(70.0, formStatusMatch.FullMatchMinutes, precision: 3);
+            Assert.Equal(1.0, formStatusMatch.Ratio, precision: 3);
+            Assert.Equal("Played", formStatusMatch.Status);
+            Assert.Equal(PlayerFormStatusCalculator.TrainingWeightNominal, stats.FormStatusBreakdown.TrainingWeightNominal);
+            Assert.Equal(PlayerFormStatusCalculator.MatchWeightNominal, stats.FormStatusBreakdown.MatchWeightNominal);
         }
 
         [Fact]

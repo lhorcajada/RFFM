@@ -18,8 +18,23 @@ namespace RFFM.Api.Features.Coaches.Players.Services
         public const double TrainingWeight = 0.70;
         public const double MatchWeight = 0.30;
 
+        // Pesos por tipo de entrenamiento para Rodaje: mide "cuánto lista está la cabeza/el
+        // automatismo de juego del jugador para competir", no su desgaste físico — un entreno
+        // táctico (donde se ensayan patrones de juego reales) aporta más a esa soltura
+        // competitiva que uno técnico (aislado, sin contexto de juego), y un entreno puramente
+        // físico aporta poco (0.30: algo de ritmo/rodaje, enmienda de player-form-status-received-offered-load, Decisión 11). Judgment
+        // call documentado, igual que TrainingWeight/MatchWeight arriba — ver design.md
+        // (player-form-status-training-match-weighting) → Decisión 1. Sesión sin tipos marcados
+        // usa TrainingTypeWeighting.UntypedWeight (1.00), preservando el comportamiento pre-change.
+        private static readonly IReadOnlyDictionary<string, double> ReadinessTrainingWeights = new Dictionary<string, double>
+        {
+            [TrainingType.Fisico.Code] = 0.30,
+            [TrainingType.Tactico.Code] = 1.00,
+            [TrainingType.Tecnico.Code] = 0.60,
+        };
+
         public record TrainingOutcome(
-            string EventId, DateTime? EventDate,
+            string EventId, DateTime? EventDate, IReadOnlyList<string> TrainingTypes,
             int? AssistanceTypeId, int? ExcuseTypeId, int? ConvocationStatusId);
 
         public record Result(
@@ -27,14 +42,37 @@ namespace RFFM.Api.Features.Coaches.Players.Services
             double TrainingComponent,
             double MatchComponent,
             int SessionsConsidered,
+            // Suma ponderada por tipo de partido (Decisión 2), no minutos reales jugados — un
+            // partido de Liga cuenta 1:1 pero un amistoso/torneo cuenta al 70% de sus minutos
+            // reales. Ver design.md → Decisión 3.
             int MatchMinutesInWindow,
-            RecentAbsence[] RecentAbsences);
+            RecentAbsence[] RecentAbsences,
+            // Decisión (transparency addendum, ver design.md → "Transparencia del desglose"):
+            // lista de TODAS las sesiones/partidos realmente considerados (no solo las ausencias
+            // de RecentAbsences), con su peso por tipo y su aportación real al numerador — el
+            // mismo dato que ya tenía RecentAbsences pero generalizado a asistencias completas
+            // también, para poder mostrar "12/09 · Táctico · peso 1.00 → 100 pts" igual que una
+            // ausencia. RecentAbsences se mantiene tal cual para no romper a quien ya lo consume.
+            ConsideredTraining[] ConsideredTrainings,
+            ConsideredMatch[] ConsideredMatches);
 
         public record RecentAbsence(string EventId, DateTime? Date, string Reason, int PointsImpact);
 
+        public record ConsideredTraining(
+            string EventId, DateTime? EventDate, IReadOnlyList<string> TrainingTypes,
+            bool CountsTowardScore,   // false = ausencia (cualquier motivo); ver IsRealAttendance
+            double Points,           // 0-100, puntuación bruta por el motivo/tipo de asistencia (PointsFor)
+            double TypeWeight,       // peso por tipo de entrenamiento (solo aplica si CountsTowardScore)
+            double Contribution,     // Points * TypeWeight si CountsTowardScore, si no 0 — lo que realmente suma al numerador
+            string Reason);
+
+        public record ConsideredMatch(
+            string EventId, DateTime? EventDate, int EventTypeId, int MinutesPlayed,
+            double TypeWeight, double EffectiveMinutes);
+
         public static Result Calculate(
             IReadOnlyList<TrainingOutcome> trainingOutcomesInWindow,
-            IReadOnlyList<int> matchMinutesInWindow)
+            IReadOnlyList<(string EventId, DateTime? EventDate, int MinutesPlayed, int EventTypeId)> matchesInWindow)
         {
             var scored = trainingOutcomesInWindow
                 .Select(o => (Outcome: o, Points: PointsFor(o)))
@@ -42,12 +80,33 @@ namespace RFFM.Api.Features.Coaches.Players.Services
                 .ToList();
 
             var sessionsConsidered = scored.Count;
-            var scoringSum = scored.Where(x => IsRealAttendance(x.Outcome)).Sum(x => x.Points!.Value);
+
+            var consideredTrainings = scored
+                .Select(x =>
+                {
+                    var countsTowardScore = IsRealAttendance(x.Outcome);
+                    var typeWeight = TrainingTypeWeighting.Weight(x.Outcome.TrainingTypes, ReadinessTrainingWeights);
+                    var contribution = countsTowardScore ? x.Points!.Value * typeWeight : 0d;
+                    return new ConsideredTraining(
+                        x.Outcome.EventId, x.Outcome.EventDate, x.Outcome.TrainingTypes,
+                        countsTowardScore, x.Points!.Value, typeWeight, contribution, ReasonFor(x.Outcome));
+                })
+                .OrderByDescending(c => c.EventDate)
+                .ToArray();
+            var scoringSum = consideredTrainings.Sum(c => c.Contribution);
             var trainingComponent = sessionsConsidered == 0
                 ? 0d
                 : Math.Min(100d, scoringSum / (double)(BaselineTrainings * 100) * 100d);
 
-            var matchMinutes = matchMinutesInWindow.Sum();
+            var consideredMatches = matchesInWindow
+                .Select(m =>
+                {
+                    var typeWeight = MatchTypeWeighting.Weight(m.EventTypeId);
+                    return new ConsideredMatch(m.EventId, m.EventDate, m.EventTypeId, m.MinutesPlayed, typeWeight, m.MinutesPlayed * typeWeight);
+                })
+                .OrderByDescending(c => c.EventDate)
+                .ToArray();
+            var matchMinutes = consideredMatches.Sum(c => c.EffectiveMinutes);
             var matchComponent = Math.Min(
                 100d,
                 matchMinutes / (double)(BaselineMatches * ExpectedMinutesPerMatch) * 100d);
@@ -56,15 +115,14 @@ namespace RFFM.Api.Features.Coaches.Players.Services
                 ? null
                 : (int)Math.Round(TrainingWeight * trainingComponent + MatchWeight * matchComponent);
 
-            var recentAbsences = scored
-                .Where(x => x.Points!.Value < 100)
-                .Select(x => new RecentAbsence(
-                    x.Outcome.EventId, x.Outcome.EventDate, ReasonFor(x.Outcome), x.Points!.Value - 100))
+            var recentAbsences = consideredTrainings
+                .Where(c => c.Points < 100)
+                .Select(c => new RecentAbsence(c.EventId, c.EventDate, c.Reason, (int)c.Points - 100))
                 .OrderByDescending(a => a.Date)
                 .Take(10)
                 .ToArray();
 
-            return new Result(readiness, trainingComponent, matchComponent, sessionsConsidered, matchMinutes, recentAbsences);
+            return new Result(readiness, trainingComponent, matchComponent, sessionsConsidered, (int)matchMinutes, recentAbsences, consideredTrainings, consideredMatches);
         }
 
         // Solo asistencia real (presente o tarde) suma al numerador de TrainingComponent — ver
