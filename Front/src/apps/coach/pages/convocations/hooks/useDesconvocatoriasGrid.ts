@@ -18,11 +18,12 @@ function shortDate(iso: string): string {
   return d.toLocaleDateString("es-ES", { day: "numeric", month: "short" });
 }
 
-/** Returns true if the player was injured at (or before) eventDay.
+/** Returns true only if the injury started BEFORE eventDay. An injury registered the same day
+ *  as the match means the player got hurt during it, so he must not be auto-deconvoked.
  *  If no injuryStartDate is recorded, we treat it as a safe fallback (assume injured). */
 function wasInjuredOnDate(injuryStartDate: string | null | undefined, eventDay: string): boolean {
   if (!injuryStartDate) return true;
-  return injuryStartDate.slice(0, 10) <= eventDay;
+  return injuryStartDate.slice(0, 10) < eventDay;
 }
 
 function isFriendlyEvent(ev: { eventTypeId?: number | null; eventType?: string | null; title?: string | null; name?: string | null }): boolean {

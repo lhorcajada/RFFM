@@ -839,6 +839,37 @@ export function useLiveMatch(
 
   // ── Goals ─────────────────────────────────────────────────────────────────
 
+  const commitGoals = (list: GoalEvent[]) => {
+    // Stable sort by minute, then chain partial scores from 0-0.
+    const sorted = list
+      .map((g, i) => ({ g, i }))
+      .sort((x, y) => x.g.minute - y.g.minute || x.i - y.i)
+      .map((x) => x.g);
+    let loc = 0;
+    let vis = 0;
+    const next = sorted.map((g) => {
+      const gLocal = g.isOwnTeam ? isHomeTeam : !isHomeTeam;
+      if (gLocal) loc++;
+      else vis++;
+      return { ...g, scoreAtMoment: { local: loc, visitor: vis } };
+    });
+    goalsRef.current = next;
+    setGoals(next);
+  };
+
+  const applyScoreDelta = (goalIsOwnTeam: boolean, delta: 1 | -1) => {
+    const isLocal = goalIsOwnTeam ? isHomeTeam : !isHomeTeam;
+    if (isLocal) {
+      const v = Math.max(0, scoreLocalRef.current + delta);
+      scoreLocalRef.current = v;
+      setScoreLocal(v);
+    } else {
+      const v = Math.max(0, scoreVisitorRef.current + delta);
+      scoreVisitorRef.current = v;
+      setScoreVisitor(v);
+    }
+  };
+
   const addGoal = useCallback(
     (
       scorerId: string | null,
@@ -849,26 +880,19 @@ export function useLiveMatch(
       bodyPart: "head" | "foot" | null = null,
       minute?: number,
     ) => {
-      const goalMinute = minute ?? currentMinuteRef.current;
-      // isOwnTeam=true means goal for the user's team.
-      // isHomeTeam determines whether our team is LOCAL or VISITOR.
-      const localScores = isOwnTeam ? isHomeTeam : !isHomeTeam;
-      const newLocal = localScores ? scoreLocalRef.current + 1 : scoreLocalRef.current;
-      const newVisitor = !localScores ? scoreVisitorRef.current + 1 : scoreVisitorRef.current;
       const goal: GoalEvent = {
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-        minute: goalMinute,
+        minute: minute ?? currentMinuteRef.current,
         scorerId,
         scorerName,
         scorerDorsal,
         isOwnTeam,
-        scoreAtMoment: { local: newLocal, visitor: newVisitor },
+        scoreAtMoment: { local: 0, visitor: 0 },
         pitchZone,
         bodyPart,
       };
-      setGoals((prev) => [...prev, goal]);
-      if (localScores) setScoreLocal(newLocal);
-      else setScoreVisitor(newVisitor);
+      commitGoals([...goalsRef.current, goal]);
+      applyScoreDelta(isOwnTeam, 1);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [isHomeTeam],
@@ -879,60 +903,31 @@ export function useLiveMatch(
     setScoreVisitor(Math.max(0, Math.round(newScoreVisitor)));
   }, []);
 
-  const removeGoal = useCallback((goalId: string) => {
-    setGoals((prev) => {
-      const idx = prev.findIndex((g) => g.id === goalId);
-      if (idx === -1) return prev;
-      const removed = prev[idx];
-      const next = prev.filter((g) => g.id !== goalId);
-      // Recompute score — same isHomeTeam logic as addGoal
-      const removedLocal = removed.isOwnTeam ? isHomeTeam : !isHomeTeam;
-      if (removedLocal) setScoreLocal((s) => Math.max(0, s - 1));
-      else setScoreVisitor((s) => Math.max(0, s - 1));
-      // Recompute scoreAtMoment for all remaining goals
-      let loc = 0;
-      let vis = 0;
-      return next.map((g) => {
-        const gLocal = g.isOwnTeam ? isHomeTeam : !isHomeTeam;
-        if (gLocal) loc++;
-        else vis++;
-        return { ...g, scoreAtMoment: { local: loc, visitor: vis } };
-      });
-    });
-  }, [isHomeTeam]);
+  const removeGoal = useCallback(
+    (goalId: string) => {
+      const removed = goalsRef.current.find((g) => g.id === goalId);
+      if (!removed) return;
+      commitGoals(goalsRef.current.filter((g) => g.id !== goalId));
+      applyScoreDelta(removed.isOwnTeam, -1);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [isHomeTeam],
+  );
 
-  const updateGoal = useCallback((goalId: string, patch: Partial<Omit<GoalEvent, "id">>) => {
-    setGoals((prev) => {
-      const idx = prev.findIndex((g) => g.id === goalId);
-      if (idx === -1) return prev;
-
-      const oldGoal = prev[idx];
+  const updateGoal = useCallback(
+    (goalId: string, patch: Partial<Omit<GoalEvent, "id">>) => {
+      const oldGoal = goalsRef.current.find((g) => g.id === goalId);
+      if (!oldGoal) return;
       const newGoal = { ...oldGoal, ...patch };
-      const next = prev.map((g, i) => (i === idx ? newGoal : g));
-
-      // Recompute scores if isOwnTeam changed
+      commitGoals(goalsRef.current.map((g) => (g.id === goalId ? newGoal : g)));
       if (oldGoal.isOwnTeam !== newGoal.isOwnTeam) {
-        const oldLocal = oldGoal.isOwnTeam ? isHomeTeam : !isHomeTeam;
-        const newLocal = newGoal.isOwnTeam ? isHomeTeam : !isHomeTeam;
-
-        if (oldLocal) setScoreLocal((s) => Math.max(0, s - 1));
-        else setScoreVisitor((s) => Math.max(0, s - 1));
-
-        if (newLocal) setScoreLocal((s) => s + 1);
-        else setScoreVisitor((s) => s + 1);
+        applyScoreDelta(oldGoal.isOwnTeam, -1);
+        applyScoreDelta(newGoal.isOwnTeam, 1);
       }
-
-      // Recompute scoreAtMoment for all goals
-      let loc = 0;
-      let vis = 0;
-      return next.map((g) => {
-        const gLocal = g.isOwnTeam ? isHomeTeam : !isHomeTeam;
-        if (gLocal) loc++;
-        else vis++;
-        return { ...g, scoreAtMoment: { local: loc, visitor: vis } };
-      });
-    });
-  }, [isHomeTeam]);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [isHomeTeam],
+  );
 
   // ── Cards ─────────────────────────────────────────────────────────────────
 
