@@ -1,8 +1,5 @@
-# player-fatigue Specification
+## MODIFIED Requirements
 
-## Purpose
-TBD - created by archiving change player-fatigue-derived-window. Update Purpose after archive.
-## Requirements
 ### Requirement: Cansancio derivado sin estado
 El sistema SHALL calcular `Fatigue` (Cansancio, 0-100) de un jugador de forma derivada y sin
 estado persistido, combinando asistencia real a entrenamientos y minutos jugados en partidos,
@@ -82,4 +79,3 @@ jugador, junto con toda su infraestructura de persistencia asociada.
 #### Scenario: DTO de estadísticas de jugador ya no incluye Forma física/Disponibilidad
 - **WHEN** se consulta `GET /api/catalog/team/{teamId}/player-stats`
 - **THEN** la respuesta no incluye los campos `PhysicalFitness` ni `Availability`
-
