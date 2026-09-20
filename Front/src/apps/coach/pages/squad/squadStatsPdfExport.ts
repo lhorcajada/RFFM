@@ -2,7 +2,6 @@ import jsPDF from "jspdf";
 import type { PlayerStatistics } from "../../services/teamPlayerStatisticsService";
 import { SEASON_MINUTES_TARGET_PERCENT } from "../../services/teamPlayerStatisticsService";
 import { calledButAbsentLabel, injuryLabel, minutesTargetCaption } from "./playerStatsText";
-import { computeEf } from "../../utils/playerFormMetrics";
 
 const MH = 20; // horizontal page margin (pts)
 const MV = 20; // vertical page margin (pts)
@@ -35,7 +34,7 @@ function pct(value: number | null): string {
 type CardLine = { text: string; bold?: boolean; size?: number; color?: [number, number, number] };
 
 function buildCardLines(player: PlayerStatistics): CardLine[] {
-  const ef = computeEf(player.readiness, player.fatigue);
+  const ef = player.formStatus;
   const lines: CardLine[] = [];
 
   const header = `${player.dorsal ?? "—"}  ${player.displayName}${player.position ? ` · ${player.position}` : ""}`;

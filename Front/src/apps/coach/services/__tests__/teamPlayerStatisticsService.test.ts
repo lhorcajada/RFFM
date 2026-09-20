@@ -9,6 +9,7 @@ vi.mock("../../../../core/api/client", () => ({
 
 import client from "../../../../core/api/client";
 import { getTeamPlayerStatistics, type PlayerStatistics } from "../teamPlayerStatisticsService";
+import { buildFatigueBreakdown, buildFormStatusBreakdown, buildReadinessBreakdown } from "../../components/MetricBreakdown/__tests__/breakdownFixtures";
 
 describe("teamPlayerStatisticsService.getTeamPlayerStatistics", () => {
   beforeEach(() => {
@@ -32,21 +33,19 @@ describe("teamPlayerStatisticsService.getTeamPlayerStatistics", () => {
         daysSinceLastInjury: 30,
         lastInjuryDurationDays: 12,
         fatigue: 37,
+        fatigueBreakdown: buildFatigueBreakdown({ trainingComponent: 30, matchComponent: 45, decayedMatchMinutes: 70 }),
         readiness: 82,
-        readinessBreakdown: {
+        readinessBreakdown: buildReadinessBreakdown({
           trainingComponent: 90,
-          matchComponent: 60,
-          trainingSessionsConsidered: 12,
-          trainingSessionsBaseline: 16,
-          matchMinutesInWindow: 210,
-          matchMinutesExpected: 560,
           recentAbsences: [
             { eventId: "ev-1", date: "2026-08-01T00:00:00Z", reason: "Enfermedad", pointsImpact: -55 },
           ],
-        },
+        }),
         matchesAbsentAttributableToPlayer: 2,
         minutesPlayedPercentOfSeasonTotal: 42.6,
         attributableAbsentMinutesPercentOfSeasonTotal: 12.4,
+        formStatus: 75,
+        formStatusBreakdown: buildFormStatusBreakdown({ trainingComponent: 80, matchComponent: 60 }),
       },
     ];
     const expected: PlayerStatistics[] = [
@@ -65,21 +64,19 @@ describe("teamPlayerStatisticsService.getTeamPlayerStatistics", () => {
         daysSinceLastInjury: 30,
         lastInjuryDurationDays: 12,
         fatigue: 37,
+        fatigueBreakdown: buildFatigueBreakdown({ trainingComponent: 30, matchComponent: 45, decayedMatchMinutes: 70 }),
         readiness: 82,
-        readinessBreakdown: {
+        readinessBreakdown: buildReadinessBreakdown({
           trainingComponent: 90,
-          matchComponent: 60,
-          trainingSessionsConsidered: 12,
-          trainingSessionsBaseline: 16,
-          matchMinutesInWindow: 210,
-          matchMinutesExpected: 560,
           recentAbsences: [
             { eventId: "ev-1", date: "2026-08-01T00:00:00Z", reason: "Enfermedad", pointsImpact: -55 },
           ],
-        },
+        }),
         matchesAbsentAttributableToPlayer: 2,
         minutesPlayedPercentOfSeasonTotal: 42.6,
         attributableAbsentMinutesPercentOfSeasonTotal: 12.4,
+        formStatus: 75,
+        formStatusBreakdown: buildFormStatusBreakdown({ trainingComponent: 80, matchComponent: 60 }),
       },
     ];
     (client.get as any).mockResolvedValue({ data: apiResponse });

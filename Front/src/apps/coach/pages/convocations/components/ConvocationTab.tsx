@@ -90,7 +90,7 @@ type Props = {
   onApplyProposal: (ids: string[]) => Promise<void>;
   onPrintProposal: () => Promise<void>;
   /** Rodaje/condición física por teamPlayerId (best-effort, puede estar vacío mientras carga). */
-  readinessMap?: Record<string, Pick<PlayerStatistics, "readiness" | "fatigue">>;
+  readinessMap?: Record<string, Pick<PlayerStatistics, "readiness" | "fatigue"> & Partial<Pick<PlayerStatistics, "formStatus">>>;
 };
 
 const GROUPS = [
@@ -463,6 +463,7 @@ export default function ConvocationTab({
                             streakCount={playerStreaks?.get(playerId) ?? null}
                             readiness={readinessMap?.[playerId]?.readiness ?? null}
                             fatigue={readinessMap?.[playerId]?.fatigue ?? null}
+                            formStatus={readinessMap?.[playerId]?.formStatus}
                             formVariant="full"
                           />
                           {excuseTypes.length > 0 && (
@@ -547,6 +548,7 @@ export default function ConvocationTab({
                             streakCount={playerStreaks?.get(playerId) ?? null}
                             readiness={readinessMap?.[playerId]?.readiness ?? null}
                             fatigue={readinessMap?.[playerId]?.fatigue ?? null}
+                            formStatus={readinessMap?.[playerId]?.formStatus}
                             formVariant="full"
                           />
                         </div>

@@ -18,6 +18,8 @@ import { SEASON_MINUTES_TARGET_PERCENT } from "../../../services/teamPlayerStati
 import { exportSquadStatisticsPdf } from "../squadStatsPdfExport";
 import { calledButAbsentLabel, injuryLabel, minutesTargetCaption } from "../playerStatsText";
 import PlayerFormBars from "../../../components/PlayerFormBars/PlayerFormBars";
+import MetricInfoDialog from "../../../components/MetricInfoDialog/MetricInfoDialog";
+import type { MetricKey } from "../../../components/MetricInfoDialog/metricInfoTexts";
 import PlayerFormLegend from "../../../components/PlayerFormLegend/PlayerFormLegend";
 import { computeEf } from "../../../utils/playerFormMetrics";
 import styles from "./SquadStatistics.module.css";
@@ -45,7 +47,10 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
 ];
 
 function sortValue(player: PlayerStatistics, key: SortKey): number | null {
-  if (key === "ef") return computeEf(player.readiness, player.fatigue);
+  // Ordenar por "Estado de forma" usa el mismo valor que se muestra en la tarjeta: el
+  // `formStatus` de backend cuando está disponible, con el cálculo local `computeEf` como
+  // fallback (p.ej. datos aún no migrados o fixtures de test sin `formStatus`).
+  if (key === "ef") return player.formStatus ?? computeEf(player.readiness, player.fatigue);
   return player[key] as number | null;
 }
 
@@ -62,6 +67,8 @@ export default function SquadStatistics({ players, loading, teamName, photoUrls 
   const [sortKey, setSortKey] = useState<SortKey>("ef");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [positionFilter, setPositionFilter] = useState<string>("");
+  const [openInfo, setOpenInfo] = useState<{ teamPlayerId: string; metric: MetricKey } | null>(null);
+  const infoPlayer = openInfo ? players.find((p) => p.teamPlayerId === openInfo.teamPlayerId) : undefined;
 
   const positions = useMemo(
     () => Array.from(new Set(players.map((p) => p.position).filter((p): p is string => Boolean(p)))).sort((a, b) => a.localeCompare(b, "es")),
@@ -204,18 +211,17 @@ export default function SquadStatistics({ players, loading, teamName, photoUrls 
                   variant="full"
                   readiness={player.readiness}
                   fatigue={player.fatigue}
-                  readinessTooltip={
-                    player.readinessBreakdown && (
-                      <div>
-                        <div>Entreno: {Math.round(player.readinessBreakdown.trainingComponent)}%</div>
-                        <div>Partidos: {Math.round(player.readinessBreakdown.matchComponent)}%</div>
-                        {player.readinessBreakdown.recentAbsences.map((absence) => (
-                          <div key={absence.eventId}>
-                            {absence.date ? new Date(absence.date).toLocaleDateString("es-ES") : "—"} · {absence.reason} · {absence.pointsImpact}
-                          </div>
-                        ))}
-                      </div>
-                    )
+                  formStatus={player.formStatus}
+                  onReadinessInfo={
+                    player.readinessBreakdown && player.readiness != null
+                      ? () => setOpenInfo({ teamPlayerId: player.teamPlayerId, metric: "readiness" })
+                      : undefined
+                  }
+                  onFatigueInfo={() => setOpenInfo({ teamPlayerId: player.teamPlayerId, metric: "fatigue" })}
+                  onFormStatusInfo={
+                    player.formStatusBreakdown && player.formStatus != null
+                      ? () => setOpenInfo({ teamPlayerId: player.teamPlayerId, metric: "formStatus" })
+                      : undefined
                   }
                 />
               </div>
@@ -291,6 +297,9 @@ export default function SquadStatistics({ players, loading, teamName, photoUrls 
           );
         })}
       </div>
+      {infoPlayer && openInfo && (
+        <MetricInfoDialog metric={openInfo.metric} player={infoPlayer} open onClose={() => setOpenInfo(null)} />
+      )}
     </div>
   );
 }

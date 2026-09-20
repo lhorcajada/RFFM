@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import SquadStatistics from "../SquadStatistics";
 import type { PlayerStatistics } from "../../../../services/teamPlayerStatisticsService";
+import { buildFatigueBreakdown } from "../../../../components/MetricBreakdown/__tests__/breakdownFixtures";
 
 function buildPlayer(overrides: Partial<PlayerStatistics> = {}): PlayerStatistics {
   return {
@@ -21,11 +22,16 @@ function buildPlayer(overrides: Partial<PlayerStatistics> = {}): PlayerStatistic
     daysSinceLastInjury: null,
     lastInjuryDurationDays: null,
     fatigue: 20,
+    fatigueBreakdown: buildFatigueBreakdown({ trainingComponent: 15, matchComponent: 25, decayedMatchMinutes: 40 }),
     readiness: 50,
     readinessBreakdown: null,
     matchesAbsentAttributableToPlayer: 0,
     minutesPlayedPercentOfSeasonTotal: null,
     attributableAbsentMinutesPercentOfSeasonTotal: null,
+    // formStatus/formStatusBreakdown se dejan sin definir a propósito: estos tests verifican
+    // el orden/filtrado genérico de tarjetas, no el origen del dato de "Ef", y confían en el
+    // fallback a computeEf(readiness, fatigue) que PlayerFormBars aplica cuando formStatus es
+    // `undefined` (no cuando es `null`, que sí es un valor real "sin datos" del backend).
     ...overrides,
   };
 }

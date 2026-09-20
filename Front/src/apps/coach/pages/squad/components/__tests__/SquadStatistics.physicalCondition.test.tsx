@@ -3,6 +3,7 @@ import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import SquadStatistics from "../SquadStatistics";
 import type { PlayerStatistics } from "../../../../services/teamPlayerStatisticsService";
+import { buildFatigueBreakdown } from "../../../../components/MetricBreakdown/__tests__/breakdownFixtures";
 
 function buildPlayer(overrides: Partial<PlayerStatistics> = {}): PlayerStatistics {
   return {
@@ -20,17 +21,20 @@ function buildPlayer(overrides: Partial<PlayerStatistics> = {}): PlayerStatistic
     daysSinceLastInjury: null,
     lastInjuryDurationDays: null,
     fatigue: 20,
+    fatigueBreakdown: buildFatigueBreakdown({ trainingComponent: 15, matchComponent: 25, decayedMatchMinutes: 40 }),
     readiness: 50,
     readinessBreakdown: null,
     matchesAbsentAttributableToPlayer: 0,
     minutesPlayedPercentOfSeasonTotal: null,
     attributableAbsentMinutesPercentOfSeasonTotal: null,
+    formStatus: null,
+    formStatusBreakdown: null,
     ...overrides,
   };
 }
 
 describe("SquadStatistics — Ef, Rodaje y Cansancio", () => {
-  it("muestra Ef (Rodaje - Cansancio), Rodaje y Cansancio con sus valores, ya no Forma física ni Disponibilidad", () => {
+  it("muestra Ef (Estado de forma del backend), Rodaje y Cansancio con sus valores, ya no Forma física ni Disponibilidad", () => {
     render(
       <SquadStatistics
         players={[
@@ -39,6 +43,9 @@ describe("SquadStatistics — Ef, Rodaje y Cansancio", () => {
             displayName: "Jugador Uno",
             readiness: 70,
             fatigue: 20,
+            // "Ef" ya no se calcula en cliente (Rodaje - Cansancio): viene del backend
+            // como Estado de forma, independiente de readiness/fatigue.
+            formStatus: 63,
           }),
         ]}
         loading={false}
@@ -49,7 +56,6 @@ describe("SquadStatistics — Ef, Rodaje y Cansancio", () => {
     expect(within(card).getByText("Ef")).toBeInTheDocument();
     expect(within(card).getByText("Rodaje")).toBeInTheDocument();
     expect(within(card).getByText("Cansancio")).toBeInTheDocument();
-    // Ef = 70 * (1 - 20/200) = 63
     expect(within(card).getByTestId("player-form-bar-ef")).toHaveTextContent("63%");
     expect(within(card).getByTestId("player-form-bar-r")).toHaveTextContent("70%");
     expect(within(card).getByTestId("player-form-bar-c")).toHaveTextContent("20%");

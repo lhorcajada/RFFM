@@ -19,6 +19,8 @@ export interface SimSlotPlayer {
   } | null;
   /** Cansancio (0-100). Junto con `readiness`, se muestra como barras compactas Ef/R/C. */
   fatigue?: number | null;
+  /** Estado de forma de backend (foto previa al partido; no se recalcula en vivo). */
+  formStatus?: number | null;
 }
 
 interface SimulationPlayerSlotProps {

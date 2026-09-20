@@ -15,6 +15,8 @@ interface SlotPlayer {
   readiness?: number | null;
   /** Cansancio (0-100). Junto con `readiness`, se muestra como barras compactas Ef/R/C. */
   fatigue?: number | null;
+  /** Estado de forma de backend; `undefined` ⇒ cálculo local. */
+  formStatus?: number | null;
 }
 
 interface PlayerSlotProps {
@@ -77,6 +79,7 @@ export default function PlayerSlot({ slotIndex, label, x, y, player }: PlayerSlo
           variant="compact"
           readiness={player.readiness}
           fatigue={player.fatigue}
+          formStatus={player.formStatus}
           className={styles.formBarsField}
         />
       )}

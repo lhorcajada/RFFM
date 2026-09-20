@@ -13,6 +13,8 @@ interface FieldPlayer {
   readiness?: number | null;
   /** Cansancio (0-100). Junto con `readiness`, se muestra como barras compactas Ef/R/C. */
   fatigue?: number | null;
+  /** Estado de forma de backend; `undefined` ⇒ cálculo local. */
+  formStatus?: number | null;
 }
 
 interface FootballFieldProps {
@@ -75,6 +77,7 @@ export default function FootballField({ slotDefs, slots, playersById }: Football
                       competitiveness: player.competitiveness,
                       readiness: player.readiness,
                       fatigue: player.fatigue,
+                      formStatus: player.formStatus,
                     }
                   : null
               }

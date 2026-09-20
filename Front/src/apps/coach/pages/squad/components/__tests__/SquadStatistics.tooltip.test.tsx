@@ -1,8 +1,9 @@
 import React from "react";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import SquadStatistics from "../SquadStatistics";
 import type { PlayerStatistics } from "../../../../services/teamPlayerStatisticsService";
+import { buildFatigueBreakdown, buildReadinessBreakdown } from "../../../../components/MetricBreakdown/__tests__/breakdownFixtures";
 
 function buildPlayer(overrides: Partial<PlayerStatistics> = {}): PlayerStatistics {
   return {
@@ -20,17 +21,20 @@ function buildPlayer(overrides: Partial<PlayerStatistics> = {}): PlayerStatistic
     daysSinceLastInjury: null,
     lastInjuryDurationDays: null,
     fatigue: 20,
+    fatigueBreakdown: buildFatigueBreakdown({ trainingComponent: 15, matchComponent: 25, decayedMatchMinutes: 40 }),
     readiness: 40,
     readinessBreakdown: null,
     matchesAbsentAttributableToPlayer: 0,
     minutesPlayedPercentOfSeasonTotal: null,
     attributableAbsentMinutesPercentOfSeasonTotal: null,
+    formStatus: null,
+    formStatusBreakdown: null,
     ...overrides,
   };
 }
 
-describe("SquadStatistics — tooltip de rodaje", () => {
-  it("muestra el motivo de una ausencia reciente al pasar el cursor por la barra de rodaje", async () => {
+describe("SquadStatistics — detalle expandible de rodaje", () => {
+  it("muestra el motivo de una ausencia reciente al abrir el diálogo de rodaje y pulsar Ver el detalle", () => {
     render(
       <SquadStatistics
         players={[
@@ -38,29 +42,23 @@ describe("SquadStatistics — tooltip de rodaje", () => {
             teamPlayerId: "p1",
             displayName: "Jugador Lesionado",
             readiness: 40,
-            readinessBreakdown: {
-              trainingComponent: 30,
-              matchComponent: 60,
-              trainingSessionsConsidered: 10,
-              trainingSessionsBaseline: 16,
-              matchMinutesInWindow: 150,
-              matchMinutesExpected: 560,
+            readinessBreakdown: buildReadinessBreakdown({
               recentAbsences: [
                 { eventId: "ev-1", date: "2026-08-01T00:00:00Z", reason: "Lesión", pointsImpact: -90 },
               ],
-            },
+            }),
           }),
         ]}
         loading={false}
       />,
     );
 
-    const readinessCell = screen.getByTestId("player-form-bar-r");
+    expect(screen.queryByText(/Lesión/)).not.toBeInTheDocument();
 
-    fireEvent.mouseOver(readinessCell);
+    fireEvent.click(screen.getByTestId("player-form-bar-r-toggle"));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /ver el detalle/i }));
 
-    await waitFor(() => {
-      expect(screen.getByText(/Lesión/)).toBeInTheDocument();
-    });
+    expect(screen.getByText(/Lesión/)).toBeInTheDocument();
   });
 });

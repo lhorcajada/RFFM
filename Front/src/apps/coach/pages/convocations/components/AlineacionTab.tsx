@@ -91,6 +91,7 @@ export default function AlineacionTab({
                   variant="full"
                   readiness={p.readiness}
                   fatigue={p.fatigue}
+                  formStatus={p.formStatus}
                   className={styles.desconvocadosFormBars}
                 />
               </div>
@@ -133,6 +134,7 @@ export default function AlineacionTab({
                   variant="full"
                   readiness={p.readiness}
                   fatigue={p.fatigue}
+                  formStatus={p.formStatus}
                   className={styles.desconvocadosFormBars}
                 />
               </div>

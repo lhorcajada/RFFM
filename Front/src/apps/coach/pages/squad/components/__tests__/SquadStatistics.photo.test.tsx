@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import SquadStatistics from "../SquadStatistics";
 import type { PlayerStatistics } from "../../../../services/teamPlayerStatisticsService";
+import { buildFatigueBreakdown } from "../../../../components/MetricBreakdown/__tests__/breakdownFixtures";
 
 function buildPlayer(overrides: Partial<PlayerStatistics> = {}): PlayerStatistics {
   return {
@@ -20,11 +21,14 @@ function buildPlayer(overrides: Partial<PlayerStatistics> = {}): PlayerStatistic
     daysSinceLastInjury: null,
     lastInjuryDurationDays: null,
     fatigue: 20,
+    fatigueBreakdown: buildFatigueBreakdown({ trainingComponent: 15, matchComponent: 25, decayedMatchMinutes: 40 }),
     readiness: 40,
     readinessBreakdown: null,
     matchesAbsentAttributableToPlayer: 0,
     minutesPlayedPercentOfSeasonTotal: null,
     attributableAbsentMinutesPercentOfSeasonTotal: null,
+    formStatus: null,
+    formStatusBreakdown: null,
     ...overrides,
   };
 }

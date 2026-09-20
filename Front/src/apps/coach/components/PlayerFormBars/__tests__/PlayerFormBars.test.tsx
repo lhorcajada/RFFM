@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import PlayerFormBars from "../PlayerFormBars";
 
 describe("PlayerFormBars — variant compact", () => {
@@ -69,16 +69,57 @@ describe("PlayerFormBars — variant full", () => {
     expect(screen.getByTestId("player-form-bar-c")).toHaveTextContent("20%");
   });
 
-  it("acepta un tooltip opcional para Rodaje sin ocultar el valor visible", () => {
+  it("usa formStatus del backend como valor de Ef cuando se pasa, en vez de calcularlo localmente", () => {
+    render(<PlayerFormBars variant="full" readiness={70} fatigue={20} formStatus={55} />);
+    // Sin formStatus, Ef local sería 70 * (1 - 20/200) = 63; con formStatus=55 debe mostrar 55%
+    expect(screen.getByTestId("player-form-bar-ef")).toHaveTextContent("55%");
+  });
+
+  it("sin formStatus, sigue calculando Ef localmente como antes (compatibilidad con otros consumidores)", () => {
+    render(<PlayerFormBars variant="full" readiness={70} fatigue={20} />);
+    expect(screen.getByTestId("player-form-bar-ef")).toHaveTextContent("63%");
+  });
+
+  it("muestra '—' en Ef cuando formStatus es null explícito, sin caer al cálculo local", () => {
+    render(<PlayerFormBars variant="full" readiness={70} fatigue={20} formStatus={null} />);
+    expect(screen.getByTestId("player-form-bar-ef")).toHaveTextContent("—");
+  });
+
+  it("no muestra botón de información en ninguna fila si no se pasan handlers", () => {
+    render(<PlayerFormBars variant="full" readiness={70} fatigue={20} />);
+    expect(screen.queryByTestId("player-form-bar-r-toggle")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("player-form-bar-c-toggle")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("player-form-bar-ef-toggle")).not.toBeInTheDocument();
+  });
+
+  it("muestra un botón '¿Cómo se calcula?' por fila con handler y lo invoca al pulsarlo", () => {
+    const onFormStatusInfo = vi.fn();
+    const onReadinessInfo = vi.fn();
+    const onFatigueInfo = vi.fn();
     render(
       <PlayerFormBars
         variant="full"
         readiness={70}
         fatigue={20}
-        readinessTooltip={<span>Entreno: 60% · Partidos: 40%</span>}
+        formStatus={55}
+        onFormStatusInfo={onFormStatusInfo}
+        onReadinessInfo={onReadinessInfo}
+        onFatigueInfo={onFatigueInfo}
       />,
     );
-    // El valor sigue visible como texto, el tooltip es un extra, no un sustituto
+    expect(screen.getAllByRole("button", { name: /cómo se calcula/i })).toHaveLength(3);
+    fireEvent.click(screen.getByTestId("player-form-bar-r-toggle"));
+    fireEvent.click(screen.getByTestId("player-form-bar-c-toggle"));
+    fireEvent.click(screen.getByTestId("player-form-bar-ef-toggle"));
+    expect(onReadinessInfo).toHaveBeenCalledTimes(1);
+    expect(onFatigueInfo).toHaveBeenCalledTimes(1);
+    expect(onFormStatusInfo).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId("player-form-bar-r")).toHaveTextContent("70%");
+  });
+
+  it("solo muestra el botón en las filas que tienen handler", () => {
+    render(<PlayerFormBars variant="full" readiness={70} fatigue={20} onFatigueInfo={() => {}} />);
+    expect(screen.getByTestId("player-form-bar-c-toggle")).toBeInTheDocument();
+    expect(screen.queryByTestId("player-form-bar-r-toggle")).not.toBeInTheDocument();
   });
 });

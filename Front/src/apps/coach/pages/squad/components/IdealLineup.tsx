@@ -106,6 +106,8 @@ export interface SquadPlayer {
   physicalFitness?: number | null;
   /** Cansancio (0-100), persistido. Independiente de Rodaje. */
   fatigue?: number | null;
+  /** Estado de forma calculado en backend. `undefined` = sin dato ⇒ PlayerFormBars usa el cálculo local. */
+  formStatus?: number | null;
   /** Disponibilidad = max(0, physicalFitness - fatigue). Se muestra de forma compacta; Forma física/Cansancio van en el tooltip. */
   availability?: number | null;
   /** Convocation.AssistanceTypeId para el evento actual (2=ExcusedAbsence, 3=UnexcusedAbsence, 4=LateArrival). */
@@ -245,6 +247,7 @@ export function DraggableListItem({ player, onDeconvoke }: { player: SquadPlayer
         variant="full"
         readiness={player.readiness}
         fatigue={player.fatigue}
+        formStatus={player.formStatus}
         className={styles.playerFormBars}
       />
     </div>
@@ -356,6 +359,7 @@ const IdealLineup = forwardRef<IdealLineupHandle, IdealLineupProps>(function Ide
       readiness: p.readiness,
       physicalFitness: p.physicalFitness,
       fatigue: p.fatigue,
+      formStatus: p.formStatus,
       availability: p.availability,
     }])),
     [players]

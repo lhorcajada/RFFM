@@ -43,6 +43,8 @@ type Props = {
   readiness?: number | null;
   /** Cansancio (0-100). Junto con `readiness`, se muestra como barras Ef/R/C. */
   fatigue?: number | null;
+  /** Estado de forma del backend (0-100). Si se pasa, sustituye al cálculo local de "Ef". */
+  formStatus?: number | null;
   /**
    * `compact` (por defecto): 3 barritas verticales pequeñas, para tarjetas de plantilla con
    * espacio reducido. `full`: barras horizontales con etiqueta de texto completa delante de
@@ -110,6 +112,7 @@ export default function PlayerCromo({
   streakCount,
   readiness,
   fatigue,
+  formStatus,
   formVariant = "compact",
 }: Props) {
   const resolvedName = alias?.trim() ? alias.trim() : displayName;
@@ -236,6 +239,7 @@ export default function PlayerCromo({
           variant={formVariant}
           readiness={readiness}
           fatigue={fatigue}
+          formStatus={formStatus}
           fullWidth
           className={styles.formBars}
         />

@@ -1,0 +1,63 @@
+.title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-weight: 800 !important;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.what {
+  margin: 0 0 8px;
+}
+
+.heading {
+  margin: 8px 0 2px;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.list {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.numbers {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(127, 127, 127, 0.12);
+}
+
+.numbersList {
+  margin: 0;
+  padding-left: 18px;
+  font-weight: 700;
+}
+
+.note {
+  margin: 6px 0 0;
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
+
+.detailButton {
+  align-self: flex-start;
+  margin-top: 10px !important;
+  text-transform: none !important;
+}
+
+.detail {
+  margin-top: 6px;
+  overflow-x: auto;
+}

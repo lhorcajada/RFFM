@@ -24,6 +24,7 @@ type ConvocationPlayersInput = {
       } | null;
       physicalFitness?: number | null;
       fatigue?: number | null;
+      formStatus?: number | null;
       availability?: number | null;
     }
   >;
@@ -112,6 +113,7 @@ export function useConvocationPlayerViews(input: ConvocationPlayersInput): Convo
           readinessBreakdown: readinessMap?.[p.id]?.readinessBreakdown ?? null,
           physicalFitness: readinessMap?.[p.id]?.physicalFitness ?? null,
           fatigue: readinessMap?.[p.id]?.fatigue ?? null,
+          formStatus: readinessMap?.[p.id]?.formStatus,
           availability: readinessMap?.[p.id]?.availability ?? null,
           assistanceTypeId: assistanceMap?.[p.id] ?? null,
           excuseTypeId,
@@ -141,6 +143,7 @@ export function useConvocationPlayerViews(input: ConvocationPlayersInput): Convo
         readiness: readinessMap?.[p.id]?.readiness ?? null,
         physicalFitness: readinessMap?.[p.id]?.physicalFitness ?? null,
         fatigue: readinessMap?.[p.id]?.fatigue ?? null,
+        formStatus: readinessMap?.[p.id]?.formStatus,
         availability: readinessMap?.[p.id]?.availability ?? null,
       }));
   }, [players, mgmtNotCalled, mgmtPhotos, mgmtRatings, playerStreaks, playerTechnicalTotals, readinessMap]);
@@ -163,6 +166,7 @@ export function useConvocationPlayerViews(input: ConvocationPlayersInput): Convo
         readiness: readinessMap?.[p.id]?.readiness ?? null,
         physicalFitness: readinessMap?.[p.id]?.physicalFitness ?? null,
         fatigue: readinessMap?.[p.id]?.fatigue ?? null,
+        formStatus: readinessMap?.[p.id]?.formStatus,
         availability: readinessMap?.[p.id]?.availability ?? null,
       }));
   }, [players, mgmtPending, mgmtPhotos, mgmtRatings, playerStreaks, playerTechnicalTotals, readinessMap]);

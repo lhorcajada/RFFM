@@ -146,6 +146,8 @@ export function BenchPlayerCard({
         variant="full"
         readiness={computeLiveReadiness(player.readinessBreakdown, minutesPlayed ?? 0)}
         fatigue={player.fatigue}
+        // Estado de forma de backend: estático, no se recalcula en vivo aunque Rodaje cambie con los minutos.
+        formStatus={player.formStatus}
         className={styles.benchFormBars}
       />
     </div>

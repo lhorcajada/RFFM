@@ -185,3 +185,18 @@
   text-align: right;
   color: rgba(255, 255, 255, 0.75);
 }
+
+/* ---------- botón de información (abre diálogo) ---------- */
+
+.rowWrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.infoButton {
+  padding: 4px !important;
+  margin-left: 2px;
+  color: rgba(255, 255, 255, 0.7) !important;
+  font-size: 1rem;
+}

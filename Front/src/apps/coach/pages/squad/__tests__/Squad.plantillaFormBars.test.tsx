@@ -132,14 +132,16 @@ describe("Squad — pestaña Plantilla muestra Ef/R/C en las tarjetas", () => {
         readiness: 70,
         fatigue: 20,
         readinessBreakdown: null,
+        formStatus: 55,
       },
     ]);
   });
 
-  it("pasa readiness/fatigue de cada jugador a su tarjeta y muestra las barras Ef/R/C", async () => {
+  it("pasa readiness/fatigue/formStatus de cada jugador a su tarjeta y muestra el Estado de forma del backend en Ef", async () => {
     renderSquad();
 
-    expect(await screen.findByTestId("player-form-bar-ef")).toHaveTextContent("63%");
+    // Ef ya no es Rodaje x (1 - Cansancio/200) = 63: viene del backend como Estado de forma.
+    expect(await screen.findByTestId("player-form-bar-ef")).toHaveTextContent("55%");
     expect(screen.getByTestId("player-form-bar-r")).toHaveTextContent("70%");
     expect(screen.getByTestId("player-form-bar-c")).toHaveTextContent("20%");
   });

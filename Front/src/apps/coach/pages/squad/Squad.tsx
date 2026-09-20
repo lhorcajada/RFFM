@@ -407,6 +407,7 @@ export default function Squad() {
                             seasonStats={!isRestricted || (!loadingProfile && p.id === associatedTeamPlayerId) ? (seasonStats[p.id] ?? null) : null}
                             readiness={playerStatsMap[p.id]?.readiness ?? null}
                             fatigue={playerStatsMap[p.id]?.fatigue ?? null}
+                            formStatus={playerStatsMap[p.id]?.formStatus}
                             to={
                               isFan ? undefined :
                               isPlayerOrFamily && (loadingProfile || (associatedPlayerId && p.id !== associatedTeamPlayerId)) ? undefined :

@@ -191,6 +191,8 @@ export default function SimulacionTab({ teamId, eventId, lineupPlayers, isFriend
             readiness: p.readiness,
             readinessBreakdown: p.readinessBreakdown,
             fatigue: p.fatigue,
+            // Estado de forma de backend: foto previa al partido, no se recalcula en vivo con los minutos.
+            formStatus: p.formStatus,
           },
         ]),
       ),

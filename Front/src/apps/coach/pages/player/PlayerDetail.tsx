@@ -43,6 +43,8 @@ import { usePlayerFormStats } from "./hooks/usePlayerFormStats";
 import PlayerMatchHistoryCards from "./components/PlayerMatchHistoryCards";
 import PlayerConvocationSummaryCard from "./components/PlayerConvocationSummaryCard";
 import PlayerFormBars from "../../components/PlayerFormBars/PlayerFormBars";
+import MetricInfoDialog from "../../components/MetricInfoDialog/MetricInfoDialog";
+import type { MetricKey } from "../../components/MetricInfoDialog/metricInfoTexts";
 
 const DOMINANT_FOOT_MAP: Record<string, number> = {
   Zurdo: 1,
@@ -100,6 +102,7 @@ export default function PlayerDetail() {
   const [injuryRefreshKey, setInjuryRefreshKey] = useState(0);
   // Estadísticas is tab 0 and opens by default when entering the player detail page.
   const [activeTab, setActiveTab] = useState(0);
+  const [openMetric, setOpenMetric] = useState<MetricKey | null>(null);
   const {
     teamPlayer,
     setTeamPlayer,
@@ -466,15 +469,27 @@ export default function PlayerDetail() {
                           variant="full"
                           readiness={stats?.readiness ?? null}
                           fatigue={stats?.fatigue ?? null}
-                          readinessTooltip={
-                            stats?.readinessBreakdown && (
-                              <div>
-                                <div>Entreno: {Math.round(stats.readinessBreakdown.trainingComponent)}%</div>
-                                <div>Partidos: {Math.round(stats.readinessBreakdown.matchComponent)}%</div>
-                              </div>
-                            )
+                          formStatus={stats?.formStatus}
+                          onReadinessInfo={
+                            stats?.readinessBreakdown && stats.readiness != null
+                              ? () => setOpenMetric("readiness")
+                              : undefined
+                          }
+                          onFatigueInfo={stats ? () => setOpenMetric("fatigue") : undefined}
+                          onFormStatusInfo={
+                            stats?.formStatusBreakdown && stats.formStatus != null
+                              ? () => setOpenMetric("formStatus")
+                              : undefined
                           }
                         />
+                        {stats && openMetric && (
+                          <MetricInfoDialog
+                            metric={openMetric}
+                            player={stats}
+                            open
+                            onClose={() => setOpenMetric(null)}
+                          />
+                        )}
                       </div>
                     )}
 

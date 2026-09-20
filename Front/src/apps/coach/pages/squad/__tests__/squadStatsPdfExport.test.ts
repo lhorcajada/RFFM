@@ -38,6 +38,7 @@ vi.mock("jspdf", () => ({
 import jsPDF from "jspdf";
 import { exportSquadStatisticsPdf } from "../squadStatsPdfExport";
 import type { PlayerStatistics } from "../../../services/teamPlayerStatisticsService";
+import { buildFatigueBreakdown } from "../../../components/MetricBreakdown/__tests__/breakdownFixtures";
 
 function buildPlayer(overrides: Partial<PlayerStatistics> = {}): PlayerStatistics {
   return {
@@ -55,11 +56,14 @@ function buildPlayer(overrides: Partial<PlayerStatistics> = {}): PlayerStatistic
     daysSinceLastInjury: null,
     lastInjuryDurationDays: null,
     fatigue: 37,
+    fatigueBreakdown: buildFatigueBreakdown({ trainingComponent: 30, matchComponent: 45, decayedMatchMinutes: 70 }),
     readiness: 82,
     readinessBreakdown: null,
     matchesAbsentAttributableToPlayer: 0,
     minutesPlayedPercentOfSeasonTotal: null,
     attributableAbsentMinutesPercentOfSeasonTotal: null,
+    formStatus: null,
+    formStatusBreakdown: null,
     ...overrides,
   };
 }
