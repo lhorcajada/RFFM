@@ -12,9 +12,9 @@ namespace RFFM.Api.Features.Federation.Competitions.Queries
     {
         public void AddRoutes(IEndpointRouteBuilder app)
         {
-            app.MapGet("/competitions", async (IMediator mediator, CancellationToken cancellationToken) =>
+            app.MapGet("/competitions", async (IMediator mediator, CancellationToken cancellationToken, int? season = null) =>
             {
-                var request = new QueryApp();
+                var request = new QueryApp(season);
                 var response = await mediator.Send(request, cancellationToken);
                 return response != null ? Results.Ok(response) : Results.NotFound();
             })
@@ -24,7 +24,7 @@ namespace RFFM.Api.Features.Federation.Competitions.Queries
             .Produces<ProblemDetails>(StatusCodes.Status400BadRequest);
         }
 
-        public record QueryApp() : Common.IQueryApp<ResponseCompetition[]>;
+        public record QueryApp(int? Season) : Common.IQueryApp<ResponseCompetition[]>;
 
         public record ResponseCompetition(int Id, string Name, string CategoryGroup);
 
@@ -39,7 +39,7 @@ namespace RFFM.Api.Features.Federation.Competitions.Queries
 
             public async ValueTask<ResponseCompetition[]> Handle(QueryApp request, CancellationToken cancellationToken)
             {
-                var comps = await _competitionService.GetCompetitionsAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+                var comps = await _competitionService.GetCompetitionsAsync(request.Season, cancellationToken).ConfigureAwait(false);
                 if (comps == null || comps.Length ==0)
                     return Array.Empty<ResponseCompetition>();
 
