@@ -30,10 +30,19 @@ import type {
 } from "../types";
 import type { TacticalBoardSnapshot } from "../types";
 
+const MIN_SPACE_SCALE = 0.2;
+
+export type SizeDialogState = {
+  title: string;
+  fields: { label: string; value: string }[];
+  onSubmit: (values: number[]) => void;
+};
+
 export function useTacticalBoard(
   halfPitchRef: React.RefObject<HTMLDivElement | null>,
   teamId: string,
 ) {
+  const [sizeDialog, setSizeDialog] = useState<SizeDialogState | null>(null);
   const [showChapas, setShowChapas] = useState(false);
   const [players, setPlayers] = useState<PlayerResponse[]>([]);
   const [loadingPlayers, setLoadingPlayers] = useState(false);
@@ -530,39 +539,38 @@ export function useTacticalBoard(
     const currentWidthMeters = base.width * space.scaleX;
     const currentHeightMeters = base.height * space.scaleY;
 
-    const widthInput = window.prompt("Ancho/Largo en metros", formatMeters(currentWidthMeters));
-    if (widthInput === null) return;
+    setSizeDialog({
+      title: "Tamaño del espacio",
+      fields: [
+        { label: "Ancho/Largo (m)", value: formatMeters(currentWidthMeters) },
+        { label: "Alto (m)", value: formatMeters(currentHeightMeters) },
+      ],
+      onSubmit: ([targetWidth, targetHeight]) => {
+        const { touchlineBand, goalBackBand } = getFieldBands();
+        const maxScales = getMaxScalesForPlayableArea(space.kind, touchlineBand, goalBackBand);
 
-    const heightInput = window.prompt("Alto en metros", formatMeters(currentHeightMeters));
-    if (heightInput === null) return;
+        const nextScaleX = clamp(targetWidth / base.width, MIN_SPACE_SCALE, maxScales.x);
+        const nextScaleY = clamp(targetHeight / base.height, MIN_SPACE_SCALE, maxScales.y);
 
-    const targetWidth = Number(widthInput.replace(",", "."));
-    const targetHeight = Number(heightInput.replace(",", "."));
-    if (!Number.isFinite(targetWidth) || !Number.isFinite(targetHeight)) return;
+        setPlacedSpaces((prev) =>
+          prev.map((item) => {
+            if (item.id !== spaceId) return item;
 
-    const { touchlineBand, goalBackBand } = getFieldBands();
-    const maxScales = getMaxScalesForPlayableArea(space.kind, touchlineBand, goalBackBand);
+            const clampedPos = clampSpaceToPlayableArea(
+              item.kind,
+              nextScaleX,
+              nextScaleY,
+              item.x,
+              item.y,
+              touchlineBand,
+              goalBackBand,
+            );
 
-    const nextScaleX = clamp(targetWidth / base.width, 1, maxScales.x);
-    const nextScaleY = clamp(targetHeight / base.height, 1, maxScales.y);
-
-    setPlacedSpaces((prev) =>
-      prev.map((item) => {
-        if (item.id !== spaceId) return item;
-
-        const clampedPos = clampSpaceToPlayableArea(
-          item.kind,
-          nextScaleX,
-          nextScaleY,
-          item.x,
-          item.y,
-          touchlineBand,
-          goalBackBand,
+            return { ...item, scaleX: nextScaleX, scaleY: nextScaleY, x: clampedPos.x, y: clampedPos.y };
+          }),
         );
-
-        return { ...item, scaleX: nextScaleX, scaleY: nextScaleY, x: clampedPos.x, y: clampedPos.y };
-      }),
-    );
+      },
+    });
   };
 
   const handleResizeStart = (
@@ -658,12 +666,11 @@ export function useTacticalBoard(
             if (signY !== 0) nextHeight = startSize.height + signY * localDy;
           }
 
-          const minScale = 1;
           const minWidth =
-            ((base.width * minScale) / HALF_FIELD_LENGTH_METERS) *
+            ((base.width * MIN_SPACE_SCALE) / HALF_FIELD_LENGTH_METERS) *
             (100 - resizeSession.goalBackBandPercent);
           const minHeight =
-            ((base.height * minScale) / FIELD_WIDTH_METERS) *
+            ((base.height * MIN_SPACE_SCALE) / FIELD_WIDTH_METERS) *
             (100 - resizeSession.touchlineBandPercent * 2);
           const maxWidth =
             ((base.width * maxScales.x) / HALF_FIELD_LENGTH_METERS) *
@@ -849,12 +856,14 @@ export function useTacticalBoard(
   const handleManualResizeMaterial = (materialId: string) => {
     const material = placedMaterials.find((m) => m.id === materialId);
     if (!material || material.locked) return;
-    const input = window.prompt("Escala (por ejemplo 1 = 100%, 1.5 = 150%)", String(material.scaleX ?? 1));
-    if (input === null) return;
-    const v = Number(input.replace(",", "."));
-    if (!Number.isFinite(v) || v <= 0) return;
-    const next = Math.max(0.3, Math.min(4, v));
-    setPlacedMaterials((prev) => prev.map((m) => (m.id === materialId ? { ...m, scaleX: next, scaleY: next } : m)));
+    setSizeDialog({
+      title: "Tamaño del material",
+      fields: [{ label: "Escala (1 = 100%, 1.5 = 150%)", value: String(material.scaleX ?? 1) }],
+      onSubmit: ([v]) => {
+        const next = Math.max(0.3, Math.min(4, v));
+        setPlacedMaterials((prev) => prev.map((m) => (m.id === materialId ? { ...m, scaleX: next, scaleY: next } : m)));
+      },
+    });
   };
 
   const scalePlacedMaterial = (materialId: string, factor: number) => {
@@ -1006,15 +1015,17 @@ export function useTacticalBoard(
   const handleManualResizeChapa = (playerId: string) => {
     const chapa = placedChapas[playerId];
     if (!chapa || chapa.locked) return;
-    const input = window.prompt("Escala (por ejemplo 1 = 100%, 1.5 = 150%)", String(chapa.scaleX ?? 1));
-    if (input === null) return;
-    const v = Number(input.replace(",", "."));
-    if (!Number.isFinite(v) || v <= 0) return;
-    const next = Math.max(0.3, Math.min(4, v));
-    setPlacedChapas((prev) => {
-      const nextMap = { ...prev };
-      if (nextMap[playerId]) nextMap[playerId] = { ...nextMap[playerId], scaleX: next, scaleY: next };
-      return nextMap;
+    setSizeDialog({
+      title: "Tamaño de la chapa",
+      fields: [{ label: "Escala (1 = 100%, 1.5 = 150%)", value: String(chapa.scaleX ?? 1) }],
+      onSubmit: ([v]) => {
+        const next = Math.max(0.3, Math.min(4, v));
+        setPlacedChapas((prev) => {
+          const nextMap = { ...prev };
+          if (nextMap[playerId]) nextMap[playerId] = { ...nextMap[playerId], scaleX: next, scaleY: next };
+          return nextMap;
+        });
+      },
     });
   };
 
@@ -1722,6 +1733,8 @@ export function useTacticalBoard(
     handleManualResizeChapa,
     handleChapaResizeStart,
     removePlacedChapa,
+    sizeDialog,
+    closeSizeDialog: () => setSizeDialog(null),
     // Spaces
     placedSpaces,
     draggingSpaceId,

@@ -8,6 +8,7 @@ import type { TacticalBoardState } from "../hooks/useTacticalBoard";
 import styles from "../NewExercisePage.module.css";
 import PitchMarkings from "./PitchMarkings";
 import PlacedObjectControls from "./PlacedObjectControls";
+import SizeDialog from "./SizeDialog";
 import type { ResizeHandle, SpacePosition } from "../types";
 
 interface TacticalFieldProps {
@@ -138,6 +139,8 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
     handleTextFieldClick,
     handleFieldDragOver,
     handleFieldDrop,
+    sizeDialog,
+    closeSizeDialog,
   } = board;
 
   // Attach mousemove/up listeners for line handle dragging (defined after board destructuring)
@@ -237,6 +240,7 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
   }, [activeSpaceId, halfPitchRef, nudgePlacedSpace]);
 
   return (
+    <>
     <Box
       ref={halfPitchRef}
       className={styles.halfPitch}
@@ -980,6 +984,8 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
 
       
     </Box>
+    <SizeDialog dialog={sizeDialog} onClose={closeSizeDialog} />
+    </>
   );
 }
 
