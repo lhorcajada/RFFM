@@ -16,9 +16,9 @@ namespace RFFM.Api.Features.Federation.Teams.Queries
         public void AddRoutes(IEndpointRouteBuilder app)
         {
             app.MapGet("/teams/{teamId}",
-                    async (IMediator mediator, CancellationToken cancellationToken, string teamId) =>
+                    async (IMediator mediator, CancellationToken cancellationToken, string teamId, int season = 21) =>
                     {
-                        var request = new QueryApp(teamId);
+                        var request = new QueryApp(teamId, season);
 
                         var response = await mediator.Send(request, cancellationToken);
 
@@ -31,7 +31,7 @@ namespace RFFM.Api.Features.Federation.Teams.Queries
                 .Produces(StatusCodes.Status404NotFound);
         }
 
-        public record QueryApp(string TeamId) : Common.IQueryApp<Team>
+        public record QueryApp(string TeamId, int SeasonId = 21) : Common.IQueryApp<Team>
         {
 
         }
@@ -40,7 +40,7 @@ namespace RFFM.Api.Features.Federation.Teams.Queries
         {
             public async ValueTask<Team> Handle(QueryApp request, CancellationToken cancellationToken)
             {
-                var cacheKey = $"team_{request.TeamId}";
+                var cacheKey = $"team_{request.TeamId}_{request.SeasonId}";
 
                 return await cache.GetOrCreateAsync(cacheKey, async entry =>
                 {
@@ -48,7 +48,7 @@ namespace RFFM.Api.Features.Federation.Teams.Queries
                     entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
 
                     var team = await teamService.GetTeamDetailsAsync(request.TeamId, cancellationToken);
-                    var statistics = await teamService.GetStaticsTeamPlayers(new GetAgeSummary.AgesQueryApp(request.TeamId), cancellationToken);
+                    var statistics = await teamService.GetStaticsTeamPlayers(new GetAgeSummary.AgesQueryApp(request.TeamId, request.SeasonId), cancellationToken);
                     var playerDetails = statistics.resolved.Select(x => x.playerDetails);
 
                     var result = new Team

@@ -19,8 +19,8 @@ export const getPlayer = (playerId: string, params?: { seasonId?: string }) =>
   playerService.getPlayer(playerId, params);
 
 // Team methods
-export const getPlayersByTeam = (teamId: string) =>
-  teamService.getPlayersByTeam(teamId);
+export const getPlayersByTeam = (teamId: string, season?: string) =>
+  teamService.getPlayersByTeam(teamId, season);
 
 export const getTeamAgeSummary = (teamId: string, seasonId?: string) =>
   teamService.getTeamAgeSummary(teamId, seasonId);

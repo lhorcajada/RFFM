@@ -6,7 +6,7 @@ import type { RawPlayer } from "../../types/rawPlayer";
 import type { RawTeam } from "../../types/rawTeam";
 
 export class TeamService {
-  async getPlayersByTeam(teamId: string): Promise<Team> {
+  async getPlayersByTeam(teamId: string, season?: string): Promise<Team> {
     const maxAttempts = DEFAULT_RETRIES;
     let attempt = 0;
     let lastErr: any = null;
@@ -18,7 +18,10 @@ export class TeamService {
 
     while (attempt < maxAttempts) {
       try {
-        const res = await client.get(`teams/${encodeURIComponent(teamId)}`);
+        const q = season ? `?season=${encodeURIComponent(season)}` : "";
+        const res = await client.get(
+          `teams/${encodeURIComponent(teamId)}${q}`
+        );
         const raw = res.data as RawTeam;
 
         // players array under various keys

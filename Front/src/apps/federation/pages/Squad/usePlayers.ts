@@ -49,7 +49,7 @@ export function usePlayers(
         }
         if (mounted) setLoading(true);
         const teamId = String(selectedTeam.id);
-        const payload = await getPlayersByTeam(teamId);
+        const payload = await getPlayersByTeam(teamId, season);
 
         let list: any[] = [];
         if (payload) {
