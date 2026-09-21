@@ -58,7 +58,7 @@ export default function Settings(): JSX.Element {
   const theme = useTheme();
   const isSm = useMediaQuery(theme.breakpoints.down("sm"));
   const { user } = useUser();
-  const { seasonId, applySeasonId } = useRffmSeason();
+  const { seasonId, currentSeasonId, applySeasonId } = useRffmSeason();
   const abortControllerRef = useRef<AbortController | null>(null);
   const [selectedCompetition, setSelectedCompetition] = useState<
     { id: string; name: string } | undefined
@@ -190,9 +190,19 @@ export default function Settings(): JSX.Element {
     }
   }, [primaryId, saved]);
 
+  // The same team is only a duplicate when season, competition, group and team
+  // all match. Combinations saved before seasons existed count as the current one.
   function teamAlreadySaved(teamId: string | undefined) {
     if (!teamId) return false;
-    return saved.some((s) => String(s.teamId ?? "") === String(teamId));
+    const same = (a?: string | null, b?: string | null) =>
+      String(a ?? "") === String(b ?? "");
+    return saved.some(
+      (s) =>
+        same(s.teamId, teamId) &&
+        same(s.competitionId, selectedCompetition?.id) &&
+        same(s.groupId, selectedGroup?.id) &&
+        (s.seasonId ?? currentSeasonId) === seasonId,
+    );
   }
 
   async function saveCombination() {
@@ -202,7 +212,9 @@ export default function Settings(): JSX.Element {
       return;
     }
     if (teamAlreadySaved(selectedTeam.id)) {
-      setSnackMsg("Este equipo ya forma parte de una combinación guardada.");
+      setSnackMsg(
+        "Este equipo ya está guardado con la misma temporada, competición y grupo.",
+      );
       setSnackOpen(true);
       return;
     }
@@ -313,7 +325,7 @@ export default function Settings(): JSX.Element {
 
           <Box className={styles.topBox}>
             <Typography variant="subtitle1">
-              O busca directamente por club
+              O busca un equipo por su nombre
             </Typography>
             <ClubSearchSection
               onTeamResolved={({ competition, group, team }) => {

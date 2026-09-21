@@ -77,9 +77,16 @@ export default function CompetitionSelector({
     if (onChange) onChange(c);
   }
 
-  // sync controlled value
+  // sync controlled value; a parent that clears it (undefined) clears the display
+  const wasControlledRef = React.useRef(false);
   React.useEffect(() => {
-    if (value !== undefined) setSelected(value);
+    if (value !== undefined) {
+      wasControlledRef.current = true;
+      setSelected(value);
+    } else if (wasControlledRef.current) {
+      wasControlledRef.current = false;
+      setSelected("");
+    }
   }, [value]);
 
   return (
