@@ -188,9 +188,49 @@ describe("GameModelTree — read view reproduces the legible document's structur
     expect(within(fase).getByText(/No permitir progresar al rival/)).toBeInTheDocument();
   });
 
+  it("Principios are collapsible: clicking the header hides its Subprincipios, clicking again shows them", async () => {
+    const user = userEvent.setup();
+    render(<GameModelTree gameModel={mockGameModel} />);
+
+    const subprincipio = /Subprincipio 1\.1 — Evitar que el rival/;
+    expect(screen.getByRole("heading", { level: 4, name: subprincipio })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "1. No permitir progresar al rival." }));
+    expect(screen.queryByRole("heading", { level: 4, name: subprincipio })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "1. No permitir progresar al rival." }));
+    expect(screen.getByRole("heading", { level: 4, name: subprincipio })).toBeInTheDocument();
+  });
+
+  it("Subprincipios are collapsible: clicking the header hides its Zonas", async () => {
+    const user = userEvent.setup();
+    render(<GameModelTree gameModel={mockGameModel} />);
+
+    expect(screen.getByRole("heading", { level: 5, name: "Zona de Finalización" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /Subprincipio 1\.1 — Evitar que el rival/ }));
+    expect(screen.queryByRole("heading", { level: 5, name: "Zona de Finalización" })).not.toBeInTheDocument();
+  });
+
+  it("Zonas are collapsible: clicking the header hides its Sub-subprincipios", async () => {
+    const user = userEvent.setup();
+    render(<GameModelTree gameModel={mockGameModel} />);
+
+    expect(screen.getByText(/Sub-subprincipio 1\.1\.1 — Delantero:/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Zona de Finalización" }));
+    expect(screen.queryByText(/Sub-subprincipio 1\.1\.1 — Delantero:/)).not.toBeInTheDocument();
+  });
+
   it("print variant renders Fases always expanded, without a collapse toggle", () => {
     render(<GameModelTree gameModel={mockGameModel} print />);
 
     expect(screen.queryByRole("button", { name: /Defensa Organizada/ })).not.toBeInTheDocument();
+  });
+
+  it("print variant renders Principios, Subprincipios and Zonas without collapse toggles", () => {
+    render(<GameModelTree gameModel={mockGameModel} print />);
+
+    expect(screen.queryAllByRole("button")).toHaveLength(0);
   });
 });

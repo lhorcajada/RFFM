@@ -67,51 +67,111 @@ function SubSubPrincipioBlock({ ssp }: { ssp: SubSubPrincipio }) {
   );
 }
 
-function ZonaBlock({ zona }: { zona: Zona }) {
+/** Header + body of a collapsible level (Principio, Subprincipio, Zona). On screen the heading is
+ * wrapped in a toggle button with a chevron — same visual language as the Fase header and the
+ * content-board's AdnDraggableTree; in print the heading renders plain and the body always shows. */
+function CollapsibleBlock({
+  print,
+  headerClassName,
+  heading,
+  children,
+}: {
+  print: boolean;
+  headerClassName: string;
+  heading: ReactNode;
+  children: ReactNode;
+}) {
+  const [collapsed, setCollapsed] = useState(false);
+
+  if (print) {
+    return (
+      <>
+        {heading}
+        {children}
+      </>
+    );
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        className={headerClassName}
+        onClick={() => setCollapsed((c) => !c)}
+        aria-expanded={!collapsed}
+      >
+        {heading}
+        <ExpandMoreIcon className={collapsed ? styles.chevronCollapsed : styles.chevron} />
+      </button>
+      {!collapsed && children}
+    </>
+  );
+}
+
+function ZonaBlock({ zona, print }: { zona: Zona; print: boolean }) {
   return (
     <div className={styles.zona}>
-      <h5 className={styles.zonaTitle}>{zonaHeading(zona)}</h5>
-      {zona.texto && <p className={styles.texto}>{zona.texto}</p>}
-      {sortByNumero(zona.subSubPrincipios).map((ssp) => (
-        <SubSubPrincipioBlock key={ssp.id} ssp={ssp} />
-      ))}
-      {zona.notas.map((n) => (
-        <NotaCallout key={n.id} nota={n} />
-      ))}
+      <CollapsibleBlock
+        print={print}
+        headerClassName={styles.collapsibleHeader}
+        heading={<h5 className={styles.zonaTitle}>{zonaHeading(zona)}</h5>}
+      >
+        {zona.texto && <p className={styles.texto}>{zona.texto}</p>}
+        {sortByNumero(zona.subSubPrincipios).map((ssp) => (
+          <SubSubPrincipioBlock key={ssp.id} ssp={ssp} />
+        ))}
+        {zona.notas.map((n) => (
+          <NotaCallout key={n.id} nota={n} />
+        ))}
+      </CollapsibleBlock>
     </div>
   );
 }
 
-function SubprincipioBlock({ sp }: { sp: Subprincipio }) {
+function SubprincipioBlock({ sp, print }: { sp: Subprincipio; print: boolean }) {
   return (
     <div className={styles.subprincipio}>
-      <h4 className={styles.subprincipioTitle}>
-        Subprincipio {sp.numero} — {sp.titulo}.
-      </h4>
-      {sp.texto && <p className={styles.texto}>{sp.texto}</p>}
-      {sp.zonas.length > 0
-        ? sp.zonas.map((z) => <ZonaBlock key={z.id} zona={z} />)
-        : sortByNumero(sp.subSubPrincipios).map((ssp) => <SubSubPrincipioBlock key={ssp.id} ssp={ssp} />)}
-      {sp.notas.map((n) => (
-        <NotaCallout key={n.id} nota={n} />
-      ))}
+      <CollapsibleBlock
+        print={print}
+        headerClassName={styles.collapsibleHeader}
+        heading={
+          <h4 className={styles.subprincipioTitle}>
+            Subprincipio {sp.numero} — {sp.titulo}.
+          </h4>
+        }
+      >
+        {sp.texto && <p className={styles.texto}>{sp.texto}</p>}
+        {sp.zonas.length > 0
+          ? sp.zonas.map((z) => <ZonaBlock key={z.id} zona={z} print={print} />)
+          : sortByNumero(sp.subSubPrincipios).map((ssp) => <SubSubPrincipioBlock key={ssp.id} ssp={ssp} />)}
+        {sp.notas.map((n) => (
+          <NotaCallout key={n.id} nota={n} />
+        ))}
+      </CollapsibleBlock>
     </div>
   );
 }
 
-function PrincipleBlock({ principle }: { principle: Principle }) {
+function PrincipleBlock({ principle, print }: { principle: Principle; print: boolean }) {
   return (
     <div className={styles.principle}>
-      <h3 className={styles.principleTitle}>
-        {principle.numero}. {principle.titulo}.
-      </h3>
-      {principle.texto && <p className={styles.texto}>{principle.texto}</p>}
-      {sortByNumero(principle.subprincipios).map((sp) => (
-        <SubprincipioBlock key={sp.id} sp={sp} />
-      ))}
-      {principle.notas.map((n) => (
-        <NotaCallout key={n.id} nota={n} />
-      ))}
+      <CollapsibleBlock
+        print={print}
+        headerClassName={styles.collapsibleHeader}
+        heading={
+          <h3 className={styles.principleTitle}>
+            {principle.numero}. {principle.titulo}.
+          </h3>
+        }
+      >
+        {principle.texto && <p className={styles.texto}>{principle.texto}</p>}
+        {sortByNumero(principle.subprincipios).map((sp) => (
+          <SubprincipioBlock key={sp.id} sp={sp} print={print} />
+        ))}
+        {principle.notas.map((n) => (
+          <NotaCallout key={n.id} nota={n} />
+        ))}
+      </CollapsibleBlock>
     </div>
   );
 }
@@ -139,7 +199,7 @@ function FaseSection({
           aria-expanded={!collapsed}
         >
           <h2 className={styles.momentTitle}>{momentName}</h2>
-          <ExpandMoreIcon className={collapsed ? styles.momentChevronCollapsed : styles.momentChevron} />
+          <ExpandMoreIcon className={collapsed ? styles.chevronCollapsed : styles.chevron} />
         </button>
       )}
       {(print || !collapsed) && children}
@@ -161,7 +221,7 @@ export default function GameModelTree({ gameModel, print = false }: Props) {
         return (
           <FaseSection key={momentId} momentName={momentName} print={print}>
             {principles.map((p) => (
-              <PrincipleBlock key={p.id} principle={p} />
+              <PrincipleBlock key={p.id} principle={p} print={print} />
             ))}
           </FaseSection>
         );

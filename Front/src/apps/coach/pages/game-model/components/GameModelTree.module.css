@@ -38,15 +38,35 @@
   margin: 0;
 }
 
-.momentChevron,
-.momentChevronCollapsed {
+.chevron,
+.chevronCollapsed {
   flex-shrink: 0;
   color: var(--rffm-coach-accent, #ff7a1a);
   transition: transform 0.15s ease;
 }
 
-.momentChevronCollapsed {
+.chevronCollapsed {
   transform: rotate(-90deg);
+}
+
+.collapsibleHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+
+.collapsibleHeader > h3,
+.collapsibleHeader > h4,
+.collapsibleHeader > h5 {
+  flex: 1;
 }
 
 .principle {
