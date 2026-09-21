@@ -24,5 +24,26 @@ namespace RFFM.Api.Tests.UnitTests
             Assert.Equal("Sanción deportiva", excuse!.Name);
             Assert.True(excuse.Justified);
         }
+
+        [Fact]
+        public void FromId_Nine_ResolvesMedicalAppointment()
+        {
+            var excuse = ExcuseTypes.FromId(9);
+
+            Assert.NotNull(excuse);
+            Assert.Equal("Cita médica", excuse!.Name);
+            Assert.True(excuse.Justified);
+        }
+
+        [Fact]
+        public async Task GetExcuseTypes_ExposesJustifiedFlag()
+        {
+            var handler = new RFFM.Api.Features.Coaches.Assistances.Queries.GetExcuseTypes.ExcuseTypesRequestHandler();
+
+            var items = await handler.Handle(new RFFM.Api.Features.Coaches.Assistances.Queries.GetExcuseTypes.ExcuseTypesQueryApp());
+
+            Assert.True(items.Single(e => e.Id == 9).Justified);
+            Assert.False(items.Single(e => e.Id == 7).Justified);
+        }
     }
 }

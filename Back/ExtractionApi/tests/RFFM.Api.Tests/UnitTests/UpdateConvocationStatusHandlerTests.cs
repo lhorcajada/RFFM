@@ -608,6 +608,58 @@ namespace RFFM.Api.Tests.UnitTests
             Assert.Equal(2, updated.ConvocationStatusId);
         }
 
+        [Theory]
+        [InlineData("Player", 7)]
+        [InlineData("Player", 8)]
+        [InlineData("FamilyMember", 7)]
+        [InlineData("FamilyMember", 8)]
+        public async Task PlayerOrFamilyDeconvokesWithCoachOnlyReason_ThrowsForbiddenAccessException(string role, int excuseTypeId)
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (eventId, teamPlayerId, convocationId) = await SeedConvocationAsync(db, eventTypeId: 1, convocationStatusId: 1);
+
+            var userId = $"user-{Guid.NewGuid():N}";
+            db.UserProfiles.Add(new UserProfile(userId, role, teamPlayerId, null));
+            await db.SaveChangesAsync();
+
+            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(userId, role).Object, new RFFM.Api.Domain.Services.SanctionConvocationEnforcementService(db));
+            var request = new UpdateConvocationStatus.UpdateStatusRequest
+            {
+                EventId = eventId,
+                ConvocationId = convocationId,
+                NewStatusId = 5,
+                ExcuseTypeId = excuseTypeId
+            };
+
+            await Assert.ThrowsAsync<ForbiddenAccessException>(
+                async () => await handler.Handle(request, CancellationToken.None));
+        }
+
+        [Fact]
+        public async Task PlayerDeconvokesWithMedicalAppointment_Succeeds()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (eventId, teamPlayerId, convocationId) = await SeedConvocationAsync(db, eventTypeId: 1, convocationStatusId: 1);
+
+            var userId = $"player-{Guid.NewGuid():N}";
+            db.UserProfiles.Add(new UserProfile(userId, "Player", teamPlayerId, null));
+            await db.SaveChangesAsync();
+
+            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(userId, "Player").Object, new RFFM.Api.Domain.Services.SanctionConvocationEnforcementService(db));
+            var request = new UpdateConvocationStatus.UpdateStatusRequest
+            {
+                EventId = eventId,
+                ConvocationId = convocationId,
+                NewStatusId = 5,
+                ExcuseTypeId = 9
+            };
+
+            await handler.Handle(request, CancellationToken.None);
+
+            var updated = await db.Convocations.AsNoTracking().FirstAsync(c => c.Id == convocationId);
+            Assert.Equal(9, updated.ExcuseTypeId);
+        }
+
         [Fact]
         public async Task CoachReactivatesConvocationDeconvokedByTechnicalDecision_Succeeds()
         {

@@ -24,14 +24,14 @@ namespace RFFM.Api.Features.Coaches.Assistances.Queries
 
         public record ExcuseTypesQueryApp : Common.IQueryApp<ExcuseTypeResponse[]>;
 
-        public record ExcuseTypeResponse(int Id, string Name);
+        public record ExcuseTypeResponse(int Id, string Name, bool Justified);
 
         public class ExcuseTypesRequestHandler : IRequestHandler<ExcuseTypesQueryApp, ExcuseTypeResponse[]>
         {
             public ValueTask<ExcuseTypeResponse[]> Handle(ExcuseTypesQueryApp request, CancellationToken cancellationToken = default)
             {
                 var items = ExcuseTypes.List()
-                    .Select(e => new ExcuseTypeResponse(e.Id, e.Name))
+                    .Select(e => new ExcuseTypeResponse(e.Id, e.Name, e.Justified))
                     .ToArray();
 
                 return ValueTask.FromResult(items);

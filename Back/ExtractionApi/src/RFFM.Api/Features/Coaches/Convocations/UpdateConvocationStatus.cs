@@ -105,6 +105,15 @@ namespace RFFM.Api.Features.Coaches.Convocations
                         throw new ForbiddenAccessException("No se puede modificar una desconvocatoria por decisión técnica.");
                     }
 
+                    // "Decisión técnica" and "Sanción deportiva" are reasons only a coach can assign.
+                    var requestsCoachOnlyReason = request.ExcuseTypeId == TechnicalDecisionExcuseTypeId
+                        || request.ExcuseTypeId == ExcuseTypes.SportiveSanction.Id;
+
+                    if (requestsCoachOnlyReason)
+                    {
+                        throw new ForbiddenAccessException("Solo el entrenador puede desconvocar por decisión técnica o sanción deportiva.");
+                    }
+
                     // Player/FamilyMember may reactivate their own player's Deconvoked convocation
                     // (back to Pending/Accepted) only when the event is a training session. This is
                     // an allow-list check (== TrainingId), so it blocks Match, FriendlyMatch,
