@@ -136,17 +136,25 @@ export default function ClubSearchSection({ onTeamResolved }: Props) {
           group: info.groupCode
             ? { id: info.groupCode, name: info.groupName }
             : undefined,
-          team: { id: teamCode, name: info.teamName },
+          team: { id: teamCode, name: info.teamName || selectedTeamMeta?.teamName || teamCode },
         });
       } catch {
         setResolveError(
-          "No se pudo resolver el grupo. El equipo puede no tener jugadores inscritos.",
+          "No se pudo determinar el grupo del equipo. Selecciona el grupo manualmente.",
         );
+        onTeamResolved({
+          competition:
+            competitionId != null
+              ? { id: String(competitionId), name: selectedTeamMeta?.competitionName ?? "" }
+              : undefined,
+          group: undefined,
+          team: { id: teamCode, name: selectedTeamMeta?.teamName ?? teamCode },
+        });
       } finally {
         setResolving(false);
       }
     },
-    [selectedClub, onTeamResolved],
+    [selectedClub, teams, onTeamResolved],
   );
 
   return (
