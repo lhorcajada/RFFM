@@ -929,6 +929,7 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isTrainin
         onClose={() => setDeconvokeDialog({ open: false })}
         excuseTypes={excuseTypes}
         hideTechnical={(!isMatch && !!deconvokeDialog.waitingPlayerId) || (isPlayerOrFamily && !!deconvokeDialog.conv)}
+        hideCoachOnly={isPlayerOrFamily}
         confirmLabel={
           deconvokeDialog.waitingPlayerId
             ? "Rechazar"

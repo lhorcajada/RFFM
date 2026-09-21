@@ -17,6 +17,8 @@ type Props = {
   excuseTypes: ExcuseType[];
   onConfirm: (reason: string) => void;
   hideTechnical?: boolean;
+  /** Hides the reasons only a coach may assign ("Decisión técnica" and "Sanción deportiva"). */
+  hideCoachOnly?: boolean;
   title?: string;
   confirmLabel?: string;
   /** Preselects an option (excuse type id as string, or "technical") when the dialog opens. */
@@ -24,22 +26,24 @@ type Props = {
 };
 
 const TECHNICAL_NAMES = ["decisión técnica", "decision tecnica", "technical decision"];
+const SPORTIVE_SANCTION_EXCUSE_TYPE_ID = 8;
 
-const ALL_OPTIONS = (excuseTypes: ExcuseType[], hideTechnical?: boolean) => [
-  ...(hideTechnical ? [] : [{ value: "technical", label: "Decisión técnica", justified: false }]),
+const ALL_OPTIONS = (excuseTypes: ExcuseType[], hideTechnical?: boolean, hideCoachOnly?: boolean) => [
+  ...(hideTechnical || hideCoachOnly ? [] : [{ value: "technical", label: "Decisión técnica", justified: false }]),
   ...excuseTypes
     .filter((ex) => !TECHNICAL_NAMES.includes(ex.name.toLowerCase()))
+    .filter((ex) => !(hideCoachOnly && ex.id === SPORTIVE_SANCTION_EXCUSE_TYPE_ID))
     .map((ex) => ({ value: String(ex.id), label: ex.name, justified: ex.justified ?? false })),
 ];
 
-export default function DeconvokeDialog({ open, onClose, excuseTypes, onConfirm, hideTechnical, title, confirmLabel, initialValue }: Props) {
+export default function DeconvokeDialog({ open, onClose, excuseTypes, onConfirm, hideTechnical, hideCoachOnly, title, confirmLabel, initialValue }: Props) {
   const [value, setValue] = React.useState<string>(initialValue ?? "");
 
   React.useEffect(() => {
     setValue(open ? initialValue ?? "" : "");
   }, [open, initialValue]);
 
-  const options = ALL_OPTIONS(excuseTypes, hideTechnical);
+  const options = ALL_OPTIONS(excuseTypes, hideTechnical, hideCoachOnly);
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>

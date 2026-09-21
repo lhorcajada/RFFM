@@ -6,6 +6,8 @@ import sportEventTypeService from "../../../services/sportEventTypeService";
 import useEventAttendanceSummaries from "../../../hooks/useEventAttendanceSummaries";
 import { type ConvocationStatusName } from "../../../services/eventAttendanceSummaryService";
 import convocationService from "../../../services/convocationService";
+import excuseTypeService, { type ExcuseType } from "../../../services/excuseTypeService";
+import DeconvokeDialog from "../../attendance/components/DeconvokeDialog";
 import Carousel from "../../../components/Carousel/Carousel";
 import EventCard from "../../attendance/EventCard";
 import type { TeamResponse } from "../../../services/teamService";
@@ -27,6 +29,8 @@ export default function UpcomingEventsWidget({ team, isPlayer }: Props) {
   const [error, setError] = useState<unknown>(null);
   const [eventTypeMap, setEventTypeMap] = useState<Record<number, string>>({});
   const [pendingEventId, setPendingEventId] = useState<string | null>(null);
+  const [excuseTypes, setExcuseTypes] = useState<ExcuseType[]>([]);
+  const [deconvokeTarget, setDeconvokeTarget] = useState<{ eventId: string; convocationId: string } | null>(null);
   const [optimistic, setOptimistic] = useState<Record<string, ConvocationStatusName>>({});
 
   useEffect(() => {
@@ -55,6 +59,13 @@ export default function UpcomingEventsWidget({ team, isPlayer }: Props) {
       .catch(() => setEventTypeMap({}));
   }, []);
 
+  useEffect(() => {
+    excuseTypeService
+      .getExcuseTypes()
+      .then(setExcuseTypes)
+      .catch(() => setExcuseTypes([]));
+  }, []);
+
   const { summaries, refetch } = useEventAttendanceSummaries(
     team?.id,
     events.map((e) => e.id)
@@ -64,13 +75,14 @@ export default function UpcomingEventsWidget({ team, isPlayer }: Props) {
     eventId: string,
     convocationId: string,
     statusId: number,
-    statusName: ConvocationStatusName
+    statusName: ConvocationStatusName,
+    excuseTypeId?: number
   ) => {
     setPendingEventId(eventId);
     setOptimistic((prev) => ({ ...prev, [eventId]: statusName }));
 
     try {
-      await convocationService.updateConvocationStatus(eventId, convocationId, statusId);
+      await convocationService.updateConvocationStatus(eventId, convocationId, statusId, excuseTypeId);
       refetch();
       setOptimistic((prev) => {
         const next = { ...prev };
@@ -183,7 +195,7 @@ export default function UpcomingEventsWidget({ team, isPlayer }: Props) {
                     variant="outlined"
                     onClick={() =>
                       myConvocationId &&
-                      handleConfirm(event.id, myConvocationId, DECONVOKE_STATUS_ID, "Deconvoke")
+                      setDeconvokeTarget({ eventId: event.id, convocationId: myConvocationId })
                     }
                     disabled={pendingEventId === event.id}
                   >
@@ -195,6 +207,22 @@ export default function UpcomingEventsWidget({ team, isPlayer }: Props) {
           );
         })}
       </Carousel>
+      <DeconvokeDialog
+        open={!!deconvokeTarget}
+        onClose={() => setDeconvokeTarget(null)}
+        excuseTypes={excuseTypes}
+        hideCoachOnly
+        onConfirm={(reason) => {
+          if (!deconvokeTarget) return;
+          handleConfirm(
+            deconvokeTarget.eventId,
+            deconvokeTarget.convocationId,
+            DECONVOKE_STATUS_ID,
+            "Deconvoke",
+            Number(reason)
+          );
+        }}
+      />
     </div>
   );
 }

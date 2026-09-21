@@ -21,6 +21,17 @@ vi.mock("../../../../services/convocationService", () => ({
   },
 }));
 
+vi.mock("../../../../services/excuseTypeService", () => ({
+  default: {
+    getExcuseTypes: vi.fn().mockResolvedValue([
+      { id: 1, name: "Lesión", justified: true },
+      { id: 7, name: "Decisión técnica", justified: false },
+      { id: 8, name: "Sanción deportiva", justified: true },
+      { id: 9, name: "Cita médica", justified: true },
+    ]),
+  },
+}));
+
 vi.mock("../../../../hooks/useEventAttendanceSummaries", () => ({
   default: vi.fn(),
 }));
@@ -130,7 +141,7 @@ describe("UpcomingEventsWidget attendance actions — gating by convocation stat
 
     fireEvent.click(screen.getByRole("button", { name: /^voy$/i }));
 
-    expect(convocationService.updateConvocationStatus).toHaveBeenCalledWith("e1", "conv-e1", 2);
+    expect(convocationService.updateConvocationStatus).toHaveBeenCalledWith("e1", "conv-e1", 2, undefined);
 
     await waitFor(() => {
       expect(card.querySelector('[data-testid="my-status"]')).toHaveTextContent("Accepted");
@@ -139,7 +150,20 @@ describe("UpcomingEventsWidget attendance actions — gating by convocation stat
     resolveConfirm();
   });
 
-  it("clicking No voy calls convocationService.updateConvocationStatus with statusId 5 (Deconvoke), no excuseTypeId (backend defaults it)", async () => {
+  it("clicking No voy asks for the reason without the coach-only ones, and does not call the service until confirmed", async () => {
+    renderWidget(true, { e1: pendingSummary("e1") });
+    await screen.findByTestId("event-card-e1");
+
+    fireEvent.click(screen.getByRole("button", { name: /no voy/i }));
+
+    expect(await screen.findByText(/motivo de desconvocatoria/i)).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /cita médica/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /decisión técnica/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /sanción deportiva/i })).not.toBeInTheDocument();
+    expect(convocationService.updateConvocationStatus).not.toHaveBeenCalled();
+  });
+
+  it("confirming the reason calls updateConvocationStatus with statusId 5 (Deconvoke) and the chosen excuseTypeId, and optimistically updates the summary", async () => {
     let resolveConfirm: () => void = () => {};
     vi.mocked(convocationService.updateConvocationStatus).mockImplementation(
       () => new Promise((resolve) => { resolveConfirm = () => resolve(undefined); })
@@ -148,8 +172,10 @@ describe("UpcomingEventsWidget attendance actions — gating by convocation stat
     const card = await screen.findByTestId("event-card-e1");
 
     fireEvent.click(screen.getByRole("button", { name: /no voy/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /cita médica/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^desconvocar$/i }));
 
-    expect(convocationService.updateConvocationStatus).toHaveBeenCalledWith("e1", "conv-e1", 5);
+    expect(convocationService.updateConvocationStatus).toHaveBeenCalledWith("e1", "conv-e1", 5, 9);
 
     await waitFor(() => {
       expect(card.querySelector('[data-testid="my-status"]')).toHaveTextContent("Deconvoke");
