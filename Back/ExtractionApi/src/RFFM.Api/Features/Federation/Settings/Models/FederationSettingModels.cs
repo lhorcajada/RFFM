@@ -7,7 +7,8 @@ namespace RFFM.Api.Features.Federation.Settings.Models
         string? GroupName,
         string? TeamId,
         string? TeamName,
-        bool IsPrimary = false);
+        bool IsPrimary = false,
+        int? SeasonId = null);
 
     public record FederationSettingResponse(
         string Id,
@@ -18,7 +19,8 @@ namespace RFFM.Api.Features.Federation.Settings.Models
         string? TeamId,
         string? TeamName,
         long CreatedAt,
-        bool IsPrimary);
+        bool IsPrimary,
+        int? SeasonId);
 
     public static class FederationSettingMapping
     {
@@ -34,7 +36,8 @@ namespace RFFM.Api.Features.Federation.Settings.Models
                 setting.TeamId,
                 setting.TeamName,
                 setting.CreatedAt,
-                setting.IsPrimary);
+                setting.IsPrimary,
+                setting.SeasonId);
         }
     }
 }

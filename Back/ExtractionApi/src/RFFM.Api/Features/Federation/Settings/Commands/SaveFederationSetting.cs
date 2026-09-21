@@ -56,7 +56,8 @@ namespace RFFM.Api.Features.Federation.Settings.Commands
                 request.Request.GroupName,
                 request.Request.TeamId,
                 request.Request.TeamName,
-                request.Request.IsPrimary);
+                request.Request.IsPrimary,
+                request.Request.SeasonId);
 
             var created = await _service.CreateAsync(setting, cancellationToken);
             return FederationSettingMapping.ToResponse(created);

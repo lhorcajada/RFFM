@@ -96,7 +96,8 @@ namespace RFFM.Api.Features.Federation.Settings.Services
                 updatedSetting.GroupName,
                 updatedSetting.TeamId,
                 updatedSetting.TeamName,
-                updatedSetting.IsPrimary);
+                updatedSetting.IsPrimary,
+                updatedSetting.SeasonId);
 
             // Si se marca como primaria, desmarcar otras
             if (updatedSetting.IsPrimary)

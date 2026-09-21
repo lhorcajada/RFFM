@@ -11,6 +11,7 @@ namespace RFFM.Api.Domain.Entities.Federation
         public string? TeamName { get; private set; }
         public long CreatedAt { get; private set; }
         public bool IsPrimary { get; private set; }
+        public int? SeasonId { get; private set; }
 
         private FederationSetting() { }
 
@@ -22,7 +23,8 @@ namespace RFFM.Api.Domain.Entities.Federation
             string? groupName = null,
             string? teamId = null,
             string? teamName = null,
-            bool isPrimary = false)
+            bool isPrimary = false,
+            int? seasonId = null)
         {
             ValidateUserId(userId);
             UserId = userId;
@@ -34,6 +36,7 @@ namespace RFFM.Api.Domain.Entities.Federation
             TeamName = teamName;
             CreatedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             IsPrimary = isPrimary;
+            SeasonId = seasonId;
         }
 
         public void Update(
@@ -43,7 +46,8 @@ namespace RFFM.Api.Domain.Entities.Federation
             string? groupName = null,
             string? teamId = null,
             string? teamName = null,
-            bool? isPrimary = null)
+            bool? isPrimary = null,
+            int? seasonId = null)
         {
             CompetitionId = competitionId;
             CompetitionName = competitionName;
@@ -51,6 +55,7 @@ namespace RFFM.Api.Domain.Entities.Federation
             GroupName = groupName;
             TeamId = teamId;
             TeamName = teamName;
+            SeasonId = seasonId;
             if (isPrimary.HasValue)
             {
                 IsPrimary = isPrimary.Value;

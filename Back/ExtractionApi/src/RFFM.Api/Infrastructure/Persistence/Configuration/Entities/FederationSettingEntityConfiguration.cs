@@ -34,6 +34,8 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Entities
             builder.Property(c => c.TeamName)
                 .HasMaxLength(256);
 
+            builder.Property(c => c.SeasonId);
+
             builder.Property(c => c.CreatedAt)
                 .IsRequired();
 

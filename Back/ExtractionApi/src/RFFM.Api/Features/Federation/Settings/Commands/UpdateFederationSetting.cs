@@ -64,7 +64,8 @@ namespace RFFM.Api.Features.Federation.Settings.Commands
                 request.Request.GroupName,
                 request.Request.TeamId,
                 request.Request.TeamName,
-                request.Request.IsPrimary);
+                request.Request.IsPrimary,
+                request.Request.SeasonId);
 
             var updated = await _service.UpdateAsync(request.Id, updatedSetting, cancellationToken);
             return FederationSettingMapping.ToResponse(updated);
