@@ -33,6 +33,8 @@ import SavedConfigs from "../../../../shared/components/ui/SavedConfigs/SavedCon
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import ClubSearchSection from "./ClubSearchSection";
 import RffmSeasonSelector from "../../../../shared/components/ui/RffmSeasonSelector/RffmSeasonSelector";
+import { useRffmSeason } from "../../../../shared/context/RffmSeasonContext";
+import useClearOnSeasonChange from "../../../../shared/hooks/useClearOnSeasonChange";
 import {
   settingsService,
   getSettingsForUser,
@@ -49,12 +51,14 @@ type SavedCombo = {
   teamName?: string;
   createdAt: number;
   isPrimary?: boolean;
+  seasonId?: number | null;
 };
 
 export default function Settings(): JSX.Element {
   const theme = useTheme();
   const isSm = useMediaQuery(theme.breakpoints.down("sm"));
   const { user } = useUser();
+  const { seasonId, applySeasonId } = useRffmSeason();
   const abortControllerRef = useRef<AbortController | null>(null);
   const [selectedCompetition, setSelectedCompetition] = useState<
     { id: string; name: string } | undefined
@@ -65,6 +69,12 @@ export default function Settings(): JSX.Element {
   const [selectedTeam, setSelectedTeam] = useState<
     { id: string; name: string } | undefined
   >(undefined);
+
+  useClearOnSeasonChange(() => {
+    setSelectedCompetition(undefined);
+    setSelectedGroup(undefined);
+    setSelectedTeam(undefined);
+  });
 
   const [saved, setSaved] = useState<SavedCombo[]>([]);
   const [primaryId, setPrimaryId] = useState<string | null>(null);
@@ -95,8 +105,12 @@ export default function Settings(): JSX.Element {
     };
   }, []);
 
+  const loadSettingsRef = useRef(loadSettings);
+  loadSettingsRef.current = loadSettings;
+
   useEffect(() => {
     function handleSettingsChanged() {
+      void loadSettingsRef.current();
       setSnackMsg("Configuración actualizada correctamente.");
       setSnackOpen(true);
     }
@@ -129,6 +143,7 @@ export default function Settings(): JSX.Element {
         if (!combo) combo = arr.find((c) => c.isPrimary) || arr[0];
       }
       if (combo && combo.teamId) {
+        applySeasonId(combo.seasonId);
         setSelectedCompetition(
           combo.competitionId && combo.competitionName
             ? { id: combo.competitionId, name: combo.competitionName }
@@ -156,6 +171,7 @@ export default function Settings(): JSX.Element {
     if (!primaryId) return;
     const combo = saved.find((c) => c.id === primaryId);
     if (combo) {
+      applySeasonId(combo.seasonId);
       setSelectedCompetition(
         combo.competitionId && combo.competitionName
           ? { id: combo.competitionId, name: combo.competitionName }
@@ -200,6 +216,7 @@ export default function Settings(): JSX.Element {
         teamId: selectedTeam?.id,
         teamName: selectedTeam?.name,
         isPrimary: isFirst,
+        seasonId,
         userId: user?.id,
       });
       await loadSettings();
@@ -265,6 +282,9 @@ export default function Settings(): JSX.Element {
             <div className={styles.selectorsWrap}>
               <Grid container spacing={1}>
                 <Grid item xs={12} sm={6} md={3}>
+                  <RffmSeasonSelector />
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
                   <CompetitionSelector
                     onChange={(c) => setSelectedCompetition(c)}
                     value={selectedCompetition?.id}
@@ -295,9 +315,6 @@ export default function Settings(): JSX.Element {
             <Typography variant="subtitle1">
               O busca directamente por club
             </Typography>
-            <Box className={styles.rffmSeasonRow}>
-              <RffmSeasonSelector />
-            </Box>
             <ClubSearchSection
               onTeamResolved={({ competition, group, team }) => {
                 setSelectedCompetition(competition);

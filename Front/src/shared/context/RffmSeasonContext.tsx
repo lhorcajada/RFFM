@@ -1,4 +1,11 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   getRffmSeasons,
   saveRffmSeasonPreference,
@@ -7,8 +14,11 @@ import {
 
 interface RffmSeasonContextType {
   seasonId: number | null;
+  currentSeasonId: number | null;
   seasons: RffmSeasonOption[];
+  seasonChangeToken: number;
   setSeasonId: (seasonId: number) => void;
+  applySeasonId: (seasonId?: number | null) => void;
 }
 
 const RffmSeasonContext = createContext<RffmSeasonContextType | null>(null);
@@ -18,6 +28,10 @@ export const RffmSeasonProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [seasonId, setSeasonIdState] = useState<number | null>(null);
   const [seasons, setSeasons] = useState<RffmSeasonOption[]>([]);
+  const [seasonChangeToken, setSeasonChangeToken] = useState(0);
+  const [currentSeasonId, setCurrentSeasonId] = useState<number | null>(null);
+  const currentSeasonIdRef = useRef<number | null>(null);
+  const appliedRef = useRef<{ seasonId: number | null } | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -27,8 +41,13 @@ export const RffmSeasonProvider: React.FC<{ children: React.ReactNode }> = ({
         const response = await getRffmSeasons();
         if (!mounted) return;
         setSeasons(response.seasons);
+        currentSeasonIdRef.current = response.currentSeasonId;
+        setCurrentSeasonId(response.currentSeasonId);
+        const applied = appliedRef.current;
         setSeasonIdState(
-          response.preferredSeasonId ?? response.currentSeasonId,
+          applied
+            ? (applied.seasonId ?? response.currentSeasonId)
+            : (response.preferredSeasonId ?? response.currentSeasonId),
         );
       } catch (e) {
         // ignore — leave seasonId null, callers fall back to their own default
@@ -52,14 +71,36 @@ export const RffmSeasonProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   function setSeasonId(nextSeasonId: number) {
+    appliedRef.current = null;
     setSeasonIdState(nextSeasonId);
+    setSeasonChangeToken((token) => token + 1);
     saveRffmSeasonPreference(nextSeasonId).catch(() => {
       // fire-and-forget: keep the optimistic UI update even if the save fails
     });
   }
 
+  // Applies the season of a saved configuration: no preference is persisted and
+  // no page selection is cleared (only user changes bump seasonChangeToken).
+  // Configurations saved before seasons existed have none: they were built with
+  // the current season, so that is the fallback. If the seasons have not loaded
+  // yet the choice is remembered and wins over the stored preference.
+  const applySeasonId = useCallback((nextSeasonId?: number | null) => {
+    appliedRef.current = { seasonId: nextSeasonId ?? null };
+    const target = nextSeasonId ?? currentSeasonIdRef.current;
+    if (target != null) setSeasonIdState(target);
+  }, []);
+
   return (
-    <RffmSeasonContext.Provider value={{ seasonId, seasons, setSeasonId }}>
+    <RffmSeasonContext.Provider
+      value={{
+        seasonId,
+        currentSeasonId,
+        seasons,
+        seasonChangeToken,
+        setSeasonId,
+        applySeasonId,
+      }}
+    >
       {children}
     </RffmSeasonContext.Provider>
   );

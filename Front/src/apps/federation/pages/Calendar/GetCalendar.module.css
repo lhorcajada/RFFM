@@ -69,3 +69,7 @@
   color: #ffffff; /* use white text on transparent/colored backgrounds */
 }
 /* MatchCard-specific styles moved to component CSS module */
+
+.filterBar {
+  margin-bottom: 12px;
+}

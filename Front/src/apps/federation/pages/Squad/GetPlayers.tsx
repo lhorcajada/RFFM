@@ -26,6 +26,9 @@ import PlayersContainer from "../../components/players/PlayersContainer/PlayersC
 import PlayerRow from "./components/PlayerRow";
 import AgeModal from "./components/AgeModal";
 import ParticipationModal from "./components/ParticipationModal";
+import RffmSeasonSelector from "../../../../shared/components/ui/RffmSeasonSelector/RffmSeasonSelector";
+import { useRffmSeason } from "../../../../shared/context/RffmSeasonContext";
+import useClearOnSeasonChange from "../../../../shared/hooks/useClearOnSeasonChange";
 import PrintableSquad from "../../components/players/PrintableSquad/PrintableSquad";
 import { exportElementsToPdfPacked } from "../../../../shared/services/pdfService";
 import { exportSquadToExcel } from "../../../../shared/services/excelService";
@@ -34,6 +37,8 @@ import type { TeamParticipationSummaryItem } from "../../types/participation";
 
 export default function GetPlayers(): JSX.Element {
   const { user } = useUser();
+  const { seasonId, applySeasonId } = useRffmSeason();
+  const season = String(seasonId ?? 21);
   const [selectedTeam, setSelectedTeam] = useState<SelectedTeam | undefined>(
     undefined,
   );
@@ -60,6 +65,12 @@ export default function GetPlayers(): JSX.Element {
   const [selectedGroup, setSelectedGroup] = useState<string | undefined>(
     undefined,
   );
+
+  useClearOnSeasonChange(() => {
+    setSelectedCompetition(undefined);
+    setSelectedGroup(undefined);
+    setSelectedTeam(undefined);
+  });
 
   const printableRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -103,7 +114,7 @@ export default function GetPlayers(): JSX.Element {
     error,
     ageCounts,
     groupCounts,
-  } = usePlayers(selectedTeam, selectedCompetition, selectedGroup);
+  } = usePlayers(selectedTeam, selectedCompetition, selectedGroup, season);
 
   useEffect(
     () => setTeamDetails(hookTeamDetails as Team | null),
@@ -121,6 +132,7 @@ export default function GetPlayers(): JSX.Element {
         }
         if (!combo || !combo.teamId) setNoConfig(true);
         else {
+          applySeasonId(combo.seasonId);
           setSelectedCompetition(combo.competitionId ?? undefined);
           setSelectedGroup(combo.groupId ?? undefined);
           setSelectedTeam({
@@ -144,20 +156,23 @@ export default function GetPlayers(): JSX.Element {
     <BaseLayout>
       <div className={styles.filters}>
         <Grid container spacing={1} className={styles.filtersGrid}>
-          <Grid item xs={12} sm={4}>
+          <Grid item xs={12} sm={3}>
+            <RffmSeasonSelector />
+          </Grid>
+          <Grid item xs={12} sm={3}>
             <CompetitionSelector
               onChange={handleCompetitionChange}
               value={selectedCompetition}
             />
           </Grid>
-          <Grid item xs={12} sm={4}>
+          <Grid item xs={12} sm={3}>
             <GroupSelector
               competitionId={selectedCompetition}
               onChange={handleGroupChange}
               value={selectedGroup}
             />
           </Grid>
-          <Grid item xs={12} sm={4}>
+          <Grid item xs={12} sm={3}>
             <TeamsSelector
               competitionId={selectedCompetition}
               groupId={selectedGroup}
@@ -196,7 +211,7 @@ export default function GetPlayers(): JSX.Element {
                         const id = String(
                           (selectedTeam as any).id || selectedTeam?.id,
                         );
-                        const data = await getTeamAgeSummary(id, "21");
+                        const data = await getTeamAgeSummary(id, season);
                         const map: Record<number, number> = {};
                         (data || []).forEach((d: any) => {
                           const a = Number(d.age ?? d.ace ?? 0);
@@ -238,7 +253,7 @@ export default function GetPlayers(): JSX.Element {
                         );
                         const data = await getTeamParticipationSummary(
                           id,
-                          "21",
+                          season,
                         );
                         setParticipationData(data || []);
                       } catch (err) {
@@ -332,7 +347,7 @@ export default function GetPlayers(): JSX.Element {
                           try {
                             const data = await getTeamParticipationSummary(
                               id,
-                              "21",
+                              season,
                             );
                             setParticipationData(
                               (data || []) as TeamParticipationSummaryItem[],

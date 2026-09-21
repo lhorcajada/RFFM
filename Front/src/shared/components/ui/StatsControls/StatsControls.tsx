@@ -17,6 +17,9 @@ import {
 import { useUser } from "../../../context/UserContext";
 import CompetitionSelector from "../CompetitionSelector/CompetitionSelector";
 import GroupSelector from "../GroupSelector/GroupSelector";
+import RffmSeasonSelector from "../RffmSeasonSelector/RffmSeasonSelector";
+import { useRffmSeason } from "../../../context/RffmSeasonContext";
+import useClearOnSeasonChange from "../../../hooks/useClearOnSeasonChange";
 
 type Option = { id: string; name: string };
 
@@ -49,6 +52,14 @@ export default function StatsControls({
   const [team1, setTeam1] = React.useState("");
   const [team2, setTeam2] = React.useState("");
   const { user } = useUser();
+  const { seasonId, applySeasonId } = useRffmSeason();
+
+  useClearOnSeasonChange(() => {
+    setCompetitionId("");
+    setGroupId("");
+    setTeam1("");
+    setTeam2("");
+  });
 
   // Competitions are handled by the shared CompetitionSelector component
 
@@ -61,6 +72,7 @@ export default function StatsControls({
           const primaryId =
             settings.find((s: any) => s.isPrimary) || settings[0];
           if (primaryId) {
+            applySeasonId(primaryId.seasonId);
             if (primaryId.competitionId || primaryId.competition?.id)
               setCompetitionId(
                 String(primaryId.competitionId || primaryId.competition?.id)
@@ -89,7 +101,11 @@ export default function StatsControls({
     if (!competitionId || !groupId) return;
     setLoading(true);
     let mounted = true;
-    getTeamsForClassification({ competition: competitionId, group: groupId })
+    getTeamsForClassification({
+      season: String(seasonId ?? 21),
+      competition: competitionId,
+      group: groupId,
+    })
       .then((res: any) => {
         if (!mounted) return;
         const opts = (res || []).map((t: any) => ({
@@ -104,7 +120,7 @@ export default function StatsControls({
     return () => {
       mounted = false;
     };
-  }, [competitionId, groupId]);
+  }, [seasonId, competitionId, groupId]);
 
   // notify parent about selection changes
   const prevRef = React.useRef<
@@ -143,6 +159,9 @@ export default function StatsControls({
   return (
     <Box className={styles.root}>
       <Grid container spacing={1} alignItems="center">
+        <Grid item xs={12} sm={3}>
+          <RffmSeasonSelector />
+        </Grid>
         <Grid item xs={12} sm={3}>
           <CompetitionSelector
             value={competitionId}

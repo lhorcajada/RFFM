@@ -8,6 +8,7 @@ import {
   Typography,
 } from "@mui/material";
 import { getTeamsForClassification } from "../../../../apps/federation/services/api";
+import { useRffmSeason } from "../../../context/RffmSeasonContext";
 type ClassificationTeam = any;
 
 type Team = {
@@ -22,7 +23,7 @@ export default function TeamsSelector({
   competitionId,
   groupId,
   value,
-  season = "21",
+  season,
 }: {
   onChange?: (team?: Team) => void;
   competitionId?: string;
@@ -30,6 +31,8 @@ export default function TeamsSelector({
   value?: string;
   season?: string;
 }) {
+  const { seasonId } = useRffmSeason();
+  const effectiveSeason = season ?? String(seasonId ?? 21);
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,7 +58,7 @@ export default function TeamsSelector({
       setError(null);
       try {
         const payload = await getTeamsForClassification({
-          season: season || "21",
+          season: effectiveSeason,
           competition: competitionId,
           group: groupId,
           playType: "1",
@@ -102,7 +105,7 @@ export default function TeamsSelector({
     return () => {
       mounted = false;
     };
-  }, [competitionId, groupId, season]);
+  }, [competitionId, groupId, effectiveSeason]);
 
   function handleChange(event: any) {
     const id = String(event.target.value ?? "");

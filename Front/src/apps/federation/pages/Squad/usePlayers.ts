@@ -21,7 +21,8 @@ export function extractPlayerIdFromUrl(u?: string): string | null {
 export function usePlayers(
   selectedTeam?: SelectedTeam,
   selectedCompetition?: string,
-  selectedGroup?: string
+  selectedGroup?: string,
+  season: string = "21"
 ) {
   const [players, setPlayers] = useState<Player[]>([]);
   const [ageCounts, setAgeCounts] = useState<Record<number, number>>({});
@@ -71,7 +72,7 @@ export function usePlayers(
             try {
               if (selectedCompetition && selectedGroup) {
                 const clsPayload = await getTeamsForClassification({
-                  season: "21",
+                  season,
                   competition: selectedCompetition,
                   group: selectedGroup,
                   playType: "1",
@@ -178,7 +179,7 @@ export function usePlayers(
     return () => {
       mounted = false;
     };
-  }, [selectedTeam, selectedCompetition, selectedGroup]);
+  }, [selectedTeam, selectedCompetition, selectedGroup, season]);
 
   return {
     players,

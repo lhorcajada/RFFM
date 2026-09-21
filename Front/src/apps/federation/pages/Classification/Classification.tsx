@@ -16,6 +16,9 @@ import Grid from "@mui/material/Grid";
 import CompetitionSelector from "../../../../shared/components/ui/CompetitionSelector/CompetitionSelector";
 import GroupSelector from "../../../../shared/components/ui/GroupSelector/GroupSelector";
 import styles from "./Classification.module.css";
+import RffmSeasonSelector from "../../../../shared/components/ui/RffmSeasonSelector/RffmSeasonSelector";
+import { useRffmSeason } from "../../../../shared/context/RffmSeasonContext";
+import useClearOnSeasonChange from "../../../../shared/hooks/useClearOnSeasonChange";
 
 interface Team {
   teamId: string;
@@ -44,6 +47,13 @@ export default function Classification() {
   );
 
   const { user } = useUser();
+  const { seasonId, applySeasonId } = useRffmSeason();
+  const season = String(seasonId ?? 21);
+
+  useClearOnSeasonChange(() => {
+    setSelectedCompetition(undefined);
+    setSelectedGroup(undefined);
+  });
 
   function handleCompetitionChange(c?: {
     id: string;
@@ -68,6 +78,7 @@ export default function Classification() {
           if (Array.isArray(settings) && settings.length > 0) {
             const primary =
               settings.find((s: any) => s.isPrimary) || settings[0];
+            applySeasonId(primary.seasonId);
             setSelectedCompetition(
               primary.competitionId || primary.competition?.id,
             );
@@ -93,13 +104,13 @@ export default function Classification() {
       try {
         const [teamsData, calData] = await Promise.all([
           getTeamsForClassification({
-            season: "21",
+            season,
             competition: selectedCompetition,
             group: selectedGroup,
             playType: "1",
           }),
           getCalendar({
-            season: "21",
+            season,
             competition: selectedCompetition,
             group: selectedGroup,
             playType: "1",
@@ -262,7 +273,7 @@ export default function Classification() {
     }
 
     load();
-  }, [selectedCompetition, selectedGroup]);
+  }, [season, selectedCompetition, selectedGroup]);
 
   const filtered = (teams as any).sort((a: any, b: any) => b.points - a.points);
 
@@ -274,13 +285,16 @@ export default function Classification() {
       >
         <div className={styles.filters}>
           <Grid container spacing={1} className={styles.filtersGrid}>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12} sm={4}>
+              <RffmSeasonSelector />
+            </Grid>
+            <Grid item xs={12} sm={4}>
               <CompetitionSelector
                 onChange={handleCompetitionChange}
                 value={selectedCompetition}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12} sm={4}>
               <GroupSelector
                 competitionId={selectedCompetition}
                 onChange={handleGroupChange}

@@ -10,6 +10,12 @@ import RoundPanel from "../../../../shared/components/ui/RoundPanel/RoundPanel";
 import useCalendar from "../../../../shared/hooks/useCalendar";
 import { useUser } from "../../../../shared/context/UserContext";
 import { getSettingsForUser } from "../../services/federationApi";
+import Grid from "@mui/material/Grid";
+import CompetitionSelector from "../../../../shared/components/ui/CompetitionSelector/CompetitionSelector";
+import GroupSelector from "../../../../shared/components/ui/GroupSelector/GroupSelector";
+import RffmSeasonSelector from "../../../../shared/components/ui/RffmSeasonSelector/RffmSeasonSelector";
+import { useRffmSeason } from "../../../../shared/context/RffmSeasonContext";
+import useClearOnSeasonChange from "../../../../shared/hooks/useClearOnSeasonChange";
 
 export default function GetCalendar(): JSX.Element {
   const [selectedCompetition, setSelectedCompetition] = useState<
@@ -19,9 +25,21 @@ export default function GetCalendar(): JSX.Element {
   const [selectedGroup, setSelectedGroup] = useState<string | undefined>(
     undefined,
   );
-  const [season] = useState<string>("21");
+  const { seasonId, applySeasonId } = useRffmSeason();
+  const season = String(seasonId ?? 21);
   const location = useLocation();
   const [noConfig, setNoConfig] = useState<boolean>(false);
+
+  useClearOnSeasonChange(() => {
+    setSelectedCompetition(undefined);
+    setSelectedGroup(undefined);
+  });
+
+  function handleCompetitionChange(c?: { id: string }) {
+    if (c?.id !== selectedCompetition) setSelectedGroup(undefined);
+    setSelectedCompetition(c?.id);
+    setNoConfig(false);
+  }
 
   // Load primary configuration from API when user is available
   useEffect(() => {
@@ -38,6 +56,7 @@ export default function GetCalendar(): JSX.Element {
         }
         const primary = settings.find((s: any) => s.isPrimary) || settings[0];
         if (primary) {
+          applySeasonId(primary.seasonId);
           setSelectedCompetition(
             primary.competitionId || primary.competition?.id,
           );
@@ -98,8 +117,28 @@ export default function GetCalendar(): JSX.Element {
 
   return (
     <BaseLayout className={styles.paper}>
-      <ContentLayout title={noConfig ? undefined : "Calendario"}>
-        {noConfig ? (
+      <ContentLayout title="Calendario">
+        <div className={styles.filterBar}>
+          <Grid container spacing={1}>
+            <Grid item xs={12} sm={4}>
+              <RffmSeasonSelector />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <CompetitionSelector
+                onChange={handleCompetitionChange}
+                value={selectedCompetition}
+              />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <GroupSelector
+                competitionId={selectedCompetition}
+                onChange={(g) => setSelectedGroup(g?.id)}
+                value={selectedGroup}
+              />
+            </Grid>
+          </Grid>
+        </div>
+        {noConfig && !selectedGroup ? (
           <EmptyState
             description={"No hay configuración principal guardada."}
           />

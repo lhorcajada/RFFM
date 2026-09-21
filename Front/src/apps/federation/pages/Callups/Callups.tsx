@@ -18,9 +18,13 @@ import Grid from "@mui/material/Grid";
 import CompetitionSelector from "../../../../shared/components/ui/CompetitionSelector/CompetitionSelector";
 import GroupSelector from "../../../../shared/components/ui/GroupSelector/GroupSelector";
 import TeamsSelector from "../../../../shared/components/ui/TeamsSelector/TeamsSelector";
+import RffmSeasonSelector from "../../../../shared/components/ui/RffmSeasonSelector/RffmSeasonSelector";
+import { useRffmSeason } from "../../../../shared/context/RffmSeasonContext";
+import useClearOnSeasonChange from "../../../../shared/hooks/useClearOnSeasonChange";
 
 export default function CallupsPage(): JSX.Element {
   const { user } = useUser();
+  const { seasonId: rffmSeasonId, applySeasonId } = useRffmSeason();
   const [teamId, setTeamId] = useState<string | null>(null);
   const [seasonId, setSeasonId] = useState<string | null>(null);
   const [competitionId, setCompetitionId] = useState<string | null>(null);
@@ -82,6 +86,17 @@ export default function CallupsPage(): JSX.Element {
     setTeamName(t.name);
   }
 
+  useClearOnSeasonChange(() => {
+    setSelectedCompetition(undefined);
+    setSelectedGroup(undefined);
+    setSelectedTeam(undefined);
+    setCompetitionId(null);
+    setGroupId(null);
+    setTeamId(null);
+    setTeamName(null);
+    setData([]);
+  });
+
   // Load initial settings into selectors
   useEffect(() => {
     async function loadSettings() {
@@ -91,6 +106,7 @@ export default function CallupsPage(): JSX.Element {
           if (Array.isArray(settings) && settings.length > 0) {
             const primary =
               settings.find((s: any) => s.isPrimary) || settings[0];
+            applySeasonId(primary.seasonId);
             setSelectedCompetition(
               primary.competitionId || primary.competition?.id,
             );
@@ -161,7 +177,8 @@ export default function CallupsPage(): JSX.Element {
         setLoading(true);
         setError(null);
         const res = await getTeamCallups(teamId, {
-          seasonId: seasonId ?? undefined,
+          seasonId:
+            rffmSeasonId != null ? String(rffmSeasonId) : (seasonId ?? undefined),
           competitionId: competitionId ?? undefined,
           groupId: groupId ?? undefined,
         });
@@ -176,7 +193,7 @@ export default function CallupsPage(): JSX.Element {
     return () => {
       mounted = false;
     };
-  }, [teamId, seasonId, competitionId, groupId]);
+  }, [teamId, seasonId, rffmSeasonId, competitionId, groupId]);
 
   const sortedPlayers = useMemo(() => {
     const arr = (data || []).slice();
@@ -200,20 +217,23 @@ export default function CallupsPage(): JSX.Element {
       >
         <div className={styles.filters}>
           <Grid container spacing={1} className={styles.filtersGrid}>
-            <Grid item xs={12} sm={4}>
+            <Grid item xs={12} sm={3}>
+              <RffmSeasonSelector />
+            </Grid>
+            <Grid item xs={12} sm={3}>
               <CompetitionSelector
                 onChange={handleCompetitionChange}
                 value={selectedCompetition}
               />
             </Grid>
-            <Grid item xs={12} sm={4}>
+            <Grid item xs={12} sm={3}>
               <GroupSelector
                 competitionId={selectedCompetition}
                 onChange={handleGroupChange}
                 value={selectedGroup}
               />
             </Grid>
-            <Grid item xs={12} sm={4}>
+            <Grid item xs={12} sm={3}>
               <TeamsSelector
                 competitionId={selectedCompetition}
                 groupId={selectedGroup}

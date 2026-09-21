@@ -16,6 +16,7 @@ type ConfigCardProps = {
   teamName?: string;
   competitionName?: string;
   groupName?: string;
+  seasonLabel?: string;
   isPrimary?: boolean;
   onSetPrimary: (id: string) => void;
   onDelete: (id: string) => void;
@@ -26,6 +27,7 @@ export default function ConfigCard({
   teamName,
   competitionName,
   groupName,
+  seasonLabel,
   isPrimary,
   onSetPrimary,
   onDelete,
@@ -43,6 +45,13 @@ export default function ConfigCard({
             variant="outlined"
           />
           <Chip size="small" label={groupName ?? "-"} variant="outlined" />
+          {seasonLabel && (
+            <Chip
+              size="small"
+              label={`Temporada ${seasonLabel}`}
+              variant="outlined"
+            />
+          )}
         </Stack>
       </CardContent>
       <CardActions className={styles.actions}>

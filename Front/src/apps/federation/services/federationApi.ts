@@ -60,7 +60,8 @@ export const getTeamsForClassification = (params: {
 }) => classificationService.getTeamsForClassification(params);
 
 // Competition methods
-export const getCompetitions = () => competitionService.getCompetitions();
+export const getCompetitions = (season?: number | null) =>
+  competitionService.getCompetitions(season);
 
 export const getGroups = (competitionId?: string) =>
   competitionService.getGroups(competitionId);

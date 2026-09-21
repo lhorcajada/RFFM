@@ -9,6 +9,7 @@ export type SavedComboRequest = {
   teamId?: string;
   teamName?: string;
   isPrimary?: boolean;
+  seasonId?: number | null;
 };
 
 export type SavedComboResponse = {
@@ -21,6 +22,7 @@ export type SavedComboResponse = {
   teamName?: string;
   createdAt: number;
   isPrimary?: boolean;
+  seasonId?: number | null;
 };
 
 export class SettingsService {

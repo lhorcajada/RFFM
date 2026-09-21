@@ -1,8 +1,10 @@
 import { client } from "../../../../core/api/client";
 
 export class CompetitionService {
-  async getCompetitions() {
-    const res = await client.get("competitions");
+  async getCompetitions(season?: number | null) {
+    const res = await client.get("competitions", {
+      params: season != null ? { season } : undefined,
+    });
     return res.data;
   }
 

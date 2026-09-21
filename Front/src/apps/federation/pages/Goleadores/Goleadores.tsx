@@ -11,6 +11,9 @@ import Grid from "@mui/material/Grid";
 import CompetitionSelector from "../../../../shared/components/ui/CompetitionSelector/CompetitionSelector";
 import GroupSelector from "../../../../shared/components/ui/GroupSelector/GroupSelector";
 import styles from "./Goleadores.module.css";
+import RffmSeasonSelector from "../../../../shared/components/ui/RffmSeasonSelector/RffmSeasonSelector";
+import { useRffmSeason } from "../../../../shared/context/RffmSeasonContext";
+import useClearOnSeasonChange from "../../../../shared/hooks/useClearOnSeasonChange";
 
 const Goleadores: React.FC = () => {
   const [goleadores, setGoleadores] = useState<Goleador[]>([]);
@@ -25,6 +28,12 @@ const Goleadores: React.FC = () => {
   );
 
   const { user } = useUser();
+  const { applySeasonId } = useRffmSeason();
+
+  useClearOnSeasonChange(() => {
+    setSelectedCompetition(undefined);
+    setSelectedGroup(undefined);
+  });
 
   function handleCompetitionChange(c?: {
     id: string;
@@ -49,6 +58,7 @@ const Goleadores: React.FC = () => {
           if (Array.isArray(settings) && settings.length > 0) {
             const primary =
               settings.find((s: any) => s.isPrimary) || settings[0];
+            applySeasonId(primary.seasonId);
             setSelectedCompetition(
               primary.competitionId || primary.competition?.id,
             );
@@ -92,13 +102,16 @@ const Goleadores: React.FC = () => {
       >
         <div className={styles.filters}>
           <Grid container spacing={1} className={styles.filtersGrid}>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12} sm={4}>
+              <RffmSeasonSelector />
+            </Grid>
+            <Grid item xs={12} sm={4}>
               <CompetitionSelector
                 onChange={handleCompetitionChange}
                 value={selectedCompetition}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12} sm={4}>
               <GroupSelector
                 competitionId={selectedCompetition}
                 onChange={handleGroupChange}

@@ -30,7 +30,7 @@ describe("Settings — RFFM season selector", () => {
     vi.clearAllMocks();
   });
 
-  it("renders the RffmSeasonSelector inside the club search block", async () => {
+  it("renders the RffmSeasonSelector above the competition, group and team selectors", async () => {
     render(
       <MemoryRouter>
         <Settings />

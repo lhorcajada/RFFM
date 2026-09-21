@@ -8,6 +8,7 @@ import {
   Typography,
 } from "@mui/material";
 import { getCompetitions } from "../../../../apps/federation/services/api";
+import { useRffmSeason } from "../../../context/RffmSeasonContext";
 
 type Competition = { id: string; name: string; categoryGroup: string };
 export default function CompetitionSelector({
@@ -17,6 +18,7 @@ export default function CompetitionSelector({
   onChange?: (c?: Competition) => void;
   value?: string;
 }) {
+  const { seasonId } = useRffmSeason();
   const [items, setItems] = useState<Competition[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -28,7 +30,7 @@ export default function CompetitionSelector({
       setLoading(true);
       setError(null);
       try {
-        const payload = await getCompetitions();
+        const payload = await getCompetitions(seasonId);
         let data: any[] = [];
         if (Array.isArray(payload)) data = payload;
         else if (Array.isArray(payload.items)) data = payload.items;
@@ -66,7 +68,7 @@ export default function CompetitionSelector({
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [seasonId]);
 
   function handleChange(e: any) {
     const id = e.target.value;

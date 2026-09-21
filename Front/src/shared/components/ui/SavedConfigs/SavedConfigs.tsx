@@ -14,6 +14,7 @@ import {
   getSettingsForUser,
 } from "../../../../apps/federation/services/federationApi";
 import { useUser } from "../../../context/UserContext";
+import { useRffmSeason } from "../../../context/RffmSeasonContext";
 
 type SavedCombo = {
   id: string;
@@ -25,6 +26,7 @@ type SavedCombo = {
   teamName?: string;
   createdAt: number;
   isPrimary?: boolean;
+  seasonId?: number | null;
 };
 
 export default function SavedConfigs({ compact }: { compact?: boolean }) {
@@ -34,6 +36,16 @@ export default function SavedConfigs({ compact }: { compact?: boolean }) {
   const [primaryId, setPrimaryId] = React.useState<string | null>(null);
 
   const { user } = useUser();
+  const { seasons, currentSeasonId } = useRffmSeason();
+
+  function seasonLabelFor(seasonId?: number | null) {
+    const effectiveSeasonId = seasonId ?? currentSeasonId;
+    if (effectiveSeasonId == null) return undefined;
+    return (
+      seasons.find((x) => x.id === effectiveSeasonId)?.label ??
+      String(effectiveSeasonId)
+    );
+  }
 
   React.useEffect(() => {
     loadSettings();
@@ -125,6 +137,7 @@ export default function SavedConfigs({ compact }: { compact?: boolean }) {
                   teamName={s.teamName}
                   competitionName={s.competitionName}
                   groupName={s.groupName}
+                  seasonLabel={seasonLabelFor(s.seasonId)}
                   isPrimary={primaryId === s.id}
                   onSetPrimary={(id) => {
                     setAsPrimary(id);
