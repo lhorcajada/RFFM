@@ -5,11 +5,15 @@ import { coachAuthService } from "../../apps/coach/services/authService";
 export default function RequireAuth({
   children,
   requiredRole,
+  requiredRoles,
 }: {
   children: JSX.Element;
   requiredRole?: string;
+  requiredRoles?: string[];
 }) {
   const [allowed, setAllowed] = useState<boolean | null>(null);
+  const roles = requiredRoles ?? (requiredRole ? [requiredRole] : undefined);
+  const rolesKey = roles?.join(",");
 
   useEffect(() => {
     try {
@@ -22,10 +26,12 @@ export default function RequireAuth({
         return;
       }
 
-      if (!requiredRole) {
+      if (!roles || roles.length === 0) {
         setAllowed(true);
         return;
       }
+
+      const hasAnyRole = () => roles.some((role) => coachAuthService.hasRole(role));
 
       // If role required, allow a longer grace period and react to token updates
       let cancelled = false;
@@ -41,7 +47,7 @@ export default function RequireAuth({
         const start = Date.now();
         const timeout = 3000;
         while (Date.now() - start < timeout && !cancelled) {
-          if (coachAuthService.hasRole(requiredRole)) {
+          if (hasAnyRole()) {
             setAllowed(true);
             window.removeEventListener(
               "rffm.coach_token_updated",
@@ -55,7 +61,7 @@ export default function RequireAuth({
           "rffm.coach_token_updated",
           eventHandler as EventListener
         );
-        if (!cancelled) setAllowed(coachAuthService.hasRole(requiredRole));
+        if (!cancelled) setAllowed(hasAnyRole());
       };
       checkRole();
       return () => {
@@ -73,7 +79,7 @@ export default function RequireAuth({
       } catch (er) {}
       setAllowed(false);
     }
-  }, [requiredRole]);
+  }, [rolesKey]);
 
   if (allowed === null) return null; // or a spinner if you prefer
 
