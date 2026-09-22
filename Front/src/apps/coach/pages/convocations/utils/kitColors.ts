@@ -6,6 +6,8 @@ export const KIT_COLOR_PALETTE: { name: string; hex: string }[] = [
   { name: "Azul", hex: "#0D47A1" },
   { name: "Blanco", hex: "#FFFFFF" },
   { name: "Negro", hex: "#000000" },
+  { name: "Gris", hex: "#9E9E9E" },
+  { name: "Gris oscuro", hex: "#424242" },
   { name: "Amarillo", hex: "#FDD835" },
   { name: "Verde", hex: "#43A047" },
   { name: "Naranja", hex: "#FB8C00" },
