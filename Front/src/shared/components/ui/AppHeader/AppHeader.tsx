@@ -16,7 +16,7 @@ import { useUser } from "../../../context/UserContext";
 import useAuthToken from "../../../hooks/useAuthToken";
 import useMyPendingSanctionsCount from "../../../hooks/useMyPendingSanctionsCount";
 import useTeamFundBalance from "../../../hooks/useTeamFundBalance";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import useRootClassObserver from "../../../hooks/useRootClassObserver";
 
 interface AppHeaderProps {
@@ -26,6 +26,8 @@ interface AppHeaderProps {
 export default function AppHeader({ title }: AppHeaderProps) {
   const { user, logout } = useUser();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isFederationApp = location.pathname.startsWith("/federation");
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
 
   const open = Boolean(anchorEl);
@@ -171,7 +173,7 @@ export default function AppHeader({ title }: AppHeaderProps) {
         </div>
 
         <div className={styles.userBox}>
-          {teamFund.visible && (
+          {teamFund.visible && !isFederationApp && (
             <IconButton
               onClick={handleOpenTeamFund}
               size="small"
