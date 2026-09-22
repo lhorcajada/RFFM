@@ -4,6 +4,7 @@ import EmailIcon from "@mui/icons-material/Email";
 import HomeIcon from "@mui/icons-material/Home";
 import LocationCityIcon from "@mui/icons-material/LocationCity";
 import FlightLandIcon from "@mui/icons-material/FlightLand";
+import BadgeIcon from "@mui/icons-material/Badge";
 import styles from "../PlayerDetail.module.css";
 import { TeamPlayerResponse } from "../../../services/teamplayerService";
 
@@ -43,6 +44,7 @@ export default function ContactInfo({ teamPlayer }: Props) {
         <div className={styles.infoGrid}>
           <Tile icon={<PhoneIcon fontSize="inherit" />} label="Teléfono" value={teamPlayer.contactInfo?.phone} />
           <Tile icon={<EmailIcon fontSize="inherit" />} label="Email" value={teamPlayer.contactInfo?.email} wide />
+          <Tile icon={<BadgeIcon fontSize="inherit" />} label="DNI" value={teamPlayer.player?.dni} />
           <Tile icon={<HomeIcon fontSize="inherit" />} label="Calle" value={address?.street} wide />
           <Tile icon={<LocationCityIcon fontSize="inherit" />} label="Ciudad / CP" value={cityAndPostalCode} />
           <Tile icon={<FlightLandIcon fontSize="inherit" />} label="Procedencia" value={teamPlayer.player?.procedencia} />

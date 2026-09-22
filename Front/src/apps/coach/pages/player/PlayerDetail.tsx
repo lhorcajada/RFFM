@@ -323,6 +323,14 @@ export default function PlayerDetail() {
                           value={form.procedencia ?? ""}
                           onChange={(e) => setForm({ ...form, procedencia: e.target.value })}
                         />
+                        <div style={{ height: 8 }} />
+                        <TextField
+                          label="DNI"
+                          size="small"
+                          fullWidth
+                          value={form.dni ?? ""}
+                          onChange={(e) => setForm({ ...form, dni: e.target.value })}
+                        />
                       </div>
                     </div>
                   )

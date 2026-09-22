@@ -64,7 +64,8 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
                                 PlayerInfo = req.PlayerInfo is null
                                     ? null
                                     : new PlayerInfoRequest(null, null, null, req.PlayerInfo.UrlPhoto,
-                                        req.PlayerInfo.Enfermedades, req.PlayerInfo.Alergias, req.PlayerInfo.Procedencia),
+                                        req.PlayerInfo.Enfermedades, req.PlayerInfo.Alergias, req.PlayerInfo.Procedencia,
+                                        req.PlayerInfo.Dni),
                             };
                         }
 
@@ -98,6 +99,7 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
                                 if (req.PlayerInfo.Enfermedades != null) playerEntity.UpdateEnfermedades(req.PlayerInfo.Enfermedades);
                                 if (req.PlayerInfo.Alergias != null) playerEntity.UpdateAlergias(req.PlayerInfo.Alergias);
                                 if (req.PlayerInfo.Procedencia != null) playerEntity.UpdateProcedencia(req.PlayerInfo.Procedencia);
+                                if (req.PlayerInfo.Dni != null) playerEntity.UpdateDni(req.PlayerInfo.Dni);
                             }
                         }
 
@@ -251,7 +253,7 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
         );
 
         public record PlayerInfoRequest(string? Name, string? LastName, string? Alias, string? UrlPhoto,
-            string? Enfermedades = null, string? Alergias = null, string? Procedencia = null);
+            string? Enfermedades = null, string? Alergias = null, string? Procedencia = null, string? Dni = null);
 
         public record DemarcationRequest(int? ActivePositionId, int[]? PossibleDemarcations);
         public record AddressRequest(string? Street, string? City, string? Province, string? PostalCode, string? Country);

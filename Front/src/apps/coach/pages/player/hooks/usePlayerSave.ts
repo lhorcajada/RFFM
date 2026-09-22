@@ -58,6 +58,7 @@ export function usePlayerSave({
           enfermedades: form.enfermedades ?? null,
           alergias: form.alergias ?? null,
           procedencia: form.procedencia ?? null,
+          dni: form.dni ?? null,
         },
         demarcation: {
           activePositionId: form.activePositionId ?? null,

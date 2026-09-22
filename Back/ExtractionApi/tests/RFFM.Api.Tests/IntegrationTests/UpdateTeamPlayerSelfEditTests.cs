@@ -264,6 +264,56 @@ namespace RFFM.Api.Tests.IntegrationTests
         }
 
         [Fact]
+        public async Task Coach_CanUpdateDni()
+        {
+            var teamPlayerId = await CreateTeamPlayerAsync();
+            var (host, client) = await StartHostAsync(new UpdateTeamPlayer());
+            using var _ = host;
+
+            var body = new UpdateTeamPlayer.UpdateRequest(
+                Dorsal: null,
+                PlayerInfo: new UpdateTeamPlayer.PlayerInfoRequest(null, null, null, null, Dni: "12345678Z"),
+                Demarcation: null,
+                ContactInfo: null,
+                PhysicalInfo: null,
+                FamilyMembers: null);
+
+            var response = await client.SendAsync(BuildUpdateRequest(teamPlayerId, body, "Coach"));
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var resp = await response.Content.ReadFromJsonAsync<UpdateTeamPlayer.TeamPlayerResponse>();
+            Assert.NotNull(resp);
+            Assert.Equal("12345678Z", resp!.Player.Dni);
+        }
+
+        [Fact]
+        public async Task LinkedPlayer_CanUpdateOwnDni()
+        {
+            var teamPlayerId = await CreateTeamPlayerAsync();
+            var teamId = await GetTeamIdForTeamPlayerAsync(teamPlayerId);
+            var applicationUserId = $"user-{Guid.NewGuid():N}";
+            await LinkUserToTeamPlayerAsync(applicationUserId, teamPlayerId, teamId, Membership.Player.Id);
+
+            var (host, client) = await StartHostAsync(new UpdateTeamPlayer());
+            using var _ = host;
+
+            var body = new UpdateTeamPlayer.UpdateRequest(
+                Dorsal: null,
+                PlayerInfo: new UpdateTeamPlayer.PlayerInfoRequest(null, null, null, null, Dni: "87654321X"),
+                Demarcation: null,
+                ContactInfo: null,
+                PhysicalInfo: null,
+                FamilyMembers: null);
+
+            var response = await client.SendAsync(BuildUpdateRequest(teamPlayerId, body, "Player", applicationUserId));
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var resp = await response.Content.ReadFromJsonAsync<UpdateTeamPlayer.TeamPlayerResponse>();
+            Assert.NotNull(resp);
+            Assert.Equal("87654321X", resp!.Player.Dni);
+        }
+
+        [Fact]
         public async Task LinkedPlayer_CanUpdateContactPhysicalFamilyAndPhoto_ButNotDorsalDemarcationOrName()
         {
             var teamPlayerId = await CreateTeamPlayerAsync(withExistingFamilyMember: true);

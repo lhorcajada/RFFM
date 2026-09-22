@@ -283,6 +283,17 @@ describe("PlayerDetail — edición restringida por pestaña (Player/FamilyMembe
     expect(screen.getByLabelText(/^procedencia$/i)).toBeInTheDocument();
   });
 
+  it("muestra el campo DNI en Contacto en modo edición", async () => {
+    mockUsePermissions.mockReturnValue({ roles: ["Player"], loading: false });
+
+    renderPage({ editing: true });
+
+    const { default: userEvent } = await import("@testing-library/user-event");
+    await userEvent.click(screen.getByRole("tab", { name: /contacto/i }));
+
+    expect(screen.getByLabelText(/^dni$/i)).toBeInTheDocument();
+  });
+
   it("muestra el formulario de Físico para el rol Player en modo edición", async () => {
     mockUsePermissions.mockReturnValue({ roles: ["Player"], loading: false });
 
