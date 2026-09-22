@@ -15,6 +15,7 @@ import { useNavigate } from "react-router-dom";
 import styles from "./Dashboard.module.css";
 import { coachAuthService } from "../../../coach/services/authService";
 import { useEffect } from "react";
+import PreferredTeamCard from "./components/PreferredTeamCard";
 
 export default function Dashboard(): JSX.Element {
   const navigate = useNavigate();
@@ -42,6 +43,7 @@ export default function Dashboard(): JSX.Element {
         }
       >
         <div className={styles.contentWrap}>
+          <PreferredTeamCard />
           <div className={styles.cards}>
             <DashboardCard
               title="Plantilla"
