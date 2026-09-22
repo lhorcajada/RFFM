@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CircularProgress, Stack } from "@mui/material";
+import { Button, CircularProgress, Stack } from "@mui/material";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import EmptyState from "../../../../shared/components/ui/EmptyState/EmptyState";
@@ -55,7 +56,21 @@ export default function MyDocuments() {
 
   return (
     <BaseLayout hideFooterMenu>
-      <ContentLayout title="Mis documentos" subtitle="Autorizaciones y documentos de tu jugador">
+      <ContentLayout
+        title="Mis documentos"
+        subtitle="Autorizaciones y documentos de tu jugador"
+        actionBar={
+          <Button
+            startIcon={<ArrowBackIcon />}
+            onClick={() => navigate("/coach/team-dashboard")}
+            variant="outlined"
+            size="small"
+            sx={{ marginLeft: "auto" }}
+          >
+            Volver
+          </Button>
+        }
+      >
         {loading ? (
           <Stack alignItems="center" sx={{ py: 6 }}>
             <CircularProgress size={32} />

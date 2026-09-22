@@ -22,6 +22,35 @@ describe("MyDocuments", () => {
     vi.clearAllMocks();
   });
 
+  it("muestra una barra de acciones con un botón para volver al panel del equipo", async () => {
+    mockGetMyProfile.mockResolvedValue({
+      roleName: "Player",
+      playerId: "p1",
+      teamId: "t1",
+      teamPlayerId: "tp1",
+    });
+    mockGetDocumentTypes.mockResolvedValue([]);
+    mockGetPlayerDocuments.mockResolvedValue([]);
+
+    const { default: MyDocuments } = await import("../MyDocuments");
+    const { render, screen, waitFor } = await import("@testing-library/react");
+    const { MemoryRouter } = await import("react-router-dom");
+    const { UserProvider } = await import("../../../../../shared/context/UserContext");
+
+    render(
+      <MemoryRouter>
+        <UserProvider>
+          <MyDocuments />
+        </UserProvider>
+      </MemoryRouter>
+    );
+
+    const backButton = await waitFor(() =>
+      screen.getByRole("button", { name: /volver/i })
+    );
+    expect(backButton).toBeInTheDocument();
+  });
+
   it("calls getMyProfile on mount", async () => {
     mockGetMyProfile.mockResolvedValue({
       roleName: "Player",
