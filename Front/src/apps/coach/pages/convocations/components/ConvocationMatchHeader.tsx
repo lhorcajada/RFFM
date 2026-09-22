@@ -7,6 +7,7 @@ import TeamNotesEditor from "./TeamNotesEditor";
 import Jersey from "../../../../federation/components/players/Jersey/Jersey";
 import type { ClubKit } from "../../../services/kitService";
 import type { MatchState } from "./convocationMatchDetail.types";
+import { formatDateES } from "../utils/convocationSummary";
 import styles from "../ConvocationMatchDetail.module.css";
 
 type Props = {
@@ -75,7 +76,7 @@ export default function ConvocationMatchHeader({
       </div>
 
       <div className={styles.matchMeta}>
-        <span className={styles.matchDateLabel}>{match.date}</span>
+        <span className={styles.matchDateLabel}>{formatDateES(match.date)}</span>
         {match.field && (
           <>
             <span className={styles.matchMetaSep}>·</span>
