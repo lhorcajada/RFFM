@@ -11,8 +11,10 @@ import UpcomingEventsWidget from "./components/UpcomingEventsWidget";
 import NewsWidget from "./components/NewsWidget";
 import styles from "../Dashboard/Dashboard.module.css";
 import teamDashboardStyles from "./TeamDashboard.module.css";
+import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess";
 
 export default function TeamDashboard() {
+  useAuditPageAccess('TeamDashboard');
   const navigate = useNavigate();
   const { teamTitleNode, clubSubtitleNode, team } = useTeamAndClub();
   const { isPlayer } = usePlayerAutoLoad();

@@ -48,6 +48,7 @@ import styles from "./Trainings.module.css";
 import { buildExercisePrintHtml } from "./exercisePrint";
 import { buildSessionPrintHtml } from "./sessionPrint";
 import { hasBoardObjects, tryParseBoardSnapshot } from "../../components/TacticalBoardSnapshotPreview";
+import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess";
 
 function formatDate(iso: string | null) {
   if (!iso) return "Sin fecha";
@@ -171,6 +172,7 @@ async function openSessionWindow(sessionId: string, teamId: string, options?: { 
 }
 
 export default function Trainings() {
+  useAuditPageAccess('Trainings');
   const navigate = useNavigate();
   const location = useLocation();
   const { team, teamTitleNode } = useTeamAndClub();

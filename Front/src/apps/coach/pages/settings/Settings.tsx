@@ -11,8 +11,10 @@ import ClubSelector from "./components/ClubSelector/ClubSelector";
 import MyTeams from "./components/MyTeams/MyTeams";
 import { Button, Stack } from "@mui/material";
 import SeasonOption from "./components/Seasons/SeasonOption/SeasonOption";
+import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess";
 
 const Settings: React.FC = () => {
+  useAuditPageAccess('Settings');
   const [preferredClubId, setPreferredClubId] = useState<string | null>(null);
   const [preferredTeamId, setPreferredTeamId] = useState<string | null>(null);
   const [configurationId, setConfigurationId] = useState<number | null>(null);

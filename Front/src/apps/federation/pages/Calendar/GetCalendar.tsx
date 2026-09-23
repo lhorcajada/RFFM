@@ -16,8 +16,10 @@ import GroupSelector from "../../../../shared/components/ui/GroupSelector/GroupS
 import RffmSeasonSelector from "../../../../shared/components/ui/RffmSeasonSelector/RffmSeasonSelector";
 import { useRffmSeason } from "../../../../shared/context/RffmSeasonContext";
 import useClearOnSeasonChange from "../../../../shared/hooks/useClearOnSeasonChange";
+import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess";
 
 export default function GetCalendar(): JSX.Element {
+  useAuditPageAccess('Calendar');
   const [selectedCompetition, setSelectedCompetition] = useState<
     string | undefined
   >(undefined);

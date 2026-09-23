@@ -24,6 +24,7 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import { usePermissions } from "../../../../shared/hooks/usePermissions";
+import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess";
 import { COACH_FEATURE_ROUTES } from "../../constants/featureRoutes";
 import useTeamAndClub from "../../hooks/useTeamAndClub";
 import useTeamDashboardBack from "../../hooks/useTeamDashboardBack";
@@ -34,6 +35,7 @@ import GameModelTree from "./components/GameModelTree";
 import styles from "./GameModel.module.css";
 
 export default function GameModel() {
+  useAuditPageAccess('GameModel');
   const navigate = useNavigate();
   const location = useLocation();
   const { team, teamTitleNode } = useTeamAndClub();

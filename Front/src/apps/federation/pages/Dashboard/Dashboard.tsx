@@ -16,8 +16,10 @@ import styles from "./Dashboard.module.css";
 import { coachAuthService } from "../../../coach/services/authService";
 import { useEffect } from "react";
 import PreferredTeamCard from "./components/PreferredTeamCard";
+import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess";
 
 export default function Dashboard(): JSX.Element {
+  useAuditPageAccess('Dashboard');
   const navigate = useNavigate();
 
   useEffect(() => {

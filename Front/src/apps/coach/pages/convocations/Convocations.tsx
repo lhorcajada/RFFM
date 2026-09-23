@@ -14,6 +14,7 @@ import useTeamDashboardBack from "../../hooks/useTeamDashboardBack";
 import { useIsPlayerRole } from "../../hooks/useIsPlayerRole";
 import useEventAttendanceSummaries from "../../hooks/useEventAttendanceSummaries";
 import { coachAuthService } from "../../services/authService";
+import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess";
 import MatchCard from "./components/MatchCard";
 import AgendaList from "./components/AgendaList";
 import { DAYS_ES, MONTHS_ES, buildCalendarGrid, toDateKey } from "./helpers/convocationUtils";
@@ -24,6 +25,7 @@ import type { NormalizedMatch } from "./types";
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function Convocations() {
+  useAuditPageAccess('Convocations');
   const navigate = useNavigate();
   const location = useLocation();
   const goToTeamDashboard = useTeamDashboardBack();

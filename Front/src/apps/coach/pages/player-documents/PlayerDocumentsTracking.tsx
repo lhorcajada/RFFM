@@ -27,6 +27,7 @@ import {
   type TeamPlayerDocumentStatusResponse,
 } from "../../services/playerDocumentService";
 import { fetchPlayerPhoto } from "../../services/playerService";
+import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess";
 import TeamPlayerDocumentCard from "./components/TeamPlayerDocumentCard";
 import DocumentReportButton from "./components/DocumentReportButton";
 import DocumentZipButton from "./components/DocumentZipButton";
@@ -42,6 +43,7 @@ const STATUS_GROUP_LABELS: Record<PlayerDocumentStatus, string> = {
 };
 
 export default function PlayerDocumentsTracking() {
+  useAuditPageAccess('PlayerDocuments');
   const { team } = useTeamAndClub();
   const goToTeamDashboard = useTeamDashboardBack();
   const theme = useTheme();

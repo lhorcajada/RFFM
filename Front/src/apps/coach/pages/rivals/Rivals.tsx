@@ -23,12 +23,14 @@ import AddIcon from "@mui/icons-material/Add";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import useTeamDashboardBack from "../../hooks/useTeamDashboardBack";
 import { getRivals, createRival, updateRival, uploadRivalPhoto, Rival } from "../../services/rivalService";
+import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess";
 import ClubCromo from "./components/ClubCromo";
 import { clubService } from "../../../federation/services/Federation/ClubService";
 import ConfirmDialog from "../../../../shared/components/ui/ConfirmDialog/ConfirmDialog";
 import styles from "./Rivals.module.css";
 
 export default function Rivals() {
+  useAuditPageAccess('Rivals');
   const goToTeamDashboard = useTeamDashboardBack();
   const [rivals, setRivals] = useState<Rival[]>([]);
   const [loading, setLoading] = useState(false);

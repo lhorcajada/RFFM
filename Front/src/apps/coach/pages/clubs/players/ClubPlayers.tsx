@@ -10,9 +10,11 @@ import PreferredClubPlayersList from "../components/PreferredClubPlayersList";
 import { getPlayersByClub, createPlayer } from "../../../services/playerService";
 import type { PlayerResponse } from "../../../services/teamplayerService";
 import type { Player } from "../../../types/player";
+import { useAuditPageAccess } from "../../../../../shared/hooks/useAuditPageAccess";
 import styles from "./ClubPlayers.module.css";
 
 export default function ClubPlayers() {
+  useAuditPageAccess('ClubPlayers');
   const { id } = useParams();
   const { search } = useLocation();
   const navigate = useNavigate();

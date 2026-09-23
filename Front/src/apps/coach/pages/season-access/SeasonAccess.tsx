@@ -13,11 +13,13 @@ import SelectionPlayersTab from "./components/SelectionPlayersTab";
 import TestsTab from "./components/TestsTab";
 import useSeasonAccess from "./hooks/useSeasonAccess";
 import useTeamDashboardBack from "../../hooks/useTeamDashboardBack";
+import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess";
 import { CATEGORY_ORDER, type CategoryKey } from "./helpers/seasonAccess.helpers";
 
 import styles from "./SeasonAccess.module.css";
 
 export default function SeasonAccess() {
+  useAuditPageAccess('SeasonAccess');
   const navigate = useNavigate();
   const goToTeamDashboard = useTeamDashboardBack();
   const [tabIndex, setTabIndex] = useState(0);

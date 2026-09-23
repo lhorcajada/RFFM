@@ -17,6 +17,7 @@ import type {
   CalendarMatch,
   CalendarRoundInfo,
 } from "../../types/calendarMatchDay";
+import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess";
 
 type MatchdayCombo = {
   team: { id: string; name?: string };
@@ -136,6 +137,7 @@ function pickRoundForWeek(params: {
 }
 
 export default function Matchday() {
+  useAuditPageAccess('Matchday');
   const { user } = useUser();
   const [matches, setMatches] = useState<TeamMatchItem[]>([]);
   const [hasData, setHasData] = useState(false);

@@ -19,12 +19,14 @@ import seasonService, {
 } from "../../services/seasonService";
 import EmptyState from "../../../../shared/components/ui/EmptyState/EmptyState";
 import { coachAuthService } from "../../services/authService";
+import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess";
 import styles from "./Attendance.module.css";
 import { useEffect, useRef, useState } from "react";
 import { TextField, FormControlLabel, Switch } from "@mui/material";
 import { getDefaultAttendanceDateRange } from "./attendanceUtils";
 
 export default function Attendance() {
+  useAuditPageAccess('Events');
   const goToTeamDashboard = useTeamDashboardBack();
   const {
     team,

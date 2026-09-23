@@ -25,6 +25,7 @@ import SquadStatistics from "./components/SquadStatistics";
 import PlayerFormLegend from "../../components/PlayerFormLegend/PlayerFormLegend";
 import type { SeasonPlayerStats } from "../convocations/components/simulation/liveMatch.types";
 import type { PlayerRating } from "../../types/playerRating";
+import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess";
 import styles from "./Squad.module.css";
 
 const useTabState = useState;
@@ -72,6 +73,7 @@ function groupByPosition(players: any[]) {
 }
 
 export default function Squad() {
+  useAuditPageAccess('Squad');
   const navigate = useNavigate();
   const goToTeamDashboard = useTeamDashboardBack();
   const [squadSearchParams] = useSearchParams();

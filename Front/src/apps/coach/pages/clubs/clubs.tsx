@@ -9,9 +9,11 @@ import Typography from "@mui/material/Typography";
 import EmptyState from "../../../../shared/components/ui/EmptyState/EmptyState";
 import clubService from "../../services/clubService";
 import type { UserClubsApiResponse } from "../../types/userClubs";
+import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess";
 import ClubCard from "./ClubCard";
 
 export default function Clubs() {
+  useAuditPageAccess('ClubManagement');
   const navigate = useNavigate();
   const [clubs, setClubs] = useState<UserClubsApiResponse>([]);
   const [loading, setLoading] = useState(false);

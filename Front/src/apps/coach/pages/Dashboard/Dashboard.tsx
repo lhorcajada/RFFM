@@ -7,8 +7,10 @@ import { usePreferredSelection } from "./hooks/usePreferredSelection";
 import { usePlayerAutoLoad } from "./hooks/usePlayerAutoLoad";
 import DashboardActionBar from "./components/DashboardActionBar";
 import DashboardCards from "./components/DashboardCards";
+import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess";
 
 export default function CoachDashboard() {
+  useAuditPageAccess('Dashboard');
   const { teamTitleNode, clubSubtitleNode } = useTeamAndClub();
   const selectedSeason = "";
   const { snackbar, setSnackbar } = usePreferredSelection(selectedSeason);

@@ -31,8 +31,10 @@ import { useNavigate } from "react-router-dom";
 import { Box } from "@mui/material";
 import teamService, { TeamResponse } from "../../services/teamService";
 import seasonService, { Season } from "../../services/seasonService";
+import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess";
 
 export default function ClubTeams() {
+  useAuditPageAccess('ClubTeams');
   const navigate = useNavigate();
   const { id } = useParams();
   const { search } = useLocation();

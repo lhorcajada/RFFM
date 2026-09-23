@@ -13,10 +13,12 @@ import {
   type DocumentTypeResponse,
   type PlayerDocumentResponse,
 } from "../../services/playerDocumentService";
+import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess";
 import MyDocumentCard from "./components/MyDocumentCard";
 import styles from "./MyDocuments.module.css";
 
 export default function MyDocuments() {
+  useAuditPageAccess('MyDocuments');
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [teamPlayerId, setTeamPlayerId] = useState<string | null>(null);

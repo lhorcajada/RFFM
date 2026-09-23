@@ -14,8 +14,10 @@ import styles from "./Goleadores.module.css";
 import RffmSeasonSelector from "../../../../shared/components/ui/RffmSeasonSelector/RffmSeasonSelector";
 import { useRffmSeason } from "../../../../shared/context/RffmSeasonContext";
 import useClearOnSeasonChange from "../../../../shared/hooks/useClearOnSeasonChange";
+import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess";
 
 const Goleadores: React.FC = () => {
+  useAuditPageAccess('Goleadores');
   const [goleadores, setGoleadores] = useState<Goleador[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

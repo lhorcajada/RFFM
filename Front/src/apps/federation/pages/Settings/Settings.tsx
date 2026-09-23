@@ -40,6 +40,7 @@ import {
   getSettingsForUser,
 } from "../../services/federationApi";
 import { useUser } from "../../../../shared/context/UserContext";
+import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess";
 
 type SavedCombo = {
   id: string;
@@ -55,6 +56,7 @@ type SavedCombo = {
 };
 
 export default function Settings(): JSX.Element {
+  useAuditPageAccess('Settings');
   const theme = useTheme();
   const isSm = useMediaQuery(theme.breakpoints.down("sm"));
   const { user } = useUser();

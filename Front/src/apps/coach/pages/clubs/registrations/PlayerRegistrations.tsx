@@ -5,9 +5,11 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import BaseLayout from "../../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../../shared/components/ui/ContentLayout/ContentLayout";
 import ClubHeader from "../../../components/ClubHeader/ClubHeader";
+import { useAuditPageAccess } from "../../../../../shared/hooks/useAuditPageAccess";
 import styles from "./PlayerRegistrations.module.css";
 
 export default function PlayerRegistrations() {
+  useAuditPageAccess('ClubRegistrations');
   const navigate = useNavigate();
   const { id } = useParams();
   const { search } = useLocation();

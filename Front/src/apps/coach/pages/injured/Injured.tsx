@@ -6,12 +6,14 @@ import ContentLayout from "../../../../shared/components/ui/ContentLayout/Conten
 import useTeamAndClub from "../../hooks/useTeamAndClub.tsx";
 import useTeamDashboardBack from "../../hooks/useTeamDashboardBack";
 import { coachAuthService } from "../../services/authService";
+import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess";
 import InjuredPlayersList from "./components/InjuredPlayersList";
 import InjuryProtocolPanel from "./components/InjuryProtocolPanel";
 import InjuryProtocolDocuments from "./components/InjuryProtocolDocuments";
 import styles from "./Injured.module.css";
 
 export default function Injured() {
+  useAuditPageAccess('Injured');
   const goToTeamDashboard = useTeamDashboardBack();
   const { team, teamTitleNode } = useTeamAndClub();
 

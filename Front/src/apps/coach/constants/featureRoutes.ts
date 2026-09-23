@@ -31,6 +31,7 @@ export const COACH_FEATURE_ROUTES = {
   ClubTeams: "/coach/clubs/teams",
   ClubRegistrations: "/coach/clubs/registrations",
   PlayerDocuments: "/coach/player-documents",
+  AuditLog: "/coach/audit-log",
 
   // Read for every team member (any authenticated role); ReadWrite for Coach/Admin
   TeamRulesDocument: "/mobile/team-rules",

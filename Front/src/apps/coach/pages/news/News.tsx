@@ -15,10 +15,12 @@ import newsService, { type NewsSummaryDto, type NewsDetailDto } from "../../serv
 import NewsListCard from "./components/NewsListCard";
 import NewsFormDialog from "./components/NewsFormDialog";
 import styles from "./News.module.css";
+import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess";
 
 type Tab = "published" | "drafts";
 
 export default function News() {
+  useAuditPageAccess('News');
   const goToTeamDashboard = useTeamDashboardBack();
   const [tab, setTab] = useState<Tab>("published");
   const [publishedItems, setPublishedItems] = useState<NewsSummaryDto[]>([]);

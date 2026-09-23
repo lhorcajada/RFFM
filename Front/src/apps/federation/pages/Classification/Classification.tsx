@@ -19,6 +19,7 @@ import styles from "./Classification.module.css";
 import RffmSeasonSelector from "../../../../shared/components/ui/RffmSeasonSelector/RffmSeasonSelector";
 import { useRffmSeason } from "../../../../shared/context/RffmSeasonContext";
 import useClearOnSeasonChange from "../../../../shared/hooks/useClearOnSeasonChange";
+import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess";
 
 interface Team {
   teamId: string;
@@ -35,6 +36,7 @@ interface Team {
 }
 
 export default function Classification() {
+  useAuditPageAccess('Classification');
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [teamMatches, setTeamMatches] = useState<Record<string, any[]>>({});

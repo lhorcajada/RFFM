@@ -5,10 +5,12 @@ import ContentLayout from "../../../../shared/components/ui/ContentLayout/Conten
 import EmptyState from "../../../../shared/components/ui/EmptyState/EmptyState";
 import useTeamAndClub from "../../hooks/useTeamAndClub";
 import useTeamDashboardBack from "../../hooks/useTeamDashboardBack";
+import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess";
 import AttendanceSummaryContent from "./components/summary/AttendanceSummaryContent";
 import styles from "./AttendanceSummary.module.css";
 
 export default function AttendanceSummary() {
+  useAuditPageAccess('AttendanceSummary');
   const goToTeamDashboard = useTeamDashboardBack();
   const { team, teamTitleNode, loading: teamLoading } = useTeamAndClub();
 

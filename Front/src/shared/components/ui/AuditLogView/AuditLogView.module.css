@@ -1,0 +1,93 @@
+.container {
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.filtersSection {
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background-color: var(--rffm-card-bg, #f5f5f5);
+  border-radius: 8px;
+}
+
+.cardsList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.eventCard {
+  width: 100%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.3s ease;
+}
+
+.eventCard:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.timestamp {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.user {
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.actionOrPage {
+  margin-top: 0.5rem;
+  display: block;
+}
+
+.paginationContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 2rem;
+  padding: 1rem;
+  background-color: var(--rffm-card-bg, #f5f5f5);
+  border-radius: 8px;
+}
+
+/* Mobile-first responsive adjustments */
+@media (max-width: 600px) {
+  .container {
+    padding: 0.75rem;
+  }
+
+  .filtersSection {
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .cardsList {
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .eventCard {
+    border-radius: 8px;
+  }
+
+  .paginationContainer {
+    padding: 0.75rem;
+    margin-top: 1rem;
+  }
+}
+
+/* Tablet and up */
+@media (min-width: 768px) {
+  .container {
+    padding: 1.5rem;
+  }
+
+  .filtersSection {
+    margin-bottom: 2.5rem;
+  }
+}

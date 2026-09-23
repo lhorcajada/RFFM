@@ -29,6 +29,7 @@ import type {
   GetTeamUsersResponse,
 } from "../../services/teamUsersService";
 import type { MembershipKind } from "../../../../shared/types/scope";
+import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess";
 
 function isAxiosErrorWithProblem(
   err: unknown,
@@ -98,6 +99,7 @@ export default function TeamUsers(): JSX.Element {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const teamId = searchParams.get("teamId") ?? "";
+  useAuditPageAccess('TeamUsers');
 
   const [teamName, setTeamName] = useState("");
   const [users, setUsers] = useState<TeamUserDto[]>([]);

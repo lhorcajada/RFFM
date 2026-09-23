@@ -20,6 +20,7 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import { usePermissions } from "../../../../shared/hooks/usePermissions";
+import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess";
 import { COACH_FEATURE_ROUTES } from "../../constants/featureRoutes";
 import useTeamAndClub from "../../hooks/useTeamAndClub";
 import useTeamDashboardBack from "../../hooks/useTeamDashboardBack";
@@ -27,6 +28,7 @@ import teamRulesService, { type TeamRulesDto } from "../../services/teamRulesSer
 import styles from "./TeamRules.module.css";
 
 export default function TeamRules() {
+  useAuditPageAccess('TeamRulesDocument');
   const navigate = useNavigate();
   const location = useLocation();
   const { team, teamTitleNode } = useTeamAndClub();

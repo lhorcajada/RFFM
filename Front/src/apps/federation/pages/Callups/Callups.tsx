@@ -21,8 +21,10 @@ import TeamsSelector from "../../../../shared/components/ui/TeamsSelector/TeamsS
 import RffmSeasonSelector from "../../../../shared/components/ui/RffmSeasonSelector/RffmSeasonSelector";
 import { useRffmSeason } from "../../../../shared/context/RffmSeasonContext";
 import useClearOnSeasonChange from "../../../../shared/hooks/useClearOnSeasonChange";
+import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess";
 
 export default function CallupsPage(): JSX.Element {
+  useAuditPageAccess('Callups');
   const { user } = useUser();
   const { seasonId: rffmSeasonId, applySeasonId } = useRffmSeason();
   const [teamId, setTeamId] = useState<string | null>(null);

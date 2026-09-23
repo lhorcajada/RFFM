@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useRef } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { CircularProgress, Box } from "@mui/material";
 import { useUser } from "../../shared/context/UserContext";
+import RequireAuth from "../../core/router/RequireAuth";
 import { getSettingsForUser } from "./services/federationApi";
 
 // Lazy load pages
@@ -21,6 +22,7 @@ const Statistics = lazy(() => import("./pages/Statistics/Statistics"));
 const GoalSectorsComparison = lazy(
   () => import("./pages/Statistics/GoalSectorsComparison"),
 );
+const AuditLog = lazy(() => import("./pages/AuditLog/AuditLog"));
 const Error500 = lazy(
   () => import("../../shared/components/ui/Error500/Error500"),
 );
@@ -89,6 +91,14 @@ export default function FederationRoutes() {
         <Route
           path="goal-sectors-comparison"
           element={<GoalSectorsComparison />}
+        />
+        <Route
+          path="audit-log"
+          element={
+            <RequireAuth requiredRoles={["Federation"]}>
+              <AuditLog />
+            </RequireAuth>
+          }
         />
         <Route path="error500" element={<Error500 />} />
       </Routes>

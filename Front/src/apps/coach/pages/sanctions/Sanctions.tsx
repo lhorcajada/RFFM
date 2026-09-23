@@ -41,6 +41,7 @@ import { coachAuthService } from "../../services/authService";
 import { getMyProfile } from "../../services/coachApi";
 import { getTeamFund } from "../../services/teamFundService";
 import { TEAM_FUND_UPDATED_EVENT } from "../../../../shared/hooks/useTeamFundBalance";
+import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess";
 import useTeamDashboardBack from "../../hooks/useTeamDashboardBack";
 import SanctionCard from "./components/SanctionCard";
 import SanctionsSummaryCards from "./components/SanctionsSummaryCards";
@@ -78,6 +79,7 @@ function eventLabel(ev: SportEventResponse): string {
 }
 
 export default function Sanctions() {
+  useAuditPageAccess('Sanctions');
   const goToTeamDashboard = useTeamDashboardBack();
   const { team, teamTitleNode } = useTeamAndClub();
 

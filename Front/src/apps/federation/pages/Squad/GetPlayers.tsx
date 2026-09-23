@@ -32,10 +32,12 @@ import useClearOnSeasonChange from "../../../../shared/hooks/useClearOnSeasonCha
 import PrintableSquad from "../../components/players/PrintableSquad/PrintableSquad";
 import { exportElementsToPdfPacked } from "../../../../shared/services/pdfService";
 import { exportSquadToExcel } from "../../../../shared/services/excelService";
+import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess";
 
 import type { TeamParticipationSummaryItem } from "../../types/participation";
 
 export default function GetPlayers(): JSX.Element {
+  useAuditPageAccess('Squad');
   const { user } = useUser();
   const { seasonId, applySeasonId } = useRffmSeason();
   const season = String(seasonId ?? 21);

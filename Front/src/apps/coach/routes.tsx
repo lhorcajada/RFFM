@@ -52,6 +52,7 @@ const RatingHistoryPage = lazy(() => import("./pages/squad/rating/RatingHistoryP
 const RatingEvolutionPage = lazy(() => import("./pages/squad/rating/RatingEvolutionPage"));
 const MyDocuments = lazy(() => import("./pages/my-documents/MyDocuments"));
 const PlayerDocumentsTracking = lazy(() => import("./pages/player-documents/PlayerDocumentsTracking"));
+const AuditLog = lazy(() => import("./pages/audit-log/AuditLog"));
 
 function LoadingFallback() {
   return (
@@ -424,6 +425,14 @@ function CoachRoutesContent() {
                   {React.createElement(
                     React.lazy(() => import("./pages/clubs/create/CreateClub")),
                   )}
+                </RequireFeaturePermission>
+              }
+            />
+            <Route
+              path="audit-log"
+              element={
+                <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.AuditLog} allowPlayerAccess={false}>
+                  <AuditLog />
                 </RequireFeaturePermission>
               }
             />
