@@ -6,8 +6,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Common.Behaviors;
+using RFFM.Api.Domain.Entities.Audit;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
+using RFFM.Api.Infrastructure.Services;
 
 namespace RFFM.Api.Features.Coaches.Players.Commands
 {
@@ -44,10 +46,12 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
     public class UpdateDeletePlayerHandler : IRequestHandler<UpdatePlayerCommand, Unit>
     {
         private readonly AppDbContext _catalogDbContext;
+        private readonly IAuditLogger _auditLogger;
 
-        public UpdateDeletePlayerHandler(AppDbContext catalogDbContext)
+        public UpdateDeletePlayerHandler(AppDbContext catalogDbContext, IAuditLogger auditLogger)
         {
             _catalogDbContext = catalogDbContext;
+            _auditLogger = auditLogger;
         }
         public async ValueTask<Unit> Handle(UpdatePlayerCommand request, CancellationToken cancellationToken)
         {
@@ -62,6 +66,10 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
             player.UpdateDni(request.Dni);
             player.UpdateUrlPhoto(request.UrlPhoto);
             player.UpdateAlias(request.Alias);
+
+            await _auditLogger.LogAsync(
+                AuditEventType.PlayerEdited, "PlayerEdited", "Success",
+                subjectId: player.Id, clubId: request.ClubId, cancellationToken: cancellationToken);
 
             await _catalogDbContext.SaveChangesAsync(cancellationToken);
             return Unit.Value;

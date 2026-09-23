@@ -524,6 +524,11 @@ namespace RFFM.Host.DependencyInjection
 
                         ("PlayerDocuments", CoachFeatureRoutes.PlayerDocuments, "Coach", 3, false),
                         ("PlayerDocuments", CoachFeatureRoutes.PlayerDocuments, "ClubDirector", 3, false),
+
+                        // AuditLog: ReadWrite for Coach/ClubDirector/Administrator (see openspec change user-activity-audit-log-frontend)
+                        ("AuditLog", CoachFeatureRoutes.AuditLog, "Coach", 3, false),
+                        ("AuditLog", CoachFeatureRoutes.AuditLog, "ClubDirector", 3, false),
+                        ("AuditLog", CoachFeatureRoutes.AuditLog, "Administrator", 3, false),
                     };
 
                     foreach (var (featureName, featureRoute, roleName, permTypeId, isEditable) in entries)

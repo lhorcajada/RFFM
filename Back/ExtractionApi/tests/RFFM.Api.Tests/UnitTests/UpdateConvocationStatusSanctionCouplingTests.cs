@@ -11,6 +11,7 @@ using RFFM.Api.Domain.Models;
 using RFFM.Api.Domain.Services;
 using RFFM.Api.Features.Coaches.Convocations;
 using RFFM.Api.Infrastructure.Persistence;
+using RFFM.Api.Infrastructure.Services;
 using RFFM.Api.Tests.Fixtures;
 using Xunit;
 
@@ -42,6 +43,8 @@ namespace RFFM.Api.Tests.UnitTests
             mock.Setup(c => c.Roles).Returns(new[] { "Coach" });
             return mock;
         }
+
+        private static Mock<IAuditLogger> MockAuditLogger() => new();
 
         private async Task<(string TeamId, string TeamPlayerId)> SeedTeamAndPlayerAsync(AppDbContext db)
         {
@@ -114,7 +117,7 @@ namespace RFFM.Api.Tests.UnitTests
             db.TeamPlayerSanctions.Add(sanction);
             await db.SaveChangesAsync();
 
-            var handler = new UpdateConvocationStatus.Handler(db, Coach().Object, new SanctionConvocationEnforcementService(db));
+            var handler = new UpdateConvocationStatus.Handler(db, Coach().Object, new SanctionConvocationEnforcementService(db), MockAuditLogger().Object);
             var request = new UpdateConvocationStatus.UpdateStatusRequest { EventId = eventId, ConvocationId = convocationId, NewStatusId = 5 };
 
             await handler.Handle(request, CancellationToken.None);
@@ -140,7 +143,7 @@ namespace RFFM.Api.Tests.UnitTests
             db.TeamPlayerSanctions.Add(sanction);
             await db.SaveChangesAsync();
 
-            var handler = new UpdateConvocationStatus.Handler(db, Coach().Object, new SanctionConvocationEnforcementService(db));
+            var handler = new UpdateConvocationStatus.Handler(db, Coach().Object, new SanctionConvocationEnforcementService(db), MockAuditLogger().Object);
             var request = new UpdateConvocationStatus.UpdateStatusRequest { EventId = otherEventId, ConvocationId = convocationId, NewStatusId = 5 };
 
             await handler.Handle(request, CancellationToken.None);
@@ -164,7 +167,7 @@ namespace RFFM.Api.Tests.UnitTests
             db.TeamPlayerSanctions.Add(sanction);
             await db.SaveChangesAsync();
 
-            var handler = new UpdateConvocationStatus.Handler(db, Coach().Object, new SanctionConvocationEnforcementService(db));
+            var handler = new UpdateConvocationStatus.Handler(db, Coach().Object, new SanctionConvocationEnforcementService(db), MockAuditLogger().Object);
             var request = new UpdateConvocationStatus.UpdateStatusRequest { EventId = eventId, ConvocationId = convocationId, NewStatusId = 1 };
 
             await handler.Handle(request, CancellationToken.None);
@@ -181,7 +184,7 @@ namespace RFFM.Api.Tests.UnitTests
             var eventId = await SeedSportEventAsync(db, teamId, DateTime.UtcNow.AddDays(5));
             var convocationId = await SeedConvocationAsync(db, teamPlayerId, eventId, statusId: 5, excuseTypeId: 7);
 
-            var handler = new UpdateConvocationStatus.Handler(db, Coach().Object, new SanctionConvocationEnforcementService(db));
+            var handler = new UpdateConvocationStatus.Handler(db, Coach().Object, new SanctionConvocationEnforcementService(db), MockAuditLogger().Object);
             var request = new UpdateConvocationStatus.UpdateStatusRequest { EventId = eventId, ConvocationId = convocationId, NewStatusId = 1 };
 
             // Should succeed with no sanctions in the db at all (no lookup blows up).
@@ -206,7 +209,7 @@ namespace RFFM.Api.Tests.UnitTests
             db.TeamPlayerSanctions.Add(sanction);
             await db.SaveChangesAsync();
 
-            var handler = new UpdateConvocationStatus.Handler(db, Coach().Object, new SanctionConvocationEnforcementService(db));
+            var handler = new UpdateConvocationStatus.Handler(db, Coach().Object, new SanctionConvocationEnforcementService(db), MockAuditLogger().Object);
             var request = new UpdateConvocationStatus.UpdateStatusRequest { EventId = eventId, ConvocationId = convocationId, NewStatusId = 2 };
 
             await handler.Handle(request, CancellationToken.None);
@@ -231,7 +234,7 @@ namespace RFFM.Api.Tests.UnitTests
             db.TeamPlayerSanctions.Add(sanction);
             await db.SaveChangesAsync();
 
-            var handler = new UpdateConvocationStatus.Handler(db, Coach().Object, new SanctionConvocationEnforcementService(db));
+            var handler = new UpdateConvocationStatus.Handler(db, Coach().Object, new SanctionConvocationEnforcementService(db), MockAuditLogger().Object);
             var request = new UpdateConvocationStatus.UpdateStatusRequest { EventId = pastEventId, ConvocationId = convocationId, NewStatusId = 4 };
 
             await handler.Handle(request, CancellationToken.None);

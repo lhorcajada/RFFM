@@ -5,9 +5,11 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using RFFM.Api.Domain;
+using RFFM.Api.Domain.Entities.Audit;
 using RFFM.Api.Domain.Services;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Infrastructure.Persistence;
+using RFFM.Api.Infrastructure.Services;
 using RFFM.Api.Domain.Aggregates.Assistances;
 using RFFM.Api.Domain.Entities.TeamPlayers;
 using System.Linq;
@@ -52,12 +54,14 @@ namespace RFFM.Api.Features.Coaches.Convocations
             private readonly AppDbContext _db;
             private readonly ICurrentUserService _currentUser;
             private readonly ISanctionConvocationEnforcementService _enforcementService;
+            private readonly IAuditLogger _auditLogger;
 
-            public Handler(AppDbContext db, ICurrentUserService currentUser, ISanctionConvocationEnforcementService enforcementService)
+            public Handler(AppDbContext db, ICurrentUserService currentUser, ISanctionConvocationEnforcementService enforcementService, IAuditLogger auditLogger)
             {
                 _db = db;
                 _currentUser = currentUser;
                 _enforcementService = enforcementService;
+                _auditLogger = auditLogger;
             }
 
             public async ValueTask<Unit> Handle(UpdateStatusRequest request, CancellationToken cancellationToken = default)
@@ -177,6 +181,19 @@ namespace RFFM.Api.Features.Coaches.Convocations
                         fulfilledSanction?.Reopen();
                     }
                 }
+
+                var eventType = isNowDeconvoke ? AuditEventType.ConvocationRejected : AuditEventType.ConvocationAccepted;
+                var reason = isNowDeconvoke
+                    ? ExcuseTypes.FromId(request.ExcuseTypeId ?? TechnicalDecisionExcuseTypeId).Name
+                    : null;
+                var auditRoleName = isPlayerOrFamilyRole
+                    ? roles.First(r => r.Equals("Player", StringComparison.OrdinalIgnoreCase) || r.Equals("FamilyMember", StringComparison.OrdinalIgnoreCase))
+                    : (_currentUser.Role ?? "Coach");
+
+                await _auditLogger.LogAsync(
+                    eventType, "ConvocationStatusChanged", "Success",
+                    reason: reason, subjectId: conv.Id, teamId: conv.SportEvent.TeamId,
+                    roleNameOverride: auditRoleName, cancellationToken: cancellationToken);
 
                 await _db.SaveChangesAsync(cancellationToken);
                 return Unit.Value;

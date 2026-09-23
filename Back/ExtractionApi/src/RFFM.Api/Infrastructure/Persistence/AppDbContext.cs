@@ -8,6 +8,7 @@ using RFFM.Api.Domain.Aggregates.Training;
 using RFFM.Api.Domain.Aggregates.Training.TasksTraining;
 using RFFM.Api.Domain.Aggregates.UserClubs;
 using RFFM.Api.Domain.Entities;
+using RFFM.Api.Domain.Entities.Audit;
 using RFFM.Api.Domain.Entities.Coaches;
 using RFFM.Api.Domain.Entities.Competitions;
 using RFFM.Api.Domain.Entities.Demarcations;
@@ -108,6 +109,9 @@ namespace RFFM.Api.Infrastructure.Persistence
         // RBAC — feature and page permissions
         public DbSet<FeaturePermission> FeaturePermissions { get; set; }
         public DbSet<PagePermission> PagePermissions { get; set; }
+
+        // Audit log (user-activity-audit-log)
+        public DbSet<UserActivityLog> UserActivityLogs { get; set; }
 
         // Team rules ("Normas del equipo")
         public DbSet<TeamRulesSet> TeamRulesSets { get; set; }

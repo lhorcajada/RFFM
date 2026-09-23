@@ -158,7 +158,7 @@ namespace RFFM.Host
                           .AllowAnyHeader()
                           .AllowAnyMethod()
                           .AllowCredentials()
-                          .WithExposedHeaders("WWW-Authenticate");
+                          .WithExposedHeaders("WWW-Authenticate", "X-Total-Count");
                 });
             });
 
