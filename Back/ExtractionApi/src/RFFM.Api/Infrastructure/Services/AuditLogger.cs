@@ -30,8 +30,11 @@ namespace RFFM.Api.Infrastructure.Services
             if (isAdministrator)
                 return Task.CompletedTask;
 
-            var userId = _currentUser.UserId ?? "unknown";
             var roleName = roleNameOverride ?? _currentUser.Role ?? "unknown";
+            if (roleName.Equals(AppRoles.Coach.Name, StringComparison.OrdinalIgnoreCase))
+                return Task.CompletedTask;
+
+            var userId = _currentUser.UserId ?? "unknown";
             var ipAddress = ResolveClientIp(_httpContextAccessor.HttpContext);
 
             var log = UserActivityLog.Create(

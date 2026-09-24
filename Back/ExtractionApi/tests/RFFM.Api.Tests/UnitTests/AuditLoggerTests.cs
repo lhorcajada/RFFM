@@ -58,7 +58,7 @@ namespace RFFM.Api.Tests.UnitTests
         public async Task LogAsync_AddsRowToContext_WithoutCallingSaveChanges()
         {
             await using var db = _fixture.CreateDbContext();
-            var logger = new AuditLogger(db, CurrentUser("user-1", "Coach").Object, NoHttpContext().Object);
+            var logger = new AuditLogger(db, CurrentUser("user-1", "Player").Object, NoHttpContext().Object);
 
             await logger.LogAsync(AuditEventType.PageAccess, "Roster", "Success");
 
@@ -70,7 +70,7 @@ namespace RFFM.Api.Tests.UnitTests
         public async Task LogAsync_UsesXForwardedFor_WhenPresent()
         {
             await using var db = _fixture.CreateDbContext();
-            var logger = new AuditLogger(db, CurrentUser("user-1", "Coach").Object, HttpContextWithForwardedFor("203.0.113.5").Object);
+            var logger = new AuditLogger(db, CurrentUser("user-1", "Player").Object, HttpContextWithForwardedFor("203.0.113.5").Object);
 
             await logger.LogAsync(AuditEventType.PageAccess, "Roster", "Success");
 
@@ -82,7 +82,7 @@ namespace RFFM.Api.Tests.UnitTests
         public async Task LogAsync_FallsBackToRemoteIpAddress_WhenNoForwardedForHeader()
         {
             await using var db = _fixture.CreateDbContext();
-            var logger = new AuditLogger(db, CurrentUser("user-1", "Coach").Object, HttpContextWithRemoteIp("127.0.0.1").Object);
+            var logger = new AuditLogger(db, CurrentUser("user-1", "Player").Object, HttpContextWithRemoteIp("127.0.0.1").Object);
 
             await logger.LogAsync(AuditEventType.PageAccess, "Roster", "Success");
 
@@ -94,12 +94,38 @@ namespace RFFM.Api.Tests.UnitTests
         public async Task LogAsync_NoHttpContext_LeavesIpAddressNull_NoException()
         {
             await using var db = _fixture.CreateDbContext();
-            var logger = new AuditLogger(db, CurrentUser("user-1", "Coach").Object, NoHttpContext().Object);
+            var logger = new AuditLogger(db, CurrentUser("user-1", "Player").Object, NoHttpContext().Object);
 
             await logger.LogAsync(AuditEventType.PageAccess, "Roster", "Success");
 
             var entry = db.ChangeTracker.Entries<UserActivityLog>().Single().Entity;
             Assert.Null(entry.IpAddress);
+        }
+
+        [Fact]
+        public async Task LogAsync_UserActsAsCoach_DoesNotRecordAnything()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var logger = new AuditLogger(db, CurrentUser("coach-1", "Coach").Object, NoHttpContext().Object);
+
+            await logger.LogAsync(AuditEventType.PageAccess, "Roster", "Success");
+
+            Assert.Empty(db.ChangeTracker.Entries<UserActivityLog>());
+        }
+
+        [Fact]
+        public async Task LogAsync_CoachWhoActsAsFamilyMember_RecordsTheAction()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var currentUser = new Mock<ICurrentUserService>();
+            currentUser.Setup(c => c.UserId).Returns("user-2");
+            currentUser.Setup(c => c.Role).Returns("Coach");
+            currentUser.Setup(c => c.Roles).Returns(new[] { "Coach", "FamilyMember" });
+            var logger = new AuditLogger(db, currentUser.Object, NoHttpContext().Object);
+
+            await logger.LogAsync(AuditEventType.ConvocationAccepted, "ConvocationStatusChanged", "Success", roleNameOverride: "FamilyMember");
+
+            Assert.Single(db.ChangeTracker.Entries<UserActivityLog>());
         }
 
         [Fact]
