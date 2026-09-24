@@ -59,7 +59,7 @@
 - [x] 5.4 `liveReadiness.ts` + tests (Red → Green) con la fórmula de la Decisión 7.
 - [x] 5.5 Ajustar fixtures del resto de tests que construyen `formStatusBreakdown`/
       `readinessBreakdown` (SquadStatistics, Simulación, Partido en directo, PlayerDetail).
-- [ ] 5.6 `npm run test` y `npm run build` en verde (hecho); comprobación visual a 360px y escritorio (pendiente).
+- [x] 5.6 `npm run test` y `npm run build` en verde; comprobación visual del popup validada por el usuario.
 
 ## 6. Verificación
 
