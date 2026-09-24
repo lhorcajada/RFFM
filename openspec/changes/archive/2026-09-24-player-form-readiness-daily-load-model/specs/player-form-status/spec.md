@@ -1,8 +1,5 @@
-# player-form-status Specification
+## MODIFIED Requirements
 
-## Purpose
-TBD - created by archiving change player-form-status-training-match-weighting. Update Purpose after archive.
-## Requirements
 ### Requirement: Estado de forma derivado sin estado, independiente de Rodaje/Cansancio
 El sistema SHALL calcular `FormStatus` (Estado de forma, 0-100 o `null`) de un jugador sin estado
 persistido, reproduciendo día a día los últimos 84 días con valor inicial `0`. Cada día con actividad suma carga con saturación exponencial
@@ -100,4 +97,3 @@ para que el cliente explique la evolución del valor sin recalcularla.
 #### Scenario: Las rachas de descanso dentro de la gracia no generan paso
 - **WHEN** un jugador descansa 3 días entre dos entrenos
 - **THEN** el desglose no incluye ningún paso de pérdida para esos días
-

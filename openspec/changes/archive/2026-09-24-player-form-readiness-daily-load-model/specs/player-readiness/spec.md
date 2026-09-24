@@ -1,8 +1,5 @@
-# player-readiness Specification
+## MODIFIED Requirements
 
-## Purpose
-TBD - created by archiving change player-form-status-training-match-weighting. Update Purpose after archive.
-## Requirements
 ### Requirement: Rodaje derivado sin estado, ponderado por tipo de sesión
 El sistema SHALL calcular `Readiness` (Rodaje, 0-100 o `null`) de un jugador sin estado
 persistido. Reproduce día a día los últimos 84 días con valor inicial `0`. Cada día con actividad suma carga con saturación exponencial
@@ -60,4 +57,3 @@ partido es `1.5 × minutos / 70 × peso de tipo de partido` (Liga 1.00, Amistoso
 - **WHEN** `Readiness` no es `null`
 - **THEN** `ReadinessBreakdown` es un `DailyLoadBreakdownDto` con los mismos campos que el de
   Estado de forma y `ReferenceMatchMinutes` `70`
-
