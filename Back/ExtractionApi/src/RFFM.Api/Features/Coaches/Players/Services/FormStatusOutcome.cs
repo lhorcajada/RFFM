@@ -5,12 +5,11 @@ namespace RFFM.Api.Features.Coaches.Players.Services
     public enum ParticipationOutcome { Attended, Absent, Excluded }
 
     /// <summary>
-    /// Clasifica una convocatoria como asistida / falta / excluida para Estado de forma, con el
-    /// la definición de falta imputable de <see cref="AttributableAbsenceCalculator"/> (la misma que
-    /// alimenta el contador de ausencias). Toda falta cuenta 0 sin distinguir motivo; solo se
-    /// excluye la decisión técnica del entrenador, el no convocado y lo pendiente. Diverge
-    /// intencionadamente de Rodaje (PointsFor) en el deconvocado sin asistencia.
-    /// See openspec/changes/player-form-status-received-offered-load/design.md → Decisión 4.
+    /// Clasifica una convocatoria como asistida / falta / excluida, con la definición de falta
+    /// imputable de <see cref="AttributableAbsenceCalculator"/>. En Estado de forma y Rodaje solo
+    /// importa si es asistida (día con actividad); falta y excluida son días sin actividad y su
+    /// motivo (<see cref="ReasonFor"/>) solo se informa.
+    /// See openspec/changes/player-form-readiness-daily-load-model/design.md → Decisión 3.
     /// </summary>
     public static class FormStatusOutcome
     {

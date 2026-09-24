@@ -62,13 +62,13 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
             int? LastInjuryDurationDays,             // null si no ha tenido lesión, o si la más reciente sigue en curso
             int Fatigue,                            // 0-100, Cansancio derivado con decaimiento por recencia (ver PlayerFatigueCalculator)
             FatigueBreakdownDto FatigueBreakdown,   // nunca null: Fatigue siempre tiene valor (0 cuando no hay eventos)
-            int? Readiness,                        // 0-100, null = sin datos suficientes en la ventana
-            ReadinessBreakdownDto? ReadinessBreakdown,
+            int? Readiness,                        // 0-100, Rodaje; null = sin actividad en los últimos 84 días
+            DailyLoadBreakdownDto? ReadinessBreakdown,  // null cuando Readiness es null
             int MatchesAbsentAttributableToPlayer,   // partidos/amistosos/torneos finalizados con ausencia imputable al jugador
             double? MinutesPlayedPercentOfSeasonTotal,            // null si la categoría del equipo no es F11
             double? AttributableAbsentMinutesPercentOfSeasonTotal, // null si la categoría del equipo no es F11
-            int? FormStatus,                              // 0-100, Estado de forma; null = sin datos en la ventana de 6 semanas o categoría sin duración estándar de partido
-            FormStatusBreakdownDto? FormStatusBreakdown);  // null cuando FormStatus es null
+            int? FormStatus,                              // 0-100, Estado de forma; null = sin actividad en los últimos 84 días o categoría sin duración estándar de partido
+            DailyLoadBreakdownDto? FormStatusBreakdown);   // null cuando FormStatus es null
 
         public record ReadinessBreakdownDto(
             double TrainingComponent,              // 0-100
@@ -117,66 +117,35 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
             string EventId, DateTime? EventDate, int EventTypeId, int MinutesPlayed,
             int DaysAgo, double Decay, double TypeWeight, double EffectiveMinutes);
 
-        public record FormStatusBreakdownDto(
-            // Ventana y recencia (constantes para que el cliente muestre la regla)
-            int WindowDays,                        // 42
-            int RecencyFullWeightDays,             // 7
-            int RecencyHalfLifeDays,               // 14
+        // Desglose común de Estado de forma y Rodaje (modelo de carga diaria). Ver
+        // openspec/changes/player-form-readiness-daily-load-model/design.md → Decisión 5.
+        public record DailyLoadBreakdownDto(
+            double Value,                          // sin redondear
+            DateTime ReplayStartDate,
+            int ReplayDays,                        // 84
+            double GainRate,
+            int GraceRestDays,
+            double DecayStepPerDay,
+            double DecayMaxPerDay,
+            double MatchLoadPerReferenceMatch,     // 1.5
+            double ReferenceMatchMinutes,          // EF: minutos de estímulo completo de la categoría; Rodaje: 70
+            int CurrentRestStreakDays,             // días seguidos sin actividad hasta hoy
+            int TrainingsAttended,
+            int MatchesPlayed,
+            int MatchMinutesPlayed,
+            DailyLoadStepDto[] Steps,              // más reciente primero
+            MissedEventDto[] MissedEvents);        // más reciente primero, máx. 10
 
-            // Bloque Entrenos
-            double? TrainingComponent,             // 0-100; null si no hay sesiones computables
-            int TrainingSessionsOffered,           // sesiones ofrecidas computables
-            int TrainingSessionsAttended,          // de esas, las asistidas
-            double TrainingLoadOffered,            // suma de w*r de todas las ofrecidas
-            double TrainingLoadReceived,           // suma de w*r de las asistidas
-            bool TrainingTypeWeightFallbackUsed,   // todas las ofrecidas pesaban 0: se uso w = 1.00
-            int ExcludedTrainings,                 // decision tecnica / sin resultado
+        public record DailyLoadStepDto(
+            DateTime Date, DateTime? EndDate, string Kind,   // "Activity" | "Decay"
+            double Load, double ValueBefore, double ValueAfter,
+            DailyLoadEventDto[] Events);
 
-            // Bloque Partidos
-            double? MatchComponent,                // 0-100; null si no hay partidos computables
-            int MatchesConsidered,
-            int CategoryMatchMinutes,              // duracion del partido de la categoria (Cadete 80)
-            double FullStimulusFraction,           // 0.875
-            double FullMatchMinutes,               // minutos de estimulo completo (Cadete 70.0)
-            double MatchRecencyWeightSum,          // suma de r
-            double MatchRatioWeightedSum,          // suma de ratio*r
-            int ExcludedMatches,
+        public record DailyLoadEventDto(
+            string EventId, int EventTypeId, IReadOnlyList<string> TrainingTypes,
+            int MinutesPlayed, double TypeWeight, double Load);
 
-            // Combinacion
-            double TrainingWeightNominal,          // 0.55
-            double MatchWeightNominal,             // 0.45
-            double TrainingWeightApplied,          // tras renormalizar si falta un bloque
-            double MatchWeightApplied,
-            double BaseScore,                      // wT*Entrenos + wM*Partidos (0-100, sin redondear)
-            int Fatigue,                           // 0-100, el mismo de PlayerStatisticsDto.Fatigue
-            double FatigueFactor,                  // 1 - Fatigue/200
-
-            // Factor de volumen de ENTRENOS: TrainingComponent ya lo incluye; MatchComponent no lleva factor
-            int ReferenceTrainingSessions,         // 12
-            double? TrainingRatioComponent,        // 0-100, ratio recibido/ofrecido previo al factor de volumen; null si no hay bloque
-            double? TrainingVolumeFactor,          // 0-1, min(1, sesiones asistidas / 12); null si no hay bloque de entrenos
-            int MatchMinutesPlayedTotal,           // minutos jugados en la ventana
-            int MatchMinutesPossibleTotal,         // minutos posibles: suma de CategoryMatchMinutes de los partidos considerados
-
-            FormStatusConsideredTrainingDto[] ConsideredTrainings,
-            FormStatusConsideredMatchDto[] ConsideredMatches);
-
-        public record FormStatusConsideredTrainingDto(
-            string EventId, DateTime? EventDate, IReadOnlyList<string> TrainingTypes,
-            int DaysAgo, double RecencyWeight,
-            double TypeWeight,                     // w efectivo (1.00 si se uso el fallback)
-            double OfferedLoad,                    // w*r
-            bool Attended,
-            double ReceivedLoad,                   // Attended ? w*r : 0
-            string? AbsenceReason);                // null si asistio
-
-        public record FormStatusConsideredMatchDto(
-            string EventId, DateTime? EventDate, int EventTypeId,
-            int DaysAgo, double RecencyWeight,
-            int MinutesPlayed, double FullMatchMinutes,
-            double Ratio,                          // min(1, MinutesPlayed / FullMatchMinutes) o 0
-            double Contribution,                   // Ratio*r
-            string Status);                        // "Played" | "NotPlayed" | "Absent"
+        public record MissedEventDto(string EventId, DateTime Date, int EventTypeId, string Reason);
 
         private record TeamPlayerProjection(
             string Id,
@@ -194,7 +163,8 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
         {
             public async ValueTask<List<PlayerStatisticsDto>> Handle(Query request, CancellationToken cancellationToken)
             {
-                var windowStart = DateTime.UtcNow.AddDays(-7 * PlayerReadinessCalculator.WindowWeeks);
+                var today = DateTime.UtcNow.Date;
+                var windowStart = today.AddDays(-(DailyLoadModel.ReplayDays - 1));
                 var fatigueWindowStart = DateTime.UtcNow.AddDays(-PlayerFatigueCalculator.WindowDays);
                 var trainingEventTypeId = SportEventType.FromName("Entrenamiento").Id;
                 var leagueEventTypeId = SportEventsConstants.MatchEventTypeId;    // 1
@@ -227,7 +197,7 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                     .GroupBy(mp => mp.TeamPlayerId)
                     .ToDictionary(g => g.Key, g => g.ToList());
 
-                // 8-week window for the match component of the form status. Any finished match
+                // 84-day replay window for Estado de forma/Rodaje (DailyLoadModel). Any finished match
                 // participation counts here (Partido/Amistoso/Torneo) — a friendly still costs
                 // real physical effort even though it's excluded from official-match season
                 // stats/discipline counters elsewhere (GetSeasonPlayerStats, card suspensions).
@@ -243,18 +213,7 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                 var participationsInWindow = finishedParticipations
                     .Where(mp => matchEventIdsInWindowSet.Contains(mp.EventId))
                     .ToList();
-                var matchMinutesInWindowByPlayer = participationsInWindow
-                    .GroupBy(mp => mp.TeamPlayerId)
-                    .ToDictionary(
-                        g => g.Key,
-                        g => g.Select(mp => (
-                                EventId: mp.EventId,
-                                EventDate: (DateTime?)matchEventDateById[mp.EventId],
-                                mp.MinutesPlayed,
-                                EventTypeId: matchEventEventTypeById[mp.EventId]))
-                            .ToList());
-
-                // 8-week window for the training component of the form status.
+                // 84-day replay window for the training component of Estado de forma/Rodaje.
                 var trainingEventsInWindow = await db.SportEvents
                     .AsNoTracking()
                     .Where(se => se.TeamId == request.TeamId && se.EventTypeId == trainingEventTypeId
@@ -274,7 +233,7 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                     .ToDictionary(g => g.Key, g => g.ToList());
 
                 // Load window for Cansancio (PlayerFatigueCalculator.WindowDays, 14 days) —
-                // narrower than the 8-week Rodaje window above, so it is derived in-memory from
+                // narrower than the 84-day replay window above, so it is derived in-memory from
                 // the data already fetched for Rodaje (a strict superset) instead of issuing new
                 // DB queries. Unlike Rodaje, each event keeps its own "days ago" so
                 // PlayerFatigueCalculator can apply recency decay instead of a flat count.
@@ -449,14 +408,13 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                     .GroupBy(c => (c.TeamPlayerId, c.SportEventId))
                     .ToDictionary(g => g.Key, g => g.First());
 
-                // Partidos del equipo computables para Estado de forma: Liga/Amistoso/Torneo con al
-                // menos una participación `finished` dentro de la ventana de 42 días.
-                var formWindowStart = DateTime.UtcNow.Date.AddDays(-PlayerFormStatusCalculator.WindowDays);
-                var formWindowMatches = participationsInWindow
+                // Partidos del equipo reproducidos para Estado de forma/Rodaje: Liga/Amistoso/Torneo
+                // con al menos una participación `finished` dentro de la ventana de 84 días.
+                var replayMatches = participationsInWindow
                     .Select(mp => mp.EventId)
                     .Distinct()
                     .Where(eventId => matchLikeEventTypeIds.Contains(matchEventEventTypeById[eventId])
-                                      && matchEventDateById[eventId] is { } date && date >= formWindowStart && date <= DateTime.UtcNow)
+                                      && matchEventDateById[eventId] is { } date && date <= DateTime.UtcNow)
                     .Select(eventId => (EventId: eventId, EventDate: matchEventDateById[eventId]!.Value, EventTypeId: matchEventEventTypeById[eventId]))
                     .ToList();
 
@@ -489,21 +447,31 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                     trainingConvocationsByPlayer.TryGetValue(player.Id, out var playerTrainingConvocations);
                     playerTrainingConvocations ??= new List<Convocation>();
 
-                    var trainingOutcomes = playerTrainingConvocations
-                        .Select(c => new PlayerReadinessCalculator.TrainingOutcome(
+                    var trainingInputs = playerTrainingConvocations
+                        .Where(c => trainingEventDateById.TryGetValue(c.SportEventId, out var d) && d is not null && d.Value <= DateTime.UtcNow)
+                        .Select(c => new DailyLoadModel.TrainingInput(
                             c.SportEventId,
-                            trainingEventDateById.TryGetValue(c.SportEventId, out var date) ? date : null,
+                            trainingEventDateById[c.SportEventId]!.Value,
                             trainingEventTrainingTypesById.TryGetValue(c.SportEventId, out var types) ? types : new List<string>(),
-                            c.AssistanceTypeId,
-                            c.ExcuseTypeId,
-                            c.ConvocationStatusId))
+                            FormStatusOutcome.Classify(c.AssistanceTypeId, c.ConvocationStatusId, c.ExcuseTypeId),
+                            FormStatusOutcome.ReasonFor(c.AssistanceTypeId, c.ExcuseTypeId)))
                         .ToList();
 
-                    matchMinutesInWindowByPlayer.TryGetValue(player.Id, out var matchMinutesInWindow);
-                    matchMinutesInWindow ??= new List<(string EventId, DateTime? EventDate, int MinutesPlayed, int EventTypeId)>();
+                    var minutesByEvent = playerParticipations
+                        .GroupBy(mp => mp.EventId)
+                        .ToDictionary(g => g.Key, g => g.Sum(mp => mp.MinutesPlayed));
 
-                    var readinessResult = PlayerReadinessCalculator.Calculate(trainingOutcomes, matchMinutesInWindow);
+                    var matchInputs = replayMatches
+                        .Where(m => minutesByEvent.ContainsKey(m.EventId)
+                                    || (m.EventDate.Date >= player.JoinedDate.Date && (player.LeftDate is null || m.EventDate <= player.LeftDate)))
+                        .Select(m =>
+                        {
+                            minutesByEvent.TryGetValue(m.EventId, out var minutes);
+                            return new DailyLoadModel.MatchInput(m.EventId, m.EventDate, m.EventTypeId, minutes, MatchMissedReason(player.Id, m.EventId));
+                        })
+                        .ToList();
 
+                    var readinessResult = PlayerReadinessCalculator.Calculate(trainingInputs, matchInputs, windowStart, today);
 
                     // Attendance ratio helpers
                     int PossibleFor(int eventTypeId) => finishedEvents.Count(e =>
@@ -547,56 +515,12 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                     matchesInFatigueWindow ??= new List<(string EventId, DateTime? EventDate, int DaysAgo, int MinutesPlayed, int EventTypeId)>();
                     var fatigueResult = PlayerFatigueCalculator.Calculate(trainingsInFatigueWindow, matchesInFatigueWindow);
 
-                    // Estado de forma (recibido/ofrecido): se calcula DESPUÉS de Cansancio porque lo
-                    // usa como multiplicador, y solo para categorías con duración estándar de
-                    // partido. Sin queries nuevas: reutiliza los entrenos y convocatorias ya
-                    // cargados y las participaciones `finished`. Ver
-                    // openspec/changes/player-form-status-received-offered-load/design.md → Decisión 10.
-                    PlayerFormStatusCalculator.Result? formStatusResult = null;
-                    if (hasStandardMinutes)
-                    {
-                        var today = DateTime.UtcNow.Date;
-
-                        var formTrainings = playerTrainingConvocations
-                            .Where(c => trainingEventDateById.TryGetValue(c.SportEventId, out var d) && d is not null && d.Value <= DateTime.UtcNow)
-                            .Select(c =>
-                            {
-                                var date = trainingEventDateById[c.SportEventId];
-                                return new PlayerFormStatusCalculator.TrainingParticipation(
-                                    c.SportEventId,
-                                    date,
-                                    (today - date!.Value.Date).Days,
-                                    trainingEventTrainingTypesById.TryGetValue(c.SportEventId, out var formTypes) ? formTypes : new List<string>(),
-                                    FormStatusOutcome.Classify(c.AssistanceTypeId, c.ConvocationStatusId, c.ExcuseTypeId),
-                                    FormStatusOutcome.ReasonFor(c.AssistanceTypeId, c.ExcuseTypeId));
-                            })
-                            .ToList();
-
-                        var minutesByEvent = playerParticipations
-                            .GroupBy(mp => mp.EventId)
-                            .ToDictionary(g => g.Key, g => g.Sum(mp => mp.MinutesPlayed));
-
-                        var formMatches = formWindowMatches
-                            .Select(m =>
-                            {
-                                var hasParticipation = minutesByEvent.TryGetValue(m.EventId, out var minutes);
-                                var outcome = matchLikeConvocationByPlayerEvent.TryGetValue((player.Id, m.EventId), out var conv)
-                                    ? FormStatusOutcome.Classify(conv.AssistanceTypeId, conv.ConvocationStatusId, conv.ExcuseTypeId)
-                                    : (hasParticipation ? ParticipationOutcome.Attended : ParticipationOutcome.Excluded);
-                                if (hasParticipation && outcome == ParticipationOutcome.Excluded)
-                                    outcome = ParticipationOutcome.Attended;
-
-                                var outsideSquadPeriod = !hasParticipation
-                                    && (m.EventDate.Date < player.JoinedDate.Date || (player.LeftDate is not null && m.EventDate > player.LeftDate));
-                                if (outsideSquadPeriod) outcome = ParticipationOutcome.Excluded;
-
-                                return new PlayerFormStatusCalculator.MatchInput(
-                                    m.EventId, m.EventDate, m.EventTypeId, (today - m.EventDate.Date).Days, minutes, outcome);
-                            })
-                            .ToList();
-
-                        formStatusResult = PlayerFormStatusCalculator.Calculate(formTrainings, formMatches, fatigueResult.Fatigue, standardMinutes);
-                    }
+                    // Estado de forma: solo para categorías con duración estándar de partido. No
+                    // depende de Cansancio. Ver
+                    // openspec/changes/player-form-readiness-daily-load-model/design.md → Decisión 6.
+                    var formStatusResult = hasStandardMinutes
+                        ? PlayerFormStatusCalculator.Calculate(trainingInputs, matchInputs, windowStart, today, standardMinutes)
+                        : null;
 
                     attributableAbsencesByPlayer.TryGetValue(player.Id, out var playerAttributableAbsenceEventIds);
                     playerAttributableAbsenceEventIds ??= new List<string>();
@@ -633,26 +557,6 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                         ? player.Alias
                         : string.Join(" ", new[] { player.Name, player.LastName }.Where(s => !string.IsNullOrWhiteSpace(s))).Trim();
 
-                    var readinessBreakdown = new ReadinessBreakdownDto(
-                        readinessResult.TrainingComponent,
-                        readinessResult.MatchComponent,
-                        readinessResult.SessionsConsidered,
-                        PlayerReadinessCalculator.BaselineTrainings,
-                        readinessResult.MatchMinutesInWindow,
-                        PlayerReadinessCalculator.BaselineMatches * PlayerReadinessCalculator.ExpectedMinutesPerMatch,
-                        PlayerReadinessCalculator.TrainingWeight,
-                        PlayerReadinessCalculator.MatchWeight,
-                        readinessResult.RecentAbsences
-                            .Select(a => new RecentAbsenceDto(a.EventId, a.Date, a.Reason, a.PointsImpact))
-                            .ToArray(),
-                        readinessResult.ConsideredTrainings
-                            .Select(c => new ReadinessConsideredTrainingDto(
-                                c.EventId, c.EventDate, c.TrainingTypes, c.CountsTowardScore, c.Points, c.TypeWeight, c.Contribution, c.Reason))
-                            .ToArray(),
-                        readinessResult.ConsideredMatches
-                            .Select(c => new ReadinessConsideredMatchDto(c.EventId, c.EventDate, c.EventTypeId, c.MinutesPlayed, c.TypeWeight, c.EffectiveMinutes))
-                            .ToArray());
-
                     var fatigueBreakdown = new FatigueBreakdownDto(
                         fatigueResult.TrainingComponent,
                         fatigueResult.MatchComponent,
@@ -666,50 +570,6 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                         fatigueResult.ConsideredMatches
                             .Select(c => new FatigueConsideredMatchDto(c.EventId, c.EventDate, c.EventTypeId, c.MinutesPlayed, c.DaysAgo, c.Decay, c.TypeWeight, c.EffectiveMinutes))
                             .ToArray());
-
-                    FormStatusBreakdownDto? formStatusBreakdown = formStatusResult is null || formStatusResult.FormStatus is null
-                        ? null
-                        : new FormStatusBreakdownDto(
-                            PlayerFormStatusCalculator.WindowDays,
-                            PlayerFormStatusCalculator.RecencyFullWeightDays,
-                            PlayerFormStatusCalculator.RecencyHalfLifeDays,
-                            formStatusResult.TrainingComponent,
-                            formStatusResult.TrainingSessionsOffered,
-                            formStatusResult.TrainingSessionsAttended,
-                            formStatusResult.TrainingLoadOffered,
-                            formStatusResult.TrainingLoadReceived,
-                            formStatusResult.TrainingTypeWeightFallbackUsed,
-                            formStatusResult.ExcludedTrainings,
-                            formStatusResult.MatchComponent,
-                            formStatusResult.MatchesConsidered,
-                            formStatusResult.CategoryMatchMinutes,
-                            formStatusResult.FullStimulusFraction,
-                            formStatusResult.FullMatchMinutes,
-                            formStatusResult.MatchRecencyWeightSum,
-                            formStatusResult.MatchRatioWeightedSum,
-                            formStatusResult.ExcludedMatches,
-                            formStatusResult.TrainingWeightNominal,
-                            formStatusResult.MatchWeightNominal,
-                            formStatusResult.TrainingWeightApplied,
-                            formStatusResult.MatchWeightApplied,
-                            formStatusResult.BaseScore,
-                            formStatusResult.Fatigue,
-                            formStatusResult.FatigueFactor,
-                            formStatusResult.ReferenceTrainingSessions,
-                            formStatusResult.TrainingRatioComponent,
-                            formStatusResult.TrainingVolumeFactor,
-                            formStatusResult.MatchMinutesPlayedTotal,
-                            formStatusResult.MatchMinutesPossibleTotal,
-                            formStatusResult.ConsideredTrainings
-                                .Select(c => new FormStatusConsideredTrainingDto(
-                                    c.EventId, c.EventDate, c.TrainingTypes, c.DaysAgo, c.RecencyWeight, c.TypeWeight,
-                                    c.OfferedLoad, c.Attended, c.ReceivedLoad, c.AbsenceReason))
-                                .ToArray(),
-                            formStatusResult.ConsideredMatches
-                                .Select(c => new FormStatusConsideredMatchDto(
-                                    c.EventId, c.EventDate, c.EventTypeId, c.DaysAgo, c.RecencyWeight,
-                                    c.MinutesPlayed, c.FullMatchMinutes, c.Ratio, c.Contribution, c.Status))
-                                .ToArray());
 
                     result.Add(new PlayerStatisticsDto(
                         player.Id,
@@ -727,17 +587,55 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                         lastInjuryDurationDays,
                         fatigueResult.Fatigue,
                         fatigueBreakdown,
-                        readinessResult.Readiness,
-                        readinessBreakdown,
+                        readinessResult.Value,
+                        ToBreakdown(readinessResult),
                         matchesAbsentAttributableToPlayer,
                         minutesPlayedPercentOfSeasonTotal,
                         attributableAbsentMinutesPercentOfSeasonTotal,
-                        formStatusResult?.FormStatus,
-                        formStatusBreakdown));
+                        formStatusResult?.Value,
+                        formStatusResult is null ? null : ToBreakdown(formStatusResult)));
                 }
 
                 return result;
+
+                // Motivo informativo de un partido del equipo sin minutos para el jugador.
+                string? MatchMissedReason(string teamPlayerId, string eventId)
+                {
+                    if (!matchLikeConvocationByPlayerEvent.TryGetValue((teamPlayerId, eventId), out var conv))
+                        return "No convocado";
+                    return FormStatusOutcome.Classify(conv.AssistanceTypeId, conv.ConvocationStatusId, conv.ExcuseTypeId) == ParticipationOutcome.Attended
+                        ? "Convocado sin jugar"
+                        : FormStatusOutcome.ReasonFor(conv.AssistanceTypeId, conv.ExcuseTypeId);
+                }
             }
+
+            private static DailyLoadBreakdownDto? ToBreakdown(DailyLoadModel.MetricResult result) =>
+                result.Model is null
+                    ? null
+                    : new DailyLoadBreakdownDto(
+                        result.Model.Value,
+                        result.StartDate,
+                        DailyLoadModel.ReplayDays,
+                        result.Parameters.GainRate,
+                        result.Parameters.GraceRestDays,
+                        result.Parameters.DecayStepPerDay,
+                        result.Parameters.DecayMaxPerDay,
+                        DailyLoadModel.MatchLoadPerReferenceMatch,
+                        result.ReferenceMatchMinutes,
+                        result.Model.CurrentRestStreakDays,
+                        result.TrainingsAttended,
+                        result.MatchesPlayed,
+                        result.MatchMinutesPlayed,
+                        result.Model.Steps
+                            .Select(s => new DailyLoadStepDto(
+                                s.Date, s.EndDate, s.Kind, s.Load, s.ValueBefore, s.ValueAfter,
+                                s.Events
+                                    .Select(e => new DailyLoadEventDto(e.EventId, e.EventTypeId, e.TrainingTypes, e.MinutesPlayed, e.TypeWeight, e.Load))
+                                    .ToArray()))
+                            .ToArray(),
+                        result.MissedEvents
+                            .Select(m => new MissedEventDto(m.EventId, m.Date, m.EventTypeId, m.Reason))
+                            .ToArray());
 
             /// <summary>
             /// Parses GoalsJson to count goals where scorerId == teamPlayerId and isOwnTeam == true.
