@@ -104,9 +104,10 @@ const lineupPlayers: SquadPlayer[] = [
     competitiveness: 6,
     readiness: 88,
     readinessBreakdown: {
-      trainingComponent: 100,
-      matchMinutesInWindow: 336,
-      matchMinutesExpected: 560,
+      value: 88,
+      gainRate: 0.1,
+      matchLoadPerReferenceMatch: 1.5,
+      referenceMatchMinutes: 70,
     },
   },
 ];

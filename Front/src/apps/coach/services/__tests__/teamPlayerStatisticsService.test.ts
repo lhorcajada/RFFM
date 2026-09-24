@@ -9,7 +9,7 @@ vi.mock("../../../../core/api/client", () => ({
 
 import client from "../../../../core/api/client";
 import { getTeamPlayerStatistics, type PlayerStatistics } from "../teamPlayerStatisticsService";
-import { buildFatigueBreakdown, buildFormStatusBreakdown, buildReadinessBreakdown } from "../../components/MetricBreakdown/__tests__/breakdownFixtures";
+import { buildDailyLoadBreakdown, buildFatigueBreakdown } from "../../components/MetricBreakdown/__tests__/breakdownFixtures";
 
 describe("teamPlayerStatisticsService.getTeamPlayerStatistics", () => {
   beforeEach(() => {
@@ -35,17 +35,15 @@ describe("teamPlayerStatisticsService.getTeamPlayerStatistics", () => {
         fatigue: 37,
         fatigueBreakdown: buildFatigueBreakdown({ trainingComponent: 30, matchComponent: 45, decayedMatchMinutes: 70 }),
         readiness: 82,
-        readinessBreakdown: buildReadinessBreakdown({
-          trainingComponent: 90,
-          recentAbsences: [
-            { eventId: "ev-1", date: "2026-08-01T00:00:00Z", reason: "Enfermedad", pointsImpact: -55 },
-          ],
+        readinessBreakdown: buildDailyLoadBreakdown({
+          value: 82.3,
+          missedEvents: [{ eventId: "ev-1", date: "2026-08-01T00:00:00Z", eventTypeId: 2, reason: "Enfermedad" }],
         }),
         matchesAbsentAttributableToPlayer: 2,
         minutesPlayedPercentOfSeasonTotal: 42.6,
         attributableAbsentMinutesPercentOfSeasonTotal: 12.4,
         formStatus: 75,
-        formStatusBreakdown: buildFormStatusBreakdown({ trainingComponent: 80, matchComponent: 60 }),
+        formStatusBreakdown: buildDailyLoadBreakdown({ value: 75.2 }),
       },
     ];
     const expected: PlayerStatistics[] = [
@@ -66,17 +64,15 @@ describe("teamPlayerStatisticsService.getTeamPlayerStatistics", () => {
         fatigue: 37,
         fatigueBreakdown: buildFatigueBreakdown({ trainingComponent: 30, matchComponent: 45, decayedMatchMinutes: 70 }),
         readiness: 82,
-        readinessBreakdown: buildReadinessBreakdown({
-          trainingComponent: 90,
-          recentAbsences: [
-            { eventId: "ev-1", date: "2026-08-01T00:00:00Z", reason: "Enfermedad", pointsImpact: -55 },
-          ],
+        readinessBreakdown: buildDailyLoadBreakdown({
+          value: 82.3,
+          missedEvents: [{ eventId: "ev-1", date: "2026-08-01T00:00:00Z", eventTypeId: 2, reason: "Enfermedad" }],
         }),
         matchesAbsentAttributableToPlayer: 2,
         minutesPlayedPercentOfSeasonTotal: 42.6,
         attributableAbsentMinutesPercentOfSeasonTotal: 12.4,
         formStatus: 75,
-        formStatusBreakdown: buildFormStatusBreakdown({ trainingComponent: 80, matchComponent: 60 }),
+        formStatusBreakdown: buildDailyLoadBreakdown({ value: 75.2 }),
       },
     ];
     (client.get as any).mockResolvedValue({ data: apiResponse });

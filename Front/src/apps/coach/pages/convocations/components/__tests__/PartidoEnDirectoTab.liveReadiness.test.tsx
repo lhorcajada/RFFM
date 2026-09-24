@@ -94,7 +94,7 @@ vi.mock("../../hooks/useLiveMatch", () => ({
   useLiveMatch: (...args: unknown[]) => useLiveMatchMock(...args),
 }));
 
-// trainingComponent 80, matchMinutesInWindow 0 de 560 esperados -> readiness original = round(0.7*80) = 56
+// Rodaje actual 56 (k 0.10, partido completo = carga 1.5 sobre 70')
 const lineupPlayers: SquadPlayer[] = [
   { id: "p0", displayName: "Titular", dorsal: 1, position: "portero", competitiveness: 7 },
   {
@@ -105,9 +105,10 @@ const lineupPlayers: SquadPlayer[] = [
     competitiveness: 6,
     readiness: 56,
     readinessBreakdown: {
-      trainingComponent: 80,
-      matchMinutesInWindow: 0,
-      matchMinutesExpected: 560,
+      value: 56,
+      gainRate: 0.1,
+      matchLoadPerReferenceMatch: 1.5,
+      referenceMatchMinutes: 70,
     },
   },
 ];
@@ -127,8 +128,8 @@ describe("PartidoEnDirectoTab - rodaje en vivo", () => {
       />,
     );
 
-    // matchComponent = 140/560*100 = 25; readiness = round(0.7*80 + 0.3*25) = round(56 + 7.5) = 64
-    expect(await screen.findByText("64%")).toBeInTheDocument();
+    // 140' en vivo: 100 − 44 · e^(−0.1 · 1.5 · 140/70) = 67.4 → 67
+    expect(await screen.findByText("67%")).toBeInTheDocument();
     expect(screen.queryByText("56%")).not.toBeInTheDocument();
   });
 

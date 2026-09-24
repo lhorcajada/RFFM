@@ -1,5 +1,6 @@
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
+import type { LiveReadinessBreakdown } from "../../utils/liveReadiness";
 import styles from "./SimulationPlayerSlot.module.css";
 
 export interface SimSlotPlayer {
@@ -12,11 +13,7 @@ export interface SimSlotPlayer {
   /** Rodaje (0-100), calculado a partir de asistencia y minutos recientes. */
   readiness?: number | null;
   /** Desglose del cálculo de rodaje — usado para recalcularlo en vivo durante un partido/simulación en curso. */
-  readinessBreakdown?: {
-    trainingComponent: number;
-    matchMinutesInWindow: number;
-    matchMinutesExpected: number;
-  } | null;
+  readinessBreakdown?: LiveReadinessBreakdown | null;
   /** Cansancio (0-100). Junto con `readiness`, se muestra como barras compactas Ef/R/C. */
   fatigue?: number | null;
   /** Estado de forma de backend (foto previa al partido; no se recalcula en vivo). */

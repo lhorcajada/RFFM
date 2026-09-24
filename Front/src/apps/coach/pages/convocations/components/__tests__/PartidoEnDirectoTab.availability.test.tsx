@@ -102,9 +102,10 @@ const lineupPlayers: SquadPlayer[] = [
     position: "defensa",
     competitiveness: 6,
     readinessBreakdown: {
-      trainingComponent: 70,
-      matchMinutesInWindow: 0,
-      matchMinutesExpected: 0,
+      value: 49,
+      gainRate: 0.1,
+      matchLoadPerReferenceMatch: 1.5,
+      referenceMatchMinutes: 70,
     },
     fatigue: 22,
   },
@@ -125,7 +126,7 @@ describe("PartidoEnDirectoTab - indicador Ef/Rodaje/Cansancio", () => {
       />,
     );
 
-    // R (rodaje en vivo) = round(0.7 * 70 + 0.3 * 0) = 49;
+    // R (rodaje en vivo, sin minutos todavía) = 49;
     // Ef = readiness * (1 - fatigue / 200) = 49 * (1 - 22 / 200) = 43.61 → 44
     expect(await screen.findByText("44%")).toBeInTheDocument();
     expect(screen.getByText("49%")).toBeInTheDocument();

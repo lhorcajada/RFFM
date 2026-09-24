@@ -3,6 +3,7 @@ import type { PlayerResponse } from "../../../services/teamplayerService";
 import type { PlayerRating } from "../../../types/playerRating";
 import type { GridCell, MatchColumn } from "../components/convocationMatchDetail.types";
 import type { SquadPlayer } from "../../squad/components/IdealLineup";
+import type { LiveReadinessBreakdown } from "../utils/liveReadiness";
 
 type ConvocationPlayersInput = {
   players: PlayerResponse[];
@@ -17,11 +18,7 @@ type ConvocationPlayersInput = {
     string,
     {
       readiness: number | null;
-      readinessBreakdown?: {
-        trainingComponent: number;
-        matchMinutesInWindow: number;
-        matchMinutesExpected: number;
-      } | null;
+      readinessBreakdown?: LiveReadinessBreakdown | null;
       physicalFitness?: number | null;
       fatigue?: number | null;
       formStatus?: number | null;

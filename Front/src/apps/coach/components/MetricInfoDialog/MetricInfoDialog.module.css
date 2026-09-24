@@ -45,12 +45,6 @@
   font-weight: 700;
 }
 
-.note {
-  margin: 6px 0 0;
-  font-size: 0.85rem;
-  opacity: 0.85;
-}
-
 .detailButton {
   align-self: flex-start;
   margin-top: 10px !important;

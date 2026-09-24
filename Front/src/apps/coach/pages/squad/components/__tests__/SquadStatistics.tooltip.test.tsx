@@ -3,7 +3,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import SquadStatistics from "../SquadStatistics";
 import type { PlayerStatistics } from "../../../../services/teamPlayerStatisticsService";
-import { buildFatigueBreakdown, buildReadinessBreakdown } from "../../../../components/MetricBreakdown/__tests__/breakdownFixtures";
+import { buildDailyLoadBreakdown, buildFatigueBreakdown } from "../../../../components/MetricBreakdown/__tests__/breakdownFixtures";
 
 function buildPlayer(overrides: Partial<PlayerStatistics> = {}): PlayerStatistics {
   return {
@@ -34,7 +34,7 @@ function buildPlayer(overrides: Partial<PlayerStatistics> = {}): PlayerStatistic
 }
 
 describe("SquadStatistics — detalle expandible de rodaje", () => {
-  it("muestra el motivo de una ausencia reciente al abrir el diálogo de rodaje y pulsar Ver el detalle", () => {
+  it("muestra el motivo de un día sin actividad al abrir el diálogo de rodaje y pulsar Ver el detalle", () => {
     render(
       <SquadStatistics
         players={[
@@ -42,10 +42,8 @@ describe("SquadStatistics — detalle expandible de rodaje", () => {
             teamPlayerId: "p1",
             displayName: "Jugador Lesionado",
             readiness: 40,
-            readinessBreakdown: buildReadinessBreakdown({
-              recentAbsences: [
-                { eventId: "ev-1", date: "2026-08-01T00:00:00Z", reason: "Lesión", pointsImpact: -90 },
-              ],
+            readinessBreakdown: buildDailyLoadBreakdown({
+              missedEvents: [{ eventId: "ev-1", date: "2026-08-01T00:00:00Z", eventTypeId: 2, reason: "Lesión" }],
             }),
           }),
         ]}

@@ -33,9 +33,8 @@ export function matchTypeLabel(eventTypeId: number): string {
   return MATCH_TYPE_LABELS[eventTypeId] ?? "Partido";
 }
 
-export function recencyLabel(weight: number): string {
-  if (weight <= 0) return "no aporta";
-  if (weight >= 0.99) return "cuenta completo";
-  if (Math.abs(weight - 0.5) < 0.02) return "cuenta a la mitad";
-  return `cuenta al ${Math.round(weight * 100)}%`;
+const TRAINING_EVENT_TYPE_ID = 2;
+
+export function eventLabel(eventTypeId: number, trainingTypes: string[]): string {
+  return eventTypeId === TRAINING_EVENT_TYPE_ID ? formatTrainingTypes(trainingTypes) : matchTypeLabel(eventTypeId);
 }

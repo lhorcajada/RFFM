@@ -1,7 +1,7 @@
 import type {
+  DailyLoadBreakdown,
+  DailyLoadStep,
   FatigueBreakdown,
-  FormStatusBreakdown,
-  ReadinessBreakdown,
 } from "../../../services/teamPlayerStatisticsService";
 
 export function buildFatigueBreakdown(overrides: Partial<FatigueBreakdown> = {}): FatigueBreakdown {
@@ -18,57 +18,36 @@ export function buildFatigueBreakdown(overrides: Partial<FatigueBreakdown> = {})
   };
 }
 
-export function buildReadinessBreakdown(overrides: Partial<ReadinessBreakdown> = {}): ReadinessBreakdown {
+export function buildActivityStep(overrides: Partial<DailyLoadStep> = {}): DailyLoadStep {
   return {
-    trainingComponent: 30,
-    matchComponent: 60,
-    trainingSessionsConsidered: 10,
-    trainingSessionsBaseline: 16,
-    matchMinutesInWindow: 150,
-    matchMinutesExpected: 560,
-    trainingWeight: 0.7,
-    matchWeight: 0.3,
-    recentAbsences: [],
-    consideredTrainings: [],
-    consideredMatches: [],
+    date: "2026-09-20T00:00:00Z",
+    endDate: null,
+    kind: "Activity",
+    load: 1,
+    valueBefore: 60,
+    valueAfter: 66,
+    events: [{ eventId: "t1", eventTypeId: 2, trainingTypes: ["Fisico"], minutesPlayed: 0, typeWeight: 1, load: 1 }],
     ...overrides,
   };
 }
 
-export function buildFormStatusBreakdown(overrides: Partial<FormStatusBreakdown> = {}): FormStatusBreakdown {
+export function buildDailyLoadBreakdown(overrides: Partial<DailyLoadBreakdown> = {}): DailyLoadBreakdown {
   return {
-    windowDays: 42,
-    recencyFullWeightDays: 7,
-    recencyHalfLifeDays: 14,
-    trainingComponent: 50,
-    trainingSessionsOffered: 4,
-    trainingSessionsAttended: 2,
-    trainingLoadOffered: 4,
-    trainingLoadReceived: 2,
-    trainingTypeWeightFallbackUsed: false,
-    excludedTrainings: 0,
-    matchComponent: 100,
-    referenceTrainingSessions: 12,
-    trainingRatioComponent: 50,
-    trainingVolumeFactor: 1,
-    matchMinutesPlayedTotal: 70,
-    matchMinutesPossibleTotal: 80,
-    matchesConsidered: 1,
-    categoryMatchMinutes: 80,
-    fullStimulusFraction: 0.875,
-    fullMatchMinutes: 70,
-    matchRecencyWeightSum: 1,
-    matchRatioWeightedSum: 1,
-    excludedMatches: 0,
-    trainingWeightNominal: 0.55,
-    matchWeightNominal: 0.45,
-    trainingWeightApplied: 0.55,
-    matchWeightApplied: 0.45,
-    baseScore: 72.5,
-    fatigue: 20,
-    fatigueFactor: 0.9,
-    consideredTrainings: [],
-    consideredMatches: [],
+    value: 66,
+    replayStartDate: "2026-07-03T00:00:00Z",
+    replayDays: 84,
+    gainRate: 0.16,
+    graceRestDays: 4,
+    decayStepPerDay: 0.5,
+    decayMaxPerDay: 3,
+    matchLoadPerReferenceMatch: 1.5,
+    referenceMatchMinutes: 70,
+    currentRestStreakDays: 1,
+    trainingsAttended: 9,
+    matchesPlayed: 2,
+    matchMinutesPlayed: 125,
+    steps: [buildActivityStep()],
+    missedEvents: [],
     ...overrides,
   };
 }

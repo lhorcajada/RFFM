@@ -1,4 +1,5 @@
 import { Fragment, forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
+import type { DailyLoadBreakdown } from "../../../services/teamPlayerStatisticsService";
 import {
   DndContext,
   DragOverlay,
@@ -97,11 +98,7 @@ export interface SquadPlayer {
   /** Rodaje (0-100), calculado a partir de asistencia y minutos recientes. */
   readiness?: number | null;
   /** Desglose del cálculo de rodaje — usado para recalcularlo en vivo durante un partido/simulación en curso. */
-  readinessBreakdown?: {
-    trainingComponent: number;
-    matchMinutesInWindow: number;
-    matchMinutesExpected: number;
-  } | null;
+  readinessBreakdown?: Pick<DailyLoadBreakdown, "value" | "gainRate" | "matchLoadPerReferenceMatch" | "referenceMatchMinutes"> | null;
   /** Forma física (0-100), persistida. Independiente de Rodaje. */
   physicalFitness?: number | null;
   /** Cansancio (0-100), persistido. Independiente de Rodaje. */

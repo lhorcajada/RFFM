@@ -11,24 +11,19 @@ export type MetricTexts = {
 export const METRIC_TEXTS: Record<MetricKey, MetricTexts> = {
   formStatus: {
     title: "Estado de forma",
-    what: "Dice cuánto has entrenado y jugado en las últimas 6 semanas. Para llegar al 100% hacen falta unas 12 sesiones de entrenamiento y jugar casi todo el tiempo en los partidos que juegue el equipo.",
-    goesUp: ["Vas a todos los entrenamientos, sobre todo a los de físico.", "Juegas casi todo el partido."],
+    what: "Dice cómo está tu forma física. Cada entreno o partido la sube; se mantiene hasta 4 días sin entrenar ni jugar y, a partir del 5º, baja cada día un poco más.",
+    goesUp: ["Entrenas, sobre todo físico.", "Juegas partidos: cuantos más minutos, más sube."],
     goesDown: [
-      "Faltas a entrenamientos o partidos, por el motivo que sea (también por una lesión).",
-      "Juegas pocos minutos.",
-      "Vienes cansado.",
+      "Pasan más de 4 días seguidos sin entrenar ni jugar, por el motivo que sea (lesión, vacaciones, no convocado…).",
     ],
-    numbersTitle: "Tus números (últimas 6 semanas)",
+    numbersTitle: "Tus números (últimas 12 semanas)",
   },
   readiness: {
     title: "Rodaje",
-    what: "Dice cuánto conoces la forma de jugar del equipo. Se gana entrenando, sobre todo táctica, y jugando partidos.",
-    goesUp: ["Entrenas, sobre todo táctica.", "Juegas partidos."],
-    goesDown: [
-      "Faltas a entrenamientos o partidos (una lesión te quita mucho).",
-      "Pasan semanas sin jugar ni entrenar.",
-    ],
-    numbersTitle: "Tus números (últimas 8 semanas)",
+    what: "Dice cuánto conoces la forma de jugar del equipo. Se gana entrenando, sobre todo táctica, y jugando partidos. Se mantiene 3 semanas sin actividad y después baja despacio.",
+    goesUp: ["Entrenas, sobre todo táctica.", "Juegas partidos, sobre todo de liga."],
+    goesDown: ["Pasan más de 3 semanas seguidas sin entrenar ni jugar."],
+    numbersTitle: "Tus números (últimas 12 semanas)",
   },
   fatigue: {
     title: "Cansancio",

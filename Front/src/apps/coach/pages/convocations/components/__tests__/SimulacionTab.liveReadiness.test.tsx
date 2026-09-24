@@ -80,7 +80,7 @@ function baseSimReturn(playerMinutes: Record<string, number>): UseMatchSimulatio
   };
 }
 
-// trainingComponent 60, matchMinutesInWindow 0 de 560 esperados -> readiness original = round(0.7*60) = 42
+// Rodaje actual 42 (k 0.10, partido completo = carga 1.5 sobre 70')
 const lineupPlayers: SquadPlayer[] = [
   {
     id: "p1",
@@ -89,9 +89,10 @@ const lineupPlayers: SquadPlayer[] = [
     position: "Delantero",
     readiness: 42,
     readinessBreakdown: {
-      trainingComponent: 60,
-      matchMinutesInWindow: 0,
-      matchMinutesExpected: 560,
+      value: 42,
+      gainRate: 0.1,
+      matchLoadPerReferenceMatch: 1.5,
+      referenceMatchMinutes: 70,
     },
   },
 ];
@@ -102,8 +103,8 @@ describe("SimulacionTab - rodaje en vivo", () => {
 
     render(<SimulacionTab teamId="team-1" eventId="event-1" lineupPlayers={lineupPlayers} />);
 
-    // matchComponent = 56/560*100 = 10; readiness = round(0.7*60 + 0.3*10) = 45
-    expect(await screen.findByText("45%")).toBeInTheDocument();
+    // 56' en vivo: 100 − 58 · e^(−0.1 · 1.5 · 56/70) = 48.6 → 49
+    expect(await screen.findByText("49%")).toBeInTheDocument();
     expect(screen.queryByText("42%")).not.toBeInTheDocument();
   });
 

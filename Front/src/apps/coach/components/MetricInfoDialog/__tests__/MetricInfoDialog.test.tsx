@@ -3,9 +3,8 @@ import { describe, expect, it, vi } from "vitest";
 import MetricInfoDialog from "../MetricInfoDialog";
 import type { PlayerStatistics } from "../../../services/teamPlayerStatisticsService";
 import {
+  buildDailyLoadBreakdown,
   buildFatigueBreakdown,
-  buildFormStatusBreakdown,
-  buildReadinessBreakdown,
 } from "../../MetricBreakdown/__tests__/breakdownFixtures";
 
 function buildPlayer(overrides: Partial<PlayerStatistics> = {}): PlayerStatistics {
@@ -26,14 +25,19 @@ function buildPlayer(overrides: Partial<PlayerStatistics> = {}): PlayerStatistic
     fatigue: 35,
     fatigueBreakdown: buildFatigueBreakdown(),
     readiness: 60,
-    readinessBreakdown: buildReadinessBreakdown({
-      recentAbsences: [{ eventId: "e1", date: "2026-08-01T00:00:00Z", reason: "Lesión", pointsImpact: -90 }],
+    readinessBreakdown: buildDailyLoadBreakdown({
+      gainRate: 0.1,
+      graceRestDays: 21,
+      trainingsAttended: 10,
+      matchesPlayed: 3,
+      matchMinutesPlayed: 150,
+      missedEvents: [{ eventId: "e1", date: "2026-08-01T00:00:00Z", eventTypeId: 2, reason: "Lesión" }],
     }),
     matchesAbsentAttributableToPlayer: 0,
     minutesPlayedPercentOfSeasonTotal: null,
     attributableAbsentMinutesPercentOfSeasonTotal: null,
     formStatus: 72,
-    formStatusBreakdown: buildFormStatusBreakdown(),
+    formStatusBreakdown: buildDailyLoadBreakdown(),
     ...overrides,
   };
 }
@@ -45,30 +49,44 @@ describe("MetricInfoDialog", () => {
   });
 
   it("estado de forma: muestra título y las cifras reales del jugador", () => {
-    render(<MetricInfoDialog metric="formStatus" player={buildPlayer({ formStatusBreakdown: buildFormStatusBreakdown({ matchMinutesPlayedTotal: 134, matchMinutesPossibleTotal: 160, matchesConsidered: 2 }) })} open onClose={() => {}} />);
-    const dialog = screen.getByRole("dialog");
-    expect(within(dialog).getByText("Estado de forma")).toBeInTheDocument();
-    expect(within(dialog).getByText(/Sesiones: 2 de 12/)).toBeInTheDocument();
-    expect(within(dialog).getByText(/Minutos de partido: 134 de 160 posibles \(2 partidos\)/)).toBeInTheDocument();
-    expect(within(dialog).getByText(/Cansancio: 35%/)).toBeInTheDocument();
-  });
-
-  it("estado de forma: avisa cuando el equipo no ha jugado partidos", () => {
     render(
       <MetricInfoDialog
         metric="formStatus"
-        player={buildPlayer({ formStatusBreakdown: buildFormStatusBreakdown({ matchComponent: null }) })}
+        player={buildPlayer({
+          formStatusBreakdown: buildDailyLoadBreakdown({
+            trainingsAttended: 9,
+            matchesPlayed: 2,
+            matchMinutesPlayed: 134,
+            currentRestStreakDays: 2,
+          }),
+        })}
         open
         onClose={() => {}}
       />,
     );
-    expect(screen.getByText(/todavía no ha jugado partidos/i)).toBeInTheDocument();
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByText("Estado de forma")).toBeInTheDocument();
+    expect(within(dialog).getByText("Entrenos: 9")).toBeInTheDocument();
+    expect(within(dialog).getByText("Partidos jugados: 2 (134')")).toBeInTheDocument();
+    expect(within(dialog).getByText("Días seguidos sin actividad: 2")).toBeInTheDocument();
   });
 
-  it("rodaje: muestra sesiones y minutos de las últimas 8 semanas", () => {
+  it("estado de forma: ya no muestra el cansancio porque no le resta", () => {
+    render(<MetricInfoDialog metric="formStatus" player={buildPlayer()} open onClose={() => {}} />);
+    expect(screen.queryByText(/Cansancio: /)).not.toBeInTheDocument();
+    expect(screen.queryByText(/cansado/i)).not.toBeInTheDocument();
+  });
+
+  it("estado de forma: explica que baja a partir del 5º día sin actividad", () => {
+    render(<MetricInfoDialog metric="formStatus" player={buildPlayer()} open onClose={() => {}} />);
+    expect(screen.getByText(/a partir del 5º/)).toBeInTheDocument();
+  });
+
+  it("rodaje: muestra entrenos y partidos de las últimas 12 semanas", () => {
     render(<MetricInfoDialog metric="readiness" player={buildPlayer()} open onClose={() => {}} />);
-    expect(screen.getByText(/Sesiones: 10 de 16/)).toBeInTheDocument();
-    expect(screen.getByText(/Minutos de partido: 150 de 560/)).toBeInTheDocument();
+    expect(screen.getByText("Tus números (últimas 12 semanas)")).toBeInTheDocument();
+    expect(screen.getByText("Entrenos: 10")).toBeInTheDocument();
+    expect(screen.getByText("Partidos jugados: 3 (150')")).toBeInTheDocument();
   });
 
   it("cansancio: muestra entrenos y partidos con carga de los últimos 14 días", () => {

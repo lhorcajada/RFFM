@@ -88,9 +88,10 @@ const lineupPlayers: SquadPlayer[] = [
     position: "Delantero",
     readiness: 42,
     readinessBreakdown: {
-      trainingComponent: 60,
-      matchMinutesInWindow: 0,
-      matchMinutesExpected: 560,
+      value: 42,
+      gainRate: 0.1,
+      matchLoadPerReferenceMatch: 1.5,
+      referenceMatchMinutes: 70,
     },
   },
 ];

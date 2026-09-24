@@ -1,24 +1,16 @@
+import type { DailyLoadBreakdown } from "../../../services/teamPlayerStatisticsService";
+
 /**
- * Recalculates a player's "Rodaje" (readiness, 0-100) client-side, adding the minutes the
- * player has accumulated in an in-progress match/simulation that is NOT yet saved to the
- * backend (so those minutes are not part of `matchMinutesInWindow` returned by the API).
- *
- * This deliberately mirrors `PlayerReadinessCalculator.Calculate` in
- * `Back/ExtractionApi/src/RFFM.Api/Features/Coaches/Players/Services/PlayerReadinessCalculator.cs`
- * (TrainingWeight = 0.70, MatchWeight = 0.30, matchComponent capped at 100). If the backend
- * ever changes those weights/constants, this function must be updated too — same conscious
- * duplication pattern already used elsewhere in this codebase (e.g. goal counting duplicated
- * across several backend endpoints).
+ * Proyecta el "Rodaje" (0-100) de un jugador sumando los minutos de un partido/simulación en
+ * curso que todavía no están guardados en el backend, con la misma saturación exponencial que
+ * `DailyLoadModel` (Back/ExtractionApi/.../Players/Services/DailyLoadModel.cs):
+ * `100 − (100 − valor) · e^(−k · carga)`, con `carga = 1.5 · minutos / 70`.
+ * La simulación no conoce el tipo de partido, así que cuenta como Liga (peso 1.00).
  */
-
-const TRAINING_WEIGHT = 0.7;
-const MATCH_WEIGHT = 0.3;
-
-export type LiveReadinessBreakdown = {
-  trainingComponent: number;
-  matchMinutesInWindow: number;
-  matchMinutesExpected: number;
-};
+export type LiveReadinessBreakdown = Pick<
+  DailyLoadBreakdown,
+  "value" | "gainRate" | "matchLoadPerReferenceMatch" | "referenceMatchMinutes"
+>;
 
 export function computeLiveReadiness(
   breakdown: LiveReadinessBreakdown | null | undefined,
@@ -26,12 +18,12 @@ export function computeLiveReadiness(
 ): number | null {
   if (!breakdown) return null;
 
-  const additionalMinutes = Math.max(0, liveMatchMinutes);
-  const matchMinutes = breakdown.matchMinutesInWindow + additionalMinutes;
-  const matchComponent =
-    breakdown.matchMinutesExpected > 0
-      ? Math.min(100, (matchMinutes / breakdown.matchMinutesExpected) * 100)
+  const minutes = Math.max(0, liveMatchMinutes);
+  const load =
+    breakdown.referenceMatchMinutes > 0
+      ? (breakdown.matchLoadPerReferenceMatch * minutes) / breakdown.referenceMatchMinutes
       : 0;
+  const projected = 100 - (100 - breakdown.value) * Math.exp(-breakdown.gainRate * load);
 
-  return Math.round(TRAINING_WEIGHT * breakdown.trainingComponent + MATCH_WEIGHT * matchComponent);
+  return Math.min(100, Math.round(projected));
 }

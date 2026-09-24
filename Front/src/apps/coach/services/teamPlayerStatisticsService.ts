@@ -1,44 +1,55 @@
 import client from "../../../core/api/client";
 
-export type RecentAbsence = {
-  eventId: string;
-  date: string | null;
-  reason: string;
-  pointsImpact: number;
-};
+export type DailyLoadStepKind = "Activity" | "Decay";
 
-export type ReadinessConsideredTraining = {
+export type DailyLoadEvent = {
   eventId: string;
-  eventDate: string | null;
-  trainingTypes: string[];
-  countsTowardScore: boolean;
-  points: number;
-  typeWeight: number;
-  contribution: number;
-  reason: string;
-};
-
-export type ReadinessConsideredMatch = {
-  eventId: string;
-  eventDate: string | null;
   eventTypeId: number;
+  trainingTypes: string[];
   minutesPlayed: number;
   typeWeight: number;
-  effectiveMinutes: number;
+  load: number;
 };
 
-export type ReadinessBreakdown = {
-  trainingComponent: number;
-  matchComponent: number;
-  trainingSessionsConsidered: number;
-  trainingSessionsBaseline: number;
-  matchMinutesInWindow: number;
-  matchMinutesExpected: number;
-  trainingWeight: number;
-  matchWeight: number;
-  recentAbsences: RecentAbsence[];
-  consideredTrainings: ReadinessConsideredTraining[];
-  consideredMatches: ReadinessConsideredMatch[];
+export type DailyLoadStep = {
+  date: string;
+  /** Solo en pasos "Decay": último día de la racha de descanso con pérdida. */
+  endDate: string | null;
+  kind: DailyLoadStepKind;
+  load: number;
+  valueBefore: number;
+  valueAfter: number;
+  events: DailyLoadEvent[];
+};
+
+export type MissedEvent = {
+  eventId: string;
+  date: string;
+  eventTypeId: number;
+  reason: string;
+};
+
+/** Desglose común de Estado de forma y Rodaje (modelo de carga diaria). */
+export type DailyLoadBreakdown = {
+  /** Valor sin redondear (0-100). */
+  value: number;
+  replayStartDate: string;
+  replayDays: number;
+  gainRate: number;
+  graceRestDays: number;
+  decayStepPerDay: number;
+  decayMaxPerDay: number;
+  matchLoadPerReferenceMatch: number;
+  referenceMatchMinutes: number;
+  /** Días seguidos sin actividad hasta hoy. */
+  currentRestStreakDays: number;
+  trainingsAttended: number;
+  matchesPlayed: number;
+  matchMinutesPlayed: number;
+  /** Más reciente primero. */
+  steps: DailyLoadStep[];
+  /** Más reciente primero, máximo 10. */
+  missedEvents: MissedEvent[];
 };
 
 export type FatigueConsideredTraining = {
@@ -73,69 +84,6 @@ export type FatigueBreakdown = {
   consideredMatches: FatigueConsideredMatch[];
 };
 
-export type FormStatusConsideredTraining = {
-  eventId: string;
-  eventDate: string | null;
-  trainingTypes: string[];
-  daysAgo: number;
-  recencyWeight: number;
-  typeWeight: number;
-  offeredLoad: number;
-  attended: boolean;
-  receivedLoad: number;
-  absenceReason: string | null;
-};
-
-export type FormStatusMatchStatus = "Played" | "NotPlayed" | "Absent";
-
-export type FormStatusConsideredMatch = {
-  eventId: string;
-  eventDate: string | null;
-  eventTypeId: number;
-  daysAgo: number;
-  recencyWeight: number;
-  minutesPlayed: number;
-  fullMatchMinutes: number;
-  ratio: number;
-  contribution: number;
-  status: FormStatusMatchStatus;
-};
-
-export type FormStatusBreakdown = {
-  windowDays: number;
-  recencyFullWeightDays: number;
-  recencyHalfLifeDays: number;
-  trainingComponent: number | null;
-  trainingSessionsOffered: number;
-  trainingSessionsAttended: number;
-  trainingLoadOffered: number;
-  trainingLoadReceived: number;
-  trainingTypeWeightFallbackUsed: boolean;
-  excludedTrainings: number;
-  matchComponent: number | null;
-  referenceTrainingSessions: number;
-  trainingRatioComponent: number | null;
-  trainingVolumeFactor: number | null;
-  matchMinutesPlayedTotal: number;
-  matchMinutesPossibleTotal: number;
-  matchesConsidered: number;
-  categoryMatchMinutes: number;
-  fullStimulusFraction: number;
-  fullMatchMinutes: number;
-  matchRecencyWeightSum: number;
-  matchRatioWeightedSum: number;
-  excludedMatches: number;
-  trainingWeightNominal: number;
-  matchWeightNominal: number;
-  trainingWeightApplied: number;
-  matchWeightApplied: number;
-  baseScore: number;
-  fatigue: number;
-  fatigueFactor: number;
-  consideredTrainings: FormStatusConsideredTraining[];
-  consideredMatches: FormStatusConsideredMatch[];
-};
-
 export type AttendanceRatio = {
   attended: number;
   possible: number;
@@ -162,16 +110,17 @@ export type PlayerStatistics = {
   /** Desglose del cansancio. Nunca null: `fatigue` siempre tiene valor (0 cuando no hay eventos). */
   fatigueBreakdown: FatigueBreakdown;
   readiness: number | null;
-  readinessBreakdown: ReadinessBreakdown | null;
+  /** Rodaje (0-100). `null` si no hay actividad en los últimos 84 días. */
+  readinessBreakdown: DailyLoadBreakdown | null;
   /** Partidos del equipo donde la ausencia es imputable al jugador. Siempre calculado. */
   matchesAbsentAttributableToPlayer: number;
   /** % de minutos jugados sobre el total posible de la temporada. `null` si el equipo no es F11. */
   minutesPlayedPercentOfSeasonTotal: number | null;
   /** % del total posible de temporada perdido por ausencias imputables al jugador. `null` si el equipo no es F11. */
   attributableAbsentMinutesPercentOfSeasonTotal: number | null;
-  /** Estado de forma (0-100). `null` si no hay datos suficientes en la ventana de 8 semanas. */
+  /** Estado de forma (0-100). `null` si no hay actividad en los últimos 84 días o la categoría no tiene duración estándar. */
   formStatus: number | null;
-  formStatusBreakdown: FormStatusBreakdown | null;
+  formStatusBreakdown: DailyLoadBreakdown | null;
 };
 
 /** Objetivo de temporada: un jugador debe llegar al menos al 30% de los minutos totales del equipo. */
