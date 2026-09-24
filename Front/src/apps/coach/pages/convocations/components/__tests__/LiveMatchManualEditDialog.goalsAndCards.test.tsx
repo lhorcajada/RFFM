@@ -2,12 +2,12 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import LiveMatchManualEditDialog from "../simulation/LiveMatchManualEditDialog";
-import type { SquadPlayer } from "../../squad/components/IdealLineup";
+import type { SquadPlayer } from "../../../squad/components/IdealLineup";
 import type { GoalEvent, CardEvent } from "../simulation/liveMatch.types";
 
 const mockLineupPlayers: SquadPlayer[] = [
-  { id: "p1", teamPlayerId: "p1", displayName: "Player One", alias: null, dorsal: 9 },
-  { id: "p2", teamPlayerId: "p2", displayName: "Player Two", alias: null, dorsal: 10 },
+  { id: "p1", displayName: "Player One", alias: null, dorsal: 9 },
+  { id: "p2", displayName: "Player Two", alias: null, dorsal: 10 },
 ];
 
 const mockGoal: GoalEvent = {

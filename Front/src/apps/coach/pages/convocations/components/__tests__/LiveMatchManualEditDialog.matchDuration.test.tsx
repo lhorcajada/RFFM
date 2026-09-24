@@ -1,10 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import LiveMatchManualEditDialog from "../simulation/LiveMatchManualEditDialog";
-import type { SquadPlayer } from "../../squad/components/IdealLineup";
+import type { SquadPlayer } from "../../../squad/components/IdealLineup";
 
 const lineupPlayers: SquadPlayer[] = [
-  { id: "p1", teamPlayerId: "p1", displayName: "Player One", alias: null, dorsal: 9 },
+  { id: "p1", displayName: "Player One", alias: null, dorsal: 9 },
 ];
 
 function renderDialog(overrides: Partial<Parameters<typeof LiveMatchManualEditDialog>[0]> = {}) {
