@@ -91,7 +91,7 @@ export default function FormStatusBreakdownView({ breakdown: b, value }: Props) 
                 <span className={styles.itemDate}>{formatShortDate(m.eventDate)}</span>
                 <span>{matchTypeLabel(m.eventTypeId)}</span>
                 <span>{m.minutesPlayed}'</span>
-                <span className={styles.itemMuted}>{formatPercent(m.ratio * 100)} del partido completo</span>
+                <span className={styles.itemMuted}>{formatPercent(Math.min(1, m.ratio) * 100)} del partido completo</span>
                 <span className={styles.itemMuted}>{recencyLabel(m.recencyWeight)}</span>
                 <span className={m.status === "Played" ? undefined : styles.itemBad}>
                   {MATCH_STATUS_LABELS[m.status]}

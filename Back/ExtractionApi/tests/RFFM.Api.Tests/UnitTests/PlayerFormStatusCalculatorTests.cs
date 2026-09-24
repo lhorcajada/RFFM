@@ -160,8 +160,27 @@ namespace RFFM.Api.Tests.UnitTests
             Assert.Equal(0.875, ten.FullStimulusFraction, precision: 6);
             Assert.Equal(10.0 / 70.0, ten.ConsideredMatches.Single().Ratio, precision: 6);
             Assert.Equal(1.0, seventy.ConsideredMatches.Single().Ratio, precision: 6);
-            Assert.Equal(1.0, hundred.ConsideredMatches.Single().Ratio, precision: 6);
+            Assert.Equal(100.0 / 70.0, hundred.ConsideredMatches.Single().Ratio, precision: 6);
+            Assert.Equal(100.0, hundred.MatchComponent!.Value, precision: 6);
             Assert.Equal(PlayerFormStatusCalculator.MatchStatusPlayed, ten.ConsideredMatches.Single().Status);
+        }
+
+        [Fact]
+        public void MatchComponent_UsesSumOfMinutes_SoDistributionAcrossMatchesDoesNotMatter()
+        {
+            var uneven = Calc(NoTrainings, new[] { Match(1, 80, eventTypeId: FriendlyEventTypeId), Match(1, 50, eventTypeId: FriendlyEventTypeId) });
+            var even = Calc(NoTrainings, new[] { Match(1, 65, eventTypeId: FriendlyEventTypeId), Match(1, 65, eventTypeId: FriendlyEventTypeId) });
+
+            Assert.Equal(130.0 / 140.0 * 100, uneven.MatchComponent!.Value, precision: 6);
+            Assert.Equal(uneven.MatchComponent!.Value, even.MatchComponent!.Value, precision: 6);
+        }
+
+        [Fact]
+        public void MatchComponent_ExtraMinutesInOneMatchCompensateAnotherAndCapAtOneHundred()
+        {
+            var result = Calc(NoTrainings, new[] { Match(1, 80), Match(1, 60) });
+
+            Assert.Equal(100.0, result.MatchComponent!.Value, precision: 6);
         }
 
         [Fact]

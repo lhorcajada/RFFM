@@ -11,8 +11,9 @@ namespace RFFM.Api.Features.Coaches.Players.Services
     /// and passes the already computed Cansancio; this class does no EF/DB access.
     /// FormStatus = (0.55·Entrenos + 0.45·Partidos) × (1 − Fatigue/200), con Entrenos/Partidos =
     /// Entrenos = ratio recibido÷ofrecido × factor de volumen (min(1, sesiones asistidas / 12));
-    /// Partidos = media ponderada por recencia de min(1, minutos/FullMatchMinutes), sin factor de volumen
-    /// (el número de partidos depende del calendario del equipo, no del jugador).
+    /// Partidos = min(1, suma de minutos jugados ponderada por recencia / suma de minutos de estímulo completo
+    /// ponderada por recencia), sin tope por partido y sin factor de volumen (el número de partidos
+    /// depende del calendario del equipo, no del jugador).
     /// See openspec/changes/player-form-status-received-offered-load/design.md → Decisiones 1-12.
     /// </summary>
     public static class PlayerFormStatusCalculator
@@ -154,7 +155,7 @@ namespace RFFM.Api.Features.Coaches.Players.Services
                 {
                     var r = FormStatusRecency.Weight(m.DaysAgo);
                     var (ratio, status) = m.MinutesPlayed > 0
-                        ? (Math.Min(1d, m.MinutesPlayed / fullMatchMinutes), MatchStatusPlayed)
+                        ? (m.MinutesPlayed / fullMatchMinutes, MatchStatusPlayed)
                         : m.Outcome == ParticipationOutcome.Absent
                             ? (0d, MatchStatusAbsent)
                             : (0d, MatchStatusNotPlayed);
@@ -171,7 +172,7 @@ namespace RFFM.Api.Features.Coaches.Players.Services
             // Idem: si el equipo jugo partidos en la ventana y el jugador no tiene ninguno computable,
             // el componente es 0; solo se renormaliza cuando el equipo no jugo ninguno.
             double? matchComponent = recencySum > 0
-                ? ratioWeightedSum / recencySum * 100d
+                ? Math.Min(1d, ratioWeightedSum / recencySum) * 100d
                 : (matchesInWindow.Count > 0 ? 0d : null);
 
             // Sin ningun dato computable en ninguno de los bloques no hay estado de forma (null).
