@@ -131,5 +131,30 @@ namespace RFFM.Api.Tests.UnitTests
             Assert.False(await db.FeaturePermissions.AnyAsync(fp =>
                 fp.RoleName == "FamilyMember" && fp.FeatureRoute == CoachFeatureRoutes.PlayerDocuments));
         }
+
+        /// <summary>
+        /// Regression test: openspec change coach-web-push-notifications ships a
+        /// "Notificaciones" section inside Settings that Player/FamilyMember need in order to
+        /// opt into push notifications for their own convocations/sanctions/injuries, but
+        /// "/coach/settings" was only seeded for Coach/ClubDirector, so RequireFeaturePermission
+        /// redirected Player/FamilyMember away before Settings.tsx ever rendered.
+        /// </summary>
+        [Theory]
+        [InlineData("Player")]
+        [InlineData("FamilyMember")]
+        public async Task SeedPermissionsAsync_GivesPlayerAndFamilyMemberAccessToSettings(string roleName)
+        {
+            var builder = WebApplication.CreateBuilder();
+            builder.Services.AddDbContext<AppDbContext>(options =>
+                options.UseNpgsql(_fixture.ConnectionString, npgsql =>
+                    npgsql.MigrationsHistoryTable("__EFMigrationsHistory", "app")));
+            await using var app = builder.Build();
+
+            await app.SeedPermissionsAsync();
+
+            await using var db = _fixture.CreateDbContext();
+            Assert.True(await db.FeaturePermissions.AnyAsync(fp =>
+                fp.RoleName == roleName && fp.FeatureRoute == CoachFeatureRoutes.Settings));
+        }
     }
 }

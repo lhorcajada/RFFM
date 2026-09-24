@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using RFFM.Api.FeatureModules;
+using RFFM.Api.Features.Coaches.Notifications.Services;
 using RFFM.Api.Infrastructure.Persistence;
 using RFFM.Api.Domain.Models;
 using RFFM.Api.Domain.Aggregates.Assistances;
@@ -57,7 +58,12 @@ namespace RFFM.Api.Features.Coaches.Convocations
         public class AddConvocationHandler : IRequestHandler<AddConvocationRequest, Unit>
         {
             private readonly AppDbContext _db;
-            public AddConvocationHandler(AppDbContext db) => _db = db;
+            private readonly IWebPushNotificationDispatcher _dispatcher;
+            public AddConvocationHandler(AppDbContext db, IWebPushNotificationDispatcher dispatcher)
+            {
+                _db = db;
+                _dispatcher = dispatcher;
+            }
 
             public async ValueTask<Unit> Handle(AddConvocationRequest request, CancellationToken cancellationToken = default)
             {
@@ -91,6 +97,9 @@ namespace RFFM.Api.Features.Coaches.Convocations
                 var conv = Convocation.Create(model);
                 _db.Convocations.Add(conv);
                 await _db.SaveChangesAsync(cancellationToken);
+
+                await _dispatcher.DispatchConvocationCreatedAsync(request.TeamPlayerId, request.EventId, cancellationToken);
+
                 return Unit.Value;
             }
         }
@@ -98,7 +107,12 @@ namespace RFFM.Api.Features.Coaches.Convocations
         public class BulkAddConvocationHandler : IRequestHandler<BulkAddConvocationsRequest, Unit>
         {
             private readonly AppDbContext _db;
-            public BulkAddConvocationHandler(AppDbContext db) => _db = db;
+            private readonly IWebPushNotificationDispatcher _dispatcher;
+            public BulkAddConvocationHandler(AppDbContext db, IWebPushNotificationDispatcher dispatcher)
+            {
+                _db = db;
+                _dispatcher = dispatcher;
+            }
 
             public async ValueTask<Unit> Handle(BulkAddConvocationsRequest request, CancellationToken cancellationToken = default)
             {
@@ -124,12 +138,17 @@ namespace RFFM.Api.Features.Coaches.Convocations
                     latestActiveSanctionByPlayer.TryGetValue(teamPlayerId, out var sanction) &&
                     sportEvent.EveDateTime > sanction.StartDate;
 
-                foreach (var tp in teamPlayers.Where(tp => !existing.Contains(tp.Id) && !IsBlockedBySanction(tp.Id)))
+                var convocatedTeamPlayerIds = teamPlayers
+                    .Where(tp => !existing.Contains(tp.Id) && !IsBlockedBySanction(tp.Id))
+                    .Select(tp => tp.Id)
+                    .ToList();
+
+                foreach (var teamPlayerId in convocatedTeamPlayerIds)
                 {
                     var model = new ConvocationModel
                     {
                         EventId = request.EventId,
-                        TeamPlayerId = tp.Id,
+                        TeamPlayerId = teamPlayerId,
                         AssistanceTypeId = null,
                         ConvocationStatusId = 1
                     };
@@ -138,6 +157,12 @@ namespace RFFM.Api.Features.Coaches.Convocations
                 }
 
                 await _db.SaveChangesAsync(cancellationToken);
+
+                foreach (var teamPlayerId in convocatedTeamPlayerIds)
+                {
+                    await _dispatcher.DispatchConvocationCreatedAsync(teamPlayerId, request.EventId, cancellationToken);
+                }
+
                 return Unit.Value;
             }
         }

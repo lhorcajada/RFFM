@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Common.Behaviors;
 using RFFM.Api.Domain;
 using RFFM.Api.FeatureModules;
+using RFFM.Api.Features.Coaches.Notifications.Services;
 using RFFM.Api.Features.Mobile.PushNotifications;
 using RFFM.Api.Infrastructure.Persistence;
 
@@ -43,10 +44,12 @@ namespace RFFM.Api.Features.Coaches.News
     {
         private readonly AppDbContext _db;
         private readonly IPushNotificationDispatcher _dispatcher;
-        public PublishNewsHandler(AppDbContext db, IPushNotificationDispatcher dispatcher)
+        private readonly IWebPushNotificationDispatcher _webPushDispatcher;
+        public PublishNewsHandler(AppDbContext db, IPushNotificationDispatcher dispatcher, IWebPushNotificationDispatcher webPushDispatcher)
         {
             _db = db;
             _dispatcher = dispatcher;
+            _webPushDispatcher = webPushDispatcher;
         }
 
         public async ValueTask<NewsDetailResponse> Handle(PublishNewsCommand request, CancellationToken ct = default)
@@ -59,6 +62,7 @@ namespace RFFM.Api.Features.Coaches.News
             await _db.SaveChangesAsync(ct);
 
             await _dispatcher.DispatchNewsPublishedAsync(news.Id, ct);
+            await _webPushDispatcher.DispatchNewsPublishedAsync(news.Id, ct);
 
             return new NewsDetailResponse(
                 news.Id, news.Title, news.Subtitle, news.Body, news.CoverImageUrl,

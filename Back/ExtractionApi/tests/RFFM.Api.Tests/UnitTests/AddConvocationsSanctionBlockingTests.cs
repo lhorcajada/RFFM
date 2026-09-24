@@ -1,5 +1,6 @@
 #nullable enable
 using Microsoft.EntityFrameworkCore;
+using Moq;
 using RFFM.Api.Domain.Aggregates.Assistances;
 using RFFM.Api.Domain.Aggregates.UserClubs;
 using RFFM.Api.Domain.Entities.Competitions;
@@ -8,6 +9,7 @@ using RFFM.Api.Domain.Entities.Seasons;
 using RFFM.Api.Domain.Entities.TeamPlayers;
 using RFFM.Api.Domain.Models;
 using RFFM.Api.Features.Coaches.Convocations;
+using RFFM.Api.Features.Coaches.Notifications.Services;
 using RFFM.Api.Infrastructure.Persistence;
 using RFFM.Api.Tests.Fixtures;
 using Xunit;
@@ -116,7 +118,7 @@ namespace RFFM.Api.Tests.UnitTests
             await SeedAutomaticSanctionAsync(db, teamPlayerId, sanctionStartDate);
             var eventId = await SeedSportEventAsync(db, teamId, sanctionStartDate.AddDays(7));
 
-            var handler = new AddConvocations.AddConvocationHandler(db);
+            var handler = new AddConvocations.AddConvocationHandler(db, Mock.Of<IWebPushNotificationDispatcher>());
             var request = new AddConvocations.AddConvocationRequest { EventId = eventId, TeamPlayerId = teamPlayerId, AssistanceTypeId = 1 };
 
             // Act + Assert
@@ -136,7 +138,7 @@ namespace RFFM.Api.Tests.UnitTests
             await SeedAutomaticSanctionAsync(db, teamPlayerId, sanctionStartDate, endDate: DateTime.UtcNow);
             var eventId = await SeedSportEventAsync(db, teamId, sanctionStartDate.AddDays(7));
 
-            var handler = new AddConvocations.AddConvocationHandler(db);
+            var handler = new AddConvocations.AddConvocationHandler(db, Mock.Of<IWebPushNotificationDispatcher>());
             var request = new AddConvocations.AddConvocationRequest { EventId = eventId, TeamPlayerId = teamPlayerId, AssistanceTypeId = 1 };
 
             // Act
@@ -158,7 +160,7 @@ namespace RFFM.Api.Tests.UnitTests
             // Sanction's own originating match (or a later one) has StartDate == eventDate -> not "posterior", so not blocked.
             await SeedAutomaticSanctionAsync(db, teamPlayerId, eventDate);
 
-            var handler = new AddConvocations.AddConvocationHandler(db);
+            var handler = new AddConvocations.AddConvocationHandler(db, Mock.Of<IWebPushNotificationDispatcher>());
             var request = new AddConvocations.AddConvocationRequest { EventId = eventId, TeamPlayerId = teamPlayerId, AssistanceTypeId = 1 };
 
             // Act
@@ -195,7 +197,7 @@ namespace RFFM.Api.Tests.UnitTests
             await SeedAutomaticSanctionAsync(db, sanctionedTeamPlayerId, sanctionStartDate);
             var eventId = await SeedSportEventAsync(db, teamId, sanctionStartDate.AddDays(7));
 
-            var handler = new AddConvocations.BulkAddConvocationHandler(db);
+            var handler = new AddConvocations.BulkAddConvocationHandler(db, Mock.Of<IWebPushNotificationDispatcher>());
             var request = new AddConvocations.BulkAddConvocationsRequest { EventId = eventId };
 
             // Act

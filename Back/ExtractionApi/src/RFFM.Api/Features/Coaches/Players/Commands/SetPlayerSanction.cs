@@ -8,6 +8,7 @@ using RFFM.Api.Domain.Entities.TeamPlayers;
 using RFFM.Api.Domain.Entities.Teams;
 using RFFM.Api.Domain.Services;
 using RFFM.Api.FeatureModules;
+using RFFM.Api.Features.Coaches.Notifications.Services;
 using RFFM.Api.Infrastructure.Persistence;
 
 namespace RFFM.Api.Features.Coaches.Players.Commands
@@ -83,7 +84,8 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
             app.MapPost("/api/catalog/teamplayer/{id}/sanctions",
                 [Authorize(Roles = "Coach,Administrator")]
                 async (string id, SanctionCreateRequest req, AppDbContext db,
-                    ISanctionConvocationEnforcementService enforcementService, CancellationToken ct) =>
+                    ISanctionConvocationEnforcementService enforcementService,
+                    IWebPushNotificationDispatcher webPushDispatcher, CancellationToken ct) =>
                 {
                     var teamId = await db.TeamPlayers
                         .Where(tp => tp.Id == id)
@@ -135,6 +137,8 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
 
                     await db.SaveChangesAsync(ct);
 
+                    await webPushDispatcher.DispatchSanctionChangedAsync(sanction.Id, ct);
+
                     return Results.Created(
                         $"/api/catalog/teamplayer/{id}/sanctions/{sanction.Id}",
                         ToResponse(sanction));
@@ -149,7 +153,8 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
             app.MapPut("/api/catalog/teamplayer/{id}/sanctions/{sanctionId}",
                 [Authorize(Roles = "Coach,Administrator")]
                 async (string id, string sanctionId, SanctionUpdateRequest req, AppDbContext db,
-                    ISanctionConvocationEnforcementService enforcementService, CancellationToken ct) =>
+                    ISanctionConvocationEnforcementService enforcementService,
+                    IWebPushNotificationDispatcher webPushDispatcher, CancellationToken ct) =>
                 {
                     var sanction = await db.TeamPlayerSanctions
                         .Include(s => s.TargetEvent)
@@ -231,6 +236,8 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
                     }
 
                     await db.SaveChangesAsync(ct);
+
+                    await webPushDispatcher.DispatchSanctionChangedAsync(sanction.Id, ct);
 
                     return Results.Ok(ToResponse(sanction));
                 })

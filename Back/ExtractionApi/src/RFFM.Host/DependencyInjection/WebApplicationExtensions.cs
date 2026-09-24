@@ -463,6 +463,11 @@ namespace RFFM.Host.DependencyInjection
                         ("News", CoachFeatureRoutes.News, "Player", 1, false),
                         ("GameModel", CoachFeatureRoutes.GameModel, "Player", 1, false),
                         ("TeamRulesDocument", CoachFeatureRoutes.TeamRulesDocument, "Player", 1, false),
+                        // Settings: Read-only, scoped by Settings.tsx to only show the
+                        // "Notificaciones" section for this role (coach-web-push-notifications) —
+                        // Player must be able to opt into push notifications for their own
+                        // convocations/sanctions/injuries.
+                        ("Settings", CoachFeatureRoutes.Settings, "Player", 1, false),
 
                         // FamilyMember: Read-only on the same 8 dashboard features as Player — a family
                         // member must see exactly what the player they're linked to sees (bug: this
@@ -478,6 +483,7 @@ namespace RFFM.Host.DependencyInjection
                         ("News", CoachFeatureRoutes.News, "FamilyMember", 1, false),
                         ("GameModel", CoachFeatureRoutes.GameModel, "FamilyMember", 1, false),
                         ("TeamRulesDocument", CoachFeatureRoutes.TeamRulesDocument, "FamilyMember", 1, false),
+                        ("Settings", CoachFeatureRoutes.Settings, "FamilyMember", 1, false),
 
                         // AttendanceConfirmation: ReadWrite for Player and FamilyMember
                         ("AttendanceConfirmation", CoachFeatureRoutes.AttendanceConfirmation, "Player", 3, false),

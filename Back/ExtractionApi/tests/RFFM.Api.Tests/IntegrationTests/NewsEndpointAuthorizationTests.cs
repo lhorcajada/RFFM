@@ -102,6 +102,15 @@ namespace RFFM.Api.Tests.IntegrationTests
             public Task DispatchCalendarChangedAsync(string eventId, string teamId, CancellationToken ct = default) => Task.CompletedTask;
         }
 
+        private class NoOpWebPushNotificationDispatcher : RFFM.Api.Features.Coaches.Notifications.Services.IWebPushNotificationDispatcher
+        {
+            public Task DispatchConvocationCreatedAsync(string teamPlayerId, string eventId, CancellationToken ct = default) => Task.CompletedTask;
+            public Task DispatchConvocationStatusChangedAsync(string convocationId, CancellationToken ct = default) => Task.CompletedTask;
+            public Task DispatchSanctionChangedAsync(string sanctionId, CancellationToken ct = default) => Task.CompletedTask;
+            public Task DispatchNewsPublishedAsync(string newsId, CancellationToken ct = default) => Task.CompletedTask;
+            public Task DispatchInjuryChangedAsync(string injuryId, CancellationToken ct = default) => Task.CompletedTask;
+        }
+
         private async Task<(IHost Host, HttpClient Client)> StartHostAsync(IFeatureModule module)
         {
             var host = new HostBuilder()
@@ -160,6 +169,7 @@ namespace RFFM.Api.Tests.IntegrationTests
                             // Mediator's DI resolution to succeed. A no-op stub is enough here —
                             // dispatcher behavior itself is covered by PushNotificationDispatcherTests.
                             services.AddScoped<RFFM.Api.Features.Mobile.PushNotifications.IPushNotificationDispatcher, NoOpPushNotificationDispatcher>();
+                            services.AddScoped<RFFM.Api.Features.Coaches.Notifications.Services.IWebPushNotificationDispatcher, NoOpWebPushNotificationDispatcher>();
                         })
                         .Configure(app =>
                         {

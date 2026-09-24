@@ -20,6 +20,7 @@ using RFFM.Api.Domain.Entities.Teams;
 using RFFM.Api.Domain.Entities.SeasonAccess;
 using RFFM.Api.Domain.Entities.News;
 using RFFM.Api.Domain.Entities.PushNotifications;
+using RFFM.Api.Domain.Entities.WebPushNotifications;
 using SmartEnum.EFCore;
 
 namespace RFFM.Api.Infrastructure.Persistence
@@ -152,6 +153,10 @@ namespace RFFM.Api.Infrastructure.Persistence
 
         // Push notifications
         public DbSet<PushToken> PushTokens { get; set; }
+
+        // Web push notifications (SPA-only, separate from Mobile PushTokens)
+        public DbSet<WebPushSubscription> WebPushSubscriptions { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
 
         public AppDbContext(DbContextOptions<AppDbContext> options)
             : base(options)

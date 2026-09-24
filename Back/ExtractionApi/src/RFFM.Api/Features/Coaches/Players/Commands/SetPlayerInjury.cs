@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Domain.Entities.TeamPlayers;
 using RFFM.Api.FeatureModules;
+using RFFM.Api.Features.Coaches.Notifications.Services;
 using RFFM.Api.Infrastructure.Persistence;
 
 namespace RFFM.Api.Features.Coaches.Players.Commands
@@ -65,7 +66,8 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
             // POST create injury
             app.MapPost("/api/catalog/teamplayer/{id}/injuries",
                 [Authorize(Roles = "Coach,Administrator")]
-                async (string id, InjuryCreateRequest req, AppDbContext db, CancellationToken ct) =>
+                async (string id, InjuryCreateRequest req, AppDbContext db,
+                    IWebPushNotificationDispatcher webPushDispatcher, CancellationToken ct) =>
                 {
                     var exists = await db.TeamPlayers.AnyAsync(tp => tp.Id == id, ct);
                     if (!exists) return Results.NotFound();
@@ -73,6 +75,8 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
                     var injury = TeamPlayerInjury.Create(id, req.StartDate, req.InjuryType, req.Description, req.EstimatedRecovery);
                     db.TeamPlayerInjuries.Add(injury);
                     await db.SaveChangesAsync(ct);
+
+                    await webPushDispatcher.DispatchInjuryChangedAsync(injury.Id, ct);
 
                     return Results.Created(
                         $"/api/catalog/teamplayer/{id}/injuries/{injury.Id}",
@@ -87,7 +91,8 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
             // PUT update injury
             app.MapPut("/api/catalog/teamplayer/{id}/injuries/{injuryId}",
                 [Authorize(Roles = "Coach,Administrator")]
-                async (string id, string injuryId, InjuryUpdateRequest req, AppDbContext db, CancellationToken ct) =>
+                async (string id, string injuryId, InjuryUpdateRequest req, AppDbContext db,
+                    IWebPushNotificationDispatcher webPushDispatcher, CancellationToken ct) =>
                 {
                     var injury = await db.TeamPlayerInjuries
                         .FirstOrDefaultAsync(i => i.Id == injuryId && i.TeamPlayerId == id, ct);
@@ -95,6 +100,8 @@ namespace RFFM.Api.Features.Coaches.Players.Commands
 
                     injury.Update(req.StartDate, req.InjuryType, req.Description, req.EstimatedRecovery, req.EndDate);
                     await db.SaveChangesAsync(ct);
+
+                    await webPushDispatcher.DispatchInjuryChangedAsync(injury.Id, ct);
 
                     return Results.Ok(ToResponse(injury));
                 })

@@ -71,6 +71,15 @@ namespace RFFM.Api.Tests.IntegrationTests
             }
         }
 
+        private class NoOpWebPushNotificationDispatcher : RFFM.Api.Features.Coaches.Notifications.Services.IWebPushNotificationDispatcher
+        {
+            public Task DispatchConvocationCreatedAsync(string teamPlayerId, string eventId, CancellationToken ct = default) => Task.CompletedTask;
+            public Task DispatchConvocationStatusChangedAsync(string convocationId, CancellationToken ct = default) => Task.CompletedTask;
+            public Task DispatchSanctionChangedAsync(string sanctionId, CancellationToken ct = default) => Task.CompletedTask;
+            public Task DispatchNewsPublishedAsync(string newsId, CancellationToken ct = default) => Task.CompletedTask;
+            public Task DispatchInjuryChangedAsync(string injuryId, CancellationToken ct = default) => Task.CompletedTask;
+        }
+
         private async Task<(IHost Host, HttpClient Client)> StartHostAsync(IFeatureModule module)
         {
             var host = new HostBuilder()
@@ -84,6 +93,7 @@ namespace RFFM.Api.Tests.IntegrationTests
                             services.AddAuthentication(TestAuthHandler.SchemeName)
                                 .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(TestAuthHandler.SchemeName, _ => { });
                             services.AddAuthorization();
+                            services.AddScoped<RFFM.Api.Features.Coaches.Notifications.Services.IWebPushNotificationDispatcher, NoOpWebPushNotificationDispatcher>();
                             services.AddDbContext<AppDbContext>(options =>
                             {
                                 options.UseNpgsql(_fixture.ConnectionString, npgsql =>

@@ -8,6 +8,7 @@ using RFFM.Api.Domain;
 using RFFM.Api.Domain.Entities.Audit;
 using RFFM.Api.Domain.Services;
 using RFFM.Api.FeatureModules;
+using RFFM.Api.Features.Coaches.Notifications.Services;
 using RFFM.Api.Infrastructure.Persistence;
 using RFFM.Api.Infrastructure.Services;
 using RFFM.Api.Domain.Aggregates.Assistances;
@@ -55,13 +56,17 @@ namespace RFFM.Api.Features.Coaches.Convocations
             private readonly ICurrentUserService _currentUser;
             private readonly ISanctionConvocationEnforcementService _enforcementService;
             private readonly IAuditLogger _auditLogger;
+            private readonly IWebPushNotificationDispatcher _webPushDispatcher;
 
-            public Handler(AppDbContext db, ICurrentUserService currentUser, ISanctionConvocationEnforcementService enforcementService, IAuditLogger auditLogger)
+            public Handler(
+                AppDbContext db, ICurrentUserService currentUser, ISanctionConvocationEnforcementService enforcementService,
+                IAuditLogger auditLogger, IWebPushNotificationDispatcher webPushDispatcher)
             {
                 _db = db;
                 _currentUser = currentUser;
                 _enforcementService = enforcementService;
                 _auditLogger = auditLogger;
+                _webPushDispatcher = webPushDispatcher;
             }
 
             public async ValueTask<Unit> Handle(UpdateStatusRequest request, CancellationToken cancellationToken = default)
@@ -196,6 +201,9 @@ namespace RFFM.Api.Features.Coaches.Convocations
                     roleNameOverride: auditRoleName, cancellationToken: cancellationToken);
 
                 await _db.SaveChangesAsync(cancellationToken);
+
+                await _webPushDispatcher.DispatchConvocationStatusChangedAsync(conv.Id, cancellationToken);
+
                 return Unit.Value;
             }
         }

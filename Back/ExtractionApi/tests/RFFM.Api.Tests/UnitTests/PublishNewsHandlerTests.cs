@@ -8,6 +8,7 @@ using Moq;
 using RFFM.Api.Domain;
 using RFFM.Api.Domain.Entities.News;
 using RFFM.Api.Features.Coaches.News;
+using RFFM.Api.Features.Coaches.Notifications.Services;
 using RFFM.Api.Features.Mobile.PushNotifications;
 using RFFM.Api.Infrastructure.Persistence;
 using RFFM.Api.Tests.Fixtures;
@@ -48,7 +49,7 @@ namespace RFFM.Api.Tests.UnitTests
             var news = await CreateTestNewsAsync(seedDb, NewsStatus.Draft);
 
             await using var db = _fixture.CreateDbContext();
-            var handler = new PublishNewsHandler(db, MockDispatcher().Object);
+            var handler = new PublishNewsHandler(db, MockDispatcher().Object, Mock.Of<IWebPushNotificationDispatcher>());
             var command = new PublishNewsCommand(news.Id);
 
             var result = await handler.Handle(command, CancellationToken.None);
@@ -70,7 +71,7 @@ namespace RFFM.Api.Tests.UnitTests
 
             await using var db = _fixture.CreateDbContext();
             var dispatcherMock = MockDispatcher();
-            var handler = new PublishNewsHandler(db, dispatcherMock.Object);
+            var handler = new PublishNewsHandler(db, dispatcherMock.Object, Mock.Of<IWebPushNotificationDispatcher>());
             var command = new PublishNewsCommand(news.Id);
 
             await handler.Handle(command, CancellationToken.None);
@@ -85,7 +86,7 @@ namespace RFFM.Api.Tests.UnitTests
             var news = await CreateTestNewsAsync(seedDb, NewsStatus.Published);
 
             await using var db = _fixture.CreateDbContext();
-            var handler = new PublishNewsHandler(db, MockDispatcher().Object);
+            var handler = new PublishNewsHandler(db, MockDispatcher().Object, Mock.Of<IWebPushNotificationDispatcher>());
             var command = new PublishNewsCommand(news.Id);
 
             var exception = await Assert.ThrowsAsync<ConflictException>(
@@ -98,7 +99,7 @@ namespace RFFM.Api.Tests.UnitTests
         public async Task Handle_WithNonExistentId_ThrowsNotFoundException()
         {
             await using var db = _fixture.CreateDbContext();
-            var handler = new PublishNewsHandler(db, MockDispatcher().Object);
+            var handler = new PublishNewsHandler(db, MockDispatcher().Object, Mock.Of<IWebPushNotificationDispatcher>());
             var command = new PublishNewsCommand("nonexistent-id");
 
             var exception = await Assert.ThrowsAsync<NotFoundException>(
