@@ -14,9 +14,9 @@ import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import avatarFallback from "../../../../../assets/avatar.svg";
 import type { PlayerStatistics } from "../../../services/teamPlayerStatisticsService";
-import { SEASON_MINUTES_TARGET_PERCENT } from "../../../services/teamPlayerStatisticsService";
 import { exportSquadStatisticsPdf } from "../squadStatsPdfExport";
-import { calledButAbsentLabel, injuryLabel, minutesTargetCaption } from "../playerStatsText";
+import { calledButAbsentLabel, injuryLabel } from "../playerStatsText";
+import SeasonMinutesTarget from "./SeasonMinutesTarget";
 import PlayerFormBars from "../../../components/PlayerFormBars/PlayerFormBars";
 import MetricInfoDialog from "../../../components/MetricInfoDialog/MetricInfoDialog";
 import type { MetricKey } from "../../../components/MetricInfoDialog/metricInfoTexts";
@@ -267,30 +267,7 @@ export default function SquadStatistics({ players, loading, teamName, photoUrls 
                 </div>
               </div>
 
-              {player.minutesPlayedPercentOfSeasonTotal != null && (
-                <div className={styles.minutesTargetBlock} data-testid="squad-stat-minutes-target">
-                  <div className={styles.minutesTargetHeader}>
-                    <span className={styles.minutesTargetTitle}>% minutos jugados</span>
-                    <span className={styles.minutesTargetGoal}>objetivo mínimo: {SEASON_MINUTES_TARGET_PERCENT}%</span>
-                  </div>
-                  <div className={styles.readinessBar}>
-                    <div className={styles.progressBar}>
-                      <div
-                        className={styles.progressBarFill}
-                        style={{ width: `${Math.min(100, Math.max(0, player.minutesPlayedPercentOfSeasonTotal))}%` }}
-                      />
-                      <div
-                        className={styles.progressBarTarget}
-                        style={{ left: `${SEASON_MINUTES_TARGET_PERCENT}%` }}
-                      />
-                    </div>
-                    <span className={styles.readinessValue}>
-                      {Math.round(player.minutesPlayedPercentOfSeasonTotal)}%
-                    </span>
-                  </div>
-                  <span className={styles.minutesTargetCaption}>{minutesTargetCaption(player)}</span>
-                </div>
-              )}
+              {player.minutesPlayedPercentOfSeasonTotal != null && <SeasonMinutesTarget player={player} />}
 
               {injury && <div className={styles.injuryLine}>{injury}</div>}
             </div>

@@ -62,6 +62,9 @@ function buildPlayer(overrides: Partial<PlayerStatistics> = {}): PlayerStatistic
     matchesAbsentAttributableToPlayer: 0,
     minutesPlayedPercentOfSeasonTotal: null,
     attributableAbsentMinutesPercentOfSeasonTotal: null,
+    minutesPlayedPercentOfAvailable: null,
+    minutesTargetStatus: null,
+    attributableAbsences: [],
     formStatus: null,
     formStatusBreakdown: null,
     ...overrides,
@@ -121,6 +124,28 @@ describe("squadStatsPdfExport.exportSquadStatisticsPdf", () => {
     expect(
       texts.some((t) => typeof t === "string" && t.includes("% minutos jugados: 22%") && t.includes("objetivo mínimo 30%")),
     ).toBe(true);
+  });
+
+  it("incluye el veredicto del objetivo y una línea por ausencia imputable", () => {
+    exportSquadStatisticsPdf(
+      [
+        buildPlayer({
+          matchesAbsentAttributableToPlayer: 1,
+          minutesPlayedPercentOfSeasonTotal: 25,
+          attributableAbsentMinutesPercentOfSeasonTotal: 20,
+          minutesPlayedPercentOfAvailable: 31.3,
+          minutesTargetStatus: "NotMetByOwnAbsences",
+          attributableAbsences: [
+            { eventId: "m1", date: "2026-10-12T17:00:00Z", eventTypeId: 1, opponent: "CD Rival", matchMinutes: 80, kind: "Declined", reason: "Lesión" },
+          ],
+        }),
+      ],
+      "Cadete A",
+    );
+
+    const texts = textMock.mock.calls.map((call) => call[0]);
+    expect(texts).toContain("No llega por sus ausencias: 31% de sus minutos disponibles");
+    expect(texts).toContain("12/10 · Liga vs CD Rival · 80' · Rechazó la convocatoria · Lesión");
   });
 
   it("no dibuja el bloque de objetivo de minutos cuando minutesPlayedPercentOfSeasonTotal es null", () => {

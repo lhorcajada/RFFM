@@ -1,7 +1,13 @@
 import jsPDF from "jspdf";
 import type { PlayerStatistics } from "../../services/teamPlayerStatisticsService";
 import { SEASON_MINUTES_TARGET_PERCENT } from "../../services/teamPlayerStatisticsService";
-import { calledButAbsentLabel, injuryLabel, minutesTargetCaption } from "./playerStatsText";
+import {
+  attributableAbsenceLine,
+  calledButAbsentLabel,
+  injuryLabel,
+  minutesTargetCaption,
+  minutesTargetVerdict,
+} from "./playerStatsText";
 
 const MH = 20; // horizontal page margin (pts)
 const MV = 20; // vertical page margin (pts)
@@ -75,7 +81,19 @@ function buildCardLines(player: PlayerStatistics): CardLine[] {
       size: 7.5,
       bold: true,
     });
+    const verdict = minutesTargetVerdict(player);
+    if (verdict) {
+      lines.push({
+        text: verdict,
+        size: 7.2,
+        bold: true,
+        color: player.minutesTargetStatus === "Met" ? undefined : [178, 58, 58],
+      });
+    }
     lines.push({ text: minutesTargetCaption(player), size: 6.8, color: [110, 110, 110] });
+    for (const absence of player.attributableAbsences) {
+      lines.push({ text: attributableAbsenceLine(absence), size: 6.5, color: [110, 110, 110] });
+    }
   }
 
   const injury = injuryLabel(player);

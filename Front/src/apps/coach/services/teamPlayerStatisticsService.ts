@@ -84,6 +84,22 @@ export type FatigueBreakdown = {
   consideredMatches: FatigueConsideredMatch[];
 };
 
+export type MinutesTargetStatus = "Met" | "NotMetByOwnAbsences" | "NotMet";
+
+export type AttributableAbsenceKind = "NoShow" | "Declined";
+
+export type AttributableAbsence = {
+  eventId: string;
+  date: string;
+  eventTypeId: number;
+  /** Rival, o nombre del evento si no tiene rival. */
+  opponent: string;
+  /** Duración del partido usada en el objetivo de minutos (0 si no es F11). */
+  matchMinutes: number;
+  kind: AttributableAbsenceKind;
+  reason: string | null;
+};
+
 export type AttendanceRatio = {
   attended: number;
   possible: number;
@@ -118,6 +134,12 @@ export type PlayerStatistics = {
   minutesPlayedPercentOfSeasonTotal: number | null;
   /** % del total posible de temporada perdido por ausencias imputables al jugador. `null` si el equipo no es F11. */
   attributableAbsentMinutesPercentOfSeasonTotal: number | null;
+  /** % de minutos jugados sobre sus minutos disponibles (total − ausencias imputables). `null` si no es F11 o no tiene minutos disponibles. */
+  minutesPlayedPercentOfAvailable: number | null;
+  /** Veredicto del objetivo de minutos. `null` si el equipo no es F11 o no ha disputado minutos. */
+  minutesTargetStatus: MinutesTargetStatus | null;
+  /** Partidos con ausencia imputable al jugador, más reciente primero. */
+  attributableAbsences: AttributableAbsence[];
   /** Estado de forma (0-100). `null` si no hay actividad en los últimos 84 días o la categoría no tiene duración estándar. */
   formStatus: number | null;
   formStatusBreakdown: DailyLoadBreakdown | null;
