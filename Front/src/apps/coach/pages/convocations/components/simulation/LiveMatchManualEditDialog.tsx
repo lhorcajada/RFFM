@@ -14,6 +14,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
 import type { SquadPlayer } from "../../../squad/components/IdealLineup";
 import type { GoalEvent, CardEvent } from "./liveMatch.types";
+import { MAX_MATCH_DURATION_MINUTES } from "./liveMatch.types";
 import type { SimSlotPlayer } from "./SimulationPlayerSlot";
 import type { GoalEventSubmitPayload } from "./GoalEventDialog";
 import type { CardEventSubmitPayload } from "./CardEventDialog";
@@ -39,6 +40,11 @@ interface LiveMatchManualEditDialogProps {
   /** Sets the final result directly, independent of the goals list (used when the
    * coach knows the score but not who scored or at what minute) */
   onSetScore: (scoreLocal: number, scoreVisitor: number) => void;
+  /** Duración guardada del partido (null = aún no hay). */
+  matchDurationMinutes: number | null;
+  /** Duración propuesta cuando no hay una guardada (2 × minutos por parte). */
+  defaultMatchDurationMinutes: number;
+  onSetMatchDuration: (minutes: number) => void;
   goals: GoalEvent[];
   onAddGoal: (payload: GoalEventSubmitPayload, minute: number) => void;
   onUpdateGoal: (goalId: string, payload: GoalEventSubmitPayload, minute: number) => void;
@@ -60,6 +66,9 @@ export default function LiveMatchManualEditDialog({
   scoreLocal,
   scoreVisitor,
   onSetScore,
+  matchDurationMinutes,
+  defaultMatchDurationMinutes,
+  onSetMatchDuration,
   goals,
   onAddGoal,
   onUpdateGoal,
@@ -75,6 +84,8 @@ export default function LiveMatchManualEditDialog({
   const [error, setError] = useState<string | null>(null);
   const [scoreLocalInput, setScoreLocalInput] = useState(String(scoreLocal));
   const [scoreVisitorInput, setScoreVisitorInput] = useState(String(scoreVisitor));
+  const initialDuration = () => String(matchDurationMinutes ?? defaultMatchDurationMinutes);
+  const [durationInput, setDurationInput] = useState(initialDuration);
 
   // Re-sync the form with the latest minutes/score every time the dialog is
   // opened, so it reflects previously saved data instead of a stale first-mount snapshot.
@@ -83,6 +94,7 @@ export default function LiveMatchManualEditDialog({
     setValues(Object.fromEntries(lineupPlayers.map((p) => [p.id, String(currentMinutes[p.id] ?? 0)])));
     setScoreLocalInput(String(scoreLocal));
     setScoreVisitorInput(String(scoreVisitor));
+    setDurationInput(initialDuration());
     setError(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
@@ -131,8 +143,16 @@ export default function LiveMatchManualEditDialog({
       setError("Revisa el resultado introducido (deben ser números iguales o mayores a 0).");
       return;
     }
+    const parsedDuration = Number(durationInput);
+    const durationIsValid =
+      durationInput.trim() !== "" && Number.isInteger(parsedDuration) && parsedDuration >= 0 && parsedDuration <= MAX_MATCH_DURATION_MINUTES;
+    if (!durationIsValid) {
+      setError(`Revisa la duración del partido (debe ser un número entre 0 y ${MAX_MATCH_DURATION_MINUTES}).`);
+      return;
+    }
     onSaveMinutes(overrides);
     onSetScore(parsedScoreLocal, parsedScoreVisitor);
+    onSetMatchDuration(parsedDuration);
     onClose();
   }
 
@@ -253,6 +273,26 @@ export default function LiveMatchManualEditDialog({
             />
             <span className={styles.scoreTeamName}>{visitorTeamName}</span>
           </div>
+          <TextField
+            id="match-duration-minutes"
+            size="small"
+            type="number"
+            label="Duración del partido (min)"
+            helperText="Si lo dejas en 0 se usa la duración de la categoría"
+            inputProps={{ min: 0, max: MAX_MATCH_DURATION_MINUTES, step: 1 }}
+            value={durationInput}
+            onChange={(e) => {
+              setDurationInput(e.target.value);
+              setError(null);
+            }}
+            className={styles.durationField}
+            sx={{
+              "& .MuiInputBase-input": { color: "#fff" },
+              "& .MuiInputLabel-root": { color: "rgba(255,255,255,0.7)" },
+              "& .MuiFormHelperText-root": { color: "rgba(255,255,255,0.55)" },
+              "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(255,255,255,0.2)" },
+            }}
+          />
         </div>
 
         {/* Minutes section */}

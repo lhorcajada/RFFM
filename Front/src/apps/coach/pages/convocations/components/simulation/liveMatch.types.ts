@@ -105,6 +105,9 @@ export interface PlayerParticipationDto {
   minutesReason?: string | null;
 }
 
+/** Mismo límite que valida el backend (SaveMatchParticipation.MaxMatchDurationMinutes). */
+export const MAX_MATCH_DURATION_MINUTES = 200;
+
 export interface LiveMatchParticipationPayload {
   teamId: string;
   scoreLocal: number;
@@ -121,6 +124,8 @@ export interface LiveMatchParticipationPayload {
   cardsJson: string;
   /** Serialised formation-change events */
   formationChangesJson: string;
+  /** Duración real del partido en minutos; null/0 = el backend usa la duración de la categoría. */
+  matchDurationMinutes?: number | null;
 }
 
 // ─── Season & history stats ────────────────────────────────────────────────────

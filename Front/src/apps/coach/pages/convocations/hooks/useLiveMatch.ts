@@ -14,6 +14,7 @@ import type {
   LiveMatchParticipationPayload,
   PlayerParticipationDto,
 } from "../components/simulation/liveMatch.types";
+import { MAX_MATCH_DURATION_MINUTES } from "../components/simulation/liveMatch.types";
 import {
   saveLiveMatchBackup,
   loadLiveMatchBackup,
@@ -95,6 +96,9 @@ export interface UseLiveMatchReturn {
   // Persisted data (when match has been saved before)
   hasSavedData: boolean;
   savedParticipationData: LiveMatchParticipationPayload | null;
+  /** Duración real del partido; se rellena al terminar y se puede corregir. */
+  matchDurationMinutes: number | null;
+  setMatchDuration: (minutes: number) => void;
   isDeleting: boolean;
   deleteParticipation: () => Promise<void>;
   // Backup
@@ -211,6 +215,9 @@ export function useLiveMatch(
   const [hasSavedData, setHasSavedData] = useState(false);
   const [savedParticipationData, setSavedParticipationData] = useState<LiveMatchParticipationPayload | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [matchDurationMinutes, setMatchDurationMinutes] = useState<number | null>(null);
+  const matchDurationMinutesRef = useRef<number | null>(null);
+  matchDurationMinutesRef.current = matchDurationMinutes;
   // ── Backup ───────────────────────────────────────────────────────────────
   const [backup, setBackup] = useState<LiveMatchBackup | null>(null);
 
@@ -619,6 +626,7 @@ export function useLiveMatch(
     setWindows(parseJsonArray<SubstitutionWindow>(data.substitutionWindowsJson, []));
     setFormationChanges(parseJsonArray<FormationChangeEvent>(data.formationChangesJson, []));
     setRatingSnapshots(parseJsonArray<WindowRatingSnapshot>(data.ratingSnapshotsJson, []));
+    setMatchDurationMinutes(data.matchDurationMinutes ?? null);
   }
 
   // ── initMatch ─────────────────────────────────────────────────────────────
@@ -650,6 +658,7 @@ export function useLiveMatch(
       setRatingSnapshots([]);
       setScoreLocal(0);
       setScoreVisitor(0);
+      setMatchDurationMinutes(null);
     }
   }, []);
 
@@ -695,6 +704,8 @@ export function useLiveMatch(
         setTotalSeconds(frozenSeconds);
         setMatchPhase("finished");
         setIsHalftime(false);
+        // Duración real = minuto final del cronómetro (partes + añadido); sin cronómetro, 2 × parte.
+        setMatchDurationMinutes(Math.floor(frozenSeconds / 60) || 2 * halfDurationRef.current);
         // Freeze all playerStates: anyone still on field gets their minutes locked
         setPlayerStates((prev) => {
           const minute = Math.floor(frozenSeconds / 60);
@@ -769,6 +780,7 @@ export function useLiveMatch(
         goalsJson: JSON.stringify(goalsRef.current),
         cardsJson: JSON.stringify(cardsRef.current),
         formationChangesJson: JSON.stringify(formationChangesRef.current),
+        matchDurationMinutes: matchDurationMinutesRef.current,
       };
 
       await saveMatchParticipation(eid, payload);
@@ -831,6 +843,7 @@ export function useLiveMatch(
       setRatingSnapshots([]);
       setScoreLocal(0);
       setScoreVisitor(0);
+      setMatchDurationMinutes(null);
       setSaveError(null);
     } finally {
       setIsDeleting(false);
@@ -897,6 +910,10 @@ export function useLiveMatch(
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [isHomeTeam],
   );
+
+  const setMatchDuration = useCallback((minutes: number) => {
+    setMatchDurationMinutes(Math.min(MAX_MATCH_DURATION_MINUTES, Math.max(0, Math.round(minutes))));
+  }, []);
 
   const setScore = useCallback((newScoreLocal: number, newScoreVisitor: number) => {
     setScoreLocal(Math.max(0, Math.round(newScoreLocal)));
@@ -1189,6 +1206,8 @@ export function useLiveMatch(
     cancelSave,
     hasSavedData,
     savedParticipationData,
+    matchDurationMinutes,
+    setMatchDuration,
     isDeleting,
     deleteParticipation,
     backup,

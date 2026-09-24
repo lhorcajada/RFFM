@@ -964,6 +964,9 @@ export default function PartidoEnDirectoTab({
         scoreLocal={live.scoreLocal}
         scoreVisitor={live.scoreVisitor}
         onSetScore={live.setScore}
+        matchDurationMinutes={live.matchDurationMinutes}
+        defaultMatchDurationMinutes={2 * live.halfDuration}
+        onSetMatchDuration={live.setMatchDuration}
         goals={live.goals}
         onAddGoal={(payload, minute) =>
           live.addGoal(

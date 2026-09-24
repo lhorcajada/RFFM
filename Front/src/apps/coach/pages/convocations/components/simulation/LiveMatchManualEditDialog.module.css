@@ -68,6 +68,12 @@
   margin-top: 4px;
 }
 
+.durationField {
+  margin-top: 14px !important;
+  width: 100%;
+  max-width: 260px;
+}
+
 .scoreTeamName {
   flex: 1;
   font-size: 0.82rem;
