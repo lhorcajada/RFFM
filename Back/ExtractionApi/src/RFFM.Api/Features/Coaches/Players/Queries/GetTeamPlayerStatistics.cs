@@ -46,6 +46,20 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
 
         public record AttendanceRatioDto(int Attended, int Possible, int CalledButAbsent);
 
+        // Ver openspec/changes/season-minutes-target-attributable-absences/design.md → Decisiones 1-3.
+        public const double SeasonMinutesTargetPercent = 30;
+        public const string MinutesTargetMet = "Met";
+        public const string MinutesTargetNotMetByOwnAbsences = "NotMetByOwnAbsences";
+        public const string MinutesTargetNotMet = "NotMet";
+        public const string AbsenceKindNoShow = "NoShow";
+        public const string AbsenceKindDeclined = "Declined";
+
+        public record AttributableAbsenceDto(
+            string EventId, DateTime Date, int EventTypeId, string Opponent,
+            int MatchMinutes,          // duración usada en el objetivo de minutos; 0 si no F11 o sin participaciones
+            string Kind,               // "NoShow" (convocado, no se presentó) | "Declined" (rechazó/justificó la convocatoria)
+            string? Reason);           // motivo (ExcuseType) si lo hay
+
         public record PlayerStatisticsDto(
             string TeamPlayerId,
             string DisplayName,
@@ -67,6 +81,9 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
             int MatchesAbsentAttributableToPlayer,   // partidos/amistosos/torneos finalizados con ausencia imputable al jugador
             double? MinutesPlayedPercentOfSeasonTotal,            // null si la categoría del equipo no es F11
             double? AttributableAbsentMinutesPercentOfSeasonTotal, // null si la categoría del equipo no es F11
+            double? MinutesPlayedPercentOfAvailable,               // minutos jugados / (total − ausencias imputables); null si no F11, total 0 o sin minutos disponibles
+            string? MinutesTargetStatus,                           // "Met" | "NotMetByOwnAbsences" | "NotMet"; null si no F11 o total 0
+            AttributableAbsenceDto[] AttributableAbsences,         // partidos con ausencia imputable al jugador, más reciente primero
             int? FormStatus,                              // 0-100, Estado de forma; null = sin actividad en los últimos 84 días o categoría sin duración estándar de partido
             DailyLoadBreakdownDto? FormStatusBreakdown);   // null cuando FormStatus es null
 
@@ -367,13 +384,21 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                     SportEventsConstants.TournamentEventTypeId
                 };
 
-                var matchLikeFinishedEventIds = await db.SportEvents
+                var matchLikeFinishedEvents = await db.SportEvents
                     .AsNoTracking()
                     .Where(se => se.TeamId == request.TeamId
                                  && se.EveDateTime != null && se.EveDateTime < DateTime.UtcNow
                                  && matchLikeEventTypeIds.Contains(se.EventTypeId))
-                    .Select(se => se.Id)
+                    .Select(se => new
+                    {
+                        se.Id,
+                        Date = se.EveDateTime!.Value,
+                        se.EventTypeId,
+                        Opponent = se.Rival != null ? se.Rival.Name : se.Name
+                    })
                     .ToListAsync(cancellationToken);
+                var matchLikeFinishedEventById = matchLikeFinishedEvents.ToDictionary(e => e.Id);
+                var matchLikeFinishedEventIds = matchLikeFinishedEvents.Select(e => e.Id).ToList();
                 var matchLikeFinishedEventIdSet = matchLikeFinishedEventIds.ToHashSet();
 
                 // Per-event duration = the real registered duration (max minutes played among
@@ -421,7 +446,7 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                 var attributableAbsencesByPlayer = matchLikeConvocations
                     .Where(c => AttributableAbsenceCalculator.IsAttributableAbsence(c.AssistanceTypeId, c.ConvocationStatusId, c.ExcuseTypeId))
                     .GroupBy(c => c.TeamPlayerId)
-                    .ToDictionary(g => g.Key, g => g.Select(c => c.SportEventId).ToList());
+                    .ToDictionary(g => g.Key, g => g.ToList());
 
                 // Most recent injury per player (TeamPlayer is already scoped to this team+season).
                 var teamPlayerIds = teamPlayers.Select(tp => tp.Id).ToList();
@@ -522,12 +547,29 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                         ? PlayerFormStatusCalculator.Calculate(trainingInputs, matchInputs, windowStart, today, standardMinutes)
                         : null;
 
-                    attributableAbsencesByPlayer.TryGetValue(player.Id, out var playerAttributableAbsenceEventIds);
-                    playerAttributableAbsenceEventIds ??= new List<string>();
+                    var playerAttributableAbsenceEventIds = attributableAbsencesByPlayer.TryGetValue(player.Id, out var playerAttributableAbsences)
+                        ? playerAttributableAbsences.Select(c => c.SportEventId).ToList()
+                        : new List<string>();
                     var matchesAbsentAttributableToPlayer = playerAttributableAbsenceEventIds.Count;
+
+                    var attributableAbsenceDtos = (playerAttributableAbsences ?? [])
+                        .Select(c =>
+                        {
+                            var evt = matchLikeFinishedEventById[c.SportEventId];
+                            var kind = c.AssistanceTypeId is not null ? AbsenceKindNoShow : AbsenceKindDeclined;
+                            var reason = c.ExcuseTypeId is { } excuseId ? ExcuseTypes.FromId(excuseId)?.Name : null;
+                            return new AttributableAbsenceDto(
+                                evt.Id, evt.Date, evt.EventTypeId, evt.Opponent,
+                                matchDurationByEventId.TryGetValue(evt.Id, out var d) ? d : 0,
+                                kind, reason);
+                        })
+                        .OrderByDescending(a => a.Date)
+                        .ToArray();
 
                     double? minutesPlayedPercentOfSeasonTotal = null;
                     double? attributableAbsentMinutesPercentOfSeasonTotal = null;
+                    double? minutesPlayedPercentOfAvailable = null;
+                    string? minutesTargetStatus = null;
                     if (hasStandardMinutes)
                     {
                         var attributableAbsentMinutes = playerAttributableAbsenceEventIds
@@ -547,6 +589,17 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                         attributableAbsentMinutesPercentOfSeasonTotal = seasonTotalPossibleMinutes is null or 0
                             ? null
                             : Math.Round(100.0 * attributableAbsentMinutes / seasonTotalPossibleMinutes.Value, 1);
+
+                        if (seasonTotalPossibleMinutes is > 0)
+                        {
+                            var availableMinutes = seasonTotalPossibleMinutes.Value - attributableAbsentMinutes;
+                            double? percentOfAvailable = availableMinutes > 0
+                                ? 100.0 * minutesPlayedInSeasonTotalScope / availableMinutes
+                                : null;
+                            minutesPlayedPercentOfAvailable = percentOfAvailable is null ? null : Math.Round(percentOfAvailable.Value, 1);
+                            minutesTargetStatus = MinutesTargetStatusFor(
+                                100.0 * minutesPlayedInSeasonTotalScope / seasonTotalPossibleMinutes.Value, percentOfAvailable);
+                        }
                     }
 
                     string? position = player.ActivePositionId != 0
@@ -592,6 +645,9 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                         matchesAbsentAttributableToPlayer,
                         minutesPlayedPercentOfSeasonTotal,
                         attributableAbsentMinutesPercentOfSeasonTotal,
+                        minutesPlayedPercentOfAvailable,
+                        minutesTargetStatus,
+                        attributableAbsenceDtos,
                         formStatusResult?.Value,
                         formStatusResult is null ? null : ToBreakdown(formStatusResult)));
                 }
@@ -607,6 +663,14 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                         ? "Convocado sin jugar"
                         : FormStatusOutcome.ReasonFor(conv.AssistanceTypeId, conv.ExcuseTypeId);
                 }
+            }
+
+            // Sin minutos disponibles (faltó a todos los partidos) el incumplimiento es por sus ausencias.
+            private static string MinutesTargetStatusFor(double percentOfTotal, double? percentOfAvailable)
+            {
+                if (percentOfTotal >= SeasonMinutesTargetPercent) return MinutesTargetMet;
+                var reachesTargetOnAvailableMinutes = percentOfAvailable is null || percentOfAvailable >= SeasonMinutesTargetPercent;
+                return reachesTargetOnAvailableMinutes ? MinutesTargetNotMetByOwnAbsences : MinutesTargetNotMet;
             }
 
             private static DailyLoadBreakdownDto? ToBreakdown(DailyLoadModel.MetricResult result) =>

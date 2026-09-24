@@ -90,14 +90,14 @@ namespace RFFM.Api.Tests.UnitTests
         // SportEvent.SetEveDateTime/SetStartTime reject past dates, so seed via CreateNew (bypasses
         // domain date validation) same as GetPlayerSeasonCardsHandlerTests.SeedSportEventAsync.
         // trainingTypes defaults to null (empty list) — retrocompat, peso neutro para las tres métricas.
-        private async Task<string> SeedSportEventAsync(AppDbContext db, string teamId, int eventTypeId, DateTime eveDateTime, List<string>? trainingTypes = null)
+        private async Task<string> SeedSportEventAsync(AppDbContext db, string teamId, int eventTypeId, DateTime eveDateTime, List<string>? trainingTypes = null, string? rivalId = null)
         {
             var sportEvent = SportEvent.CreateNew(
                 "PlayerStats Test Event",
                 eveDateTime,
                 eveDateTime,
                 null, null, null, null,
-                eventTypeId, teamId, null,
+                eventTypeId, teamId, rivalId,
                 trainingTypes: trainingTypes);
             db.SportEvents.Add(sportEvent);
             await db.SaveChangesAsync();
@@ -1117,6 +1117,133 @@ namespace RFFM.Api.Tests.UnitTests
             Assert.Equal(1.5, formMatch.Load, precision: 6);
             Assert.Equal(DailyLoadModel.StepKindActivity, form.Steps.First().Kind);
             Assert.Equal(form.Value, form.Steps.First().ValueAfter, precision: 9);
+        }
+
+        [Fact]
+        public async Task MinutesTarget_VerdictSeparatesPlayerAbsencesFromCoachDecisions()
+        {
+            // Cadete (80'): 5 partidos de 80' = 400' totales; un compañero juega los 80' de todos.
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, clubId, seasonId) = await SeedTeamAsync(db, categoryId: Category.U14.Id);
+            var fillerId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "minutes-verdict-filler");
+            var metId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "minutes-verdict-met");
+            var ownAbsencesId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "minutes-verdict-own-absences");
+            var coachId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "minutes-verdict-coach");
+            var neverWentId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "minutes-verdict-never-went");
+
+            var matchIds = new List<string>();
+            foreach (var days in new[] { 40, 30, 20, 10, 5 })
+            {
+                var matchId = await SeedSportEventAsync(db, teamId, MatchEventTypeId, DateTime.UtcNow.AddDays(-days));
+                await SeedMatchParticipationAsync(db, matchId, teamId, fillerId, minutesPlayed: 80);
+                matchIds.Add(matchId);
+            }
+            var deconvoke = ConvocationStatus.FromName("Deconvoke").Id;
+            var justified = ConvocationStatus.FromName("Justified").Id;
+
+            // 130' sin ausencias.
+            await SeedMatchParticipationAsync(db, matchIds[0], teamId, metId, minutesPlayed: 80);
+            await SeedMatchParticipationAsync(db, matchIds[1], teamId, metId, minutesPlayed: 50);
+
+            // 100' y 2 partidos desconvocado por lesión: disponibles 240'.
+            await SeedMatchParticipationAsync(db, matchIds[0], teamId, ownAbsencesId, minutesPlayed: 50);
+            await SeedMatchParticipationAsync(db, matchIds[1], teamId, ownAbsencesId, minutesPlayed: 50);
+            await SeedConvocationAsync(db, matchIds[2], ownAbsencesId, deconvoke, excuseTypeId: ExcuseTypes.FromId(1)!.Id);
+            await SeedConvocationAsync(db, matchIds[3], ownAbsencesId, deconvoke, excuseTypeId: ExcuseTypes.FromId(1)!.Id);
+
+            // 60', 1 ausencia sin excusa; la decisión técnica y el convocado presente sin minutos no restan.
+            await SeedMatchParticipationAsync(db, matchIds[0], teamId, coachId, minutesPlayed: 60);
+            await SeedConvocationAsync(db, matchIds[1], coachId, convocationStatusId: null, assistanceTypeId: AssistanceType.UnexcusedAbsence.Id);
+            await SeedConvocationAsync(db, matchIds[2], coachId, deconvoke, excuseTypeId: ExcuseTypes.TechnicalDecision.Id);
+            await SeedConvocationAsync(db, matchIds[3], coachId, convocationStatusId: null, assistanceTypeId: AssistanceType.Attendance.Id);
+
+            // Ausente de todos los partidos.
+            foreach (var matchId in matchIds.Take(4))
+                await SeedConvocationAsync(db, matchId, neverWentId, deconvoke, excuseTypeId: ExcuseTypes.FromId(3)!.Id);
+            await SeedConvocationAsync(db, matchIds[4], neverWentId, justified);
+
+            var result = await new GetTeamPlayerStatistics.Handler(db).Handle(new GetTeamPlayerStatistics.Query { TeamId = teamId }, CancellationToken.None);
+
+            var met = Assert.Single(result, p => p.TeamPlayerId == metId);
+            Assert.Equal("Met", met.MinutesTargetStatus);
+            Assert.Equal(32.5, met.MinutesPlayedPercentOfAvailable);
+
+            var ownAbsences = Assert.Single(result, p => p.TeamPlayerId == ownAbsencesId);
+            Assert.Equal(25.0, ownAbsences.MinutesPlayedPercentOfSeasonTotal);
+            Assert.Equal(41.7, ownAbsences.MinutesPlayedPercentOfAvailable);
+            Assert.Equal("NotMetByOwnAbsences", ownAbsences.MinutesTargetStatus);
+
+            var coach = Assert.Single(result, p => p.TeamPlayerId == coachId);
+            Assert.Equal(18.8, coach.MinutesPlayedPercentOfAvailable);
+            Assert.Equal("NotMet", coach.MinutesTargetStatus);
+
+            var neverWent = Assert.Single(result, p => p.TeamPlayerId == neverWentId);
+            Assert.Null(neverWent.MinutesPlayedPercentOfAvailable);
+            Assert.Equal("NotMetByOwnAbsences", neverWent.MinutesTargetStatus);
+            Assert.Equal(neverWent.MatchesAbsentAttributableToPlayer, neverWent.AttributableAbsences.Length);
+        }
+
+        [Fact]
+        public async Task MinutesTarget_AttributableAbsencesListKindReasonOpponentAndOrder()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, clubId, seasonId) = await SeedTeamAsync(db, categoryId: Category.U14.Id);
+            var fillerId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "absences-list-filler");
+            var playerId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "absences-list-player");
+            var rival = new Rival($"CD Rival {Guid.NewGuid():N}", null, null);
+            db.Rivals.Add(rival);
+            await db.SaveChangesAsync();
+
+            var olderId = await SeedSportEventAsync(db, teamId, MatchEventTypeId, DateTime.UtcNow.AddDays(-20), rivalId: rival.Id);
+            var newerId = await SeedSportEventAsync(db, teamId, FriendlyEventTypeId, DateTime.UtcNow.AddDays(-5));
+            await SeedMatchParticipationAsync(db, olderId, teamId, fillerId, minutesPlayed: 80);
+            await SeedMatchParticipationAsync(db, newerId, teamId, fillerId, minutesPlayed: 70);
+            await SeedConvocationAsync(db, olderId, playerId, ConvocationStatus.FromName("Deconvoke").Id, excuseTypeId: ExcuseTypes.FromId(3)!.Id);
+            await SeedConvocationAsync(db, newerId, playerId, convocationStatusId: null, assistanceTypeId: AssistanceType.UnexcusedAbsence.Id);
+
+            var result = await new GetTeamPlayerStatistics.Handler(db).Handle(new GetTeamPlayerStatistics.Query { TeamId = teamId }, CancellationToken.None);
+
+            var stats = Assert.Single(result, p => p.TeamPlayerId == playerId);
+            Assert.Equal(2, stats.MatchesAbsentAttributableToPlayer);
+            Assert.Collection(stats.AttributableAbsences,
+                a =>
+                {
+                    Assert.Equal(newerId, a.EventId);
+                    Assert.Equal(FriendlyEventTypeId, a.EventTypeId);
+                    Assert.Equal("PlayerStats Test Event", a.Opponent);
+                    Assert.Equal(70, a.MatchMinutes);
+                    Assert.Equal("NoShow", a.Kind);
+                    Assert.Null(a.Reason);
+                },
+                a =>
+                {
+                    Assert.Equal(olderId, a.EventId);
+                    Assert.Equal(rival.Name, a.Opponent);
+                    Assert.Equal(80, a.MatchMinutes);
+                    Assert.Equal("Declined", a.Kind);
+                    Assert.Equal("Enfermedad", a.Reason);
+                });
+        }
+
+        [Fact]
+        public async Task MinutesTarget_NonF11Team_VerdictIsNullButAbsencesAreListed()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, clubId, seasonId) = await SeedTeamAsync(db); // NationalCategory: sin objetivo
+            var fillerId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "non-f11-filler");
+            var playerId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "non-f11-player");
+            var matchId = await SeedSportEventAsync(db, teamId, MatchEventTypeId, DateTime.UtcNow.AddDays(-3));
+            await SeedMatchParticipationAsync(db, matchId, teamId, fillerId, minutesPlayed: 90);
+            await SeedConvocationAsync(db, matchId, playerId, convocationStatusId: null, assistanceTypeId: AssistanceType.ExcusedAbsence.Id);
+
+            var result = await new GetTeamPlayerStatistics.Handler(db).Handle(new GetTeamPlayerStatistics.Query { TeamId = teamId }, CancellationToken.None);
+
+            var stats = Assert.Single(result, p => p.TeamPlayerId == playerId);
+            Assert.Null(stats.MinutesTargetStatus);
+            Assert.Null(stats.MinutesPlayedPercentOfAvailable);
+            var absence = Assert.Single(stats.AttributableAbsences);
+            Assert.Equal("NoShow", absence.Kind);
+            Assert.Equal(0, absence.MatchMinutes);
         }
 
         [Fact]
