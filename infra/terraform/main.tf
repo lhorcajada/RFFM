@@ -49,6 +49,10 @@ resource "azurerm_container_app" "api" {
     name  = "supabase-service-key"
     value = var.supabase_service_key
   }
+  secret {
+    name  = "web-push-private-key"
+    value = var.web_push_private_key
+  }
 
   registry {
     server               = "ghcr.io"
@@ -57,9 +61,14 @@ resource "azurerm_container_app" "api" {
   }
 
   template {
-    # Scale-to-zero: no traffic = no consumption/cost.
-    min_replicas = 0
+    # Kept in sync with production (min 1 replica + HTTP scaler configured in Azure).
+    min_replicas = 1
     max_replicas = 1
+
+    http_scale_rule {
+      name                = "http-scaler"
+      concurrent_requests = "10"
+    }
 
     container {
       name   = "rffm-api"
@@ -152,6 +161,19 @@ resource "azurerm_container_app" "api" {
           name  = "Cors__AllowedOrigins__${env.key}"
           value = env.value
         }
+      }
+
+      env {
+        name  = "WebPush__PublicKey"
+        value = var.web_push_public_key
+      }
+      env {
+        name        = "WebPush__PrivateKey"
+        secret_name = "web-push-private-key"
+      }
+      env {
+        name  = "WebPush__Subject"
+        value = var.web_push_subject
       }
 
       # Cold start (scale-to-zero) runs EF migrations + several seeds before Kestrel

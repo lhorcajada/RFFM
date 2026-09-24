@@ -125,3 +125,20 @@ variable "cors_allowed_origins" {
     "https://mayflower-suffering-swivel.ngrok-free.dev"
   ]
 }
+
+variable "web_push_public_key" {
+  type        = string
+  description = "VAPID public key for browser web push notifications (coach SPA)."
+}
+
+variable "web_push_private_key" {
+  type        = string
+  sensitive   = true
+  description = "VAPID private key for browser web push notifications (coach SPA)."
+}
+
+variable "web_push_subject" {
+  type        = string
+  description = "VAPID subject (mailto: or https: contact URL)."
+  default     = "mailto:soporte@futbolbase.app"
+}
