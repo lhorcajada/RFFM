@@ -18,8 +18,8 @@ import InjuredPlayersList from "../InjuredPlayersList";
 
 const team = { id: "team-1", name: "Equipo 1" };
 
-function renderList(isCoach: boolean) {
-  render(<InjuredPlayersList team={team} isCoach={isCoach} />);
+function renderList(isCoach: boolean, highlightedId?: string | null) {
+  render(<InjuredPlayersList team={team} isCoach={isCoach} highlightedId={highlightedId} />);
 }
 
 describe("InjuredPlayersList", () => {
@@ -110,5 +110,29 @@ describe("InjuredPlayersList", () => {
     await userEvent.click(dialog.getByRole("button", { name: /^dar de alta$/i }));
 
     await waitFor(() => expect(mockUpdatePlayerInjury).toHaveBeenCalledTimes(1));
+  });
+
+  it("highlights the injury card matching highlightedId", async () => {
+    const styles = (await import("../InjuredPlayersList.module.css")).default as Record<
+      string,
+      string
+    >;
+    renderList(true, "inj-1");
+    await screen.findByText("Rotura fibrilar");
+
+    const card = document.getElementById("injury-inj-1")!;
+    expect(card.className).toContain(styles.highlighted);
+  });
+
+  it("does not highlight any card when highlightedId is not set", async () => {
+    const styles = (await import("../InjuredPlayersList.module.css")).default as Record<
+      string,
+      string
+    >;
+    renderList(true, null);
+    await screen.findByText("Rotura fibrilar");
+
+    const card = document.getElementById("injury-inj-1")!;
+    expect(card.className).not.toContain(styles.highlighted);
   });
 });

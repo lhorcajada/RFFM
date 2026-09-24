@@ -136,4 +136,23 @@ describe("SanctionCard", () => {
 
     expect(withoutPhoto.src).not.toEqual(withPhoto.src);
   });
+
+  it("renders with an id matching the sanction, for notification deep-link scrolling", () => {
+    renderCard({ sanction: baseSanction({ id: "s42" }) });
+    expect(document.getElementById("sanction-s42")).toBeInTheDocument();
+  });
+
+  it("applies the highlighted style when targeted by a notification deep-link", async () => {
+    const styles = (await import("../SanctionCard.module.css")).default as Record<string, string>;
+    renderCard({ sanction: baseSanction({ id: "s42" }), highlighted: true });
+    const card = document.getElementById("sanction-s42")!;
+    expect(card.className).toContain(styles.highlighted);
+  });
+
+  it("does not apply the highlighted style when not targeted", async () => {
+    const styles = (await import("../SanctionCard.module.css")).default as Record<string, string>;
+    renderCard({ sanction: baseSanction({ id: "s42" }), highlighted: false });
+    const card = document.getElementById("sanction-s42")!;
+    expect(card.className).not.toContain(styles.highlighted);
+  });
 });

@@ -11,20 +11,29 @@ import ClubSelector from "./components/ClubSelector/ClubSelector";
 import MyTeams from "./components/MyTeams/MyTeams";
 import { Button, Stack } from "@mui/material";
 import SeasonOption from "./components/Seasons/SeasonOption/SeasonOption";
+import NotificationSettings from "./components/NotificationSettings/NotificationSettings";
 import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess";
 
 const Settings: React.FC = () => {
   useAuditPageAccess('Settings');
+  const roles = coachAuthService.getRoles();
+  const isPlayerOrFamily =
+    (roles.includes("Player") || roles.includes("FamilyPlayer") || roles.includes("FamilyMember")) &&
+    !roles.includes("Coach") &&
+    !roles.includes("Administrator");
+
   const [preferredClubId, setPreferredClubId] = useState<string | null>(null);
   const [preferredTeamId, setPreferredTeamId] = useState<string | null>(null);
   const [configurationId, setConfigurationId] = useState<number | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
-  const initialSection =
-    (location.state as { section?: "seasons" | "clubs" | "teams" } | null)?.section ?? "seasons";
-  const [selectedSection, setSelectedSection] = useState<"seasons" | "clubs" | "teams">(
-    initialSection
-  );
+  const initialSection = isPlayerOrFamily
+    ? "notifications"
+    : (location.state as { section?: "seasons" | "clubs" | "teams" | "notifications" } | null)
+        ?.section ?? "seasons";
+  const [selectedSection, setSelectedSection] = useState<
+    "seasons" | "clubs" | "teams" | "notifications"
+  >(initialSection);
 
   useEffect(() => {
     const load = async () => {
@@ -127,23 +136,33 @@ const Settings: React.FC = () => {
           <div className={styles.root}>
           {/* ── Left category sidebar ── */}
           <nav className={styles.categoryNav}>
-             <div
-              className={`${styles.categoryItem} ${selectedSection === "clubs" ? styles.categoryItemActive : ""}`}
-              onClick={() => setSelectedSection("clubs")}
-            >
-              Mis clubes
-            </div>
+            {!isPlayerOrFamily && (
+              <>
+                <div
+                  className={`${styles.categoryItem} ${selectedSection === "clubs" ? styles.categoryItemActive : ""}`}
+                  onClick={() => setSelectedSection("clubs")}
+                >
+                  Mis clubes
+                </div>
+                <div
+                  className={`${styles.categoryItem} ${selectedSection === "seasons" ? styles.categoryItemActive : ""}`}
+                  onClick={() => setSelectedSection("seasons")}
+                >
+                  Temporadas
+                </div>
+                <div
+                  className={`${styles.categoryItem} ${selectedSection === "teams" ? styles.categoryItemActive : ""}`}
+                  onClick={() => setSelectedSection("teams")}
+                >
+                  Mis equipos
+                </div>
+              </>
+            )}
             <div
-              className={`${styles.categoryItem} ${selectedSection === "seasons" ? styles.categoryItemActive : ""}`}
-              onClick={() => setSelectedSection("seasons")}
+              className={`${styles.categoryItem} ${selectedSection === "notifications" ? styles.categoryItemActive : ""}`}
+              onClick={() => setSelectedSection("notifications")}
             >
-              Temporadas
-            </div>
-            <div
-              className={`${styles.categoryItem} ${selectedSection === "teams" ? styles.categoryItemActive : ""}`}
-              onClick={() => setSelectedSection("teams")}
-            >
-              Mis equipos
+              Notificaciones
             </div>
           </nav>
 
@@ -156,7 +175,9 @@ const Settings: React.FC = () => {
                   ? "Temporadas"
                   : selectedSection === "clubs"
                   ? "Mis clubes"
-                  : "Mis equipos"}
+                  : selectedSection === "teams"
+                  ? "Mis equipos"
+                  : "Notificaciones"}
               </span>
             </div>
 
@@ -179,6 +200,8 @@ const Settings: React.FC = () => {
                   onChange={(id) => setPreferredTeamId(id)}
                 />
               )}
+
+              {selectedSection === "notifications" && <NotificationSettings />}
             </div>
           </div>
         </div>

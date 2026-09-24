@@ -58,6 +58,17 @@ describe("TeamDashboardCards — permission-driven visibility", () => {
     expect(screen.queryByRole("link", { name: "Pruebas de acceso" })).not.toBeInTheDocument();
   });
 
+  it("shows the Notificaciones card even for a role with no feature-permission rows at all", () => {
+    mockUsePermissions.mockReturnValue({
+      loading: false,
+      hasFeatureAccess: () => false,
+    });
+
+    renderCards();
+
+    expect(screen.getByRole("link", { name: "Notificaciones" })).toBeInTheDocument();
+  });
+
   it("Coach role sees all catalogued cards", () => {
     mockUsePermissions.mockReturnValue({
       loading: false,

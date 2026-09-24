@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Autocomplete,
   Button,
@@ -82,6 +83,8 @@ export default function Sanctions() {
   useAuditPageAccess('Sanctions');
   const goToTeamDashboard = useTeamDashboardBack();
   const { team, teamTitleNode } = useTeamAndClub();
+  const [searchParams] = useSearchParams();
+  const highlightId = searchParams.get("highlight");
 
   const _roles = coachAuthService.getRoles();
   const isPlayerOrFamily =
@@ -236,6 +239,12 @@ export default function Sanctions() {
 
     return () => { mounted = false; };
   }, [team, refreshKey]);
+
+  useEffect(() => {
+    if (!highlightId || loading) return;
+    const element = document.getElementById(`sanction-${highlightId}`);
+    element?.scrollIntoView?.({ behavior: "smooth", block: "center" });
+  }, [highlightId, loading, visibleRows]);
 
   function openAdd() {
     setAddPlayer(null);
@@ -469,6 +478,7 @@ export default function Sanctions() {
                   showPlayerName={!canFilterMine || filterMode === "all"}
                   canManage={!isPlayerOrFamily}
                   canDelete={deletable}
+                  highlighted={sanction.id === highlightId}
                   onEdit={() => openEdit({ player, sanction })}
                   onLift={() => handleLift({ player, sanction })}
                   onDelete={() => handleDelete({ player, sanction })}

@@ -33,6 +33,8 @@ vi.mock("../../../services/authService", () => ({
     getUserId: vi.fn().mockReturnValue("coach-1"),
     getToken: vi.fn().mockReturnValue(null),
     isAuthenticated: vi.fn().mockReturnValue(false),
+    getRoles: vi.fn().mockReturnValue(["Coach"]),
+    hasRole: vi.fn().mockReturnValue(false),
   },
 }));
 

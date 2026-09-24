@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Button, Stack, Tab, Tabs } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
@@ -21,6 +22,8 @@ export default function Injured() {
   const isCoach = _roles.includes("Coach") || _roles.includes("Administrator");
 
   const [activeTab, setActiveTab] = useState(0);
+  const [searchParams] = useSearchParams();
+  const highlightedId = searchParams.get("highlight");
 
   return (
     <BaseLayout hideFooterMenu>
@@ -54,7 +57,9 @@ export default function Injured() {
         </div>
 
         <div className={styles.tabPanel}>
-          {activeTab === 0 && <InjuredPlayersList team={team} isCoach={isCoach} />}
+          {activeTab === 0 && (
+            <InjuredPlayersList team={team} isCoach={isCoach} highlightedId={highlightedId} />
+          )}
           {activeTab === 1 && team && (
             <InjuryProtocolPanel teamId={team.id} isCoach={isCoach} />
           )}

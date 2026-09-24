@@ -5,6 +5,7 @@ import { useLayoutEffect } from "react";
 import { CoachAuthProvider, CoachAuthGuard } from "./context/CoachAuthContext";
 import { RequireFeaturePermission } from "./components/RequireFeaturePermission";
 import { COACH_FEATURE_ROUTES } from "./constants/featureRoutes";
+import { useWebPushForegroundBridge } from "./hooks/useWebPushForegroundBridge";
 import Clubs from "./pages/clubs/clubs";
 const ClubsDashboard = lazy(() => import("./pages/clubs/dashboard/Dashboard"));
 const ClubPlayerRegistrations = lazy(() => import("./pages/clubs/registrations/PlayerRegistrations"));
@@ -53,6 +54,7 @@ const RatingEvolutionPage = lazy(() => import("./pages/squad/rating/RatingEvolut
 const MyDocuments = lazy(() => import("./pages/my-documents/MyDocuments"));
 const PlayerDocumentsTracking = lazy(() => import("./pages/player-documents/PlayerDocumentsTracking"));
 const AuditLog = lazy(() => import("./pages/audit-log/AuditLog"));
+const Notifications = lazy(() => import("./pages/notifications/Notifications"));
 
 function LoadingFallback() {
   return (
@@ -75,6 +77,7 @@ function CoachRoutesContent() {
   useLayoutEffect(() => {
     return () => {};
   }, []);
+  useWebPushForegroundBridge();
   return (
     <CoachAuthGuard>
       <Suspense fallback={<LoadingFallback />}>
@@ -94,6 +97,7 @@ function CoachRoutesContent() {
               element={<Navigate to="/reset-password" replace />}
             />
             <Route path="dashboard" element={<Dashboard />} />
+            <Route path="notifications" element={<Notifications />} />
             <Route path="team-dashboard" element={<TeamDashboard />} />
             <Route path="team-users" element={<TeamUsers />} />
             <Route

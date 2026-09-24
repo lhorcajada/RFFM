@@ -20,6 +20,8 @@ export type SanctionCardProps = {
   /** Resolved object URL for the player's photo (see `playerService.fetchPlayerPhoto`),
    * `null`/`undefined` falls back to the default avatar. */
   photoSrc?: string | null;
+  /** Visually highlighted when this sanction is the target of a notification deep-link. */
+  highlighted?: boolean;
   onEdit: () => void;
   onLift: () => void;
   onDelete: () => void;
@@ -34,6 +36,7 @@ export default function SanctionCard({
   canManage,
   canDelete,
   photoSrc,
+  highlighted,
   onEdit,
   onLift,
   onDelete,
@@ -46,7 +49,10 @@ export default function SanctionCard({
   const photo = photoSrc ?? defaultAvatar;
 
   return (
-    <Paper className={styles.card} variant="outlined">
+    <Paper
+      className={`${styles.card} ${highlighted ? styles.highlighted : ""}`}
+      variant="outlined"
+      id={`sanction-${sanction.id}`}>
       <Stack spacing={1}>
         <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
           <Stack direction="row" spacing={1} alignItems="flex-start">

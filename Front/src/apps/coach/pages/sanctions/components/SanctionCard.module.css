@@ -5,6 +5,12 @@
   border-color: rgba(255, 255, 255, 0.08);
 }
 
+.highlighted {
+  border-color: var(--rffm-primary, #1976d2);
+  border-width: 2px;
+  box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.35);
+}
+
 .playerAvatar {
   width: 36px;
   height: 36px;

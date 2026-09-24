@@ -188,6 +188,19 @@ export function NewsIllustration() {
   );
 }
 
+export function NotificationsIllustration() {
+  return (
+    <svg viewBox="0 0 100 80" role="presentation">
+      <path
+        d="M50 14c-12 0-20 9-20 22v10l-8 12h56l-8-12V36c0-13-8-22-20-22z"
+        fill={FILL}
+      />
+      <path d="M42 60a8 8 0 0 0 16 0z" fill={FILL_SOFT} />
+      <circle cx="68" cy="24" r="9" fill="#c62828" />
+    </svg>
+  );
+}
+
 export function SeasonAccessIllustration() {
   return (
     <svg viewBox="0 0 100 80" role="presentation">

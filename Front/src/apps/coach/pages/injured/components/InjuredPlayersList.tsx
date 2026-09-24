@@ -36,9 +36,11 @@ type InjuryRow = {
 type Props = {
   team: { id: string } | null;
   isCoach: boolean;
+  /** Injury id to visually highlight and scroll to, e.g. from a notification deep-link. */
+  highlightedId?: string | null;
 };
 
-export default function InjuredPlayersList({ team, isCoach }: Props) {
+export default function InjuredPlayersList({ team, isCoach, highlightedId }: Props) {
   const [players, setPlayers] = useState<PlayerResponse[]>([]);
   const [rows, setRows] = useState<InjuryRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -100,6 +102,12 @@ export default function InjuredPlayersList({ team, isCoach }: Props) {
       mounted = false;
     };
   }, [team, refreshKey]);
+
+  useEffect(() => {
+    if (!highlightedId || loading) return;
+    const element = document.getElementById(`injury-${highlightedId}`);
+    element?.scrollIntoView?.({ behavior: "smooth", block: "center" });
+  }, [highlightedId, loading, rows]);
 
   function openAdd() {
     setAddPlayer(null);
@@ -217,7 +225,13 @@ export default function InjuredPlayersList({ team, isCoach }: Props) {
           {rows.map(({ player, injury }) => {
             const isActive = !injury.endDate;
             return (
-              <div key={injury.id} className={styles.card}>
+              <div
+                key={injury.id}
+                id={`injury-${injury.id}`}
+                className={`${styles.card} ${
+                  injury.id === highlightedId ? styles.highlighted : ""
+                }`}
+              >
                 <div className={styles.cardHeader}>
                   <div className={styles.playerCell}>
                     <span className={styles.playerName}>
