@@ -90,7 +90,7 @@ namespace RFFM.Api.Tests.UnitTests
         // SportEvent.SetEveDateTime/SetStartTime reject past dates, so seed via CreateNew (bypasses
         // domain date validation) same as GetPlayerSeasonCardsHandlerTests.SeedSportEventAsync.
         // trainingTypes defaults to null (empty list) — retrocompat, peso neutro para las tres métricas.
-        private async Task<string> SeedSportEventAsync(AppDbContext db, string teamId, int eventTypeId, DateTime eveDateTime, List<string>? trainingTypes = null, string? rivalId = null)
+        private async Task<string> SeedSportEventAsync(AppDbContext db, string teamId, int eventTypeId, DateTime eveDateTime, List<string>? trainingTypes = null, string? rivalId = null, int? matchDurationMinutes = null)
         {
             var sportEvent = SportEvent.CreateNew(
                 "PlayerStats Test Event",
@@ -99,6 +99,7 @@ namespace RFFM.Api.Tests.UnitTests
                 null, null, null, null,
                 eventTypeId, teamId, rivalId,
                 trainingTypes: trainingTypes);
+            sportEvent.MatchDurationMinutes = matchDurationMinutes;
             db.SportEvents.Add(sportEvent);
             await db.SaveChangesAsync();
             return sportEvent.Id;
@@ -695,19 +696,16 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
-        public async Task MinutesTarget_F11Team_CapsMatchDurationAtStandardAndComputesPercentages()
+        public async Task MinutesTarget_F11Team_WithoutSavedDuration_UsesCategoryDuration()
         {
-            // Arrange: Youth (Juveniles) category → 45' standard F11 match duration.
+            // Arrange: Juveniles (45' por parte → 90'). Ningún partido tiene duración guardada.
             await using var db = _fixture.CreateDbContext();
             var (teamId, clubId, seasonId) = await SeedTeamAsync(db, categoryId: Category.Youth.Id);
             var teamPlayerId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "minutes-target-player");
 
-            // Official match: player plays the full 45' standard duration.
             var matchEventId = await SeedSportEventAsync(db, teamId, MatchEventTypeId, DateTime.UtcNow.AddDays(-10));
             await SeedMatchParticipationAsync(db, matchEventId, teamId, teamPlayerId, minutesPlayed: 45);
 
-            // Friendly: shorter than standard (20') — real duration should cap the contribution,
-            // not the 45' category standard.
             var friendlyEventId = await SeedSportEventAsync(db, teamId, FriendlyEventTypeId, DateTime.UtcNow.AddDays(-5));
             await SeedMatchParticipationAsync(db, friendlyEventId, teamId, teamPlayerId, minutesPlayed: 20);
 
@@ -717,12 +715,10 @@ namespace RFFM.Api.Tests.UnitTests
             // Act
             var result = await handler.Handle(query, CancellationToken.None);
 
-            // Assert
+            // Assert: 90' + 90' = 180'; 65' jugados → 36,1%.
             var stats = Assert.Single(result, p => p.TeamPlayerId == teamPlayerId);
-            // SeasonTotalPossibleMinutes = min(45,45) + min(45,20) = 45 + 20 = 65.
-            // Player played 45 + 20 = 65 minutes → 100% of the season total.
             Assert.Equal(65, stats.MinutesPlayed);
-            Assert.Equal(100.0, stats.MinutesPlayedPercentOfSeasonTotal);
+            Assert.Equal(36.1, stats.MinutesPlayedPercentOfSeasonTotal);
             Assert.Equal(0, stats.MatchesAbsentAttributableToPlayer);
             Assert.Equal(0.0, stats.AttributableAbsentMinutesPercentOfSeasonTotal);
         }
@@ -759,31 +755,47 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
-        public async Task MinutesTarget_F11Team_MatchLongerThanStandard_UsesRealDurationNotCapped()
+        public async Task MinutesTarget_SavedDurationIsUsed_ZeroFallsBackToCategory_AndPlayerMinutesAreCapped()
         {
-            // Arrange: Alevines category → 30' standard F11 match duration, but the match ran
-            // to 40' (tiempo añadido/prórroga). The real registered duration must be used as the
-            // season total's contribution, not the 30' standard — otherwise the denominator would
-            // be capped below the player's own recorded minutes and the percentage would exceed
-            // 100%, which is nonsensical (regression for that bug).
+            // Alevines (30' por parte → 60'). Partido con 35' guardados en el que el jugador tiene
+            // 40' apuntados (le cuentan 35'), y otro con duración 0 (cae a 60') en el que juega 25'.
             await using var db = _fixture.CreateDbContext();
             var (teamId, clubId, seasonId) = await SeedTeamAsync(db, categoryId: Category.U10.Id);
-            var teamPlayerId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "long-match-player");
+            var teamPlayerId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "saved-duration-player");
 
-            var matchEventId = await SeedSportEventAsync(db, teamId, MatchEventTypeId, DateTime.UtcNow.AddDays(-3));
-            await SeedMatchParticipationAsync(db, matchEventId, teamId, teamPlayerId, minutesPlayed: 40);
+            var savedDurationId = await SeedSportEventAsync(db, teamId, MatchEventTypeId, DateTime.UtcNow.AddDays(-6), matchDurationMinutes: 35);
+            await SeedMatchParticipationAsync(db, savedDurationId, teamId, teamPlayerId, minutesPlayed: 40);
+            var zeroDurationId = await SeedSportEventAsync(db, teamId, MatchEventTypeId, DateTime.UtcNow.AddDays(-3), matchDurationMinutes: 0);
+            await SeedMatchParticipationAsync(db, zeroDurationId, teamId, teamPlayerId, minutesPlayed: 25);
 
-            var handler = new GetTeamPlayerStatistics.Handler(db);
-            var query = new GetTeamPlayerStatistics.Query { TeamId = teamId };
+            var result = await new GetTeamPlayerStatistics.Handler(db).Handle(new GetTeamPlayerStatistics.Query { TeamId = teamId }, CancellationToken.None);
 
-            // Act
-            var result = await handler.Handle(query, CancellationToken.None);
-
-            // Assert
+            // Total 35' + 60' = 95'; en el objetivo cuentan 35' + 25' = 60' → 63,2%.
             var stats = Assert.Single(result, p => p.TeamPlayerId == teamPlayerId);
-            // SeasonTotalPossibleMinutes = real 40' (not capped to the 30' standard) → 100%, never > 100%.
-            Assert.Equal(40, stats.MinutesPlayed);
-            Assert.Equal(100.0, stats.MinutesPlayedPercentOfSeasonTotal);
+            Assert.Equal(65, stats.MinutesPlayed);
+            Assert.Equal(63.2, stats.MinutesPlayedPercentOfSeasonTotal);
+        }
+
+        [Fact]
+        public async Task MinutesTarget_RealCase_RotationBelowCategoryDurationDoesNotShrinkTheTotal()
+        {
+            // Cadete (80'): dos partidos sin duración guardada en los que nadie pasó de 70'. El
+            // jugador juega 50' en uno. Antes el total salía 150' (33%); ahora 160' (31%).
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, clubId, seasonId) = await SeedTeamAsync(db, categoryId: Category.U14.Id);
+            var fillerId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "real-case-filler");
+            var playerId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "real-case-player");
+
+            var playedId = await SeedSportEventAsync(db, teamId, FriendlyEventTypeId, DateTime.UtcNow.AddDays(-10));
+            await SeedMatchParticipationAsync(db, playedId, teamId, fillerId, minutesPlayed: 70);
+            await SeedMatchParticipationAsync(db, playedId, teamId, playerId, minutesPlayed: 50);
+            var otherId = await SeedSportEventAsync(db, teamId, FriendlyEventTypeId, DateTime.UtcNow.AddDays(-3));
+            await SeedMatchParticipationAsync(db, otherId, teamId, fillerId, minutesPlayed: 70);
+
+            var result = await new GetTeamPlayerStatistics.Handler(db).Handle(new GetTeamPlayerStatistics.Query { TeamId = teamId }, CancellationToken.None);
+
+            var stats = Assert.Single(result, p => p.TeamPlayerId == playerId);
+            Assert.Equal(31.2, stats.MinutesPlayedPercentOfSeasonTotal); // 31,25 con redondeo bancario (en pantalla, 31%)
         }
 
         [Fact]
@@ -1211,7 +1223,7 @@ namespace RFFM.Api.Tests.UnitTests
                     Assert.Equal(newerId, a.EventId);
                     Assert.Equal(FriendlyEventTypeId, a.EventTypeId);
                     Assert.Equal("PlayerStats Test Event", a.Opponent);
-                    Assert.Equal(70, a.MatchMinutes);
+                    Assert.Equal(80, a.MatchMinutes); // sin duración guardada: la de la categoría
                     Assert.Equal("NoShow", a.Kind);
                     Assert.Null(a.Reason);
                 },

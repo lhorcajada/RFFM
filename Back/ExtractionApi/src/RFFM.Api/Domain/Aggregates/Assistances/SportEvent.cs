@@ -21,6 +21,8 @@ namespace RFFM.Api.Domain.Aggregates.Assistances
         public string? CodActa { get; set; }
         public string? LocalGoals { get; set; }
         public string? VisitorGoals { get; set; }
+        /// <summary>Duración real del partido en minutos; null/0 = se usa la duración estándar de la categoría.</summary>
+        public int? MatchDurationMinutes { get; set; }
         /// <summary>Kit number selected for this match (1 = primera, 2 = segunda, null = not selected).</summary>
         public int? SelectedKitNumber { get; set; }
         public string? RecurrenceId { get; set; }

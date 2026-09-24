@@ -69,6 +69,7 @@ namespace RFFM.Api.DependencyInjection
             services.AddScoped<FluentValidation.IValidator<RFFM.Api.Features.Mobile.PushNotifications.UpdatePushPreferences.UpdatePushPreferencesCommand>, RFFM.Api.Features.Mobile.PushNotifications.UpdatePushPreferences.Validator>();
             services.AddScoped<FluentValidation.IValidator<RFFM.Api.Features.Coaches.Notifications.SubscribeWebPush.SubscribeWebPushCommand>, RFFM.Api.Features.Coaches.Notifications.SubscribeWebPush.Validator>();
             services.AddScoped<FluentValidation.IValidator<RFFM.Api.Features.Coaches.Notifications.UnsubscribeWebPush.UnsubscribeWebPushCommand>, RFFM.Api.Features.Coaches.Notifications.UnsubscribeWebPush.Validator>();
+            services.AddScoped<FluentValidation.IValidator<RFFM.Api.Features.Coaches.Convocations.SaveMatchParticipation.SaveMatchParticipationRequest>, RFFM.Api.Features.Coaches.Convocations.SaveMatchParticipation.Validator>();
 
             // CreateSportEvent is a raw Minimal API request (not a Mediator ICommand), so
             // ValidationBehavior never runs for it — CreateSportEventValidator previously

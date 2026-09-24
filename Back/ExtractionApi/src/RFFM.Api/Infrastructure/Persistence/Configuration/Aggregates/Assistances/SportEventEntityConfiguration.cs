@@ -64,6 +64,9 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.Assistanc
             builder.Property(se => se.SelectedKitNumber)
                 .IsRequired(false);
 
+            builder.Property(se => se.MatchDurationMinutes)
+                .IsRequired(false);
+
             builder.Property(se => se.RecurrenceId)
                 .IsRequired(false);
 

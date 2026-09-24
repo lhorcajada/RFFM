@@ -394,31 +394,31 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                         se.Id,
                         Date = se.EveDateTime!.Value,
                         se.EventTypeId,
-                        Opponent = se.Rival != null ? se.Rival.Name : se.Name
+                        Opponent = se.Rival != null ? se.Rival.Name : se.Name,
+                        se.MatchDurationMinutes
                     })
                     .ToListAsync(cancellationToken);
                 var matchLikeFinishedEventById = matchLikeFinishedEvents.ToDictionary(e => e.Id);
                 var matchLikeFinishedEventIds = matchLikeFinishedEvents.Select(e => e.Id).ToList();
                 var matchLikeFinishedEventIdSet = matchLikeFinishedEventIds.ToHashSet();
 
-                // Per-event duration = the real registered duration (max minutes played among
-                // that event's finished participations) — always authoritative, whether shorter
-                // than the category standard (common in amistosos) or longer (prórroga/tiempo
-                // añadido). The category standard is only used to gate which teams get this
-                // stat at all (F11 categories); it never caps a real match's duration, otherwise
-                // a player's own minutes could exceed the capped total and push the percentage
-                // past 100%. Events with no recorded participation are skipped (nothing played yet).
+                // Duración de cada partido para el objetivo de minutos: la guardada en el evento
+                // (MatchDurationMinutes > 0) o, si es 0/nula, la estándar de la categoría (2 × parte).
+                // Solo cuentan partidos con alguna participación `finished` (sin nada registrado aún
+                // no se ha jugado). Ver openspec/changes/match-played-duration/design.md → Decisión 4.
                 var matchDurationByEventId = new Dictionary<string, int>();
                 int? seasonTotalPossibleMinutes = null;
                 if (hasStandardMinutes)
                 {
                     seasonTotalPossibleMinutes = 0;
-                    foreach (var group in finishedParticipations
+                    foreach (var eventId in finishedParticipations
                         .Where(mp => matchLikeFinishedEventIdSet.Contains(mp.EventId))
-                        .GroupBy(mp => mp.EventId))
+                        .Select(mp => mp.EventId)
+                        .Distinct())
                     {
-                        var duration = group.Max(mp => mp.MinutesPlayed);
-                        matchDurationByEventId[group.Key] = duration;
+                        var savedDuration = matchLikeFinishedEventById[eventId].MatchDurationMinutes;
+                        var duration = savedDuration is > 0 ? savedDuration.Value : 2 * standardMinutes;
+                        matchDurationByEventId[eventId] = duration;
                         seasonTotalPossibleMinutes += duration;
                     }
                 }
@@ -575,13 +575,13 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                         var attributableAbsentMinutes = playerAttributableAbsenceEventIds
                             .Sum(eventId => matchDurationByEventId.TryGetValue(eventId, out var d) ? d : 0);
 
-                        // Numerator scoped to exactly the same event set as the denominator
-                        // (matchLikeFinishedEventIdSet), not the broader season-wide `minutesPlayed`
-                        // above (which also counts events outside that set, e.g. with EveDateTime
-                        // still null) — otherwise the percentage could mathematically exceed 100%.
+                        // Numerador sobre exactamente los mismos partidos que el denominador
+                        // (matchDurationByEventId), no el `minutesPlayed` de toda la temporada, y con los
+                        // minutos de cada partido limitados a su duración: así el % nunca supera 100.
                         var minutesPlayedInSeasonTotalScope = playerParticipations
-                            .Where(mp => matchLikeFinishedEventIdSet.Contains(mp.EventId))
-                            .Sum(mp => mp.MinutesPlayed);
+                            .Where(mp => matchDurationByEventId.ContainsKey(mp.EventId))
+                            .GroupBy(mp => mp.EventId)
+                            .Sum(g => Math.Min(g.Sum(mp => mp.MinutesPlayed), matchDurationByEventId[g.Key]));
 
                         minutesPlayedPercentOfSeasonTotal = seasonTotalPossibleMinutes is null or 0
                             ? null

@@ -50,7 +50,8 @@ namespace RFFM.Api.Features.Coaches.Convocations
             string? GoalsJson,
             string? CardsJson,
             string? FormationChangesJson,
-            List<PlayerParticipationRecord> Players);
+            List<PlayerParticipationRecord> Players,
+            int? MatchDurationMinutes);
 
         public record PlayerParticipationRecord(
             string TeamPlayerId,
@@ -80,6 +81,11 @@ namespace RFFM.Api.Features.Coaches.Convocations
                 if (records.Count == 0) return null;
 
                 var first = records.First();
+                var matchDurationMinutes = await _db.SportEvents
+                    .AsNoTracking()
+                    .Where(se => se.Id == request.EventId)
+                    .Select(se => se.MatchDurationMinutes)
+                    .FirstOrDefaultAsync(cancellationToken);
 
                 return new MatchParticipationResponse(
                     first.EventId,
@@ -99,7 +105,8 @@ namespace RFFM.Api.Features.Coaches.Convocations
                         r.EnteredAtMinute,
                         r.ExitedAtMinute,
                         r.MinutesReason
-                    )).ToList());
+                    )).ToList(),
+                    matchDurationMinutes);
             }
         }
     }

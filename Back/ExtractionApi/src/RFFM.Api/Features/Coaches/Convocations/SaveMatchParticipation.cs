@@ -1,3 +1,4 @@
+using FluentValidation;
 using Mediator;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
@@ -47,6 +48,20 @@ namespace RFFM.Api.Features.Coaches.Convocations
             public string? GoalsJson { get; init; }
             public string? CardsJson { get; init; }
             public string? FormationChangesJson { get; init; }
+            /// <summary>Duración real del partido; solo se aplica con MatchPhase "finished". null = no cambia la guardada.</summary>
+            public int? MatchDurationMinutes { get; init; }
+        }
+
+        public const int MaxMatchDurationMinutes = 200;
+
+        public class Validator : AbstractValidator<SaveMatchParticipationRequest>
+        {
+            public Validator()
+            {
+                RuleFor(x => x.MatchDurationMinutes)
+                    .InclusiveBetween(0, MaxMatchDurationMinutes)
+                    .When(x => x.MatchDurationMinutes is not null);
+            }
         }
 
         public record PlayerParticipationDto(
@@ -130,6 +145,8 @@ namespace RFFM.Api.Features.Coaches.Convocations
                     {
                         sportEvent.LocalGoals = request.ScoreLocal.ToString();
                         sportEvent.VisitorGoals = request.ScoreVisitor.ToString();
+                        if (request.MatchDurationMinutes is not null)
+                            sportEvent.MatchDurationMinutes = request.MatchDurationMinutes;
                     }
                 }
 
