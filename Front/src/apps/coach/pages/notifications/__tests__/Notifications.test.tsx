@@ -102,6 +102,15 @@ describe("Notifications", () => {
     expect(navigateMock).toHaveBeenCalledWith("/coach/news/123");
   });
 
+  it("navega al dashboard del equipo al pulsar Volver", async () => {
+    (searchNotifications as any).mockResolvedValue({ items: [], totalCount: 0 });
+    renderPage();
+
+    await userEvent.click(await screen.findByRole("button", { name: /volver/i }));
+
+    expect(navigateMock).toHaveBeenCalledWith("/coach/team-dashboard");
+  });
+
   it("fetches the next page when pagination changes", async () => {
     const items = [sample];
     (searchNotifications as any).mockResolvedValue({ items, totalCount: 50 });

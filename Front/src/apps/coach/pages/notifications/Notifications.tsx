@@ -89,7 +89,7 @@ const Notifications: React.FC = () => {
           <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
             <Button
               startIcon={<ArrowBackIcon />}
-              onClick={() => navigate("/coach/dashboard")}
+              onClick={() => navigate("/coach/team-dashboard")}
               variant="outlined"
               size="small"
             >
