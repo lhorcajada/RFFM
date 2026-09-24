@@ -228,7 +228,7 @@
 /* ===== Match header — football pitch style ===== */
 .matchHeader {
   position: relative;
-  height: 100px;   /* shrunk from 132px — the event-type tag moved out into
+  height: 110px;   /* fits topbar + shield + 2-line team name; was 100px and clipped the name's 2nd line. Was shrunk from 132px — the event-type tag moved out into
                        the vertical sidebar (see .header's comment), leaving
                        just the Home/Away top bar + team row. */
   flex-shrink: 0;
@@ -355,7 +355,7 @@
   word-break: break-word;
   overflow: hidden;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   max-width: 88px;
   line-height: 1.25;
@@ -608,7 +608,7 @@
 }
 
 .compact .matchHeader {
-  height: 92px; /* close to the full 100px — keeps the Home/Away top bar +
+  height: 104px; /* fits 2-line team name (was 92px and clipped it); close to the full 110px — keeps the Home/Away top bar +
                     team row comfortably sized. */
 }
 
@@ -681,7 +681,7 @@
     height: 52px; /* shrunk from 78px — no top bar, type tag is in the sidebar */
   }
   .matchHeader {
-    height: 66px; /* shrunk from 78px */
+    height: 90px; /* fits 30px shield + 2-line team name */
   }
   .typeSidebar {
     width: 22px;
@@ -721,7 +721,7 @@
     height: 50px; /* close to the full 52px at this width — no top bar */
   }
   .compact .matchHeader {
-    height: 64px; /* close to the full 66px at this width */
+    height: 90px; /* same as full at this width */
   }
   .compact .typeSidebar {
     width: 21px;
