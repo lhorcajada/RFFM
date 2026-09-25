@@ -23,7 +23,8 @@ namespace RFFM.Api.Features.Coaches.GameModels.Queries
     /// status, aggregated bottom-up: a Zona is "completed" only when all its direct
     /// Sub-subprincipios are used, "in-progress" when at least one is, "not-started" otherwise.
     /// A Subprincipio with Zonas aggregates over its Zonas' statuses (not over the flattened
-    /// Sub-subprincipios); a Subprincipio without Zonas aggregates directly over its
+    /// Sub-subprincipios), plus the status of its general Sub-subprincipios as one more child when
+    /// it also has some; a Subprincipio without Zonas aggregates directly over its
     /// Sub-subprincipios the same way a Zona does. A Principio aggregates over its
     /// Subprincipios' statuses using the same rule.
     /// GET /api/game-models/adn-coverage?teamId={teamId}&amp;season={season}
@@ -169,6 +170,13 @@ namespace RFFM.Api.Features.Coaches.GameModels.Queries
                                 var zonaStatus = AggregateStatus(mapped.Select(m => m.IsUsed));
                                 zonaCoverages.Add(new ZonaCoverage(zona.Id, zonaStatus));
                                 zonaStatuses.Add(zonaStatus);
+                            }
+
+                            if (subprincipio.SubSubPrincipios.Count > 0)
+                            {
+                                var generals = subprincipio.SubSubPrincipios.Select(MapSsp).ToList();
+                                sspCoverages.AddRange(generals);
+                                zonaStatuses.Add(AggregateStatus(generals.Select(m => m.IsUsed)));
                             }
 
                             subprincipioStatus = AggregateStatusFromChildren(zonaStatuses);

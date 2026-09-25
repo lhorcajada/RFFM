@@ -244,6 +244,36 @@ namespace RFFM.Api.Tests.IntegrationTests
         }
 
         [Fact]
+        public async Task Handle_SubprincipioWithZonaAndUntargetedGeneral_InProgressAndGeneralReported()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (userId, teamId, season) = await SeedTeamAsync(seedDb);
+            var model = new GameModel(teamId, "Modelo mixto", season);
+            var principle = new GamePrinciple(model.Id, gameMomentId: 1, key: $"principio-{Guid.NewGuid():N}", numero: 1, "Principio", "Texto");
+            var subprincipio = new Subprincipio(principle.Id, $"sub-{Guid.NewGuid():N}", "1.1", "Subprincipio", "Contexto");
+            var zona = new Zona(subprincipio.Id, $"zona-{Guid.NewGuid():N}", "iniciacion", null, null, "Zona");
+            var zonaSsp = new SubSubPrincipio($"z-ssp-{Guid.NewGuid():N}", "1.1.1", "Rol zona", "Texto", null, zona.Id);
+            zona.SubSubPrincipios.Add(zonaSsp);
+            subprincipio.Zonas.Add(zona);
+            var general = new SubSubPrincipio($"g-ssp-{Guid.NewGuid():N}", "1.1.2", "Rol general", "Texto", subprincipio.Id, null);
+            subprincipio.SubSubPrincipios.Add(general);
+            principle.Subprincipios.Add(subprincipio);
+            model.Principles.Add(principle);
+            seedDb.GameModels.Add(model);
+            await seedDb.SaveChangesAsync();
+
+            await using var createDb = _fixture.CreateDbContext();
+            await CreateSessionTargetingAsync(createDb, teamId, userId, zonaSsp.Id);
+
+            await using var db = _fixture.CreateDbContext();
+            var handler = new GetAdnCoverageFeature.Handler(db);
+            var result = await handler.Handle(new GetAdnCoverageFeature.AdnCoverageQuery(teamId, season, userId), CancellationToken.None);
+
+            Assert.Equal(GetAdnCoverageFeature.AdnCoverageStatuses.InProgress, result!.Subprincipios.Single(s => s.SubprincipioId == subprincipio.Id).Status);
+            Assert.False(result.SubSubPrincipios.Single(s => s.SubSubPrincipioId == general.Id).IsUsed);
+        }
+
+        [Fact]
         public async Task Handle_SubprincipioWithZonas_InProgressWhenAtLeastOneZonaHasProgress()
         {
             await using var seedDb = _fixture.CreateDbContext();

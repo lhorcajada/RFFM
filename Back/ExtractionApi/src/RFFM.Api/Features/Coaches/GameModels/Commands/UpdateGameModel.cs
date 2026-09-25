@@ -249,9 +249,7 @@ namespace RFFM.Api.Features.Coaches.GameModels.Commands
                     existing.UpdateTitulo(spr.Titulo);
                     existing.UpdateTexto(spr.Texto);
 
-                    UpsertZonas(existing, faseSlug, spr.Numero, spr.Zonas, model, matchedNotaIds);
-                    UpsertSubSubPrincipios(existing.SubSubPrincipios, faseSlug, spr.SubSubPrincipios, model, matchedNotaIds,
-                        subprincipioId: existing.Id, zonaId: null, addTo: existing.SubSubPrincipios);
+                    UpsertZonasAndSubSubPrincipios(existing, faseSlug, spr, model, matchedNotaIds);
                     UpsertNotas(model, matchedNotaIds, spr.Notas, subprincipioId: existing.Id);
                 }
                 else
@@ -311,90 +309,106 @@ namespace RFFM.Api.Features.Coaches.GameModels.Commands
                 foreach (var n in model.Notas.Where(n => n.SubSubPrincipioId == ssp.Id)) matchedNotaIds.Add(n.Id);
         }
 
-        // ── Upsert zonas inside an existing subprincipio ───────────────────────
+        // ── Upsert zonas and sub-sub-principios inside an existing subprincipio ─
+        // Sub-sub-principios are matched against a pool holding every one the subprincipio has
+        // (general + all its zonas), so one sent under a different parent of the same
+        // subprincipio is moved — keeping its Id, Habilidades, Notas and the session/exercise
+        // links that cascade-delete with it — instead of being deleted and recreated.
 
-        private void UpsertZonas(Subprincipio sp, string faseSlug, string subprincipioNumero, List<ZonaRequest> requests, GameModel model, HashSet<string> matchedNotaIds)
+        private void UpsertZonasAndSubSubPrincipios(Subprincipio sp, string faseSlug, SubprincipioRequest spr, GameModel model, HashSet<string> matchedNotaIds)
         {
-            var matchedIds = new HashSet<string>();
+            var pool = sp.SubSubPrincipios.Concat(sp.Zonas.SelectMany(z => z.SubSubPrincipios)).ToList();
+            var matchedSspIds = new HashSet<string>();
+            var matchedZonaIds = new HashSet<string>();
 
-            foreach (var zr in requests)
+            foreach (var zr in spr.Zonas)
             {
-                var key = GameModelKeys.BuildZonaKey(faseSlug, subprincipioNumero, zr.ZoneKeysCsv, zr.Label);
-                var existing = string.IsNullOrEmpty(zr.Id)
+                var key = GameModelKeys.BuildZonaKey(faseSlug, spr.Numero, zr.ZoneKeysCsv, zr.Label);
+                var zona = string.IsNullOrEmpty(zr.Id)
                     ? sp.Zonas.FirstOrDefault(z => z.Key == key)
                     : sp.Zonas.FirstOrDefault(z => z.Id == zr.Id);
 
-                if (existing is not null)
+                if (zona is null)
                 {
-                    matchedIds.Add(existing.Id);
-                    existing.UpdateKey(key);
-                    existing.UpdateZoneKeysCsv(zr.ZoneKeysCsv);
-                    existing.UpdateLabel(zr.Label);
-                    existing.UpdateZonaTexto(zr.ZonaTexto);
-                    existing.UpdateTexto(zr.Texto);
-
-                    UpsertSubSubPrincipios(existing.SubSubPrincipios, faseSlug, zr.SubSubPrincipios, model, matchedNotaIds,
-                        subprincipioId: null, zonaId: existing.Id, addTo: existing.SubSubPrincipios);
-                    UpsertNotas(model, matchedNotaIds, zr.Notas, zonaId: existing.Id);
+                    zona = new Zona(sp.Id, key, zr.ZoneKeysCsv, zr.Label, zr.ZonaTexto, zr.Texto);
+                    sp.Zonas.Add(zona);
                 }
                 else
                 {
-                    var zona = new Zona(sp.Id, key, zr.ZoneKeysCsv, zr.Label, zr.ZonaTexto, zr.Texto);
-                    foreach (var sspr in zr.SubSubPrincipios)
-                        zona.SubSubPrincipios.Add(BuildSspForUpdate(faseSlug, sspr, subprincipioId: null, zonaId: zona.Id));
-                    sp.Zonas.Add(zona);
-                    matchedIds.Add(zona.Id);
-                    foreach (var ssp in zona.SubSubPrincipios)
-                        foreach (var n in model.Notas.Where(n => n.SubSubPrincipioId == ssp.Id))
-                            matchedNotaIds.Add(n.Id);
-                    UpsertNotas(model, matchedNotaIds, zr.Notas, zonaId: zona.Id);
+                    zona.UpdateKey(key);
+                    zona.UpdateZoneKeysCsv(zr.ZoneKeysCsv);
+                    zona.UpdateLabel(zr.Label);
+                    zona.UpdateZonaTexto(zr.ZonaTexto);
+                    zona.UpdateTexto(zr.Texto);
                 }
+
+                matchedZonaIds.Add(zona.Id);
+                UpsertSubSubPrincipios(pool, matchedSspIds, faseSlug, zr.SubSubPrincipios, model, matchedNotaIds, sp, zona);
+                UpsertNotas(model, matchedNotaIds, zr.Notas, zonaId: zona.Id);
             }
 
-            var toRemove = sp.Zonas.Where(z => !matchedIds.Contains(z.Id)).ToList();
-            _db.Zonas.RemoveRange(toRemove);
+            UpsertSubSubPrincipios(pool, matchedSspIds, faseSlug, spr.SubSubPrincipios, model, matchedNotaIds, sp, zona: null);
+
+            _db.SubSubPrincipios.RemoveRange(pool.Where(ssp => !matchedSspIds.Contains(ssp.Id)));
+            _db.Zonas.RemoveRange(sp.Zonas.Where(z => !matchedZonaIds.Contains(z.Id)).ToList());
         }
 
-        // ── Upsert sub-sub-principios inside an existing subprincipio/zona ─────
-
-        private void UpsertSubSubPrincipios(List<SubSubPrincipio> current, string faseSlug, List<SubSubPrincipioRequest> requests,
-            GameModel model, HashSet<string> matchedNotaIds, string? subprincipioId, string? zonaId, List<SubSubPrincipio> addTo)
+        private void UpsertSubSubPrincipios(List<SubSubPrincipio> pool, HashSet<string> matchedSspIds, string faseSlug,
+            List<SubSubPrincipioRequest> requests, GameModel model, HashSet<string> matchedNotaIds, Subprincipio sp, Zona? zona)
         {
-            var matchedIds = new HashSet<string>();
-
             foreach (var sspr in requests)
             {
                 var key = GameModelKeys.BuildSubSubPrincipioKey(faseSlug, sspr.Numero);
                 var existing = string.IsNullOrEmpty(sspr.Id)
-                    ? current.FirstOrDefault(ssp => ssp.Key == key)
-                    : current.FirstOrDefault(ssp => ssp.Id == sspr.Id);
+                    ? pool.FirstOrDefault(ssp => ssp.Key == key && !matchedSspIds.Contains(ssp.Id))
+                    : pool.FirstOrDefault(ssp => ssp.Id == sspr.Id);
 
                 if (existing is not null)
                 {
-                    matchedIds.Add(existing.Id);
+                    matchedSspIds.Add(existing.Id);
                     existing.UpdateKey(key);
                     existing.UpdateNumero(sspr.Numero);
                     existing.UpdateRol(sspr.Rol);
                     existing.UpdateTexto(sspr.Texto);
-                    if (subprincipioId is not null && existing.SubprincipioId != subprincipioId)
-                        existing.ReparentToSubprincipio(subprincipioId);
-                    if (zonaId is not null && existing.ZonaId != zonaId)
-                        existing.ReparentToZona(zonaId);
+                    MoveSubSubPrincipio(existing, sp, zona);
 
                     UpsertHabilidades(existing, sspr.Habilidades);
                     UpsertNotas(model, matchedNotaIds, sspr.Notas, subSubPrincipioId: existing.Id);
                 }
                 else
                 {
-                    var newSsp = BuildSspForUpdate(faseSlug, sspr, subprincipioId, zonaId);
-                    addTo.Add(newSsp);
-                    matchedIds.Add(newSsp.Id);
+                    var newSsp = BuildSspForUpdate(faseSlug, sspr, subprincipioId: zona is null ? sp.Id : null, zonaId: zona?.Id);
+                    (zona?.SubSubPrincipios ?? sp.SubSubPrincipios).Add(newSsp);
+                    matchedSspIds.Add(newSsp.Id);
                     UpsertNotas(model, matchedNotaIds, sspr.Notas, subSubPrincipioId: newSsp.Id);
                 }
             }
+        }
 
-            var toRemove = current.Where(ssp => !matchedIds.Contains(ssp.Id)).ToList();
-            _db.SubSubPrincipios.RemoveRange(toRemove);
+        /// <summary>Re-parents within the same subprincipio, moving the entity between the tracked
+        /// navigation collections too so EF never sees a FK that contradicts collection membership.</summary>
+        private static void MoveSubSubPrincipio(SubSubPrincipio ssp, Subprincipio sp, Zona? zona)
+        {
+            var alreadyInPlace = zona is null
+                ? ssp.ZonaId is null && ssp.SubprincipioId == sp.Id
+                : ssp.ZonaId == zona.Id;
+            if (alreadyInPlace)
+                return;
+
+            sp.SubSubPrincipios.Remove(ssp);
+            foreach (var z in sp.Zonas)
+                z.SubSubPrincipios.Remove(ssp);
+
+            if (zona is null)
+            {
+                ssp.ReparentToSubprincipio(sp.Id);
+                sp.SubSubPrincipios.Add(ssp);
+            }
+            else
+            {
+                ssp.ReparentToZona(zona.Id);
+                zona.SubSubPrincipios.Add(ssp);
+            }
         }
 
         // ── Upsert habilidades inside an existing sub-sub-principio ────────────
