@@ -36,6 +36,6 @@
 
 - [x] 5.1 `cd Front && npm run test` en verde.
 - [x] 5.2 `cd Front && npm run build` en verde.
-- [ ] 5.3 Revisión visual a ~375px y en escritorio: chips en el árbol y en las tarjetas, botón
-      "Editar modelo".
+- [x] 5.3 Revisión visual a ~375px y en escritorio: chips en el árbol y en las tarjetas, botón
+      "Editar modelo". (Revisado por el usuario.)
 - [x] 5.4 `openspec validate content-board-habilidades-and-model-edit --strict` sin errores.
