@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Box, Button, Checkbox, Tabs, Tab } from "@mui/material";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
@@ -23,6 +23,7 @@ import DeconvokeDialog from "./components/DeconvokeDialog";
 import CollapsibleGroup from "./components/CollapsibleGroup";
 import NotifyPendingConvocationDialog from "./components/NotifyPendingConvocationDialog";
 import type { PendingConfirmationEventSummary } from "./utils/pendingConfirmationWhatsApp";
+import useAutoRefresh from "../../hooks/useAutoRefresh";
 
 type Props = {
   eventId: string;
@@ -260,6 +261,30 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isTrainin
       mounted = false;
     };
   }, [eventId]);
+
+  // Silent background refresh so the coach sees players accepting/rejecting the convocation
+  // from their own devices without reloading the page (no spinner, no injured auto-registration).
+  const refreshingRef = useRef(false);
+  const eventIdRef = useRef(eventId);
+  eventIdRef.current = eventId;
+  useAutoRefresh(async () => {
+    if (loading || refreshingRef.current) return;
+    refreshingRef.current = true;
+    const requestedEventId = eventId;
+    try {
+      const [conv, pl] = await Promise.all([
+        convocationService.getConvocations(requestedEventId),
+        convocationService.getEventPlayers(requestedEventId),
+      ]);
+      if (eventIdRef.current !== requestedEventId) return;
+      setConvocations(conv);
+      setPlayers(pl);
+    } catch {
+      // transient failure: the next tick retries
+    } finally {
+      refreshingRef.current = false;
+    }
+  });
 
   const notConvoked = players.filter(
     (p) => !convocations.some((c) => c.player.id === p.id)

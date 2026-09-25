@@ -8,6 +8,7 @@ import useTeamAndClub from "../../hooks/useTeamAndClub";
 import useTeamDashboardBack from "../../hooks/useTeamDashboardBack";
 import { useIsPlayerRole } from "../../hooks/useIsPlayerRole";
 import useEventAttendanceSummaries from "../../hooks/useEventAttendanceSummaries";
+import useAutoRefresh from "../../hooks/useAutoRefresh";
 import sportEventService, {
   SportEventResponse,
 } from "../../services/sportEventService";
@@ -92,7 +93,8 @@ export default function Attendance() {
     coachAuthService.hasRole("Coach") ||
     coachAuthService.hasRole("ClubDirector") ||
     coachAuthService.hasRole("ClubMember");
-  const { summaries } = useEventAttendanceSummaries(team?.id, events.map((e) => e.id));
+  const { summaries, refetch: refetchSummaries } = useEventAttendanceSummaries(team?.id, events.map((e) => e.id));
+  useAutoRefresh(refetchSummaries);
   useEffect(() => {
     let mounted = true;
     (async () => {
