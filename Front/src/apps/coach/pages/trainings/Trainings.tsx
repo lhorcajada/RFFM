@@ -541,7 +541,7 @@ export default function Trainings() {
                   loading={loadingPlan}
                   onCreatePlan={() => setPlanEditing(true)}
                   onCreateSession={(microcicloId) => goToContentBoard(microcicloId)}
-                  onOpenSession={(sessionId) => goToSessionPage(sessionId)}
+                  onOpenSession={(_sessionId, microcicloId) => goToContentBoard(microcicloId)}
                 />
               )}
             </Box>

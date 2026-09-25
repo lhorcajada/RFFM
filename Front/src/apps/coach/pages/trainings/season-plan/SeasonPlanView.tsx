@@ -10,7 +10,7 @@ interface SeasonPlanViewProps {
   loading: boolean;
   onCreatePlan: () => void;
   onCreateSession: (microcicloId: string) => void;
-  onOpenSession?: (sessionId: string) => void;
+  onOpenSession?: (sessionId: string, microcicloId?: string) => void;
 }
 
 function formatDate(iso: string | null) {
@@ -66,7 +66,7 @@ function MicrocicloRow({
 }: {
   microciclo: Microciclo;
   onCreateSession: (id: string) => void;
-  onOpenSession?: (id: string) => void;
+  onOpenSession?: (id: string, microcicloId?: string) => void;
 }) {
   const hasSessions = microciclo.sessions.length > 0;
   const weeklyObjectiveBySubprincipio = groupWeeklyObjectiveBySubprincipio(microciclo.weeklyObjective);
@@ -112,7 +112,11 @@ function MicrocicloRow({
       {hasSessions && (
         <Box className={styles.sessionsList}>
           {microciclo.sessions.map((session) => (
-            <SessionRow key={session.id} session={session} onOpen={onOpenSession} />
+            <SessionRow
+              key={session.id}
+              session={session}
+              onOpen={onOpenSession && ((id) => onOpenSession(id, microciclo.apiId))}
+            />
           ))}
         </Box>
       )}
@@ -127,7 +131,7 @@ function MesocicloBlock({
 }: {
   mesociclo: Mesociclo;
   onCreateSession: (id: string) => void;
-  onOpenSession?: (id: string) => void;
+  onOpenSession?: (id: string, microcicloId?: string) => void;
 }) {
   return (
     <Accordion className={styles.accordion} defaultExpanded TransitionProps={{ unmountOnExit: true }}>
@@ -163,7 +167,7 @@ function MacrocicloBlock({
 }: {
   macrociclo: Macrociclo;
   onCreateSession: (id: string) => void;
-  onOpenSession?: (id: string) => void;
+  onOpenSession?: (id: string, microcicloId?: string) => void;
 }) {
   return (
     <Accordion className={styles.accordion} defaultExpanded TransitionProps={{ unmountOnExit: true }}>

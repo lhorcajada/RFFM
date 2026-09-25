@@ -35,7 +35,9 @@ const planFixture: SeasonPlan = {
               weekLabel: "Semana 3",
               startDate: "2026-09-14",
               endDate: "2026-09-20",
-              sessions: [],
+              sessions: [
+                { id: "sess-1", name: "Sesión martes", date: "2026-09-15", exerciseCount: 3, objetivoGeneral: null },
+              ],
               weeklyObjective: [],
             },
           ],
@@ -121,6 +123,16 @@ describe("Trainings — acciones de planificación y tablero de contenido", () =
     renderPage();
 
     await user.click(await screen.findByRole("button", { name: /crear sesión/i }));
+
+    expect(screen.getByTestId("board-search")).toHaveTextContent("microcicloId=micro-a");
+    expect(screen.getByTestId("board-week")).toHaveTextContent("Semana 3");
+  });
+
+  it("abrir una sesión desde la Planificación pasa por el tablero de contenido de su microciclo", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole("button", { name: /sesión martes/i }));
 
     expect(screen.getByTestId("board-search")).toHaveTextContent("microcicloId=micro-a");
     expect(screen.getByTestId("board-week")).toHaveTextContent("Semana 3");
