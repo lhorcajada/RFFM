@@ -1,0 +1,19 @@
+.root {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 2px 0 6px 6px;
+}
+
+.chip {
+  height: 20px;
+  font-size: 0.68rem;
+  color: var(--rffm-coach-text-secondary, #b8b8b8);
+  border-color: var(--rffm-coach-accent, #ff7a1a);
+}
+
+.detail {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}

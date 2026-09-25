@@ -12,6 +12,7 @@ import {
 } from "@dnd-kit/core";
 import { Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Typography } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import BaseLayout from "../../../../../shared/components/ui/BaseLayout/BaseLayout";
 import seasonService from "../../../services/seasonService";
 import trainingService from "../../../services/trainingService";
@@ -21,7 +22,12 @@ import { useSessionDrop } from "./hooks/useSessionDrop";
 import AdnDraggableTree from "./components/AdnDraggableTree";
 import SessionBoardPanel from "./components/SessionBoardPanel";
 import DragOverlayPreview from "./components/DragOverlayPreview";
-import { buildSubSubPrincipioTextoMap, describeDragPayload } from "./components/dragPayload";
+import {
+  buildSubSubPrincipioHabilidadesMap,
+  buildSubSubPrincipioTextoMap,
+  describeDragPayload,
+} from "./components/dragPayload";
+import type { Habilidad } from "../../../types/gameModel";
 import styles from "./ContentBoardPage.module.css";
 
 interface DragPayload {
@@ -70,6 +76,10 @@ export default function ContentBoardPage() {
     () => (gameModel ? buildSubSubPrincipioTextoMap(gameModel) : new Map<string, string>()),
     [gameModel]
   );
+  const habilidadesMap = useMemo(
+    () => (gameModel ? buildSubSubPrincipioHabilidadesMap(gameModel) : new Map<string, Habilidad[]>()),
+    [gameModel]
+  );
   const completedSubSubPrincipioIds = useMemo(
     () => new Set(coverage?.subSubPrincipios.filter((s) => s.isUsed).map((s) => s.subSubPrincipioId) ?? []),
     [coverage]
@@ -113,6 +123,17 @@ export default function ContentBoardPage() {
   const handleCreateSessionWithoutContent = () => {
     navigate(`/coach/trainings/new-session?clubId=${clubId}&teamId=${teamId}&microcicloId=${microcicloId}`, {
       state: { returnTo: backUrl },
+    });
+  };
+
+  const handleOpenGameModelEditor = () => {
+    navigate(`/coach/game-model/${gameModel ? "edit" : "create"}?teamId=${teamId}`, {
+      state: {
+        season,
+        teamId,
+        returnTo: `${location.pathname}${location.search}`,
+        returnState: location.state,
+      },
     });
   };
 
@@ -205,9 +226,22 @@ export default function ContentBoardPage() {
     <BaseLayout hideFooterMenu>
       <Box className={styles.page}>
         <Box className={styles.topBar}>
-          <Button startIcon={<ArrowBackIcon />} variant="outlined" size="small" onClick={() => navigate(backUrl)}>
-            Volver
-          </Button>
+          <Box className={styles.topBarActions}>
+            <Button startIcon={<ArrowBackIcon />} variant="outlined" size="small" onClick={() => navigate(backUrl)}>
+              Volver
+            </Button>
+            {gameModel && (
+              <Button
+                startIcon={<EditOutlinedIcon />}
+                variant="outlined"
+                size="small"
+                onClick={handleOpenGameModelEditor}
+                disabled={!season}
+              >
+                Editar modelo
+              </Button>
+            )}
+          </Box>
           <Box className={styles.titleBox}>
             <Typography className={styles.title}>Planificar contenido</Typography>
             {microcicloId && (
@@ -230,16 +264,16 @@ export default function ContentBoardPage() {
               </RouterLink>{" "}
               del equipo para poder planificar contenido.
             </Typography>
-            {microcicloId && (
-              <Button
-                size="small"
-                variant="outlined"
-                className={styles.emptyStateAction}
-                onClick={handleCreateSessionWithoutContent}
-              >
-                Crear sesión sin contenido
+            <Box className={styles.emptyStateActions}>
+              <Button size="small" variant="contained" onClick={handleOpenGameModelEditor} disabled={!season}>
+                Crear modelo
               </Button>
-            )}
+              {microcicloId && (
+                <Button size="small" variant="outlined" onClick={handleCreateSessionWithoutContent}>
+                  Crear sesión sin contenido
+                </Button>
+              )}
+            </Box>
           </Box>
         ) : (
           <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
@@ -251,6 +285,7 @@ export default function ContentBoardPage() {
                 <SessionBoardPanel
                   sessions={visibleSessions}
                   textoMap={textoMap}
+                  habilidadesMap={habilidadesMap}
                   completedSubSubPrincipioIds={completedSubSubPrincipioIds}
                   onCreateSession={() => void handleCreateSession()}
                   onRemoveTarget={(sessionId, subSubPrincipioId) => void removeTarget(sessionId, subSubPrincipioId)}

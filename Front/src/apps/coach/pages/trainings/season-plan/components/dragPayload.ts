@@ -4,7 +4,7 @@
 // AdnDraggableTree.dragdrop.test.tsx). See openspec/changes/season-plan-content-board
 // design.md F4.
 
-import type { GameModel, Principle, Subprincipio, SubSubPrincipio, Zona } from "../../../../types/gameModel";
+import type { GameModel, Habilidad, Principle, Subprincipio, SubSubPrincipio, Zona } from "../../../../types/gameModel";
 import type { SessionTargetDetail } from "../../../../types/training";
 import { zonaHeading } from "../../../game-model/components/gameModelOrder";
 
@@ -104,12 +104,22 @@ export function summarizeTexto(texto: string, maxLength = 60): string {
  * carries id/rol/numero, not the free-text description) can resolve its description without a
  * new API field. Entries with no `apiId` are skipped — they aren't referenceable targets yet. */
 export function buildSubSubPrincipioTextoMap(gameModel: GameModel): Map<string, string> {
-  const map = new Map<string, string>();
+  return buildSubSubPrincipioMap(gameModel, (ssp) => ssp.texto);
+}
+
+/** Same walk as `buildSubSubPrincipioTextoMap`, resolving each target's habilidades
+ * imprescindibles from the GameModel already in memory. */
+export function buildSubSubPrincipioHabilidadesMap(gameModel: GameModel): Map<string, Habilidad[]> {
+  return buildSubSubPrincipioMap(gameModel, (ssp) => ssp.habilidades);
+}
+
+function buildSubSubPrincipioMap<T>(gameModel: GameModel, select: (ssp: SubSubPrincipio) => T): Map<string, T> {
+  const map = new Map<string, T>();
   for (const principle of gameModel.principles) {
     for (const sp of principle.subprincipios) {
       const ssps = sp.zonas.length > 0 ? sp.zonas.flatMap((z) => z.subSubPrincipios) : sp.subSubPrincipios;
       for (const ssp of ssps) {
-        if (ssp.apiId) map.set(ssp.apiId, ssp.texto);
+        if (ssp.apiId) map.set(ssp.apiId, select(ssp));
       }
     }
   }

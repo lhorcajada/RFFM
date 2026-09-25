@@ -5,6 +5,7 @@ import EventIcon from "@mui/icons-material/Event";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import type { TrainingSession } from "../../../types/training";
+import type { Habilidad } from "../../../../types/gameModel";
 import SessionTargetTree from "./SessionTargetTree";
 import styles from "./SessionCard.module.css";
 
@@ -23,6 +24,8 @@ interface SessionCardProps {
   /** subSubPrincipioId → texto, built once from the team's GameModel — resolves each target
    * leaf's description client-side (SessionTargetDetail doesn't carry it). */
   textoMap: Map<string, string>;
+  /** subSubPrincipioId → habilidades imprescindibles — forwarded to SessionTargetTree. */
+  habilidadesMap?: Map<string, Habilidad[]>;
   /** subSubPrincipioId set covered by ≥1 session (coverage.subSubPrincipios) — forwarded to
    * SessionTargetTree so each leaf shows the same "completed" checkmark as the left panel. */
   completedSubSubPrincipioIds?: Set<string>;
@@ -38,6 +41,7 @@ interface SessionCardProps {
 export default function SessionCard({
   session,
   textoMap,
+  habilidadesMap,
   completedSubSubPrincipioIds,
   onRemoveTarget,
   onRename,
@@ -87,6 +91,7 @@ export default function SessionCard({
         <SessionTargetTree
           targets={session.targets}
           textoMap={textoMap}
+          habilidadesMap={habilidadesMap}
           completedSubSubPrincipioIds={completedSubSubPrincipioIds}
           onRemove={(id) => onRemoveTarget(session.id, id)}
         />

@@ -119,3 +119,36 @@ describe("SessionTargetTree — check de completado por Sub-subprincipio", () =>
     expect(screen.queryByTestId("covered-ssp-ssp-1")).not.toBeInTheDocument();
   });
 });
+
+describe("SessionTargetTree — habilidades imprescindibles", () => {
+  const habilidadesMap = new Map([
+    [
+      "ssp-1",
+      [
+        { id: 1, apiId: "hab-1", nombre: "Perfilamiento", descripcion: "", entrenable: "", referenciaAKey: null },
+        { id: 2, apiId: "hab-2", nombre: "Anticipación", descripcion: "", entrenable: "", referenciaAKey: null },
+      ],
+    ],
+  ]);
+
+  it("muestra en cada objetivo las habilidades de su sub-subprincipio", () => {
+    render(
+      <SessionTargetTree
+        targets={[buildTarget()]}
+        textoMap={new Map()}
+        habilidadesMap={habilidadesMap}
+        onRemove={vi.fn()}
+      />
+    );
+
+    const leaf = screen.getByTestId("session-target-leaf-ssp-1");
+    expect(within(leaf).getByText("Perfilamiento")).toBeInTheDocument();
+    expect(within(leaf).getByText("Anticipación")).toBeInTheDocument();
+  });
+
+  it("no muestra habilidades cuando no se le pasa el mapa", () => {
+    render(<SessionTargetTree targets={[buildTarget()]} textoMap={new Map()} onRemove={vi.fn()} />);
+
+    expect(screen.queryByText("Perfilamiento")).not.toBeInTheDocument();
+  });
+});

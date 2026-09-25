@@ -1,6 +1,7 @@
 import { Box, Button, Typography } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import type { TrainingSession } from "../../../types/training";
+import type { Habilidad } from "../../../../types/gameModel";
 import SessionCard from "./SessionCard";
 import styles from "./SessionBoardPanel.module.css";
 
@@ -9,6 +10,8 @@ interface SessionBoardPanelProps {
   /** subSubPrincipioId → texto, built once from the team's GameModel — forwarded to
    * SessionCard → SessionTargetTree to resolve each target leaf's description. */
   textoMap: Map<string, string>;
+  /** subSubPrincipioId → habilidades imprescindibles — forwarded to SessionTargetTree. */
+  habilidadesMap?: Map<string, Habilidad[]>;
   /** subSubPrincipioId set covered by ≥1 session — forwarded to SessionCard → SessionTargetTree
    * so each leaf shows the same "completed" checkmark as the left panel's ADN tree. */
   completedSubSubPrincipioIds?: Set<string>;
@@ -26,6 +29,7 @@ interface SessionBoardPanelProps {
 export default function SessionBoardPanel({
   sessions,
   textoMap,
+  habilidadesMap,
   completedSubSubPrincipioIds,
   onCreateSession,
   onRemoveTarget,
@@ -41,6 +45,7 @@ export default function SessionBoardPanel({
       key={session.id}
       session={session}
       textoMap={textoMap}
+      habilidadesMap={habilidadesMap}
       completedSubSubPrincipioIds={completedSubSubPrincipioIds}
       onRemoveTarget={onRemoveTarget}
       onRename={onRename}

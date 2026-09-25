@@ -172,7 +172,12 @@ function GameModelFormEditorWithActions({
 export default function GameModelCreate() {
   const navigate = useNavigate();
   const location = useLocation();
-  const locationState = location.state as { season?: string; teamId?: string } | null;
+  const locationState = location.state as {
+    season?: string;
+    teamId?: string;
+    returnTo?: string;
+    returnState?: unknown;
+  } | null;
   const seasonFromState = locationState?.season ?? "";
   const teamIdFromUrl = new URLSearchParams(location.search).get("teamId") ?? "";
   const teamIdFromState = locationState?.teamId ?? "";
@@ -222,6 +227,14 @@ export default function GameModelCreate() {
     };
   }, [team, resolvedTeamId, isEdit, seasonFromState]);
 
+  const goBack = () => {
+    if (locationState?.returnTo) {
+      navigate(locationState.returnTo, { state: locationState.returnState });
+      return;
+    }
+    navigate(`/coach/game-model${location.search}`);
+  };
+
   const handleSave = async (currentDraft: GameModel) => {
     setSaving(true);
     try {
@@ -230,7 +243,7 @@ export default function GameModelCreate() {
       } else {
         await gameModelService.create(currentDraft);
       }
-      navigate(`/coach/game-model${location.search}`);
+      goBack();
     } finally {
       setSaving(false);
     }
@@ -240,9 +253,7 @@ export default function GameModelCreate() {
     saveRef.current?.();
   };
 
-  const handleCancel = () => {
-    navigate(`/coach/game-model${location.search}`);
-  };
+  const handleCancel = goBack;
 
   const pageTitle = isEdit ? `Editar Modelo · ${seasonFromState}` : `Nuevo Modelo · ${seasonFromState}`;
 

@@ -38,7 +38,16 @@
   font-size: 0.85rem;
 }
 
-.emptyStateAction {
+.topBarActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.emptyStateActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-top: 16px;
 }
 

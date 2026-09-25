@@ -9,6 +9,7 @@ import type { AdnCoverage, CoverageStatus } from "../../../../types/adnCoverage"
 import { compareNumero, zonaHeading } from "../../../game-model/components/gameModelOrder";
 import { flattenSubprincipioTargets, summarizeTexto, toTargetDetail } from "./dragPayload";
 import UsageBadge from "./UsageBadge";
+import HabilidadChips from "./HabilidadChips";
 import styles from "./AdnDraggableTree.module.css";
 
 interface Props {
@@ -66,7 +67,7 @@ function DraggableSsp({
   const titulo = resumen ? `${ssp.numero} — ${ssp.rol} (${resumen})` : `${ssp.numero} — ${ssp.rol}`;
 
   return (
-    <div className={styles.sspContainer}>
+    <div className={styles.sspContainer} data-testid={`adn-ssp-${id}`}>
       <div
         ref={setNodeRef}
         style={style}
@@ -82,6 +83,7 @@ function DraggableSsp({
         {usage?.isUsed && <CheckCircleIcon data-testid={`covered-ssp-${id}`} className={styles.checkIcon} />}
       </div>
       {ssp.texto && <p className={styles.sspTexto}>{ssp.texto}</p>}
+      <HabilidadChips habilidades={ssp.habilidades} />
     </div>
   );
 }

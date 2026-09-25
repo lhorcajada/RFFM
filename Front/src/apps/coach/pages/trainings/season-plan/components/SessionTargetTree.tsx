@@ -1,6 +1,8 @@
 import { Typography } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import type { SessionTargetDetail } from "../../../types/training";
+import type { Habilidad } from "../../../../types/gameModel";
+import HabilidadChips from "./HabilidadChips";
 import { buildTargetTree, type SspLeaf } from "./targetTreeGrouping";
 import styles from "./SessionTargetTree.module.css";
 
@@ -8,6 +10,8 @@ interface SessionTargetTreeProps {
   targets: SessionTargetDetail[];
   /** subSubPrincipioId → texto, built once from the team's GameModel. */
   textoMap: Map<string, string>;
+  /** subSubPrincipioId → habilidades imprescindibles, built once from the team's GameModel. */
+  habilidadesMap?: Map<string, Habilidad[]>;
   onRemove: (subSubPrincipioId: string) => void;
   /** subSubPrincipioId set of leaves used by at least one session (coverage.subSubPrincipios
    * with isUsed) — a Sub-subprincipio is a binary "completed"/"not-started" atomic unit, unlike
@@ -20,11 +24,13 @@ interface SessionTargetTreeProps {
 function Leaf({
   leaf,
   textoMap,
+  habilidadesMap,
   onRemove,
   completedSubSubPrincipioIds,
 }: {
   leaf: SspLeaf;
   textoMap: Map<string, string>;
+  habilidadesMap: Map<string, Habilidad[]>;
   onRemove: (id: string) => void;
   completedSubSubPrincipioIds: Set<string>;
 }) {
@@ -51,6 +57,7 @@ function Leaf({
         </button>
       </div>
       {texto && <p className={styles.leafTexto}>{texto}</p>}
+      <HabilidadChips habilidades={habilidadesMap.get(target.subSubPrincipioId) ?? []} />
     </div>
   );
 }
@@ -64,6 +71,7 @@ function Leaf({
 export default function SessionTargetTree({
   targets,
   textoMap,
+  habilidadesMap = new Map(),
   onRemove,
   completedSubSubPrincipioIds = new Set(),
 }: SessionTargetTreeProps) {
@@ -89,6 +97,7 @@ export default function SessionTargetTree({
                       key={leaf.target.subSubPrincipioId}
                       leaf={leaf}
                       textoMap={textoMap}
+                      habilidadesMap={habilidadesMap}
                       onRemove={onRemove}
                       completedSubSubPrincipioIds={completedSubSubPrincipioIds}
                     />
@@ -101,6 +110,7 @@ export default function SessionTargetTree({
                           key={leaf.target.subSubPrincipioId}
                           leaf={leaf}
                           textoMap={textoMap}
+                          habilidadesMap={habilidadesMap}
                           onRemove={onRemove}
                           completedSubSubPrincipioIds={completedSubSubPrincipioIds}
                         />

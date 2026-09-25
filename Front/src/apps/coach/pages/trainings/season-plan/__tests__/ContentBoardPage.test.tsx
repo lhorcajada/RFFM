@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -180,7 +180,20 @@ function LocationProbe() {
   return <div data-testid="location">{`${location.pathname}${location.search}`}</div>;
 }
 
-type Entry = string | { pathname: string; search: string; state?: unknown };
+function GameModelEditorProbe({ title }: { title: string }) {
+  const location = useLocation();
+  const state = location.state as { season?: string; teamId?: string; returnTo?: string } | null;
+  return (
+    <div>
+      <div>{title}</div>
+      <div data-testid="editor-season">{state?.season ?? ""}</div>
+      <div data-testid="editor-team">{state?.teamId ?? ""}</div>
+      <div data-testid="editor-return-to">{state?.returnTo ?? ""}</div>
+    </div>
+  );
+}
+
+type Entry =string | { pathname: string; search: string; state?: unknown };
 
 function renderWithRoutes(entry: Entry) {
   return render(
@@ -189,6 +202,8 @@ function renderWithRoutes(entry: Entry) {
         <Routes>
           <Route path="/coach/trainings/content-board" element={<ContentBoardPage />} />
           <Route path="/coach/trainings/new-session" element={<div>Editor de sesión</div>} />
+          <Route path="/coach/game-model/edit" element={<GameModelEditorProbe title="Editor del modelo" />} />
+          <Route path="/coach/game-model/create" element={<GameModelEditorProbe title="Creación del modelo" />} />
         </Routes>
         <LocationProbe />
       </MemoryRouter>
@@ -292,5 +307,110 @@ describe("ContentBoardPage — sin microciclo en contexto", () => {
     renderWithRoutes("/coach/trainings/content-board?clubId=club-1&teamId=team-1");
 
     expect(screen.queryByRole("button", { name: /crear sesión sin contenido/i })).not.toBeInTheDocument();
+  });
+});
+
+describe("ContentBoardPage — habilidades en los objetivos de sesión", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("muestra en el objetivo de la tarjeta las habilidades del sub-subprincipio del modelo", () => {
+    const modelWithHabilidades: GameModel = {
+      ...gameModelFixture,
+      principles: [
+        {
+          ...gameModelFixture.principles[0],
+          subprincipios: [
+            {
+              id: 1,
+              apiId: "sub-1",
+              numero: "1.1",
+              titulo: "Presión alta",
+              texto: "",
+              zonas: [],
+              notas: [],
+              subSubPrincipios: [
+                {
+                  id: 1,
+                  apiId: "ssp-1",
+                  numero: "1.1.1",
+                  rol: "Delantero",
+                  texto: "",
+                  notas: [],
+                  habilidades: [
+                    { id: 1, apiId: "hab-1", nombre: "Temporización", descripcion: "", entrenable: "", referenciaAKey: null },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    const sessionWithTarget: TrainingSession = {
+      ...sessionsFixture[0],
+      targets: [
+        {
+          subSubPrincipioId: "ssp-1",
+          rol: "Delantero",
+          numero: "1.1.1",
+          subprincipioId: "sub-1",
+          subprincipioTitulo: "Presión alta",
+          zonaId: null,
+          zonaLabel: null,
+          principioId: "principle-1",
+          principioTitulo: "Defensa organizada",
+          gameMomentId: 1,
+          gameMomentName: "Fase defensiva",
+        },
+      ],
+    };
+    mockBoardData({ gameModel: modelWithHabilidades, sessions: [sessionWithTarget] });
+
+    renderWithRoutes("/coach/trainings/content-board?clubId=club-1&teamId=team-1");
+
+    const leaf = screen.getByTestId("session-target-leaf-ssp-1");
+    expect(within(leaf).getByText("Temporización")).toBeInTheDocument();
+  });
+});
+
+describe("ContentBoardPage — editar o crear el Modelo de Juego", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("'Editar modelo' abre el editor de la temporada activa y guarda la URL actual para volver", async () => {
+    mockBoardData();
+
+    renderWithRoutes(microEntry);
+    const button = screen.getByRole("button", { name: /editar modelo/i });
+    await waitFor(() => expect(button).toBeEnabled());
+    await userEvent.click(button);
+
+    expect(screen.getByText("Editor del modelo")).toBeInTheDocument();
+    expect(screen.getByTestId("editor-season")).toHaveTextContent("2026-2027");
+    expect(screen.getByTestId("editor-team")).toHaveTextContent("team-1");
+    expect(screen.getByTestId("editor-return-to")).toHaveTextContent(
+      "/coach/trainings/content-board?clubId=club-1&teamId=team-1&microcicloId=micro-a"
+    );
+  });
+
+  it("sin Modelo de Juego, 'Crear modelo' abre el editor de creación", async () => {
+    mockBoardData({ gameModel: null });
+
+    renderWithRoutes("/coach/trainings/content-board?clubId=club-1&teamId=team-1");
+    const button = screen.getByRole("button", { name: /crear modelo/i });
+    await waitFor(() => expect(button).toBeEnabled());
+    await userEvent.click(button);
+
+    expect(screen.getByText("Creación del modelo")).toBeInTheDocument();
+    expect(screen.getByTestId("editor-return-to")).toHaveTextContent(
+      "/coach/trainings/content-board?clubId=club-1&teamId=team-1"
+    );
+  });
+
+  it("no muestra 'Editar modelo' cuando el equipo no tiene modelo", () => {
+    mockBoardData({ gameModel: null });
+
+    renderWithRoutes("/coach/trainings/content-board?clubId=club-1&teamId=team-1");
+
+    expect(screen.queryByRole("button", { name: /editar modelo/i })).not.toBeInTheDocument();
   });
 });
