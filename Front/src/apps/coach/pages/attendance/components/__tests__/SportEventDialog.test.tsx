@@ -86,7 +86,7 @@ describe("SportEventDialog - recurring events", () => {
 
     expect(await screen.findByLabelText(/frecuencia/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/fecha final de la recurrencia/i)).toBeInTheDocument();
-  }, 15000);
+  });
 
   it("submits without a recurrence block when the checkbox is unchecked", async () => {
     createSportEventMock.mockResolvedValue({ id: "evt-1" });
@@ -100,7 +100,7 @@ describe("SportEventDialog - recurring events", () => {
     await waitFor(() => expect(createSportEventMock).toHaveBeenCalledTimes(1));
     const payload = createSportEventMock.mock.calls[0][0];
     expect(payload.recurrence).toBeUndefined();
-  }, 15000);
+  });
 
   it("includes a recurrence block with mapped frequency and endDate when checked and filled", async () => {
     createSportEventMock.mockResolvedValue({ id: "evt-1" });
@@ -126,7 +126,7 @@ describe("SportEventDialog - recurring events", () => {
     await waitFor(() => expect(createSportEventMock).toHaveBeenCalledTimes(1));
     const payload = createSportEventMock.mock.calls[0][0];
     expect(payload.recurrence).toEqual({ frequency: "weekly", endDate: "2026-08-24" });
-  }, 15000);
+  });
 
   it("shows a client-side validation error when the recurrence end date is not after the event date", async () => {
     render(
@@ -152,7 +152,7 @@ describe("SportEventDialog - recurring events", () => {
       await screen.findByText(/la fecha final de la recurrencia debe ser posterior/i)
     ).toBeInTheDocument();
     expect(createSportEventMock).not.toHaveBeenCalled();
-  }, 15000);
+  });
 
   it("shows the backend validation error when the recurrence would exceed the instance cap", async () => {
     createSportEventMock.mockRejectedValue({
@@ -185,7 +185,7 @@ describe("SportEventDialog - recurring events", () => {
     expect(
       await screen.findByText(/no puede generar más de 52 eventos/i)
     ).toBeInTheDocument();
-  }, 15000);
+  });
 });
 
 describe("SportEventDialog - fecha/hora/lugar opcionales", () => {
@@ -215,7 +215,7 @@ describe("SportEventDialog - fecha/hora/lugar opcionales", () => {
     expect(payload.eveDateTime).toBeNull();
     expect(payload.startTime).toBeNull();
     expect(payload.location).toBeNull();
-  }, 15000);
+  });
 
   it("deshabilita la casilla de recurrencia cuando no hay fecha", async () => {
     render(
@@ -282,7 +282,7 @@ describe("SportEventDialog - rival inline", () => {
     await userEvent.click(screen.getByRole("radio", { name: /rival existente/i }));
     expect(screen.queryByLabelText(/nombre del rival/i)).not.toBeInTheDocument();
     expect(await screen.findByLabelText(/^rival$/i)).toBeInTheDocument();
-  }, 15000);
+  });
 
   it("crea un rival nuevo inline y lo envía en el payload como newRival", async () => {
     createSportEventMock.mockResolvedValue({ id: "evt-1" });
@@ -308,7 +308,7 @@ describe("SportEventDialog - rival inline", () => {
       urlPhoto: null,
       category: "Alevín",
     });
-  }, 15000);
+  });
 
   it("sube la foto del rival nuevo antes de crear el evento y usa la URL devuelta", async () => {
     uploadRivalPhotoMock.mockResolvedValue({ Url: "https://cdn.example.com/escudo.png" });
@@ -337,7 +337,7 @@ describe("SportEventDialog - rival inline", () => {
       urlPhoto: "https://cdn.example.com/escudo.png",
       category: null,
     });
-  }, 15000);
+  });
 
   it("no sube ninguna foto ni llama a uploadRivalPhoto si no se selecciona archivo", async () => {
     createSportEventMock.mockResolvedValue({ id: "evt-1" });
@@ -355,7 +355,7 @@ describe("SportEventDialog - rival inline", () => {
     expect(uploadRivalPhotoMock).not.toHaveBeenCalled();
     const payload = createSportEventMock.mock.calls[0][0];
     expect(payload.newRival.urlPhoto).toBeNull();
-  }, 15000);
+  });
 
   it("muestra un error de validación si el modo rival nuevo no tiene nombre", async () => {
     render(
@@ -370,7 +370,7 @@ describe("SportEventDialog - rival inline", () => {
       await screen.findByText(/el nombre del rival nuevo es obligatorio/i)
     ).toBeInTheDocument();
     expect(createSportEventMock).not.toHaveBeenCalled();
-  }, 15000);
+  });
 
   it("permite guardar un partido sin seleccionar ningún rival", async () => {
     createSportEventMock.mockResolvedValue({ id: "evt-1" });
@@ -385,7 +385,7 @@ describe("SportEventDialog - rival inline", () => {
     const payload = createSportEventMock.mock.calls[0][0];
     expect(payload.rivalId).toBeNull();
     expect(payload.newRival).toBeNull();
-  }, 15000);
+  });
 
   it("precarga el rival guardado al editar un partido existente", async () => {
     getRivalsMock.mockResolvedValue([
@@ -416,7 +416,7 @@ describe("SportEventDialog - rival inline", () => {
 
     const rivalSelect = await screen.findByLabelText(/^rival$/i);
     await waitFor(() => expect(rivalSelect).toHaveTextContent("CD Rival"));
-  }, 15000);
+  });
 });
 
 describe("SportEventDialog - enlace de Google Maps", () => {
@@ -461,7 +461,7 @@ describe("SportEventDialog - enlace de Google Maps", () => {
     ).toBeInTheDocument();
     expect(createSportEventMock).not.toHaveBeenCalled();
     expect(updateSportEventMock).not.toHaveBeenCalled();
-  }, 15000);
+  });
 
   it("incluye locationMapUrl en el payload cuando la URL es válida", async () => {
     createSportEventMock.mockResolvedValue({ id: "evt-1" });
@@ -557,7 +557,7 @@ describe("SportEventDialog - hora de llegada y tipo de entrenamiento", () => {
     await waitFor(() => expect(createSportEventMock).toHaveBeenCalledTimes(1));
     const payload = createSportEventMock.mock.calls[0][0];
     expect(payload.arrivalDate).toBe(new Date("2026-08-01T17:30").toISOString());
-  }, 15000);
+  });
 
   it("envía arrivalDate como null cuando no se indica hora de llegada", async () => {
     createSportEventMock.mockResolvedValue({ id: "evt-1" });
@@ -571,7 +571,7 @@ describe("SportEventDialog - hora de llegada y tipo de entrenamiento", () => {
     await waitFor(() => expect(createSportEventMock).toHaveBeenCalledTimes(1));
     const payload = createSportEventMock.mock.calls[0][0];
     expect(payload.arrivalDate).toBeNull();
-  }, 15000);
+  });
 
   it("no muestra el selector de tipo de entrenamiento para tipos que no son entrenamiento", async () => {
     render(
@@ -613,7 +613,7 @@ describe("SportEventDialog - hora de llegada y tipo de entrenamiento", () => {
     await waitFor(() => expect(createSportEventMock).toHaveBeenCalledTimes(1));
     const payload = createSportEventMock.mock.calls[0][0];
     expect(payload.trainingTypes).toEqual(["Fisico", "Tactico"]);
-  }, 15000);
+  });
 
   it("precarga la hora de llegada y los tipos de entrenamiento al editar un entrenamiento existente", async () => {
     render(

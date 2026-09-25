@@ -137,7 +137,7 @@ describe("TeamRulesEdit — formulario crear/editar", () => {
     await userEvent.click(removeButtons[0]);
 
     expect(screen.getAllByLabelText(/título corto/i)).toHaveLength(1);
-  }, 15000);
+  });
 
   it("bloquea el envío si faltan campos requeridos o no hay normas", async () => {
     mockGetTeamRules.mockResolvedValue(null);
