@@ -41,7 +41,10 @@ export function useTeamAppEntry() {
 
   async function handleKeepRole() {
     setChangeRoleOpen(false);
-    const current = await configurationCoachService.getCurrent();
+    // A coach whose club join request is still pending has no role in the JWT yet; the
+    // configuration endpoint would answer 401 and log them out before they can enter a team code.
+    const hasRoles = coachAuthService.getRoles().length > 0;
+    const current = hasRoles ? await configurationCoachService.getCurrent() : null;
     if (current?.preferredTeamId) {
       navigate("/coach/dashboard");
       return;
@@ -142,6 +145,9 @@ export function useTeamAppEntry() {
 
       if (selectedUserType === "CoachClubTeam") {
         const result = await teamService.enterClubTeamByCode(code);
+        if (result.token) {
+          coachAuthService.storeUpdatedToken(result.token);
+        }
         setCodeDialogOpen(false);
         navigate(`/coach/dashboard?teamId=${result.teamId}`);
         return;

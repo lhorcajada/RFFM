@@ -49,7 +49,7 @@ namespace RFFM.Api.Features.Coaches.Invitation.Commands
             public string Code { get; set; } = string.Empty;
         }
 
-        public record Response(string TeamId, string TeamName);
+        public record Response(string TeamId, string TeamName, string? Token = null);
 
         public class Handler : IRequestHandler<Command, IResult>
         {
@@ -58,6 +58,7 @@ namespace RFFM.Api.Features.Coaches.Invitation.Commands
             private readonly IClubJoinRequestApprovalService _approvalService;
             private readonly UserManager<IdentityUser> _userManager;
             private readonly RoleManager<IdentityRole> _roleManager;
+            private readonly ITokenService _tokenService;
             private readonly ILogger<Handler> _logger;
 
             public Handler(
@@ -66,6 +67,7 @@ namespace RFFM.Api.Features.Coaches.Invitation.Commands
                 IClubJoinRequestApprovalService approvalService,
                 UserManager<IdentityUser> userManager,
                 RoleManager<IdentityRole> roleManager,
+                ITokenService tokenService,
                 ILogger<Handler> logger)
             {
                 _db = db;
@@ -73,6 +75,7 @@ namespace RFFM.Api.Features.Coaches.Invitation.Commands
                 _approvalService = approvalService;
                 _userManager = userManager;
                 _roleManager = roleManager;
+                _tokenService = tokenService;
                 _logger = logger;
             }
 
@@ -165,7 +168,24 @@ namespace RFFM.Api.Features.Coaches.Invitation.Commands
 
                 await _db.SaveChangesAsync(cancellationToken);
 
-                return Results.Ok(new Response(team.Id, team.Name));
+                // The caller's current JWT may predate the role granted above (e.g. issued while
+                // the join request was still Pending), so hand back a fresh one carrying it.
+                var token = await TryGenerateJwtAsync(userId, cancellationToken);
+
+                return Results.Ok(new Response(team.Id, team.Name, token));
+            }
+
+            private async Task<string?> TryGenerateJwtAsync(string userId, CancellationToken cancellationToken)
+            {
+                try
+                {
+                    return await _tokenService.GenerateJwtForUser(userId, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "EnterClubTeamAsCoach: could not generate JWT for user {UserId}", userId);
+                    return null;
+                }
             }
 
             private async Task EnsureIdentityRoleAsync(string userId, Membership? membership, CancellationToken cancellationToken)

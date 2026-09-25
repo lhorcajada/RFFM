@@ -27,6 +27,7 @@ vi.mock("../../../../../apps/coach/services/authService", () => ({
     storeUpdatedToken: vi.fn(),
     isAuthenticated: vi.fn(),
     hasRole: vi.fn(),
+    getRoles: vi.fn(),
   },
 }));
 
@@ -48,11 +49,47 @@ vi.mock("../useCoachTrial", () => ({
 
 import configurationCoachService from "../../../../../apps/coach/services/configurationCoachService";
 import teamService from "../../../../../apps/coach/services/teamService";
+import { coachAuthService } from "../../../../../apps/coach/services/authService";
 import { useTeamAppEntry } from "../useTeamAppEntry";
 
 describe("useTeamAppEntry — entrada de Coach a un equipo del club por código", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    (coachAuthService.getRoles as ReturnType<typeof vi.fn>).mockReturnValue(["Coach"]);
+  });
+
+  it("abre el diálogo de código sin consultar la configuración cuando el usuario aún no tiene roles (solicitud de club pendiente)", async () => {
+    (coachAuthService.getRoles as ReturnType<typeof vi.fn>).mockReturnValue([]);
+
+    const { result } = renderHook(() => useTeamAppEntry());
+
+    await act(async () => {
+      await result.current.handleKeepRole();
+    });
+
+    expect(configurationCoachService.getCurrent).not.toHaveBeenCalled();
+    expect(result.current.codeDialogOpen).toBe(true);
+  });
+
+  it("guarda el token nuevo devuelto al entrar en el equipo del club por código", async () => {
+    (configurationCoachService.getCurrent as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+    (teamService.enterClubTeamByCode as ReturnType<typeof vi.fn>).mockResolvedValue({
+      teamId: "team-99",
+      teamName: "Alevín A",
+      token: "jwt-with-coach-role",
+    });
+
+    const { result } = renderHook(() => useTeamAppEntry());
+
+    await act(async () => {
+      await result.current.handleKeepRole();
+    });
+
+    await act(async () => {
+      await result.current.handleCodeAccept("ABCD1234");
+    });
+
+    expect(coachAuthService.storeUpdatedToken).toHaveBeenCalledWith("jwt-with-coach-role");
   });
 
   it('abre CodeInputDialog con título "Código de equipo" al pulsar Continuar cuando no hay preferredTeamId', async () => {

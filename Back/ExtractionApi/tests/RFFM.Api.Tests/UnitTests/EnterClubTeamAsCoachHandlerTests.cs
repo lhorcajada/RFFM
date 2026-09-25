@@ -126,6 +126,14 @@ namespace RFFM.Api.Tests.UnitTests
             return mock;
         }
 
+        private static Mock<ITokenService> TokenService(string token = "fresh-jwt")
+        {
+            var mock = new Mock<ITokenService>();
+            mock.Setup(t => t.GenerateJwtForUser(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(token);
+            return mock;
+        }
+
         private static async Task<Team> SeedTeamAsync(AppDbContext db, string clubName)
         {
             var club = Club.Create(clubName, SeededCountryId);
@@ -163,7 +171,7 @@ namespace RFFM.Api.Tests.UnitTests
             var handler = new EnterClubTeamAsCoach.Handler(
                 db, CurrentUser(userId).Object, NeverCalledApprovalService(),
                 DefaultUserManager(userId).Object, DefaultRoleManager().Object,
-                NullLogger<EnterClubTeamAsCoach.Handler>.Instance);
+                TokenService().Object, NullLogger<EnterClubTeamAsCoach.Handler>.Instance);
             var command = new EnterClubTeamAsCoach.Command { Code = "ZZZZZZZZ" };
 
             var result = await handler.Handle(command, CancellationToken.None);
@@ -184,7 +192,7 @@ namespace RFFM.Api.Tests.UnitTests
             var handler = new EnterClubTeamAsCoach.Handler(
                 db, CurrentUser(userId).Object, NeverCalledApprovalService(),
                 DefaultUserManager(userId).Object, DefaultRoleManager().Object,
-                NullLogger<EnterClubTeamAsCoach.Handler>.Instance);
+                TokenService().Object, NullLogger<EnterClubTeamAsCoach.Handler>.Instance);
             var command = new EnterClubTeamAsCoach.Command { Code = team.JoinCode };
 
             var result = await handler.Handle(command, CancellationToken.None);
@@ -209,7 +217,7 @@ namespace RFFM.Api.Tests.UnitTests
             var handler = new EnterClubTeamAsCoach.Handler(
                 db, CurrentUser(userId).Object, NeverCalledApprovalService(),
                 DefaultUserManager(userId).Object, DefaultRoleManager().Object,
-                NullLogger<EnterClubTeamAsCoach.Handler>.Instance);
+                TokenService().Object, NullLogger<EnterClubTeamAsCoach.Handler>.Instance);
             var command = new EnterClubTeamAsCoach.Command { Code = team.JoinCode };
 
             var result = await handler.Handle(command, CancellationToken.None);
@@ -245,7 +253,7 @@ namespace RFFM.Api.Tests.UnitTests
             var handler = new EnterClubTeamAsCoach.Handler(
                 db, CurrentUser(userId).Object, NeverCalledApprovalService(),
                 DefaultUserManager(userId).Object, DefaultRoleManager().Object,
-                NullLogger<EnterClubTeamAsCoach.Handler>.Instance);
+                TokenService().Object, NullLogger<EnterClubTeamAsCoach.Handler>.Instance);
             var command = new EnterClubTeamAsCoach.Command { Code = team.JoinCode };
 
             var result = await handler.Handle(command, CancellationToken.None);
@@ -293,7 +301,7 @@ namespace RFFM.Api.Tests.UnitTests
             var handler = new EnterClubTeamAsCoach.Handler(
                 db, CurrentUser(userId).Object, NeverCalledApprovalService(),
                 userManagerMock.Object, roleManagerMock.Object,
-                NullLogger<EnterClubTeamAsCoach.Handler>.Instance);
+                TokenService().Object, NullLogger<EnterClubTeamAsCoach.Handler>.Instance);
             var command = new EnterClubTeamAsCoach.Command { Code = team.JoinCode };
 
             var result = await handler.Handle(command, CancellationToken.None);
@@ -316,7 +324,7 @@ namespace RFFM.Api.Tests.UnitTests
             var handler = new EnterClubTeamAsCoach.Handler(
                 db, CurrentUser(userId).Object, NeverCalledApprovalService(),
                 DefaultUserManager(userId).Object, DefaultRoleManager().Object,
-                NullLogger<EnterClubTeamAsCoach.Handler>.Instance);
+                TokenService().Object, NullLogger<EnterClubTeamAsCoach.Handler>.Instance);
             var command = new EnterClubTeamAsCoach.Command { Code = team.JoinCode };
 
             var result = await handler.Handle(command, CancellationToken.None);
@@ -366,7 +374,7 @@ namespace RFFM.Api.Tests.UnitTests
             var handler = new EnterClubTeamAsCoach.Handler(
                 db, CurrentUser(userId).Object, NeverCalledApprovalService(),
                 DefaultUserManager(userId).Object, DefaultRoleManager().Object,
-                NullLogger<EnterClubTeamAsCoach.Handler>.Instance);
+                TokenService().Object, NullLogger<EnterClubTeamAsCoach.Handler>.Instance);
 
             var firstResult = await handler.Handle(new EnterClubTeamAsCoach.Command { Code = teamA.JoinCode }, CancellationToken.None);
             Assert.IsAssignableFrom<IValueHttpResult<EnterClubTeamAsCoach.Response>>(firstResult);
@@ -395,7 +403,7 @@ namespace RFFM.Api.Tests.UnitTests
             var handler = new EnterClubTeamAsCoach.Handler(
                 db, CurrentUser(userId).Object, approvalService,
                 DefaultUserManager(userId).Object, DefaultRoleManager().Object,
-                NullLogger<EnterClubTeamAsCoach.Handler>.Instance);
+                TokenService().Object, NullLogger<EnterClubTeamAsCoach.Handler>.Instance);
             var command = new EnterClubTeamAsCoach.Command { Code = team.JoinCode };
 
             var result = await handler.Handle(command, CancellationToken.None);
@@ -418,6 +426,35 @@ namespace RFFM.Api.Tests.UnitTests
             userManagerMock.Verify(m => m.AddToRoleAsync(It.IsAny<IdentityUser>(), AppRoles.Coach.Name), Times.Once);
         }
 
+        /// <summary>
+        /// Regression test: a coach registered with a club code logs in while their join request
+        /// is still Pending, so their JWT carries no "roles" claim. Entering a team code grants the
+        /// Coach role, but unless a fresh JWT is returned the client keeps the role-less token and
+        /// every protected endpoint fails with "No se pudo determinar el rol del usuario."
+        /// </summary>
+        [Fact]
+        public async Task ValidCode_WithPendingCoachJoinRequest_ReturnsFreshTokenIssuedAfterRoleAssignment()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var team = await SeedTeamAsync(db, $"FC Fresh Token {Guid.NewGuid():N}");
+
+            var userId = $"coach-{Guid.NewGuid():N}";
+            db.ClubJoinRequests.Add(ClubJoinRequest.Create(userId, team.ClubId, Membership.Coach.Id));
+            await db.SaveChangesAsync();
+
+            var approvalService = ApprovalService(db, userId, out _);
+            var tokenService = TokenService("jwt-with-coach-role");
+            var handler = new EnterClubTeamAsCoach.Handler(
+                db, CurrentUser(userId).Object, approvalService,
+                DefaultUserManager(userId).Object, DefaultRoleManager().Object,
+                tokenService.Object, NullLogger<EnterClubTeamAsCoach.Handler>.Instance);
+
+            var result = await handler.Handle(new EnterClubTeamAsCoach.Command { Code = team.JoinCode }, CancellationToken.None);
+
+            var okResult = Assert.IsAssignableFrom<IValueHttpResult<EnterClubTeamAsCoach.Response>>(result);
+            Assert.Equal("jwt-with-coach-role", okResult.Value!.Token);
+        }
+
         [Fact]
         public async Task ValidCode_WithPendingDirectiveJoinRequestForSameClub_AutoApprovesRequestAndReturnsOk()
         {
@@ -433,7 +470,7 @@ namespace RFFM.Api.Tests.UnitTests
             var handler = new EnterClubTeamAsCoach.Handler(
                 db, CurrentUser(userId).Object, approvalService,
                 DefaultUserManager(userId).Object, DefaultRoleManager().Object,
-                NullLogger<EnterClubTeamAsCoach.Handler>.Instance);
+                TokenService().Object, NullLogger<EnterClubTeamAsCoach.Handler>.Instance);
             var command = new EnterClubTeamAsCoach.Command { Code = team.JoinCode };
 
             var result = await handler.Handle(command, CancellationToken.None);
@@ -461,7 +498,7 @@ namespace RFFM.Api.Tests.UnitTests
             var handler = new EnterClubTeamAsCoach.Handler(
                 db, CurrentUser(userId).Object, NeverCalledApprovalService(),
                 DefaultUserManager(userId).Object, DefaultRoleManager().Object,
-                NullLogger<EnterClubTeamAsCoach.Handler>.Instance);
+                TokenService().Object, NullLogger<EnterClubTeamAsCoach.Handler>.Instance);
             var command = new EnterClubTeamAsCoach.Command { Code = team.JoinCode };
 
             var result = await handler.Handle(command, CancellationToken.None);
@@ -489,7 +526,7 @@ namespace RFFM.Api.Tests.UnitTests
             var handler = new EnterClubTeamAsCoach.Handler(
                 db, CurrentUser(userId).Object, NeverCalledApprovalService(),
                 DefaultUserManager(userId).Object, DefaultRoleManager().Object,
-                NullLogger<EnterClubTeamAsCoach.Handler>.Instance);
+                TokenService().Object, NullLogger<EnterClubTeamAsCoach.Handler>.Instance);
             var command = new EnterClubTeamAsCoach.Command { Code = team.JoinCode };
 
             var result = await handler.Handle(command, CancellationToken.None);

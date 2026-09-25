@@ -155,8 +155,8 @@ export async function validateTeamCode(
 
 export async function enterClubTeamByCode(
   code: string
-): Promise<{ teamId: string; teamName: string }> {
-  const resp = await client.post<{ teamId: string; teamName: string }>(
+): Promise<{ teamId: string; teamName: string; token?: string | null }> {
+  const resp = await client.post<{ teamId: string; teamName: string; token?: string | null }>(
     `/api/invitations/team/enter-as-coach`,
     { code: code.trim().toUpperCase() }
   );
