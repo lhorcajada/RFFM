@@ -93,6 +93,15 @@ function validateDraft(draft: GameModel): ValidationError[] {
   return errors;
 }
 
+function showSnackbar(message: string, severity: "success" | "error") {
+  window.dispatchEvent(new CustomEvent("rffm.show_snackbar", { detail: { message, severity } }));
+}
+
+function saveErrorMessage(error: unknown): string {
+  const detail = (error as { response?: { data?: { detail?: unknown } } } | null)?.response?.data?.detail;
+  return typeof detail === "string" && detail ? detail : "No se pudo guardar el modelo.";
+}
+
 // ─── Form editor wrapper (needs context) ─────────────────────────────
 
 function GameModelFormEditorWithActions({
@@ -103,12 +112,12 @@ function GameModelFormEditorWithActions({
   saveRef,
 }: {
   moments: GameMomentCatalogItem[];
-  onSave: (draft: GameModel) => Promise<void>;
+  onSave: (draft: GameModel) => Promise<GameModel | null>;
   onCancel: () => void;
   isEdit: boolean;
   saveRef: React.MutableRefObject<(() => Promise<void>) | null>;
 }) {
-  const { draft } = useGameModelDraft();
+  const { draft, dispatch } = useGameModelDraft();
   const [saving, setSaving] = useState(false);
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
 
@@ -120,7 +129,8 @@ function GameModelFormEditorWithActions({
     }
     setSaving(true);
     try {
-      await onSave(draft);
+      const reloaded = await onSave(draft);
+      if (reloaded) dispatch({ type: "SET_DRAFT", draft: reloaded });
     } finally {
       setSaving(false);
     }
@@ -235,15 +245,25 @@ export default function GameModelCreate() {
     navigate(`/coach/game-model${location.search}`);
   };
 
-  const handleSave = async (currentDraft: GameModel) => {
+  /** Saves without leaving the editor. On edit, reloads the model so newly created nodes get
+   * their backend ids before the next save; on create, switches the URL to edit mode, whose
+   * init effect reloads the saved model. Returns the reloaded model for the draft to adopt. */
+  const handleSave = async (currentDraft: GameModel): Promise<GameModel | null> => {
     setSaving(true);
     try {
+      let reloaded: GameModel | null = null;
       if (isEdit) {
         await gameModelService.update(currentDraft);
+        reloaded = await gameModelService.getByTeamIdAndSeason(currentDraft.teamId, currentDraft.season);
       } else {
         await gameModelService.create(currentDraft);
+        navigate(`/coach/game-model/edit${location.search}`, { replace: true, state: location.state });
       }
-      goBack();
+      showSnackbar("Modelo guardado correctamente", "success");
+      return reloaded;
+    } catch (error) {
+      showSnackbar(saveErrorMessage(error), "error");
+      return null;
     } finally {
       setSaving(false);
     }
