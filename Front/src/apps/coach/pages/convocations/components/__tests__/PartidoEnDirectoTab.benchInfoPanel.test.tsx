@@ -1,5 +1,6 @@
 ﻿import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import PartidoEnDirectoTab from "../PartidoEnDirectoTab";
 import type { SquadPlayer } from "../../../squad/components/IdealLineup";
 
@@ -116,17 +117,18 @@ function renderTab() {
   );
 }
 
-describe("PartidoEnDirectoTab - listado informativo 'Banquillo' (tarjeta rica, solo lectura, siempre visible)", () => {
+describe("PartidoEnDirectoTab - listado informativo 'Banquillo' (tarjeta rica, solo lectura, en popup)", () => {
   beforeEach(() => {
     liveMatchMock = baseLiveMatch();
   });
 
   it("muestra los jugadores del banquillo con información completa, en un panel informativo dedicado (.benchInfoPanel), no arrastrable", async () => {
-    const { container } = renderTab();
+    renderTab();
     await waitFor(() => expect(screen.getByRole("combobox", { name: /esquema/i })).toBeInTheDocument());
+    await userEvent.click(screen.getByRole("button", { name: /jugadores/i }));
 
     const infoPanel = await waitFor(() => {
-      const el = container.querySelector("[class*='benchInfoPanel']");
+      const el = document.querySelector("[class*='benchInfoPanel']");
       if (!el) throw new Error("not yet rendered");
       return el;
     });
@@ -137,9 +139,10 @@ describe("PartidoEnDirectoTab - listado informativo 'Banquillo' (tarjeta rica, s
     expect(card.closest("[class*='benchDragHandle']")).toBeNull();
   });
 
-  it("el bloque informativo se muestra aunque no se esté en prepareMode (siempre visible)", async () => {
+  it("el popup muestra también el listado 'En el campo' fuera de prepareMode", async () => {
     renderTab();
     await waitFor(() => expect(screen.getByRole("combobox", { name: /esquema/i })).toBeInTheDocument());
+    await userEvent.click(screen.getByRole("button", { name: /jugadores/i }));
 
     expect(await screen.findByText("En el campo")).toBeInTheDocument();
   });

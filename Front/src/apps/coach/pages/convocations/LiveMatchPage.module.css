@@ -1,0 +1,48 @@
+/* Pantalla completa: ocupa todo el viewport, sin cabecera ni pie de la app.
+   El contenido se reparte el alto disponible sin scroll (tablet en adelante). */
+
+.page {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--rffm-gradient-bg);
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.bar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-bottom: 1px solid rgba(255, 209, 102, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.content {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 8px 12px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.center {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Móvil: no cabe todo sin scroll — se permite scroll vertical, nunca horizontal. */
+@media (max-width: 780px) {
+  .content {
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 6px 8px;
+  }
+}

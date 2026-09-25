@@ -100,12 +100,6 @@ vi.mock("../components/ConvocationMatchHeader", () => ({ default: () => null }))
 vi.mock("../components/ConvocationMatchActionBar", () => ({ default: () => null }));
 vi.mock("../components/ConvocationDeconvokeDialog", () => ({ default: () => null }));
 
-vi.mock("../components/PartidoEnDirectoTab", () => ({
-  default: (props: { isFriendly?: boolean }) => (
-    <div data-testid="partido-en-directo" data-friendly={String(!!props.isFriendly)} />
-  ),
-}));
-
 import ConvocationMatchDetail from "../ConvocationMatchDetail";
 
 function renderPage() {
@@ -118,32 +112,17 @@ function renderPage() {
   );
 }
 
-describe("ConvocationMatchDetail - threading isFriendly into the live tracker", () => {
+describe("ConvocationMatchDetail - threading isFriendly into the simulation", () => {
   beforeEach(() => {
     getSportEventByIdMock.mockReset();
   });
 
-  it("passes isFriendly=true to PartidoEnDirectoTab when matchCategory is Friendly", async () => {
-    getSportEventByIdMock.mockResolvedValue({ id: "event-1", matchCategory: "Friendly" });
-    renderPage();
-
-    await userEvent.click(screen.getByText("Partido en Directo"));
-
-    await waitFor(() =>
-      expect(screen.getByTestId("partido-en-directo")).toHaveAttribute("data-friendly", "true"),
-    );
-    expect(getSportEventByIdMock).toHaveBeenCalledWith("event-1");
-  });
-
-  it("passes isFriendly=false to PartidoEnDirectoTab when matchCategory is not Friendly", async () => {
+  it("ya no tiene pestaña 'Partido en Directo' — el partido en directo es una pantalla propia", async () => {
     getSportEventByIdMock.mockResolvedValue({ id: "event-1", matchCategory: "League" });
     renderPage();
 
-    await userEvent.click(screen.getByText("Partido en Directo"));
-
-    await waitFor(() =>
-      expect(screen.getByTestId("partido-en-directo")).toHaveAttribute("data-friendly", "false"),
-    );
+    await waitFor(() => expect(getSportEventByIdMock).toHaveBeenCalledWith("event-1"));
+    expect(screen.queryByRole("tab", { name: /partido en directo/i })).not.toBeInTheDocument();
   });
 
   it("passes isFriendly=true to SimulacionTab when matchCategory is Friendly", async () => {

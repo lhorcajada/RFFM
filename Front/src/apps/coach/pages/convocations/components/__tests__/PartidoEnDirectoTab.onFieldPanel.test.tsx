@@ -1,5 +1,6 @@
 ﻿import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import PartidoEnDirectoTab from "../PartidoEnDirectoTab";
 import type { SquadPlayer } from "../../../squad/components/IdealLineup";
 
@@ -123,6 +124,7 @@ describe("PartidoEnDirectoTab - listado 'En el campo' (solo lectura, tablet)", (
   it("muestra a los jugadores en el campo, no a los del banquillo", async () => {
     renderTab();
     await waitFor(() => expect(screen.getByRole("combobox", { name: /esquema/i })).toBeInTheDocument());
+    await userEvent.click(screen.getByRole("button", { name: /jugadores/i }));
 
     const heading = await screen.findByText("En el campo");
     const onFieldPanel = heading.closest("div")!.parentElement as HTMLElement;

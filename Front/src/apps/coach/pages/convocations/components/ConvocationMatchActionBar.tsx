@@ -2,6 +2,7 @@ import { Button, CircularProgress } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
+import SportsSoccerIcon from "@mui/icons-material/SportsSoccer";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import MinutesReasonEditor from "./MinutesReasonEditor";
 import type { PlayerMinutesReason } from "./MinutesReasonsListDialog";
@@ -20,6 +21,8 @@ type Props = {
   onSaveLineup: () => void;
   onPrint: () => void;
   onViewConvocation: () => void;
+  /** Opens the full-screen live match page. When omitted the button is not shown. */
+  onOpenLiveMatch?: () => void;
   /** Pre-match minutes reasons for the "Alineación" tab (tab === 1). Optional — when omitted
    *  (or when onSaveMinutesReason is not provided) the button is not shown. Purely additive,
    *  never required to save the lineup. */
@@ -40,6 +43,7 @@ export default function ConvocationMatchActionBar({
   onSaveLineup,
   onPrint,
   onViewConvocation,
+  onOpenLiveMatch,
   minutesReasonsPlayers,
   onSaveMinutesReason,
 }: Props) {
@@ -51,6 +55,17 @@ export default function ConvocationMatchActionBar({
       {eventId && (
         <Button startIcon={<PeopleAltIcon />} variant="outlined" size="small" onClick={onOpenEvent}>
           Ir al evento
+        </Button>
+      )}
+      {eventId && onOpenLiveMatch && (
+        <Button
+          startIcon={<SportsSoccerIcon />}
+          variant="contained"
+          color="secondary"
+          size="small"
+          onClick={onOpenLiveMatch}
+        >
+          Partido en directo
         </Button>
       )}
       {tab === 2 && eventId && (

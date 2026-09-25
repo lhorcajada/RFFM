@@ -110,3 +110,34 @@ describe("LiveMatchScoreboard - goal dialog rework", () => {
     expect(onAddGoal).toHaveBeenCalledWith(null, null, 9, false, null, null, 40);
   });
 });
+
+describe("LiveMatchScoreboard - botones visibles antes de empezar el partido", () => {
+  function renderPreMatch() {
+    render(
+      <LiveMatchScoreboard
+        localTeamName="Local FC"
+        visitorTeamName="Visitor FC"
+        scoreLocal={0}
+        scoreVisitor={0}
+        matchPhase="preMatch"
+        fieldPlayers={fieldPlayers}
+        isHomeTeam
+        onAddGoal={vi.fn()}
+        onAddCard={vi.fn()}
+      />,
+    );
+  }
+
+  it("muestra los botones de gol desactivados antes de empezar", () => {
+    renderPreMatch();
+
+    expect(screen.getByRole("button", { name: /^gol$/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /gol rival/i })).toBeDisabled();
+  });
+
+  it("muestra el botón de tarjeta desactivado antes de empezar", () => {
+    renderPreMatch();
+
+    expect(screen.getByRole("button", { name: /tarjeta/i })).toBeDisabled();
+  });
+});

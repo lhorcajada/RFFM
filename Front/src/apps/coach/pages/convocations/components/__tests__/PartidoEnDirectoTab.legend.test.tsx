@@ -1,5 +1,6 @@
 ﻿import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import PartidoEnDirectoTab from "../PartidoEnDirectoTab";
 import type { SquadPlayer } from "../../../squad/components/IdealLineup";
 
@@ -121,6 +122,7 @@ describe("PartidoEnDirectoTab - leyenda única de Ef/Rodaje/Cansancio y jornadas
       />,
     );
 
+    await userEvent.click(await screen.findByRole("button", { name: /jugadores/i }));
     const legends = await screen.findAllByLabelText("Leyenda de Ef, Rodaje y Cansancio");
     expect(legends).toHaveLength(1);
     expect(screen.getByText("Jornadas sin decisión técnica")).toBeInTheDocument();

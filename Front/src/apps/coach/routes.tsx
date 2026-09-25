@@ -32,6 +32,7 @@ const AttendanceEvent = lazy(
 const AttendanceSummary = lazy(() => import("./pages/attendance/AttendanceSummary"));
 const Convocations = lazy(() => import("./pages/convocations/Convocations"));
 const ConvocationMatchDetail = lazy(() => import("./pages/convocations/ConvocationMatchDetail"));
+const LiveMatchPage = lazy(() => import("./pages/convocations/LiveMatchPage"));
 const Trainings = lazy(() => import("./pages/trainings/Trainings"));
 const NewExercisePage = lazy(() => import("./pages/trainings/new/NewExercisePage"));
 const NewSessionPage = lazy(() => import("./pages/trainings/new-session/NewSessionPage"));
@@ -220,6 +221,17 @@ function CoachRoutesContent() {
                   allowPlayerAccess={false}
                 >
                   <ConvocationMatchDetail />
+                </RequireFeaturePermission>
+              }
+            />
+            <Route
+              path="convocations/live"
+              element={
+                <RequireFeaturePermission
+                  featureRoute={COACH_FEATURE_ROUTES.Convocations}
+                  allowPlayerAccess={false}
+                >
+                  <LiveMatchPage />
                 </RequireFeaturePermission>
               }
             />

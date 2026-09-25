@@ -24,6 +24,8 @@ interface SimulationFieldProps {
   scorerIds?: Set<string>;
   activeTab?: number;
   usedTabById?: Record<string, number>;
+  /** Extra class for the outer wrapper, to let a parent size the field (e.g. to the available height). */
+  className?: string;
 }
 
 export default function SimulationField({
@@ -39,6 +41,7 @@ export default function SimulationField({
   activeTab,
   usedTabById,
   wrapperRef,
+  className,
 }: SimulationFieldProps) {
   // In prepare mode we render from the preview, otherwise from real slots
   const activeSlots = prepareMode && prepareSlotsPreview ? prepareSlotsPreview : slots;
@@ -61,7 +64,7 @@ export default function SimulationField({
   }
 
   return (
-    <div ref={wrapperRef} className={styles.fieldWrapper}>
+    <div ref={wrapperRef} className={className ? `${styles.fieldWrapper} ${className}` : styles.fieldWrapper}>
       <div className={styles.field}>
         {/* Field markings */}
         <div className={styles.centerCircle} />

@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -26,7 +26,7 @@ import {
 import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
+import GroupsIcon from "@mui/icons-material/Groups";
 import EmptyState from "../../../../../shared/components/ui/EmptyState/EmptyState";
 import { getIdealLineup } from "../../../services/idealLineupService";
 import { getFormations } from "../../../services/formationService";
@@ -101,6 +101,7 @@ export default function PartidoEnDirectoTab({
   const [windowConfirmOpen, setWindowConfirmOpen] = useState(false);
   // Confirmation dialog for mid-match formation change — holds the pending target formation id
   const [pendingFormationId, setPendingFormationId] = useState<string | null>(null);
+  const [playersDialogOpen, setPlayersDialogOpen] = useState(false);
   const [team, setTeam] = useState<TeamResponse | null>(null);
 
   const live = useLiveMatch(eventId, teamId, isHomeTeam, {
@@ -337,12 +338,30 @@ export default function PartidoEnDirectoTab({
     setWindowConfirmOpen(true);
   }
 
-  // ── Mid-match formation change ───────────────────────────────────────────
-  const canChangeFormation = live.matchPhase !== "preMatch" && live.matchPhase !== "finished";
+  // ── Formation change: applied directly before kick-off (it just redefines
+  // the starting lineup), confirmed and recorded in the history mid-match ───
+  const canChangeFormation = live.matchPhase !== "finished";
   const pendingFormation = formations.find((f) => f.id === pendingFormationId) ?? null;
+
+  function slotsForFormation(formation: Formation): Record<number, string | null> {
+    const newSlotDefs = FORMATION_POSITIONS[formation.name] ?? [];
+    const onFieldPlayerIds = Object.values(live.slots).filter(Boolean) as string[];
+    const newSlots: Record<number, string | null> = {};
+    newSlotDefs.forEach((slotDef, idx) => {
+      newSlots[slotDef.slotIndex] = onFieldPlayerIds[idx] ?? null;
+    });
+    return newSlots;
+  }
 
   function handleFormationSelectChange(newFormationId: string) {
     if (!newFormationId || newFormationId === formationId) return;
+    if (live.matchPhase === "preMatch") {
+      const formation = formations.find((f) => f.id === newFormationId);
+      if (!formation) return;
+      live.initMatch(slotsForFormation(formation));
+      setFormationId(formation.id);
+      return;
+    }
     setPendingFormationId(newFormationId);
   }
 
@@ -355,13 +374,7 @@ export default function PartidoEnDirectoTab({
       setPendingFormationId(null);
       return;
     }
-    const newSlotDefs = FORMATION_POSITIONS[pendingFormation.name] ?? [];
-    const onFieldPlayerIds = Object.values(live.slots).filter(Boolean) as string[];
-    const newSlots: Record<number, string | null> = {};
-    newSlotDefs.forEach((slotDef, idx) => {
-      newSlots[slotDef.slotIndex] = onFieldPlayerIds[idx] ?? null;
-    });
-    live.changeFormation(pendingFormation.id, pendingFormation.name, newSlots);
+    live.changeFormation(pendingFormation.id, pendingFormation.name, slotsForFormation(pendingFormation));
     setFormationId(pendingFormation.id);
     setPendingFormationId(null);
   }
@@ -480,17 +493,79 @@ export default function PartidoEnDirectoTab({
     );
   }
 
-  // ── Field + compact bench content ─────────────────────────────────────────
-  // The side panel is now a compact, draggable bench (same visual language as
-  // the on-field cards) in every viewport size. The rich, read-only info
-  // panels ("En el campo" / "Banquillo") live in an always-visible block
-  // below (see infoLists).
+  // ── Field + side column ───────────────────────────────────────────────────
+  // Full-screen layout: the field takes the available height and the side
+  // column (compact draggable bench, event timelines, substitution history,
+  // post-match summary) scrolls on its own, so the page never needs vertical
+  // scroll on a tablet. The rich, read-only "En el campo" / "Banquillo" lists
+  // open on demand in a popup (see infoLists).
 
   const currentBenchPlayers = live.prepareMode ? prepareBenchPlayers : benchPlayers;
 
+  const ratingBar = (fieldCompAvg !== null || benchCompAvg !== null) && (
+    <div className={simStyles.ratingBar}>
+      <span className={simStyles.ratingBarLabel}>Media competitividad:</span>
+      {fieldCompAvg !== null && (
+        <span className={`${simStyles.ratingBarItem} ${
+          fieldCompAvg >= 8 ? simStyles.ratingBarHigh
+          : fieldCompAvg >= 6 ? simStyles.ratingBarMid
+          : simStyles.ratingBarLow
+        }`}>
+          ★ {Math.round(fieldCompAvg)} campo
+        </span>
+      )}
+      {benchCompAvg !== null && (
+        <span className={`${simStyles.ratingBarItem} ${simStyles.ratingBarBench}`}>
+          ★ {Math.round(benchCompAvg)} banquillo
+        </span>
+      )}
+    </div>
+  );
+
+  const savedDataBanner = live.hasSavedData && live.savedParticipationData && (
+    <div className={styles.savedDataBanner}>
+      <div className={styles.savedDataHeader}>
+        <span className={styles.savedDataTitle}>✅ Partido guardado</span>
+        <span className={styles.savedDataScore}>
+          {localTeamName} <strong>{live.savedParticipationData.scoreLocal}</strong>
+          {" : "}
+          <strong>{live.savedParticipationData.scoreVisitor}</strong> {visitorTeamName}
+        </span>
+      </div>
+      <GoalTimeline
+        goals={(() => {
+          try { return JSON.parse(live.savedParticipationData.goalsJson ?? "[]"); }
+          catch { return []; }
+        })()}
+        onRemoveGoal={() => {}}
+        readOnly
+      />
+      <CardsTimeline
+        cards={(() => {
+          try { return JSON.parse(live.savedParticipationData.cardsJson ?? "[]"); }
+          catch { return []; }
+        })()}
+        onRemoveCard={() => {}}
+        readOnly
+      />
+      <Button
+        variant="outlined"
+        color="error"
+        size="small"
+        startIcon={live.isDeleting ? <CircularProgress size={14} color="inherit" /> : <DeleteOutlineIcon />}
+        disabled={live.isDeleting}
+        onClick={() => setDeleteConfirmOpen(true)}
+        sx={{ mt: 1 }}
+      >
+        Eliminar datos del partido
+      </Button>
+    </div>
+  );
+
   const fieldAndPanel = (
-    <div className={simStyles.main}>
+    <div className={styles.liveMain}>
       <SimulationField
+        className={styles.liveField}
         slotDefs={slotDefs}
         slots={live.slots}
         prepareSlotsPreview={live.prepareMode ? live.prepareSlotsPreview : undefined}
@@ -500,7 +575,8 @@ export default function PartidoEnDirectoTab({
         freeRepositionEnabled={!live.prepareMode && live.matchPhase !== "finished"}
         scorerIds={scorerIds}
       />
-      <div className={simStyles.rightColumn}>
+      <div className={styles.liveSideColumn}>
+        {ratingBar}
         <div className={simStyles.sidePanel}>
           <div className={simStyles.panelHeader}>
             {live.prepareMode ? "Disponibles para el cambio" : "Banquillo"}
@@ -537,51 +613,71 @@ export default function PartidoEnDirectoTab({
             </div>
           )}
         </div>
+        <GoalTimeline goals={live.goals} onRemoveGoal={live.removeGoal} />
+        <CardsTimeline cards={live.cards} onRemoveCard={live.removeCard} />
         <SubstitutionHistoryPanel windows={live.windows} playersById={playersById} />
+        {savedDataBanner}
+        {live.matchPhase === "finished" && live.windows.length > 0 && (
+          <MatchCompetitivenessReport
+            initialSlots={live.initialSlots}
+            windows={live.windows}
+            finalSlots={live.slots}
+            playerMinutes={effectiveMinutes}
+            halfDuration={live.halfDuration}
+            playersById={playersById}
+          />
+        )}
       </div>
     </div>
   );
 
-  // ── Info lists: rich, read-only "En el campo" + "Banquillo" — always
-  // visible, every viewport size, full width, below field + compact bench ──
+  // ── Info lists: rich, read-only "En el campo" + "Banquillo" — shown on
+  // demand in the "Jugadores" popup. Each position group is its own block
+  // (label + cards) so the label never ends up alone at the end of a row. ────
+
+  const renderPositionGroups = (players: SquadPlayer[], isLeavingPlayer: (id: string) => boolean) => (
+    <div className={styles.positionGroups}>
+      {groupBenchPlayers(players).map((group) => (
+        <div key={group.label} role="group" aria-label={group.label} className={styles.positionGroup}>
+          <div className={simStyles.benchGroupSeparator} style={{ borderLeftColor: group.color }}>
+            <span className={simStyles.benchGroupSeparatorLabel}>{group.label}</span>
+            <span className={simStyles.benchGroupSeparatorCount}>{group.players.length}</span>
+          </div>
+          <div className={styles.positionGroupCards}>
+            {group.players.map((p) => (
+              <BenchPlayerCard
+                key={p.id}
+                player={p}
+                isDragActive={false}
+                isLeaving={isLeavingPlayer(p.id)}
+                minutesPlayed={effectiveMinutes[p.id] ?? 0}
+                hasPlayed={(live.playerStates[p.id]?.accumulatedMinutes ?? 0) > 0 || live.playerStates[p.id]?.isOnField === true}
+                groupColor={group.color}
+              />
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 
   const infoLists = (
-    <div className={simStyles.infoListsRow}>
-      <div className={simStyles.onFieldPanel}>
+    <div className={styles.playersLists}>
+      <div className={`${simStyles.onFieldPanel} ${styles.playersPanel}`}>
         <div className={simStyles.panelHeader}>
           En el campo
           <span className={simStyles.panelBadge}>{onFieldPlayers.length}</span>
         </div>
-        <div className={simStyles.benchZoneStatic}>
+        <div className={styles.playersPanelBody}>
           {onFieldPlayers.length === 0 ? (
             <p className={simStyles.emptyBench}>No hay jugadores en el campo</p>
           ) : (
-            <div className={simStyles.benchPosGroupItems}>
-              {groupBenchPlayers(onFieldPlayers).map((group) => (
-                <Fragment key={group.label}>
-                  <div className={simStyles.benchGroupSeparator} style={{ borderLeftColor: group.color }}>
-                    <span className={simStyles.benchGroupSeparatorLabel}>{group.label}</span>
-                    <span className={simStyles.benchGroupSeparatorCount}>{group.players.length}</span>
-                  </div>
-                  {group.players.map((p) => (
-                    <BenchPlayerCard
-                      key={p.id}
-                      player={p}
-                      isDragActive={false}
-                      isLeaving={false}
-                      minutesPlayed={effectiveMinutes[p.id] ?? 0}
-                      hasPlayed={(live.playerStates[p.id]?.accumulatedMinutes ?? 0) > 0 || live.playerStates[p.id]?.isOnField === true}
-                      groupColor={group.color}
-                    />
-                  ))}
-                </Fragment>
-              ))}
-            </div>
+            renderPositionGroups(onFieldPlayers, () => false)
           )}
         </div>
       </div>
 
-      <div className={simStyles.benchInfoPanel}>
+      <div className={`${simStyles.benchInfoPanel} ${styles.playersPanel}`}>
         <div className={simStyles.panelHeader}>
           Banquillo
           <span className={simStyles.panelBadge}>{currentBenchPlayers.length}</span>
@@ -598,31 +694,11 @@ export default function PartidoEnDirectoTab({
           </span>
           <PlayerFormLegend />
         </div>
-        <div className={simStyles.benchZoneStatic}>
+        <div className={styles.playersPanelBody}>
           {currentBenchPlayers.length === 0 ? (
             <p className={simStyles.emptyBench}>No hay jugadores en el banquillo</p>
           ) : (
-            <div className={simStyles.benchPosGroupItems}>
-              {groupBenchPlayers(currentBenchPlayers).map((group) => (
-                <Fragment key={group.label}>
-                  <div className={simStyles.benchGroupSeparator} style={{ borderLeftColor: group.color }}>
-                    <span className={simStyles.benchGroupSeparatorLabel}>{group.label}</span>
-                    <span className={simStyles.benchGroupSeparatorCount}>{group.players.length}</span>
-                  </div>
-                  {group.players.map((p) => (
-                    <BenchPlayerCard
-                      key={p.id}
-                      player={p}
-                      isDragActive={false}
-                      isLeaving={live.prepareMode && leavingIds.has(p.id)}
-                      minutesPlayed={effectiveMinutes[p.id] ?? 0}
-                      hasPlayed={(live.playerStates[p.id]?.accumulatedMinutes ?? 0) > 0 || live.playerStates[p.id]?.isOnField === true}
-                      groupColor={group.color}
-                    />
-                  ))}
-                </Fragment>
-              ))}
-            </div>
+            renderPositionGroups(currentBenchPlayers, (id) => live.prepareMode && leavingIds.has(id))
           )}
         </div>
       </div>
@@ -630,7 +706,7 @@ export default function PartidoEnDirectoTab({
   );
 
   return (
-    <div className={simStyles.root}>
+    <div className={styles.root}>
       {/* Backup recovery dialog */}
       {live.backup && (
         <LiveMatchRecoveryDialog
@@ -640,47 +716,53 @@ export default function PartidoEnDirectoTab({
         />
       )}
 
-      {/* Scoreboard */}
-      <LiveMatchScoreboard
-        localTeamName={localTeamName}
-        localTeamShield={localTeamShield}
-        visitorTeamName={visitorTeamName}
-        visitorTeamShield={visitorTeamShield}
-        scoreLocal={live.scoreLocal}
-        scoreVisitor={live.scoreVisitor}
-        matchPhase={live.matchPhase}
-        fieldPlayers={fieldPlayers}
-        isHomeTeam={isHomeTeam}
-        currentMinute={live.currentMinute}
-        onAddGoal={live.addGoal}
-        onAddCard={live.addCard}
-      />
+      {/* Scoreboard + formation + players popup — always rendered, so nothing
+          shifts when the match starts */}
+      <div className={styles.toolbar}>
+        <div className={styles.scoreboardSlot}>
+          <LiveMatchScoreboard
+            localTeamName={localTeamName}
+            localTeamShield={localTeamShield}
+            visitorTeamName={visitorTeamName}
+            visitorTeamShield={visitorTeamShield}
+            scoreLocal={live.scoreLocal}
+            scoreVisitor={live.scoreVisitor}
+            matchPhase={live.matchPhase}
+            fieldPlayers={fieldPlayers}
+            isHomeTeam={isHomeTeam}
+            currentMinute={live.currentMinute}
+            onAddGoal={live.addGoal}
+            onAddCard={live.addCard}
+          />
+        </div>
+        {formations.length > 0 && (
+          <FormControl size="small" className={styles.formationSelect}>
+            <InputLabel id="live-formation-select-label">Esquema</InputLabel>
+            <Select
+              labelId="live-formation-select-label"
+              label="Esquema"
+              value={formationId}
+              disabled={!canChangeFormation}
+              onChange={(e) => handleFormationSelectChange(e.target.value as string)}
+            >
+              {formations.map((f) => (
+                <MenuItem key={f.id} value={f.id}>{f.name}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        )}
+        <Button
+          variant="outlined"
+          size="small"
+          startIcon={<GroupsIcon />}
+          onClick={() => setPlayersDialogOpen(true)}
+        >
+          Jugadores
+        </Button>
+      </div>
 
-      {/* Goal timeline */}
-      <GoalTimeline goals={live.goals} onRemoveGoal={live.removeGoal} />
-
-      {/* Card timeline */}
-      <CardsTimeline cards={live.cards} onRemoveCard={live.removeCard} />
-
-      {/* Mid-match formation change selector */}
-      {canChangeFormation && formations.length > 0 && (
-        <FormControl size="small" className={styles.formationSelect}>
-          <InputLabel id="live-formation-select-label">Esquema</InputLabel>
-          <Select
-            labelId="live-formation-select-label"
-            label="Esquema"
-            value={formationId}
-            onChange={(e) => handleFormationSelectChange(e.target.value as string)}
-          >
-            {formations.map((f) => (
-              <MenuItem key={f.id} value={f.id}>{f.name}</MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      )}
-
-      {/* Timer + window tracker bar */}
-      <div className={simStyles.topBar}>
+      {/* Timer + window tracker bar (+ post-match actions once finished) */}
+      <div className={styles.topBar}>
         <LiveMatchTimer
           matchPhase={live.matchPhase}
           currentMinute={live.currentMinute}
@@ -705,112 +787,52 @@ export default function PartidoEnDirectoTab({
           onCancel={live.cancelPrepare}
           onCommit={handleCommitWindow}
         />
+        {live.matchPhase === "finished" && (
+          <div className={styles.postMatchActions}>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<EditIcon />}
+              onClick={() => setManualEditOpen(true)}
+            >
+              Edición manual del partido
+            </Button>
+            {!live.hasSavedData && (
+              <Button
+                variant="contained"
+                color="success"
+                size="small"
+                startIcon={live.isSaving ? <CircularProgress size={14} color="inherit" /> : <SaveIcon />}
+                disabled={live.isSaving}
+                onClick={live.requestSave}
+              >
+                Guardar datos del partido
+              </Button>
+            )}
+            {live.hasSavedData && live.savedParticipationData && (
+              <MinutesReasonEditor
+                players={live.savedParticipationData.players.map((p) => {
+                  const player = playersById[p.teamPlayerId];
+                  return {
+                    id: p.teamPlayerId,
+                    label: player?.alias?.trim() || player?.displayName || p.teamPlayerId,
+                    reason: minutesReasons[p.teamPlayerId] ?? null,
+                  };
+                })}
+                onSave={(playerId, reason) => handleSaveMinutesReason(playerId, reason)}
+              />
+            )}
+          </div>
+        )}
+        {live.isSaving && (
+          <div className={styles.savingBanner}>
+            <CircularProgress size={16} />
+            <span>Guardando datos del partido…</span>
+          </div>
+        )}
       </div>
 
-      {/* Manual edit button and explicit save button — only after match ends.
-          Placed right after the timer, not at the bottom, so they're visible
-          without scrolling past the field/bench once the match is finished. */}
-      {live.matchPhase === "finished" && (
-        <div className={styles.postMatchActions}>
-          <Button
-            variant="outlined"
-            size="small"
-            startIcon={<EditIcon />}
-            onClick={() => setManualEditOpen(true)}
-          >
-            Edición manual del partido
-          </Button>
-          {!live.hasSavedData && (
-            <Button
-              variant="contained"
-              color="success"
-              size="small"
-              startIcon={live.isSaving ? <CircularProgress size={14} color="inherit" /> : <SaveIcon />}
-              disabled={live.isSaving}
-              onClick={live.requestSave}
-            >
-              Guardar datos del partido
-            </Button>
-          )}
-          {live.hasSavedData && live.savedParticipationData && (
-            <MinutesReasonEditor
-              players={live.savedParticipationData.players.map((p) => {
-                const player = playersById[p.teamPlayerId];
-                return {
-                  id: p.teamPlayerId,
-                  label: player?.alias?.trim() || player?.displayName || p.teamPlayerId,
-                  reason: minutesReasons[p.teamPlayerId] ?? null,
-                };
-              })}
-              onSave={(playerId, reason) => handleSaveMinutesReason(playerId, reason)}
-            />
-          )}
-        </div>
-      )}
-
-      {/* Read-only saved data summary */}
-      {live.hasSavedData && live.savedParticipationData && (
-        <div className={styles.savedDataBanner}>
-          <div className={styles.savedDataHeader}>
-            <span className={styles.savedDataTitle}>✅ Partido guardado</span>
-            <span className={styles.savedDataScore}>
-              {localTeamName} <strong>{live.savedParticipationData.scoreLocal}</strong>
-              {" : "}
-              <strong>{live.savedParticipationData.scoreVisitor}</strong> {visitorTeamName}
-            </span>
-          </div>
-          <GoalTimeline
-            goals={(() => {
-              try { return JSON.parse(live.savedParticipationData.goalsJson ?? "[]"); }
-              catch { return []; }
-            })()}
-            onRemoveGoal={() => {}}
-            readOnly
-          />
-          <CardsTimeline
-            cards={(() => {
-              try { return JSON.parse(live.savedParticipationData.cardsJson ?? "[]"); }
-              catch { return []; }
-            })()}
-            onRemoveCard={() => {}}
-            readOnly
-          />
-          <Button
-            variant="outlined"
-            color="error"
-            size="small"
-            startIcon={live.isDeleting ? <CircularProgress size={14} color="inherit" /> : <DeleteOutlineIcon />}
-            disabled={live.isDeleting}
-            onClick={() => setDeleteConfirmOpen(true)}
-            sx={{ mt: 1 }}
-          >
-            Eliminar datos del partido
-          </Button>
-        </div>
-      )}
-
-      {/* Rating bar */}
-      {(fieldCompAvg !== null || benchCompAvg !== null) && (
-        <div className={simStyles.ratingBar}>
-          <span className={simStyles.ratingBarLabel}>Media competitividad:</span>
-          {fieldCompAvg !== null && (
-            <span className={`${simStyles.ratingBarItem} ${
-              fieldCompAvg >= 8 ? simStyles.ratingBarHigh
-              : fieldCompAvg >= 6 ? simStyles.ratingBarMid
-              : simStyles.ratingBarLow
-            }`}>
-              ★ {Math.round(fieldCompAvg)} campo
-            </span>
-          )}
-          {benchCompAvg !== null && (
-            <span className={`${simStyles.ratingBarItem} ${simStyles.ratingBarBench}`}>
-              ★ {Math.round(benchCompAvg)} banquillo
-            </span>
-          )}
-        </div>
-      )}
-
-      {/* Field + bench inside DndContext */}
+      {/* Field + side column inside DndContext */}
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         {fieldAndPanel}
         <DragOverlay>
@@ -831,28 +853,34 @@ export default function PartidoEnDirectoTab({
         </DragOverlay>
       </DndContext>
 
-      {/* Info lists: rich, read-only "En el campo" + "Banquillo" — always visible */}
-      {infoLists}
-
-      {/* Save state feedback */}
-      {live.isSaving && (
-        <div className={styles.savingBanner}>
-          <CircularProgress size={16} />
-          <span>Guardando datos del partido…</span>
-        </div>
-      )}
-
-      {/* Competitiveness report — shown at end of match */}
-      {live.matchPhase === "finished" && live.windows.length > 0 && (
-        <MatchCompetitivenessReport
-          initialSlots={live.initialSlots}
-          windows={live.windows}
-          finalSlots={live.slots}
-          playerMinutes={effectiveMinutes}
-          halfDuration={live.halfDuration}
-          playersById={playersById}
-        />
-      )}
+      {/* Players popup: rich, read-only "En el campo" + "Banquillo" */}
+      <Dialog
+        open={playersDialogOpen}
+        onClose={() => setPlayersDialogOpen(false)}
+        maxWidth={false}
+        fullWidth
+        PaperProps={{
+          sx: {
+            bgcolor: "#19192e",
+            border: "1px solid rgba(255,255,255,0.12)",
+            borderRadius: 3,
+            m: 2,
+            width: "calc(100% - 32px)",
+            height: "calc(100% - 32px)",
+            maxHeight: "none",
+          },
+        }}
+      >
+        <DialogTitle sx={{ color: "#fff", fontSize: "0.95rem", fontWeight: 700, py: 1.5 }}>
+          Jugadores
+        </DialogTitle>
+        <DialogContent className={styles.playersDialogContent}>{infoLists}</DialogContent>
+        <DialogActions sx={{ px: 2, pb: 2 }}>
+          <Button onClick={() => setPlayersDialogOpen(false)} variant="contained" size="small">
+            Cerrar
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Save confirmation dialog */}
       <Dialog

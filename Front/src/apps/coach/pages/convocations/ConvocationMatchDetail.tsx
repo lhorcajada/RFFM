@@ -14,13 +14,11 @@ import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import configurationCoachService from "../../services/configurationCoachService";
 import { getSportEventById } from "../../services/sportEventService";
-import { getTeamPlayerStatistics, type PlayerStatistics } from "../../services/teamPlayerStatisticsService";
 import type { IdealLineupHandle } from "../squad/components/IdealLineup";
 import ConvocationTab from "./components/ConvocationTab";
 import DesconvocatoriasTab from "./components/DesconvocatoriasTab";
 import AlineacionTab from "./components/AlineacionTab";
 import SimulacionTab from "./components/SimulacionTab";
-import PartidoEnDirectoTab from "./components/PartidoEnDirectoTab";
 import ConvocatoriaPrint, { type ConvocatoriaPrintHandle } from "./components/ConvocatoriaPrint";
 import ConvocationDetailsDialog from "./components/ConvocationDetailsDialog";
 import type { MatchState } from "./components/convocationMatchDetail.types";
@@ -30,6 +28,7 @@ import { useDesconvocatoriasGrid } from "./hooks/useDesconvocatoriasGrid";
 import { useConvocationMatchContext } from "./hooks/useConvocationMatchContext";
 import { useConvocationPlayerViews } from "./hooks/useConvocationPlayerViews";
 import { useConvocationProposal } from "./hooks/useConvocationProposal";
+import { useTeamReadinessMap } from "./hooks/useTeamReadinessMap";
 import type { ClubKit } from "../../services/kitService";
 import { getTeamKits, updateEventKit } from "../../services/kitService";
 import { toMatchState } from "./helpers/convocationUtils";
@@ -162,21 +161,7 @@ export default function ConvocationMatchDetail() {
   // Sport event category — used to enable unlimited substitution windows on friendlies
   const [isFriendly, setIsFriendly] = useState(false);
 
-  // Rodaje por jugador (best-effort, no bloqueante) — compartido entre las 4 pestañas
-  const [readinessMap, setReadinessMap] = useState<Record<string, PlayerStatistics>>({});
-  useEffect(() => {
-    if (!teamId) return;
-    let mounted = true;
-    getTeamPlayerStatistics(teamId)
-      .then((stats) => {
-        if (!mounted) return;
-        const map: Record<string, PlayerStatistics> = {};
-        stats.forEach((s) => { map[s.teamPlayerId] = s; });
-        setReadinessMap(map);
-      })
-      .catch(() => {});
-    return () => { mounted = false; };
-  }, [teamId]);
+  const readinessMap = useTeamReadinessMap(teamId);
 
   // Data hooks
   const convocation = useConvocationManagement(teamId, match?.date);
@@ -337,6 +322,12 @@ export default function ConvocationMatchDetail() {
             onSaveLineup={() => lineupRef.current?.save()}
             onPrint={handlePrint}
             onViewConvocation={() => setViewConvocationOpen(true)}
+            onOpenLiveMatch={() =>
+              navigate(
+                `/coach/convocations/live?teamId=${encodeURIComponent(teamId)}&eventId=${encodeURIComponent(convocation.mgmtEventId ?? "")}`,
+                { state: { match } },
+              )
+            }
             minutesReasonsPlayers={lineupPlayers.map((p) => ({
               id: p.id,
               label: p.alias?.trim() || p.displayName,
@@ -360,7 +351,6 @@ export default function ConvocationMatchDetail() {
           <Tab label="Alineación" />
           <Tab label="Convocatoria" />
           <Tab label="Simular Partido" />
-          <Tab label="Partido en Directo" />
         </Tabs>
 
         {/* Tab 2: Convocatoria */}
@@ -455,21 +445,6 @@ export default function ConvocationMatchDetail() {
             teamId={teamId}
             eventId={convocation.mgmtEventId}
             lineupPlayers={lineupPlayers}
-            isFriendly={isFriendly}
-          />
-        )}
-
-        {/* Tab 4: Partido en Directo */}
-        {tab === 4 && (
-          <PartidoEnDirectoTab
-            teamId={teamId}
-            eventId={convocation.mgmtEventId}
-            lineupPlayers={lineupPlayers}
-            localTeamName={match?.localTeamName ?? "Local"}
-            localTeamShield={match?.localTeamShield ?? null}
-            visitorTeamName={match?.visitorTeamName ?? "Visitante"}
-            visitorTeamShield={match?.visitorTeamShield ?? null}
-            isHomeTeam={match?.isHomeTeam ?? true}
             isFriendly={isFriendly}
           />
         )}

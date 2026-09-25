@@ -1,5 +1,6 @@
 ﻿import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import PartidoEnDirectoTab from "../PartidoEnDirectoTab";
 import type { SquadPlayer } from "../../../squad/components/IdealLineup";
 
@@ -126,6 +127,8 @@ describe("PartidoEnDirectoTab - indicador Ef/Rodaje/Cansancio", () => {
       />,
     );
 
+    await userEvent.click(await screen.findByRole("button", { name: /jugadores/i }));
+
     // R (rodaje en vivo, sin minutos todavía) = 49;
     // Ef = readiness * (1 - fatigue / 200) = 49 * (1 - 22 / 200) = 43.61 → 44
     expect(await screen.findByText("44%")).toBeInTheDocument();
@@ -147,6 +150,7 @@ describe("PartidoEnDirectoTab - indicador Ef/Rodaje/Cansancio", () => {
       />,
     );
 
+    await userEvent.click(await screen.findByRole("button", { name: /jugadores/i }));
     await screen.findByText("44%");
     const legends = screen.getAllByLabelText("Leyenda de Ef, Rodaje y Cansancio");
     expect(legends).toHaveLength(1);

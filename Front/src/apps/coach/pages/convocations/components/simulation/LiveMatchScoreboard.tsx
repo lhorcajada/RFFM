@@ -97,18 +97,6 @@ export default function LiveMatchScoreboard({
 
   return (
     <div className={styles.root}>
-      {canScore && onAddCard && (
-        <Button
-          size="small"
-          variant="outlined"
-          color="warning"
-          className={styles.cardBtn}
-          startIcon={<StyleIcon sx={{ fontSize: 14 }} />}
-          onClick={() => setCardDialogOpen(true)}
-        >
-          Tarjeta
-        </Button>
-      )}
       {/* Local team */}
       <div className={styles.team}>
         {localTeamShield && (
@@ -120,18 +108,17 @@ export default function LiveMatchScoreboard({
           />
         )}
         <span className={styles.teamName}>{localTeamName}</span>
-        {canScore && (
-          <Button
-            size="small"
-            variant="outlined"
-            color={isHomeTeam ? "success" : "error"}
-            className={styles.goalBtn}
-            startIcon={<SportsSoccerIcon sx={{ fontSize: 14 }} />}
-            onClick={() => openGoalDialog(isHomeTeam)}
-          >
-            {isHomeTeam ? "Gol" : "Gol rival"}
-          </Button>
-        )}
+        <Button
+          size="small"
+          variant="outlined"
+          color={isHomeTeam ? "success" : "error"}
+          className={styles.goalBtn}
+          startIcon={<SportsSoccerIcon sx={{ fontSize: 14 }} />}
+          disabled={!canScore}
+          onClick={() => openGoalDialog(isHomeTeam)}
+        >
+          {isHomeTeam ? "Gol" : "Gol rival"}
+        </Button>
       </div>
 
       {/* Score */}
@@ -143,18 +130,17 @@ export default function LiveMatchScoreboard({
 
       {/* Visitor team */}
       <div className={`${styles.team} ${styles.teamRight}`}>
-        {canScore && (
-          <Button
-            size="small"
-            variant="outlined"
-            color={!isHomeTeam ? "success" : "error"}
-            className={styles.goalBtn}
-            startIcon={<SportsSoccerIcon sx={{ fontSize: 14 }} />}
-            onClick={() => openGoalDialog(!isHomeTeam)}
-          >
-            {!isHomeTeam ? "Gol" : "Gol rival"}
-          </Button>
-        )}
+        <Button
+          size="small"
+          variant="outlined"
+          color={!isHomeTeam ? "success" : "error"}
+          className={styles.goalBtn}
+          startIcon={<SportsSoccerIcon sx={{ fontSize: 14 }} />}
+          disabled={!canScore}
+          onClick={() => openGoalDialog(!isHomeTeam)}
+        >
+          {!isHomeTeam ? "Gol" : "Gol rival"}
+        </Button>
         <span className={styles.teamName}>{visitorTeamName}</span>
         {visitorTeamShield && (
           <img
@@ -165,6 +151,20 @@ export default function LiveMatchScoreboard({
           />
         )}
       </div>
+
+      {onAddCard && (
+        <Button
+          size="small"
+          variant="outlined"
+          color="warning"
+          className={styles.cardBtn}
+          startIcon={<StyleIcon sx={{ fontSize: 14 }} />}
+          disabled={!canScore}
+          onClick={() => setCardDialogOpen(true)}
+        >
+          Tarjeta
+        </Button>
+      )}
 
       {/* Goal registration dialog */}
       <GoalEventDialog
