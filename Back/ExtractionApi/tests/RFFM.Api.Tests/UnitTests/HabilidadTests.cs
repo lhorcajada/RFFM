@@ -22,6 +22,7 @@ namespace RFFM.Api.Tests.UnitTests
         [InlineData("Centro")]
         [InlineData("Remate")]
         [InlineData("Remate de cabeza")]
+        [InlineData("Vigilancia defensiva")]
         public void Create_WithVocabularyName_Succeeds(string nombre)
         {
             var habilidad = new Habilidad("ssp-1", nombre, "Descripcion", "Entrenable", null);

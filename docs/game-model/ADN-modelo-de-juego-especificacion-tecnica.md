@@ -97,9 +97,9 @@ Cualquier cabecera de Zona nueva que aparezca en el futuro y no encaje en el cat
 
 ## 4. Vocabulario cerrado de Habilidades
 
-`Habilidad.nombre` debe ser uno de estos quince valores — cualquier nombre que no esté en esta lista es un error de importación, no una habilidad nueva silenciosa:
+`Habilidad.nombre` debe ser uno de estos dieciséis valores — cualquier nombre que no esté en esta lista es un error de importación, no una habilidad nueva silenciosa:
 
-**Perfilamiento, Anticipación, Activación, Carga, Temporización, Comunicación, Entrada, Intercepción, Conducción, Protección de balón, Control orientado, Pase, Centro, Remate, Remate de cabeza.**
+**Perfilamiento, Anticipación, Activación, Carga, Temporización, Comunicación, Entrada, Intercepción, Conducción, Protección de balón, Control orientado, Pase, Centro, Remate, Remate de cabeza, Vigilancia defensiva.**
 
 Si el legible introduce una habilidad nueva en el futuro, hay que añadirla explícitamente a esta lista antes de que el importador la acepte — así se evita que una errata de redacción en el legible cree una habilidad fantasma en la base de datos.
 
