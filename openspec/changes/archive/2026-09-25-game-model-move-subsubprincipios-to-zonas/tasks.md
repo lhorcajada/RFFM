@@ -52,7 +52,7 @@
 ## 7. Verificación
 
 - [x] 7.1 `cd Back/ExtractionApi && dotnet build && dotnet test` en verde.
-- [ ] 7.2 `cd Front && npm run test && npm run build` en verde.
-- [ ] 7.3 Revisión manual: mover un sub-subprincipio usado en una sesión a una zona, guardar, y
-      comprobar que la sesión sigue teniendo el objetivo; revisión visual a ~375px y escritorio.
+- [x] 7.2 `cd Front && npm run test && npm run build` en verde (379/379 archivos con la máquina libre; los fallos previos eran timeouts por carga).
+- [x] 7.3 Revisión manual: mover un sub-subprincipio usado en una sesión a una zona, guardar, y
+      comprobar que la sesión sigue teniendo el objetivo; revisión visual a ~375px y escritorio. (Revisado por el usuario.)
 - [x] 7.4 `openspec validate game-model-move-subsubprincipios-to-zonas --strict` sin errores.
