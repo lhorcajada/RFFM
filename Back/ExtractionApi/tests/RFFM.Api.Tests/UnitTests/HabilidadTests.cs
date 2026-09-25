@@ -23,6 +23,17 @@ namespace RFFM.Api.Tests.UnitTests
         [InlineData("Remate")]
         [InlineData("Remate de cabeza")]
         [InlineData("Vigilancia defensiva")]
+        [InlineData("Marcaje")]
+        [InlineData("Percepción")]
+        [InlineData("Regate")]
+        [InlineData("Desmarque")]
+        [InlineData("Cobertura")]
+        [InlineData("Despeje")]
+        [InlineData("Fijación")]
+        [InlineData("Juego de espaldas")]
+        [InlineData("Duelo aéreo")]
+        [InlineData("Cambio de orientación")]
+        [InlineData("Repliegue")]
         public void Create_WithVocabularyName_Succeeds(string nombre)
         {
             var habilidad = new Habilidad("ssp-1", nombre, "Descripcion", "Entrenable", null);
@@ -34,7 +45,7 @@ namespace RFFM.Api.Tests.UnitTests
         [Fact]
         public void Create_WithUnknownName_Throws()
         {
-            Assert.Throws<ArgumentException>(() => new Habilidad("ssp-1", "Regate", "Descripcion", "Entrenable", null));
+            Assert.Throws<ArgumentException>(() => new Habilidad("ssp-1", "Habilidad inexistente","Descripcion", "Entrenable", null));
         }
 
         [Fact]

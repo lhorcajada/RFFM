@@ -2,17 +2,19 @@ namespace RFFM.Api.Domain.Aggregates.GameModels
 {
     /// <summary>
     /// An indispensable skill ("Habilidad imprescindible") linked to a SubSubPrincipio.
-    /// <see cref="Nombre"/> is restricted to the 16-value closed vocabulary in spec §4 — no
+    /// <see cref="Nombre"/> is restricted to the 27-value closed vocabulary in spec §4 — no
     /// free-text skill names, and no own key (spec §1.4): addressed by (SubSubPrincipioId, Nombre).
     /// </summary>
     public class Habilidad : BaseEntity
     {
-        /// <summary>The 16-value closed vocabulary from the technical import spec §4.</summary>
+        /// <summary>The 27-value closed vocabulary from the technical import spec §4.</summary>
         public static readonly IReadOnlySet<string> Vocabulary = new HashSet<string>
         {
             "Perfilamiento", "Anticipación", "Activación", "Carga", "Temporización", "Comunicación",
             "Entrada", "Intercepción", "Conducción", "Protección de balón", "Control orientado", "Pase", "Centro",
-            "Remate", "Remate de cabeza", "Vigilancia defensiva"
+            "Remate", "Remate de cabeza", "Vigilancia defensiva", "Marcaje", "Percepción", "Regate",
+            "Desmarque", "Cobertura", "Despeje", "Fijación", "Juego de espaldas", "Duelo aéreo",
+            "Cambio de orientación", "Repliegue"
         };
 
         public string SubSubPrincipioId { get; private set; } = null!;

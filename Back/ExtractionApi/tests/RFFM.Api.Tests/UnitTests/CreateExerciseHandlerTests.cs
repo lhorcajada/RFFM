@@ -247,7 +247,7 @@ namespace RFFM.Api.Tests.UnitTests
 
             var command = BaseCommand(clubId, userId, new List<ExerciseModelRelationRequest>
             {
-                new("sub-1", false, new List<string> { "Regate" }, null)
+                new("sub-1", false, new List<string> { "Habilidad inexistente" }, null)
             });
             var validator = new CreateExerciseValidator();
 

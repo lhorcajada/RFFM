@@ -102,7 +102,7 @@ namespace RFFM.Api.Tests.UnitTests
                    - **Subprincipio 1.1 — Título.** Texto.
 
                      - **Sub-subprincipio 1.1.1 — Delantero:** Texto.
-                       - Habilidad imprescindible — **Regate**: Descripcion. (Entrenable: Entrenable.)
+                       - Habilidad imprescindible — **Habilidad inexistente**: Descripcion. (Entrenable: Entrenable.)
                 """;
 
             var importer = new AdnLegibleImporter();
