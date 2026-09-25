@@ -53,6 +53,14 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
   }
 }
 
+// Kept separate from the subscription so callers can wait for the user's decision on the
+// browser prompt without counting it against an operation timeout.
+export async function requestPushPermission(): Promise<boolean> {
+  if (!isPushNotificationsSupported()) return false;
+  const permission = await Notification.requestPermission();
+  return permission === "granted";
+}
+
 /**
  * Full browser flow: request Notification permission, register the Service Worker,
  * subscribe to PushManager with the server's VAPID key, and persist the subscription
@@ -60,13 +68,13 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
  * denied permission, registration failure) rather than throwing.
  */
 export async function subscribeToPushNotifications(): Promise<boolean> {
-  if (!isPushNotificationsSupported()) return false;
+  if (!(await requestPushPermission())) return false;
 
-  const permission = await Notification.requestPermission();
-  if (permission !== "granted") return false;
+  const registeredWorker = await registerServiceWorker();
+  if (!registeredWorker) return false;
 
-  const registration = await registerServiceWorker();
-  if (!registration) return false;
+  // PushManager.subscribe needs an *active* worker; right after register() it may still be installing.
+  const registration = await navigator.serviceWorker.ready;
 
   const { publicKey } = await getVapidPublicKey();
   const applicationServerKey = urlBase64ToUint8Array(publicKey);

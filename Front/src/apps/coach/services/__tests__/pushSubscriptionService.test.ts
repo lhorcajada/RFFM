@@ -15,6 +15,7 @@ import {
   subscribe,
   unsubscribe,
   isPushNotificationsSupported,
+  requestPushPermission,
   subscribeToPushNotifications,
   unsubscribeFromPushNotifications,
 } from "../pushSubscriptionService";
@@ -59,6 +60,26 @@ describe("pushSubscriptionService", () => {
     expect(isPushNotificationsSupported()).toBe(false);
   });
 
+  it("requestPushPermission devuelve true cuando el usuario concede el permiso", async () => {
+    (window as any).Notification = { requestPermission: vi.fn().mockResolvedValue("granted") };
+    (window as any).PushManager = function () {};
+    Object.defineProperty(navigator, "serviceWorker", { configurable: true, value: {} });
+
+    expect(await requestPushPermission()).toBe(true);
+  });
+
+  it("requestPushPermission devuelve false cuando el usuario deniega el permiso", async () => {
+    (window as any).Notification = { requestPermission: vi.fn().mockResolvedValue("denied") };
+    (window as any).PushManager = function () {};
+    Object.defineProperty(navigator, "serviceWorker", { configurable: true, value: {} });
+
+    expect(await requestPushPermission()).toBe(false);
+  });
+
+  it("requestPushPermission devuelve false cuando el navegador no soporta push", async () => {
+    expect(await requestPushPermission()).toBe(false);
+  });
+
   it("subscribeToPushNotifications returns false when notification permission is denied", async () => {
     (window as any).Notification = { requestPermission: vi.fn().mockResolvedValue("denied") };
     (window as any).PushManager = function () {};
@@ -85,7 +106,10 @@ describe("pushSubscriptionService", () => {
     (window as any).PushManager = function () {};
     Object.defineProperty(navigator, "serviceWorker", {
       configurable: true,
-      value: { register: vi.fn().mockResolvedValue(registration) },
+      value: {
+        register: vi.fn().mockResolvedValue(registration),
+        ready: Promise.resolve(registration),
+      },
     });
 
     (client.get as any).mockResolvedValue({ data: { publicKey: "QUJD" } });
@@ -100,6 +124,39 @@ describe("pushSubscriptionService", () => {
       p256dhKey: "p256dh-key",
       authKey: "auth-key",
     });
+  });
+
+  it("subscribeToPushNotifications espera a que el service worker esté activo antes de suscribirse", async () => {
+    const pushSubscription = {
+      toJSON: () => ({ endpoint: "https://push.example/1", keys: { p256dh: "p", auth: "a" } }),
+    };
+    const installingRegistration = {
+      pushManager: {
+        subscribe: vi.fn().mockRejectedValue(new Error("no active Service Worker")),
+      },
+    };
+    const activeRegistration = {
+      pushManager: { subscribe: vi.fn().mockResolvedValue(pushSubscription) },
+    };
+
+    (window as any).Notification = { requestPermission: vi.fn().mockResolvedValue("granted") };
+    (window as any).PushManager = function () {};
+    Object.defineProperty(navigator, "serviceWorker", {
+      configurable: true,
+      value: {
+        register: vi.fn().mockResolvedValue(installingRegistration),
+        ready: Promise.resolve(activeRegistration),
+      },
+    });
+
+    (client.get as any).mockResolvedValue({ data: { publicKey: "QUJD" } });
+    (client.post as any).mockResolvedValue({});
+
+    const result = await subscribeToPushNotifications();
+
+    expect(result).toBe(true);
+    expect(activeRegistration.pushManager.subscribe).toHaveBeenCalled();
+    expect(installingRegistration.pushManager.subscribe).not.toHaveBeenCalled();
   });
 
   it("unsubscribeFromPushNotifications unsubscribes locally and calls the backend", async () => {
