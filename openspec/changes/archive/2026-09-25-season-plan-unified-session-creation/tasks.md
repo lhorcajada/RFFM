@@ -31,6 +31,6 @@
 
 - [x] 4.1 `cd Front && npm run test` en verde (suite completa de `pages/trainings`).
 - [x] 4.2 `cd Front && npm run build` en verde.
-- [ ] 4.3 Revisión visual a ~375px y en escritorio: cabecera del tablero con microciclo y barra
-      de acciones de Planificación/Sesiones.
+- [x] 4.3 Revisión visual a ~375px y en escritorio: cabecera del tablero con microciclo y barra
+      de acciones de Planificación/Sesiones. (Revisado por el usuario.)
 - [x] 4.4 `openspec validate season-plan-unified-session-creation --strict` sin errores.
