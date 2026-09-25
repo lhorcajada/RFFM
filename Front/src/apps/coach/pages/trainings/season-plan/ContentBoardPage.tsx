@@ -29,6 +29,16 @@ interface DragPayload {
   targets: SessionTargetDetail[];
 }
 
+export interface ContentBoardMicrocicloState {
+  weekLabel: string;
+  startDate: string;
+  endDate: string;
+}
+
+interface ContentBoardLocationState {
+  microciclo?: ContentBoardMicrocicloState;
+}
+
 /** The content-board: a two-panel drag-and-drop screen — the team's ADN tree on the left, all
  * of the team's sessions (split into "Sin programar" / "Programadas") on the right — for
  * assigning ADN targets to sessions whether or not they're scheduled yet. Route target for
@@ -39,6 +49,8 @@ export default function ContentBoardPage() {
   const params = new URLSearchParams(location.search);
   const clubId = params.get("clubId") ?? "";
   const teamId = params.get("teamId") ?? "";
+  const microcicloId = params.get("microcicloId");
+  const microcicloState = (location.state as ContentBoardLocationState | null)?.microciclo ?? null;
 
   const [season, setSeason] = useState("");
   useEffect(() => {
@@ -84,6 +96,25 @@ export default function ContentBoardPage() {
   }
 
   const backUrl = `/coach/trainings?clubId=${clubId}&teamId=${teamId}`;
+  const boardUrl = `/coach/trainings/content-board?clubId=${clubId}&teamId=${teamId}`;
+
+  const visibleSessions = useMemo(
+    () => (microcicloId ? sessions.filter((s) => s.microcicloId === microcicloId) : sessions),
+    [sessions, microcicloId]
+  );
+  const microcicloWeekLabel =
+    microcicloState?.weekLabel ?? visibleSessions.find((s) => s.microcicloWeekLabel)?.microcicloWeekLabel ?? null;
+  const microcicloHeader = microcicloState
+    ? `${microcicloState.weekLabel} · ${microcicloState.startDate} – ${microcicloState.endDate}`
+    : microcicloWeekLabel ?? "Microciclo seleccionado";
+
+  const handleShowAllSessions = () => navigate(boardUrl, { replace: true });
+
+  const handleCreateSessionWithoutContent = () => {
+    navigate(`/coach/trainings/new-session?clubId=${clubId}&teamId=${teamId}&microcicloId=${microcicloId}`, {
+      state: { returnTo: backUrl },
+    });
+  };
 
   const handleCreateSession = async () => {
     const created = await trainingService.createSession({
@@ -95,7 +126,7 @@ export default function ContentBoardPage() {
       endTime: null,
       location: null,
       sportEventId: null,
-      microcicloId: null,
+      microcicloId: microcicloId ?? null,
       objetivoGeneral: null,
       mapaCampoTexto: null,
       blocks: [],
@@ -113,9 +144,9 @@ export default function ContentBoardPage() {
         location: null,
         sportEventId: null,
         sportEventName: null,
-        microcicloId: null,
-        microcicloWeekLabel: null,
-        isAssociatedToPlan: false,
+        microcicloId: microcicloId ?? null,
+        microcicloWeekLabel: microcicloId ? microcicloWeekLabel : null,
+        isAssociatedToPlan: !!microcicloId,
         exerciseCount: 0,
         targets: [],
       },
@@ -158,7 +189,7 @@ export default function ContentBoardPage() {
 
   const handleAssignDate = (sessionId: string) => {
     navigate(`/coach/trainings/new-session?clubId=${clubId}&teamId=${teamId}&sessionId=${sessionId}`, {
-      state: { returnTo: `/coach/trainings/content-board?clubId=${clubId}&teamId=${teamId}` },
+      state: { returnTo: `${location.pathname}${location.search}` },
     });
   };
 
@@ -177,7 +208,17 @@ export default function ContentBoardPage() {
           <Button startIcon={<ArrowBackIcon />} variant="outlined" size="small" onClick={() => navigate(backUrl)}>
             Volver
           </Button>
-          <Typography className={styles.title}>Planificar contenido</Typography>
+          <Box className={styles.titleBox}>
+            <Typography className={styles.title}>Planificar contenido</Typography>
+            {microcicloId && (
+              <Box className={styles.microcicloRow}>
+                <Typography className={styles.microcicloLabel}>{microcicloHeader}</Typography>
+                <Button size="small" variant="text" onClick={handleShowAllSessions}>
+                  Ver todas las sesiones
+                </Button>
+              </Box>
+            )}
+          </Box>
         </Box>
 
         {!gameModel ? (
@@ -189,6 +230,16 @@ export default function ContentBoardPage() {
               </RouterLink>{" "}
               del equipo para poder planificar contenido.
             </Typography>
+            {microcicloId && (
+              <Button
+                size="small"
+                variant="outlined"
+                className={styles.emptyStateAction}
+                onClick={handleCreateSessionWithoutContent}
+              >
+                Crear sesión sin contenido
+              </Button>
+            )}
           </Box>
         ) : (
           <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
@@ -198,7 +249,7 @@ export default function ContentBoardPage() {
               </Box>
               <Box className={styles.panel}>
                 <SessionBoardPanel
-                  sessions={sessions}
+                  sessions={visibleSessions}
                   textoMap={textoMap}
                   completedSubSubPrincipioIds={completedSubSubPrincipioIds}
                   onCreateSession={() => void handleCreateSession()}

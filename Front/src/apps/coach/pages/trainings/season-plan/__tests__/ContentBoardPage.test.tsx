@@ -1,7 +1,9 @@
 import { render, screen } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import userEvent from "@testing-library/user-event";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import ContentBoardPage from "../ContentBoardPage";
+import trainingService from "../../../../services/trainingService";
 import { UserProvider } from "../../../../../../shared/context/UserContext";
 import type { GameModel } from "../../../../types/gameModel";
 import type { TrainingSession } from "../../../../types/training";
@@ -139,5 +141,156 @@ describe("ContentBoardPage — ambos paneles con datos", () => {
 
     expect(screen.getByText(/defensa organizada/i)).toBeInTheDocument();
     expect(screen.getByDisplayValue("Sesión sin programar")).toBeInTheDocument();
+  });
+});
+
+function session(id: string, name: string, microcicloId: string | null, microcicloWeekLabel: string | null = null): TrainingSession {
+  return {
+    ...sessionsFixture[0],
+    id,
+    name,
+    microcicloId,
+    microcicloWeekLabel,
+    isAssociatedToPlan: microcicloId !== null,
+  };
+}
+
+const mixedSessions: TrainingSession[] = [
+  session("sess-a", "Sesión semana A", "micro-a", "Semana 3"),
+  session("sess-b", "Sesión semana B", "micro-b", "Semana 4"),
+  session("sess-free", "Sesión libre", null),
+];
+
+function mockBoardData(overrides: Partial<{ gameModel: GameModel | null; sessions: TrainingSession[] }> = {}) {
+  mockUseContentBoardData.mockReturnValue({
+    gameModel: gameModelFixture,
+    coverage: { subSubPrincipios: [], zonas: [], subprincipios: [], principios: [] },
+    sessions: mixedSessions,
+    setSessions: vi.fn(),
+    loading: false,
+    error: null,
+    refetchSessions: vi.fn(),
+    refetchCoverage: vi.fn(),
+    ...overrides,
+  });
+}
+
+function LocationProbe() {
+  const location = useLocation();
+  return <div data-testid="location">{`${location.pathname}${location.search}`}</div>;
+}
+
+type Entry = string | { pathname: string; search: string; state?: unknown };
+
+function renderWithRoutes(entry: Entry) {
+  return render(
+    <UserProvider>
+      <MemoryRouter initialEntries={[entry]}>
+        <Routes>
+          <Route path="/coach/trainings/content-board" element={<ContentBoardPage />} />
+          <Route path="/coach/trainings/new-session" element={<div>Editor de sesión</div>} />
+        </Routes>
+        <LocationProbe />
+      </MemoryRouter>
+    </UserProvider>
+  );
+}
+
+const microEntry: Entry = {
+  pathname: "/coach/trainings/content-board",
+  search: "?clubId=club-1&teamId=team-1&microcicloId=micro-a",
+  state: { microciclo: { weekLabel: "Semana 3", startDate: "2026-09-14", endDate: "2026-09-20" } },
+};
+
+describe("ContentBoardPage — con microciclo en contexto", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("muestra solo las sesiones del microciclo indicado", () => {
+    mockBoardData();
+
+    renderWithRoutes(microEntry);
+
+    expect(screen.getByDisplayValue("Sesión semana A")).toBeInTheDocument();
+    expect(screen.queryByDisplayValue("Sesión semana B")).not.toBeInTheDocument();
+    expect(screen.queryByDisplayValue("Sesión libre")).not.toBeInTheDocument();
+  });
+
+  it("muestra en la cabecera la semana y sus fechas", () => {
+    mockBoardData();
+
+    renderWithRoutes(microEntry);
+
+    expect(screen.getByText(/semana 3 · 2026-09-14 – 2026-09-20/i)).toBeInTheDocument();
+  });
+
+  it("sin datos de navegación y sin sesiones, la cabecera muestra 'Microciclo seleccionado'", () => {
+    mockBoardData({ sessions: [] });
+
+    renderWithRoutes({ pathname: microEntry.pathname, search: microEntry.search });
+
+    expect(screen.getByText(/microciclo seleccionado/i)).toBeInTheDocument();
+  });
+
+  it("crea la sesión nueva asignada al microciclo y sin fecha", async () => {
+    mockBoardData();
+
+    renderWithRoutes(microEntry);
+    await userEvent.click(screen.getByRole("button", { name: /nueva sesión/i }));
+
+    expect(trainingService.createSession).toHaveBeenCalledWith(
+      expect.objectContaining({ microcicloId: "micro-a", date: null })
+    );
+  });
+
+  it("'Ver todas las sesiones' quita el filtro y muestra todas las sesiones", async () => {
+    mockBoardData();
+
+    renderWithRoutes(microEntry);
+    await userEvent.click(screen.getByRole("button", { name: /ver todas las sesiones/i }));
+
+    expect(screen.getByTestId("location")).not.toHaveTextContent("microcicloId");
+    expect(screen.getByDisplayValue("Sesión semana B")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Sesión libre")).toBeInTheDocument();
+  });
+
+  it("sin Modelo de Juego ofrece crear la sesión sin contenido en el editor con el microciclo", async () => {
+    mockBoardData({ gameModel: null });
+
+    renderWithRoutes(microEntry);
+    await userEvent.click(screen.getByRole("button", { name: /crear sesión sin contenido/i }));
+
+    expect(screen.getByText("Editor de sesión")).toBeInTheDocument();
+    expect(screen.getByTestId("location")).toHaveTextContent("microcicloId=micro-a");
+  });
+});
+
+describe("ContentBoardPage — sin microciclo en contexto", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("muestra todas las sesiones del equipo", () => {
+    mockBoardData();
+
+    renderWithRoutes("/coach/trainings/content-board?clubId=club-1&teamId=team-1");
+
+    expect(screen.getByDisplayValue("Sesión semana A")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Sesión semana B")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Sesión libre")).toBeInTheDocument();
+  });
+
+  it("crea la sesión nueva sin microciclo", async () => {
+    mockBoardData();
+
+    renderWithRoutes("/coach/trainings/content-board?clubId=club-1&teamId=team-1");
+    await userEvent.click(screen.getByRole("button", { name: /nueva sesión/i }));
+
+    expect(trainingService.createSession).toHaveBeenCalledWith(expect.objectContaining({ microcicloId: null }));
+  });
+
+  it("no ofrece 'Crear sesión sin contenido' cuando falta el Modelo de Juego", () => {
+    mockBoardData({ gameModel: null });
+
+    renderWithRoutes("/coach/trainings/content-board?clubId=club-1&teamId=team-1");
+
+    expect(screen.queryByRole("button", { name: /crear sesión sin contenido/i })).not.toBeInTheDocument();
   });
 });

@@ -18,6 +18,30 @@
   font-weight: 700;
 }
 
+.titleBox {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  min-width: 0;
+}
+
+.microcicloRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px 8px;
+}
+
+.microcicloLabel {
+  color: var(--rffm-coach-accent, #ff7a1a);
+  font-size: 0.85rem;
+}
+
+.emptyStateAction {
+  margin-top: 16px;
+}
+
 .body {
   flex: 1;
   display: grid;

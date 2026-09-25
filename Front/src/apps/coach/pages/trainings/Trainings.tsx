@@ -29,6 +29,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import PrintOutlinedIcon from "@mui/icons-material/PrintOutlined";
+import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import useTeamAndClub from "../../hooks/useTeamAndClub";
@@ -44,6 +45,8 @@ import { tipoOptions } from "./new/constants";
 import ExerciseCromo from "./components/ExerciseCromo";
 import SeasonPlanView from "./season-plan/SeasonPlanView";
 import SeasonPlanEditor from "./season-plan/SeasonPlanEditor";
+import type { ContentBoardMicrocicloState } from "./season-plan/ContentBoardPage";
+import { findMicrocicloByApiId } from "./season-plan/findMicrociclo";
 import styles from "./Trainings.module.css";
 import { buildExercisePrintHtml } from "./exercisePrint";
 import { buildSessionPrintHtml } from "./sessionPrint";
@@ -309,16 +312,26 @@ export default function Trainings() {
     });
   };
 
-  const goToSessionPage = (sessionId?: string, microcicloId?: string) => {
+  const goToSessionPage = (sessionId?: string) => {
     const createParams = new URLSearchParams();
     createParams.set("clubId", clubId);
     if (teamId) createParams.set("teamId", teamId);
     if (sessionId) createParams.set("sessionId", sessionId);
-    if (microcicloId) createParams.set("microcicloId", microcicloId);
 
     navigate(`/coach/trainings/new-session?${createParams.toString()}`, {
       state: { returnTo: `/coach/trainings${location.search}` },
     });
+  };
+
+  const goToContentBoard = (microcicloId?: string) => {
+    const boardParams = new URLSearchParams({ clubId, teamId });
+    if (microcicloId) boardParams.set("microcicloId", microcicloId);
+    const microciclo = microcicloId ? findMicrocicloByApiId(seasonPlan, microcicloId) : null;
+    const state: { microciclo: ContentBoardMicrocicloState } | undefined = microciclo
+      ? { microciclo: { weekLabel: microciclo.weekLabel, startDate: microciclo.startDate, endDate: microciclo.endDate } }
+      : undefined;
+
+    navigate(`/coach/trainings/content-board?${boardParams.toString()}`, { state });
   };
 
   const handleSavePlan = async (draft: SeasonPlan) => {
@@ -453,6 +466,15 @@ export default function Trainings() {
                 )}
                 <Button
                   size="small"
+                  startIcon={<AccountTreeOutlinedIcon />}
+                  variant="outlined"
+                  onClick={() => goToContentBoard()}
+                  disabled={!teamId}
+                >
+                  Tablero de contenido
+                </Button>
+                <Button
+                  size="small"
                   startIcon={<AddIcon />}
                   variant="contained"
                   className={styles.addBtn}
@@ -465,15 +487,6 @@ export default function Trainings() {
             )}
             {tab === 0 && !planEditing && (
               <>
-                <Button
-                  size="small"
-                  startIcon={<AddIcon />}
-                  variant="outlined"
-                  onClick={() => navigate(`/coach/trainings/content-board?clubId=${clubId}&teamId=${teamId}`)}
-                  disabled={!teamId}
-                >
-                  Planificar contenido
-                </Button>
                 <Button
                   size="small"
                   startIcon={<AddIcon />}
@@ -527,7 +540,7 @@ export default function Trainings() {
                   plan={seasonPlan}
                   loading={loadingPlan}
                   onCreatePlan={() => setPlanEditing(true)}
-                  onCreateSession={(microcicloId) => goToSessionPage(undefined, microcicloId)}
+                  onCreateSession={(microcicloId) => goToContentBoard(microcicloId)}
                   onOpenSession={(sessionId) => goToSessionPage(sessionId)}
                 />
               )}
