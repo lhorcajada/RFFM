@@ -32,10 +32,22 @@ interface SspProps {
   zi?: number;
   sspi: number;
   ssp: SubSubPrincipio;
+  /** Zonas of the owning Subprincipio — when non-empty, a "Zona" selector moves the SSP. */
+  zonas: Zona[];
 }
 
-function SubSubPrincipioEditor({ pi, spi, zi, sspi, ssp }: SspProps) {
+const GENERAL_OPTION = "general";
+
+function zonaTitle(zona: Zona): string {
+  return zona.label || zona.zoneKeys.join(", ") || "Zona sin definir";
+}
+
+function SubSubPrincipioEditor({ pi, spi, zi, sspi, ssp, zonas }: SspProps) {
   const { dispatch } = useGameModelDraft();
+  const handleMove = (value: string) => {
+    const toZi = value === GENERAL_OPTION ? undefined : Number(value);
+    dispatch({ type: "MOVE_SSP", pi, spi, fromZi: zi, sspi, toZi });
+  };
   return (
     <Accordion className={styles.accordion} defaultExpanded={false} TransitionProps={{ unmountOnExit: true }}>
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -61,6 +73,23 @@ function SubSubPrincipioEditor({ pi, spi, zi, sspi, ssp }: SspProps) {
             fullWidth
           />
         </Box>
+        {zonas.length > 0 && (
+          <TextField
+            select
+            value={zi === undefined ? GENERAL_OPTION : String(zi)}
+            onChange={(e) => handleMove(e.target.value)}
+            label="Zona"
+            size="small"
+            fullWidth
+          >
+            <MenuItem value={GENERAL_OPTION}>Sin zona (general)</MenuItem>
+            {zonas.map((zona, index) => (
+              <MenuItem key={zona.id} value={String(index)}>
+                {zonaTitle(zona)}
+              </MenuItem>
+            ))}
+          </TextField>
+        )}
         <TextField
           value={ssp.texto}
           onChange={(e) => dispatch({ type: "UPD_SSP", pi, spi, zi, sspi, changes: { texto: e.target.value } })}
@@ -106,18 +135,17 @@ interface ZonaProps {
   spi: number;
   zi: number;
   zona: Zona;
+  zonas: Zona[];
 }
 
-function ZonaEditor({ pi, spi, zi, zona }: ZonaProps) {
+function ZonaEditor({ pi, spi, zi, zona, zonas }: ZonaProps) {
   const { dispatch } = useGameModelDraft();
   const isCompuesta = zona.zoneKeys.includes("compuesta");
 
   return (
     <Accordion className={styles.accordion} TransitionProps={{ unmountOnExit: true }}>
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-        <Typography className={styles.zonaSummaryTitle}>
-          {zona.label || zona.zoneKeys.join(", ") || "Zona sin definir"}
-        </Typography>
+        <Typography className={styles.zonaSummaryTitle}>{zonaTitle(zona)}</Typography>
       </AccordionSummary>
       <AccordionDetails className={styles.details}>
         <Select
@@ -172,7 +200,7 @@ function ZonaEditor({ pi, spi, zi, zona }: ZonaProps) {
         <Box className={styles.nestedSection}>
           <Typography className={styles.sectionLabel}>Sub-subprincipios</Typography>
           {indexedSortByNumero(zona.subSubPrincipios).map(({ item: ssp, index: sspi }) => (
-            <SubSubPrincipioEditor key={ssp.id} pi={pi} spi={spi} zi={zi} sspi={sspi} ssp={ssp} />
+            <SubSubPrincipioEditor key={ssp.id} pi={pi} spi={spi} zi={zi} sspi={sspi} ssp={ssp} zonas={zonas} />
           ))}
           <Button
             size="small"
@@ -216,7 +244,6 @@ interface SubprincipioProps {
 function SubprincipioEditor({ pi, spi, sp }: SubprincipioProps) {
   const { dispatch } = useGameModelDraft();
   const hasZonas = sp.zonas.length > 0;
-  const hasDirectSsp = sp.subSubPrincipios.length > 0;
 
   return (
     <Accordion className={styles.accordion} TransitionProps={{ unmountOnExit: true }}>
@@ -254,41 +281,39 @@ function SubprincipioEditor({ pi, spi, sp }: SubprincipioProps) {
 
         <Box className={styles.nestedSection}>
           <Typography className={styles.sectionLabel}>
-            Zonas (opcional — un Subprincipio cuelga sus sub-subprincipios de sus Zonas, o directamente de él, nunca ambos)
+            Zonas (opcional — cada sub-subprincipio cuelga de una zona o, si es general, directamente del subprincipio)
           </Typography>
           {sp.zonas.map((zona, zi) => (
             // Zonas have no `numero` in the ADN spec (they're identified by zoneKeys/label,
             // not a document position) — rendered in draft order, unlike Subprincipios/SSPs.
-            <ZonaEditor key={zona.id} pi={pi} spi={spi} zi={zi} zona={zona} />
+            <ZonaEditor key={zona.id} pi={pi} spi={spi} zi={zi} zona={zona} zonas={sp.zonas} />
           ))}
-          {!hasDirectSsp && (
-            <Button
-              size="small"
-              startIcon={<AddIcon />}
-              onClick={() => dispatch({ type: "ADD_ZONA", pi, spi })}
-              className={styles.addBtn}
-            >
-              Añadir zona
-            </Button>
-          )}
+          <Button
+            size="small"
+            startIcon={<AddIcon />}
+            onClick={() => dispatch({ type: "ADD_ZONA", pi, spi })}
+            className={styles.addBtn}
+          >
+            Añadir zona
+          </Button>
         </Box>
 
-        {!hasZonas && (
-          <Box className={styles.nestedSection}>
-            <Typography className={styles.sectionLabel}>Sub-subprincipios directos</Typography>
-            {indexedSortByNumero(sp.subSubPrincipios).map(({ item: ssp, index: sspi }) => (
-              <SubSubPrincipioEditor key={ssp.id} pi={pi} spi={spi} sspi={sspi} ssp={ssp} />
-            ))}
-            <Button
-              size="small"
-              startIcon={<AddIcon />}
-              onClick={() => dispatch({ type: "ADD_SSP", pi, spi })}
-              className={styles.addBtn}
-            >
-              Añadir sub-subprincipio directo
-            </Button>
-          </Box>
-        )}
+        <Box className={styles.nestedSection}>
+          <Typography className={styles.sectionLabel}>
+            {hasZonas ? "Sin zona (generales)" : "Sub-subprincipios directos"}
+          </Typography>
+          {indexedSortByNumero(sp.subSubPrincipios).map(({ item: ssp, index: sspi }) => (
+            <SubSubPrincipioEditor key={ssp.id} pi={pi} spi={spi} sspi={sspi} ssp={ssp} zonas={sp.zonas} />
+          ))}
+          <Button
+            size="small"
+            startIcon={<AddIcon />}
+            onClick={() => dispatch({ type: "ADD_SSP", pi, spi })}
+            className={styles.addBtn}
+          >
+            Añadir sub-subprincipio directo
+          </Button>
+        </Box>
 
         <NotaListEditor
           notas={sp.notas}

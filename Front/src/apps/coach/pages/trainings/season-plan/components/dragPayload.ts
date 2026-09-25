@@ -33,18 +33,21 @@ export function toTargetDetail(ssp: SubSubPrincipio, ctx: BreadcrumbCtx): Sessio
   };
 }
 
-/** Dragging a Subprincipio adds all of its Sub-subprincipios — via its Zonas if it has any,
- * or direct otherwise (a Subprincipio's children hang off one or the other, never both). */
+/** Dragging a Subprincipio adds all of its Sub-subprincipios — those in its Zonas plus its
+ * general (direct) ones; a Subprincipio may hold both at the same time. */
 export function flattenSubprincipioTargets(
   sp: Subprincipio,
   ctx: { principle: Principle }
 ): SessionTargetDetail[] {
-  if (sp.zonas.length > 0) {
-    return sp.zonas.flatMap((zona) =>
-      zona.subSubPrincipios.map((ssp) => toTargetDetail(ssp, { principle: ctx.principle, sp, zona }))
-    );
-  }
-  return sp.subSubPrincipios.map((ssp) => toTargetDetail(ssp, { principle: ctx.principle, sp, zona: null }));
+  const inZonas = sp.zonas.flatMap((zona) =>
+    zona.subSubPrincipios.map((ssp) => toTargetDetail(ssp, { principle: ctx.principle, sp, zona }))
+  );
+  const generals = sp.subSubPrincipios.map((ssp) => toTargetDetail(ssp, { principle: ctx.principle, sp, zona: null }));
+  return [...inZonas, ...generals];
+}
+
+function allSubSubPrincipios(sp: Subprincipio): SubSubPrincipio[] {
+  return [...sp.zonas.flatMap((z) => z.subSubPrincipios), ...sp.subSubPrincipios];
 }
 
 /** Removes duplicate targets by subSubPrincipioId, keeping the first occurrence — used both
@@ -99,7 +102,7 @@ export function summarizeTexto(texto: string, maxLength = 60): string {
 }
 
 /** Builds a subSubPrincipioId → texto lookup from the team's GameModel, walking every
- * Subprincipio's Zonas (if it has any) or its direct SubSubPrincipios otherwise. Built once
+ * Subprincipio's Zonas and its general (direct) SubSubPrincipios. Built once
  * client-side from the GameModel already in memory so a session's target detail (which only
  * carries id/rol/numero, not the free-text description) can resolve its description without a
  * new API field. Entries with no `apiId` are skipped — they aren't referenceable targets yet. */
@@ -117,8 +120,7 @@ function buildSubSubPrincipioMap<T>(gameModel: GameModel, select: (ssp: SubSubPr
   const map = new Map<string, T>();
   for (const principle of gameModel.principles) {
     for (const sp of principle.subprincipios) {
-      const ssps = sp.zonas.length > 0 ? sp.zonas.flatMap((z) => z.subSubPrincipios) : sp.subSubPrincipios;
-      for (const ssp of ssps) {
+      for (const ssp of allSubSubPrincipios(sp)) {
         if (ssp.apiId) map.set(ssp.apiId, select(ssp));
       }
     }

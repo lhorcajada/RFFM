@@ -16,8 +16,9 @@ let _idCounter = -1;
 const nextId = () => _idCounter--;
 
 // ─── Addressing ──────────────────────────────────────────────────────
-// A SubSubPrincipio hangs either off a Zona (zi set) or directly off a
-// Subprincipio (zi omitted) — never both, per spec §0.
+// A SubSubPrincipio hangs either off a Zona (zi set) or directly off its
+// Subprincipio (zi omitted, a "general" one) — exactly one parent. A Subprincipio
+// may hold general SubSubPrincipios and Zonas at the same time.
 type NotaLevel = "principle" | "subprincipio" | "zona" | "ssp";
 
 // ─── Actions ─────────────────────────────────────────────────────────
@@ -41,6 +42,9 @@ type Action =
   | { type: "ADD_SSP"; pi: number; spi: number; zi?: number }
   | { type: "UPD_SSP"; pi: number; spi: number; zi?: number; sspi: number; changes: Partial<Pick<SubSubPrincipio, "numero" | "rol" | "texto">> }
   | { type: "DEL_SSP"; pi: number; spi: number; zi?: number; sspi: number }
+  /** Moves a SubSubPrincipio between the parents of its own Subprincipio (zi omitted = general),
+   * keeping the same object (apiId, habilidades, notas) so the backend re-parents it. */
+  | { type: "MOVE_SSP"; pi: number; spi: number; fromZi?: number; sspi: number; toZi?: number }
   // Habilidad
   | { type: "ADD_HABILIDAD"; pi: number; spi: number; zi?: number; sspi: number }
   | { type: "UPD_HABILIDAD"; pi: number; spi: number; zi?: number; sspi: number; hi: number; changes: Partial<Pick<Habilidad, "nombre" | "descripcion" | "entrenable" | "referenciaAKey">> }
@@ -80,7 +84,7 @@ function updateSubprincipio(
   return updatePrinciple(state, pi, (p) => ({ ...p, subprincipios: mapAt(p.subprincipios, spi, fn) }));
 }
 
-/** Updates the SubSubPrincipio array a Zona or a Subprincipio owns directly (mutually exclusive). */
+/** Updates the SubSubPrincipio array a Zona (zi set) or the Subprincipio itself (zi omitted) owns. */
 function updateSspContainer(sp: Subprincipio, zi: number | undefined, fn: (list: SubSubPrincipio[]) => SubSubPrincipio[]): Subprincipio {
   if (zi === undefined) {
     return { ...sp, subSubPrincipios: fn(sp.subSubPrincipios) };
@@ -200,6 +204,16 @@ function reducer(state: GameModel, action: Action): GameModel {
       return updateSubprincipio(state, action.pi, action.spi, (sp) =>
         updateSspContainer(sp, action.zi, (list) => removeAt(list, action.sspi))
       );
+
+    case "MOVE_SSP": {
+      if (action.fromZi === action.toZi) return state;
+      return updateSubprincipio(state, action.pi, action.spi, (sp) => {
+        const source = action.fromZi === undefined ? sp.subSubPrincipios : sp.zonas[action.fromZi].subSubPrincipios;
+        const moved = source[action.sspi];
+        const withoutMoved = updateSspContainer(sp, action.fromZi, (list) => removeAt(list, action.sspi));
+        return updateSspContainer(withoutMoved, action.toZi, (list) => [...list, moved]);
+      });
+    }
 
     // ── Habilidades ──────────────────────────────────────────────
     case "ADD_HABILIDAD":

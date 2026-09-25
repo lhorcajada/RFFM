@@ -75,3 +75,46 @@ describe("AdnDraggableTree — habilidades imprescindibles", () => {
     expect(within(leaf).queryByText("Anticipación")).not.toBeInTheDocument();
   });
 });
+
+describe("AdnDraggableTree — subprincipio con zonas y generales", () => {
+  it("muestra las zonas y un grupo 'Sin zona' con los generales", () => {
+    const model = buildGameModel();
+    const sp = model.principles[0].subprincipios[0];
+    const mixed: GameModel = {
+      ...model,
+      principles: [
+        {
+          ...model.principles[0],
+          subprincipios: [
+            {
+              ...sp,
+              zonas: [
+                {
+                  id: 1,
+                  apiId: "zona-1",
+                  zoneKeys: ["iniciacion"],
+                  label: "Zona de iniciación",
+                  texto: "",
+                  notas: [],
+                  subSubPrincipios: [ssp("ssp-zona", "1.1.3", [])],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    render(
+      <DndContext>
+        <AdnDraggableTree gameModel={mixed} coverage={null} />
+      </DndContext>
+    );
+
+    expect(screen.getByTestId("adn-ssp-ssp-zona")).toBeInTheDocument();
+    const sinZona = screen.getByTestId("adn-sin-zona-sub-1");
+    expect(within(sinZona).getByText("Sin zona")).toBeInTheDocument();
+    expect(within(sinZona).getByTestId("adn-ssp-ssp-1")).toBeInTheDocument();
+    expect(within(sinZona).getByTestId("adn-ssp-ssp-2")).toBeInTheDocument();
+  });
+});

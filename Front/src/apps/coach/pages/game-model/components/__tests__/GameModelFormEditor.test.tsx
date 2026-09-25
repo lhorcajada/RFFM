@@ -106,7 +106,7 @@ describe("GameModelFormEditor — CRUD at every level", () => {
   });
 
   it(
-    "adding a Zona then hides the direct sub-subprincipio option (mutual exclusivity)",
+    "adding a Zona keeps the general (direct) sub-subprincipio option, now under 'Sin zona (generales)'",
     async () => {
       const user = userEvent.setup();
       renderEditor();
@@ -115,9 +115,9 @@ describe("GameModelFormEditor — CRUD at every level", () => {
       await user.click(screen.getByRole("button", { name: /Subprincipio 1.1/i }));
       await user.click(screen.getByRole("button", { name: "Añadir zona" }));
 
-      expect(screen.queryByRole("button", { name: /Añadir sub-subprincipio directo/i })).not.toBeInTheDocument();
-    },
-    10000
+      expect(screen.getByRole("button", { name: /Añadir sub-subprincipio directo/i })).toBeInTheDocument();
+      expect(screen.getByText("Sin zona (generales)")).toBeInTheDocument();
+    }
   );
 
   it("deleting a principle removes it and everything nested under it", async () => {
@@ -259,5 +259,118 @@ describe("GameModelFormEditor — CRUD at every level", () => {
     const headings = screen.getAllByText(/^Sub-subprincipio 1\.1\./).map((el) => el.textContent);
     expect(headings[0]).toContain("1.1.1");
     expect(headings[1]).toContain("1.1.2");
+  });
+});
+
+describe("GameModelFormEditor — zonas y sub-subprincipios generales", () => {
+  function draftWith(zonas: GameModel["principles"][number]["subprincipios"][number]["zonas"]): GameModel {
+    return {
+      id: "draft-zonas",
+      teamId: "team-1",
+      name: "Modelo con zonas",
+      season: "2025/2026",
+      principles: [
+        {
+          id: 1,
+          gameMomentId: 1,
+          numero: 1,
+          titulo: "Principio 1",
+          texto: "",
+          notas: [],
+          subprincipios: [
+            {
+              id: 1,
+              numero: "1.1",
+              titulo: "Uno",
+              texto: "",
+              notas: [],
+              zonas,
+              subSubPrincipios: [
+                { id: 1, apiId: "ssp-general", numero: "1.1.1", rol: "General", texto: "", habilidades: [], notas: [] },
+              ],
+            },
+          ],
+        },
+      ],
+      setPieceRules: [],
+      openIssues: [],
+    };
+  }
+
+  const zonaIniciacion = {
+    id: 10,
+    apiId: "zona-1",
+    zoneKeys: ["iniciacion"],
+    label: "Zona de iniciación",
+    zonaTexto: null,
+    texto: "",
+    subSubPrincipios: [],
+    notas: [],
+  };
+
+  function renderWith(draft: GameModel) {
+    let latestDraft: GameModel | null = null;
+    function Inner() {
+      return (
+        <>
+          <DraftInspector onDraft={(d) => (latestDraft = d)} />
+          <GameModelFormEditor moments={moments} />
+        </>
+      );
+    }
+    render(
+      <GameModelDraftProvider initialDraft={draft}>
+        <Inner />
+      </GameModelDraftProvider>
+    );
+    return () => latestDraft as unknown as GameModel;
+  }
+
+  async function openSubprincipio(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(screen.getByRole("button", { name: /Principio 1/i }));
+    await user.click(screen.getByRole("button", { name: /Subprincipio 1.1/i }));
+  }
+
+  it("muestra 'Añadir zona' aunque el subprincipio ya tenga sub-subprincipios generales", async () => {
+    const user = userEvent.setup();
+    renderWith(draftWith([]));
+
+    await openSubprincipio(user);
+
+    expect(screen.getByRole("button", { name: "Añadir zona" })).toBeInTheDocument();
+  });
+
+  it("con zonas, muestra los generales bajo 'Sin zona (generales)'", async () => {
+    const user = userEvent.setup();
+    renderWith(draftWith([zonaIniciacion]));
+
+    await openSubprincipio(user);
+
+    expect(screen.getByText("Sin zona (generales)")).toBeInTheDocument();
+    expect(screen.getByText(/Sub-subprincipio 1\.1\.1 — General/)).toBeInTheDocument();
+  });
+
+  it("el selector 'Zona' mueve un general a la zona elegida", async () => {
+    const user = userEvent.setup();
+    const getDraft = renderWith(draftWith([zonaIniciacion]));
+
+    await openSubprincipio(user);
+    await user.click(screen.getByText(/Sub-subprincipio 1\.1\.1 — General/));
+    await user.click(screen.getByRole("combobox", { name: "Zona" }));
+    await user.click(screen.getByRole("option", { name: "Zona de iniciación" }));
+
+    const sp = getDraft().principles[0].subprincipios[0];
+    expect(sp.subSubPrincipios).toHaveLength(0);
+    expect(sp.zonas[0].subSubPrincipios.map((s) => s.apiId)).toEqual(["ssp-general"]);
+  });
+
+  it("sin zonas no muestra el selector 'Zona'", async () => {
+    const user = userEvent.setup();
+    renderWith(draftWith([]));
+
+    await openSubprincipio(user);
+    await user.click(screen.getByText(/Sub-subprincipio 1\.1\.1 — General/));
+
+    expect(screen.queryByRole("combobox", { name: "Zona" })).not.toBeInTheDocument();
   });
 });

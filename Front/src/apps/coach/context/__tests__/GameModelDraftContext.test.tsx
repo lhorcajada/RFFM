@@ -452,3 +452,67 @@ describe("GameModelDraftContext reducer — cabecera", () => {
     expect(result.current.draft.name).toBe("Modelo de Juego 2026/2027");
   });
 });
+
+describe("GameModelDraftContext reducer — MOVE_SSP", () => {
+  function mixedDraft(): GameModel {
+    const draft = buildDraft();
+    const sp: Subprincipio = {
+      ...buildSubprincipio(10, true),
+      zonas: [buildZona(1), { ...buildZona(2), subSubPrincipios: [] }],
+      subSubPrincipios: [{ ...buildSsp(300, "1.1.3"), notas: [{ id: 3001, apiId: "nota-ssp", tipo: "nota", texto: "nota ssp" }] }],
+    };
+    return { ...draft, principles: [{ ...draft.principles[0], subprincipios: [sp] }] };
+  }
+
+  function mixedWrapper({ children }: { children: ReactNode }) {
+    return <GameModelDraftProvider initialDraft={mixedDraft()}>{children}</GameModelDraftProvider>;
+  }
+
+  const sp = (draft: GameModel) => draft.principles[0].subprincipios[0];
+
+  it("mueve un sub-subprincipio general a una zona conservando apiId, habilidades y notas", () => {
+    const { result } = renderHook(() => useGameModelDraft(), { wrapper: mixedWrapper });
+
+    act(() => {
+      result.current.dispatch({ type: "MOVE_SSP", pi: 0, spi: 0, sspi: 0, toZi: 0 });
+    });
+
+    expect(sp(result.current.draft).subSubPrincipios).toHaveLength(0);
+    const moved = sp(result.current.draft).zonas[0].subSubPrincipios.find((s) => s.apiId === "ssp-300");
+    expect(moved?.habilidades.map((h) => h.apiId)).toEqual(["hab-300"]);
+    expect(moved?.notas.map((n) => n.apiId)).toEqual(["nota-ssp"]);
+  });
+
+  it("devuelve un sub-subprincipio de una zona a general", () => {
+    const { result } = renderHook(() => useGameModelDraft(), { wrapper: mixedWrapper });
+
+    act(() => {
+      result.current.dispatch({ type: "MOVE_SSP", pi: 0, spi: 0, fromZi: 0, sspi: 0 });
+    });
+
+    expect(sp(result.current.draft).zonas[0].subSubPrincipios).toHaveLength(0);
+    expect(sp(result.current.draft).subSubPrincipios.map((s) => s.apiId)).toEqual(["ssp-300", "ssp-101"]);
+  });
+
+  it("mueve un sub-subprincipio de una zona a otra", () => {
+    const { result } = renderHook(() => useGameModelDraft(), { wrapper: mixedWrapper });
+
+    act(() => {
+      result.current.dispatch({ type: "MOVE_SSP", pi: 0, spi: 0, fromZi: 0, sspi: 0, toZi: 1 });
+    });
+
+    expect(sp(result.current.draft).zonas[0].subSubPrincipios).toHaveLength(0);
+    expect(sp(result.current.draft).zonas[1].subSubPrincipios.map((s) => s.apiId)).toEqual(["ssp-101"]);
+  });
+
+  it("no cambia nada si el origen y el destino son el mismo", () => {
+    const { result } = renderHook(() => useGameModelDraft(), { wrapper: mixedWrapper });
+    const before = result.current.draft;
+
+    act(() => {
+      result.current.dispatch({ type: "MOVE_SSP", pi: 0, spi: 0, fromZi: 0, sspi: 0, toZi: 0 });
+    });
+
+    expect(result.current.draft).toBe(before);
+  });
+});

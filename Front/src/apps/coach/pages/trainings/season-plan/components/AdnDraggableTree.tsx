@@ -128,7 +128,7 @@ function ZonaBlock({
 }
 
 /** One draggable Subprincipio heading — payload carries all of its Sub-subprincipios flattened
- * (via Zonas if it has any, or direct otherwise). The drag handle and the collapse toggle are
+ * (its Zonas' plus its general ones, shown under "Sin zona" when it also has Zonas). The drag handle and the collapse toggle are
  * separate controls in the same row so collapsing doesn't fight dnd-kit's pointer listeners. */
 function DraggableSubprincipio({
   sp,
@@ -179,12 +179,20 @@ function DraggableSubprincipio({
           </button>
         )}
       </div>
+      {!collapsed && sp.zonas.map((z) => <ZonaBlock key={z.id} zona={z} principle={principle} sp={sp} coverage={coverage} />)}
+      {!collapsed && sp.zonas.length > 0 && sp.subSubPrincipios.length > 0 && (
+        <div className={styles.zona} data-testid={`adn-sin-zona-${id}`}>
+          <h5 className={styles.zonaTitle}>Sin zona</h5>
+          {sortByNumero(sp.subSubPrincipios).map((ssp) => (
+            <DraggableSsp key={ssp.id} ssp={ssp} principle={principle} sp={sp} zona={null} coverage={coverage} />
+          ))}
+        </div>
+      )}
       {!collapsed &&
-        (sp.zonas.length > 0
-          ? sp.zonas.map((z) => <ZonaBlock key={z.id} zona={z} principle={principle} sp={sp} coverage={coverage} />)
-          : sortByNumero(sp.subSubPrincipios).map((ssp) => (
-              <DraggableSsp key={ssp.id} ssp={ssp} principle={principle} sp={sp} zona={null} coverage={coverage} />
-            )))}
+        sp.zonas.length === 0 &&
+        sortByNumero(sp.subSubPrincipios).map((ssp) => (
+          <DraggableSsp key={ssp.id} ssp={ssp} principle={principle} sp={sp} zona={null} coverage={coverage} />
+        ))}
     </div>
   );
 }
