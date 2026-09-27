@@ -91,7 +91,7 @@ namespace RFFM.Api.Tests.IntegrationTests
             await using var createDb = _fixture.CreateDbContext();
             var command = new CreateSessionCommand(
                 teamId, "Sesion vinculada", null, DateTime.UtcNow, TimeSpan.FromHours(18), null, null, null, microcicloId, null, null,
-                new List<SessionBlockRequest> { new(1, "Bloque 1", "Primer bloque.", null, new List<SessionBlockExerciseRequest> { new(exerciseId, 1) }) })
+                new List<SessionBlockRequest> { new(1, "Bloque 1", null, new List<SessionBlockExerciseRequest> { new(exerciseId, 1) }) })
             { UserId = userId };
             await new CreateSessionHandler(createDb).Handle(command, CancellationToken.None);
 
@@ -115,7 +115,7 @@ namespace RFFM.Api.Tests.IntegrationTests
             await using var createDb = _fixture.CreateDbContext();
             var command = new CreateSessionCommand(
                 teamId, "Sesion independiente", null, DateTime.UtcNow, TimeSpan.FromHours(18), null, null, null, null, null, null,
-                new List<SessionBlockRequest> { new(1, "Bloque 1", "Primer bloque.", null, new List<SessionBlockExerciseRequest> { new(exerciseId, 1) }) })
+                new List<SessionBlockRequest> { new(1, "Bloque 1", null, new List<SessionBlockExerciseRequest> { new(exerciseId, 1) }) })
             { UserId = userId };
             await new CreateSessionHandler(createDb).Handle(command, CancellationToken.None);
 
@@ -140,8 +140,8 @@ namespace RFFM.Api.Tests.IntegrationTests
                 teamId, "Sesion detalle", null, DateTime.UtcNow, TimeSpan.FromHours(18), null, null, null, null, "Objetivo general", "Mapa texto",
                 new List<SessionBlockRequest>
                 {
-                    new(1, "Bloque 1", "Primer bloque.", null, new List<SessionBlockExerciseRequest> { new(exercise1Id, 1) }),
-                    new(2, "Bloque 2", "Conecta.", "Rotan.", new List<SessionBlockExerciseRequest> { new(exercise2Id, 1), new(exercise1Id, 2) }),
+                    new(1, "Bloque 1", null, new List<SessionBlockExerciseRequest> { new(exercise1Id, 1) }),
+                    new(2, "Bloque 2", "Rotan.", new List<SessionBlockExerciseRequest> { new(exercise2Id, 1), new(exercise1Id, 2) }),
                 })
             { UserId = userId };
             var sessionId = await new CreateSessionHandler(createDb).Handle(command, CancellationToken.None);

@@ -15,7 +15,6 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.Trainings
             builder.Property(x => x.TrainingSessionId).IsRequired().HasMaxLength(36);
             builder.Property(x => x.Order).IsRequired();
             builder.Property(x => x.Nombre).IsRequired().HasMaxLength(200);
-            builder.Property(x => x.ComoConectaConAnterior).IsRequired().HasMaxLength(2000);
             builder.Property(x => x.RotacionEntreEjercicios).IsRequired(false).HasMaxLength(2000);
 
             builder.HasMany(x => x.Exercises)

@@ -92,7 +92,7 @@ namespace RFFM.Api.Tests.IntegrationTests
                 teamId, "Sesion", null, DateTime.UtcNow, TimeSpan.FromHours(18), null, null, null, null, null, null,
                 new List<SessionBlockRequest>
                 {
-                    new(1, "Bloque 1", "Primer bloque.", null, new List<SessionBlockExerciseRequest> { new(exerciseId, 1) })
+                    new(1, "Bloque 1", null, new List<SessionBlockExerciseRequest> { new(exerciseId, 1) })
                 })
             { UserId = userId };
             await new CreateSessionHandler(createSessionDb).Handle(sessionCommand, CancellationToken.None);

@@ -96,7 +96,7 @@ namespace RFFM.Api.Tests.IntegrationTests
                 TimeSpan.FromHours(18), null, null, null, null, null, null,
                 new List<SessionBlockRequest>
                 {
-                    new(1, "Bloque 1", "Primer bloque de la sesion.", null,
+                    new(1, "Bloque 1", null,
                         new List<SessionBlockExerciseRequest> { new(exerciseId, 1) })
                 },
                 userId);
@@ -135,7 +135,7 @@ namespace RFFM.Api.Tests.IntegrationTests
                 "session-1", "Sesion 1", null, DateTime.UtcNow, TimeSpan.FromHours(18), null, null, null, null, null, null,
                 new List<SessionBlockRequest>
                 {
-                    new(1, "Bloque 1", "Conecta.", null, new List<SessionBlockExerciseRequest>())
+                    new(1, "Bloque 1", null, new List<SessionBlockExerciseRequest>())
                 },
                 "user-1");
 

@@ -72,7 +72,7 @@ namespace RFFM.Api.Tests.IntegrationTests
                 teamId, name, null, DateTime.UtcNow, TimeSpan.FromHours(18), null, null, null, null, null, null,
                 new List<SessionBlockRequest>
                 {
-                    new(1, "Bloque 1", "Primer bloque de la sesion.", null,
+                    new(1, "Bloque 1", null,
                         new List<SessionBlockExerciseRequest> { new(exerciseId, 1) })
                 })
             { UserId = userId };

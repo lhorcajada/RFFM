@@ -84,7 +84,6 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
         string Id,
         int Order,
         string Nombre,
-        string ComoConectaConAnterior,
         string? RotacionEntreEjercicios,
         IEnumerable<SessionBlockExerciseDetail> Exercises);
 
@@ -156,7 +155,7 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
                 session.Blocks
                     .OrderBy(b => b.Order)
                     .Select(b => new SessionBlockDetail(
-                        b.Id, b.Order, b.Nombre, b.ComoConectaConAnterior, b.RotacionEntreEjercicios,
+                        b.Id, b.Order, b.Nombre, b.RotacionEntreEjercicios,
                         b.Exercises
                             .OrderBy(e => e.Position)
                             .Select(e => new SessionBlockExerciseDetail(

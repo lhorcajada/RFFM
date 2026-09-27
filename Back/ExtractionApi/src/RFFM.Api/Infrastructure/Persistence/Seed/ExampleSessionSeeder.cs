@@ -38,22 +38,18 @@ namespace RFFM.Api.Infrastructure.Persistence.Seed
             var retoDeToques = await UpsertExerciseAsync(db, clubId, BuildRetoDeToques(), ct);
 
             await UpsertSessionAsync(db, teamId, microcicloId,
-                new List<(string Nombre, string ComoConecta, string? Rotacion, List<(string ExerciseId, int Position)> Exercises)>
+                new List<(string Nombre, string? Rotacion, List<(string ExerciseId, int Position)> Exercises)>
                 {
                     ("Bloque 1 — Calentamiento",
-                        "Primer bloque de la sesión — aísla perfilamiento y anticipación antes de meter oposición real.",
                         null,
                         new List<(string, int)> { (rondo, 1) }),
                     ("Bloque 2 — Ejercicio principal 1",
-                        "Mismo terreno ya montado, mismo objetivo de fondo (perfilamiento/anticipación) pero ahora con oposición real y objetivo de bloque colectivo.",
                         "Cada 6 min (3 rotaciones), 5 jugadores pasan de un ejercicio al otro y viceversa, procurando que a lo largo del bloque roten jugadores distintos.",
                         new List<(string, int)> { (defensaBloqueMedio, 1), (circuitoFisico, 2) }),
                     ("Bloque 3 — Ejercicio principal 2 (Transición defensa-ataque)",
-                        "Cada punto arranca igual que el bloque anterior — Azul construyendo desde su Zona de Creación (Rival) contra el bloque medio de Rojo — pero aquí esa fase queda integrada como el arranque del propio ejercicio, y el punto no se detiene hasta que el balón sale o hay gol.",
                         null,
                         new List<(string, int)> { (transicion, 1) }),
                     ("Bloque 4 — Vuelta a la calma",
-                        "Cierre de la sesión, sin contenido táctico nuevo.",
                         null,
                         new List<(string, int)> { (retoDeToques, 1) }),
                 }, ct);
@@ -105,7 +101,7 @@ namespace RFFM.Api.Infrastructure.Persistence.Seed
         // ── Session + Blocks (upsert by Name within the team) ──────────────────────────
 
         private static async Task UpsertSessionAsync(AppDbContext db, string teamId, string microcicloId,
-            List<(string Nombre, string ComoConecta, string? Rotacion, List<(string ExerciseId, int Position)> Exercises)> blocks,
+            List<(string Nombre, string? Rotacion, List<(string ExerciseId, int Position)> Exercises)> blocks,
             CancellationToken ct)
         {
             const string sessionName = "Sesión 1 — Defensa organizada 1.1 + Transición defensa-ataque 1.1";
@@ -136,7 +132,7 @@ namespace RFFM.Api.Infrastructure.Persistence.Seed
             foreach (var blockData in blocks)
             {
                 order++;
-                var block = new SessionBlock(session.Id, order, blockData.Nombre, blockData.ComoConecta, blockData.Rotacion);
+                var block = new SessionBlock(session.Id, order, blockData.Nombre, blockData.Rotacion);
                 block.ReplaceExercises(blockData.Exercises);
                 session.Blocks.Add(block);
             }

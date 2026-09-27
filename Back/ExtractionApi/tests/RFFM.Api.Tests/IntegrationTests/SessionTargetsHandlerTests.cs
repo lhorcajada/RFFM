@@ -159,7 +159,7 @@ namespace RFFM.Api.Tests.IntegrationTests
                 teamId, "Sesion con fecha", null, new DateTime(2026, 9, 3, 0, 0, 0, DateTimeKind.Utc), TimeSpan.FromHours(18), null,
                 null, null, null, null, null, new List<SessionBlockRequest>
                 {
-                    new(1, "Bloque 1", "Primer bloque.", null, new List<SessionBlockExerciseRequest>())
+                    new(1, "Bloque 1", null, new List<SessionBlockExerciseRequest>())
                 })
             { UserId = userId };
 
@@ -234,7 +234,7 @@ namespace RFFM.Api.Tests.IntegrationTests
                 sessionId, "Sesion ahora con fecha", null, new DateTime(2026, 9, 5, 0, 0, 0, DateTimeKind.Utc), TimeSpan.FromHours(18), null,
                 null, null, null, null, null, new List<SessionBlockRequest>
                 {
-                    new(1, "Bloque 1", "Primer bloque.", null, new List<SessionBlockExerciseRequest>())
+                    new(1, "Bloque 1", null, new List<SessionBlockExerciseRequest>())
                 }, userId);
             await new UpdateSessionHandler(updateDb).Handle(updateCommand, CancellationToken.None);
 

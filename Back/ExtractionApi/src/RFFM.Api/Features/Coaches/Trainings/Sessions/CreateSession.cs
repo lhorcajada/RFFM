@@ -48,7 +48,6 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
     public record SessionBlockRequest(
         int Order,
         string Nombre,
-        string ComoConectaConAnterior,
         string? RotacionEntreEjercicios,
         List<SessionBlockExerciseRequest> Exercises);
 
@@ -125,7 +124,7 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
             foreach (var blockRequest in request.Blocks.OrderBy(b => b.Order))
             {
                 var block = new SessionBlock(session.Id, blockRequest.Order, blockRequest.Nombre,
-                    blockRequest.ComoConectaConAnterior, blockRequest.RotacionEntreEjercicios);
+                    blockRequest.RotacionEntreEjercicios);
                 block.ReplaceExercises(blockRequest.Exercises.Select(e => (e.ExerciseId, e.Position)));
                 session.Blocks.Add(block);
             }
@@ -215,8 +214,6 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
         public SessionBlockRequestValidator()
         {
             RuleFor(x => x.Nombre).NotEmpty().MaximumLength(200);
-            RuleFor(x => x.ComoConectaConAnterior).NotEmpty()
-                .WithMessage("Todo bloque debe indicar cómo conecta con el anterior, incluso el primero.");
         }
     }
 }

@@ -79,7 +79,7 @@ namespace RFFM.Api.Tests.IntegrationTests
                 teamId, "Sesion 1", null, DateTime.UtcNow, TimeSpan.FromHours(18), null, null, null, null, null, null,
                 new List<SessionBlockRequest>
                 {
-                    new(1, "Bloque 1", "Primer bloque de la sesion.", null,
+                    new(1, "Bloque 1", null,
                         new List<SessionBlockExerciseRequest> { new(exerciseId, 1) })
                 })
             { UserId = userId };
@@ -111,7 +111,7 @@ namespace RFFM.Api.Tests.IntegrationTests
                 teamId, "Sesion 1", null, DateTime.UtcNow, TimeSpan.FromHours(18), null, null, null, null, null, null,
                 new List<SessionBlockRequest>
                 {
-                    new(1, "Bloque 2", "Conecta con el anterior.", "Rotan cada 6 min.",
+                    new(1, "Bloque 2", "Rotan cada 6 min.",
                         new List<SessionBlockExerciseRequest> { new(exercise1Id, 1), new(exercise2Id, 2) })
                 })
             { UserId = userId };
@@ -146,7 +146,7 @@ namespace RFFM.Api.Tests.IntegrationTests
                 TimeSpan.FromHours(18), null, null, null, null, null, null,
                 new List<SessionBlockRequest>
                 {
-                    new(1, "Bloque 1", "Primer bloque de la sesion.", null,
+                    new(1, "Bloque 1", null,
                         new List<SessionBlockExerciseRequest> { new(exerciseId, 1) })
                 })
             { UserId = userId };
@@ -162,13 +162,13 @@ namespace RFFM.Api.Tests.IntegrationTests
         }
 
         [Fact]
-        public void Validator_RejectsBlockWithoutComoConectaConAnterior_EvenForFirstBlock()
+        public void Validator_RejectsBlockWithoutNombre()
         {
             var command = new CreateSessionCommand(
                 "team-1", "Sesion 1", null, DateTime.UtcNow, TimeSpan.FromHours(18), null, null, null, null, null, null,
                 new List<SessionBlockRequest>
                 {
-                    new(1, "Bloque 1", "", null, new List<SessionBlockExerciseRequest> { new("ex-1", 1) })
+                    new(1, "", null, new List<SessionBlockExerciseRequest> { new("ex-1", 1) })
                 });
 
             var validator = new CreateSessionValidator();
@@ -200,7 +200,7 @@ namespace RFFM.Api.Tests.IntegrationTests
                 "team-1", "Sesion 1", null, DateTime.UtcNow, TimeSpan.FromHours(18), null, null, null, null, null, null,
                 new List<SessionBlockRequest>
                 {
-                    new(1, "Bloque 1", "Conecta.", null, new List<SessionBlockExerciseRequest>())
+                    new(1, "Bloque 1", null, new List<SessionBlockExerciseRequest>())
                 });
 
             var validator = new CreateSessionValidator();

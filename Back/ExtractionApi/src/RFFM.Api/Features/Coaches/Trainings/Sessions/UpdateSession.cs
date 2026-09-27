@@ -144,7 +144,7 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
             foreach (var blockRequest in request.Blocks.OrderBy(b => b.Order))
             {
                 var block = new SessionBlock(session.Id, blockRequest.Order, blockRequest.Nombre,
-                    blockRequest.ComoConectaConAnterior, blockRequest.RotacionEntreEjercicios);
+                    blockRequest.RotacionEntreEjercicios);
                 block.ReplaceExercises(blockRequest.Exercises.Select(e => (e.ExerciseId, e.Position)));
                 session.Blocks.Add(block);
             }

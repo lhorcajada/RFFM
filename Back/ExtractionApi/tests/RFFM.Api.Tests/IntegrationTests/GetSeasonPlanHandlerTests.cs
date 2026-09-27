@@ -147,7 +147,7 @@ namespace RFFM.Api.Tests.IntegrationTests
                 Name = "Sesion 1", TeamId = teamId, Date = DateTime.UtcNow, MicrocicloId = microcicloId,
                 ObjetivoGeneral = "Objetivo de la sesion",
             };
-            var block = new SessionBlock(session.Id, 1, "Bloque 1", "Primer bloque.", null);
+            var block = new SessionBlock(session.Id, 1, "Bloque 1", null);
             block.ReplaceExercises(new[] { (exercise1.Id, 1), (exercise2.Id, 2) });
             session.Blocks.Add(block);
             seedDb.TrainingSessions.Add(session);
