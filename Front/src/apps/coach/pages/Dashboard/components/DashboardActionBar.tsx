@@ -12,6 +12,8 @@ export default function DashboardActionBar({
 }: DashboardActionBarProps) {
   const navigate = useNavigate();
 
+  if (isPlayer) return null;
+
   return (
     <div className={styles.actionBarContent}>
       <Button

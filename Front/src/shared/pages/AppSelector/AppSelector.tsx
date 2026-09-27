@@ -1,4 +1,4 @@
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Navigate } from "react-router-dom";
 import { useEffect } from "react";
 import SportsIcon from "@mui/icons-material/Sports";
 import GroupsIcon from "@mui/icons-material/Groups";
@@ -6,6 +6,7 @@ import styles from "./AppSelector.module.css";
 import BaseLayout from "../../components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../components/ui/ContentLayout/ContentLayout";
 import { coachAuthService } from "../../../apps/coach/services/authService";
+import { computeIsPlayerRole } from "../../../apps/coach/hooks/isPlayerRole";
 import { useTeamAppEntry } from "./hooks/useTeamAppEntry";
 import AppCard from "./components/AppCard";
 import TrialConfirmDialog from "../../components/TrialConfirmDialog";
@@ -62,15 +63,24 @@ export default function AppSelector() {
   } = useTeamAppEntry();
 
   // If the dashboard sent us back because the player has no team linked, open the re-link dialog
+  const needsTeamRelink =
+    (location.state as { needsTeamRelink?: boolean } | null)?.needsTeamRelink === true;
+
   useEffect(() => {
-    const state = location.state as { needsTeamRelink?: boolean } | null;
-    if (state?.needsTeamRelink && coachAuthService.isAuthenticated()) {
+    if (needsTeamRelink && coachAuthService.isAuthenticated()) {
       openPlayerRelinkDialog();
       // Clear the state so a refresh doesn't re-trigger the dialog
       window.history.replaceState({}, "", location.pathname);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Players and family members only have one destination; the relink flow still needs this page.
+  const goesStraightToTeam =
+    !needsTeamRelink &&
+    coachAuthService.isAuthenticated() &&
+    computeIsPlayerRole(coachAuthService.getRoles());
+  if (goesStraightToTeam) return <Navigate to="/coach/dashboard" replace />;
 
   return (
     <BaseLayout hideFooterMenu>

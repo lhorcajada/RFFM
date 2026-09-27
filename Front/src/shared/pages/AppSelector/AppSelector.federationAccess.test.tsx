@@ -19,6 +19,7 @@ vi.mock("../../../apps/coach/services/authService", () => ({
   coachAuthService: {
     isAuthenticated: vi.fn(() => true),
     hasRole: vi.fn(() => false),
+    getRoles: vi.fn(() => []),
     getToken: vi.fn(() => "fake-token"),
   },
 }));

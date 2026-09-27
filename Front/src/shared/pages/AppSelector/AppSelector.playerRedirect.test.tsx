@@ -1,19 +1,9 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Routes, Route } from "react-router-dom";
 import AppSelector from "./AppSelector";
 import { coachAuthService } from "../../../apps/coach/services/authService";
 import { UserProvider } from "../../context/UserContext";
-
-const mockNavigate = vi.fn();
-
-vi.mock("react-router-dom", async () => {
-  const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
-  return {
-    ...actual,
-    useNavigate: () => mockNavigate,
-  };
-});
 
 vi.mock("../../../apps/coach/services/authService", () => ({
   coachAuthService: {
@@ -24,14 +14,10 @@ vi.mock("../../../apps/coach/services/authService", () => ({
   },
 }));
 
-const openChangeRoleDialog = vi.fn();
-const handleKeepRole = vi.fn();
-
 vi.mock("./hooks/useTeamAppEntry", () => ({
   useTeamAppEntry: () => ({
     changeRoleOpen: false,
-    openChangeRoleDialog,
-    handleKeepRole,
+    handleKeepRole: vi.fn(),
     handleChangeRole: vi.fn(),
     userTypeOpen: false,
     openUserTypeDialog: vi.fn(),
@@ -63,29 +49,54 @@ vi.mock("./hooks/useTeamAppEntry", () => ({
   }),
 }));
 
-function renderAppSelector() {
+function renderAt(state?: unknown) {
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[{ pathname: "/appSelector", state }]}>
       <UserProvider>
-        <AppSelector />
+        <Routes>
+          <Route path="/appSelector" element={<AppSelector />} />
+          <Route path="/coach/dashboard" element={<div>Coach dashboard</div>} />
+        </Routes>
       </UserProvider>
     </MemoryRouter>
   );
 }
 
-describe("AppSelector — entrada de Coach a 'Mi equipo'", () => {
+describe("AppSelector — jugadores y familiares van directos a Mi equipo", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(coachAuthService.isAuthenticated).mockReturnValue(true);
   });
 
-  it("un coach con rol ya asignado entra directamente, sin preguntar si quiere cambiar de rol", () => {
-    vi.mocked(coachAuthService.hasRole).mockImplementation((role: string) => role === "Coach");
+  it("redirige a un jugador directamente a /coach/dashboard", async () => {
+    vi.mocked(coachAuthService.getRoles).mockReturnValue(["Player"]);
 
-    renderAppSelector();
-    fireEvent.click(screen.getByText("Mi equipo"));
+    renderAt();
 
-    expect(handleKeepRole).toHaveBeenCalled();
-    expect(openChangeRoleDialog).not.toHaveBeenCalled();
+    expect(await screen.findByText("Coach dashboard")).toBeInTheDocument();
+  });
+
+  it("redirige a un familiar de jugador directamente a /coach/dashboard", async () => {
+    vi.mocked(coachAuthService.getRoles).mockReturnValue(["FamilyMember"]);
+
+    renderAt();
+
+    expect(await screen.findByText("Coach dashboard")).toBeInTheDocument();
+  });
+
+  it("muestra el selector a un jugador que también es entrenador", () => {
+    vi.mocked(coachAuthService.getRoles).mockReturnValue(["Player", "Coach"]);
+
+    renderAt();
+
+    expect(screen.getByText("Selecciona tu aplicación")).toBeInTheDocument();
+  });
+
+  it("muestra el selector a un jugador que debe volver a vincular su equipo", () => {
+    vi.mocked(coachAuthService.getRoles).mockReturnValue(["Player"]);
+
+    renderAt({ needsTeamRelink: true });
+
+    expect(screen.getByText("Selecciona tu aplicación")).toBeInTheDocument();
   });
 });
