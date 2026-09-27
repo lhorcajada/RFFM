@@ -194,6 +194,13 @@ const coachTheme = createTheme({
           },
       },
     },
+    MuiInputBase: {
+      styleOverrides: {
+        input: {
+          colorScheme: "dark",
+        },
+      },
+    },
     MuiOutlinedInput: {
       styleOverrides: {
         root: {
