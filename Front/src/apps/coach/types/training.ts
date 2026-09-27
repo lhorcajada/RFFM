@@ -90,7 +90,6 @@ export interface SessionBlock {
   id: string;
   order: number;
   nombre: string;
-  comoConectaConAnterior: string;
   rotacionEntreEjercicios?: string | null;
   exercises: SessionBlockExercise[];
 }

@@ -24,7 +24,7 @@ describe("useSessionForm — validación al guardar", () => {
     act(() => result.current.setField("date", "2026-09-01"));
     act(() =>
       result.current.setField("blocks", [
-        { order: 1, nombre: "Bloque 1", comoConectaConAnterior: "Primer bloque", rotacionEntreEjercicios: null, exercises: [{ exerciseId: "ex-1", position: 1 }] },
+        { order: 1, nombre: "Bloque 1", rotacionEntreEjercicios: null, exercises: [{ exerciseId: "ex-1", position: 1 }] },
       ])
     );
 
@@ -36,8 +36,9 @@ describe("useSessionForm — validación al guardar", () => {
     expect(trainingService.createSession).not.toHaveBeenCalled();
   });
 
-  it("bloquea el guardado cuando un bloque no tiene 'Cómo conecta con el anterior', incluso el primero", async () => {
+  it("guarda un bloque que solo tiene nombre (ya no se pide cómo conecta con el anterior)", async () => {
     const trainingService = (await import("../../../../../services/trainingService")).default;
+    (trainingService.createSession as ReturnType<typeof vi.fn>).mockResolvedValue({ id: "sess-new" });
     const { result } = renderHook(() =>
       useSessionForm({ teamId: "team-1", navigate, returnTo: "/coach/trainings" })
     );
@@ -46,7 +47,7 @@ describe("useSessionForm — validación al guardar", () => {
     act(() => result.current.setField("date", "2026-09-01"));
     act(() =>
       result.current.setField("blocks", [
-        { order: 1, nombre: "Bloque 1", comoConectaConAnterior: "", rotacionEntreEjercicios: null, exercises: [{ exerciseId: "ex-1", position: 1 }] },
+        { order: 1, nombre: "Bloque 1", rotacionEntreEjercicios: null, exercises: [{ exerciseId: "ex-1", position: 1 }] },
       ])
     );
 
@@ -54,8 +55,9 @@ describe("useSessionForm — validación al guardar", () => {
       await result.current.handleSave();
     });
 
-    expect(result.current.error).toMatch(/conecta/i);
-    expect(trainingService.createSession).not.toHaveBeenCalled();
+    expect(result.current.error).toBeNull();
+    const payload = (trainingService.createSession as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    expect(payload.blocks[0]).not.toHaveProperty("comoConectaConAnterior");
   });
 
   it("guarda correctamente una sesión con fecha pero sin ningún bloque", async () => {
@@ -89,7 +91,7 @@ describe("useSessionForm — validación al guardar", () => {
     act(() => result.current.setField("date", "2026-09-01"));
     act(() =>
       result.current.setField("blocks", [
-        { order: 1, nombre: "Bloque 1", comoConectaConAnterior: "Primer bloque", rotacionEntreEjercicios: null, exercises: [{ exerciseId: "ex-1", position: 1 }] },
+        { order: 1, nombre: "Bloque 1", rotacionEntreEjercicios: null, exercises: [{ exerciseId: "ex-1", position: 1 }] },
       ])
     );
 
@@ -135,7 +137,7 @@ describe("useSessionForm — validación al guardar", () => {
     act(() => result.current.setField("date", "2026-09-01"));
     act(() =>
       result.current.setField("blocks", [
-        { order: 1, nombre: "Bloque 1", comoConectaConAnterior: "Primer bloque", rotacionEntreEjercicios: null, exercises: [] },
+        { order: 1, nombre: "Bloque 1", rotacionEntreEjercicios: null, exercises: [] },
       ])
     );
 
@@ -304,7 +306,7 @@ describe("useSessionForm — targetSubSubPrincipioIds pasa intacto (design.md F9
         mapaCampoTexto: null,
         urlImage: null,
         blocks: [
-          { id: "b1", order: 1, nombre: "Bloque 1", comoConectaConAnterior: "Primero", rotacionEntreEjercicios: null, exercises: [{ id: "e1", exerciseId: "ex-1", position: 1 }] },
+          { id: "b1", order: 1, nombre: "Bloque 1", rotacionEntreEjercicios: null, exercises: [{ id: "e1", exerciseId: "ex-1", position: 1 }] },
         ],
         targets: [
           {

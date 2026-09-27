@@ -193,7 +193,6 @@ export default function ContentBoardPage() {
       blocks: detail.blocks.map((b) => ({
         order: b.order,
         nombre: b.nombre,
-        comoConectaConAnterior: b.comoConectaConAnterior,
         rotacionEntreEjercicios: b.rotacionEntreEjercicios ?? null,
         exercises: b.exercises.map((e) => ({ exerciseId: e.exerciseId, position: e.position })),
       })),

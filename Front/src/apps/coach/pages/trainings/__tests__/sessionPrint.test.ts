@@ -68,7 +68,7 @@ describe("buildSessionPrintHtml", () => {
     expect(empty).not.toContain("Mapa de campo");
   });
 
-  it("renderiza los bloques con su conexión con el anterior y sus ejercicios", () => {
+  it("renderiza los bloques con su rotación y sus ejercicios, sin 'Conexión con el bloque anterior'", () => {
     const html = buildSessionPrintHtml(
       buildSession({
         blocks: [
@@ -76,7 +76,6 @@ describe("buildSessionPrintHtml", () => {
             id: "b1",
             order: 1,
             nombre: "Activación",
-            comoConectaConAnterior: "Primer bloque de la sesión",
             rotacionEntreEjercicios: "Cambio cada 8 minutos",
             exercises: [
               { id: "be1", exerciseId: "ex1", position: 1, exerciseName: "Rondo 4v2", exerciseDurationMinutes: 15 },
@@ -86,7 +85,7 @@ describe("buildSessionPrintHtml", () => {
       }),
     );
     expect(html).toContain("Activación");
-    expect(html).toContain("Primer bloque de la sesión");
+    expect(html).not.toContain("Conexión con el bloque anterior");
     expect(html).toContain("Cambio cada 8 minutos");
     expect(html).toContain("Rondo 4v2");
     expect(html).toContain("15 min");
@@ -140,7 +139,6 @@ describe("buildSessionPrintHtml", () => {
           id: "b1",
           order: 1,
           nombre: "Activación",
-          comoConectaConAnterior: "",
           exercises: [{ id: "be1", exerciseId: "ex1", position: 1, exerciseName: "Rondo 4v2" }],
         },
       ],
@@ -182,7 +180,6 @@ describe("buildSessionPrintHtml", () => {
           id: "b1",
           order: 1,
           nombre: "Activación",
-          comoConectaConAnterior: "",
           exercises: [{ id: "be1", exerciseId: "ex1", position: 1, exerciseName: "Rondo 4v2" }],
         },
       ],
@@ -203,7 +200,6 @@ describe("buildSessionPrintHtml", () => {
           id: "b1",
           order: 1,
           nombre: "Activación",
-          comoConectaConAnterior: "",
           exercises: [{ id: "be1", exerciseId: "ex1", position: 1, exerciseName: "Rondo 4v2" }],
         },
       ],
@@ -223,7 +219,6 @@ describe("buildSessionPrintHtml", () => {
           id: "b1",
           order: 1,
           nombre: "Activación",
-          comoConectaConAnterior: "",
           exercises: [{ id: "be1", exerciseId: "ex1", position: 1, exerciseName: "Rondo 4v2" }],
         },
       ],
@@ -247,7 +242,6 @@ describe("buildSessionPrintHtml", () => {
           id: "b1",
           order: 1,
           nombre: "Activación",
-          comoConectaConAnterior: "",
           exercises: [{ id: "be1", exerciseId: "ex1", position: 1, exerciseName: "Rondo 4v2" }],
         },
       ],
@@ -271,7 +265,6 @@ describe("buildSessionPrintHtml", () => {
           id: "b1",
           order: 1,
           nombre: "Activación",
-          comoConectaConAnterior: "",
           exercises: [
             { id: "be1", exerciseId: "ex1", position: 1, exerciseName: "Rondo 4v2", exerciseDurationMinutes: 15 },
           ],

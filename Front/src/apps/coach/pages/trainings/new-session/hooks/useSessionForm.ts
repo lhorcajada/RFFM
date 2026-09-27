@@ -60,7 +60,6 @@ export function useSessionForm({ teamId, navigate, returnTo, microcicloId }: Use
       blocks: session.blocks.map((b) => ({
         order: b.order,
         nombre: b.nombre,
-        comoConectaConAnterior: b.comoConectaConAnterior,
         rotacionEntreEjercicios: b.rotacionEntreEjercicios ?? null,
         exercises: b.exercises.map((e) => ({ exerciseId: e.exerciseId, position: e.position })),
       })),
@@ -75,9 +74,6 @@ export function useSessionForm({ teamId, navigate, returnTo, microcicloId }: Use
     if (!form.name.trim()) return "El nombre es obligatorio.";
     // A session may be saved with no blocks, and a block may be saved with no exercises —
     // there is no minimum content requirement, regardless of whether the session has a Date.
-    const blockWithoutConnection = form.blocks.find((b) => !b.comoConectaConAnterior.trim());
-    if (blockWithoutConnection)
-      return "Todo bloque debe indicar cómo conecta con el anterior, incluso el primero.";
     return null;
   };
 

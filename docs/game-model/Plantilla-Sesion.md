@@ -26,7 +26,6 @@ Una sesión es una secuencia de bloques con sentido narrativo entre sí — cada
 
 ## Bloque N — [nombre]
 
-- **Cómo conecta con el bloque anterior:**
 - **Rotación entre ejercicios:** *(solo si este bloque combina más de un ejercicio en paralelo — cuándo cambian, cuántas veces, con qué criterio)*
 
 ### Ejercicio(s) de este bloque

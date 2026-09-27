@@ -87,7 +87,6 @@ function buildBlocksHtml(
 
       return `<div class="block">
         <h3>${escapeHtml(block.nombre)}</h3>
-        ${block.comoConectaConAnterior ? `<p class="connector"><strong>Conexión con el bloque anterior:</strong> ${escapeHtml(block.comoConectaConAnterior)}</p>` : ""}
         ${block.rotacionEntreEjercicios ? `<p class="connector"><strong>Rotación entre ejercicios:</strong> ${escapeHtml(block.rotacionEntreEjercicios)}</p>` : ""}
         ${exercisesHtml ? `<ul class="exercise-list">${exercisesHtml}</ul>` : ""}
       </div>`;
