@@ -34,6 +34,7 @@ namespace RFFM.Api.Tests.UnitTests
         [InlineData("Duelo aéreo")]
         [InlineData("Cambio de orientación")]
         [InlineData("Repliegue")]
+        [InlineData("Colocación")]
         public void Create_WithVocabularyName_Succeeds(string nombre)
         {
             var habilidad = new Habilidad("ssp-1", nombre, "Descripcion", "Entrenable", null);
