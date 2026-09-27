@@ -102,9 +102,7 @@ export default function AppSelector() {
                   }
                   if (
                     coachAuthService.hasRole("Administrator") ||
-                    coachAuthService.hasRole("Federation") ||
-                    coachAuthService.hasRole("Player") ||
-                    coachAuthService.hasRole("FamilyMember")
+                    coachAuthService.hasRole("Federation")
                   ) {
                     navigate("/federation/dashboard");
                   } else {

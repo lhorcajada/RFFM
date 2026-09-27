@@ -76,7 +76,7 @@ describe("AppSelector — entrada de Player/FamilyMember a 'Federación'", () =>
     vi.mocked(coachAuthService.isAuthenticated).mockReturnValue(true);
   });
 
-  it("un usuario con rol FamilyMember accede a Federación", () => {
+  it("un usuario con rol FamilyMember no accede a Federación", () => {
     vi.mocked(coachAuthService.hasRole).mockImplementation(
       (role: string) => role === "FamilyMember"
     );
@@ -84,12 +84,23 @@ describe("AppSelector — entrada de Player/FamilyMember a 'Federación'", () =>
     renderAppSelector();
     fireEvent.click(screen.getByText("Federación"));
 
-    expect(mockNavigate).toHaveBeenCalledWith("/federation/dashboard");
+    expect(mockNavigate).not.toHaveBeenCalledWith("/federation/dashboard");
   });
 
-  it("un usuario con rol Player accede a Federación", () => {
+  it("un usuario con rol Player no accede a Federación", () => {
     vi.mocked(coachAuthService.hasRole).mockImplementation(
       (role: string) => role === "Player"
+    );
+
+    renderAppSelector();
+    fireEvent.click(screen.getByText("Federación"));
+
+    expect(mockNavigate).not.toHaveBeenCalledWith("/federation/dashboard");
+  });
+
+  it("un usuario con rol Federation accede a Federación", () => {
+    vi.mocked(coachAuthService.hasRole).mockImplementation(
+      (role: string) => role === "Federation"
     );
 
     renderAppSelector();

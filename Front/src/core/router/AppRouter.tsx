@@ -157,9 +157,7 @@ export default function AppRouter() {
         <Route
           path="/federation/*"
           element={
-            <RequireAuth
-              requiredRoles={["Federation", "Player", "FamilyMember"]}
-            >
+            <RequireAuth requiredRole="Federation">
               <FederationApp />
             </RequireAuth>
           }
