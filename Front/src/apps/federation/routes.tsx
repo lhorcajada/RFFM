@@ -12,6 +12,7 @@ const Classification = lazy(
   () => import("./pages/Classification/Classification"),
 );
 const Squad = lazy(() => import("./pages/Squad/GetPlayers"));
+const SquadHistory = lazy(() => import("./pages/SquadHistory/SquadHistory"));
 const Acta = lazy(() => import("./pages/Acta/Acta"));
 const Goleadores = lazy(() => import("./pages/Goleadores/Goleadores"));
 const Matchday = lazy(() => import("./pages/Matchday/Matchday"));
@@ -81,6 +82,7 @@ export default function FederationRoutes() {
         <Route path="calendar" element={<Calendar />} />
         <Route path="classification" element={<Classification />} />
         <Route path="get-players" element={<Squad />} />
+        <Route path="squad-history/:teamCode" element={<SquadHistory />} />
         <Route path="acta/:codacta" element={<Acta />} />
         <Route path="goleadores" element={<Goleadores />} />
         <Route path="callups" element={<Callups />} />

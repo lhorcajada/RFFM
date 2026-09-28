@@ -1,4 +1,4 @@
-import client from "../../../core/api/client";
+import client from "../../core/api/client";
 
 export type NotificationResponse = {
   id: string;
@@ -17,10 +17,12 @@ export type NotificationSearchResult = {
 
 export async function searchNotifications(
   pageNumber: number,
-  pageSize: number
+  pageSize: number,
+  options: { suppressErrorRedirect?: boolean } = {}
 ): Promise<NotificationSearchResult> {
   const response = await client.get("/api/notifications", {
     params: { pageNumber, pageSize },
+    suppressErrorRedirect: options.suppressErrorRedirect ?? false,
   });
 
   const totalCount = parseInt(response.headers["x-total-count"] ?? "0", 10) || 0;

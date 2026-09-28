@@ -1,0 +1,30 @@
+.icon {
+  font-size: 1.4rem;
+}
+
+.menuPaper {
+  width: min(360px, calc(100vw - 32px));
+  max-height: 420px;
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  white-space: normal;
+}
+
+.unread {
+  border-left: 3px solid currentColor;
+}
+
+.title {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.body {
+  font-size: 0.8rem;
+  opacity: 0.8;
+}

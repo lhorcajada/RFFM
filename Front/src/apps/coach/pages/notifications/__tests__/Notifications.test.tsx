@@ -12,7 +12,7 @@ vi.mock("react-router-dom", async () => {
   return { ...actual, useNavigate: () => navigateMock };
 });
 
-vi.mock("../../../services/notificationService", () => ({
+vi.mock("../../../../../shared/services/notificationService", () => ({
   searchNotifications: vi.fn(),
   markNotificationRead: vi.fn(),
 }));
@@ -28,8 +28,8 @@ vi.mock("../../../services/pushSubscriptionService", () => ({
   unsubscribeFromPushNotifications: vi.fn(),
 }));
 
-import { searchNotifications, markNotificationRead } from "../../../services/notificationService";
-import type { NotificationResponse } from "../../../services/notificationService";
+import { searchNotifications, markNotificationRead } from "../../../../../shared/services/notificationService";
+import type { NotificationResponse } from "../../../../../shared/services/notificationService";
 import Notifications from "../Notifications";
 
 function renderPage() {

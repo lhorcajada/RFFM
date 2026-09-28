@@ -20,7 +20,7 @@ import {
   searchNotifications,
   markNotificationRead,
   type NotificationResponse,
-} from "../../services/notificationService";
+} from "../../../../shared/services/notificationService";
 import styles from "./Notifications.module.css";
 
 const PAGE_SIZE = 25;

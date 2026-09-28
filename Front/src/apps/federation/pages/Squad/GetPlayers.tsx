@@ -26,6 +26,7 @@ import PlayersContainer from "../../components/players/PlayersContainer/PlayersC
 import PlayerRow from "./components/PlayerRow";
 import AgeModal from "./components/AgeModal";
 import ParticipationModal from "./components/ParticipationModal";
+import SquadHistoryButton from "./components/SquadHistoryButton";
 import RffmSeasonSelector from "../../../../shared/components/ui/RffmSeasonSelector/RffmSeasonSelector";
 import { useRffmSeason } from "../../../../shared/context/RffmSeasonContext";
 import useClearOnSeasonChange from "../../../../shared/hooks/useClearOnSeasonChange";
@@ -272,6 +273,14 @@ export default function GetPlayers(): JSX.Element {
                     onClose={() => setShowParticipationPopup(false)}
                     loading={loadingParticipation}
                     data={participationData}
+                  />
+                </div>
+                <div>
+                  <SquadHistoryButton
+                    teamCode={String(selectedTeam.id)}
+                    teamName={selectedTeam.name}
+                    seasonId={Number(season)}
+                    className={styles.homeButton}
                   />
                 </div>
                 <div>

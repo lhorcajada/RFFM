@@ -17,6 +17,7 @@ import useAuthToken from "../../../hooks/useAuthToken";
 import useMyPendingSanctionsCount from "../../../hooks/useMyPendingSanctionsCount";
 import useTeamFundBalance from "../../../hooks/useTeamFundBalance";
 import { useLocation, useNavigate } from "react-router-dom";
+import FederationNotificationsBell from "../FederationNotificationsBell/FederationNotificationsBell";
 import useRootClassObserver from "../../../hooks/useRootClassObserver";
 
 interface AppHeaderProps {
@@ -186,6 +187,7 @@ export default function AppHeader({ title }: AppHeaderProps) {
               </span>
             </IconButton>
           )}
+          {isFederationApp && isAuthValid && <FederationNotificationsBell />}
           {pendingSanctions.visible && (
             <Tooltip title={pendingSanctionsLabel}>
               <IconButton

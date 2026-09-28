@@ -30,6 +30,11 @@ vi.mock("../../../../hooks/useRootClassObserver", () => ({
   default: () => {},
 }));
 
+vi.mock("../../../../services/notificationService", () => ({
+  searchNotifications: vi.fn().mockResolvedValue({ items: [], totalCount: 0 }),
+  markNotificationRead: vi.fn(),
+}));
+
 const navigateMock = vi.fn();
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
