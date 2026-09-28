@@ -29,13 +29,6 @@ export default function Footer({ hideMenu }: FooterProps): JSX.Element {
   const isCoachRoute = loc.pathname.startsWith("/coach");
   const copyrightYear = new Date().getFullYear();
 
-  function formatSeasonDate(value?: string | null) {
-    if (!value) return "-";
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return value.slice(0, 10);
-    return date.toLocaleDateString("es-ES");
-  }
-
   React.useEffect(() => {
     async function checkSettings() {
       try {
@@ -107,11 +100,7 @@ export default function Footer({ hideMenu }: FooterProps): JSX.Element {
   const seasonInfo =
     isCoachRoute && activeSeason ? (
       <div className={styles.seasonInfo} aria-label="Temporada activa">
-        <span className={styles.seasonLabel}>Temporada activa</span>
         <span className={styles.seasonName}>{activeSeason.name ?? activeSeason.id}</span>
-        <span className={styles.seasonRange}>
-          {formatSeasonDate(activeSeason.startDate)} - {formatSeasonDate(activeSeason.endDate)}
-        </span>
       </div>
     ) : null;
 

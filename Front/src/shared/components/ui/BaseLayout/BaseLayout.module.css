@@ -58,7 +58,7 @@
   bottom: var(--rffm-footer-h);
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding: 0;
+  padding: 0 0 12px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;

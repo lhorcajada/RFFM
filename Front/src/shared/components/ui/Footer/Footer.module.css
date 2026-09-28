@@ -3,7 +3,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  height: 64px;
+  height: var(--rffm-footer-h, 64px);
   background: var(
     --rffm-gradient-bg,
     linear-gradient(180deg, #082033 0%, #05313b 100%)
@@ -13,20 +13,17 @@
 }
 
 .rootSeasonOnly {
-  height: auto;
-  min-height: 82px;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 4px;
-  padding: 8px 12px 6px;
+  gap: 2px;
+  padding: 4px 12px;
   box-sizing: border-box;
 }
 
 .rootSeasonOnly .seasonInfo {
   height: auto;
   padding: 0;
-  gap: 1px;
 }
 
 .rootSeasonOnly .copyright {
@@ -64,13 +61,6 @@
   box-sizing: border-box;
 }
 
-.seasonLabel {
-  font-size: 0.68rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.68);
-}
-
 .seasonName {
   font-size: 0.88rem;
   font-weight: 700;
@@ -80,24 +70,13 @@
   max-width: calc(100vw - 32px);
 }
 
-.seasonRange {
-  font-size: 0.78rem;
-  color: rgba(255, 255, 255, 0.84);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: calc(100vw - 32px);
-}
-
 @media (max-width: 480px) {
   .rootSeasonOnly {
-    min-height: 92px;
     padding-left: 10px;
     padding-right: 10px;
   }
 
-  .rootSeasonOnly .seasonName,
-  .rootSeasonOnly .seasonRange {
+  .rootSeasonOnly .seasonName {
     max-width: 100%;
   }
 }
