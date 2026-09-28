@@ -9,10 +9,11 @@ interface UseExerciseFormParams {
   clubId: string;
   navigate: NavigateFunction;
   returnTo: string;
+  returnState?: unknown;
   getBoardStateJson?: () => string;
 }
 
-export function useExerciseForm({ clubId, navigate, returnTo, getBoardStateJson }: UseExerciseFormParams) {
+export function useExerciseForm({ clubId, navigate, returnTo, returnState, getBoardStateJson }: UseExerciseFormParams) {
   const [form, setForm] = useState<CreateExerciseRequest>({ ...emptyExercise, clubId });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -116,7 +117,7 @@ export function useExerciseForm({ clubId, navigate, returnTo, getBoardStateJson 
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const handleCancel = () => navigate(returnTo, { replace: true });
+  const handleCancel = () => navigate(returnTo, { replace: true, state: returnState });
 
   /** Mirrors the backend's invariants client-side so the coach gets an inline error instead
    * of a 400 round-trip for the common cases (design.md Frontend §4). Returns the first

@@ -32,6 +32,24 @@ describe("useExerciseForm — campos por defecto", () => {
   });
 });
 
+describe("useExerciseForm — volver", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("al volver devuelve el estado de navegación recibido para que la pantalla anterior conserve su propio destino de vuelta", () => {
+    const returnState = { returnTo: "/coach/trainings/content-board?clubId=club-1&teamId=team-1" };
+    const { result } = renderHook(() =>
+      useExerciseForm({ clubId: "club-1", navigate, returnTo: "/coach/trainings/new-session?teamId=team-1", returnState })
+    );
+
+    act(() => result.current.handleCancel());
+
+    expect(navigate).toHaveBeenCalledWith("/coach/trainings/new-session?teamId=team-1", {
+      replace: true,
+      state: returnState,
+    });
+  });
+});
+
 describe("useExerciseForm — validación al guardar", () => {
   beforeEach(() => vi.clearAllMocks());
 

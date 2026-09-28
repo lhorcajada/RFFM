@@ -1,5 +1,6 @@
 export interface NavState {
   returnTo?: string;
+  returnState?: unknown;
 }
 
 export interface ChapaPosition {

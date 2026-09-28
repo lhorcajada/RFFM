@@ -45,8 +45,8 @@ vi.mock("../../../../services/sportEventService", () => ({
 
 import NewSessionPage from "../NewSessionPage";
 
-function renderPage(search = "clubId=club-1&teamId=team-1") {
-  mockUseLocation.mockReturnValue({ pathname: "/coach/trainings/new-session", search: `?${search}`, state: null });
+function renderPage(search = "clubId=club-1&teamId=team-1", state: unknown = null) {
+  mockUseLocation.mockReturnValue({ pathname: "/coach/trainings/new-session", search: `?${search}`, state });
   return render(
     <MemoryRouter initialEntries={[`/coach/trainings/new-session?${search}`]}>
       <NewSessionPage />
@@ -75,5 +75,29 @@ describe("NewSessionPage — crear ejercicio nuevo inline desde un bloque", () =
         expect.objectContaining({ state: expect.objectContaining({ sessionDraftKey: expect.any(String) }) })
       );
     });
+  });
+
+  it("conserva el destino de vuelta de la sesión para que al volver del ejercicio no se pierda el teamId", async () => {
+    const boardUrl = "/coach/trainings/content-board?clubId=club-1&teamId=team-1";
+    renderPage("clubId=club-1&teamId=team-1", { returnTo: boardUrl });
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("button", { name: /Añadir bloque/i }));
+    await user.click(await screen.findByRole("button", { name: /Crear ejercicio nuevo/i }));
+
+    await waitFor(() => {
+      expect(navigateMock).toHaveBeenCalledWith(
+        expect.stringContaining("/coach/trainings/new-exercise"),
+        expect.objectContaining({
+          state: expect.objectContaining({ returnState: { returnTo: boardUrl } }),
+        })
+      );
+    });
+  });
+
+  it("muestra el botón 'Volver' en lugar de 'Cancelar'", () => {
+    renderPage();
+
+    expect(screen.getByRole("button", { name: /^Volver$/i })).toBeInTheDocument();
   });
 });

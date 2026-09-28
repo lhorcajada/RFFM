@@ -43,6 +43,7 @@ export default function NewExercisePage() {
     clubId,
     navigate,
     returnTo,
+    returnState: navState?.returnState,
     getBoardStateJson: board.serializeBoardStateJson,
   });
 

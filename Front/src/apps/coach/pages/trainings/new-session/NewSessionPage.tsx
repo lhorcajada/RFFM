@@ -165,7 +165,11 @@ export default function NewSessionPage() {
     if (teamId) createParams.set("teamId", teamId);
 
     navigate(`/coach/trainings/new-exercise?${createParams.toString()}`, {
-      state: { returnTo: `/coach/trainings/new-session?${params.toString()}&sessionDraftKey=${key}`, sessionDraftKey: key },
+      state: {
+        returnTo: `/coach/trainings/new-session?${params.toString()}&sessionDraftKey=${key}`,
+        returnState: { returnTo },
+        sessionDraftKey: key,
+      },
     });
   };
 
@@ -180,7 +184,7 @@ export default function NewSessionPage() {
             variant="outlined"
             size="small"
           >
-            Cancelar
+            Volver
           </Button>
           <Button
             startIcon={<SaveIcon />}
