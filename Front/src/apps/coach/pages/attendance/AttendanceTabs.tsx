@@ -2,7 +2,9 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Box, Button, Checkbox, Tabs, Tab } from "@mui/material";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
+import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
 import EmptyState from "../../../../shared/components/ui/EmptyState/EmptyState";
+import ConfirmDialog from "../../../../shared/components/ui/ConfirmDialog/ConfirmDialog";
 import convocationService, {
   PlayerSimple,
   ConvocationItem,
@@ -86,6 +88,8 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isTrainin
   const [settingAllAttends, setSettingAllAttends] = useState(false);
   const [selectedPendingIds, setSelectedPendingIds] = useState<Set<string>>(new Set());
   const [notifyDialogOpen, setNotifyDialogOpen] = useState(false);
+  const [pushConfirmOpen, setPushConfirmOpen] = useState(false);
+  const [sendingPush, setSendingPush] = useState(false);
 
   // Selection is scoped to the current event — reset whenever the coach
   // navigates to a different event's convocation screen.
@@ -389,6 +393,25 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isTrainin
     }
   };
 
+  const handleSendPushConfirmed = async () => {
+    setSendingPush(true);
+    try {
+      const { notifiedCount } = await convocationService.sendConvocationReminders(eventId, [...selectedPendingIds]);
+      const message = `Notificación enviada a ${notifiedCount} ${notifiedCount === 1 ? "jugador" : "jugadores"}`;
+      window.dispatchEvent(new CustomEvent("rffm.show_snackbar", { detail: { message, severity: "success" } }));
+      setPushConfirmOpen(false);
+    } catch (e: unknown) {
+      const detail = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      window.dispatchEvent(
+        new CustomEvent("rffm.show_snackbar", {
+          detail: { message: detail || "Error al enviar la notificación push", severity: "error" },
+        })
+      );
+    } finally {
+      setSendingPush(false);
+    }
+  };
+
   const handleChangeStatus = async (
     conv: ConvocationItem,
     statusId: number,
@@ -676,6 +699,15 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isTrainin
                               sx={{ borderColor: "#25D366", color: "#25D366" }}
                             >
                               Notificar por WhatsApp
+                            </Button>
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              startIcon={<NotificationsActiveIcon />}
+                              disabled={selectedPendingIds.size === 0 || sendingPush}
+                              onClick={() => setPushConfirmOpen(true)}
+                            >
+                              Notificar por push
                             </Button>
                             {(() => {
                               const acceptedId = statuses.find((s) => s.name === "Accepted")?.id;
@@ -1019,6 +1051,18 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isTrainin
         eventId={eventId}
         teamPlayerIds={[...selectedPendingIds]}
         eventSummary={eventSummary}
+      />
+
+      <ConfirmDialog
+        open={pushConfirmOpen}
+        title="Enviar notificación push"
+        description={`Se enviará un recordatorio para confirmar la convocatoria a ${selectedPendingIds.size} ${
+          selectedPendingIds.size === 1 ? "jugador seleccionado" : "jugadores seleccionados"
+        } (y sus familiares con cuenta vinculada).`}
+        confirmText="Enviar"
+        processing={sendingPush}
+        onCancel={() => setPushConfirmOpen(false)}
+        onConfirm={handleSendPushConfirmed}
       />
     </div>
   );

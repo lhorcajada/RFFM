@@ -63,6 +63,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 10px;
   padding: 9px 12px;
   font-size: 0.7rem;
@@ -153,6 +154,8 @@
 .listGroupHeaderExtra {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 8px;
 }
 

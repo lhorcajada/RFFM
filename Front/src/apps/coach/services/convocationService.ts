@@ -78,6 +78,21 @@ export async function addConvocationsBulk(eventId: string): Promise<void> {
   await client.post(`/api/events/${eventId}/convocations/bulk`);
 }
 
+export type SendConvocationRemindersResponse = {
+  notifiedCount: number;
+};
+
+export async function sendConvocationReminders(
+  eventId: string,
+  teamPlayerIds: string[]
+): Promise<SendConvocationRemindersResponse> {
+  const resp = await client.post<SendConvocationRemindersResponse>(
+    `/api/events/${eventId}/convocations/reminders`,
+    { teamPlayerIds }
+  );
+  return resp.data;
+}
+
 export async function updateConvocationStatus(
   eventId: string,
   convocationId: string,
@@ -163,6 +178,7 @@ export default {
   getConvocations,
   addConvocation,
   addConvocationsBulk,
+  sendConvocationReminders,
   updateConvocationStatus,
   deleteConvocation,
   updateConvocationMinutesReason,
