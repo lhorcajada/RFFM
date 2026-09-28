@@ -104,6 +104,9 @@ namespace RFFM.Api.Domain
         // Web Push Notifications (Features/Coaches/Notifications)
         public const string NotificationNotFound = "NotificationNotFound";
 
+        // Convocations (Features/Coaches/Convocations/SendConvocationReminders.cs)
+        public const string SportEventNotFound = "SportEventNotFound";
+
         // Season Plans (Features/Coaches/SeasonPlans)
         public const string SeasonPlanNotFound = "SeasonPlanNotFound";
         public const string SeasonPlanAccessDenied = "SeasonPlanAccessDenied";

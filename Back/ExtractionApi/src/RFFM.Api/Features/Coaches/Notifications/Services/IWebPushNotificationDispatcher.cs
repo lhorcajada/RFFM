@@ -9,6 +9,7 @@ namespace RFFM.Api.Features.Coaches.Notifications.Services
     public interface IWebPushNotificationDispatcher
     {
         Task DispatchConvocationCreatedAsync(string teamPlayerId, string eventId, CancellationToken ct = default);
+        Task DispatchConvocationReminderAsync(string teamPlayerId, string eventId, CancellationToken ct = default);
         Task DispatchConvocationStatusChangedAsync(string convocationId, CancellationToken ct = default);
         Task DispatchSanctionChangedAsync(string sanctionId, CancellationToken ct = default);
         Task DispatchNewsPublishedAsync(string newsId, CancellationToken ct = default);

@@ -45,6 +45,27 @@ namespace RFFM.Api.Features.Coaches.Notifications.Services
             }
         }
 
+        public async Task DispatchConvocationReminderAsync(string teamPlayerId, string eventId, CancellationToken ct = default)
+        {
+            try
+            {
+                var sportEvent = await _db.SportEvents.AsNoTracking().FirstOrDefaultAsync(se => se.Id == eventId, ct);
+                if (sportEvent is null) return;
+
+                var userIds = await ResolvePlayerAndFamilyUserIdsAsync(teamPlayerId, ct);
+                var alias = await GetPlayerAliasAsync(teamPlayerId, ct);
+                var body = $"{alias} tiene pendiente confirmar la convocatoria de {sportEvent.Name}{FormatEventDateSuffix(sportEvent)}.";
+
+                await DispatchToUsersAsync(
+                    userIds, "ConvocationReminder", "Recordatorio de convocatoria",
+                    body, $"/coach/attendance/{sportEvent.Id}", ct);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "Failed to dispatch convocation-reminder web push for teamPlayer {TeamPlayerId}", teamPlayerId);
+            }
+        }
+
         public async Task DispatchConvocationStatusChangedAsync(string convocationId, CancellationToken ct = default)
         {
             try

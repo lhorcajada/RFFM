@@ -92,6 +92,7 @@ namespace RFFM.Api.Tests.IntegrationTests
         private class NoOpWebPushNotificationDispatcher : RFFM.Api.Features.Coaches.Notifications.Services.IWebPushNotificationDispatcher
         {
             public Task DispatchConvocationCreatedAsync(string teamPlayerId, string eventId, CancellationToken ct = default) => Task.CompletedTask;
+            public Task DispatchConvocationReminderAsync(string teamPlayerId, string eventId, CancellationToken ct = default) => Task.CompletedTask;
             public Task DispatchConvocationStatusChangedAsync(string convocationId, CancellationToken ct = default) => Task.CompletedTask;
             public Task DispatchSanctionChangedAsync(string sanctionId, CancellationToken ct = default) => Task.CompletedTask;
             public Task DispatchNewsPublishedAsync(string newsId, CancellationToken ct = default) => Task.CompletedTask;
