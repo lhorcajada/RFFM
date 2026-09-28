@@ -77,42 +77,7 @@ namespace RFFM.Api.Features.Federation.Clubs.Services
             var url = $"https://www.rffm.es/fichaclub/{Uri.EscapeDataString(normalizedClubCode)}"
                 + (temporada.HasValue ? $"?temporada={temporada.Value}" : string.Empty);
             var content = await _fetcher.FetchAsync(url, cancellationToken).ConfigureAwait(false);
-            if (string.IsNullOrWhiteSpace(content))
-                return Array.Empty<ClubTeamDirectoryItem>();
-
-            var embeddedJson = TryExtractNextDataJson(content);
-            if (string.IsNullOrWhiteSpace(embeddedJson))
-                return Array.Empty<ClubTeamDirectoryItem>();
-
-            try
-            {
-                using var doc = JsonDocument.Parse(embeddedJson);
-
-                if (!TryGetEquiposClubArray(doc.RootElement, out var equiposClub))
-                    return Array.Empty<ClubTeamDirectoryItem>();
-
-                var results = new List<ClubTeamDirectoryItem>();
-                foreach (var team in equiposClub.EnumerateArray())
-                {
-                    var teamCode = GetString(team, "codigo_equipo")?.Trim();
-                    var teamName = GetString(team, "nombre_equipo")?.Trim();
-                    var category = GetString(team, "categoria")?.Trim();
-                    var inCompetitionRaw = GetString(team, "en_competicion")?.Trim();
-                    var inCompetition = string.Equals(inCompetitionRaw, "1", StringComparison.OrdinalIgnoreCase) ||
-                                        string.Equals(inCompetitionRaw, "true", StringComparison.OrdinalIgnoreCase);
-
-                    if (string.IsNullOrWhiteSpace(teamCode) || string.IsNullOrWhiteSpace(teamName) || string.IsNullOrWhiteSpace(category))
-                        continue;
-
-                    results.Add(new ClubTeamDirectoryItem(teamCode, teamName, category, inCompetition));
-                }
-
-                return results;
-            }
-            catch
-            {
-                return Array.Empty<ClubTeamDirectoryItem>();
-            }
+            return ClubSheetParser.ParseTeams(content);
         }
 
         private static string BuildUrl(string? search, string? codclub, int? temporada)
@@ -162,21 +127,6 @@ namespace RFFM.Api.Features.Federation.Clubs.Services
             return clubes.ValueKind == JsonValueKind.Array;
         }
 
-        private static bool TryGetEquiposClubArray(JsonElement root, out JsonElement equiposClub)
-        {
-            equiposClub = default;
-
-            if (!root.TryGetProperty("props", out var props))
-                return false;
-            if (!props.TryGetProperty("pageProps", out var pageProps))
-                return false;
-            if (!pageProps.TryGetProperty("club", out var clubObj))
-                return false;
-            if (!clubObj.TryGetProperty("equipos_club", out equiposClub))
-                return false;
-
-            return equiposClub.ValueKind == JsonValueKind.Array;
-        }
 
         private static string? GetString(JsonElement el, string propertyName)
         {

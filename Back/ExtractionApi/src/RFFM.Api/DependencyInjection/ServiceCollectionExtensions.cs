@@ -18,6 +18,7 @@ using RFFM.Api.Features.Federation.Clubs.Services;
 using RFFM.Api.Features.Federation.Players.Services;
 using RFFM.Api.Features.Federation.Seasons.Services;
 using RFFM.Api.Features.Federation.Settings.Services;
+using RFFM.Api.Features.Federation.SquadHistory.Services;
 using RFFM.Api.Features.Federation.Teams.Services;
 using RFFM.Api.Infrastructure.Options;
 using RFFM.Api.Infrastructure.Persistence;
@@ -64,7 +65,8 @@ namespace RFFM.Api.DependencyInjection
 
             // FluentValidation validators for the PushNotifications feature (same manual
             // registration requirement as News above — no assembly-wide validator scan).
-            services.AddScoped<FluentValidation.IValidator<RFFM.Api.Features.Mobile.PushNotifications.RegisterPushToken.RegisterPushTokenCommand>, RFFM.Api.Features.Mobile.PushNotifications.RegisterPushToken.Validator>();
+            services.AddScoped<FluentValidation.IValidator<RFFM.Api.Features.Federation.SquadHistory.RequestSquadHistory.RequestSquadHistoryCommand>, RFFM.Api.Features.Federation.SquadHistory.RequestSquadHistory.Validator>();
+            services.AddScoped<FluentValidation.IValidator<RFFM.Api.Features.Mobile.PushNotifications.RegisterPushToken.RegisterPushTokenCommand>,RFFM.Api.Features.Mobile.PushNotifications.RegisterPushToken.Validator>();
             services.AddScoped<FluentValidation.IValidator<RFFM.Api.Features.Mobile.PushNotifications.UnregisterPushToken.UnregisterPushTokenCommand>, RFFM.Api.Features.Mobile.PushNotifications.UnregisterPushToken.Validator>();
             services.AddScoped<FluentValidation.IValidator<RFFM.Api.Features.Mobile.PushNotifications.UpdatePushPreferences.UpdatePushPreferencesCommand>, RFFM.Api.Features.Mobile.PushNotifications.UpdatePushPreferences.Validator>();
             services.AddScoped<FluentValidation.IValidator<RFFM.Api.Features.Coaches.Notifications.SubscribeWebPush.SubscribeWebPushCommand>, RFFM.Api.Features.Coaches.Notifications.SubscribeWebPush.Validator>();
@@ -158,6 +160,12 @@ namespace RFFM.Api.DependencyInjection
             services.AddScoped<ITeamService, TeamService>();
             services.AddScoped<IClubDirectoryService, ClubDirectoryService>();
             services.AddScoped<ICalendarService, CalendarService>();
+            services.AddRffmBackgroundHttpClient();
+            services.AddScoped<IRffmBackgroundClient, RffmBackgroundClient>();
+            services.AddScoped<ISquadCandidateFinder, SquadCandidateFinder>();
+            services.AddScoped<ISquadHistoryGenerator, SquadHistoryGenerator>();
+            services.AddSingleton<ISquadHistoryQueue, SquadHistoryQueue>();
+            services.AddHostedService<SquadHistoryWorker>();
             services.AddHttpClient("ExpoPush", c => c.BaseAddress = new Uri("https://exp.host/"));
             services.AddScoped<RFFM.Api.Features.Mobile.PushNotifications.Services.IExpoPushService, RFFM.Api.Features.Mobile.PushNotifications.Services.ExpoPushService>();
             services.AddScoped<RFFM.Api.Features.Mobile.PushNotifications.IPushNotificationDispatcher, RFFM.Api.Features.Mobile.PushNotifications.PushNotificationDispatcher>();

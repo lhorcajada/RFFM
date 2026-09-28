@@ -1,5 +1,4 @@
 ﻿using RFFM.Api.Infrastructure.Helpers;
-using System.Text.Json;
 using static RFFM.Api.Features.Federation.Teams.Queries.GetAgeSummary;
 using RFFM.Api.Features.Federation.Players.Models;
 using RFFM.Api.Features.Federation.Players.Services;
@@ -35,42 +34,7 @@ namespace RFFM.Api.Features.Federation.Teams.Services
             var htmlFetcher = new HtmlFetcher(http);
             var content = await htmlFetcher.FetchAsync(url, cancellationToken);
 
-            if (string.IsNullOrWhiteSpace(content))
-                return new TeamRffm();
-
-            try
-            {
-                // Extraer el JSON embebido en <script id="__NEXT_DATA__">...</script>
-                var match = System.Text.RegularExpressions.Regex.Match(content,
-                    @"<script[^>]*id=""__NEXT_DATA__""[^>]*>(.*?)</script>",
-                    System.Text.RegularExpressions.RegexOptions.Singleline |
-                    System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-                if (!match.Success)
-                    return new TeamRffm();
-
-                var json = match.Groups[1].Value.Trim();
-                if (string.IsNullOrEmpty(json))
-                    return new TeamRffm();
-
-                using var doc = JsonDocument.Parse(json);
-                var root = doc.RootElement;
-                if (!root.TryGetProperty("props", out var props) ||
-                    !props.TryGetProperty("pageProps", out var pageProps))
-                    return new TeamRffm();
-                if (!pageProps.TryGetProperty("team", out var teamEl))
-                    return new TeamRffm();
-
-                var options = new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                };
-                var team = teamEl.Deserialize<TeamRffm>(options);
-                return team ?? new TeamRffm();
-            }
-            catch
-            {
-                return new TeamRffm();
-            }
+            return TeamSheetParser.Parse(content) ?? new TeamRffm();
         }
 
         public async Task<((TeamPlayerRffm teamPlayer, Player? playerDetails)[] resolved, AgeCount[] handle)> GetStaticsTeamPlayers(AgesQueryApp request, CancellationToken cancellationToken)
