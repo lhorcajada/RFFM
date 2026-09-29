@@ -88,6 +88,7 @@ namespace RFFM.Api.Tests.IntegrationTests
             public Task DispatchNewsPublishedAsync(string newsId, CancellationToken ct = default) => Task.CompletedTask;
             public Task DispatchInjuryChangedAsync(string injuryId, CancellationToken ct = default) => Task.CompletedTask;
             public Task DispatchNotificationsActivatedAsync(string userId, CancellationToken ct = default) => Task.CompletedTask;
+            public Task DispatchMatchResultAsync(IReadOnlyCollection<string> userIds, RFFM.Api.Features.Coaches.Notifications.Services.MatchResultMessage message, CancellationToken ct = default) => Task.CompletedTask;
         }
 
         private async Task<(IHost Host, HttpClient Client)> StartHostAsync(IFeatureModule module)

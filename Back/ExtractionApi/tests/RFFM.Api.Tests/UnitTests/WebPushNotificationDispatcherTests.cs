@@ -560,5 +560,78 @@ namespace RFFM.Api.Tests.UnitTests
 
             Assert.Null(exception);
         }
+
+        private static MatchResultMessage MatchResult(string localGoals, string visitorGoals, bool isLocal) =>
+            new(5, "CD Local A", localGoals, "CD Visitante B", visitorGoals, isLocal);
+
+        private async Task<Notification> DispatchMatchResultAndReadAsync(MatchResultMessage message)
+        {
+            await using var db = _fixture.CreateDbContext();
+            var userId = Guid.NewGuid().ToString();
+            var dispatcher = new WebPushNotificationDispatcher(db, new Mock<IWebPushSender>().Object);
+
+            await dispatcher.DispatchMatchResultAsync(new[] { userId }, message, CancellationToken.None);
+
+            return await db.Notifications.SingleAsync(n => n.UserId == userId);
+        }
+
+        [Fact]
+        public async Task DispatchMatchResultAsync_CreatesOneNotificationPerUser()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var userIds = new[] { Guid.NewGuid().ToString(), Guid.NewGuid().ToString() };
+            var dispatcher = new WebPushNotificationDispatcher(db, new Mock<IWebPushSender>().Object);
+
+            await dispatcher.DispatchMatchResultAsync(userIds, MatchResult("2", "1", isLocal: true), CancellationToken.None);
+
+            var notified = await db.Notifications
+                .Where(n => userIds.Contains(n.UserId) && n.Type == "MatchResult")
+                .Select(n => n.UserId)
+                .ToListAsync();
+            Assert.Equal(userIds.OrderBy(id => id), notified.OrderBy(id => id));
+        }
+
+        [Fact]
+        public async Task DispatchMatchResultAsync_UsesRoundTitleScoreBodyAndResultsDeepLink()
+        {
+            var notification = await DispatchMatchResultAndReadAsync(MatchResult("2", "1", isLocal: true));
+
+            Assert.Equal("MatchResult", notification.Type);
+            Assert.Equal("Resultado · Jornada 5", notification.Title);
+            Assert.Equal("Victoria: CD Local A 2 - 1 CD Visitante B", notification.Body);
+            Assert.Equal("/coach/results", notification.DeepLinkPath);
+        }
+
+        [Theory]
+        [InlineData("2", "1", false, "Derrota")]
+        [InlineData("0", "3", false, "Victoria")]
+        [InlineData("0", "3", true, "Derrota")]
+        [InlineData("1", "1", true, "Empate")]
+        public async Task DispatchMatchResultAsync_PrefixesOutcomeFromTheTeamPointOfView(
+            string localGoals, string visitorGoals, bool isLocal, string expectedOutcome)
+        {
+            var notification = await DispatchMatchResultAndReadAsync(MatchResult(localGoals, visitorGoals, isLocal));
+
+            Assert.StartsWith($"{expectedOutcome}: ", notification.Body);
+        }
+
+        [Fact]
+        public async Task DispatchMatchResultAsync_WhenSenderThrows_DoesNotPropagate()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var userId = Guid.NewGuid().ToString();
+            db.WebPushSubscriptions.Add(WebPushSubscription.Create(userId, $"https://example.com/{Guid.NewGuid():N}", "p256dh", "auth"));
+            await db.SaveChangesAsync();
+
+            var senderMock = new Mock<IWebPushSender>();
+            senderMock.Setup(s => s.SendAsync(It.IsAny<WebPushSubscription>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new InvalidOperationException("boom"));
+            var dispatcher = new WebPushNotificationDispatcher(db, senderMock.Object);
+
+            var exception = await Record.ExceptionAsync(
+                () => dispatcher.DispatchMatchResultAsync(new[] { userId }, MatchResult("2", "1", true), CancellationToken.None));
+
+            Assert.Null(exception);
+        }
     }
 }

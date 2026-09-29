@@ -15,5 +15,10 @@ namespace RFFM.Api.Features.Coaches.Notifications.Services
         Task DispatchNewsPublishedAsync(string newsId, CancellationToken ct = default);
         Task DispatchInjuryChangedAsync(string injuryId, CancellationToken ct = default);
         Task DispatchNotificationsActivatedAsync(string userId, CancellationToken ct = default);
+        Task DispatchMatchResultAsync(IReadOnlyCollection<string> userIds, MatchResultMessage message, CancellationToken ct = default);
     }
+
+    /// <summary>Resultado de un partido de liga visto desde el equipo del usuario (<paramref name="IsLocal"/>).</summary>
+    public record MatchResultMessage(int Round, string LocalTeamName, string LocalGoals,
+        string VisitorTeamName, string VisitorGoals, bool IsLocal);
 }

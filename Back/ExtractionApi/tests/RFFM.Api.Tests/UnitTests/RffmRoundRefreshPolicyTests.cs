@@ -134,5 +134,24 @@ namespace RFFM.Api.Tests.UnitTests
 
             Assert.Equal(RoundRefreshReason.AwaitingResult, Evaluate(round, minutes: 60, parts: 2));
         }
+
+        [Fact]
+        public void EstimatedEndUtc_suma_duracion_y_descanso_a_la_hora_de_inicio_de_Madrid()
+        {
+            // 12:30 en Madrid (10:30 UTC) + 80' + 10' de descanso = 12:00 UTC
+            var round = RoundWith(NowUtc.AddHours(-1), Match("26/09/2026", "12:30"));
+
+            var end = RffmRoundRefreshPolicy.EstimatedEndUtc(Assert.Single(round.Matches), 80, 2, Settings);
+
+            Assert.Equal(new DateTime(2026, 9, 26, 12, 0, 0, DateTimeKind.Utc), end);
+        }
+
+        [Fact]
+        public void EstimatedEndUtc_es_nulo_sin_hora_de_inicio()
+        {
+            var round = RoundWith(NowUtc.AddHours(-1), Match("26/09/2026", ""));
+
+            Assert.Null(RffmRoundRefreshPolicy.EstimatedEndUtc(Assert.Single(round.Matches), 80, 2, Settings));
+        }
     }
 }

@@ -24,6 +24,8 @@ namespace RFFM.Api.Domain.Entities.Federation.Results
         public int UpcomingWindowDays { get; set; } = 7;
         public int UpcomingRefreshHours { get; set; } = 24;
         public int HalfTimeBreakMinutes { get; set; } = 10;
+        public int ResultNotificationPollMinutes { get; set; } = 5;
+        public int ResultNotificationWindowHours { get; set; } = 48;
     }
 
     /// <summary>
@@ -42,7 +44,6 @@ namespace RFFM.Api.Domain.Entities.Federation.Results
                 return RoundRefreshReason.NeverSynced;
 
             var elapsed = nowUtc - lastSyncedAt;
-            var matchDuration = TimeSpan.FromMinutes(matchMinutes + settings.HalfTimeBreakMinutes * Math.Max(matchParts - 1, 0));
 
             foreach (var match in round.Matches.Where(m => !m.IsFinal))
             {
@@ -54,7 +55,7 @@ namespace RFFM.Api.Domain.Entities.Federation.Results
                 }
 
                 var kickoffUtc = ToUtc(match.MatchDate!.Value, match.KickoffTime!.Value);
-                var estimatedEndUtc = kickoffUtc + matchDuration;
+                var estimatedEndUtc = EstimatedEndUtc(match, matchMinutes, matchParts, settings)!.Value;
 
                 if (nowUtc >= estimatedEndUtc)
                 {
@@ -73,6 +74,16 @@ namespace RFFM.Api.Domain.Entities.Federation.Results
             }
 
             return RoundRefreshReason.None;
+        }
+
+        /// <summary>Fin estimado del partido (inicio en hora de Madrid + duración + descansos), o null sin horario.</summary>
+        public static DateTime? EstimatedEndUtc(RffmMatch match, int matchMinutes, int matchParts, RffmResultsRefreshSettings settings)
+        {
+            if (!match.HasSchedule)
+                return null;
+
+            var matchDuration = TimeSpan.FromMinutes(matchMinutes + settings.HalfTimeBreakMinutes * Math.Max(matchParts - 1, 0));
+            return ToUtc(match.MatchDate!.Value, match.KickoffTime!.Value) + matchDuration;
         }
 
         private static DateTime ToUtc(DateOnly date, TimeOnly time) =>

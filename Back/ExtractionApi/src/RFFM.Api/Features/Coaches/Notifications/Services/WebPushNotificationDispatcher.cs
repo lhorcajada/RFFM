@@ -202,6 +202,30 @@ namespace RFFM.Api.Features.Coaches.Notifications.Services
             }
         }
 
+        public async Task DispatchMatchResultAsync(IReadOnlyCollection<string> userIds, MatchResultMessage message, CancellationToken ct = default)
+        {
+            try
+            {
+                var body = $"{MatchOutcome(message)}: {message.LocalTeamName} {message.LocalGoals} - {message.VisitorGoals} {message.VisitorTeamName}";
+                await DispatchToUsersAsync(
+                    userIds, "MatchResult", $"Resultado · Jornada {message.Round}", body, "/coach/results", ct);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "Failed to dispatch match-result web push for round {Round}", message.Round);
+            }
+        }
+
+        private static string MatchOutcome(MatchResultMessage message)
+        {
+            var localGoals = int.Parse(message.LocalGoals);
+            var visitorGoals = int.Parse(message.VisitorGoals);
+            if (localGoals == visitorGoals) return "Empate";
+
+            var localWon = localGoals > visitorGoals;
+            return localWon == message.IsLocal ? "Victoria" : "Derrota";
+        }
+
         private async Task<string> GetPlayerAliasAsync(string teamPlayerId, CancellationToken ct)
         {
             var alias = await _db.TeamPlayers

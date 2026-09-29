@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Domain.Entities.Federation;
+using RFFM.Api.Domain.Entities.Federation.MatchResultNotifications;
 using RFFM.Api.Domain.Entities.Federation.Results;
 using RFFM.Api.Domain.Entities.Federation.SquadHistory;
 using RFFM.Api.Infrastructure.Persistence.Configuration.Entities;
@@ -18,6 +19,8 @@ namespace RFFM.Api.Infrastructure.Persistence
         public DbSet<RffmMatch> RffmMatches { get; set; }
         public DbSet<RffmMatchRecord> RffmMatchRecords { get; set; }
         public DbSet<RffmStandingsSnapshot> RffmStandingsSnapshots { get; set; }
+        public DbSet<MatchResultNotificationOptOut> MatchResultNotificationOptOuts { get; set; }
+        public DbSet<MatchResultNotificationLog> MatchResultNotificationLogs { get; set; }
 
         public FederationDbContext(DbContextOptions<FederationDbContext> options) : base(options) { }
 
@@ -35,6 +38,8 @@ namespace RFFM.Api.Infrastructure.Persistence
             modelBuilder.ApplyConfiguration(new RffmMatchEntityConfiguration());
             modelBuilder.ApplyConfiguration(new RffmMatchRecordEntityConfiguration());
             modelBuilder.ApplyConfiguration(new RffmStandingsSnapshotEntityConfiguration());
+            modelBuilder.ApplyConfiguration(new MatchResultNotificationOptOutEntityConfiguration());
+            modelBuilder.ApplyConfiguration(new MatchResultNotificationLogEntityConfiguration());
         }
 
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

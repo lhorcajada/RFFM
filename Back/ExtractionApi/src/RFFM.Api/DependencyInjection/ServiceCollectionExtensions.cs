@@ -179,6 +179,8 @@ namespace RFFM.Api.DependencyInjection
             services.AddScoped<RFFM.Api.Features.Mobile.PushNotifications.IPushNotificationDispatcher, RFFM.Api.Features.Mobile.PushNotifications.PushNotificationDispatcher>();
             services.AddScoped<RFFM.Api.Features.Coaches.Notifications.Services.IWebPushSender, RFFM.Api.Features.Coaches.Notifications.Services.WebPushSender>();
             services.AddScoped<RFFM.Api.Features.Coaches.Notifications.Services.IWebPushNotificationDispatcher, RFFM.Api.Features.Coaches.Notifications.Services.WebPushNotificationDispatcher>();
+            services.AddScoped<RFFM.Api.Features.Federation.MatchResultNotifications.Services.IMatchResultNotificationService, RFFM.Api.Features.Federation.MatchResultNotifications.Services.MatchResultNotificationService>();
+            services.AddHostedService<RFFM.Api.Features.Federation.MatchResultNotifications.Services.MatchResultNotificationWorker>();
             services.AddScoped<IMatchDayService, MatchDayService>();
             services.AddScoped<IGoalMinuteParser, GoalMinuteParser>();
             services.AddScoped<ISectorFactory, SectorFactory>();
