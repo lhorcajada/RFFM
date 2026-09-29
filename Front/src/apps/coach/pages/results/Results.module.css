@@ -27,6 +27,13 @@
   overflow-x: hidden;
 }
 
+.noCompetition {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
 .center {
   display: flex;
   align-items: center;

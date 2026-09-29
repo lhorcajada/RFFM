@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { Button, CircularProgress, Stack, Tab, Tabs } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
@@ -7,6 +8,8 @@ import RoundPanel from "../../../../shared/components/ui/RoundPanel/RoundPanel";
 import useCalendar from "../../../../shared/hooks/useCalendar";
 import { useRffmSeason } from "../../../../shared/context/RffmSeasonContext";
 import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess";
+import { usePermissions } from "../../../../shared/hooks/usePermissions";
+import { COACH_FEATURE_ROUTES } from "../../constants/featureRoutes";
 import useTeamAndClub from "../../hooks/useTeamAndClub.tsx";
 import useTeamDashboardBack from "../../hooks/useTeamDashboardBack";
 import styles from "./Results.module.css";
@@ -20,6 +23,9 @@ export default function Results() {
   const season = String(currentSeasonId ?? seasonId ?? "");
   const hasCompetition = Boolean(team?.rffmCompetitionId && team?.rffmGroupId);
   const canLoad = hasCompetition && season !== "";
+  const { hasFeatureAccess } = usePermissions();
+  const canConfigureCompetition =
+    Boolean(team?.canEdit) && hasFeatureAccess(COACH_FEATURE_ROUTES.ClubTeams);
 
   const { calendar, loading, selectedTab, setSelectedTab, rounds, matchesByRound } =
     useCalendar({
@@ -61,7 +67,19 @@ export default function Results() {
     }
     if (!hasCompetition) {
       return (
-        <EmptyState description="El equipo no tiene una competición configurada. Configúrala desde la edición del equipo." />
+        <div className={styles.noCompetition}>
+          <EmptyState description="El equipo no tiene una competición configurada. Configúrala desde la edición del equipo." />
+          {canConfigureCompetition && (
+            <Button
+              component={Link}
+              to={`/coach/clubs/${team.club.id}/teams/${team.id}/edit`}
+              variant="contained"
+              size="small"
+            >
+              Configurar competición
+            </Button>
+          )}
+        </div>
       );
     }
     if (!calendar) {

@@ -53,6 +53,11 @@ vi.mock("../../../hooks/useTeamAndClub.tsx", () => ({
   default: () => mockUseTeamAndClub(),
 }));
 
+const mockHasFeatureAccess = vi.fn();
+vi.mock("../../../../../shared/hooks/usePermissions", () => ({
+  usePermissions: () => ({ loading: false, hasFeatureAccess: mockHasFeatureAccess }),
+}));
+
 const mockUseCalendar = vi.fn();
 vi.mock("../../../../../shared/hooks/useCalendar", () => ({
   default: (params: unknown) => mockUseCalendar(params),
@@ -63,6 +68,8 @@ import Results from "../Results";
 const teamWithCompetition = {
   id: "team-1",
   name: "Infantil A",
+  canEdit: true,
+  club: { id: "club-1" },
   rffmCompetitionId: 555,
   rffmGroupId: 777,
 };
@@ -109,6 +116,49 @@ describe("Results", () => {
     vi.clearAllMocks();
     mockUseTeamAndClub.mockReturnValue({ team: teamWithCompetition, loading: false });
     mockUseCalendar.mockReturnValue(calendarState());
+    mockHasFeatureAccess.mockReturnValue(true);
+  });
+
+  function withoutCompetition(overrides: Record<string, unknown> = {}) {
+    mockUseTeamAndClub.mockReturnValue({
+      team: { ...teamWithCompetition, rffmCompetitionId: null, rffmGroupId: null, ...overrides },
+      loading: false,
+    });
+    mockUseCalendar.mockReturnValue(calendarState({ calendar: null, rounds: [] }));
+  }
+
+  it("ofrece configurar la competición en la edición del equipo a quien puede editarlo", () => {
+    withoutCompetition();
+
+    renderPage();
+
+    expect(screen.getByRole("link", { name: "Configurar competición" })).toHaveAttribute(
+      "href",
+      "/coach/clubs/club-1/teams/team-1/edit",
+    );
+  });
+
+  it("no ofrece configurar la competición si el usuario no puede editar el equipo", () => {
+    withoutCompetition({ canEdit: false });
+
+    renderPage();
+
+    expect(screen.queryByRole("link", { name: "Configurar competición" })).not.toBeInTheDocument();
+  });
+
+  it("no ofrece configurar la competición sin permiso de gestión de equipos", () => {
+    withoutCompetition();
+    mockHasFeatureAccess.mockReturnValue(false);
+
+    renderPage();
+
+    expect(screen.queryByRole("link", { name: "Configurar competición" })).not.toBeInTheDocument();
+  });
+
+  it("no ofrece configurar la competición cuando ya está configurada", () => {
+    renderPage();
+
+    expect(screen.queryByRole("link", { name: "Configurar competición" })).not.toBeInTheDocument();
   });
 
   it("muestra el título Resultados", () => {
