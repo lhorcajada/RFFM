@@ -1,7 +1,7 @@
 import { Button, Paper, Typography } from "@mui/material";
 import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
 import { useNavigate } from "react-router-dom";
-import { usePushActivationStatus } from "../hooks/usePushActivationStatus";
+import { usePushActivationStatus } from "../../hooks/usePushActivationStatus";
 import styles from "./PushActivationBanner.module.css";
 
 export default function PushActivationBanner() {

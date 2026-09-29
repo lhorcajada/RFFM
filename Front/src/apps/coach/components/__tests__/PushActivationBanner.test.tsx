@@ -4,16 +4,16 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("../../../../services/pushSubscriptionService", () => ({
+vi.mock("../../services/pushSubscriptionService", () => ({
   isPushNotificationsSupported: vi.fn(),
   getCurrentPushSubscriptionStatus: vi.fn(),
 }));
 
-import PushActivationBanner from "../PushActivationBanner";
+import PushActivationBanner from "../PushActivationBanner/PushActivationBanner";
 import {
   getCurrentPushSubscriptionStatus,
   isPushNotificationsSupported,
-} from "../../../../services/pushSubscriptionService";
+} from "../../services/pushSubscriptionService";
 
 const mockedSupported = isPushNotificationsSupported as unknown as ReturnType<typeof vi.fn>;
 const mockedStatus = getCurrentPushSubscriptionStatus as unknown as ReturnType<typeof vi.fn>;

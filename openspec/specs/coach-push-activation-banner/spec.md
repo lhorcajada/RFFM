@@ -4,10 +4,14 @@
 TBD - created by archiving change coach-push-activation-banner. Update Purpose after archive.
 ## Requirements
 ### Requirement: The Coach Dashboard prompts users to activate push notifications
-The system SHALL show a banner on `/coach/dashboard` with the text "¿Quieres recibir las notificaciones de las convocatorias? Haz clic aquí y actívalas." when the browser supports Web Push, the notification permission is not `denied`, and the current browser has no push subscription. Activating the banner SHALL navigate to `/coach/settings` with the notifications section selected.
+The system SHALL show a banner on `/coach/dashboard` and `/coach/team-dashboard` (where players and family members land) with the text "¿Quieres recibir las notificaciones de las convocatorias? Haz clic aquí y actívalas." when the browser supports Web Push, the notification permission is not `denied`, and the current browser has no push subscription. Activating the banner SHALL navigate to `/coach/settings` with the notifications section selected.
 
 #### Scenario: A user without a subscription sees the banner
 - **WHEN** a user opens the Coach Dashboard in a browser that supports push, has not denied the permission and has no push subscription
+- **THEN** the banner prompting to activate notifications is displayed
+
+#### Scenario: A player landing on the team dashboard sees the banner
+- **WHEN** a player without a push subscription opens `/coach/team-dashboard`
 - **THEN** the banner prompting to activate notifications is displayed
 
 #### Scenario: A subscribed user does not see the banner

@@ -9,6 +9,7 @@ import { usePlayerAutoLoad } from "../Dashboard/hooks/usePlayerAutoLoad";
 import TeamDashboardCards from "./TeamDashboardCards";
 import UpcomingEventsWidget from "./components/UpcomingEventsWidget";
 import NewsWidget from "./components/NewsWidget";
+import PushActivationBanner from "../../components/PushActivationBanner/PushActivationBanner";
 import styles from "../Dashboard/Dashboard.module.css";
 import teamDashboardStyles from "./TeamDashboard.module.css";
 import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess";
@@ -39,6 +40,7 @@ export default function TeamDashboard() {
         }
       >
         <div className={teamDashboardStyles.pageContent}>
+          <PushActivationBanner />
           <div className={teamDashboardStyles.layout}>
             <div className={teamDashboardStyles.widgetsGrid}>
               <ErrorBoundary>

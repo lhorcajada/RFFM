@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import {
   getCurrentPushSubscriptionStatus,
   isPushNotificationsSupported,
-} from "../../../services/pushSubscriptionService";
+} from "../services/pushSubscriptionService";
 
 export function usePushActivationStatus(): { shouldPrompt: boolean } {
   const [shouldPrompt, setShouldPrompt] = useState(false);

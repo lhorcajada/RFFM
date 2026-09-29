@@ -57,6 +57,10 @@ vi.mock("../components/NewsWidget", () => ({
   default: () => <div>news-widget</div>,
 }));
 
+vi.mock("../../../components/PushActivationBanner/PushActivationBanner", () => ({
+  default: () => <div>push-activation-banner</div>,
+}));
+
 import TeamDashboard from "../TeamDashboard";
 
 describe("TeamDashboard back button", () => {
@@ -181,5 +185,15 @@ describe("TeamDashboard — A la vista section", () => {
 
     expect(tilesGrid).not.toBeNull();
     expect(tilesGrid!.contains(cards)).toBe(true);
+  });
+
+  it("muestra el banner para activar las notificaciones push", () => {
+    render(
+      <MemoryRouter>
+        <TeamDashboard />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText("push-activation-banner")).toBeInTheDocument();
   });
 });
