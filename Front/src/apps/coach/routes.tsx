@@ -11,7 +11,9 @@ const ClubsDashboard = lazy(() => import("./pages/clubs/dashboard/Dashboard"));
 const ClubPlayerRegistrations = lazy(() => import("./pages/clubs/registrations/PlayerRegistrations"));
 const ClubPlayers = lazy(() => import("./pages/clubs/players/ClubPlayers"));
 const ClubTeams = lazy(() => import("./pages/clubTeams/ClubTeams"));
-import React from "react";
+const CreateTeam = lazy(() => import("./pages/clubTeams/create/CreateTeam"));
+const EditTeam = lazy(() => import("./pages/clubTeams/edit/EditTeam"));
+const CreateClub = lazy(() => import("./pages/clubs/create/CreateClub"));
 
 // Placeholder pages for Coach app
 const Dashboard = lazy(() => import("./pages/Dashboard/Dashboard"));
@@ -418,9 +420,7 @@ function CoachRoutesContent() {
               path="clubs/:id/teams/new"
               element={
                 <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.ClubTeams}>
-                  {React.createElement(
-                    React.lazy(() => import("./pages/clubTeams/create/CreateTeam")),
-                  )}
+                  <CreateTeam />
                 </RequireFeaturePermission>
               }
             />
@@ -428,9 +428,7 @@ function CoachRoutesContent() {
               path="clubs/:id/teams/:teamId/edit"
               element={
                 <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.ClubTeams}>
-                  {React.createElement(
-                    React.lazy(() => import("./pages/clubTeams/edit/EditTeam")),
-                  )}
+                  <EditTeam />
                 </RequireFeaturePermission>
               }
             />
@@ -438,9 +436,7 @@ function CoachRoutesContent() {
               path="clubs/new"
               element={
                 <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.ClubManagement}>
-                  {React.createElement(
-                    React.lazy(() => import("./pages/clubs/create/CreateClub")),
-                  )}
+                  <CreateClub />
                 </RequireFeaturePermission>
               }
             />
