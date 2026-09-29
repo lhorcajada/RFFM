@@ -7,6 +7,7 @@ import { usePreferredSelection } from "./hooks/usePreferredSelection";
 import { usePlayerAutoLoad } from "./hooks/usePlayerAutoLoad";
 import DashboardActionBar from "./components/DashboardActionBar";
 import DashboardCards from "./components/DashboardCards";
+import PushActivationBanner from "./components/PushActivationBanner";
 import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess";
 
 export default function CoachDashboard() {
@@ -27,6 +28,7 @@ export default function CoachDashboard() {
           />
         }
       >
+        <PushActivationBanner />
         <DashboardCards
           selectedSeason={selectedSeason}
           isPlayer={isPlayer}

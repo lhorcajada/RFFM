@@ -1,0 +1,55 @@
+.banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 8px 0 16px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid var(--rffm-primary);
+  background: var(--rffm-card-bg);
+  animation: pulse 2.4s ease-in-out infinite;
+}
+
+.icon {
+  flex-shrink: 0;
+  font-size: 32px;
+}
+
+.text {
+  flex: 1;
+  font-weight: 700;
+  color: var(--rffm-text-primary);
+}
+
+.action {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+  50% {
+    box-shadow: 0 0 18px 2px var(--rffm-primary);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .banner {
+    animation: none;
+  }
+}
+
+@media (max-width: 599px) {
+  .banner {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+
+  .icon {
+    align-self: center;
+  }
+}
