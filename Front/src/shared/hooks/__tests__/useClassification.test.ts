@@ -54,6 +54,20 @@ describe("useClassification", () => {
     });
   });
 
+  it("respeta el orden por posición cuando hay equipos empatados a puntos", async () => {
+    mockGetTeamsForClassification.mockResolvedValue([
+      { ...baseTeam, teamId: "c", teamName: "C", position: 3, points: 3 },
+      { ...baseTeam, teamId: "a", teamName: "A", position: 2, points: 6 },
+      { ...baseTeam, teamId: "b", teamName: "B", position: 1, points: 6 },
+    ]);
+
+    const { result } = renderHook(() =>
+      useClassification({ season: "21", competition: "5", group: "7" }),
+    );
+
+    await waitFor(() => expect(result.current.teams.map((t) => t.teamId)).toEqual(["b", "a", "c"]));
+  });
+
   it("asigna a cada equipo sus partidos del calendario con el resultado desde su punto de vista", async () => {
     mockGetTeamsForClassification.mockResolvedValue([
       { ...baseTeam, teamId: "a", teamName: "A", position: 1, points: 3 },

@@ -156,9 +156,12 @@ export default function useClassification({ season, competition, group }: UseCla
           getCalendar(params),
         ]);
         if (cancelled) return;
+        // The backend applies the federation tie-breakers; sorting by points alone would undo them.
         const sorted = ((teamsData || []) as ClassificationTeam[])
           .slice()
-          .sort((a, b) => b.points - a.points);
+          .sort((a, b) =>
+            a.position > 0 && b.position > 0 ? a.position - b.position : b.points - a.points,
+          );
         setTeams(sorted);
         try {
           setTeamMatches(buildTeamMatches(calData));
