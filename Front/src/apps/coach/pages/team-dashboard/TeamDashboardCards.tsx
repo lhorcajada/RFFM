@@ -7,6 +7,7 @@ import {
   AttendanceSummaryIllustration,
   MatchesIllustration,
   ResultsIllustration,
+  ClassificationIllustration,
   RivalsIllustration,
   TrainingsIllustration,
   InjuredIllustration,
@@ -169,6 +170,18 @@ export default function TeamDashboardCards({
               illustration={<ResultsIllustration />}
               gradient="linear-gradient(135deg, #1a237e 0%, #283593 50%, #0d1452 100%)"
               to={team?.id ? `/coach/results?teamId=${team.id}` : "/coach/results"}
+            />
+          ),
+        },
+        {
+          key: "classification",
+          visible: hasFeatureAccess(COACH_FEATURE_ROUTES.Convocations),
+          node: (
+            <LauncherTile
+              title="Clasificación"
+              illustration={<ClassificationIllustration />}
+              gradient="linear-gradient(135deg, #827717 0%, #9e9d24 50%, #5f5c10 100%)"
+              to={team?.id ? `/coach/classification?teamId=${team.id}` : "/coach/classification"}
             />
           ),
         },

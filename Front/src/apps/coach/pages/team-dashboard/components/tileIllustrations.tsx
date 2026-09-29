@@ -97,6 +97,17 @@ export function ResultsIllustration() {
   );
 }
 
+export function ClassificationIllustration() {
+  return (
+    <svg viewBox="0 0 100 80" role="presentation">
+      <rect x="38" y="22" width="24" height="46" rx="3" fill={FILL} />
+      <rect x="14" y="36" width="24" height="32" rx="3" fill={FILL_SOFT} />
+      <rect x="62" y="46" width="24" height="22" rx="3" fill={FILL_FAINT} />
+      <path d="M50 8l3 6 6.5 1-4.7 4.5 1.1 6.5-5.9-3.1-5.9 3.1 1.1-6.5-4.7-4.5 6.5-1z" fill={FILL} />
+    </svg>
+  );
+}
+
 export function RivalsIllustration() {
   return (
     <svg viewBox="0 0 100 80" role="presentation">
