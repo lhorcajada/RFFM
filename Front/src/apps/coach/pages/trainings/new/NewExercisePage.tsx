@@ -15,7 +15,6 @@ import ExerciseFormPanel from "./components/ExerciseFormPanel";
 import LinesStrip from "./components/LinesStrip";
 import MaterialsStrip from "./components/MaterialsStrip";
 import MobileEditorBlocked from "./components/MobileEditorBlocked";
-import PitchMarkings from "./components/PitchMarkings";
 import SpacesStrip from "./components/SpacesStrip";
 import TextsStrip from "./components/TextsStrip";
 import TacticalField from "./components/TacticalField";
@@ -109,12 +108,7 @@ export default function NewExercisePage() {
 
         <Box className={styles.workspace}>
           <Box className={styles.pitchArea}>
-            <Box className={styles.fullPitch}>
-              <Box className={styles.mirrorHalf} aria-hidden="true">
-                <PitchMarkings />
-              </Box>
-              <TacticalField halfPitchRef={halfPitchRef} board={board} />
-            </Box>
+            <TacticalField halfPitchRef={halfPitchRef} board={board} />
           </Box>
           <ExerciseFormPanel panelVisible={panelVisible} form={exerciseForm} teamId={teamId} />
         </Box>

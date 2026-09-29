@@ -5,11 +5,14 @@ import { FIELD_WIDTH_METERS, HALF_FIELD_LENGTH_METERS, SPACE_COLORS, anonymousCh
 import { getMaterialSizePercent, isMaterialKind, getChapaSizePercent } from "../helpers/materialHelpers";
 import {
   clamp,
+  clampToField,
   formatMeters,
   getBaseDimensionsMeters,
   getDimensionsPercent,
   getMaxScalesForPlayableArea,
+  getPlayableBounds,
   getSpaceVerticesPercent,
+  isOutsideFullPitch,
   isSpaceKind,
   snapToRangeEdges,
 } from "../helpers/spaceGeometry";
@@ -206,10 +209,12 @@ export function useTacticalBoard(
     scaleX = 1,
     scaleY = 1,
   ) => {
-    const playableLeft = 0;
-    const playableRight = 100 - goalBackBand;
-    const playableTop = touchlineBand;
-    const playableBottom = 100 - touchlineBand;
+    const {
+      left: playableLeft,
+      right: playableRight,
+      top: playableTop,
+      bottom: playableBottom,
+    } = getPlayableBounds(touchlineBand, goalBackBand);
 
     const size = getMaterialSizePercent(kind);
     const halfWidth = (size.width * scaleX) / 2;
@@ -229,10 +234,12 @@ export function useTacticalBoard(
     scaleX = 1,
     scaleY = 1,
   ) => {
-    const playableLeft = 0;
-    const playableRight = 100 - goalBackBand;
-    const playableTop = touchlineBand;
-    const playableBottom = 100 - touchlineBand;
+    const {
+      left: playableLeft,
+      right: playableRight,
+      top: playableTop,
+      bottom: playableBottom,
+    } = getPlayableBounds(touchlineBand, goalBackBand);
 
     const size = getChapaSizePercent();
     const halfWidth = (size.width * scaleX) / 2;
@@ -256,10 +263,12 @@ export function useTacticalBoard(
     const pitch = halfPitchRef.current;
     if (!pitch) return { x, y };
 
-    const playableLeft = 0;
-    const playableRight = 100 - goalBackBand;
-    const playableTop = touchlineBand;
-    const playableBottom = 100 - touchlineBand;
+    const {
+      left: playableLeft,
+      right: playableRight,
+      top: playableTop,
+      bottom: playableBottom,
+    } = getPlayableBounds(touchlineBand, goalBackBand);
 
     const size = getDimensionsPercent(kind, scaleX, scaleY, touchlineBand, goalBackBand);
     const halfWidth = size.width / 2;
@@ -900,8 +909,9 @@ export function useTacticalBoard(
     const rawX = ((clientX - rect.left) / rect.width) * 100;
     const rawY = ((clientY - rect.top) / rect.height) * 100;
 
-    const x = clamp(rawX, 0, 100 - goalBackBand);
-    const y = clamp(rawY, touchlineBand, 100 - touchlineBand);
+    const bounds = getPlayableBounds(touchlineBand, goalBackBand);
+    const x = clamp(rawX, bounds.left, bounds.right);
+    const y = clamp(rawY, bounds.top, bounds.bottom);
 
     setPlacedChapas((prev) => ({
       ...prev,
@@ -931,11 +941,7 @@ export function useTacticalBoard(
     setDraggingChapaId(null);
     if (halfPitchRef.current && playerId in placedChapas) {
       const rect = halfPitchRef.current.getBoundingClientRect();
-      const outside =
-        e.clientX < rect.left ||
-        e.clientX > rect.right ||
-        e.clientY < rect.top ||
-        e.clientY > rect.bottom;
+      const outside = isOutsideFullPitch(rect, e.clientX, e.clientY);
       if (outside) {
         removePlacedChapa(playerId);
       }
@@ -1070,11 +1076,7 @@ export function useTacticalBoard(
     setDraggingSpaceId(null);
     if (halfPitchRef.current) {
       const rect = halfPitchRef.current.getBoundingClientRect();
-      const outside =
-        e.clientX < rect.left ||
-        e.clientX > rect.right ||
-        e.clientY < rect.top ||
-        e.clientY > rect.bottom;
+      const outside = isOutsideFullPitch(rect, e.clientX, e.clientY);
       if (outside) removePlacedSpace(spaceId);
     }
   };
@@ -1331,11 +1333,7 @@ export function useTacticalBoard(
     setDraggingMaterialId(null);
     if (halfPitchRef.current) {
       const rect = halfPitchRef.current.getBoundingClientRect();
-      const outside =
-        e.clientX < rect.left ||
-        e.clientX > rect.right ||
-        e.clientY < rect.top ||
-        e.clientY > rect.bottom;
+      const outside = isOutsideFullPitch(rect, e.clientX, e.clientY);
       if (outside) removePlacedMaterial(materialId);
     }
   };
@@ -1411,7 +1409,7 @@ export function useTacticalBoard(
     const rect = pitch.getBoundingClientRect();
     const x = ((clientX - rect.left) / rect.width) * 100;
     const y = ((clientY - rect.top) / rect.height) * 100;
-    return { x: Math.max(0, Math.min(100, x)), y: Math.max(0, Math.min(100, y)) };
+    return clampToField(x, y);
   };
 
   const handleDrawMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -1471,16 +1469,11 @@ export function useTacticalBoard(
     const dx = 2;
     const dy = 2;
     const duplicatedId = typeof crypto?.randomUUID === "function" ? crypto.randomUUID() : `line-${Date.now()}-${Math.random()}`;
+    const start = clampToField(src.x1 + dx, src.y1 + dy);
+    const end = clampToField(src.x2 + dx, src.y2 + dy);
     setPlacedLines((prev) => [
       ...prev,
-      {
-        ...src,
-        id: duplicatedId,
-        x1: Math.max(0, Math.min(100, src.x1 + dx)),
-        y1: Math.max(0, Math.min(100, src.y1 + dy)),
-        x2: Math.max(0, Math.min(100, src.x2 + dx)),
-        y2: Math.max(0, Math.min(100, src.y2 + dy)),
-      },
+      { ...src, id: duplicatedId, x1: start.x, y1: start.y, x2: end.x, y2: end.y },
     ]);
   };
 
@@ -1513,7 +1506,7 @@ export function useTacticalBoard(
     const raw = getRawDropPosition(clientX, clientY);
     if (!raw) return;
 
-    const clamped = { x: clamp(raw.x, 0, 100), y: clamp(raw.y, 0, 100) };
+    const clamped = clampToField(raw.x, raw.y);
     const id =
       typeof crypto !== "undefined" && "randomUUID" in crypto
         ? crypto.randomUUID()
@@ -1544,7 +1537,7 @@ export function useTacticalBoard(
     const raw = getRawDropPosition(clientX, clientY);
     if (!raw) return;
 
-    const clamped = { x: clamp(raw.x, 0, 100), y: clamp(raw.y, 0, 100) };
+    const clamped = clampToField(raw.x, raw.y);
 
     setPlacedTexts((prev) =>
       prev.map((text) => {
@@ -1573,8 +1566,7 @@ export function useTacticalBoard(
       {
         ...source,
         id: duplicatedId,
-        x: clamp(source.x + 2, 0, 100),
-        y: clamp(source.y + 2, 0, 100),
+        ...clampToField(source.x + 2, source.y + 2),
       },
     ]);
   };
@@ -1667,11 +1659,7 @@ export function useTacticalBoard(
     setDraggingTextId(null);
     if (halfPitchRef.current && !placedTexts.find((t) => t.id === textId)?.locked) {
       const rect = halfPitchRef.current.getBoundingClientRect();
-      const outside =
-        e.clientX < rect.left ||
-        e.clientX > rect.right ||
-        e.clientY < rect.top ||
-        e.clientY > rect.bottom;
+      const outside = isOutsideFullPitch(rect, e.clientX, e.clientY);
       if (outside) removePlacedText(textId);
     }
   };

@@ -188,6 +188,96 @@ describe("useTacticalBoard - space drag repositioning", () => {
   });
 });
 
+// The pitch element mocked by makePitchElement is the RIGHT half (0..100px);
+// the left half of the full pitch sits at clientX -100..0, which maps to
+// negative x percentages of the right half.
+describe("useTacticalBoard - both halves of the F11 pitch", () => {
+  beforeEach(() => {
+    vi.mocked(teamplayerService.getPlayersByTeam).mockReset();
+    vi.mocked(teamplayerService.getPlayersByTeam).mockResolvedValue([]);
+  });
+
+  function setup() {
+    const pitchEl = makePitchElement();
+    const halfPitchRef = { current: pitchEl } as React.RefObject<HTMLDivElement>;
+    return renderHook(() => useTacticalBoard(halfPitchRef, "")).result;
+  }
+
+  it("coloca una chapa en la mitad izquierda del campo", () => {
+    const result = setup();
+    act(() => {
+      result.current.handleFieldDrop(makeDropEvent({ "text/chapa-player-id": "p1" }, -40, 30));
+    });
+    expect(result.current.placedChapas["p1"]).toMatchObject({ x: -40, y: 30 });
+  });
+
+  it("limita la chapa a la línea de gol de la mitad izquierda, no a la línea de medio campo", () => {
+    const result = setup();
+    act(() => {
+      result.current.handleFieldDrop(makeDropEvent({ "text/chapa-player-id": "p1" }, -99, 30));
+    });
+    expect(result.current.placedChapas["p1"].x).toBe(-90);
+  });
+
+  it("coloca material en la mitad izquierda del campo", () => {
+    const result = setup();
+    act(() => {
+      result.current.handleFieldDrop(makeDropEvent({ "text/material-template-kind": "conos" }, -50, 50));
+    });
+    expect(result.current.placedMaterials[0]).toMatchObject({ x: -50, y: 50 });
+  });
+
+  it("coloca un espacio en la mitad izquierda del campo", () => {
+    const result = setup();
+    act(() => {
+      result.current.handleFieldDrop(makeDropEvent({ "text/space-template-kind": "square" }, -50, 50));
+    });
+    expect(result.current.placedSpaces[0]).toMatchObject({ x: -50, y: 50 });
+  });
+
+  it("crea un texto en la mitad izquierda del campo", () => {
+    const result = setup();
+    act(() => {
+      result.current.createTextAtPoint(-30, 40);
+    });
+    expect(result.current.placedTexts[0]).toMatchObject({ x: -30, y: 40 });
+  });
+
+  it("dibuja una línea que empieza en la mitad izquierda del campo", () => {
+    const result = setup();
+    act(() => {
+      result.current.setActiveLineKind("straight");
+    });
+    act(() => {
+      result.current.handleDrawMouseDown(makeMouseEvent(-60, 20) as unknown as React.MouseEvent<HTMLDivElement>);
+    });
+    act(() => {
+      result.current.handleDrawMouseMove(makeMouseEvent(20, 20) as unknown as React.MouseEvent<HTMLDivElement>);
+    });
+    act(() => {
+      result.current.handleDrawMouseUp();
+    });
+    expect(result.current.placedLines[0]).toMatchObject({ x1: -60, y1: 20, x2: 20, y2: 20 });
+  });
+
+  it("no elimina una chapa al soltarla sobre la mitad izquierda, pero sí fuera del campo", () => {
+    const result = setup();
+    act(() => {
+      result.current.handleFieldDrop(makeDropEvent({ "text/chapa-player-id": "p1" }, -40, 30));
+    });
+
+    act(() => {
+      result.current.handleChapaDragEnd(makeDropEvent({}, -40, 30) as unknown as React.DragEvent<HTMLElement>, "p1");
+    });
+    expect(result.current.placedChapas["p1"]).toBeDefined();
+
+    act(() => {
+      result.current.handleChapaDragEnd(makeDropEvent({}, -150, 30) as unknown as React.DragEvent<HTMLElement>, "p1");
+    });
+    expect(result.current.placedChapas["p1"]).toBeUndefined();
+  });
+});
+
 describe("useTacticalBoard - texts", () => {
   beforeEach(() => {
     vi.mocked(teamplayerService.getPlayersByTeam).mockReset();

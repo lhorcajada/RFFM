@@ -131,13 +131,25 @@
 .halfPitch {
   width: 50%;
   height: 100%;
+  /* Placed objects are stored in % of this (right) half; the ones on the
+     left half have negative x and must render over .mirrorHalf. The outer
+     .fullPitch still clips at the pitch edge. */
+  overflow: visible;
+}
+
+.halfPitchMarkings {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
 }
 
 .mirrorHalf {
   /* A horizontally-flipped duplicate of the real half: its midline lands
      adjacent to the real half's midline (forming one continuous halfway
      line at the pitch's true center) and its goal ends up at the outer
-     edge — the far goal of the full pitch. Purely decorative background. */
+     edge — the far goal of the full pitch. Its markings are decorative;
+     events fall through to .fullPitch, which handles drops/clicks on it. */
   width: 50%;
   height: 100%;
   transform: scaleX(-1);
@@ -1566,7 +1578,11 @@
 /* ─── Drawing capture overlay ───────────────────────────── */
 .drawingOverlay {
   position: absolute;
-  inset: 0;
+  /* Covers both halves: the left one lies to the left of .halfPitch. */
+  top: 0;
+  bottom: 0;
+  left: -100%;
+  right: 0;
   z-index: 100;
   cursor: crosshair;
   background: transparent;

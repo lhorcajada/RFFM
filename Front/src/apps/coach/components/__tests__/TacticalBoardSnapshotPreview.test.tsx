@@ -102,6 +102,22 @@ describe("TacticalBoardSnapshotPreview", () => {
     expect(container.querySelector(`.${styles.penaltySpot}`)).toBeInTheDocument();
   });
 
+  it("muestra el campo completo: ambas porterías de F11, no solo media parte", () => {
+    const { container } = render(<TacticalBoardSnapshotPreview snapshot={emptySnapshot()} />);
+    expect(container.querySelectorAll(`.${styles.goalMouth}`)).toHaveLength(2);
+    expect(container.querySelectorAll(`.${styles.penaltyArea}`)).toHaveLength(2);
+  });
+
+  it("pinta en la mitad izquierda los elementos colocados allí (x negativa)", () => {
+    const snapshot: TacticalBoardSnapshot = {
+      ...emptySnapshot(),
+      placedMaterials: [{ id: "m1", kind: "conos", x: -40, y: 30, rotation: 0 }],
+    };
+    const { container } = render(<TacticalBoardSnapshotPreview snapshot={snapshot} />);
+    const material = container.querySelector(`.${styles.materialOnField}`) as HTMLElement;
+    expect(material.style.left).toBe("-40%");
+  });
+
   it("renders a placed line as a real SVG path built via buildLinePath, including arrow markers", () => {
     const snapshot: TacticalBoardSnapshot = {
       ...emptySnapshot(),

@@ -18,15 +18,18 @@
   justify-content: center;
 }
 
-.pitch {
+/* Full F11 pitch (both halves), same layout as the editor's .fullPitch. */
+.fullPitch {
   position: relative;
-  width: min(100%, calc(100cqh * 52.5 / 68));
-  aspect-ratio: 52.5 / 68;
+  display: flex;
+  width: min(100%, calc(100cqh * 105 / 68));
+  aspect-ratio: 105 / 68;
   overflow: hidden;
-  /* Own container-query context so descendants (placedText's cqw font-size)
-     scale against the pitch's actual rendered width, not the outer .board
-     wrapper (which can be wider than the pitch when the card isn't 52.5:68). */
-  container-type: size;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+.pitch,
+.mirrorHalf {
   background: linear-gradient(
     90deg,
     #1a7a2e 0%,
@@ -37,9 +40,35 @@
     #1d8a32 85%,
     #1a7a2e 100%
   );
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
   --touchline-band: 8%;
   --goal-back-band: 10%;
+}
+
+/* Right half: coordinate origin for every placed object (objects on the
+   left half have negative x and overflow into .mirrorHalf). */
+.pitch {
+  position: relative;
+  width: 50%;
+  height: 100%;
+  overflow: visible;
+  /* Own container-query context so descendants (placedText's cqw font-size)
+     scale against the half's actual rendered width, as in the editor. */
+  container-type: size;
+}
+
+/* Decorative left half: a horizontally-flipped copy of the silhouette. */
+.mirrorHalf {
+  position: relative;
+  width: 50%;
+  height: 100%;
+  overflow: hidden;
+  transform: scaleX(-1);
+}
+
+.pitchMarkings {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
 }
 
 /* ── Field silhouette (half-pitch + goal, same proportions as the editor) ── */

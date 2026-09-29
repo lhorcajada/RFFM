@@ -3,6 +3,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   FIELD_WIDTH_METERS,
+  FULL_FIELD_LENGTH_METERS,
   HALF_FIELD_LENGTH_METERS,
 } from "../../pages/trainings/new/constants";
 
@@ -52,23 +53,29 @@ function getGoalLineOffsetPercent(block: string): number {
 }
 
 describe("TacticalBoardSnapshotPreview — pitch box self-contains its own aspect ratio", () => {
-  it(".board centers a cqh-sized .pitch, so it renders correctly proportioned regardless of the consumer's own card shape (16:9, 4:3, ...)", () => {
+  it(".board centers a cqh-sized .fullPitch (both halves, 105x68m), so it renders correctly proportioned regardless of the consumer's own card shape (16:9, 4:3, ...)", () => {
     const boardBlock = getBlock("board");
     expect(boardBlock).toMatch(/container-type:\s*size/);
     expect(boardBlock).toMatch(/display:\s*flex/);
     expect(boardBlock).toMatch(/align-items:\s*center/);
     expect(boardBlock).toMatch(/justify-content:\s*center/);
 
-    const pitchBlock = getBlock("pitch");
-    const cqhMatch = pitchBlock.match(/calc\(100cqh \* (\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)\)/);
+    const fullPitchBlock = getBlock("fullPitch");
+    const cqhMatch = fullPitchBlock.match(/calc\(100cqh \* (\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)\)/);
     expect(cqhMatch).not.toBeNull();
-    expect(Number(cqhMatch![1])).toBe(HALF_FIELD_LENGTH_METERS);
+    expect(Number(cqhMatch![1])).toBe(FULL_FIELD_LENGTH_METERS);
     expect(Number(cqhMatch![2])).toBe(FIELD_WIDTH_METERS);
 
-    const aspectRatioMatch = pitchBlock.match(/aspect-ratio:\s*(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)/);
+    const aspectRatioMatch = fullPitchBlock.match(/aspect-ratio:\s*(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)/);
     expect(aspectRatioMatch).not.toBeNull();
-    expect(Number(aspectRatioMatch![1])).toBe(HALF_FIELD_LENGTH_METERS);
+    expect(Number(aspectRatioMatch![1])).toBe(FULL_FIELD_LENGTH_METERS);
     expect(Number(aspectRatioMatch![2])).toBe(FIELD_WIDTH_METERS);
+  });
+
+  it("each half (.pitch and its mirrored twin) fills 50% of .fullPitch, keeping 52.5x68m proportions", () => {
+    expect(getBlock("pitch")).toMatch(/width:\s*50%/);
+    expect(getBlock("mirrorHalf")).toMatch(/width:\s*50%/);
+    expect(getBlock("mirrorHalf")).toMatch(/transform:\s*scaleX\(-1\)/);
   });
 });
 

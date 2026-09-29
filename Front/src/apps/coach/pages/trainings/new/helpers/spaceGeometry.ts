@@ -1,5 +1,11 @@
 import type { SpaceKind, SpacePosition, Vertex } from "../types";
-import { FIELD_WIDTH_METERS, HALF_FIELD_LENGTH_METERS, REGULAR_POLYGON_SIDES, SPACE_TEMPLATES } from "../constants";
+import {
+  FIELD_WIDTH_METERS,
+  FULL_FIELD_LENGTH_METERS,
+  HALF_FIELD_LENGTH_METERS,
+  REGULAR_POLYGON_SIDES,
+  SPACE_TEMPLATES,
+} from "../constants";
 
 export const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
@@ -37,6 +43,33 @@ export const getDimensionsPercent = (
   };
 };
 
+/**
+ * Playable area of the full F11 pitch, in percent of the interactive right
+ * half (the coordinate system every placed object is stored in). The left
+ * half is its mirror, so it spans negative x down to its own goal line.
+ */
+export const getPlayableBounds = (touchlineBandPercent = 8, goalBackBandPercent = 10) => ({
+  left: -(100 - goalBackBandPercent),
+  right: 100 - goalBackBandPercent,
+  top: touchlineBandPercent,
+  bottom: 100 - touchlineBandPercent,
+});
+
+/** Whole full-pitch box (both halves, bands included) in the same units. */
+export const FIELD_BOUNDS = { left: -100, right: 100, top: 0, bottom: 100 } as const;
+
+export const clampToField = (x: number, y: number) => ({
+  x: clamp(x, FIELD_BOUNDS.left, FIELD_BOUNDS.right),
+  y: clamp(y, FIELD_BOUNDS.top, FIELD_BOUNDS.bottom),
+});
+
+/** True when a client point falls outside the full pitch, given the right half's rect. */
+export const isOutsideFullPitch = (halfRect: DOMRect, clientX: number, clientY: number) =>
+  clientX < halfRect.left - halfRect.width ||
+  clientX > halfRect.right ||
+  clientY < halfRect.top ||
+  clientY > halfRect.bottom;
+
 export const getMaxScalesForPlayableArea = (
   kind: SpaceKind,
   _touchlineBandPercent = 8,
@@ -44,7 +77,7 @@ export const getMaxScalesForPlayableArea = (
 ) => {
   const base = getBaseDimensionsMeters(kind);
   return {
-    x: Math.max(1, HALF_FIELD_LENGTH_METERS / base.width),
+    x: Math.max(1, FULL_FIELD_LENGTH_METERS / base.width),
     y: Math.max(1, FIELD_WIDTH_METERS / base.height),
   };
 };

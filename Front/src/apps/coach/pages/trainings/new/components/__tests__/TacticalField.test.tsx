@@ -233,6 +233,35 @@ describe("TacticalField - line selection with lines panel closed", () => {
   });
 });
 
+describe("TacticalField - both halves of the F11 pitch", () => {
+  beforeEach(() => {
+    vi.mocked(teamplayerService.getPlayersByTeam).mockReset();
+    vi.mocked(teamplayerService.getPlayersByTeam).mockResolvedValue([]);
+  });
+
+  it("acepta soltar elementos sobre la mitad izquierda del campo (fuera de la mitad derecha)", () => {
+    const halfPitchRef = { current: makePitchElement() } as React.RefObject<HTMLDivElement>;
+    const { result: boardResult } = renderHook(() => useTacticalBoard(halfPitchRef, ""));
+
+    const { container } = render(
+      <TacticalField halfPitchRef={halfPitchRef} board={boardResult.current} />,
+    );
+
+    const leftHalf = container.querySelector('[data-testid="pitch-left-half"]');
+    expect(leftHalf).not.toBeNull();
+
+    // jsdom doesn't propagate clientX on drag events; the negative-x mapping
+    // itself is covered in useTacticalBoard.test.tsx.
+    act(() => {
+      fireEvent.drop(leftHalf!, {
+        dataTransfer: { getData: (key: string) => (key === "text/material-template-kind" ? "conos" : "") },
+      });
+    });
+
+    expect(boardResult.current.placedMaterials).toHaveLength(1);
+  });
+});
+
 describe("TacticalField - texts rendering and interaction", () => {
   beforeEach(() => {
     vi.mocked(teamplayerService.getPlayersByTeam).mockReset();
