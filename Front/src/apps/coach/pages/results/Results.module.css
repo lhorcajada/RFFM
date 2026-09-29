@@ -1,0 +1,35 @@
+.competitionHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.competitionName {
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.groupName {
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
+
+.tabsWrap {
+  margin-top: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--rffm-card-bg, #1c1c30);
+  border-radius: 10px 10px 0 0;
+}
+
+.tabPanel {
+  padding-top: 8px;
+  overflow-x: hidden;
+}
+
+.center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 0;
+}

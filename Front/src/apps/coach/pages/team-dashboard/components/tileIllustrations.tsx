@@ -84,6 +84,19 @@ export function MatchesIllustration() {
   );
 }
 
+export function ResultsIllustration() {
+  return (
+    <svg viewBox="0 0 100 80" role="presentation">
+      <rect x="14" y="18" width="72" height="40" rx="6" fill={FILL_FAINT} />
+      <rect x="22" y="26" width="22" height="24" rx="3" fill={FILL} />
+      <rect x="56" y="26" width="22" height="24" rx="3" fill={FILL} />
+      <circle cx="50" cy="33" r="2.5" fill={FILL_SOFT} />
+      <circle cx="50" cy="43" r="2.5" fill={FILL_SOFT} />
+      <rect x="30" y="62" width="40" height="5" rx="2.5" fill={FILL_SOFT} />
+    </svg>
+  );
+}
+
 export function RivalsIllustration() {
   return (
     <svg viewBox="0 0 100 80" role="presentation">

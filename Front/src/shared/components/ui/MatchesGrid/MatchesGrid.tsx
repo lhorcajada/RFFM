@@ -4,7 +4,13 @@ import styles from "./MatchesGrid.module.css";
 import { sortMatchesByTime } from "../../../utils/calendar";
 import RestItem from "../RestItem/RestItem";
 
-export default function MatchesGrid({ items }: { items: any[] }) {
+export default function MatchesGrid({
+  items,
+  hideActaButton,
+}: {
+  items: any[];
+  hideActaButton?: boolean;
+}) {
   return (
     <div className={styles.matchesGrid}>
       {(items || [])
@@ -31,7 +37,7 @@ export default function MatchesGrid({ items }: { items: any[] }) {
           return isDescansa ? (
             <RestItem key={idx} item={it} />
           ) : (
-            <MatchCard key={idx} item={it} />
+            <MatchCard key={idx} item={it} hideActaButton={hideActaButton} />
           );
         })}
     </div>

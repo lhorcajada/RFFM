@@ -66,6 +66,49 @@ describe("TeamDashboardCards — grouping", () => {
     expect(calendarioIndex).toBeLessThan(disciplinaIndex);
   });
 
+  it("places the Resultados tile inside the Competición group", () => {
+    mockUsePermissions.mockReturnValue({ loading: false, hasFeatureAccess: () => true });
+
+    const { container } = renderCards(false);
+    const nodes = Array.from(container.querySelectorAll("h3,a")).map((el) => el.textContent);
+
+    const competicionIndex = nodes.indexOf("Competición");
+    const resultadosIndex = nodes.indexOf("Resultados");
+    const disciplinaIndex = nodes.indexOf("Disciplina");
+
+    expect(resultadosIndex).toBeGreaterThan(competicionIndex);
+    expect(resultadosIndex).toBeLessThan(disciplinaIndex);
+  });
+
+  it("links the Resultados tile to the results page of the team", () => {
+    mockUsePermissions.mockReturnValue({ loading: false, hasFeatureAccess: () => true });
+
+    render(
+      <MemoryRouter>
+        <TeamDashboardCards
+          team={{ id: "team-1" } as Parameters<typeof TeamDashboardCards>[0]["team"]}
+          selectedSeason=""
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole("link", { name: "Resultados" })).toHaveAttribute(
+      "href",
+      "/coach/results?teamId=team-1",
+    );
+  });
+
+  it("hides the Resultados tile without access to the calendar", () => {
+    mockUsePermissions.mockReturnValue({
+      loading: false,
+      hasFeatureAccess: (route: string) => route !== COACH_FEATURE_ROUTES.Convocations,
+    });
+
+    renderCards(false);
+
+    expect(screen.queryByRole("link", { name: "Resultados" })).not.toBeInTheDocument();
+  });
+
   it("hides a group header entirely when every tile in that group is hidden", () => {
     mockUsePermissions.mockReturnValue({
       loading: false,

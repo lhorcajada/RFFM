@@ -2,7 +2,13 @@ import React from "react";
 import { groupMatchesByWeekend } from "../../../utils/calendar";
 import MatchDayView from "../MatchDay/MatchDay";
 
-export default function RoundPanel({ round }: { round: any }) {
+export default function RoundPanel({
+  round,
+  hideActaButton,
+}: {
+  round: any;
+  hideActaButton?: boolean;
+}) {
   const allMatches = round.equipos ?? round.partidos ?? round.matches ?? [];
   const grouped = groupMatchesByWeekend(allMatches);
 
@@ -26,13 +32,22 @@ export default function RoundPanel({ round }: { round: any }) {
         <MatchDayView
           title={`Sábado ${saturdayDate}`}
           items={grouped.saturday}
+          hideActaButton={hideActaButton}
         />
       )}
       {grouped.sunday.length > 0 && (
-        <MatchDayView title={`Domingo ${sundayDate}`} items={grouped.sunday} />
+        <MatchDayView
+          title={`Domingo ${sundayDate}`}
+          items={grouped.sunday}
+          hideActaButton={hideActaButton}
+        />
       )}
       {grouped.other.length > 0 && (
-        <MatchDayView title={`Descanso`} items={grouped.other} />
+        <MatchDayView
+          title={`Descanso`}
+          items={grouped.other}
+          hideActaButton={hideActaButton}
+        />
       )}
       {grouped.byes && grouped.byes.length > 0 && (
         <MatchDayView title={`Descansa`} items={grouped.byes} />
