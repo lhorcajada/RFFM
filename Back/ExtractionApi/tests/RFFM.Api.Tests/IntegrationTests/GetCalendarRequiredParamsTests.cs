@@ -17,7 +17,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RFFM.Api.Features.Federation.Competitions.Queries.GetCalendar;
 using RFFM.Api.Features.Federation.Competitions.Queries.GetCalendar.Responses;
-using RFFM.Api.Features.Federation.Competitions.Queries.GetCalendarMatchDay.Responses;
 using RFFM.Api.Features.Federation.Competitions.Services;
 using Xunit;
 
@@ -44,9 +43,6 @@ namespace RFFM.Api.Tests.IntegrationTests
                 LastGroup = groupId;
                 return Task.FromResult(new CalendarResponse());
             }
-
-            public Task<CalendarMatchDayWithRoundsResponse> GetCalendarMatchDayAsync(int groupId, int round, CancellationToken cancellationToken = default)
-                => Task.FromResult(new CalendarMatchDayWithRoundsResponse());
         }
 
         private class TestAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions>

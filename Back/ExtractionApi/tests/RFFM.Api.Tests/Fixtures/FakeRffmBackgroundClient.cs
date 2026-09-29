@@ -6,6 +6,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using RFFM.Api.Features.Federation.Clubs.Models;
+using RFFM.Api.Features.Federation.Competitions.Models;
 using RFFM.Api.Features.Federation.Players.Models;
 using RFFM.Api.Features.Federation.SquadHistory.Services;
 using RFFM.Api.Features.Federation.Teams.Models;
@@ -80,6 +81,15 @@ namespace RFFM.Api.Tests.Fixtures
             ActaCalls[recordCode] = ActaCalls.GetValueOrDefault(recordCode) + 1;
             if (FailingActas.Contains(recordCode)) throw new HttpRequestException("500");
             return Task.FromResult(Actas.GetValueOrDefault(recordCode));
+        }
+
+        public Dictionary<string, List<TeamResponse>> Standings { get; } = new();
+        public List<(string Group, int Round)> RequestedStandings { get; } = new();
+
+        public Task<IReadOnlyList<TeamResponse>?> GetStandingsAsync(string groupCode, int round, CancellationToken cancellationToken)
+        {
+            RequestedStandings.Add((groupCode, round));
+            return Task.FromResult<IReadOnlyList<TeamResponse>?>(Standings.GetValueOrDefault(groupCode));
         }
     }
 }

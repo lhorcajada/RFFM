@@ -1,6 +1,5 @@
 using RFFM.Api.Features.Federation.Competitions.Models.ApiRffm;
 using RFFM.Api.Features.Federation.Competitions.Queries.GetCalendar.Responses;
-using RFFM.Api.Features.Federation.Competitions.Queries.GetCalendarMatchDay.Responses;
 using RFFM.Api.Infrastructure.Helpers;
 using System.Text.Json;
 
@@ -9,9 +8,6 @@ namespace RFFM.Api.Features.Federation.Competitions.Services
     public interface ICalendarService
     {
         Task<CalendarResponse> GetCalendarAsync(int competicion, int groupId,
-            CancellationToken cancellationToken = default);
-
-        Task<CalendarMatchDayWithRoundsResponse> GetCalendarMatchDayAsync(int groupId, int round,
             CancellationToken cancellationToken = default);
     }
 
@@ -38,46 +34,6 @@ namespace RFFM.Api.Features.Federation.Competitions.Services
 
             }
             return calendarResponse;
-        }
-
-        public async Task<CalendarMatchDayWithRoundsResponse> GetCalendarMatchDayAsync(int groupId, int round,
-            CancellationToken cancellationToken = default)
-        {
-            var positions = await GetTeamPositionsAsync(groupId, cancellationToken);
-            var calendarRffm = await FetchCalendarRffmAsync(groupId, round, cancellationToken);
-
-            if (calendarRffm == null)
-                return new CalendarMatchDayWithRoundsResponse { Round = round, GroupId = groupId };
-
-            var rounds = new List<CalendarRoundInfoResponse>();
-            var wrapper = calendarRffm.MatchdayList?.FirstOrDefault();
-            if (wrapper?.Matchdays != null)
-            {
-                foreach (var md in wrapper.Matchdays)
-                {
-                    if (!int.TryParse(md.MatchdayCode?.Trim(), out var mdNumber))
-                        continue;
-
-                    rounds.Add(new CalendarRoundInfoResponse
-                    {
-                        MatchDayNumber = mdNumber,
-                        Date = DateTimeParser.ParseOrMinValue(md.Date),
-                        Name = md.Name ?? string.Empty
-                    });
-                }
-            }
-
-            var matchDay = MapMatchDay(calendarRffm, round, positions);
-
-            return new CalendarMatchDayWithRoundsResponse
-            {
-                Round = round,
-                CompetitionName = calendarRffm.CompetitionName ?? string.Empty,
-                GroupName = calendarRffm.GroupName ?? string.Empty,
-                GroupId = groupId,
-                Rounds = rounds,
-                MatchDay = matchDay
-            };
         }
 
         private async Task<CalendarMatchDayResponse> GetWorkingDayAsync(int groupId, int workingDayNumber, IReadOnlyDictionary<string,int> positions, CancellationToken cancellationToken = default)

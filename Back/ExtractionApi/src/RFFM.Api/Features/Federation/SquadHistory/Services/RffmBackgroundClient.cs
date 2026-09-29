@@ -2,7 +2,9 @@ using System.Net;
 using System.Text.Json;
 using RFFM.Api.Features.Federation.Clubs.Models;
 using RFFM.Api.Features.Federation.Clubs.Services;
+using RFFM.Api.Features.Federation.Competitions.Models;
 using RFFM.Api.Features.Federation.Competitions.Models.ApiRffm;
+using RFFM.Api.Features.Federation.Competitions.Services;
 using RFFM.Api.Features.Federation.Players.Models;
 using RFFM.Api.Features.Federation.Players.Services;
 using RFFM.Api.Features.Federation.Teams.Models;
@@ -41,6 +43,9 @@ namespace RFFM.Api.Features.Federation.SquadHistory.Services
 
         Task<MatchRffm?> GetActaAsync(string recordCode, int seasonId, string competitionCode, string groupCode,
             CancellationToken cancellationToken);
+
+        /// <summary>Clasificación del grupo tras la jornada indicada; null si la RFFM no la devuelve.</summary>
+        Task<IReadOnlyList<TeamResponse>?> GetStandingsAsync(string groupCode, int round, CancellationToken cancellationToken);
     }
 
     /// <summary>
@@ -153,6 +158,13 @@ namespace RFFM.Api.Features.Federation.SquadHistory.Services
                       $"&competicion={Uri.EscapeDataString(competitionCode)}&grupo={Uri.EscapeDataString(groupCode)}";
             var html = await GetStringOrNullAsync(url, cancellationToken);
             return html == null ? null : ActaParser.Parse(html);
+        }
+
+        public async Task<IReadOnlyList<TeamResponse>?> GetStandingsAsync(string groupCode, int round, CancellationToken cancellationToken)
+        {
+            var standings = await GetJsonAsync<StandingRffm>(
+                $"api/standings?idGroup={Uri.EscapeDataString(groupCode)}&round={round}", cancellationToken);
+            return standings == null ? null : StandingsMapper.ToTeams(standings);
         }
 
         private Task<CalendarRffm?> GetRoundAsync(string groupCode, int round, CancellationToken cancellationToken) =>

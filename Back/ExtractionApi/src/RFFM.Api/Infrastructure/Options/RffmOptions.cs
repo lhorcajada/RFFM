@@ -1,3 +1,5 @@
+using RFFM.Api.Domain.Entities.Federation.Results;
+
 namespace RFFM.Api.Infrastructure.Options
 {
     public class RffmOptions
@@ -14,6 +16,8 @@ namespace RFFM.Api.Infrastructure.Options
         public int BackgroundMinDelayMs { get; set; } = 800;
 
         public int BackgroundRetryBaseDelayMs { get; set; } = 2000;
+
+        public RffmResultsRefreshSettings Results { get; set; } = new();
     }
 
     public record RffmSeasonOption(int Id, string Label);

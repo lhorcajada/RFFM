@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Domain.Entities.Federation;
+using RFFM.Api.Domain.Entities.Federation.Results;
 using RFFM.Api.Domain.Entities.Federation.SquadHistory;
 using RFFM.Api.Infrastructure.Persistence.Configuration.Entities;
 
@@ -12,6 +13,10 @@ namespace RFFM.Api.Infrastructure.Persistence
         public DbSet<SquadHistoryReport> SquadHistoryReports { get; set; }
         public DbSet<SquadHistoryEntry> SquadHistoryEntries { get; set; }
         public DbSet<SquadHistorySubscriber> SquadHistorySubscribers { get; set; }
+        public DbSet<RffmCompetitionGroup> RffmCompetitionGroups { get; set; }
+        public DbSet<RffmRound> RffmRounds { get; set; }
+        public DbSet<RffmMatch> RffmMatches { get; set; }
+        public DbSet<RffmMatchRecord> RffmMatchRecords { get; set; }
 
         public FederationDbContext(DbContextOptions<FederationDbContext> options) : base(options) { }
 
@@ -24,6 +29,10 @@ namespace RFFM.Api.Infrastructure.Persistence
             modelBuilder.ApplyConfiguration(new SquadHistoryReportEntityConfiguration());
             modelBuilder.ApplyConfiguration(new SquadHistoryEntryEntityConfiguration());
             modelBuilder.ApplyConfiguration(new SquadHistorySubscriberEntityConfiguration());
+            modelBuilder.ApplyConfiguration(new RffmCompetitionGroupEntityConfiguration());
+            modelBuilder.ApplyConfiguration(new RffmRoundEntityConfiguration());
+            modelBuilder.ApplyConfiguration(new RffmMatchEntityConfiguration());
+            modelBuilder.ApplyConfiguration(new RffmMatchRecordEntityConfiguration());
         }
 
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
