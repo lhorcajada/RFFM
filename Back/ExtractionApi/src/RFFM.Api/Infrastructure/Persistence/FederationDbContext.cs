@@ -17,6 +17,7 @@ namespace RFFM.Api.Infrastructure.Persistence
         public DbSet<RffmRound> RffmRounds { get; set; }
         public DbSet<RffmMatch> RffmMatches { get; set; }
         public DbSet<RffmMatchRecord> RffmMatchRecords { get; set; }
+        public DbSet<RffmStandingsSnapshot> RffmStandingsSnapshots { get; set; }
 
         public FederationDbContext(DbContextOptions<FederationDbContext> options) : base(options) { }
 
@@ -33,6 +34,7 @@ namespace RFFM.Api.Infrastructure.Persistence
             modelBuilder.ApplyConfiguration(new RffmRoundEntityConfiguration());
             modelBuilder.ApplyConfiguration(new RffmMatchEntityConfiguration());
             modelBuilder.ApplyConfiguration(new RffmMatchRecordEntityConfiguration());
+            modelBuilder.ApplyConfiguration(new RffmStandingsSnapshotEntityConfiguration());
         }
 
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

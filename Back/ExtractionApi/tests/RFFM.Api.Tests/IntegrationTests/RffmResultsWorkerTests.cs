@@ -33,7 +33,13 @@ namespace RFFM.Api.Tests.IntegrationTests
         private string NewRecordCode() => $"{_groupCode}-{Guid.NewGuid():N}"[..30];
 
         private RffmResultsJobProcessor CreateProcessor(FederationDbContext db) =>
-            new(db, _client, new MutableTimeProvider(Now), NullLogger<RffmResultsJobProcessor>.Instance);
+            new(db, _client, CreateSyncService(db), new MutableTimeProvider(Now), NullLogger<RffmResultsJobProcessor>.Instance);
+
+        private static RffmResultsSyncService CreateSyncService(FederationDbContext db) =>
+            new(db, new FakeRffmResultsClient(), new RffmResultsJobQueue(), new KeyedLock(), new MutableTimeProvider(Now),
+                Microsoft.Extensions.Options.Options.Create(new Infrastructure.Options.RffmOptions()),
+                new Moq.Mock<Features.Federation.Competitions.Services.ICompetitionService>().Object,
+                NullLogger<RffmResultsSyncService>.Instance);
 
         private async Task ProcessAsync(RffmResultsJob job)
         {
@@ -53,7 +59,7 @@ namespace RFFM.Api.Tests.IntegrationTests
         private async Task SeedGroupAsync(params RffmMatchSnapshot[] matches)
         {
             await using var db = _fixture.CreateFederationDbContext();
-            db.RffmCompetitionGroups.Add(RffmCompetitionGroup.Create(_groupCode, 22, "26738047", "SUPERLIGA CADETE", "Grupo Unico", 80, 2, Now));
+            db.RffmCompetitionGroups.Add(RffmCompetitionGroup.Create(_groupCode, 22, "26738047", "SUPERLIGA CADETE", "Grupo Unico", 80, 2, null, Now));
             var round = RffmRound.Create(_groupCode, 1, "1", new DateOnly(2026, 9, 26));
             round.ApplySnapshot(matches, Now);
             db.RffmRounds.Add(round);
@@ -99,20 +105,75 @@ namespace RFFM.Api.Tests.IntegrationTests
             Assert.False(await db.RffmMatchRecords.AnyAsync(r => r.RecordCode == recordCode));
         }
 
-        [Fact]
-        public async Task Actualiza_la_clasificacion_del_grupo()
+        private static RffmMatchSnapshot Result(string code, string local, string visitor, string localGoals, string visitorGoals) =>
+            new()
+            {
+                RecordCode = code, RecordClosed = "1", HasRecords = "1", Date = "26/09/2026", Time = "10:00",
+                LocalTeamCode = local, LocalTeamName = $"Equipo {local}", LocalGoals = localGoals,
+                VisitorTeamCode = visitor, VisitorTeamName = $"Equipo {visitor}", VisitorGoals = visitorGoals
+            };
+
+        private static TeamResponse Official(string team, int position, int played, int points, int goalsFor, int goalsAgainst,
+            int sanction = 0, string color = "") =>
+            new()
+            {
+                TeamId = team, Position = position.ToString(), Played = played.ToString(), Points = points.ToString(),
+                GoalsFor = goalsFor.ToString(), GoalsAgainst = goalsAgainst.ToString(), SanctionPoints = sanction.ToString(), Color = color
+            };
+
+        private Task SeedPlayedRoundAsync() => SeedGroupAsync(
+            Result(NewRecordCode(), "A", "B", "2", "0"),
+            Result(NewRecordCode(), "C", "D", "1", "1"));
+
+        private async Task<(RffmCompetitionGroup Group, RffmStandingsSnapshot Snapshot)> StoredAsync()
         {
-            await SeedGroupAsync();
-            _client.Standings[_groupCode] = [new TeamResponse { TeamId = "1598", Position = "3", TeamName = "ADARVE", Points = "7" }];
-
-            await ProcessAsync(new RefreshStandingsJob(_groupCode, 1));
-
             await using var db = _fixture.CreateFederationDbContext();
-            var group = await db.RffmCompetitionGroups.SingleAsync(g => g.GroupCode == _groupCode);
-            var teams = JsonSerializer.Deserialize<List<TeamResponse>>(group.StandingsJson!)!;
-            Assert.Equal("7", Assert.Single(teams).Points);
-            Assert.Equal(Now, group.StandingsSyncedAt);
+            return (await db.RffmCompetitionGroups.SingleAsync(g => g.GroupCode == _groupCode),
+                await db.RffmStandingsSnapshots.SingleAsync(s => s.GroupCode == _groupCode && s.Round == 1));
+        }
+
+        [Fact]
+        public async Task La_conciliacion_guarda_la_clasificacion_oficial()
+        {
+            await SeedPlayedRoundAsync();
+            _client.Standings[_groupCode] = [Official("A", 1, 1, 3, 2, 0, color: "#41FF1A"), Official("C", 2, 1, 1, 1, 1),
+                Official("D", 3, 1, 1, 1, 1), Official("B", 4, 1, 0, 0, 2)];
+
+            await ProcessAsync(new ReconcileStandingsJob(_groupCode, 1));
+
+            var (group, snapshot) = await StoredAsync();
+            Assert.Equal(1, group.OfficialStandingsRound);
+            Assert.Equal(StandingsSource.Computed, snapshot.Source);
+            Assert.Equal("#41FF1A", RffmStandingsMapper.Parse(group.StandingsJson)[0].Color);
             Assert.Contains((_groupCode, 1), _client.RequestedStandings);
+        }
+
+        [Fact]
+        public async Task Con_los_mismos_datos_y_distinto_orden_se_usa_el_orden_oficial()
+        {
+            await SeedPlayedRoundAsync();
+            _client.Standings[_groupCode] = [Official("A", 1, 1, 3, 2, 0), Official("D", 2, 1, 1, 1, 1),
+                Official("C", 3, 1, 1, 1, 1), Official("B", 4, 1, 0, 0, 2)];
+
+            await ProcessAsync(new ReconcileStandingsJob(_groupCode, 1));
+
+            var (group, snapshot) = await StoredAsync();
+            Assert.Equal(StandingsSource.Official, snapshot.Source);
+            Assert.Equal(["A", "D", "C", "B"], RffmStandingsMapper.Parse(group.StandingsJson).Select(t => t.TeamId));
+        }
+
+        [Fact]
+        public async Task Una_sancion_de_la_clasificacion_oficial_se_aplica_a_la_calculada()
+        {
+            await SeedPlayedRoundAsync();
+            _client.Standings[_groupCode] = [Official("C", 1, 1, 1, 1, 1), Official("D", 2, 1, 1, 1, 1),
+                Official("A", 3, 1, 0, 2, 0, sanction: 3), Official("B", 4, 1, 0, 0, 2)];
+
+            await ProcessAsync(new ReconcileStandingsJob(_groupCode, 1));
+
+            var (group, _) = await StoredAsync();
+            var a = RffmStandingsMapper.Parse(group.StandingsJson).Single(t => t.TeamId == "A");
+            Assert.Equal(("0", "3"), (a.Points, a.SanctionPoints));
         }
 
         [Fact]
@@ -131,6 +192,7 @@ namespace RFFM.Api.Tests.IntegrationTests
             services.AddScoped<IRffmBackgroundClient>(_ => _client);
             services.AddSingleton<TimeProvider>(new MutableTimeProvider(Now));
             services.AddLogging();
+            services.AddScoped<IRffmResultsSyncService>(sp => CreateSyncService(sp.GetRequiredService<FederationDbContext>()));
             services.AddScoped<RffmResultsJobProcessor>();
             var provider = services.BuildServiceProvider();
             var worker = new RffmResultsWorker(new RffmResultsJobQueue(), provider.GetRequiredService<IServiceScopeFactory>(),

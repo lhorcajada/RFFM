@@ -47,6 +47,19 @@ namespace RFFM.Api.Tests.IntegrationTests
                     }
                 });
             }
+
+            public Task<CalendarResponse> GetCalendarAsync(int groupId, int seasonId, CancellationToken cancellationToken) =>
+                throw new System.NotSupportedException();
+
+            public Task<Features.Federation.Competitions.Models.ClassificationResponse> GetClassificationAsync(int groupId, int seasonId,
+                CancellationToken cancellationToken) => throw new System.NotSupportedException();
+
+            public Task RecomputeStandingsAsync(string groupCode, CancellationToken cancellationToken) =>
+                throw new System.NotSupportedException();
+
+            public Task ReconcileStandingsAsync(string groupCode, int round,
+                IReadOnlyList<Features.Federation.Competitions.Models.TeamResponse> official, CancellationToken cancellationToken) =>
+                throw new System.NotSupportedException();
         }
 
         private sealed class TestAuthHandler(

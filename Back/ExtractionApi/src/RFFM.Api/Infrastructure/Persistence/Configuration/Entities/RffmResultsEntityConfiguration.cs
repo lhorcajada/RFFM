@@ -17,8 +17,27 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Entities
             builder.Property(g => g.CompetitionName).IsRequired().HasMaxLength(RffmCompetitionGroup.Rules.NameMaxLength);
             builder.Property(g => g.GroupName).IsRequired().HasMaxLength(RffmCompetitionGroup.Rules.NameMaxLength);
             builder.Property(g => g.StandingsJson).HasColumnType("jsonb");
+            builder.Property(g => g.OfficialStandingsJson).HasColumnType("jsonb");
+            builder.Ignore(g => g.Points);
 
             builder.HasIndex(g => g.GroupCode).IsUnique();
+        }
+    }
+
+    internal class RffmStandingsSnapshotEntityConfiguration : IEntityTypeConfiguration<RffmStandingsSnapshot>
+    {
+        public void Configure(EntityTypeBuilder<RffmStandingsSnapshot> builder)
+        {
+            builder.ToTable("RffmStandingsSnapshots");
+            builder.HasKey(s => s.Id);
+            builder.Property(s => s.Id).HasMaxLength(36);
+            builder.Property(s => s.GroupCode).IsRequired().HasMaxLength(RffmCompetitionGroup.Rules.CodeMaxLength);
+            builder.Property(s => s.PayloadJson).IsRequired().HasColumnType("jsonb");
+            builder.Property(s => s.Source)
+                .IsRequired()
+                .HasConversion(s => s.Value, v => StandingsSource.FromValue(v));
+
+            builder.HasIndex(s => new { s.GroupCode, s.Round }).IsUnique();
         }
     }
 

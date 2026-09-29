@@ -50,6 +50,7 @@ namespace RFFM.Api.Tests.IntegrationTests
 
         private RffmResultsSyncService CreateService(FederationDbContext db) =>
             new(db, _client, _queue, _keyedLock, _time, Options.Create(new RffmOptions()),
+                new Moq.Mock<Features.Federation.Competitions.Services.ICompetitionService>().Object,
                 NullLogger<RffmResultsSyncService>.Instance);
 
         private async Task<Features.Federation.Competitions.Queries.GetCalendarMatchDay.Responses.CalendarMatchDayWithRoundsResponse> GetAsync(int round = 1)
@@ -132,7 +133,7 @@ namespace RFFM.Api.Tests.IntegrationTests
             Assert.Equal("2", match.LocalGoals);
             Assert.Equal("1", match.RecordClosed);
             Assert.Contains(_queue.Jobs, j => j is FetchMatchRecordJob { RecordCode: "A1", SeasonId: Season, CompetitionCode: "26738047" });
-            Assert.Contains(_queue.Jobs, j => j is RefreshStandingsJob { Round: 1 } s && s.GroupCode == _groupCode);
+            Assert.Contains(_queue.Jobs, j => j is ReconcileStandingsJob { Round: 1 } s && s.GroupCode == _groupCode);
         }
 
         [Fact]
@@ -187,13 +188,13 @@ namespace RFFM.Api.Tests.IntegrationTests
         }
 
         [Fact]
-        public async Task Un_grupo_nuevo_encola_la_descarga_de_la_clasificacion()
+        public async Task Un_grupo_nuevo_encola_la_conciliacion_con_la_clasificacion_oficial()
         {
             RffmRound1(Match("A1", "10/10/2026", ""));
 
             await GetAsync();
 
-            Assert.Contains(_queue.Jobs, j => j is RefreshStandingsJob s && s.GroupCode == _groupCode);
+            Assert.Contains(_queue.Jobs, j => j is ReconcileStandingsJob s && s.GroupCode == _groupCode);
         }
     }
 }

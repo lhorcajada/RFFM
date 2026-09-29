@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using RFFM.Api.Domain.Entities.Federation.Results;
 using RFFM.Api.Features.Federation.Competitions.Models.ApiRffm;
 using RFFM.Api.Features.Federation.MatchResults.Services;
 
@@ -18,7 +19,9 @@ namespace RFFM.Api.Tests.Fixtures
         private int _competitionCalls;
 
         public ConcurrentDictionary<(string Group, int Round), CalendarRffm> Rounds { get; } = new();
-        public RffmCompetitionDuration? Duration { get; set; } = new(80, 2);
+        public RffmCompetitionInfo? Competition { get; set; } = new(22, 80, 2, RffmPointsSystem.Default);
+        public HashSet<int> FailingRounds { get; } = new();
+        public List<int> RequestedRounds { get; } = new();
         public bool Fail { get; set; }
         public TimeSpan Delay { get; set; } = TimeSpan.Zero;
 
@@ -29,15 +32,16 @@ namespace RFFM.Api.Tests.Fixtures
         {
             Interlocked.Increment(ref _roundCalls);
             if (Delay > TimeSpan.Zero) await Task.Delay(Delay, cancellationToken);
-            if (Fail) throw new HttpRequestException("RFFM no disponible");
+            lock (RequestedRounds) RequestedRounds.Add(round);
+            if (Fail || FailingRounds.Contains(round)) throw new HttpRequestException("RFFM no disponible");
             return Rounds.GetValueOrDefault((groupCode, round));
         }
 
-        public Task<RffmCompetitionDuration?> GetCompetitionDurationAsync(int seasonId, string competitionCode,
+        public Task<RffmCompetitionInfo?> FindCompetitionAsync(string competitionCode, IReadOnlyList<int> seasonIds,
             CancellationToken cancellationToken)
         {
             Interlocked.Increment(ref _competitionCalls);
-            return Task.FromResult(Duration);
+            return Task.FromResult(Competition);
         }
 
         public static CalendarRffm Calendar(string groupCode, int round, params MatchInfo[] matches) => new()

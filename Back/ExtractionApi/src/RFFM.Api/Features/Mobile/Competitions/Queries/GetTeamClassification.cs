@@ -7,7 +7,9 @@ using RFFM.Api.Common;
 using RFFM.Api.Domain;
 using RFFM.Api.Domain.Entities;
 using RFFM.Api.FeatureModules;
-using RFFM.Api.Features.Federation.Competitions.Services;
+using Microsoft.Extensions.Options;
+using RFFM.Api.Features.Federation.MatchResults.Services;
+using RFFM.Api.Infrastructure.Options;
 using RFFM.Api.Infrastructure.Persistence;
 using System.Globalization;
 
@@ -64,7 +66,7 @@ namespace RFFM.Api.Features.Mobile.Competitions.Queries
 
         // ─── Handler ──────────────────────────────────────────────────────────
 
-        public class Handler(AppDbContext db, ICompetitionService competitionService)
+        public class Handler(AppDbContext db, IRffmResultsSyncService resultsSyncService, IOptions<RffmOptions> rffmOptions)
             : IRequestHandler<MobileClassificationQuery, MobileClassificationDto>
         {
             public async ValueTask<MobileClassificationDto> Handle(MobileClassificationQuery request, CancellationToken cancellationToken)
@@ -79,7 +81,8 @@ namespace RFFM.Api.Features.Mobile.Competitions.Queries
                 if (team.RffmCompetitionId == null || team.RffmGroupId == null)
                     return new MobileClassificationDto([]);
 
-                var classification = await competitionService.GetClassification(team.RffmGroupId.Value, cancellationToken);
+                var classification = await resultsSyncService.GetClassificationAsync(team.RffmGroupId.Value,
+                    rffmOptions.Value.CurrentSeasonId, cancellationToken);
 
                 var rows = classification.Teams
                     .Select(t => new MobileClassificationRowDto(
@@ -100,8 +103,8 @@ namespace RFFM.Api.Features.Mobile.Competitions.Queries
             }
 
             /// <summary>
-            /// RFFM's scraped classification returns every numeric field as a string. Parses it
-            /// to int with a safe 0 fallback for empty/malformed values.
+            /// The classification contract (inherited from RFFM) carries every numeric field as a string.
+            /// Parses it to int with a safe 0 fallback for empty/malformed values.
             /// </summary>
             private static int ParseIntOrDefault(string? value)
                 => int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) ? parsed : 0;

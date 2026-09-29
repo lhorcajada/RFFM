@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 
 namespace RFFM.Api.Features.Federation.Competitions.Models.ApiRffm
 {
@@ -15,6 +15,15 @@ namespace RFFM.Api.Features.Federation.Competitions.Models.ApiRffm
 
         [JsonPropertyName("numero_partes")]
         public string MatchParts { get; set; } = string.Empty;
+
+        [JsonPropertyName("ptos_ganado")]
+        public string PointsWin { get; set; } = string.Empty;
+
+        [JsonPropertyName("ptos_empatado")]
+        public string PointsDraw { get; set; } = string.Empty;
+
+        [JsonPropertyName("ptos_perdido")]
+        public string PointsLoss { get; set; } = string.Empty;
 
         [JsonPropertyName("nombre_grupo_categoria")]
         public string CategoryGroup { get; set; } = string.Empty;

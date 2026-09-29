@@ -6,7 +6,8 @@ namespace RFFM.Api.Features.Federation.MatchResults.Services
 
     public record FetchMatchRecordJob(string RecordCode, int SeasonId, string CompetitionCode, string GroupCode) : RffmResultsJob;
 
-    public record RefreshStandingsJob(string GroupCode, int Round) : RffmResultsJob;
+    /// <summary>Descarga la clasificación oficial tras la jornada para conciliarla con la calculada.</summary>
+    public record ReconcileStandingsJob(string GroupCode, int Round) : RffmResultsJob;
 
     public interface IRffmResultsJobQueue
     {

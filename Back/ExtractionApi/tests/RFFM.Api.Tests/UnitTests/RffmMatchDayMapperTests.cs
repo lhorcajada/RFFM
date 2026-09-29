@@ -60,8 +60,8 @@ namespace RFFM.Api.Tests.UnitTests
         {
             var calendar = Calendar();
             var group = RffmCompetitionGroup.Create("26738048", 22, calendar.CompetitionCode, calendar.CompetitionName,
-                calendar.GroupName, 80, 2, SyncedAt);
-            group.UpdateStandings(StandingsJson, SyncedAt);
+                calendar.GroupName, 80, 2, null, SyncedAt);
+            group.UpdateStandings(StandingsJson, 1, SyncedAt);
             var rounds = RffmMatchDayMapper.ToRoundInfos(calendar)
                 .Select(r => RffmRound.Create("26738048", r.Number, r.Name, r.Date))
                 .ToList();
@@ -141,7 +141,7 @@ namespace RFFM.Api.Tests.UnitTests
         public void Sin_clasificacion_las_posiciones_son_cero()
         {
             var calendar = Calendar();
-            var group = RffmCompetitionGroup.Create("26738048", 22, "26738047", "SUPERLIGA CADETE", "Grupo Unico", 80, 2, SyncedAt);
+            var group = RffmCompetitionGroup.Create("26738048", 22, "26738047", "SUPERLIGA CADETE", "Grupo Unico", 80, 2, null, SyncedAt);
             var round = RffmRound.Create("26738048", 1, "1", new DateOnly(2026, 9, 26));
             round.ApplySnapshot(RffmMatchDayMapper.ToSnapshots(calendar), SyncedAt);
 

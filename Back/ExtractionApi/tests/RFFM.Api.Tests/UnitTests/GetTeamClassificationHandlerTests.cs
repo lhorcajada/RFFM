@@ -1,5 +1,8 @@
 #nullable enable
+using Microsoft.Extensions.Options;
 using Moq;
+using RFFM.Api.Features.Federation.MatchResults.Services;
+using RFFM.Api.Infrastructure.Options;
 using RFFM.Api.Domain;
 using RFFM.Api.Domain.Aggregates.UserClubs;
 using RFFM.Api.Domain.Entities.Competitions;
@@ -64,9 +67,9 @@ namespace RFFM.Api.Tests.UnitTests
             await using var db = _fixture.CreateDbContext();
             var teamId = await SeedTeamAsync(db, rffmCompetitionId: 25255269, rffmGroupId: 25255283);
 
-            var competitionServiceMock = new Mock<ICompetitionService>();
-            competitionServiceMock
-                .Setup(s => s.GetClassification(25255283, It.IsAny<CancellationToken>()))
+            var resultsSyncServiceMock = new Mock<IRffmResultsSyncService>();
+            resultsSyncServiceMock
+                .Setup(s => s.GetClassificationAsync(25255283, 22, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new ClassificationResponse
                 {
                     Teams =
@@ -88,7 +91,7 @@ namespace RFFM.Api.Tests.UnitTests
                     ]
                 });
 
-            var handler = new GetTeamClassification.Handler(db, competitionServiceMock.Object);
+            var handler = new GetTeamClassification.Handler(db, resultsSyncServiceMock.Object, Options.Create(new RffmOptions { CurrentSeasonId = 22 }));
             var query = new GetTeamClassification.MobileClassificationQuery { TeamId = teamId };
 
             // Act
@@ -107,7 +110,7 @@ namespace RFFM.Api.Tests.UnitTests
             Assert.Equal(5, row.GoalsAgainst);
             Assert.Equal(25, row.Points);
 
-            competitionServiceMock.Verify(s => s.GetClassification(25255283, It.IsAny<CancellationToken>()), Times.Once);
+            resultsSyncServiceMock.Verify(s => s.GetClassificationAsync(25255283, 22, It.IsAny<CancellationToken>()), Times.Once);
         }
 
         [Fact]
@@ -117,8 +120,8 @@ namespace RFFM.Api.Tests.UnitTests
             await using var db = _fixture.CreateDbContext();
             var teamId = await SeedTeamAsync(db, rffmCompetitionId: null, rffmGroupId: null);
 
-            var competitionServiceMock = new Mock<ICompetitionService>();
-            var handler = new GetTeamClassification.Handler(db, competitionServiceMock.Object);
+            var resultsSyncServiceMock = new Mock<IRffmResultsSyncService>();
+            var handler = new GetTeamClassification.Handler(db, resultsSyncServiceMock.Object, Options.Create(new RffmOptions { CurrentSeasonId = 22 }));
             var query = new GetTeamClassification.MobileClassificationQuery { TeamId = teamId };
 
             // Act
@@ -126,8 +129,8 @@ namespace RFFM.Api.Tests.UnitTests
 
             // Assert
             Assert.Empty(result.Teams);
-            competitionServiceMock.Verify(
-                s => s.GetClassification(It.IsAny<int>(), It.IsAny<CancellationToken>()),
+            resultsSyncServiceMock.Verify(
+                s => s.GetClassificationAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
                 Times.Never);
         }
 
@@ -138,8 +141,8 @@ namespace RFFM.Api.Tests.UnitTests
             await using var db = _fixture.CreateDbContext();
             var teamId = await SeedTeamAsync(db, rffmCompetitionId: null, rffmGroupId: 25255283);
 
-            var competitionServiceMock = new Mock<ICompetitionService>();
-            var handler = new GetTeamClassification.Handler(db, competitionServiceMock.Object);
+            var resultsSyncServiceMock = new Mock<IRffmResultsSyncService>();
+            var handler = new GetTeamClassification.Handler(db, resultsSyncServiceMock.Object, Options.Create(new RffmOptions { CurrentSeasonId = 22 }));
             var query = new GetTeamClassification.MobileClassificationQuery { TeamId = teamId };
 
             // Act
@@ -147,8 +150,8 @@ namespace RFFM.Api.Tests.UnitTests
 
             // Assert
             Assert.Empty(result.Teams);
-            competitionServiceMock.Verify(
-                s => s.GetClassification(It.IsAny<int>(), It.IsAny<CancellationToken>()),
+            resultsSyncServiceMock.Verify(
+                s => s.GetClassificationAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
                 Times.Never);
         }
 
@@ -157,8 +160,8 @@ namespace RFFM.Api.Tests.UnitTests
         {
             // Arrange
             await using var db = _fixture.CreateDbContext();
-            var competitionServiceMock = new Mock<ICompetitionService>();
-            var handler = new GetTeamClassification.Handler(db, competitionServiceMock.Object);
+            var resultsSyncServiceMock = new Mock<IRffmResultsSyncService>();
+            var handler = new GetTeamClassification.Handler(db, resultsSyncServiceMock.Object, Options.Create(new RffmOptions { CurrentSeasonId = 22 }));
             var query = new GetTeamClassification.MobileClassificationQuery { TeamId = "non-existent-team-id" };
 
             // Act & Assert

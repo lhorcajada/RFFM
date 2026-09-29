@@ -1,10 +1,11 @@
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
+using RFFM.Api.Domain.Entities.Federation.Results;
 using RFFM.Api.Features.Federation.Competitions.Models.ApiRffm;
 
 namespace RFFM.Api.Features.Federation.MatchResults.Services
 {
-    public record RffmCompetitionDuration(int Minutes, int Parts);
+    public record RffmCompetitionInfo(int SeasonId, int Minutes, int Parts, RffmPointsSystem Points);
 
     /// <summary>
     /// Acceso a la RFFM desde peticiones de usuario: sin reintentos ni throttling (el usuario espera y,
@@ -14,7 +15,8 @@ namespace RFFM.Api.Features.Federation.MatchResults.Services
     {
         Task<CalendarRffm?> GetRoundAsync(string groupCode, int round, CancellationToken cancellationToken);
 
-        Task<RffmCompetitionDuration?> GetCompetitionDurationAsync(int seasonId, string competitionCode,
+        /// <summary>Busca la competición en las temporadas indicadas, por orden; null si no aparece.</summary>
+        Task<RffmCompetitionInfo?> FindCompetitionAsync(string competitionCode, IReadOnlyList<int> seasonIds,
             CancellationToken cancellationToken);
     }
 
@@ -34,18 +36,28 @@ namespace RFFM.Api.Features.Federation.MatchResults.Services
         public Task<CalendarRffm?> GetRoundAsync(string groupCode, int round, CancellationToken cancellationToken) =>
             GetJsonAsync<CalendarRffm>($"api/results?idGroup={Uri.EscapeDataString(groupCode)}&round={round}", cancellationToken);
 
-        public async Task<RffmCompetitionDuration?> GetCompetitionDurationAsync(int seasonId, string competitionCode,
+        public async Task<RffmCompetitionInfo?> FindCompetitionAsync(string competitionCode, IReadOnlyList<int> seasonIds,
             CancellationToken cancellationToken)
         {
-            var competitions = await GetJsonAsync<List<CompetitionRffm>>(
-                $"api/competitions?temporada={seasonId}&tipojuego=1", cancellationToken);
-            var competition = competitions?.FirstOrDefault(c => c.CompetitionId?.Trim() == competitionCode.Trim());
-            if (competition == null) return null;
+            foreach (var seasonId in seasonIds.Distinct())
+            {
+                var competitions = await GetJsonAsync<List<CompetitionRffm>>(
+                    $"api/competitions?temporada={seasonId}&tipojuego=1", cancellationToken);
+                var competition = competitions?.FirstOrDefault(c => c.CompetitionId?.Trim() == competitionCode.Trim());
+                if (competition == null) continue;
 
-            var hasMinutes = int.TryParse(competition.MatchTime?.Trim(), out var minutes) && minutes > 0;
-            var hasParts = int.TryParse(competition.MatchParts?.Trim(), out var parts) && parts > 0;
-            return hasMinutes ? new RffmCompetitionDuration(minutes, hasParts ? parts : 2) : null;
+                var points = new RffmPointsSystem(
+                    ParseOr(competition.PointsWin, RffmPointsSystem.Default.Win),
+                    ParseOr(competition.PointsDraw, RffmPointsSystem.Default.Draw),
+                    ParseOr(competition.PointsLoss, RffmPointsSystem.Default.Loss));
+                return new RffmCompetitionInfo(seasonId, ParseOr(competition.MatchTime, 0), ParseOr(competition.MatchParts, 0), points);
+            }
+
+            return null;
         }
+
+        private static int ParseOr(string? value, int fallback) =>
+            int.TryParse(value?.Trim(), out var parsed) ? parsed : fallback;
 
         private async Task<T?> GetJsonAsync<T>(string relativeUrl, CancellationToken cancellationToken) where T : class
         {

@@ -69,10 +69,6 @@ namespace RFFM.Api.Features.Federation.MatchResults.Services
         {
             var positions = ParsePositions(group.StandingsJson);
             var selected = rounds.FirstOrDefault(r => r.Number == round);
-            var matches = (selected?.Matches ?? [])
-                .OrderBy(m => m.SortOrder)
-                .Select(m => ToMatchResponse(m, positions))
-                .ToList();
 
             return new CalendarMatchDayWithRoundsResponse
             {
@@ -89,12 +85,31 @@ namespace RFFM.Api.Features.Federation.MatchResults.Services
                         Date = r.Date?.ToDateTime(TimeOnly.MinValue) ?? DateTime.MinValue
                     })
                     .ToList(),
-                MatchDay = new CalendarMatchDayResponse
-                {
-                    Matches = matches,
-                    Date = matches.Count > 0 ? matches[0].Date : DateTime.MinValue,
-                    MatchDayNumber = round
-                }
+                MatchDay = ToMatchDay(round, selected, positions)
+            };
+        }
+
+        public static CalendarResponse ToCalendarResponse(RffmCompetitionGroup group, IReadOnlyCollection<RffmRound> rounds)
+        {
+            var positions = ParsePositions(group.StandingsJson);
+            return new CalendarResponse
+            {
+                MatchDays = rounds.OrderBy(r => r.Number).Select(r => ToMatchDay(r.Number, r, positions)).ToList()
+            };
+        }
+
+        private static CalendarMatchDayResponse ToMatchDay(int number, RffmRound? round, IReadOnlyDictionary<string, int> positions)
+        {
+            var matches = (round?.Matches ?? [])
+                .OrderBy(m => m.SortOrder)
+                .Select(m => ToMatchResponse(m, positions))
+                .ToList();
+
+            return new CalendarMatchDayResponse
+            {
+                Matches = matches,
+                Date = matches.Count > 0 ? matches[0].Date : DateTime.MinValue,
+                MatchDayNumber = number
             };
         }
 

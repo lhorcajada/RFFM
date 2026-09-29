@@ -1,12 +1,13 @@
-﻿using Mediator;
+using Mediator;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Options;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Features.Federation.Competitions.Models;
-using RFFM.Api.Features.Federation.Competitions.Services;
-using RFFM.Api.Features.Federation.Teams;
+using RFFM.Api.Features.Federation.MatchResults.Services;
+using RFFM.Api.Infrastructure.Options;
 
 namespace RFFM.Api.Features.Federation.Competitions.Queries
 {
@@ -15,9 +16,10 @@ namespace RFFM.Api.Features.Federation.Competitions.Queries
         public void AddRoutes(IEndpointRouteBuilder app)
         {
             app.MapGet("/classification",
-                    async (IMediator mediator, CancellationToken cancellationToken, int season = 21, int competition = 25255269, int group = 25255283, int playType = 1) =>
+                    async (IMediator mediator, IOptions<RffmOptions> rffmOptions, CancellationToken cancellationToken,
+                        int? season = null, int competition = 25255269, int group = 25255283, int playType = 1) =>
                     {
-                        var request = new QueryApp(season, competition, group, playType);
+                        var request = new QueryClassification(season ?? rffmOptions.Value.CurrentSeasonId, group);
 
                         var response = await mediator.Send(request, cancellationToken);
 
@@ -30,31 +32,16 @@ namespace RFFM.Api.Features.Federation.Competitions.Queries
                 .Produces(StatusCodes.Status404NotFound);
         }
 
-        public record QueryApp(int Season, int Competition, int Group, int PlayType)
-            : Common.IQueryApp<ClassificationResponse>;
- 
+        /// <summary>
+        /// No es <c>IQueryApp</c>: calcula la clasificación con los resultados guardados y los actualiza desde la
+        /// RFFM cuando faltan datos, así que no debe pasar por el <c>CachingBehavior</c>.
+        /// </summary>
+        public record QueryClassification(int Season, int Group) : IRequest<ClassificationResponse>;
 
-        public record ResponseTeam(string Id, string Name, string Link);
- 
-
-        public class RequestHandler : IRequestHandler<QueryApp, ClassificationResponse>
+        public class RequestHandler(IRffmResultsSyncService resultsSyncService) : IRequestHandler<QueryClassification, ClassificationResponse>
         {
-            private readonly ICompetitionService _competitionService;
-
-            public RequestHandler(ICompetitionService competitionService)
-            {
-                _competitionService = competitionService;
-            }
-
-            public async ValueTask<ClassificationResponse> Handle(QueryApp request, CancellationToken cancellationToken)
-            {
-                return await _competitionService.GetClassification(request.Group,
-                    cancellationToken);
-
-            }
-
-  
+            public async ValueTask<ClassificationResponse> Handle(QueryClassification request, CancellationToken cancellationToken) =>
+                await resultsSyncService.GetClassificationAsync(request.Group, request.Season, cancellationToken);
         }
-
     }
 }

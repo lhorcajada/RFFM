@@ -17,19 +17,29 @@ namespace RFFM.Api.Domain.Entities.Federation.Results
         public string GroupName { get; private set; } = string.Empty;
         public int MatchMinutes { get; private set; }
         public int MatchParts { get; private set; }
-        /// <summary>Clasificación completa del grupo tal como la devuelve la RFFM (jsonb).</summary>
+        public int PointsWin { get; private set; } = RffmPointsSystem.Default.Win;
+        public int PointsDraw { get; private set; } = RffmPointsSystem.Default.Draw;
+        public int PointsLoss { get; private set; } = RffmPointsSystem.Default.Loss;
+        /// <summary>Clasificación vigente (calculada o, si se ha conciliado, oficial) en formato de respuesta (jsonb).</summary>
         public string? StandingsJson { get; private set; }
+        public int? StandingsRound { get; private set; }
         public DateTime? StandingsSyncedAt { get; private set; }
+        /// <summary>Última clasificación oficial de la RFFM (jsonb): puntos de sanción y colores de las franjas.</summary>
+        public string? OfficialStandingsJson { get; private set; }
+        public int? OfficialStandingsRound { get; private set; }
         public DateTime CreatedAt { get; private set; }
+
+        public RffmPointsSystem Points => new(PointsWin, PointsDraw, PointsLoss);
 
         private RffmCompetitionGroup() { }
 
         public static RffmCompetitionGroup Create(string groupCode, int seasonId, string competitionCode, string competitionName,
-            string groupName, int? matchMinutes, int? matchParts, DateTime now)
+            string groupName, int? matchMinutes, int? matchParts, RffmPointsSystem? points, DateTime now)
         {
             if (string.IsNullOrWhiteSpace(groupCode))
                 throw new ArgumentException("El grupo es obligatorio.");
 
+            var pointsSystem = points ?? RffmPointsSystem.Default;
             return new RffmCompetitionGroup
             {
                 GroupCode = groupCode.Trim(),
@@ -39,14 +49,24 @@ namespace RFFM.Api.Domain.Entities.Federation.Results
                 GroupName = (groupName ?? string.Empty).Trim(),
                 MatchMinutes = matchMinutes is > 0 ? matchMinutes.Value : Rules.DefaultMatchMinutes,
                 MatchParts = matchParts is > 0 ? matchParts.Value : Rules.DefaultMatchParts,
+                PointsWin = pointsSystem.Win,
+                PointsDraw = pointsSystem.Draw,
+                PointsLoss = pointsSystem.Loss,
                 CreatedAt = now
             };
         }
 
-        public void UpdateStandings(string standingsJson, DateTime now)
+        public void UpdateStandings(string standingsJson, int? round, DateTime now)
         {
             StandingsJson = standingsJson;
+            StandingsRound = round;
             StandingsSyncedAt = now;
+        }
+
+        public void UpdateOfficialStandings(string officialStandingsJson, int round)
+        {
+            OfficialStandingsJson = officialStandingsJson;
+            OfficialStandingsRound = round;
         }
     }
 }

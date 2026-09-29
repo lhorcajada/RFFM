@@ -9,17 +9,18 @@ using RFFM.Api.Infrastructure.Persistence;
 
 namespace RFFM.Api.Features.Federation.MatchResults.Services
 {
-    /// <summary>Descarga en segundo plano actas y clasificaciones con el cliente RFFM con reintentos y throttling.</summary>
+    /// <summary>Descarga en segundo plano actas y clasificaciones oficiales con el cliente RFFM con reintentos y throttling.</summary>
     public class RffmResultsJobProcessor(
         FederationDbContext db,
         IRffmBackgroundClient client,
+        IRffmResultsSyncService resultsSyncService,
         TimeProvider timeProvider,
         ILogger<RffmResultsJobProcessor> logger)
     {
         public Task ProcessAsync(RffmResultsJob job, CancellationToken cancellationToken) => job switch
         {
             FetchMatchRecordJob fetch => FetchMatchRecordAsync(fetch, cancellationToken),
-            RefreshStandingsJob standings => RefreshStandingsAsync(standings, cancellationToken),
+            ReconcileStandingsJob reconcile => ReconcileStandingsAsync(reconcile, cancellationToken),
             _ => Task.CompletedTask
         };
 
@@ -41,21 +42,17 @@ namespace RFFM.Api.Features.Federation.MatchResults.Services
             await db.SaveChangesAsync(cancellationToken);
         }
 
-        private async Task RefreshStandingsAsync(RefreshStandingsJob job, CancellationToken cancellationToken)
+        private async Task ReconcileStandingsAsync(ReconcileStandingsJob job, CancellationToken cancellationToken)
         {
-            var group = await db.RffmCompetitionGroups.SingleOrDefaultAsync(g => g.GroupCode == job.GroupCode, cancellationToken);
-            if (group == null)
-                return;
-
-            var teams = await client.GetStandingsAsync(job.GroupCode, job.Round, cancellationToken);
-            if (teams == null || teams.Count == 0)
+            var official = await client.GetStandingsAsync(job.GroupCode, job.Round, cancellationToken);
+            if (official == null || official.Count == 0)
             {
-                logger.LogWarning("La RFFM no ha devuelto la clasificación del grupo {GroupCode}", job.GroupCode);
+                logger.LogWarning("La RFFM no ha devuelto la clasificación de la jornada {Round} del grupo {GroupCode}",
+                    job.Round, job.GroupCode);
                 return;
             }
 
-            group.UpdateStandings(RffmMatchDayMapper.SerializeStandings(teams), timeProvider.GetUtcNow().UtcDateTime);
-            await db.SaveChangesAsync(cancellationToken);
+            await resultsSyncService.ReconcileStandingsAsync(job.GroupCode, job.Round, official, cancellationToken);
         }
     }
 
