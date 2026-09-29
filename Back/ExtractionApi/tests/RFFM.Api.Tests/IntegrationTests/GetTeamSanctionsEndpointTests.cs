@@ -88,6 +88,7 @@ namespace RFFM.Api.Tests.IntegrationTests
             public Task DispatchSanctionChangedAsync(string sanctionId, CancellationToken ct = default) => Task.CompletedTask;
             public Task DispatchNewsPublishedAsync(string newsId, CancellationToken ct = default) => Task.CompletedTask;
             public Task DispatchInjuryChangedAsync(string injuryId, CancellationToken ct = default) => Task.CompletedTask;
+            public Task DispatchNotificationsActivatedAsync(string userId, CancellationToken ct = default) => Task.CompletedTask;
         }
 
         private async Task<(IHost Host, HttpClient Client)> StartHostAsync(IFeatureModule module)

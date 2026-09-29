@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Domain.Entities.WebPushNotifications;
 using RFFM.Api.Domain.Services;
 using RFFM.Api.FeatureModules;
+using RFFM.Api.Features.Coaches.Notifications.Services;
 using RFFM.Api.Infrastructure.Persistence;
 
 namespace RFFM.Api.Features.Coaches.Notifications
@@ -34,11 +35,13 @@ namespace RFFM.Api.Features.Coaches.Notifications
         {
             private readonly AppDbContext _db;
             private readonly ICurrentUserService _currentUser;
+            private readonly IWebPushNotificationDispatcher _dispatcher;
 
-            public Handler(AppDbContext db, ICurrentUserService currentUser)
+            public Handler(AppDbContext db, ICurrentUserService currentUser, IWebPushNotificationDispatcher dispatcher)
             {
                 _db = db;
                 _currentUser = currentUser;
+                _dispatcher = dispatcher;
             }
 
             public async ValueTask<Unit> Handle(SubscribeWebPushCommand request, CancellationToken cancellationToken = default)
@@ -48,15 +51,20 @@ namespace RFFM.Api.Features.Coaches.Notifications
                 var existing = await _db.WebPushSubscriptions
                     .FirstOrDefaultAsync(s => s.Endpoint == request.Endpoint, cancellationToken);
 
-                if (existing is not null)
+                var isNewDevice = existing is null;
+                if (!isNewDevice)
                 {
-                    _db.WebPushSubscriptions.Remove(existing);
+                    _db.WebPushSubscriptions.Remove(existing!);
                 }
 
                 _db.WebPushSubscriptions.Add(
                     WebPushSubscription.Create(userId, request.Endpoint, request.P256dhKey, request.AuthKey));
 
                 await _db.SaveChangesAsync(cancellationToken);
+
+                if (isNewDevice)
+                    await _dispatcher.DispatchNotificationsActivatedAsync(userId, cancellationToken);
+
                 return Unit.Value;
             }
         }

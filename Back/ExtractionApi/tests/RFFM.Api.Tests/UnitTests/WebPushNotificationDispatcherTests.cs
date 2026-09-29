@@ -438,5 +438,127 @@ namespace RFFM.Api.Tests.UnitTests
             var stillExists = await db.WebPushSubscriptions.AnyAsync(s => s.Id == subscriptionId);
             Assert.False(stillExists);
         }
+
+        [Fact]
+        public async Task DispatchNotificationsActivatedAsync_WhenPlayerActivates_NotifiesTeamCoachWithAlias()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, teamPlayerId) = await SeedTeamAndPlayerAsync(db);
+            var alias = (await db.TeamPlayers.Include(tp => tp.Player).FirstAsync(tp => tp.Id == teamPlayerId)).Player.Alias;
+
+            var playerUserId = Guid.NewGuid().ToString();
+            var playerUserTeam = new UserTeam(playerUserId, teamId, Membership.Player.Id);
+            db.Set<UserTeam>().Add(playerUserTeam);
+            await db.SaveChangesAsync();
+            playerUserTeam.LinkPlayer(teamPlayerId);
+            await db.SaveChangesAsync();
+
+            var coachUserId = Guid.NewGuid().ToString();
+            db.Set<UserTeam>().Add(new UserTeam(coachUserId, teamId, Membership.Coach.Id));
+            await db.SaveChangesAsync();
+
+            var dispatcher = new WebPushNotificationDispatcher(db, new Mock<IWebPushSender>().Object);
+
+            await dispatcher.DispatchNotificationsActivatedAsync(playerUserId, CancellationToken.None);
+
+            var notification = await db.Notifications.SingleAsync(n => n.Type == "NotificationsActivated" && n.UserId == coachUserId);
+            Assert.Equal($"{alias} ha activado las notificaciones.", notification.Body);
+            Assert.Equal("/coach/team-users", notification.DeepLinkPath);
+        }
+
+        [Fact]
+        public async Task DispatchNotificationsActivatedAsync_WhenFamilyMemberActivates_NotifiesTeamCoachAsFamily()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, teamPlayerId) = await SeedTeamAndPlayerAsync(db);
+            var alias = (await db.TeamPlayers.Include(tp => tp.Player).FirstAsync(tp => tp.Id == teamPlayerId)).Player.Alias;
+
+            var familyMember = TeamPlayerFamilyMember.Create(teamPlayerId, "Ana", "García", "600000000", "ana@test.com", null, "Mother");
+            db.Set<TeamPlayerFamilyMember>().Add(familyMember);
+            await db.SaveChangesAsync();
+            var familyUserId = Guid.NewGuid().ToString();
+            familyMember.LinkAccount(familyUserId);
+            await db.SaveChangesAsync();
+
+            var coachUserId = Guid.NewGuid().ToString();
+            db.Set<UserTeam>().Add(new UserTeam(coachUserId, teamId, Membership.Coach.Id));
+            await db.SaveChangesAsync();
+
+            var dispatcher = new WebPushNotificationDispatcher(db, new Mock<IWebPushSender>().Object);
+
+            await dispatcher.DispatchNotificationsActivatedAsync(familyUserId, CancellationToken.None);
+
+            var notification = await db.Notifications.SingleAsync(n => n.Type == "NotificationsActivated" && n.UserId == coachUserId);
+            Assert.Equal($"Un familiar de {alias} ha activado las notificaciones.", notification.Body);
+        }
+
+        [Fact]
+        public async Task DispatchNotificationsActivatedAsync_DoesNotNotifyTheSubscriberThemself()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, teamPlayerId) = await SeedTeamAndPlayerAsync(db);
+
+            var userId = Guid.NewGuid().ToString();
+            var playerUserTeam = new UserTeam(userId, teamId, Membership.Player.Id);
+            db.Set<UserTeam>().Add(playerUserTeam);
+            await db.SaveChangesAsync();
+            playerUserTeam.LinkPlayer(teamPlayerId);
+            var clubId = (await db.Teams.FirstAsync(t => t.Id == teamId)).ClubId;
+            db.Set<UserClub>().Add(new UserClub(userId, clubId, Membership.Coach.Id));
+            await db.SaveChangesAsync();
+
+            var dispatcher = new WebPushNotificationDispatcher(db, new Mock<IWebPushSender>().Object);
+
+            await dispatcher.DispatchNotificationsActivatedAsync(userId, CancellationToken.None);
+
+            var selfNotified = await db.Notifications.AnyAsync(n => n.Type == "NotificationsActivated" && n.UserId == userId);
+            Assert.False(selfNotified);
+        }
+
+        [Fact]
+        public async Task DispatchNotificationsActivatedAsync_WhenUserHasNoLinkedPlayer_CreatesNoNotification()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, _) = await SeedTeamAndPlayerAsync(db);
+
+            var coachUserId = Guid.NewGuid().ToString();
+            db.Set<UserTeam>().Add(new UserTeam(coachUserId, teamId, Membership.Coach.Id));
+            await db.SaveChangesAsync();
+
+            var dispatcher = new WebPushNotificationDispatcher(db, new Mock<IWebPushSender>().Object);
+
+            await dispatcher.DispatchNotificationsActivatedAsync(Guid.NewGuid().ToString(), CancellationToken.None);
+
+            var coachNotified = await db.Notifications.AnyAsync(n => n.Type == "NotificationsActivated" && n.UserId == coachUserId);
+            Assert.False(coachNotified);
+        }
+
+        [Fact]
+        public async Task DispatchNotificationsActivatedAsync_WhenSenderThrows_DoesNotPropagate()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, teamPlayerId) = await SeedTeamAndPlayerAsync(db);
+
+            var familyMember = TeamPlayerFamilyMember.Create(teamPlayerId, "Ana", "García", "600000000", "ana@test.com", null, "Mother");
+            db.Set<TeamPlayerFamilyMember>().Add(familyMember);
+            await db.SaveChangesAsync();
+            var familyUserId = Guid.NewGuid().ToString();
+            familyMember.LinkAccount(familyUserId);
+
+            var coachUserId = Guid.NewGuid().ToString();
+            db.Set<UserTeam>().Add(new UserTeam(coachUserId, teamId, Membership.Coach.Id));
+            db.WebPushSubscriptions.Add(WebPushSubscription.Create(coachUserId, $"https://example.com/{Guid.NewGuid():N}", "p256dh", "auth"));
+            await db.SaveChangesAsync();
+
+            var senderMock = new Mock<IWebPushSender>();
+            senderMock.Setup(s => s.SendAsync(It.IsAny<WebPushSubscription>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new InvalidOperationException("boom"));
+            var dispatcher = new WebPushNotificationDispatcher(db, senderMock.Object);
+
+            var exception = await Record.ExceptionAsync(
+                () => dispatcher.DispatchNotificationsActivatedAsync(familyUserId, CancellationToken.None));
+
+            Assert.Null(exception);
+        }
     }
 }

@@ -14,5 +14,6 @@ namespace RFFM.Api.Features.Coaches.Notifications.Services
         Task DispatchSanctionChangedAsync(string sanctionId, CancellationToken ct = default);
         Task DispatchNewsPublishedAsync(string newsId, CancellationToken ct = default);
         Task DispatchInjuryChangedAsync(string injuryId, CancellationToken ct = default);
+        Task DispatchNotificationsActivatedAsync(string userId, CancellationToken ct = default);
     }
 }

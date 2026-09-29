@@ -147,6 +147,61 @@ namespace RFFM.Api.Features.Coaches.Notifications.Services
             }
         }
 
+        public async Task DispatchNotificationsActivatedAsync(string userId, CancellationToken ct = default)
+        {
+            try
+            {
+                var playerLinkIds = await _db.Set<UserTeam>()
+                    .Where(ut => ut.ApplicationUserId == userId && ut.RoleId == Membership.Player.Id && ut.LinkedTeamPlayerId != null)
+                    .Select(ut => ut.LinkedTeamPlayerId!)
+                    .ToListAsync(ct);
+
+                var familyLinkIds = await _db.TeamPlayerFamilyMembers
+                    .Where(f => f.LinkedUserId == userId)
+                    .Select(f => f.TeamPlayerId)
+                    .ToListAsync(ct);
+
+                var linkedTeamPlayerIds = playerLinkIds.Concat(familyLinkIds).Distinct().ToList();
+                if (linkedTeamPlayerIds.Count == 0) return;
+
+                var teamPlayers = await _db.TeamPlayers
+                    .AsNoTracking()
+                    .Where(tp => linkedTeamPlayerIds.Contains(tp.Id))
+                    .Select(tp => new { tp.Id, tp.TeamId, tp.Player.Alias })
+                    .ToListAsync(ct);
+
+                var phrasesByCoach = new Dictionary<string, List<string>>();
+                foreach (var teamPlayer in teamPlayers)
+                {
+                    var alias = string.IsNullOrWhiteSpace(teamPlayer.Alias) ? "un jugador" : teamPlayer.Alias;
+                    var phrase = playerLinkIds.Contains(teamPlayer.Id)
+                        ? $"{alias} ha activado las notificaciones."
+                        : $"Un familiar de {alias} ha activado las notificaciones.";
+
+                    var coachUserIds = await ResolveTeamCoachUserIdsAsync(teamPlayer.TeamId, ct);
+                    foreach (var coachUserId in coachUserIds.Where(id => id != userId))
+                    {
+                        if (!phrasesByCoach.TryGetValue(coachUserId, out var phrases))
+                            phrasesByCoach[coachUserId] = phrases = new List<string>();
+                        if (!phrases.Contains(phrase))
+                            phrases.Add(phrase);
+                    }
+                }
+
+                var coachesByBody = phrasesByCoach.GroupBy(kv => string.Join(" ", kv.Value), kv => kv.Key);
+                foreach (var group in coachesByBody)
+                {
+                    await DispatchToUsersAsync(
+                        group.ToList(), "NotificationsActivated", "Notificaciones activadas",
+                        group.Key, "/coach/team-users", ct);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "Failed to dispatch notifications-activated web push for user {UserId}", userId);
+            }
+        }
+
         private async Task<string> GetPlayerAliasAsync(string teamPlayerId, CancellationToken ct)
         {
             var alias = await _db.TeamPlayers

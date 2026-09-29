@@ -10,6 +10,7 @@ using Moq;
 using RFFM.Api.Domain.Entities.WebPushNotifications;
 using RFFM.Api.Domain.Services;
 using RFFM.Api.Features.Coaches.Notifications;
+using RFFM.Api.Features.Coaches.Notifications.Services;
 using RFFM.Api.Infrastructure.Persistence;
 using RFFM.Api.Tests.Fixtures;
 using Xunit;
@@ -53,7 +54,7 @@ namespace RFFM.Api.Tests.UnitTests
             await using var db = _fixture.CreateDbContext();
             var userId = Guid.NewGuid().ToString();
             var endpoint = $"https://fcm.googleapis.com/fcm/send/{Guid.NewGuid():N}";
-            var handler = new SubscribeWebPush.Handler(db, MockCurrentUser(userId).Object);
+            var handler = new SubscribeWebPush.Handler(db, MockCurrentUser(userId).Object, new Mock<IWebPushNotificationDispatcher>().Object);
 
             await handler.Handle(new SubscribeWebPush.SubscribeWebPushCommand(endpoint, "p256dh", "auth"), CancellationToken.None);
 
@@ -67,7 +68,7 @@ namespace RFFM.Api.Tests.UnitTests
             await using var db = _fixture.CreateDbContext();
             var userId = Guid.NewGuid().ToString();
             var endpoint = $"https://fcm.googleapis.com/fcm/send/{Guid.NewGuid():N}";
-            var handler = new SubscribeWebPush.Handler(db, MockCurrentUser(userId).Object);
+            var handler = new SubscribeWebPush.Handler(db, MockCurrentUser(userId).Object, new Mock<IWebPushNotificationDispatcher>().Object);
 
             await handler.Handle(new SubscribeWebPush.SubscribeWebPushCommand(endpoint, "p256dh-old", "auth-old"), CancellationToken.None);
             await handler.Handle(new SubscribeWebPush.SubscribeWebPushCommand(endpoint, "p256dh-new", "auth-new"), CancellationToken.None);
@@ -75,6 +76,36 @@ namespace RFFM.Api.Tests.UnitTests
             var subscriptions = await db.WebPushSubscriptions.Where(s => s.Endpoint == endpoint).ToListAsync();
             Assert.Single(subscriptions);
             Assert.Equal("p256dh-new", subscriptions[0].P256dhKey);
+        }
+
+        [Fact]
+        public async Task SubscribeWebPush_NewEndpoint_NotifiesCoachesThatNotificationsWereActivated()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var userId = Guid.NewGuid().ToString();
+            var endpoint = $"https://fcm.googleapis.com/fcm/send/{Guid.NewGuid():N}";
+            var dispatcher = new Mock<IWebPushNotificationDispatcher>();
+            var handler = new SubscribeWebPush.Handler(db, MockCurrentUser(userId).Object, dispatcher.Object);
+
+            await handler.Handle(new SubscribeWebPush.SubscribeWebPushCommand(endpoint, "p256dh", "auth"), CancellationToken.None);
+
+            dispatcher.Verify(d => d.DispatchNotificationsActivatedAsync(userId, It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task SubscribeWebPush_ExistingEndpoint_DoesNotNotifyCoaches()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var userId = Guid.NewGuid().ToString();
+            var endpoint = $"https://fcm.googleapis.com/fcm/send/{Guid.NewGuid():N}";
+            db.WebPushSubscriptions.Add(WebPushSubscription.Create(userId, endpoint, "p256dh-old", "auth-old"));
+            await db.SaveChangesAsync();
+            var dispatcher = new Mock<IWebPushNotificationDispatcher>();
+            var handler = new SubscribeWebPush.Handler(db, MockCurrentUser(userId).Object, dispatcher.Object);
+
+            await handler.Handle(new SubscribeWebPush.SubscribeWebPushCommand(endpoint, "p256dh", "auth"), CancellationToken.None);
+
+            dispatcher.Verify(d => d.DispatchNotificationsActivatedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
         }
 
         [Fact]
