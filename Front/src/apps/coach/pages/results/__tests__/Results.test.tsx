@@ -63,6 +63,10 @@ vi.mock("../../../../../shared/hooks/useCalendar", () => ({
   default: (params: unknown) => mockUseCalendar(params),
 }));
 
+vi.mock("../components/MatchResultNotificationsToggle", () => ({
+  default: () => <div>Interruptor de avisos de resultados</div>,
+}));
+
 import Results from "../Results";
 
 const teamWithCompetition = {
@@ -209,6 +213,12 @@ describe("Results", () => {
     expect(
       screen.getByText(/el equipo no tiene una competición configurada/i),
     ).toBeInTheDocument();
+  });
+
+  it("muestra el interruptor de avisos de resultados", () => {
+    renderPage();
+
+    expect(screen.getByText("Interruptor de avisos de resultados")).toBeInTheDocument();
   });
 
   it("muestra un estado vacío cuando no hay jornadas", () => {

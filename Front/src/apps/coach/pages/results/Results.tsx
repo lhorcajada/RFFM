@@ -10,6 +10,7 @@ import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess"
 import TeamCompetitionMissing from "../../components/TeamCompetitionMissing/TeamCompetitionMissing";
 import useTeamAndClub from "../../hooks/useTeamAndClub.tsx";
 import useTeamDashboardBack from "../../hooks/useTeamDashboardBack";
+import MatchResultNotificationsToggle from "./components/MatchResultNotificationsToggle";
 import styles from "./Results.module.css";
 
 export default function Results() {
@@ -119,6 +120,7 @@ export default function Results() {
           </Stack>
         }
       >
+        <MatchResultNotificationsToggle />
         {renderContent()}
       </ContentLayout>
     </BaseLayout>
