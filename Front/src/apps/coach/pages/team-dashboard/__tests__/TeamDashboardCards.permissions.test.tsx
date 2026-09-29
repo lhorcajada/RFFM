@@ -46,7 +46,7 @@ describe("TeamDashboardCards — permission-driven visibility", () => {
     expect(screen.getByRole("link", { name: "Plantilla" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Eventos" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Resumen de asistencias" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Partidos" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Calendario" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Lesionados" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Sanciones" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Lotería" })).toBeInTheDocument();

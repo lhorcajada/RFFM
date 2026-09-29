@@ -127,18 +127,6 @@ export default function TeamDashboardCards({
           ),
         },
         {
-          key: "convocations",
-          visible: hasFeatureAccess(COACH_FEATURE_ROUTES.Convocations),
-          node: (
-            <LauncherTile
-              title="Partidos"
-              illustration={<MatchesIllustration />}
-              gradient="linear-gradient(135deg, #b71c1c 0%, #c62828 50%, #9c1515 100%)"
-              to={team?.id ? `/coach/convocations?teamId=${team.id}` : "/coach/convocations"}
-            />
-          ),
-        },
-        {
           key: "attendance-summary",
           visible: hasFeatureAccess(COACH_FEATURE_ROUTES.AttendanceSummary),
           node: (
@@ -159,6 +147,18 @@ export default function TeamDashboardCards({
     {
       title: "Competición",
       tiles: [
+        {
+          key: "convocations",
+          visible: hasFeatureAccess(COACH_FEATURE_ROUTES.Convocations),
+          node: (
+            <LauncherTile
+              title="Calendario"
+              illustration={<MatchesIllustration />}
+              gradient="linear-gradient(135deg, #b71c1c 0%, #c62828 50%, #9c1515 100%)"
+              to={team?.id ? `/coach/convocations?teamId=${team.id}` : "/coach/convocations"}
+            />
+          ),
+        },
         {
           key: "rivals",
           visible: hasFeatureAccess(COACH_FEATURE_ROUTES.Rivals),

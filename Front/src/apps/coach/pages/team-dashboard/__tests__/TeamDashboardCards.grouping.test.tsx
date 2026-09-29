@@ -52,11 +52,27 @@ describe("TeamDashboardCards — grouping", () => {
     expect(plantillaIndex).toBeLessThan(actividadIndex);
   });
 
+  it("places the Calendario tile inside the Competición group", () => {
+    mockUsePermissions.mockReturnValue({ loading: false, hasFeatureAccess: () => true });
+
+    const { container } = renderCards(false);
+    const nodes = Array.from(container.querySelectorAll("h3,a")).map((el) => el.textContent);
+
+    const competicionIndex = nodes.indexOf("Competición");
+    const calendarioIndex = nodes.indexOf("Calendario");
+    const disciplinaIndex = nodes.indexOf("Disciplina");
+
+    expect(calendarioIndex).toBeGreaterThan(competicionIndex);
+    expect(calendarioIndex).toBeLessThan(disciplinaIndex);
+  });
+
   it("hides a group header entirely when every tile in that group is hidden", () => {
     mockUsePermissions.mockReturnValue({
       loading: false,
       hasFeatureAccess: (route: string) =>
-        route !== COACH_FEATURE_ROUTES.Rivals && route !== COACH_FEATURE_ROUTES.GameModel,
+        route !== COACH_FEATURE_ROUTES.Rivals &&
+        route !== COACH_FEATURE_ROUTES.GameModel &&
+        route !== COACH_FEATURE_ROUTES.Convocations,
     });
 
     renderCards(false);
