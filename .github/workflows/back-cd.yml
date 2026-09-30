@@ -71,6 +71,7 @@ jobs:
           cache-to: type=gha,mode=max
           build-args: |
             BUILD_CONFIGURATION=Release
+            GIT_SHA=${{ steps.commit.outputs.sha }}
 
   deploy-container-app:
     runs-on: ubuntu-latest

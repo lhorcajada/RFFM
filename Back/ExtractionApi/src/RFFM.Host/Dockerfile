@@ -11,18 +11,20 @@ EXPOSE 8081
 # This stage is used to build the service project
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 ARG BUILD_CONFIGURATION=Release
+ARG GIT_SHA=
 WORKDIR /src
 COPY ["src/RFFM.Host/RFFM.Host.csproj", "src/RFFM.Host/"]
 COPY ["src/RFFM.Api/RFFM.Api.csproj", "src/RFFM.Api/"]
 RUN dotnet restore "src/RFFM.Host/RFFM.Host.csproj"
 COPY . .
 WORKDIR "/src/src/RFFM.Host"
-RUN dotnet build "RFFM.Host.csproj" -c $BUILD_CONFIGURATION -o /app/build
+RUN dotnet build "RFFM.Host.csproj" -c $BUILD_CONFIGURATION -o /app/build /p:SourceRevisionId=$GIT_SHA
 
 # This stage is used to publish the service project to be copied to the final stage
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "RFFM.Host.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+ARG GIT_SHA=
+RUN dotnet publish "RFFM.Host.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false /p:SourceRevisionId=$GIT_SHA
 
 # This stage is used in production or when running from VS in regular mode (Default when not using the Debug configuration)
 FROM base AS final
