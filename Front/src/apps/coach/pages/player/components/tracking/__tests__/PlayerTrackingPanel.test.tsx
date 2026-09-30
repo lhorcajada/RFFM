@@ -94,6 +94,8 @@ const CREATED: PlayerObservation = {
   assessment: "NotAchieved",
   comment: null,
   createdAt: "2026-09-30T18:00:00Z",
+  trainingSessionId: null,
+  trainingSessionName: null,
 };
 
 async function fillAndSave() {

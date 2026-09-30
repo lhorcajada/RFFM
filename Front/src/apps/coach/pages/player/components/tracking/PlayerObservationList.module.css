@@ -52,6 +52,13 @@
   overflow-wrap: anywhere;
 }
 
+.session {
+  margin: 6px 0 0;
+  font-size: 0.75rem;
+  color: var(--rffm-muted, #a59f9f);
+  overflow-wrap: anywhere;
+}
+
 .state {
   display: flex;
   justify-content: center;

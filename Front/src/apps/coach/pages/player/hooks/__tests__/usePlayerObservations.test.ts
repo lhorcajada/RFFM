@@ -23,6 +23,8 @@ function buildObservation(overrides: Partial<PlayerObservation> = {}): PlayerObs
     assessment: "NotAchieved",
     comment: null,
     createdAt: "2026-09-07T18:00:00Z",
+    trainingSessionId: null,
+    trainingSessionName: null,
     ...overrides,
   };
 }

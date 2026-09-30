@@ -66,6 +66,9 @@ export default function PlayerObservationList({ observations, loading, error, on
             </p>
             <p className={styles.subprincipio}>{observation.subprincipioLabel}</p>
             {observation.comment && <p className={styles.comment}>{observation.comment}</p>}
+            {observation.trainingSessionName && (
+              <p className={styles.session}>{`Sesión: ${observation.trainingSessionName}`}</p>
+            )}
           </Paper>
         </li>
       ))}

@@ -23,6 +23,8 @@ const observation: PlayerObservation = {
   assessment: "NotAchieved",
   comment: "Busca siempre el pase vertical",
   createdAt: "2026-09-14T18:00:00Z",
+  trainingSessionId: null,
+  trainingSessionName: null,
 };
 
 describe("playerTrackingService", () => {

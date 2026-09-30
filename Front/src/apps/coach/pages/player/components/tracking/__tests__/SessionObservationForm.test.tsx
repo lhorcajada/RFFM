@@ -120,14 +120,20 @@ describe("SessionObservationForm", () => {
     expect(screen.getByRole("button", { name: /guardar/i })).toBeDisabled();
   });
 
-  it("crea una observación por cada subprincipio valorado con la fecha de la sesión", async () => {
+  it("crea una observación por cada subprincipio valorado con la fecha y el vínculo a la sesión", async () => {
     const onSubmit = renderForm();
 
     await rate("Circular para desordenar", "No lo hace", "Busca siempre el pase vertical");
     await userEvent.click(screen.getByRole("button", { name: /guardar/i }));
 
     expect(onSubmit).toHaveBeenCalledWith([
-      { date: "2026-10-14", subprincipioId: "s-23", assessment: "NotAchieved", comment: "Busca siempre el pase vertical" },
+      {
+        date: "2026-10-14",
+        subprincipioId: "s-23",
+        assessment: "NotAchieved",
+        comment: "Busca siempre el pase vertical",
+        trainingSessionId: "ses-1",
+      },
     ]);
   });
 

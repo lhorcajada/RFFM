@@ -108,6 +108,7 @@ export default function SessionObservationForm({ session, teamPlayerId, saving, 
         subprincipioId: b.subprincipioId,
         assessment: draft.assessment as ObservationAssessment,
         comment: draft.comment.trim() || null,
+        trainingSessionId: session.id,
       };
     });
     const failed = new Set(await onSubmit(requests));

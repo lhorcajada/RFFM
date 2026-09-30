@@ -15,6 +15,8 @@ const OBSERVATION: PlayerObservation = {
   assessment: "NotAchieved",
   comment: "Busca siempre el pase vertical sin que el rival esté descolocado",
   createdAt: "2026-10-14T18:00:00Z",
+  trainingSessionId: null,
+  trainingSessionName: null,
 };
 
 describe("PlayerObservationList", () => {
@@ -27,6 +29,25 @@ describe("PlayerObservationList", () => {
     expect(screen.getByText("2.3 Circular para desordenar")).toBeInTheDocument();
     expect(screen.getByText(/pase vertical sin que el rival/)).toBeInTheDocument();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
+  });
+
+  it("muestra la sesión de la observación cuando la tiene", () => {
+    render(
+      <PlayerObservationList
+        observations={[{ ...OBSERVATION, trainingSessionId: "ses-1", trainingSessionName: "Sesión 1" }]}
+        loading={false}
+        error={null}
+        onRetry={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Sesión: Sesión 1")).toBeInTheDocument();
+  });
+
+  it("no muestra línea de sesión si la observación no la tiene", () => {
+    render(<PlayerObservationList observations={[OBSERVATION]} loading={false} error={null} onRetry={vi.fn()} />);
+
+    expect(screen.queryByText(/^Sesión:/)).not.toBeInTheDocument();
   });
 
   it("muestra el estado vacío", () => {

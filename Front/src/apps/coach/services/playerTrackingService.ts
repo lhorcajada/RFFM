@@ -19,6 +19,8 @@ export type PlayerObservation = {
   assessment: ObservationAssessment;
   comment: string | null;
   createdAt: string;
+  trainingSessionId: string | null;
+  trainingSessionName: string | null;
 };
 
 export type CreatePlayerObservationRequest = {
@@ -26,6 +28,7 @@ export type CreatePlayerObservationRequest = {
   subprincipioId: string;
   assessment: ObservationAssessment;
   comment?: string | null;
+  trainingSessionId?: string | null;
 };
 
 function observationsUrl(teamId: string, teamPlayerId: string): string {
