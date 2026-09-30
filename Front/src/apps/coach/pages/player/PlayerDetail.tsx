@@ -43,6 +43,7 @@ import { usePlayerFormStats } from "./hooks/usePlayerFormStats";
 import PlayerMatchHistoryCards from "./components/PlayerMatchHistoryCards";
 import PlayerConvocationSummaryCard from "./components/PlayerConvocationSummaryCard";
 import PlayerFormBars from "../../components/PlayerFormBars/PlayerFormBars";
+import PlayerPhysicalEvolution from "./components/PlayerPhysicalEvolution";
 import MetricInfoDialog from "../../components/MetricInfoDialog/MetricInfoDialog";
 import type { MetricKey } from "../../components/MetricInfoDialog/metricInfoTexts";
 
@@ -500,6 +501,8 @@ export default function PlayerDetail() {
                         )}
                       </div>
                     )}
+
+                    {team?.id && <PlayerPhysicalEvolution teamId={team.id} teamPlayerId={id} />}
 
                     <PlayerConvocationSummaryCard summary={summary} loading={loadingSummary} />
 

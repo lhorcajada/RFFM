@@ -462,6 +462,7 @@ export default function Squad() {
               loading={loadingStats}
               teamName={team.name}
               photoUrls={photoByTeamPlayerId}
+              onOpenPlayer={(teamPlayerId) => navigate(`/coach/player/${teamPlayerId}`)}
             />
           )}
 

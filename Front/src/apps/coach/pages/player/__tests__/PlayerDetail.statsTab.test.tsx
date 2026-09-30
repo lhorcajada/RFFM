@@ -24,7 +24,13 @@ vi.mock("../../../../../shared/components/ui/ContentLayout/ContentLayout", () =>
 }));
 
 vi.mock("../../../hooks/useTeamAndClub.tsx", () => ({
-  default: () => ({ teamTitleNode: "Equipo", clubSubtitleNode: null, loading: false }),
+  default: () => ({ team: { id: "team-1" }, teamTitleNode: "Equipo", clubSubtitleNode: null, loading: false }),
+}));
+
+vi.mock("../components/PlayerPhysicalEvolution", () => ({
+  default: ({ teamId, teamPlayerId }: { teamId?: string; teamPlayerId?: string }) => (
+    <div>{`evolucion:${teamId}:${teamPlayerId}`}</div>
+  ),
 }));
 
 const mockTeamPlayer = {
@@ -139,6 +145,12 @@ describe("PlayerDetail — pestaña Estadísticas: amarillas/rojas y tabla de pa
 
     expect(await screen.findByText("amarillas")).toBeInTheDocument();
     expect(screen.getByText("rojas")).toBeInTheDocument();
+  });
+
+  it("muestra la evolución física del jugador en su equipo", async () => {
+    renderPage();
+
+    expect(await screen.findByText("evolucion:team-1:tp-1")).toBeInTheDocument();
   });
 
   it("renderiza la tabla de historial de partidos con columna Rival", async () => {

@@ -153,4 +153,56 @@ export async function getTeamPlayerStatistics(teamId: string): Promise<PlayerSta
   return resp.data as PlayerStatistics[];
 }
 
-export default { getTeamPlayerStatistics };
+export type PhysicalEvolutionDays = 28 | 56 | 84;
+
+export type PhysicalEvolutionPoint = {
+  date: string;
+  /** `null` sin actividad en los 84 días previos o si la categoría no tiene duración estándar. */
+  formStatus: number | null;
+  /** `null` sin actividad en los 84 días previos. */
+  readiness: number | null;
+  fatigue: number;
+};
+
+export type PhysicalEvolutionEventKind = "Training" | "Match";
+
+export type PhysicalEvolutionEvent = {
+  date: string;
+  eventId: string;
+  eventTypeId: number;
+  kind: PhysicalEvolutionEventKind;
+  trainingTypes: string[];
+  minutesPlayed: number;
+};
+
+export type PhysicalEvolutionInjury = {
+  startDate: string;
+  /** `null` si la lesión sigue activa. */
+  endDate: string | null;
+};
+
+/** Serie diaria de Forma/Rodaje/Cansancio reconstruida con los datos actuales. */
+export type PlayerPhysicalEvolution = {
+  teamPlayerId: string;
+  days: PhysicalEvolutionDays;
+  formStatusAvailable: boolean;
+  /** Más antiguo primero; el último es hoy. */
+  points: PhysicalEvolutionPoint[];
+  /** Entrenos asistidos y partidos con minutos dentro del rango. */
+  events: PhysicalEvolutionEvent[];
+  injuries: PhysicalEvolutionInjury[];
+};
+
+export async function getPlayerPhysicalEvolution(
+  teamId: string,
+  teamPlayerId: string,
+  days: PhysicalEvolutionDays
+): Promise<PlayerPhysicalEvolution> {
+  const resp = await client.get(
+    `/api/catalog/team/${teamId}/players/${teamPlayerId}/physical-evolution`,
+    { params: { days } }
+  );
+  return resp.data as PlayerPhysicalEvolution;
+}
+
+export default { getTeamPlayerStatistics, getPlayerPhysicalEvolution };

@@ -12,6 +12,7 @@ import type { SelectChangeEvent } from "@mui/material";
 import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import ShowChartIcon from "@mui/icons-material/ShowChart";
 import avatarFallback from "../../../../../assets/avatar.svg";
 import type { PlayerStatistics } from "../../../services/teamPlayerStatisticsService";
 import { exportSquadStatisticsPdf } from "../squadStatsPdfExport";
@@ -29,6 +30,8 @@ type Props = {
   loading: boolean;
   teamName?: string;
   photoUrls?: Record<string, string | null>;
+  /** Abre la ficha del jugador (evolución física). Sin él no se muestra el enlace. */
+  onOpenPlayer?: (teamPlayerId: string) => void;
 };
 
 type SortKey = "ef" | "readiness" | "fatigue" | "dorsal" | "goals" | "yellowCards" | "redCards" | "minutesPlayed";
@@ -63,7 +66,7 @@ function compareValues(a: PlayerStatistics, b: PlayerStatistics, key: SortKey): 
   return Number(av) - Number(bv);
 }
 
-export default function SquadStatistics({ players, loading, teamName, photoUrls }: Props) {
+export default function SquadStatistics({ players, loading, teamName, photoUrls, onOpenPlayer }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>("ef");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [positionFilter, setPositionFilter] = useState<string>("");
@@ -224,6 +227,17 @@ export default function SquadStatistics({ players, loading, teamName, photoUrls 
                       : undefined
                   }
                 />
+                {onOpenPlayer && (
+                  <Button
+                    size="small"
+                    startIcon={<ShowChartIcon fontSize="small" />}
+                    className={styles.evolutionLink}
+                    aria-label={`Ver evolución de ${player.displayName}`}
+                    onClick={() => onOpenPlayer(player.teamPlayerId)}
+                  >
+                    Ver evolución
+                  </Button>
+                )}
               </div>
 
               <div className={styles.statsRow}>
