@@ -123,6 +123,9 @@ namespace RFFM.Api.Domain
         public const string FamilyMemberNotFound = "FamilyMemberNotFound";
         public const string FamilyMemberRelationUnknown = "FamilyMemberRelationUnknown";
 
+        // Player tracking (Features/Coaches/PlayerTracking) - openspec change player-tracking-observations-api.
+        public const string SubprincipioNotFound = "SubprincipioNotFound";
+
         // Family member accounts (Features/Coaches/FamilyMemberAccounts)
         public const string FamilyMemberEmailRequired = "FamilyMemberEmailRequired";
         public const string FamilyMemberAccountAlreadyLinked = "FamilyMemberAccountAlreadyLinked";
