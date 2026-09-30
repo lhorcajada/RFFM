@@ -63,7 +63,8 @@ namespace RFFM.Api.Features.Coaches.Players.Services
             Parameters p,
             Func<IReadOnlyList<string>, double> trainingTypeWeight,
             Func<int, double> matchTypeWeight,
-            double referenceMatchMinutes)
+            double referenceMatchMinutes,
+            bool todayIsClosed = false)
         {
             var start = startDate.Date;
             var end = today.Date;
@@ -98,7 +99,7 @@ namespace RFFM.Api.Features.Coaches.Players.Services
                 .Take(MaxMissedEvents)
                 .ToArray();
 
-            var model = events.Count == 0 ? null : Simulate(start, end, events, p);
+            var model = events.Count == 0 ? null : Simulate(start, end, events, p, todayIsClosed);
             int? value = model is null
                 ? null
                 : Math.Clamp((int)Math.Round(model.Value, MidpointRounding.AwayFromZero), 0, 100);
@@ -108,7 +109,8 @@ namespace RFFM.Api.Features.Coaches.Players.Services
                 attended.Count, played.Count, played.Sum(m => m.MinutesPlayed), missed);
         }
 
-        public static Result Simulate(DateTime startDate, DateTime today, IReadOnlyList<LoadEvent> events, Parameters p)
+        /// <param name="todayIsClosed">true para un día ya terminado (histórico): cuenta como descanso aunque no tenga actividad.</param>
+        public static Result Simulate(DateTime startDate, DateTime today, IReadOnlyList<LoadEvent> events, Parameters p, bool todayIsClosed = false)
         {
             var start = startDate.Date;
             var eventsByDay = events
@@ -116,7 +118,7 @@ namespace RFFM.Api.Features.Coaches.Players.Services
                 .GroupBy(e => e.Date.Date)
                 .ToDictionary(g => g.Key, g => g.ToArray());
             // Hoy solo cuenta si ya ha habido actividad: un día sin terminar no es un día de descanso.
-            var end = eventsByDay.ContainsKey(today.Date) ? today.Date : today.Date.AddDays(-1);
+            var end = todayIsClosed || eventsByDay.ContainsKey(today.Date) ? today.Date : today.Date.AddDays(-1);
 
             var steps = new List<Step>();
             // Se guarda el hueco hasta 100 en lugar del valor: con 100 − (100 − v)·e^(−kL) el valor

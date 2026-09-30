@@ -39,6 +39,17 @@ namespace RFFM.Api.Tests.UnitTests
             Enumerable.Range(restDays + 1, 120).Select(d => Match(d, 80)).ToArray();
 
         [Fact]
+        public void ClosedToday_CountsTodayAsRestDay()
+        {
+            var open = PlayerFormStatusCalculator.Calculate(SaturatedTrainings(4), SaturatedMatches(4), Today.AddDays(-83), Today, CadeteHalfMinutes);
+            var closed = PlayerFormStatusCalculator.Calculate(SaturatedTrainings(4), SaturatedMatches(4), Today.AddDays(-83), Today, CadeteHalfMinutes, todayIsClosed: true);
+
+            Assert.Equal(4, open.Model!.CurrentRestStreakDays);
+            Assert.Equal(5, closed.Model!.CurrentRestStreakDays);
+            Assert.True(closed.Model.Value < open.Model.Value);
+        }
+
+        [Fact]
         public void WithoutActivityInReplay_FormStatusIsNull()
         {
             var result = Calc(new[] { Training(2, ParticipationOutcome.Absent) }, new[] { Match(3, 0) });

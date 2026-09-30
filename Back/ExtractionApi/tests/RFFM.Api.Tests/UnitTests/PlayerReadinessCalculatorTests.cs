@@ -27,6 +27,18 @@ namespace RFFM.Api.Tests.UnitTests
         private static readonly DailyLoadModel.MatchInput[] NoMatches = Array.Empty<DailyLoadModel.MatchInput>();
 
         [Fact]
+        public void ClosedToday_CountsTodayAsRestDay()
+        {
+            var trainings = new[] { Training(3) };
+
+            var open = PlayerReadinessCalculator.Calculate(trainings, NoMatches, Today.AddDays(-83), Today);
+            var closed = PlayerReadinessCalculator.Calculate(trainings, NoMatches, Today.AddDays(-83), Today, todayIsClosed: true);
+
+            Assert.Equal(2, open.Model!.CurrentRestStreakDays);
+            Assert.Equal(3, closed.Model!.CurrentRestStreakDays);
+        }
+
+        [Fact]
         public void WithoutActivityInReplay_ReadinessIsNull()
         {
             var result = Calc(new[] { Training(3, outcome: ParticipationOutcome.Absent) }, NoMatches);

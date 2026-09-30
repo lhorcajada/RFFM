@@ -44,6 +44,26 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
+        public void ClosedTodayWithoutActivity_IsCountedAsRestDay()
+        {
+            var result = DailyLoadModel.Simulate(Today.AddDays(-10), Today, new[] { Event(Today.AddDays(-1), 1) }, FormParams, todayIsClosed: true);
+
+            Assert.Equal(1, result.CurrentRestStreakDays);
+        }
+
+        [Fact]
+        public void ClosedTodayWithoutActivity_DecaysOnceGraceIsOver()
+        {
+            var lastActivity = Today.AddDays(-5);
+            var events = Enumerable.Range(0, 60).Select(i => Event(lastActivity.AddDays(-i), 10)).ToArray();
+
+            var result = DailyLoadModel.Simulate(lastActivity.AddDays(-59), Today, events, FormParams, todayIsClosed: true);
+
+            Assert.Equal(5, result.CurrentRestStreakDays);
+            Assert.Equal(99.5, result.Value, precision: 3);
+        }
+
+        [Fact]
         public void TodayWithActivity_Counts()
         {
             var result = Simulate(Today.AddDays(-10), Event(Today.AddDays(-1), 1), Event(Today, 1));

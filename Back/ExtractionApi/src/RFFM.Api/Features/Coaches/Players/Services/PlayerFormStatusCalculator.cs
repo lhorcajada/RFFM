@@ -31,11 +31,13 @@ namespace RFFM.Api.Features.Coaches.Players.Services
             IReadOnlyList<DailyLoadModel.MatchInput> matches,
             DateTime startDate,
             DateTime today,
-            int categoryHalfMinutes) =>
+            int categoryHalfMinutes,
+            bool todayIsClosed = false) =>
             DailyLoadModel.Evaluate(
                 trainings, matches, SportEventType.FromName("Entrenamiento").Id, startDate, today, Parameters,
                 types => TrainingTypeWeighting.Weight(types, FormStatusTrainingWeights),
                 _ => 1d,
-                FullStimulusFraction * 2 * categoryHalfMinutes);
+                FullStimulusFraction * 2 * categoryHalfMinutes,
+                todayIsClosed);
     }
 }
