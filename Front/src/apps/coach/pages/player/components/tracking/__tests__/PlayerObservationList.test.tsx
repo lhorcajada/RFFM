@@ -21,7 +21,7 @@ const OBSERVATION: PlayerObservation = {
 
 describe("PlayerObservationList", () => {
   it("muestra cada observación en una tarjeta con fecha, valoración, fase, principio, subprincipio y comentario", () => {
-    render(<PlayerObservationList observations={[OBSERVATION]} loading={false} error={null} onRetry={vi.fn()} />);
+    render(<PlayerObservationList observations={[OBSERVATION]} loading={false} error={null} onRetry={vi.fn()} onUpdate={vi.fn()} onDelete={vi.fn()} />);
 
     expect(screen.getByText("14/10/2026")).toBeInTheDocument();
     expect(screen.getByText("No lo hace")).toBeInTheDocument();
@@ -38,6 +38,8 @@ describe("PlayerObservationList", () => {
         loading={false}
         error={null}
         onRetry={vi.fn()}
+        onUpdate={vi.fn()}
+        onDelete={vi.fn()}
       />,
     );
 
@@ -45,19 +47,19 @@ describe("PlayerObservationList", () => {
   });
 
   it("no muestra línea de sesión si la observación no la tiene", () => {
-    render(<PlayerObservationList observations={[OBSERVATION]} loading={false} error={null} onRetry={vi.fn()} />);
+    render(<PlayerObservationList observations={[OBSERVATION]} loading={false} error={null} onRetry={vi.fn()} onUpdate={vi.fn()} onDelete={vi.fn()} />);
 
     expect(screen.queryByText(/^Sesión:/)).not.toBeInTheDocument();
   });
 
   it("muestra el estado vacío", () => {
-    render(<PlayerObservationList observations={[]} loading={false} error={null} onRetry={vi.fn()} />);
+    render(<PlayerObservationList observations={[]} loading={false} error={null} onRetry={vi.fn()} onUpdate={vi.fn()} onDelete={vi.fn()} />);
 
     expect(screen.getByText("Aún no hay observaciones para este jugador")).toBeInTheDocument();
   });
 
   it("muestra un indicador de carga", () => {
-    render(<PlayerObservationList observations={[]} loading error={null} onRetry={vi.fn()} />);
+    render(<PlayerObservationList observations={[]} loading error={null} onRetry={vi.fn()} onUpdate={vi.fn()} onDelete={vi.fn()} />);
 
     expect(screen.getByRole("progressbar")).toBeInTheDocument();
   });
@@ -70,6 +72,8 @@ describe("PlayerObservationList", () => {
         loading={false}
         error="No se pudieron cargar las observaciones"
         onRetry={onRetry}
+        onUpdate={vi.fn()}
+        onDelete={vi.fn()}
       />,
     );
 

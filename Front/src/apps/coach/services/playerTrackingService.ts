@@ -31,6 +31,11 @@ export type CreatePlayerObservationRequest = {
   trainingSessionId?: string | null;
 };
 
+export type UpdatePlayerObservationRequest = {
+  assessment: ObservationAssessment;
+  comment?: string | null;
+};
+
 function observationsUrl(teamId: string, teamPlayerId: string): string {
   return `/api/teams/${encodeURIComponent(teamId)}/players/${encodeURIComponent(teamPlayerId)}/observations`;
 }
@@ -47,4 +52,21 @@ export async function createPlayerObservation(
 ): Promise<PlayerObservation> {
   const resp = await client.post<PlayerObservation>(observationsUrl(teamId, teamPlayerId), request);
   return resp.data;
+}
+
+export async function updatePlayerObservation(
+  teamId: string,
+  teamPlayerId: string,
+  observationId: string,
+  request: UpdatePlayerObservationRequest,
+): Promise<PlayerObservation> {
+  const resp = await client.put<PlayerObservation>(
+    `${observationsUrl(teamId, teamPlayerId)}/${encodeURIComponent(observationId)}`,
+    request,
+  );
+  return resp.data;
+}
+
+export async function deletePlayerObservation(teamId: string, teamPlayerId: string, observationId: string): Promise<void> {
+  await client.delete(`${observationsUrl(teamId, teamPlayerId)}/${encodeURIComponent(observationId)}`);
 }

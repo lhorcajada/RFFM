@@ -1,7 +1,12 @@
 import { useState } from "react";
 import { MenuItem, TextField } from "@mui/material";
 import { format, parseISO } from "date-fns";
-import type { CreatePlayerObservationRequest } from "../../../../services/playerTrackingService";
+import ConfirmDialog from "../../../../../../shared/components/ui/ConfirmDialog/ConfirmDialog";
+import type {
+  CreatePlayerObservationRequest,
+  PlayerObservation,
+  UpdatePlayerObservationRequest,
+} from "../../../../services/playerTrackingService";
 import { usePlayerObservations } from "../../hooks/usePlayerObservations";
 import { useRecentSessions } from "../../hooks/useRecentSessions";
 import { useSubprincipioOptions } from "../../hooks/useSubprincipioOptions";
@@ -27,11 +32,13 @@ type Props = {
 };
 
 export default function PlayerTrackingPanel({ teamId, teamPlayerId }: Props) {
-  const { observations, loading, error, reload, create } = usePlayerObservations(teamId, teamPlayerId);
+  const { observations, loading, error, reload, create, update, remove } = usePlayerObservations(teamId, teamPlayerId);
   const { options, hasModel, loading: loadingOptions } = useSubprincipioOptions(teamId);
   const { sessions } = useRecentSessions(teamId);
   const [sessionId, setSessionId] = useState(NO_SESSION);
   const [saving, setSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<PlayerObservation | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const session = sessions.find((s) => s.id === sessionId) ?? null;
 
@@ -70,6 +77,30 @@ export default function PlayerTrackingPanel({ teamId, teamPlayerId }: Props) {
     return failed;
   };
 
+  const handleUpdate = async (observationId: string, request: UpdatePlayerObservationRequest) => {
+    try {
+      await update(observationId, request);
+      showSnackbar("Observación actualizada", "success");
+    } catch (e) {
+      showSnackbar(errorDetail(e) ?? "No se pudo actualizar la observación", "error");
+      throw e;
+    }
+  };
+
+  const handleDeleteConfirmed = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await remove(deleteTarget.id);
+      showSnackbar("Observación eliminada", "success");
+      setDeleteTarget(null);
+    } catch (e) {
+      showSnackbar(errorDetail(e) ?? "No se pudo eliminar la observación", "error");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <div className={styles.panel}>
       {sessions.length > 0 && (
@@ -105,7 +136,28 @@ export default function PlayerTrackingPanel({ teamId, teamPlayerId }: Props) {
       )}
 
       <h3 className={styles.title}>Observaciones</h3>
-      <PlayerObservationList observations={observations} loading={loading} error={error} onRetry={reload} />
+      <PlayerObservationList
+        observations={observations}
+        loading={loading}
+        error={error}
+        onRetry={reload}
+        onUpdate={handleUpdate}
+        onDelete={setDeleteTarget}
+      />
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Eliminar observación"
+        description={
+          deleteTarget
+            ? `¿Eliminar la observación de «${deleteTarget.subprincipioLabel}» del ${format(parseISO(deleteTarget.date), "dd/MM/yyyy")}? Esta acción no se puede deshacer.`
+            : ""
+        }
+        confirmText="Eliminar"
+        processing={deleting}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={handleDeleteConfirmed}
+      />
     </div>
   );
 }

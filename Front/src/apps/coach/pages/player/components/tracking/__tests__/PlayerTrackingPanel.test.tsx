@@ -5,10 +5,14 @@ import type { PlayerObservation } from "../../../../../services/playerTrackingSe
 
 const getPlayerObservationsMock = vi.fn();
 const createPlayerObservationMock = vi.fn();
+const updatePlayerObservationMock = vi.fn();
+const deletePlayerObservationMock = vi.fn();
 vi.mock("../../../../../services/playerTrackingService", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../../../../services/playerTrackingService")>()),
   getPlayerObservations: (...args: unknown[]) => getPlayerObservationsMock(...args),
   createPlayerObservation: (...args: unknown[]) => createPlayerObservationMock(...args),
+  updatePlayerObservation: (...args: unknown[]) => updatePlayerObservationMock(...args),
+  deletePlayerObservation: (...args: unknown[]) => deletePlayerObservationMock(...args),
 }));
 
 vi.mock("../../../hooks/useSubprincipioOptions", () => ({
@@ -214,5 +218,77 @@ describe("PlayerTrackingPanel", () => {
     expect(
       within(screen.getByRole("group", { name: "Asegurar tras robo" })).getByRole("button", { name: "A veces" }),
     ).toHaveAttribute("aria-pressed", "true");
+  });
+
+  describe("editar y eliminar", () => {
+    beforeEach(() => {
+      getPlayerObservationsMock.mockResolvedValue([CREATED]);
+    });
+
+    it("eliminar pide confirmación y no borra hasta confirmar", async () => {
+      render(<PlayerTrackingPanel teamId="team-1" teamPlayerId="tp-1" />);
+      await screen.findByText("30/09/2026");
+
+      await userEvent.click(screen.getByRole("button", { name: "Eliminar observación" }));
+
+      const dialog = await screen.findByRole("dialog");
+      expect(within(dialog).getByText("Eliminar observación")).toBeInTheDocument();
+      expect(within(dialog).getByText(/2\.3 Circular para desordenar.*30\/09\/2026/)).toBeInTheDocument();
+      expect(deletePlayerObservationMock).not.toHaveBeenCalled();
+    });
+
+    it("cancelar la confirmación no borra la observación", async () => {
+      render(<PlayerTrackingPanel teamId="team-1" teamPlayerId="tp-1" />);
+      await screen.findByText("30/09/2026");
+      await userEvent.click(screen.getByRole("button", { name: "Eliminar observación" }));
+
+      await userEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Cancelar" }));
+
+      expect(deletePlayerObservationMock).not.toHaveBeenCalled();
+      expect(screen.getByText("30/09/2026")).toBeInTheDocument();
+    });
+
+    it("confirmar elimina la observación y avisa", async () => {
+      deletePlayerObservationMock.mockResolvedValue(undefined);
+      render(<PlayerTrackingPanel teamId="team-1" teamPlayerId="tp-1" />);
+      await screen.findByText("30/09/2026");
+      await userEvent.click(screen.getByRole("button", { name: "Eliminar observación" }));
+
+      await userEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Eliminar" }));
+
+      await waitFor(() => expect(screen.queryByText("30/09/2026")).not.toBeInTheDocument());
+      expect(deletePlayerObservationMock).toHaveBeenCalledWith("team-1", "tp-1", "obs-1");
+      const event = snackbarListener.mock.calls[0][0] as CustomEvent;
+      expect(event.detail).toEqual({ message: "Observación eliminada", severity: "success" });
+    });
+
+    it("editar guarda los cambios y avisa", async () => {
+      updatePlayerObservationMock.mockResolvedValue({ ...CREATED, assessment: "Partial", comment: "Mejora" });
+      render(<PlayerTrackingPanel teamId="team-1" teamPlayerId="tp-1" />);
+      await screen.findByText("30/09/2026");
+      const list = screen.getByRole("list", { name: "Observaciones" });
+
+      await userEvent.click(within(list).getByRole("button", { name: "Editar observación" }));
+      await userEvent.click(within(list).getByRole("button", { name: "A veces" }));
+      await userEvent.click(within(list).getByRole("button", { name: "Guardar" }));
+
+      await waitFor(() => expect(within(list).getByText("Mejora")).toBeInTheDocument());
+      const event = snackbarListener.mock.calls[0][0] as CustomEvent;
+      expect(event.detail).toEqual({ message: "Observación actualizada", severity: "success" });
+    });
+
+    it("si falla la edición avisa con el error", async () => {
+      updatePlayerObservationMock.mockRejectedValue({ response: { data: { detail: "Observación no encontrada" } } });
+      render(<PlayerTrackingPanel teamId="team-1" teamPlayerId="tp-1" />);
+      await screen.findByText("30/09/2026");
+      const list = screen.getByRole("list", { name: "Observaciones" });
+
+      await userEvent.click(within(list).getByRole("button", { name: "Editar observación" }));
+      await userEvent.click(within(list).getByRole("button", { name: "Guardar" }));
+
+      await waitFor(() => expect(snackbarListener).toHaveBeenCalled());
+      const event = snackbarListener.mock.calls[0][0] as CustomEvent;
+      expect(event.detail).toEqual({ message: "Observación no encontrada", severity: "error" });
+    });
   });
 });

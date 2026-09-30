@@ -5,11 +5,18 @@ vi.mock("../../../../core/api/client", () => ({
   default: {
     get: vi.fn(),
     post: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn(),
   },
 }));
 
 import client from "../../../../core/api/client";
-import { createPlayerObservation, getPlayerObservations } from "../playerTrackingService";
+import {
+  createPlayerObservation,
+  deletePlayerObservation,
+  getPlayerObservations,
+  updatePlayerObservation,
+} from "../playerTrackingService";
 import type { PlayerObservation } from "../playerTrackingService";
 
 const observation: PlayerObservation = {
@@ -52,5 +59,26 @@ describe("playerTrackingService", () => {
 
     expect(client.post).toHaveBeenCalledWith("/api/teams/team-1/players/tp-1/observations", request);
     expect(result).toEqual(observation);
+  });
+
+  it("updatePlayerObservation envía el PUT con valoración y comentario y devuelve la observación", async () => {
+    const updated = { ...observation, assessment: "Partial" as const, comment: "Mejora" };
+    vi.mocked(client.put).mockResolvedValue({ data: updated });
+
+    const result = await updatePlayerObservation("team-1", "tp-1", "obs-1", { assessment: "Partial", comment: "Mejora" });
+
+    expect(client.put).toHaveBeenCalledWith("/api/teams/team-1/players/tp-1/observations/obs-1", {
+      assessment: "Partial",
+      comment: "Mejora",
+    });
+    expect(result).toEqual(updated);
+  });
+
+  it("deletePlayerObservation envía el DELETE de la observación", async () => {
+    vi.mocked(client.delete).mockResolvedValue({ data: undefined });
+
+    await deletePlayerObservation("team-1", "tp-1", "obs-1");
+
+    expect(client.delete).toHaveBeenCalledWith("/api/teams/team-1/players/tp-1/observations/obs-1");
   });
 });

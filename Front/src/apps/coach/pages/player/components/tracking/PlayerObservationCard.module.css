@@ -1,0 +1,70 @@
+.card {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  min-width: 0;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.date {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--rffm-muted, #a59f9f);
+}
+
+.context {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--rffm-muted, #a59f9f);
+  overflow-wrap: anywhere;
+}
+
+.subprincipio {
+  margin: 2px 0 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--rffm-card-text, #e8e8e8);
+  overflow-wrap: anywhere;
+}
+
+.comment {
+  margin: 6px 0 0;
+  font-size: 0.875rem;
+  color: var(--rffm-card-text, #e8e8e8);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.session {
+  margin: 6px 0 0;
+  font-size: 0.75rem;
+  color: var(--rffm-muted, #a59f9f);
+  overflow-wrap: anywhere;
+}
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.editorActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
