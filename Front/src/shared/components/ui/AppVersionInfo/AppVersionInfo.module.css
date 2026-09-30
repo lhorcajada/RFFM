@@ -1,0 +1,14 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 16px 4px;
+  margin-top: 4px;
+  border-top: 1px solid var(--rffm-footer-border, rgba(0, 0, 0, 0.12));
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  opacity: 0.7;
+  list-style: none;
+  cursor: default;
+  user-select: text;
+}

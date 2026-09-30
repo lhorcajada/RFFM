@@ -19,6 +19,7 @@ import useTeamFundBalance from "../../../hooks/useTeamFundBalance";
 import { useLocation, useNavigate } from "react-router-dom";
 import FederationNotificationsBell from "../FederationNotificationsBell/FederationNotificationsBell";
 import useRootClassObserver from "../../../hooks/useRootClassObserver";
+import AppVersionInfo from "../AppVersionInfo/AppVersionInfo";
 
 interface AppHeaderProps {
   title?: string;
@@ -239,6 +240,7 @@ export default function AppHeader({ title }: AppHeaderProps) {
           >
             <MenuItem onClick={handleProfile}>Perfil</MenuItem>
             <MenuItem onClick={handleLogout}>Cerrar sesión</MenuItem>
+            <AppVersionInfo />
           </Menu>
         </div>
       </Toolbar>

@@ -26,6 +26,23 @@ export default defineConfig(async ({ command, mode }) => {
   const apiTarget =
     env.VITE_API_PROXY_TARGET || apiTargets[appEnv] || apiTargetDev;
 
+  const { readFileSync } = await import("node:fs");
+  const { execSync } = await import("node:child_process");
+  const appVersion: string = JSON.parse(
+    readFileSync(new URL("./package.json", import.meta.url), "utf-8")
+  ).version;
+  // Netlify exposes COMMIT_REF; locally fall back to git.
+  const resolveCommit = (): string => {
+    const netlifyCommit = (process as any).env.COMMIT_REF as string | undefined;
+    if (netlifyCommit) return netlifyCommit.slice(0, 7);
+    try {
+      return execSync("git rev-parse --short=7 HEAD").toString().trim();
+    } catch {
+      return "";
+    }
+  };
+  const appCommit = resolveCommit();
+
   return {
     plugins: [
       pluginReact({
@@ -48,6 +65,8 @@ export default defineConfig(async ({ command, mode }) => {
       // Expose a default API base URL to the client bundles (can be overridden by env)
       __VITE_API_BASE_URL__: JSON.stringify(env.VITE_API_BASE_URL || ""),
       __VITE_APP_ENV__: JSON.stringify(appEnv),
+      "import.meta.env.VITE_APP_VERSION": JSON.stringify(appVersion),
+      "import.meta.env.VITE_APP_COMMIT": JSON.stringify(appCommit),
     },
     server: {
       proxy: {
