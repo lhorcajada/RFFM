@@ -107,6 +107,85 @@ namespace RFFM.Api.Tests.IntegrationTests
             Assert.Equal(new string?[] { sessionId, null }, result.Select(o => o.TrainingSessionId).ToArray());
         }
 
+        private static Task<GetPlayerObservations.PlayerObservationDto> UpdateAsync(
+            AppDbContext db, string teamId, string teamPlayerId, string observationId, string assessment, string? comment) =>
+            new UpdatePlayerObservation.Handler(db)
+                .Handle(new UpdatePlayerObservation.Command
+                {
+                    TeamId = teamId,
+                    TeamPlayerId = teamPlayerId,
+                    ObservationId = observationId,
+                    Assessment = assessment,
+                    Comment = comment
+                }, CancellationToken.None)
+                .AsTask();
+
+        private static Task DeleteAsync(AppDbContext db, string teamId, string teamPlayerId, string observationId) =>
+            new DeletePlayerObservation.Handler(db)
+                .Handle(new DeletePlayerObservation.Command
+                {
+                    TeamId = teamId,
+                    TeamPlayerId = teamPlayerId,
+                    ObservationId = observationId
+                }, CancellationToken.None)
+                .AsTask();
+
+        [Fact]
+        public async Task Update_ChangesAssessmentAndComment_AndReturnsTheSessionName()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, teamPlayerId, subprincipioId) = await PlayerModelObservationPersistenceTests.SeedAsync(db);
+            var sessionId = await SeedSessionAsync(db, teamId);
+            var created = await CreateAsync(db, teamId, teamPlayerId, subprincipioId, new DateOnly(2026, 9, 14), trainingSessionId: sessionId);
+
+            await using var updateDb = _fixture.CreateDbContext();
+            var result = await UpdateAsync(updateDb, teamId, teamPlayerId, created.Id, "Partial", "Mejora tras la charla");
+
+            Assert.Equal("Partial", result.Assessment);
+            Assert.Equal("Mejora tras la charla", result.Comment);
+            Assert.Equal(new DateOnly(2026, 9, 14), result.Date);
+            Assert.Equal("Sesión 1", result.TrainingSessionName);
+            await using var readDb = _fixture.CreateDbContext();
+            var stored = await readDb.PlayerModelObservations.AsNoTracking().SingleAsync(o => o.Id == created.Id);
+            Assert.Equal("Mejora tras la charla", stored.Comment);
+        }
+
+        [Fact]
+        public async Task Update_ObservationOfAnotherPlayer_ThrowsNotFound()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, teamPlayerId, subprincipioId) = await PlayerModelObservationPersistenceTests.SeedAsync(db);
+            var teammate = await PlayerModelObservationPersistenceTests.SeedTeammateAsync(db, teamPlayerId);
+            var created = await CreateAsync(db, teamId, teamPlayerId, subprincipioId);
+
+            var ex = await Assert.ThrowsAsync<NotFoundException>(() => UpdateAsync(db, teamId, teammate, created.Id, "Achieved", null));
+            Assert.Equal(ErrorCodes.PlayerObservationNotFound, ex.Code);
+        }
+
+        [Fact]
+        public async Task Delete_RemovesTheObservation()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, teamPlayerId, subprincipioId) = await PlayerModelObservationPersistenceTests.SeedAsync(db);
+            var created = await CreateAsync(db, teamId, teamPlayerId, subprincipioId);
+
+            await using var deleteDb = _fixture.CreateDbContext();
+            await DeleteAsync(deleteDb, teamId, teamPlayerId, created.Id);
+
+            await using var readDb = _fixture.CreateDbContext();
+            Assert.False(await readDb.PlayerModelObservations.AnyAsync(o => o.Id == created.Id));
+        }
+
+        [Fact]
+        public async Task Delete_UnknownObservation_ThrowsNotFound()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, teamPlayerId, _) = await PlayerModelObservationPersistenceTests.SeedAsync(db);
+
+            var ex = await Assert.ThrowsAsync<NotFoundException>(() => DeleteAsync(db, teamId, teamPlayerId, Guid.NewGuid().ToString()));
+            Assert.Equal(ErrorCodes.PlayerObservationNotFound, ex.Code);
+        }
+
         [Fact]
         public async Task Create_StoresTheObservationWithTheSubprincipioLabels()
         {

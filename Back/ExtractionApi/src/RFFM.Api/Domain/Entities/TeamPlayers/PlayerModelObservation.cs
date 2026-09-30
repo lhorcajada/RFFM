@@ -72,6 +72,15 @@ namespace RFFM.Api.Domain.Entities.TeamPlayers
             };
         }
 
+        /// <summary>Corrige la valoración y el comentario. Fecha, subprincipio y sesión no cambian:
+        /// si están mal, la observación se borra y se registra de nuevo.</summary>
+        public void Update(ObservationAssessment assessment, string? comment)
+        {
+            ArgumentNullException.ThrowIfNull(assessment);
+            Comment = NormalizeComment(comment);
+            Assessment = assessment;
+        }
+
         private static void Require(string value, string name)
         {
             if (string.IsNullOrWhiteSpace(value))

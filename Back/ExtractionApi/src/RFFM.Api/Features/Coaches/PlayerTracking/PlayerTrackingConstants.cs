@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Domain;
+using RFFM.Api.Domain.Entities.TeamPlayers;
 using RFFM.Api.Infrastructure.Persistence;
 
 namespace RFFM.Api.Features.Coaches.PlayerTracking
@@ -19,6 +20,14 @@ namespace RFFM.Api.Features.Coaches.PlayerTracking
 
             if (!playerInTeam)
                 throw new NotFoundException($"TeamPlayer '{teamPlayerId}' Not Found", ErrorCodes.TeamPlayerNotFound);
+        }
+
+        public static async Task<PlayerModelObservation> FindObservationAsync(
+            AppDbContext db, string teamId, string teamPlayerId, string observationId, CancellationToken cancellationToken)
+        {
+            return await db.PlayerModelObservations
+                .SingleOrDefaultAsync(o => o.Id == observationId && o.TeamPlayerId == teamPlayerId && o.TeamId == teamId, cancellationToken)
+                ?? throw new NotFoundException($"PlayerObservation '{observationId}' Not Found", ErrorCodes.PlayerObservationNotFound);
         }
     }
 }

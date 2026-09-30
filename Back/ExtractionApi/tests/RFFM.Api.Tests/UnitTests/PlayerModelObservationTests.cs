@@ -106,6 +106,48 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
+        public void Update_ChangesAssessmentAndComment_KeepingDateSubprincipioAndSession()
+        {
+            var observation = PlayerModelObservation.ForGameModel(
+                "tp-1", "team-1", Date, Snapshot, ObservationAssessment.NotAchieved, "Antes", "coach-1", "ses-1");
+
+            observation.Update(ObservationAssessment.Partial, "  Mejora tras la charla  ");
+
+            Assert.Equal(ObservationAssessment.Partial, observation.Assessment);
+            Assert.Equal("Mejora tras la charla", observation.Comment);
+            Assert.Equal(Date, observation.Date);
+            Assert.Equal("sub-1", observation.SubprincipioId);
+            Assert.Equal("ses-1", observation.TrainingSessionId);
+        }
+
+        [Fact]
+        public void Update_BlankComment_IsStoredAsNull()
+        {
+            var observation = Create();
+
+            observation.Update(ObservationAssessment.Achieved, "   ");
+
+            Assert.Null(observation.Comment);
+        }
+
+        [Fact]
+        public void Update_CommentLongerThanMax_Throws()
+        {
+            var observation = Create();
+
+            Assert.Throws<ArgumentException>(() =>
+                observation.Update(ObservationAssessment.Achieved, new string('a', PlayerModelObservation.Rules.CommentMaxLength + 1)));
+        }
+
+        [Fact]
+        public void Update_NullAssessment_Throws()
+        {
+            var observation = Create();
+
+            Assert.Throws<ArgumentNullException>(() => observation.Update(null!, "comentario"));
+        }
+
+        [Fact]
         public void ForGameModel_TrimsComment()
         {
             Assert.Equal("No asegura tras robo", Create(comment: "  No asegura tras robo  ").Comment);
