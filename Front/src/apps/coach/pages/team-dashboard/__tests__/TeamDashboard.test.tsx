@@ -68,9 +68,8 @@ describe("TeamDashboard back button", () => {
     vi.clearAllMocks();
   });
 
-  it("shows 'Volver' and navigates to /appSelector when the user is a player", async () => {
+  it("no muestra ningún botón de volver cuando el usuario es jugador o familiar", () => {
     mockUsePlayerAutoLoad.mockReturnValue({ isPlayer: true });
-    const user = userEvent.setup();
 
     render(
       <MemoryRouter>
@@ -78,12 +77,7 @@ describe("TeamDashboard back button", () => {
       </MemoryRouter>
     );
 
-    const button = screen.getByRole("button", { name: "Volver" });
-    expect(button).toBeInTheDocument();
-
-    await user.click(button);
-
-    expect(mockNavigate).toHaveBeenCalledWith("/appSelector");
+    expect(screen.queryByRole("button", { name: /volver/i })).not.toBeInTheDocument();
   });
 
   it("shows 'Volver al dashboard de entrenador' and navigates to /coach/dashboard when the user is a coach", async () => {

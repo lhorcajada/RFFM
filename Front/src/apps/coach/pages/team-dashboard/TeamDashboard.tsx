@@ -27,16 +27,18 @@ export default function TeamDashboard() {
         title={teamTitleNode ?? "Dashboard de equipo"}
         subtitle={clubSubtitleNode ?? "Acciones rápidas del equipo seleccionado"}
         actionBar={
-          <div className={styles.actionBarContent}>
-            <Button
-              variant="outlined"
-              startIcon={<ArrowBackIcon />}
-              onClick={() => navigate(isPlayer ? "/appSelector" : "/coach/dashboard")}
-              sx={{ textTransform: "none", marginLeft: "auto" }}
-            >
-              {isPlayer ? "Volver" : "Volver al dashboard de entrenador"}
-            </Button>
-          </div>
+          isPlayer ? undefined : (
+            <div className={styles.actionBarContent}>
+              <Button
+                variant="outlined"
+                startIcon={<ArrowBackIcon />}
+                onClick={() => navigate("/coach/dashboard")}
+                sx={{ textTransform: "none", marginLeft: "auto" }}
+              >
+                Volver al dashboard de entrenador
+              </Button>
+            </div>
+          )
         }
       >
         <div className={teamDashboardStyles.pageContent}>
