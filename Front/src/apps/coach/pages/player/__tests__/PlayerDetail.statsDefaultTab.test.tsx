@@ -135,7 +135,7 @@ vi.mock("../../../services/teamplayerService", () => ({
 
 const mockUsePermissions = vi.fn();
 vi.mock("../../../../../shared/hooks/usePermissions", () => ({
-  usePermissions: () => mockUsePermissions(),
+  usePermissions: () => ({ hasFeatureAccess: () => false, ...mockUsePermissions() }),
 }));
 
 import PlayerDetail from "../PlayerDetail";

@@ -1,0 +1,58 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  min-width: 0;
+}
+
+.notice {
+  margin-bottom: 4px;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.date {
+  flex: 0 0 160px;
+}
+
+.subprincipio {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+
+.assessment {
+  display: flex;
+  width: 100%;
+}
+
+.assessmentButton {
+  flex: 1 1 0;
+  gap: 6px;
+  text-transform: none;
+  font-weight: 600;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 480px) {
+  .date {
+    flex-basis: 100%;
+  }
+
+  .assessmentButton {
+    flex-direction: column;
+    gap: 2px;
+    font-size: 0.75rem;
+  }
+}

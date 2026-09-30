@@ -116,10 +116,17 @@ vi.mock("../../../services/teamplayerService", () => ({
 
 const mockUsePermissions = vi.fn();
 vi.mock("../../../../../shared/hooks/usePermissions", () => ({
-  usePermissions: () => ({ hasFeatureAccess: () => false, ...mockUsePermissions() }),
+  usePermissions: () => mockUsePermissions(),
+}));
+
+vi.mock("../components/tracking/PlayerTrackingPanel", () => ({
+  default: ({ teamId, teamPlayerId }: { teamId: string; teamPlayerId: string }) => (
+    <div>{`seguimiento:${teamId}:${teamPlayerId}`}</div>
+  ),
 }));
 
 import PlayerDetail from "../PlayerDetail";
+import { COACH_FEATURE_ROUTES } from "../../../constants/featureRoutes";
 
 function renderPage() {
   return render(
@@ -131,34 +138,37 @@ function renderPage() {
   );
 }
 
-describe("PlayerDetail — pestaña Estadísticas: amarillas/rojas y tabla de partidos", () => {
+function permissionsWith(featureRoutes: string[]) {
+  return {
+    roles: ["Coach"],
+    loading: false,
+    hasFeatureAccess: (route: string) => featureRoutes.includes(route),
+  };
+}
+
+describe("PlayerDetail — pestaña Seguimiento", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUsePermissions.mockReturnValue({ roles: ["Coach"], loading: false });
   });
 
-  it("muestra los tiles de resumen 'amarillas' y 'rojas' con el acumulado del historial", async () => {
+  it("con acceso al modelo de juego añade Seguimiento como última pestaña y muestra su panel", async () => {
+    mockUsePermissions.mockReturnValue(permissionsWith([COACH_FEATURE_ROUTES.GameModel]));
     renderPage();
+
+    const tabs = screen.getAllByRole("tab");
+    expect(tabs[tabs.length - 1]).toHaveTextContent("Seguimiento");
+    expect(tabs[tabs.length - 2]).toHaveTextContent("Lesiones");
 
     const { default: userEvent } = await import("@testing-library/user-event");
-    await userEvent.click(screen.getByRole("tab", { name: /estadísticas/i }));
+    await userEvent.click(screen.getByRole("tab", { name: "Seguimiento" }));
 
-    expect(await screen.findByText("amarillas")).toBeInTheDocument();
-    expect(screen.getByText("rojas")).toBeInTheDocument();
+    expect(await screen.findByText("seguimiento:team-1:tp-1")).toBeInTheDocument();
   });
 
-  it("muestra la evolución física del jugador en su equipo", async () => {
+  it("sin acceso al modelo de juego no muestra la pestaña Seguimiento", () => {
+    mockUsePermissions.mockReturnValue(permissionsWith([COACH_FEATURE_ROUTES.Squad]));
     renderPage();
 
-    expect(await screen.findByText("evolucion:team-1:tp-1")).toBeInTheDocument();
-  });
-
-  it("renderiza la tabla de historial de partidos con columna Rival", async () => {
-    renderPage();
-
-    const { default: userEvent } = await import("@testing-library/user-event");
-    await userEvent.click(screen.getByRole("tab", { name: /estadísticas/i }));
-
-    expect(await screen.findByText("CD Rival")).toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "Seguimiento" })).not.toBeInTheDocument();
   });
 });

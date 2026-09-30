@@ -44,6 +44,8 @@ import PlayerMatchHistoryCards from "./components/PlayerMatchHistoryCards";
 import PlayerConvocationSummaryCard from "./components/PlayerConvocationSummaryCard";
 import PlayerFormBars from "../../components/PlayerFormBars/PlayerFormBars";
 import PlayerPhysicalEvolution from "./components/PlayerPhysicalEvolution";
+import PlayerTrackingPanel from "./components/tracking/PlayerTrackingPanel";
+import { COACH_FEATURE_ROUTES } from "../../constants/featureRoutes";
 import MetricInfoDialog from "../../components/MetricInfoDialog/MetricInfoDialog";
 import type { MetricKey } from "../../components/MetricInfoDialog/metricInfoTexts";
 
@@ -59,6 +61,9 @@ const DOMINANT_FOOT_ID_TO_NAME: Record<number, string> = {
   3: "Ambidiestro",
 };
 
+// «Seguimiento» va detrás de «Lesiones» para no desplazar los índices de las pestañas existentes.
+const TRACKING_TAB_INDEX = 7;
+
 const FAMILY_MEMBER_MAP: Record<string, number> = {
   Mother: 1,
   Father: 2,
@@ -70,7 +75,8 @@ export default function PlayerDetail() {
   const location = useLocation();
   const { team, teamTitleNode } = useTeamAndClub();
   const locationState = location.state as { editing?: boolean; from?: string; fromState?: unknown } | null;
-  const { roles, loading: loadingPermissions } = usePermissions();
+  const { roles, loading: loadingPermissions, hasFeatureAccess } = usePermissions();
+  const canTrack = hasFeatureAccess(COACH_FEATURE_ROUTES.GameModel);
   const canEditFull = roles.includes("Coach") || roles.includes("Administrator");
   const canEditRestricted = roles.includes("Player") || roles.includes("FamilyMember");
   const canEdit = canEditFull || canEditRestricted;
@@ -237,6 +243,7 @@ export default function PlayerDetail() {
                       </Badge>
                     }
                   />
+                  {canTrack && <Tab label="Seguimiento" />}
                 </Tabs>
               </div>
 
@@ -468,6 +475,10 @@ export default function PlayerDetail() {
                       }
                     />
                   </>
+                )}
+
+                {activeTab === TRACKING_TAB_INDEX && canTrack && team?.id && (
+                  <PlayerTrackingPanel teamId={team.id} teamPlayerId={teamPlayer.id} />
                 )}
 
                 {activeTab === 0 && (
