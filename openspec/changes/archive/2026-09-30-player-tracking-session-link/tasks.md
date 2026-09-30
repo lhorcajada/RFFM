@@ -19,4 +19,4 @@
 ## 3. Cierre
 
 - [x] `openspec validate player-tracking-session-link --strict`.
-- [ ] Commits `feat(mcp-api)` y `feat(front)` tras confirmación del usuario.
+- [x] Commits `feat(mcp-api)` y `feat(front)` tras confirmación del usuario.

@@ -39,7 +39,7 @@
 ## 4. Cierre
 
 - [x] `npm run build` + `npm run test` (suite completa).
-- [ ] Comprobación visual a ~360 px y en escritorio.
+- [x] Comprobación visual a ~360 px y en escritorio.
 - [x] Subir la versión minor de la web (`npm version 1.1.0 --no-git-tag-version`).
 - [x] `openspec validate player-tracking-observations-web --strict`.
-- [ ] Commit `feat(front)` tras confirmación del usuario.
+- [x] Commit `feat(front)` tras confirmación del usuario.
