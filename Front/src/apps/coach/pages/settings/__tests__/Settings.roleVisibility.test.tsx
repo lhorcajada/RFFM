@@ -30,6 +30,7 @@ vi.mock("../../../services/seasonService", () => ({
 
 vi.mock("../../../services/pushSubscriptionService", () => ({
   isPushNotificationsSupported: () => false,
+  requiresHomeScreenInstallForPush: () => false,
   getCurrentPushSubscriptionStatus: vi.fn(),
   subscribeToPushNotifications: vi.fn(),
   unsubscribeFromPushNotifications: vi.fn(),

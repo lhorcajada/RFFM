@@ -5,6 +5,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("../../../../../services/pushSubscriptionService", () => ({
   isPushNotificationsSupported: vi.fn(),
+  requiresHomeScreenInstallForPush: vi.fn(),
   getCurrentPushSubscriptionStatus: vi.fn(),
   requestPushPermission: vi.fn(),
   subscribeToPushNotifications: vi.fn(),
@@ -13,6 +14,7 @@ vi.mock("../../../../../services/pushSubscriptionService", () => ({
 
 import {
   isPushNotificationsSupported,
+  requiresHomeScreenInstallForPush,
   getCurrentPushSubscriptionStatus,
   requestPushPermission,
   subscribeToPushNotifications,
@@ -85,6 +87,18 @@ describe("NotificationSettings", () => {
     expect(
       await screen.findByText(/tu navegador no soporta notificaciones push/i)
     ).toBeInTheDocument();
+  });
+
+  it("explica cómo añadir la app a la pantalla de inicio en un iPhone que usa el navegador", async () => {
+    (isPushNotificationsSupported as any).mockReturnValue(false);
+    (requiresHomeScreenInstallForPush as any).mockReturnValue(true);
+
+    render(<NotificationSettings />);
+
+    expect(await screen.findByText(/añadir a pantalla de inicio/i)).toBeInTheDocument();
+    expect(
+      screen.queryByText(/tu navegador no soporta notificaciones push/i)
+    ).not.toBeInTheDocument();
   });
 
   it("shows the toggle as off when not currently subscribed", async () => {

@@ -44,6 +44,14 @@ export function isPushNotificationsSupported(): boolean {
   );
 }
 
+// iOS only exposes Web Push to web apps launched from the Home Screen, never to a browser tab.
+export function requiresHomeScreenInstallForPush(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const isAppleMobile = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const isStandalone = (navigator as Navigator & { standalone?: boolean }).standalone === true;
+  return isAppleMobile && !isStandalone;
+}
+
 export async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
   if (!isPushNotificationsSupported()) return null;
   try {

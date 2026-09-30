@@ -9,6 +9,7 @@ import {
 } from "@mui/material";
 import {
   isPushNotificationsSupported,
+  requiresHomeScreenInstallForPush,
   getCurrentPushSubscriptionStatus,
   requestPushPermission,
   subscribeToPushNotifications,
@@ -103,6 +104,16 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({
       setProcessing(false);
     }
   };
+
+  if (!supported && requiresHomeScreenInstallForPush()) {
+    return (
+      <Typography variant="body2" color="text.secondary">
+        En iPhone las notificaciones push solo funcionan desde la app instalada. Abre esta web
+        en Safari, pulsa Compartir → «Añadir a pantalla de inicio», abre la app desde ese icono
+        y activa aquí las notificaciones.
+      </Typography>
+    );
+  }
 
   if (!supported) {
     return (
