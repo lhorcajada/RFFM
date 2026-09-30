@@ -272,6 +272,7 @@ dotnet test --no-build -v minimal        # Fast re-run (no rebuild)
 - [ ] `dotnet build` passes
 
 ### Both (TDD + Code Quality)
+- [ ] **Version bumped** on every `feat` (minor) / `fix` (patch) — `Front/package.json`, `Back/ExtractionApi/Directory.Build.props` `<Version>`, `Mobile/app.json` + `Mobile/package.json` (only the affected component; see `.claude/rules/git.md` §2.4)
 - [ ] **No skipped tests** — Remove `Skip` attributes
 - [ ] Tests are **focused** — one concern per test
 - [ ] Integration tests use **real dependencies** (not all mocks)

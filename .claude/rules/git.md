@@ -65,7 +65,21 @@ tronco (`main`, `dev`).
 - Migrations en commit separado del código de aplicación.
 - **Todo commit requiere validación de specs + confirmación explícita del usuario** (ver §6.3).
 
-### 2.4 No hacer amend ni rebase interactivo
+### 2.4 Versionado obligatorio (SemVer)
+- **Todo `feat` o `fix` debe subir la versión** del/los componente(s) afectado(s),
+  dentro del mismo commit del cambio:
+  - `feat` → sube **minor** (`1.2.3` → `1.3.0`).
+  - `fix` → sube **patch** (`1.2.3` → `1.2.4`).
+  - Cambios incompatibles (breaking) → sube **major**, solo con acuerdo del usuario.
+- Dónde vive la versión de cada componente (se versionan de forma independiente):
+  - **Web** (`Front/`): `Front/package.json` → `npm version x.y.z --no-git-tag-version`.
+  - **API** (`Back/ExtractionApi/`): `<Version>` en `Back/ExtractionApi/Directory.Build.props`.
+  - **Mobile** (`Mobile/`): `version` en `Mobile/app.json` y `Mobile/package.json` (ambos iguales).
+- Solo se sube la versión del componente que cambia: un `feat(mcp-api)` sube la API,
+  no la web. Un cambio cross-stack sube cada componente en su propio commit.
+- `refactor`, `chore`, `docs`, `test`, `style`, `ci`, `perf` no requieren subir versión.
+
+### 2.5 No hacer amend ni rebase interactivo
 - No usar `git commit --amend` salvo que el commit no haya sido pusheado.
 - No usar `git rebase -i` para squashing una vez pusheado.
 
