@@ -1,23 +1,11 @@
 import { useState } from "react";
-import { Alert, Autocomplete, Button, TextField, ToggleButton, ToggleButtonGroup } from "@mui/material";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
-import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
-import HighlightOffIcon from "@mui/icons-material/HighlightOff";
-import {
-  ASSESSMENT_LABELS,
-  type CreatePlayerObservationRequest,
-  type ObservationAssessment,
-} from "../../../../services/playerTrackingService";
+import { Alert, Autocomplete, Button, TextField } from "@mui/material";
+import type { CreatePlayerObservationRequest, ObservationAssessment } from "../../../../services/playerTrackingService";
 import type { SubprincipioOption } from "../../hooks/useSubprincipioOptions";
+import AssessmentButtons from "./AssessmentButtons";
 import styles from "./ObservationForm.module.css";
 
 const COMMENT_MAX_LENGTH = 500;
-
-const ASSESSMENT_BUTTONS: { value: ObservationAssessment; icon: JSX.Element; color: "success" | "warning" | "error" }[] = [
-  { value: "Achieved", icon: <CheckCircleOutlineIcon fontSize="small" />, color: "success" },
-  { value: "Partial", icon: <RemoveCircleOutlineIcon fontSize="small" />, color: "warning" },
-  { value: "NotAchieved", icon: <HighlightOffIcon fontSize="small" />, color: "error" },
-];
 
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
@@ -89,26 +77,7 @@ export default function ObservationForm({ options, hasModel, saving, onSubmit }:
         />
       </div>
 
-      <ToggleButtonGroup
-        exclusive
-        value={assessment}
-        onChange={(_, value: ObservationAssessment | null) => setAssessment(value)}
-        className={styles.assessment}
-        aria-label="Valoración"
-      >
-        {ASSESSMENT_BUTTONS.map((button) => (
-          <ToggleButton
-            key={button.value}
-            value={button.value}
-            color={button.color}
-            aria-label={ASSESSMENT_LABELS[button.value]}
-            className={styles.assessmentButton}
-          >
-            {button.icon}
-            <span>{ASSESSMENT_LABELS[button.value]}</span>
-          </ToggleButton>
-        ))}
-      </ToggleButtonGroup>
+      <AssessmentButtons value={assessment} onChange={setAssessment} />
 
       <TextField
         label="Comentario (opcional)"

@@ -28,18 +28,6 @@
   min-width: 0;
 }
 
-.assessment {
-  display: flex;
-  width: 100%;
-}
-
-.assessmentButton {
-  flex: 1 1 0;
-  gap: 6px;
-  text-transform: none;
-  font-weight: 600;
-}
-
 .actions {
   display: flex;
   justify-content: flex-end;
@@ -48,11 +36,5 @@
 @media (max-width: 480px) {
   .date {
     flex-basis: 100%;
-  }
-
-  .assessmentButton {
-    flex-direction: column;
-    gap: 2px;
-    font-size: 0.75rem;
   }
 }

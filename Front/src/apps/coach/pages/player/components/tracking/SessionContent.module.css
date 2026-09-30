@@ -1,0 +1,65 @@
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--rffm-card-text, #e8e8e8);
+}
+
+.objective {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--rffm-card-text, #e8e8e8);
+  overflow-wrap: anywhere;
+}
+
+.empty {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--rffm-muted, #a59f9f);
+}
+
+.block + .block {
+  margin-top: 4px;
+}
+
+.blockName {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--rffm-muted, #a59f9f);
+}
+
+.exercises {
+  margin: 2px 0 0;
+  padding-left: 16px;
+  font-size: 0.85rem;
+  color: var(--rffm-card-text, #e8e8e8);
+}
+
+.exerciseName {
+  font-weight: 600;
+}
+
+.exerciseInfo {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--rffm-muted, #a59f9f);
+  overflow-wrap: anywhere;
+}
+
+.state {
+  display: flex;
+  justify-content: center;
+  padding: 12px 0;
+}
