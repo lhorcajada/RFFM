@@ -86,6 +86,26 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
+        public void ForGameModel_WithTrainingSession_StoresIt()
+        {
+            var observation = PlayerModelObservation.ForGameModel(
+                "tp-1", "team-1", Date, Snapshot, ObservationAssessment.Partial, null, "coach-1", trainingSessionId: "ses-1");
+
+            Assert.Equal("ses-1", observation.TrainingSessionId);
+        }
+
+        [Theory]
+        [InlineData("")]
+        [InlineData("  ")]
+        public void ForGameModel_BlankTrainingSession_IsStoredAsNull(string trainingSessionId)
+        {
+            var observation = PlayerModelObservation.ForGameModel(
+                "tp-1", "team-1", Date, Snapshot, ObservationAssessment.Partial, null, "coach-1", trainingSessionId);
+
+            Assert.Null(observation.TrainingSessionId);
+        }
+
+        [Fact]
         public void ForGameModel_TrimsComment()
         {
             Assert.Equal("No asegura tras robo", Create(comment: "  No asegura tras robo  ").Comment);

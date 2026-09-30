@@ -60,11 +60,13 @@ namespace RFFM.Api.Features.Coaches.PlayerTracking
             string? SubprincipioLabel,
             string Assessment,
             string? Comment,
-            DateTime CreatedAt);
+            DateTime CreatedAt,
+            string? TrainingSessionId,
+            string? TrainingSessionName);
 
-        internal static PlayerObservationDto ToDto(PlayerModelObservation o) =>
+        internal static PlayerObservationDto ToDto(PlayerModelObservation o, string? trainingSessionName) =>
             new(o.Id, o.Date, o.Kind.Name, o.SubprincipioId, o.MomentName, o.PrincipleLabel, o.SubprincipioLabel,
-                o.Assessment.Name, o.Comment, o.CreatedAt);
+                o.Assessment.Name, o.Comment, o.CreatedAt, o.TrainingSessionId, trainingSessionName);
 
         public class Handler(AppDbContext db) : IRequestHandler<Query, PlayerObservationDto[]>
         {
@@ -72,14 +74,16 @@ namespace RFFM.Api.Features.Coaches.PlayerTracking
             {
                 await PlayerTrackingGuards.EnsurePlayerInTeamAsync(db, request.TeamId, request.TeamPlayerId, cancellationToken);
 
-                var observations = await db.PlayerModelObservations
-                    .AsNoTracking()
-                    .Where(o => o.TeamPlayerId == request.TeamPlayerId)
-                    .OrderByDescending(o => o.Date)
-                    .ThenByDescending(o => o.CreatedAt)
+                var observations = await (
+                        from o in db.PlayerModelObservations.AsNoTracking()
+                        where o.TeamPlayerId == request.TeamPlayerId
+                        join s in db.TrainingSessions.AsNoTracking() on o.TrainingSessionId equals s.Id into sessions
+                        from s in sessions.DefaultIfEmpty()
+                        orderby o.Date descending, o.CreatedAt descending
+                        select new { Observation = o, SessionName = s != null ? s.Name : null })
                     .ToListAsync(cancellationToken);
 
-                return observations.Select(ToDto).ToArray();
+                return observations.Select(x => ToDto(x.Observation, x.SessionName)).ToArray();
             }
         }
     }

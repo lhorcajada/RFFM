@@ -48,6 +48,7 @@ namespace RFFM.Api.Features.Coaches.PlayerTracking
             public string SubprincipioId { get; init; } = null!;
             public string Assessment { get; init; } = null!;
             public string? Comment { get; init; }
+            public string? TrainingSessionId { get; init; }
             public string FeatureRoute => CoachFeatureRoutes.GameModel;
             public string RequiredPermission => "ReadWrite";
         }
@@ -90,6 +91,8 @@ namespace RFFM.Api.Features.Coaches.PlayerTracking
                     .SingleOrDefaultAsync(cancellationToken)
                     ?? throw new NotFoundException($"Subprincipio '{request.SubprincipioId}' Not Found", ErrorCodes.SubprincipioNotFound);
 
+                var trainingSessionName = await TrainingSessionNameAsync(request, cancellationToken);
+
                 var observation = PlayerModelObservation.ForGameModel(
                     request.TeamPlayerId,
                     request.TeamId,
@@ -101,12 +104,28 @@ namespace RFFM.Api.Features.Coaches.PlayerTracking
                         $"{subprincipio.Numero} {subprincipio.Titulo}"),
                     ObservationAssessment.FromName(request.Assessment),
                     request.Comment,
-                    currentUser.UserId ?? throw new UnauthorizedAccessException());
+                    currentUser.UserId ?? throw new UnauthorizedAccessException(),
+                    request.TrainingSessionId);
 
                 db.PlayerModelObservations.Add(observation);
                 await db.SaveChangesAsync(cancellationToken);
 
-                return ToDto(observation);
+                return ToDto(observation, trainingSessionName);
+            }
+
+            private async Task<string?> TrainingSessionNameAsync(Command request, CancellationToken cancellationToken)
+            {
+                if (string.IsNullOrWhiteSpace(request.TrainingSessionId))
+                    return null;
+
+                var session = await db.TrainingSessions
+                    .AsNoTracking()
+                    .Where(s => s.Id == request.TrainingSessionId && s.TeamId == request.TeamId)
+                    .Select(s => new { s.Name })
+                    .SingleOrDefaultAsync(cancellationToken);
+
+                return session?.Name
+                    ?? throw new NotFoundException($"TrainingSession '{request.TrainingSessionId}' Not Found", ErrorCodes.SessionNotFound);
             }
         }
     }

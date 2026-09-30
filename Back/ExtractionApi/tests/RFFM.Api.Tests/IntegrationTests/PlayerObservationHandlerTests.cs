@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using RFFM.Api.Domain;
+using RFFM.Api.Domain.Aggregates.Training;
 using RFFM.Api.Domain.Services;
 using RFFM.Api.Features.Coaches.PlayerTracking;
 using RFFM.Api.Infrastructure.Persistence;
@@ -33,7 +34,8 @@ namespace RFFM.Api.Tests.IntegrationTests
 
         private static Task<GetPlayerObservations.PlayerObservationDto> CreateAsync(
             AppDbContext db, string teamId, string teamPlayerId, string subprincipioId,
-            DateOnly? date = null, string assessment = "NotAchieved", string? comment = "Busca el pase vertical") =>
+            DateOnly? date = null, string assessment = "NotAchieved", string? comment = "Busca el pase vertical",
+            string? trainingSessionId = null) =>
             new CreatePlayerObservation.Handler(db, CurrentUser())
                 .Handle(new CreatePlayerObservation.Command
                 {
@@ -42,7 +44,8 @@ namespace RFFM.Api.Tests.IntegrationTests
                     Date = date ?? new DateOnly(2026, 9, 14),
                     SubprincipioId = subprincipioId,
                     Assessment = assessment,
-                    Comment = comment
+                    Comment = comment,
+                    TrainingSessionId = trainingSessionId
                 }, CancellationToken.None)
                 .AsTask();
 
@@ -50,6 +53,59 @@ namespace RFFM.Api.Tests.IntegrationTests
             new GetPlayerObservations.Handler(db)
                 .Handle(new GetPlayerObservations.Query { TeamId = teamId, TeamPlayerId = teamPlayerId }, CancellationToken.None)
                 .AsTask();
+
+        private static async Task<string> SeedSessionAsync(AppDbContext db, string teamId, string name = "Sesión 1")
+        {
+            var session = new TrainingSession { TeamId = teamId, Name = name, Date = new DateTime(2026, 9, 14, 0, 0, 0, DateTimeKind.Utc) };
+            db.TrainingSessions.Add(session);
+            await db.SaveChangesAsync();
+            return session.Id;
+        }
+
+        [Fact]
+        public async Task Create_WithSessionOfTheTeam_LinksItAndReturnsItsName()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, teamPlayerId, subprincipioId) = await PlayerModelObservationPersistenceTests.SeedAsync(db);
+            var sessionId = await SeedSessionAsync(db, teamId);
+
+            var result = await CreateAsync(db, teamId, teamPlayerId, subprincipioId, trainingSessionId: sessionId);
+
+            Assert.Equal(sessionId, result.TrainingSessionId);
+            Assert.Equal("Sesión 1", result.TrainingSessionName);
+            await using var readDb = _fixture.CreateDbContext();
+            var stored = await readDb.PlayerModelObservations.AsNoTracking().SingleAsync(o => o.Id == result.Id);
+            Assert.Equal(sessionId, stored.TrainingSessionId);
+        }
+
+        [Fact]
+        public async Task Create_WithSessionOfAnotherTeam_ThrowsNotFound()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, teamPlayerId, subprincipioId) = await PlayerModelObservationPersistenceTests.SeedAsync(db);
+            var (otherTeamId, _, _) = await PlayerModelObservationPersistenceTests.SeedAsync(db);
+            var otherSessionId = await SeedSessionAsync(db, otherTeamId);
+
+            var ex = await Assert.ThrowsAsync<NotFoundException>(
+                () => CreateAsync(db, teamId, teamPlayerId, subprincipioId, trainingSessionId: otherSessionId));
+            Assert.Equal(ErrorCodes.SessionNotFound, ex.Code);
+            Assert.False(await db.PlayerModelObservations.AnyAsync(o => o.TeamPlayerId == teamPlayerId));
+        }
+
+        [Fact]
+        public async Task List_ReturnsTheSessionNameOrNullWhenThereIsNone()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, teamPlayerId, subprincipioId) = await PlayerModelObservationPersistenceTests.SeedAsync(db);
+            var sessionId = await SeedSessionAsync(db, teamId, "Sesión 2");
+            await CreateAsync(db, teamId, teamPlayerId, subprincipioId, new DateOnly(2026, 9, 14), trainingSessionId: sessionId);
+            await CreateAsync(db, teamId, teamPlayerId, subprincipioId, new DateOnly(2026, 9, 1));
+
+            var result = await ListAsync(db, teamId, teamPlayerId);
+
+            Assert.Equal(new string?[] { "Sesión 2", null }, result.Select(o => o.TrainingSessionName).ToArray());
+            Assert.Equal(new string?[] { sessionId, null }, result.Select(o => o.TrainingSessionId).ToArray());
+        }
 
         [Fact]
         public async Task Create_StoresTheObservationWithTheSubprincipioLabels()

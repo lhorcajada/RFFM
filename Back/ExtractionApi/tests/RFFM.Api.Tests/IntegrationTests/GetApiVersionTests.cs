@@ -24,7 +24,9 @@ namespace RFFM.Api.Tests.IntegrationTests
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             var body = await response.Content.ReadFromJsonAsync<GetApiVersion.ApiVersionDto>();
-            Assert.Equal("1.0.0", body?.Version);
+            // Comparar con la versión del ensamblado (Directory.Build.props), no con un literal que se rompe en cada subida.
+            var assemblyVersion = typeof(GetApiVersion).Assembly.GetName().Version!.ToString(3);
+            Assert.Equal(assemblyVersion, body?.Version);
         }
 
         [Theory]

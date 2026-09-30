@@ -41,7 +41,8 @@ namespace RFFM.Api.Domain.Entities.TeamPlayers
             SubprincipioSnapshot subprincipio,
             ObservationAssessment assessment,
             string? comment,
-            string createdByUserId)
+            string createdByUserId,
+            string? trainingSessionId = null)
         {
             Require(teamPlayerId, nameof(teamPlayerId));
             Require(teamId, nameof(teamId));
@@ -65,6 +66,7 @@ namespace RFFM.Api.Domain.Entities.TeamPlayers
                 SubprincipioLabel = subprincipio.SubprincipioLabel.Trim(),
                 Assessment = assessment,
                 Comment = NormalizeComment(comment),
+                TrainingSessionId = string.IsNullOrWhiteSpace(trainingSessionId) ? null : trainingSessionId,
                 CreatedByUserId = createdByUserId,
                 CreatedAt = DateTime.UtcNow
             };
