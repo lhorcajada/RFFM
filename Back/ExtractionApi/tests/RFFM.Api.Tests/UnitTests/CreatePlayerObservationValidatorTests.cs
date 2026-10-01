@@ -140,6 +140,21 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
+        public void ListQuery_FromAfterTo_IsInvalid()
+        {
+            var query = new GetPlayerObservations.Query
+            {
+                TeamId = "team-1",
+                TeamPlayerId = "tp-1",
+                From = new DateOnly(2026, 9, 28),
+                To = new DateOnly(2026, 9, 1)
+            };
+
+            Assert.False(new GetPlayerObservations.Validator().Validate(query).IsValid);
+            Assert.True(new GetPlayerObservations.Validator().Validate(query with { To = query.From }).IsValid);
+        }
+
+        [Fact]
         public void ListQuery_RequiresGameModelReadAndTeamMembership()
         {
             var query = new GetPlayerObservations.Query { TeamId = "team-1", TeamPlayerId = "tp-1" };

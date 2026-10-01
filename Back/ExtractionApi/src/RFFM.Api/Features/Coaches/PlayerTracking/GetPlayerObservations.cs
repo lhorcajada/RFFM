@@ -14,8 +14,9 @@ using RFFM.Api.Infrastructure.Persistence;
 namespace RFFM.Api.Features.Coaches.PlayerTracking
 {
     /// <summary>
-    /// Observaciones del modelo de juego de un jugador, la más reciente primero. Solo cuerpo técnico.
-    /// GET /api/teams/{teamId}/players/{teamPlayerId}/observations
+    /// Observaciones de un jugador, la más reciente primero, opcionalmente entre dos fechas (inclusivas).
+    /// Solo cuerpo técnico.
+    /// GET /api/teams/{teamId}/players/{teamPlayerId}/observations?from={yyyy-MM-dd}&amp;to={yyyy-MM-dd}
     /// See openspec/changes/player-tracking-observations-api/design.md → D3.
     /// </summary>
     public class GetPlayerObservations : IFeatureModule
@@ -23,8 +24,9 @@ namespace RFFM.Api.Features.Coaches.PlayerTracking
         public void AddRoutes(IEndpointRouteBuilder app)
         {
             app.MapGet("/api/teams/{teamId}/players/{teamPlayerId}/observations",
-                    async (string teamId, string teamPlayerId, IMediator mediator, CancellationToken ct) =>
-                        Results.Ok(await mediator.Send(new Query { TeamId = teamId, TeamPlayerId = teamPlayerId }, ct)))
+                    async (string teamId, string teamPlayerId, DateOnly? from, DateOnly? to, IMediator mediator, CancellationToken ct) =>
+                        Results.Ok(await mediator.Send(
+                            new Query { TeamId = teamId, TeamPlayerId = teamPlayerId, From = from, To = to }, ct)))
                 .WithName(nameof(GetPlayerObservations))
                 .WithTags(PlayerTrackingConstants.Tag)
                 .RequireAuthorization()
@@ -37,6 +39,8 @@ namespace RFFM.Api.Features.Coaches.PlayerTracking
         {
             public string TeamId { get; init; } = null!;
             public string TeamPlayerId { get; init; } = null!;
+            public DateOnly? From { get; init; }
+            public DateOnly? To { get; init; }
             public string FeatureRoute => CoachFeatureRoutes.GameModel;
             public string RequiredPermission => "Read";
         }
@@ -47,6 +51,10 @@ namespace RFFM.Api.Features.Coaches.PlayerTracking
             {
                 RuleFor(q => q.TeamId).NotEmpty();
                 RuleFor(q => q.TeamPlayerId).NotEmpty();
+                RuleFor(q => q)
+                    .Must(q => !q.From.HasValue || !q.To.HasValue || q.From <= q.To)
+                    .WithName("from")
+                    .WithMessage("La fecha inicial no puede ser posterior a la final.");
             }
         }
 
@@ -81,6 +89,8 @@ namespace RFFM.Api.Features.Coaches.PlayerTracking
                 var observations = await (
                         from o in db.PlayerModelObservations.AsNoTracking()
                         where o.TeamPlayerId == request.TeamPlayerId
+                            && (!request.From.HasValue || o.Date >= request.From.Value)
+                            && (!request.To.HasValue || o.Date <= request.To.Value)
                         join s in db.TrainingSessions.AsNoTracking() on o.TrainingSessionId equals s.Id into sessions
                         from s in sessions.DefaultIfEmpty()
                         orderby o.Date descending, o.CreatedAt descending

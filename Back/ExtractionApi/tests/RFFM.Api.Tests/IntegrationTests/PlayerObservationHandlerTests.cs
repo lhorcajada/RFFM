@@ -49,9 +49,10 @@ namespace RFFM.Api.Tests.IntegrationTests
                 }, CancellationToken.None)
                 .AsTask();
 
-        private static Task<GetPlayerObservations.PlayerObservationDto[]> ListAsync(AppDbContext db, string teamId, string teamPlayerId) =>
+        private static Task<GetPlayerObservations.PlayerObservationDto[]> ListAsync(
+            AppDbContext db, string teamId, string teamPlayerId, DateOnly? from = null, DateOnly? to = null) =>
             new GetPlayerObservations.Handler(db)
-                .Handle(new GetPlayerObservations.Query { TeamId = teamId, TeamPlayerId = teamPlayerId }, CancellationToken.None)
+                .Handle(new GetPlayerObservations.Query { TeamId = teamId, TeamPlayerId = teamPlayerId, From = from, To = to }, CancellationToken.None)
                 .AsTask();
 
         private static async Task<string> SeedSessionAsync(AppDbContext db, string teamId, string name = "Sesión 1")
@@ -266,6 +267,24 @@ namespace RFFM.Api.Tests.IntegrationTests
                     Habilidades = new[] { "Desmarque" }
                 }, CancellationToken.None);
             Assert.Equal(new[] { "Desmarque" }, updated.Habilidades);
+        }
+
+        [Fact]
+        public async Task List_FiltersByInclusiveDateRange()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, teamPlayerId, subprincipioId) = await PlayerModelObservationPersistenceTests.SeedAsync(db);
+            await CreateAsync(db, teamId, teamPlayerId, subprincipioId, new DateOnly(2026, 9, 1));
+            await CreateAsync(db, teamId, teamPlayerId, subprincipioId, new DateOnly(2026, 9, 14));
+            await CreateAsync(db, teamId, teamPlayerId, subprincipioId, new DateOnly(2026, 9, 28));
+
+            var ranged = await ListAsync(db, teamId, teamPlayerId, new DateOnly(2026, 9, 14), new DateOnly(2026, 9, 28));
+            var fromOnly = await ListAsync(db, teamId, teamPlayerId, from: new DateOnly(2026, 9, 15));
+            var all = await ListAsync(db, teamId, teamPlayerId);
+
+            Assert.Equal(new[] { new DateOnly(2026, 9, 28), new DateOnly(2026, 9, 14) }, ranged.Select(o => o.Date).ToArray());
+            Assert.Equal(new[] { new DateOnly(2026, 9, 28) }, fromOnly.Select(o => o.Date).ToArray());
+            Assert.Equal(3, all.Length);
         }
 
         [Fact]
