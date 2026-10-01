@@ -45,7 +45,9 @@ namespace RFFM.Api.Features.Coaches.PlayerTracking
             public string TeamId { get; init; } = null!;
             public string TeamPlayerId { get; init; } = null!;
             public DateOnly Date { get; init; }
-            public string SubprincipioId { get; init; } = null!;
+            public string Kind { get; init; } = ObservationKind.GameModel.Name;
+            public string? SubprincipioId { get; init; }
+            public string? AttitudeKey { get; init; }
             public string Assessment { get; init; } = null!;
             public string? Comment { get; init; }
             public string? TrainingSessionId { get; init; }
@@ -59,7 +61,21 @@ namespace RFFM.Api.Features.Coaches.PlayerTracking
             {
                 RuleFor(c => c.TeamId).NotEmpty();
                 RuleFor(c => c.TeamPlayerId).NotEmpty();
-                RuleFor(c => c.SubprincipioId).NotEmpty();
+                RuleFor(c => c.Kind)
+                    .Must(k => ObservationKind.TryFromName(k, out _))
+                    .WithMessage($"El tipo debe ser uno de: {string.Join(", ", ObservationKind.List.Select(k => k.Name))}.");
+                When(c => c.Kind == ObservationKind.GameModel.Name, () =>
+                {
+                    RuleFor(c => c.SubprincipioId).NotEmpty();
+                    RuleFor(c => c.AttitudeKey).Empty().WithMessage("Una observación del modelo de juego no lleva rasgo de actitud.");
+                });
+                When(c => c.Kind == ObservationKind.Attitude.Name, () =>
+                {
+                    RuleFor(c => c.AttitudeKey)
+                        .Must(AttitudeTraits.IsKnown)
+                        .WithMessage($"El rasgo de actitud debe ser uno de: {string.Join(", ", AttitudeTraits.All.Select(t => t.Key))}.");
+                    RuleFor(c => c.SubprincipioId).Empty().WithMessage("Una observación de actitud no lleva subprincipio.");
+                });
                 RuleFor(c => c.Date)
                     .Must(date => date <= DateOnly.FromDateTime(DateTime.UtcNow))
                     .WithMessage("La fecha de la observación no puede ser futura.");
@@ -76,6 +92,27 @@ namespace RFFM.Api.Features.Coaches.PlayerTracking
             {
                 await PlayerTrackingGuards.EnsurePlayerInTeamAsync(db, request.TeamId, request.TeamPlayerId, cancellationToken);
 
+                var trainingSessionName = await TrainingSessionNameAsync(request, cancellationToken);
+                var createdBy = currentUser.UserId ?? throw new UnauthorizedAccessException();
+                var assessment = ObservationAssessment.FromName(request.Assessment);
+
+                var observation = request.Kind == ObservationKind.Attitude.Name
+                    ? PlayerModelObservation.ForAttitude(
+                        request.TeamPlayerId, request.TeamId, request.Date, request.AttitudeKey!, assessment,
+                        request.Comment, createdBy, request.TrainingSessionId)
+                    : PlayerModelObservation.ForGameModel(
+                        request.TeamPlayerId, request.TeamId, request.Date,
+                        await SubprincipioSnapshotAsync(request, cancellationToken), assessment,
+                        request.Comment, createdBy, request.TrainingSessionId);
+
+                db.PlayerModelObservations.Add(observation);
+                await db.SaveChangesAsync(cancellationToken);
+
+                return ToDto(observation, trainingSessionName);
+            }
+
+            private async Task<SubprincipioSnapshot> SubprincipioSnapshotAsync(Command request, CancellationToken cancellationToken)
+            {
                 var subprincipio = await db.Subprincipios
                     .AsNoTracking()
                     .Where(sp => sp.Id == request.SubprincipioId && sp.GamePrinciple.GameModel.TeamId == request.TeamId)
@@ -91,26 +128,11 @@ namespace RFFM.Api.Features.Coaches.PlayerTracking
                     .SingleOrDefaultAsync(cancellationToken)
                     ?? throw new NotFoundException($"Subprincipio '{request.SubprincipioId}' Not Found", ErrorCodes.SubprincipioNotFound);
 
-                var trainingSessionName = await TrainingSessionNameAsync(request, cancellationToken);
-
-                var observation = PlayerModelObservation.ForGameModel(
-                    request.TeamPlayerId,
-                    request.TeamId,
-                    request.Date,
-                    new SubprincipioSnapshot(
-                        subprincipio.Id,
-                        subprincipio.MomentName,
-                        $"{subprincipio.PrincipleNumero}. {subprincipio.PrincipleTitulo}",
-                        $"{subprincipio.Numero} {subprincipio.Titulo}"),
-                    ObservationAssessment.FromName(request.Assessment),
-                    request.Comment,
-                    currentUser.UserId ?? throw new UnauthorizedAccessException(),
-                    request.TrainingSessionId);
-
-                db.PlayerModelObservations.Add(observation);
-                await db.SaveChangesAsync(cancellationToken);
-
-                return ToDto(observation, trainingSessionName);
+                return new SubprincipioSnapshot(
+                    subprincipio.Id,
+                    subprincipio.MomentName,
+                    $"{subprincipio.PrincipleNumero}. {subprincipio.PrincipleTitulo}",
+                    $"{subprincipio.Numero} {subprincipio.Titulo}");
             }
 
             private async Task<string?> TrainingSessionNameAsync(Command request, CancellationToken cancellationToken)

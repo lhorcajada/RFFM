@@ -1,5 +1,6 @@
 #nullable enable
 using System;
+using System.Linq;
 using RFFM.Api.Domain.Entities.TeamPlayers;
 using Xunit;
 
@@ -145,6 +146,41 @@ namespace RFFM.Api.Tests.UnitTests
             var observation = Create();
 
             Assert.Throws<ArgumentNullException>(() => observation.Update(null!, "comentario"));
+        }
+
+        [Fact]
+        public void ForAttitude_StoresTraitKindAndSession_WithoutSubprincipio()
+        {
+            var observation = PlayerModelObservation.ForAttitude(
+                "tp-1", "team-1", Date, "defensive-commitment", ObservationAssessment.NotAchieved,
+                "Pregunta si vamos a hacer eso todo el entreno", "coach-1", "ses-1");
+
+            Assert.Equal(ObservationKind.Attitude, observation.Kind);
+            Assert.Equal("defensive-commitment", observation.AttitudeKey);
+            Assert.Equal("ses-1", observation.TrainingSessionId);
+            Assert.Null(observation.SubprincipioId);
+            Assert.Null(observation.MomentName);
+            Assert.Null(observation.PrincipleLabel);
+            Assert.Null(observation.SubprincipioLabel);
+            Assert.Equal("Pregunta si vamos a hacer eso todo el entreno", observation.Comment);
+        }
+
+        [Theory]
+        [InlineData("")]
+        [InlineData("laziness")]
+        public void ForAttitude_UnknownTrait_Throws(string attitudeKey)
+        {
+            Assert.Throws<ArgumentException>(() => PlayerModelObservation.ForAttitude(
+                "tp-1", "team-1", Date, attitudeKey, ObservationAssessment.Partial, null, "coach-1"));
+        }
+
+        [Fact]
+        public void AttitudeTraits_HasTheSixTraitsInOrder()
+        {
+            Assert.Equal(
+                new[] { "defensive-commitment", "patience", "courage-in-duels", "off-ball-effort", "listening", "focus" },
+                AttitudeTraits.All.Select(t => t.Key).ToArray());
+            Assert.Equal("Implicación en tareas defensivas", AttitudeTraits.LabelOf("defensive-commitment"));
         }
 
         [Fact]

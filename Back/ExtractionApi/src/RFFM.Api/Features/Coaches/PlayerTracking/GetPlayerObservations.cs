@@ -62,11 +62,14 @@ namespace RFFM.Api.Features.Coaches.PlayerTracking
             string? Comment,
             DateTime CreatedAt,
             string? TrainingSessionId,
-            string? TrainingSessionName);
+            string? TrainingSessionName,
+            string? AttitudeKey,
+            string? AttitudeLabel);
 
         internal static PlayerObservationDto ToDto(PlayerModelObservation o, string? trainingSessionName) =>
             new(o.Id, o.Date, o.Kind.Name, o.SubprincipioId, o.MomentName, o.PrincipleLabel, o.SubprincipioLabel,
-                o.Assessment.Name, o.Comment, o.CreatedAt, o.TrainingSessionId, trainingSessionName);
+                o.Assessment.Name, o.Comment, o.CreatedAt, o.TrainingSessionId, trainingSessionName,
+                o.AttitudeKey, o.AttitudeKey is null ? null : AttitudeTraits.LabelOf(o.AttitudeKey));
 
         public class Handler(AppDbContext db) : IRequestHandler<Query, PlayerObservationDto[]>
         {

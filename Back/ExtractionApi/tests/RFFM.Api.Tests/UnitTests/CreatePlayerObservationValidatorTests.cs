@@ -57,6 +57,42 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
+        public void Validate_AttitudeWithKnownTrait_IsValid()
+        {
+            Assert.True(IsValid(Valid() with { Kind = "Attitude", SubprincipioId = null, AttitudeKey = "patience" }));
+        }
+
+        [Fact]
+        public void Validate_AttitudeWithUnknownTrait_IsInvalid()
+        {
+            Assert.False(IsValid(Valid() with { Kind = "Attitude", SubprincipioId = null, AttitudeKey = "laziness" }));
+        }
+
+        [Fact]
+        public void Validate_AttitudeWithSubprincipio_IsInvalid()
+        {
+            Assert.False(IsValid(Valid() with { Kind = "Attitude", AttitudeKey = "patience" }));
+        }
+
+        [Fact]
+        public void Validate_GameModelWithAttitudeKey_IsInvalid()
+        {
+            Assert.False(IsValid(Valid() with { AttitudeKey = "patience" }));
+        }
+
+        [Fact]
+        public void Validate_UnknownKind_IsInvalid()
+        {
+            Assert.False(IsValid(Valid() with { Kind = "Physical" }));
+        }
+
+        [Fact]
+        public void Validate_KindDefaultsToGameModel()
+        {
+            Assert.Equal("GameModel", new CreatePlayerObservation.Command().Kind);
+        }
+
+        [Fact]
         public void Validate_WithoutComment_IsValid()
         {
             Assert.True(IsValid(Valid() with { Comment = null }));

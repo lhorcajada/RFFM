@@ -186,6 +186,54 @@ namespace RFFM.Api.Tests.IntegrationTests
             Assert.Equal(ErrorCodes.PlayerObservationNotFound, ex.Code);
         }
 
+        private static Task<GetPlayerObservations.PlayerObservationDto> CreateAttitudeAsync(
+            AppDbContext db, string teamId, string teamPlayerId, string attitudeKey, string? trainingSessionId = null) =>
+            new CreatePlayerObservation.Handler(db, CurrentUser())
+                .Handle(new CreatePlayerObservation.Command
+                {
+                    TeamId = teamId,
+                    TeamPlayerId = teamPlayerId,
+                    Date = new DateOnly(2026, 9, 14),
+                    Kind = "Attitude",
+                    AttitudeKey = attitudeKey,
+                    Assessment = "NotAchieved",
+                    Comment = "Pregunta si vamos a hacer eso todo el entreno",
+                    TrainingSessionId = trainingSessionId
+                }, CancellationToken.None)
+                .AsTask();
+
+        [Fact]
+        public async Task Create_AttitudeWithSession_ReturnsTheTraitLabel()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, teamPlayerId, _) = await PlayerModelObservationPersistenceTests.SeedAsync(db);
+            var sessionId = await SeedSessionAsync(db, teamId);
+
+            var result = await CreateAttitudeAsync(db, teamId, teamPlayerId, "defensive-commitment", sessionId);
+
+            Assert.Equal("Attitude", result.Kind);
+            Assert.Equal("defensive-commitment", result.AttitudeKey);
+            Assert.Equal("Implicación en tareas defensivas", result.AttitudeLabel);
+            Assert.Equal("Sesión 1", result.TrainingSessionName);
+            Assert.Null(result.SubprincipioId);
+        }
+
+        [Fact]
+        public async Task List_MixesGameModelAndAttitudeObservations()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, teamPlayerId, subprincipioId) = await PlayerModelObservationPersistenceTests.SeedAsync(db);
+            await CreateAsync(db, teamId, teamPlayerId, subprincipioId, new DateOnly(2026, 9, 1));
+            await CreateAttitudeAsync(db, teamId, teamPlayerId, "courage-in-duels");
+
+            var result = await ListAsync(db, teamId, teamPlayerId);
+
+            Assert.Equal(new[] { "Attitude", "GameModel" }, result.Select(o => o.Kind).ToArray());
+            Assert.Equal("Valentía en los duelos", result[0].AttitudeLabel);
+            Assert.Null(result[0].SubprincipioLabel);
+            Assert.Null(result[1].AttitudeLabel);
+        }
+
         [Fact]
         public async Task Create_StoresTheObservationWithTheSubprincipioLabels()
         {

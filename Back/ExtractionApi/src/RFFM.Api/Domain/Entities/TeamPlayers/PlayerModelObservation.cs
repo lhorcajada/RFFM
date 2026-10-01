@@ -72,6 +72,38 @@ namespace RFFM.Api.Domain.Entities.TeamPlayers
             };
         }
 
+        public static PlayerModelObservation ForAttitude(
+            string teamPlayerId,
+            string teamId,
+            DateOnly date,
+            string attitudeKey,
+            ObservationAssessment assessment,
+            string? comment,
+            string createdByUserId,
+            string? trainingSessionId = null)
+        {
+            Require(teamPlayerId, nameof(teamPlayerId));
+            Require(teamId, nameof(teamId));
+            Require(createdByUserId, nameof(createdByUserId));
+            ArgumentNullException.ThrowIfNull(assessment);
+            if (!AttitudeTraits.IsKnown(attitudeKey))
+                throw new ArgumentException($"'{attitudeKey}' is not a known attitude trait.", nameof(attitudeKey));
+
+            return new PlayerModelObservation
+            {
+                TeamPlayerId = teamPlayerId,
+                TeamId = teamId,
+                Date = date,
+                Kind = ObservationKind.Attitude,
+                AttitudeKey = attitudeKey,
+                Assessment = assessment,
+                Comment = NormalizeComment(comment),
+                TrainingSessionId = string.IsNullOrWhiteSpace(trainingSessionId) ? null : trainingSessionId,
+                CreatedByUserId = createdByUserId,
+                CreatedAt = DateTime.UtcNow
+            };
+        }
+
         /// <summary>Corrige la valoración y el comentario. Fecha, subprincipio y sesión no cambian:
         /// si están mal, la observación se borra y se registra de nuevo.</summary>
         public void Update(ObservationAssessment assessment, string? comment)
