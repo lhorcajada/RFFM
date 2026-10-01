@@ -74,7 +74,10 @@ function block(title: string) {
 
 async function rate(title: string, label: string, comment?: string) {
   await userEvent.click(within(block(title)).getByRole("button", { name: label }));
-  if (comment) await userEvent.type(within(block(title)).getByLabelText(/comentario/i), comment);
+  if (comment) {
+    await userEvent.click(within(block(title)).getByLabelText(/comentario/i));
+    await userEvent.paste(comment);
+  }
 }
 
 function mockAttendance(attendance: SessionAttendance) {
@@ -104,7 +107,7 @@ describe("SessionObservationForm", () => {
     expect(within(circular).getByText("2.3.1 Extremo: fijar por dentro · Zona de Creación Rival")).toBeInTheDocument();
     expect(within(circular).getByText("2.3.2 Mediocentro: dar línea de pase")).toBeInTheDocument();
     expect(block("Asegurar tras robo")).toBeInTheDocument();
-    expect(screen.getAllByRole("group", { name: /./ }).filter((g) => g.tagName === "FIELDSET")).toHaveLength(2);
+    expect(screen.getAllByRole("group", { name: /^(Circular para desordenar|Asegurar tras robo)$/ })).toHaveLength(2);
   });
 
   it("pide el contenido de la sesión para mostrar qué se hizo", () => {
@@ -128,6 +131,7 @@ describe("SessionObservationForm", () => {
 
     expect(onSubmit).toHaveBeenCalledWith([
       {
+        kind: "GameModel",
         date: "2026-10-14",
         subprincipioId: "s-23",
         assessment: "NotAchieved",
@@ -157,11 +161,46 @@ describe("SessionObservationForm", () => {
     expect(within(block("Asegurar tras robo")).getByLabelText(/comentario/i)).toHaveValue("No asegura tras robo");
   });
 
-  it("avisa si la sesión no tiene subprincipios asociados", () => {
-    renderForm(undefined, { ...SESSION, targets: [] });
+  it("si la sesión no tiene subprincipios lo avisa pero permite valorar la actitud", async () => {
+    const onSubmit = renderForm(undefined, { ...SESSION, targets: [] });
 
     expect(screen.getByText(/esta sesión no tiene subprincipios del modelo de juego asociados/i)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /guardar/i })).not.toBeInTheDocument();
+    await rate("Esfuerzo sin balón", "A veces");
+    await userEvent.click(screen.getByRole("button", { name: /guardar/i }));
+
+    expect(onSubmit).toHaveBeenCalledWith([expect.objectContaining({ kind: "Attitude", attitudeKey: "off-ball-effort" })]);
+  });
+
+  it("muestra la sección Actitud con los seis rasgos en orden", () => {
+    renderForm();
+
+    const actitud = screen.getByRole("region", { name: "Actitud" });
+    expect(within(actitud).getAllByRole("group", { name: /^(?!Valoración)/ }).map((g) => g.getAttribute("aria-label"))).toEqual([
+      "Implicación en tareas defensivas",
+      "Paciencia con balón",
+      "Valentía en los duelos",
+      "Esfuerzo sin balón",
+      "Escucha y aplicación de consignas",
+      "Concentración durante la tarea",
+    ]);
+  });
+
+  it("guarda la actitud valorada como observación de actitud de la sesión", async () => {
+    const onSubmit = renderForm();
+
+    await rate("Implicación en tareas defensivas", "No lo hace", "Pregunta si vamos a hacer eso todo el entreno");
+    await userEvent.click(screen.getByRole("button", { name: /guardar/i }));
+
+    expect(onSubmit).toHaveBeenCalledWith([
+      {
+        kind: "Attitude",
+        attitudeKey: "defensive-commitment",
+        date: "2026-10-14",
+        assessment: "NotAchieved",
+        comment: "Pregunta si vamos a hacer eso todo el entreno",
+        trainingSessionId: "ses-1",
+      },
+    ]);
   });
 
   describe("asistencia", () => {
@@ -188,8 +227,19 @@ describe("SessionObservationForm", () => {
       expect(screen.getByRole("button", { name: /guardar/i })).toBeDisabled();
       expect(within(block("Circular para desordenar")).getByText("Indica por qué: no asistió al entrenamiento")).toBeInTheDocument();
 
-      await userEvent.type(within(block("Circular para desordenar")).getByLabelText(/comentario/i), "No vino, no lo trabajó");
+      await userEvent.click(within(block("Circular para desordenar")).getByLabelText(/comentario/i));
+      await userEvent.paste("No vino, no lo trabajó");
       expect(screen.getByRole("button", { name: /guardar/i })).toBeEnabled();
+    });
+
+    it("si no asistió el comentario también es obligatorio en la actitud", async () => {
+      mockAttendance("absent-excused");
+      renderForm();
+
+      await rate("Paciencia con balón", "A veces");
+
+      expect(screen.getByRole("button", { name: /guardar/i })).toBeDisabled();
+      expect(within(block("Paciencia con balón")).getByText("Indica por qué: no asistió al entrenamiento")).toBeInTheDocument();
     });
 
     it("si llegó tarde lo indica y el comentario sigue siendo opcional", async () => {

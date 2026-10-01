@@ -32,6 +32,8 @@ const observation: PlayerObservation = {
   createdAt: "2026-09-14T18:00:00Z",
   trainingSessionId: null,
   trainingSessionName: null,
+  attitudeKey: null,
+  attitudeLabel: null,
 };
 
 describe("playerTrackingService", () => {

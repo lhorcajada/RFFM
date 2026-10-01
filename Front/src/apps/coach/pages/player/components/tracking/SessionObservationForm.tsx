@@ -1,7 +1,11 @@
 import { useState } from "react";
-import { Alert, Button, TextField } from "@mui/material";
+import { Alert, Button } from "@mui/material";
 import { format, parseISO } from "date-fns";
-import type { CreatePlayerObservationRequest, ObservationAssessment } from "../../../../services/playerTrackingService";
+import {
+  ATTITUDE_TRAITS,
+  type CreatePlayerObservationRequest,
+  type ObservationAssessment,
+} from "../../../../services/playerTrackingService";
 import type { SessionTargetDetail, TrainingSession } from "../../../../types/training";
 import { useSessionDetail } from "../../hooks/useSessionDetail";
 import {
@@ -9,12 +13,9 @@ import {
   usePlayerSessionAttendance,
   type SessionAttendance,
 } from "../../hooks/usePlayerSessionAttendance";
-import AssessmentButtons from "./AssessmentButtons";
+import RatingBlock, { type RatingDraft } from "./RatingBlock";
 import SessionContent from "./SessionContent";
 import styles from "./SessionObservationForm.module.css";
-
-const COMMENT_MAX_LENGTH = 500;
-const ABSENT_COMMENT_REQUIRED = "Indica por qué: no asistió al entrenamiento";
 
 type SubprincipioBlock = {
   subprincipioId: string;
@@ -23,9 +24,15 @@ type SubprincipioBlock = {
   targets: SessionTargetDetail[];
 };
 
-type Draft = { assessment: ObservationAssessment | null; comment: string };
+type RequestBase = { date: string; assessment: ObservationAssessment; comment: string | null; trainingSessionId: string };
 
-const EMPTY_DRAFT: Draft = { assessment: null, comment: "" };
+/** Un elemento valorable: su clave de borrador y cómo se convierte en request. */
+type RatingItem = {
+  key: string;
+  toRequest: (base: RequestBase) => CreatePlayerObservationRequest;
+};
+
+const EMPTY_DRAFT: RatingDraft = { assessment: null, comment: "" };
 
 function groupBySubprincipio(targets: SessionTargetDetail[]): SubprincipioBlock[] {
   const blocks = new Map<string, SubprincipioBlock>();
@@ -47,6 +54,9 @@ function targetLine(t: SessionTargetDetail): string {
   return t.zonaLabel ? `${base} · ${t.zonaLabel}` : base;
 }
 
+const subprincipioKey = (id: string) => `sub:${id}`;
+const attitudeKey = (key: string) => `att:${key}`;
+
 function AttendanceNotice({ attendance }: { attendance: SessionAttendance }) {
   switch (attendance) {
     case "absent-excused":
@@ -54,7 +64,7 @@ function AttendanceNotice({ attendance }: { attendance: SessionAttendance }) {
       return (
         <Alert severity="warning">
           El jugador no asistió a este entrenamiento ({attendance === "absent-excused" ? "con excusa" : "sin excusa"}).
-          Si valoras algún subprincipio, explica en el comentario por qué.
+          Si valoras algún subprincipio o la actitud, explica en el comentario por qué.
         </Alert>
       );
     case "late":
@@ -83,39 +93,57 @@ type Props = {
 export default function SessionObservationForm({ session, teamPlayerId, saving, onSubmit }: Props) {
   const { detail, loading: loadingDetail } = useSessionDetail(session.id);
   const { attendance } = usePlayerSessionAttendance(session.sportEventId, teamPlayerId);
-  const [drafts, setDrafts] = useState<Record<string, Draft>>({});
+  const [drafts, setDrafts] = useState<Record<string, RatingDraft>>({});
 
   const blocks = groupBySubprincipio(session.targets);
   const commentRequired = isAbsent(attendance);
   const date = (session.date ?? "").slice(0, 10);
 
-  const draftOf = (id: string): Draft => drafts[id] ?? EMPTY_DRAFT;
-  const updateDraft = (id: string, change: Partial<Draft>) =>
-    setDrafts((current) => ({ ...current, [id]: { ...(current[id] ?? EMPTY_DRAFT), ...change } }));
-  const missingComment = (id: string) => {
-    const draft = draftOf(id);
+  const items: RatingItem[] = [
+    ...blocks.map((b) => ({
+      key: subprincipioKey(b.subprincipioId),
+      toRequest: (base: RequestBase) => ({
+        kind: "GameModel" as const,
+        ...base,
+        subprincipioId: b.subprincipioId,
+      }),
+    })),
+    ...ATTITUDE_TRAITS.map((t) => ({
+      key: attitudeKey(t.key),
+      toRequest: (base: RequestBase) => ({
+        kind: "Attitude" as const,
+        attitudeKey: t.key,
+        ...base,
+      }),
+    })),
+  ];
+
+  const draftOf = (key: string): RatingDraft => drafts[key] ?? EMPTY_DRAFT;
+  const updateDraft = (key: string, change: Partial<RatingDraft>) =>
+    setDrafts((current) => ({ ...current, [key]: { ...(current[key] ?? EMPTY_DRAFT), ...change } }));
+  const missingComment = (key: string) => {
+    const draft = draftOf(key);
     return commentRequired && !!draft.assessment && !draft.comment.trim();
   };
 
-  const rated = blocks.filter((b) => !!draftOf(b.subprincipioId).assessment);
-  const canSave = rated.length > 0 && !rated.some((b) => missingComment(b.subprincipioId)) && !saving;
+  const rated = items.filter((item) => !!draftOf(item.key).assessment);
+  const canSave = rated.length > 0 && !rated.some((item) => missingComment(item.key)) && !saving;
 
   const handleSubmit = async () => {
-    const requests = rated.map((b) => {
-      const draft = draftOf(b.subprincipioId);
-      return {
+    const requests = rated.map((item) => {
+      const draft = draftOf(item.key);
+      return item.toRequest({
         date,
-        subprincipioId: b.subprincipioId,
         assessment: draft.assessment as ObservationAssessment,
         comment: draft.comment.trim() || null,
         trainingSessionId: session.id,
-      };
+      });
     });
     const failed = new Set(await onSubmit(requests));
-    const savedIds = rated.filter((_, index) => !failed.has(index)).map((b) => b.subprincipioId);
+    const savedKeys = rated.filter((_, index) => !failed.has(index)).map((item) => item.key);
     setDrafts((current) => {
       const next = { ...current };
-      savedIds.forEach((id) => delete next[id]);
+      savedKeys.forEach((key) => delete next[key]);
       return next;
     });
   };
@@ -134,46 +162,51 @@ export default function SessionObservationForm({ session, teamPlayerId, saving, 
           observación sin sesión.
         </p>
       ) : (
-        <>
-          {blocks.map((block) => {
-            const draft = draftOf(block.subprincipioId);
-            const commentMissing = missingComment(block.subprincipioId);
-            return (
-              <fieldset key={block.subprincipioId} className={styles.block} aria-label={block.titulo}>
-                <span className={styles.context}>{block.context}</span>
-                <span className={styles.subprincipio}>{block.titulo}</span>
-                <ul className={styles.targets}>
-                  {block.targets.map((t) => (
-                    <li key={t.subSubPrincipioId}>{targetLine(t)}</li>
-                  ))}
-                </ul>
-                <AssessmentButtons
-                  value={draft.assessment}
-                  onChange={(assessment) => updateDraft(block.subprincipioId, { assessment })}
-                  ariaLabel={`Valoración de ${block.titulo}`}
-                />
-                <TextField
-                  label={`Comentario sobre ${block.titulo}`}
-                  multiline
-                  minRows={1}
-                  size="small"
-                  value={draft.comment}
-                  onChange={(e) => updateDraft(block.subprincipioId, { comment: e.target.value })}
-                  inputProps={{ maxLength: COMMENT_MAX_LENGTH }}
-                  error={commentMissing}
-                  helperText={commentMissing ? ABSENT_COMMENT_REQUIRED : undefined}
-                  fullWidth
-                />
-              </fieldset>
-            );
-          })}
-          <div className={styles.actions}>
-            <Button variant="contained" onClick={handleSubmit} disabled={!canSave}>
-              Guardar
-            </Button>
-          </div>
-        </>
+        blocks.map((block) => {
+          const key = subprincipioKey(block.subprincipioId);
+          return (
+            <RatingBlock
+              key={key}
+              title={block.titulo}
+              draft={draftOf(key)}
+              commentMissing={missingComment(key)}
+              onChange={(change) => updateDraft(key, change)}
+            >
+              <span className={styles.context}>{block.context}</span>
+              <span className={styles.subprincipio}>{block.titulo}</span>
+              <ul className={styles.targets}>
+                {block.targets.map((t) => (
+                  <li key={t.subSubPrincipioId}>{targetLine(t)}</li>
+                ))}
+              </ul>
+            </RatingBlock>
+          );
+        })
       )}
+
+      <section className={styles.attitude} aria-label="Actitud">
+        <h5 className={styles.sectionTitle}>Actitud</h5>
+        {ATTITUDE_TRAITS.map((trait) => {
+          const key = attitudeKey(trait.key);
+          return (
+            <RatingBlock
+              key={key}
+              title={trait.label}
+              draft={draftOf(key)}
+              commentMissing={missingComment(key)}
+              onChange={(change) => updateDraft(key, change)}
+            >
+              <span className={styles.subprincipio}>{trait.label}</span>
+            </RatingBlock>
+          );
+        })}
+      </section>
+
+      <div className={styles.actions}>
+        <Button variant="contained" onClick={handleSubmit} disabled={!canSave}>
+          Guardar
+        </Button>
+      </div>
     </section>
   );
 }

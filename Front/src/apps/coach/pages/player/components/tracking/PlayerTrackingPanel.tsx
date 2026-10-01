@@ -150,7 +150,7 @@ export default function PlayerTrackingPanel({ teamId, teamPlayerId }: Props) {
         title="Eliminar observación"
         description={
           deleteTarget
-            ? `¿Eliminar la observación de «${deleteTarget.subprincipioLabel}» del ${format(parseISO(deleteTarget.date), "dd/MM/yyyy")}? Esta acción no se puede deshacer.`
+            ? `¿Eliminar la observación de «${deleteTarget.attitudeLabel ?? deleteTarget.subprincipioLabel}» del ${format(parseISO(deleteTarget.date), "dd/MM/yyyy")}? Esta acción no se puede deshacer.`
             : ""
         }
         confirmText="Eliminar"

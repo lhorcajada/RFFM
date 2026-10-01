@@ -22,17 +22,6 @@
   color: var(--rffm-muted, #a59f9f);
 }
 
-.block {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin: 0;
-  padding: 12px;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  min-width: 0;
-}
-
 .context {
   font-size: 0.75rem;
   color: var(--rffm-muted, #a59f9f);
@@ -53,6 +42,19 @@
   font-size: 0.8rem;
   color: var(--rffm-card-text, #e8e8e8);
   overflow-wrap: anywhere;
+}
+
+.attitude {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sectionTitle {
+  margin: 4px 0 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--rffm-card-text, #e8e8e8);
 }
 
 .actions {

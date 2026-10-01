@@ -100,6 +100,8 @@ const CREATED: PlayerObservation = {
   createdAt: "2026-09-30T18:00:00Z",
   trainingSessionId: null,
   trainingSessionName: null,
+  attitudeKey: null,
+  attitudeLabel: null,
 };
 
 async function fillAndSave() {
@@ -290,5 +292,26 @@ describe("PlayerTrackingPanel", () => {
       const event = snackbarListener.mock.calls[0][0] as CustomEvent;
       expect(event.detail).toEqual({ message: "Observación no encontrada", severity: "error" });
     });
+  });
+
+  it("la confirmación de borrado de una actitud nombra el rasgo", async () => {
+    getPlayerObservationsMock.mockResolvedValue([
+      {
+        ...CREATED,
+        kind: "Attitude",
+        subprincipioId: null,
+        momentName: null,
+        principleLabel: null,
+        subprincipioLabel: null,
+        attitudeKey: "patience",
+        attitudeLabel: "Paciencia con balón",
+      },
+    ]);
+    render(<PlayerTrackingPanel teamId="team-1" teamPlayerId="tp-1" />);
+    await screen.findByText("30/09/2026");
+
+    await userEvent.click(screen.getByRole("button", { name: "Eliminar observación" }));
+
+    expect(within(await screen.findByRole("dialog")).getByText(/Paciencia con balón/)).toBeInTheDocument();
   });
 });

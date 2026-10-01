@@ -31,6 +31,7 @@ export default function PlayerObservationCard({ observation, onUpdate, onDelete 
   const [assessment, setAssessment] = useState<ObservationAssessment | null>(observation.assessment);
   const [comment, setComment] = useState(observation.comment ?? "");
   const [saving, setSaving] = useState(false);
+  const isAttitude = observation.kind === "Attitude";
 
   const startEditing = () => {
     setAssessment(observation.assessment);
@@ -72,9 +73,9 @@ export default function PlayerObservationCard({ observation, onUpdate, onDelete 
         )}
       </div>
       <p className={styles.context}>
-        {[observation.momentName, observation.principleLabel].filter(Boolean).join(" · ")}
+        {isAttitude ? "Actitud" : [observation.momentName, observation.principleLabel].filter(Boolean).join(" · ")}
       </p>
-      <p className={styles.subprincipio}>{observation.subprincipioLabel}</p>
+      <p className={styles.subprincipio}>{isAttitude ? observation.attitudeLabel : observation.subprincipioLabel}</p>
 
       {editing ? (
         <div className={styles.editor}>

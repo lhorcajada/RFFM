@@ -29,6 +29,8 @@ function buildObservation(overrides: Partial<PlayerObservation> = {}): PlayerObs
     createdAt: "2026-09-07T18:00:00Z",
     trainingSessionId: null,
     trainingSessionName: null,
+    attitudeKey: null,
+    attitudeLabel: null,
     ...overrides,
   };
 }

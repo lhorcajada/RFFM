@@ -17,6 +17,8 @@ const OBSERVATION: PlayerObservation = {
   createdAt: "2026-10-14T18:00:00Z",
   trainingSessionId: null,
   trainingSessionName: null,
+  attitudeKey: null,
+  attitudeLabel: null,
 };
 
 function renderCard(onUpdate = vi.fn().mockResolvedValue(undefined), onDelete = vi.fn()) {
@@ -76,5 +78,27 @@ describe("PlayerObservationCard", () => {
     await userEvent.click(screen.getByRole("button", { name: "Eliminar observación" }));
 
     expect(onDelete).toHaveBeenCalledWith(OBSERVATION);
+  });
+
+  it("una observación de actitud muestra «Actitud» y el rasgo", () => {
+    render(
+      <PlayerObservationCard
+        observation={{
+          ...OBSERVATION,
+          kind: "Attitude",
+          subprincipioId: null,
+          momentName: null,
+          principleLabel: null,
+          subprincipioLabel: null,
+          attitudeKey: "courage-in-duels",
+          attitudeLabel: "Valentía en los duelos",
+        }}
+        onUpdate={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Actitud")).toBeInTheDocument();
+    expect(screen.getByText("Valentía en los duelos")).toBeInTheDocument();
   });
 });

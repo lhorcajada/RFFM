@@ -2,6 +2,18 @@ import client from "../../../core/api/client";
 
 export type ObservationAssessment = "Achieved" | "Partial" | "NotAchieved";
 
+export type ObservationKind = "GameModel" | "Attitude";
+
+/** Catálogo cerrado de rasgos de actitud; mismo orden y claves que `AttitudeTraits.cs` en el backend. */
+export const ATTITUDE_TRAITS: { key: string; label: string }[] = [
+  { key: "defensive-commitment", label: "Implicación en tareas defensivas" },
+  { key: "patience", label: "Paciencia con balón" },
+  { key: "courage-in-duels", label: "Valentía en los duelos" },
+  { key: "off-ball-effort", label: "Esfuerzo sin balón" },
+  { key: "listening", label: "Escucha y aplicación de consignas" },
+  { key: "focus", label: "Concentración durante la tarea" },
+];
+
 export const ASSESSMENT_LABELS: Record<ObservationAssessment, string> = {
   Achieved: "Lo hace",
   Partial: "A veces",
@@ -11,7 +23,7 @@ export const ASSESSMENT_LABELS: Record<ObservationAssessment, string> = {
 export type PlayerObservation = {
   id: string;
   date: string;
-  kind: string;
+  kind: ObservationKind;
   subprincipioId: string | null;
   momentName: string | null;
   principleLabel: string | null;
@@ -21,11 +33,15 @@ export type PlayerObservation = {
   createdAt: string;
   trainingSessionId: string | null;
   trainingSessionName: string | null;
+  attitudeKey: string | null;
+  attitudeLabel: string | null;
 };
 
 export type CreatePlayerObservationRequest = {
+  kind?: ObservationKind;
   date: string;
-  subprincipioId: string;
+  subprincipioId?: string;
+  attitudeKey?: string;
   assessment: ObservationAssessment;
   comment?: string | null;
   trainingSessionId?: string | null;
