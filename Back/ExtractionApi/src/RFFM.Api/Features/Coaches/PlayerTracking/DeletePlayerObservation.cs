@@ -1,5 +1,6 @@
 using FluentValidation;
 using Mediator;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -27,7 +28,7 @@ namespace RFFM.Api.Features.Coaches.PlayerTracking
                     })
                 .WithName(nameof(DeletePlayerObservation))
                 .WithTags(PlayerTrackingConstants.Tag)
-                .RequireAuthorization()
+                .RequireAuthorization(new AuthorizeAttribute { Roles = PlayerTrackingConstants.AllowedRoles })
                 .Produces(StatusCodes.Status204NoContent)
                 .ProducesProblem(StatusCodes.Status403Forbidden)
                 .ProducesProblem(StatusCodes.Status404NotFound);

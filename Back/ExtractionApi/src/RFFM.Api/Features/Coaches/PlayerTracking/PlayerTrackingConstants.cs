@@ -10,6 +10,10 @@ namespace RFFM.Api.Features.Coaches.PlayerTracking
     public static class PlayerTrackingConstants
     {
         public const string Tag = "PlayerTracking";
+
+        /// <summary>Solo el entrenador. El permiso de feature GameModel no basta: también lo tienen Player
+        /// (lectura), ClubDirector y ClubMember.</summary>
+        public const string AllowedRoles = "Coach";
     }
 
     internal static class PlayerTrackingGuards

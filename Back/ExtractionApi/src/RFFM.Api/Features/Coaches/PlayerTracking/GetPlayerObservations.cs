@@ -1,5 +1,6 @@
 using FluentValidation;
 using Mediator;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -29,7 +30,7 @@ namespace RFFM.Api.Features.Coaches.PlayerTracking
                             new Query { TeamId = teamId, TeamPlayerId = teamPlayerId, From = from, To = to }, ct)))
                 .WithName(nameof(GetPlayerObservations))
                 .WithTags(PlayerTrackingConstants.Tag)
-                .RequireAuthorization()
+                .RequireAuthorization(new AuthorizeAttribute { Roles = PlayerTrackingConstants.AllowedRoles })
                 .Produces<PlayerObservationDto[]>()
                 .ProducesProblem(StatusCodes.Status403Forbidden)
                 .ProducesProblem(StatusCodes.Status404NotFound);
