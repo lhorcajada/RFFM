@@ -93,6 +93,36 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
+        public void Validate_GameModelWithKnownHabilidades_IsValid()
+        {
+            Assert.True(IsValid(Valid() with { Habilidades = new[] { "Percepción", "Pase" } }));
+        }
+
+        [Fact]
+        public void Validate_UnknownHabilidad_IsInvalid()
+        {
+            Assert.False(IsValid(Valid() with { Habilidades = new[] { "Velocidad" } }));
+        }
+
+        [Fact]
+        public void Validate_MoreThanFiveHabilidades_IsInvalid()
+        {
+            Assert.False(IsValid(Valid() with { Habilidades = new[] { "Pase", "Regate", "Remate", "Centro", "Despeje", "Marcaje" } }));
+        }
+
+        [Fact]
+        public void Validate_RepeatedHabilidad_IsInvalid()
+        {
+            Assert.False(IsValid(Valid() with { Habilidades = new[] { "Pase", "Pase" } }));
+        }
+
+        [Fact]
+        public void Validate_AttitudeWithHabilidades_IsInvalid()
+        {
+            Assert.False(IsValid(Valid() with { Kind = "Attitude", SubprincipioId = null, AttitudeKey = "patience", Habilidades = new[] { "Pase" } }));
+        }
+
+        [Fact]
         public void Validate_WithoutComment_IsValid()
         {
             Assert.True(IsValid(Valid() with { Comment = null }));

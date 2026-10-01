@@ -48,6 +48,7 @@ namespace RFFM.Api.Features.Coaches.PlayerTracking
             public string Kind { get; init; } = ObservationKind.GameModel.Name;
             public string? SubprincipioId { get; init; }
             public string? AttitudeKey { get; init; }
+            public IReadOnlyList<string>? Habilidades { get; init; }
             public string Assessment { get; init; } = null!;
             public string? Comment { get; init; }
             public string? TrainingSessionId { get; init; }
@@ -68,6 +69,7 @@ namespace RFFM.Api.Features.Coaches.PlayerTracking
                 {
                     RuleFor(c => c.SubprincipioId).NotEmpty();
                     RuleFor(c => c.AttitudeKey).Empty().WithMessage("Una observación del modelo de juego no lleva rasgo de actitud.");
+                    RuleFor(c => c.Habilidades).ValidHabilidades();
                 });
                 When(c => c.Kind == ObservationKind.Attitude.Name, () =>
                 {
@@ -75,6 +77,9 @@ namespace RFFM.Api.Features.Coaches.PlayerTracking
                         .Must(AttitudeTraits.IsKnown)
                         .WithMessage($"El rasgo de actitud debe ser uno de: {string.Join(", ", AttitudeTraits.All.Select(t => t.Key))}.");
                     RuleFor(c => c.SubprincipioId).Empty().WithMessage("Una observación de actitud no lleva subprincipio.");
+                    RuleFor(c => c.Habilidades)
+                        .Must(h => h is null || h.Count == 0)
+                        .WithMessage("Una observación de actitud no lleva habilidades.");
                 });
                 RuleFor(c => c.Date)
                     .Must(date => date <= DateOnly.FromDateTime(DateTime.UtcNow))
@@ -103,7 +108,7 @@ namespace RFFM.Api.Features.Coaches.PlayerTracking
                     : PlayerModelObservation.ForGameModel(
                         request.TeamPlayerId, request.TeamId, request.Date,
                         await SubprincipioSnapshotAsync(request, cancellationToken), assessment,
-                        request.Comment, createdBy, request.TrainingSessionId);
+                        request.Comment, createdBy, request.TrainingSessionId, request.Habilidades);
 
                 db.PlayerModelObservations.Add(observation);
                 await db.SaveChangesAsync(cancellationToken);

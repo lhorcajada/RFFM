@@ -14,6 +14,7 @@ namespace RFFM.Api.Domain.Entities.TeamPlayers
         {
             public const int CommentMaxLength = 500;
             public const int LabelMaxLength = 300;
+            public const int MaxHabilidades = 5;
         }
 
         public string TeamPlayerId { get; private set; } = null!;
@@ -42,7 +43,8 @@ namespace RFFM.Api.Domain.Entities.TeamPlayers
             ObservationAssessment assessment,
             string? comment,
             string createdByUserId,
-            string? trainingSessionId = null)
+            string? trainingSessionId = null,
+            IEnumerable<string>? habilidades = null)
         {
             Require(teamPlayerId, nameof(teamPlayerId));
             Require(teamId, nameof(teamId));
@@ -64,6 +66,7 @@ namespace RFFM.Api.Domain.Entities.TeamPlayers
                 MomentName = subprincipio.MomentName.Trim(),
                 PrincipleLabel = subprincipio.PrincipleLabel.Trim(),
                 SubprincipioLabel = subprincipio.SubprincipioLabel.Trim(),
+                Habilidades = NormalizeHabilidades(habilidades),
                 Assessment = assessment,
                 Comment = NormalizeComment(comment),
                 TrainingSessionId = string.IsNullOrWhiteSpace(trainingSessionId) ? null : trainingSessionId,
@@ -106,12 +109,26 @@ namespace RFFM.Api.Domain.Entities.TeamPlayers
 
         /// <summary>Corrige la valoración y el comentario. Fecha, subprincipio y sesión no cambian:
         /// si están mal, la observación se borra y se registra de nuevo.</summary>
-        public void Update(ObservationAssessment assessment, string? comment)
+        public void Update(ObservationAssessment assessment, string? comment, IEnumerable<string>? habilidades = null)
         {
             ArgumentNullException.ThrowIfNull(assessment);
+            var habilidadesList = habilidades?.ToList();
+            if (habilidadesList is { Count: > 0 } && Kind == ObservationKind.Attitude)
+                throw new DomainException(
+                    "Seguimiento", "Una observación de actitud no lleva habilidades.", ErrorCodes.HabilidadesNotAllowedForAttitude);
+
             Comment = NormalizeComment(comment);
             Assessment = assessment;
+            if (habilidadesList is not null)
+                Habilidades = NormalizeHabilidades(habilidadesList);
         }
+
+        private static List<string> NormalizeHabilidades(IEnumerable<string>? habilidades) =>
+            (habilidades ?? Enumerable.Empty<string>())
+                .Where(h => !string.IsNullOrWhiteSpace(h))
+                .Select(h => h.Trim())
+                .Distinct()
+                .ToList();
 
         private static void Require(string value, string name)
         {

@@ -1,6 +1,7 @@
 #nullable enable
 using System;
 using System.Linq;
+using RFFM.Api.Domain;
 using RFFM.Api.Domain.Entities.TeamPlayers;
 using Xunit;
 
@@ -181,6 +182,50 @@ namespace RFFM.Api.Tests.UnitTests
                 new[] { "defensive-commitment", "patience", "courage-in-duels", "off-ball-effort", "listening", "focus" },
                 AttitudeTraits.All.Select(t => t.Key).ToArray());
             Assert.Equal("Implicación en tareas defensivas", AttitudeTraits.LabelOf("defensive-commitment"));
+        }
+
+        [Fact]
+        public void ForGameModel_WithHabilidades_StoresThemWithoutDuplicates()
+        {
+            var observation = PlayerModelObservation.ForGameModel(
+                "tp-1", "team-1", Date, Snapshot, ObservationAssessment.NotAchieved, null, "coach-1",
+                habilidades: new[] { "Percepción", "Pase", "Percepción" });
+
+            Assert.Equal(new[] { "Percepción", "Pase" }, observation.Habilidades);
+        }
+
+        [Fact]
+        public void Update_WithHabilidades_ReplacesThem()
+        {
+            var observation = PlayerModelObservation.ForGameModel(
+                "tp-1", "team-1", Date, Snapshot, ObservationAssessment.NotAchieved, null, "coach-1",
+                habilidades: new[] { "Pase" });
+
+            observation.Update(ObservationAssessment.Partial, null, new[] { "Desmarque" });
+
+            Assert.Equal(new[] { "Desmarque" }, observation.Habilidades);
+        }
+
+        [Fact]
+        public void Update_WithoutHabilidades_KeepsThem()
+        {
+            var observation = PlayerModelObservation.ForGameModel(
+                "tp-1", "team-1", Date, Snapshot, ObservationAssessment.NotAchieved, null, "coach-1",
+                habilidades: new[] { "Pase" });
+
+            observation.Update(ObservationAssessment.Partial, "Mejora");
+
+            Assert.Equal(new[] { "Pase" }, observation.Habilidades);
+        }
+
+        [Fact]
+        public void Update_AttitudeWithHabilidades_ThrowsDomainException()
+        {
+            var observation = PlayerModelObservation.ForAttitude(
+                "tp-1", "team-1", Date, "patience", ObservationAssessment.Partial, null, "coach-1");
+
+            var ex = Assert.Throws<DomainException>(() => observation.Update(ObservationAssessment.Achieved, null, new[] { "Pase" }));
+            Assert.Equal(ErrorCodes.HabilidadesNotAllowedForAttitude, ex.Code);
         }
 
         [Fact]

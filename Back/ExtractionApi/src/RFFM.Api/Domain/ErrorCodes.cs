@@ -126,6 +126,7 @@ namespace RFFM.Api.Domain
         // Player tracking (Features/Coaches/PlayerTracking) - openspec change player-tracking-observations-api.
         public const string SubprincipioNotFound = "SubprincipioNotFound";
         public const string PlayerObservationNotFound = "PlayerObservationNotFound";
+        public const string HabilidadesNotAllowedForAttitude = "HabilidadesNotAllowedForAttitude";
 
         // Family member accounts (Features/Coaches/FamilyMemberAccounts)
         public const string FamilyMemberEmailRequired = "FamilyMemberEmailRequired";

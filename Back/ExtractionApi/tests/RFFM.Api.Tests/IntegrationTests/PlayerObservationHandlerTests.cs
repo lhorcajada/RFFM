@@ -235,6 +235,40 @@ namespace RFFM.Api.Tests.IntegrationTests
         }
 
         [Fact]
+        public async Task Habilidades_AreCreatedListedAndReplacedOnUpdate()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, teamPlayerId, subprincipioId) = await PlayerModelObservationPersistenceTests.SeedAsync(db);
+            var created = await new CreatePlayerObservation.Handler(db, CurrentUser())
+                .Handle(new CreatePlayerObservation.Command
+                {
+                    TeamId = teamId,
+                    TeamPlayerId = teamPlayerId,
+                    Date = new DateOnly(2026, 9, 14),
+                    SubprincipioId = subprincipioId,
+                    Assessment = "NotAchieved",
+                    Habilidades = new[] { "Percepción", "Pase" }
+                }, CancellationToken.None);
+            Assert.Equal(new[] { "Percepción", "Pase" }, created.Habilidades);
+
+            await using var listDb = _fixture.CreateDbContext();
+            var listed = await ListAsync(listDb, teamId, teamPlayerId);
+            Assert.Equal(new[] { "Percepción", "Pase" }, listed.Single().Habilidades);
+
+            await using var updateDb = _fixture.CreateDbContext();
+            var updated = await new UpdatePlayerObservation.Handler(updateDb)
+                .Handle(new UpdatePlayerObservation.Command
+                {
+                    TeamId = teamId,
+                    TeamPlayerId = teamPlayerId,
+                    ObservationId = created.Id,
+                    Assessment = "Partial",
+                    Habilidades = new[] { "Desmarque" }
+                }, CancellationToken.None);
+            Assert.Equal(new[] { "Desmarque" }, updated.Habilidades);
+        }
+
+        [Fact]
         public async Task Create_StoresTheObservationWithTheSubprincipioLabels()
         {
             await using var db = _fixture.CreateDbContext();

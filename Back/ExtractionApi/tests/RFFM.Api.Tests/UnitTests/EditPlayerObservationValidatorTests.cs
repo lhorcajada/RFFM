@@ -41,6 +41,15 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
+        public void Update_UnknownOrTooManyHabilidades_IsInvalid()
+        {
+            Assert.False(IsValid(ValidUpdate() with { Habilidades = new[] { "Velocidad" } }));
+            Assert.False(IsValid(ValidUpdate() with { Habilidades = new[] { "Pase", "Regate", "Remate", "Centro", "Despeje", "Marcaje" } }));
+            Assert.False(IsValid(ValidUpdate() with { Habilidades = new[] { "Pase", "Pase" } }));
+            Assert.True(IsValid(ValidUpdate() with { Habilidades = new[] { "Desmarque" } }));
+        }
+
+        [Fact]
         public void Update_EmptyObservationId_IsInvalid()
         {
             Assert.False(IsValid(ValidUpdate() with { ObservationId = "" }));

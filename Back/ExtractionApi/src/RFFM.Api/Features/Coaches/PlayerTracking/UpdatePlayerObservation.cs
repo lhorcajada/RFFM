@@ -43,6 +43,7 @@ namespace RFFM.Api.Features.Coaches.PlayerTracking
             public string ObservationId { get; init; } = null!;
             public string Assessment { get; init; } = null!;
             public string? Comment { get; init; }
+            public IReadOnlyList<string>? Habilidades { get; init; }
             public string FeatureRoute => CoachFeatureRoutes.GameModel;
             public string RequiredPermission => "ReadWrite";
         }
@@ -58,6 +59,7 @@ namespace RFFM.Api.Features.Coaches.PlayerTracking
                     .Must(a => ObservationAssessment.TryFromName(a, out _))
                     .WithMessage($"La valoración debe ser una de: {string.Join(", ", ObservationAssessment.List.Select(a => a.Name))}.");
                 RuleFor(c => c.Comment).MaximumLength(PlayerModelObservation.Rules.CommentMaxLength);
+                RuleFor(c => c.Habilidades).ValidHabilidades();
             }
         }
 
@@ -70,7 +72,7 @@ namespace RFFM.Api.Features.Coaches.PlayerTracking
                 var observation = await PlayerTrackingGuards.FindObservationAsync(
                     db, request.TeamId, request.TeamPlayerId, request.ObservationId, cancellationToken);
 
-                observation.Update(ObservationAssessment.FromName(request.Assessment), request.Comment);
+                observation.Update(ObservationAssessment.FromName(request.Assessment), request.Comment, request.Habilidades);
                 await db.SaveChangesAsync(cancellationToken);
 
                 var trainingSessionName = observation.TrainingSessionId is null
