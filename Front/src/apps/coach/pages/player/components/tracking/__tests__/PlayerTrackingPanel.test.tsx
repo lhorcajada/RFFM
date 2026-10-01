@@ -102,6 +102,7 @@ const CREATED: PlayerObservation = {
   trainingSessionName: null,
   attitudeKey: null,
   attitudeLabel: null,
+  habilidades: [],
 };
 
 async function fillAndSave() {

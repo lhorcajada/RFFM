@@ -35,6 +35,7 @@ export type PlayerObservation = {
   trainingSessionName: string | null;
   attitudeKey: string | null;
   attitudeLabel: string | null;
+  habilidades: string[];
 };
 
 export type CreatePlayerObservationRequest = {
@@ -45,11 +46,13 @@ export type CreatePlayerObservationRequest = {
   assessment: ObservationAssessment;
   comment?: string | null;
   trainingSessionId?: string | null;
+  habilidades?: string[];
 };
 
 export type UpdatePlayerObservationRequest = {
   assessment: ObservationAssessment;
   comment?: string | null;
+  habilidades?: string[];
 };
 
 function observationsUrl(teamId: string, teamPlayerId: string): string {

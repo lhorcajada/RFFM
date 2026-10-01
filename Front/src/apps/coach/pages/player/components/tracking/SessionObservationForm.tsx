@@ -26,10 +26,12 @@ type SubprincipioBlock = {
 
 type RequestBase = { date: string; assessment: ObservationAssessment; comment: string | null; trainingSessionId: string };
 
+type ItemDraft = { habilidades?: string[] };
+
 /** Un elemento valorable: su clave de borrador y cómo se convierte en request. */
 type RatingItem = {
   key: string;
-  toRequest: (base: RequestBase) => CreatePlayerObservationRequest;
+  toRequest: (base: RequestBase, draft: ItemDraft) => CreatePlayerObservationRequest;
 };
 
 const EMPTY_DRAFT: RatingDraft = { assessment: null, comment: "" };
@@ -102,10 +104,11 @@ export default function SessionObservationForm({ session, teamPlayerId, saving, 
   const items: RatingItem[] = [
     ...blocks.map((b) => ({
       key: subprincipioKey(b.subprincipioId),
-      toRequest: (base: RequestBase) => ({
+      toRequest: (base: RequestBase, draft: ItemDraft) => ({
         kind: "GameModel" as const,
         ...base,
         subprincipioId: b.subprincipioId,
+        habilidades: draft.habilidades ?? [],
       }),
     })),
     ...ATTITUDE_TRAITS.map((t) => ({
@@ -132,12 +135,15 @@ export default function SessionObservationForm({ session, teamPlayerId, saving, 
   const handleSubmit = async () => {
     const requests = rated.map((item) => {
       const draft = draftOf(item.key);
-      return item.toRequest({
-        date,
-        assessment: draft.assessment as ObservationAssessment,
-        comment: draft.comment.trim() || null,
-        trainingSessionId: session.id,
-      });
+      return item.toRequest(
+        {
+          date,
+          assessment: draft.assessment as ObservationAssessment,
+          comment: draft.comment.trim() || null,
+          trainingSessionId: session.id,
+        },
+        draft,
+      );
     });
     const failed = new Set(await onSubmit(requests));
     const savedKeys = rated.filter((_, index) => !failed.has(index)).map((item) => item.key);
@@ -171,6 +177,7 @@ export default function SessionObservationForm({ session, teamPlayerId, saving, 
               draft={draftOf(key)}
               commentMissing={missingComment(key)}
               onChange={(change) => updateDraft(key, change)}
+              withHabilidades
             >
               <span className={styles.context}>{block.context}</span>
               <span className={styles.subprincipio}>{block.titulo}</span>

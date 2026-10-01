@@ -51,7 +51,20 @@ describe("ObservationForm", () => {
       subprincipioId: "s-23",
       assessment: "NotAchieved",
       comment: "Busca siempre el pase vertical",
+      habilidades: [],
     });
+  });
+
+  it("envía las habilidades elegidas", async () => {
+    const onSubmit = renderForm();
+
+    await selectSubprincipio("2.3 Circular para desordenar");
+    await userEvent.click(screen.getByRole("button", { name: "No lo hace" }));
+    await userEvent.click(screen.getByRole("combobox", { name: /habilidades/i }));
+    await userEvent.click(await screen.findByRole("option", { name: "Pase" }));
+    await userEvent.click(screen.getByRole("button", { name: /guardar/i }));
+
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ habilidades: ["Pase"] }));
   });
 
   it("tras guardar limpia subprincipio, valoración y comentario pero mantiene la fecha", async () => {

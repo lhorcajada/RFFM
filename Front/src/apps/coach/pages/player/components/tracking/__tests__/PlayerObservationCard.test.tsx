@@ -19,6 +19,7 @@ const OBSERVATION: PlayerObservation = {
   trainingSessionName: null,
   attitudeKey: null,
   attitudeLabel: null,
+  habilidades: [],
 };
 
 function renderCard(onUpdate = vi.fn().mockResolvedValue(undefined), onDelete = vi.fn()) {
@@ -57,7 +58,11 @@ describe("PlayerObservationCard", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Guardar" }));
 
-    expect(onUpdate).toHaveBeenCalledWith("obs-1", { assessment: "Partial", comment: "Mejora tras la charla" });
+    expect(onUpdate).toHaveBeenCalledWith("obs-1", {
+      assessment: "Partial",
+      comment: "Mejora tras la charla",
+      habilidades: [],
+    });
     await waitFor(() => expect(screen.queryByRole("button", { name: "Guardar" })).not.toBeInTheDocument());
   });
 
@@ -100,5 +105,55 @@ describe("PlayerObservationCard", () => {
 
     expect(screen.getByText("Actitud")).toBeInTheDocument();
     expect(screen.getByText("Valentía en los duelos")).toBeInTheDocument();
+  });
+
+  it("muestra las habilidades como chips", () => {
+    render(
+      <PlayerObservationCard
+        observation={{ ...OBSERVATION, habilidades: ["Percepción", "Pase"] }}
+        onUpdate={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Percepción")).toBeInTheDocument();
+    expect(screen.getByText("Pase")).toBeInTheDocument();
+  });
+
+  it("al editar permite cambiar las habilidades", async () => {
+    const onUpdate = vi.fn().mockResolvedValue(undefined);
+    render(
+      <PlayerObservationCard observation={{ ...OBSERVATION, habilidades: ["Pase"] }} onUpdate={onUpdate} onDelete={vi.fn()} />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Editar observación" }));
+
+    await userEvent.click(screen.getByRole("combobox", { name: /habilidades/i }));
+    await userEvent.click(await screen.findByRole("option", { name: "Desmarque" }));
+    await userEvent.click(screen.getByRole("button", { name: "Guardar" }));
+
+    expect(onUpdate).toHaveBeenCalledWith("obs-1", expect.objectContaining({ habilidades: ["Pase", "Desmarque"] }));
+  });
+
+  it("al editar una actitud no ofrece habilidades ni las envía", async () => {
+    const onUpdate = vi.fn().mockResolvedValue(undefined);
+    render(
+      <PlayerObservationCard
+        observation={{
+          ...OBSERVATION,
+          kind: "Attitude",
+          subprincipioId: null,
+          subprincipioLabel: null,
+          attitudeKey: "patience",
+          attitudeLabel: "Paciencia con balón",
+        }}
+        onUpdate={onUpdate}
+        onDelete={vi.fn()}
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Editar observación" }));
+
+    expect(screen.queryByRole("combobox", { name: /habilidades/i })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Guardar" }));
+    expect(onUpdate).toHaveBeenCalledWith("obs-1", { assessment: "NotAchieved", comment: "Busca siempre el pase vertical" });
   });
 });

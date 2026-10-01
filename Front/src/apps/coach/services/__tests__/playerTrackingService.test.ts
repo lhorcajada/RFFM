@@ -34,6 +34,7 @@ const observation: PlayerObservation = {
   trainingSessionName: null,
   attitudeKey: null,
   attitudeLabel: null,
+  habilidades: [],
 };
 
 describe("playerTrackingService", () => {

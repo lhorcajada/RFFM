@@ -3,6 +3,7 @@ import { Alert, Autocomplete, Button, TextField } from "@mui/material";
 import type { CreatePlayerObservationRequest, ObservationAssessment } from "../../../../services/playerTrackingService";
 import type { SubprincipioOption } from "../../hooks/useSubprincipioOptions";
 import AssessmentButtons from "./AssessmentButtons";
+import HabilidadesPicker from "./HabilidadesPicker";
 import styles from "./ObservationForm.module.css";
 
 const COMMENT_MAX_LENGTH = 500;
@@ -23,6 +24,7 @@ export default function ObservationForm({ options, hasModel, saving, onSubmit }:
   const [subprincipio, setSubprincipio] = useState<SubprincipioOption | null>(null);
   const [assessment, setAssessment] = useState<ObservationAssessment | null>(null);
   const [comment, setComment] = useState("");
+  const [habilidades, setHabilidades] = useState<string[]>([]);
 
   if (!hasModel) {
     return (
@@ -43,10 +45,12 @@ export default function ObservationForm({ options, hasModel, saving, onSubmit }:
         subprincipioId: subprincipio.id,
         assessment,
         comment: comment.trim() || null,
+        habilidades,
       });
       setSubprincipio(null);
       setAssessment(null);
       setComment("");
+      setHabilidades([]);
     } catch {
       // El aviso lo muestra quien guarda; el formulario conserva lo escrito para reintentar.
     }
@@ -78,6 +82,8 @@ export default function ObservationForm({ options, hasModel, saving, onSubmit }:
       </div>
 
       <AssessmentButtons value={assessment} onChange={setAssessment} />
+
+      <HabilidadesPicker value={habilidades} onChange={setHabilidades} />
 
       <TextField
         label="Comentario (opcional)"

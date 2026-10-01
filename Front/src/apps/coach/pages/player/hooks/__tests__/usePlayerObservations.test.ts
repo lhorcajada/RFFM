@@ -31,6 +31,7 @@ function buildObservation(overrides: Partial<PlayerObservation> = {}): PlayerObs
     trainingSessionName: null,
     attitudeKey: null,
     attitudeLabel: null,
+    habilidades: [],
     ...overrides,
   };
 }

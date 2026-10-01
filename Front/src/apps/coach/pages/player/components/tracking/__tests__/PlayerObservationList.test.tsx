@@ -19,6 +19,7 @@ const OBSERVATION: PlayerObservation = {
   trainingSessionName: null,
   attitudeKey: null,
   attitudeLabel: null,
+  habilidades: [],
 };
 
 describe("PlayerObservationList", () => {

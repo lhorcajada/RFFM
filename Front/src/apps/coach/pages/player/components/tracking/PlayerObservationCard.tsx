@@ -10,6 +10,7 @@ import {
   type UpdatePlayerObservationRequest,
 } from "../../../../services/playerTrackingService";
 import AssessmentButtons from "./AssessmentButtons";
+import HabilidadesPicker from "./HabilidadesPicker";
 import styles from "./PlayerObservationCard.module.css";
 
 const COMMENT_MAX_LENGTH = 500;
@@ -30,12 +31,14 @@ export default function PlayerObservationCard({ observation, onUpdate, onDelete 
   const [editing, setEditing] = useState(false);
   const [assessment, setAssessment] = useState<ObservationAssessment | null>(observation.assessment);
   const [comment, setComment] = useState(observation.comment ?? "");
+  const [habilidades, setHabilidades] = useState<string[]>(observation.habilidades);
   const [saving, setSaving] = useState(false);
   const isAttitude = observation.kind === "Attitude";
 
   const startEditing = () => {
     setAssessment(observation.assessment);
     setComment(observation.comment ?? "");
+    setHabilidades(observation.habilidades);
     setEditing(true);
   };
 
@@ -43,7 +46,8 @@ export default function PlayerObservationCard({ observation, onUpdate, onDelete 
     if (!assessment) return;
     setSaving(true);
     try {
-      await onUpdate(observation.id, { assessment, comment: comment.trim() || null });
+      const base = { assessment, comment: comment.trim() || null };
+      await onUpdate(observation.id, isAttitude ? base : { ...base, habilidades });
       setEditing(false);
     } catch {
       // El aviso lo muestra quien actualiza; se mantiene la edición para reintentar.
@@ -76,10 +80,18 @@ export default function PlayerObservationCard({ observation, onUpdate, onDelete 
         {isAttitude ? "Actitud" : [observation.momentName, observation.principleLabel].filter(Boolean).join(" · ")}
       </p>
       <p className={styles.subprincipio}>{isAttitude ? observation.attitudeLabel : observation.subprincipioLabel}</p>
+      {!editing && observation.habilidades.length > 0 && (
+        <div className={styles.habilidades}>
+          {observation.habilidades.map((h) => (
+            <Chip key={h} label={h} size="small" variant="outlined" />
+          ))}
+        </div>
+      )}
 
       {editing ? (
         <div className={styles.editor}>
           <AssessmentButtons value={assessment} onChange={setAssessment} />
+          {!isAttitude && <HabilidadesPicker value={habilidades} onChange={setHabilidades} />}
           <TextField
             label="Comentario"
             multiline

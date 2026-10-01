@@ -137,6 +137,7 @@ describe("SessionObservationForm", () => {
         assessment: "NotAchieved",
         comment: "Busca siempre el pase vertical",
         trainingSessionId: "ses-1",
+        habilidades: [],
       },
     ]);
   });
@@ -169,6 +170,25 @@ describe("SessionObservationForm", () => {
     await userEvent.click(screen.getByRole("button", { name: /guardar/i }));
 
     expect(onSubmit).toHaveBeenCalledWith([expect.objectContaining({ kind: "Attitude", attitudeKey: "off-ball-effort" })]);
+  });
+
+  it("permite indicar las habilidades implicadas en un subprincipio", async () => {
+    const onSubmit = renderForm();
+
+    await rate("Circular para desordenar", "No lo hace");
+    await userEvent.click(within(block("Circular para desordenar")).getByRole("combobox", { name: /habilidades/i }));
+    await userEvent.click(await screen.findByRole("option", { name: "Percepción" }));
+    await userEvent.click(screen.getByRole("button", { name: /guardar/i }));
+
+    expect(onSubmit).toHaveBeenCalledWith([expect.objectContaining({ subprincipioId: "s-23", habilidades: ["Percepción"] })]);
+  });
+
+  it("la actitud no ofrece habilidades", () => {
+    renderForm();
+
+    expect(
+      within(block("Paciencia con balón")).queryByRole("combobox", { name: /habilidades/i }),
+    ).not.toBeInTheDocument();
   });
 
   it("muestra la sección Actitud con los seis rasgos en orden", () => {
