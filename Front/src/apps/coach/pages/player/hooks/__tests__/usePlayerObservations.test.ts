@@ -55,7 +55,7 @@ describe("usePlayerObservations", () => {
     const { result } = renderHook(() => usePlayerObservations("team-1", "tp-1"));
 
     await waitFor(() => expect(result.current.loading).toBe(false));
-    expect(getPlayerObservationsMock).toHaveBeenCalledWith("team-1", "tp-1");
+    expect(getPlayerObservationsMock).toHaveBeenCalledWith("team-1", "tp-1", undefined);
     expect(result.current.observations).toEqual(observations);
     expect(result.current.error).toBeNull();
   });
@@ -141,5 +141,48 @@ describe("usePlayerObservations", () => {
 
     await expect(result.current.remove("a")).rejects.toThrow("404");
     expect(result.current.observations.map((o) => o.id)).toEqual(["a"]);
+  });
+
+  it("vuelve a cargar al cambiar el inicio del periodo", async () => {
+    getPlayerObservationsMock.mockResolvedValue([]);
+    const { result, rerender } = renderHook(({ from }) => usePlayerObservations("team-1", "tp-1", from), {
+      initialProps: { from: "2026-09-01" as string | undefined },
+    });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    rerender({ from: undefined });
+
+    await waitFor(() => expect(getPlayerObservationsMock).toHaveBeenLastCalledWith("team-1", "tp-1", undefined));
+    expect(getPlayerObservationsMock).toHaveBeenCalledWith("team-1", "tp-1", "2026-09-01");
+  });
+
+  it("create no añade la observación si es anterior al periodo y lo indica", async () => {
+    getPlayerObservationsMock.mockResolvedValue([]);
+    createPlayerObservationMock.mockResolvedValue(buildObservation({ id: "old", date: "2026-08-20" }));
+    const { result } = renderHook(() => usePlayerObservations("team-1", "tp-1", "2026-09-01"));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    let shown: boolean | undefined;
+    await act(async () => {
+      shown = await result.current.create({ date: "2026-08-20", subprincipioId: "sub-1", assessment: "Partial" });
+    });
+
+    expect(shown).toBe(false);
+    expect(result.current.observations).toEqual([]);
+  });
+
+  it("create devuelve true cuando la observación entra en el periodo", async () => {
+    getPlayerObservationsMock.mockResolvedValue([]);
+    createPlayerObservationMock.mockResolvedValue(buildObservation({ id: "new", date: "2026-09-20" }));
+    const { result } = renderHook(() => usePlayerObservations("team-1", "tp-1", "2026-09-01"));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    let shown: boolean | undefined;
+    await act(async () => {
+      shown = await result.current.create({ date: "2026-09-20", subprincipioId: "sub-1", assessment: "Partial" });
+    });
+
+    expect(shown).toBe(true);
+    expect(result.current.observations.map((o) => o.id)).toEqual(["new"]);
   });
 });

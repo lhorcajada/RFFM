@@ -1,11 +1,14 @@
-import { useState } from "react";
-import { MenuItem, TextField } from "@mui/material";
+import { useMemo, useState } from "react";
+import { MenuItem, TextField, ToggleButton, ToggleButtonGroup } from "@mui/material";
 import { format, parseISO } from "date-fns";
 import ConfirmDialog from "../../../../../../shared/components/ui/ConfirmDialog/ConfirmDialog";
-import type {
-  CreatePlayerObservationRequest,
-  PlayerObservation,
-  UpdatePlayerObservationRequest,
+import {
+  PERIOD_LABELS,
+  periodStart,
+  type CreatePlayerObservationRequest,
+  type ObservationPeriod,
+  type PlayerObservation,
+  type UpdatePlayerObservationRequest,
 } from "../../../../services/playerTrackingService";
 import { usePlayerObservations } from "../../hooks/usePlayerObservations";
 import { useRecentSessions } from "../../hooks/useRecentSessions";
@@ -16,6 +19,7 @@ import SessionObservationForm from "./SessionObservationForm";
 import styles from "./PlayerTrackingPanel.module.css";
 
 const NO_SESSION = "";
+const OUT_OF_PERIOD_MESSAGE = "Observación guardada. No se muestra porque es anterior al periodo elegido.";
 
 function showSnackbar(message: string, severity: "success" | "error") {
   window.dispatchEvent(new CustomEvent("rffm.show_snackbar", { detail: { message, severity } }));
@@ -32,7 +36,13 @@ type Props = {
 };
 
 export default function PlayerTrackingPanel({ teamId, teamPlayerId }: Props) {
-  const { observations, loading, error, reload, create, update, remove } = usePlayerObservations(teamId, teamPlayerId);
+  const [period, setPeriod] = useState<ObservationPeriod>("month");
+  const from = useMemo(() => periodStart(period), [period]);
+  const { observations, loading, error, reload, create, update, remove } = usePlayerObservations(
+    teamId,
+    teamPlayerId,
+    from,
+  );
   const { options, hasModel, loading: loadingOptions } = useSubprincipioOptions(teamId);
   const { sessions } = useRecentSessions(teamId);
   const [sessionId, setSessionId] = useState(NO_SESSION);
@@ -45,8 +55,8 @@ export default function PlayerTrackingPanel({ teamId, teamPlayerId }: Props) {
   const handleSubmit = async (request: CreatePlayerObservationRequest) => {
     setSaving(true);
     try {
-      await create(request);
-      showSnackbar("Observación guardada", "success");
+      const shown = await create(request);
+      showSnackbar(shown ? "Observación guardada" : OUT_OF_PERIOD_MESSAGE, "success");
     } catch (e) {
       showSnackbar(errorDetail(e) ?? "No se pudo guardar la observación", "error");
       throw e;
@@ -59,9 +69,10 @@ export default function PlayerTrackingPanel({ teamId, teamPlayerId }: Props) {
     setSaving(true);
     const failed: number[] = [];
     let firstError: unknown = null;
+    let hidden = 0;
     for (const [index, request] of requests.entries()) {
       try {
-        await create(request);
+        if (!(await create(request))) hidden += 1;
       } catch (e) {
         failed.push(index);
         firstError ??= e;
@@ -69,7 +80,9 @@ export default function PlayerTrackingPanel({ teamId, teamPlayerId }: Props) {
     }
     setSaving(false);
 
-    if (failed.length === 0) {
+    if (failed.length === 0 && hidden > 0) {
+      showSnackbar(OUT_OF_PERIOD_MESSAGE, "success");
+    } else if (failed.length === 0) {
       showSnackbar(requests.length === 1 ? "Observación guardada" : `${requests.length} observaciones guardadas`, "success");
     } else {
       showSnackbar(errorDetail(firstError) ?? "No se pudieron guardar algunas observaciones", "error");
@@ -135,7 +148,22 @@ export default function PlayerTrackingPanel({ teamId, teamPlayerId }: Props) {
         )
       )}
 
-      <h3 className={styles.title}>Observaciones</h3>
+      <div className={styles.listHeader}>
+        <h3 className={styles.title}>{`Observaciones (${observations.length})`}</h3>
+        <ToggleButtonGroup
+          exclusive
+          size="small"
+          value={period}
+          onChange={(_, next: ObservationPeriod | null) => next && setPeriod(next)}
+          aria-label="Periodo"
+        >
+          {(Object.keys(PERIOD_LABELS) as ObservationPeriod[]).map((p) => (
+            <ToggleButton key={p} value={p} className={styles.periodButton}>
+              {PERIOD_LABELS[p]}
+            </ToggleButton>
+          ))}
+        </ToggleButtonGroup>
+      </div>
       <PlayerObservationList
         observations={observations}
         loading={loading}

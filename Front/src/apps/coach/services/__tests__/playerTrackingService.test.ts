@@ -15,6 +15,7 @@ import {
   createPlayerObservation,
   deletePlayerObservation,
   getPlayerObservations,
+  periodStart,
   updatePlayerObservation,
 } from "../playerTrackingService";
 import type { PlayerObservation } from "../playerTrackingService";
@@ -83,5 +84,23 @@ describe("playerTrackingService", () => {
     await deletePlayerObservation("team-1", "tp-1", "obs-1");
 
     expect(client.delete).toHaveBeenCalledWith("/api/teams/team-1/players/tp-1/observations/obs-1");
+  });
+
+  it("getPlayerObservations envía el inicio del periodo cuando se indica", async () => {
+    vi.mocked(client.get).mockResolvedValue({ data: [] });
+
+    await getPlayerObservations("team-1", "tp-1", "2026-09-01");
+
+    expect(client.get).toHaveBeenCalledWith("/api/teams/team-1/players/tp-1/observations", {
+      params: { from: "2026-09-01" },
+    });
+  });
+
+  it("periodStart calcula el inicio de cada periodo", () => {
+    const today = new Date("2026-10-01T12:00:00Z");
+
+    expect(periodStart("month", today)).toBe("2026-09-01");
+    expect(periodStart("quarter", today)).toBe("2026-07-03");
+    expect(periodStart("all", today)).toBeUndefined();
   });
 });

@@ -117,12 +117,15 @@ describe("PlayerTrackingPanel", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-01T12:00:00Z"));
     getPlayerObservationsMock.mockResolvedValue([]);
     useRecentSessionsMock.mockReturnValue({ sessions: [], loading: false });
     window.addEventListener("rffm.show_snackbar", snackbarListener);
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     window.removeEventListener("rffm.show_snackbar", snackbarListener);
   });
 
@@ -314,5 +317,47 @@ describe("PlayerTrackingPanel", () => {
     await userEvent.click(screen.getByRole("button", { name: "Eliminar observación" }));
 
     expect(within(await screen.findByRole("dialog")).getByText(/Paciencia con balón/)).toBeInTheDocument();
+  });
+
+  describe("periodo", () => {
+    it("por defecto muestra el último mes", async () => {
+      render(<PlayerTrackingPanel teamId="team-1" teamPlayerId="tp-1" />);
+      await screen.findByText("Aún no hay observaciones para este jugador");
+
+      expect(getPlayerObservationsMock).toHaveBeenCalledWith("team-1", "tp-1", "2026-09-01");
+      expect(screen.getByRole("button", { name: "Último mes" })).toHaveAttribute("aria-pressed", "true");
+    });
+
+    it("con «Todo» pide las observaciones sin inicio de periodo", async () => {
+      render(<PlayerTrackingPanel teamId="team-1" teamPlayerId="tp-1" />);
+      await screen.findByText("Aún no hay observaciones para este jugador");
+
+      await userEvent.click(screen.getByRole("button", { name: "Todo" }));
+
+      await waitFor(() => expect(getPlayerObservationsMock).toHaveBeenLastCalledWith("team-1", "tp-1", undefined));
+    });
+
+    it("el título indica cuántas observaciones hay", async () => {
+      getPlayerObservationsMock.mockResolvedValue([CREATED, { ...CREATED, id: "obs-2" }]);
+      render(<PlayerTrackingPanel teamId="team-1" teamPlayerId="tp-1" />);
+
+      expect(await screen.findByRole("heading", { name: "Observaciones (2)" })).toBeInTheDocument();
+    });
+
+    it("avisa si lo guardado queda fuera del periodo elegido", async () => {
+      createPlayerObservationMock.mockResolvedValue({ ...CREATED, date: "2026-08-20" });
+      render(<PlayerTrackingPanel teamId="team-1" teamPlayerId="tp-1" />);
+      await screen.findByText("Aún no hay observaciones para este jugador");
+
+      await fillAndSave();
+
+      await waitFor(() => expect(snackbarListener).toHaveBeenCalled());
+      const event = snackbarListener.mock.calls[0][0] as CustomEvent;
+      expect(event.detail).toEqual({
+        message: "Observación guardada. No se muestra porque es anterior al periodo elegido.",
+        severity: "success",
+      });
+      expect(screen.getByText("Aún no hay observaciones para este jugador")).toBeInTheDocument();
+    });
   });
 });

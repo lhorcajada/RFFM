@@ -13,7 +13,7 @@ function mostRecentFirst(a: PlayerObservation, b: PlayerObservation): number {
   return b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt);
 }
 
-export function usePlayerObservations(teamId: string | undefined, teamPlayerId: string | undefined) {
+export function usePlayerObservations(teamId: string | undefined, teamPlayerId: string | undefined, from?: string) {
   const [observations, setObservations] = useState<PlayerObservation[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -24,7 +24,7 @@ export function usePlayerObservations(teamId: string | undefined, teamPlayerId: 
     let cancelled = false;
     setLoading(true);
     setError(null);
-    getPlayerObservations(teamId, teamPlayerId)
+    getPlayerObservations(teamId, teamPlayerId, from)
       .then((result) => {
         if (!cancelled) setObservations(result);
       })
@@ -37,17 +37,20 @@ export function usePlayerObservations(teamId: string | undefined, teamPlayerId: 
     return () => {
       cancelled = true;
     };
-  }, [teamId, teamPlayerId, reloadKey]);
+  }, [teamId, teamPlayerId, from, reloadKey]);
 
   const reload = useCallback(() => setReloadKey((k) => k + 1), []);
 
   const create = useCallback(
-    async (request: CreatePlayerObservationRequest) => {
-      if (!teamId || !teamPlayerId) return;
+    /** Crea la observación; devuelve `false` si queda fuera del periodo y por eso no se añade a la lista. */
+    async (request: CreatePlayerObservationRequest): Promise<boolean> => {
+      if (!teamId || !teamPlayerId) return false;
       const created = await createPlayerObservation(teamId, teamPlayerId, request);
-      setObservations((current) => [...current, created].sort(mostRecentFirst));
+      const inPeriod = !from || created.date >= from;
+      if (inPeriod) setObservations((current) => [...current, created].sort(mostRecentFirst));
+      return inPeriod;
     },
-    [teamId, teamPlayerId],
+    [teamId, teamPlayerId, from],
   );
 
   const update = useCallback(

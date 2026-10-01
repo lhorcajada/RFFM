@@ -5,8 +5,21 @@
   min-width: 0;
 }
 
+.listHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.periodButton {
+  text-transform: none;
+}
+
 .title {
-  margin: 8px 0 0;
+  margin: 0;
   font-size: 0.95rem;
   font-weight: 700;
   color: var(--rffm-card-text, #e8e8e8);

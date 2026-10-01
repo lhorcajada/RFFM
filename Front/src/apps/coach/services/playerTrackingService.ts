@@ -4,6 +4,23 @@ export type ObservationAssessment = "Achieved" | "Partial" | "NotAchieved";
 
 export type ObservationKind = "GameModel" | "Attitude";
 
+export type ObservationPeriod = "month" | "quarter" | "all";
+
+export const PERIOD_LABELS: Record<ObservationPeriod, string> = {
+  month: "Último mes",
+  quarter: "Últimos 3 meses",
+  all: "Todo",
+};
+
+const PERIOD_DAYS: Record<Exclude<ObservationPeriod, "all">, number> = { month: 30, quarter: 90 };
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Primer día (yyyy-MM-dd) del periodo que termina hoy; `undefined` para «Todo». */
+export function periodStart(period: ObservationPeriod, today: Date = new Date()): string | undefined {
+  if (period === "all") return undefined;
+  return new Date(today.getTime() - PERIOD_DAYS[period] * DAY_MS).toISOString().slice(0, 10);
+}
+
 /** Catálogo cerrado de rasgos de actitud; mismo orden y claves que `AttitudeTraits.cs` en el backend. */
 export const ATTITUDE_TRAITS: { key: string; label: string }[] = [
   { key: "defensive-commitment", label: "Implicación en tareas defensivas" },
@@ -59,8 +76,15 @@ function observationsUrl(teamId: string, teamPlayerId: string): string {
   return `/api/teams/${encodeURIComponent(teamId)}/players/${encodeURIComponent(teamPlayerId)}/observations`;
 }
 
-export async function getPlayerObservations(teamId: string, teamPlayerId: string): Promise<PlayerObservation[]> {
-  const resp = await client.get<PlayerObservation[]>(observationsUrl(teamId, teamPlayerId));
+export async function getPlayerObservations(
+  teamId: string,
+  teamPlayerId: string,
+  from?: string,
+): Promise<PlayerObservation[]> {
+  const url = observationsUrl(teamId, teamPlayerId);
+  const resp = from
+    ? await client.get<PlayerObservation[]>(url, { params: { from } })
+    : await client.get<PlayerObservation[]>(url);
   return resp.data;
 }
 
