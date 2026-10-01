@@ -138,11 +138,12 @@ function renderPage() {
   );
 }
 
-function permissionsWith(featureRoutes: string[]) {
+/** Todos los roles con acceso al Modelo de juego: la pestaña depende del rol, no de ese permiso. */
+function permissionsFor(role: string) {
   return {
-    roles: ["Coach"],
+    roles: [role],
     loading: false,
-    hasFeatureAccess: (route: string) => featureRoutes.includes(route),
+    hasFeatureAccess: (route: string) => route === COACH_FEATURE_ROUTES.GameModel,
   };
 }
 
@@ -151,8 +152,8 @@ describe("PlayerDetail — pestaña Seguimiento", () => {
     vi.clearAllMocks();
   });
 
-  it("con acceso al modelo de juego añade Seguimiento como última pestaña y muestra su panel", async () => {
-    mockUsePermissions.mockReturnValue(permissionsWith([COACH_FEATURE_ROUTES.GameModel]));
+  it("al entrenador le añade Seguimiento como última pestaña y muestra su panel", async () => {
+    mockUsePermissions.mockReturnValue(permissionsFor("Coach"));
     renderPage();
 
     const tabs = screen.getAllByRole("tab");
@@ -165,10 +166,13 @@ describe("PlayerDetail — pestaña Seguimiento", () => {
     expect(await screen.findByText("seguimiento:team-1:tp-1")).toBeInTheDocument();
   });
 
-  it("sin acceso al modelo de juego no muestra la pestaña Seguimiento", () => {
-    mockUsePermissions.mockReturnValue(permissionsWith([COACH_FEATURE_ROUTES.Squad]));
-    renderPage();
+  it.each(["Player", "FamilyMember", "ClubDirector", "ClubMember", "Administrator"])(
+    "a %s no le muestra la pestaña Seguimiento aunque tenga acceso al modelo de juego",
+    (role) => {
+      mockUsePermissions.mockReturnValue(permissionsFor(role));
+      renderPage();
 
-    expect(screen.queryByRole("tab", { name: "Seguimiento" })).not.toBeInTheDocument();
-  });
+      expect(screen.queryByRole("tab", { name: "Seguimiento" })).not.toBeInTheDocument();
+    },
+  );
 });

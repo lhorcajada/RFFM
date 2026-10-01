@@ -45,7 +45,6 @@ import PlayerConvocationSummaryCard from "./components/PlayerConvocationSummaryC
 import PlayerFormBars from "../../components/PlayerFormBars/PlayerFormBars";
 import PlayerPhysicalEvolution from "./components/PlayerPhysicalEvolution";
 import PlayerTrackingPanel from "./components/tracking/PlayerTrackingPanel";
-import { COACH_FEATURE_ROUTES } from "../../constants/featureRoutes";
 import MetricInfoDialog from "../../components/MetricInfoDialog/MetricInfoDialog";
 import type { MetricKey } from "../../components/MetricInfoDialog/metricInfoTexts";
 
@@ -75,8 +74,9 @@ export default function PlayerDetail() {
   const location = useLocation();
   const { team, teamTitleNode } = useTeamAndClub();
   const locationState = location.state as { editing?: boolean; from?: string; fromState?: unknown } | null;
-  const { roles, loading: loadingPermissions, hasFeatureAccess } = usePermissions();
-  const canTrack = hasFeatureAccess(COACH_FEATURE_ROUTES.GameModel);
+  const { roles, loading: loadingPermissions } = usePermissions();
+  // El seguimiento es solo del entrenador: el permiso de Modelo de juego también lo tienen otros roles.
+  const canTrack = roles.includes("Coach");
   const canEditFull = roles.includes("Coach") || roles.includes("Administrator");
   const canEditRestricted = roles.includes("Player") || roles.includes("FamilyMember");
   const canEdit = canEditFull || canEditRestricted;
