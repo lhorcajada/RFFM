@@ -71,8 +71,9 @@ namespace RFFM.Api.Tests.UnitTests
             var save = Valid();
             var get = new GetSessionEvaluation.Query { TeamId = "team-1", TeamPlayerId = "tp-1", SessionId = "ses-1" };
             var delete = new DeleteSessionEvaluation.Command { TeamId = "team-1", TeamPlayerId = "tp-1", SessionId = "ses-1" };
+            var list = new GetPlayerSessionEvaluations.Query { TeamId = "team-1", TeamPlayerId = "tp-1" };
 
-            foreach (var (request, permission) in new (object, string)[] { (save, "ReadWrite"), (get, "Read"), (delete, "ReadWrite") })
+            foreach (var (request, permission) in new (object, string)[] { (save, "ReadWrite"), (get, "Read"), (delete, "ReadWrite"), (list, "Read") })
             {
                 Assert.IsAssignableFrom<IRequireTeamMembership>(request);
                 var feature = Assert.IsAssignableFrom<IRequireFeaturePermission>(request);

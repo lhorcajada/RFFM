@@ -4,7 +4,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using RFFM.Api.Domain.Aggregates.GameModels;
 using RFFM.Api.Domain.Aggregates.SeasonPlans;
+using RFFM.Api.Domain.Aggregates.Training;
 using RFFM.Api.Domain.Aggregates.UserClubs;
 using RFFM.Api.Domain.Entities.Competitions;
 using RFFM.Api.Domain.Entities.Seasons;
@@ -158,5 +160,32 @@ namespace RFFM.Api.Tests.IntegrationTests
             Assert.Equal(2, bloque2.Exercises.Count());
             Assert.Equal(exercise2Id, bloque2.Exercises.First().ExerciseId);
         }
-    }
+    
+        [Fact]
+        public async Task GetSession_ReturnsTheTextOfEachTargetedSubSubPrincipio()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (userId, _, teamId, _) = await SeedTeamAsync(db);
+            var model = new GameModel(teamId, "Modelo", "2026-2027");
+            var principle = new GamePrinciple(model.Id, gameMomentId: 1, key: $"p-{Guid.NewGuid():N}", numero: 2, "Ataque posicional", "Texto");
+            var subprincipio = new Subprincipio(principle.Id, $"sp-{Guid.NewGuid():N}", "2.3", "Circular para desordenar", "Texto");
+            var ssp = new SubSubPrincipio($"ssp-{Guid.NewGuid():N}", "2.3.1", "Extremo",
+                "Fija por dentro para liberar el pasillo al lateral.", subprincipio.Id, null);
+            subprincipio.SubSubPrincipios.Add(ssp);
+            principle.Subprincipios.Add(subprincipio);
+            model.Principles.Add(principle);
+            db.GameModels.Add(model);
+            var session = new TrainingSession { TeamId = teamId, Name = "Sesión con objetivos", Date = DateTime.UtcNow };
+            session.ReplaceTargets(new[] { ssp.Id });
+            db.TrainingSessions.Add(session);
+            await db.SaveChangesAsync();
+
+            await using var readDb = _fixture.CreateDbContext();
+            var result = await new GetSessionHandler(readDb).Handle(new GetSessionQuery(session.Id, userId), CancellationToken.None);
+
+            var target = Assert.Single(result!.Targets);
+            Assert.Equal("Extremo", target.Rol);
+            Assert.Equal("Fija por dentro para liberar el pasillo al lateral.", target.Texto);
+        }
+}
 }

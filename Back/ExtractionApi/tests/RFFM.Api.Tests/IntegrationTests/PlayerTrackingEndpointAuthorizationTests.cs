@@ -105,6 +105,7 @@ namespace RFFM.Api.Tests.IntegrationTests
                 data.Add(role, "SESSION-PUT");
                 data.Add(role, "SESSION-GET");
                 data.Add(role, "SESSION-DELETE");
+                data.Add(role, "SESSION-LIST");
             }
             return data;
         }
@@ -130,6 +131,7 @@ namespace RFFM.Api.Tests.IntegrationTests
                     Content = JsonContent.Create(new { evaluations = new[] { new { subprincipioId = "sub-1", assessment = "Partial" } } })
                 }),
                 "SESSION-GET" => (new GetSessionEvaluation(), new HttpRequestMessage(HttpMethod.Get, $"{sessionUrl}/ses-1")),
+                "SESSION-LIST" => (new GetPlayerSessionEvaluations(), new HttpRequestMessage(HttpMethod.Get, sessionUrl)),
                 _ => (new DeleteSessionEvaluation(), new HttpRequestMessage(HttpMethod.Delete, $"{sessionUrl}/ses-1")),
             };
         }

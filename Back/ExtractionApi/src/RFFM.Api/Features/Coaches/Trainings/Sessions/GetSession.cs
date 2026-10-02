@@ -78,7 +78,8 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
         string PrincipioId,
         string PrincipioTitulo,
         int GameMomentId,
-        string GameMomentName);
+        string GameMomentName,
+        string Texto);
 
     public record SessionBlockDetail(
         string Id,
@@ -192,6 +193,7 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
                     ssp.Id,
                     ssp.Rol,
                     ssp.Numero,
+                    ssp.Texto,
                     SubprincipioId = ssp.SubprincipioId ?? (ssp.Zona != null ? ssp.Zona.SubprincipioId : null),
                     ZonaId = ssp.ZonaId,
                     ZonaLabel = ssp.Zona != null ? (ssp.Zona.Label ?? ssp.Zona.ZoneKeysCsv) : null,
@@ -229,7 +231,8 @@ namespace RFFM.Api.Features.Coaches.Trainings.Sessions
                     sp.Id, sp.Titulo,
                     row.ZonaId, row.ZonaLabel,
                     sp.PrincipioId, sp.PrincipioTitulo,
-                    sp.GameMomentId, sp.GameMomentName);
+                    sp.GameMomentId, sp.GameMomentName,
+                    row.Texto);
             }
 
             return result;
