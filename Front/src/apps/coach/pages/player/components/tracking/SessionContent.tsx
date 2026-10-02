@@ -3,7 +3,7 @@ import type { SessionBlockExercise, TrainingSessionDetail } from "../../../../ty
 import styles from "./SessionContent.module.css";
 
 function exerciseInfo(exercise: SessionBlockExercise): string {
-  return [exercise.exerciseObjetivo, exercise.exerciseDurationMinutes ? `${exercise.exerciseDurationMinutes}'` : null]
+  return [exercise.objetivo, exercise.durationMinutes ? `${exercise.durationMinutes}'` : null]
     .filter(Boolean)
     .join(" · ");
 }
@@ -42,8 +42,8 @@ export default function SessionContent({ detail, loading }: Props) {
               {[...block.exercises]
                 .sort((a, b) => a.position - b.position)
                 .map((exercise) => (
-                  <li key={exercise.id} aria-label={exercise.exerciseName}>
-                    <span className={styles.exerciseName}>{exercise.exerciseName}</span>
+                  <li key={exercise.id} aria-label={exercise.name}>
+                    <span className={styles.exerciseName}>{exercise.name}</span>
                     {exerciseInfo(exercise) && <span className={styles.exerciseInfo}>{exerciseInfo(exercise)}</span>}
                   </li>
                 ))}

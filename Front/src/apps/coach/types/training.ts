@@ -78,6 +78,13 @@ export interface SessionBlockExercise {
   id: string;
   exerciseId: string;
   position: number;
+  /** Campos con los que `GET /api/trainings/sessions/{id}` envía el ejercicio (`SessionBlockExerciseDetail`). */
+  name?: string;
+  tipo?: ExerciseTipo;
+  objetivo?: string;
+  durationMinutes?: number | null;
+  urlImage?: string | null;
+  /** @deprecated La API no envía estos nombres; se mantienen porque `sessionPrint.ts` aún los lee. */
   exerciseName?: string;
   exerciseTipo?: ExerciseTipo;
   exerciseObjetivo?: string;
@@ -113,6 +120,8 @@ export interface SessionTargetDetail {
   principioTitulo: string;
   gameMomentId: number;
   gameMomentName: string;
+  /** Descripción del sub-subprincipio en el modelo de juego. */
+  texto?: string;
 }
 
 export interface TrainingSession {

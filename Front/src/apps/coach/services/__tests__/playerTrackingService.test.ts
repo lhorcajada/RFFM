@@ -14,8 +14,12 @@ import client from "../../../../core/api/client";
 import {
   createPlayerObservation,
   deletePlayerObservation,
+  deleteSessionEvaluation,
   getPlayerObservations,
+  getSessionEvaluation,
+  getSessionEvaluations,
   periodStart,
+  saveSessionEvaluation,
   updatePlayerObservation,
 } from "../playerTrackingService";
 import type { PlayerObservation } from "../playerTrackingService";
@@ -102,5 +106,45 @@ describe("playerTrackingService", () => {
     expect(periodStart("month", today)).toBe("2026-09-01");
     expect(periodStart("quarter", today)).toBe("2026-07-03");
     expect(periodStart("all", today)).toBeUndefined();
+  });
+
+  describe("seguimiento por sesión", () => {
+    const base = "/api/teams/team-1/players/tp-1/session-evaluations";
+
+    it("getSessionEvaluations pide la lista de sesiones del jugador", async () => {
+      vi.mocked(client.get).mockResolvedValue({ data: [] });
+
+      const result = await getSessionEvaluations("team-1", "tp-1");
+
+      expect(client.get).toHaveBeenCalledWith(base);
+      expect(result).toEqual([]);
+    });
+
+    it("saveSessionEvaluation envía el PUT con las valoraciones", async () => {
+      const saved = { id: "ev-1" };
+      vi.mocked(client.put).mockResolvedValue({ data: saved });
+      const items = [{ subprincipioId: "sub-1", assessment: "NotAchieved" as const, comment: "Busca el pase vertical" }];
+
+      const result = await saveSessionEvaluation("team-1", "tp-1", "ses-1", items);
+
+      expect(client.put).toHaveBeenCalledWith(`${base}/ses-1`, { evaluations: items });
+      expect(result).toEqual(saved);
+    });
+
+    it("getSessionEvaluation pide el seguimiento de la sesión", async () => {
+      vi.mocked(client.get).mockResolvedValue({ data: { id: "ev-1" } });
+
+      await getSessionEvaluation("team-1", "tp-1", "ses-1");
+
+      expect(client.get).toHaveBeenCalledWith(`${base}/ses-1`);
+    });
+
+    it("deleteSessionEvaluation borra el seguimiento de la sesión", async () => {
+      vi.mocked(client.delete).mockResolvedValue({ data: undefined });
+
+      await deleteSessionEvaluation("team-1", "tp-1", "ses-1");
+
+      expect(client.delete).toHaveBeenCalledWith(`${base}/ses-1`);
+    });
   });
 });

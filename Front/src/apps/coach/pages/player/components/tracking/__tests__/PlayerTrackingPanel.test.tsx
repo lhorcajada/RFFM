@@ -1,363 +1,158 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { PlayerObservation } from "../../../../../services/playerTrackingService";
+import type { PlayerSessionListItem, SaveSessionEvaluationItem } from "../../../../../services/playerTrackingService";
 
-const getPlayerObservationsMock = vi.fn();
-const createPlayerObservationMock = vi.fn();
-const updatePlayerObservationMock = vi.fn();
-const deletePlayerObservationMock = vi.fn();
+const getSessionEvaluationsMock = vi.fn();
+const saveSessionEvaluationMock = vi.fn();
+const deleteSessionEvaluationMock = vi.fn();
 vi.mock("../../../../../services/playerTrackingService", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../../../../services/playerTrackingService")>()),
-  getPlayerObservations: (...args: unknown[]) => getPlayerObservationsMock(...args),
-  createPlayerObservation: (...args: unknown[]) => createPlayerObservationMock(...args),
-  updatePlayerObservation: (...args: unknown[]) => updatePlayerObservationMock(...args),
-  deletePlayerObservation: (...args: unknown[]) => deletePlayerObservationMock(...args),
+  getSessionEvaluations: (...args: unknown[]) => getSessionEvaluationsMock(...args),
+  saveSessionEvaluation: (...args: unknown[]) => saveSessionEvaluationMock(...args),
+  deleteSessionEvaluation: (...args: unknown[]) => deleteSessionEvaluationMock(...args),
 }));
 
-vi.mock("../../../hooks/useSubprincipioOptions", () => ({
-  useSubprincipioOptions: () => ({
-    options: [{ id: "s-23", label: "2.3 Circular para desordenar", group: "Ataque organizado › 2. Ataque posicional" }],
-    hasModel: true,
-    loading: false,
-  }),
-}));
+const ITEMS_TO_SAVE: SaveSessionEvaluationItem[] = [{ subprincipioId: "s-23", assessment: "NotAchieved", comment: null }];
 
-const useRecentSessionsMock = vi.fn();
-vi.mock("../../../hooks/useRecentSessions", () => ({
-  useRecentSessions: () => useRecentSessionsMock(),
-}));
-
-vi.mock("../../../hooks/useSessionDetail", () => ({
-  useSessionDetail: () => ({ detail: null, loading: false }),
-}));
-
-vi.mock("../../../hooks/usePlayerSessionAttendance", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("../../../hooks/usePlayerSessionAttendance")>()),
-  usePlayerSessionAttendance: () => ({ attendance: "attended", loading: false }),
+vi.mock("../SessionEvaluationDialog", () => ({
+  default: ({
+    open,
+    initialSessionId,
+    onSubmit,
+    onClose,
+  }: {
+    open: boolean;
+    initialSessionId: string | null;
+    onSubmit: (sessionId: string, items: SaveSessionEvaluationItem[]) => Promise<void>;
+    onClose: () => void;
+  }) =>
+    open ? (
+      <div role="dialog" aria-label="Seguimiento de la sesión">
+        <span>{`dialogo:${initialSessionId ?? "nuevo"}`}</span>
+        <button onClick={() => onSubmit(initialSessionId ?? "ses-1", ITEMS_TO_SAVE).catch(() => undefined)}>Guardar seguimiento</button>
+        <button onClick={onClose}>Cerrar</button>
+      </div>
+    ) : null,
 }));
 
 import PlayerTrackingPanel from "../PlayerTrackingPanel";
 
-const RECENT_SESSION = {
-  id: "ses-1",
-  name: "Sesión 1",
-  description: "",
-  date: "2026-09-28T00:00:00",
-  startTime: null,
-  sportEventId: "ev-1",
-  isAssociatedToPlan: false,
-  exerciseCount: 0,
-  targets: [
-    {
-      subSubPrincipioId: "ssp-231",
-      rol: "Extremo: fijar por dentro",
-      numero: "2.3.1",
-      subprincipioId: "s-23",
-      subprincipioTitulo: "Circular para desordenar",
-      zonaId: null,
-      zonaLabel: null,
-      principioId: "p-2",
-      principioTitulo: "Ataque posicional",
-      gameMomentId: 2,
-      gameMomentName: "Ataque organizado",
-    },
-    {
-      subSubPrincipioId: "ssp-411",
-      rol: "Todos: asegurar el pase",
-      numero: "4.1.1",
-      subprincipioId: "s-41",
-      subprincipioTitulo: "Asegurar tras robo",
-      zonaId: null,
-      zonaLabel: null,
-      principioId: "p-4",
-      principioTitulo: "Transición tras robo",
-      gameMomentId: 4,
-      gameMomentName: "Transición defensa-ataque",
-    },
-  ],
-};
-
-async function selectSession() {
-  await userEvent.click(screen.getByRole("combobox", { name: /sesión/i }));
-  await userEvent.click(await screen.findByRole("option", { name: "28/09 · Sesión 1" }));
+function item(overrides: Partial<PlayerSessionListItem> = {}): PlayerSessionListItem {
+  return {
+    sessionId: "ses-1",
+    name: "10. Desorganizar rival",
+    date: "2026-10-01",
+    isHeld: true,
+    hasCalendarEvent: true,
+    assistanceTypeId: 1,
+    evaluation: null,
+    ...overrides,
+  };
 }
 
-async function rateInSession(title: string, label: string) {
-  await userEvent.click(within(screen.getByRole("group", { name: title })).getByRole("button", { name: label }));
-}
-
-const CREATED: PlayerObservation = {
-  id: "obs-1",
-  date: "2026-09-30",
-  kind: "GameModel",
-  subprincipioId: "s-23",
-  momentName: "Ataque organizado",
-  principleLabel: "2. Ataque posicional",
-  subprincipioLabel: "2.3 Circular para desordenar",
-  assessment: "NotAchieved",
-  comment: null,
-  createdAt: "2026-09-30T18:00:00Z",
-  trainingSessionId: null,
-  trainingSessionName: null,
-  attitudeKey: null,
-  attitudeLabel: null,
-  habilidades: [],
-};
-
-async function fillAndSave() {
-  await userEvent.click(screen.getByRole("combobox", { name: /subprincipio/i }));
-  await userEvent.click(await screen.findByRole("option", { name: "2.3 Circular para desordenar" }));
-  await userEvent.click(screen.getByRole("button", { name: "No lo hace" }));
-  await userEvent.click(screen.getByRole("button", { name: /guardar/i }));
-}
+const EVALUATED = item({ evaluation: { achieved: 0, partial: 1, notAchieved: 2, updatedAt: "2026-10-01T20:00:00Z" } });
 
 describe("PlayerTrackingPanel", () => {
   const snackbarListener = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date("2026-10-01T12:00:00Z"));
-    getPlayerObservationsMock.mockResolvedValue([]);
-    useRecentSessionsMock.mockReturnValue({ sessions: [], loading: false });
+    getSessionEvaluationsMock.mockResolvedValue([item()]);
     window.addEventListener("rffm.show_snackbar", snackbarListener);
   });
 
   afterEach(() => {
-    vi.useRealTimers();
     window.removeEventListener("rffm.show_snackbar", snackbarListener);
   });
 
-  it("al guardar avisa del éxito y muestra la observación en la lista", async () => {
-    createPlayerObservationMock.mockResolvedValue(CREATED);
+  function lastSnackbar() {
+    return (snackbarListener.mock.calls.at(-1)?.[0] as CustomEvent).detail;
+  }
+
+  it("muestra la lista de sesiones del jugador", async () => {
     render(<PlayerTrackingPanel teamId="team-1" teamPlayerId="tp-1" />);
-    await screen.findByText("Aún no hay observaciones para este jugador");
 
-    await fillAndSave();
-
-    expect(await screen.findByText("30/09/2026")).toBeInTheDocument();
-    expect(createPlayerObservationMock).toHaveBeenCalledWith("team-1", "tp-1", expect.objectContaining({ subprincipioId: "s-23" }));
-    const event = snackbarListener.mock.calls[0][0] as CustomEvent;
-    expect(event.detail).toEqual({ message: "Observación guardada", severity: "success" });
+    expect(await screen.findByRole("listitem", { name: "01/10/2026 · 10. Desorganizar rival" })).toBeInTheDocument();
+    expect(getSessionEvaluationsMock).toHaveBeenCalledWith("team-1", "tp-1");
   });
 
-  it("si falla el guardado avisa con el detalle del error", async () => {
-    createPlayerObservationMock.mockRejectedValue({ response: { data: { detail: "Subprincipio no encontrado" } } });
+  it("Crear abre el diálogo de esa sesión y al guardar recarga y avisa", async () => {
+    saveSessionEvaluationMock.mockResolvedValue({ id: "ev-1" });
     render(<PlayerTrackingPanel teamId="team-1" teamPlayerId="tp-1" />);
-    await screen.findByText("Aún no hay observaciones para este jugador");
+    const card = await screen.findByRole("listitem", { name: "01/10/2026 · 10. Desorganizar rival" });
 
-    await fillAndSave();
+    await userEvent.click(within(card).getByRole("button", { name: "Crear" }));
+    expect(screen.getByText("dialogo:ses-1")).toBeInTheDocument();
+
+    getSessionEvaluationsMock.mockResolvedValue([EVALUATED]);
+    await userEvent.click(screen.getByRole("button", { name: "Guardar seguimiento" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(saveSessionEvaluationMock).toHaveBeenCalledWith("team-1", "tp-1", "ses-1", ITEMS_TO_SAVE);
+    expect(await screen.findByText("Valorado")).toBeInTheDocument();
+    expect(lastSnackbar()).toEqual({ message: "Seguimiento guardado", severity: "success" });
+  });
+
+  it("si falla el guardado avisa con el detalle y mantiene el diálogo abierto", async () => {
+    saveSessionEvaluationMock.mockRejectedValue({ response: { data: { detail: "Solo se pueden valorar los subprincipios trabajados en la sesión." } } });
+    render(<PlayerTrackingPanel teamId="team-1" teamPlayerId="tp-1" />);
+    const card = await screen.findByRole("listitem", { name: "01/10/2026 · 10. Desorganizar rival" });
+    await userEvent.click(within(card).getByRole("button", { name: "Crear" }));
+
+    await userEvent.click(screen.getByRole("button", { name: "Guardar seguimiento" }));
 
     await waitFor(() => expect(snackbarListener).toHaveBeenCalled());
-    const event = snackbarListener.mock.calls[0][0] as CustomEvent;
-    expect(event.detail).toEqual({ message: "Subprincipio no encontrado", severity: "error" });
+    expect(lastSnackbar()).toEqual({ message: "Solo se pueden valorar los subprincipios trabajados en la sesión.", severity: "error" });
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 
-  it("si falla el guardado sin detalle usa el mensaje por defecto", async () => {
-    createPlayerObservationMock.mockRejectedValue(new Error("network"));
+  it("Nuevo seguimiento abre el diálogo sin sesión elegida", async () => {
     render(<PlayerTrackingPanel teamId="team-1" teamPlayerId="tp-1" />);
-    await screen.findByText("Aún no hay observaciones para este jugador");
+    await screen.findByRole("listitem", { name: "01/10/2026 · 10. Desorganizar rival" });
 
-    await fillAndSave();
+    await userEvent.click(screen.getByRole("button", { name: "Nuevo seguimiento" }));
 
-    await waitFor(() => expect(snackbarListener).toHaveBeenCalled());
-    const event = snackbarListener.mock.calls[0][0] as CustomEvent;
-    expect(event.detail).toEqual({ message: "No se pudo guardar la observación", severity: "error" });
+    expect(screen.getByText("dialogo:nuevo")).toBeInTheDocument();
   });
 
-  it("sin sesiones recientes no muestra el selector de sesión", async () => {
+  it("Editar abre el diálogo de la sesión valorada", async () => {
+    getSessionEvaluationsMock.mockResolvedValue([EVALUATED]);
     render(<PlayerTrackingPanel teamId="team-1" teamPlayerId="tp-1" />);
-    await screen.findByText("Aún no hay observaciones para este jugador");
+    const card = await screen.findByRole("listitem", { name: "01/10/2026 · 10. Desorganizar rival" });
 
-    expect(screen.queryByRole("combobox", { name: /sesión/i })).not.toBeInTheDocument();
+    await userEvent.click(within(card).getByRole("button", { name: "Editar" }));
+
+    expect(screen.getByText("dialogo:ses-1")).toBeInTheDocument();
   });
 
-  it("al elegir una sesión cambia al formulario de valorar la sesión", async () => {
-    useRecentSessionsMock.mockReturnValue({ sessions: [RECENT_SESSION], loading: false });
+  it("Eliminar pide confirmación y, al confirmar, borra, recarga y avisa", async () => {
+    getSessionEvaluationsMock.mockResolvedValue([EVALUATED]);
+    deleteSessionEvaluationMock.mockResolvedValue(undefined);
     render(<PlayerTrackingPanel teamId="team-1" teamPlayerId="tp-1" />);
-    expect(screen.getByLabelText(/fecha/i)).toBeInTheDocument();
+    const card = await screen.findByRole("listitem", { name: "01/10/2026 · 10. Desorganizar rival" });
 
-    await selectSession();
+    await userEvent.click(within(card).getByRole("button", { name: "Eliminar" }));
+    const confirm = await screen.findByRole("dialog");
+    expect(within(confirm).getByText(/10\. Desorganizar rival/)).toBeInTheDocument();
+    expect(deleteSessionEvaluationMock).not.toHaveBeenCalled();
 
-    expect(screen.getByRole("region", { name: "Valorar la sesión" })).toBeInTheDocument();
-    expect(screen.queryByLabelText(/fecha/i)).not.toBeInTheDocument();
+    getSessionEvaluationsMock.mockResolvedValue([item()]);
+    await userEvent.click(within(confirm).getByRole("button", { name: "Eliminar" }));
+
+    await waitFor(() => expect(deleteSessionEvaluationMock).toHaveBeenCalledWith("team-1", "tp-1", "ses-1"));
+    expect(await screen.findByText("Sin valorar")).toBeInTheDocument();
+    expect(lastSnackbar()).toEqual({ message: "Seguimiento eliminado", severity: "success" });
   });
 
-  it("al guardar la sesión crea una observación por subprincipio valorado y avisa", async () => {
-    useRecentSessionsMock.mockReturnValue({ sessions: [RECENT_SESSION], loading: false });
-    createPlayerObservationMock
-      .mockResolvedValueOnce({ ...CREATED, id: "obs-a", date: "2026-09-28" })
-      .mockResolvedValueOnce({ ...CREATED, id: "obs-b", date: "2026-09-28", subprincipioLabel: "4.1 Asegurar tras robo" });
+  it("cancelar la confirmación no borra", async () => {
+    getSessionEvaluationsMock.mockResolvedValue([EVALUATED]);
     render(<PlayerTrackingPanel teamId="team-1" teamPlayerId="tp-1" />);
-    await screen.findByText("Aún no hay observaciones para este jugador");
-    await selectSession();
+    const card = await screen.findByRole("listitem", { name: "01/10/2026 · 10. Desorganizar rival" });
+    await userEvent.click(within(card).getByRole("button", { name: "Eliminar" }));
 
-    await rateInSession("Circular para desordenar", "No lo hace");
-    await rateInSession("Asegurar tras robo", "A veces");
-    await userEvent.click(screen.getByRole("button", { name: /guardar/i }));
+    await userEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Cancelar" }));
 
-    await waitFor(() => expect(createPlayerObservationMock).toHaveBeenCalledTimes(2));
-    expect(createPlayerObservationMock).toHaveBeenNthCalledWith(1, "team-1", "tp-1", expect.objectContaining({ subprincipioId: "s-23", date: "2026-09-28" }));
-    expect(createPlayerObservationMock).toHaveBeenNthCalledWith(2, "team-1", "tp-1", expect.objectContaining({ subprincipioId: "s-41", date: "2026-09-28" }));
-    expect(await screen.findByText("4.1 Asegurar tras robo")).toBeInTheDocument();
-    const event = snackbarListener.mock.calls[0][0] as CustomEvent;
-    expect(event.detail).toEqual({ message: "2 observaciones guardadas", severity: "success" });
-  });
-
-  it("si falla alguna observación de la sesión avisa con el error", async () => {
-    useRecentSessionsMock.mockReturnValue({ sessions: [RECENT_SESSION], loading: false });
-    createPlayerObservationMock
-      .mockResolvedValueOnce({ ...CREATED, id: "obs-a" })
-      .mockRejectedValueOnce({ response: { data: { detail: "Subprincipio no encontrado" } } });
-    render(<PlayerTrackingPanel teamId="team-1" teamPlayerId="tp-1" />);
-    await screen.findByText("Aún no hay observaciones para este jugador");
-    await selectSession();
-
-    await rateInSession("Circular para desordenar", "No lo hace");
-    await rateInSession("Asegurar tras robo", "A veces");
-    await userEvent.click(screen.getByRole("button", { name: /guardar/i }));
-
-    await waitFor(() => expect(snackbarListener).toHaveBeenCalled());
-    const event = snackbarListener.mock.calls[0][0] as CustomEvent;
-    expect(event.detail).toEqual({ message: "Subprincipio no encontrado", severity: "error" });
-    expect(
-      within(screen.getByRole("group", { name: "Asegurar tras robo" })).getByRole("button", { name: "A veces" }),
-    ).toHaveAttribute("aria-pressed", "true");
-  });
-
-  describe("editar y eliminar", () => {
-    beforeEach(() => {
-      getPlayerObservationsMock.mockResolvedValue([CREATED]);
-    });
-
-    it("eliminar pide confirmación y no borra hasta confirmar", async () => {
-      render(<PlayerTrackingPanel teamId="team-1" teamPlayerId="tp-1" />);
-      await screen.findByText("30/09/2026");
-
-      await userEvent.click(screen.getByRole("button", { name: "Eliminar observación" }));
-
-      const dialog = await screen.findByRole("dialog");
-      expect(within(dialog).getByText("Eliminar observación")).toBeInTheDocument();
-      expect(within(dialog).getByText(/2\.3 Circular para desordenar.*30\/09\/2026/)).toBeInTheDocument();
-      expect(deletePlayerObservationMock).not.toHaveBeenCalled();
-    });
-
-    it("cancelar la confirmación no borra la observación", async () => {
-      render(<PlayerTrackingPanel teamId="team-1" teamPlayerId="tp-1" />);
-      await screen.findByText("30/09/2026");
-      await userEvent.click(screen.getByRole("button", { name: "Eliminar observación" }));
-
-      await userEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Cancelar" }));
-
-      expect(deletePlayerObservationMock).not.toHaveBeenCalled();
-      expect(screen.getByText("30/09/2026")).toBeInTheDocument();
-    });
-
-    it("confirmar elimina la observación y avisa", async () => {
-      deletePlayerObservationMock.mockResolvedValue(undefined);
-      render(<PlayerTrackingPanel teamId="team-1" teamPlayerId="tp-1" />);
-      await screen.findByText("30/09/2026");
-      await userEvent.click(screen.getByRole("button", { name: "Eliminar observación" }));
-
-      await userEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Eliminar" }));
-
-      await waitFor(() => expect(screen.queryByText("30/09/2026")).not.toBeInTheDocument());
-      expect(deletePlayerObservationMock).toHaveBeenCalledWith("team-1", "tp-1", "obs-1");
-      const event = snackbarListener.mock.calls[0][0] as CustomEvent;
-      expect(event.detail).toEqual({ message: "Observación eliminada", severity: "success" });
-    });
-
-    it("editar guarda los cambios y avisa", async () => {
-      updatePlayerObservationMock.mockResolvedValue({ ...CREATED, assessment: "Partial", comment: "Mejora" });
-      render(<PlayerTrackingPanel teamId="team-1" teamPlayerId="tp-1" />);
-      await screen.findByText("30/09/2026");
-      const list = screen.getByRole("list", { name: "Observaciones" });
-
-      await userEvent.click(within(list).getByRole("button", { name: "Editar observación" }));
-      await userEvent.click(within(list).getByRole("button", { name: "A veces" }));
-      await userEvent.click(within(list).getByRole("button", { name: "Guardar" }));
-
-      await waitFor(() => expect(within(list).getByText("Mejora")).toBeInTheDocument());
-      const event = snackbarListener.mock.calls[0][0] as CustomEvent;
-      expect(event.detail).toEqual({ message: "Observación actualizada", severity: "success" });
-    });
-
-    it("si falla la edición avisa con el error", async () => {
-      updatePlayerObservationMock.mockRejectedValue({ response: { data: { detail: "Observación no encontrada" } } });
-      render(<PlayerTrackingPanel teamId="team-1" teamPlayerId="tp-1" />);
-      await screen.findByText("30/09/2026");
-      const list = screen.getByRole("list", { name: "Observaciones" });
-
-      await userEvent.click(within(list).getByRole("button", { name: "Editar observación" }));
-      await userEvent.click(within(list).getByRole("button", { name: "Guardar" }));
-
-      await waitFor(() => expect(snackbarListener).toHaveBeenCalled());
-      const event = snackbarListener.mock.calls[0][0] as CustomEvent;
-      expect(event.detail).toEqual({ message: "Observación no encontrada", severity: "error" });
-    });
-  });
-
-  it("la confirmación de borrado de una actitud nombra el rasgo", async () => {
-    getPlayerObservationsMock.mockResolvedValue([
-      {
-        ...CREATED,
-        kind: "Attitude",
-        subprincipioId: null,
-        momentName: null,
-        principleLabel: null,
-        subprincipioLabel: null,
-        attitudeKey: "patience",
-        attitudeLabel: "Paciencia con balón",
-      },
-    ]);
-    render(<PlayerTrackingPanel teamId="team-1" teamPlayerId="tp-1" />);
-    await screen.findByText("30/09/2026");
-
-    await userEvent.click(screen.getByRole("button", { name: "Eliminar observación" }));
-
-    expect(within(await screen.findByRole("dialog")).getByText(/Paciencia con balón/)).toBeInTheDocument();
-  });
-
-  describe("periodo", () => {
-    it("por defecto muestra el último mes", async () => {
-      render(<PlayerTrackingPanel teamId="team-1" teamPlayerId="tp-1" />);
-      await screen.findByText("Aún no hay observaciones para este jugador");
-
-      expect(getPlayerObservationsMock).toHaveBeenCalledWith("team-1", "tp-1", "2026-09-01");
-      expect(screen.getByRole("button", { name: "Último mes" })).toHaveAttribute("aria-pressed", "true");
-    });
-
-    it("con «Todo» pide las observaciones sin inicio de periodo", async () => {
-      render(<PlayerTrackingPanel teamId="team-1" teamPlayerId="tp-1" />);
-      await screen.findByText("Aún no hay observaciones para este jugador");
-
-      await userEvent.click(screen.getByRole("button", { name: "Todo" }));
-
-      await waitFor(() => expect(getPlayerObservationsMock).toHaveBeenLastCalledWith("team-1", "tp-1", undefined));
-    });
-
-    it("el título indica cuántas observaciones hay", async () => {
-      getPlayerObservationsMock.mockResolvedValue([CREATED, { ...CREATED, id: "obs-2" }]);
-      render(<PlayerTrackingPanel teamId="team-1" teamPlayerId="tp-1" />);
-
-      expect(await screen.findByRole("heading", { name: "Observaciones (2)" })).toBeInTheDocument();
-    });
-
-    it("avisa si lo guardado queda fuera del periodo elegido", async () => {
-      createPlayerObservationMock.mockResolvedValue({ ...CREATED, date: "2026-08-20" });
-      render(<PlayerTrackingPanel teamId="team-1" teamPlayerId="tp-1" />);
-      await screen.findByText("Aún no hay observaciones para este jugador");
-
-      await fillAndSave();
-
-      await waitFor(() => expect(snackbarListener).toHaveBeenCalled());
-      const event = snackbarListener.mock.calls[0][0] as CustomEvent;
-      expect(event.detail).toEqual({
-        message: "Observación guardada. No se muestra porque es anterior al periodo elegido.",
-        severity: "success",
-      });
-      expect(screen.getByText("Aún no hay observaciones para este jugador")).toBeInTheDocument();
-    });
+    expect(deleteSessionEvaluationMock).not.toHaveBeenCalled();
   });
 });

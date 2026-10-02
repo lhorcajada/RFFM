@@ -113,3 +113,80 @@ export async function updatePlayerObservation(
 export async function deletePlayerObservation(teamId: string, teamPlayerId: string, observationId: string): Promise<void> {
   await client.delete(`${observationsUrl(teamId, teamPlayerId)}/${encodeURIComponent(observationId)}`);
 }
+
+// ── Seguimiento por sesión ───────────────────────────────────────────────
+
+export type SessionEvaluationSummary = {
+  achieved: number;
+  partial: number;
+  notAchieved: number;
+  updatedAt: string;
+};
+
+export type PlayerSessionListItem = {
+  sessionId: string;
+  name: string;
+  date: string;
+  isHeld: boolean;
+  hasCalendarEvent: boolean;
+  assistanceTypeId: number | null;
+  evaluation: SessionEvaluationSummary | null;
+};
+
+export type SubprincipioEvaluation = {
+  subprincipioId: string | null;
+  momentName: string;
+  principleLabel: string;
+  subprincipioLabel: string;
+  assessment: ObservationAssessment;
+  comment: string | null;
+};
+
+export type SessionEvaluation = {
+  id: string;
+  trainingSessionId: string | null;
+  sessionName: string;
+  sessionDate: string;
+  subprincipios: SubprincipioEvaluation[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type SaveSessionEvaluationItem = {
+  subprincipioId: string;
+  assessment: ObservationAssessment;
+  comment?: string | null;
+};
+
+function sessionEvaluationsUrl(teamId: string, teamPlayerId: string): string {
+  return `/api/teams/${encodeURIComponent(teamId)}/players/${encodeURIComponent(teamPlayerId)}/session-evaluations`;
+}
+
+export async function getSessionEvaluations(teamId: string, teamPlayerId: string): Promise<PlayerSessionListItem[]> {
+  const resp = await client.get<PlayerSessionListItem[]>(sessionEvaluationsUrl(teamId, teamPlayerId));
+  return resp.data;
+}
+
+export async function getSessionEvaluation(teamId: string, teamPlayerId: string, sessionId: string): Promise<SessionEvaluation> {
+  const resp = await client.get<SessionEvaluation>(
+    `${sessionEvaluationsUrl(teamId, teamPlayerId)}/${encodeURIComponent(sessionId)}`,
+  );
+  return resp.data;
+}
+
+export async function saveSessionEvaluation(
+  teamId: string,
+  teamPlayerId: string,
+  sessionId: string,
+  evaluations: SaveSessionEvaluationItem[],
+): Promise<SessionEvaluation> {
+  const resp = await client.put<SessionEvaluation>(
+    `${sessionEvaluationsUrl(teamId, teamPlayerId)}/${encodeURIComponent(sessionId)}`,
+    { evaluations },
+  );
+  return resp.data;
+}
+
+export async function deleteSessionEvaluation(teamId: string, teamPlayerId: string, sessionId: string): Promise<void> {
+  await client.delete(`${sessionEvaluationsUrl(teamId, teamPlayerId)}/${encodeURIComponent(sessionId)}`);
+}

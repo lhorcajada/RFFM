@@ -1,0 +1,67 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--rffm-card-text, #e8e8e8);
+}
+
+.state {
+  display: flex;
+  justify-content: center;
+  padding: 24px 0;
+}
+
+.empty {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--rffm-muted, #a59f9f);
+}
+
+.context {
+  font-size: 0.75rem;
+  color: var(--rffm-muted, #a59f9f);
+  overflow-wrap: anywhere;
+}
+
+.subprincipio {
+  margin-top: -6px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--rffm-card-text, #e8e8e8);
+  overflow-wrap: anywhere;
+}
+
+.targets {
+  margin: 0;
+  padding-left: 16px;
+  font-size: 0.8rem;
+  color: var(--rffm-card-text, #e8e8e8);
+  overflow-wrap: anywhere;
+}
+
+.targets li + li {
+  margin-top: 6px;
+}
+
+.targetLine {
+  font-weight: 600;
+}
+
+.targetText {
+  display: block;
+  margin-top: 2px;
+  color: var(--rffm-muted, #a59f9f);
+  white-space: pre-wrap;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+}

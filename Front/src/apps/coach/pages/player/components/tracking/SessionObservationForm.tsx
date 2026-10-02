@@ -1,28 +1,19 @@
 import { useState } from "react";
-import { Alert, Button } from "@mui/material";
+import { Button } from "@mui/material";
 import { format, parseISO } from "date-fns";
 import {
   ATTITUDE_TRAITS,
   type CreatePlayerObservationRequest,
   type ObservationAssessment,
 } from "../../../../services/playerTrackingService";
-import type { SessionTargetDetail, TrainingSession } from "../../../../types/training";
+import type { TrainingSession } from "../../../../types/training";
 import { useSessionDetail } from "../../hooks/useSessionDetail";
-import {
-  isAbsent,
-  usePlayerSessionAttendance,
-  type SessionAttendance,
-} from "../../hooks/usePlayerSessionAttendance";
+import { isAbsent, usePlayerSessionAttendance } from "../../hooks/usePlayerSessionAttendance";
+import { groupTargetsBySubprincipio, targetLine } from "../../utils/sessionTargets";
+import AttendanceNotice from "./AttendanceNotice";
 import RatingBlock, { type RatingDraft } from "./RatingBlock";
 import SessionContent from "./SessionContent";
 import styles from "./SessionObservationForm.module.css";
-
-type SubprincipioBlock = {
-  subprincipioId: string;
-  titulo: string;
-  context: string;
-  targets: SessionTargetDetail[];
-};
 
 type RequestBase = { date: string; assessment: ObservationAssessment; comment: string | null; trainingSessionId: string };
 
@@ -36,53 +27,8 @@ type RatingItem = {
 
 const EMPTY_DRAFT: RatingDraft = { assessment: null, comment: "" };
 
-function groupBySubprincipio(targets: SessionTargetDetail[]): SubprincipioBlock[] {
-  const blocks = new Map<string, SubprincipioBlock>();
-  for (const t of targets) {
-    const block = blocks.get(t.subprincipioId) ?? {
-      subprincipioId: t.subprincipioId,
-      titulo: t.subprincipioTitulo,
-      context: `${t.gameMomentName} · ${t.principioTitulo}`,
-      targets: [],
-    };
-    block.targets.push(t);
-    blocks.set(t.subprincipioId, block);
-  }
-  return [...blocks.values()];
-}
-
-function targetLine(t: SessionTargetDetail): string {
-  const base = `${t.numero} ${t.rol}`;
-  return t.zonaLabel ? `${base} · ${t.zonaLabel}` : base;
-}
-
 const subprincipioKey = (id: string) => `sub:${id}`;
 const attitudeKey = (key: string) => `att:${key}`;
-
-function AttendanceNotice({ attendance }: { attendance: SessionAttendance }) {
-  switch (attendance) {
-    case "absent-excused":
-    case "absent-unexcused":
-      return (
-        <Alert severity="warning">
-          El jugador no asistió a este entrenamiento ({attendance === "absent-excused" ? "con excusa" : "sin excusa"}).
-          Si valoras algún subprincipio o la actitud, explica en el comentario por qué.
-        </Alert>
-      );
-    case "late":
-      return <Alert severity="info">El jugador llegó tarde a este entrenamiento.</Alert>;
-    case "unknown":
-      return <Alert severity="info">No hay asistencia registrada para este jugador en esta sesión.</Alert>;
-    case "no-event":
-      return (
-        <Alert severity="info">
-          La sesión no está vinculada a un evento del calendario; no se puede comprobar la asistencia.
-        </Alert>
-      );
-    default:
-      return null;
-  }
-}
 
 type Props = {
   session: TrainingSession;
@@ -97,7 +43,7 @@ export default function SessionObservationForm({ session, teamPlayerId, saving, 
   const { attendance } = usePlayerSessionAttendance(session.sportEventId, teamPlayerId);
   const [drafts, setDrafts] = useState<Record<string, RatingDraft>>({});
 
-  const blocks = groupBySubprincipio(session.targets);
+  const blocks = groupTargetsBySubprincipio(session.targets);
   const commentRequired = isAbsent(attendance);
   const date = (session.date ?? "").slice(0, 10);
 

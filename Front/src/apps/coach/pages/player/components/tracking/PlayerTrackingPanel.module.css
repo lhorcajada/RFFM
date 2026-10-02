@@ -11,11 +11,6 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-top: 8px;
-}
-
-.periodButton {
-  text-transform: none;
 }
 
 .title {
