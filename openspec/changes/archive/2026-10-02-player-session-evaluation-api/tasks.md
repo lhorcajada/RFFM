@@ -34,4 +34,4 @@
 ## 4. Cierre
 
 - [x] `openspec validate player-session-evaluation-api --strict`.
-- [ ] Commits tras confirmación del usuario: migración (`chore(mcp-api)`) y código (`feat(mcp-api)`).
+- [x] Commits tras confirmación del usuario: migración (`4d71ac81`) y código (`38163ae1`).

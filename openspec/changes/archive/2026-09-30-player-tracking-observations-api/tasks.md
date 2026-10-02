@@ -32,6 +32,6 @@
 
 - [x] Subir la versión minor de la API en `Directory.Build.props`.
 - [x] `openspec validate player-tracking-observations-api --strict`.
-- [ ] Commits tras confirmación del usuario:
+- [x] Commits tras confirmación del usuario (`40515646` migración, `987ef95f` código):
   - migración (`chore(mcp-api)`);
   - código (`feat(mcp-api)`).
