@@ -61,6 +61,27 @@
   white-space: pre-wrap;
 }
 
+.habilidades {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.habilidadesTitle {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--rffm-muted, #a59f9f);
+}
+
+.habilidadesList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
 .actions {
   display: flex;
   justify-content: flex-end;

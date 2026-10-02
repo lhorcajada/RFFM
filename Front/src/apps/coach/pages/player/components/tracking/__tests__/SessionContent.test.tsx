@@ -1,6 +1,14 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+
+vi.mock("../SessionExerciseCard", () => ({
+  default: ({ blockExercise, exercise }: { blockExercise: { name?: string }; exercise?: { id: string } }) => (
+    <div>{`tarjeta:${blockExercise.name}:${exercise ? "completo" : "basico"}`}</div>
+  ),
+}));
+
 import SessionContent from "../SessionContent";
+import { exercise } from "../../../__tests__/exerciseFixtures";
 import type { TrainingSessionDetail } from "../../../../../types/training";
 
 const DETAIL: TrainingSessionDetail = {
@@ -39,26 +47,47 @@ const DETAIL: TrainingSessionDetail = {
 };
 
 describe("SessionContent", () => {
-  it("muestra el objetivo general y los ejercicios a la vista, por bloque y en orden", () => {
-    render(<SessionContent detail={DETAIL} loading={false} />);
+  it("muestra el objetivo general y una tarjeta por ejercicio, por bloque y en orden", () => {
+    render(<SessionContent detail={DETAIL} loading={false} exercisesById={new Map([["ex-1", exercise({ id: "ex-1" })]])} teamId="team-1" />);
 
     expect(screen.getByText("Mover al rival hasta descolocarlo")).toBeVisible();
     const blocks = screen.getAllByRole("heading", { level: 5 }).map((h) => h.textContent);
     expect(blocks).toEqual(["Parte principal", "Parte final"]);
-    const exercises = screen.getAllByRole("listitem").map((item) => item.getAttribute("aria-label"));
-    expect(exercises).toEqual(["Rondo 4x4+3", "Transiciones 6x6", "Partido condicionado"]);
-    expect(screen.getByText("Circular con paciencia · 15'")).toBeVisible();
-    expect(screen.getByText("Asegurar tras robo")).toBeVisible();
+    const cards = screen.getAllByText(/^tarjeta:/).map((c) => c.textContent);
+    expect(cards).toEqual(["tarjeta:Rondo 4x4+3:completo", "tarjeta:Transiciones 6x6:basico", "tarjeta:Partido condicionado:basico"]);
+  });
+
+  it("muestra la hora, el lugar y el evento de la sesión", () => {
+    render(
+      <SessionContent
+        detail={{ ...DETAIL, startTime: "18:00:00", endTime: "19:30:00", location: "Campo 2", sportEventName: "Entrenamiento martes" }}
+        loading={false}
+        exercisesById={new Map()}
+        teamId="team-1"
+      />,
+    );
+
+    expect(screen.getByText("18:00 – 19:30 · Campo 2 · Entrenamiento martes")).toBeInTheDocument();
+  });
+
+  it("muestra la rotación entre ejercicios del bloque", () => {
+    const detail = {
+      ...DETAIL,
+      blocks: DETAIL.blocks.map((b) => (b.order === 1 ? { ...b, rotacionEntreEjercicios: "Cambian cada 8 minutos" } : b)),
+    };
+    render(<SessionContent detail={detail} loading={false} exercisesById={new Map()} teamId="team-1" />);
+
+    expect(screen.getByText("Rotación: Cambian cada 8 minutos")).toBeInTheDocument();
   });
 
   it("avisa si la sesión no tiene ejercicios", () => {
-    render(<SessionContent detail={{ ...DETAIL, blocks: [] }} loading={false} />);
+    render(<SessionContent detail={{ ...DETAIL, blocks: [] }} loading={false} exercisesById={new Map()} teamId="team-1" />);
 
     expect(screen.getByText("La sesión no tiene ejercicios registrados")).toBeInTheDocument();
   });
 
   it("muestra un indicador mientras carga", () => {
-    render(<SessionContent detail={null} loading />);
+    render(<SessionContent detail={null} loading exercisesById={new Map()} teamId="team-1" />);
 
     expect(screen.getByRole("progressbar")).toBeInTheDocument();
   });

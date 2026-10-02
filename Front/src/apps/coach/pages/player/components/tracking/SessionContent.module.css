@@ -40,22 +40,24 @@
   color: var(--rffm-muted, #a59f9f);
 }
 
-.exercises {
-  margin: 2px 0 0;
-  padding-left: 16px;
-  font-size: 0.85rem;
-  color: var(--rffm-card-text, #e8e8e8);
-}
-
-.exerciseName {
-  font-weight: 600;
-}
-
-.exerciseInfo {
-  display: block;
+.schedule {
+  margin: 0;
   font-size: 0.8rem;
   color: var(--rffm-muted, #a59f9f);
-  overflow-wrap: anywhere;
+}
+
+.rotation {
+  margin: 2px 0 0;
+  font-size: 0.8rem;
+  font-style: italic;
+  color: var(--rffm-muted, #a59f9f);
+}
+
+.exercises {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px;
+  margin-top: 6px;
 }
 
 .state {

@@ -3,7 +3,8 @@ import { render, screen, within, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import SessionEvaluationForm from "../SessionEvaluationForm";
 import type { PlayerSessionListItem, SessionEvaluation } from "../../../../../services/playerTrackingService";
-import type { SessionTargetDetail, TrainingSessionDetail } from "../../../../../types/training";
+import type { Exercise, SessionTargetDetail, TrainingSessionDetail } from "../../../../../types/training";
+import { exercise, relation } from "../../../__tests__/exerciseFixtures";
 
 function target(overrides: Partial<SessionTargetDetail> = {}): SessionTargetDetail {
   return {
@@ -66,7 +67,17 @@ const DETAIL: TrainingSessionDetail = {
 function renderForm(props: Partial<React.ComponentProps<typeof SessionEvaluationForm>> = {}) {
   const onSubmit = vi.fn().mockResolvedValue(undefined);
   render(
-    <SessionEvaluationForm session={SESSION} detail={DETAIL} loadingDetail={false} initial={null} saving={false} onSubmit={onSubmit} {...props} />,
+    <SessionEvaluationForm
+      session={SESSION}
+      detail={DETAIL}
+      loadingDetail={false}
+      exercisesById={new Map<string, Exercise>()}
+      teamId="team-1"
+      initial={null}
+      saving={false}
+      onSubmit={onSubmit}
+      {...props}
+    />,
   );
   return onSubmit;
 }
@@ -81,7 +92,8 @@ describe("SessionEvaluationForm", () => {
 
     expect(screen.getByText("01/10/2026 · 10. Desorganizar rival")).toBeInTheDocument();
     expect(screen.getByText("Rondo 4x4+3")).toBeInTheDocument();
-    expect(screen.getByText("Circular con paciencia · 15'")).toBeInTheDocument();
+    expect(screen.getByText("Circular con paciencia")).toBeInTheDocument();
+    expect(screen.getByText("15'")).toBeInTheDocument();
     expect(within(block("Circular para desordenar")).getByText("2.3.1 Extremo: fijar por dentro · Zona de Creación Rival")).toBeInTheDocument();
     expect(block("Asegurar tras robo")).toBeInTheDocument();
     expect(screen.queryByRole("combobox", { name: /habilidades/i })).not.toBeInTheDocument();
@@ -94,6 +106,18 @@ describe("SessionEvaluationForm", () => {
     expect(
       within(block("Circular para desordenar")).getByText("Fija por dentro para liberar el pasillo al lateral."),
     ).toBeInTheDocument();
+  });
+
+  it("muestra en cada subprincipio las habilidades trabajadas en los ejercicios de la sesión", () => {
+    const exercisesById = new Map<string, Exercise>([
+      ["ex-1", exercise({ id: "ex-1", modelRelations: [relation({ habilidadesImprescindibles: ["Pase", "Percepción"] })] })],
+      ["ex-2", exercise({ id: "ex-2", modelRelations: [relation({ id: "rel-2", habilidadesImprescindibles: ["Pase", "Desmarque"] })] })],
+    ]);
+    renderForm({ exercisesById });
+
+    const habilidades = within(block("Circular para desordenar")).getByRole("list", { name: "Habilidades trabajadas" });
+    expect(within(habilidades).getAllByRole("listitem").map((i) => i.textContent)).toEqual(["Pase", "Percepción", "Desmarque"]);
+    expect(within(block("Asegurar tras robo")).queryByRole("list", { name: "Habilidades trabajadas" })).not.toBeInTheDocument();
   });
 
   it("deshabilita Guardar hasta valorar algún subprincipio y envía solo los valorados", async () => {

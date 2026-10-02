@@ -8,6 +8,11 @@ vi.mock("../../../hooks/useSessionDetail", () => ({
   useSessionDetail: (id: string | null) => useSessionDetailMock(id),
 }));
 
+const useSessionExercisesMock = vi.fn();
+vi.mock("../../../hooks/useSessionExercises", () => ({
+  useSessionExercises: (detail: unknown) => useSessionExercisesMock(detail),
+}));
+
 const getSessionEvaluationMock = vi.fn();
 vi.mock("../../../../../services/playerTrackingService", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../../../../services/playerTrackingService")>()),
@@ -65,6 +70,7 @@ describe("SessionEvaluationDialog", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     useSessionDetailMock.mockReturnValue({ detail: null, loading: false });
+    useSessionExercisesMock.mockReturnValue({ exercisesById: new Map(), loading: false });
   });
 
   it("sin sesión inicial ofrece solo las sesiones celebradas sin seguimiento", async () => {
@@ -94,5 +100,14 @@ describe("SessionEvaluationDialog", () => {
     expect(screen.queryByRole("combobox", { name: /sesión/i })).not.toBeInTheDocument();
     await waitFor(() => expect(screen.getByText("formulario:done:ev-9")).toBeInTheDocument());
     expect(getSessionEvaluationMock).toHaveBeenCalledWith("team-1", "tp-1", "done");
+  });
+
+  it("pide los ejercicios completos del detalle de la sesión", async () => {
+    const detail = { id: "pending", blocks: [], targets: [] };
+    useSessionDetailMock.mockReturnValue({ detail, loading: false });
+    renderDialog("pending");
+
+    expect(await screen.findByText("formulario:pending:nuevo")).toBeInTheDocument();
+    expect(useSessionExercisesMock).toHaveBeenLastCalledWith(detail);
   });
 });

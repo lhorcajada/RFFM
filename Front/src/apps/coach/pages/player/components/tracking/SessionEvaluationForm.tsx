@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button, CircularProgress } from "@mui/material";
+import { Button, Chip, CircularProgress } from "@mui/material";
 import { format, parseISO } from "date-fns";
 import type {
   ObservationAssessment,
@@ -7,8 +7,9 @@ import type {
   SaveSessionEvaluationItem,
   SessionEvaluation,
 } from "../../../../services/playerTrackingService";
-import type { TrainingSessionDetail } from "../../../../types/training";
+import type { Exercise, TrainingSessionDetail } from "../../../../types/training";
 import { attendanceFromAssistanceType, isAbsent } from "../../utils/sessionAttendance";
+import { habilidadesBySubprincipio } from "../../utils/sessionHabilidades";
 import { groupTargetsBySubprincipio, targetLine } from "../../utils/sessionTargets";
 import AttendanceNotice from "./AttendanceNotice";
 import RatingBlock, { type RatingDraft } from "./RatingBlock";
@@ -29,18 +30,30 @@ type Props = {
   session: PlayerSessionListItem;
   detail: TrainingSessionDetail | null;
   loadingDetail: boolean;
+  exercisesById: Map<string, Exercise>;
+  teamId: string;
   initial: SessionEvaluation | null;
   saving: boolean;
   onSubmit: (items: SaveSessionEvaluationItem[]) => Promise<void>;
 };
 
 /** Valoración de un jugador en una sesión: un bloque por subprincipio trabajado en ella. */
-export default function SessionEvaluationForm({ session, detail, loadingDetail, initial, saving, onSubmit }: Props) {
+export default function SessionEvaluationForm({
+  session,
+  detail,
+  loadingDetail,
+  exercisesById,
+  teamId,
+  initial,
+  saving,
+  onSubmit,
+}: Props) {
   const [drafts, setDrafts] = useState<Record<string, RatingDraft>>(() => initialDrafts(initial));
 
   const attendance = attendanceFromAssistanceType(session.hasCalendarEvent, session.assistanceTypeId);
   const commentRequired = isAbsent(attendance);
   const blocks = groupTargetsBySubprincipio(detail?.targets ?? []);
+  const habilidades = habilidadesBySubprincipio([...exercisesById.values()]);
 
   const draftOf = (id: string): RatingDraft => drafts[id] ?? EMPTY_DRAFT;
   const updateDraft = (id: string, change: Partial<RatingDraft>) =>
@@ -78,7 +91,7 @@ export default function SessionEvaluationForm({ session, detail, loadingDetail, 
         </div>
       ) : (
         <>
-          <SessionContent detail={detail} loading={false} />
+          <SessionContent detail={detail} loading={false} exercisesById={exercisesById} teamId={teamId} />
 
           {blocks.length === 0 ? (
             <p className={styles.empty}>
@@ -105,6 +118,18 @@ export default function SessionEvaluationForm({ session, detail, loadingDetail, 
                       </li>
                     ))}
                   </ul>
+                  {(habilidades.get(block.subprincipioId) ?? []).length > 0 && (
+                    <div className={styles.habilidades}>
+                      <span className={styles.habilidadesTitle}>Habilidades trabajadas</span>
+                      <ul className={styles.habilidadesList} aria-label="Habilidades trabajadas">
+                        {habilidades.get(block.subprincipioId)!.map((h) => (
+                          <li key={h}>
+                            <Chip size="small" color="success" variant="outlined" label={h} />
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </RatingBlock>
               ))}
               <div className={styles.actions}>
