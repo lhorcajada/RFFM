@@ -56,5 +56,37 @@ namespace RFFM.Api.Tests.IntegrationTests
             Assert.Equal("2.3 Circular para desordenar", item.SubprincipioLabel);
             Assert.Equal(ObservationAssessment.NotAchieved, item.Assessment);
         }
+
+        [Fact]
+        public async Task DeletingTheCatalogComment_KeepsTheCommentEvaluationWithItsTitle()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, teamPlayerId, _) = await PlayerModelObservationPersistenceTests.SeedAsync(db);
+            var comment = TrackingComment.Create(teamId, "Implicación defensiva", null, "coach-1");
+            db.TrackingComments.Add(comment);
+            var session = new TrainingSession { TeamId = teamId, Name = "Sesión", Date = new DateTime(2026, 9, 14, 0, 0, 0, DateTimeKind.Utc) };
+            db.TrainingSessions.Add(session);
+            await db.SaveChangesAsync();
+
+            var evaluation = PlayerSessionEvaluation.Create(
+                teamId, teamPlayerId, new SessionSnapshot(session.Id, session.Name, new DateOnly(2026, 9, 14)),
+                Enumerable.Empty<SubprincipioEvaluationInput>(), "coach-1", new DateOnly(2026, 10, 1),
+                new[] { new CommentEvaluationInput(comment.Id, comment.Title, ObservationAssessment.NotAchieved, "No ayuda atrás") });
+            db.PlayerSessionEvaluations.Add(evaluation);
+            await db.SaveChangesAsync();
+
+            db.TrackingComments.Remove(comment);
+            await db.SaveChangesAsync();
+
+            await using var readDb = _fixture.CreateDbContext();
+            var stored = await readDb.PlayerSessionEvaluations
+                .AsNoTracking()
+                .Include(e => e.Comments)
+                .SingleAsync(e => e.Id == evaluation.Id);
+            var item = Assert.Single(stored.Comments);
+            Assert.Null(item.TrackingCommentId);
+            Assert.Equal("Implicación defensiva", item.Title);
+            Assert.Equal("No ayuda atrás", item.Note);
+        }
     }
 }

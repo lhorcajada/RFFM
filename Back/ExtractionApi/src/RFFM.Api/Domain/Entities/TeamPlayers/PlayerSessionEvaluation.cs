@@ -26,6 +26,9 @@ namespace RFFM.Api.Domain.Entities.TeamPlayers
         private readonly List<SubprincipioEvaluation> _subprincipios = new();
         public IReadOnlyCollection<SubprincipioEvaluation> Subprincipios => _subprincipios.AsReadOnly();
 
+        private readonly List<CommentEvaluation> _comments = new();
+        public IReadOnlyCollection<CommentEvaluation> Comments => _comments.AsReadOnly();
+
         private PlayerSessionEvaluation() { }
 
         public static PlayerSessionEvaluation Create(
@@ -34,7 +37,8 @@ namespace RFFM.Api.Domain.Entities.TeamPlayers
             SessionSnapshot session,
             IEnumerable<SubprincipioEvaluationInput> evaluations,
             string createdByUserId,
-            DateOnly today)
+            DateOnly today,
+            IEnumerable<CommentEvaluationInput>? comments = null)
         {
             Require(teamId, nameof(teamId));
             Require(teamPlayerId, nameof(teamPlayerId));
@@ -57,24 +61,32 @@ namespace RFFM.Api.Domain.Entities.TeamPlayers
                 CreatedAt = now,
                 UpdatedAt = now
             };
-            evaluation.SetEvaluations(evaluations);
+            evaluation.SetEvaluations(evaluations, comments);
             return evaluation;
         }
 
-        public void ReplaceEvaluations(IEnumerable<SubprincipioEvaluationInput> evaluations, DateOnly today)
+        public void ReplaceEvaluations(
+            IEnumerable<SubprincipioEvaluationInput> evaluations, DateOnly today, IEnumerable<CommentEvaluationInput>? comments = null)
         {
             if (SessionDate > today)
                 throw new DomainException(Title, "No se puede valorar una sesión que aún no se ha celebrado.", ErrorCodes.SessionNotHeldYet);
 
-            SetEvaluations(evaluations);
+            SetEvaluations(evaluations, comments);
             UpdatedAt = DateTime.UtcNow;
         }
 
-        private void SetEvaluations(IEnumerable<SubprincipioEvaluationInput> evaluations)
+        private void SetEvaluations(IEnumerable<SubprincipioEvaluationInput> evaluations, IEnumerable<CommentEvaluationInput>? comments)
         {
             var items = (evaluations ?? Enumerable.Empty<SubprincipioEvaluationInput>()).ToList();
-            if (items.Count == 0)
-                throw new DomainException(Title, "El seguimiento debe valorar al menos un subprincipio.", ErrorCodes.SessionEvaluationEmpty);
+            var commentItems = (comments ?? Enumerable.Empty<CommentEvaluationInput>()).ToList();
+            if (items.Count == 0 && commentItems.Count == 0)
+                throw new DomainException(Title, "El seguimiento debe valorar al menos un subprincipio o un comentario.",
+                    ErrorCodes.SessionEvaluationEmpty);
+
+            var repeatedComment = commentItems.GroupBy(c => c.TrackingCommentId).Any(g => g.Count() > 1);
+            if (repeatedComment)
+                throw new DomainException(Title, "Un comentario no se puede valorar dos veces en la misma sesión.",
+                    ErrorCodes.SessionEvaluationDuplicatedComment);
 
             var repeated = items.GroupBy(i => i.Subprincipio.Id).Any(g => g.Count() > 1);
             if (repeated)
@@ -82,8 +94,11 @@ namespace RFFM.Api.Domain.Entities.TeamPlayers
                     ErrorCodes.SessionEvaluationDuplicatedSubprincipio);
 
             var created = items.Select(i => SubprincipioEvaluation.Create(Id, i)).ToList();
+            var createdComments = commentItems.Select(c => CommentEvaluation.Create(Id, c)).ToList();
             _subprincipios.Clear();
             _subprincipios.AddRange(created);
+            _comments.Clear();
+            _comments.AddRange(createdComments);
         }
 
         private static void Require(string value, string name)

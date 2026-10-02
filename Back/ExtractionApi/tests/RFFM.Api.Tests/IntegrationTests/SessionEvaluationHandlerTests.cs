@@ -100,6 +100,19 @@ namespace RFFM.Api.Tests.IntegrationTests
                 }, CancellationToken.None)
                 .AsTask();
 
+        private static Task<SaveSessionEvaluation.SessionEvaluationDto> SaveWithCommentsAsync(
+            AppDbContext db, Seed seed, SaveSessionEvaluation.EvaluationItem[] items, params SaveSessionEvaluation.CommentItem[] comments) =>
+            new SaveSessionEvaluation.Handler(db, CurrentUser())
+                .Handle(new SaveSessionEvaluation.Command
+                {
+                    TeamId = seed.TeamId,
+                    TeamPlayerId = seed.TeamPlayerId,
+                    SessionId = seed.SessionId,
+                    Evaluations = items,
+                    Comments = comments
+                }, CancellationToken.None)
+                .AsTask();
+
         private static Task<SaveSessionEvaluation.SessionEvaluationDto> GetAsync(AppDbContext db, Seed seed) =>
             new GetSessionEvaluation.Handler(db)
                 .Handle(new GetSessionEvaluation.Query { TeamId = seed.TeamId, TeamPlayerId = seed.TeamPlayerId, SessionId = seed.SessionId },
@@ -111,6 +124,77 @@ namespace RFFM.Api.Tests.IntegrationTests
                 .Handle(new DeleteSessionEvaluation.Command { TeamId = seed.TeamId, TeamPlayerId = seed.TeamPlayerId, SessionId = seed.SessionId },
                     CancellationToken.None)
                 .AsTask();
+
+        [Fact]
+        public async Task Save_WithComments_StoresThemWithTitleAndReturnsThemOnGet()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var seed = await SeedAsync(db);
+            var comment = await TrackingCommentHandlerTests.CreateAsync(db, seed.TeamId, "Implicación defensiva");
+
+            var result = await SaveWithCommentsAsync(db, seed,
+                new[] { Item(seed.SubDirectId, "Partial") },
+                new SaveSessionEvaluation.CommentItem(comment.Id, "NotAchieved", "Pregunta si vamos a hacer eso todo el entreno"));
+
+            var saved = Assert.Single(result.Comments);
+            Assert.Equal(comment.Id, saved.TrackingCommentId);
+            Assert.Equal("Implicación defensiva", saved.Title);
+            Assert.Equal("NotAchieved", saved.Assessment);
+            Assert.Equal("Pregunta si vamos a hacer eso todo el entreno", saved.Note);
+
+            await using var readDb = _fixture.CreateDbContext();
+            var read = await GetAsync(readDb, seed);
+            Assert.Single(read.Subprincipios);
+            Assert.Equal("Implicación defensiva", Assert.Single(read.Comments).Title);
+        }
+
+        [Fact]
+        public async Task Save_WithOnlyComments_IsAllowed()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var seed = await SeedAsync(db);
+            var comment = await TrackingCommentHandlerTests.CreateAsync(db, seed.TeamId, "Paciencia con balón");
+
+            var result = await SaveWithCommentsAsync(db, seed, System.Array.Empty<SaveSessionEvaluation.EvaluationItem>(),
+                new SaveSessionEvaluation.CommentItem(comment.Id, "Achieved", null));
+
+            Assert.Empty(result.Subprincipios);
+            Assert.Single(result.Comments);
+        }
+
+        [Fact]
+        public async Task Save_CommentOfAnotherTeam_ThrowsNotFound()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var seed = await SeedAsync(db);
+            var other = await SeedAsync(db);
+            var foreignComment = await TrackingCommentHandlerTests.CreateAsync(db, other.TeamId, "Implicación defensiva");
+
+            var ex = await Assert.ThrowsAsync<NotFoundException>(() => SaveWithCommentsAsync(db, seed,
+                new[] { Item(seed.SubDirectId) }, new SaveSessionEvaluation.CommentItem(foreignComment.Id, "Partial", null)));
+
+            Assert.Equal(ErrorCodes.TrackingCommentNotFound, ex.Code);
+            Assert.False(await db.PlayerSessionEvaluations.AnyAsync(e => e.TeamPlayerId == seed.TeamPlayerId));
+        }
+
+        [Fact]
+        public async Task List_SummaryCountsSubprincipiosAndComments()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var seed = await SeedAsync(db);
+            var comment = await TrackingCommentHandlerTests.CreateAsync(db, seed.TeamId, "Implicación defensiva");
+            await SaveWithCommentsAsync(db, seed, new[] { Item(seed.SubDirectId, "Partial") },
+                new SaveSessionEvaluation.CommentItem(comment.Id, "NotAchieved", null));
+
+            await using var readDb = _fixture.CreateDbContext();
+            var list = await new GetPlayerSessionEvaluations.Handler(readDb)
+                .Handle(new GetPlayerSessionEvaluations.Query { TeamId = seed.TeamId, TeamPlayerId = seed.TeamPlayerId }, CancellationToken.None);
+
+            var summary = Assert.Single(list).Evaluation!;
+            Assert.Equal(0, summary.Achieved);
+            Assert.Equal(1, summary.Partial);
+            Assert.Equal(1, summary.NotAchieved);
+        }
 
         [Fact]
         public async Task Save_CreatesTheEvaluationWithSessionAndSubprincipioLabels()

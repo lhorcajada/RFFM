@@ -61,6 +61,7 @@ namespace RFFM.Api.Features.Coaches.PlayerTracking
                 var evaluation = await db.PlayerSessionEvaluations
                     .AsNoTracking()
                     .Include(e => e.Subprincipios)
+                    .Include(e => e.Comments)
                     .SingleOrDefaultAsync(e => e.TeamId == request.TeamId
                         && e.TeamPlayerId == request.TeamPlayerId
                         && e.TrainingSessionId == request.SessionId, cancellationToken)

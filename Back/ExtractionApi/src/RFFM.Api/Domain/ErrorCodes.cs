@@ -132,6 +132,9 @@ namespace RFFM.Api.Domain
         public const string SessionEvaluationDuplicatedSubprincipio = "SessionEvaluationDuplicatedSubprincipio";
         public const string SessionNotHeldYet = "SessionNotHeldYet";
         public const string SubprincipioNotInSession = "SubprincipioNotInSession";
+        public const string SessionEvaluationDuplicatedComment = "SessionEvaluationDuplicatedComment";
+        public const string TrackingCommentNotFound = "TrackingCommentNotFound";
+        public const string TrackingCommentDuplicated = "TrackingCommentDuplicated";
 
         // Family member accounts (Features/Coaches/FamilyMemberAccounts)
         public const string FamilyMemberEmailRequired = "FamilyMemberEmailRequired";

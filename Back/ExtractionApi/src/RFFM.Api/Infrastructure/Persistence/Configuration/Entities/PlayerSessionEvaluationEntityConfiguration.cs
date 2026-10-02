@@ -49,6 +49,13 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Entities
                 .OnDelete(DeleteBehavior.Cascade);
 
             builder.Navigation(e => e.Subprincipios).UsePropertyAccessMode(PropertyAccessMode.Field);
+
+            builder.HasMany(e => e.Comments)
+                .WithOne()
+                .HasForeignKey(c => c.PlayerSessionEvaluationId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Navigation(e => e.Comments).UsePropertyAccessMode(PropertyAccessMode.Field);
         }
     }
 
@@ -71,6 +78,50 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Entities
                 .WithMany()
                 .HasForeignKey(s => s.SubprincipioId)
                 .OnDelete(DeleteBehavior.SetNull);
+        }
+    }
+
+    internal class CommentEvaluationEntityConfiguration : IEntityTypeConfiguration<CommentEvaluation>
+    {
+        public void Configure(EntityTypeBuilder<CommentEvaluation> builder)
+        {
+            builder.ToTable("PlayerSessionCommentEvaluations");
+
+            builder.HasKey(c => c.Id);
+
+            builder.Property(c => c.PlayerSessionEvaluationId).IsRequired();
+            builder.Property(c => c.Title).HasMaxLength(TrackingComment.Rules.TitleMaxLength).IsRequired();
+            builder.Property(c => c.Assessment).IsRequired();
+            builder.Property(c => c.Note).HasMaxLength(CommentEvaluation.Rules.NoteMaxLength).IsRequired(false);
+
+            // SetNull: la valoración se conserva con su título aunque el comentario salga del catálogo.
+            builder.HasOne<TrackingComment>()
+                .WithMany()
+                .HasForeignKey(c => c.TrackingCommentId)
+                .OnDelete(DeleteBehavior.SetNull);
+        }
+    }
+
+    internal class TrackingCommentEntityConfiguration : IEntityTypeConfiguration<TrackingComment>
+    {
+        public void Configure(EntityTypeBuilder<TrackingComment> builder)
+        {
+            builder.ToTable("TrackingComments");
+
+            builder.HasKey(c => c.Id);
+
+            builder.Property(c => c.TeamId).IsRequired();
+            builder.Property(c => c.Title).HasMaxLength(TrackingComment.Rules.TitleMaxLength).IsRequired();
+            builder.Property(c => c.Description).HasMaxLength(TrackingComment.Rules.DescriptionMaxLength).IsRequired(false);
+            builder.Property(c => c.CreatedByUserId).IsRequired();
+            builder.Property(c => c.CreatedAt).IsRequired();
+
+            builder.HasIndex(c => new { c.TeamId, c.Title });
+
+            builder.HasOne<Team>()
+                .WithMany()
+                .HasForeignKey(c => c.TeamId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

@@ -93,10 +93,13 @@ namespace RFFM.Api.Features.Coaches.PlayerTracking
                     {
                         SessionId = e.TrainingSessionId!,
                         e.UpdatedAt,
-                        Assessments = e.Subprincipios.Select(s => s.Assessment).ToList()
+                        Assessments = e.Subprincipios.Select(s => s.Assessment).ToList(),
+                        CommentAssessments = e.Comments.Select(c => c.Assessment).ToList()
                     })
                     .ToListAsync(cancellationToken);
-                var evaluationBySession = evaluations.ToDictionary(e => e.SessionId);
+                var evaluationBySession = evaluations.ToDictionary(
+                    e => e.SessionId,
+                    e => new { e.UpdatedAt, Assessments = e.Assessments.Concat(e.CommentAssessments).ToList() });
 
                 var today = DateTime.UtcNow.Date;
                 return sessions

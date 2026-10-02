@@ -30,9 +30,72 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
-        public void Validate_WithoutEvaluations_IsInvalid()
+        public void Validate_WithoutEvaluationsNorComments_IsInvalid()
         {
             Assert.False(IsValid(Valid() with { Evaluations = System.Array.Empty<SaveSessionEvaluation.EvaluationItem>() }));
+        }
+
+        [Fact]
+        public void Validate_WithOnlyComments_IsValid()
+        {
+            Assert.True(IsValid(Valid() with
+            {
+                Evaluations = System.Array.Empty<SaveSessionEvaluation.EvaluationItem>(),
+                Comments = new[] { new SaveSessionEvaluation.CommentItem("tc-1", "Partial", null) }
+            }));
+        }
+
+        [Fact]
+        public void Validate_RepeatedComment_IsInvalid()
+        {
+            Assert.False(IsValid(Valid() with
+            {
+                Comments = new[]
+                {
+                    new SaveSessionEvaluation.CommentItem("tc-1", "Partial", null),
+                    new SaveSessionEvaluation.CommentItem("tc-1", "Achieved", null)
+                }
+            }));
+        }
+
+        [Theory]
+        [InlineData("", "Partial", null)]
+        [InlineData("tc-1", "Excellent", null)]
+        public void Validate_InvalidComment_IsInvalid(string trackingCommentId, string assessment, string? note)
+        {
+            Assert.False(IsValid(Valid() with { Comments = new[] { new SaveSessionEvaluation.CommentItem(trackingCommentId, assessment, note) } }));
+        }
+
+        [Fact]
+        public void Validate_CommentNoteOver500Chars_IsInvalid()
+        {
+            Assert.False(IsValid(Valid() with
+            {
+                Comments = new[] { new SaveSessionEvaluation.CommentItem("tc-1", "Partial", new string('a', 501)) }
+            }));
+        }
+
+        [Theory]
+        [InlineData("", null)]
+        [InlineData("   ", null)]
+        public void CreateTrackingComment_WithoutTitle_IsInvalid(string title, string? description)
+        {
+            var command = new CreateTrackingComment.Command { TeamId = "team-1", Title = title, Description = description };
+
+            Assert.False(new CreateTrackingComment.Validator().Validate(command).IsValid);
+        }
+
+        [Fact]
+        public void CreateTrackingComment_TooLongTitleOrDescription_IsInvalid()
+        {
+            var validator = new CreateTrackingComment.Validator();
+
+            Assert.False(validator.Validate(new CreateTrackingComment.Command { TeamId = "team-1", Title = new string('a', 101) }).IsValid);
+            Assert.False(validator.Validate(new CreateTrackingComment.Command
+            {
+                TeamId = "team-1", Title = "Paciencia", Description = new string('a', 501)
+            }).IsValid);
+            Assert.True(validator.Validate(new CreateTrackingComment.Command { TeamId = "team-1", Title = "Paciencia" }).IsValid);
         }
 
         [Fact]
@@ -72,8 +135,13 @@ namespace RFFM.Api.Tests.UnitTests
             var get = new GetSessionEvaluation.Query { TeamId = "team-1", TeamPlayerId = "tp-1", SessionId = "ses-1" };
             var delete = new DeleteSessionEvaluation.Command { TeamId = "team-1", TeamPlayerId = "tp-1", SessionId = "ses-1" };
             var list = new GetPlayerSessionEvaluations.Query { TeamId = "team-1", TeamPlayerId = "tp-1" };
+            var comments = new GetTrackingComments.Query { TeamId = "team-1" };
+            var createComment = new CreateTrackingComment.Command { TeamId = "team-1", Title = "Paciencia" };
 
-            foreach (var (request, permission) in new (object, string)[] { (save, "ReadWrite"), (get, "Read"), (delete, "ReadWrite"), (list, "Read") })
+            foreach (var (request, permission) in new (object, string)[]
+            {
+                (save, "ReadWrite"), (get, "Read"), (delete, "ReadWrite"), (list, "Read"), (comments, "Read"), (createComment, "ReadWrite")
+            })
             {
                 Assert.IsAssignableFrom<IRequireTeamMembership>(request);
                 var feature = Assert.IsAssignableFrom<IRequireFeaturePermission>(request);

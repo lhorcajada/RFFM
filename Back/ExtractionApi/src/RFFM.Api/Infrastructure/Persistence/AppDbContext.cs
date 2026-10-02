@@ -53,6 +53,8 @@ namespace RFFM.Api.Infrastructure.Persistence
         public DbSet<PlayerModelObservation> PlayerModelObservations { get; set; }
         public DbSet<PlayerSessionEvaluation> PlayerSessionEvaluations { get; set; }
         public DbSet<SubprincipioEvaluation> SubprincipioEvaluations { get; set; }
+        public DbSet<TrackingComment> TrackingComments { get; set; }
+        public DbSet<CommentEvaluation> CommentEvaluations { get; set; }
         public DbSet<TeamFundMovement> TeamFundMovements { get; set; }
         public DbSet<TeamInjuryProtocol> TeamInjuryProtocols { get; set; }
         public DbSet<TeamInjuryProtocolAttachment> TeamInjuryProtocolAttachments { get; set; }

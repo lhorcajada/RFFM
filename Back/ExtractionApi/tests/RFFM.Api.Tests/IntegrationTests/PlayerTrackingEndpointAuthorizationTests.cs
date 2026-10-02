@@ -106,6 +106,8 @@ namespace RFFM.Api.Tests.IntegrationTests
                 data.Add(role, "SESSION-GET");
                 data.Add(role, "SESSION-DELETE");
                 data.Add(role, "SESSION-LIST");
+                data.Add(role, "COMMENTS-GET");
+                data.Add(role, "COMMENTS-POST");
             }
             return data;
         }
@@ -132,6 +134,11 @@ namespace RFFM.Api.Tests.IntegrationTests
                 }),
                 "SESSION-GET" => (new GetSessionEvaluation(), new HttpRequestMessage(HttpMethod.Get, $"{sessionUrl}/ses-1")),
                 "SESSION-LIST" => (new GetPlayerSessionEvaluations(), new HttpRequestMessage(HttpMethod.Get, sessionUrl)),
+                "COMMENTS-GET" => (new GetTrackingComments(), new HttpRequestMessage(HttpMethod.Get, $"/api/teams/{teamId}/tracking-comments")),
+                "COMMENTS-POST" => (new CreateTrackingComment(), new HttpRequestMessage(HttpMethod.Post, $"/api/teams/{teamId}/tracking-comments")
+                {
+                    Content = JsonContent.Create(new { title = "Paciencia" })
+                }),
                 _ => (new DeleteSessionEvaluation(), new HttpRequestMessage(HttpMethod.Delete, $"{sessionUrl}/ses-1")),
             };
         }

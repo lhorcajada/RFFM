@@ -40,12 +40,15 @@ namespace RFFM.Api.Features.Coaches.PlayerTracking
 
         public record EvaluationItem(string SubprincipioId, string Assessment, string? Comment);
 
+        public record CommentItem(string TrackingCommentId, string Assessment, string? Note);
+
         public record Command : RFFM.Api.Common.ICommand<SessionEvaluationDto>, IRequireFeaturePermission, IRequireTeamMembership
         {
             public string TeamId { get; init; } = null!;
             public string TeamPlayerId { get; init; } = null!;
             public string SessionId { get; init; } = null!;
             public IReadOnlyList<EvaluationItem> Evaluations { get; init; } = Array.Empty<EvaluationItem>();
+            public IReadOnlyList<CommentItem> Comments { get; init; } = Array.Empty<CommentItem>();
             public string FeatureRoute => CoachFeatureRoutes.GameModel;
             public string RequiredPermission => "ReadWrite";
         }
@@ -57,8 +60,11 @@ namespace RFFM.Api.Features.Coaches.PlayerTracking
                 RuleFor(c => c.TeamId).NotEmpty();
                 RuleFor(c => c.TeamPlayerId).NotEmpty();
                 RuleFor(c => c.SessionId).NotEmpty();
+                RuleFor(c => c)
+                    .Must(c => c.Evaluations.Count > 0 || c.Comments.Count > 0)
+                    .WithName("evaluations")
+                    .WithMessage("Valora al menos un subprincipio o un comentario.");
                 RuleFor(c => c.Evaluations)
-                    .NotEmpty().WithMessage("Valora al menos un subprincipio.")
                     .Must(items => items.Select(i => i.SubprincipioId).Distinct().Count() == items.Count)
                     .WithMessage("Un subprincipio no se puede valorar dos veces en la misma sesión.");
                 RuleForEach(c => c.Evaluations).ChildRules(item =>
@@ -68,6 +74,17 @@ namespace RFFM.Api.Features.Coaches.PlayerTracking
                         .Must(a => ObservationAssessment.TryFromName(a, out _))
                         .WithMessage($"La valoración debe ser una de: {string.Join(", ", ObservationAssessment.List.Select(a => a.Name))}.");
                     item.RuleFor(i => i.Comment).MaximumLength(SubprincipioEvaluation.Rules.CommentMaxLength);
+                });
+                RuleFor(c => c.Comments)
+                    .Must(items => items.Select(i => i.TrackingCommentId).Distinct().Count() == items.Count)
+                    .WithMessage("Un comentario no se puede valorar dos veces en la misma sesión.");
+                RuleForEach(c => c.Comments).ChildRules(item =>
+                {
+                    item.RuleFor(i => i.TrackingCommentId).NotEmpty();
+                    item.RuleFor(i => i.Assessment)
+                        .Must(a => ObservationAssessment.TryFromName(a, out _))
+                        .WithMessage($"La valoración debe ser una de: {string.Join(", ", ObservationAssessment.List.Select(a => a.Name))}.");
+                    item.RuleFor(i => i.Note).MaximumLength(CommentEvaluation.Rules.NoteMaxLength);
                 });
             }
         }
@@ -80,6 +97,8 @@ namespace RFFM.Api.Features.Coaches.PlayerTracking
             string Assessment,
             string? Comment);
 
+        public record CommentEvaluationDto(string? TrackingCommentId, string Title, string Assessment, string? Note);
+
         public record SessionEvaluationDto(
             string Id,
             string? TrainingSessionId,
@@ -87,7 +106,8 @@ namespace RFFM.Api.Features.Coaches.PlayerTracking
             DateOnly SessionDate,
             IReadOnlyList<SubprincipioEvaluationDto> Subprincipios,
             DateTime CreatedAt,
-            DateTime UpdatedAt);
+            DateTime UpdatedAt,
+            IReadOnlyList<CommentEvaluationDto> Comments);
 
         internal static SessionEvaluationDto ToDto(PlayerSessionEvaluation e) =>
             new(e.Id, e.TrainingSessionId, e.SessionName, e.SessionDate,
@@ -95,7 +115,10 @@ namespace RFFM.Api.Features.Coaches.PlayerTracking
                     .Select(s => new SubprincipioEvaluationDto(
                         s.SubprincipioId, s.MomentName, s.PrincipleLabel, s.SubprincipioLabel, s.Assessment.Name, s.Comment))
                     .ToList(),
-                e.CreatedAt, e.UpdatedAt);
+                e.CreatedAt, e.UpdatedAt,
+                e.Comments
+                    .Select(c => new CommentEvaluationDto(c.TrackingCommentId, c.Title, c.Assessment.Name, c.Note))
+                    .ToList());
 
         public class Handler(AppDbContext db, ICurrentUserService currentUser) : IRequestHandler<Command, SessionEvaluationDto>
         {
@@ -110,9 +133,41 @@ namespace RFFM.Api.Features.Coaches.PlayerTracking
                     .SingleOrDefaultAsync(cancellationToken)
                     ?? throw new NotFoundException($"TrainingSession '{request.SessionId}' Not Found", ErrorCodes.SessionNotFound);
 
+                var inputs = await SubprincipioInputsAsync(request, session.TargetIds, cancellationToken);
+                var commentInputs = await CommentInputsAsync(request, cancellationToken);
+                var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+                var existing = await db.PlayerSessionEvaluations
+                    .Include(e => e.Subprincipios)
+                    .Include(e => e.Comments)
+                    .SingleOrDefaultAsync(e => e.TeamPlayerId == request.TeamPlayerId && e.TrainingSessionId == session.Id, cancellationToken);
+
+                if (existing is null)
+                {
+                    existing = PlayerSessionEvaluation.Create(
+                        request.TeamId, request.TeamPlayerId,
+                        new SessionSnapshot(session.Id, session.Name, DateOnly.FromDateTime(session.Date)),
+                        inputs, currentUser.UserId ?? throw new UnauthorizedAccessException(), today, commentInputs);
+                    db.PlayerSessionEvaluations.Add(existing);
+                }
+                else
+                {
+                    existing.ReplaceEvaluations(inputs, today, commentInputs);
+                }
+
+                await db.SaveChangesAsync(cancellationToken);
+                return ToDto(existing);
+            }
+
+            private async Task<List<SubprincipioEvaluationInput>> SubprincipioInputsAsync(
+                Command request, List<string> targetIds, CancellationToken cancellationToken)
+            {
+                if (request.Evaluations.Count == 0)
+                    return new List<SubprincipioEvaluationInput>();
+
                 var trainedSubprincipioIds = await db.SubSubPrincipios
                     .AsNoTracking()
-                    .Where(ssp => session.TargetIds.Contains(ssp.Id))
+                    .Where(ssp => targetIds.Contains(ssp.Id))
                     .Select(ssp => ssp.SubprincipioId ?? (ssp.Zona != null ? ssp.Zona.SubprincipioId : null))
                     .Where(id => id != null)
                     .Distinct()
@@ -134,30 +189,27 @@ namespace RFFM.Api.Features.Coaches.PlayerTracking
                         sp.Numero + " " + sp.Titulo))
                     .ToDictionaryAsync(s => s.Id, cancellationToken);
 
-                var inputs = request.Evaluations
+                return request.Evaluations
                     .Select(i => new SubprincipioEvaluationInput(snapshots[i.SubprincipioId], ObservationAssessment.FromName(i.Assessment), i.Comment))
                     .ToList();
-                var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            }
 
-                var existing = await db.PlayerSessionEvaluations
-                    .Include(e => e.Subprincipios)
-                    .SingleOrDefaultAsync(e => e.TeamPlayerId == request.TeamPlayerId && e.TrainingSessionId == session.Id, cancellationToken);
+            private async Task<List<CommentEvaluationInput>> CommentInputsAsync(Command request, CancellationToken cancellationToken)
+            {
+                if (request.Comments.Count == 0)
+                    return new List<CommentEvaluationInput>();
 
-                if (existing is null)
-                {
-                    existing = PlayerSessionEvaluation.Create(
-                        request.TeamId, request.TeamPlayerId,
-                        new SessionSnapshot(session.Id, session.Name, DateOnly.FromDateTime(session.Date)),
-                        inputs, currentUser.UserId ?? throw new UnauthorizedAccessException(), today);
-                    db.PlayerSessionEvaluations.Add(existing);
-                }
-                else
-                {
-                    existing.ReplaceEvaluations(inputs, today);
-                }
+                var ids = request.Comments.Select(c => c.TrackingCommentId).ToList();
+                var titles = await db.TrackingComments
+                    .AsNoTracking()
+                    .Where(c => c.TeamId == request.TeamId && ids.Contains(c.Id))
+                    .ToDictionaryAsync(c => c.Id, c => c.Title, cancellationToken);
+                if (titles.Count != ids.Count)
+                    throw new NotFoundException("Algún comentario no pertenece al catálogo del equipo.", ErrorCodes.TrackingCommentNotFound);
 
-                await db.SaveChangesAsync(cancellationToken);
-                return ToDto(existing);
+                return request.Comments
+                    .Select(c => new CommentEvaluationInput(c.TrackingCommentId, titles[c.TrackingCommentId], ObservationAssessment.FromName(c.Assessment), c.Note))
+                    .ToList();
             }
         }
     }
