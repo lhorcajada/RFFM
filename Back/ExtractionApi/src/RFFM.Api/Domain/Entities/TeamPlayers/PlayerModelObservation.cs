@@ -1,9 +1,5 @@
 namespace RFFM.Api.Domain.Entities.TeamPlayers
 {
-    /// <summary>Etiquetas del Subprincipio en el momento de observar, para que la observación siga
-    /// siendo legible aunque el Subprincipio se borre del modelo de juego.</summary>
-    public record SubprincipioSnapshot(string Id, string MomentName, string PrincipleLabel, string SubprincipioLabel);
-
     /// <summary>
     /// Observación del cuerpo técnico sobre cómo responde un jugador a lo que se entrena del modelo de
     /// juego. See openspec/changes/player-tracking-observations-api/design.md → D1.

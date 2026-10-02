@@ -102,6 +102,9 @@ namespace RFFM.Api.Tests.IntegrationTests
                 data.Add(role, "POST");
                 data.Add(role, "PUT");
                 data.Add(role, "DELETE");
+                data.Add(role, "SESSION-PUT");
+                data.Add(role, "SESSION-GET");
+                data.Add(role, "SESSION-DELETE");
             }
             return data;
         }
@@ -109,6 +112,7 @@ namespace RFFM.Api.Tests.IntegrationTests
         private static (IFeatureModule Module, HttpRequestMessage Request) BuildRequest(string method, string teamId, string teamPlayerId)
         {
             var url = $"/api/teams/{teamId}/players/{teamPlayerId}/observations";
+            var sessionUrl = $"/api/teams/{teamId}/players/{teamPlayerId}/session-evaluations";
             return method switch
             {
                 "GET" => (new GetPlayerObservations(), new HttpRequestMessage(HttpMethod.Get, url)),
@@ -120,7 +124,13 @@ namespace RFFM.Api.Tests.IntegrationTests
                 {
                     Content = JsonContent.Create(new { assessment = "Partial" })
                 }),
-                _ => (new DeletePlayerObservation(), new HttpRequestMessage(HttpMethod.Delete, $"{url}/obs-1")),
+                "DELETE" => (new DeletePlayerObservation(), new HttpRequestMessage(HttpMethod.Delete, $"{url}/obs-1")),
+                "SESSION-PUT" => (new SaveSessionEvaluation(), new HttpRequestMessage(HttpMethod.Put, $"{sessionUrl}/ses-1")
+                {
+                    Content = JsonContent.Create(new { evaluations = new[] { new { subprincipioId = "sub-1", assessment = "Partial" } } })
+                }),
+                "SESSION-GET" => (new GetSessionEvaluation(), new HttpRequestMessage(HttpMethod.Get, $"{sessionUrl}/ses-1")),
+                _ => (new DeleteSessionEvaluation(), new HttpRequestMessage(HttpMethod.Delete, $"{sessionUrl}/ses-1")),
             };
         }
 

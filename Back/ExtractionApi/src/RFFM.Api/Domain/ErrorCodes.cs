@@ -127,6 +127,11 @@ namespace RFFM.Api.Domain
         public const string SubprincipioNotFound = "SubprincipioNotFound";
         public const string PlayerObservationNotFound = "PlayerObservationNotFound";
         public const string HabilidadesNotAllowedForAttitude = "HabilidadesNotAllowedForAttitude";
+        public const string SessionEvaluationNotFound = "SessionEvaluationNotFound";
+        public const string SessionEvaluationEmpty = "SessionEvaluationEmpty";
+        public const string SessionEvaluationDuplicatedSubprincipio = "SessionEvaluationDuplicatedSubprincipio";
+        public const string SessionNotHeldYet = "SessionNotHeldYet";
+        public const string SubprincipioNotInSession = "SubprincipioNotInSession";
 
         // Family member accounts (Features/Coaches/FamilyMemberAccounts)
         public const string FamilyMemberEmailRequired = "FamilyMemberEmailRequired";
