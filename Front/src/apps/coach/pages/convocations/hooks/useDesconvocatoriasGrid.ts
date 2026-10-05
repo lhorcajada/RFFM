@@ -104,7 +104,11 @@ export function useDesconvocatoriasGrid(teamId: string, enabled: boolean = true)
         const matchEvents = resp.items.filter((ev) => {
           const typeId = ev.eventTypeId;
           const typeName = (ev.eventType ?? "").toLowerCase();
+          // Friendlies (event type "Amistoso") don't match the name-based check, so rely on
+          // the backend-derived matchCategory to include them.
           const isMatchType =
+            ev.matchCategory === "League" ||
+            ev.matchCategory === "Friendly" ||
             (typeId != null && matchTypeIds.has(typeId)) ||
             typeName.includes("partido") ||
             typeName.includes("match");
