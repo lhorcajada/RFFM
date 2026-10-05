@@ -22,6 +22,8 @@ export type SanctionCardProps = {
   photoSrc?: string | null;
   /** Visually highlighted when this sanction is the target of a notification deep-link. */
   highlighted?: boolean;
+  /** Visually stands out as a pending sanction in the mixed (all statuses) listing. */
+  emphasizePending?: boolean;
   onEdit: () => void;
   onLift: () => void;
   onDelete: () => void;
@@ -37,6 +39,7 @@ export default function SanctionCard({
   canDelete,
   photoSrc,
   highlighted,
+  emphasizePending,
   onEdit,
   onLift,
   onDelete,
@@ -50,7 +53,7 @@ export default function SanctionCard({
 
   return (
     <Paper
-      className={`${styles.card} ${highlighted ? styles.highlighted : ""}`}
+      className={`${styles.card} ${emphasizePending ? styles.pendingEmphasis : ""} ${highlighted ? styles.highlighted : ""}`}
       variant="outlined"
       id={`sanction-${sanction.id}`}>
       <Stack spacing={1}>

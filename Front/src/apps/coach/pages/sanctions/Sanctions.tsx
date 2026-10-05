@@ -50,6 +50,14 @@ import styles from "./Sanctions.module.css";
 
 type SanctionRow = { player: PlayerResponse; sanction: SanctionRecord };
 
+type StatusFilter = "all" | "pending" | "paid";
+
+const STATUS_FILTER_OPTIONS: { value: StatusFilter; label: string }[] = [
+  { value: "all", label: "Todas" },
+  { value: "pending", label: "Pendientes" },
+  { value: "paid", label: "Pagadas" },
+];
+
 const CATEGORY_OPTIONS: { value: SanctionCategory; label: string }[] = [
   { value: "Competition", label: "Deportiva (reglamento de competición)" },
   { value: "InternalDiscipline", label: "Comportamiento (decisión interna)" },
@@ -102,6 +110,7 @@ export default function Sanctions() {
 
   const [myPlayerId, setMyPlayerId] = useState<string | null>(null);
   const [filterMode, setFilterMode] = useState<"mine" | "all">("mine");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
   const [liftTarget, setLiftTarget] = useState<SanctionRow | null>(null);
   const [liftProcessing, setLiftProcessing] = useState(false);
@@ -123,11 +132,17 @@ export default function Sanctions() {
   // A "mine vs all" filter only makes sense once we know which player is "mine".
   const canFilterMine = isPlayerOrFamily && !!myPlayerId;
   const visibleRows = useMemo(() => {
-    if (canFilterMine && filterMode === "mine") {
-      return rows.filter((r) => r.player.id === myPlayerId);
-    }
-    return rows;
-  }, [rows, canFilterMine, filterMode, myPlayerId]);
+    const ownRows =
+      canFilterMine && filterMode === "mine" ? rows.filter((r) => r.player.id === myPlayerId) : rows;
+    const byStatus =
+      statusFilter === "all"
+        ? ownRows
+        : ownRows.filter((r) => getStatus(r.sanction) === (statusFilter === "pending" ? "Pending" : "Fulfilled"));
+    // Stable sort keeps the startDate-desc order within each status group.
+    return [...byStatus].sort(
+      (a, b) => Number(getStatus(a.sanction) !== "Pending") - Number(getStatus(b.sanction) !== "Pending")
+    );
+  }, [rows, canFilterMine, filterMode, myPlayerId, statusFilter]);
 
   const eventsById = useMemo(() => new Map(events.map((e) => [e.id, e])), [events]);
 
@@ -443,6 +458,18 @@ export default function Sanctions() {
           totalPending={totalPending}
           fundBalance={fundBalance}
         />
+        <Stack direction="row" spacing={0.5} useFlexGap flexWrap="wrap" className={styles.statusFilter}>
+          {STATUS_FILTER_OPTIONS.map((opt) => (
+            <Button
+              key={opt.value}
+              onClick={() => setStatusFilter(opt.value)}
+              variant={statusFilter === opt.value ? "contained" : "outlined"}
+              size="small"
+            >
+              {opt.label}
+            </Button>
+          ))}
+        </Stack>
         {loading ? (
           <Stack alignItems="center" sx={{ py: 6 }}>
             <CircularProgress size={32} />
@@ -451,13 +478,17 @@ export default function Sanctions() {
           <EmptyState
             title="Sin sanciones"
             description={
-              canFilterMine && filterMode === "mine"
-                ? "No tienes sanciones registradas actualmente."
-                : "No hay sanciones registradas actualmente."
+              statusFilter === "pending"
+                ? "No hay sanciones pendientes."
+                : statusFilter === "paid"
+                  ? "No hay sanciones pagadas."
+                  : canFilterMine && filterMode === "mine"
+                    ? "No tienes sanciones registradas actualmente."
+                    : "No hay sanciones registradas actualmente."
             }
           />
         ) : (
-          <Stack spacing={1.5} className={styles.cardList}>
+          <div className={styles.cardList}>
             {visibleRows.map(({ player, sanction }) => {
               const status = getStatus(sanction);
               const deletable = canDeleteSanction(sanction);
@@ -479,13 +510,14 @@ export default function Sanctions() {
                   canManage={!isPlayerOrFamily}
                   canDelete={deletable}
                   highlighted={sanction.id === highlightId}
+                  emphasizePending={statusFilter === "all" && status === "Pending"}
                   onEdit={() => openEdit({ player, sanction })}
                   onLift={() => handleLift({ player, sanction })}
                   onDelete={() => handleDelete({ player, sanction })}
                 />
               );
             })}
-          </Stack>
+          </div>
         )}
       </ContentLayout>
 

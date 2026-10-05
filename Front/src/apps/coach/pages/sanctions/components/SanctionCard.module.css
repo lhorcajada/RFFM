@@ -5,6 +5,13 @@
   border-color: rgba(255, 255, 255, 0.08);
 }
 
+.pendingEmphasis {
+  border-color: rgba(239, 83, 80, 0.45);
+  border-left: 4px solid var(--rffm-error, #ef5350);
+  background: linear-gradient(90deg, rgba(239, 83, 80, 0.1), transparent 60%),
+    var(--rffm-card-bg, #1c1c30);
+}
+
 .highlighted {
   border-color: var(--rffm-primary, #1976d2);
   border-width: 2px;

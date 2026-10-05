@@ -1,5 +1,13 @@
+.statusFilter {
+  margin-bottom: 12px;
+}
+
 .cardList {
   width: 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+  gap: 12px;
+  align-items: start;
 }
 
 .addDialogFields {
