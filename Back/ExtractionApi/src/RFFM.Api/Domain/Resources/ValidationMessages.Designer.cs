@@ -29,7 +29,7 @@ namespace RFFM.Api.Domain.Resources {
         private static global::System.Globalization.CultureInfo resourceCulture;
         
         [global::System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
-        internal ValidationMessages() {
+        public ValidationMessages() {
         }
         
         /// <summary>
@@ -120,6 +120,15 @@ namespace RFFM.Api.Domain.Resources {
         public static string ForgotPasswordResetSubject {
             get {
                 return ResourceManager.GetString("ForgotPasswordResetSubject", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Tu registro todavía no ha sido aprobado por el administrador de Futbol Base..
+        /// </summary>
+        public static string LoginEmailNotConfirmed {
+            get {
+                return ResourceManager.GetString("LoginEmailNotConfirmed", resourceCulture);
             }
         }
         
