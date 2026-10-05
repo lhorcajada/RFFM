@@ -137,6 +137,14 @@ export default function ClubPlayers() {
             >
               Volver
             </Button>
+            <Button
+              variant="contained"
+              size="small"
+              onClick={() => void handleSave()}
+              disabled={saving}
+            >
+              Guardar
+            </Button>
           </>
         }
       >
@@ -144,8 +152,6 @@ export default function ClubPlayers() {
           <ClubPlayerSearch
             clubId={id ?? null}
             defaultSeasonId={seasonId ?? null}
-            onSave={handleSave}
-            saving={saving}
             onSelectionChange={setSelectedPlayers}
           />
           <PreferredClubPlayersList clubId={id ?? null} refreshToken={playersRefreshToken} />

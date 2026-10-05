@@ -4,7 +4,6 @@ import {
   Box,
   Chip,
   CircularProgress,
-  Button,
   FormControl,
   InputLabel,
   MenuItem,
@@ -47,8 +46,6 @@ export type ClubPlayerSearchProps = {
   clubId?: string | null;
   defaultSeasonId?: string | null;
   includePreviousCategory?: boolean;
-  onSave?: () => void | Promise<void>;
-  saving?: boolean;
   onSelectionChange?: (players: PlayerResponse[]) => void;
   onPlayerSelect?: (payload: {
     season: Season | null;
@@ -96,8 +93,6 @@ export default function ClubPlayerSearch({
   clubId,
   defaultSeasonId = null,
   includePreviousCategory = false,
-  onSave,
-  saving = false,
   onSelectionChange,
   onPlayerSelect,
 }: ClubPlayerSearchProps) {
@@ -309,20 +304,6 @@ export default function ClubPlayerSearch({
                 Buscador de jugadores por temporada
                 <ExpandMoreIcon className={`${styles.selectorSummaryIcon} ${selectorsOpen ? styles.selectorSummaryIconOpen : ""}`} />
               </span>
-              {onSave ? (
-                <Button
-                  variant="contained"
-                  size="small"
-                  onClick={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    void onSave();
-                  }}
-                  disabled={saving}
-                >
-                  Guardar
-                </Button>
-              ) : null}
             </summary>
 
             <div className={styles.selectorBody}>
