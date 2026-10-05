@@ -39,6 +39,14 @@ export type MatchColumn = {
   rival: string | null;
 };
 
+/** Tab indices of the match convocation screen, in display order */
+export const CONVOCATION_TAB = {
+  Desconvocatorias: 0,
+  Convocatoria: 1,
+  Alineacion: 2,
+  Simulacion: 3,
+} as const;
+
 /** Drop zones for drag-and-drop convocation management */
 export type DropZone = "available" | "called" | "notCalled";
 

@@ -313,7 +313,7 @@ export default function ConvocationTab({
             <div>
               <h3 className={styles.proposalTitle}>Propuesta automática de desconvocatoria</h3>
               <p className={styles.proposalSubtitle}>
-                Objetivo: {proposal.targetCount} desconvocado(s) | Convocados actuales: {proposal.calledCount}
+                Objetivo: {proposal.targetCount} desconvocado(s) | Plantilla: {proposal.calledCount} jugadores
               </p>
               {proposal.previousRivalResult && (
                 <p className={styles.proposalSubtitle}>

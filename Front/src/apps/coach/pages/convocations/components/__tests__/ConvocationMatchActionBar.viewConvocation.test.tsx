@@ -2,10 +2,11 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import ConvocationMatchActionBar from "../ConvocationMatchActionBar";
+import { CONVOCATION_TAB } from "../convocationMatchDetail.types";
 
 const baseProps = {
   teamId: "team-1",
-  tab: 1,
+  tab: CONVOCATION_TAB.Alineacion,
   eventId: "event-1",
   lineupPlayersCount: 0,
   printing: false,

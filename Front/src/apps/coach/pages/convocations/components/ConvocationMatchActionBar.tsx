@@ -6,6 +6,7 @@ import SportsSoccerIcon from "@mui/icons-material/SportsSoccer";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import MinutesReasonEditor from "./MinutesReasonEditor";
 import type { PlayerMinutesReason } from "./MinutesReasonsListDialog";
+import { CONVOCATION_TAB } from "./convocationMatchDetail.types";
 
 type Props = {
   teamId: string;
@@ -23,7 +24,7 @@ type Props = {
   onViewConvocation: () => void;
   /** Opens the full-screen live match page. When omitted the button is not shown. */
   onOpenLiveMatch?: () => void;
-  /** Pre-match minutes reasons for the "Alineación" tab (tab === 1). Optional — when omitted
+  /** Pre-match minutes reasons for the "Alineación" tab. Optional — when omitted
    *  (or when onSaveMinutesReason is not provided) the button is not shown. Purely additive,
    *  never required to save the lineup. */
   minutesReasonsPlayers?: PlayerMinutesReason[];
@@ -68,17 +69,17 @@ export default function ConvocationMatchActionBar({
           Partido en directo
         </Button>
       )}
-      {tab === 2 && eventId && (
+      {tab === CONVOCATION_TAB.Convocatoria && eventId && (
         <Button variant="contained" size="small" onClick={onSaveConvocation}>
           Guardar
         </Button>
       )}
-      {tab === 1 && eventId && lineupPlayersCount > 0 && (
+      {tab === CONVOCATION_TAB.Alineacion && eventId && lineupPlayersCount > 0 && (
         <Button variant="contained" size="small" onClick={onSaveLineup}>
           Guardar
         </Button>
       )}
-      {tab === 1 && onSaveMinutesReason && minutesReasonsPlayers && minutesReasonsPlayers.length > 0 && (
+      {tab === CONVOCATION_TAB.Alineacion && onSaveMinutesReason && minutesReasonsPlayers && minutesReasonsPlayers.length > 0 && (
         <MinutesReasonEditor players={minutesReasonsPlayers} onSave={onSaveMinutesReason} />
       )}
       {eventId && (

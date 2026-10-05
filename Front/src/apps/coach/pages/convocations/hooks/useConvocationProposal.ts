@@ -9,7 +9,8 @@ import { buildDeconvokeProposal } from "../utils/deconvokeProposal";
 
 type UseConvocationProposalInput = {
   players: PlayerResponse[];
-  calledIds: string[];
+  /** Whole squad: the proposal picks who to leave out from every player, not only those already called. */
+  squadIds: string[];
   ratings: Record<string, PlayerRating>;
   playerStreaks: Map<string, number>;
   playerTechnicalTotals: Map<string, number>;
@@ -29,7 +30,7 @@ type UseConvocationProposalInput = {
 export function useConvocationProposal(input: UseConvocationProposalInput): DeconvokeProposal {
   const {
     players,
-    calledIds,
+    squadIds,
     ratings,
     playerStreaks,
     playerTechnicalTotals,
@@ -50,7 +51,7 @@ export function useConvocationProposal(input: UseConvocationProposalInput): Deco
     () =>
       buildDeconvokeProposal({
         players,
-        calledIds,
+        calledIds: squadIds,
         ratings,
         streaks: playerStreaks,
         technicalTotals: playerTechnicalTotals,
@@ -69,7 +70,7 @@ export function useConvocationProposal(input: UseConvocationProposalInput): Deco
       }),
     [
       players,
-      calledIds,
+      squadIds,
       ratings,
       playerStreaks,
       playerTechnicalTotals,

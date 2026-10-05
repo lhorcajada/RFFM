@@ -26,7 +26,8 @@ function wasInjuredOnDate(injuryStartDate: string | null | undefined, eventDay: 
   return injuryStartDate.slice(0, 10) < eventDay;
 }
 
-function isFriendlyEvent(ev: { eventTypeId?: number | null; eventType?: string | null; title?: string | null; name?: string | null }): boolean {
+function isFriendlyEvent(ev: { matchCategory?: string | null; eventType?: string | null; title?: string | null; name?: string | null }): boolean {
+  if (ev.matchCategory === "Friendly") return true;
   const eventType = (ev.eventType ?? "").toLowerCase();
   const title = (ev.title ?? ev.name ?? "").toLowerCase();
   return /amist|friendly/.test(eventType) || /amist|friendly/.test(title);
@@ -109,16 +110,19 @@ export function useDesconvocatoriasGrid(teamId: string, enabled: boolean = true)
             typeName.includes("match");
           const eventDate = ev.start ?? ev.eveDateTime ?? ev.startTime ?? "";
           const isPast = eventDate && eventDate < today + "T23:59:59";
-          return isMatchType && isPast && !isFriendlyEvent(ev);
+          return isMatchType && isPast;
         });
 
         if (!mounted) return;
 
-        const cols: MatchColumn[] = matchEvents.map((ev, idx) => {
+        // Friendlies count for deconvocations but not for the league round number (J1, J2…).
+        let remainingLeagueRounds = matchEvents.filter((ev) => !isFriendlyEvent(ev)).length;
+        const cols: MatchColumn[] = matchEvents.map((ev) => {
           const d = ev.start ?? ev.eveDateTime ?? ev.startTime ?? "";
+          const prefix = isFriendlyEvent(ev) ? "Amist." : `J${remainingLeagueRounds--}`;
           return {
             eventId: ev.id,
-            label: `J${matchEvents.length - idx} · ${shortDate(d)}`,
+            label: `${prefix} · ${shortDate(d)}`,
             date: d,
             rival: ev.rival ?? ev.name ?? ev.title ?? null,
           };

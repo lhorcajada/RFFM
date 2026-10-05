@@ -1,10 +1,11 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import ConvocationMatchActionBar from "../ConvocationMatchActionBar";
+import { CONVOCATION_TAB } from "../convocationMatchDetail.types";
 
 const baseProps = {
   teamId: "team-1",
-  tab: 1,
+  tab: CONVOCATION_TAB.Alineacion,
   eventId: "event-1",
   lineupPlayersCount: 1,
   printing: false,
@@ -33,7 +34,7 @@ describe("ConvocationMatchActionBar — botón único de motivos de minutos", ()
     render(
       <ConvocationMatchActionBar
         {...baseProps}
-        tab={2}
+        tab={CONVOCATION_TAB.Convocatoria}
         minutesReasonsPlayers={players}
         onSaveMinutesReason={vi.fn()}
       />,
@@ -46,7 +47,7 @@ describe("ConvocationMatchActionBar — botón único de motivos de minutos", ()
     render(
       <ConvocationMatchActionBar
         {...baseProps}
-        tab={1}
+        tab={CONVOCATION_TAB.Alineacion}
         minutesReasonsPlayers={players}
         onSaveMinutesReason={vi.fn()}
       />,
@@ -62,7 +63,7 @@ describe("ConvocationMatchActionBar — botón único de motivos de minutos", ()
     render(
       <ConvocationMatchActionBar
         {...baseProps}
-        tab={1}
+        tab={CONVOCATION_TAB.Alineacion}
         minutesReasonsPlayers={players}
         onSaveMinutesReason={onSaveMinutesReason}
       />,

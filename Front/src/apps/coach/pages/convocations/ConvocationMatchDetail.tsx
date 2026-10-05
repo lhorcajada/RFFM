@@ -21,7 +21,7 @@ import AlineacionTab from "./components/AlineacionTab";
 import SimulacionTab from "./components/SimulacionTab";
 import ConvocatoriaPrint, { type ConvocatoriaPrintHandle } from "./components/ConvocatoriaPrint";
 import ConvocationDetailsDialog from "./components/ConvocationDetailsDialog";
-import type { MatchState } from "./components/convocationMatchDetail.types";
+import { CONVOCATION_TAB, type MatchState } from "./components/convocationMatchDetail.types";
 import { coachAuthService } from "../../services/authService";
 import { useConvocationManagement } from "./hooks/useConvocationManagement";
 import { useDesconvocatoriasGrid } from "./hooks/useDesconvocatoriasGrid";
@@ -91,17 +91,17 @@ export default function ConvocationMatchDetail() {
     };
   }, [teamId]);
 
-  const [tab, setTab] = useState(1);
-  // Desconvocatorias (0) y Convocatoria (2) son las únicas pestañas que necesitan el grid
+  const [tab, setTab] = useState<number>(CONVOCATION_TAB.Alineacion);
+  // Desconvocatorias y Convocatoria son las únicas pestañas que necesitan el grid
   // histórico de convocatorias; una vez visitadas, se mantiene cargado al cambiar de pestaña.
-  const needsGridData = tab === 0 || tab === 2;
+  const needsGridData = tab === CONVOCATION_TAB.Desconvocatorias || tab === CONVOCATION_TAB.Convocatoria;
   const [gridEnabled, setGridEnabled] = useState(needsGridData);
   useEffect(() => {
     if (needsGridData) setGridEnabled(true);
   }, [needsGridData]);
   // La propuesta de convocatoria (temporada, lesiones, starts, entrenos) solo la usa
   // la pestaña Convocatoria; se activa la primera vez que se visita y se mantiene.
-  const needsProposalData = tab === 2;
+  const needsProposalData = tab === CONVOCATION_TAB.Convocatoria;
   const [proposalEnabled, setProposalEnabled] = useState(needsProposalData);
   useEffect(() => {
     if (needsProposalData) setProposalEnabled(true);
@@ -251,9 +251,11 @@ export default function ConvocationMatchDetail() {
     return match.isHomeTeam ? match.visitorTeamName : match.localTeamName;
   }, [match]);
 
+  const squadIds = useMemo(() => convocation.players.map((p) => p.id), [convocation.players]);
+
   const proposal = useConvocationProposal({
     players: convocation.players,
-    calledIds: convocation.mgmtCalled,
+    squadIds,
     ratings: convocation.mgmtRatings,
     playerStreaks,
     playerTechnicalTotals,
@@ -274,7 +276,10 @@ export default function ConvocationMatchDetail() {
     async (ids: string[]) => {
       const technicalExcuseId =
         convocation.excuseTypes.find((e) => e.name.toLowerCase().includes("decisi"))?.id ?? null;
+      // Players already not called keep their existing reason (injury, justified absence…).
+      const alreadyNotCalled = new Set(convocation.mgmtNotCalled);
       for (const id of ids) {
+        if (alreadyNotCalled.has(id)) continue;
         await convocation.moveToNotCalled(id, technicalExcuseId);
       }
     },
@@ -347,14 +352,13 @@ export default function ConvocationMatchDetail() {
           scrollButtons="auto"
           sx={{ borderBottom: "1px solid rgba(255,255,255,0.08)", px: 1 }}
         >
-          <Tab label="Desconvocatorias" />
-          <Tab label="Alineación" />
-          <Tab label="Convocatoria" />
-          <Tab label="Simular Partido" />
+          <Tab label="Desconvocatorias" value={CONVOCATION_TAB.Desconvocatorias} />
+          <Tab label="Convocatoria" value={CONVOCATION_TAB.Convocatoria} />
+          <Tab label="Alineación" value={CONVOCATION_TAB.Alineacion} />
+          <Tab label="Simular Partido" value={CONVOCATION_TAB.Simulacion} />
         </Tabs>
 
-        {/* Tab 2: Convocatoria */}
-        {tab === 2 && (
+        {tab === CONVOCATION_TAB.Convocatoria && (
           <ConvocationTab
             mgmtEventId={convocation.mgmtEventId}
             mgmtLoadingConv={convocation.mgmtLoadingConv}
@@ -409,8 +413,7 @@ export default function ConvocationMatchDetail() {
           </Alert>
         </Snackbar>
 
-        {/* Tab 0: Desconvocatorias */}
-        {tab === 0 && (
+        {tab === CONVOCATION_TAB.Desconvocatorias && (
           <DesconvocatoriasTab
             players={convocation.players}
             matchColumns={grid.matchColumns}
@@ -422,8 +425,7 @@ export default function ConvocationMatchDetail() {
           />
         )}
 
-        {/* Tab 1: Alineacion */}
-        {tab === 1 && (
+        {tab === CONVOCATION_TAB.Alineacion && (
           <AlineacionTab
             mgmtEventId={convocation.mgmtEventId}
             lineupPlayers={lineupPlayers.filter((p) => p.assistanceTypeId !== 2 && p.assistanceTypeId !== 3)}
@@ -439,8 +441,7 @@ export default function ConvocationMatchDetail() {
           />
         )}
 
-        {/* Tab 3: Simular Partido */}
-        {tab === 3 && (
+        {tab === CONVOCATION_TAB.Simulacion && (
           <SimulacionTab
             teamId={teamId}
             eventId={convocation.mgmtEventId}

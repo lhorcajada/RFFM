@@ -642,7 +642,7 @@ const ConvocatoriaPrint = forwardRef<ConvocatoriaPrintHandle, Props>(
           ["Objetivo", String(proposal.targetCount)],
           ["Analizados", String(allPlayersCount)],
           ["Seleccionados", String(selectedCount)],
-          ["Convocados", String(proposal.calledCount)],
+          ["Plantilla", String(proposal.calledCount)],
           ["Rival previo", rivalText],
         ] as const;
 
