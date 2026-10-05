@@ -12,6 +12,7 @@
 .topBar {
   display: flex;
   justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 8px;
   padding: 10px 14px;
   border-bottom: 1px solid rgba(77, 157, 224, 0.22);

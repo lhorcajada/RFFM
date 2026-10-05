@@ -1,7 +1,18 @@
 import { useEffect, useState } from "react";
-import { Alert, Autocomplete, Box, Button, CircularProgress, TextField, Typography } from "@mui/material";
+import {
+  Alert,
+  Autocomplete,
+  Box,
+  Button,
+  CircularProgress,
+  TextField,
+  Tooltip,
+  Typography,
+} from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import PrintOutlinedIcon from "@mui/icons-material/PrintOutlined";
 import SaveIcon from "@mui/icons-material/Save";
+import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import { useLocation, useNavigate } from "react-router-dom";
 import BaseLayout from "../../../../../shared/components/ui/BaseLayout/BaseLayout";
 import trainingService from "../../../services/trainingService";
@@ -10,6 +21,7 @@ import seasonService from "../../../services/seasonService";
 import type { SportEventResponse } from "../../../services/sportEventService";
 import { normalizeDateStr } from "../../convocations/helpers/convocationUtils";
 import type { SessionBlockRequest } from "../../../types/training";
+import { openSessionWindow } from "../sessionWindow";
 import SessionBlockEditor from "./components/SessionBlockEditor";
 import { useSessionForm } from "./hooks/useSessionForm";
 import { useDailySportEvents } from "./hooks/useDailySportEvents";
@@ -202,6 +214,35 @@ export default function NewSessionPage() {
           >
             Volver
           </Button>
+          <Tooltip title={sessionForm.savedSessionId ? "Visualizar" : "Guarda la sesión para visualizarla"}>
+            <span>
+              <Button
+                startIcon={<VisibilityOutlinedIcon />}
+                variant="outlined"
+                size="small"
+                disabled={!sessionForm.savedSessionId}
+                onClick={() => sessionForm.savedSessionId && void openSessionWindow(sessionForm.savedSessionId, teamId)}
+              >
+                Visualizar
+              </Button>
+            </span>
+          </Tooltip>
+          <Tooltip title={sessionForm.savedSessionId ? "Imprimir PDF" : "Guarda la sesión para imprimirla"}>
+            <span>
+              <Button
+                startIcon={<PrintOutlinedIcon />}
+                variant="outlined"
+                size="small"
+                disabled={!sessionForm.savedSessionId}
+                onClick={() =>
+                  sessionForm.savedSessionId &&
+                  void openSessionWindow(sessionForm.savedSessionId, teamId, { print: true })
+                }
+              >
+                Imprimir PDF
+              </Button>
+            </span>
+          </Tooltip>
           <Button
             startIcon={<SaveIcon />}
             onClick={sessionForm.handleSave}
