@@ -42,10 +42,10 @@ export default function RoundPanel({
           hideActaButton={hideActaButton}
         />
       )}
-      {grouped.other.length > 0 && (
+      {grouped.postponed.length > 0 && (
         <MatchDayView
-          title={`Descanso`}
-          items={grouped.other}
+          title={`Aplazados`}
+          items={grouped.postponed}
           hideActaButton={hideActaButton}
         />
       )}

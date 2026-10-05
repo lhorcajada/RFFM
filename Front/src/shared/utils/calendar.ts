@@ -14,16 +14,43 @@ export function parseMatchDate(raw?: string | null): Date | null {
   return null;
 }
 
+function weekendKey(d: Date): string | null {
+  const dayOfWeek = d.getDay();
+  if (dayOfWeek !== 6 && dayOfWeek !== 0) return null;
+  const saturday = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  if (dayOfWeek === 0) saturday.setDate(saturday.getDate() - 1);
+  return `${saturday.getFullYear()}-${saturday.getMonth()}-${saturday.getDate()}`;
+}
+
+// La jornada se juega en el fin de semana con más partidos; lo que caiga fuera está aplazado.
+function findRoundWeekend(dates: Date[]): string | null {
+  const counts = new Map<string, number>();
+  dates.forEach((d) => {
+    const key = weekendKey(d);
+    if (key) counts.set(key, (counts.get(key) ?? 0) + 1);
+  });
+  let best: string | null = null;
+  let bestCount = 0;
+  counts.forEach((count, key) => {
+    if (count > bestCount) {
+      best = key;
+      bestCount = count;
+    }
+  });
+  return best;
+}
+
 export function groupMatchesByWeekend(matches: any[]): {
   saturday: any[];
   sunday: any[];
-  other: any[];
+  postponed: any[];
   byes: any[];
 } {
   const saturday: any[] = [];
   const sunday: any[] = [];
-  const other: any[] = [];
+  const postponed: any[] = [];
   const byes: any[] = [];
+  const pending: { item: any; d: Date | null }[] = [];
 
   (matches || []).forEach((m) => {
     const raw = m.fecha ?? m.date ?? m.fecha_partido ?? "";
@@ -52,21 +79,25 @@ export function groupMatchesByWeekend(matches: any[]): {
       return;
     }
 
-    if (d) {
-      const dayOfWeek = d.getDay(); // 0=Sunday, 6=Saturday
-      if (dayOfWeek === 6) {
-        saturday.push(item);
-      } else if (dayOfWeek === 0) {
-        sunday.push(item);
-      } else {
-        other.push(item);
-      }
+    pending.push({ item, d });
+  });
+
+  const roundWeekend = findRoundWeekend(
+    pending.map((p) => p.d).filter((d): d is Date => d !== null)
+  );
+
+  pending.forEach(({ item, d }) => {
+    const isInRoundWeekend = d !== null && weekendKey(d) === roundWeekend;
+    if (!isInRoundWeekend) {
+      postponed.push(item);
+    } else if (d.getDay() === 6) {
+      saturday.push(item);
     } else {
-      other.push(item);
+      sunday.push(item);
     }
   });
 
-  return { saturday, sunday, other, byes };
+  return { saturday, sunday, postponed, byes };
 }
 
 export function sortMatchesByTime(a: any, b: any): number {
