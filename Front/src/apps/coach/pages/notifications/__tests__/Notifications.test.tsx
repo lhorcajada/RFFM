@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -13,6 +13,7 @@ vi.mock("react-router-dom", async () => {
 });
 
 vi.mock("../../../../../shared/services/notificationService", () => ({
+  NOTIFICATIONS_CHANGED_EVENT: "rffm.notifications_changed",
   searchNotifications: vi.fn(),
   markNotificationRead: vi.fn(),
 }));
@@ -103,6 +104,33 @@ describe("Notifications", () => {
     expect(navigateMock).toHaveBeenCalledWith("/coach/news/123");
   });
 
+  it("avisa al resto de la app al marcar una notificación como leída", async () => {
+    (searchNotifications as any).mockResolvedValue({ items: [sample], totalCount: 1 });
+    (markNotificationRead as any).mockResolvedValue(undefined);
+    const listener = vi.fn();
+    window.addEventListener("rffm.notifications_changed", listener);
+    renderPage();
+
+    await userEvent.click(await screen.findByText("Nueva noticia"));
+
+    await waitFor(() => expect(listener).toHaveBeenCalled());
+    window.removeEventListener("rffm.notifications_changed", listener);
+  });
+
+  it("recarga el listado cuando se marcan notificaciones como leídas desde la campana", async () => {
+    (searchNotifications as any)
+      .mockResolvedValueOnce({ items: [sample], totalCount: 1 })
+      .mockResolvedValue({ items: [{ ...sample, isRead: true }], totalCount: 1 });
+    renderPage();
+    expect(await screen.findByText("Nueva")).toBeInTheDocument();
+
+    act(() => {
+      window.dispatchEvent(new CustomEvent("rffm.notifications_changed"));
+    });
+
+    await waitFor(() => expect(screen.queryByText("Nueva")).not.toBeInTheDocument());
+  });
+
   it("navega al dashboard del equipo al pulsar Volver", async () => {
     (searchNotifications as any).mockResolvedValue({ items: [], totalCount: 0 });
     renderPage();
@@ -121,6 +149,13 @@ describe("Notifications", () => {
     const pageTwo = screen.getByRole("button", { name: /go to page 2/i });
     await userEvent.click(pageTwo);
 
-    await waitFor(() => expect(searchNotifications).toHaveBeenCalledWith(2, 25));
+    await waitFor(() => expect(searchNotifications).toHaveBeenCalledWith(2, 25, { app: "coach" }));
+  });
+
+  it("solo consulta las notificaciones de Coach", async () => {
+    (searchNotifications as any).mockResolvedValue({ items: [], totalCount: 0 });
+    renderPage();
+
+    await waitFor(() => expect(searchNotifications).toHaveBeenCalledWith(1, 25, { app: "coach" }));
   });
 });

@@ -1,5 +1,9 @@
 import client from "../../core/api/client";
 
+export const NOTIFICATIONS_CHANGED_EVENT = "rffm.notifications_changed";
+
+export type NotificationApp = "federation" | "coach";
+
 export type NotificationResponse = {
   id: string;
   type: string;
@@ -15,13 +19,17 @@ export type NotificationSearchResult = {
   totalCount: number;
 };
 
+type MarkAllNotificationsReadResponse = {
+  marked: number;
+};
+
 export async function searchNotifications(
   pageNumber: number,
   pageSize: number,
-  options: { suppressErrorRedirect?: boolean } = {}
+  options: { suppressErrorRedirect?: boolean; app?: NotificationApp } = {}
 ): Promise<NotificationSearchResult> {
   const response = await client.get("/api/notifications", {
-    params: { pageNumber, pageSize },
+    params: options.app ? { pageNumber, pageSize, app: options.app } : { pageNumber, pageSize },
     suppressErrorRedirect: options.suppressErrorRedirect ?? false,
   });
 
@@ -35,4 +43,11 @@ export async function searchNotifications(
 
 export async function markNotificationRead(id: string): Promise<void> {
   await client.post(`/api/notifications/${id}/read`);
+}
+
+export async function markAllNotificationsRead(app: NotificationApp): Promise<number> {
+  const response = await client.post<MarkAllNotificationsReadResponse>("/api/notifications/read", null, {
+    params: { app },
+  });
+  return response.data?.marked ?? 0;
 }

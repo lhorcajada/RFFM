@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import {
@@ -19,6 +19,7 @@ import NotificationSettings from "../settings/components/NotificationSettings/No
 import {
   searchNotifications,
   markNotificationRead,
+  NOTIFICATIONS_CHANGED_EVENT,
   type NotificationResponse,
 } from "../../../../shared/services/notificationService";
 import styles from "./Notifications.module.css";
@@ -34,15 +35,27 @@ const Notifications: React.FC = () => {
   const [items, setItems] = useState<NotificationResponse[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [pageNumber, setPageNumber] = useState(1);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const silentRefresh = useRef(false);
+
+  useEffect(() => {
+    const handleChanged = () => {
+      silentRefresh.current = true;
+      setRefreshKey((key) => key + 1);
+    };
+    window.addEventListener(NOTIFICATIONS_CHANGED_EVENT, handleChanged);
+    return () => window.removeEventListener(NOTIFICATIONS_CHANGED_EVENT, handleChanged);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
 
     const load = async () => {
-      setLoading(true);
+      if (!silentRefresh.current) setLoading(true);
+      silentRefresh.current = false;
       setError(null);
       try {
-        const result = await searchNotifications(pageNumber, PAGE_SIZE);
+        const result = await searchNotifications(pageNumber, PAGE_SIZE, { app: "coach" });
         if (cancelled) return;
         setItems(result.items);
         setTotalCount(result.totalCount);
@@ -60,7 +73,7 @@ const Notifications: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [pageNumber]);
+  }, [pageNumber, refreshKey]);
 
   const handleCardClick = async (notification: NotificationResponse) => {
     setItems((prev) =>
@@ -68,6 +81,7 @@ const Notifications: React.FC = () => {
     );
     try {
       await markNotificationRead(notification.id);
+      window.dispatchEvent(new CustomEvent(NOTIFICATIONS_CHANGED_EVENT));
     } catch {
       // Best-effort: navigation still proceeds even if marking as read fails.
     }

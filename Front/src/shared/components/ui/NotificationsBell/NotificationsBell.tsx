@@ -1,48 +1,59 @@
 import React, { useCallback, useEffect, useState } from "react";
 import Badge from "@mui/material/Badge";
+import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import NotificationsIcon from "@mui/icons-material/Notifications";
+import DoneAllIcon from "@mui/icons-material/DoneAll";
 import { useNavigate } from "react-router-dom";
 import {
+  markAllNotificationsRead,
   markNotificationRead,
+  NOTIFICATIONS_CHANGED_EVENT,
   searchNotifications,
+  type NotificationApp,
   type NotificationResponse,
 } from "../../../services/notificationService";
-import styles from "./FederationNotificationsBell.module.css";
+import styles from "./NotificationsBell.module.css";
 
 const PAGE_SIZE = 20;
 const REFRESH_INTERVAL_MS = 60_000;
+
+type NotificationsBellProps = {
+  app: NotificationApp;
+};
 
 function unreadLabel(count: number): string {
   if (count === 0) return "Notificaciones";
   return count === 1 ? "1 notificación sin leer" : `${count} notificaciones sin leer`;
 }
 
-export default function FederationNotificationsBell(): JSX.Element {
+export default function NotificationsBell({ app }: NotificationsBellProps): JSX.Element {
   const navigate = useNavigate();
   const [items, setItems] = useState<NotificationResponse[]>([]);
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 
   const load = useCallback(async () => {
     try {
-      const result = await searchNotifications(1, PAGE_SIZE, { suppressErrorRedirect: true });
+      const result = await searchNotifications(1, PAGE_SIZE, { suppressErrorRedirect: true, app });
       setItems(result.items ?? []);
     } catch {
       // la campana no debe romper la cabecera si falla la carga
     }
-  }, []);
+  }, [app]);
 
   useEffect(() => {
     load();
     const interval = window.setInterval(load, REFRESH_INTERVAL_MS);
     window.addEventListener("focus", load);
+    window.addEventListener(NOTIFICATIONS_CHANGED_EVENT, load);
     return () => {
       window.clearInterval(interval);
       window.removeEventListener("focus", load);
+      window.removeEventListener(NOTIFICATIONS_CHANGED_EVENT, load);
     };
   }, [load]);
 
@@ -67,6 +78,47 @@ export default function FederationNotificationsBell(): JSX.Element {
     if (notification.deepLinkPath) navigate(notification.deepLinkPath);
   };
 
+  const handleMarkAllRead = async () => {
+    setItems((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    try {
+      await markAllNotificationsRead(app);
+      window.dispatchEvent(new CustomEvent(NOTIFICATIONS_CHANGED_EVENT));
+    } catch {
+      load();
+    }
+  };
+
+  const menuContent: React.ReactNode[] = [];
+  if (unreadCount > 0) {
+    menuContent.push(
+      <MenuItem key="mark-all" onClick={handleMarkAllRead} className={styles.markAll}>
+        <DoneAllIcon fontSize="small" />
+        &nbsp;Marcar todas como leídas
+      </MenuItem>,
+      <Divider key="mark-all-divider" />,
+    );
+  }
+  if (items.length === 0) {
+    menuContent.push(
+      <MenuItem key="empty" disabled>
+        <Typography variant="body2">No tienes notificaciones</Typography>
+      </MenuItem>,
+    );
+  } else {
+    items.forEach((n) =>
+      menuContent.push(
+        <MenuItem
+          key={n.id}
+          onClick={() => handleSelect(n)}
+          className={`${styles.item} ${n.isRead ? "" : styles.unread}`}
+        >
+          <span className={styles.title}>{n.title}</span>
+          <span className={styles.body}>{n.body}</span>
+        </MenuItem>,
+      ),
+    );
+  }
+
   return (
     <>
       <Tooltip title={label}>
@@ -90,22 +142,7 @@ export default function FederationNotificationsBell(): JSX.Element {
         transformOrigin={{ vertical: "top", horizontal: "right" }}
         slotProps={{ paper: { className: styles.menuPaper } }}
       >
-        {items.length === 0 ? (
-          <MenuItem disabled>
-            <Typography variant="body2">No tienes notificaciones</Typography>
-          </MenuItem>
-        ) : (
-          items.map((n) => (
-            <MenuItem
-              key={n.id}
-              onClick={() => handleSelect(n)}
-              className={`${styles.item} ${n.isRead ? "" : styles.unread}`}
-            >
-              <span className={styles.title}>{n.title}</span>
-              <span className={styles.body}>{n.body}</span>
-            </MenuItem>
-          ))
-        )}
+        {menuContent}
       </Menu>
     </>
   );

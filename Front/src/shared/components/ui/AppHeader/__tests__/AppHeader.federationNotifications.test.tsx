@@ -16,8 +16,8 @@ vi.mock("../../../../hooks/useAuthToken", () => ({
 vi.mock("../../../../hooks/useRootClassObserver", () => ({
   default: () => {},
 }));
-vi.mock("../../FederationNotificationsBell/FederationNotificationsBell", () => ({
-  default: () => <button type="button">Notificaciones</button>,
+vi.mock("../../NotificationsBell/NotificationsBell", () => ({
+  default: ({ app }: { app: string }) => <button type="button">{`Notificaciones ${app}`}</button>,
 }));
 
 import AppHeader from "../AppHeader";
@@ -32,14 +32,16 @@ function renderAt(path: string) {
   );
 }
 
-describe("AppHeader — campana de notificaciones de Federación", () => {
-  it("muestra la campana en las páginas de Federación", () => {
+describe("AppHeader — campana de notificaciones", () => {
+  it("muestra la campana de Federación en las páginas de Federación", () => {
     renderAt("/federation/get-players");
-    expect(screen.getByRole("button", { name: /notificaciones/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Notificaciones federation" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Notificaciones coach" })).not.toBeInTheDocument();
   });
 
-  it("no muestra la campana en Coach", () => {
+  it("muestra la campana de Coach en las páginas de Coach", () => {
     renderAt("/coach/dashboard");
-    expect(screen.queryByRole("button", { name: /notificaciones/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Notificaciones coach" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Notificaciones federation" })).not.toBeInTheDocument();
   });
 });

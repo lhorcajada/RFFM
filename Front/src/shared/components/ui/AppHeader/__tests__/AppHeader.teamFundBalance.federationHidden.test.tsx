@@ -31,8 +31,10 @@ vi.mock("../../../../hooks/useRootClassObserver", () => ({
 }));
 
 vi.mock("../../../../services/notificationService", () => ({
+  NOTIFICATIONS_CHANGED_EVENT: "rffm.notifications_changed",
   searchNotifications: vi.fn().mockResolvedValue({ items: [], totalCount: 0 }),
   markNotificationRead: vi.fn(),
+  markAllNotificationsRead: vi.fn(),
 }));
 
 const navigateMock = vi.fn();

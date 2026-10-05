@@ -17,7 +17,7 @@ import useAuthToken from "../../../hooks/useAuthToken";
 import useMyPendingSanctionsCount from "../../../hooks/useMyPendingSanctionsCount";
 import useTeamFundBalance from "../../../hooks/useTeamFundBalance";
 import { useLocation, useNavigate } from "react-router-dom";
-import FederationNotificationsBell from "../FederationNotificationsBell/FederationNotificationsBell";
+import NotificationsBell from "../NotificationsBell/NotificationsBell";
 import useRootClassObserver from "../../../hooks/useRootClassObserver";
 import AppVersionInfo from "../AppVersionInfo/AppVersionInfo";
 
@@ -188,7 +188,9 @@ export default function AppHeader({ title }: AppHeaderProps) {
               </span>
             </IconButton>
           )}
-          {isFederationApp && isAuthValid && <FederationNotificationsBell />}
+          {isAuthValid && (
+            <NotificationsBell key={isFederationApp ? "federation" : "coach"} app={isFederationApp ? "federation" : "coach"} />
+          )}
           {pendingSanctions.visible && (
             <Tooltip title={pendingSanctionsLabel}>
               <IconButton
