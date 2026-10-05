@@ -12,6 +12,7 @@
 *.sln.docstates
 *.sln.ide
 *.sln.iml
+*.lscache
 
 # Rider
 *.sln.iml
