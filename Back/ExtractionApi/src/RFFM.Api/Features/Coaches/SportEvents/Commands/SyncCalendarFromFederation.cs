@@ -17,6 +17,7 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
     public class SyncCalendarFromFederation : IFeatureModule
     {
         private const string RivalsContainerName = "rivalphotos";
+        private static readonly TimeZoneInfo Madrid = TimeZoneInfo.FindSystemTimeZoneById("Europe/Madrid");
 
         public void AddRoutes(IEndpointRouteBuilder app)
         {
@@ -231,13 +232,16 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Commands
         private static bool HasKnownTime(string? matchTime)
             => !string.IsNullOrWhiteSpace(matchTime) && TimeSpan.TryParse(matchTime, out _);
 
+        // RFFM publishes kickoff times in Spanish local time, so a known time must be
+        // converted from Europe/Madrid to UTC; a date-only fixture keeps its UTC-midnight placeholder.
         private static DateTime BuildMatchDateTime(DateTime matchDate, string? matchTime)
         {
             var baseDate = matchDate.Date;
             if (!string.IsNullOrWhiteSpace(matchTime)
                 && TimeSpan.TryParse(matchTime, out var time))
             {
-                baseDate = baseDate.Add(time);
+                var localKickoff = DateTime.SpecifyKind(baseDate.Add(time), DateTimeKind.Unspecified);
+                return TimeZoneInfo.ConvertTimeToUtc(localKickoff, Madrid);
             }
             return DateTime.SpecifyKind(baseDate, DateTimeKind.Utc);
         }

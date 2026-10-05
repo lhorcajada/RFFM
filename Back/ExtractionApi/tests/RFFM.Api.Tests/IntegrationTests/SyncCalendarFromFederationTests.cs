@@ -186,6 +186,39 @@ namespace RFFM.Api.Tests.IntegrationTests
             Assert.Null(stored.StartTime);
         }
 
+        [Theory]
+        [InlineData(2026, 10, 10, "18:00", 16)]
+        [InlineData(2027, 1, 16, "18:00", 17)]
+        public async Task Sync_MatchTime_IsInterpretedAsMadridLocalTimeAndStoredAsUtc(
+            int year, int month, int day, string matchTime, int expectedUtcHour)
+        {
+            var team = await SeedTeamAsync();
+            var (host, client) = await StartHostAsync();
+            using var _ = host;
+
+            var matchItem = new SyncMatchItem(
+                RivalName: "CD Liga Hora Madrid",
+                RivalShieldUrl: null,
+                MatchDate: new DateTime(year, month, day, 0, 0, 0, DateTimeKind.Utc),
+                MatchTime: matchTime,
+                Field: "Campo Municipal",
+                IsHomeMatch: true,
+                CodActa: $"ACTA-MADRID-{year}{month}{day}",
+                LocalGoals: null,
+                VisitorGoals: null);
+
+            var response = await client.PostAsJsonAsync(
+                "/api/sport-events/sync-calendar",
+                new SyncCalendarRequest(team.Id, new[] { matchItem }, null));
+            response.EnsureSuccessStatusCode();
+
+            await using var readDb = _fixture.CreateDbContext();
+            var stored = await readDb.SportEvents.SingleAsync(e => e.TeamId == team.Id);
+            var expectedUtc = new DateTime(year, month, day, expectedUtcHour, 0, 0, DateTimeKind.Utc);
+            Assert.Equal(expectedUtc, stored.StartTime!.Value.ToUniversalTime());
+            Assert.Equal(expectedUtc, stored.EveDateTime!.Value.ToUniversalTime());
+        }
+
         [Fact]
         public async Task Sync_MatchTimeLaterRemovedByFederation_ClearsPreviouslyStoredStartTime()
         {
