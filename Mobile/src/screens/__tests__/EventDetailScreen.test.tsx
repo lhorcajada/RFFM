@@ -249,6 +249,41 @@ describe('EventDetailScreen', () => {
     expect(queryByTestId('pending-button-other-pending')).toBeNull();
   });
 
+  it('hides the attendance buttons on my own row while my player is injured', async () => {
+    const injuredRow = { ...myRow, isInjured: true };
+    (mockApi.get as jest.Mock).mockResolvedValue({ data: [injuredRow] });
+
+    const { findByTestId, queryByTestId } = await render(<EventDetailScreen />);
+
+    expect((await findByTestId('injured-badge-player1')).props.children).toBe('Lesionado');
+    expect(queryByTestId('going-button-player1')).toBeNull();
+    expect(queryByTestId('not-going-button-player1')).toBeNull();
+    expect(queryByTestId('pending-button-player1')).toBeNull();
+  });
+
+  it('hides the attendance buttons for a FamilyMember whose linked player is injured', async () => {
+    mockUseAuth.mockReturnValue({ isAuthenticated: true, roles: ['FamilyMember'] });
+    const injuredRow = { ...myRow, isInjured: true };
+    (mockApi.get as jest.Mock).mockResolvedValue({ data: [injuredRow] });
+
+    const { findByTestId, queryByTestId } = await render(<EventDetailScreen />);
+
+    await findByTestId('roster-row-player1');
+    expect(queryByTestId('going-button-player1')).toBeNull();
+    expect(queryByTestId('not-going-button-player1')).toBeNull();
+  });
+
+  it('keeps the attendance buttons for a Coach even when the player is injured', async () => {
+    mockUseAuth.mockReturnValue({ isAuthenticated: true, roles: ['Coach'] });
+    const injuredRow = { ...myRow, isInjured: true };
+    (mockApi.get as jest.Mock).mockResolvedValue({ data: [injuredRow] });
+
+    const { findByTestId } = await render(<EventDetailScreen />);
+
+    expect(await findByTestId('going-button-player1')).toBeTruthy();
+    expect(await findByTestId('not-going-button-player1')).toBeTruthy();
+  });
+
   it('shows edit buttons on every row for a Coach role once its group is expanded', async () => {
     mockUseAuth.mockReturnValue({ isAuthenticated: true, roles: ['Coach'] });
     (mockApi.get as jest.Mock).mockResolvedValue({ data: [myRow, otherPendingRow] });

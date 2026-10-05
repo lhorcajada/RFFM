@@ -23,6 +23,7 @@ interface AttendanceRosterRow {
   dorsal: number | null;
   status: string;
   statusId: number;
+  isInjured?: boolean;
 }
 
 const PRIVILEGED_ROLES = ['administrator', 'coach'];
@@ -182,7 +183,8 @@ const EventDetailScreen = () => {
             </Pressable>
 
             {isExpanded && groupRows.map((row) => {
-              const canEdit = isPrivileged || row.teamPlayerId === myTeamPlayerId;
+              const isMyInjuredPlayer = !isPrivileged && row.teamPlayerId === myTeamPlayerId && Boolean(row.isInjured);
+              const canEdit = isPrivileged || (row.teamPlayerId === myTeamPlayerId && !isMyInjuredPlayer);
               const photoUri = resolvePhotoUrl(row.urlPhoto, API_BASE_URL);
               return (
                 <View key={row.teamPlayerId} testID={`roster-row-${row.teamPlayerId}`} style={styles.card}>
@@ -210,6 +212,10 @@ const EventDetailScreen = () => {
                     <View style={styles.accentLine} />
                     <Text style={styles.playerName} numberOfLines={1}>{row.alias}</Text>
                     <Text testID={`status-${row.teamPlayerId}`} style={styles.status}>{statusLabel(row.status)}</Text>
+
+                    {isMyInjuredPlayer && (
+                      <Text testID={`injured-badge-${row.teamPlayerId}`} style={styles.injuredBadge}>Lesionado</Text>
+                    )}
 
                     {canEdit && (
                       <View style={styles.buttonGroup}>
@@ -357,6 +363,11 @@ const styles = StyleSheet.create({
   status: {
     fontSize: 12,
     color: coachColors.textSecondary,
+  },
+  injuredBadge: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: coachColors.error,
   },
   buttonGroup: {
     flexDirection: 'row',
