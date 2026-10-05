@@ -93,11 +93,12 @@
 .exerciseCardHeader {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 4px;
 }
 
 .exerciseCardLabel {
+  flex: 1;
+  min-width: 0;
   font-size: 0.85rem !important;
   font-weight: 600 !important;
   color: #e8e8e8 !important;

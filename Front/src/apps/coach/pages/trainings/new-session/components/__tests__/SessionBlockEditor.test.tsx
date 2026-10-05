@@ -130,6 +130,25 @@ describe("SessionBlockEditor", () => {
     expect(within(card).getByText("8 conos, 4 petos, 2 miniporterías")).toBeInTheDocument();
   });
 
+  it("al pulsar 'Editar ejercicio' en la ficha pide editar ese ejercicio", async () => {
+    const onRequestEditExercise = vi.fn();
+    render(
+      <MemoryRouter>
+        <SessionBlockEditor
+          blocks={[block(1, "Bloque 1", ["ex-2", "ex-1"])]}
+          onChange={vi.fn()}
+          clubId="club-1"
+          onRequestEditExercise={onRequestEditExercise}
+        />
+      </MemoryRouter>
+    );
+
+    const card = await screen.findByRole("article", { name: "Rondo con porterías" });
+    await userEvent.click(within(card).getByRole("button", { name: /editar ejercicio/i }));
+
+    expect(onRequestEditExercise).toHaveBeenCalledWith("ex-1");
+  });
+
   it("elimina un bloque y renumera el resto (sin huecos)", async () => {
     const onChange = vi.fn();
     setup({ blocks: [block(1, "Bloque 1"), block(2, "Bloque 2")], onChange });

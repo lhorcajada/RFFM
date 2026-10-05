@@ -5,6 +5,7 @@ import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import {
   DndContext,
   DragOverlay,
@@ -70,9 +71,10 @@ interface ExerciseInfoCardProps {
   exerciseId: string;
   exercise?: Exercise;
   onRemove: () => void;
+  onEdit?: () => void;
 }
 
-function ExerciseInfoCard({ exerciseId, exercise, onRemove }: ExerciseInfoCardProps) {
+function ExerciseInfoCard({ exerciseId, exercise, onRemove, onEdit }: ExerciseInfoCardProps) {
   const name = exercise?.name ?? exerciseId;
   const sections = exercise
     ? [
@@ -86,6 +88,11 @@ function ExerciseInfoCard({ exerciseId, exercise, onRemove }: ExerciseInfoCardPr
     <Box component="article" aria-label={name} className={styles.exerciseCard}>
       <Box className={styles.exerciseCardHeader}>
         <Typography className={styles.exerciseCardLabel}>{name}</Typography>
+        {onEdit && (
+          <IconButton size="small" aria-label="Editar ejercicio" onClick={onEdit}>
+            <EditOutlinedIcon fontSize="small" />
+          </IconButton>
+        )}
         <IconButton size="small" aria-label="Quitar ejercicio del bloque" onClick={onRemove}>
           <DeleteOutlineIcon fontSize="small" />
         </IconButton>
@@ -158,9 +165,16 @@ interface SessionBlockEditorProps {
    * disable the inline-create flow (e.g. in isolated tests). */
   sessionDraftKey?: string;
   onRequestInlineExercise?: (blockIndex: number) => void;
+  onRequestEditExercise?: (exerciseId: string) => void;
 }
 
-export default function SessionBlockEditor({ blocks, onChange, clubId, onRequestInlineExercise }: SessionBlockEditorProps) {
+export default function SessionBlockEditor({
+  blocks,
+  onChange,
+  clubId,
+  onRequestInlineExercise,
+  onRequestEditExercise,
+}: SessionBlockEditorProps) {
   const exercises = useClubExercises(clubId);
   const sortedBlocks = [...blocks].sort((a, b) => a.order - b.order);
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
@@ -281,6 +295,7 @@ export default function SessionBlockEditor({ blocks, onChange, clubId, onRequest
                       exerciseId={ex.exerciseId}
                       exercise={exercises.find((e) => e.id === ex.exerciseId)}
                       onRemove={() => removeExercise(blockIndex, exIndex)}
+                      onEdit={onRequestEditExercise ? () => onRequestEditExercise(ex.exerciseId) : undefined}
                     />
                   ))}
                 </Box>

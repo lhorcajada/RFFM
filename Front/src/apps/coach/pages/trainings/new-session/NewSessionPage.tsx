@@ -102,9 +102,9 @@ export default function NewSessionPage() {
   const microcicloOptions = useMicrocicloOptions(teamId);
   const dailySportEvents = useDailySportEvents(teamId, sessionForm.form.date);
 
-  // Restore an in-progress draft after returning from creating an exercise inline, and
-  // append the newly created exercise (if any) to the block that requested it.
-  useEffect(() => {
+  // Restore an in-progress draft after returning from the exercise editor, and append the
+  // newly created exercise (if any) to the block that requested it.
+  const restoreDraft = () => {
     if (!sessionDraftKey) return;
     const raw = sessionStorage.getItem(SESSION_DRAFT_STORAGE_PREFIX + sessionDraftKey);
     if (!raw) return;
@@ -138,40 +138,56 @@ export default function NewSessionPage() {
     } finally {
       sessionStorage.removeItem(SESSION_DRAFT_STORAGE_PREFIX + sessionDraftKey);
     }
+  };
+
+  useEffect(() => {
+    if (sessionId) return;
+    restoreDraft();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionDraftKey]);
 
+  // For a saved session the draft is applied after the server load so unsaved changes
+  // made before leaving for the exercise editor are not overwritten.
   useEffect(() => {
     if (!sessionId) return;
     let cancelled = false;
     void trainingService.getSessionById(sessionId).then((detail) => {
-      if (!cancelled) sessionForm.loadSession(detail);
+      if (cancelled) return;
+      sessionForm.loadSession(detail);
+      restoreDraft();
     });
     return () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionId]);
+  }, [sessionId, sessionDraftKey]);
 
-  const handleRequestInlineExercise = (blockIndex: number) => {
+  const goToExerciseEditor = (exerciseParams: URLSearchParams, pendingBlockIndex: number | null) => {
     const key = `${teamId}-${Date.now()}`;
     sessionStorage.setItem(
       SESSION_DRAFT_STORAGE_PREFIX + key,
-      JSON.stringify({ draft: sessionForm.form, pendingBlockIndex: blockIndex })
+      JSON.stringify({ draft: sessionForm.form, pendingBlockIndex })
     );
 
-    const createParams = new URLSearchParams();
-    createParams.set("clubId", clubId);
-    if (teamId) createParams.set("teamId", teamId);
+    const returnParams = new URLSearchParams(params);
+    returnParams.set("sessionDraftKey", key);
 
-    navigate(`/coach/trainings/new-exercise?${createParams.toString()}`, {
+    exerciseParams.set("clubId", clubId);
+    if (teamId) exerciseParams.set("teamId", teamId);
+
+    navigate(`/coach/trainings/new-exercise?${exerciseParams.toString()}`, {
       state: {
-        returnTo: `/coach/trainings/new-session?${params.toString()}&sessionDraftKey=${key}`,
+        returnTo: `/coach/trainings/new-session?${returnParams.toString()}`,
         returnState: { returnTo },
         sessionDraftKey: key,
       },
     });
   };
+
+  const handleRequestInlineExercise = (blockIndex: number) => goToExerciseEditor(new URLSearchParams(), blockIndex);
+
+  const handleRequestEditExercise = (exerciseId: string) =>
+    goToExerciseEditor(new URLSearchParams({ exerciseId }), null);
 
   return (
     <BaseLayout hideFooterMenu>
@@ -319,6 +335,7 @@ export default function NewSessionPage() {
             onChange={(blocks) => sessionForm.setField("blocks", blocks)}
             clubId={clubId}
             onRequestInlineExercise={handleRequestInlineExercise}
+            onRequestEditExercise={handleRequestEditExercise}
           />
 
           {sessionForm.error && (
