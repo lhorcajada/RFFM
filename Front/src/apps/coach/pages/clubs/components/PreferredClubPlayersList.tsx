@@ -24,7 +24,6 @@ export default function PreferredClubPlayersList({
   refreshToken = 0,
 }: PreferredClubPlayersListProps) {
   const [clubName, setClubName] = React.useState<string | null>(null);
-  const [resolvedClubId, setResolvedClubId] = React.useState<string | null>(null);
   const [players, setPlayers] = React.useState<Player[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -43,7 +42,6 @@ export default function PreferredClubPlayersList({
 
         const preferredClubId = currentConfig?.preferredClubId?.trim() || null;
         const targetClubId = clubId?.trim() || preferredClubId;
-        setResolvedClubId(targetClubId);
 
         if (!targetClubId) {
           setClubName(null);
@@ -74,7 +72,6 @@ export default function PreferredClubPlayersList({
       } catch {
         if (!mounted) return;
         setClubName(null);
-        setResolvedClubId(null);
         setPlayers([]);
         setError("No se pudo cargar la lista de jugadores del club preferido.");
       } finally {
@@ -131,7 +128,6 @@ export default function PreferredClubPlayersList({
 
           <div className={styles.summaryChips}>
             {clubName ? <Chip label={clubName} variant="outlined" /> : null}
-            {resolvedClubId ? <Chip label={`Club: ${resolvedClubId}`} variant="outlined" /> : null}
             <Chip label={`${filteredPlayers.length}/${players.length}`} variant="outlined" />
           </div>
         </div>
