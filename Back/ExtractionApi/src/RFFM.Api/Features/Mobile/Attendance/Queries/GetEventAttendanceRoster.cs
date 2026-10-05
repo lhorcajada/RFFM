@@ -50,7 +50,8 @@ namespace RFFM.Api.Features.Mobile.Attendance.Queries
             string? UrlPhoto,
             int? Dorsal,
             string Status,
-            int StatusId);
+            int StatusId,
+            bool IsInjured);
 
         public class Handler(AppDbContext db) : IRequestHandler<EventAttendanceRosterQuery, EventAttendanceRosterResponse[]>
         {
@@ -71,6 +72,17 @@ namespace RFFM.Api.Features.Mobile.Attendance.Queries
 
                 var confirmationsByTeamPlayerId = confirmations.ToDictionary(c => c.TeamPlayerId);
 
+                var now = DateTime.UtcNow;
+                var teamPlayerIds = teamPlayers.Select(tp => tp.Id).ToList();
+                var injuredTeamPlayerIds = (await db.TeamPlayerInjuries
+                    .AsNoTracking()
+                    .Where(i => teamPlayerIds.Contains(i.TeamPlayerId) &&
+                                i.StartDate <= now &&
+                                (i.EndDate == null || i.EndDate > now))
+                    .Select(i => i.TeamPlayerId)
+                    .ToListAsync(cancellationToken))
+                    .ToHashSet();
+
                 var result = teamPlayers.Select(tp =>
                 {
                     var statusId = confirmationsByTeamPlayerId.TryGetValue(tp.Id, out var confirmation)
@@ -84,7 +96,8 @@ namespace RFFM.Api.Features.Mobile.Attendance.Queries
                         tp.Player.UrlPhoto,
                         tp.Dorsal != null ? tp.Dorsal.Number : (int?)null,
                         status.Name,
-                        status.Id);
+                        status.Id,
+                        injuredTeamPlayerIds.Contains(tp.Id));
                 }).ToArray();
 
                 return result;

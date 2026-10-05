@@ -26,9 +26,11 @@ namespace RFFM.Api.Features.Coaches.Notifications.Services
         {
             try
             {
+                var sportEvent = await _db.SportEvents.AsNoTracking().FirstOrDefaultAsync(se => se.Id == eventId, ct);
+                if (await IsInjuredOnAsync(teamPlayerId, sportEvent?.EveDateTime ?? DateTime.UtcNow, ct)) return;
+
                 var userIds = await ResolvePlayerAndFamilyUserIdsAsync(teamPlayerId, ct);
                 var alias = await GetPlayerAliasAsync(teamPlayerId, ct);
-                var sportEvent = await _db.SportEvents.AsNoTracking().FirstOrDefaultAsync(se => se.Id == eventId, ct);
 
                 var body = sportEvent is null
                     ? "Has sido convocado para un próximo evento."
@@ -51,6 +53,7 @@ namespace RFFM.Api.Features.Coaches.Notifications.Services
             {
                 var sportEvent = await _db.SportEvents.AsNoTracking().FirstOrDefaultAsync(se => se.Id == eventId, ct);
                 if (sportEvent is null) return;
+                if (await IsInjuredOnAsync(teamPlayerId, sportEvent.EveDateTime ?? DateTime.UtcNow, ct)) return;
 
                 var userIds = await ResolvePlayerAndFamilyUserIdsAsync(teamPlayerId, ct);
                 var alias = await GetPlayerAliasAsync(teamPlayerId, ct);
@@ -224,6 +227,18 @@ namespace RFFM.Api.Features.Coaches.Notifications.Services
 
             var localWon = localGoals > visitorGoals;
             return localWon == message.IsLocal ? "Victoria" : "Derrota";
+        }
+
+        // Same "injured for this event" rule as GetEventConvocations/GetEventPlayers: an injured
+        // player cannot attend, so a convocation or reminder push would be misleading.
+        private Task<bool> IsInjuredOnAsync(string teamPlayerId, DateTime eventDateTime, CancellationToken ct)
+        {
+            var eventDate = eventDateTime.Date;
+            return _db.TeamPlayerInjuries
+                .AsNoTracking()
+                .AnyAsync(i => i.TeamPlayerId == teamPlayerId &&
+                               i.StartDate.Date <= eventDate &&
+                               (i.EndDate == null || i.EndDate.Value.Date >= eventDate), ct);
         }
 
         private async Task<string> GetPlayerAliasAsync(string teamPlayerId, CancellationToken ct)

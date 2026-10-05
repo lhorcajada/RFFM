@@ -56,11 +56,13 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Queries
         /// frontend can act on the real convocation status. MyConvocationId is the caller's own
         /// Convocation.Id for this event (when convoked), needed to call
         /// PUT /api/events/{eventId}/convocations/{convocationId}/status directly from the
-        /// dashboard widget.
+        /// dashboard widget. MyIsInjured is true while the caller's linked player has an active
+        /// injury, so the widget hides the "Voy"/"No voy" actions until discharge.
         /// </summary>
         public record EventAttendanceSummaryResponse(
             string EventId, int Convocados, int Going, int Pending, int NotGoing,
-            double AttendancePercentage, string? MyStatus, int? MyStatusId, string? MyConvocationId);
+            double AttendancePercentage, string? MyStatus, int? MyStatusId, string? MyConvocationId,
+            bool MyIsInjured = false);
 
         public class Validator : AbstractValidator<EventAttendanceSummaryQuery>
         {
@@ -117,6 +119,16 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Queries
                     }
                 }
 
+                var myIsInjured = false;
+                if (myTeamPlayerId is not null)
+                {
+                    var now = DateTime.UtcNow;
+                    myIsInjured = await _db.TeamPlayerInjuries.AsNoTracking()
+                        .AnyAsync(i => i.TeamPlayerId == myTeamPlayerId &&
+                                       i.StartDate <= now &&
+                                       (i.EndDate == null || i.EndDate > now), cancellationToken);
+                }
+
                 var pendingId = ConvocationStatus.FromName("Pending").Id;
                 var acceptedId = ConvocationStatus.FromName("Accepted").Id;
                 var justifiedId = ConvocationStatus.FromName("Justified").Id;
@@ -156,7 +168,7 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Queries
                     }
 
                     results.Add(new EventAttendanceSummaryResponse(
-                        eventId, convocados, going, pending, notGoing, percentage, myStatus, myStatusId, myConvocationId));
+                        eventId, convocados, going, pending, notGoing, percentage, myStatus, myStatusId, myConvocationId, myIsInjured));
                 }
 
                 return results.ToArray();

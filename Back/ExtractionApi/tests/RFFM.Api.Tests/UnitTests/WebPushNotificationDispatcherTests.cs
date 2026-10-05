@@ -168,6 +168,83 @@ namespace RFFM.Api.Tests.UnitTests
             Assert.Equal(countBefore, countAfter);
         }
 
+        private static async Task<string> SeedLinkedFamilyUserAsync(AppDbContext db, string teamPlayerId)
+        {
+            var familyMember = TeamPlayerFamilyMember.Create(teamPlayerId, "Ana", "García", "600000000", "ana@test.com", null, "Mother");
+            db.Set<TeamPlayerFamilyMember>().Add(familyMember);
+            await db.SaveChangesAsync();
+            var familyUserId = Guid.NewGuid().ToString();
+            familyMember.LinkAccount(familyUserId);
+            await db.SaveChangesAsync();
+            return familyUserId;
+        }
+
+        private static async Task<string> SeedEventAsync(AppDbContext db, string teamId, DateTime eventDate)
+        {
+            var sportEvent = SportEvent.CreateNew(
+                "Entrenamiento", eventDate, eventDate,
+                null, null, null, null, eventTypeId: 1, teamId, null);
+            db.SportEvents.Add(sportEvent);
+            await db.SaveChangesAsync();
+            return sportEvent.Id;
+        }
+
+        [Fact]
+        public async Task DispatchConvocationCreatedAsync_WhenPlayerIsInjuredOnEventDate_DoesNotNotify()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, teamPlayerId) = await SeedTeamAndPlayerAsync(db);
+            var familyUserId = await SeedLinkedFamilyUserAsync(db, teamPlayerId);
+            var eventId = await SeedEventAsync(db, teamId, DateTime.UtcNow.AddDays(2));
+
+            db.TeamPlayerInjuries.Add(TeamPlayerInjury.Create(teamPlayerId, DateTime.UtcNow.AddDays(-3), "Muscular", null, null));
+            await db.SaveChangesAsync();
+
+            var dispatcher = new WebPushNotificationDispatcher(db, new Mock<IWebPushSender>().Object);
+
+            await dispatcher.DispatchConvocationCreatedAsync(teamPlayerId, eventId, CancellationToken.None);
+
+            Assert.False(await db.Notifications.AnyAsync(n => n.UserId == familyUserId));
+        }
+
+        [Fact]
+        public async Task DispatchConvocationCreatedAsync_WhenInjuryWasDischargedBeforeEvent_Notifies()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, teamPlayerId) = await SeedTeamAndPlayerAsync(db);
+            var familyUserId = await SeedLinkedFamilyUserAsync(db, teamPlayerId);
+            var eventId = await SeedEventAsync(db, teamId, DateTime.UtcNow.AddDays(2));
+
+            var injury = TeamPlayerInjury.Create(teamPlayerId, DateTime.UtcNow.AddDays(-10), "Muscular", null, null);
+            injury.Update(injury.StartDate, injury.InjuryType, null, null, DateTime.UtcNow.AddDays(-1));
+            db.TeamPlayerInjuries.Add(injury);
+            await db.SaveChangesAsync();
+
+            var dispatcher = new WebPushNotificationDispatcher(db, new Mock<IWebPushSender>().Object);
+
+            await dispatcher.DispatchConvocationCreatedAsync(teamPlayerId, eventId, CancellationToken.None);
+
+            Assert.True(await db.Notifications.AnyAsync(n => n.Type == "ConvocationCreated" && n.UserId == familyUserId));
+        }
+
+        [Fact]
+        public async Task DispatchConvocationReminderAsync_WhenPlayerIsInjuredOnEventDate_DoesNotNotify()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, teamPlayerId) = await SeedTeamAndPlayerAsync(db);
+            var familyUserId = await SeedLinkedFamilyUserAsync(db, teamPlayerId);
+            var eventId = await SeedEventAsync(db, teamId, DateTime.UtcNow.AddDays(2));
+
+            db.TeamPlayerInjuries.Add(TeamPlayerInjury.Create(teamPlayerId, DateTime.UtcNow.AddDays(-3), "Muscular", null, null));
+            await db.SaveChangesAsync();
+
+            var dispatcher = new WebPushNotificationDispatcher(db, new Mock<IWebPushSender>().Object);
+
+            await dispatcher.DispatchConvocationReminderAsync(teamPlayerId, eventId, CancellationToken.None);
+
+            Assert.False(await db.Notifications.AnyAsync(n => n.UserId == familyUserId));
+        }
+
         [Fact]
         public async Task DispatchConvocationStatusChangedAsync_NotifiesTeamCoach()
         {

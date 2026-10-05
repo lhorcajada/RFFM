@@ -436,6 +436,78 @@ namespace RFFM.Api.Tests.UnitTests
             Assert.Equal(ConvocationStatus.FromName("Pending").Id, summary.MyStatusId);
             Assert.Equal(convocationId, summary.MyConvocationId);
         }
+
+        [Fact]
+        public async Task Handle_LinkedPlayerWithActiveInjury_ReturnsMyIsInjuredTrue()
+        {
+            // Arrange
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, teamPlayerId, sportEventId) = await SeedTeamPlayerAndEventAsync(db);
+            await SeedConvocationAsync(db, sportEventId, teamPlayerId, ConvocationStatus.FromName("Pending").Id);
+            var userId = await SeedLinkedUserAsync(db, teamId, teamPlayerId);
+
+            db.TeamPlayerInjuries.Add(TeamPlayerInjury.Create(teamPlayerId, DateTime.UtcNow.AddDays(-3), "Muscular", null, null));
+            await db.SaveChangesAsync();
+
+            var mockCurrentUser = new MockCurrentUserService(userId, new[] { "FamilyMember" });
+
+            // Act
+            var handler = new GetEventAttendanceSummary.Handler(db, mockCurrentUser);
+            var query = new GetEventAttendanceSummary.EventAttendanceSummaryQuery
+            {
+                TeamId = teamId,
+                EventIds = new[] { sportEventId }
+            };
+
+            var result = await handler.Handle(query, CancellationToken.None);
+
+            // Assert
+            var summary = result.First(r => r.EventId == sportEventId);
+            Assert.True(summary.MyIsInjured);
+        }
+
+        [Fact]
+        public async Task Handle_LinkedPlayerWithDischargedInjury_ReturnsMyIsInjuredFalse()
+        {
+            // Arrange
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, teamPlayerId, sportEventId) = await SeedTeamPlayerAndEventAsync(db);
+            await SeedConvocationAsync(db, sportEventId, teamPlayerId, ConvocationStatus.FromName("Pending").Id);
+            var userId = await SeedLinkedUserAsync(db, teamId, teamPlayerId);
+
+            var injury = TeamPlayerInjury.Create(teamPlayerId, DateTime.UtcNow.AddDays(-10), "Muscular", null, null);
+            injury.Update(injury.StartDate, injury.InjuryType, null, null, DateTime.UtcNow.AddDays(-1));
+            db.TeamPlayerInjuries.Add(injury);
+            await db.SaveChangesAsync();
+
+            var mockCurrentUser = new MockCurrentUserService(userId, new[] { "Player" });
+
+            // Act
+            var handler = new GetEventAttendanceSummary.Handler(db, mockCurrentUser);
+            var query = new GetEventAttendanceSummary.EventAttendanceSummaryQuery
+            {
+                TeamId = teamId,
+                EventIds = new[] { sportEventId }
+            };
+
+            var result = await handler.Handle(query, CancellationToken.None);
+
+            // Assert
+            var summary = result.First(r => r.EventId == sportEventId);
+            Assert.False(summary.MyIsInjured);
+        }
+
+        private static async Task<string> SeedLinkedUserAsync(AppDbContext db, string teamId, string teamPlayerId)
+        {
+            var userId = Guid.NewGuid().ToString();
+            var userTeam = new UserTeam(userId, teamId, Membership.Player.Id);
+            db.Set<UserTeam>().Add(userTeam);
+            await db.SaveChangesAsync();
+
+            userTeam.LinkPlayer(teamPlayerId);
+            await db.SaveChangesAsync();
+            return userId;
+        }
     }
 
     // Simple mock implementation for ICurrentUserService

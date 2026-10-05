@@ -238,5 +238,59 @@ namespace RFFM.Api.Tests.UnitTests
             var notGoingRow = Assert.Single(result, r => r.TeamPlayerId == secondTeamPlayer.Id);
             Assert.Equal(AttendanceStatus.NotGoing.Name, notGoingRow.Status);
         }
+
+        [Fact]
+        public async Task Handle_PlayerWithActiveInjury_ReturnsIsInjuredTrue()
+        {
+            // Arrange
+            await using var db = _fixture.CreateDbContext();
+            var sportEventId = Guid.NewGuid().ToString();
+            var (teamId, teamPlayerId) = await SeedTeamAndPlayerAsync(db, "injured-player");
+
+            db.TeamPlayerInjuries.Add(TeamPlayerInjury.Create(teamPlayerId, DateTime.UtcNow.AddDays(-3), "Muscular", null, null));
+            await db.SaveChangesAsync();
+
+            var handler = new GetEventAttendanceRoster.Handler(db);
+            var query = new GetEventAttendanceRoster.EventAttendanceRosterQuery
+            {
+                EventId = sportEventId,
+                TeamId = teamId
+            };
+
+            // Act
+            var result = await handler.Handle(query, CancellationToken.None);
+
+            // Assert
+            var row = Assert.Single(result, r => r.TeamPlayerId == teamPlayerId);
+            Assert.True(row.IsInjured);
+        }
+
+        [Fact]
+        public async Task Handle_PlayerWithDischargedInjury_ReturnsIsInjuredFalse()
+        {
+            // Arrange
+            await using var db = _fixture.CreateDbContext();
+            var sportEventId = Guid.NewGuid().ToString();
+            var (teamId, teamPlayerId) = await SeedTeamAndPlayerAsync(db, "recovered-player");
+
+            var injury = TeamPlayerInjury.Create(teamPlayerId, DateTime.UtcNow.AddDays(-10), "Muscular", null, null);
+            injury.Update(injury.StartDate, injury.InjuryType, null, null, DateTime.UtcNow.AddDays(-1));
+            db.TeamPlayerInjuries.Add(injury);
+            await db.SaveChangesAsync();
+
+            var handler = new GetEventAttendanceRoster.Handler(db);
+            var query = new GetEventAttendanceRoster.EventAttendanceRosterQuery
+            {
+                EventId = sportEventId,
+                TeamId = teamId
+            };
+
+            // Act
+            var result = await handler.Handle(query, CancellationToken.None);
+
+            // Assert
+            var row = Assert.Single(result, r => r.TeamPlayerId == teamPlayerId);
+            Assert.False(row.IsInjured);
+        }
     }
 }
