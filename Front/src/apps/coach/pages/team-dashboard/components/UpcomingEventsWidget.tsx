@@ -161,6 +161,7 @@ export default function UpcomingEventsWidget({ team, isPlayer }: Props) {
           const canConfirm =
             isPlayer &&
             !!myConvocationId &&
+            !baseSummary?.myIsInjured &&
             (baseSummary?.myStatus === "Pending" || pendingEventId === event.id);
 
           return (

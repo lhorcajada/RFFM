@@ -25,6 +25,9 @@ export type EventAttendanceSummaryDto = {
    * (`convocationService.updateConvocationStatus`) directly. `null` exactly
    * when `myStatus` is `null`. */
   myConvocationId: string | null;
+  /** `true` while the caller's linked player has an active injury — the
+   * dashboard hides the "Voy"/"No voy" actions until discharge. */
+  myIsInjured?: boolean;
 };
 
 export async function getEventAttendanceSummaries(

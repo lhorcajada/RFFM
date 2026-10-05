@@ -131,6 +131,13 @@ describe("UpcomingEventsWidget attendance actions — gating by convocation stat
     expect(screen.queryByRole("button", { name: /^voy$/i })).not.toBeInTheDocument();
   });
 
+  it("convoked and pending but my player is injured — no Voy/No voy buttons", async () => {
+    renderWidget(true, { e1: { ...pendingSummary("e1"), myIsInjured: true } });
+    await screen.findByTestId("event-card-e1");
+    expect(screen.queryByRole("button", { name: /^voy$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /no voy/i })).not.toBeInTheDocument();
+  });
+
   it("clicking Voy calls convocationService.updateConvocationStatus with statusId 2 (Accepted) and the convocation id, and optimistically updates the summary", async () => {
     let resolveConfirm: () => void = () => {};
     vi.mocked(convocationService.updateConvocationStatus).mockImplementation(
