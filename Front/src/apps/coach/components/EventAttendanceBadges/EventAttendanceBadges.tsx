@@ -17,6 +17,7 @@ const statusLabels: Record<string, string> = {
   Accepted: "Aceptado",
   Deconvoke: "Rechazado",
   Justified: "Justificado",
+  Injured: "Lesionado",
 };
 
 const statusColors: Record<string, { bg: string; fg: string }> = {
@@ -24,6 +25,7 @@ const statusColors: Record<string, { bg: string; fg: string }> = {
   Deconvoke: { bg: "rgba(230,100,100,0.35)", fg: "#ef9a9a" },
   Justified: { bg: "rgba(255,152,0,0.3)", fg: "#ffb74d" },
   Pending: { bg: "rgba(255,193,7,0.22)", fg: "#ffd54f" },
+  Injured: { bg: "rgba(230,100,100,0.35)", fg: "#ef9a9a" },
 };
 
 export function EventAttendanceBadges({ summary, isPlayer }: Props) {
@@ -35,7 +37,9 @@ export function EventAttendanceBadges({ summary, isPlayer }: Props) {
     // show, as opposed to "Pending" which means convoked but not yet decided.
     if (summary.myStatus == null) return null;
 
-    const myStatus = summary.myStatus;
+    // An injured player can't confirm attendance until discharge, so their
+    // convocation status (usually still "Pending") isn't meaningful here.
+    const myStatus = summary.myIsInjured ? "Injured" : summary.myStatus;
     const labelText = `Tu estado: ${statusLabels[myStatus] ?? myStatus}`;
     const colors = statusColors[myStatus] ?? statusColors.Pending;
     return (

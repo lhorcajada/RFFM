@@ -67,6 +67,15 @@ describe("EventAttendanceBadges", () => {
     expect(screen.getByText(/Tu estado.*Pendiente/i)).toBeInTheDocument();
   });
 
+  it("player view shows 'Lesionado' instead of 'Pendiente' when the linked player is injured", () => {
+    const summary = baseSummary({ myStatus: "Pending", myStatusId: 1, myConvocationId: "conv-1", myIsInjured: true });
+
+    render(<EventAttendanceBadges summary={summary as any} isPlayer={true} />);
+
+    expect(screen.getByText(/Tu estado.*Lesionado/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Pendiente/i)).not.toBeInTheDocument();
+  });
+
   it("renders nothing when summary is undefined", () => {
     const { container } = render(<EventAttendanceBadges summary={undefined} isPlayer={false} />);
 
