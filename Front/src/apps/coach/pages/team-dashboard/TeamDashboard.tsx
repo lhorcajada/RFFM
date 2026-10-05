@@ -1,4 +1,5 @@
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import ShieldIcon from "@mui/icons-material/Shield";
 import { Button } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
@@ -19,6 +20,7 @@ export default function TeamDashboard() {
   const navigate = useNavigate();
   const { teamTitleNode, clubSubtitleNode, team } = useTeamAndClub();
   const { isPlayer } = usePlayerAutoLoad();
+  const clubId = team?.club?.id;
   const selectedSeason = "";
 
   return (
@@ -29,13 +31,23 @@ export default function TeamDashboard() {
         actionBar={
           isPlayer ? undefined : (
             <div className={styles.actionBarContent}>
+              {clubId && (
+                <Button
+                  variant="outlined"
+                  startIcon={<ShieldIcon />}
+                  onClick={() => navigate(`/coach/clubs/dashboard/${clubId}`)}
+                  sx={{ textTransform: "none", marginLeft: "auto" }}
+                >
+                  Ir al club
+                </Button>
+              )}
               <Button
                 variant="outlined"
                 startIcon={<ArrowBackIcon />}
                 onClick={() => navigate("/coach/dashboard")}
-                sx={{ textTransform: "none", marginLeft: "auto" }}
+                sx={{ textTransform: "none", marginLeft: clubId ? undefined : "auto" }}
               >
-                Volver al dashboard de entrenador
+                Volver
               </Button>
             </div>
           )

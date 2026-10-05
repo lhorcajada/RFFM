@@ -32,13 +32,21 @@ vi.mock("../../../../../shared/components/ui/ContentLayout/ContentLayout", () =>
   ),
 }));
 
+const mockUseTeamAndClub = vi.fn();
 vi.mock("../../../hooks/useTeamAndClub.tsx", () => ({
-  default: vi.fn(() => ({
-    teamTitleNode: <span>Equipo 1</span>,
-    clubSubtitleNode: <span>Club 1</span>,
-    team: null,
-  })),
+  default: () => mockUseTeamAndClub(),
 }));
+
+const teamAndClubWithoutTeam = {
+  teamTitleNode: <span>Equipo 1</span>,
+  clubSubtitleNode: <span>Club 1</span>,
+  team: null,
+};
+
+const teamAndClubWithClub = {
+  ...teamAndClubWithoutTeam,
+  team: { id: "team-1", name: "Equipo 1", club: { id: "club-42", name: "Club 1" } },
+};
 
 const mockUsePlayerAutoLoad = vi.fn();
 vi.mock("../../Dashboard/hooks/usePlayerAutoLoad", () => ({
@@ -66,6 +74,7 @@ import TeamDashboard from "../TeamDashboard";
 describe("TeamDashboard back button", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUseTeamAndClub.mockReturnValue(teamAndClubWithoutTeam);
   });
 
   it("no muestra ningún botón de volver cuando el usuario es jugador o familiar", () => {
@@ -80,7 +89,7 @@ describe("TeamDashboard back button", () => {
     expect(screen.queryByRole("button", { name: /volver/i })).not.toBeInTheDocument();
   });
 
-  it("shows 'Volver al dashboard de entrenador' and navigates to /coach/dashboard when the user is a coach", async () => {
+  it("shows 'Volver' and navigates to /coach/dashboard when the user is a coach", async () => {
     mockUsePlayerAutoLoad.mockReturnValue({ isPlayer: false });
     const user = userEvent.setup();
 
@@ -90,7 +99,7 @@ describe("TeamDashboard back button", () => {
       </MemoryRouter>
     );
 
-    const button = screen.getByRole("button", { name: "Volver al dashboard de entrenador" });
+    const button = screen.getByRole("button", { name: "Volver" });
     expect(button).toBeInTheDocument();
 
     await user.click(button);
@@ -99,10 +108,59 @@ describe("TeamDashboard back button", () => {
   });
 });
 
+describe("TeamDashboard botón Ir al club", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("navega al dashboard del club del equipo cuando el usuario es entrenador", async () => {
+    mockUsePlayerAutoLoad.mockReturnValue({ isPlayer: false });
+    mockUseTeamAndClub.mockReturnValue(teamAndClubWithClub);
+    const user = userEvent.setup();
+
+    render(
+      <MemoryRouter>
+        <TeamDashboard />
+      </MemoryRouter>
+    );
+
+    await user.click(screen.getByRole("button", { name: "Ir al club" }));
+
+    expect(mockNavigate).toHaveBeenCalledWith("/coach/clubs/dashboard/club-42");
+  });
+
+  it("no muestra el botón Ir al club cuando el usuario es jugador o familiar", () => {
+    mockUsePlayerAutoLoad.mockReturnValue({ isPlayer: true });
+    mockUseTeamAndClub.mockReturnValue(teamAndClubWithClub);
+
+    render(
+      <MemoryRouter>
+        <TeamDashboard />
+      </MemoryRouter>
+    );
+
+    expect(screen.queryByRole("button", { name: "Ir al club" })).not.toBeInTheDocument();
+  });
+
+  it("no muestra el botón Ir al club cuando el equipo no tiene club cargado", () => {
+    mockUsePlayerAutoLoad.mockReturnValue({ isPlayer: false });
+    mockUseTeamAndClub.mockReturnValue(teamAndClubWithoutTeam);
+
+    render(
+      <MemoryRouter>
+        <TeamDashboard />
+      </MemoryRouter>
+    );
+
+    expect(screen.queryByRole("button", { name: "Ir al club" })).not.toBeInTheDocument();
+  });
+});
+
 describe("TeamDashboard — A la vista section", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUsePlayerAutoLoad.mockReturnValue({ isPlayer: false });
+    mockUseTeamAndClub.mockReturnValue(teamAndClubWithoutTeam);
   });
 
   it("renders the upcoming-events and news widgets above the dashboard cards", () => {
