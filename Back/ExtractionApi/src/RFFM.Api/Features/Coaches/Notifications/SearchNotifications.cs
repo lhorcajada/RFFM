@@ -19,11 +19,11 @@ namespace RFFM.Api.Features.Coaches.Notifications
         {
             app.MapGet("/api/notifications",
                     async (
-                        int pageNumber, int pageSize,
+                        int pageNumber, int pageSize, string? app,
                         IMediator mediator, IHttpContextAccessor httpContextAccessor, CancellationToken ct) =>
                     {
                         var (items, total) = await mediator.Send(
-                            new SearchNotificationsQuery(pageNumber == 0 ? 1 : pageNumber, pageSize == 0 ? 25 : pageSize), ct);
+                            new SearchNotificationsQuery(pageNumber == 0 ? 1 : pageNumber, pageSize == 0 ? 25 : pageSize, app), ct);
 
                         try
                         {
@@ -42,7 +42,7 @@ namespace RFFM.Api.Features.Coaches.Notifications
                 .RequireAuthorization();
         }
 
-        public record SearchNotificationsQuery(int PageNumber = 1, int PageSize = 25) : IRequest<(NotificationResponse[], int)>;
+        public record SearchNotificationsQuery(int PageNumber = 1, int PageSize = 25, string? App = null) : IRequest<(NotificationResponse[], int)>;
 
         public record NotificationResponse(
             string Id, string Type, string Title, string Body, string? DeepLinkPath, bool IsRead, DateTime CreatedAt);
@@ -66,7 +66,7 @@ namespace RFFM.Api.Features.Coaches.Notifications
                 var pageSize = Math.Min(Math.Max(request.PageSize, 1), MaxPageSize);
                 var pageNumber = Math.Max(request.PageNumber, 1);
 
-                var query = _db.Notifications.AsNoTracking().Where(n => n.UserId == userId);
+                var query = _db.Notifications.AsNoTracking().Where(n => n.UserId == userId).ForApp(request.App);
 
                 var total = await query.CountAsync(ct);
 

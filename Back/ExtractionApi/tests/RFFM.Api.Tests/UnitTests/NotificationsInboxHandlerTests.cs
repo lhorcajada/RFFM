@@ -71,6 +71,89 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
+        public async Task SearchNotifications_WithCoachApp_ExcludesFederationNotifications()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var userId = Guid.NewGuid().ToString();
+            var coach = Notification.Create(userId, "NewsPublished", "Coach", "Body", "/coach/news/1");
+            var withoutLink = Notification.Create(userId, "NewsPublished", "NoLink", "Body", null);
+            var federation = Notification.Create(userId, "SquadHistoryReady", "Federation", "Body", "/federation/squad-history/555?seasonId=22");
+            db.Notifications.AddRange(coach, withoutLink, federation);
+            await db.SaveChangesAsync();
+
+            var handler = new SearchNotifications.Handler(db, MockCurrentUser(userId).Object);
+            var (items, total) = await handler.Handle(
+                new SearchNotifications.SearchNotificationsQuery(1, 25, NotificationApps.Coach), CancellationToken.None);
+
+            Assert.Equal(2, total);
+            Assert.DoesNotContain(items, i => i.Id == federation.Id);
+        }
+
+        [Fact]
+        public async Task SearchNotifications_WithFederationApp_ReturnsOnlyFederationNotifications()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var userId = Guid.NewGuid().ToString();
+            db.Notifications.Add(Notification.Create(userId, "NewsPublished", "Coach", "Body", "/coach/news/1"));
+            var federation = Notification.Create(userId, "SquadHistoryReady", "Federation", "Body", "/federation/squad-history/555?seasonId=22");
+            db.Notifications.Add(federation);
+            await db.SaveChangesAsync();
+
+            var handler = new SearchNotifications.Handler(db, MockCurrentUser(userId).Object);
+            var (items, total) = await handler.Handle(
+                new SearchNotifications.SearchNotificationsQuery(1, 25, NotificationApps.Federation), CancellationToken.None);
+
+            Assert.Equal(1, total);
+            Assert.Equal(federation.Id, items.Single().Id);
+        }
+
+        [Fact]
+        public async Task MarkAllNotificationsRead_WithCoachApp_MarksOnlyOwnCoachNotifications()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var userId = Guid.NewGuid().ToString();
+            var otherUserId = Guid.NewGuid().ToString();
+            var coach = Notification.Create(userId, "NewsPublished", "Coach", "Body", "/coach/news/1");
+            var federation = Notification.Create(userId, "SquadHistoryReady", "Federation", "Body", "/federation/squad-history/555?seasonId=22");
+            var otherUsers = Notification.Create(otherUserId, "NewsPublished", "Other", "Body", "/coach/news/1");
+            db.Notifications.AddRange(coach, federation, otherUsers);
+            await db.SaveChangesAsync();
+
+            var handler = new MarkAllNotificationsRead.Handler(db, MockCurrentUser(userId).Object);
+            var marked = await handler.Handle(
+                new MarkAllNotificationsRead.MarkAllNotificationsReadCommand(NotificationApps.Coach), CancellationToken.None);
+
+            Assert.Equal(1, marked);
+            var stored = await db.Notifications.AsNoTracking()
+                .Where(n => n.Id == coach.Id || n.Id == federation.Id || n.Id == otherUsers.Id)
+                .ToDictionaryAsync(n => n.Id, n => n.IsRead);
+            Assert.True(stored[coach.Id]);
+            Assert.False(stored[federation.Id]);
+            Assert.False(stored[otherUsers.Id]);
+        }
+
+        [Fact]
+        public async Task MarkAllNotificationsRead_WithFederationApp_MarksOnlyFederationNotifications()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var userId = Guid.NewGuid().ToString();
+            var coach = Notification.Create(userId, "NewsPublished", "Coach", "Body", "/coach/news/1");
+            var federation = Notification.Create(userId, "SquadHistoryReady", "Federation", "Body", "/federation/squad-history/555?seasonId=22");
+            db.Notifications.AddRange(coach, federation);
+            await db.SaveChangesAsync();
+
+            var handler = new MarkAllNotificationsRead.Handler(db, MockCurrentUser(userId).Object);
+            await handler.Handle(
+                new MarkAllNotificationsRead.MarkAllNotificationsReadCommand(NotificationApps.Federation), CancellationToken.None);
+
+            var stored = await db.Notifications.AsNoTracking()
+                .Where(n => n.Id == coach.Id || n.Id == federation.Id)
+                .ToDictionaryAsync(n => n.Id, n => n.IsRead);
+            Assert.True(stored[federation.Id]);
+            Assert.False(stored[coach.Id]);
+        }
+
+        [Fact]
         public async Task MarkNotificationRead_OwnNotification_SetsIsReadTrue()
         {
             await using var db = _fixture.CreateDbContext();
