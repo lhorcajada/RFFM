@@ -1,11 +1,13 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 
-const { getTeamPlayerStatisticsMock } = vi.hoisted(() => ({
+const { getTeamPlayerStatisticsMock, getMyProfileMock, getPlayersByTeamMock } = vi.hoisted(() => ({
   getTeamPlayerStatisticsMock: vi.fn(),
+  getMyProfileMock: vi.fn(),
+  getPlayersByTeamMock: vi.fn(),
 }));
 
 vi.mock("../../../../../shared/components/ui/BaseLayout/BaseLayout", () => ({
@@ -52,13 +54,13 @@ vi.mock("../../../services/authService", () => ({
 }));
 
 vi.mock("../../../services/coachApi", () => ({
-  getMyProfile: vi.fn().mockResolvedValue(null),
+  getMyProfile: getMyProfileMock,
 }));
 
 vi.mock("../../../services/teamplayerService", () => ({
   __esModule: true,
   default: {
-    getPlayersByTeam: vi.fn().mockResolvedValue([]),
+    getPlayersByTeam: getPlayersByTeamMock,
   },
   dischargeActiveInjury: vi.fn(),
 }));
@@ -101,7 +103,7 @@ vi.mock("../components/IdealLineup", () => ({
 }));
 vi.mock("../components/SquadStatistics", () => ({
   __esModule: true,
-  default: ({ players }: { players: unknown[] }) => (
+  default: ({ players }: { players: { displayName: string }[] }) => (
     <div>
       <table>
         <thead>
@@ -111,6 +113,11 @@ vi.mock("../components/SquadStatistics", () => ({
         </thead>
       </table>
       <div data-testid="squad-statistics-players-count">{players.length}</div>
+      <ul>
+        {players.map((p) => (
+          <li key={p.displayName}>{p.displayName}</li>
+        ))}
+      </ul>
     </div>
   ),
 }));
@@ -129,6 +136,8 @@ describe("Squad — pestaña Estadísticas", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     roles = ["coach"];
+    getMyProfileMock.mockResolvedValue(null);
+    getPlayersByTeamMock.mockResolvedValue([]);
     getTeamPlayerStatisticsMock.mockResolvedValue([
       {
         teamPlayerId: "tp-1",
@@ -164,5 +173,53 @@ describe("Squad — pestaña Estadísticas", () => {
 
     expect(await screen.findByText("Rodaje")).toBeInTheDocument();
     expect(getTeamPlayerStatisticsMock).toHaveBeenCalledWith("team-1");
+  });
+
+  describe.each([["player"], ["familyplayer"], ["familymember"]])(
+    "con rol %s",
+    (role) => {
+      beforeEach(() => {
+        roles = [role];
+        getMyProfileMock.mockResolvedValue({ playerId: "player-1" });
+        getPlayersByTeamMock.mockResolvedValue([
+          { id: "tp-1", playerId: "player-1", name: "Juan", lastName: "Pérez" },
+          { id: "tp-2", playerId: "player-2", name: "Luis", lastName: "García" },
+        ]);
+        getTeamPlayerStatisticsMock.mockResolvedValue([
+          { teamPlayerId: "tp-1", displayName: "Juan Pérez" },
+          { teamPlayerId: "tp-2", displayName: "Luis García" },
+        ]);
+      });
+
+      it("solo muestra las estadísticas de su jugador asociado", async () => {
+        const user = userEvent.setup();
+        renderSquad();
+
+        await user.click(screen.getByRole("tab", { name: "Estadísticas" }));
+
+        expect(await screen.findByText("Juan Pérez")).toBeInTheDocument();
+        expect(screen.queryByText("Luis García")).not.toBeInTheDocument();
+      });
+    },
+  );
+
+  it("no muestra estadísticas de nadie a un familiar sin jugador asociado", async () => {
+    roles = ["familymember"];
+    getPlayersByTeamMock.mockResolvedValue([
+      { id: "tp-1", playerId: "player-1", name: "Juan", lastName: "Pérez" },
+    ]);
+    getTeamPlayerStatisticsMock.mockResolvedValue([
+      { teamPlayerId: "tp-1", displayName: "Juan Pérez" },
+    ]);
+    const user = userEvent.setup();
+    renderSquad();
+
+    await user.click(screen.getByRole("tab", { name: "Estadísticas" }));
+
+    await waitFor(() => expect(getTeamPlayerStatisticsMock).toHaveBeenCalled());
+    await waitFor(() => expect(getMyProfileMock).toHaveBeenCalled());
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(screen.queryByText("Juan Pérez")).not.toBeInTheDocument();
   });
 });

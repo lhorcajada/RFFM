@@ -145,6 +145,12 @@ export default function Squad() {
     return map;
   }, [playerStats]);
 
+  const visiblePlayerStats = useMemo(() => {
+    if (!isPlayerOrFamily) return playerStats;
+    if (loadingProfile || !associatedTeamPlayerId) return [];
+    return playerStats.filter((s) => s.teamPlayerId === associatedTeamPlayerId);
+  }, [playerStats, isPlayerOrFamily, loadingProfile, associatedTeamPlayerId]);
+
   const ratingPlayers = useMemo(
     () =>
       players.map((p, idx) => {
@@ -458,7 +464,7 @@ export default function Squad() {
 
           {activeTab === 2 && !isFan && team && (
             <SquadStatistics
-              players={playerStats}
+              players={visiblePlayerStats}
               loading={loadingStats}
               teamName={team.name}
               photoUrls={photoByTeamPlayerId}
