@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using RFFM.Api.Domain.Entities.Federation.SquadHistory;
 using RFFM.Api.FeatureModules;
+using RFFM.Api.Features.Federation.Seasons.Services;
 using RFFM.Api.Features.Federation.SquadHistory.Services;
 using RFFM.Api.Infrastructure.Options;
 using RFFM.Api.Infrastructure.Persistence;
@@ -115,12 +116,7 @@ namespace RFFM.Api.Features.Federation.SquadHistory
                     .Include(r => r.Subscribers)
                     .SingleOrDefaultAsync(r => r.TeamCode == teamCode && r.SeasonId == seasonId, cancellationToken);
 
-            private int? PreviousSeasonId(int seasonId) =>
-                rffmOptions.Value.SelectableSeasons
-                    .Where(s => s.Id < seasonId)
-                    .OrderByDescending(s => s.Id)
-                    .Select(s => (int?)s.Id)
-                    .FirstOrDefault();
+            private int? PreviousSeasonId(int seasonId) => RffmSeasons.Previous(rffmOptions.Value, seasonId);
         }
     }
 }

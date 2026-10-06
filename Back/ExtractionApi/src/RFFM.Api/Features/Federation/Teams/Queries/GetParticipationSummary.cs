@@ -3,11 +3,14 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Options;
 using RFFM.Api.FeatureModules;
 using System.Text.RegularExpressions;
-using RFFM.Api.Features.Federation.Players.Models;
 using RFFM.Api.Features.Federation.Players.Services;
+using RFFM.Api.Features.Federation.Seasons.Services;
 using RFFM.Api.Features.Federation.Teams.Services;
+using RFFM.Api.Infrastructure.Options;
 
 namespace RFFM.Api.Features.Federation.Teams.Queries
 {
@@ -39,6 +42,8 @@ namespace RFFM.Api.Features.Federation.Teams.Queries
 
         public class ParticipationCount
         {
+            public int SeasonId { get; set; }
+            public string SeasonName { get; set; } = string.Empty;
             public string CompetitionName { get; set; } = string.Empty;
             public string GroupName { get; set; } = string.Empty;
             public string TeamName { get; set; } = string.Empty;
@@ -49,7 +54,11 @@ namespace RFFM.Api.Features.Federation.Teams.Queries
             public List<PlayerSummary> Players { get; set; } = [];
         }
 
-        public class ParticipationRequestHandler(ITeamService teamService, IPlayerService playerService)
+        public class ParticipationRequestHandler(
+            ITeamService teamService,
+            IPlayerService playerService,
+            IOptions<RffmOptions> rffmOptions,
+            IMemoryCache cache)
             : IRequestHandler<ParticipationQueryApp, ParticipationCount[]>
         {
             public async ValueTask<ParticipationCount[]> Handle(ParticipationQueryApp request, CancellationToken cancellationToken)
@@ -59,103 +68,91 @@ namespace RFFM.Api.Features.Federation.Teams.Queries
                     return [];
 
                 var selectedTeamCode = team.TeamCode ?? string.Empty;
+                var seasons = new[] { request.SeasonId, RffmSeasons.Previous(rffmOptions.Value, request.SeasonId) }
+                    .Where(s => s.HasValue)
+                    .Select(s => s!.Value)
+                    .ToArray();
 
-                // Fetch player details in parallel
-                var tasks = team.Players.Select(async p =>
-                {
-                    string? playerId = null;
-                    if (!string.IsNullOrWhiteSpace(p.PlayerCode))
+                var tasks = team.Players
+                    .SelectMany(p => seasons.Select(async season =>
                     {
-                        var m = Regex.Match(p.PlayerCode, "(\\d+)");
-                        if (m.Success) playerId = m.Value;
-                        else playerId = p.PlayerCode;
-                    }
-
-                    // fallback: try to find a long number inside the name
-                    if (string.IsNullOrWhiteSpace(playerId) && !string.IsNullOrWhiteSpace(p.Name))
-                    {
-                        var m2 = Regex.Match(p.Name, "(\\d{5,})");
-                        if (m2.Success) playerId = m2.Value;
-                    }
-
-                    Player? pd = null;
-                    if (!string.IsNullOrWhiteSpace(playerId))
-                    {
-                        try
-                        {
-                            pd = await playerService.GetPlayerAsync(playerId!, request.SeasonId, cancellationToken);
-                        }
-                        catch
-                        {
-                            // ignore per-player errors
-                        }
-                    }
-
-                    return (teamPlayer: p, playerDetails: pd);
-                }).ToArray();
+                        var playerId = ResolvePlayerId(p.PlayerCode, p.Name);
+                        var pd = string.IsNullOrWhiteSpace(playerId)
+                            ? null
+                            : await cache.GetPlayerSheetOrDefaultAsync(playerService, playerId, season, cancellationToken);
+                        return (teamPlayer: p, season, playerDetails: pd);
+                    }))
+                    .ToArray();
 
                 var resolved = await Task.WhenAll(tasks);
 
                 // Map of participation key to set of playerIds (to avoid double counting)
-                var map = new Dictionary<string, (ParticipationCount proto, HashSet<string> players, Dictionary<string, PlayerSummary> playerSummaries)>();
+                var map = new Dictionary<string, (ParticipationCount proto, Dictionary<string, PlayerSummary> playerSummaries)>();
 
-                foreach (var item in resolved)
+                foreach (var (p, season, pd) in resolved)
                 {
-                    var p = item.teamPlayer;
-                    var pd = item.playerDetails;
                     var playerIdUnique = pd?.PlayerId ?? p.PlayerCode ?? p.Name ?? Guid.NewGuid().ToString();
                     var playerName = pd?.Name ?? p.Name ?? string.Empty;
 
-                    var comps = pd?.Competitions ?? new List<CompetitionParticipation>();
-
-                    // If player details don't include competitions, skip
-                    foreach (var cp in comps)
+                    foreach (var cp in pd?.Competitions ?? [])
                     {
                         var competitionName = cp.CompetitionName ?? string.Empty;
                         var groupName = cp.GroupName ?? string.Empty;
                         var teamName = cp.TeamName ?? string.Empty;
                         var teamCode = cp.TeamCode ?? string.Empty;
-                        var teamPoints = cp.TeamPoints;
 
-                        // Skip participation entries that correspond to the selected team
-                        if (!string.IsNullOrWhiteSpace(selectedTeamCode) && !string.IsNullOrWhiteSpace(teamCode) && string.Equals(selectedTeamCode, teamCode, StringComparison.OrdinalIgnoreCase))
+                        var isSelectedTeam = !string.IsNullOrWhiteSpace(selectedTeamCode)
+                                             && string.Equals(selectedTeamCode, teamCode, StringComparison.OrdinalIgnoreCase);
+                        if (isSelectedTeam)
                             continue;
 
-                        var key = $"{competitionName}||{groupName}||{teamName}||{teamCode}";
+                        var key = $"{season}||{competitionName}||{groupName}||{teamName}||{teamCode}";
                         if (!map.TryGetValue(key, out var entry))
                         {
                             entry = (new ParticipationCount
                             {
+                                SeasonId = season,
+                                SeasonName = RffmSeasons.Label(rffmOptions.Value, season),
                                 CompetitionName = competitionName,
                                 GroupName = groupName,
                                 TeamName = teamName,
                                 TeamCode = teamCode,
-                                TeamPoints = teamPoints,
-                                Count = 0,
-                                Players = new List<PlayerSummary>()
-                            }, new HashSet<string>(), new Dictionary<string, PlayerSummary>());
+                                TeamPoints = cp.TeamPoints
+                            }, new Dictionary<string, PlayerSummary>());
                             map[key] = entry;
                         }
 
-                        if (entry.players.Add(playerIdUnique))
-                        {
-                            var summary = new PlayerSummary { PlayerId = playerIdUnique, Name = playerName };
-                            entry.playerSummaries[playerIdUnique] = summary;
-                            entry.proto.Count = entry.players.Count;
-                        }
+                        if (entry.playerSummaries.TryAdd(playerIdUnique, new PlayerSummary { PlayerId = playerIdUnique, Name = playerName }))
+                            entry.proto.Count = entry.playerSummaries.Count;
                     }
                 }
 
-                // Populate Players list from playerSummaries
-                foreach (var kv in map.Values)
+                foreach (var (proto, playerSummaries) in map.Values)
+                    proto.Players = playerSummaries.Values.OrderBy(p => p.Name).ToList();
+
+                return map.Values.Select(v => v.proto)
+                    .OrderByDescending(r => r.SeasonId)
+                    .ThenBy(r => r.CompetitionName)
+                    .ThenBy(r => r.TeamName)
+                    .ToArray();
+            }
+
+            private static string? ResolvePlayerId(string? playerCode, string? name)
+            {
+                if (!string.IsNullOrWhiteSpace(playerCode))
                 {
-                    kv.proto.Players = kv.playerSummaries.Values.OrderBy(p => p.Name).ToList();
+                    var m = Regex.Match(playerCode, "(\\d+)");
+                    return m.Success ? m.Value : playerCode;
                 }
 
-                var result = map.Values.Select(v => v.proto)
-                    .OrderBy(r => r.CompetitionName).ThenBy(r => r.TeamName).ToArray();
+                // fallback: try to find a long number inside the name
+                if (!string.IsNullOrWhiteSpace(name))
+                {
+                    var m2 = Regex.Match(name, "(\\d{5,})");
+                    if (m2.Success) return m2.Value;
+                }
 
-                return result;
+                return null;
             }
         }
     }
