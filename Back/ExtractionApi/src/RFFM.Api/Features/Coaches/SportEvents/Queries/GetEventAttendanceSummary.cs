@@ -90,13 +90,15 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Queries
             public async ValueTask<EventAttendanceSummaryResponse[]> Handle(EventAttendanceSummaryQuery request, CancellationToken cancellationToken = default)
             {
                 // 1. Authorized event ids: must exist AND belong to TeamId (design.md Decision 2).
-                var authorizedEventIds = await _db.SportEvents.AsNoTracking()
+                var authorizedEvents = await _db.SportEvents.AsNoTracking()
                     .Where(se => se.TeamId == request.TeamId && request.EventIds.Contains(se.Id))
-                    .Select(se => se.Id)
+                    .Select(se => new { se.Id, se.EveDateTime })
                     .ToListAsync(cancellationToken);
 
-                if (authorizedEventIds.Count == 0)
+                if (authorizedEvents.Count == 0)
                     return Array.Empty<EventAttendanceSummaryResponse>();
+
+                var authorizedEventIds = authorizedEvents.Select(e => e.Id).ToList();
 
                 // 2. Convocations for those events — the single source of truth for both the
                 // aggregate breakdown and "my status" (see the response's doc comment above).
@@ -104,6 +106,26 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Queries
                     .Where(c => authorizedEventIds.Contains(c.SportEventId))
                     .Select(c => new { c.Id, c.SportEventId, c.TeamPlayerId, c.ConvocationStatusId })
                     .ToListAsync(cancellationToken);
+
+                // Same "injured for this event" rule as GetEventConvocations: the convocation page
+                // lists injured convocados under "Desconvocados", so they count as NotGoing here.
+                var convokedTeamPlayerIds = convocationsByEvent.Select(c => c.TeamPlayerId).Distinct().ToList();
+                var injuries = await _db.TeamPlayerInjuries.AsNoTracking()
+                    .Where(i => convokedTeamPlayerIds.Contains(i.TeamPlayerId))
+                    .Select(i => new { i.TeamPlayerId, i.StartDate, i.EndDate })
+                    .ToListAsync(cancellationToken);
+                var playedMinutes = (await _db.MatchParticipations.AsNoTracking()
+                    .Where(mp => authorizedEventIds.Contains(mp.EventId) && mp.MinutesPlayed > 0)
+                    .Select(mp => new { mp.EventId, mp.TeamPlayerId })
+                    .ToListAsync(cancellationToken))
+                    .Select(mp => (mp.EventId, mp.TeamPlayerId))
+                    .ToHashSet();
+
+                bool IsInjuredForEvent(string eventId, string teamPlayerId, DateTime eventDate) =>
+                    injuries.Any(i => i.TeamPlayerId == teamPlayerId &&
+                        (i.StartDate.Date < eventDate ||
+                         (i.StartDate.Date == eventDate && !playedMinutes.Contains((eventId, teamPlayerId)))) &&
+                        (i.EndDate == null || i.EndDate.Value.Date >= eventDate));
 
                 // 3. My own linked player, only for Player/FamilyMember.
                 string? myTeamPlayerId = null;
@@ -136,8 +158,10 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Queries
 
                 // 4. Build one response per authorized event id (including events with zero convocados).
                 var results = new List<EventAttendanceSummaryResponse>();
-                foreach (var eventId in authorizedEventIds)
+                foreach (var sportEvent in authorizedEvents)
                 {
+                    var eventId = sportEvent.Id;
+                    var eventDate = sportEvent.EveDateTime?.Date ?? DateTime.UtcNow.Date;
                     var eventConvocations = convocationsByEvent
                         .Where(c => c.SportEventId == eventId)
                         .ToList();
@@ -147,7 +171,8 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Queries
                     foreach (var c in eventConvocations)
                     {
                         var statusId = c.ConvocationStatusId ?? pendingId;
-                        if (statusId == acceptedId) going++;
+                        if (IsInjuredForEvent(eventId, c.TeamPlayerId, eventDate)) notGoing++;
+                        else if (statusId == acceptedId) going++;
                         else if (statusId == deconvokeId || statusId == justifiedId) notGoing++;
                         else pending++;
                     }

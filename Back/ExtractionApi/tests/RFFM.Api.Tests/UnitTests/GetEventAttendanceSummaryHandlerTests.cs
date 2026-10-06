@@ -497,6 +497,39 @@ namespace RFFM.Api.Tests.UnitTests
             Assert.False(summary.MyIsInjured);
         }
 
+        [Theory]
+        [InlineData("Pending")]
+        [InlineData("Accepted")]
+        public async Task Handle_ConvokedPlayerInjuredForEvent_CountsAsNotGoing(string statusName)
+        {
+            // Arrange — same rule as GetEventConvocations: an injured convocado is shown under
+            // "Desconvocados" in the convocation page, so the summary must not count it as
+            // Pending/Going.
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, teamPlayerId, sportEventId) = await SeedTeamPlayerAndEventAsync(db);
+            await SeedConvocationAsync(db, sportEventId, teamPlayerId, ConvocationStatus.FromName(statusName).Id);
+
+            db.TeamPlayerInjuries.Add(TeamPlayerInjury.Create(teamPlayerId, DateTime.UtcNow.AddDays(-3), "Muscular", null, null));
+            await db.SaveChangesAsync();
+
+            // Act
+            var handler = new GetEventAttendanceSummary.Handler(db, null!);
+            var query = new GetEventAttendanceSummary.EventAttendanceSummaryQuery
+            {
+                TeamId = teamId,
+                EventIds = new[] { sportEventId }
+            };
+
+            var result = await handler.Handle(query, CancellationToken.None);
+
+            // Assert
+            var summary = result.First(r => r.EventId == sportEventId);
+            Assert.Equal(1, summary.Convocados);
+            Assert.Equal(0, summary.Pending);
+            Assert.Equal(0, summary.Going);
+            Assert.Equal(1, summary.NotGoing);
+        }
+
         private static async Task<string> SeedLinkedUserAsync(AppDbContext db, string teamId, string teamPlayerId)
         {
             var userId = Guid.NewGuid().ToString();
