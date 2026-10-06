@@ -46,6 +46,7 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
     // ── Request ──────────────────────────────────────────────────────────────────
 
     /// <param name="Tipo">Analitico | Situacional | Global.</param>
+    /// <param name="Subtipo">Optional, one of <see cref="TaskTrainingBase.SubtipoValues"/>.</param>
     public record CreateExerciseCommand(
         string ClubId,
         string Name,
@@ -60,7 +61,8 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         List<string> NivelesColumnas,
         List<NivelRowRequest> Niveles,
         string? BoardStateJson,
-        List<ExerciseModelRelationRequest>? ModelRelations = null
+        List<ExerciseModelRelationRequest>? ModelRelations = null,
+        string? Subtipo = null
     ) : IRequest<string>, IRequireFeaturePermission
     {
         public string UserId { get; init; } = string.Empty;
@@ -102,6 +104,7 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
             {
                 Name = request.Name.Trim(),
                 Tipo = request.Tipo,
+                Subtipo = request.Subtipo,
                 Objetivo = request.Objetivo,
                 ObjetivoPorRol = request.ObjetivoPorRol,
                 Logistica = request.Logistica,
@@ -146,6 +149,8 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
             RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
             RuleFor(x => x.Tipo).Must(t => TaskTrainingBase.TipoValues.Contains(t))
                 .WithMessage("Tipo must be one of: Analitico, Situacional, Global.");
+            RuleFor(x => x.Subtipo).Must(ExerciseSubtipoRule.IsValid)
+                .WithMessage(ExerciseSubtipoRule.Message);
             RuleFor(x => x.Objetivo).NotEmpty();
             RuleFor(x => x.Logistica).NotEmpty();
             RuleFor(x => x.Descripcion).NotEmpty();
@@ -153,6 +158,16 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
                 .WithMessage("Niveles must have between 2 and 5 rows.");
             RuleForEach(x => x.ModelRelations).SetValidator(new ExerciseModelRelationRequestValidator());
         }
+    }
+
+    /// <summary>Shared by <see cref="CreateExerciseValidator"/> and <c>UpdateExerciseValidator</c>.</summary>
+    internal static class ExerciseSubtipoRule
+    {
+        public static bool IsValid(string? subtipo) =>
+            subtipo is null || TaskTrainingBase.SubtipoValues.Contains(subtipo);
+
+        public static readonly string Message =
+            $"Subtipo must be empty or one of: {string.Join(", ", TaskTrainingBase.SubtipoValues)}.";
     }
 
     /// <summary>Shared by <see cref="CreateExerciseValidator"/> and <c>UpdateExerciseValidator</c>.</summary>

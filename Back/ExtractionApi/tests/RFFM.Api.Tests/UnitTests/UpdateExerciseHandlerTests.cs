@@ -95,6 +95,56 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
+        public async Task Handle_ChangesSubtipo()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (userId, clubId, _) = await SeedClubAsync(seedDb);
+
+            await using var createDb = _fixture.CreateDbContext();
+            var exerciseId = await new CreateExerciseHandler(createDb).Handle(
+                CreateCommand(clubId, userId) with { Subtipo = "Rondos" }, CancellationToken.None);
+
+            await using var updateDb = _fixture.CreateDbContext();
+            await new UpdateExerciseHandler(updateDb).Handle(
+                UpdateCommand(exerciseId, userId) with { Subtipo = "PartidoCondicionado" }, CancellationToken.None);
+
+            await using var verifyDb = _fixture.CreateDbContext();
+            var exercise = await verifyDb.TaskTrainingBases.SingleAsync(e => e.Id == exerciseId);
+
+            Assert.Equal("PartidoCondicionado", exercise.Subtipo);
+        }
+
+        [Fact]
+        public async Task Handle_WithNullSubtipo_ClearsIt()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (userId, clubId, _) = await SeedClubAsync(seedDb);
+
+            await using var createDb = _fixture.CreateDbContext();
+            var exerciseId = await new CreateExerciseHandler(createDb).Handle(
+                CreateCommand(clubId, userId) with { Subtipo = "Rondos" }, CancellationToken.None);
+
+            await using var updateDb = _fixture.CreateDbContext();
+            await new UpdateExerciseHandler(updateDb).Handle(UpdateCommand(exerciseId, userId), CancellationToken.None);
+
+            await using var verifyDb = _fixture.CreateDbContext();
+            var exercise = await verifyDb.TaskTrainingBases.SingleAsync(e => e.Id == exerciseId);
+
+            Assert.Null(exercise.Subtipo);
+        }
+
+        [Fact]
+        public async Task Validator_RejectsInvalidSubtipo()
+        {
+            var command = UpdateCommand("fake-id", "fake-user") with { Subtipo = "Rondo" };
+            var validator = new UpdateExerciseValidator();
+
+            var result = await validator.ValidateAsync(command);
+
+            Assert.False(result.IsValid);
+        }
+
+        [Fact]
         public async Task Handle_ReplacesModelRelations_AddsAndRemoves()
         {
             await using var seedDb = _fixture.CreateDbContext();

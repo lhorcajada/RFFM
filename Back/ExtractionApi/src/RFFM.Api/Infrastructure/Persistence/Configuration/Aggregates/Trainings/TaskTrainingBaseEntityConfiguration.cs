@@ -21,6 +21,10 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.Trainings
                 .IsRequired()
                 .HasMaxLength(50);
 
+            builder.Property(tb => tb.Subtipo)
+                .IsRequired(false)
+                .HasMaxLength(50);
+
             builder.Property(tb => tb.Objetivo)
                 .IsRequired()
                 .HasMaxLength(2000);

@@ -189,6 +189,74 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
+        public async Task Handle_WithoutSubtipo_LeavesItNull()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (userId, clubId, _) = await SeedClubAsync(seedDb);
+
+            await using var db = _fixture.CreateDbContext();
+            var id = await new CreateExerciseHandler(db).Handle(BaseCommand(clubId, userId), CancellationToken.None);
+
+            await using var verifyDb = _fixture.CreateDbContext();
+            var exercise = await verifyDb.TaskTrainingBases.SingleAsync(e => e.Id == id);
+
+            Assert.Null(exercise.Subtipo);
+        }
+
+        [Fact]
+        public async Task Handle_WithSubtipo_PersistsIt()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (userId, clubId, _) = await SeedClubAsync(seedDb);
+
+            await using var db = _fixture.CreateDbContext();
+            var command = BaseCommand(clubId, userId) with { Subtipo = "Rondos" };
+            var id = await new CreateExerciseHandler(db).Handle(command, CancellationToken.None);
+
+            await using var verifyDb = _fixture.CreateDbContext();
+            var exercise = await verifyDb.TaskTrainingBases.SingleAsync(e => e.Id == id);
+
+            Assert.Equal("Rondos", exercise.Subtipo);
+        }
+
+        [Theory]
+        [InlineData(null)]
+        [InlineData("RuedasDePase")]
+        [InlineData("Rondos")]
+        [InlineData("AtaqueOrganizado")]
+        [InlineData("DefensaOrganizada")]
+        [InlineData("TransicionDefensaAtaque")]
+        [InlineData("TransicionAtaqueDefensa")]
+        [InlineData("Abp")]
+        [InlineData("Posesion")]
+        [InlineData("Mantenimiento")]
+        [InlineData("JuegosLudicos")]
+        [InlineData("Circuito")]
+        [InlineData("JuegoDePosicion")]
+        [InlineData("PartidoCondicionado")]
+        [InlineData("Partido")]
+        public async Task Validator_AcceptsValidSubtipo(string? subtipo)
+        {
+            var command = BaseCommand("club-id", "user-id") with { Subtipo = subtipo };
+            var validator = new CreateExerciseValidator();
+
+            var result = await validator.ValidateAsync(command);
+
+            Assert.True(result.IsValid);
+        }
+
+        [Fact]
+        public async Task Validator_RejectsInvalidSubtipo()
+        {
+            var command = BaseCommand("club-id", "user-id") with { Subtipo = "Rondo" };
+            var validator = new CreateExerciseValidator();
+
+            var result = await validator.ValidateAsync(command);
+
+            Assert.False(result.IsValid);
+        }
+
+        [Fact]
         public async Task Validator_RejectsOneLevelRow()
         {
             await using var seedDb = _fixture.CreateDbContext();

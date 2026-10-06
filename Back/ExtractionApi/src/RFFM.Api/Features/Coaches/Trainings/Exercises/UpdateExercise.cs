@@ -55,7 +55,8 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         List<string> NivelesColumnas,
         List<NivelRowRequest> Niveles,
         string? BoardStateJson,
-        List<ExerciseModelRelationRequest>? ModelRelations = null
+        List<ExerciseModelRelationRequest>? ModelRelations = null,
+        string? Subtipo = null
     ) : IRequest, IRequireFeaturePermission
     {
         public string Id { get; init; } = string.Empty;
@@ -88,6 +89,7 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
 
             exercise.Name = request.Name.Trim();
             exercise.Tipo = request.Tipo;
+            exercise.Subtipo = request.Subtipo;
             exercise.Objetivo = request.Objetivo;
             exercise.ObjetivoPorRol = request.ObjetivoPorRol;
             exercise.Logistica = request.Logistica;
@@ -118,6 +120,8 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
             RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
             RuleFor(x => x.Tipo).Must(t => TaskTrainingBase.TipoValues.Contains(t))
                 .WithMessage("Tipo must be one of: Analitico, Situacional, Global.");
+            RuleFor(x => x.Subtipo).Must(ExerciseSubtipoRule.IsValid)
+                .WithMessage(ExerciseSubtipoRule.Message);
             RuleFor(x => x.Objetivo).NotEmpty();
             RuleFor(x => x.Logistica).NotEmpty();
             RuleFor(x => x.Descripcion).NotEmpty();

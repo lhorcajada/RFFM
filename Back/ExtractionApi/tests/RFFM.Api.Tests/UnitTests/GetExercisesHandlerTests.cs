@@ -97,6 +97,42 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
+        public async Task Handle_ProjectsSubtipo()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (userId, clubId, _) = await SeedClubAsync(seedDb);
+
+            await using var createDb = _fixture.CreateDbContext();
+            await new CreateExerciseHandler(createDb).Handle(CreateCommand(clubId, userId) with { Subtipo = "Posesion" }, CancellationToken.None);
+
+            await using var queryDb = _fixture.CreateDbContext();
+            var result = await new GetExercisesHandler(queryDb).Handle(new GetExercisesQuery(clubId, Tipo: null, UserId: userId), CancellationToken.None);
+
+            var item = Assert.Single(result);
+            Assert.Equal("Posesion", item.Subtipo);
+        }
+
+        [Fact]
+        public async Task Handle_FilteredBySubtipo_ReturnsOnlyMatchingExercises()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (userId, clubId, _) = await SeedClubAsync(seedDb);
+
+            await using var createDb = _fixture.CreateDbContext();
+            var createHandler = new CreateExerciseHandler(createDb);
+            var rondoId = await createHandler.Handle(CreateCommand(clubId, userId) with { Subtipo = "Rondos" }, CancellationToken.None);
+            await createHandler.Handle(CreateCommand(clubId, userId) with { Subtipo = "Partido" }, CancellationToken.None);
+            await createHandler.Handle(CreateCommand(clubId, userId), CancellationToken.None);
+
+            await using var queryDb = _fixture.CreateDbContext();
+            var result = await new GetExercisesHandler(queryDb).Handle(
+                new GetExercisesQuery(clubId, Tipo: null, UserId: userId, Subtipo: "Rondos"), CancellationToken.None);
+
+            var item = Assert.Single(result);
+            Assert.Equal(rondoId, item.Id);
+        }
+
+        [Fact]
         public async Task Handle_WithModelRelation_SetsIsAssociatedToGameModelTrue()
         {
             await using var seedDb = _fixture.CreateDbContext();

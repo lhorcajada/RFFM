@@ -21,13 +21,13 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         public void AddRoutes(IEndpointRouteBuilder app)
         {
             app.MapGet("/api/trainings/exercises",
-                    async (string clubId, string? tipo, HttpContext httpContext, IMediator mediator, CancellationToken ct) =>
+                    async (string clubId, string? tipo, string? subtipo, HttpContext httpContext, IMediator mediator, CancellationToken ct) =>
                     {
                         var userId = httpContext.User.Claims
                             .FirstOrDefault(c => c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value;
                         if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
 
-                        var result = await mediator.Send(new GetExercisesQuery(clubId, tipo, userId), ct);
+                        var result = await mediator.Send(new GetExercisesQuery(clubId, tipo, userId, subtipo), ct);
                         return Results.Ok(result);
                     })
                 .WithName(nameof(GetExercises))
@@ -37,7 +37,7 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         }
     }
 
-    public record GetExercisesQuery(string ClubId, string? Tipo, string UserId) : IRequest<IEnumerable<ExerciseListItem>>, IRequireFeaturePermission
+    public record GetExercisesQuery(string ClubId, string? Tipo, string UserId, string? Subtipo = null) : IRequest<IEnumerable<ExerciseListItem>>, IRequireFeaturePermission
     {
         public string FeatureRoute => CoachFeatureRoutes.Trainings;
         public string RequiredPermission => "Read";
@@ -64,6 +64,9 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
 
             if (!string.IsNullOrEmpty(request.Tipo))
                 query = query.Where(tb => tb.Tipo == request.Tipo);
+
+            if (!string.IsNullOrEmpty(request.Subtipo))
+                query = query.Where(tb => tb.Subtipo == request.Subtipo);
 
             var entities = await query
                 .OrderBy(tb => tb.Name)
@@ -93,7 +96,8 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         List<string> NivelesColumnas,
         IEnumerable<NivelRowDto> Niveles,
         IEnumerable<ExerciseModelRelationDto> ModelRelations,
-        bool IsAssociatedToGameModel)
+        bool IsAssociatedToGameModel,
+        string? Subtipo)
     {
         public static ExerciseListItem From(TaskTrainingBase tb, IReadOnlyDictionary<string, ExerciseModelRelationDto> relationSummaries) => new(
             tb.Id,
@@ -111,7 +115,8 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
             tb.NivelesColumnas,
             tb.Niveles.Select(n => new NivelRowDto(n.Nivel, n.Valores)),
             tb.ModelRelations.Select(r => relationSummaries[r.Id]),
-            tb.ModelRelations.Count > 0);
+            tb.ModelRelations.Count > 0,
+            tb.Subtipo);
     }
 
     /// <summary>Denormalized display fields for an <see cref="ExerciseModelRelationItem"/>.</summary>

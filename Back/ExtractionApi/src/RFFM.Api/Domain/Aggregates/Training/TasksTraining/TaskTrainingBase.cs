@@ -13,11 +13,24 @@ namespace RFFM.Api.Domain.Aggregates.Training.TasksTraining
         /// <summary>The three allowed <see cref="Tipo"/> values, per the reduced template.</summary>
         public static readonly IReadOnlySet<string> TipoValues = new HashSet<string> { "Analitico", "Situacional", "Global" };
 
+        /// <summary>Allowed <see cref="Subtipo"/> values. A subtipo is independent of <see cref="Tipo"/>
+        /// — any subtipo can be combined with any tipo.</summary>
+        public static readonly IReadOnlySet<string> SubtipoValues = new HashSet<string>
+        {
+            "RuedasDePase", "Rondos", "AtaqueOrganizado", "DefensaOrganizada",
+            "TransicionDefensaAtaque", "TransicionAtaqueDefensa", "Abp", "Posesion",
+            "Mantenimiento", "JuegosLudicos", "Circuito", "JuegoDePosicion",
+            "PartidoCondicionado", "Partido",
+        };
+
         /// <summary>Título.</summary>
         public string Name { get; set; } = string.Empty;
 
         /// <summary>Analitico | Situacional | Global.</summary>
         public string Tipo { get; set; } = "Analitico";
+
+        /// <summary>Optional, one of <see cref="SubtipoValues"/>.</summary>
+        public string? Subtipo { get; set; }
 
         public string Objetivo { get; set; } = string.Empty;
         public string? ObjetivoPorRol { get; set; }
