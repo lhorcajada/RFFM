@@ -268,6 +268,18 @@ describe("ContentBoardPage — con microciclo en contexto", () => {
     expect(screen.getByDisplayValue("Sesión libre")).toBeInTheDocument();
   });
 
+  it("tras 'Ver todas las sesiones' el botón pasa a 'Ver última sesión' y vuelve al microciclo", async () => {
+    mockBoardData();
+
+    renderWithRoutes(microEntry);
+    await userEvent.click(screen.getByRole("button", { name: /ver todas las sesiones/i }));
+    await userEvent.click(screen.getByRole("button", { name: /ver última sesión/i }));
+
+    expect(screen.getByTestId("location")).toHaveTextContent("microcicloId=micro-a");
+    expect(screen.queryByDisplayValue("Sesión libre")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /ver todas las sesiones/i })).toBeInTheDocument();
+  });
+
   it("sin Modelo de Juego ofrece crear la sesión sin contenido en el editor con el microciclo", async () => {
     mockBoardData({ gameModel: null });
 

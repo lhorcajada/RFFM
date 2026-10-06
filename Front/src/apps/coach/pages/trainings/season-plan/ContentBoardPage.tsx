@@ -13,6 +13,7 @@ import {
 import { Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Typography } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import ViewListOutlinedIcon from "@mui/icons-material/ViewListOutlined";
 import BaseLayout from "../../../../../shared/components/ui/BaseLayout/BaseLayout";
 import seasonService from "../../../services/seasonService";
 import trainingService from "../../../services/trainingService";
@@ -43,6 +44,8 @@ export interface ContentBoardMicrocicloState {
 
 interface ContentBoardLocationState {
   microciclo?: ContentBoardMicrocicloState;
+  /** Set by «Ver todas las sesiones» so «Ver última sesión» can restore the microciclo view. */
+  previousMicrociclo?: { id: string; microciclo: ContentBoardMicrocicloState | null };
 }
 
 /** The content-board: a two-panel drag-and-drop screen — the team's ADN tree on the left, all
@@ -56,7 +59,9 @@ export default function ContentBoardPage() {
   const clubId = params.get("clubId") ?? "";
   const teamId = params.get("teamId") ?? "";
   const microcicloId = params.get("microcicloId");
-  const microcicloState = (location.state as ContentBoardLocationState | null)?.microciclo ?? null;
+  const locationState = location.state as ContentBoardLocationState | null;
+  const microcicloState = locationState?.microciclo ?? null;
+  const previousMicrociclo = locationState?.previousMicrociclo ?? null;
 
   const [season, setSeason] = useState("");
   useEffect(() => {
@@ -118,7 +123,19 @@ export default function ContentBoardPage() {
     ? `${microcicloState.weekLabel} · ${microcicloState.startDate} – ${microcicloState.endDate}`
     : microcicloWeekLabel ?? "Microciclo seleccionado";
 
-  const handleShowAllSessions = () => navigate(boardUrl, { replace: true });
+  const handleShowAllSessions = () =>
+    navigate(boardUrl, {
+      replace: true,
+      state: microcicloId ? { previousMicrociclo: { id: microcicloId, microciclo: microcicloState } } : undefined,
+    });
+
+  const handleShowLastSession = () => {
+    if (!previousMicrociclo) return;
+    navigate(`${boardUrl}&microcicloId=${encodeURIComponent(previousMicrociclo.id)}`, {
+      replace: true,
+      state: previousMicrociclo.microciclo ? { microciclo: previousMicrociclo.microciclo } : undefined,
+    });
+  };
 
   const handleCreateSessionWithoutContent = () => {
     navigate(`/coach/trainings/new-session?clubId=${clubId}&teamId=${teamId}&microcicloId=${microcicloId}`, {
@@ -225,10 +242,25 @@ export default function ContentBoardPage() {
     <BaseLayout hideFooterMenu>
       <Box className={styles.page}>
         <Box className={styles.topBar}>
+          <Box className={styles.titleBox}>
+            <Typography className={styles.title}>Planificar contenido</Typography>
+            {microcicloId && (
+              <Typography className={styles.microcicloLabel}>{microcicloHeader}</Typography>
+            )}
+          </Box>
           <Box className={styles.topBarActions}>
             <Button startIcon={<ArrowBackIcon />} variant="outlined" size="small" onClick={() => navigate(backUrl)}>
               Volver
             </Button>
+            {microcicloId ? (
+              <Button startIcon={<ViewListOutlinedIcon />} variant="outlined" size="small" onClick={handleShowAllSessions}>
+                Ver todas las sesiones
+              </Button>
+            ) : previousMicrociclo && (
+              <Button startIcon={<ViewListOutlinedIcon />} variant="outlined" size="small" onClick={handleShowLastSession}>
+                Ver última sesión
+              </Button>
+            )}
             {gameModel && (
               <Button
                 startIcon={<EditOutlinedIcon />}
@@ -239,17 +271,6 @@ export default function ContentBoardPage() {
               >
                 Editar modelo
               </Button>
-            )}
-          </Box>
-          <Box className={styles.titleBox}>
-            <Typography className={styles.title}>Planificar contenido</Typography>
-            {microcicloId && (
-              <Box className={styles.microcicloRow}>
-                <Typography className={styles.microcicloLabel}>{microcicloHeader}</Typography>
-                <Button size="small" variant="text" onClick={handleShowAllSessions}>
-                  Ver todas las sesiones
-                </Button>
-              </Box>
             )}
           </Box>
         </Box>

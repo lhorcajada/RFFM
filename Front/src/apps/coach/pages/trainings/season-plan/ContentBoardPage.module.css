@@ -9,6 +9,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
   padding: 10px 16px;
   border-bottom: 1px solid rgba(255, 122, 26, 0.2);
 }
@@ -21,16 +23,7 @@
 .titleBox {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
   min-width: 0;
-}
-
-.microcicloRow {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 4px 8px;
 }
 
 .microcicloLabel {
@@ -41,7 +34,9 @@
 .topBarActions {
   display: flex;
   flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 8px;
+  margin-left: auto;
 }
 
 .emptyStateActions {
