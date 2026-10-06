@@ -1,6 +1,9 @@
 # Datos personales/de salud de jugadores (menores) - nunca deben entrar en el repositorio
 docs/jugadores/
 
+# Excel de base de datos DVG (>100 MB, supera el límite de GitHub)
+docs/Base de datos DVG .xlsm
+
 # Terraform - state y variables con secretos nunca se comitean
 infra/terraform/.terraform/
 infra/terraform/*.tfstate
