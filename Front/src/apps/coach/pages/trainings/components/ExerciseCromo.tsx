@@ -100,7 +100,7 @@ export default function ExerciseCromo({ exercise, onEdit, onDuplicate, onPrint, 
             </div>
           )}
 
-          {/* Model relation chips — one per ModelRelation (FOCO vs INTEGRADO) + nested items + Habilidades */}
+          {/* Model relation chips — one per ModelRelation (FOCO vs INTEGRADO) */}
           {hasModelChips && (
             <div className={styles.modelChipsRow} data-testid="model-chips-row">
               {exercise.modelRelations.map((relation) => (
@@ -111,21 +111,6 @@ export default function ExerciseCromo({ exercise, onEdit, onDuplicate, onPrint, 
                   className={relation.isFoco ? styles.modelLinkChipFoco : styles.modelLinkChipIntegrado}
                 />
               ))}
-              {exercise.modelRelations.flatMap((relation) =>
-                relation.items.map((item) => (
-                  <Chip
-                    key={item.id}
-                    label={`${item.subSubPrincipioNumero ?? ""} · ${item.subSubPrincipioRol ?? ""}`}
-                    size="small"
-                    className={item.isFoco ? styles.modelLinkChipFoco : styles.modelLinkChipIntegrado}
-                  />
-                ))
-              )}
-              {exercise.modelRelations.flatMap((relation) =>
-                relation.habilidadesImprescindibles.map((h) => (
-                  <Chip key={`${relation.id}-${h}`} label={h} size="small" className={styles.habilidadChip} />
-                ))
-              )}
             </div>
           )}
 

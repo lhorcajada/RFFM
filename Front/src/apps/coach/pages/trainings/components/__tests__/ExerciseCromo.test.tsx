@@ -65,7 +65,7 @@ describe("ExerciseCromo", () => {
     expect(screen.queryByText(/asociado al modelo/i)).not.toBeInTheDocument();
   });
 
-  it("renderiza un chip por cada relación con el modelo (Subprincipio) y por cada item (SubSubPrincipio)", () => {
+  it("renderiza un chip por cada relación con el modelo (Subprincipio) sin chips de SubSubPrincipios ni Habilidades", () => {
     render(
       <ExerciseCromo
         exercise={buildExercise({
@@ -92,8 +92,8 @@ describe("ExerciseCromo", () => {
     );
 
     expect(screen.getByText(/1\.1.*Presión alta/)).toBeInTheDocument();
-    expect(screen.getByText(/1\.1\.1.*Central/)).toBeInTheDocument();
-    expect(screen.getByText("Pase")).toBeInTheDocument();
+    expect(screen.queryByText(/1\.1\.1.*Central/)).not.toBeInTheDocument();
+    expect(screen.queryByText("Pase")).not.toBeInTheDocument();
   });
 
   it("muestra la duración cuando durationMinutes está establecido", () => {
