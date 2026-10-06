@@ -10,7 +10,7 @@ namespace RFFM.Api.Features.Coaches.Players.Services
     public static class PlayerReadinessCalculator
     {
         public static readonly DailyLoadModel.Parameters Parameters = new(
-            GainRate: 0.10, GraceRestDays: 21, DecayStepPerDay: 0.25, DecayMaxPerDay: 2);
+            GainRate: 0.03, GraceRestDays: 21, DecayStepPerDay: 0.25, DecayMaxPerDay: 2);
 
         public const int ReferenceMatchMinutes = 70;
 

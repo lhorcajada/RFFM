@@ -53,8 +53,8 @@ namespace RFFM.Api.Tests.UnitTests
             var tactico = Calc(new[] { Training(0, new[] { "Tactico" }) }, NoMatches);
             var tecnico = Calc(new[] { Training(0, new[] { "Tecnico" }) }, NoMatches);
 
-            Assert.Equal(10, tactico.Value);
-            Assert.Equal(6, tecnico.Value);
+            Assert.Equal(3, tactico.Value);
+            Assert.Equal(2, tecnico.Value);
         }
 
         [Theory]
@@ -85,8 +85,18 @@ namespace RFFM.Api.Tests.UnitTests
             var league = Calc(NoTrainings, new[] { Match(0, 70) });
             var friendly = Calc(NoTrainings, new[] { Match(0, 70, FriendlyEventTypeId) });
 
-            Assert.Equal(14, league.Value);
-            Assert.Equal(10, friendly.Value);
+            Assert.Equal(4, league.Value);
+            Assert.Equal(3, friendly.Value);
+        }
+
+        [Fact]
+        public void TenTacticoTrainings_LeaveReadinessFarFromFull()
+        {
+            var trainings = Enumerable.Range(0, 10).Select(i => Training(i * 2)).ToArray();
+
+            var result = Calc(trainings, NoMatches);
+
+            Assert.Equal(26, result.Value);
         }
 
         [Fact]
