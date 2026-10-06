@@ -165,74 +165,7 @@
   color: #e74c3c !important;
 }
 
-/* ── Session card ────────────────────────────────────────────────── */
-
-.sessionCard {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(77, 157, 224, 0.15);
-  border-radius: 8px;
-  padding: 10px 14px;
-  margin-bottom: 8px;
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.sessionInfo {
-  flex: 1;
-  min-width: 0;
-}
-
-.sessionName {
-  font-size: 0.9rem !important;
-  font-weight: 600 !important;
-  color: #e8e8e8 !important;
-}
-
-.sessionDate {
-  font-size: 0.75rem !important;
-  color: #a8d4f5 !important;
-  margin-top: 2px !important;
-}
-
-.sessionMeta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 4px;
-  align-items: center;
-}
-
-.sessionMetaText {
+.selectAllText {
   font-size: 0.72rem !important;
   color: rgba(212, 212, 212, 0.55) !important;
-}
-
-.countChip {
-  background-color: rgba(77, 157, 224, 0.15) !important;
-  color: #4d9de0 !important;
-  font-size: 0.7rem !important;
-  height: 20px !important;
-}
-
-.sessionActions {
-  display: flex;
-  gap: 2px;
-  flex-shrink: 0;
-}
-
-.planLinkedChip {
-  background-color: rgba(255, 152, 0, 0.15) !important;
-  color: #ffb74d !important;
-  border: 1px solid rgba(255, 152, 0, 0.35) !important;
-  font-size: 0.7rem !important;
-  height: 20px !important;
-}
-
-.independentChip {
-  background-color: rgba(255, 255, 255, 0.06) !important;
-  color: rgba(212, 212, 212, 0.7) !important;
-  font-size: 0.7rem !important;
-  height: 20px !important;
 }

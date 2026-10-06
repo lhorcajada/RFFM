@@ -63,8 +63,9 @@ const trainingService = {
 
   // ── Sessions ──────────────────────────────────────────────────────────
 
-  async getSessions(teamId: string): Promise<TrainingSession[]> {
-    const res = await client.get<TrainingSession[]>("/api/trainings/sessions", { params: { teamId } });
+  async getSessions(teamId: string, seasonId?: string): Promise<TrainingSession[]> {
+    const params = seasonId ? { teamId, seasonId } : { teamId };
+    const res = await client.get<TrainingSession[]>("/api/trainings/sessions", { params });
     return res.data;
   },
 

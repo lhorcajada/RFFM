@@ -161,6 +161,16 @@ export interface TrainingSession {
   isAssociatedToPlan: boolean;
   exerciseCount: number;
   targets: SessionTargetDetail[];
+  /** Plan hierarchy of the session's microciclo — only sent by the session list. */
+  microcicloOrder?: number | null;
+  microcicloStartDate?: string | null;
+  microcicloEndDate?: string | null;
+  mesocicloId?: string | null;
+  mesocicloName?: string | null;
+  mesocicloOrder?: number | null;
+  macrocicloId?: string | null;
+  macrocicloName?: string | null;
+  macrocicloOrder?: number | null;
 }
 
 export interface TrainingSessionDetail extends Omit<TrainingSession, "exerciseCount"> {

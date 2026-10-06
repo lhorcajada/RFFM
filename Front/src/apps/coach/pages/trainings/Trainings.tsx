@@ -3,7 +3,6 @@ import {
   Box,
   Button,
   Checkbox,
-  Chip,
   CircularProgress,
   Dialog,
   DialogActions,
@@ -11,24 +10,19 @@ import {
   DialogContentText,
   DialogTitle,
   FormControl,
-  IconButton,
   InputLabel,
   MenuItem,
   Select,
   Stack,
   Tab,
   Tabs,
-  Tooltip,
   Typography,
   type SelectChangeEvent,
 } from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import AddIcon from "@mui/icons-material/Add";
-import EditIcon from "@mui/icons-material/Edit";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
-import PrintOutlinedIcon from "@mui/icons-material/PrintOutlined";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
@@ -37,11 +31,12 @@ import useTeamDashboardBack from "../../hooks/useTeamDashboardBack";
 import trainingService, { hasErrorCode } from "../../services/trainingService";
 import seasonPlanService from "../../services/seasonPlanService";
 import gameModelService from "../../services/gameModelService";
-import seasonService from "../../services/seasonService";
+import seasonService, { type Season } from "../../services/seasonService";
 import type { Exercise, ExerciseSubtipo, ExerciseTipo, TrainingSession } from "../../types/training";
 import type { GameZoneCatalogItem, SeasonPlan } from "../../types/seasonPlan";
 import { subtipoOptions, tipoOptions } from "./new/constants";
 import ExerciseCromo from "./components/ExerciseCromo";
+import SessionsList from "./components/SessionsList";
 import SeasonPlanView from "./season-plan/SeasonPlanView";
 import SeasonPlanEditor from "./season-plan/SeasonPlanEditor";
 import type { ContentBoardMicrocicloState } from "./season-plan/ContentBoardPage";
@@ -50,16 +45,6 @@ import styles from "./Trainings.module.css";
 import { buildExercisePrintHtml } from "./exercisePrint";
 import { openSessionWindow, waitForPrintWindowReady } from "./sessionWindow";
 import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess";
-
-function formatDate(iso: string | null) {
-  if (!iso) return "Sin fecha";
-  const d = new Date(iso);
-  return d.toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" });
-}
-
-function formatTime(t: string | null | undefined) {
-  return t ? t.slice(0, 5) : "";
-}
 
 async function printExercise(exercise: Exercise, boardDrawingHtml?: string) {
   const html = buildExercisePrintHtml(exercise, boardDrawingHtml);
@@ -114,6 +99,9 @@ export default function Trainings() {
   const [selectedSessionIds, setSelectedSessionIds] = useState<string[]>([]);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [deletingSessBulk, setDeletingSessBulk] = useState(false);
+  const [seasons, setSeasons] = useState<Season[]>([]);
+  // null until the active season is known; "" when the club has none (all sessions are listed).
+  const [sessionsSeasonId, setSessionsSeasonId] = useState<string | null>(null);
 
   // ── Season plan state ────────────────────────────────────────────
   const [seasonId, setSeasonId] = useState("");
@@ -128,17 +116,11 @@ export default function Trainings() {
 
   const clubId = team?.club?.id ?? "";
 
-  // Sessions sorted by date ascending (soonest first) — unscheduled sessions ("Sin
-  // programar", date === null) have no date to sort by, so they're grouped at the end:
-  // they aren't ready to be executed yet, unlike a dated session, however far in the future.
-  const sortedSessions = useMemo(() => {
-    return [...sessions].sort((a, b) => {
-      if (a.date === null && b.date === null) return 0;
-      if (a.date === null) return 1;
-      if (b.date === null) return -1;
-      return a.date.localeCompare(b.date);
-    });
-  }, [sessions]);
+  // The active season may be a global one missing from the club's list; keep it selectable.
+  const seasonOptions = useMemo(() => {
+    const activeMissing = seasonId && !seasons.some((s) => s.id === seasonId);
+    return activeMissing ? [...seasons, { id: seasonId, name: seasonName }] : seasons;
+  }, [seasons, seasonId, seasonName]);
 
   // Load exercises
   useEffect(() => {
@@ -150,16 +132,21 @@ export default function Trainings() {
       .finally(() => setLoadingEx(false));
   }, [clubId, tipoFilter, subtipoFilter]);
 
-  // Load sessions
+  // Load sessions of the selected season
   useEffect(() => {
-    if (!teamId) return;
+    if (!teamId || sessionsSeasonId === null) return;
     setLoadingSess(true);
     setSelectedSessionIds([]);
-    trainingService.getSessions(teamId)
+    trainingService.getSessions(teamId, sessionsSeasonId || undefined)
       .then(setSessions)
       .catch(() => setSessions([]))
       .finally(() => setLoadingSess(false));
-  }, [teamId]);
+  }, [teamId, sessionsSeasonId]);
+
+  useEffect(() => {
+    if (!clubId) return;
+    seasonService.getSeasons(clubId).then(setSeasons).catch(() => setSeasons([]));
+  }, [clubId]);
 
   const refreshExercises = () => {
     if (!clubId) return;
@@ -170,9 +157,9 @@ export default function Trainings() {
   };
 
   const refreshSessions = () => {
-    if (!teamId) return;
+    if (!teamId || sessionsSeasonId === null) return;
     setLoadingSess(true);
-    trainingService.getSessions(teamId)
+    trainingService.getSessions(teamId, sessionsSeasonId || undefined)
       .then(setSessions)
       .finally(() => setLoadingSess(false));
   };
@@ -184,6 +171,7 @@ export default function Trainings() {
       if (mounted) {
         setSeasonId(active?.id ?? "");
         setSeasonName(active?.name ?? active?.id ?? "");
+        setSessionsSeasonId((current) => current ?? active?.id ?? "");
       }
     });
     return () => {
@@ -522,89 +510,51 @@ export default function Trainings() {
           {/* ── Sessions tab ───────────────────────────────────── */}
           {tab === 2 && (
             <Box>
+              <Box className={`${styles.toolbarRow} ${styles.exerciseFilters}`}>
+                <FormControl size="small" sx={{ minWidth: 180 }}>
+                  <InputLabel id="sessions-season-label" shrink>Temporada</InputLabel>
+                  <Select
+                    labelId="sessions-season-label"
+                    label="Temporada"
+                    notched
+                    displayEmpty
+                    value={sessionsSeasonId ?? ""}
+                    onChange={(e) => setSessionsSeasonId(e.target.value)}
+                  >
+                    <MenuItem value="">Todas</MenuItem>
+                    {seasonOptions.map((s) => (
+                      <MenuItem key={s.id} value={s.id}>{s.name ?? s.id}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                {sessions.length > 0 && !loadingSess && (
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <Checkbox
+                      size="small"
+                      checked={selectedSessionIds.length === sessions.length}
+                      indeterminate={selectedSessionIds.length > 0 && selectedSessionIds.length < sessions.length}
+                      onChange={toggleSelectAllSessions}
+                    />
+                    <Typography className={styles.selectAllText}>Seleccionar todo</Typography>
+                  </Stack>
+                )}
+              </Box>
               {loadingSess ? (
                 <Box className={styles.loadingBox}><CircularProgress size={32} /></Box>
               ) : sessions.length === 0 ? (
                 <Typography className={styles.emptyText}>
-                  {teamId ? "No hay sesiones creadas aún." : "Selecciona un equipo para ver sesiones."}
+                  {teamId ? "No hay sesiones en esta temporada." : "Selecciona un equipo para ver sesiones."}
                 </Typography>
               ) : (
-                <>
-                  <Box className={styles.toolbarRow}>
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <Checkbox
-                        size="small"
-                        checked={selectedSessionIds.length === sessions.length}
-                        indeterminate={selectedSessionIds.length > 0 && selectedSessionIds.length < sessions.length}
-                        onChange={toggleSelectAllSessions}
-                      />
-                      <Typography className={styles.sessionMetaText}>Seleccionar todo</Typography>
-                    </Stack>
-                  </Box>
-                  {sortedSessions.map(sess => (
-                    <Box key={sess.id} className={styles.sessionCard}>
-                      <Checkbox
-                        size="small"
-                        checked={selectedSessionIds.includes(sess.id)}
-                        onChange={() => toggleSessionSelected(sess.id)}
-                      />
-                      <Box className={styles.sessionInfo}>
-                        <Typography className={styles.sessionName}>{sess.name}</Typography>
-                        <Typography className={styles.sessionDate}>{formatDate(sess.date)}</Typography>
-                        <Box className={styles.sessionMeta}>
-                          <Typography className={styles.sessionMetaText}>
-                            {formatTime(sess.startTime)}
-                            {sess.endTime ? ` – ${formatTime(sess.endTime)}` : ""}
-                            {sess.location ? ` · ${sess.location}` : ""}
-                          </Typography>
-                          <Chip
-                            label={`${sess.exerciseCount} ej.`}
-                            size="small"
-                            className={styles.countChip}
-                          />
-                          {sess.sportEventName && (
-                            <Chip label={sess.sportEventName} size="small" className={styles.sspChip} />
-                          )}
-                          {sess.isAssociatedToPlan ? (
-                            <Chip
-                              label={sess.microcicloWeekLabel ?? "Plan"}
-                              size="small"
-                              className={styles.planLinkedChip}
-                            />
-                          ) : (
-                            <Chip label="Independiente" size="small" className={styles.independentChip} />
-                          )}
-                        </Box>
-                      </Box>
-                      <Box className={styles.sessionActions}>
-                        <Tooltip title="Visualizar">
-                          <IconButton size="small" className={styles.iconBtn}
-                            onClick={() => openSessionWindow(sess.id, teamId)}>
-                            <VisibilityOutlinedIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Imprimir PDF">
-                          <IconButton size="small" className={styles.iconBtn}
-                            onClick={() => openSessionWindow(sess.id, teamId, { print: true })}>
-                            <PrintOutlinedIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Editar">
-                          <IconButton size="small" className={styles.iconBtn}
-                            onClick={() => goToSessionPage(sess.id)}>
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Eliminar">
-                          <IconButton size="small" className={styles.deleteIconBtn}
-                            onClick={() => setDeleteSessId(sess.id)}>
-                            <DeleteOutlineIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      </Box>
-                    </Box>
-                  ))}
-                </>
+                <SessionsList
+                  sessions={sessions}
+                  selectedIds={selectedSessionIds}
+                  onToggleSelected={toggleSessionSelected}
+                  onView={(id) => openSessionWindow(id, teamId)}
+                  onPrint={(id) => openSessionWindow(id, teamId, { print: true })}
+                  onEdit={(id) => goToSessionPage(id)}
+                  onDelete={(id) => setDeleteSessId(id)}
+                />
               )}
             </Box>
           )}

@@ -34,7 +34,10 @@ vi.mock("../../../services/gameModelService", () => ({
 }));
 
 vi.mock("../../../services/seasonService", () => ({
-  default: { getActiveSeason: vi.fn().mockResolvedValue({ id: "season-1", name: "2026-2027" }) },
+  default: {
+    getActiveSeason: vi.fn().mockResolvedValue({ id: "season-1", name: "2026-2027" }),
+    getSeasons: vi.fn().mockResolvedValue([{ id: "season-1", name: "2026-2027" }]),
+  },
   COACH_ACTIVE_SEASON_CHANGED_EVENT: "rffm.coach_active_season_changed",
 }));
 
@@ -105,7 +108,7 @@ describe("Trainings — orden de sesiones por fecha", () => {
     vi.clearAllMocks();
   });
 
-  it("ordena las sesiones por fecha ascendente y agrupa las sin programar al final", async () => {
+  it("ordena las sesiones libres de la más reciente a la más antigua, con las sin programar primero", async () => {
     mockGetSessions.mockResolvedValue([
       makeSession({ id: "sess-late", name: "Sesión tardía", date: "2026-12-01" }),
       makeSession({ id: "sess-unscheduled", name: "Sesión sin programar", date: null }),
@@ -119,9 +122,9 @@ describe("Trainings — orden de sesiones por fecha", () => {
     const names = await screen.findAllByText(/Sesión (tardía|sin programar|temprana)/);
 
     expect(names.map((n) => n.textContent)).toEqual([
-      "Sesión temprana",
-      "Sesión tardía",
       "Sesión sin programar",
+      "Sesión tardía",
+      "Sesión temprana",
     ]);
   });
 });

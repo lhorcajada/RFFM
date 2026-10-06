@@ -1,0 +1,178 @@
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ── Groups (macro › meso › micro, free) ─────────────────────────── */
+
+.group {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: 1px solid rgba(77, 157, 224, 0.15);
+  border-radius: 8px !important;
+}
+
+.group::before {
+  display: none;
+}
+
+.group + .group {
+  margin-top: 8px;
+}
+
+.macro {
+  background: rgba(77, 157, 224, 0.06) !important;
+}
+
+.meso {
+  border-color: rgba(255, 152, 0, 0.25);
+}
+
+.micro {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.free {
+  border-style: dashed;
+}
+
+.groupSummary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  min-width: 0;
+}
+
+.groupTitle {
+  font-size: 0.9rem !important;
+  font-weight: 600 !important;
+  color: #e8e8e8 !important;
+}
+
+.macro > div:first-child .groupTitle {
+  color: #4d9de0 !important;
+}
+
+.meso > div:first-child .groupTitle {
+  color: #ffb74d !important;
+}
+
+.micro .groupTitle {
+  font-size: 0.82rem !important;
+}
+
+.groupSubtitle {
+  font-size: 0.72rem !important;
+  color: rgba(212, 212, 212, 0.55) !important;
+}
+
+.expandIcon {
+  color: rgba(212, 212, 212, 0.6);
+}
+
+.groupDetails {
+  padding: 0 8px 8px !important;
+}
+
+.moreRow {
+  display: flex;
+  justify-content: center;
+  padding-top: 4px;
+}
+
+/* ── Session card ────────────────────────────────────────────────── */
+
+.sessionCard {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(77, 157, 224, 0.15);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.sessionInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.sessionName {
+  font-size: 0.9rem !important;
+  font-weight: 600 !important;
+  color: #e8e8e8 !important;
+}
+
+.sessionDate {
+  font-size: 0.75rem !important;
+  color: #a8d4f5 !important;
+  margin-top: 2px !important;
+}
+
+.sessionMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+  align-items: center;
+}
+
+.sessionMetaText {
+  font-size: 0.72rem !important;
+  color: rgba(212, 212, 212, 0.55) !important;
+}
+
+.countChip {
+  background-color: rgba(77, 157, 224, 0.15) !important;
+  color: #4d9de0 !important;
+  font-size: 0.7rem !important;
+  height: 20px !important;
+}
+
+.eventChip {
+  background-color: rgba(156, 220, 254, 0.1) !important;
+  color: #a8d4f5 !important;
+  border: 1px solid rgba(156, 220, 254, 0.25) !important;
+  font-size: 0.7rem !important;
+  height: 20px !important;
+}
+
+.sessionActions {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.iconBtn {
+  color: rgba(212, 212, 212, 0.5) !important;
+  padding: 4px !important;
+}
+
+.iconBtn:hover {
+  color: #4d9de0 !important;
+}
+
+.deleteIconBtn {
+  color: rgba(78, 201, 176, 0.5) !important;
+  padding: 4px !important;
+}
+
+.deleteIconBtn:hover {
+  color: #e74c3c !important;
+}
+
+@media (max-width: 480px) {
+  .sessionCard {
+    flex-wrap: wrap;
+    padding: 8px 10px;
+  }
+
+  .sessionActions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}

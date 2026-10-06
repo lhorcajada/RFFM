@@ -68,7 +68,10 @@ vi.mock("../../../services/gameModelService", () => ({
 }));
 
 vi.mock("../../../services/seasonService", () => ({
-  default: { getActiveSeason: vi.fn().mockResolvedValue({ id: "season-1", name: "2026-2027" }) },
+  default: {
+    getActiveSeason: vi.fn().mockResolvedValue({ id: "season-1", name: "2026-2027" }),
+    getSeasons: vi.fn().mockResolvedValue([{ id: "season-1", name: "2026-2027" }]),
+  },
   COACH_ACTIVE_SEASON_CHANGED_EVENT: "rffm.coach_active_season_changed",
 }));
 
