@@ -4,6 +4,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import Trainings from "../Trainings";
 import { UserProvider } from "../../../../../shared/context/UserContext";
+import trainingService from "../../../services/trainingService";
 
 vi.mock("../../../services/trainingService", () => ({
   default: {
@@ -60,6 +61,26 @@ describe("Trainings — filtro de tipo de ejercicio", () => {
 
     await user.click(await screen.findByRole("tab", { name: "Ejercicios" }));
 
-    expect(screen.getByRole("combobox", { name: /tipo/i })).toHaveTextContent("Todos");
+    expect(screen.getByRole("combobox", { name: /^tipo/i })).toHaveTextContent("Todos");
+  });
+
+  it("muestra 'Todos' como valor seleccionado cuando no hay filtro de subtipo", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole("tab", { name: "Ejercicios" }));
+
+    expect(screen.getByRole("combobox", { name: /subtipo/i })).toHaveTextContent("Todos");
+  });
+
+  it("pide los ejercicios filtrados por el subtipo elegido", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole("tab", { name: "Ejercicios" }));
+    await user.click(screen.getByRole("combobox", { name: /subtipo/i }));
+    await user.click(screen.getByRole("option", { name: "Rondos" }));
+
+    expect(trainingService.getExercises).toHaveBeenLastCalledWith("club-1", { tipo: undefined, subtipo: "Rondos" });
   });
 });

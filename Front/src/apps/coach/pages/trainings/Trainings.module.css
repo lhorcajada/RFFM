@@ -43,6 +43,10 @@
   gap: 8px;
 }
 
+.exerciseFilters {
+  justify-content: flex-start;
+}
+
 .filterLabel {
   font-size: 0.78rem !important;
   color: #a8d4f5 !important;

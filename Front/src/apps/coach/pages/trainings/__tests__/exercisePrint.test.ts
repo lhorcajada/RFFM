@@ -26,6 +26,11 @@ describe("buildExercisePrintHtml", () => {
     expect(html).toContain("20 min");
   });
 
+  it("incluye el subtipo traducido cuando el ejercicio lo tiene", () => {
+    const html = buildExercisePrintHtml(buildExercise({ subtipo: "PartidoCondicionado" }));
+    expect(html).toContain("Partido condicionado");
+  });
+
   it("incluye el objetivo por rol solo cuando está presente", () => {
     const withRole = buildExercisePrintHtml(buildExercise({ objetivoPorRol: "Pivote: recibe de espaldas" }));
     expect(withRole).toContain("Pivote: recibe de espaldas");

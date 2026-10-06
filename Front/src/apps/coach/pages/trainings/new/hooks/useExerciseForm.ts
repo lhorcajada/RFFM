@@ -29,6 +29,7 @@ export function useExerciseForm({ clubId, navigate, returnTo, returnState, getBo
       clubId,
       name: exercise.name,
       tipo: exercise.tipo,
+      subtipo: exercise.subtipo ?? null,
       objetivo: exercise.objetivo,
       objetivoPorRol: exercise.objetivoPorRol ?? null,
       modelRelations: (exercise.modelRelations ?? []).map((r) => ({

@@ -1,6 +1,6 @@
 import { client } from "../../../../core/api/client";
 import type { Exercise } from "../../types/training";
-import { TIPO_LABELS } from "./exerciseTypeLabels";
+import { SUBTIPO_LABELS, TIPO_LABELS } from "./exerciseTypeLabels";
 
 const API_BASE = (client.defaults.baseURL ?? "/").replace(/\/$/, "");
 
@@ -115,6 +115,7 @@ export function buildExercisePrintHtml(exercise: Exercise, boardDrawingHtml?: st
             <h1 class="title">${escapeHtml(exercise.name)}</h1>
             <div class="meta">
               <span class="pill">${escapeHtml(TIPO_LABELS[exercise.tipo] ?? exercise.tipo)}</span>
+              ${exercise.subtipo ? `<span class="pill">${escapeHtml(SUBTIPO_LABELS[exercise.subtipo] ?? exercise.subtipo)}</span>` : ""}
               ${typeof exercise.durationMinutes === "number" ? `<span class="pill">${exercise.durationMinutes} min</span>` : ""}
             </div>
           </div>

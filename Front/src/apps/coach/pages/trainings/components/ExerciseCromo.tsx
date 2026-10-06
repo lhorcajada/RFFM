@@ -13,7 +13,7 @@ import TacticalBoardSnapshotPreview, {
   tryParseBoardSnapshot,
 } from "../../../components/TacticalBoardSnapshotPreview";
 import boardPreviewCss from "../../../components/TacticalBoardSnapshotPreview.module.css?inline";
-import { TIPO_LABELS } from "../exerciseTypeLabels";
+import { SUBTIPO_LABELS, TIPO_LABELS } from "../exerciseTypeLabels";
 import styles from "./ExerciseCromo.module.css";
 
 const API_BASE = (client.defaults.baseURL ?? "/").replace(/\/$/, "");
@@ -93,6 +93,12 @@ export default function ExerciseCromo({ exercise, onEdit, onDuplicate, onPrint, 
           <div className={styles.exerciseName} title={exercise.name}>
             {exercise.name}
           </div>
+
+          {exercise.subtipo && (
+            <div className={styles.subtipo} data-testid="subtipo-chip">
+              {SUBTIPO_LABELS[exercise.subtipo] ?? exercise.subtipo}
+            </div>
+          )}
 
           {exercise.isAssociatedToGameModel && (
             <div className={styles.tagsRow} data-testid="tags-row">

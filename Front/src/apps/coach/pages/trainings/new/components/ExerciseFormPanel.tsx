@@ -11,10 +11,10 @@ import {
   Typography,
   type SelectChangeEvent,
 } from "@mui/material";
-import { tipoOptions } from "../constants";
+import { subtipoOptions, tipoOptions } from "../constants";
 import type { ExerciseFormState } from "../hooks/useExerciseForm";
 import styles from "../NewExercisePage.module.css";
-import type { ExerciseTipo } from "../../../../types/training";
+import type { ExerciseSubtipo, ExerciseTipo } from "../../../../types/training";
 import ModelRelationSection from "./ModelRelationSection";
 import NivelesEditor from "./NivelesEditor";
 
@@ -64,6 +64,27 @@ export default function ExerciseFormPanel({ panelVisible, form, teamId }: Exerci
               onChange={(e: SelectChangeEvent) => setField("tipo", e.target.value as ExerciseTipo)}
             >
               {tipoOptions.map((o) => (
+                <MenuItem key={o.value} value={o.value}>
+                  {o.label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <FormControl size="small" className={styles.typeSelect}>
+            <InputLabel id="exercise-subtipo-label" shrink>Subtipo</InputLabel>
+            <Select
+              labelId="exercise-subtipo-label"
+              label="Subtipo"
+              notched
+              displayEmpty
+              value={formData.subtipo ?? ""}
+              onChange={(e: SelectChangeEvent) =>
+                setField("subtipo", e.target.value === "" ? null : (e.target.value as ExerciseSubtipo))
+              }
+            >
+              <MenuItem value="">Sin subtipo</MenuItem>
+              {subtipoOptions.map((o) => (
                 <MenuItem key={o.value} value={o.value}>
                   {o.label}
                 </MenuItem>

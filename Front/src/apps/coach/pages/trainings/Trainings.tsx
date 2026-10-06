@@ -38,9 +38,9 @@ import trainingService, { hasErrorCode } from "../../services/trainingService";
 import seasonPlanService from "../../services/seasonPlanService";
 import gameModelService from "../../services/gameModelService";
 import seasonService from "../../services/seasonService";
-import type { Exercise, ExerciseTipo, TrainingSession } from "../../types/training";
+import type { Exercise, ExerciseSubtipo, ExerciseTipo, TrainingSession } from "../../types/training";
 import type { GameZoneCatalogItem, SeasonPlan } from "../../types/seasonPlan";
-import { tipoOptions } from "./new/constants";
+import { subtipoOptions, tipoOptions } from "./new/constants";
 import ExerciseCromo from "./components/ExerciseCromo";
 import SeasonPlanView from "./season-plan/SeasonPlanView";
 import SeasonPlanEditor from "./season-plan/SeasonPlanEditor";
@@ -104,6 +104,7 @@ export default function Trainings() {
   const [deletingEx, setDeletingEx] = useState(false);
   const [deleteExError, setDeleteExError] = useState<string | null>(null);
   const [tipoFilter, setTipoFilter] = useState<ExerciseTipo | "">("");
+  const [subtipoFilter, setSubtipoFilter] = useState<ExerciseSubtipo | "">("");
 
   // ── Sessions state ───────────────────────────────────────────────
   const [sessions, setSessions] = useState<TrainingSession[]>([]);
@@ -143,11 +144,11 @@ export default function Trainings() {
   useEffect(() => {
     if (!clubId) return;
     setLoadingEx(true);
-    trainingService.getExercises(clubId, { tipo: tipoFilter || undefined })
+    trainingService.getExercises(clubId, { tipo: tipoFilter || undefined, subtipo: subtipoFilter || undefined })
       .then(setExercises)
       .catch(() => setExercises([]))
       .finally(() => setLoadingEx(false));
-  }, [clubId, tipoFilter]);
+  }, [clubId, tipoFilter, subtipoFilter]);
 
   // Load sessions
   useEffect(() => {
@@ -163,7 +164,7 @@ export default function Trainings() {
   const refreshExercises = () => {
     if (!clubId) return;
     setLoadingEx(true);
-    trainingService.getExercises(clubId, { tipo: tipoFilter || undefined })
+    trainingService.getExercises(clubId, { tipo: tipoFilter || undefined, subtipo: subtipoFilter || undefined })
       .then(setExercises)
       .finally(() => setLoadingEx(false));
   };
@@ -459,7 +460,7 @@ export default function Trainings() {
           {/* ── Exercises tab ──────────────────────────────────── */}
           {tab === 1 && (
             <Box>
-              <Box className={styles.toolbarRow}>
+              <Box className={`${styles.toolbarRow} ${styles.exerciseFilters}`}>
                 <FormControl size="small" sx={{ minWidth: 160 }}>
                   <InputLabel id="tipo-filter-label" shrink>Tipo</InputLabel>
                   <Select
@@ -472,6 +473,22 @@ export default function Trainings() {
                   >
                     <MenuItem value="">Todos</MenuItem>
                     {tipoOptions.map((o) => (
+                      <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <FormControl size="small" sx={{ minWidth: 200 }}>
+                  <InputLabel id="subtipo-filter-label" shrink>Subtipo</InputLabel>
+                  <Select
+                    labelId="subtipo-filter-label"
+                    label="Subtipo"
+                    notched
+                    displayEmpty
+                    value={subtipoFilter}
+                    onChange={(e) => setSubtipoFilter(e.target.value as ExerciseSubtipo | "")}
+                  >
+                    <MenuItem value="">Todos</MenuItem>
+                    {subtipoOptions.map((o) => (
                       <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>
                     ))}
                   </Select>

@@ -24,9 +24,10 @@ export function hasErrorCode(error: unknown, code: string): boolean {
 const trainingService = {
   // ── Exercises ─────────────────────────────────────────────────────────
 
-  async getExercises(clubId: string, opts?: { tipo?: string | null }): Promise<Exercise[]> {
+  async getExercises(clubId: string, opts?: { tipo?: string | null; subtipo?: string | null }): Promise<Exercise[]> {
     const params: Record<string, string> = { clubId };
     if (opts?.tipo) params.tipo = opts.tipo;
+    if (opts?.subtipo) params.subtipo = opts.subtipo;
     const res = await client.get<Exercise[]>("/api/trainings/exercises", { params });
     return res.data;
   },

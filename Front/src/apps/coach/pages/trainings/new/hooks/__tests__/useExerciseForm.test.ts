@@ -238,4 +238,38 @@ describe("useExerciseForm — carga de ejercicio existente", () => {
       expect(result.current.form.tipo).toBe("Global");
     });
   });
+
+  it("applyExercise carga el subtipo del ejercicio existente", async () => {
+    const { result } = renderHook(() =>
+      useExerciseForm({ clubId: "club-1", navigate, returnTo: "/coach/trainings" })
+    );
+
+    const exercise: Exercise = {
+      id: "ex-1",
+      name: "Ejercicio",
+      tipo: "Situacional",
+      subtipo: "Rondos",
+      objetivo: "Objetivo",
+      modelRelations: [],
+      nivelesColumnas: ["Palanca 1"],
+      niveles: [
+        { nivel: 1, valores: {} },
+        { nivel: 2, valores: {} },
+      ],
+      logistica: "10 min",
+      descripcion: "Desc",
+      isAssociatedToGameModel: false,
+    };
+
+    act(() => result.current.loadExercise(exercise));
+
+    await waitFor(() => {
+      expect(result.current.form.subtipo).toBe("Rondos");
+    });
+  });
+
+  it("emptyExercise no trae subtipo por defecto", async () => {
+    const { emptyExercise } = await import("../../constants");
+    expect(emptyExercise.subtipo).toBeNull();
+  });
 });

@@ -43,7 +43,7 @@ describe("ExerciseFormPanel — campos del template reducido", () => {
     renderPanel(<ExerciseFormPanel panelVisible form={buildFormState()} />);
 
     expect(screen.getByLabelText("Título")).toBeInTheDocument();
-    expect(screen.getByRole("combobox", { name: /tipo/i })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: /^tipo/i })).toBeInTheDocument();
     expect(screen.getByLabelText("Objetivo")).toBeInTheDocument();
     expect(screen.getByLabelText(/objetivo por rol/i)).toBeInTheDocument();
     expect(screen.getByLabelText("Logística")).toBeInTheDocument();
@@ -76,12 +76,39 @@ describe("ExerciseFormPanel — campos del template reducido", () => {
     const { default: userEvent } = await import("@testing-library/user-event");
     renderPanel(<ExerciseFormPanel panelVisible form={buildFormState({ setField })} />);
 
-    const select = screen.getByRole("combobox", { name: /tipo/i });
+    const select = screen.getByRole("combobox", { name: /^tipo/i });
     await userEvent.click(select);
     const listbox = screen.getByRole("listbox");
     await userEvent.click((await screen.findAllByText("Global"))[0]);
 
     expect(setField).toHaveBeenCalledWith("tipo", "Global");
     void listbox;
+  });
+
+  it("llama a setField con el subtipo elegido al cambiar el selector de Subtipo", async () => {
+    const setField = vi.fn();
+    const { default: userEvent } = await import("@testing-library/user-event");
+    renderPanel(<ExerciseFormPanel panelVisible form={buildFormState({ setField })} />);
+
+    await userEvent.click(screen.getByRole("combobox", { name: /subtipo/i }));
+    await userEvent.click(screen.getByRole("option", { name: "Juego de posición" }));
+
+    expect(setField).toHaveBeenCalledWith("subtipo", "JuegoDePosicion");
+  });
+
+  it("permite dejar el ejercicio sin subtipo", async () => {
+    const setField = vi.fn();
+    const { default: userEvent } = await import("@testing-library/user-event");
+    renderPanel(
+      <ExerciseFormPanel
+        panelVisible
+        form={buildFormState({ setField, form: { ...emptyExercise, subtipo: "Rondos" } })}
+      />
+    );
+
+    await userEvent.click(screen.getByRole("combobox", { name: /subtipo/i }));
+    await userEvent.click(screen.getByRole("option", { name: "Sin subtipo" }));
+
+    expect(setField).toHaveBeenCalledWith("subtipo", null);
   });
 });

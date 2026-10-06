@@ -1,4 +1,5 @@
-import type { CreateExerciseRequest, ExerciseTipo } from "../../../types/training";
+import type { CreateExerciseRequest, ExerciseSubtipo, ExerciseTipo } from "../../../types/training";
+import { SUBTIPO_LABELS } from "../exerciseTypeLabels";
 import type { LineColorOption, LineKindOption, MaterialTemplate, PetoOption, SpaceKind, SpaceTemplate, TextStyle } from "./types";
 
 export const HALF_FIELD_LENGTH_METERS = 52.5;
@@ -72,6 +73,10 @@ export const tipoOptions: { value: ExerciseTipo; label: string }[] = [
   { value: "Global", label: "Global" },
 ];
 
+export const subtipoOptions: { value: ExerciseSubtipo; label: string }[] = (
+  Object.entries(SUBTIPO_LABELS) as [ExerciseSubtipo, string][]
+).map(([value, label]) => ({ value, label }));
+
 export const petoOptions: PetoOption[] = [
   { key: "yellow", label: "Amarillo", color: "#f1c40f" },
   { key: "orange", label: "Naranja", color: "#e67e22" },
@@ -96,6 +101,7 @@ export const emptyExercise: CreateExerciseRequest = {
   clubId: "",
   name: "",
   tipo: "Situacional",
+  subtipo: null,
   objetivo: "",
   objetivoPorRol: null,
   modelRelations: [],

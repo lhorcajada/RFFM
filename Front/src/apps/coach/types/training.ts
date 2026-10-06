@@ -4,6 +4,23 @@
 
 export type ExerciseTipo = "Analitico" | "Situacional" | "Global";
 
+/** Independiente del Tipo: cualquier subtipo se puede combinar con cualquier tipo. */
+export type ExerciseSubtipo =
+  | "RuedasDePase"
+  | "Rondos"
+  | "AtaqueOrganizado"
+  | "DefensaOrganizada"
+  | "TransicionDefensaAtaque"
+  | "TransicionAtaqueDefensa"
+  | "Abp"
+  | "Posesion"
+  | "Mantenimiento"
+  | "JuegosLudicos"
+  | "Circuito"
+  | "JuegoDePosicion"
+  | "PartidoCondicionado"
+  | "Partido";
+
 export interface ExerciseLevelRow {
   nivel: number;
   valores: Record<string, string>;
@@ -40,6 +57,7 @@ export interface Exercise {
   id: string;
   name: string;
   tipo: ExerciseTipo;
+  subtipo?: ExerciseSubtipo | null;
   objetivo: string;
   objetivoPorRol?: string | null;
   modelRelations: ExerciseModelRelation[];
@@ -60,6 +78,7 @@ export interface CreateExerciseRequest {
   clubId: string;
   name: string;
   tipo: ExerciseTipo;
+  subtipo?: ExerciseSubtipo | null;
   objetivo: string;
   objetivoPorRol?: string | null;
   modelRelations: ExerciseModelRelationRequest[];

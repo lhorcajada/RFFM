@@ -37,6 +37,34 @@ describe("ExerciseCromo", () => {
     expect(screen.getByText("Global")).toBeInTheDocument();
   });
 
+  it("muestra el subtipo del ejercicio traducido cuando lo tiene", () => {
+    render(
+      <ExerciseCromo
+        exercise={buildExercise({ subtipo: "TransicionAtaqueDefensa" })}
+        onEdit={vi.fn()}
+        onDuplicate={vi.fn()}
+        onPrint={vi.fn()}
+        onDelete={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText("Transición ataque-defensa")).toBeInTheDocument();
+  });
+
+  it("no muestra subtipo cuando el ejercicio no lo tiene", () => {
+    render(
+      <ExerciseCromo
+        exercise={buildExercise({ subtipo: null })}
+        onEdit={vi.fn()}
+        onDuplicate={vi.fn()}
+        onPrint={vi.fn()}
+        onDelete={vi.fn()}
+      />
+    );
+
+    expect(screen.queryByTestId("subtipo-chip")).not.toBeInTheDocument();
+  });
+
   it("muestra el chip 'Asociado al modelo' cuando isAssociatedToGameModel es true", () => {
     render(
       <ExerciseCromo
