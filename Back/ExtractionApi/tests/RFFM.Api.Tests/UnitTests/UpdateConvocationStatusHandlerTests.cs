@@ -685,5 +685,33 @@ namespace RFFM.Api.Tests.UnitTests
             var updated = await db.Convocations.AsNoTracking().FirstAsync(c => c.Id == convocationId);
             Assert.Equal(2, updated.ConvocationStatusId);
         }
+
+        [Theory]
+        [InlineData("Player", 2)]
+        [InlineData("Player", 5)]
+        [InlineData("FamilyMember", 2)]
+        [InlineData("FamilyMember", 5)]
+        public async Task PlayerOrFamilyRespondsToConvocation_DoesNotNotifyCoaches(string role, int newStatusId)
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (eventId, teamPlayerId, convocationId) = await SeedConvocationAsync(db);
+
+            var userId = $"user-{Guid.NewGuid():N}";
+            db.UserProfiles.Add(new UserProfile(userId, role, teamPlayerId, null));
+            await db.SaveChangesAsync();
+
+            var dispatcher = new Mock<IWebPushNotificationDispatcher>();
+            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser(userId, role).Object, new RFFM.Api.Domain.Services.SanctionConvocationEnforcementService(db), MockAuditLogger().Object, dispatcher.Object);
+            var request = new UpdateConvocationStatus.UpdateStatusRequest
+            {
+                EventId = eventId,
+                ConvocationId = convocationId,
+                NewStatusId = newStatusId
+            };
+
+            await handler.Handle(request, CancellationToken.None);
+
+            dispatcher.Verify(d => d.DispatchConvocationStatusChangedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
     }
 }

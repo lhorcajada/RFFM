@@ -202,7 +202,8 @@ namespace RFFM.Api.Features.Coaches.Convocations
 
                 await _db.SaveChangesAsync(cancellationToken);
 
-                await _webPushDispatcher.DispatchConvocationStatusChangedAsync(conv.Id, cancellationToken);
+                if (!isPlayerOrFamilyRole)
+                    await _webPushDispatcher.DispatchConvocationStatusChangedAsync(conv.Id, cancellationToken);
 
                 return Unit.Value;
             }
