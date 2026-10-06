@@ -152,5 +152,11 @@ namespace RFFM.Api.Domain
         public const string PlayerDocumentFileTooLarge = "PlayerDocumentFileTooLarge";
         public const string PlayerDocumentNotFound = "PlayerDocumentNotFound";
         public const string PlayerDocumentNotDelivered = "PlayerDocumentNotDelivered";
+
+        // User profile (Features/Coaches/Users/*My*.cs, api/users/me/...) - openspec change user-profile.
+        public const string PersonalDataNameRequired = "PersonalDataNameRequired";
+        public const string PersonalDataRequired = "PersonalDataRequired";
+        public const string CurrentPasswordIncorrect = "CurrentPasswordIncorrect";
+        public const string PasswordChangeFailed = "PasswordChangeFailed";
     }
 }

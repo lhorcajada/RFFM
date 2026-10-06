@@ -104,6 +104,7 @@ namespace RFFM.Api.Infrastructure.Persistence
 
         // User profile (role + player/team association)
         public DbSet<UserProfile> UserProfiles { get; set; }
+        public DbSet<UserPersonalData> UserPersonalData { get; set; }
 
         // Payment plans and subscriptions
         public DbSet<PaymentPlan> PaymentPlans { get; set; }
