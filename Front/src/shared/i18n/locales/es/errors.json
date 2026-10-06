@@ -88,5 +88,9 @@
   "ServiceUnavailable": "El servicio no está disponible. Por favor, intenta más tarde.",
   "NetworkError": "Ha habido un problema de conexión. Verifica tu conexión a internet.",
   "TimeoutError": "La solicitud tardó demasiado. Por favor, intenta de nuevo.",
-  "UnknownError": "Ha ocurrido un error inesperado. Por favor, intenta de nuevo."
+  "UnknownError": "Ha ocurrido un error inesperado. Por favor, intenta de nuevo.",
+  "PersonalDataNameRequired": "El nombre y el primer apellido son obligatorios.",
+  "PersonalDataRequired": "Guarda primero tus datos personales para poder subir una foto.",
+  "CurrentPasswordIncorrect": "La contraseña actual no es correcta.",
+  "PasswordChangeFailed": "La nueva contraseña no cumple los requisitos de seguridad."
 }

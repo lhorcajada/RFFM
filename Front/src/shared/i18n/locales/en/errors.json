@@ -82,5 +82,9 @@
   "ServiceUnavailable": "The service is currently unavailable. Please try again later.",
   "NetworkError": "There was a connection problem. Please check your internet connection.",
   "TimeoutError": "The request took too long. Please try again.",
-  "UnknownError": "An unexpected error has occurred. Please try again."
+  "UnknownError": "An unexpected error has occurred. Please try again.",
+  "PersonalDataNameRequired": "First name and last name are required.",
+  "PersonalDataRequired": "Save your personal details first to upload a photo.",
+  "CurrentPasswordIncorrect": "The current password is incorrect.",
+  "PasswordChangeFailed": "The new password does not meet the security requirements."
 }

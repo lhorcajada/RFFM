@@ -40,16 +40,7 @@ export default function AppHeader({ title }: AppHeaderProps) {
 
   const handleProfile = () => {
     handleClose();
-    try {
-      window.dispatchEvent(
-        new CustomEvent("rffm.show_snackbar", {
-          detail: {
-            message: "Perfil no disponible todavía.",
-            severity: "info",
-          },
-        })
-      );
-    } catch (e) {}
+    navigate("/profile", { state: { from: `${location.pathname}${location.search}` } });
   };
 
   const handleSettings = () => {
@@ -88,7 +79,10 @@ export default function AppHeader({ title }: AppHeaderProps) {
   };
 
   const avatarSrc = user?.avatar || undefined;
-  const initials = user ? user.username?.charAt(0).toUpperCase() : "";
+  const initials =
+    user?.firstName && user?.lastName
+      ? `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase()
+      : user?.username?.charAt(0).toUpperCase() ?? "";
 
   const { isAuthValid } = useAuthToken();
   const pendingSanctions = useMyPendingSanctionsCount();

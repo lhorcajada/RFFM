@@ -30,6 +30,7 @@ const ScopeMembers = lazy(
 const ClubJoinRequests = lazy(
   () => import("../../shared/pages/ClubJoinRequests/ClubJoinRequests")
 );
+const Profile = lazy(() => import("../../shared/pages/Profile/Profile"));
 
 function LoadingFallback() {
   return (
@@ -176,6 +177,14 @@ export default function AppRouter() {
           element={
             <RequireAuth>
               <ClubJoinRequests />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <RequireAuth>
+              <Profile />
             </RequireAuth>
           }
         />
