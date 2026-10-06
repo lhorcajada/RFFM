@@ -102,7 +102,7 @@
 - [x] Green: `Profile.tsx`, los componentes, `membershipRoleLabels.ts`, sus CSS Modules y la ruta
   `/profile` en `AppRouter.tsx` (D5).
 - [x] Añadir los cuatro códigos nuevos a `errors.json` (es/en).
-- [ ] Revisión visual a 375 px y en escritorio, en el tema de Coach y en el de Federación.
+- [x] Revisión visual a 375 px y en escritorio, en el tema de Coach y en el de Federación.
 - [x] Subir la versión web a `1.21.0`.
 - **Verify**:
   - `npm run test`;
@@ -111,7 +111,7 @@
 ## 7. Cierre
 
 - [x] `openspec validate user-profile --strict`.
-- [ ] Confirmación del usuario antes de cada commit:
+- [x] Confirmación del usuario antes de cada commit:
   - migración;
   - `feat(mcp-api)`;
   - `feat(front)`.
