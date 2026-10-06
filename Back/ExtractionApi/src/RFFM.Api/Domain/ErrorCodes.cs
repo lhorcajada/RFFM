@@ -85,6 +85,7 @@ namespace RFFM.Api.Domain
         public const string NoActiveSeason = "NotActiveSeason";
         // Value preserved from the pre-existing RFFM.Api.Features.Coaches.Seasons.SeasonConstants.SeasonHasRelatedDataCode
         public const string SeasonHasRelatedData = "season_has_related_data";
+        public const string SeasonNotFound = "SeasonNotFound";
 
         // Players / Clubs (Features/Coaches/Players/Services/PlayerService.cs)
         // Value preserved from the pre-existing literal used in PlayerService.cs

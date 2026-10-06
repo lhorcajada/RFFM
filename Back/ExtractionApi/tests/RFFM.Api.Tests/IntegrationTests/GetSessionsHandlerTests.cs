@@ -187,5 +187,97 @@ namespace RFFM.Api.Tests.IntegrationTests
             Assert.Equal("Extremo", target.Rol);
             Assert.Equal("Fija por dentro para liberar el pasillo al lateral.", target.Texto);
         }
+
+        private static async Task<string> SeedSessionAsync(AppDbContext db, string teamId, string name, DateTime? date, string? microcicloId = null)
+        {
+            var session = new TrainingSession { TeamId = teamId, Name = name, Date = date, MicrocicloId = microcicloId };
+            db.TrainingSessions.Add(session);
+            await db.SaveChangesAsync();
+            return session.Id;
+        }
+
+        private static async Task<Season> SeedSeasonAsync(AppDbContext db, string clubId, DateTime start, DateTime end)
+        {
+            var club = await db.Clubs.FindAsync(clubId);
+            var season = Season.Create($"Season {Guid.NewGuid():N}", start, end, isActive: false, club: club!);
+            db.Seasons.Add(season);
+            await db.SaveChangesAsync();
+            return season;
+        }
+
+        [Fact]
+        public async Task Handle_WithSeasonId_ReturnsSessionsOfThatSeasonPlanAndFreeSessionsWithinItsDates()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (userId, clubId, teamId, _) = await SeedTeamAsync(db);
+            var season = await SeedSeasonAsync(db, clubId, new DateTime(2026, 7, 1, 0, 0, 0, DateTimeKind.Utc), new DateTime(2027, 6, 30, 0, 0, 0, DateTimeKind.Utc));
+            var otherSeason = await SeedSeasonAsync(db, clubId, new DateTime(2025, 7, 1, 0, 0, 0, DateTimeKind.Utc), new DateTime(2026, 6, 30, 0, 0, 0, DateTimeKind.Utc));
+            var microcicloId = await SeedMicrocicloAsync(db, teamId, season.Id);
+            var otherMicrocicloId = await SeedMicrocicloAsync(db, teamId, otherSeason.Id);
+
+            var planned = await SeedSessionAsync(db, teamId, "Plan temporada", new DateTime(2026, 9, 2, 0, 0, 0, DateTimeKind.Utc), microcicloId);
+            await SeedSessionAsync(db, teamId, "Plan otra temporada", new DateTime(2026, 9, 3, 0, 0, 0, DateTimeKind.Utc), otherMicrocicloId);
+            var freeInside = await SeedSessionAsync(db, teamId, "Libre dentro", new DateTime(2027, 6, 30, 18, 0, 0, DateTimeKind.Utc));
+            await SeedSessionAsync(db, teamId, "Libre fuera", new DateTime(2027, 7, 1, 0, 0, 0, DateTimeKind.Utc));
+            var unscheduled = await SeedSessionAsync(db, teamId, "Sin programar", null);
+
+            await using var readDb = _fixture.CreateDbContext();
+            var result = await new GetSessionsHandler(readDb).Handle(new GetSessionsQuery(teamId, userId, season.Id), CancellationToken.None);
+
+            Assert.Equal(
+                new[] { planned, freeInside, unscheduled }.OrderBy(id => id),
+                result.Select(s => s.Id).OrderBy(id => id));
+        }
+
+        [Fact]
+        public async Task Handle_WithoutSeasonId_ReturnsAllTeamSessions()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (userId, clubId, teamId, _) = await SeedTeamAsync(db);
+            var otherSeason = await SeedSeasonAsync(db, clubId, new DateTime(2025, 7, 1, 0, 0, 0, DateTimeKind.Utc), new DateTime(2026, 6, 30, 0, 0, 0, DateTimeKind.Utc));
+            var otherMicrocicloId = await SeedMicrocicloAsync(db, teamId, otherSeason.Id);
+            await SeedSessionAsync(db, teamId, "Plan otra temporada", new DateTime(2025, 9, 3, 0, 0, 0, DateTimeKind.Utc), otherMicrocicloId);
+            await SeedSessionAsync(db, teamId, "Libre", new DateTime(2030, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+            await SeedSessionAsync(db, teamId, "Sin programar", null);
+
+            await using var readDb = _fixture.CreateDbContext();
+            var result = await new GetSessionsHandler(readDb).Handle(new GetSessionsQuery(teamId, userId), CancellationToken.None);
+
+            Assert.Equal(3, result.Count());
+        }
+
+        [Fact]
+        public async Task Handle_WithUnknownSeasonId_ThrowsSeasonNotFound()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (userId, _, teamId, _) = await SeedTeamAsync(db);
+
+            var ex = await Assert.ThrowsAsync<RFFM.Api.Domain.DomainException>(async () =>
+                await new GetSessionsHandler(db).Handle(new GetSessionsQuery(teamId, userId, "missing-season"), CancellationToken.None));
+
+            Assert.Equal(RFFM.Api.Domain.ErrorCodes.SeasonNotFound, ex.Code);
+        }
+
+        [Fact]
+        public async Task Handle_PlannedSession_IncludesMicroMesoAndMacrociclo()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (userId, _, teamId, seasonId) = await SeedTeamAsync(db);
+            var microcicloId = await SeedMicrocicloAsync(db, teamId, seasonId);
+            await SeedSessionAsync(db, teamId, "Plan", new DateTime(2026, 9, 2, 0, 0, 0, DateTimeKind.Utc), microcicloId);
+
+            await using var readDb = _fixture.CreateDbContext();
+            var item = Assert.Single(await new GetSessionsHandler(readDb).Handle(new GetSessionsQuery(teamId, userId), CancellationToken.None));
+
+            Assert.Equal(1, item.MicrocicloOrder);
+            Assert.Equal(new DateOnly(2026, 9, 1), item.MicrocicloStartDate);
+            Assert.Equal(new DateOnly(2026, 9, 7), item.MicrocicloEndDate);
+            Assert.Equal("Mesociclo 1.1", item.MesocicloName);
+            Assert.Equal(1, item.MesocicloOrder);
+            Assert.NotNull(item.MesocicloId);
+            Assert.Equal("Macrociclo 1", item.MacrocicloName);
+            Assert.Equal(1, item.MacrocicloOrder);
+            Assert.NotNull(item.MacrocicloId);
+        }
 }
 }
