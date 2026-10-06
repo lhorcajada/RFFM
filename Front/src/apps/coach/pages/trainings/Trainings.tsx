@@ -461,10 +461,12 @@ export default function Trainings() {
             <Box>
               <Box className={styles.toolbarRow}>
                 <FormControl size="small" sx={{ minWidth: 160 }}>
-                  <InputLabel id="tipo-filter-label">Tipo</InputLabel>
+                  <InputLabel id="tipo-filter-label" shrink>Tipo</InputLabel>
                   <Select
                     labelId="tipo-filter-label"
                     label="Tipo"
+                    notched
+                    displayEmpty
                     value={tipoFilter}
                     onChange={(e) => setTipoFilter(e.target.value as ExerciseTipo | "")}
                   >
