@@ -5,6 +5,8 @@ export type TeamParticipationSummaryPlayer = {
 };
 
 export type TeamParticipationSummaryItem = {
+  seasonId?: number;
+  seasonName?: string;
   competitionName: string;
   groupName: string;
   teamName: string;

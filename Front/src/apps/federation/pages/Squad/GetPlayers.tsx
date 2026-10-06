@@ -22,8 +22,8 @@ import type { SelectedTeam } from "./playersTypes";
 import { useUser } from "../../../../shared/context/UserContext";
 import StaffCard from "../../components/teams/StaffCard/StaffCard";
 import Address from "../../components/teams/Address/Address";
-import PlayersContainer from "../../components/players/PlayersContainer/PlayersContainer";
-import PlayerRow from "./components/PlayerRow";
+import SquadPlayersSection from "./components/SquadPlayersSection";
+import { useCoachSquadComparison } from "./hooks/useCoachSquadComparison";
 import AgeModal from "./components/AgeModal";
 import ParticipationModal from "./components/ParticipationModal";
 import SquadHistoryButton from "./components/SquadHistoryButton";
@@ -118,6 +118,13 @@ export default function GetPlayers(): JSX.Element {
     ageCounts,
     groupCounts,
   } = usePlayers(selectedTeam, selectedCompetition, selectedGroup, season);
+
+  const { comparison, loading: loadingComparison } = useCoachSquadComparison(
+    selectedTeam ? String(selectedTeam.id) : undefined,
+    season,
+    selectedCompetition,
+    selectedGroup,
+  );
 
   useEffect(
     () => setTeamDetails(hookTeamDetails as Team | null),
@@ -418,7 +425,7 @@ export default function GetPlayers(): JSX.Element {
             </Paper>
           )}
 
-          {loading ? (
+          {loading || loadingComparison ? (
             <div className={styles.center}>
               <CircularProgress />
             </div>
@@ -427,16 +434,12 @@ export default function GetPlayers(): JSX.Element {
               <Typography color="error">Error: {error}</Typography>
             </Paper>
           ) : (
-            <PlayersContainer
-              title={selectedTeam ? `${selectedTeam.name}` : "Jugadores"}
-              count={selectedTeam ? players.length : 0}
-            >
-              {players.map((p) => (
-                <div key={p.id}>
-                  <PlayerRow player={p} />
-                </div>
-              ))}
-            </PlayersContainer>
+            <SquadPlayersSection
+              season={season}
+              teamName={selectedTeam?.name}
+              players={players}
+              comparison={comparison}
+            />
           )}
 
           <div className={styles.printableHidden} ref={printableRef}>

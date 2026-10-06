@@ -19,6 +19,17 @@ type Props = {
   data: TeamParticipationSummaryItem[];
 };
 
+function groupBySeason(data: TeamParticipationSummaryItem[]) {
+  const groups: { seasonName: string; items: TeamParticipationSummaryItem[] }[] = [];
+  data.forEach((item) => {
+    const seasonName = item.seasonName ?? "";
+    const group = groups.find((g) => g.seasonName === seasonName);
+    if (group) group.items.push(item);
+    else groups.push({ seasonName, items: [item] });
+  });
+  return groups;
+}
+
 export default function ParticipationModal({
   open,
   onClose,
@@ -62,27 +73,46 @@ export default function ParticipationModal({
           </div>
         ) : (
           <div className={styles.participationList}>
-            {data.map((p, idx) => (
-              <div key={idx} className={styles.participationItem}>
-                <div className={styles.participationTitle}>
-                  {p.competitionName} — {p.groupName}
+            {groupBySeason(data).map(({ seasonName, items }) => {
+              const content = items.map((p, idx) => (
+                <div key={idx} className={styles.participationItem}>
+                  <div className={styles.participationTitle}>
+                    {p.competitionName} — {p.groupName}
+                  </div>
+                  <div className={styles.participationDetails}>
+                    {p.teamName} ({p.teamCode}) — Puntos: {p.teamPoints} —
+                    Jugadores: {p.count}
+                  </div>
+                  <ul className={styles.playersList}>
+                    {(p.players || [])
+                      .filter((pl: any) => pl != null)
+                      .map((pl: any, plIdx: number) => (
+                        <li key={pl?.playerId ?? pl?.id ?? plIdx}>
+                          {pl?.name ?? ""}{" "}
+                          {pl?.playerId ? `(${pl.playerId})` : ""}
+                        </li>
+                      ))}
+                  </ul>
                 </div>
-                <div className={styles.participationDetails}>
-                  {p.teamName} ({p.teamCode}) — Puntos: {p.teamPoints} —
-                  Jugadores: {p.count}
-                </div>
-                <ul className={styles.playersList}>
-                  {(p.players || [])
-                    .filter((pl: any) => pl != null)
-                    .map((pl: any, plIdx: number) => (
-                      <li key={pl?.playerId ?? pl?.id ?? plIdx}>
-                        {pl?.name ?? ""}{" "}
-                        {pl?.playerId ? `(${pl.playerId})` : ""}
-                      </li>
-                    ))}
-                </ul>
-              </div>
-            ))}
+              ));
+
+              if (!seasonName)
+                return <React.Fragment key="sin-temporada">{content}</React.Fragment>;
+
+              const label = `Temporada ${seasonName}`;
+              return (
+                <section
+                  key={seasonName}
+                  aria-label={label}
+                  className={styles.seasonGroup}
+                >
+                  <Typography component="h3" className={styles.seasonTitle}>
+                    {label}
+                  </Typography>
+                  {content}
+                </section>
+              );
+            })}
           </div>
         )}
       </Box>

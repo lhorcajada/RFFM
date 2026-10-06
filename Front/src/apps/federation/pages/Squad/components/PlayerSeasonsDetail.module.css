@@ -1,0 +1,91 @@
+.loading {
+  display: flex;
+  justify-content: center;
+  padding: 12px;
+}
+
+.seasons {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 8px 0 4px;
+}
+
+.season {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.seasonTitle {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #ffd166;
+}
+
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-color, #fff);
+  font-size: 0.8rem;
+}
+
+.statLabel {
+  display: inline-flex;
+  align-items: center;
+  opacity: 0.8;
+}
+
+.statValue {
+  font-weight: 800;
+}
+
+.team.team {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "name points"
+    "category position";
+  column-gap: 12px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-color, #fff);
+}
+
+.teamName {
+  grid-area: name;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.teamCategory {
+  grid-area: category;
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+.teamPoints {
+  grid-area: points;
+  justify-self: end;
+  font-weight: 800;
+  color: #ffd166;
+}
+
+.teamPosition {
+  grid-area: position;
+  justify-self: end;
+  font-size: 0.8rem;
+  opacity: 0.8;
+}

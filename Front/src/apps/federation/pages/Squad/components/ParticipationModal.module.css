@@ -85,3 +85,15 @@
     max-height: 85vh;
   }
 }
+
+.seasonGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.seasonTitle {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #ffd166;
+}
