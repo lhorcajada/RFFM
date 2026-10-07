@@ -385,8 +385,19 @@ export default function EventCard({ event, eventTypeName, onDeleted, onEdited, a
         >
           <div className={styles.headerShine} />
           <div className={styles.avatar}>{avatar.emoji}</div>
-          {isTraining && trainingHeaderStyle && (
-            <span className={styles.headerTrainingTag}>{trainingHeaderStyle.label}</span>
+          {isTraining && (
+            <div className={styles.headerTags}>
+              <span
+                className={`${styles.headerConvocationTag} ${
+                  event.hasConvokedPlayers ? styles.convocationOpen : styles.convocationPending
+                }`}
+              >
+                {event.hasConvokedPlayers ? "Convocatoria abierta" : "Convocatoria sin iniciar"}
+              </span>
+              {trainingHeaderStyle && (
+                <span className={styles.headerTrainingTag}>{trainingHeaderStyle.label}</span>
+              )}
+            </div>
           )}
         </div>
       )}
@@ -406,9 +417,9 @@ export default function EventCard({ event, eventTypeName, onDeleted, onEdited, a
               sx={{
                 backgroundColor: "rgba(255,193,7,0.22)",
                 color: "#ffd54f",
-                fontWeight: 700,
-                fontSize: "0.68rem",
-                height: 20,
+                fontWeight: 800,
+                fontSize: "0.8rem",
+                height: 24,
               }}
             />
           )}
@@ -449,34 +460,19 @@ export default function EventCard({ event, eventTypeName, onDeleted, onEdited, a
             stretch to fill whatever height the dashboard row gives them
             (see .compact's comment). */}
         <div className={styles.bottomTags}>
-          {(isMatch || isTraining) && (
+          {isMatch && (
             <div className={styles.chipsRow}>
-              {isMatch && (
-                <Chip
-                  label="Partido"
-                  size="small"
-                  sx={{
-                    backgroundColor: "rgba(13,71,161,0.45)",
-                    color: "#90caf9",
-                    fontWeight: 700,
-                    fontSize: "0.68rem",
-                    height: 20,
-                  }}
-                />
-              )}
-              {isTraining && (
-                <Chip
-                  label={event.hasConvokedPlayers ? "Convocatoria abierta" : "Convocatoria sin iniciar"}
-                  size="small"
-                  sx={{
-                    backgroundColor: event.hasConvokedPlayers ? "rgba(46,125,50,0.35)" : "rgba(120,130,150,0.3)",
-                    color: event.hasConvokedPlayers ? "#a5d6a7" : "#cfd8dc",
-                    fontWeight: 700,
-                    fontSize: "0.68rem",
-                    height: 20,
-                  }}
-                />
-              )}
+              <Chip
+                label="Partido"
+                size="small"
+                sx={{
+                  backgroundColor: "rgba(13,71,161,0.45)",
+                  color: "#90caf9",
+                  fontWeight: 700,
+                  fontSize: "0.68rem",
+                  height: 20,
+                }}
+              />
             </div>
           )}
           <EventAttendanceBadges summary={attendanceSummary} isPlayer={!!isPlayer} />

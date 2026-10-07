@@ -85,6 +85,27 @@ describe("EventCard - badges de Entrenamiento", () => {
     expect(screen.getByText(/Llegada 9:15/)).toBeInTheDocument();
   });
 
+  it("muestra el tag de convocatoria en la cabecera de la tarjeta, no en la fila de chips inferior", () => {
+    const { container } = renderCard(baseEvent({ hasConvokedPlayers: true }), "Entrenamiento");
+
+    const header = container.querySelector(`.${styles.header}`);
+    const tag = screen.getByText("Convocatoria abierta");
+
+    expect(header).toContainElement(tag);
+    expect(container.querySelector(`.${styles.chipsRow}`)).toBeNull();
+  });
+
+  it("muestra el tag de convocatoria en la cabecera también en modo compacto (Próximos eventos)", () => {
+    const { container } = render(
+      <MemoryRouter>
+        <EventCard event={baseEvent()} eventTypeName="Entrenamiento" compact />
+      </MemoryRouter>
+    );
+
+    const header = container.querySelector(`.${styles.header}`);
+    expect(header).toContainElement(screen.getByText("Convocatoria sin iniciar"));
+  });
+
   it("muestra la hora de llegada junto a la fecha/hora del evento (metaRow), no en la fila de chips inferior", () => {
     const { container } = renderCard(
       baseEvent({ arrivalDate: "2026-09-01T17:30:00" }),
@@ -92,10 +113,8 @@ describe("EventCard - badges de Entrenamiento", () => {
     );
 
     const metaRow = container.querySelector(`.${styles.metaRow}`);
-    const chipsRow = container.querySelector(`.${styles.chipsRow}`);
     const arrivalChip = screen.getByText(/Llegada 17:30/);
 
     expect(metaRow).toContainElement(arrivalChip);
-    expect(chipsRow).not.toContainElement(arrivalChip);
   });
 });
