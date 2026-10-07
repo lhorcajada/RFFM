@@ -1,0 +1,62 @@
+.sheet {
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+  max-width: 560px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.title {
+  font-weight: 700;
+}
+
+.subtitle {
+  color: var(--rffm-muted, #a59f9f);
+}
+
+.fields {
+  margin-top: 16px;
+}
+
+.highlight {
+  margin-top: 8px;
+  font-weight: 600;
+}
+
+.quickButton {
+  margin-top: 16px;
+  min-height: 56px;
+  font-size: 1.05rem;
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.stepButton {
+  width: 56px;
+  height: 56px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.amount {
+  flex: 1;
+  text-align: center;
+}
+
+.amountValue {
+  font-weight: 700;
+}
+
+.actions {
+  margin-top: 20px;
+}
+
+.actions button {
+  min-height: 48px;
+}

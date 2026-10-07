@@ -1,0 +1,40 @@
+.content {
+  padding: 12px 0 24px;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.centered {
+  display: flex;
+  justify-content: center;
+  padding: 32px 0;
+}
+
+.empty {
+  padding: 24px 0;
+}
+
+.campaignName {
+  flex: 1;
+  min-width: 0;
+  font-weight: 700;
+}
+
+.campaignSelect {
+  flex: 1;
+  min-width: 0;
+}
+
+.muted {
+  color: var(--rffm-muted, #a59f9f);
+}
+
+.filters {
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.filters > * {
+  flex-shrink: 0;
+}

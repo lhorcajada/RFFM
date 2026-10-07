@@ -1,0 +1,46 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--rffm-card-bg, #1c1c30);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.active {
+  border-color: var(--rffm-primary, #1976d2);
+  border-width: 2px;
+}
+
+.late {
+  border-left: 4px solid var(--rffm-error, #ef5350);
+}
+
+.header,
+.body {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.info {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  font-weight: 700;
+  color: var(--rffm-text, #f0f0f0);
+}
+
+.muted {
+  display: block;
+  color: var(--rffm-muted, #a59f9f);
+}
+
+.amount {
+  flex: 1;
+  font-weight: 600;
+  color: var(--rffm-text, #f0f0f0);
+}

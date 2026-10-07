@@ -1,0 +1,78 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--rffm-card-bg, #1c1c30);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dorsal {
+  width: 40px;
+  height: 40px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.identity {
+  flex: 1;
+  min-width: 0;
+}
+
+.alias {
+  font-weight: 600;
+  color: var(--rffm-text, #f0f0f0);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fullName {
+  display: block;
+  color: var(--rffm-muted, #a59f9f);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.book {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border-left: 4px solid var(--rffm-warning, #ffa726);
+}
+
+.returned {
+  border-left-color: var(--rffm-success, #66bb6a);
+}
+
+.bookInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.bookNumber {
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--rffm-text, #f0f0f0);
+}
+
+.bookMeta,
+.bookResult {
+  display: block;
+  color: var(--rffm-muted, #a59f9f);
+}
+
+.bookResult {
+  color: var(--rffm-text, #f0f0f0);
+}
