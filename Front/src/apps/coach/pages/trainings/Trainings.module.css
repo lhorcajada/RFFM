@@ -56,6 +56,11 @@
   border-radius: 12px;
 }
 
+.actions {
+  width: 100%;
+  min-width: 0;
+}
+
 .addBtn {
   background-color: #c0392b !important;
   color: #fff !important;

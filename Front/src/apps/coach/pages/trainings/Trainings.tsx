@@ -17,6 +17,8 @@ import {
   Tab,
   Tabs,
   Typography,
+  useMediaQuery,
+  useTheme,
   type SelectChangeEvent,
 } from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -74,6 +76,8 @@ export default function Trainings() {
   const location = useLocation();
   const { team, teamTitleNode } = useTeamAndClub();
   const goToTeamDashboard = useTeamDashboardBack();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   const params = new URLSearchParams(location.search);
   const teamId = params.get("teamId") ?? "";
@@ -328,7 +332,15 @@ export default function Trainings() {
         title={teamTitleNode ?? "Entrenamientos"}
         subtitle="Gestión de ejercicios y sesiones"
         actionBar={
-          <Stack direction="row" spacing={1} alignItems="center">
+          <Stack
+            direction="row"
+            spacing={1}
+            useFlexGap
+            flexWrap="wrap"
+            alignItems="center"
+            justifyContent="flex-end"
+            className={styles.actions}
+          >
             <Button
               startIcon={<ArrowBackIcon />}
               onClick={() => goToTeamDashboard()}
@@ -392,8 +404,11 @@ export default function Trainings() {
                   className={styles.addBtn}
                   onClick={() => setPlanEditing(true)}
                   disabled={!teamId || !seasonId}
+                  aria-label={seasonPlan ? "Editar planificación" : "Nueva planificación"}
                 >
-                  {seasonPlan ? "Editar planificación" : "Nueva planificación"}
+                  {seasonPlan
+                    ? isMobile ? "Editar" : "Editar planificación"
+                    : isMobile ? "Nueva" : "Nueva planificación"}
                 </Button>
                 {seasonPlan && (
                   <Button
@@ -402,8 +417,9 @@ export default function Trainings() {
                     variant="outlined"
                     color="error"
                     onClick={() => setDeletePlanOpen(true)}
+                    aria-label="Eliminar planificación"
                   >
-                    Eliminar planificación
+                    {isMobile ? "Eliminar" : "Eliminar planificación"}
                   </Button>
                 )}
               </>

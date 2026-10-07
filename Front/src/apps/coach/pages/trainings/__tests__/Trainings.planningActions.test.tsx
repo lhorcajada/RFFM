@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import Trainings from "../Trainings";
 import { UserProvider } from "../../../../../shared/context/UserContext";
 import type { SeasonPlan } from "../../../types/seasonPlan";
@@ -150,5 +150,35 @@ describe("Trainings — acciones de planificación y tablero de contenido", () =
 
     expect(screen.getByTestId("board-search")).toHaveTextContent("teamId=team-1");
     expect(screen.getByTestId("board-search")).not.toHaveTextContent("microcicloId");
+  });
+
+  describe("en pantalla móvil", () => {
+    const originalMatchMedia = window.matchMedia;
+
+    beforeEach(() => {
+      window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+        matches: true,
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      }));
+    });
+
+    afterEach(() => {
+      window.matchMedia = originalMatchMedia;
+    });
+
+    it("muestra etiquetas cortas en los botones de planificación manteniendo su nombre accesible", async () => {
+      renderPage();
+
+      await screen.findByText("Semana 3");
+
+      expect(screen.getByRole("button", { name: "Editar planificación" })).toHaveTextContent(/^Editar$/);
+      expect(screen.getByRole("button", { name: "Eliminar planificación" })).toHaveTextContent(/^Eliminar$/);
+    });
   });
 });
