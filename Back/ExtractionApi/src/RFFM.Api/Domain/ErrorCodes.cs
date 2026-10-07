@@ -87,6 +87,9 @@ namespace RFFM.Api.Domain
         public const string SeasonHasRelatedData = "season_has_related_data";
         public const string SeasonNotFound = "SeasonNotFound";
 
+        // Federation competitions (Features/Federation/Teams/Queries/GetGoalSectors.cs)
+        public const string CompetitionNotFound = "CompetitionNotFound";
+
         // Players / Clubs (Features/Coaches/Players/Services/PlayerService.cs)
         // Value preserved from the pre-existing literal used in PlayerService.cs
         public const string ClubNotExist = "ClubNotExist";

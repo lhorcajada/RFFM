@@ -4,6 +4,7 @@
     {
         public string? TeamCode { get; set; } = string.Empty;
         public string? TeamName { get; set; } = string.Empty;
+        public int MatchTime { get; set; }
         public int MatchesProcessed { get; set; }
         public List<Sector> Sectors { get; set; } = new();
         public int TotalGoalsFor { get; set; }
