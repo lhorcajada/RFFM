@@ -49,6 +49,9 @@ export const getTeamsGoalSectorsComparison = (params: {
   groupId?: string;
   teamCode1?: string;
   teamCode2?: string;
+  competitionId2?: string;
+  groupId2?: string;
+  season?: string;
 }) => teamService.getTeamsGoalSectorsComparison(params);
 
 // Classification methods

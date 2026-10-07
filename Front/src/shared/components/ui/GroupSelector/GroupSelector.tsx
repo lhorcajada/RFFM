@@ -15,11 +15,14 @@ export default function GroupSelector({
   competitionId,
   onChange,
   value,
+  idPrefix,
 }: {
   competitionId?: string;
   onChange?: (g?: Group) => void;
   value?: string;
+  idPrefix?: string;
 }) {
+  const labelId = idPrefix ? `${idPrefix}-group-select-label` : "group-select-label";
   const [items, setItems] = useState<Group[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -101,9 +104,9 @@ export default function GroupSelector({
         <CircularProgress size={20} />
       ) : (
         <FormControl fullWidth variant="outlined" size="small">
-          <InputLabel id="group-select-label">Grupo</InputLabel>
+          <InputLabel id={labelId}>Grupo</InputLabel>
           <Select
-            labelId="group-select-label"
+            labelId={labelId}
             value={selected}
             label="Grupo"
             onChange={handleChange}

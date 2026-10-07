@@ -287,13 +287,28 @@ export class TeamService {
     groupId?: string;
     teamCode1?: string;
     teamCode2?: string;
+    competitionId2?: string;
+    groupId2?: string;
+    season?: string;
   }) {
-    const { teamCode, competitionId, groupId, teamCode1, teamCode2 } = params;
+    const {
+      teamCode,
+      competitionId,
+      groupId,
+      teamCode1,
+      teamCode2,
+      competitionId2,
+      groupId2,
+      season,
+    } = params;
     const q = new URLSearchParams();
+    if (season) q.append("season", season);
     if (competitionId) q.append("competitionId", competitionId);
     if (groupId) q.append("groupId", groupId);
     if (teamCode1) q.append("teamCode1", teamCode1);
     if (teamCode2) q.append("teamCode2", teamCode2);
+    if (competitionId2) q.append("competitionId2", competitionId2);
+    if (groupId2) q.append("groupId2", groupId2);
     const qs = q.toString() ? `?${q.toString()}` : "";
 
     const res = await client.get(

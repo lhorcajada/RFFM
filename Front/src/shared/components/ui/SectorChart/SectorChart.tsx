@@ -3,27 +3,21 @@ import styles from "./SectorChart.module.css";
 import classStyles from "../ClassificationItem/ClassificationItem.module.css";
 import { useTheme } from "@mui/material/styles";
 import EmptyState from "../EmptyState/EmptyState";
+import {
+  formatSectorLabel,
+  type SectorComparisonRow,
+  type TeamGoalSectors,
+} from "../../../utils/goalSectors";
 
-type Sector = {
-  startMinute: number;
-  endMinute: number;
-  goalsFor: number;
-  goalsAgainst: number;
-};
-type TeamData = {
-  teamCode: string;
-  teamName: string;
-  matchesProcessed: number;
-  sectors: Sector[];
-  totalGoalsFor: number;
-  totalGoalsAgainst: number;
-};
-
-function clamp(v: number, a: number, b: number) {
-  return Math.max(a, Math.min(b, v));
-}
-
-export default function SectorChart({ data }: { data: TeamData[] }) {
+export default function SectorChart({
+  teamA,
+  teamB,
+  rows,
+}: {
+  teamA: TeamGoalSectors;
+  teamB: TeamGoalSectors;
+  rows: SectorComparisonRow[];
+}) {
   const theme = useTheme();
   const color1 = theme.palette.primary.main ?? "#374151";
   const color2 =
@@ -49,55 +43,8 @@ export default function SectorChart({ data }: { data: TeamData[] }) {
     };
   }, []);
 
-  // expect data.length === 2
-  const t1 = data[0];
-  const t2 = data[1];
-
-  // merge sector intervals from both teams into a sorted unique list
-  const map = new Map<string, { start: number; end: number }>();
-  (t1?.sectors ?? []).forEach((s) =>
-    map.set(`${s.startMinute}-${s.endMinute}`, {
-      start: s.startMinute,
-      end: s.endMinute,
-    })
-  );
-  (t2?.sectors ?? []).forEach((s) =>
-    map.set(`${s.startMinute}-${s.endMinute}`, {
-      start: s.startMinute,
-      end: s.endMinute,
-    })
-  );
-  const merged = Array.from(map.values()).sort((a, b) => a.start - b.start);
-
-  // Build rows with values for each team; include goalsFor and goalsAgainst; filter out sectors where both teams have zero goals
-  const rows = merged
-    .map((s) => {
-      const a = (t1?.sectors ?? []).find(
-        (x) => x.startMinute === s.start && x.endMinute === s.end
-      ) ?? {
-        startMinute: s.start,
-        endMinute: s.end,
-        goalsFor: 0,
-        goalsAgainst: 0,
-      };
-      const b = (t2?.sectors ?? []).find(
-        (x) => x.startMinute === s.start && x.endMinute === s.end
-      ) ?? {
-        startMinute: s.start,
-        endMinute: s.end,
-        goalsFor: 0,
-        goalsAgainst: 0,
-      };
-      return {
-        start: s.start,
-        end: s.end,
-        aGoals: a.goalsFor ?? 0,
-        aAgainst: a.goalsAgainst ?? 0,
-        bGoals: b.goalsFor ?? 0,
-        bAgainst: b.goalsAgainst ?? 0,
-      };
-    })
-    .filter((r) => r.aGoals || r.bGoals || r.aAgainst || r.bAgainst);
+  const t1 = teamA;
+  const t2 = teamB;
 
   if (rows.length === 0) {
     return (
@@ -138,7 +85,8 @@ export default function SectorChart({ data }: { data: TeamData[] }) {
 
   // SVG layout: use responsive width with viewBox so it fills container
   const margin = { top: 16, right: 8, bottom: 64, left: 40 };
-  const sectorWidth = 96; // group width per sector
+  const hasMixedRanges = rows.some((r) => r.aStart !== r.bStart || r.aEnd !== r.bEnd);
+  const sectorWidth = hasMixedRanges ? 128 : 96; // group width per sector
   const barW = 16;
   const gapBetween = 8;
   const totalWidth = rows.length * sectorWidth + margin.left + margin.right;
@@ -449,7 +397,7 @@ export default function SectorChart({ data }: { data: TeamData[] }) {
                     fontSize={isMobile ? 14 : 12}
                     textAnchor="middle"
                     fill={theme.palette.text.secondary}
-                  >{`${r.start}-${r.end}’`}</text>
+                  >{formatSectorLabel(r)}</text>
                 </g>
               );
             })}

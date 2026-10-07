@@ -1,0 +1,13 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  height: 100%;
+}
+
+.title {
+  font-weight: 700;
+  font-size: 0.9rem;
+  margin-bottom: 4px;
+}

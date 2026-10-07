@@ -1,13 +1,13 @@
 import React from "react";
 import styles from "./SectorDataTable.module.css";
+import type { SectorComparisonRow } from "../../../utils/goalSectors";
 
-export type SectorDataRow = {
-  start: number;
-  end: number;
-  aGoals: number;
-  aAgainst: number;
-  bGoals: number;
-  bAgainst: number;
+type TeamColumn = {
+  teamIndex: 0 | 1;
+  name: string;
+  range: (r: SectorComparisonRow) => string;
+  goals: (r: SectorComparisonRow) => number;
+  against: (r: SectorComparisonRow) => number;
 };
 
 export default function SectorDataTable({
@@ -16,69 +16,60 @@ export default function SectorDataTable({
   teamBName,
   onGoalsAgainstClick,
 }: {
-  rows: SectorDataRow[];
+  rows: SectorComparisonRow[];
   teamAName?: string;
   teamBName?: string;
-  onGoalsAgainstClick?: (row: SectorDataRow, teamIndex: 0 | 1) => void;
+  onGoalsAgainstClick?: (row: SectorComparisonRow, teamIndex: 0 | 1) => void;
 }) {
+  const columns: TeamColumn[] = [
+    {
+      teamIndex: 0,
+      name: teamAName ?? "Equipo A",
+      range: (r) => `${r.aStart}-${r.aEnd}’`,
+      goals: (r) => r.aGoals,
+      against: (r) => r.aAgainst,
+    },
+    {
+      teamIndex: 1,
+      name: teamBName ?? "Equipo B",
+      range: (r) => `${r.bStart}-${r.bEnd}’`,
+      goals: (r) => r.bGoals,
+      against: (r) => r.bAgainst,
+    },
+  ];
+
   return (
     <div className={styles.root}>
       <div className={styles.grid}>
-        <div className={styles.card}>
-          {rows.map((r) => (
-            <div key={`${r.start}-${r.end}`} className={styles.row}>
-              <div>
-                <div className={styles.label}>{`${r.start}-${r.end}’`}</div>
-                <div className={styles.label}>{teamAName ?? "Equipo A"}</div>
+        {columns.map((col) => (
+          <div key={col.teamIndex} className={styles.card}>
+            {rows.map((r) => (
+              <div key={r.index} className={styles.row}>
+                <div>
+                  <div className={styles.label}>{col.range(r)}</div>
+                  <div className={styles.label}>{col.name}</div>
+                </div>
+                <div>
+                  <div className={styles.value}>{col.goals(r)} GF</div>
+                  {onGoalsAgainstClick ? (
+                    <button
+                      type="button"
+                      className={styles.goalsAgainstButton}
+                      onClick={() => onGoalsAgainstClick(r, col.teamIndex)}
+                      aria-label={`${col.name} ${col.range(r)} goles en contra`}
+                    >
+                      {col.against(r)} GC
+                    </button>
+                  ) : (
+                    <div className={styles.value} style={{ color: "#ef4444" }}>
+                      {col.against(r)} GC
+                    </div>
+                  )}
+                </div>
               </div>
-              <div>
-                <div className={styles.value}>{r.aGoals} GF</div>
-                {onGoalsAgainstClick ? (
-                  <button
-                    type="button"
-                    className={styles.goalsAgainstButton}
-                    onClick={() => onGoalsAgainstClick(r, 0)}
-                    aria-label={`${teamAName ?? "Equipo A"} ${r.start}-${r.end} goles en contra`}
-                  >
-                    {r.aAgainst} GC
-                  </button>
-                ) : (
-                  <div className={styles.value} style={{ color: "#ef4444" }}>
-                    {r.aAgainst} GC
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className={styles.card}>
-          {rows.map((r) => (
-            <div key={`${r.start}-${r.end}`} className={styles.row}>
-              <div>
-                <div className={styles.label}>{`${r.start}-${r.end}’`}</div>
-                <div className={styles.label}>{teamBName ?? "Equipo B"}</div>
-              </div>
-              <div>
-                <div className={styles.value}>{r.bGoals} GF</div>
-                {onGoalsAgainstClick ? (
-                  <button
-                    type="button"
-                    className={styles.goalsAgainstButton}
-                    onClick={() => onGoalsAgainstClick(r, 1)}
-                    aria-label={`${teamBName ?? "Equipo B"} ${r.start}-${r.end} goles en contra`}
-                  >
-                    {r.bAgainst} GC
-                  </button>
-                ) : (
-                  <div className={styles.value} style={{ color: "#ef4444" }}>
-                    {r.bAgainst} GC
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ))}
       </div>
     </div>
   );

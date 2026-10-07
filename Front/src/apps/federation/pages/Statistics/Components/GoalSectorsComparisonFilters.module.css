@@ -1,0 +1,16 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.season {
+  max-width: 240px;
+}
+
+@media (max-width: 600px) {
+  .season {
+    max-width: none;
+  }
+}

@@ -14,10 +14,15 @@ type Competition = { id: string; name: string; categoryGroup: string };
 export default function CompetitionSelector({
   onChange,
   value,
+  idPrefix,
 }: {
   onChange?: (c?: Competition) => void;
   value?: string;
+  idPrefix?: string;
 }) {
+  const labelId = idPrefix
+    ? `${idPrefix}-competition-select-label`
+    : "competition-select-label";
   const { seasonId } = useRffmSeason();
   const [items, setItems] = useState<Competition[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -95,9 +100,9 @@ export default function CompetitionSelector({
         <CircularProgress size={20} />
       ) : (
         <FormControl fullWidth variant="outlined" size="small">
-          <InputLabel id="competition-select-label">Competición</InputLabel>
+          <InputLabel id={labelId}>Competición</InputLabel>
           <Select
-            labelId="competition-select-label"
+            labelId={labelId}
             value={selected}
             label="Competición"
             onChange={handleChange}

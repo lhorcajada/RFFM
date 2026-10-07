@@ -1,28 +1,35 @@
 import React from "react";
 import { format, isValid, parse, parseISO } from "date-fns";
 import { getActa, getTeamMatches, getTeamsGoalSectorsComparison } from "../../../services/api";
-import type { TeamsGoalSectorsComparison } from "../../../../../shared/utils/goalSectors";
-import type { SectorDataRow } from "../../../../../shared/components/ui/SectorDataTable/SectorDataTable";
+import { useRffmSeason } from "../../../../../shared/context/RffmSeasonContext";
+import {
+  buildSectorComparisonRows,
+  type SectorComparisonRow,
+  type TeamGoalSectors,
+  type TeamsGoalSectorsComparison,
+} from "../../../../../shared/utils/goalSectors";
 import type {
   SectorMatchDetail,
   SectorPopupState,
 } from "../Components/GoalSectorsComparisonDialog";
-
-type ComparisonRow = SectorDataRow;
-
-type ComparisonSelection = {
-  competitionId: string;
-  groupId: string;
-  team1: string;
-  team2: string;
-  loading: boolean;
-};
+import {
+  EMPTY_COMPARISON_SELECTION,
+  type ComparisonSelection,
+} from "../Components/GoalSectorsComparisonFilters";
 
 type ComparisonData = {
-  teamA?: TeamsGoalSectorsComparison[number];
-  teamB?: TeamsGoalSectorsComparison[number];
-  rows: ComparisonRow[];
-  maxSectorEnd: number;
+  teamA?: TeamGoalSectors;
+  teamB?: TeamGoalSectors;
+  rows: SectorComparisonRow[];
+};
+
+const CLOSED_POPUP: SectorPopupState = {
+  open: false,
+  loading: false,
+  error: null,
+  title: "",
+  subtitle: "",
+  matches: [],
 };
 
 function asTrimmedString(value: unknown): string {
@@ -40,14 +47,14 @@ function parseGoalMinute(minute?: string | null): { main: number; total: number 
   return { main, total: main + added };
 }
 
-function resolveSectorMinute(minute: string, maxSectorEnd: number): number | null {
+function resolveSectorMinute(minute: string, matchTime: number): number | null {
   const parsed = parseGoalMinute(minute);
-  if (!parsed || maxSectorEnd <= 0) return null;
-  const halfDuration = Math.max(1, Math.floor(maxSectorEnd / 2));
+  if (!parsed || matchTime <= 0) return null;
+  const halfDuration = Math.max(1, Math.floor(matchTime / 2));
   if (parsed.main <= halfDuration && parsed.total > halfDuration) {
     return halfDuration;
   }
-  return Math.min(parsed.total, maxSectorEnd);
+  return Math.min(parsed.total, matchTime);
 }
 
 function parseDateValue(raw?: unknown): Date | null {
@@ -114,112 +121,48 @@ function extractMatchCode(match: Record<string, unknown>): string {
 function buildComparisonData(data: TeamsGoalSectorsComparison | null): ComparisonData {
   const teamA = data?.[0];
   const teamB = data?.[1];
-  if (!teamA || !teamB) {
-    return { teamA, teamB, rows: [], maxSectorEnd: 0 };
-  }
-
-  const sectorMap = new Map<string, { start: number; end: number }>();
-  (teamA.sectors ?? []).forEach((sector) => {
-    sectorMap.set(`${sector.startMinute}-${sector.endMinute}`, {
-      start: sector.startMinute,
-      end: sector.endMinute,
-    });
-  });
-  (teamB.sectors ?? []).forEach((sector) => {
-    sectorMap.set(`${sector.startMinute}-${sector.endMinute}`, {
-      start: sector.startMinute,
-      end: sector.endMinute,
-    });
-  });
-
-  const merged = Array.from(sectorMap.values()).sort((a, b) => a.start - b.start);
-  const rows = merged
-    .map((sector) => {
-      const teamAData = (teamA.sectors ?? []).find(
-        (entry) => entry.startMinute === sector.start && entry.endMinute === sector.end,
-      ) ?? {
-        startMinute: sector.start,
-        endMinute: sector.end,
-        goalsFor: 0,
-        goalsAgainst: 0,
-      };
-      const teamBData = (teamB.sectors ?? []).find(
-        (entry) => entry.startMinute === sector.start && entry.endMinute === sector.end,
-      ) ?? {
-        startMinute: sector.start,
-        endMinute: sector.end,
-        goalsFor: 0,
-        goalsAgainst: 0,
-      };
-
-      return {
-        start: sector.start,
-        end: sector.end,
-        aGoals: teamAData.goalsFor ?? 0,
-        aAgainst: teamAData.goalsAgainst ?? 0,
-        bGoals: teamBData.goalsFor ?? 0,
-        bAgainst: teamBData.goalsAgainst ?? 0,
-      };
-    })
-    .filter((row) => row.aGoals || row.aAgainst || row.bGoals || row.bAgainst);
-
-  return {
-    teamA,
-    teamB,
-    rows,
-    maxSectorEnd: rows.reduce((max, row) => Math.max(max, row.end), 0),
-  };
+  if (!teamA || !teamB) return { teamA, teamB, rows: [] };
+  return { teamA, teamB, rows: buildSectorComparisonRows(teamA, teamB) };
 }
 
 export function useGoalSectorsComparison() {
+  const { seasonId } = useRffmSeason();
   const [data, setData] = React.useState<TeamsGoalSectorsComparison | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const [selection, setSelection] = React.useState<ComparisonSelection>({
-    competitionId: "",
-    groupId: "",
-    team1: "",
-    team2: "",
-    loading: false,
-  });
-  const [sectorPopup, setSectorPopup] = React.useState<SectorPopupState>({
-    open: false,
-    loading: false,
-    error: null,
-    title: "",
-    subtitle: "",
-    matches: [],
-  });
+  const [selection, setSelection] = React.useState<ComparisonSelection>(
+    EMPTY_COMPARISON_SELECTION,
+  );
+  const [comparedSelection, setComparedSelection] = React.useState<ComparisonSelection>(
+    EMPTY_COMPARISON_SELECTION,
+  );
+  const [comparedSeason, setComparedSeason] = React.useState<string | undefined>(undefined);
+  const [sectorPopup, setSectorPopup] = React.useState<SectorPopupState>(CLOSED_POPUP);
   const sectorCacheRef = React.useRef(new Map<string, SectorMatchDetail[]>());
   const requestIdRef = React.useRef(0);
 
   const comparison = buildComparisonData(data);
 
-  function handleCompare(opts: {
-    competitionId: string;
-    groupId: string;
-    team1: string;
-    team2: string;
-  }) {
+  function handleCompare() {
+    const { team1, team2 } = selection;
+    const season = seasonId != null ? String(seasonId) : undefined;
     setLoading(true);
     setError(null);
     setData(null);
-    setSectorPopup({
-      open: false,
-      loading: false,
-      error: null,
-      title: "",
-      subtitle: "",
-      matches: [],
-    });
+    setSectorPopup(CLOSED_POPUP);
+    setComparedSelection(selection);
+    setComparedSeason(season);
     sectorCacheRef.current.clear();
 
     getTeamsGoalSectorsComparison({
-      teamCode: opts.team1,
-      competitionId: opts.competitionId,
-      groupId: opts.groupId,
-      teamCode1: opts.team1,
-      teamCode2: opts.team2,
+      season,
+      teamCode: team1.teamCode,
+      competitionId: team1.competitionId,
+      groupId: team1.groupId,
+      teamCode1: team1.teamCode,
+      teamCode2: team2.teamCode,
+      competitionId2: team2.competitionId,
+      groupId2: team2.groupId,
     })
       .then((res) => {
         if (!res || !Array.isArray(res) || res.length === 0) {
@@ -234,21 +177,21 @@ export function useGoalSectorsComparison() {
       .finally(() => setLoading(false));
   }
 
-  async function handleGoalsAgainstClick(row: ComparisonRow, teamIndex: 0 | 1) {
-    const team =
-      comparison.teamA && comparison.teamB
-        ? teamIndex === 0
-          ? comparison.teamA
-          : comparison.teamB
-        : null;
+  async function handleGoalsAgainstClick(row: SectorComparisonRow, teamIndex: 0 | 1) {
+    const team = teamIndex === 0 ? comparison.teamA : comparison.teamB;
     if (!team) return;
 
     const teamCode = asTrimmedString(team.teamCode);
     if (!teamCode) return;
 
-    const title = `${team.teamName || team.teamCode} · ${row.start}-${row.end}' · Goles en contra`;
-    const subtitle = `${selection.competitionId} · ${selection.groupId}`;
-    const cacheKey = `${teamCode}|${selection.competitionId}|${selection.groupId}|${row.start}-${row.end}`;
+    const side = teamIndex === 0 ? comparedSelection.team1 : comparedSelection.team2;
+    const sectorStart = teamIndex === 0 ? row.aStart : row.bStart;
+    const sectorEnd = teamIndex === 0 ? row.aEnd : row.bEnd;
+    const matchTime = team.matchTime || sectorEnd;
+
+    const title = `${team.teamName || team.teamCode} · ${sectorStart}-${sectorEnd}' · Goles en contra`;
+    const subtitle = `${side.competitionId} · ${side.groupId}`;
+    const cacheKey = `${teamCode}|${side.competitionId}|${side.groupId}|${sectorStart}-${sectorEnd}`;
 
     const cached = sectorCacheRef.current.get(cacheKey);
     if (cached) {
@@ -275,8 +218,9 @@ export function useGoalSectorsComparison() {
 
     try {
       const rawMatches = await getTeamMatches(teamCode, {
-        competition: selection.competitionId,
-        group: selection.groupId,
+        season: comparedSeason,
+        competition: side.competitionId,
+        group: side.groupId,
       });
 
       const matchMap = new Map<string, unknown>();
@@ -291,8 +235,9 @@ export function useGoalSectorsComparison() {
       const actaResults = await Promise.allSettled(
         Array.from(matchMap.keys()).map((codacta) =>
           getActa(codacta, {
-            competicion: selection.competitionId,
-            grupo: selection.groupId,
+            temporada: comparedSeason,
+            competicion: side.competitionId,
+            grupo: side.groupId,
           }),
         ),
       );
@@ -328,9 +273,9 @@ export function useGoalSectorsComparison() {
         const goals = concededGoals
           .map((goal) => {
             const minute = getGoalMinute(goal as Record<string, unknown>);
-            const usedMinute = resolveSectorMinute(minute, comparison.maxSectorEnd);
+            const usedMinute = resolveSectorMinute(minute, matchTime);
             if (usedMinute == null) return null;
-            if (usedMinute < row.start || usedMinute > row.end) return null;
+            if (usedMinute < sectorStart || usedMinute > sectorEnd) return null;
             return {
               minute,
               playerName:
