@@ -23,6 +23,10 @@ type MarkAllNotificationsReadResponse = {
   marked: number;
 };
 
+type DeleteNotificationsResponse = {
+  deleted: number;
+};
+
 export async function searchNotifications(
   pageNumber: number,
   pageSize: number,
@@ -50,4 +54,18 @@ export async function markAllNotificationsRead(app: NotificationApp): Promise<nu
     params: { app },
   });
   return response.data?.marked ?? 0;
+}
+
+export async function deleteNotifications(ids: string[]): Promise<number> {
+  const response = await client.delete<DeleteNotificationsResponse>("/api/notifications", {
+    data: { ids },
+  });
+  return response.data?.deleted ?? 0;
+}
+
+export async function deleteAllNotifications(app: NotificationApp): Promise<number> {
+  const response = await client.delete<DeleteNotificationsResponse>("/api/notifications/all", {
+    params: { app },
+  });
+  return response.data?.deleted ?? 0;
 }

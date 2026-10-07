@@ -16,6 +16,8 @@ vi.mock("../../../../../shared/services/notificationService", () => ({
   NOTIFICATIONS_CHANGED_EVENT: "rffm.notifications_changed",
   searchNotifications: vi.fn(),
   markNotificationRead: vi.fn(),
+  deleteNotifications: vi.fn(),
+  deleteAllNotifications: vi.fn(),
 }));
 
 vi.mock("../../../../../shared/hooks/useAuditPageAccess", () => ({
@@ -30,7 +32,12 @@ vi.mock("../../../services/pushSubscriptionService", () => ({
   unsubscribeFromPushNotifications: vi.fn(),
 }));
 
-import { searchNotifications, markNotificationRead } from "../../../../../shared/services/notificationService";
+import {
+  searchNotifications,
+  markNotificationRead,
+  deleteNotifications,
+  deleteAllNotifications,
+} from "../../../../../shared/services/notificationService";
 import type { NotificationResponse } from "../../../../../shared/services/notificationService";
 import Notifications from "../Notifications";
 
@@ -157,5 +164,135 @@ describe("Notifications", () => {
     renderPage();
 
     await waitFor(() => expect(searchNotifications).toHaveBeenCalledWith(1, 25, { app: "coach" }));
+  });
+
+  describe("selección y borrado", () => {
+    const second: NotificationResponse = { ...sample, id: "n2", title: "Convocatoria", isRead: true };
+
+    it("seleccionar una notificación no la abre ni la marca como leída", async () => {
+      (searchNotifications as any).mockResolvedValue({ items: [sample], totalCount: 1 });
+      renderPage();
+
+      await userEvent.click(await screen.findByRole("checkbox", { name: /seleccionar nueva noticia/i }));
+
+      expect(markNotificationRead).not.toHaveBeenCalled();
+      expect(navigateMock).not.toHaveBeenCalled();
+    });
+
+    it("el botón Eliminar está deshabilitado si no hay ninguna seleccionada", async () => {
+      (searchNotifications as any).mockResolvedValue({ items: [sample], totalCount: 1 });
+      renderPage();
+
+      expect(await screen.findByRole("button", { name: /^eliminar$/i })).toBeDisabled();
+    });
+
+    it("Seleccionar todas marca todas las notificaciones de la página", async () => {
+      (searchNotifications as any).mockResolvedValue({ items: [sample, second], totalCount: 2 });
+      renderPage();
+
+      await userEvent.click(await screen.findByRole("checkbox", { name: /seleccionar todas/i }));
+
+      expect(screen.getByRole("checkbox", { name: /seleccionar nueva noticia/i })).toBeChecked();
+      expect(screen.getByRole("checkbox", { name: /seleccionar convocatoria/i })).toBeChecked();
+      expect(screen.getByRole("button", { name: /eliminar \(2\)/i })).toBeEnabled();
+    });
+
+    it("Seleccionar todas de nuevo desmarca todas", async () => {
+      (searchNotifications as any).mockResolvedValue({ items: [sample, second], totalCount: 2 });
+      renderPage();
+      const selectAll = await screen.findByRole("checkbox", { name: /seleccionar todas/i });
+
+      await userEvent.click(selectAll);
+      await userEvent.click(selectAll);
+
+      expect(screen.getByRole("checkbox", { name: /seleccionar nueva noticia/i })).not.toBeChecked();
+      expect(screen.getByRole("checkbox", { name: /seleccionar convocatoria/i })).not.toBeChecked();
+    });
+
+    it("no elimina nada si se cancela la confirmación", async () => {
+      (searchNotifications as any).mockResolvedValue({ items: [sample, second], totalCount: 2 });
+      renderPage();
+
+      await userEvent.click(await screen.findByRole("checkbox", { name: /seleccionar todas/i }));
+      await userEvent.click(screen.getByRole("button", { name: /eliminar \(2\)/i }));
+      await userEvent.click(screen.getByRole("button", { name: /cancelar/i }));
+
+      expect(deleteNotifications).not.toHaveBeenCalled();
+    });
+
+    it("elimina las seleccionadas tras confirmar y recarga el listado", async () => {
+      (searchNotifications as any)
+        .mockResolvedValueOnce({ items: [sample, second], totalCount: 2 })
+        .mockResolvedValue({ items: [second], totalCount: 1 });
+      (deleteNotifications as any).mockResolvedValue(1);
+      renderPage();
+
+      await userEvent.click(await screen.findByRole("checkbox", { name: /seleccionar nueva noticia/i }));
+      await userEvent.click(screen.getByRole("button", { name: /eliminar \(1\)/i }));
+      await userEvent.click(screen.getByRole("button", { name: /^eliminar$/i }));
+
+      await waitFor(() => expect(deleteNotifications).toHaveBeenCalledWith(["n1"]));
+      await waitFor(() => expect(screen.queryByText("Nueva noticia")).not.toBeInTheDocument());
+      expect(screen.getByText("Convocatoria")).toBeInTheDocument();
+    });
+
+    it("Eliminar todas borra las notificaciones de todas las páginas tras confirmar", async () => {
+      (searchNotifications as any)
+        .mockResolvedValueOnce({ items: [sample, second], totalCount: 60 })
+        .mockResolvedValue({ items: [], totalCount: 0 });
+      (deleteAllNotifications as any).mockResolvedValue(60);
+      renderPage();
+
+      await userEvent.click(await screen.findByRole("button", { name: /eliminar todas/i }));
+      expect(screen.getByText(/las 60 notificaciones/i)).toBeInTheDocument();
+      await userEvent.click(screen.getByRole("button", { name: /^eliminar$/i }));
+
+      await waitFor(() => expect(deleteAllNotifications).toHaveBeenCalledWith("coach"));
+      expect(deleteNotifications).not.toHaveBeenCalled();
+      expect(await screen.findByText(/no tienes notificaciones/i)).toBeInTheDocument();
+    });
+
+    it("Eliminar todas vuelve a la primera página", async () => {
+      (searchNotifications as any).mockResolvedValue({ items: [sample], totalCount: 60 });
+      (deleteAllNotifications as any).mockResolvedValue(60);
+      renderPage();
+
+      await screen.findByText("Nueva noticia");
+      await userEvent.click(screen.getByRole("button", { name: /go to page 2/i }));
+      await waitFor(() => expect(searchNotifications).toHaveBeenCalledWith(2, 25, { app: "coach" }));
+      (searchNotifications as any).mockClear();
+      (searchNotifications as any).mockResolvedValue({ items: [], totalCount: 0 });
+
+      await userEvent.click(await screen.findByRole("button", { name: /eliminar todas/i }));
+      await userEvent.click(screen.getByRole("button", { name: /^eliminar$/i }));
+
+      await waitFor(() => expect(searchNotifications).toHaveBeenCalledWith(1, 25, { app: "coach" }));
+    });
+
+    it("no elimina todas si se cancela la confirmación", async () => {
+      (searchNotifications as any).mockResolvedValue({ items: [sample], totalCount: 1 });
+      renderPage();
+
+      await userEvent.click(await screen.findByRole("button", { name: /eliminar todas/i }));
+      await userEvent.click(screen.getByRole("button", { name: /cancelar/i }));
+
+      expect(deleteAllNotifications).not.toHaveBeenCalled();
+    });
+
+    it("avisa con un snackbar de error si falla el borrado", async () => {
+      (searchNotifications as any).mockResolvedValue({ items: [sample], totalCount: 1 });
+      (deleteNotifications as any).mockRejectedValue(new Error("boom"));
+      const listener = vi.fn();
+      window.addEventListener("rffm.show_snackbar", listener);
+      renderPage();
+
+      await userEvent.click(await screen.findByRole("checkbox", { name: /seleccionar nueva noticia/i }));
+      await userEvent.click(screen.getByRole("button", { name: /eliminar \(1\)/i }));
+      await userEvent.click(screen.getByRole("button", { name: /^eliminar$/i }));
+
+      await waitFor(() => expect(listener).toHaveBeenCalled());
+      expect((listener.mock.calls[0][0] as CustomEvent).detail.severity).toBe("error");
+      window.removeEventListener("rffm.show_snackbar", listener);
+    });
   });
 });

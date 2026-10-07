@@ -16,6 +16,20 @@
   margin-bottom: 2rem;
 }
 
+.selectionBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.cardCheckbox {
+  padding: 2px;
+  margin-left: -6px;
+}
+
 .notificationCard {
   width: 100%;
   cursor: pointer;
