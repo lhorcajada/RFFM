@@ -228,3 +228,35 @@
   font-size: 0.68rem !important;
   height: 20px !important;
 }
+
+@media (max-width: 480px) {
+  .microcicloRow,
+  .sessionRow {
+    flex-wrap: wrap;
+  }
+
+  .microcicloInfo {
+    flex-basis: 100%;
+  }
+
+  .microcicloAction {
+    margin-left: auto !important;
+    padding: 2px 8px !important;
+    min-height: 0 !important;
+    font-size: 0.72rem !important;
+    line-height: 1.4 !important;
+  }
+
+  .microcicloAction :global(.MuiButton-startIcon) {
+    margin-right: 4px;
+  }
+
+  .microcicloAction :global(.MuiSvgIcon-root) {
+    font-size: 1rem;
+  }
+
+  .sessionRowEdit {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}

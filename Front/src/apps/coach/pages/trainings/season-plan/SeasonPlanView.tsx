@@ -112,6 +112,7 @@ function MicrocicloRow({
           size="small"
           startIcon={<AddIcon />}
           variant="outlined"
+          className={styles.microcicloAction}
           onClick={() => microciclo.apiId && onCreateSession(microciclo.apiId)}
           disabled={!microciclo.apiId}
         >

@@ -380,8 +380,9 @@ export default function Trainings() {
                   variant="outlined"
                   onClick={() => goToContentBoard()}
                   disabled={!teamId}
+                  aria-label="Tablero de contenido"
                 >
-                  Tablero de contenido
+                  {isMobile ? "Tablero" : "Tablero de contenido"}
                 </Button>
                 <Button
                   size="small"
@@ -390,8 +391,9 @@ export default function Trainings() {
                   className={styles.addBtn}
                   onClick={() => goToSessionPage()}
                   disabled={!teamId || !clubId}
+                  aria-label="Nueva sesión"
                 >
-                  Nueva sesión
+                  {isMobile ? "Nueva" : "Nueva sesión"}
                 </Button>
               </>
             )}
@@ -465,7 +467,7 @@ export default function Trainings() {
           {tab === 1 && (
             <Box>
               <Box className={`${styles.toolbarRow} ${styles.exerciseFilters}`}>
-                <FormControl size="small" sx={{ minWidth: 160 }}>
+                <FormControl size="small" className={styles.exerciseFilter}>
                   <InputLabel id="tipo-filter-label" shrink>Tipo</InputLabel>
                   <Select
                     labelId="tipo-filter-label"
@@ -481,7 +483,7 @@ export default function Trainings() {
                     ))}
                   </Select>
                 </FormControl>
-                <FormControl size="small" sx={{ minWidth: 200 }}>
+                <FormControl size="small" className={styles.exerciseFilter}>
                   <InputLabel id="subtipo-filter-label" shrink>Subtipo</InputLabel>
                   <Select
                     labelId="subtipo-filter-label"
@@ -527,7 +529,7 @@ export default function Trainings() {
           {tab === 2 && (
             <Box>
               <Box className={`${styles.toolbarRow} ${styles.exerciseFilters}`}>
-                <FormControl size="small" sx={{ minWidth: 180 }}>
+                <FormControl size="small" className={styles.exerciseFilter}>
                   <InputLabel id="sessions-season-label" shrink>Temporada</InputLabel>
                   <Select
                     labelId="sessions-season-label"

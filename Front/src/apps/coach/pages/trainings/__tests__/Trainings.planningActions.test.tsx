@@ -180,5 +180,15 @@ describe("Trainings — acciones de planificación y tablero de contenido", () =
       expect(screen.getByRole("button", { name: "Editar planificación" })).toHaveTextContent(/^Editar$/);
       expect(screen.getByRole("button", { name: "Eliminar planificación" })).toHaveTextContent(/^Eliminar$/);
     });
+
+    it("muestra etiquetas cortas en los botones de la pestaña Sesiones manteniendo su nombre accesible", async () => {
+      const user = userEvent.setup();
+      renderPage();
+
+      await user.click(await screen.findByRole("tab", { name: "Sesiones" }));
+
+      expect(screen.getByRole("button", { name: "Tablero de contenido" })).toHaveTextContent(/^Tablero$/);
+      expect(screen.getByRole("button", { name: "Nueva sesión" })).toHaveTextContent(/^Nueva$/);
+    });
   });
 });

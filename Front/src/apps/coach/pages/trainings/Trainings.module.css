@@ -47,6 +47,36 @@
   justify-content: flex-start;
 }
 
+.exerciseFilter {
+  flex: 0 1 200px;
+  min-width: 160px;
+}
+
+@media (max-width: 600px) {
+  .exerciseFilters {
+    flex-wrap: nowrap;
+  }
+
+  .exerciseFilter {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .exerciseFilter :global(.MuiOutlinedInput-root) {
+    min-height: 36px;
+  }
+
+  .exerciseFilter :global(.MuiSelect-select) {
+    padding-top: 6px;
+    padding-bottom: 6px;
+    font-size: 0.82rem;
+  }
+
+  .exerciseFilter :global(.MuiInputLabel-root) {
+    font-size: 0.82rem;
+  }
+}
+
 .filterLabel {
   font-size: 0.78rem !important;
   color: #a8d4f5 !important;
