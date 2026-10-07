@@ -158,5 +158,18 @@ namespace RFFM.Api.Domain
         public const string PersonalDataRequired = "PersonalDataRequired";
         public const string CurrentPasswordIncorrect = "CurrentPasswordIncorrect";
         public const string PasswordChangeFailed = "PasswordChangeFailed";
+
+        // Team lottery (Features/Coaches/Lottery/*) - openspec change team-lottery.
+        public const string LotteryCampaignNotFound = "LotteryCampaignNotFound";
+        public const string LotteryInvalidCampaign = "LotteryInvalidCampaign";
+        public const string LotteryInvalidClubDeliveryWindow = "LotteryInvalidClubDeliveryWindow";
+        public const string LotteryCampaignHasBooks = "LotteryCampaignHasBooks";
+        public const string LotteryBookNotFound = "LotteryBookNotFound";
+        public const string LotteryBookNumberDuplicated = "LotteryBookNumberDuplicated";
+        public const string LotteryTicketRangeOverlap = "LotteryTicketRangeOverlap";
+        public const string LotteryInvalidReturnAmount = "LotteryInvalidReturnAmount";
+        public const string LotteryReturnBeforeDelivery = "LotteryReturnBeforeDelivery";
+        public const string LotteryBookAlreadyReturned = "LotteryBookAlreadyReturned";
+        public const string LotteryInvalidClubDeliveryAmount = "LotteryInvalidClubDeliveryAmount";
     }
 }

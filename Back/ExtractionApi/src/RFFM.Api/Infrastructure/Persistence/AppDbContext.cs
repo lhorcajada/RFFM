@@ -56,6 +56,8 @@ namespace RFFM.Api.Infrastructure.Persistence
         public DbSet<TrackingComment> TrackingComments { get; set; }
         public DbSet<CommentEvaluation> CommentEvaluations { get; set; }
         public DbSet<TeamFundMovement> TeamFundMovements { get; set; }
+        public DbSet<LotteryCampaign> LotteryCampaigns { get; set; }
+        public DbSet<LotteryBook> LotteryBooks { get; set; }
         public DbSet<TeamInjuryProtocol> TeamInjuryProtocols { get; set; }
         public DbSet<TeamInjuryProtocolAttachment> TeamInjuryProtocolAttachments { get; set; }
         public DbSet<RFFM.Api.Domain.Entities.PlayerDocuments.DocumentType> DocumentTypes { get; set; }
