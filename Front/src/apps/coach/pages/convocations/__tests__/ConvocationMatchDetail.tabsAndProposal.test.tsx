@@ -2,7 +2,7 @@ import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { UserProvider } from "../../../../../shared/context/UserContext";
 
 const moveToNotCalledMock = vi.fn();
@@ -96,8 +96,6 @@ vi.mock("../components/ConvocationTab", () => ({
   },
 }));
 vi.mock("../components/DesconvocatoriasTab", () => ({ default: () => null }));
-vi.mock("../components/AlineacionTab", () => ({ default: () => <div data-testid="alineacion-tab" /> }));
-vi.mock("../components/SimulacionTab", () => ({ default: () => null }));
 vi.mock("../components/ConvocatoriaPrint", () => ({ default: React.forwardRef(() => null) }));
 vi.mock("../components/ConvocationMatchHeader", () => ({ default: () => null }));
 vi.mock("../components/ConvocationMatchActionBar", () => ({ default: () => null }));
@@ -105,11 +103,19 @@ vi.mock("../components/ConvocationDeconvokeDialog", () => ({ default: () => null
 
 import ConvocationMatchDetail from "../ConvocationMatchDetail";
 
+function LocationProbe() {
+  const location = useLocation();
+  return <div data-testid="location">{`${location.pathname}${location.search}`}</div>;
+}
+
 function renderPage() {
   render(
     <UserProvider>
       <MemoryRouter initialEntries={["/coach/convocations/match?teamId=team-1"]}>
-        <ConvocationMatchDetail />
+        <Routes>
+          <Route path="/coach/convocations/match" element={<ConvocationMatchDetail />} />
+          <Route path="*" element={<LocationProbe />} />
+        </Routes>
       </MemoryRouter>
     </UserProvider>,
   );
@@ -136,11 +142,31 @@ describe("ConvocationMatchDetail - orden de pestañas y propuesta de convocatori
     expect(screen.getByTestId("convocation-tab")).toBeInTheDocument();
   });
 
-  it("sigue abriendo la pestaña Alineación por defecto", () => {
+  it("abre la pestaña Convocatoria por defecto", () => {
     renderPage();
 
-    expect(screen.getByRole("tab", { name: "Alineación" })).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByTestId("alineacion-tab")).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Convocatoria" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByTestId("convocation-tab")).toBeInTheDocument();
+  });
+
+  it("la pestaña Alineación abre la alineación a pantalla completa con el equipo y el evento", async () => {
+    renderPage();
+
+    await userEvent.click(screen.getByRole("tab", { name: "Alineación" }));
+
+    expect(screen.getByTestId("location")).toHaveTextContent(
+      "/coach/convocations/lineup?teamId=team-1&eventId=event-1",
+    );
+  });
+
+  it("la pestaña Simular Partido abre la simulación a pantalla completa con el equipo y el evento", async () => {
+    renderPage();
+
+    await userEvent.click(screen.getByRole("tab", { name: "Simular Partido" }));
+
+    expect(screen.getByTestId("location")).toHaveTextContent(
+      "/coach/convocations/simulation?teamId=team-1&eventId=event-1",
+    );
   });
 
   it("calcula la propuesta de convocatoria sobre toda la plantilla, no solo sobre los convocados", () => {

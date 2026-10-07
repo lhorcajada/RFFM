@@ -8,12 +8,10 @@ const baseProps = {
   teamId: "team-1",
   tab: CONVOCATION_TAB.Alineacion,
   eventId: "event-1",
-  lineupPlayersCount: 0,
   printing: false,
   onBack: vi.fn(),
   onOpenEvent: vi.fn(),
   onSaveConvocation: vi.fn(),
-  onSaveLineup: vi.fn(),
   onPrint: vi.fn(),
   onViewConvocation: vi.fn(),
 };

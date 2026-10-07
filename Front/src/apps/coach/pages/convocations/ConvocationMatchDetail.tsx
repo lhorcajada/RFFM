@@ -2,23 +2,18 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   Alert,
-  Button,
   CircularProgress,
   Slide,
   Snackbar,
   Tab,
   Tabs,
 } from "@mui/material";
-import SaveIcon from "@mui/icons-material/Save";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import configurationCoachService from "../../services/configurationCoachService";
 import { getSportEventById } from "../../services/sportEventService";
-import type { IdealLineupHandle } from "../squad/components/IdealLineup";
 import ConvocationTab from "./components/ConvocationTab";
 import DesconvocatoriasTab from "./components/DesconvocatoriasTab";
-import AlineacionTab from "./components/AlineacionTab";
-import SimulacionTab from "./components/SimulacionTab";
 import ConvocatoriaPrint, { type ConvocatoriaPrintHandle } from "./components/ConvocatoriaPrint";
 import ConvocationDetailsDialog from "./components/ConvocationDetailsDialog";
 import { CONVOCATION_TAB, type MatchState } from "./components/convocationMatchDetail.types";
@@ -35,7 +30,6 @@ import { toMatchState } from "./helpers/convocationUtils";
 import styles from "./ConvocationMatchDetail.module.css";
 import ConvocationMatchHeader from "./components/ConvocationMatchHeader";
 import ConvocationMatchActionBar from "./components/ConvocationMatchActionBar";
-import ConvocationDeconvokeDialog from "./components/ConvocationDeconvokeDialog";
 
 export default function ConvocationMatchDetail() {
   const navigate = useNavigate();
@@ -91,7 +85,7 @@ export default function ConvocationMatchDetail() {
     };
   }, [teamId]);
 
-  const [tab, setTab] = useState<number>(CONVOCATION_TAB.Alineacion);
+  const [tab, setTab] = useState<number>(CONVOCATION_TAB.Convocatoria);
   // Desconvocatorias y Convocatoria son las únicas pestañas que necesitan el grid
   // histórico de convocatorias; una vez visitadas, se mantiene cargado al cambiar de pestaña.
   const needsGridData = tab === CONVOCATION_TAB.Desconvocatorias || tab === CONVOCATION_TAB.Convocatoria;
@@ -106,18 +100,6 @@ export default function ConvocationMatchDetail() {
   useEffect(() => {
     if (needsProposalData) setProposalEnabled(true);
   }, [needsProposalData]);
-  const lineupRef = useRef<IdealLineupHandle>(null);
-  const [lineupSaving, setLineupSaving] = useState(false);
-
-  // Deconvoke reason dialog (Alineación tab)
-  const [pendingDeconvokeId, setPendingDeconvokeId] = useState<string | null>(null);
-  const [pendingDeconvokeExcuse, setPendingDeconvokeExcuse] = useState<number | "">("");
-
-  const handleDeconvokeRequest = useCallback((playerId: string) => {
-    setPendingDeconvokeExcuse("");
-    setPendingDeconvokeId(playerId);
-  }, []);
-
   // PDF print
   const printRef = useRef<ConvocatoriaPrintHandle>(null);
   const [printing, setPrinting] = useState(false);
@@ -158,9 +140,6 @@ export default function ConvocationMatchDetail() {
     return () => { mounted = false; };
   }, [teamId]);
 
-  // Sport event category — used to enable unlimited substitution windows on friendlies
-  const [isFriendly, setIsFriendly] = useState(false);
-
   const readinessMap = useTeamReadinessMap(teamId);
 
   // Data hooks
@@ -172,7 +151,6 @@ export default function ConvocationMatchDetail() {
     getSportEventById(convocation.mgmtEventId)
       .then((event) => {
         if (!mounted) return;
-        setIsFriendly(event?.matchCategory === "Friendly");
         // `match.selectedKitNumber` is only a snapshot taken when this page was navigated
         // to (router state) — refresh it from the server so a kit saved in a previous
         // visit isn't lost when the page is re-entered.
@@ -203,10 +181,6 @@ export default function ConvocationMatchDetail() {
   const {
     playerStreaks,
     playerTechnicalTotals,
-    lineupPlayers,
-    notCalledPlayers,
-    pendingPlayers,
-    notAttendingPlayers,
   } = useConvocationPlayerViews({
     players: convocation.players,
     mgmtNotCalled: convocation.mgmtNotCalled,
@@ -220,14 +194,6 @@ export default function ConvocationMatchDetail() {
     excuseMap: convocation.mgmtExcuseMap,
     excuseTypesById,
   });
-
-  const handleDeconvokeConfirm = useCallback(async () => {
-    if (!pendingDeconvokeId || !pendingDeconvokeExcuse) return;
-    const pid = pendingDeconvokeId;
-    const excuseId = pendingDeconvokeExcuse as number;
-    setPendingDeconvokeId(null);
-    await convocation.moveToNotCalled(pid, excuseId);
-  }, [pendingDeconvokeId, pendingDeconvokeExcuse, convocation]);
 
   const handleKitSelect = useCallback(async (kitNumber: number | null) => {
     if (!convocation.mgmtEventId || kitUpdating) return;
@@ -285,6 +251,23 @@ export default function ConvocationMatchDetail() {
     },
     [convocation],
   );
+  // Alineación, Simular Partido y Partido en directo se abren a pantalla completa.
+  const openFullScreen = useCallback(
+    (screen: "lineup" | "simulation" | "live") => {
+      navigate(
+        `/coach/convocations/${screen}?teamId=${encodeURIComponent(teamId)}&eventId=${encodeURIComponent(convocation.mgmtEventId ?? "")}`,
+        { state: { match } },
+      );
+    },
+    [navigate, teamId, convocation.mgmtEventId, match],
+  );
+
+  const handleTabChange = (value: number) => {
+    if (value === CONVOCATION_TAB.Alineacion) openFullScreen("lineup");
+    else if (value === CONVOCATION_TAB.Simulacion) openFullScreen("simulation");
+    else setTab(value);
+  };
+
   const matchTitle = (
     <ConvocationMatchHeader
       match={match}
@@ -318,34 +301,21 @@ export default function ConvocationMatchDetail() {
             teamId={teamId}
             tab={tab}
             eventId={convocation.mgmtEventId}
-            lineupPlayersCount={lineupPlayers.length}
             printing={printing}
             convocationConfirmed={convocationConfirmed}
             onBack={() => navigate(`/coach/convocations${teamId ? `?teamId=${teamId}` : ""}`)}
             onOpenEvent={() => navigate(`/coach/attendance/${convocation.mgmtEventId}`)}
             onSaveConvocation={convocation.handleSave}
-            onSaveLineup={() => lineupRef.current?.save()}
             onPrint={handlePrint}
             onViewConvocation={() => setViewConvocationOpen(true)}
-            onOpenLiveMatch={() =>
-              navigate(
-                `/coach/convocations/live?teamId=${encodeURIComponent(teamId)}&eventId=${encodeURIComponent(convocation.mgmtEventId ?? "")}`,
-                { state: { match } },
-              )
-            }
-            minutesReasonsPlayers={lineupPlayers.map((p) => ({
-              id: p.id,
-              label: p.alias?.trim() || p.displayName,
-              reason: convocation.mgmtMinutesReasonMap?.[p.id] ?? null,
-            }))}
-            onSaveMinutesReason={convocation.saveMinutesReason}
+            onOpenLiveMatch={() => openFullScreen("live")}
           />
         }
       >
         {/* Tabs */}
         <Tabs
           value={tab}
-          onChange={(_, v) => setTab(v)}
+          onChange={(_, v) => handleTabChange(v)}
           textColor="inherit"
           indicatorColor="secondary"
           variant="scrollable"
@@ -424,41 +394,6 @@ export default function ConvocationMatchDetail() {
             currentNotCalled={convocation.mgmtNotCalled}
           />
         )}
-
-        {tab === CONVOCATION_TAB.Alineacion && (
-          <AlineacionTab
-            mgmtEventId={convocation.mgmtEventId}
-            lineupPlayers={lineupPlayers.filter((p) => p.assistanceTypeId !== 2 && p.assistanceTypeId !== 3)}
-            notCalledPlayers={notCalledPlayers}
-            pendingPlayers={pendingPlayers}
-            notAttendingPlayers={notAttendingPlayers}
-            lineupRef={lineupRef}
-            teamId={teamId}
-            onSavingChange={setLineupSaving}
-            onDeconvoke={handleDeconvokeRequest}
-            onReconvoke={(playerId) => convocation.moveToAvailable(playerId)}
-            onAcceptPending={(playerId) => convocation.acceptPending(playerId)}
-          />
-        )}
-
-        {tab === CONVOCATION_TAB.Simulacion && (
-          <SimulacionTab
-            teamId={teamId}
-            eventId={convocation.mgmtEventId}
-            lineupPlayers={lineupPlayers}
-            isFriendly={isFriendly}
-          />
-        )}
-
-        {/* Deconvoke reason dialog */}
-        <ConvocationDeconvokeDialog
-          open={pendingDeconvokeId !== null}
-          excuseTypes={convocation.excuseTypes}
-          value={pendingDeconvokeExcuse}
-          onClose={() => setPendingDeconvokeId(null)}
-          onChange={(value) => setPendingDeconvokeExcuse(value)}
-          onConfirm={handleDeconvokeConfirm}
-        />
 
         {/* "Ver convocatoria" dialog — on-screen version of the WhatsApp export */}
         <ConvocationDetailsDialog

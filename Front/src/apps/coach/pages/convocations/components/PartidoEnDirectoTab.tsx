@@ -46,12 +46,8 @@ import CardsTimeline from "./simulation/CardsTimeline";
 import MatchCompetitivenessReport from "./simulation/MatchCompetitivenessReport";
 import type { SimSlotPlayer } from "./simulation/SimulationPlayerSlot";
 import type { SquadPlayer } from "../../squad/components/IdealLineup";
-import PlayerFormLegend from "../../../components/PlayerFormLegend/PlayerFormLegend";
-import {
-  BenchPlayerCard,
-  DroppableBench,
-  groupBenchPlayers,
-} from "./simulation/BenchPlayerCard";
+import { DroppableBench } from "./simulation/BenchPlayerCard";
+import MatchPlayersDialog from "./MatchPlayersDialog";
 import { CompactBenchCard, DraggableCompactBenchCard } from "./simulation/CompactBenchCard";
 import { saveMatchParticipation, updateMatchParticipationReason } from "../../../services/liveMatchService";
 import type { LiveMatchParticipationPayload, PlayerParticipationDto } from "./simulation/liveMatch.types";
@@ -498,7 +494,7 @@ export default function PartidoEnDirectoTab({
   // column (compact draggable bench, event timelines, substitution history,
   // post-match summary) scrolls on its own, so the page never needs vertical
   // scroll on a tablet. The rich, read-only "En el campo" / "Banquillo" lists
-  // open on demand in a popup (see infoLists).
+  // open on demand in the "Jugadores" popup (MatchPlayersDialog).
 
   const currentBenchPlayers = live.prepareMode ? prepareBenchPlayers : benchPlayers;
 
@@ -627,80 +623,6 @@ export default function PartidoEnDirectoTab({
             playersById={playersById}
           />
         )}
-      </div>
-    </div>
-  );
-
-  // ── Info lists: rich, read-only "En el campo" + "Banquillo" — shown on
-  // demand in the "Jugadores" popup. Each position group is its own block
-  // (label + cards) so the label never ends up alone at the end of a row. ────
-
-  const renderPositionGroups = (players: SquadPlayer[], isLeavingPlayer: (id: string) => boolean) => (
-    <div className={styles.positionGroups}>
-      {groupBenchPlayers(players).map((group) => (
-        <div key={group.label} role="group" aria-label={group.label} className={styles.positionGroup}>
-          <div className={simStyles.benchGroupSeparator} style={{ borderLeftColor: group.color }}>
-            <span className={simStyles.benchGroupSeparatorLabel}>{group.label}</span>
-            <span className={simStyles.benchGroupSeparatorCount}>{group.players.length}</span>
-          </div>
-          <div className={styles.positionGroupCards}>
-            {group.players.map((p) => (
-              <BenchPlayerCard
-                key={p.id}
-                player={p}
-                isDragActive={false}
-                isLeaving={isLeavingPlayer(p.id)}
-                minutesPlayed={effectiveMinutes[p.id] ?? 0}
-                hasPlayed={(live.playerStates[p.id]?.accumulatedMinutes ?? 0) > 0 || live.playerStates[p.id]?.isOnField === true}
-                groupColor={group.color}
-              />
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-
-  const infoLists = (
-    <div className={styles.playersLists}>
-      <div className={`${simStyles.onFieldPanel} ${styles.playersPanel}`}>
-        <div className={simStyles.panelHeader}>
-          En el campo
-          <span className={simStyles.panelBadge}>{onFieldPlayers.length}</span>
-        </div>
-        <div className={styles.playersPanelBody}>
-          {onFieldPlayers.length === 0 ? (
-            <p className={simStyles.emptyBench}>No hay jugadores en el campo</p>
-          ) : (
-            renderPositionGroups(onFieldPlayers, () => false)
-          )}
-        </div>
-      </div>
-
-      <div className={`${simStyles.benchInfoPanel} ${styles.playersPanel}`}>
-        <div className={simStyles.panelHeader}>
-          Banquillo
-          <span className={simStyles.panelBadge}>{currentBenchPlayers.length}</span>
-        </div>
-        <div className={simStyles.panelLegend}>
-          <span className={simStyles.legendItem}>
-            <span className={`${simStyles.benchCompTag} ${simStyles.benchCompMid}`} style={{ fontSize: "0.5rem" }}>Comp.</span> Competitividad
-          </span>
-          <span className={simStyles.legendItem}>
-            <span className={simStyles.benchMinTag} style={{ fontSize: "0.5rem" }}>0&apos;</span> Minutos
-          </span>
-          <span className={simStyles.legendItem}>
-            <span className={simStyles.benchStreakBadge} style={{ fontSize: "0.5rem" }}>⏱ N</span> Jornadas sin decisión técnica
-          </span>
-          <PlayerFormLegend />
-        </div>
-        <div className={styles.playersPanelBody}>
-          {currentBenchPlayers.length === 0 ? (
-            <p className={simStyles.emptyBench}>No hay jugadores en el banquillo</p>
-          ) : (
-            renderPositionGroups(currentBenchPlayers, (id) => live.prepareMode && leavingIds.has(id))
-          )}
-        </div>
       </div>
     </div>
   );
@@ -854,33 +776,15 @@ export default function PartidoEnDirectoTab({
       </DndContext>
 
       {/* Players popup: rich, read-only "En el campo" + "Banquillo" */}
-      <Dialog
+      <MatchPlayersDialog
         open={playersDialogOpen}
         onClose={() => setPlayersDialogOpen(false)}
-        maxWidth={false}
-        fullWidth
-        PaperProps={{
-          sx: {
-            bgcolor: "#19192e",
-            border: "1px solid rgba(255,255,255,0.12)",
-            borderRadius: 3,
-            m: 2,
-            width: "calc(100% - 32px)",
-            height: "calc(100% - 32px)",
-            maxHeight: "none",
-          },
-        }}
-      >
-        <DialogTitle sx={{ color: "#fff", fontSize: "0.95rem", fontWeight: 700, py: 1.5 }}>
-          Jugadores
-        </DialogTitle>
-        <DialogContent className={styles.playersDialogContent}>{infoLists}</DialogContent>
-        <DialogActions sx={{ px: 2, pb: 2 }}>
-          <Button onClick={() => setPlayersDialogOpen(false)} variant="contained" size="small">
-            Cerrar
-          </Button>
-        </DialogActions>
-      </Dialog>
+        onFieldPlayers={onFieldPlayers}
+        benchPlayers={currentBenchPlayers}
+        minutesById={effectiveMinutes}
+        hasPlayed={(id) => (live.playerStates[id]?.accumulatedMinutes ?? 0) > 0 || live.playerStates[id]?.isOnField === true}
+        isLeaving={(id) => live.prepareMode && leavingIds.has(id)}
+      />
 
       {/* Save confirmation dialog */}
       <Dialog

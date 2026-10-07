@@ -1,5 +1,6 @@
-﻿import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import SimulacionTab from "../SimulacionTab";
 import type { UseMatchSimulationReturn } from "../../hooks/useMatchSimulation";
 import type { SquadPlayer } from "../../../squad/components/IdealLineup";
@@ -92,6 +93,8 @@ describe("SimulacionTab - listado 'En el campo' (solo lectura, tablet)", () => {
 
     render(<SimulacionTab teamId="team-1" eventId="event-1" lineupPlayers={lineupPlayers} />);
 
+    await userEvent.click(await screen.findByRole("button", { name: /jugadores/i }));
+
     const heading = await screen.findByText("En el campo");
     const onFieldPanel = heading.closest("div")!.parentElement as HTMLElement;
 
@@ -110,6 +113,8 @@ describe("SimulacionTab - listado 'En el campo' (solo lectura, tablet)", () => {
     );
 
     render(<SimulacionTab teamId="team-1" eventId="event-1" lineupPlayers={lineupPlayers} />);
+
+    await userEvent.click(await screen.findByRole("button", { name: /jugadores/i }));
 
     const heading = await screen.findByText("En el campo");
     const onFieldPanel = heading.closest("div")!.parentElement as HTMLElement;

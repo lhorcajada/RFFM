@@ -1,7 +1,6 @@
 import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { UserProvider } from "../../../../../shared/context/UserContext";
 
@@ -89,12 +88,6 @@ vi.mock("../hooks/useConvocationProposal", () => ({
 
 vi.mock("../components/ConvocationTab", () => ({ default: () => null }));
 vi.mock("../components/DesconvocatoriasTab", () => ({ default: () => null }));
-vi.mock("../components/AlineacionTab", () => ({ default: () => null }));
-vi.mock("../components/SimulacionTab", () => ({
-  default: (props: { isFriendly?: boolean }) => (
-    <div data-testid="simulacion-tab" data-friendly={String(!!props.isFriendly)} />
-  ),
-}));
 vi.mock("../components/ConvocatoriaPrint", () => ({ default: React.forwardRef(() => null) }));
 vi.mock("../components/ConvocationMatchHeader", () => ({ default: () => null }));
 vi.mock("../components/ConvocationMatchActionBar", () => ({ default: () => null }));
@@ -112,7 +105,7 @@ function renderPage() {
   );
 }
 
-describe("ConvocationMatchDetail - threading isFriendly into the simulation", () => {
+describe("ConvocationMatchDetail - partido en directo como pantalla propia", () => {
   beforeEach(() => {
     getSportEventByIdMock.mockReset();
   });
@@ -123,27 +116,5 @@ describe("ConvocationMatchDetail - threading isFriendly into the simulation", ()
 
     await waitFor(() => expect(getSportEventByIdMock).toHaveBeenCalledWith("event-1"));
     expect(screen.queryByRole("tab", { name: /partido en directo/i })).not.toBeInTheDocument();
-  });
-
-  it("passes isFriendly=true to SimulacionTab when matchCategory is Friendly", async () => {
-    getSportEventByIdMock.mockResolvedValue({ id: "event-1", matchCategory: "Friendly" });
-    renderPage();
-
-    await userEvent.click(screen.getByText("Simular Partido"));
-
-    await waitFor(() =>
-      expect(screen.getByTestId("simulacion-tab")).toHaveAttribute("data-friendly", "true"),
-    );
-  });
-
-  it("passes isFriendly=false to SimulacionTab when matchCategory is not Friendly", async () => {
-    getSportEventByIdMock.mockResolvedValue({ id: "event-1", matchCategory: "League" });
-    renderPage();
-
-    await userEvent.click(screen.getByText("Simular Partido"));
-
-    await waitFor(() =>
-      expect(screen.getByTestId("simulacion-tab")).toHaveAttribute("data-friendly", "false"),
-    );
   });
 });

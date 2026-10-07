@@ -210,6 +210,18 @@
   box-shadow: 0 2px 6px rgba(0,0,0,0.6);
 }
 
+/* Barras Ef/R/C bajo el avatar: solo en desktop, donde hay espacio para leerlas. */
+.desktopFormBars {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .desktopFormBars {
+    display: flex;
+    justify-content: center;
+  }
+}
+
 /* ── Móvil: contra-rotación + tarjeta reducida ──────────────────────────────
    .field (SimulationField.module.css) gira 90° como conjunto en móvil; cada
    .slot se contra-rota -90° para que su contenido (foto, dorsal, nombre) se

@@ -1,5 +1,6 @@
-﻿import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import SimulacionTab from "../SimulacionTab";
 import type { UseMatchSimulationReturn } from "../../hooks/useMatchSimulation";
 import type { SquadPlayer } from "../../../squad/components/IdealLineup";
@@ -89,6 +90,8 @@ describe("SimulacionTab - leyenda única de Ef/Rodaje/Cansancio y de jornadas si
     useMatchSimulationMock.mockReturnValue(baseSimReturn());
 
     render(<SimulacionTab teamId="team-1" eventId="event-1" lineupPlayers={lineupPlayers} />);
+
+    await userEvent.click(await screen.findByRole("button", { name: /jugadores/i }));
 
     const legends = await screen.findAllByLabelText("Leyenda de Ef, Rodaje y Cansancio");
     expect(legends).toHaveLength(1);

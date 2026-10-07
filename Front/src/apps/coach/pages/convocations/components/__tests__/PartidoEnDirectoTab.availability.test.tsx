@@ -1,5 +1,5 @@
-﻿import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import PartidoEnDirectoTab from "../PartidoEnDirectoTab";
 import type { SquadPlayer } from "../../../squad/components/IdealLineup";
@@ -128,12 +128,13 @@ describe("PartidoEnDirectoTab - indicador Ef/Rodaje/Cansancio", () => {
     );
 
     await userEvent.click(await screen.findByRole("button", { name: /jugadores/i }));
+    const dialog = within(await screen.findByRole("dialog"));
 
     // R (rodaje en vivo, sin minutos todavía) = 49;
     // Ef = readiness * (1 - fatigue / 200) = 49 * (1 - 22 / 200) = 43.61 → 44
-    expect(await screen.findByText("44%")).toBeInTheDocument();
-    expect(screen.getByText("49%")).toBeInTheDocument();
-    expect(screen.getByText("22%")).toBeInTheDocument();
+    expect(await dialog.findByText("44%")).toBeInTheDocument();
+    expect(dialog.getByText("49%")).toBeInTheDocument();
+    expect(dialog.getByText("22%")).toBeInTheDocument();
   });
 
   it("muestra una única leyenda consolidada de Ef, Rodaje y Cansancio en el banquillo", async () => {
@@ -151,8 +152,9 @@ describe("PartidoEnDirectoTab - indicador Ef/Rodaje/Cansancio", () => {
     );
 
     await userEvent.click(await screen.findByRole("button", { name: /jugadores/i }));
-    await screen.findByText("44%");
-    const legends = screen.getAllByLabelText("Leyenda de Ef, Rodaje y Cansancio");
+    const dialog = within(await screen.findByRole("dialog"));
+    await dialog.findByText("44%");
+    const legends = dialog.getAllByLabelText("Leyenda de Ef, Rodaje y Cansancio");
     expect(legends).toHaveLength(1);
   });
 });

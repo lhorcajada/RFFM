@@ -7,6 +7,12 @@
   padding: 6px 4px;
 }
 
+.actions {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+}
+
 .dragHandle {
   cursor: grab;
   touch-action: none;

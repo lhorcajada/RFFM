@@ -1,14 +1,17 @@
 import { useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
+import type { ReactNode } from "react";
+import PlayerFormBars from "../../../../components/PlayerFormBars/PlayerFormBars";
+import { computeLiveReadiness } from "../../utils/liveReadiness";
 import type { SquadPlayer } from "../../../squad/components/IdealLineup";
 import slotStyles from "./SimulationPlayerSlot.module.css";
 import styles from "./CompactBenchCard.module.css";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Compact bench card — same visual language as the on-field player cards
-// (SimulationPlayerSlot): photo/initials, dorsal, name, minutes if applicable.
-// No competitiveness, streak, or form bars — those live in the rich,
-// read-only "En el campo"/"Banquillo" info panels (BenchPlayerCard).
+// (SimulationPlayerSlot): photo/initials, dorsal, name, minutes if applicable,
+// and the Ef/R/C bars on desktop only. No competitiveness or streak — those
+// live in the rich, read-only "En el campo"/"Banquillo" info panels (BenchPlayerCard).
 //
 // Reuses SimulationPlayerSlot.module.css classes directly instead of
 // duplicating them, since the visual language must match exactly and
@@ -24,6 +27,8 @@ export interface CompactBenchCardProps {
   isLeaving?: boolean;
   /** True while being dragged (dims the card, matching the field card's .dragging style). */
   isDragActive?: boolean;
+  /** Optional small action buttons under the avatar (e.g. deconvoke in the pre-match lineup). */
+  actions?: ReactNode;
 }
 
 export function CompactBenchCard({
@@ -31,6 +36,7 @@ export function CompactBenchCard({
   minutesPlayed = 0,
   isLeaving = false,
   isDragActive = false,
+  actions,
 }: CompactBenchCardProps) {
   const initials = player.displayName
     .split(" ")
@@ -61,6 +67,16 @@ export function CompactBenchCard({
         <span className={slotStyles.minuteTag}>{minutesPlayed}&apos;</span>
       )}
       <span className={slotStyles.playerName}>{shortName}</span>
+      <div className={slotStyles.desktopFormBars}>
+        <PlayerFormBars
+          variant="compact"
+          readiness={computeLiveReadiness(player.readinessBreakdown, minutesPlayed) ?? player.readiness}
+          fatigue={player.fatigue}
+          // Estado de forma de backend: estático, no se recalcula en vivo aunque Rodaje cambie con los minutos.
+          formStatus={player.formStatus}
+        />
+      </div>
+      {actions && <div className={styles.actions}>{actions}</div>}
     </div>
   );
 }
@@ -69,6 +85,7 @@ export function DraggableCompactBenchCard({
   player,
   minutesPlayed = 0,
   isLeaving = false,
+  actions,
 }: Omit<CompactBenchCardProps, "isDragActive">) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `sim-player-${player.id}`,
@@ -82,6 +99,7 @@ export function DraggableCompactBenchCard({
         minutesPlayed={minutesPlayed}
         isLeaving={isLeaving}
         isDragActive={isDragging}
+        actions={actions}
       />
     </div>
   );

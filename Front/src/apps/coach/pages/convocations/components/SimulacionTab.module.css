@@ -1,45 +1,9 @@
-.root {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 12px 0;
-}
-
 .center {
   display: flex;
   justify-content: center;
   align-items: center;
   flex: 1;
   padding: 48px 16px;
-}
-
-/* ── Top bar ────────────────────────────────────────────────────────────── */
-
-.topBar {
-  display: flex;
-  align-items: stretch;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-/* ── Main area: field + right column ────────────────────────────────────── */
-
-.main {
-  display: flex;
-  gap: 16px;
-  align-items: stretch;
-}
-
-/* ── Right column (bench + history stacked) ─────────────────────────────── */
-
-.rightColumn {
-  flex: 1 1 0;
-  min-width: 0;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  align-self: stretch;
 }
 
 /* ── Bench panel (compact, draggable — same visual language as the field cards).
@@ -67,15 +31,6 @@
   padding: 10px;
 }
 
-/* ── Info lists row: "En el campo" + "Banquillo" (rich cards, read-only),
-   always visible, full width, below field + compact bench. ────────────────── */
-
-.infoListsRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-}
-
 .onFieldPanel,
 .benchInfoPanel {
   flex: 1 1 320px;
@@ -87,14 +42,6 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-}
-
-/* These two info panels grow with their content and rely on page scroll
-   rather than an internal max-height — they are informational, not the drag
-   target, so there is no need to keep them within a fixed viewport slice. */
-.onFieldPanel .benchZoneStatic,
-.benchInfoPanel .benchZoneStatic {
-  overflow-y: visible;
 }
 
 .panelHeader {
@@ -131,14 +78,6 @@
 
 .benchZone.benchZoneOver {
   background: rgba(77, 157, 224, 0.08);
-}
-
-.benchZoneStatic {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  padding: 6px;
-  overflow-y: auto;
 }
 
 .emptyBench {
@@ -312,15 +251,6 @@
 }
 
 /* ── Bench position groups ────────────────────────────────────────────────── */
-
-/* ── Bench position group items grid ─────────────────────────────────────── */
-
-.benchPosGroupItems {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 6px;
-}
 
 .benchGroupSeparator {
   flex: 0 0 22px;
@@ -496,18 +426,6 @@
 .ratingBarLow  { color: #ef4444; background: rgba(239, 68, 68, 0.1);  border: 1px solid rgba(239, 68, 68, 0.25); }
 .ratingBarBench { color: rgba(255,255,255,0.42); background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); }
 
-/* ── Bottom area ──────────────────────────────────────────────────────────── */
-
-.bottom {
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.bottom > * {
-  flex: 1 1 280px;
-}
-
 /* ── Drag overlay ─────────────────────────────────────────────────────────── */
 
 .dragOverlay {
@@ -595,23 +513,15 @@
 }
 
 /* ── Responsive ─────────────────────────────────────────────────────────── */
-/* Field + compact bench stack into a single column below 780px — the info
-   lists row below already reflows on its own via flex-wrap, at any width, so
-   no dedicated tablet-range media query is needed anymore (the compact bench
-   is small enough that it no longer needs a special-cased layout). */
+/* The field + side column layout comes from PartidoEnDirectoTab.module.css
+   (shared with the live match and the lineup); only the bench panel here. */
 
 @media (max-width: 780px) {
-  .main {
-    flex-direction: column;
-  }
-
-  .rightColumn {
-    width: 100%;
-    flex: none;
-    flex-direction: column;
-  }
-
   .sidePanel {
     width: 100%;
   }
+}
+
+.playersButton {
+  align-self: center;
 }

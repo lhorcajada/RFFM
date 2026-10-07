@@ -101,12 +101,16 @@
 }
 
 /* ── Móvil: marcador compacto (menos padding, tipografía y escudos
-   reducidos) para no ocupar espacio vertical desproporcionado. ────────────── */
+   reducidos) en dos filas: equipos + marcador arriba, botones abajo. ──────── */
 @media (max-width: 780px) {
   .root {
-    gap: 8px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    grid-template-areas: "local score visitor" "localGoal card visitorGoal";
+    align-items: center;
+    column-gap: 8px;
+    row-gap: 4px;
     padding: 4px 8px;
-    flex-wrap: wrap;
   }
 
   .team {
@@ -122,7 +126,7 @@
 
   .teamName {
     font-size: 0.68rem;
-    max-width: 72px;
+    max-width: none;
   }
 
   .score {
@@ -132,5 +136,33 @@
 
   .scoreSep {
     font-size: 1.3rem;
+  }
+
+  /* Botones en una segunda fila: nunca se solapan con el marcador. */
+  .local {
+    grid-area: local;
+  }
+
+  .visitor {
+    grid-area: visitor;
+  }
+
+  .scoreBlock {
+    grid-area: score;
+  }
+
+  .localGoal {
+    grid-area: localGoal;
+    justify-self: start;
+  }
+
+  .visitorGoal {
+    grid-area: visitorGoal;
+    justify-self: end;
+  }
+
+  .cardBtn {
+    grid-area: card;
+    justify-self: center;
   }
 }

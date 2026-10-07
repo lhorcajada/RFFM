@@ -1,5 +1,6 @@
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
+import PlayerFormBars from "../../../../components/PlayerFormBars/PlayerFormBars";
 import type { LiveReadinessBreakdown } from "../../utils/liveReadiness";
 import styles from "./SimulationPlayerSlot.module.css";
 
@@ -222,7 +223,17 @@ export default function SimulationPlayerSlot({
       {player && (
         <span className={styles.playerName}>{shortName}</span>
       )}
+
+      {player && (
+        <div className={styles.desktopFormBars}>
+          <PlayerFormBars
+            variant="compact"
+            readiness={player.readiness}
+            fatigue={player.fatigue}
+            formStatus={player.formStatus}
+          />
+        </div>
+      )}
     </div>
   );
-
-    }
+}

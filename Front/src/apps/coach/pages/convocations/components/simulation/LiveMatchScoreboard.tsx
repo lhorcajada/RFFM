@@ -98,7 +98,7 @@ export default function LiveMatchScoreboard({
   return (
     <div className={styles.root}>
       {/* Local team */}
-      <div className={styles.team}>
+      <div className={`${styles.team} ${styles.local}`}>
         {localTeamShield && (
           <img
             src={localTeamShield}
@@ -108,18 +108,18 @@ export default function LiveMatchScoreboard({
           />
         )}
         <span className={styles.teamName}>{localTeamName}</span>
-        <Button
-          size="small"
-          variant="outlined"
-          color={isHomeTeam ? "success" : "error"}
-          className={styles.goalBtn}
-          startIcon={<SportsSoccerIcon sx={{ fontSize: 14 }} />}
-          disabled={!canScore}
-          onClick={() => openGoalDialog(isHomeTeam)}
-        >
-          {isHomeTeam ? "Gol" : "Gol rival"}
-        </Button>
       </div>
+      <Button
+        size="small"
+        variant="outlined"
+        color={isHomeTeam ? "success" : "error"}
+        className={`${styles.goalBtn} ${styles.localGoal}`}
+        startIcon={<SportsSoccerIcon sx={{ fontSize: 14 }} />}
+        disabled={!canScore}
+        onClick={() => openGoalDialog(isHomeTeam)}
+      >
+        {isHomeTeam ? "Gol" : "Gol rival"}
+      </Button>
 
       {/* Score */}
       <div className={styles.scoreBlock}>
@@ -129,18 +129,18 @@ export default function LiveMatchScoreboard({
       </div>
 
       {/* Visitor team */}
-      <div className={`${styles.team} ${styles.teamRight}`}>
-        <Button
-          size="small"
-          variant="outlined"
-          color={!isHomeTeam ? "success" : "error"}
-          className={styles.goalBtn}
-          startIcon={<SportsSoccerIcon sx={{ fontSize: 14 }} />}
-          disabled={!canScore}
-          onClick={() => openGoalDialog(!isHomeTeam)}
-        >
-          {!isHomeTeam ? "Gol" : "Gol rival"}
-        </Button>
+      <Button
+        size="small"
+        variant="outlined"
+        color={!isHomeTeam ? "success" : "error"}
+        className={`${styles.goalBtn} ${styles.visitorGoal}`}
+        startIcon={<SportsSoccerIcon sx={{ fontSize: 14 }} />}
+        disabled={!canScore}
+        onClick={() => openGoalDialog(!isHomeTeam)}
+      >
+        {!isHomeTeam ? "Gol" : "Gol rival"}
+      </Button>
+      <div className={`${styles.team} ${styles.teamRight} ${styles.visitor}`}>
         <span className={styles.teamName}>{visitorTeamName}</span>
         {visitorTeamShield && (
           <img

@@ -4,49 +4,36 @@ import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import SportsSoccerIcon from "@mui/icons-material/SportsSoccer";
 import VisibilityIcon from "@mui/icons-material/Visibility";
-import MinutesReasonEditor from "./MinutesReasonEditor";
-import type { PlayerMinutesReason } from "./MinutesReasonsListDialog";
 import { CONVOCATION_TAB } from "./convocationMatchDetail.types";
 
 type Props = {
   teamId: string;
   tab: number;
   eventId: string | null;
-  lineupPlayersCount: number;
   printing: boolean;
   /** true once every called-up player has confirmed their convocation (no one left pending) */
   convocationConfirmed: boolean;
   onBack: () => void;
   onOpenEvent: () => void;
   onSaveConvocation: () => void;
-  onSaveLineup: () => void;
   onPrint: () => void;
   onViewConvocation: () => void;
   /** Opens the full-screen live match page. When omitted the button is not shown. */
   onOpenLiveMatch?: () => void;
-  /** Pre-match minutes reasons for the "Alineación" tab. Optional — when omitted
-   *  (or when onSaveMinutesReason is not provided) the button is not shown. Purely additive,
-   *  never required to save the lineup. */
-  minutesReasonsPlayers?: PlayerMinutesReason[];
-  onSaveMinutesReason?: (playerId: string, reason: string | null) => Promise<void>;
 };
 
 export default function ConvocationMatchActionBar({
   teamId,
   tab,
   eventId,
-  lineupPlayersCount,
   printing,
   convocationConfirmed,
   onBack,
   onOpenEvent,
   onSaveConvocation,
-  onSaveLineup,
   onPrint,
   onViewConvocation,
   onOpenLiveMatch,
-  minutesReasonsPlayers,
-  onSaveMinutesReason,
 }: Props) {
   return (
     <>
@@ -73,14 +60,6 @@ export default function ConvocationMatchActionBar({
         <Button variant="contained" size="small" onClick={onSaveConvocation}>
           Guardar
         </Button>
-      )}
-      {tab === CONVOCATION_TAB.Alineacion && eventId && lineupPlayersCount > 0 && (
-        <Button variant="contained" size="small" onClick={onSaveLineup}>
-          Guardar
-        </Button>
-      )}
-      {tab === CONVOCATION_TAB.Alineacion && onSaveMinutesReason && minutesReasonsPlayers && minutesReasonsPlayers.length > 0 && (
-        <MinutesReasonEditor players={minutesReasonsPlayers} onSave={onSaveMinutesReason} />
       )}
       {eventId && (
         <Button

@@ -19,13 +19,12 @@ function makePlayer(overrides: Partial<SquadPlayer> = {}): SquadPlayer {
 }
 
 describe("CompactBenchCard - tarjeta compacta de banquillo (mismo lenguaje visual que el campo)", () => {
-  it("muestra foto/iniciales, dorsal y nombre, sin competitividad ni barras de forma", () => {
+  it("muestra foto/iniciales, dorsal y nombre, sin competitividad", () => {
     render(<CompactBenchCard player={makePlayer()} minutesPlayed={0} isLeaving={false} />);
 
     expect(screen.getByText("7")).toBeInTheDocument();
     expect(screen.getByText("Jugador Uno")).toBeInTheDocument();
     expect(screen.queryByText("9")).not.toBeInTheDocument(); // competitividad
-    expect(screen.queryByTestId("player-form-bar-ef")).not.toBeInTheDocument();
     expect(screen.queryByText(/Comp\./)).not.toBeInTheDocument();
     expect(screen.queryByText(/⏱/)).not.toBeInTheDocument(); // racha
   });
@@ -55,5 +54,26 @@ describe("DraggableCompactBenchCard - mecanismo de arrastre", () => {
     );
     expect(screen.getByText("Jugador Uno")).toBeInTheDocument();
     expect(screen.getByText("7")).toBeInTheDocument();
+  });
+});
+
+describe("CompactBenchCard - barras Ef/R/C bajo el avatar (solo desktop)", () => {
+  it("muestra las barras compactas Ef/R/C del jugador de banquillo", () => {
+    render(<CompactBenchCard player={makePlayer()} minutesPlayed={0} isLeaving={false} />);
+
+    expect(screen.getByTestId("player-form-bar-r")).toHaveTextContent("40%");
+    expect(screen.getByTestId("player-form-bar-c")).toHaveTextContent("10%");
+    expect(screen.getByTestId("player-form-bar-ef").closest("[class*='desktopFormBars']")).not.toBeNull();
+  });
+
+  it("muestra las acciones opcionales del avatar (p. ej. desconvocar)", () => {
+    render(
+      <CompactBenchCard
+        player={makePlayer()}
+        actions={<button type="button">Desconvocar</button>}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Desconvocar" })).toBeInTheDocument();
   });
 });

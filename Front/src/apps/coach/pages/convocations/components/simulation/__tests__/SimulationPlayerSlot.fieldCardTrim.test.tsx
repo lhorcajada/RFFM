@@ -12,8 +12,8 @@ const basePlayer = {
   fatigue: 10,
 };
 
-describe("SimulationPlayerSlot - tarjeta de campo recortada (sin competitividad ni barras de forma)", () => {
-  it("no muestra el badge de competitividad ni las barras de forma en modo preparación de cambio (DraggablePrepareCard)", () => {
+describe("SimulationPlayerSlot - tarjeta de campo recortada (sin competitividad)", () => {
+  it("no muestra el badge de competitividad en modo preparación de cambio (DraggablePrepareCard)", () => {
     render(
       <DndContext>
         <SimulationPlayerSlot
@@ -28,15 +28,12 @@ describe("SimulationPlayerSlot - tarjeta de campo recortada (sin competitividad 
     );
 
     expect(screen.queryByText("9")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("player-form-bar-ef")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("player-form-bar-r")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("player-form-bar-c")).not.toBeInTheDocument();
     // sigue mostrando lo esencial
     expect(screen.getByText("7")).toBeInTheDocument();
     expect(screen.getByText("Jugador Uno")).toBeInTheDocument();
   });
 
-  it("no muestra el badge de competitividad ni las barras de forma con reposicionamiento libre (DraggableStaticCard)", () => {
+  it("no muestra el badge de competitividad con reposicionamiento libre (DraggableStaticCard)", () => {
     render(
       <DndContext>
         <SimulationPlayerSlot
@@ -52,11 +49,10 @@ describe("SimulationPlayerSlot - tarjeta de campo recortada (sin competitividad 
     );
 
     expect(screen.queryByText("9")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("player-form-bar-ef")).not.toBeInTheDocument();
     expect(screen.getByText("7")).toBeInTheDocument();
   });
 
-  it("no muestra el badge de competitividad ni las barras de forma en modo estático normal (StaticCard)", () => {
+  it("no muestra el badge de competitividad en modo estático normal (StaticCard)", () => {
     render(
       <DndContext>
         <SimulationPlayerSlot
@@ -72,7 +68,6 @@ describe("SimulationPlayerSlot - tarjeta de campo recortada (sin competitividad 
     );
 
     expect(screen.queryByText("9")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("player-form-bar-ef")).not.toBeInTheDocument();
     expect(screen.getByText("7")).toBeInTheDocument();
   });
 

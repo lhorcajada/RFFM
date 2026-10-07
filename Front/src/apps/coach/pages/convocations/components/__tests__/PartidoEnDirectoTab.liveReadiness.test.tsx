@@ -1,5 +1,5 @@
-﻿import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import PartidoEnDirectoTab from "../PartidoEnDirectoTab";
 import type { SquadPlayer } from "../../../squad/components/IdealLineup";
@@ -130,9 +130,10 @@ describe("PartidoEnDirectoTab - rodaje en vivo", () => {
     );
 
     await userEvent.click(await screen.findByRole("button", { name: /jugadores/i }));
+    const dialog = within(await screen.findByRole("dialog"));
     // 140' en vivo: 100 − 44 · e^(−0.1 · 1.5 · 140/70) = 67.4 → 67
-    expect(await screen.findByText("67%")).toBeInTheDocument();
-    expect(screen.queryByText("56%")).not.toBeInTheDocument();
+    expect(await dialog.findByText("67%")).toBeInTheDocument();
+    expect(dialog.queryByText("56%")).not.toBeInTheDocument();
   });
 
   it("con 0 minutos en el partido en directo, muestra el mismo % que el rodaje original", async () => {
@@ -150,6 +151,7 @@ describe("PartidoEnDirectoTab - rodaje en vivo", () => {
     );
 
     await userEvent.click(await screen.findByRole("button", { name: /jugadores/i }));
-    expect(await screen.findByText("56%")).toBeInTheDocument();
+    const dialog = within(await screen.findByRole("dialog"));
+    expect(await dialog.findByText("56%")).toBeInTheDocument();
   });
 });

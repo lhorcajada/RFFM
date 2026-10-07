@@ -88,8 +88,6 @@ vi.mock("../hooks/useConvocationProposal", () => ({
 
 vi.mock("../components/ConvocationTab", () => ({ default: () => null }));
 vi.mock("../components/DesconvocatoriasTab", () => ({ default: () => null }));
-vi.mock("../components/AlineacionTab", () => ({ default: () => null }));
-vi.mock("../components/SimulacionTab", () => ({ default: () => null }));
 vi.mock("../components/PartidoEnDirectoTab", () => ({ default: () => null }));
 vi.mock("../components/ConvocatoriaPrint", () => ({ default: React.forwardRef(() => null) }));
 vi.mock("../components/ConvocationDeconvokeDialog", () => ({ default: () => null }));

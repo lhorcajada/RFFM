@@ -1,5 +1,5 @@
-﻿import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import PartidoEnDirectoTab from "../PartidoEnDirectoTab";
 import type { SquadPlayer } from "../../../squad/components/IdealLineup";
@@ -129,6 +129,7 @@ describe("PartidoEnDirectoTab - indicador de rodaje", () => {
     );
 
     await userEvent.click(await screen.findByRole("button", { name: /jugadores/i }));
-    expect(await screen.findByText("88%")).toBeInTheDocument();
+    const dialog = within(await screen.findByRole("dialog"));
+    expect(await dialog.findByText("88%")).toBeInTheDocument();
   });
 });

@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -18,6 +18,7 @@ import {
   DialogTitle,
 } from "@mui/material";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
+import GroupsIcon from "@mui/icons-material/Groups";
 import EmptyState from "../../../../../shared/components/ui/EmptyState/EmptyState";
 import { getIdealLineup } from "../../../services/idealLineupService";
 import { getFormations } from "../../../services/formationService";
@@ -40,13 +41,10 @@ import SimulationConfig from "./simulation/SimulationConfig";
 import MatchCompetitivenessReport from "./simulation/MatchCompetitivenessReport";
 import type { SimSlotPlayer } from "./simulation/SimulationPlayerSlot";
 import type { SquadPlayer } from "../../squad/components/IdealLineup";
-import PlayerFormLegend from "../../../components/PlayerFormLegend/PlayerFormLegend";
-import {
-  BenchPlayerCard,
-  DroppableBench,
-  groupBenchPlayers,
-} from "./simulation/BenchPlayerCard";
+import { DroppableBench } from "./simulation/BenchPlayerCard";
 import { CompactBenchCard, DraggableCompactBenchCard } from "./simulation/CompactBenchCard";
+import MatchPlayersDialog from "./MatchPlayersDialog";
+import liveStyles from "./PartidoEnDirectoTab.module.css";
 import styles from "./SimulacionTab.module.css";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -70,6 +68,7 @@ export default function SimulacionTab({ teamId, eventId, lineupPlayers, isFriend
   const [savedSims, setSavedSims] = useState<MatchSimulation[]>([]);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [team, setTeam] = useState<TeamResponse | null>(null);
+  const [playersDialogOpen, setPlayersDialogOpen] = useState(false);
 
   const sim = useMatchSimulation({ enableWindowLimits: !isFriendly });
 
@@ -373,17 +372,41 @@ export default function SimulacionTab({ teamId, eventId, lineupPlayers, isFriend
     );
   }
 
-  // ─── Field + compact bench content (shared between prepare/normal mode) ───
-  // The side panel is now a compact, draggable bench (same visual language as
-  // the on-field cards) in every viewport size — no more tablet-only layout.
-  // The rich, read-only info panels ("En el campo" / "Banquillo") live in a
-  // separate always-visible block below (see infoLists).
+  // ─── Same full-screen layout as the live match: field on the left and a
+  // side column (compact draggable bench, substitution history, saved
+  // simulations, report) that scrolls on its own. The rich, read-only
+  // "En el campo" / "Banquillo" lists open on demand in the "Jugadores" popup.
 
   const currentBenchPlayers = sim.prepareMode ? prepareBenchPlayers : benchPlayers;
 
+  const ratingBar = (fieldCompAvg !== null || benchCompAvg !== null) && (
+    <div className={styles.ratingBar}>
+      <span className={styles.ratingBarLabel}>Media competitividad:</span>
+      {fieldCompAvg !== null && (
+        <span
+          className={`${styles.ratingBarItem} ${
+            fieldCompAvg >= 8
+              ? styles.ratingBarHigh
+              : fieldCompAvg >= 6
+                ? styles.ratingBarMid
+                : styles.ratingBarLow
+          }`}
+        >
+          ★ {Math.round(fieldCompAvg)} campo
+        </span>
+      )}
+      {benchCompAvg !== null && (
+        <span className={`${styles.ratingBarItem} ${styles.ratingBarBench}`}>
+          ★ {Math.round(benchCompAvg)} banquillo
+        </span>
+      )}
+    </div>
+  );
+
   const fieldAndPanel = (
-    <div className={styles.main}>
+    <div className={liveStyles.liveMain}>
       <SimulationField
+        className={liveStyles.liveField}
         slotDefs={slotDefs}
         slots={sim.slots}
         prepareSlotsPreview={sim.prepareMode ? sim.prepareSlotsPreview : undefined}
@@ -392,8 +415,8 @@ export default function SimulacionTab({ teamId, eventId, lineupPlayers, isFriend
         prepareMode={sim.prepareMode}
       />
 
-      {/* Right column: compact bench + history */}
-      <div className={styles.rightColumn}>
+      <div className={liveStyles.liveSideColumn}>
+        {ratingBar}
         <div className={styles.sidePanel}>
           <div className={styles.panelHeader}>
             {sim.prepareMode ? "Disponibles para el cambio" : "Banquillo"}
@@ -431,103 +454,33 @@ export default function SimulacionTab({ teamId, eventId, lineupPlayers, isFriend
           )}
         </div>
 
-        {/* Substitution history */}
         <SubstitutionHistoryPanel windows={sim.windows} playersById={playersById} />
-      </div>
-    </div>
-  );
 
-  // ─── Info lists: rich, read-only "En el campo" + "Banquillo" — always
-  // visible, every viewport size, full width, below field + compact bench ──
+        <SavedSimulationsPanel
+          savedSimulations={savedSims}
+          onSave={handleSave}
+          onLoad={handleLoad}
+          onDelete={handleDelete}
+        />
 
-  const infoLists = (
-    <div className={styles.infoListsRow}>
-      <div className={styles.onFieldPanel}>
-        <div className={styles.panelHeader}>
-          En el campo
-          <span className={styles.panelBadge}>{onFieldPlayers.length}</span>
-        </div>
-        <div className={styles.benchZoneStatic}>
-          {onFieldPlayers.length === 0 ? (
-            <p className={styles.emptyBench}>No hay jugadores en el campo</p>
-          ) : (
-            <div className={styles.benchPosGroupItems}>
-              {groupBenchPlayers(onFieldPlayers).map((group) => (
-                <Fragment key={group.label}>
-                  <div className={styles.benchGroupSeparator} style={{ borderLeftColor: group.color }}>
-                    <span className={styles.benchGroupSeparatorLabel}>{group.label}</span>
-                    <span className={styles.benchGroupSeparatorCount}>{group.players.length}</span>
-                  </div>
-                  {group.players.map((p) => (
-                    <BenchPlayerCard
-                      key={p.id}
-                      player={p}
-                      isDragActive={false}
-                      isLeaving={false}
-                      minutesPlayed={sim.playerMinutes[p.id] ?? 0}
-                      hasPlayed={(sim.playerStates[p.id]?.accumulatedMinutes ?? 0) > 0 || sim.playerStates[p.id]?.isOnField === true}
-                      groupColor={group.color}
-                    />
-                  ))}
-                </Fragment>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className={styles.benchInfoPanel}>
-        <div className={styles.panelHeader}>
-          Banquillo
-          <span className={styles.panelBadge}>{currentBenchPlayers.length}</span>
-        </div>
-        <div className={styles.panelLegend}>
-          <span className={styles.legendItem}>
-            <span className={`${styles.benchCompTag} ${styles.benchCompMid}`} style={{ fontSize: "0.5rem" }}>Comp.</span> Competitividad
-          </span>
-          <span className={styles.legendItem}>
-            <span className={styles.benchMinTag} style={{ fontSize: "0.5rem" }}>0&apos;</span> Minutos
-          </span>
-          <span className={styles.legendItem}>
-            <span className={styles.benchStreakBadge} style={{ fontSize: "0.5rem" }}>⏱ N</span> Jornadas sin decisión técnica
-          </span>
-          <PlayerFormLegend />
-        </div>
-        <div className={styles.benchZoneStatic}>
-          {currentBenchPlayers.length === 0 ? (
-            <p className={styles.emptyBench}>No hay jugadores en el banquillo</p>
-          ) : (
-            <div className={styles.benchPosGroupItems}>
-              {groupBenchPlayers(currentBenchPlayers).map((group) => (
-                <Fragment key={group.label}>
-                  <div className={styles.benchGroupSeparator} style={{ borderLeftColor: group.color }}>
-                    <span className={styles.benchGroupSeparatorLabel}>{group.label}</span>
-                    <span className={styles.benchGroupSeparatorCount}>{group.players.length}</span>
-                  </div>
-                  {group.players.map((p) => (
-                    <BenchPlayerCard
-                      key={p.id}
-                      player={p}
-                      isDragActive={false}
-                      isLeaving={sim.prepareMode && leavingIds.has(p.id)}
-                      minutesPlayed={sim.playerMinutes[p.id] ?? 0}
-                      hasPlayed={(sim.playerStates[p.id]?.accumulatedMinutes ?? 0) > 0 || sim.playerStates[p.id]?.isOnField === true}
-                      groupColor={group.color}
-                    />
-                  ))}
-                </Fragment>
-              ))}
-            </div>
-          )}
-        </div>
+        {/* Competitiveness report — shown at full time or when a save is loaded */}
+        {(sim.isMatchOver || sim.isLoadedFromSave) && sim.windows.length > 0 && (
+          <MatchCompetitivenessReport
+            initialSlots={sim.initialSlots}
+            windows={sim.windows}
+            finalSlots={sim.slots}
+            playersById={playersById}
+            halfDuration={sim.halfDuration}
+          />
+        )}
       </div>
     </div>
   );
 
   return (
-    <div className={styles.root}>
+    <div className={liveStyles.root}>
       {/* Timer + window tracker bar */}
-      <div className={styles.topBar}>
+      <div className={liveStyles.topBar}>
         <MatchTimer
           currentMinute={sim.currentMinute}
           currentSecond={sim.currentSecond}
@@ -558,32 +511,16 @@ export default function SimulacionTab({ teamId, eventId, lineupPlayers, isFriend
           halfDuration={sim.halfDuration}
           onHalfDurationChange={handleHalfDurationChange}
         />
+        <Button
+          variant="outlined"
+          size="small"
+          startIcon={<GroupsIcon />}
+          onClick={() => setPlayersDialogOpen(true)}
+          className={styles.playersButton}
+        >
+          Jugadores
+        </Button>
       </div>
-
-      {/* Rating bar */}
-      {(fieldCompAvg !== null || benchCompAvg !== null) && (
-        <div className={styles.ratingBar}>
-          <span className={styles.ratingBarLabel}>Media competitividad:</span>
-          {fieldCompAvg !== null && (
-            <span
-              className={`${styles.ratingBarItem} ${
-                fieldCompAvg >= 8
-                  ? styles.ratingBarHigh
-                  : fieldCompAvg >= 6
-                    ? styles.ratingBarMid
-                    : styles.ratingBarLow
-              }`}
-            >
-              ★ {Math.round(fieldCompAvg)} campo
-            </span>
-          )}
-          {benchCompAvg !== null && (
-            <span className={`${styles.ratingBarItem} ${styles.ratingBarBench}`}>
-              ★ {Math.round(benchCompAvg)} banquillo
-            </span>
-          )}
-        </div>
-      )}
 
       {/* Field + bench — always inside DndContext so useDroppable/useDraggable hooks work */}
       <DndContext
@@ -620,29 +557,16 @@ export default function SimulacionTab({ teamId, eventId, lineupPlayers, isFriend
         </DragOverlay>
       </DndContext>
 
-      {/* Info lists: rich, read-only "En el campo" + "Banquillo" — always visible */}
-      {infoLists}
-
-      {/* History + saved simulations */}
-      <div className={styles.bottom}>
-        <SavedSimulationsPanel
-          savedSimulations={savedSims}
-          onSave={handleSave}
-          onLoad={handleLoad}
-          onDelete={handleDelete}
-        />
-      </div>
-
-      {/* Competitiveness report — shown at full time or when a save is loaded */}
-      {(sim.isMatchOver || sim.isLoadedFromSave) && sim.windows.length > 0 && (
-        <MatchCompetitivenessReport
-          initialSlots={sim.initialSlots}
-          windows={sim.windows}
-          finalSlots={sim.slots}
-          playersById={playersById}
-          halfDuration={sim.halfDuration}
-        />
-      )}
+      {/* Players popup: rich, read-only "En el campo" + "Banquillo" */}
+      <MatchPlayersDialog
+        open={playersDialogOpen}
+        onClose={() => setPlayersDialogOpen(false)}
+        onFieldPlayers={onFieldPlayers}
+        benchPlayers={currentBenchPlayers}
+        minutesById={sim.playerMinutes}
+        hasPlayed={(id) => (sim.playerStates[id]?.accumulatedMinutes ?? 0) > 0 || sim.playerStates[id]?.isOnField === true}
+        isLeaving={(id) => sim.prepareMode && leavingIds.has(id)}
+      />
 
       {/* Confirmation dialog after committing a window */}
       <Dialog

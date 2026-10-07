@@ -1,5 +1,6 @@
-﻿import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen, within, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import SimulacionTab from "../SimulacionTab";
 import type { UseMatchSimulationReturn } from "../../hooks/useMatchSimulation";
 import type { SquadPlayer } from "../../../squad/components/IdealLineup";
@@ -92,16 +93,18 @@ const lineupPlayers: SquadPlayer[] = [
   { id: "p2", displayName: "BanquilloRico Dos", dorsal: 12, position: "Defensa", competitiveness: 6, streakCount: 2 },
 ];
 
-describe("SimulacionTab - listado informativo 'Banquillo' (tarjeta rica, solo lectura, siempre visible)", () => {
+describe("SimulacionTab - listado informativo 'Banquillo' (tarjeta rica, solo lectura, en el popup 'Jugadores')", () => {
   it("muestra los jugadores del banquillo con información completa, en un panel informativo dedicado (.benchInfoPanel)", async () => {
     useMatchSimulationMock.mockReturnValue(baseSimReturn());
 
-    const { container } = render(
+    render(
       <SimulacionTab teamId="team-1" eventId="event-1" lineupPlayers={lineupPlayers} />,
     );
 
+    await userEvent.click(await screen.findByRole("button", { name: /jugadores/i }));
+
     const infoPanel = await waitFor(() => {
-      const el = container.querySelector("[class*='benchInfoPanel']");
+      const el = document.querySelector("[class*='benchInfoPanel']");
       if (!el) throw new Error("not yet rendered");
       return el;
     });
@@ -117,12 +120,14 @@ describe("SimulacionTab - listado informativo 'Banquillo' (tarjeta rica, solo le
   it("el listado informativo no es arrastrable (sin wrapper dragHandle/benchDragHandle)", async () => {
     useMatchSimulationMock.mockReturnValue(baseSimReturn());
 
-    const { container } = render(
+    render(
       <SimulacionTab teamId="team-1" eventId="event-1" lineupPlayers={lineupPlayers} />,
     );
 
+    await userEvent.click(await screen.findByRole("button", { name: /jugadores/i }));
+
     const infoPanel = await waitFor(() => {
-      const el = container.querySelector("[class*='benchInfoPanel']");
+      const el = document.querySelector("[class*='benchInfoPanel']");
       if (!el) throw new Error("not yet rendered");
       return el;
     });
@@ -131,10 +136,12 @@ describe("SimulacionTab - listado informativo 'Banquillo' (tarjeta rica, solo le
     expect(card.closest("[class*='benchDragHandle']")).toBeNull();
   });
 
-  it("el bloque informativo se muestra aunque no se esté en prepareMode (siempre visible)", async () => {
+  it("el bloque informativo se muestra aunque no se esté en prepareMode (en el popup 'Jugadores')", async () => {
     useMatchSimulationMock.mockReturnValue(baseSimReturn({ prepareMode: false }));
 
     render(<SimulacionTab teamId="team-1" eventId="event-1" lineupPlayers={lineupPlayers} />);
+
+    await userEvent.click(await screen.findByRole("button", { name: /jugadores/i }));
 
     expect(await screen.findByText("En el campo")).toBeInTheDocument();
   });

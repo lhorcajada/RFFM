@@ -26,6 +26,8 @@ interface SimulationFieldProps {
   usedTabById?: Record<string, number>;
   /** Extra class for the outer wrapper, to let a parent size the field (e.g. to the available height). */
   className?: string;
+  /** Hides the minutes tag (pre-match lineup, where nobody has played yet). */
+  hideMinutes?: boolean;
 }
 
 export default function SimulationField({
@@ -42,6 +44,7 @@ export default function SimulationField({
   usedTabById,
   wrapperRef,
   className,
+  hideMinutes = false,
 }: SimulationFieldProps) {
   // In prepare mode we render from the preview, otherwise from real slots
   const activeSlots = prepareMode && prepareSlotsPreview ? prepareSlotsPreview : slots;
@@ -94,7 +97,10 @@ export default function SimulationField({
           const minutes = playerId !== null ? (playerMinutes[playerId] ?? 0) : undefined;
           const player =
             staticPlayer && minutes !== undefined
-              ? { ...staticPlayer, readiness: computeLiveReadiness(staticPlayer.readinessBreakdown, minutes) }
+              ? {
+                  ...staticPlayer,
+                  readiness: computeLiveReadiness(staticPlayer.readinessBreakdown, minutes) ?? staticPlayer.readiness,
+                }
               : staticPlayer;
           const entering = playerId !== null && enteringIds.has(playerId);
           const leaving = playerId !== null && leavingIds.has(playerId);
@@ -107,12 +113,12 @@ export default function SimulationField({
               x={def.x}
               y={def.y}
               player={player}
-              minuteTag={minutes}
+              minuteTag={hideMinutes ? undefined : minutes}
               entering={entering}
               leaving={leaving}
               prepareMode={prepareMode}
               freeRepositionEnabled={freeRepositionEnabled}
-                slotIdPrefix={slotIdPrefix}
+              slotIdPrefix={slotIdPrefix}
               activeTab={activeTab}
               usedTabById={usedTabById}
               hasGoals={playerId !== null && scorerIds?.has(playerId)}
