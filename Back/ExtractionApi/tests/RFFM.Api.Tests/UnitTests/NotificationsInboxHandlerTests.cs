@@ -187,5 +187,129 @@ namespace RFFM.Api.Tests.UnitTests
             var unchanged = await db.Notifications.SingleAsync(n => n.Id == notification.Id);
             Assert.False(unchanged.IsRead);
         }
+
+        [Fact]
+        public async Task DeleteNotifications_RemovesOnlyRequestedOwnNotifications()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var userId = Guid.NewGuid().ToString();
+            var first = Notification.Create(userId, "NewsPublished", "First", "Body", null);
+            var second = Notification.Create(userId, "NewsPublished", "Second", "Body", null);
+            var kept = Notification.Create(userId, "NewsPublished", "Kept", "Body", null);
+            db.Notifications.AddRange(first, second, kept);
+            await db.SaveChangesAsync();
+
+            var handler = new DeleteNotifications.Handler(db, MockCurrentUser(userId).Object);
+            var deleted = await handler.Handle(
+                new DeleteNotifications.DeleteNotificationsCommand([first.Id, second.Id]), CancellationToken.None);
+
+            Assert.Equal(2, deleted);
+            var remaining = await db.Notifications.AsNoTracking()
+                .Where(n => n.Id == first.Id || n.Id == second.Id || n.Id == kept.Id)
+                .Select(n => n.Id)
+                .ToListAsync();
+            Assert.Equal([kept.Id], remaining);
+        }
+
+        [Fact]
+        public async Task DeleteNotifications_AnotherUsersNotification_IsNotDeleted()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var ownerId = Guid.NewGuid().ToString();
+            var attackerId = Guid.NewGuid().ToString();
+            var notification = Notification.Create(ownerId, "NewsPublished", "T", "B", null);
+            db.Notifications.Add(notification);
+            await db.SaveChangesAsync();
+
+            var handler = new DeleteNotifications.Handler(db, MockCurrentUser(attackerId).Object);
+            var deleted = await handler.Handle(
+                new DeleteNotifications.DeleteNotificationsCommand([notification.Id]), CancellationToken.None);
+
+            Assert.Equal(0, deleted);
+            Assert.True(await db.Notifications.AsNoTracking().AnyAsync(n => n.Id == notification.Id));
+        }
+
+        [Fact]
+        public async Task DeleteAllNotifications_WithCoachApp_DeletesOnlyOwnCoachNotifications()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var userId = Guid.NewGuid().ToString();
+            var otherUserId = Guid.NewGuid().ToString();
+            var coachRead = Notification.Create(userId, "NewsPublished", "Coach1", "Body", "/coach/news/1");
+            coachRead.MarkAsRead();
+            var coachUnread = Notification.Create(userId, "NewsPublished", "Coach2", "Body", null);
+            var federation = Notification.Create(userId, "SquadHistoryReady", "Federation", "Body", "/federation/squad-history/555?seasonId=22");
+            var otherUsers = Notification.Create(otherUserId, "NewsPublished", "Other", "Body", "/coach/news/1");
+            db.Notifications.AddRange(coachRead, coachUnread, federation, otherUsers);
+            await db.SaveChangesAsync();
+
+            var handler = new DeleteAllNotifications.Handler(db, MockCurrentUser(userId).Object);
+            var deleted = await handler.Handle(
+                new DeleteAllNotifications.DeleteAllNotificationsCommand(NotificationApps.Coach), CancellationToken.None);
+
+            Assert.Equal(2, deleted);
+            var remaining = await db.Notifications.AsNoTracking()
+                .Where(n => n.Id == coachRead.Id || n.Id == coachUnread.Id || n.Id == federation.Id || n.Id == otherUsers.Id)
+                .Select(n => n.Id)
+                .ToListAsync();
+            Assert.Equal(2, remaining.Count);
+            Assert.Contains(federation.Id, remaining);
+            Assert.Contains(otherUsers.Id, remaining);
+        }
+
+        [Fact]
+        public async Task DeleteAllNotifications_WithFederationApp_DeletesOnlyFederationNotifications()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var userId = Guid.NewGuid().ToString();
+            var coach = Notification.Create(userId, "NewsPublished", "Coach", "Body", "/coach/news/1");
+            var federation = Notification.Create(userId, "SquadHistoryReady", "Federation", "Body", "/federation/squad-history/555?seasonId=22");
+            db.Notifications.AddRange(coach, federation);
+            await db.SaveChangesAsync();
+
+            var handler = new DeleteAllNotifications.Handler(db, MockCurrentUser(userId).Object);
+            await handler.Handle(
+                new DeleteAllNotifications.DeleteAllNotificationsCommand(NotificationApps.Federation), CancellationToken.None);
+
+            var remaining = await db.Notifications.AsNoTracking()
+                .Where(n => n.Id == coach.Id || n.Id == federation.Id)
+                .Select(n => n.Id)
+                .ToListAsync();
+            Assert.Equal([coach.Id], remaining);
+        }
+
+        [Theory]
+        [InlineData(null)]
+        [InlineData("")]
+        [InlineData("unknown")]
+        public void DeleteAllNotificationsValidator_WithoutValidApp_IsInvalid(string? app)
+        {
+            var result = new DeleteAllNotifications.Validator()
+                .Validate(new DeleteAllNotifications.DeleteAllNotificationsCommand(app));
+
+            Assert.False(result.IsValid);
+        }
+
+        [Fact]
+        public void DeleteNotificationsValidator_EmptyIds_IsInvalid()
+        {
+            var result = new DeleteNotifications.Validator()
+                .Validate(new DeleteNotifications.DeleteNotificationsCommand([]));
+
+            Assert.False(result.IsValid);
+        }
+
+        [Fact]
+        public void DeleteNotificationsValidator_TooManyIds_IsInvalid()
+        {
+            var ids = Enumerable.Range(0, DeleteNotifications.MaxIdsPerRequest + 1)
+                .Select(_ => Guid.NewGuid().ToString())
+                .ToArray();
+
+            var result = new DeleteNotifications.Validator()
+                .Validate(new DeleteNotifications.DeleteNotificationsCommand(ids));
+
+            Assert.False(result.IsValid);
+        }
     }
 }
