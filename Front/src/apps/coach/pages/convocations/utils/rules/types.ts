@@ -31,6 +31,8 @@ export type RuleContext = {
   seasonColumns: MatchColumn[];
   enrichedGrid: Map<string, Map<string, GridCell>>;
   lastInjuryEndMap: Map<string, string | null>;
+  /** Trainings + matches missed during the last ended injury; absent when unknown. */
+  lastInjuryMissedEventsMap?: Map<string, number>;
   currentIso: string | null;
   weekTrainingCount: number;
   maxTechnicalTotal: number;

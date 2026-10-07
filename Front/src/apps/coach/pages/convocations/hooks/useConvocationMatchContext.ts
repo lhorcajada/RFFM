@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getSeasonPlayerStats } from "../../../services/liveMatchService";
 import { getSettingsForUser } from "../../../../federation/services/federationApi";
 import federationService from "../../../services/federationService";
@@ -8,7 +8,8 @@ import sportEventTypeService from "../../../services/sportEventTypeService";
 import convocationService from "../../../services/convocationService";
 import type { SportEventResponse } from "../../../services/sportEventService";
 import type { WeeklyTrainingStats } from "../utils/deconvokeProposal";
-import { endOfWeekIso, getAllSportEventsInRange, startOfWeekIso, toIsoDay } from "../helpers/convocationMatchDetail.helpers";
+import { countMissedEventsDuringInjury, type InjuryWindow } from "../utils/injuryMissedEvents";
+import { getAllSportEventsInRange, previousDaysRangeIso, toIsoDay } from "../helpers/convocationMatchDetail.helpers";
 import type { SeasonPlayerStats } from "../components/simulation/liveMatch.types";
 
 type TrainingSummaryPlayer = {
@@ -16,14 +17,23 @@ type TrainingSummaryPlayer = {
   playerId?: string | null;
   attendedTrainings?: number;
   totalTrainings?: number;
-  absences?: Array<{ eventId: string }>;
+  absences?: Array<{ eventId: string; date?: string | null; excuseTypeId?: number | null }>;
 };
+
+// Estudios, Problema familiar, Cita médica e Imprevisto: causes outside the player's control
+// that must not count against training attendance.
+const NON_PENALIZING_EXCUSE_IDS = new Set([2, 4, 9, 10]);
+
+function isNonPenalizingExcuse(excuseTypeId: number | null | undefined): boolean {
+  return excuseTypeId != null && NON_PENALIZING_EXCUSE_IDS.has(excuseTypeId);
+}
 
 export type ConvocationMatchContext = {
   seasonEvents: SportEventResponse[];
   seasonStats: SeasonPlayerStats[];
   gridStartsCountMap: Map<string, number>;
   lastInjuryEndMap: Map<string, string | null>;
+  lastInjuryMissedEventsMap: Map<string, number>;
   weekTrainingStatsMap: Map<string, WeeklyTrainingStats>;
   weekTrainingCount: number;
   loadingProposalContext: boolean;
@@ -40,6 +50,9 @@ export function useConvocationMatchContext(
   const [seasonStats, setSeasonStats] = useState<SeasonPlayerStats[]>([]);
   const [gridStartsCountMap, setGridStartsCountMap] = useState<Map<string, number>>(new Map());
   const [lastInjuryEndMap, setLastInjuryEndMap] = useState<Map<string, string | null>>(new Map());
+  const [lastInjuryWindowMap, setLastInjuryWindowMap] = useState<Map<string, InjuryWindow>>(new Map());
+  const [trainingAbsenceDaysMap, setTrainingAbsenceDaysMap] = useState<Map<string, string[]> | null>(null);
+  const [matchDays, setMatchDays] = useState<string[]>([]);
   const [weekTrainingStatsMap, setWeekTrainingStatsMap] = useState<Map<string, WeeklyTrainingStats>>(new Map());
   const [weekTrainingCount, setWeekTrainingCount] = useState(0);
   const [loadingProposalContext, setLoadingProposalContext] = useState(false);
@@ -51,6 +64,8 @@ export function useConvocationMatchContext(
       setGridStartsCountMap(new Map());
       setWeekTrainingStatsMap(new Map());
       setWeekTrainingCount(0);
+      setTrainingAbsenceDaysMap(null);
+      setMatchDays([]);
       return;
     }
 
@@ -60,6 +75,8 @@ export function useConvocationMatchContext(
     const seasonStartYear = month >= 7 ? year : year - 1;
     const seasonStart = `${seasonStartYear}-07-01`;
 
+    const preMatchWeek = previousDaysRangeIso(matchIso, 7);
+
     let mounted = true;
     setLoadingProposalContext(true);
 
@@ -68,7 +85,7 @@ export function useConvocationMatchContext(
       getSeasonPlayerStats(teamId),
       attendanceSummaryService.getTrainingAttendanceSummary(teamId, seasonId).catch(() => null),
       import("../../../services/sportEventService").then((mod) =>
-        mod.default.getSportEvents(teamId, 1, 200, startOfWeekIso(matchIso), endOfWeekIso(matchIso), false),
+        mod.default.getSportEvents(teamId, 1, 200, preMatchWeek.from, preMatchWeek.to, false),
       ),
       sportEventTypeService.getSportEventTypes().catch(() => []),
     ])
@@ -104,6 +121,12 @@ export function useConvocationMatchContext(
           return !(/amist|friendly/.test(eventType) || /amist|friendly/.test(title));
         });
         setSeasonEvents(officialMatches);
+        setMatchDays(
+          filtered
+            .map((ev) => ev.start ?? ev.startTime ?? ev.eveDateTime ?? "")
+            .filter(Boolean)
+            .map((d) => toIsoDay(d)),
+        );
 
         setSeasonStats(stats);
         try {
@@ -258,9 +281,13 @@ export function useConvocationMatchContext(
         );
         if (mounted) setGridStartsCountMap(startsMap);
 
+        const now = Date.now();
         const weekTrainings = weekEventsResp.items.filter((ev) => {
           const eventType = (ev.eventType ?? "").toLowerCase();
           const title = (ev.title ?? ev.name ?? "").toLowerCase();
+          // Trainings not held yet have no attendance, so they can't count as attended.
+          const startMs = new Date(ev.start ?? ev.startTime ?? ev.eveDateTime ?? "").getTime();
+          if (Number.isNaN(startMs) || startMs > now) return false;
           return (
             (ev.eventTypeId != null && trainingTypeIds.has(ev.eventTypeId)) ||
             eventType.includes("entren") ||
@@ -286,21 +313,42 @@ export function useConvocationMatchContext(
           if (byPlayerId) trainingSummaryById.set(byPlayerId, player);
         });
 
+        const eventDayById = new Map(
+          seasonEventsAll.map((ev) => [ev.id, ev.start ?? ev.startTime ?? ev.eveDateTime ?? ""]),
+        );
+        const absenceDays = new Map<string, string[]>();
         const playerStats = new Map<string, WeeklyTrainingStats>();
         convocationPlayers.forEach((p) => {
           const summary =
             trainingSummaryById.get(p.id.toLowerCase()) ??
             (p.playerId ? trainingSummaryById.get(p.playerId.toLowerCase()) : undefined);
 
-          const weeklyAbsences = summary?.absences?.filter((absence) => weekTrainingIds.has(absence.eventId)).length ?? 0;
-          const attendedTrainings = Math.max(0, weekTrainings.length - weeklyAbsences);
+          absenceDays.set(
+            p.id,
+            (summary?.absences ?? [])
+              .map((absence) => absence.date || eventDayById.get(absence.eventId) || "")
+              .filter(Boolean)
+              .map((d) => toIsoDay(d)),
+          );
+
+          const absences = summary?.absences ?? [];
+          const penalizingAbsences = absences.filter((absence) => !isNonPenalizingExcuse(absence.excuseTypeId));
+          const neutralSeasonAbsences = absences.length - penalizingAbsences.length;
+          const neutralWeeklyAbsences = absences.filter(
+            (absence) => weekTrainingIds.has(absence.eventId) && isNonPenalizingExcuse(absence.excuseTypeId),
+          ).length;
+          const weeklyAbsences = penalizingAbsences.filter((absence) => weekTrainingIds.has(absence.eventId)).length;
+          const countedWeekTrainings = weekTrainings.length - neutralWeeklyAbsences;
+          const attendedTrainings = Math.max(0, countedWeekTrainings - weeklyAbsences);
           const attendedTrainingsSeason = summary?.attendedTrainings ?? 0;
-          const totalTrainingsSeason = summary?.totalTrainings ?? pastSeasonTrainingsCount;
+          const totalTrainingsSeason = summary?.totalTrainings != null
+            ? Math.max(0, summary.totalTrainings - neutralSeasonAbsences)
+            : pastSeasonTrainingsCount;
           const knownUnavailableTrainings = weeklyAbsences;
-          const unresolvedTrainings = Math.max(0, weekTrainings.length - attendedTrainings - knownUnavailableTrainings);
+          const unresolvedTrainings = Math.max(0, countedWeekTrainings - attendedTrainings - knownUnavailableTrainings);
 
           playerStats.set(p.id, {
-            totalTrainings: weekTrainings.length,
+            totalTrainings: countedWeekTrainings,
             attendedTrainings,
             attendedTrainingsSeason,
             totalTrainingsSeason,
@@ -310,9 +358,12 @@ export function useConvocationMatchContext(
         });
 
         setWeekTrainingStatsMap(playerStats);
+        setTrainingAbsenceDaysMap(trainingSummary ? absenceDays : null);
       })
       .catch(() => {
         if (!mounted) return;
+        setTrainingAbsenceDaysMap(null);
+        setMatchDays([]);
         setSeasonEvents([]);
         setSeasonStats([]);
         setGridStartsCountMap(new Map());
@@ -331,6 +382,7 @@ export function useConvocationMatchContext(
   useEffect(() => {
     if (!teamId || !enabled || convocationPlayers.length === 0) {
       setLastInjuryEndMap(new Map());
+      setLastInjuryWindowMap(new Map());
       return;
     }
     let mounted = true;
@@ -339,16 +391,24 @@ export function useConvocationMatchContext(
         const teamInjuries = await getTeamInjuries(teamId);
         const injuriesByPlayer = new Map(teamInjuries.map((t) => [t.teamPlayerId, t.injuries]));
         const map = new Map<string, string | null>();
+        const windows = new Map<string, InjuryWindow>();
         for (const p of convocationPlayers) {
           const injuries = injuriesByPlayer.get(p.id) ?? [];
-          const latestEnded = injuries
+          const latest = injuries
             .filter((inj) => !!inj.endDate)
-            .sort((a, b) => String(b.endDate).localeCompare(String(a.endDate)))[0]?.endDate ?? null;
-          map.set(p.id, latestEnded);
+            .sort((a, b) => String(b.endDate).localeCompare(String(a.endDate)))[0];
+          map.set(p.id, latest?.endDate ?? null);
+          if (latest?.endDate) windows.set(p.id, { startDate: latest.startDate, endDate: latest.endDate });
         }
-        if (mounted) setLastInjuryEndMap(map);
+        if (mounted) {
+          setLastInjuryEndMap(map);
+          setLastInjuryWindowMap(windows);
+        }
       } catch {
-        if (mounted) setLastInjuryEndMap(new Map());
+        if (mounted) {
+          setLastInjuryEndMap(new Map());
+          setLastInjuryWindowMap(new Map());
+        }
       }
     })();
     return () => {
@@ -356,11 +416,24 @@ export function useConvocationMatchContext(
     };
   }, [teamId, convocationPlayers, enabled]);
 
+  const lastInjuryMissedEventsMap = useMemo(() => {
+    const map = new Map<string, number>();
+    if (!trainingAbsenceDaysMap) return map;
+    lastInjuryWindowMap.forEach((injury, playerId) => {
+      map.set(
+        playerId,
+        countMissedEventsDuringInjury(injury, trainingAbsenceDaysMap.get(playerId) ?? [], matchDays),
+      );
+    });
+    return map;
+  }, [lastInjuryWindowMap, trainingAbsenceDaysMap, matchDays]);
+
   return {
     seasonEvents,
     seasonStats,
     gridStartsCountMap,
     lastInjuryEndMap,
+    lastInjuryMissedEventsMap,
     weekTrainingStatsMap,
     weekTrainingCount,
     loadingProposalContext,

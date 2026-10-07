@@ -19,6 +19,7 @@ type UseConvocationProposalInput = {
   enrichedGrid: Map<string, Map<string, GridCell>>;
   seasonStats: SeasonPlayerStats[];
   lastInjuryEndMap: Map<string, string | null>;
+  lastInjuryMissedEventsMap?: Map<string, number>;
   currentDate: string | undefined;
   currentEventId: string | null;
   currentRival: string | null;
@@ -39,6 +40,7 @@ export function useConvocationProposal(input: UseConvocationProposalInput): Deco
     enrichedGrid,
     seasonStats,
     lastInjuryEndMap,
+    lastInjuryMissedEventsMap,
     currentDate,
     currentEventId,
     currentRival,
@@ -60,6 +62,7 @@ export function useConvocationProposal(input: UseConvocationProposalInput): Deco
         enrichedGrid,
         seasonStats,
         lastInjuryEndMap,
+        lastInjuryMissedEventsMap,
         currentDate,
         currentEventId,
         currentRival,
@@ -79,6 +82,7 @@ export function useConvocationProposal(input: UseConvocationProposalInput): Deco
       enrichedGrid,
       seasonStats,
       lastInjuryEndMap,
+      lastInjuryMissedEventsMap,
       currentDate,
       currentEventId,
       currentRival,

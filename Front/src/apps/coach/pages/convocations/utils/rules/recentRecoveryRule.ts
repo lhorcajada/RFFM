@@ -7,9 +7,11 @@ function diffDays(fromIso: string, toIso: string): number {
 }
 
 export default function recentRecoveryRule(ctx: RuleContext, _prev: Record<string, RuleResult>): RuleResult {
-  const { lastInjuryEndMap, player, currentIso } = ctx;
+  const { lastInjuryEndMap, lastInjuryMissedEventsMap, player, currentIso } = ctx;
   const lastInjuryEnd = lastInjuryEndMap.get(ctx.playerId) ?? null;
-  if (!player.isInjured && currentIso && lastInjuryEnd) {
+  // A short injury during a rest period (no trainings or matches missed) does not count.
+  const missedNoEvents = lastInjuryMissedEventsMap?.get(ctx.playerId) === 0;
+  if (!player.isInjured && currentIso && lastInjuryEnd && !missedNoEvents) {
     const days = diffDays(lastInjuryEnd.slice(0, 10), currentIso);
     if (days >= 0 && days <= 7) {
       const factor = { key: "recentRecovery", label: "Solo una semana desde el alta de lesión", value: days, impact: -100 };

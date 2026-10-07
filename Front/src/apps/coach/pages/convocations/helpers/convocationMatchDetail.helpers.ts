@@ -9,18 +9,15 @@ export function toIsoDay(value: string): string {
   return `${y}-${m}-${d}`;
 }
 
-export function startOfWeekIso(isoDate: string): string {
-  const date = new Date(`${isoDate}T00:00:00`);
-  const day = date.getDay();
-  const offset = day === 0 ? 6 : day - 1;
-  date.setDate(date.getDate() - offset);
-  return toIsoDay(date.toISOString());
+function addDaysIso(isoDate: string, days: number): string {
+  const date = new Date(`${isoDate}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
 }
 
-export function endOfWeekIso(isoDate: string): string {
-  const start = new Date(`${startOfWeekIso(isoDate)}T00:00:00`);
-  start.setDate(start.getDate() + 6);
-  return toIsoDay(start.toISOString());
+/** The `days` days before `isoDate`, excluding that day. */
+export function previousDaysRangeIso(isoDate: string, days: number): { from: string; to: string } {
+  return { from: addDaysIso(isoDate, -days), to: addDaysIso(isoDate, -1) };
 }
 
 export async function getAllSportEventsInRange(
