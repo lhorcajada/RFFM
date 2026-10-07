@@ -36,6 +36,16 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
+        public void FromId_Ten_ResolvesUnforeseenEvent()
+        {
+            var excuse = ExcuseTypes.FromId(10);
+
+            Assert.NotNull(excuse);
+            Assert.Equal("Imprevisto", excuse!.Name);
+            Assert.True(excuse.Justified);
+        }
+
+        [Fact]
         public async Task GetExcuseTypes_ExposesJustifiedFlag()
         {
             var handler = new RFFM.Api.Features.Coaches.Assistances.Queries.GetExcuseTypes.ExcuseTypesRequestHandler();
