@@ -132,8 +132,8 @@ describe("SeasonPlanView — árbol con badges de cobertura de sesiones", () => 
       />
     );
 
-    const buttons = screen.getAllByRole("button", { name: /crear sesión/i });
-    await userEvent.click(buttons[0]);
+    const weekOneRow = screen.getByTestId("microciclo-row-3");
+    await userEvent.click(within(weekOneRow).getByRole("button", { name: /crear sesión/i }));
 
     expect(onCreateSession).toHaveBeenCalledWith("micro-1");
   });
@@ -155,6 +155,52 @@ describe("SeasonPlanView — sesiones vinculadas por microciclo", () => {
 
     const weekOneRow = screen.getByTestId("microciclo-row-3");
     expect(within(weekOneRow).queryByText(/Sesión/)).not.toBeInTheDocument();
+  });
+});
+
+describe("SeasonPlanView — orden de semanas del mesociclo", () => {
+  it("muestra las semanas del mesociclo en orden inverso (la más reciente primero)", () => {
+    render(
+      <SeasonPlanView plan={buildPlan()} loading={false} onCreatePlan={vi.fn()} onCreateSession={vi.fn()} />
+    );
+
+    const weekLabels = screen.getAllByText(/^Semana \d/).map((el) => el.textContent);
+    expect(weekLabels).toEqual(["Semana 2 — Situacional", "Semana 1 — Analítico"]);
+  });
+});
+
+describe("SeasonPlanView — sesiones editables desde la planificación", () => {
+  it("expone cada sesión como un botón 'Editar sesión' con indicador visible de edición", () => {
+    render(
+      <SeasonPlanView
+        plan={buildPlan()}
+        loading={false}
+        onCreatePlan={vi.fn()}
+        onCreateSession={vi.fn()}
+        onOpenSession={vi.fn()}
+      />
+    );
+
+    const sessionButton = screen.getByRole("button", { name: "Editar sesión Sesión 1 — Defensa organizada" });
+    expect(within(sessionButton).getByText("Editar")).toBeInTheDocument();
+  });
+
+  it("abre la sesión con su microciclo al pulsar Enter sobre ella", async () => {
+    const onOpenSession = vi.fn();
+    render(
+      <SeasonPlanView
+        plan={buildPlan()}
+        loading={false}
+        onCreatePlan={vi.fn()}
+        onCreateSession={vi.fn()}
+        onOpenSession={onOpenSession}
+      />
+    );
+
+    screen.getByRole("button", { name: /editar sesión/i }).focus();
+    await userEvent.keyboard("{Enter}");
+
+    expect(onOpenSession).toHaveBeenCalledWith("sess-1", "micro-2");
   });
 });
 

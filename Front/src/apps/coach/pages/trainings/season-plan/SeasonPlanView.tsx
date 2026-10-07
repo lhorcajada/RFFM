@@ -1,6 +1,8 @@
 import { Accordion, AccordionDetails, AccordionSummary, Box, Button, Chip, CircularProgress, Typography } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import AddIcon from "@mui/icons-material/Add";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import type { KeyboardEvent } from "react";
 import type { Macrociclo, Mesociclo, Microciclo, SeasonPlan, SessionSummary } from "../../../types/seasonPlan";
 import { GAME_ZONE_LABELS } from "./gameZoneLabels";
 import styles from "./SeasonPlanView.module.css";
@@ -21,20 +23,39 @@ function formatDate(iso: string | null) {
 }
 
 function SessionRow({ session, onOpen }: { session: SessionSummary; onOpen?: (id: string) => void }) {
+  const isEditable = Boolean(onOpen);
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    onOpen?.(session.id);
+  };
+
   return (
     <Box
-      className={styles.sessionRow}
+      className={`${styles.sessionRow} ${isEditable ? styles.sessionRowEditable : ""}`}
       onClick={() => onOpen?.(session.id)}
-      role={onOpen ? "button" : undefined}
+      onKeyDown={isEditable ? handleKeyDown : undefined}
+      role={isEditable ? "button" : undefined}
+      tabIndex={isEditable ? 0 : undefined}
+      aria-label={isEditable ? `Editar sesión ${session.name}` : undefined}
       data-testid={`session-row-${session.id}`}
     >
-      <Typography className={styles.sessionRowName}>{session.name}</Typography>
-      <Box className={styles.sessionRowMeta}>
-        <Typography className={styles.sessionRowDate}>{formatDate(session.date)}</Typography>
-        <Chip label={`${session.exerciseCount} ej.`} size="small" className={styles.coverageChip} />
+      <Box className={styles.sessionRowContent}>
+        <Typography className={styles.sessionRowName}>{session.name}</Typography>
+        <Box className={styles.sessionRowMeta}>
+          <Typography className={styles.sessionRowDate}>{formatDate(session.date)}</Typography>
+          <Chip label={`${session.exerciseCount} ej.`} size="small" className={styles.coverageChip} />
+        </Box>
+        {session.objetivoGeneral && (
+          <Typography className={styles.sessionRowObjective}>{session.objetivoGeneral}</Typography>
+        )}
       </Box>
-      {session.objetivoGeneral && (
-        <Typography className={styles.sessionRowObjective}>{session.objetivoGeneral}</Typography>
+      {isEditable && (
+        <Box className={styles.sessionRowEdit} aria-hidden="true">
+          <EditOutlinedIcon fontSize="small" />
+          <Typography className={styles.sessionRowEditLabel}>Editar</Typography>
+        </Box>
       )}
     </Box>
   );
@@ -146,7 +167,7 @@ function MesocicloBlock({
       <AccordionDetails className={styles.details}>
         {mesociclo.microciclos
           .slice()
-          .sort((a, b) => a.order - b.order)
+          .sort((a, b) => b.order - a.order)
           .map((microciclo) => (
             <MicrocicloRow
               key={microciclo.id}

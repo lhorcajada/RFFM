@@ -90,16 +90,45 @@
 
 .sessionRow {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  gap: 8px;
   padding: 6px 8px;
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.02);
-  cursor: pointer;
 }
 
-.sessionRow:hover {
-  background: rgba(77, 157, 224, 0.08);
+.sessionRowEditable {
+  cursor: pointer;
+  border-left: 3px solid rgba(77, 157, 224, 0.6);
+  transition: background-color 0.15s ease;
+}
+
+.sessionRowEditable:hover,
+.sessionRowEditable:focus-visible {
+  background: rgba(77, 157, 224, 0.12);
+  outline: none;
+}
+
+.sessionRowContent {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.sessionRowEdit {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  color: #4d9de0;
+}
+
+.sessionRowEditLabel {
+  font-size: 0.72rem !important;
+  font-weight: 600 !important;
+  color: inherit !important;
 }
 
 .sessionRowName {
