@@ -254,6 +254,13 @@ const gameTheme = createTheme({
         },
       },
     },
+    MuiInputBase: {
+      styleOverrides: {
+        input: {
+          colorScheme: "dark",
+        },
+      },
+    },
     MuiOutlinedInput: {
       styleOverrides: {
         root: {
