@@ -235,6 +235,50 @@ describe("buildSessionPrintHtml", () => {
     expect(html).not.toContain("<img");
   });
 
+  it("recorta el dibujo de la pizarra al medio campo cuando solo se usa una mitad", () => {
+    const session = buildSession({
+      blocks: [
+        {
+          id: "b1",
+          order: 1,
+          nombre: "Activación",
+          exercises: [{ id: "be1", exerciseId: "ex1", position: 1, exerciseName: "Rondo 4v2" }],
+        },
+      ],
+    });
+    const boardStateJson = JSON.stringify({
+      placedChapas: { p1: { x: 30, y: 30 }, p2: { x: 70, y: 60 } },
+    });
+    const exercisesById = new Map([["ex1", buildExercise({ boardStateJson })]]);
+
+    const html = buildSessionPrintHtml(session, exercisesById);
+
+    expect(html).toContain('class="board-drawing board-drawing--half"');
+    expect(html).toContain('data-viewport="right"');
+  });
+
+  it("imprime el campo completo cuando el dibujo usa las dos mitades", () => {
+    const session = buildSession({
+      blocks: [
+        {
+          id: "b1",
+          order: 1,
+          nombre: "Activación",
+          exercises: [{ id: "be1", exerciseId: "ex1", position: 1, exerciseName: "Rondo 4v2" }],
+        },
+      ],
+    });
+    const boardStateJson = JSON.stringify({
+      placedChapas: { p1: { x: -30, y: 30 }, p2: { x: 30, y: 60 } },
+    });
+    const exercisesById = new Map([["ex1", buildExercise({ boardStateJson })]]);
+
+    const html = buildSessionPrintHtml(session, exercisesById);
+
+    expect(html).toContain('class="board-drawing board-drawing--full"');
+    expect(html).not.toContain("data-viewport=");
+  });
+
   it("resuelve dorsal/alias del jugador en el dibujo de pizarra cuando se provee el roster", () => {
     const session = buildSession({
       blocks: [

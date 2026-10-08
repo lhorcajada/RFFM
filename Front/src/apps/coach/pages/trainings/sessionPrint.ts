@@ -8,6 +8,7 @@ import {
   hasBoardObjects,
   tryParseBoardSnapshot,
 } from "../../components/TacticalBoardSnapshotPreview";
+import { detectBoardViewport } from "./new/helpers/boardViewport";
 import boardPreviewCss from "../../components/TacticalBoardSnapshotPreview.module.css?inline";
 
 function formatDate(iso: string | null): string {
@@ -39,10 +40,15 @@ function buildImageOrBoardNoteHtml(exercise: Exercise, playersById: Map<string, 
   const snapshot = tryParseBoardSnapshot(exercise.boardStateJson);
   if (!hasBoardObjects(snapshot) || !snapshot) return "";
 
+  const viewport = detectBoardViewport(snapshot);
   const boardHtml = renderToStaticMarkup(
-    TacticalBoardSnapshotPreviewStatic({ snapshot, playersById }),
+    TacticalBoardSnapshotPreviewStatic({ snapshot, playersById, viewport }),
   );
-  return buildImageOrBoardHtml(exercise, `<style>${boardPreviewCss}</style>${boardHtml}`);
+  return buildImageOrBoardHtml(
+    exercise,
+    `<style>${boardPreviewCss}</style>${boardHtml}`,
+    viewport === "full" ? "board-drawing--full" : "board-drawing--half",
+  );
 }
 
 /** Renders one exercise's full content (objetivo, relación con el modelo de juego, niveles,
@@ -180,7 +186,10 @@ export function buildSessionPrintHtml(
         .exercise-objetivo { font-size: 12px; }
         .exercise-item .section { margin: 6px 0; }
         .exercise-item .section h3, .section h3 { margin: 0 0 4px; font-size: 11px; text-transform: uppercase; letter-spacing: .03em; color: #38506b; }
-        .board-drawing { width: 100%; height: 320px; border-radius: 10px; border: 1px solid #c9d8e6; overflow: hidden; margin: 4px 0; }
+        .board-drawing { border-radius: 10px; border: 1px solid #c9d8e6; overflow: hidden; margin: 4px auto; break-inside: avoid; }
+        .board-drawing--full { width: 100%; aspect-ratio: 105 / 68; }
+        .board-drawing--half { height: 660px; max-height: 92vh; aspect-ratio: 52.5 / 68; max-width: 100%; }
+        .exercise-item .section:has(.board-drawing) { break-inside: avoid; }
         table { width: 100%; border-collapse: collapse; font-size: 11px; margin: 4px 0; }
         th, td { border: 1px solid #c9d8e6; padding: 4px 6px; text-align: left; }
         th { background: #f6f9fc; }

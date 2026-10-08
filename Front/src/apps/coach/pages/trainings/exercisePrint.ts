@@ -59,12 +59,17 @@ export function buildNivelesTableHtml(exercise: Exercise): string {
   return `<div class="section"><h3>Niveles</h3><table><thead><tr><th>Nivel</th>${headerCells}</tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
-export function buildImageOrBoardHtml(exercise: Exercise, boardDrawingHtml?: string | null): string {
+export function buildImageOrBoardHtml(
+  exercise: Exercise,
+  boardDrawingHtml?: string | null,
+  boardDrawingModifier?: string,
+): string {
   if (exercise.urlImage) {
     return `<div><img src="${escapeHtml(mediaUrl(exercise.urlImage))}" alt="${escapeHtml(exercise.name)}" /></div>`;
   }
   if (boardDrawingHtml) {
-    return `<div class="section"><h3>Pizarra táctica</h3><div class="board-drawing">${boardDrawingHtml}</div></div>`;
+    const boardClass = boardDrawingModifier ? `board-drawing ${boardDrawingModifier}` : "board-drawing";
+    return `<div class="section"><h3>Pizarra táctica</h3><div class="${boardClass}">${boardDrawingHtml}</div></div>`;
   }
   return "";
 }

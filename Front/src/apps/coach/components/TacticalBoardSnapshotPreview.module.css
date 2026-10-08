@@ -28,6 +28,24 @@
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
 }
 
+/* Single-half crop: a half-pitch-shaped window over a full pitch twice its
+   width, so every object keeps the exact same geometry as in .fullPitch. */
+.halfViewport {
+  position: relative;
+  width: min(100%, calc(100cqh * 52.5 / 68));
+  aspect-ratio: 52.5 / 68;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+.halfViewport > * {
+  width: 200%;
+}
+
+.halfViewportRight > * {
+  transform: translateX(-50%);
+}
+
 .pitch,
 .mirrorHalf {
   background: linear-gradient(
