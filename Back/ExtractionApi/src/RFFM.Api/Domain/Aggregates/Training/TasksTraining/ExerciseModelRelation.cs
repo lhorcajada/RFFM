@@ -36,12 +36,15 @@ namespace RFFM.Api.Domain.Aggregates.Training.TasksTraining
 
         /// <summary>Clears and rebuilds <see cref="Items"/> wholesale — same "trust
         /// server-derived state" approach as <see cref="TaskTrainingBase.ReplaceModelRelations"/>.</summary>
-        public void ReplaceItems(IEnumerable<(string SubSubPrincipioId, bool IsFoco)> items)
+        public void ReplaceItems(IEnumerable<(string SubSubPrincipioId, bool IsFoco, IEnumerable<string>? Habilidades)> items)
         {
             Items.Clear();
             foreach (var item in items)
-                Items.Add(new ExerciseModelRelationItem(Id, item.SubSubPrincipioId, item.IsFoco));
+                Items.Add(new ExerciseModelRelationItem(Id, item.SubSubPrincipioId, item.IsFoco, item.Habilidades));
         }
+
+        public void ReplaceItems(IEnumerable<(string SubSubPrincipioId, bool IsFoco)> items) =>
+            ReplaceItems(items.Select(i => (i.SubSubPrincipioId, i.IsFoco, (IEnumerable<string>?)null)));
 
         private static List<string> ValidateHabilidades(IEnumerable<string>? habilidades)
         {

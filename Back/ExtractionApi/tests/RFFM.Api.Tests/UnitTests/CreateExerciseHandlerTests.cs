@@ -140,6 +140,46 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
+        public async Task Handle_WithItemHabilidades_PersistsThemPerItem()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (userId, clubId, _) = await SeedClubAsync(seedDb);
+            var (subprincipioId, subSubPrincipioId) = await SeedAdnNodesAsync(seedDb, clubId);
+
+            await using var db = _fixture.CreateDbContext();
+            var relations = new List<ExerciseModelRelationRequest>
+            {
+                new(subprincipioId, true, new List<string> { "Pase" },
+                    new List<ExerciseModelRelationItemRequest> { new(subSubPrincipioId, true, new List<string> { "Pase" }) })
+            };
+
+            var id = await new CreateExerciseHandler(db).Handle(BaseCommand(clubId, userId, relations), CancellationToken.None);
+
+            await using var verifyDb = _fixture.CreateDbContext();
+            var exercise = await verifyDb.TaskTrainingBases
+                .Include(tb => tb.ModelRelations)
+                    .ThenInclude(r => r.Items)
+                .SingleAsync(e => e.Id == id);
+
+            var item = Assert.Single(Assert.Single(exercise.ModelRelations).Items);
+            Assert.Equal(new List<string> { "Pase" }, item.Habilidades);
+        }
+
+        [Fact]
+        public async Task Validator_RejectsNonVocabularyItemHabilidad()
+        {
+            var command = BaseCommand("club-id", "user-id", new List<ExerciseModelRelationRequest>
+            {
+                new("sub-1", true, null,
+                    new List<ExerciseModelRelationItemRequest> { new("subsub-1", true, new List<string> { "Habilidad inexistente" }) })
+            });
+
+            var result = await new CreateExerciseValidator().ValidateAsync(command);
+
+            Assert.False(result.IsValid);
+        }
+
+        [Fact]
         public async Task Handle_WithoutModelRelations_LeavesThemEmpty()
         {
             await using var seedDb = _fixture.CreateDbContext();

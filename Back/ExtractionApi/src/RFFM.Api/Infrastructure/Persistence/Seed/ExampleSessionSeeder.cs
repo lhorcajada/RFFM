@@ -167,7 +167,8 @@ namespace RFFM.Api.Infrastructure.Persistence.Seed
             if (exercise.ModelRelations.Count > 0)
                 db.RemoveRange(exercise.ModelRelations.SelectMany(r => r.Items));
             db.RemoveRange(exercise.ModelRelations);
-            exercise.ReplaceModelRelations(data.ModelRelations);
+            exercise.ReplaceModelRelations(data.ModelRelations.Select(r => (r.SubprincipioId, r.IsFoco, r.Habilidades,
+                r.Items.Select(i => (i.SubSubPrincipioId, i.IsFoco, (IEnumerable<string>?)null)))));
 
             await db.SaveChangesAsync(ct);
             return exercise.Id;

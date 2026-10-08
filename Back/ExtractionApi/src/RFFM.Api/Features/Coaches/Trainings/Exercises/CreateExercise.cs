@@ -83,7 +83,7 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         List<string>? HabilidadesImprescindibles,
         List<ExerciseModelRelationItemRequest>? Items);
 
-    public record ExerciseModelRelationItemRequest(string SubSubPrincipioId, bool IsFoco);
+    public record ExerciseModelRelationItemRequest(string SubSubPrincipioId, bool IsFoco, List<string>? Habilidades = null);
 
     // ── Handler ──────────────────────────────────────────────────────────────────
 
@@ -128,15 +128,15 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         }
 
         internal static IEnumerable<(string SubprincipioId, bool IsFoco, IEnumerable<string>? Habilidades,
-            IEnumerable<(string SubSubPrincipioId, bool IsFoco)> Items)> BuildModelRelations(
+            IEnumerable<(string SubSubPrincipioId, bool IsFoco, IEnumerable<string>? Habilidades)> Items)> BuildModelRelations(
             List<ExerciseModelRelationRequest>? relations) =>
             (relations ?? new List<ExerciseModelRelationRequest>())
                 .Select(r => (
                     r.SubprincipioId,
                     r.IsFoco,
                     (IEnumerable<string>?)r.HabilidadesImprescindibles,
-                    (IEnumerable<(string, bool)>)(r.Items ?? new List<ExerciseModelRelationItemRequest>())
-                        .Select(i => (i.SubSubPrincipioId, i.IsFoco))));
+                    (r.Items ?? new List<ExerciseModelRelationItemRequest>())
+                        .Select(i => (i.SubSubPrincipioId, i.IsFoco, (IEnumerable<string>?)i.Habilidades))));
     }
 
     // ── Validator ────────────────────────────────────────────────────────────────
@@ -189,6 +189,9 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
         public ExerciseModelRelationItemRequestValidator()
         {
             RuleFor(x => x.SubSubPrincipioId).NotEmpty();
+            RuleForEach(x => x.Habilidades)
+                .Must(h => Habilidad.Vocabulary.Contains(h))
+                .WithMessage("Habilidad must be one of the closed vocabulary.");
         }
     }
 }

@@ -62,6 +62,21 @@ namespace RFFM.Api.Tests.UnitTests
             Assert.Single(relation.Items);
             Assert.Equal("subsub-3", relation.Items[0].SubSubPrincipioId);
         }
+
+        [Fact]
+        public void ReplaceItems_WithHabilidades_KeepsThemPerItem()
+        {
+            var relation = new ExerciseModelRelation("exercise-1", "sub-1", isFoco: true, habilidadesImprescindibles: null);
+
+            relation.ReplaceItems(new (string, bool, IEnumerable<string>?)[]
+            {
+                ("subsub-1", true, new List<string> { "Pase", "Perfilamiento" }),
+                ("subsub-2", false, null),
+            });
+
+            Assert.Equal(new List<string> { "Pase", "Perfilamiento" }, relation.Items[0].Habilidades);
+            Assert.Empty(relation.Items[1].Habilidades);
+        }
     }
 
     public class ExerciseModelRelationItemTests
@@ -74,6 +89,24 @@ namespace RFFM.Api.Tests.UnitTests
             Assert.Equal("relation-1", item.ExerciseModelRelationId);
             Assert.Equal("subsub-1", item.SubSubPrincipioId);
             Assert.True(item.IsFoco);
+            Assert.Empty(item.Habilidades);
+        }
+
+        [Fact]
+        public void Create_WithHabilidades_SetsThem()
+        {
+            var item = new ExerciseModelRelationItem("relation-1", "subsub-1", isFoco: true,
+                habilidades: new List<string> { "Intercepción" });
+
+            Assert.Equal(new List<string> { "Intercepción" }, item.Habilidades);
+        }
+
+        [Fact]
+        public void Create_WithInvalidHabilidad_Throws()
+        {
+            Assert.Throws<System.ArgumentException>(() =>
+                new ExerciseModelRelationItem("relation-1", "subsub-1", isFoco: true,
+                    habilidades: new List<string> { "NotARealHabilidad" }));
         }
 
         [Theory]

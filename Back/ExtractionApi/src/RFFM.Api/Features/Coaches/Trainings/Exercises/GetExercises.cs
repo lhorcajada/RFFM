@@ -120,7 +120,8 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
     }
 
     /// <summary>Denormalized display fields for an <see cref="ExerciseModelRelationItem"/>.</summary>
-    public record ExerciseModelRelationItemDto(string Id, string SubSubPrincipioId, string? SubSubPrincipioNumero, string? SubSubPrincipioRol, bool IsFoco);
+    public record ExerciseModelRelationItemDto(string Id, string SubSubPrincipioId, string? SubSubPrincipioNumero, string? SubSubPrincipioRol, bool IsFoco,
+        IEnumerable<string> Habilidades);
 
     /// <summary>Denormalized display fields for an <see cref="ExerciseModelRelation"/>, joining
     /// Subprincipio for Numero/Titulo (design.md §1.2).</summary>
@@ -165,7 +166,7 @@ namespace RFFM.Api.Features.Coaches.Trainings.Exercises
                     r.Items.Select(i =>
                     {
                         var subSubPrincipio = subSubPrincipios.GetValueOrDefault(i.SubSubPrincipioId);
-                        return new ExerciseModelRelationItemDto(i.Id, i.SubSubPrincipioId, subSubPrincipio?.Numero, subSubPrincipio?.Rol, i.IsFoco);
+                        return new ExerciseModelRelationItemDto(i.Id, i.SubSubPrincipioId, subSubPrincipio?.Numero, subSubPrincipio?.Rol, i.IsFoco, i.Habilidades);
                     }));
             });
         }

@@ -17,6 +17,8 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.Trainings
             builder.Property(x => x.SubSubPrincipioId).IsRequired().HasMaxLength(36);
             builder.Property(x => x.IsFoco).IsRequired();
 
+            JsonColumns.ConfigureStringList(builder.Property(x => x.Habilidades));
+
             // Cascade: if the referenced SubSubPrincipio is removed from the team's GameModel,
             // the item row silently disappears — the parent relation survives.
             builder.HasOne<SubSubPrincipio>()

@@ -59,7 +59,7 @@ namespace RFFM.Api.Domain.Aggregates.Training.TasksTraining
         /// the old <c>ReplaceModelLinks</c>).</summary>
         public void ReplaceModelRelations(
             IEnumerable<(string SubprincipioId, bool IsFoco, IEnumerable<string>? Habilidades,
-                IEnumerable<(string SubSubPrincipioId, bool IsFoco)> Items)> relations)
+                IEnumerable<(string SubSubPrincipioId, bool IsFoco, IEnumerable<string>? Habilidades)> Items)> relations)
         {
             ModelRelations.Clear();
             foreach (var relation in relations)

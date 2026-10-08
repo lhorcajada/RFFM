@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using RFFM.Api.Domain.Aggregates.GameModels;
 using RFFM.Api.Domain.Aggregates.UserClubs;
 using RFFM.Api.Domain.Models;
 using RFFM.Api.Features.Coaches.Trainings.Exercises;
@@ -64,6 +65,39 @@ namespace RFFM.Api.Tests.UnitTests
             Assert.Equal(15, result.DurationMinutes);
             Assert.Equal("Porteros", result.Porteros);
             Assert.Equal("(pendiente)", result.Dibujo);
+        }
+
+        [Fact]
+        public async Task Handle_ReturnsHabilidadesOfEachRelationItem()
+        {
+            await using var seedDb = _fixture.CreateDbContext();
+            var (userId, clubId, _) = await SeedClubAsync(seedDb);
+            var model = new GameModel(clubId, "Modelo de prueba", "2026-2027");
+            var principle = new GamePrinciple(model.Id, gameMomentId: 1, key: $"principio-{Guid.NewGuid():N}", numero: 1, "Principio", "Texto");
+            var subprincipio = new Subprincipio(principle.Id, $"sub-{Guid.NewGuid():N}", "1.1", "Subprincipio", "Contexto");
+            var subSubPrincipio = new SubSubPrincipio($"subsub-{Guid.NewGuid():N}", "1.1.1", "Rol", "Texto", subprincipio.Id, null);
+            principle.Subprincipios.Add(subprincipio);
+            subprincipio.SubSubPrincipios.Add(subSubPrincipio);
+            model.Principles.Add(principle);
+            seedDb.GameModels.Add(model);
+            await seedDb.SaveChangesAsync();
+
+            var command = CreateCommand(clubId, userId) with
+            {
+                ModelRelations = new List<ExerciseModelRelationRequest>
+                {
+                    new(subprincipio.Id, true, new List<string> { "Pase" },
+                        new List<ExerciseModelRelationItemRequest> { new(subSubPrincipio.Id, true, new List<string> { "Pase" }) })
+                }
+            };
+            await using var createDb = _fixture.CreateDbContext();
+            var exerciseId = await new CreateExerciseHandler(createDb).Handle(command, CancellationToken.None);
+
+            await using var queryDb = _fixture.CreateDbContext();
+            var result = await new GetExerciseByIdHandler(queryDb).Handle(new GetExerciseByIdQuery(exerciseId, userId), CancellationToken.None);
+
+            var item = Assert.Single(Assert.Single(result!.ModelRelations).Items);
+            Assert.Equal(new List<string> { "Pase" }, item.Habilidades);
         }
 
         [Fact]
