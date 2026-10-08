@@ -78,6 +78,11 @@ export async function addConvocationsBulk(eventId: string): Promise<void> {
   await client.post(`/api/events/${eventId}/convocations/bulk`);
 }
 
+/** Idempotent: registers the event's injured, not-yet-convocated players as Deconvoke + "Lesión". */
+export async function deconvokeInjuredPlayers(eventId: string): Promise<void> {
+  await client.post(`/api/events/${eventId}/convocations/injured-deconvocations`);
+}
+
 export type SendConvocationRemindersResponse = {
   notifiedCount: number;
 };
@@ -178,6 +183,7 @@ export default {
   getConvocations,
   addConvocation,
   addConvocationsBulk,
+  deconvokeInjuredPlayers,
   sendConvocationReminders,
   updateConvocationStatus,
   deleteConvocation,

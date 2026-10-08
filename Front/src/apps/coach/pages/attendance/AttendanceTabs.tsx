@@ -164,6 +164,16 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isTrainin
     (async () => {
       setLoading(true);
       try {
+        // Injured players are registered as Deconvoke + "Lesión" server-side (idempotent, so
+        // a double mount or two coaches opening the page never duplicates a convocation).
+        if (!isPlayerOrFamily) {
+          try {
+            await convocationService.deconvokeInjuredPlayers(eventId);
+          } catch {
+            // non-blocking: the page still shows the current convocations
+          }
+          if (!mounted) return;
+        }
         const [pl, conv, st, ex, at] = await Promise.all([
           convocationService.getEventPlayers(eventId),
           convocationService.getConvocations(eventId),
@@ -177,51 +187,6 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isTrainin
         setStatuses(st);
         setExcuseTypes(ex);
         setAssistanceTypes(at);
-
-        // ── Auto-register injured players as Deconvoke + Lesión ─────────────
-        const deconvokeId = st.find((s) => s.name === "Deconvoke")?.id;
-        const injuryExcuseId = 1; // ExcuseType id=1 = "Lesión"
-        const today = new Date().toISOString().slice(0, 10);
-        const eventDay = eventStart ? eventStart.slice(0, 10) : today;
-
-        // Players that are injured (at or before the event date) and not yet
-        // registered as Deconvoke+Lesión in this event's convocation list.
-        const injuredToRegister = pl.filter((p) => {
-          if (!p.isInjured) return false;
-          if (!isInjuredBeforeDate(p.injuryStartDate, eventDay)) return false;
-          const existing = conv.find((c) => c.player.id === p.id);
-          // Already registered as Deconvoke + injury excuse → nothing to do
-          if (existing && existing.status === deconvokeId && existing.excuseTypeId === injuryExcuseId) return false;
-          return true;
-        });
-
-        if (deconvokeId && injuredToRegister.length > 0) {
-          for (const p of injuredToRegister.filter((p) => p.id)) {
-            try {
-              const alreadyInConv = conv.some((c) => c.player.id === p.id);
-              if (!alreadyInConv) {
-                await convocationService.addConvocation(eventId, p.id!);
-              }
-              const reloaded = await convocationService.getConvocations(eventId);
-              const target = reloaded.find((c) => c.player?.id === p.id);
-              if (target) {
-                await convocationService.updateConvocationStatus(
-                  eventId,
-                  target.id,
-                  deconvokeId,
-                  injuryExcuseId
-                );
-              }
-            } catch {
-              // non-blocking: skip if conflict
-            }
-          }
-          // Reload convocations after auto-registration
-          const updatedConv = await convocationService.getConvocations(eventId);
-          if (!mounted) return;
-          setConvocations(updatedConv);
-        }
-        // ────────────────────────────────────────────────────────────────────
 
         // fetch photos for players and convocated players
         const photos: Record<string, string | null> = {};
