@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
+using RFFM.Api.Domain;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Features.Coaches.Notifications.Services;
 using RFFM.Api.Infrastructure.Persistence;
@@ -27,7 +28,8 @@ namespace RFFM.Api.Features.Coaches.Convocations
                 .WithTags("Convocations")
                 .Produces(StatusCodes.Status201Created)
                 .Produces(StatusCodes.Status400BadRequest)
-                .Produces(StatusCodes.Status403Forbidden);
+                .Produces(StatusCodes.Status403Forbidden)
+                .Produces(StatusCodes.Status409Conflict);
 
             app.MapPost("/api/events/{eventId}/convocations/bulk",
                     [Authorize(Roles = "Coach,Administrator")] async (string eventId, IMediator mediator, CancellationToken cancellationToken) =>
@@ -70,9 +72,8 @@ namespace RFFM.Api.Features.Coaches.Convocations
                 var sportEvent = await _db.SportEvents.FirstOrDefaultAsync(se => se.Id == request.EventId, cancellationToken);
                 if (sportEvent == null) throw new ArgumentException("Event not found");
 
-                // Check not already convocated
                 var exists = await _db.Convocations.AnyAsync(c => c.SportEventId == request.EventId && c.TeamPlayerId == request.TeamPlayerId, cancellationToken);
-                if (exists) throw new ArgumentException("Player already convocated");
+                if (exists) throw PlayerAlreadyConvocated();
 
                 // Block convocation while the player has an active automatic sanction for a
                 // match later than the one that triggered it (design.md Decisión 4).
@@ -96,12 +97,23 @@ namespace RFFM.Api.Features.Coaches.Convocations
 
                 var conv = Convocation.Create(model);
                 _db.Convocations.Add(conv);
-                await _db.SaveChangesAsync(cancellationToken);
+                try
+                {
+                    await _db.SaveChangesAsync(cancellationToken);
+                }
+                catch (DbUpdateException ex) when (ex.IsUniqueViolation())
+                {
+                    // A concurrent request convocated the same player between the check and the insert.
+                    throw PlayerAlreadyConvocated();
+                }
 
                 await _dispatcher.DispatchConvocationCreatedAsync(request.TeamPlayerId, request.EventId, cancellationToken);
 
                 return Unit.Value;
             }
+
+            private static ConflictException PlayerAlreadyConvocated() =>
+                new("El jugador ya está convocado a este evento.", ErrorCodes.PlayerAlreadyConvocated);
         }
 
         public class BulkAddConvocationHandler : IRequestHandler<BulkAddConvocationsRequest, Unit>
@@ -156,7 +168,14 @@ namespace RFFM.Api.Features.Coaches.Convocations
                     _db.Convocations.Add(Convocation.Create(model));
                 }
 
-                await _db.SaveChangesAsync(cancellationToken);
+                try
+                {
+                    await _db.SaveChangesAsync(cancellationToken);
+                }
+                catch (DbUpdateException ex) when (ex.IsUniqueViolation())
+                {
+                    throw new ConflictException("Algún jugador ya estaba convocado a este evento.", ErrorCodes.PlayerAlreadyConvocated);
+                }
 
                 foreach (var teamPlayerId in convocatedTeamPlayerIds)
                 {

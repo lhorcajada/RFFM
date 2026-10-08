@@ -114,6 +114,8 @@ namespace RFFM.Api.Domain
 
         // Convocations (Features/Coaches/Convocations/SendConvocationReminders.cs)
         public const string SportEventNotFound = "SportEventNotFound";
+        // Features/Coaches/Convocations/AddConvocations.cs (409: one convocation per player and event)
+        public const string PlayerAlreadyConvocated = "PlayerAlreadyConvocated";
 
         // Season Plans (Features/Coaches/SeasonPlans)
         public const string SeasonPlanNotFound = "SeasonPlanNotFound";

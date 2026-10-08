@@ -12,6 +12,9 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.Assistanc
 
             builder.HasKey(c => c.Id);
 
+            builder.HasIndex(c => new { c.SportEventId, c.TeamPlayerId })
+                .IsUnique();
+
             builder.Property(c => c.SportEventId)
                 .IsRequired();
 

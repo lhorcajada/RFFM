@@ -2,7 +2,7 @@
 {
     public class ExcuseTypes
     {
-        private static readonly ExcuseTypes Injury = new ExcuseTypes(1, "Lesión", true);
+        public static readonly ExcuseTypes Injury =new ExcuseTypes(1, "Lesión", true);
         private static readonly ExcuseTypes Study = new ExcuseTypes(2, "Estudios", true);
         private static readonly ExcuseTypes Ill = new ExcuseTypes(3, "Enfermedad", true);
         private static readonly ExcuseTypes FamilyProblem = new ExcuseTypes(4, "Problema familiar", true);
