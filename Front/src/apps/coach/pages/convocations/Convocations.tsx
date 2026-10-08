@@ -13,6 +13,7 @@ import useConvocations from "./hooks/useConvocations";
 import useTeamDashboardBack from "../../hooks/useTeamDashboardBack";
 import { useIsPlayerRole } from "../../hooks/useIsPlayerRole";
 import useEventAttendanceSummaries from "../../hooks/useEventAttendanceSummaries";
+import useTeamMatchReports from "../../hooks/useTeamMatchReports";
 import { coachAuthService } from "../../services/authService";
 import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess";
 import MatchCard from "./components/MatchCard";
@@ -66,6 +67,8 @@ export default function Convocations() {
     [matches]
   );
   const { summaries } = useEventAttendanceSummaries(teamId || undefined, eventIds);
+  const { byEventId: matchReports } = useTeamMatchReports(teamId || undefined);
+  const hasReport = (match: NormalizedMatch) => Boolean(match.eventId && matchReports[match.eventId]);
 
   // Calendar grid for current month
   const calendarGrid = useMemo(() => buildCalendarGrid(year, month), [year, month]);
@@ -89,6 +92,13 @@ export default function Convocations() {
     navigate(`/coach/convocations/match${qs ? `?${qs}` : ""}`, {
       state: { match },
     });
+  };
+
+  const handleViewReport = (match: NormalizedMatch) => {
+    if (!match.eventId) return;
+    const params = new URLSearchParams({ eventId: match.eventId });
+    if (teamId) params.set("teamId", teamId);
+    navigate(`/coach/match-report?${params.toString()}`);
   };
 
   const isLoadingAny = settingsLoading || loading;
@@ -198,6 +208,7 @@ export default function Convocations() {
                       onNavigate={handleMatchClick}
                       attendanceSummary={match.eventId ? summaries[match.eventId] : undefined}
                       isPlayer={isPlayer}
+                      onViewReport={hasReport(match) ? handleViewReport : undefined}
                     />
                   ))}
                   {/* Mobile: dot indicator */}
@@ -219,6 +230,8 @@ export default function Convocations() {
             })}
             onNavigate={handleMatchClick}
             isPlayer={isPlayer}
+            onViewReport={handleViewReport}
+            hasReport={hasReport}
           />
         )}
         </div>

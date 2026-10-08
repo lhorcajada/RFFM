@@ -2,7 +2,7 @@ import React from "react";
 import styles from "./GoalCard.module.css";
 import type { GoalEvent } from "../../../types/acta";
 import { Chip } from "@mui/material";
-import PlayerNameButton from "../../players/PlayerNameButton/PlayerNameButton";
+import PlayerNameButton from "../PlayerNameButton/PlayerNameButton";
 
 export default function GoalCard({
   goal,

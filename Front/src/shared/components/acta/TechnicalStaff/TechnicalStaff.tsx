@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import styles from "./TechnicalStaff.module.css";
 import { Paper, Typography, List, ListItem, Avatar } from "@mui/material";
-import EmptyState from "../../../../../shared/components/ui/EmptyState/EmptyState";
+import EmptyState from "../../ui/EmptyState/EmptyState";
 import type { Technician } from "../../../types/acta";
-import { fetchImage } from "../../../../../shared/services/imageService";
-import AvatarWithUrl from "../../../../../shared/components/ui/AvatarWithUrl/AvatarWithUrl";
+import { fetchImage } from "../../../services/imageService";
+import AvatarWithUrl from "../../ui/AvatarWithUrl/AvatarWithUrl";
 
 type Props = {
   local: Technician[];

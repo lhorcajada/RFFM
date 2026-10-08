@@ -2,7 +2,7 @@ import React from "react";
 import styles from "./Referees.module.css";
 import { Paper, Typography, List, ListItem, Avatar } from "@mui/material";
 import type { Referee } from "../../../types/acta";
-import AvatarWithUrl from "../../../../../shared/components/ui/AvatarWithUrl/AvatarWithUrl";
+import AvatarWithUrl from "../../ui/AvatarWithUrl/AvatarWithUrl";
 
 export default function Referees({ refs }: { refs: Referee[] }) {
   return (

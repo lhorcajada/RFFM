@@ -2,7 +2,7 @@ import React from "react";
 import styles from "./Substitutions.module.css";
 import { Paper, Typography } from "@mui/material";
 import type { Substitution } from "../../../types/acta";
-import PlayerNameButton from "../../players/PlayerNameButton/PlayerNameButton";
+import PlayerNameButton from "../PlayerNameButton/PlayerNameButton";
 
 function asRecord(v: unknown): Record<string, unknown> | null {
   return v != null && typeof v === "object"

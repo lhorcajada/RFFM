@@ -7,8 +7,8 @@ import {
   YellowCardIcon,
   RedCardIcon,
   DoubleYellowIcon,
-} from "../../../../../shared/components/ui/CardIcons/CardIcons";
-import PlayerNameButton from "../../players/PlayerNameButton/PlayerNameButton";
+} from "../../ui/CardIcons/CardIcons";
+import PlayerNameButton from "../PlayerNameButton/PlayerNameButton";
 
 export default function AmonestacionCard({
   event,

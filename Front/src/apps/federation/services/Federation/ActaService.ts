@@ -1,5 +1,5 @@
 import { client } from "../../../../core/api/client";
-import type { Acta } from "../../types/acta";
+import type { Acta } from "../../../../shared/types/acta";
 
 export class ActaService {
   async getActa(

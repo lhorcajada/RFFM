@@ -9,9 +9,9 @@ import {
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import type { Acta } from "../../../types/acta";
-import Pitch from "../../../../../assets/football-pitch.svg";
-import MapPin from "../../../../../shared/components/ui/MapPin/MapPin";
-import { getMapsUrlByNameCity } from "../../../../../shared/utils/maps";
+import Pitch from "../../../../assets/football-pitch.svg";
+import MapPin from "../../ui/MapPin/MapPin";
+import { getMapsUrlByNameCity } from "../../../utils/maps";
 
 export default function FieldInfo({ acta }: { acta: Acta }) {
   return (

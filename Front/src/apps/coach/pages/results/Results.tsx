@@ -10,6 +10,7 @@ import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess"
 import TeamCompetitionMissing from "../../components/TeamCompetitionMissing/TeamCompetitionMissing";
 import useTeamAndClub from "../../hooks/useTeamAndClub.tsx";
 import useTeamDashboardBack from "../../hooks/useTeamDashboardBack";
+import useTeamMatchReports from "../../hooks/useTeamMatchReports";
 import MatchResultNotificationsToggle from "./components/MatchResultNotificationsToggle";
 import styles from "./Results.module.css";
 
@@ -18,6 +19,14 @@ export default function Results() {
   const goToTeamDashboard = useTeamDashboardBack();
   const { team, teamTitleNode, loading: teamLoading } = useTeamAndClub();
   const { seasonId, currentSeasonId } = useRffmSeason();
+
+  const { byCodActa } = useTeamMatchReports(team?.id);
+
+  const resolveActaLink = (codacta: string): string | null => {
+    const report = byCodActa[codacta];
+    if (!report || !team?.id) return null;
+    return `/coach/match-report?eventId=${encodeURIComponent(report.eventId)}&teamId=${encodeURIComponent(team.id)}`;
+  };
 
   const season = String(currentSeasonId ?? seasonId ?? "");
   const hasCompetition = Boolean(team?.rffmCompetitionId && team?.rffmGroupId);
@@ -95,6 +104,7 @@ export default function Results() {
             <RoundPanel
               round={{ jornada: selectedRoundNumber, equipos: selectedMatches }}
               hideActaButton
+              resolveActaLink={resolveActaLink}
             />
           )}
         </div>

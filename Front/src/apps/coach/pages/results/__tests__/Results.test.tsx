@@ -63,6 +63,11 @@ vi.mock("../../../../../shared/hooks/useCalendar", () => ({
   default: (params: unknown) => mockUseCalendar(params),
 }));
 
+const mockUseTeamMatchReports = vi.fn();
+vi.mock("../../../hooks/useTeamMatchReports", () => ({
+  default: (teamId?: string) => mockUseTeamMatchReports(teamId),
+}));
+
 vi.mock("../components/MatchResultNotificationsToggle", () => ({
   default: () => <div>Interruptor de avisos de resultados</div>,
 }));
@@ -121,6 +126,22 @@ describe("Results", () => {
     mockUseTeamAndClub.mockReturnValue({ team: teamWithCompetition, loading: false });
     mockUseCalendar.mockReturnValue(calendarState());
     mockHasFeatureAccess.mockReturnValue(true);
+    mockUseTeamMatchReports.mockReturnValue({ byEventId: {}, byCodActa: {} });
+  });
+
+  it("muestra «Ver acta» en el partido propio con acta disponible y enlaza al acta del coach", () => {
+    mockUseTeamMatchReports.mockReturnValue({
+      byEventId: {},
+      byCodActa: { "123": { eventId: "e1", codActa: "123", hasLiveReport: true, hasFederationReport: true } },
+    });
+
+    renderPage();
+
+    expect(mockUseTeamMatchReports).toHaveBeenCalledWith("team-1");
+    expect(screen.getByRole("link", { name: "Ver acta" })).toHaveAttribute(
+      "href",
+      "/coach/match-report?eventId=e1&teamId=team-1",
+    );
   });
 
   function withoutCompetition(overrides: Record<string, unknown> = {}) {

@@ -43,3 +43,22 @@
   background: rgba(255, 193, 7, 0.22);
   color: #ffd54f;
 }
+
+/* ─── "Ver acta" (finished matches with a report available) ───────────── */
+.viewReportButton {
+  align-self: center;
+  margin-top: 6px !important;
+  font-size: 0.65rem !important;
+  line-height: 1.2 !important;
+  padding: 2px 8px !important;
+  min-width: 0 !important;
+  white-space: nowrap;
+}
+
+.viewReportButton :global(.MuiButton-startIcon) {
+  margin-right: 4px;
+}
+
+.viewReportButton :global(.MuiButton-startIcon) > svg {
+  font-size: 0.9rem;
+}

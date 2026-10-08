@@ -67,6 +67,12 @@ export interface WindowRatingSnapshot {
   ratings: Record<string, number | null>;
 }
 
+/** Formation the match started with (captured on initMatch, never changed mid-match) */
+export interface StartingFormation {
+  id: string;
+  name: string;
+}
+
 /** Full backup saved to localStorage when the user leaves the page */
 export interface LiveMatchBackup {
   /** Sport-event ID — used as the backup key discriminator */
@@ -82,6 +88,7 @@ export interface LiveMatchBackup {
   halfDuration: number;
   slots: Record<number, string | null>;
   initialSlots: Record<number, string | null>;
+  startingFormation?: StartingFormation | null;
   playerStates: Record<string, SimulationPlayerState>;
   windows: SubstitutionWindow[];
   goals: GoalEvent[];
@@ -126,6 +133,8 @@ export interface LiveMatchParticipationPayload {
   formationChangesJson: string;
   /** Duración real del partido en minutos; null/0 = el backend usa la duración de la categoría. */
   matchDurationMinutes?: number | null;
+  /** Serialised starting lineup { formationId, formationName, slots }; omitted keeps the stored one. */
+  startingLineupJson?: string | null;
 }
 
 // ─── Season & history stats ────────────────────────────────────────────────────

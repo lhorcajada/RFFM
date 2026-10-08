@@ -5,9 +5,11 @@ import MatchDayView from "../MatchDay/MatchDay";
 export default function RoundPanel({
   round,
   hideActaButton,
+  resolveActaLink,
 }: {
   round: any;
   hideActaButton?: boolean;
+  resolveActaLink?: (codacta: string) => string | null;
 }) {
   const allMatches = round.equipos ?? round.partidos ?? round.matches ?? [];
   const grouped = groupMatchesByWeekend(allMatches);
@@ -33,6 +35,7 @@ export default function RoundPanel({
           title={`Sábado ${saturdayDate}`}
           items={grouped.saturday}
           hideActaButton={hideActaButton}
+          resolveActaLink={resolveActaLink}
         />
       )}
       {grouped.sunday.length > 0 && (
@@ -40,6 +43,7 @@ export default function RoundPanel({
           title={`Domingo ${sundayDate}`}
           items={grouped.sunday}
           hideActaButton={hideActaButton}
+          resolveActaLink={resolveActaLink}
         />
       )}
       {grouped.postponed.length > 0 && (
@@ -47,6 +51,7 @@ export default function RoundPanel({
           title={`Aplazados`}
           items={grouped.postponed}
           hideActaButton={hideActaButton}
+          resolveActaLink={resolveActaLink}
         />
       )}
       {grouped.byes && grouped.byes.length > 0 && (

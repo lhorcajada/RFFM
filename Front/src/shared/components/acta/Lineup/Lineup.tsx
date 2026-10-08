@@ -4,8 +4,8 @@ import type { PlayerActa, GoalEvent } from "../../../types/acta";
 import { Paper, Typography, List, ListItem, Avatar } from "@mui/material";
 import MilitaryTechIcon from "@mui/icons-material/MilitaryTech";
 import SportsSoccerIcon from "@mui/icons-material/SportsSoccer";
-import PlayerNameButton from "../../players/PlayerNameButton/PlayerNameButton";
-import AvatarWithUrl from "../../../../../shared/components/ui/AvatarWithUrl/AvatarWithUrl";
+import PlayerNameButton from "../PlayerNameButton/PlayerNameButton";
+import AvatarWithUrl from "../../ui/AvatarWithUrl/AvatarWithUrl";
 
 export default function Lineup({
   title,

@@ -3,19 +3,14 @@ import { useParams } from "react-router-dom";
 import styles from "./Acta.module.css";
 import pageHeaderStyles from "../../../../shared/components/ui/PageHeader/PageHeader.module.css";
 import { getActa, getSettingsForUser } from "../../services/api";
-import type { Acta as ActaType } from "../../types/acta";
+import type { Acta as ActaType } from "../../../../shared/types/acta";
 import { Paper, Typography, CircularProgress } from "@mui/material";
 import EmptyState from "../../../../shared/components/ui/EmptyState/EmptyState";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
-import ActaHeaderDate from "../../components/acta/ActaHeaderDate/ActaHeaderDate";
-import Lineup from "../../components/acta/Lineup/Lineup";
-import Goals from "../../components/acta/Goals/Goals";
-import Substitutions from "../../components/acta/Substitutions/Substitutions";
-import Referees from "../../components/acta/Referees/Referees";
-import TechnicalStaff from "../../components/acta/TechnicalStaff/TechnicalStaff";
-import Amonestaciones from "../../components/acta/Amonestaciones/Amonestaciones";
-import FieldInfo from "../../components/acta/FieldInfo/FieldInfo";
+import ActaHeaderDate from "../../../../shared/components/acta/ActaHeaderDate/ActaHeaderDate";
+import ActaContent from "../../../../shared/components/acta/ActaContent/ActaContent";
+import FieldInfo from "../../../../shared/components/acta/FieldInfo/FieldInfo";
 import { useNavigate } from "react-router-dom";
 import Button from "@mui/material/Button";
 import PlayerQuickViewDialog from "../../components/players/PlayerQuickViewDialog/PlayerQuickViewDialog";
@@ -139,87 +134,7 @@ export default function Acta(): JSX.Element {
           <EmptyState description={"No hay acta"} />
         </Paper>
       )}
-      {acta && (
-        <>
-          <div className={styles.sectionGrid}>
-            <div>
-              <Lineup
-                title="Local"
-                players={acta.jugadores_equipo_local || []}
-                goals={acta.goles_equipo_local || []}
-                teamName={acta.equipo_local}
-                onPlayerClick={handlePlayerClick}
-              />
-            </div>
-
-            <div>
-              <Lineup
-                title="Visitante"
-                players={acta.jugadores_equipo_visitante || []}
-                goals={acta.goles_equipo_visitante || []}
-                teamName={acta.equipo_visitante}
-                onPlayerClick={handlePlayerClick}
-              />
-            </div>
-
-            <div className={styles.fullWidth}>
-              <Goals
-                localGoals={acta.goles_equipo_local || []}
-                awayGoals={acta.goles_equipo_visitante || []}
-                localPlayers={acta.jugadores_equipo_local || []}
-                awayPlayers={acta.jugadores_equipo_visitante || []}
-                localTeamName={acta.equipo_local}
-                awayTeamName={acta.equipo_visitante}
-                onPlayerClick={handlePlayerClick}
-              />
-            </div>
-
-            <div className={styles.fullWidth}>
-              <Substitutions
-                local={acta.sustituciones_equipo_local || []}
-                away={acta.sustituciones_equipo_visitante || []}
-                onPlayerClick={handlePlayerClick}
-              />
-            </div>
-
-            <div className={styles.fullWidth}>
-              <Amonestaciones
-                local={acta.tarjetas_equipo_local || acta.tarjetas_local || []}
-                away={
-                  acta.tarjetas_equipo_visitante ||
-                  acta.tarjetas_visitante ||
-                  []
-                }
-                others={acta.otras_tarjetas || []}
-                localPlayers={acta.jugadores_equipo_local || []}
-                awayPlayers={acta.jugadores_equipo_visitante || []}
-                localTeamName={acta.equipo_local}
-                awayTeamName={acta.equipo_visitante}
-                onPlayerClick={handlePlayerClick}
-              />
-            </div>
-
-            <div className={styles.fullWidth}>
-              <TechnicalStaff
-                local={acta.otros_tecnicos_local || []}
-                away={acta.otros_tecnicos_visitante || []}
-                entrenador_local={acta.entrenador_local}
-                entrenador_visitante={acta.entrenador_visitante}
-                delegadolocal={acta.delegadolocal}
-                delegado_visitante={acta.delegado_visitante}
-              />
-            </div>
-
-            <div className={styles.fullWidth}>
-              <Referees refs={acta.arbitros_partido || []} />
-            </div>
-
-            <div className={styles.fullWidth}>
-              <FieldInfo acta={acta} />
-            </div>
-          </div>
-        </>
-      )}
+      {acta && <ActaContent acta={acta} onPlayerClick={handlePlayerClick} />}
 
       <PlayerQuickViewDialog
         open={playerPopup.open}

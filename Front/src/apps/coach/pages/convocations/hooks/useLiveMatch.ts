@@ -13,6 +13,7 @@ import type {
   WindowRatingSnapshot,
   LiveMatchParticipationPayload,
   PlayerParticipationDto,
+  StartingFormation,
 } from "../components/simulation/liveMatch.types";
 import { MAX_MATCH_DURATION_MINUTES } from "../components/simulation/liveMatch.types";
 import {
@@ -104,7 +105,7 @@ export interface UseLiveMatchReturn {
   // Backup
   backup: LiveMatchBackup | null;
   // Actions
-  initMatch: (initialSlots: Record<number, string | null>) => void;
+  initMatch: (initialSlots: Record<number, string | null>, startingFormation?: StartingFormation | null) => void;
   confirmAction: () => void;
   cancelAction: () => void;
   addGoal: (
@@ -235,6 +236,7 @@ export function useLiveMatch(
   const prepareSlotsRef = useRef<Record<number, string | null>>({});
   const prepareModeRef = useRef(false);
   const initialSlotsRef = useRef<Record<number, string | null>>({});
+  const startingFormationRef = useRef<StartingFormation | null>(null);
   const currentMinuteRef = useRef(0);
   const halfRef = useRef<1 | 2>(1);
   const isHalftimeRef = useRef(false);
@@ -365,6 +367,7 @@ export function useLiveMatch(
       halfDuration: halfDurationRef.current,
       slots: { ...slotsRef.current },
       initialSlots: { ...initialSlotsRef.current },
+      startingFormation: startingFormationRef.current,
       playerStates: { ...playerStatesRef.current },
       windows: [...windowsRef.current],
       goals: [...goalsRef.current],
@@ -576,6 +579,7 @@ export function useLiveMatch(
     runBaselineSecondsRef.current = restoredSeconds;
 
     initialSlotsRef.current = { ...b.initialSlots };
+    startingFormationRef.current = b.startingFormation ?? null;
     setInitialSlotsSnapshot({ ...b.initialSlots });
     setTotalSeconds(restoredSeconds);
     setHalf(b.half);
@@ -631,9 +635,10 @@ export function useLiveMatch(
 
   // ── initMatch ─────────────────────────────────────────────────────────────
 
-  const initMatch = useCallback((initialSlots: Record<number, string | null>) => {
+  const initMatch = useCallback((initialSlots: Record<number, string | null>, startingFormation?: StartingFormation | null) => {
     notifiedMinuteLimitPlayersRef.current = new Set();
     initialSlotsRef.current = { ...initialSlots };
+    startingFormationRef.current = startingFormation ?? null;
     setInitialSlotsSnapshot({ ...initialSlots });
     runAnchorEpochRef.current = null;
     runBaselineSecondsRef.current = 0;
@@ -781,6 +786,11 @@ export function useLiveMatch(
         cardsJson: JSON.stringify(cardsRef.current),
         formationChangesJson: JSON.stringify(formationChangesRef.current),
         matchDurationMinutes: matchDurationMinutesRef.current,
+        startingLineupJson: JSON.stringify({
+          formationId: startingFormationRef.current?.id ?? null,
+          formationName: startingFormationRef.current?.name ?? null,
+          slots: initialSlotsRef.current,
+        }),
       };
 
       await saveMatchParticipation(eid, payload);

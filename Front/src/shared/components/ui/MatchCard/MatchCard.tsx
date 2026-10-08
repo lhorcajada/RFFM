@@ -26,10 +26,13 @@ export default function MatchCard({
   item,
   compact,
   hideActaButton,
+  resolveActaLink,
 }: {
   item: MatchItem;
   compact?: boolean;
   hideActaButton?: boolean;
+  /** Con hideActaButton, permite mostrar «Ver acta» hacia una ruta propia (p. ej. el acta del coach). */
+  resolveActaLink?: (codacta: string) => string | null;
 }) {
   const matchVals = useMatch({ item });
   const m = matchVals.match as any;
@@ -54,6 +57,11 @@ export default function MatchCard({
     awayGoalsNum: matchVals.awayGoalsNum,
     match: matchVals.match,
   } as const;
+
+  const customActaLink =
+    hideActaButton && data.codactaVal && resolveActaLink
+      ? resolveActaLink(String(data.codactaVal))
+      : null;
 
   const localGoalsNum = data.localGoalsNum;
   const awayGoalsNum = data.awayGoalsNum;
@@ -131,7 +139,17 @@ export default function MatchCard({
 
           <div className={styles.centerStack}>
             <MatchTime time={data.timeRaw} />
-            {data.codactaVal ? (
+            {customActaLink ? (
+              <Button
+                component={Link}
+                to={customActaLink}
+                variant="contained"
+                size="small"
+                className={`${styles.actaBtn} ${styles.actaOutline}`}
+              >
+                Ver acta
+              </Button>
+            ) : data.codactaVal ? (
               hideActaButton ? (
                 <span
                   className={`${styles.actaBtn} ${styles.actaOutline}`}

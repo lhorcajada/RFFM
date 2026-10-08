@@ -141,7 +141,8 @@ export default function PartidoEnDirectoTab({
         setFormationId(lineup.formationId);
         const slotMap: Record<number, string | null> = {};
         lineup.slots.forEach((s) => { slotMap[s.slotIndex] = s.teamPlayerId; });
-        live.initMatch(slotMap);
+        const startingFormation = formList.find((f) => f.id === lineup.formationId);
+        live.initMatch(slotMap, startingFormation ? { id: startingFormation.id, name: startingFormation.name } : null);
         setLoading(false);
       })
       .catch(() => {
@@ -354,7 +355,7 @@ export default function PartidoEnDirectoTab({
     if (live.matchPhase === "preMatch") {
       const formation = formations.find((f) => f.id === newFormationId);
       if (!formation) return;
-      live.initMatch(slotsForFormation(formation));
+      live.initMatch(slotsForFormation(formation), { id: formation.id, name: formation.name });
       setFormationId(formation.id);
       return;
     }

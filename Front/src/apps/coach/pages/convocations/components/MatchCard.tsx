@@ -1,4 +1,6 @@
 import type { KeyboardEvent } from "react";
+import Button from "@mui/material/Button";
+import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
 import HandshakeIcon from "@mui/icons-material/Handshake";
 import SportsSoccerIcon from "@mui/icons-material/SportsSoccer";
@@ -14,6 +16,8 @@ interface Props {
   onNavigate: (m: NormalizedMatch) => void;
   attendanceSummary?: EventAttendanceSummaryDto;
   isPlayer?: boolean;
+  /** Se pasa solo cuando el partido tiene acta disponible (federación o partido en directo). */
+  onViewReport?: (m: NormalizedMatch) => void;
 }
 
 const CATEGORY_META: Record<
@@ -25,7 +29,7 @@ const CATEGORY_META: Record<
   Tournament: { label: "Torneo", className: "categoryChipTournament", icon: EmojiEventsIcon },
 };
 
-export default function MatchCard({ match, onNavigate, attendanceSummary, isPlayer }: Props) {
+export default function MatchCard({ match, onNavigate, attendanceSummary, isPlayer, onViewReport }: Props) {
   const result = getMatchResult(match);
   const categoryMeta = match.matchCategory ? CATEGORY_META[match.matchCategory] : null;
   const CategoryIcon = categoryMeta?.icon;
@@ -125,6 +129,21 @@ export default function MatchCard({ match, onNavigate, attendanceSummary, isPlay
       )}
       {match.eventId && attendanceSummary && (
         <EventAttendanceBadges summary={attendanceSummary} isPlayer={!!isPlayer} />
+      )}
+      {match.isFinished && onViewReport && (
+        <Button
+          variant="outlined"
+          size="small"
+          startIcon={<DescriptionOutlinedIcon />}
+          className={localStyles.viewReportButton}
+          onClick={(event) => {
+            event.stopPropagation();
+            onViewReport(match);
+          }}
+          onKeyDown={(event) => event.stopPropagation()}
+        >
+          Ver acta
+        </Button>
       )}
     </div>
   );

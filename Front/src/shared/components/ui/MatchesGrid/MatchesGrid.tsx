@@ -7,9 +7,11 @@ import RestItem from "../RestItem/RestItem";
 export default function MatchesGrid({
   items,
   hideActaButton,
+  resolveActaLink,
 }: {
   items: any[];
   hideActaButton?: boolean;
+  resolveActaLink?: (codacta: string) => string | null;
 }) {
   return (
     <div className={styles.matchesGrid}>
@@ -37,7 +39,12 @@ export default function MatchesGrid({
           return isDescansa ? (
             <RestItem key={idx} item={it} />
           ) : (
-            <MatchCard key={idx} item={it} hideActaButton={hideActaButton} />
+            <MatchCard
+              key={idx}
+              item={it}
+              hideActaButton={hideActaButton}
+              resolveActaLink={resolveActaLink}
+            />
           );
         })}
     </div>
