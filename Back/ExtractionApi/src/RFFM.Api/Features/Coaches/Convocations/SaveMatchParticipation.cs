@@ -50,6 +50,8 @@ namespace RFFM.Api.Features.Coaches.Convocations
             public string? FormationChangesJson { get; init; }
             /// <summary>Duración real del partido; solo se aplica con MatchPhase "finished". null = no cambia la guardada.</summary>
             public int? MatchDurationMinutes { get; init; }
+            /// <summary>Alineación inicial serializada; null = no cambia la guardada.</summary>
+            public string? StartingLineupJson { get; init; }
         }
 
         public const int MaxMatchDurationMinutes = 200;
@@ -111,7 +113,8 @@ namespace RFFM.Api.Features.Coaches.Convocations
                             request.RatingSnapshotsJson,
                             request.GoalsJson,
                             request.CardsJson,
-                            request.FormationChangesJson);
+                            request.FormationChangesJson,
+                            request.StartingLineupJson);
                     }
                     else
                     {
@@ -131,7 +134,8 @@ namespace RFFM.Api.Features.Coaches.Convocations
                             request.RatingSnapshotsJson,
                             request.GoalsJson,
                             request.CardsJson,
-                            request.FormationChangesJson);
+                            request.FormationChangesJson,
+                            request.StartingLineupJson);
 
                         _db.MatchParticipations.Add(newRecord);
                     }

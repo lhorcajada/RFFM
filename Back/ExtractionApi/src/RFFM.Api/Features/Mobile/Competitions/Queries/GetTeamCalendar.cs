@@ -60,7 +60,8 @@ namespace RFFM.Api.Features.Mobile.Competitions.Queries
             string VisitorTeamName,
             string VisitorTeamImageUrl,
             int? VisitorGoals,
-            string Status);
+            string Status,
+            string? CodActa);
 
         // ─── Handler ──────────────────────────────────────────────────────────
 
@@ -106,7 +107,8 @@ namespace RFFM.Api.Features.Mobile.Competitions.Queries
                     match.VisitorTeamName,
                     match.VisitorTeamImageUrl,
                     ParseNullableInt(match.VisitorGoals),
-                    match.Status);
+                    match.Status,
+                    string.IsNullOrWhiteSpace(match.MatchRecordCode) ? null : match.MatchRecordCode);
 
             internal static int? ParseNullableInt(string? value)
                 => int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) ? parsed : null;

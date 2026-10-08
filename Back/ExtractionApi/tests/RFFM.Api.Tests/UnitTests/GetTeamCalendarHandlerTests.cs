@@ -116,6 +116,33 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
+        public async Task Handle_MatchWithRecordCode_ExposesCodActa()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var teamId = await SeedTeamAsync(db, rffmCompetitionId: 25255269, rffmGroupId: 25255283);
+            var calendarServiceMock = new Mock<ICalendarService>();
+            calendarServiceMock
+                .Setup(s => s.GetCalendarAsync(25255269, 25255283, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new CalendarResponse
+                {
+                    MatchDays =
+                    [
+                        new CalendarMatchDayResponse
+                        {
+                            Date = new DateTime(2026, 03, 15),
+                            MatchDayNumber = 5,
+                            Matches = [new MatchResponse { MatchRecordCode = "5440937", LocalGoals = "1", VisitorGoals = "0" }]
+                        }
+                    ]
+                });
+
+            var result = await new GetTeamCalendar.Handler(db, calendarServiceMock.Object)
+                .Handle(new GetTeamCalendar.MobileCalendarQuery { TeamId = teamId }, CancellationToken.None);
+
+            Assert.Equal("5440937", Assert.Single(Assert.Single(result.MatchDays).Matches).CodActa);
+        }
+
+        [Fact]
         public async Task Handle_MatchNotYetPlayed_GoalsAreNullNotZero()
         {
             // Arrange

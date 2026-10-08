@@ -90,6 +90,10 @@ namespace RFFM.Api.Domain
         // Federation competitions (Features/Federation/Teams/Queries/GetGoalSectors.cs)
         public const string CompetitionNotFound = "CompetitionNotFound";
 
+        // Match reports (Features/Coaches/MatchReports)
+        public const string EventNotFound = "EventNotFound";
+        public const string FederationActaNotAvailable = "FederationActaNotAvailable";
+
         // Players / Clubs (Features/Coaches/Players/Services/PlayerService.cs)
         // Value preserved from the pre-existing literal used in PlayerService.cs
         public const string ClubNotExist = "ClubNotExist";

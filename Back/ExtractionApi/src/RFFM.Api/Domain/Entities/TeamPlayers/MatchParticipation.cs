@@ -42,6 +42,12 @@ namespace RFFM.Api.Domain.Entities.TeamPlayers
         /// <summary>Serialised JSON array of FormationChangeEvent objects applied during the match.</summary>
         public string? FormationChangesJson { get; private set; }
 
+        /// <summary>
+        /// Serialised starting lineup { formationId, formationName, slots: { slotIndex: teamPlayerId } }
+        /// captured when the live match was initialised.
+        /// </summary>
+        public string? StartingLineupJson { get; private set; }
+
         /// <summary>Home team goals at end of match.</summary>
         public int ScoreLocal { get; private set; }
 
@@ -79,7 +85,8 @@ namespace RFFM.Api.Domain.Entities.TeamPlayers
             string? ratingSnapshotsJson,
             string? goalsJson,
             string? cardsJson = null,
-            string? formationChangesJson = null)
+            string? formationChangesJson = null,
+            string? startingLineupJson = null)
         {
             var now = DateTime.UtcNow;
             return new MatchParticipation
@@ -99,6 +106,7 @@ namespace RFFM.Api.Domain.Entities.TeamPlayers
                 GoalsJson = goalsJson,
                 CardsJson = cardsJson,
                 FormationChangesJson = formationChangesJson,
+                StartingLineupJson = startingLineupJson,
                 CreatedAt = now,
                 UpdatedAt = now,
             };
@@ -116,7 +124,8 @@ namespace RFFM.Api.Domain.Entities.TeamPlayers
             string? ratingSnapshotsJson,
             string? goalsJson,
             string? cardsJson = null,
-            string? formationChangesJson = null)
+            string? formationChangesJson = null,
+            string? startingLineupJson = null)
         {
             MinutesPlayed = minutesPlayed;
             IsStarter = isStarter;
@@ -130,6 +139,8 @@ namespace RFFM.Api.Domain.Entities.TeamPlayers
             GoalsJson = goalsJson;
             CardsJson = cardsJson;
             FormationChangesJson = formationChangesJson;
+            if (startingLineupJson is not null)
+                StartingLineupJson = startingLineupJson;
             UpdatedAt = DateTime.UtcNow;
         }
 
