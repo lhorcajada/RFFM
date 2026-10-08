@@ -321,7 +321,7 @@ export default function ConvocationTab({
                 </p>
               )}
             </div>
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <div className={styles.proposalHeaderActions}>
               <Button
                 variant="text"
                 size="small"

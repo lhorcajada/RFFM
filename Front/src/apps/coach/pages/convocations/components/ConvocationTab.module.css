@@ -38,6 +38,14 @@
   margin-bottom: 10px;
 }
 
+.proposalHeaderActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
 .proposalTitle {
   margin: 0;
   font-size: 0.95rem;
@@ -52,7 +60,7 @@
 
 .proposalCards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr));
   gap: 12px;
 }
 
@@ -96,8 +104,11 @@
 
 .proposalCardName {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+  min-width: 0;
+  overflow-wrap: anywhere;
   color: #ffffff;
   font-size: 1.05rem;
 }
@@ -242,6 +253,47 @@
   align-items: center;
   flex: 1;
   padding: 32px 16px;
+}
+
+@media (max-width: 600px) {
+  .proposalPage {
+    padding: 10px 8px;
+  }
+
+  .proposalHeader {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .proposalHeaderActions {
+    justify-content: flex-start;
+  }
+
+  .proposalCardTop,
+  .proposalChips {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .proposalChip {
+    font-size: 0.75rem;
+  }
+
+  .factorItem {
+    grid-template-columns: 1fr auto;
+    row-gap: 2px;
+    padding: 6px 10px;
+    font-size: 0.82rem;
+  }
+
+  .factorLabel {
+    grid-column: 1 / -1;
+  }
+
+  .factorSubItem {
+    padding-left: 20px;
+    font-size: 0.78rem;
+  }
 }
 
 /* ─── Three-column layout ─── */
