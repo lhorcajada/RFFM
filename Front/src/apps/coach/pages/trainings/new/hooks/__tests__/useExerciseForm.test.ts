@@ -268,6 +268,44 @@ describe("useExerciseForm — carga de ejercicio existente", () => {
     });
   });
 
+  it("applyExercise conserva las habilidades elegidas de cada sub-subprincipio vinculado", async () => {
+    const { result } = renderHook(() =>
+      useExerciseForm({ clubId: "club-1", navigate, returnTo: "/coach/trainings" })
+    );
+
+    const exercise: Exercise = {
+      id: "ex-1",
+      name: "Ejercicio",
+      tipo: "Situacional",
+      objetivo: "Objetivo",
+      modelRelations: [
+        {
+          id: "rel-1",
+          subprincipioId: "sub-1",
+          isFoco: true,
+          habilidadesImprescindibles: ["Pase"],
+          items: [{ id: "item-1", subSubPrincipioId: "ssp-1", isFoco: true, habilidades: ["Pase"] }],
+        },
+      ],
+      nivelesColumnas: [],
+      niveles: [
+        { nivel: 1, valores: {} },
+        { nivel: 2, valores: {} },
+      ],
+      logistica: "10 min",
+      descripcion: "Desc",
+      isAssociatedToGameModel: true,
+    };
+
+    act(() => result.current.loadExercise(exercise));
+
+    await waitFor(() => {
+      expect(result.current.form.modelRelations[0].items).toEqual([
+        { subSubPrincipioId: "ssp-1", isFoco: true, habilidades: ["Pase"] },
+      ]);
+    });
+  });
+
   it("emptyExercise no trae subtipo por defecto", async () => {
     const { emptyExercise } = await import("../../constants");
     expect(emptyExercise.subtipo).toBeNull();

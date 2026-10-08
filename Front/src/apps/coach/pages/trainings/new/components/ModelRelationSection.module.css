@@ -13,6 +13,11 @@
   letter-spacing: 0.06em;
 }
 
+.hint {
+  font-size: 0.72rem !important;
+  color: rgba(212, 212, 212, 0.62) !important;
+}
+
 .noGameModelHint {
   font-size: 0.72rem !important;
   color: rgba(255, 193, 7, 0.85) !important;
@@ -23,59 +28,183 @@
   color: #4d9de0 !important;
 }
 
-.relationCard {
+.moment,
+.legacy {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 10px;
+  gap: 6px;
+  padding: 8px;
   border: 1px solid rgba(77, 157, 224, 0.22);
   border-radius: 8px;
   background: rgba(12, 22, 42, 0.4);
 }
 
-.relationHeader {
+.momentHeader,
+.principleHeader,
+.subprincipioHeader {
   display: flex;
-  gap: 8px;
   align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 40px;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #e8e8e8;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 
-.subprincipioPicker {
-  flex: 1.5;
+.momentHeader:hover,
+.principleHeader:hover,
+.subprincipioHeader:hover {
+  background: rgba(77, 157, 224, 0.08);
+}
+
+.momentHeader {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #a8d4f5;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.principleHeader {
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.subprincipioHeader {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.headerLabel {
+  flex: 1;
   min-width: 0;
+  overflow-wrap: anywhere;
 }
 
-.subprincipioPicker :global(.MuiInputBase-root),
-.itemPicker :global(.MuiInputBase-root) {
-  color: #e8e8e8 !important;
+.chevron {
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
 }
 
-.subprincipioPicker :global(.MuiInputLabel-root),
-.itemPicker :global(.MuiInputLabel-root) {
-  color: rgba(212, 212, 212, 0.62) !important;
+.chevronOpen {
+  transform: rotate(180deg);
 }
 
-.subprincipioPicker :global(.MuiOutlinedInput-notchedOutline),
-.itemPicker :global(.MuiOutlinedInput-notchedOutline) {
-  border-color: rgba(77, 157, 224, 0.3) !important;
+.selectedBadge {
+  flex-shrink: 0;
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: rgba(77, 157, 224, 0.25);
+  color: #4d9de0;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-align: center;
+  line-height: 20px;
 }
 
-.itemRow {
+.principle {
   display: flex;
-  gap: 8px;
+  flex-direction: column;
+  padding-left: 8px;
+}
+
+.subprincipio {
+  display: flex;
+  flex-direction: column;
+  padding-left: 12px;
+}
+
+.subprincipioBody {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-left: 8px;
+}
+
+.zona {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.zonaTitle {
+  font-size: 0.7rem !important;
+  font-weight: 700 !important;
+  color: rgba(168, 212, 245, 0.8) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 4px !important;
+}
+
+.sspRow {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 2px 6px 6px;
+  border-radius: 6px;
+}
+
+.sspRowSelected {
+  background: rgba(77, 157, 224, 0.1);
+}
+
+.sspLabel {
+  display: flex;
   align-items: center;
-  margin-left: 12px;
+  gap: 4px;
+  color: #e8e8e8;
+  font-size: 0.8rem;
+  cursor: pointer;
 }
 
-.itemPicker {
-  flex: 1.5;
-  min-width: 0;
+.sspTexto {
+  padding-left: 34px;
+  font-size: 0.74rem !important;
+  line-height: 1.4 !important;
+  color: rgba(212, 212, 212, 0.72) !important;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
 }
 
-.addItemBtn {
-  align-self: flex-start;
-  margin-left: 12px;
-  color: #4d9de0 !important;
+.sspCheckbox {
+  color: rgba(77, 157, 224, 0.7) !important;
+}
+
+.sspDetail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding-left: 34px;
+}
+
+.habilidades {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.habilidad {
+  color: rgba(212, 212, 212, 0.8) !important;
+  border-color: rgba(77, 157, 224, 0.4) !important;
+}
+
+.habilidadChosen {
+  background-color: rgba(77, 157, 224, 0.3) !important;
+  color: #e8f4ff !important;
+}
+
+.noHabilidades {
   font-size: 0.72rem !important;
+  color: rgba(212, 212, 212, 0.55) !important;
+  font-style: italic;
 }
 
 .focoToggle {
@@ -89,24 +218,15 @@
   border-color: rgba(77, 157, 224, 0.3) !important;
 }
 
-.focoToggleBtn.Mui-selected {
+.focoToggleBtn:global(.Mui-selected) {
   background-color: rgba(77, 157, 224, 0.2) !important;
   color: #4d9de0 !important;
 }
 
-.addLinkBtn {
-  align-self: flex-start;
-  color: #4d9de0 !important;
-}
-
-.habilidadesPicker :global(.MuiInputBase-root) {
-  color: #e8e8e8 !important;
-}
-
-.habilidadesPicker :global(.MuiInputLabel-root) {
-  color: rgba(212, 212, 212, 0.62) !important;
-}
-
-.habilidadesPicker :global(.MuiOutlinedInput-notchedOutline) {
-  border-color: rgba(77, 157, 224, 0.3) !important;
+.legacyRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #e8e8e8;
+  font-size: 0.8rem;
 }

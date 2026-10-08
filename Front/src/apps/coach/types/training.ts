@@ -33,8 +33,14 @@ export interface ExerciseModelRelationItem {
   subSubPrincipioNumero?: string | null;
   subSubPrincipioRol?: string | null;
   isFoco: boolean;
+  /** Habilidades of this SubSubPrincipio (as defined in the GameModel) the exercise trains. */
+  habilidades?: string[];
 }
-export type ExerciseModelRelationItemRequest = Pick<ExerciseModelRelationItem, "subSubPrincipioId" | "isFoco">;
+export interface ExerciseModelRelationItemRequest {
+  subSubPrincipioId: string;
+  isFoco: boolean;
+  habilidades: string[];
+}
 
 /** Denormalized display fields for an ExerciseModelRelation — read-side only. */
 export interface ExerciseModelRelation {

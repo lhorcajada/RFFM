@@ -1,10 +1,11 @@
+import { useState } from "react";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 vi.mock("../../../../../services/gameModelService", () => ({
-  default: { getAdnOptions: vi.fn() },
+  default: { getByTeamIdAndSeason: vi.fn() },
 }));
 vi.mock("../../../../../services/seasonService", () => ({
   default: { getActiveSeason: vi.fn() },
@@ -13,183 +14,278 @@ vi.mock("../../../../../services/seasonService", () => ({
 import ModelRelationSection from "../ModelRelationSection";
 import gameModelService from "../../../../../services/gameModelService";
 import seasonService from "../../../../../services/seasonService";
+import type { GameModel, Habilidad, SubSubPrincipio } from "../../../../../types/gameModel";
 import type { ExerciseModelRelationRequest } from "../../../../../types/training";
 
-const adnOptionsWithData = {
-  subprincipios: [
-    { id: "sub-1", numero: "1.1", titulo: "Presión alta", gameMomentName: "Fase defensiva" },
+let nextId = 1;
+
+function habilidad(nombre: string): Habilidad {
+  return { id: nextId++, nombre, descripcion: "", entrenable: "" };
+}
+
+function ssp(apiId: string, numero: string, rol: string, habilidades: string[] = [], texto = ""): SubSubPrincipio {
+  return { id: nextId++, apiId, numero, rol, texto, habilidades: habilidades.map(habilidad), notas: [] };
+}
+
+const gameModel: GameModel = {
+  id: "gm-1",
+  teamId: "team-1",
+  name: "Modelo",
+  season: "2026-2027",
+  setPieceRules: [],
+  openIssues: [],
+  principles: [
+    {
+      id: 2,
+      apiId: "p-ataque",
+      gameMomentId: 2,
+      gameMomentName: "Ataque organizado",
+      numero: 2,
+      titulo: "Progresar",
+      texto: "",
+      notas: [],
+      subprincipios: [
+        {
+          id: 20,
+          apiId: "sub-2-1",
+          numero: "2.1",
+          titulo: "Salida de balón",
+          texto: "",
+          notas: [],
+          subSubPrincipios: [],
+          zonas: [
+            {
+              id: 200,
+              apiId: "zona-1",
+              zoneKeys: ["iniciacion"],
+              texto: "",
+              notas: [],
+              subSubPrincipios: [ssp("ssp-2-1-1", "2.1.1", "Portero")],
+            },
+          ],
+        },
+      ],
+    },
+    {
+      id: 1,
+      apiId: "p-defensa",
+      gameMomentId: 1,
+      gameMomentName: "Defensa organizada",
+      numero: 1,
+      titulo: "Presionar",
+      texto: "",
+      notas: [],
+      subprincipios: [
+        {
+          id: 11,
+          apiId: "sub-1-10",
+          numero: "1.10",
+          titulo: "Repliegue",
+          texto: "",
+          notas: [],
+          zonas: [],
+          subSubPrincipios: [ssp("ssp-1-10-1", "1.10.1", "Lateral")],
+        },
+        {
+          id: 10,
+          apiId: "sub-1-2",
+          numero: "1.2",
+          titulo: "Presión alta",
+          texto: "",
+          notas: [],
+          zonas: [],
+          subSubPrincipios: [
+            ssp("ssp-1-2-2", "1.2.2", "Central", ["Cobertura"]),
+            ssp("ssp-1-2-1", "1.2.1", "Pivote", ["Pase", "Perfilamiento"], "Cerrar la línea de pase interior al central rival."),
+          ],
+        },
+      ],
+    },
   ],
-  subSubPrincipios: [{ id: "ssp-1", numero: "1.1.1", rol: "Central", subprincipioId: "sub-1" }],
 };
 
-const emptyAdnOptions = { subprincipios: [], subSubPrincipios: [] };
+function StatefulSection({ initial = [] }: { initial?: ExerciseModelRelationRequest[] }) {
+  const [relations, setRelations] = useState<ExerciseModelRelationRequest[]>(initial);
+  return (
+    <>
+      <ModelRelationSection modelRelations={relations} onChange={setRelations} teamId="team-1" />
+      <output data-testid="relations">{JSON.stringify(relations)}</output>
+    </>
+  );
+}
 
-function setup(
-  overrides: Partial<{
-    modelRelations: ExerciseModelRelationRequest[];
-    onChange: (relations: ExerciseModelRelationRequest[]) => void;
-    teamId?: string;
-  }> = {}
-) {
-  const onChange = overrides.onChange ?? vi.fn();
+function renderSection(initial: ExerciseModelRelationRequest[] = []) {
   render(
     <MemoryRouter>
-      <ModelRelationSection
-        modelRelations={overrides.modelRelations ?? []}
-        onChange={onChange}
-        teamId={overrides.teamId ?? "team-1"}
-      />
+      <StatefulSection initial={initial} />
     </MemoryRouter>
   );
-  return { onChange };
+}
+
+function currentRelations(): ExerciseModelRelationRequest[] {
+  return JSON.parse(screen.getByTestId("relations").textContent ?? "[]");
+}
+
+async function expand(name: RegExp) {
+  await userEvent.click(await screen.findByRole("button", { name }));
 }
 
 describe("ModelRelationSection", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (seasonService.getActiveSeason as ReturnType<typeof vi.fn>).mockResolvedValue({
-      id: "season-1",
-      name: "2026-2027",
+    (seasonService.getActiveSeason as ReturnType<typeof vi.fn>).mockResolvedValue({ id: "season-1", name: "2026-2027" });
+    (gameModelService.getByTeamIdAndSeason as ReturnType<typeof vi.fn>).mockResolvedValue(gameModel);
+  });
+
+  it("carga el modelo de juego del equipo para la temporada activa", async () => {
+    renderSection();
+
+    await waitFor(() => {
+      expect(gameModelService.getByTeamIdAndSeason).toHaveBeenCalledWith("team-1", "2026-2027");
     });
   });
 
-  it("carga las opciones ADN del GameModel del equipo vía gameModelService.getAdnOptions", async () => {
-    (gameModelService.getAdnOptions as ReturnType<typeof vi.fn>).mockResolvedValue(adnOptionsWithData);
+  it("muestra las fases ordenadas por momento de juego", async () => {
+    renderSection();
 
-    setup({
-      modelRelations: [{ subprincipioId: "sub-1", isFoco: true, habilidadesImprescindibles: [], items: [] }],
-    });
+    const fases = await screen.findAllByRole("button", { name: /defensa organizada|ataque organizado/i });
 
-    await waitFor(() => {
-      expect(gameModelService.getAdnOptions).toHaveBeenCalledWith("team-1", "2026-2027");
-    });
-
-    const combobox = await screen.findByRole("combobox", { name: /subprincipio/i });
-    expect(combobox).toHaveValue("1.1 · Presión alta");
+    expect(fases.map((f) => f.textContent)).toEqual(["Defensa organizada", "Ataque organizado"]);
   });
 
-  it("muestra el estado vacío (mensaje + selector deshabilitado) cuando el equipo no tiene GameModel", async () => {
-    (gameModelService.getAdnOptions as ReturnType<typeof vi.fn>).mockResolvedValue(emptyAdnOptions);
+  it("muestra los subprincipios de un principio ordenados por su número (1.2 antes que 1.10)", async () => {
+    renderSection();
 
-    setup({ modelRelations: [{ subprincipioId: "", isFoco: true, habilidadesImprescindibles: [], items: [] }] });
+    await expand(/1\. presionar/i);
 
-    await waitFor(() => {
-      expect(gameModelService.getAdnOptions).toHaveBeenCalled();
-    });
-
-    expect(screen.getByText(/Modelo ADN/i)).toBeInTheDocument();
-    const combobox = screen.getByRole("combobox", { name: /subprincipio/i });
-    expect(combobox).toBeDisabled();
+    const subprincipios = screen.getAllByRole("button", { name: /^1\.\d+ · /i });
+    expect(subprincipios.map((s) => s.textContent)).toEqual(["1.2 · Presión alta", "1.10 · Repliegue"]);
   });
 
-  it("añade una relación vacía (sin Subprincipio) al pulsar 'Añadir vínculo'", async () => {
-    (gameModelService.getAdnOptions as ReturnType<typeof vi.fn>).mockResolvedValue(adnOptionsWithData);
-    const onChange = vi.fn();
+  it("muestra los sub-subprincipios de un subprincipio ordenados por su número", async () => {
+    renderSection();
 
-    setup({ modelRelations: [], onChange });
+    await expand(/1\. presionar/i);
+    await expand(/1\.2 · presión alta/i);
 
-    await waitFor(() => {
-      expect(gameModelService.getAdnOptions).toHaveBeenCalled();
-    });
-
-    await userEvent.click(screen.getByRole("button", { name: /añadir vínculo/i }));
-
-    expect(onChange).toHaveBeenCalledWith([
-      { subprincipioId: "", isFoco: true, habilidadesImprescindibles: [], items: [] },
-    ]);
+    const checkboxes = screen.getAllByRole("checkbox");
+    expect(checkboxes.map((c) => c.getAttribute("aria-label"))).toEqual(["1.2.1 · Pivote", "1.2.2 · Central"]);
   });
 
-  it("no permite añadir un item (X.Y.Z) hasta que la relación tenga un Subprincipio elegido", async () => {
-    (gameModelService.getAdnOptions as ReturnType<typeof vi.fn>).mockResolvedValue(adnOptionsWithData);
+  it("muestra la descripción de cada sub-subprincipio para poder elegir con criterio", async () => {
+    renderSection();
 
-    setup({ modelRelations: [{ subprincipioId: "", isFoco: true, habilidadesImprescindibles: [], items: [] }] });
+    await expand(/1\. presionar/i);
+    await expand(/1\.2 · presión alta/i);
 
-    await waitFor(() => {
-      expect(gameModelService.getAdnOptions).toHaveBeenCalled();
-    });
-
-    expect(screen.getByRole("button", { name: /acción/i })).toBeDisabled();
+    expect(screen.getByText("Cerrar la línea de pase interior al central rival.")).toBeInTheDocument();
   });
 
-  it("añade un item narrowed al SubSubPrincipio del Subprincipio elegido en la relación", async () => {
-    (gameModelService.getAdnOptions as ReturnType<typeof vi.fn>).mockResolvedValue(adnOptionsWithData);
-    const onChange = vi.fn();
+  it("muestra los sub-subprincipios de una zona bajo su encabezado de zona", async () => {
+    renderSection();
 
-    setup({
-      modelRelations: [{ subprincipioId: "sub-1", isFoco: true, habilidadesImprescindibles: [], items: [] }],
-      onChange,
-    });
+    await expand(/2\. progresar/i);
+    await expand(/2\.1 · salida de balón/i);
 
-    await waitFor(() => {
-      expect(gameModelService.getAdnOptions).toHaveBeenCalled();
-    });
+    expect(screen.getByText("Zona de Iniciación")).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: "2.1.1 · Portero" })).toBeInTheDocument();
+  });
 
-    await userEvent.click(screen.getByRole("button", { name: /acción/i }));
+  it("al marcar un sub-subprincipio lo vincula al ejercicio como FOCO", async () => {
+    renderSection();
 
-    expect(onChange).toHaveBeenCalledWith([
+    await expand(/1\. presionar/i);
+    await expand(/1\.2 · presión alta/i);
+    await userEvent.click(screen.getByRole("checkbox", { name: "1.2.1 · Pivote" }));
+
+    expect(currentRelations()).toEqual([
       {
-        subprincipioId: "sub-1",
+        subprincipioId: "sub-1-2",
         isFoco: true,
         habilidadesImprescindibles: [],
-        items: [{ subSubPrincipioId: "", isFoco: true }],
+        items: [{ subSubPrincipioId: "ssp-1-2-1", isFoco: true, habilidades: [] }],
       },
     ]);
   });
 
-  it("alterna FOCO/INTEGRADO a nivel de relación", async () => {
-    (gameModelService.getAdnOptions as ReturnType<typeof vi.fn>).mockResolvedValue(adnOptionsWithData);
-    const onChange = vi.fn();
+  it("solo ofrece las habilidades que el modelo define para el sub-subprincipio marcado", async () => {
+    renderSection();
 
-    setup({
-      modelRelations: [{ subprincipioId: "sub-1", isFoco: true, habilidadesImprescindibles: [], items: [] }],
-      onChange,
-    });
+    await expand(/1\. presionar/i);
+    await expand(/1\.2 · presión alta/i);
+    await userEvent.click(screen.getByRole("checkbox", { name: "1.2.1 · Pivote" }));
 
-    await waitFor(() => {
-      expect(gameModelService.getAdnOptions).toHaveBeenCalled();
-    });
+    const habilidades = screen.getByRole("group", { name: /habilidades de 1\.2\.1/i });
+    expect(within(habilidades).getAllByRole("button").map((b) => b.textContent)).toEqual(["Pase", "Perfilamiento"]);
+  });
 
+  it("al elegir una habilidad la añade al sub-subprincipio y a la relación", async () => {
+    renderSection();
+
+    await expand(/1\. presionar/i);
+    await expand(/1\.2 · presión alta/i);
+    await userEvent.click(screen.getByRole("checkbox", { name: "1.2.1 · Pivote" }));
+    await userEvent.click(within(screen.getByRole("group", { name: /habilidades de 1\.2\.1/i })).getByRole("button", { name: "Pase" }));
+
+    const [relation] = currentRelations();
+    expect(relation.items[0].habilidades).toEqual(["Pase"]);
+    expect(relation.habilidadesImprescindibles).toEqual(["Pase"]);
+  });
+
+  it("permite marcar un sub-subprincipio como INTEGRADO", async () => {
+    renderSection();
+
+    await expand(/1\. presionar/i);
+    await expand(/1\.2 · presión alta/i);
+    await userEvent.click(screen.getByRole("checkbox", { name: "1.2.1 · Pivote" }));
     await userEvent.click(screen.getByRole("button", { name: /integrado/i }));
 
-    expect(onChange).toHaveBeenCalledWith([
-      { subprincipioId: "sub-1", isFoco: false, habilidadesImprescindibles: [], items: [] },
+    expect(currentRelations()[0].items[0].isFoco).toBe(false);
+  });
+
+  it("muestra los principios plegados aunque tengan sub-subprincipios vinculados", async () => {
+    renderSection([
+      {
+        subprincipioId: "sub-1-2",
+        isFoco: true,
+        habilidadesImprescindibles: ["Cobertura"],
+        items: [{ subSubPrincipioId: "ssp-1-2-2", isFoco: true, habilidades: ["Cobertura"] }],
+      },
     ]);
+
+    const principio = await screen.findByRole("button", { name: /1\. presionar/i });
+    expect(principio).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("button", { name: /1\.2 · presión alta/i })).not.toBeInTheDocument();
   });
 
-  it("elimina una relación al pulsar su botón de eliminar", async () => {
-    (gameModelService.getAdnOptions as ReturnType<typeof vi.fn>).mockResolvedValue(adnOptionsWithData);
-    const onChange = vi.fn();
+  it("al desplegar un principio abre directamente los subprincipios que ya tienen sub-subprincipios vinculados", async () => {
+    renderSection([
+      {
+        subprincipioId: "sub-1-2",
+        isFoco: true,
+        habilidadesImprescindibles: ["Cobertura"],
+        items: [{ subSubPrincipioId: "ssp-1-2-2", isFoco: true, habilidades: ["Cobertura"] }],
+      },
+    ]);
 
-    setup({
-      modelRelations: [
-        { subprincipioId: "sub-1", isFoco: true, habilidadesImprescindibles: [], items: [] },
-      ],
-      onChange,
-    });
+    await expand(/1\. presionar/i);
 
-    await waitFor(() => {
-      expect(gameModelService.getAdnOptions).toHaveBeenCalled();
-    });
-
-    await userEvent.click(screen.getByRole("button", { name: /eliminar vínculo/i }));
-
-    expect(onChange).toHaveBeenCalledWith([]);
+    expect(screen.getByRole("checkbox", { name: "1.2.2 · Central" })).toBeChecked();
   });
 
-  it("renderiza el Autocomplete de Habilidades por relación (no global) con el vocabulario cerrado", async () => {
-    (gameModelService.getAdnOptions as ReturnType<typeof vi.fn>).mockResolvedValue(adnOptionsWithData);
+  it("lista los vínculos antiguos sin sub-subprincipios y permite eliminarlos", async () => {
+    renderSection([{ subprincipioId: "sub-1-10", isFoco: true, habilidadesImprescindibles: ["Pase"], items: [] }]);
 
-    setup({
-      modelRelations: [{ subprincipioId: "sub-1", isFoco: true, habilidadesImprescindibles: ["Pase"], items: [] }],
-    });
+    await userEvent.click(await screen.findByRole("button", { name: /eliminar vínculo 1\.10/i }));
 
-    await waitFor(() => {
-      expect(gameModelService.getAdnOptions).toHaveBeenCalled();
-    });
+    expect(currentRelations()).toEqual([]);
+  });
 
-    const habilidadesInput = screen.getByRole("combobox", { name: /habilidades/i });
-    await userEvent.click(habilidadesInput);
-    const listbox = screen.getByRole("listbox");
-    expect(within(listbox).getByText("Intercepción")).toBeInTheDocument();
+  it("muestra el aviso de crear el Modelo ADN cuando el equipo no tiene modelo de juego", async () => {
+    (gameModelService.getByTeamIdAndSeason as ReturnType<typeof vi.fn>).mockRejectedValue({ response: { status: 404 } });
+
+    renderSection();
+
+    expect(await screen.findByRole("link", { name: /modelo adn/i })).toBeInTheDocument();
   });
 });

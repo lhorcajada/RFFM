@@ -36,7 +36,11 @@ export function useExerciseForm({ clubId, navigate, returnTo, returnState, getBo
         subprincipioId: r.subprincipioId,
         isFoco: r.isFoco,
         habilidadesImprescindibles: r.habilidadesImprescindibles ?? [],
-        items: (r.items ?? []).map((it) => ({ subSubPrincipioId: it.subSubPrincipioId, isFoco: it.isFoco })),
+        items: (r.items ?? []).map((it) => ({
+          subSubPrincipioId: it.subSubPrincipioId,
+          isFoco: it.isFoco,
+          habilidades: it.habilidades ?? [],
+        })),
       })),
       nivelesColumnas: exercise.nivelesColumnas ?? [],
       niveles: exercise.niveles ?? [],
