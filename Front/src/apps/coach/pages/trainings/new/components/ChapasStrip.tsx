@@ -1,6 +1,7 @@
 import { Box, CircularProgress, Typography } from "@mui/material";
 import type { TacticalBoardState } from "../hooks/useTacticalBoard";
 import styles from "../NewExercisePage.module.css";
+import { groupPlayersByPosition } from "../helpers/playerOrder";
 
 interface ChapasStripProps {
   board: TacticalBoardState;
@@ -31,29 +32,37 @@ export default function ChapasStrip({ board }: ChapasStripProps) {
           ) : availablePlayersForStrip.length === 0 ? (
             <Typography className={styles.chapasHint}>No hay jugadores para este equipo.</Typography>
           ) : (
-            availablePlayersForStrip.map((player, idx) => {
-              const dorsal = player.dorsal ?? idx + 1;
-              const alias = (player.alias ?? "").trim() || `J${idx + 1}`;
-              return (
-                <Box
-                  key={player.id ?? `${alias}-${idx}`}
-                  className={styles.chapa}
-                  draggable={!!player.id}
-                  onDragStart={(e) => {
-                    if (!player.id) return;
-                    handleChapaDragStart(e, player.id);
-                  }}
-                  onDragEnd={(e) => {
-                    if (!player.id) return;
-                    handleChapaDragEnd(e, player.id);
-                  }}
-                  title="Arrastra al campo"
-                >
-                  <span className={styles.chapaDorsal}>{dorsal}</span>
-                  <span className={styles.chapaAlias}>{alias}</span>
-                </Box>
-              );
-            })
+            groupPlayersByPosition(availablePlayersForStrip).map((group) => (
+              <Box key={group.label} role="group" aria-label={group.label} className={styles.chapasPositionGroup}>
+                <Typography component="h3" className={styles.chapasPositionTitle}>
+                  {group.label}
+                </Typography>
+                {group.players.map((player) => {
+                  const idx = availablePlayersForStrip.indexOf(player);
+                  const dorsal = player.dorsal ?? idx + 1;
+                  const alias = (player.alias ?? "").trim() || `J${idx + 1}`;
+                  return (
+                    <Box
+                      key={player.id ?? `${alias}-${idx}`}
+                      className={styles.chapa}
+                      draggable={!!player.id}
+                      onDragStart={(e) => {
+                        if (!player.id) return;
+                        handleChapaDragStart(e, player.id);
+                      }}
+                      onDragEnd={(e) => {
+                        if (!player.id) return;
+                        handleChapaDragEnd(e, player.id);
+                      }}
+                      title="Arrastra al campo"
+                    >
+                      <span className={styles.chapaDorsal}>{dorsal}</span>
+                      <span className={styles.chapaAlias}>{alias}</span>
+                    </Box>
+                  );
+                })}
+              </Box>
+            ))
           )}
         </Box>
       </Box>

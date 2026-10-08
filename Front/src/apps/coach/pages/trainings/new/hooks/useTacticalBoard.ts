@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type React from "react";
 import teamplayerService, { type PlayerResponse } from "../../../../services/teamplayerService";
+import { comparePlayersByPosition } from "../helpers/playerOrder";
 import { FIELD_WIDTH_METERS, HALF_FIELD_LENGTH_METERS, SPACE_COLORS, anonymousChapaOptions, DEFAULT_TEXT_STYLE } from "../constants";
 import { getMaterialSizePercent, isMaterialKind, getChapaSizePercent } from "../helpers/materialHelpers";
 import {
@@ -1680,7 +1681,10 @@ export function useTacticalBoard(
   }, [players]);
 
   const availablePlayersForStrip = useMemo(
-    () => players.filter((player) => !player.id || !placedChapas[player.id]),
+    () =>
+      players
+        .filter((player) => !player.id || !placedChapas[player.id])
+        .sort(comparePlayersByPosition),
     [players, placedChapas],
   );
 

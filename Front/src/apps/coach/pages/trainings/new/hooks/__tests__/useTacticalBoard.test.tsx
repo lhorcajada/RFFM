@@ -1,5 +1,5 @@
 import type React from "react";
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { useTacticalBoard } from "../useTacticalBoard";
 import teamplayerService from "../../../../../services/teamplayerService";
@@ -275,6 +275,48 @@ describe("useTacticalBoard - both halves of the F11 pitch", () => {
       result.current.handleChapaDragEnd(makeDropEvent({}, -150, 30) as unknown as React.DragEvent<HTMLElement>, "p1");
     });
     expect(result.current.placedChapas["p1"]).toBeUndefined();
+  });
+});
+
+describe("useTacticalBoard - chapas strip order", () => {
+  const makePlayer = (id: string, position: string | null, dorsal: number | null) => ({
+    id,
+    name: id,
+    alias: id,
+    position,
+    dorsal,
+  });
+
+  beforeEach(() => {
+    vi.mocked(teamplayerService.getPlayersByTeam).mockReset();
+  });
+
+  it("ordena las chapas por posición (portero, defensa, centrocampista, delantero, sin posición) y dorsal", async () => {
+    vi.mocked(teamplayerService.getPlayersByTeam).mockResolvedValue([
+      makePlayer("del9", "Delantero", 9),
+      makePlayer("sinPos", null, 2),
+      makePlayer("med8", "Centrocampista", 8),
+      makePlayer("def4", "Defensa central", 4),
+      makePlayer("med6", "Mediocentro", 6),
+      makePlayer("por1", "Portero", 1),
+      makePlayer("def3", "Lateral izquierdo", 3),
+    ]);
+    const pitchEl = makePitchElement();
+    const halfPitchRef = { current: pitchEl } as React.RefObject<HTMLDivElement>;
+
+    const { result } = renderHook(() => useTacticalBoard(halfPitchRef, "team-1"));
+
+    await waitFor(() => expect(result.current.availablePlayersForStrip).toHaveLength(7));
+
+    expect(result.current.availablePlayersForStrip.map((p) => p.id)).toEqual([
+      "por1",
+      "def3",
+      "def4",
+      "med6",
+      "med8",
+      "del9",
+      "sinPos",
+    ]);
   });
 });
 

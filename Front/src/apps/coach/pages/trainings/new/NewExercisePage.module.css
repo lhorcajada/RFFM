@@ -718,6 +718,33 @@
   padding-bottom: 2px;
 }
 
+.chapasPositionGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  padding-right: 10px;
+  border-right: 1px solid rgba(77, 157, 224, 0.2);
+}
+
+.chapasPositionGroup:last-child {
+  padding-right: 0;
+  border-right: none;
+}
+
+.chapasPositionTitle {
+  margin: 0;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: 0.56rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: rgba(221, 238, 255, 0.72);
+}
+
 .chapasStripAnonRow {
   display: flex;
   align-items: center;
