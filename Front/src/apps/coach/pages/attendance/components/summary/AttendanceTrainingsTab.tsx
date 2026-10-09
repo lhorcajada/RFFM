@@ -10,6 +10,7 @@ import {
 } from "@mui/material";
 import DownloadIcon from "@mui/icons-material/Download";
 import { useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import EmptyState from "../../../../../../shared/components/ui/EmptyState/EmptyState";
 import styles from "../../AttendanceSummary.module.css";
@@ -19,6 +20,7 @@ import { coachAuthService } from "../../../../services/authService";
 
 interface Props {
   rows: PlayerTrainingSummary[];
+  actionsSlot?: HTMLElement | null;
 }
 
 function isGoalkeeperPosition(position?: string | null): boolean {
@@ -51,7 +53,7 @@ function formatDate(value: string | null): string {
   }).format(date);
 }
 
-export default function AttendanceTrainingsTab({ rows }: Props) {
+export default function AttendanceTrainingsTab({ rows, actionsSlot }: Props) {
   const [exportingExcel, setExportingExcel] = useState(false);
   const roles = useMemo(
     () => coachAuthService.getRoles().map((role) => role.toLowerCase()),
@@ -70,27 +72,33 @@ export default function AttendanceTrainingsTab({ rows }: Props) {
     );
   }
 
+  const exportButton = (
+    <Button
+      variant="contained"
+      size={actionsSlot ? "small" : "medium"}
+      startIcon={<DownloadIcon />}
+      disabled={exportingExcel}
+      onClick={async () => {
+        try {
+          setExportingExcel(true);
+          await exportTrainingAttendanceToExcel(rows);
+        } finally {
+          setExportingExcel(false);
+        }
+      }}
+    >
+      {exportingExcel ? "Generando Excel..." : "Exportar Excel"}
+    </Button>
+  );
+
   return (
     <Box>
-      {canExportExcel && (
-        <Box className={styles.trainingToolbar}>
-          <Button
-            variant="contained"
-            startIcon={<DownloadIcon />}
-            disabled={exportingExcel}
-            onClick={async () => {
-              try {
-                setExportingExcel(true);
-                await exportTrainingAttendanceToExcel(rows);
-              } finally {
-                setExportingExcel(false);
-              }
-            }}
-          >
-            {exportingExcel ? "Generando Excel..." : "Exportar Excel"}
-          </Button>
-        </Box>
-      )}
+      {canExportExcel &&
+        (actionsSlot ? (
+          createPortal(exportButton, actionsSlot)
+        ) : (
+          <Box className={styles.trainingToolbar}>{exportButton}</Box>
+        ))}
 
       <Box className={styles.trainingCardsGrid}>
         {rows.map((row) => {

@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 const getRolesMock = vi.fn();
@@ -39,6 +39,15 @@ describe("AttendanceTrainingsTab — botón Exportar Excel según rol", () => {
     getRolesMock.mockReturnValue(["Player"]);
     render(<AttendanceTrainingsTab rows={rows} />);
     expect(screen.queryByRole("button", { name: /exportar excel/i })).not.toBeInTheDocument();
+  });
+
+  it("pinta el botón Exportar Excel en la botonera de la página cuando se le pasa", () => {
+    getRolesMock.mockReturnValue(["Coach"]);
+    const actionsSlot = document.createElement("div");
+    document.body.appendChild(actionsSlot);
+    render(<AttendanceTrainingsTab rows={rows} actionsSlot={actionsSlot} />);
+    expect(within(actionsSlot).getByRole("button", { name: /exportar excel/i })).toBeInTheDocument();
+    actionsSlot.remove();
   });
 
   it("no muestra el botón Exportar Excel para un familiar", () => {

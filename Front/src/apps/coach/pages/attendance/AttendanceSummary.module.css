@@ -456,6 +456,10 @@
   border-style: solid;
 }
 
+.actionsSlot {
+  display: contents;
+}
+
 .trainingToolbar {
   display: flex;
   justify-content: flex-end;

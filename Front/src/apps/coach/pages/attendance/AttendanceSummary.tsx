@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Box, Button } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
@@ -13,6 +14,7 @@ export default function AttendanceSummary() {
   useAuditPageAccess('AttendanceSummary');
   const goToTeamDashboard = useTeamDashboardBack();
   const { team, teamTitleNode, loading: teamLoading } = useTeamAndClub();
+  const [actionsSlot, setActionsSlot] = useState<HTMLSpanElement | null>(null);
 
   return (
     <BaseLayout hideFooterMenu>
@@ -20,14 +22,17 @@ export default function AttendanceSummary() {
         title="Resumen de asistencias"
         subtitle={teamTitleNode ?? "Visión global de asistencias a entrenamientos y partidos"}
         actionBar={
-          <Button
-            startIcon={<ArrowBackIcon />}
-            onClick={() => goToTeamDashboard()}
-            variant="outlined"
-            size="small"
-          >
-            Volver
-          </Button>
+          <>
+            <Button
+              startIcon={<ArrowBackIcon />}
+              onClick={() => goToTeamDashboard()}
+              variant="outlined"
+              size="small"
+            >
+              Volver
+            </Button>
+            <span ref={setActionsSlot} className={styles.actionsSlot} />
+          </>
         }
       >
         <Box className={styles.body}>
@@ -37,7 +42,7 @@ export default function AttendanceSummary() {
               description="Añada el parámetro ?teamId=... en la URL o seleccione un equipo en el selector."
             />
           ) : (
-            team?.id && <AttendanceSummaryContent teamId={team.id} />
+            team?.id && <AttendanceSummaryContent teamId={team.id} actionsSlot={actionsSlot} />
           )}
         </Box>
       </ContentLayout>

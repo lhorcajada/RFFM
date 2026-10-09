@@ -186,7 +186,31 @@ describe("AttendanceSummaryContent — foto y orden del jugador asociado (entren
     expect(cards[0]).toHaveTextContent("Jugador Dos");
   });
 
-  it("ordena las tarjetas por dorsal ascendente", async () => {
+  it("ordena las tarjetas por porcentaje de asistencia de mayor a menor", async () => {
+    getRolesMock.mockReturnValue(["Coach"]);
+    getMyProfileMock.mockResolvedValue(null);
+    getAssistanceTypesMock.mockResolvedValue([
+      { id: 10, name: "Asistencia" },
+      { id: 20, name: "No asistencia" },
+    ]);
+    getTeamConvocationsSummaryMock.mockResolvedValue([
+      { eventId: "event-1", convocationId: "c1", teamPlayerId: "tp-1", playerId: "p-1", alias: "J1", statusId: 1, assistanceTypeId: 10, excuseTypeId: null },
+      { eventId: "event-1", convocationId: "c2", teamPlayerId: "tp-2", playerId: "p-2", alias: "J2", statusId: 1, assistanceTypeId: 20, excuseTypeId: null },
+    ]);
+    renderTrainingsTab();
+
+    await waitFor(() => expect(screen.getByRole("tab", { name: /entrenamientos/i })).toBeInTheDocument());
+    screen.getByRole("tab", { name: /entrenamientos/i }).click();
+
+    // Jugador Uno (dorsal 9) 100% vs Jugador Dos (dorsal 2) 0% — the rate wins over the dorsal.
+    await waitFor(() => expect(screen.getByText("100% asistencia")).toBeInTheDocument());
+    const cards = screen.getAllByText(/Jugador (Uno|Dos)/);
+    expect(cards[0]).toHaveTextContent("Jugador Uno");
+    expect(cards[1]).toHaveTextContent("Jugador Dos");
+  });
+
+  it("desempata por dorsal ascendente cuando el porcentaje es igual", async () => {
+    getTeamConvocationsSummaryMock.mockResolvedValue([]);
     getRolesMock.mockReturnValue(["Coach"]);
     getMyProfileMock.mockResolvedValue(null);
     renderTrainingsTab();

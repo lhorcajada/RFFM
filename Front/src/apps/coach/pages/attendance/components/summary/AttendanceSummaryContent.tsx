@@ -106,9 +106,10 @@ function isAttendAssistanceType(name: string | null | undefined): boolean {
 
 interface Props {
   teamId: string;
+  actionsSlot?: HTMLElement | null;
 }
 
-export default function AttendanceSummaryContent({ teamId }: Props) {
+export default function AttendanceSummaryContent({ teamId, actionsSlot }: Props) {
   const roles = useMemo(
     () => coachAuthService.getRoles().map((role) => role.toLowerCase()),
     []
@@ -359,7 +360,12 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
           };
         });
 
+        const trainingRate = (row: PlayerTrainingSummary) =>
+          row.totalTrainings === 0 ? 0 : row.attendedTrainings / row.totalTrainings;
+
         nextRows.sort((a, b) => {
+          const rateDiff = trainingRate(b) - trainingRate(a);
+          if (rateDiff !== 0) return rateDiff;
           if (a.dorsal != null && b.dorsal != null) return a.dorsal - b.dorsal;
           if (a.dorsal != null) return -1;
           if (b.dorsal != null) return 1;
@@ -749,7 +755,7 @@ export default function AttendanceSummaryContent({ teamId }: Props) {
 
       <div className={styles.tabPanel}>
         {tab === "dashboard" && <AttendanceDashboardTab data={dashboard} />}
-        {tab === "trainings" && <AttendanceTrainingsTab rows={trainingRows} />}
+        {tab === "trainings" && <AttendanceTrainingsTab rows={trainingRows} actionsSlot={actionsSlot} />}
         {tab === "matches" && <AttendanceMatchesTab rows={matchRows} columns={matchColumns} onRefresh={handleRefresh} loading={loading} />}
       </div>
     </Box>
