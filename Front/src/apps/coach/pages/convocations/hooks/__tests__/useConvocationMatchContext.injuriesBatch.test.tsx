@@ -27,7 +27,10 @@ vi.mock("../../../../services/federationService", () => ({
 }));
 
 vi.mock("../../../../services/attendanceSummaryService", () => ({
-  default: { getTrainingAttendanceSummary: vi.fn().mockResolvedValue(null) },
+  default: {
+    getTrainingAttendanceSummary: vi.fn().mockResolvedValue(null),
+    getTeamConvocationsSummary: vi.fn().mockResolvedValue([]),
+  },
   getTrainingAttendanceSummary: vi.fn().mockResolvedValue(null),
 }));
 

@@ -68,13 +68,17 @@ export type BuildProposalInput = {
   gridStartsCountMap?: Map<string, number>;
 };
 
+// "Trainings" include the friendlies the player was called to.
 export type WeeklyTrainingStats = {
   totalTrainings: number;
   attendedTrainings: number;
+  /** Possible events minus each absence weighted by its excuse (see attendanceWeights). */
+  weightedAttendedTrainings: number;
   attendedTrainingsSeason: number;
+  weightedAttendedTrainingsSeason: number;
   totalTrainingsSeason: number;
+  /** Absences whose excuse can force a deconvocation (see attendanceWeights). */
   knownUnavailableTrainings: number;
-  unresolvedTrainings: number;
 };
 
 const NOT_CALLED_NAMES = new Set(["Deconvoke", "No disponible"]);
@@ -379,10 +383,11 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
         {
           totalTrainings: weekTrainingCount,
           attendedTrainings: 0,
+          weightedAttendedTrainings: 0,
           attendedTrainingsSeason: 0,
+          weightedAttendedTrainingsSeason: 0,
           totalTrainingsSeason: 0,
           knownUnavailableTrainings: 0,
-          unresolvedTrainings: weekTrainingCount,
         };
 
       const ruleCtx = {
@@ -521,10 +526,10 @@ export function formatProposalFactorValue(factor: ProposalFactor): string {
     case "positionCoverage":
       return nf0(n);
     case "weeklyTraining":
-      if (label.includes("asistencia semanal") || label.includes("asistencia semanal a entrenamientos")) return `${nf0(n)}%`;
+      if (label.includes("puntos por asistencia")) return `${nf0(n)}%`;
       return `${nf0(n)} entrenos`;
     case "weeklyTrainingAccum":
-      return new Intl.NumberFormat("es-ES").format(Math.round(n));
+      return `${nf0(n)}%`;
     case "recentRecovery":
       return `${nf0(n)} días`;
     default:

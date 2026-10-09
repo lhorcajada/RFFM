@@ -2,13 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import { getSeasonPlayerStats } from "../../../services/liveMatchService";
 import { getSettingsForUser } from "../../../../federation/services/federationApi";
 import federationService from "../../../services/federationService";
-import attendanceSummaryService from "../../../services/attendanceSummaryService";
+import attendanceSummaryService, { type TeamConvocationRow } from "../../../services/attendanceSummaryService";
 import { getTeamInjuries, getPlayersByTeam, type PlayerResponse } from "../../../services/teamplayerService";
 import sportEventTypeService from "../../../services/sportEventTypeService";
 import convocationService from "../../../services/convocationService";
 import type { SportEventResponse } from "../../../services/sportEventService";
 import type { WeeklyTrainingStats } from "../utils/deconvokeProposal";
 import { countMissedEventsDuringInjury, type InjuryWindow } from "../utils/injuryMissedEvents";
+import { absencePenalty, classifyFriendlyConvocation, forcesDeconvocation, isFriendlyEvent } from "../utils/attendanceWeights";
 import { getAllSportEventsInRange, previousDaysRangeIso, toIsoDay } from "../helpers/convocationMatchDetail.helpers";
 import type { SeasonPlayerStats } from "../components/simulation/liveMatch.types";
 
@@ -20,12 +21,10 @@ type TrainingSummaryPlayer = {
   absences?: Array<{ eventId: string; date?: string | null; excuseTypeId?: number | null }>;
 };
 
-// Estudios, Problema familiar, Cita médica e Imprevisto: causes outside the player's control
-// that must not count against training attendance.
-const NON_PENALIZING_EXCUSE_IDS = new Set([2, 4, 9, 10]);
+type AttendanceAbsence = { excuseTypeId?: number | null };
 
-function isNonPenalizingExcuse(excuseTypeId: number | null | undefined): boolean {
-  return excuseTypeId != null && NON_PENALIZING_EXCUSE_IDS.has(excuseTypeId);
+function weightedAttendance(attended: number, absences: AttendanceAbsence[]): number {
+  return absences.reduce((sum, absence) => sum + 1 - absencePenalty(absence.excuseTypeId), attended);
 }
 
 export type ConvocationMatchContext = {
@@ -88,8 +87,9 @@ export function useConvocationMatchContext(
         mod.default.getSportEvents(teamId, 1, 200, preMatchWeek.from, preMatchWeek.to, false),
       ),
       sportEventTypeService.getSportEventTypes().catch(() => []),
+      attendanceSummaryService.getTeamConvocationsSummary(teamId).catch(() => []),
     ])
-      .then(async ([seasonEventsAll, stats, trainingSummary, weekEventsResp, eventTypes]) => {
+      .then(async ([seasonEventsAll, stats, trainingSummary, weekEventsResp, eventTypes, teamConvocations]) => {
         if (!mounted) return;
         const trainingTypeIds = new Set<number>();
         const matchTypeIds = new Set<number>();
@@ -282,12 +282,15 @@ export function useConvocationMatchContext(
         if (mounted) setGridStartsCountMap(startsMap);
 
         const now = Date.now();
+        // Events not held yet have no attendance, so they can't count as attended.
+        const isHeld = (ev: SportEventResponse) => {
+          const startMs = new Date(ev.start ?? ev.startTime ?? ev.eveDateTime ?? "").getTime();
+          return !Number.isNaN(startMs) && startMs <= now;
+        };
         const weekTrainings = weekEventsResp.items.filter((ev) => {
           const eventType = (ev.eventType ?? "").toLowerCase();
           const title = (ev.title ?? ev.name ?? "").toLowerCase();
-          // Trainings not held yet have no attendance, so they can't count as attended.
-          const startMs = new Date(ev.start ?? ev.startTime ?? ev.eveDateTime ?? "").getTime();
-          if (Number.isNaN(startMs) || startMs > now) return false;
+          if (!isHeld(ev)) return false;
           return (
             (ev.eventTypeId != null && trainingTypeIds.has(ev.eventTypeId)) ||
             eventType.includes("entren") ||
@@ -298,6 +301,17 @@ export function useConvocationMatchContext(
         });
         setWeekTrainingCount(weekTrainings.length);
         const weekTrainingIds = new Set(weekTrainings.map((t) => t.id));
+        const weekFriendlyIds = weekEventsResp.items.filter((ev) => isHeld(ev) && isFriendlyEvent(ev)).map((ev) => ev.id);
+        const seasonFriendlyIds = seasonEventsAll.filter((ev) => isHeld(ev) && isFriendlyEvent(ev)).map((ev) => ev.id);
+        const convocationsByPlayer = new Map<string, Map<string, TeamConvocationRow>>();
+        teamConvocations.forEach((row) => {
+          [row.teamPlayerId, row.playerId].forEach((key) => {
+            if (!key) return;
+            const byEvent = convocationsByPlayer.get(key.toLowerCase()) ?? new Map<string, TeamConvocationRow>();
+            byEvent.set(row.eventId, row);
+            convocationsByPlayer.set(key.toLowerCase(), byEvent);
+          });
+        });
         const todayIso = toIsoDay(new Date().toISOString());
         const pastSeasonTrainingsCount = seasonEventsAll.filter((training) => {
           const trainingDay = toIsoDay(training.start ?? training.startTime ?? training.eveDateTime ?? "");
@@ -331,29 +345,42 @@ export function useConvocationMatchContext(
               .map((d) => toIsoDay(d)),
           );
 
-          const absences = summary?.absences ?? [];
-          const penalizingAbsences = absences.filter((absence) => !isNonPenalizingExcuse(absence.excuseTypeId));
-          const neutralSeasonAbsences = absences.length - penalizingAbsences.length;
-          const neutralWeeklyAbsences = absences.filter(
-            (absence) => weekTrainingIds.has(absence.eventId) && isNonPenalizingExcuse(absence.excuseTypeId),
-          ).length;
-          const weeklyAbsences = penalizingAbsences.filter((absence) => weekTrainingIds.has(absence.eventId)).length;
-          const countedWeekTrainings = weekTrainings.length - neutralWeeklyAbsences;
-          const attendedTrainings = Math.max(0, countedWeekTrainings - weeklyAbsences);
-          const attendedTrainingsSeason = summary?.attendedTrainings ?? 0;
-          const totalTrainingsSeason = summary?.totalTrainings != null
-            ? Math.max(0, summary.totalTrainings - neutralSeasonAbsences)
-            : pastSeasonTrainingsCount;
-          const knownUnavailableTrainings = weeklyAbsences;
-          const unresolvedTrainings = Math.max(0, countedWeekTrainings - attendedTrainings - knownUnavailableTrainings);
+          const playerConvocations =
+            convocationsByPlayer.get(p.id.toLowerCase()) ??
+            (p.playerId ? convocationsByPlayer.get(p.playerId.toLowerCase()) : undefined);
+          const friendlyOutcomes = (eventIds: string[]) => {
+            const rows = eventIds
+              .map((eventId) => playerConvocations?.get(eventId))
+              .filter((row): row is TeamConvocationRow => !!row);
+            return {
+              attended: rows.filter((row) => classifyFriendlyConvocation(row) === "attended").length,
+              absences: rows.filter((row) => classifyFriendlyConvocation(row) === "absent"),
+            };
+          };
+
+          const trainingAbsences = summary?.absences ?? [];
+          const weekFriendlies = friendlyOutcomes(weekFriendlyIds);
+          const weekTrainingAbsences = trainingAbsences.filter((absence) => weekTrainingIds.has(absence.eventId));
+          const weekAbsences = [...weekTrainingAbsences, ...weekFriendlies.absences];
+          const attendedTrainings =
+            Math.max(0, weekTrainings.length - weekTrainingAbsences.length) + weekFriendlies.attended;
+          const totalTrainings = attendedTrainings + weekAbsences.length;
+          const knownUnavailableTrainings = weekAbsences.filter((absence) => forcesDeconvocation(absence.excuseTypeId)).length;
+
+          const seasonFriendlies = friendlyOutcomes(seasonFriendlyIds);
+          const seasonAbsences = [...trainingAbsences, ...seasonFriendlies.absences];
+          const attendedTrainingsSeason = (summary?.attendedTrainings ?? 0) + seasonFriendlies.attended;
+          const totalTrainingsSeason =
+            (summary?.totalTrainings ?? pastSeasonTrainingsCount) + seasonFriendlies.attended + seasonFriendlies.absences.length;
 
           playerStats.set(p.id, {
-            totalTrainings: countedWeekTrainings,
+            totalTrainings,
             attendedTrainings,
+            weightedAttendedTrainings: weightedAttendance(attendedTrainings, weekAbsences),
             attendedTrainingsSeason,
+            weightedAttendedTrainingsSeason: weightedAttendance(attendedTrainingsSeason, seasonAbsences),
             totalTrainingsSeason,
             knownUnavailableTrainings,
-            unresolvedTrainings,
           });
         });
 

@@ -7,18 +7,20 @@ function clamp01(v: number) {
 // Combined metric rule — compone una puntuación normalizada a partir de:
 // - 45% `rating` (weightedRating)
 // - 45% `necessity` (ahora basada únicamente en `competitiveness`, rango 0..1)
-// - 10% `training` (asistencia acumulada en la temporada)
+// - hasta 25 pts por `training` (asistencia ponderada a entrenos y amistosos en la temporada)
 // Nota: `ctx.necessity` ya no combina titularidades/convocatorias; es la competitividad.
+const SEASON_ATTENDANCE_MAX_POINTS = 25;
+
 export default function combinedRule(ctx: RuleContext, _prev: Record<string, RuleResult>): RuleResult {
-  const attendedTrainingsSeason = Number.isFinite(ctx.weekStats.attendedTrainingsSeason)
-    ? ctx.weekStats.attendedTrainingsSeason
+  const weightedAttendedSeason = Number.isFinite(ctx.weekStats.weightedAttendedTrainingsSeason)
+    ? ctx.weekStats.weightedAttendedTrainingsSeason
     : 0;
   const totalTrainingsSeason = Number.isFinite(ctx.weekStats.totalTrainingsSeason)
     ? Math.max(0, ctx.weekStats.totalTrainingsSeason)
     : 0;
-  const trainingNormalized = totalTrainingsSeason > 0
-    ? clamp01(attendedTrainingsSeason / totalTrainingsSeason)
-    : clamp01(attendedTrainingsSeason / Math.max(1, ctx.weekTrainingCount));
+  const seasonAttendanceRate = totalTrainingsSeason > 0
+    ? clamp01(weightedAttendedSeason / totalTrainingsSeason)
+    : 0;
 
   // Derive necessity from the player's competitiveness level (0-10).
   // Accept decimal competitiveness (e.g. 5.3). If `ctx.competitiveness` is
@@ -37,9 +39,7 @@ export default function combinedRule(ctx: RuleContext, _prev: Record<string, Rul
   // the sum of fractional contributions decides tie-breakers.
   const ratingImpactF = ratingNorm * 0.45 * COMBINED_MAX;
   const necessityImpactF = boostedNecessity * 0.45 * COMBINED_MAX;
-  // Make training impact equal to the raw attended trainings count
-  // so `Valor: 62` → `Impacto: 62 pts` as requested.
-  const trainingImpactF = attendedTrainingsSeason;
+  const trainingImpactF = seasonAttendanceRate * SEASON_ATTENDANCE_MAX_POINTS;
   const combinedDelta = Math.round(ratingImpactF + necessityImpactF + trainingImpactF);
 
   const ratingFactor = {
@@ -59,9 +59,8 @@ export default function combinedRule(ctx: RuleContext, _prev: Record<string, Rul
 
   const trainingFactor = {
     key: "weeklyTrainingAccum",
-    label: "Acumulado de entrenamientos asistidos (temporada)",
-    // Report the raw number of trainings as requested
-    value: attendedTrainingsSeason,
+    label: "Asistencia a entrenamientos y amistosos (temporada)",
+    value: Number((seasonAttendanceRate * 100).toFixed(2)),
     impact: Number(trainingImpactF.toFixed(2)),
   };
 

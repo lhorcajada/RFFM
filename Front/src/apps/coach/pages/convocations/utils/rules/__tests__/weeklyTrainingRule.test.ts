@@ -18,10 +18,11 @@ function createRuleContext(weekStats: Partial<WeeklyTrainingStats>): RuleContext
     weekStats: {
       totalTrainings: 1,
       attendedTrainings: 0,
+      weightedAttendedTrainings: 0,
       attendedTrainingsSeason: 0,
+      weightedAttendedTrainingsSeason: 0,
       totalTrainingsSeason: 0,
       knownUnavailableTrainings: 1,
-      unresolvedTrainings: 0,
       ...weekStats,
     },
     effectiveStreak: 0,
@@ -47,56 +48,88 @@ function createRuleContext(weekStats: Partial<WeeklyTrainingStats>): RuleContext
 
 describe("weeklyTrainingRule", () => {
   it("fuerza la desconvocatoria si no vino a ningún entreno y su asistencia en la temporada es baja", () => {
-    const result = weeklyTrainingRule(createRuleContext({ attendedTrainingsSeason: 7, totalTrainingsSeason: 10 }), {});
+    const result = weeklyTrainingRule(
+      createRuleContext({ weightedAttendedTrainingsSeason: 7, totalTrainingsSeason: 10 }),
+      {},
+    );
 
     expect(result.forced).toBe(true);
   });
 
   it("no fuerza la desconvocatoria si no vino esta semana pero su asistencia en la temporada es de al menos el 80 %", () => {
-    const result = weeklyTrainingRule(createRuleContext({ attendedTrainingsSeason: 8, totalTrainingsSeason: 10 }), {});
+    const result = weeklyTrainingRule(
+      createRuleContext({ weightedAttendedTrainingsSeason: 8, totalTrainingsSeason: 10 }),
+      {},
+    );
 
     expect(result.forced).toBeFalsy();
     expect(result.factors[0]?.key).toBe("weeklyTraining");
   });
 
   it("fuerza la desconvocatoria si no hay historial de la temporada", () => {
-    const result = weeklyTrainingRule(createRuleContext({ attendedTrainingsSeason: 0, totalTrainingsSeason: 0 }), {});
+    const result = weeklyTrainingRule(createRuleContext({ totalTrainingsSeason: 0 }), {});
 
     expect(result.forced).toBe(true);
   });
 
-  it("no penaliza una falta puntual en la semana a quien viene de forma habitual", () => {
+  it("no fuerza la desconvocatoria si todas las faltas de la semana tienen un motivo que no la fuerza", () => {
     const result = weeklyTrainingRule(
-      createRuleContext({ totalTrainings: 3, attendedTrainings: 2, knownUnavailableTrainings: 1, attendedTrainingsSeason: 20, totalTrainingsSeason: 21 }),
+      createRuleContext({ totalTrainings: 3, weightedAttendedTrainings: 0.75, knownUnavailableTrainings: 0, totalTrainingsSeason: 10 }),
       {},
     );
 
-    expect(result.delta).toBe(12);
+    expect(result.forced).toBeFalsy();
   });
 
-  it("a quien viene de forma habitual solo le perdona una falta de la semana", () => {
+  it("cuenta todos los entrenos y amistosos de la semana y pondera la falta por estudios", () => {
     const result = weeklyTrainingRule(
-      createRuleContext({ totalTrainings: 3, attendedTrainings: 1, knownUnavailableTrainings: 2, attendedTrainingsSeason: 20, totalTrainingsSeason: 22 }),
+      createRuleContext({ totalTrainings: 3, attendedTrainings: 2, weightedAttendedTrainings: 2.25, knownUnavailableTrainings: 0 }),
+      {},
+    );
+
+    expect(result.delta).toBe(9);
+  });
+
+  it("penaliza también las faltas por imprevisto y problema familiar", () => {
+    const result = weeklyTrainingRule(
+      createRuleContext({ totalTrainings: 3, attendedTrainings: 1, weightedAttendedTrainings: 2, knownUnavailableTrainings: 0 }),
       {},
     );
 
     expect(result.delta).toBe(8);
   });
 
-  it("penaliza la falta de la semana a quien no viene de forma habitual", () => {
+  it("no perdona la falta de la semana a quien viene de forma habitual", () => {
     const result = weeklyTrainingRule(
-      createRuleContext({ totalTrainings: 3, attendedTrainings: 2, knownUnavailableTrainings: 1, attendedTrainingsSeason: 14, totalTrainingsSeason: 21 }),
+      createRuleContext({
+        totalTrainings: 3,
+        attendedTrainings: 2,
+        weightedAttendedTrainings: 2,
+        knownUnavailableTrainings: 1,
+        weightedAttendedTrainingsSeason: 20,
+        totalTrainingsSeason: 21,
+      }),
       {},
     );
 
     expect(result.delta).toBe(8);
   });
 
-  it("no aplica si todos los entrenos de la ventana se perdieron por motivos que no penalizan", () => {
+  it("muestra el factor como puntos por asistencia a entrenamientos y amistosos", () => {
     const result = weeklyTrainingRule(
-      createRuleContext({ totalTrainings: 0, knownUnavailableTrainings: 0, attendedTrainingsSeason: 2, totalTrainingsSeason: 10 }),
+      createRuleContext({ totalTrainings: 3, attendedTrainings: 3, weightedAttendedTrainings: 3, knownUnavailableTrainings: 0 }),
       {},
     );
+
+    expect(result.factors[0]).toMatchObject({
+      label: "Puntos por asistencia a entrenamientos y amistosos",
+      value: 100,
+      impact: 12,
+    });
+  });
+
+  it("no aplica si no hubo entrenos ni amistosos en la semana", () => {
+    const result = weeklyTrainingRule(createRuleContext({ totalTrainings: 0, knownUnavailableTrainings: 0 }), {});
 
     expect(result).toEqual({ factors: [], delta: 0 });
   });

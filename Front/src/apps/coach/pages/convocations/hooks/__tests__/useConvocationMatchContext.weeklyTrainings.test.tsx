@@ -5,6 +5,7 @@ import type { PlayerResponse } from "../../../../services/teamplayerService";
 
 const getTrainingAttendanceSummaryMock = vi.fn();
 const getSportEventsMock = vi.fn();
+const getTeamConvocationsSummaryMock = vi.fn();
 
 vi.mock("../../../../services/teamplayerService", () => ({
   getTeamInjuries: vi.fn().mockResolvedValue([]),
@@ -24,7 +25,10 @@ vi.mock("../../../../services/federationService", () => ({
 }));
 
 vi.mock("../../../../services/attendanceSummaryService", () => ({
-  default: { getTrainingAttendanceSummary: (...args: unknown[]) => getTrainingAttendanceSummaryMock(...args) },
+  default: {
+    getTrainingAttendanceSummary: (...args: unknown[]) => getTrainingAttendanceSummaryMock(...args),
+    getTeamConvocationsSummary: (...args: unknown[]) => getTeamConvocationsSummaryMock(...args),
+  },
 }));
 
 vi.mock("../../../../services/sportEventTypeService", () => ({
@@ -50,6 +54,7 @@ describe("useConvocationMatchContext - entrenamientos previos al partido", () =>
     vi.clearAllMocks();
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-10-07T12:00:00"));
+    getTeamConvocationsSummaryMock.mockResolvedValue([]);
     getTrainingAttendanceSummaryMock.mockResolvedValue({
       players: [{ teamPlayerId: "p1", absences: [{ eventId: "t1", date: "2026-10-06T19:00:00" }] }],
     });
@@ -82,11 +87,11 @@ describe("useConvocationMatchContext - entrenamientos previos al partido", () =>
   });
 
   it.each([
-    [2, "Estudios"],
-    [4, "Problema familiar"],
-    [9, "Cita médica"],
-    [10, "Imprevisto"],
-  ])("no cuenta en la ventana ni en la temporada una falta por %s", async (excuseTypeId) => {
+    [2, "Estudios", 0.25],
+    [4, "Problema familiar", 0.5],
+    [9, "Cita médica", 0.25],
+    [10, "Imprevisto", 0.5],
+  ])("cuenta en la ventana y en la temporada una falta por %s con su peso", async (excuseTypeId, _name, weighted) => {
     getTrainingAttendanceSummaryMock.mockResolvedValue({
       players: [{
         teamPlayerId: "p1",
@@ -102,16 +107,18 @@ describe("useConvocationMatchContext - entrenamientos previos al partido", () =>
 
     await waitFor(() => {
       expect(result.current.weekTrainingStatsMap.get("p1")).toMatchObject({
-        totalTrainings: 0,
+        totalTrainings: 1,
         attendedTrainings: 0,
+        weightedAttendedTrainings: weighted,
         knownUnavailableTrainings: 0,
         attendedTrainingsSeason: 9,
-        totalTrainingsSeason: 9,
+        weightedAttendedTrainingsSeason: 9 + weighted,
+        totalTrainingsSeason: 10,
       });
     });
   });
 
-  it("sí cuenta una falta por enfermedad", async () => {
+  it("una falta por enfermedad cuenta para forzar la desconvocatoria", async () => {
     getTrainingAttendanceSummaryMock.mockResolvedValue({
       players: [{
         teamPlayerId: "p1",
@@ -128,8 +135,42 @@ describe("useConvocationMatchContext - entrenamientos previos al partido", () =>
     await waitFor(() => {
       expect(result.current.weekTrainingStatsMap.get("p1")).toMatchObject({
         totalTrainings: 1,
+        weightedAttendedTrainings: 0.25,
         knownUnavailableTrainings: 1,
         totalTrainingsSeason: 10,
+      });
+    });
+  });
+
+  it("suma los amistosos jugados de la semana y de la temporada a los eventos posibles", async () => {
+    getTrainingAttendanceSummaryMock.mockResolvedValue({
+      players: [{ teamPlayerId: "p1", attendedTrainings: 9, totalTrainings: 9, absences: [] }],
+    });
+    getSportEventsMock.mockResolvedValue({
+      items: [
+        { id: "f1", eventTypeId: 1, matchCategory: "Friendly", title: "Amistoso", start: "2026-10-04T11:00:00" },
+        { id: "f2", eventTypeId: 1, matchCategory: "Friendly", title: "Amistoso", start: "2026-10-05T11:00:00" },
+        { id: "t1", eventTypeId: 2, eventType: "Entrenamiento", start: "2026-10-06T19:00:00" },
+      ],
+      totalPages: 1,
+    });
+    getTeamConvocationsSummaryMock.mockResolvedValue([
+      { eventId: "f1", convocationId: "c1", teamPlayerId: "p1", alias: "p1", statusId: 2, excuseTypeId: null, assistanceTypeId: 1 },
+      { eventId: "f2", convocationId: "c2", teamPlayerId: "p1", alias: "p1", statusId: 2, excuseTypeId: 10, assistanceTypeId: 2 },
+    ]);
+
+    const { result } = renderHook(() =>
+      useConvocationMatchContext("team-1", "2026-10-10", null, [buildPlayer("p1")]),
+    );
+
+    await waitFor(() => {
+      expect(result.current.weekTrainingStatsMap.get("p1")).toMatchObject({
+        totalTrainings: 3,
+        attendedTrainings: 2,
+        weightedAttendedTrainings: 2.5,
+        attendedTrainingsSeason: 10,
+        weightedAttendedTrainingsSeason: 10.5,
+        totalTrainingsSeason: 11,
       });
     });
   });
