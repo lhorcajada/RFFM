@@ -3,12 +3,10 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
-using Moq;
 using RFFM.Api.Domain;
 using RFFM.Api.Domain.Aggregates.Assistances;
 using RFFM.Api.Domain.Services;
 using RFFM.Api.Features.Coaches.Availability;
-using RFFM.Api.Features.Coaches.Notifications.Services;
 using RFFM.Api.Infrastructure.Persistence;
 using RFFM.Api.Tests.Fixtures;
 using Xunit;
@@ -23,9 +21,8 @@ namespace RFFM.Api.Tests.UnitTests
 
         public DecideAvailableConvocationTests(PostgresContainerFixture fixture) => _fixture = fixture;
 
-        private static DecideAvailableConvocation.Handler CreateHandler(
-            AppDbContext db, ICurrentUserService currentUser, IWebPushNotificationDispatcher? dispatcher = null)
-            => new(db, currentUser, new SanctionConvocationEnforcementService(db), dispatcher ?? Mock.Of<IWebPushNotificationDispatcher>());
+        private static DecideAvailableConvocation.Handler CreateHandler(AppDbContext db, ICurrentUserService currentUser)
+            => new(db, currentUser, new SanctionConvocationEnforcementService(db));
 
         private async Task<(string EventId, string TeamPlayerId, string RequestId, string CoachUserId)> SeedAsync(
             AppDbContext db, AvailabilityRequestStatus status)
@@ -39,19 +36,17 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
-        public async Task Convoking_an_available_player_creates_an_accepted_convocation_and_notifies()
+        public async Task Convoking_an_available_player_creates_an_accepted_convocation()
         {
             await using var db = _fixture.CreateDbContext();
             var (eventId, teamPlayerId, requestId, coachUserId) = await SeedAsync(db, AvailabilityRequestStatus.Available);
-            var dispatcher = new Mock<IWebPushNotificationDispatcher>();
 
-            await CreateHandler(db, CurrentUser(coachUserId, "Coach"), dispatcher.Object)
+            await CreateHandler(db, CurrentUser(coachUserId, "Coach"))
                 .Handle(new DecideAvailableConvocation.DecideAvailableConvocationCommand(eventId, requestId, Convoke: true), CancellationToken.None);
 
             var convocation = await db.Convocations.AsNoTracking().SingleAsync(c => c.SportEventId == eventId && c.TeamPlayerId == teamPlayerId);
             Assert.Equal(2, convocation.ConvocationStatusId);
             Assert.Null(convocation.ExcuseTypeId);
-            dispatcher.Verify(d => d.DispatchConvocationCreatedAsync(teamPlayerId, eventId, It.IsAny<CancellationToken>()), Times.Once);
         }
 
         [Fact]

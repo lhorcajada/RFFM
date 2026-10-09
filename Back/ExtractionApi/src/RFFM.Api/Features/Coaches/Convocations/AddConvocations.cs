@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using RFFM.Api.Domain;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Features.Coaches.Notifications.Services;
+using RFFM.Api.Features.Coaches.SportEvents.Queries;
 using RFFM.Api.Infrastructure.Persistence;
 using RFFM.Api.Domain.Models;
 using RFFM.Api.Domain.Aggregates.Assistances;
@@ -107,7 +108,10 @@ namespace RFFM.Api.Features.Coaches.Convocations
                     throw PlayerAlreadyConvocated();
                 }
 
-                await _dispatcher.DispatchConvocationCreatedAsync(request.TeamPlayerId, request.EventId, cancellationToken);
+                // League matches go through the availability flow: the player already confirmed
+                // availability, so the coach's convocation is not pushed to the player or family.
+                if (sportEvent.EventTypeId != SportEventsConstants.MatchEventTypeId)
+                    await _dispatcher.DispatchConvocationCreatedAsync(request.TeamPlayerId, request.EventId, cancellationToken);
 
                 return Unit.Value;
             }
@@ -177,9 +181,12 @@ namespace RFFM.Api.Features.Coaches.Convocations
                     throw new ConflictException("Algún jugador ya estaba convocado a este evento.", ErrorCodes.PlayerAlreadyConvocated);
                 }
 
-                foreach (var teamPlayerId in convocatedTeamPlayerIds)
+                if (sportEvent.EventTypeId != SportEventsConstants.MatchEventTypeId)
                 {
-                    await _dispatcher.DispatchConvocationCreatedAsync(teamPlayerId, request.EventId, cancellationToken);
+                    foreach (var teamPlayerId in convocatedTeamPlayerIds)
+                    {
+                        await _dispatcher.DispatchConvocationCreatedAsync(teamPlayerId, request.EventId, cancellationToken);
+                    }
                 }
 
                 return Unit.Value;

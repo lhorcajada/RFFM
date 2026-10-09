@@ -10,7 +10,6 @@ using RFFM.Api.Domain.Aggregates.Assistances;
 using RFFM.Api.Domain.Models;
 using RFFM.Api.Domain.Services;
 using RFFM.Api.FeatureModules;
-using RFFM.Api.Features.Coaches.Notifications.Services;
 using RFFM.Api.Infrastructure.Persistence;
 
 namespace RFFM.Api.Features.Coaches.Availability
@@ -51,15 +50,12 @@ namespace RFFM.Api.Features.Coaches.Availability
             private readonly AppDbContext _db;
             private readonly ICurrentUserService _currentUser;
             private readonly ISanctionConvocationEnforcementService _enforcementService;
-            private readonly IWebPushNotificationDispatcher _dispatcher;
 
-            public Handler(AppDbContext db, ICurrentUserService currentUser,
-                ISanctionConvocationEnforcementService enforcementService, IWebPushNotificationDispatcher dispatcher)
+            public Handler(AppDbContext db, ICurrentUserService currentUser, ISanctionConvocationEnforcementService enforcementService)
             {
                 _db = db;
                 _currentUser = currentUser;
                 _enforcementService = enforcementService;
-                _dispatcher = dispatcher;
             }
 
             public async ValueTask<Unit> Handle(DecideAvailableConvocationCommand request, CancellationToken cancellationToken = default)
@@ -89,6 +85,7 @@ namespace RFFM.Api.Features.Coaches.Availability
                         availability.TeamPlayerId, availability.SportEventId, ExcuseTypes.TechnicalDecision.Id, cancellationToken);
                 }
 
+                // The player already confirmed availability, so the convocation is not pushed.
                 try
                 {
                     await _db.SaveChangesAsync(cancellationToken);
@@ -97,9 +94,6 @@ namespace RFFM.Api.Features.Coaches.Availability
                 {
                     throw new ConflictException("La convocatoria de este jugador ya está decidida.", ErrorCodes.AvailabilityAlreadyDecided);
                 }
-
-                if (request.Convoke)
-                    await _dispatcher.DispatchConvocationCreatedAsync(availability.TeamPlayerId, availability.SportEventId, cancellationToken);
 
                 return Unit.Value;
             }
