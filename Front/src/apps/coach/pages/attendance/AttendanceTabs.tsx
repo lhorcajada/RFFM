@@ -23,6 +23,9 @@ import NotConvokedList from "./components/NotConvokedList";
 import ConvocationCard from "./components/ConvocationCard";
 import DeconvokeDialog from "./components/DeconvokeDialog";
 import CollapsibleGroup from "./components/CollapsibleGroup";
+import PositionGroupedList from "./components/PositionGroupedList";
+import AvailabilityList from "./components/AvailabilityList";
+import availabilityService, { AvailabilityRequestItem } from "../../services/availabilityService";
 import NotifyPendingConvocationDialog from "./components/NotifyPendingConvocationDialog";
 import type { PendingConfirmationEventSummary } from "./utils/pendingConfirmationWhatsApp";
 import useAutoRefresh from "../../hooks/useAutoRefresh";
@@ -31,11 +34,13 @@ type Props = {
   eventId: string;
   eventStart?: string | null;
   isMatch?: boolean;
+  /** League match ("Partido"): convocation goes through the availability request flow. */
+  isLeagueMatch?: boolean;
   isTraining?: boolean;
   eventSummary?: PendingConfirmationEventSummary;
 };
 
-type GroupKey = "waiting" | "pending" | "accepted" | "desconvocados";
+type GroupKey = "waiting" | "availabilityPending" | "available" | "pending" | "accepted" | "desconvocados";
 
 // Matches RFFM.Api.Domain.Aggregates.Assistances.ExcuseTypes' "Decisión técnica" entry (id 7).
 const TECHNICAL_DECISION_EXCUSE_TYPE_ID = 7;
@@ -73,7 +78,16 @@ function statusNameMap(id: number, statuses: { id: number; name: string }[]) {
   return m[s.name] ?? s.name;
 }
 
-export default function AttendanceTabs({ eventId, eventStart, isMatch, isTraining, eventSummary }: Props) {
+function showSnackbar(message: string, severity: "success" | "error") {
+  window.dispatchEvent(new CustomEvent("rffm.show_snackbar", { detail: { message, severity } }));
+}
+
+function apiErrorMessage(e: unknown, fallback: string): string {
+  const detail = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+  return detail || fallback;
+}
+
+export default function AttendanceTabs({ eventId, eventStart, isMatch, isLeagueMatch, isTraining, eventSummary }: Props) {
   const [tab, setTab] = useState(0);
   const [players, setPlayers] = useState<PlayerSimple[]>([]);
   const [convocations, setConvocations] = useState<ConvocationItem[]>([]);
@@ -90,6 +104,11 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isTrainin
   const [notifyDialogOpen, setNotifyDialogOpen] = useState(false);
   const [pushConfirmOpen, setPushConfirmOpen] = useState(false);
   const [sendingPush, setSendingPush] = useState(false);
+  const [availabilityRequests, setAvailabilityRequests] = useState<AvailabilityRequestItem[]>([]);
+  const [requestAvailabilityOpen, setRequestAvailabilityOpen] = useState(false);
+  const [availabilityBusy, setAvailabilityBusy] = useState(false);
+  const [deconvokeAvailableTarget, setDeconvokeAvailableTarget] = useState<AvailabilityRequestItem | null>(null);
+  const [unavailableTarget, setUnavailableTarget] = useState<AvailabilityRequestItem | null>(null);
 
   // Selection is scoped to the current event — reset whenever the coach
   // navigates to a different event's convocation screen.
@@ -174,15 +193,17 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isTrainin
           }
           if (!mounted) return;
         }
-        const [pl, conv, st, ex, at] = await Promise.all([
+        const [pl, conv, st, ex, at, av] = await Promise.all([
           convocationService.getEventPlayers(eventId),
           convocationService.getConvocations(eventId),
           convocationStatusService.getConvocationStatuses(),
           excuseTypeService.getExcuseTypes(),
           assistanceTypeService.getAssistanceTypes(),
+          isLeagueMatch ? availabilityService.getAvailabilityRequests(eventId) : Promise.resolve([]),
         ]);
         if (!mounted) return;
         setPlayers(pl);
+        setAvailabilityRequests(av);
         setConvocations(conv);
         setStatuses(st);
         setExcuseTypes(ex);
@@ -241,13 +262,15 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isTrainin
     refreshingRef.current = true;
     const requestedEventId = eventId;
     try {
-      const [conv, pl] = await Promise.all([
+      const [conv, pl, av] = await Promise.all([
         convocationService.getConvocations(requestedEventId),
         convocationService.getEventPlayers(requestedEventId),
+        isLeagueMatch ? availabilityService.getAvailabilityRequests(requestedEventId) : Promise.resolve([]),
       ]);
       if (eventIdRef.current !== requestedEventId) return;
       setConvocations(conv);
       setPlayers(pl);
+      setAvailabilityRequests(av);
     } catch {
       // transient failure: the next tick retries
     } finally {
@@ -255,9 +278,19 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isTrainin
     }
   });
 
-  const notConvoked = players.filter(
+  // A convocation always wins over an availability request; without one, a Requested/Available
+  // request places the player in its availability group and anything else stays on the waiting list.
+  const availabilityByPlayer = useMemo(
+    () => new Map(availabilityRequests.map((r) => [r.teamPlayerId, r])),
+    [availabilityRequests]
+  );
+  const availabilityOf = (p: PlayerSimple) => (p.id ? availabilityByPlayer.get(p.id) : undefined);
+  const unconvoked = players.filter(
     (p) => !convocations.some((c) => c.player.id === p.id)
   );
+  const availabilityPending = isLeagueMatch ? unconvoked.filter((p) => availabilityOf(p)?.status === "Requested") : [];
+  const availablePlayers = isLeagueMatch ? unconvoked.filter((p) => availabilityOf(p)?.status === "Available") : [];
+  const notConvoked = unconvoked.filter((p) => !availabilityPending.includes(p) && !availablePlayers.includes(p));
   const waitingList = notConvoked.filter((p) => !p.isInjured || !isInjuredBeforeDate(p.injuryStartDate, eventStart));
   const injuredWaiting = notConvoked.filter((p) => p.isInjured && isInjuredBeforeDate(p.injuryStartDate, eventStart));
 
@@ -311,6 +344,8 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isTrainin
   const defaultExpandedGroup: GroupKey | null = useMemo(() => {
     if (!isPlayerOrFamily || !associatedPlayerId) return null;
     if (waitingList.some((p) => matchesAssociatedPlayer(p, associatedPlayerId))) return "waiting";
+    if (availabilityPending.some((p) => matchesAssociatedPlayer(p, associatedPlayerId))) return "availabilityPending";
+    if (availablePlayers.some((p) => matchesAssociatedPlayer(p, associatedPlayerId))) return "available";
     if (pending.some((c) => matchesAssociatedPlayer(c.player, associatedPlayerId))) return "pending";
     if (accepted.some((c) => matchesAssociatedPlayer(c.player, associatedPlayerId))) return "accepted";
     if (
@@ -320,7 +355,7 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isTrainin
     )
       return "desconvocados";
     return null;
-  }, [isPlayerOrFamily, associatedPlayerId, waitingList, pending, accepted, injuredNoConv, injuredWithConv, declinedNonInjured]);
+  }, [isPlayerOrFamily, associatedPlayerId, waitingList, availabilityPending, availablePlayers, pending, accepted, injuredNoConv, injuredWithConv, declinedNonInjured]);
 
   const isGroupExpanded = (key: GroupKey): boolean => {
     if (Object.prototype.hasOwnProperty.call(groupOverrides, key)) return !!groupOverrides[key];
@@ -357,6 +392,52 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isTrainin
       setAdding(false);
     }
   };
+
+  const reloadAfterAvailabilityChange = async () => {
+    const [conv, pl, av] = await Promise.all([
+      convocationService.getConvocations(eventId),
+      convocationService.getEventPlayers(eventId),
+      availabilityService.getAvailabilityRequests(eventId),
+    ]);
+    setConvocations(conv);
+    setPlayers(pl);
+    setAvailabilityRequests(av);
+  };
+
+  const runAvailabilityAction = async (action: () => Promise<void>, errorFallback: string) => {
+    if (availabilityBusy) return;
+    setAvailabilityBusy(true);
+    try {
+      await action();
+      await reloadAfterAvailabilityChange();
+    } catch (e: unknown) {
+      showSnackbar(apiErrorMessage(e, errorFallback), "error");
+    } finally {
+      setAvailabilityBusy(false);
+    }
+  };
+
+  const handleRequestAvailabilityConfirmed = () =>
+    runAvailabilityAction(async () => {
+      const { requestedCount } = await availabilityService.requestAvailability(eventId);
+      setRequestAvailabilityOpen(false);
+      showSnackbar(
+        `Disponibilidad pedida a ${requestedCount} ${requestedCount === 1 ? "jugador" : "jugadores"}`,
+        "success"
+      );
+    }, "Error al pedir disponibilidad");
+
+  const handleDecideAvailable = (request: AvailabilityRequestItem, convoke: boolean) =>
+    runAvailabilityAction(async () => {
+      await availabilityService.decideAvailable(eventId, request.id, convoke);
+      setDeconvokeAvailableTarget(null);
+    }, convoke ? "Error al convocar" : "Error al desconvocar");
+
+  const handleRespondAvailability = (request: AvailabilityRequestItem, available: boolean, excuseTypeId?: number) =>
+    runAvailabilityAction(async () => {
+      if (available) await availabilityService.respondAvailability(eventId, request.id, true);
+      else await availabilityService.respondAvailability(eventId, request.id, false, excuseTypeId);
+    }, "Error al responder la disponibilidad");
 
   const handleSendPushConfirmed = async () => {
     setSendingPush(true);
@@ -454,7 +535,19 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isTrainin
               expanded={isGroupExpanded("waiting")}
               onToggle={() => toggleGroup("waiting")}
               headerExtra={
-                waitingList.length > 0 && (
+                waitingList.length > 0 &&
+                (isLeagueMatch ? (
+                  !isPlayerOrFamily && (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => setRequestAvailabilityOpen(true)}
+                      disabled={availabilityBusy || !canEdit || !coachAuthService.hasRole("Coach")}
+                    >
+                      Pedir disponibilidad
+                    </Button>
+                  )
+                ) : (
                   <Button
                     size="small"
                     variant="outlined"
@@ -463,7 +556,7 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isTrainin
                   >
                     Convocar toda la lista de espera
                   </Button>
-                )
+                ))
               }
             >
               <NotConvokedList
@@ -477,6 +570,61 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isTrainin
                 adding={adding}
               />
             </CollapsibleGroup>
+
+            {isLeagueMatch && (
+              <>
+                <CollapsibleGroup
+                  title="Pendientes de respuesta"
+                  count={availabilityPending.length}
+                  colorClassName={styles.listGroupHeaderGray}
+                  expanded={isGroupExpanded("availabilityPending")}
+                  onToggle={() => toggleGroup("availabilityPending")}
+                >
+                  <AvailabilityList
+                    players={availabilityPending}
+                    photos={playerPhotos}
+                    stripeClassName={styles.cromoStatusStripePending}
+                    emptyText="No hay jugadores pendientes de responder."
+                    badgeText="Sin responder"
+                    disabled={availabilityBusy || !canEdit}
+                    getActions={(p) => {
+                      const request = availabilityOf(p);
+                      const isOwnPlayer = isPlayerOrFamily && matchesAssociatedPlayer(p, associatedPlayerId);
+                      if (!request || !isOwnPlayer) return [];
+                      return [
+                        { label: "Sí, disponible", tone: "teal", onClick: () => handleRespondAvailability(request, true) },
+                        { label: "No disponible", tone: "red", onClick: () => setUnavailableTarget(request) },
+                      ];
+                    }}
+                  />
+                </CollapsibleGroup>
+
+                <CollapsibleGroup
+                  title="Disponibles"
+                  count={availablePlayers.length}
+                  colorClassName={styles.listGroupHeaderTeal}
+                  expanded={isGroupExpanded("available")}
+                  onToggle={() => toggleGroup("available")}
+                >
+                  <AvailabilityList
+                    players={availablePlayers}
+                    photos={playerPhotos}
+                    stripeClassName={styles.cromoStatusStripeAccepted}
+                    emptyText="Todavía no hay jugadores disponibles."
+                    badgeText="Disponible"
+                    disabled={availabilityBusy || !canEdit}
+                    getActions={(p) => {
+                      const request = availabilityOf(p);
+                      if (!request || isPlayerOrFamily || !coachAuthService.hasRole("Coach")) return [];
+                      return [
+                        { label: "Convocar", tone: "teal", onClick: () => handleDecideAvailable(request, true) },
+                        { label: "Desconvocar", tone: "red", onClick: () => setDeconvokeAvailableTarget(request) },
+                      ];
+                    }}
+                  />
+                </CollapsibleGroup>
+              </>
+            )}
           </div>
 
           <div className={styles.half}>
@@ -707,7 +855,12 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isTrainin
                         )
                       }
                     >
-                      <div className={styles.convocatedList}>{sortedPending.map((c) => renderCard(c, true, true))}</div>
+                      <PositionGroupedList
+                        items={sortedPending}
+                        getPosition={(c) => c.player?.position}
+                        renderItem={(c) => renderCard(c, true, true)}
+                        listClassName={styles.convocatedList}
+                      />
                     </CollapsibleGroup>
                   )}
                   {accepted.length > 0 && (
@@ -718,7 +871,12 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isTrainin
                       expanded={isGroupExpanded("accepted")}
                       onToggle={() => toggleGroup("accepted")}
                     >
-                      <div className={styles.convocatedList}>{accepted.map((c) => renderCard(c))}</div>
+                      <PositionGroupedList
+                        items={accepted}
+                        getPosition={(c) => c.player?.position}
+                        renderItem={(c) => renderCard(c)}
+                        listClassName={styles.convocatedList}
+                      />
                     </CollapsibleGroup>
                   )}
                   {totalDesconvocados > 0 ? (
@@ -729,11 +887,16 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isTrainin
                       expanded={isGroupExpanded("desconvocados")}
                       onToggle={() => toggleGroup("desconvocados")}
                     >
-                      <div className={styles.convocatedList}>
-                        {injuredNoConv.map(renderInjuredCard)}
-                        {injuredWithConv.map(renderDeconvokedCard)}
-                        {declinedNonInjured.map(renderDeconvokedCard)}
-                      </div>
+                      <PositionGroupedList
+                        items={[
+                          ...injuredNoConv.map((p) => ({ position: p.position, node: renderInjuredCard(p) })),
+                          ...injuredWithConv.map((c) => ({ position: c.player?.position, node: renderDeconvokedCard(c) })),
+                          ...declinedNonInjured.map((c) => ({ position: c.player?.position, node: renderDeconvokedCard(c) })),
+                        ]}
+                        getPosition={(item) => item.position}
+                        renderItem={(item) => item.node}
+                        listClassName={styles.convocatedList}
+                      />
                     </CollapsibleGroup>
                   ) : null}
                 </div>
@@ -1007,6 +1170,42 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isTrainin
           } catch (e: any) {
             alert(e?.message ?? "Error al desconvocar");
           }
+        }}
+      />
+
+      <DeconvokeDialog
+        open={!!unavailableTarget}
+        onClose={() => setUnavailableTarget(null)}
+        excuseTypes={excuseTypes}
+        hideCoachOnly
+        title="¿Por qué no está disponible?"
+        confirmLabel="No disponible"
+        onConfirm={(reason) => {
+          if (unavailableTarget) handleRespondAvailability(unavailableTarget, false, Number(reason));
+        }}
+      />
+
+      <ConfirmDialog
+        open={requestAvailabilityOpen}
+        title="Pedir disponibilidad"
+        description={`Se preguntará a ${waitingList.length} ${
+          waitingList.length === 1 ? "jugador" : "jugadores"
+        } de la lista de espera (y a sus familiares con cuenta vinculada) si están disponibles para el partido. Los lesionados y sancionados no recibirán la petición.`}
+        confirmText="Pedir"
+        processing={availabilityBusy}
+        onCancel={() => setRequestAvailabilityOpen(false)}
+        onConfirm={handleRequestAvailabilityConfirmed}
+      />
+
+      <ConfirmDialog
+        open={!!deconvokeAvailableTarget}
+        title="Desconvocar jugador disponible"
+        description="El jugador pasará a desconvocados con el motivo «Decisión técnica»."
+        confirmText="Desconvocar"
+        processing={availabilityBusy}
+        onCancel={() => setDeconvokeAvailableTarget(null)}
+        onConfirm={() => {
+          if (deconvokeAvailableTarget) handleDecideAvailable(deconvokeAvailableTarget, false);
         }}
       />
 

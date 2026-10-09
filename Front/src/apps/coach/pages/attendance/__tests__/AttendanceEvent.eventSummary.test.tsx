@@ -144,6 +144,40 @@ describe("AttendanceEvent - deriva eventSummary para AttendanceTabs", () => {
     expect(lastProps.eventSummary.dateES.length).toBeGreaterThan(0);
   });
 
+  it("marca el evento como partido de liga solo cuando la categoría es League", async () => {
+    getSportEventByIdMock.mockResolvedValue({
+      id: "event-1",
+      title: "Jornada 5",
+      teamId: "team-1",
+      eventType: "Partido",
+      matchCategory: "League",
+      eveDateTime: "2026-10-12T00:00:00",
+    });
+
+    renderPage();
+
+    await screen.findByText("Jornada 5");
+    const lastProps = attendanceTabsSpy.mock.calls[attendanceTabsSpy.mock.calls.length - 1][0];
+    expect(lastProps.isLeagueMatch).toBe(true);
+  });
+
+  it("no marca un amistoso como partido de liga", async () => {
+    getSportEventByIdMock.mockResolvedValue({
+      id: "event-1",
+      title: "Amistoso de pretemporada",
+      teamId: "team-1",
+      eventType: "Amistoso",
+      matchCategory: "Friendly",
+      eveDateTime: "2026-10-12T00:00:00",
+    });
+
+    renderPage();
+
+    await screen.findByText("Amistoso de pretemporada");
+    const lastProps = attendanceTabsSpy.mock.calls[attendanceTabsSpy.mock.calls.length - 1][0];
+    expect(lastProps.isLeagueMatch).toBe(false);
+  });
+
   it("degrada correctamente (rivalName/location null) para un entrenamiento sin rival ni lugar", async () => {
     getSportEventByIdMock.mockResolvedValue({
       id: "event-1",

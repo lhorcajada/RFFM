@@ -6,6 +6,7 @@ import sportEventTypeService from "../../../services/sportEventTypeService";
 import useEventAttendanceSummaries from "../../../hooks/useEventAttendanceSummaries";
 import { type ConvocationStatusName } from "../../../services/eventAttendanceSummaryService";
 import convocationService from "../../../services/convocationService";
+import availabilityService from "../../../services/availabilityService";
 import excuseTypeService, { type ExcuseType } from "../../../services/excuseTypeService";
 import DeconvokeDialog from "../../attendance/components/DeconvokeDialog";
 import Carousel from "../../../components/Carousel/Carousel";
@@ -32,6 +33,7 @@ export default function UpcomingEventsWidget({ team, isPlayer }: Props) {
   const [excuseTypes, setExcuseTypes] = useState<ExcuseType[]>([]);
   const [deconvokeTarget, setDeconvokeTarget] = useState<{ eventId: string; convocationId: string } | null>(null);
   const [optimistic, setOptimistic] = useState<Record<string, ConvocationStatusName>>({});
+  const [unavailableTarget, setUnavailableTarget] = useState<{ eventId: string; requestId: string } | null>(null);
 
   useEffect(() => {
     if (!team?.id) return;
@@ -105,6 +107,24 @@ export default function UpcomingEventsWidget({ team, isPlayer }: Props) {
     }
   };
 
+  const handleRespondAvailability = async (eventId: string, requestId: string, available: boolean, excuseTypeId?: number) => {
+    setPendingEventId(eventId);
+    try {
+      if (available) await availabilityService.respondAvailability(eventId, requestId, true);
+      else await availabilityService.respondAvailability(eventId, requestId, false, excuseTypeId);
+      refetch();
+    } catch (e: unknown) {
+      const detail = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      window.dispatchEvent(
+        new CustomEvent("rffm.show_snackbar", {
+          detail: { message: detail || "No se pudo responder la disponibilidad.", severity: "error" },
+        })
+      );
+    } finally {
+      setPendingEventId(null);
+    }
+  };
+
   if (!team) {
     return null;
   }
@@ -164,6 +184,13 @@ export default function UpcomingEventsWidget({ team, isPlayer }: Props) {
             !baseSummary?.myIsInjured &&
             (baseSummary?.myStatus === "Pending" || pendingEventId === event.id);
 
+          const myAvailabilityRequestId = baseSummary?.myAvailabilityRequestId ?? null;
+          const canAnswerAvailability =
+            isPlayer &&
+            !myConvocationId &&
+            !!myAvailabilityRequestId &&
+            baseSummary?.myAvailabilityStatus === "Requested";
+
           return (
             <div key={event.id} className={styles.eventCardWrapper}>
               <Link
@@ -204,10 +231,43 @@ export default function UpcomingEventsWidget({ team, isPlayer }: Props) {
                   </Button>
                 </Box>
               )}
+              {canAnswerAvailability && myAvailabilityRequestId && (
+                <Box sx={{ display: "flex", gap: 1, marginTop: 1, justifyContent: "center", alignItems: "center" }}>
+                  <span>¿Disponible?</span>
+                  <Button
+                    size="small"
+                    variant="contained"
+                    onClick={() => handleRespondAvailability(event.id, myAvailabilityRequestId, true)}
+                    disabled={pendingEventId === event.id}
+                  >
+                    Sí
+                  </Button>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => setUnavailableTarget({ eventId: event.id, requestId: myAvailabilityRequestId })}
+                    disabled={pendingEventId === event.id}
+                  >
+                    No
+                  </Button>
+                </Box>
+              )}
             </div>
           );
         })}
       </Carousel>
+      <DeconvokeDialog
+        open={!!unavailableTarget}
+        onClose={() => setUnavailableTarget(null)}
+        excuseTypes={excuseTypes}
+        hideCoachOnly
+        title="¿Por qué no está disponible?"
+        confirmLabel="No disponible"
+        onConfirm={(reason) => {
+          if (!unavailableTarget) return;
+          handleRespondAvailability(unavailableTarget.eventId, unavailableTarget.requestId, false, Number(reason));
+        }}
+      />
       <DeconvokeDialog
         open={!!deconvokeTarget}
         onClose={() => setDeconvokeTarget(null)}

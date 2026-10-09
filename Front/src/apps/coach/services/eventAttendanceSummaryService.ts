@@ -1,4 +1,5 @@
 import client from "../../../core/api/client";
+import type { AvailabilityStatus } from "./availabilityService";
 
 /**
  * Real `Convocation.ConvocationStatusId` names — the actual convocation
@@ -28,6 +29,9 @@ export type EventAttendanceSummaryDto = {
   /** `true` while the caller's linked player has an active injury — the
    * dashboard hides the "Voy"/"No voy" actions until discharge. */
   myIsInjured?: boolean;
+  /** Caller's own league-match availability request; `null` when there is none. */
+  myAvailabilityRequestId?: string | null;
+  myAvailabilityStatus?: AvailabilityStatus | null;
 };
 
 export async function getEventAttendanceSummaries(
