@@ -219,6 +219,78 @@ namespace RFFM.Api.Features.Coaches.Notifications.Services
             }
         }
 
+        public async Task DispatchAvailabilityRequestedAsync(string teamPlayerId, string eventId, CancellationToken ct = default)
+        {
+            try
+            {
+                var sportEvent = await _db.SportEvents.AsNoTracking().FirstOrDefaultAsync(se => se.Id == eventId, ct);
+                if (sportEvent is null) return;
+
+                var userIds = await ResolvePlayerAndFamilyUserIdsAsync(teamPlayerId, ct);
+                var alias = await GetPlayerAliasAsync(teamPlayerId, ct);
+                var body = $"¿{alias}, estás disponible para el partido «{sportEvent.Name}»{FormatNextDateAndTime(sportEvent)}?";
+
+                await DispatchToUsersAsync(
+                    userIds, "AvailabilityRequested", "¿Estás disponible?",
+                    body, $"/coach/attendance/{sportEvent.Id}", ct);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "Failed to dispatch availability-requested web push for teamPlayer {TeamPlayerId}", teamPlayerId);
+            }
+        }
+
+        public async Task DispatchAvailabilityRespondedAsync(string availabilityRequestId, CancellationToken ct = default)
+        {
+            try
+            {
+                var availability = await _db.AvailabilityRequests.AsNoTracking().FirstOrDefaultAsync(r => r.Id == availabilityRequestId, ct);
+                if (availability is null) return;
+
+                var sportEvent = await _db.SportEvents.AsNoTracking().FirstOrDefaultAsync(se => se.Id == availability.SportEventId, ct);
+                if (sportEvent is null) return;
+
+                var coachUserIds = await ResolveTeamCoachUserIdsAsync(sportEvent.TeamId, ct);
+                var alias = await GetPlayerAliasAsync(availability.TeamPlayerId, ct);
+
+                string body;
+                if (availability.IsAvailable)
+                {
+                    body = $"{alias} está disponible para {sportEvent.Name}{FormatEventDateSuffix(sportEvent)}.";
+                }
+                else
+                {
+                    var excuseTypeId = await _db.Convocations.AsNoTracking()
+                        .Where(c => c.SportEventId == availability.SportEventId && c.TeamPlayerId == availability.TeamPlayerId)
+                        .Select(c => c.ExcuseTypeId)
+                        .FirstOrDefaultAsync(ct);
+                    var reason = excuseTypeId is { } id ? ExcuseTypes.FromId(id)?.Name : null;
+                    var reasonSuffix = reason is null ? string.Empty : $" ({reason})";
+                    body = $"{alias} no está disponible para {sportEvent.Name}{FormatEventDateSuffix(sportEvent)}{reasonSuffix}.";
+                }
+
+                await DispatchToUsersAsync(
+                    coachUserIds, "AvailabilityResponded", "Disponibilidad",
+                    body, $"/coach/attendance/{sportEvent.Id}", ct);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "Failed to dispatch availability-responded web push for request {AvailabilityRequestId}", availabilityRequestId);
+            }
+        }
+
+        // EveDateTime/StartTime are stored as the event's wall-clock time (same convention as
+        // FormatEventDateSuffix). A midnight StartTime/EveDateTime with no StartTime means "no time set".
+        private static string FormatNextDateAndTime(SportEvent sportEvent)
+        {
+            if (sportEvent.EveDateTime is not { } date) return string.Empty;
+            var time = sportEvent.StartTime ?? date;
+            var hasTime = sportEvent.StartTime is not null && time.TimeOfDay != TimeSpan.Zero;
+            return hasTime
+                ? $" el próximo {date:dd/MM} a las {time:HH:mm}"
+                : $" el próximo {date:dd/MM}";
+        }
+
         private static string MatchOutcome(MatchResultMessage message)
         {
             var localGoals = int.Parse(message.LocalGoals);

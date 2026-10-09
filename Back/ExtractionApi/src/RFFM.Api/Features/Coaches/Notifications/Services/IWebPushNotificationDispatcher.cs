@@ -16,6 +16,8 @@ namespace RFFM.Api.Features.Coaches.Notifications.Services
         Task DispatchInjuryChangedAsync(string injuryId, CancellationToken ct = default);
         Task DispatchNotificationsActivatedAsync(string userId, CancellationToken ct = default);
         Task DispatchMatchResultAsync(IReadOnlyCollection<string> userIds, MatchResultMessage message, CancellationToken ct = default);
+        Task DispatchAvailabilityRequestedAsync(string teamPlayerId, string eventId, CancellationToken ct = default);
+        Task DispatchAvailabilityRespondedAsync(string availabilityRequestId, CancellationToken ct = default);
     }
 
     /// <summary>Resultado de un partido de liga visto desde el equipo del usuario (<paramref name="IsLocal"/>).</summary>

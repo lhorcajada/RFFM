@@ -117,6 +117,13 @@ namespace RFFM.Api.Domain
         // Features/Coaches/Convocations/AddConvocations.cs (409: one convocation per player and event)
         public const string PlayerAlreadyConvocated = "PlayerAlreadyConvocated";
 
+        // League match availability (Features/Coaches/Availability)
+        public const string AvailabilityOnlyForLeagueMatches = "AvailabilityOnlyForLeagueMatches";
+        public const string AvailabilityAlreadyDecided = "AvailabilityAlreadyDecided";
+        public const string AvailabilityNotAvailable = "AvailabilityNotAvailable";
+        public const string AvailabilityRequestNotFound = "AvailabilityRequestNotFound";
+        public const string AvailabilityInvalidTransition = "AvailabilityInvalidTransition";
+
         // Season Plans (Features/Coaches/SeasonPlans)
         public const string SeasonPlanNotFound = "SeasonPlanNotFound";
         public const string SeasonPlanAccessDenied = "SeasonPlanAccessDenied";

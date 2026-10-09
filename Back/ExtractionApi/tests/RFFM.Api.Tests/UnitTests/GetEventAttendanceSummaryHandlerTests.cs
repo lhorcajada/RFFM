@@ -361,6 +361,35 @@ namespace RFFM.Api.Tests.UnitTests
             Assert.Null(summary.MyStatus);
             Assert.Null(summary.MyStatusId);
             Assert.Null(summary.MyConvocationId);
+            Assert.Null(summary.MyAvailabilityRequestId);
+            Assert.Null(summary.MyAvailabilityStatus);
+        }
+
+        [Fact]
+        public async Task Handle_PlayerWithPendingAvailabilityRequest_ReturnsMyAvailability()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, teamPlayerId, sportEventId) = await SeedTeamPlayerAndEventAsync(db);
+            var availability = AvailabilityRequest.Create(sportEventId, teamPlayerId, DateTime.UtcNow);
+            db.AvailabilityRequests.Add(availability);
+            var userId = Guid.NewGuid().ToString();
+            var userTeam = new UserTeam(userId, teamId, Membership.Player.Id);
+            db.Set<UserTeam>().Add(userTeam);
+            await db.SaveChangesAsync();
+            userTeam.LinkPlayer(teamPlayerId);
+            await db.SaveChangesAsync();
+
+            var handler = new GetEventAttendanceSummary.Handler(db, new MockCurrentUserService(userId, new[] { "Player" }));
+            var result = await handler.Handle(new GetEventAttendanceSummary.EventAttendanceSummaryQuery
+            {
+                TeamId = teamId,
+                EventIds = new[] { sportEventId }
+            }, CancellationToken.None);
+
+            var summary = result.Single(r => r.EventId == sportEventId);
+            Assert.Equal(availability.Id, summary.MyAvailabilityRequestId);
+            Assert.Equal("Requested", summary.MyAvailabilityStatus);
+            Assert.Null(summary.MyConvocationId);
         }
 
         [Fact]

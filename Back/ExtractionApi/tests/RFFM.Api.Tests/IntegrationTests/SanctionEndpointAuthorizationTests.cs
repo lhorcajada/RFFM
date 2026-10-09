@@ -90,6 +90,8 @@ namespace RFFM.Api.Tests.IntegrationTests
             public Task DispatchNewsPublishedAsync(string newsId, CancellationToken ct = default) => Task.CompletedTask;
             public Task DispatchInjuryChangedAsync(string injuryId, CancellationToken ct = default) => Task.CompletedTask;
             public Task DispatchNotificationsActivatedAsync(string userId, CancellationToken ct = default) => Task.CompletedTask;
+            public Task DispatchAvailabilityRequestedAsync(string teamPlayerId, string eventId, CancellationToken ct = default) => Task.CompletedTask;
+            public Task DispatchAvailabilityRespondedAsync(string availabilityRequestId, CancellationToken ct = default) => Task.CompletedTask;
             public Task DispatchMatchResultAsync(IReadOnlyCollection<string> userIds, RFFM.Api.Features.Coaches.Notifications.Services.MatchResultMessage message, CancellationToken ct = default) => Task.CompletedTask;
         }
 

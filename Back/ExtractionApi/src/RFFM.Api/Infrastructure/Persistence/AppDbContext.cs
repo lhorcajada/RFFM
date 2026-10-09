@@ -65,6 +65,7 @@ namespace RFFM.Api.Infrastructure.Persistence
         public DbSet<TeamPlayerFamilyMember> TeamPlayerFamilyMembers { get; set; }
         public DbSet<AssistanceType> AssistanceTypes { get; set; }
         public DbSet<Convocation> Convocations { get; set; }
+        public DbSet<AvailabilityRequest> AvailabilityRequests { get; set; }
         public DbSet<ConvocationHistory> ConvocationHistories { get; set; }
         public DbSet<ConvocationStatus> ConvocationStatuses { get; set; }
         public DbSet<SportEvent> SportEvents { get; set; }

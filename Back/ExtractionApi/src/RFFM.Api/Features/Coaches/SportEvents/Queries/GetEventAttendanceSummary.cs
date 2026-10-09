@@ -62,7 +62,7 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Queries
         public record EventAttendanceSummaryResponse(
             string EventId, int Convocados, int Going, int Pending, int NotGoing,
             double AttendancePercentage, string? MyStatus, int? MyStatusId, string? MyConvocationId,
-            bool MyIsInjured = false);
+            bool MyIsInjured = false, string? MyAvailabilityRequestId = null, string? MyAvailabilityStatus = null);
 
         public class Validator : AbstractValidator<EventAttendanceSummaryQuery>
         {
@@ -151,6 +151,14 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Queries
                                        (i.EndDate == null || i.EndDate > now), cancellationToken);
                 }
 
+                var myAvailabilityByEvent = myTeamPlayerId is null
+                    ? new Dictionary<string, (string Id, int StatusId)>()
+                    : (await _db.AvailabilityRequests.AsNoTracking()
+                        .Where(r => r.TeamPlayerId == myTeamPlayerId && authorizedEventIds.Contains(r.SportEventId))
+                        .Select(r => new { r.SportEventId, r.Id, r.StatusId })
+                        .ToListAsync(cancellationToken))
+                        .ToDictionary(r => r.SportEventId, r => (r.Id, r.StatusId));
+
                 var pendingId = ConvocationStatus.FromName("Pending").Id;
                 var acceptedId = ConvocationStatus.FromName("Accepted").Id;
                 var justifiedId = ConvocationStatus.FromName("Justified").Id;
@@ -192,8 +200,16 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Queries
                         }
                     }
 
+                    string? myAvailabilityRequestId = null; string? myAvailabilityStatus = null;
+                    if (myAvailabilityByEvent.TryGetValue(eventId, out var myAvailability))
+                    {
+                        myAvailabilityRequestId = myAvailability.Id;
+                        myAvailabilityStatus = AvailabilityRequestStatus.From(myAvailability.StatusId).Name;
+                    }
+
                     results.Add(new EventAttendanceSummaryResponse(
-                        eventId, convocados, going, pending, notGoing, percentage, myStatus, myStatusId, myConvocationId, myIsInjured));
+                        eventId, convocados, going, pending, notGoing, percentage, myStatus, myStatusId, myConvocationId, myIsInjured,
+                        myAvailabilityRequestId, myAvailabilityStatus));
                 }
 
                 return results.ToArray();
