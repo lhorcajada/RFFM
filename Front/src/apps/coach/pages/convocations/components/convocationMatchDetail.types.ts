@@ -48,7 +48,7 @@ export const CONVOCATION_TAB = {
 } as const;
 
 /** Drop zones for drag-and-drop convocation management */
-export type DropZone = "available" | "called" | "notCalled";
+export type DropZone = "waiting" | "availabilityPending" | "available" | "called" | "notCalled";
 
 /** Status IDs that count as convocado (called up): Pending (1) and Accepted (2) */
 export const CALLED_STATUS_IDS: ReadonlySet<number> = new Set([1, 2]);

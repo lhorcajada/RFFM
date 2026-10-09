@@ -336,6 +336,9 @@ export default function ConvocationMatchDetail() {
             mgmtLoadingConv={convocation.mgmtLoadingConv}
             loadingPlayers={convocation.loadingPlayers}
             teamAvgRating={convocation.teamAvgRating}
+            isLeagueMatch={convocation.mgmtIsLeagueMatch}
+            mgmtWaiting={convocation.mgmtWaiting}
+            mgmtAvailabilityPending={convocation.mgmtAvailabilityPending}
             mgmtCalled={convocation.mgmtCalled}
             mgmtAvailable={convocation.mgmtAvailable}
             mgmtNotCalled={convocation.mgmtNotCalled}

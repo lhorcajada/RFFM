@@ -297,23 +297,11 @@
 }
 
 /* ─── Three-column layout ─── */
+/* Lists stacked one below another, like the event convocation screen */
 .dropColumns {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  align-items: start;
-}
-
-@media (max-width: 700px) {
-  .dropColumns {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 420px) {
-  .dropColumns {
-    grid-template-columns: 1fr;
-  }
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 /* ─── Single column (drop zone) ─── */
@@ -323,7 +311,6 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  min-height: 180px;
   transition: border-color 0.18s, background 0.18s;
 }
 
@@ -344,6 +331,42 @@
   text-transform: uppercase;
   letter-spacing: 0.12em;
   border-bottom: 2px solid rgba(255, 255, 255, 0.07);
+}
+
+.dropColumnToggle {
+  width: 100%;
+  border: none;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.07);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+}
+
+.dropColumnTitle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dropColumnChevron {
+  transform: rotate(-90deg);
+  transition: transform 0.18s;
+}
+
+.dropColumnChevronExpanded {
+  transform: rotate(0deg);
+}
+
+.dropColumnHeaderWaiting {
+  background: linear-gradient(90deg, rgba(144, 164, 174, 0.18) 0%, transparent 100%);
+  border-bottom-color: rgba(144, 164, 174, 0.25);
+  color: #b0bec5;
+}
+
+.dropColumnHeaderAvailabilityPending {
+  background: linear-gradient(90deg, rgba(255, 193, 7, 0.18) 0%, transparent 100%);
+  border-bottom-color: rgba(255, 193, 7, 0.25);
+  color: #ffd54f;
 }
 
 .dropColumnHeaderAvailable {
@@ -400,7 +423,7 @@
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 8px;
   padding: 10px;
-  min-height: 140px;
+  min-height: 60px;
 }
 
 /* Position group label inside a column */

@@ -8,6 +8,7 @@ import {
 } from "@mui/material";
 import { useState } from "react";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import EmptyState from "../../../../../shared/components/ui/EmptyState/EmptyState";
@@ -68,6 +69,10 @@ type Props = {
   mgmtLoadingConv: boolean;
   loadingPlayers: boolean;
   teamAvgRating: number | null;
+  /** League match: adds the waiting and pending-availability lists. */
+  isLeagueMatch?: boolean;
+  mgmtWaiting?: string[];
+  mgmtAvailabilityPending?: string[];
   mgmtCalled: string[];
   mgmtAvailable: string[];
   mgmtNotCalled: string[];
@@ -101,11 +106,18 @@ const GROUPS = [
   { order: 4, label: "Sin posición" },
 ];
 
-const ZONE_CONFIG: {
+type ZoneConfig = {
   zone: DropZone;
   label: string;
   headerClass: keyof typeof styles;
-}[] = [
+};
+
+const LEAGUE_ONLY_ZONES: ZoneConfig[] = [
+  { zone: "waiting", label: "Lista de espera", headerClass: "dropColumnHeaderWaiting" },
+  { zone: "availabilityPending", label: "Pendientes de respuesta", headerClass: "dropColumnHeaderAvailabilityPending" },
+];
+
+const COMMON_ZONES: ZoneConfig[] = [
   { zone: "available", label: "Disponibles", headerClass: "dropColumnHeaderAvailable" },
   { zone: "called", label: "Convocados", headerClass: "dropColumnHeaderCalled" },
   { zone: "notCalled", label: "Desconvocados", headerClass: "dropColumnHeaderNotCalled" },
@@ -118,6 +130,9 @@ export default function ConvocationTab({
   mgmtLoadingConv,
   loadingPlayers,
   teamAvgRating,
+  isLeagueMatch = false,
+  mgmtWaiting = [],
+  mgmtAvailabilityPending = [],
   mgmtCalled,
   mgmtAvailable,
   mgmtNotCalled,
@@ -143,6 +158,9 @@ export default function ConvocationTab({
 }: Props) {
   const [showProposal, setShowProposal] = useState(false);
   const [applyingProposal, setApplyingProposal] = useState(false);
+  const [collapsedZones, setCollapsedZones] = useState<Partial<Record<DropZone, boolean>>>({});
+  const zones = isLeagueMatch ? [...LEAGUE_ONLY_ZONES, ...COMMON_ZONES] : COMMON_ZONES;
+  const toggleZone = (zone: DropZone) => setCollapsedZones((prev) => ({ ...prev, [zone]: !prev[zone] }));
 
   if (mgmtLoadingConv || loadingPlayers) {
     return (
@@ -165,6 +183,8 @@ export default function ConvocationTab({
   }
 
   function getZoneIds(zone: DropZone): string[] {
+    if (zone === "waiting") return mgmtWaiting;
+    if (zone === "availabilityPending") return mgmtAvailabilityPending;
     if (zone === "available") return mgmtAvailable;
     if (zone === "called") return mgmtCalled;
     return mgmtNotCalled;
@@ -393,11 +413,13 @@ export default function ConvocationTab({
 
       {!showProposal && (
       <div className={styles.dropColumns}>
-        {ZONE_CONFIG.map(({ zone, label, headerClass }) => {
+        {zones.map(({ zone, label, headerClass }) => {
           const ids = getZoneIds(zone);
+          const expanded = !collapsedZones[zone];
           return (
-            <div
+            <section
               key={zone}
+              aria-label={label}
               className={`${styles.dropColumn} ${mgmtDragOver === zone ? styles.dropColumnOver : ""}`}
               onDragOver={(e) => {
                 e.preventDefault();
@@ -409,8 +431,19 @@ export default function ConvocationTab({
                 onDrop(zone);
               }}
             >
-              <div className={`${styles.dropColumnHeader} ${styles[headerClass]}`}>
-                <span>{label}</span>
+              <button
+                type="button"
+                aria-expanded={expanded}
+                onClick={() => toggleZone(zone)}
+                className={`${styles.dropColumnHeader} ${styles.dropColumnToggle} ${styles[headerClass]}`}
+              >
+                <span className={styles.dropColumnTitle}>
+                  <ExpandMoreIcon
+                    fontSize="small"
+                    className={`${styles.dropColumnChevron} ${expanded ? styles.dropColumnChevronExpanded : ""}`}
+                  />
+                  {label}
+                </span>
                 <div className={styles.dropColumnHeaderMeta}>
                   {zone === "called" && teamAvgRating != null && (
                     <span
@@ -422,142 +455,144 @@ export default function ConvocationTab({
                   )}
                   <span className={styles.dropColumnCount}>{ids.length}</span>
                 </div>
-              </div>
+              </button>
 
-              <div className={styles.dropColumnBody}>
-                {ids.length === 0 && (
-                  <div className={styles.dropHint}>Arrastra jugadores aquí</div>
-                )}
-                {zone === "notCalled"
-                  ? ids.map((playerId) => {
-                      const p = players.find((pl) => pl.id === playerId);
-                      if (!p) return null;
-                      const displayName = p.alias || ((p.name ?? "") + " " + (p.lastName ?? "")).trim() || "Jugador";
-                      const r = mgmtRatings[playerId];
-                      return (
-                        <div
-                          key={playerId}
-                          draggable
-                          className={`${styles.draggableCard} ${
-                            mgmtDragPlayer === playerId ? styles.draggableCardDragging : ""
-                          }`}
-                          onDragStart={() => onDragStart(playerId)}
-                          onDragEnd={onDragEnd}
-                        >
-                          <PlayerCromo
-                            displayName={displayName}
-                            photoSrc={mgmtPhotos[playerId] ?? null}
-                            dorsal={p.dorsal ?? null}
-                            position={p.position ?? null}
-                            injured={p.isInjured === true}
-                            rating={
-                              r
-                                ? {
-                                    technical: r.technical,
-                                    tactical: r.tactical,
-                                    physical: r.physical,
-                                    competitiveness: r.competitiveness,
-                                  }
-                                : null
-                            }
-                            streakCount={playerStreaks?.get(playerId) ?? null}
-                            readiness={readinessMap?.[playerId]?.readiness ?? null}
-                            fatigue={readinessMap?.[playerId]?.fatigue ?? null}
-                            formStatus={readinessMap?.[playerId]?.formStatus}
-                            formVariant="full"
-                          />
-                          {excuseTypes.length > 0 && (
-                            <FormControl
-                              size="small"
-                              fullWidth
-                              sx={{ mt: 0.5 }}
-                              onClick={(e) => e.stopPropagation()}
-                              onMouseDown={(e) => e.stopPropagation()}
-                              onDragStart={(e) => e.stopPropagation()}
-                            >
-                              <InputLabel sx={{ fontSize: "0.7rem" }}>Motivo</InputLabel>
-                              <Select
-                                label="Motivo"
-                                value={mgmtExcuseMap[playerId] ?? ""}
-                                onChange={(e) => {
-                                  onExcuseChange(playerId, e.target.value as number);
-                                }}
-                                sx={{ fontSize: "0.72rem" }}
+              {expanded && (
+                <div className={styles.dropColumnBody}>
+                  {ids.length === 0 && (
+                    <div className={styles.dropHint}>Arrastra jugadores aquí</div>
+                  )}
+                  {zone === "notCalled"
+                    ? ids.map((playerId) => {
+                        const p = players.find((pl) => pl.id === playerId);
+                        if (!p) return null;
+                        const displayName = p.alias || ((p.name ?? "") + " " + (p.lastName ?? "")).trim() || "Jugador";
+                        const r = mgmtRatings[playerId];
+                        return (
+                          <div
+                            key={playerId}
+                            draggable
+                            className={`${styles.draggableCard} ${
+                              mgmtDragPlayer === playerId ? styles.draggableCardDragging : ""
+                            }`}
+                            onDragStart={() => onDragStart(playerId)}
+                            onDragEnd={onDragEnd}
+                          >
+                            <PlayerCromo
+                              displayName={displayName}
+                              photoSrc={mgmtPhotos[playerId] ?? null}
+                              dorsal={p.dorsal ?? null}
+                              position={p.position ?? null}
+                              injured={p.isInjured === true}
+                              rating={
+                                r
+                                  ? {
+                                      technical: r.technical,
+                                      tactical: r.tactical,
+                                      physical: r.physical,
+                                      competitiveness: r.competitiveness,
+                                    }
+                                  : null
+                              }
+                              streakCount={playerStreaks?.get(playerId) ?? null}
+                              readiness={readinessMap?.[playerId]?.readiness ?? null}
+                              fatigue={readinessMap?.[playerId]?.fatigue ?? null}
+                              formStatus={readinessMap?.[playerId]?.formStatus}
+                              formVariant="full"
+                            />
+                            {excuseTypes.length > 0 && (
+                              <FormControl
+                                size="small"
+                                fullWidth
+                                sx={{ mt: 0.5 }}
+                                onClick={(e) => e.stopPropagation()}
+                                onMouseDown={(e) => e.stopPropagation()}
+                                onDragStart={(e) => e.stopPropagation()}
                               >
-                                {excuseTypes.map((et) => (
-                                  <MenuItem
-                                    key={et.id}
-                                    value={et.id}
-                                    sx={{ fontSize: "0.72rem" }}
-                                  >
-                                    {et.name}
-                                  </MenuItem>
-                                ))}
-                              </Select>
-                            </FormControl>
-                          )}
-                        </div>
-                      );
-                    })
-                  : GROUPS.flatMap(({ order, label: groupLabel }) => {
-                  const sorted = [...ids].sort((a, b) => {
-                    const pa = players.find((pl) => pl.id === a)?.position ?? "";
-                    const pb = players.find((pl) => pl.id === b)?.position ?? "";
-                    return positionOrder(pa) - positionOrder(pb);
-                  });
-                  const group = sorted.filter((pid) => {
-                    const pos = players.find((pl) => pl.id === pid)?.position ?? "";
-                    return positionOrder(pos) === order;
-                  });
-                  if (group.length === 0) return [];
-                  return [
-                    <div key={`group-${order}`} className={styles.positionGroupLabel}>
-                      {groupLabel}
-                    </div>,
-                    ...group.map((playerId) => {
-                      const p = players.find((pl) => pl.id === playerId);
-                      if (!p) return null;
-                      const displayName = p.alias || ((p.name ?? "") + " " + (p.lastName ?? "")).trim() || "Jugador";
-                      const r = mgmtRatings[playerId];
-                      return (
-                        <div
-                          key={playerId}
-                          draggable
-                          className={`${styles.draggableCard} ${
-                            mgmtDragPlayer === playerId ? styles.draggableCardDragging : ""
-                          }`}
-                          onDragStart={() => onDragStart(playerId)}
-                          onDragEnd={onDragEnd}
-                        >
-                          <PlayerCromo
-                            displayName={displayName}
-                            photoSrc={mgmtPhotos[playerId] ?? null}
-                            dorsal={p.dorsal ?? null}
-                            position={p.position ?? null}
-                            injured={p.isInjured === true}
-                            rating={
-                              r
-                                ? {
-                                    technical: r.technical,
-                                    tactical: r.tactical,
-                                    physical: r.physical,
-                                    competitiveness: r.competitiveness,
-                                  }
-                                : null
-                            }
-                            streakCount={playerStreaks?.get(playerId) ?? null}
-                            readiness={readinessMap?.[playerId]?.readiness ?? null}
-                            fatigue={readinessMap?.[playerId]?.fatigue ?? null}
-                            formStatus={readinessMap?.[playerId]?.formStatus}
-                            formVariant="full"
-                          />
-                        </div>
-                      );
-                    }),
-                  ];
-                })}
-              </div>
-            </div>
+                                <InputLabel sx={{ fontSize: "0.7rem" }}>Motivo</InputLabel>
+                                <Select
+                                  label="Motivo"
+                                  value={mgmtExcuseMap[playerId] ?? ""}
+                                  onChange={(e) => {
+                                    onExcuseChange(playerId, e.target.value as number);
+                                  }}
+                                  sx={{ fontSize: "0.72rem" }}
+                                >
+                                  {excuseTypes.map((et) => (
+                                    <MenuItem
+                                      key={et.id}
+                                      value={et.id}
+                                      sx={{ fontSize: "0.72rem" }}
+                                    >
+                                      {et.name}
+                                    </MenuItem>
+                                  ))}
+                                </Select>
+                              </FormControl>
+                            )}
+                          </div>
+                        );
+                      })
+                    : GROUPS.flatMap(({ order, label: groupLabel }) => {
+                    const sorted = [...ids].sort((a, b) => {
+                      const pa = players.find((pl) => pl.id === a)?.position ?? "";
+                      const pb = players.find((pl) => pl.id === b)?.position ?? "";
+                      return positionOrder(pa) - positionOrder(pb);
+                    });
+                    const group = sorted.filter((pid) => {
+                      const pos = players.find((pl) => pl.id === pid)?.position ?? "";
+                      return positionOrder(pos) === order;
+                    });
+                    if (group.length === 0) return [];
+                    return [
+                      <div key={`group-${order}`} className={styles.positionGroupLabel}>
+                        {groupLabel}
+                      </div>,
+                      ...group.map((playerId) => {
+                        const p = players.find((pl) => pl.id === playerId);
+                        if (!p) return null;
+                        const displayName = p.alias || ((p.name ?? "") + " " + (p.lastName ?? "")).trim() || "Jugador";
+                        const r = mgmtRatings[playerId];
+                        return (
+                          <div
+                            key={playerId}
+                            draggable
+                            className={`${styles.draggableCard} ${
+                              mgmtDragPlayer === playerId ? styles.draggableCardDragging : ""
+                            }`}
+                            onDragStart={() => onDragStart(playerId)}
+                            onDragEnd={onDragEnd}
+                          >
+                            <PlayerCromo
+                              displayName={displayName}
+                              photoSrc={mgmtPhotos[playerId] ?? null}
+                              dorsal={p.dorsal ?? null}
+                              position={p.position ?? null}
+                              injured={p.isInjured === true}
+                              rating={
+                                r
+                                  ? {
+                                      technical: r.technical,
+                                      tactical: r.tactical,
+                                      physical: r.physical,
+                                      competitiveness: r.competitiveness,
+                                    }
+                                  : null
+                              }
+                              streakCount={playerStreaks?.get(playerId) ?? null}
+                              readiness={readinessMap?.[playerId]?.readiness ?? null}
+                              fatigue={readinessMap?.[playerId]?.fatigue ?? null}
+                              formStatus={readinessMap?.[playerId]?.formStatus}
+                              formVariant="full"
+                            />
+                          </div>
+                        );
+                      }),
+                    ];
+                  })}
+                </div>
+              )}
+            </section>
           );
         })}
       </div>

@@ -9,6 +9,7 @@ import playerService from "../../../services/playerService";
 import teamplayerService, { type PlayerResponse } from "../../../services/teamplayerService";
 import sportEventService from "../../../services/sportEventService";
 import sportEventTypeService from "../../../services/sportEventTypeService";
+import availabilityService from "../../../services/availabilityService";
 import type { PlayerRating } from "../../../types/playerRating";
 import type { DropZone } from "../components/convocationMatchDetail.types";
 import {
@@ -54,7 +55,14 @@ export type ConvocationManagementReturn = {
   mgmtEventId: string | null;
   // Loading
   mgmtLoadingConv: boolean;
+  /** League match ("Partido"): unconvoked players are split by their availability request. */
+  mgmtIsLeagueMatch: boolean;
   // Zone lists
+  /** League only: players without convocation nor open availability request. */
+  mgmtWaiting: string[];
+  /** League only: availability requested, not answered yet. */
+  mgmtAvailabilityPending: string[];
+  /** League: players who answered "available". Other events: every unconvoked, non-injured player. */
   mgmtAvailable: string[];
   mgmtCalled: string[];
   mgmtNotCalled: string[];
@@ -107,9 +115,12 @@ export function useConvocationManagement(
 
   // Event
   const [mgmtEventId, setMgmtEventId] = useState<string | null>(null);
+  const [mgmtIsLeagueMatch, setMgmtIsLeagueMatch] = useState(false);
 
   // Convocation state
   const [mgmtLoadingConv, setMgmtLoadingConv] = useState(false);
+  const [mgmtWaiting, setMgmtWaiting] = useState<string[]>([]);
+  const [mgmtAvailabilityPending, setMgmtAvailabilityPending] = useState<string[]>([]);
   const [mgmtAvailable, setMgmtAvailable] = useState<string[]>([]);
   const [mgmtCalled, setMgmtCalled] = useState<string[]>([]);
   const [mgmtNotCalled, setMgmtNotCalled] = useState<string[]>([]);
@@ -194,8 +205,11 @@ export function useConvocationManagement(
             typeName.includes("match")
           );
         });
-        const eventId = matchEvents[0]?.id ?? resp.items[0]?.id ?? null;
-        if (mounted) setMgmtEventId(eventId);
+        const matchEvent = matchEvents[0] ?? resp.items[0] ?? null;
+        if (mounted) {
+          setMgmtIsLeagueMatch(matchEvent?.matchCategory === "League");
+          setMgmtEventId(matchEvent?.id ?? null);
+        }
       } catch {
         /* silently fail */
       }
@@ -212,8 +226,12 @@ export function useConvocationManagement(
     setMgmtLoadingConv(true);
     (async () => {
       try {
-        const convs = await convocationService.getConvocations(mgmtEventId);
+        const [convs, availabilityRequests] = await Promise.all([
+          convocationService.getConvocations(mgmtEventId),
+          mgmtIsLeagueMatch ? availabilityService.getAvailabilityRequests(mgmtEventId) : Promise.resolve([]),
+        ]);
         if (!mounted) return;
+        const availabilityByPlayer = new Map(availabilityRequests.map((r) => [r.teamPlayerId, r.status]));
 
         const convMap: Record<string, string> = {};
         const calledIds: string[] = [];
@@ -248,14 +266,22 @@ export function useConvocationManagement(
           ...finalCalledIds,
           ...notCalledIds,
         ]);
+        // League: a convocation always wins; otherwise the availability request decides the list.
         const availableIds: string[] = [];
+        const waitingIds: string[] = [];
+        const availabilityPendingIds: string[] = [];
         for (const p of players) {
           if (convocatedIds.has(p.id)) continue;
           const injuredForMatch = injuredCalledIds.has(p.id);
           if (injuredForMatch) {
             notCalledIds.push(p.id);
-          } else {
+          } else if (!mgmtIsLeagueMatch) {
             availableIds.push(p.id);
+          } else {
+            const availability = availabilityByPlayer.get(p.id);
+            if (availability === "Available") availableIds.push(p.id);
+            else if (availability === "Requested") availabilityPendingIds.push(p.id);
+            else waitingIds.push(p.id);
           }
         }
 
@@ -281,6 +307,8 @@ export function useConvocationManagement(
           setMgmtNotCalled(notCalledIds);
           setMgmtPending(pendingIds.filter((id) => !injuredCalledIds.has(id)));
           setMgmtAvailable(availableIds);
+          setMgmtWaiting(waitingIds);
+          setMgmtAvailabilityPending(availabilityPendingIds);
           setMgmtExcuseMap(excuseInit);
           setMgmtAssistanceMap(assistanceInit);
           setMgmtMinutesReasonMap(minutesReasonInit);
@@ -310,7 +338,7 @@ export function useConvocationManagement(
     return () => {
       mounted = false;
     };
-  }, [mgmtEventId, players]);
+  }, [mgmtEventId, mgmtIsLeagueMatch, players]);
 
   // ── Patch missing excuses for injured players ────────────────────────────
   // Only injured players without a saved excuse get defaulted to "Injury" (id 1).
@@ -411,13 +439,25 @@ export function useConvocationManagement(
     let from: DropZone;
     if (mgmtCalled.includes(pid)) from = "called";
     else if (mgmtNotCalled.includes(pid)) from = "notCalled";
+    else if (mgmtWaiting.includes(pid)) from = "waiting";
+    else if (mgmtAvailabilityPending.includes(pid)) from = "availabilityPending";
     else from = "available";
 
     if (from === zone) return;
+    // In a league match the availability lists are filled by the players' answers, never by dragging.
+    const isAvailabilityZone = zone === "available" || zone === "waiting" || zone === "availabilityPending";
+    if (mgmtIsLeagueMatch && isAvailabilityZone) return;
 
-    setMgmtAvailable((prev) => (zone === "available" ? [...prev, pid] : prev.filter((id) => id !== pid)));
-    setMgmtCalled((prev) => (zone === "called" ? [...prev, pid] : prev.filter((id) => id !== pid)));
-    setMgmtNotCalled((prev) => (zone === "notCalled" ? [...prev, pid] : prev.filter((id) => id !== pid)));
+    const placeIn = (destination: DropZone) => (target: DropZone) => (prev: string[]) =>
+      prev.filter((id) => id !== pid).concat(target === destination ? [pid] : []);
+    const moveTo = placeIn(zone);
+    const restoreTo = placeIn(from);
+
+    setMgmtAvailable(moveTo("available"));
+    setMgmtWaiting(moveTo("waiting"));
+    setMgmtAvailabilityPending(moveTo("availabilityPending"));
+    setMgmtCalled(moveTo("called"));
+    setMgmtNotCalled(moveTo("notCalled"));
 
     try {
       let convId = mgmtConvMap[pid];
@@ -444,9 +484,11 @@ export function useConvocationManagement(
         }
       }
     } catch (err) {
-      setMgmtAvailable((prev) => (from === "available" ? [...prev, pid] : prev.filter((id) => id !== pid)));
-      setMgmtCalled((prev) => (from === "called" ? [...prev, pid] : prev.filter((id) => id !== pid)));
-      setMgmtNotCalled((prev) => (from === "notCalled" ? [...prev, pid] : prev.filter((id) => id !== pid)));
+      setMgmtAvailable(restoreTo("available"));
+      setMgmtWaiting(restoreTo("waiting"));
+      setMgmtAvailabilityPending(restoreTo("availabilityPending"));
+      setMgmtCalled(restoreTo("called"));
+      setMgmtNotCalled(restoreTo("notCalled"));
       emitConvocationBlockedError(err);
     }
   }
@@ -536,6 +578,8 @@ export function useConvocationManagement(
 
     // Optimistic update
     setMgmtAvailable((prev) => prev.filter((id) => id !== pid));
+    setMgmtWaiting((prev) => prev.filter((id) => id !== pid));
+    setMgmtAvailabilityPending((prev) => prev.filter((id) => id !== pid));
     setMgmtCalled((prev) => prev.filter((id) => id !== pid));
     setMgmtNotCalled((prev) => (prev.includes(pid) ? prev : [...prev, pid]));
     if (resolvedExcuse) setMgmtExcuseMap((prev) => ({ ...prev, [pid]: resolvedExcuse }));
@@ -612,6 +656,9 @@ export function useConvocationManagement(
     statuses,
     mgmtEventId,
     mgmtLoadingConv,
+    mgmtIsLeagueMatch,
+    mgmtWaiting,
+    mgmtAvailabilityPending,
     mgmtAvailable,
     mgmtCalled,
     mgmtNotCalled,
