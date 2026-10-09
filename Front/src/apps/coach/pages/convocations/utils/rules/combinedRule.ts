@@ -7,19 +7,20 @@ function clamp01(v: number) {
 // Combined metric rule — compone una puntuación normalizada a partir de:
 // - 45% `rating` (weightedRating)
 // - 45% `necessity` (ahora basada únicamente en `competitiveness`, rango 0..1)
-// - hasta 25 pts por `training` (asistencia ponderada a entrenos y amistosos en la temporada)
+// - hasta 25 pts por `training` (asistencia bruta a entrenos y amistosos en la temporada)
 // Nota: `ctx.necessity` ya no combina titularidades/convocatorias; es la competitividad.
 const SEASON_ATTENDANCE_MAX_POINTS = 25;
 
 export default function combinedRule(ctx: RuleContext, _prev: Record<string, RuleResult>): RuleResult {
-  const weightedAttendedSeason = Number.isFinite(ctx.weekStats.weightedAttendedTrainingsSeason)
-    ? ctx.weekStats.weightedAttendedTrainingsSeason
+  // Raw rate (same figure as the attendance summary): justified absences are not compensated here.
+  const attendedSeason = Number.isFinite(ctx.weekStats.attendedTrainingsSeason)
+    ? ctx.weekStats.attendedTrainingsSeason
     : 0;
   const totalTrainingsSeason = Number.isFinite(ctx.weekStats.totalTrainingsSeason)
     ? Math.max(0, ctx.weekStats.totalTrainingsSeason)
     : 0;
   const seasonAttendanceRate = totalTrainingsSeason > 0
-    ? clamp01(weightedAttendedSeason / totalTrainingsSeason)
+    ? clamp01(attendedSeason / totalTrainingsSeason)
     : 0;
 
   // Derive necessity from the player's competitiveness level (0-10).

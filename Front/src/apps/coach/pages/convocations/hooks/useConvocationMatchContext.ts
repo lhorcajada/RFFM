@@ -287,7 +287,7 @@ export function useConvocationMatchContext(
           const startMs = new Date(ev.start ?? ev.startTime ?? ev.eveDateTime ?? "").getTime();
           return !Number.isNaN(startMs) && startMs <= now;
         };
-        const weekTrainings = weekEventsResp.items.filter((ev) => {
+        const isHeldTraining = (ev: SportEventResponse) => {
           const eventType = (ev.eventType ?? "").toLowerCase();
           const title = (ev.title ?? ev.name ?? "").toLowerCase();
           if (!isHeld(ev)) return false;
@@ -298,7 +298,8 @@ export function useConvocationMatchContext(
             title.includes("entren") ||
             title.includes("training")
           );
-        });
+        };
+        const weekTrainings = weekEventsResp.items.filter(isHeldTraining);
         setWeekTrainingCount(weekTrainings.length);
         const weekTrainingIds = new Set(weekTrainings.map((t) => t.id));
         const weekFriendlyIds = weekEventsResp.items.filter((ev) => isHeld(ev) && isFriendlyEvent(ev)).map((ev) => ev.id);
@@ -312,11 +313,10 @@ export function useConvocationMatchContext(
             convocationsByPlayer.set(key.toLowerCase(), byEvent);
           });
         });
-        const todayIso = toIsoDay(new Date().toISOString());
-        const pastSeasonTrainingsCount = seasonEventsAll.filter((training) => {
-          const trainingDay = toIsoDay(training.start ?? training.startTime ?? training.eveDateTime ?? "");
-          return !!trainingDay && !!todayIso && trainingDay <= todayIso;
-        }).length;
+        // The backend training summary spans every season, so season figures are rebuilt
+        // from the trainings held in the current season only.
+        const seasonTrainingIds = seasonEventsAll.filter(isHeldTraining).map((ev) => ev.id);
+        const seasonTrainingIdSet = new Set(seasonTrainingIds);
 
         const trainingSummaryById = new Map<string, TrainingSummaryPlayer>();
         const seasonTrainingSummaryPlayers = (trainingSummary?.players ?? []) as TrainingSummaryPlayer[];
@@ -348,7 +348,7 @@ export function useConvocationMatchContext(
           const playerConvocations =
             convocationsByPlayer.get(p.id.toLowerCase()) ??
             (p.playerId ? convocationsByPlayer.get(p.playerId.toLowerCase()) : undefined);
-          const friendlyOutcomes = (eventIds: string[]) => {
+          const convocationOutcomes = (eventIds: string[]) => {
             const rows = eventIds
               .map((eventId) => playerConvocations?.get(eventId))
               .filter((row): row is TeamConvocationRow => !!row);
@@ -359,7 +359,7 @@ export function useConvocationMatchContext(
           };
 
           const trainingAbsences = summary?.absences ?? [];
-          const weekFriendlies = friendlyOutcomes(weekFriendlyIds);
+          const weekFriendlies = convocationOutcomes(weekFriendlyIds);
           const weekTrainingAbsences = trainingAbsences.filter((absence) => weekTrainingIds.has(absence.eventId));
           const weekAbsences = [...weekTrainingAbsences, ...weekFriendlies.absences];
           const attendedTrainings =
@@ -367,11 +367,11 @@ export function useConvocationMatchContext(
           const totalTrainings = attendedTrainings + weekAbsences.length;
           const knownUnavailableTrainings = weekAbsences.filter((absence) => forcesDeconvocation(absence.excuseTypeId)).length;
 
-          const seasonFriendlies = friendlyOutcomes(seasonFriendlyIds);
-          const seasonAbsences = [...trainingAbsences, ...seasonFriendlies.absences];
-          const attendedTrainingsSeason = (summary?.attendedTrainings ?? 0) + seasonFriendlies.attended;
-          const totalTrainingsSeason =
-            (summary?.totalTrainings ?? pastSeasonTrainingsCount) + seasonFriendlies.attended + seasonFriendlies.absences.length;
+          const seasonFriendlies = convocationOutcomes(seasonFriendlyIds);
+          const seasonTrainingAbsences = trainingAbsences.filter((absence) => seasonTrainingIdSet.has(absence.eventId));
+          const seasonAbsences = [...seasonTrainingAbsences, ...seasonFriendlies.absences];
+          const attendedTrainingsSeason = convocationOutcomes(seasonTrainingIds).attended + seasonFriendlies.attended;
+          const totalTrainingsSeason = attendedTrainingsSeason + seasonAbsences.length;
 
           playerStats.set(p.id, {
             totalTrainings,

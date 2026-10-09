@@ -51,13 +51,13 @@ function seasonAttendanceFactor(weekStats: Partial<WeeklyTrainingStats>) {
 }
 
 describe("combinedRule - asistencia de la temporada", () => {
-  it("puntúa el porcentaje ponderado de asistencia sobre todos los eventos posibles", () => {
-    const factor = seasonAttendanceFactor({ attendedTrainingsSeason: 16, weightedAttendedTrainingsSeason: 16.5, totalTrainingsSeason: 18 });
+  it("puntúa el porcentaje bruto de asistencia sin compensar las faltas justificadas", () => {
+    const factor = seasonAttendanceFactor({ attendedTrainingsSeason: 11, weightedAttendedTrainingsSeason: 12.5, totalTrainingsSeason: 16 });
 
     expect(factor).toMatchObject({
       label: "Asistencia a entrenamientos y amistosos (temporada)",
-      value: 91.67,
-      impact: 22.92,
+      value: 68.75,
+      impact: 17.19,
     });
   });
 

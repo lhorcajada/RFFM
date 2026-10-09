@@ -111,9 +111,9 @@ describe("useConvocationMatchContext - entrenamientos previos al partido", () =>
         attendedTrainings: 0,
         weightedAttendedTrainings: weighted,
         knownUnavailableTrainings: 0,
-        attendedTrainingsSeason: 9,
-        weightedAttendedTrainingsSeason: 9 + weighted,
-        totalTrainingsSeason: 10,
+        attendedTrainingsSeason: 0,
+        weightedAttendedTrainingsSeason: weighted,
+        totalTrainingsSeason: 1,
       });
     });
   });
@@ -137,7 +137,45 @@ describe("useConvocationMatchContext - entrenamientos previos al partido", () =>
         totalTrainings: 1,
         weightedAttendedTrainings: 0.25,
         knownUnavailableTrainings: 1,
-        totalTrainingsSeason: 10,
+        totalTrainingsSeason: 1,
+      });
+    });
+  });
+
+  it("calcula la asistencia de temporada solo con los entrenamientos de la temporada en curso", async () => {
+    getTrainingAttendanceSummaryMock.mockResolvedValue({
+      players: [{
+        teamPlayerId: "p1",
+        attendedTrainings: 40,
+        totalTrainings: 42,
+        absences: [
+          { eventId: "t1", date: "2026-10-06T19:00:00" },
+          { eventId: "old-season", date: "2026-03-10T19:00:00" },
+        ],
+      }],
+    });
+    getSportEventsMock.mockResolvedValue({
+      items: [
+        { id: "t0", eventTypeId: 2, eventType: "Entrenamiento", start: "2026-09-29T19:00:00" },
+        { id: "t1", eventTypeId: 2, eventType: "Entrenamiento", start: "2026-10-06T19:00:00" },
+      ],
+      totalPages: 1,
+    });
+    getTeamConvocationsSummaryMock.mockResolvedValue([
+      { eventId: "t0", convocationId: "c0", teamPlayerId: "p1", alias: "p1", statusId: 2, excuseTypeId: null, assistanceTypeId: 1 },
+      { eventId: "t1", convocationId: "c1", teamPlayerId: "p1", alias: "p1", statusId: 2, excuseTypeId: null, assistanceTypeId: 3 },
+      { eventId: "old-attended", convocationId: "c2", teamPlayerId: "p1", alias: "p1", statusId: 2, excuseTypeId: null, assistanceTypeId: 1 },
+    ]);
+
+    const { result } = renderHook(() =>
+      useConvocationMatchContext("team-1", "2026-10-10", null, [buildPlayer("p1")]),
+    );
+
+    await waitFor(() => {
+      expect(result.current.weekTrainingStatsMap.get("p1")).toMatchObject({
+        attendedTrainingsSeason: 1,
+        weightedAttendedTrainingsSeason: 1,
+        totalTrainingsSeason: 2,
       });
     });
   });
@@ -157,6 +195,7 @@ describe("useConvocationMatchContext - entrenamientos previos al partido", () =>
     getTeamConvocationsSummaryMock.mockResolvedValue([
       { eventId: "f1", convocationId: "c1", teamPlayerId: "p1", alias: "p1", statusId: 2, excuseTypeId: null, assistanceTypeId: 1 },
       { eventId: "f2", convocationId: "c2", teamPlayerId: "p1", alias: "p1", statusId: 2, excuseTypeId: 10, assistanceTypeId: 2 },
+      { eventId: "t1", convocationId: "c3", teamPlayerId: "p1", alias: "p1", statusId: 2, excuseTypeId: null, assistanceTypeId: 1 },
     ]);
 
     const { result } = renderHook(() =>
@@ -168,9 +207,9 @@ describe("useConvocationMatchContext - entrenamientos previos al partido", () =>
         totalTrainings: 3,
         attendedTrainings: 2,
         weightedAttendedTrainings: 2.5,
-        attendedTrainingsSeason: 10,
-        weightedAttendedTrainingsSeason: 10.5,
-        totalTrainingsSeason: 11,
+        attendedTrainingsSeason: 2,
+        weightedAttendedTrainingsSeason: 2.5,
+        totalTrainingsSeason: 3,
       });
     });
   });
