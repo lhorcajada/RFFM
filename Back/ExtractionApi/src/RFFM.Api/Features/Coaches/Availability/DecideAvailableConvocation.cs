@@ -66,11 +66,7 @@ namespace RFFM.Api.Features.Coaches.Availability
             {
                 var availability = await AvailabilityAuthorization.GetRequestAsync(_db, request.EventId, request.RequestId, cancellationToken);
 
-                var clubId = await _db.Teams
-                    .Where(t => t.Id == availability.SportEvent.TeamId)
-                    .Select(t => t.ClubId)
-                    .FirstAsync(cancellationToken);
-                await AvailabilityAuthorization.EnsureCanManageTeamAsync(_db, _currentUser, availability.SportEvent.TeamId, clubId, cancellationToken);
+                await AvailabilityAuthorization.EnsureCanManageEventTeamAsync(_db, _currentUser, availability.SportEvent.TeamId, cancellationToken);
 
                 await AvailabilityAuthorization.EnsureNotDecidedAsync(_db, availability, cancellationToken);
 

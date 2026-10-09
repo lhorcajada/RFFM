@@ -1,5 +1,6 @@
 #nullable enable
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
@@ -112,17 +113,51 @@ namespace RFFM.Api.Tests.UnitTests
                 .Handle(Command(eventId, Guid.NewGuid().ToString(), available: true), CancellationToken.None).AsTask());
         }
 
+        private static async Task<string> SeedCoachOfEventTeamAsync(AppDbContext db, string eventId)
+        {
+            var teamId = await db.SportEvents.Where(se => se.Id == eventId).Select(se => se.TeamId).SingleAsync();
+            return await SeedCoachAsync(db, teamId);
+        }
+
         [Fact]
-        public async Task Coach_response_does_not_notify_coaches()
+        public async Task Coach_confirms_player_availability_without_notifying_coaches()
         {
             await using var db = _fixture.CreateDbContext();
             var (eventId, _, requestId) = await SeedRequestedAsync(db);
+            var coachUserId = await SeedCoachOfEventTeamAsync(db, eventId);
             var dispatcher = new Mock<IWebPushNotificationDispatcher>();
 
-            await CreateHandler(db, CurrentUser(Guid.NewGuid().ToString(), "Coach"), dispatcher.Object)
+            await CreateHandler(db, CurrentUser(coachUserId, "Coach"), dispatcher.Object)
                 .Handle(Command(eventId, requestId, available: true), CancellationToken.None);
 
+            var request = await db.AvailabilityRequests.AsNoTracking().SingleAsync(r => r.Id == requestId);
+            Assert.Equal(AvailabilityRequestStatus.Available.Id, request.StatusId);
             dispatcher.Verify(d => d.DispatchAvailabilityRespondedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task Coach_marks_player_unavailable_with_reason()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (eventId, teamPlayerId, requestId) = await SeedRequestedAsync(db);
+            var coachUserId = await SeedCoachOfEventTeamAsync(db, eventId);
+
+            await CreateHandler(db, CurrentUser(coachUserId, "Coach"))
+                .Handle(Command(eventId, requestId, available: false, IllnessExcuseTypeId), CancellationToken.None);
+
+            var convocation = await db.Convocations.AsNoTracking().SingleAsync(c => c.SportEventId == eventId && c.TeamPlayerId == teamPlayerId);
+            Assert.Equal(5, convocation.ConvocationStatusId);
+            Assert.Equal(IllnessExcuseTypeId, convocation.ExcuseTypeId);
+        }
+
+        [Fact]
+        public async Task Coach_of_another_team_cannot_confirm_availability()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (eventId, _, requestId) = await SeedRequestedAsync(db);
+
+            await Assert.ThrowsAsync<ForbiddenAccessException>(() => CreateHandler(db, CurrentUser(Guid.NewGuid().ToString(), "Coach"))
+                .Handle(Command(eventId, requestId, available: true), CancellationToken.None).AsTask());
         }
 
         [Fact]

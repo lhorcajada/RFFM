@@ -25,6 +25,16 @@ namespace RFFM.Api.Features.Coaches.Availability
                 throw new ForbiddenAccessException("No tienes permiso para gestionar la disponibilidad de este equipo.");
         }
 
+        public static async Task EnsureCanManageEventTeamAsync(
+            AppDbContext db, ICurrentUserService currentUser, string teamId, CancellationToken cancellationToken)
+        {
+            var clubId = await db.Teams
+                .Where(t => t.Id == teamId)
+                .Select(t => t.ClubId)
+                .FirstAsync(cancellationToken);
+            await EnsureCanManageTeamAsync(db, currentUser, teamId, clubId, cancellationToken);
+        }
+
         // UserProfile.PlayerId stores the TeamPlayer.Id linked to the account (same rule as UpdateConvocationStatus).
         public static async Task EnsureOwnPlayerAsync(
             AppDbContext db, ICurrentUserService currentUser, string teamPlayerId, CancellationToken cancellationToken)

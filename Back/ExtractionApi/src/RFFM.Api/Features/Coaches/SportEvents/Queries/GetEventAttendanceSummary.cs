@@ -62,7 +62,8 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Queries
         public record EventAttendanceSummaryResponse(
             string EventId, int Convocados, int Going, int Pending, int NotGoing,
             double AttendancePercentage, string? MyStatus, int? MyStatusId, string? MyConvocationId,
-            bool MyIsInjured = false, string? MyAvailabilityRequestId = null, string? MyAvailabilityStatus = null);
+            bool MyIsInjured = false, string? MyAvailabilityRequestId = null, string? MyAvailabilityStatus = null,
+            int AvailabilityPending = 0, int Available = 0);
 
         public class Validator : AbstractValidator<EventAttendanceSummaryQuery>
         {
@@ -151,6 +152,20 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Queries
                                        (i.EndDate == null || i.EndDate > now), cancellationToken);
                 }
 
+                // League-match availability requests still waiting for a convocation decision; once the
+                // player has a convocation it is counted by its convocation status instead.
+                var requestedStatusId = AvailabilityRequestStatus.Requested.Id;
+                var availableStatusId = AvailabilityRequestStatus.Available.Id;
+                var openAvailability = await _db.AvailabilityRequests.AsNoTracking()
+                    .Where(r => authorizedEventIds.Contains(r.SportEventId)
+                        && (r.StatusId == requestedStatusId || r.StatusId == availableStatusId))
+                    .Select(r => new { r.SportEventId, r.TeamPlayerId, r.StatusId })
+                    .ToListAsync(cancellationToken);
+                var convokedPairs = convocationsByEvent.Select(c => (c.SportEventId, c.TeamPlayerId)).ToHashSet();
+                var undecidedAvailability = openAvailability
+                    .Where(r => !convokedPairs.Contains((r.SportEventId, r.TeamPlayerId)))
+                    .ToList();
+
                 var myAvailabilityByEvent = myTeamPlayerId is null
                     ? new Dictionary<string, (string Id, int StatusId)>()
                     : (await _db.AvailabilityRequests.AsNoTracking()
@@ -209,7 +224,9 @@ namespace RFFM.Api.Features.Coaches.SportEvents.Queries
 
                     results.Add(new EventAttendanceSummaryResponse(
                         eventId, convocados, going, pending, notGoing, percentage, myStatus, myStatusId, myConvocationId, myIsInjured,
-                        myAvailabilityRequestId, myAvailabilityStatus));
+                        myAvailabilityRequestId, myAvailabilityStatus,
+                        undecidedAvailability.Count(r => r.SportEventId == eventId && r.StatusId == requestedStatusId),
+                        undecidedAvailability.Count(r => r.SportEventId == eventId && r.StatusId == availableStatusId)));
                 }
 
                 return results.ToArray();

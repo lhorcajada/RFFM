@@ -77,6 +77,8 @@ namespace RFFM.Api.Features.Coaches.Availability
                 var respondedByPlayerOrFamily = AvailabilityAuthorization.IsPlayerOrFamily(_currentUser);
                 if (respondedByPlayerOrFamily)
                     await AvailabilityAuthorization.EnsureOwnPlayerAsync(_db, _currentUser, availability.TeamPlayerId, cancellationToken);
+                else
+                    await AvailabilityAuthorization.EnsureCanManageEventTeamAsync(_db, _currentUser, availability.SportEvent.TeamId, cancellationToken);
 
                 await AvailabilityAuthorization.EnsureNotDecidedAsync(_db, availability, cancellationToken);
 

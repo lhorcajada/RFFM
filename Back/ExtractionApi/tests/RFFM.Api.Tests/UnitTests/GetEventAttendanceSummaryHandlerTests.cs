@@ -366,6 +366,34 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
+        public async Task Handle_LeagueMatch_CountsAvailabilityRequestsWithoutConvocation()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, clubId, seasonId) = await AvailabilityTestSupport.SeedTeamAsync(db);
+            var eventId = await AvailabilityTestSupport.SeedEventAsync(db, teamId, AvailabilityTestSupport.LeagueMatchTypeId);
+            var requested = await AvailabilityTestSupport.SeedPlayerAsync(db, teamId, clubId, seasonId);
+            var available = await AvailabilityTestSupport.SeedPlayerAsync(db, teamId, clubId, seasonId);
+            var availableThenConvoked = await AvailabilityTestSupport.SeedPlayerAsync(db, teamId, clubId, seasonId);
+            var unavailable = await AvailabilityTestSupport.SeedPlayerAsync(db, teamId, clubId, seasonId);
+            await AvailabilityTestSupport.SeedRequestAsync(db, eventId, requested, AvailabilityRequestStatus.Requested);
+            await AvailabilityTestSupport.SeedRequestAsync(db, eventId, available, AvailabilityRequestStatus.Available);
+            await AvailabilityTestSupport.SeedRequestAsync(db, eventId, availableThenConvoked, AvailabilityRequestStatus.Available);
+            await AvailabilityTestSupport.SeedConvocationAsync(db, eventId, availableThenConvoked, statusId: 2);
+            await AvailabilityTestSupport.SeedRequestAsync(db, eventId, unavailable, AvailabilityRequestStatus.Unavailable);
+            await AvailabilityTestSupport.SeedConvocationAsync(db, eventId, unavailable, statusId: 5, excuseTypeId: 3);
+
+            var result = await new GetEventAttendanceSummary.Handler(db, null!).Handle(
+                new GetEventAttendanceSummary.EventAttendanceSummaryQuery { TeamId = teamId, EventIds = new[] { eventId } },
+                CancellationToken.None);
+
+            var summary = result.Single(r => r.EventId == eventId);
+            Assert.Equal(1, summary.AvailabilityPending);
+            Assert.Equal(1, summary.Available);
+            Assert.Equal(1, summary.Going);
+            Assert.Equal(1, summary.NotGoing);
+        }
+
+        [Fact]
         public async Task Handle_PlayerWithPendingAvailabilityRequest_ReturnsMyAvailability()
         {
             await using var db = _fixture.CreateDbContext();
