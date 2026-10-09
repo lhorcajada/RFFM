@@ -475,7 +475,7 @@ export default function EventCard({ event, eventTypeName, onDeleted, onEdited, a
               />
             </div>
           )}
-          <EventAttendanceBadges summary={attendanceSummary} isPlayer={!!isPlayer} />
+          <EventAttendanceBadges summary={attendanceSummary} isPlayer={!!isPlayer} isLeagueMatch={event.matchCategory === "League"} />
         </div>
       </div>
 

@@ -128,7 +128,7 @@ export default function MatchCard({ match, onNavigate, attendanceSummary, isPlay
         <div className={convStyles.matchField}>{match.field}</div>
       )}
       {match.eventId && attendanceSummary && (
-        <EventAttendanceBadges summary={attendanceSummary} isPlayer={!!isPlayer} />
+        <EventAttendanceBadges summary={attendanceSummary} isPlayer={!!isPlayer} isLeagueMatch={match.matchCategory === "League"} />
       )}
       {match.isFinished && onViewReport && (
         <Button

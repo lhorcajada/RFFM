@@ -32,6 +32,9 @@ export type EventAttendanceSummaryDto = {
   /** Caller's own league-match availability request; `null` when there is none. */
   myAvailabilityRequestId?: string | null;
   myAvailabilityStatus?: AvailabilityStatus | null;
+  /** League match: requests still unanswered / answered "available", without a convocation yet. */
+  availabilityPending?: number;
+  available?: number;
 };
 
 export async function getEventAttendanceSummaries(

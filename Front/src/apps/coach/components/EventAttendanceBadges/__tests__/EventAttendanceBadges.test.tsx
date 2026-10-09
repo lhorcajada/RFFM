@@ -28,6 +28,28 @@ describe("EventAttendanceBadges", () => {
     expect(screen.getByText(/70/)).toBeInTheDocument();
   });
 
+  it("en un partido de liga el entrenador ve pendientes de respuesta, disponibles, convocados y desconvocados", () => {
+    const summary = baseSummary({ convocados: 4, going: 1, pending: 1, notGoing: 2, availabilityPending: 3, available: 5 });
+
+    render(<EventAttendanceBadges summary={summary as any} isPlayer={false} isLeagueMatch />);
+
+    expect(screen.getByText("Pendientes de respuesta: 3")).toBeInTheDocument();
+    expect(screen.getByText("Disponibles: 5")).toBeInTheDocument();
+    expect(screen.getByText("Convocados: 2")).toBeInTheDocument();
+    expect(screen.getByText("Desconvocados: 2")).toBeInTheDocument();
+    expect(screen.queryByText(/^Van/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/No van/)).not.toBeInTheDocument();
+  });
+
+  it("en un partido de liga los desconvocados por lesión no cuentan como convocados", () => {
+    const summary = baseSummary({ convocados: 2, going: 0, pending: 0, notGoing: 2, availabilityPending: 0, available: 0 });
+
+    render(<EventAttendanceBadges summary={summary as any} isPlayer={false} isLeagueMatch />);
+
+    expect(screen.getByText("Convocados: 0")).toBeInTheDocument();
+    expect(screen.getByText("Desconvocados: 2")).toBeInTheDocument();
+  });
+
   it("player view shows the decided status ('Aceptado'), never aggregate counts", () => {
     const summary = baseSummary({ myStatus: "Accepted", myStatusId: 2, myConvocationId: "conv-1" });
 

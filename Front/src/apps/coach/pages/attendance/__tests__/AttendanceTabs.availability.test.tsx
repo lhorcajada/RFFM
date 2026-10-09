@@ -193,6 +193,30 @@ describe("AttendanceTabs - disponibilidad en partidos de liga", () => {
     await waitFor(() => expect(decideAvailableMock).toHaveBeenCalledWith("event-1", "req-2", false));
   });
 
+  it("el entrenador confirma la disponibilidad de un jugador pendiente de respuesta", async () => {
+    setup(["Coach"]);
+    renderTabs();
+    await expandGroup(/^Pendientes de respuesta/i);
+
+    await userEvent.click(within(cardOf("Jugador Pendiente")).getByRole("button", { name: "Disponible" }));
+
+    await waitFor(() => expect(respondAvailabilityMock).toHaveBeenCalledWith("event-1", "req-1", true));
+  });
+
+  it("el entrenador marca como no disponible a un jugador pendiente indicando el motivo", async () => {
+    setup(["Coach"]);
+    renderTabs();
+    await expandGroup(/^Pendientes de respuesta/i);
+
+    await userEvent.click(within(cardOf("Jugador Pendiente")).getByRole("button", { name: "No disponible" }));
+    await screen.findByText("¿Por qué no está disponible?");
+    expect(screen.queryByText("Decisión técnica")).not.toBeInTheDocument();
+    await userEvent.click(screen.getByText("Enfermedad"));
+    await userEvent.click(screen.getAllByRole("button", { name: "No disponible" }).at(-1)!);
+
+    await waitFor(() => expect(respondAvailabilityMock).toHaveBeenCalledWith("event-1", "req-1", false, 3));
+  });
+
   it("el jugador confirma que está disponible", async () => {
     setup(["Player"]);
     renderTabs();

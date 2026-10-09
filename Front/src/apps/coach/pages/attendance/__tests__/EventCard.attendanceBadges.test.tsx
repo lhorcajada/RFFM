@@ -73,6 +73,16 @@ describe("EventCard - attendance badges", () => {
     expect(screen.getByText(/Convocados.*10/i)).toBeInTheDocument();
   });
 
+  it("muestra los tags de disponibilidad en un partido de liga", () => {
+    const event = baseEvent({ matchCategory: "League" });
+    const summary = baseSummary({ going: 0, pending: 0, notGoing: 2, availabilityPending: 3, available: 1 });
+
+    renderCard(event, "Partido", summary, false);
+
+    expect(screen.getByText("Pendientes de respuesta: 3")).toBeInTheDocument();
+    expect(screen.getByText("Convocados: 0")).toBeInTheDocument();
+  });
+
   it("renders the card without a badge when attendanceSummary is omitted", () => {
     const event = baseEvent();
 

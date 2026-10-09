@@ -5,6 +5,8 @@ import styles from "./EventAttendanceBadges.module.css";
 interface Props {
   summary: EventAttendanceSummaryDto | undefined;
   isPlayer: boolean;
+  /** League matches go through the availability flow, so the coach sees its four lists instead. */
+  isLeagueMatch?: boolean;
 }
 
 // Real ConvocationStatus names (Convocation.ConvocationStatusId), matching
@@ -28,7 +30,15 @@ const statusColors: Record<string, { bg: string; fg: string }> = {
   Injured: { bg: "rgba(230,100,100,0.35)", fg: "#ef9a9a" },
 };
 
-export function EventAttendanceBadges({ summary, isPlayer }: Props) {
+const countChipSx = (colors: { bg: string; fg: string }) => ({
+  backgroundColor: colors.bg,
+  color: colors.fg,
+  fontWeight: 700,
+  fontSize: "0.7rem",
+  height: 20,
+});
+
+export function EventAttendanceBadges({ summary, isPlayer, isLeagueMatch = false }: Props) {
   if (!summary) return null;
 
   if (isPlayer) {
@@ -54,6 +64,35 @@ export function EventAttendanceBadges({ summary, isPlayer }: Props) {
             fontSize: "0.7rem",
             height: 20,
           }}
+        />
+      </div>
+    );
+  }
+
+  if (isLeagueMatch) {
+    // "Convocados" are the non-injured Pending/Accepted convocations; injured players are
+    // auto-registered as Deconvoke + "Lesión", so they belong to "Desconvocados" only.
+    return (
+      <div className={styles.coachContainer}>
+        <Chip
+          label={`Pendientes de respuesta: ${summary.availabilityPending ?? 0}`}
+          size="small"
+          sx={countChipSx(statusColors.Pending)}
+        />
+        <Chip
+          label={`Disponibles: ${summary.available ?? 0}`}
+          size="small"
+          sx={countChipSx({ bg: "rgba(0,150,136,0.3)", fg: "#80cbc4" })}
+        />
+        <Chip
+          label={`Convocados: ${summary.going + summary.pending}`}
+          size="small"
+          sx={countChipSx(statusColors.Accepted)}
+        />
+        <Chip
+          label={`Desconvocados: ${summary.notGoing}`}
+          size="small"
+          sx={countChipSx(statusColors.Deconvoke)}
         />
       </div>
     );

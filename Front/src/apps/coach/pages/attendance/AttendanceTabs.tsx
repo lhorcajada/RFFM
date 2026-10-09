@@ -589,10 +589,17 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isLeagueM
                     disabled={availabilityBusy || !canEdit}
                     getActions={(p) => {
                       const request = availabilityOf(p);
+                      if (!request) return [];
                       const isOwnPlayer = isPlayerOrFamily && matchesAssociatedPlayer(p, associatedPlayerId);
-                      if (!request || !isOwnPlayer) return [];
+                      // The coach can answer on behalf of a player (e.g. one who confirmed in person).
+                      const isCoach = !isPlayerOrFamily && coachAuthService.hasRole("Coach");
+                      if (!isOwnPlayer && !isCoach) return [];
                       return [
-                        { label: "Sí, disponible", tone: "teal", onClick: () => handleRespondAvailability(request, true) },
+                        {
+                          label: isCoach ? "Disponible" : "Sí, disponible",
+                          tone: "teal",
+                          onClick: () => handleRespondAvailability(request, true),
+                        },
                         { label: "No disponible", tone: "red", onClick: () => setUnavailableTarget(request) },
                       ];
                     }}
