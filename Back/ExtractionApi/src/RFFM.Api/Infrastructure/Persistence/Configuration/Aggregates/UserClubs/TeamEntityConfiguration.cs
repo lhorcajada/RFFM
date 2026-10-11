@@ -37,6 +37,10 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Aggregates.UserClubs
             builder.Property(t => t.RffmGroupId)
                 .IsRequired(false);
 
+            builder.Property(t => t.RffmTeamCode)
+                .IsRequired(false)
+                .HasMaxLength(ValidationConstants.RffmTeamCodeMaxLength);
+
             builder.Property(t => t.JoinCode)
                 .IsRequired()
                 .HasMaxLength(ValidationConstants.TeamJoinCodeLength);

@@ -100,6 +100,7 @@ namespace RFFM.Api.Tests.IntegrationTests
             public Task DispatchNotificationsActivatedAsync(string userId, CancellationToken ct = default) => Task.CompletedTask;
             public Task DispatchAvailabilityRequestedAsync(string teamPlayerId, string eventId, CancellationToken ct = default) => Task.CompletedTask;
             public Task DispatchAvailabilityRespondedAsync(string availabilityRequestId, CancellationToken ct = default) => Task.CompletedTask;
+            public Task DispatchRivalStatsFinishedAsync(System.Collections.Generic.IReadOnlyCollection<RFFM.Api.Features.Coaches.Notifications.Services.RivalStatsRecipient> recipients, bool succeeded, CancellationToken ct = default) => Task.CompletedTask;
             public Task DispatchMatchResultAsync(IReadOnlyCollection<string> userIds, RFFM.Api.Features.Coaches.Notifications.Services.MatchResultMessage message, CancellationToken ct = default) => Task.CompletedTask;
         }
 

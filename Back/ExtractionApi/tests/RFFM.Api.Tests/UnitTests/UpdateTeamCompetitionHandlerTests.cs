@@ -108,6 +108,57 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
+        public async Task Handle_WithRffmTeamCode_StoresTheTeamCodeTrimmed()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var teamId = await SeedTeamAsync(db);
+
+            await new UpdateTeamCompetitionHandler(db).Handle(new UpdateTeamCompetitionCommand
+            {
+                Id = teamId,
+                RffmCompetitionId = 25255269,
+                RffmGroupId = 25255283,
+                RffmTeamCode = " 9001 "
+            }, CancellationToken.None);
+
+            await using var verifyDb = _fixture.CreateDbContext();
+            var team = await verifyDb.Teams.FindAsync(teamId);
+            Assert.Equal("9001", team!.RffmTeamCode);
+        }
+
+        [Fact]
+        public async Task Handle_WithoutGroup_ClearsTheRffmTeamCode()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var teamId = await SeedTeamAsync(db, rffmCompetitionId: 111, rffmGroupId: 222);
+            var handler = new UpdateTeamCompetitionHandler(db);
+            await handler.Handle(new UpdateTeamCompetitionCommand
+            {
+                Id = teamId, RffmCompetitionId = 111, RffmGroupId = 222, RffmTeamCode = "9001"
+            }, CancellationToken.None);
+
+            await handler.Handle(new UpdateTeamCompetitionCommand
+            {
+                Id = teamId, RffmCompetitionId = 111, RffmGroupId = null, RffmTeamCode = "9001"
+            }, CancellationToken.None);
+
+            await using var verifyDb = _fixture.CreateDbContext();
+            var team = await verifyDb.Teams.FindAsync(teamId);
+            Assert.Null(team!.RffmTeamCode);
+        }
+
+        [Fact]
+        public void Validator_RejectsATeamCodeLongerThanTheMaximum()
+        {
+            var result = new UpdateTeamCompetitionValidator().Validate(new UpdateTeamCompetitionCommand
+            {
+                Id = "team", RffmCompetitionId = 1, RffmGroupId = 2, RffmTeamCode = new string('9', 51)
+            });
+
+            Assert.False(result.IsValid);
+        }
+
+        [Fact]
         public async Task Handle_TeamDoesNotExist_ThrowsKeyNotFoundException()
         {
             // Arrange

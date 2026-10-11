@@ -18,7 +18,11 @@ namespace RFFM.Api.Features.Coaches.Notifications.Services
         Task DispatchMatchResultAsync(IReadOnlyCollection<string> userIds, MatchResultMessage message, CancellationToken ct = default);
         Task DispatchAvailabilityRequestedAsync(string teamPlayerId, string eventId, CancellationToken ct = default);
         Task DispatchAvailabilityRespondedAsync(string availabilityRequestId, CancellationToken ct = default);
+        Task DispatchRivalStatsFinishedAsync(IReadOnlyCollection<RivalStatsRecipient> recipients, bool succeeded, CancellationToken ct = default);
     }
+
+    /// <summary>Usuario que pidió las estadísticas de rivales y equipo de Coach al que enlaza su aviso.</summary>
+    public record RivalStatsRecipient(string UserId, string TeamId);
 
     /// <summary>Resultado de un partido de liga visto desde el equipo del usuario (<paramref name="IsLocal"/>).</summary>
     public record MatchResultMessage(int Round, string LocalTeamName, string LocalGoals,

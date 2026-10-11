@@ -281,6 +281,28 @@ namespace RFFM.Api.Features.Coaches.Notifications.Services
 
         // EveDateTime/StartTime are stored as the event's wall-clock time (same convention as
         // FormatEventDateSuffix). A midnight StartTime/EveDateTime with no StartTime means "no time set".
+        public async Task DispatchRivalStatsFinishedAsync(IReadOnlyCollection<RivalStatsRecipient> recipients, bool succeeded, CancellationToken ct = default)
+        {
+            try
+            {
+                var type = succeeded ? "RivalStatsReady" : "RivalStatsFailed";
+                var title = succeeded ? "Estadísticas de rivales listas" : "No se pudieron generar las estadísticas de rivales";
+                var body = succeeded
+                    ? "Ya puedes consultar las estadísticas de las plantillas de tu liga."
+                    : "Ha fallado la generación de las estadísticas de tu liga. Inténtalo de nuevo.";
+
+                foreach (var team in recipients.GroupBy(r => r.TeamId))
+                {
+                    var userIds = team.Select(r => r.UserId).Distinct().ToList();
+                    await DispatchToUsersAsync(userIds, type, title, body, $"/coach/rival-stats?teamId={Uri.EscapeDataString(team.Key)}", ct);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "Failed to dispatch rival-stats web push");
+            }
+        }
+
         private static string FormatNextDateAndTime(SportEvent sportEvent)
         {
             if (sportEvent.EveDateTime is not { } date) return string.Empty;

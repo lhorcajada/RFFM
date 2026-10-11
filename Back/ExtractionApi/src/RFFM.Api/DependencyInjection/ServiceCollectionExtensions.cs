@@ -19,6 +19,7 @@ using RFFM.Api.Features.Federation.Players.Services;
 using RFFM.Api.Features.Federation.Seasons.Services;
 using RFFM.Api.Features.Federation.Settings.Services;
 using RFFM.Api.Features.Federation.MatchResults.Services;
+using RFFM.Api.Features.Federation.LeagueSquadStats.Services;
 using RFFM.Api.Features.Federation.SquadHistory.Services;
 using RFFM.Api.Features.Federation.Teams.Services;
 using RFFM.Api.Infrastructure.Options;
@@ -67,6 +68,7 @@ namespace RFFM.Api.DependencyInjection
             // FluentValidation validators for the PushNotifications feature (same manual
             // registration requirement as News above — no assembly-wide validator scan).
             services.AddScoped<FluentValidation.IValidator<RFFM.Api.Features.Federation.SquadHistory.RequestSquadHistory.RequestSquadHistoryCommand>, RFFM.Api.Features.Federation.SquadHistory.RequestSquadHistory.Validator>();
+            services.AddScoped<FluentValidation.IValidator<RFFM.Api.Features.Coaches.RivalStats.RequestRivalStats.RequestRivalStatsCommand>, RFFM.Api.Features.Coaches.RivalStats.RequestRivalStats.Validator>();
             services.AddScoped<FluentValidation.IValidator<RFFM.Api.Features.Mobile.PushNotifications.RegisterPushToken.RegisterPushTokenCommand>,RFFM.Api.Features.Mobile.PushNotifications.RegisterPushToken.Validator>();
             services.AddScoped<FluentValidation.IValidator<RFFM.Api.Features.Mobile.PushNotifications.UnregisterPushToken.UnregisterPushTokenCommand>, RFFM.Api.Features.Mobile.PushNotifications.UnregisterPushToken.Validator>();
             services.AddScoped<FluentValidation.IValidator<RFFM.Api.Features.Mobile.PushNotifications.UpdatePushPreferences.UpdatePushPreferencesCommand>, RFFM.Api.Features.Mobile.PushNotifications.UpdatePushPreferences.Validator>();
@@ -168,6 +170,11 @@ namespace RFFM.Api.DependencyInjection
             services.AddScoped<ISquadHistoryGenerator, SquadHistoryGenerator>();
             services.AddSingleton<ISquadHistoryQueue, SquadHistoryQueue>();
             services.AddHostedService<SquadHistoryWorker>();
+            services.AddScoped<ILeagueSquadStatsGenerator, LeagueSquadStatsGenerator>();
+            services.AddSingleton<ILeagueSquadStatsQueue, LeagueSquadStatsQueue>();
+            services.AddHostedService<LeagueSquadStatsWorker>();
+            services.AddScoped<ILeagueSquadStatsScheduleService, LeagueSquadStatsScheduleService>();
+            services.AddHostedService<LeagueSquadStatsScheduler>();
             RffmResultsClient.AddRffmResultsHttpClient(services);
             services.AddScoped<IRffmResultsClient, RffmResultsClient>();
             services.AddScoped<IRffmResultsSyncService, RffmResultsSyncService>();

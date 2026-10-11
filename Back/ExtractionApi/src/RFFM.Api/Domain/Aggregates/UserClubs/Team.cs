@@ -17,6 +17,8 @@ namespace RFFM.Api.Domain.Aggregates.UserClubs
         public int? LeagueGroup { get; private set; }
         public int? RffmCompetitionId { get; private set; }
         public int? RffmGroupId { get; private set; }
+        /// <summary>Código RFFM del equipo dentro de su competición y grupo: lo distingue de sus rivales.</summary>
+        public string? RffmTeamCode { get; private set; }
         public string? UrlPhoto { get; set; }
         public string ClubId { get; set; }
         public string SeasonId { get; set; }
@@ -84,6 +86,12 @@ namespace RFFM.Api.Domain.Aggregates.UserClubs
         public void UpdateRffmGroupId(int? rffmGroupId)
         {
             RffmGroupId = rffmGroupId;
+        }
+
+        public void UpdateRffmTeamCode(string? rffmTeamCode)
+        {
+            var hasLeague = RffmCompetitionId.HasValue && RffmGroupId.HasValue;
+            RffmTeamCode = hasLeague && !string.IsNullOrWhiteSpace(rffmTeamCode) ? rffmTeamCode.Trim() : null;
         }
     }
 }

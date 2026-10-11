@@ -46,6 +46,8 @@ namespace RFFM.Api.Tests.IntegrationTests
 
         private sealed class RecordingDispatcher : IWebPushNotificationDispatcher
         {
+            public Task DispatchRivalStatsFinishedAsync(IReadOnlyCollection<RivalStatsRecipient> recipients, bool succeeded, CancellationToken ct = default) => Task.CompletedTask;
+
             public ConcurrentQueue<(IReadOnlyCollection<string> UserIds, MatchResultMessage Message)> MatchResults { get; } = new();
 
             public Task DispatchMatchResultAsync(IReadOnlyCollection<string> userIds, MatchResultMessage message, CancellationToken ct = default)

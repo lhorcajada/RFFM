@@ -653,6 +653,39 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
+        public async Task DispatchRivalStatsFinishedAsync_NotifiesEachRecipientWithALinkToTheirTeam()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var recipients = new[]
+            {
+                new RivalStatsRecipient(Guid.NewGuid().ToString(), "team 1"),
+                new RivalStatsRecipient(Guid.NewGuid().ToString(), "team-2")
+            };
+            var dispatcher = new WebPushNotificationDispatcher(db, new Mock<IWebPushSender>().Object);
+
+            await dispatcher.DispatchRivalStatsFinishedAsync(recipients, succeeded: true, CancellationToken.None);
+
+            var userIds = recipients.Select(r => r.UserId).ToList();
+            var notifications = await db.Notifications.Where(n => userIds.Contains(n.UserId)).ToListAsync();
+            Assert.All(notifications, n => Assert.Equal(("RivalStatsReady", "Estadísticas de rivales listas"), (n.Type, n.Title)));
+            Assert.Equal("/coach/rival-stats?teamId=team%201", notifications.Single(n => n.UserId == recipients[0].UserId).DeepLinkPath);
+            Assert.Equal("/coach/rival-stats?teamId=team-2", notifications.Single(n => n.UserId == recipients[1].UserId).DeepLinkPath);
+        }
+
+        [Fact]
+        public async Task DispatchRivalStatsFinishedAsync_WhenGenerationFailed_UsesTheFailureMessage()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var userId = Guid.NewGuid().ToString();
+            var dispatcher = new WebPushNotificationDispatcher(db, new Mock<IWebPushSender>().Object);
+
+            await dispatcher.DispatchRivalStatsFinishedAsync(new[] { new RivalStatsRecipient(userId, "team-1") }, succeeded: false, CancellationToken.None);
+
+            var notification = await db.Notifications.SingleAsync(n => n.UserId == userId);
+            Assert.Equal(("RivalStatsFailed", "No se pudieron generar las estadísticas de rivales"), (notification.Type, notification.Title));
+        }
+
+        [Fact]
         public async Task DispatchMatchResultAsync_CreatesOneNotificationPerUser()
         {
             await using var db = _fixture.CreateDbContext();

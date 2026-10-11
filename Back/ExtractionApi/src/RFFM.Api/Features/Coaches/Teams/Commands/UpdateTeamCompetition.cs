@@ -42,6 +42,7 @@ namespace RFFM.Api.Features.Coaches.Teams.Commands
         public string Id { get; set; } = null!;
         public int? RffmCompetitionId { get; set; }
         public int? RffmGroupId { get; set; }
+        public string? RffmTeamCode { get; set; }
 
         public string PrefixCacheKey => TeamConstants.CachePrefix;
         public string FeatureRoute => CoachFeatureRoutes.ClubTeams;
@@ -66,6 +67,7 @@ namespace RFFM.Api.Features.Coaches.Teams.Commands
 
             team.UpdateRffmCompetitionId(request.RffmCompetitionId);
             team.UpdateRffmGroupId(request.RffmGroupId);
+            team.UpdateRffmTeamCode(request.RffmTeamCode);
 
             await _catalogDbContext.SaveChangesAsync(cancellationToken);
             return Unit.Value;
@@ -83,6 +85,9 @@ namespace RFFM.Api.Features.Coaches.Teams.Commands
             RuleFor(r => r.RffmGroupId)
                 .GreaterThan(0)
                 .When(r => r.RffmGroupId.HasValue);
+
+            RuleFor(r => r.RffmTeamCode)
+                .MaximumLength(ValidationConstants.RffmTeamCodeMaxLength);
         }
     }
 }

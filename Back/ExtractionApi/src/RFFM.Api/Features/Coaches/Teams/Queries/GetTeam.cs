@@ -41,6 +41,7 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
             string? JoinCode,
             int? RffmCompetitionId,
             int? RffmGroupId,
+            string? RffmTeamCode,
             int? StandardHalfDurationMinutes);
 
         public class TeamsRequestHandler : IRequestHandler<TeamQuery, TeamResponse?>
@@ -76,6 +77,7 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
                     team.JoinCode,
                     team.RffmCompetitionId,
                     team.RffmGroupId,
+                    team.RffmTeamCode,
                     hasStandardDuration ? standardMinutes : null);
             }
         }

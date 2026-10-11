@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Domain.Entities.Federation;
+using RFFM.Api.Domain.Entities.Federation.LeagueSquadStats;
 using RFFM.Api.Domain.Entities.Federation.MatchResultNotifications;
 using RFFM.Api.Domain.Entities.Federation.Results;
 using RFFM.Api.Domain.Entities.Federation.SquadHistory;
@@ -21,6 +22,11 @@ namespace RFFM.Api.Infrastructure.Persistence
         public DbSet<RffmStandingsSnapshot> RffmStandingsSnapshots { get; set; }
         public DbSet<MatchResultNotificationOptOut> MatchResultNotificationOptOuts { get; set; }
         public DbSet<MatchResultNotificationLog> MatchResultNotificationLogs { get; set; }
+        public DbSet<LeagueSquadStatsReport> LeagueSquadStatsReports { get; set; }
+        public DbSet<LeagueSquadTeam> LeagueSquadTeams { get; set; }
+        public DbSet<LeagueSquadPlayer> LeagueSquadPlayers { get; set; }
+        public DbSet<LeagueSquadStatsSubscriber> LeagueSquadStatsSubscribers { get; set; }
+        public DbSet<RffmPlayerSeasonStats> RffmPlayerSeasonStats { get; set; }
 
         public FederationDbContext(DbContextOptions<FederationDbContext> options) : base(options) { }
 
@@ -40,6 +46,11 @@ namespace RFFM.Api.Infrastructure.Persistence
             modelBuilder.ApplyConfiguration(new RffmStandingsSnapshotEntityConfiguration());
             modelBuilder.ApplyConfiguration(new MatchResultNotificationOptOutEntityConfiguration());
             modelBuilder.ApplyConfiguration(new MatchResultNotificationLogEntityConfiguration());
+            modelBuilder.ApplyConfiguration(new LeagueSquadStatsReportEntityConfiguration());
+            modelBuilder.ApplyConfiguration(new LeagueSquadTeamEntityConfiguration());
+            modelBuilder.ApplyConfiguration(new LeagueSquadPlayerEntityConfiguration());
+            modelBuilder.ApplyConfiguration(new LeagueSquadStatsSubscriberEntityConfiguration());
+            modelBuilder.ApplyConfiguration(new RffmPlayerSeasonStatsEntityConfiguration());
         }
 
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
