@@ -1845,6 +1845,10 @@ namespace RFFM.Api.Infrastructure.Migrations
                     b.Property<int?>("RffmGroupId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("RffmTeamCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<string>("SeasonId")
                         .IsRequired()
                         .HasColumnType("text");

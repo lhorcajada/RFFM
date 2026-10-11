@@ -77,6 +77,231 @@ namespace RFFM.Api.Infrastructure.Migrations.Federation
                     b.ToTable("FederationSettings", "federation");
                 });
 
+            modelBuilder.Entity("RFFM.Api.Domain.Entities.Federation.LeagueSquadStats.LeagueSquadPlayer", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<string>("LeagueSquadTeamId")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<string>("PlayerCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("PlayerName")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LeagueSquadTeamId");
+
+                    b.HasIndex("PlayerCode");
+
+                    b.ToTable("LeagueSquadPlayers", "federation");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Entities.Federation.LeagueSquadStats.LeagueSquadStatsReport", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<string>("CompetitionCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int>("FailedPlayers")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("GroupCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int?>("PreviousSeasonId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ProcessedPlayers")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("RequestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("SeasonId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TotalPlayers")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("SeasonId", "CompetitionCode", "GroupCode")
+                        .IsUnique();
+
+                    b.ToTable("LeagueSquadStatsReports", "federation");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Entities.Federation.LeagueSquadStats.LeagueSquadStatsSubscriber", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<bool>("Notified")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ReportId")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<string>("TeamId")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReportId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("LeagueSquadStatsSubscribers", "federation");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Entities.Federation.LeagueSquadStats.LeagueSquadTeam", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<string>("ReportId")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<string>("ShieldUrl")
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)");
+
+                    b.Property<string>("TeamCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("TeamName")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReportId", "TeamCode")
+                        .IsUnique();
+
+                    b.ToTable("LeagueSquadTeams", "federation");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Entities.Federation.LeagueSquadStats.RffmPlayerSeasonStats", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<int?>("BirthYear")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Called")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("DoubleYellow")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("FetchedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Goals")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("HasActivity")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ParticipationsJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Played")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PlayerCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("PlayerName")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("Position")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("Red")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SeasonId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Starter")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Substitute")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Yellow")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SeasonId");
+
+                    b.HasIndex("PlayerCode", "SeasonId")
+                        .IsUnique();
+
+                    b.ToTable("RffmPlayerSeasonStats", "federation");
+                });
+
             modelBuilder.Entity("RFFM.Api.Domain.Entities.Federation.MatchResultNotifications.MatchResultNotificationLog", b =>
                 {
                     b.Property<string>("Id")
@@ -686,6 +911,33 @@ namespace RFFM.Api.Infrastructure.Migrations.Federation
                     b.ToTable("SquadHistorySubscribers", "federation");
                 });
 
+            modelBuilder.Entity("RFFM.Api.Domain.Entities.Federation.LeagueSquadStats.LeagueSquadPlayer", b =>
+                {
+                    b.HasOne("RFFM.Api.Domain.Entities.Federation.LeagueSquadStats.LeagueSquadTeam", null)
+                        .WithMany("Players")
+                        .HasForeignKey("LeagueSquadTeamId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Entities.Federation.LeagueSquadStats.LeagueSquadStatsSubscriber", b =>
+                {
+                    b.HasOne("RFFM.Api.Domain.Entities.Federation.LeagueSquadStats.LeagueSquadStatsReport", null)
+                        .WithMany("Subscribers")
+                        .HasForeignKey("ReportId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Entities.Federation.LeagueSquadStats.LeagueSquadTeam", b =>
+                {
+                    b.HasOne("RFFM.Api.Domain.Entities.Federation.LeagueSquadStats.LeagueSquadStatsReport", null)
+                        .WithMany("Teams")
+                        .HasForeignKey("ReportId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("RFFM.Api.Domain.Entities.Federation.Results.RffmMatch", b =>
                 {
                     b.HasOne("RFFM.Api.Domain.Entities.Federation.Results.RffmRound", null)
@@ -711,6 +963,18 @@ namespace RFFM.Api.Infrastructure.Migrations.Federation
                         .HasForeignKey("ReportId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Entities.Federation.LeagueSquadStats.LeagueSquadStatsReport", b =>
+                {
+                    b.Navigation("Subscribers");
+
+                    b.Navigation("Teams");
+                });
+
+            modelBuilder.Entity("RFFM.Api.Domain.Entities.Federation.LeagueSquadStats.LeagueSquadTeam", b =>
+                {
+                    b.Navigation("Players");
                 });
 
             modelBuilder.Entity("RFFM.Api.Domain.Entities.Federation.Results.RffmRound", b =>
