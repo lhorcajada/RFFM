@@ -7,9 +7,10 @@ import styles from "./FederationActaTab.module.css";
 
 type Props = {
   eventId: string;
+  onPlayerClick?: (playerCode: string, playerName?: string) => void;
 };
 
-export default function FederationActaTab({ eventId }: Props) {
+export default function FederationActaTab({ eventId, onPlayerClick }: Props) {
   const [acta, setActa] = useState<Acta | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -43,5 +44,5 @@ export default function FederationActaTab({ eventId }: Props) {
   if (error || !acta) {
     return <Alert severity="warning">No se ha podido cargar el acta de federación.</Alert>;
   }
-  return <ActaContent acta={acta} />;
+  return <ActaContent acta={acta} onPlayerClick={onPlayerClick} />;
 }

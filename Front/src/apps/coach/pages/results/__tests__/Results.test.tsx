@@ -213,13 +213,43 @@ describe("Results", () => {
     expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
   });
 
-  it("muestra los partidos de la jornada seleccionada sin el botón de ver acta", () => {
+  it("muestra los partidos de la jornada seleccionada", () => {
     renderPage();
 
     expect(screen.getByRole("tab", { name: "Jornada 3" })).toBeInTheDocument();
     expect(screen.getByText("Equipo Local")).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /ver acta/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /ver acta/i })).not.toBeInTheDocument();
+  });
+
+  it("muestra «Ver acta» en un partido sin acta del coach y enlaza al acta de federación", () => {
+    renderPage();
+
+    expect(screen.getByRole("link", { name: "Ver acta" })).toHaveAttribute(
+      "href",
+      "/coach/match-report?codActa=123&teamId=team-1&season=21&competition=555&group=777",
+    );
+  });
+
+  it("muestra «Ver acta» en todos los partidos de la jornada", () => {
+    mockUseCalendar.mockReturnValue(
+      calendarState({
+        calendar: {
+          ...calendarState().calendar,
+          matchDay: {
+            date: "",
+            matchDayNumber: 3,
+            matches: [match, { ...match, matchRecordCode: "456", localTeamName: "Otro Local", visitorTeamName: "Otro Visitante" }],
+          },
+        },
+      }),
+    );
+    mockUseTeamMatchReports.mockReturnValue({
+      byEventId: {},
+      byCodActa: { "123": { eventId: "e1", codActa: "123", hasLiveReport: true, hasFederationReport: true } },
+    });
+
+    renderPage();
+
+    expect(screen.getAllByRole("link", { name: "Ver acta" })).toHaveLength(2);
   });
 
   it("avisa cuando el equipo no tiene competición RFFM configurada", () => {

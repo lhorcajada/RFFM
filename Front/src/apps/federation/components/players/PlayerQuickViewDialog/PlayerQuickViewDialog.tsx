@@ -17,6 +17,7 @@ import { getPlayer } from "../../../services/api";
 import { fetchImage } from "../../../../../shared/services/imageService";
 import AvatarWithUrl from "../../../../../shared/components/ui/AvatarWithUrl/AvatarWithUrl";
 import { useRffmSeason } from "../../../../../shared/context/RffmSeasonContext";
+import PlayerSeasonsDetail from "../../../pages/Squad/components/PlayerSeasonsDetail";
 
 type Props = {
   open: boolean;
@@ -157,7 +158,6 @@ export default function PlayerQuickViewDialog({
 
   const [loading, setLoading] = useState(false);
   const [player, setPlayer] = useState<FederationPlayer | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -165,7 +165,6 @@ export default function PlayerQuickViewDialog({
     async function load() {
       if (!open || !code) return;
       setLoading(true);
-      setError(null);
       setPlayer(null);
 
       try {
@@ -173,7 +172,7 @@ export default function PlayerQuickViewDialog({
         const mapped = mapPlayer(raw);
         if (mounted) setPlayer(mapped);
       } catch (e) {
-        if (mounted) setError("No se ha podido cargar la ficha del jugador");
+        // sin ficha (fallo puntual de la RFFM) el diálogo sigue mostrando las estadísticas por temporada
       } finally {
         if (mounted) setLoading(false);
       }
@@ -199,104 +198,62 @@ export default function PlayerQuickViewDialog({
           <div className={styles.center}>
             <CircularProgress />
           </div>
-        ) : error ? (
-          <EmptyState description={error} />
-        ) : !player ? (
-          <EmptyState description={"Jugador no encontrado"} />
         ) : (
           <>
-            <div className={styles.header}>
-              <AvatarWithUrl
-                className={styles.avatar}
-                url={player.photoUrl}
-                alt={player.name}
-              />
-              <div className={styles.headerInfo}>
-                <div className={styles.nameRow}>
-                  <Typography variant="h6" className={styles.name}>
-                    {player.name}
-                  </Typography>
-                  {player.jerseyNumber ? (
-                    <Chip
-                      size="small"
-                      label={`Dorsal ${player.jerseyNumber}`}
-                    />
-                  ) : null}
-                  {player.position ? (
-                    <Chip size="small" label={player.position} />
-                  ) : null}
-                  {player.isGoalkeeper ? (
-                    <Chip size="small" label="Portero" />
-                  ) : null}
-                </div>
-                <div className={styles.subLine}>
-                  {player.team ? `${player.team}` : ""}
-                  {player.teamCategory ? ` — ${player.teamCategory}` : ""}
-                </div>
-              </div>
-            </div>
-
-            <div className={styles.grid}>
-              <div className={styles.item}>
-                <div className={styles.label}>Código</div>
-                <div className={styles.value}>{player.playerId}</div>
-              </div>
-              <div className={styles.item}>
-                <div className={styles.label}>Temporada</div>
-                <div className={styles.value}>
-                  {player.seasonId || effectiveSeasonId}
-                </div>
-              </div>
-              <div className={styles.item}>
-                <div className={styles.label}>Edad</div>
-                <div className={styles.value}>{player.age || "-"}</div>
-              </div>
-              <div className={styles.item}>
-                <div className={styles.label}>Año nacimiento</div>
-                <div className={styles.value}>{player.birthYear || "-"}</div>
-              </div>
-            </div>
-
-            <div className={styles.statsRow}>
-              <Chip
-                size="small"
-                label={`Jugados: ${player.matches.played ?? 0}`}
-              />
-              <Chip
-                size="small"
-                label={`Goles: ${player.matches.totalGoals ?? 0}`}
-              />
-              <Chip
-                size="small"
-                label={`Amarillas: ${player.cards.yellow ?? 0}`}
-              />
-              <Chip size="small" label={`Rojas: ${player.cards.red ?? 0}`} />
-              <Chip
-                size="small"
-                label={`Doble amarilla: ${player.cards.doubleYellow ?? 0}`}
-              />
-            </div>
-
-            {player.competitions.length > 0 ? (
-              <div className={styles.comps}>
-                <Typography variant="subtitle2">Competiciones</Typography>
-                {player.competitions.map((c, idx) => (
-                  <div
-                    key={`${c.competitionCode}-${c.groupCode}-${idx}`}
-                    className={styles.compItem}
-                  >
-                    <div className={styles.compLeft}>
-                      <div className={styles.compName}>{c.competitionName}</div>
-                      <div className={styles.compMeta}>
-                        {c.groupName ? `${c.groupName} — ` : ""}
-                        {c.teamName}
-                      </div>
+            {player ? (
+              <>
+                <div className={styles.header}>
+                  <AvatarWithUrl
+                    className={styles.avatar}
+                    url={player.photoUrl}
+                    alt={player.name}
+                  />
+                  <div className={styles.headerInfo}>
+                    <div className={styles.nameRow}>
+                      <Typography variant="h6" className={styles.name}>
+                        {player.name}
+                      </Typography>
+                      {player.jerseyNumber ? (
+                        <Chip
+                          size="small"
+                          label={`Dorsal ${player.jerseyNumber}`}
+                        />
+                      ) : null}
+                      {player.position ? (
+                        <Chip size="small" label={player.position} />
+                      ) : null}
+                      {player.isGoalkeeper ? (
+                        <Chip size="small" label="Portero" />
+                      ) : null}
                     </div>
-                    <div className={styles.compRight}>Pts: {c.teamPoints}</div>
+                    <div className={styles.subLine}>
+                      {player.team ? `${player.team}` : ""}
+                      {player.teamCategory ? ` — ${player.teamCategory}` : ""}
+                    </div>
                   </div>
-                ))}
-              </div>
+                </div>
+
+                <div className={styles.grid}>
+                  <div className={styles.item}>
+                    <div className={styles.label}>Código</div>
+                    <div className={styles.value}>{player.playerId}</div>
+                  </div>
+                  <div className={styles.item}>
+                    <div className={styles.label}>Edad</div>
+                    <div className={styles.value}>{player.age || "-"}</div>
+                  </div>
+                  <div className={styles.item}>
+                    <div className={styles.label}>Año nacimiento</div>
+                    <div className={styles.value}>
+                      {player.birthYear || "-"}
+                    </div>
+                  </div>
+                </div>
+              </>
             ) : null}
+            <div className={styles.seasons}>
+              <PlayerSeasonsDetail playerId={code} season={effectiveSeasonId} />
+            </div>
           </>
         )}
       </DialogContent>

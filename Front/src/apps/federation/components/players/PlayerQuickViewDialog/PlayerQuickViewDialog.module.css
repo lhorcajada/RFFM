@@ -83,45 +83,6 @@
   word-break: break-word;
 }
 
-.statsRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+.seasons {
   margin-top: 16px;
-}
-
-.comps {
-  margin-top: 16px;
-}
-
-.compItem {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 8px 0;
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
-}
-
-@media (prefers-color-scheme: dark) {
-  .compItem {
-    border-top: 1px solid rgba(255, 255, 255, 0.12);
-  }
-}
-
-.compLeft {
-  min-width: 0;
-}
-
-.compName {
-  font-weight: 700;
-}
-
-.compMeta {
-  font-size: 12px;
-  opacity: 0.75;
-}
-
-.compRight {
-  font-weight: 700;
-  white-space: nowrap;
 }

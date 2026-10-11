@@ -22,15 +22,25 @@ export default function Results() {
 
   const { byCodActa } = useTeamMatchReports(team?.id);
 
-  const resolveActaLink = (codacta: string): string | null => {
-    const report = byCodActa[codacta];
-    if (!report || !team?.id) return null;
-    return `/coach/match-report?eventId=${encodeURIComponent(report.eventId)}&teamId=${encodeURIComponent(team.id)}`;
-  };
-
   const season = String(currentSeasonId ?? seasonId ?? "");
   const hasCompetition = Boolean(team?.rffmCompetitionId && team?.rffmGroupId);
   const canLoad = hasCompetition && season !== "";
+
+  const resolveActaLink = (codacta: string): string | null => {
+    if (!team?.id) return null;
+    const teamId = encodeURIComponent(team.id);
+    const report = byCodActa[codacta];
+    if (report) {
+      return `/coach/match-report?eventId=${encodeURIComponent(report.eventId)}&teamId=${teamId}`;
+    }
+    if (!canLoad) return null;
+    return (
+      `/coach/match-report?codActa=${encodeURIComponent(codacta)}&teamId=${teamId}` +
+      `&season=${encodeURIComponent(season)}` +
+      `&competition=${encodeURIComponent(String(team.rffmCompetitionId))}` +
+      `&group=${encodeURIComponent(String(team.rffmGroupId))}`
+    );
+  };
 
   const { calendar, loading, selectedTab, setSelectedTab, rounds, matchesByRound } =
     useCalendar({

@@ -11,7 +11,22 @@ vi.mock("../../../../../shared/components/ui/BaseLayout/BaseLayout", () => ({
   default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
 vi.mock("../../../../../shared/components/acta/ActaContent/ActaContent", () => ({
-  default: ({ acta }: { acta: { equipo_local?: string } }) => <div>Acta RFFM {acta.equipo_local}</div>,
+  default: ({
+    acta,
+    onPlayerClick,
+  }: {
+    acta: { equipo_local?: string };
+    onPlayerClick?: (code: string, name?: string) => void;
+  }) => (
+    <div>
+      Acta RFFM {acta.equipo_local}
+      <button onClick={() => onPlayerClick?.("J77", "Leo Ajeno")}>Leo Ajeno</button>
+    </div>
+  ),
+}));
+vi.mock("../../../../federation/components/players/PlayerQuickViewDialog/PlayerQuickViewDialog", () => ({
+  default: ({ open, playerCode, playerName, seasonId }: { open: boolean; playerCode: string | null; playerName?: string | null; seasonId?: string }) =>
+    open ? <div role="dialog">Ficha de {playerName} ({playerCode}) temporada {seasonId ?? "actual"}</div> : null,
 }));
 
 import MatchReport from "../MatchReport";
@@ -133,5 +148,14 @@ describe("MatchReport - pestañas", () => {
     renderPage();
 
     expect(await screen.findByText("No se ha podido cargar el acta del partido.")).toBeInTheDocument();
+  });
+
+  it("al pulsar un jugador del acta de federación abre su ficha estadística", async () => {
+    vi.mocked(getMatchReport).mockResolvedValue(report({}));
+    renderPage();
+
+    await userEvent.click(await screen.findByRole("button", { name: "Leo Ajeno" }));
+
+    expect(screen.getByRole("dialog")).toHaveTextContent("Ficha de Leo Ajeno (J77) temporada actual");
   });
 });

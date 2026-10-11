@@ -89,4 +89,17 @@ export async function getEventFederationActa(eventId: string): Promise<Acta> {
   return resp.data;
 }
 
-export default { getTeamMatchReports, getMatchReport, getEventFederationActa };
+export type FederationActaScope = {
+  season: string;
+  competition: string;
+  group: string;
+};
+
+export async function getFederationActaByCode(codActa: string, scope: FederationActaScope): Promise<Acta> {
+  const resp = await client.get<Acta>(`acta/${encodeURIComponent(codActa)}`, {
+    params: { temporada: scope.season, competicion: scope.competition, grupo: scope.group },
+  });
+  return resp.data;
+}
+
+export default { getTeamMatchReports, getMatchReport, getEventFederationActa, getFederationActaByCode };

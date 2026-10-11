@@ -7,7 +7,14 @@ import ContentLayout from "../../../../shared/components/ui/ContentLayout/Conten
 import EmptyState from "../../../../shared/components/ui/EmptyState/EmptyState";
 import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess";
 import { resolveStorageUrl } from "../../../../shared/utils/resolveStorageUrl";
-import { getMatchReport, type MatchReport as MatchReportType } from "../../services/matchReportService";
+import ActaContent from "../../../../shared/components/acta/ActaContent/ActaContent";
+import type { Acta } from "../../../../shared/types/acta";
+import {
+  getFederationActaByCode,
+  getMatchReport,
+  type MatchReport as MatchReportType,
+} from "../../services/matchReportService";
+import PlayerQuickViewDialog from "../../../federation/components/players/PlayerQuickViewDialog/PlayerQuickViewDialog";
 import FederationActaTab from "./components/FederationActaTab";
 import LiveReportTab from "./components/LiveReportTab";
 import styles from "./MatchReport.module.css";
@@ -25,11 +32,35 @@ function formatDate(raw: string | null): string {
   return isNaN(date.getTime()) ? "" : date.toLocaleDateString("es-ES", { dateStyle: "medium" });
 }
 
-function MatchHeader({ report }: { report: MatchReportType }) {
+type HeaderSide = { name: string; photo: string | null | undefined };
+
+type MatchHeaderProps = {
+  local: HeaderSide;
+  visitor: HeaderSide;
+  localGoals: string | null | undefined;
+  visitorGoals: string | null | undefined;
+  date: string;
+};
+
+function reportHeader(report: MatchReportType): MatchHeaderProps {
   const team = { name: report.teamName ?? "Mi equipo", photo: resolveStorageUrl(report.teamPhotoUrl) };
   const rival = { name: report.rivalName ?? "Rival", photo: resolveStorageUrl(report.rivalPhotoUrl) };
   const [local, visitor] = report.isHomeMatch ? [team, rival] : [rival, team];
-  const hasScore = report.localGoals != null && report.localGoals !== "" && report.visitorGoals != null && report.visitorGoals !== "";
+  return { local, visitor, localGoals: report.localGoals, visitorGoals: report.visitorGoals, date: formatDate(report.date) };
+}
+
+function actaHeader(acta: Acta): MatchHeaderProps {
+  return {
+    local: { name: acta.equipo_local ?? "Local", photo: acta.escudo_local },
+    visitor: { name: acta.equipo_visitante ?? "Visitante", photo: acta.escudo_visitante },
+    localGoals: acta.goles_local,
+    visitorGoals: acta.goles_visitante,
+    date: acta.fecha ?? "",
+  };
+}
+
+function MatchHeader({ local, visitor, localGoals, visitorGoals, date }: MatchHeaderProps) {
+  const hasScore = localGoals != null && localGoals !== "" && visitorGoals != null && visitorGoals !== "";
 
   return (
     <div className={styles.header}>
@@ -38,8 +69,8 @@ function MatchHeader({ report }: { report: MatchReportType }) {
         <span className={styles.teamName}>{local.name}</span>
       </div>
       <div className={styles.scoreBlock}>
-        <span className={styles.score}>{hasScore ? `${report.localGoals} - ${report.visitorGoals}` : "-"}</span>
-        <span className={styles.date}>{formatDate(report.date)}</span>
+        <span className={styles.score}>{hasScore ? `${localGoals} - ${visitorGoals}` : "-"}</span>
+        <span className={styles.date}>{date}</span>
       </div>
       <div className={styles.team}>
         <Avatar src={visitor.photo || undefined} alt={visitor.photo ? `Escudo de ${visitor.name}` : ""} className={styles.shield} />
@@ -54,14 +85,26 @@ export default function MatchReport() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const eventId = searchParams.get("eventId") ?? "";
+  const codActa = searchParams.get("codActa") ?? "";
+  const season = searchParams.get("season") ?? "";
+  const competition = searchParams.get("competition") ?? "";
+  const group = searchParams.get("group") ?? "";
+  const isFederationOnly = !eventId && codActa !== "";
 
   const [report, setReport] = useState<MatchReportType | null>(null);
+  const [acta, setActa] = useState<Acta | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [selectedTab, setSelectedTab] = useState<ReportTab | null>(null);
+  const [playerTarget, setPlayerTarget] = useState<{ code: string; name: string | null } | null>(null);
+
+  const handlePlayerClick = (playerCode: string, playerName?: string) => {
+    const code = playerCode.trim();
+    if (code) setPlayerTarget({ code, name: playerName ?? null });
+  };
 
   useEffect(() => {
-    if (!eventId) {
+    if (!eventId && !codActa) {
       setLoading(false);
       setError(true);
       return;
@@ -69,10 +112,14 @@ export default function MatchReport() {
     let mounted = true;
     setLoading(true);
     setError(false);
-    getMatchReport(eventId)
-      .then((data) => {
-        if (mounted) setReport(data);
-      })
+    const load = eventId
+      ? getMatchReport(eventId).then((data) => {
+          if (mounted) setReport(data);
+        })
+      : getFederationActaByCode(codActa, { season, competition, group }).then((data) => {
+          if (mounted) setActa(data);
+        });
+    load
       .catch(() => {
         if (mounted) setError(true);
       })
@@ -82,7 +129,7 @@ export default function MatchReport() {
     return () => {
       mounted = false;
     };
-  }, [eventId]);
+  }, [eventId, codActa, season, competition, group]);
 
   const availableTabs: ReportTab[] = [];
   if (report?.hasFederationReport) availableTabs.push("federation");
@@ -91,7 +138,7 @@ export default function MatchReport() {
 
   function renderTab(tab: ReportTab | undefined) {
     if (!report || !tab) return <EmptyState description="No hay acta disponible para este partido." />;
-    if (tab === "federation") return <FederationActaTab eventId={report.eventId} />;
+    if (tab === "federation") return <FederationActaTab eventId={report.eventId} onPlayerClick={handlePlayerClick} />;
     return report.live ? <LiveReportTab report={report.live} /> : null;
   }
 
@@ -103,12 +150,23 @@ export default function MatchReport() {
         </div>
       );
     }
+    if (isFederationOnly) {
+      if (error || !acta) return <EmptyState description="No hay acta disponible para este partido." />;
+      return (
+        <>
+          <MatchHeader {...actaHeader(acta)} />
+          <div className={styles.tabPanel}>
+            <ActaContent acta={acta} onPlayerClick={handlePlayerClick} />
+          </div>
+        </>
+      );
+    }
     if (error || !report) {
       return <Alert severity="error">No se ha podido cargar el acta del partido.</Alert>;
     }
     return (
       <>
-        <MatchHeader report={report} />
+        <MatchHeader {...reportHeader(report)} />
         {availableTabs.length > 1 && (
           <div className={styles.tabsWrap}>
             <Tabs value={activeTab} onChange={(_, value: ReportTab) => setSelectedTab(value)} variant="fullWidth">
@@ -134,6 +192,13 @@ export default function MatchReport() {
         }
       >
         {renderContent()}
+        <PlayerQuickViewDialog
+          open={playerTarget !== null}
+          playerCode={playerTarget?.code ?? null}
+          playerName={playerTarget?.name}
+          seasonId={season || undefined}
+          onClose={() => setPlayerTarget(null)}
+        />
       </ContentLayout>
     </BaseLayout>
   );
