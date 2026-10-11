@@ -74,6 +74,7 @@ namespace RFFM.Api.Tests.IntegrationTests
                                 .AddScheme<AuthenticationSchemeOptions, AlwaysAuthenticatedHandler>(AlwaysAuthenticatedHandler.SchemeName, _ => { });
                             services.AddAuthorization();
                             services.AddMediator(o => { o.ServiceLifetime = ServiceLifetime.Scoped; });
+                            services.AddMemoryCache();
                             services.AddScoped(_ => playerServiceMock.Object);
                             services.Configure<RffmOptions>(o => o.CurrentSeasonId = currentSeasonId);
                         })

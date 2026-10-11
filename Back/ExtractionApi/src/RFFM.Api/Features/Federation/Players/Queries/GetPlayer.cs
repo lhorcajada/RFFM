@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Features.Federation.Players.Models;
@@ -41,15 +42,17 @@ namespace RFFM.Api.Features.Federation.Players.Queries
         public class RequestHandler : IRequestHandler<PlayerQueryApp, Player?>
         {
             private readonly IPlayerService _playerService;
+            private readonly IMemoryCache _cache;
 
-            public RequestHandler(IPlayerService playerService)
+            public RequestHandler(IPlayerService playerService, IMemoryCache cache)
             {
                 _playerService = playerService;
+                _cache = cache;
             }
 
             public async ValueTask<Player?> Handle(PlayerQueryApp request, CancellationToken cancellationToken)
             {
-                return await _playerService.GetPlayerAsync(request.PlayerId, request.SeasonId, cancellationToken);
+                return await _cache.GetPlayerSheetOrDefaultAsync(_playerService, request.PlayerId, request.SeasonId, cancellationToken);
             }
         }
     }

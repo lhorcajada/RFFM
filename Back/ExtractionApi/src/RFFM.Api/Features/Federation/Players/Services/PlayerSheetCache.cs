@@ -10,13 +10,17 @@ public static class PlayerSheetCache
     public static async Task<Player?> GetPlayerSheetOrDefaultAsync(this IMemoryCache cache, IPlayerService playerService,
         string playerId, int seasonId, CancellationToken cancellationToken)
     {
+        var cacheKey = $"player_{playerId}_{seasonId}";
+        if (cache.TryGetValue(cacheKey, out Player? cached) && cached is not null)
+            return cached;
+
         try
         {
-            return await cache.GetOrCreateAsync($"player_{playerId}_{seasonId}", async entry =>
-            {
-                entry.AbsoluteExpirationRelativeToNow = Expiration;
-                return await playerService.GetPlayerAsync(playerId, seasonId, cancellationToken);
-            });
+            var sheet = await playerService.GetPlayerAsync(playerId, seasonId, cancellationToken);
+            // solo se cachea la ficha cargada: un fallo puntual de la RFFM debe reintentarse en la siguiente petición
+            if (sheet is not null)
+                cache.Set(cacheKey, sheet, Expiration);
+            return sheet;
         }
         catch
         {
