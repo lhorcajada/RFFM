@@ -1,0 +1,72 @@
+.card.card {
+  border-radius: 10px;
+  background: var(--rffm-card-bg, #1c1c30);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.ownTeam.ownTeam {
+  border-color: var(--mui-palette-primary-main, #4d9de0);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.shield {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+}
+
+.titleBlock {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.teamName {
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.playerCount {
+  font-size: 0.8rem;
+  opacity: 0.75;
+}
+
+.chevron {
+  flex-shrink: 0;
+  transition: transform 0.2s;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.panel {
+  padding: 0 12px 12px;
+}
+
+.center {
+  display: flex;
+  justify-content: center;
+  padding: 12px 0;
+}
+
+.players {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  gap: 10px;
+}

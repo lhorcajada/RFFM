@@ -9,6 +9,7 @@ import {
   ResultsIllustration,
   ClassificationIllustration,
   RivalsIllustration,
+  RivalStatsIllustration,
   TrainingsIllustration,
   InjuredIllustration,
   GameModelIllustration,
@@ -182,6 +183,18 @@ export default function TeamDashboardCards({
               illustration={<ClassificationIllustration />}
               gradient="linear-gradient(135deg, #827717 0%, #9e9d24 50%, #5f5c10 100%)"
               to={team?.id ? `/coach/classification?teamId=${team.id}` : "/coach/classification"}
+            />
+          ),
+        },
+        {
+          key: "rival-stats",
+          visible: hasFeatureAccess(COACH_FEATURE_ROUTES.Convocations),
+          node: (
+            <LauncherTile
+              title="Estadísticas de rivales"
+              illustration={<RivalStatsIllustration />}
+              gradient="linear-gradient(135deg, #4a148c 0%, #6a1b9a 50%, #311b92 100%)"
+              to={team?.id ? `/coach/rival-stats?teamId=${team.id}` : "/coach/rival-stats"}
             />
           ),
         },

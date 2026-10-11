@@ -108,6 +108,19 @@ export function ClassificationIllustration() {
   );
 }
 
+export function RivalStatsIllustration() {
+  return (
+    <svg viewBox="0 0 100 80" role="presentation">
+      <circle cx="26" cy="22" r="9" fill={FILL} />
+      <rect x="14" y="34" width="24" height="10" rx="5" fill={FILL_SOFT} />
+      <rect x="48" y="50" width="9" height="18" rx="2" fill={FILL_FAINT} />
+      <rect x="61" y="36" width="9" height="32" rx="2" fill={FILL_SOFT} />
+      <rect x="74" y="20" width="9" height="48" rx="2" fill={FILL} />
+      <rect x="14" y="62" width="26" height="5" rx="2.5" fill={FILL_FAINT} />
+    </svg>
+  );
+}
+
 export function RivalsIllustration() {
   return (
     <svg viewBox="0 0 100 80" role="presentation">

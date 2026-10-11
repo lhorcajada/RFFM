@@ -10,6 +10,7 @@ import rffmCompetitionService from "../../../services/rffmCompetitionService";
 import CategorySelect from "../../../components/CategorySelect/CategorySelect";
 import LeagueSelect from "../../../components/LeagueSelect/LeagueSelect";
 import RffmCompetitionSelect from "../../../components/RffmCompetitionSelect/RffmCompetitionSelect";
+import RffmTeamSelect from "../../../components/RffmTeamSelect/RffmTeamSelect";
 import FileImagePicker from "../../../../../shared/components/ui/FileImagePicker/FileImagePicker";
 
 export default function EditTeam() {
@@ -32,6 +33,7 @@ export default function EditTeam() {
   // catálogo local de Liga/Grupo gestionado arriba por LeagueSelect.
   const [rffmCompetitionId, setRffmCompetitionId] = React.useState<number | null>(null);
   const [rffmGroupId, setRffmGroupId] = React.useState<number | null>(null);
+  const [rffmTeamCode, setRffmTeamCode] = React.useState<string | null>(null);
   const [savingRffmCompetition, setSavingRffmCompetition] = React.useState(false);
   const [rffmCompetitionError, setRffmCompetitionError] = React.useState<string | null>(null);
 
@@ -62,6 +64,7 @@ export default function EditTeam() {
         setExistingPhotoUrl(team.urlPhoto ?? null);
         setRffmCompetitionId(team.rffmCompetitionId ?? null);
         setRffmGroupId(team.rffmGroupId ?? null);
+        setRffmTeamCode(team.rffmTeamCode ?? null);
       } catch (e: any) {
         if (!mounted) return;
         setError(e?.message ?? "No se pudo cargar el equipo");
@@ -171,6 +174,7 @@ export default function EditTeam() {
       await rffmCompetitionService.updateTeamCompetition(teamId, {
         competitionId: rffmCompetitionId,
         groupId: rffmGroupId,
+        teamCode: rffmTeamCode,
       });
 
       window.dispatchEvent(
@@ -249,9 +253,17 @@ export default function EditTeam() {
                   competitionId={rffmCompetitionId}
                   groupId={rffmGroupId}
                   onChange={(v) => {
+                    const leagueChanged = v.competitionId !== rffmCompetitionId || v.groupId !== rffmGroupId;
+                    if (leagueChanged) setRffmTeamCode(null);
                     setRffmCompetitionId(v.competitionId);
                     setRffmGroupId(v.groupId);
                   }}
+                />
+                <RffmTeamSelect
+                  competitionId={rffmCompetitionId}
+                  groupId={rffmGroupId}
+                  teamCode={rffmTeamCode}
+                  onChange={setRffmTeamCode}
                 />
                 {rffmCompetitionError && (
                   <Typography color="error" variant="body2" sx={{ mb: 1 }}>

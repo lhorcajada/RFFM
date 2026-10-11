@@ -1,0 +1,29 @@
+.card.card {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  min-width: 0;
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+
+.name {
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.details {
+  font-size: 0.8rem;
+  opacity: 0.75;
+}
+
+.empty {
+  margin-top: 6px;
+  font-size: 0.85rem;
+  opacity: 0.75;
+}

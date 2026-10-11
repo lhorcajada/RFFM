@@ -30,10 +30,12 @@ vi.mock("../../../../services/teamService", () => ({
 
 const mockGetCompetitions = vi.fn();
 const mockGetGroups = vi.fn();
+const mockGetGroupTeams = vi.fn();
 vi.mock("../../../../services/rffmCompetitionService", () => ({
   default: {
     getCompetitions: (...args: unknown[]) => mockGetCompetitions(...args),
     getGroups: (...args: unknown[]) => mockGetGroups(...args),
+    getGroupTeams: (...args: unknown[]) => mockGetGroupTeams(...args),
     updateTeamCompetition: (...args: unknown[]) => mockUpdateTeamCompetitionFn(...args),
   },
 }));
@@ -66,6 +68,10 @@ describe("EditTeam - competición real RFFM", () => {
       { id: 1, name: "Liga Nacional", categoryGroup: "Cadete" },
     ]);
     mockGetGroups.mockResolvedValue([{ id: 10, name: "Grupo A" }]);
+    mockGetGroupTeams.mockResolvedValue([
+      { teamCode: "9001", teamName: "CD Ejemplo A" },
+      { teamCode: "9002", teamName: "UD Rival B" },
+    ]);
     mockUpdateTeamCompetitionFn.mockResolvedValue(undefined);
   });
 
@@ -94,6 +100,81 @@ describe("EditTeam - competición real RFFM", () => {
       expect(mockUpdateTeamCompetitionFn).toHaveBeenCalledWith("team-1", {
         competitionId: 1,
         groupId: 10,
+        teamCode: null,
+      })
+    );
+  });
+
+  it("guarda también el equipo RFFM elegido dentro del grupo", async () => {
+    mockGetTeamById.mockResolvedValue({
+      id: "team-1",
+      name: "Equipo A",
+      category: { id: 1, name: "Categoría 1" },
+      league: { id: null, name: null, group: null },
+      urlPhoto: null,
+      rffmCompetitionId: 1,
+      rffmGroupId: 10,
+    });
+    renderEditTeam();
+
+    await waitFor(() => expect(mockGetGroupTeams).toHaveBeenCalledWith(1, 10));
+    await userEvent.click(await screen.findByRole("combobox", { name: "Equipo RFFM" }));
+    await userEvent.click(await screen.findByRole("option", { name: "UD Rival B" }));
+    await userEvent.click(screen.getByRole("button", { name: "Guardar competición RFFM" }));
+
+    await waitFor(() =>
+      expect(mockUpdateTeamCompetitionFn).toHaveBeenCalledWith("team-1", {
+        competitionId: 1,
+        groupId: 10,
+        teamCode: "9002",
+      })
+    );
+  });
+
+  it("precarga el equipo RFFM guardado", async () => {
+    mockGetTeamById.mockResolvedValue({
+      id: "team-1",
+      name: "Equipo A",
+      category: { id: 1, name: "Categoría 1" },
+      league: { id: null, name: null, group: null },
+      urlPhoto: null,
+      rffmCompetitionId: 1,
+      rffmGroupId: 10,
+      rffmTeamCode: "9001",
+    });
+
+    renderEditTeam();
+
+    expect(await screen.findByText("CD Ejemplo A")).toBeInTheDocument();
+  });
+
+  it("al cambiar de grupo olvida el equipo RFFM elegido", async () => {
+    mockGetGroups.mockResolvedValue([
+      { id: 10, name: "Grupo A" },
+      { id: 11, name: "Grupo B" },
+    ]);
+    mockGetTeamById.mockResolvedValue({
+      id: "team-1",
+      name: "Equipo A",
+      category: { id: 1, name: "Categoría 1" },
+      league: { id: null, name: null, group: null },
+      urlPhoto: null,
+      rffmCompetitionId: 1,
+      rffmGroupId: 10,
+      rffmTeamCode: "9001",
+    });
+    renderEditTeam();
+    await screen.findByText("CD Ejemplo A");
+
+    await userEvent.click(screen.getByLabelText("Grupo RFFM"));
+    await userEvent.click(await screen.findByRole("option", { name: "Grupo B" }));
+    await userEvent.click(screen.getByRole("button", { name: "Guardar competición RFFM" }));
+
+    await waitFor(() =>
+      expect(mockUpdateTeamCompetitionFn).toHaveBeenCalledWith("team-1", {
+        competitionId: 1,
+        groupId: 11,
+        teamCode: null,
       })
     );
   });
