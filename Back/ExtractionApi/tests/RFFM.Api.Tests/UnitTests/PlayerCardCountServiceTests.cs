@@ -11,11 +11,10 @@ namespace RFFM.Api.Tests.UnitTests
         {
             var teamPlayerId = "tp-1";
             var cardsJson = $"[{{\"teamPlayerId\":\"{teamPlayerId}\",\"cardType\":\"yellow\"}}," +
-                             $"{{\"teamPlayerId\":\"{teamPlayerId}\",\"cardType\":\"yellow\"}}," +
                              $"{{\"teamPlayerId\":\"{teamPlayerId}\",\"cardType\":\"red\"}}," +
                              $"{{\"teamPlayerId\":\"rival-1\",\"cardType\":\"yellow\",\"isRivalPlayer\":true}}]";
 
-            Assert.Equal(2, PlayerCardCountService.CountCards(cardsJson, teamPlayerId, "yellow"));
+            Assert.Equal(1, PlayerCardCountService.CountCards(cardsJson, teamPlayerId, "yellow"));
             Assert.Equal(1, PlayerCardCountService.CountCards(cardsJson, teamPlayerId, "red"));
             Assert.True(PlayerCardCountService.HasRedCard(cardsJson, teamPlayerId));
         }
@@ -52,6 +51,29 @@ namespace RFFM.Api.Tests.UnitTests
 
             Assert.Equal(0, PlayerCardCountService.CountCards(cardsJson, "tp-1", "red"));
             Assert.False(PlayerCardCountService.HasRedCard(cardsJson, "tp-1"));
+        }
+
+        [Fact]
+        public void CountCards_WithTwoYellowsInTheSameMatch_CountsOneRedAndNoYellows()
+        {
+            var teamPlayerId = "tp-1";
+            var cardsJson = $"[{{\"teamPlayerId\":\"{teamPlayerId}\",\"cardType\":\"yellow\"}}," +
+                             $"{{\"teamPlayerId\":\"{teamPlayerId}\",\"cardType\":\"yellow\"}}]";
+
+            Assert.Equal(0, PlayerCardCountService.CountCards(cardsJson, teamPlayerId, "yellow"));
+            Assert.Equal(1, PlayerCardCountService.CountCards(cardsJson, teamPlayerId, "red"));
+            Assert.True(PlayerCardCountService.HasRedCard(cardsJson, teamPlayerId));
+        }
+
+        [Fact]
+        public void CountCards_DoubleYellowOfAnotherPlayer_DoesNotAffectThisPlayer()
+        {
+            var cardsJson = "[{\"teamPlayerId\":\"tp-2\",\"cardType\":\"yellow\"}," +
+                            "{\"teamPlayerId\":\"tp-2\",\"cardType\":\"yellow\"}," +
+                            "{\"teamPlayerId\":\"tp-1\",\"cardType\":\"yellow\"}]";
+
+            Assert.Equal(1, PlayerCardCountService.CountCards(cardsJson, "tp-1", "yellow"));
+            Assert.Equal(0, PlayerCardCountService.CountCards(cardsJson, "tp-1", "red"));
         }
     }
 }

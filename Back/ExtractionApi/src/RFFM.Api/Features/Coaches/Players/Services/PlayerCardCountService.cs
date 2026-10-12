@@ -13,11 +13,29 @@ namespace RFFM.Api.Features.Coaches.Players.Services
     /// </summary>
     public static class PlayerCardCountService
     {
+        private const string YellowCardType = "yellow";
+        private const string RedCardType = "red";
+
         /// <summary>
         /// Counts cards of the given type (case-insensitive) attributed to teamPlayerId in the
-        /// given CardsJson. Returns 0 for null/empty/malformed JSON.
+        /// given CardsJson. Returns 0 for null/empty/malformed JSON. Two yellow cards in the same
+        /// match are a sending-off for double booking: they count as one red card and no yellow
+        /// cards, as in the official statistics.
         /// </summary>
         public static int CountCards(string? cardsJson, string teamPlayerId, string cardType)
+        {
+            var yellows = CountRawCards(cardsJson, teamPlayerId, YellowCardType);
+            var isDoubleBooking = yellows >= 2;
+
+            if (string.Equals(cardType, YellowCardType, StringComparison.OrdinalIgnoreCase))
+                return isDoubleBooking ? 0 : yellows;
+
+            var count = CountRawCards(cardsJson, teamPlayerId, cardType);
+            var isRed = string.Equals(cardType, RedCardType, StringComparison.OrdinalIgnoreCase);
+            return isRed && isDoubleBooking ? count + 1 : count;
+        }
+
+        private static int CountRawCards(string? cardsJson, string teamPlayerId, string cardType)
         {
             if (string.IsNullOrEmpty(cardsJson)) return 0;
 
@@ -48,7 +66,7 @@ namespace RFFM.Api.Features.Coaches.Players.Services
 
         /// <summary>True if teamPlayerId has at least one red card in the given CardsJson.</summary>
         public static bool HasRedCard(string? cardsJson, string teamPlayerId)
-            => CountCards(cardsJson, teamPlayerId, "red") > 0;
+            => CountCards(cardsJson, teamPlayerId, RedCardType) > 0;
 
         /// <summary>
         /// Total yellow cards across all given (already filtered to finished, "Partido"-type)
@@ -57,7 +75,7 @@ namespace RFFM.Api.Features.Coaches.Players.Services
         /// </summary>
         public static int CountHistoricalYellowCards(
             IEnumerable<MatchParticipation> matchTypeFinishedParticipations, string teamPlayerId)
-            => matchTypeFinishedParticipations.Sum(mp => CountCards(mp.CardsJson, teamPlayerId, "yellow"));
+            => matchTypeFinishedParticipations.Sum(mp => CountCards(mp.CardsJson, teamPlayerId, YellowCardType));
 
         /// <summary>
         /// Sum of yellow cards for teamPlayerId across the given (participation, eventDate) pairs
@@ -71,6 +89,6 @@ namespace RFFM.Api.Features.Coaches.Players.Services
             DateTime? sinceExclusive)
             => matchTypeFinishedParticipations
                 .Where(x => sinceExclusive is null || (x.EventDate.HasValue && x.EventDate.Value > sinceExclusive.Value))
-                .Sum(x => CountCards(x.Participation.CardsJson, teamPlayerId, "yellow"));
+                .Sum(x => CountCards(x.Participation.CardsJson, teamPlayerId, YellowCardType));
     }
 }

@@ -316,7 +316,6 @@ namespace RFFM.Api.Tests.UnitTests
 
             var eventId = await SeedSportEventAsync(db, teamId, MatchEventTypeId, DateTime.UtcNow.AddDays(-5));
             var cardsJson = $"[{{\"teamPlayerId\":\"{teamPlayerId}\",\"cardType\":\"Yellow\"}}," +
-                             $"{{\"teamPlayerId\":\"{teamPlayerId}\",\"cardType\":\"Yellow\"}}," +
                              $"{{\"teamPlayerId\":\"{teamPlayerId}\",\"cardType\":\"Red\"}}," +
                              $"{{\"teamPlayerId\":\"{otherTeamPlayerId}\",\"cardType\":\"Yellow\"}}]";
             await SeedMatchParticipationAsync(db, eventId, teamId, teamPlayerId, cardsJson: cardsJson);
@@ -330,7 +329,7 @@ namespace RFFM.Api.Tests.UnitTests
 
             // Assert
             var card = Assert.Single(result, c => c.TeamPlayerId == teamPlayerId);
-            Assert.Equal(2, card.YellowCards);
+            Assert.Equal(1, card.YellowCards);
             Assert.Equal(1, card.RedCards);
 
             var otherCard = Assert.Single(result, c => c.TeamPlayerId == otherTeamPlayerId);
