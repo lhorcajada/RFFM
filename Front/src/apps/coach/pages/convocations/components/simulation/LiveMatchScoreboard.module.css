@@ -70,22 +70,6 @@
   font-family: monospace;
 }
 
-.goalBtn {
-  flex-shrink: 0 !important;
-  font-size: 0.7rem !important;
-  padding: 2px 8px !important;
-  text-transform: none !important;
-  min-width: 0 !important;
-}
-
-.cardBtn {
-  flex-shrink: 0 !important;
-  font-size: 0.7rem !important;
-  padding: 2px 8px !important;
-  text-transform: none !important;
-  min-width: 0 !important;
-}
-
 .goalDetailsForm {
   display: flex;
   flex-direction: column;
@@ -101,15 +85,14 @@
 }
 
 /* ── Móvil: marcador compacto (menos padding, tipografía y escudos
-   reducidos) en dos filas: equipos + marcador arriba, botones abajo. ──────── */
+   reducidos). ──────────────────────────────────────────────────────────── */
 @media (max-width: 780px) {
   .root {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-    grid-template-areas: "local score visitor" "localGoal card visitorGoal";
+    grid-template-areas: "local score visitor";
     align-items: center;
     column-gap: 8px;
-    row-gap: 4px;
     padding: 4px 8px;
   }
 
@@ -138,7 +121,6 @@
     font-size: 1.3rem;
   }
 
-  /* Botones en una segunda fila: nunca se solapan con el marcador. */
   .local {
     grid-area: local;
   }
@@ -149,20 +131,5 @@
 
   .scoreBlock {
     grid-area: score;
-  }
-
-  .localGoal {
-    grid-area: localGoal;
-    justify-self: start;
-  }
-
-  .visitorGoal {
-    grid-area: visitorGoal;
-    justify-self: end;
-  }
-
-  .cardBtn {
-    grid-area: card;
-    justify-self: center;
   }
 }

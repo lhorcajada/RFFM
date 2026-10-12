@@ -1,13 +1,3 @@
-import { useState } from "react";
-import {
-  Button,
-} from "@mui/material";
-import SportsSoccerIcon from "@mui/icons-material/SportsSoccer";
-import StyleIcon from "@mui/icons-material/Style";
-import type { LiveMatchPhase } from "./liveMatch.types";
-import type { SimSlotPlayer } from "./SimulationPlayerSlot";
-import CardEventDialog, { type CardEventSubmitPayload } from "./CardEventDialog";
-import GoalEventDialog, { type GoalEventSubmitPayload } from "./GoalEventDialog";
 import styles from "./LiveMatchScoreboard.module.css";
 
 interface LiveMatchScoreboardProps {
@@ -17,30 +7,6 @@ interface LiveMatchScoreboardProps {
   visitorTeamShield?: string | null;
   scoreLocal: number;
   scoreVisitor: number;
-  matchPhase: LiveMatchPhase;
-  /** Players currently on the field (for scorer selection) */
-  fieldPlayers: SimSlotPlayer[];
-  /** true if the user's team is the local/home team; defaults to true */
-  isHomeTeam?: boolean;
-  /** Current match minute, used to pre-fill (and let the coach adjust) the goal's minute */
-  currentMinute?: number;
-  onAddGoal: (
-    scorerId: string | null,
-    scorerName: string | null,
-    scorerDorsal: number | null,
-    isOwnTeam: boolean,
-    pitchZone: { col: number; row: number } | null,
-    bodyPart: "head" | "foot" | null,
-    minute?: number,
-  ) => void;
-  /** Optional — enables the "Tarjeta" button when provided */
-  onAddCard?: (
-    teamPlayerId: string | null,
-    playerName: string | null,
-    isRivalPlayer: boolean,
-    rivalDorsal: number | null,
-    cardType: "yellow" | "red",
-  ) => void;
 }
 
 export default function LiveMatchScoreboard({
@@ -50,51 +16,7 @@ export default function LiveMatchScoreboard({
   visitorTeamShield,
   scoreLocal,
   scoreVisitor,
-  matchPhase,
-  fieldPlayers,
-  isHomeTeam = true,
-  currentMinute = 0,
-  onAddGoal,
-  onAddCard,
 }: LiveMatchScoreboardProps) {
-  const [cardDialogOpen, setCardDialogOpen] = useState(false);
-  const [goalDialogOpen, setGoalDialogOpen] = useState(false);
-  const [pendingIsOwnGoal, setPendingIsOwnGoal] = useState(false);
-
-  const canScore =
-    matchPhase === "firstHalf" ||
-    matchPhase === "halftime" ||
-    matchPhase === "secondHalf";
-
-  function openGoalDialog(isOwnTeam: boolean) {
-    setPendingIsOwnGoal(isOwnTeam);
-    setGoalDialogOpen(true);
-  }
-
-  function handleGoalSubmit(payload: GoalEventSubmitPayload) {
-    setGoalDialogOpen(false);
-    onAddGoal(
-      payload.scorerId,
-      payload.scorerName,
-      payload.scorerDorsal,
-      payload.isOwnTeam,
-      payload.pitchZone,
-      payload.bodyPart,
-      payload.minute,
-    );
-  }
-
-  function handleCardSubmit(payload: CardEventSubmitPayload) {
-    setCardDialogOpen(false);
-    onAddCard?.(
-      payload.teamPlayerId,
-      payload.playerName,
-      payload.isRivalPlayer,
-      payload.rivalDorsal,
-      payload.cardType,
-    );
-  }
-
   return (
     <div className={styles.root}>
       {/* Local team */}
@@ -109,17 +31,6 @@ export default function LiveMatchScoreboard({
         )}
         <span className={styles.teamName}>{localTeamName}</span>
       </div>
-      <Button
-        size="small"
-        variant="outlined"
-        color={isHomeTeam ? "success" : "error"}
-        className={`${styles.goalBtn} ${styles.localGoal}`}
-        startIcon={<SportsSoccerIcon sx={{ fontSize: 14 }} />}
-        disabled={!canScore}
-        onClick={() => openGoalDialog(isHomeTeam)}
-      >
-        {isHomeTeam ? "Gol" : "Gol rival"}
-      </Button>
 
       {/* Score */}
       <div className={styles.scoreBlock}>
@@ -129,17 +40,6 @@ export default function LiveMatchScoreboard({
       </div>
 
       {/* Visitor team */}
-      <Button
-        size="small"
-        variant="outlined"
-        color={!isHomeTeam ? "success" : "error"}
-        className={`${styles.goalBtn} ${styles.visitorGoal}`}
-        startIcon={<SportsSoccerIcon sx={{ fontSize: 14 }} />}
-        disabled={!canScore}
-        onClick={() => openGoalDialog(!isHomeTeam)}
-      >
-        {!isHomeTeam ? "Gol" : "Gol rival"}
-      </Button>
       <div className={`${styles.team} ${styles.teamRight} ${styles.visitor}`}>
         <span className={styles.teamName}>{visitorTeamName}</span>
         {visitorTeamShield && (
@@ -151,40 +51,6 @@ export default function LiveMatchScoreboard({
           />
         )}
       </div>
-
-      {onAddCard && (
-        <Button
-          size="small"
-          variant="outlined"
-          color="warning"
-          className={styles.cardBtn}
-          startIcon={<StyleIcon sx={{ fontSize: 14 }} />}
-          disabled={!canScore}
-          onClick={() => setCardDialogOpen(true)}
-        >
-          Tarjeta
-        </Button>
-      )}
-
-      {/* Goal registration dialog */}
-      <GoalEventDialog
-        open={goalDialogOpen}
-        players={fieldPlayers}
-        isOwnTeam={pendingIsOwnGoal}
-        onClose={() => setGoalDialogOpen(false)}
-        onSubmit={handleGoalSubmit}
-        defaultMinute={currentMinute}
-      />
-
-      {/* Card registration dialog */}
-      {onAddCard && (
-        <CardEventDialog
-          open={cardDialogOpen}
-          players={fieldPlayers}
-          onClose={() => setCardDialogOpen(false)}
-          onSubmit={handleCardSubmit}
-        />
-      )}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import type { FormationSlotDef } from "../../../../types/formation";
 import SimulationPlayerSlot, { type SimSlotPlayer } from "./SimulationPlayerSlot";
 import { computeLiveReadiness } from "../../utils/liveReadiness";
+import type { CardStatus } from "../../utils/expulsions";
 import styles from "./SimulationField.module.css";
 
 interface SimulationFieldProps {
@@ -28,6 +29,8 @@ interface SimulationFieldProps {
   className?: string;
   /** Hides the minutes tag (pre-match lineup, where nobody has played yet). */
   hideMinutes?: boolean;
+  /** Cards shown to each player in the match (live match only) */
+  cardStatusById?: Record<string, CardStatus>;
 }
 
 export default function SimulationField({
@@ -45,6 +48,7 @@ export default function SimulationField({
   wrapperRef,
   className,
   hideMinutes = false,
+  cardStatusById,
 }: SimulationFieldProps) {
   // In prepare mode we render from the preview, otherwise from real slots
   const activeSlots = prepareMode && prepareSlotsPreview ? prepareSlotsPreview : slots;
@@ -122,6 +126,7 @@ export default function SimulationField({
               activeTab={activeTab}
               usedTabById={usedTabById}
               hasGoals={playerId !== null && scorerIds?.has(playerId)}
+              cardStatus={playerId !== null ? cardStatusById?.[playerId] : undefined}
             />
           );
         })}

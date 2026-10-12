@@ -1,0 +1,26 @@
+/* Bottom-left of the photo: the dorsal sits bottom-right and the goal badge top-right. */
+.badge {
+  position: absolute;
+  bottom: -4px;
+  left: -5px;
+  display: flex;
+  gap: 1px;
+  z-index: 5;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.7));
+}
+
+.card {
+  display: block;
+  width: 9px;
+  height: 13px;
+  border-radius: 2px;
+  border: 1px solid rgba(13, 13, 30, 0.82);
+}
+
+.yellow {
+  background: #f59e0b;
+}
+
+.red {
+  background: #ef4444;
+}

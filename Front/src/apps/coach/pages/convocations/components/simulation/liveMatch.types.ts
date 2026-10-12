@@ -89,6 +89,8 @@ export interface LiveMatchBackup {
   slots: Record<number, string | null>;
   initialSlots: Record<number, string | null>;
   startingFormation?: StartingFormation | null;
+  /** Formation in use when the backup was written; absent in backups written before it was tracked */
+  currentFormation?: StartingFormation | null;
   playerStates: Record<string, SimulationPlayerState>;
   windows: SubstitutionWindow[];
   goals: GoalEvent[];

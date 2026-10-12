@@ -26,6 +26,18 @@ import {
   getEventMinuteLimitSanctions,
   type MinuteLimitSanction,
 } from "../../../services/liveMatchService";
+import {
+  FORMATION_POSITIONS,
+  FULL_TEAM_PLAYERS,
+  MIN_ON_FIELD_PLAYERS,
+  defaultReducedFormation,
+} from "../../../types/formation";
+import {
+  getCardStatus,
+  getExpelledIds,
+  isExpelledStatus,
+  relocateAfterExpulsion,
+} from "../utils/expulsions";
 
 export const MAX_TOTAL_WINDOWS = 4;
 export const MAX_SECOND_HALF_WINDOWS = 3;
@@ -40,6 +52,14 @@ function parseJsonArray<T>(json: string | undefined, fallback: T[]): T[] {
   } catch {
     return fallback;
   }
+}
+
+function countsTowardQuota(window: SubstitutionWindow): boolean {
+  return !window.isHalftime && !window.fillsEmptySlot;
+}
+
+function isInPlay(phase: LiveMatchPhase): boolean {
+  return phase === "firstHalf" || phase === "halftime" || phase === "secondHalf";
 }
 
 // ─── Public interface ────────────────────────────────────────────────────────
@@ -79,6 +99,12 @@ export interface UseLiveMatchReturn {
   cards: CardEvent[];
   // Formation changes
   formationChanges: FormationChangeEvent[];
+  /** Formation currently on the field (starting one until a change or an expulsion) */
+  currentFormation: StartingFormation | null;
+  /** Own-team card that would leave fewer than 7 players; waits for the coach to confirm ending the match */
+  pendingMinPlayersCard: CardEvent | null;
+  confirmMinPlayersEnd: () => void;
+  cancelMinPlayersEnd: () => void;
   // Unlimited substitution windows (friendlies)
   unlimitedWindows: boolean;
   // Rating snapshots
@@ -89,11 +115,8 @@ export interface UseLiveMatchReturn {
   // Save state
   isSaving: boolean;
   saveError: string | null;
-  // Explicit save confirmation
-  isSaveConfirmOpen: boolean;
-  requestSave: () => void;
-  confirmSave: () => void;
-  cancelSave: () => void;
+  /** Retries the automatic end-of-match save after a failure */
+  retrySave: () => void;
   // Persisted data (when match has been saved before)
   hasSavedData: boolean;
   savedParticipationData: LiveMatchParticipationPayload | null;
@@ -203,6 +226,8 @@ export function useLiveMatch(
 
   // ── Formation changes ────────────────────────────────────────────────────
   const [formationChanges, setFormationChanges] = useState<FormationChangeEvent[]>([]);
+  const [currentFormation, setCurrentFormation] = useState<StartingFormation | null>(null);
+  const [pendingMinPlayersCard, setPendingMinPlayersCard] = useState<CardEvent | null>(null);
 
   // ── Rating snapshots ─────────────────────────────────────────────────────
   const [ratingSnapshots, setRatingSnapshots] = useState<WindowRatingSnapshot[]>([]);
@@ -212,7 +237,8 @@ export function useLiveMatch(
 
   // ── Save state ───────────────────────────────────────────────────────────
   const [isSaving, setIsSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);  const [isSaveConfirmOpen, setIsSaveConfirmOpen] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [pendingAutoSave, setPendingAutoSave] = useState(false);
   const [hasSavedData, setHasSavedData] = useState(false);
   const [savedParticipationData, setSavedParticipationData] = useState<LiveMatchParticipationPayload | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -237,6 +263,7 @@ export function useLiveMatch(
   const prepareModeRef = useRef(false);
   const initialSlotsRef = useRef<Record<number, string | null>>({});
   const startingFormationRef = useRef<StartingFormation | null>(null);
+  const currentFormationRef = useRef<StartingFormation | null>(null);
   const currentMinuteRef = useRef(0);
   const halfRef = useRef<1 | 2>(1);
   const isHalftimeRef = useRef(false);
@@ -276,6 +303,7 @@ export function useLiveMatch(
   scoreVisitorRef.current = scoreVisitor;
   cardsRef.current = cards;
   formationChangesRef.current = formationChanges;
+  currentFormationRef.current = currentFormation;
   ratingSnapshotsRef.current = ratingSnapshots;
   halfDurationRef.current = halfDuration;
   totalSecondsRef.current = totalSeconds;
@@ -291,8 +319,8 @@ export function useLiveMatch(
   const isRunning =
     matchPhase === "firstHalf" || matchPhase === "secondHalf";
 
-  const windowsTotal = windows.filter((w) => !w.isHalftime).length;
-  const windowsInSecondHalf = windows.filter((w) => w.half === 2 && !w.isHalftime).length;
+  const windowsTotal = windows.filter(countsTowardQuota).length;
+  const windowsInSecondHalf = windows.filter((w) => w.half === 2 && countsTowardQuota(w)).length;
   const canOpenWindow =
     !prepareMode &&
     (matchPhase === "firstHalf" ||
@@ -368,6 +396,7 @@ export function useLiveMatch(
       slots: { ...slotsRef.current },
       initialSlots: { ...initialSlotsRef.current },
       startingFormation: startingFormationRef.current,
+      currentFormation: currentFormationRef.current,
       playerStates: { ...playerStatesRef.current },
       windows: [...windowsRef.current],
       goals: [...goalsRef.current],
@@ -580,6 +609,13 @@ export function useLiveMatch(
 
     initialSlotsRef.current = { ...b.initialSlots };
     startingFormationRef.current = b.startingFormation ?? null;
+    const lastFormationChange = (b.formationChanges ?? []).at(-1);
+    setCurrentFormation(
+      b.currentFormation ??
+        (lastFormationChange
+          ? { id: lastFormationChange.formationId, name: lastFormationChange.formationName }
+          : (b.startingFormation ?? currentFormationRef.current)),
+    );
     setInitialSlotsSnapshot({ ...b.initialSlots });
     setTotalSeconds(restoredSeconds);
     setHalf(b.half);
@@ -639,6 +675,8 @@ export function useLiveMatch(
     notifiedMinuteLimitPlayersRef.current = new Set();
     initialSlotsRef.current = { ...initialSlots };
     startingFormationRef.current = startingFormation ?? null;
+    setCurrentFormation(startingFormation ?? null);
+    setPendingMinPlayersCard(null);
     setInitialSlotsSnapshot({ ...initialSlots });
     runAnchorEpochRef.current = null;
     runBaselineSecondsRef.current = 0;
@@ -666,6 +704,51 @@ export function useLiveMatch(
       setMatchDurationMinutes(null);
     }
   }, []);
+
+  // ── End of match ──────────────────────────────────────────────────────────
+
+  function finishMatch() {
+    const frozenSeconds = computeCurrentTotalSeconds();
+    runAnchorEpochRef.current = null;
+    runBaselineSecondsRef.current = frozenSeconds;
+    setTotalSeconds(frozenSeconds);
+    setMatchPhase("finished");
+    setIsHalftime(false);
+    setPrepareMode(false);
+    setPrepareSlotsPreview({});
+    // Duración real = minuto final del cronómetro (partes + añadido); sin cronómetro, 2 × parte.
+    setMatchDurationMinutes(Math.floor(frozenSeconds / 60) || 2 * halfDurationRef.current);
+    // Freeze all playerStates: anyone still on field gets their minutes locked
+    setPlayerStates((prev) => {
+      const minute = Math.floor(frozenSeconds / 60);
+      const updated: Record<string, SimulationPlayerState> = {};
+      for (const [pid, state] of Object.entries(prev)) {
+        if (state.isOnField) {
+          updated[pid] = {
+            ...state,
+            accumulatedMinutes:
+              state.accumulatedMinutes + Math.max(0, minute - state.minuteEntered),
+            isOnField: false,
+          };
+        } else {
+          updated[pid] = { ...state };
+        }
+      }
+      return updated;
+    });
+    // Clear the running-match backup immediately so no "ghost" timer
+    // reappears on a future visit.
+    if (eventIdRef.current) clearLiveMatchBackup(eventIdRef.current);
+    // Saved once the final state has been rendered (persistMatchParticipation reads the refs)
+    setPendingAutoSave(true);
+  }
+
+  useEffect(() => {
+    if (!pendingAutoSave) return;
+    setPendingAutoSave(false);
+    void persistMatchParticipation();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingAutoSave]);
 
   // ── Confirmation flow ─────────────────────────────────────────────────────
 
@@ -702,40 +785,9 @@ export function useLiveMatch(
         setHalf(2);
         break;
 
-      case "endMatch": {
-        const frozenSeconds = computeCurrentTotalSeconds();
-        runAnchorEpochRef.current = null;
-        runBaselineSecondsRef.current = frozenSeconds;
-        setTotalSeconds(frozenSeconds);
-        setMatchPhase("finished");
-        setIsHalftime(false);
-        // Duración real = minuto final del cronómetro (partes + añadido); sin cronómetro, 2 × parte.
-        setMatchDurationMinutes(Math.floor(frozenSeconds / 60) || 2 * halfDurationRef.current);
-        // Freeze all playerStates: anyone still on field gets their minutes locked
-        setPlayerStates((prev) => {
-          const minute = Math.floor(frozenSeconds / 60);
-          const updated: Record<string, SimulationPlayerState> = {};
-          for (const [pid, state] of Object.entries(prev)) {
-            if (state.isOnField) {
-              updated[pid] = {
-                ...state,
-                accumulatedMinutes:
-                  state.accumulatedMinutes + Math.max(0, minute - state.minuteEntered),
-                isOnField: false,
-              };
-            } else {
-              updated[pid] = { ...state };
-            }
-          }
-          return updated;
-        });
-        // Clear the running-match backup immediately so no "ghost" timer
-        // reappears on a future visit — participation data (if the user
-        // chooses to save it) is persisted separately via requestSave().
-        if (eventIdRef.current) clearLiveMatchBackup(eventIdRef.current);
-        // Do NOT auto-save participation — user must confirm explicitly via requestSave()
+      case "endMatch":
+        finishMatch();
         break;
-      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingAction]);
@@ -804,20 +856,9 @@ export function useLiveMatch(
     }
   }
 
-  // ── Explicit save actions ──────────────────────────────────────────────────
-
-  const requestSave = useCallback(() => {
-    setIsSaveConfirmOpen(true);
-  }, []);
-
-  const confirmSave = useCallback(() => {
-    setIsSaveConfirmOpen(false);
+  const retrySave = useCallback(() => {
     void persistMatchParticipation();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const cancelSave = useCallback(() => {
-    setIsSaveConfirmOpen(false);
   }, []);
 
   const deleteParticipation = useCallback(async () => {
@@ -850,6 +891,8 @@ export function useLiveMatch(
       setCards([]);
       setWindows([]);
       setFormationChanges([]);
+      setCurrentFormation(startingFormationRef.current);
+      setPendingMinPlayersCard(null);
       setRatingSnapshots([]);
       setScoreLocal(0);
       setScoreVisitor(0);
@@ -958,6 +1001,26 @@ export function useLiveMatch(
 
   // ── Cards ─────────────────────────────────────────────────────────────────
 
+  const registerCard = (card: CardEvent) => {
+    const next = [...cardsRef.current, card];
+    cardsRef.current = next;
+    setCards(next);
+  };
+
+  /** Takes a sent-off player off the field and applies a formation for the players the team may field. */
+  const sendOff = (playerId: string) => {
+    const allowedPlayers = FULL_TEAM_PLAYERS - getExpelledIds(cardsRef.current).size;
+    const formation = defaultReducedFormation(allowedPlayers, currentFormationRef.current?.name ?? null);
+    const newSlots = relocateAfterExpulsion(
+      slotsRef.current,
+      playerId,
+      FORMATION_POSITIONS[formation.name] ?? [],
+    );
+    setPrepareMode(false);
+    setPrepareSlotsPreview({});
+    applyFormationChange(formation.id, formation.name, newSlots);
+  };
+
   const addCard = useCallback(
     (
       teamPlayerId: string | null,
@@ -980,10 +1043,64 @@ export function useLiveMatch(
         isRivalPlayer,
         rivalDorsal,
       };
-      setCards((prev) => [...prev, card]);
+
+      const onFieldIds = Object.values(slotsRef.current).filter(Boolean) as string[];
+      const sendsOffOnFieldPlayer =
+        !isRivalPlayer &&
+        teamPlayerId !== null &&
+        isInPlay(matchPhaseRef.current) &&
+        onFieldIds.includes(teamPlayerId) &&
+        isExpelledStatus(getCardStatus([...cardsRef.current, card], teamPlayerId));
+
+      if (!sendsOffOnFieldPlayer || teamPlayerId === null) {
+        registerCard(card);
+        return;
+      }
+
+      const leavesTooFewPlayers = onFieldIds.length - 1 < MIN_ON_FIELD_PLAYERS;
+      if (leavesTooFewPlayers) {
+        setPendingMinPlayersCard(card);
+        return;
+      }
+
+      registerCard(card);
+      sendOff(teamPlayerId);
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
+
+  const pendingMinPlayersCardRef = useRef<CardEvent | null>(null);
+  pendingMinPlayersCardRef.current = pendingMinPlayersCard;
+
+  const confirmMinPlayersEnd = useCallback(() => {
+    const card = pendingMinPlayersCardRef.current;
+    if (!card?.teamPlayerId) return;
+    const expelledId = card.teamPlayerId;
+    setPendingMinPlayersCard(null);
+    registerCard(card);
+
+    const newSlots: Record<number, string | null> = {};
+    for (const [slotIdx, pid] of Object.entries(slotsRef.current)) {
+      newSlots[parseInt(slotIdx)] = pid === expelledId ? null : pid;
+    }
+    const { nextPlayerStates } = applySlotChange(
+      slotsRef.current,
+      newSlots,
+      playerStatesRef.current,
+      currentMinuteRef.current,
+    );
+    slotsRef.current = newSlots;
+    playerStatesRef.current = nextPlayerStates;
+    setSlots(newSlots);
+    setPlayerStates(nextPlayerStates);
+    finishMatch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const cancelMinPlayersEnd = useCallback(() => {
+    setPendingMinPlayersCard(null);
+  }, []);
 
   const removeCard = useCallback((cardId: string) => {
     setCards((prev) => prev.filter((c) => c.id !== cardId));
@@ -1001,8 +1118,11 @@ export function useLiveMatch(
 
   // ── Mid-match formation change ───────────────────────────────────────────
 
-  const changeFormation = useCallback(
-    (formationId: string, formationName: string, newSlots: Record<number, string | null>) => {
+  function applyFormationChange(
+    formationId: string,
+    formationName: string,
+    newSlots: Record<number, string | null>,
+  ) {
       const minute = currentMinuteRef.current;
       const { nextPlayerStates } = applySlotChange(
         slotsRef.current,
@@ -1029,10 +1149,20 @@ export function useLiveMatch(
         slotsAfter: { ...newSlots },
       };
 
+      slotsRef.current = { ...newSlots };
+      playerStatesRef.current = nextPlayerStates;
+      currentFormationRef.current = { id: formationId, name: formationName };
       setFormationChanges((prev) => [...prev, change]);
+      setCurrentFormation({ id: formationId, name: formationName });
       setSlots({ ...newSlots });
       setPlayerStates(nextPlayerStates);
+  }
+
+  const changeFormation = useCallback(
+    (formationId: string, formationName: string, newSlots: Record<number, string | null>) => {
+      applyFormationChange(formationId, formationName, newSlots);
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
 
@@ -1050,6 +1180,8 @@ export function useLiveMatch(
 
   const movePreparePlayer = useCallback(
     (draggedId: string, fromSlotIndex: number | null, targetSlotIndex: number) => {
+      // A sent-off player cannot come back onto the field
+      if (getExpelledIds(cardsRef.current).has(draggedId)) return;
       setPrepareSlotsPreview((prev) => {
         const next = { ...prev };
         const currentOccupant = prev[targetSlotIndex] ?? null;
@@ -1094,9 +1226,10 @@ export function useLiveMatch(
 
     const currentHalf = halfRef.current;
     const currentIsHalftime = isHalftimeRef.current;
+    const fillsEmptySlot = !currentIsHalftime && entering.length > 0 && leaving.length === 0;
     const windowIndex = currentIsHalftime
       ? 0
-      : prevWindows.filter((w) => !w.isHalftime).length + 1;
+      : prevWindows.filter(countsTowardQuota).length + (fillsEmptySlot ? 0 : 1);
 
     const newWindow: SubstitutionWindow = {
       windowIndex,
@@ -1105,6 +1238,7 @@ export function useLiveMatch(
       swaps,
       slotsAfter: { ...newSlots },
       ...(currentIsHalftime ? { isHalftime: true } : {}),
+      ...(fillsEmptySlot ? { fillsEmptySlot: true } : {}),
     };
 
     // Rating snapshot
@@ -1204,16 +1338,17 @@ export function useLiveMatch(
     setScore,
     cards,
     formationChanges,
+    currentFormation,
+    pendingMinPlayersCard,
+    confirmMinPlayersEnd,
+    cancelMinPlayersEnd,
     unlimitedWindows,
     ratingSnapshots,
     pendingAction,
     setPendingAction,
     isSaving,
     saveError,
-    isSaveConfirmOpen,
-    requestSave,
-    confirmSave,
-    cancelSave,
+    retrySave,
     hasSavedData,
     savedParticipationData,
     matchDurationMinutes,

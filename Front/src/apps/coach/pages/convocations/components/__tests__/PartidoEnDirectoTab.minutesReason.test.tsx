@@ -74,6 +74,7 @@ function baseLiveMatch(overrides: Record<string, unknown> = {}) {
     scoreVisitor: 0,
     cards: [],
     formationChanges: [],
+    currentFormation: { id: "f1", name: "4-4-2" },
     unlimitedWindows: false,
     ratingSnapshots: [],
     pendingAction: null,

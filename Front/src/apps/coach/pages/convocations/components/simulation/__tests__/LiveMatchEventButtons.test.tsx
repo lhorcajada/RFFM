@@ -1,143 +1,149 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import LiveMatchScoreboard from "../LiveMatchScoreboard";
+import LiveMatchEventButtons from "../LiveMatchEventButtons";
+import type { LiveMatchPhase } from "../liveMatch.types";
 import type { SimSlotPlayer } from "../SimulationPlayerSlot";
 
 const fieldPlayers: SimSlotPlayer[] = [
   { teamPlayerId: "p1", displayName: "Jugador Uno", alias: null, photoSrc: null, dorsal: 9, competitiveness: null },
 ];
 
-function renderScoreboard(onAddGoal = vi.fn(), isHomeTeam = true) {
+function renderButtons({
+  matchPhase = "firstHalf",
+  currentMinute = 0,
+}: {
+  matchPhase?: LiveMatchPhase;
+  currentMinute?: number;
+} = {}) {
+  const onAddGoal = vi.fn();
+  const onAddCard = vi.fn();
   render(
-    <LiveMatchScoreboard
-      localTeamName="Local FC"
-      visitorTeamName="Visitor FC"
-      scoreLocal={0}
-      scoreVisitor={0}
-      matchPhase="firstHalf"
+    <LiveMatchEventButtons
+      matchPhase={matchPhase}
       fieldPlayers={fieldPlayers}
-      isHomeTeam={isHomeTeam}
+      currentMinute={currentMinute}
       onAddGoal={onAddGoal}
+      onAddCard={onAddCard}
     />,
   );
-  return onAddGoal;
+  return { onAddGoal, onAddCard };
 }
 
-describe("LiveMatchScoreboard - goal dialog rework", () => {
-  it("opens the dialog (does not call onAddGoal immediately) when clicking 'Gol rival'", async () => {
-    const onAddGoal = renderScoreboard();
-    await userEvent.click(screen.getByRole("button", { name: /gol rival/i }));
+describe("LiveMatchEventButtons - botones", () => {
+  it("muestra los cuatro botones de eventos", () => {
+    renderButtons();
+
+    expect(screen.getByRole("button", { name: "Gol a favor" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Gol en contra" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Tarjeta nuestra" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Tarjeta rival" })).toBeInTheDocument();
+  });
+
+  it.each(["preMatch", "finished"] as const)("los desactiva cuando el partido está en %s", (matchPhase) => {
+    renderButtons({ matchPhase });
+
+    for (const name of ["Gol a favor", "Gol en contra", "Tarjeta nuestra", "Tarjeta rival"]) {
+      expect(screen.getByRole("button", { name })).toBeDisabled();
+    }
+  });
+
+  it("los activa durante el descanso", () => {
+    renderButtons({ matchPhase: "halftime" });
+
+    expect(screen.getByRole("button", { name: "Gol a favor" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Tarjeta nuestra" })).toBeEnabled();
+  });
+});
+
+describe("LiveMatchEventButtons - goles", () => {
+  it("el botón de gol en contra abre el diálogo sin registrar el gol todavía", async () => {
+    const { onAddGoal } = renderButtons();
+
+    await userEvent.click(screen.getByRole("button", { name: "Gol en contra" }));
+
     expect(onAddGoal).not.toHaveBeenCalled();
     expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 
-  it("collects dorsal, pitch zone and body part for rival goals", async () => {
-    const onAddGoal = renderScoreboard();
-    await userEvent.click(screen.getByRole("button", { name: /gol rival/i }));
+  it("el gol en contra se registra como gol del rival con dorsal, zona y parte del cuerpo", async () => {
+    const { onAddGoal } = renderButtons();
+    await userEvent.click(screen.getByRole("button", { name: "Gol en contra" }));
 
-    const dorsalInput = screen.getByLabelText(/dorsal/i);
-    await userEvent.type(dorsalInput, "9");
-
-    const cells = screen.getAllByRole("button", { name: "" });
-    await userEvent.click(cells[0]);
-
+    await userEvent.type(screen.getByLabelText(/dorsal/i), "9");
+    await userEvent.click(screen.getAllByRole("button", { name: "" })[0]);
     await userEvent.click(screen.getByRole("button", { name: /cabeza/i }));
     await userEvent.click(screen.getByRole("button", { name: /confirmar/i }));
 
-    expect(onAddGoal).toHaveBeenCalledWith(
-      null,
-      null,
-      9,
-      false,
-      { col: 0, row: 0 },
-      "head",
-      0,
-    );
+    expect(onAddGoal).toHaveBeenCalledWith(null, null, 9, false, { col: 0, row: 0 }, "head", 0);
   });
 
-  it("own-team flow lists fieldPlayers and also collects pitch zone + body part", async () => {
-    const onAddGoal = renderScoreboard();
-    await userEvent.click(screen.getByRole("button", { name: /^gol$/i }));
+  it("el gol a favor se registra como gol propio eligiendo al goleador entre los jugadores del campo", async () => {
+    const { onAddGoal } = renderButtons();
+    await userEvent.click(screen.getByRole("button", { name: "Gol a favor" }));
 
-    expect(screen.getByText("Jugador Uno")).toBeInTheDocument();
     await userEvent.click(screen.getByText("Jugador Uno"));
-
-    const cells = screen.getAllByRole("button", { name: "" });
-    await userEvent.click(cells[3]);
+    await userEvent.click(screen.getAllByRole("button", { name: "" })[3]);
     await userEvent.click(screen.getByRole("button", { name: /pie/i }));
     await userEvent.click(screen.getByRole("button", { name: /confirmar/i }));
 
-    expect(onAddGoal).toHaveBeenCalledWith(
-      "p1",
-      "Jugador Uno",
-      9,
-      true,
-      { col: 3, row: 0 },
-      "foot",
-      0,
-    );
+    expect(onAddGoal).toHaveBeenCalledWith("p1", "Jugador Uno", 9, true, { col: 3, row: 0 }, "foot", 0);
   });
 
-  it("pre-fills the goal minute with the current match minute and lets the coach adjust it", async () => {
-    const onAddGoal = vi.fn();
-    render(
-      <LiveMatchScoreboard
-        localTeamName="Local FC"
-        visitorTeamName="Visitor FC"
-        scoreLocal={0}
-        scoreVisitor={0}
-        matchPhase="firstHalf"
-        fieldPlayers={fieldPlayers}
-        isHomeTeam={true}
-        currentMinute={37}
-        onAddGoal={onAddGoal}
-      />,
-    );
-
-    await userEvent.click(screen.getByRole("button", { name: /gol rival/i }));
+  it("rellena el minuto del gol con el minuto actual y permite corregirlo", async () => {
+    const { onAddGoal } = renderButtons({ currentMinute: 37 });
+    await userEvent.click(screen.getByRole("button", { name: "Gol en contra" }));
 
     const minuteInput = screen.getByLabelText(/minuto/i) as HTMLInputElement;
     expect(minuteInput.value).toBe("37");
-
     await userEvent.clear(minuteInput);
     await userEvent.type(minuteInput, "40");
-
-    const dorsalInput = screen.getByLabelText(/dorsal/i);
-    await userEvent.type(dorsalInput, "9");
+    await userEvent.type(screen.getByLabelText(/dorsal/i), "9");
     await userEvent.click(screen.getByRole("button", { name: /confirmar/i }));
 
     expect(onAddGoal).toHaveBeenCalledWith(null, null, 9, false, null, null, 40);
   });
 });
 
-describe("LiveMatchScoreboard - botones visibles antes de empezar el partido", () => {
-  function renderPreMatch() {
-    render(
-      <LiveMatchScoreboard
-        localTeamName="Local FC"
-        visitorTeamName="Visitor FC"
-        scoreLocal={0}
-        scoreVisitor={0}
-        matchPhase="preMatch"
-        fieldPlayers={fieldPlayers}
-        isHomeTeam
-        onAddGoal={vi.fn()}
-        onAddCard={vi.fn()}
-      />,
-    );
-  }
+describe("LiveMatchEventButtons - tarjetas", () => {
+  it("la tarjeta nuestra lista los jugadores propios y no pide dorsal rival", async () => {
+    renderButtons();
 
-  it("muestra los botones de gol desactivados antes de empezar", () => {
-    renderPreMatch();
+    await userEvent.click(screen.getByRole("button", { name: "Tarjeta nuestra" }));
 
-    expect(screen.getByRole("button", { name: /^gol$/i })).toBeDisabled();
-    expect(screen.getByRole("button", { name: /gol rival/i })).toBeDisabled();
+    expect(screen.getByText("Jugador Uno")).toBeInTheDocument();
+    expect(screen.queryByText("Rival")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/dorsal/i)).not.toBeInTheDocument();
   });
 
-  it("muestra el botón de tarjeta desactivado antes de empezar", () => {
-    renderPreMatch();
+  it("la tarjeta nuestra se registra para el jugador elegido", async () => {
+    const { onAddCard } = renderButtons();
+    await userEvent.click(screen.getByRole("button", { name: "Tarjeta nuestra" }));
 
-    expect(screen.getByRole("button", { name: /tarjeta/i })).toBeDisabled();
+    await userEvent.click(screen.getByText("Jugador Uno"));
+    await userEvent.click(screen.getByRole("button", { name: "Roja" }));
+    await userEvent.click(screen.getByRole("button", { name: "Guardar" }));
+
+    expect(onAddCard).toHaveBeenCalledWith("p1", "Jugador Uno", false, null, "red");
+  });
+
+  it("la tarjeta rival pide solo el dorsal, sin la lista de jugadores propios", async () => {
+    renderButtons();
+
+    await userEvent.click(screen.getByRole("button", { name: "Tarjeta rival" }));
+
+    expect(screen.getByLabelText(/dorsal/i)).toBeInTheDocument();
+    expect(screen.queryByText("Jugador Uno")).not.toBeInTheDocument();
+  });
+
+  it("la tarjeta rival se registra con el dorsal del rival", async () => {
+    const { onAddCard } = renderButtons();
+    await userEvent.click(screen.getByRole("button", { name: "Tarjeta rival" }));
+
+    await userEvent.type(screen.getByLabelText(/dorsal/i), "4");
+    await userEvent.click(screen.getByRole("button", { name: "Amarilla" }));
+    await userEvent.click(screen.getByRole("button", { name: "Guardar" }));
+
+    expect(onAddCard).toHaveBeenCalledWith(null, null, true, 4, "yellow");
   });
 });

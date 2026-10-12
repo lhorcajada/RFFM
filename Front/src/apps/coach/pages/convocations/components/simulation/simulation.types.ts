@@ -37,6 +37,8 @@ export interface SubstitutionWindow {
   slotsAfter: Record<number, string | null>;
   /** True when applied at halftime — does not count against window quota */
   isHalftime?: boolean;
+  /** True when players only entered empty positions and nobody left — does not count against window quota */
+  fillsEmptySlot?: boolean;
 }
 
 /** A fully serialisable saved match simulation (persisted to localStorage) */

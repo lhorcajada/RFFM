@@ -24,21 +24,22 @@ import {
   Snackbar,
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
-import SaveIcon from "@mui/icons-material/Save";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import GroupsIcon from "@mui/icons-material/Groups";
 import EmptyState from "../../../../../shared/components/ui/EmptyState/EmptyState";
+import ConfirmDialog from "../../../../../shared/components/ui/ConfirmDialog/ConfirmDialog";
 import { getIdealLineup } from "../../../services/idealLineupService";
 import { getFormations } from "../../../services/formationService";
 import { getTeamById, type TeamResponse } from "../../../services/teamService";
-import { FORMATION_POSITIONS } from "../../../types/formation";
+import { FORMATION_POSITIONS, FULL_TEAM_PLAYERS, formationsForPlayerCount } from "../../../types/formation";
 import type { Formation } from "../../../types/formation";
 import { useLiveMatch } from "../hooks/useLiveMatch";
 import LiveMatchTimer from "./simulation/LiveMatchTimer";
 import LiveMatchScoreboard from "./simulation/LiveMatchScoreboard";
 import GoalTimeline from "./simulation/GoalTimeline";
 import LiveMatchRecoveryDialog from "./simulation/LiveMatchRecoveryDialog";
-import LiveMatchManualEditDialog from "./simulation/LiveMatchManualEditDialog";
+import LiveMatchManualEditDialog, { type ManualEditFinalValues } from "./simulation/LiveMatchManualEditDialog";
+import LiveMatchEventButtons from "./simulation/LiveMatchEventButtons";
 import SimulationField from "./simulation/SimulationField";
 import SubstitutionWindowTracker from "./simulation/SubstitutionWindowTracker";
 import SubstitutionHistoryPanel from "./simulation/SubstitutionHistoryPanel";
@@ -52,6 +53,7 @@ import { CompactBenchCard, DraggableCompactBenchCard } from "./simulation/Compac
 import { saveMatchParticipation, updateMatchParticipationReason } from "../../../services/liveMatchService";
 import type { LiveMatchParticipationPayload, PlayerParticipationDto } from "./simulation/liveMatch.types";
 import MinutesReasonEditor from "./MinutesReasonEditor";
+import { getCardStatus, getExpelledIds, type CardStatus } from "../utils/expulsions";
 import styles from "./PartidoEnDirectoTab.module.css";
 import simStyles from "./SimulacionTab.module.css";
 
@@ -87,7 +89,6 @@ export default function PartidoEnDirectoTab({
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [formations, setFormations] = useState<Formation[]>([]);
-  const [formationId, setFormationId] = useState<string>("");
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [manualEditOpen, setManualEditOpen] = useState(false);
   const [manualMinuteOverrides, setManualMinuteOverrides] = useState<Record<string, number>>({});
@@ -138,7 +139,6 @@ export default function PartidoEnDirectoTab({
           setLoading(false);
           return;
         }
-        setFormationId(lineup.formationId);
         const slotMap: Record<number, string | null> = {};
         lineup.slots.forEach((s) => { slotMap[s.slotIndex] = s.teamPlayerId; });
         const startingFormation = formList.find((f) => f.id === lineup.formationId);
@@ -204,12 +204,29 @@ export default function PartidoEnDirectoTab({
     [lineupPlayers],
   );
 
-  // ── Formation slot definitions ────────────────────────────────────────────
-  const slotDefs = useMemo(() => {
-    const formation = formations.find((f) => f.id === formationId);
-    if (!formation) return [];
-    return FORMATION_POSITIONS[formation.name] ?? [];
-  }, [formations, formationId]);
+  // ── Cards: what each player's photo shows, and who has been sent off ──────
+  const expelledIds = useMemo(() => getExpelledIds(live.cards), [live.cards]);
+
+  const cardStatusById = useMemo<Record<string, CardStatus>>(
+    () => Object.fromEntries(lineupPlayers.map((p) => [p.id, getCardStatus(live.cards, p.id)])),
+    [lineupPlayers, live.cards],
+  );
+
+  // ── Formation: the one on the field, and the ones the team may switch to ──
+  const formationId = live.currentFormation?.id ?? "";
+
+  const slotDefs = useMemo(
+    () => (live.currentFormation ? (FORMATION_POSITIONS[live.currentFormation.name] ?? []) : []),
+    [live.currentFormation],
+  );
+
+  const selectableFormations = useMemo(() => {
+    const allowedPlayers = FULL_TEAM_PLAYERS - expelledIds.size;
+    const forAllowedPlayers = formationsForPlayerCount(allowedPlayers, formations);
+    const current = live.currentFormation;
+    const currentIsListed = !current || forAllowedPlayers.some((f) => f.id === current.id);
+    return currentIsListed ? forAllowedPlayers : [current, ...forAllowedPlayers];
+  }, [formations, expelledIds, live.currentFormation]);
 
   // ── Bench players ─────────────────────────────────────────────────────────
   const benchPlayers = useMemo(() => {
@@ -301,6 +318,7 @@ export default function PartidoEnDirectoTab({
     const draggedMatch = activeRaw.match(/^sim-player-(?:bench-|list-)?(.+)$/);
     const draggedId = draggedMatch ? draggedMatch[1] : activeRaw.replace(/^sim-player-/, "");
     const overId = over.id as string;
+    if (expelledIds.has(draggedId)) return;
 
     if (live.prepareMode) {
       if (overId.startsWith("sim-slot-")) {
@@ -337,7 +355,7 @@ export default function PartidoEnDirectoTab({
   // ── Formation change: applied directly before kick-off (it just redefines
   // the starting lineup), confirmed and recorded in the history mid-match ───
   const canChangeFormation = live.matchPhase !== "finished";
-  const pendingFormation = formations.find((f) => f.id === pendingFormationId) ?? null;
+  const pendingFormation = selectableFormations.find((f) => f.id === pendingFormationId) ?? null;
 
   function slotsForFormation(formation: Formation): Record<number, string | null> {
     const newSlotDefs = FORMATION_POSITIONS[formation.name] ?? [];
@@ -352,10 +370,9 @@ export default function PartidoEnDirectoTab({
   function handleFormationSelectChange(newFormationId: string) {
     if (!newFormationId || newFormationId === formationId) return;
     if (live.matchPhase === "preMatch") {
-      const formation = formations.find((f) => f.id === newFormationId);
+      const formation = selectableFormations.find((f) => f.id === newFormationId);
       if (!formation) return;
       live.initMatch(slotsForFormation(formation), { id: formation.id, name: formation.name });
-      setFormationId(formation.id);
       return;
     }
     setPendingFormationId(newFormationId);
@@ -371,7 +388,6 @@ export default function PartidoEnDirectoTab({
       return;
     }
     live.changeFormation(pendingFormation.id, pendingFormation.name, slotsForFormation(pendingFormation));
-    setFormationId(pendingFormation.id);
     setPendingFormationId(null);
   }
 
@@ -412,7 +428,7 @@ export default function PartidoEnDirectoTab({
   );
 
   // ── Manual edit save ─────────────────────────────────────────────────────
-  const handleManualSave = useCallback(async (overrides: Record<string, number>) => {
+  const handleManualSave = useCallback(async (overrides: Record<string, number>, finalValues: ManualEditFinalValues) => {
     setManualMinuteOverrides(overrides);
     if (!eventId) return;
 
@@ -431,8 +447,8 @@ export default function PartidoEnDirectoTab({
 
     const payload: LiveMatchParticipationPayload = {
       teamId,
-      scoreLocal: live.scoreLocal,
-      scoreVisitor: live.scoreVisitor,
+      scoreLocal: finalValues.scoreLocal,
+      scoreVisitor: finalValues.scoreVisitor,
       matchPhase: "finished",
       players,
       substitutionWindowsJson: JSON.stringify(live.windows),
@@ -440,10 +456,11 @@ export default function PartidoEnDirectoTab({
       goalsJson: JSON.stringify(live.goals),
       cardsJson: JSON.stringify(live.cards),
       formationChangesJson: JSON.stringify(live.formationChanges),
+      matchDurationMinutes: finalValues.matchDurationMinutes,
     };
 
     await saveMatchParticipation(eventId, payload);
-  }, [eventId, teamId, lineupPlayers, live.initialSlots, live.scoreLocal, live.scoreVisitor, live.windows, live.ratingSnapshots, live.goals, live.cards, live.formationChanges, live.savedParticipationData]);
+  }, [eventId, teamId, lineupPlayers, live.initialSlots, live.windows, live.ratingSnapshots, live.goals, live.cards, live.formationChanges, live.savedParticipationData]);
 
   // ── Effective minutes (manual override wins) ─────────────────────────────
   const effectiveMinutes = useMemo<Record<string, number>>(() => {
@@ -570,6 +587,7 @@ export default function PartidoEnDirectoTab({
         prepareMode={live.prepareMode}
         freeRepositionEnabled={!live.prepareMode && live.matchPhase !== "finished"}
         scorerIds={scorerIds}
+        cardStatusById={cardStatusById}
       />
       <div className={styles.liveSideColumn}>
         {ratingBar}
@@ -586,14 +604,24 @@ export default function PartidoEnDirectoTab({
           ) : live.prepareMode ? (
             <DroppableBench>
               <div className={simStyles.compactBenchItems}>
-                {currentBenchPlayers.map((p) => (
-                  <DraggableCompactBenchCard
-                    key={p.id}
-                    player={p}
-                    isLeaving={leavingIds.has(p.id)}
-                    minutesPlayed={effectiveMinutes[p.id] ?? 0}
-                  />
-                ))}
+                {currentBenchPlayers.map((p) =>
+                  expelledIds.has(p.id) ? (
+                    <CompactBenchCard
+                      key={p.id}
+                      player={p}
+                      minutesPlayed={effectiveMinutes[p.id] ?? 0}
+                      cardStatus={cardStatusById[p.id]}
+                    />
+                  ) : (
+                    <DraggableCompactBenchCard
+                      key={p.id}
+                      player={p}
+                      isLeaving={leavingIds.has(p.id)}
+                      minutesPlayed={effectiveMinutes[p.id] ?? 0}
+                      cardStatus={cardStatusById[p.id]}
+                    />
+                  ),
+                )}
               </div>
             </DroppableBench>
           ) : (
@@ -604,11 +632,19 @@ export default function PartidoEnDirectoTab({
                   player={p}
                   isLeaving={false}
                   minutesPlayed={effectiveMinutes[p.id] ?? 0}
+                  cardStatus={cardStatusById[p.id]}
                 />
               ))}
             </div>
           )}
         </div>
+        <LiveMatchEventButtons
+          matchPhase={live.matchPhase}
+          fieldPlayers={fieldPlayers}
+          currentMinute={live.currentMinute}
+          onAddGoal={live.addGoal}
+          onAddCard={live.addCard}
+        />
         <GoalTimeline goals={live.goals} onRemoveGoal={live.removeGoal} />
         <CardsTimeline cards={live.cards} onRemoveCard={live.removeCard} />
         <SubstitutionHistoryPanel windows={live.windows} playersById={playersById} />
@@ -649,15 +685,9 @@ export default function PartidoEnDirectoTab({
             visitorTeamShield={visitorTeamShield}
             scoreLocal={live.scoreLocal}
             scoreVisitor={live.scoreVisitor}
-            matchPhase={live.matchPhase}
-            fieldPlayers={fieldPlayers}
-            isHomeTeam={isHomeTeam}
-            currentMinute={live.currentMinute}
-            onAddGoal={live.addGoal}
-            onAddCard={live.addCard}
           />
         </div>
-        {formations.length > 0 && (
+        {selectableFormations.length > 0 && (
           <FormControl size="small" className={styles.formationSelect}>
             <InputLabel id="live-formation-select-label">Esquema</InputLabel>
             <Select
@@ -667,7 +697,7 @@ export default function PartidoEnDirectoTab({
               disabled={!canChangeFormation}
               onChange={(e) => handleFormationSelectChange(e.target.value as string)}
             >
-              {formations.map((f) => (
+              {selectableFormations.map((f) => (
                 <MenuItem key={f.id} value={f.id}>{f.name}</MenuItem>
               ))}
             </Select>
@@ -719,18 +749,6 @@ export default function PartidoEnDirectoTab({
             >
               Edición manual del partido
             </Button>
-            {!live.hasSavedData && (
-              <Button
-                variant="contained"
-                color="success"
-                size="small"
-                startIcon={live.isSaving ? <CircularProgress size={14} color="inherit" /> : <SaveIcon />}
-                disabled={live.isSaving}
-                onClick={live.requestSave}
-              >
-                Guardar datos del partido
-              </Button>
-            )}
             {live.hasSavedData && live.savedParticipationData && (
               <MinutesReasonEditor
                 players={live.savedParticipationData.players.map((p) => {
@@ -786,25 +804,15 @@ export default function PartidoEnDirectoTab({
         isLeaving={(id) => live.prepareMode && leavingIds.has(id)}
       />
 
-      {/* Save confirmation dialog */}
-      <Dialog
-        open={live.isSaveConfirmOpen}
-        onClose={live.cancelSave}
-        PaperProps={{ sx: { bgcolor: "#19192e", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 3, minWidth: 300 } }}
-      >
-        <DialogTitle sx={{ color: "#fff", fontSize: "0.95rem", fontWeight: 700 }}>
-          Guardar datos del partido
-        </DialogTitle>
-        <DialogContent sx={{ color: "rgba(255,255,255,0.7)", fontSize: "0.88rem" }}>
-          ¿Guardar los datos del partido en los jugadores?
-        </DialogContent>
-        <DialogActions sx={{ px: 2, pb: 2 }}>
-          <Button onClick={live.cancelSave} color="inherit" size="small">Cancelar</Button>
-          <Button onClick={live.confirmSave} variant="contained" color="success" size="small">
-            Guardar
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {/* An expulsion that leaves fewer than 7 players ends the match */}
+      <ConfirmDialog
+        open={!!live.pendingMinPlayersCard}
+        title="El equipo se queda con menos de 7 jugadores"
+        description="Con esta expulsión el árbitro debe dar el partido por terminado. Se finalizará y se guardará con el marcador actual; después podrás corregirlo en la edición manual."
+        confirmText="Finalizar partido"
+        onCancel={live.cancelMinPlayersEnd}
+        onConfirm={live.confirmMinPlayersEnd}
+      />
 
       {/* Delete saved data confirmation dialog */}
       <Dialog
@@ -938,7 +946,14 @@ export default function PartidoEnDirectoTab({
         open={live.saveError !== null}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
-        <Alert severity="error" onClose={live.dismissSaveError}>
+        <Alert
+          severity="error"
+          action={
+            <Button color="inherit" size="small" onClick={live.retrySave}>
+              Reintentar
+            </Button>
+          }
+        >
           {live.saveError}
         </Alert>
       </Snackbar>

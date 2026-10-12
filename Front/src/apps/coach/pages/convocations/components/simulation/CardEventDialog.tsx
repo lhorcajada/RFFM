@@ -31,6 +31,8 @@ interface CardEventDialogProps {
   onSubmit: (payload: CardEventSubmitPayload) => void;
   /** Pre-filled values when editing an existing card; omitted when adding a new one */
   initialValue?: CardEventSubmitPayload;
+  /** Restricts the dialog to own-team players or to a rival dorsal; omitted offers both */
+  side?: "own" | "rival";
 }
 
 export default function CardEventDialog({
@@ -39,6 +41,7 @@ export default function CardEventDialog({
   onClose,
   onSubmit,
   initialValue,
+  side,
 }: CardEventDialogProps) {
   const [selectedPlayer, setSelectedPlayer] = useState<SimSlotPlayer | null>(null);
   const [isRival, setIsRival] = useState(false);
@@ -65,11 +68,11 @@ export default function CardEventDialog({
     } else {
       // Add mode: reset
       setSelectedPlayer(null);
-      setIsRival(false);
+      setIsRival(side === "rival");
       setRivalDorsal("");
       setCardType(null);
     }
-  }, [open, initialValue, players]);
+  }, [open, initialValue, players, side]);
 
   function reset() {
     setSelectedPlayer(null);
@@ -128,7 +131,7 @@ export default function CardEventDialog({
       </DialogTitle>
       <DialogContent>
         <List dense sx={{ mb: 1 }}>
-          {players.map((p) => (
+          {side !== "rival" && players.map((p) => (
             <ListItemButton
               key={p.teamPlayerId}
               selected={selectedPlayer?.teamPlayerId === p.teamPlayerId}
@@ -146,16 +149,18 @@ export default function CardEventDialog({
               />
             </ListItemButton>
           ))}
-          <ListItemButton
-            selected={isRival}
-            onClick={handleSelectRival}
-            sx={{ "&:hover": { bgcolor: "rgba(251,146,60,0.1)" } }}
-          >
-            <ListItemText
-              primary="Rival"
-              primaryTypographyProps={{ sx: { color: "rgba(255,255,255,0.5)", fontSize: "0.85rem", fontStyle: "italic" } }}
-            />
-          </ListItemButton>
+          {side === undefined && (
+            <ListItemButton
+              selected={isRival}
+              onClick={handleSelectRival}
+              sx={{ "&:hover": { bgcolor: "rgba(251,146,60,0.1)" } }}
+            >
+              <ListItemText
+                primary="Rival"
+                primaryTypographyProps={{ sx: { color: "rgba(255,255,255,0.5)", fontSize: "0.85rem", fontStyle: "italic" } }}
+              />
+            </ListItemButton>
+          )}
         </List>
 
         {isRival && (

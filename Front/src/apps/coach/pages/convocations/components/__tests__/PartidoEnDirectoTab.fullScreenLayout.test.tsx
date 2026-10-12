@@ -63,6 +63,7 @@ function baseLiveMatch(overrides: Record<string, unknown> = {}) {
     scoreVisitor: 0,
     cards: [],
     formationChanges: [],
+    currentFormation: { id: "f1", name: "4-4-2" },
     unlimitedWindows: false,
     ratingSnapshots: [],
     pendingAction: null,
@@ -180,8 +181,10 @@ describe("PartidoEnDirectoTab - controles visibles antes de empezar el partido",
     renderTab();
     await screen.findByRole("combobox", { name: /esquema/i });
 
-    expect(screen.getByRole("button", { name: /^gol$/i })).toBeDisabled();
-    expect(screen.getByRole("button", { name: /tarjeta/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Gol a favor" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Gol en contra" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Tarjeta nuestra" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Tarjeta rival" })).toBeDisabled();
   });
 
   it("cambiar el esquema antes de empezar reinicia la alineación inicial sin pedir confirmación", async () => {
@@ -196,7 +199,7 @@ describe("PartidoEnDirectoTab - controles visibles antes de empezar el partido",
     expect(changeFormation).not.toHaveBeenCalled();
     expect(initMatch).toHaveBeenCalledTimes(2);
     expect(Object.values(initMatch.mock.calls[1][0])).toContain("p0");
-    expect(screen.getByRole("combobox", { name: /esquema/i })).toHaveTextContent("4-3-3");
+    expect(initMatch.mock.calls[1][1]).toMatchObject({ name: "4-3-3" });
   });
 });
 

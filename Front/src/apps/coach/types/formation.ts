@@ -257,3 +257,75 @@ export const FORMATION_POSITIONS: Record<string, FormationSlotDef[]> = {
     { slotIndex: 10, label: "DC",  x: 79, y: 50 },
   ],
 };
+
+// ─── Reduced formations (after own-team expulsions) ──────────────────────────
+
+export type ReducedPlayerCount = 7 | 8 | 9 | 10;
+
+export const MIN_ON_FIELD_PLAYERS = 7;
+export const FULL_TEAM_PLAYERS = 11;
+
+const REDUCED_FORMATION_ID_PREFIX = "reduced:";
+
+/** Outfield line sizes (defenders-midfielders-forwards); the first one of each size is its default. */
+const REDUCED_FORMATION_NAMES: Record<ReducedPlayerCount, string[]> = {
+  10: ["4-4-1", "4-3-2", "4-2-3", "3-4-2", "3-5-1", "5-3-1"],
+  9: ["4-3-1", "4-2-2", "3-4-1", "3-3-2", "5-2-1"],
+  8: ["4-2-1", "3-3-1", "3-2-2", "4-3-0"],
+  7: ["3-2-1", "2-3-1", "2-2-2", "3-3-0"],
+};
+
+const LINE_X = [28, 52, 78];
+const LINE_LABELS = ["DF", "MC", "DC"];
+const LINE_Y: Record<number, number[]> = {
+  1: [50],
+  2: [35, 65],
+  3: [25, 50, 75],
+  4: [15, 38, 62, 85],
+  5: [10, 30, 50, 70, 90],
+};
+
+function buildReducedSlotDefs(name: string): FormationSlotDef[] {
+  const defs: FormationSlotDef[] = [{ slotIndex: 0, label: "PT", x: 12, y: 50 }];
+  name.split("-").map(Number).forEach((lineSize, lineIndex) => {
+    for (const y of LINE_Y[lineSize] ?? []) {
+      defs.push({ slotIndex: defs.length, label: LINE_LABELS[lineIndex], x: LINE_X[lineIndex], y });
+    }
+  });
+  return defs;
+}
+
+function toReducedFormations(names: string[]): Formation[] {
+  return names.map((name) => ({ id: `${REDUCED_FORMATION_ID_PREFIX}${name}`, name }));
+}
+
+/** Formations for a team playing with fewer than 11 players; they only exist in the live match. */
+export const REDUCED_FORMATIONS: Record<ReducedPlayerCount, Formation[]> = {
+  10: toReducedFormations(REDUCED_FORMATION_NAMES[10]),
+  9: toReducedFormations(REDUCED_FORMATION_NAMES[9]),
+  8: toReducedFormations(REDUCED_FORMATION_NAMES[8]),
+  7: toReducedFormations(REDUCED_FORMATION_NAMES[7]),
+};
+
+for (const names of Object.values(REDUCED_FORMATION_NAMES)) {
+  for (const name of names) {
+    FORMATION_POSITIONS[name] = buildReducedSlotDefs(name);
+  }
+}
+
+function toReducedCount(count: number): ReducedPlayerCount {
+  return Math.min(10, Math.max(MIN_ON_FIELD_PLAYERS, count)) as ReducedPlayerCount;
+}
+
+/** Formations a team allowed to field `count` players can use. */
+export function formationsForPlayerCount(count: number, fullTeamFormations: Formation[]): Formation[] {
+  if (count >= FULL_TEAM_PLAYERS) return fullTeamFormations;
+  return REDUCED_FORMATIONS[toReducedCount(count)];
+}
+
+/** Formation applied right after an expulsion: keeps the current number of defenders when possible. */
+export function defaultReducedFormation(count: number, currentFormationName: string | null): Formation {
+  const candidates = REDUCED_FORMATIONS[toReducedCount(count)];
+  const currentDefenders = currentFormationName?.split("-")[0];
+  return candidates.find((f) => f.name.split("-")[0] === currentDefenders) ?? candidates[0];
+}

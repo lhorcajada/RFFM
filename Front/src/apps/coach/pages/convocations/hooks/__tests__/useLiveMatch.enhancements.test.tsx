@@ -128,14 +128,8 @@ describe("useLiveMatch - cards", () => {
     act(() => {
       result.current.setPendingAction("endMatch");
     });
-    act(() => {
-      result.current.confirmAction();
-    });
-    act(() => {
-      result.current.requestSave();
-    });
     await act(async () => {
-      result.current.confirmSave();
+      result.current.confirmAction();
     });
 
     expect(saveMatchParticipation).toHaveBeenCalled();
@@ -295,7 +289,7 @@ describe("useLiveMatch - addGoal/addCard with explicit minute/half", () => {
     startMatch(result, { 0: "p1" });
 
     act(() => {
-      result.current.addCard("p1", "Jugador Uno", false, null, "red", 20, 2);
+      result.current.addCard("p1", "Jugador Uno", false, null, "yellow", 20, 2);
     });
 
     expect(result.current.cards[0].minute).toBe(20);

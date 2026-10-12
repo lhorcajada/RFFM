@@ -32,9 +32,8 @@ function play(result: Hook) {
 
 async function endAndSave(result: Hook): Promise<LiveMatchParticipationPayload> {
   act(() => result.current.setPendingAction("endMatch"));
-  act(() => result.current.confirmAction());
   await act(async () => {
-    result.current.confirmSave();
+    result.current.confirmAction();
   });
   return vi.mocked(saveMatchParticipation).mock.calls[0][1];
 }

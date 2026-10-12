@@ -2,6 +2,8 @@ import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import PlayerFormBars from "../../../../components/PlayerFormBars/PlayerFormBars";
 import type { LiveReadinessBreakdown } from "../../utils/liveReadiness";
+import type { CardStatus } from "../../utils/expulsions";
+import PlayerCardBadge from "./PlayerCardBadge";
 import styles from "./SimulationPlayerSlot.module.css";
 
 export interface SimSlotPlayer {
@@ -41,6 +43,8 @@ interface SimulationPlayerSlotProps {
   hasGoals?: boolean;
   activeTab?: number;
   usedTabById?: Record<string, number>;
+  /** Cards shown to this player in the match, drawn over the photo */
+  cardStatus?: CardStatus;
 }
 
 // ─── Draggable card (used only in prepare mode) ───────────────────────────────
@@ -52,6 +56,7 @@ function DraggablePrepareCard({
   hasGoals,
   usedTab,
   usedElsewhere,
+  cardStatus,
 }: {
   player: SimSlotPlayer;
   entering: boolean;
@@ -59,6 +64,7 @@ function DraggablePrepareCard({
   hasGoals?: boolean;
   usedTab?: number;
   usedElsewhere?: boolean;
+  cardStatus?: CardStatus;
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `sim-player-${player.teamPlayerId}`,
@@ -99,6 +105,7 @@ function DraggablePrepareCard({
       {entering && <span className={styles.enteringBadge}>ENTRA</span>}
       {leaving && <span className={styles.leavingBadge}>SALE</span>}
       {hasGoals && <span className={styles.goalBadge}>⚽</span>}
+      {cardStatus && <PlayerCardBadge status={cardStatus} />}
       {usedElsewhere ? <span className={styles.usedBadgeSlot}>Equipo {usedTab! + 1}</span> : null}
     </div>
   );
@@ -106,7 +113,7 @@ function DraggablePrepareCard({
 
 // ─── Draggable static card (free repositioning, no substitution window) ──────
 
-function DraggableStaticCard({ player, hasGoals, usedTab, usedElsewhere }: { player: SimSlotPlayer; hasGoals?: boolean; usedTab?: number; usedElsewhere?: boolean }) {
+function DraggableStaticCard({ player, hasGoals, usedTab, usedElsewhere, cardStatus }: { player: SimSlotPlayer; hasGoals?: boolean; usedTab?: number; usedElsewhere?: boolean; cardStatus?: CardStatus }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `sim-player-${player.teamPlayerId}`,
   });
@@ -137,6 +144,7 @@ function DraggableStaticCard({ player, hasGoals, usedTab, usedElsewhere }: { pla
       </div>
       {player.dorsal != null && <span className={styles.dorsalBadge}>{player.dorsal}</span>}
       {hasGoals && <span className={styles.goalBadge}>⚽</span>}
+      {cardStatus && <PlayerCardBadge status={cardStatus} />}
       {usedElsewhere ? <span className={styles.usedBadgeSlot}>Equipo {usedTab! + 1}</span> : null}
     </div>
   );
@@ -144,7 +152,7 @@ function DraggableStaticCard({ player, hasGoals, usedTab, usedElsewhere }: { pla
 
 // ─── Static card (normal game mode) ──────────────────────────────────────────
 
-function StaticCard({ player, hasGoals, usedTab, usedElsewhere }: { player: SimSlotPlayer; hasGoals?: boolean; usedTab?: number; usedElsewhere?: boolean }) {
+function StaticCard({ player, hasGoals, usedTab, usedElsewhere, cardStatus }: { player: SimSlotPlayer; hasGoals?: boolean; usedTab?: number; usedElsewhere?: boolean; cardStatus?: CardStatus }) {
   const initials = player.displayName
     .split(" ")
     .slice(0, 2)
@@ -163,6 +171,7 @@ function StaticCard({ player, hasGoals, usedTab, usedElsewhere }: { player: SimS
       </div>
       {player.dorsal != null && <span className={styles.dorsalBadge}>{player.dorsal}</span>}
       {hasGoals && <span className={styles.goalBadge}>⚽</span>}
+      {cardStatus && <PlayerCardBadge status={cardStatus} />}
       {usedElsewhere ? <span className={styles.usedBadgeSlot}>Equipo {usedTab! + 1}</span> : null}
     </div>
   );
@@ -185,6 +194,7 @@ export default function SimulationPlayerSlot({
   hasGoals = false,
   activeTab,
   usedTabById,
+  cardStatus,
 }: SimulationPlayerSlotProps) {
   const dropId = slotIdPrefix ? `sim-slot-${slotIdPrefix}-${slotIndex}` : `sim-slot-${slotIndex}`;
   const { setNodeRef: dropRef, isOver } = useDroppable({ id: dropId });
@@ -209,11 +219,11 @@ export default function SimulationPlayerSlot({
       <div className={`${styles.dropTarget} ${isOver ? styles.over : ""} ${player ? styles.occupied : ""}`}>
         {player ? (
           prepareMode ? (
-            <DraggablePrepareCard player={player} entering={entering} leaving={leaving} hasGoals={hasGoals} usedTab={usedTab} usedElsewhere={usedElsewhere} />
+            <DraggablePrepareCard player={player} entering={entering} leaving={leaving} hasGoals={hasGoals} usedTab={usedTab} usedElsewhere={usedElsewhere} cardStatus={cardStatus} />
           ) : freeRepositionEnabled ? (
-            <DraggableStaticCard player={player} hasGoals={hasGoals} usedTab={usedTab} usedElsewhere={usedElsewhere} />
+            <DraggableStaticCard player={player} hasGoals={hasGoals} usedTab={usedTab} usedElsewhere={usedElsewhere} cardStatus={cardStatus} />
           ) : (
-            <StaticCard player={player} hasGoals={hasGoals} usedTab={usedTab} usedElsewhere={usedElsewhere} />
+            <StaticCard player={player} hasGoals={hasGoals} usedTab={usedTab} usedElsewhere={usedElsewhere} cardStatus={cardStatus} />
           )
         ) : (
           <span className={styles.emptyLabel}>{label}</span>

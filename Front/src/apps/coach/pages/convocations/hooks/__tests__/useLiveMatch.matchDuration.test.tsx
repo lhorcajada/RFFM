@@ -71,21 +71,27 @@ describe("useLiveMatch - duración del partido", () => {
     expect(result.current.matchDurationMinutes).toBe(80);
   });
 
-  it("se puede corregir y se envía al guardar", async () => {
+  it("al finalizar se guarda con la duración del cronómetro", async () => {
+    const { result } = renderHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
+
+    playAndEnd(result, 83 * 60 * 1000);
+    await act(async () => {});
+
+    expect(saveMatchParticipation).toHaveBeenCalledWith(
+      EVENT_ID,
+      expect.objectContaining({ matchDurationMinutes: 83 }),
+    );
+  });
+
+  it("se puede corregir después de finalizar", () => {
     const { result } = renderHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
     playAndEnd(result, 83 * 60 * 1000);
 
     act(() => {
       result.current.setMatchDuration(70);
     });
-    await act(async () => {
-      result.current.confirmSave();
-    });
 
-    expect(saveMatchParticipation).toHaveBeenCalledWith(
-      EVENT_ID,
-      expect.objectContaining({ matchDurationMinutes: 70 }),
-    );
+    expect(result.current.matchDurationMinutes).toBe(70);
   });
 
   it("limita la duración editada a 0-200 minutos enteros", () => {

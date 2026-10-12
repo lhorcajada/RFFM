@@ -3,6 +3,8 @@ import { CSS } from "@dnd-kit/utilities";
 import type { ReactNode } from "react";
 import PlayerFormBars from "../../../../components/PlayerFormBars/PlayerFormBars";
 import { computeLiveReadiness } from "../../utils/liveReadiness";
+import type { CardStatus } from "../../utils/expulsions";
+import PlayerCardBadge from "./PlayerCardBadge";
 import type { SquadPlayer } from "../../../squad/components/IdealLineup";
 import slotStyles from "./SimulationPlayerSlot.module.css";
 import styles from "./CompactBenchCard.module.css";
@@ -29,6 +31,8 @@ export interface CompactBenchCardProps {
   isDragActive?: boolean;
   /** Optional small action buttons under the avatar (e.g. deconvoke in the pre-match lineup). */
   actions?: ReactNode;
+  /** Cards shown to this player in the match, drawn over the photo */
+  cardStatus?: CardStatus;
 }
 
 export function CompactBenchCard({
@@ -37,6 +41,7 @@ export function CompactBenchCard({
   isLeaving = false,
   isDragActive = false,
   actions,
+  cardStatus,
 }: CompactBenchCardProps) {
   const initials = player.displayName
     .split(" ")
@@ -62,6 +67,7 @@ export function CompactBenchCard({
         </div>
         {player.dorsal != null && <span className={slotStyles.dorsalBadge}>{player.dorsal}</span>}
         {isLeaving && <span className={slotStyles.leavingBadge}>SALE</span>}
+        {cardStatus && <PlayerCardBadge status={cardStatus} />}
       </div>
       {minutesPlayed > 0 && !isLeaving && (
         <span className={slotStyles.minuteTag}>{minutesPlayed}&apos;</span>
@@ -86,6 +92,7 @@ export function DraggableCompactBenchCard({
   minutesPlayed = 0,
   isLeaving = false,
   actions,
+  cardStatus,
 }: Omit<CompactBenchCardProps, "isDragActive">) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `sim-player-${player.id}`,
@@ -100,6 +107,7 @@ export function DraggableCompactBenchCard({
         isLeaving={isLeaving}
         isDragActive={isDragging}
         actions={actions}
+        cardStatus={cardStatus}
       />
     </div>
   );

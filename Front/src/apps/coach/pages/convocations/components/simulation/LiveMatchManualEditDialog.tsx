@@ -26,13 +26,20 @@ interface ManualMinutes {
   [teamPlayerId: string]: string; // string so the input works uncontrolled
 }
 
+/** Score and duration as left in the dialog, handed to the save so it doesn't use stale values */
+export interface ManualEditFinalValues {
+  scoreLocal: number;
+  scoreVisitor: number;
+  matchDurationMinutes: number;
+}
+
 interface LiveMatchManualEditDialogProps {
   open: boolean;
   onClose: () => void;
   lineupPlayers: SquadPlayer[];
   /** Initial minutes per teamPlayerId */
   currentMinutes: Record<string, number>;
-  onSaveMinutes: (overrides: Record<string, number>) => void;
+  onSaveMinutes: (overrides: Record<string, number>, finalValues: ManualEditFinalValues) => void;
   localTeamName: string;
   visitorTeamName: string;
   scoreLocal: number;
@@ -150,7 +157,11 @@ export default function LiveMatchManualEditDialog({
       setError(`Revisa la duración del partido (debe ser un número entre 0 y ${MAX_MATCH_DURATION_MINUTES}).`);
       return;
     }
-    onSaveMinutes(overrides);
+    onSaveMinutes(overrides, {
+      scoreLocal: parsedScoreLocal,
+      scoreVisitor: parsedScoreVisitor,
+      matchDurationMinutes: parsedDuration,
+    });
     onSetScore(parsedScoreLocal, parsedScoreVisitor);
     onSetMatchDuration(parsedDuration);
     onClose();
