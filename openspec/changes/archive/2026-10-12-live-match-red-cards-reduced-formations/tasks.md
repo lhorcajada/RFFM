@@ -72,7 +72,7 @@ contiguo. Verificación de cada bloque: `npx vitest run src/apps/coach/pages/con
 ## 6. Cierre
 
 - [x] 6.1 `npm run build` y `npm run test` completos en verde.
-- [ ] 6.2 Comprobación visual a ~380px y en tablet apaisada (tarjetas en la foto, apartado de
+- [x] 6.2 Comprobación visual a ~380px y en tablet apaisada (tarjetas en la foto, apartado de
       botones, esquemas reducidos).
 - [x] 6.3 Subir la versión minor de `Front/package.json` y patch de la API
       (`Directory.Build.props`), cada una en su commit.
