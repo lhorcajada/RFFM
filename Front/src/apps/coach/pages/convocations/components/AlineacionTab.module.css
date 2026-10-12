@@ -11,6 +11,14 @@
   min-width: 0;
 }
 
+/* El banquillo crece con su contenido: sin el tope de alto ni el scroll interno de
+   .sidePanel (si no cupiera, hace scroll la columna lateral). Selector doblado para
+   ganar a SimulacionTab.module.css, que puede inyectarse después. */
+.benchPanel.benchPanel {
+  max-height: none;
+  overflow-y: visible;
+}
+
 /* Botones pequeños bajo el avatar (desconvocar, aceptar, pasar al banquillo). */
 .avatarAction {
   display: inline-flex;

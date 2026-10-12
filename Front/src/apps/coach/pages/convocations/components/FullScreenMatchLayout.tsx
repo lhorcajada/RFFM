@@ -6,7 +6,7 @@ import styles from "./FullScreenMatchLayout.module.css";
 
 type Props = {
   onBack: () => void;
-  /** Acciones propias de la pantalla (Guardar, motivos…), a la izquierda de "Volver". */
+  /** Acciones propias de la pantalla (Guardar…), alineadas a la derecha junto a "Volver". */
   actions?: ReactNode;
   /** Mientras se carga el partido se muestra un spinner en lugar del contenido. */
   loading?: boolean;

@@ -8,7 +8,6 @@ import type { IdealLineupHandle, SquadPlayer } from "../../squad/components/Idea
 const getSportEventByIdMock = vi.fn();
 const saveLineupMock = vi.fn().mockResolvedValue(undefined);
 const moveToNotCalledMock = vi.fn().mockResolvedValue(undefined);
-const saveMinutesReasonMock = vi.fn().mockResolvedValue(undefined);
 
 vi.mock("../../../services/sportEventService", () => ({
   getSportEventById: (...args: unknown[]) => getSportEventByIdMock(...args),
@@ -18,11 +17,9 @@ vi.mock("../hooks/useMatchSquad", () => ({
   useMatchSquad: () => ({
     convocation: {
       excuseTypes: [{ id: 7, name: "Decisión técnica", justified: false }],
-      mgmtMinutesReasonMap: { p1: "Vuelta de lesión" },
       moveToNotCalled: (...args: unknown[]) => moveToNotCalledMock(...args),
       moveToAvailable: vi.fn(),
       acceptPending: vi.fn(),
-      saveMinutesReason: (...args: unknown[]) => saveMinutesReasonMock(...args),
     },
     lineupPlayers: [
       { id: "p1", displayName: "Jugador Uno" },
@@ -131,11 +128,11 @@ describe("LineupPage - alineación a pantalla completa", () => {
     expect(saveLineupMock).toHaveBeenCalledTimes(1);
   });
 
-  it("muestra el botón de motivos de minutos en la barra", async () => {
+  it("no muestra el botón de motivos de minutos en la alineación", async () => {
     renderPage();
     await screen.findByTestId("alineacion");
 
-    expect(screen.getByRole("button", { name: /motivos de minutos/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /motivos de minutos/i })).not.toBeInTheDocument();
   });
 
   it("desconvocar pide el motivo y lo guarda", async () => {

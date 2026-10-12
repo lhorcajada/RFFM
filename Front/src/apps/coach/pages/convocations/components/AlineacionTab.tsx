@@ -200,7 +200,7 @@ export default function AlineacionTab({
   );
 
   const benchPanel = (
-    <div className={simStyles.sidePanel}>
+    <div className={`${simStyles.sidePanel} ${styles.benchPanel}`}>
       <div className={simStyles.panelHeader}>
         Banquillo
         <span className={simStyles.panelBadge}>{benchPlayers.length}</span>

@@ -34,7 +34,7 @@ function renderTab() {
 }
 
 describe("AlineacionTab — motivo de minutos (pre-partido)", () => {
-  it("no renderiza ningún control de motivos de minutos — el botón único vive en la barra de acciones", async () => {
+  it("no renderiza ningún control de motivos de minutos — los motivos se gestionan en el partido en directo", async () => {
     renderTab();
 
     await screen.findByText("Jugador Uno");

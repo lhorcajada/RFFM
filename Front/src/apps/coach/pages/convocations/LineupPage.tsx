@@ -5,7 +5,6 @@ import type { IdealLineupHandle } from "../squad/components/IdealLineup";
 import AlineacionTab from "./components/AlineacionTab";
 import ConvocationDeconvokeDialog from "./components/ConvocationDeconvokeDialog";
 import FullScreenMatchLayout from "./components/FullScreenMatchLayout";
-import MinutesReasonEditor from "./components/MinutesReasonEditor";
 import { useMatchFromUrl } from "./hooks/useMatchFromUrl";
 import { useMatchSquad } from "./hooks/useMatchSquad";
 
@@ -37,25 +36,16 @@ export default function LineupPage() {
     await convocation.moveToNotCalled(playerId, pendingDeconvokeExcuse);
   }, [pendingDeconvokeId, pendingDeconvokeExcuse, convocation]);
 
-  const minutesReasonsPlayers = lineupPlayers.map((p) => ({
-    id: p.id,
-    label: p.alias?.trim() || p.displayName,
-    reason: convocation.mgmtMinutesReasonMap?.[p.id] ?? null,
-  }));
-
   const actions = eventId && attendingPlayers.length > 0 && (
-    <>
-      <Button
-        variant="contained"
-        size="small"
-        startIcon={saving ? <CircularProgress size={14} color="inherit" /> : <SaveIcon />}
-        disabled={saving}
-        onClick={() => lineupRef.current?.save()}
-      >
-        Guardar
-      </Button>
-      <MinutesReasonEditor players={minutesReasonsPlayers} onSave={convocation.saveMinutesReason} />
-    </>
+    <Button
+      variant="contained"
+      size="small"
+      startIcon={saving ? <CircularProgress size={14} color="inherit" /> : <SaveIcon />}
+      disabled={saving}
+      onClick={() => lineupRef.current?.save()}
+    >
+      Guardar
+    </Button>
   );
 
   return (
