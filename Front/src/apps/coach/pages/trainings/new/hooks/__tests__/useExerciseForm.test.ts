@@ -50,6 +50,74 @@ describe("useExerciseForm — volver", () => {
   });
 });
 
+describe("useExerciseForm — volver tras crear un ejercicio", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  const exercise: Exercise = {
+    id: "ex-1",
+    name: "Ejercicio",
+    tipo: "Global",
+    objetivo: "Objetivo",
+    modelRelations: [],
+    nivelesColumnas: ["Palanca 1"],
+    niveles: [
+      { nivel: 1, valores: {} },
+      { nivel: 2, valores: {} },
+    ],
+    logistica: "10 min",
+    descripcion: "Desc",
+    isAssociatedToGameModel: false,
+  };
+
+  function fillRequiredFields(result: { current: ReturnType<typeof useExerciseForm> }) {
+    act(() => result.current.setField("name", "Ejercicio completo"));
+    act(() => result.current.setField("objetivo", "Objetivo claro"));
+    act(() => result.current.setField("logistica", "12 min, 20 jugadores"));
+    act(() => result.current.setField("descripcion", "Desarrollo completo"));
+  }
+
+  it("al volver tras crear un ejercicio devuelve su id a la pantalla anterior, junto al estado recibido", async () => {
+    const trainingService = (await import("../../../../../services/trainingService")).default;
+    (trainingService.createExercise as ReturnType<typeof vi.fn>).mockResolvedValue({ id: "ex-new" });
+    const returnState = { returnTo: "/coach/trainings" };
+    const { result } = renderHook(() =>
+      useExerciseForm({ clubId: "club-1", navigate, returnTo: "/coach/trainings/new-session?teamId=team-1", returnState })
+    );
+
+    fillRequiredFields(result);
+    await act(async () => {
+      await result.current.handleSave();
+    });
+    act(() => result.current.handleCancel());
+
+    expect(navigate).toHaveBeenCalledWith("/coach/trainings/new-session?teamId=team-1", {
+      replace: true,
+      state: { returnTo: "/coach/trainings", createdExerciseId: "ex-new" },
+    });
+  });
+
+  it("al volver tras guardar cambios en un ejercicio que ya existía no lo devuelve como ejercicio creado", async () => {
+    const trainingService = (await import("../../../../../services/trainingService")).default;
+    (trainingService.updateExercise as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+    const returnState = { returnTo: "/coach/trainings" };
+    const { result } = renderHook(() =>
+      useExerciseForm({ clubId: "club-1", navigate, returnTo: "/coach/trainings/new-session?teamId=team-1", returnState })
+    );
+
+    act(() => result.current.loadExercise(exercise));
+    await waitFor(() => expect(result.current.savedExerciseId).toBe("ex-1"));
+    await act(async () => {
+      await result.current.handleSave();
+    });
+    act(() => result.current.handleCancel());
+
+    expect(navigate).toHaveBeenCalledWith("/coach/trainings/new-session?teamId=team-1", {
+      replace: true,
+      state: returnState,
+    });
+  });
+});
+
 describe("useExerciseForm — validación al guardar", () => {
   beforeEach(() => vi.clearAllMocks());
 

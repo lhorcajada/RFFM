@@ -23,6 +23,7 @@ export function useExerciseForm({ clubId, navigate, returnTo, returnState, getBo
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [savedExerciseId, setSavedExerciseId] = useState<string | null>(null);
+  const [createdExerciseId, setCreatedExerciseId] = useState<string | null>(null);
 
   const applyExercise = async (exercise: Exercise, asCopy: boolean) => {
     setForm({
@@ -122,7 +123,14 @@ export function useExerciseForm({ clubId, navigate, returnTo, returnState, getBo
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const handleCancel = () => navigate(returnTo, { replace: true, state: returnState });
+  // The previous screen (e.g. the session editor) uses the id to attach the exercise it asked for.
+  const handleCancel = () =>
+    navigate(returnTo, {
+      replace: true,
+      state: createdExerciseId
+        ? { ...(returnState as Record<string, unknown> | undefined), createdExerciseId }
+        : returnState,
+    });
 
   /** Mirrors the backend's invariants client-side so the coach gets an inline error instead
    * of a 400 round-trip for the common cases (design.md Frontend §4). Returns the first
@@ -169,6 +177,7 @@ export function useExerciseForm({ clubId, navigate, returnTo, returnState, getBo
           boardStateJson,
         });
         setSavedExerciseId(created.id);
+        setCreatedExerciseId(created.id);
 
         if (pendingFile) {
           await trainingService.uploadExerciseMedia(created.id, pendingFile);

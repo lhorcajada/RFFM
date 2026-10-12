@@ -95,6 +95,33 @@ describe("NewSessionPage — crear ejercicio nuevo inline desde un bloque", () =
     });
   });
 
+  it("al volver del editor con un ejercicio recién creado lo deja asignado al bloque que lo pidió", async () => {
+    const trainingService = (await import("../../../../services/trainingService")).default;
+    vi.mocked(trainingService.getExercises).mockResolvedValue([
+      { id: "ex-new", name: "Rondo 4v2", tipo: "Situacional" },
+    ] as never);
+    sessionStorage.setItem(
+      "rffm.session-draft.draft-1",
+      JSON.stringify({
+        draft: {
+          name: "Sesión martes",
+          blocks: [
+            { order: 1, nombre: "Calentamiento", rotacionEntreEjercicios: null, exercises: [] },
+            { order: 2, nombre: "Parte principal", rotacionEntreEjercicios: null, exercises: [] },
+          ],
+        },
+        pendingBlockIndex: 1,
+      })
+    );
+
+    renderPage("clubId=club-1&teamId=team-1&sessionDraftKey=draft-1", { createdExerciseId: "ex-new" });
+
+    const exerciseCard = await screen.findByRole("article", { name: "Rondo 4v2" });
+    const blockNames = screen.getAllByLabelText("Nombre del bloque") as HTMLInputElement[];
+    expect(blockNames.map((input) => input.value)).toEqual(["Calentamiento", "Parte principal"]);
+    expect(exerciseCard.compareDocumentPosition(blockNames[1]) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
+  });
+
   it("muestra el botón 'Volver' en lugar de 'Cancelar'", () => {
     renderPage();
 
