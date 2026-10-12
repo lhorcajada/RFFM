@@ -307,7 +307,6 @@ export default function PartidoEnDirectoTab({
         const targetSlotIndex = parseInt(overId.replace("sim-slot-", ""));
         const fromEntry = Object.entries(live.prepareSlotsPreview).find(([, pid]) => pid === draggedId);
         const fromSlotIndex = fromEntry ? parseInt(fromEntry[0]) : null;
-        if (fromSlotIndex === null && (live.prepareSlotsPreview[targetSlotIndex] ?? null) === null) return;
         live.movePreparePlayer(draggedId, fromSlotIndex, targetSlotIndex);
       } else if (overId === "sim-bench") {
         const fromEntry = Object.entries(live.prepareSlotsPreview).find(([, pid]) => pid === draggedId);

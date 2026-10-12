@@ -291,11 +291,6 @@ export default function SimulacionTab({ teamId, eventId, lineupPlayers, isFriend
         ([, pid]) => pid === draggedId,
       );
       const fromSlotIndex = fromEntry ? parseInt(fromEntry[0]) : null;
-      // Prevent bench player (fromSlotIndex=null) dropping on an empty preview slot:
-      // that would add an extra player to the field without removing one.
-      if (fromSlotIndex === null && (sim.prepareSlotsPreview[targetSlotIndex] ?? null) === null) {
-        return;
-      }
       sim.movePreparePlayer(draggedId, fromSlotIndex, targetSlotIndex);
     } else if (overId === "sim-bench") {
       const fromEntry = Object.entries(sim.prepareSlotsPreview).find(
