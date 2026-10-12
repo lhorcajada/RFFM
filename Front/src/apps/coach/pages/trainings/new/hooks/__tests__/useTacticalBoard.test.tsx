@@ -3,6 +3,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { useTacticalBoard } from "../useTacticalBoard";
 import teamplayerService from "../../../../../services/teamplayerService";
+import { DEFAULT_LINE_WIDTH } from "../../constants";
 
 vi.mock("../../../../../services/teamplayerService", () => ({
   default: { getPlayersByTeam: vi.fn().mockResolvedValue([]) },
@@ -275,6 +276,107 @@ describe("useTacticalBoard - both halves of the F11 pitch", () => {
       result.current.handleChapaDragEnd(makeDropEvent({}, -150, 30) as unknown as React.DragEvent<HTMLElement>, "p1");
     });
     expect(result.current.placedChapas["p1"]).toBeUndefined();
+  });
+});
+
+describe("useTacticalBoard - grosor de líneas", () => {
+  beforeEach(() => {
+    vi.mocked(teamplayerService.getPlayersByTeam).mockReset();
+    vi.mocked(teamplayerService.getPlayersByTeam).mockResolvedValue([]);
+  });
+
+  function setup() {
+    const pitchEl = makePitchElement();
+    const halfPitchRef = { current: pitchEl } as React.RefObject<HTMLDivElement>;
+    return renderHook(() => useTacticalBoard(halfPitchRef, "")).result;
+  }
+
+  function drawStraightLine(result: ReturnType<typeof setup>) {
+    act(() => {
+      result.current.setActiveLineKind("straight");
+    });
+    act(() => {
+      result.current.handleDrawMouseDown(makeMouseEvent(10, 20) as unknown as React.MouseEvent<HTMLDivElement>);
+    });
+    act(() => {
+      result.current.handleDrawMouseMove(makeMouseEvent(60, 20) as unknown as React.MouseEvent<HTMLDivElement>);
+    });
+    act(() => {
+      result.current.handleDrawMouseUp();
+    });
+  }
+
+  it("dibuja una línea nueva con el grosor por defecto", () => {
+    const result = setup();
+    drawStraightLine(result);
+    expect(result.current.placedLines[0].width).toBe(DEFAULT_LINE_WIDTH);
+  });
+
+  it("dibuja una línea nueva con el grosor activo elegido", () => {
+    const result = setup();
+    act(() => {
+      result.current.setActiveLineWidth(5);
+    });
+    drawStraightLine(result);
+    expect(result.current.placedLines[0].width).toBe(5);
+  });
+
+  it("muestra el grosor activo en el trazo mientras se dibuja", () => {
+    const result = setup();
+    act(() => {
+      result.current.setActiveLineWidth(3);
+    });
+    act(() => {
+      result.current.setActiveLineKind("straight");
+    });
+    act(() => {
+      result.current.handleDrawMouseDown(makeMouseEvent(10, 20) as unknown as React.MouseEvent<HTMLDivElement>);
+    });
+    expect(result.current.drawingState?.width).toBe(3);
+  });
+
+  it("cambia el grosor de una línea ya colocada sin tocar las demás", () => {
+    const result = setup();
+    act(() => {
+      result.current.setPlacedLines([
+        { id: "l1", kind: "straight", color: "#ffffff", x1: 0, y1: 0, x2: 10, y2: 10 },
+        { id: "l2", kind: "straight", color: "#ffffff", x1: 0, y1: 0, x2: 10, y2: 10, width: 1 },
+      ]);
+    });
+    act(() => {
+      result.current.setPlacedLineWidth("l1", 3);
+    });
+    expect(result.current.placedLines.map((l) => l.width)).toEqual([3, 1]);
+  });
+
+  it("conserva el grosor al duplicar una línea", () => {
+    const result = setup();
+    act(() => {
+      result.current.setPlacedLines([
+        { id: "l1", kind: "straight", color: "#ffffff", x1: 0, y1: 0, x2: 10, y2: 10, width: 5 },
+      ]);
+    });
+    act(() => {
+      result.current.duplicatePlacedLine("l1");
+    });
+    expect(result.current.placedLines[1].width).toBe(5);
+  });
+
+  it("conserva el grosor al guardar y volver a cargar la pizarra", () => {
+    const result = setup();
+    act(() => {
+      result.current.setPlacedLines([
+        { id: "l1", kind: "straight", color: "#ffffff", x1: 0, y1: 0, x2: 10, y2: 10, width: 3 },
+      ]);
+    });
+    const json = result.current.serializeBoardStateJson();
+    act(() => {
+      result.current.clearBoardState();
+    });
+    act(() => {
+      result.current.loadBoardStateJson(json);
+    });
+    expect(result.current.placedLines[0].width).toBe(3);
   });
 });
 

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type React from "react";
 import teamplayerService, { type PlayerResponse } from "../../../../services/teamplayerService";
 import { comparePlayersByPosition } from "../helpers/playerOrder";
-import { FIELD_WIDTH_METERS, HALF_FIELD_LENGTH_METERS, SPACE_COLORS, anonymousChapaOptions, DEFAULT_TEXT_STYLE } from "../constants";
+import { FIELD_WIDTH_METERS, HALF_FIELD_LENGTH_METERS, SPACE_COLORS, anonymousChapaOptions, DEFAULT_LINE_WIDTH, DEFAULT_TEXT_STYLE } from "../constants";
 import { getMaterialSizePercent, isMaterialKind, getChapaSizePercent } from "../helpers/materialHelpers";
 import {
   clamp,
@@ -70,6 +70,7 @@ export function useTacticalBoard(
   const [placedLines, setPlacedLines] = useState<PlacedLine[]>([]);
   const [activeLineKind, setActiveLineKind] = useState<LineKind | null>(null);
   const [activeLineColor, setActiveLineColor] = useState<string>("#ffffff");
+  const [activeLineWidth, setActiveLineWidth] = useState<number>(DEFAULT_LINE_WIDTH);
   const [drawingState, setDrawingState] = useState<DrawingState | null>(null);
 
   const [showTexts, setShowTexts] = useState(false);
@@ -1421,6 +1422,7 @@ export function useTacticalBoard(
     setDrawingState({
       kind: activeLineKind,
       color: activeLineColor,
+      width: activeLineWidth,
       x1: pt.x,
       y1: pt.y,
       x2: pt.x,
@@ -1444,7 +1446,7 @@ export function useTacticalBoard(
 
   const handleDrawMouseUp = () => {
     if (!drawingState) return;
-    const { kind, color, x1, y1, x2, y2, points } = drawingState;
+    const { kind, color, width, x1, y1, x2, y2, points } = drawingState;
     const dist = Math.hypot(x2 - x1, y2 - y1);
     if (dist < 1) {
       setDrawingState(null);
@@ -1452,7 +1454,7 @@ export function useTacticalBoard(
     }
     const id =
       typeof crypto?.randomUUID === "function" ? crypto.randomUUID() : `line-${Date.now()}`;
-    const newLine: PlacedLine = { id, kind, color, x1, y1, x2, y2 };
+    const newLine: PlacedLine = { id, kind, color, width, x1, y1, x2, y2 };
     if (kind === "curved") {
       newLine.cx = (x1 + x2) / 2 + (y2 - y1) * 0.3;
       newLine.cy = (y1 + y2) / 2 - (x2 - x1) * 0.3;
@@ -1484,6 +1486,10 @@ export function useTacticalBoard(
 
   const setPlacedLineColor = (lineId: string, color: string) => {
     setPlacedLines((prev) => prev.map((l) => (l.id === lineId ? { ...l, color } : l)));
+  };
+
+  const setPlacedLineWidth = (lineId: string, width: number) => {
+    setPlacedLines((prev) => prev.map((l) => (l.id === lineId ? { ...l, width } : l)));
   };
 
   // ─── Text operations ──────────────────────────────────────────────────────
@@ -1763,10 +1769,13 @@ export function useTacticalBoard(
     duplicatePlacedLine,
     removePlacedLine,
     setPlacedLineColor,
+    setPlacedLineWidth,
     activeLineKind,
     setActiveLineKind,
     activeLineColor,
     setActiveLineColor,
+    activeLineWidth,
+    setActiveLineWidth,
     drawingState,
     handleDrawMouseDown,
     handleDrawMouseMove,

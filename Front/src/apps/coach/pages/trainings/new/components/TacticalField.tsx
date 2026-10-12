@@ -1,11 +1,12 @@
 import { Box, Typography } from "@mui/material";
 import React, { useState, useEffect, useRef } from "react";
-import { LINE_COLORS, SPACE_COLORS, petoOptions } from "../constants";
+import { DEFAULT_LINE_WIDTH, LINE_COLORS, SPACE_COLORS, petoOptions } from "../constants";
 import { buildLinePath, getArrowMarkerId } from "../helpers/lineHelpers";
 import { getMaterialSizePercent, getChapaSizePercent } from "../helpers/materialHelpers";
 import { clampToField, getDimensionsPercent, formatMeters, getSideLengthsMeters, getShapeVertices } from "../helpers/spaceGeometry";
 import type { TacticalBoardState } from "../hooks/useTacticalBoard";
 import styles from "../NewExercisePage.module.css";
+import LineWidthPicker from "./LineWidthPicker";
 import PitchMarkings from "./PitchMarkings";
 import PlacedObjectControls from "./PlacedObjectControls";
 import SizeDialog from "./SizeDialog";
@@ -119,6 +120,7 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
     duplicatePlacedLine,
     removePlacedLine,
     setPlacedLineColor,
+    setPlacedLineWidth,
     drawingState,
     activeLineKind,
     handleDrawMouseDown,
@@ -790,7 +792,7 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
                 <path
                   d={pathD}
                   stroke={line.color}
-                  strokeWidth="1.5"
+                  strokeWidth={line.width ?? DEFAULT_LINE_WIDTH}
                   vectorEffect="non-scaling-stroke"
                   fill="none"
                   strokeDasharray={isDashed ? "6 4" : undefined}
@@ -866,7 +868,7 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
                     drawingState.points,
                   )}
                   stroke={drawingState.color}
-                  strokeWidth="1.5"
+                  strokeWidth={drawingState.width}
                   vectorEffect="non-scaling-stroke"
                   fill="none"
                   strokeDasharray={isDashed ? "6 4" : undefined}
@@ -960,6 +962,12 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
                             />
                           ))}
                         </Box>
+
+                        <LineWidthPicker
+                          value={line.width ?? DEFAULT_LINE_WIDTH}
+                          color={line.color}
+                          onChange={(width) => setPlacedLineWidth(line.id, width)}
+                        />
 
                         <button
                           type="button"

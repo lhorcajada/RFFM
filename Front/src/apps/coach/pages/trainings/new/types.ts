@@ -107,11 +107,14 @@ export interface PlacedLine {
   cx?: number;
   cy?: number;
   points?: { x: number; y: number }[];
+  /** Stroke width in editor px. Missing on lines saved before widths existed. */
+  width?: number;
 }
 
 export interface DrawingState {
   kind: LineKind;
   color: string;
+  width: number;
   x1: number;
   y1: number;
   x2: number;
@@ -122,6 +125,12 @@ export interface DrawingState {
 export interface LineColorOption {
   key: string;
   value: string;
+  label: string;
+}
+
+export interface LineWidthOption {
+  key: string;
+  value: number;
   label: string;
 }
 

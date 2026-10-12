@@ -1,0 +1,37 @@
+.picker {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid rgba(77, 157, 224, 0.3);
+  border-radius: 6px;
+  background: rgba(12, 22, 42, 0.7);
+  cursor: pointer;
+  flex: 0 0 auto;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.option:hover {
+  border-color: rgba(77, 157, 224, 0.7);
+  background: rgba(20, 38, 68, 0.8);
+}
+
+.optionActive {
+  border-color: #4d9de0;
+  background: rgba(30, 60, 100, 0.85);
+}
+
+.preview {
+  width: 24px;
+  height: 12px;
+  overflow: visible;
+}

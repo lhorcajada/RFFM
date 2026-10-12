@@ -1,5 +1,5 @@
 import type { TacticalBoardSnapshot } from "../pages/trainings/new/types";
-import { LINE_COLORS, SPACE_COLORS } from "../pages/trainings/new/constants";
+import { DEFAULT_LINE_WIDTH, LINE_COLORS, SPACE_COLORS } from "../pages/trainings/new/constants";
 import { buildLinePath, getArrowMarkerId } from "../pages/trainings/new/helpers/lineHelpers";
 import { getChapaSizePercent, getMaterialSizePercent } from "../pages/trainings/new/helpers/materialHelpers";
 import { getDimensionsPercent, getShapeVertices } from "../pages/trainings/new/helpers/spaceGeometry";
@@ -35,7 +35,10 @@ export function hasBoardObjects(snapshot: TacticalBoardSnapshot | null): boolean
  * thumbnail preview. */
 const REFERENCE_EDITOR_HALF_PITCH_WIDTH_PX = 700;
 
-export type PlayersById = Map<string, { alias?: string | null; dorsal?: number | null }>;
+/** Lines are drawn slightly thinner here than in the editor, since the preview is smaller. */
+const EDITOR_TO_PREVIEW_LINE_WIDTH_RATIO = 1.25;
+
+export type PlayersById =Map<string, { alias?: string | null; dorsal?: number | null }>;
 
 type StaticProps = {
   snapshot: TacticalBoardSnapshot;
@@ -161,7 +164,7 @@ function BoardPitch({ snapshot, playersById }: StaticProps) {
                 key={line.id}
                 d={buildLinePath(line.kind, line.x1, line.y1, line.x2, line.y2, line.cx, line.cy, line.points)}
                 stroke={line.color}
-                strokeWidth="1.2"
+                strokeWidth={(line.width ?? DEFAULT_LINE_WIDTH) / EDITOR_TO_PREVIEW_LINE_WIDTH_RATIO}
                 vectorEffect="non-scaling-stroke"
                 fill="none"
                 strokeDasharray={isDashed ? "6 4" : undefined}

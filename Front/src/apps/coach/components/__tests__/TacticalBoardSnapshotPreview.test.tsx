@@ -144,6 +144,19 @@ describe("TacticalBoardSnapshotPreview", () => {
     expect(path).toHaveAttribute("d", "M 0 0 Q 50 -20 100 0");
   });
 
+  it("renders a thicker line with a proportionally thicker stroke than a default one", () => {
+    const snapshot: TacticalBoardSnapshot = {
+      ...emptySnapshot(),
+      placedLines: [
+        { id: "l1", kind: "straight", color: "#ffffff", x1: 0, y1: 0, x2: 10, y2: 10 },
+        { id: "l2", kind: "straight", color: "#ff4444", x1: 0, y1: 0, x2: 10, y2: 10, width: 3 },
+      ],
+    };
+    const { container } = render(<TacticalBoardSnapshotPreview snapshot={snapshot} />);
+    expect(container.querySelector('path[stroke="#ffffff"]')).toHaveAttribute("stroke-width", "1.2");
+    expect(container.querySelector('path[stroke="#ff4444"]')).toHaveAttribute("stroke-width", "2.4");
+  });
+
   it("renders material-specific glyphs (setas vs vallas) instead of a generic dot", () => {
     const snapshot: TacticalBoardSnapshot = {
       ...emptySnapshot(),

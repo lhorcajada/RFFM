@@ -2,6 +2,7 @@ import { Box, Typography } from "@mui/material";
 import { LINE_COLORS, LINE_KIND_OPTIONS } from "../constants";
 import type { TacticalBoardState } from "../hooks/useTacticalBoard";
 import styles from "../NewExercisePage.module.css";
+import LineWidthPicker from "./LineWidthPicker";
 
 interface LinesStripProps {
   board: TacticalBoardState;
@@ -13,6 +14,8 @@ export default function LinesStrip({ board }: LinesStripProps) {
     setActiveLineKind,
     activeLineColor,
     setActiveLineColor,
+    activeLineWidth,
+    setActiveLineWidth,
     placedLines,
     setPlacedLines,
   } = board;
@@ -39,7 +42,7 @@ export default function LinesStrip({ board }: LinesStripProps) {
                   x2="36"
                   y2="12"
                   stroke={activeLineColor}
-                  strokeWidth="2"
+                  strokeWidth={activeLineWidth}
                   strokeDasharray={
                     opt.kind === "dashed" || opt.kind === "arrow-dashed" ? "5 3" : undefined
                   }
@@ -51,13 +54,13 @@ export default function LinesStrip({ board }: LinesStripProps) {
                 />
               )}
               {opt.kind === "curved" && (
-                <path d="M 4 18 Q 20 2 36 18" stroke={activeLineColor} strokeWidth="2" fill="none" />
+                <path d="M 4 18 Q 20 2 36 18" stroke={activeLineColor} strokeWidth={activeLineWidth} fill="none" />
               )}
               {opt.kind === "free" && (
                 <path
                   d="M 4 18 L 10 8 L 18 14 L 26 6 L 36 12"
                   stroke={activeLineColor}
-                  strokeWidth="2"
+                  strokeWidth={activeLineWidth}
                   fill="none"
                   strokeLinejoin="round"
                   strokeLinecap="round"
@@ -93,6 +96,7 @@ export default function LinesStrip({ board }: LinesStripProps) {
             aria-label={c.label}
           />
         ))}
+        <LineWidthPicker value={activeLineWidth} color={activeLineColor} onChange={setActiveLineWidth} />
         {placedLines.length > 0 && (
           <button
             type="button"

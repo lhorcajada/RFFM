@@ -233,6 +233,51 @@ describe("TacticalField - line selection with lines panel closed", () => {
   });
 });
 
+describe("TacticalField - grosor de líneas", () => {
+  beforeEach(() => {
+    vi.mocked(teamplayerService.getPlayersByTeam).mockReset();
+    vi.mocked(teamplayerService.getPlayersByTeam).mockResolvedValue([]);
+  });
+
+  function renderFieldWithLine(width?: number) {
+    const halfPitchRef = { current: makePitchElement() } as React.RefObject<HTMLDivElement>;
+    const hook = renderHook(() => useTacticalBoard(halfPitchRef, ""));
+
+    act(() => {
+      hook.result.current.setPlacedLines([
+        { id: "line-1", kind: "straight", color: "#ff0000", x1: 10, y1: 10, x2: 50, y2: 50, width },
+      ]);
+    });
+
+    const view = render(<TacticalField halfPitchRef={halfPitchRef} board={hook.result.current} />);
+    return { ...view, hook, halfPitchRef };
+  }
+
+  it("pinta cada línea con su propio grosor", () => {
+    const { container } = renderFieldWithLine(5);
+    expect(container.querySelector('path[stroke="#ff0000"]')!.getAttribute("stroke-width")).toBe("5");
+  });
+
+  it("permite cambiar el grosor de la línea seleccionada", () => {
+    const { container, hook, halfPitchRef, rerender, getByRole } = renderFieldWithLine();
+
+    act(() => {
+      container
+        .querySelector('[data-testid="line-hit-line-1"]')!
+        .dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true, clientX: 30, clientY: 30 }));
+    });
+
+    act(() => {
+      fireEvent.click(getByRole("button", { name: "Grosor gruesa" }));
+    });
+    rerender(<TacticalField halfPitchRef={halfPitchRef} board={hook.result.current} />);
+
+    expect(hook.result.current.placedLines[0].width).toBe(3);
+    expect(container.querySelector('path[stroke="#ff0000"]')!.getAttribute("stroke-width")).toBe("3");
+    expect(getByRole("button", { name: "Grosor gruesa" })).toHaveAttribute("aria-pressed", "true");
+  });
+});
+
 describe("TacticalField - both halves of the F11 pitch", () => {
   beforeEach(() => {
     vi.mocked(teamplayerService.getPlayersByTeam).mockReset();

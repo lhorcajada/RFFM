@@ -1,6 +1,6 @@
 import type { CreateExerciseRequest, ExerciseSubtipo, ExerciseTipo } from "../../../types/training";
 import { SUBTIPO_LABELS } from "../exerciseTypeLabels";
-import type { LineColorOption, LineKindOption, MaterialTemplate, PetoOption, SpaceKind, SpaceTemplate, TextStyle } from "./types";
+import type { LineColorOption, LineKindOption, LineWidthOption, MaterialTemplate, PetoOption, SpaceKind, SpaceTemplate, TextStyle } from "./types";
 
 export const HALF_FIELD_LENGTH_METERS = 52.5;
 export const FIELD_WIDTH_METERS = 68;
@@ -57,6 +57,15 @@ export const LINE_COLORS: LineColorOption[] = [
 ];
 
 export const SPACE_COLORS: LineColorOption[] = LINE_COLORS;
+
+export const DEFAULT_LINE_WIDTH = 1.5;
+
+export const LINE_WIDTH_OPTIONS: LineWidthOption[] = [
+  { key: "thin", value: 1, label: "Fina" },
+  { key: "normal", value: DEFAULT_LINE_WIDTH, label: "Normal" },
+  { key: "thick", value: 3, label: "Gruesa" },
+  { key: "extra-thick", value: 5, label: "Muy gruesa" },
+];
 
 export const LINE_KIND_OPTIONS: LineKindOption[] = [
   { kind: "straight", label: "Recta" },
