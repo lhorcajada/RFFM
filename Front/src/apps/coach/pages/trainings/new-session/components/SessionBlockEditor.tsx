@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { Autocomplete, Box, Button, Chip, IconButton, TextField, Typography } from "@mui/material";
+import { Box, Button, Chip, IconButton, TextField, Typography } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import SearchIcon from "@mui/icons-material/Search";
 import {
   DndContext,
   DragOverlay,
@@ -22,6 +23,7 @@ import {
 import trainingService from "../../../../services/trainingService";
 import type { Exercise, SessionBlockRequest } from "../../../../types/training";
 import { TIPO_LABELS } from "../../exerciseTypeLabels";
+import ExercisePickerDialog from "./ExercisePickerDialog";
 import styles from "./SessionBlockEditor.module.css";
 
 function useClubExercises(clubId?: string): Exercise[] {
@@ -160,6 +162,8 @@ interface SessionBlockEditorProps {
   blocks: SessionBlockRequest[];
   onChange: (blocks: SessionBlockRequest[]) => void;
   clubId?: string;
+  /** Team whose roster resolves dorsal/alias in the exercise picker's board thumbnails. */
+  teamId?: string;
   /** Key used to persist the in-progress session draft to sessionStorage before navigating
    * away to create a new exercise inline (design.md Frontend §6.1). Optional — omit to
    * disable the inline-create flow (e.g. in isolated tests). */
@@ -172,12 +176,14 @@ export default function SessionBlockEditor({
   blocks,
   onChange,
   clubId,
+  teamId,
   onRequestInlineExercise,
   onRequestEditExercise,
 }: SessionBlockEditorProps) {
   const exercises = useClubExercises(clubId);
   const sortedBlocks = [...blocks].sort((a, b) => a.order - b.order);
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
+  const [pickerBlockIndex, setPickerBlockIndex] = useState<number | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -218,10 +224,10 @@ export default function SessionBlockEditor({
     reorderBlock(blockIndexFromDndId(event.active.id), blockIndexFromDndId(event.over.id));
   };
 
-  const addExistingExercise = (blockIndex: number, exerciseId: string) => {
+  const addExistingExercises = (blockIndex: number, exerciseIds: string[]) => {
     const block = sortedBlocks[blockIndex];
-    const nextPosition = block.exercises.length + 1;
-    updateBlock(blockIndex, { exercises: [...block.exercises, { exerciseId, position: nextPosition }] });
+    const added = exerciseIds.map((exerciseId, i) => ({ exerciseId, position: block.exercises.length + i + 1 }));
+    updateBlock(blockIndex, { exercises: [...block.exercises, ...added] });
   };
 
   const removeExercise = (blockIndex: number, exerciseIndex: number) => {
@@ -230,6 +236,7 @@ export default function SessionBlockEditor({
   };
 
   const draggingBlock = draggingIndex != null ? sortedBlocks[draggingIndex] : null;
+  const pickerBlock = pickerBlockIndex != null ? sortedBlocks[pickerBlockIndex] : null;
 
   return (
     <Box className={styles.root}>
@@ -301,16 +308,15 @@ export default function SessionBlockEditor({
                 </Box>
 
                 <Box className={styles.addExerciseRow}>
-                  <Autocomplete<Exercise, false>
+                  <Button
                     size="small"
-                    options={exercises}
-                    getOptionLabel={(o) => o.name}
-                    isOptionEqualToValue={(a, b) => a.id === b.id}
-                    value={null}
-                    onChange={(_, value) => value && addExistingExercise(blockIndex, value.id)}
-                    renderInput={(params) => <TextField {...params} label="Añadir ejercicio existente" />}
-                    className={styles.exercisePicker}
-                  />
+                    variant="outlined"
+                    startIcon={<SearchIcon />}
+                    onClick={() => setPickerBlockIndex(blockIndex)}
+                    className={styles.pickExerciseBtn}
+                  >
+                    Añadir ejercicio existente
+                  </Button>
                   <Button
                     size="small"
                     startIcon={<AddIcon />}
@@ -338,6 +344,19 @@ export default function SessionBlockEditor({
       <Button size="small" startIcon={<AddIcon />} onClick={addBlock} className={styles.addBlockBtn}>
         Añadir bloque
       </Button>
+
+      {pickerBlock && pickerBlockIndex != null && (
+        <ExercisePickerDialog
+          exercises={exercises}
+          alreadyAddedIds={pickerBlock.exercises.map((e) => e.exerciseId)}
+          teamId={teamId}
+          onClose={() => setPickerBlockIndex(null)}
+          onConfirm={(exerciseIds) => {
+            addExistingExercises(pickerBlockIndex, exerciseIds);
+            setPickerBlockIndex(null);
+          }}
+        />
+      )}
     </Box>
   );
 }

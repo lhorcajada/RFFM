@@ -101,7 +101,7 @@ describe("SessionBlockEditor", () => {
     expect(screen.getByLabelText(/rotación entre ejercicios/i)).toBeInTheDocument();
   });
 
-  it("añade un ejercicio existente al bloque desde el Autocomplete", async () => {
+  it("añade un ejercicio existente al bloque eligiéndolo en el buscador de ejercicios", async () => {
     const onChange = vi.fn();
     setup({ blocks: [block(1, "Bloque 1")], onChange });
 
@@ -109,14 +109,36 @@ describe("SessionBlockEditor", () => {
       expect(trainingService.getExercises).toHaveBeenCalled();
     });
 
-    const combobox = await screen.findByRole("combobox", { name: /añadir ejercicio existente/i });
-    await userEvent.click(combobox);
-    const listbox = screen.getByRole("listbox");
-    await userEvent.click(within(listbox).getByText("Rondo con porterías"));
+    await userEvent.click(screen.getByRole("button", { name: /añadir ejercicio existente/i }));
+    const dialog = await screen.findByRole("dialog");
+    await userEvent.click(within(dialog).getByRole("checkbox", { name: "Rondo con porterías" }));
+    await userEvent.click(within(dialog).getByRole("button", { name: "Añadir (1)" }));
 
     expect(onChange).toHaveBeenCalled();
     const [blocks] = onChange.mock.calls[0];
     expect(blocks[0].exercises).toEqual([{ exerciseId: "ex-1", position: 1 }]);
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  });
+
+  it("añade varios ejercicios a la vez a continuación de los que ya tenía el bloque elegido", async () => {
+    const onChange = vi.fn();
+    const extra = buildExercise({ id: "ex-3", name: "Partido final" });
+    (trainingService.getExercises as ReturnType<typeof vi.fn>).mockResolvedValue([...exercises, extra]);
+    setup({ blocks: [block(1, "Bloque 1"), block(2, "Bloque 2", ["ex-2"])], onChange });
+
+    await userEvent.click(screen.getAllByRole("button", { name: /añadir ejercicio existente/i })[1]);
+    const dialog = await screen.findByRole("dialog");
+    await userEvent.click(await within(dialog).findByRole("checkbox", { name: "Partido final" }));
+    await userEvent.click(within(dialog).getByRole("checkbox", { name: "Rondo con porterías" }));
+    await userEvent.click(within(dialog).getByRole("button", { name: "Añadir (2)" }));
+
+    const [blocks] = onChange.mock.calls[0];
+    expect(blocks[0].exercises).toEqual([]);
+    expect(blocks[1].exercises).toEqual([
+      { exerciseId: "ex-2", position: 1 },
+      { exerciseId: "ex-3", position: 2 },
+      { exerciseId: "ex-1", position: 3 },
+    ]);
   });
 
   it("muestra la ficha del ejercicio elegido (tipo, duración, objetivo, descripción y logística)", async () => {

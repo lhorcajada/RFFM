@@ -375,6 +375,7 @@ export default function NewSessionPage() {
             blocks={sessionForm.form.blocks}
             onChange={(blocks) => sessionForm.setField("blocks", blocks)}
             clubId={clubId}
+            teamId={teamId}
             onRequestInlineExercise={handleRequestInlineExercise}
             onRequestEditExercise={handleRequestEditExercise}
           />

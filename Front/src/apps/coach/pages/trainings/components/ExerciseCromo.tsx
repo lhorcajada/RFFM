@@ -6,7 +6,6 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import PrintOutlinedIcon from "@mui/icons-material/PrintOutlined";
 import PsychologyIcon from "@mui/icons-material/Psychology";
 import { Chip } from "@mui/material";
-import { client } from "../../../../../core/api/client";
 import type { Exercise } from "../../../types/training";
 import TacticalBoardSnapshotPreview, {
   hasBoardObjects,
@@ -14,15 +13,8 @@ import TacticalBoardSnapshotPreview, {
 } from "../../../components/TacticalBoardSnapshotPreview";
 import boardPreviewCss from "../../../components/TacticalBoardSnapshotPreview.module.css?inline";
 import { SUBTIPO_LABELS, TIPO_LABELS } from "../exerciseTypeLabels";
+import { exerciseMediaUrl } from "../exerciseMedia";
 import styles from "./ExerciseCromo.module.css";
-
-const API_BASE = (client.defaults.baseURL ?? "/").replace(/\/$/, "");
-
-function mediaUrl(urlImage: string): string {
-  // If already absolute, use as-is (Supabase URLs start with https://)
-  if (urlImage.startsWith("http://") || urlImage.startsWith("https://")) return urlImage;
-  return `${API_BASE}/api/local-storage/${urlImage}`;
-}
 
 type Props = {
   exercise: Exercise;
@@ -60,7 +52,7 @@ export default function ExerciseCromo({ exercise, onEdit, onDuplicate, onPrint, 
         <div className={styles.photoArea}>
           {exercise.urlImage ? (
             <img
-              src={mediaUrl(exercise.urlImage)}
+              src={exerciseMediaUrl(exercise.urlImage)}
               alt={exercise.name}
               className={styles.photo}
             />

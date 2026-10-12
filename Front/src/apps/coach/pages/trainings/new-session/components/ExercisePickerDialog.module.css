@@ -1,0 +1,143 @@
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.filters {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  /* Room for the floating label of the first field inside DialogContent. */
+  padding-top: 6px;
+}
+
+.filtersRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.tipoChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.filterChip {
+  color: #e8e8e8 !important;
+  border: 1px solid rgba(77, 157, 224, 0.3);
+  background: rgba(12, 22, 42, 0.4) !important;
+}
+
+.filterChipActive {
+  color: #4d9de0 !important;
+  border-color: #4d9de0;
+  background: rgba(77, 157, 224, 0.1) !important;
+}
+
+.subtipoField {
+  flex: 1 1 180px;
+  max-width: 260px;
+}
+
+.empty {
+  padding: 24px 0;
+  text-align: center;
+  font-size: 0.9rem !important;
+  color: rgba(232, 232, 232, 0.7) !important;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid rgba(77, 157, 224, 0.3);
+  border-radius: 8px;
+  background: rgba(7, 7, 26, 0.6);
+  color: #e8e8e8;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  min-width: 0;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.card:hover,
+.card:focus-visible {
+  border-color: rgba(77, 157, 224, 0.7);
+  outline: none;
+}
+
+.cardSelected {
+  border-color: #4d9de0;
+  background: rgba(77, 157, 224, 0.1);
+}
+
+.thumbnail {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: 6px;
+  overflow: hidden;
+  background: rgba(12, 22, 42, 0.4);
+}
+
+.thumbnailImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.thumbnailFallback {
+  color: rgba(77, 157, 224, 0.3);
+}
+
+.selectedMark {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  color: #4d9de0;
+  background: rgba(7, 7, 26, 0.6);
+  border-radius: 50%;
+}
+
+.cardName {
+  font-size: 0.85rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.cardMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.metaChip {
+  padding: 1px 6px;
+  border: 1px solid rgba(77, 157, 224, 0.3);
+  border-radius: 10px;
+  background: rgba(77, 157, 224, 0.1);
+  color: #4d9de0;
+  font-size: 0.7rem;
+}
+
+.alreadyAdded {
+  font-size: 0.7rem;
+  font-style: italic;
+  color: rgba(232, 232, 232, 0.7);
+}

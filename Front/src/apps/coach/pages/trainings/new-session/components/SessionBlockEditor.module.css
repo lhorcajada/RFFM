@@ -150,9 +150,10 @@
   flex-wrap: wrap;
 }
 
-.exercisePicker {
-  flex: 1;
-  min-width: 200px;
+.pickExerciseBtn {
+  color: #4d9de0 !important;
+  border-color: rgba(77, 157, 224, 0.3) !important;
+  white-space: nowrap;
 }
 
 .createInlineBtn {
