@@ -31,6 +31,27 @@ export async function getIdealLineup(
   }
 }
 
+/** Alineación con la que empezó el partido anterior de la misma categoría (sin `id`: no está guardada para este). */
+export type PreviousMatchLineupDto = {
+  formationId: string;
+  slots: IdealLineupSlot[];
+};
+
+export async function getPreviousMatchLineup(
+  teamId: string,
+  eventId: string
+): Promise<PreviousMatchLineupDto | null> {
+  try {
+    const resp = await client.get(
+      `/api/catalog/team/${teamId}/events/${encodeURIComponent(eventId)}/previous-match-lineup`
+    );
+    return resp.data as PreviousMatchLineupDto;
+  } catch (err: any) {
+    if (err?.response?.status === 404) return null;
+    throw err;
+  }
+}
+
 export async function saveIdealLineup(
   teamId: string,
   payload: SaveLineupPayload
@@ -38,4 +59,4 @@ export async function saveIdealLineup(
   await client.post(`/api/catalog/team/${teamId}/ideal-lineup`, payload);
 }
 
-export default { getIdealLineup, saveIdealLineup };
+export default { getIdealLineup, getPreviousMatchLineup, saveIdealLineup };

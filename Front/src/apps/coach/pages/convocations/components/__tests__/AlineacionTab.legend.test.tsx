@@ -11,6 +11,7 @@ vi.mock("../../../../services/formationService", () => ({
 
 vi.mock("../../../../services/idealLineupService", () => ({
   getIdealLineup: vi.fn().mockResolvedValue(null),
+  getPreviousMatchLineup: vi.fn().mockResolvedValue(null),
   saveIdealLineup: vi.fn(),
 }));
 

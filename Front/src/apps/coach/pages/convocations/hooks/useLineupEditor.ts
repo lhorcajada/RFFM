@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getFormations } from "../../../services/formationService";
-import { getIdealLineup, saveIdealLineup } from "../../../services/idealLineupService";
+import {
+  getIdealLineup,
+  getPreviousMatchLineup,
+  saveIdealLineup,
+  type IdealLineupSlot,
+} from "../../../services/idealLineupService";
 import { FORMATION_POSITIONS } from "../../../types/formation";
 import type { Formation, FormationSlotDef } from "../../../types/formation";
 
@@ -12,6 +17,8 @@ export type LineupEditor = {
   formationId: string;
   slotDefs: FormationSlotDef[];
   slots: Record<number, string | null>;
+  /** La alineación mostrada es la inicial del partido anterior: este partido aún no tiene una guardada. */
+  inheritedFromPreviousMatch: boolean;
   /** Cambia el esquema recolocando a los titulares actuales, en orden, en los nuevos puestos. */
   changeFormation: (formationId: string) => void;
   /** Coloca a un jugador (del campo o del banquillo) en un puesto; si estaba ocupado, intercambia. */
@@ -20,6 +27,22 @@ export type LineupEditor = {
   benchPlayer: (playerId: string) => void;
   save: () => Promise<void>;
 };
+
+function toSlotMap(slots: IdealLineupSlot[]): Record<number, string | null> {
+  const slotMap: Record<number, string | null> = {};
+  slots.forEach((s) => { slotMap[s.slotIndex] = s.teamPlayerId; });
+  return slotMap;
+}
+
+/** La alineación del partido anterior es solo un punto de partida: si no se puede obtener, se empieza de cero. */
+async function loadPreviousMatchLineup(teamId: string, eventId: string | null) {
+  if (!teamId || !eventId) return null;
+  try {
+    return await getPreviousMatchLineup(teamId, eventId);
+  } catch {
+    return null;
+  }
+}
 
 function slotOf(slots: Record<number, string | null>, playerId: string): number | null {
   const entry = Object.entries(slots).find(([, pid]) => pid === playerId);
@@ -36,21 +59,28 @@ export function useLineupEditor(
   const [formations, setFormations] = useState<Formation[]>([]);
   const [formationId, setFormationId] = useState("");
   const [slots, setSlots] = useState<Record<number, string | null>>({});
+  const [inheritedFromPreviousMatch, setInheritedFromPreviousMatch] = useState(false);
   const onSavingChangeRef = useRef(onSavingChange);
   onSavingChangeRef.current = onSavingChange;
 
   useEffect(() => {
     let mounted = true;
     setLoading(true);
+    setInheritedFromPreviousMatch(false);
     Promise.all([getFormations(), teamId ? getIdealLineup(teamId, eventId) : Promise.resolve(null)])
-      .then(([formationList, lineup]) => {
+      .then(async ([formationList, lineup]) => {
+        const previous = lineup ? null : await loadPreviousMatchLineup(teamId, eventId);
         if (!mounted) return;
         setFormations(formationList);
+        const usablePrevious =
+          previous && formationList.some((f) => f.id === previous.formationId) ? previous : null;
         if (lineup) {
           setFormationId(lineup.formationId);
-          const slotMap: Record<number, string | null> = {};
-          lineup.slots.forEach((s) => { slotMap[s.slotIndex] = s.teamPlayerId; });
-          setSlots(slotMap);
+          setSlots(toSlotMap(lineup.slots));
+        } else if (usablePrevious) {
+          setFormationId(usablePrevious.formationId);
+          setSlots(toSlotMap(usablePrevious.slots));
+          setInheritedFromPreviousMatch(true);
         } else if (formationList.length > 0) {
           const preferred = formationList.find((f) => f.name === DEFAULT_FORMATION_NAME) ?? formationList[0];
           setFormationId(preferred.id);
@@ -115,6 +145,7 @@ export function useLineupEditor(
         .filter(([idx, pid]) => pid && validSlotIndexes.has(parseInt(idx)))
         .map(([idx, pid]) => ({ slotIndex: parseInt(idx), teamPlayerId: pid as string }));
       await saveIdealLineup(teamId, { formationId, seasonId: eventId, slots: slotPayload });
+      setInheritedFromPreviousMatch(false);
       window.dispatchEvent(
         new CustomEvent("rffm.show_snackbar", { detail: { message: "Alineación guardada", severity: "success" } }),
       );
@@ -127,5 +158,16 @@ export function useLineupEditor(
     }
   }, [formationId, teamId, eventId, slots, slotDefs]);
 
-  return { loading, formations, formationId, slotDefs, slots, changeFormation, placePlayer, benchPlayer, save };
+  return {
+    loading,
+    formations,
+    formationId,
+    slotDefs,
+    slots,
+    inheritedFromPreviousMatch,
+    changeFormation,
+    placePlayer,
+    benchPlayer,
+    save,
+  };
 }

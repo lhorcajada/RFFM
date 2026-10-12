@@ -9,7 +9,7 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import { CircularProgress, FormControl, InputLabel, MenuItem, Select } from "@mui/material";
+import { Alert, CircularProgress, FormControl, InputLabel, MenuItem, Select } from "@mui/material";
 import PersonRemoveIcon from "@mui/icons-material/PersonRemove";
 import EmptyState from "../../../../../shared/components/ui/EmptyState/EmptyState";
 import type { IdealLineupHandle, SquadPlayer } from "../../squad/components/IdealLineup";
@@ -326,6 +326,12 @@ export default function AlineacionTab({
           <PlayerFormLegend />
         </div>
       </div>
+
+      {lineup.inheritedFromPreviousMatch && (
+        <Alert severity="info" className={styles.inheritedNotice}>
+          Es la alineación inicial del partido anterior. Guárdala para usarla en este partido.
+        </Alert>
+      )}
 
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div className={liveStyles.liveMain}>

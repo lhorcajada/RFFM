@@ -60,3 +60,9 @@
   text-align: center;
   color: #f87171;
 }
+
+.inheritedNotice {
+  flex-shrink: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
