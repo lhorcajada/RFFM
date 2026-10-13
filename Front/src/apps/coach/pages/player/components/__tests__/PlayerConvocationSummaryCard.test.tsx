@@ -12,6 +12,7 @@ function buildSummary(overrides: Partial<PlayerConvocationSummary> = {}): Player
     league: { attended: 4, possible: 5, calledButAbsent: 0 },
     lastDeconvokedMatch: null,
     lastAbsenceMatch: null,
+    leagueAbsences: [],
     ...overrides,
   };
 }
@@ -31,7 +32,7 @@ describe("PlayerConvocationSummaryCard", () => {
     expect(screen.getByText("4 de 5")).toBeInTheDocument();
   });
 
-  it("muestra la nota de convocado-no-asistió en Amistosos y Liga, pero no en Entrenamientos", () => {
+  it("muestra la nota de convocado-no-asistió en Amistosos, pero no en Entrenamientos ni en Liga", () => {
     render(
       <PlayerConvocationSummaryCard
         summary={buildSummary({
@@ -44,9 +45,26 @@ describe("PlayerConvocationSummaryCard", () => {
     );
 
     expect(screen.getByText("No asistió a 1 partido al que fue convocado")).toBeInTheDocument();
-    expect(screen.getByText("No asistió a 2 partidos a los que fue convocado")).toBeInTheDocument();
-    // Trainings tile also has calledButAbsent=2, but its note must not be rendered.
-    expect(screen.getAllByText(/No asistió a \d+/)).toHaveLength(2);
+    // Trainings and league tiles also have calledButAbsent=2, but their note must not be rendered.
+    expect(screen.getAllByText(/No asistió a \d+/)).toHaveLength(1);
+  });
+
+  it("en Liga explica cada ausencia con su motivo", () => {
+    render(
+      <PlayerConvocationSummaryCard
+        summary={buildSummary({
+          league: { attended: 3, possible: 5, calledButAbsent: 1 },
+          leagueAbsences: [
+            { eventId: "l2", date: "2026-10-12T17:00:00Z", opponent: "CD Rival", kind: "TechnicalDecision", reason: "Decisión técnica" },
+            { eventId: "l1", date: "2026-10-05T17:00:00Z", opponent: "UD Vecina", kind: "Unavailable", reason: "Lesión" },
+          ],
+        })}
+        loading={false}
+      />,
+    );
+
+    expect(screen.getByText("12/10 vs CD Rival · No asistió por decisión técnica")).toBeInTheDocument();
+    expect(screen.getByText("05/10 vs UD Vecina · No asistió porque no estaba disponible por lesión")).toBeInTheDocument();
   });
 
   it("muestra el placeholder cuando no hay desconvocatorias ni ausencias registradas", () => {

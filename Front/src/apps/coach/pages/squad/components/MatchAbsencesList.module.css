@@ -1,0 +1,47 @@
+.block {
+  display: flex;
+  flex-direction: column;
+  margin-top: 6px;
+}
+
+.toggle {
+  align-self: flex-start;
+  min-width: 0 !important;
+  padding: 0 !important;
+  font-size: 10px !important;
+  text-transform: none !important;
+  text-decoration: underline dotted !important;
+  text-underline-offset: 2px;
+}
+
+.toggle :global(.MuiButton-endIcon) {
+  margin-left: 2px;
+}
+
+.toggleIcon,
+.toggleIconOpen {
+  font-size: 16px !important;
+  transition: transform 0.2s ease;
+}
+
+.toggleIconOpen {
+  transform: rotate(180deg);
+}
+
+.absences {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.absence {
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 11px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}

@@ -96,6 +96,7 @@ vi.mock("../hooks/usePlayerConvocationSummary", () => ({
       league: { attended: 4, possible: 4, calledButAbsent: 0 },
       lastDeconvokedMatch: null,
       lastAbsenceMatch: null,
+      leagueAbsences: [],
     },
     loadingSummary: false,
     loadSummary: loadSummaryMock,

@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import SquadStatistics from "../SquadStatistics";
 import type { PlayerStatistics } from "../../../../services/teamPlayerStatisticsService";
@@ -30,6 +30,7 @@ function buildPlayer(overrides: Partial<PlayerStatistics> = {}): PlayerStatistic
     minutesPlayedPercentOfAvailable: null,
     minutesTargetStatus: null,
     attributableAbsences: [],
+    leagueAbsences: [],
     formStatus: null,
     formStatusBreakdown: null,
     ...overrides,
@@ -59,7 +60,7 @@ describe("SquadStatistics — entrenamientos, partidos y lesión reciente", () =
     expect(within(card).getByText("7 de 8")).toBeInTheDocument();
   });
 
-  it("muestra una línea indicando cuántas veces fue convocado pero no asistió, solo en amistosos y liga (no en entrenamientos)", () => {
+  it("muestra una línea indicando cuántas veces fue convocado pero no asistió, solo en amistosos (no en entrenamientos)", () => {
     render(
       <SquadStatistics
         players={[
@@ -77,9 +78,92 @@ describe("SquadStatistics — entrenamientos, partidos y lesión reciente", () =
 
     const card = screen.getByTestId("squad-stat-card-p1");
     const notAttendedTexts = within(card).getAllByText((_, el) => el?.textContent === "No asistió a 1 partido al que fue convocado");
-    // Only the "Amistosos" tile shows the note here — trainings never shows it, league's
-    // calledButAbsent is 0 in this fixture so it shows nothing either.
+    // Only the "Amistosos" tile shows the note here — trainings never shows it.
     expect(notAttendedTexts).toHaveLength(1);
+  });
+
+  it("en liga no dice que fue convocado: explica cada ausencia con su motivo", () => {
+    render(
+      <SquadStatistics
+        players={[
+          buildPlayer({
+            teamPlayerId: "p1",
+            displayName: "Jugador No Disponible",
+            league: { attended: 0, possible: 2, calledButAbsent: 1 },
+            leagueAbsences: [
+              { eventId: "l2", date: "2026-10-12T17:00:00Z", opponent: "CD Rival", kind: "TechnicalDecision", reason: "Decisión técnica" },
+              { eventId: "l1", date: "2026-10-05T17:00:00Z", opponent: "UD Vecina", kind: "Unavailable", reason: "Lesión" },
+            ],
+          }),
+        ]}
+        loading={false}
+      />,
+    );
+
+    const card = screen.getByTestId("squad-stat-card-p1");
+    expect(within(card).queryByText(/al que fue convocado/)).not.toBeInTheDocument();
+    fireEvent.click(within(card).getByRole("button", { name: "Ver ausencias (2)" }));
+    const items = within(within(card).getByRole("list", { name: "Ausencias en partidos" })).getAllByRole("listitem");
+    expect(items).toHaveLength(2);
+    expect(items[0]).toHaveTextContent("12/10 · Liga vs CD Rival · No asistió por decisión técnica");
+    expect(items[1]).toHaveTextContent("05/10 · Liga vs UD Vecina · No asistió porque no estaba disponible por lesión");
+  });
+
+  it("lista también las ausencias imputables de amistosos, sin tablas", () => {
+    render(
+      <SquadStatistics
+        players={[
+          buildPlayer({
+            teamPlayerId: "p1",
+            friendlies: { attended: 0, possible: 1, calledButAbsent: 1 },
+            attributableAbsences: [
+              { eventId: "f1", date: "2026-10-05T17:00:00Z", eventTypeId: 4, opponent: "UD Vecina", matchMinutes: 70, kind: "NoShow", reason: null },
+            ],
+          }),
+        ]}
+        loading={false}
+      />,
+    );
+
+    const card = screen.getByTestId("squad-stat-card-p1");
+    fireEvent.click(within(card).getByRole("button", { name: "Ver ausencias (1)" }));
+    const list = within(card).getByRole("list", { name: "Ausencias en partidos" });
+    expect(within(list).getByRole("listitem")).toHaveTextContent("05/10 · Amistoso vs UD Vecina · 70' · No se presentó");
+    expect(card.querySelector("table")).toBeNull();
+  });
+
+  it("la lista de ausencias está plegada hasta que se pulsa 'Ver ausencias'", () => {
+    render(
+      <SquadStatistics
+        players={[
+          buildPlayer({
+            teamPlayerId: "p1",
+            leagueAbsences: [
+              { eventId: "l1", date: "2026-10-05T17:00:00Z", opponent: "UD Vecina", kind: "Unavailable", reason: "Lesión" },
+            ],
+          }),
+        ]}
+        loading={false}
+      />,
+    );
+
+    const card = screen.getByTestId("squad-stat-card-p1");
+    const toggle = within(card).getByRole("button", { name: "Ver ausencias (1)" });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(within(card).queryByRole("list", { name: "Ausencias en partidos" })).not.toBeInTheDocument();
+
+    fireEvent.click(toggle);
+
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(within(card).getByRole("list", { name: "Ausencias en partidos" })).toBeInTheDocument();
+  });
+
+  it("no muestra ni el botón ni la lista de ausencias si no ha faltado a ningún partido", () => {
+    render(<SquadStatistics players={[buildPlayer({ teamPlayerId: "p1" })]} loading={false} />);
+
+    const card = screen.getByTestId("squad-stat-card-p1");
+    expect(within(card).queryByRole("button", { name: /Ver ausencias/ })).not.toBeInTheDocument();
+    expect(within(card).queryByRole("list", { name: "Ausencias en partidos" })).not.toBeInTheDocument();
   });
 
   it("no muestra la línea de 'no asistió' en entrenamientos aunque calledButAbsent sea > 0", () => {

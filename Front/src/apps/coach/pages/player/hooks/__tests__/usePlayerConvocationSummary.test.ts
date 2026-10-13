@@ -43,6 +43,7 @@ describe("usePlayerConvocationSummary", () => {
         totalConvocations: 8,
         lastDeconvokedMatch: null,
         lastAbsenceMatch: null,
+        leagueAbsences: [],
       });
     });
 
@@ -52,6 +53,7 @@ describe("usePlayerConvocationSummary", () => {
       totalConvocations: 8,
       lastDeconvokedMatch: null,
       lastAbsenceMatch: null,
+      leagueAbsences: [],
     });
   });
 
@@ -61,6 +63,7 @@ describe("usePlayerConvocationSummary", () => {
       totalConvocations: 2,
       lastDeconvokedMatch: null,
       lastAbsenceMatch: null,
+      leagueAbsences: [],
     });
 
     const { result } = renderHook(() => usePlayerConvocationSummary());

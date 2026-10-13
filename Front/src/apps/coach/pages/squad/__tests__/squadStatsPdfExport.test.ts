@@ -65,6 +65,7 @@ function buildPlayer(overrides: Partial<PlayerStatistics> = {}): PlayerStatistic
     minutesPlayedPercentOfAvailable: null,
     minutesTargetStatus: null,
     attributableAbsences: [],
+    leagueAbsences: [],
     formStatus: null,
     formStatusBreakdown: null,
     ...overrides,
@@ -126,6 +127,25 @@ describe("squadStatsPdfExport.exportSquadStatisticsPdf", () => {
     ).toBe(true);
   });
 
+  it("en liga no dice que fue convocado: incluye una línea por ausencia con su motivo", () => {
+    exportSquadStatisticsPdf(
+      [
+        buildPlayer({
+          league: { attended: 0, possible: 1, calledButAbsent: 1 },
+          leagueAbsences: [
+            { eventId: "l1", date: "2026-10-12T17:00:00Z", opponent: "CD Rival", kind: "Unavailable", reason: "Evento familiar" },
+          ],
+        }),
+      ],
+      "Cadete A",
+    );
+
+    const texts = textMock.mock.calls.map((call) => call[0]);
+    expect(texts).toContain("Liga 0 de 1");
+    expect(texts).toContain("12/10 · Liga vs CD Rival · No asistió porque no estaba disponible por evento familiar");
+    expect(texts.some((t) => typeof t === "string" && t.includes("Partidos no asistidos"))).toBe(false);
+  });
+
   it("incluye el veredicto del objetivo y una línea por ausencia imputable", () => {
     exportSquadStatisticsPdf(
       [
@@ -136,7 +156,7 @@ describe("squadStatsPdfExport.exportSquadStatisticsPdf", () => {
           minutesPlayedPercentOfAvailable: 31.3,
           minutesTargetStatus: "NotMetByOwnAbsences",
           attributableAbsences: [
-            { eventId: "m1", date: "2026-10-12T17:00:00Z", eventTypeId: 1, opponent: "CD Rival", matchMinutes: 80, kind: "Declined", reason: "Lesión" },
+            { eventId: "m1", date: "2026-10-12T17:00:00Z", eventTypeId: 4, opponent: "CD Rival", matchMinutes: 80, kind: "Declined", reason: "Lesión" },
           ],
         }),
       ],
@@ -145,7 +165,7 @@ describe("squadStatsPdfExport.exportSquadStatisticsPdf", () => {
 
     const texts = textMock.mock.calls.map((call) => call[0]);
     expect(texts).toContain("No llega por sus ausencias: 31% de sus minutos disponibles");
-    expect(texts).toContain("12/10 · Liga vs CD Rival · 80' · Rechazó la convocatoria · Lesión");
+    expect(texts).toContain("12/10 · Amistoso vs CD Rival · 80' · Rechazó la convocatoria · Lesión");
   });
 
   it("no dibuja el bloque de objetivo de minutos cuando minutesPlayedPercentOfSeasonTotal es null", () => {

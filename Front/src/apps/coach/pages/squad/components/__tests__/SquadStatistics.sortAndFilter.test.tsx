@@ -31,6 +31,7 @@ function buildPlayer(overrides: Partial<PlayerStatistics> = {}): PlayerStatistic
     minutesPlayedPercentOfAvailable: null,
     minutesTargetStatus: null,
     attributableAbsences: [],
+    leagueAbsences: [],
     // formStatus/formStatusBreakdown se dejan sin definir a propósito: estos tests verifican
     // el orden/filtrado genérico de tarjetas, no el origen del dato de "Ef", y confían en el
     // fallback a computeEf(readiness, fatigue) que PlayerFormBars aplica cuando formStatus es

@@ -1,5 +1,5 @@
 import React from "react";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import SquadStatistics from "../SquadStatistics";
 import type { AttributableAbsence, PlayerStatistics } from "../../../../services/teamPlayerStatisticsService";
@@ -35,6 +35,7 @@ function buildPlayer(overrides: Partial<PlayerStatistics> = {}): PlayerStatistic
     minutesPlayedPercentOfAvailable: 41.7,
     minutesTargetStatus: "NotMetByOwnAbsences",
     attributableAbsences: absences,
+    leagueAbsences: [],
     formStatus: null,
     formStatusBreakdown: null,
     ...overrides,
@@ -67,39 +68,14 @@ describe("SquadStatistics — veredicto del objetivo de minutos", () => {
     expect(within(block).queryByTestId("minutes-target-absent-segment")).not.toBeInTheDocument();
   });
 
-  it("despliega la lista de ausencias al pulsar 'Partidos no asistidos'", () => {
+  it("ya no muestra 'Partidos no asistidos'", () => {
     const block = renderBlock();
-    expect(within(block).queryByRole("list", { name: "Partidos no asistidos" })).not.toBeInTheDocument();
-
-    fireEvent.click(within(block).getByRole("button", { name: "Partidos no asistidos: 2" }));
-
-    const list = within(block).getByRole("list", { name: "Partidos no asistidos" });
-    const items = within(list).getAllByRole("listitem");
-    expect(items).toHaveLength(2);
-    expect(items[0]).toHaveTextContent("12/10 · Liga vs CD Rival · 80' · Rechazó la convocatoria · Lesión");
-    expect(items[1]).toHaveTextContent("05/10 · Amistoso vs UD Vecina · 70' · No se presentó");
-  });
-
-  it("indica que 'Partidos no asistidos' se puede desplegar", () => {
-    const block = renderBlock();
-    const toggle = within(block).getByRole("button", { name: "Partidos no asistidos: 2" });
-    expect(within(toggle).getByTestId("ExpandMoreIcon")).toBeInTheDocument();
-    expect(toggle).toHaveAttribute("aria-expanded", "false");
-
-    fireEvent.click(toggle);
-
-    expect(toggle).toHaveAttribute("aria-expanded", "true");
-  });
-
-  it("sin ausencias muestra el texto sin botón", () => {
-    const block = renderBlock({ matchesAbsentAttributableToPlayer: 0, attributableAbsences: [], attributableAbsentMinutesPercentOfSeasonTotal: 0 });
-    expect(within(block).getByText("Partidos no asistidos: 0")).toBeInTheDocument();
-    expect(within(block).queryByRole("button", { name: /Partidos no asistidos/ })).not.toBeInTheDocument();
+    expect(within(block).queryByText(/Partidos no asistidos/)).not.toBeInTheDocument();
+    expect(within(block).queryByRole("button")).not.toBeInTheDocument();
   });
 
   it("no usa tablas", () => {
     const block = renderBlock();
-    fireEvent.click(within(block).getByRole("button", { name: "Partidos no asistidos: 2" }));
     expect(block.querySelector("table")).toBeNull();
   });
 });

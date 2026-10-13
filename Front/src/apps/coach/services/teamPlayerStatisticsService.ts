@@ -100,6 +100,20 @@ export type AttributableAbsence = {
   reason: string | null;
 };
 
+export type LeagueAbsenceKind = "Unavailable" | "TechnicalDecision" | "NoShow";
+
+/** Partido de liga no asistido. En liga se pide disponibilidad a toda la plantilla, así que no
+ * asistir no implica haber sido convocado: `Unavailable` = no estaba disponible (motivo del
+ * jugador), `TechnicalDecision` = descartado por el entrenador, `NoShow` = convocado que faltó. */
+export type LeagueAbsence = {
+  eventId: string;
+  date: string;
+  /** Rival, o nombre del evento si no tiene rival. */
+  opponent: string;
+  kind: LeagueAbsenceKind;
+  reason: string | null;
+};
+
 export type AttendanceRatio = {
   attended: number;
   possible: number;
@@ -143,6 +157,8 @@ export type PlayerStatistics = {
   /** Estado de forma (0-100). `null` si no hay actividad en los últimos 84 días o la categoría no tiene duración estándar. */
   formStatus: number | null;
   formStatusBreakdown: DailyLoadBreakdown | null;
+  /** Partidos de liga no asistidos con su motivo, más reciente primero. */
+  leagueAbsences: LeagueAbsence[];
 };
 
 /** Objetivo de temporada: un jugador debe llegar al menos al 30% de los minutos totales del equipo. */

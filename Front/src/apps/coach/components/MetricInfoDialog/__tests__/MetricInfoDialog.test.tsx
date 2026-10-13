@@ -39,6 +39,7 @@ function buildPlayer(overrides: Partial<PlayerStatistics> = {}): PlayerStatistic
     minutesPlayedPercentOfAvailable: null,
     minutesTargetStatus: null,
     attributableAbsences: [],
+    leagueAbsences: [],
     formStatus: 72,
     formStatusBreakdown: buildDailyLoadBreakdown(),
     ...overrides,

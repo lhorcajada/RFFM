@@ -1,6 +1,7 @@
 import type {
   AttributableAbsence,
   AttributableAbsenceKind,
+  LeagueAbsence,
   PlayerStatistics,
 } from "../../services/teamPlayerStatisticsService";
 import { formatShortDate, matchTypeLabel } from "../../components/MetricBreakdown/breakdownFormat";
@@ -22,10 +23,6 @@ export function calledButAbsentLabel(calledButAbsent: number): string | null {
   return calledButAbsent === 1
     ? "No asistió a 1 partido al que fue convocado"
     : `No asistió a ${calledButAbsent} partidos a los que fue convocado`;
-}
-
-export function minutesTargetCaption(player: PlayerStatistics): string {
-  return `Partidos no asistidos: ${player.matchesAbsentAttributableToPlayer}`;
 }
 
 export function minutesTargetVerdict(
@@ -61,4 +58,38 @@ export function attributableAbsenceLine(absence: AttributableAbsence): string {
     absence.reason,
   ];
   return parts.filter((p): p is string => !!p).join(" · ");
+}
+
+const LEAGUE_EVENT_TYPE_ID = 1;
+
+const lowerFirst = (text: string) => text.charAt(0).toLowerCase() + text.slice(1);
+
+export function leagueAbsenceReason(absence: Pick<LeagueAbsence, "kind" | "reason">): string {
+  const reason = absence.reason ? lowerFirst(absence.reason) : null;
+  switch (absence.kind) {
+    case "TechnicalDecision":
+      return "No asistió por decisión técnica";
+    case "NoShow":
+      return reason ? `No asistió estando convocado (${reason})` : "No asistió estando convocado";
+    default:
+      return reason ? `No asistió porque no estaba disponible por ${reason}` : "No asistió porque no estaba disponible";
+  }
+}
+
+export function leagueAbsenceLine(absence: LeagueAbsence): string {
+  return [
+    formatShortDate(absence.date),
+    `${matchTypeLabel(LEAGUE_EVENT_TYPE_ID)} vs ${absence.opponent}`,
+    leagueAbsenceReason(absence),
+  ].join(" · ");
+}
+
+/** Una línea por partido no asistido, más reciente primero: los de liga con su motivo
+ * (`leagueAbsences`) y, del resto de partidos, las ausencias imputables al jugador. */
+export function matchAbsenceLines(player: Pick<PlayerStatistics, "leagueAbsences" | "attributableAbsences">): string[] {
+  const league = player.leagueAbsences.map((a) => ({ date: a.date, text: leagueAbsenceLine(a) }));
+  const others = player.attributableAbsences
+    .filter((a) => a.eventTypeId !== LEAGUE_EVENT_TYPE_ID)
+    .map((a) => ({ date: a.date, text: attributableAbsenceLine(a) }));
+  return [...league, ...others].sort((a, b) => b.date.localeCompare(a.date)).map((line) => line.text);
 }

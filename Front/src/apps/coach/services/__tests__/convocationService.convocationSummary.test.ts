@@ -31,6 +31,7 @@ describe("convocationService.getPlayerConvocationSummary", () => {
         reason: "Decisión técnica",
       },
       lastAbsenceMatch: null,
+      leagueAbsences: [],
     };
     (client.get as any).mockResolvedValue({ data: apiResponse });
 

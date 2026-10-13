@@ -1,9 +1,7 @@
-import { useState } from "react";
-import { Button, Collapse, Typography } from "@mui/material";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { Typography } from "@mui/material";
 import type { MinutesTargetStatus, PlayerStatistics } from "../../../services/teamPlayerStatisticsService";
 import { SEASON_MINUTES_TARGET_PERCENT } from "../../../services/teamPlayerStatisticsService";
-import { attributableAbsenceLine, minutesTargetCaption, minutesTargetVerdict } from "../playerStatsText";
+import { minutesTargetVerdict } from "../playerStatsText";
 import styles from "./SeasonMinutesTarget.module.css";
 
 type Props = {
@@ -19,12 +17,9 @@ const VERDICT_COLORS: Record<MinutesTargetStatus, "success.main" | "warning.main
 const clampPercent = (value: number) => Math.min(100, Math.max(0, value));
 
 export default function SeasonMinutesTarget({ player }: Props) {
-  const [showAbsences, setShowAbsences] = useState(false);
   const played = clampPercent(player.minutesPlayedPercentOfSeasonTotal ?? 0);
   const absent = Math.min(100 - played, clampPercent(player.attributableAbsentMinutesPercentOfSeasonTotal ?? 0));
   const verdict = minutesTargetVerdict(player);
-  const caption = minutesTargetCaption(player);
-  const hasAbsences = player.attributableAbsences.length > 0;
 
   return (
     <div className={styles.block} data-testid="squad-stat-minutes-target">
@@ -52,29 +47,6 @@ export default function SeasonMinutesTarget({ player }: Props) {
           {verdict}
         </Typography>
       )}
-      {hasAbsences ? (
-        <Button
-          size="small"
-          variant="text"
-          className={styles.absencesToggle}
-          aria-expanded={showAbsences}
-          onClick={() => setShowAbsences((v) => !v)}
-          endIcon={<ExpandMoreIcon className={showAbsences ? styles.toggleIconOpen : styles.toggleIcon} />}
-        >
-          {caption}
-        </Button>
-      ) : (
-        <span className={styles.caption}>{caption}</span>
-      )}
-      <Collapse in={showAbsences && hasAbsences} timeout="auto" unmountOnExit>
-        <ul className={styles.absences} aria-label="Partidos no asistidos">
-          {player.attributableAbsences.map((a) => (
-            <li key={a.eventId} className={styles.absence}>
-              {attributableAbsenceLine(a)}
-            </li>
-          ))}
-        </ul>
-      </Collapse>
     </div>
   );
 }

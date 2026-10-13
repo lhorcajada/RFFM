@@ -2,10 +2,9 @@ import jsPDF from "jspdf";
 import type { PlayerStatistics } from "../../services/teamPlayerStatisticsService";
 import { SEASON_MINUTES_TARGET_PERCENT } from "../../services/teamPlayerStatisticsService";
 import {
-  attributableAbsenceLine,
   calledButAbsentLabel,
   injuryLabel,
-  minutesTargetCaption,
+  matchAbsenceLines,
   minutesTargetVerdict,
 } from "./playerStatsText";
 
@@ -68,12 +67,14 @@ function buildCardLines(player: PlayerStatistics): CardLine[] {
     color: friendliesNote ? [178, 58, 58] : undefined,
   });
 
-  const leagueNote = calledButAbsentLabel(player.league.calledButAbsent);
   lines.push({
-    text: `Liga ${player.league.attended} de ${player.league.possible}${leagueNote ? ` — ${leagueNote}` : ""}`,
+    text: `Liga ${player.league.attended} de ${player.league.possible}`,
     size: 7.5,
-    color: leagueNote ? [178, 58, 58] : undefined,
   });
+
+  for (const absenceLine of matchAbsenceLines(player)) {
+    lines.push({ text: absenceLine, size: 6.5, color: [110, 110, 110] });
+  }
 
   if (player.minutesPlayedPercentOfSeasonTotal != null) {
     lines.push({
@@ -89,10 +90,6 @@ function buildCardLines(player: PlayerStatistics): CardLine[] {
         bold: true,
         color: player.minutesTargetStatus === "Met" ? undefined : [178, 58, 58],
       });
-    }
-    lines.push({ text: minutesTargetCaption(player), size: 6.8, color: [110, 110, 110] });
-    for (const absence of player.attributableAbsences) {
-      lines.push({ text: attributableAbsenceLine(absence), size: 6.5, color: [110, 110, 110] });
     }
   }
 
@@ -134,7 +131,7 @@ function drawCard(doc: jsPDF, player: PlayerStatistics, x: number, y: number, w:
 /**
  * Exports a card-grid PDF (one block per player, mirroring the on-screen SquadStatistics
  * cards) — EF/Rodaje/Cansancio, goles/tarjetas/minutos, ausencias imputables,
- * ratios de Entrenamientos/Amistosos/Liga con su nota de "convocado no asistió", el objetivo
+ * ratios de Entrenamientos/Amistosos/Liga, una línea por partido no asistido, el objetivo
  * de minutos de temporada (solo F11) y la línea de lesión — en vez de una tabla de una fila
  * por jugador, ya que esa información ya no cabe en una sola fila.
  */

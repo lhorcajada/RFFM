@@ -16,8 +16,9 @@ import ShowChartIcon from "@mui/icons-material/ShowChart";
 import avatarFallback from "../../../../../assets/avatar.svg";
 import type { PlayerStatistics } from "../../../services/teamPlayerStatisticsService";
 import { exportSquadStatisticsPdf } from "../squadStatsPdfExport";
-import { calledButAbsentLabel, injuryLabel } from "../playerStatsText";
+import { calledButAbsentLabel, injuryLabel, matchAbsenceLines } from "../playerStatsText";
 import SeasonMinutesTarget from "./SeasonMinutesTarget";
+import MatchAbsencesList from "./MatchAbsencesList";
 import PlayerFormBars from "../../../components/PlayerFormBars/PlayerFormBars";
 import MetricInfoDialog from "../../../components/MetricInfoDialog/MetricInfoDialog";
 import type { MetricKey } from "../../../components/MetricInfoDialog/metricInfoTexts";
@@ -275,11 +276,10 @@ export default function SquadStatistics({ players, loading, teamName, photoUrls,
                 <div className={styles.statItem}>
                   <span className={styles.statValue}>{player.league.attended} de {player.league.possible}</span>
                   <span className={styles.statLabel}>Liga</span>
-                  {calledButAbsentLabel(player.league.calledButAbsent) && (
-                    <span className={styles.statAbsentNote}>{calledButAbsentLabel(player.league.calledButAbsent)}</span>
-                  )}
                 </div>
               </div>
+
+              <MatchAbsencesList lines={matchAbsenceLines(player)} />
 
               {player.minutesPlayedPercentOfSeasonTotal != null && <SeasonMinutesTarget player={player} />}
 

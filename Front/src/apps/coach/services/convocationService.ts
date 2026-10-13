@@ -1,4 +1,5 @@
 import client from "../../../core/api/client";
+import type { LeagueAbsence } from "./teamPlayerStatisticsService";
 
 export type PlayerSimple = {
   id?: string;        // teamPlayerId
@@ -167,6 +168,8 @@ export type PlayerConvocationSummary = {
   league: PlayerAttendanceRatio;
   lastDeconvokedMatch: PlayerAbsenceMatch | null;
   lastAbsenceMatch: PlayerAbsenceMatch | null;
+  /** League matches the player missed and why, most recent first. */
+  leagueAbsences: LeagueAbsence[];
 };
 
 export async function getPlayerConvocationSummary(
