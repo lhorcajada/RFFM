@@ -124,6 +124,9 @@ namespace RFFM.Api.Domain
         public const string AvailabilityRequestNotFound = "AvailabilityRequestNotFound";
         public const string AvailabilityInvalidTransition = "AvailabilityInvalidTransition";
 
+        // Squad rating sheets (Features/Coaches/Players/Commands/CreateTeamRatingsBatch.cs)
+        public const string RatingPlayerNotInTeam = "RatingPlayerNotInTeam";
+
         // Season Plans (Features/Coaches/SeasonPlans)
         public const string SeasonPlanNotFound = "SeasonPlanNotFound";
         public const string SeasonPlanAccessDenied = "SeasonPlanAccessDenied";
