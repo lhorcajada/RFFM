@@ -118,4 +118,38 @@ describe("CardEventDialog", () => {
       cardType: "red",
     });
   });
+
+  it("does not show the minute field unless the minute is editable", () => {
+    render(<CardEventDialog open players={players} onClose={vi.fn()} onSubmit={vi.fn()} />);
+
+    expect(screen.queryByLabelText(/minuto/i)).not.toBeInTheDocument();
+  });
+
+  it("includes the edited minute in the payload when the minute is editable", async () => {
+    const onSubmit = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <CardEventDialog
+        open
+        editableMinute
+        players={players}
+        onClose={vi.fn()}
+        onSubmit={onSubmit}
+        initialValue={{
+          teamPlayerId: "p1",
+          playerName: "Jugador Uno",
+          isRivalPlayer: false,
+          rivalDorsal: null,
+          cardType: "yellow",
+          minute: 30,
+        }}
+      />
+    );
+
+    await user.clear(screen.getByLabelText(/minuto/i));
+    await user.type(screen.getByLabelText(/minuto/i), "41");
+    await user.click(screen.getByRole("button", { name: /guardar|confirmar/i }));
+
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ minute: 41 }));
+  });
 });

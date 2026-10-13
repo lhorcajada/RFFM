@@ -21,7 +21,11 @@ export interface CardEventSubmitPayload {
   isRivalPlayer: boolean;
   rivalDorsal: number | null;
   cardType: "yellow" | "red";
+  /** Match minute of the card; only reported when the dialog lets the coach edit it */
+  minute?: number;
 }
+
+const MAX_MINUTE = 200;
 
 interface CardEventDialogProps {
   open: boolean;
@@ -33,6 +37,8 @@ interface CardEventDialogProps {
   initialValue?: CardEventSubmitPayload;
   /** Restricts the dialog to own-team players or to a rival dorsal; omitted offers both */
   side?: "own" | "rival";
+  /** Shows a minute field so the coach can set when the card was shown (manual edit of a finished match) */
+  editableMinute?: boolean;
 }
 
 export default function CardEventDialog({
@@ -42,11 +48,13 @@ export default function CardEventDialog({
   onSubmit,
   initialValue,
   side,
+  editableMinute = false,
 }: CardEventDialogProps) {
   const [selectedPlayer, setSelectedPlayer] = useState<SimSlotPlayer | null>(null);
   const [isRival, setIsRival] = useState(false);
   const [rivalDorsal, setRivalDorsal] = useState("");
   const [cardType, setCardType] = useState<"yellow" | "red" | null>(null);
+  const [minute, setMinute] = useState("0");
 
   // Reset or pre-fill state when dialog opens with initialValue
   useEffect(() => {
@@ -65,12 +73,14 @@ export default function CardEventDialog({
         setRivalDorsal("");
       }
       setCardType(initialValue.cardType);
+      setMinute(String(initialValue.minute ?? 0));
     } else {
       // Add mode: reset
       setSelectedPlayer(null);
       setIsRival(side === "rival");
       setRivalDorsal("");
       setCardType(null);
+      setMinute("0");
     }
   }, [open, initialValue, players, side]);
 
@@ -96,10 +106,16 @@ export default function CardEventDialog({
     setIsRival(true);
   }
 
-  const canSubmit = cardType !== null && (isRival ? rivalDorsal.trim() !== "" : selectedPlayer !== null);
+  const parsedMinute = Number(minute);
+  const minuteIsValid =
+    !editableMinute ||
+    (minute.trim() !== "" && Number.isInteger(parsedMinute) && parsedMinute >= 0 && parsedMinute <= MAX_MINUTE);
+  const canSubmit =
+    cardType !== null && minuteIsValid && (isRival ? rivalDorsal.trim() !== "" : selectedPlayer !== null);
 
   function handleSubmit() {
     if (!canSubmit || !cardType) return;
+    const minutePayload = editableMinute ? { minute: parsedMinute } : {};
     if (isRival) {
       onSubmit({
         teamPlayerId: null,
@@ -107,6 +123,7 @@ export default function CardEventDialog({
         isRivalPlayer: true,
         rivalDorsal: Number(rivalDorsal.trim()),
         cardType,
+        ...minutePayload,
       });
     } else if (selectedPlayer) {
       onSubmit({
@@ -115,6 +132,7 @@ export default function CardEventDialog({
         isRivalPlayer: false,
         rivalDorsal: null,
         cardType,
+        ...minutePayload,
       });
     }
     reset();
@@ -174,6 +192,20 @@ export default function CardEventDialog({
             sx={{ mb: 2 }}
             InputLabelProps={{ sx: { color: "rgba(255,255,255,0.6)" } }}
             inputProps={{ style: { color: "#fff" } }}
+          />
+        )}
+
+        {editableMinute && (
+          <TextField
+            label="Minuto"
+            type="number"
+            size="small"
+            value={minute}
+            onChange={(e) => setMinute(e.target.value)}
+            fullWidth
+            sx={{ mb: 2 }}
+            InputLabelProps={{ sx: { color: "rgba(255,255,255,0.6)" } }}
+            inputProps={{ min: 0, max: MAX_MINUTE, step: 1, style: { color: "#fff" } }}
           />
         )}
 

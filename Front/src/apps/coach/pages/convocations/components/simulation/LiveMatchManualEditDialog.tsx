@@ -180,7 +180,6 @@ export default function LiveMatchManualEditDialog({
   const [cardDialogOpen, setCardDialogOpen] = useState(false);
   const [cardDialogMode, setCardDialogMode] = useState<"add" | "edit">("add");
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
-  const [cardMinute, setCardMinute] = useState<string>("0");
   const [cardHalf, setCardHalf] = useState<1 | 2>(1);
   const [cardInitialValue, setCardInitialValue] = useState<CardEventSubmitPayload | undefined>();
 
@@ -354,7 +353,6 @@ export default function LiveMatchManualEditDialog({
   // Card handlers
   function openAddCardDialog() {
     setCardDialogMode("add");
-    setCardMinute("0");
     setCardHalf(1);
     setCardInitialValue(undefined);
     setEditingCardId(null);
@@ -363,7 +361,6 @@ export default function LiveMatchManualEditDialog({
 
   function openEditCardDialog(card: CardEvent) {
     setCardDialogMode("edit");
-    setCardMinute(card.minute.toString());
     setCardHalf(card.half);
     setCardInitialValue(card);
     setEditingCardId(card.id);
@@ -371,18 +368,14 @@ export default function LiveMatchManualEditDialog({
   }
 
   function handleCardSubmit(payload: CardEventSubmitPayload) {
-    const parsed = parseInt(cardMinute, 10);
-    if (isNaN(parsed) || parsed < 0 || parsed > 200) {
-      setError("Revisa los minutos introducidos (deben ser números entre 0 y 200).");
-      return;
-    }
+    const minute = payload.minute ?? 0;
     setCardDialogOpen(false);
     setError(null);
 
     if (cardDialogMode === "add") {
-      onAddCard(payload, parsed, cardHalf);
+      onAddCard(payload, minute, cardHalf);
     } else if (editingCardId) {
-      onUpdateCard(editingCardId, payload, parsed, cardHalf);
+      onUpdateCard(editingCardId, payload, minute, cardHalf);
     }
   }
 
@@ -682,6 +675,7 @@ export default function LiveMatchManualEditDialog({
                 <div className={styles.itemActions}>
                   <IconButton
                     size="small"
+                    aria-label="Editar tarjeta"
                     onClick={() => openEditCardDialog(card)}
                     sx={{ color: "#fb923c" }}
                   >
@@ -689,6 +683,7 @@ export default function LiveMatchManualEditDialog({
                   </IconButton>
                   <IconButton
                     size="small"
+                    aria-label="Eliminar tarjeta"
                     onClick={() => onRemoveCard(card.id)}
                     sx={{ color: "#ef4444" }}
                   >
@@ -716,6 +711,7 @@ export default function LiveMatchManualEditDialog({
       <CardEventDialog
         open={cardDialogOpen}
         players={simPlayers}
+        editableMinute
         onClose={() => setCardDialogOpen(false)}
         onSubmit={handleCardSubmit}
         initialValue={cardDialogMode === "edit" ? cardInitialValue : undefined}
