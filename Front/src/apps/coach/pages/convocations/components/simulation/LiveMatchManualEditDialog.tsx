@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Button,
+  MenuItem,
   Dialog,
   DialogActions,
   DialogContent,
@@ -20,17 +21,66 @@ import type { GoalEventSubmitPayload } from "./GoalEventDialog";
 import type { CardEventSubmitPayload } from "./CardEventDialog";
 import GoalEventDialog from "./GoalEventDialog";
 import CardEventDialog from "./CardEventDialog";
+import type { SubstitutionSwap, SubstitutionWindow } from "./simulation.types";
+import {
+  computeMinutesFromWindows,
+  getWindowPeriod,
+  rebuildWindows,
+  type EditedWindow,
+  type WindowPeriod,
+} from "../../utils/substitutionWindowEdits";
 import styles from "./LiveMatchManualEditDialog.module.css";
 
 interface ManualMinutes {
   [teamPlayerId: string]: string; // string so the input works uncontrolled
 }
 
-/** Score and duration as left in the dialog, handed to the save so it doesn't use stale values */
+/** A substitution window being corrected; the minute stays a string so the input works uncontrolled */
+interface WindowDraft {
+  sourceIndex: number;
+  minute: string;
+  period: WindowPeriod;
+  swaps: SubstitutionSwap[];
+}
+
+const MAX_MINUTE = 200;
+const NO_WINDOWS: SubstitutionWindow[] = [];
+const NO_STARTERS: string[] = [];
+
+const PERIOD_OPTIONS: { value: WindowPeriod; label: string }[] = [
+  { value: "firstHalf", label: "1ª parte" },
+  { value: "halftime", label: "Descanso" },
+  { value: "secondHalf", label: "2ª parte" },
+];
+
+const windowFieldSx = {
+  "& .MuiInputBase-input": { color: "#fff" },
+  "& .MuiInputLabel-root": { color: "rgba(255,255,255,0.7)" },
+  "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(255,255,255,0.2)" },
+  "& .MuiSelect-icon": { color: "rgba(255,255,255,0.7)" },
+};
+
+function toWindowDrafts(windows: SubstitutionWindow[]): WindowDraft[] {
+  return windows.map((window, sourceIndex) => ({
+    sourceIndex,
+    minute: String(window.minute),
+    period: getWindowPeriod(window),
+    swaps: window.swaps.map((swap) => ({ ...swap })),
+  }));
+}
+
+function parseWindowMinute(raw: string): number | null {
+  const parsed = Number(raw);
+  const isValid = raw.trim() !== "" && Number.isInteger(parsed) && parsed >= 0 && parsed <= MAX_MINUTE;
+  return isValid ? parsed : null;
+}
+
+/** Score, duration and substitution windows as left in the dialog, handed to the save so it doesn't use stale values */
 export interface ManualEditFinalValues {
   scoreLocal: number;
   scoreVisitor: number;
   matchDurationMinutes: number;
+  windows: SubstitutionWindow[];
 }
 
 interface LiveMatchManualEditDialogProps {
@@ -60,6 +110,11 @@ interface LiveMatchManualEditDialogProps {
   onAddCard: (payload: CardEventSubmitPayload, minute: number, half: 1 | 2) => void;
   onUpdateCard: (cardId: string, payload: CardEventSubmitPayload, minute: number, half: 1 | 2) => void;
   onRemoveCard: (cardId: string) => void;
+  /** Substitution windows recorded in the match */
+  windows?: SubstitutionWindow[];
+  /** Players who started the match; needed to recalculate minutes when a substitution is corrected */
+  starterIds?: string[];
+  onSetWindows?: (windows: SubstitutionWindow[]) => void;
 }
 
 export default function LiveMatchManualEditDialog({
@@ -84,6 +139,9 @@ export default function LiveMatchManualEditDialog({
   onAddCard,
   onUpdateCard,
   onRemoveCard,
+  windows = NO_WINDOWS,
+  starterIds = NO_STARTERS,
+  onSetWindows,
 }: LiveMatchManualEditDialogProps) {
   const [values, setValues] = useState<ManualMinutes>(() =>
     Object.fromEntries(lineupPlayers.map((p) => [p.id, String(currentMinutes[p.id] ?? 0)])),
@@ -93,6 +151,9 @@ export default function LiveMatchManualEditDialog({
   const [scoreVisitorInput, setScoreVisitorInput] = useState(String(scoreVisitor));
   const initialDuration = () => String(matchDurationMinutes ?? defaultMatchDurationMinutes);
   const [durationInput, setDurationInput] = useState(initialDuration);
+  const [windowDrafts, setWindowDrafts] = useState<WindowDraft[]>(() => toWindowDrafts(windows));
+  // Part of the recalculated minutes a player already had when the coach typed their minutes by hand
+  const [minuteOffsets, setMinuteOffsets] = useState<Record<string, number>>({});
 
   // Re-sync the form with the latest minutes/score every time the dialog is
   // opened, so it reflects previously saved data instead of a stale first-mount snapshot.
@@ -102,6 +163,8 @@ export default function LiveMatchManualEditDialog({
     setScoreLocalInput(String(scoreLocal));
     setScoreVisitorInput(String(scoreVisitor));
     setDurationInput(initialDuration());
+    setWindowDrafts(toWindowDrafts(windows));
+    setMinuteOffsets({});
     setError(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
@@ -129,14 +192,104 @@ export default function LiveMatchManualEditDialog({
     dorsal: p.dorsal,
   }));
 
+  // While a minute is being typed (and is not valid yet) the window keeps its recorded minute
+  function toEditedWindows(drafts: WindowDraft[]): EditedWindow[] {
+    return drafts.map((draft) => ({
+      sourceIndex: draft.sourceIndex,
+      minute: parseWindowMinute(draft.minute) ?? windows[draft.sourceIndex].minute,
+      period: draft.period,
+      swaps: draft.swaps,
+    }));
+  }
+
+  // Minutes each player gains or loses because of the corrections made to the substitutions
+  const minutesDelta = useMemo(() => {
+    const typedDuration = Number(durationInput);
+    const duration =
+      Number.isInteger(typedDuration) && typedDuration > 0
+        ? typedDuration
+        : matchDurationMinutes || defaultMatchDurationMinutes;
+    const before = computeMinutesFromWindows(starterIds, windows, duration, cards);
+    const after = computeMinutesFromWindows(
+      starterIds,
+      rebuildWindows(starterIds, windows, toEditedWindows(windowDrafts)),
+      duration,
+      cards,
+    );
+    const delta: Record<string, number> = {};
+    for (const playerId of new Set([...Object.keys(before), ...Object.keys(after)])) {
+      delta[playerId] = (after[playerId] ?? 0) - (before[playerId] ?? 0);
+    }
+    return delta;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [windowDrafts, windows, starterIds, cards, durationInput, matchDurationMinutes, defaultMatchDurationMinutes]);
+
+  function minutesShown(playerId: string): string {
+    const raw = values[playerId] ?? "0";
+    const pendingDelta = (minutesDelta[playerId] ?? 0) - (minuteOffsets[playerId] ?? 0);
+    const parsed = parseInt(raw, 10);
+    if (pendingDelta === 0 || isNaN(parsed)) return raw;
+    return String(Math.max(0, parsed + pendingDelta));
+  }
+
   function handleChange(playerId: string, raw: string) {
     setValues((prev) => ({ ...prev, [playerId]: raw }));
+    setMinuteOffsets((prev) => ({ ...prev, [playerId]: minutesDelta[playerId] ?? 0 }));
     setError(null);
   }
 
+  function updateWindowDraft(sourceIndex: number, patch: Partial<Omit<WindowDraft, "sourceIndex">>) {
+    setWindowDrafts((prev) => prev.map((draft) => (draft.sourceIndex === sourceIndex ? { ...draft, ...patch } : draft)));
+    setError(null);
+  }
+
+  function updateSwap(draft: WindowDraft, swapIndex: number, patch: Partial<SubstitutionSwap>) {
+    updateWindowDraft(draft.sourceIndex, {
+      swaps: draft.swaps.map((swap, i) => (i === swapIndex ? { ...swap, ...patch } : swap)),
+    });
+  }
+
+  function removeWindow(sourceIndex: number) {
+    setWindowDrafts((prev) => prev.filter((draft) => draft.sourceIndex !== sourceIndex));
+    setError(null);
+  }
+
+  function removeSwap(draft: WindowDraft, swapIndex: number) {
+    const remainingSwaps = draft.swaps.filter((_, i) => i !== swapIndex);
+    if (remainingSwaps.length === 0) {
+      removeWindow(draft.sourceIndex);
+      return;
+    }
+    updateWindowDraft(draft.sourceIndex, { swaps: remainingSwaps });
+  }
+
+  function findWindowsError(): string | null {
+    for (const draft of windowDrafts) {
+      if (parseWindowMinute(draft.minute) === null) {
+        return `Revisa el minuto de las ventanas de cambios (debe ser un número entre 0 y ${MAX_MINUTE}).`;
+      }
+      const samePlayerInAndOut = draft.swaps.some((swap) => swap.inPlayerId === swap.outPlayerId);
+      if (samePlayerInAndOut) {
+        return "Revisa los cambios: un jugador no puede entrar y salir en el mismo cambio.";
+      }
+      const involvedIds = draft.swaps.flatMap((swap) => [swap.inPlayerId, swap.outPlayerId]).filter(Boolean);
+      const playerRepeated = new Set(involvedIds).size !== involvedIds.length;
+      if (playerRepeated) {
+        return "Revisa los cambios: un jugador no puede aparecer dos veces en la misma ventana.";
+      }
+    }
+    return null;
+  }
+
   function handleSave() {
+    const windowsError = findWindowsError();
+    if (windowsError) {
+      setError(windowsError);
+      return;
+    }
     const overrides: Record<string, number> = {};
-    for (const [pid, raw] of Object.entries(values)) {
+    for (const pid of Object.keys(values)) {
+      const raw = minutesShown(pid);
       const parsed = parseInt(raw, 10);
       if (isNaN(parsed) || parsed < 0 || parsed > 200) {
         setError("Revisa los minutos introducidos (deben ser números entre 0 y 200).");
@@ -157,11 +310,14 @@ export default function LiveMatchManualEditDialog({
       setError(`Revisa la duración del partido (debe ser un número entre 0 y ${MAX_MATCH_DURATION_MINUTES}).`);
       return;
     }
+    const correctedWindows = rebuildWindows(starterIds, windows, toEditedWindows(windowDrafts));
     onSaveMinutes(overrides, {
       scoreLocal: parsedScoreLocal,
       scoreVisitor: parsedScoreVisitor,
       matchDurationMinutes: parsedDuration,
+      windows: correctedWindows,
     });
+    onSetWindows?.(correctedWindows);
     onSetScore(parsedScoreLocal, parsedScoreVisitor);
     onSetMatchDuration(parsedDuration);
     onClose();
@@ -228,6 +384,34 @@ export default function LiveMatchManualEditDialog({
     } else if (editingCardId) {
       onUpdateCard(editingCardId, payload, parsed, cardHalf);
     }
+  }
+
+  function playerLabel(player: SquadPlayer): string {
+    const name = player.alias?.trim() || player.displayName.split(" ").slice(0, 2).join(" ");
+    return player.dorsal != null ? `${player.dorsal} · ${name}` : name;
+  }
+
+  function renderPlayerSelect(id: string, label: string, playerId: string, onSelect: (playerId: string) => void) {
+    const isInLineup = lineupPlayers.some((p) => p.id === playerId);
+    return (
+      <TextField
+        id={id}
+        select
+        size="small"
+        label={label}
+        value={playerId}
+        onChange={(e) => onSelect(e.target.value)}
+        className={styles.swapPlayerField}
+        sx={windowFieldSx}
+      >
+        {!isInLineup && <MenuItem value={playerId}>Jugador no convocado</MenuItem>}
+        {lineupPlayers.map((p) => (
+          <MenuItem key={p.id} value={p.id}>
+            {playerLabel(p)}
+          </MenuItem>
+        ))}
+      </TextField>
+    );
   }
 
   return (
@@ -306,6 +490,85 @@ export default function LiveMatchManualEditDialog({
           />
         </div>
 
+        {/* Substitution windows section — corrections here recalculate the minutes below */}
+        <div className={styles.section}>
+          <div className={styles.sectionTitle}>Ventanas de cambios ({windowDrafts.length})</div>
+          {windowDrafts.length > 0 && (
+            <div className={styles.sectionHint}>
+              Al corregir un cambio se recalculan los minutos de los jugadores afectados.
+            </div>
+          )}
+          <div className={styles.itemsList}>
+            {windowDrafts.map((draft) => {
+              const fieldId = `substitution-window-${draft.sourceIndex}`;
+              return (
+                <div key={draft.sourceIndex} className={styles.windowCard}>
+                  <div className={styles.windowHeader}>
+                    <TextField
+                      id={`${fieldId}-minute`}
+                      size="small"
+                      type="number"
+                      label="Minuto"
+                      inputProps={{ min: 0, max: MAX_MINUTE, step: 1 }}
+                      value={draft.minute}
+                      onChange={(e) => updateWindowDraft(draft.sourceIndex, { minute: e.target.value })}
+                      className={styles.windowMinuteField}
+                      sx={windowFieldSx}
+                    />
+                    <TextField
+                      id={`${fieldId}-period`}
+                      select
+                      size="small"
+                      label="Parte"
+                      value={draft.period}
+                      onChange={(e) => updateWindowDraft(draft.sourceIndex, { period: e.target.value as WindowPeriod })}
+                      className={styles.windowPeriodField}
+                      sx={windowFieldSx}
+                    >
+                      {PERIOD_OPTIONS.map((option) => (
+                        <MenuItem key={option.value} value={option.value}>
+                          {option.label}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                    <IconButton
+                      size="small"
+                      aria-label="Eliminar ventana"
+                      onClick={() => removeWindow(draft.sourceIndex)}
+                      sx={{ color: "#ef4444", marginLeft: "auto" }}
+                    >
+                      <DeleteIcon sx={{ fontSize: 18 }} />
+                    </IconButton>
+                  </div>
+                  {draft.swaps.map((swap, swapIndex) => (
+                    <div key={swapIndex} className={styles.swapRow}>
+                      {renderPlayerSelect(`${fieldId}-swap-${swapIndex}-in`, "Entra", swap.inPlayerId, (playerId) =>
+                        updateSwap(draft, swapIndex, { inPlayerId: playerId }),
+                      )}
+                      {swap.outPlayerId !== null ? (
+                        renderPlayerSelect(`${fieldId}-swap-${swapIndex}-out`, "Sale", swap.outPlayerId, (playerId) =>
+                          updateSwap(draft, swapIndex, { outPlayerId: playerId }),
+                        )
+                      ) : (
+                        <span className={styles.swapNoOut}>Ocupa un puesto libre</span>
+                      )}
+                      <IconButton
+                        size="small"
+                        aria-label="Eliminar cambio"
+                        onClick={() => removeSwap(draft, swapIndex)}
+                        sx={{ color: "#ef4444" }}
+                      >
+                        <DeleteIcon sx={{ fontSize: 16 }} />
+                      </IconButton>
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
+            {windowDrafts.length === 0 && <div className={styles.emptyMessage}>No hay cambios registrados</div>}
+          </div>
+        </div>
+
         {/* Minutes section */}
         <div>
           <div className={styles.sectionTitle}>Minutos</div>
@@ -322,7 +585,7 @@ export default function LiveMatchManualEditDialog({
                     size="small"
                     type="number"
                     inputProps={{ min: 0, max: 200, step: 1 }}
-                    value={values[p.id] ?? "0"}
+                    value={minutesShown(p.id)}
                     onChange={(e) => handleChange(p.id, e.target.value)}
                     sx={{
                       width: 80,

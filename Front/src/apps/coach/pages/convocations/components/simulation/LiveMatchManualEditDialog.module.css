@@ -136,3 +136,55 @@
   padding: 16px 8px;
   font-style: italic;
 }
+
+.sectionHint {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.55);
+  margin-top: -8px;
+}
+
+.windowCard {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  background: rgba(251, 146, 60, 0.05);
+  border: 1px solid rgba(251, 146, 60, 0.2);
+  border-radius: 6px;
+}
+
+.windowHeader {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.windowMinuteField {
+  width: 90px;
+}
+
+.windowPeriodField {
+  width: 130px;
+}
+
+.swapRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.swapPlayerField {
+  flex: 1 1 130px;
+  min-width: 0;
+}
+
+.swapNoOut {
+  flex: 1 1 130px;
+  font-size: 0.75rem;
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.4);
+}

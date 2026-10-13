@@ -169,6 +169,8 @@ export interface UseLiveMatchReturn {
    * as a substitution and requires no "preparar cambio" step.
    */
   repositionPlayer: (fromSlotIndex: number, toSlotIndex: number) => void;
+  /** Replaces the recorded substitution windows with the ones corrected in the manual edit */
+  replaceWindows: (windows: SubstitutionWindow[]) => void;
   dismissConfirmation: () => void;
   dismissSaveError: () => void;
   acceptBackup: () => void;
@@ -1285,6 +1287,10 @@ export function useLiveMatch(
     });
   }, []);
 
+  const replaceWindows = useCallback((correctedWindows: SubstitutionWindow[]) => {
+    setWindows(correctedWindows);
+  }, []);
+
   const dismissConfirmation = useCallback(() => {
     setLastCommittedWindow(null);
   }, []);
@@ -1372,6 +1378,7 @@ export function useLiveMatch(
     movePreparePlayerToBench,
     commitWindow,
     repositionPlayer,
+    replaceWindows,
     dismissConfirmation,
     dismissSaveError,
     acceptBackup,

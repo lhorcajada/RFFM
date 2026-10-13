@@ -451,7 +451,7 @@ export default function PartidoEnDirectoTab({
       scoreVisitor: finalValues.scoreVisitor,
       matchPhase: "finished",
       players,
-      substitutionWindowsJson: JSON.stringify(live.windows),
+      substitutionWindowsJson: JSON.stringify(finalValues.windows),
       ratingSnapshotsJson: JSON.stringify(live.ratingSnapshots),
       goalsJson: JSON.stringify(live.goals),
       cardsJson: JSON.stringify(live.cards),
@@ -460,7 +460,14 @@ export default function PartidoEnDirectoTab({
     };
 
     await saveMatchParticipation(eventId, payload);
-  }, [eventId, teamId, lineupPlayers, live.initialSlots, live.windows, live.ratingSnapshots, live.goals, live.cards, live.formationChanges, live.savedParticipationData]);
+  }, [eventId, teamId, lineupPlayers, live.initialSlots, live.ratingSnapshots, live.goals, live.cards, live.formationChanges, live.savedParticipationData]);
+
+  // ── Starters (saved data wins: after a reload the lineup may no longer match) ──
+  const starterIds = useMemo<string[]>(() => {
+    const savedPlayers = live.savedParticipationData?.players;
+    if (savedPlayers) return savedPlayers.filter((p) => p.isStarter).map((p) => p.teamPlayerId);
+    return Object.values(live.initialSlots).filter((pid): pid is string => !!pid);
+  }, [live.savedParticipationData, live.initialSlots]);
 
   // ── Effective minutes (manual override wins) ─────────────────────────────
   const effectiveMinutes = useMemo<Record<string, number>>(() => {
@@ -939,6 +946,9 @@ export default function PartidoEnDirectoTab({
           live.updateCard(id, { ...payload, minute, half })
         }
         onRemoveCard={live.removeCard}
+        windows={live.windows}
+        starterIds={starterIds}
+        onSetWindows={live.replaceWindows}
       />
 
       {/* Error snackbar */}

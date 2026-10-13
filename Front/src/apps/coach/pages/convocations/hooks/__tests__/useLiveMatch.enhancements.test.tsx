@@ -525,3 +525,26 @@ describe("useLiveMatch - reopening a saved finished match (race-safe hydration)"
     expect(result.current.cards).toEqual(savedCards);
   });
 });
+
+describe("useLiveMatch - corrección manual de ventanas de cambios", () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it("sustituye las ventanas registradas por las corregidas", () => {
+    const { result } = renderHook(() => useLiveMatch(EVENT_ID, TEAM_ID, true));
+    startMatch(result, { 0: "p1" });
+    act(() => {
+      result.current.startPrepare();
+    });
+    act(() => {
+      result.current.commitWindow({});
+    });
+
+    act(() => {
+      result.current.replaceWindows([]);
+    });
+
+    expect(result.current.windows).toEqual([]);
+  });
+});

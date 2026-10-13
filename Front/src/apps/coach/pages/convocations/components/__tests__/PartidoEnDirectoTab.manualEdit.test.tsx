@@ -1,5 +1,6 @@
 ﻿import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import PartidoEnDirectoTab from "../PartidoEnDirectoTab";
 import type { SquadPlayer } from "../../../squad/components/IdealLineup";
 import type { LiveMatchParticipationPayload } from "../simulation/liveMatch.types";
@@ -227,5 +228,71 @@ describe("PartidoEnDirectoTab - manual edit with saved data", () => {
 
     // The manual edit button should be visible
     expect(screen.getByRole("button", { name: /edición manual del partido/i })).toBeInTheDocument();
+  });
+});
+
+describe("PartidoEnDirectoTab - corrección de ventanas de cambios en la edición manual", () => {
+  const replaceWindows = vi.fn();
+
+  async function deleteWindowAndSave() {
+    const user = userEvent.setup();
+    renderTab();
+    await user.click(await screen.findByRole("button", { name: /edición manual del partido/i }));
+    await user.click(await screen.findByRole("button", { name: "Eliminar ventana" }));
+    await user.click(screen.getByRole("button", { name: "Guardar" }));
+  }
+
+  beforeEach(async () => {
+    const saveMatchParticipation = await getSaveMatchParticipation();
+    (saveMatchParticipation as any).mockClear();
+    replaceWindows.mockClear();
+    liveMatchMock = baseLiveMatch({
+      setScore: vi.fn(),
+      setMatchDuration: vi.fn(),
+      replaceWindows,
+      matchDurationMinutes: 90,
+      windows: [
+        {
+          windowIndex: 1,
+          minute: 45,
+          half: 2,
+          swaps: [{ inPlayerId: "p2", outPlayerId: "p1", slotIndex: 1 }],
+          slotsAfter: { 0: "p0", 1: "p2" },
+        },
+      ],
+    });
+  });
+
+  it("persiste las ventanas de cambios corregidas al guardar", async () => {
+    const saveMatchParticipation = await getSaveMatchParticipation();
+
+    await deleteWindowAndSave();
+
+    await waitFor(() => {
+      expect(saveMatchParticipation).toHaveBeenCalledWith(
+        "event-1",
+        expect.objectContaining({ substitutionWindowsJson: "[]" }),
+      );
+    });
+  });
+
+  it("persiste los minutos recalculados tras la corrección", async () => {
+    const saveMatchParticipation = await getSaveMatchParticipation();
+
+    await deleteWindowAndSave();
+
+    await waitFor(() => expect(saveMatchParticipation).toHaveBeenCalled());
+    const payload = (saveMatchParticipation as any).mock.calls[0][1] as LiveMatchParticipationPayload;
+    expect(payload.players.map((p) => [p.teamPlayerId, p.minutesPlayed])).toEqual([
+      ["p0", 90],
+      ["p1", 90],
+      ["p2", 0],
+    ]);
+  });
+
+  it("actualiza las ventanas de cambios del partido en pantalla", async () => {
+    await deleteWindowAndSave();
+
+    await waitFor(() => expect(replaceWindows).toHaveBeenCalledWith([]));
   });
 });
