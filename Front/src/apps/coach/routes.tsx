@@ -58,6 +58,7 @@ const SeasonAccess = lazy(() => import("./pages/season-access/SeasonAccess"));
 const PrepareTests = lazy(() => import("./pages/season-access/prepare/PrepareTestsPage"));
 const PlayerDetail = lazy(() => import("./pages/player/PlayerDetail"));
 const NewRatingPage = lazy(() => import("./pages/squad/rating/NewRatingPage"));
+const RatingSheetPage = lazy(() => import("./pages/squad/rating/RatingSheetPage"));
 const RatingHistoryPage = lazy(() => import("./pages/squad/rating/RatingHistoryPage"));
 const RatingEvolutionPage = lazy(() => import("./pages/squad/rating/RatingEvolutionPage"));
 const MyDocuments = lazy(() => import("./pages/my-documents/MyDocuments"));
@@ -154,6 +155,14 @@ function CoachRoutesContent() {
               element={
                 <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.Squad}>
                   <PlayersClub />
+                </RequireFeaturePermission>
+              }
+            />
+            <Route
+              path="squad/rating-sheet"
+              element={
+                <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.Squad}>
+                  <RatingSheetPage />
                 </RequireFeaturePermission>
               }
             />

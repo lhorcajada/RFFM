@@ -32,36 +32,12 @@ import {
   type CategoryKey,
   type CharacteristicDef,
 } from "./ratingConcepts";
+import { isGoalkeeperPosition, positionCategory } from "./positionCategory";
 import type { PlayerRating } from "../../../types/playerRating";
 import { getAnswerLevel } from "../../../types/playerRating";
 import type { PlayerResponse } from "../../../services/teamplayerService";
 
 import styles from "./NewRatingPage.module.css";
-
-function isGoalkeeperDemarcation(demarcation?: string | null): boolean {
-  if (!demarcation) return false;
-  const d = demarcation.toLowerCase();
-  return d.includes("portero") || d.includes("keeper") || d.includes("arquero");
-}
-
-function positionCategory(position?: string | null): number {
-  const normalized = (position ?? "").toLowerCase();
-  if (!normalized) return 4;
-  if (normalized.includes("portero") || normalized.includes("keeper") || normalized.includes("arquero")) return 0;
-  if (
-    normalized.includes("defensa") || normalized.includes("central") || normalized.includes("lateral") ||
-    normalized.includes("libero") || normalized.includes("stopper")
-  ) return 1;
-  if (
-    normalized.includes("centrocampista") || normalized.includes("medio") || normalized.includes("pivote") ||
-    normalized.includes("interior") || normalized.includes("volante")
-  ) return 2;
-  if (
-    normalized.includes("delantero") || normalized.includes("extremo") || normalized.includes("punta") ||
-    normalized.includes("ariete") || normalized.includes("winger")
-  ) return 3;
-  return 4;
-}
 
 function formatPlayerName(player: PlayerResponse): string {
   return `${player.name ?? ""} ${player.lastName ?? ""}`.trim() || player.alias || player.id;
@@ -107,7 +83,7 @@ export default function NewRatingPage() {
         }
 
         const demarcation = tp.demarcation?.activePositionName ?? tp.player?.position ?? null;
-        const goalkeeper = isGoalkeeperDemarcation(demarcation);
+        const goalkeeper = isGoalkeeperPosition(demarcation);
         setIsGoalkeeper(goalkeeper);
         setPlayerPosition(demarcation);
 

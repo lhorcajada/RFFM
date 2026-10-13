@@ -38,6 +38,26 @@ export async function createRating(
   return resp.data as PlayerRating;
 }
 
+export type TeamRatingItem = {
+  teamPlayerId: string;
+  isGoalkeeper: boolean;
+  answers: CharacteristicAnswer[];
+  notes?: string | null;
+};
+
+export type CreateTeamRatingsPayload = {
+  ratedAt?: string | null;
+  ratings: TeamRatingItem[];
+};
+
+export async function createTeamRatings(
+  teamId: string,
+  payload: CreateTeamRatingsPayload,
+): Promise<PlayerRating[]> {
+  const resp = await client.post(`/api/catalog/team/${teamId}/ratings`, payload);
+  return resp.data as PlayerRating[];
+}
+
 /** @deprecated Use createRating with isGoalkeeper:true */
 export type CreateGoalkeeperRatingPayload = CreateRatingPayload;
 
@@ -50,5 +70,5 @@ export async function createGoalkeeperRating(
   return resp.data as PlayerRating;
 }
 
-const playerRatingService = { getRatingHistory, getTeamLatestRatings, createRating, createGoalkeeperRating };
+const playerRatingService = { getRatingHistory, getTeamLatestRatings, createRating, createTeamRatings, createGoalkeeperRating };
 export default playerRatingService;

@@ -3,11 +3,13 @@ import { useNavigate } from "react-router-dom";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import CloseIcon from "@mui/icons-material/Close";
+import GradingOutlinedIcon from "@mui/icons-material/GradingOutlined";
 import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
 import { Button, ToggleButton, ToggleButtonGroup } from "@mui/material";
 import { exportAllPlayersPdf, exportPlayerPdf } from "../squadPdfExport";
 import type { RatingSortKey } from "../squadPdfExport";
 import type { PlayerRating } from "../../../types/playerRating";
+import { positionAccent } from "../rating/positionCategory";
 import PlayerCromo from "./PlayerCromo";
 import SubRatingsPanel from "./SubRatingsPanel";
 import styles from "./SquadRatings.module.css";
@@ -37,24 +39,6 @@ type Props = {
 };
 
 const POSITION_ORDER = ["Portero", "Defensa", "Centrocampista", "Delantero"];
-
-function positionCategory(position: string): number {
-  const p = position.toLowerCase();
-  if (p.includes("portero") || p.includes("keeper") || p.includes("arquero")) return 0;
-  if (p.includes("defensa") || p.includes("central") || p.includes("lateral") || p.includes("libero") || p.includes("stopper")) return 1;
-  if (p.includes("centrocampista") || p.includes("medio") || p.includes("pivote") || p.includes("interior") || p.includes("volante")) return 2;
-  if (p.includes("delantero") || p.includes("extremo") || p.includes("punta") || p.includes("ariete") || p.includes("winger")) return 3;
-  return 4;
-}
-
-function positionAccent(position: string): string {
-  const cat = positionCategory(position);
-  if (cat === 0) return "#f59e0b";
-  if (cat === 1) return "#3b82f6";
-  if (cat === 2) return "#10b981";
-  if (cat === 3) return "#ef4444";
-  return "#6b7280";
-}
 
 const RATING_FIELDS = [] as const;
 void RATING_FIELDS; // retained for backward compat
@@ -164,6 +148,15 @@ export default function SquadRatings({ teamId: _teamId, players, latestRatings, 
           </ToggleButtonGroup>
 
           <div style={{ display: "flex", gap: 8 }}>
+            <Button
+              size="small"
+              variant="contained"
+              startIcon={<GradingOutlinedIcon />}
+              onClick={() => navigate(`/coach/squad/rating-sheet${squadSearch}`)}
+            >
+              Valorar plantilla
+            </Button>
+
             <Button
               size="small"
               variant="outlined"

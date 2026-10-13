@@ -1,0 +1,131 @@
+.board {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.level {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.unplaced {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  border-style: dashed;
+  border-color: rgba(255, 255, 255, 0.22);
+  background: #1c1c30;
+}
+
+.target {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 8px;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 12px;
+  line-height: 1.3;
+  text-align: left;
+  cursor: default;
+}
+
+.targetArmed:not(:disabled) {
+  border-color: rgba(77, 157, 224, 0.5);
+  background: rgba(77, 157, 224, 0.18);
+  color: #fff;
+  cursor: pointer;
+}
+
+.levelNumber {
+  min-width: 18px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #4d9de0;
+  text-align: center;
+}
+
+.levelConcept {
+  flex: 1;
+  min-width: 0;
+}
+
+.unplacedTitle {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 8px 2px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  min-height: 32px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-left-width: 4px;
+  border-left-color: #6b7280;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.1;
+  cursor: pointer;
+}
+
+.chip:disabled {
+  cursor: default;
+}
+
+.chipGoalkeeper {
+  border-left-color: #f59e0b;
+}
+
+.chipDefender {
+  border-left-color: #3b82f6;
+}
+
+.chipMidfielder {
+  border-left-color: #10b981;
+}
+
+.chipForward {
+  border-left-color: #ef4444;
+}
+
+.chipSelected {
+  background: rgba(77, 157, 224, 0.25);
+  border-color: #4d9de0;
+  color: #fff;
+}
+
+.chipName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chipDorsal {
+  color: #4d9de0;
+  white-space: nowrap;
+}
