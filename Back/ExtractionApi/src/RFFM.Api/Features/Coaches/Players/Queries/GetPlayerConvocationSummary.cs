@@ -54,7 +54,12 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
             AttendanceRatioDto Friendlies,
             AttendanceRatioDto League,
             PlayerAbsenceMatchDto? LastDeconvokedMatch,
-            PlayerAbsenceMatchDto? LastAbsenceMatch);
+            PlayerAbsenceMatchDto? LastAbsenceMatch,
+            LeagueAbsenceDto[] LeagueAbsences);
+
+        /// <summary>A league match the player missed and why (see LeagueAbsenceClassifier), most
+        /// recent first. Same shape as GetTeamPlayerStatistics.LeagueAbsenceDto.</summary>
+        public record LeagueAbsenceDto(string EventId, DateTime Date, string Opponent, string Kind, string? Reason);
 
         /// <summary>Attended vs. Possible (finished events of that type since the player joined
         /// the squad), plus how many of those the player was called up for but did not attend.
@@ -101,7 +106,7 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                     .Where(se => se.TeamId == teamPlayer.TeamId
                                  && se.EveDateTime != null && se.EveDateTime < DateTime.UtcNow
                                  && eventTypeIds.Contains(se.EventTypeId))
-                    .Select(se => new { se.Id, se.EventTypeId, EveDate = se.EveDateTime!.Value })
+                    .Select(se => new { se.Id, se.EventTypeId, EveDate = se.EveDateTime!.Value, Opponent = se.Rival != null ? se.Rival.Name : se.Name })
                     .ToListAsync(cancellationToken);
                 var finishedEventById = finishedEvents.ToDictionary(e => e.Id, e => e);
                 var finishedEventIds = finishedEvents.Select(e => e.Id).ToList();
@@ -152,6 +157,18 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                 var friendlies = RatioFor(SportEventsConstants.FriendlyEventTypeId);
                 var league = RatioFor(SportEventsConstants.MatchEventTypeId);
 
+                var leagueAbsences = playerConvocations
+                    .Select(c => (Convocation: c, Event: finishedEventById[c.SportEventId],
+                        Kind: LeagueAbsenceClassifier.KindFor(c.AssistanceTypeId, c.ConvocationStatusId, c.ExcuseTypeId)))
+                    .Where(x => x.Kind is not null
+                        && x.Event.EventTypeId == SportEventsConstants.MatchEventTypeId
+                        && InPlayerWindow(x.Event.EveDate))
+                    .OrderByDescending(x => x.Event.EveDate)
+                    .Select(x => new LeagueAbsenceDto(
+                        x.Event.Id, x.Event.EveDate, x.Event.Opponent, x.Kind!,
+                        LeagueAbsenceClassifier.ReasonFor(x.Convocation.ExcuseTypeId)))
+                    .ToArray();
+
                 var lastDeconvokedMatch = await GetMostRecentAbsenceMatchAsync(
                     request.TeamPlayerId,
                     c => c.ConvocationStatusId == DeconvokeStatusId,
@@ -168,7 +185,8 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                     friendlies,
                     league,
                     lastDeconvokedMatch,
-                    lastAbsenceMatch);
+                    lastAbsenceMatch,
+                    leagueAbsences);
             }
 
             private async Task<PlayerAbsenceMatchDto?> GetMostRecentAbsenceMatchAsync(

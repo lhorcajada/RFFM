@@ -60,6 +60,12 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
             string Kind,               // "NoShow" (convocado, no se presentó) | "Declined" (rechazó/justificó la convocatoria)
             string? Reason);           // motivo (ExcuseType) si lo hay
 
+        // Partido de liga no asistido. Ver LeagueAbsenceClassifier.
+        public record LeagueAbsenceDto(
+            string EventId, DateTime Date, string Opponent,
+            string Kind,               // "Unavailable" | "TechnicalDecision" | "NoShow"
+            string? Reason);           // motivo (ExcuseType) si lo hay
+
         public record PlayerStatisticsDto(
             string TeamPlayerId,
             string DisplayName,
@@ -85,7 +91,8 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
             string? MinutesTargetStatus,                           // "Met" | "NotMetByOwnAbsences" | "NotMet"; null si no F11 o total 0
             AttributableAbsenceDto[] AttributableAbsences,         // partidos con ausencia imputable al jugador, más reciente primero
             int? FormStatus,                              // 0-100, Estado de forma; null = sin actividad en los últimos 84 días o categoría sin duración estándar de partido
-            DailyLoadBreakdownDto? FormStatusBreakdown);   // null cuando FormStatus es null
+            DailyLoadBreakdownDto? FormStatusBreakdown,   // null cuando FormStatus es null
+            LeagueAbsenceDto[] LeagueAbsences);           // partidos de liga no asistidos con su motivo, más reciente primero
 
         public record ReadinessBreakdownDto(
             double TrainingComponent,              // 0-100
@@ -549,6 +556,20 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                         .OrderByDescending(a => a.Date)
                         .ToArray();
 
+                    var leagueAbsenceDtos = matchLikeConvocations
+                        .Where(c => c.TeamPlayerId == player.Id)
+                        .Select(c => (Convocation: c, Event: matchLikeFinishedEventById[c.SportEventId],
+                            Kind: LeagueAbsenceClassifier.KindFor(c.AssistanceTypeId, c.ConvocationStatusId, c.ExcuseTypeId)))
+                        .Where(x => x.Kind is not null
+                            && x.Event.EventTypeId == leagueEventTypeId
+                            && x.Event.Date >= player.JoinedDate
+                            && (player.LeftDate == null || x.Event.Date <= player.LeftDate))
+                        .OrderByDescending(x => x.Event.Date)
+                        .Select(x => new LeagueAbsenceDto(
+                            x.Event.Id, x.Event.Date, x.Event.Opponent, x.Kind!,
+                            LeagueAbsenceClassifier.ReasonFor(x.Convocation.ExcuseTypeId)))
+                        .ToArray();
+
                     double? minutesPlayedPercentOfSeasonTotal = null;
                     double? attributableAbsentMinutesPercentOfSeasonTotal = null;
                     double? minutesPlayedPercentOfAvailable = null;
@@ -632,7 +653,8 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                         minutesTargetStatus,
                         attributableAbsenceDtos,
                         formStatusResult?.Value,
-                        formStatusResult is null ? null : ToBreakdown(formStatusResult)));
+                        formStatusResult is null ? null : ToBreakdown(formStatusResult),
+                        leagueAbsenceDtos));
                 }
 
                 return result;

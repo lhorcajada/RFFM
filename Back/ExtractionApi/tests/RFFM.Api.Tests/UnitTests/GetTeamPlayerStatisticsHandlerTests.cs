@@ -755,6 +755,47 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
+        public async Task LeagueAbsences_ListEachMissedLeagueMatchWithItsKindAndReason_MostRecentFirst()
+        {
+            // En liga se pide disponibilidad a toda la plantilla: no estar disponible (motivo del
+            // jugador) y ser descartado por el entrenador (decisión técnica) son ausencias
+            // distintas, y ninguna significa "convocado que no asistió".
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, clubId, seasonId) = await SeedTeamAsync(db);
+            var baselineDate = new DateTime(2025, 1, 1, 12, 0, 0, DateTimeKind.Utc);
+            var teamPlayerId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "league-absences-player",
+                joinedDate: baselineDate.AddYears(-1));
+            var deconvokeStatusId = ConvocationStatus.FromName("Deconvoke").Id;
+
+            var unavailableId = await SeedSportEventAsync(db, teamId, MatchEventTypeId, baselineDate.AddDays(-20));
+            await SeedConvocationAsync(db, unavailableId, teamPlayerId, deconvokeStatusId, excuseTypeId: ExcuseTypes.Injury.Id);
+
+            var technicalDecisionId = await SeedSportEventAsync(db, teamId, MatchEventTypeId, baselineDate.AddDays(-10));
+            await SeedConvocationAsync(db, technicalDecisionId, teamPlayerId, deconvokeStatusId, excuseTypeId: ExcuseTypes.TechnicalDecision.Id);
+
+            var noShowId = await SeedSportEventAsync(db, teamId, MatchEventTypeId, baselineDate.AddDays(-5));
+            await SeedConvocationAsync(db, noShowId, teamPlayerId, ConvocationStatus.FromName("Accepted").Id,
+                assistanceTypeId: AssistanceType.UnexcusedAbsence.Id);
+
+            // Un amistoso no asistido no es una ausencia de liga.
+            var friendlyId = await SeedSportEventAsync(db, teamId, FriendlyEventTypeId, baselineDate.AddDays(-3));
+            await SeedConvocationAsync(db, friendlyId, teamPlayerId, deconvokeStatusId, excuseTypeId: ExcuseTypes.FamilyEvent.Id);
+
+            var result = await new GetTeamPlayerStatistics.Handler(db).Handle(new GetTeamPlayerStatistics.Query { TeamId = teamId }, CancellationToken.None);
+
+            var stats = Assert.Single(result, p => p.TeamPlayerId == teamPlayerId);
+            Assert.Equal(
+                new[]
+                {
+                    (noShowId, LeagueAbsenceClassifier.NoShow, (string?)null),
+                    (technicalDecisionId, LeagueAbsenceClassifier.TechnicalDecision, "Decisión técnica"),
+                    (unavailableId, LeagueAbsenceClassifier.Unavailable, "Lesión")
+                },
+                stats.LeagueAbsences.Select(a => (a.EventId, a.Kind, a.Reason)).ToArray());
+            Assert.All(stats.LeagueAbsences, a => Assert.Equal("PlayerStats Test Event", a.Opponent));
+        }
+
+        [Fact]
         public async Task MinutesTarget_SavedDurationIsUsed_ZeroFallsBackToCategory_AndPlayerMinutesAreCapped()
         {
             // Alevines (30' por parte → 60'). Partido con 35' guardados en el que el jugador tiene

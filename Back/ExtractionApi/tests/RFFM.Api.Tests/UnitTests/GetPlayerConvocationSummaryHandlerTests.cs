@@ -208,6 +208,38 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
+        public async Task Handle_LeagueAbsences_ListEachMissedLeagueMatchWithItsKindAndReason_MostRecentFirst()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, clubId, seasonId) = await SeedTeamAsync(db);
+            var teamPlayerId = await SeedTeamPlayerAsync(db, teamId, clubId, seasonId, "league-absences-summary-player", joinedDate: DateTime.UtcNow.AddYears(-1));
+            var rivalId = await SeedRivalAsync(db, "CD Rival Ausencias");
+
+            var unavailableId = await SeedSportEventAsync(db, teamId, MatchEventTypeId, DateTime.UtcNow.AddDays(-20), rivalId);
+            await SeedConvocationAsync(db, unavailableId, teamPlayerId, DeconvokeStatusId, excuseTypeId: ExcuseTypes.FamilyEvent.Id);
+
+            var technicalDecisionId = await SeedSportEventAsync(db, teamId, MatchEventTypeId, DateTime.UtcNow.AddDays(-10), rivalId);
+            await SeedConvocationAsync(db, technicalDecisionId, teamPlayerId, DeconvokeStatusId, excuseTypeId: ExcuseTypes.TechnicalDecision.Id);
+
+            // Un amistoso no asistido no es una ausencia de liga.
+            var friendlyId = await SeedSportEventAsync(db, teamId, FriendlyEventTypeId, DateTime.UtcNow.AddDays(-5), rivalId);
+            await SeedConvocationAsync(db, friendlyId, teamPlayerId, DeconvokeStatusId, excuseTypeId: ExcuseTypes.Injury.Id);
+
+            var handler = new GetPlayerConvocationSummary.Handler(db);
+            var result = await handler.Handle(
+                new GetPlayerConvocationSummary.PlayerConvocationSummaryQuery { TeamPlayerId = teamPlayerId },
+                CancellationToken.None);
+
+            Assert.Equal(
+                new[]
+                {
+                    (technicalDecisionId, "TechnicalDecision", "Decisión técnica", "CD Rival Ausencias"),
+                    (unavailableId, "Unavailable", "Evento familiar", "CD Rival Ausencias")
+                },
+                result.LeagueAbsences.Select(a => (a.EventId, a.Kind, a.Reason!, a.Opponent)).ToArray());
+        }
+
+        [Fact]
         public async Task Handle_MatchWithBothConvocationAndParticipation_CountsAttendanceOnce()
         {
             await using var db = _fixture.CreateDbContext();
