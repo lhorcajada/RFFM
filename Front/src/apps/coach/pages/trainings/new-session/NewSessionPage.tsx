@@ -110,7 +110,14 @@ export default function NewSessionPage() {
   const navState = (location.state as NavState | null) ?? null;
   const returnTo = navState?.returnTo ?? "/coach/trainings";
 
-  const sessionForm = useSessionForm({ teamId, navigate, returnTo, microcicloId: microcicloIdParam });
+  const sessionForm = useSessionForm({
+    teamId,
+    navigate,
+    returnTo,
+    microcicloId: microcicloIdParam,
+    date: params.get("date"),
+    sportEventId: params.get("sportEventId"),
+  });
   const microcicloOptions = useMicrocicloOptions(teamId);
   const dailySportEvents = useDailySportEvents(teamId, sessionForm.form.date);
 

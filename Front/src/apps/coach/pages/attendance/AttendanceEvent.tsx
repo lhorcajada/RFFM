@@ -13,6 +13,7 @@ import clubService from "../../services/clubService";
 import { Box, Button, CircularProgress, Chip } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SportsSoccerIcon from "@mui/icons-material/SportsSoccer";
+import FitnessCenterIcon from "@mui/icons-material/FitnessCenter";
 import EditIcon from "@mui/icons-material/Edit";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import { getEventTypeColor } from "./attendanceUtils";
@@ -24,7 +25,9 @@ import { coachAuthService } from "../../services/authService";
 import { useConvocationManagement } from "../convocations/hooks/useConvocationManagement";
 import ConvocationDetailsDialog from "../convocations/components/ConvocationDetailsDialog";
 import { getTeamKits, type ClubKit } from "../../services/kitService";
-import { toMatchState } from "../convocations/helpers/convocationUtils";
+import { normalizeDateStr, toMatchState } from "../convocations/helpers/convocationUtils";
+import trainingService from "../../services/trainingService";
+import ConfirmDialog from "../../../../shared/components/ui/ConfirmDialog/ConfirmDialog";
 
 function parseDate(input?: string | null): Date | null {
   if (!input) return null;
@@ -62,6 +65,10 @@ export default function AttendanceEvent() {
 
   const isMatchOrFriendly = /part|amist/i.test(eventTypeName ?? "");
   const matchState = event ? toMatchState(event) : null;
+  const isTraining = /entrenamiento/i.test(eventTypeName ?? "");
+  const canGoToTraining = isTraining && coachAuthService.hasRole("Coach");
+  const [searchingTraining, setSearchingTraining] = useState(false);
+  const [createTrainingOpen, setCreateTrainingOpen] = useState(false);
 
   // Summary handed to AttendanceTabs (and from there to
   // NotifyPendingConvocationDialog) for building the "Notificar por
@@ -143,7 +150,50 @@ export default function AttendanceEvent() {
     };
   }, [id]);
 
-  const { teamTitleNode } = useTeamAndClub();
+  const { team, teamTitleNode } = useTeamAndClub();
+
+  // The session editor needs the club (exercise library) besides the team; the team resolved
+  // by useTeamAndClub is the URL/preferred one, which is not necessarily this event's team.
+  const goToSessionEditor = async (sessionParams: Record<string, string>) => {
+    if (!event?.teamId) return;
+    const clubId =
+      team?.id === event.teamId
+        ? team.club?.id
+        : (await teamService.getTeamById(event.teamId))?.club?.id;
+    const editorParams = new URLSearchParams({ clubId: clubId ?? "", teamId: event.teamId, ...sessionParams });
+    navigate(`/coach/trainings/new-session?${editorParams.toString()}`, {
+      state: { returnTo: `/coach/attendance/${encodeURIComponent(String(event.id))}` },
+    });
+  };
+
+  const handleGoToTraining = async () => {
+    if (!event?.teamId) return;
+    setSearchingTraining(true);
+    try {
+      const sessions = await trainingService.getSessions(event.teamId);
+      const linkedSession = sessions.find((s) => s.sportEventId === String(event.id));
+      if (linkedSession) {
+        await goToSessionEditor({ sessionId: linkedSession.id });
+      } else {
+        setCreateTrainingOpen(true);
+      }
+    } catch {
+      window.dispatchEvent(
+        new CustomEvent("rffm.show_snackbar", {
+          detail: { message: "No se pudo consultar el entrenamiento asociado.", severity: "error" },
+        }),
+      );
+    } finally {
+      setSearchingTraining(false);
+    }
+  };
+
+  const handleCreateTrainingConfirmed = async () => {
+    if (!event) return;
+    setCreateTrainingOpen(false);
+    const date = normalizeDateStr(event.startTime ?? event.start ?? event.eveDateTime ?? null);
+    await goToSessionEditor({ sportEventId: String(event.id), ...(date ? { date } : {}) });
+  };
 
   const [localTeamTitle, setLocalTeamTitle] = useState<React.ReactNode | null>(
     null
@@ -261,6 +311,17 @@ export default function AttendanceEvent() {
                   }}
                 >
                   Ir al partido
+                </Button>
+              )}
+              {event && canGoToTraining && (
+                <Button
+                  startIcon={<FitnessCenterIcon />}
+                  variant="contained"
+                  size="small"
+                  disabled={searchingTraining}
+                  onClick={() => void handleGoToTraining()}
+                >
+                  Ir al entrenamiento
                 </Button>
               )}
               {event && isMatchOrFriendly && convocationConfirmed && (
@@ -436,6 +497,16 @@ export default function AttendanceEvent() {
             setEditOpen(false);
             if (updated) setEvent(updated);
           }}
+        />
+      )}
+      {event && canGoToTraining && (
+        <ConfirmDialog
+          open={createTrainingOpen}
+          title="Entrenamiento no creado"
+          description="Este evento no tiene un entrenamiento asociado. ¿Quieres crearlo?"
+          confirmText="Crear entrenamiento"
+          onCancel={() => setCreateTrainingOpen(false)}
+          onConfirm={() => void handleCreateTrainingConfirmed()}
         />
       )}
       {event && isMatchOrFriendly && (

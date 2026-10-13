@@ -10,19 +10,24 @@ interface UseSessionFormParams {
   navigate: NavigateFunction;
   returnTo: string;
   microcicloId?: string | null;
+  /** Prefill for a new session created from a sport event (e.g. a training's convocation). */
+  date?: string | null;
+  sportEventId?: string | null;
 }
 
-function emptySession(teamId: string, microcicloId?: string | null): CreateSessionRequest {
+type SessionPrefill = Pick<UseSessionFormParams, "microcicloId" | "date" | "sportEventId">;
+
+function emptySession(teamId: string, prefill: SessionPrefill): CreateSessionRequest {
   return {
     teamId,
     name: "",
     description: "",
-    date: null,
+    date: prefill.date ?? null,
     startTime: null,
     endTime: null,
     location: null,
-    sportEventId: null,
-    microcicloId: microcicloId ?? null,
+    sportEventId: prefill.sportEventId ?? null,
+    microcicloId: prefill.microcicloId ?? null,
     objetivoGeneral: null,
     mapaCampoTexto: null,
     blocks: [],
@@ -30,8 +35,10 @@ function emptySession(teamId: string, microcicloId?: string | null): CreateSessi
   };
 }
 
-export function useSessionForm({ teamId, navigate, returnTo, microcicloId }: UseSessionFormParams) {
-  const [form, setForm] = useState<CreateSessionRequest>(() => emptySession(teamId, microcicloId));
+export function useSessionForm({ teamId, navigate, returnTo, microcicloId, date, sportEventId }: UseSessionFormParams) {
+  const [form, setForm] = useState<CreateSessionRequest>(() =>
+    emptySession(teamId, { microcicloId, date, sportEventId })
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedSessionId, setSavedSessionId] = useState<string | null>(null);
