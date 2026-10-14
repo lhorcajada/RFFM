@@ -23,7 +23,6 @@ function createRuleContext(effectiveStreak: number): RuleContext {
     startsDataAvailable: false,
     minRequiredCalls: 0,
     calledIds: [],
-    positionGroupCounts: new Map(),
     playerById: new Map(),
     ratings: {},
     previousRivalResult: null as any,

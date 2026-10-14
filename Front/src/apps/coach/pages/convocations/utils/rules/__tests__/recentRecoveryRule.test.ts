@@ -25,7 +25,6 @@ function createRuleContext(missedEvents: number | undefined): RuleContext {
     startsDataAvailable: false,
     minRequiredCalls: 0,
     calledIds: [],
-    positionGroupCounts: new Map(),
     playerById: new Map(),
     ratings: {},
     previousRivalResult: null,

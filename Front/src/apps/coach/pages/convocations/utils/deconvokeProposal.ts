@@ -5,6 +5,16 @@ import type { MatchColumn } from "../components/convocationMatchDetail.types";
 import type { GridCell } from "../components/convocationMatchDetail.types";
 import type { SeasonPlayerStats } from "../components/simulation/liveMatch.types";
 import { runRules } from "./rules";
+import {
+  evaluateRequirements,
+  protectionReason,
+  requiredCount,
+  toPositionPlayer,
+  type PositionPlayer,
+  type PositionRole,
+  type PositionShortfall,
+  type RequirementKey,
+} from "./positionRequirements";
 
 type RivalResult = "win" | "draw" | "loss";
 
@@ -19,6 +29,7 @@ export type PlayerProposal = {
   playerId: string;
   displayName: string;
   position: string | null;
+  positionRole: PositionRole | null;
   isSelected: boolean;
   forced: boolean;
   score: number;
@@ -44,6 +55,8 @@ export type DeconvokeProposal = {
     goalDiff: number;
   } | null;
   players: PlayerProposal[];
+  /** Position minimums the remaining called players do not meet. */
+  positionWarnings: PositionShortfall[];
 };
 
 export type BuildProposalInput = {
@@ -83,38 +96,92 @@ export type WeeklyTrainingStats = {
 
 const NOT_CALLED_NAMES = new Set(["Deconvoke", "No disponible"]);
 
-// ── Position groups ──────────────────────────────────────────────────────────
+// ── Position-aware selection ─────────────────────────────────────────────────
 
-type PositionGroup = "portero" | "defensa" | "centrocampista" | "delantero" | "unknown";
+export type DeconvocationCandidate = { playerId: string; forced: boolean };
 
-function getPositionGroup(position: string | null | undefined): PositionGroup {
-  const p = (position ?? "").toLowerCase();
-  if (p.includes("portero") || p.includes("keeper") || p.includes("arquero") || p === "gk" || p === "por") return "portero";
-  if (p.includes("defensa") || p.includes("central") || p.includes("lateral") || p.includes("stopper") || p.includes("libero")) return "defensa";
-  if (
-    p.includes("centrocampista") || p.includes("medio") || p.includes("pivote") ||
-    p.includes("mediapunta") || p.includes("enganche") || p.includes("extremo")
-  ) return "centrocampista";
-  if (p.includes("delantero") || p.includes("punta") || p.includes("ariete") || p.includes("goleador")) return "delantero";
-  return "unknown";
+export type DeconvocationSelection = {
+  selectedIds: string[];
+  /** Candidates kept called because removing them would break a position minimum. */
+  protectedBy: Map<string, RequirementKey>;
+  shortfalls: PositionShortfall[];
+};
+
+function firstWorsenedRequirement(
+  before: PositionShortfall[],
+  after: PositionShortfall[],
+): RequirementKey | null {
+  const gapBefore = new Map(before.map((s) => [s.requirement, s.required - s.remaining]));
+  const worsened = after.find((s) => s.required - s.remaining > (gapBefore.get(s.requirement) ?? 0));
+  return worsened?.requirement ?? null;
 }
 
-// Formation 1-4-2-3-1: starters and comfortable minimum convoked per position group
-const FORMATION_STARTERS: Record<PositionGroup, number> = {
-  portero: 1,
-  defensa: 4,
-  centrocampista: 5, // 2 MC + 3 mediapuntas/extremos
-  delantero: 1,
-  unknown: 0,
-};
+/**
+ * Picks who to deconvoke from candidates ordered most-deconvokable first. Mandatory
+ * candidates always go; the rest are skipped when they would break a position minimum,
+ * unless no other choice reaches the target.
+ */
+export function selectDeconvocations(
+  ordered: DeconvocationCandidate[],
+  positionPlayers: Map<string, PositionPlayer>,
+  targetCount: number,
+): DeconvocationSelection {
+  const selected = new Set(ordered.filter((c) => c.forced).map((c) => c.playerId));
+  const protectedBy = new Map<string, RequirementKey>();
+  const positionOf = (id: string): PositionPlayer =>
+    positionPlayers.get(id) ?? { id, role: null, possibleRoles: [] };
+  const evaluateWithout = (excludedId?: string) =>
+    evaluateRequirements(
+      ordered
+        .filter((c) => !selected.has(c.playerId) && c.playerId !== excludedId)
+        .map((c) => positionOf(c.playerId)),
+    );
 
-const POSITION_MIN_CONVOKED: Record<PositionGroup, number> = {
-  portero: 2,
-  defensa: 5,
-  centrocampista: 6,
-  delantero: 2,
-  unknown: 0,
-};
+  for (const candidate of ordered) {
+    if (selected.size >= targetCount) break;
+    if (selected.has(candidate.playerId)) continue;
+    const before = evaluateWithout();
+    const after = evaluateWithout(candidate.playerId);
+    // Cover from possible demarcations only fills gaps left by mandatory deconvocations or a
+    // short squad; it never justifies leaving out an available specialist.
+    const breaksMinimum = after.deficit > before.deficit;
+    const leavesSpecialistGap = after.specialistDeficit > before.specialistDeficit;
+    if (breaksMinimum || leavesSpecialistGap) {
+      const requirement =
+        firstWorsenedRequirement(before.shortfalls, after.shortfalls) ??
+        firstWorsenedRequirement(before.specialistShortfalls, after.specialistShortfalls);
+      if (requirement) protectedBy.set(candidate.playerId, requirement);
+      continue;
+    }
+    selected.add(candidate.playerId);
+  }
+
+  while (selected.size < targetCount) {
+    const base = evaluateWithout();
+    let best: DeconvocationCandidate | null = null;
+    let bestIncrease = [Infinity, Infinity];
+    for (const candidate of ordered) {
+      if (selected.has(candidate.playerId)) continue;
+      const after = evaluateWithout(candidate.playerId);
+      const increase = [after.deficit - base.deficit, after.specialistDeficit - base.specialistDeficit];
+      const isBetter =
+        increase[0] < bestIncrease[0] || (increase[0] === bestIncrease[0] && increase[1] < bestIncrease[1]);
+      if (isBetter) {
+        best = candidate;
+        bestIncrease = increase;
+      }
+    }
+    if (!best) break;
+    selected.add(best.playerId);
+    protectedBy.delete(best.playerId);
+  }
+
+  return {
+    selectedIds: ordered.filter((c) => selected.has(c.playerId)).map((c) => c.playerId),
+    protectedBy,
+    shortfalls: evaluateWithout().shortfalls,
+  };
+}
 
 function normalizeName(value: string | null | undefined): string {
   return (value ?? "")
@@ -289,11 +356,10 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
   const startsDataAvailable = maxStarts > 0;
   const currentIso = toIsoDay(currentDate);
 
-  // Pre-compute how many called players belong to each position group
-  const positionGroupCounts = new Map<PositionGroup, number>();
+  const positionPlayers = new Map<string, PositionPlayer>();
   for (const pid of calledIds) {
-    const group = getPositionGroup(playerById.get(pid)?.position);
-    positionGroupCounts.set(group, (positionGroupCounts.get(group) ?? 0) + 1);
+    const p = playerById.get(pid);
+    if (p) positionPlayers.set(pid, toPositionPlayer(p));
   }
   const maxTechnicalTotal = Math.max(
     0,
@@ -411,7 +477,6 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
         startsDataAvailable,
         minRequiredCalls,
         calledIds,
-        positionGroupCounts,
         playerById,
         ratings,
         previousRivalResult,
@@ -441,6 +506,7 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
         playerId,
         displayName,
         position: p.position ?? null,
+        positionRole: positionPlayers.get(playerId)?.role ?? null,
         isSelected: false as boolean,
         forced,
         score: Number(score.toFixed(2)),
@@ -464,36 +530,28 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
   const forcedCount = proposals.filter((p) => p.forced).length;
   const targetCount = Math.max(forcedCount, calledIds.length - maxCalledPlayers, 0);
 
-  // Protección por jornadas eliminada: todos los jugadores son elegibles.
-  const candidateProposals = proposals;
-
-  let selectedIds = candidateProposals.slice(0, targetCount).map((p) => p.playerId);
-
-  // Ensure at least one goalkeeper remains convoked after deconvocations.
-  function isGoalkeeper(proposal: PlayerProposal): boolean {
-    const pos = (proposal.position ?? "").toLowerCase();
-    return pos.includes("portero") || pos === "gk" || pos === "por" || pos.includes("goalkeeper");
-  }
-  const selectedSet0 = new Set(selectedIds);
-  const remainingGoalkeepers = proposals.filter((p) => isGoalkeeper(p) && !selectedSet0.has(p.playerId));
-  if (remainingGoalkeepers.length === 0) {
-    // Find the selected goalkeeper with the lowest score (least worthy of deconvocation) and protect them
-    const selectedGoalkeepers = proposals.filter((p) => isGoalkeeper(p) && selectedSet0.has(p.playerId));
-    if (selectedGoalkeepers.length > 0) {
-      const keepGk = selectedGoalkeepers.reduce((best, cur) => cur.score < best.score ? cur : best);
-      // Remove protected goalkeeper and replace with next best non-selected candidate
-      const replacement = proposals.find((p) => !selectedSet0.has(p.playerId) && p.playerId !== keepGk.playerId);
-      selectedIds = selectedIds.filter((id) => id !== keepGk.playerId);
-      if (replacement) selectedIds = [...selectedIds, replacement.playerId];
-    }
-  }
-
+  const { selectedIds, protectedBy, shortfalls } = selectDeconvocations(
+    proposals,
+    positionPlayers,
+    targetCount,
+  );
   const selectedSet = new Set(selectedIds);
 
-  const playersWithSelection = proposals.map((p) => ({
-    ...p,
-    isSelected: selectedSet.has(p.playerId),
-  }));
+  const playersWithSelection = proposals.map((p) => {
+    const requirement = protectedBy.get(p.playerId);
+    const factors = requirement
+      ? [
+          ...p.factors,
+          {
+            key: "positionProtection",
+            label: protectionReason(requirement),
+            value: requiredCount(requirement),
+            impact: 0,
+          },
+        ]
+      : p.factors;
+    return { ...p, factors, isSelected: selectedSet.has(p.playerId) };
+  });
 
   return {
     generatedAt: new Date().toISOString(),
@@ -502,6 +560,7 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
     selectedIds,
     previousRivalResult,
     players: playersWithSelection,
+    positionWarnings: shortfalls,
   };
 }
 
@@ -523,7 +582,7 @@ export function formatProposalFactorValue(factor: ProposalFactor): string {
       return `${Math.round(n)} jornadas`;
     case "technicalTotal":
     case "minimum":
-    case "positionCoverage":
+    case "positionProtection":
       return nf0(n);
     case "weeklyTraining":
       if (label.includes("puntos por asistencia")) return `${nf0(n)}%`;

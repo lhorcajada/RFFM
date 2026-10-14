@@ -33,7 +33,6 @@ function createRuleContext(weekStats: Partial<WeeklyTrainingStats>): RuleContext
     startsDataAvailable: false,
     minRequiredCalls: 0,
     calledIds: [],
-    positionGroupCounts: new Map(),
     playerById: new Map(),
     ratings: {},
     previousRivalResult: null,

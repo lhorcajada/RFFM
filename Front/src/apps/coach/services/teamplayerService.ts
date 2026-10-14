@@ -10,6 +10,8 @@ export type PlayerResponse = {
   urlPhoto?: string | null;
   dorsal?: number | null;
   position?: string | null;
+  activePositionId?: number | null;
+  possibleDemarcationIds?: number[] | null;
   age?: number | null;
   birthYear?: number | null;
   team?: string | null;

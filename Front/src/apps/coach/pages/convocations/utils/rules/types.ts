@@ -24,7 +24,6 @@ export type RuleContext = {
   startsDataAvailable: boolean;
   minRequiredCalls: number;
   calledIds: string[];
-  positionGroupCounts: Map<string, number>;
   playerById: Map<string, PlayerResponse>;
   ratings: Record<string, PlayerRating>;
   previousRivalResult: DeconvokeProposal['previousRivalResult'];

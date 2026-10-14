@@ -1,4 +1,5 @@
 import {
+  Alert,
   Button,
   CircularProgress,
   FormControl,
@@ -21,6 +22,7 @@ import PlayerFormLegend from "../../../components/PlayerFormLegend/PlayerFormLeg
 import type { DropZone } from "./convocationMatchDetail.types";
 import type { DeconvokeProposal } from "../utils/deconvokeProposal";
 import { formatProposalFactorValue } from "../utils/deconvokeProposal";
+import { formatShortfall, roleLabel } from "../utils/positionRequirements";
 import styles from "./ConvocationTab.module.css";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -209,7 +211,9 @@ export default function ConvocationTab({
 
         {/* ── Chips de metadatos ── */}
         <div className={styles.proposalChips}>
-          <span className={styles.proposalChip}>{item.position ?? "Sin posición"}</span>
+          <span className={styles.proposalChip} title={item.position ?? undefined}>
+            {roleLabel(item.positionRole ?? null)}
+          </span>
           <span className={styles.proposalChip}>📋 {item.calledCount} conv.</span>
           {item.startsDataAvailable && (
             <span className={styles.proposalChip}>🏁 {item.startsCount} tit.</span>
@@ -228,8 +232,7 @@ export default function ConvocationTab({
         <div className={styles.factorList}>
           {
             // Group factors by parent key (prefix before first '.') so sub-factors
-            // like 'positionCoverage.baseCoverageBonus' are rendered under the
-            // main 'positionCoverage' factor.
+            // like 'parent.detail' are rendered under the main 'parent' factor.
           }
           {(() => {
             const groups = new Map<string, { main: any | null; children: any[] }>();
@@ -339,6 +342,16 @@ export default function ConvocationTab({
                 <p className={styles.proposalSubtitle}>
                   Rival: {proposal.previousRivalResult.rival} | Resultado previo: {proposal.previousRivalResult.scoreText} ({proposal.previousRivalResult.result})
                 </p>
+              )}
+              {(proposal.positionWarnings ?? []).length > 0 && (
+                <Alert severity="warning" sx={{ mt: 1 }}>
+                  <strong>Mínimos de posición sin cubrir</strong>
+                  <ul className={styles.proposalWarningList}>
+                    {proposal.positionWarnings.map((warning) => (
+                      <li key={warning.requirement}>{formatShortfall(warning)}</li>
+                    ))}
+                  </ul>
+                </Alert>
               )}
             </div>
             <div className={styles.proposalHeaderActions}>
