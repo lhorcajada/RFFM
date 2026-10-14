@@ -44,6 +44,8 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
             public string? UrlPhoto { get; set; }
             public int? Dorsal { get; set; }
             public string? Position { get; set; }
+            public int? ActivePositionId { get; set; }
+            public int[] PossibleDemarcationIds { get; set; } = Array.Empty<int>();
             public int? Age { get; set; }
             public int? BirthYear { get; set; }
             public string Team { get; set; } = string.Empty;
@@ -99,6 +101,7 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                         tp.Player.UrlPhoto,
                         Dorsal = tp.Dorsal != null ? tp.Dorsal.Number : (int?)null,
                         ActivePositionId = tp.Demarcation != null ? (int?)tp.Demarcation.ActivePositionId : null,
+                        PossibleDemarcationIds = tp.Demarcation != null ? tp.Demarcation.PossibleDemarcationIds : null,
                         BirthDate = tp.Player.BirthDate,
                         Team = tp.Team.Name,
                         TeamCategory = tp.Team.Category.Name,
@@ -121,6 +124,8 @@ namespace RFFM.Api.Features.Coaches.Players.Queries
                     UrlPhoto = i.UrlPhoto,
                     Dorsal = i.Dorsal,
                     Position = i.ActivePositionId != null ? DemarcationMaster.GetById(i.ActivePositionId.Value)?.Name : null,
+                    ActivePositionId = i.ActivePositionId is > 0 ? i.ActivePositionId : null,
+                    PossibleDemarcationIds = i.PossibleDemarcationIds?.ToArray() ?? Array.Empty<int>(),
                     Age = CalculateAge(i.BirthDate),
                     BirthYear = i.BirthDate?.Year,
                     Team = i.Team,
