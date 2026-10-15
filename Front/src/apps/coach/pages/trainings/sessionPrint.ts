@@ -10,6 +10,22 @@ import {
 } from "../../components/TacticalBoardSnapshotPreview";
 import { detectBoardViewport } from "./new/helpers/boardViewport";
 import boardPreviewCss from "../../components/TacticalBoardSnapshotPreview.module.css?inline";
+import boardStyles from "../../components/TacticalBoardSnapshotPreview.module.css";
+
+/** Ink-friendly pitch for the printed sheet: white turf and black markings instead of the
+ * on-screen green field with white lines. */
+function buildPrintPitchCss(): string {
+  const s = boardStyles;
+  return `
+        .${s.fullPitch}, .${s.halfViewport} { box-shadow: none; }
+        .${s.pitch}, .${s.mirrorHalf} { background: #fff; }
+        .${s.terrainBandTop}, .${s.terrainBandBottom}, .${s.terrainGoalBack} { background: #fff; }
+        .${s.touchLineTop}, .${s.touchLineBottom} { background: #000; }
+        .${s.midLine}, .${s.goalLine} { background: #000; }
+        .${s.penaltySpot} { background: #000; }
+        .${s.centerCircle}, .${s.penaltyArea}, .${s.goalArea}, .${s.penaltyArc}, .${s.goalFrame} { border-color: #000; }
+        .${s.goalMouth} { border-right-color: #000; }`;
+}
 
 function formatDate(iso: string | null): string {
   if (!iso) return "Sin fecha (sin programar)";
@@ -46,7 +62,7 @@ function buildImageOrBoardNoteHtml(exercise: Exercise, playersById: Map<string, 
   );
   return buildImageOrBoardHtml(
     exercise,
-    `<style>${boardPreviewCss}</style>${boardHtml}`,
+    `<style>${boardPreviewCss}${buildPrintPitchCss()}</style>${boardHtml}`,
     viewport === "full" ? "board-drawing--full" : "board-drawing--half",
   );
 }
