@@ -22,12 +22,12 @@ namespace RFFM.Api.Features.Coaches.Convocations
                     [Authorize(Roles = "Coach,Administrator")] async (string eventId, AddConvocationRequest request, IMediator mediator, CancellationToken cancellationToken) =>
                     {
                         request.EventId = eventId;
-                        await mediator.Send(request, cancellationToken);
-                        return Results.Created($"/api/events/{eventId}/convocations", null);
+                        var response = await mediator.Send(request, cancellationToken);
+                        return Results.Created($"/api/events/{eventId}/convocations", response);
                     })
                 .WithName(nameof(AddConvocations))
                 .WithTags("Convocations")
-                .Produces(StatusCodes.Status201Created)
+                .Produces<AddConvocationResponse>(StatusCodes.Status201Created)
                 .Produces(StatusCodes.Status400BadRequest)
                 .Produces(StatusCodes.Status403Forbidden)
                 .Produces(StatusCodes.Status409Conflict);
@@ -46,19 +46,21 @@ namespace RFFM.Api.Features.Coaches.Convocations
                 .Produces(StatusCodes.Status403Forbidden);
         }
 
-        public record AddConvocationRequest : IRequest<Unit>
+        public record AddConvocationRequest : IRequest<AddConvocationResponse>
         {
             public string EventId { get; set; } = null!;
             public string TeamPlayerId { get; set; } = null!;
             public int AssistanceTypeId { get; set; }
         }
 
+        public record AddConvocationResponse(string Id);
+
         public record BulkAddConvocationsRequest : IRequest<Unit>
         {
             public string EventId { get; set; } = null!;
         }
 
-        public class AddConvocationHandler : IRequestHandler<AddConvocationRequest, Unit>
+        public class AddConvocationHandler : IRequestHandler<AddConvocationRequest, AddConvocationResponse>
         {
             private readonly AppDbContext _db;
             private readonly IWebPushNotificationDispatcher _dispatcher;
@@ -68,7 +70,7 @@ namespace RFFM.Api.Features.Coaches.Convocations
                 _dispatcher = dispatcher;
             }
 
-            public async ValueTask<Unit> Handle(AddConvocationRequest request, CancellationToken cancellationToken = default)
+            public async ValueTask<AddConvocationResponse> Handle(AddConvocationRequest request, CancellationToken cancellationToken = default)
             {
                 var sportEvent = await _db.SportEvents.FirstOrDefaultAsync(se => se.Id == request.EventId, cancellationToken);
                 if (sportEvent == null) throw new ArgumentException("Event not found");
@@ -113,7 +115,7 @@ namespace RFFM.Api.Features.Coaches.Convocations
                 if (sportEvent.EventTypeId != SportEventsConstants.MatchEventTypeId)
                     await _dispatcher.DispatchConvocationCreatedAsync(request.TeamPlayerId, request.EventId, cancellationToken);
 
-                return Unit.Value;
+                return new AddConvocationResponse(conv.Id);
             }
 
             private static ConflictException PlayerAlreadyConvocated() =>
