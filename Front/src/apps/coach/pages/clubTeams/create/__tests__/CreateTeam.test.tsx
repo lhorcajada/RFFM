@@ -2,6 +2,7 @@ import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi, beforeEach } from "vitest";
+import { MemoryRouter } from "react-router-dom";
 import { UserProvider } from "../../../../../../shared/context/UserContext";
 
 const mockNavigate = vi.fn();
@@ -64,9 +65,11 @@ describe("CreateTeam", () => {
     mockUseLocation.mockReturnValue({ pathname: "/coach/clubs/club-1/teams/new", search: "", state: null });
 
     render(
-      <UserProvider>
-        <CreateTeam />
-      </UserProvider>
+      <MemoryRouter>
+        <UserProvider>
+          <CreateTeam />
+        </UserProvider>
+      </MemoryRouter>
     );
 
     await userEvent.type(screen.getByLabelText("Nombre"), "Equipo A");
@@ -87,9 +90,11 @@ describe("CreateTeam", () => {
     });
 
     render(
-      <UserProvider>
-        <CreateTeam />
-      </UserProvider>
+      <MemoryRouter>
+        <UserProvider>
+          <CreateTeam />
+        </UserProvider>
+      </MemoryRouter>
     );
 
     await userEvent.type(screen.getByLabelText("Nombre"), "Equipo B");

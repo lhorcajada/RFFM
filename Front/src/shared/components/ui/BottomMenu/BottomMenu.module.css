@@ -103,3 +103,8 @@
     padding: 6px;
   }
 }
+
+.bar.barNoArrows {
+  justify-content: center;
+  padding: 6px 0;
+}

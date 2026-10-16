@@ -26,6 +26,7 @@ const getRolesMock = vi.fn();
 vi.mock("../../../services/authService", () => ({
   coachAuthService: {
     getRoles: () => getRolesMock(),
+    hasRole: (role: string) => (getRolesMock() as string[]).includes(role),
     getToken: () => null,
     isAuthenticated: () => true,
   },

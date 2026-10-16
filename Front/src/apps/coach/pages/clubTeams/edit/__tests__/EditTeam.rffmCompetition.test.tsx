@@ -41,14 +41,17 @@ vi.mock("../../../../services/rffmCompetitionService", () => ({
 }));
 const mockUpdateTeamCompetitionFn = vi.fn();
 
+import { MemoryRouter } from "react-router-dom";
 import { UserProvider } from "../../../../../../shared/context/UserContext";
 import EditTeam from "../EditTeam";
 
 function renderEditTeam() {
   return render(
-    <UserProvider>
-      <EditTeam />
-    </UserProvider>
+    <MemoryRouter>
+      <UserProvider>
+        <EditTeam />
+      </UserProvider>
+    </MemoryRouter>
   );
 }
 

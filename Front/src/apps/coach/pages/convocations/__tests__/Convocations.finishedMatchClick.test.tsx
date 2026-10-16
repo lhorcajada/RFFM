@@ -61,6 +61,7 @@ vi.mock("../../../hooks/useEventAttendanceSummaries", () => ({
 vi.mock("../../../services/authService", () => ({
   coachAuthService: {
     getRoles: () => ["Coach"],
+    hasRole: (role: string) => role === "Coach",
     getToken: () => null,
     isAuthenticated: () => true,
   },

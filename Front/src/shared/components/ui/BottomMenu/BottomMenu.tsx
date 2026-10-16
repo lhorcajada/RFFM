@@ -14,9 +14,10 @@ export interface BottomMenuItem {
 
 interface BottomMenuProps {
   items: BottomMenuItem[];
+  showScrollArrows?: boolean;
 }
 
-export default function BottomMenu({ items }: BottomMenuProps) {
+export default function BottomMenu({ items, showScrollArrows = true }: BottomMenuProps) {
   const loc = useLocation();
   const containerRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -27,16 +28,21 @@ export default function BottomMenu({ items }: BottomMenuProps) {
 
   return (
     <div className={styles.wrapper}>
-      <IconButton
-        aria-label="scroll left"
-        size="small"
-        className={`${styles.arrowBtn} ${styles.leftArrow}`}
-        onClick={() => scrollByAmount(-120)}
-      >
-        <ChevronLeftIcon fontSize="small" />
-      </IconButton>
+      {showScrollArrows && (
+        <IconButton
+          aria-label="scroll left"
+          size="small"
+          className={`${styles.arrowBtn} ${styles.leftArrow}`}
+          onClick={() => scrollByAmount(-120)}
+        >
+          <ChevronLeftIcon fontSize="small" />
+        </IconButton>
+      )}
 
-      <div className={styles.bar} ref={containerRef}>
+      <div
+        className={showScrollArrows ? styles.bar : `${styles.bar} ${styles.barNoArrows}`}
+        ref={containerRef}
+      >
         {items.map((it, idx) => {
           const active = it.activeMatch
             ? it.activeMatch(loc.pathname)
@@ -58,14 +64,16 @@ export default function BottomMenu({ items }: BottomMenuProps) {
         })}
       </div>
 
-      <IconButton
-        aria-label="scroll right"
-        size="small"
-        className={`${styles.arrowBtn} ${styles.rightArrow}`}
-        onClick={() => scrollByAmount(120)}
-      >
-        <ChevronRightIcon fontSize="small" />
-      </IconButton>
+      {showScrollArrows && (
+        <IconButton
+          aria-label="scroll right"
+          size="small"
+          className={`${styles.arrowBtn} ${styles.rightArrow}`}
+          onClick={() => scrollByAmount(120)}
+        >
+          <ChevronRightIcon fontSize="small" />
+        </IconButton>
+      )}
     </div>
   );
 }

@@ -5,8 +5,11 @@ import SvgIcon from "@mui/material/SvgIcon";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import EventAvailableIcon from "@mui/icons-material/EventAvailable";
 import SportsSoccerIcon from "@mui/icons-material/SportsSoccer";
+import HomeIcon from "@mui/icons-material/Home";
+import SettingsIcon from "@mui/icons-material/Settings";
 import BottomMenu, { BottomMenuItem } from "../BottomMenu/BottomMenu";
 import { getSettingsForUser } from "../../../../apps/federation/services/federationApi";
+import { coachAuthService } from "../../../../apps/coach/services/authService";
 import seasonService, {
   COACH_ACTIVE_SEASON_CHANGED_EVENT,
   type Season,
@@ -39,8 +42,9 @@ export default function Footer({ hideMenu }: FooterProps): JSX.Element {
       }
     }
 
-    // Skip the settings API call when the menu is hidden (e.g. AppSelector screen).
-    if (hideMenu) {
+    // Skip the settings API call when the federation menu isn't shown
+    // (hidden menu, e.g. AppSelector, or coach routes with their own menu).
+    if (hideMenu || isCoachRoute) {
       return;
     }
 
@@ -60,7 +64,7 @@ export default function Footer({ hideMenu }: FooterProps): JSX.Element {
     return () => {
       window.removeEventListener("rffm.saved_combinations_changed", handle);
     };
-  }, [user, hideMenu]);
+  }, [user, hideMenu, isCoachRoute]);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -113,6 +117,39 @@ export default function Footer({ hideMenu }: FooterProps): JSX.Element {
       © {copyrightYear} Futbol Base. Todos los derechos reservados.
     </div>
   );
+
+  if (isCoachRoute) {
+    const coachItems: BottomMenuItem[] = [
+      {
+        to: "/coach/dashboard",
+        ariaLabel: "Inicio",
+        icon: <HomeIcon fontSize="medium" />,
+      },
+      ...(coachAuthService.hasRole("Coach")
+        ? [
+            {
+              to: "/coach/settings",
+              ariaLabel: "Configuración",
+              icon: <SettingsIcon fontSize="medium" />,
+            },
+          ]
+        : []),
+    ];
+
+    return (
+      <div className={`${styles.root} ${styles.rootCoach}`} role="contentinfo">
+        <div className={styles.coachInfo}>
+          {seasonInfo}
+          <div className={styles.coachCopyright}>
+            © {copyrightYear} Futbol Base. Todos los derechos reservados.
+          </div>
+        </div>
+        <nav className={styles.coachMenu} aria-label="Menú de entrenador">
+          <BottomMenu items={coachItems} showScrollArrows={false} />
+        </nav>
+      </div>
+    );
+  }
 
   if (hideMenu) {
     return (
