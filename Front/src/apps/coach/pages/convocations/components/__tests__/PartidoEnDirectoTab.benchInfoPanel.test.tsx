@@ -140,6 +140,15 @@ describe("PartidoEnDirectoTab - listado informativo 'Banquillo' (tarjeta rica, s
     expect(card.closest("[class*='benchDragHandle']")).toBeNull();
   });
 
+  it("el banquillo lateral muestra los minutos jugados de cada suplente, también 0' si aún no ha jugado", async () => {
+    liveMatchMock = baseLiveMatch({ playerMinutes: { p0: 10 } });
+    renderTab();
+    await waitFor(() => expect(screen.getByRole("combobox", { name: /esquema/i })).toBeInTheDocument());
+
+    const benchCard = screen.getByTitle("BanquilloRico Uno");
+    expect(within(benchCard).getByText("0'")).toBeInTheDocument();
+  });
+
   it("el popup muestra también el listado 'En el campo' fuera de prepareMode", async () => {
     renderTab();
     await waitFor(() => expect(screen.getByRole("combobox", { name: /esquema/i })).toBeInTheDocument());

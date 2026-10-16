@@ -25,6 +25,8 @@ export interface CompactBenchCardProps {
   player: SquadPlayer;
   /** Minutes played so far — a minutes tag is shown only when this is > 0. */
   minutesPlayed?: number;
+  /** Show the minutes tag even at 0' (live match bench), like the on-field cards. */
+  alwaysShowMinutes?: boolean;
   /** True when this player is currently being subbed off the field (prepareMode). */
   isLeaving?: boolean;
   /** True while being dragged (dims the card, matching the field card's .dragging style). */
@@ -38,6 +40,7 @@ export interface CompactBenchCardProps {
 export function CompactBenchCard({
   player,
   minutesPlayed = 0,
+  alwaysShowMinutes = false,
   isLeaving = false,
   isDragActive = false,
   actions,
@@ -69,7 +72,7 @@ export function CompactBenchCard({
         {isLeaving && <span className={slotStyles.leavingBadge}>SALE</span>}
         {cardStatus && <PlayerCardBadge status={cardStatus} />}
       </div>
-      {minutesPlayed > 0 && !isLeaving && (
+      {(minutesPlayed > 0 || alwaysShowMinutes) && !isLeaving && (
         <span className={slotStyles.minuteTag}>{minutesPlayed}&apos;</span>
       )}
       <span className={slotStyles.playerName}>{shortName}</span>
@@ -90,6 +93,7 @@ export function CompactBenchCard({
 export function DraggableCompactBenchCard({
   player,
   minutesPlayed = 0,
+  alwaysShowMinutes = false,
   isLeaving = false,
   actions,
   cardStatus,
@@ -104,6 +108,7 @@ export function DraggableCompactBenchCard({
       <CompactBenchCard
         player={player}
         minutesPlayed={minutesPlayed}
+        alwaysShowMinutes={alwaysShowMinutes}
         isLeaving={isLeaving}
         isDragActive={isDragging}
         actions={actions}

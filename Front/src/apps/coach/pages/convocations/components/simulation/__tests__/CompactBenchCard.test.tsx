@@ -39,6 +39,16 @@ describe("CompactBenchCard - tarjeta compacta de banquillo (mismo lenguaje visua
     expect(screen.queryByText(/'$/)).not.toBeInTheDocument();
   });
 
+  it("con alwaysShowMinutes muestra 0' para un jugador que aún no ha jugado", () => {
+    render(<CompactBenchCard player={makePlayer()} minutesPlayed={0} alwaysShowMinutes />);
+    expect(screen.getByText("0'")).toBeInTheDocument();
+  });
+
+  it("con alwaysShowMinutes no muestra minutos si el jugador sale (SALE)", () => {
+    render(<CompactBenchCard player={makePlayer()} minutesPlayed={0} isLeaving alwaysShowMinutes />);
+    expect(screen.queryByText(/'$/)).not.toBeInTheDocument();
+  });
+
   it("muestra el badge SALE cuando isLeaving es true", () => {
     render(<CompactBenchCard player={makePlayer()} minutesPlayed={10} isLeaving />);
     expect(screen.getByText("SALE")).toBeInTheDocument();

@@ -617,6 +617,7 @@ export default function PartidoEnDirectoTab({
                       key={p.id}
                       player={p}
                       minutesPlayed={effectiveMinutes[p.id] ?? 0}
+                      alwaysShowMinutes
                       cardStatus={cardStatusById[p.id]}
                     />
                   ) : (
@@ -625,6 +626,7 @@ export default function PartidoEnDirectoTab({
                       player={p}
                       isLeaving={leavingIds.has(p.id)}
                       minutesPlayed={effectiveMinutes[p.id] ?? 0}
+                      alwaysShowMinutes
                       cardStatus={cardStatusById[p.id]}
                     />
                   ),
@@ -639,6 +641,7 @@ export default function PartidoEnDirectoTab({
                   player={p}
                   isLeaving={false}
                   minutesPlayed={effectiveMinutes[p.id] ?? 0}
+                  alwaysShowMinutes
                   cardStatus={cardStatusById[p.id]}
                 />
               ))}
