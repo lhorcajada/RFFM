@@ -119,6 +119,23 @@ describe("useConvocationManagement — disponibilidad en partidos de liga", () =
     expect(result.current.mgmtAvailable).not.toContain("p-av");
   });
 
+  it("en liga un convocado con la convocatoria aún pendiente no queda pendiente de aceptar", async () => {
+    setup("League");
+    getConvocationsMock.mockResolvedValue([{ id: "conv-1", player: { id: "p-called" }, status: 1 }]);
+    const { result } = await renderLoaded();
+
+    await waitFor(() => expect(result.current.mgmtIsLeagueMatch).toBe(true));
+    expect(result.current.mgmtPending).toEqual([]);
+  });
+
+  it("en un amistoso un convocado con la convocatoria pendiente sigue pendiente de aceptar", async () => {
+    setup("Friendly");
+    getConvocationsMock.mockResolvedValue([{ id: "conv-1", player: { id: "p-called" }, status: 1 }]);
+    const { result } = await renderLoaded();
+
+    expect(result.current.mgmtPending).toEqual(["p-called"]);
+  });
+
   it("en liga no se puede soltar un jugador en disponibles", async () => {
     setup("League");
     const { result } = await renderLoaded();

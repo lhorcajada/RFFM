@@ -80,6 +80,22 @@ describe("ConvocationTab - listas plegables", () => {
     expect(within(screen.getByRole("region", { name: "Disponibles" })).getByText("Jugador Espera")).toBeInTheDocument();
   });
 
+  it("pliega automáticamente las listas sin jugadores", () => {
+    renderTab(true);
+
+    expect(screen.getByRole("button", { name: /^Desconvocados/ })).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByRole("button", { name: /^Convocados/ })).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("una lista vacía sigue plegada aunque se pulse", async () => {
+    renderTab(true);
+    const toggle = screen.getByRole("button", { name: /^Desconvocados/ });
+
+    await userEvent.click(toggle);
+
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+  });
+
   it("se puede plegar y desplegar una lista", async () => {
     renderTab(true);
     const toggle = screen.getByRole("button", { name: /^Disponibles/ });

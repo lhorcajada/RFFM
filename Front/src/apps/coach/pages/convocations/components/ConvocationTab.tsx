@@ -1,6 +1,7 @@
 import {
   Alert,
   Button,
+  Checkbox,
   CircularProgress,
   FormControl,
   InputLabel,
@@ -12,6 +13,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
+import PlaylistAddCheckIcon from "@mui/icons-material/PlaylistAddCheck";
 import EmptyState from "../../../../../shared/components/ui/EmptyState/EmptyState";
 import type { ExcuseType } from "../../../services/excuseTypeService";
 import type { PlayerResponse } from "../../../services/teamplayerService";
@@ -28,9 +30,8 @@ import styles from "./ConvocationTab.module.css";
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function mgmtRatingColor(v: number): string {
-  if (v >= 90) return "#29b6f6";
-  if (v >= 70) return "#66bb6a";
-  if (v >= 50) return "#ffb300";
+  if (v >= 7) return "#66bb6a";
+  if (v >= 5) return "#ffb300";
   return "#ef5350";
 }
 
@@ -91,6 +92,7 @@ type Props = {
   onDragLeave: () => void;
   onDrop: (zone: DropZone) => void;
   onExcuseChange: (playerId: string, excuseId: number) => void;
+  onCallPlayers?: (playerIds: string[]) => Promise<void>;
   playerStreaks?: Map<string, number>;
   proposal: DeconvokeProposal;
   proposalLoading: boolean;
@@ -151,6 +153,7 @@ export default function ConvocationTab({
   onDragLeave,
   onDrop,
   onExcuseChange,
+  onCallPlayers,
   playerStreaks,
   proposal,
   proposalLoading,
@@ -163,6 +166,22 @@ export default function ConvocationTab({
   const [collapsedZones, setCollapsedZones] = useState<Partial<Record<DropZone, boolean>>>({});
   const zones = isLeagueMatch ? [...LEAGUE_ONLY_ZONES, ...COMMON_ZONES] : COMMON_ZONES;
   const toggleZone = (zone: DropZone) => setCollapsedZones((prev) => ({ ...prev, [zone]: !prev[zone] }));
+  const [selectedToCall, setSelectedToCall] = useState<string[]>([]);
+  const [callingPlayers, setCallingPlayers] = useState(false);
+  const selectedAvailable = selectedToCall.filter((id) => mgmtAvailable.includes(id));
+  const toggleSelectedToCall = (playerId: string) =>
+    setSelectedToCall((prev) => (prev.includes(playerId) ? prev.filter((id) => id !== playerId) : [...prev, playerId]));
+
+  async function handleCallSelected() {
+    if (!onCallPlayers || selectedAvailable.length === 0 || callingPlayers) return;
+    setCallingPlayers(true);
+    try {
+      await onCallPlayers(mgmtAvailable.filter((id) => selectedAvailable.includes(id)));
+      setSelectedToCall([]);
+    } finally {
+      setCallingPlayers(false);
+    }
+  }
 
   if (mgmtLoadingConv || loadingPlayers) {
     return (
@@ -428,7 +447,7 @@ export default function ConvocationTab({
       <div className={styles.dropColumns}>
         {zones.map(({ zone, label, headerClass }) => {
           const ids = getZoneIds(zone);
-          const expanded = !collapsedZones[zone];
+          const expanded = ids.length > 0 && !collapsedZones[zone];
           return (
             <section
               key={zone}
@@ -462,6 +481,8 @@ export default function ConvocationTab({
                     <span
                       className={styles.calledAvg}
                       style={{ color: mgmtRatingColor(teamAvgRating) }}
+                      title="Valoración media de los convocados (1-10)"
+                      aria-label={`Valoración media de los convocados: ${Math.round(teamAvgRating)}`}
                     >
                       {Math.round(teamAvgRating)}
                     </span>
@@ -474,6 +495,31 @@ export default function ConvocationTab({
                 <div className={styles.dropColumnBody}>
                   {ids.length === 0 && (
                     <div className={styles.dropHint}>Arrastra jugadores aquí</div>
+                  )}
+                  {zone === "available" && onCallPlayers && ids.length > 0 && (
+                    <div className={styles.bulkCallBar}>
+                      <Button
+                        size="small"
+                        variant="text"
+                        onClick={() =>
+                          setSelectedToCall(selectedAvailable.length === ids.length ? [] : [...ids])
+                        }
+                        disabled={callingPlayers}
+                        className={styles.bulkCallSelectAll}
+                      >
+                        {selectedAvailable.length === ids.length ? "Quitar selección" : "Seleccionar todos"}
+                      </Button>
+                      <Button
+                        size="small"
+                        variant="contained"
+                        startIcon={callingPlayers ? <CircularProgress size={14} color="inherit" /> : <PlaylistAddCheckIcon />}
+                        onClick={handleCallSelected}
+                        disabled={selectedAvailable.length === 0 || callingPlayers}
+                        className={styles.bulkCallBtn}
+                      >
+                        Convocar seleccionados ({selectedAvailable.length})
+                      </Button>
+                    </div>
                   )}
                   {zone === "notCalled"
                     ? ids.map((playerId) => {
@@ -517,7 +563,7 @@ export default function ConvocationTab({
                               <FormControl
                                 size="small"
                                 fullWidth
-                                sx={{ mt: 0.5 }}
+                                sx={{ mt: 0.5, flexShrink: 0 }}
                                 onClick={(e) => e.stopPropagation()}
                                 onMouseDown={(e) => e.stopPropagation()}
                                 onDragStart={(e) => e.stopPropagation()}
@@ -598,6 +644,25 @@ export default function ConvocationTab({
                               formStatus={readinessMap?.[playerId]?.formStatus}
                               formVariant="full"
                             />
+                            {zone === "available" && onCallPlayers && (
+                              <label
+                                className={`${styles.bulkCallCheckRow} ${
+                                  selectedToCall.includes(playerId) ? styles.bulkCallCheckRowSelected : ""
+                                }`}
+                                onMouseDown={(e) => e.stopPropagation()}
+                                onDragStart={(e) => e.stopPropagation()}
+                              >
+                                <Checkbox
+                                  size="small"
+                                  checked={selectedToCall.includes(playerId)}
+                                  onChange={() => toggleSelectedToCall(playerId)}
+                                  disabled={callingPlayers}
+                                  inputProps={{ "aria-label": `Seleccionar ${displayName}` }}
+                                  className={styles.bulkCallCheckbox}
+                                />
+                                Convocar
+                              </label>
+                            )}
                           </div>
                         );
                       }),

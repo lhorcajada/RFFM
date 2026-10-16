@@ -401,7 +401,17 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isLeagueM
     return null;
   }, [isPlayerOrFamily, associatedPlayerId, waitingList, availabilityPending, availablePlayers, pending, accepted, injuredNoConv, injuredWithConv, declinedNonInjured]);
 
+  const groupCounts: Record<GroupKey, number> = {
+    waiting: notConvoked.length,
+    availabilityPending: availabilityPending.length,
+    available: availablePlayers.length,
+    pending: pending.length,
+    accepted: accepted.length,
+    desconvocados: injuredNoConv.length + injuredWithConv.length + declinedNonInjured.length,
+  };
+
   const isGroupExpanded = (key: GroupKey): boolean => {
+    if (groupCounts[key] === 0) return false;
     if (Object.prototype.hasOwnProperty.call(groupOverrides, key)) return !!groupOverrides[key];
     return defaultExpandedGroup === key;
   };
@@ -800,7 +810,12 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isLeagueM
                 ((c.player as any).playerId === associatedPlayerId ||
                   String((c.player as any).id) === String(associatedPlayerId));
 
-              const renderCard = (c: ConvocationItem, highlightAssoc = false, selectableInPending = false) => {
+              const renderCard = (
+                c: ConvocationItem,
+                highlightAssoc = false,
+                selectableInPending = false,
+                closedConvocation = false,
+              ) => {
                 const canEditThisConvocation = canEditThisConvocationFor(c);
                 const teamPlayerId = c.player?.id;
                 return (
@@ -823,6 +838,7 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isLeagueM
                   selectable={selectableInPending && !isPlayerOrFamily && canEdit}
                   selected={!!teamPlayerId && selectedPendingIds.has(teamPlayerId)}
                   onToggleSelect={toggleSelectedPending}
+                  closedConvocation={closedConvocation}
                   onChangeStatus={handleChangeStatus}
                   onDelete={(cv) => {
                     if (!canEdit)
@@ -853,7 +869,15 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isLeagueM
 
               return (
                 <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 24 }}>
-                  {pending.length > 0 && (
+                  {isLeagueMatch && pending.length + accepted.length > 0 && (
+                    <PositionGroupedList
+                      items={[...sortedPending, ...accepted]}
+                      getPosition={(c) => c.player?.position}
+                      renderItem={(c) => renderCard(c, true, false, true)}
+                      listClassName={styles.convocatedList}
+                    />
+                  )}
+                  {!isLeagueMatch && pending.length > 0 && (
                     <CollapsibleGroup
                       title="Pendientes de aceptar"
                       count={pending.length}
@@ -913,7 +937,7 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isLeagueM
                       />
                     </CollapsibleGroup>
                   )}
-                  {accepted.length > 0 && (
+                  {!isLeagueMatch && accepted.length > 0 && (
                     <CollapsibleGroup
                       title="Aceptados"
                       count={accepted.length}

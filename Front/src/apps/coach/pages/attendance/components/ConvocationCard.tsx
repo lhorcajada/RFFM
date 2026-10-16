@@ -47,6 +47,11 @@ type Props = {
   selectable?: boolean;
   selected?: boolean;
   onToggleSelect?: (teamPlayerId: string) => void;
+  /**
+   * League matches: the player already confirmed availability, so a pending
+   * convocation is shown as closed (convocated) with no accept/reject choice.
+   */
+  closedConvocation?: boolean;
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -89,9 +94,11 @@ export default function ConvocationCard({
   selectable,
   selected,
   onToggleSelect,
+  closedConvocation,
 }: Props) {
   const p = conv.player as any;
-  const statusName = statuses.find((s) => s.id === conv.status)?.name ?? "";
+  const rawStatusName = statuses.find((s) => s.id === conv.status)?.name ?? "";
+  const statusName = closedConvocation && rawStatusName === "Pending" ? "Accepted" : rawStatusName;
   const displayName = p.alias || ((p.name ?? "") + " " + (p.lastName ?? "")).trim() || "Jugador";
   const dorsalValue =
     typeof p.dorsal === "number" ? p.dorsal : p.dorsal ? Number(p.dorsal) : null;

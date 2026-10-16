@@ -9,7 +9,10 @@
 
 .proposalBar {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   justify-content: flex-end;
+  gap: 12px 16px;
 }
 
 .proposalBtn {
@@ -445,6 +448,62 @@
 }
 
 /* Empty-state hint inside a column */
+/* Bulk call of available players */
+.bulkCallBar {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.bulkCallSelectAll {
+  color: #4d9de0 !important;
+  text-transform: none !important;
+}
+
+.bulkCallBtn {
+  background: #4ec9b0 !important;
+  color: #0d1117 !important;
+  font-weight: 700 !important;
+  text-transform: none !important;
+}
+
+.bulkCallBtn:disabled {
+  background: rgba(78, 201, 176, 0.2) !important;
+  color: rgba(255, 255, 255, 0.4) !important;
+}
+
+.bulkCallCheckRow {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 4px;
+  padding-right: 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(77, 157, 224, 0.25);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+}
+
+.bulkCallCheckRowSelected {
+  border-color: #4ec9b0;
+  background: rgba(78, 201, 176, 0.12);
+  color: #4ec9b0;
+}
+
+.bulkCallCheckbox {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.bulkCallCheckRowSelected .bulkCallCheckbox {
+  color: #4ec9b0 !important;
+}
+
 .dropHint {
   grid-column: 1 / -1;
   display: flex;
@@ -461,6 +520,8 @@
 
 /* Wrapper for each draggable cromo */
 .draggableCard {
+  display: flex;
+  flex-direction: column;
   cursor: grab;
   border-radius: 14px;
   transition: opacity 0.15s, box-shadow 0.15s;

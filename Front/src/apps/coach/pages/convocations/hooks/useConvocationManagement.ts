@@ -90,6 +90,7 @@ export type ConvocationManagementReturn = {
   setMgmtExcuseMap: React.Dispatch<React.SetStateAction<Record<string, number | null>>>;
   handleDragStart: (playerId: string) => void;
   handleDrop: (zone: DropZone) => void;
+  handleCallPlayers: (playerIds: string[]) => Promise<void>;
   handleSave: () => Promise<void>;
   moveToNotCalled: (playerId: string, excuseId?: number | null) => Promise<void>;
   moveToAvailable: (playerId: string) => Promise<void>;
@@ -247,7 +248,8 @@ export function useConvocationManagement(
             notCalledIds.push(pid);
           } else {
             calledIds.push(pid);
-            if (conv.status === PENDING_STATUS_ID) pendingIds.push(pid);
+            // League: the player already confirmed availability, so a convocation is closed as soon as it exists.
+            if (conv.status === PENDING_STATUS_ID && !mgmtIsLeagueMatch) pendingIds.push(pid);
           }
         }
 
@@ -435,7 +437,18 @@ export function useConvocationManagement(
     const pid = mgmtDragPlayer;
     setMgmtDragPlayer(null);
     setMgmtDragOver(null);
+    await movePlayer(pid, zone);
+  }
 
+  async function handleCallPlayers(playerIds: string[]) {
+    if (!mgmtEventId) return;
+    for (const pid of playerIds) {
+      await movePlayer(pid, "called");
+    }
+  }
+
+  async function movePlayer(pid: string, zone: DropZone) {
+    if (!mgmtEventId) return;
     let from: DropZone;
     if (mgmtCalled.includes(pid)) from = "called";
     else if (mgmtNotCalled.includes(pid)) from = "notCalled";
@@ -679,6 +692,7 @@ export function useConvocationManagement(
     setMgmtExcuseMap,
     handleDragStart,
     handleDrop,
+    handleCallPlayers,
     handleSave,
     moveToNotCalled,
     moveToAvailable,
