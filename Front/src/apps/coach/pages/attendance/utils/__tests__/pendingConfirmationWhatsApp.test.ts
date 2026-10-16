@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildPendingAvailabilityMessage,
   buildPendingConfirmationMessage,
   buildWaMeLink,
   type PendingConfirmationEventSummary,
@@ -56,6 +57,28 @@ describe("buildPendingConfirmationMessage", () => {
 
     expect(lines.some((l) => l.trim() === "")).toBe(true);
     expect(message).not.toMatch(/undefined|null/);
+  });
+});
+
+describe("buildPendingAvailabilityMessage", () => {
+  it("pregunta por la disponibilidad del jugador e incluye partido, fecha, hora, lugar y el enlace para responder", () => {
+    const summary: PendingConfirmationEventSummary = {
+      eventTypeLabel: "Partido",
+      rivalName: "CD Rival",
+      dateES: "Domingo, 12 de octubre de 2026",
+      time: "10:00",
+      location: "Campo Municipal",
+    };
+
+    const message = buildPendingAvailabilityMessage(summary, "Juanito", deepLinkUrl);
+
+    expect(message).toContain("disponibilidad");
+    expect(message).toContain("Juanito");
+    expect(message).toContain("Partido vs CD Rival");
+    expect(message).toContain("Domingo, 12 de octubre de 2026 · 10:00");
+    expect(message).toContain("Campo Municipal");
+    expect(message).toContain(deepLinkUrl);
+    expect(message).not.toContain("convocatoria");
   });
 });
 

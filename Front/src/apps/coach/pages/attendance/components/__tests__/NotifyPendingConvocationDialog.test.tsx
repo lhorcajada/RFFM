@@ -140,6 +140,27 @@ describe("NotifyPendingConvocationDialog", () => {
     expect(features).toBe("noopener,noreferrer");
   });
 
+  it("en modo disponibilidad el mensaje de WhatsApp pregunta por la disponibilidad en vez de la convocatoria", async () => {
+    getConvocationNotificationRecipientsMock.mockResolvedValue([
+      {
+        teamPlayerId: "p1",
+        playerAlias: "Juanito",
+        familyMembers: [
+          { familyMemberId: "fm-1", name: "María", lastName: "López", phone: "+34600111222", familyMember: "Madre" },
+        ],
+      },
+    ]);
+    const user = userEvent.setup();
+
+    renderDialog({ teamPlayerIds: ["p1"], kind: "availability" });
+
+    await user.click(await screen.findByRole("button", { name: /Madre: María López/i }));
+
+    const text = decodeURIComponent(String(windowOpenSpy.mock.calls[0][0]).split("?text=")[1]);
+    expect(text).toContain("disponibilidad");
+    expect(text).not.toContain("Recordatorio de convocatoria");
+  });
+
   it("marca el botón pulsado como 'Abierto' tras el clic", async () => {
     getConvocationNotificationRecipientsMock.mockResolvedValue([
       {

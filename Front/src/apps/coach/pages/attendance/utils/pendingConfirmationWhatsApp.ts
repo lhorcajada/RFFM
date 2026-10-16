@@ -6,19 +6,43 @@ export type PendingConfirmationEventSummary = {
   location: string | null;
 };
 
+function buildEventReminderMessage(
+  summary: PendingConfirmationEventSummary,
+  greeting: string,
+  callToAction: string
+): string {
+  const lines = [
+    greeting,
+    `${summary.eventTypeLabel}${summary.rivalName ? ` vs ${summary.rivalName}` : ""}`,
+    `${summary.dateES}${summary.time ? ` · ${summary.time}` : ""}`,
+  ];
+  if (summary.location) lines.push(summary.location);
+  lines.push("", callToAction);
+  return lines.join("\n");
+}
+
 export function buildPendingConfirmationMessage(
   summary: PendingConfirmationEventSummary,
   playerAlias: string,
   deepLinkUrl: string
 ): string {
-  const lines = [
+  return buildEventReminderMessage(
+    summary,
     `Hola! Recordatorio de convocatoria para ${playerAlias}.`,
-    `${summary.eventTypeLabel}${summary.rivalName ? ` vs ${summary.rivalName}` : ""}`,
-    `${summary.dateES}${summary.time ? ` · ${summary.time}` : ""}`,
-  ];
-  if (summary.location) lines.push(summary.location);
-  lines.push("", `Confirma tu asistencia aquí: ${deepLinkUrl}`);
-  return lines.join("\n");
+    `Confirma tu asistencia aquí: ${deepLinkUrl}`
+  );
+}
+
+export function buildPendingAvailabilityMessage(
+  summary: PendingConfirmationEventSummary,
+  playerAlias: string,
+  deepLinkUrl: string
+): string {
+  return buildEventReminderMessage(
+    summary,
+    `Hola! Necesitamos saber la disponibilidad de ${playerAlias} para el partido.`,
+    `Indica si está disponible aquí: ${deepLinkUrl}`
+  );
 }
 
 export function buildWaMeLink(phone: string, message: string): string {

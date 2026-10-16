@@ -40,9 +40,25 @@ export async function decideAvailable(eventId: string, requestId: string, convok
   await client.post(`/api/events/${eventId}/availability-requests/${requestId}/decision`, { convoke });
 }
 
+export type SendAvailabilityRemindersResponse = {
+  notifiedCount: number;
+};
+
+export async function sendAvailabilityReminders(
+  eventId: string,
+  teamPlayerIds: string[]
+): Promise<SendAvailabilityRemindersResponse> {
+  const resp = await client.post<SendAvailabilityRemindersResponse>(
+    `/api/events/${eventId}/availability-requests/reminders`,
+    { teamPlayerIds }
+  );
+  return resp.data;
+}
+
 export default {
   getAvailabilityRequests,
   requestAvailability,
   respondAvailability,
   decideAvailable,
+  sendAvailabilityReminders,
 };

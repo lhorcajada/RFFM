@@ -13,11 +13,14 @@ import convocationNotificationService, {
   type PlayerRecipients,
 } from "../../../services/convocationNotificationService";
 import {
+  buildPendingAvailabilityMessage,
   buildPendingConfirmationMessage,
   buildWaMeLink,
   type PendingConfirmationEventSummary,
 } from "../utils/pendingConfirmationWhatsApp";
 import styles from "../AttendanceTabs.module.css";
+
+export type NotifyPendingKind = "convocation" | "availability";
 
 type Props = {
   open: boolean;
@@ -25,6 +28,8 @@ type Props = {
   eventId: string;
   teamPlayerIds: string[];
   eventSummary?: PendingConfirmationEventSummary;
+  /** "availability": league-match players still pending to answer the availability request. */
+  kind?: NotifyPendingKind;
 };
 
 export default function NotifyPendingConvocationDialog({
@@ -33,6 +38,7 @@ export default function NotifyPendingConvocationDialog({
   eventId,
   teamPlayerIds,
   eventSummary,
+  kind = "convocation",
 }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -72,7 +78,8 @@ export default function NotifyPendingConvocationDialog({
   const handleOpenLink = (player: PlayerRecipients, familyMemberId: string, phone: string) => {
     if (!eventSummary) return;
     const deepLinkUrl = `${window.location.origin}/coach/attendance/${eventId}?viewConvocation=1`;
-    const message = buildPendingConfirmationMessage(eventSummary, player.playerAlias, deepLinkUrl);
+    const buildMessage = kind === "availability" ? buildPendingAvailabilityMessage : buildPendingConfirmationMessage;
+    const message = buildMessage(eventSummary, player.playerAlias, deepLinkUrl);
     const link = buildWaMeLink(phone, message);
     window.open(link, "_blank", "noopener,noreferrer");
     setOpenedIds((prev) => new Set(prev).add(familyMemberId));

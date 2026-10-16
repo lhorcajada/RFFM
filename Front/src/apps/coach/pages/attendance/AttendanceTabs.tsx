@@ -26,7 +26,7 @@ import CollapsibleGroup from "./components/CollapsibleGroup";
 import PositionGroupedList from "./components/PositionGroupedList";
 import AvailabilityList from "./components/AvailabilityList";
 import availabilityService, { AvailabilityRequestItem } from "../../services/availabilityService";
-import NotifyPendingConvocationDialog from "./components/NotifyPendingConvocationDialog";
+import NotifyPendingConvocationDialog, { type NotifyPendingKind } from "./components/NotifyPendingConvocationDialog";
 import type { PendingConfirmationEventSummary } from "./utils/pendingConfirmationWhatsApp";
 import useAutoRefresh from "../../hooks/useAutoRefresh";
 
@@ -101,8 +101,9 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isLeagueM
   const [acceptingAll, setAcceptingAll] = useState(false);
   const [settingAllAttends, setSettingAllAttends] = useState(false);
   const [selectedPendingIds, setSelectedPendingIds] = useState<Set<string>>(new Set());
-  const [notifyDialogOpen, setNotifyDialogOpen] = useState(false);
-  const [pushConfirmOpen, setPushConfirmOpen] = useState(false);
+  const [selectedAvailabilityIds, setSelectedAvailabilityIds] = useState<Set<string>>(new Set());
+  const [notifyKind, setNotifyKind] = useState<NotifyPendingKind | null>(null);
+  const [pushKind, setPushKind] = useState<NotifyPendingKind | null>(null);
   const [sendingPush, setSendingPush] = useState(false);
   const [availabilityRequests, setAvailabilityRequests] = useState<AvailabilityRequestItem[]>([]);
   const [requestAvailabilityOpen, setRequestAvailabilityOpen] = useState(false);
@@ -114,16 +115,22 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isLeagueM
   // navigates to a different event's convocation screen.
   useEffect(() => {
     setSelectedPendingIds(new Set());
+    setSelectedAvailabilityIds(new Set());
   }, [eventId]);
 
-  const toggleSelectedPending = (teamPlayerId: string) => {
-    setSelectedPendingIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(teamPlayerId)) next.delete(teamPlayerId);
-      else next.add(teamPlayerId);
-      return next;
-    });
+  const toggleInSet = (prev: Set<string>, teamPlayerId: string) => {
+    const next = new Set(prev);
+    if (next.has(teamPlayerId)) next.delete(teamPlayerId);
+    else next.add(teamPlayerId);
+    return next;
   };
+
+  const toggleSelectedPending = (teamPlayerId: string) => setSelectedPendingIds((prev) => toggleInSet(prev, teamPlayerId));
+  const toggleSelectedAvailability = (teamPlayerId: string) =>
+    setSelectedAvailabilityIds((prev) => toggleInSet(prev, teamPlayerId));
+
+  const selectedIdsFor = (kind: NotifyPendingKind | null) =>
+    kind === "availability" ? selectedAvailabilityIds : selectedPendingIds;
 
   const _roles = coachAuthService.getRoles();
   const isPlayerOrFamily =
@@ -326,6 +333,43 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isLeagueM
     });
   };
 
+  const availabilityPendingIds = availabilityPending.map((p) => p.id).filter((id): id is string => !!id);
+  const allAvailabilitySelected =
+    availabilityPendingIds.length > 0 && availabilityPendingIds.every((id) => selectedAvailabilityIds.has(id));
+  const someAvailabilitySelected = availabilityPendingIds.some((id) => selectedAvailabilityIds.has(id));
+
+  const toggleSelectAllAvailability = () =>
+    setSelectedAvailabilityIds(allAvailabilitySelected ? new Set() : new Set(availabilityPendingIds));
+
+  const canNotifyPlayers = !isPlayerOrFamily && canEdit;
+
+  const renderNotifyActions = (kind: NotifyPendingKind) => {
+    const selectedCount = selectedIdsFor(kind).size;
+    return (
+      <>
+        <Button
+          size="small"
+          variant="outlined"
+          startIcon={<WhatsAppIcon />}
+          disabled={selectedCount === 0}
+          onClick={() => setNotifyKind(kind)}
+          sx={{ borderColor: "#25D366", color: "#25D366" }}
+        >
+          Notificar por WhatsApp
+        </Button>
+        <Button
+          size="small"
+          variant="outlined"
+          startIcon={<NotificationsActiveIcon />}
+          disabled={selectedCount === 0 || sendingPush}
+          onClick={() => setPushKind(kind)}
+        >
+          Notificar por push
+        </Button>
+      </>
+    );
+  };
+
   const injuredWithConv = useMemo(() => convocatedFiltered.filter((c) => c.isInjured), [convocatedFiltered]);
   const injuredNoConv: PlayerSimple[] = injuredWaiting;
   const declinedNonInjured = useMemo(
@@ -440,19 +484,18 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isLeagueM
     }, "Error al responder la disponibilidad");
 
   const handleSendPushConfirmed = async () => {
+    if (!pushKind) return;
     setSendingPush(true);
     try {
-      const { notifiedCount } = await convocationService.sendConvocationReminders(eventId, [...selectedPendingIds]);
-      const message = `Notificación enviada a ${notifiedCount} ${notifiedCount === 1 ? "jugador" : "jugadores"}`;
-      window.dispatchEvent(new CustomEvent("rffm.show_snackbar", { detail: { message, severity: "success" } }));
-      setPushConfirmOpen(false);
+      const teamPlayerIds = [...selectedIdsFor(pushKind)];
+      const { notifiedCount } =
+        pushKind === "availability"
+          ? await availabilityService.sendAvailabilityReminders(eventId, teamPlayerIds)
+          : await convocationService.sendConvocationReminders(eventId, teamPlayerIds);
+      showSnackbar(`Notificación enviada a ${notifiedCount} ${notifiedCount === 1 ? "jugador" : "jugadores"}`, "success");
+      setPushKind(null);
     } catch (e: unknown) {
-      const detail = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-      window.dispatchEvent(
-        new CustomEvent("rffm.show_snackbar", {
-          detail: { message: detail || "Error al enviar la notificación push", severity: "error" },
-        })
-      );
+      showSnackbar(apiErrorMessage(e, "Error al enviar la notificación push"), "error");
     } finally {
       setSendingPush(false);
     }
@@ -579,6 +622,21 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isLeagueM
                   colorClassName={styles.listGroupHeaderGray}
                   expanded={isGroupExpanded("availabilityPending")}
                   onToggle={() => toggleGroup("availabilityPending")}
+                  headerExtra={
+                    canNotifyPlayers &&
+                    availabilityPending.length > 0 && (
+                      <>
+                        <Checkbox
+                          size="small"
+                          checked={allAvailabilitySelected}
+                          indeterminate={someAvailabilitySelected && !allAvailabilitySelected}
+                          onChange={toggleSelectAllAvailability}
+                          inputProps={{ "aria-label": "Seleccionar todos los pendientes de respuesta" }}
+                        />
+                        {renderNotifyActions("availability")}
+                      </>
+                    )
+                  }
                 >
                   <AvailabilityList
                     players={availabilityPending}
@@ -587,6 +645,9 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isLeagueM
                     emptyText="No hay jugadores pendientes de responder."
                     badgeText="Sin responder"
                     disabled={availabilityBusy || !canEdit}
+                    selectable={canNotifyPlayers}
+                    selectedIds={selectedAvailabilityIds}
+                    onToggleSelect={toggleSelectedAvailability}
                     getActions={(p) => {
                       const request = availabilityOf(p);
                       if (!request) return [];
@@ -810,25 +871,7 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isLeagueM
                               onChange={toggleSelectAllPending}
                               inputProps={{ "aria-label": "Seleccionar todos los pendientes" }}
                             />
-                            <Button
-                              size="small"
-                              variant="outlined"
-                              startIcon={<WhatsAppIcon />}
-                              disabled={selectedPendingIds.size === 0}
-                              onClick={() => setNotifyDialogOpen(true)}
-                              sx={{ borderColor: "#25D366", color: "#25D366" }}
-                            >
-                              Notificar por WhatsApp
-                            </Button>
-                            <Button
-                              size="small"
-                              variant="outlined"
-                              startIcon={<NotificationsActiveIcon />}
-                              disabled={selectedPendingIds.size === 0 || sendingPush}
-                              onClick={() => setPushConfirmOpen(true)}
-                            >
-                              Notificar por push
-                            </Button>
+                            {renderNotifyActions("convocation")}
                             {(() => {
                               const acceptedId = statuses.find((s) => s.name === "Accepted")?.id;
                               if (!acceptedId) return null;
@@ -1217,22 +1260,25 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isLeagueM
       />
 
       <NotifyPendingConvocationDialog
-        open={notifyDialogOpen}
-        onClose={() => setNotifyDialogOpen(false)}
+        open={notifyKind !== null}
+        onClose={() => setNotifyKind(null)}
         eventId={eventId}
-        teamPlayerIds={[...selectedPendingIds]}
+        teamPlayerIds={[...selectedIdsFor(notifyKind)]}
         eventSummary={eventSummary}
+        kind={notifyKind ?? "convocation"}
       />
 
       <ConfirmDialog
-        open={pushConfirmOpen}
+        open={pushKind !== null}
         title="Enviar notificación push"
-        description={`Se enviará un recordatorio para confirmar la convocatoria a ${selectedPendingIds.size} ${
-          selectedPendingIds.size === 1 ? "jugador seleccionado" : "jugadores seleccionados"
+        description={`Se enviará un recordatorio para ${
+          pushKind === "availability" ? "indicar la disponibilidad para el partido" : "confirmar la convocatoria"
+        } a ${selectedIdsFor(pushKind).size} ${
+          selectedIdsFor(pushKind).size === 1 ? "jugador seleccionado" : "jugadores seleccionados"
         } (y sus familiares con cuenta vinculada).`}
         confirmText="Enviar"
         processing={sendingPush}
-        onCancel={() => setPushConfirmOpen(false)}
+        onCancel={() => setPushKind(null)}
         onConfirm={handleSendPushConfirmed}
       />
     </div>

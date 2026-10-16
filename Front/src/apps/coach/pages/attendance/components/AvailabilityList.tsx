@@ -1,5 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { Checkbox } from "@mui/material";
 import styles from "../AttendanceTabs.module.css";
 import defaultAvatar from "../../../../../assets/avatar.svg";
 import type { PlayerSimple } from "../../../services/convocationService";
@@ -19,6 +20,10 @@ type Props = {
   getActions: (player: PlayerSimple) => AvailabilityAction[];
   badgeText: string;
   disabled?: boolean;
+  /** Enables the bulk-selection checkbox used to pick players to notify (WhatsApp / push). */
+  selectable?: boolean;
+  selectedIds?: Set<string>;
+  onToggleSelect?: (teamPlayerId: string) => void;
 };
 
 export default function AvailabilityList({
@@ -29,6 +34,9 @@ export default function AvailabilityList({
   getActions,
   badgeText,
   disabled = false,
+  selectable = false,
+  selectedIds,
+  onToggleSelect,
 }: Props) {
   if (players.length === 0) {
     return (
@@ -61,6 +69,15 @@ export default function AvailabilityList({
             </Link>
           ) : (
             photoArea
+          )}
+          {selectable && p.id && (
+            <Checkbox
+              className={styles.cromoSelectCheckbox}
+              size="small"
+              checked={!!selectedIds?.has(p.id)}
+              onChange={() => onToggleSelect?.(p.id as string)}
+              inputProps={{ "aria-label": `Seleccionar a ${displayName} para notificar` }}
+            />
           )}
           <div className={styles.cromoBody}>
             <div className={styles.cromoAccentLine} />
