@@ -84,21 +84,28 @@ namespace RFFM.Api.Features.Coaches.Convocations
                 if (requestedIds.Length == 0)
                     return new ConvocationNotificationRecipientsResponse(Array.Empty<PlayerRecipients>());
 
-                // Defense in depth: only consider ids that are actually convoked to this event,
-                // silently dropping stale ids from a client-side selection rather than erroring
-                // the whole batch (design.md Decision 1, step 2).
+                // Defense in depth: only consider ids that are actually convoked to this event (or,
+                // in league matches, asked for their availability), silently dropping stale ids from
+                // a client-side selection rather than erroring the whole batch (design.md Decision 1, step 2).
                 var convokedTeamPlayerIds = await _db.Convocations
                     .AsNoTracking()
                     .Where(c => c.SportEventId == request.EventId && requestedIds.Contains(c.TeamPlayerId))
                     .Select(c => c.TeamPlayerId)
                     .Distinct()
                     .ToListAsync(cancellationToken);
+                var availabilityTeamPlayerIds = await _db.AvailabilityRequests
+                    .AsNoTracking()
+                    .Where(r => r.SportEventId == request.EventId && requestedIds.Contains(r.TeamPlayerId))
+                    .Select(r => r.TeamPlayerId)
+                    .Distinct()
+                    .ToListAsync(cancellationToken);
+                var eligibleTeamPlayerIds = convokedTeamPlayerIds.Union(availabilityTeamPlayerIds).ToList();
 
                 var teamPlayers = await _db.TeamPlayers
                     .AsNoTracking()
                     .Include(tp => tp.Player)
                     .Include(tp => tp.FamilyMembers)
-                    .Where(tp => convokedTeamPlayerIds.Contains(tp.Id))
+                    .Where(tp => eligibleTeamPlayerIds.Contains(tp.Id))
                     .ToListAsync(cancellationToken);
 
                 var teamPlayersById = teamPlayers.ToDictionary(tp => tp.Id);

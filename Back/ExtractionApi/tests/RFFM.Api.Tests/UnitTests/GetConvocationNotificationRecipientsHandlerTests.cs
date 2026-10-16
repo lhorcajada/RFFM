@@ -1,4 +1,5 @@
 #nullable enable
+using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Domain.Aggregates.Assistances;
 using RFFM.Api.Domain.Aggregates.UserClubs;
 using RFFM.Api.Domain.Entities.Competitions;
@@ -251,6 +252,38 @@ namespace RFFM.Api.Tests.UnitTests
             var playerRecipients = Assert.Single(response.Players);
             Assert.Equal(convokedTeamPlayerId, playerRecipients.TeamPlayerId);
             Assert.Single(playerRecipients.FamilyMembers);
+        }
+
+        [Fact]
+        public async Task Handle_PlayerWithAvailabilityRequestButNoConvocation_ReturnsRecipient()
+        {
+            await using var setupDb = _fixture.CreateDbContext();
+            var (eventId, teamId, convokedTeamPlayerId) = await SeedConvokedPlayerAsync(setupDb);
+            var convokedTeamPlayer = await setupDb.TeamPlayers.AsNoTracking().FirstAsync(tp => tp.Id == convokedTeamPlayerId);
+            var team = await setupDb.Teams.AsNoTracking().FirstAsync(t => t.Id == teamId);
+            var requestedTeamPlayerId = await AvailabilityTestSupport.SeedPlayerAsync(setupDb, teamId, team.ClubId, convokedTeamPlayer.SeasonId);
+            setupDb.AvailabilityRequests.Add(AvailabilityRequest.Create(eventId, requestedTeamPlayerId, DateTime.UtcNow));
+            var familyMember = TeamPlayerFamilyMember.Create(
+                requestedTeamPlayerId, "Jane", "Doe", "600123456", "jane@rffm.test", "12345678A", "Madre");
+            familyMember.LinkAccount($"user-{Guid.NewGuid():N}");
+            setupDb.TeamPlayerFamilyMembers.Add(familyMember);
+            await setupDb.SaveChangesAsync();
+
+            await using var db = _fixture.CreateDbContext();
+            var handler = new GetConvocationNotificationRecipients.Handler(db);
+
+            var response = await handler.Handle(
+                new GetConvocationNotificationRecipients.ConvocationNotificationRecipientsQuery
+                {
+                    EventId = eventId,
+                    TeamId = teamId,
+                    TeamPlayerIds = new[] { requestedTeamPlayerId }
+                },
+                CancellationToken.None);
+
+            var playerRecipients = Assert.Single(response.Players);
+            Assert.Equal(requestedTeamPlayerId, playerRecipients.TeamPlayerId);
+            Assert.Equal(familyMember.Id, Assert.Single(playerRecipients.FamilyMembers).FamilyMemberId);
         }
 
         [Fact]
