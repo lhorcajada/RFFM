@@ -15,6 +15,7 @@ import {
   type PositionShortfall,
   type RequirementKey,
 } from "./positionRequirements";
+import { INJURY_EXCUSE_ID, SANCTION_EXCUSE_ID, type MatchUnavailability } from "./matchUnavailability";
 
 type RivalResult = "win" | "draw" | "loss";
 
@@ -32,6 +33,8 @@ export type PlayerProposal = {
   positionRole: PositionRole | null;
   isSelected: boolean;
   forced: boolean;
+  /** Never proposed for deconvocation (e.g. a goalkeeper who is neither injured nor sanctioned). */
+  locked: boolean;
   score: number;
   factors: ProposalFactor[];
   summary: string;
@@ -79,6 +82,8 @@ export type BuildProposalInput = {
   maxCalledPlayers?: number;
   /** Starts count per teamPlayerId, computed from match-participation lineups */
   gridStartsCountMap?: Map<string, number>;
+  /** Players not available for this match (playerId → reason): always deconvoked. */
+  matchUnavailable?: Map<string, MatchUnavailability>;
 };
 
 // "Trainings" include the friendlies the player was called to.
@@ -98,7 +103,7 @@ const NOT_CALLED_NAMES = new Set(["Deconvoke", "No disponible"]);
 
 // ── Position-aware selection ─────────────────────────────────────────────────
 
-export type DeconvocationCandidate = { playerId: string; forced: boolean };
+export type DeconvocationCandidate = { playerId: string; forced: boolean; locked?: boolean };
 
 export type DeconvocationSelection = {
   selectedIds: string[];
@@ -126,7 +131,7 @@ export function selectDeconvocations(
   positionPlayers: Map<string, PositionPlayer>,
   targetCount: number,
 ): DeconvocationSelection {
-  const selected = new Set(ordered.filter((c) => c.forced).map((c) => c.playerId));
+  const selected = new Set(ordered.filter((c) => c.forced && !c.locked).map((c) => c.playerId));
   const protectedBy = new Map<string, RequirementKey>();
   const positionOf = (id: string): PositionPlayer =>
     positionPlayers.get(id) ?? { id, role: null, possibleRoles: [] };
@@ -139,7 +144,7 @@ export function selectDeconvocations(
 
   for (const candidate of ordered) {
     if (selected.size >= targetCount) break;
-    if (selected.has(candidate.playerId)) continue;
+    if (selected.has(candidate.playerId) || candidate.locked) continue;
     const before = evaluateWithout();
     const after = evaluateWithout(candidate.playerId);
     // Cover from possible demarcations only fills gaps left by mandatory deconvocations or a
@@ -161,7 +166,7 @@ export function selectDeconvocations(
     let best: DeconvocationCandidate | null = null;
     let bestIncrease = [Infinity, Infinity];
     for (const candidate of ordered) {
-      if (selected.has(candidate.playerId)) continue;
+      if (selected.has(candidate.playerId) || candidate.locked) continue;
       const after = evaluateWithout(candidate.playerId);
       const increase = [after.deficit - base.deficit, after.specialistDeficit - base.specialistDeficit];
       const isBetter =
@@ -322,6 +327,7 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
     weekTrainingCount,
     maxCalledPlayers = 18,
     gridStartsCountMap,
+    matchUnavailable,
   } = input;
 
   const previousRivalResult = findPreviousRivalResult(
@@ -496,7 +502,32 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
         for (const f of rr.factors) factors.push(f);
       }
 
-      
+      const unavailability = matchUnavailable?.get(playerId);
+      const isGoalkeeper = positionPlayers.get(playerId)?.role === "goalkeeper";
+      const goalkeeperMayMiss =
+        p.isInjured === true ||
+        unavailability?.excuseTypeId === INJURY_EXCUSE_ID ||
+        unavailability?.excuseTypeId === SANCTION_EXCUSE_ID;
+      const locked = isGoalkeeper && !goalkeeperMayMiss;
+
+      if (locked) {
+        forced = false;
+        factors.push({
+          key: "goalkeeperAlwaysCalled",
+          label: "Portero: siempre convocado salvo lesión o sanción",
+          value: 1,
+          impact: 0,
+        });
+      } else if (unavailability && !forced) {
+        forced = true;
+        score -= 120;
+        factors.push({
+          key: "matchUnavailable",
+          label: `No disponible para el partido: ${unavailability.reason}`,
+          value: 1,
+          impact: -120,
+        });
+      }
 
       const summary = forced
         ? "Regla obligatoria de disponibilidad física aplicada"
@@ -509,6 +540,7 @@ export function buildDeconvokeProposal(input: BuildProposalInput): DeconvokeProp
         positionRole: positionPlayers.get(playerId)?.role ?? null,
         isSelected: false as boolean,
         forced,
+        locked,
         score: Number(score.toFixed(2)),
         factors,
         summary,

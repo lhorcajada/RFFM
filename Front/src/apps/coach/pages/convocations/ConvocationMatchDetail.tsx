@@ -23,6 +23,7 @@ import { useDesconvocatoriasGrid } from "./hooks/useDesconvocatoriasGrid";
 import { useConvocationMatchContext } from "./hooks/useConvocationMatchContext";
 import { useConvocationPlayerViews } from "./hooks/useConvocationPlayerViews";
 import { useConvocationProposal } from "./hooks/useConvocationProposal";
+import { buildMatchUnavailability } from "./utils/matchUnavailability";
 import { useTeamReadinessMap } from "./hooks/useTeamReadinessMap";
 import type { ClubKit } from "../../services/kitService";
 import { getTeamKits, updateEventKit } from "../../services/kitService";
@@ -219,6 +220,10 @@ export default function ConvocationMatchDetail() {
   }, [match]);
 
   const squadIds = useMemo(() => convocation.players.map((p) => p.id), [convocation.players]);
+  const matchUnavailable = useMemo(
+    () => buildMatchUnavailability(convocation.mgmtNotCalled, convocation.mgmtExcuseMap, convocation.excuseTypes),
+    [convocation.mgmtNotCalled, convocation.mgmtExcuseMap, convocation.excuseTypes],
+  );
 
   const proposal = useConvocationProposal({
     players: convocation.players,
@@ -238,6 +243,7 @@ export default function ConvocationMatchDetail() {
     weekTrainingStats: weekTrainingStatsMap,
     weekTrainingCount,
     gridStartsCountMap,
+    matchUnavailable,
   });
 
   const handleApplyProposal = useCallback(

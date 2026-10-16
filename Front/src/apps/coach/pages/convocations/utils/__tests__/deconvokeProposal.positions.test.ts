@@ -206,12 +206,14 @@ describe("buildDeconvokeProposal con posiciones", () => {
 
   // Sin datos, todos tienen la misma puntuación y se recorren en el orden de convocatoria:
   // el portero va primero, pero el único que puede salir sin romper un mínimo es el medio centro sobrante.
-  it("protege al portero con su motivo y propone al medio centro sobrante", () => {
+  it("mantiene al portero con su motivo y propone al medio centro sobrante", () => {
     const team = [...fullTeam(), player("mc3", 6)];
     const proposal = buildDeconvokeProposal(input(team, 16));
 
     expect(proposal.selectedIds).toEqual(["mc1"]);
     const gk = proposal.players.find((p) => p.playerId === "gk")!;
-    expect(gk.factors.find((f) => f.key === "positionProtection")?.label).toBe("Protegido: mínimo de 1 portero");
+    expect(gk.factors.find((f) => f.key === "goalkeeperAlwaysCalled")?.label).toBe(
+      "Portero: siempre convocado salvo lesión o sanción",
+    );
   });
 });

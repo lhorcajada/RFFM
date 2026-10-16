@@ -26,7 +26,10 @@ vi.mock("../hooks/useConvocationManagement", () => ({
   useConvocationManagement: () => ({
     players: [{ id: "p1" }, { id: "p2" }, { id: "p3" }],
     loadingPlayers: false,
-    excuseTypes: [{ id: 7, name: "Decisión técnica", justified: false }],
+    excuseTypes: [
+      { id: 3, name: "Enfermedad", justified: true },
+      { id: 7, name: "Decisión técnica", justified: false },
+    ],
     statuses: [],
     mgmtEventId: "event-1",
     mgmtLoadingConv: false,
@@ -37,7 +40,7 @@ vi.mock("../hooks/useConvocationManagement", () => ({
     mgmtConvMap: {},
     mgmtRatings: {},
     mgmtPhotos: {},
-    mgmtExcuseMap: {},
+    mgmtExcuseMap: { p2: 3 },
     setMgmtExcuseMap: vi.fn(),
     mgmtDragPlayer: null,
     mgmtDragOver: null,
@@ -174,6 +177,15 @@ describe("ConvocationMatchDetail - orden de pestañas y propuesta de convocatori
 
     const lastInput = useConvocationProposalMock.mock.calls.at(-1)?.[0] as { squadIds: string[] };
     expect(lastInput.squadIds).toEqual(["p1", "p2", "p3"]);
+  });
+
+  it("pasa a la propuesta los jugadores no disponibles para el partido con su motivo", () => {
+    renderPage();
+
+    const lastInput = useConvocationProposalMock.mock.calls.at(-1)?.[0] as {
+      matchUnavailable: Map<string, { excuseTypeId: number; reason: string }>;
+    };
+    expect(Array.from(lastInput.matchUnavailable)).toEqual([["p2", { excuseTypeId: 3, reason: "Enfermedad" }]]);
   });
 
   it("al aplicar la propuesta no cambia el motivo de los jugadores que ya estaban desconvocados", async () => {
