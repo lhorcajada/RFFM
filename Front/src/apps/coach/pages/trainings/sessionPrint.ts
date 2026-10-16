@@ -13,7 +13,9 @@ import boardPreviewCss from "../../components/TacticalBoardSnapshotPreview.modul
 import boardStyles from "../../components/TacticalBoardSnapshotPreview.module.css";
 
 /** Ink-friendly pitch for the printed sheet: white turf and black markings instead of the
- * on-screen green field with white lines. */
+ * on-screen green field with white lines, and black outlines on every placed object so
+ * white/light ones (zones, posts, lines, texts) stay visible on paper. Space strokes come
+ * from inline styles, hence `!important`. */
 function buildPrintPitchCss(): string {
   const s = boardStyles;
   return `
@@ -24,7 +26,11 @@ function buildPrintPitchCss(): string {
         .${s.midLine}, .${s.goalLine} { background: #000; }
         .${s.penaltySpot} { background: #000; }
         .${s.centerCircle}, .${s.penaltyArea}, .${s.goalArea}, .${s.penaltyArc}, .${s.goalFrame} { border-color: #000; }
-        .${s.goalMouth} { border-right-color: #000; }`;
+        .${s.goalMouth} { border-right-color: #000; }
+        .${s.spaceStroke} { stroke: #000 !important; }
+        .${s.chapa} { border-color: #000; }
+        .${s.chapaAliasOutside} { border-color: #000; }
+        .${s.materialOnField}, .${s.linesSvg}, .${s.placedText} { filter: drop-shadow(0 0 0.6px #000) drop-shadow(0 0 0.6px #000); }`;
 }
 
 function formatDate(iso: string | null): string {

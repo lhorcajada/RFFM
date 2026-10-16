@@ -301,6 +301,27 @@ describe("buildSessionPrintHtml", () => {
     expect(html).toContain(`.${boardStyles.centerCircle}`);
   });
 
+  it("imprime con borde negro los objetos de la pizarra para que se distingan sobre fondo blanco", () => {
+    const session = buildSession({
+      blocks: [
+        {
+          id: "b1",
+          order: 1,
+          nombre: "Activación",
+          exercises: [{ id: "be1", exerciseId: "ex1", position: 1, exerciseName: "Rondo 4v2" }],
+        },
+      ],
+    });
+    const boardStateJson = JSON.stringify({ placedChapas: { p1: { x: 10, y: 10 } } });
+    const exercisesById = new Map([["ex1", buildExercise({ boardStateJson })]]);
+
+    const html = buildSessionPrintHtml(session, exercisesById);
+
+    expect(html).toContain(`.${boardStyles.spaceStroke} { stroke: #000 !important`);
+    expect(html).toContain(`.${boardStyles.chapa} { border-color: #000`);
+    expect(html).toContain(`.${boardStyles.materialOnField}, .${boardStyles.linesSvg}, .${boardStyles.placedText} { filter:`);
+  });
+
   it("resuelve dorsal/alias del jugador en el dibujo de pizarra cuando se provee el roster", () => {
     const session = buildSession({
       blocks: [
