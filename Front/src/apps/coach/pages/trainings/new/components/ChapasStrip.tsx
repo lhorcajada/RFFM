@@ -13,9 +13,9 @@ export default function ChapasStrip({ board }: ChapasStripProps) {
     chapasError,
     availablePlayersForStrip,
     anonymousChapaOptions,
-    handleChapaDragStart,
+    handleRosterChapaDragStart,
+    handleRosterChapaDragEnd,
     handleAnonymousChapaDragStart,
-    handleChapaDragEnd,
   } = board;
 
   return (
@@ -48,12 +48,9 @@ export default function ChapasStrip({ board }: ChapasStripProps) {
                       draggable={!!player.id}
                       onDragStart={(e) => {
                         if (!player.id) return;
-                        handleChapaDragStart(e, player.id);
+                        handleRosterChapaDragStart(e, player.id);
                       }}
-                      onDragEnd={(e) => {
-                        if (!player.id) return;
-                        handleChapaDragEnd(e, player.id);
-                      }}
+                      onDragEnd={handleRosterChapaDragEnd}
                       title="Arrastra al campo"
                     >
                       <span className={styles.chapaDorsal}>{dorsal}</span>

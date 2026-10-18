@@ -932,6 +932,27 @@ export function useTacticalBoard(
     setDraggingChapaId(playerId);
   };
 
+  const handleRosterChapaDragStart = (e: React.DragEvent<HTMLElement>, playerId: string) => {
+    e.dataTransfer.setData("text/chapa-roster-player-id", playerId);
+    e.dataTransfer.effectAllowed = "copy";
+    setDraggingChapaId(playerId);
+  };
+
+  const handleRosterChapaDragEnd = () => setDraggingChapaId(null);
+
+  const placeRosterChapaAtClientPoint = (playerId: string, clientX: number, clientY: number) => {
+    if (!(playerId in placedChapas)) {
+      placeChapaAtClientPoint(playerId, clientX, clientY);
+      return;
+    }
+    const suffix = typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random()}`;
+    const chapaId = `${playerId}-${suffix}`;
+    placeChapaAtClientPoint(chapaId, clientX, clientY);
+    setPlacedChapas((prev) => ({ ...prev, [chapaId]: { ...prev[chapaId], playerId } }));
+  };
+
   const handleAnonymousChapaDragStart = (e: React.DragEvent<HTMLElement>, option: PetoOption) => {
     e.dataTransfer.setData("text/chapa-anonymous-key", option.key);
     e.dataTransfer.setData("text/chapa-anonymous-color", option.color);
@@ -997,7 +1018,11 @@ export function useTacticalBoard(
     const { touchlineBand, goalBackBand } = getFieldBands();
     const clamped = clampChapaToPlayableArea(source.x + 2, source.y + 2, touchlineBand, goalBackBand, source.scaleX ?? 1, source.scaleY ?? 1);
     const duplicatedId = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `chapa-${Date.now()}-${Math.random()}`;
-    setPlacedChapas((prev) => ({ ...prev, [duplicatedId]: { ...source, x: clamped.x, y: clamped.y } }));
+    const sourcePlayerId = source.anonymous ? undefined : (source.playerId ?? playerId);
+    setPlacedChapas((prev) => ({
+      ...prev,
+      [duplicatedId]: { ...source, x: clamped.x, y: clamped.y, ...(sourcePlayerId ? { playerId: sourcePlayerId } : {}) },
+    }));
     const sourceColor = chapaPetoById[playerId];
     if (sourceColor) {
       setChapaPetoById((prev) => ({ ...prev, [duplicatedId]: sourceColor }));
@@ -1386,6 +1411,13 @@ export function useTacticalBoard(
       return;
     }
 
+    const rosterPlayerId = e.dataTransfer.getData("text/chapa-roster-player-id");
+    if (rosterPlayerId) {
+      placeRosterChapaAtClientPoint(rosterPlayerId, e.clientX, e.clientY);
+      setDraggingChapaId(null);
+      return;
+    }
+
     const playerId = e.dataTransfer.getData("text/chapa-player-id");
     if (playerId) {
       const isAnonymous = placedChapas[playerId]?.anonymous === true;
@@ -1687,11 +1719,8 @@ export function useTacticalBoard(
   }, [players]);
 
   const availablePlayersForStrip = useMemo(
-    () =>
-      players
-        .filter((player) => !player.id || !placedChapas[player.id])
-        .sort(comparePlayersByPosition),
-    [players, placedChapas],
+    () => [...players].sort(comparePlayersByPosition),
+    [players],
   );
 
   return {
@@ -1720,6 +1749,8 @@ export function useTacticalBoard(
     availablePlayersForStrip,
     anonymousChapaOptions,
     handleChapaDragStart,
+    handleRosterChapaDragStart,
+    handleRosterChapaDragEnd,
     handleAnonymousChapaDragStart,
     handleChapaDragEnd,
     handleToggleChapaMenu,

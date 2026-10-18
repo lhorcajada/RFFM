@@ -17,9 +17,9 @@ const makeBoard = (players: ReturnType<typeof makePlayer>[]): TacticalBoardState
     chapasError: null,
     availablePlayersForStrip: players,
     anonymousChapaOptions: [],
-    handleChapaDragStart: vi.fn(),
+    handleRosterChapaDragStart: vi.fn(),
+    handleRosterChapaDragEnd: vi.fn(),
     handleAnonymousChapaDragStart: vi.fn(),
-    handleChapaDragEnd: vi.fn(),
   }) as unknown as TacticalBoardState;
 
 describe("ChapasStrip", () => {

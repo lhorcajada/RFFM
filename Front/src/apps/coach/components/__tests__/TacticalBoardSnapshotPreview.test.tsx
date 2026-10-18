@@ -190,6 +190,27 @@ describe("TacticalBoardSnapshotPreview", () => {
     });
   });
 
+  it("shows dorsal and alias on every extra chapa of the same player", async () => {
+    vi.mocked(teamplayerService.getPlayersByTeam).mockResolvedValue([
+      { id: "player-1", name: "Ana", alias: "Ani", dorsal: 9 } as any,
+    ]);
+
+    const snapshot: TacticalBoardSnapshot = {
+      ...emptySnapshot(),
+      placedChapas: {
+        "player-1": { x: 30, y: 30 },
+        "player-1-copy": { x: 60, y: 60, playerId: "player-1" },
+      },
+    };
+
+    render(<TacticalBoardSnapshotPreview snapshot={snapshot} teamId="team-1" />);
+
+    await waitFor(() => {
+      expect(screen.getAllByText("9")).toHaveLength(2);
+      expect(screen.getAllByText("Ani")).toHaveLength(2);
+    });
+  });
+
   it("does not render dorsal/alias for an anonymous chapa", () => {
     const snapshot: TacticalBoardSnapshot = {
       ...emptySnapshot(),

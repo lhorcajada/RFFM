@@ -230,7 +230,7 @@ function BoardPitch({ snapshot, playersById }: StaticProps) {
 
         {/* ── Player chapas (dorsal + alias resolved from the team roster) ── */}
         {chapas.map(([playerId, pos], index) => {
-          const player = playersById.get(playerId);
+          const player = playersById.get(pos.playerId ?? playerId);
           const isAnonymous = pos.anonymous === true;
           const dorsal = player?.dorsal ?? index + 1;
           const alias = (player?.alias ?? "").trim() || `J${index + 1}`;

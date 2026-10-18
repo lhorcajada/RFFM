@@ -132,6 +132,75 @@ describe("useTacticalBoard - placeChapaAtClientPoint", () => {
   });
 });
 
+describe("useTacticalBoard - varias chapas del mismo jugador", () => {
+  beforeEach(() => {
+    vi.mocked(teamplayerService.getPlayersByTeam).mockReset();
+    vi.mocked(teamplayerService.getPlayersByTeam).mockResolvedValue([
+      { id: "p1", name: "Ana", alias: "Ani", dorsal: 9 },
+    ] as never);
+  });
+
+  function setup() {
+    const pitchEl = makePitchElement();
+    const halfPitchRef = { current: pitchEl } as React.RefObject<HTMLDivElement>;
+    return renderHook(() => useTacticalBoard(halfPitchRef, "team-1")).result;
+  }
+
+  const chapasOfPlayer = (placed: Record<string, { playerId?: string }>, playerId: string) =>
+    Object.entries(placed).filter(([key, pos]) => (pos.playerId ?? key) === playerId);
+
+  it("crea una chapa nueva cada vez que se arrastra el jugador desde la tira", () => {
+    const result = setup();
+    act(() => {
+      result.current.handleFieldDrop(makeDropEvent({ "text/chapa-roster-player-id": "p1" }, 20, 30));
+    });
+    act(() => {
+      result.current.handleFieldDrop(makeDropEvent({ "text/chapa-roster-player-id": "p1" }, 60, 70));
+    });
+    act(() => {
+      result.current.handleFieldDrop(makeDropEvent({ "text/chapa-roster-player-id": "p1" }, 40, 50));
+    });
+
+    const chapas = chapasOfPlayer(result.current.placedChapas, "p1");
+    expect(chapas.map(([, pos]) => ({ x: (pos as { x: number }).x, y: (pos as { y: number }).y }))).toEqual([
+      { x: 20, y: 30 },
+      { x: 60, y: 70 },
+      { x: 40, y: 50 },
+    ]);
+  });
+
+  it("sigue mostrando el jugador en la tira aunque ya tenga chapas en el campo", async () => {
+    const result = setup();
+    await waitFor(() => expect(result.current.availablePlayersForStrip).toHaveLength(1));
+    act(() => {
+      result.current.handleFieldDrop(makeDropEvent({ "text/chapa-roster-player-id": "p1" }, 20, 30));
+    });
+    expect(result.current.availablePlayersForStrip.map((p) => p.id)).toEqual(["p1"]);
+  });
+
+  it("la chapa duplicada conserva el jugador al que pertenece", () => {
+    const result = setup();
+    act(() => {
+      result.current.handleFieldDrop(makeDropEvent({ "text/chapa-roster-player-id": "p1" }, 20, 30));
+    });
+    act(() => {
+      result.current.duplicatePlacedChapa("p1");
+    });
+    expect(chapasOfPlayer(result.current.placedChapas, "p1")).toHaveLength(2);
+  });
+
+  it("al soltar fuera del campo una chapa arrastrada desde la tira no borra las ya colocadas", () => {
+    const result = setup();
+    act(() => {
+      result.current.handleFieldDrop(makeDropEvent({ "text/chapa-roster-player-id": "p1" }, 20, 30));
+    });
+    act(() => {
+      result.current.handleRosterChapaDragEnd();
+    });
+    expect(chapasOfPlayer(result.current.placedChapas, "p1")).toHaveLength(1);
+  });
+});
+
 function makeSpaceDragStartEvent(
   clientX: number,
   clientY: number,

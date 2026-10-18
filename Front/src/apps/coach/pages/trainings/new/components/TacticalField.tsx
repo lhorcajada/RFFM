@@ -268,7 +268,7 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
         </Box>
 
         {Object.entries(placedChapas).map(([playerId, pos], idx) => {
-          const player = playersById.get(playerId);
+          const player = playersById.get(pos.playerId ?? playerId);
           const isAnonymous = pos.anonymous === true;
           const dorsal = player?.dorsal ?? idx + 1;
           const alias = (player?.alias ?? "").trim() || `J${idx + 1}`;

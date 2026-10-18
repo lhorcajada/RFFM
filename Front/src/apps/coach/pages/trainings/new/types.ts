@@ -11,6 +11,8 @@ export interface ChapaPosition {
   rotation?: number;
   locked?: boolean;
   anonymous?: boolean;
+  /** Player this chapa represents when its key is not the player id (extra chapas of the same player). */
+  playerId?: string;
 }
 
 export interface PetoOption {
