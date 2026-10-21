@@ -934,7 +934,7 @@ export function useTacticalBoard(
 
   const handleRosterChapaDragStart = (e: React.DragEvent<HTMLElement>, playerId: string) => {
     e.dataTransfer.setData("text/chapa-roster-player-id", playerId);
-    e.dataTransfer.effectAllowed = "copy";
+    e.dataTransfer.effectAllowed = "copyMove";
     setDraggingChapaId(playerId);
   };
 

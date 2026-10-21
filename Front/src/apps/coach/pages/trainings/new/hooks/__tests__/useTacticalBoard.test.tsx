@@ -199,6 +199,32 @@ describe("useTacticalBoard - varias chapas del mismo jugador", () => {
     });
     expect(chapasOfPlayer(result.current.placedChapas, "p1")).toHaveLength(1);
   });
+
+  it("el campo acepta el soltado de una chapa arrastrada desde la tira", () => {
+    const result = setup();
+    const dataTransfer = { setData: () => {}, effectAllowed: "", dropEffect: "" };
+    act(() => {
+      result.current.handleRosterChapaDragStart(
+        { dataTransfer } as unknown as React.DragEvent<HTMLElement>,
+        "p1",
+      );
+    });
+    result.current.handleFieldDragOver({
+      preventDefault: () => {},
+      dataTransfer,
+    } as unknown as React.DragEvent<HTMLDivElement>);
+
+    const allowedByEffect: Record<string, string[]> = {
+      copy: ["copy"],
+      move: ["move"],
+      link: ["link"],
+      copyMove: ["copy", "move"],
+      copyLink: ["copy", "link"],
+      linkMove: ["link", "move"],
+      all: ["copy", "move", "link"],
+    };
+    expect(allowedByEffect[dataTransfer.effectAllowed] ?? []).toContain(dataTransfer.dropEffect);
+  });
 });
 
 function makeSpaceDragStartEvent(
