@@ -65,11 +65,11 @@ export function buildImageOrBoardHtml(
   boardDrawingModifier?: string,
 ): string {
   if (exercise.urlImage) {
-    return `<div><img src="${escapeHtml(mediaUrl(exercise.urlImage))}" alt="${escapeHtml(exercise.name)}" /></div>`;
+    return `<div class="exercise-visual"><img src="${escapeHtml(mediaUrl(exercise.urlImage))}" alt="${escapeHtml(exercise.name)}" /></div>`;
   }
   if (boardDrawingHtml) {
     const boardClass = boardDrawingModifier ? `board-drawing ${boardDrawingModifier}` : "board-drawing";
-    return `<div class="section"><h3>Pizarra táctica</h3><div class="${boardClass}">${boardDrawingHtml}</div></div>`;
+    return `<div class="section exercise-visual"><h3>Pizarra táctica</h3><div class="${boardClass}">${boardDrawingHtml}</div></div>`;
   }
   return "";
 }

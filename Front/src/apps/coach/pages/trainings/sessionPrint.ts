@@ -182,7 +182,7 @@ export function buildSessionPrintHtml(
         @page { size: A4; margin: 12mm; }
         * { box-sizing: border-box; }
         body { margin: 0; font-family: Arial, Helvetica, sans-serif; color: #102133; background: #fff; }
-        .sheet { display: flex; flex-direction: column; gap: 14px; }
+        .sheet { display: flex; flex-direction: column; gap: 14px; width: 100%; max-width: 186mm; margin: 0 auto; }
         .header { display: flex; flex-direction: column; gap: 6px; }
         .title { margin: 0; font-size: 24px; line-height: 1.1; }
         .schedule { font-size: 13px; color: #38506b; }
@@ -211,13 +211,18 @@ export function buildSessionPrintHtml(
         .board-drawing { border-radius: 10px; border: 1px solid #c9d8e6; overflow: hidden; margin: 4px auto; break-inside: avoid; }
         .board-drawing--full { width: 100%; aspect-ratio: 105 / 68; }
         .board-drawing--half { height: 660px; max-height: 92vh; aspect-ratio: 52.5 / 68; max-width: 100%; }
-        .exercise-item .section:has(.board-drawing) { break-inside: avoid; }
+        .exercise-visual { break-inside: avoid; }
+        .drawing-fitted { width: auto; max-width: 100%; margin-left: auto; margin-right: auto; }
         table { width: 100%; border-collapse: collapse; font-size: 11px; margin: 4px 0; }
         th, td { border: 1px solid #c9d8e6; padding: 4px 6px; text-align: left; }
         th { background: #f6f9fc; }
         .nivel-cell { font-weight: bold; width: 40px; }
         img { display: block; max-width: 100%; border-radius: 10px; border: 1px solid #c9d8e6; margin: 4px 0; }
-        @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+        @media print {
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          p { orphans: 1; widows: 1; }
+          .print-break-before { break-before: page; }
+        }
       </style>
     </head>
     <body>

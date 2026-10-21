@@ -2,6 +2,7 @@ import trainingService from "../../services/trainingService";
 import teamplayerService, { type PlayerResponse } from "../../services/teamplayerService";
 import type { Exercise } from "../../types/training";
 import { buildSessionPrintHtml } from "./sessionPrint";
+import { fitSessionDrawingsToPages } from "./sessionPrintLayout";
 import { hasBoardObjects, tryParseBoardSnapshot } from "../../components/TacticalBoardSnapshotPreview";
 
 export async function waitForPrintWindowReady(printWindow: Window) {
@@ -87,6 +88,12 @@ export async function openSessionWindow(sessionId: string, teamId: string, optio
     await new Promise<void>((resolve) => {
       setTimeout(resolve, 300);
     });
+  }
+
+  try {
+    fitSessionDrawingsToPages(printWindow.document);
+  } catch {
+    // Best-effort layout: print with the drawings at their default size.
   }
 
   printWindow.focus();
