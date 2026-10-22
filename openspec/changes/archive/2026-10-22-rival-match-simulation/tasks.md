@@ -69,5 +69,5 @@
 ## 6. Cierre
 
 - [x] 6.1 `openspec validate rival-match-simulation --strict`.
-- [ ] 6.2 Commits (`feat(mcp-api)` y `feat(front)` por separado), solo tras la confirmación del
+- [x] 6.2 Commits (`feat(mcp-api)` y `feat(front)` por separado), solo tras la confirmación del
   usuario.
