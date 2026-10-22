@@ -1,20 +1,43 @@
 import { useEffect, useState } from "react";
-import { getRivalSimulation, type RivalSimulation } from "../services/rivalStatsService";
+import {
+  getRivalSimulation,
+  getRivalSimulationHistory,
+  syncRivalSimulationRounds,
+  type RivalSimulation,
+  type RivalSimulationHistory,
+} from "../services/rivalStatsService";
 
 type UseRivalSimulation = {
   simulation: RivalSimulation | null;
+  /** null si no se ha podido cargar: la página sigue mostrando la simulación actual. */
+  history: RivalSimulationHistory | null;
   loading: boolean;
   error: boolean;
 };
 
-/** Simulación de los partidos pendientes y de la clasificación final de la liga del equipo. */
+async function loadHistory(teamId: string): Promise<RivalSimulationHistory | null> {
+  try {
+    await syncRivalSimulationRounds(teamId);
+  } catch {
+    // sin sincronizar todavía se puede mostrar lo ya guardado
+  }
+  try {
+    return await getRivalSimulationHistory(teamId);
+  } catch {
+    return null;
+  }
+}
+
+/** Simulación de la liga del equipo y sus simulaciones guardadas por jornada. */
 export default function useRivalSimulation(teamId: string | undefined): UseRivalSimulation {
   const [simulation, setSimulation] = useState<RivalSimulation | null>(null);
+  const [history, setHistory] = useState<RivalSimulationHistory | null>(null);
   const [loading, setLoading] = useState(Boolean(teamId));
   const [error, setError] = useState(false);
 
   useEffect(() => {
     setSimulation(null);
+    setHistory(null);
     setError(false);
     if (!teamId) {
       setLoading(false);
@@ -22,12 +45,12 @@ export default function useRivalSimulation(teamId: string | undefined): UseRival
     }
     let mounted = true;
     setLoading(true);
-    getRivalSimulation(teamId)
-      .then((data) => {
-        if (mounted) setSimulation(data);
-      })
-      .catch(() => {
-        if (mounted) setError(true);
+    Promise.all([getRivalSimulation(teamId).catch(() => null), loadHistory(teamId)])
+      .then(([current, saved]) => {
+        if (!mounted) return;
+        setSimulation(current);
+        setHistory(saved);
+        setError(current === null);
       })
       .finally(() => {
         if (mounted) setLoading(false);
@@ -37,5 +60,5 @@ export default function useRivalSimulation(teamId: string | undefined): UseRival
     };
   }, [teamId]);
 
-  return { simulation, loading, error };
+  return { simulation, history, loading, error };
 }

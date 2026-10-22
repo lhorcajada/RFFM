@@ -43,6 +43,27 @@ describe("MatchPredictionCard", () => {
     expect(screen.getByText(/goles esperados/i).textContent).toContain("1,8 - 0,9");
   });
 
+  it("con el resultado real acertado lo muestra y lo marca como acertado", () => {
+    render(<MatchPredictionCard prediction={prediction()} ownTeamCode={null} result={{ localGoals: 2, visitorGoals: 1, hit: true }} />);
+
+    expect(screen.getByText(/resultado: 2 - 1/i)).toBeInTheDocument();
+    expect(screen.getByText("Acertado")).toBeInTheDocument();
+    expect(screen.queryByText("Fallado")).not.toBeInTheDocument();
+  });
+
+  it("con el resultado real fallado lo marca como fallado", () => {
+    render(<MatchPredictionCard prediction={prediction()} ownTeamCode={null} result={{ localGoals: 1, visitorGoals: 1, hit: false }} />);
+
+    expect(screen.getByText("Fallado")).toBeInTheDocument();
+  });
+
+  it("sin resultado real no muestra acierto ni fallo", () => {
+    render(<MatchPredictionCard prediction={prediction()} ownTeamCode={null} />);
+
+    expect(screen.queryByText(/resultado:/i)).not.toBeInTheDocument();
+    expect(screen.queryByText("Acertado")).not.toBeInTheDocument();
+  });
+
   it("marca el partido del propio equipo", () => {
     render(<MatchPredictionCard prediction={prediction()} ownTeamCode="E2" />);
 

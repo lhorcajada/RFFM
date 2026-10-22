@@ -85,6 +85,46 @@ export type RivalSimulation = {
   standings: ProjectedStanding[];
 };
 
+export type MatchOutcomeKind = "Home" | "Draw" | "Away";
+
+export type RoundStatus = "Upcoming" | "InProgress" | "Played";
+
+export type RoundMatch = MatchPrediction & {
+  predictedOutcome: MatchOutcomeKind;
+  actualLocalGoals: number | null;
+  actualVisitorGoals: number | null;
+  actualOutcome: MatchOutcomeKind | null;
+  hit: boolean | null;
+};
+
+export type RoundStanding = ProjectedStanding & {
+  actualPosition: number | null;
+  actualPoints: number | null;
+};
+
+export type RoundSimulation = {
+  round: number;
+  date: string | null;
+  status: RoundStatus;
+  isFrozen: boolean;
+  /** Calculada después de empezar la jornada (sin la implicación actual de los jugadores). */
+  isBackfilled: boolean;
+  computedAt: string;
+  playedMatchesUsed: number;
+  usesSquadStrength: boolean;
+  hits: number;
+  evaluated: number;
+  matches: RoundMatch[];
+  standings: RoundStanding[];
+};
+
+export type RivalSimulationHistory = {
+  ownTeamCode: string | null;
+  totalHits: number;
+  totalEvaluated: number;
+  rounds: RoundSimulation[];
+};
+
 function basePath(teamId: string): string {
   return `/api/teams/${encodeURIComponent(teamId)}/rival-stats`;
 }
@@ -116,4 +156,21 @@ export async function getRivalSimulation(teamId: string): Promise<RivalSimulatio
   return resp.data;
 }
 
-export default { getRivalStats, requestRivalStats, getRivalTeamStats, getRivalSimulation };
+/** Guarda y congela las simulaciones por jornada de la liga (idempotente). */
+export async function syncRivalSimulationRounds(teamId: string): Promise<void> {
+  await client.put(`${basePath(teamId)}/simulation/rounds`);
+}
+
+export async function getRivalSimulationHistory(teamId: string): Promise<RivalSimulationHistory> {
+  const resp = await client.get<RivalSimulationHistory>(`${basePath(teamId)}/simulation/rounds`);
+  return resp.data;
+}
+
+export default {
+  getRivalStats,
+  requestRivalStats,
+  getRivalTeamStats,
+  getRivalSimulation,
+  syncRivalSimulationRounds,
+  getRivalSimulationHistory,
+};

@@ -3,18 +3,30 @@ import type { MatchPrediction } from "../../../../services/rivalStatsService";
 import { formatDecimal, formatPercent } from "../simulationFormat";
 import styles from "./MatchPredictionCard.module.css";
 
+export type MatchResult = { localGoals: number; visitorGoals: number; hit: boolean };
+
 type Props = {
   prediction: MatchPrediction;
   ownTeamCode: string | null;
+  /** Resultado real de un partido ya jugado de una jornada guardada. */
+  result?: MatchResult;
 };
 
-export default function MatchPredictionCard({ prediction, ownTeamCode }: Props) {
+export default function MatchPredictionCard({ prediction, ownTeamCode, result }: Props) {
   const isOwnMatch =
     ownTeamCode !== null && (prediction.localTeamCode === ownTeamCode || prediction.visitorTeamCode === ownTeamCode);
+  const resultClass = result ? (result.hit ? styles.hit : styles.miss) : "";
 
   return (
-    <Paper className={`${styles.card} ${isOwnMatch ? styles.ownMatch : ""}`} elevation={0}>
-      {isOwnMatch && <Chip size="small" color="primary" label="Tu equipo" className={styles.ownChip} />}
+    <Paper className={`${styles.card} ${isOwnMatch ? styles.ownMatch : ""} ${resultClass}`} elevation={0}>
+      {(isOwnMatch || result) && (
+        <div className={styles.chips}>
+          {isOwnMatch && <Chip size="small" color="primary" label="Tu equipo" />}
+          {result && (
+            <Chip size="small" color={result.hit ? "success" : "error"} label={result.hit ? "Acertado" : "Fallado"} />
+          )}
+        </div>
+      )}
       <div className={styles.teams}>
         <div className={styles.team}>
           <Avatar src={prediction.localShieldUrl || undefined} alt="" className={styles.shield} />
@@ -39,6 +51,9 @@ export default function MatchPredictionCard({ prediction, ownTeamCode }: Props) 
       </div>
 
       <div className={styles.details}>
+        {result && (
+          <span className={styles.result}>{`Resultado: ${result.localGoals} - ${result.visitorGoals}`}</span>
+        )}
         <span>{`Marcador más probable: ${prediction.mostLikelyLocalGoals} - ${prediction.mostLikelyVisitorGoals}`}</span>
         <span>
           {`Goles esperados: ${formatDecimal(prediction.localExpectedGoals)} - ${formatDecimal(prediction.visitorExpectedGoals)}`}

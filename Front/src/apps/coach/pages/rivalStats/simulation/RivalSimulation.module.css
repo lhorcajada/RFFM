@@ -16,6 +16,22 @@
   gap: 16px;
 }
 
+.summary {
+  margin: 0;
+  font-weight: 700;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+
+.selector {
+  min-width: min(100%, 220px);
+}
+
 .round {
   display: flex;
   flex-direction: column;

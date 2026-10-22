@@ -13,8 +13,25 @@
   border-color: var(--mui-palette-primary-main, #4d9de0);
 }
 
-.ownChip {
-  align-self: flex-start;
+.hit.hit {
+  border-color: var(--mui-palette-success-main, #4caf50);
+  border-left-width: 4px;
+}
+
+.miss.miss {
+  border-color: var(--mui-palette-error-main, #f44336);
+  border-left-width: 4px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.result {
+  font-weight: 700;
+  opacity: 1;
 }
 
 .teams {

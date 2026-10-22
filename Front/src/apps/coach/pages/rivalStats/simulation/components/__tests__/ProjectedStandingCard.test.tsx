@@ -38,6 +38,18 @@ describe("ProjectedStandingCard", () => {
     expect(screen.getByText(/campeón/i).textContent).toMatch(/18\s?%/);
   });
 
+  it("muestra el puesto real actual cuando se indica", () => {
+    render(<ProjectedStandingCard standing={standing()} projectedPosition={2} isOwnTeam={false} actualPosition={3} />);
+
+    expect(screen.getByText("Puesto real: 3º")).toBeInTheDocument();
+  });
+
+  it("sin puesto real no lo muestra", () => {
+    render(<ProjectedStandingCard standing={standing()} projectedPosition={2} isOwnTeam={false} />);
+
+    expect(screen.queryByText(/puesto real/i)).not.toBeInTheDocument();
+  });
+
   it("resalta el propio equipo", () => {
     render(<ProjectedStandingCard standing={standing()} projectedPosition={2} isOwnTeam />);
 

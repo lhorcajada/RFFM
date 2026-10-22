@@ -7,9 +7,11 @@ type Props = {
   standing: ProjectedStanding;
   projectedPosition: number;
   isOwnTeam: boolean;
+  /** Puesto real actual, al ver una proyección guardada de una jornada. */
+  actualPosition?: number | null;
 };
 
-export default function ProjectedStandingCard({ standing, projectedPosition, isOwnTeam }: Props) {
+export default function ProjectedStandingCard({ standing, projectedPosition, isOwnTeam, actualPosition }: Props) {
   const mostLikelyProbability = standing.positionProbabilities[standing.mostLikelyPosition - 1] ?? 0;
   const distributionLabel = `Probabilidad por puesto: ${standing.positionProbabilities
     .map((p, i) => `${i + 1}º ${formatPercent(p)}`)
@@ -28,6 +30,7 @@ export default function ProjectedStandingCard({ standing, projectedPosition, isO
         <span>{`Puntos: ${standing.currentPoints} → ${formatDecimal(standing.expectedPoints)}`}</span>
         <span>{`Puesto más probable: ${standing.mostLikelyPosition}º (${formatPercent(mostLikelyProbability)})`}</span>
         <span>{`Campeón: ${formatPercent(standing.championProbability)}`}</span>
+        {actualPosition != null && <span className={styles.actual}>{`Puesto real: ${actualPosition}º`}</span>}
       </div>
 
       <div className={styles.distribution} role="img" aria-label={distributionLabel}>
