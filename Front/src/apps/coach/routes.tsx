@@ -52,6 +52,7 @@ const Lottery = lazy(() => import("./pages/lottery/Lottery"));
 const Rivals = lazy(() => import("./pages/rivals/Rivals"));
 const Results = lazy(() => import("./pages/results/Results"));
 const RivalStats = lazy(() => import("./pages/rivalStats/RivalStats"));
+const RivalSimulation = lazy(() => import("./pages/rivalStats/simulation/RivalSimulation"));
 const MatchReport = lazy(() => import("./pages/matchReport/MatchReport"));
 const Classification = lazy(() => import("./pages/classification/Classification"));
 const SeasonAccess = lazy(() => import("./pages/season-access/SeasonAccess"));
@@ -243,6 +244,14 @@ function CoachRoutesContent() {
               element={
                 <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.Convocations}>
                   <RivalStats />
+                </RequireFeaturePermission>
+              }
+            />
+            <Route
+              path="rival-stats/simulation"
+              element={
+                <RequireFeaturePermission featureRoute={COACH_FEATURE_ROUTES.Convocations}>
+                  <RivalSimulation />
                 </RequireFeaturePermission>
               }
             />

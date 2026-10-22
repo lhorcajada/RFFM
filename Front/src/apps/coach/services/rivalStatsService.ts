@@ -42,6 +42,49 @@ export type RivalTeamStats = {
   players: RivalPlayer[];
 };
 
+export type MatchPrediction = {
+  round: number;
+  date: string | null;
+  localTeamCode: string;
+  localTeamName: string;
+  localShieldUrl: string | null;
+  visitorTeamCode: string;
+  visitorTeamName: string;
+  visitorShieldUrl: string | null;
+  localWinProbability: number;
+  drawProbability: number;
+  visitorWinProbability: number;
+  localExpectedGoals: number;
+  visitorExpectedGoals: number;
+  mostLikelyLocalGoals: number;
+  mostLikelyVisitorGoals: number;
+};
+
+export type ProjectedStanding = {
+  teamCode: string;
+  teamName: string;
+  shieldUrl: string | null;
+  currentPosition: number;
+  currentPoints: number;
+  expectedPoints: number;
+  mostLikelyPosition: number;
+  championProbability: number;
+  positionProbabilities: number[];
+  attack: number;
+  defense: number;
+  squadStrength: number;
+};
+
+export type RivalSimulation = {
+  playedMatches: number;
+  pendingMatches: number;
+  usesSquadStrength: boolean;
+  ownTeamCode: string | null;
+  iterations: number;
+  matches: MatchPrediction[];
+  standings: ProjectedStanding[];
+};
+
 function basePath(teamId: string): string {
   return `/api/teams/${encodeURIComponent(teamId)}/rival-stats`;
 }
@@ -68,4 +111,9 @@ export async function getRivalTeamStats(teamId: string, teamCode: string): Promi
   return resp.data;
 }
 
-export default { getRivalStats, requestRivalStats, getRivalTeamStats };
+export async function getRivalSimulation(teamId: string): Promise<RivalSimulation> {
+  const resp = await client.get<RivalSimulation>(`${basePath(teamId)}/simulation`);
+  return resp.data;
+}
+
+export default { getRivalStats, requestRivalStats, getRivalTeamStats, getRivalSimulation };

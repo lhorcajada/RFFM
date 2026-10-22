@@ -1,0 +1,57 @@
+.card.card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--rffm-card-bg, #1c1c30);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ownTeam.ownTeam {
+  border-color: var(--mui-palette-primary-main, #4d9de0);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.position {
+  min-width: 32px;
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.shield {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+}
+
+.teamName {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  font-size: 0.85rem;
+}
+
+.distribution {
+  display: flex;
+  gap: 2px;
+  height: 10px;
+}
+
+.segment {
+  flex: 1 1 0;
+  border-radius: 2px;
+  background: var(--mui-palette-primary-main, #4d9de0);
+}

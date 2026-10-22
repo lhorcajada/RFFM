@@ -1,6 +1,7 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Alert, Button, CircularProgress, LinearProgress, Stack } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import InsightsIcon from "@mui/icons-material/Insights";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
@@ -37,6 +38,7 @@ function failedPlayersLabel(count: number): string {
 export default function RivalStats() {
   useAuditPageAccess("RivalStats");
   const goToTeamDashboard = useTeamDashboardBack();
+  const { search } = useLocation();
   const { team, teamTitleNode, loading: teamLoading } = useTeamAndClub();
 
   const hasCompetition = Boolean(team?.rffmCompetitionId && team?.rffmGroupId);
@@ -180,6 +182,17 @@ export default function RivalStats() {
         subtitle={teamTitleNode}
         actionBar={
           <Stack direction="row" spacing={1} alignItems="center">
+            {hasCompetition && (
+              <Button
+                component={Link}
+                to={{ pathname: "/coach/rival-stats/simulation", search }}
+                startIcon={<InsightsIcon />}
+                variant="contained"
+                size="small"
+              >
+                Simulación
+              </Button>
+            )}
             <Button startIcon={<ArrowBackIcon />} onClick={() => goToTeamDashboard()} variant="outlined" size="small">
               Volver
             </Button>

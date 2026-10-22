@@ -145,6 +145,20 @@ describe("RivalStats", () => {
     expect(screen.getByRole("heading", { name: "Estadísticas de rivales" })).toBeInTheDocument();
   });
 
+  it("ofrece abrir la simulación de la liga", () => {
+    renderPage();
+
+    expect(screen.getByRole("link", { name: /simulación/i })).toHaveAttribute("href", "/coach/rival-stats/simulation");
+  });
+
+  it("no ofrece la simulación si el equipo no tiene competición", () => {
+    mockUseTeamAndClub.mockReturnValue({ team: { ...team, rffmCompetitionId: null, rffmGroupId: null }, loading: false });
+
+    renderPage();
+
+    expect(screen.queryByRole("link", { name: /simulación/i })).not.toBeInTheDocument();
+  });
+
   it("carga las estadísticas del equipo seleccionado", () => {
     renderPage();
 
