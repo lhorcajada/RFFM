@@ -20,6 +20,7 @@ namespace RFFM.Api.Infrastructure.Persistence
         public DbSet<RffmMatch> RffmMatches { get; set; }
         public DbSet<RffmMatchRecord> RffmMatchRecords { get; set; }
         public DbSet<RffmStandingsSnapshot> RffmStandingsSnapshots { get; set; }
+        public DbSet<RffmRoundSimulation> RffmRoundSimulations { get; set; }
         public DbSet<MatchResultNotificationOptOut> MatchResultNotificationOptOuts { get; set; }
         public DbSet<MatchResultNotificationLog> MatchResultNotificationLogs { get; set; }
         public DbSet<LeagueSquadStatsReport> LeagueSquadStatsReports { get; set; }
@@ -44,6 +45,7 @@ namespace RFFM.Api.Infrastructure.Persistence
             modelBuilder.ApplyConfiguration(new RffmMatchEntityConfiguration());
             modelBuilder.ApplyConfiguration(new RffmMatchRecordEntityConfiguration());
             modelBuilder.ApplyConfiguration(new RffmStandingsSnapshotEntityConfiguration());
+            modelBuilder.ApplyConfiguration(new RffmRoundSimulationEntityConfiguration());
             modelBuilder.ApplyConfiguration(new MatchResultNotificationOptOutEntityConfiguration());
             modelBuilder.ApplyConfiguration(new MatchResultNotificationLogEntityConfiguration());
             modelBuilder.ApplyConfiguration(new LeagueSquadStatsReportEntityConfiguration());

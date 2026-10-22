@@ -12,6 +12,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
 using RFFM.Api.Common.Behaviors;
 using RFFM.Api.Domain.Services;
+using RFFM.Api.Features.Coaches.RivalStats.Services;
 using RFFM.Api.Infrastructure.Services;
 using RFFM.Api.Features.Federation.Competitions.Services;
 using RFFM.Api.Features.Federation.Clubs.Services;
@@ -175,6 +176,8 @@ namespace RFFM.Api.DependencyInjection
             services.AddHostedService<LeagueSquadStatsWorker>();
             services.AddScoped<ILeagueSquadStatsScheduleService, LeagueSquadStatsScheduleService>();
             services.AddHostedService<LeagueSquadStatsScheduler>();
+            services.AddScoped<RivalSimulationInputLoader>();
+            services.AddScoped<RivalRoundSimulationService>();
             RffmResultsClient.AddRffmResultsHttpClient(services);
             services.AddScoped<IRffmResultsClient, RffmResultsClient>();
             services.AddScoped<IRffmResultsSyncService, RffmResultsSyncService>();

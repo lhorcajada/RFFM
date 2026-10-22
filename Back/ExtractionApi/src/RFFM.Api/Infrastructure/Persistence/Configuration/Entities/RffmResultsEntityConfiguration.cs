@@ -41,6 +41,22 @@ namespace RFFM.Api.Infrastructure.Persistence.Configuration.Entities
         }
     }
 
+    internal class RffmRoundSimulationEntityConfiguration : IEntityTypeConfiguration<RffmRoundSimulation>
+    {
+        public void Configure(EntityTypeBuilder<RffmRoundSimulation> builder)
+        {
+            builder.ToTable("RffmRoundSimulations");
+            builder.HasKey(s => s.Id);
+            builder.Property(s => s.Id).HasMaxLength(36);
+            builder.Property(s => s.GroupCode).IsRequired().HasMaxLength(RffmCompetitionGroup.Rules.CodeMaxLength);
+            builder.Property(s => s.MatchesJson).IsRequired().HasColumnType("jsonb");
+            builder.Property(s => s.StandingsJson).IsRequired().HasColumnType("jsonb");
+            builder.Ignore(s => s.IsFrozen);
+
+            builder.HasIndex(s => new { s.GroupCode, s.Round }).IsUnique();
+        }
+    }
+
     internal class RffmRoundEntityConfiguration : IEntityTypeConfiguration<RffmRound>
     {
         public void Configure(EntityTypeBuilder<RffmRound> builder)

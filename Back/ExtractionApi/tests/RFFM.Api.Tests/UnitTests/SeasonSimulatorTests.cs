@@ -116,6 +116,26 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
+        public void Un_visitante_con_plantilla_de_mas_nivel_es_favorito_antes_de_empezar_la_liga()
+        {
+            static SimPlayer Player(string competition, int position) =>
+                new(0, 0, 0, true, 20, 10, 15, 2, [new SimPlayerParticipation(competition, $"{competition} grupo", position)]);
+            var squads = new Dictionary<string, IReadOnlyList<SimPlayer>>
+            {
+                ["A"] = Enumerable.Range(0, 13).Select(_ => Player("SEGUNDA INFANTIL", 4))
+                    .Concat(Enumerable.Range(0, 9).Select(_ => Player("PRIMERA INFANTIL", 8))).ToList(),
+                ["B"] = Enumerable.Range(0, 18).Select(_ => Player("PRIMERA INFANTIL", 3)).ToList()
+            };
+            var input = new SimulationInput([new SimTeam("A", "Equipo A", null), new SimTeam("B", "Equipo B", null)],
+                [M(1, "A", "B"), M(2, "B", "A")], squads, RffmPointsSystem.Default, new Dictionary<string, int>());
+
+            var result = SeasonSimulator.Run(input, Iterations);
+
+            var first = result.Predictions.Single(p => p.Match.Round == 1);
+            Assert.True(first.Outcome.Away > first.Outcome.Home);
+        }
+
+        [Fact]
         public void Ordena_la_clasificacion_proyectada_por_puntos_esperados()
         {
             var calendar = DoubleRoundRobin(3, (local, visitor) => local == "A" ? (4, 0) : visitor == "A" ? (0, 4) : (1, 1));

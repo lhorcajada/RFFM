@@ -11,12 +11,16 @@ namespace RFFM.Api.Domain.Services.MatchSimulation
     public record SimulationResult(int PlayedMatches, int PendingMatches, IReadOnlyList<MatchPrediction> Predictions,
         IReadOnlyList<ProjectedStanding> Standings);
 
+    public record CurrentStanding(string TeamCode, int Position, int Points);
+
     /// <summary>
     /// Predicción de los partidos pendientes y clasificación proyectada simulando el resto del calendario
     /// (design.md D5). Semilla fija: los mismos datos dan siempre el mismo resultado.
     /// </summary>
     public static class SeasonSimulator
     {
+        /// <summary>Se incrementa con cada cambio del modelo: las jornadas rellenadas a posteriori se recalculan.</summary>
+        public const int ModelVersion = 2;
         public const int DefaultIterations = 10_000;
         public const int DefaultSeed = 20261022;
 
@@ -43,18 +47,7 @@ namespace RFFM.Api.Domain.Services.MatchSimulation
                 .ToList();
 
             var index = codes.Select((code, i) => (code, i)).ToDictionary(x => x.code, x => x.i);
-            var names = input.Teams.GroupBy(t => t.Code).ToDictionary(g => g.Key, g => g.First().Name);
-            var (points, goalsFor, goalsAgainst) = CurrentTable(codes, index, played, input);
-
-            var currentOrder = Enumerable.Range(0, codes.Count)
-                .OrderByDescending(i => points[i])
-                .ThenByDescending(i => goalsFor[i] - goalsAgainst[i])
-                .ThenByDescending(i => goalsFor[i])
-                .ThenBy(i => names[codes[i]], StringComparer.OrdinalIgnoreCase)
-                .ToList();
-            var currentPosition = new int[codes.Count];
-            for (var position = 0; position < currentOrder.Count; position++)
-                currentPosition[currentOrder[position]] = position + 1;
+            var (points, goalsFor, goalsAgainst, currentPosition) = CurrentTable(codes, index, played, input);
 
             var (positionCounts, pointsSum, runs) = predictions.Count == 0
                 ? CurrentAsCertain(codes.Count, currentPosition, points)
@@ -74,7 +67,19 @@ namespace RFFM.Api.Domain.Services.MatchSimulation
             return new SimulationResult(played.Count, predictions.Count, predictions, standings);
         }
 
-        private static (int[] Points, int[] GoalsFor, int[] GoalsAgainst) CurrentTable(IReadOnlyList<string> codes,
+        /// <summary>Clasificación actual con la misma ordenación simplificada que la simulación.</summary>
+        public static IReadOnlyList<CurrentStanding> CurrentStandings(SimulationInput input)
+        {
+            var codes = input.Teams.Select(t => t.Code).Distinct().ToList();
+            var codeSet = codes.ToHashSet();
+            var played = input.Calendar.Where(m => m.HasResult && codeSet.Contains(m.LocalCode) && codeSet.Contains(m.VisitorCode));
+            var index = codes.Select((code, i) => (code, i)).ToDictionary(x => x.code, x => x.i);
+            var (points, _, _, positions) = CurrentTable(codes, index, played, input);
+
+            return codes.Select((code, i) => new CurrentStanding(code, positions[i], points[i])).OrderBy(s => s.Position).ToList();
+        }
+
+        private static (int[] Points, int[] GoalsFor, int[] GoalsAgainst, int[] Positions) CurrentTable(IReadOnlyList<string> codes,
             IReadOnlyDictionary<string, int> index, IEnumerable<SimMatch> played, SimulationInput input)
         {
             var points = codes.Select(c => -input.SanctionPoints.GetValueOrDefault(c)).ToArray();
@@ -85,7 +90,18 @@ namespace RFFM.Api.Domain.Services.MatchSimulation
                 ApplyResult(index[m.LocalCode], index[m.VisitorCode], m.LocalGoals!.Value, m.VisitorGoals!.Value,
                     points, goalsFor, goalsAgainst, input.Points);
 
-            return (points, goalsFor, goalsAgainst);
+            var names = input.Teams.GroupBy(t => t.Code).ToDictionary(g => g.Key, g => g.First().Name);
+            var order = Enumerable.Range(0, codes.Count)
+                .OrderByDescending(i => points[i])
+                .ThenByDescending(i => goalsFor[i] - goalsAgainst[i])
+                .ThenByDescending(i => goalsFor[i])
+                .ThenBy(i => names[codes[i]], StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            var positions = new int[codes.Count];
+            for (var position = 0; position < order.Count; position++)
+                positions[order[position]] = position + 1;
+
+            return (points, goalsFor, goalsAgainst, positions);
         }
 
         private static (int[,] PositionCounts, double[] PointsSum, int Runs) CurrentAsCertain(int teamCount,

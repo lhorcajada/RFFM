@@ -122,7 +122,7 @@ namespace RFFM.Api.Tests.IntegrationTests
                 {
                     Name = $"JUGADOR {team}",
                     Matches = new MatchStatistics { Called = 20, Played = 18, TotalGoals = 4 },
-                    Competitions = [new CompetitionParticipation { CompetitionName = "Liga", GroupName = "Grupo 1", TeamCode = "X", TeamName = "X", TeamPosition = position }]
+                    Competitions = [new CompetitionParticipation { CompetitionName = "PRIMERA INFANTIL", GroupName = "Grupo 1", TeamCode = "X", TeamName = "X", TeamPosition = position }]
                 };
                 db.RffmPlayerSeasonStats.Add(RffmPlayerSeasonStats.Create(P(team), PreviousSeason, PlayerSeasonTotalsMapper.From(sheet), Now));
             }
