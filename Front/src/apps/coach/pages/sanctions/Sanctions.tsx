@@ -80,6 +80,10 @@ function eventDateValue(ev: SportEventResponse | undefined | null): string | nul
   return ev.eveDateTime ?? ev.startTime ?? ev.start ?? null;
 }
 
+function playerDisplayName(player: PlayerResponse): string {
+  return ((player.name ?? "") + " " + (player.lastName ?? "")).trim() || player.alias;
+}
+
 function eventLabel(ev: SportEventResponse): string {
   const name = ev.name ?? ev.title ?? "Partido";
   const dateStr = eventDateValue(ev);
@@ -181,7 +185,7 @@ export default function Sanctions() {
 
   // Add dialog
   const [addOpen, setAddOpen] = useState(false);
-  const [addPlayer, setAddPlayer] = useState<PlayerResponse | null>(null);
+  const [addPlayers, setAddPlayers] = useState<PlayerResponse[]>([]);
   const [addCategory, setAddCategory] = useState<SanctionCategory>("InternalDiscipline");
   const [addStartDate, setAddStartDate] = useState(new Date().toISOString().slice(0, 10));
   const [addSanctionType, setAddSanctionType] = useState("");
@@ -262,7 +266,7 @@ export default function Sanctions() {
   }, [highlightId, loading, visibleRows]);
 
   function openAdd() {
-    setAddPlayer(null);
+    setAddPlayers([]);
     setAddCategory("InternalDiscipline");
     setAddStartDate(new Date().toISOString().slice(0, 10));
     setAddSanctionType("");
@@ -278,12 +282,11 @@ export default function Sanctions() {
 
   async function handleAddSave() {
     if (isPlayerOrFamily) return;
-    if (!addPlayer || !addSanctionType.trim() || !addStartDate) return;
+    if (addPlayers.length === 0 || !addSanctionType.trim() || !addStartDate) return;
     if (addPunishmentType && !addTargetEventId) return;
     if (addPunishmentType === "MinutesLimit" && !addMinutesLimit.trim()) return;
 
-    setAddSaving(true);
-    const result = await createPlayerSanction(addPlayer.id, {
+    const payload = {
       category: addCategory,
       startDate: addStartDate,
       sanctionType: addSanctionType,
@@ -294,13 +297,36 @@ export default function Sanctions() {
       sportivePunishmentType: addPunishmentType || null,
       targetEventId: addPunishmentType ? addTargetEventId : null,
       minutesLimit: addPunishmentType === "MinutesLimit" ? Number(addMinutesLimit) : null,
-    });
+    };
+
+    setAddSaving(true);
+    // Sequential on purpose: each create may force a deconvocation and credit the team fund.
+    const failedPlayers: PlayerResponse[] = [];
+    for (const player of addPlayers) {
+      const result = await createPlayerSanction(player.id, payload);
+      if (!result) failedPlayers.push(player);
+    }
     setAddSaving(false);
-    if (result) {
-      setAddOpen(false);
+
+    if (failedPlayers.length < addPlayers.length) {
       setRefreshKey((k) => k + 1);
       window.dispatchEvent(new CustomEvent(TEAM_FUND_UPDATED_EVENT));
     }
+
+    if (failedPlayers.length === 0) {
+      setAddOpen(false);
+      return;
+    }
+
+    setAddPlayers(failedPlayers);
+    window.dispatchEvent(
+      new CustomEvent("rffm.show_snackbar", {
+        detail: {
+          message: `No se pudo registrar la sanción para: ${failedPlayers.map(playerDisplayName).join(", ")}.`,
+          severity: "error",
+        },
+      })
+    );
   }
 
   function openEdit(row: SanctionRow) {
@@ -400,11 +426,11 @@ export default function Sanctions() {
 
   function rowDisplayName(row: SanctionRow | null): string {
     if (!row) return "";
-    return ((row.player.name ?? "") + " " + (row.player.lastName ?? "")).trim() || row.player.alias;
+    return playerDisplayName(row.player);
   }
 
   const canAdd =
-    !!addPlayer &&
+    addPlayers.length > 0 &&
     addSanctionType.trim().length > 0 &&
     addStartDate.length > 0 &&
     (!addPunishmentType || !!addTargetEventId) &&
@@ -526,7 +552,25 @@ export default function Sanctions() {
         <DialogTitle>Registrar sanción</DialogTitle>
         <DialogContent>
           <div className={styles.addDialogFields}>
-            <Autocomplete options={players} getOptionLabel={(p) => ((p.name ?? "") + " " + (p.lastName ?? "")).trim() || p.alias} value={addPlayer} onChange={(_, val) => setAddPlayer(val)} renderInput={(params) => <TextField {...params} label="Jugador" size="small" required fullWidth />} />
+            <Autocomplete
+              multiple
+              disableCloseOnSelect
+              options={players}
+              getOptionLabel={playerDisplayName}
+              isOptionEqualToValue={(a, b) => a.id === b.id}
+              value={addPlayers}
+              onChange={(_, val) => setAddPlayers(val)}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Jugadores"
+                  size="small"
+                  required
+                  fullWidth
+                  helperText="Se registrará la misma sanción para cada jugador seleccionado"
+                />
+              )}
+            />
             <FormControl size="small" fullWidth required>
               <InputLabel id="add-category-label">Naturaleza</InputLabel>
               <Select
