@@ -192,7 +192,21 @@ tronco (`main`, `dev`).
 3. Pushear/mergear únicamente tras confirmación explícita (ver §6.3).
 4. Si se creó una rama de corta duración y ya se fusionó, ofrecer eliminarla.
 
-### 6.5 Resolución de conflictos
+### 6.5 Archivar cambios OpenSpec antes de commit y push
+Cuando el usuario pida **commit y push** de un trabajo hecho con OpenSpec, antes de commitear:
+1. Archivar los cambios OpenSpec que ese trabajo implementa:
+   `openspec archive <change> --yes` (en orden cronológico si son varios). Esto los mueve a
+   `openspec/changes/archive/YYYY-MM-DD-<change>/` y vuelca sus specs en `openspec/specs/`.
+2. Antes de archivar, marcar en `tasks.md` solo las tareas realmente hechas; las que no se hayan
+   podido hacer (p. ej. una comprobación visual) se quedan sin marcar y se avisa al usuario.
+3. No archivar cambios ajenos al trabajo que se commitea ni cambios a medio implementar.
+4. Incluir el archivado en los commits: junto al `feat`/`fix` correspondiente o en un commit
+   propio `chore(openspec): archive <change>`.
+
+La petición de commit y push cubre también este archivado; no hace falta pedir una
+confirmación aparte para él.
+
+### 6.6 Resolución de conflictos
 1. `git fetch origin {tronco}`
 2. `git rebase origin/{tronco}` (en rama de corta duración) o resolver el
    merge directamente si se está integrando sobre el tronco.
