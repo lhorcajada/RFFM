@@ -658,6 +658,57 @@ namespace RFFM.Api.Infrastructure.Migrations.Federation
                     b.ToTable("RffmRounds", "federation");
                 });
 
+            modelBuilder.Entity("RFFM.Api.Domain.Entities.Federation.Results.RffmRoundSimulation", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<DateTime>("ComputedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("FrozenAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("GroupCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<bool>("IsBackfilled")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("MatchesJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<int>("ModelVersion")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PlayedMatchesUsed")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Round")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SeasonId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("StandingsJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<bool>("UsesSquadStrength")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GroupCode", "Round")
+                        .IsUnique();
+
+                    b.ToTable("RffmRoundSimulations", "federation");
+                });
+
             modelBuilder.Entity("RFFM.Api.Domain.Entities.Federation.Results.RffmStandingsSnapshot", b =>
                 {
                     b.Property<string>("Id")
