@@ -1,4 +1,4 @@
-import type { TacticalBoardSnapshot } from "../pages/trainings/new/types";
+import { isChapaNameHidden, type TacticalBoardSnapshot } from "../pages/trainings/new/types";
 import { DEFAULT_LINE_WIDTH, LINE_COLORS, SPACE_COLORS } from "../pages/trainings/new/constants";
 import { buildLinePath, getArrowMarkerId } from "../pages/trainings/new/helpers/lineHelpers";
 import { getChapaSizePercent, getMaterialSizePercent } from "../pages/trainings/new/helpers/materialHelpers";
@@ -257,7 +257,9 @@ function BoardPitch({ snapshot, playersById }: StaticProps) {
               title={isAnonymous ? "Chapa anónima" : `${dorsal} - ${alias}`}
             >
               {!isAnonymous && <span className={styles.chapaDorsal}>{dorsal}</span>}
-              {!isAnonymous && <span className={styles.chapaAliasOutside}>{alias}</span>}
+              {!isAnonymous && !isChapaNameHidden(pos, snapshot.hideChapaNames) && (
+                <span className={styles.chapaAliasOutside}>{alias}</span>
+              )}
             </div>
           );
         })}

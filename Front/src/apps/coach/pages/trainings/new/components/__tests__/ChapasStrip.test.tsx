@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { TacticalBoardState } from "../../hooks/useTacticalBoard";
 import ChapasStrip from "../ChapasStrip";
@@ -11,7 +11,7 @@ const makePlayer = (id: string, position: string | null, dorsal: number) => ({
   dorsal,
 });
 
-const makeBoard = (players: ReturnType<typeof makePlayer>[]): TacticalBoardState =>
+const makeBoard = (players: ReturnType<typeof makePlayer>[], overrides: Partial<TacticalBoardState> = {}): TacticalBoardState =>
   ({
     loadingPlayers: false,
     chapasError: null,
@@ -20,9 +20,28 @@ const makeBoard = (players: ReturnType<typeof makePlayer>[]): TacticalBoardState
     handleRosterChapaDragStart: vi.fn(),
     handleRosterChapaDragEnd: vi.fn(),
     handleAnonymousChapaDragStart: vi.fn(),
+    hideChapaNames: false,
+    toggleHideChapaNames: vi.fn(),
+    ...overrides,
   }) as unknown as TacticalBoardState;
 
 describe("ChapasStrip", () => {
+  it("permite ocultar los nombres de todas las chapas del campo", () => {
+    const toggleHideChapaNames = vi.fn();
+    render(<ChapasStrip board={makeBoard([], { toggleHideChapaNames })} />);
+
+    const toggle = screen.getByRole("checkbox", { name: "Mostrar nombres" });
+    expect(toggle).toBeChecked();
+    fireEvent.click(toggle);
+
+    expect(toggleHideChapaNames).toHaveBeenCalledTimes(1);
+  });
+
+  it("refleja que los nombres están ocultos a nivel general", () => {
+    render(<ChapasStrip board={makeBoard([], { hideChapaNames: true })} />);
+    expect(screen.getByRole("checkbox", { name: "Mostrar nombres" })).not.toBeChecked();
+  });
+
   it("muestra un título por cada posición presente, en orden de línea", () => {
     render(
       <ChapasStrip

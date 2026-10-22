@@ -13,6 +13,8 @@ export interface ChapaPosition {
   anonymous?: boolean;
   /** Player this chapa represents when its key is not the player id (extra chapas of the same player). */
   playerId?: string;
+  /** Per-chapa override of the board-level `hideChapaNames`; missing means it follows the board. */
+  hideName?: boolean;
 }
 
 export interface PetoOption {
@@ -167,4 +169,8 @@ export interface TacticalBoardSnapshot {
   placedMaterials: PlacedMaterial[];
   placedLines: PlacedLine[];
   placedTexts?: PlacedText[];
+  hideChapaNames?: boolean;
 }
+
+export const isChapaNameHidden = (chapa: ChapaPosition, hideChapaNames: boolean | undefined): boolean =>
+  chapa.hideName ?? hideChapaNames === true;

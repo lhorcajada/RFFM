@@ -1,4 +1,4 @@
-import { Box, CircularProgress, Typography } from "@mui/material";
+import { Box, CircularProgress, FormControlLabel, Switch, Typography } from "@mui/material";
 import type { TacticalBoardState } from "../hooks/useTacticalBoard";
 import styles from "../NewExercisePage.module.css";
 import { groupPlayersByPosition } from "../helpers/playerOrder";
@@ -16,12 +16,19 @@ export default function ChapasStrip({ board }: ChapasStripProps) {
     handleRosterChapaDragStart,
     handleRosterChapaDragEnd,
     handleAnonymousChapaDragStart,
+    hideChapaNames,
+    toggleHideChapaNames,
   } = board;
 
   return (
     <Box className={styles.chapasStrip}>
       <Box className={styles.chapasStripGroup}>
         <Typography className={styles.chapasStripLabel}>Jugadores</Typography>
+        <FormControlLabel
+          control={<Switch size="small" checked={!hideChapaNames} onChange={toggleHideChapaNames} />}
+          label="Mostrar nombres"
+          className={styles.chapasNamesToggle}
+        />
         <Box className={styles.chapasStripRow}>
           {loadingPlayers ? (
             <Box className={styles.chapasLoading}>

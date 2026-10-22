@@ -211,6 +211,43 @@ describe("TacticalBoardSnapshotPreview", () => {
     });
   });
 
+  it("oculta el nombre pero mantiene el dorsal en una chapa con el nombre oculto", async () => {
+    vi.mocked(teamplayerService.getPlayersByTeam).mockResolvedValue([
+      { id: "player-1", name: "Ana", alias: "Ani", dorsal: 9 } as any,
+    ]);
+
+    const snapshot: TacticalBoardSnapshot = {
+      ...emptySnapshot(),
+      placedChapas: { "player-1": { x: 30, y: 30, hideName: true } },
+    };
+
+    render(<TacticalBoardSnapshotPreview snapshot={snapshot} teamId="team-1" />);
+
+    await waitFor(() => expect(screen.getByText("9")).toBeInTheDocument());
+    expect(screen.queryByText("Ani")).not.toBeInTheDocument();
+  });
+
+  it("oculta los nombres a nivel general salvo en las chapas que lo muestran expresamente", async () => {
+    vi.mocked(teamplayerService.getPlayersByTeam).mockResolvedValue([
+      { id: "player-1", name: "Ana", alias: "Ani", dorsal: 9 } as any,
+      { id: "player-2", name: "Bea", alias: "Bei", dorsal: 7 } as any,
+    ]);
+
+    const snapshot: TacticalBoardSnapshot = {
+      ...emptySnapshot(),
+      hideChapaNames: true,
+      placedChapas: {
+        "player-1": { x: 30, y: 30 },
+        "player-2": { x: 60, y: 60, hideName: false },
+      },
+    };
+
+    render(<TacticalBoardSnapshotPreview snapshot={snapshot} teamId="team-1" />);
+
+    await waitFor(() => expect(screen.getByText("Bei")).toBeInTheDocument());
+    expect(screen.queryByText("Ani")).not.toBeInTheDocument();
+  });
+
   it("does not render dorsal/alias for an anonymous chapa", () => {
     const snapshot: TacticalBoardSnapshot = {
       ...emptySnapshot(),

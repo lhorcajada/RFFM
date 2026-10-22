@@ -10,7 +10,7 @@ import LineWidthPicker from "./LineWidthPicker";
 import PitchMarkings from "./PitchMarkings";
 import PlacedObjectControls from "./PlacedObjectControls";
 import SizeDialog from "./SizeDialog";
-import type { ResizeHandle, SpacePosition } from "../types";
+import { isChapaNameHidden, type ResizeHandle, type SpacePosition } from "../types";
 
 interface TacticalFieldProps {
   halfPitchRef: React.RefObject<HTMLDivElement | null>;
@@ -87,6 +87,8 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
     handleClearChapaPeto,
     duplicatePlacedChapa,
     toggleLockPlacedChapa,
+    toggleNamePlacedChapa,
+    hideChapaNames,
     rotatePlacedChapa,
     handleManualResizeChapa,
     handleChapaResizeStart,
@@ -270,6 +272,7 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
         {Object.entries(placedChapas).map(([playerId, pos], idx) => {
           const player = playersById.get(pos.playerId ?? playerId);
           const isAnonymous = pos.anonymous === true;
+          const isNameHidden = isChapaNameHidden(pos, hideChapaNames);
           const dorsal = player?.dorsal ?? idx + 1;
           const alias = (player?.alias ?? "").trim() || `J${idx + 1}`;
           const petoColor = chapaPetoById[playerId];
@@ -303,7 +306,7 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
               title={isAnonymous ? "Chapa anónima" : `${dorsal} - ${alias}`}
             >
               {!isAnonymous && <span className={styles.chapaDorsal}>{dorsal}</span>}
-              {!isAnonymous && <span className={styles.chapaAliasOutside}>{alias}</span>}
+              {!isAnonymous && !isNameHidden && <span className={styles.chapaAliasOutside}>{alias}</span>}
 
               {activeChapaMenuId === playerId && (
                 <>
@@ -316,18 +319,34 @@ export default function TacticalField({ halfPitchRef, board }: TacticalFieldProp
                     onDuplicate={duplicatePlacedChapa}
                     onRemove={removePlacedChapa}
                     renderExtras={(
-                      <button
-                        type="button"
-                        className={styles.spaceScaleBtn}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setActiveChapaColorMenuId((prev) => (prev === playerId ? null : playerId));
-                        }}
-                        aria-label="Elegir color del peto"
-                        title="Colores"
-                      >
-                        C
-                      </button>
+                      <>
+                        <button
+                          type="button"
+                          className={styles.spaceScaleBtn}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveChapaColorMenuId((prev) => (prev === playerId ? null : playerId));
+                          }}
+                          aria-label="Elegir color del peto"
+                          title="Colores"
+                        >
+                          C
+                        </button>
+                        {!isAnonymous && (
+                          <button
+                            type="button"
+                            className={styles.spaceScaleBtn}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleNamePlacedChapa(playerId);
+                            }}
+                            aria-label={isNameHidden ? "Mostrar nombre" : "Ocultar nombre"}
+                            title={isNameHidden ? "Mostrar nombre" : "Ocultar nombre"}
+                          >
+                            {isNameHidden ? "N" : <s>N</s>}
+                          </button>
+                        )}
+                      </>
                     )}
                     renderResizeHandles={(
                       ["n", "s", "e", "w", "ne", "nw", "se", "sw"] as ResizeHandle[]

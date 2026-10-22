@@ -32,7 +32,7 @@ import type {
   SpacePosition,
   TextStyle,
 } from "../types";
-import type { TacticalBoardSnapshot } from "../types";
+import { isChapaNameHidden, type TacticalBoardSnapshot } from "../types";
 
 const MIN_SPACE_SCALE = 0.2;
 
@@ -55,6 +55,7 @@ export function useTacticalBoard(
   const [draggingChapaId, setDraggingChapaId] = useState<string | null>(null);
   const [chapaPetoById, setChapaPetoById] = useState<Record<string, string>>({});
   const [activeChapaMenuId, setActiveChapaMenuId] = useState<string | null>(null);
+  const [hideChapaNames, setHideChapaNames] = useState(false);
 
   const [showSpaces, setShowSpaces] = useState(false);
   const [placedSpaces, setPlacedSpaces] = useState<SpacePosition[]>([]);
@@ -92,6 +93,7 @@ export function useTacticalBoard(
   const clearBoardState = () => {
     setPlacedChapas({});
     setChapaPetoById({});
+    setHideChapaNames(false);
     setPlacedSpaces([]);
     setPlacedMaterials([]);
     setPlacedLines([]);
@@ -116,6 +118,7 @@ export function useTacticalBoard(
 
     setPlacedChapas(normalizedChapas);
     setChapaPetoById(snapshot.chapaPetoById ?? {});
+    setHideChapaNames(snapshot.hideChapaNames === true);
     setPlacedSpaces((snapshot.placedSpaces ?? []).map(normalizeSpacePosition));
     setPlacedMaterials(snapshot.placedMaterials ?? []);
     setPlacedLines(snapshot.placedLines ?? []);
@@ -146,6 +149,7 @@ export function useTacticalBoard(
       placedMaterials,
       placedLines,
       placedTexts,
+      hideChapaNames,
     } satisfies TacticalBoardSnapshot);
 
   useEffect(() => {
@@ -1037,6 +1041,21 @@ export function useTacticalBoard(
     });
   };
 
+  const toggleNamePlacedChapa = (playerId: string) => {
+    setPlacedChapas((prev) => {
+      const chapa = prev[playerId];
+      if (!chapa) return prev;
+      return { ...prev, [playerId]: { ...chapa, hideName: !isChapaNameHidden(chapa, hideChapaNames) } };
+    });
+  };
+
+  const toggleHideChapaNames = () => {
+    setHideChapaNames((prev) => !prev);
+    setPlacedChapas((prev) =>
+      Object.fromEntries(Object.entries(prev).map(([id, { hideName: _override, ...chapa }]) => [id, chapa])),
+    );
+  };
+
   const rotatePlacedChapa = (playerId: string) => {
     setPlacedChapas((prev) => {
       const next = { ...prev };
@@ -1758,6 +1777,9 @@ export function useTacticalBoard(
     handleClearChapaPeto,
     duplicatePlacedChapa,
     toggleLockPlacedChapa,
+    toggleNamePlacedChapa,
+    hideChapaNames,
+    toggleHideChapaNames,
     rotatePlacedChapa,
     handleManualResizeChapa,
     handleChapaResizeStart,

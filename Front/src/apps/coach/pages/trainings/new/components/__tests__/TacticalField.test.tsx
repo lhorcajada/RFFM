@@ -278,6 +278,69 @@ describe("TacticalField - grosor de líneas", () => {
   });
 });
 
+describe("TacticalField - nombre de la chapa", () => {
+  beforeEach(() => {
+    vi.mocked(teamplayerService.getPlayersByTeam).mockReset();
+    vi.mocked(teamplayerService.getPlayersByTeam).mockResolvedValue([]);
+  });
+
+  function renderFieldWithChapa(dropData: Record<string, string>) {
+    const halfPitchRef = { current: makePitchElement() } as React.RefObject<HTMLDivElement>;
+    const hook = renderHook(() => useTacticalBoard(halfPitchRef, ""));
+    act(() => {
+      hook.result.current.handleFieldDrop({
+        preventDefault: () => {},
+        clientX: 20,
+        clientY: 30,
+        dataTransfer: { getData: (key: string) => dropData[key] ?? "" },
+      } as unknown as React.DragEvent<HTMLDivElement>);
+    });
+    const view = render(<TacticalField halfPitchRef={halfPitchRef} board={hook.result.current} />);
+    const chapaId = Object.keys(hook.result.current.placedChapas)[0];
+    const openMenu = () => {
+      act(() => {
+        hook.result.current.setActiveChapaMenuId(chapaId);
+      });
+      view.rerender(<TacticalField halfPitchRef={halfPitchRef} board={hook.result.current} />);
+    };
+    return { ...view, hook, halfPitchRef, openMenu };
+  }
+
+  it("permite ocultar el nombre del jugador de una chapa manteniendo el dorsal", () => {
+    const { hook, halfPitchRef, rerender, getByRole, queryByText, getByText, openMenu } =
+      renderFieldWithChapa({ "text/chapa-player-id": "p1" });
+    expect(getByText("J1")).toBeInTheDocument();
+
+    openMenu();
+    act(() => {
+      fireEvent.click(getByRole("button", { name: "Ocultar nombre" }));
+    });
+    rerender(<TacticalField halfPitchRef={halfPitchRef} board={hook.result.current} />);
+
+    expect(queryByText("J1")).not.toBeInTheDocument();
+    expect(getByText("1")).toBeInTheDocument();
+    expect(getByRole("button", { name: "Mostrar nombre" })).toBeInTheDocument();
+  });
+
+  it("oculta el nombre cuando los nombres están ocultos a nivel general", () => {
+    const { hook, halfPitchRef, rerender, queryByText } = renderFieldWithChapa({ "text/chapa-player-id": "p1" });
+    act(() => {
+      hook.result.current.toggleHideChapaNames();
+    });
+    rerender(<TacticalField halfPitchRef={halfPitchRef} board={hook.result.current} />);
+    expect(queryByText("J1")).not.toBeInTheDocument();
+  });
+
+  it("no ofrece ocultar el nombre en una chapa anónima", () => {
+    const { queryByRole, openMenu } = renderFieldWithChapa({
+      "text/chapa-anonymous-key": "rojo",
+      "text/chapa-anonymous-color": "#ff0000",
+    });
+    openMenu();
+    expect(queryByRole("button", { name: "Ocultar nombre" })).not.toBeInTheDocument();
+  });
+});
+
 describe("TacticalField - both halves of the F11 pitch", () => {
   beforeEach(() => {
     vi.mocked(teamplayerService.getPlayersByTeam).mockReset();

@@ -227,6 +227,96 @@ describe("useTacticalBoard - varias chapas del mismo jugador", () => {
   });
 });
 
+describe("useTacticalBoard - mostrar u ocultar el nombre de la chapa", () => {
+  beforeEach(() => {
+    vi.mocked(teamplayerService.getPlayersByTeam).mockReset();
+    vi.mocked(teamplayerService.getPlayersByTeam).mockResolvedValue([]);
+  });
+
+  function setupWithChapa() {
+    const pitchEl = makePitchElement();
+    const halfPitchRef = { current: pitchEl } as React.RefObject<HTMLDivElement>;
+    const { result } = renderHook(() => useTacticalBoard(halfPitchRef, ""));
+    act(() => {
+      result.current.handleFieldDrop(makeDropEvent({ "text/chapa-player-id": "p1" }, 20, 30));
+    });
+    return result;
+  }
+
+  it("oculta el nombre de una chapa y lo vuelve a mostrar", () => {
+    const result = setupWithChapa();
+
+    act(() => {
+      result.current.toggleNamePlacedChapa("p1");
+    });
+    expect(result.current.placedChapas["p1"].hideName).toBe(true);
+
+    act(() => {
+      result.current.toggleNamePlacedChapa("p1");
+    });
+    expect(result.current.placedChapas["p1"].hideName).toBe(false);
+  });
+
+  it("conserva el nombre oculto al guardar y volver a cargar la pizarra", () => {
+    const result = setupWithChapa();
+    act(() => {
+      result.current.toggleNamePlacedChapa("p1");
+    });
+    const json = result.current.serializeBoardStateJson();
+    act(() => {
+      result.current.clearBoardState();
+    });
+    act(() => {
+      result.current.loadBoardStateJson(json);
+    });
+    expect(result.current.placedChapas["p1"].hideName).toBe(true);
+  });
+
+  it("oculta los nombres de todas las chapas a nivel general, anulando los ajustes particulares", () => {
+    const result = setupWithChapa();
+    act(() => {
+      result.current.toggleNamePlacedChapa("p1");
+    });
+    act(() => {
+      result.current.toggleNamePlacedChapa("p1");
+    });
+
+    act(() => {
+      result.current.toggleHideChapaNames();
+    });
+
+    expect(result.current.hideChapaNames).toBe(true);
+    expect(result.current.placedChapas["p1"].hideName).toBeUndefined();
+  });
+
+  it("muestra el nombre de una chapa concreta aunque estén ocultos a nivel general", () => {
+    const result = setupWithChapa();
+    act(() => {
+      result.current.toggleHideChapaNames();
+    });
+    act(() => {
+      result.current.toggleNamePlacedChapa("p1");
+    });
+    expect(result.current.placedChapas["p1"].hideName).toBe(false);
+  });
+
+  it("conserva el ajuste general al guardar y volver a cargar la pizarra", () => {
+    const result = setupWithChapa();
+    act(() => {
+      result.current.toggleHideChapaNames();
+    });
+    const json = result.current.serializeBoardStateJson();
+    act(() => {
+      result.current.clearBoardState();
+    });
+    expect(result.current.hideChapaNames).toBe(false);
+    act(() => {
+      result.current.loadBoardStateJson(json);
+    });
+    expect(result.current.hideChapaNames).toBe(true);
+  });
+});
+
 function makeSpaceDragStartEvent(
   clientX: number,
   clientY: number,

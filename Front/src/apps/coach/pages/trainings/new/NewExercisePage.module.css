@@ -709,6 +709,17 @@
   color: rgba(221, 238, 255, 0.72);
 }
 
+.chapasNamesToggle {
+  flex: 0 0 auto;
+  margin: 0;
+  color: rgba(221, 238, 255, 0.72);
+}
+
+.chapasNamesToggle :global(.MuiFormControlLabel-label) {
+  font-size: 0.7rem;
+  white-space: nowrap;
+}
+
 .chapasStripRow {
   display: flex;
   align-items: center;
