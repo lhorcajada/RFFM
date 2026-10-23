@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.EntityFrameworkCore;
 using RFFM.Api.Domain.Aggregates.Assistances;
 using RFFM.Api.Domain.Services;
 using RFFM.Api.FeatureModules;
@@ -82,6 +83,7 @@ namespace RFFM.Api.Features.Coaches.Availability
 
                 await AvailabilityAuthorization.EnsureNotDecidedAsync(_db, availability, cancellationToken);
 
+                var wasPending = availability.IsRequested;
                 var now = DateTime.UtcNow;
                 if (request.Available)
                 {
@@ -99,8 +101,21 @@ namespace RFFM.Api.Features.Coaches.Availability
                 if (respondedByPlayerOrFamily)
                     await _dispatcher.DispatchAvailabilityRespondedAsync(availability.Id, cancellationToken);
 
+                // Only the transition out of Requested completes the round: changing an answer already given must not notify again.
+                if (wasPending && !await HasPendingRequestsAsync(availability.SportEventId, cancellationToken))
+                    await _dispatcher.DispatchAvailabilityCompletedAsync(availability.SportEventId, cancellationToken);
+
                 return Mediator.Unit.Value;
             }
+
+            // Same "pending" rule as the «Pendientes de respuesta» group: Requested and not convoked.
+            private Task<bool> HasPendingRequestsAsync(string eventId, CancellationToken cancellationToken)
+                => _db.AvailabilityRequests
+                    .AsNoTracking()
+                    .AnyAsync(r => r.SportEventId == eventId
+                                   && r.StatusId == AvailabilityRequestStatus.Requested.Id
+                                   && !_db.Convocations.Any(c => c.SportEventId == eventId && c.TeamPlayerId == r.TeamPlayerId),
+                        cancellationToken);
         }
     }
 }

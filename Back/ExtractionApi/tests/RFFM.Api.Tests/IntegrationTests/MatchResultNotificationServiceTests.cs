@@ -65,6 +65,7 @@ namespace RFFM.Api.Tests.IntegrationTests
             public Task DispatchNotificationsActivatedAsync(string userId, CancellationToken ct = default) => Task.CompletedTask;
             public Task DispatchAvailabilityRequestedAsync(string teamPlayerId, string eventId, CancellationToken ct = default) => Task.CompletedTask;
             public Task DispatchAvailabilityRespondedAsync(string availabilityRequestId, CancellationToken ct = default) => Task.CompletedTask;
+            public Task DispatchAvailabilityCompletedAsync(string eventId, CancellationToken ct = default) => Task.CompletedTask;
         }
 
         private sealed class NoOpJobQueue : IRffmResultsJobQueue

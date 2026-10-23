@@ -279,6 +279,26 @@ namespace RFFM.Api.Features.Coaches.Notifications.Services
             }
         }
 
+        public async Task DispatchAvailabilityCompletedAsync(string eventId, CancellationToken ct = default)
+        {
+            try
+            {
+                var sportEvent = await _db.SportEvents.AsNoTracking().FirstOrDefaultAsync(se => se.Id == eventId, ct);
+                if (sportEvent is null) return;
+
+                var coachUserIds = await ResolveTeamCoachUserIdsAsync(sportEvent.TeamId, ct);
+                var body = $"Todos los jugadores han marcado su disponibilidad para {sportEvent.Name}{FormatEventDateSuffix(sportEvent)}.";
+
+                await DispatchToUsersAsync(
+                    coachUserIds, "AvailabilityCompleted", "Disponibilidad completada",
+                    body, $"/coach/attendance/{sportEvent.Id}", ct);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "Failed to dispatch availability-completed web push for event {EventId}", eventId);
+            }
+        }
+
         // EveDateTime/StartTime are stored as the event's wall-clock time (same convention as
         // FormatEventDateSuffix). A midnight StartTime/EveDateTime with no StartTime means "no time set".
         public async Task DispatchRivalStatsFinishedAsync(IReadOnlyCollection<RivalStatsRecipient> recipients, bool succeeded, CancellationToken ct = default)

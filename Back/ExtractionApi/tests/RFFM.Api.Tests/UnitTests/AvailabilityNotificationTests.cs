@@ -104,5 +104,39 @@ namespace RFFM.Api.Tests.UnitTests
             Assert.Equal($"{alias} {expectedSuffix}", notification.Body);
             Assert.Equal($"/coach/attendance/{eventId}", notification.DeepLinkPath);
         }
+
+        [Fact]
+        public async Task Availability_completed_notifies_team_coaches()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, _, _) = await SeedTeamAsync(db);
+            var eventId = await SeedEventAsync(db, teamId, LeagueMatchTypeId, new DateTime(2026, 10, 18, 11, 30, 0, DateTimeKind.Utc), "Jornada 7");
+            var coachUserId = await SeedCoachAsync(db, teamId);
+
+            var dispatcher = new WebPushNotificationDispatcher(db, Mock.Of<IWebPushSender>());
+            await dispatcher.DispatchAvailabilityCompletedAsync(eventId, CancellationToken.None);
+
+            var notification = await db.Notifications.SingleAsync(n => n.Type == "AvailabilityCompleted" && n.UserId == coachUserId);
+            Assert.Equal("Disponibilidad completada", notification.Title);
+            Assert.Equal("Todos los jugadores han marcado su disponibilidad para Jornada 7 el 18/10/2026.", notification.Body);
+            Assert.Equal($"/coach/attendance/{eventId}", notification.DeepLinkPath);
+        }
+
+        [Fact]
+        public async Task Availability_completed_without_date_omits_the_date()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, _, _) = await SeedTeamAsync(db);
+            var sportEvent = SportEvent.CreateNew("Jornada 8", null, null, null, null, null, null, LeagueMatchTypeId, teamId, null);
+            db.SportEvents.Add(sportEvent);
+            await db.SaveChangesAsync();
+            var coachUserId = await SeedCoachAsync(db, teamId);
+
+            var dispatcher = new WebPushNotificationDispatcher(db, Mock.Of<IWebPushSender>());
+            await dispatcher.DispatchAvailabilityCompletedAsync(sportEvent.Id, CancellationToken.None);
+
+            var notification = await db.Notifications.SingleAsync(n => n.Type == "AvailabilityCompleted" && n.UserId == coachUserId);
+            Assert.Equal("Todos los jugadores han marcado su disponibilidad para Jornada 8.", notification.Body);
+        }
     }
 }

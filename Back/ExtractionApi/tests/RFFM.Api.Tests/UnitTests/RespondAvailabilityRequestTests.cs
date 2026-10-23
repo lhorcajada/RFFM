@@ -160,6 +160,111 @@ namespace RFFM.Api.Tests.UnitTests
                 .Handle(Command(eventId, requestId, available: true), CancellationToken.None).AsTask());
         }
 
+        private static async Task<string> SeedTeammateRequestAsync(AppDbContext db, string eventId, AvailabilityRequestStatus status)
+        {
+            var team = await db.SportEvents.Where(se => se.Id == eventId)
+                .Select(se => new { se.TeamId, se.Team.ClubId, se.Team.SeasonId })
+                .SingleAsync();
+            var teamPlayerId = await SeedPlayerAsync(db, team.TeamId, team.ClubId!, team.SeasonId!);
+            await SeedRequestAsync(db, eventId, teamPlayerId, status);
+            return teamPlayerId;
+        }
+
+        private static void VerifyCompleted(Mock<IWebPushNotificationDispatcher> dispatcher, string eventId, Times times)
+            => dispatcher.Verify(d => d.DispatchAvailabilityCompletedAsync(eventId, It.IsAny<CancellationToken>()), times);
+
+        [Fact]
+        public async Task Last_pending_player_answer_notifies_that_availability_is_complete()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (eventId, teamPlayerId, requestId) = await SeedRequestedAsync(db);
+            await SeedTeammateRequestAsync(db, eventId, AvailabilityRequestStatus.Available);
+            var userId = await SeedPlayerUserAsync(db, teamPlayerId);
+            var dispatcher = new Mock<IWebPushNotificationDispatcher>();
+
+            await CreateHandler(db, CurrentUser(userId, "Player"), dispatcher.Object)
+                .Handle(Command(eventId, requestId, available: true), CancellationToken.None);
+
+            VerifyCompleted(dispatcher, eventId, Times.Once());
+            dispatcher.Verify(d => d.DispatchAvailabilityRespondedAsync(requestId, It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task Availability_is_not_complete_while_another_player_is_pending()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (eventId, teamPlayerId, requestId) = await SeedRequestedAsync(db);
+            await SeedTeammateRequestAsync(db, eventId, AvailabilityRequestStatus.Requested);
+            var userId = await SeedPlayerUserAsync(db, teamPlayerId);
+            var dispatcher = new Mock<IWebPushNotificationDispatcher>();
+
+            await CreateHandler(db, CurrentUser(userId, "Player"), dispatcher.Object)
+                .Handle(Command(eventId, requestId, available: true), CancellationToken.None);
+
+            VerifyCompleted(dispatcher, eventId, Times.Never());
+        }
+
+        [Fact]
+        public async Task Coach_answering_the_last_pending_player_completes_availability()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (eventId, _, requestId) = await SeedRequestedAsync(db);
+            var coachUserId = await SeedCoachOfEventTeamAsync(db, eventId);
+            var dispatcher = new Mock<IWebPushNotificationDispatcher>();
+
+            await CreateHandler(db, CurrentUser(coachUserId, "Coach"), dispatcher.Object)
+                .Handle(Command(eventId, requestId, available: true), CancellationToken.None);
+
+            VerifyCompleted(dispatcher, eventId, Times.Once());
+        }
+
+        [Fact]
+        public async Task Last_pending_player_saying_no_completes_availability()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (eventId, teamPlayerId, requestId) = await SeedRequestedAsync(db);
+            var userId = await SeedPlayerUserAsync(db, teamPlayerId, "FamilyMember");
+            var dispatcher = new Mock<IWebPushNotificationDispatcher>();
+
+            await CreateHandler(db, CurrentUser(userId, "FamilyMember"), dispatcher.Object)
+                .Handle(Command(eventId, requestId, available: false, IllnessExcuseTypeId), CancellationToken.None);
+
+            VerifyCompleted(dispatcher, eventId, Times.Once());
+        }
+
+        [Fact]
+        public async Task Requested_player_already_convoked_does_not_keep_availability_pending()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (eventId, teamPlayerId, requestId) = await SeedRequestedAsync(db);
+            var convokedTeammateId = await SeedTeammateRequestAsync(db, eventId, AvailabilityRequestStatus.Requested);
+            await SeedConvocationAsync(db, eventId, convokedTeammateId, statusId: 2);
+            var userId = await SeedPlayerUserAsync(db, teamPlayerId);
+            var dispatcher = new Mock<IWebPushNotificationDispatcher>();
+
+            await CreateHandler(db, CurrentUser(userId, "Player"), dispatcher.Object)
+                .Handle(Command(eventId, requestId, available: true), CancellationToken.None);
+
+            VerifyCompleted(dispatcher, eventId, Times.Once());
+        }
+
+        [Fact]
+        public async Task Changing_an_answer_does_not_notify_completion_again()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, clubId, seasonId) = await SeedTeamAsync(db);
+            var teamPlayerId = await SeedPlayerAsync(db, teamId, clubId, seasonId);
+            var eventId = await SeedEventAsync(db, teamId, LeagueMatchTypeId);
+            var requestId = await SeedRequestAsync(db, eventId, teamPlayerId, AvailabilityRequestStatus.Available);
+            var userId = await SeedPlayerUserAsync(db, teamPlayerId);
+            var dispatcher = new Mock<IWebPushNotificationDispatcher>();
+
+            await CreateHandler(db, CurrentUser(userId, "Player"), dispatcher.Object)
+                .Handle(Command(eventId, requestId, available: false, IllnessExcuseTypeId), CancellationToken.None);
+
+            VerifyCompleted(dispatcher, eventId, Times.Never());
+        }
+
         [Fact]
         public void Validator_requires_reason_when_unavailable()
         {
