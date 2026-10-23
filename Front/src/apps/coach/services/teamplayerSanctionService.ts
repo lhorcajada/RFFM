@@ -1,4 +1,5 @@
 import client from "../../../core/api/client";
+import { isSanctionPending } from "./sanctionStatus";
 
 export type SanctionCategory = "Competition" | "InternalDiscipline";
 export type SportivePunishmentType = "Deconvocation" | "MinutesLimit";
@@ -39,15 +40,7 @@ export type SanctionUpdatePayload = SanctionCreatePayload & {
   endDate?: string | null;
 };
 
-/** A sanction counts as pending when the sportive punishment hasn't been served yet
- * (status/endDate) OR there is still an unpaid fine, whichever comes first. */
-export function isSanctionPending(sanction: SanctionRecord): boolean {
-  const notServed = sanction.status ? sanction.status !== "Fulfilled" : !sanction.endDate;
-  const pendingAmount =
-    sanction.pendingAmount ??
-    (sanction.fine != null ? sanction.fine - (sanction.amountPaid ?? 0) : null);
-  return notServed || (pendingAmount != null && pendingAmount > 0);
-}
+export { isSanctionPending };
 
 export function getPendingSanctionsCount(sanctions: SanctionRecord[]): number {
   return sanctions.filter(isSanctionPending).length;

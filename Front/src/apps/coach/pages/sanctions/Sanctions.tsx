@@ -17,6 +17,7 @@ import {
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import AddIcon from "@mui/icons-material/Add";
+import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import EmptyState from "../../../../shared/components/ui/EmptyState/EmptyState";
@@ -24,12 +25,13 @@ import ConfirmDialog from "../../../../shared/components/ui/ConfirmDialog/Confir
 import useTeamAndClub from "../../hooks/useTeamAndClub.tsx";
 import teamplayerService from "../../services/teamplayerService";
 import playerService from "../../services/playerService";
-import teamplayerSanctionService, {
+import {
   getTeamSanctions,
   createPlayerSanction,
   updatePlayerSanction,
   deletePlayerSanction,
 } from "../../services/teamplayerSanctionService";
+import { getPendingAmount, isSanctionPending } from "../../services/sanctionStatus";
 import type {
   SanctionCategory,
   SanctionRecord,
@@ -46,6 +48,12 @@ import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess"
 import useTeamDashboardBack from "../../hooks/useTeamDashboardBack";
 import SanctionCard from "./components/SanctionCard";
 import SanctionsSummaryCards from "./components/SanctionsSummaryCards";
+import PendingSanctionsWhatsAppDialog from "./components/PendingSanctionsWhatsAppDialog";
+import {
+  buildPendingSanctionsMessage,
+  eventDateValue,
+  playerDisplayName,
+} from "./utils/pendingSanctionsMessage";
 import styles from "./Sanctions.module.css";
 
 type SanctionRow = { player: PlayerResponse; sanction: SanctionRecord };
@@ -73,15 +81,6 @@ const PUNISHMENT_TYPE_OPTIONS: { value: "" | SportivePunishmentType; label: stri
  * falling back to the legacy endDate-based inference (design.md Decisión 3). */
 function getStatus(sanction: SanctionRecord): "Pending" | "Fulfilled" {
   return sanction.status ?? (sanction.endDate ? "Fulfilled" : "Pending");
-}
-
-function eventDateValue(ev: SportEventResponse | undefined | null): string | null {
-  if (!ev) return null;
-  return ev.eveDateTime ?? ev.startTime ?? ev.start ?? null;
-}
-
-function playerDisplayName(player: PlayerResponse): string {
-  return ((player.name ?? "") + " " + (player.lastName ?? "")).trim() || player.alias;
 }
 
 function eventLabel(ev: SportEventResponse): string {
@@ -157,17 +156,18 @@ export default function Sanctions() {
     [rows]
   );
   const totalPending = useMemo(
-    () =>
-      rows.reduce((sum, { sanction }) => {
-        const pending =
-          sanction.pendingAmount != null
-            ? sanction.pendingAmount
-            : sanction.fine != null
-              ? sanction.fine - (sanction.amountPaid ?? 0)
-              : null;
-        return sum + (pending ?? 0);
-      }, 0),
+    () => rows.reduce((sum, { sanction }) => sum + (getPendingAmount(sanction) ?? 0), 0),
     [rows]
+  );
+
+  const [whatsAppOpen, setWhatsAppOpen] = useState(false);
+  const hasPendingSanctions = useMemo(() => rows.some(({ sanction }) => isSanctionPending(sanction)), [rows]);
+  const whatsAppMessage = useMemo(
+    () =>
+      whatsAppOpen
+        ? buildPendingSanctionsMessage({ teamName: team?.name, date: new Date(), rows, events })
+        : "",
+    [whatsAppOpen, team, rows, events]
   );
 
   function isTargetEventInFuture(eventId: string | null | undefined): boolean {
@@ -473,6 +473,18 @@ export default function Sanctions() {
                 Añadir sanción
               </Button>
             )}
+            {!isPlayerOrFamily && (
+              <Button
+                startIcon={<WhatsAppIcon />}
+                onClick={() => setWhatsAppOpen(true)}
+                variant="outlined"
+                size="small"
+                color="success"
+                disabled={!hasPendingSanctions}
+              >
+                Listado WhatsApp
+              </Button>
+            )}
             <Button startIcon={<ArrowBackIcon />} onClick={() => goToTeamDashboard()} variant="outlined" size="small">
               Volver
             </Button>
@@ -518,12 +530,7 @@ export default function Sanctions() {
             {visibleRows.map(({ player, sanction }) => {
               const status = getStatus(sanction);
               const deletable = canDeleteSanction(sanction);
-              const pendingAmount =
-                sanction.pendingAmount != null
-                  ? sanction.pendingAmount
-                  : sanction.fine != null
-                    ? sanction.fine - (sanction.amountPaid ?? 0)
-                    : null;
+              const pendingAmount = getPendingAmount(sanction);
               return (
                 <SanctionCard
                   key={sanction.id}
@@ -765,6 +772,12 @@ export default function Sanctions() {
         processing={deleteProcessing}
         onCancel={() => setDeleteTarget(null)}
         onConfirm={handleDeleteConfirmed}
+      />
+
+      <PendingSanctionsWhatsAppDialog
+        open={whatsAppOpen}
+        message={whatsAppMessage}
+        onClose={() => setWhatsAppOpen(false)}
       />
     </BaseLayout>
   );

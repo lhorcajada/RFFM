@@ -1,0 +1,8 @@
+.message {
+  margin-top: 8px;
+}
+
+.actions {
+  flex-wrap: wrap;
+  gap: 8px;
+}
