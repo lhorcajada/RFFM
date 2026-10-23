@@ -713,5 +713,43 @@ namespace RFFM.Api.Tests.UnitTests
 
             dispatcher.Verify(d => d.DispatchConvocationStatusChangedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
         }
+
+        [Fact]
+        public async Task CoachChangesLeagueMatchConvocation_DoesNotNotifyCoaches()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (eventId, _, convocationId) = await SeedConvocationAsync(db, eventTypeId: 1, convocationStatusId: 1);
+
+            var dispatcher = new Mock<IWebPushNotificationDispatcher>();
+            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser($"coach-{Guid.NewGuid():N}", "Coach").Object, new RFFM.Api.Domain.Services.SanctionConvocationEnforcementService(db), MockAuditLogger().Object, dispatcher.Object);
+
+            await handler.Handle(new UpdateConvocationStatus.UpdateStatusRequest
+            {
+                EventId = eventId,
+                ConvocationId = convocationId,
+                NewStatusId = 2
+            }, CancellationToken.None);
+
+            dispatcher.Verify(d => d.DispatchConvocationStatusChangedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task CoachChangesTrainingConvocation_NotifiesCoaches()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (eventId, _, convocationId) = await SeedConvocationAsync(db, eventTypeId: 2, convocationStatusId: 1);
+
+            var dispatcher = new Mock<IWebPushNotificationDispatcher>();
+            var handler = new UpdateConvocationStatus.Handler(db, CurrentUser($"coach-{Guid.NewGuid():N}", "Coach").Object, new RFFM.Api.Domain.Services.SanctionConvocationEnforcementService(db), MockAuditLogger().Object, dispatcher.Object);
+
+            await handler.Handle(new UpdateConvocationStatus.UpdateStatusRequest
+            {
+                EventId = eventId,
+                ConvocationId = convocationId,
+                NewStatusId = 2
+            }, CancellationToken.None);
+
+            dispatcher.Verify(d => d.DispatchConvocationStatusChangedAsync(convocationId, It.IsAny<CancellationToken>()), Times.Once);
+        }
     }
 }

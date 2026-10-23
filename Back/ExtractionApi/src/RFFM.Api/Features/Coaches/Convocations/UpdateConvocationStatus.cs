@@ -9,6 +9,7 @@ using RFFM.Api.Domain.Entities.Audit;
 using RFFM.Api.Domain.Services;
 using RFFM.Api.FeatureModules;
 using RFFM.Api.Features.Coaches.Notifications.Services;
+using RFFM.Api.Features.Coaches.SportEvents.Queries;
 using RFFM.Api.Infrastructure.Persistence;
 using RFFM.Api.Infrastructure.Services;
 using RFFM.Api.Domain.Aggregates.Assistances;
@@ -202,7 +203,9 @@ namespace RFFM.Api.Features.Coaches.Convocations
 
                 await _db.SaveChangesAsync(cancellationToken);
 
-                if (!isPlayerOrFamilyRole)
+                // League matches: the coach decides the convocation, so notifying the coaches would echo their own action.
+                var isLeagueMatch = conv.SportEvent.EventTypeId == SportEventsConstants.MatchEventTypeId;
+                if (!isPlayerOrFamilyRole && !isLeagueMatch)
                     await _webPushDispatcher.DispatchConvocationStatusChangedAsync(conv.Id, cancellationToken);
 
                 return Unit.Value;
