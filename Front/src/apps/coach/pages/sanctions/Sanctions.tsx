@@ -102,6 +102,7 @@ export default function Sanctions() {
     (_roles.includes("Player") || _roles.includes("FamilyPlayer") || _roles.includes("FamilyMember")) &&
     !_roles.includes("Coach") &&
     !_roles.includes("Administrator");
+  const isCoach = _roles.includes("Coach");
 
   const [players, setPlayers] = useState<PlayerResponse[]>([]);
   const [rows, setRows] = useState<SanctionRow[]>([]);
@@ -473,7 +474,7 @@ export default function Sanctions() {
                 Añadir sanción
               </Button>
             )}
-            {!isPlayerOrFamily && (
+            {isCoach && (
               <Button
                 startIcon={<WhatsAppIcon />}
                 onClick={() => setWhatsAppOpen(true)}

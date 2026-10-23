@@ -115,6 +115,14 @@ describe("Sanctions — listado de pendientes para WhatsApp", () => {
     expect(screen.getByRole("button", { name: /listado whatsapp/i })).toBeDisabled();
   });
 
+  it("no muestra el listado a usuarios sin rol entrenador aunque puedan gestionar sanciones", async () => {
+    getRolesMock.mockReturnValue(["Administrator"]);
+    renderSanctions();
+    await screen.findByText("Cumplida y pagada");
+
+    expect(screen.queryByRole("button", { name: /listado whatsapp/i })).not.toBeInTheDocument();
+  });
+
   it("no muestra el listado a jugadores ni familiares", async () => {
     getRolesMock.mockReturnValue(["FamilyPlayer"]);
     renderSanctions();
