@@ -37,11 +37,19 @@ The system SHALL, when a `TeamPlayer` is convocated to a `SportEvent` (single or
 - **THEN** the system does not create a `Notification` row for that family member
 
 ### Requirement: Accepting or rejecting a convocation notifies the coach
-The system SHALL, when a convocation's status changes via `PUT /api/events/{eventId}/convocations/{convocationId}/status`, create a `Notification` (type `ConvocationStatusChanged`) for every user with the `Coach` role on that convocation's team.
+The system SHALL, when a Coach or Administrator changes a convocation's status via `PUT /api/events/{eventId}/convocations/{convocationId}/status`, create a `Notification` (type `ConvocationStatusChanged`) for every user with the `Coach` role on that convocation's team. The notification SHALL NOT be created when the change is made by a Player or FamilyMember, nor when the event is a league match (event type `Partido`), where the coach is the one deciding the convocation.
 
-#### Scenario: A player accepting their call-up notifies the team's coach
-- **WHEN** a player accepts their convocation
+#### Scenario: A coach changing a training convocation notifies the team's coach
+- **WHEN** a coach changes the status of a convocation to a training
 - **THEN** the system creates a `Notification` row with type `ConvocationStatusChanged` for the `UserId` of the team's coach
+
+#### Scenario: A player responding does not notify the coach
+- **WHEN** a player accepts their convocation
+- **THEN** no `ConvocationStatusChanged` notification is created
+
+#### Scenario: A coach changing a league match convocation does not notify
+- **WHEN** a coach changes the status of a convocation to a league match
+- **THEN** no `ConvocationStatusChanged` notification is created
 
 ### Requirement: A sanction being created or changing status notifies the sanctioned player and family
 The system SHALL, on `POST` (create) or `PUT` (update) to `/api/catalog/teamplayer/{id}/sanctions[/{sanctionId}]`, create a `Notification` (type `SanctionChanged`) for the affected player and their approved family members, with `DeepLinkPath` pointing to `/coach/sanctions?highlight={sanctionId}`.
