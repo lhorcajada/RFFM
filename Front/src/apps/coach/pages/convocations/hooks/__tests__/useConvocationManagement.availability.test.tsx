@@ -40,8 +40,14 @@ vi.mock("../../../../services/convocationService", () => ({
 }));
 
 const getAvailabilityRequestsMock = vi.fn();
+const respondAvailabilityMock = vi.fn();
+const decideAvailableMock = vi.fn();
 vi.mock("../../../../services/availabilityService", () => ({
-  default: { getAvailabilityRequests: (...args: unknown[]) => getAvailabilityRequestsMock(...args) },
+  default: {
+    getAvailabilityRequests: (...args: unknown[]) => getAvailabilityRequestsMock(...args),
+    respondAvailability: (...args: unknown[]) => respondAvailabilityMock(...args),
+    decideAvailable: (...args: unknown[]) => decideAvailableMock(...args),
+  },
 }));
 
 const TEAM_ID = "team-1";
@@ -69,6 +75,8 @@ function setup(matchCategory: "League" | "Friendly") {
   getAvailabilityRequestsMock.mockResolvedValue(REQUESTS);
   addConvocationMock.mockResolvedValue({ id: "conv-new" });
   updateConvocationStatusMock.mockResolvedValue(undefined);
+  respondAvailabilityMock.mockResolvedValue(undefined);
+  decideAvailableMock.mockResolvedValue(undefined);
 }
 
 async function renderLoaded() {
@@ -104,7 +112,7 @@ describe("useConvocationManagement — disponibilidad en partidos de liga", () =
     expect(getAvailabilityRequestsMock).not.toHaveBeenCalled();
   });
 
-  it("en liga arrastrar un disponible a convocados lo convoca", async () => {
+  it("en liga arrastrar un disponible a convocados lo convoca con la decisión de disponibilidad, sin pasar por las convocatorias", async () => {
     setup("League");
     const { result } = await renderLoaded();
     await waitFor(() => expect(result.current.mgmtAvailable).toEqual(["p-av"]));
@@ -114,9 +122,83 @@ describe("useConvocationManagement — disponibilidad en partidos de liga", () =
       await result.current.handleDrop("called");
     });
 
-    expect(addConvocationMock).toHaveBeenCalledWith(EVENT_ID, "p-av");
+    expect(decideAvailableMock).toHaveBeenCalledWith(EVENT_ID, "req-2", true);
+    expect(addConvocationMock).not.toHaveBeenCalled();
+    expect(updateConvocationStatusMock).not.toHaveBeenCalled();
     expect(result.current.mgmtCalled).toContain("p-av");
     expect(result.current.mgmtAvailable).not.toContain("p-av");
+  });
+
+  it("en liga convocar los disponibles seleccionados usa la decisión de disponibilidad", async () => {
+    setup("League");
+    const { result } = await renderLoaded();
+    await waitFor(() => expect(result.current.mgmtAvailable).toEqual(["p-av"]));
+
+    await act(async () => {
+      await result.current.handleCallPlayers(["p-av"]);
+    });
+
+    expect(decideAvailableMock).toHaveBeenCalledWith(EVENT_ID, "req-2", true);
+    expect(updateConvocationStatusMock).not.toHaveBeenCalled();
+    expect(result.current.mgmtCalled).toContain("p-av");
+  });
+
+  it("en un amistoso convocar un disponible sigue creando la convocatoria", async () => {
+    setup("Friendly");
+    const { result } = await renderLoaded();
+
+    await act(async () => {
+      await result.current.handleCallPlayers(["p-av"]);
+    });
+
+    expect(addConvocationMock).toHaveBeenCalledWith(EVENT_ID, "p-av");
+    expect(decideAvailableMock).not.toHaveBeenCalled();
+  });
+
+  it("en liga si falla la decisión el jugador vuelve a disponibles", async () => {
+    setup("League");
+    decideAvailableMock.mockRejectedValue(new Error("boom"));
+    const { result } = await renderLoaded();
+    await waitFor(() => expect(result.current.mgmtAvailable).toEqual(["p-av"]));
+
+    await act(async () => {
+      await result.current.handleCallPlayers(["p-av"]);
+    });
+
+    expect(result.current.mgmtAvailable).toEqual(["p-av"]);
+    expect(result.current.mgmtCalled).not.toContain("p-av");
+  });
+
+  it("el entrenador marca como disponible a un pendiente de respuesta", async () => {
+    setup("League");
+    const { result } = await renderLoaded();
+    await waitFor(() => expect(result.current.mgmtAvailabilityPending).toEqual(["p-req"]));
+
+    await act(async () => {
+      await result.current.markAvailable("p-req");
+    });
+
+    expect(respondAvailabilityMock).toHaveBeenCalledWith(EVENT_ID, "req-1", true);
+    expect(result.current.mgmtAvailabilityPending).toEqual([]);
+    expect(result.current.mgmtAvailable).toEqual(["p-av", "p-req"]);
+  });
+
+  it("si falla marcar como disponible el jugador sigue pendiente de respuesta y se avisa del error", async () => {
+    setup("League");
+    respondAvailabilityMock.mockRejectedValue({ response: { data: { detail: "Ya decidido" } } });
+    const snackbar = vi.fn();
+    window.addEventListener("rffm.show_snackbar", snackbar);
+    const { result } = await renderLoaded();
+    await waitFor(() => expect(result.current.mgmtAvailabilityPending).toEqual(["p-req"]));
+
+    await act(async () => {
+      await result.current.markAvailable("p-req");
+    });
+
+    window.removeEventListener("rffm.show_snackbar", snackbar);
+    expect(result.current.mgmtAvailabilityPending).toEqual(["p-req"]);
+    expect(result.current.mgmtAvailable).toEqual(["p-av"]);
+    expect((snackbar.mock.calls[0][0] as CustomEvent).detail.message).toBe("Ya decidido");
   });
 
   it("en liga un convocado con la convocatoria aún pendiente no queda pendiente de aceptar", async () => {

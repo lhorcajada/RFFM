@@ -363,6 +363,7 @@ export default function ConvocationMatchDetail() {
             onDragLeave={() => convocation.setMgmtDragOver(null)}
             onDrop={convocation.handleDrop}
             onCallPlayers={convocation.handleCallPlayers}
+            onMarkAvailable={convocation.markAvailable}
             onExcuseChange={(pid, excuseId) =>
               convocation.setMgmtExcuseMap((prev) => ({ ...prev, [pid]: excuseId }))
             }

@@ -95,6 +95,8 @@ export type ConvocationManagementReturn = {
   moveToNotCalled: (playerId: string, excuseId?: number | null) => Promise<void>;
   moveToAvailable: (playerId: string) => Promise<void>;
   acceptPending: (playerId: string) => Promise<void>;
+  /** League only: the coach answers a pending availability request as available on the player's behalf. */
+  markAvailable: (playerId: string) => Promise<void>;
   /** Sets/clears the pre-match minutes reason for a player's convocation. Requires the
    *  player to already have a saved convocation (i.e. mgmtConvMap[playerId] is set). */
   saveMinutesReason: (playerId: string, reason: string | null) => Promise<void>;
@@ -122,6 +124,7 @@ export function useConvocationManagement(
   const [mgmtLoadingConv, setMgmtLoadingConv] = useState(false);
   const [mgmtWaiting, setMgmtWaiting] = useState<string[]>([]);
   const [mgmtAvailabilityPending, setMgmtAvailabilityPending] = useState<string[]>([]);
+  const [availabilityRequestIdByPlayer, setAvailabilityRequestIdByPlayer] = useState<Record<string, string>>({});
   const [mgmtAvailable, setMgmtAvailable] = useState<string[]>([]);
   const [mgmtCalled, setMgmtCalled] = useState<string[]>([]);
   const [mgmtNotCalled, setMgmtNotCalled] = useState<string[]>([]);
@@ -311,6 +314,9 @@ export function useConvocationManagement(
           setMgmtAvailable(availableIds);
           setMgmtWaiting(waitingIds);
           setMgmtAvailabilityPending(availabilityPendingIds);
+          setAvailabilityRequestIdByPlayer(
+            Object.fromEntries(availabilityRequests.map((r) => [r.teamPlayerId, r.id]))
+          );
           setMgmtExcuseMap(excuseInit);
           setMgmtAssistanceMap(assistanceInit);
           setMgmtMinutesReasonMap(minutesReasonInit);
@@ -473,6 +479,14 @@ export function useConvocationManagement(
     setMgmtNotCalled(moveTo("notCalled"));
 
     try {
+      // League: the player already confirmed availability, so the coach's decision convokes without notifying anyone.
+      const availabilityRequestId = availabilityRequestIdByPlayer[pid];
+      if (mgmtIsLeagueMatch && from === "available" && zone === "called" && availabilityRequestId) {
+        await availabilityService.decideAvailable(mgmtEventId, availabilityRequestId, true);
+        await refreshConvocationId(pid);
+        return;
+      }
+
       let convId = mgmtConvMap[pid];
       if (zone !== "available" && !convId) {
         const c = await convocationService.addConvocation(mgmtEventId, pid);
@@ -502,6 +516,35 @@ export function useConvocationManagement(
       setMgmtAvailabilityPending(restoreTo("availabilityPending"));
       setMgmtCalled(restoreTo("called"));
       setMgmtNotCalled(restoreTo("notCalled"));
+      emitConvocationBlockedError(err);
+    }
+  }
+
+  // The decision endpoint returns no body, so the new convocation id is read back from the event.
+  async function refreshConvocationId(pid: string) {
+    if (!mgmtEventId) return;
+    try {
+      const convs = await convocationService.getConvocations(mgmtEventId);
+      const convId = convs.find((c) => c.player.id === pid)?.id;
+      if (convId) setMgmtConvMap((prev) => ({ ...prev, [pid]: convId }));
+    } catch {
+      /* the id is resolved on the next load */
+    }
+  }
+
+  async function markAvailable(playerId: string) {
+    const requestId = availabilityRequestIdByPlayer[playerId];
+    if (!mgmtEventId || !mgmtIsLeagueMatch || !requestId) return;
+    if (!mgmtAvailabilityPending.includes(playerId)) return;
+
+    setMgmtAvailabilityPending((prev) => prev.filter((id) => id !== playerId));
+    setMgmtAvailable((prev) => (prev.includes(playerId) ? prev : [...prev, playerId]));
+
+    try {
+      await availabilityService.respondAvailability(mgmtEventId, requestId, true);
+    } catch (err) {
+      setMgmtAvailable((prev) => prev.filter((id) => id !== playerId));
+      setMgmtAvailabilityPending((prev) => (prev.includes(playerId) ? prev : [...prev, playerId]));
       emitConvocationBlockedError(err);
     }
   }
@@ -697,6 +740,7 @@ export function useConvocationManagement(
     moveToNotCalled,
     moveToAvailable,
     acceptPending,
+    markAvailable,
     saveMinutesReason,
   };
 }

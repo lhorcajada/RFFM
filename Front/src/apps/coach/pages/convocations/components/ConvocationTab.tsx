@@ -93,6 +93,8 @@ type Props = {
   onDrop: (zone: DropZone) => void;
   onExcuseChange: (playerId: string, excuseId: number) => void;
   onCallPlayers?: (playerIds: string[]) => Promise<void>;
+  /** League: answers a pending availability request as available on the player's behalf. */
+  onMarkAvailable?: (playerId: string) => Promise<void>;
   playerStreaks?: Map<string, number>;
   proposal: DeconvokeProposal;
   proposalLoading: boolean;
@@ -154,6 +156,7 @@ export default function ConvocationTab({
   onDrop,
   onExcuseChange,
   onCallPlayers,
+  onMarkAvailable,
   playerStreaks,
   proposal,
   proposalLoading,
@@ -168,6 +171,7 @@ export default function ConvocationTab({
   const toggleZone = (zone: DropZone) => setCollapsedZones((prev) => ({ ...prev, [zone]: !prev[zone] }));
   const [selectedToCall, setSelectedToCall] = useState<string[]>([]);
   const [callingPlayers, setCallingPlayers] = useState(false);
+  const [markingAvailable, setMarkingAvailable] = useState<string[]>([]);
   const selectedAvailable = selectedToCall.filter((id) => mgmtAvailable.includes(id));
   const toggleSelectedToCall = (playerId: string) =>
     setSelectedToCall((prev) => (prev.includes(playerId) ? prev.filter((id) => id !== playerId) : [...prev, playerId]));
@@ -180,6 +184,16 @@ export default function ConvocationTab({
       setSelectedToCall([]);
     } finally {
       setCallingPlayers(false);
+    }
+  }
+
+  async function handleMarkAvailable(playerId: string) {
+    if (!onMarkAvailable || markingAvailable.includes(playerId)) return;
+    setMarkingAvailable((prev) => [...prev, playerId]);
+    try {
+      await onMarkAvailable(playerId);
+    } finally {
+      setMarkingAvailable((prev) => prev.filter((id) => id !== playerId));
     }
   }
 
@@ -662,6 +676,21 @@ export default function ConvocationTab({
                                 />
                                 Convocar
                               </label>
+                            )}
+                            {zone === "availabilityPending" && onMarkAvailable && (
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                color="success"
+                                onClick={() => handleMarkAvailable(playerId)}
+                                onMouseDown={(e) => e.stopPropagation()}
+                                onDragStart={(e) => e.stopPropagation()}
+                                disabled={markingAvailable.includes(playerId)}
+                                aria-label={`Marcar disponible a ${displayName}`}
+                                className={styles.markAvailableBtn}
+                              >
+                                Disponible
+                              </Button>
                             )}
                           </div>
                         );
