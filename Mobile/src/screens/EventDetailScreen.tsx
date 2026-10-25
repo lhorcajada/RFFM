@@ -24,6 +24,7 @@ interface AttendanceRosterRow {
   status: string;
   statusId: number;
   isInjured?: boolean;
+  eventHasStarted?: boolean;
 }
 
 const PRIVILEGED_ROLES = ['administrator', 'coach'];
@@ -155,10 +156,17 @@ const EventDetailScreen = () => {
     );
   }
 
+  const isReadOnly = !isPrivileged && roster.some((row) => Boolean(row.eventHasStarted));
+
   return (
     <View style={styles.container}>
       {renderHeader()}
       <ScrollView contentContainerStyle={styles.contentContainer}>
+      {isReadOnly && (
+        <Text testID="read-only-notice" style={styles.readOnlyNotice}>
+          Este evento ya ha comenzado. Solo puedes consultar la asistencia.
+        </Text>
+      )}
       {GROUP_ORDER.map((status) => {
         const groupRows = roster
           .filter((row) => row.status === status)
@@ -184,7 +192,7 @@ const EventDetailScreen = () => {
 
             {isExpanded && groupRows.map((row) => {
               const isMyInjuredPlayer = !isPrivileged && row.teamPlayerId === myTeamPlayerId && Boolean(row.isInjured);
-              const canEdit = isPrivileged || (row.teamPlayerId === myTeamPlayerId && !isMyInjuredPlayer);
+              const canEdit = isPrivileged || (row.teamPlayerId === myTeamPlayerId && !isMyInjuredPlayer && !isReadOnly);
               const photoUri = resolvePhotoUrl(row.urlPhoto, API_BASE_URL);
               return (
                 <View key={row.teamPlayerId} testID={`roster-row-${row.teamPlayerId}`} style={styles.card}>
@@ -279,6 +287,16 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     paddingVertical: 20,
+  },
+  readOnlyNotice: {
+    fontSize: 13,
+    color: coachColors.textSecondary,
+    backgroundColor: coachColors.surface,
+    borderWidth: 1,
+    borderColor: coachColors.border,
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 16,
   },
   group: {
     marginBottom: 16,
