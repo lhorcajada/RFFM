@@ -62,6 +62,17 @@ describe("Footer — menú inferior de Coach", () => {
     expect(screen.queryByRole("link", { name: "Calendario" })).not.toBeInTheDocument();
   });
 
+  it("no muestra el menú Inicio/Configuración cuando la página tiene la navegación del equipo", () => {
+    render(
+      <MemoryRouter initialEntries={["/coach/squad"]}>
+        <Footer hideMenu teamNav />
+      </MemoryRouter>
+    );
+
+    expect(screen.queryByRole("link", { name: "Inicio" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Configuración" })).not.toBeInTheDocument();
+  });
+
   it("no muestra ningún menú fuera de coach cuando se oculta el menú", () => {
     renderFooter("/app-selector");
 

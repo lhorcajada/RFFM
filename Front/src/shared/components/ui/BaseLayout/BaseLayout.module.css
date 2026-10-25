@@ -70,6 +70,44 @@
   }
 }
 
+/* Coach team navigation: bottom tab bar replacing the footer below 1200px,
+   left rail between header and footer from 1200px. */
+.teamNav {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(var(--rffm-team-nav-h, 64px) + env(safe-area-inset-bottom, 0px));
+  z-index: 1600;
+}
+
+.withTeamNav .footer {
+  display: none;
+}
+
+.withTeamNav .content {
+  bottom: calc(var(--rffm-team-nav-h, 64px) + env(safe-area-inset-bottom, 0px));
+}
+
+@media (min-width: 1200px) {
+  .teamNav {
+    top: var(--rffm-header-h);
+    right: auto;
+    bottom: var(--rffm-footer-h);
+    width: var(--rffm-team-nav-rail-w, 96px);
+    height: auto;
+  }
+
+  .withTeamNav .footer {
+    display: block;
+  }
+
+  .withTeamNav .content {
+    left: var(--rffm-team-nav-rail-w, 96px);
+    bottom: var(--rffm-footer-h);
+  }
+}
+
 /* ── Reset layout fijo para impresión ── */
 @media print {
   .paper {
@@ -83,7 +121,8 @@
     position: static !important;
   }
   .header,
-  .footer {
+  .footer,
+  .teamNav {
     display: none !important;
   }
   .content {

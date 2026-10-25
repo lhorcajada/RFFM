@@ -7,7 +7,6 @@ import ContentLayout from "../../../../shared/components/ui/ContentLayout/Conten
 import ErrorBoundary from "../../../../shared/components/ui/ErrorBoundary/ErrorBoundary";
 import useTeamAndClub from "../../hooks/useTeamAndClub";
 import { usePlayerAutoLoad } from "../Dashboard/hooks/usePlayerAutoLoad";
-import TeamDashboardCards from "./TeamDashboardCards";
 import UpcomingEventsWidget from "./components/UpcomingEventsWidget";
 import NewsWidget from "./components/NewsWidget";
 import PushActivationBanner from "../../components/PushActivationBanner/PushActivationBanner";
@@ -21,7 +20,6 @@ export default function TeamDashboard() {
   const { teamTitleNode, clubSubtitleNode, team } = useTeamAndClub();
   const { isPlayer } = usePlayerAutoLoad();
   const clubId = team?.club?.id;
-  const selectedSeason = "";
 
   return (
     <BaseLayout hideFooterMenu>
@@ -55,20 +53,13 @@ export default function TeamDashboard() {
       >
         <div className={teamDashboardStyles.pageContent}>
           <PushActivationBanner />
-          <div className={teamDashboardStyles.layout}>
-            <div className={teamDashboardStyles.widgetsGrid}>
-              <ErrorBoundary>
-                <UpcomingEventsWidget team={team} isPlayer={isPlayer} />
-              </ErrorBoundary>
-              <ErrorBoundary>
-                <NewsWidget />
-              </ErrorBoundary>
-            </div>
-            <div className={teamDashboardStyles.tilesGrid}>
-              <ErrorBoundary>
-                <TeamDashboardCards team={team} selectedSeason={selectedSeason} isPlayer={isPlayer} />
-              </ErrorBoundary>
-            </div>
+          <div className={teamDashboardStyles.widgetsGrid}>
+            <ErrorBoundary>
+              <UpcomingEventsWidget team={team} isPlayer={isPlayer} />
+            </ErrorBoundary>
+            <ErrorBoundary>
+              <NewsWidget />
+            </ErrorBoundary>
           </div>
         </div>
       </ContentLayout>

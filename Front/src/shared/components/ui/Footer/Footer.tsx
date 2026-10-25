@@ -22,9 +22,11 @@ type ActiveSeasonChangedDetail = {
 
 interface FooterProps {
   hideMenu?: boolean;
+  /** The page shows the Coach team navigation, which replaces the coach menu. */
+  teamNav?: boolean;
 }
 
-export default function Footer({ hideMenu }: FooterProps): JSX.Element {
+export default function Footer({ hideMenu, teamNav }: FooterProps): JSX.Element {
   const loc = useLocation();
   const { user } = useUser();
   const [showActions, setShowActions] = React.useState<boolean>(false);
@@ -144,9 +146,11 @@ export default function Footer({ hideMenu }: FooterProps): JSX.Element {
             © {copyrightYear} Futbol Base. Todos los derechos reservados.
           </div>
         </div>
-        <nav className={styles.coachMenu} aria-label="Menú de entrenador">
-          <BottomMenu items={coachItems} showScrollArrows={false} />
-        </nav>
+        {!teamNav && (
+          <nav className={styles.coachMenu} aria-label="Menú de entrenador">
+            <BottomMenu items={coachItems} showScrollArrows={false} />
+          </nav>
+        )}
       </div>
     );
   }

@@ -161,6 +161,12 @@ const coachTheme = createTheme({
             "radial-gradient(circle at 85% 0%, rgba(77, 157, 224, 0.26), transparent 42%)",
           "--rffm-dash-hero-glow-mobile":
             "radial-gradient(circle at 100% 0%, rgba(77, 157, 224, 0.3), transparent 55%)",
+          /* Team navigation (coach-team-navigation) */
+          "--rffm-team-nav-h": "64px",
+          "--rffm-team-nav-rail-w": "96px",
+          "--rffm-team-nav-bg": "#111128",
+          "--rffm-team-nav-active": "#4ec9b0",
+          "--rffm-team-nav-text": "rgba(232, 232, 232, 0.68)",
           /* ClubTeams page tokens */
           "--rffm-club-teams-page-padding": "1.25rem",
           "--rffm-club-teams-list-gap": "0.75rem",

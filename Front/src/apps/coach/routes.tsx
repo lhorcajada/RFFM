@@ -18,6 +18,7 @@ const CreateClub = lazy(() => import("./pages/clubs/create/CreateClub"));
 // Placeholder pages for Coach app
 const Dashboard = lazy(() => import("./pages/Dashboard/Dashboard"));
 const TeamDashboard = lazy(() => import("./pages/team-dashboard/TeamDashboard"));
+const TeamMenu = lazy(() => import("./pages/team-menu/TeamMenu"));
 // Auth pages are provided at top-level shared/pages/auth; coach redirects to those routes
 
 // Feature pages for Coach app
@@ -110,6 +111,7 @@ function CoachRoutesContent() {
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="notifications" element={<Notifications />} />
             <Route path="team-dashboard" element={<TeamDashboard />} />
+            <Route path="menu" element={<TeamMenu />} />
             <Route path="team-users" element={<TeamUsers />} />
             <Route
               path="settings"

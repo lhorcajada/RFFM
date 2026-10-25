@@ -1,7 +1,10 @@
 import React from "react";
 import Paper from "@mui/material/Paper";
+import { useLocation } from "react-router-dom";
 import AppHeader from "../AppHeader/AppHeader";
 import Footer from "../Footer/Footer";
+import CoachTeamNav from "../../../../apps/coach/navigation/CoachTeamNav";
+import { isTeamNavRoute } from "../../../../apps/coach/navigation/teamNavRoutes";
 import styles from "./BaseLayout.module.css";
 
 interface BaseLayoutProps {
@@ -16,18 +19,28 @@ const BaseLayout: React.FC<BaseLayoutProps> = ({
   className,
   appTitle,
   hideFooterMenu,
-}) => (
-  <Paper className={className ? `${styles.paper} ${className}` : styles.paper}>
-    <div className={styles.layoutWrap}>
-      <div className={styles.header}>
-        {appTitle ? <AppHeader title={appTitle} /> : <AppHeader />}
+}) => {
+  const { pathname } = useLocation();
+  const showTeamNav = isTeamNavRoute(pathname);
+
+  return (
+    <Paper className={className ? `${styles.paper} ${className}` : styles.paper}>
+      <div className={showTeamNav ? `${styles.layoutWrap} ${styles.withTeamNav}` : styles.layoutWrap}>
+        <div className={styles.header}>
+          {appTitle ? <AppHeader title={appTitle} /> : <AppHeader />}
+        </div>
+        <div className={styles.content}>{children}</div>
+        {showTeamNav && (
+          <div className={styles.teamNav}>
+            <CoachTeamNav />
+          </div>
+        )}
+        <div className={styles.footer}>
+          <Footer hideMenu={!!hideFooterMenu} teamNav={showTeamNav} />
+        </div>
       </div>
-      <div className={styles.content}>{children}</div>
-      <div className={styles.footer}>
-        <Footer hideMenu={!!hideFooterMenu} />
-      </div>
-    </div>
-  </Paper>
-);
+    </Paper>
+  );
+};
 
 export default BaseLayout;
