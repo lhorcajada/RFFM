@@ -111,7 +111,9 @@ describe("AttendanceTabs — convocados en partidos de liga", () => {
     await screen.findByText("Pendiente Uno");
     expect(screen.queryByRole("button", { name: "Aceptar" })).not.toBeInTheDocument();
     expect(screen.queryByText("Pendiente de aceptar")).not.toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: "Desconvocar" })).toHaveLength(2);
+    expect(screen.getAllByRole("button", { name: /^Acciones de/ })).toHaveLength(2);
+    await userEvent.click(screen.getByRole("button", { name: "Acciones de Pendiente Uno" }));
+    expect(screen.getByRole("menuitem", { name: "Desconvocar" })).toBeInTheDocument();
   });
 
   it("una lista vacía sigue plegada aunque se pulse", async () => {

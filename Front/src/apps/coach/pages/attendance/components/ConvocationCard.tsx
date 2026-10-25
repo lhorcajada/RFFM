@@ -1,24 +1,30 @@
-﻿import React from "react";
-import { Link } from "react-router-dom";
-import { Checkbox } from "@mui/material";
+﻿import React, { useState } from "react";
+import { IconButton, Menu, MenuItem } from "@mui/material";
+import CheckIcon from "@mui/icons-material/Check";
+import CloseIcon from "@mui/icons-material/Close";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
 import type { ConvocationItem } from "../../../services/convocationService";
-import styles from "../AttendanceTabs.module.css";
-import defaultAvatar from "../../../../../assets/avatar.svg";
+import PlayerRow, { type PlayerRowStatus } from "./PlayerRow";
+import OwnPlayerCard from "./OwnPlayerCard";
+import { positionTagOf } from "../utils/positionGroups";
+import { playerDetailHref, playerDisplayName, playerDorsal } from "../utils/playerDisplay";
+import actionStyles from "./RowActions.module.css";
 
 type Props = {
   conv: ConvocationItem;
+  /** "own" renders the convocation as the «Tu jugador» card of a Player/FamilyMember. */
+  variant?: "row" | "own";
   photoSrc?: string | null;
   statuses: { id: number; name: string }[];
   excuseTypes: { id: number; name: string; justified?: boolean }[];
   canEdit: boolean;
   canEditThisConvocation?: boolean;
   isInjured?: boolean;
-    highlighted?: boolean;
   viewablePlayerId?: string | null;
   hideWaitingListButton?: boolean;
   /**
    * Whether a Deconvoked convocation may be moved back to "Pendiente de
-   * aceptar"/"Aceptada" from this card. Coach/Administrator can always
+   * aceptar"/"Aceptada" from this row. Coach/Administrator can always
    * reactivate (parent should pass `true`); Player/FamilyMember can only
    * reactivate their own player's convocation on a Training event — the
    * button must not render at all otherwise (backend also enforces this
@@ -40,9 +46,8 @@ type Props = {
   onEditReason?: (conv: ConvocationItem) => void;
   /**
    * Enables the bulk-selection checkbox used to pick pending convocations to
-   * notify via WhatsApp (only ever true for cards rendered inside the
-   * "Pendientes de aceptar" group). Every other call site omits it, which
-   * keeps the card fully backward compatible (no checkbox rendered).
+   * notify (only ever true for rows rendered inside the "Pendientes de
+   * aceptar" group).
    */
   selectable?: boolean;
   selected?: boolean;
@@ -54,13 +59,12 @@ type Props = {
   closedConvocation?: boolean;
 };
 
-const STATUS_LABELS: Record<string, string> = {
-  Pending: "Pendiente",
-  Accepted: "Aceptar",
-  Deconvoke: "Rechazar",
+type Presentation = {
+  status: PlayerRowStatus;
+  secondary?: string | null;
+  dimmed?: boolean;
+  actions?: React.ReactNode;
 };
-
-const SELECTABLE_STATUSES = ["Accepted", "Deconvoke"];
 
 const REACTIVATE_TARGET_STATUSES = ["Pending", "Accepted"];
 
@@ -69,21 +73,17 @@ const REACTIVATE_LABELS: Record<string, string> = {
   Accepted: "Aceptar",
 };
 
-function statusColorClass(name: string) {
-  if (name === "Accepted") return styles.optionBtnGreen;
-  if (name === "Deconvoke") return styles.optionBtnRed;
-  return styles.optionBtnGray;
-}
+const WAITING_LIST_LABEL = "↩ Lista de espera";
 
 export default function ConvocationCard({
   conv,
+  variant = "row",
   photoSrc,
   statuses,
   excuseTypes,
   canEdit,
   canEditThisConvocation,
   isInjured: isInjuredProp,
-    highlighted,
   viewablePlayerId,
   hideWaitingListButton,
   canReactivateFromDeconvoke,
@@ -96,217 +96,184 @@ export default function ConvocationCard({
   onToggleSelect,
   closedConvocation,
 }: Props) {
-  const p = conv.player as any;
+  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
+  const isOwn = variant === "own";
+  const p = conv.player;
   const rawStatusName = statuses.find((s) => s.id === conv.status)?.name ?? "";
   const statusName = closedConvocation && rawStatusName === "Pending" ? "Accepted" : rawStatusName;
-  const displayName = p.alias || ((p.name ?? "") + " " + (p.lastName ?? "")).trim() || "Jugador";
-  const dorsalValue =
-    typeof p.dorsal === "number" ? p.dorsal : p.dorsal ? Number(p.dorsal) : null;
-  const hasDorsal = typeof dorsalValue === "number" && Number.isFinite(dorsalValue);
-  const photo = photoSrc ?? defaultAvatar;
+  const displayName = playerDisplayName(p);
+  const canViewDetail = !viewablePlayerId || p.playerId === viewablePlayerId || p.id === viewablePlayerId;
+  const detailHref = canViewDetail ? playerDetailHref(p) : null;
+  const canDoAction = canEditThisConvocation ?? canEdit;
+  const showWaitingListButton = canEdit && !!onMoveToWaiting && !hideWaitingListButton;
 
-  const canViewDetail =
-    !viewablePlayerId || p.playerId === viewablePlayerId || p.id === viewablePlayerId;
+  const present = ({ status, secondary, dimmed, actions }: Presentation) =>
+    isOwn ? (
+      <OwnPlayerCard
+        name={displayName}
+        photoSrc={photoSrc}
+        dorsal={playerDorsal(p)}
+        position={p.position}
+        status={status}
+        detail={secondary}
+        detailHref={detailHref}
+        actions={actions}
+      />
+    ) : (
+      <PlayerRow
+        name={displayName}
+        photoSrc={photoSrc}
+        dorsal={playerDorsal(p)}
+        positionTag={positionTagOf(p.position)}
+        detailHref={detailHref}
+        status={status}
+        secondary={secondary}
+        dimmed={dimmed}
+        selectable={selectable}
+        selected={selected}
+        onToggleSelect={() => p.id && onToggleSelect?.(p.id)}
+        selectLabel={`Seleccionar a ${displayName} para notificar`}
+        actions={actions}
+      />
+    );
 
-  const stripeClass =
-    statusName === "Accepted"
-      ? styles.cromoStatusStripeAccepted
-      : statusName === "Deconvoke"
-      ? styles.cromoStatusStripeDeclined
-      : styles.cromoStatusStripePending;
+  const waitingListButton = showWaitingListButton && (
+    <button type="button" className={`${actionStyles.textBtn} ${actionStyles.neutral}`} onClick={() => onMoveToWaiting?.(conv)}>
+      {WAITING_LIST_LABEL}
+    </button>
+  );
 
   if (isInjuredProp || p.isInjured) {
-    return (
-      <div className={styles.cardWrap}>
-        <div className={styles.cromoCard}>
-          {p.id && canViewDetail ? (
-            <Link to={`/coach/player/${p.id}`} className={styles.cromoPhotoLink}>
-              <div className={styles.cromoPhotoArea}>
-                <img src={photo} alt={displayName} className={photo === defaultAvatar ? styles.cromoPhotoAvatar : styles.cromoPhoto} />
-                <div className={styles.cromoGradient} />
-                {hasDorsal && <div className={styles.cromoDorsalBadge}>{dorsalValue}</div>}
-                <div className={styles.cromoInjuryCornerBadge}>🩹</div>
-                <div className={`${styles.cromoStatusStripe} ${styles.cromoStatusStripeDeclined}`} />
-              </div>
-            </Link>
-          ) : (
-            <div className={styles.cromoPhotoArea}>
-              <img src={photo} alt={displayName} className={photo === defaultAvatar ? styles.cromoPhotoAvatar : styles.cromoPhoto} />
-              <div className={styles.cromoGradient} />
-              {hasDorsal && <div className={styles.cromoDorsalBadge}>{dorsalValue}</div>}
-              <div className={styles.cromoInjuryCornerBadge}>🩹</div>
-              <div className={`${styles.cromoStatusStripe} ${styles.cromoStatusStripeDeclined}`} />
-            </div>
-          )}
-          <div className={styles.cromoBody}>
-            <div className={styles.cromoAccentLine} />
-            <div className={styles.cromoName}>{displayName}</div>
-            {p.position && <div className={styles.cromoPosition}>{p.position}</div>}
-            <div className={styles.cromoActions}>
-              <div className={styles.cromoInjuredBadge}>🩹 Lesionado</div>
-              {canEdit && onMoveToWaiting && !hideWaitingListButton && (
-                <button
-                  className={`${styles.optionBtn} ${styles.optionBtnBlue}`}
-                  onClick={() => onMoveToWaiting(conv)}
-                >
-                  ↩ Lista de espera
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return present({
+      status: { label: "Baja", tone: "declined" },
+      secondary: "Lesionado",
+      dimmed: true,
+      actions: waitingListButton || undefined,
+    });
   }
 
-  const isDeconvoked = statusName === "Deconvoke";
-  const isAccepted = statusName === "Accepted";
-  const selectableStatuses = statuses.filter((s) => SELECTABLE_STATUSES.includes(s.name));
-  const reactivateTargets = statuses.filter((s) => REACTIVATE_TARGET_STATUSES.includes(s.name));
-  const canDoAction = canEditThisConvocation ?? canEdit;
-  const showReactivateControls = isDeconvoked && !!canReactivateFromDeconvoke && canDoAction;
-  const excuseLabel = isDeconvoked
-    ? conv.excuseTypeId
-      ? (excuseTypes.find((e) => e.id === conv.excuseTypeId)?.name ?? null)
-      : "Decisión técnica"
-    : null;
-
-  const selectCheckbox = selectable && (
-    <Checkbox
-      className={styles.cromoSelectCheckbox}
-      size="small"
-      checked={!!selected}
-      onChange={() => onToggleSelect?.(p.id)}
-      inputProps={{ "aria-label": `Seleccionar a ${displayName} para notificar` }}
-    />
-  );
-
-  return (
-    <div className={styles.cardWrap}>
-      <div className={`${styles.cromoCard}${highlighted ? " " + styles.cromoCardHighlighted : ""}`}>
-        <div className={styles.cromoPhotoArea}>
-          {p.id && canViewDetail ? (
-            <Link to={`/coach/player/${p.id}`} className={styles.cromoPhotoLink}>
-              <img src={photo} alt={displayName} className={photo === defaultAvatar ? styles.cromoPhotoAvatar : styles.cromoPhoto} />
-              <div className={styles.cromoGradient} />
-              {hasDorsal && <div className={styles.cromoDorsalBadge}>{dorsalValue}</div>}
-              <div className={`${styles.cromoStatusStripe} ${stripeClass}`} />
-            </Link>
-          ) : (
-            <>
-              <img src={photo} alt={displayName} className={photo === defaultAvatar ? styles.cromoPhotoAvatar : styles.cromoPhoto} />
-              <div className={styles.cromoGradient} />
-              {hasDorsal && <div className={styles.cromoDorsalBadge}>{dorsalValue}</div>}
-              <div className={`${styles.cromoStatusStripe} ${stripeClass}`} />
-            </>
-          )}
-          {selectCheckbox}
-        </div>
-        <div className={styles.cromoBody}>
-          <div className={styles.cromoAccentLine} />
-          <div className={styles.cromoName}>{displayName}</div>
-          {p.position && <div className={styles.cromoPosition}>{p.position}</div>}
-          <div className={styles.cromoActions}>
-            {isAccepted ? (
-              canEdit && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                  <button
-                    className={`${styles.optionBtn} ${styles.optionBtnRed}`}
-                    onClick={() => onDelete(conv)}
-                    title="Desconvocar"
-                  >
-                    Desconvocar
-                  </button>
-                  {onMoveToWaiting && !hideWaitingListButton && (
-                    <button
-                      className={`${styles.optionBtn} ${styles.optionBtnBlue}`}
-                      onClick={() => onMoveToWaiting(conv)}
-                    >
-                      ↩ Lista de espera
-                    </button>
-                  )}
-                </div>
-              )
-            ) : isDeconvoked ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                {excuseLabel && (
-                  <div className={styles.tagBadgeRow}>
-                    <span className={`${styles.tagBadge} ${conv.excuseTypeId ? styles.tagDeconvoked : styles.tagDecision}`}>
-                      {excuseLabel}
-                    </span>
-                  </div>
-                )}
-                {onEditReason && canDoAction && (
-                  <button
-                    className={`${styles.optionBtn} ${styles.optionBtnGray}`}
-                    onClick={() => onEditReason(conv)}
-                  >
-                    ✎ Editar motivo
-                  </button>
-                )}
-                {showReactivateControls && (
-                  <div className={styles.optionGroup}>
-                    {reactivateTargets.map((s) => (
-                      <button
-                        key={s.id}
-                        className={`${styles.optionBtn} ${statusColorClass(s.name)}`}
-                        onClick={() => onChangeStatus(conv, s.id, null)}
-                      >
-                        {REACTIVATE_LABELS[s.name] ?? s.name}
-                      </button>
-                    ))}
-                  </div>
-                )}
-                {canEdit && onMoveToWaiting && !hideWaitingListButton && (
-                  <button
-                    className={`${styles.optionBtn} ${styles.optionBtnBlue}`}
-                    onClick={() => onMoveToWaiting(conv)}
-                  >
-                    ↩ Lista de espera
-                  </button>
-                )}
-              </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                <div className={styles.tagBadgeRow}>
-                  <span className={`${styles.tagBadge} ${styles.tagWaiting}`}>Pendiente de aceptar</span>
-                </div>
-                <div className={styles.optionGroup}>
-                  {selectableStatuses.map((s) => {
-                    const isActive = conv.status === s.id;
-                    const colorClass = statusColorClass(s.name);
-                    const canDoAction = canEditThisConvocation ?? canEdit;
-                    return (
-                      <button
-                        key={s.id}
-                        disabled={!canDoAction}
-                        className={`${styles.optionBtn} ${colorClass}${isActive ? " " + styles.optionBtnActive : ""}`}
-                        onClick={() => {
-                          if (s.name === "Deconvoke") {
-                            onDelete(conv);
-                          } else {
-                            onChangeStatus(conv, s.id, null);
-                          }
-                        }}
-                      >
-                        {STATUS_LABELS[s.name] ?? s.name}
-                      </button>
-                    );
-                  })}
-                </div>
-                {canEdit && onMoveToWaiting && !hideWaitingListButton && (
-                  <button
-                    className={`${styles.optionBtn} ${styles.optionBtnBlue}`}
-                    onClick={() => onMoveToWaiting(conv)}
-                  >
-                    ↩ Lista de espera
-                  </button>
-                )}
-              </div>
+  if (statusName === "Accepted") {
+    const status: PlayerRowStatus = { label: closedConvocation ? "Convocado" : "Va", tone: "accepted" };
+    if (!canDoAction) return present({ status });
+    if (isOwn) {
+      return present({
+        status,
+        actions: (
+          <button type="button" className={`${actionStyles.textBtn} ${actionStyles.negative}`} onClick={() => onDelete(conv)}>
+            Desconvocar
+          </button>
+        ),
+      });
+    }
+    const closeMenu = () => setMenuAnchor(null);
+    return present({
+      status,
+      actions: (
+        <>
+          <IconButton
+            className={actionStyles.iconBtnMenu}
+            aria-label={`Acciones de ${displayName}`}
+            aria-haspopup="menu"
+            onClick={(e) => setMenuAnchor(e.currentTarget)}
+          >
+            <MoreVertIcon />
+          </IconButton>
+          <Menu anchorEl={menuAnchor} open={!!menuAnchor} onClose={closeMenu}>
+            <MenuItem
+              onClick={() => {
+                closeMenu();
+                onDelete(conv);
+              }}
+            >
+              Desconvocar
+            </MenuItem>
+            {showWaitingListButton && (
+              <MenuItem
+                onClick={() => {
+                  closeMenu();
+                  onMoveToWaiting?.(conv);
+                }}
+              >
+                {WAITING_LIST_LABEL}
+              </MenuItem>
             )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+          </Menu>
+        </>
+      ),
+    });
+  }
+
+  if (statusName === "Deconvoke") {
+    const excuseLabel = conv.excuseTypeId
+      ? (excuseTypes.find((e) => e.id === conv.excuseTypeId)?.name ?? null)
+      : "Decisión técnica";
+    const showReactivateControls = !!canReactivateFromDeconvoke && canDoAction;
+    const reactivateTargets = statuses.filter((s) => REACTIVATE_TARGET_STATUSES.includes(s.name));
+    const showEditReason = !!onEditReason && canDoAction;
+    const hasActions = showEditReason || showReactivateControls || showWaitingListButton;
+    return present({
+      status: { label: "No va", tone: "declined" },
+      secondary: excuseLabel,
+      dimmed: true,
+      actions: hasActions ? (
+        <>
+          {showEditReason && (
+            <button type="button" className={actionStyles.textBtn} onClick={() => onEditReason?.(conv)}>
+              ✎ Editar motivo
+            </button>
+          )}
+          {showReactivateControls &&
+            reactivateTargets.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                className={`${actionStyles.textBtn} ${s.name === "Accepted" ? actionStyles.positive : ""}`}
+                onClick={() => onChangeStatus(conv, s.id, null)}
+              >
+                {REACTIVATE_LABELS[s.name] ?? s.name}
+              </button>
+            ))}
+          {waitingListButton}
+        </>
+      ) : undefined,
+    });
+  }
+
+  const acceptedStatus = statuses.find((s) => s.name === "Accepted");
+  const deconvokeStatus = statuses.find((s) => s.name === "Deconvoke");
+  const accept = () => acceptedStatus && onChangeStatus(conv, acceptedStatus.id, null);
+  const reject = () => onDelete(conv);
+  return present({
+    status: { label: "Pendiente", tone: "pending" },
+    actions: isOwn ? (
+      canDoAction && (
+        <>
+          {acceptedStatus && (
+            <button type="button" className={`${actionStyles.textBtn} ${actionStyles.positive}`} onClick={accept}>
+              Aceptar
+            </button>
+          )}
+          {deconvokeStatus && (
+            <button type="button" className={`${actionStyles.textBtn} ${actionStyles.negative}`} onClick={reject}>
+              Rechazar
+            </button>
+          )}
+        </>
+      )
+    ) : (
+      <>
+        {acceptedStatus && (
+          <IconButton className={actionStyles.iconBtnPositive} aria-label="Aceptar" disabled={!canDoAction} onClick={accept}>
+            <CheckIcon />
+          </IconButton>
+        )}
+        {deconvokeStatus && (
+          <IconButton className={actionStyles.iconBtnNegative} aria-label="Rechazar" disabled={!canDoAction} onClick={reject}>
+            <CloseIcon />
+          </IconButton>
+        )}
+        {waitingListButton}
+      </>
+    ),
+  });
 }

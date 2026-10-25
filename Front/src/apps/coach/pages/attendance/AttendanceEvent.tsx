@@ -19,6 +19,7 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import { getEventTypeColor } from "./attendanceUtils";
 import styles from "./AttendanceEvent.module.css";
 import AttendanceTabs from "./AttendanceTabs";
+import EventInfoCard from "./components/EventInfoCard";
 import type { PendingConfirmationEventSummary } from "./utils/pendingConfirmationWhatsApp";
 import SportEventDialog from "./components/SportEventDialog";
 import { coachAuthService } from "../../services/authService";
@@ -343,120 +344,19 @@ export default function AttendanceEvent() {
             <CircularProgress />
           ) : event ? (
             <div className={styles.container}>
-              <div className={styles.infoContainer}>
-                <div className={styles.infoTitle}>
-                  <div>Información del evento</div>
-                  <div className={getChipClass(eventTypeName)}>
-                    {eventTypeName ?? ""}
-                  </div>
-                </div>
-                <div className={styles.infoGrid}>
-                  <div className={styles.infoRow}>
-                    <div className={styles.label}>Nombre</div>
-                    <div className={styles.value}>
-                      {event.name ?? event.title}
-                    </div>
-                  </div>
-
-                  <div className={styles.infoRow}>
-                    <div className={styles.label}>Tipo</div>
-                    <div className={styles.value}>{eventTypeName ?? "-"}</div>
-                  </div>
-
-                  <div className={styles.infoRow}>
-                    <div className={styles.label}>Fecha / Horas</div>
-                    <div className={styles.value}>
-                      {(() => {
-                        // Date can come from eveDateTime (always present, even
-                        // before RFFM publishes a kickoff time); the start time
-                        // must come strictly from startTime, or it would show a
-                        // fabricated time built from eveDateTime's placeholder.
-                        const d = parseDate(
-                          event.startTime ??
-                            event.start ??
-                            event.eveDateTime ??
-                            undefined
-                        );
-                        const dTime = parseDate(event.startTime ?? undefined);
-                        const start = dTime
-                          ? dTime.toLocaleTimeString(undefined, {
-                              timeStyle: "short",
-                            })
-                          : "-";
-                        const date = d
-                          ? d.toLocaleDateString(undefined, {
-                              dateStyle: "long",
-                            })
-                          : "Por confirmar";
-                        const eEnd = parseDate(
-                          event.end ?? event.endTime ?? undefined
-                        );
-                        const end = eEnd
-                          ? eEnd.toLocaleTimeString(undefined, {
-                              timeStyle: "short",
-                            })
-                          : "-";
-                        const arr = parseDate(
-                          event.arrivalDate ?? event.arrival ?? undefined
-                        );
-                        const arrival = arr
-                          ? arr.toLocaleTimeString(undefined, {
-                              timeStyle: "short",
-                            })
-                          : "-";
-                        return (
-                          <>
-                            <strong>{date}</strong>
-                            <span style={{ marginLeft: 8 }}>
-                              {`Inicio ${start} • Fin ${end} • Llegada ${arrival}`}
-                            </span>
-                          </>
-                        );
-                      })()}
-                    </div>
-                  </div>
-
-                  <div className={styles.infoRow}>
-                    <div className={styles.label}>Lugar</div>
-                    <div className={styles.value}>
-                      {event.location ? (
-                        event.locationMapUrl ? (
-                          <a
-                            className={styles.valueLink}
-                            href={event.locationMapUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            {event.location}
-                          </a>
-                        ) : (
-                          event.location
-                        )
-                      ) : (
-                        "-"
-                      )}
-                    </div>
-                  </div>
-
-                  {isMatchOrFriendly && (
-                    <div className={styles.infoRow}>
-                      <div className={styles.label}>Rival</div>
-                      <div className={styles.value}>
-                        {event.rivalName ?? ""}
-                      </div>
-                    </div>
-                  )}
-
-                  {event.description ? (
-                    <div className={`${styles.infoRow} ${styles.fullWidth}`}>
-                      <div className={styles.label}>Descripción</div>
-                      <div className={`${styles.value} ${styles.description}`}>
-                        {event.description}
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
-              </div>
+              <EventInfoCard
+                name={event.name ?? event.title ?? ""}
+                typeName={eventTypeName}
+                typeClassName={getChipClass(eventTypeName)}
+                date={parseDate(event.startTime ?? event.start ?? event.eveDateTime ?? undefined)}
+                start={parseDate(event.startTime ?? undefined)}
+                end={parseDate(event.end ?? event.endTime ?? undefined)}
+                arrival={parseDate(event.arrivalDate ?? event.arrival ?? undefined)}
+                location={event.location}
+                locationMapUrl={event.locationMapUrl}
+                rivalName={isMatchOrFriendly ? event.rivalName : null}
+                description={event.description}
+              />
 
               {/* Aquí se muestra la UI de convocatoria / disponibilidad / asistencia */}
               {event && (

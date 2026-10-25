@@ -1,10 +1,11 @@
 import React from "react";
-import { Link } from "react-router-dom";
-import { Checkbox } from "@mui/material";
-import styles from "../AttendanceTabs.module.css";
-import defaultAvatar from "../../../../../assets/avatar.svg";
 import type { PlayerSimple } from "../../../services/convocationService";
 import PositionGroupedList from "./PositionGroupedList";
+import PlayerRow, { type PlayerRowTone } from "./PlayerRow";
+import { positionTagOf } from "../utils/positionGroups";
+import { playerDetailHref, playerDisplayName, playerDorsal } from "../utils/playerDisplay";
+import actionStyles from "./RowActions.module.css";
+import styles from "../AttendanceTabs.module.css";
 
 export type AvailabilityAction = {
   label: string;
@@ -15,7 +16,7 @@ export type AvailabilityAction = {
 type Props = {
   players: PlayerSimple[];
   photos: Record<string, string | null>;
-  stripeClassName: string;
+  statusTone: PlayerRowTone;
   emptyText: string;
   getActions: (player: PlayerSimple) => AvailabilityAction[];
   badgeText: string;
@@ -29,7 +30,7 @@ type Props = {
 export default function AvailabilityList({
   players,
   photos,
-  stripeClassName,
+  statusTone,
   emptyText,
   getActions,
   badgeText,
@@ -39,78 +40,48 @@ export default function AvailabilityList({
   onToggleSelect,
 }: Props) {
   if (players.length === 0) {
-    return (
-      <div className={styles.list}>
-        <div className={styles.cardWrap}>
-          <div style={{ padding: 8 }}>{emptyText}</div>
-        </div>
-      </div>
-    );
+    return <div className={styles.emptyListText}>{emptyText}</div>;
   }
 
   const renderPlayer = (p: PlayerSimple) => {
-    const photo = (p.id != null ? photos[String(p.id)] : null) ?? (p.urlPhoto ? photos[String(p.urlPhoto)] : null) ?? defaultAvatar;
-    const displayName = p.alias || "Jugador";
+    const photo = (p.id != null ? photos[String(p.id)] : null) ?? (p.urlPhoto ? photos[String(p.urlPhoto)] : null) ?? null;
+    const displayName = playerDisplayName(p);
     const actions = getActions(p);
-    const photoArea = (
-      <div className={styles.cromoPhotoArea}>
-        <img src={photo} alt={displayName} className={photo === defaultAvatar ? styles.cromoPhotoAvatar : styles.cromoPhoto} />
-        <div className={styles.cromoGradient} />
-        <div className={`${styles.cromoStatusStripe} ${stripeClassName}`} />
-      </div>
-    );
 
     return (
-      <div key={p.id ?? displayName} className={styles.cardWrap} data-testid="availability-card">
-        <div className={styles.cromoCard}>
-          {p.id ? (
-            <Link to={`/coach/player/${p.id}`} className={styles.cromoPhotoLink}>
-              {photoArea}
-            </Link>
-          ) : (
-            photoArea
-          )}
-          {selectable && p.id && (
-            <Checkbox
-              className={styles.cromoSelectCheckbox}
-              size="small"
-              checked={!!selectedIds?.has(p.id)}
-              onChange={() => onToggleSelect?.(p.id as string)}
-              inputProps={{ "aria-label": `Seleccionar a ${displayName} para notificar` }}
-            />
-          )}
-          <div className={styles.cromoBody}>
-            <div className={styles.cromoAccentLine} />
-            <div className={styles.cromoName}>{displayName}</div>
-            {p.position && <div className={styles.cromoPosition}>{p.position}</div>}
-            <div className={styles.cromoActions}>
-              {actions.length > 0 ? (
-                <div className={styles.optionGroup}>
-                  {actions.map((action) => (
-                    <button
-                      key={action.label}
-                      type="button"
-                      disabled={disabled}
-                      className={`${styles.optionBtn} ${action.tone === "teal" ? `${styles.optionBtnTeal} ${styles.optionBtnActive}` : styles.optionBtnRed}`}
-                      onClick={action.onClick}
-                    >
-                      {action.label}
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <div className={styles.tagBadgeRow}>
-                  <span className={`${styles.tagBadge} ${styles.tagWaiting}`}>{badgeText}</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+      <PlayerRow
+        key={p.id ?? displayName}
+        testId="availability-card"
+        name={displayName}
+        photoSrc={photo}
+        dorsal={playerDorsal(p)}
+        positionTag={positionTagOf(p.position)}
+        detailHref={playerDetailHref(p)}
+        status={{ label: badgeText, tone: statusTone }}
+        selectable={selectable && !!p.id}
+        selected={!!p.id && !!selectedIds?.has(p.id)}
+        onToggleSelect={() => p.id && onToggleSelect?.(p.id)}
+        selectLabel={`Seleccionar a ${displayName} para notificar`}
+        actions={
+          actions.length > 0 ? (
+            <>
+              {actions.map((action) => (
+                <button
+                  key={action.label}
+                  type="button"
+                  disabled={disabled}
+                  className={`${actionStyles.textBtn} ${action.tone === "teal" ? actionStyles.positive : actionStyles.negative}`}
+                  onClick={action.onClick}
+                >
+                  {action.label}
+                </button>
+              ))}
+            </>
+          ) : undefined
+        }
+      />
     );
   };
 
-  return (
-    <PositionGroupedList items={players} getPosition={(p) => p.position} renderItem={renderPlayer} listClassName={styles.list} />
-  );
+  return <PositionGroupedList items={players} getPosition={(p) => p.position} renderItem={renderPlayer} />;
 }

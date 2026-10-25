@@ -83,7 +83,7 @@ The system SHALL expose `POST /api/events/{eventId}/availability-requests/{reque
 - **THEN** the system returns `409` with code `AvailabilityNotAvailable`
 
 ### Requirement: League match convocation screen shows availability lists
-For league matches, the convocation tab SHALL show, in addition to the existing groups, the groups «Pendientes de respuesta» (players without convocation whose request is `Requested`) and «Disponibles» (players without convocation whose request is `Available`). A player with a convocation SHALL always be shown in the group of their convocation status. The waiting list SHALL show the button «Pedir disponibilidad» instead of «Convocar toda la lista de espera». For non-league events the screen SHALL behave as before.
+For league matches, the convocation tab SHALL show, in addition to the existing groups, the groups «Pendientes de respuesta» (players without convocation whose request is `Requested`) and «Disponibles» (players without convocation whose request is `Available`). A player with a convocation SHALL always be shown in the group of their convocation status, except the own player of a Player or FamilyMember, who is shown in the «Tu jugador» card. The waiting list SHALL show the button «Pedir disponibilidad» instead of «Convocar toda la lista de espera». For non-league events the screen SHALL behave as before.
 
 #### Scenario: Request availability button on league match
 - **WHEN** a coach opens the convocation tab of a league match with players on the waiting list
@@ -95,7 +95,7 @@ For league matches, the convocation tab SHALL show, in addition to the existing 
 
 #### Scenario: Player answers from the event screen
 - **WHEN** a player opens a league match where their request is `Requested`
-- **THEN** their card in «Pendientes de respuesta» shows «Sí, disponible» and «No disponible», and «No disponible» asks for a mandatory reason that excludes «Decisión técnica» and «Sanción deportiva»
+- **THEN** the «Tu jugador» card shows «Sí, disponible» and «No disponible», and «No disponible» asks for a mandatory reason that excludes «Decisión técnica» and «Sanción deportiva»
 
 #### Scenario: Coach convokes from available
 - **WHEN** the coach clicks «Convocar» on a player in «Disponibles»
@@ -106,19 +106,19 @@ For league matches, the convocation tab SHALL show, in addition to the existing 
 - **THEN** the player moves to «Desconvocados» with reason «Decisión técnica»
 
 ### Requirement: Player lists are grouped by position
-Every player list in the convocation tab SHALL group its players under the headings, in this order: «Porteros», «Defensas» (centrales, laterales, carrileros, líbero), «Medios» (all midfielders, including the attacking midfielder), «Extremos», «Delanteros» (delantero centro and segundo delantero) and «Sin posición». Empty groups SHALL NOT be shown.
+Every player list in the convocation tab SHALL order its players by position group, in this order: «Porteros», «Defensas» (centrales, laterales, carrileros, líbero), «Medios» (all midfielders, including the attacking midfielder), «Extremos», «Delanteros» (delantero centro and segundo delantero) and players without position last, keeping the original order within a group. Each row SHALL show the tag of its group: «POR», «DEF», «MED», «EXT» or «DEL», and no tag for players without position. The lists SHALL NOT show position headings.
 
 #### Scenario: Grouping order
 - **WHEN** a list contains a Delantero Centro, a Portero, a Lateral Derecho and an Extremo Izquierdo
-- **THEN** the headings appear in the order Porteros, Defensas, Extremos, Delanteros, and no «Medios» heading is shown
+- **THEN** the rows appear in the order Portero, Lateral Derecho, Extremo Izquierdo, Delantero Centro with the tags POR, DEF, EXT and DEL, and no position heading is shown
 
 #### Scenario: Attacking midfielder and second striker
 - **WHEN** a list contains a «Mediocampista ofensivo» and a «Segundo Delantero»
-- **THEN** the first is under «Medios» and the second under «Delanteros»
+- **THEN** the first shows the tag «MED» and the second the tag «DEL»
 
 #### Scenario: Player without position
 - **WHEN** a player has no position
-- **THEN** the player is shown under «Sin posición»
+- **THEN** the player is shown last, without a position tag
 
 ### Requirement: Coaches are notified when availability is complete
 When a response is given to an availability request in status `Requested` (by a Player, a FamilyMember, a Coach or an Administrator) and, after it, the event has no pending availability request, the system SHALL notify the team coaches with an in-app notification and a Web Push notification of type `AvailabilityCompleted`. A request SHALL be pending when it is in status `Requested` and its player has no convocation for the event. The title SHALL be «Disponibilidad completada», the body SHALL be `Todos los jugadores han marcado su disponibilidad para {evento} el {dd/MM/yyyy}.`, omitting ` el {dd/MM/yyyy}` when the event has no date, and the deep link SHALL be `/coach/attendance/{eventId}`. Changing a response that was already given SHALL NOT send the notification. A notification failure SHALL NOT make the response fail.

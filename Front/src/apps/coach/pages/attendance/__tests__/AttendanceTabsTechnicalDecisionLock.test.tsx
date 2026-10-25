@@ -105,12 +105,16 @@ function setup({ roles, conv }: { roles: string[]; conv: ReturnType<typeof decon
   getConvocationsMock.mockResolvedValue([conv]);
 }
 
-async function renderTabs(isTraining: boolean) {
+async function renderTabs(isTraining: boolean, ownPlayer = false) {
   render(
     <MemoryRouter>
       <AttendanceTabs eventId="event-1" eventStart={null} isMatch={!isTraining} isTraining={isTraining} />
     </MemoryRouter>
   );
+  if (ownPlayer) {
+    await screen.findByRole("region", { name: "Tu jugador" });
+    return;
+  }
   const header = await screen.findByRole("button", { name: /^Desconvocados/i });
   await userEvent.click(header);
   await screen.findByText("Desconvocado Uno");
@@ -123,14 +127,14 @@ describe("AttendanceTabs - bloqueo de desconvocatoria por 'Decisión técnica' (
 
   it("no muestra 'Editar motivo' a un Player cuando la desconvocatoria es por Decisión técnica", async () => {
     setup({ roles: ["Player"], conv: deconvokedConv(7) });
-    await renderTabs(true);
+    await renderTabs(true, true);
 
     expect(screen.queryByRole("button", { name: "✎ Editar motivo" })).not.toBeInTheDocument();
   });
 
   it("no muestra los botones de reactivación a un FamilyMember en un entrenamiento cuando la desconvocatoria es por Decisión técnica", async () => {
     setup({ roles: ["FamilyMember"], conv: deconvokedConv(7) });
-    await renderTabs(true);
+    await renderTabs(true, true);
 
     expect(screen.queryByRole("button", { name: "Pendiente de aceptar" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Aceptar" })).not.toBeInTheDocument();
@@ -138,7 +142,7 @@ describe("AttendanceTabs - bloqueo de desconvocatoria por 'Decisión técnica' (
 
   it("sí muestra 'Editar motivo' y reactivación a un Player en un entrenamiento cuando la desconvocatoria NO es por Decisión técnica", async () => {
     setup({ roles: ["Player"], conv: deconvokedConv(1) });
-    await renderTabs(true);
+    await renderTabs(true, true);
 
     expect(screen.getByRole("button", { name: "✎ Editar motivo" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Pendiente de aceptar" })).toBeInTheDocument();

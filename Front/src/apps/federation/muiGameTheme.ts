@@ -407,6 +407,11 @@ const gameTheme = createTheme({
             "0 8px 32px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(0, 229, 255, 0.1), 0 0 40px rgba(0, 229, 255, 0.08)",
           // ─── Coach compatibility variables ───
           "--rffm-coach-dialog-text": "#f0f8ff",
+          // ─── Convocation status ───
+          "--rffm-status-accepted": "#4fd6a0",
+          "--rffm-status-pending": "#f5c451",
+          "--rffm-status-declined": "#f69a9a",
+          "--rffm-status-waiting": "#7fb2f5",
           // ─── Classification standings ───
           "--rffm-standings-surface": "rgba(0, 0, 0, 0.22)",
           "--rffm-standings-row-active": "rgba(255, 255, 255, 0.08)",

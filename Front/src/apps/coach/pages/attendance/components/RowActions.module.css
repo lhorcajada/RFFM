@@ -1,0 +1,60 @@
+.textBtn {
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: transparent;
+  color: var(--rffm-dash-card-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.textBtn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.positive {
+  border-color: color-mix(in srgb, var(--rffm-status-accepted) 50%, transparent);
+  background: color-mix(in srgb, var(--rffm-status-accepted) 12%, transparent);
+  color: var(--rffm-status-accepted);
+}
+
+.negative {
+  border-color: color-mix(in srgb, var(--rffm-status-declined) 50%, transparent);
+  background: color-mix(in srgb, var(--rffm-status-declined) 10%, transparent);
+  color: var(--rffm-status-declined);
+}
+
+.neutral {
+  color: var(--rffm-status-waiting);
+  border-color: color-mix(in srgb, var(--rffm-status-waiting) 45%, transparent);
+}
+
+.iconBtn {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+}
+
+.iconBtnPositive {
+  composes: iconBtn;
+  border: 1px solid color-mix(in srgb, var(--rffm-status-accepted) 45%, transparent);
+  background: color-mix(in srgb, var(--rffm-status-accepted) 10%, transparent);
+  color: var(--rffm-status-accepted);
+}
+
+.iconBtnNegative {
+  composes: iconBtn;
+  border: 1px solid color-mix(in srgb, var(--rffm-status-declined) 45%, transparent);
+  background: color-mix(in srgb, var(--rffm-status-declined) 10%, transparent);
+  color: var(--rffm-status-declined);
+}
+
+.iconBtnMenu {
+  composes: iconBtn;
+  color: var(--rffm-dash-desc-text);
+}

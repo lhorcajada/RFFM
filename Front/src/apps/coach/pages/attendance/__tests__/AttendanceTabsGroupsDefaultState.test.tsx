@@ -208,34 +208,8 @@ describe("AttendanceTabs - collapsible groups", () => {
     await waitFor(() => expect(screen.queryByText("Aceptado Uno")).not.toBeInTheDocument());
   });
 
-  it("expands the waiting list group by default when the associated player is waiting", async () => {
+  it("expande «Aceptados» y deja el resto plegado para un Player cuyo jugador está en lista de espera", async () => {
     setup({ roles: ["Player"], playerId: "waiting-1" });
-    await renderTabs();
-
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: /^Lista de espera/i })).toHaveAttribute("aria-expanded", "true");
-    });
-    expect(screen.getByRole("button", { name: /^Pendientes de aceptar/i })).toHaveAttribute("aria-expanded", "false");
-    expect(screen.getByRole("button", { name: /^Aceptados/i })).toHaveAttribute("aria-expanded", "false");
-    expect(screen.getByRole("button", { name: /^Desconvocados/i })).toHaveAttribute("aria-expanded", "false");
-    expect(await screen.findByText("Espera Uno")).toBeInTheDocument();
-  });
-
-  it("expands the pending group by default when the associated player is pending (FamilyMember)", async () => {
-    setup({ roles: ["FamilyMember"], playerId: "pending-1" });
-    await renderTabs();
-
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: /^Pendientes de aceptar/i })).toHaveAttribute("aria-expanded", "true");
-    });
-    expect(screen.getByRole("button", { name: /^Lista de espera/i })).toHaveAttribute("aria-expanded", "false");
-    expect(screen.getByRole("button", { name: /^Aceptados/i })).toHaveAttribute("aria-expanded", "false");
-    expect(screen.getByRole("button", { name: /^Desconvocados/i })).toHaveAttribute("aria-expanded", "false");
-    expect(await screen.findByText("Pendiente Uno")).toBeInTheDocument();
-  });
-
-  it("expands the accepted group by default when the associated player is accepted", async () => {
-    setup({ roles: ["Player"], playerId: "accepted-1" });
     await renderTabs();
 
     await waitFor(() => {
@@ -244,31 +218,39 @@ describe("AttendanceTabs - collapsible groups", () => {
     expect(screen.getByRole("button", { name: /^Lista de espera/i })).toHaveAttribute("aria-expanded", "false");
     expect(screen.getByRole("button", { name: /^Pendientes de aceptar/i })).toHaveAttribute("aria-expanded", "false");
     expect(screen.getByRole("button", { name: /^Desconvocados/i })).toHaveAttribute("aria-expanded", "false");
-    expect(await screen.findByText("Aceptado Uno")).toBeInTheDocument();
   });
 
-  it("expands the desconvocados group by default when the associated player was declined", async () => {
-    setup({ roles: ["FamilyMember"], playerId: "declined-1" });
+  it("expande «Aceptados» para un FamilyMember cuyo jugador está pendiente", async () => {
+    setup({ roles: ["FamilyMember"], playerId: "pending-1" });
     await renderTabs();
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /^Desconvocados/i })).toHaveAttribute("aria-expanded", "true");
+      expect(screen.getByRole("button", { name: /^Aceptados/i })).toHaveAttribute("aria-expanded", "true");
     });
-    expect(screen.getByRole("button", { name: /^Lista de espera/i })).toHaveAttribute("aria-expanded", "false");
-    expect(screen.getByRole("button", { name: /^Pendientes de aceptar/i })).toHaveAttribute("aria-expanded", "false");
-    expect(screen.getByRole("button", { name: /^Aceptados/i })).toHaveAttribute("aria-expanded", "false");
-    expect(await screen.findByText("Desconvocado Uno")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Desconvocados/i })).toHaveAttribute("aria-expanded", "false");
+    expect(await screen.findByText("Aceptado Uno")).toBeInTheDocument();
   });
 
-  it("collapses all groups when the Player/FamilyMember associated player is not found in any group (edge case)", async () => {
+  it("deja todos los grupos plegados para un Player cuyo jugador es el único aceptado", async () => {
+    setup({ roles: ["Player"], playerId: "accepted-1" });
+    await renderTabs();
+
+    await screen.findByRole("region", { name: "Tu jugador" });
+    expect(screen.queryByRole("button", { name: /^Aceptados/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Lista de espera/i })).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByRole("button", { name: /^Pendientes de aceptar/i })).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByRole("button", { name: /^Desconvocados/i })).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("expande «Aceptados» aunque el jugador asociado no esté en ningún grupo (caso límite)", async () => {
     setup({ roles: ["Player"], playerId: "unknown-player-id" });
     await renderTabs();
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /^Lista de espera/i })).toHaveAttribute("aria-expanded", "false");
+      expect(screen.getByRole("button", { name: /^Aceptados/i })).toHaveAttribute("aria-expanded", "true");
     });
+    expect(screen.getByRole("button", { name: /^Lista de espera/i })).toHaveAttribute("aria-expanded", "false");
     expect(screen.getByRole("button", { name: /^Pendientes de aceptar/i })).toHaveAttribute("aria-expanded", "false");
-    expect(screen.getByRole("button", { name: /^Aceptados/i })).toHaveAttribute("aria-expanded", "false");
     expect(screen.getByRole("button", { name: /^Desconvocados/i })).toHaveAttribute("aria-expanded", "false");
   });
 });

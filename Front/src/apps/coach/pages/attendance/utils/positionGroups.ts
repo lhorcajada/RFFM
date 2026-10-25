@@ -42,3 +42,20 @@ export function groupByPosition<T>(
     items: items.filter((item) => positionGroupOf(getPosition(item)) === group.key),
   })).filter((group) => group.items.length > 0);
 }
+
+export const POSITION_TAGS: Record<PositionGroupKey, string | null> = {
+  goalkeepers: "POR",
+  defenders: "DEF",
+  midfielders: "MED",
+  wingers: "EXT",
+  forwards: "DEL",
+  unknown: null,
+};
+
+export function positionTagOf(position?: string | null): string | null {
+  return POSITION_TAGS[positionGroupOf(position)];
+}
+
+export function sortByPosition<T>(items: T[], getPosition: (item: T) => string | null | undefined): T[] {
+  return groupByPosition(items, getPosition).flatMap((group) => group.items);
+}

@@ -25,6 +25,13 @@ import DeconvokeDialog from "./components/DeconvokeDialog";
 import CollapsibleGroup from "./components/CollapsibleGroup";
 import PositionGroupedList from "./components/PositionGroupedList";
 import AvailabilityList from "./components/AvailabilityList";
+import PlayerRow from "./components/PlayerRow";
+import OwnPlayerCard from "./components/OwnPlayerCard";
+import ConvocationSummary from "./components/ConvocationSummary";
+import actionStyles from "./components/RowActions.module.css";
+import { findOwnPlayerEntry, matchesAssociatedPlayer, type OwnPlayerEntry } from "./utils/ownPlayerEntry";
+import { positionTagOf } from "./utils/positionGroups";
+import { playerDetailHref, playerDisplayName, playerDorsal } from "./utils/playerDisplay";
 import availabilityService, { AvailabilityRequestItem } from "../../services/availabilityService";
 import NotifyPendingConvocationDialog, { type NotifyPendingKind } from "./components/NotifyPendingConvocationDialog";
 import type { PendingConfirmationEventSummary } from "./utils/pendingConfirmationWhatsApp";
@@ -44,21 +51,6 @@ type GroupKey = "waiting" | "availabilityPending" | "available" | "pending" | "a
 
 // Matches RFFM.Api.Domain.Aggregates.Assistances.ExcuseTypes' "Decisión técnica" entry (id 7).
 const TECHNICAL_DECISION_EXCUSE_TYPE_ID = 7;
-
-// A player only ever belongs to one of the 4 groups. Used to resolve the
-// default expanded/collapsed state per group for Player/FamilyMember users.
-function matchesAssociatedPlayer(
-  entity: { id?: string; playerId?: string } | null | undefined,
-  associatedPlayerId: string | null
-): boolean {
-  if (!entity || !associatedPlayerId) return false;
-  const pid = entity.playerId;
-  const id = entity.id;
-  return (
-    (pid != null && String(pid) === String(associatedPlayerId)) ||
-    (id != null && String(id) === String(associatedPlayerId))
-  );
-}
 
 // A player is injured for a given event only if the injury started BEFORE that day (not same day).
 function isInjuredBeforeDate(injuryStartDate: string | null | undefined, eventDate: string | null | undefined): boolean {
@@ -376,38 +368,57 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isLeagueM
     () => convocatedFiltered.filter((c) => c.status === deconvokeStatusId && !c.isInjured),
     [convocatedFiltered, deconvokeStatusId]
   );
-  const totalDesconvocados = injuredNoConv.length + injuredWithConv.length + declinedNonInjured.length;
+  // ── Own player (Player/FamilyMember) ────────────────────────────────
+  // Shown first in the «Tu jugador» card and left out of every group below.
+  const ownEntry: OwnPlayerEntry | null = isPlayerOrFamily
+    ? findOwnPlayerEntry(
+        {
+          waiting: waitingList,
+          availabilityPending,
+          available: availablePlayers,
+          injured: injuredNoConv,
+          pending,
+          accepted,
+          injuredWithConv,
+          declined: declinedNonInjured,
+        },
+        associatedPlayerId
+      )
+    : null;
+  const isOwnPlayer = (p: PlayerSimple | null | undefined) => !!ownEntry && matchesAssociatedPlayer(p, associatedPlayerId);
+  const shownWaitingList = waitingList.filter((p) => !isOwnPlayer(p));
+  const shownNotConvoked = notConvoked.filter((p) => !isOwnPlayer(p));
+  const shownAvailabilityPending = availabilityPending.filter((p) => !isOwnPlayer(p));
+  const shownAvailable = availablePlayers.filter((p) => !isOwnPlayer(p));
+  const shownPending = pending.filter((c) => !isOwnPlayer(c.player));
+  const shownAccepted = accepted.filter((c) => !isOwnPlayer(c.player));
+  const shownInjuredNoConv = injuredNoConv.filter((p) => !isOwnPlayer(p));
+  const shownInjuredWithConv = injuredWithConv.filter((c) => !isOwnPlayer(c.player));
+  const shownDeclined = declinedNonInjured.filter((c) => !isOwnPlayer(c.player));
+  const totalDesconvocados = shownInjuredNoConv.length + shownInjuredWithConv.length + shownDeclined.length;
+
+  const summary = {
+    total: convocatedFiltered.length + injuredNoConv.length,
+    accepted: isLeagueMatch ? pending.length + accepted.length : accepted.length,
+    pending: isLeagueMatch ? availabilityPending.length : pending.length,
+    declined: declinedNonInjured.length + injuredWithConv.length + injuredNoConv.length,
+  };
 
   // ── Collapsible groups ──────────────────────────────────────────────
   // Coach/Administrator: everything collapsed by default.
-  // Player/FamilyMember: the group containing their own player is expanded
-  // by default; every other group (and the edge case of not being found in
-  // any group) stays collapsed.
+  // Player/FamilyMember: «Aceptados» expanded (their own player is already
+  // shown first in «Tu jugador»); every other group stays collapsed.
   const [groupOverrides, setGroupOverrides] = useState<Partial<Record<GroupKey, boolean>>>({});
 
-  const defaultExpandedGroup: GroupKey | null = useMemo(() => {
-    if (!isPlayerOrFamily || !associatedPlayerId) return null;
-    if (waitingList.some((p) => matchesAssociatedPlayer(p, associatedPlayerId))) return "waiting";
-    if (availabilityPending.some((p) => matchesAssociatedPlayer(p, associatedPlayerId))) return "availabilityPending";
-    if (availablePlayers.some((p) => matchesAssociatedPlayer(p, associatedPlayerId))) return "available";
-    if (pending.some((c) => matchesAssociatedPlayer(c.player, associatedPlayerId))) return "pending";
-    if (accepted.some((c) => matchesAssociatedPlayer(c.player, associatedPlayerId))) return "accepted";
-    if (
-      injuredNoConv.some((p) => matchesAssociatedPlayer(p, associatedPlayerId)) ||
-      injuredWithConv.some((c) => matchesAssociatedPlayer(c.player, associatedPlayerId)) ||
-      declinedNonInjured.some((c) => matchesAssociatedPlayer(c.player, associatedPlayerId))
-    )
-      return "desconvocados";
-    return null;
-  }, [isPlayerOrFamily, associatedPlayerId, waitingList, availabilityPending, availablePlayers, pending, accepted, injuredNoConv, injuredWithConv, declinedNonInjured]);
+  const defaultExpandedGroup: GroupKey | null = isPlayerOrFamily ? "accepted" : null;
 
   const groupCounts: Record<GroupKey, number> = {
-    waiting: notConvoked.length,
-    availabilityPending: availabilityPending.length,
-    available: availablePlayers.length,
-    pending: pending.length,
-    accepted: accepted.length,
-    desconvocados: injuredNoConv.length + injuredWithConv.length + declinedNonInjured.length,
+    waiting: shownNotConvoked.length,
+    availabilityPending: shownAvailabilityPending.length,
+    available: shownAvailable.length,
+    pending: shownPending.length,
+    accepted: shownAccepted.length,
+    desconvocados: totalDesconvocados,
   };
 
   const isGroupExpanded = (key: GroupKey): boolean => {
@@ -568,6 +579,114 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isLeagueM
     conv?: ConvocationItem;
   }>({ open: false });
 
+  const photoOf = (p: PlayerSimple | null | undefined): string | null =>
+    (p?.id != null ? playerPhotos[String(p.id)] : null) ?? (p?.urlPhoto ? playerPhotos[String(p.urlPhoto)] : null) ?? null;
+
+  const canEditThisConvocationFor = (c: ConvocationItem) =>
+    !isPlayerOrFamily || matchesAssociatedPlayer(c.player, associatedPlayerId);
+
+  const openDeconvokeDialog = (cv: ConvocationItem) => {
+    if (!canEdit) return alert("No se puede editar: el evento ya ha comenzado.");
+    setDeconvokeDialog({ open: true, conv: cv });
+  };
+
+  const renderConvocation = (
+    c: ConvocationItem,
+    {
+      selectableInPending = false,
+      closedConvocation = false,
+      variant = "row",
+    }: { selectableInPending?: boolean; closedConvocation?: boolean; variant?: "row" | "own" } = {}
+  ) => {
+    const teamPlayerId = c.player?.id;
+    return (
+      <ConvocationCard
+        key={c.id}
+        variant={variant}
+        conv={c}
+        isInjured={c.isInjured}
+        photoSrc={photoOf(c.player)}
+        statuses={statuses}
+        excuseTypes={excuseTypes}
+        canEdit={canEdit}
+        canEditThisConvocation={canEditThisConvocationFor(c)}
+        viewablePlayerId={null}
+        hideWaitingListButton={isPlayerOrFamily}
+        canReactivateFromDeconvoke={canReactivateFromDeconvokeByEventType && canPlayerOrFamilyModifyDeconvoke(c)}
+        selectable={selectableInPending && !isPlayerOrFamily && canEdit}
+        selected={!!teamPlayerId && selectedPendingIds.has(teamPlayerId)}
+        onToggleSelect={toggleSelectedPending}
+        closedConvocation={closedConvocation}
+        onChangeStatus={handleChangeStatus}
+        onDelete={openDeconvokeDialog}
+        onEditReason={canPlayerOrFamilyModifyDeconvoke(c) ? openDeconvokeDialog : undefined}
+        onMoveToWaiting={(cv) => handleMoveToWaiting(cv.id)}
+      />
+    );
+  };
+
+  const renderInjuredRow = (p: PlayerSimple) => (
+    <PlayerRow
+      key={p.id}
+      name={playerDisplayName(p)}
+      photoSrc={photoOf(p)}
+      dorsal={playerDorsal(p)}
+      positionTag={positionTagOf(p.position)}
+      detailHref={playerDetailHref(p)}
+      secondary="Lesionado"
+      status={{ label: "Baja", tone: "declined" }}
+      dimmed
+    />
+  );
+
+  const renderOwnPlayer = () => {
+    if (!ownEntry) return null;
+    if ("conv" in ownEntry) {
+      return renderConvocation(ownEntry.conv, { variant: "own", closedConvocation: !!isLeagueMatch });
+    }
+    const p = ownEntry.player;
+    const request = ownEntry.kind === "availabilityPending" ? availabilityOf(p) : undefined;
+    const statusByKind = {
+      waiting: { label: "En espera", tone: "waiting" },
+      availabilityPending: { label: "Sin responder", tone: "pending" },
+      available: { label: "Disponible", tone: "available" },
+      injured: { label: "Baja", tone: "declined" },
+    } as const;
+    return (
+      <OwnPlayerCard
+        name={playerDisplayName(p)}
+        photoSrc={photoOf(p)}
+        dorsal={playerDorsal(p)}
+        position={p.position}
+        detailHref={playerDetailHref(p)}
+        status={statusByKind[ownEntry.kind]}
+        detail={ownEntry.kind === "injured" ? "Lesionado" : null}
+        actions={
+          request && (
+            <>
+              <button
+                type="button"
+                className={`${actionStyles.textBtn} ${actionStyles.positive}`}
+                disabled={availabilityBusy || !canEdit}
+                onClick={() => handleRespondAvailability(request, true)}
+              >
+                Sí, disponible
+              </button>
+              <button
+                type="button"
+                className={`${actionStyles.textBtn} ${actionStyles.negative}`}
+                disabled={availabilityBusy || !canEdit}
+                onClick={() => setUnavailableTarget(request)}
+              >
+                No disponible
+              </button>
+            </>
+          )
+        }
+      />
+    );
+  };
+
   return (
     <div>
       <Tabs value={tab} onChange={(_, v) => setTab(v)}>
@@ -578,17 +697,24 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isLeagueM
         {!isPlayerOrFamily && <Tab label="Asistencia" />}
       </Tabs>
 
+      {tab === 0 && !loading && (
+        <div className={styles.topStack}>
+          {renderOwnPlayer()}
+          <ConvocationSummary {...summary} />
+        </div>
+      )}
+
       {tab === 0 && (
         <Box className={styles.page}>
           <div className={styles.half}>
             <CollapsibleGroup
               title="Lista de espera"
-              count={notConvoked.length}
+              count={shownNotConvoked.length}
               colorClassName={styles.listGroupHeaderBlue}
               expanded={isGroupExpanded("waiting")}
               onToggle={() => toggleGroup("waiting")}
               headerExtra={
-                waitingList.length > 0 &&
+                shownWaitingList.length > 0 &&
                 (isLeagueMatch ? (
                   !isPlayerOrFamily && (
                     <Button
@@ -613,7 +739,7 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isLeagueM
               }
             >
               <NotConvokedList
-                players={waitingList}
+                players={shownWaitingList}
                 photos={playerPhotos}
                 onAdd={handleAdd}
                 onReject={(playerId) =>
@@ -628,13 +754,13 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isLeagueM
               <>
                 <CollapsibleGroup
                   title="Pendientes de respuesta"
-                  count={availabilityPending.length}
+                  count={shownAvailabilityPending.length}
                   colorClassName={styles.listGroupHeaderGray}
                   expanded={isGroupExpanded("availabilityPending")}
                   onToggle={() => toggleGroup("availabilityPending")}
                   headerExtra={
                     canNotifyPlayers &&
-                    availabilityPending.length > 0 && (
+                    shownAvailabilityPending.length > 0 && (
                       <>
                         <Checkbox
                           size="small"
@@ -649,9 +775,9 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isLeagueM
                   }
                 >
                   <AvailabilityList
-                    players={availabilityPending}
+                    players={shownAvailabilityPending}
                     photos={playerPhotos}
-                    stripeClassName={styles.cromoStatusStripePending}
+                    statusTone="pending"
                     emptyText="No hay jugadores pendientes de responder."
                     badgeText="Sin responder"
                     disabled={availabilityBusy || !canEdit}
@@ -660,17 +786,11 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isLeagueM
                     onToggleSelect={toggleSelectedAvailability}
                     getActions={(p) => {
                       const request = availabilityOf(p);
-                      if (!request) return [];
-                      const isOwnPlayer = isPlayerOrFamily && matchesAssociatedPlayer(p, associatedPlayerId);
                       // The coach can answer on behalf of a player (e.g. one who confirmed in person).
                       const isCoach = !isPlayerOrFamily && coachAuthService.hasRole("Coach");
-                      if (!isOwnPlayer && !isCoach) return [];
+                      if (!request || !isCoach) return [];
                       return [
-                        {
-                          label: isCoach ? "Disponible" : "Sí, disponible",
-                          tone: "teal",
-                          onClick: () => handleRespondAvailability(request, true),
-                        },
+                        { label: "Disponible", tone: "teal", onClick: () => handleRespondAvailability(request, true) },
                         { label: "No disponible", tone: "red", onClick: () => setUnavailableTarget(request) },
                       ];
                     }}
@@ -679,15 +799,15 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isLeagueM
 
                 <CollapsibleGroup
                   title="Disponibles"
-                  count={availablePlayers.length}
+                  count={shownAvailable.length}
                   colorClassName={styles.listGroupHeaderTeal}
                   expanded={isGroupExpanded("available")}
                   onToggle={() => toggleGroup("available")}
                 >
                   <AvailabilityList
-                    players={availablePlayers}
+                    players={shownAvailable}
                     photos={playerPhotos}
-                    stripeClassName={styles.cromoStatusStripeAccepted}
+                    statusTone="available"
                     emptyText="Todavía no hay jugadores disponibles."
                     badgeText="Disponible"
                     disabled={availabilityBusy || !canEdit}
@@ -709,178 +829,32 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isLeagueM
             <div className={`${styles.listGroupHeader} ${styles.listGroupHeaderTeal}`}>
               <div className={styles.listGroupTitle}>
                 <span>Convocados</span>
-                <span className={styles.listGroupCount}>{convocations.filter((c) => c.player).length}</span>
+                <span className={styles.listGroupCount}>
+                  {convocatedFiltered.filter((c) => !isOwnPlayer(c.player)).length}
+                </span>
               </div>
             </div>
 
             {(() => {
               if (loading) return <div>Cargando...</div>;
-              const filtered = convocatedFiltered;
 
-              if (filtered.length === 0 && injuredNoConv.length === 0)
-                return <EmptyState description="No hay convocados aún." />;
-
-              const canEditThisConvocationFor = (c: ConvocationItem) =>
-                !isPlayerOrFamily ||
-                (associatedPlayerId != null &&
-                  (((c.player as any).playerId != null && String((c.player as any).playerId) === String(associatedPlayerId)) ||
-                    ((c.player as any).id != null && String((c.player as any).id) === String(associatedPlayerId))));
-
-              const renderDeconvokedCard = (c: ConvocationItem) => (
-                <ConvocationCard
-                  key={c.id}
-                  conv={c}
-                  isInjured={c.isInjured}
-                  photoSrc={
-                    playerPhotos[String(c.player?.id ?? "")] ??
-                    playerPhotos[String(c.player?.urlPhoto ?? "")] ??
-                    defaultAvatar
-                  }
-                  statuses={statuses}
-                  excuseTypes={excuseTypes}
-                  canEdit={canEdit}
-                  canEditThisConvocation={canEditThisConvocationFor(c)}
-                  hideWaitingListButton={isPlayerOrFamily}
-                  canReactivateFromDeconvoke={canReactivateFromDeconvokeByEventType && canPlayerOrFamilyModifyDeconvoke(c)}
-                  onChangeStatus={handleChangeStatus}
-                  onDelete={(cv) => {
-                    if (!canEdit) return alert("No se puede editar: el evento ya ha comenzado.");
-                    setDeconvokeDialog({ open: true, conv: cv });
-                  }}
-                  onEditReason={
-                    canPlayerOrFamilyModifyDeconvoke(c)
-                      ? (cv) => {
-                          if (!canEdit) return alert("No se puede editar: el evento ya ha comenzado.");
-                          setDeconvokeDialog({ open: true, conv: cv });
-                        }
-                      : undefined
-                  }
-                  onMoveToWaiting={(cv) => handleMoveToWaiting(cv.id)}
-                />
-              );
-
-              const renderInjuredCard = (player: PlayerSimple) => {
-                const p = player as any;
-                const byId = p.id != null ? playerPhotos[String(p.id)] : null;
-                const byUrl = p.urlPhoto ? playerPhotos[String(p.urlPhoto)] : null;
-                const rawPhotoSrc = byId ?? byUrl ?? null;
-                const photo = rawPhotoSrc ?? defaultAvatar;
-                const displayName = p.alias || ((p.name ?? "") + " " + (p.lastName ?? "")).trim() || "Jugador";
-                const dorsalValue =
-                  typeof p.dorsal === "number" ? p.dorsal : p.dorsal ? Number(p.dorsal) : null;
-                const hasDorsal =
-                  typeof dorsalValue === "number" && Number.isFinite(dorsalValue);
-                return (
-                  <div key={player.id} className={styles.cardWrap}>
-                    <div className={styles.cromoCard}>
-                      {p.id ? (
-                        <Link to={`/coach/player/${p.id}`} className={styles.cromoPhotoLink}>
-                          <div className={styles.cromoPhotoArea}>
-                            <img src={photo} alt={displayName} className={photo === defaultAvatar ? styles.cromoPhotoAvatar : styles.cromoPhoto} />
-                            <div className={styles.cromoGradient} />
-                            {hasDorsal && <div className={styles.cromoDorsalBadge}>{dorsalValue}</div>}
-                            <div className={styles.cromoInjuryCornerBadge}>🩹</div>
-                            <div className={`${styles.cromoStatusStripe} ${styles.cromoStatusStripeDeclined}`} />
-                          </div>
-                        </Link>
-                      ) : (
-                        <div className={styles.cromoPhotoArea}>
-                          <img src={photo} alt={displayName} className={photo === defaultAvatar ? styles.cromoPhotoAvatar : styles.cromoPhoto} />
-                          <div className={styles.cromoGradient} />
-                          {hasDorsal && <div className={styles.cromoDorsalBadge}>{dorsalValue}</div>}
-                          <div className={styles.cromoInjuryCornerBadge}>🩹</div>
-                          <div className={`${styles.cromoStatusStripe} ${styles.cromoStatusStripeDeclined}`} />
-                        </div>
-                      )}
-                      <div className={styles.cromoBody}>
-                        <div className={styles.cromoAccentLine} />
-                        <div className={styles.cromoName}>{displayName}</div>
-                        {p.position && <div className={styles.cromoPosition}>{p.position}</div>}
-                        <div className={styles.cromoActions}>
-                          <div className={styles.cromoInjuredBadge}>🩹 Lesionado</div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              };
-
-              const isAssociated = (c: ConvocationItem) =>
-                associatedPlayerId != null &&
-                ((c.player as any).playerId === associatedPlayerId ||
-                  String((c.player as any).id) === String(associatedPlayerId));
-
-              const renderCard = (
-                c: ConvocationItem,
-                highlightAssoc = false,
-                selectableInPending = false,
-                closedConvocation = false,
-              ) => {
-                const canEditThisConvocation = canEditThisConvocationFor(c);
-                const teamPlayerId = c.player?.id;
-                return (
-                <ConvocationCard
-                  key={c.id}
-                  conv={c}
-                  highlighted={highlightAssoc && isAssociated(c)}
-                  photoSrc={
-                    playerPhotos[String(c.player?.id ?? "")] ??
-                    playerPhotos[String(c.player?.urlPhoto ?? "")] ??
-                    defaultAvatar
-                  }
-                  statuses={statuses}
-                  excuseTypes={excuseTypes}
-                  canEdit={canEdit}
-                  canEditThisConvocation={canEditThisConvocation}
-                  viewablePlayerId={null}
-                  hideWaitingListButton={isPlayerOrFamily}
-                  canReactivateFromDeconvoke={canReactivateFromDeconvokeByEventType && canPlayerOrFamilyModifyDeconvoke(c)}
-                  selectable={selectableInPending && !isPlayerOrFamily && canEdit}
-                  selected={!!teamPlayerId && selectedPendingIds.has(teamPlayerId)}
-                  onToggleSelect={toggleSelectedPending}
-                  closedConvocation={closedConvocation}
-                  onChangeStatus={handleChangeStatus}
-                  onDelete={(cv) => {
-                    if (!canEdit)
-                      return alert(
-                        "No se puede editar: el evento ya ha comenzado."
-                      );
-                    setDeconvokeDialog({ open: true, conv: cv });
-                  }}
-                  onEditReason={
-                    canPlayerOrFamilyModifyDeconvoke(c)
-                      ? (cv) => {
-                          if (!canEdit)
-                            return alert(
-                              "No se puede editar: el evento ya ha comenzado."
-                            );
-                          setDeconvokeDialog({ open: true, conv: cv });
-                        }
-                      : undefined
-                  }
-                  onMoveToWaiting={(cv) => handleMoveToWaiting(cv.id)}
-                />
-                );
-              };
-
-              const sortedPending = [...pending].sort(
-                (a, b) => (isAssociated(b) ? 1 : 0) - (isAssociated(a) ? 1 : 0)
-              );
+              const shownConvocated = shownPending.length + shownAccepted.length + totalDesconvocados;
+              if (shownConvocated === 0)
+                return <EmptyState description={ownEntry ? "No hay más convocados." : "No hay convocados aún."} />;
 
               return (
-                <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 24 }}>
-                  {isLeagueMatch && pending.length + accepted.length > 0 && (
+                <div className={styles.convocatedGroups}>
+                  {isLeagueMatch && shownPending.length + shownAccepted.length > 0 && (
                     <PositionGroupedList
-                      items={[...sortedPending, ...accepted]}
+                      items={[...shownPending, ...shownAccepted]}
                       getPosition={(c) => c.player?.position}
-                      renderItem={(c) => renderCard(c, true, false, true)}
-                      listClassName={styles.convocatedList}
+                      renderItem={(c) => renderConvocation(c, { closedConvocation: true })}
                     />
                   )}
-                  {!isLeagueMatch && pending.length > 0 && (
+                  {!isLeagueMatch && shownPending.length > 0 && (
                     <CollapsibleGroup
                       title="Pendientes de aceptar"
-                      count={pending.length}
+                      count={shownPending.length}
                       colorClassName={styles.listGroupHeaderOrange}
                       expanded={isGroupExpanded("pending")}
                       onToggle={() => toggleGroup("pending")}
@@ -930,26 +904,24 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isLeagueM
                       }
                     >
                       <PositionGroupedList
-                        items={sortedPending}
+                        items={shownPending}
                         getPosition={(c) => c.player?.position}
-                        renderItem={(c) => renderCard(c, true, true)}
-                        listClassName={styles.convocatedList}
+                        renderItem={(c) => renderConvocation(c, { selectableInPending: true })}
                       />
                     </CollapsibleGroup>
                   )}
-                  {!isLeagueMatch && accepted.length > 0 && (
+                  {!isLeagueMatch && shownAccepted.length > 0 && (
                     <CollapsibleGroup
                       title="Aceptados"
-                      count={accepted.length}
+                      count={shownAccepted.length}
                       colorClassName={styles.listGroupHeaderGreen}
                       expanded={isGroupExpanded("accepted")}
                       onToggle={() => toggleGroup("accepted")}
                     >
                       <PositionGroupedList
-                        items={accepted}
+                        items={shownAccepted}
                         getPosition={(c) => c.player?.position}
-                        renderItem={(c) => renderCard(c)}
-                        listClassName={styles.convocatedList}
+                        renderItem={(c) => renderConvocation(c)}
                       />
                     </CollapsibleGroup>
                   )}
@@ -963,13 +935,12 @@ export default function AttendanceTabs({ eventId, eventStart, isMatch, isLeagueM
                     >
                       <PositionGroupedList
                         items={[
-                          ...injuredNoConv.map((p) => ({ position: p.position, node: renderInjuredCard(p) })),
-                          ...injuredWithConv.map((c) => ({ position: c.player?.position, node: renderDeconvokedCard(c) })),
-                          ...declinedNonInjured.map((c) => ({ position: c.player?.position, node: renderDeconvokedCard(c) })),
+                          ...shownInjuredNoConv.map((p) => ({ position: p.position, node: renderInjuredRow(p) })),
+                          ...shownInjuredWithConv.map((c) => ({ position: c.player?.position, node: renderConvocation(c) })),
+                          ...shownDeclined.map((c) => ({ position: c.player?.position, node: renderConvocation(c) })),
                         ]}
                         getPosition={(item) => item.position}
                         renderItem={(item) => item.node}
-                        listClassName={styles.convocatedList}
                       />
                     </CollapsibleGroup>
                   ) : null}

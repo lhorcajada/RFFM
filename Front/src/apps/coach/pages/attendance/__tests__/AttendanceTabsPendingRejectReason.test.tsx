@@ -104,12 +104,16 @@ function setup(roles: string[]) {
   getConvocationsMock.mockResolvedValue([PENDING_CONV]);
 }
 
-async function renderTabs() {
+async function renderTabs(ownPlayer = false) {
   render(
     <MemoryRouter>
       <AttendanceTabs eventId="event-1" eventStart={null} isMatch={false} />
     </MemoryRouter>
   );
+  if (ownPlayer) {
+    await screen.findByRole("region", { name: "Tu jugador" });
+    return;
+  }
   await screen.findByRole("button", { name: /^Pendientes de aceptar/i });
 }
 
@@ -120,7 +124,7 @@ describe("AttendanceTabs - motivo de rechazo desde 'Sin indicar' (Player/FamilyM
 
   it("no ofrece 'Decisión técnica' como motivo cuando un Player rechaza su propia convocatoria pendiente", async () => {
     setup(["Player"]);
-    await renderTabs();
+    await renderTabs(true);
 
     await userEvent.click(screen.getByRole("button", { name: "Rechazar" }));
 
@@ -131,7 +135,7 @@ describe("AttendanceTabs - motivo de rechazo desde 'Sin indicar' (Player/FamilyM
 
   it("no ofrece 'Decisión técnica' como motivo cuando un FamilyMember rechaza la convocatoria pendiente de su jugador", async () => {
     setup(["FamilyMember"]);
-    await renderTabs();
+    await renderTabs(true);
 
     await userEvent.click(screen.getByRole("button", { name: "Rechazar" }));
 

@@ -7,37 +7,38 @@ type Item = { id: string; name: string; position?: string };
 
 const items: Item[] = [
   { id: "9", name: "Delantero Nueve", position: "Delantero Centro" },
+  { id: "0", name: "Sin Posición" },
   { id: "1", name: "Portero Uno", position: "Portero" },
   { id: "4", name: "Central Cuatro", position: "Defensa Central" },
 ];
 
 describe("PositionGroupedList", () => {
-  it("muestra un encabezado por posición en orden y cada jugador bajo su grupo", () => {
+  it("ordena a los jugadores por posición con los que no tienen posición al final", () => {
     render(
       <PositionGroupedList
         items={items}
         getPosition={(i) => i.position}
-        renderItem={(i) => <div key={i.id}>{i.name}</div>}
+        renderItem={(i) => <li key={i.id}>{i.name}</li>}
       />
     );
 
-    const headings = screen.getAllByRole("heading").map((h) => h.textContent);
-    expect(headings).toEqual(["Porteros1", "Defensas1", "Delanteros1"]);
-    const porteros = screen.getByRole("region", { name: /porteros/i });
-    expect(porteros).toHaveTextContent("Portero Uno");
-    expect(porteros).not.toHaveTextContent("Delantero Nueve");
+    expect(screen.getAllByRole("listitem").map((li) => li.textContent)).toEqual([
+      "Portero Uno",
+      "Central Cuatro",
+      "Delantero Nueve",
+      "Sin Posición",
+    ]);
   });
 
-  it("no pinta grupos vacíos", () => {
+  it("no pinta cabeceras de posición", () => {
     render(
       <PositionGroupedList
         items={items}
         getPosition={(i) => i.position}
-        renderItem={(i) => <div key={i.id}>{i.name}</div>}
+        renderItem={(i) => <li key={i.id}>{i.name}</li>}
       />
     );
 
-    expect(screen.queryByRole("heading", { name: /medios/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: /sin posición/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading")).not.toBeInTheDocument();
   });
 });

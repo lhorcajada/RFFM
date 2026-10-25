@@ -24,48 +24,6 @@
 .section {
   margin-top: 16px;
 }
-.label {
-  font-weight: 600;
-  margin-bottom: 6px;
-}
-.description {
-  white-space: pre-wrap;
-}
-.infoContainer {
-  margin-top: 2px;
-  padding: 0;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-  background: var(--rffm-card-bg, #2a0b06);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
-  overflow: hidden;
-}
-.infoTitle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-  padding: 9px 14px;
-  font-size: 0.7rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  background: linear-gradient(90deg, rgba(78, 201, 176, 0.18) 0%, transparent 100%);
-  border-bottom: 2px solid rgba(78, 201, 176, 0.25);
-  color: #4ec9b0;
-}
-.infoGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px 12px;
-  padding: 10px 14px 12px;
-}
-
-@media (max-width: 720px) {
-  .infoGrid {
-    grid-template-columns: 1fr;
-  }
-}
 
 /* Compact adjustments for mobile */
 @media (max-width: 420px) {
@@ -74,13 +32,6 @@
   }
   .title {
     font-size: 1rem;
-  }
-  .infoGrid {
-    padding: 8px 10px 10px;
-  }
-  .label {
-    min-width: 76px;
-    font-size: 13px;
   }
   .chip {
     order: 2;
@@ -168,39 +119,4 @@
     font-size: 0.75rem;
   }
 }
-.infoRow {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 6px;
-}
-.label {
-  color: var(--rffm-card-subtext, #607d8b);
-  font-size: 0.85rem;
-  margin: 0;
-  min-width: 96px;
-}
-.value {
-  font-size: 0.95rem;
-  flex: 1 1 auto;
-}
 
-/* Google Maps link inside .value (Lugar row) — .infoContainer's background
-   is a fixed var(--rffm-card-bg), not per-event-type, so one fixed color
-   pair is enough; explicit :visited override because the browser default
-   visited-purple has poor contrast on this dark background. */
-.valueLink,
-.valueLink:visited {
-  color: #8ecbff;
-  text-decoration: underline;
-  text-decoration-color: rgba(142, 203, 255, 0.55);
-}
-
-.valueLink:hover,
-.valueLink:focus-visible {
-  color: #b7ddff;
-  text-decoration-color: rgba(183, 221, 255, 0.85);
-}
-.fullWidth {
-  grid-column: 1 / -1;
-}

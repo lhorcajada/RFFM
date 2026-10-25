@@ -1,0 +1,84 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--rffm-dash-card-text);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.name {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.3;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  font-size: 13px;
+}
+
+.icon {
+  color: var(--rffm-dash-desc-text);
+}
+
+.muted {
+  color: var(--rffm-dash-desc-text);
+}
+
+.link,
+.link:visited {
+  color: var(--rffm-primary);
+  text-decoration: underline;
+}
+
+.descriptionBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding-top: 2px;
+}
+
+.description {
+  margin: 0;
+  font-size: 13px;
+  color: var(--rffm-dash-desc-text);
+  white-space: pre-line;
+}
+
+.clamped {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.toggle {
+  min-height: 32px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--rffm-primary);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}

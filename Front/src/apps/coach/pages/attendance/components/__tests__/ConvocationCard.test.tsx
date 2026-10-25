@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
@@ -235,5 +235,133 @@ describe("ConvocationCard - edición del motivo de desconvocatoria", () => {
 
     await user.click(screen.getByRole("button", { name: /Editar motivo/i }));
     expect(onEditReason).toHaveBeenCalledWith(deconvokedConv({ excuseTypeId: 5 }));
+  });
+});
+
+describe("ConvocationCard - menú de acciones de un aceptado", () => {
+  it("agrupa 'Desconvocar' y 'Lista de espera' en el menú «⋮» del entrenador", async () => {
+    const onDelete = vi.fn();
+    const onMoveToWaiting = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <ConvocationCard
+          conv={baseConv({ status: 2 })}
+          statuses={statuses}
+          excuseTypes={[]}
+          canEdit={true}
+          onChangeStatus={vi.fn()}
+          onDelete={onDelete}
+          onMoveToWaiting={onMoveToWaiting}
+        />
+      </MemoryRouter>
+    );
+
+    expect(screen.queryByRole("button", { name: "Desconvocar" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Acciones de Jugador de prueba" }));
+
+    expect(screen.getByRole("menuitem", { name: "↩ Lista de espera" })).toBeInTheDocument();
+    await user.click(screen.getByRole("menuitem", { name: "Desconvocar" }));
+    expect(onDelete).toHaveBeenCalledWith(baseConv({ status: 2 }));
+  });
+
+  it("no muestra el menú de acciones si no se puede editar", () => {
+    render(
+      <MemoryRouter>
+        <ConvocationCard
+          conv={baseConv({ status: 2 })}
+          statuses={statuses}
+          excuseTypes={[]}
+          canEdit={false}
+          onChangeStatus={vi.fn()}
+          onDelete={vi.fn()}
+        />
+      </MemoryRouter>
+    );
+
+    expect(screen.queryByRole("button", { name: /Acciones de/ })).not.toBeInTheDocument();
+  });
+
+  it("muestra el chip «Va» en un aceptado", () => {
+    render(
+      <MemoryRouter>
+        <ConvocationCard
+          conv={baseConv({ status: 2 })}
+          statuses={statuses}
+          excuseTypes={[]}
+          canEdit={false}
+          onChangeStatus={vi.fn()}
+          onDelete={vi.fn()}
+        />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText("Va")).toBeInTheDocument();
+  });
+});
+
+describe("ConvocationCard - variante «Tu jugador»", () => {
+  it("pinta la convocatoria pendiente propia en «Tu jugador» con 'Aceptar' y 'Rechazar'", async () => {
+    const onChangeStatus = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <ConvocationCard
+          variant="own"
+          conv={baseConv()}
+          statuses={statuses}
+          excuseTypes={[]}
+          canEdit={true}
+          onChangeStatus={onChangeStatus}
+          onDelete={vi.fn()}
+        />
+      </MemoryRouter>
+    );
+
+    const section = screen.getByRole("region", { name: "Tu jugador" });
+    expect(within(section).getByText("Pendiente")).toBeInTheDocument();
+    expect(within(section).getByRole("button", { name: "Rechazar" })).toBeInTheDocument();
+    await user.click(within(section).getByRole("button", { name: "Aceptar" }));
+    expect(onChangeStatus).toHaveBeenCalledWith(baseConv(), 2, null);
+  });
+
+  it("muestra 'Desconvocar' directamente (sin menú) en la convocatoria aceptada propia", () => {
+    render(
+      <MemoryRouter>
+        <ConvocationCard
+          variant="own"
+          conv={baseConv({ status: 2 })}
+          statuses={statuses}
+          excuseTypes={[]}
+          canEdit={true}
+          onChangeStatus={vi.fn()}
+          onDelete={vi.fn()}
+        />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByRole("button", { name: "Desconvocar" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Acciones de/ })).not.toBeInTheDocument();
+  });
+
+  it("muestra el motivo de la desconvocatoria propia", () => {
+    render(
+      <MemoryRouter>
+        <ConvocationCard
+          variant="own"
+          conv={deconvokedConv({ excuseTypeId: 5 })}
+          statuses={statuses}
+          excuseTypes={[{ id: 5, name: "Enfermedad" }]}
+          canEdit={true}
+          onChangeStatus={vi.fn()}
+          onDelete={vi.fn()}
+        />
+      </MemoryRouter>
+    );
+
+    const section = screen.getByRole("region", { name: "Tu jugador" });
+    expect(within(section).getByText("No va")).toBeInTheDocument();
+    expect(within(section).getByText("Enfermedad")).toBeInTheDocument();
   });
 });

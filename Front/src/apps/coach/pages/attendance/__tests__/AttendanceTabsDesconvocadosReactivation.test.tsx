@@ -100,12 +100,16 @@ function setup({ roles, playerId }: { roles: string[]; playerId: string | null }
   getConvocationsMock.mockResolvedValue([DECLINED_CONV]);
 }
 
-async function renderTabs(isTraining: boolean) {
+async function renderTabs(isTraining: boolean, ownPlayer = false) {
   render(
     <MemoryRouter>
       <AttendanceTabs eventId="event-1" eventStart={null} isMatch={!isTraining} isTraining={isTraining} />
     </MemoryRouter>
   );
+  if (ownPlayer) {
+    await screen.findByRole("region", { name: "Tu jugador" });
+    return;
+  }
   const header = await screen.findByRole("button", { name: /^Desconvocados/i });
   await userEvent.click(header);
   await screen.findByText("Desconvocado Uno");
@@ -118,7 +122,7 @@ describe("AttendanceTabs - reactivación de un jugador desconvocado (Player/Fami
 
   it("muestra los botones de reactivación a un Player en un evento de tipo Entrenamiento para su propio jugador", async () => {
     setup({ roles: ["Player"], playerId: "declined-1" });
-    await renderTabs(true);
+    await renderTabs(true, true);
 
     expect(screen.getByRole("button", { name: "Pendiente de aceptar" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Aceptar" })).toBeInTheDocument();
@@ -126,7 +130,7 @@ describe("AttendanceTabs - reactivación de un jugador desconvocado (Player/Fami
 
   it("no muestra los botones de reactivación a un FamilyMember en un evento que no es de tipo Entrenamiento (p.ej. Partido)", async () => {
     setup({ roles: ["FamilyMember"], playerId: "declined-1" });
-    await renderTabs(false);
+    await renderTabs(false, true);
 
     expect(screen.queryByRole("button", { name: "Pendiente de aceptar" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Aceptar" })).not.toBeInTheDocument();
@@ -142,7 +146,7 @@ describe("AttendanceTabs - reactivación de un jugador desconvocado (Player/Fami
 
   it("nunca muestra el botón 'Lista de espera' a un Player/FamilyMember, ni siquiera en un evento de Entrenamiento", async () => {
     setup({ roles: ["Player"], playerId: "declined-1" });
-    await renderTabs(true);
+    await renderTabs(true, true);
 
     expect(screen.queryByRole("button", { name: "↩ Lista de espera" })).not.toBeInTheDocument();
   });

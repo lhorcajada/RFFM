@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { positionGroupOf, groupByPosition } from "../positionGroups";
+import { positionGroupOf, groupByPosition, positionTagOf, sortByPosition } from "../positionGroups";
 
 describe("positionGroupOf", () => {
   it.each([
@@ -51,5 +51,50 @@ describe("groupByPosition", () => {
     );
 
     expect(groups.map((g) => g.label)).toEqual(["Medios", "Sin posición"]);
+  });
+});
+
+describe("positionTagOf", () => {
+  it.each([
+    ["Portero", "POR"],
+    ["Lateral Derecho", "DEF"],
+    ["Mediocampista ofensivo", "MED"],
+    ["Extremo Izquierdo", "EXT"],
+    ["Segundo Delantero", "DEL"],
+  ])("etiqueta «%s» como %s", (position, expected) => {
+    expect(positionTagOf(position)).toBe(expected);
+  });
+
+  it("no etiqueta a un jugador sin posición", () => {
+    expect(positionTagOf(null)).toBeNull();
+  });
+});
+
+describe("sortByPosition", () => {
+  it("ordena de portería a delantera con los jugadores sin posición al final", () => {
+    const players = [
+      { name: "Nueve", position: "Delantero Centro" },
+      { name: "Sin", position: undefined },
+      { name: "Uno", position: "Portero" },
+      { name: "Dos", position: "Lateral Derecho" },
+      { name: "Once", position: "Extremo Izquierdo" },
+    ];
+
+    expect(sortByPosition(players, (p) => p.position).map((p) => p.name)).toEqual([
+      "Uno",
+      "Dos",
+      "Once",
+      "Nueve",
+      "Sin",
+    ]);
+  });
+
+  it("mantiene el orden original dentro de un mismo grupo", () => {
+    const players = [
+      { name: "B", position: "Lateral Derecho" },
+      { name: "A", position: "Defensa Central" },
+    ];
+
+    expect(sortByPosition(players, (p) => p.position).map((p) => p.name)).toEqual(["B", "A"]);
   });
 });

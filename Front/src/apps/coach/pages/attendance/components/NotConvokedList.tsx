@@ -1,9 +1,11 @@
 import React from "react";
-import { Link } from "react-router-dom";
-import styles from "../AttendanceTabs.module.css";
-import defaultAvatar from "../../../../../assets/avatar.svg";
 import type { PlayerSimple } from "../../../services/convocationService";
 import PositionGroupedList from "./PositionGroupedList";
+import PlayerRow from "./PlayerRow";
+import { positionTagOf } from "../utils/positionGroups";
+import { playerDetailHref, playerDisplayName, playerDorsal } from "../utils/playerDisplay";
+import actionStyles from "./RowActions.module.css";
+import styles from "../AttendanceTabs.module.css";
 
 type Props = {
   players: PlayerSimple[];
@@ -29,96 +31,55 @@ export default function NotConvokedList({
   associatedPlayerId = null,
 }: Props) {
   const renderPlayer = (p: PlayerSimple) => {
+    const displayName = playerDisplayName(p);
     const key = p.id ?? p.alias ?? JSON.stringify(p);
     const byId = p.id != null ? photos[String(p.id)] : null;
     const byUrl = p.urlPhoto ? photos[String(p.urlPhoto)] : null;
-    const rawPhotoSrc = byId ?? byUrl ?? null;
-    const photo = rawPhotoSrc ?? defaultAvatar;
-    const displayName =
-      p.alias || (((p as any).name ?? "") + " " + ((p as any).lastName ?? "")).trim() || "Jugador";
-    const dorsalValue =
-      typeof (p as any).dorsal === "number"
-        ? (p as any).dorsal
-        : (p as any).dorsal
-        ? Number((p as any).dorsal)
-        : null;
-    const hasDorsal =
-      typeof dorsalValue === "number" && Number.isFinite(dorsalValue);
-    const canViewDetail = !viewablePlayerId || (p as any).playerId === viewablePlayerId || p.id === viewablePlayerId;
-    const canEditThisPlayer = !isPlayerOrFamily || (p as any).playerId === associatedPlayerId;
+    const canViewDetail = !viewablePlayerId || p.playerId === viewablePlayerId || p.id === viewablePlayerId;
+    const canEditThisPlayer = !isPlayerOrFamily || p.playerId === associatedPlayerId;
+    const showActions = canEdit || (isPlayerOrFamily && canEditThisPlayer);
+    const actionsDisabled = adding || (isPlayerOrFamily && !canEditThisPlayer);
 
     return (
-      <div key={key} className={styles.cardWrap}>
-        <div className={styles.cromoCard}>
-          {p.id && canViewDetail ? (
-            <Link to={`/coach/player/${p.id}`} className={styles.cromoPhotoLink}>
-              <div className={styles.cromoPhotoArea}>
-                <img src={photo} alt={displayName} className={photo === defaultAvatar ? styles.cromoPhotoAvatar : styles.cromoPhoto} />
-                <div className={styles.cromoGradient} />
-                {hasDorsal && <div className={styles.cromoDorsalBadge}>{dorsalValue}</div>}
-                <div className={`${styles.cromoStatusStripe} ${styles.cromoStatusStripeTeal}`} />
-              </div>
-            </Link>
-          ) : (
-            <div className={styles.cromoPhotoArea}>
-              <img src={photo} alt={displayName} className={photo === defaultAvatar ? styles.cromoPhotoAvatar : styles.cromoPhoto} />
-              <div className={styles.cromoGradient} />
-              {hasDorsal && <div className={styles.cromoDorsalBadge}>{dorsalValue}</div>}
-              <div className={`${styles.cromoStatusStripe} ${styles.cromoStatusStripeTeal}`} />
-            </div>
-          )}
-          <div className={styles.cromoBody}>
-            <div className={styles.cromoAccentLine} />
-            <div className={styles.cromoName}>{displayName}</div>
-            {p.position && <div className={styles.cromoPosition}>{p.position}</div>}
-            <div className={styles.cromoActions}>
-              {canEdit || (isPlayerOrFamily && canEditThisPlayer) ? (
-                <div className={styles.optionGroup}>
-                  <button
-                    disabled={adding || (isPlayerOrFamily && !canEditThisPlayer)}
-                    className={`${styles.optionBtn} ${styles.optionBtnTeal} ${styles.optionBtnActive}`}
-                    onClick={() => onAdd(p.id)}
-                  >
-                    Convocar
-                  </button>
-                  {onReject && p.id && (
-                    <button
-                      disabled={adding || (isPlayerOrFamily && !canEditThisPlayer)}
-                      className={`${styles.optionBtn} ${styles.optionBtnRed}`}
-                      onClick={() => onReject(p.id!)}
-                    >
-                      Rechazado
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <div className={styles.tagBadgeRow}>
-                  <span className={`${styles.tagBadge} ${styles.tagWaiting}`}>En espera</span>
-                </div>
+      <PlayerRow
+        key={key}
+        name={displayName}
+        photoSrc={byId ?? byUrl ?? null}
+        dorsal={playerDorsal(p)}
+        positionTag={positionTagOf(p.position)}
+        detailHref={canViewDetail ? playerDetailHref(p) : null}
+        status={showActions ? null : { label: "En espera", tone: "waiting" }}
+        actions={
+          showActions ? (
+            <>
+              <button
+                type="button"
+                disabled={actionsDisabled}
+                className={`${actionStyles.textBtn} ${actionStyles.positive}`}
+                onClick={() => onAdd(p.id)}
+              >
+                Convocar
+              </button>
+              {onReject && p.id && (
+                <button
+                  type="button"
+                  disabled={actionsDisabled}
+                  className={`${actionStyles.textBtn} ${actionStyles.negative}`}
+                  onClick={() => onReject(p.id!)}
+                >
+                  Rechazado
+                </button>
               )}
-            </div>
-          </div>
-        </div>
-      </div>
+            </>
+          ) : undefined
+        }
+      />
     );
   };
 
   if (players.length === 0) {
-    return (
-      <div className={styles.list}>
-        <div className={styles.cardWrap}>
-          <div style={{ padding: 8 }}>Todos los jugadores están convocados.</div>
-        </div>
-      </div>
-    );
+    return <div className={styles.emptyListText}>Todos los jugadores están convocados.</div>;
   }
 
-  return (
-    <PositionGroupedList
-      items={players}
-      getPosition={(p) => p.position}
-      renderItem={renderPlayer}
-      listClassName={styles.list}
-    />
-  );
+  return <PositionGroupedList items={players} getPosition={(p) => p.position} renderItem={renderPlayer} />;
 }
