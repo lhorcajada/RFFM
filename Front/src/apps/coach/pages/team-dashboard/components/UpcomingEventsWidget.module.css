@@ -1,67 +1,51 @@
-/* FC26 tile look — matches LauncherTile/DashboardCard so the widget and the
-   quick-access grid below it read as the same visual family instead of two
-   different card languages. */
 .container {
-  position: relative;
-  /* Natural (auto) height instead of a fixed box — this widget usually
-     carries the most content of any card on the dashboard (event title,
-     meta, badges/chips), so it must never be squeezed to fit a hardcoded
-     pixel value that could clip that content. TeamDashboard.module.css's
-     `.widgetsGrid` is a plain flex column (no row-height floor), so this
-     card and NewsListCard below it each size to their own content, like a
-     newspaper sidebar. */
-  padding: 14px 16px;
-  background: var(--rffm-dash-card-bg, #081628);
-  clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 0 100%);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  border-left: 3px solid var(--rffm-dash-accent, #00e5ff);
   display: flex;
   flex-direction: column;
+  gap: 20px;
 }
 
-/* Diagonal accent corner fill — matches the clip chamfer shape */
-.container::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 20px;
-  height: 20px;
-  background: var(--rffm-dash-accent, #00e5ff);
-  clip-path: polygon(0 0, 100% 100%, 100% 0);
-  opacity: 0.35;
-  pointer-events: none;
+/* Loading and empty states keep a card of their own so the column does not
+   collapse while the events load. */
+.placeholder {
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: var(--rffm-card-bg);
 }
 
 .title {
-  flex-shrink: 0;
-  margin: 0 0 10px 0;
+  margin: 0;
   font-size: 15px;
+  font-weight: 700;
+  color: var(--rffm-dash-card-text);
+}
+
+.later {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.laterHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.headerLink,
+.headerLink:visited {
+  font-size: 13px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--rffm-primary);
 }
 
-.eventCardWrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  flex: 1;
-}
-
-/* EventCard (reused from the Attendance list, compact mode) owns all card
-   visuals now — this link is just a transparent click target around it.
-   flex:1 + column so EventCard (given height:100% by its own .compact rule)
-   actually fills whatever height the slide/wrapper ends up with, instead of
-   sizing to its own natural content and leaving blank space below when the
-   row is stretched taller than this card needs (e.g. by the "Últimas
-   noticias" widget sharing the same dashboard grid row). */
-.eventCardLink {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  width: 100%;
-  text-decoration: none;
-  color: inherit;
+.laterList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-radius: 14px;
+  background: var(--rffm-card-bg);
+  overflow: hidden;
 }
 
 .loadingContainer {
@@ -72,7 +56,7 @@
 
 .emptyState {
   text-align: center;
-  color: #90a4ae;
+  color: var(--rffm-dash-desc-text);
   font-size: 14px;
   padding: 16px;
   margin: 0;

@@ -36,18 +36,6 @@ vi.mock("../../../../hooks/useEventAttendanceSummaries", () => ({
   default: vi.fn(),
 }));
 
-// The EventCard mock exposes the exact myStatus it was given, so tests can
-// assert on the *prop* the widget computed (optimistic/real) rather than
-// EventCard's own internal badge rendering (covered by EventCard's own
-// tests).
-vi.mock("../../../attendance/EventCard", () => ({
-  default: (props: any) => (
-    <div data-testid={`event-card-${props.event.id}`}>
-      <span data-testid="my-status">{props.attendanceSummary?.myStatus ?? "none"}</span>
-    </div>
-  ),
-}));
-
 import sportEventService from "../../../../services/sportEventService";
 import convocationService from "../../../../services/convocationService";
 import useEventAttendanceSummaries from "../../../../hooks/useEventAttendanceSummaries";
@@ -100,40 +88,40 @@ describe("UpcomingEventsWidget attendance actions — gating by convocation stat
     renderWidget(true, {
       e1: { ...pendingSummary("e1"), myStatus: null, myStatusId: null, myConvocationId: null },
     });
-    await screen.findByTestId("event-card-e1");
+    await screen.findByRole("region", { name: "Próximo evento" });
     expect(screen.queryByRole("button", { name: /^voy$/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /no voy/i })).not.toBeInTheDocument();
   });
 
   it("convoked and pending — shows Voy/No voy buttons", async () => {
     renderWidget(true, { e1: pendingSummary("e1") });
-    await screen.findByTestId("event-card-e1");
+    await screen.findByRole("region", { name: "Próximo evento" });
     expect(screen.getByRole("button", { name: /^voy$/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /no voy/i })).toBeInTheDocument();
   });
 
   it("convoked and already Accepted — no buttons", async () => {
     renderWidget(true, { e1: { ...pendingSummary("e1"), myStatus: "Accepted", myStatusId: 2 } });
-    await screen.findByTestId("event-card-e1");
+    await screen.findByRole("region", { name: "Próximo evento" });
     expect(screen.queryByRole("button", { name: /^voy$/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /no voy/i })).not.toBeInTheDocument();
   });
 
   it("convoked and already Deconvoked — no buttons", async () => {
     renderWidget(true, { e1: { ...pendingSummary("e1"), myStatus: "Deconvoke", myStatusId: 5 } });
-    await screen.findByTestId("event-card-e1");
+    await screen.findByRole("region", { name: "Próximo evento" });
     expect(screen.queryByRole("button", { name: /^voy$/i })).not.toBeInTheDocument();
   });
 
   it("convoked and already Justified — no buttons", async () => {
     renderWidget(true, { e1: { ...pendingSummary("e1"), myStatus: "Justified", myStatusId: 4 } });
-    await screen.findByTestId("event-card-e1");
+    await screen.findByRole("region", { name: "Próximo evento" });
     expect(screen.queryByRole("button", { name: /^voy$/i })).not.toBeInTheDocument();
   });
 
   it("convoked and pending but my player is injured — no Voy/No voy buttons", async () => {
     renderWidget(true, { e1: { ...pendingSummary("e1"), myIsInjured: true } });
-    await screen.findByTestId("event-card-e1");
+    await screen.findByRole("region", { name: "Próximo evento" });
     expect(screen.queryByRole("button", { name: /^voy$/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /no voy/i })).not.toBeInTheDocument();
   });
@@ -144,14 +132,14 @@ describe("UpcomingEventsWidget attendance actions — gating by convocation stat
       () => new Promise((resolve) => { resolveConfirm = () => resolve(undefined); })
     );
     renderWidget(true, { e1: pendingSummary("e1") });
-    const card = await screen.findByTestId("event-card-e1");
+    const card = await screen.findByRole("region", { name: "Próximo evento" });
 
     fireEvent.click(screen.getByRole("button", { name: /^voy$/i }));
 
     expect(convocationService.updateConvocationStatus).toHaveBeenCalledWith("e1", "conv-e1", 2, undefined);
 
     await waitFor(() => {
-      expect(card.querySelector('[data-testid="my-status"]')).toHaveTextContent("Accepted");
+      expect(card).toHaveTextContent("Vas");
     });
 
     resolveConfirm();
@@ -159,9 +147,9 @@ describe("UpcomingEventsWidget attendance actions — gating by convocation stat
 
   it("clicking No voy asks for the reason without the coach-only ones, and does not call the service until confirmed", async () => {
     renderWidget(true, { e1: pendingSummary("e1") });
-    await screen.findByTestId("event-card-e1");
+    await screen.findByRole("region", { name: "Próximo evento" });
 
-    fireEvent.click(screen.getByRole("button", { name: /no voy/i }));
+    fireEvent.click(screen.getAllByRole("button", { name: /no voy/i })[0]);
 
     expect(await screen.findByText(/motivo de desconvocatoria/i)).toBeInTheDocument();
     expect(await screen.findByRole("button", { name: /cita médica/i })).toBeInTheDocument();
@@ -176,39 +164,36 @@ describe("UpcomingEventsWidget attendance actions — gating by convocation stat
       () => new Promise((resolve) => { resolveConfirm = () => resolve(undefined); })
     );
     renderWidget(true, { e1: pendingSummary("e1") });
-    const card = await screen.findByTestId("event-card-e1");
+    const card = await screen.findByRole("region", { name: "Próximo evento" });
 
-    fireEvent.click(screen.getByRole("button", { name: /no voy/i }));
+    fireEvent.click(screen.getAllByRole("button", { name: /no voy/i })[0]);
     fireEvent.click(await screen.findByRole("button", { name: /cita médica/i }));
     fireEvent.click(screen.getByRole("button", { name: /^desconvocar$/i }));
 
     expect(convocationService.updateConvocationStatus).toHaveBeenCalledWith("e1", "conv-e1", 5, 9);
 
     await waitFor(() => {
-      expect(card.querySelector('[data-testid="my-status"]')).toHaveTextContent("Deconvoke");
+      expect(card).toHaveTextContent("No vas");
     });
 
     resolveConfirm();
   });
 
-  it("shows a per-card loading state while the request is in flight; navigating to the other card leaves it interactive", async () => {
+  it("shows a per-event loading state while the request is in flight; the other event stays interactive", async () => {
     let resolveConfirm: () => void = () => {};
     vi.mocked(convocationService.updateConvocationStatus).mockImplementation(
       () => new Promise((resolve) => { resolveConfirm = () => resolve(undefined); })
     );
     renderWidget(true, { e1: pendingSummary("e1"), e2: pendingSummary("e2") });
-    await screen.findByTestId("event-card-e1");
+    await screen.findByRole("region", { name: "Próximo evento" });
 
-    const voyButton = screen.getByRole("button", { name: /^voy$/i });
-    fireEvent.click(voyButton);
+    const [cardVoy, rowVoy] = screen.getAllByRole("button", { name: /^voy$/i });
+    fireEvent.click(cardVoy);
 
     await waitFor(() => {
-      expect(voyButton).toBeDisabled();
+      expect(cardVoy).toBeDisabled();
     });
-
-    fireEvent.click(screen.getByRole("button", { name: /siguiente/i }));
-    await screen.findByTestId("event-card-e2");
-    expect(screen.getByRole("button", { name: /^voy$/i })).not.toBeDisabled();
+    expect(rowVoy).not.toBeDisabled();
 
     resolveConfirm();
   });
@@ -219,7 +204,7 @@ describe("UpcomingEventsWidget attendance actions — gating by convocation stat
     window.addEventListener("rffm.show_snackbar", listener);
 
     renderWidget(true, { e1: pendingSummary("e1") });
-    const card = await screen.findByTestId("event-card-e1");
+    const card = await screen.findByRole("region", { name: "Próximo evento" });
 
     fireEvent.click(screen.getByRole("button", { name: /^voy$/i }));
 
@@ -227,7 +212,7 @@ describe("UpcomingEventsWidget attendance actions — gating by convocation stat
       expect(listener).toHaveBeenCalled();
     });
     await waitFor(() => {
-      expect(card.querySelector('[data-testid="my-status"]')).toHaveTextContent("Pending");
+      expect(card).toHaveTextContent("Estás convocado · sin responder");
     });
 
     window.removeEventListener("rffm.show_snackbar", listener);
@@ -235,7 +220,7 @@ describe("UpcomingEventsWidget attendance actions — gating by convocation stat
 
   it("coach/administrator view never renders the buttons, even when pending", async () => {
     renderWidget(false, { e1: pendingSummary("e1") });
-    await screen.findByTestId("event-card-e1");
+    await screen.findByRole("region", { name: "Próximo evento" });
     expect(screen.queryByRole("button", { name: /voy/i })).not.toBeInTheDocument();
   });
 });

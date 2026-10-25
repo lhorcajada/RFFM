@@ -34,10 +34,6 @@ vi.mock("../../../../hooks/useEventAttendanceSummaries", () => ({
   default: vi.fn(),
 }));
 
-vi.mock("../../../attendance/EventCard", () => ({
-  default: (props: { event: { id: string } }) => <div data-testid={`event-card-${props.event.id}`} />,
-}));
-
 import sportEventService from "../../../../services/sportEventService";
 import availabilityService from "../../../../services/availabilityService";
 import useEventAttendanceSummaries from "../../../../hooks/useEventAttendanceSummaries";
@@ -82,25 +78,25 @@ describe("UpcomingEventsWidget — respuesta de disponibilidad", () => {
     vi.clearAllMocks();
   });
 
-  it("muestra «¿Disponible?» con Sí y No cuando hay una petición sin responder", async () => {
+  it("muestra «¿Estás disponible?» con Sí y No cuando hay una petición sin responder", async () => {
     renderWidget(requestedSummary);
-    await screen.findByTestId("event-card-e1");
+    await screen.findByRole("region", { name: "Próximo evento" });
 
-    expect(screen.getByText("¿Disponible?")).toBeInTheDocument();
+    expect(screen.getByText("¿Estás disponible?")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Sí" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "No" })).toBeInTheDocument();
   });
 
   it("no muestra la pregunta si ya ha respondido que está disponible", async () => {
     renderWidget({ ...requestedSummary, myAvailabilityStatus: "Available" });
-    await screen.findByTestId("event-card-e1");
+    await screen.findByRole("region", { name: "Próximo evento" });
 
-    expect(screen.queryByText("¿Disponible?")).not.toBeInTheDocument();
+    expect(screen.queryByText("¿Estás disponible?")).not.toBeInTheDocument();
   });
 
   it("responde que sí y refresca el resumen", async () => {
     const refetch = renderWidget(requestedSummary);
-    await screen.findByTestId("event-card-e1");
+    await screen.findByRole("region", { name: "Próximo evento" });
 
     await userEvent.click(screen.getByRole("button", { name: "Sí" }));
 
@@ -110,7 +106,7 @@ describe("UpcomingEventsWidget — respuesta de disponibilidad", () => {
 
   it("al responder que no pide un motivo que no es de entrenador", async () => {
     renderWidget(requestedSummary);
-    await screen.findByTestId("event-card-e1");
+    await screen.findByRole("region", { name: "Próximo evento" });
 
     await userEvent.click(screen.getByRole("button", { name: "No" }));
     await screen.findByText("¿Por qué no está disponible?");

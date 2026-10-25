@@ -61,6 +61,14 @@ vi.mock("../components/NewsWidget", () => ({
   default: () => <div>news-widget</div>,
 }));
 
+vi.mock("../components/LeagueSnapshot", () => ({
+  default: ({ isPlayer }: { isPlayer: boolean }) => <div>{`league-snapshot-${isPlayer ? "player" : "coach"}`}</div>,
+}));
+
+vi.mock("../components/QuickActions", () => ({
+  default: ({ teamId }: { teamId: string | null }) => <div>{`quick-actions-${teamId}`}</div>,
+}));
+
 vi.mock("../../../components/PushActivationBanner/PushActivationBanner", () => ({
   default: () => <div>push-activation-banner</div>,
 }));
@@ -204,5 +212,53 @@ describe("TeamDashboard — A la vista section", () => {
     );
 
     expect(screen.getByText("push-activation-banner")).toBeInTheDocument();
+  });
+
+  it("pasa al bloque Liga si el usuario es jugador o familiar", () => {
+    mockUsePlayerAutoLoad.mockReturnValue({ isPlayer: true });
+    render(
+      <MemoryRouter>
+        <TeamDashboard />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText("league-snapshot-player")).toBeInTheDocument();
+  });
+
+  it("muestra las acciones rápidas al entrenador con el equipo", () => {
+    mockUseTeamAndClub.mockReturnValue(teamAndClubWithClub);
+    render(
+      <MemoryRouter>
+        <TeamDashboard />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText("quick-actions-team-1")).toBeInTheDocument();
+  });
+
+  it("no muestra las acciones rápidas al jugador", () => {
+    mockUsePlayerAutoLoad.mockReturnValue({ isPlayer: true });
+    mockUseTeamAndClub.mockReturnValue(teamAndClubWithClub);
+    render(
+      <MemoryRouter>
+        <TeamDashboard />
+      </MemoryRouter>
+    );
+
+    expect(screen.queryByText(/quick-actions/)).not.toBeInTheDocument();
+  });
+
+  it("coloca eventos y Liga en la columna principal y acciones y noticias en la secundaria", () => {
+    mockUseTeamAndClub.mockReturnValue(teamAndClubWithClub);
+    render(
+      <MemoryRouter>
+        <TeamDashboard />
+      </MemoryRouter>
+    );
+
+    const main = screen.getByText("upcoming-events-widget").closest('[class*="mainColumn"]');
+    const side = screen.getByText("news-widget").closest('[class*="sideColumn"]');
+    expect(main!.contains(screen.getByText("league-snapshot-coach"))).toBe(true);
+    expect(side!.contains(screen.getByText("quick-actions-team-1"))).toBe(true);
   });
 });

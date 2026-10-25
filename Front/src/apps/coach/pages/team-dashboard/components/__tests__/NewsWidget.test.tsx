@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, act } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import NewsWidget from "../NewsWidget";
@@ -19,73 +19,65 @@ function renderWidget() {
   );
 }
 
+function newsItem(id: string, title: string, publishedAt: string) {
+  return {
+    id,
+    title,
+    subtitle: `Sub ${id}`,
+    body: `Cuerpo ${id}`,
+    coverImageUrl: "",
+    status: "Published" as const,
+    publishedAt,
+    newsDate: publishedAt,
+    linkType: "None" as const,
+    linkedEventId: null,
+    linkedTeamId: null,
+    linkUrl: null,
+  };
+}
+
 const threeItems = [
-  {
-    id: "n1",
-    title: "Noticia 1",
-    subtitle: "Sub 1",
-    coverImageUrl: "",
-    status: "Published" as const,
-    publishedAt: "2026-08-03T00:00:00Z",
-    newsDate: "2026-08-03T00:00:00Z",
-  },
-  {
-    id: "n2",
-    title: "Noticia 2",
-    subtitle: "Sub 2",
-    coverImageUrl: "",
-    status: "Published" as const,
-    publishedAt: "2026-08-02T00:00:00Z",
-    newsDate: "2026-08-02T00:00:00Z",
-  },
-  {
-    id: "n3",
-    title: "Noticia 3",
-    subtitle: "Sub 3",
-    coverImageUrl: "",
-    status: "Published" as const,
-    publishedAt: "2026-08-01T00:00:00Z",
-    newsDate: "2026-08-01T00:00:00Z",
-  },
+  newsItem("n1", "Noticia 1", "2026-08-03T10:00:00Z"),
+  newsItem("n2", "Noticia 2", "2026-08-02T10:00:00Z"),
+  newsItem("n3", "Noticia 3", "2026-08-01T10:00:00Z"),
 ];
 
 describe("NewsWidget", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.useRealTimers();
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-08-05T10:00:00Z"));
   });
 
   afterEach(() => {
     vi.useRealTimers();
   });
 
-  it("renders up to 3 published news items", async () => {
-    vi.mocked(newsService.getNews).mockResolvedValue([
-      {
-        id: "n1",
-        title: "Noticia 1",
-        subtitle: "Sub 1",
-        coverImageUrl: "",
-        status: "Published",
-        publishedAt: "2026-08-03T00:00:00Z",
-        newsDate: "2026-08-03T00:00:00Z",
-      },
-      {
-        id: "n2",
-        title: "Noticia 2",
-        subtitle: "Sub 2",
-        coverImageUrl: "",
-        status: "Published",
-        publishedAt: "2026-08-02T00:00:00Z",
-        newsDate: "2026-08-02T00:00:00Z",
-      },
-    ]);
+  it("muestra las tres noticias publicadas a la vez, sin carrusel", async () => {
+    vi.mocked(newsService.getNews).mockResolvedValue(threeItems);
 
     renderWidget();
 
-    expect(await screen.findByText("Noticia 1")).toBeInTheDocument();
-    expect(screen.getByText("Noticia 2")).toBeInTheDocument();
+    const list = await screen.findByRole("list", { name: "Noticias" });
+    expect(within(list).getAllByRole("listitem")).toHaveLength(3);
     expect(newsService.getNews).toHaveBeenCalledWith(1, 3, true);
+    expect(screen.queryByRole("button", { name: /siguiente/i })).not.toBeInTheDocument();
+  });
+
+  it("enlaza cada noticia a su detalle y muestra su antigüedad", async () => {
+    vi.mocked(newsService.getNews).mockResolvedValue(threeItems);
+
+    renderWidget();
+
+    const link = await screen.findByRole("link", { name: /Noticia 1/ });
+    expect(link).toHaveAttribute("href", "/coach/news/n1");
+    expect(link).toHaveTextContent("Hace 2 días");
+  });
+
+  it("enlaza «Ver todas» a la lista de noticias", async () => {
+    vi.mocked(newsService.getNews).mockResolvedValue(threeItems);
+    renderWidget();
+    expect(await screen.findByRole("link", { name: "Ver todas" })).toHaveAttribute("href", "/coach/news");
   });
 
   it("shows an empty state when there are no published news", async () => {
@@ -98,46 +90,5 @@ describe("NewsWidget", () => {
     vi.mocked(newsService.getNews).mockImplementation(() => new Promise(() => {}));
     renderWidget();
     expect(screen.getByRole("progressbar")).toBeInTheDocument();
-  });
-
-  it("advances automatically to the next item after the auto-advance interval", async () => {
-    vi.mocked(newsService.getNews).mockResolvedValue(threeItems);
-    vi.useFakeTimers();
-
-    renderWidget();
-    await act(async () => {
-      await vi.runOnlyPendingTimersAsync();
-    });
-
-    let dots = screen.getAllByRole("button", { name: /ir a la diapositiva/i });
-    expect(dots[0]).toHaveAttribute("aria-current", "true");
-
-    act(() => {
-      vi.advanceTimersByTime(6000);
-    });
-
-    dots = screen.getAllByRole("button", { name: /ir a la diapositiva/i });
-    expect(dots[1]).toHaveAttribute("aria-current", "true");
-  });
-
-  it("manual navigation (Siguiente arrow) moves to the next item and pauses auto-advance", async () => {
-    vi.mocked(newsService.getNews).mockResolvedValue(threeItems);
-    vi.useFakeTimers();
-
-    renderWidget();
-    await act(async () => {
-      await vi.runOnlyPendingTimersAsync();
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: /siguiente/i }));
-    let dots = screen.getAllByRole("button", { name: /ir a la diapositiva/i });
-    expect(dots[1]).toHaveAttribute("aria-current", "true");
-
-    // Auto-advance is paused right after manual interaction.
-    act(() => {
-      vi.advanceTimersByTime(6000);
-    });
-    dots = screen.getAllByRole("button", { name: /ir a la diapositiva/i });
-    expect(dots[1]).toHaveAttribute("aria-current", "true");
   });
 });

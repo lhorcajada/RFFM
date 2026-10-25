@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import UpcomingEventsWidget from "../UpcomingEventsWidget";
@@ -19,32 +19,23 @@ vi.mock("../../../../hooks/useEventAttendanceSummaries", () => ({
   default: vi.fn(() => ({ summaries: {}, loading: false, error: null, refetch: vi.fn() })),
 }));
 
-// EventCard's own rendering is exhaustively tested in
-// pages/attendance/__tests__/EventCard.*.test.tsx — here we only assert the
-// widget passes it the right props (reused, per requirement 3, to match
-// Attendance.tsx's card look) and wires the carousel/link around it.
-vi.mock("../../../attendance/EventCard", () => ({
-  default: (props: any) => (
-    <div data-testid={`event-card-${props.event.id}`}>
-      <span data-testid="event-title">{props.event.title}</span>
-      <span data-testid="event-type">{props.eventTypeName ?? ""}</span>
-      <span data-testid="event-compact">{String(!!props.compact)}</span>
-      <span data-testid="event-is-player">{String(!!props.isPlayer)}</span>
-      <span data-testid="event-summary">{props.attendanceSummary ? "has-summary" : "no-summary"}</span>
-    </div>
-  ),
-}));
-
 import sportEventService from "../../../../services/sportEventService";
 import sportEventTypeService from "../../../../services/sportEventTypeService";
 import useEventAttendanceSummaries from "../../../../hooks/useEventAttendanceSummaries";
 
 const mockTeam = { id: "team-1", name: "Equipo 1", club: { id: "club-1" } };
 
-function renderWidget(team = mockTeam, isPlayer = false) {
+const threeEvents = [
+  { id: "e1", title: "Evento 1", startTime: "2099-09-01T18:00:00", teamId: "team-1", eventTypeId: 1 },
+  { id: "e2", title: "Evento 2", startTime: "2099-09-02T18:00:00", teamId: "team-1" },
+  { id: "e3", title: "Evento 3", startTime: "2099-09-03T18:00:00", teamId: "team-1" },
+];
+
+function renderWidget(events: unknown[], isPlayer = false) {
+  vi.mocked(sportEventService.getSportEvents).mockResolvedValue({ items: events, totalPages: 1 } as never);
   return render(
     <MemoryRouter>
-      <UpcomingEventsWidget team={team} isPlayer={isPlayer} />
+      <UpcomingEventsWidget team={mockTeam as never} isPlayer={isPlayer} />
     </MemoryRouter>
   );
 }
@@ -55,141 +46,103 @@ describe("UpcomingEventsWidget", () => {
     vi.mocked(sportEventTypeService.getSportEventTypes).mockResolvedValue([
       { id: 1, name: "Partidos" },
       { id: 2, name: "Entrenamiento" },
-    ]);
-  });
-
-  it("renders up to 3 upcoming events (via EventCard) with their titles", async () => {
-    const mockEvents = [
-      { id: "e1", title: "Evento 1", startTime: "2099-09-01T18:00:00", teamId: "team-1" },
-      { id: "e2", title: "Evento 2", startTime: "2099-09-02T18:00:00", teamId: "team-1" },
-    ];
-
-    vi.mocked(sportEventService.getSportEvents).mockResolvedValue({
-      items: mockEvents,
-      totalPages: 1,
-    } as any);
+    ] as never);
     vi.mocked(useEventAttendanceSummaries).mockReturnValue({
       summaries: {},
       loading: false,
       error: null,
       refetch: vi.fn(),
     });
+  });
 
-    renderWidget();
+  it("destaca el primer evento y lista los siguientes en «Después»", async () => {
+    renderWidget(threeEvents);
 
-    expect(await screen.findByTestId("event-card-e1")).toBeInTheDocument();
-    // "Evento 2" is in the DOM (carousel slide) even if not the active one.
-    expect(screen.getByTestId("event-card-e2")).toBeInTheDocument();
+    const next = await screen.findByRole("region", { name: "Próximo evento" });
+    expect(within(next).getByRole("link", { name: "Evento 1" })).toBeInTheDocument();
+
+    const later = screen.getByRole("list", { name: "Después" });
+    expect(within(later).getAllByRole("listitem")).toHaveLength(2);
+    expect(within(later).getByRole("link", { name: "Evento 2" })).toBeInTheDocument();
+    expect(within(later).getByRole("link", { name: "Evento 3" })).toBeInTheDocument();
+  });
+
+  it("pide los tres próximos eventos del equipo", async () => {
+    renderWidget(threeEvents);
+    await screen.findByRole("region", { name: "Próximo evento" });
+    expect(sportEventService.getSportEvents).toHaveBeenCalledWith("team-1", 1, 3, expect.any(String));
+  });
+
+  it("no muestra «Después» con un solo evento", async () => {
+    renderWidget(threeEvents.slice(0, 1));
+    await screen.findByRole("region", { name: "Próximo evento" });
+    expect(screen.queryByRole("list", { name: "Después" })).not.toBeInTheDocument();
+  });
+
+  it("muestra el nombre del tipo de evento resuelto", async () => {
+    renderWidget(threeEvents);
+    const next = await screen.findByRole("region", { name: "Próximo evento" });
+    expect(await within(next).findByText("Partidos")).toBeInTheDocument();
+  });
+
+  it("no es un carrusel: no hay flechas ni puntos", async () => {
+    renderWidget(threeEvents);
+    await screen.findByRole("region", { name: "Próximo evento" });
+    expect(screen.queryByRole("button", { name: /siguiente/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /ir a la diapositiva/i })).not.toBeInTheDocument();
+  });
+
+  it("enlaza cada evento a su detalle con el equipo", async () => {
+    renderWidget(threeEvents);
+    const link = await screen.findByRole("link", { name: "Evento 2" });
+    expect(link).toHaveAttribute("href", "/coach/attendance/e2?teamId=team-1");
+  });
+
+  it("enlaza «Ver calendario» a la lista de eventos del equipo", async () => {
+    renderWidget(threeEvents);
+    expect(await screen.findByRole("link", { name: "Ver calendario" })).toHaveAttribute(
+      "href",
+      "/coach/attendance?teamId=team-1"
+    );
+  });
+
+  it("muestra al entrenador las cifras de la convocatoria del próximo evento", async () => {
+    vi.mocked(useEventAttendanceSummaries).mockReturnValue({
+      summaries: {
+        e1: {
+          eventId: "e1",
+          convocados: 14,
+          going: 9,
+          pending: 3,
+          notGoing: 2,
+          attendancePercentage: 64,
+          myStatus: null,
+          myStatusId: null,
+          myConvocationId: null,
+        },
+      },
+      loading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+    renderWidget(threeEvents);
+    expect(await screen.findByRole("link", { name: "Gestionar convocatoria" })).toBeInTheDocument();
   });
 
   it("shows an empty state when there are no upcoming events", async () => {
-    vi.mocked(sportEventService.getSportEvents).mockResolvedValue({
-      items: [],
-      totalPages: 1,
-    } as any);
-    vi.mocked(useEventAttendanceSummaries).mockReturnValue({
-      summaries: {},
-      loading: false,
-      error: null,
-      refetch: vi.fn(),
-    });
-
-    renderWidget();
-
+    renderWidget([]);
     expect(await screen.findByText(/No hay próximos eventos/i)).toBeInTheDocument();
   });
 
   it("shows a loading state while fetching", () => {
-    vi.mocked(sportEventService.getSportEvents).mockImplementation(
-      () => new Promise(() => {}) // Never resolves
+    vi.mocked(sportEventService.getSportEvents).mockImplementation(() => new Promise(() => {}));
+    render(
+      <MemoryRouter>
+        <UpcomingEventsWidget team={mockTeam as never} isPlayer={false} />
+      </MemoryRouter>
     );
-    vi.mocked(useEventAttendanceSummaries).mockReturnValue({
-      summaries: {},
-      loading: true,
-      error: null,
-      refetch: vi.fn(),
-    });
-
-    renderWidget();
 
     expect(screen.getByText("Próximos eventos")).toBeInTheDocument();
     expect(screen.getByRole("progressbar")).toBeInTheDocument();
-  });
-
-  it("passes the resolved event type name, compact=true, isPlayer and the attendance summary to EventCard", async () => {
-    vi.mocked(sportEventService.getSportEvents).mockResolvedValue({
-      items: [
-        { id: "e1", title: "Jornada 3", startTime: "2099-09-01T18:30:00", teamId: "team-1", eventTypeId: 1 },
-      ],
-      totalPages: 1,
-    } as any);
-    const summary = {
-      eventId: "e1",
-      convocados: 1,
-      going: 0,
-      pending: 1,
-      notGoing: 0,
-      attendancePercentage: 0,
-      myStatus: null,
-      myStatusId: null,
-    };
-    vi.mocked(useEventAttendanceSummaries).mockReturnValue({
-      summaries: { e1: summary },
-      loading: false,
-      error: null,
-      refetch: vi.fn(),
-    });
-
-    renderWidget(mockTeam, true);
-
-    const card = await screen.findByTestId("event-card-e1");
-    expect(card.querySelector('[data-testid="event-type"]')).toHaveTextContent("Partidos");
-    expect(card.querySelector('[data-testid="event-compact"]')).toHaveTextContent("true");
-    expect(card.querySelector('[data-testid="event-is-player"]')).toHaveTextContent("true");
-    expect(card.querySelector('[data-testid="event-summary"]')).toHaveTextContent("has-summary");
-  });
-
-  it("each event links to the attendance detail page", async () => {
-    vi.mocked(sportEventService.getSportEvents).mockResolvedValue({
-      items: [{ id: "e1", title: "Evento 1", startTime: "2099-09-01T18:00:00", teamId: "team-1" }],
-      totalPages: 1,
-    } as any);
-    vi.mocked(useEventAttendanceSummaries).mockReturnValue({
-      summaries: {},
-      loading: false,
-      error: null,
-      refetch: vi.fn(),
-    });
-
-    renderWidget();
-
-    await screen.findByTestId("event-card-e1");
-    const link = screen.getByRole("link");
-    expect(link).toHaveAttribute("href", expect.stringContaining("/coach/attendance/e1"));
-    expect(link).toHaveAttribute("href", expect.stringContaining("teamId=team-1"));
-  });
-
-  it("is navigable as a manual-only carousel: the Siguiente arrow moves to the next event", async () => {
-    vi.mocked(sportEventService.getSportEvents).mockResolvedValue({
-      items: [
-        { id: "e1", title: "Evento 1", startTime: "2099-09-01T18:00:00", teamId: "team-1" },
-        { id: "e2", title: "Evento 2", startTime: "2099-09-02T18:00:00", teamId: "team-1" },
-      ],
-      totalPages: 1,
-    } as any);
-    vi.mocked(useEventAttendanceSummaries).mockReturnValue({
-      summaries: {},
-      loading: false,
-      error: null,
-      refetch: vi.fn(),
-    });
-
-    renderWidget();
-
-    await screen.findByTestId("event-card-e1");
-    fireEvent.click(screen.getByRole("button", { name: /siguiente/i }));
-
-    const dots = screen.getAllByRole("button", { name: /ir a la diapositiva/i });
-    expect(dots[1]).toHaveAttribute("aria-current", "true");
   });
 });

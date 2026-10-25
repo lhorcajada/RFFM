@@ -1,0 +1,35 @@
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.accepted {
+  color: var(--rffm-status-accepted);
+  background: color-mix(in srgb, var(--rffm-status-accepted) 14%, transparent);
+}
+
+.pending {
+  color: var(--rffm-status-pending);
+  background: color-mix(in srgb, var(--rffm-status-pending) 14%, transparent);
+}
+
+.declined {
+  color: var(--rffm-status-declined);
+  background: color-mix(in srgb, var(--rffm-status-declined) 14%, transparent);
+}
+
+.waiting {
+  color: var(--rffm-status-waiting);
+  background: color-mix(in srgb, var(--rffm-status-waiting) 14%, transparent);
+}
+
+.available {
+  color: var(--rffm-status-accepted);
+  background: color-mix(in srgb, var(--rffm-status-accepted) 14%, transparent);
+}

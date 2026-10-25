@@ -1,6 +1,6 @@
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ShieldIcon from "@mui/icons-material/Shield";
-import { Button } from "@mui/material";
+import { IconButton, Tooltip } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
@@ -9,8 +9,9 @@ import useTeamAndClub from "../../hooks/useTeamAndClub";
 import { usePlayerAutoLoad } from "../Dashboard/hooks/usePlayerAutoLoad";
 import UpcomingEventsWidget from "./components/UpcomingEventsWidget";
 import NewsWidget from "./components/NewsWidget";
+import LeagueSnapshot from "./components/LeagueSnapshot";
+import QuickActions from "./components/QuickActions";
 import PushActivationBanner from "../../components/PushActivationBanner/PushActivationBanner";
-import styles from "../Dashboard/Dashboard.module.css";
 import teamDashboardStyles from "./TeamDashboard.module.css";
 import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess";
 
@@ -28,25 +29,27 @@ export default function TeamDashboard() {
         subtitle={clubSubtitleNode ?? "Acciones rápidas del equipo seleccionado"}
         actionBar={
           isPlayer ? undefined : (
-            <div className={styles.actionBarContent}>
+            <div className={teamDashboardStyles.actionBar}>
               {clubId && (
-                <Button
-                  variant="outlined"
-                  startIcon={<ShieldIcon />}
-                  onClick={() => navigate(`/coach/clubs/dashboard/${clubId}`)}
-                  sx={{ textTransform: "none", marginLeft: "auto" }}
-                >
-                  Ir al club
-                </Button>
+                <Tooltip title="Ir al club">
+                  <IconButton
+                    aria-label="Ir al club"
+                    className={teamDashboardStyles.headerButton}
+                    onClick={() => navigate(`/coach/clubs/dashboard/${clubId}`)}
+                  >
+                    <ShieldIcon />
+                  </IconButton>
+                </Tooltip>
               )}
-              <Button
-                variant="outlined"
-                startIcon={<ArrowBackIcon />}
-                onClick={() => navigate("/coach/dashboard")}
-                sx={{ textTransform: "none", marginLeft: clubId ? undefined : "auto" }}
-              >
-                Volver
-              </Button>
+              <Tooltip title="Volver">
+                <IconButton
+                  aria-label="Volver"
+                  className={teamDashboardStyles.headerButton}
+                  onClick={() => navigate("/coach/dashboard")}
+                >
+                  <ArrowBackIcon />
+                </IconButton>
+              </Tooltip>
             </div>
           )
         }
@@ -54,12 +57,24 @@ export default function TeamDashboard() {
         <div className={teamDashboardStyles.pageContent}>
           <PushActivationBanner />
           <div className={teamDashboardStyles.widgetsGrid}>
-            <ErrorBoundary>
-              <UpcomingEventsWidget team={team} isPlayer={isPlayer} />
-            </ErrorBoundary>
-            <ErrorBoundary>
-              <NewsWidget />
-            </ErrorBoundary>
+            <div className={teamDashboardStyles.mainColumn}>
+              <ErrorBoundary>
+                <UpcomingEventsWidget team={team} isPlayer={isPlayer} />
+              </ErrorBoundary>
+              <ErrorBoundary>
+                <LeagueSnapshot team={team} isPlayer={isPlayer} />
+              </ErrorBoundary>
+            </div>
+            <div className={teamDashboardStyles.sideColumn}>
+              {!isPlayer && (
+                <ErrorBoundary>
+                  <QuickActions teamId={team?.id ?? null} />
+                </ErrorBoundary>
+              )}
+              <ErrorBoundary>
+                <NewsWidget />
+              </ErrorBoundary>
+            </div>
           </div>
         </div>
       </ContentLayout>

@@ -1,0 +1,13 @@
+.text {
+  font-size: 13px;
+  color: var(--rffm-dash-desc-text);
+  overflow-wrap: anywhere;
+}
+
+.link,
+.link:visited {
+  font-size: 13px;
+  color: var(--rffm-primary);
+  text-decoration: underline;
+  overflow-wrap: anywhere;
+}

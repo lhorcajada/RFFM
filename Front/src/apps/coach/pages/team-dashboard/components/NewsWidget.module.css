@@ -1,53 +1,53 @@
-/* FC26 tile look — matches LauncherTile/DashboardCard so the widget and the
-   quick-access grid below it read as the same visual family instead of two
-   different card languages. */
 .container {
-  position: relative;
-  /* Natural (auto) height, like UpcomingEventsWidget's own .container — see
-     that file's comment. TeamDashboard.module.css's `.widgetsGrid` is a
-     plain flex column, so this card sizes to its own content instead of
-     stretching to match "Próximos eventos" above it. */
-  padding: 14px 16px;
-  background: var(--rffm-dash-card-bg, #081628);
-  clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 0 100%);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  border-left: 3px solid var(--rffm-dash-accent, #00e5ff);
   display: flex;
   flex-direction: column;
+  gap: 8px;
 }
 
-/* Diagonal accent corner fill — matches the clip chamfer shape */
-.container::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 20px;
-  height: 20px;
-  background: var(--rffm-dash-accent, #00e5ff);
-  clip-path: polygon(0 0, 100% 100%, 100% 0);
-  opacity: 0.35;
-  pointer-events: none;
+.header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .title {
-  flex-shrink: 0;
-  margin: 0 0 10px 0;
+  margin: 0;
   font-size: 15px;
+  font-weight: 700;
+  color: var(--rffm-dash-card-text);
+}
+
+.headerLink,
+.headerLink:visited {
+  font-size: 13px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--rffm-primary);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .loadingContainer {
   display: flex;
   justify-content: center;
   padding: 24px;
+  border-radius: 14px;
+  background: var(--rffm-card-bg);
 }
 
 .emptyState {
-  text-align: center;
-  color: #90a4ae;
-  font-size: 14px;
-  padding: 16px;
   margin: 0;
+  padding: 16px;
+  border-radius: 14px;
+  background: var(--rffm-card-bg);
+  text-align: center;
+  color: var(--rffm-dash-desc-text);
+  font-size: 14px;
 }

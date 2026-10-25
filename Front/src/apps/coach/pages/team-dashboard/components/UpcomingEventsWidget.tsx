@@ -1,17 +1,21 @@
 import { useEffect, useState } from "react";
-import { CircularProgress, Button, Box } from "@mui/material";
+import { CircularProgress } from "@mui/material";
 import { Link } from "react-router-dom";
 import sportEventService, { type SportEventResponse } from "../../../services/sportEventService";
 import sportEventTypeService from "../../../services/sportEventTypeService";
 import useEventAttendanceSummaries from "../../../hooks/useEventAttendanceSummaries";
-import { type ConvocationStatusName } from "../../../services/eventAttendanceSummaryService";
+import {
+  type ConvocationStatusName,
+  type EventAttendanceSummaryDto,
+} from "../../../services/eventAttendanceSummaryService";
 import convocationService from "../../../services/convocationService";
 import availabilityService from "../../../services/availabilityService";
 import excuseTypeService, { type ExcuseType } from "../../../services/excuseTypeService";
 import DeconvokeDialog from "../../attendance/components/DeconvokeDialog";
-import Carousel from "../../../components/Carousel/Carousel";
-import EventCard from "../../attendance/EventCard";
 import type { TeamResponse } from "../../../services/teamService";
+import type { PlayerActions } from "../utils/playerActions";
+import NextEventCard from "./NextEventCard";
+import UpcomingEventRow from "./UpcomingEventRow";
 import styles from "./UpcomingEventsWidget.module.css";
 
 interface Props {
@@ -131,7 +135,7 @@ export default function UpcomingEventsWidget({ team, isPlayer }: Props) {
 
   if (loading) {
     return (
-      <div className={styles.container}>
+      <div className={styles.placeholder}>
         <h3 className={styles.title}>Próximos eventos</h3>
         <div className={styles.loadingContainer}>
           <CircularProgress size={40} />
@@ -142,120 +146,112 @@ export default function UpcomingEventsWidget({ team, isPlayer }: Props) {
 
   if (events.length === 0) {
     return (
-      <div className={styles.container}>
+      <div className={styles.placeholder}>
         <h3 className={styles.title}>Próximos eventos</h3>
         <p className={styles.emptyState}>No hay próximos eventos</p>
       </div>
     );
   }
 
+  const detailHref = (eventId: string) =>
+    `/coach/attendance/${eventId}?teamId=${encodeURIComponent(team.id)}`;
+
+  const displaySummaryOf = (eventId: string): EventAttendanceSummaryDto | undefined => {
+    const baseSummary = summaries[eventId];
+    const optimisticStatus = optimistic[eventId];
+    if (!optimisticStatus) return baseSummary;
+    return {
+      ...(baseSummary ?? {
+        eventId,
+        convocados: 0,
+        going: 0,
+        pending: 0,
+        notGoing: 0,
+        attendancePercentage: 0,
+        myStatus: null,
+        myStatusId: null,
+        myConvocationId: null,
+      }),
+      myStatus: optimisticStatus,
+    };
+  };
+
+  const actionsOf = (eventId: string): PlayerActions | null => {
+    if (!isPlayer) return null;
+    const baseSummary = summaries[eventId];
+    const myConvocationId = baseSummary?.myConvocationId ?? null;
+    const busy = pendingEventId === eventId;
+
+    // Keep the buttons mounted (disabled) while a confirmation for this
+    // event is in flight, even though the optimistic status already
+    // flipped away from "Pending" — otherwise the buttons vanish
+    // instantly on click instead of visibly disabling.
+    const canConfirm =
+      !!myConvocationId &&
+      !baseSummary?.myIsInjured &&
+      (baseSummary?.myStatus === "Pending" || busy);
+    if (canConfirm && myConvocationId) {
+      return {
+        kind: "convocation",
+        busy,
+        onYes: () => handleConfirm(eventId, myConvocationId, ACCEPTED_STATUS_ID, "Accepted"),
+        onNo: () => setDeconvokeTarget({ eventId, convocationId: myConvocationId }),
+      };
+    }
+
+    const myAvailabilityRequestId = baseSummary?.myAvailabilityRequestId ?? null;
+    const canAnswerAvailability =
+      !myConvocationId && !!myAvailabilityRequestId && baseSummary?.myAvailabilityStatus === "Requested";
+    if (canAnswerAvailability && myAvailabilityRequestId) {
+      return {
+        kind: "availability",
+        busy,
+        onYes: () => handleRespondAvailability(eventId, myAvailabilityRequestId, true),
+        onNo: () => setUnavailableTarget({ eventId, requestId: myAvailabilityRequestId }),
+      };
+    }
+    return null;
+  };
+
+  const eventTypeNameOf = (event: SportEventResponse) =>
+    event.eventType ?? eventTypeMap[event.eventTypeId ?? 0] ?? null;
+
+  const variant = isPlayer ? "player" : "coach";
+  const [nextEvent, ...laterEvents] = events;
+
   return (
     <div className={styles.container}>
-      <h3 className={styles.title}>Próximos eventos</h3>
-      <Carousel ariaLabel="Próximos eventos">
-        {events.map((event) => {
-          const eventTypeName = event.eventType ?? eventTypeMap[event.eventTypeId ?? 0] ?? null;
-
-          const baseSummary = summaries[event.id];
-          const optimisticStatus = optimistic[event.id];
-          const displaySummary = optimisticStatus
-            ? { ...(baseSummary ?? {
-                eventId: event.id,
-                convocados: 0,
-                going: 0,
-                pending: 0,
-                notGoing: 0,
-                attendancePercentage: 0,
-                myStatus: null,
-                myStatusId: null,
-                myConvocationId: null,
-              }), myStatus: optimisticStatus }
-            : baseSummary;
-
-          const myConvocationId = baseSummary?.myConvocationId ?? null;
-
-          // Keep the buttons mounted (disabled) while a confirmation for this
-          // event is in flight, even though the optimistic status already
-          // flipped away from "Pending" — otherwise the buttons vanish
-          // instantly on click instead of visibly disabling.
-          const canConfirm =
-            isPlayer &&
-            !!myConvocationId &&
-            !baseSummary?.myIsInjured &&
-            (baseSummary?.myStatus === "Pending" || pendingEventId === event.id);
-
-          const myAvailabilityRequestId = baseSummary?.myAvailabilityRequestId ?? null;
-          const canAnswerAvailability =
-            isPlayer &&
-            !myConvocationId &&
-            !!myAvailabilityRequestId &&
-            baseSummary?.myAvailabilityStatus === "Requested";
-
-          return (
-            <div key={event.id} className={styles.eventCardWrapper}>
-              <Link
-                to={`/coach/attendance/${event.id}?teamId=${encodeURIComponent(team.id)}`}
-                className={styles.eventCardLink}
-              >
-                <EventCard
-                  event={event}
-                  eventTypeName={eventTypeName}
-                  attendanceSummary={displaySummary}
-                  isPlayer={isPlayer}
-                  compact
-                />
-              </Link>
-              {canConfirm && (
-                <Box sx={{ display: "flex", gap: 1, marginTop: 1, justifyContent: "center" }}>
-                  <Button
-                    size="small"
-                    variant="contained"
-                    onClick={() =>
-                      myConvocationId &&
-                      handleConfirm(event.id, myConvocationId, ACCEPTED_STATUS_ID, "Accepted")
-                    }
-                    disabled={pendingEventId === event.id}
-                  >
-                    Voy
-                  </Button>
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    onClick={() =>
-                      myConvocationId &&
-                      setDeconvokeTarget({ eventId: event.id, convocationId: myConvocationId })
-                    }
-                    disabled={pendingEventId === event.id}
-                  >
-                    No voy
-                  </Button>
-                </Box>
-              )}
-              {canAnswerAvailability && myAvailabilityRequestId && (
-                <Box sx={{ display: "flex", gap: 1, marginTop: 1, justifyContent: "center", alignItems: "center" }}>
-                  <span>¿Disponible?</span>
-                  <Button
-                    size="small"
-                    variant="contained"
-                    onClick={() => handleRespondAvailability(event.id, myAvailabilityRequestId, true)}
-                    disabled={pendingEventId === event.id}
-                  >
-                    Sí
-                  </Button>
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    onClick={() => setUnavailableTarget({ eventId: event.id, requestId: myAvailabilityRequestId })}
-                    disabled={pendingEventId === event.id}
-                  >
-                    No
-                  </Button>
-                </Box>
-              )}
-            </div>
-          );
-        })}
-      </Carousel>
+      <NextEventCard
+        event={nextEvent}
+        eventTypeName={eventTypeNameOf(nextEvent)}
+        summary={displaySummaryOf(nextEvent.id)}
+        variant={variant}
+        detailHref={detailHref(nextEvent.id)}
+        actions={actionsOf(nextEvent.id)}
+      />
+      {laterEvents.length > 0 && (
+        <section aria-labelledby="upcoming-later-title" className={styles.later}>
+          <div className={styles.laterHeader}>
+            <h3 id="upcoming-later-title" className={styles.title}>Después</h3>
+            <Link to={`/coach/attendance?teamId=${encodeURIComponent(team.id)}`} className={styles.headerLink}>
+              Ver calendario
+            </Link>
+          </div>
+          <ul aria-labelledby="upcoming-later-title" className={styles.laterList}>
+            {laterEvents.map((event) => (
+              <UpcomingEventRow
+                key={event.id}
+                event={event}
+                eventTypeName={eventTypeNameOf(event)}
+                summary={displaySummaryOf(event.id)}
+                variant={variant}
+                detailHref={detailHref(event.id)}
+                actions={actionsOf(event.id)}
+              />
+            ))}
+          </ul>
+        </section>
+      )}
       <DeconvokeDialog
         open={!!unavailableTarget}
         onClose={() => setUnavailableTarget(null)}

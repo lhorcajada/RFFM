@@ -5,25 +5,41 @@
   padding-bottom: 24px;
 }
 
-/* "Próximos eventos" and "Últimas noticias" (UpcomingEventsWidget/NewsWidget):
-   stacked on mobile, side by side from 769px. The team sections live in the
-   team menu (/coach/menu), reached from the team navigation. */
+.actionBar {
+  display: flex;
+  width: 100%;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.headerButton {
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-radius: 12px !important;
+}
+
+/* Main column (next event, «Después», Liga) and side column (quick actions,
+   news): stacked on mobile, side by side from 769px. The team sections live
+   in the team menu (/coach/menu), reached from the team navigation. */
 .widgetsGrid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   align-items: start;
-  gap: 12px;
+  gap: 20px;
 }
 
 @media (min-width: 769px) {
   .widgetsGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 20px;
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    gap: 24px;
   }
 }
 
-.widgetsGrid > * {
-  /* Let each widget (and its Carousel) shrink below its content's natural
-     width instead of overflowing its column. */
+.mainColumn,
+.sideColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
   min-width: 0;
 }
