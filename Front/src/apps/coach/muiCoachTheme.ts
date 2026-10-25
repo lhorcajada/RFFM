@@ -145,6 +145,22 @@ const coachTheme = createTheme({
           "--rffm-dash-accent": "#4d9de0",
           "--rffm-dash-card-text": "#e8e8e8",
           "--rffm-dash-desc-text": "rgba(232, 232, 232, 0.5)",
+          /* Home dashboard (coach-dashboard-redesign) */
+          "--rffm-dash-muted-text": "rgba(232, 232, 232, 0.62)",
+          "--rffm-dash-body-text": "rgba(232, 232, 232, 0.78)",
+          "--rffm-dash-link": "#7ab8f5",
+          "--rffm-dash-link-border": "rgba(122, 184, 245, 0.5)",
+          "--rffm-dash-section-title": "#a8d4f5",
+          "--rffm-dash-on-accent": "#0d0d1f",
+          "--rffm-dash-card-border": "rgba(255, 255, 255, 0.07)",
+          "--rffm-dash-card-border-dashed": "rgba(255, 255, 255, 0.16)",
+          "--rffm-dash-emblem-bg": "#2a2a48",
+          "--rffm-dash-secondary-tint": "rgba(78, 201, 176, 0.14)",
+          "--rffm-dash-secondary-border": "rgba(78, 201, 176, 0.4)",
+          "--rffm-dash-hero-glow":
+            "radial-gradient(circle at 85% 0%, rgba(77, 157, 224, 0.26), transparent 42%)",
+          "--rffm-dash-hero-glow-mobile":
+            "radial-gradient(circle at 100% 0%, rgba(77, 157, 224, 0.3), transparent 55%)",
           /* ClubTeams page tokens */
           "--rffm-club-teams-page-padding": "1.25rem",
           "--rffm-club-teams-list-gap": "0.75rem",

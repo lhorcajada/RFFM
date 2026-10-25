@@ -1,0 +1,224 @@
+.hero {
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  gap: 32px;
+  padding: 32px 36px;
+  min-height: 252px;
+  background: var(--rffm-dash-hero-glow), var(--rffm-hero-surface);
+  border-left: 4px solid var(--rffm-dash-accent);
+  clip-path: polygon(0 0, calc(100% - 36px) 0, 100% 36px, 100% 100%, 0 100%);
+  color: var(--rffm-dash-card-text);
+}
+
+.corner {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 36px;
+  height: 36px;
+  background: var(--rffm-dash-accent);
+  opacity: 0.45;
+  clip-path: polygon(0 0, 100% 100%, 100% 0);
+}
+
+.identity {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 32px;
+  min-width: 0;
+}
+
+.info {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.eyebrow {
+  align-self: flex-start;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: var(--rffm-hero-eyebrow-bg);
+  color: var(--rffm-dash-link);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.teamName {
+  margin: 0;
+  font-size: clamp(2rem, 3.6vw, 3.25rem);
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: var(--rffm-hero-title);
+  overflow-wrap: anywhere;
+}
+
+.club {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  font-size: 0.875rem;
+}
+
+.clubEmblem {
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  object-fit: cover;
+  background: var(--rffm-dash-emblem-bg);
+}
+
+.clubName {
+  font-weight: 700;
+  color: var(--rffm-dash-card-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.category {
+  flex: 0 0 auto;
+  color: var(--rffm-dash-muted-text);
+}
+
+.cta {
+  flex: 0 0 auto;
+  align-self: flex-end;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 0 22px;
+  background: var(--rffm-dash-accent);
+  color: var(--rffm-dash-on-accent);
+  font-size: 0.875rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-decoration: none;
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%);
+  transition: filter 0.15s ease;
+}
+
+.cta:hover,
+.cta:focus-visible {
+  color: var(--rffm-dash-on-accent);
+  filter: brightness(1.12);
+}
+
+.cta:focus-visible {
+  outline: 2px solid var(--rffm-hero-title);
+  outline-offset: -4px;
+}
+
+.ctaIcon {
+  font-size: 1.125rem;
+}
+
+/* ── Tablet ─────────────────────────────────────────── */
+.tablet {
+  display: block;
+  min-height: 0;
+  padding: 28px;
+  clip-path: polygon(0 0, calc(100% - 30px) 0, 100% 30px, 100% 100%, 0 100%);
+}
+
+.tablet .corner {
+  width: 30px;
+  height: 30px;
+}
+
+.tablet .identity {
+  align-items: center;
+  gap: 24px;
+}
+
+.tablet .shield {
+  width: 120px;
+  height: 136px;
+  font-size: 2.375rem;
+}
+
+.tablet .info {
+  gap: 12px;
+}
+
+.tablet .teamName {
+  font-size: 2.625rem;
+}
+
+.tablet .cta {
+  display: flex;
+  width: fit-content;
+  min-height: 46px;
+  margin-top: 16px;
+  margin-left: 144px;
+}
+
+/* ── Mobile ─────────────────────────────────────────── */
+.mobile {
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+  padding: 20px 18px 18px;
+  background: var(--rffm-dash-hero-glow-mobile), var(--rffm-hero-surface);
+  clip-path: polygon(0 0, calc(100% - 22px) 0, 100% 22px, 100% 100%, 0 100%);
+}
+
+.mobile .corner {
+  width: 22px;
+  height: 22px;
+}
+
+.mobile .identity {
+  gap: 16px;
+}
+
+.mobile .info {
+  gap: 6px;
+}
+
+.mobile .eyebrow {
+  padding: 0;
+  background: none;
+  font-size: 0.625rem;
+  letter-spacing: 0.16em;
+}
+
+.mobile .teamName {
+  font-size: 1.75rem;
+}
+
+.mobile .club {
+  gap: 8px;
+  font-size: 0.8125rem;
+}
+
+.mobile .clubEmblem {
+  flex-basis: 22px;
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+}
+
+.mobile .category {
+  flex-shrink: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mobile .cta {
+  align-self: stretch;
+}

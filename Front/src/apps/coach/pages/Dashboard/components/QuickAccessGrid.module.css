@@ -1,0 +1,72 @@
+.grid {
+  display: grid;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.threeColumns {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.fiveColumns {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.item {
+  display: flex;
+  min-width: 0;
+}
+
+.grid .card {
+  gap: 6px;
+  min-height: 196px;
+  padding: 20px 18px 18px 20px;
+  border-color: var(--rffm-dash-card-border);
+  border-left: 3px solid var(--rffm-dash-accent);
+  color: var(--rffm-dash-card-text);
+}
+
+.threeColumns .card {
+  min-height: 176px;
+  padding: 18px 16px 16px 18px;
+}
+
+.grid .settingsCard {
+  --rffm-dash-accent: var(--rffm-secondary);
+  border-style: dashed;
+  border-color: var(--rffm-dash-card-border-dashed);
+  border-left: 3px solid var(--rffm-secondary);
+}
+
+.grid .icon {
+  width: auto;
+  height: auto;
+  margin-bottom: auto;
+  color: var(--rffm-dash-accent);
+}
+
+.settingsIcon {
+  font-size: 40px;
+}
+
+.grid .title {
+  margin-bottom: 0;
+  font-size: 0.9375rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  color: var(--rffm-hero-title);
+  overflow-wrap: anywhere;
+}
+
+.threeColumns .title {
+  font-size: 0.875rem;
+}
+
+.grid .description {
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: var(--rffm-dash-muted-text);
+}

@@ -15,6 +15,8 @@ export default function useTeamAndClub() {
   );
   const [clubSubtitleNode, setClubSubtitleNode] =
     useState<React.ReactNode | null>(null);
+  const [teamImageUrl, setTeamImageUrl] = useState<string | null>(null);
+  const [clubEmblemUrl, setClubEmblemUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -25,6 +27,8 @@ export default function useTeamAndClub() {
       setTeam(null);
       setTeamTitleNode(null);
       setClubSubtitleNode(null);
+      setTeamImageUrl(null);
+      setClubEmblemUrl(null);
     }
 
     async function resolveTeamId() {
@@ -102,6 +106,7 @@ export default function useTeamAndClub() {
           </Box>
         );
         setTeamTitleNode(titleNode);
+        setTeamImageUrl(imgSrc);
 
         let clubShieldObj: string | null = null;
         if (t.club?.id) {
@@ -139,6 +144,7 @@ export default function useTeamAndClub() {
           </Box>
         );
         setClubSubtitleNode(clubNode);
+        setClubEmblemUrl(clubShieldObj);
       } catch (e) {
         if (!mounted) return;
         resetState();
@@ -160,5 +166,12 @@ export default function useTeamAndClub() {
     };
   }, [location.search]);
 
-  return { team, teamTitleNode, clubSubtitleNode, loading };
+  return {
+    team,
+    teamTitleNode,
+    clubSubtitleNode,
+    teamImageUrl,
+    clubEmblemUrl,
+    loading,
+  };
 }

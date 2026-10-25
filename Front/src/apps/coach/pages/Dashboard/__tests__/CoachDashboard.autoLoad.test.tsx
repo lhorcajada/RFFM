@@ -22,6 +22,11 @@ vi.mock("../hooks/usePreferredSelection", () => ({
   })),
 }));
 
+// The page greets the logged-in user; these tests do not mount UserProvider.
+vi.mock("../hooks/useGreetingName", () => ({
+  useGreetingName: () => null,
+}));
+
 vi.mock("../hooks/usePlayerAutoLoad", () => ({
   usePlayerAutoLoad: vi.fn(() => ({ isPlayer: false })),
 }));

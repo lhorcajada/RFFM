@@ -126,3 +126,69 @@
     flex: 1 1 110px;
   }
 }
+
+/* ── Coach home dashboard (coach-dashboard-redesign) ── */
+.homePage {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  padding: 24px 0 40px;
+  min-width: 0;
+}
+
+.homePage_tablet {
+  gap: 24px;
+  padding-top: 20px;
+}
+
+.homePage_mobile {
+  gap: 16px;
+  padding: 12px 0 24px;
+}
+
+.homeTopRow {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
+.homeTopRow_desktop {
+  flex-direction: row;
+  align-items: stretch;
+  gap: 20px;
+}
+
+.homeTopRow_mobile {
+  gap: 16px;
+}
+
+.homeTopRow:not(:has(> *:not(:empty))) {
+  display: none;
+}
+
+.homeHeroSlot {
+  display: flex;
+  min-width: 0;
+}
+
+.homeHeroSlot > * {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.homeTopRow_desktop .homeHeroSlot {
+  flex: 2 1 0;
+}
+
+.homeBannerSlot {
+  min-width: 0;
+}
+
+.homeBannerSlot:empty {
+  display: none;
+}
+
+.homeTopRow_desktop .homeBannerSlot {
+  flex: 1 1 0;
+}

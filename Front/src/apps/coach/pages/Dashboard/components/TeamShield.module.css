@@ -1,0 +1,47 @@
+.shield {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--rffm-dash-accent);
+  color: var(--rffm-dash-on-accent);
+  clip-path: polygon(50% 0, 100% 12%, 100% 62%, 50% 100%, 0 62%, 0 12%);
+}
+
+.image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.initials {
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+.sm {
+  width: 38px;
+  height: 44px;
+  font-size: 0.8125rem;
+}
+
+.md {
+  width: 56px;
+  height: 64px;
+  font-size: 1.125rem;
+}
+
+.lg {
+  width: 76px;
+  height: 86px;
+  font-size: 1.625rem;
+}
+
+.xl {
+  width: 148px;
+  height: 168px;
+  font-size: 2.875rem;
+}

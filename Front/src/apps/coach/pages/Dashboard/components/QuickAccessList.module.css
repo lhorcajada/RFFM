@@ -1,0 +1,109 @@
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 68px;
+  padding: 0 12px 0 14px;
+  background: var(--rffm-dash-card-bg);
+  border: 1px solid var(--rffm-dash-card-border);
+  border-left: 3px solid var(--rffm-dash-accent);
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%);
+  color: var(--rffm-dash-card-text);
+  text-decoration: none;
+  transition: filter 0.15s ease;
+}
+
+.row:hover,
+.row:focus-visible {
+  color: var(--rffm-dash-card-text);
+  filter: brightness(1.15);
+}
+
+.row:focus-visible {
+  outline: 2px solid var(--rffm-dash-accent);
+  outline-offset: -3px;
+}
+
+.text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.name {
+  font-size: 0.875rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--rffm-hero-title);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.description {
+  font-size: 0.75rem;
+  color: var(--rffm-dash-muted-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chevron {
+  flex: 0 0 auto;
+  color: var(--rffm-dash-muted-text);
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.actionLink {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 52px;
+  border-radius: 8px;
+  border: 1px solid;
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.actionLink:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.settingsLink,
+.settingsLink:hover {
+  color: var(--rffm-secondary);
+  border-color: var(--rffm-dash-secondary-border);
+}
+
+.homeLink,
+.homeLink:hover {
+  color: var(--rffm-dash-link);
+  border-color: var(--rffm-dash-link-border);
+}
+
+.actionIcon {
+  font-size: 1.125rem;
+}

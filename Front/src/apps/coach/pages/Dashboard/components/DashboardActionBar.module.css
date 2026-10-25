@@ -1,0 +1,22 @@
+.actionBarContent {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.homeButton {
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 6px;
+  border-color: var(--rffm-dash-link-border);
+  color: var(--rffm-dash-link);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+.homeButton:hover {
+  border-color: var(--rffm-dash-link);
+  color: var(--rffm-dash-link);
+}

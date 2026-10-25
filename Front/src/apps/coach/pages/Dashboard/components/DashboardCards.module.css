@@ -1,0 +1,56 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.accentBar {
+  flex: 0 0 4px;
+  width: 4px;
+  height: 18px;
+  background: var(--rffm-dash-accent);
+}
+
+.title {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--rffm-dash-section-title);
+}
+
+.count {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--rffm-dash-muted-text);
+}
+
+.headerMobile {
+  gap: 10px;
+}
+
+.headerMobile .accentBar {
+  height: 16px;
+}
+
+.headerMobile .title {
+  font-size: 0.8125rem;
+}
+
+.headerMobile .count {
+  margin-left: auto;
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  padding: 32px 0;
+}

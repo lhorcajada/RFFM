@@ -1,0 +1,49 @@
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px 24px;
+}
+
+.titles {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.eyebrow {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--rffm-dash-accent);
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(1.75rem, 2.4vw, 2.125rem);
+  line-height: 1.05;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  color: var(--rffm-hero-title);
+  overflow-wrap: anywhere;
+}
+
+.action {
+  flex: 0 0 auto;
+}
+
+.compact .titles {
+  gap: 4px;
+}
+
+.compact .eyebrow {
+  font-size: 0.6875rem;
+  letter-spacing: 0.16em;
+}
+
+.compact .title {
+  font-size: 1.375rem;
+}

@@ -1,7 +1,7 @@
-import { Button, CircularProgress } from "@mui/material";
+import { Button } from "@mui/material";
 import { useNavigate } from "react-router-dom";
-import HomeIcon from "@mui/icons-material/Home";
-import styles from "../Dashboard.module.css";
+import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
+import styles from "./DashboardActionBar.module.css";
 
 interface DashboardActionBarProps {
   isPlayer?: boolean;
@@ -18,9 +18,9 @@ export default function DashboardActionBar({
     <div className={styles.actionBarContent}>
       <Button
         variant="outlined"
-        startIcon={<HomeIcon />}
+        startIcon={<HomeOutlinedIcon />}
         onClick={() => navigate("/")}
-        sx={{ textTransform: "none", marginLeft: "auto" }}
+        className={styles.homeButton}
       >
         Volver al inicio
       </Button>
