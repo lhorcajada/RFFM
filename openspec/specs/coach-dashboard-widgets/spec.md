@@ -5,19 +5,18 @@ TBD - created by archiving change coach-dashboard-highlights. Update Purpose aft
 ## Requirements
 ### Requirement: "A la vista" section on the team dashboard
 
-The system SHALL show an "A la vista" section on `TeamDashboard.tsx`, above the existing
-quick-access cards, containing an upcoming-events widget and a latest-news widget. Either widget
-SHALL be able to load, be empty, or error independently without preventing the other widget or
-the quick-access cards below from rendering.
+The system SHALL show an "A la vista" section on `TeamDashboard.tsx` containing an upcoming-events
+widget and a latest-news widget. Either widget SHALL be able to load, be empty, or error independently
+without preventing the other widget from rendering. The team dashboard SHALL NOT render the
+quick-access cards grid; the team sections are reached from the team navigation's «Menú» page.
 
-#### Scenario: Both widgets render above the existing cards
+#### Scenario: Both widgets render without the cards grid
 - **WHEN** an authenticated user with a resolved team opens `/coach/team-dashboard`
-- **THEN** the system renders the upcoming-events widget and the news widget above the existing
-  `TeamDashboardCards` grid
+- **THEN** the system renders the upcoming-events widget and the news widget and does not render any quick-access card
 
 #### Scenario: One widget failing does not block the other
 - **WHEN** the upcoming-events widget's data request fails
-- **THEN** the news widget and the quick-access cards still render normally
+- **THEN** the news widget still renders normally
 
 ### Requirement: Upcoming-events widget shows the next three events
 

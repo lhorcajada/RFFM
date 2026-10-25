@@ -4,24 +4,25 @@
 TBD - created by archiving change restrict-player-role-coach-dashboard-frontend. Update Purpose after archive.
 ## Requirements
 ### Requirement: Coach dashboard cards are filtered by the caller's feature permissions
-The Coach-app dashboard (`TeamDashboardCards` and `DashboardCards`) SHALL only render a card whose
-underlying feature route appears in the current user's `featurePermissions` (from
-`GET /api/permissions/me`), or whose caller has role `Administrator` (which the backend does not seed
-explicitly and therefore bypasses the permission list check on the frontend the same way it bypasses
-`FeaturePermissionBehavior` on the backend).
+The Coach-app team menu entries and home dashboard cards SHALL only render an entry whose underlying
+feature route appears in the current user's `featurePermissions` (team menu: `buildTeamSections`,
+rendered by `/coach/menu`; home dashboard: `DashboardCards`) (from `GET /api/permissions/me`), or whose caller has role `Administrator`
+(which the backend does not seed explicitly and therefore bypasses the permission list check on the
+frontend the same way it bypasses `FeaturePermissionBehavior` on the backend).
 
-#### Scenario: Player sees only the 8 allowed cards
-- **WHEN** a user with role `Player` loads the team dashboard
-- **THEN** only the Squad, Events, AttendanceSummary, Convocations, Injured, Sanctions, Lottery, and
-  News cards are rendered; Rivals, Trainings, GameModel, and SeasonAccess cards are not rendered
+#### Scenario: Player sees only the allowed entries
+- **WHEN** a user with role `Player` opens the team menu
+- **THEN** the Squad, Events, AttendanceSummary, Convocations-based (Calendario, Resultados, Clasificación,
+  Estadísticas de rivales), Injured, Sanctions, Lottery, and News entries are rendered; Rivals, Trainings,
+  GameModel, and SeasonAccess entries are not rendered
 
-#### Scenario: Coach sees all catalogued cards
-- **WHEN** a user with role `Coach` loads the team dashboard
-- **THEN** all catalogued feature cards are rendered, matching pre-change behavior
+#### Scenario: Coach sees all catalogued entries
+- **WHEN** a user with role `Coach` opens the team menu
+- **THEN** all catalogued feature entries are rendered, matching the cards the team dashboard showed before this change
 
-#### Scenario: Administrator sees all cards despite no seeded rows
-- **WHEN** a user with role `Administrator` loads the dashboard
-- **THEN** all catalogued feature cards are rendered even though `GET /api/permissions/me` returns an
+#### Scenario: Administrator sees all entries despite no seeded rows
+- **WHEN** a user with role `Administrator` opens the team menu
+- **THEN** all catalogued feature entries are rendered even though `GET /api/permissions/me` returns an
   empty `featurePermissions` array for that role
 
 ### Requirement: Direct URL navigation to a non-permitted Coach route is blocked
