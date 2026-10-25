@@ -84,6 +84,16 @@ namespace RFFM.Api.Features.Mobile.Attendance.Commands
                 if (!isOwnPlayer)
                     throw new ForbiddenAccessException("You cannot confirm attendance for a player that is not yours or your linked family member's.");
 
+                if (!isPrivilegedRole)
+                {
+                    var sportEvent = await db.SportEvents
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(se => se.Id == request.SportEventId, cancellationToken);
+                    var eventHasStarted = sportEvent?.HasStarted(DateTime.UtcNow) ?? false;
+                    if (eventHasStarted)
+                        throw new DomainException("Evento", "El evento ya ha comenzado; la asistencia ya no se puede modificar", "EventAlreadyStarted");
+                }
+
                 // Upsert EventAttendanceConfirmation
                 var status = AttendanceStatus.FromName(request.Status);
                 var existingConfirmation = await db.Set<EventAttendanceConfirmation>()

@@ -303,5 +303,84 @@ namespace RFFM.Api.Tests.UnitTests
             Assert.Equal(adminUserId, created!.ConfirmedByApplicationUserId);
             Assert.Equal(AttendanceStatus.NotGoing.Id, created.AttendanceStatusId);
         }
+
+        private async Task<string> SeedLinkedUserAsync(AppDbContext db, string teamId, string teamPlayerId, int membershipId)
+        {
+            var userId = Guid.NewGuid().ToString();
+            var userTeam = new UserTeam(userId, teamId, membershipId);
+            db.Set<UserTeam>().Add(userTeam);
+            await db.SaveChangesAsync();
+            userTeam.LinkPlayer(teamPlayerId);
+            await db.SaveChangesAsync();
+            return userId;
+        }
+
+        private static ConfirmAttendance.ConfirmAttendanceCommand Command(string sportEventId, string teamId, string teamPlayerId) => new()
+        {
+            SportEventId = sportEventId,
+            TeamId = teamId,
+            TeamPlayerId = teamPlayerId,
+            Status = "Going"
+        };
+
+        [Fact]
+        public async Task Handle_PlayerConfirmsStartedEvent_ThrowsDomainException()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, teamPlayerId) = await SeedTeamAndPlayerAsync(db);
+            var userId = await SeedLinkedUserAsync(db, teamId, teamPlayerId, Membership.Player.Id);
+            var sportEventId = await AvailabilityTestSupport.SeedEventAsync(db, teamId, AvailabilityTestSupport.TrainingTypeId, DateTime.UtcNow.AddHours(-1));
+
+            var handler = new ConfirmAttendance.Handler(db, MockCurrentUser(userId, new[] { "Player" }).Object);
+
+            var ex = await Assert.ThrowsAsync<DomainException>(
+                async () => await handler.Handle(Command(sportEventId, teamId, teamPlayerId), CancellationToken.None));
+            Assert.Equal("EventAlreadyStarted", ex.Code);
+        }
+
+        [Fact]
+        public async Task Handle_FamilyMemberConfirmsStartedEvent_ThrowsDomainException()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, teamPlayerId) = await SeedTeamAndPlayerAsync(db);
+            var userId = await SeedLinkedUserAsync(db, teamId, teamPlayerId, Membership.FamilyPlayer.Id);
+            var sportEventId = await AvailabilityTestSupport.SeedEventAsync(db, teamId, AvailabilityTestSupport.TrainingTypeId, DateTime.UtcNow.AddDays(-2));
+
+            var handler = new ConfirmAttendance.Handler(db, MockCurrentUser(userId, new[] { "FamilyMember" }).Object);
+
+            await Assert.ThrowsAsync<DomainException>(
+                async () => await handler.Handle(Command(sportEventId, teamId, teamPlayerId), CancellationToken.None));
+        }
+
+        [Fact]
+        public async Task Handle_PlayerConfirmsUpcomingEvent_CreatesRecord()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, teamPlayerId) = await SeedTeamAndPlayerAsync(db);
+            var userId = await SeedLinkedUserAsync(db, teamId, teamPlayerId, Membership.Player.Id);
+            var sportEventId = await AvailabilityTestSupport.SeedEventAsync(db, teamId, AvailabilityTestSupport.TrainingTypeId, DateTime.UtcNow.AddHours(2));
+
+            var handler = new ConfirmAttendance.Handler(db, MockCurrentUser(userId, new[] { "Player" }).Object);
+            await handler.Handle(Command(sportEventId, teamId, teamPlayerId), CancellationToken.None);
+
+            var created = await db.Set<EventAttendanceConfirmation>().AsNoTracking()
+                .AnyAsync(eac => eac.SportEventId == sportEventId && eac.TeamPlayerId == teamPlayerId);
+            Assert.True(created);
+        }
+
+        [Fact]
+        public async Task Handle_CoachConfirmsStartedEvent_CreatesRecord()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, teamPlayerId) = await SeedTeamAndPlayerAsync(db);
+            var sportEventId = await AvailabilityTestSupport.SeedEventAsync(db, teamId, AvailabilityTestSupport.TrainingTypeId, DateTime.UtcNow.AddDays(-1));
+
+            var handler = new ConfirmAttendance.Handler(db, MockCurrentUser(Guid.NewGuid().ToString(), new[] { "Coach" }).Object);
+            await handler.Handle(Command(sportEventId, teamId, teamPlayerId), CancellationToken.None);
+
+            var created = await db.Set<EventAttendanceConfirmation>().AsNoTracking()
+                .AnyAsync(eac => eac.SportEventId == sportEventId && eac.TeamPlayerId == teamPlayerId);
+            Assert.True(created);
+        }
     }
 }

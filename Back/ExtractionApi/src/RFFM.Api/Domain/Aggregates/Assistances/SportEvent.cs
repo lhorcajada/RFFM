@@ -193,6 +193,12 @@ namespace RFFM.Api.Domain.Aggregates.Assistances
             RivalId = rivalId;
         }
 
+        public bool HasStarted(DateTime utcNow)
+        {
+            var start = EveDateTime ?? StartTime;
+            return start.HasValue && start.Value <= utcNow;
+        }
+
         public void SetSelectedKit(int? kitNumber)
         {
             if (kitNumber is not null and not (1 or 2))

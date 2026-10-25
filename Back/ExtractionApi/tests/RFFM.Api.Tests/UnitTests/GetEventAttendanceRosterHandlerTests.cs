@@ -292,5 +292,33 @@ namespace RFFM.Api.Tests.UnitTests
             var row = Assert.Single(result, r => r.TeamPlayerId == teamPlayerId);
             Assert.False(row.IsInjured);
         }
+
+        [Fact]
+        public async Task Handle_EventAlreadyStarted_ReturnsEventHasStartedTrue()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, teamPlayerId) = await SeedTeamAndPlayerAsync(db, "past-event-player");
+            var sportEventId = await AvailabilityTestSupport.SeedEventAsync(db, teamId, AvailabilityTestSupport.TrainingTypeId, DateTime.UtcNow.AddHours(-1));
+
+            var handler = new GetEventAttendanceRoster.Handler(db);
+            var result = await handler.Handle(new GetEventAttendanceRoster.EventAttendanceRosterQuery { EventId = sportEventId, TeamId = teamId }, CancellationToken.None);
+
+            var row = Assert.Single(result, r => r.TeamPlayerId == teamPlayerId);
+            Assert.True(row.EventHasStarted);
+        }
+
+        [Fact]
+        public async Task Handle_UpcomingEvent_ReturnsEventHasStartedFalse()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var (teamId, teamPlayerId) = await SeedTeamAndPlayerAsync(db, "upcoming-event-player");
+            var sportEventId = await AvailabilityTestSupport.SeedEventAsync(db, teamId, AvailabilityTestSupport.TrainingTypeId, DateTime.UtcNow.AddHours(2));
+
+            var handler = new GetEventAttendanceRoster.Handler(db);
+            var result = await handler.Handle(new GetEventAttendanceRoster.EventAttendanceRosterQuery { EventId = sportEventId, TeamId = teamId }, CancellationToken.None);
+
+            var row = Assert.Single(result, r => r.TeamPlayerId == teamPlayerId);
+            Assert.False(row.EventHasStarted);
+        }
     }
 }

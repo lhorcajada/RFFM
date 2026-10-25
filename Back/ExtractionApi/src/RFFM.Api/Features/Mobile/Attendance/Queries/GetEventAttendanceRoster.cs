@@ -51,7 +51,8 @@ namespace RFFM.Api.Features.Mobile.Attendance.Queries
             int? Dorsal,
             string Status,
             int StatusId,
-            bool IsInjured);
+            bool IsInjured,
+            bool EventHasStarted);
 
         public class Handler(AppDbContext db) : IRequestHandler<EventAttendanceRosterQuery, EventAttendanceRosterResponse[]>
         {
@@ -83,6 +84,11 @@ namespace RFFM.Api.Features.Mobile.Attendance.Queries
                     .ToListAsync(cancellationToken))
                     .ToHashSet();
 
+                var sportEvent = await db.SportEvents
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(se => se.Id == request.EventId, cancellationToken);
+                var eventHasStarted = sportEvent?.HasStarted(now) ?? false;
+
                 var result = teamPlayers.Select(tp =>
                 {
                     var statusId = confirmationsByTeamPlayerId.TryGetValue(tp.Id, out var confirmation)
@@ -97,7 +103,8 @@ namespace RFFM.Api.Features.Mobile.Attendance.Queries
                         tp.Dorsal != null ? tp.Dorsal.Number : (int?)null,
                         status.Name,
                         status.Id,
-                        injuredTeamPlayerIds.Contains(tp.Id));
+                        injuredTeamPlayerIds.Contains(tp.Id),
+                        eventHasStarted);
                 }).ToArray();
 
                 return result;
