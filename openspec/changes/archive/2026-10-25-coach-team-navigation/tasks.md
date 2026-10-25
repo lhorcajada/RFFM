@@ -26,5 +26,5 @@
 ## 4. Cierre
 
 - [x] 4.1 `openspec validate coach-team-navigation --strict`.
-- [ ] 4.2 Comprobación visual a ~390 px, 834 px y 1440 px (panel del equipo, Menú, una sección y `/coach/dashboard`), con entrenador y con jugador.
-- [ ] 4.3 Commit tras confirmación del usuario.
+- [x] 4.2 Comprobación visual a ~390 px, 834 px y 1440 px (panel del equipo, Menú, una sección y `/coach/dashboard`), con entrenador y con jugador.
+- [x] 4.3 Commit tras confirmación del usuario.
