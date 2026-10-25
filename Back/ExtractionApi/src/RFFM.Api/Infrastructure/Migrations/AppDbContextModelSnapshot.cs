@@ -1839,6 +1839,15 @@ namespace RFFM.Api.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<int?>("PlayoffSpots")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("PromotionSpots")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("RelegationSpots")
+                        .HasColumnType("integer");
+
                     b.Property<int?>("RffmCompetitionId")
                         .HasColumnType("integer");
 
