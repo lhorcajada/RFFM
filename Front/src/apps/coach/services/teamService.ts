@@ -18,6 +18,9 @@ export type TeamResponse = {
   rffmCompetitionId?: number | null;
   rffmGroupId?: number | null;
   rffmTeamCode?: string | null;
+  promotionSpots?: number | null;
+  playoffSpots?: number | null;
+  relegationSpots?: number | null;
   standardHalfDurationMinutes: number | null;
 };
 

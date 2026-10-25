@@ -13,6 +13,14 @@ import RffmCompetitionSelect from "../../../components/RffmCompetitionSelect/Rff
 import RffmTeamSelect from "../../../components/RffmTeamSelect/RffmTeamSelect";
 import FileImagePicker from "../../../../../shared/components/ui/FileImagePicker/FileImagePicker";
 
+const STANDING_SPOTS_MAX = 30;
+
+function parseSpots(raw: string): number | null {
+  if (raw.trim() === "") return null;
+  const value = Number(raw);
+  return Number.isInteger(value) && value >= 0 && value <= STANDING_SPOTS_MAX ? value : null;
+}
+
 export default function EditTeam() {
   const navigate = useNavigate();
   const { id, teamId } = useParams();
@@ -34,7 +42,15 @@ export default function EditTeam() {
   const [rffmCompetitionId, setRffmCompetitionId] = React.useState<number | null>(null);
   const [rffmGroupId, setRffmGroupId] = React.useState<number | null>(null);
   const [rffmTeamCode, setRffmTeamCode] = React.useState<string | null>(null);
+  const [promotionSpots, setPromotionSpots] = React.useState<number | null>(null);
+  const [playoffSpots, setPlayoffSpots] = React.useState<number | null>(null);
+  const [relegationSpots, setRelegationSpots] = React.useState<number | null>(null);
   const [savingRffmCompetition, setSavingRffmCompetition] = React.useState(false);
+  const standingSpotFields = [
+    { label: "Plazas de ascenso", value: promotionSpots, setValue: setPromotionSpots },
+    { label: "Plazas de promoción", value: playoffSpots, setValue: setPlayoffSpots },
+    { label: "Plazas de descenso", value: relegationSpots, setValue: setRelegationSpots },
+  ];
   const [rffmCompetitionError, setRffmCompetitionError] = React.useState<string | null>(null);
 
   const teamsListPath = `/coach/clubs/${id}/teams${
@@ -65,6 +81,9 @@ export default function EditTeam() {
         setRffmCompetitionId(team.rffmCompetitionId ?? null);
         setRffmGroupId(team.rffmGroupId ?? null);
         setRffmTeamCode(team.rffmTeamCode ?? null);
+        setPromotionSpots(team.promotionSpots ?? null);
+        setPlayoffSpots(team.playoffSpots ?? null);
+        setRelegationSpots(team.relegationSpots ?? null);
       } catch (e: any) {
         if (!mounted) return;
         setError(e?.message ?? "No se pudo cargar el equipo");
@@ -175,6 +194,9 @@ export default function EditTeam() {
         competitionId: rffmCompetitionId,
         groupId: rffmGroupId,
         teamCode: rffmTeamCode,
+        promotionSpots,
+        playoffSpots,
+        relegationSpots,
       });
 
       window.dispatchEvent(
@@ -265,6 +287,24 @@ export default function EditTeam() {
                   teamCode={rffmTeamCode}
                   onChange={setRffmTeamCode}
                 />
+                <Typography variant="caption" color="text.secondary" component="p" sx={{ mt: 1 }}>
+                  Plazas de la clasificación según las Bases de ascensos y descensos de la categoría.
+                </Typography>
+                <Box display="flex" flexWrap="wrap" gap={1} mb={1}>
+                  {standingSpotFields.map((field) => (
+                    <TextField
+                      key={field.label}
+                      label={field.label}
+                      type="number"
+                      size="small"
+                      margin="dense"
+                      value={field.value ?? ""}
+                      onChange={(e) => field.setValue(parseSpots(e.target.value))}
+                      inputProps={{ min: 0, max: STANDING_SPOTS_MAX }}
+                      sx={{ flex: "1 1 140px" }}
+                    />
+                  ))}
+                </Box>
                 {rffmCompetitionError && (
                   <Typography color="error" variant="body2" sx={{ mb: 1 }}>
                     {rffmCompetitionError}

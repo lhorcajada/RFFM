@@ -1,0 +1,31 @@
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 0 10px;
+  border-radius: 10px;
+  background: var(--rffm-standings-tile-bg);
+}
+
+.date {
+  width: 40px;
+  flex: none;
+  font-size: 0.6875rem;
+  color: var(--rffm-standings-muted-text);
+}
+
+.opponent {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 0;
+  font-size: clamp(0.6875rem, 3.4vw, 0.8125rem);
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.score {
+  font-size: 0.875rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}

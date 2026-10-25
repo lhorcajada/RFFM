@@ -22,6 +22,9 @@ export type UpdateTeamCompetitionPayload = {
   competitionId: number | null;
   groupId: number | null;
   teamCode: string | null;
+  promotionSpots: number | null;
+  playoffSpots: number | null;
+  relegationSpots: number | null;
 };
 
 export async function getCompetitions(): Promise<RffmCompetition[]> {
@@ -57,6 +60,9 @@ export async function updateTeamCompetition(
     RffmCompetitionId: payload.competitionId,
     RffmGroupId: payload.groupId,
     RffmTeamCode: payload.teamCode,
+    PromotionSpots: payload.promotionSpots,
+    PlayoffSpots: payload.playoffSpots,
+    RelegationSpots: payload.relegationSpots,
   });
 }
 

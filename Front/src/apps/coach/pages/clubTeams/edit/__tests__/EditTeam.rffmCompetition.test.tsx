@@ -104,6 +104,9 @@ describe("EditTeam - competición real RFFM", () => {
         competitionId: 1,
         groupId: 10,
         teamCode: null,
+        promotionSpots: null,
+        playoffSpots: null,
+        relegationSpots: null,
       })
     );
   });
@@ -130,6 +133,9 @@ describe("EditTeam - competición real RFFM", () => {
         competitionId: 1,
         groupId: 10,
         teamCode: "9002",
+        promotionSpots: null,
+        playoffSpots: null,
+        relegationSpots: null,
       })
     );
   });
@@ -178,6 +184,9 @@ describe("EditTeam - competición real RFFM", () => {
         competitionId: 1,
         groupId: 11,
         teamCode: null,
+        promotionSpots: null,
+        playoffSpots: null,
+        relegationSpots: null,
       })
     );
   });
@@ -200,6 +209,55 @@ describe("EditTeam - competición real RFFM", () => {
 
     expect(await screen.findByText("Liga Nacional")).toBeInTheDocument();
     expect(await screen.findByText("Grupo A")).toBeInTheDocument();
+  });
+
+  it("precarga las plazas de ascenso, promoción y descenso de la liga", async () => {
+    mockGetTeamById.mockResolvedValue({
+      id: "team-1",
+      name: "Equipo A",
+      category: { id: 1, name: "Categoría 1" },
+      league: { id: null, name: null, group: null },
+      urlPhoto: null,
+      rffmCompetitionId: 1,
+      rffmGroupId: 10,
+      promotionSpots: 2,
+      playoffSpots: null,
+      relegationSpots: 0,
+    });
+
+    renderEditTeam();
+
+    expect(await screen.findByLabelText("Plazas de ascenso")).toHaveValue(2);
+    expect(screen.getByLabelText("Plazas de promoción")).toHaveValue(null);
+    expect(screen.getByLabelText("Plazas de descenso")).toHaveValue(0);
+  });
+
+  it("guarda las plazas de la liga junto a la competición RFFM", async () => {
+    mockGetTeamById.mockResolvedValue({
+      id: "team-1",
+      name: "Equipo A",
+      category: { id: 1, name: "Categoría 1" },
+      league: { id: null, name: null, group: null },
+      urlPhoto: null,
+      rffmCompetitionId: 1,
+      rffmGroupId: 10,
+    });
+    renderEditTeam();
+
+    await userEvent.type(await screen.findByLabelText("Plazas de ascenso"), "2");
+    await userEvent.type(screen.getByLabelText("Plazas de descenso"), "0");
+    await userEvent.click(screen.getByRole("button", { name: "Guardar competición RFFM" }));
+
+    await waitFor(() =>
+      expect(mockUpdateTeamCompetitionFn).toHaveBeenCalledWith("team-1", {
+        competitionId: 1,
+        groupId: 10,
+        teamCode: null,
+        promotionSpots: 2,
+        playoffSpots: null,
+        relegationSpots: 0,
+      })
+    );
   });
 
   it("muestra un mensaje de error si falla al guardar la competición RFFM", async () => {

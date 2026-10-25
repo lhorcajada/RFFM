@@ -93,6 +93,28 @@ describe("rffmCompetitionService.updateTeamCompetition", () => {
     });
   });
 
+  it("sends the league standing spots of the team", async () => {
+    (client.put as any).mockResolvedValue({ data: {} });
+
+    await updateTeamCompetition("team-1", {
+      competitionId: 1,
+      groupId: 10,
+      teamCode: "9001",
+      promotionSpots: 2,
+      playoffSpots: null,
+      relegationSpots: 0,
+    });
+
+    expect(client.put).toHaveBeenCalledWith("/api/catalog/team/team-1/competition", {
+      RffmCompetitionId: 1,
+      RffmGroupId: 10,
+      RffmTeamCode: "9001",
+      PromotionSpots: 2,
+      PlayoffSpots: null,
+      RelegationSpots: 0,
+    });
+  });
+
   it("rejects when teamId is missing", async () => {
     await expect(
       updateTeamCompetition("", { competitionId: 1, groupId: 10 })

@@ -15,12 +15,35 @@
   opacity: 0.8;
 }
 
-.list {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 6px;
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   padding-top: 8px;
-  overflow-x: hidden;
+  min-width: 0;
+}
+
+.layout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.standings {
+  flex: 1 1 560px;
+  max-width: 780px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.panel {
+  flex: 1 1 400px;
+  min-width: 0;
+  position: sticky;
+  top: 16px;
 }
 
 .center {
