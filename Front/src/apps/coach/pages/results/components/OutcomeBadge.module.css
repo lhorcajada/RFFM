@@ -1,0 +1,49 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.sm {
+  min-width: 20px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 5px;
+  font-size: 11px;
+}
+
+.lg {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.win {
+  background: var(--rffm-results-win, #00e5ff);
+  border-color: var(--rffm-results-win, #00e5ff);
+  color: var(--rffm-results-on-accent, #030a15);
+}
+
+.draw {
+  background: var(--rffm-results-draw, #2a3a52);
+  border-color: var(--rffm-results-draw, #2a3a52);
+  color: var(--rffm-results-draw-text, #e6eef8);
+}
+
+.loss {
+  background: transparent;
+  border-color: var(--rffm-results-loss, #ff6b6b);
+  color: var(--rffm-results-loss, #ff6b6b);
+}
+
+.inverted.win {
+  background: var(--rffm-results-on-accent, #030a15);
+  border-color: var(--rffm-results-on-accent, #030a15);
+  color: var(--rffm-results-win, #00e5ff);
+}

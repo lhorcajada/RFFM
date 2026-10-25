@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -72,6 +72,17 @@ vi.mock("../components/MatchResultNotificationsToggle", () => ({
   default: () => <div>Interruptor de avisos de resultados</div>,
 }));
 
+const mockUseOwnTeamSeason = vi.fn();
+vi.mock("../hooks/useOwnTeamSeason", () => ({
+  default: (params: unknown) => mockUseOwnTeamSeason(params),
+}));
+
+const mockIsDesktop = vi.fn();
+vi.mock("@mui/material", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@mui/material")>()),
+  useMediaQuery: () => mockIsDesktop(),
+}));
+
 import Results from "../Results";
 
 const teamWithCompetition = {
@@ -81,16 +92,28 @@ const teamWithCompetition = {
   club: { id: "club-1" },
   rffmCompetitionId: 555,
   rffmGroupId: 777,
+  rffmTeamCode: "100",
 };
 
 const match = {
   matchRecordCode: "123",
   date: "04-10-2026",
   time: "10:00",
+  localTeamCode: "100",
   localTeamName: "Equipo Local",
+  visitorTeamCode: "200",
   visitorTeamName: "Equipo Visitante",
   localGoals: "2",
   visitorGoals: "1",
+};
+
+const otherMatch = {
+  ...match,
+  matchRecordCode: "456",
+  localTeamCode: "300",
+  localTeamName: "Otro Local",
+  visitorTeamCode: "400",
+  visitorTeamName: "Otro Visitante",
 };
 
 function calendarState(overrides: Record<string, unknown> = {}) {
@@ -127,6 +150,8 @@ describe("Results", () => {
     mockUseCalendar.mockReturnValue(calendarState());
     mockHasFeatureAccess.mockReturnValue(true);
     mockUseTeamMatchReports.mockReturnValue({ byEventId: {}, byCodActa: {} });
+    mockUseOwnTeamSeason.mockReturnValue({ ownByRound: {}, loading: false, error: false });
+    mockIsDesktop.mockReturnValue(false);
   });
 
   it("muestra «Ver acta» en el partido propio con acta disponible y enlaza al acta del coach", () => {
@@ -213,11 +238,107 @@ describe("Results", () => {
     expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
   });
 
-  it("muestra los partidos de la jornada seleccionada", () => {
+  it("muestra las jornadas en la barra «Jornadas» en lugar de pestañas", () => {
     renderPage();
 
-    expect(screen.getByRole("tab", { name: "Jornada 3" })).toBeInTheDocument();
-    expect(screen.getByText("Equipo Local")).toBeInTheDocument();
+    expect(screen.queryByRole("tab")).not.toBeInTheDocument();
+    const nav = screen.getByRole("navigation", { name: "Jornadas" });
+    expect(within(nav).getByRole("button", { name: "Jornada 3, victoria" })).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("selecciona otra jornada desde la barra", () => {
+    const setSelectedTab = vi.fn();
+    mockUseCalendar.mockReturnValue(
+      calendarState({
+        setSelectedTab,
+        rounds: [
+          { matchDayNumber: 3, date: "2026-10-04", name: "Jornada 3" },
+          { matchDayNumber: 4, date: "2026-10-11", name: "Jornada 4" },
+        ],
+      }),
+    );
+
+    renderPage();
+    fireEvent.click(screen.getByRole("button", { name: "Jornada siguiente" }));
+
+    expect(setSelectedTab).toHaveBeenCalledWith(1);
+  });
+
+  it("muestra el partido propio primero en «Tu partido» y no lo repite en el resto", () => {
+    mockUseCalendar.mockReturnValue(
+      calendarState({
+        calendar: { ...calendarState().calendar, matchDay: { date: "", matchDayNumber: 3, matches: [otherMatch, match] } },
+      }),
+    );
+
+    renderPage();
+
+    const own = screen.getByRole("region", { name: "Tu partido" });
+    expect(within(own).getByText("Equipo Local")).toBeInTheDocument();
+    expect(within(own).getByText("Victoria 2–1")).toBeInTheDocument();
+    const rest = screen.getByRole("region", { name: "Resto de la jornada" });
+    expect(within(rest).getByText("Otro Local")).toBeInTheDocument();
+    expect(within(rest).queryByText("Equipo Local")).not.toBeInTheDocument();
+  });
+
+  it("sin código RFFM del equipo lista todos los partidos en «Partidos de la jornada»", () => {
+    mockUseTeamAndClub.mockReturnValue({ team: { ...teamWithCompetition, rffmTeamCode: null }, loading: false });
+
+    renderPage();
+
+    expect(screen.queryByRole("region", { name: "Tu partido" })).not.toBeInTheDocument();
+    expect(within(screen.getByRole("region", { name: "Partidos de la jornada" })).getByText("Equipo Local")).toBeInTheDocument();
+  });
+
+  it("usa la jornada cargada antes que el calendario completo para el resultado propio", () => {
+    mockUseOwnTeamSeason.mockReturnValue({
+      ownByRound: { 3: { ...match, localGoals: "", visitorGoals: "" } },
+      loading: false,
+      error: false,
+    });
+
+    renderPage();
+
+    expect(screen.getByRole("button", { name: "Jornada 3, victoria" })).toBeInTheDocument();
+  });
+
+  it("muestra las letras de jornadas no seleccionadas desde el calendario completo", () => {
+    mockUseCalendar.mockReturnValue(
+      calendarState({
+        rounds: [
+          { matchDayNumber: 2, date: "2026-09-27", name: "Jornada 2" },
+          { matchDayNumber: 3, date: "2026-10-04", name: "Jornada 3" },
+        ],
+        selectedTab: 1,
+      }),
+    );
+    mockUseOwnTeamSeason.mockReturnValue({
+      ownByRound: { 2: { ...match, localGoals: "0", visitorGoals: "1" } },
+      loading: false,
+      error: false,
+    });
+
+    renderPage();
+
+    expect(screen.getByRole("button", { name: "Jornada 2, derrota" })).toBeInTheDocument();
+  });
+
+  it("pide la temporada del equipo con su código RFFM", () => {
+    renderPage();
+
+    expect(mockUseOwnTeamSeason).toHaveBeenLastCalledWith(
+      expect.objectContaining({ season: "21", competition: "555", group: "777", teamCode: "100" }),
+    );
+  });
+
+  it("muestra «Tu temporada» solo en escritorio", () => {
+    const { unmount } = renderPage();
+    expect(screen.queryByRole("complementary", { name: "Tu temporada" })).not.toBeInTheDocument();
+    unmount();
+
+    mockIsDesktop.mockReturnValue(true);
+    renderPage();
+    expect(screen.getByRole("complementary", { name: "Tu temporada" })).toBeInTheDocument();
   });
 
   it("muestra «Ver acta» en un partido sin acta del coach y enlaza al acta de federación", () => {
@@ -237,7 +358,7 @@ describe("Results", () => {
           matchDay: {
             date: "",
             matchDayNumber: 3,
-            matches: [match, { ...match, matchRecordCode: "456", localTeamName: "Otro Local", visitorTeamName: "Otro Visitante" }],
+            matches: [match, otherMatch],
           },
         },
       }),

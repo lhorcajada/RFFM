@@ -1,0 +1,37 @@
+import type { CalendarMatch } from "../../../../federation/types/calendarMatchDay";
+
+export function calendarMatch(overrides: Partial<CalendarMatch> = {}): CalendarMatch {
+  return {
+    matchRecordCode: "1",
+    hasRecords: "",
+    recordClosed: "",
+    gameSituation: "",
+    observations: "",
+    date: "04-10-2026",
+    time: "11:00",
+    field: "Campo Municipal",
+    fieldCode: "",
+    status: "",
+    statusReason: "",
+    matchInProgress: "",
+    provisionalResult: "",
+    referee: "",
+    penalties: "",
+    extraTimeWin: "",
+    extraTimeWinnerTeam: "",
+    localTeamCode: "100",
+    localTeamName: "Mi Equipo",
+    localTeamImageUrl: "",
+    localTeamWithdrawn: "",
+    localGoals: "",
+    localPenalties: "",
+    visitorTeamCode: "200",
+    visitorTeamName: "Rival UD",
+    visitorTeamImageUrl: "",
+    visitorTeamWithdrawn: "",
+    visitorGoals: "",
+    visitorPenalties: "",
+    originRecordCode: "",
+    ...overrides,
+  };
+}

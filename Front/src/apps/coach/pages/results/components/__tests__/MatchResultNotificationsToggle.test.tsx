@@ -37,6 +37,10 @@ function renderToggle() {
   );
 }
 
+async function openPanel() {
+  await userEvent.click(await screen.findByRole("button", { name: /avisos de resultados/i }));
+}
+
 describe("MatchResultNotificationsToggle", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -44,10 +48,28 @@ describe("MatchResultNotificationsToggle", () => {
     mockSetPreference.mockResolvedValue(undefined);
   });
 
-  it("muestra el interruptor activado con el nombre del equipo principal", async () => {
+  it("muestra solo un botón compacto de campana con el estado de los avisos", async () => {
     mockGetPreference.mockResolvedValue({ enabled: true, teamName: "CD Ejemplo A" });
 
     renderToggle();
+
+    expect(await screen.findByRole("button", { name: "Avisos de resultados: activados" })).toBeInTheDocument();
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+  });
+
+  it("indica en la campana que los avisos están desactivados", async () => {
+    mockGetPreference.mockResolvedValue({ enabled: false, teamName: "CD Ejemplo A" });
+
+    renderToggle();
+
+    expect(await screen.findByRole("button", { name: "Avisos de resultados: desactivados" })).toBeInTheDocument();
+  });
+
+  it("al abrir la campana muestra el interruptor activado con el nombre del equipo principal", async () => {
+    mockGetPreference.mockResolvedValue({ enabled: true, teamName: "CD Ejemplo A" });
+
+    renderToggle();
+    await openPanel();
 
     const toggle = await screen.findByRole("checkbox", {
       name: /notificarme los resultados de cd ejemplo a/i,
@@ -59,19 +81,22 @@ describe("MatchResultNotificationsToggle", () => {
     mockGetPreference.mockResolvedValue({ enabled: false, teamName: "CD Ejemplo A" });
 
     renderToggle();
+    await openPanel();
 
     expect(await screen.findByRole("checkbox", { name: /notificarme los resultados/i })).not.toBeChecked();
   });
 
-  it("al desactivarlo guarda enabled=false y se queda desactivado", async () => {
+  it("al desactivarlo guarda enabled=false, se queda desactivado y actualiza la campana", async () => {
     mockGetPreference.mockResolvedValue({ enabled: true, teamName: "CD Ejemplo A" });
     renderToggle();
+    await openPanel();
     const toggle = await screen.findByRole("checkbox", { name: /notificarme los resultados/i });
 
     await userEvent.click(toggle);
 
     expect(mockSetPreference).toHaveBeenCalledWith(false);
     await waitFor(() => expect(toggle).not.toBeChecked());
+    expect(screen.getByRole("button", { name: "Avisos de resultados: desactivados", hidden: true })).toBeInTheDocument();
   });
 
   it("si falla el guardado revierte el interruptor y avisa con un snackbar de error", async () => {
@@ -80,6 +105,7 @@ describe("MatchResultNotificationsToggle", () => {
     const snackbarListener = vi.fn();
     window.addEventListener("rffm.show_snackbar", snackbarListener);
     renderToggle();
+    await openPanel();
     const toggle = await screen.findByRole("checkbox", { name: /notificarme los resultados/i });
 
     await userEvent.click(toggle);
@@ -95,6 +121,7 @@ describe("MatchResultNotificationsToggle", () => {
     mockGetPreference.mockResolvedValue({ enabled: true, teamName: null });
 
     renderToggle();
+    await userEvent.click(await screen.findByRole("button", { name: "Avisos de resultados: sin equipo" }));
 
     expect(await screen.findByText(/para recibir sus resultados/i)).toHaveTextContent(
       "Guarda tu equipo en Ajustes para recibir sus resultados."
@@ -107,6 +134,7 @@ describe("MatchResultNotificationsToggle", () => {
     mockGetPreference.mockResolvedValue({ enabled: true, teamName: "CD Ejemplo A" });
     mockUsePushActivationStatus.mockReturnValue({ shouldPrompt: true });
     renderToggle();
+    await openPanel();
 
     await userEvent.click(await screen.findByRole("button", { name: /activar notificaciones/i }));
 
@@ -117,6 +145,7 @@ describe("MatchResultNotificationsToggle", () => {
     mockGetPreference.mockResolvedValue({ enabled: true, teamName: "CD Ejemplo A" });
 
     renderToggle();
+    await openPanel();
 
     await screen.findByRole("checkbox", { name: /notificarme los resultados/i });
     expect(screen.queryByRole("button", { name: /activar notificaciones/i })).not.toBeInTheDocument();
@@ -128,7 +157,7 @@ describe("MatchResultNotificationsToggle", () => {
     const { container } = renderToggle();
 
     await waitFor(() => expect(mockGetPreference).toHaveBeenCalled());
-    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
     expect(container).toBeEmptyDOMElement();
   });
 });
