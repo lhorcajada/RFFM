@@ -20,6 +20,7 @@
         public const int TeamNameMaxLength = 500;
         public const int TeamJoinCodeLength = 8;
         public const int RffmTeamCodeMaxLength = 50;
+        public const int StandingSpotsMax = 30;
         public const int PlayerLinkCodeLength = 8;
         public const int TechnicalNameMaxLength = 200;
         public const string TechnicalNameCannotBeNullEmpty = "Technical name cannot be null or empty.";

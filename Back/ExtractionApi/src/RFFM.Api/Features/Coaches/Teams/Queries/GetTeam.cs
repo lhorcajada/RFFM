@@ -42,7 +42,10 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
             int? RffmCompetitionId,
             int? RffmGroupId,
             string? RffmTeamCode,
-            int? StandardHalfDurationMinutes);
+            int? StandardHalfDurationMinutes,
+            int? PromotionSpots,
+            int? PlayoffSpots,
+            int? RelegationSpots);
 
         public class TeamsRequestHandler : IRequestHandler<TeamQuery, TeamResponse?>
         {
@@ -78,7 +81,10 @@ namespace RFFM.Api.Features.Coaches.Teams.Queries
                     team.RffmCompetitionId,
                     team.RffmGroupId,
                     team.RffmTeamCode,
-                    hasStandardDuration ? standardMinutes : null);
+                    hasStandardDuration ? standardMinutes : null,
+                    team.PromotionSpots,
+                    team.PlayoffSpots,
+                    team.RelegationSpots);
             }
         }
     }

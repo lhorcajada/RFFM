@@ -148,6 +148,83 @@ namespace RFFM.Api.Tests.UnitTests
         }
 
         [Fact]
+        public async Task Handle_WithStandingSpots_StoresPromotionAndRelegationSpots()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var teamId = await SeedTeamAsync(db);
+
+            await new UpdateTeamCompetitionHandler(db).Handle(new UpdateTeamCompetitionCommand
+            {
+                Id = teamId,
+                RffmCompetitionId = 25255269,
+                RffmGroupId = 25255283,
+                PromotionSpots = 2,
+                PlayoffSpots = 1,
+                RelegationSpots = 0
+            }, CancellationToken.None);
+
+            await using var verifyDb = _fixture.CreateDbContext();
+            var team = await verifyDb.Teams.FindAsync(teamId);
+            Assert.Equal(2, team!.PromotionSpots);
+            Assert.Equal(1, team.PlayoffSpots);
+            Assert.Equal(0, team.RelegationSpots);
+        }
+
+        [Fact]
+        public async Task Handle_WithoutGroup_ClearsTheStandingSpots()
+        {
+            await using var db = _fixture.CreateDbContext();
+            var teamId = await SeedTeamAsync(db, rffmCompetitionId: 111, rffmGroupId: 222);
+            var handler = new UpdateTeamCompetitionHandler(db);
+            await handler.Handle(new UpdateTeamCompetitionCommand
+            {
+                Id = teamId, RffmCompetitionId = 111, RffmGroupId = 222,
+                PromotionSpots = 2, PlayoffSpots = 1, RelegationSpots = 3
+            }, CancellationToken.None);
+
+            await handler.Handle(new UpdateTeamCompetitionCommand
+            {
+                Id = teamId, RffmCompetitionId = 111, RffmGroupId = null,
+                PromotionSpots = 2, PlayoffSpots = 1, RelegationSpots = 3
+            }, CancellationToken.None);
+
+            await using var verifyDb = _fixture.CreateDbContext();
+            var team = await verifyDb.Teams.FindAsync(teamId);
+            Assert.Null(team!.PromotionSpots);
+            Assert.Null(team.PlayoffSpots);
+            Assert.Null(team.RelegationSpots);
+        }
+
+        [Theory]
+        [InlineData(-1, null, null)]
+        [InlineData(null, -1, null)]
+        [InlineData(null, null, -1)]
+        [InlineData(31, null, null)]
+        [InlineData(null, 31, null)]
+        [InlineData(null, null, 31)]
+        public void Validator_RejectsStandingSpotsOutOfRange(int? promotionSpots, int? playoffSpots, int? relegationSpots)
+        {
+            var result = new UpdateTeamCompetitionValidator().Validate(new UpdateTeamCompetitionCommand
+            {
+                Id = "team", RffmCompetitionId = 1, RffmGroupId = 2,
+                PromotionSpots = promotionSpots, PlayoffSpots = playoffSpots, RelegationSpots = relegationSpots
+            });
+
+            Assert.False(result.IsValid);
+        }
+
+        [Fact]
+        public void Validator_AcceptsZeroRelegationSpots()
+        {
+            var result = new UpdateTeamCompetitionValidator().Validate(new UpdateTeamCompetitionCommand
+            {
+                Id = "team", RffmCompetitionId = 1, RffmGroupId = 2, PromotionSpots = 2, RelegationSpots = 0
+            });
+
+            Assert.True(result.IsValid);
+        }
+
+        [Fact]
         public void Validator_RejectsATeamCodeLongerThanTheMaximum()
         {
             var result = new UpdateTeamCompetitionValidator().Validate(new UpdateTeamCompetitionCommand

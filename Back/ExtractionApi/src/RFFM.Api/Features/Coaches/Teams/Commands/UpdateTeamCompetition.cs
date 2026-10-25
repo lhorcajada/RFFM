@@ -43,6 +43,9 @@ namespace RFFM.Api.Features.Coaches.Teams.Commands
         public int? RffmCompetitionId { get; set; }
         public int? RffmGroupId { get; set; }
         public string? RffmTeamCode { get; set; }
+        public int? PromotionSpots { get; set; }
+        public int? PlayoffSpots { get; set; }
+        public int? RelegationSpots { get; set; }
 
         public string PrefixCacheKey => TeamConstants.CachePrefix;
         public string FeatureRoute => CoachFeatureRoutes.ClubTeams;
@@ -68,6 +71,7 @@ namespace RFFM.Api.Features.Coaches.Teams.Commands
             team.UpdateRffmCompetitionId(request.RffmCompetitionId);
             team.UpdateRffmGroupId(request.RffmGroupId);
             team.UpdateRffmTeamCode(request.RffmTeamCode);
+            team.UpdateStandingSpots(request.PromotionSpots, request.PlayoffSpots, request.RelegationSpots);
 
             await _catalogDbContext.SaveChangesAsync(cancellationToken);
             return Unit.Value;
@@ -88,6 +92,18 @@ namespace RFFM.Api.Features.Coaches.Teams.Commands
 
             RuleFor(r => r.RffmTeamCode)
                 .MaximumLength(ValidationConstants.RffmTeamCodeMaxLength);
+
+            RuleFor(r => r.PromotionSpots)
+                .InclusiveBetween(0, ValidationConstants.StandingSpotsMax)
+                .When(r => r.PromotionSpots.HasValue);
+
+            RuleFor(r => r.PlayoffSpots)
+                .InclusiveBetween(0, ValidationConstants.StandingSpotsMax)
+                .When(r => r.PlayoffSpots.HasValue);
+
+            RuleFor(r => r.RelegationSpots)
+                .InclusiveBetween(0, ValidationConstants.StandingSpotsMax)
+                .When(r => r.RelegationSpots.HasValue);
         }
     }
 }

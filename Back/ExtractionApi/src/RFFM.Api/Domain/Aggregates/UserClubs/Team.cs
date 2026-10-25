@@ -19,6 +19,10 @@ namespace RFFM.Api.Domain.Aggregates.UserClubs
         public int? RffmGroupId { get; private set; }
         /// <summary>Código RFFM del equipo dentro de su competición y grupo: lo distingue de sus rivales.</summary>
         public string? RffmTeamCode { get; private set; }
+        /// <summary>Plazas de la clasificación de su liga RFFM: varían por categoría y no las publica la federación.</summary>
+        public int? PromotionSpots { get; private set; }
+        public int? PlayoffSpots { get; private set; }
+        public int? RelegationSpots { get; private set; }
         public string? UrlPhoto { get; set; }
         public string ClubId { get; set; }
         public string SeasonId { get; set; }
@@ -92,6 +96,14 @@ namespace RFFM.Api.Domain.Aggregates.UserClubs
         {
             var hasLeague = RffmCompetitionId.HasValue && RffmGroupId.HasValue;
             RffmTeamCode = hasLeague && !string.IsNullOrWhiteSpace(rffmTeamCode) ? rffmTeamCode.Trim() : null;
+        }
+
+        public void UpdateStandingSpots(int? promotionSpots, int? playoffSpots, int? relegationSpots)
+        {
+            var hasLeague = RffmCompetitionId.HasValue && RffmGroupId.HasValue;
+            PromotionSpots = hasLeague ? promotionSpots : null;
+            PlayoffSpots = hasLeague ? playoffSpots : null;
+            RelegationSpots = hasLeague ? relegationSpots : null;
         }
     }
 }
