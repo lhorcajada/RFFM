@@ -3,21 +3,19 @@ import {
   Autocomplete,
   Button,
   Chip,
+  LinearProgress,
   CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
-  IconButton,
   Stack,
   TextField,
-  Tooltip,
   Typography,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import EditIcon from "@mui/icons-material/Edit";
 import EmptyState from "../../../../../shared/components/ui/EmptyState/EmptyState";
+import { recoveryProgress } from "../injuryRecovery";
 import teamplayerService, {
   createPlayerInjury,
   getTeamInjuries,
@@ -33,6 +31,22 @@ type InjuryRow = {
   injury: InjuryRecord;
 };
 
+type InjuryFilter = "active" | "history";
+
+const FILTERS: { value: InjuryFilter; label: string }[] = [
+  { value: "active", label: "Activas" },
+  { value: "history", label: "Historial" },
+];
+
+const EMPTY_TITLES: Record<InjuryFilter, string> = {
+  active: "Sin lesiones activas",
+  history: "Sin historial de lesiones",
+};
+
+function playerFullName(player: PlayerResponse): string {
+  return ((player.name ?? "") + " " + (player.lastName ?? "")).trim() || player.alias;
+}
+
 type Props = {
   team: { id: string } | null;
   isCoach: boolean;
@@ -45,6 +59,8 @@ export default function InjuredPlayersList({ team, isCoach, highlightedId }: Pro
   const [rows, setRows] = useState<InjuryRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+
+  const [filter, setFilter] = useState<InjuryFilter>("active");
 
   const [addOpen, setAddOpen] = useState(false);
   const [addPlayer, setAddPlayer] = useState<PlayerResponse | null>(null);
@@ -191,6 +207,17 @@ export default function InjuredPlayersList({ team, isCoach, highlightedId }: Pro
     }
   }
 
+  const activeCount = rows.filter(({ injury }) => !injury.endDate).length;
+  const now = new Date();
+  const dischargedThisMonth = rows.filter(({ injury }) => {
+    if (!injury.endDate) return false;
+    const end = new Date(injury.endDate);
+    return end.getFullYear() === now.getFullYear() && end.getMonth() === now.getMonth();
+  }).length;
+  const visibleRows = rows.filter(({ injury }) =>
+    filter === "active" ? !injury.endDate : !!injury.endDate
+  );
+
   const canAdd =
     !!addPlayer && addInjuryType.trim().length > 0 && addStartDate.length > 0;
 
@@ -204,6 +231,7 @@ export default function InjuredPlayersList({ team, isCoach, highlightedId }: Pro
             variant="contained"
             size="small"
             color="warning"
+            className={styles.addButton}
             disabled={players.length === 0}
           >
             Añadir lesión
@@ -215,87 +243,139 @@ export default function InjuredPlayersList({ team, isCoach, highlightedId }: Pro
         <Stack alignItems="center" sx={{ py: 6 }}>
           <CircularProgress size={32} />
         </Stack>
-      ) : rows.length === 0 ? (
-        <EmptyState
-          title="Sin lesiones registradas"
-          description="No hay ningún registro de lesión para esta plantilla."
-        />
       ) : (
-        <div className={styles.cardsGrid}>
-          {rows.map(({ player, injury }) => {
-            const isActive = !injury.endDate;
-            return (
-              <div
-                key={injury.id}
-                id={`injury-${injury.id}`}
-                className={`${styles.card} ${
-                  injury.id === highlightedId ? styles.highlighted : ""
-                }`}
-              >
-                <div className={styles.cardHeader}>
-                  <div className={styles.playerCell}>
-                    <span className={styles.playerName}>
-                      {((player.name ?? "") + " " + (player.lastName ?? "")).trim() ||
-                        player.alias}
-                    </span>
-                    {player.alias && (
-                      <span className={styles.playerMeta}>
-                        {player.alias}
-                        {player.dorsal != null ? ` · #${player.dorsal}` : ""}
-                      </span>
-                    )}
-                  </div>
-                  {isActive ? (
-                    <Chip label="Activa" color="error" size="small" />
-                  ) : (
-                    <Chip label="Alta" color="success" size="small" variant="outlined" />
-                  )}
-                </div>
+        <>
+          <div className={styles.summary}>
+            <div className={styles.stat}>
+              <span className={styles.statValue} data-testid="injured-count-active">
+                {activeCount}
+              </span>
+              <span className={styles.statLabel}>Activas</span>
+            </div>
+            <div className={styles.stat}>
+              <span className={styles.statValue} data-testid="injured-count-discharged">
+                {dischargedThisMonth}
+              </span>
+              <span className={styles.statLabel}>Altas este mes</span>
+            </div>
+          </div>
 
-                <div className={styles.cardBody}>
-                  <Typography variant="body2">{injury.injuryType}</Typography>
-                  {injury.estimatedRecovery && (
-                    <Typography variant="caption" color="text.secondary">
-                      Rec.: {injury.estimatedRecovery}
-                    </Typography>
-                  )}
-                  <div className={styles.datesRow}>
-                    <Typography variant="body2" color="text.secondary">
-                      Inicio: {new Date(injury.startDate).toLocaleDateString("es-ES")}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Alta:{" "}
-                      {injury.endDate
-                        ? new Date(injury.endDate).toLocaleDateString("es-ES")
-                        : "—"}
-                    </Typography>
-                  </div>
-                </div>
+          <div className={styles.filters}>
+            {FILTERS.map(({ value, label }) => (
+              <Chip
+                key={value}
+                label={label}
+                clickable
+                aria-pressed={filter === value}
+                onClick={() => setFilter(value)}
+                color={filter === value ? "primary" : "default"}
+                variant={filter === value ? "filled" : "outlined"}
+                className={styles.filterChip}
+              />
+            ))}
+          </div>
 
-                {isCoach && (
-                  <div className={styles.actions}>
-                    <Tooltip title="Editar">
-                      <IconButton size="small" onClick={() => openEdit({ player, injury })}>
-                        <EditIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    {isActive && (
-                      <Tooltip title="Dar de alta">
-                        <IconButton
-                          size="small"
-                          color="success"
-                          onClick={() => handleDischarge({ player, injury })}
+          {visibleRows.length === 0 ? (
+            <EmptyState
+              title={rows.length === 0 ? "Sin lesiones registradas" : EMPTY_TITLES[filter]}
+              description={
+                rows.length === 0
+                  ? "No hay ningún registro de lesión para esta plantilla."
+                  : undefined
+              }
+            />
+          ) : (
+            <div className={styles.cardsGrid}>
+              {visibleRows.map(({ player, injury }) => {
+                const isActive = !injury.endDate;
+                const progress = isActive
+                  ? recoveryProgress(injury.startDate, injury.estimatedRecovery, new Date())
+                  : null;
+                const hasName = ((player.name ?? "") + (player.lastName ?? "")).trim() !== "";
+                const subtitle = [player.position, hasName ? player.alias : null]
+                  .filter(Boolean)
+                  .join(" · ");
+                return (
+                  <div
+                    key={injury.id}
+                    id={`injury-${injury.id}`}
+                    className={`${styles.card} ${
+                      injury.id === highlightedId ? styles.highlighted : ""
+                    }`}
+                  >
+                    <div className={styles.cardHeader}>
+                      <span className={styles.dorsal}>{player.dorsal ?? "—"}</span>
+                      <div className={styles.playerCell}>
+                        <span className={styles.playerName}>{playerFullName(player)}</span>
+                        {subtitle && <span className={styles.playerMeta}>{subtitle}</span>}
+                      </div>
+                      <Chip
+                        label={isActive ? "Activa" : "Alta"}
+                        size="small"
+                        className={isActive ? styles.chipActive : styles.chipDischarged}
+                      />
+                    </div>
+
+                    <div className={styles.cardBody}>
+                      <Typography variant="body2" className={styles.injuryType}>
+                        {injury.injuryType}
+                      </Typography>
+                      {injury.estimatedRecovery && (
+                        <Typography variant="caption" className={styles.playerMeta}>
+                          Rec.: {injury.estimatedRecovery}
+                        </Typography>
+                      )}
+                      {progress !== null && (
+                        <div className={styles.progress}>
+                          <span className={styles.playerMeta}>Recuperación {progress} %</span>
+                          <LinearProgress
+                            variant="determinate"
+                            value={progress}
+                            aria-label="Recuperación"
+                            className={styles.progressBar}
+                          />
+                        </div>
+                      )}
+                      <div className={styles.datesRow}>
+                        <Typography variant="body2" className={styles.playerMeta}>
+                          Inicio: {new Date(injury.startDate).toLocaleDateString("es-ES")}
+                        </Typography>
+                        {injury.endDate && (
+                          <Typography variant="body2" className={styles.playerMeta}>
+                            Alta: {new Date(injury.endDate).toLocaleDateString("es-ES")}
+                          </Typography>
+                        )}
+                      </div>
+                    </div>
+
+                    {isCoach && (
+                      <div className={styles.actions}>
+                        <Button
+                          variant="outlined"
+                          color="inherit"
+                          className={styles.actionButton}
+                          onClick={() => openEdit({ player, injury })}
                         >
-                          <CheckCircleIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
+                          Actualizar
+                        </Button>
+                        {isActive && (
+                          <Button
+                            variant="contained"
+                            color="success"
+                            className={styles.actionButton}
+                            onClick={() => handleDischarge({ player, injury })}
+                          >
+                            Dar de alta
+                          </Button>
+                        )}
+                      </div>
                     )}
                   </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+                );
+              })}
+            </div>
+          )}
+        </>
       )}
 
       <Dialog open={addOpen} onClose={() => setAddOpen(false)} fullWidth maxWidth="sm">

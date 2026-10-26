@@ -136,7 +136,7 @@ describe("Injured - action visibility by role", () => {
     ]);
   });
 
-  it("shows 'Añadir lesión', 'Editar' and 'Dar de alta' actions for a coach", async () => {
+  it("shows 'Añadir lesión', 'Actualizar' and 'Dar de alta' actions for a coach", async () => {
     rolesMock = ["Coach"];
 
     renderPage();
@@ -147,7 +147,7 @@ describe("Injured - action visibility by role", () => {
     expect(
       await screen.findByRole("button", { name: /añadir lesión/i })
     ).toBeInTheDocument();
-    expect(await screen.findByRole("button", { name: /^editar$/i })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /^actualizar$/i })).toBeInTheDocument();
     expect(await screen.findByRole("button", { name: /dar de alta/i })).toBeInTheDocument();
   });
 
@@ -203,7 +203,7 @@ describe("Injured - action visibility by role", () => {
     expect(
       screen.queryByRole("button", { name: /añadir lesión/i })
     ).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /^editar$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^actualizar$/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /dar de alta/i })).not.toBeInTheDocument();
   });
 
@@ -218,7 +218,7 @@ describe("Injured - action visibility by role", () => {
     expect(
       screen.queryByRole("button", { name: /añadir lesión/i })
     ).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /^editar$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^actualizar$/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /dar de alta/i })).not.toBeInTheDocument();
   });
 
@@ -233,7 +233,7 @@ describe("Injured - action visibility by role", () => {
     expect(
       screen.queryByRole("button", { name: /añadir lesión/i })
     ).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /^editar$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^actualizar$/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /dar de alta/i })).not.toBeInTheDocument();
   });
 });

@@ -9,18 +9,69 @@
   justify-content: flex-end;
 }
 
+.summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--rffm-card-bg, #1c1c30);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.statValue {
+  font-size: 1.625rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--rffm-text, #f0f0f0);
+}
+
+.statLabel {
+  font-size: 0.75rem;
+  color: var(--rffm-muted, #a59f9f);
+}
+
+.addButton {
+  min-height: 44px;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.filterChip {
+  min-height: 44px;
+  border-radius: 22px;
+  padding: 0 8px;
+  font-size: 0.875rem;
+}
+
 .cardsGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
+}
+
+@media (min-width: 900px) {
+  .cardsGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 .card {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 12px;
-  border-radius: 10px;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 16px;
   background: var(--rffm-card-bg, #1c1c30);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
@@ -33,44 +84,98 @@
 
 .cardHeader {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
+  align-items: center;
+  gap: 12px;
+}
+
+.dorsal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--rffm-text, #f0f0f0);
 }
 
 .playerCell {
   display: flex;
+  flex: 1;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
 }
 
 .playerName {
   font-weight: 600;
-  font-size: 0.875rem;
+  font-size: 1rem;
   color: var(--rffm-text, #f0f0f0);
+  overflow-wrap: anywhere;
 }
 
 .playerMeta {
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   color: var(--rffm-muted, #a59f9f);
+}
+
+.chipActive {
+  font-weight: 700;
+  color: var(--rffm-status-declined, #f69a9a);
+  background: rgba(246, 154, 154, 0.16);
+}
+
+.chipDischarged {
+  font-weight: 700;
+  color: var(--rffm-status-accepted, #4fd6a0);
+  background: rgba(79, 214, 160, 0.16);
 }
 
 .cardBody {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
+}
+
+.injuryType {
+  color: var(--rffm-text, #f0f0f0);
+}
+
+.progress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.progressBar {
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.progressBar :global(.MuiLinearProgress-bar) {
+  background: var(--rffm-status-pending, #f5c451);
 }
 
 .datesRow {
   display: flex;
   flex-wrap: wrap;
+  justify-content: space-between;
   gap: 4px 16px;
 }
 
 .actions {
   display: flex;
-  gap: 4px;
-  justify-content: flex-end;
+  gap: 8px;
+}
+
+.actionButton {
+  flex: 1;
+  min-height: 44px;
+  border-radius: 10px;
 }
 
 .addDialogFields {
