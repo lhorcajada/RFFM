@@ -1,11 +1,13 @@
 ﻿import { useEffect, useRef, useState } from "react";
-import { Box, Button, CircularProgress, useTheme } from "@mui/material";
+import { Box, Button, CircularProgress, TextField, useTheme } from "@mui/material";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SaveIcon from "@mui/icons-material/Save";
 import SportsSoccerIcon from "@mui/icons-material/SportsSoccer";
 import ViewSidebarIcon from "@mui/icons-material/ViewSidebar";
 import TextFieldsIcon from "@mui/icons-material/TextFields";
+import ChangeHistoryIcon from "@mui/icons-material/ChangeHistory";
+import CallMadeIcon from "@mui/icons-material/CallMade";
 import { useLocation, useNavigate } from "react-router-dom";
 import BaseLayout from "../../../../../shared/components/ui/BaseLayout/BaseLayout";
 import trainingService from "../../../services/trainingService";
@@ -73,6 +75,14 @@ export default function NewExercisePage() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down(700));
 
+  const tools = [
+    { label: "Chapas", icon: <SportsSoccerIcon />, active: board.showChapas, toggle: board.handleToggleChapas },
+    { label: "Espacios", icon: <ViewSidebarIcon />, active: board.showSpaces, toggle: board.handleToggleSpaces },
+    { label: "Material", icon: <ChangeHistoryIcon />, active: board.showMaterials, toggle: board.handleToggleMaterials },
+    { label: "Líneas", icon: <CallMadeIcon />, active: board.showLines, toggle: board.handleToggleLines },
+    { label: "Texto", icon: <TextFieldsIcon />, active: board.showTexts, toggle: board.handleToggleTexts },
+  ];
+
   if (isMobile) {
     return (
       <BaseLayout hideFooterMenu>
@@ -85,6 +95,13 @@ export default function NewExercisePage() {
     <BaseLayout hideFooterMenu>
       <Box className={styles.page}>
         <Box className={styles.topBar}>
+          <TextField
+            label="Título"
+            value={exerciseForm.form.name}
+            onChange={(e) => exerciseForm.setField("name", e.target.value)}
+            size="small"
+            className={styles.titleField}
+          />
           <Button
             startIcon={<ArrowBackIcon />}
             onClick={exerciseForm.handleCancel}
@@ -107,6 +124,21 @@ export default function NewExercisePage() {
         </Box>
 
         <Box className={styles.workspace}>
+          <Box component="nav" aria-label="Herramientas de pizarra" className={styles.toolRail}>
+            {tools.map((tool) => (
+              <button
+                key={tool.label}
+                type="button"
+                aria-pressed={tool.active}
+                aria-label={tool.label}
+                className={`${styles.railBtn} ${tool.active ? styles.railBtnActive : ""}`}
+                onClick={tool.toggle}
+              >
+                {tool.icon}
+                <span aria-hidden="true">{tool.label}</span>
+              </button>
+            ))}
+          </Box>
           <Box className={styles.pitchArea}>
             <TacticalField halfPitchRef={halfPitchRef} board={board} />
           </Box>
@@ -119,51 +151,6 @@ export default function NewExercisePage() {
         {board.showLines && <LinesStrip board={board} />}
         {board.showTexts && <TextsStrip board={board} selectedTextId={board.selectedTextId} />}
 
-        <Box className={styles.bottomToolBar}>
-          <Button
-            size="small"
-            variant={board.showChapas ? "contained" : "outlined"}
-            startIcon={<SportsSoccerIcon />}
-            className={styles.toolBtn}
-            onClick={board.handleToggleChapas}
-          >
-            Chapas
-          </Button>
-          <Button
-            size="small"
-            variant={board.showSpaces ? "contained" : "outlined"}
-            startIcon={<ViewSidebarIcon />}
-            className={styles.toolBtn}
-            onClick={board.handleToggleSpaces}
-          >
-            Espacios
-          </Button>
-          <Button
-            size="small"
-            variant={board.showMaterials ? "contained" : "outlined"}
-            className={styles.toolBtn}
-            onClick={board.handleToggleMaterials}
-          >
-            Material
-          </Button>
-          <Button
-            size="small"
-            variant={board.showLines ? "contained" : "outlined"}
-            className={styles.toolBtn}
-            onClick={board.handleToggleLines}
-          >
-            Lineas
-          </Button>
-          <Button
-            size="small"
-            variant={board.showTexts ? "contained" : "outlined"}
-            startIcon={<TextFieldsIcon />}
-            className={styles.toolBtn}
-            onClick={board.handleToggleTexts}
-          >
-            Texto
-          </Button>
-        </Box>
       </Box>
     </BaseLayout>
   );

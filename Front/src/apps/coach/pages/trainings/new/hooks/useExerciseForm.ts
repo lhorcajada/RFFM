@@ -26,6 +26,7 @@ export function useExerciseForm({ clubId, navigate, returnTo, returnState, getBo
   const [createdExerciseId, setCreatedExerciseId] = useState<string | null>(null);
 
   const applyExercise = async (exercise: Exercise, asCopy: boolean) => {
+    const hasEnoughNiveles = (exercise.niveles?.length ?? 0) >= 2;
     setForm({
       clubId,
       name: exercise.name,
@@ -43,8 +44,9 @@ export function useExerciseForm({ clubId, navigate, returnTo, returnState, getBo
           habilidades: it.habilidades ?? [],
         })),
       })),
-      nivelesColumnas: exercise.nivelesColumnas ?? [],
-      niveles: exercise.niveles ?? [],
+      ...(hasEnoughNiveles
+        ? { nivelesColumnas: exercise.nivelesColumnas ?? [], niveles: exercise.niveles ?? [] }
+        : { nivelesColumnas: emptyExercise.nivelesColumnas, niveles: emptyExercise.niveles }),
       logistica: exercise.logistica,
       durationMinutes: exercise.durationMinutes ?? null,
       porteros: exercise.porteros ?? null,

@@ -39,17 +39,15 @@ function renderPanel(ui: ReactElement) {
 }
 
 describe("ExerciseFormPanel — campos del template reducido", () => {
-  it("renderiza Título, Tipo, Objetivo, Objetivo por rol, Logística, Duración, Porteros, Dibujo y Descripción", () => {
+  it("renderiza Tipo, Objetivo, Objetivo por rol, Logística, Duración, Porteros y Descripción", () => {
     renderPanel(<ExerciseFormPanel panelVisible form={buildFormState()} />);
 
-    expect(screen.getByLabelText("Título")).toBeInTheDocument();
-    expect(screen.getByRole("combobox", { name: /^tipo/i })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: /^tipo/i })).toBeInTheDocument();
     expect(screen.getByLabelText("Objetivo")).toBeInTheDocument();
     expect(screen.getByLabelText(/objetivo por rol/i)).toBeInTheDocument();
     expect(screen.getByLabelText("Logística")).toBeInTheDocument();
     expect(screen.getByLabelText(/duración/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/porteros/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/dibujo/i)).toBeInTheDocument();
     expect(screen.getByLabelText("Descripción")).toBeInTheDocument();
   });
 
@@ -59,10 +57,19 @@ describe("ExerciseFormPanel — campos del template reducido", () => {
     expect(screen.getByText(/relación con el modelo de juego/i)).toBeInTheDocument();
   });
 
-  it("renderiza el editor de Niveles", () => {
+  it("no renderiza el editor de Niveles ni el campo Dibujo", () => {
     renderPanel(<ExerciseFormPanel panelVisible form={buildFormState()} />);
 
-    expect(screen.getByText(/niveles/i)).toBeInTheDocument();
+    expect(screen.queryByText(/niveles/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/dibujo/i)).not.toBeInTheDocument();
+  });
+
+  it("agrupa los campos en secciones", () => {
+    renderPanel(<ExerciseFormPanel panelVisible form={buildFormState()} />);
+
+    for (const name of ["Clasificación", "Objetivos", "Organización", "Imagen / vídeo"]) {
+      expect(screen.getByRole("heading", { name })).toBeInTheDocument();
+    }
   });
 
   it("no renderiza ninguna sección de Condiciones (eliminada — pasa a formar parte de la Descripción)", () => {
@@ -71,18 +78,21 @@ describe("ExerciseFormPanel — campos del template reducido", () => {
     expect(screen.queryByText(/condiciones/i)).not.toBeInTheDocument();
   });
 
-  it("llama a setField con el tipo elegido al cambiar el selector de Tipo", async () => {
+  it("llama a setField con el tipo elegido al pulsar un botón de Tipo", async () => {
     const setField = vi.fn();
     const { default: userEvent } = await import("@testing-library/user-event");
     renderPanel(<ExerciseFormPanel panelVisible form={buildFormState({ setField })} />);
 
-    const select = screen.getByRole("combobox", { name: /^tipo/i });
-    await userEvent.click(select);
-    const listbox = screen.getByRole("listbox");
-    await userEvent.click((await screen.findAllByText("Global"))[0]);
+    await userEvent.click(screen.getByRole("button", { name: "Global" }));
 
     expect(setField).toHaveBeenCalledWith("tipo", "Global");
-    void listbox;
+  });
+
+  it("marca como pulsado el tipo actual", () => {
+    renderPanel(<ExerciseFormPanel panelVisible form={buildFormState()} />);
+
+    expect(screen.getByRole("button", { name: "Situacional" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Global" })).toHaveAttribute("aria-pressed", "false");
   });
 
   it("llama a setField con el subtipo elegido al cambiar el selector de Subtipo", async () => {

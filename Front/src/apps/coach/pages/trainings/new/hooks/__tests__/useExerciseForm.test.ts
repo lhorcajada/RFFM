@@ -374,6 +374,42 @@ describe("useExerciseForm — carga de ejercicio existente", () => {
     });
   });
 
+  const baseExercise: Exercise = {
+    id: "ex-1",
+    name: "Ejercicio",
+    tipo: "Global",
+    objetivo: "Objetivo",
+    modelRelations: [],
+    nivelesColumnas: [],
+    niveles: [],
+    logistica: "10 min",
+    descripcion: "Desc",
+    isAssociatedToGameModel: false,
+  };
+
+  it("usa los niveles por defecto al cargar un ejercicio con menos de 2 niveles", async () => {
+    const { emptyExercise } = await import("../../constants");
+    const { result } = renderHook(() =>
+      useExerciseForm({ clubId: "club-1", navigate, returnTo: "/coach/trainings" })
+    );
+
+    act(() => result.current.loadExercise(baseExercise));
+
+    await waitFor(() => expect(result.current.form.niveles).toEqual(emptyExercise.niveles));
+  });
+
+  it("conserva los niveles y el dibujo al cargar un ejercicio que ya los tiene", async () => {
+    const { result } = renderHook(() =>
+      useExerciseForm({ clubId: "club-1", navigate, returnTo: "/coach/trainings" })
+    );
+    const niveles = [1, 2, 3].map((n) => ({ nivel: n, valores: { Toques: String(n) } }));
+
+    act(() => result.current.loadExercise({ ...baseExercise, niveles, nivelesColumnas: ["Toques"], dibujo: "ref-1" }));
+
+    await waitFor(() => expect(result.current.form.niveles).toEqual(niveles));
+    expect(result.current.form.dibujo).toBe("ref-1");
+  });
+
   it("emptyExercise no trae subtipo por defecto", async () => {
     const { emptyExercise } = await import("../../constants");
     expect(emptyExercise.subtipo).toBeNull();

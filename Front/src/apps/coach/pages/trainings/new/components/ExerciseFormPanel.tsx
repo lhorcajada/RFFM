@@ -1,7 +1,6 @@
 import {
   Box,
   Button,
-  Divider,
   FormControl,
   IconButton,
   InputLabel,
@@ -16,7 +15,6 @@ import type { ExerciseFormState } from "../hooks/useExerciseForm";
 import styles from "../NewExercisePage.module.css";
 import type { ExerciseSubtipo, ExerciseTipo } from "../../../../types/training";
 import ModelRelationSection from "./ModelRelationSection";
-import NivelesEditor from "./NivelesEditor";
 
 interface ExerciseFormPanelProps {
   panelVisible: boolean;
@@ -45,32 +43,26 @@ export default function ExerciseFormPanel({ panelVisible, form, teamId }: Exerci
       </Box>
 
       <Box className={styles.panelBody}>
-        <Box className={styles.panelBodyGrid}>
-          <TextField
-            label="Título"
-            value={formData.name}
-            onChange={(e) => setField("name", e.target.value)}
-            fullWidth
-            size="small"
-            className={`${styles.field} ${styles.fullWidthRow}`}
-          />
-
-          <FormControl size="small" className={styles.typeSelect}>
-            <InputLabel id="exercise-tipo-label">Tipo</InputLabel>
-            <Select
-              labelId="exercise-tipo-label"
-              label="Tipo"
-              value={formData.tipo}
-              onChange={(e: SelectChangeEvent) => setField("tipo", e.target.value as ExerciseTipo)}
-            >
+        <Box className={styles.sectionCard} component="section">
+          <Typography component="h2" className={styles.sectionTitle}>Clasificación</Typography>
+          <Box role="group" aria-labelledby="exercise-tipo-label" className={styles.tipoGroup}>
+            <Typography id="exercise-tipo-label" className={styles.tipoLabel}>Tipo</Typography>
+            <Box className={styles.tipoButtons}>
               {tipoOptions.map((o) => (
-                <MenuItem key={o.value} value={o.value}>
+                <button
+                  key={o.value}
+                  type="button"
+                  aria-pressed={formData.tipo === o.value}
+                  className={`${styles.tipoBtn} ${formData.tipo === o.value ? styles.tipoBtnActive : ""}`}
+                  onClick={() => setField("tipo", o.value as ExerciseTipo)}
+                >
                   {o.label}
-                </MenuItem>
+                </button>
               ))}
-            </Select>
-          </FormControl>
+            </Box>
+          </Box>
 
+          <Box className={styles.twoCols}>
           <FormControl size="small" className={styles.typeSelect}>
             <InputLabel id="exercise-subtipo-label" shrink>Subtipo</InputLabel>
             <Select
@@ -101,7 +93,11 @@ export default function ExerciseFormPanel({ panelVisible, form, teamId }: Exerci
             inputProps={{ min: 1 }}
             className={styles.numField}
           />
+          </Box>
+        </Box>
 
+        <Box className={styles.sectionCard} component="section">
+          <Typography component="h2" className={styles.sectionTitle}>Objetivos</Typography>
           <TextField
             label="Objetivo"
             value={formData.objetivo}
@@ -110,9 +106,8 @@ export default function ExerciseFormPanel({ panelVisible, form, teamId }: Exerci
             multiline
             minRows={2}
             size="small"
-            className={`${styles.field} ${styles.fullWidthRow}`}
+            className={styles.field}
           />
-
           <TextField
             label="Objetivo por rol (opcional)"
             value={formData.objetivoPorRol ?? ""}
@@ -121,32 +116,21 @@ export default function ExerciseFormPanel({ panelVisible, form, teamId }: Exerci
             multiline
             minRows={2}
             size="small"
-            className={`${styles.field} ${styles.fullWidthRow}`}
+            className={styles.field}
           />
+        </Box>
 
-          <Box className={styles.fullWidthRow}>
-            <ModelRelationSection
-              modelRelations={formData.modelRelations}
-              onChange={(relations) => setField("modelRelations", relations)}
-              teamId={teamId}
-            />
-          </Box>
+        <Box className={styles.sectionCard} component="section">
+          <Typography component="h2" className={styles.sectionTitle}>Modelo de juego</Typography>
+          <ModelRelationSection
+            modelRelations={formData.modelRelations}
+            onChange={(relations) => setField("modelRelations", relations)}
+            teamId={teamId}
+          />
+        </Box>
 
-          <Divider className={`${styles.divider} ${styles.fullWidthRow}`} />
-          <Typography className={`${styles.skillsTitle} ${styles.fullWidthRow}`}>Niveles</Typography>
-          <Box className={styles.fullWidthRow}>
-            <NivelesEditor
-              columnas={formData.nivelesColumnas}
-              niveles={formData.niveles}
-              onChange={(columnas, niveles) => {
-                setField("nivelesColumnas", columnas);
-                setField("niveles", niveles);
-              }}
-            />
-          </Box>
-
-          <Divider className={`${styles.divider} ${styles.fullWidthRow}`} />
-
+        <Box className={styles.sectionCard} component="section">
+          <Typography component="h2" className={styles.sectionTitle}>Organización</Typography>
           <TextField
             label="Logística"
             value={formData.logistica}
@@ -156,9 +140,8 @@ export default function ExerciseFormPanel({ panelVisible, form, teamId }: Exerci
             minRows={2}
             size="small"
             placeholder="Tiempo · Material · Nº jugadores"
-            className={`${styles.field} ${styles.fullWidthRow}`}
+            className={styles.field}
           />
-
           <TextField
             label="Porteros (opcional)"
             value={formData.porteros ?? ""}
@@ -167,19 +150,6 @@ export default function ExerciseFormPanel({ panelVisible, form, teamId }: Exerci
             size="small"
             className={styles.field}
           />
-
-          <TextField
-            label="Dibujo (opcional)"
-            value={formData.dibujo ?? ""}
-            onChange={(e) => setField("dibujo", e.target.value || null)}
-            fullWidth
-            size="small"
-            placeholder="Referencia o (pendiente)"
-            className={styles.field}
-          />
-
-          <Divider className={`${styles.divider} ${styles.fullWidthRow}`} />
-
           <TextField
             label="Descripción"
             value={formData.descripcion}
@@ -188,12 +158,13 @@ export default function ExerciseFormPanel({ panelVisible, form, teamId }: Exerci
             multiline
             minRows={4}
             size="small"
-            className={`${styles.field} ${styles.fullWidthRow}`}
+            className={styles.field}
           />
+        </Box>
 
-          <Divider className={`${styles.divider} ${styles.fullWidthRow}`} />
-          <Typography className={`${styles.skillsTitle} ${styles.fullWidthRow}`}>Imagen / Video</Typography>
-          <Box className={`${styles.mediaSection} ${styles.fullWidthRow}`}>
+        <Box className={styles.sectionCard} component="section">
+          <Typography component="h2" className={styles.sectionTitle}>Imagen / vídeo</Typography>
+          <Box className={styles.mediaSection}>
             {previewUrl && (
               <Box className={styles.mediaPreviewWrap}>
                 {pendingFile?.type.startsWith("video/") ? (
@@ -227,12 +198,13 @@ export default function ExerciseFormPanel({ panelVisible, form, teamId }: Exerci
             </label>
           </Box>
 
-          {error && (
-            <Typography color="error" className={`${styles.error} ${styles.fullWidthRow}`}>
-              {error}
-            </Typography>
-          )}
         </Box>
+
+        {error && (
+          <Typography color="error" className={styles.error}>
+            {error}
+          </Typography>
+        )}
       </Box>
     </Box>
   );

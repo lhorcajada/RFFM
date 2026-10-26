@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { UserProvider } from "../../../../../../shared/context/UserContext";
@@ -76,5 +77,32 @@ describe("NewExercisePage - full pitch", () => {
     // Both the mirrored half and the interactive half render their own
     // Fútbol 7 overlay ("en cada campo").
     expect(container.querySelectorAll('[class*="f7Pitch"]')).toHaveLength(2);
+  });
+});
+
+describe("NewExercisePage - cabecera y herramientas", () => {
+  beforeEach(() => {
+    mockUseMediaQuery.mockReset();
+    mockUseMediaQuery.mockReturnValue(false);
+  });
+
+  it("permite editar el título del ejercicio desde la cabecera", async () => {
+    renderPage();
+
+    const title = screen.getByLabelText("Título");
+    await userEvent.type(title, "Rondo 4x2");
+
+    expect(title).toHaveValue("Rondo 4x2");
+  });
+
+  it("alterna la herramienta Chapas con aria-pressed", async () => {
+    renderPage();
+
+    const chapas = screen.getByRole("button", { name: "Chapas" });
+    expect(chapas).toHaveAttribute("aria-pressed", "false");
+
+    await userEvent.click(chapas);
+
+    expect(screen.getByRole("button", { name: "Chapas" })).toHaveAttribute("aria-pressed", "true");
   });
 });
