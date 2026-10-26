@@ -104,9 +104,7 @@ describe("EventCard - attendance badges", () => {
 
     renderCard(event, "Partido", summary, false);
 
-    // "Partido" now appears twice — the lateralized header type tag and the
-    // body's chipsRow chip — so assert on count rather than a single match.
-    expect(screen.getAllByText("Partido").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText("Partido")).toBeInTheDocument();
     expect(screen.getByText(/Llegada 17:00/)).toBeInTheDocument();
     expect(screen.getByText(/Convocados.*10/i)).toBeInTheDocument();
     expect(screen.getByText(/Van.*7/i)).toBeInTheDocument();

@@ -1,112 +1,36 @@
 import React, { useState } from "react";
-import {
-  Chip,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
-  Button,
-  IconButton,
-  Tooltip,
-} from "@mui/material";
-import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
-import SportsSoccerIcon from '@mui/icons-material/SportsSoccer';
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import styles from "./EventCard.module.css";
 import { SportEventResponse } from "../../services/sportEventService";
-import { deleteSportEvent } from "../../services/sportEventService";
-import SportEventDialog from "./components/SportEventDialog";
-import { coachAuthService } from "../../services/authService";
 import { EventAttendanceBadges } from "../../components/EventAttendanceBadges/EventAttendanceBadges";
 import type { EventAttendanceSummaryDto } from "../../services/eventAttendanceSummaryService";
 import { resolveStorageUrl } from "../../../../shared/utils/resolveStorageUrl";
-import { toMatchState } from "../convocations/helpers/convocationUtils";
 import { TRAINING_TYPE_LABELS, TrainingTypeCode } from "./trainingTypes";
 
 interface Props {
   event: SportEventResponse;
   eventTypeName?: string | undefined | null;
-  onDeleted?: () => void;
-  onEdited?: () => void;
   attendanceSummary?: EventAttendanceSummaryDto;
   isPlayer?: boolean;
-  /**
-   * Read-only mode for contexts that only show the card (e.g. the dashboard's
-   * "Próximos eventos" widget), not the full Attendance list. Hides the
-   * Asistencias/Editar/Eliminar/"Ir al partido" action icons and both
-   * dialogs — the "Asistencias" button's `navigate(String(event.id))` is a
-   * *relative* navigation that only resolves correctly when EventCard is
-   * mounted under `/coach/attendance`; anywhere else it would navigate to
-   * the wrong route. Edit/delete also don't belong in a compact preview.
-   */
+  /** Smaller variant for read-only previews. */
   compact?: boolean;
 }
 
-function getEventAvatar(eventTypeName?: string | null): { emoji: string; gradient: string } {
-  const name = (eventTypeName ?? "").toLowerCase();
-  if (name.includes("entrenamiento")) {
-    return {
-      emoji: "⚽",
-      gradient: "linear-gradient(135deg, #1b5e20 0%, #2e7d32 50%, #145214 100%)",
-    };
-  }
-  if (name.includes("torneo") || name.includes("competici")) {
-    return {
-      emoji: "🏆",
-      gradient: "linear-gradient(135deg, #b71c1c 0%, #c62828 50%, #9c1515 100%)",
-    };
-  }
-  return {
-    emoji: "📅",
-    gradient: "linear-gradient(135deg, #37474f 0%, #455a64 50%, #2c3e50 100%)",
-  };
-}
+const TRAINING_ORDER: TrainingTypeCode[] = ["Fisico", "Tactico", "Tecnico"];
 
-const TRAINING_HEADER_ORDER: TrainingTypeCode[] = ["Fisico", "Tactico", "Tecnico"];
-
-const TRAINING_HEADER_GRADIENTS: Record<string, string> = {
-  Fisico: "linear-gradient(135deg, #e65100 0%, #f57c00 50%, #bf360c 100%)",
-  Tecnico: "linear-gradient(135deg, #01579b 0%, #0277bd 50%, #013a63 100%)",
-  Tactico: "linear-gradient(135deg, #4a148c 0%, #6a1b9a 50%, #38006b 100%)",
-  "Fisico+Tecnico": "linear-gradient(135deg, #004d40 0%, #00695c 50%, #00332c 100%)",
-  "Fisico+Tactico": "linear-gradient(135deg, #880e4f 0%, #ad1457 50%, #560027 100%)",
-  "Tactico+Tecnico": "linear-gradient(135deg, #1a237e 0%, #283593 50%, #0d1642 100%)",
-  "Fisico+Tactico+Tecnico": "linear-gradient(135deg, #827717 0%, #9e9d24 50%, #4f5b0a 100%)",
-};
-
-/** Derives the per-combination header gradient + corner tag label for a
- * training event's `trainingTypes`. Returns null when there are no (valid)
- * training types, so callers can fall back to the default green training
- * gradient/no tag — keeping backward compatibility with trainings that
- * predate this feature. */
-function getTrainingHeaderStyle(
-  trainingTypes: string[] | null | undefined
-): { gradient: string; label: string } | null {
+function getTrainingLabel(trainingTypes: string[] | null | undefined): string | null {
   if (!trainingTypes || trainingTypes.length === 0) return null;
-  const valid = TRAINING_HEADER_ORDER.filter((code) =>
-    trainingTypes.includes(code)
-  );
+  const valid = TRAINING_ORDER.filter((code) => trainingTypes.includes(code));
   if (valid.length === 0) return null;
-  const key = valid.join("+");
-  const gradient = TRAINING_HEADER_GRADIENTS[key];
-  if (!gradient) return null;
-  const label = valid.map((code) => TRAINING_TYPE_LABELS[code]).join(" + ");
-  return { gradient, label };
+  return valid.map((code) => TRAINING_TYPE_LABELS[code]).join(" + ");
 }
 
-/** CSS module modifier class for the vertical type sidebar, mirroring
- * getEventAvatar's classification but adding a dedicated color for matches
- * (getEventAvatar has no "partido" case since it only backs the generic,
- * non-match header). */
-function getTypeSidebarModifier(eventTypeName: string, isMatch: boolean): string {
+function getStripeClass(eventTypeName: string, isMatch: boolean): string {
   const name = eventTypeName.toLowerCase();
-  if (isMatch) return styles.typeSidebarMatch;
-  if (name.includes("entrenamiento")) return styles.typeSidebarTraining;
-  if (name.includes("torneo") || name.includes("competici")) return styles.typeSidebarTournament;
-  return styles.typeSidebarDefault;
+  if (isMatch) return styles.stripeMatch;
+  if (name.includes("entrenamiento")) return styles.stripeTraining;
+  if (name.includes("torneo") || name.includes("competici")) return styles.stripeTournament;
+  return styles.stripeDefault;
 }
 
 type MatchResult = "won" | "draw" | "lost" | null;
@@ -127,15 +51,8 @@ function getMatchResult(event: SportEventResponse): MatchResult {
 
 function ShieldImg({ src, alt }: { src: string; alt: string }) {
   const [hidden, setHidden] = useState(false);
-  if (!src || hidden) return <div className={styles.matchShieldPlaceholder} />;
-  return (
-    <img
-      src={src}
-      alt={alt}
-      className={styles.matchShield}
-      onError={() => setHidden(true)}
-    />
-  );
+  if (!src || hidden) return <div className={styles.shieldPlaceholder} />;
+  return <img src={src} alt={alt} className={styles.shield} onError={() => setHidden(true)} />;
 }
 
 function parseDate(input?: string | number | null): Date | null {
@@ -169,33 +86,22 @@ function parseDate(input?: string | number | null): Date | null {
   return null;
 }
 
-export default function EventCard({ event, eventTypeName, onDeleted, onEdited, attendanceSummary, isPlayer, compact }: Props) {
-  const navigate = useNavigate();
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [editOpen, setEditOpen] = useState(false);
-  const canEditEvent =
-    coachAuthService.hasRole("Administrator") ||
-    coachAuthService.hasRole("Coach") ||
-    coachAuthService.hasRole("ClubDirector") ||
-    coachAuthService.hasRole("ClubMember");
+const RESULT_LABELS: Record<Exclude<MatchResult, null>, string> = {
+  won: "Victoria",
+  draw: "Empate",
+  lost: "Derrota",
+};
 
+export default function EventCard({ event, eventTypeName, attendanceSummary, isPlayer, compact }: Props) {
   const rawStart = event.startTime ?? event.start ?? event.eveDateTime ?? null;
   const startDate = parseDate(rawStart ?? undefined);
-  const startDateStr = startDate
-    ? startDate.toLocaleDateString("es-ES", { dateStyle: "medium" })
-    : "Por confirmar";
   const weekday = startDate
-    ? startDate.toLocaleDateString("es-ES", { weekday: "long" })
-    : null;
+    ? startDate.toLocaleDateString("es-ES", { weekday: "short" }).replace(".", "")
+    : "";
+  const dayNumber = startDate ? String(startDate.getDate()).padStart(2, "0") : "";
   const startTimeStr = startDate
     ? startDate.toLocaleTimeString("es-ES", { timeStyle: "short" })
     : "";
-  const dateLabel = [
-    weekday ? `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)}` : "",
-    startDateStr,
-  ]
-    .filter(Boolean)
-    .join(", ");
 
   const isMatch = (eventTypeName ?? "").toLowerCase().includes("partido");
   const isTraining = (eventTypeName ?? "").toLowerCase().includes("entrenamiento");
@@ -205,8 +111,6 @@ export default function EventCard({ event, eventTypeName, onDeleted, onEdited, a
     ? arrivalDate.toLocaleTimeString("es-ES", { timeStyle: "short" })
     : "";
 
-  // Match-specific derived data
-  // isHomeMatch: true = user's team plays at home; false = away; null/undefined = unknown
   const isHome = event.isHomeMatch === true;
   const isAway = event.isHomeMatch === false;
   const myTeamName = event.teamName ?? "";
@@ -217,96 +121,26 @@ export default function EventCard({ event, eventTypeName, onDeleted, onEdited, a
     event.localGoals != null && event.localGoals !== "" &&
     event.visitorGoals != null && event.visitorGoals !== "";
 
-  // When away: rival is the local team (left), user is visitor (right).
-  // Score in DB is always local-visitor, so positions match automatically.
+  // Score in DB is always local-visitor: when away the rival is the local team.
   const leftTeamName = isAway ? rivalName : myTeamName;
   const leftShield = isAway ? rivalShield : myTeamShield;
   const rightTeamName = isAway ? myTeamName : rivalName;
   const rightShield = isAway ? myTeamShield : rivalShield;
-  // localGoals always belongs to the left team, visitorGoals to the right
-  const leftGoals = event.localGoals;
-  const rightGoals = event.visitorGoals;
 
-  // Kickoff time, matches-only: unlike trainings/other events, a league match's
-  // eveDateTime may just be RFFM's placeholder date before the kickoff time is
-  // published — only event.startTime being set means a real, known time.
+  // A league match's eveDateTime may be RFFM's placeholder date before the kickoff
+  // time is published: only event.startTime means a real, known time.
   const kickoffTimeStr =
     isMatch && event.startTime
       ? (parseDate(event.startTime)?.toLocaleTimeString("es-ES", { timeStyle: "short" }) ?? "")
       : "";
+  const blockTime = isMatch ? kickoffTimeStr : startTimeStr;
 
   const matchResult = isMatch ? getMatchResult(event) : null;
-  const resultLabel =
-    matchResult === "won" ? "Victoria" :
-    matchResult === "draw" ? "Empate" :
-    matchResult === "lost" ? "Derrota" : null;
-
-  const avatar = getEventAvatar(eventTypeName);
-  const trainingHeaderStyle = isTraining
-    ? getTrainingHeaderStyle(event.trainingTypes)
-    : null;
-
-  const actions = (
-    <div className={styles.actions}>
-      {isMatch && !isPlayer ? (
-        <Tooltip title="Ir al partido">
-          <IconButton
-            size="small"
-            onClick={() => {
-              const teamIdParam = encodeURIComponent(String(event.teamId ?? ""));
-              const eventIdParam = encodeURIComponent(String(event.id));
-              navigate(
-                `/coach/convocations/match?teamId=${teamIdParam}&eventId=${eventIdParam}`,
-                { state: { match: toMatchState(event) } },
-              );
-            }}
-            aria-label={`Ir al partido ${event.title}`}
-            sx={{ color: "rgba(180,195,240,0.85)" }}
-          >
-            <SportsSoccerIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-      ) : null}
-      <Tooltip title="Asistencias">
-        <IconButton
-          size="small"
-          onClick={() => navigate(String(event.id))}
-          aria-label={`Ver asistencias del evento ${event.title}`}
-          sx={{ color: "rgba(180,195,240,0.85)" }}
-        >
-          <PeopleAltIcon fontSize="small" />
-        </IconButton>
-      </Tooltip>
-      {canEditEvent && (
-        <Tooltip title="Editar">
-          <IconButton
-            size="small"
-            onClick={() => setEditOpen(true)}
-            aria-label="Editar evento"
-            sx={{ color: "rgba(180,195,240,0.85)" }}
-          >
-            <EditIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-      )}
-      {canEditEvent && (
-        <Tooltip title="Eliminar">
-          <IconButton
-            size="small"
-            onClick={() => setConfirmOpen(true)}
-            aria-label="Eliminar evento"
-            sx={{ color: "rgba(230,100,100,0.85)" }}
-          >
-            <DeleteIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-      )}
-    </div>
-  );
+  const trainingLabel = isTraining ? getTrainingLabel(event.trainingTypes) : null;
 
   return (
     <div
-      className={`${styles.card} ${compact ? styles.compact : ""} ${isMatch ? styles.cardMatch : ""} ${
+      className={`${styles.card} ${compact ? styles.compact : ""} ${
         isTraining
           ? event.hasConvokedPlayers
             ? styles.cardConvocationOpen
@@ -314,132 +148,96 @@ export default function EventCard({ event, eventTypeName, onDeleted, onEdited, a
           : ""
       }`}
     >
-      {/* ── TYPE SIDEBAR ─────────────────────────────── — a full-height
-          coloured strip on the card's left edge with the event type name
-          written vertically, so it reads like a book-spine label. Lives
-          outside the header (as a sibling, not nested in it) so it never
-          competes with header content for height, and is identical in the
-          compact (dashboard) and non-compact (Eventos) cards. */}
-      {eventTypeName && (
-        <div className={`${styles.typeSidebar} ${getTypeSidebarModifier(eventTypeName, isMatch)}`}>
-          <span className={styles.typeSidebarLabel}>{eventTypeName}</span>
+      <Link
+        to={`/coach/attendance/${encodeURIComponent(String(event.id))}`}
+        className={styles.cardLink}
+        aria-label={`Abrir evento ${event.title}`}
+      />
+      <div className={`${styles.stripe} ${getStripeClass(eventTypeName ?? "", isMatch)}`} />
+      <div className={styles.dateBlock}>
+        {startDate ? (
+          <>
+            <span className={styles.dateWeekday}>{weekday}</span>
+            <span className={styles.dateDay}>{dayNumber}</span>
+            {blockTime && !hasScore && <span className={styles.dateTime}>{blockTime}</span>}
+          </>
+        ) : (
+          <span className={styles.dateUnknown}>Por confirmar</span>
+        )}
+      </div>
+      <div className={styles.content}>
+        <div className={styles.topRow}>
+          {eventTypeName && <span className={styles.typeLabel}>{eventTypeName}</span>}
+          {isHome && <span className={styles.tag}>Local</span>}
+          {isAway && <span className={styles.tag}>Visitante</span>}
+          {isTraining && (
+            <span
+              className={`${styles.tag} ${
+                event.hasConvokedPlayers ? styles.convocationOpen : styles.convocationPending
+              }`}
+            >
+              {event.hasConvokedPlayers ? "Convocatoria abierta" : "Convocatoria sin iniciar"}
+            </span>
+          )}
+          {trainingLabel && <span className={styles.tag}>{trainingLabel}</span>}
         </div>
-      )}
-      <div className={styles.cardContent}>
-      {/* ── MATCH HEADER ─────────────────────────────── */}
-      {isMatch ? (
-        <div className={styles.matchHeader}>
-          <div className={styles.matchHeaderShine} />
-          {/* Home/Away badge — its own thin top row, right-aligned. */}
-          <div className={styles.matchTopBar}>
-            {isHome && <span className={styles.homeBadge}>🏠 Local</span>}
-            {isAway && <span className={`${styles.homeBadge} ${styles.awayBadge}`}>✈️ Visitante</span>}
-          </div>
-          <div className={styles.matchTeamsRow}>
-            <div className={styles.matchTeamBlock}>
+
+        {isMatch ? (
+          <div className={styles.matchRow}>
+            <div className={styles.matchTeam}>
               <ShieldImg src={leftShield} alt={leftTeamName} />
-              <span className={styles.matchTeamName} title={leftTeamName}>
+              <span className={styles.matchTeamName} data-testid="match-team-name">
                 {leftTeamName || (isAway ? "Rival" : "Mi equipo")}
               </span>
             </div>
             <div className={styles.matchCenter}>
               {hasScore ? (
-                <span className={styles.matchScore}>
-                  {leftGoals}
-                  <span className={styles.matchScoreDash}>-</span>
-                  {rightGoals}
-                </span>
+                <span className={styles.matchScore}>{`${event.localGoals} – ${event.visitorGoals}`}</span>
               ) : (
-                <>
-                  <span className={styles.matchVs}>vs</span>
-                  {kickoffTimeStr && (
-                    <span className={styles.matchKickoff}>{kickoffTimeStr}</span>
-                  )}
-                </>
+                <span className={styles.matchVs}>vs</span>
               )}
-              {resultLabel && (
+              {matchResult && (
                 <span
-                  className={`${styles.matchResultBadge} ${
+                  className={`${styles.result} ${
                     matchResult === "won" ? styles.resultWon :
                     matchResult === "draw" ? styles.resultDraw :
                     styles.resultLost
                   }`}
                 >
-                  {resultLabel}
+                  {RESULT_LABELS[matchResult]}
                 </span>
               )}
             </div>
-            <div className={`${styles.matchTeamBlock} ${styles.matchTeamRight}`}>
-              <ShieldImg src={rightShield} alt={rightTeamName} />
-              <span className={styles.matchTeamName} title={rightTeamName}>
+            <div className={`${styles.matchTeam} ${styles.matchTeamRight}`}>
+              <span className={styles.matchTeamName} data-testid="match-team-name">
                 {rightTeamName || (isAway ? "Mi equipo" : "Rival")}
               </span>
+              <ShieldImg src={rightShield} alt={rightTeamName} />
             </div>
           </div>
-        </div>
-      ) : (
-        /* ── GENERIC HEADER ──────────────────────────── */
-        <div
-          className={styles.header}
-          style={{ background: trainingHeaderStyle?.gradient ?? avatar.gradient }}
-        >
-          <div className={styles.headerShine} />
-          <div className={styles.avatar}>{avatar.emoji}</div>
-          {isTraining && (
-            <div className={styles.headerTags}>
-              <span
-                className={`${styles.headerConvocationTag} ${
-                  event.hasConvokedPlayers ? styles.convocationOpen : styles.convocationPending
-                }`}
-              >
-                {event.hasConvokedPlayers ? "Convocatoria abierta" : "Convocatoria sin iniciar"}
-              </span>
-              {trainingHeaderStyle && (
-                <span className={styles.headerTrainingTag}>{trainingHeaderStyle.label}</span>
-              )}
-            </div>
-          )}
-        </div>
-      )}
+        ) : (
+          <div className={styles.title} title={event.title}>{event.title}</div>
+        )}
 
-      {/* ── BODY ─────────────────────────────────────── */}
-      <div className={styles.body}>
-        <div className={styles.title} title={event.title}>{event.title}</div>
-        <div className={styles.metaRow}>
-          <span className={styles.meta}>{dateLabel}</span>
-          {startTimeStr && !hasScore && !isMatch && (
-            <span className={styles.metaTime}>{startTimeStr}</span>
-          )}
-          {arrivalTimeStr && (
-            <Chip
-              label={`Llegada ${arrivalTimeStr}`}
-              size="small"
-              sx={{
-                backgroundColor: "rgba(255,193,7,0.22)",
-                color: "#ffd54f",
-                fontWeight: 800,
-                fontSize: "0.8rem",
-                height: 24,
-              }}
-            />
-          )}
-        </div>
-        {event.location && (
-          <div className={styles.location} title={event.location}>
-            📍{" "}
-            {event.locationMapUrl ? (
-              <a
-                className={styles.locationLink}
-                href={event.locationMapUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {event.location}
-              </a>
-            ) : (
-              event.location
+        {(event.location || arrivalTimeStr) && (
+          <div className={styles.locationRow}>
+            {event.location && (
+              <span className={styles.location} title={event.location}>
+                {event.locationMapUrl ? (
+                  <a
+                    className={styles.locationLink}
+                    href={event.locationMapUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {event.location}
+                  </a>
+                ) : (
+                  event.location
+                )}
+              </span>
             )}
+            {arrivalTimeStr && <span className={styles.arrival}>{`Llegada ${arrivalTimeStr}`}</span>}
           </div>
         )}
         {!isMatch && event.rivalName && (
@@ -453,81 +251,14 @@ export default function EventCard({ event, eventTypeName, onDeleted, onEdited, a
         {event.description && (
           <div className={styles.description} title={event.description}>{event.description}</div>
         )}
-        {/* Tags (chipsRow + attendance badges) anchored to the card's bottom
-            edge via margin-top:auto on the wrapper — so they settle at the
-            bottom of the card instead of sitting right under the
-            description with blank space below, now that .compact cards
-            stretch to fill whatever height the dashboard row gives them
-            (see .compact's comment). */}
         <div className={styles.bottomTags}>
-          {isMatch && (
-            <div className={styles.chipsRow}>
-              <Chip
-                label="Partido"
-                size="small"
-                sx={{
-                  backgroundColor: "rgba(13,71,161,0.45)",
-                  color: "#90caf9",
-                  fontWeight: 700,
-                  fontSize: "0.68rem",
-                  height: 20,
-                }}
-              />
-            </div>
-          )}
-          <EventAttendanceBadges summary={attendanceSummary} isPlayer={!!isPlayer} isLeagueMatch={event.matchCategory === "League"} />
+          <EventAttendanceBadges
+            summary={attendanceSummary}
+            isPlayer={!!isPlayer}
+            isLeagueMatch={event.matchCategory === "League"}
+          />
         </div>
       </div>
-
-      {!compact && actions}
-      </div>
-
-      {!compact && canEditEvent && (
-        <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
-          <DialogTitle>Eliminar evento</DialogTitle>
-          <DialogContent>
-            <DialogContentText>
-              ¿Desea eliminar el evento "{event.title}"? Esta acción no se puede
-              deshacer.
-            </DialogContentText>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setConfirmOpen(false)}>Cancelar</Button>
-            <Button
-              color="error"
-              onClick={async () => {
-                setConfirmOpen(false);
-                try {
-                  await deleteSportEvent(String(event.id));
-                  if (onDeleted) onDeleted();
-                } catch (err: any) {
-                  const status = err?.response?.status;
-                  if (status === 404) {
-                    alert("El evento ya no existe. Se actualizará el listado.");
-                    if (onDeleted) onDeleted();
-                  } else {
-                    alert(err?.response?.data?.detail ?? err?.message ?? "Error al eliminar el evento.");
-                  }
-                }
-              }}
-            >
-              Eliminar
-            </Button>
-          </DialogActions>
-        </Dialog>
-      )}
-      {!compact && event.teamId && canEditEvent && (
-        <SportEventDialog
-          open={editOpen}
-          teamId={event.teamId}
-          event={event}
-          onClose={() => setEditOpen(false)}
-          onSaved={() => {
-            setEditOpen(false);
-            if (onEdited) onEdited();
-          }}
-        />
-      )}
     </div>
   );
 }

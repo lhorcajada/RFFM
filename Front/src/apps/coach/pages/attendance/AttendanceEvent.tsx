@@ -4,6 +4,7 @@ import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import {
   getSportEventById,
+  deleteSportEvent,
   SportEventResponse,
 } from "../../services/sportEventService";
 import useTeamAndClub from "../../hooks/useTeamAndClub";
@@ -15,6 +16,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SportsSoccerIcon from "@mui/icons-material/SportsSoccer";
 import FitnessCenterIcon from "@mui/icons-material/FitnessCenter";
 import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import { getEventTypeColor } from "./attendanceUtils";
 import styles from "./AttendanceEvent.module.css";
@@ -56,6 +58,8 @@ export default function AttendanceEvent() {
   const [event, setEvent] = useState<SportEventResponse | null>(null);
   const [eventTypeName, setEventTypeName] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [viewConvocationOpen, setViewConvocationOpen] = useState(false);
   const [kits, setKits] = useState<ClubKit[]>([]);
   const canEditEvent =
@@ -152,6 +156,34 @@ export default function AttendanceEvent() {
   }, [id]);
 
   const { team, teamTitleNode } = useTeamAndClub();
+
+  const notify = (message: string, severity: "success" | "info" | "error") =>
+    window.dispatchEvent(new CustomEvent("rffm.show_snackbar", { detail: { message, severity } }));
+
+  const goToEventsList = () => {
+    const teamIdParam = encodeURIComponent(String(event?.teamId ?? ""));
+    navigate(event?.teamId ? `/coach/attendance?teamId=${teamIdParam}` : "/coach/attendance");
+  };
+
+  const handleDeleteConfirmed = async () => {
+    if (!event) return;
+    setDeleting(true);
+    try {
+      await deleteSportEvent(String(event.id));
+      notify("Evento eliminado", "success");
+      goToEventsList();
+    } catch (err: any) {
+      if (err?.response?.status === 404) {
+        notify("El evento ya no existe", "info");
+        goToEventsList();
+      } else {
+        notify(err?.response?.data?.detail ?? err?.message ?? "Error al eliminar el evento.", "error");
+        setDeleteOpen(false);
+      }
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   // The session editor needs the club (exercise library) besides the team; the team resolved
   // by useTeamAndClub is the URL/preferred one, which is not necessarily this event's team.
@@ -297,6 +329,17 @@ export default function AttendanceEvent() {
                   Editar
                 </Button>
               )}
+              {event && canEditEvent && (
+                <Button
+                  startIcon={<DeleteIcon />}
+                  variant="outlined"
+                  color="error"
+                  size="small"
+                  onClick={() => setDeleteOpen(true)}
+                >
+                  Eliminar
+                </Button>
+              )}
               {event && isMatchOrFriendly && (
                 <Button
                   startIcon={<SportsSoccerIcon />}
@@ -397,6 +440,17 @@ export default function AttendanceEvent() {
             setEditOpen(false);
             if (updated) setEvent(updated);
           }}
+        />
+      )}
+      {event && canEditEvent && (
+        <ConfirmDialog
+          open={deleteOpen}
+          title="Eliminar evento"
+          description={`¿Desea eliminar el evento "${event.title}"? Esta acción no se puede deshacer.`}
+          confirmText="Eliminar"
+          processing={deleting}
+          onCancel={() => setDeleteOpen(false)}
+          onConfirm={() => void handleDeleteConfirmed()}
         />
       )}
       {event && canGoToTraining && (

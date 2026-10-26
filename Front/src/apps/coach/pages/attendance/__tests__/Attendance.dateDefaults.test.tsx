@@ -3,7 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getDefaultAttendanceDateRange } from "../attendanceUtils";
+import { getDefaultAttendanceDateRange, getSegmentFilter } from "../attendanceUtils";
 
 vi.mock("../../../../../shared/components/ui/BaseLayout/BaseLayout", () => ({
   default: ({ children }: { children: React.ReactNode }) => <>{children}</>,
@@ -93,91 +93,115 @@ function renderPage() {
   );
 }
 
-describe("Attendance - filtros de fecha por defecto", () => {
+async function openRange() {
+  await userEvent.click(screen.getByRole("button", { name: /fechas/i }));
+}
+
+async function applyStart(value: string) {
+  await openRange();
+  const desde = screen.getByLabelText("Desde");
+  await userEvent.clear(desde);
+  await userEvent.type(desde, value);
+  await userEvent.click(screen.getByRole("button", { name: "Aplicar" }));
+}
+
+describe("Attendance - filtros de fecha", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     sessionStorage.clear();
     getSportEventsMock.mockResolvedValue({ items: [], totalPages: 1 });
   });
 
-  it("usa hoy como 'Desde' y el fin de temporada como 'Hasta' al cargar la página", async () => {
-    const seasonEndDate = "2099-06-30";
-    getActiveSeasonMock.mockResolvedValue({ id: "season-1", endDate: seasonEndDate });
+  it("empieza en «Próximos»: hoy como 'Desde' y el fin de temporada como 'Hasta'", async () => {
+    getActiveSeasonMock.mockResolvedValue({ id: "season-1", endDate: "2099-06-30" });
 
     renderPage();
 
-    const expected = getDefaultAttendanceDateRange(seasonEndDate);
-
+    const expected = getDefaultAttendanceDateRange("2099-06-30");
+    expect(screen.getByRole("button", { name: "Próximos" })).toHaveAttribute("aria-pressed", "true");
     await waitFor(() => {
-      expect(screen.getByLabelText("Hasta")).toHaveValue(expected.end);
+      expect(getSportEventsMock).toHaveBeenLastCalledWith(
+        "team-1", 1, 10, expected.start, expected.end, false
+      );
     });
+    await openRange();
     expect(screen.getByLabelText("Desde")).toHaveValue(expected.start);
-  });
-
-  it("recalcula el rango al pulsar 'Limpiar' tras haber editado las fechas manualmente", async () => {
-    const seasonEndDate = "2099-06-30";
-    getActiveSeasonMock.mockResolvedValue({ id: "season-1", endDate: seasonEndDate });
-
-    renderPage();
-
-    const expected = getDefaultAttendanceDateRange(seasonEndDate);
-    await waitFor(() => {
-      expect(screen.getByLabelText("Desde")).toHaveValue(expected.start);
-    });
-
-    const desdeInput = screen.getByLabelText("Desde");
-    await userEvent.clear(desdeInput);
-    await userEvent.type(desdeInput, "2020-01-01");
-    await waitFor(() => expect(desdeInput).toHaveValue("2020-01-01"));
-
-    await userEvent.click(screen.getByRole("button", { name: "Limpiar" }));
-
-    await waitFor(() => {
-      expect(screen.getByLabelText("Desde")).toHaveValue(expected.start);
-    });
     expect(screen.getByLabelText("Hasta")).toHaveValue(expected.end);
   });
 
-  it("recalcula el rango por defecto cuando cambia la temporada activa", async () => {
-    const initialSeasonEndDate = "2099-06-30";
-    getActiveSeasonMock.mockResolvedValue({ id: "season-1", endDate: initialSeasonEndDate });
+  it("«Pasados» pide los eventos anteriores a hoy en orden descendente", async () => {
+    const season = { id: "season-1", startDate: "2098-08-01", endDate: "2099-06-30" };
+    getActiveSeasonMock.mockResolvedValue(season);
 
     renderPage();
+    await userEvent.click(screen.getByRole("button", { name: "Pasados" }));
 
-    const initialExpected = getDefaultAttendanceDateRange(initialSeasonEndDate);
+    const expected = getSegmentFilter("past", season);
     await waitFor(() => {
-      expect(screen.getByLabelText("Hasta")).toHaveValue(initialExpected.end);
+      expect(getSportEventsMock).toHaveBeenLastCalledWith(
+        "team-1", 1, 10, expected.start, expected.end, true
+      );
     });
+    expect(screen.getByRole("button", { name: "Pasados" })).toHaveAttribute("aria-pressed", "true");
+  });
 
-    const newSeasonEndDate = "2099-12-15";
-    const newExpected = getDefaultAttendanceDateRange(newSeasonEndDate);
+  it("un rango aplicado a mano deja los segmentos sin marcar y se consulta con él", async () => {
+    getActiveSeasonMock.mockResolvedValue({ id: "season-1", endDate: "2099-06-30" });
 
+    renderPage();
+    const seasonEnd = getDefaultAttendanceDateRange("2099-06-30").end;
+    await waitFor(() => expect(getSportEventsMock.mock.calls.at(-1)?.[4]).toBe(seasonEnd));
+    await applyStart("2020-01-01");
+
+    await waitFor(() => {
+      expect(getSportEventsMock).toHaveBeenLastCalledWith(
+        "team-1", 1, 10, "2020-01-01", seasonEnd, false
+      );
+    });
+    expect(screen.getByRole("button", { name: "Próximos" })).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("vuelve al rango por defecto al pulsar «Próximos» tras haber aplicado un rango propio", async () => {
+    getActiveSeasonMock.mockResolvedValue({ id: "season-1", endDate: "2099-06-30" });
+
+    renderPage();
+    await applyStart("2020-01-01");
+    await userEvent.click(screen.getByRole("button", { name: "Próximos" }));
+
+    const expected = getDefaultAttendanceDateRange("2099-06-30");
+    await waitFor(() => {
+      expect(getSportEventsMock).toHaveBeenLastCalledWith(
+        "team-1", 1, 10, expected.start, expected.end, false
+      );
+    });
+  });
+
+  it("recalcula el rango por defecto cuando cambia la temporada activa", async () => {
+    getActiveSeasonMock.mockResolvedValue({ id: "season-1", endDate: "2099-06-30" });
+
+    renderPage();
+    await waitFor(() => expect(getSportEventsMock).toHaveBeenCalled());
+
+    const newExpected = getDefaultAttendanceDateRange("2099-12-15");
     window.dispatchEvent(
       new CustomEvent(COACH_ACTIVE_SEASON_CHANGED_EVENT, {
-        detail: { season: { id: "season-2", endDate: newSeasonEndDate } },
+        detail: { season: { id: "season-2", endDate: "2099-12-15" } },
       })
     );
 
     await waitFor(() => {
-      expect(screen.getByLabelText("Hasta")).toHaveValue(newExpected.end);
+      expect(getSportEventsMock).toHaveBeenLastCalledWith(
+        "team-1", 1, 10, newExpected.start, newExpected.end, false
+      );
     });
-    expect(screen.getByLabelText("Desde")).toHaveValue(newExpected.start);
   });
 
-  it("no sobrescribe las fechas editadas manualmente por el usuario cuando cambia la temporada", async () => {
-    const seasonEndDate = "2099-06-30";
-    getActiveSeasonMock.mockResolvedValue({ id: "season-1", endDate: seasonEndDate });
+  it("no sobrescribe el rango aplicado por el usuario cuando cambia la temporada", async () => {
+    getActiveSeasonMock.mockResolvedValue({ id: "season-1", endDate: "2099-06-30" });
 
     renderPage();
-
-    await waitFor(() => {
-      expect(screen.getByLabelText("Hasta")).toHaveValue(getDefaultAttendanceDateRange(seasonEndDate).end);
-    });
-
-    const desdeInput = screen.getByLabelText("Desde");
-    await userEvent.clear(desdeInput);
-    await userEvent.type(desdeInput, "2030-05-05");
-    await waitFor(() => expect(desdeInput).toHaveValue("2030-05-05"));
+    await applyStart("2030-05-05");
+    await waitFor(() => expect(getSportEventsMock.mock.calls.at(-1)?.[3]).toBe("2030-05-05"));
 
     window.dispatchEvent(
       new CustomEvent(COACH_ACTIVE_SEASON_CHANGED_EVENT, {
@@ -185,22 +209,20 @@ describe("Attendance - filtros de fecha por defecto", () => {
       })
     );
 
-    // Give the effect a chance to run, then assert the manual edit is preserved.
-    await waitFor(() => {
-      expect(screen.getByLabelText("Desde")).toHaveValue("2030-05-05");
-    });
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(getSportEventsMock.mock.calls.at(-1)?.[3]).toBe("2030-05-05");
   });
 
   it("cae al 31 de diciembre del año actual como 'Hasta' cuando el fin de temporada ya ha pasado", async () => {
-    const pastSeasonEndDate = "2000-01-01";
-    getActiveSeasonMock.mockResolvedValue({ id: "season-1", endDate: pastSeasonEndDate });
+    getActiveSeasonMock.mockResolvedValue({ id: "season-1", endDate: "2000-01-01" });
 
     renderPage();
 
-    const expected = getDefaultAttendanceDateRange(pastSeasonEndDate);
-
+    const expected = getDefaultAttendanceDateRange("2000-01-01");
     await waitFor(() => {
-      expect(screen.getByLabelText("Hasta")).toHaveValue(expected.end);
+      expect(getSportEventsMock).toHaveBeenLastCalledWith(
+        "team-1", 1, 10, expected.start, expected.end, false
+      );
     });
     expect(expected.end.endsWith("-12-31")).toBe(true);
   });

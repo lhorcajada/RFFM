@@ -52,10 +52,11 @@ describe("EventCard — compact mode (for read-only contexts like the dashboard 
     expect(screen.getByText("Entreno semanal")).toBeInTheDocument();
   });
 
-  it("shows the action icons by default (compact omitted/false), matching Attendance.tsx's existing behavior", () => {
+  it("also has no action icons when not compact: the whole card opens the event instead", () => {
     renderCard(false);
-    expect(screen.getByLabelText(/ver asistencias/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/editar evento/i)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/ver asistencias/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/editar evento/i)).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /abrir evento/i })).toBeInTheDocument();
   });
 
   it("does not render the delete confirmation dialog trigger content when compact, even for an editor role", () => {

@@ -22,9 +22,63 @@ import EmptyState from "../../../../shared/components/ui/EmptyState/EmptyState";
 import { coachAuthService } from "../../services/authService";
 import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess";
 import styles from "./Attendance.module.css";
-import { useEffect, useRef, useState } from "react";
-import { TextField, FormControlLabel, Switch } from "@mui/material";
-import { getDefaultAttendanceDateRange } from "./attendanceUtils";
+import { useEffect, useState } from "react";
+import EventsFilterBar, {
+  EventsSegment,
+  EventTypeFilter,
+} from "./components/EventsFilterBar";
+import { getSegmentFilter } from "./attendanceUtils";
+import { groupEventsByWeek } from "./utils/groupEventsByWeek";
+
+const FILTER_KEY = "attendance_filter";
+
+interface DateFilter {
+  start: string | null;
+  end: string | null;
+  descending: boolean;
+}
+
+interface SavedFilter {
+  segment: EventsSegment | null;
+  filter: DateFilter;
+  page: number;
+}
+
+function readSavedFilter(): SavedFilter {
+  const defaults: SavedFilter = {
+    segment: "upcoming",
+    filter: getSegmentFilter("upcoming", null),
+    page: 1,
+  };
+  try {
+    const saved = sessionStorage.getItem(FILTER_KEY);
+    if (!saved) return defaults;
+    const parsed = JSON.parse(saved);
+    const hasDates = parsed.startDate != null || parsed.endDate != null;
+    const segment: EventsSegment | null =
+      parsed.segment ?? (hasDates ? null : "upcoming");
+    return {
+      segment,
+      filter: hasDates
+        ? {
+            start: parsed.startDate ?? null,
+            end: parsed.endDate ?? null,
+            descending: parsed.descending ?? false,
+          }
+        : defaults.filter,
+      page: parsed.page ?? 1,
+    };
+  } catch {
+    return defaults;
+  }
+}
+
+function matchesType(typeName: string, type: EventTypeFilter): boolean {
+  const name = typeName.toLowerCase();
+  if (type === "match") return name.includes("partido");
+  if (type === "training") return name.includes("entrenamiento");
+  return name.includes("torneo") || name.includes("competici");
+}
 
 export default function Attendance() {
   useAuditPageAccess('Events');
@@ -32,60 +86,20 @@ export default function Attendance() {
   const {
     team,
     teamTitleNode,
-    clubSubtitleNode,
     loading: teamLoading,
   } = useTeamAndClub();
   const isPlayer = useIsPlayerRole();
   const [loading, setLoading] = useState(false);
   const [events, setEvents] = useState<SportEventResponse[]>([]);
-  const [page, setPage] = useState(() => {
-    try {
-      const saved = sessionStorage.getItem("attendance_filter");
-      if (saved) return JSON.parse(saved).page ?? 1;
-    } catch { /* ignore */ }
-    return 1;
-  });
+  const [initial] = useState(readSavedFilter);
+  const [page, setPage] = useState(initial.page);
   const [pageSize] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [eventTypeMap, setEventTypeMap] = useState<Record<number, string>>({});
-  const FILTER_KEY = "attendance_filter";
   const [activeSeason, setActiveSeason] = useState<Season | null>(null);
-  const [startDate, setStartDate] = useState<string | null>(() => {
-    try {
-      const saved = sessionStorage.getItem(FILTER_KEY);
-      const parsed = saved ? JSON.parse(saved) : null;
-      if (parsed?.startDate != null) return parsed.startDate;
-    } catch { /* ignore */ }
-    return getDefaultAttendanceDateRange(null).start;
-  });
-  const [endDate, setEndDate] = useState<string | null>(() => {
-    try {
-      const saved = sessionStorage.getItem(FILTER_KEY);
-      const parsed = saved ? JSON.parse(saved) : null;
-      if (parsed?.endDate != null) return parsed.endDate;
-    } catch { /* ignore */ }
-    return getDefaultAttendanceDateRange(null).end;
-  });
-  const [hasSavedDateFilter] = useState<boolean>(() => {
-    try {
-      const saved = sessionStorage.getItem(FILTER_KEY);
-      const parsed = saved ? JSON.parse(saved) : null;
-      return parsed?.startDate != null || parsed?.endDate != null;
-    } catch {
-      return false;
-    }
-  });
-  // Tracks whether the user has an explicit date range (persisted from a previous
-  // search, or edited in this session) that should not be overwritten when the
-  // active season changes.
-  const userModifiedDatesRef = useRef<boolean>(hasSavedDateFilter);
-  const [descending, setDescending] = useState<boolean>(() => {
-    try {
-      const saved = sessionStorage.getItem(FILTER_KEY);
-      if (saved) return JSON.parse(saved).descending ?? false;
-    } catch { /* ignore */ }
-    return false;
-  });
+  const [segment, setSegment] = useState<EventsSegment | null>(initial.segment);
+  const [filter, setFilter] = useState<DateFilter>(initial.filter);
+  const [activeTypes, setActiveTypes] = useState<EventTypeFilter[]>([]);
   const [searchTrigger, setSearchTrigger] = useState(0);
   const [dialogOpen, setDialogOpen] = useState(false);
   const canCreateEvent =
@@ -95,6 +109,7 @@ export default function Attendance() {
     coachAuthService.hasRole("ClubMember");
   const { summaries, refetch: refetchSummaries } = useEventAttendanceSummaries(team?.id, events.map((e) => e.id));
   useAutoRefresh(refetchSummaries);
+
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -129,14 +144,16 @@ export default function Attendance() {
     };
   }, []);
 
-  // Recalculate the default date range whenever the active season changes,
-  // unless the user already has an explicit (persisted or manually edited) range.
+  // A segment follows the active season; a custom range (segment === null) never does.
   useEffect(() => {
-    if (userModifiedDatesRef.current) return;
-    const defaults = getDefaultAttendanceDateRange(activeSeason?.endDate ?? null);
-    setStartDate(defaults.start);
-    setEndDate(defaults.end);
-  }, [activeSeason]);
+    if (segment === null) return;
+    const next = getSegmentFilter(segment, activeSeason);
+    setFilter((current) =>
+      current.start === next.start && current.end === next.end && current.descending === next.descending
+        ? current
+        : { start: next.start, end: next.end, descending: next.descending }
+    );
+  }, [activeSeason, segment]);
 
   useEffect(() => {
     let mounted = true;
@@ -151,9 +168,9 @@ export default function Attendance() {
           team.id,
           page,
           pageSize,
-          startDate ?? undefined,
-          endDate ?? undefined,
-          descending
+          filter.start ?? undefined,
+          filter.end ?? undefined,
+          filter.descending
         );
         if (!mounted) return;
         setEvents(resp.items ?? []);
@@ -167,36 +184,57 @@ export default function Attendance() {
     return () => {
       mounted = false;
     };
-  }, [team, page, pageSize, searchTrigger]);
+  }, [team, page, pageSize, filter, searchTrigger]);
 
-  // Reset page and wait for explicit search
-  function saveFilter(start: string | null, end: string | null, desc: boolean, p = 1) {
+  function saveFilter(nextSegment: EventsSegment | null, next: DateFilter, p: number) {
     try {
-      sessionStorage.setItem(FILTER_KEY, JSON.stringify({ startDate: start, endDate: end, descending: desc, page: p }));
+      sessionStorage.setItem(
+        FILTER_KEY,
+        JSON.stringify({
+          segment: nextSegment,
+          startDate: next.start,
+          endDate: next.end,
+          descending: next.descending,
+          page: p,
+        })
+      );
     } catch { /* ignore */ }
   }
 
-  function onSearch() {
-    saveFilter(startDate, endDate, descending, 1);
+  function onSegmentChange(next: EventsSegment) {
+    const range = getSegmentFilter(next, activeSeason);
+    const nextFilter = { start: range.start, end: range.end, descending: range.descending };
+    setSegment(next);
+    setFilter(nextFilter);
     setPage(1);
-    setSearchTrigger((s) => s + 1);
+    saveFilter(next, nextFilter, 1);
   }
 
-  function onReset() {
-    userModifiedDatesRef.current = false;
-    const { start, end } = getDefaultAttendanceDateRange(activeSeason?.endDate ?? null);
-    setStartDate(start);
-    setEndDate(end);
-    setDescending(false);
-    saveFilter(start, end, false, 1);
+  function onApplyRange(start: string | null, end: string | null) {
+    const nextFilter = { start, end, descending: false };
+    setSegment(null);
+    setFilter(nextFilter);
     setPage(1);
-    setSearchTrigger((s) => s + 1);
+    saveFilter(null, nextFilter, 1);
   }
+
+  function onToggleType(type: EventTypeFilter) {
+    setActiveTypes((current) =>
+      current.includes(type) ? current.filter((t) => t !== type) : [...current, type]
+    );
+  }
+
+  const typeNameOf = (e: SportEventResponse) => e.eventType ?? eventTypeMap[e.eventTypeId ?? 0] ?? "";
+  const visibleEvents =
+    activeTypes.length === 0
+      ? events
+      : events.filter((e) => activeTypes.some((type) => matchesType(typeNameOf(e), type)));
+  const groups = groupEventsByWeek(visibleEvents);
 
   return (
     <BaseLayout hideFooterMenu>
       <ContentLayout
-        title="Eventos deportivos"
+        title="Eventos"
         subtitle={teamTitleNode ?? "Control de asistencias de jugadores"}
         actionBar={
           <Box sx={{ display: "flex", gap: 1 }}>
@@ -221,58 +259,16 @@ export default function Attendance() {
           </Box>
         }
       >
-        <Box sx={{ p: 3 }}>
-          <Box
-            className={styles.filters}
-            sx={{
-              display: "flex",
-              flexWrap: "wrap",
-              gap: 2,
-              mb: 2,
-              alignItems: "center",
-            }}
-          >
-            <TextField
-              label="Desde"
-              type="date"
-              size="small"
-              InputLabelProps={{ shrink: true }}
-              value={startDate ?? ""}
-              onChange={(e) => {
-                userModifiedDatesRef.current = true;
-                setStartDate(e.target.value || null);
-              }}
-              sx={{ flex: { xs: "1 1 45%", sm: "0 0 auto" } }}
-            />
-            <TextField
-              label="Hasta"
-              type="date"
-              size="small"
-              InputLabelProps={{ shrink: true }}
-              value={endDate ?? ""}
-              onChange={(e) => {
-                userModifiedDatesRef.current = true;
-                setEndDate(e.target.value || null);
-              }}
-              sx={{ flex: { xs: "1 1 45%", sm: "0 0 auto" } }}
-            />
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={descending}
-                  onChange={(_, v) => setDescending(v)}
-                  size="small"
-                />
-              }
-              label={descending ? "Descendente" : "Ascendente"}
-            />
-            <Button variant="contained" size="small" onClick={onSearch}>
-              Buscar
-            </Button>
-            <Button variant="outlined" size="small" onClick={onReset}>
-              Limpiar
-            </Button>
-          </Box>
+        <Box sx={{ p: { xs: 2, sm: 3 } }}>
+          <EventsFilterBar
+            segment={segment}
+            activeTypes={activeTypes}
+            startDate={filter.start}
+            endDate={filter.end}
+            onSegmentChange={onSegmentChange}
+            onToggleType={onToggleType}
+            onApplyRange={onApplyRange}
+          />
           {teamLoading ? (
             <CircularProgress />
           ) : !team ? (
@@ -284,35 +280,50 @@ export default function Attendance() {
             />
           ) : loading ? (
             <CircularProgress />
-          ) : events.length === 0 ? (
-            <EmptyState
-              title={"No hay eventos"}
-              description={"No se han encontrado eventos para este equipo."}
-            />
+          ) : visibleEvents.length === 0 ? (
+            <div className={styles.empty}>
+              <EmptyState
+                title={"No hay eventos"}
+                description={"No se han encontrado eventos para este equipo."}
+              />
+              {activeTypes.length > 0 && (
+                <Button variant="outlined" size="small" onClick={() => setActiveTypes([])}>
+                  Quitar filtros
+                </Button>
+              )}
+            </div>
           ) : (
-            <div className={styles.list}>
-              {events.map((e) => (
-                <div key={e.id} className={styles.item}>
-                  <EventCard
-                    event={{ ...e, teamId: e.teamId ?? team?.id }}
-                    eventTypeName={
-                      e.eventType ?? eventTypeMap[e.eventTypeId ?? 0]
-                    }
-                    onDeleted={() => setSearchTrigger((s) => s + 1)}
-                    onEdited={() => setSearchTrigger((s) => s + 1)}
-                    attendanceSummary={summaries[e.id]}
-                    isPlayer={isPlayer}
-                  />
-                </div>
+            <div className={styles.groups}>
+              {groups.map((group) => (
+                <section key={group.key} className={styles.group}>
+                  <div className={styles.groupHeader}>
+                    <h2 className={styles.groupTitle}>{group.label}</h2>
+                    {group.range && <span className={styles.groupRange}>{group.range}</span>}
+                  </div>
+                  <div className={styles.list}>
+                    {group.events.map((e) => (
+                      <div key={e.id} className={styles.item}>
+                        <EventCard
+                          event={{ ...e, teamId: e.teamId ?? team?.id }}
+                          eventTypeName={typeNameOf(e) || undefined}
+                          attendanceSummary={summaries[e.id]}
+                          isPlayer={isPlayer}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </section>
               ))}
             </div>
           )}
 
-          <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
+          <Box sx={{ display: "flex", justifyContent: "center", mt: 3 }}>
             <Pagination
               count={totalPages}
               page={page}
-              onChange={(_, v) => { setPage(v); saveFilter(startDate, endDate, descending, v); }}
+              siblingCount={0}
+              size="small"
+              onChange={(_, v) => { setPage(v); saveFilter(segment, filter, v); }}
             />
           </Box>
         </Box>

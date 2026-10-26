@@ -1,798 +1,272 @@
-/* ===== Chrome / cromo trading-card style ===== */
 .card {
-  display: flex;
-  flex-direction: row;    /* Row: [type sidebar][content column]. The type
-                              sidebar is a full-height sibling of the header/
-                              body/actions column (.cardContent) rather than
-                              nested inside the header, so it never competes
-                              with header content for height. */
-  align-items: stretch;
-  height: 384px;          /* Fixed height — content never changes the card size.
-                              Raised from 320px so the always-visible arrival
-                              chip, the consolidated chips row, and a 2-line
-                              attendance badges row all fit without being
-                              clipped by .body's overflow:hidden. Value
-                              confirmed against a real browser render (not
-                              just estimation) of the worst-case training
-                              card (title+meta+location+eventName+chipsRow+
-                              5-badge row) — see openspec design.md for the
-                              measured content budget. */
-  border-radius: 14px;
-  overflow: hidden;
   position: relative;
-  /* Dark chrome metallic background */
-  background: linear-gradient(160deg, #22223a 0%, #14142b 45%, #1c1c34 100%);
-  /* Chrome border via layered box-shadow */
-  box-shadow:
-    0 0 0 1px rgba(120, 155, 230, 0.45),
-    0 0 0 2px rgba(50, 75, 150, 0.22),
-    0 6px 24px rgba(0, 0, 0, 0.65),
-    0 1px 0 rgba(255, 255, 255, 0.09) inset,
-    0 -1px 0 rgba(0, 0, 0, 0.4) inset;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-/* Gloss/shine overlay — gives chrome sheen */
-.card::after {
-  content: "";
-  position: absolute;
-  inset: 0;
+  display: flex;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
   border-radius: 14px;
-  background: linear-gradient(
-    160deg,
-    rgba(255, 255, 255, 0.09) 0%,
-    rgba(255, 255, 255, 0.04) 30%,
-    transparent 55%
-  );
-  pointer-events: none;
-  z-index: 3;
+  background: var(--rffm-card-bg, #161d33);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--rffm-card-text, #eef1fb);
 }
 
 .card:hover {
-  transform: translateY(-4px) scale(1.015);
-  box-shadow:
-    0 0 0 1px rgba(145, 185, 255, 0.65),
-    0 0 0 2px rgba(80, 115, 210, 0.3),
-    0 12px 36px rgba(0, 0, 0, 0.7),
-    0 0 28px rgba(77, 157, 224, 0.28),
-    0 1px 0 rgba(255, 255, 255, 0.12) inset;
+  border-color: rgba(255, 255, 255, 0.28);
 }
 
-/* Match card gets blue chrome border */
-.cardMatch {
-  box-shadow:
-    0 0 0 1px rgba(77, 157, 224, 0.55),
-    0 0 0 2px rgba(13, 71, 161, 0.28),
-    0 6px 24px rgba(0, 0, 0, 0.65),
-    0 1px 0 rgba(255, 255, 255, 0.09) inset,
-    0 -1px 0 rgba(0, 0, 0, 0.4) inset;
-}
-
-.cardMatch:hover {
-  box-shadow:
-    0 0 0 1px rgba(100, 181, 246, 0.8),
-    0 0 0 2px rgba(30, 100, 200, 0.35),
-    0 12px 36px rgba(0, 0, 0, 0.7),
-    0 0 32px rgba(30, 100, 220, 0.4),
-    0 1px 0 rgba(255, 255, 255, 0.12) inset;
-}
-
-/* Training card with open convocation gets green chrome border */
-.cardConvocationOpen {
-  box-shadow:
-    0 0 0 1px rgba(102, 187, 106, 0.55),
-    0 0 0 2px rgba(27, 94, 32, 0.28),
-    0 6px 24px rgba(0, 0, 0, 0.65),
-    0 1px 0 rgba(255, 255, 255, 0.09) inset,
-    0 -1px 0 rgba(0, 0, 0, 0.4) inset;
-}
-
-/* Training card with pending convocation gets neutral/grey chrome border */
+.cardConvocationOpen,
 .cardConvocationPending {
-  box-shadow:
-    0 0 0 1px rgba(144, 164, 184, 0.4),
-    0 0 0 2px rgba(69, 90, 100, 0.22),
-    0 6px 24px rgba(0, 0, 0, 0.65),
-    0 1px 0 rgba(255, 255, 255, 0.09) inset,
-    0 -1px 0 rgba(0, 0, 0, 0.4) inset;
+  border-color: rgba(255, 255, 255, 0.12);
 }
 
-/* ===== Type sidebar — vertical book-spine label on the card's left edge =====
-   Full-height sibling of .cardContent (not nested in the header), coloured
-   per event type, with the label text rotated to read top-to-bottom. Same
-   markup/classes in compact and non-compact cards; only width/font-size
-   differ via the .compact/mobile overrides further down. */
-.typeSidebar {
-  flex-shrink: 0;
-  width: 26px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  z-index: 2;
-  position: relative;
-}
-
-.typeSidebarLabel {
-  writing-mode: vertical-rl;
-  transform: rotate(180deg);
-  white-space: nowrap;
-  text-transform: uppercase;
-  font-weight: 800;
-  font-size: 0.68rem;
-  letter-spacing: 0.08em;
-  color: rgba(255, 255, 255, 0.95);
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
-}
-
-.typeSidebarTraining {
-  background: linear-gradient(180deg, #1b5e20 0%, #2e7d32 60%, #145214 100%);
-}
-
-.typeSidebarMatch {
-  background: linear-gradient(180deg, #0d47a1 0%, #1565c0 60%, #0a3880 100%);
-}
-
-.typeSidebarTournament {
-  background: linear-gradient(180deg, #b71c1c 0%, #c62828 60%, #9c1515 100%);
-}
-
-.typeSidebarDefault {
-  background: linear-gradient(180deg, #37474f 0%, #455a64 60%, #2c3e50 100%);
-}
-
-/* Content column: header + body + actions — everything that isn't the type
-   sidebar. min-width:0 lets it shrink below its content's intrinsic width
-   inside the flex row instead of forcing the card wider than the grid cell. */
-.cardContent {
-  flex: 1;
-  min-width: 0;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-/* ===== Generic header band (coloured per event type) ===== */
-.header {
-  position: relative;
-  height: 72px;    /* shrunk from 132px — the event-type tag moved out into
-                       the vertical sidebar, so the header only needs to
-                       centre the avatar emoji. */
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  z-index: 1;
-}
-
-/* Home/Away badge row for the match (pitch) header — flow layout, right
-   aligned, so it can never overlap the team names below it regardless of
-   header height. Same JSX/CSS path in compact and non-compact cards; only
-   sizing differs via the .compact overrides further down. */
-.matchTopBar {
-  display: flex;
-  justify-content: flex-end;
-  padding: 6px 8px 0;
-  flex-shrink: 0;
-  min-height: 20px;
-  z-index: 2;
-}
-
-/* Diagonal shine strip inside the coloured header */
-.headerShine {
-  position: absolute;
-  top: 0;
-  left: -30%;
-  width: 65%;
-  height: 100%;
-  background: linear-gradient(
-    108deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.18) 50%,
-    transparent 100%
-  );
-  transform: skewX(-20deg);
-  pointer-events: none;
-  z-index: 0;
-}
-
-.avatar {
-  font-size: 2.8rem;
-  line-height: 1;
-  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.55));
-  z-index: 1;
-}
-
-/* Top row of the training header: convocation status on the left, training
-   type combination on the right. The header grows and its padding-top
-   pushes the centred avatar below this row, leaving a visible gap between
-   the tags and the avatar (border-box: padding is taken from the height). */
-.header:has(.headerTags) {
-  box-sizing: border-box;
-  height: 82px;
-  padding-top: 33px;
-}
-
-.compact .header:has(.headerTags) {
-  height: 78px;
-}
-
-.headerTags {
-  position: absolute;
-  top: 6px;
-  left: 8px;
-  right: 8px;
-  z-index: 2;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 6px;
-}
-
-.headerConvocationTag {
-  flex-shrink: 0;
-  white-space: nowrap;
-  font-size: 0.66rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  padding: 3px 8px;
-  border-radius: 8px;
-  line-height: 1.25;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
-}
-
-.convocationOpen {
-  color: #c8e6c9;
-  background: rgba(27, 94, 32, 0.85);
-  border: 1px solid rgba(165, 214, 167, 0.6);
-}
-
-.convocationPending {
-  color: #eceff1;
-  background: rgba(38, 50, 56, 0.8);
-  border: 1px solid rgba(207, 216, 220, 0.45);
-}
-
-/* Training-type combination tag (Físico/Técnico/Táctico) behind the
-   header's per-combination gradient — right side of .headerTags. */
-.headerTrainingTag {
-  min-width: 0;
-  font-size: 0.62rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: #fff;
-  background: rgba(0, 0, 0, 0.35);
-  padding: 3px 7px;
-  border-radius: 8px;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-  text-align: right;
-  line-height: 1.25;
-}
-
-/* ===== Match header — football pitch style ===== */
-.matchHeader {
-  position: relative;
-  height: 110px;   /* fits topbar + shield + 2-line team name; was 100px and clipped the name's 2nd line. Was shrunk from 132px — the event-type tag moved out into
-                       the vertical sidebar (see .header's comment), leaving
-                       just the Home/Away top bar + team row. */
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  z-index: 1;
-  /* Pitch: deep green gradient with faint centre-circle */
-  background:
-    radial-gradient(ellipse 46px 46px at 50% 58%, rgba(255,255,255,0.08) 0%, transparent 100%),
-    linear-gradient(180deg, #0a3d0a 0%, #155215 45%, #0d3d0d 100%);
-  border-bottom: 2px solid rgba(255,255,255,0.10);
-}
-
-/* Row holding the two team blocks + centre (score/vs) — separate from the
-   home/away badge so long team names that wrap to 2-3 lines can never grow
-   into the badge (it used to be absolutely positioned over this row and
-   would overlap wrapped team names). */
-.matchTeamsRow {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 4px;
-  padding: 0 10px;
-  flex: 1;
-  min-height: 0;
-  z-index: 1;
-}
-
-/* Faint pitch lines */
-.matchHeader::before {
-  content: "";
+/* Stretched link: the whole card opens the event. Inner links sit above it. */
+.cardLink {
   position: absolute;
   inset: 0;
-  background-image:
-    /* centre line */
-    linear-gradient(90deg, transparent 49.5%, rgba(255,255,255,0.12) 49.5%, rgba(255,255,255,0.12) 50.5%, transparent 50.5%),
-    /* top arc */
-    radial-gradient(ellipse 80px 28px at 50% 0%, rgba(255,255,255,0.08) 0%, transparent 100%);
-  pointer-events: none;
   z-index: 0;
 }
 
-/* Diagonal shine */
-.matchHeaderShine {
-  position: absolute;
-  top: 0;
-  left: -20%;
-  width: 55%;
-  height: 100%;
-  background: linear-gradient(
-    108deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.12) 50%,
-    transparent 100%
-  );
-  transform: skewX(-20deg);
-  pointer-events: none;
-  z-index: 0;
+.cardLink:focus-visible {
+  outline: 2px solid var(--rffm-accent, #ff8a3d);
+  outline-offset: -2px;
+  border-radius: 14px;
 }
 
-/* "Local" / "Visitante" badge — lives in .matchTopBar (its own row, above
-   the teams), so it never overlaps a team name that wraps to multiple
-   lines. */
-.homeBadge {
-  white-space: nowrap;
-  font-size: 0.58rem;
+.stripe {
+  width: 6px;
+  flex: none;
+}
+
+.stripeMatch { background: #5b8cff; }
+.stripeTraining { background: #4cc38a; }
+.stripeTournament { background: #ff6b6b; }
+.stripeDefault { background: #8d99b8; }
+
+.dateBlock {
+  width: 76px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 16px 4px;
+  background: rgba(255, 255, 255, 0.05);
+  text-align: center;
+}
+
+.dateWeekday {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+
+.dateDay {
+  font-size: 2.25rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.dateTime {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+.dateUnknown {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+.content {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  pointer-events: none;
+}
+
+.topRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.typeLabel {
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.75);
-  background: rgba(0, 0, 0, 0.35);
-  padding: 2px 6px;
-  border-radius: 6px;
-  z-index: 2;
-  flex-shrink: 0;
+  opacity: 0.85;
 }
 
-.awayBadge {
-  color: rgba(255, 210, 100, 0.9);
-  background: rgba(0, 0, 0, 0.4);
-}
-
-/* Team block (left or right) */
-.matchTeamBlock {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 5px;
-  flex: 1;
-  min-width: 0;
-  z-index: 1;
-  padding-top: 8px;
-}
-
-.matchTeamRight {
-  align-items: center;
-}
-
-.matchShield {
-  width: 44px;
-  height: 44px;
-  object-fit: contain;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.9);
-  padding: 3px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.6), 0 0 0 1.5px rgba(255,255,255,0.25);
-}
-
-.matchShieldPlaceholder {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.12);
-  border: 2px solid rgba(255,255,255,0.2);
-}
-
-.matchTeamName {
-  font-size: 0.65rem;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.88);
-  text-align: center;
-  white-space: normal;
-  word-break: break-word;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  max-width: 88px;
-  line-height: 1.25;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.7);
-}
-
-/* Centre block: score or VS + kickoff */
-.matchCenter {
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  min-width: 68px;
-  z-index: 1;
-  padding-top: 4px;
-}
-
-.matchScore {
-  font-size: 1.7rem;
-  font-weight: 900;
-  color: #fff;
-  letter-spacing: 2px;
-  line-height: 1;
-  text-shadow: 0 2px 8px rgba(0,0,0,0.8);
-}
-
-.matchScoreDash {
-  margin: 0 3px;
-  opacity: 0.7;
-}
-
-.matchVs {
-  font-size: 1.3rem;
-  font-weight: 900;
-  color: rgba(255,255,255,0.75);
-  letter-spacing: 2px;
-  text-shadow: 0 2px 6px rgba(0,0,0,0.7);
-}
-
-.matchKickoff {
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: rgba(255,255,255,0.6);
-  letter-spacing: 0.05em;
-}
-
-.matchResultBadge {
-  font-size: 0.6rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  padding: 2px 7px;
+.tag {
+  padding: 2px 8px;
   border-radius: 10px;
-  margin-top: 2px;
+  background: rgba(255, 255, 255, 0.12);
+  font-size: 0.75rem;
+  font-weight: 600;
 }
 
-.resultWon {
-  background: #1b5e20;
-  color: #a5d6a7;
-  box-shadow: 0 0 6px rgba(27,94,32,0.6);
+.convocationOpen {
+  background: rgba(76, 195, 138, 0.2);
+  color: #8ee6b9;
 }
 
-.resultDraw {
-  background: #e65100;
-  color: #ffcc80;
-  box-shadow: 0 0 6px rgba(230,81,0,0.6);
+.convocationPending {
+  background: rgba(255, 193, 7, 0.18);
+  color: #ffd54f;
 }
 
-.resultLost {
-  background: #b71c1c;
-  color: #ef9a9a;
-  box-shadow: 0 0 6px rgba(183,28,28,0.6);
-}
-
-/* ===== Card body ===== */
-.body {
-  flex: 1;
-  padding: 10px 14px 6px;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  z-index: 2;
-}
-
-/* Title, date, start time and arrival chip are the card's key info: larger
-   and brighter than the secondary rows (location, rival, description). */
 .title {
-  font-weight: 800;
-  font-size: 1.12rem;
-  color: #ffffff;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  line-height: 1.3;
-  flex-shrink: 0;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
 }
 
-.metaRow {
+.matchRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.matchTeam {
+  flex: 1 1 0;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
-  flex-shrink: 0;
 }
 
-.meta {
-  font-size: 0.92rem;
+.matchTeamRight {
+  justify-content: flex-end;
+  text-align: right;
+}
+
+.matchTeamName {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.shield,
+.shieldPlaceholder {
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: 50%;
+  object-fit: contain;
+}
+
+.shieldPlaceholder {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.matchCenter {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.matchScore {
+  font-size: 1.375rem;
   font-weight: 700;
-  color: rgba(225, 233, 250, 0.95);
+  line-height: 1;
 }
 
-.metaTime {
-  font-size: 0.92rem;
-  font-weight: 800;
-  color: #ffffff;
-  font-variant-numeric: tabular-nums;
+.matchVs {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  opacity: 0.75;
+}
+
+.result {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.resultWon { color: #8ee6b9; }
+.resultDraw { color: #ffd54f; }
+.resultLost { color: #ffb0b0; }
+
+.locationRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  font-size: 0.8125rem;
+  opacity: 0.9;
 }
 
 .location {
-  font-size: 0.8rem;
-  color: rgba(160, 180, 215, 0.82);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  flex-shrink: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
-/* Google Maps link inside .location — the card body background is a fixed
-   dark chrome gradient (see .card) regardless of event type, so a single
-   fixed color pair is enough; explicit :visited override because the
-   browser default visited-purple has poor contrast on this background. */
-.locationLink,
-.locationLink:visited {
-  color: #8ecbff;
+.locationLink {
+  position: relative;
+  z-index: 1;
+  pointer-events: auto;
+  color: inherit;
   text-decoration: underline;
-  text-decoration-color: rgba(142, 203, 255, 0.55);
 }
 
-.locationLink:hover,
-.locationLink:focus-visible {
-  color: #b7ddff;
-  text-decoration-color: rgba(183, 221, 255, 0.85);
+.arrival {
+  margin-left: auto;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(255, 193, 7, 0.18);
+  color: #ffd54f;
+  font-size: 0.75rem;
+  font-weight: 700;
 }
 
-.rival {
-  font-size: 0.82rem;
-  color: rgba(170, 185, 220, 0.85);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  flex-shrink: 0;
+.rival,
+.eventName,
+.description {
+  font-size: 0.8125rem;
+  opacity: 0.85;
+  overflow-wrap: anywhere;
 }
 
 .rivalLabel {
   font-weight: 700;
-  color: rgba(205, 220, 248, 0.92);
 }
 
-.eventName {
-  font-size: 0.78rem;
-  color: rgba(150, 165, 200, 0.72);
-  font-style: italic;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-/* Free-text event description — unlike the other single-line rows this can
-   be a full sentence, so it gets 2 lines with ellipsis instead of being cut
-   off at the first line. flex-shrink:0 for the same reason as every other
-   row here (see .title/.location/.eventName): overflow:hidden makes a flex
-   item's automatic min-size 0, so without this it could be squashed to
-   height:0 and its text would paint on top of the row below it. */
-.description {
-  font-size: 0.78rem;
-  color: rgba(175, 188, 218, 0.78);
-  line-height: 1.3;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  flex-shrink: 0;
-}
-
-/* Consolidated Partido / Llegada / Convocatoria chip row — replaces the two
-   separate ad-hoc inline-styled divs that used to gate on isMatch/isTraining
-   independently (a match could only ever show "Partido", never "Llegada").
-   flex-shrink:0 matches every other body row so, if content still doesn't
-   fit the card's fixed height, the *last* row gets clipped cleanly instead
-   of any row collapsing to 0-height and overlapping its neighbour. */
-.chipsRow {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  flex-shrink: 0;
-}
-
-/* Wraps chipsRow + EventAttendanceBadges and pins them to the bottom of the
-   card (margin-top:auto consumes whatever leftover vertical space .body has
-   once .compact stretches to fill a taller-than-natural row), instead of
-   them sitting right under .description with blank space below. */
 .bottomTags {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
   margin-top: auto;
-  flex-shrink: 0;
 }
 
-/* ===== Actions footer ===== */
-.actions {
-  padding: 7px 10px;
-  display: flex;
-  gap: 5px;
-  justify-content: flex-end;
-  flex-shrink: 0;
-  border-top: 1px solid rgba(100, 125, 195, 0.2);
-  background: rgba(0, 0, 0, 0.2);
-  z-index: 2;
-}
-
-/* ===== Compact mode — dashboard widget (UpcomingEventsWidget) =====
-   Read-only preview of the same card used in the Attendance list, just
-   without the actions footer/dialogs. `height: 100%` (not the base .card's
-   fixed 320px, and not `auto` either) so this card fills whatever height
-   `UpcomingEventsWidget.module.css`'s `.eventCardLink` (flex:1, itself
-   filling the Carousel slide) ends up with — including when that's taller
-   than this card's own natural content, e.g. when the "Últimas noticias"
-   widget sharing the same dashboard grid row is the one driving a taller
-   row. Never clips: `.eventCardLink`/the slide can only ever end up at
-   least as tall as this card's natural content in the first place, since
-   that content is one of the inputs to the grid row's own auto-sizing (see
-   `TeamDashboard.module.css`'s shared `.dashboardGrid` row comment) — 100%
-   here can only mean "at least natural size", never less.
-
-   Sizes here sit close to the non-compact values (not the original, more
-   aggressively shrunk ones) so this card reads with similar visual weight
-   to the dashboard's other widget card — the "Últimas noticias" NewsWidget
-   card, whose compact cover image/body preview were enlarged to occupy
-   about half the card. A tiny gap from the full size is kept only where the
-   compact card is visibly narrower (no actions footer competing for width),
-   not as an arbitrary shrink. */
-.compact {
-  height: 100%;
-}
-
-.compact .header {
-  height: 68px; /* close to the full 72px — no top bar to make room for any
-                    more, the type tag lives in the sidebar now. */
-}
-
-.compact .matchHeader {
-  height: 104px; /* fits 2-line team name (was 92px and clipped it); close to the full 110px — keeps the Home/Away top bar +
-                    team row comfortably sized. */
-}
-
-.compact .typeSidebar {
-  width: 24px;
-}
-
-.compact .typeSidebarLabel {
-  font-size: 0.66rem;
-}
-
-.compact .avatar {
-  font-size: 2.4rem;
-}
-
-.compact .headerTrainingTag {
-  font-size: 0.58rem;
-}
-
-.compact .matchTopBar {
-  padding: 5px 7px 0;
-  min-height: 19px;
-}
-
-.compact .matchShield,
-.compact .matchShieldPlaceholder {
-  width: 40px;
-  height: 40px;
-}
-
-.compact .matchTeamName {
-  font-size: 0.65rem;
-  -webkit-line-clamp: 2;
-}
-
-.compact .matchTeamBlock {
-  padding-top: 6px;
-  gap: 4px;
-}
-
-.compact .matchCenter {
-  padding-top: 3px;
-}
-
-.compact .matchScore {
-  font-size: 1.5rem;
-}
-
-.compact .matchVs {
-  font-size: 1.15rem;
-}
-
-.compact .homeBadge {
-  font-size: 0.57rem;
-}
-
-.compact .body {
-  padding: 10px 14px 8px;
-  gap: 4px;
-}
-
-/* ===== Responsive — narrower viewport ===== */
 @media (max-width: 480px) {
-  .card {
-    height: 360px; /* raised from 230px — measured against a real browser
-                       render of the worst-case training card at 400px
-                       viewport width; see .card's desktop comment. */
-  }
-  .header {
-    height: 52px; /* shrunk from 78px — no top bar, type tag is in the sidebar */
-  }
-  .header:has(.headerTags) {
-    height: 66px; /* room for the convocation tag row + gap above the avatar */
-    padding-top: 31px;
-  }
-  .headerConvocationTag {
-    font-size: 0.62rem;
-    padding: 2px 7px;
-  }
-  .matchHeader {
-    height: 90px; /* fits 30px shield + 2-line team name */
-  }
-  .typeSidebar {
-    width: 22px;
-  }
-  .typeSidebarLabel {
-    font-size: 0.6rem;
-  }
-  .matchTopBar {
-    padding: 4px 6px 0;
-    min-height: 18px;
-  }
-  .avatar {
-    font-size: 1.8rem;
-  }
-  .matchShield,
-  .matchShieldPlaceholder {
-    width: 30px;
-    height: 30px;
-  }
-  .matchTeamBlock {
-    padding-top: 4px;
-  }
-  .matchCenter {
-    padding-top: 2px;
-  }
-  .matchScore {
-    font-size: 1.2rem;
-  }
-  .matchVs {
-    font-size: 1.1rem;
+  .dateBlock {
+    width: 64px;
   }
 
-  .compact {
-    height: auto;
+  .dateDay {
+    font-size: 2rem;
   }
-  .compact .header {
-    height: 50px; /* close to the full 52px at this width — no top bar */
-  }
-  .compact .header:has(.headerTags) {
-    height: 64px;
-  }
-  .compact .matchHeader {
-    height: 90px; /* same as full at this width */
-  }
-  .compact .typeSidebar {
-    width: 21px;
-  }
-  .compact .typeSidebarLabel {
-    font-size: 0.58rem;
-  }
-  .compact .avatar {
-    font-size: 1.6rem;
+
+  .content {
+    padding: 14px 12px;
   }
 }
 
+.compact .dateBlock {
+  width: 60px;
+}
+
+.compact .content {
+  padding: 12px;
+}

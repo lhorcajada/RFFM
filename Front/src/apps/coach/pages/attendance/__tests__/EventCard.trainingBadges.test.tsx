@@ -85,36 +85,31 @@ describe("EventCard - badges de Entrenamiento", () => {
     expect(screen.getByText(/Llegada 9:15/)).toBeInTheDocument();
   });
 
-  it("muestra el tag de convocatoria en la cabecera de la tarjeta, no en la fila de chips inferior", () => {
+  it("muestra el tag de convocatoria en la fila superior de la tarjeta", () => {
     const { container } = renderCard(baseEvent({ hasConvokedPlayers: true }), "Entrenamiento");
 
-    const header = container.querySelector(`.${styles.header}`);
-    const tag = screen.getByText("Convocatoria abierta");
-
-    expect(header).toContainElement(tag);
-    expect(container.querySelector(`.${styles.chipsRow}`)).toBeNull();
+    const topRow = container.querySelector(`.${styles.topRow}`);
+    expect(topRow).toContainElement(screen.getByText("Convocatoria abierta"));
   });
 
-  it("muestra el tag de convocatoria en la cabecera también en modo compacto (Próximos eventos)", () => {
+  it("muestra el tag de convocatoria en la fila superior también en modo compacto", () => {
     const { container } = render(
       <MemoryRouter>
         <EventCard event={baseEvent()} eventTypeName="Entrenamiento" compact />
       </MemoryRouter>
     );
 
-    const header = container.querySelector(`.${styles.header}`);
-    expect(header).toContainElement(screen.getByText("Convocatoria sin iniciar"));
+    const topRow = container.querySelector(`.${styles.topRow}`);
+    expect(topRow).toContainElement(screen.getByText("Convocatoria sin iniciar"));
   });
 
-  it("muestra la hora de llegada junto a la fecha/hora del evento (metaRow), no en la fila de chips inferior", () => {
+  it("muestra la hora de llegada en la fila del lugar", () => {
     const { container } = renderCard(
       baseEvent({ arrivalDate: "2026-09-01T17:30:00" }),
       "Entrenamiento"
     );
 
-    const metaRow = container.querySelector(`.${styles.metaRow}`);
-    const arrivalChip = screen.getByText(/Llegada 17:30/);
-
-    expect(metaRow).toContainElement(arrivalChip);
+    const locationRow = container.querySelector(`.${styles.locationRow}`);
+    expect(locationRow).toContainElement(screen.getByText(/Llegada 17:30/));
   });
 });

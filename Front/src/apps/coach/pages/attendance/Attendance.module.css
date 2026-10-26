@@ -1,42 +1,57 @@
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.groups {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin-top: 24px;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.groupHeader {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.groupTitle {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.groupRange {
+  font-size: 0.875rem;
+  opacity: 0.75;
+}
+
 .list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  grid-auto-rows: 384px;  /* Must match EventCard's .card fixed height (EventCard.module.css) */
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
   gap: 16px;
-  align-items: start;
 }
+
 .item {
   min-width: 0;
-  height: 384px;
 }
 
 @media (max-width: 480px) {
   .list {
     grid-template-columns: 1fr;
-    grid-auto-rows: 360px;
   }
-  .item {
-    height: 360px;
-  }
-}
-
-
-/* Improve contrast for date inputs and icons */
-.filters {
-  align-items: center;
-}
-
-/* MUI TextField input inside our filters */
-.filters .MuiInputBase-root {
-  color: var(--rffm-card-text, #fff);
-}
-
-/* Date picker specific: darken calendar icon */
-.filters input[type="date"]::-webkit-calendar-picker-indicator {
-  filter: brightness(0) invert(1);
-}
-
-/* For non-webkit browsers, increase contrast on the container */
-.filters .MuiInputAdornment-root {
-  color: var(--rffm-card-text, #fff);
 }

@@ -56,3 +56,45 @@ export function getDefaultAttendanceDateRange(
 
   return { start, end };
 }
+
+export type AttendanceSegment = "upcoming" | "past" | "season";
+
+export interface AttendanceSegmentFilter extends AttendanceDateRange {
+  descending: boolean;
+}
+
+interface SeasonBounds {
+  startDate?: string | null;
+  endDate?: string | null;
+}
+
+function seasonStartFallback(now: Date): string {
+  const year = now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1;
+  return formatDateOnly(new Date(year, 7, 1));
+}
+
+/**
+ * Date range and order behind each segment of the events filter bar:
+ * "upcoming" = today → season end (ascending), "past" = season start →
+ * yesterday (descending), "season" = season start → season end (ascending).
+ */
+export function getSegmentFilter(
+  segment: AttendanceSegment,
+  season: SeasonBounds | null | undefined,
+  now: Date = new Date()
+): AttendanceSegmentFilter {
+  const { start: today, end: seasonEnd } = getDefaultAttendanceDateRange(season?.endDate, now);
+  const seasonStart = season?.startDate
+    ? formatDateOnly(parseDateOnly(season.startDate) ?? toDateOnly(now))
+    : seasonStartFallback(now);
+
+  if (segment === "past") {
+    const yesterday = toDateOnly(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    return { start: seasonStart, end: formatDateOnly(yesterday), descending: true };
+  }
+  if (segment === "season") {
+    return { start: seasonStart, end: seasonEnd, descending: false };
+  }
+  return { start: today, end: seasonEnd, descending: false };
+}

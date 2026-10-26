@@ -1,35 +1,11 @@
 process.env.TZ = "Europe/Madrid";
 
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import EventCard from "../EventCard";
 import type { SportEventResponse } from "../../../services/sportEventService";
-
-const navigateMock = vi.fn();
-
-vi.mock("react-router-dom", async () => {
-  const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
-  return {
-    ...actual,
-    useNavigate: () => navigateMock,
-  };
-});
-
-vi.mock("../../../services/sportEventService", () => ({
-  deleteSportEvent: vi.fn(),
-}));
-
-vi.mock("../../../services/authService", () => ({
-  coachAuthService: {
-    hasRole: vi.fn().mockReturnValue(false),
-  },
-}));
-
-vi.mock("../components/SportEventDialog", () => ({
-  default: () => null,
-}));
 
 function baseEvent(overrides: Partial<SportEventResponse> = {}): SportEventResponse {
   return {
@@ -40,8 +16,8 @@ function baseEvent(overrides: Partial<SportEventResponse> = {}): SportEventRespo
   };
 }
 
-describe("EventCard - toMatchState convierte la hora UTC a hora local", () => {
-  it("no permite al jugador o familiar abrir el detalle del partido desde el calendario", () => {
+describe("EventCard - hora del partido", () => {
+  it("no ofrece un botón «Ir al partido» a jugadores o familiares", () => {
     render(
       <MemoryRouter initialEntries={["/coach/attendance?teamId=team-1"]}>
         <EventCard event={baseEvent()} eventTypeName="Partido" isPlayer />
@@ -49,10 +25,9 @@ describe("EventCard - toMatchState convierte la hora UTC a hora local", () => {
     );
 
     expect(screen.queryByRole("button", { name: /ir al partido/i })).not.toBeInTheDocument();
-    expect(navigateMock).not.toHaveBeenCalled();
   });
 
-  it("navega con la hora del partido convertida a la hora local (Europe/Madrid, CEST +2)", () => {
+  it("muestra la hora del partido convertida a la hora local (Europe/Madrid, CEST +2)", () => {
     // 2026-08-31T18:00:00Z en UTC corresponde a las 20:00 en Europe/Madrid (CEST, verano, +2h)
     const event = baseEvent({ eveDateTime: "2026-08-31T18:00:00Z", startTime: "2026-08-31T18:00:00Z" });
 
@@ -62,12 +37,6 @@ describe("EventCard - toMatchState convierte la hora UTC a hora local", () => {
       </MemoryRouter>
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /ir al partido/i }));
-
-    expect(navigateMock).toHaveBeenCalledTimes(1);
-    const [url, options] = navigateMock.mock.calls[0];
-    expect(url).toBe("/coach/convocations/match?teamId=team-1&eventId=event-1");
-    expect(options.state.match.time).toBe("20:00");
-    expect(options.state.match.eventId).toBe("event-1");
+    expect(screen.getByText("20:00")).toBeInTheDocument();
   });
 });
