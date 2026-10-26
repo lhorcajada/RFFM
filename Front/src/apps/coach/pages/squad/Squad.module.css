@@ -15,6 +15,29 @@
   justify-content: flex-end;
 }
 
+.leagueNotice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--rffm-league-bg);
+  border: 1px solid var(--rffm-league-border);
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.leagueNotice strong {
+  color: var(--rffm-league-text);
+}
+
+.leagueNoticeIcon {
+  flex: none;
+  margin-top: 1px;
+  color: var(--rffm-league-text);
+}
+
 .formLegendRow {
   display: flex;
   justify-content: flex-end;

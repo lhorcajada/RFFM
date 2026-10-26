@@ -395,6 +395,10 @@ const gameTheme = createTheme({
           "--rffm-primary": "#00e5ff",
           "--rffm-secondary": "#ffc107",
           "--bg": "#030a15",
+          // ─── League-only data notice / tag (coach squad) ───
+          "--rffm-league-bg": "#2a1d10",
+          "--rffm-league-border": "#4a3418",
+          "--rffm-league-text": "#ffb36b",
           "--rffm-footer-border":
             "2px solid rgba(0, 229, 255, 0.22), 0 0 20px rgba(0, 229, 255, 0.08)",
           // ─── Enhanced dashboard card variables ───

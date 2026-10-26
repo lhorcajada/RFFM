@@ -4,7 +4,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import HistoryIcon from "@mui/icons-material/History";
 import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
 import avatarFallback from "../../../../../assets/avatar.svg";
-import type { SeasonPlayerStats } from "../../convocations/components/simulation/liveMatch.types";
+import type { LeaguePlayerStats } from "../../../services/leagueStatsService";
 import PlayerFormBars from "../../../components/PlayerFormBars/PlayerFormBars";
 import styles from "./PlayerCromo.module.css";
 
@@ -36,7 +36,8 @@ type Props = {
   hidePhoto?: boolean;
   selected?: boolean;
   onClick?: () => void;
-  seasonStats?: SeasonPlayerStats | null;
+  /** Cifras del jugador contando solo partidos de liga. */
+  leagueStats?: LeaguePlayerStats | null;
   /** Consecutive past matches since the last technical deconvocation. Shown as a small badge. */
   streakCount?: number | null;
   /** Rodaje (0-100). Junto con `fatigue`, se muestra como barras Ef/R/C. */
@@ -66,6 +67,15 @@ const STATS: { key: keyof RatingData; label: string }[] = [
   { key: "tactical", label: "Tác" },
   { key: "physical", label: "Fís" },
   { key: "competitiveness", label: "Com" },
+];
+
+const LEAGUE_STATS: { key: Exclude<keyof LeaguePlayerStats, "teamPlayerId">; label: string }[] = [
+  { key: "goals", label: "Goles" },
+  { key: "callUps", label: "Convocatorias" },
+  { key: "starts", label: "Titular" },
+  { key: "yellowCards", label: "Amarillas" },
+  { key: "redCards", label: "Rojas" },
+  { key: "minutesPlayed", label: "Minutos" },
 ];
 
 function avgRating(r: RatingData): number {
@@ -108,7 +118,7 @@ export default function PlayerCromo({
   hidePhoto,
   selected,
   onClick,
-  seasonStats,
+  leagueStats,
   streakCount,
   readiness,
   fatigue,
@@ -218,13 +228,17 @@ export default function PlayerCromo({
           <div className={styles.noRatingTag}>Sin valoración</div>
         ) : null}
 
-        {seasonStats && (seasonStats.totalMatches > 0) && (
-          <div className={styles.seasonStatsRow}>
-            <span className={styles.seasonStatItem}>⏱ {seasonStats.totalMinutes}&apos;</span>
-            <span className={styles.seasonStatSep}>·</span>
-            <span className={styles.seasonStatItem}>⚽ {seasonStats.totalGoals}</span>
-            <span className={styles.seasonStatSep}>·</span>
-            <span className={styles.seasonStatItem}>{seasonStats.totalStarts} tit.</span>
+        {leagueStats && (
+          <div className={styles.leagueStats}>
+            <span className={styles.leagueTag}>Solo liga</span>
+            <div className={styles.leagueGrid}>
+              {LEAGUE_STATS.map(({ key, label }) => (
+                <div key={key} className={styles.leagueItem}>
+                  <span className={styles.leagueValue}>{leagueStats[key]}</span>
+                  <span className={styles.leagueLabel}>{label}</span>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 

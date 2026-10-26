@@ -9,6 +9,7 @@ import { useSearchParams } from "react-router-dom";
 import { coachAuthService } from "../../services/authService";
 import { getMyProfile } from "../../services/coachApi";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import BaseLayout from "../../../../shared/components/ui/BaseLayout/BaseLayout";
 import ContentLayout from "../../../../shared/components/ui/ContentLayout/ContentLayout";
 import useTeamAndClub from "../../hooks/useTeamAndClub.tsx";
@@ -18,12 +19,12 @@ import teamplayerService from "../../services/teamplayerService";
 import { dischargeActiveInjury } from "../../services/teamplayerService";
 import playerService from "../../services/playerService";
 import playerRatingService from "../../services/playerRatingService";
-import { getSeasonPlayerStats } from "../../services/liveMatchService";
+import { getTeamLeagueStats } from "../../services/leagueStatsService";
+import type { LeaguePlayerStats } from "../../services/leagueStatsService";
 import { getTeamPlayerStatistics } from "../../services/teamPlayerStatisticsService";
 import type { PlayerStatistics } from "../../services/teamPlayerStatisticsService";
 import SquadStatistics from "./components/SquadStatistics";
 import PlayerFormLegend from "../../components/PlayerFormLegend/PlayerFormLegend";
-import type { SeasonPlayerStats } from "../convocations/components/simulation/liveMatch.types";
 import type { PlayerRating } from "../../types/playerRating";
 import { useAuditPageAccess } from "../../../../shared/hooks/useAuditPageAccess";
 import styles from "./Squad.module.css";
@@ -81,7 +82,7 @@ export default function Squad() {
   const [players, setPlayers] = useState<any[]>([]);
   const [playerPhotos, setPlayerPhotos] = useState<Record<string, string | null>>({});
   const [latestRatings, setLatestRatings] = useState<Record<string, PlayerRating>>({});
-  const [seasonStats, setSeasonStats] = useState<Record<string, SeasonPlayerStats>>({});
+  const [leagueStats, setLeagueStats] = useState<Record<string, LeaguePlayerStats>>({});
   const [playerStats, setPlayerStats] = useState<PlayerStatistics[]>([]);
   const [loadingRatings, setLoadingRatings] = useState(false);
   const [loadingPlayers, setLoadingPlayers] = useState(false);
@@ -230,13 +231,13 @@ export default function Squad() {
           .catch(() => {})
           .finally(() => { if (mounted) setLoadingRatings(false); });
 
-        // Load season stats (best-effort, non-blocking)
-        getSeasonPlayerStats(team.id)
+        // Load league-only stats (best-effort, non-blocking)
+        getTeamLeagueStats(team.id)
           .then((stats) => {
             if (!mounted) return;
-            const map: Record<string, SeasonPlayerStats> = {};
+            const map: Record<string, LeaguePlayerStats> = {};
             stats.forEach((s) => { map[s.teamPlayerId] = s; });
-            setSeasonStats(map);
+            setLeagueStats(map);
           })
           .catch(() => {});
 
@@ -355,6 +356,15 @@ export default function Squad() {
               />
             </div>
           )}
+          {activeTab === 0 && !isFan && Object.keys(leagueStats).length > 0 && (
+            <div className={styles.leagueNotice} role="note">
+              <InfoOutlinedIcon fontSize="small" className={styles.leagueNoticeIcon} />
+              <span>
+                <strong>Datos de liga.</strong> Goles, convocatorias, titularidades, tarjetas y minutos
+                cuentan solo partidos de liga; no incluyen amistosos ni torneos.
+              </span>
+            </div>
+          )}
           {activeTab === 0 && loadingPlayers && (
             <div className={styles.list}>
               <div className={styles.cardWrap}>Cargando...</div>
@@ -412,7 +422,7 @@ export default function Squad() {
                                 ? { technical: r.technical, tactical: r.tactical, physical: r.physical, competitiveness: r.competitiveness }
                                 : null;
                             })()}
-                            seasonStats={!isRestricted || (!loadingProfile && p.id === associatedTeamPlayerId) ? (seasonStats[p.id] ?? null) : null}
+                            leagueStats={!isFan && (!isPlayerOrFamily || (!loadingProfile && p.id === associatedTeamPlayerId)) ? (leagueStats[p.id] ?? null) : null}
                             readiness={playerStatsMap[p.id]?.readiness ?? null}
                             fatigue={playerStatsMap[p.id]?.fatigue ?? null}
                             formStatus={playerStatsMap[p.id]?.formStatus}

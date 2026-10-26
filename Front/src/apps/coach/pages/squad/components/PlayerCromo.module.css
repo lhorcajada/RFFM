@@ -309,25 +309,58 @@
 }
 
 /* ─── Season stats row ─── */
-.seasonStatsRow {
+.leagueStats {
   display: flex;
-  align-items: center;
-  gap: 5px;
+  flex-direction: column;
+  gap: 6px;
   margin-top: 6px;
   padding-top: 6px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
-  flex-wrap: wrap;
 }
 
-.seasonStatItem {
+.leagueTag {
+  align-self: flex-start;
+  padding: 1px 7px;
+  border-radius: 6px;
+  background: var(--rffm-league-bg);
+  color: var(--rffm-league-text);
   font-size: 10px;
-  color: rgba(255, 255, 255, 0.55);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.leagueGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.leagueItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 4px 1px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  min-width: 0;
+}
+
+.leagueValue {
+  font-size: 13px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.92);
   font-variant-numeric: tabular-nums;
 }
 
-.seasonStatSep {
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.2);
+.leagueLabel {
+  max-width: 100%;
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.6);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ─── Ef / Rodaje / Cansancio bars ─── */
@@ -403,7 +436,6 @@
   }
 
   .detailPill,
-  .seasonStatItem,
   .noRatingTag {
     font-size: 9px;
   }
