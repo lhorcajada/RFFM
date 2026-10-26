@@ -1,4 +1,8 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
+import { UserProvider } from "../../../../../shared/context/UserContext";
+import MyDocuments from "../MyDocuments";
 
 const mockGetMyProfile = vi.fn();
 const mockGetDocumentTypes = vi.fn();
@@ -32,11 +36,6 @@ describe("MyDocuments", () => {
     mockGetDocumentTypes.mockResolvedValue([]);
     mockGetPlayerDocuments.mockResolvedValue([]);
 
-    const { default: MyDocuments } = await import("../MyDocuments");
-    const { render, screen, waitFor } = await import("@testing-library/react");
-    const { MemoryRouter } = await import("react-router-dom");
-    const { UserProvider } = await import("../../../../../shared/context/UserContext");
-
     render(
       <MemoryRouter>
         <UserProvider>
@@ -61,14 +60,6 @@ describe("MyDocuments", () => {
     mockGetDocumentTypes.mockResolvedValue([]);
     mockGetPlayerDocuments.mockResolvedValue([]);
 
-    // Dynamically import to trigger the effect
-    const { default: MyDocuments } = await import("../MyDocuments");
-
-    // Import React to test the component logic
-    const { render } = await import("@testing-library/react");
-    const { MemoryRouter } = await import("react-router-dom");
-
-    // The test will fail due to missing context, but we can verify the import works
     expect(MyDocuments).toBeDefined();
   });
 
